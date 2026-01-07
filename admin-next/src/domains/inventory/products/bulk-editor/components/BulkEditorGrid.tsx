@@ -3,6 +3,7 @@
 import React, { useCallback } from "react";
 import { createStyles } from "antd-style";
 import { EditorGrid } from "@/shared/components/editor-grid";
+import { validateFieldChange } from "@/shared/utils/inventory";
 import { IBulkEditorRow } from "../types";
 import { useBulkEditorStore } from "../hooks/useBulkEditorStore";
 import { useBulkEditorData } from "../hooks/useBulkEditorData";
@@ -80,22 +81,17 @@ export const BulkEditorGrid: React.FC = () => {
   // Handle field value change with validation
   const handleSetFieldValue = useCallback(
     (rowId: string, field: string, originalValue: unknown, newValue: unknown) => {
-      // Validate inventory fields (only for variant rows)
+      // Validate inventory fields using shared validator (only for variant rows)
       if (field === "onHand" || field === "unavailable") {
-        const numValue = Number(newValue);
-        if (isNaN(numValue) || numValue < 0) {
-          return; // Reject negative values
-        }
-
         const row = rows.find((r) => r.id === rowId);
         if (row && row.rowType === "variant") {
-          const testOnHand = field === "onHand" ? numValue : (row.onHand ?? 0);
-          const testUnavailable = field === "unavailable" ? numValue : (row.unavailable ?? 0);
-          const newAvailable = testOnHand - testUnavailable - (row.reserved ?? 0);
-
-          if (newAvailable < 0) {
-            return; // Reject - would result in negative availability
-          }
+          const result = validateFieldChange(field, Number(newValue), {
+            onHand: row.onHand ?? 0,
+            unavailable: row.unavailable ?? 0,
+            reserved: row.reserved ?? 0,
+            available: row.available ?? 0,
+          });
+          if (!result.isValid) return;
         }
       }
 

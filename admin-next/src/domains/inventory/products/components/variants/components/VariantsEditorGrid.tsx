@@ -2,6 +2,7 @@
 
 import React, { useCallback, useMemo, useState, useEffect } from "react";
 import { EditorGrid } from "@/shared/components/editor-grid";
+import { validateFieldChange } from "@/shared/utils/inventory";
 import { useVariantsEditorStore, useVariantsColumns } from "../hooks";
 import {
   SELECTABLE_COLUMNS,
@@ -178,22 +179,17 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
   // Handle field value change with validation
   const handleSetFieldValue = useCallback(
     (rowId: string, field: string, originalValue: unknown, newValue: unknown) => {
-      // Validate inventory fields
+      // Validate inventory fields using shared validator
       if (field === "onHand" || field === "unavailable") {
-        const numValue = Number(newValue);
-        if (isNaN(numValue) || numValue < 0) {
-          return; // Reject negative values
-        }
-
         const row = rows.find((r) => r.id === rowId);
         if (row) {
-          const testOnHand = field === "onHand" ? numValue : row.onHand;
-          const testUnavailable = field === "unavailable" ? numValue : row.unavailable;
-          const newAvailable = testOnHand - testUnavailable - row.reserved;
-
-          if (newAvailable < 0) {
-            return; // Reject - would result in negative availability
-          }
+          const result = validateFieldChange(field, Number(newValue), {
+            onHand: row.onHand,
+            unavailable: row.unavailable,
+            reserved: row.reserved,
+            available: row.available,
+          });
+          if (!result.isValid) return;
         }
       }
 

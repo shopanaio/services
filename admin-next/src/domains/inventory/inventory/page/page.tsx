@@ -19,6 +19,7 @@ import { CursorPagination } from "@/ui-kit/CursorPagination";
 import { useGridState } from "@/hooks";
 import { filterSchema } from "./filterSchema";
 import { useInventory, useInventoryEditStore } from "../hooks";
+import { validateFieldChange } from "@/shared/utils/inventory";
 import type { IInventoryListItem } from "../mocks/inventory-list";
 import {
   CalculatedAvailableCell,
@@ -115,12 +116,6 @@ export default function InventoryPage() {
       const field = colDef.field as "onHand" | "unavailable";
       if (field !== "onHand" && field !== "unavailable") return;
 
-      const newVal = Number(newValue);
-      if (isNaN(newVal) || newVal < 0) {
-        message.error("Value must be a non-negative number");
-        return;
-      }
-
       // Find original server data
       const serverItem = serverData.find((item) => item.id === data.id);
       if (!serverItem) return;
@@ -132,20 +127,22 @@ export default function InventoryPage() {
       const currentUnavailable =
         currentEdits?.unavailable?.currentValue ?? serverItem.unavailable;
 
-      // Calculate what available would be
-      const testOnHand = field === "onHand" ? newVal : currentOnHand;
-      const testUnavailable =
-        field === "unavailable" ? newVal : currentUnavailable;
-      const newAvailable = testOnHand - testUnavailable - serverItem.reserved;
+      // Validate using shared validator
+      const result = validateFieldChange(field, Number(newValue), {
+        onHand: currentOnHand,
+        unavailable: currentUnavailable,
+        reserved: serverItem.reserved,
+        available: currentOnHand - currentUnavailable - serverItem.reserved,
+      });
 
-      if (newAvailable < 0) {
-        message.error("This change would result in negative availability");
+      if (!result.isValid) {
+        message.error(result.errors[0]?.message || "Invalid value");
         return;
       }
 
       // Store edit in Zustand (original value from server, new value from edit)
       const originalValue = serverItem[field];
-      setFieldValue(data.id, field, originalValue, newVal);
+      setFieldValue(data.id, field, originalValue, Number(newValue));
     },
     [message, setFieldValue, edits, serverData]
   );
