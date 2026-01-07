@@ -62,7 +62,6 @@ export const SelectableCell: React.FC<SelectableCellProps> = ({
       data-selectable="true"
       data-selected={isSelected}
       className={className}
-      style={{ padding: "0 var(--ag-cell-horizontal-padding)" }}
       onMouseDown={handleMouseDown}
       onMouseEnter={handleMouseEnter}
     >
