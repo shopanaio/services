@@ -105,6 +105,17 @@ function getCellEditor(column: (typeof ALL_COLUMNS)[0]) {
   }
 }
 
+// Get column type for alignment
+function getColumnType(column: (typeof ALL_COLUMNS)[0]): string | undefined {
+  switch (column.type) {
+    case "currency":
+    case "number":
+      return "rightAligned";
+    default:
+      return undefined;
+  }
+}
+
 // Get cell editor params
 function getCellEditorParams(column: (typeof ALL_COLUMNS)[0]) {
   switch (column.field) {
@@ -158,6 +169,7 @@ export function useBulkEditorColumns(): ColDef<IBulkEditorRow>[] {
         width: col.width,
         minWidth: col.minWidth,
         flex: col.flex,
+        type: getColumnType(col),
         editable: isCellEditable,
         cellRenderer: getCellRenderer(col),
         cellEditor: getCellEditor(col),
@@ -176,6 +188,7 @@ export function useBulkEditorColumns(): ColDef<IBulkEditorRow>[] {
         width: col.width,
         minWidth: col.minWidth,
         flex: col.flex,
+        type: getColumnType(col),
         editable: col.editable ? isCellEditable : false,
         cellRenderer: getCellRenderer(col),
         cellEditor: getCellEditor(col),

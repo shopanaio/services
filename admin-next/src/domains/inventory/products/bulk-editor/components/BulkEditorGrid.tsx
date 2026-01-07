@@ -46,9 +46,9 @@ const useStyles = createStyles(({ token }) => ({
     },
 
     // Fix input alignment in edit mode
-    ".ag-cell-inline-editing": {
-      display: "block",
-      padding: 0,
+    "& .ag-cell-editor input": {
+      textAlign: "right",
+      paddingRight: token.padding,
     },
 
     ".ag-header-cell": {
@@ -92,9 +92,6 @@ const useStyles = createStyles(({ token }) => ({
       backgroundColor: token.colorBgContainer,
     },
 
-    ".bulk-editor-variant-row .ag-cell-value": {
-      paddingLeft: 8,
-    },
   },
 }));
 
