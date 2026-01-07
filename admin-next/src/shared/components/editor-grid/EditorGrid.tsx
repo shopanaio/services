@@ -183,7 +183,7 @@ function EditorGridInnerComponent<T extends IEditorRowBase>({
         animateRows={false}
         defaultColDef={{
           resizable: true,
-          sortable: true,
+          sortable: false,
           suppressMovable: true,
         }}
       />

@@ -119,7 +119,7 @@ export function VariantsTable<T extends IVariantRowBase>({
   const defaultColDef = useMemo<ColDef>(
     () => ({
       resizable: true,
-      sortable: true,
+      sortable: false,
     }),
     []
   );
