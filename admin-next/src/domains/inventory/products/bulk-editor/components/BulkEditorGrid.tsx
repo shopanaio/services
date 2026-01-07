@@ -4,7 +4,6 @@ import { AgGridReact } from "ag-grid-react";
 import type {
   CellEditRequestEvent,
   GridReadyEvent,
-  GetDataPath,
   GetRowIdParams,
   RowClassParams,
 } from "ag-grid-community";
@@ -14,7 +13,6 @@ import { useBulkEditorData } from "../hooks/useBulkEditorData";
 import { useBulkEditorColumns } from "../hooks/useBulkEditorColumns";
 import {
   CellSelectionProvider,
-  SelectionToolbar,
   ICellSelectionConfig,
 } from "@/shared/components/ag-grid-cell-selection";
 
@@ -139,11 +137,6 @@ export const BulkEditorGrid: React.FC = () => {
     },
   }), [displayRows, rows, setFieldValue]);
 
-  // Get data path for tree data
-  const getDataPath: GetDataPath<IBulkEditorRow> = useCallback((data) => {
-    return data.path;
-  }, []);
-
   // Get row ID
   const getRowId = useCallback((params: GetRowIdParams<IBulkEditorRow>) => {
     return params.data.id;
@@ -191,15 +184,11 @@ export const BulkEditorGrid: React.FC = () => {
 
   return (
     <CellSelectionProvider gridRef={gridRef} config={selectionConfig}>
-      <SelectionToolbar />
       <div className={styles.gridWrapper}>
         <AgGridReact<IBulkEditorRow>
           ref={gridRef}
           rowData={displayRows}
           columnDefs={columns}
-          treeData
-          getDataPath={getDataPath}
-          groupDefaultExpanded={-1}
           rowHeight={52}
           headerHeight={44}
           getRowId={getRowId}
@@ -214,14 +203,6 @@ export const BulkEditorGrid: React.FC = () => {
             resizable: true,
             sortable: true,
             suppressMovable: true,
-          }}
-          autoGroupColumnDef={{
-            headerName: "Product / Variant",
-            minWidth: 250,
-            flex: 1,
-            cellRendererParams: {
-              suppressCount: true,
-            },
           }}
         />
       </div>

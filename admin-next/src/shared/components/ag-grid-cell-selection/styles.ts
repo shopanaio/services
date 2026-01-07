@@ -17,48 +17,6 @@ export const useSelectionStyles = createStyles(({ token }) => ({
     backgroundColor: token.colorPrimaryBg,
     boxShadow: `inset 0 0 0 2px ${token.colorPrimary}`,
   },
-
-  // Selection toolbar container
-  toolbar: {
-    display: "flex",
-    alignItems: "center",
-    gap: token.marginSM,
-    padding: `${token.paddingXS}px ${token.paddingSM}px`,
-    backgroundColor: token.colorPrimaryBg,
-    borderRadius: token.borderRadius,
-    marginBottom: token.marginSM,
-    border: `1px solid ${token.colorPrimaryBorder}`,
-  },
-
-  // Selection count text
-  selectionCount: {
-    fontSize: token.fontSizeSM,
-    color: token.colorPrimary,
-    fontWeight: 500,
-    marginRight: "auto",
-  },
-
-  // Button group in toolbar
-  toolbarActions: {
-    display: "flex",
-    alignItems: "center",
-    gap: token.marginXS,
-  },
-
-  // Popover content for set value
-  setValuePopover: {
-    minWidth: 200,
-  },
-
-  setValueInput: {
-    marginBottom: token.marginSM,
-  },
-
-  setValueActions: {
-    display: "flex",
-    justifyContent: "flex-end",
-    gap: token.marginXS,
-  },
 }));
 
 /**

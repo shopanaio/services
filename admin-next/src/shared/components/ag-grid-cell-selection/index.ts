@@ -18,8 +18,6 @@ export { useCellSelection } from "./useCellSelection";
 
 // Components
 export { SelectableCell } from "./SelectableCell";
-export { SelectionToolbar } from "./SelectionToolbar";
-export { SetValuePopover } from "./SetValuePopover";
 
 // Styles
 export { useSelectionStyles, SELECTING_BODY_CLASS } from "./styles";
