@@ -175,12 +175,31 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
     }
   }, [displayRows, edits, onChange]);
 
-  // Handle field value change
+  // Handle field value change with validation
   const handleSetFieldValue = useCallback(
     (rowId: string, field: string, originalValue: unknown, newValue: unknown) => {
+      // Validate inventory fields
+      if (field === "onHand" || field === "unavailable") {
+        const numValue = Number(newValue);
+        if (isNaN(numValue) || numValue < 0) {
+          return; // Reject negative values
+        }
+
+        const row = rows.find((r) => r.id === rowId);
+        if (row) {
+          const testOnHand = field === "onHand" ? numValue : row.onHand;
+          const testUnavailable = field === "unavailable" ? numValue : row.unavailable;
+          const newAvailable = testOnHand - testUnavailable - row.reserved;
+
+          if (newAvailable < 0) {
+            return; // Reject - would result in negative availability
+          }
+        }
+      }
+
       setFieldValue(rowId, field, originalValue, newValue);
     },
-    [setFieldValue]
+    [setFieldValue, rows]
   );
 
   return (

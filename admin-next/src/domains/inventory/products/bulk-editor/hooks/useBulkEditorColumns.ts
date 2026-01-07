@@ -70,13 +70,30 @@ function createValueGetter(field: keyof IBulkEditorRow) {
   };
 }
 
-// Value setter - save to store
+// Value setter - save to store with validation
 function createValueSetter(field: keyof IBulkEditorRow) {
   return (params: ValueSetterParams<IBulkEditorRow>): boolean => {
     const { data, newValue } = params;
     if (!data) return false;
 
     const originalValue = data[field];
+    const numValue = Number(newValue);
+
+    // Validate inventory fields (only for variant rows)
+    if ((field === "onHand" || field === "unavailable") && data.rowType === "variant") {
+      if (isNaN(numValue) || numValue < 0) {
+        return false; // Reject negative values
+      }
+
+      // Calculate what available would be with this change
+      const testOnHand = field === "onHand" ? numValue : (data.onHand ?? 0);
+      const testUnavailable = field === "unavailable" ? numValue : (data.unavailable ?? 0);
+      const newAvailable = testOnHand - testUnavailable - (data.reserved ?? 0);
+
+      if (newAvailable < 0) {
+        return false; // Reject - would result in negative availability
+      }
+    }
 
     useBulkEditorStore
       .getState()

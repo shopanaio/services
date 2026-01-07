@@ -131,7 +131,7 @@ function createValueGetter(field: string) {
 }
 
 // ============================================================================
-// Value setter - save to store
+// Value setter - save to store with validation
 // ============================================================================
 
 function createValueSetter(field: string) {
@@ -140,6 +140,23 @@ function createValueSetter(field: string) {
     if (!data) return false;
 
     const originalValue = (data as unknown as Record<string, unknown>)[field];
+    const numValue = Number(newValue);
+
+    // Validate inventory fields
+    if (field === "onHand" || field === "unavailable") {
+      if (isNaN(numValue) || numValue < 0) {
+        return false; // Reject negative values
+      }
+
+      // Calculate what available would be with this change
+      const testOnHand = field === "onHand" ? numValue : data.onHand;
+      const testUnavailable = field === "unavailable" ? numValue : data.unavailable;
+      const newAvailable = testOnHand - testUnavailable - data.reserved;
+
+      if (newAvailable < 0) {
+        return false; // Reject - would result in negative availability
+      }
+    }
 
     useVariantsEditorStore
       .getState()
