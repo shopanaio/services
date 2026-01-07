@@ -8,6 +8,7 @@ import {
   type IVariantEditorRow,
   type IOptionGroup,
   type StockStatus,
+  type VariantColumnField,
 } from "../config";
 
 // ============================================================================
@@ -40,6 +41,16 @@ interface VariantsEditorGridProps {
   variants: IVariantInput[];
   lowStockThreshold?: number;
   onChange?: (rows: IVariantEditorRow[]) => void;
+  /**
+   * When provided, only these columns will be shown.
+   * If undefined, all columns are available with user settings.
+   */
+  availableColumns?: VariantColumnField[];
+  /**
+   * When true, column visibility ignores user settings and uses availableColumns only.
+   * Useful for restricted views like pricing modal.
+   */
+  ignoreUserSettings?: boolean;
 }
 
 // ============================================================================
@@ -106,6 +117,8 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
   variants,
   lowStockThreshold = 10,
   onChange,
+  availableColumns,
+  ignoreUserSettings = false,
 }) => {
   // Extract option groups for column generation
   const optionGroups = useMemo(
@@ -123,8 +136,12 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
   const edits = useVariantsEditorStore((s) => s.edits);
   const setFieldValue = useVariantsEditorStore((s) => s.setFieldValue);
 
-  // Columns
-  const columns = useVariantsColumns(optionGroups);
+  // Columns - pass availableColumns and ignoreUserSettings
+  const columns = useVariantsColumns({
+    optionGroups,
+    availableColumns,
+    ignoreUserSettings,
+  });
 
   // Local row state (original data)
   const [rows] = useState<IVariantEditorRow[]>(initialRows);

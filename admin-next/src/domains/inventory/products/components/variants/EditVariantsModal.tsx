@@ -125,6 +125,10 @@ export const EditVariantsModal = () => {
 
   const isSaving = status === "saving";
 
+  // Column restrictions from payload
+  const availableColumns = typedPayload.availableColumns;
+  const showColumnSettings = typedPayload.showColumnSettings ?? true;
+
   // Transform variants to input format
   const variantInputs = useMemo(
     () => transformVariantsToInput(typedPayload.variants),
@@ -183,13 +187,13 @@ export const EditVariantsModal = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleClose]);
 
-  // Header extra: Columns button
-  const headerExtra = (
+  // Header extra: Columns button (conditionally shown)
+  const headerExtra = showColumnSettings ? (
     <div className={styles.headerExtra}>
       <VariantsColumnSettings optionGroups={optionGroups} />
       <Divider type="vertical" style={{ height: 48, margin: 0 }} />
     </div>
-  );
+  ) : null;
 
   return (
     <ModalLayout
@@ -221,6 +225,8 @@ export const EditVariantsModal = () => {
             variants={variantInputs}
             lowStockThreshold={typedPayload.lowStockThreshold}
             onChange={handleChange}
+            availableColumns={availableColumns}
+            ignoreUserSettings={!!availableColumns}
           />
         </div>
       </div>

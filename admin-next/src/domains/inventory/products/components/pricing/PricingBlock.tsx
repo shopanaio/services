@@ -830,6 +830,9 @@ export const PricingBlock = ({
             costPrice: actualCostPrice,
           }],
           formatPrice: formatPriceProp,
+          // Pricing-only mode: show only price columns, no settings button
+          availableColumns: ["price", "compareAtPrice", "costPrice"],
+          showColumnSettings: false,
           onSave: (updatedVariants: Array<{ id: string; sku: string | null; stock: number; barcode: string | null; price: number; compareAtPrice: number | null; costPrice: number | null; weight: number | null; weightUnit: string; length: number | null; width: number | null; height: number | null; dimensionUnit: string }>) => {
             console.log("Updated variants:", updatedVariants);
           },

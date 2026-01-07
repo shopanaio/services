@@ -4,4 +4,7 @@ export {
   type IColumnVisibility,
 } from "./useVariantsEditorStore";
 
-export { useVariantsColumns } from "./useVariantsColumns";
+export {
+  useVariantsColumns,
+  type UseVariantsColumnsOptions,
+} from "./useVariantsColumns";

@@ -55,6 +55,23 @@ export interface IVariantColumn {
 }
 
 // ============================================================================
+// Available Column Fields
+// ============================================================================
+
+export type VariantColumnField =
+  | "sku"
+  | "barcode"
+  | "price"
+  | "compareAtPrice"
+  | "costPrice"
+  | "stock"
+  | "stockStatus"
+  | "weight"
+  | "length"
+  | "width"
+  | "height";
+
+// ============================================================================
 // Option Group (for dynamic columns)
 // ============================================================================
 

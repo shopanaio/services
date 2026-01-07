@@ -4,6 +4,7 @@ export type {
   IVariantOption,
   IOptionGroup,
   StockStatus,
+  VariantColumnField,
 } from "./types";
 
 export {

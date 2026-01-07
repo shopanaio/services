@@ -6,6 +6,7 @@ import {
   createOptionColumns,
   type IVariantEditorRow,
   type IOptionGroup,
+  type VariantColumnField,
 } from "../config";
 import {
   ImageCellRenderer,
@@ -15,6 +16,24 @@ import {
   NumberCellRenderer,
   PriceCellRenderer,
 } from "../components/cell-renderers";
+
+// ============================================================================
+// Types
+// ============================================================================
+
+export interface UseVariantsColumnsOptions {
+  optionGroups: IOptionGroup[];
+  /**
+   * When provided, only these columns will be available.
+   * If undefined, all columns are available (with user visibility settings).
+   */
+  availableColumns?: VariantColumnField[];
+  /**
+   * When true, column visibility is controlled by availableColumns only,
+   * ignoring user settings. Useful for restricted views.
+   */
+  ignoreUserSettings?: boolean;
+}
 
 // ============================================================================
 // Price fields
@@ -131,8 +150,21 @@ function createValueSetter(field: string) {
 // ============================================================================
 
 export function useVariantsColumns(
+  options: UseVariantsColumnsOptions
+): ColDef<IVariantEditorRow>[];
+export function useVariantsColumns(
   optionGroups: IOptionGroup[]
+): ColDef<IVariantEditorRow>[];
+export function useVariantsColumns(
+  optionsOrOptionGroups: UseVariantsColumnsOptions | IOptionGroup[]
 ): ColDef<IVariantEditorRow>[] {
+  // Normalize arguments
+  const normalizedOptions: UseVariantsColumnsOptions = Array.isArray(optionsOrOptionGroups)
+    ? { optionGroups: optionsOrOptionGroups }
+    : optionsOrOptionGroups;
+
+  const { optionGroups, availableColumns, ignoreUserSettings = false } = normalizedOptions;
+
   const columnVisibility = useVariantsEditorStore((s) => s.columnVisibility);
   const isOptionColumnVisible = useVariantsEditorStore(
     (s) => s.isOptionColumnVisible
@@ -162,27 +194,37 @@ export function useVariantsColumns(
       pinned: "left",
     });
 
-    // Option columns (dynamic)
-    const optionCols = createOptionColumns(optionGroups);
-    for (const col of optionCols) {
-      if (!isOptionColumnVisible(col.headerName)) continue;
+    // Option columns (dynamic) - only show when not restricted or when user settings allow
+    if (!ignoreUserSettings) {
+      const optionCols = createOptionColumns(optionGroups);
+      for (const col of optionCols) {
+        if (!isOptionColumnVisible(col.headerName)) continue;
 
-      const optionName = col.headerName;
-      columns.push({
-        colId: col.field,
-        headerName: col.headerName,
-        width: col.width,
-        minWidth: col.minWidth,
-        valueGetter: (params) => {
-          const option = params.data?.options.find((o) => o.name === optionName);
-          return option?.value ?? "";
-        },
-      });
+        const optionName = col.headerName;
+        columns.push({
+          colId: col.field,
+          headerName: col.headerName,
+          width: col.width,
+          minWidth: col.minWidth,
+          valueGetter: (params) => {
+            const option = params.data?.options.find((o) => o.name === optionName);
+            return option?.value ?? "";
+          },
+        });
+      }
     }
 
     // Variant columns
     for (const col of VARIANT_COLUMNS) {
-      if (!columnVisibility[col.field]) continue;
+      // Check if column is available (if restricted)
+      if (availableColumns && !availableColumns.includes(col.field as VariantColumnField)) {
+        continue;
+      }
+
+      // Check visibility: either use user settings or availableColumns as the source of truth
+      if (!ignoreUserSettings && !columnVisibility[col.field]) {
+        continue;
+      }
 
       // Use price renderer for price fields
       const cellRenderer = PRICE_FIELDS.has(col.field)
@@ -206,5 +248,5 @@ export function useVariantsColumns(
     }
 
     return columns;
-  }, [columnVisibility, optionGroups, isOptionColumnVisible]);
+  }, [columnVisibility, optionGroups, isOptionColumnVisible, availableColumns, ignoreUserSettings]);
 }

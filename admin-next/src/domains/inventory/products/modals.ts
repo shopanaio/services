@@ -5,6 +5,7 @@ import type { RenderedContent } from '@/ui-kit/BlockEditor';
 import type { IProduct, IMediaFile } from './mocks/types';
 import type { IPriceHistoryRecord, IScheduledPriceRecord } from './components/pricing/PriceHistory';
 import type { PriceSource } from './components/pricing/PricingBlock';
+import type { VariantColumnField } from './components/variants/config';
 
 // ============================================================================
 // Modal Types
@@ -209,6 +210,9 @@ export interface IEditVariantShippingModalPayload extends IModalStackPayload {
 
 export type VariantTabKey = 'inventory' | 'pricing' | 'shipping' | 'media' | 'options';
 
+// Re-export for convenience
+export type { VariantColumnField };
+
 export interface IEditVariantsModalPayload extends IModalStackPayload {
   productId?: string;
   initialTab?: VariantTabKey;
@@ -236,6 +240,17 @@ export interface IEditVariantsModalPayload extends IModalStackPayload {
   }>;
   formatPrice?: (amount: number) => string;
   lowStockThreshold?: number;
+  /**
+   * When provided, only these columns will be shown.
+   * If undefined, all columns are available with user settings.
+   * Example: ['price', 'compareAtPrice', 'costPrice'] for pricing-only modal.
+   */
+  availableColumns?: VariantColumnField[];
+  /**
+   * Whether to show the column settings button. Defaults to true.
+   * Set to false when using restricted columns without user customization.
+   */
+  showColumnSettings?: boolean;
   onSave?: (variants: Array<{
     id: string;
     sku: string | null;
