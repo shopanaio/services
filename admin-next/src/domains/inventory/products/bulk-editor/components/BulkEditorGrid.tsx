@@ -90,10 +90,6 @@ const useStyles = createStyles(({ token }) => ({
       },
     },
 
-    ".ag-cell-focus": {
-      borderColor: `${token.colorPrimary} !important`,
-    },
-
     // Product row styling
     ".bulk-editor-product-row": {
       backgroundColor: token.colorBgContainer,
