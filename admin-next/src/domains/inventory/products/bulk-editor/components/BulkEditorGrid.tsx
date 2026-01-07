@@ -18,24 +18,20 @@ const useStyles = createStyles(({ token }) => ({
     height: "100%",
     width: "100%",
 
+    // AG Grid CSS variables for borders
+    "--ag-borders": "solid 1px",
+    "--ag-border-color": token.colorBorder,
+    "--ag-row-border-color": token.colorBorder,
+    "--ag-header-column-separator-display": "block",
+    "--ag-header-column-separator-color": token.colorBorder,
+    "--ag-header-column-separator-width": "1px",
+
     ".ag-root-wrapper": {
-      border: "none",
-      borderRadius: 0,
+      borderRadius: token.borderRadius,
     },
 
     ".ag-header": {
-      backgroundColor: token.colorBgContainer,
-      borderBottom: `1px solid ${token.colorBorderSecondary}`,
-    },
-
-    ".ag-header-cell": {
-      fontSize: 13,
-      fontWeight: 500,
-      color: token.colorTextSecondary,
-    },
-
-    ".ag-row": {
-      borderBottom: `1px solid ${token.colorBorderSecondary}`,
+      backgroundColor: token.colorFillQuaternary,
     },
 
     ".ag-row-hover": {
@@ -46,6 +42,23 @@ const useStyles = createStyles(({ token }) => ({
       display: "flex",
       alignItems: "center",
       fontSize: 13,
+      borderRight: `1px solid ${token.colorBorder}`,
+    },
+
+    ".ag-header-cell": {
+      fontSize: 13,
+      fontWeight: 500,
+      color: token.colorTextSecondary,
+      borderRight: `1px solid ${token.colorBorder}`,
+    },
+
+    // Transparent resize handles (visible on hover)
+    ".ag-header-cell-resize": {
+      opacity: 0,
+      transition: "opacity 0.2s",
+      "&:hover": {
+        opacity: 1,
+      },
     },
 
     ".ag-cell-focus": {
@@ -71,7 +84,6 @@ const useStyles = createStyles(({ token }) => ({
     // Pinned columns
     ".ag-pinned-left-cols-container": {
       backgroundColor: token.colorBgContainer,
-      borderRight: `1px solid ${token.colorBorderSecondary}`,
     },
 
     ".bulk-editor-variant-row .ag-cell-value": {
