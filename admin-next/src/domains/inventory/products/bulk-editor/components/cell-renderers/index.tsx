@@ -5,6 +5,7 @@ import type { CustomCellRendererProps } from "ag-grid-react";
 import { IBulkEditorRow, IFieldEdit } from "../../types";
 import { useBulkEditorStore } from "../../hooks/useBulkEditorStore";
 import { formatPrice } from "../../utils/transformers";
+import { SelectableCell } from "@/shared/components/ag-grid-cell-selection";
 
 const useStyles = createStyles(({ token }) => ({
   titleCell: {
@@ -127,20 +128,21 @@ export const PriceCellRenderer: React.FC<CustomCellRendererProps<IBulkEditorRow>
 
   const edit = getFieldEdit(data.id, field) as IFieldEdit<number | null> | undefined;
 
-  if (edit) {
-    const origPrice = formatPrice(edit.originalValue);
-    const newPrice = formatPrice(edit.currentValue);
-    return (
-      <div className={styles.editedValue}>
-        <span className={styles.originalValue}>{origPrice ?? ""}</span>
-        <span className={styles.arrow}>→</span>
-        <span className={styles.newValue}>{newPrice ?? ""}</span>
-      </div>
-    );
-  }
+  const content = edit ? (
+    <div className={styles.editedValue}>
+      <span className={styles.originalValue}>{formatPrice(edit.originalValue) ?? ""}</span>
+      <span className={styles.arrow}>→</span>
+      <span className={styles.newValue}>{formatPrice(edit.currentValue) ?? ""}</span>
+    </div>
+  ) : (
+    <div className={styles.priceCell}>{formatPrice(value) ?? ""}</div>
+  );
 
-  const formatted = formatPrice(value);
-  return <div className={styles.priceCell}>{formatted ?? ""}</div>;
+  return (
+    <SelectableCell rowId={data.id} field={field}>
+      {content}
+    </SelectableCell>
+  );
 };
 
 // Stock cell with edit diff
@@ -165,17 +167,21 @@ export const StockCellRenderer: React.FC<CustomCellRendererProps<IBulkEditorRow>
 
   const edit = getFieldEdit(data.id, field) as IFieldEdit<number | null> | undefined;
 
-  if (edit) {
-    return (
-      <div className={styles.editedValue}>
-        <span className={styles.originalValue}>{edit.originalValue ?? ""}</span>
-        <span className={styles.arrow}>→</span>
-        <span className={styles.newValue}>{edit.currentValue ?? ""}</span>
-      </div>
-    );
-  }
+  const content = edit ? (
+    <div className={styles.editedValue}>
+      <span className={styles.originalValue}>{edit.originalValue ?? ""}</span>
+      <span className={styles.arrow}>→</span>
+      <span className={styles.newValue}>{edit.currentValue ?? ""}</span>
+    </div>
+  ) : (
+    <div className={styles.stockCell}>{value ?? ""}</div>
+  );
 
-  return <div className={styles.stockCell}>{value ?? ""}</div>;
+  return (
+    <SelectableCell rowId={data.id} field={field}>
+      {content}
+    </SelectableCell>
+  );
 };
 
 // Stock status badge
@@ -255,7 +261,11 @@ export const TextCellRenderer: React.FC<CustomCellRendererProps<IBulkEditorRow>>
     return <DashLine />;
   }
 
-  return <span>{value ?? ""}</span>;
+  return (
+    <SelectableCell rowId={data.id} field={field}>
+      <span>{value ?? ""}</span>
+    </SelectableCell>
+  );
 };
 
 // Number cell with edit diff
@@ -280,15 +290,19 @@ export const NumberCellRenderer: React.FC<CustomCellRendererProps<IBulkEditorRow
 
   const edit = getFieldEdit(data.id, field) as IFieldEdit<number | null> | undefined;
 
-  if (edit) {
-    return (
-      <div className={styles.editedValue}>
-        <span className={styles.originalValue}>{edit.originalValue ?? ""}</span>
-        <span className={styles.arrow}>→</span>
-        <span className={styles.newValue}>{edit.currentValue ?? ""}</span>
-      </div>
-    );
-  }
+  const content = edit ? (
+    <div className={styles.editedValue}>
+      <span className={styles.originalValue}>{edit.originalValue ?? ""}</span>
+      <span className={styles.arrow}>→</span>
+      <span className={styles.newValue}>{edit.currentValue ?? ""}</span>
+    </div>
+  ) : (
+    <div className={styles.stockCell}>{value ?? ""}</div>
+  );
 
-  return <div className={styles.stockCell}>{value ?? ""}</div>;
+  return (
+    <SelectableCell rowId={data.id} field={field}>
+      {content}
+    </SelectableCell>
+  );
 };

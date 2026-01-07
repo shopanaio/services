@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from "react";
+import React, { useCallback, useMemo, useRef } from "react";
 import { createStyles } from "antd-style";
 import { AgGridReact } from "ag-grid-react";
 import type {
@@ -12,6 +12,11 @@ import { IBulkEditorRow } from "../types";
 import { useBulkEditorStore } from "../hooks/useBulkEditorStore";
 import { useBulkEditorData } from "../hooks/useBulkEditorData";
 import { useBulkEditorColumns } from "../hooks/useBulkEditorColumns";
+import {
+  CellSelectionProvider,
+  SelectionToolbar,
+  ICellSelectionConfig,
+} from "@/shared/components/ag-grid-cell-selection";
 
 const useStyles = createStyles(({ token }) => ({
   gridWrapper: {
@@ -95,6 +100,20 @@ const useStyles = createStyles(({ token }) => ({
   },
 }));
 
+// Editable columns that support cell selection
+const SELECTABLE_COLUMNS = [
+  "price",
+  "compareAtPrice",
+  "costPrice",
+  "stock",
+  "sku",
+  "barcode",
+  "weight",
+  "length",
+  "width",
+  "height",
+];
+
 export const BulkEditorGrid: React.FC = () => {
   const { styles } = useStyles();
   const gridRef = useRef<AgGridReact<IBulkEditorRow>>(null);
@@ -102,6 +121,23 @@ export const BulkEditorGrid: React.FC = () => {
   const { displayRows, rows } = useBulkEditorData();
   const columns = useBulkEditorColumns();
   const setFieldValue = useBulkEditorStore((s) => s.setFieldValue);
+
+  // Cell selection configuration
+  const selectionConfig = useMemo((): ICellSelectionConfig => ({
+    singleColumnOnly: true,
+    selectableColumns: SELECTABLE_COLUMNS,
+    getCellValue: (rowId, field) => {
+      const row = displayRows.find((r) => r.id === rowId);
+      return row ? row[field as keyof IBulkEditorRow] : undefined;
+    },
+    setCellValue: (rowId, field, value) => {
+      const originalRow = rows.find((r) => r.id === rowId);
+      if (originalRow) {
+        const originalValue = originalRow[field as keyof IBulkEditorRow];
+        setFieldValue(rowId, field, originalValue, value);
+      }
+    },
+  }), [displayRows, rows, setFieldValue]);
 
   // Get data path for tree data
   const getDataPath: GetDataPath<IBulkEditorRow> = useCallback((data) => {
@@ -154,38 +190,41 @@ export const BulkEditorGrid: React.FC = () => {
   }, []);
 
   return (
-    <div className={styles.gridWrapper}>
-      <AgGridReact<IBulkEditorRow>
-        ref={gridRef}
-        rowData={displayRows}
-        columnDefs={columns}
-        treeData
-        getDataPath={getDataPath}
-        groupDefaultExpanded={-1}
-        rowHeight={52}
-        headerHeight={44}
-        getRowId={getRowId}
-        getRowClass={getRowClass}
-        readOnlyEdit
-        stopEditingWhenCellsLoseFocus
-        onCellEditRequest={handleCellEditRequest}
-        onGridReady={handleGridReady}
-        suppressRowClickSelection
-        animateRows={false}
-        defaultColDef={{
-          resizable: true,
-          sortable: true,
-          suppressMovable: true,
-        }}
-        autoGroupColumnDef={{
-          headerName: "Product / Variant",
-          minWidth: 250,
-          flex: 1,
-          cellRendererParams: {
-            suppressCount: true,
-          },
-        }}
-      />
-    </div>
+    <CellSelectionProvider gridRef={gridRef} config={selectionConfig}>
+      <SelectionToolbar />
+      <div className={styles.gridWrapper}>
+        <AgGridReact<IBulkEditorRow>
+          ref={gridRef}
+          rowData={displayRows}
+          columnDefs={columns}
+          treeData
+          getDataPath={getDataPath}
+          groupDefaultExpanded={-1}
+          rowHeight={52}
+          headerHeight={44}
+          getRowId={getRowId}
+          getRowClass={getRowClass}
+          readOnlyEdit
+          stopEditingWhenCellsLoseFocus
+          onCellEditRequest={handleCellEditRequest}
+          onGridReady={handleGridReady}
+          suppressRowClickSelection
+          animateRows={false}
+          defaultColDef={{
+            resizable: true,
+            sortable: true,
+            suppressMovable: true,
+          }}
+          autoGroupColumnDef={{
+            headerName: "Product / Variant",
+            minWidth: 250,
+            flex: 1,
+            cellRendererParams: {
+              suppressCount: true,
+            },
+          }}
+        />
+      </div>
+    </CellSelectionProvider>
   );
 };
