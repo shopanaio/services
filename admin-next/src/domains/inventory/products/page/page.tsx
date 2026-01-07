@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
-import { Image, Typography, Flex, Button, Tag } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import { useState, useMemo, useRef, useCallback } from "react";
+import { Image, Typography, Flex, Button, Tag, Space } from "antd";
+import { PlusOutlined, EditOutlined } from "@ant-design/icons";
 import { AgGridReact } from "ag-grid-react";
 import { useModalStack } from "@/layouts/modals";
 import {
@@ -12,6 +12,7 @@ import {
   RowSelectionModule,
   CellClickedEvent,
   GridStateModule,
+  SelectionChangedEvent,
 } from "ag-grid-community";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { DataLayout } from "@/layouts/data";
@@ -21,6 +22,7 @@ import { useGridState, useGridSort } from "@/hooks";
 import { filterSchema } from "./filterSchema";
 import { useProducts } from "../hooks";
 import type { IProductListItem } from "../mocks/products-list";
+import { useBulkEditorStore, BulkEditorPage } from "../bulk-editor";
 
 ModuleRegistry.registerModules([
   AllCommunityModule,
@@ -74,12 +76,18 @@ const InventoryCellRenderer = (
 export default function ProductsPage() {
   const gridRef = useRef<AgGridReact<IProductListItem>>(null);
   const [searchValue, setSearchValue] = useState("");
+  const [selectedCount, setSelectedCount] = useState(0);
   const { widgetProps } = useFilters({ schema: filterSchema });
   const { push } = useModalStack();
   const { data: products } = useProducts();
   const { initialState, onStateUpdated } = useGridState({
     storageKey: "products-grid-state",
   });
+
+  // Bulk editor store
+  const setSelectedProducts = useBulkEditorStore((s) => s.setSelectedProducts);
+  const openEditor = useBulkEditorStore((s) => s.openEditor);
+  const isEditorOpen = useBulkEditorStore((s) => s.isOpen);
 
   const { onSortChanged } = useGridSort({
     gridRef,
@@ -96,6 +104,32 @@ export default function ProductsPage() {
     }
     push("product", { level: 1 });
   };
+
+  // Handle selection changes
+  const handleSelectionChanged = useCallback(
+    (event: SelectionChangedEvent<IProductListItem>) => {
+      const selectedRows = event.api.getSelectedRows();
+      setSelectedCount(selectedRows.length);
+    },
+    []
+  );
+
+  // Open bulk editor with selected products
+  const handleBulkEdit = useCallback(() => {
+    const selectedRows = gridRef.current?.api.getSelectedRows() || [];
+    // Map product IDs to bulk editor format (prod-1, prod-2, etc.)
+    // For demo purposes, we use the first 12 products from bulk editor mock
+    const bulkEditorIds = selectedRows.map((_, index) => `prod-${(index % 12) + 1}`);
+    setSelectedProducts(bulkEditorIds);
+    openEditor();
+  }, [setSelectedProducts, openEditor]);
+
+  // Close bulk editor
+  const handleCloseBulkEditor = useCallback(() => {
+    // Clear selection in grid
+    gridRef.current?.api.deselectAll();
+    setSelectedCount(0);
+  }, []);
 
   const columnDefs = useMemo<ColDef<IProductListItem>[]>(
     () => [
@@ -147,15 +181,27 @@ export default function ProductsPage() {
     console.log("Create new product");
   };
 
+  // Show bulk editor if open
+  if (isEditorOpen) {
+    return <BulkEditorPage onClose={handleCloseBulkEditor} />;
+  }
+
   return (
     <DataLayout
       name="products"
       title="Products"
       count={products.length}
       actions={
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-          Add Product
-        </Button>
+        <Space>
+          {selectedCount > 0 && (
+            <Button icon={<EditOutlined />} onClick={handleBulkEdit}>
+              Bulk Edit ({selectedCount})
+            </Button>
+          )}
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+            Add Product
+          </Button>
+        </Space>
       }
     >
       <DataLayout.Toolbar
@@ -198,6 +244,7 @@ export default function ProductsPage() {
             suppressCellFocus
             suppressMovableColumns
             onCellClicked={handleCellClick}
+            onSelectionChanged={handleSelectionChanged}
             rowStyle={{ cursor: "pointer" }}
             initialState={initialState}
             onStateUpdated={onStateUpdated}
