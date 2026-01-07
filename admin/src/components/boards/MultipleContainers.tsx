@@ -155,7 +155,7 @@ export const Boards = ({
   const sensors = useSensors(
     useSensor(MouseSensor, {
       activationConstraint: {
-        distance: 2,
+        distance: 1,
       },
     }),
     useSensor(TouchSensor),
