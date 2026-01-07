@@ -19,6 +19,7 @@ import {
   ProductStatusRenderer,
   TextCellRenderer,
   NumberCellRenderer,
+  PriceCellRenderer,
 } from "../components/cell-renderers";
 
 const VARIANT_FIELDS = new Set([
@@ -100,6 +101,9 @@ function createValueSetter(field: keyof IBulkEditorRow) {
   };
 }
 
+// Price fields
+const PRICE_FIELDS = new Set(["price", "compareAtPrice", "costPrice"]);
+
 // Get cell renderer based on column type
 function getCellRenderer(column: (typeof ALL_COLUMNS)[0]) {
   switch (column.type) {
@@ -108,6 +112,7 @@ function getCellRenderer(column: (typeof ALL_COLUMNS)[0]) {
       if (column.field === "productStatus") return ProductStatusRenderer;
       return undefined;
     case "number":
+      if (PRICE_FIELDS.has(column.field)) return PriceCellRenderer;
       if (column.field === "stock") return StockCellRenderer;
       return NumberCellRenderer;
     case "text":

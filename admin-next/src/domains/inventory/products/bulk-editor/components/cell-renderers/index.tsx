@@ -4,7 +4,6 @@ import { Tag } from "antd";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { IBulkEditorRow, IFieldEdit } from "../../types";
 import { useBulkEditorStore } from "../../hooks/useBulkEditorStore";
-import { formatPrice } from "../../utils/transformers";
 import { SelectableCell } from "@/shared/components/ag-grid-cell-selection";
 
 const useStyles = createStyles(({ token }) => ({
@@ -103,46 +102,6 @@ export const TitleCellRenderer: React.FC<CustomCellRendererProps<IBulkEditorRow>
 export const DashLine: React.FC = () => {
   const { styles } = useStyles();
   return <span className={styles.dashLine} />;
-};
-
-// Price cell with edit diff
-export const PriceCellRenderer: React.FC<CustomCellRendererProps<IBulkEditorRow>> = (props) => {
-  const { styles } = useStyles();
-  const { data, colDef } = props;
-  const getFieldEdit = useBulkEditorStore((s) => s.getFieldEdit);
-
-  if (!data || !colDef?.field) return null;
-
-  const field = colDef.field as keyof IBulkEditorRow;
-  const value = data[field] as number | null;
-
-  // Check if value should be dash
-  const category = ["sku", "barcode", "price", "compareAtPrice", "costPrice", "stock", "stockStatus", "weight", "weightUnit", "length", "width", "height", "dimensionUnit"].includes(field) ? "variant" : "product";
-  const shouldShowDash =
-    (data.rowType === "product" && category === "variant") ||
-    (data.rowType === "variant" && category === "product");
-
-  if (shouldShowDash) {
-    return <div className={styles.priceCell}><DashLine /></div>;
-  }
-
-  const edit = getFieldEdit(data.id, field) as IFieldEdit<number | null> | undefined;
-
-  const content = edit ? (
-    <div className={styles.editedValue}>
-      <span className={styles.originalValue}>{formatPrice(edit.originalValue) ?? ""}</span>
-      <span className={styles.arrow}>→</span>
-      <span className={styles.newValue}>{formatPrice(edit.currentValue) ?? ""}</span>
-    </div>
-  ) : (
-    <div className={styles.priceCell}>{formatPrice(value) ?? ""}</div>
-  );
-
-  return (
-    <SelectableCell rowId={data.id} field={field}>
-      {content}
-    </SelectableCell>
-  );
 };
 
 // Stock cell with edit diff
@@ -264,6 +223,43 @@ export const TextCellRenderer: React.FC<CustomCellRendererProps<IBulkEditorRow>>
   return (
     <SelectableCell rowId={data.id} field={field}>
       <span>{value ?? ""}</span>
+    </SelectableCell>
+  );
+};
+
+// Format price with Intl
+function formatPriceValue(value: number | null): string {
+  if (value === null) return "";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+// Price cell (no edit diff)
+export const PriceCellRenderer: React.FC<CustomCellRendererProps<IBulkEditorRow>> = (props) => {
+  const { styles } = useStyles();
+  const { data, colDef, value } = props;
+
+  if (!data || !colDef?.field) return null;
+
+  const field = colDef.field as keyof IBulkEditorRow;
+
+  // Check if value should be dash
+  const isVariantColumn = ["sku", "barcode", "price", "compareAtPrice", "costPrice", "stock", "stockStatus", "weight", "weightUnit", "length", "width", "height", "dimensionUnit"].includes(field);
+  const shouldShowDash =
+    (data.rowType === "product" && isVariantColumn) ||
+    (data.rowType === "variant" && !isVariantColumn);
+
+  if (shouldShowDash) {
+    return <div className={styles.priceCell}><DashLine /></div>;
+  }
+
+  return (
+    <SelectableCell rowId={data.id} field={field}>
+      <div className={styles.priceCell}>{formatPriceValue(value as number | null)}</div>
     </SelectableCell>
   );
 };
