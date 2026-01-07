@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback } from "react";
+import { App } from "antd";
 import { createStyles } from "antd-style";
 import { EditorGrid } from "@/shared/components/editor-grid";
 import { validateFieldChange } from "@/shared/utils/inventory";
@@ -60,6 +61,7 @@ const SELECTABLE_COLUMNS = [
 
 export const BulkEditorGrid: React.FC = () => {
   const { styles } = useStyles();
+  const { message } = App.useApp();
   const { displayRows, rows } = useBulkEditorData();
   const columns = useBulkEditorColumns();
   const setFieldValue = useBulkEditorStore((s) => s.setFieldValue);
@@ -91,13 +93,16 @@ export const BulkEditorGrid: React.FC = () => {
             reserved: row.reserved ?? 0,
             available: row.available ?? 0,
           });
-          if (!result.isValid) return;
+          if (!result.isValid) {
+            message.error(result.errors[0]?.message || "Invalid value");
+            return;
+          }
         }
       }
 
       setFieldValue(rowId, field, originalValue, newValue);
     },
-    [setFieldValue, rows]
+    [setFieldValue, rows, message]
   );
 
   return (

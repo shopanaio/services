@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useMemo, useState, useEffect } from "react";
+import { App } from "antd";
 import { EditorGrid } from "@/shared/components/editor-grid";
 import { validateFieldChange } from "@/shared/utils/inventory";
 import { useVariantsEditorStore, useVariantsColumns } from "../hooks";
@@ -128,6 +129,8 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
     [variants]
   );
 
+  const { message } = App.useApp();
+
   // Transform variants to row data
   const initialRows = useMemo(
     () => variantsToRows(variants),
@@ -189,13 +192,16 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
             reserved: row.reserved,
             available: row.available,
           });
-          if (!result.isValid) return;
+          if (!result.isValid) {
+            message.error(result.errors[0]?.message || "Invalid value");
+            return;
+          }
         }
       }
 
       setFieldValue(rowId, field, originalValue, newValue);
     },
-    [setFieldValue, rows]
+    [setFieldValue, rows, message]
   );
 
   return (
