@@ -19,11 +19,15 @@ export interface IVariantEditorRow extends IEditorRowBase {
   // Options (dynamic, based on product options)
   options: IVariantOption[];
 
-  // Inventory
+  // Inventory identification
   sku: string | null;
   barcode: string | null;
-  stock: number;
-  stockStatus: StockStatus;
+
+  // Inventory quantities (same model as inventory table)
+  onHand: number;
+  unavailable: number;
+  reserved: number;
+  available: number; // calculated: onHand - unavailable - reserved
 
   // Pricing
   price: number;
@@ -64,8 +68,10 @@ export type VariantColumnField =
   | "price"
   | "compareAtPrice"
   | "costPrice"
-  | "stock"
-  | "stockStatus"
+  | "onHand"
+  | "unavailable"
+  | "reserved"
+  | "available"
   | "weight"
   | "length"
   | "width"

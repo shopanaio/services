@@ -7,7 +7,6 @@ import {
   SELECTABLE_COLUMNS,
   type IVariantEditorRow,
   type IOptionGroup,
-  type StockStatus,
   type VariantColumnField,
 } from "../config";
 
@@ -20,10 +19,13 @@ export interface IVariantInput {
   title: string;
   imageUrl?: string | null;
   options?: Array<{ name: string; value: string }>;
-  // Inventory
+  // Inventory identification
   sku?: string | null;
   barcode?: string | null;
-  stock?: number;
+  // Inventory quantities (same model as inventory table)
+  onHand?: number;
+  unavailable?: number;
+  reserved?: number;
   // Pricing
   price?: number;
   compareAtPrice?: number | null;
@@ -39,7 +41,6 @@ export interface IVariantInput {
 
 interface VariantsEditorGridProps {
   variants: IVariantInput[];
-  lowStockThreshold?: number;
   onChange?: (rows: IVariantEditorRow[]) => void;
   /**
    * When provided, only these columns will be shown.
@@ -56,12 +57,6 @@ interface VariantsEditorGridProps {
 // ============================================================================
 // Helpers
 // ============================================================================
-
-function getStockStatus(stock: number, threshold: number): StockStatus {
-  if (stock <= 0) return "out_of_stock";
-  if (stock <= threshold) return "low_stock";
-  return "in_stock";
-}
 
 function extractOptionGroups(variants: IVariantInput[]): IOptionGroup[] {
   const groupMap = new Map<string, Set<string>>();
@@ -81,32 +76,39 @@ function extractOptionGroups(variants: IVariantInput[]): IOptionGroup[] {
   }));
 }
 
-function variantsToRows(
-  variants: IVariantInput[],
-  lowStockThreshold: number
-): IVariantEditorRow[] {
-  return variants.map((v) => ({
-    id: v.id,
-    title: v.title,
-    imageUrl: v.imageUrl ?? null,
-    options: v.options || [],
-    // Inventory
-    sku: v.sku ?? null,
-    barcode: v.barcode ?? null,
-    stock: v.stock ?? 0,
-    stockStatus: getStockStatus(v.stock ?? 0, lowStockThreshold),
-    // Pricing
-    price: v.price ?? 0,
-    compareAtPrice: v.compareAtPrice ?? null,
-    costPrice: v.costPrice ?? null,
-    // Shipping
-    weight: v.weight ?? null,
-    weightUnit: v.weightUnit ?? "G",
-    length: v.length ?? null,
-    width: v.width ?? null,
-    height: v.height ?? null,
-    dimensionUnit: v.dimensionUnit ?? "CM",
-  }));
+function variantsToRows(variants: IVariantInput[]): IVariantEditorRow[] {
+  return variants.map((v) => {
+    const onHand = v.onHand ?? 0;
+    const unavailable = v.unavailable ?? 0;
+    const reserved = v.reserved ?? 0;
+    const available = onHand - unavailable - reserved;
+
+    return {
+      id: v.id,
+      title: v.title,
+      imageUrl: v.imageUrl ?? null,
+      options: v.options || [],
+      // Inventory identification
+      sku: v.sku ?? null,
+      barcode: v.barcode ?? null,
+      // Inventory quantities
+      onHand,
+      unavailable,
+      reserved,
+      available,
+      // Pricing
+      price: v.price ?? 0,
+      compareAtPrice: v.compareAtPrice ?? null,
+      costPrice: v.costPrice ?? null,
+      // Shipping
+      weight: v.weight ?? null,
+      weightUnit: v.weightUnit ?? "G",
+      length: v.length ?? null,
+      width: v.width ?? null,
+      height: v.height ?? null,
+      dimensionUnit: v.dimensionUnit ?? "CM",
+    };
+  });
 }
 
 // ============================================================================
@@ -115,7 +117,6 @@ function variantsToRows(
 
 export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
   variants,
-  lowStockThreshold = 10,
   onChange,
   availableColumns,
   ignoreUserSettings = false,
@@ -128,8 +129,8 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
 
   // Transform variants to row data
   const initialRows = useMemo(
-    () => variantsToRows(variants, lowStockThreshold),
-    [variants, lowStockThreshold]
+    () => variantsToRows(variants),
+    [variants]
   );
 
   // Store hooks
@@ -157,17 +158,15 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
         (updatedRow as Record<string, unknown>)[field] = edit.currentValue;
       }
 
-      // Recalculate stock status if stock was edited
-      if (rowEdits.stock) {
-        updatedRow.stockStatus = getStockStatus(
-          updatedRow.stock,
-          lowStockThreshold
-        );
+      // Recalculate available if any inventory field was edited
+      if (rowEdits.onHand || rowEdits.unavailable) {
+        updatedRow.available =
+          updatedRow.onHand - updatedRow.unavailable - updatedRow.reserved;
       }
 
       return updatedRow;
     });
-  }, [rows, edits, lowStockThreshold]);
+  }, [rows, edits]);
 
   // Notify parent of changes
   useEffect(() => {

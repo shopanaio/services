@@ -1,6 +1,6 @@
 import React from "react";
-import { createStyles } from "antd-style";
-import { Tag } from "antd";
+import { createStyles, cx } from "antd-style";
+import { Tag, Tooltip } from "antd";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import {
   IBulkEditorRow,
@@ -61,6 +61,13 @@ const useStyles = createStyles(({ token }) => ({
   newValue: {
     fontWeight: 600,
   },
+  newValueNegative: {
+    fontWeight: 600,
+    color: token.colorError,
+  },
+  zeroValue: {
+    color: token.colorError,
+  },
   statusTag: {
     margin: 0,
   },
@@ -73,11 +80,6 @@ const useStyles = createStyles(({ token }) => ({
     color: token.colorWarning,
     backgroundColor: token.colorWarningBg,
     borderColor: token.colorWarningBorder,
-  },
-  outOfStock: {
-    color: token.colorError,
-    backgroundColor: token.colorErrorBg,
-    borderColor: token.colorErrorBorder,
   },
 }));
 
@@ -112,31 +114,88 @@ export const TitleCellRenderer: React.FC<
   );
 };
 
-// Stock status badge
-export const StockStatusRenderer: React.FC<
+// Reserved cell (read-only, managed by order system)
+export const ReservedCellRenderer: React.FC<
   CustomCellRendererProps<IBulkEditorRow>
 > = (props) => {
-  const { styles, cx } = useStyles();
-  const { data } = props;
+  const { styles } = useStyles();
+  const { data, value } = props;
 
   if (!data || data.rowType === "product") return <DashLine />;
 
-  const status = data.stockStatus;
-  if (!status) return null;
-
-  const statusConfig = {
-    in_stock: { label: "In Stock", className: styles.inStock },
-    low_stock: { label: "Low Stock", className: styles.lowStock },
-    out_of_stock: { label: "Out of Stock", className: styles.outOfStock },
-  };
-
-  const config = statusConfig[status];
-
   return (
-    <Tag className={cx(styles.statusTag, config.className)} bordered={false}>
-      {config.label}
-    </Tag>
+    <Tooltip title="Managed by order system">
+      <div className={styles.cellContent}>{value ?? 0}</div>
+    </Tooltip>
   );
+};
+
+// Available cell (calculated: onHand - unavailable - reserved)
+// Shows diff when onHand or unavailable is edited
+export const AvailableCellRenderer: React.FC<
+  CustomCellRendererProps<IBulkEditorRow>
+> = (props) => {
+  const { styles } = useStyles();
+  const { data } = props;
+  const getFieldEdit = useBulkEditorStore((s) => s.getFieldEdit);
+
+  if (!data || data.rowType === "product") return <DashLine />;
+
+  // Get current values
+  const onHand = data.onHand ?? 0;
+  const unavailable = data.unavailable ?? 0;
+  const reserved = data.reserved ?? 0;
+  const currentAvailable = onHand - unavailable - reserved;
+
+  // Check if any inventory field was edited
+  const onHandEdit = getFieldEdit(data.id, "onHand");
+  const unavailableEdit = getFieldEdit(data.id, "unavailable");
+
+  // If any field was changed, calculate original available
+  if (onHandEdit || unavailableEdit) {
+    const origOnHand = onHandEdit
+      ? (onHandEdit.originalValue as number) ?? 0
+      : onHand;
+    const origUnavailable = unavailableEdit
+      ? (unavailableEdit.originalValue as number) ?? 0
+      : unavailable;
+    const originalAvailable = origOnHand - origUnavailable - reserved;
+
+    // Recalculate current available with edits
+    const currOnHand = onHandEdit
+      ? (onHandEdit.currentValue as number) ?? 0
+      : onHand;
+    const currUnavailable = unavailableEdit
+      ? (unavailableEdit.currentValue as number) ?? 0
+      : unavailable;
+    const newAvailable = currOnHand - currUnavailable - reserved;
+
+    if (originalAvailable !== newAvailable) {
+      const isNegative = newAvailable < 0;
+
+      return (
+        <div className={styles.editedValue}>
+          <span className={styles.originalValue}>{originalAvailable}</span>
+          <span className={styles.arrow}>→</span>
+          <span
+            className={cx(
+              styles.newValue,
+              isNegative && styles.newValueNegative
+            )}
+          >
+            {newAvailable}
+          </span>
+        </div>
+      );
+    }
+  }
+
+  // Default display
+  if (currentAvailable === 0) {
+    return <div className={cx(styles.cellContent, styles.zeroValue)}>0</div>;
+  }
+
+  return <div className={styles.cellContent}>{currentAvailable}</div>;
 };
 
 // Product status badge

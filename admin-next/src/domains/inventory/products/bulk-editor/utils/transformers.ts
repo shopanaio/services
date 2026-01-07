@@ -1,14 +1,15 @@
 import { IBulkEditorRow, BulkEditorRowType, IRowEdits } from "../types";
 import { IMockProduct, IMockVariant } from "../mocks/bulk-editor-data";
 
-const LOW_STOCK_THRESHOLD = 10;
-
-function getStockStatus(
-  stock: number
-): "in_stock" | "low_stock" | "out_of_stock" {
-  if (stock <= 0) return "out_of_stock";
-  if (stock <= LOW_STOCK_THRESHOLD) return "low_stock";
-  return "in_stock";
+/**
+ * Calculate available inventory: onHand - unavailable - reserved
+ */
+function calculateAvailable(
+  onHand: number,
+  unavailable: number,
+  reserved: number
+): number {
+  return onHand - unavailable - reserved;
 }
 
 function createProductRow(
@@ -18,6 +19,15 @@ function createProductRow(
 ): IBulkEditorRow {
   const isSingleVariant = rowType === "single-variant-product";
   const v = isSingleVariant ? variant : null;
+
+  // Calculate available for single variant products
+  const onHand = v?.onHand ?? null;
+  const unavailable = v?.unavailable ?? null;
+  const reserved = v?.reserved ?? null;
+  const available =
+    onHand !== null && unavailable !== null && reserved !== null
+      ? calculateAvailable(onHand, unavailable, reserved)
+      : null;
 
   return {
     id: isSingleVariant ? `${product.id}-${variant!.id}` : product.id,
@@ -42,8 +52,10 @@ function createProductRow(
     price: v?.price ?? null,
     compareAtPrice: v?.compareAtPrice ?? null,
     costPrice: v?.costPrice ?? null,
-    stock: v?.stock ?? null,
-    stockStatus: v ? getStockStatus(v.stock) : null,
+    onHand,
+    unavailable,
+    reserved,
+    available,
     weight: v?.weight ?? null,
     weightUnit: v?.weightUnit ?? null,
     length: v?.length ?? null,
@@ -57,6 +69,11 @@ function createVariantRow(
   product: IMockProduct,
   variant: IMockVariant
 ): IBulkEditorRow {
+  const onHand = variant.onHand;
+  const unavailable = variant.unavailable;
+  const reserved = variant.reserved;
+  const available = calculateAvailable(onHand, unavailable, reserved);
+
   return {
     id: `${product.id}-${variant.id}`,
     rowType: "variant",
@@ -80,8 +97,10 @@ function createVariantRow(
     price: variant.price,
     compareAtPrice: variant.compareAtPrice,
     costPrice: variant.costPrice,
-    stock: variant.stock,
-    stockStatus: getStockStatus(variant.stock),
+    onHand,
+    unavailable,
+    reserved,
+    available,
     weight: variant.weight,
     weightUnit: variant.weightUnit,
     length: variant.length,
@@ -129,11 +148,14 @@ export function applyEditsToRows(
     const updatedRow = { ...row };
     for (const [field, edit] of Object.entries(rowEdits)) {
       (updatedRow as Record<string, unknown>)[field] = edit.currentValue;
+    }
 
-      // Recalculate stock status if stock changed
-      if (field === "stock" && typeof edit.currentValue === "number") {
-        updatedRow.stockStatus = getStockStatus(edit.currentValue);
-      }
+    // Recalculate available if any inventory field was edited
+    if (rowEdits.onHand || rowEdits.unavailable) {
+      const onHand = updatedRow.onHand ?? 0;
+      const unavailable = updatedRow.unavailable ?? 0;
+      const reserved = updatedRow.reserved ?? 0;
+      updatedRow.available = calculateAvailable(onHand, unavailable, reserved);
     }
 
     return updatedRow;

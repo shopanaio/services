@@ -32,8 +32,13 @@ export interface IBulkEditorRow {
   price: number | null;
   compareAtPrice: number | null;
   costPrice: number | null;
-  stock: number | null;
-  stockStatus: "in_stock" | "low_stock" | "out_of_stock" | null;
+
+  // Inventory quantities (same model as inventory table)
+  onHand: number | null;
+  unavailable: number | null;
+  reserved: number | null;
+  available: number | null; // calculated: onHand - unavailable - reserved
+
   weight: number | null;
   weightUnit: string | null;
   length: number | null;
@@ -170,8 +175,8 @@ export const VARIANT_COLUMNS: IBulkEditorColumn[] = [
     type: "number",
   },
   {
-    field: "stock",
-    headerName: "Stock",
+    field: "onHand",
+    headerName: "On hand",
     category: "variant",
     defaultVisible: true,
     editable: true,
@@ -179,13 +184,31 @@ export const VARIANT_COLUMNS: IBulkEditorColumn[] = [
     type: "number",
   },
   {
-    field: "stockStatus",
-    headerName: "Availability",
+    field: "unavailable",
+    headerName: "Unavailable",
     category: "variant",
     defaultVisible: true,
-    editable: false,
-    width: 120,
-    type: "badge",
+    editable: true,
+    width: 110,
+    type: "number",
+  },
+  {
+    field: "reserved",
+    headerName: "Reserved",
+    category: "variant",
+    defaultVisible: true,
+    editable: false, // managed by order system
+    width: 100,
+    type: "number",
+  },
+  {
+    field: "available",
+    headerName: "Available",
+    category: "variant",
+    defaultVisible: true,
+    editable: false, // calculated
+    width: 100,
+    type: "number",
   },
   {
     field: "weight",
@@ -234,8 +257,10 @@ export const VARIANT_FIELDS = new Set<keyof IBulkEditorRow>([
   "price",
   "compareAtPrice",
   "costPrice",
-  "stock",
-  "stockStatus",
+  "onHand",
+  "unavailable",
+  "reserved",
+  "available",
   "weight",
   "weightUnit",
   "length",

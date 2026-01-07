@@ -11,10 +11,11 @@ import {
 import {
   ImageCellRenderer,
   TitleCellRenderer,
-  StockStatusRenderer,
   TextCellRenderer,
   NumberCellRenderer,
   PriceCellRenderer,
+  ReservedCellRenderer,
+  AvailableCellRenderer,
 } from "../components/cell-renderers";
 
 // ============================================================================
@@ -42,13 +43,21 @@ export interface UseVariantsColumnsOptions {
 const PRICE_FIELDS = new Set(["price", "compareAtPrice", "costPrice"]);
 
 // ============================================================================
-// Get cell renderer based on column type
+// Inventory fields that need special renderers
 // ============================================================================
 
-function getCellRenderer(type?: string) {
+const INVENTORY_FIELDS = new Set(["onHand", "unavailable", "reserved", "available"]);
+
+// ============================================================================
+// Get cell renderer based on column type and field
+// ============================================================================
+
+function getCellRenderer(type?: string, field?: string) {
+  // Special renderers for inventory fields
+  if (field === "reserved") return ReservedCellRenderer;
+  if (field === "available") return AvailableCellRenderer;
+
   switch (type) {
-    case "badge":
-      return StockStatusRenderer;
     case "number":
       return NumberCellRenderer;
     case "text":
@@ -96,7 +105,8 @@ function getCellEditorParams(field: string) {
     case "compareAtPrice":
     case "costPrice":
       return { min: 0, precision: 2 };
-    case "stock":
+    case "onHand":
+    case "unavailable":
       return { min: 0, precision: 0 };
     case "weight":
     case "length":
@@ -226,10 +236,10 @@ export function useVariantsColumns(
         continue;
       }
 
-      // Use price renderer for price fields
+      // Use appropriate renderer based on field type
       const cellRenderer = PRICE_FIELDS.has(col.field)
         ? PriceCellRenderer
-        : getCellRenderer(col.type);
+        : getCellRenderer(col.type, col.field);
 
       columns.push({
         field: col.field as keyof IVariantEditorRow,

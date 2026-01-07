@@ -220,10 +220,13 @@ export interface IEditVariantsModalPayload extends IModalStackPayload {
     id: string;
     title: string;
     imageUrl?: string | null;
-    // Inventory
+    // Inventory identification
     sku?: string | null;
-    stock?: number;
     barcode?: string | null;
+    // Inventory quantities (same model as inventory table)
+    onHand?: number;
+    unavailable?: number;
+    reserved?: number;
     // Pricing
     price?: number;
     compareAtPrice?: number | null;
@@ -239,7 +242,6 @@ export interface IEditVariantsModalPayload extends IModalStackPayload {
     options?: IVariantPricingOption[];
   }>;
   formatPrice?: (amount: number) => string;
-  lowStockThreshold?: number;
   /**
    * When provided, only these columns will be shown.
    * If undefined, all columns are available with user settings.
@@ -254,8 +256,12 @@ export interface IEditVariantsModalPayload extends IModalStackPayload {
   onSave?: (variants: Array<{
     id: string;
     sku: string | null;
-    stock: number;
     barcode: string | null;
+    // Inventory quantities
+    onHand: number;
+    unavailable: number;
+    reserved: number;
+    available: number;
     price: number;
     compareAtPrice: number | null;
     costPrice: number | null;

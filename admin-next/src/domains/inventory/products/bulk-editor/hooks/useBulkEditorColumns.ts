@@ -15,7 +15,8 @@ import {
 } from "../types";
 import {
   TitleCellRenderer,
-  StockStatusRenderer,
+  ReservedCellRenderer,
+  AvailableCellRenderer,
   ProductStatusRenderer,
   TextCellRenderer,
   NumberCellRenderer,
@@ -88,11 +89,14 @@ function createValueSetter(field: keyof IBulkEditorRow) {
 // Price fields
 const PRICE_FIELDS = new Set(["price", "compareAtPrice", "costPrice"]);
 
-// Get cell renderer based on column type
+// Get cell renderer based on column type and field
 function getCellRenderer(column: (typeof ALL_COLUMNS)[0]) {
+  // Special renderers for inventory fields
+  if (column.field === "reserved") return ReservedCellRenderer;
+  if (column.field === "available") return AvailableCellRenderer;
+
   switch (column.type) {
     case "badge":
-      if (column.field === "stockStatus") return StockStatusRenderer;
       if (column.field === "productStatus") return ProductStatusRenderer;
       return undefined;
     case "number":
@@ -145,7 +149,8 @@ function getCellEditorParams(column: (typeof ALL_COLUMNS)[0]) {
     case "compareAtPrice":
     case "costPrice":
       return { min: 0, precision: 2 };
-    case "stock":
+    case "onHand":
+    case "unavailable":
       return { min: 0, precision: 0 };
     case "weight":
     case "length":

@@ -76,7 +76,10 @@ function transformVariantsToInput(
       v.options?.map((o) => ({ name: o.group.title, value: o.title })) || [],
     sku: v.sku,
     barcode: v.barcode,
-    stock: v.stock,
+    // Inventory quantities
+    onHand: v.onHand ?? 0,
+    unavailable: v.unavailable ?? 0,
+    reserved: v.reserved ?? 0,
     price: v.price,
     compareAtPrice: v.compareAtPrice,
     costPrice: v.costPrice,
@@ -93,8 +96,12 @@ function getDataForSave(rows: IVariantEditorRow[]) {
   return rows.map((row) => ({
     id: row.id,
     sku: row.sku,
-    stock: row.stock,
     barcode: row.barcode,
+    // Inventory quantities
+    onHand: row.onHand,
+    unavailable: row.unavailable,
+    reserved: row.reserved,
+    available: row.available,
     price: row.price,
     compareAtPrice: row.compareAtPrice,
     costPrice: row.costPrice,
@@ -223,7 +230,6 @@ export const EditVariantsModal = () => {
         <div className={styles.gridContainer}>
           <VariantsEditorGrid
             variants={variantInputs}
-            lowStockThreshold={typedPayload.lowStockThreshold}
             onChange={handleChange}
             availableColumns={availableColumns}
             ignoreUserSettings={!!availableColumns}

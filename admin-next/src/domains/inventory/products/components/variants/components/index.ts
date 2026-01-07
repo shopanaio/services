@@ -7,10 +7,11 @@ export {
 export {
   ImageCellRenderer,
   TitleCellRenderer,
-  StockStatusRenderer,
   TextCellRenderer,
   NumberCellRenderer,
   PriceCellRenderer,
   OptionCellRenderer,
+  ReservedCellRenderer,
+  AvailableCellRenderer,
   formatPrice,
 } from "./cell-renderers";

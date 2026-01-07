@@ -19,8 +19,11 @@ export const DEFAULT_VARIANTS_COLUMN_VISIBILITY: IColumnVisibility = {
   price: true,
   compareAtPrice: false,
   costPrice: false,
-  stock: true,
-  stockStatus: true,
+  // Inventory columns (same model as inventory table)
+  onHand: true,
+  unavailable: true,
+  reserved: true,
+  available: true,
   weight: false,
   length: false,
   width: false,

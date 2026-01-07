@@ -1,9 +1,9 @@
 import React from "react";
-import { createStyles } from "antd-style";
-import { Tag, Image } from "antd";
+import { createStyles, cx } from "antd-style";
+import { Tooltip, Image } from "antd";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { SelectableCell } from "@/shared/components/ag-grid-cell-selection";
-import type { IVariantEditorRow, StockStatus } from "../config";
+import type { IVariantEditorRow } from "../config";
 import { useVariantsEditorStore } from "../hooks";
 import type { IFieldEdit } from "@/shared/components/editor-grid";
 
@@ -66,23 +66,12 @@ const useStyles = createStyles(({ token }) => ({
   newValue: {
     fontWeight: 600,
   },
-  statusTag: {
-    margin: 0,
-  },
-  inStock: {
-    color: token.colorSuccess,
-    backgroundColor: token.colorSuccessBg,
-    borderColor: token.colorSuccessBorder,
-  },
-  lowStock: {
-    color: token.colorWarning,
-    backgroundColor: token.colorWarningBg,
-    borderColor: token.colorWarningBorder,
-  },
-  outOfStock: {
+  newValueNegative: {
+    fontWeight: 600,
     color: token.colorError,
-    backgroundColor: token.colorErrorBg,
-    borderColor: token.colorErrorBorder,
+  },
+  zeroValue: {
+    color: token.colorError,
   },
   optionValue: {
     color: token.colorTextSecondary,
@@ -153,33 +142,90 @@ export const TitleCellRenderer: React.FC<
 };
 
 // ============================================================================
-// Stock Status Badge
+// Reserved Cell (read-only, managed by order system)
 // ============================================================================
 
-export const StockStatusRenderer: React.FC<
+export const ReservedCellRenderer: React.FC<
   CustomCellRendererProps<IVariantEditorRow>
 > = (props) => {
-  const { styles, cx } = useStyles();
-  const { data } = props;
+  const { styles } = useStyles();
+  const { data, value } = props;
 
   if (!data) return null;
 
-  const statusConfig: Record<
-    StockStatus,
-    { label: string; className: string }
-  > = {
-    in_stock: { label: "In Stock", className: styles.inStock },
-    low_stock: { label: "Low Stock", className: styles.lowStock },
-    out_of_stock: { label: "Out of Stock", className: styles.outOfStock },
-  };
-
-  const config = statusConfig[data.stockStatus];
-
   return (
-    <Tag className={cx(styles.statusTag, config.className)} bordered={false}>
-      {config.label}
-    </Tag>
+    <Tooltip title="Managed by order system">
+      <div className={styles.cellContent}>{value ?? 0}</div>
+    </Tooltip>
   );
+};
+
+// ============================================================================
+// Available Cell (calculated: onHand - unavailable - reserved)
+// Shows diff when onHand or unavailable is edited
+// ============================================================================
+
+export const AvailableCellRenderer: React.FC<
+  CustomCellRendererProps<IVariantEditorRow>
+> = (props) => {
+  const { styles } = useStyles();
+  const { data } = props;
+  const getFieldEdit = useVariantsEditorStore((s) => s.getFieldEdit);
+
+  if (!data) return null;
+
+  // Get current available (already calculated with edits applied via valueGetter)
+  const currentAvailable = data.available;
+
+  // Check if any inventory field was edited
+  const onHandEdit = getFieldEdit(data.id, "onHand");
+  const unavailableEdit = getFieldEdit(data.id, "unavailable");
+
+  // If any field was changed, calculate original available
+  if (onHandEdit || unavailableEdit) {
+    const origOnHand = onHandEdit
+      ? (onHandEdit.originalValue as number)
+      : data.onHand;
+    const origUnavailable = unavailableEdit
+      ? (unavailableEdit.originalValue as number)
+      : data.unavailable;
+    const originalAvailable = origOnHand - origUnavailable - data.reserved;
+
+    // Recalculate current available with edits
+    const currOnHand = onHandEdit
+      ? (onHandEdit.currentValue as number)
+      : data.onHand;
+    const currUnavailable = unavailableEdit
+      ? (unavailableEdit.currentValue as number)
+      : data.unavailable;
+    const newAvailable = currOnHand - currUnavailable - data.reserved;
+
+    if (originalAvailable !== newAvailable) {
+      const isNegative = newAvailable < 0;
+
+      return (
+        <div className={styles.editedValue}>
+          <span className={styles.originalValue}>{originalAvailable}</span>
+          <span className={styles.arrow}>→</span>
+          <span
+            className={cx(
+              styles.newValue,
+              isNegative && styles.newValueNegative
+            )}
+          >
+            {newAvailable}
+          </span>
+        </div>
+      );
+    }
+  }
+
+  // Default display
+  if (currentAvailable === 0) {
+    return <div className={cx(styles.cellContent, styles.zeroValue)}>0</div>;
+  }
+
+  return <div className={styles.cellContent}>{currentAvailable}</div>;
 };
 
 // ============================================================================
