@@ -49,6 +49,18 @@ const useStyles = createStyles(({ token }) => ({
       borderRight: `1px solid ${token.colorBorder}`,
     },
 
+    // Selectable cell styles
+    ".ag-cell:has([data-selectable])": {
+      cursor: "cell",
+      userSelect: "none",
+    },
+
+    // Selected cell styles
+    ".ag-cell:has([data-selected='true'])": {
+      backgroundColor: token.colorPrimaryBg,
+      boxShadow: `inset 0 0 0 2px ${token.colorPrimary}`,
+    },
+
     // Fix input alignment in edit mode
     "& .ag-cell-editor input": {
       textAlign: "right",

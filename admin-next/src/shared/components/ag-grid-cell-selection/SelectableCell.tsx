@@ -1,6 +1,5 @@
 import React, { useCallback } from "react";
 import { useCellSelectionContext, useCellSelectionStore } from "./CellSelectionProvider";
-import { useSelectionStyles } from "./styles";
 
 interface SelectableCellProps {
   /** Row ID for this cell */
@@ -37,7 +36,6 @@ export const SelectableCell: React.FC<SelectableCellProps> = ({
   disabled = false,
   className,
 }) => {
-  const { styles, cx } = useSelectionStyles();
   const { handlers } = useCellSelectionContext();
   const store = useCellSelectionStore();
 
@@ -59,11 +57,9 @@ export const SelectableCell: React.FC<SelectableCellProps> = ({
 
   return (
     <div
-      className={cx(
-        styles.selectableCell,
-        isSelected && styles.selected,
-        className
-      )}
+      data-selectable="true"
+      data-selected={isSelected}
+      className={className}
       onMouseDown={handleMouseDown}
       onMouseEnter={handleMouseEnter}
     >
