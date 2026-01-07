@@ -196,7 +196,7 @@ export function useVariantsColumns(
       field: "title",
       headerName: "Title",
       flex: 1,
-      minWidth: 200,
+      minWidth: 250,
       cellRenderer: TitleCellRenderer,
       pinned: "left",
     });

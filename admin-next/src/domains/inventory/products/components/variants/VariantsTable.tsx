@@ -87,7 +87,7 @@ export function VariantsTable<T extends IVariantRowBase>({
         headerName: "Title",
         field: "title",
         flex: 1.5,
-        minWidth: 200,
+        minWidth: 250,
         pinned: pinnedTitle ? "left" : undefined,
       } as ColDef<T>,
     ];

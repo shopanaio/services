@@ -37,7 +37,8 @@ export const INVENTORY_COLUMNS: IVariantColumn[] = [
     headerName: "SKU",
     defaultVisible: true,
     editable: true,
-    width: 120,
+    width: 150,
+    minWidth: 150,
     type: "text",
   },
   {

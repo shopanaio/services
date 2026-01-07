@@ -664,7 +664,7 @@ const InventorySection = ({ onEdit, product }: IInventorySectionProps) => {
         })) || [],
         lowStockThreshold: 10,
         // Inventory-only mode: show only inventory columns, no settings button
-        availableColumns: ["sku", "barcode", "stock", "stockStatus"],
+        availableColumns: ["sku", "barcode", "onHand", "unavailable", "reserved", "available"],
         showColumnSettings: false,
         onSave: (updated: Array<{ id: string; sku: string | null; stock: number; barcode: string | null; price: number; compareAtPrice: number | null; costPrice: number | null; weight: number | null; weightUnit: string; length: number | null; width: number | null; height: number | null; dimensionUnit: string }>) => {
           console.log("Saved inventory:", updated);
