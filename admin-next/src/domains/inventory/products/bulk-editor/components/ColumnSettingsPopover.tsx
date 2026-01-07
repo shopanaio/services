@@ -102,7 +102,7 @@ export const ColumnSettingsPopover: React.FC = () => {
       trigger="click"
       placement="bottomLeft"
     >
-      <Button icon={<SettingOutlined />}>Columns</Button>
+      <Button size="small" icon={<SettingOutlined />}>Columns</Button>
     </Popover>
   );
 };
