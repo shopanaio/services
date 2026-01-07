@@ -71,12 +71,6 @@ const useStyles = createStyles(({ token }) => ({
       backgroundColor: "var(--ag-range-selection-background-color)",
     },
 
-    // Fix input alignment in edit mode
-    "& .ag-cell-editor input": {
-      textAlign: "right",
-      paddingRight: token.padding,
-    },
-
     ".ag-header-cell": {
       fontSize: 13,
       fontWeight: 500,

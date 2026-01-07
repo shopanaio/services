@@ -39,10 +39,6 @@ ModuleRegistry.registerModules([
 const useStyles = createStyles(({ token }) => ({
   gridWrapper: {
     flex: 1,
-    "& .ag-cell-editor input": {
-      textAlign: "right",
-      paddingRight: token.padding,
-    },
   },
   gridContainer: {
     height: "100%",
