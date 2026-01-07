@@ -72,7 +72,8 @@ function transformVariantsToInput(
     id: v.id,
     title: v.title,
     imageUrl: v.imageUrl,
-    options: v.options?.map((o) => ({ name: o.group.title, value: o.title })) || [],
+    options:
+      v.options?.map((o) => ({ name: o.group.title, value: o.title })) || [],
     sku: v.sku,
     barcode: v.barcode,
     stock: v.stock,
@@ -119,7 +120,8 @@ export const EditVariantsModal = () => {
   const hasChanges = useVariantsEditorStore((s) => s.hasChanges());
   const changesCount = useVariantsEditorStore((s) => s.getChangesCount());
   const status = useVariantsEditorStore((s) => s.status);
-  const resetEdits = useVariantsEditorStore((s) => s.resetEdits);
+
+  const { resetEdits } = useVariantsEditorStore.getState();
 
   const isSaving = status === "saving";
 
@@ -140,7 +142,7 @@ export const EditVariantsModal = () => {
 
   // Sync dirty state
   useEffect(() => {
-    setDirty(hasChanges);
+    // setDirty(hasChanges);
   }, [hasChanges, setDirty]);
 
   // Reset edits on mount/unmount
