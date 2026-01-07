@@ -38,11 +38,17 @@ export const MOCK_PRODUCTS: IMockProduct[] = [
     id: "prod-1",
     title: "iPhone 15 Pro",
     description: "Latest iPhone with A17 Pro chip and titanium design",
+    excerpt: "A17 Pro chip. Titanium design. USB-C.",
     status: "published",
     category: "Phone",
     brand: "Apple",
     tags: ["smartphone", "ios", "premium"],
     imageUrl: "https://picsum.photos/seed/iphone15/200",
+    media: [
+      "https://picsum.photos/seed/iphone15-1/200",
+      "https://picsum.photos/seed/iphone15-2/200",
+      "https://picsum.photos/seed/iphone15-3/200",
+    ],
     variants: [
       {
         id: "var-1-1",
@@ -126,11 +132,16 @@ export const MOCK_PRODUCTS: IMockProduct[] = [
     id: "prod-2",
     title: "AirPods Pro 2",
     description: "Active Noise Cancellation with Adaptive Audio",
+    excerpt: "Adaptive Audio. USB-C charging case.",
     status: "published",
     category: "Audio",
     brand: "Apple",
     tags: ["audio", "wireless", "anc"],
     imageUrl: "https://picsum.photos/seed/airpods/200",
+    media: [
+      "https://picsum.photos/seed/airpods-1/200",
+      "https://picsum.photos/seed/airpods-2/200",
+    ],
     variants: [
       {
         id: "var-2-1",

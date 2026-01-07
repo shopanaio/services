@@ -23,6 +23,7 @@ import {
   TextCellRenderer,
   NumberCellRenderer,
   PriceCellRenderer,
+  MediaCellRenderer,
 } from "../components/cell-renderers";
 
 // Check if cell should be editable
@@ -110,6 +111,8 @@ function getCellRenderer(column: (typeof ALL_COLUMNS)[0]) {
     case "select":
       if (column.field === "productStatus") return ProductStatusRenderer;
       return TextCellRenderer;
+    case "media":
+      return MediaCellRenderer;
     default:
       return undefined;
   }

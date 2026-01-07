@@ -1,6 +1,6 @@
 import React from "react";
 import { createStyles } from "antd-style";
-import { Tag } from "antd";
+import { Tag, Avatar } from "antd";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import {
   IBulkEditorRow,
@@ -264,5 +264,25 @@ export const NumberCellRenderer: React.FC<
     <SelectableCell rowId={data.id} field={field}>
       {content}
     </SelectableCell>
+  );
+};
+
+// Media gallery cell
+export const MediaCellRenderer: React.FC<
+  CustomCellRendererProps<IBulkEditorRow>
+> = (props) => {
+  const { data } = props;
+
+  if (!data || data.rowType === "variant") return <DashLine />;
+
+  const media = data.productMedia;
+  if (!media || media.length === 0) return <DashLine />;
+
+  return (
+    <Avatar.Group max={{ count: 3 }} size={32}>
+      {media.map((url, index) => (
+        <Avatar key={index} src={url} shape="square" />
+      ))}
+    </Avatar.Group>
   );
 };
