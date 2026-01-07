@@ -23,11 +23,13 @@ export interface IMockProduct {
   id: string;
   title: string;
   description: string;
+  excerpt?: string;
   status: "published" | "draft";
   category: string;
   brand: string;
   tags: string[];
   imageUrl: string;
+  media?: string[];
   variants: IMockVariant[];
 }
 

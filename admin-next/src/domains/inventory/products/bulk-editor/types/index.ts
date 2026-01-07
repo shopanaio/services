@@ -21,10 +21,12 @@ export interface IBulkEditorRow {
   // Product-level fields (editable for product rows & single-variant)
   productTitle: string | null;
   productDescription: string | null;
+  productExcerpt: string | null;
   productStatus: "published" | "draft" | null;
   productCategory: string | null;
   productBrand: string | null;
   productTags: string[] | null;
+  productMedia: string[] | null;
 
   // Variant-level fields (editable for variant rows & single-variant)
   sku: string | null;
@@ -60,7 +62,7 @@ export interface IBulkEditorColumn {
   width?: number;
   minWidth?: number;
   flex?: number;
-  type?: "text" | "number" | "select" | "tags" | "badge";
+  type?: "text" | "number" | "select" | "tags" | "badge" | "media";
 }
 
 // Column visibility state
@@ -99,6 +101,33 @@ export const PRODUCT_COLUMNS: IBulkEditorColumn[] = [
     type: "select",
   },
   {
+    field: "productDescription",
+    headerName: "Description",
+    category: "product",
+    defaultVisible: false,
+    editable: true,
+    width: 200,
+    type: "text",
+  },
+  {
+    field: "productExcerpt",
+    headerName: "Excerpt",
+    category: "product",
+    defaultVisible: false,
+    editable: true,
+    width: 200,
+    type: "text",
+  },
+  {
+    field: "productCategory",
+    headerName: "Category",
+    category: "product",
+    defaultVisible: false,
+    editable: true,
+    width: 140,
+    type: "select",
+  },
+  {
     field: "productBrand",
     headerName: "Brand",
     category: "product",
@@ -106,6 +135,24 @@ export const PRODUCT_COLUMNS: IBulkEditorColumn[] = [
     editable: true,
     width: 140,
     type: "select",
+  },
+  {
+    field: "productTags",
+    headerName: "Tags",
+    category: "product",
+    defaultVisible: false,
+    editable: true,
+    width: 150,
+    type: "tags",
+  },
+  {
+    field: "productMedia",
+    headerName: "Product Media",
+    category: "product",
+    defaultVisible: false,
+    editable: false,
+    width: 120,
+    type: "media",
   },
 ];
 

@@ -178,21 +178,23 @@ export function useVariantsColumns(
   return useMemo(() => {
     const columns: ColDef<IVariantEditorRow>[] = [];
 
-    // Fixed: Image column
-    columns.push({
-      field: "imageUrl",
-      headerName: "Image",
-      width: 72,
-      cellRenderer: ImageCellRenderer,
-      pinned: "left",
-      sortable: false,
-      resizable: false,
-    });
+    // Fixed: Image column (hide in restricted views like pricing/inventory)
+    if (!ignoreUserSettings) {
+      columns.push({
+        field: "imageUrl",
+        headerName: "Image",
+        width: 72,
+        cellRenderer: ImageCellRenderer,
+        pinned: "left",
+        sortable: false,
+        resizable: false,
+      });
+    }
 
     // Fixed: Title column
     columns.push({
       field: "title",
-      headerName: "Variant",
+      headerName: "Title",
       flex: 1,
       minWidth: 200,
       cellRenderer: TitleCellRenderer,

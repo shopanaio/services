@@ -41,10 +41,12 @@ function createProductRow(
     // Product fields
     productTitle: product.title,
     productDescription: product.description,
+    productExcerpt: product.excerpt ?? null,
     productStatus: product.status,
     productCategory: product.category,
     productBrand: product.brand,
     productTags: product.tags,
+    productMedia: product.media ?? null,
 
     // Variant fields (only for single variant)
     sku: v?.sku ?? null,
@@ -86,10 +88,12 @@ function createVariantRow(
     // Product fields (null for variant rows)
     productTitle: null,
     productDescription: null,
+    productExcerpt: null,
     productStatus: null,
     productCategory: null,
     productBrand: null,
     productTags: null,
+    productMedia: null,
 
     // Variant fields
     sku: variant.sku,
