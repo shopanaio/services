@@ -123,12 +123,12 @@ export const useCellSelection = <TData = unknown>(
           state.toggleCell(rowId, field);
         }
       } else if (event.shiftKey && state.selectionAnchor) {
-        // Shift + Click - select range
-        if (singleColumnOnly && state.activeColumn !== field) {
-          // Different column - start fresh
+        // Shift + Click - toggle single cell (same as Ctrl+Click)
+        if (singleColumnOnly && state.activeColumn && state.activeColumn !== field) {
+          // Different column in single column mode - start fresh
           state.startSelection(rowId, field);
         } else {
-          state.selectRange(rowId, getVisibleRowIds());
+          state.toggleCell(rowId, field);
         }
       } else {
         // Regular click - start new selection
