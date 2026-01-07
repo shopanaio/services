@@ -8,7 +8,6 @@ import {
   PRICING_COLUMNS,
   INVENTORY_COLUMNS,
   ATTRIBUTES_COLUMNS,
-  IBulkEditorColumn,
 } from "../types";
 
 const { Text } = Typography;
@@ -39,30 +38,6 @@ const useStyles = createStyles(({ token }) => ({
   },
 }));
 
-const ColumnSection: React.FC<{
-  title: string;
-  columns: IBulkEditorColumn[];
-  columnVisibility: Record<string, boolean>;
-  toggleColumn: (field: string) => void;
-  styles: ReturnType<typeof useStyles>["styles"];
-}> = ({ title, columns, columnVisibility, toggleColumn, styles }) => (
-  <div className={styles.section}>
-    <Text className={styles.sectionTitle}>{title}</Text>
-    <div className={styles.checkboxGroup}>
-      {columns.map((col) => (
-        <Checkbox
-          key={col.field}
-          checked={columnVisibility[col.field]}
-          onChange={() => toggleColumn(col.field)}
-          className={styles.checkbox}
-        >
-          {col.headerName}
-        </Checkbox>
-      ))}
-    </div>
-  </div>
-);
-
 export const ColumnSettingsPopover: React.FC = () => {
   const { styles } = useStyles();
   const columnVisibility = useBulkEditorStore((s) => s.columnVisibility);
@@ -80,13 +55,26 @@ export const ColumnSettingsPopover: React.FC = () => {
       {sections.map((section, index) => (
         <React.Fragment key={section.title}>
           {index > 0 && <Divider style={{ margin: "12px 0" }} />}
-          <ColumnSection
-            title={section.title}
-            columns={section.columns}
-            columnVisibility={columnVisibility}
-            toggleColumn={toggleColumn}
-            styles={styles}
-          />
+          <div className={styles.section}>
+            <Text className={styles.sectionTitle}>{section.title}</Text>
+            <div className={styles.checkboxGroup}>
+              {section.title === "General" && (
+                <Checkbox checked disabled className={styles.checkbox}>
+                  Title
+                </Checkbox>
+              )}
+              {section.columns.map((col) => (
+                <Checkbox
+                  key={col.field}
+                  checked={columnVisibility[col.field]}
+                  onChange={() => toggleColumn(col.field)}
+                  className={styles.checkbox}
+                >
+                  {col.headerName}
+                </Checkbox>
+              ))}
+            </div>
+          </div>
         </React.Fragment>
       ))}
     </div>
