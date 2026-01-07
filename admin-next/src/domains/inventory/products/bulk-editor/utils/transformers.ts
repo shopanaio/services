@@ -141,8 +141,8 @@ export function applyEditsToRows(
 }
 
 // Format price for display (in kopecks to rubles)
-export function formatPrice(value: number | null): string {
-  if (value === null) return "—";
+export function formatPrice(value: number | null): string | null {
+  if (value === null) return null;
   return new Intl.NumberFormat("ru-RU", {
     style: "currency",
     currency: "RUB",

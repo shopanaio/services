@@ -26,18 +26,13 @@ const useStyles = createStyles(({ token }) => ({
     color: token.colorTextSecondary,
     paddingLeft: 16,
   },
-  dashCell: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "100%",
-    height: "100%",
-  },
   dashLine: {
-    width: 16,
-    height: 3,
+    display: "inline-block",
+    width: 24,
+    height: 4,
     backgroundColor: token.colorBorder,
     borderRadius: 2,
+    verticalAlign: "middle",
   },
   priceCell: {
     textAlign: "right",
@@ -48,10 +43,8 @@ const useStyles = createStyles(({ token }) => ({
     width: "100%",
   },
   editedValue: {
-    display: "flex",
-    alignItems: "center",
-    gap: 6,
-    justifyContent: "flex-end",
+    textAlign: "right",
+    width: "100%",
   },
   originalValue: {
     textDecoration: "line-through",
@@ -104,15 +97,10 @@ export const TitleCellRenderer: React.FC<CustomCellRendererProps<IBulkEditorRow>
   );
 };
 
-// Dash cell for non-applicable columns
-export const DashCellRenderer: React.FC<{ align?: "left" | "center" | "right" }> = ({ align = "center" }) => {
+// Dash element for empty cells
+export const DashLine: React.FC = () => {
   const { styles } = useStyles();
-  const justifyContent = align === "right" ? "flex-end" : align === "left" ? "flex-start" : "center";
-  return (
-    <div className={styles.dashCell} style={{ justifyContent }}>
-      <div className={styles.dashLine} />
-    </div>
-  );
+  return <span className={styles.dashLine} />;
 };
 
 // Price cell with edit diff
@@ -133,22 +121,25 @@ export const PriceCellRenderer: React.FC<CustomCellRendererProps<IBulkEditorRow>
     (data.rowType === "variant" && category === "product");
 
   if (shouldShowDash) {
-    return <DashCellRenderer align="right" />;
+    return <div className={styles.priceCell}><DashLine /></div>;
   }
 
   const edit = getFieldEdit(data.id, field) as IFieldEdit<number | null> | undefined;
 
   if (edit) {
+    const origPrice = formatPrice(edit.originalValue);
+    const newPrice = formatPrice(edit.currentValue);
     return (
       <div className={styles.editedValue}>
-        <span className={styles.originalValue}>{formatPrice(edit.originalValue)}</span>
-        <span className={styles.arrow}>→</span>
-        <span className={styles.newValue}>{formatPrice(edit.currentValue)}</span>
+        <span className={styles.originalValue}>{origPrice ?? ""}</span>
+        <span className={styles.arrow}> → </span>
+        <span className={styles.newValue}>{newPrice ?? ""}</span>
       </div>
     );
   }
 
-  return <div className={styles.priceCell}>{formatPrice(value)}</div>;
+  const formatted = formatPrice(value);
+  return <div className={styles.priceCell}>{formatted ?? ""}</div>;
 };
 
 // Stock cell with edit diff
@@ -168,7 +159,7 @@ export const StockCellRenderer: React.FC<CustomCellRendererProps<IBulkEditorRow>
     (data.rowType === "variant" && !["sku", "barcode", "price", "compareAtPrice", "costPrice", "stock", "stockStatus", "weight", "weightUnit", "length", "width", "height", "dimensionUnit"].includes(field));
 
   if (shouldShowDash) {
-    return <DashCellRenderer align="right" />;
+    return <div className={styles.stockCell}><DashLine /></div>;
   }
 
   const edit = getFieldEdit(data.id, field) as IFieldEdit<number | null> | undefined;
@@ -176,18 +167,14 @@ export const StockCellRenderer: React.FC<CustomCellRendererProps<IBulkEditorRow>
   if (edit) {
     return (
       <div className={styles.editedValue}>
-        <span className={styles.originalValue}>{edit.originalValue ?? "—"}</span>
-        <span className={styles.arrow}>→</span>
-        <span className={styles.newValue}>{edit.currentValue ?? "—"}</span>
+        <span className={styles.originalValue}>{edit.originalValue ?? ""}</span>
+        <span className={styles.arrow}> → </span>
+        <span className={styles.newValue}>{edit.currentValue ?? ""}</span>
       </div>
     );
   }
 
-  if (value == null) {
-    return <DashCellRenderer align="right" />;
-  }
-
-  return <div className={styles.stockCell}>{value}</div>;
+  return <div className={styles.stockCell}>{value ?? ""}</div>;
 };
 
 // Stock status badge
@@ -199,11 +186,11 @@ export const StockStatusRenderer: React.FC<CustomCellRendererProps<IBulkEditorRo
 
   // Check if value should be dash (product rows for multi-variant)
   if (data.rowType === "product") {
-    return <DashCellRenderer align="left" />;
+    return <DashLine />;
   }
 
   const status = data.stockStatus;
-  if (!status) return <DashCellRenderer />;
+  if (!status) return null;
 
   const statusConfig = {
     in_stock: { label: "In Stock", className: styles.inStock },
@@ -229,11 +216,11 @@ export const ProductStatusRenderer: React.FC<CustomCellRendererProps<IBulkEditor
 
   // Check if value should be dash (variant rows)
   if (data.rowType === "variant") {
-    return <DashCellRenderer align="left" />;
+    return <DashLine />;
   }
 
   const status = data.productStatus;
-  if (!status) return <DashCellRenderer />;
+  if (!status) return null;
 
   const statusConfig = {
     published: { label: "Published", className: styles.inStock },
@@ -264,10 +251,10 @@ export const TextCellRenderer: React.FC<CustomCellRendererProps<IBulkEditorRow>>
     (data.rowType === "variant" && !isVariantColumn);
 
   if (shouldShowDash) {
-    return <DashCellRenderer align="left" />;
+    return <DashLine />;
   }
 
-  return <span>{value ?? "—"}</span>;
+  return <span>{value ?? ""}</span>;
 };
 
 // Number cell with edit diff
@@ -287,7 +274,7 @@ export const NumberCellRenderer: React.FC<CustomCellRendererProps<IBulkEditorRow
     (data.rowType === "variant" && !isVariantColumn);
 
   if (shouldShowDash) {
-    return <DashCellRenderer align="right" />;
+    return <div className={styles.stockCell}><DashLine /></div>;
   }
 
   const edit = getFieldEdit(data.id, field) as IFieldEdit<number | null> | undefined;
@@ -295,12 +282,12 @@ export const NumberCellRenderer: React.FC<CustomCellRendererProps<IBulkEditorRow
   if (edit) {
     return (
       <div className={styles.editedValue}>
-        <span className={styles.originalValue}>{edit.originalValue ?? "—"}</span>
-        <span className={styles.arrow}>→</span>
-        <span className={styles.newValue}>{edit.currentValue ?? "—"}</span>
+        <span className={styles.originalValue}>{edit.originalValue ?? ""}</span>
+        <span className={styles.arrow}> → </span>
+        <span className={styles.newValue}>{edit.currentValue ?? ""}</span>
       </div>
     );
   }
 
-  return <div style={{ textAlign: "right", width: "100%" }}>{value ?? "—"}</div>;
+  return <div className={styles.stockCell}>{value ?? ""}</div>;
 };
