@@ -99,15 +99,6 @@ export const PRODUCT_COLUMNS: IBulkEditorColumn[] = [
     type: "select",
   },
   {
-    field: "productCategory",
-    headerName: "Category",
-    category: "product",
-    defaultVisible: false,
-    editable: true,
-    width: 140,
-    type: "select",
-  },
-  {
     field: "productBrand",
     headerName: "Brand",
     category: "product",
@@ -115,16 +106,6 @@ export const PRODUCT_COLUMNS: IBulkEditorColumn[] = [
     editable: true,
     width: 140,
     type: "select",
-  },
-  {
-    field: "productTags",
-    headerName: "Tags",
-    category: "product",
-    defaultVisible: false,
-    editable: true,
-    flex: 1,
-    minWidth: 150,
-    type: "tags",
   },
 ];
 
