@@ -1,6 +1,6 @@
 import React from "react";
-import { createStyles, cx } from "antd-style";
-import { Tag, Tooltip } from "antd";
+import { createStyles } from "antd-style";
+import { Tag } from "antd";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import {
   IBulkEditorRow,
@@ -10,6 +10,10 @@ import {
 } from "../../types";
 import { useBulkEditorStore } from "../../hooks/useBulkEditorStore";
 import { SelectableCell } from "@/shared/components/ag-grid-cell-selection";
+import {
+  ReservedCell,
+  CalculatedAvailableCell,
+} from "@/shared/components/inventory-cells";
 
 const useStyles = createStyles(({ token }) => ({
   titleCell: {
@@ -61,13 +65,6 @@ const useStyles = createStyles(({ token }) => ({
   newValue: {
     fontWeight: 600,
   },
-  newValueNegative: {
-    fontWeight: 600,
-    color: token.colorError,
-  },
-  zeroValue: {
-    color: token.colorError,
-  },
   statusTag: {
     margin: 0,
   },
@@ -115,87 +112,45 @@ export const TitleCellRenderer: React.FC<
 };
 
 // Reserved cell (read-only, managed by order system)
+// Uses shared ReservedCell component
 export const ReservedCellRenderer: React.FC<
   CustomCellRendererProps<IBulkEditorRow>
 > = (props) => {
-  const { styles } = useStyles();
   const { data, value } = props;
 
   if (!data || data.rowType === "product") return <DashLine />;
 
-  return (
-    <Tooltip title="Managed by order system">
-      <div className={styles.cellContent}>{value ?? 0}</div>
-    </Tooltip>
-  );
+  return <ReservedCell value={(value as number) ?? 0} />;
 };
 
 // Available cell (calculated: onHand - unavailable - reserved)
-// Shows diff when onHand or unavailable is edited
+// Uses shared CalculatedAvailableCell component
 export const AvailableCellRenderer: React.FC<
   CustomCellRendererProps<IBulkEditorRow>
 > = (props) => {
-  const { styles } = useStyles();
   const { data } = props;
   const getFieldEdit = useBulkEditorStore((s) => s.getFieldEdit);
 
   if (!data || data.rowType === "product") return <DashLine />;
 
-  // Get current values
-  const onHand = data.onHand ?? 0;
-  const unavailable = data.unavailable ?? 0;
-  const reserved = data.reserved ?? 0;
-  const currentAvailable = onHand - unavailable - reserved;
-
-  // Check if any inventory field was edited
   const onHandEdit = getFieldEdit(data.id, "onHand");
   const unavailableEdit = getFieldEdit(data.id, "unavailable");
 
-  // If any field was changed, calculate original available
-  if (onHandEdit || unavailableEdit) {
-    const origOnHand = onHandEdit
-      ? (onHandEdit.originalValue as number) ?? 0
-      : onHand;
-    const origUnavailable = unavailableEdit
-      ? (unavailableEdit.originalValue as number) ?? 0
-      : unavailable;
-    const originalAvailable = origOnHand - origUnavailable - reserved;
-
-    // Recalculate current available with edits
-    const currOnHand = onHandEdit
-      ? (onHandEdit.currentValue as number) ?? 0
-      : onHand;
-    const currUnavailable = unavailableEdit
-      ? (unavailableEdit.currentValue as number) ?? 0
-      : unavailable;
-    const newAvailable = currOnHand - currUnavailable - reserved;
-
-    if (originalAvailable !== newAvailable) {
-      const isNegative = newAvailable < 0;
-
-      return (
-        <div className={styles.editedValue}>
-          <span className={styles.originalValue}>{originalAvailable}</span>
-          <span className={styles.arrow}>→</span>
-          <span
-            className={cx(
-              styles.newValue,
-              isNegative && styles.newValueNegative
-            )}
-          >
-            {newAvailable}
-          </span>
-        </div>
-      );
-    }
-  }
-
-  // Default display
-  if (currentAvailable === 0) {
-    return <div className={cx(styles.cellContent, styles.zeroValue)}>0</div>;
-  }
-
-  return <div className={styles.cellContent}>{currentAvailable}</div>;
+  return (
+    <CalculatedAvailableCell
+      onHand={data.onHand ?? 0}
+      unavailable={data.unavailable ?? 0}
+      reserved={data.reserved ?? 0}
+      onHandEdit={onHandEdit ? {
+        originalValue: onHandEdit.originalValue as number,
+        currentValue: onHandEdit.currentValue as number,
+      } : undefined}
+      unavailableEdit={unavailableEdit ? {
+        originalValue: unavailableEdit.originalValue as number,
+        currentValue: unavailableEdit.currentValue as number,
+      } : undefined}
+    />
+  );
 };
 
 // Product status badge

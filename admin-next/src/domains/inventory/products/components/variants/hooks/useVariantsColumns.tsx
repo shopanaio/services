@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import type { ColDef, ValueGetterParams, ValueSetterParams } from "ag-grid-community";
 import { useVariantsEditorStore } from "./useVariantsEditorStore";
 import {
@@ -41,12 +41,6 @@ export interface UseVariantsColumnsOptions {
 // ============================================================================
 
 const PRICE_FIELDS = new Set(["price", "compareAtPrice", "costPrice"]);
-
-// ============================================================================
-// Inventory fields that need special renderers
-// ============================================================================
-
-const INVENTORY_FIELDS = new Set(["onHand", "unavailable", "reserved", "available"]);
 
 // ============================================================================
 // Get cell renderer based on column type and field

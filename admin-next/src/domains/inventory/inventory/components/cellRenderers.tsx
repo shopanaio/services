@@ -1,8 +1,9 @@
-import { Image, Typography, Flex, Tooltip } from "antd";
+import { Image, Typography, Flex } from "antd";
 import { createStyles } from "antd-style";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import type { IInventoryListItem } from "../mocks/inventory-list";
 import { EditableNumberCell } from "./EditableNumberCell";
+import { ReservedCell } from "@/shared/components/inventory-cells";
 
 const useStyles = createStyles(({ token }) => ({
   productImage: {
@@ -14,14 +15,6 @@ const useStyles = createStyles(({ token }) => ({
   },
   variantName: {
     fontSize: token.fontSizeSM,
-  },
-  cellWrapper: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    width: "100%",
-    height: "100%",
-    paddingRight: 4,
   },
 }));
 
@@ -59,15 +52,8 @@ export const ProductCellRenderer = (
 export const ReservedCellRenderer = (
   props: CustomCellRendererProps<IInventoryListItem>
 ) => {
-  const { styles } = useStyles();
   const { value } = props;
-  return (
-    <div className={styles.cellWrapper}>
-      <Tooltip title="Managed by order system">
-        <Typography.Text>{value}</Typography.Text>
-      </Tooltip>
-    </div>
-  );
+  return <ReservedCell value={value as number} />;
 };
 
 export const OnHandCellRenderer = (

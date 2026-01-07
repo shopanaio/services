@@ -1,11 +1,15 @@
 import React from "react";
-import { createStyles, cx } from "antd-style";
-import { Tooltip, Image } from "antd";
+import { createStyles } from "antd-style";
+import { Image } from "antd";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { SelectableCell } from "@/shared/components/ag-grid-cell-selection";
 import type { IVariantEditorRow } from "../config";
 import { useVariantsEditorStore } from "../hooks";
 import type { IFieldEdit } from "@/shared/components/editor-grid";
+import {
+  ReservedCell,
+  CalculatedAvailableCell,
+} from "@/shared/components/inventory-cells";
 
 // ============================================================================
 // Styles
@@ -65,13 +69,6 @@ const useStyles = createStyles(({ token }) => ({
   },
   newValue: {
     fontWeight: 600,
-  },
-  newValueNegative: {
-    fontWeight: 600,
-    color: token.colorError,
-  },
-  zeroValue: {
-    color: token.colorError,
   },
   optionValue: {
     color: token.colorTextSecondary,
@@ -143,89 +140,48 @@ export const TitleCellRenderer: React.FC<
 
 // ============================================================================
 // Reserved Cell (read-only, managed by order system)
+// Uses shared ReservedCell component
 // ============================================================================
 
 export const ReservedCellRenderer: React.FC<
   CustomCellRendererProps<IVariantEditorRow>
 > = (props) => {
-  const { styles } = useStyles();
   const { data, value } = props;
-
   if (!data) return null;
-
-  return (
-    <Tooltip title="Managed by order system">
-      <div className={styles.cellContent}>{value ?? 0}</div>
-    </Tooltip>
-  );
+  return <ReservedCell value={(value as number) ?? 0} />;
 };
 
 // ============================================================================
 // Available Cell (calculated: onHand - unavailable - reserved)
-// Shows diff when onHand or unavailable is edited
+// Uses shared CalculatedAvailableCell component
 // ============================================================================
 
 export const AvailableCellRenderer: React.FC<
   CustomCellRendererProps<IVariantEditorRow>
 > = (props) => {
-  const { styles } = useStyles();
   const { data } = props;
   const getFieldEdit = useVariantsEditorStore((s) => s.getFieldEdit);
 
   if (!data) return null;
 
-  // Get current available (already calculated with edits applied via valueGetter)
-  const currentAvailable = data.available;
-
-  // Check if any inventory field was edited
   const onHandEdit = getFieldEdit(data.id, "onHand");
   const unavailableEdit = getFieldEdit(data.id, "unavailable");
 
-  // If any field was changed, calculate original available
-  if (onHandEdit || unavailableEdit) {
-    const origOnHand = onHandEdit
-      ? (onHandEdit.originalValue as number)
-      : data.onHand;
-    const origUnavailable = unavailableEdit
-      ? (unavailableEdit.originalValue as number)
-      : data.unavailable;
-    const originalAvailable = origOnHand - origUnavailable - data.reserved;
-
-    // Recalculate current available with edits
-    const currOnHand = onHandEdit
-      ? (onHandEdit.currentValue as number)
-      : data.onHand;
-    const currUnavailable = unavailableEdit
-      ? (unavailableEdit.currentValue as number)
-      : data.unavailable;
-    const newAvailable = currOnHand - currUnavailable - data.reserved;
-
-    if (originalAvailable !== newAvailable) {
-      const isNegative = newAvailable < 0;
-
-      return (
-        <div className={styles.editedValue}>
-          <span className={styles.originalValue}>{originalAvailable}</span>
-          <span className={styles.arrow}>→</span>
-          <span
-            className={cx(
-              styles.newValue,
-              isNegative && styles.newValueNegative
-            )}
-          >
-            {newAvailable}
-          </span>
-        </div>
-      );
-    }
-  }
-
-  // Default display
-  if (currentAvailable === 0) {
-    return <div className={cx(styles.cellContent, styles.zeroValue)}>0</div>;
-  }
-
-  return <div className={styles.cellContent}>{currentAvailable}</div>;
+  return (
+    <CalculatedAvailableCell
+      onHand={data.onHand}
+      unavailable={data.unavailable}
+      reserved={data.reserved}
+      onHandEdit={onHandEdit ? {
+        originalValue: onHandEdit.originalValue as number,
+        currentValue: onHandEdit.currentValue as number,
+      } : undefined}
+      unavailableEdit={unavailableEdit ? {
+        originalValue: unavailableEdit.originalValue as number,
+        currentValue: unavailableEdit.currentValue as number,
+      } : undefined}
+    />
+  );
 };
 
 // ============================================================================

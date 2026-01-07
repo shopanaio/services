@@ -1,49 +1,24 @@
 "use client";
 
-import { Typography } from "antd";
 import type { CustomCellRendererProps } from "ag-grid-react";
-import { createStyles } from "antd-style";
 import type { IInventoryListItem } from "../mocks/inventory-list";
 import {
   useInventoryEditStore,
   type EditableField,
 } from "../hooks/useInventoryEditStore";
-
-const useStyles = createStyles(({ token }) => ({
-  cellWrapper: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    width: "100%",
-    height: "100%",
-    paddingRight: 4,
-  },
-  diffCell: {
-    display: "flex",
-    alignItems: "center",
-    gap: 4,
-  },
-  oldValue: {
-    color: token.colorTextSecondary,
-    textDecoration: "line-through",
-  },
-  arrow: {
-    color: token.colorTextSecondary,
-    fontSize: 12,
-  },
-  newValue: {
-    fontWeight: 600,
-  },
-}));
+import { EditableInventoryCell } from "@/shared/components/inventory-cells";
 
 interface EditableNumberCellProps
   extends CustomCellRendererProps<IInventoryListItem> {
   field: EditableField;
 }
 
+/**
+ * AG Grid cell renderer for editable inventory number fields
+ * Uses shared EditableInventoryCell component
+ */
 export function EditableNumberCell(props: EditableNumberCellProps) {
   const { data, value, field } = props;
-  const { styles } = useStyles();
   const { getFieldEdit } = useInventoryEditStore();
 
   if (!data) return null;
@@ -51,23 +26,13 @@ export function EditableNumberCell(props: EditableNumberCellProps) {
   const fieldEdit = getFieldEdit(data.id, field);
   const currentValue = value as number;
 
-  // Show diff if there's an edit for this field
-  if (fieldEdit) {
-    return (
-      <div className={styles.cellWrapper}>
-        <span className={styles.diffCell}>
-          <span className={styles.oldValue}>{fieldEdit.originalValue}</span>
-          <span className={styles.arrow}>→</span>
-          <span className={styles.newValue}>{fieldEdit.currentValue}</span>
-        </span>
-      </div>
-    );
-  }
-
-  // Default display
   return (
-    <div className={styles.cellWrapper}>
-      <Typography.Text>{currentValue}</Typography.Text>
-    </div>
+    <EditableInventoryCell
+      value={currentValue}
+      edit={fieldEdit ? {
+        originalValue: fieldEdit.originalValue as number,
+        currentValue: fieldEdit.currentValue as number,
+      } : undefined}
+    />
   );
 }
