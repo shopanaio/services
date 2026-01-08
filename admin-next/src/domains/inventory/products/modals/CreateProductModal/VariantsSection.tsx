@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useFormContext } from "react-hook-form";
 import { Input, Select, Button, Typography, Flex, Switch, Alert } from "antd";
 import { PlusOutlined, CloseOutlined } from "@ant-design/icons";
 import { AgGridReact } from "ag-grid-react";
@@ -16,7 +17,7 @@ import {
   generateVariants,
   countPotentialVariants,
 } from "./utils/generateVariants";
-import type { ISectionProps } from "./types";
+import type { ICreateProductFormValues } from "./types";
 import type { IOptionInput, IGeneratedVariant } from "./utils/generateVariants";
 
 const useStyles = createStyles(({ token }) => ({
@@ -159,76 +160,75 @@ const OptionCard = ({
   );
 };
 
-export const VariantsSection = ({
-  formState,
-  updateFormState,
-}: ISectionProps) => {
+export const VariantsSection = () => {
   const { styles } = useStyles();
+  const { watch, setValue, getValues } = useFormContext<ICreateProductFormValues>();
   const gridRef = useRef<AgGridReact>(null);
+
+  const hasVariants = watch("hasVariants");
+  const options = watch("options");
+  const variants = watch("variants");
 
   // Regenerate variants when options change
   useEffect(() => {
-    if (formState.hasVariants) {
-      const newVariants = generateVariants(formState.options);
+    if (hasVariants) {
+      const newVariants = generateVariants(options);
+      const currentVariants = getValues("variants");
       // Preserve enabled state for existing variants
       const updatedVariants = newVariants.map((newVar) => {
-        const existing = formState.variants.find(
-          (v) => v.title === newVar.title
-        );
+        const existing = currentVariants.find((v) => v.title === newVar.title);
         return existing ? { ...newVar, enabled: existing.enabled } : newVar;
       });
-      updateFormState("variants", updatedVariants);
+      setValue("variants", updatedVariants);
     }
-  }, [formState.options, formState.hasVariants]);
+  }, [options, hasVariants, setValue, getValues]);
 
   const handleHasVariantsChange = useCallback(
     (checked: boolean) => {
-      updateFormState("hasVariants", checked);
+      setValue("hasVariants", checked);
       if (checked) {
         // Add empty option by default
         const emptyOption: IOptionInput = {
-          id: `option-${Date.now()}`,
+          id: `option-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
           name: "",
           values: [],
         };
-        updateFormState("options", [emptyOption]);
+        setValue("options", [emptyOption]);
       } else {
-        updateFormState("options", []);
-        updateFormState("variants", []);
+        setValue("options", []);
+        setValue("variants", []);
       }
     },
-    [updateFormState]
+    [setValue]
   );
 
   const handleAddOption = useCallback(() => {
     const newOption: IOptionInput = {
-      id: `option-${Date.now()}`,
+      id: `option-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       name: "",
       values: [],
     };
-    updateFormState("options", [...formState.options, newOption]);
-  }, [formState.options, updateFormState]);
+    setValue("options", [...options, newOption]);
+  }, [options, setValue]);
 
   const handleUpdateOption = useCallback(
     (id: string, updates: Partial<IOptionInput>) => {
-      updateFormState(
+      setValue(
         "options",
-        formState.options.map((opt) =>
-          opt.id === id ? { ...opt, ...updates } : opt
-        )
+        options.map((opt) => (opt.id === id ? { ...opt, ...updates } : opt))
       );
     },
-    [formState.options, updateFormState]
+    [options, setValue]
   );
 
   const handleDeleteOption = useCallback(
     (id: string) => {
-      updateFormState(
+      setValue(
         "options",
-        formState.options.filter((opt) => opt.id !== id)
+        options.filter((opt) => opt.id !== id)
       );
     },
-    [formState.options, updateFormState]
+    [options, setValue]
   );
 
   const handleVariantSelectionChange = useCallback(
@@ -236,32 +236,32 @@ export const VariantsSection = ({
       const selectedIds = new Set(
         event.api.getSelectedRows().map((row: IGeneratedVariant) => row.id)
       );
-      updateFormState(
+      setValue(
         "variants",
-        formState.variants.map((v) => ({
+        variants.map((v) => ({
           ...v,
           enabled: selectedIds.has(v.id),
         }))
       );
     },
-    [formState.variants, updateFormState]
+    [variants, setValue]
   );
 
   const handleSelectAll = useCallback(() => {
-    updateFormState(
+    setValue(
       "variants",
-      formState.variants.map((v) => ({ ...v, enabled: true }))
+      variants.map((v) => ({ ...v, enabled: true }))
     );
     gridRef.current?.api?.selectAll();
-  }, [formState.variants, updateFormState]);
+  }, [variants, setValue]);
 
   const handleDeselectAll = useCallback(() => {
-    updateFormState(
+    setValue(
       "variants",
-      formState.variants.map((v) => ({ ...v, enabled: false }))
+      variants.map((v) => ({ ...v, enabled: false }))
     );
     gridRef.current?.api?.deselectAll();
-  }, [formState.variants, updateFormState]);
+  }, [variants, setValue]);
 
   // Build dynamic columns based on options
   const columnDefs = useMemo<ColDef<IGeneratedVariant>[]>(() => {
@@ -275,7 +275,7 @@ export const VariantsSection = ({
     ];
 
     // Add dynamic columns for each option
-    const validOptions = formState.options.filter((o) => o.name.trim());
+    const validOptions = options.filter((o) => o.name.trim());
     const optionCols: ColDef<IGeneratedVariant>[] = validOptions.map((opt) => ({
       headerName: opt.name,
       valueGetter: (params) => {
@@ -288,7 +288,7 @@ export const VariantsSection = ({
     }));
 
     return [...baseCols, ...optionCols];
-  }, [formState.options]);
+  }, [options]);
 
   const onGridReady = useCallback((params: GridReadyEvent) => {
     // Pre-select enabled variants
@@ -299,8 +299,8 @@ export const VariantsSection = ({
     });
   }, []);
 
-  const potentialVariantCount = countPotentialVariants(formState.options);
-  const enabledCount = formState.variants.filter((v) => v.enabled).length;
+  const potentialVariantCount = countPotentialVariants(options);
+  const enabledCount = variants.filter((v) => v.enabled).length;
   const showWarning = potentialVariantCount > 50;
 
   return (
@@ -310,7 +310,7 @@ export const VariantsSection = ({
       <Flex gap={12} className={styles.switchRow}>
         <Switch
           className={styles.switch}
-          checked={formState.hasVariants}
+          checked={hasVariants}
           onChange={handleHasVariantsChange}
           size="small"
         />
@@ -325,7 +325,7 @@ export const VariantsSection = ({
         </Flex>
       </Flex>
 
-      {formState.hasVariants && (
+      {hasVariants && (
         <>
           <div className={styles.optionsHeader}>
             <Typography.Text strong>Product options</Typography.Text>
@@ -338,21 +338,21 @@ export const VariantsSection = ({
             </Button>
           </div>
 
-          {formState.options.map((option) => (
+          {options.map((option) => (
             <OptionCard
               key={option.id}
               option={option}
               onUpdate={handleUpdateOption}
               onDelete={handleDeleteOption}
-              canDelete={formState.options.length > 1}
+              canDelete={options.length > 1}
             />
           ))}
 
-          {formState.variants.length > 0 && (
+          {variants.length > 0 && (
             <>
               <div className={styles.variantsHeader}>
                 <Typography.Text strong>
-                  Product variants ({enabledCount}/{formState.variants.length})
+                  Product variants ({enabledCount}/{variants.length})
                 </Typography.Text>
                 <Flex gap={8}>
                   <Button size="small" onClick={handleSelectAll}>
@@ -380,7 +380,7 @@ export const VariantsSection = ({
               <div className={styles.gridContainer}>
                 <AgGridReact
                   ref={gridRef}
-                  rowData={formState.variants}
+                  rowData={variants}
                   columnDefs={columnDefs}
                   rowSelection="multiple"
                   suppressRowClickSelection={true}

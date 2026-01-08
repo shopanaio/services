@@ -101,16 +101,3 @@ export function countPotentialVariants(options: IOptionInput[]): number {
   return validOptions.reduce((acc, opt) => acc * opt.values.length, 1);
 }
 
-/**
- * Converts a title to kebab-case for URL handles
- * @example toKebabCase("Winter Jacket") => "winter-jacket"
- */
-export function toKebabCase(str: string): string {
-  return str
-    .toLowerCase()
-    .trim()
-    .replace(/[^\w\s-]/g, '') // Remove special characters
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/-+/g, '-') // Replace multiple hyphens with single
-    .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
-}

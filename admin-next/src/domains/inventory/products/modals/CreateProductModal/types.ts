@@ -13,9 +13,9 @@ export interface ILocalMediaItem {
 }
 
 /**
- * Form state for creating a product
+ * Form values for creating a product (react-hook-form)
  */
-export interface ICreateProductFormState {
+export interface ICreateProductFormValues {
   // General
   title: string;
   handle: string;
@@ -28,15 +28,4 @@ export interface ICreateProductFormState {
   hasVariants: boolean;
   options: IOptionInput[];
   variants: IGeneratedVariant[];
-}
-
-/**
- * Props for section components
- */
-export interface ISectionProps {
-  formState: ICreateProductFormState;
-  updateFormState: <K extends keyof ICreateProductFormState>(
-    key: K,
-    value: ICreateProductFormState[K]
-  ) => void;
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useState, CSSProperties } from "react";
+import { useCallback, CSSProperties } from "react";
+import { useFormContext } from "react-hook-form";
 import { Upload, Button, Typography, Tooltip, Dropdown, Flex } from "antd";
 import {
   PlusOutlined,
@@ -18,7 +19,6 @@ import {
   useSensors,
   DragOverlay,
   DragEndEvent,
-  DragStartEvent,
   closestCenter,
 } from "@dnd-kit/core";
 import {
@@ -32,7 +32,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { createStyles } from "antd-style";
 import { Paper } from "../../components/Paper";
 import { PaperHeader } from "../../components/PaperHeader";
-import type { ISectionProps, ILocalMediaItem } from "./types";
+import type { ICreateProductFormValues, ILocalMediaItem } from "./types";
 
 const useStyles = createStyles(({ token }) => ({
   mediaGrid: {
@@ -321,9 +321,11 @@ const SortableMediaItem = ({
   );
 };
 
-export const MediaSection = ({ formState, updateFormState }: ISectionProps) => {
+export const MediaSection = () => {
   const { styles } = useStyles();
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const { watch, setValue } = useFormContext<ICreateProductFormValues>();
+
+  const media = watch("media");
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -336,44 +338,37 @@ export const MediaSection = ({ formState, updateFormState }: ISectionProps) => {
     })
   );
 
-  const handleDragStart = (event: DragStartEvent) => {
-    if (!event?.active?.id) return;
-    setActiveId(event.active.id as string);
-  };
-
   const handleDragEnd = (event: DragEndEvent) => {
-    setActiveId(null);
-
     const { active, over } = event;
     if (over && active.id !== over.id) {
-      const ids = formState.media.map((it) => it.id);
+      const ids = media.map((it) => it.id);
       const oldIndex = ids.indexOf(active.id as string);
       const newIndex = ids.indexOf(over.id as string);
 
-      updateFormState("media", arrayMove(formState.media, oldIndex, newIndex));
+      setValue("media", arrayMove(media, oldIndex, newIndex));
     }
   };
 
   const handleSetCover = useCallback(
     (item: ILocalMediaItem) => {
-      const filtered = formState.media.filter((i) => i.id !== item.id);
-      updateFormState("media", [item, ...filtered]);
+      const filtered = media.filter((i) => i.id !== item.id);
+      setValue("media", [item, ...filtered]);
     },
-    [formState.media, updateFormState]
+    [media, setValue]
   );
 
   const handleDelete = useCallback(
     (id: string) => {
-      const item = formState.media.find((m) => m.id === id);
+      const item = media.find((m) => m.id === id);
       if (item) {
         URL.revokeObjectURL(item.url);
       }
-      updateFormState(
+      setValue(
         "media",
-        formState.media.filter((m) => m.id !== id)
+        media.filter((m) => m.id !== id)
       );
     },
-    [formState.media, updateFormState]
+    [media, setValue]
   );
 
   const handleUpload = useCallback(
@@ -386,16 +381,16 @@ export const MediaSection = ({ formState, updateFormState }: ISectionProps) => {
         url: URL.createObjectURL(file),
         name: file.name,
         size: file.size,
-        isCover: formState.media.length === 0,
+        isCover: media.length === 0,
       };
 
-      updateFormState("media", [...formState.media, newItem]);
+      setValue("media", [...media, newItem]);
       return false; // Prevent default upload behavior
     },
-    [formState.media, updateFormState]
+    [media, setValue]
   );
 
-  const hasMedia = formState.media.length > 0;
+  const hasMedia = media.length > 0;
 
   return (
     <Paper>
@@ -420,7 +415,6 @@ export const MediaSection = ({ formState, updateFormState }: ISectionProps) => {
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
-        onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
         {!hasMedia && (
@@ -450,10 +444,10 @@ export const MediaSection = ({ formState, updateFormState }: ISectionProps) => {
           <>
             <div className={styles.mediaGrid}>
               <SortableContext
-                items={formState.media.map((it) => it.id)}
+                items={media.map((it) => it.id)}
                 strategy={rectSortingStrategy}
               >
-                {formState.media.map((item, idx) => (
+                {media.map((item, idx) => (
                   <SortableMediaItem
                     key={item.id}
                     item={item}
@@ -481,8 +475,8 @@ export const MediaSection = ({ formState, updateFormState }: ISectionProps) => {
 
             <div className={styles.footer}>
               <span>
-                {formState.media.length} image
-                {formState.media.length !== 1 ? "s" : ""}
+                {media.length} image
+                {media.length !== 1 ? "s" : ""}
               </span>
               <span>Drag to reorder</span>
             </div>
