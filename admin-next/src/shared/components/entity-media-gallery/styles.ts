@@ -3,13 +3,39 @@ import { createStyles } from "antd-style";
 export const useStyles = createStyles(({ token }) => ({
   mediaGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))",
-    gridGap: 16,
+    gridTemplateColumns: "repeat(8, 1fr)",
+    gridGap: 8,
     position: "relative",
     "& > *:nth-child(1)": {
       gridColumnStart: "span 2",
       gridRowStart: "span 2",
     },
+  },
+  mediaGridOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    display: "grid",
+    gridTemplateColumns: "repeat(8, 1fr)",
+    gridGap: 8,
+    pointerEvents: "none",
+    "& > *:nth-child(1)": {
+      gridColumnStart: "span 2",
+      gridRowStart: "span 2",
+    },
+  },
+  placeholderCell: {
+    aspectRatio: "1/1",
+    width: "100%",
+    borderRadius: token.borderRadius,
+    border: `1px dashed ${token.colorBorder}`,
+    backgroundColor: token.colorBgLayout,
+    boxSizing: "border-box",
+  },
+  spacerCell: {
+    aspectRatio: "1/1",
   },
   mediaItem: {
     position: "relative",

@@ -457,6 +457,7 @@ export const EntityMediaGallery = ({
   emptyMessage = "No media files yet",
   coverLabel = "Cover",
   hasCover = true,
+  minCells = 13,
 }: IEntityMediaGalleryProps) => {
   const { styles } = useStyles();
   const [internalViewMode, setInternalViewMode] = useState<ViewMode>("grid");
@@ -585,7 +586,7 @@ export const EntityMediaGallery = ({
           </Flex>
         )}
 
-        {/* Empty state with dragger */}
+        {/* Empty state with dragger (only when no minCells) */}
         {!hasMedia && showUpload && (
           <Upload.Dragger
             accept={accept}
@@ -656,6 +657,26 @@ export const EntityMediaGallery = ({
                   </div>
                 </Upload>
               )}
+
+              {/* Overlay with placeholder cells */}
+              <div className={styles.mediaGridOverlay}>
+                {Array.from({
+                  length: value.length + (showUpload ? 1 : 0),
+                }).map((_, idx) => (
+                  <div key={`spacer-${idx}`} className={styles.spacerCell} />
+                ))}
+                {Array.from({
+                  length: Math.max(
+                    0,
+                    minCells - value.length - (showUpload ? 1 : 0)
+                  ),
+                }).map((_, idx) => (
+                  <div
+                    key={`placeholder-${idx}`}
+                    className={styles.placeholderCell}
+                  />
+                ))}
+              </div>
             </div>
 
             <div className={styles.footer}>

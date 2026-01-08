@@ -46,4 +46,6 @@ export interface IEntityMediaGalleryProps {
   showPaper?: boolean;
   /** Extra content for Paper header */
   headerExtra?: React.ReactNode;
+  /** Minimum number of cells to show (fills empty cells with placeholders) */
+  minCells?: number;
 }
