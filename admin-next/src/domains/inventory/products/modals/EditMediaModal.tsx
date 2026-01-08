@@ -1,73 +1,26 @@
 "use client";
 
-import { useState, useEffect, useCallback, CSSProperties } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createStyles } from "antd-style";
-import {
-  Upload,
-  Image,
-  Button,
-  Typography,
-  Flex,
-  Tooltip,
-  Empty,
-  Dropdown,
-  Segmented,
-} from "antd";
-import {
-  PlusOutlined,
-  DeleteOutlined,
-  StarOutlined,
-  StarFilled,
-  MoreOutlined,
-  EyeOutlined,
-  AppstoreOutlined,
-  UnorderedListOutlined,
-  HolderOutlined,
-} from "@ant-design/icons";
-import type { UploadFile, UploadProps } from "antd";
-import {
-  DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragOverlay,
-  DragEndEvent,
-  DragStartEvent,
-  closestCenter,
-} from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  rectSortingStrategy,
-  verticalListSortingStrategy,
-  useSortable,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { Segmented } from "antd";
+import { AppstoreOutlined, UnorderedListOutlined } from "@ant-design/icons";
 import {
   useModalStackContext,
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
+import {
+  EntityMediaGallery,
+  type IMediaItem,
+  type ViewMode,
+} from "@/shared/components/entity-media-gallery";
 import { Paper } from "../components/Paper";
 import { PaperHeader } from "../components/PaperHeader";
 import type { IEditMediaModalPayload } from "../modals";
 import type { IMediaFile } from "../mocks/types";
 import { FileDriver } from "../mocks/types";
 
-interface UploadRequestOption {
-  file: File | Blob | string;
-  onSuccess?: (body: unknown) => void;
-  onError?: (error: Error) => void;
-  onProgress?: (event: { percent: number }) => void;
-}
-
-// ============================================================================
-// Styles
-// ============================================================================
-
-const useStyles = createStyles(({ token }) => ({
+const useStyles = createStyles(() => ({
   container: {
     display: "flex",
     flexDirection: "column",
@@ -75,588 +28,49 @@ const useStyles = createStyles(({ token }) => ({
     height: "100%",
     padding: 16,
   },
-  mediaGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))",
-    gridGap: 16,
-    position: "relative",
-    "& > *:nth-child(1)": {
-      gridColumnStart: "span 2",
-      gridRowStart: "span 2",
-    },
-  },
-  mediaItem: {
-    position: "relative",
-    borderRadius: 8,
-    overflow: "hidden",
-    border: `1px solid ${token.colorBorderSecondary}`,
-    background: token.colorBgContainer,
-    aspectRatio: "1/1",
-    cursor: "grab",
-    "&:hover": {
-      borderColor: token.colorPrimary,
-    },
-    "&:hover .media-actions": {
-      opacity: 1,
-    },
-  },
-  mediaItemDragging: {
-    opacity: 0.5,
-  },
-  mediaImage: {
-    width: "100%",
-    height: "100%",
-    objectFit: "cover",
-  },
-  mediaActions: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: "rgba(0, 0, 0, 0.5)",
-    opacity: 0,
-    transition: "opacity 0.2s ease",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  mediaActionButton: {
-    color: "#fff",
-    background: "rgba(0, 0, 0, 0.4)",
-    border: "none",
-    "&:hover": {
-      color: "#fff",
-      background: "rgba(0, 0, 0, 0.6)",
-    },
-  },
-  coverBadge: {
-    position: "absolute",
-    top: 8,
-    left: 8,
-    background: token.colorPrimary,
-    color: "#fff",
-    padding: "2px 8px",
-    borderRadius: 4,
-    fontSize: 11,
-    fontWeight: 500,
-    display: "flex",
-    alignItems: "center",
-    gap: 4,
-    zIndex: 1,
-  },
-  uploadArea: {
-    width: "100%",
-    aspectRatio: "1/1",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    background: token.colorBgLayout,
-    border: `2px dashed ${token.colorBorder}`,
-    borderRadius: 8,
-    cursor: "pointer",
-    transition: "all 0.2s ease",
-    "&:hover": {
-      borderColor: token.colorPrimary,
-      background: token.colorPrimaryBg,
-    },
-  },
-  uploadIcon: {
-    fontSize: 24,
-    color: token.colorTextSecondary,
-    marginBottom: 8,
-  },
-  uploadText: {
-    fontSize: 12,
-    color: token.colorTextSecondary,
-  },
-  emptyContainer: {
-    gridColumn: "1 / -1",
-    padding: "40px 20px",
-  },
-  fileInfo: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: "4px 8px",
-    background: "linear-gradient(transparent, rgba(0,0,0,0.7))",
-    color: "#fff",
-    fontSize: 10,
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  },
-  selectedCount: {
-    fontSize: 12,
-    color: token.colorTextSecondary,
-  },
-  bulkActions: {
-    display: "flex",
-    gap: 8,
-  },
-  // List view styles
-  listContainer: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 8,
-  },
-  listItem: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    padding: 8,
-    borderRadius: 8,
-    border: `1px solid ${token.colorBorderSecondary}`,
-    background: token.colorBgContainer,
-    cursor: "grab",
-    "&:hover": {
-      borderColor: token.colorPrimary,
-      background: token.colorBgLayout,
-    },
-  },
-  listItemDragging: {
-    opacity: 0.5,
-  },
-  listItemImage: {
-    width: 64,
-    height: 64,
-    borderRadius: 6,
-    objectFit: "cover",
-    flexShrink: 0,
-  },
-  listItemInfo: {
-    flex: 1,
-    minWidth: 0,
-    display: "flex",
-    flexDirection: "column",
-    gap: 2,
-  },
-  listItemName: {
-    fontSize: 13,
-    fontWeight: 500,
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  },
-  listItemMeta: {
-    fontSize: 12,
-    color: token.colorTextSecondary,
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-  },
-  listItemActions: {
-    display: "flex",
-    alignItems: "center",
-    gap: 4,
-    flexShrink: 0,
-  },
-  dragHandle: {
-    cursor: "grab",
-    color: token.colorTextSecondary,
-    padding: 4,
-    "&:hover": {
-      color: token.colorText,
-    },
-  },
-  viewSwitcher: {
-    marginLeft: 8,
-  },
 }));
 
-// ============================================================================
-// Helpers
-// ============================================================================
+/**
+ * Convert IMediaFile to IMediaItem for the gallery component
+ */
+const toMediaItem = (file: IMediaFile): IMediaItem => ({
+  id: file.id,
+  url: file.url,
+  name: file.name,
+  size: file.size,
+  ext: file.ext,
+});
 
-const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
-};
-
-// ============================================================================
-// SortableMediaItem Component
-// ============================================================================
-
-interface ISortableMediaItemProps {
-  item: IMediaFile;
-  isCover: boolean;
-  index: number;
-  onSetCover: (item: IMediaFile) => void;
-  onDelete: (id: string) => void;
-  onPreview: (id: string) => void;
-}
-
-const SortableMediaItem = ({
-  item,
-  isCover,
-  index,
-  onSetCover,
-  onDelete,
-  onPreview,
-}: ISortableMediaItemProps) => {
-  const { styles, cx } = useStyles();
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-    activeIndex,
-    overIndex,
-    rect,
-  } = useSortable({ id: item.id });
-
-  const gap = 16;
-
-  const getTransform = () => {
-    if (!transform || !rect.current) {
-      return transform;
-    }
-
-    const getPrimaryIndexTransform = (r: { width: number; height: number }) => ({
-      ...transform,
-      x: (transform?.x || 0) + r.width / 2 + gap / 2,
-      y: (transform?.y || 0) + r.height / 2 + gap / 2,
-    });
-
-    const getSecondaryIndexTransform = (r: { width: number; height: number }) => ({
-      ...transform,
-      x: (transform?.x || 0) - r.width / 4 - gap / 4,
-      y: (transform?.y || 0) - r.height / 4 - gap / 4,
-    });
-
-    if (index === activeIndex && activeIndex !== 0 && overIndex === 0) {
-      return getPrimaryIndexTransform(rect.current);
-    } else if (index === 0 && activeIndex !== 0 && overIndex === 0) {
-      return getSecondaryIndexTransform(rect.current);
-    } else if (activeIndex === 0 && overIndex !== 0 && index <= 1) {
-      return index === 0
-        ? getSecondaryIndexTransform(rect.current)
-        : getPrimaryIndexTransform(rect.current);
-    }
-
-    return transform;
-  };
-
-  const style: CSSProperties = {
-    transform: CSS.Transform.toString(getTransform()),
-    transition,
-    width: "100%",
-    height: "100%",
-    aspectRatio: "1/1",
-    pointerEvents: isDragging ? "none" : "auto",
-  };
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...listeners}
-      {...attributes}
-      className={cx(
-        styles.mediaItem,
-        isDragging && styles.mediaItemDragging
-      )}
-    >
-      {isCover && (
-        <div className={styles.coverBadge}>
-          <StarFilled style={{ fontSize: 10 }} />
-          Cover
-        </div>
-      )}
-
-      <img src={item.url} alt={item.name} className={styles.mediaImage} />
-
-      <div className={cx(styles.mediaActions, "media-actions")}>
-        <Tooltip title="Preview">
-          <Button
-            size="small"
-            shape="circle"
-            icon={<EyeOutlined />}
-            className={styles.mediaActionButton}
-            onClick={(e) => {
-              e.stopPropagation();
-              onPreview(item.id);
-            }}
-          />
-        </Tooltip>
-
-        {!isCover && (
-          <Tooltip title="Set as cover">
-            <Button
-              size="small"
-              shape="circle"
-              icon={<StarOutlined />}
-              className={styles.mediaActionButton}
-              onClick={(e) => {
-                e.stopPropagation();
-                onSetCover(item);
-              }}
-            />
-          </Tooltip>
-        )}
-
-        <Dropdown
-          menu={{
-            items: [
-              {
-                key: "preview",
-                label: "Preview",
-                icon: <EyeOutlined />,
-                onClick: () => onPreview(item.id),
-              },
-              ...(isCover
-                ? []
-                : [
-                    {
-                      key: "setCover",
-                      label: "Set as cover",
-                      icon: <StarOutlined />,
-                      onClick: () => onSetCover(item),
-                    },
-                  ]),
-              { type: "divider" as const },
-              {
-                key: "delete",
-                label: "Delete",
-                icon: <DeleteOutlined />,
-                danger: true,
-                onClick: () => onDelete(item.id),
-              },
-            ],
-          }}
-          trigger={["click"]}
-        >
-          <Button
-            size="small"
-            shape="circle"
-            icon={<MoreOutlined />}
-            className={styles.mediaActionButton}
-            onClick={(e) => e.stopPropagation()}
-          />
-        </Dropdown>
-      </div>
-
-      <div className={styles.fileInfo}>
-        {item.name} • {formatFileSize(item.size)}
-      </div>
-    </div>
-  );
-};
-
-// ============================================================================
-// SortableListItem Component
-// ============================================================================
-
-interface ISortableListItemProps {
-  item: IMediaFile;
-  isCover: boolean;
-  onSetCover: (item: IMediaFile) => void;
-  onDelete: (id: string) => void;
-  onPreview: (id: string) => void;
-}
-
-const SortableListItem = ({
-  item,
-  isCover,
-  onSetCover,
-  onDelete,
-  onPreview,
-}: ISortableListItemProps) => {
-  const { styles, cx } = useStyles();
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: item.id });
-
-  const style: CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...listeners}
-      {...attributes}
-      className={cx(
-        styles.listItem,
-        isDragging && styles.listItemDragging
-      )}
-    >
-      <div className={styles.dragHandle}>
-        <HolderOutlined />
-      </div>
-
-      <img src={item.url} alt={item.name} className={styles.listItemImage} />
-
-      <div className={styles.listItemInfo}>
-        <Typography.Text className={styles.listItemName}>
-          {item.name}
-        </Typography.Text>
-        <div className={styles.listItemMeta}>
-          <span>{formatFileSize(item.size)}</span>
-          <span>{item.ext.toUpperCase()}</span>
-          {isCover && (
-            <Typography.Text type="success" style={{ fontSize: 12 }}>
-              <StarFilled style={{ marginRight: 4 }} />
-              Cover
-            </Typography.Text>
-          )}
-        </div>
-      </div>
-
-      <div className={styles.listItemActions}>
-        <Tooltip title="Preview">
-          <Button
-            size="small"
-            type="text"
-            icon={<EyeOutlined />}
-            onClick={(e) => {
-              e.stopPropagation();
-              onPreview(item.id);
-            }}
-          />
-        </Tooltip>
-
-        {!isCover && (
-          <Tooltip title="Set as cover">
-            <Button
-              size="small"
-              type="text"
-              icon={<StarOutlined />}
-              onClick={(e) => {
-                e.stopPropagation();
-                onSetCover(item);
-              }}
-            />
-          </Tooltip>
-        )}
-
-        <Dropdown
-          menu={{
-            items: [
-              {
-                key: "preview",
-                label: "Preview",
-                icon: <EyeOutlined />,
-                onClick: () => onPreview(item.id),
-              },
-              ...(isCover
-                ? []
-                : [
-                    {
-                      key: "setCover",
-                      label: "Set as cover",
-                      icon: <StarOutlined />,
-                      onClick: () => onSetCover(item),
-                    },
-                  ]),
-              { type: "divider" as const },
-              {
-                key: "delete",
-                label: "Delete",
-                icon: <DeleteOutlined />,
-                danger: true,
-                onClick: () => onDelete(item.id),
-              },
-            ],
-          }}
-          trigger={["click"]}
-        >
-          <Button
-            size="small"
-            type="text"
-            icon={<MoreOutlined />}
-            onClick={(e) => e.stopPropagation()}
-          />
-        </Dropdown>
-      </div>
-    </div>
-  );
-};
-
-// ============================================================================
-// List Item Preview (for DragOverlay)
-// ============================================================================
-
-interface IListItemPreviewProps {
-  item: IMediaFile;
-  isCover: boolean;
-}
-
-const ListItemPreview = ({ item, isCover }: IListItemPreviewProps) => {
-  const { styles } = useStyles();
-
-  return (
-    <div
-      className={styles.listItem}
-      style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.15)", cursor: "grabbing" }}
-    >
-      <div className={styles.dragHandle}>
-        <HolderOutlined />
-      </div>
-      <img src={item.url} alt={item.name} className={styles.listItemImage} />
-      <div className={styles.listItemInfo}>
-        <Typography.Text className={styles.listItemName}>
-          {item.name}
-        </Typography.Text>
-        <div className={styles.listItemMeta}>
-          <span>{formatFileSize(item.size)}</span>
-          <span>{item.ext.toUpperCase()}</span>
-          {isCover && (
-            <Typography.Text type="success" style={{ fontSize: 12 }}>
-              <StarFilled style={{ marginRight: 4 }} />
-              Cover
-            </Typography.Text>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ============================================================================
-// Types
-// ============================================================================
-
-type ViewMode = "grid" | "list";
-
-// ============================================================================
-// Main Component
-// ============================================================================
+/**
+ * Convert IMediaItem back to IMediaFile
+ */
+const toMediaFile = (item: IMediaItem): IMediaFile => ({
+  id: item.id,
+  url: item.url,
+  name: item.name,
+  size: item.size,
+  ext: item.ext || item.name.split(".").pop() || "",
+  driver: FileDriver.LOCAL,
+  key: item.name,
+  createdAt: new Date().toISOString(),
+});
 
 export const EditMediaModal = () => {
   const { styles } = useStyles();
   const { payload, pop, setDirty } = useModalStackContext();
   const typedPayload = payload as IEditMediaModalPayload;
 
-  const [gallery, setGallery] = useState<IMediaFile[]>(() => {
-    const items = [...typedPayload.gallery];
-    if (typedPayload.cover && !items.find((i) => i.id === typedPayload.cover?.id)) {
-      items.unshift(typedPayload.cover);
+  const [gallery, setGallery] = useState<IMediaItem[]>(() => {
+    const items = [...typedPayload.gallery].map(toMediaItem);
+    if (
+      typedPayload.cover &&
+      !items.find((i) => i.id === typedPayload.cover?.id)
+    ) {
+      items.unshift(toMediaItem(typedPayload.cover));
     }
     return items;
   });
-  const [previewVisible, setPreviewVisible] = useState(false);
-  const [previewCurrent, setPreviewCurrent] = useState(0);
-  const [activeId, setActiveId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
-
-  const activeItem = gallery.find((it) => it.id === activeId);
-  const activeIndex = activeItem ? gallery.indexOf(activeItem) : -1;
 
   const markDirty = useCallback(() => {
     setDirty(true);
@@ -672,108 +86,40 @@ export const EditMediaModal = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [pop]);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 1,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
+  const handleChange = useCallback(
+    (items: IMediaItem[]) => {
+      setGallery(items);
+      markDirty();
+    },
+    [markDirty]
   );
 
-  const handleDragStart = (event: DragStartEvent) => {
-    if (!event?.active?.id) return;
-    setActiveId(event.active.id as string);
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    setActiveId(null);
-
-    const { active, over } = event;
-    if (over && active.id !== over.id) {
-      const ids = gallery.map((it) => it.id);
-      const oldIndex = ids.indexOf(active.id as string);
-      const newIndex = ids.indexOf(over.id as string);
-
-      setGallery(arrayMove(gallery, oldIndex, newIndex));
-      markDirty();
-    }
-  };
-
   const handleSave = useCallback(() => {
-    const newCover = gallery[0] || null;
-    typedPayload.onSave?.({ cover: newCover, gallery });
+    const mediaFiles = gallery.map(toMediaFile);
+    const newCover = mediaFiles[0] || null;
+    typedPayload.onSave?.({ cover: newCover, gallery: mediaFiles });
     pop();
   }, [typedPayload, gallery, pop]);
 
-  const handleSetCover = useCallback(
-    (item: IMediaFile) => {
-      setGallery((prev) => {
-        const filtered = prev.filter((i) => i.id !== item.id);
-        return [item, ...filtered];
-      });
-      markDirty();
-    },
-    [markDirty]
-  );
-
-  const handleDelete = useCallback(
-    (id: string) => {
-      setGallery((prev) => prev.filter((item) => item.id !== id));
-      markDirty();
-    },
-    [markDirty]
-  );
-
-  const handlePreview = useCallback(
-    (itemId: string) => {
-      const index = gallery.findIndex((it) => it.id === itemId);
-      setPreviewCurrent(index >= 0 ? index : 0);
-      setPreviewVisible(true);
-    },
-    [gallery]
-  );
-
-  // Upload handler
-  const handleUploadChange: UploadProps["onChange"] = useCallback(
-    async ({ fileList }: { fileList: UploadFile[] }) => {
-      const newFiles = fileList
-        .filter((file: UploadFile) => file.originFileObj && file.status === "done")
-        .map((file: UploadFile) => file.originFileObj as File);
-
-      if (newFiles.length > 0 && typedPayload.onUpload) {
-        const uploadedMedia = await typedPayload.onUpload(newFiles);
-        setGallery((prev) => [...prev, ...uploadedMedia]);
+  const handleUpload = useCallback(
+    async (files: File[]): Promise<IMediaItem[]> => {
+      // If custom upload handler is provided, use it
+      if (typedPayload.onUpload) {
+        const uploadedMedia = await typedPayload.onUpload(files);
+        return uploadedMedia.map(toMediaItem);
       }
+
+      // Default: create local items
+      return files.map((file) => ({
+        id: `media-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+        url: URL.createObjectURL(file),
+        name: file.name,
+        size: file.size,
+        ext: file.name.split(".").pop() || "",
+        file,
+      }));
     },
     [typedPayload]
-  );
-
-  // Mock upload for now
-  const customUpload = useCallback(
-    async (options: UploadRequestOption) => {
-      const { file, onSuccess } = options;
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      const mockFile = file as File;
-      const mockMedia: IMediaFile = {
-        id: `media-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
-        url: URL.createObjectURL(mockFile),
-        name: mockFile.name,
-        size: mockFile.size,
-        ext: mockFile.name.split(".").pop() || "",
-        driver: FileDriver.LOCAL,
-        key: mockFile.name,
-        createdAt: new Date().toISOString(),
-      };
-
-      setGallery((prev) => [...prev, mockMedia]);
-      markDirty();
-      onSuccess?.(mockMedia);
-    },
-    [markDirty]
   );
 
   return (
@@ -795,11 +141,6 @@ export const EditMediaModal = () => {
         <Paper>
           <PaperHeader
             title="Product Media"
-            extra={
-              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                {gallery.length} files
-              </Typography.Text>
-            }
             actions={
               <Segmented
                 size="small"
@@ -813,112 +154,20 @@ export const EditMediaModal = () => {
             }
           />
 
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-          >
-            {gallery.length === 0 && (
-              <div className={styles.emptyContainer}>
-                <Empty
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  description="No media files yet"
-                />
-              </div>
-            )}
-
-            {gallery.length > 0 && viewMode === "grid" && (
-              <div className={styles.mediaGrid}>
-                <SortableContext
-                  items={gallery.map((it) => it.id)}
-                  strategy={rectSortingStrategy}
-                >
-                  {gallery.map((item, idx) => (
-                    <SortableMediaItem
-                    key={item.id}
-                    item={item}
-                    isCover={idx === 0}
-                    index={idx}
-                    onSetCover={handleSetCover}
-                    onDelete={handleDelete}
-                    onPreview={handlePreview}
-                  />
-                ))}
-              </SortableContext>
-
-                {/* Upload area */}
-                <Upload
-                  accept="image/*,video/*"
-                  multiple
-                  showUploadList={false}
-                  customRequest={customUpload}
-                  onChange={handleUploadChange}
-                >
-                  <div className={styles.uploadArea}>
-                    <PlusOutlined className={styles.uploadIcon} />
-                    <Typography.Text className={styles.uploadText}>
-                      Upload
-                    </Typography.Text>
-                  </div>
-                </Upload>
-              </div>
-            )}
-
-            {gallery.length > 0 && viewMode === "list" && (
-              <div className={styles.listContainer}>
-                <SortableContext
-                  items={gallery.map((it) => it.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {gallery.map((item, idx) => (
-                    <SortableListItem
-                      key={item.id}
-                      item={item}
-                      isCover={idx === 0}
-                      onSetCover={handleSetCover}
-                      onDelete={handleDelete}
-                      onPreview={handlePreview}
-                    />
-                  ))}
-                </SortableContext>
-
-                {/* Upload button for list view */}
-                <Upload
-                  accept="image/*,video/*"
-                  multiple
-                  showUploadList={false}
-                  customRequest={customUpload}
-                  onChange={handleUploadChange}
-                >
-                  <Button icon={<PlusOutlined />} style={{ width: "100%" }}>
-                    Upload files
-                  </Button>
-                </Upload>
-              </div>
-            )}
-
-            <DragOverlay>
-              {activeItem && viewMode === "list" ? (
-                <ListItemPreview item={activeItem} isCover={activeIndex === 0} />
-              ) : null}
-            </DragOverlay>
-          </DndContext>
+          <EntityMediaGallery
+            value={gallery}
+            onChange={handleChange}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            onUpload={handleUpload}
+            accept="image/*,video/*"
+            multiple
+            hasCover
+            coverLabel="Cover"
+            emptyMessage="No media files yet"
+          />
         </Paper>
       </div>
-
-      <Image.PreviewGroup
-        preview={{
-          visible: previewVisible,
-          current: previewCurrent,
-          onVisibleChange: (value) => setPreviewVisible(value),
-          onChange: (current) => setPreviewCurrent(current),
-        }}
-        items={gallery.map((item) => ({
-          src: item.url,
-          alt: item.name,
-        }))}
-      />
     </ModalLayout>
   );
 };
