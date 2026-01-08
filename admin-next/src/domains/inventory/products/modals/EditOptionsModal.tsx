@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useForm, useFieldArray } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { createStyles } from "antd-style";
 import {
   Button,
@@ -52,6 +54,14 @@ import {
 } from "@/layouts/modals";
 import { Paper } from "../components/Paper";
 import { PaperHeader } from "../components/PaperHeader";
+import {
+  editOptionsSchema,
+  type IEditOptionsFormValues,
+  type IOptionGroup,
+  type IOptionValue,
+  type ISwatch,
+  type FeatureStyleType,
+} from "./EditOptionsModal.schema";
 
 // ============================================================================
 // Styles
@@ -169,9 +179,7 @@ const useStyles = createStyles(({ token }) => ({
     gap: 12,
     width: 236,
   },
-  swatchColorTabs: {
-    // marginBottom: 8,
-  },
+  swatchColorTabs: {},
   swatchColorTab: {
     display: "flex",
     alignItems: "center",
@@ -233,37 +241,6 @@ const useStyles = createStyles(({ token }) => ({
     },
   },
 }));
-
-// ============================================================================
-// Types
-// ============================================================================
-
-type FeatureStyleType = "radio" | "dropdown" | "swatch" | "cover" | "size";
-type FeatureSwatchType = "color" | "color_duo" | "image";
-
-interface ISwatch {
-  type: FeatureSwatchType;
-  color1?: string;
-  color2?: string;
-  imageUrl?: string;
-}
-
-interface IOptionValue {
-  id: string;
-  label: string;
-  slug: string;
-  sortIndex: number;
-  swatch?: ISwatch;
-}
-
-interface IOptionGroup {
-  id: string;
-  name: string;
-  slug: string;
-  style: FeatureStyleType;
-  values: IOptionValue[];
-  sortIndex: number;
-}
 
 // ============================================================================
 // Constants
@@ -401,13 +378,11 @@ const SwatchPicker = ({ swatch, onChange }: ISwatchPickerProps) => {
   const [activeColorTab, setActiveColorTab] = useState<"1" | "2">("1");
   const { type, color1, color2, imageUrl } = swatch;
 
-  // Determine mode from swatch type
   const mode: SwatchModeType = type === "image" ? "image" : "color";
   const isDuotone = type === "color_duo";
 
   const handleModeChange = (nextMode: SwatchModeType) => {
     if (nextMode === "color") {
-      // Preserve existing colors when switching back to color mode
       if (isDuotone) {
         onChange({
           type: "color_duo",
@@ -629,14 +604,18 @@ const SwatchPicker = ({ swatch, onChange }: ISwatchPickerProps) => {
 interface ISortableValueProps {
   value: IOptionValue;
   groupStyle: FeatureStyleType;
-  onChange: (value: IOptionValue) => void;
+  groupIndex: number;
+  valueIndex: number;
+  onLabelChange: (label: string) => void;
+  onSwatchChange: (swatch: ISwatch) => void;
   onDelete: () => void;
 }
 
 const SortableValue = ({
   value,
   groupStyle,
-  onChange,
+  onLabelChange,
+  onSwatchChange,
   onDelete,
 }: ISortableValueProps) => {
   const { styles, cx } = useStyles();
@@ -658,20 +637,6 @@ const SortableValue = ({
   const swatch = value.swatch || DEFAULT_SWATCH;
   const showSwatchControls = groupStyle === "swatch";
 
-  const handleSwatchChange = (nextSwatch: ISwatch) => {
-    onChange({
-      ...value,
-      swatch: nextSwatch,
-    });
-  };
-
-  const handleLabelChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange({
-      ...value,
-      label: e.target.value,
-    });
-  };
-
   return (
     <div
       ref={setNodeRef}
@@ -680,7 +645,7 @@ const SortableValue = ({
     >
       <Input
         value={value.label}
-        onChange={handleLabelChange}
+        onChange={(e) => onLabelChange(e.target.value)}
         placeholder="Value name"
         prefix={
           <Flex gap={8} align="center" className={styles.inputPrefix}>
@@ -693,7 +658,7 @@ const SortableValue = ({
             </span>
             {showSwatchControls && (
               <span onPointerDown={(e) => e.stopPropagation()}>
-                <SwatchPicker swatch={swatch} onChange={handleSwatchChange} />
+                <SwatchPicker swatch={swatch} onChange={onSwatchChange} />
               </span>
             )}
           </Flex>
@@ -717,19 +682,25 @@ const SortableValue = ({
 
 interface ISortableOptionGroupProps {
   group: IOptionGroup;
-  onUpdateGroup: (group: IOptionGroup) => void;
-  onDeleteGroup: (id: string) => void;
-  onUpdateValue: (groupId: string, value: IOptionValue) => void;
-  onDeleteValue: (groupId: string, valueId: string) => void;
-  onAddValue: (groupId: string) => void;
-  onReorderValues: (groupId: string, values: IOptionValue[]) => void;
+  groupIndex: number;
+  onUpdateName: (name: string) => void;
+  onUpdateStyle: (style: FeatureStyleType) => void;
+  onDeleteGroup: () => void;
+  onUpdateValueLabel: (valueIndex: number, label: string) => void;
+  onUpdateValueSwatch: (valueIndex: number, swatch: ISwatch) => void;
+  onDeleteValue: (valueIndex: number) => void;
+  onAddValue: () => void;
+  onReorderValues: (values: IOptionValue[]) => void;
 }
 
 const SortableOptionGroup = ({
   group,
-  onUpdateGroup,
+  groupIndex,
+  onUpdateName,
+  onUpdateStyle,
   onDeleteGroup,
-  onUpdateValue,
+  onUpdateValueLabel,
+  onUpdateValueSwatch,
   onDeleteValue,
   onAddValue,
   onReorderValues,
@@ -772,16 +743,8 @@ const SortableOptionGroup = ({
           sortIndex: idx,
         })
       );
-      onReorderValues(group.id, newValues);
+      onReorderValues(newValues);
     }
-  };
-
-  const handleStyleChange = (nextStyle: FeatureStyleType) => {
-    onUpdateGroup({ ...group, style: nextStyle });
-  };
-
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onUpdateGroup({ ...group, name: e.target.value });
   };
 
   const menuItems = [
@@ -790,7 +753,7 @@ const SortableOptionGroup = ({
       label: "Delete option",
       icon: <DeleteOutlined />,
       danger: true,
-      onClick: () => onDeleteGroup(group.id),
+      onClick: onDeleteGroup,
     },
   ];
 
@@ -808,7 +771,7 @@ const SortableOptionGroup = ({
       <div className={styles.optionGroupHeader}>
         <Input
           value={group.name}
-          onChange={handleNameChange}
+          onChange={(e) => onUpdateName(e.target.value)}
           placeholder="Option name"
           variant="borderless"
           style={{ flex: 1, fontWeight: 500 }}
@@ -829,12 +792,12 @@ const SortableOptionGroup = ({
               align="center"
               onPointerDown={(e) => e.stopPropagation()}
             >
-              <StyleSelector value={group.style} onChange={handleStyleChange} />
+              <StyleSelector value={group.style} onChange={onUpdateStyle} />
               <Button
                 size="small"
                 type="text"
                 icon={<PlusOutlined />}
-                onClick={() => onAddValue(group.id)}
+                onClick={onAddValue}
               />
               <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
                 <Button size="small" type="text" icon={<DeleteOutlined />} />
@@ -856,13 +819,16 @@ const SortableOptionGroup = ({
             strategy={verticalListSortingStrategy}
           >
             <div className={styles.valuesContainer}>
-              {group.values.map((value) => (
+              {group.values.map((value, valueIndex) => (
                 <SortableValue
                   key={value.id}
                   value={value}
                   groupStyle={group.style}
-                  onChange={(updated) => onUpdateValue(group.id, updated)}
-                  onDelete={() => onDeleteValue(group.id, value.id)}
+                  groupIndex={groupIndex}
+                  valueIndex={valueIndex}
+                  onLabelChange={(label) => onUpdateValueLabel(valueIndex, label)}
+                  onSwatchChange={(swatch) => onUpdateValueSwatch(valueIndex, swatch)}
+                  onDelete={() => onDeleteValue(valueIndex)}
                 />
               ))}
             </div>
@@ -897,10 +863,26 @@ const SortableOptionGroup = ({
 
 export const EditOptionsModal = () => {
   const { styles } = useStyles();
-  const { pop, setDirty } = useModalStackContext();
-
-  const [groups, setGroups] = useState<IOptionGroup[]>(MOCK_OPTION_GROUPS);
+  const { pop } = useModalStackContext();
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
+
+  const {
+    control,
+    handleSubmit,
+    watch,
+    setValue,
+    getValues,
+  } = useForm<IEditOptionsFormValues>({
+    resolver: zodResolver(editOptionsSchema),
+    defaultValues: {
+      groups: MOCK_OPTION_GROUPS,
+    },
+  });
+
+  const { fields: groups, move, remove, append } = useFieldArray({
+    control,
+    name: "groups",
+  });
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -913,8 +895,6 @@ export const EditOptionsModal = () => {
     })
   );
 
-  const markDirty = useCallback(() => setDirty(true), [setDirty]);
-
   const handleDragStart = (event: DragStartEvent) => {
     setActiveGroupId(event.active.id as string);
   };
@@ -925,119 +905,107 @@ export const EditOptionsModal = () => {
     if (over && active.id !== over.id) {
       const oldIndex = groups.findIndex((g) => g.id === active.id);
       const newIndex = groups.findIndex((g) => g.id === over.id);
-      setGroups(
-        arrayMove(groups, oldIndex, newIndex).map((g, idx) => ({
-          ...g,
-          sortIndex: idx,
-        }))
-      );
-      markDirty();
+      move(oldIndex, newIndex);
+
+      // Update sortIndex for all groups
+      const currentGroups = getValues("groups");
+      const reordered = arrayMove(currentGroups, oldIndex, newIndex).map((g, idx) => ({
+        ...g,
+        sortIndex: idx,
+      }));
+      setValue("groups", reordered);
     }
   };
 
-  const handleUpdateGroup = useCallback(
-    (updated: IOptionGroup) => {
-      setGroups((prev) => prev.map((g) => (g.id === updated.id ? updated : g)));
-      markDirty();
+  const handleUpdateGroupName = useCallback(
+    (groupIndex: number, name: string) => {
+      setValue(`groups.${groupIndex}.name`, name);
     },
-    [markDirty]
+    [setValue]
+  );
+
+  const handleUpdateGroupStyle = useCallback(
+    (groupIndex: number, style: FeatureStyleType) => {
+      setValue(`groups.${groupIndex}.style`, style);
+    },
+    [setValue]
   );
 
   const handleDeleteGroup = useCallback(
-    (id: string) => {
-      setGroups((prev) => prev.filter((g) => g.id !== id));
-      markDirty();
+    (groupIndex: number) => {
+      remove(groupIndex);
     },
-    [markDirty]
+    [remove]
   );
 
-  const handleUpdateValue = useCallback(
-    (groupId: string, value: IOptionValue) => {
-      setGroups((prev) =>
-        prev.map((g) =>
-          g.id === groupId
-            ? {
-                ...g,
-                values: g.values.map((v) => (v.id === value.id ? value : v)),
-              }
-            : g
-        )
-      );
-      markDirty();
+  const handleUpdateValueLabel = useCallback(
+    (groupIndex: number, valueIndex: number, label: string) => {
+      setValue(`groups.${groupIndex}.values.${valueIndex}.label`, label);
     },
-    [markDirty]
+    [setValue]
+  );
+
+  const handleUpdateValueSwatch = useCallback(
+    (groupIndex: number, valueIndex: number, swatch: ISwatch) => {
+      setValue(`groups.${groupIndex}.values.${valueIndex}.swatch`, swatch);
+    },
+    [setValue]
   );
 
   const handleDeleteValue = useCallback(
-    (groupId: string, valueId: string) => {
-      setGroups((prev) =>
-        prev.map((g) =>
-          g.id === groupId
-            ? { ...g, values: g.values.filter((v) => v.id !== valueId) }
-            : g
-        )
-      );
-      markDirty();
+    (groupIndex: number, valueIndex: number) => {
+      const currentValues = getValues(`groups.${groupIndex}.values`);
+      const newValues = currentValues.filter((_, idx) => idx !== valueIndex);
+      setValue(`groups.${groupIndex}.values`, newValues);
     },
-    [markDirty]
+    [setValue, getValues]
   );
 
   const handleAddValue = useCallback(
-    (groupId: string) => {
+    (groupIndex: number) => {
+      const currentValues = getValues(`groups.${groupIndex}.values`);
       const newValue: IOptionValue = {
         id: `val-${Date.now()}`,
         label: "",
         slug: "",
-        sortIndex: 0,
+        sortIndex: currentValues.length,
         swatch: { ...DEFAULT_SWATCH },
       };
-      setGroups((prev) =>
-        prev.map((g) =>
-          g.id === groupId
-            ? {
-                ...g,
-                values: [
-                  ...g.values,
-                  { ...newValue, sortIndex: g.values.length },
-                ],
-              }
-            : g
-        )
-      );
-      markDirty();
+      setValue(`groups.${groupIndex}.values`, [...currentValues, newValue]);
     },
-    [markDirty]
+    [setValue, getValues]
   );
 
   const handleReorderValues = useCallback(
-    (groupId: string, values: IOptionValue[]) => {
-      setGroups((prev) =>
-        prev.map((g) => (g.id === groupId ? { ...g, values } : g))
-      );
-      markDirty();
+    (groupIndex: number, values: IOptionValue[]) => {
+      setValue(`groups.${groupIndex}.values`, values);
     },
-    [markDirty]
+    [setValue]
   );
 
   const handleAddGroup = useCallback(() => {
+    const currentGroups = getValues("groups");
     const newGroup: IOptionGroup = {
       id: `opt-${Date.now()}`,
       name: "New Option",
       slug: "new-option",
       style: "radio",
       values: [],
-      sortIndex: groups.length,
+      sortIndex: currentGroups.length,
     };
-    setGroups((prev) => [...prev, newGroup]);
-    markDirty();
-  }, [groups.length, markDirty]);
+    append(newGroup);
+  }, [append, getValues]);
 
-  const handleSave = useCallback(() => {
-    console.log("Saving options:", groups);
-    pop();
-  }, [groups, pop]);
+  const onSubmit = useCallback(
+    (data: IEditOptionsFormValues) => {
+      console.log("Saving options:", data.groups);
+      pop();
+    },
+    [pop]
+  );
 
-  const activeGroup = groups.find((g) => g.id === activeGroupId);
+  const watchedGroups = watch("groups");
+  const activeGroup = watchedGroups.find((g) => g.id === activeGroupId);
 
   return (
     <ModalLayout
@@ -1049,7 +1017,7 @@ export const EditOptionsModal = () => {
           onClose={pop}
           submitButtonProps={{
             children: "Save Changes",
-            onClick: handleSave,
+            onClick: handleSubmit(onSubmit),
           }}
         />
       }
@@ -1080,16 +1048,27 @@ export const EditOptionsModal = () => {
               strategy={verticalListSortingStrategy}
             >
               <Flex vertical gap={16}>
-                {groups.map((group) => (
+                {watchedGroups.map((group, groupIndex) => (
                   <SortableOptionGroup
                     key={group.id}
                     group={group}
-                    onUpdateGroup={handleUpdateGroup}
-                    onDeleteGroup={handleDeleteGroup}
-                    onUpdateValue={handleUpdateValue}
-                    onDeleteValue={handleDeleteValue}
-                    onAddValue={handleAddValue}
-                    onReorderValues={handleReorderValues}
+                    groupIndex={groupIndex}
+                    onUpdateName={(name) => handleUpdateGroupName(groupIndex, name)}
+                    onUpdateStyle={(style) => handleUpdateGroupStyle(groupIndex, style)}
+                    onDeleteGroup={() => handleDeleteGroup(groupIndex)}
+                    onUpdateValueLabel={(valueIndex, label) =>
+                      handleUpdateValueLabel(groupIndex, valueIndex, label)
+                    }
+                    onUpdateValueSwatch={(valueIndex, swatch) =>
+                      handleUpdateValueSwatch(groupIndex, valueIndex, swatch)
+                    }
+                    onDeleteValue={(valueIndex) =>
+                      handleDeleteValue(groupIndex, valueIndex)
+                    }
+                    onAddValue={() => handleAddValue(groupIndex)}
+                    onReorderValues={(values) =>
+                      handleReorderValues(groupIndex, values)
+                    }
                   />
                 ))}
               </Flex>
