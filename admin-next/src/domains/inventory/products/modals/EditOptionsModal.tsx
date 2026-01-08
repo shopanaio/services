@@ -38,8 +38,6 @@ import {
   DragEndEvent,
   DragStartEvent,
   closestCenter,
-  defaultDropAnimationSideEffects,
-  type DropAnimation,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -272,15 +270,6 @@ const DEFAULT_SWATCH: ISwatch = {
   color1: "#1677ff",
 };
 
-const DROP_ANIMATION: DropAnimation = {
-  sideEffects: defaultDropAnimationSideEffects({
-    styles: {
-      active: {
-        opacity: "0.5",
-      },
-    },
-  }),
-};
 
 // ============================================================================
 // Mock Data
@@ -695,6 +684,7 @@ const SortableValue = ({
 interface ISortableOptionGroupProps {
   group: IOptionGroup;
   groupIndex: number;
+  fieldId: string;
   onUpdateName: (name: string) => void;
   onUpdateStyle: (style: FeatureStyleType) => void;
   onDeleteGroup: () => void;
@@ -708,6 +698,7 @@ interface ISortableOptionGroupProps {
 const SortableOptionGroup = ({
   group,
   groupIndex,
+  fieldId,
   onUpdateName,
   onUpdateStyle,
   onDeleteGroup,
@@ -727,7 +718,7 @@ const SortableOptionGroup = ({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: group.id });
+  } = useSortable({ id: fieldId });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -846,7 +837,7 @@ const SortableOptionGroup = ({
             </div>
           </SortableContext>
 
-          <DragOverlay dropAnimation={DROP_ANIMATION}>
+          <DragOverlay dropAnimation={null}>
             {activeValue && (
               <Input
                 value={activeValue.label}
@@ -891,7 +882,7 @@ export const EditOptionsModal = () => {
     },
   });
 
-  const { remove, append } = useFieldArray({
+  const { fields, remove, append, move } = useFieldArray({
     control,
     name: "groups",
   });
@@ -915,14 +906,9 @@ export const EditOptionsModal = () => {
     setActiveGroupId(null);
     const { active, over } = event;
     if (over && active.id !== over.id) {
-      const currentGroups = getValues("groups");
-      const oldIndex = currentGroups.findIndex((g) => g.id === active.id);
-      const newIndex = currentGroups.findIndex((g) => g.id === over.id);
-      const reordered = arrayMove(currentGroups, oldIndex, newIndex).map((g, idx) => ({
-        ...g,
-        sortIndex: idx,
-      }));
-      setValue("groups", reordered);
+      const oldIndex = fields.findIndex((f) => f.id === active.id);
+      const newIndex = fields.findIndex((f) => f.id === over.id);
+      move(oldIndex, newIndex);
     }
   };
 
@@ -1014,7 +1000,8 @@ export const EditOptionsModal = () => {
   );
 
   const watchedGroups = watch("groups");
-  const activeGroup = watchedGroups.find((g) => g.id === activeGroupId);
+  const activeFieldIndex = fields.findIndex((f) => f.id === activeGroupId);
+  const activeGroup = activeFieldIndex >= 0 ? watchedGroups[activeFieldIndex] : null;
 
   return (
     <ModalLayout
@@ -1053,15 +1040,16 @@ export const EditOptionsModal = () => {
             onDragEnd={handleDragEnd}
           >
             <SortableContext
-              items={watchedGroups.map((g) => g.id)}
+              items={fields.map((f) => f.id)}
               strategy={verticalListSortingStrategy}
             >
               <Flex vertical gap={16}>
-                {watchedGroups.map((group, groupIndex) => (
+                {fields.map((field, groupIndex) => (
                   <SortableOptionGroup
-                    key={group.id}
-                    group={group}
+                    key={field.id}
+                    group={watchedGroups[groupIndex]}
                     groupIndex={groupIndex}
+                    fieldId={field.id}
                     onUpdateName={(name) => handleUpdateGroupName(groupIndex, name)}
                     onUpdateStyle={(style) => handleUpdateGroupStyle(groupIndex, style)}
                     onDeleteGroup={() => handleDeleteGroup(groupIndex)}
@@ -1083,7 +1071,7 @@ export const EditOptionsModal = () => {
               </Flex>
             </SortableContext>
 
-            <DragOverlay dropAnimation={DROP_ANIMATION}>
+            <DragOverlay dropAnimation={null}>
               {activeGroup && (
                 <div
                   className={styles.optionGroupHeader}
