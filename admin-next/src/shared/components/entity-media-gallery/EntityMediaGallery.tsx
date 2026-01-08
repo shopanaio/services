@@ -100,7 +100,7 @@ const SortableGridItem = ({
     rect,
   } = useSortable({ id: item.id });
 
-  const gap = 16;
+  const gap = 8;
 
   const getTransform = () => {
     if (!transform || !rect.current) {
