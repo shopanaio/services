@@ -643,19 +643,21 @@ export const EntityMediaGallery = ({
               </SortableContext>
 
               {showUpload && (
-                <Upload
-                  accept={accept}
-                  multiple={multiple}
-                  showUploadList={false}
-                  beforeUpload={handleUpload}
-                >
-                  <div className={styles.uploadArea}>
-                    <PlusOutlined className={styles.uploadIcon} />
-                    <Typography.Text className={styles.uploadText}>
-                      Upload
-                    </Typography.Text>
-                  </div>
-                </Upload>
+                <div className={styles.uploadCell}>
+                  <Upload
+                    accept={accept}
+                    multiple={multiple}
+                    showUploadList={false}
+                    beforeUpload={handleUpload}
+                  >
+                    <div className={styles.uploadArea}>
+                      <PlusOutlined className={styles.uploadIcon} />
+                      <Typography.Text className={styles.uploadText}>
+                        Upload
+                      </Typography.Text>
+                    </div>
+                  </Upload>
+                </div>
               )}
 
               {/* Overlay with placeholder cells */}

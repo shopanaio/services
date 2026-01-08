@@ -29,7 +29,7 @@ export const useStyles = createStyles(({ token }) => ({
   placeholderCell: {
     aspectRatio: "1/1",
     width: "100%",
-    borderRadius: 4,
+    borderRadius: token.borderRadius,
     border: `1px dashed ${token.colorBorder}`,
     backgroundColor: token.colorBgLayout,
     boxSizing: "border-box",
@@ -37,9 +37,17 @@ export const useStyles = createStyles(({ token }) => ({
   spacerCell: {
     aspectRatio: "1/1",
   },
+  uploadCell: {
+    aspectRatio: "1/1",
+    width: "100%",
+    "&& .ant-upload": {
+      width: "100%",
+      height: "100%",
+    },
+  },
   mediaItem: {
     position: "relative",
-    borderRadius: 4,
+    borderRadius: token.borderRadius,
     overflow: "hidden",
     background: token.colorBgContainer,
     aspectRatio: "1/1",
@@ -96,7 +104,7 @@ export const useStyles = createStyles(({ token }) => ({
   },
   uploadArea: {
     width: "100%",
-    aspectRatio: "1/1",
+    height: "100%",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
@@ -106,15 +114,16 @@ export const useStyles = createStyles(({ token }) => ({
     borderRadius: 8,
     cursor: "pointer",
     transition: "all 0.2s ease",
+    boxSizing: "border-box",
     "&:hover": {
       borderColor: token.colorPrimary,
       background: token.colorPrimaryBg,
     },
   },
   uploadIcon: {
-    fontSize: 24,
-    color: token.colorTextSecondary,
-    marginBottom: 8,
+    fontSize: 20,
+    color: token.colorIcon,
+    marginBottom: 4,
   },
   draggerIcon: {
     fontSize: 24,
