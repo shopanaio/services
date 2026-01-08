@@ -18,7 +18,7 @@ import type { IEditVariantsModalPayload } from "../../modals";
 // Styles
 // ============================================================================
 
-const useStyles = createStyles(({ token }) => ({
+const useStyles = createStyles(() => ({
   body: {
     padding: "0 !important",
     display: "flex",
