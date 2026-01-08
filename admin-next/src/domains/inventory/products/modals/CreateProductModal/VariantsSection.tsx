@@ -41,7 +41,7 @@ const useStyles = createStyles(({ token }) => ({
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
-    background: token.colorBgContainer,
+    background: token.colorBgLayout,
     '&:last-child': {
       marginBottom: 0,
     },
