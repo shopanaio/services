@@ -1,16 +1,15 @@
-'use client';
+"use client";
 
-import { useCallback, useState, CSSProperties } from 'react';
-import { Upload, Button, Typography, Tooltip, Dropdown } from 'antd';
+import { useCallback, useState, CSSProperties } from "react";
+import { Upload, Button, Typography, Tooltip, Dropdown, Flex } from "antd";
 import {
   PlusOutlined,
   DeleteOutlined,
   StarOutlined,
   StarFilled,
   MoreOutlined,
-  HolderOutlined,
   InboxOutlined,
-} from '@ant-design/icons';
+} from "@ant-design/icons";
 import {
   DndContext,
   KeyboardSensor,
@@ -21,43 +20,43 @@ import {
   DragEndEvent,
   DragStartEvent,
   closestCenter,
-} from '@dnd-kit/core';
+} from "@dnd-kit/core";
 import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   rectSortingStrategy,
   useSortable,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { createStyles } from 'antd-style';
-import { Paper } from '../../components/Paper';
-import { PaperHeader } from '../../components/PaperHeader';
-import type { ISectionProps, ILocalMediaItem } from './types';
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { createStyles } from "antd-style";
+import { Paper } from "../../components/Paper";
+import { PaperHeader } from "../../components/PaperHeader";
+import type { ISectionProps, ILocalMediaItem } from "./types";
 
 const useStyles = createStyles(({ token }) => ({
   mediaGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))",
     gridGap: 16,
-    position: 'relative',
-    '& > *:nth-child(1)': {
-      gridColumnStart: 'span 2',
-      gridRowStart: 'span 2',
+    position: "relative",
+    "& > *:nth-child(1)": {
+      gridColumnStart: "span 2",
+      gridRowStart: "span 2",
     },
   },
   mediaItem: {
-    position: 'relative',
+    position: "relative",
     borderRadius: 8,
-    overflow: 'hidden',
+    overflow: "hidden",
     border: `1px solid ${token.colorBorderSecondary}`,
     background: token.colorBgContainer,
-    aspectRatio: '1/1',
-    cursor: 'grab',
-    '&:hover': {
+    aspectRatio: "1/1",
+    cursor: "grab",
+    "&:hover": {
       borderColor: token.colorPrimary,
     },
-    '&:hover .media-actions': {
+    "&:hover .media-actions": {
       opacity: 1,
     },
   },
@@ -65,61 +64,61 @@ const useStyles = createStyles(({ token }) => ({
     opacity: 0.5,
   },
   mediaImage: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
   },
   mediaActions: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    background: 'rgba(0, 0, 0, 0.5)',
+    background: "rgba(0, 0, 0, 0.5)",
     opacity: 0,
-    transition: 'opacity 0.2s ease',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+    transition: "opacity 0.2s ease",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
   },
   mediaActionButton: {
-    color: '#fff',
-    background: 'rgba(0, 0, 0, 0.4)',
-    border: 'none',
-    '&:hover': {
-      color: '#fff',
-      background: 'rgba(0, 0, 0, 0.6)',
+    color: "#fff",
+    background: "rgba(0, 0, 0, 0.4)",
+    border: "none",
+    "&:hover": {
+      color: "#fff",
+      background: "rgba(0, 0, 0, 0.6)",
     },
   },
   coverBadge: {
-    position: 'absolute',
+    position: "absolute",
     top: 8,
     left: 8,
     background: token.colorPrimary,
-    color: '#fff',
-    padding: '2px 8px',
+    color: "#fff",
+    padding: "2px 8px",
     borderRadius: 4,
     fontSize: 11,
     fontWeight: 500,
-    display: 'flex',
-    alignItems: 'center',
+    display: "flex",
+    alignItems: "center",
     gap: 4,
     zIndex: 1,
   },
   uploadArea: {
-    width: '100%',
-    aspectRatio: '1/1',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: "100%",
+    aspectRatio: "1/1",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
     background: token.colorBgLayout,
     border: `2px dashed ${token.colorBorder}`,
     borderRadius: 8,
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    '&:hover': {
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+    "&:hover": {
       borderColor: token.colorPrimary,
       background: token.colorPrimaryBg,
     },
@@ -129,27 +128,34 @@ const useStyles = createStyles(({ token }) => ({
     color: token.colorTextSecondary,
     marginBottom: 8,
   },
+  draggerIcon: {
+    fontSize: 32,
+    color: token.colorIcon,
+  },
+  draggerTitle: {
+    fontSize: token.fontSizeLG,
+  },
   uploadText: {
     fontSize: 12,
     color: token.colorTextSecondary,
   },
   fileInfo: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    padding: '4px 8px',
-    background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
-    color: '#fff',
+    padding: "4px 8px",
+    background: "linear-gradient(transparent, rgba(0,0,0,0.7))",
+    color: "#fff",
     fontSize: 10,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
   },
   footer: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginTop: 12,
     fontSize: 12,
     color: token.colorTextSecondary,
@@ -157,11 +163,11 @@ const useStyles = createStyles(({ token }) => ({
 }));
 
 const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return '0 B';
+  if (bytes === 0) return "0 B";
   const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
 };
 
 // Sortable Media Item Component
@@ -199,13 +205,19 @@ const SortableMediaItem = ({
       return transform;
     }
 
-    const getPrimaryIndexTransform = (r: { width: number; height: number }) => ({
+    const getPrimaryIndexTransform = (r: {
+      width: number;
+      height: number;
+    }) => ({
       ...transform,
       x: (transform?.x || 0) + r.width / 2 + gap / 2,
       y: (transform?.y || 0) + r.height / 2 + gap / 2,
     });
 
-    const getSecondaryIndexTransform = (r: { width: number; height: number }) => ({
+    const getSecondaryIndexTransform = (r: {
+      width: number;
+      height: number;
+    }) => ({
       ...transform,
       x: (transform?.x || 0) - r.width / 4 - gap / 4,
       y: (transform?.y || 0) - r.height / 4 - gap / 4,
@@ -227,10 +239,10 @@ const SortableMediaItem = ({
   const style: CSSProperties = {
     transform: CSS.Transform.toString(getTransform()),
     transition,
-    width: '100%',
-    height: '100%',
-    aspectRatio: '1/1',
-    pointerEvents: isDragging ? 'none' : 'auto',
+    width: "100%",
+    height: "100%",
+    aspectRatio: "1/1",
+    pointerEvents: isDragging ? "none" : "auto",
   };
 
   return (
@@ -250,7 +262,7 @@ const SortableMediaItem = ({
 
       <img src={item.url} alt={item.name} className={styles.mediaImage} />
 
-      <div className={cx(styles.mediaActions, 'media-actions')}>
+      <div className={cx(styles.mediaActions, "media-actions")}>
         {!isCover && (
           <Tooltip title="Set as cover">
             <Button
@@ -273,23 +285,23 @@ const SortableMediaItem = ({
                 ? []
                 : [
                     {
-                      key: 'setCover',
-                      label: 'Set as cover',
+                      key: "setCover",
+                      label: "Set as cover",
                       icon: <StarOutlined />,
                       onClick: () => onSetCover(item),
                     },
                   ]),
-              { type: 'divider' as const },
+              { type: "divider" as const },
               {
-                key: 'delete',
-                label: 'Delete',
+                key: "delete",
+                label: "Delete",
                 icon: <DeleteOutlined />,
                 danger: true,
                 onClick: () => onDelete(item.id),
               },
             ],
           }}
-          trigger={['click']}
+          trigger={["click"]}
         >
           <Button
             size="small"
@@ -337,14 +349,14 @@ export const MediaSection = ({ formState, updateFormState }: ISectionProps) => {
       const oldIndex = ids.indexOf(active.id as string);
       const newIndex = ids.indexOf(over.id as string);
 
-      updateFormState('media', arrayMove(formState.media, oldIndex, newIndex));
+      updateFormState("media", arrayMove(formState.media, oldIndex, newIndex));
     }
   };
 
   const handleSetCover = useCallback(
     (item: ILocalMediaItem) => {
       const filtered = formState.media.filter((i) => i.id !== item.id);
-      updateFormState('media', [item, ...filtered]);
+      updateFormState("media", [item, ...filtered]);
     },
     [formState.media, updateFormState]
   );
@@ -356,7 +368,7 @@ export const MediaSection = ({ formState, updateFormState }: ISectionProps) => {
         URL.revokeObjectURL(item.url);
       }
       updateFormState(
-        'media',
+        "media",
         formState.media.filter((m) => m.id !== id)
       );
     },
@@ -366,7 +378,9 @@ export const MediaSection = ({ formState, updateFormState }: ISectionProps) => {
   const handleUpload = useCallback(
     (file: File) => {
       const newItem: ILocalMediaItem = {
-        id: `media-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+        id: `media-${Date.now()}-${Math.random()
+          .toString(36)
+          .substring(2, 11)}`,
         file,
         url: URL.createObjectURL(file),
         name: file.name,
@@ -374,7 +388,7 @@ export const MediaSection = ({ formState, updateFormState }: ISectionProps) => {
         isCover: formState.media.length === 0,
       };
 
-      updateFormState('media', [...formState.media, newItem]);
+      updateFormState("media", [...formState.media, newItem]);
       return false; // Prevent default upload behavior
     },
     [formState.media, updateFormState]
@@ -415,11 +429,15 @@ export const MediaSection = ({ formState, updateFormState }: ISectionProps) => {
             showUploadList={false}
             beforeUpload={handleUpload}
           >
-            <p className="ant-upload-drag-icon">
-              <InboxOutlined />
-            </p>
-            <p className="ant-upload-text">Upload images</p>
-            <p className="ant-upload-hint">Drag and drop images here or click to upload.</p>
+            <Flex align="center" justify="center" vertical gap={4}>
+              <InboxOutlined className={styles.draggerIcon} />
+              <Typography.Text strong className={styles.draggerTitle}>
+                Upload images
+              </Typography.Text>
+              <Typography.Text type="secondary">
+                Drag and drop images here or click to upload.
+              </Typography.Text>
+            </Flex>
           </Upload.Dragger>
         )}
 
@@ -457,7 +475,10 @@ export const MediaSection = ({ formState, updateFormState }: ISectionProps) => {
             </div>
 
             <div className={styles.footer}>
-              <span>{formState.media.length} image{formState.media.length !== 1 ? 's' : ''}</span>
+              <span>
+                {formState.media.length} image
+                {formState.media.length !== 1 ? "s" : ""}
+              </span>
               <span>Drag to reorder</span>
             </div>
           </>
