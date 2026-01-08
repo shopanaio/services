@@ -1,40 +1,39 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { Input, Select, Button, Typography, Flex, Switch, Alert } from 'antd';
-import { PlusOutlined, CloseOutlined } from '@ant-design/icons';
-import { AgGridReact } from 'ag-grid-react';
-import type { ColDef, GridReadyEvent, SelectionChangedEvent } from 'ag-grid-community';
-import { createStyles } from 'antd-style';
-import { Paper } from '../../components/Paper';
-import { PaperHeader } from '../../components/PaperHeader';
-import { generateVariants, countPotentialVariants } from './utils/generateVariants';
-import type { ISectionProps } from './types';
-import type { IOptionInput, IGeneratedVariant } from './utils/generateVariants';
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { Input, Select, Button, Typography, Flex, Switch, Alert } from "antd";
+import { PlusOutlined, CloseOutlined } from "@ant-design/icons";
+import { AgGridReact } from "ag-grid-react";
+import type {
+  ColDef,
+  GridReadyEvent,
+  SelectionChangedEvent,
+} from "ag-grid-community";
+import { createStyles } from "antd-style";
+import { Paper } from "../../components/Paper";
+import { PaperHeader } from "../../components/PaperHeader";
+import {
+  generateVariants,
+  countPotentialVariants,
+} from "./utils/generateVariants";
+import type { ISectionProps } from "./types";
+import type { IOptionInput, IGeneratedVariant } from "./utils/generateVariants";
 
 const useStyles = createStyles(({ token }) => ({
   switchRow: {
-    padding: 12,
+    padding: token.paddingSM,
     background: token.colorBgLayout,
-    borderRadius: 8,
-    marginBottom: 16,
+    borderRadius: token.borderRadius,
+    marginBottom: token.margin,
   },
-  switchDescription: {
-    fontSize: 12,
-    color: token.colorTextSecondary,
-    marginLeft: 28,
-    marginTop: 4,
+  switch: {
+    marginTop: 2,
   },
   optionsHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  optionsDescription: {
-    fontSize: 12,
-    color: token.colorTextSecondary,
-    marginBottom: 12,
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: token.marginXS,
   },
   optionCard: {
     border: `1px solid ${token.colorBorderSecondary}`,
@@ -42,24 +41,24 @@ const useStyles = createStyles(({ token }) => ({
     padding: 12,
     marginBottom: 8,
     background: token.colorBgLayout,
-    '&:last-child': {
+    "&:last-child": {
       marginBottom: 0,
     },
   },
   optionRow: {
-    display: 'flex',
+    display: "flex",
     gap: 12,
-    alignItems: 'center',
+    alignItems: "center",
   },
   optionFields: {
     flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
+    display: "flex",
+    flexDirection: "column",
     gap: 8,
   },
   optionFieldRow: {
-    display: 'flex',
-    alignItems: 'center',
+    display: "flex",
+    alignItems: "center",
     gap: 12,
   },
   optionField: {
@@ -73,9 +72,9 @@ const useStyles = createStyles(({ token }) => ({
   },
   optionDelete: {},
   variantsHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 8,
     marginTop: 16,
   },
@@ -85,15 +84,15 @@ const useStyles = createStyles(({ token }) => ({
     marginBottom: 12,
   },
   gridContainer: {
-    width: '100%',
-    '& .ag-header': {
+    width: "100%",
+    "& .ag-header": {
       background: token.colorBgLayout,
     },
-    '& .ag-row': {
-      cursor: 'default',
+    "& .ag-row": {
+      cursor: "default",
     },
-    '& .ag-center-cols-container, & .ag-center-cols-viewport': {
-      minHeight: 'unset !important',
+    "& .ag-center-cols-container, & .ag-center-cols-viewport": {
+      minHeight: "unset !important",
     },
   },
   tip: {
@@ -140,10 +139,10 @@ const OptionCard = ({
             <Select
               mode="tags"
               placeholder="Type and press Enter"
-              tokenSeparators={[',']}
+              tokenSeparators={[","]}
               value={option.values}
               onChange={(values) => onUpdate(option.id, { values })}
-              style={{ width: '100%' }}
+              style={{ width: "100%" }}
             />
           </div>
         </div>
@@ -160,7 +159,10 @@ const OptionCard = ({
   );
 };
 
-export const VariantsSection = ({ formState, updateFormState }: ISectionProps) => {
+export const VariantsSection = ({
+  formState,
+  updateFormState,
+}: ISectionProps) => {
   const { styles } = useStyles();
   const gridRef = useRef<AgGridReact>(null);
 
@@ -170,27 +172,29 @@ export const VariantsSection = ({ formState, updateFormState }: ISectionProps) =
       const newVariants = generateVariants(formState.options);
       // Preserve enabled state for existing variants
       const updatedVariants = newVariants.map((newVar) => {
-        const existing = formState.variants.find((v) => v.title === newVar.title);
+        const existing = formState.variants.find(
+          (v) => v.title === newVar.title
+        );
         return existing ? { ...newVar, enabled: existing.enabled } : newVar;
       });
-      updateFormState('variants', updatedVariants);
+      updateFormState("variants", updatedVariants);
     }
   }, [formState.options, formState.hasVariants]);
 
   const handleHasVariantsChange = useCallback(
     (checked: boolean) => {
-      updateFormState('hasVariants', checked);
+      updateFormState("hasVariants", checked);
       if (checked) {
         // Add empty option by default
         const emptyOption: IOptionInput = {
           id: `option-${Date.now()}`,
-          name: '',
+          name: "",
           values: [],
         };
-        updateFormState('options', [emptyOption]);
+        updateFormState("options", [emptyOption]);
       } else {
-        updateFormState('options', []);
-        updateFormState('variants', []);
+        updateFormState("options", []);
+        updateFormState("variants", []);
       }
     },
     [updateFormState]
@@ -199,16 +203,16 @@ export const VariantsSection = ({ formState, updateFormState }: ISectionProps) =
   const handleAddOption = useCallback(() => {
     const newOption: IOptionInput = {
       id: `option-${Date.now()}`,
-      name: '',
+      name: "",
       values: [],
     };
-    updateFormState('options', [...formState.options, newOption]);
+    updateFormState("options", [...formState.options, newOption]);
   }, [formState.options, updateFormState]);
 
   const handleUpdateOption = useCallback(
     (id: string, updates: Partial<IOptionInput>) => {
       updateFormState(
-        'options',
+        "options",
         formState.options.map((opt) =>
           opt.id === id ? { ...opt, ...updates } : opt
         )
@@ -220,7 +224,7 @@ export const VariantsSection = ({ formState, updateFormState }: ISectionProps) =
   const handleDeleteOption = useCallback(
     (id: string) => {
       updateFormState(
-        'options',
+        "options",
         formState.options.filter((opt) => opt.id !== id)
       );
     },
@@ -233,7 +237,7 @@ export const VariantsSection = ({ formState, updateFormState }: ISectionProps) =
         event.api.getSelectedRows().map((row: IGeneratedVariant) => row.id)
       );
       updateFormState(
-        'variants',
+        "variants",
         formState.variants.map((v) => ({
           ...v,
           enabled: selectedIds.has(v.id),
@@ -245,7 +249,7 @@ export const VariantsSection = ({ formState, updateFormState }: ISectionProps) =
 
   const handleSelectAll = useCallback(() => {
     updateFormState(
-      'variants',
+      "variants",
       formState.variants.map((v) => ({ ...v, enabled: true }))
     );
     gridRef.current?.api?.selectAll();
@@ -253,7 +257,7 @@ export const VariantsSection = ({ formState, updateFormState }: ISectionProps) =
 
   const handleDeselectAll = useCallback(() => {
     updateFormState(
-      'variants',
+      "variants",
       formState.variants.map((v) => ({ ...v, enabled: false }))
     );
     gridRef.current?.api?.deselectAll();
@@ -263,8 +267,8 @@ export const VariantsSection = ({ formState, updateFormState }: ISectionProps) =
   const columnDefs = useMemo<ColDef<IGeneratedVariant>[]>(() => {
     const baseCols: ColDef<IGeneratedVariant>[] = [
       {
-        headerName: 'Variant',
-        field: 'title',
+        headerName: "Variant",
+        field: "title",
         flex: 1,
         minWidth: 150,
       },
@@ -275,8 +279,10 @@ export const VariantsSection = ({ formState, updateFormState }: ISectionProps) =
     const optionCols: ColDef<IGeneratedVariant>[] = validOptions.map((opt) => ({
       headerName: opt.name,
       valueGetter: (params) => {
-        const optionValue = params.data?.options.find((o) => o.name === opt.name);
-        return optionValue?.value || '';
+        const optionValue = params.data?.options.find(
+          (o) => o.name === opt.name
+        );
+        return optionValue?.value || "";
       },
       width: 100,
     }));
@@ -284,17 +290,14 @@ export const VariantsSection = ({ formState, updateFormState }: ISectionProps) =
     return [...baseCols, ...optionCols];
   }, [formState.options]);
 
-  const onGridReady = useCallback(
-    (params: GridReadyEvent) => {
-      // Pre-select enabled variants
-      params.api.forEachNode((node) => {
-        if (node.data?.enabled) {
-          node.setSelected(true);
-        }
-      });
-    },
-    []
-  );
+  const onGridReady = useCallback((params: GridReadyEvent) => {
+    // Pre-select enabled variants
+    params.api.forEachNode((node) => {
+      if (node.data?.enabled) {
+        node.setSelected(true);
+      }
+    });
+  }, []);
 
   const potentialVariantCount = countPotentialVariants(formState.options);
   const enabledCount = formState.variants.filter((v) => v.enabled).length;
@@ -304,18 +307,23 @@ export const VariantsSection = ({ formState, updateFormState }: ISectionProps) =
     <Paper>
       <PaperHeader title="Variants" />
 
-      <div className={styles.switchRow}>
+      <Flex gap={12} className={styles.switchRow}>
         <Switch
+          className={styles.switch}
           checked={formState.hasVariants}
           onChange={handleHasVariantsChange}
+          size="small"
         />
-        <Typography.Text style={{ marginLeft: 8, fontWeight: 500 }}>
-          This is a product with variants
-        </Typography.Text>
-        <div className={styles.switchDescription}>
-          When unchecked, we will create a default variant for you
-        </div>
-      </div>
+
+        <Flex vertical>
+          <Typography.Text strong>
+            This is a product with variants
+          </Typography.Text>
+          <Typography.Text type="secondary">
+            When unchecked, we will create a default variant for you
+          </Typography.Text>
+        </Flex>
+      </Flex>
 
       {formState.hasVariants && (
         <>
@@ -328,9 +336,6 @@ export const VariantsSection = ({ formState, updateFormState }: ISectionProps) =
             >
               Add
             </Button>
-          </div>
-          <div className={styles.optionsDescription}>
-            Define the options for the product, e.g. color, size, etc.
           </div>
 
           {formState.options.map((option) => (
@@ -359,7 +364,8 @@ export const VariantsSection = ({ formState, updateFormState }: ISectionProps) =
                 </Flex>
               </div>
               <div className={styles.variantsDescription}>
-                This ranking will affect the variants&apos; order in your storefront.
+                This ranking will affect the variants&apos; order in your
+                storefront.
               </div>
 
               {showWarning && (
@@ -388,7 +394,9 @@ export const VariantsSection = ({ formState, updateFormState }: ISectionProps) =
               </div>
 
               <div className={styles.tip}>
-                Tip: Variants left unchecked won&apos;t be created. You can always create and edit variants afterwards but this list fits the variations in your product options.
+                Tip: Variants left unchecked won&apos;t be created. You can
+                always create and edit variants afterwards but this list fits
+                the variations in your product options.
               </div>
             </>
           )}

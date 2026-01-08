@@ -8,7 +8,7 @@ import {
   StarOutlined,
   StarFilled,
   MoreOutlined,
-  InboxOutlined,
+  UploadOutlined,
 } from "@ant-design/icons";
 import {
   DndContext,
@@ -129,8 +129,9 @@ const useStyles = createStyles(({ token }) => ({
     marginBottom: 8,
   },
   draggerIcon: {
-    fontSize: 32,
+    fontSize: 24,
     color: token.colorIcon,
+    marginBottom: token.marginXS,
   },
   draggerTitle: {
     fontSize: token.fontSizeLG,
@@ -429,9 +430,13 @@ export const MediaSection = ({ formState, updateFormState }: ISectionProps) => {
             showUploadList={false}
             beforeUpload={handleUpload}
           >
-            <Flex align="center" justify="center" vertical gap={4}>
-              <InboxOutlined className={styles.draggerIcon} />
-              <Typography.Text strong className={styles.draggerTitle}>
+            <Flex align="center" justify="center" vertical>
+              <UploadOutlined className={styles.draggerIcon} />
+              <Typography.Text
+                strong
+                type="secondary"
+                className={styles.draggerTitle}
+              >
                 Upload images
               </Typography.Text>
               <Typography.Text type="secondary">
