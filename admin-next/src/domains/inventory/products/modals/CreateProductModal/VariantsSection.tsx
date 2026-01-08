@@ -75,18 +75,31 @@ const useStyles = createStyles(({ token }) => ({
   optionDragHandle: {
     cursor: 'grab',
     color: token.colorTextSecondary,
-    padding: '8px 4px',
+    padding: '4px',
+    marginTop: 4,
     '&:hover': {
       color: token.colorText,
     },
+  },
+  optionFields: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+  },
+  optionFieldRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
   },
   optionField: {
     flex: 1,
   },
   optionFieldLabel: {
-    fontSize: 12,
+    fontSize: 13,
     color: token.colorTextSecondary,
-    marginBottom: 4,
+    width: 50,
+    flexShrink: 0,
   },
   optionDelete: {
     marginTop: 4,
@@ -167,25 +180,27 @@ const SortableOptionCard = ({
           <HolderOutlined />
         </span>
 
-        <div className={styles.optionField} style={{ maxWidth: 160 }}>
-          <div className={styles.optionFieldLabel}>Title</div>
-          <Input
-            placeholder="e.g. Color"
-            value={option.name}
-            onChange={(e) => onUpdate(option.id, { name: e.target.value })}
-          />
-        </div>
+        <div className={styles.optionFields}>
+          <div className={styles.optionFieldRow}>
+            <div className={styles.optionFieldLabel}>Title</div>
+            <Input
+              placeholder="e.g. Color"
+              value={option.name}
+              onChange={(e) => onUpdate(option.id, { name: e.target.value })}
+            />
+          </div>
 
-        <div className={styles.optionField}>
-          <div className={styles.optionFieldLabel}>Values</div>
-          <Select
-            mode="tags"
-            placeholder="Type and press Enter"
-            tokenSeparators={[',']}
-            value={option.values}
-            onChange={(values) => onUpdate(option.id, { values })}
-            style={{ width: '100%' }}
-          />
+          <div className={styles.optionFieldRow}>
+            <div className={styles.optionFieldLabel}>Values</div>
+            <Select
+              mode="tags"
+              placeholder="Type and press Enter"
+              tokenSeparators={[',']}
+              value={option.values}
+              onChange={(values) => onUpdate(option.id, { values })}
+              style={{ width: '100%' }}
+            />
+          </div>
         </div>
 
         <Button
