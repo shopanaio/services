@@ -51,6 +51,7 @@ import {
   ModalHeader,
 } from "@/layouts/modals";
 import { Paper } from "../components/Paper";
+import { PaperHeader } from "../components/PaperHeader";
 
 // ============================================================================
 // Styles
@@ -128,10 +129,6 @@ const useStyles = createStyles(({ token }) => ({
     "&:active": {
       cursor: "grabbing",
     },
-  },
-  addGroupButton: {
-    width: "100%",
-    borderStyle: "dashed",
   },
   swatchTrigger: {
     width: 20,
@@ -1056,6 +1053,19 @@ export const EditOptionsModal = () => {
     >
       <div className={styles.container}>
         <Paper>
+          <PaperHeader
+            title="Options"
+            actions={
+              <Button
+                size="small"
+                icon={<PlusOutlined />}
+                onClick={handleAddGroup}
+              >
+                Add
+              </Button>
+            }
+          />
+
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -1103,15 +1113,6 @@ export const EditOptionsModal = () => {
               )}
             </DragOverlay>
           </DndContext>
-
-          <Button
-            icon={<PlusOutlined />}
-            className={styles.addGroupButton}
-            onClick={handleAddGroup}
-            style={{ marginTop: 12 }}
-          >
-            Add option group
-          </Button>
         </Paper>
       </div>
     </ModalLayout>
