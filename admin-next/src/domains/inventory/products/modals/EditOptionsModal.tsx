@@ -879,7 +879,7 @@ export const EditOptionsModal = () => {
     },
   });
 
-  const { fields: groups, move, remove, append } = useFieldArray({
+  const { remove, append } = useFieldArray({
     control,
     name: "groups",
   });
@@ -903,12 +903,9 @@ export const EditOptionsModal = () => {
     setActiveGroupId(null);
     const { active, over } = event;
     if (over && active.id !== over.id) {
-      const oldIndex = groups.findIndex((g) => g.id === active.id);
-      const newIndex = groups.findIndex((g) => g.id === over.id);
-      move(oldIndex, newIndex);
-
-      // Update sortIndex for all groups
       const currentGroups = getValues("groups");
+      const oldIndex = currentGroups.findIndex((g) => g.id === active.id);
+      const newIndex = currentGroups.findIndex((g) => g.id === over.id);
       const reordered = arrayMove(currentGroups, oldIndex, newIndex).map((g, idx) => ({
         ...g,
         sortIndex: idx,
@@ -1044,7 +1041,7 @@ export const EditOptionsModal = () => {
             onDragEnd={handleDragEnd}
           >
             <SortableContext
-              items={groups.map((g) => g.id)}
+              items={watchedGroups.map((g) => g.id)}
               strategy={verticalListSortingStrategy}
             >
               <Flex vertical gap={16}>
