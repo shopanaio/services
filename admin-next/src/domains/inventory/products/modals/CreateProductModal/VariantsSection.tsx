@@ -8,6 +8,7 @@ import { AgGridReact } from "ag-grid-react";
 import type {
   ColDef,
   GridReadyEvent,
+  RowSelectionOptions,
   SelectionChangedEvent,
 } from "ag-grid-community";
 import { createStyles } from "antd-style";
@@ -260,21 +261,21 @@ export const VariantsSection = () => {
   const columnDefs = useMemo<ColDef<IGeneratedVariant>[]>(() => {
     return [
       {
-        headerName: "",
-        width: 50,
-        headerCheckboxSelection: true,
-        checkboxSelection: true,
-        suppressMovable: true,
-        resizable: false,
-        sortable: false,
-      },
-      {
         headerName: "Variant",
         field: "title",
         flex: 1,
         minWidth: 150,
+        sortable: false,
       },
     ];
+  }, []);
+
+  const rowSelection = useMemo<RowSelectionOptions>(() => {
+    return {
+      mode: "multiRow",
+      enableClickSelection: true,
+      enableSelectionWithoutKeys: true,
+    };
   }, []);
 
   const onGridReady = useCallback((params: GridReadyEvent) => {
@@ -361,9 +362,10 @@ export const VariantsSection = () => {
                   ref={gridRef}
                   rowData={variants}
                   columnDefs={columnDefs}
-                  rowSelection="multiple"
+                  rowSelection={rowSelection}
                   suppressCellFocus={true}
                   suppressRowHoverHighlight={true}
+                  suppressMovableColumns={true}
                   onSelectionChanged={handleVariantSelectionChange}
                   onGridReady={onGridReady}
                   getRowId={(params) => params.data.id}
