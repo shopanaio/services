@@ -135,7 +135,6 @@ const OptionCard = ({
               onChange={(e) => onUpdate(option.id, { name: e.target.value })}
             />
           </div>
-
           <div className={styles.optionFieldRow}>
             <div className={styles.optionFieldLabel}>Values</div>
             <Select
@@ -145,6 +144,7 @@ const OptionCard = ({
               value={option.values}
               onChange={(values) => onUpdate(option.id, { values })}
               style={{ width: "100%" }}
+              open={false}
             />
           </div>
         </div>
@@ -163,7 +163,8 @@ const OptionCard = ({
 
 export const VariantsSection = () => {
   const { styles } = useStyles();
-  const { watch, setValue, getValues } = useFormContext<ICreateProductFormValues>();
+  const { watch, setValue, getValues } =
+    useFormContext<ICreateProductFormValues>();
   const gridRef = useRef<AgGridReact>(null);
 
   const hasVariants = watch("hasVariants");
@@ -248,25 +249,18 @@ export const VariantsSection = () => {
     [variants, setValue]
   );
 
-  const handleSelectAll = useCallback(() => {
-    setValue(
-      "variants",
-      variants.map((v) => ({ ...v, enabled: true }))
-    );
-    gridRef.current?.api?.selectAll();
-  }, [variants, setValue]);
-
-  const handleDeselectAll = useCallback(() => {
-    setValue(
-      "variants",
-      variants.map((v) => ({ ...v, enabled: false }))
-    );
-    gridRef.current?.api?.deselectAll();
-  }, [variants, setValue]);
-
   // Build dynamic columns based on options
   const columnDefs = useMemo<ColDef<IGeneratedVariant>[]>(() => {
-    const baseCols: ColDef<IGeneratedVariant>[] = [
+    return [
+      {
+        headerName: "",
+        width: 50,
+        headerCheckboxSelection: true,
+        checkboxSelection: true,
+        suppressMovable: true,
+        resizable: false,
+        sortable: false,
+      },
       {
         headerName: "Variant",
         field: "title",
@@ -274,22 +268,7 @@ export const VariantsSection = () => {
         minWidth: 150,
       },
     ];
-
-    // Add dynamic columns for each option
-    const validOptions = options.filter((o) => o.name.trim());
-    const optionCols: ColDef<IGeneratedVariant>[] = validOptions.map((opt) => ({
-      headerName: opt.name,
-      valueGetter: (params) => {
-        const optionValue = params.data?.options.find(
-          (o) => o.name === opt.name
-        );
-        return optionValue?.value || "";
-      },
-      width: 100,
-    }));
-
-    return [...baseCols, ...optionCols];
-  }, [options]);
+  }, []);
 
   const onGridReady = useCallback((params: GridReadyEvent) => {
     // Pre-select enabled variants
@@ -355,14 +334,6 @@ export const VariantsSection = () => {
                 <Typography.Text strong>
                   Product variants ({enabledCount}/{variants.length})
                 </Typography.Text>
-                <Flex gap={8}>
-                  <Button size="small" onClick={handleSelectAll}>
-                    Select All
-                  </Button>
-                  <Button size="small" onClick={handleDeselectAll}>
-                    Deselect All
-                  </Button>
-                </Flex>
               </div>
               <div className={styles.variantsDescription}>
                 This ranking will affect the variants&apos; order in your
