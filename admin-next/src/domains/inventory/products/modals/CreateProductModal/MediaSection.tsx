@@ -418,8 +418,8 @@ export const MediaSection = ({ formState, updateFormState }: ISectionProps) => {
             <p className="ant-upload-drag-icon">
               <InboxOutlined />
             </p>
-            <p className="ant-upload-text">Click or drag images to this area to upload</p>
-            <p className="ant-upload-hint">Supports: JPG, PNG, GIF, WEBP</p>
+            <p className="ant-upload-text">Upload images</p>
+            <p className="ant-upload-hint">Drag and drop images here or click to upload.</p>
           </Upload.Dragger>
         )}
 
