@@ -29,7 +29,7 @@ export const useStyles = createStyles(({ token }) => ({
   placeholderCell: {
     aspectRatio: "1/1",
     width: "100%",
-    borderRadius: token.borderRadius,
+    borderRadius: 4,
     border: `1px dashed ${token.colorBorder}`,
     backgroundColor: token.colorBgLayout,
     boxSizing: "border-box",
@@ -39,15 +39,11 @@ export const useStyles = createStyles(({ token }) => ({
   },
   mediaItem: {
     position: "relative",
-    borderRadius: 8,
+    borderRadius: 4,
     overflow: "hidden",
-    border: `1px solid ${token.colorBorderSecondary}`,
     background: token.colorBgContainer,
     aspectRatio: "1/1",
     cursor: "grab",
-    "&:hover": {
-      borderColor: token.colorPrimary,
-    },
     "&:hover .media-actions": {
       opacity: 1,
     },
