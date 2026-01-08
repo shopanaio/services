@@ -64,22 +64,17 @@ const useStyles = createStyles(({ token }) => ({
     gap: 16,
     padding: 16,
   },
-  optionGroup: {
-    border: `1px solid ${token.colorBorderSecondary}`,
-    borderRadius: 8,
-    background: token.colorBgContainer,
-    overflow: "hidden",
-  },
+  optionGroup: {},
   optionGroupDragging: {
     opacity: 0.5,
   },
   optionGroupHeader: {
     display: "flex",
     alignItems: "center",
-    gap: 8,
-    padding: "12px 16px",
-    borderBottom: `1px solid ${token.colorBorderSecondary}`,
+    padding: "4px 0",
     background: token.colorBgLayout,
+    borderRadius: 8,
+    marginBottom: 8,
   },
   optionGroupDragHandle: {
     cursor: "grab",
@@ -93,6 +88,10 @@ const useStyles = createStyles(({ token }) => ({
       cursor: "grabbing",
     },
   },
+  inputPrefix: {
+    marginLeft: 4,
+    marginRight: 8,
+  },
   optionGroupName: {
     fontWeight: 500,
     fontSize: 14,
@@ -104,9 +103,7 @@ const useStyles = createStyles(({ token }) => ({
   optionGroupDisplayType: {
     fontSize: 12,
   },
-  optionGroupBody: {
-    padding: 16,
-  },
+  optionGroupBody: {},
   valuesContainer: {
     display: "flex",
     flexDirection: "column",
@@ -686,7 +683,7 @@ const SortableValue = ({
         onChange={handleLabelChange}
         placeholder="Value name"
         prefix={
-          <Flex gap={4} align="center">
+          <Flex gap={8} align="center" className={styles.inputPrefix}>
             <span
               className={styles.valueDragHandle}
               {...attributes}
@@ -816,13 +813,15 @@ const SortableOptionGroup = ({
           variant="borderless"
           style={{ flex: 1, fontWeight: 500 }}
           prefix={
-            <span
-              className={styles.optionGroupDragHandle}
-              {...attributes}
-              {...listeners}
-            >
-              <HolderOutlined />
-            </span>
+            <Flex gap={4} align="center" className={styles.inputPrefix}>
+              <span
+                className={styles.optionGroupDragHandle}
+                {...attributes}
+                {...listeners}
+              >
+                <HolderOutlined />
+              </span>
+            </Flex>
           }
           suffix={
             <Flex
@@ -831,6 +830,12 @@ const SortableOptionGroup = ({
               onPointerDown={(e) => e.stopPropagation()}
             >
               <StyleSelector value={group.style} onChange={handleStyleChange} />
+              <Button
+                size="small"
+                type="text"
+                icon={<PlusOutlined />}
+                onClick={() => onAddValue(group.id)}
+              />
               <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
                 <Button size="small" type="text" icon={<DeleteOutlined />} />
               </Dropdown>
@@ -860,14 +865,6 @@ const SortableOptionGroup = ({
                   onDelete={() => onDeleteValue(group.id, value.id)}
                 />
               ))}
-              <Button
-                type="dashed"
-                icon={<PlusOutlined />}
-                onClick={() => onAddValue(group.id)}
-                style={{ marginTop: 4 }}
-              >
-                Add value
-              </Button>
             </div>
           </SortableContext>
 
@@ -906,8 +903,14 @@ export const EditOptionsModal = () => {
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 1,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
   );
 
   const markDirty = useCallback(() => setDirty(true), [setDirty]);
@@ -1076,7 +1079,7 @@ export const EditOptionsModal = () => {
               items={groups.map((g) => g.id)}
               strategy={verticalListSortingStrategy}
             >
-              <Flex vertical gap={12}>
+              <Flex vertical gap={16}>
                 {groups.map((group) => (
                   <SortableOptionGroup
                     key={group.id}
