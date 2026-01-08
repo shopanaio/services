@@ -1098,20 +1098,19 @@ export const EditOptionsModal = () => {
             <DragOverlay>
               {activeGroup && (
                 <div
-                  className={styles.optionGroup}
+                  className={styles.optionGroupHeader}
                   style={{
+                    width: 150,
                     boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
                     cursor: "grabbing",
                   }}
                 >
-                  <div className={styles.optionGroupHeader}>
-                    <span className={styles.optionGroupDragHandle}>
-                      <HolderOutlined />
-                    </span>
-                    <Typography.Text className={styles.optionGroupName}>
-                      {activeGroup.name}
-                    </Typography.Text>
-                  </div>
+                  <span className={styles.optionGroupDragHandle}>
+                    <HolderOutlined />
+                  </span>
+                  <Typography.Text className={styles.optionGroupName}>
+                    {activeGroup.name}
+                  </Typography.Text>
                 </div>
               )}
             </DragOverlay>
