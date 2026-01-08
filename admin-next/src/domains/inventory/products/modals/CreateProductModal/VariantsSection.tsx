@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Input, Select, Button, Typography, Flex, Switch, Alert } from 'antd';
-import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import { PlusOutlined, CloseOutlined } from '@ant-design/icons';
 import { AgGridReact } from 'ag-grid-react';
 import type { ColDef, GridReadyEvent, SelectionChangedEvent } from 'ag-grid-community';
 import { createStyles } from 'antd-style';
@@ -49,7 +49,7 @@ const useStyles = createStyles(({ token }) => ({
   optionRow: {
     display: 'flex',
     gap: 12,
-    alignItems: 'flex-start',
+    alignItems: 'center',
   },
   optionFields: {
     flex: 1,
@@ -71,9 +71,7 @@ const useStyles = createStyles(({ token }) => ({
     width: 50,
     flexShrink: 0,
   },
-  optionDelete: {
-    marginTop: 4,
-  },
+  optionDelete: {},
   variantsHeader: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -113,12 +111,14 @@ interface IOptionCardProps {
   option: IOptionInput;
   onUpdate: (id: string, updates: Partial<IOptionInput>) => void;
   onDelete: (id: string) => void;
+  canDelete: boolean;
 }
 
 const OptionCard = ({
   option,
   onUpdate,
   onDelete,
+  canDelete,
 }: IOptionCardProps) => {
   const { styles } = useStyles();
 
@@ -150,10 +150,10 @@ const OptionCard = ({
 
         <Button
           type="text"
-          danger
-          icon={<DeleteOutlined />}
+          icon={<CloseOutlined />}
           className={styles.optionDelete}
           onClick={() => onDelete(option.id)}
+          disabled={!canDelete}
         />
       </div>
     </div>
@@ -339,6 +339,7 @@ export const VariantsSection = ({ formState, updateFormState }: ISectionProps) =
               option={option}
               onUpdate={handleUpdateOption}
               onDelete={handleDeleteOption}
+              canDelete={formState.options.length > 1}
             />
           ))}
 
