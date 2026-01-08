@@ -9,7 +9,7 @@ import {
   Dropdown,
   Flex,
   Empty,
-  Segmented,
+  Space,
   Image,
 } from "antd";
 import {
@@ -546,15 +546,32 @@ export const EntityMediaGallery = ({
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
               {value.length} file{value.length !== 1 ? "s" : ""}
             </Typography.Text>
-            <Segmented
-              size="small"
-              value={viewMode}
-              onChange={(v) => setViewMode(v as ViewMode)}
-              options={[
-                { value: "grid", icon: <AppstoreOutlined /> },
-                { value: "list", icon: <UnorderedListOutlined /> },
-              ]}
-            />
+            <Flex gap={8} align="center">
+              {showUpload && (
+                <Upload
+                  accept={accept}
+                  multiple={multiple}
+                  showUploadList={false}
+                  beforeUpload={handleUpload}
+                >
+                  <Button size="small" icon={<PlusOutlined />}>
+                    Upload
+                  </Button>
+                </Upload>
+              )}
+              <Space.Compact size="small">
+                <Button
+                  type={viewMode === "grid" ? "primary" : "default"}
+                  icon={<AppstoreOutlined />}
+                  onClick={() => setViewMode("grid")}
+                />
+                <Button
+                  type={viewMode === "list" ? "primary" : "default"}
+                  icon={<UnorderedListOutlined />}
+                  onClick={() => setViewMode("list")}
+                />
+              </Space.Compact>
+            </Flex>
           </Flex>
         )}
 
@@ -682,19 +699,6 @@ export const EntityMediaGallery = ({
                 />
               ))}
             </SortableContext>
-
-            {showUpload && (
-              <Upload
-                accept={accept}
-                multiple={multiple}
-                showUploadList={false}
-                beforeUpload={handleUpload}
-              >
-                <Button icon={<PlusOutlined />} style={{ width: "100%" }}>
-                  Upload files
-                </Button>
-              </Upload>
-            )}
           </div>
         )}
 
