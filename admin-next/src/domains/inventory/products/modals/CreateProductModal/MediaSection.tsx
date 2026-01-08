@@ -2,15 +2,11 @@
 
 import { useCallback } from "react";
 import { useFormContext } from "react-hook-form";
-import { Upload, Button } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
 import {
   EntityMediaGallery,
   type IMediaItem,
 } from "@/shared/components/entity-media-gallery";
 import { syntheticId } from "@/utils/synthetic-id";
-import { Paper } from "../../components/Paper";
-import { PaperHeader } from "../../components/PaperHeader";
 import type { ICreateProductFormValues, ILocalMediaItem } from "./types";
 
 /**
@@ -40,8 +36,7 @@ const toLocalMediaItem = (
 });
 
 export const MediaSection = () => {
-  const { watch, setValue, getValues } =
-    useFormContext<ICreateProductFormValues>();
+  const { watch, setValue } = useFormContext<ICreateProductFormValues>();
 
   const media = watch("media");
   const galleryItems = media.map(toMediaItem);
@@ -63,46 +58,18 @@ export const MediaSection = () => {
     }));
   }, []);
 
-  const hasMedia = media.length > 0;
-
   return (
-    <Paper>
-      <PaperHeader
-        title="Media"
-        actions={
-          hasMedia && (
-            <Upload
-              accept="image/*"
-              multiple
-              showUploadList={false}
-              beforeUpload={(file, fileList) => {
-                // Process all files only once (when we hit the last file)
-                if (file === fileList[fileList.length - 1]) {
-                  const files = fileList.map((f) => f as unknown as File);
-                  const newItems = handleUpload(files);
-                  const currentItems = getValues("media").map(toMediaItem);
-                  handleChange([...currentItems, ...newItems]);
-                }
-                return false;
-              }}
-            >
-              <Button size="small" icon={<PlusOutlined />}>
-                Upload
-              </Button>
-            </Upload>
-          )
-        }
-      />
-
-      <EntityMediaGallery
-        value={galleryItems}
-        onChange={handleChange}
-        onUpload={handleUpload}
-        accept="image/*"
-        multiple
-        hasCover
-        coverLabel="Cover"
-      />
-    </Paper>
+    <EntityMediaGallery
+      value={galleryItems}
+      onChange={handleChange}
+      onUpload={handleUpload}
+      showPaper
+      title="Media"
+      showViewSwitcher
+      accept="image/*"
+      multiple
+      hasCover
+      coverLabel="Cover"
+    />
   );
 };

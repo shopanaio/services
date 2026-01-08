@@ -45,6 +45,8 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { syntheticId } from "@/utils/synthetic-id";
+import { Paper } from "@/domains/inventory/products/components/Paper";
+import { PaperHeader } from "@/domains/inventory/products/components/PaperHeader";
 import { useStyles } from "./styles";
 import type { IMediaItem, IEntityMediaGalleryProps, ViewMode } from "./types";
 
@@ -427,6 +429,8 @@ export const EntityMediaGallery = ({
   coverLabel = "Cover",
   hasCover = true,
   minCells = 13,
+  title,
+  showPaper = false,
 }: IEntityMediaGalleryProps) => {
   const { styles } = useStyles();
   const [internalViewMode, setInternalViewMode] = useState<ViewMode>("grid");
@@ -528,52 +532,61 @@ export const EntityMediaGallery = ({
 
   const hasMedia = value.length > 0;
 
+  const Wrapper = showPaper ? Paper : "div";
+
+  const renderHeader = () => {
+    if (!showViewSwitcher || !hasMedia) return null;
+
+    return (
+      <Flex
+        justify="space-between"
+        align="center"
+        style={{ marginBottom: 12 }}
+      >
+        <Typography.Text type="secondary">
+          {value.length} file{value.length !== 1 ? "s" : ""}
+        </Typography.Text>
+        <Flex gap={8} align="center">
+          {showUpload && (
+            <Upload
+              accept={accept}
+              multiple={multiple}
+              showUploadList={false}
+              beforeUpload={handleUpload}
+            >
+              <Button size="small" icon={<UploadOutlined />}>
+                Upload
+              </Button>
+            </Upload>
+          )}
+          <Space.Compact size="small">
+            <Button
+              type={viewMode === "grid" ? "primary" : "default"}
+              icon={<AppstoreOutlined />}
+              onClick={() => setViewMode("grid")}
+            />
+            <Button
+              type={viewMode === "list" ? "primary" : "default"}
+              icon={<UnorderedListOutlined />}
+              onClick={() => setViewMode("list")}
+            />
+          </Space.Compact>
+        </Flex>
+      </Flex>
+    );
+  };
+
   return (
-    <>
+    <Wrapper>
+      {showPaper && title && <PaperHeader title={title} />}
+
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        {/* Header with view switcher */}
-        {showViewSwitcher && hasMedia && (
-          <Flex
-            justify="space-between"
-            align="center"
-            style={{ marginBottom: 12 }}
-          >
-            <Typography.Text type="secondary">
-              {value.length} file{value.length !== 1 ? "s" : ""}
-            </Typography.Text>
-            <Flex gap={8} align="center">
-              {showUpload && (
-                <Upload
-                  accept={accept}
-                  multiple={multiple}
-                  showUploadList={false}
-                  beforeUpload={handleUpload}
-                >
-                  <Button size="small" icon={<UploadOutlined />}>
-                    Upload
-                  </Button>
-                </Upload>
-              )}
-              <Space.Compact size="small">
-                <Button
-                  type={viewMode === "grid" ? "primary" : "default"}
-                  icon={<AppstoreOutlined />}
-                  onClick={() => setViewMode("grid")}
-                />
-                <Button
-                  type={viewMode === "list" ? "primary" : "default"}
-                  icon={<UnorderedListOutlined />}
-                  onClick={() => setViewMode("list")}
-                />
-              </Space.Compact>
-            </Flex>
-          </Flex>
-        )}
+        {renderHeader()}
 
         {/* Empty state with dragger (only when no minCells) */}
         {!hasMedia && showUpload && (
@@ -721,6 +734,6 @@ export const EntityMediaGallery = ({
           }))}
         />
       )}
-    </>
+    </Wrapper>
   );
 };

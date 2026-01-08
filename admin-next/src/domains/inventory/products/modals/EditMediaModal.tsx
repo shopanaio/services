@@ -11,8 +11,6 @@ import {
   EntityMediaGallery,
   type IMediaItem,
 } from "@/shared/components/entity-media-gallery";
-import { Paper } from "../components/Paper";
-import { PaperHeader } from "../components/PaperHeader";
 import type { IEditMediaModalPayload } from "../modals";
 import type { IMediaFile } from "../mocks/types";
 import { FileDriver } from "../mocks/types";
@@ -134,21 +132,19 @@ export const EditMediaModal = () => {
       }
     >
       <div className={styles.container}>
-        <Paper>
-          <PaperHeader title="Product Media" />
-
-          <EntityMediaGallery
-            value={gallery}
-            onChange={handleChange}
-            onUpload={handleUpload}
-            showViewSwitcher
-            accept="image/*,video/*"
-            multiple
-            hasCover
-            coverLabel="Cover"
-            emptyMessage="No media files yet"
-          />
-        </Paper>
+        <EntityMediaGallery
+          value={gallery}
+          onChange={handleChange}
+          onUpload={handleUpload}
+          showPaper
+          title="Product Media"
+          showViewSwitcher
+          accept="image/*,video/*"
+          multiple
+          hasCover
+          coverLabel="Cover"
+          emptyMessage="No media files yet"
+        />
       </div>
     </ModalLayout>
   );
