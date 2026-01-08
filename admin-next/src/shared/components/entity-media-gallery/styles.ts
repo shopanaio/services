@@ -159,11 +159,10 @@ export const useStyles = createStyles(({ token }) => ({
     gap: 12,
     padding: 8,
     borderRadius: 8,
-    border: `1px solid ${token.colorBorderSecondary}`,
+    border: `1px solid ${token.colorBorder}`,
     background: token.colorBgContainer,
     cursor: "grab",
     "&:hover": {
-      borderColor: token.colorPrimary,
       background: token.colorBgLayout,
     },
   },
@@ -171,8 +170,8 @@ export const useStyles = createStyles(({ token }) => ({
     opacity: 0.5,
   },
   listItemImage: {
-    width: 64,
-    height: 64,
+    width: 40,
+    height: 40,
     borderRadius: 6,
     objectFit: "cover",
     flexShrink: 0,
@@ -182,7 +181,6 @@ export const useStyles = createStyles(({ token }) => ({
     minWidth: 0,
     display: "flex",
     flexDirection: "column",
-    gap: 2,
   },
   listItemName: {
     fontSize: 13,
