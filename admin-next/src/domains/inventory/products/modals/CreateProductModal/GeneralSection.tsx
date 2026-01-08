@@ -31,6 +31,11 @@ const useStyles = createStyles(({ token }) => ({
     fontWeight: 500,
     color: token.colorText,
   },
+  error: {
+    fontSize: 12,
+    color: token.colorError,
+    marginTop: 4,
+  },
   handlePrefix: {
     color: token.colorTextSecondary,
     userSelect: "none",
@@ -61,9 +66,15 @@ export const GeneralSection = () => {
           <Controller
             name="title"
             control={control}
-            rules={{ required: "Product title is required" }}
-            render={({ field }) => (
-              <Input {...field} placeholder="e.g. Winter Jacket" />
+            render={({ field, fieldState: { error } }) => (
+              <>
+                <Input
+                  {...field}
+                  placeholder="e.g. Winter Jacket"
+                  status={error ? "error" : undefined}
+                />
+                {error && <div className={styles.error}>{error.message}</div>}
+              </>
             )}
           />
         </div>
@@ -80,17 +91,21 @@ export const GeneralSection = () => {
           <Controller
             name="handle"
             control={control}
-            render={({ field }) => (
-              <Input
-                {...field}
-                placeholder="winter-jacket"
-                onChange={(e) => {
-                  const value = slugify(e.target.value);
-                  setIsHandleManual(true);
-                  field.onChange(value);
-                }}
-                addonBefore={<span className={styles.handlePrefix}>/</span>}
-              />
+            render={({ field, fieldState: { error } }) => (
+              <>
+                <Input
+                  {...field}
+                  placeholder="winter-jacket"
+                  status={error ? "error" : undefined}
+                  onChange={(e) => {
+                    const value = slugify(e.target.value);
+                    setIsHandleManual(true);
+                    field.onChange(value);
+                  }}
+                  addonBefore={<span className={styles.handlePrefix}>/</span>}
+                />
+                {error && <div className={styles.error}>{error.message}</div>}
+              </>
             )}
           />
         </div>
@@ -101,13 +116,17 @@ export const GeneralSection = () => {
         <Controller
           name="description"
           control={control}
-          render={({ field }) => (
-            <Input.TextArea
-              {...field}
-              placeholder="Describe your product..."
-              rows={3}
-              style={{ resize: "vertical" }}
-            />
+          render={({ field, fieldState: { error } }) => (
+            <>
+              <Input.TextArea
+                {...field}
+                placeholder="Describe your product..."
+                rows={3}
+                style={{ resize: "vertical" }}
+                status={error ? "error" : undefined}
+              />
+              {error && <div className={styles.error}>{error.message}</div>}
+            </>
           )}
         />
       </div>

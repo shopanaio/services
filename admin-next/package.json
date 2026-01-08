@@ -20,6 +20,7 @@
     "@editorjs/list": "^2.0.9",
     "@editorjs/paragraph": "^2.11.7",
     "@editorjs/quote": "^2.7.6",
+    "@hookform/resolvers": "^5.2.2",
     "ag-grid-community": "^34.3.1",
     "ag-grid-react": "^34.3.1",
     "antd": "^6.0.1",
@@ -33,6 +34,7 @@
     "react-hook-form": "^7.70.0",
     "react-icons": "^5.5.0",
     "transliteration": "^2.6.0",
+    "zod": "^4.3.5",
     "zustand": "^5.0.9"
   },
   "devDependencies": {

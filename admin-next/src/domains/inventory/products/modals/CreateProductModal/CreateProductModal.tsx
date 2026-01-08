@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useForm, FormProvider } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { message } from "antd";
 import { createStyles } from "antd-style";
 import {
@@ -10,6 +11,7 @@ import {
   ModalHeader,
 } from "@/layouts/modals";
 import type { ICreateProductFormValues } from "./types";
+import { createProductSchema } from "./schema";
 import { GeneralSection } from "./GeneralSection";
 import { MediaSection } from "./MediaSection";
 import { VariantsSection } from "./VariantsSection";
@@ -39,6 +41,7 @@ export const CreateProductModal = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const methods = useForm<ICreateProductFormValues>({
+    resolver: zodResolver(createProductSchema),
     defaultValues: DEFAULT_VALUES,
   });
 

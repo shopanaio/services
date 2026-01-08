@@ -115,6 +115,7 @@ const useStyles = createStyles(({ token }) => ({
 // Option Card Component
 interface IOptionCardProps {
   option: IOptionInput;
+  index: number;
   onUpdateValues: (id: string, values: IOptionValueInput[]) => void;
   onUpdateName: (id: string, name: string) => void;
   onDelete: (id: string) => void;
@@ -123,12 +124,18 @@ interface IOptionCardProps {
 
 const OptionCard = ({
   option,
+  index,
   onUpdateValues,
   onUpdateName,
   onDelete,
   canDelete,
 }: IOptionCardProps) => {
   const { styles } = useStyles();
+  const { formState: { errors } } = useFormContext<ICreateProductFormValues>();
+
+  const optionErrors = errors.options?.[index];
+  const hasNameError = !!optionErrors?.name;
+  const hasValuesError = !!optionErrors?.values;
 
   // Convert IOptionValueInput[] to string[] for Select display
   const displayValues = option.values.map((v) => v.value);
@@ -155,6 +162,7 @@ const OptionCard = ({
               placeholder="e.g. Color"
               value={option.name}
               onChange={(e) => onUpdateName(option.id, e.target.value)}
+              status={hasNameError ? "error" : undefined}
             />
           </div>
           <div className={styles.optionFieldRow}>
@@ -167,6 +175,7 @@ const OptionCard = ({
               onChange={handleValuesChange}
               style={{ width: "100%" }}
               open={false}
+              status={hasValuesError ? "error" : undefined}
             />
           </div>
         </div>
@@ -185,7 +194,7 @@ const OptionCard = ({
 
 export const VariantsSection = () => {
   const { styles } = useStyles();
-  const { watch, setValue, getValues } =
+  const { watch, setValue, getValues, formState: { errors } } =
     useFormContext<ICreateProductFormValues>();
   const gridRef = useRef<AgGridReact>(null);
 
@@ -367,10 +376,11 @@ export const VariantsSection = () => {
             </Button>
           </div>
 
-          {options.map((option) => (
+          {options.map((option, index) => (
             <OptionCard
               key={option.id}
               option={option}
+              index={index}
               onUpdateName={handleUpdateOptionName}
               onUpdateValues={handleUpdateOptionValues}
               onDelete={handleDeleteOption}
@@ -396,6 +406,16 @@ export const VariantsSection = () => {
                   message={`You are about to create ${potentialVariantCount} variants. Consider reducing options to improve performance.`}
                   className={styles.warningAlert}
                   showIcon
+                />
+              )}
+
+              {errors.variants && (
+                <Alert
+                  type="error"
+                  message="Please select at least one variant."
+                  className={styles.warningAlert}
+                  showIcon
+                  closable
                 />
               )}
 
