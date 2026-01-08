@@ -315,6 +315,19 @@ export const VariantsSection = () => {
     });
   }, []);
 
+  // Sync selection state when variants change (e.g., new variants added)
+  useEffect(() => {
+    const api = gridRef.current?.api;
+    if (!api) return;
+
+    api.forEachNode((node) => {
+      const variant = variants.find((v) => v.id === node.data?.id);
+      if (variant) {
+        node.setSelected(variant.enabled);
+      }
+    });
+  }, [variants]);
+
   const potentialVariantCount = countPotentialVariants(options);
   const enabledCount = variants.filter((v) => v.enabled).length;
   const showWarning = potentialVariantCount > 50;
