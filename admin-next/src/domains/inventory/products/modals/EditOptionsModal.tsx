@@ -26,7 +26,7 @@ import {
   CheckCircleOutlined,
   MenuOutlined,
   ColumnWidthOutlined,
-  InboxOutlined,
+  UploadOutlined,
 } from "@ant-design/icons";
 import {
   DndContext,
@@ -199,26 +199,18 @@ const useStyles = createStyles(({ token }) => ({
   },
   swatchDropZone: {
     width: "100%",
+    aspectRatio: "1/1",
     "& .ant-upload-drag": {
-      padding: 16,
-      background: token.colorBgLayout,
-      borderRadius: 8,
+      height: "100%",
     },
-    "& .ant-upload-drag-icon": {
-      marginBottom: 8,
-      "& .anticon": {
-        fontSize: 32,
-        color: token.colorTextSecondary,
-      },
-    },
-    "& .ant-upload-text": {
-      fontSize: 13,
-      color: token.colorText,
-    },
-    "& .ant-upload-hint": {
-      fontSize: 12,
-      color: token.colorTextSecondary,
-    },
+  },
+  swatchDraggerIcon: {
+    fontSize: 24,
+    color: token.colorIcon,
+    marginBottom: token.marginXS,
+  },
+  swatchDraggerTitle: {
+    fontSize: token.fontSizeLG,
   },
   swatchImagePreview: {
     position: "relative" as const,
@@ -578,11 +570,16 @@ const SwatchPicker = ({ swatch, onChange }: ISwatchPickerProps) => {
             return false;
           }}
         >
-          <p className="ant-upload-drag-icon">
-            <InboxOutlined />
-          </p>
-          <p className="ant-upload-text">Drop image here</p>
-          <p className="ant-upload-hint">or click to browse</p>
+          <Flex align="center" justify="center" vertical>
+            <UploadOutlined className={styles.swatchDraggerIcon} />
+            <Typography.Text
+              strong
+              type="secondary"
+              className={styles.swatchDraggerTitle}
+            >
+              Upload image
+            </Typography.Text>
+          </Flex>
         </Upload.Dragger>
       </div>
     );
