@@ -93,6 +93,9 @@ const useStyles = createStyles(({ token }) => ({
     "& .ag-row": {
       cursor: "default",
     },
+    "& .ag-row-selected::before": {
+      background: "transparent !important",
+    },
     "& .ag-center-cols-container, & .ag-center-cols-viewport": {
       minHeight: "unset !important",
     },
@@ -359,7 +362,8 @@ export const VariantsSection = () => {
                   rowData={variants}
                   columnDefs={columnDefs}
                   rowSelection="multiple"
-                  suppressRowClickSelection={true}
+                  suppressCellFocus={true}
+                  suppressRowHoverHighlight={true}
                   onSelectionChanged={handleVariantSelectionChange}
                   onGridReady={onGridReady}
                   getRowId={(params) => params.data.id}
