@@ -108,7 +108,12 @@ interface EditorGridInnerProps<T extends IEditorRowBase> {
   rowHeight: number;
   headerHeight: number;
   getRowClass?: (data: T) => string;
-  onSetFieldValue: (rowId: string, field: string, originalValue: unknown, newValue: unknown) => void;
+  onSetFieldValue: (
+    rowId: string,
+    field: string,
+    originalValue: unknown,
+    newValue: unknown
+  ) => void;
 }
 
 function EditorGridInnerComponent<T extends IEditorRowBase>({
@@ -152,7 +157,9 @@ function EditorGridInnerComponent<T extends IEditorRowBase>({
         selectedCells.forEach((cell) => {
           const originalRow = rows.find((r) => r.id === cell.rowId);
           if (originalRow) {
-            const originalValue = (originalRow as Record<string, unknown>)[field];
+            const originalValue = (originalRow as Record<string, unknown>)[
+              field
+            ];
             onSetFieldValue(cell.rowId, field, originalValue, newValue);
           }
         });
@@ -182,7 +189,10 @@ function EditorGridInnerComponent<T extends IEditorRowBase>({
         readOnlyEdit
         stopEditingWhenCellsLoseFocus
         onCellEditRequest={handleCellEditRequest}
+        suppressHeaderFocus
+        suppressRowHoverHighlight
         animateRows={false}
+        suppressColumnVirtualisation
         defaultColDef={{
           resizable: true,
           sortable: false,
@@ -232,7 +242,9 @@ export function EditorGrid<T extends IEditorRowBase>({
         if (row && originalRow) {
           const currentValue = (row as Record<string, unknown>)[field];
           if (typeof currentValue === "number") {
-            const originalValue = (originalRow as Record<string, unknown>)[field];
+            const originalValue = (originalRow as Record<string, unknown>)[
+              field
+            ];
             onSetFieldValue(rowId, field, originalValue, currentValue + delta);
           }
         }
