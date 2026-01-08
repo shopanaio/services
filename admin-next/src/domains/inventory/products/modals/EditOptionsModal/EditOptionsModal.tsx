@@ -27,16 +27,16 @@ import {
 import { Paper } from "../../components/Paper";
 import { PaperHeader } from "../../components/PaperHeader";
 import { useStyles } from "./EditOptionsModal.styles";
-import { DROP_ANIMATION } from "./EditOptionsModal.constants";
 import type { IOptionGroup } from "./EditOptionsModal.schema";
 import { useEditOptionsForm } from "./hooks/useEditOptionsForm";
 import { SortableOptionGroup } from "./components/SortableOptionGroup";
+import { MOCK_OPTION_GROUPS } from "./mocks";
 
 interface EditOptionsModalProps {
   initialGroups?: IOptionGroup[];
 }
 
-export const EditOptionsModal = ({ initialGroups = [] }: EditOptionsModalProps) => {
+export const EditOptionsModal = ({ initialGroups = MOCK_OPTION_GROUPS }: EditOptionsModalProps) => {
   const { styles } = useStyles();
   const { pop } = useModalStackContext();
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
@@ -163,7 +163,7 @@ export const EditOptionsModal = ({ initialGroups = [] }: EditOptionsModalProps) 
               </Flex>
             </SortableContext>
 
-            <DragOverlay dropAnimation={DROP_ANIMATION}>
+            <DragOverlay dropAnimation={null}>
               {activeGroup && (
                 <div
                   className={styles.optionGroupHeader}

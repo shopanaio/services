@@ -164,6 +164,7 @@ export const SortableOptionGroup = ({
                   key={value.id}
                   value={value}
                   groupStyle={group.style}
+                  isDeleteDisabled={group.values.length <= 1}
                   onLabelChange={(label) =>
                     onUpdateValueLabel(valueIndex, label)
                   }

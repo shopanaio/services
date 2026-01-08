@@ -10,6 +10,7 @@ import { SwatchPicker } from "./SwatchPicker";
 interface ISortableValueProps {
   value: IOptionValue;
   groupStyle: FeatureStyleType;
+  isDeleteDisabled?: boolean;
   onLabelChange: (label: string) => void;
   onSwatchChange: (swatch: ISwatch) => void;
   onDelete: () => void;
@@ -18,6 +19,7 @@ interface ISortableValueProps {
 export const SortableValue = ({
   value,
   groupStyle,
+  isDeleteDisabled,
   onLabelChange,
   onSwatchChange,
   onDelete,
@@ -73,6 +75,7 @@ export const SortableValue = ({
             type="text"
             icon={<CloseOutlined />}
             onClick={onDelete}
+            disabled={isDeleteDisabled}
           />
         }
       />

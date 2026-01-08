@@ -5,7 +5,6 @@ import {
   MenuOutlined,
   ColumnWidthOutlined,
 } from "@ant-design/icons";
-import { defaultDropAnimationSideEffects, type DropAnimation } from "@dnd-kit/core";
 import type { FeatureStyleType, ISwatch } from "./EditOptionsModal.schema";
 
 export const STYLE_OPTIONS: {
@@ -30,16 +29,4 @@ export const SWATCH_MODE_OPTIONS: { value: SwatchModeType; label: string }[] = [
 export const DEFAULT_SWATCH: ISwatch = {
   type: "color",
   color1: "#1677ff",
-};
-
-export const DROP_ANIMATION: DropAnimation = {
-  duration: 200,
-  easing: "cubic-bezier(0.2, 0, 0, 1)",
-  sideEffects: defaultDropAnimationSideEffects({
-    styles: {
-      active: {
-        opacity: "0.5",
-      },
-    },
-  }),
 };
