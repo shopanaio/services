@@ -11,6 +11,7 @@ import type {
   SelectionChangedEvent,
 } from "ag-grid-community";
 import { createStyles } from "antd-style";
+import { syntheticId } from "@/utils/synthetic-id";
 import { Paper } from "../../components/Paper";
 import { PaperHeader } from "../../components/PaperHeader";
 import {
@@ -189,7 +190,7 @@ export const VariantsSection = () => {
       if (checked) {
         // Add empty option by default
         const emptyOption: IOptionInput = {
-          id: `option-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          id: syntheticId(),
           name: "",
           values: [],
         };
@@ -204,7 +205,7 @@ export const VariantsSection = () => {
 
   const handleAddOption = useCallback(() => {
     const newOption: IOptionInput = {
-      id: `option-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      id: syntheticId(),
       name: "",
       values: [],
     };

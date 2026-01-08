@@ -30,6 +30,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { createStyles } from "antd-style";
+import { syntheticId } from "@/utils/synthetic-id";
 import { Paper } from "../../components/Paper";
 import { PaperHeader } from "../../components/PaperHeader";
 import type { ICreateProductFormValues, ILocalMediaItem } from "./types";
@@ -374,9 +375,7 @@ export const MediaSection = () => {
   const handleUpload = useCallback(
     (file: File) => {
       const newItem: ILocalMediaItem = {
-        id: `media-${Date.now()}-${Math.random()
-          .toString(36)
-          .substring(2, 11)}`,
+        id: syntheticId(),
         file,
         url: URL.createObjectURL(file),
         name: file.name,

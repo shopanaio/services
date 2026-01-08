@@ -2,6 +2,8 @@
  * Utility functions for generating product variants from options
  */
 
+import { syntheticId } from "@/utils/synthetic-id";
+
 export interface IOptionInput {
   id: string;
   name: string;
@@ -79,8 +81,8 @@ export function generateVariants(options: IOptionInput[]): IGeneratedVariant[] {
   const combinations = cartesianProduct(optionValueArrays);
 
   // Transform combinations into variant objects
-  return combinations.map((combo, index) => ({
-    id: `variant-${index}`,
+  return combinations.map((combo) => ({
+    id: syntheticId(),
     title: combo.map((c) => c.value).join(' / '),
     options: combo,
     enabled: true,
