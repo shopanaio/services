@@ -38,6 +38,8 @@ import {
   DragEndEvent,
   DragStartEvent,
   closestCenter,
+  defaultDropAnimationSideEffects,
+  type DropAnimation,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -268,6 +270,16 @@ const SWATCH_MODE_OPTIONS: { value: SwatchModeType; label: string }[] = [
 const DEFAULT_SWATCH: ISwatch = {
   type: "color",
   color1: "#1677ff",
+};
+
+const DROP_ANIMATION: DropAnimation = {
+  sideEffects: defaultDropAnimationSideEffects({
+    styles: {
+      active: {
+        opacity: "0.5",
+      },
+    },
+  }),
 };
 
 // ============================================================================
@@ -834,7 +846,7 @@ const SortableOptionGroup = ({
             </div>
           </SortableContext>
 
-          <DragOverlay>
+          <DragOverlay dropAnimation={DROP_ANIMATION}>
             {activeValue && (
               <Input
                 value={activeValue.label}
@@ -1071,7 +1083,7 @@ export const EditOptionsModal = () => {
               </Flex>
             </SortableContext>
 
-            <DragOverlay>
+            <DragOverlay dropAnimation={DROP_ANIMATION}>
               {activeGroup && (
                 <div
                   className={styles.optionGroupHeader}
