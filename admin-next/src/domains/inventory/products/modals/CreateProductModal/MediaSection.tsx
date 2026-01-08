@@ -1,16 +1,15 @@
 'use client';
 
 import { useCallback, useState, CSSProperties } from 'react';
-import { Upload, Button, Typography, Tooltip, Dropdown, Empty } from 'antd';
+import { Upload, Button, Typography, Tooltip, Dropdown } from 'antd';
 import {
   PlusOutlined,
   DeleteOutlined,
   StarOutlined,
   StarFilled,
   MoreOutlined,
-  EyeOutlined,
   HolderOutlined,
-  UploadOutlined,
+  InboxOutlined,
 } from '@ant-design/icons';
 import {
   DndContext,
@@ -133,22 +132,6 @@ const useStyles = createStyles(({ token }) => ({
   uploadText: {
     fontSize: 12,
     color: token.colorTextSecondary,
-  },
-  emptyUploadZone: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '48px 24px',
-    border: `2px dashed ${token.colorBorder}`,
-    borderRadius: 8,
-    background: token.colorBgLayout,
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    '&:hover': {
-      borderColor: token.colorPrimary,
-      background: token.colorPrimaryBg,
-    },
   },
   fileInfo: {
     position: 'absolute',
@@ -426,22 +409,18 @@ export const MediaSection = ({ formState, updateFormState }: ISectionProps) => {
         onDragEnd={handleDragEnd}
       >
         {!hasMedia && (
-          <Upload
+          <Upload.Dragger
             accept="image/*"
             multiple
             showUploadList={false}
             beforeUpload={handleUpload}
           >
-            <div className={styles.emptyUploadZone}>
-              <UploadOutlined style={{ fontSize: 32, color: 'var(--ant-color-text-secondary)', marginBottom: 12 }} />
-              <Typography.Text style={{ marginBottom: 4 }}>
-                Drag and drop images here or click to upload
-              </Typography.Text>
-              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                Supports: JPG, PNG, GIF, WEBP
-              </Typography.Text>
-            </div>
-          </Upload>
+            <p className="ant-upload-drag-icon">
+              <InboxOutlined />
+            </p>
+            <p className="ant-upload-text">Click or drag images to this area to upload</p>
+            <p className="ant-upload-hint">Supports: JPG, PNG, GIF, WEBP</p>
+          </Upload.Dragger>
         )}
 
         {hasMedia && (
