@@ -27,7 +27,10 @@ const toMediaItem = (item: ILocalMediaItem): IMediaItem => ({
 /**
  * Convert IMediaItem back to ILocalMediaItem for the form
  */
-const toLocalMediaItem = (item: IMediaItem, index: number): ILocalMediaItem => ({
+const toLocalMediaItem = (
+  item: IMediaItem,
+  index: number
+): ILocalMediaItem => ({
   id: item.id,
   url: item.url,
   name: item.name,
@@ -37,33 +40,28 @@ const toLocalMediaItem = (item: IMediaItem, index: number): ILocalMediaItem => (
 });
 
 export const MediaSection = () => {
-  const { watch, setValue } = useFormContext<ICreateProductFormValues>();
+  const { watch, setValue, getValues } =
+    useFormContext<ICreateProductFormValues>();
 
   const media = watch("media");
   const galleryItems = media.map(toMediaItem);
 
   const handleChange = useCallback(
     (items: IMediaItem[]) => {
-      setValue(
-        "media",
-        items.map(toLocalMediaItem)
-      );
+      setValue("media", items.map(toLocalMediaItem));
     },
     [setValue]
   );
 
-  const handleUpload = useCallback(
-    (files: File[]): IMediaItem[] => {
-      return files.map((file) => ({
-        id: syntheticId(),
-        file,
-        url: URL.createObjectURL(file),
-        name: file.name,
-        size: file.size,
-      }));
-    },
-    []
-  );
+  const handleUpload = useCallback((files: File[]): IMediaItem[] => {
+    return files.map((file) => ({
+      id: syntheticId(),
+      file,
+      url: URL.createObjectURL(file),
+      name: file.name,
+      size: file.size,
+    }));
+  }, []);
 
   const hasMedia = media.length > 0;
 
@@ -77,9 +75,14 @@ export const MediaSection = () => {
               accept="image/*"
               multiple
               showUploadList={false}
-              beforeUpload={(file) => {
-                const newItems = handleUpload([file]);
-                handleChange([...galleryItems, ...newItems]);
+              beforeUpload={(file, fileList) => {
+                // Process all files only once (when we hit the last file)
+                if (file === fileList[fileList.length - 1]) {
+                  const files = fileList.map((f) => f as unknown as File);
+                  const newItems = handleUpload(files);
+                  const currentItems = getValues("media").map(toMediaItem);
+                  handleChange([...currentItems, ...newItems]);
+                }
                 return false;
               }}
             >

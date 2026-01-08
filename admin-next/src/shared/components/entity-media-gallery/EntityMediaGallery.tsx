@@ -533,23 +533,26 @@ export const EntityMediaGallery = ({
   );
 
   const handleUpload = useCallback(
-    async (file: File) => {
-      if (onUpload) {
-        const newItems = await onUpload([file]);
-        onChange([...value, ...newItems]);
-      } else {
-        // Default behavior: create local media item
-        const newItem: IMediaItem = {
-          id: syntheticId(),
-          file,
-          url: URL.createObjectURL(file),
-          name: file.name,
-          size: file.size,
-          ext: file.name.split(".").pop() || "",
-        };
-        onChange([...value, newItem]);
+    async (file: File, fileList: File[]) => {
+      // Process all files only once (when we hit the last file)
+      if (file === fileList[fileList.length - 1]) {
+        const files = fileList as File[];
+        if (onUpload) {
+          const newItems = await onUpload(files);
+          onChange([...value, ...newItems]);
+        } else {
+          const newItems: IMediaItem[] = files.map((f) => ({
+            id: syntheticId(),
+            file: f,
+            url: URL.createObjectURL(f),
+            name: f.name,
+            size: f.size,
+            ext: f.name.split(".").pop() || "",
+          }));
+          onChange([...value, ...newItems]);
+        }
       }
-      return false; // Prevent default upload behavior
+      return false;
     },
     [value, onChange, onUpload]
   );
