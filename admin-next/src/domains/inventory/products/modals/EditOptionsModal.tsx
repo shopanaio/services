@@ -846,29 +846,19 @@ const SortableOptionGroup = ({
                   groupStyle={group.style}
                   groupIndex={groupIndex}
                   valueIndex={valueIndex}
-                  onLabelChange={(label) => onUpdateValueLabel(valueIndex, label)}
-                  onSwatchChange={(swatch) => onUpdateValueSwatch(valueIndex, swatch)}
+                  onLabelChange={(label) =>
+                    onUpdateValueLabel(valueIndex, label)
+                  }
+                  onSwatchChange={(swatch) =>
+                    onUpdateValueSwatch(valueIndex, swatch)
+                  }
                   onDelete={() => onDeleteValue(valueIndex)}
                 />
               ))}
             </div>
           </SortableContext>
 
-          <DragOverlay dropAnimation={dropAnimation}>
-            {activeValue && (
-              <div className={styles.dragOverlay}>
-                <Input
-                  value={activeValue.label}
-                  readOnly
-                  prefix={
-                    <span className={styles.valueDragHandle} style={{ cursor: "grabbing" }}>
-                      <HolderOutlined />
-                    </span>
-                  }
-                />
-              </div>
-            )}
-          </DragOverlay>
+          <DragOverlay dropAnimation={null} />
         </DndContext>
       </div>
     </div>
@@ -884,18 +874,13 @@ export const EditOptionsModal = () => {
   const { pop } = useModalStackContext();
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
 
-  const {
-    control,
-    handleSubmit,
-    watch,
-    setValue,
-    getValues,
-  } = useForm<IEditOptionsFormValues>({
-    resolver: zodResolver(editOptionsSchema),
-    defaultValues: {
-      groups: MOCK_OPTION_GROUPS,
-    },
-  });
+  const { control, handleSubmit, watch, setValue, getValues } =
+    useForm<IEditOptionsFormValues>({
+      resolver: zodResolver(editOptionsSchema),
+      defaultValues: {
+        groups: MOCK_OPTION_GROUPS,
+      },
+    });
 
   const { fields, remove, append, move } = useFieldArray({
     control,
@@ -1016,7 +1001,8 @@ export const EditOptionsModal = () => {
 
   const watchedGroups = watch("groups");
   const activeFieldIndex = fields.findIndex((f) => f.id === activeGroupId);
-  const activeGroup = activeFieldIndex >= 0 ? watchedGroups[activeFieldIndex] : null;
+  const activeGroup =
+    activeFieldIndex >= 0 ? watchedGroups[activeFieldIndex] : null;
 
   return (
     <ModalLayout
@@ -1065,8 +1051,12 @@ export const EditOptionsModal = () => {
                     group={watchedGroups[groupIndex]}
                     groupIndex={groupIndex}
                     fieldId={field.id}
-                    onUpdateName={(name) => handleUpdateGroupName(groupIndex, name)}
-                    onUpdateStyle={(style) => handleUpdateGroupStyle(groupIndex, style)}
+                    onUpdateName={(name) =>
+                      handleUpdateGroupName(groupIndex, name)
+                    }
+                    onUpdateStyle={(style) =>
+                      handleUpdateGroupStyle(groupIndex, style)
+                    }
                     onDeleteGroup={() => handleDeleteGroup(groupIndex)}
                     onUpdateValueLabel={(valueIndex, label) =>
                       handleUpdateValueLabel(groupIndex, valueIndex, label)
@@ -1088,15 +1078,20 @@ export const EditOptionsModal = () => {
 
             <DragOverlay dropAnimation={dropAnimation}>
               {activeGroup && (
-                <div className={styles.dragOverlay}>
-                  <div className={styles.optionGroupHeader} style={{ margin: 0 }}>
-                    <span className={styles.optionGroupDragHandle} style={{ cursor: "grabbing", padding: "0 8px" }}>
-                      <HolderOutlined />
-                    </span>
-                    <Typography.Text className={styles.optionGroupName}>
-                      {activeGroup.name}
-                    </Typography.Text>
-                  </div>
+                <div
+                  className={styles.optionGroupHeader}
+                  style={{
+                    width: 150,
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                    cursor: "grabbing",
+                  }}
+                >
+                  <span className={styles.optionGroupDragHandle}>
+                    <HolderOutlined />
+                  </span>
+                  <Typography.Text className={styles.optionGroupName}>
+                    {activeGroup.name}
+                  </Typography.Text>
                 </div>
               )}
             </DragOverlay>
