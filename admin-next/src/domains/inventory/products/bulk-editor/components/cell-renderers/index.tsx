@@ -65,19 +65,6 @@ const useStyles = createStyles(({ token }) => ({
   newValue: {
     fontWeight: 600,
   },
-  statusTag: {
-    margin: 0,
-  },
-  inStock: {
-    color: token.colorSuccess,
-    backgroundColor: token.colorSuccessBg,
-    borderColor: token.colorSuccessBorder,
-  },
-  lowStock: {
-    color: token.colorWarning,
-    backgroundColor: token.colorWarningBg,
-    borderColor: token.colorWarningBorder,
-  },
 }));
 
 // Dash element for empty cells
@@ -157,7 +144,6 @@ export const AvailableCellRenderer: React.FC<
 export const ProductStatusRenderer: React.FC<
   CustomCellRendererProps<IBulkEditorRow>
 > = (props) => {
-  const { styles, cx } = useStyles();
   const { data } = props;
 
   if (!data || data.rowType === "variant") return <DashLine />;
@@ -166,14 +152,14 @@ export const ProductStatusRenderer: React.FC<
   if (!status) return null;
 
   const statusConfig = {
-    published: { label: "Published", className: styles.inStock },
-    draft: { label: "Draft", className: styles.lowStock },
+    published: { label: "Published", color: "success" as const },
+    draft: { label: "Draft", color: "warning" as const },
   };
 
   const config = statusConfig[status];
 
   return (
-    <Tag className={cx(styles.statusTag, config.className)} bordered={false}>
+    <Tag color={config.color} bordered={false}>
       {config.label}
     </Tag>
   );
