@@ -2,27 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Input, Select, Button, Typography, Flex, Switch, Alert } from 'antd';
-import { PlusOutlined, DeleteOutlined, HolderOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { AgGridReact } from 'ag-grid-react';
 import type { ColDef, GridReadyEvent, RowDragEndEvent, SelectionChangedEvent } from 'ag-grid-community';
-import {
-  DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-  DragStartEvent,
-  closestCenter,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-  useSortable,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import { createStyles } from 'antd-style';
 import { Paper } from '../../components/Paper';
 import { PaperHeader } from '../../components/PaperHeader';
@@ -64,22 +46,10 @@ const useStyles = createStyles(({ token }) => ({
       marginBottom: 0,
     },
   },
-  optionCardDragging: {
-    opacity: 0.5,
-  },
   optionRow: {
     display: 'flex',
     gap: 12,
     alignItems: 'flex-start',
-  },
-  optionDragHandle: {
-    cursor: 'grab',
-    color: token.colorTextSecondary,
-    padding: '4px',
-    marginTop: 4,
-    '&:hover': {
-      color: token.colorText,
-    },
   },
   optionFields: {
     flex: 1,
@@ -136,50 +106,23 @@ const useStyles = createStyles(({ token }) => ({
   },
 }));
 
-// Sortable Option Card Component
-interface ISortableOptionCardProps {
+// Option Card Component
+interface IOptionCardProps {
   option: IOptionInput;
-  index: number;
   onUpdate: (id: string, updates: Partial<IOptionInput>) => void;
   onDelete: (id: string) => void;
 }
 
-const SortableOptionCard = ({
+const OptionCard = ({
   option,
-  index,
   onUpdate,
   onDelete,
-}: ISortableOptionCardProps) => {
-  const { styles, cx } = useStyles();
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: option.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
+}: IOptionCardProps) => {
+  const { styles } = useStyles();
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={cx(styles.optionCard, isDragging && styles.optionCardDragging)}
-    >
+    <div className={styles.optionCard}>
       <div className={styles.optionRow}>
-        <span
-          className={styles.optionDragHandle}
-          {...attributes}
-          {...listeners}
-        >
-          <HolderOutlined />
-        </span>
-
         <div className={styles.optionFields}>
           <div className={styles.optionFieldRow}>
             <div className={styles.optionFieldLabel}>Title</div>
@@ -218,11 +161,6 @@ const SortableOptionCard = ({
 export const VariantsSection = ({ formState, updateFormState }: ISectionProps) => {
   const { styles } = useStyles();
   const gridRef = useRef<AgGridReact>(null);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
 
   // Regenerate variants when options change
   useEffect(() => {
@@ -286,15 +224,6 @@ export const VariantsSection = ({ formState, updateFormState }: ISectionProps) =
     },
     [formState.options, updateFormState]
   );
-
-  const handleOptionsReorder = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (over && active.id !== over.id) {
-      const oldIndex = formState.options.findIndex((o) => o.id === active.id);
-      const newIndex = formState.options.findIndex((o) => o.id === over.id);
-      updateFormState('options', arrayMove(formState.options, oldIndex, newIndex));
-    }
-  };
 
   const handleVariantSelectionChange = useCallback(
     (event: SelectionChangedEvent) => {
@@ -433,26 +362,14 @@ export const VariantsSection = ({ formState, updateFormState }: ISectionProps) =
             Define the options for the product, e.g. color, size, etc.
           </div>
 
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleOptionsReorder}
-          >
-            <SortableContext
-              items={formState.options.map((o) => o.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              {formState.options.map((option, index) => (
-                <SortableOptionCard
-                  key={option.id}
-                  option={option}
-                  index={index}
-                  onUpdate={handleUpdateOption}
-                  onDelete={handleDeleteOption}
-                />
-              ))}
-            </SortableContext>
-          </DndContext>
+          {formState.options.map((option) => (
+            <OptionCard
+              key={option.id}
+              option={option}
+              onUpdate={handleUpdateOption}
+              onDelete={handleDeleteOption}
+            />
+          ))}
 
           {formState.variants.length > 0 && (
             <>
