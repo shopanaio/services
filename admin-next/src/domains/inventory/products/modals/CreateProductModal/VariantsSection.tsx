@@ -12,6 +12,7 @@ import type {
   SelectionChangedEvent,
 } from "ag-grid-community";
 import { createStyles } from "antd-style";
+import { slugify } from "transliteration/dist/node/src/node/index.js";
 import { syntheticId } from "@/utils/synthetic-id";
 import { Paper } from "../../components/Paper";
 import { PaperHeader } from "../../components/PaperHeader";
@@ -20,7 +21,7 @@ import {
   countPotentialVariants,
 } from "./utils/generateVariants";
 import type { ICreateProductFormValues } from "./types";
-import type { IOptionInput, IGeneratedVariant } from "./utils/generateVariants";
+import type { IOptionInput, IOptionValueInput, IGeneratedVariant } from "./utils/generateVariants";
 
 const useStyles = createStyles(({ token }) => ({
   switchRow: {
@@ -114,18 +115,35 @@ const useStyles = createStyles(({ token }) => ({
 // Option Card Component
 interface IOptionCardProps {
   option: IOptionInput;
-  onUpdate: (id: string, updates: Partial<IOptionInput>) => void;
+  onUpdateValues: (id: string, values: IOptionValueInput[]) => void;
+  onUpdateName: (id: string, name: string) => void;
   onDelete: (id: string) => void;
   canDelete: boolean;
 }
 
 const OptionCard = ({
   option,
-  onUpdate,
+  onUpdateValues,
+  onUpdateName,
   onDelete,
   canDelete,
 }: IOptionCardProps) => {
   const { styles } = useStyles();
+
+  // Convert IOptionValueInput[] to string[] for Select display
+  const displayValues = option.values.map((v) => v.value);
+
+  const handleValuesChange = (newValues: string[]) => {
+    // Map new values, preserving existing slugs for unchanged values
+    const updatedValues: IOptionValueInput[] = newValues.map((value) => {
+      const existing = option.values.find((v) => v.value === value);
+      if (existing) {
+        return existing;
+      }
+      return { value, slug: slugify(value) };
+    });
+    onUpdateValues(option.id, updatedValues);
+  };
 
   return (
     <div className={styles.optionCard}>
@@ -136,7 +154,7 @@ const OptionCard = ({
             <Input
               placeholder="e.g. Color"
               value={option.name}
-              onChange={(e) => onUpdate(option.id, { name: e.target.value })}
+              onChange={(e) => onUpdateName(option.id, e.target.value)}
             />
           </div>
           <div className={styles.optionFieldRow}>
@@ -145,8 +163,8 @@ const OptionCard = ({
               mode="tags"
               placeholder="Type and press Enter"
               tokenSeparators={[","]}
-              value={option.values}
-              onChange={(values) => onUpdate(option.id, { values })}
+              value={displayValues}
+              onChange={handleValuesChange}
               style={{ width: "100%" }}
               open={false}
             />
@@ -184,9 +202,9 @@ export const VariantsSection = () => {
     if (hasVariants) {
       const newVariants = generateVariants(deferredOptions);
       const currentVariants = getValues("variants");
-      // Preserve enabled state for existing variants
+      // Preserve enabled state for existing variants (match by id which is based on slugs)
       const updatedVariants = newVariants.map((newVar) => {
-        const existing = currentVariants.find((v) => v.title === newVar.title);
+        const existing = currentVariants.find((v) => v.id === newVar.id);
         return existing ? { ...newVar, enabled: existing.enabled } : newVar;
       });
       setValue("variants", updatedVariants);
@@ -221,11 +239,21 @@ export const VariantsSection = () => {
     setValue("options", [...options, newOption]);
   }, [options, setValue]);
 
-  const handleUpdateOption = useCallback(
-    (id: string, updates: Partial<IOptionInput>) => {
+  const handleUpdateOptionName = useCallback(
+    (id: string, name: string) => {
       setValue(
         "options",
-        options.map((opt) => (opt.id === id ? { ...opt, ...updates } : opt))
+        options.map((opt) => (opt.id === id ? { ...opt, name } : opt))
+      );
+    },
+    [options, setValue]
+  );
+
+  const handleUpdateOptionValues = useCallback(
+    (id: string, values: IOptionValueInput[]) => {
+      setValue(
+        "options",
+        options.map((opt) => (opt.id === id ? { ...opt, values } : opt))
       );
     },
     [options, setValue]
@@ -330,7 +358,8 @@ export const VariantsSection = () => {
             <OptionCard
               key={option.id}
               option={option}
-              onUpdate={handleUpdateOption}
+              onUpdateName={handleUpdateOptionName}
+              onUpdateValues={handleUpdateOptionValues}
               onDelete={handleDeleteOption}
               canDelete={options.length > 1}
             />

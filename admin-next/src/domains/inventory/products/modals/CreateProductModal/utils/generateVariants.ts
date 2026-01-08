@@ -2,17 +2,21 @@
  * Utility functions for generating product variants from options
  */
 
-import { syntheticId } from "@/utils/synthetic-id";
+export interface IOptionValueInput {
+  value: string;
+  slug: string;
+}
 
 export interface IOptionInput {
   id: string;
   name: string;
-  values: string[];
+  values: IOptionValueInput[];
 }
 
 export interface IOptionValue {
   name: string;
   value: string;
+  slug: string;
 }
 
 export interface IGeneratedVariant {
@@ -69,11 +73,12 @@ export function generateVariants(options: IOptionInput[]): IGeneratedVariant[] {
     return [];
   }
 
-  // Transform options into arrays of { name, value } objects
+  // Transform options into arrays of { name, value, slug } objects
   const optionValueArrays = validOptions.map((opt) =>
-    opt.values.map((value) => ({
+    opt.values.map((v) => ({
       name: opt.name,
-      value,
+      value: v.value,
+      slug: v.slug,
     }))
   );
 
@@ -81,12 +86,16 @@ export function generateVariants(options: IOptionInput[]): IGeneratedVariant[] {
   const combinations = cartesianProduct(optionValueArrays);
 
   // Transform combinations into variant objects
-  return combinations.map((combo) => ({
-    id: syntheticId(),
-    title: combo.map((c) => c.value).join(' / '),
-    options: combo,
-    enabled: true,
-  }));
+  return combinations.map((combo) => {
+    const id = combo.map((c) => c.slug).join('-');
+    const title = combo.map((c) => c.value).join(' / ');
+    return {
+      id,
+      title,
+      options: combo,
+      enabled: true,
+    };
+  });
 }
 
 /**
