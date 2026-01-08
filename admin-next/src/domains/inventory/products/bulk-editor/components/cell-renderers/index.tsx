@@ -1,5 +1,4 @@
 import React from "react";
-import { createStyles } from "antd-style";
 import { Tag, Avatar } from "antd";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import {
@@ -10,74 +9,16 @@ import {
 } from "../../types";
 import { useBulkEditorStore } from "../../hooks/useBulkEditorStore";
 import { SelectableCell } from "@/shared/components/ag-grid-cell-selection";
+import { Dash, Diff } from "@/shared/components/editor-grid";
 import {
   ReservedCell,
   CalculatedAvailableCell,
 } from "@/shared/components/inventory-cells";
 
-const useStyles = createStyles(({ token }) => ({
-  titleCell: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    height: "100%",
-    width: "100%",
-  },
-  titleText: {
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  },
-  productTitle: {
-    fontWeight: 500,
-  },
-  variantTitle: {
-    color: token.colorTextSecondary,
-    paddingLeft: 16,
-  },
-  dashLine: {
-    display: "inline-block",
-    width: 24,
-    height: 4,
-    backgroundColor: token.colorBorder,
-    borderRadius: 2,
-    verticalAlign: "middle",
-  },
-  cellContent: {
-    textAlign: "right",
-    width: "100%",
-  },
-  editedValue: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    gap: 4,
-    width: "100%",
-  },
-  originalValue: {
-    color: token.colorTextSecondary,
-    textDecoration: "line-through",
-  },
-  arrow: {
-    color: token.colorTextSecondary,
-    fontSize: 12,
-  },
-  newValue: {
-    fontWeight: 600,
-  },
-}));
-
-// Dash element for empty cells
-const DashLine: React.FC = () => {
-  const { styles } = useStyles();
-  return <span className={styles.dashLine} />;
-};
-
 // Title cell with hierarchy
 export const TitleCellRenderer: React.FC<
   CustomCellRendererProps<IBulkEditorRow>
 > = (props) => {
-  const { styles, cx } = useStyles();
   const { data, value } = props;
 
   if (!data) return null;
@@ -85,12 +26,9 @@ export const TitleCellRenderer: React.FC<
   const isVariant = data.rowType === "variant";
 
   return (
-    <div className={styles.titleCell}>
+    <div className="ec-title">
       <span
-        className={cx(
-          styles.titleText,
-          isVariant ? styles.variantTitle : styles.productTitle
-        )}
+        className={`ec-title__text ${isVariant ? "ec-title--variant" : "ec-title--product"}`}
       >
         {value || data.title}
       </span>
@@ -105,7 +43,7 @@ export const ReservedCellRenderer: React.FC<
 > = (props) => {
   const { data, value } = props;
 
-  if (!data || data.rowType === "product") return <DashLine />;
+  if (!data || data.rowType === "product") return <Dash />;
 
   return <ReservedCell value={(value as number) ?? 0} />;
 };
@@ -118,7 +56,7 @@ export const AvailableCellRenderer: React.FC<
   const { data } = props;
   const getFieldEdit = useBulkEditorStore((s) => s.getFieldEdit);
 
-  if (!data || data.rowType === "product") return <DashLine />;
+  if (!data || data.rowType === "product") return <Dash />;
 
   const onHandEdit = getFieldEdit(data.id, "onHand");
   const unavailableEdit = getFieldEdit(data.id, "unavailable");
@@ -128,14 +66,22 @@ export const AvailableCellRenderer: React.FC<
       onHand={data.onHand ?? 0}
       unavailable={data.unavailable ?? 0}
       reserved={data.reserved ?? 0}
-      onHandEdit={onHandEdit ? {
-        originalValue: onHandEdit.originalValue as number,
-        currentValue: onHandEdit.currentValue as number,
-      } : undefined}
-      unavailableEdit={unavailableEdit ? {
-        originalValue: unavailableEdit.originalValue as number,
-        currentValue: unavailableEdit.currentValue as number,
-      } : undefined}
+      onHandEdit={
+        onHandEdit
+          ? {
+              originalValue: onHandEdit.originalValue as number,
+              currentValue: onHandEdit.currentValue as number,
+            }
+          : undefined
+      }
+      unavailableEdit={
+        unavailableEdit
+          ? {
+              originalValue: unavailableEdit.originalValue as number,
+              currentValue: unavailableEdit.currentValue as number,
+            }
+          : undefined
+      }
     />
   );
 };
@@ -146,7 +92,7 @@ export const ProductStatusRenderer: React.FC<
 > = (props) => {
   const { data } = props;
 
-  if (!data || data.rowType === "variant") return <DashLine />;
+  if (!data || data.rowType === "variant") return <Dash />;
 
   const status = data.productStatus;
   if (!status) return null;
@@ -175,7 +121,7 @@ export const TextCellRenderer: React.FC<
 
   const field = colDef.field as keyof IBulkEditorRow;
 
-  if (shouldShowDash(data.rowType, field)) return <DashLine />;
+  if (shouldShowDash(data.rowType, field)) return <Dash />;
 
   return (
     <SelectableCell rowId={data.id} field={field}>
@@ -188,7 +134,6 @@ export const TextCellRenderer: React.FC<
 export const PriceCellRenderer: React.FC<
   CustomCellRendererProps<IBulkEditorRow>
 > = (props) => {
-  const { styles } = useStyles();
   const { data, colDef, value } = props;
 
   if (!data || !colDef?.field) return null;
@@ -197,17 +142,15 @@ export const PriceCellRenderer: React.FC<
 
   if (shouldShowDash(data.rowType, field)) {
     return (
-      <div className={styles.cellContent}>
-        <DashLine />
+      <div className="ec-cell ec-cell--right">
+        <Dash />
       </div>
     );
   }
 
   return (
-    <SelectableCell rowId={data.id} field={field}>
-      <div className={styles.cellContent}>
-        {formatPrice(value as number | null)}
-      </div>
+    <SelectableCell rowId={data.id} field={field} className="ec-cell--right">
+      {formatPrice(value as number | null)}
     </SelectableCell>
   );
 };
@@ -216,7 +159,6 @@ export const PriceCellRenderer: React.FC<
 export const NumberCellRenderer: React.FC<
   CustomCellRendererProps<IBulkEditorRow>
 > = (props) => {
-  const { styles } = useStyles();
   const { data, colDef, value } = props;
   const getFieldEdit = useBulkEditorStore((s) => s.getFieldEdit);
 
@@ -226,29 +168,21 @@ export const NumberCellRenderer: React.FC<
 
   if (shouldShowDash(data.rowType, field)) {
     return (
-      <div className={styles.cellContent}>
-        <DashLine />
+      <div className="ec-cell ec-cell--right">
+        <Dash />
       </div>
     );
   }
 
-  const edit = getFieldEdit(data.id, field) as
-    | IFieldEdit<number | null>
-    | undefined;
-
-  const content = edit ? (
-    <div className={styles.editedValue}>
-      <span className={styles.originalValue}>{edit.originalValue ?? ""}</span>
-      <span className={styles.arrow}>→</span>
-      <span className={styles.newValue}>{edit.currentValue ?? ""}</span>
-    </div>
-  ) : (
-    <div className={styles.cellContent}>{value ?? ""}</div>
-  );
+  const edit = getFieldEdit(data.id, field) as IFieldEdit<number | null> | undefined;
 
   return (
-    <SelectableCell rowId={data.id} field={field}>
-      {content}
+    <SelectableCell rowId={data.id} field={field} className="ec-cell--right">
+      {edit ? (
+        <Diff originalValue={edit.originalValue} currentValue={edit.currentValue} />
+      ) : (
+        (value ?? "")
+      )}
     </SelectableCell>
   );
 };
@@ -259,10 +193,10 @@ export const MediaCellRenderer: React.FC<
 > = (props) => {
   const { data } = props;
 
-  if (!data || data.rowType === "variant") return <DashLine />;
+  if (!data || data.rowType === "variant") return <Dash />;
 
   const media = data.productMedia;
-  if (!media || media.length === 0) return <DashLine />;
+  if (!media || media.length === 0) return <Dash />;
 
   return (
     <Avatar.Group max={{ count: 3 }} size={32}>

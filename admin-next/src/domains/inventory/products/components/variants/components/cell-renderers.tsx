@@ -1,8 +1,8 @@
 import React from "react";
-import { createStyles } from "antd-style";
 import { Image } from "antd";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { SelectableCell } from "@/shared/components/ag-grid-cell-selection";
+import { Diff, ImagePlaceholder } from "@/shared/components/editor-grid";
 import type { IVariantEditorRow } from "../config";
 import { useVariantsEditorStore } from "../hooks";
 import type { IFieldEdit } from "@/shared/components/editor-grid";
@@ -10,70 +10,6 @@ import {
   ReservedCell,
   CalculatedAvailableCell,
 } from "@/shared/components/inventory-cells";
-
-// ============================================================================
-// Styles
-// ============================================================================
-
-const useStyles = createStyles(({ token }) => ({
-  titleCell: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    height: "100%",
-    width: "100%",
-  },
-  imageCell: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "100%",
-    height: "100%",
-  },
-  variantImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 4,
-    objectFit: "cover" as const,
-  },
-  imagePlaceholder: {
-    width: 40,
-    height: 40,
-    background: token.colorBgContainerDisabled,
-    borderRadius: 4,
-    flexShrink: 0,
-  },
-  titleText: {
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  },
-  cellContent: {
-    textAlign: "right",
-    width: "100%",
-  },
-  editedValue: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    gap: 4,
-    width: "100%",
-  },
-  originalValue: {
-    color: token.colorTextSecondary,
-    textDecoration: "line-through",
-  },
-  arrow: {
-    color: token.colorTextSecondary,
-    fontSize: 12,
-  },
-  newValue: {
-    fontWeight: 600,
-  },
-  optionValue: {
-    color: token.colorTextSecondary,
-  },
-}));
 
 // ============================================================================
 // Formatters
@@ -96,24 +32,23 @@ export function formatPrice(value: number | null): string {
 export const ImageCellRenderer: React.FC<
   CustomCellRendererProps<IVariantEditorRow>
 > = (props) => {
-  const { styles } = useStyles();
   const { data } = props;
 
   if (!data) return null;
 
   return (
-    <div className={styles.imageCell}>
+    <div className="ec-cell ec-cell--center">
       {data.imageUrl ? (
         <Image
           src={data.imageUrl}
           alt={data.title}
           width={40}
           height={40}
-          className={styles.variantImage}
+          className="ec-image"
           preview={false}
         />
       ) : (
-        <div className={styles.imagePlaceholder} />
+        <ImagePlaceholder />
       )}
     </div>
   );
@@ -126,14 +61,13 @@ export const ImageCellRenderer: React.FC<
 export const TitleCellRenderer: React.FC<
   CustomCellRendererProps<IVariantEditorRow>
 > = (props) => {
-  const { styles } = useStyles();
   const { data } = props;
 
   if (!data) return null;
 
   return (
-    <div className={styles.titleCell}>
-      <span className={styles.titleText}>{data.title}</span>
+    <div className="ec-title">
+      <span className="ec-title__text">{data.title}</span>
     </div>
   );
 };
@@ -172,14 +106,22 @@ export const AvailableCellRenderer: React.FC<
       onHand={data.onHand}
       unavailable={data.unavailable}
       reserved={data.reserved}
-      onHandEdit={onHandEdit ? {
-        originalValue: onHandEdit.originalValue as number,
-        currentValue: onHandEdit.currentValue as number,
-      } : undefined}
-      unavailableEdit={unavailableEdit ? {
-        originalValue: unavailableEdit.originalValue as number,
-        currentValue: unavailableEdit.currentValue as number,
-      } : undefined}
+      onHandEdit={
+        onHandEdit
+          ? {
+              originalValue: onHandEdit.originalValue as number,
+              currentValue: onHandEdit.currentValue as number,
+            }
+          : undefined
+      }
+      unavailableEdit={
+        unavailableEdit
+          ? {
+              originalValue: unavailableEdit.originalValue as number,
+              currentValue: unavailableEdit.currentValue as number,
+            }
+          : undefined
+      }
     />
   );
 };
@@ -211,7 +153,6 @@ export const TextCellRenderer: React.FC<
 export const PriceCellRenderer: React.FC<
   CustomCellRendererProps<IVariantEditorRow>
 > = (props) => {
-  const { styles } = useStyles();
   const { data, colDef, value } = props;
 
   if (!data || !colDef?.field) return null;
@@ -219,10 +160,8 @@ export const PriceCellRenderer: React.FC<
   const field = colDef.field;
 
   return (
-    <SelectableCell rowId={data.id} field={field}>
-      <div className={styles.cellContent}>
-        {formatPrice(value as number | null)}
-      </div>
+    <SelectableCell rowId={data.id} field={field} className="ec-cell--right">
+      {formatPrice(value as number | null)}
     </SelectableCell>
   );
 };
@@ -234,7 +173,6 @@ export const PriceCellRenderer: React.FC<
 export const NumberCellRenderer: React.FC<
   CustomCellRendererProps<IVariantEditorRow>
 > = (props) => {
-  const { styles } = useStyles();
   const { data, colDef, value } = props;
   const getFieldEdit = useVariantsEditorStore((s) => s.getFieldEdit);
 
@@ -245,19 +183,16 @@ export const NumberCellRenderer: React.FC<
     | IFieldEdit<number | null>
     | undefined;
 
-  const content = edit ? (
-    <div className={styles.editedValue}>
-      <span className={styles.originalValue}>{edit.originalValue ?? ""}</span>
-      <span className={styles.arrow}>→</span>
-      <span className={styles.newValue}>{edit.currentValue ?? ""}</span>
-    </div>
-  ) : (
-    <div className={styles.cellContent}>{value ?? ""}</div>
-  );
-
   return (
-    <SelectableCell rowId={data.id} field={field}>
-      {content}
+    <SelectableCell rowId={data.id} field={field} className="ec-cell--right">
+      {edit ? (
+        <Diff
+          originalValue={edit.originalValue}
+          currentValue={edit.currentValue}
+        />
+      ) : (
+        value ?? ""
+      )}
     </SelectableCell>
   );
 };
@@ -269,7 +204,6 @@ export const NumberCellRenderer: React.FC<
 export const OptionCellRenderer: React.FC<
   CustomCellRendererProps<IVariantEditorRow> & { optionName: string }
 > = (props) => {
-  const { styles } = useStyles();
   const { data, optionName } = props;
 
   if (!data) return null;
@@ -277,5 +211,5 @@ export const OptionCellRenderer: React.FC<
   const option = data.options.find((o) => o.name === optionName);
   const value = option?.value ?? "";
 
-  return <span className={styles.optionValue}>{value}</span>;
+  return <span className="ec-option">{value}</span>;
 };

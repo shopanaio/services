@@ -93,6 +93,109 @@ const useStyles = createStyles(({ token }) => ({
     ".ag-pinned-left-cols-container": {
       backgroundColor: token.colorBgContainer,
     },
+
+    // =========================================================================
+    // CELL RENDERER STYLES
+    // =========================================================================
+
+    // === Base Cell (for non-selectable cells) ===
+    ".ec-cell": {
+      display: "flex",
+      alignItems: "center",
+      width: "100%",
+      height: "100%",
+    },
+
+    // === Cell Modifiers (work with SelectableCell via className prop) ===
+    ".ec-cell--right, [data-selectable].ec-cell--right": {
+      justifyContent: "flex-end",
+      paddingRight: 4,
+    },
+    ".ec-cell--center, [data-selectable].ec-cell--center": {
+      justifyContent: "center",
+    },
+
+    // === Diff (edited value: oldValue → newValue) ===
+    ".ec-diff": {
+      display: "flex",
+      alignItems: "center",
+      gap: 4,
+      fontStyle: "italic",
+    },
+    ".ec-diff__old": {
+      color: token.colorTextSecondary,
+      textDecoration: "line-through",
+    },
+    ".ec-diff__arrow": {
+      color: token.colorTextSecondary,
+      fontSize: 12,
+    },
+    ".ec-diff__new": {
+      fontWeight: 600,
+    },
+    ".ec-diff__new--negative": {
+      fontWeight: 600,
+      color: token.colorError,
+    },
+
+    // === Value States ===
+    ".ec-value--zero": {
+      color: token.colorError,
+    },
+    ".ec-value--secondary": {
+      color: token.colorTextSecondary,
+    },
+
+    // === Title Cell ===
+    ".ec-title": {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      height: "100%",
+      width: "100%",
+    },
+    ".ec-title__text": {
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+    },
+    ".ec-title--product": {
+      fontWeight: 500,
+    },
+    ".ec-title--variant": {
+      color: token.colorTextSecondary,
+      paddingLeft: 16,
+    },
+
+    // === Image Cell ===
+    ".ec-image": {
+      width: 40,
+      height: 40,
+      borderRadius: 4,
+      objectFit: "cover" as const,
+    },
+    ".ec-image--placeholder": {
+      width: 40,
+      height: 40,
+      borderRadius: 4,
+      background: token.colorBgContainerDisabled,
+      flexShrink: 0,
+    },
+
+    // === Dash (empty/N/A cell) ===
+    ".ec-dash": {
+      display: "inline-block",
+      width: 24,
+      height: 4,
+      backgroundColor: token.colorBorder,
+      borderRadius: 2,
+      verticalAlign: "middle",
+    },
+
+    // === Option Value (read-only) ===
+    ".ec-option": {
+      color: token.colorTextSecondary,
+    },
   },
 }));
 

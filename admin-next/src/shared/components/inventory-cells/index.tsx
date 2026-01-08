@@ -1,48 +1,9 @@
 "use client";
 
 import React from "react";
-import { Typography, Tooltip } from "antd";
-import { createStyles, cx } from "antd-style";
+import { Tooltip } from "antd";
+import { Diff } from "@/shared/components/editor-grid";
 import { calculateAvailable } from "@/shared/utils/inventory";
-
-// ============================================================================
-// Styles
-// ============================================================================
-
-const useStyles = createStyles(({ token }) => ({
-  cellWrapper: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    width: "100%",
-    height: "100%",
-    paddingRight: 4,
-  },
-  diffCell: {
-    display: "flex",
-    alignItems: "center",
-    gap: 4,
-    fontStyle: "italic",
-  },
-  oldValue: {
-    color: token.colorTextSecondary,
-    textDecoration: "line-through",
-  },
-  arrow: {
-    color: token.colorTextSecondary,
-    fontSize: 12,
-  },
-  newValue: {
-    fontWeight: 600,
-  },
-  newValueNegative: {
-    fontWeight: 600,
-    color: token.colorError,
-  },
-  zeroValue: {
-    color: token.colorError,
-  },
-}));
 
 // ============================================================================
 // Types
@@ -81,17 +42,11 @@ export interface CalculatedAvailableCellProps {
 // Read-only cell showing reserved quantity with tooltip
 // ============================================================================
 
-export const ReservedCell: React.FC<InventoryCellProps> = ({ value }) => {
-  const { styles } = useStyles();
-
-  return (
-    <Tooltip title="Managed by order system">
-      <div className={styles.cellWrapper}>
-        <Typography.Text>{value}</Typography.Text>
-      </div>
-    </Tooltip>
-  );
-};
+export const ReservedCell: React.FC<InventoryCellProps> = ({ value }) => (
+  <Tooltip title="Managed by order system">
+    <div className="ec-cell ec-cell--right">{value}</div>
+  </Tooltip>
+);
 
 // ============================================================================
 // Editable Number Cell
@@ -102,27 +57,15 @@ export const EditableInventoryCell: React.FC<EditableInventoryCellProps> = ({
   value,
   edit,
 }) => {
-  const { styles } = useStyles();
-
-  // Show diff if there's an edit for this field
   if (edit) {
     return (
-      <div className={styles.cellWrapper}>
-        <span className={styles.diffCell}>
-          <span className={styles.oldValue}>{edit.originalValue}</span>
-          <span className={styles.arrow}>→</span>
-          <span className={styles.newValue}>{edit.currentValue}</span>
-        </span>
+      <div className="ec-cell ec-cell--right">
+        <Diff originalValue={edit.originalValue} currentValue={edit.currentValue} />
       </div>
     );
   }
 
-  // Default display
-  return (
-    <div className={styles.cellWrapper}>
-      <Typography.Text>{value}</Typography.Text>
-    </div>
-  );
+  return <div className="ec-cell ec-cell--right">{value}</div>;
 };
 
 // ============================================================================
@@ -138,8 +81,6 @@ export const CalculatedAvailableCell: React.FC<CalculatedAvailableCellProps> = (
   onHandEdit,
   unavailableEdit,
 }) => {
-  const { styles } = useStyles();
-
   // Current available value
   const currentAvailable = calculateAvailable(onHand, unavailable, reserved);
 
@@ -157,38 +98,21 @@ export const CalculatedAvailableCell: React.FC<CalculatedAvailableCellProps> = (
       const isNegative = newAvailable < 0;
 
       return (
-        <div className={styles.cellWrapper}>
-          <span className={styles.diffCell}>
-            <span className={styles.oldValue}>{originalAvailable}</span>
-            <span className={styles.arrow}>→</span>
-            <span
-              className={cx(
-                styles.newValue,
-                isNegative && styles.newValueNegative
-              )}
-            >
-              {newAvailable}
-            </span>
-          </span>
+        <div className="ec-cell ec-cell--right">
+          <Diff
+            originalValue={originalAvailable}
+            currentValue={newAvailable}
+            isNegative={isNegative}
+          />
         </div>
       );
     }
   }
 
   // Default display
-  if (currentAvailable === 0) {
-    return (
-      <div className={styles.cellWrapper}>
-        <Typography.Text className={styles.zeroValue}>
-          {currentAvailable}
-        </Typography.Text>
-      </div>
-    );
-  }
-
   return (
-    <div className={styles.cellWrapper}>
-      <Typography.Text>{currentAvailable}</Typography.Text>
+    <div className={`ec-cell ec-cell--right${currentAvailable === 0 ? " ec-value--zero" : ""}`}>
+      {currentAvailable}
     </div>
   );
 };
