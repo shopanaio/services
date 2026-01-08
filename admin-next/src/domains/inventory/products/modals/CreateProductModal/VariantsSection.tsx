@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef } from "react";
 import { useFormContext } from "react-hook-form";
 import { Input, Select, Button, Typography, Flex, Switch, Alert } from "antd";
 import { PlusOutlined, CloseOutlined } from "@ant-design/icons";
@@ -171,10 +171,14 @@ export const VariantsSection = () => {
   const options = watch("options");
   const variants = watch("variants");
 
-  // Regenerate variants when options change
+  // Deferred options for heavy computations (variant generation)
+  // UI updates immediately, but variant regeneration is deferred
+  const deferredOptions = useDeferredValue(options);
+
+  // Regenerate variants when deferred options change
   useEffect(() => {
     if (hasVariants) {
-      const newVariants = generateVariants(options);
+      const newVariants = generateVariants(deferredOptions);
       const currentVariants = getValues("variants");
       // Preserve enabled state for existing variants
       const updatedVariants = newVariants.map((newVar) => {
@@ -183,7 +187,7 @@ export const VariantsSection = () => {
       });
       setValue("variants", updatedVariants);
     }
-  }, [options, hasVariants, setValue, getValues]);
+  }, [deferredOptions, hasVariants, setValue, getValues]);
 
   const handleHasVariantsChange = useCallback(
     (checked: boolean) => {
