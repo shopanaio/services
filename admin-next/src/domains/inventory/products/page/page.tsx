@@ -23,6 +23,7 @@ import { filterSchema } from "./filterSchema";
 import { useProducts } from "../hooks";
 import type { IProductListItem } from "../mocks/products-list";
 import { useBulkEditorStore } from "../bulk-editor";
+import { useProductCreateModal } from "../modals";
 
 ModuleRegistry.registerModules([
   AllCommunityModule,
@@ -86,6 +87,9 @@ export default function ProductsPage() {
 
   // Bulk editor store
   const setSelectedProducts = useBulkEditorStore((s) => s.setSelectedProducts);
+
+  // Create product modal
+  const { push: pushCreateModal } = useProductCreateModal();
 
   const { onSortChanged } = useGridSort({
     gridRef,
@@ -168,9 +172,9 @@ export default function ProductsPage() {
     []
   );
 
-  const handleCreate = () => {
-    console.log("Create new product");
-  };
+  const handleCreate = useCallback(() => {
+    pushCreateModal({});
+  }, [pushCreateModal]);
 
   return (
     <DataLayout

@@ -18,6 +18,15 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
+    // Create Product modal
+    {
+      type: 'product-create',
+      component: dynamic(() =>
+        import('@/domains/inventory/products/modals/CreateProductModal').then(
+          (m) => m.CreateProductModal
+        )
+      ),
+    },
     // Edit title modal
     {
       type: 'product-edit-title',
