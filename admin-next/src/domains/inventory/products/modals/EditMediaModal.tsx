@@ -2,8 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createStyles } from "antd-style";
-import { Segmented } from "antd";
-import { AppstoreOutlined, UnorderedListOutlined } from "@ant-design/icons";
 import {
   useModalStackContext,
   ModalLayout,
@@ -12,7 +10,6 @@ import {
 import {
   EntityMediaGallery,
   type IMediaItem,
-  type ViewMode,
 } from "@/shared/components/entity-media-gallery";
 import { Paper } from "../components/Paper";
 import { PaperHeader } from "../components/PaperHeader";
@@ -70,7 +67,6 @@ export const EditMediaModal = () => {
     }
     return items;
   });
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
 
   const markDirty = useCallback(() => {
     setDirty(true);
@@ -139,27 +135,13 @@ export const EditMediaModal = () => {
     >
       <div className={styles.container}>
         <Paper>
-          <PaperHeader
-            title="Product Media"
-            actions={
-              <Segmented
-                size="small"
-                value={viewMode}
-                onChange={(value) => setViewMode(value as ViewMode)}
-                options={[
-                  { value: "grid", icon: <AppstoreOutlined /> },
-                  { value: "list", icon: <UnorderedListOutlined /> },
-                ]}
-              />
-            }
-          />
+          <PaperHeader title="Product Media" />
 
           <EntityMediaGallery
             value={gallery}
             onChange={handleChange}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
             onUpload={handleUpload}
+            showViewSwitcher
             accept="image/*,video/*"
             multiple
             hasCover

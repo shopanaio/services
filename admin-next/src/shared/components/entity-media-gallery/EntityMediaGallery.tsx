@@ -543,7 +543,7 @@ export const EntityMediaGallery = ({
             align="center"
             style={{ marginBottom: 12 }}
           >
-            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            <Typography.Text type="secondary">
               {value.length} file{value.length !== 1 ? "s" : ""}
             </Typography.Text>
             <Flex gap={8} align="center">
@@ -554,7 +554,7 @@ export const EntityMediaGallery = ({
                   showUploadList={false}
                   beforeUpload={handleUpload}
                 >
-                  <Button size="small" icon={<PlusOutlined />}>
+                  <Button size="small" icon={<UploadOutlined />}>
                     Upload
                   </Button>
                 </Upload>
@@ -668,13 +668,6 @@ export const EntityMediaGallery = ({
                   />
                 ))}
               </div>
-            </div>
-
-            <div className={styles.footer}>
-              <span>
-                {value.length} image{value.length !== 1 ? "s" : ""}
-              </span>
-              <span>Drag to reorder</span>
             </div>
           </>
         )}
