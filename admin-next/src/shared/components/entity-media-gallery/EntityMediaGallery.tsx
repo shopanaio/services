@@ -165,36 +165,6 @@ const SortableGridItem = ({
       <img src={item.url} alt={item.name} className={styles.mediaImage} />
 
       <div className={cx(styles.mediaActions, "media-actions")}>
-        {onPreview && (
-          <Tooltip title="Preview">
-            <Button
-              size="small"
-              shape="circle"
-              icon={<EyeOutlined />}
-              className={styles.mediaActionButton}
-              onClick={(e) => {
-                e.stopPropagation();
-                onPreview(item, index);
-              }}
-            />
-          </Tooltip>
-        )}
-
-        {!isCover && (
-          <Tooltip title="Set as cover">
-            <Button
-              size="small"
-              shape="circle"
-              icon={<StarOutlined />}
-              className={styles.mediaActionButton}
-              onClick={(e) => {
-                e.stopPropagation();
-                onSetCover(item);
-              }}
-            />
-          </Tooltip>
-        )}
-
         <Dropdown
           menu={{
             items: [
@@ -234,7 +204,6 @@ const SortableGridItem = ({
             size="small"
             shape="circle"
             icon={<MoreOutlined />}
-            className={styles.mediaActionButton}
             onClick={(e) => e.stopPropagation()}
           />
         </Dropdown>
