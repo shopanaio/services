@@ -107,13 +107,19 @@ const SortableGridItem = ({
       return transform;
     }
 
-    const getPrimaryIndexTransform = (r: { width: number; height: number }) => ({
+    const getPrimaryIndexTransform = (r: {
+      width: number;
+      height: number;
+    }) => ({
       ...transform,
       x: (transform?.x || 0) + r.width / 2 + gap / 2,
       y: (transform?.y || 0) + r.height / 2 + gap / 2,
     });
 
-    const getSecondaryIndexTransform = (r: { width: number; height: number }) => ({
+    const getSecondaryIndexTransform = (r: {
+      width: number;
+      height: number;
+    }) => ({
       ...transform,
       x: (transform?.x || 0) - r.width / 4 - gap / 4,
       y: (transform?.y || 0) - r.height / 4 - gap / 4,
@@ -296,7 +302,9 @@ const SortableListItem = ({
       <img src={item.url} alt={item.name} className={styles.listItemImage} />
 
       <div className={styles.listItemInfo}>
-        <Typography.Text className={styles.listItemName}>{item.name}</Typography.Text>
+        <Typography.Text className={styles.listItemName}>
+          {item.name}
+        </Typography.Text>
         <div className={styles.listItemMeta}>
           <span>{formatFileSize(item.size)}</span>
           {ext && <span>{ext}</span>}
@@ -395,7 +403,11 @@ interface IListItemPreviewProps {
   coverLabel: string;
 }
 
-const ListItemPreview = ({ item, isCover, coverLabel }: IListItemPreviewProps) => {
+const ListItemPreview = ({
+  item,
+  isCover,
+  coverLabel,
+}: IListItemPreviewProps) => {
   const { styles } = useStyles();
   const ext = item.ext || getFileExtension(item.name);
 
@@ -409,7 +421,9 @@ const ListItemPreview = ({ item, isCover, coverLabel }: IListItemPreviewProps) =
       </div>
       <img src={item.url} alt={item.name} className={styles.listItemImage} />
       <div className={styles.listItemInfo}>
-        <Typography.Text className={styles.listItemName}>{item.name}</Typography.Text>
+        <Typography.Text className={styles.listItemName}>
+          {item.name}
+        </Typography.Text>
         <div className={styles.listItemMeta}>
           <span>{formatFileSize(item.size)}</span>
           {ext && <span>{ext}</span>}
@@ -551,7 +565,11 @@ export const EntityMediaGallery = ({
       >
         {/* Header with view switcher */}
         {showViewSwitcher && hasMedia && (
-          <Flex justify="space-between" align="center" style={{ marginBottom: 12 }}>
+          <Flex
+            justify="space-between"
+            align="center"
+            style={{ marginBottom: 12 }}
+          >
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
               {value.length} file{value.length !== 1 ? "s" : ""}
             </Typography.Text>
@@ -577,7 +595,11 @@ export const EntityMediaGallery = ({
           >
             <Flex align="center" justify="center" vertical>
               <UploadOutlined className={styles.draggerIcon} />
-              <Typography.Text strong type="secondary" className={styles.draggerTitle}>
+              <Typography.Text
+                strong
+                type="secondary"
+                className={styles.draggerTitle}
+              >
                 Upload images
               </Typography.Text>
               <Typography.Text type="secondary">
@@ -590,7 +612,10 @@ export const EntityMediaGallery = ({
         {/* Empty state without upload */}
         {!hasMedia && !showUpload && (
           <div className={styles.emptyContainer}>
-            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={emptyMessage} />
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={emptyMessage}
+            />
           </div>
         )}
 
@@ -625,7 +650,9 @@ export const EntityMediaGallery = ({
                 >
                   <div className={styles.uploadArea}>
                     <PlusOutlined className={styles.uploadIcon} />
-                    <Typography.Text className={styles.uploadText}>Upload</Typography.Text>
+                    <Typography.Text className={styles.uploadText}>
+                      Upload
+                    </Typography.Text>
                   </div>
                 </Upload>
               )}
