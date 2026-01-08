@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Input, Select, Button, Typography, Flex, Switch, Alert } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { AgGridReact } from 'ag-grid-react';
-import type { ColDef, GridReadyEvent, RowDragEndEvent, SelectionChangedEvent } from 'ag-grid-community';
+import type { ColDef, GridReadyEvent, SelectionChangedEvent } from 'ag-grid-community';
 import { createStyles } from 'antd-style';
 import { Paper } from '../../components/Paper';
 import { PaperHeader } from '../../components/PaperHeader';
@@ -87,13 +87,15 @@ const useStyles = createStyles(({ token }) => ({
     marginBottom: 12,
   },
   gridContainer: {
-    height: 300,
     width: '100%',
     '& .ag-header': {
       background: token.colorBgLayout,
     },
     '& .ag-row': {
       cursor: 'default',
+    },
+    '& .ag-center-cols-container, & .ag-center-cols-viewport': {
+      minHeight: 'unset !important',
     },
   },
   tip: {
@@ -241,22 +243,6 @@ export const VariantsSection = ({ formState, updateFormState }: ISectionProps) =
     [formState.variants, updateFormState]
   );
 
-  const handleRowDragEnd = useCallback(
-    (event: RowDragEndEvent) => {
-      const { node, overIndex } = event;
-      if (overIndex === undefined || overIndex === null) return;
-
-      const data = [...formState.variants];
-      const fromIndex = data.findIndex((v) => v.id === node.data.id);
-      if (fromIndex === -1) return;
-
-      const [removed] = data.splice(fromIndex, 1);
-      data.splice(overIndex, 0, removed);
-      updateFormState('variants', data);
-    },
-    [formState.variants, updateFormState]
-  );
-
   const handleSelectAll = useCallback(() => {
     updateFormState(
       'variants',
@@ -276,21 +262,6 @@ export const VariantsSection = ({ formState, updateFormState }: ISectionProps) =
   // Build dynamic columns based on options
   const columnDefs = useMemo<ColDef<IGeneratedVariant>[]>(() => {
     const baseCols: ColDef<IGeneratedVariant>[] = [
-      {
-        headerCheckboxSelection: true,
-        checkboxSelection: true,
-        width: 50,
-        pinned: 'left',
-        lockPosition: true,
-        suppressMovable: true,
-      },
-      {
-        rowDrag: true,
-        width: 50,
-        pinned: 'left',
-        lockPosition: true,
-        suppressMovable: true,
-      },
       {
         headerName: 'Variant',
         field: 'title',
@@ -405,15 +376,11 @@ export const VariantsSection = ({ formState, updateFormState }: ISectionProps) =
                   rowData={formState.variants}
                   columnDefs={columnDefs}
                   rowSelection="multiple"
-                  rowDragManaged={true}
-                  rowDragEntireRow={true}
-                  animateRows={true}
                   suppressRowClickSelection={true}
                   onSelectionChanged={handleVariantSelectionChange}
-                  onRowDragEnd={handleRowDragEnd}
                   onGridReady={onGridReady}
                   getRowId={(params) => params.data.id}
-                  domLayout="normal"
+                  domLayout="autoHeight"
                   rowHeight={40}
                   headerHeight={40}
                 />

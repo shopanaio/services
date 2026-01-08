@@ -1,20 +1,20 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef } from 'react';
-import { Input, Tooltip } from 'antd';
-import { InfoCircleOutlined } from '@ant-design/icons';
-import { createStyles } from 'antd-style';
-import { Paper } from '../../components/Paper';
-import { PaperHeader } from '../../components/PaperHeader';
-import { toKebabCase } from './utils/generateVariants';
-import type { ISectionProps } from './types';
+import { useState, useEffect, useRef } from "react";
+import { Input, Tooltip } from "antd";
+import { InfoCircleOutlined } from "@ant-design/icons";
+import { createStyles } from "antd-style";
+import { Paper } from "../../components/Paper";
+import { PaperHeader } from "../../components/PaperHeader";
+import { toKebabCase } from "./utils/generateVariants";
+import type { ISectionProps } from "./types";
 
 const useStyles = createStyles(({ token }) => ({
   fieldGroup: {
-    display: 'flex',
+    display: "flex",
     gap: 16,
     marginBottom: 16,
-    '&:last-child': {
+    "&:last-child": {
       marginBottom: 0,
     },
   },
@@ -22,8 +22,8 @@ const useStyles = createStyles(({ token }) => ({
     flex: 1,
   },
   label: {
-    display: 'flex',
-    alignItems: 'center',
+    display: "flex",
+    alignItems: "center",
     gap: 4,
     marginBottom: 4,
     fontSize: 13,
@@ -32,11 +32,14 @@ const useStyles = createStyles(({ token }) => ({
   },
   handlePrefix: {
     color: token.colorTextSecondary,
-    userSelect: 'none',
+    userSelect: "none",
   },
 }));
 
-export const GeneralSection = ({ formState, updateFormState }: ISectionProps) => {
+export const GeneralSection = ({
+  formState,
+  updateFormState,
+}: ISectionProps) => {
   const { styles } = useStyles();
   const [isHandleManual, setIsHandleManual] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
@@ -44,7 +47,7 @@ export const GeneralSection = ({ formState, updateFormState }: ISectionProps) =>
   // Auto-generate handle from title (unless manually edited)
   useEffect(() => {
     if (!isHandleManual && formState.title) {
-      updateFormState('handle', toKebabCase(formState.title));
+      updateFormState("handle", toKebabCase(formState.title));
     }
   }, [formState.title, isHandleManual, updateFormState]);
 
@@ -54,17 +57,19 @@ export const GeneralSection = ({ formState, updateFormState }: ISectionProps) =>
   }, []);
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    updateFormState('title', e.target.value);
+    updateFormState("title", e.target.value);
   };
 
   const handleHandleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = toKebabCase(e.target.value);
     setIsHandleManual(true);
-    updateFormState('handle', value);
+    updateFormState("handle", value);
   };
 
-  const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    updateFormState('description', e.target.value);
+  const handleDescriptionChange = (
+    e: React.ChangeEvent<HTMLTextAreaElement>
+  ) => {
+    updateFormState("description", e.target.value);
   };
 
   return (
@@ -83,7 +88,6 @@ export const GeneralSection = ({ formState, updateFormState }: ISectionProps) =>
             placeholder="e.g. Winter Jacket"
             value={formState.title}
             onChange={handleTitleChange}
-            size="large"
           />
         </div>
 
@@ -91,7 +95,9 @@ export const GeneralSection = ({ formState, updateFormState }: ISectionProps) =>
           <div className={styles.label}>
             Handle
             <Tooltip title="URL-friendly identifier. Auto-generated from title if left empty.">
-              <InfoCircleOutlined style={{ color: 'var(--ant-color-text-secondary)' }} />
+              <InfoCircleOutlined
+                style={{ color: "var(--ant-color-text-secondary)" }}
+              />
             </Tooltip>
           </div>
           <Input
@@ -99,7 +105,6 @@ export const GeneralSection = ({ formState, updateFormState }: ISectionProps) =>
             value={formState.handle}
             onChange={handleHandleChange}
             addonBefore={<span className={styles.handlePrefix}>/</span>}
-            size="large"
           />
         </div>
       </div>
@@ -111,7 +116,7 @@ export const GeneralSection = ({ formState, updateFormState }: ISectionProps) =>
           value={formState.description}
           onChange={handleDescriptionChange}
           rows={3}
-          style={{ resize: 'vertical' }}
+          style={{ resize: "vertical" }}
         />
       </div>
     </Paper>
