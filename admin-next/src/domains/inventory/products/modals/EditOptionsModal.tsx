@@ -38,6 +38,8 @@ import {
   DragEndEvent,
   DragStartEvent,
   closestCenter,
+  defaultDropAnimationSideEffects,
+  type DropAnimation,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -76,7 +78,13 @@ const useStyles = createStyles(({ token }) => ({
   },
   optionGroup: {},
   optionGroupDragging: {
-    opacity: 0.5,
+    opacity: 0.4,
+  },
+  dragOverlay: {
+    boxShadow: "0 8px 24px rgba(0, 0, 0, 0.15)",
+    borderRadius: 8,
+    transform: "scale(1.02)",
+    cursor: "grabbing",
   },
   optionGroupHeader: {
     display: "flex",
@@ -119,11 +127,9 @@ const useStyles = createStyles(({ token }) => ({
     flexDirection: "column",
     gap: 8,
   },
-  valueRow: {
-    transition: "all 0.2s",
-  },
+  valueRow: {},
   valueRowDragging: {
-    opacity: 0.5,
+    opacity: 0.4,
   },
   valueDragHandle: {
     cursor: "grab",
@@ -270,6 +276,17 @@ const DEFAULT_SWATCH: ISwatch = {
   color1: "#1677ff",
 };
 
+const dropAnimation: DropAnimation = {
+  duration: 200,
+  easing: "cubic-bezier(0.2, 0, 0, 1)",
+  sideEffects: defaultDropAnimationSideEffects({
+    styles: {
+      active: {
+        opacity: "0.5",
+      },
+    },
+  }),
+};
 
 // ============================================================================
 // Mock Data
@@ -735,7 +752,6 @@ const SortableOptionGroup = ({
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
-    setActiveValueId(null);
     const { active, over } = event;
     if (over && active.id !== over.id) {
       const oldIndex = group.values.findIndex((v) => v.id === active.id);
@@ -748,6 +764,7 @@ const SortableOptionGroup = ({
       );
       onReorderValues(newValues);
     }
+    setActiveValueId(null);
   };
 
   const menuItems = [
@@ -837,21 +854,19 @@ const SortableOptionGroup = ({
             </div>
           </SortableContext>
 
-          <DragOverlay dropAnimation={null}>
+          <DragOverlay dropAnimation={dropAnimation}>
             {activeValue && (
-              <Input
-                value={activeValue.label}
-                readOnly
-                style={{
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                  cursor: "grabbing",
-                }}
-                prefix={
-                  <span className={styles.valueDragHandle}>
-                    <HolderOutlined />
-                  </span>
-                }
-              />
+              <div className={styles.dragOverlay}>
+                <Input
+                  value={activeValue.label}
+                  readOnly
+                  prefix={
+                    <span className={styles.valueDragHandle} style={{ cursor: "grabbing" }}>
+                      <HolderOutlined />
+                    </span>
+                  }
+                />
+              </div>
             )}
           </DragOverlay>
         </DndContext>
@@ -903,13 +918,13 @@ export const EditOptionsModal = () => {
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
-    setActiveGroupId(null);
     const { active, over } = event;
     if (over && active.id !== over.id) {
       const oldIndex = fields.findIndex((f) => f.id === active.id);
       const newIndex = fields.findIndex((f) => f.id === over.id);
       move(oldIndex, newIndex);
     }
+    setActiveGroupId(null);
   };
 
   const handleUpdateGroupName = useCallback(
@@ -1071,22 +1086,17 @@ export const EditOptionsModal = () => {
               </Flex>
             </SortableContext>
 
-            <DragOverlay dropAnimation={null}>
+            <DragOverlay dropAnimation={dropAnimation}>
               {activeGroup && (
-                <div
-                  className={styles.optionGroupHeader}
-                  style={{
-                    width: 150,
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                    cursor: "grabbing",
-                  }}
-                >
-                  <span className={styles.optionGroupDragHandle}>
-                    <HolderOutlined />
-                  </span>
-                  <Typography.Text className={styles.optionGroupName}>
-                    {activeGroup.name}
-                  </Typography.Text>
+                <div className={styles.dragOverlay}>
+                  <div className={styles.optionGroupHeader} style={{ margin: 0 }}>
+                    <span className={styles.optionGroupDragHandle} style={{ cursor: "grabbing", padding: "0 8px" }}>
+                      <HolderOutlined />
+                    </span>
+                    <Typography.Text className={styles.optionGroupName}>
+                      {activeGroup.name}
+                    </Typography.Text>
+                  </div>
                 </div>
               )}
             </DragOverlay>
