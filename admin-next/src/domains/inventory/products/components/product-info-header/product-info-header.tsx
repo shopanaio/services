@@ -9,6 +9,7 @@ import {
   Popover,
   Flex,
   Divider,
+  Input,
 } from "antd";
 import {
   CopyOutlined,
@@ -18,11 +19,19 @@ import {
   StopOutlined,
   LinkOutlined,
   EyeOutlined,
-  ShareAltOutlined,
   CheckCircleFilled,
-  EditOutlined,
+  ShareAltOutlined,
 } from "@ant-design/icons";
-import { useState } from "react";
+import { useState, ReactNode } from "react";
+import {
+  FaTelegramPlane,
+  FaWhatsapp,
+  FaFacebookF,
+  FaLinkedinIn,
+  FaViber,
+} from "react-icons/fa";
+import { FaXTwitter } from "react-icons/fa6";
+import { HiOutlineMail } from "react-icons/hi";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { Tile } from "../tile";
 import { PeriodSwitch, KPI_PERIODS, KPIPeriod } from "../period-switch";
@@ -46,9 +55,6 @@ interface IKPIData {
 
 interface IProductInfoHeaderProps {
   product: IProduct;
-  onViewStorefront?: () => void;
-  onPreview?: () => void;
-  onShare?: () => void;
   kpiData?: IKPIData;
 }
 
@@ -127,6 +133,14 @@ const useStyles = createStyles(({ token }) => ({
   },
   kpiTileValue: {
     fontSize: 20,
+  },
+  // Share popover
+  sharePopover: {
+    width: 340,
+  },
+  shareInput: {
+    fontFamily: "ui-monospace, SFMono-Regular, monospace",
+    fontSize: 12,
   },
 }));
 
@@ -264,21 +278,138 @@ const UserPopoverContent = ({
   );
 };
 
+interface ISharePopoverProps {
+  url: string;
+  copied: boolean;
+  onCopy: () => void;
+}
+
+const socialLinks: {
+  key: string;
+  icon: ReactNode;
+  color: string;
+  getUrl: (url: string) => string;
+}[] = [
+  {
+    key: "Telegram",
+    icon: <FaTelegramPlane />,
+    color: "#26A5E4",
+    getUrl: (url) => `https://t.me/share/url?url=${encodeURIComponent(url)}`,
+  },
+  {
+    key: "WhatsApp",
+    icon: <FaWhatsapp />,
+    color: "#25D366",
+    getUrl: (url) => `https://wa.me/?text=${encodeURIComponent(url)}`,
+  },
+  {
+    key: "X",
+    icon: <FaXTwitter />,
+    color: "#000000",
+    getUrl: (url) =>
+      `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}`,
+  },
+  {
+    key: "Facebook",
+    icon: <FaFacebookF />,
+    color: "#1877F2",
+    getUrl: (url) =>
+      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+  },
+  {
+    key: "LinkedIn",
+    icon: <FaLinkedinIn />,
+    color: "#0A66C2",
+    getUrl: (url) =>
+      `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
+        url
+      )}`,
+  },
+  {
+    key: "Viber",
+    icon: <FaViber />,
+    color: "#7360F2",
+    getUrl: (url) => `viber://forward?text=${encodeURIComponent(url)}`,
+  },
+  {
+    key: "Email",
+    icon: <HiOutlineMail />,
+    color: "#EA4335",
+    getUrl: (url) => `mailto:?body=${encodeURIComponent(url)}`,
+  },
+];
+
+const SharePopoverContent = ({ url, copied, onCopy }: ISharePopoverProps) => {
+  const { styles } = useStyles();
+
+  return (
+    <Flex vertical gap={12} className={styles.sharePopover}>
+      <Flex wrap="wrap" justify="space-between" gap={8}>
+        {socialLinks.map((social) => (
+          <Tooltip key={social.key} title={social.key}>
+            <Button
+              type="text"
+              shape="circle"
+              size="large"
+              href={social.getUrl(url)}
+              target="_blank"
+              icon={social.icon}
+              style={{ color: social.color, fontSize: 20 }}
+            />
+          </Tooltip>
+        ))}
+      </Flex>
+      <Input.Search
+        value={url}
+        readOnly
+        size="small"
+        className={styles.shareInput}
+        enterButton={
+          <Button
+            size="small"
+            icon={copied ? <CheckOutlined /> : <CopyOutlined />}
+          >
+            {copied ? "Copied" : "Copy"}
+          </Button>
+        }
+        onSearch={onCopy}
+      />
+    </Flex>
+  );
+};
+
 // ============================================================================
 // Main Component
 // ============================================================================
 
 export const ProductInfoHeader = ({
   product,
-  onViewStorefront,
-  onPreview,
-  onShare,
   kpiData,
 }: IProductInfoHeaderProps) => {
   const { styles } = useStyles();
   const [kpiPeriod, setKpiPeriod] = useState<KPIPeriod>("7d");
   const [compareEnabled, setCompareEnabled] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
   const { push: openEditTitleModal } = useProductEditTitleModal();
+
+  const storefrontUrl = `${window.location.origin}/products/${product.slug}`;
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 1500);
+  };
+
+  const handleOpenStorefront = () => {
+    window.open(storefrontUrl, "_blank");
+  };
+
+  const handleCopyStorefrontLink = () => {
+    navigator.clipboard.writeText(storefrontUrl);
+    setShareCopied(true);
+    setTimeout(() => setShareCopied(false), 1500);
+  };
 
   const statusConfig = getStatusConfig(product.status);
 
@@ -352,34 +483,42 @@ export const ProductInfoHeader = ({
   );
 
   const topBarActions = (
-    <Flex align="center" gap={4}>
-      <Tooltip title="Open on storefront">
+    <Flex align="center" gap={12}>
+      <Flex align="center" gap={8}>
         <Button
           variant="text"
-          color="primary"
-          icon={<LinkOutlined />}
-          onClick={onViewStorefront}
+          color="default"
+          icon={linkCopied ? <CheckOutlined /> : <LinkOutlined />}
+          onClick={handleCopyLink}
           className={styles.actionButton}
         />
-      </Tooltip>
-      <Tooltip title="Preview">
         <Button
           variant="text"
-          color="primary"
+          color="default"
           icon={<EyeOutlined />}
-          onClick={onPreview}
+          onClick={handleOpenStorefront}
           className={styles.actionButton}
         />
-      </Tooltip>
-      <Tooltip title="Share">
-        <Button
-          variant="text"
-          color="primary"
-          icon={<ShareAltOutlined />}
-          onClick={onShare}
-          className={styles.actionButton}
-        />
-      </Tooltip>
+        <Popover
+          content={
+            <SharePopoverContent
+              url={storefrontUrl}
+              copied={shareCopied}
+              onCopy={handleCopyStorefrontLink}
+            />
+          }
+          trigger="click"
+          placement="bottomRight"
+          arrow={false}
+        >
+          <Button
+            variant="text"
+            color="default"
+            icon={<ShareAltOutlined />}
+            className={styles.actionButton}
+          />
+        </Popover>
+      </Flex>
       <Dropdown
         menu={{
           items: [
