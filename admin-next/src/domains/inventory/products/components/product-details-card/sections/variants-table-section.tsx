@@ -89,7 +89,10 @@ const VariantRow = ({ variant, formatPrice, onAction }: IVariantRowProps) => {
               {variant.title || variant.sku || "\u2014"}
             </Typography.Text>
             {variant.options && variant.options.length > 0 && (
-              <Typography.Text type="secondary" className={styles.variantOptions}>
+              <Typography.Text
+                type="secondary"
+                className={styles.variantOptions}
+              >
                 {variant.options.map((o) => o.title).join(" / ")}
               </Typography.Text>
             )}
@@ -252,19 +255,24 @@ export const VariantsTableSection = ({
     <Paper>
       <PaperHeader
         title="Variants"
-        actions={<EditAction label="Edit variants" onEdit={onEdit} />}
-        extra={
-          <Dropdown
-            menu={{
-              items: sortMenuItems,
-              onClick: ({ key }) => handleSort(key),
-            }}
-            trigger={["click"]}
-          >
-            <Button size="small" icon={<SortAscendingOutlined />}>
-              Sort
-            </Button>
-          </Dropdown>
+        actions={
+          <Flex gap={8}>
+            <Dropdown
+              menu={{
+                items: sortMenuItems,
+                onClick: ({ key }) => handleSort(key),
+              }}
+              trigger={["click"]}
+            >
+              <Button
+                variant="text"
+                color="default"
+                size="small"
+                icon={<SortAscendingOutlined />}
+              />
+            </Dropdown>
+            <EditAction label="Edit variants" onEdit={onEdit} />
+          </Flex>
         }
       />
       <div style={{ overflowX: "auto", margin: "0 -12px", padding: "0 12px" }}>
