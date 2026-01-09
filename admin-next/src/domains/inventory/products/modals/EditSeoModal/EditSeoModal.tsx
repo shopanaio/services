@@ -1,9 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
-import { Input, Typography, Tabs, Flex } from "antd";
-import { GoogleOutlined, FacebookOutlined } from "@ant-design/icons";
+import { Input, Typography, Flex } from "antd";
 import {
   useModalStackContext,
   ModalLayout,
@@ -11,6 +9,7 @@ import {
 } from "@/layouts/modals";
 import { Paper } from "../../components/Paper";
 import { PaperHeader } from "../../components/PaperHeader";
+import { SeoPreview } from "../../components/seo";
 import type { IEditSeoModalPayload } from "../../modals";
 import { useStyles } from "./EditSeoModal.styles";
 import {
@@ -19,19 +18,13 @@ import {
   OG_TITLE_MAX,
   OG_DESCRIPTION_MAX,
 } from "./EditSeoModal.constants";
-import {
-  GooglePreview,
-  FacebookPreview,
-  ImageUpload,
-  FormField,
-} from "./components";
+import { ImageUpload, FormField } from "./components";
 import type { ISeoFormValues } from "./types";
 
 export const EditSeoModal = () => {
   const { styles } = useStyles();
   const { payload, pop } = useModalStackContext();
   const typedPayload = payload as IEditSeoModalPayload;
-  const [activeTab, setActiveTab] = useState("google");
 
   const { control, handleSubmit, watch } = useForm<ISeoFormValues>({
     defaultValues: {
@@ -103,7 +96,7 @@ export const EditSeoModal = () => {
           <PaperHeader
             title="Open Graph"
             extra={
-              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              <Typography.Text type="secondary" className={styles.ogExtra}>
                 Facebook, LinkedIn, etc.
               </Typography.Text>
             }
@@ -150,46 +143,17 @@ export const EditSeoModal = () => {
 
         <Paper>
           <PaperHeader title="Preview" />
-          <Tabs
-            activeKey={activeTab}
-            onChange={setActiveTab}
-            items={[
-              {
-                key: "google",
-                label: (
-                  <Flex align="center" gap={6}>
-                    <GoogleOutlined />
-                    Google
-                  </Flex>
-                ),
-                children: (
-                  <GooglePreview
-                    values={values}
-                    productTitle={typedPayload.productTitle || ""}
-                    baseUrl={baseUrl}
-                    slug={typedPayload.productSlug}
-                  />
-                ),
-              },
-              {
-                key: "facebook",
-                label: (
-                  <Flex align="center" gap={6}>
-                    <FacebookOutlined />
-                    Facebook
-                  </Flex>
-                ),
-                children: (
-                  <FacebookPreview
-                    values={values}
-                    productTitle={typedPayload.productTitle || ""}
-                    baseUrl={baseUrl}
-                  />
-                ),
-              },
-            ]}
-            className={styles.previewTabs}
-            size="small"
+          <SeoPreview
+            data={{
+              seoTitle: values.seoTitle,
+              seoDescription: values.seoDescription,
+              ogTitle: values.ogTitle,
+              ogDescription: values.ogDescription,
+              ogImage: values.ogImage,
+              productTitle: typedPayload.productTitle,
+              productSlug: typedPayload.productSlug,
+              baseUrl,
+            }}
           />
         </Paper>
       </Flex>
