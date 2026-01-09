@@ -778,11 +778,11 @@ export const ComponentsTable = ({
     [items, onItemsChange]
   );
 
-  // Handle row drag enter - collapse all expanded products when dragging
+  // Handle row drag enter - collapse all expanded products when dragging products (not variants)
   const handleRowDragEnter = useCallback(
     (event: RowDragEnterEvent<ITableRow>) => {
       const movingData = event.node?.data;
-      if (!movingData || movingData.isVariant) return;
+      if (!movingData) return;
 
       // Prevent multiple triggers for same drag
       if (draggingRowIdRef.current === movingData.id) return;
@@ -790,8 +790,11 @@ export const ComponentsTable = ({
       draggingRowIdRef.current = movingData.id;
       expandedBeforeDragRef.current = new Set(expandedIdsRef.current);
 
-      // Collapse all products for easier reordering
-      setExpandedIds(new Set());
+      // Only collapse when dragging products, not variants
+      // Variants need to stay visible to drag within their parent
+      if (!movingData.isVariant) {
+        setExpandedIds(new Set());
+      }
     },
     []
   );
@@ -802,11 +805,10 @@ export const ComponentsTable = ({
       draggingRowIdRef.current = null;
       expandedBeforeDragRef.current = null;
 
-      const { node, overIndex } = event;
+      const { node, overIndex, overNode } = event;
       const movingData = node?.data;
 
-      if (!movingData || movingData.isVariant) {
-        // Restore expanded state if invalid drag
+      if (!movingData) {
         if (savedExpandedIds) setExpandedIds(savedExpandedIds);
         return;
       }
@@ -816,6 +818,55 @@ export const ComponentsTable = ({
         return;
       }
 
+      // Handle variant drag - only within same parent
+      if (movingData.isVariant) {
+        const parentItemId = movingData.parentItemId;
+        if (!parentItemId) return;
+
+        const overData = overNode?.data;
+
+        // Check if dropping onto or near a row that belongs to the same parent
+        // Valid targets: the parent product itself, or another variant of the same parent
+        const isValidTarget =
+          overData &&
+          (overData.id === parentItemId || // dropping on parent
+            (overData.isVariant && overData.parentItemId === parentItemId)); // dropping on sibling variant
+
+        if (!isValidTarget) {
+          // Invalid drop location - do nothing
+          return;
+        }
+
+        // Get new variant order from visible rows
+        const variantIdsInOrder: string[] = [];
+        event.api.forEachNodeAfterFilterAndSort((rowNode) => {
+          if (
+            rowNode.data?.isVariant &&
+            rowNode.data.parentItemId === parentItemId
+          ) {
+            variantIdsInOrder.push(rowNode.data.id);
+          }
+        });
+
+        // Update the parent item's includedVariants order
+        const newItems = items.map((item) => {
+          if (item.id !== parentItemId || !item.includedVariants) return item;
+
+          const variantMap = new Map(
+            item.includedVariants.map((v) => [v.id, v])
+          );
+          const reorderedVariants = variantIdsInOrder
+            .map((id) => variantMap.get(id))
+            .filter((v): v is NonNullable<typeof v> => v !== undefined);
+
+          return { ...item, includedVariants: reorderedVariants };
+        });
+
+        onItemsChange(newItems);
+        return;
+      }
+
+      // Handle product drag (existing logic)
       // Get the new order from the grid (only top-level products)
       const newOrderedIds: string[] = [];
       event.api.forEachNodeAfterFilterAndSort((rowNode) => {
@@ -886,8 +937,7 @@ export const ComponentsTable = ({
               headerName: "",
               field: "sortIndex" as const,
               width: 50,
-              rowDrag: (params: { data?: ITableRow }) =>
-                !params.data?.isVariant,
+              rowDrag: true,
               suppressMovable: true,
               resizable: false,
               valueFormatter: () => "",
