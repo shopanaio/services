@@ -256,7 +256,7 @@ export const VariantsTableSection = ({
       <PaperHeader
         title="Variants"
         actions={
-          <Flex gap={8}>
+          <Flex gap={12}>
             <Dropdown
               menu={{
                 items: sortMenuItems,
