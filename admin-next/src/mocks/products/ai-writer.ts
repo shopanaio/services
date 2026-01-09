@@ -1,6 +1,6 @@
 import type { OutputData } from "@editorjs/editorjs";
-import type { AITone } from "../../modals";
-import type { IGeneratedContent, IGenerateParams } from "./types";
+import type { AITone } from "@/domains/inventory/products/modals";
+import type { IGeneratedContent, IGenerateParams } from "@/domains/inventory/products/modals/ai-writer-modal/types";
 
 export const mockGenerateContent = async (
   params: IGenerateParams

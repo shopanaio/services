@@ -1,7 +1,7 @@
 "use client";
 
 import type { CustomCellRendererProps } from "ag-grid-react";
-import type { IInventoryListItem } from "../mocks/inventory-list";
+import type { IInventoryListItem } from "@/mocks/inventory/inventory-list";
 import {
   useInventoryEditStore,
   type EditableField,

@@ -23,18 +23,16 @@ import {
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 
+import { PRICE_RULE_OPTIONS } from "../types";
 import {
   ComponentItemType,
   ComponentPriceType,
-  PRICE_RULE_OPTIONS,
   type IComponentItem,
   type IPricingRuleTemplate,
-} from "../types";
-import {
   getProductById,
   getVariantById,
   calculateFinalPrice,
-} from "../mocks/mock-data";
+} from "@/mocks/products/components";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 

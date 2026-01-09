@@ -9,7 +9,7 @@ export type {
 export {
   generateMockHistory,
   getMockVariantPrices,
-} from "./mocks";
+} from "@/mocks/products/pricing";
 
 export {
   PriceChangeIndicator,

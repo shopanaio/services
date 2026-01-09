@@ -20,7 +20,7 @@ import { useGridState } from "@/hooks";
 import { filterSchema } from "./filter-schema";
 import { useInventory, useInventoryEditStore } from "../hooks";
 import { validateFieldChange } from "@/shared/utils/inventory";
-import type { IInventoryListItem } from "../mocks/inventory-list";
+import type { IInventoryListItem } from "@/mocks/inventory/inventory-list";
 import {
   CalculatedAvailableCell,
   InventoryActionBar,

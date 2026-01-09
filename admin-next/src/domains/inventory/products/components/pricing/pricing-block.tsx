@@ -12,7 +12,7 @@ import {
   getMarginStatus,
   filterHistoryByPeriod,
 } from "./utils";
-import { generateMockHistory, getMockVariantPrices } from "./mocks";
+import { generateMockHistory, getMockVariantPrices } from "@/mocks/products/pricing";
 import type {
   IPriceHistoryRecord,
   IPricingData,
@@ -665,7 +665,7 @@ export const PricingBlock = ({
 };
 
 // Re-exports for backward compatibility
-export { generateMockHistory, getMockVariantPrices } from "./mocks";
+export { generateMockHistory, getMockVariantPrices } from "@/mocks/products/pricing";
 export type {
   IPricingData,
   IVariantOption,

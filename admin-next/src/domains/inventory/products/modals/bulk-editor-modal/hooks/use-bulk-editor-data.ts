@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useBulkEditorStore } from "./use-bulk-editor-store";
-import { getProductsByIds } from "../mocks/bulk-editor-data";
+import { getProductsByIds } from "@/mocks/products/bulk-editor";
 import { transformProductsToRows, applyEditsToRows } from "../utils/transformers";
 import { IBulkEditorRow } from "../types";
 

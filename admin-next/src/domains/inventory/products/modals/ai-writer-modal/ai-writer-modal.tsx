@@ -31,7 +31,7 @@ import type {
 } from "../../modals";
 import { useStyles } from "./ai-writer-modal.styles";
 import type { IAIWriterForm, IGeneratedContent } from "./types";
-import { mockGenerateContent } from "./mocks";
+import { mockGenerateContent } from "@/mocks/products/ai-writer";
 
 export const AIWriterModal = () => {
   const { styles } = useStyles();

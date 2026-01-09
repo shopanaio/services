@@ -16,14 +16,16 @@ import {
   ShoppingOutlined,
 } from "@ant-design/icons";
 
+import type { DisplayStyle } from "../types";
 import {
   type IComponentGroup,
   type IComponentItem,
-  type DisplayStyle,
   ComponentItemType,
   ComponentPriceType,
-} from "../types";
-import { getProductById, getVariantById, formatPrice } from "../mocks/mock-data";
+  getProductById,
+  getVariantById,
+  formatPrice,
+} from "@/mocks/products/components";
 
 // ============================================================================
 // Types

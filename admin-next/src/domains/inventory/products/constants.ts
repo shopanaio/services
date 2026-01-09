@@ -1,4 +1,4 @@
-import { WeightUnit, DimensionUnit } from './mocks/types';
+import { WeightUnit, DimensionUnit } from "@/mocks/products/types";
 
 export const weightUnitOptions = {
   [WeightUnit.G]: {

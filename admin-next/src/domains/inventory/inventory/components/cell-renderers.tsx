@@ -1,7 +1,7 @@
 import { Image, Typography, Flex } from "antd";
 import { createStyles } from "antd-style";
 import type { CustomCellRendererProps } from "ag-grid-react";
-import type { IInventoryListItem } from "../mocks/inventory-list";
+import type { IInventoryListItem } from "@/mocks/inventory/inventory-list";
 import { EditableNumberCell } from "./editable-number-cell";
 import { ReservedCell } from "@/shared/components/inventory-cells";
 

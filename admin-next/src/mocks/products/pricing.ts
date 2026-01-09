@@ -1,7 +1,7 @@
 import type {
   IPriceHistoryRecord,
   IVariantPriceSummary,
-} from "../types";
+} from "@/domains/inventory/products/components/pricing/types";
 
 export const generateMockHistory = (
   currentPrice: number,

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import {
   mockInventoryList,
   type IInventoryListItem,
-} from "../mocks/inventory-list";
+} from "@/mocks/inventory/inventory-list";
 
 interface UseInventoryOptions {
   /** Simulated delay in milliseconds */

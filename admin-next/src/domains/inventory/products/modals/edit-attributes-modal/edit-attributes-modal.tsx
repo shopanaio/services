@@ -23,7 +23,7 @@ import { Paper, PaperHeader } from "@/ui-kit/paper";
 
 import { useStyles } from "./edit-attributes-modal.styles";
 import type { IAttributeRow } from "./types";
-import { createMockData } from "./mocks";
+import { createMockData } from "@/mocks/products/attributes";
 import { NameCellRenderer, ActionsCellRenderer } from "./components";
 
 ModuleRegistry.registerModules([AllCommunityModule, RowDragModule]);

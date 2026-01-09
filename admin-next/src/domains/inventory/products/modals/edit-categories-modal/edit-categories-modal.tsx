@@ -26,7 +26,7 @@ import { Paper } from "@/ui-kit/paper";
 import type { ICategory } from "../../mocks/types";
 import { useStyles } from "./edit-categories-modal.styles";
 import type { IEditCategoriesModalProps, ICategoryTreeNode } from "./types";
-import { mockCategories, mockHierarchy } from "./mocks";
+import { mockCategories, mockHierarchy } from "@/mocks/products/categories";
 import { buildCategoryTree, getAllKeys } from "./utils";
 
 export type { IEditCategoriesModalProps };

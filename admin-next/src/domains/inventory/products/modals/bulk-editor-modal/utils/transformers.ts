@@ -1,5 +1,5 @@
 import { IBulkEditorRow, BulkEditorRowType, IRowEdits } from "../types";
-import { IMockProduct, IMockVariant } from "../mocks/bulk-editor-data";
+import { IMockProduct, IMockVariant } from "@/mocks/products/bulk-editor";
 
 /**
  * Calculate available inventory: onHand - unavailable - reserved

@@ -17,23 +17,26 @@ import {
 } from "@/layouts/modals";
 
 import type {
-  IComponentGroup,
-  IComponentItem,
   IEditComponentsModalPayload,
   EditComponentsTabKey,
-  IPricingRuleTemplate,
-  ITieredDiscount,
   DisplayStyle,
   OutOfStockBehavior,
+} from "./types";
+import type {
+  IComponentGroup,
+  IComponentItem,
+  IPricingRuleTemplate,
+  ITieredDiscount,
   IIncludedVariant,
   ComponentPriceType,
-} from "./types";
+} from "@/mocks/products/components";
 import {
   mockGroups,
   mockPricingTemplates,
   mockTieredDiscounts,
   mockModalSettings,
-} from "./mocks/mock-data";
+  getProductById,
+} from "@/mocks/products/components";
 import {
   GroupCard,
   PricingRulesTab,
@@ -41,7 +44,6 @@ import {
   SettingsTab,
 } from "./components";
 import { useComponentVariantSettingsModal } from "../../modals";
-import { getProductById } from "./mocks/mock-data";
 import { Paper } from "@/ui-kit/paper";
 
 // ============================================================================

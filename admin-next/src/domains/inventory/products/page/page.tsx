@@ -21,7 +21,7 @@ import { CursorPagination } from "@/ui-kit/cursor-pagination";
 import { useGridState, useGridSort } from "@/hooks";
 import { filterSchema } from "./filter-schema";
 import { useProducts } from "../hooks";
-import type { IProductListItem } from "../mocks/products-list";
+import type { IProductListItem } from "@/mocks/products/products-list";
 import { useBulkEditorStore } from "../modals/bulk-editor-modal";
 import { useProductCreateModal } from "../modals";
 

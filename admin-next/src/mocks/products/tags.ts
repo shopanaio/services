@@ -1,6 +1,11 @@
-import type { ITag } from "../../modals";
+export interface ITagMock {
+  id: string;
+  title: string;
+  slug: string;
+  color?: string;
+}
 
-export const mockTags: ITag[] = [
+export const mockTags: ITagMock[] = [
   { id: "tag-1", title: "New Arrival", slug: "new-arrival", color: "#52c41a" },
   { id: "tag-2", title: "Best Seller", slug: "best-seller", color: "#faad14" },
   { id: "tag-3", title: "Sale", slug: "sale", color: "#ff4d4f" },

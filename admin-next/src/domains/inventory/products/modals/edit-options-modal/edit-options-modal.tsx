@@ -29,7 +29,7 @@ import { useStyles } from "./edit-options-modal.styles";
 import type { IOptionGroup } from "./edit-options-modal.schema";
 import { useEditOptionsForm } from "./hooks/use-edit-options-form";
 import { SortableOptionGroup } from "./components/sortable-option-group";
-import { MOCK_OPTION_GROUPS } from "./mocks";
+import { MOCK_OPTION_GROUPS } from "@/mocks/products/options";
 
 interface EditOptionsModalProps {
   initialGroups?: IOptionGroup[];

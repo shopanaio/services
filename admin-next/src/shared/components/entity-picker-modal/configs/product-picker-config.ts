@@ -6,7 +6,7 @@ import { filterSchema } from "@/domains/inventory/products/page/filter-schema";
 import {
   mockProductsList,
   type IProductListItem,
-} from "@/domains/inventory/products/mocks/products-list";
+} from "@/mocks/products/products-list";
 import { EntityCellRenderer, StatusCellRenderer } from "../cell-renderers";
 import { registerEntityPickerConfig } from ".";
 import type {

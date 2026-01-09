@@ -1,12 +1,12 @@
-import { mockCategories } from "../../modals/edit-categories-modal/mocks";
-import { mockTags } from "../../modals/edit-tags-modal/mocks";
-import { MOCK_OPTION_GROUPS } from "../../modals/edit-options-modal/mocks";
+import { mockCategories } from "@/mocks/products/categories";
+import { mockTags } from "@/mocks/products/tags";
+import { MOCK_OPTION_GROUPS } from "@/mocks/products/options";
 import {
   mockGroups,
   getProductById,
   getVariantById,
-} from "../../modals/edit-components-modal/mocks/mock-data";
-import { createMockData as createAttributesMockData } from "../../modals/edit-attributes-modal/mocks";
+} from "@/mocks/products/components";
+import { createMockData as createAttributesMockData } from "@/mocks/products/attributes";
 import type { IProductDetailsMockData, IInventoryStats } from "./types";
 
 const getMockInventoryStats = (): IInventoryStats => ({

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { mockProductsList, type IProductListItem } from "../mocks/products-list";
+import { mockProductsList, type IProductListItem } from "@/mocks/products/products-list";
 
 interface UseProductsOptions {
   /** Simulated delay in milliseconds */

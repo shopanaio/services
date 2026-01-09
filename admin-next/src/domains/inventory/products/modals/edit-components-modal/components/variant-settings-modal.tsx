@@ -20,7 +20,7 @@ import {
 } from "@/layouts/modals";
 
 import type { IComponentVariantSettingsModalPayload } from "../../../modals";
-import { formatPrice } from "../mocks/mock-data";
+import { formatPrice } from "@/mocks/products/components";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 

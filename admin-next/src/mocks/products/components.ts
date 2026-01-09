@@ -1,12 +1,193 @@
-import {
-  ComponentItemType,
-  ComponentPriceType,
-  type IComponentGroup,
-  type IPickerProduct,
-  type IPricingRuleTemplate,
-  type ITieredDiscount,
-  type IEditComponentsModalPayload,
-} from "../types";
+import type { IMediaFile } from "./types";
+
+// ============================================================================
+// Enums
+// ============================================================================
+
+/**
+ * Component item type - determines how the item is displayed
+ */
+export enum ComponentItemType {
+  /** Simple product without variants */
+  SIMPLE_PRODUCT = "SIMPLE_PRODUCT",
+  /** Specific variant of a product */
+  SINGLE_VARIANT = "SINGLE_VARIANT",
+  /** Product with variant selection on storefront */
+  PRODUCT_WITH_VARIANTS = "PRODUCT_WITH_VARIANTS",
+}
+
+/**
+ * Price rule types for component items
+ */
+export enum ComponentPriceType {
+  /** No changes, use base product price */
+  BASE = "BASE",
+  /** Override with fixed price */
+  FIXED = "FIXED",
+  /** Add percentage markup to base */
+  MARKUP_PERCENT = "MARKUP_PERCENT",
+  /** Subtract percentage from base */
+  DISCOUNT_PERCENT = "DISCOUNT_PERCENT",
+  /** Add fixed amount to base */
+  MARKUP_FIXED = "MARKUP_FIXED",
+  /** Subtract fixed amount from base */
+  DISCOUNT_FIXED = "DISCOUNT_FIXED",
+  /** 100% discount, free in bundle */
+  FREE = "FREE",
+  /** Price included in bundle base */
+  INCLUDED = "INCLUDED",
+}
+
+// ============================================================================
+// Product & Variant Types (for ProductPicker)
+// ============================================================================
+
+export interface IPickerProductOption {
+  id: string;
+  name: string;
+  values: string[];
+}
+
+export interface IPickerVariantOption {
+  optionId: string;
+  optionName: string;
+  value: string;
+}
+
+export interface IPickerVariant {
+  id: string;
+  title: string;
+  sku: string;
+  price: number;
+  stock: number;
+  imageUrl?: string | null;
+  options?: IPickerVariantOption[];
+}
+
+export interface IPickerProduct {
+  id: string;
+  title: string;
+  sku: string;
+  price: number;
+  priceMax?: number;
+  imageUrl?: string | null;
+  hasVariants: boolean;
+  stock: number;
+  variants?: IPickerVariant[];
+  options?: IPickerProductOption[];
+}
+
+// ============================================================================
+// Included Variant (for variant-level pricing within a product)
+// ============================================================================
+
+export interface IIncludedVariant {
+  id: string;
+  variantId: string;
+  /** Sort index for independent ordering in table */
+  sortIndex: number;
+  /** Pricing configuration (can override parent) */
+  priceType: ComponentPriceType;
+  priceValue: number | null;
+  /** Template ID if using a pricing template */
+  templateId?: string;
+  /** Computed prices */
+  basePrice: number;
+  finalPrice: number;
+}
+
+// ============================================================================
+// Component Item
+// ============================================================================
+
+export interface IComponentItem {
+  id: string;
+  itemType: ComponentItemType;
+
+  /** Product ID (for all types) */
+  productId: string;
+  /** Resolved product data */
+  product?: IPickerProduct;
+
+  /** Variant ID (for SINGLE_VARIANT) */
+  variantId?: string;
+  /** Resolved variant data */
+  variant?: IPickerVariant;
+
+  /** Available variant IDs (for PRODUCT_WITH_VARIANTS) - null = all */
+  availableVariantIds?: string[] | null;
+  /** Option value restrictions */
+  availableOptionValues?: {
+    optionId: string;
+    allowedValues: string[];
+  }[];
+
+  /** Included variants with individual pricing (for PRODUCT_WITH_VARIANTS) */
+  includedVariants?: IIncludedVariant[];
+
+  sortIndex: number;
+
+  /** Pricing configuration */
+  priceType: ComponentPriceType;
+  priceValue: number | null;
+  /** Template ID if using a pricing template */
+  templateId?: string;
+
+  /** Computed prices */
+  basePrice: number;
+  basePriceMax?: number;
+  finalPrice: number;
+  finalPriceMax?: number;
+
+  /** Custom overrides */
+  customTitle?: string | null;
+  customImage?: IMediaFile | null;
+
+  /** Availability */
+  isAvailable: boolean;
+  stockStatus?: string;
+  totalStock?: number;
+}
+
+// ============================================================================
+// Component Group
+// ============================================================================
+
+export interface IComponentGroup {
+  id: string;
+  title: string;
+  slug: string;
+  sortIndex: number;
+
+  /** Selection rules */
+  isRequired: boolean;
+  isMultiple: boolean;
+  minSelection: number;
+  maxSelection: number | null;
+
+  /** Default selected items */
+  defaultItemIds: string[];
+
+  /** Items in this group */
+  items: IComponentItem[];
+}
+
+// ============================================================================
+// Pricing Configuration
+// ============================================================================
+
+export interface IPricingRuleTemplate {
+  id: string;
+  name: string;
+  priceType: ComponentPriceType;
+  priceValue: number | null;
+}
+
+export interface ITieredDiscount {
+  id: string;
+  minItems: number;
+  discountPercent: number;
+}
 
 // ============================================================================
 // Mock Products for ProductPicker
@@ -232,7 +413,7 @@ export const mockGroups: IComponentGroup[] = [
         totalStock: 234,
         availableVariantIds: ["var-1", "var-2", "var-3", "var-4"],
         autoHideOutOfStock: true,
-      },
+      } as IComponentItem & { autoHideOutOfStock: boolean },
       {
         id: "item-2",
         itemType: ComponentItemType.SINGLE_VARIANT,
@@ -421,28 +602,6 @@ export const mockModalSettings = {
   outOfStockBehavior: "disable" as const,
   inheritStock: true,
   validationMessage: "Please select required accessories before continuing",
-};
-
-// ============================================================================
-// Full Mock Payload
-// ============================================================================
-
-export const mockPayload: IEditComponentsModalPayload = {
-  productId: "main-product-123",
-  groups: mockGroups,
-  pricingTemplates: mockPricingTemplates,
-  tieredDiscounts: mockTieredDiscounts,
-  displayStyle: mockModalSettings.displayStyle,
-  showImages: mockModalSettings.showImages,
-  showSku: mockModalSettings.showSku,
-  showStock: mockModalSettings.showStock,
-  showComparePrice: mockModalSettings.showComparePrice,
-  outOfStockBehavior: mockModalSettings.outOfStockBehavior,
-  inheritStock: mockModalSettings.inheritStock,
-  validationMessage: mockModalSettings.validationMessage,
-  onSave: (data) => {
-    console.log("Saving component data:", data);
-  },
 };
 
 // ============================================================================

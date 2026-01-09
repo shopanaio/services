@@ -1,4 +1,4 @@
-import { EntityStatus, type ICategory } from "../../mocks/types";
+import { EntityStatus, type ICategory } from "./types";
 
 const createCategory = (id: string, title: string, slug: string): ICategory => ({
   id,

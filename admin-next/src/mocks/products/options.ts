@@ -1,4 +1,26 @@
-import type { IOptionGroup } from "./edit-options-modal.schema";
+export interface ISwatch {
+  type: "color" | "color_duo" | "image";
+  color1?: string;
+  color2?: string;
+  imageUrl?: string;
+}
+
+export interface IOptionValue {
+  id: string;
+  label: string;
+  slug: string;
+  sortIndex: number;
+  swatch?: ISwatch;
+}
+
+export interface IOptionGroup {
+  id: string;
+  name: string;
+  slug: string;
+  style: "radio" | "dropdown" | "swatch" | "cover" | "size";
+  values: IOptionValue[];
+  sortIndex: number;
+}
 
 export const MOCK_OPTION_GROUPS: IOptionGroup[] = [
   {
