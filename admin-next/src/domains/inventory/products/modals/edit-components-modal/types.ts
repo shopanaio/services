@@ -94,6 +94,8 @@ export interface IPickerProduct {
 export interface IIncludedVariant {
   id: string;
   variantId: string;
+  /** Sort index for independent ordering in table */
+  sortIndex: number;
   /** Pricing configuration (can override parent) */
   priceType: ComponentPriceType;
   priceValue: number | null;

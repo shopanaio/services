@@ -97,14 +97,6 @@ const useStyles = createStyles(({ token }) => ({
     background: token.colorBgLayout,
     flexShrink: 0,
   },
-  variantImage: {
-    width: 28,
-    height: 28,
-    borderRadius: 3,
-    objectFit: "cover",
-    background: token.colorBgLayout,
-    flexShrink: 0,
-  },
   productInfo: {
     display: "flex",
     flexDirection: "column",
@@ -201,7 +193,7 @@ const ProductCellRenderer = (params: IProductCellRendererParams) => {
       >
         <img
           src={imageUrl || "/placeholder.png"}
-          className={styles.variantImage}
+          className={styles.productImage}
           alt=""
         />
         <div className={styles.productInfo}>
@@ -483,8 +475,9 @@ export const ComponentsTable = ({
     }
   }, [items, selectedIds.size, updateSelection]);
 
-  // Build all rows (products + variants)
+  // Build all rows (products + variants) and sort by sortIndex
   // When a product has included variants, only show the variants (not the product row)
+  // All rows are sortable independently
   const allRows = useMemo<ITableRow[]>(() => {
     const rows: ITableRow[] = [];
 
@@ -499,7 +492,7 @@ export const ComponentsTable = ({
           rows.push({
             id: variant.id,
             isVariant: true,
-            level: 0, // Root level - no indentation
+            level: 0,
             productId: item.productId,
             variantId: variant.variantId,
             itemType: ComponentItemType.SINGLE_VARIANT,
@@ -511,7 +504,7 @@ export const ComponentsTable = ({
             templateId: variant.templateId,
             basePrice: variant.basePrice,
             finalPrice: variant.finalPrice,
-            sortIndex: 0,
+            sortIndex: variant.sortIndex,
             parentItemId: item.id,
           });
         });
@@ -538,7 +531,8 @@ export const ComponentsTable = ({
       }
     });
 
-    return rows;
+    // Sort all rows by sortIndex for global ordering
+    return rows.sort((a, b) => a.sortIndex - b.sortIndex);
   }, [items]);
 
   // All rows are visible (no expand/collapse filtering needed)
@@ -732,7 +726,7 @@ export const ComponentsTable = ({
     (event: RowDragEndEvent<ITableRow>) => {
       draggingRowIdRef.current = null;
 
-      const { node, overIndex, overNode } = event;
+      const { node, overIndex } = event;
       const movingData = node?.data;
 
       if (!movingData) {
@@ -743,74 +737,48 @@ export const ComponentsTable = ({
         return;
       }
 
-      // Handle variant drag - only within same parent
-      if (movingData.isVariant) {
-        const parentItemId = movingData.parentItemId;
-        if (!parentItemId) return;
-
-        const overData = overNode?.data;
-
-        // Check if dropping onto or near a row that belongs to the same parent
-        // Valid targets: the parent product itself, or another variant of the same parent
-        const isValidTarget =
-          overData &&
-          (overData.id === parentItemId || // dropping on parent
-            (overData.isVariant && overData.parentItemId === parentItemId)); // dropping on sibling variant
-
-        if (!isValidTarget) {
-          // Invalid drop location - do nothing
-          return;
-        }
-
-        // Get new variant order from visible rows
-        const variantIdsInOrder: string[] = [];
-        event.api.forEachNodeAfterFilterAndSort((rowNode) => {
-          if (
-            rowNode.data?.isVariant &&
-            rowNode.data.parentItemId === parentItemId
-          ) {
-            variantIdsInOrder.push(rowNode.data.id);
-          }
-        });
-
-        // Update the parent item's includedVariants order
-        const newItems = items.map((item) => {
-          if (item.id !== parentItemId || !item.includedVariants) return item;
-
-          const variantMap = new Map(
-            item.includedVariants.map((v) => [v.id, v])
-          );
-          const reorderedVariants = variantIdsInOrder
-            .map((id) => variantMap.get(id))
-            .filter((v): v is NonNullable<typeof v> => v !== undefined);
-
-          return { ...item, includedVariants: reorderedVariants };
-        });
-
-        onItemsChange(newItems);
-        return;
-      }
-
-      // Handle product drag (existing logic)
-      // Get the new order from the grid (only top-level products)
-      const newOrderedIds: string[] = [];
+      // Get the new order of all rows from the grid
+      const newOrderedRows: { id: string; isVariant: boolean; parentItemId?: string }[] = [];
       event.api.forEachNodeAfterFilterAndSort((rowNode) => {
-        if (rowNode.data && !rowNode.data.isVariant) {
-          newOrderedIds.push(rowNode.data.id);
+        if (rowNode.data) {
+          newOrderedRows.push({
+            id: rowNode.data.id,
+            isVariant: rowNode.data.isVariant,
+            parentItemId: rowNode.data.parentItemId,
+          });
         }
       });
 
-      // Rebuild items array in new order
-      const itemMap = new Map(items.map((item) => [item.id, item]));
-      const reorderedItems = newOrderedIds
-        .map((id) => itemMap.get(id))
-        .filter((item): item is IComponentItem => item !== undefined)
-        .map((item, index) => ({
-          ...item,
-          sortIndex: index,
-        }));
+      // Build a map of new sortIndex for each row
+      const sortIndexMap = new Map<string, number>();
+      newOrderedRows.forEach((row, index) => {
+        sortIndexMap.set(row.id, index);
+      });
 
-      onItemsChange(reorderedItems);
+      // Update items with new sortIndex values
+      const newItems = items.map((item) => {
+        const hasIncludedVariants = !!(
+          item.includedVariants && item.includedVariants.length > 0
+        );
+
+        if (hasIncludedVariants && item.includedVariants) {
+          // Update sortIndex for each included variant
+          const updatedVariants = item.includedVariants.map((variant) => ({
+            ...variant,
+            sortIndex: sortIndexMap.get(variant.id) ?? variant.sortIndex,
+          }));
+          return { ...item, includedVariants: updatedVariants };
+        } else {
+          // Update sortIndex for regular items
+          const newSortIndex = sortIndexMap.get(item.id);
+          if (newSortIndex !== undefined) {
+            return { ...item, sortIndex: newSortIndex };
+          }
+          return item;
+        }
+      });
+
+      onItemsChange(newItems);
     },
     [items, onItemsChange]
   );

@@ -358,11 +358,25 @@ export const EditComponentsModal = () => {
         return; // All variants already included
       }
 
+      // Calculate the starting sortIndex for new variants
+      // Find max sortIndex among all items and existing variants in the group
+      const group = groups.find((g) => g.id === groupId);
+      let maxSortIndex = 0;
+      if (group) {
+        group.items.forEach((groupItem) => {
+          maxSortIndex = Math.max(maxSortIndex, groupItem.sortIndex);
+          groupItem.includedVariants?.forEach((v) => {
+            maxSortIndex = Math.max(maxSortIndex, v.sortIndex);
+          });
+        });
+      }
+
       // Create included variants with default pricing (inherits from parent)
       const newIncludedVariants: IIncludedVariant[] = variantsToAdd.map(
-        (variant) => ({
+        (variant, index) => ({
           id: `inc-${Date.now()}-${variant.id}`,
           variantId: variant.id,
+          sortIndex: maxSortIndex + 1 + index,
           priceType: item.priceType as ComponentPriceType,
           priceValue: item.priceValue,
           basePrice: variant.price,
