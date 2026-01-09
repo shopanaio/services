@@ -285,7 +285,7 @@ export const useComponentsStyles = createStyles(({ token }) => ({
     flex: 1,
     minWidth: 180,
     padding: 12,
-    background: token.colorBgLayout,
+    background: token.colorBgContainer,
     borderRadius: 8,
     border: `1px solid ${token.colorBorderSecondary}`,
   },
@@ -297,6 +297,9 @@ export const useComponentsStyles = createStyles(({ token }) => ({
   },
   avatarRow: {
     margin: "12px 0",
+    minHeight: 40,
+    display: "flex",
+    alignItems: "center",
   },
   avatarPlaceholder: {
     "&&": {

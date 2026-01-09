@@ -62,7 +62,7 @@ export const ComponentsSection = ({
                       <Avatar
                         key={idx}
                         icon={<PictureOutlined />}
-                        className={styles.avatarPlaceholder}
+                        style={{ background: "#ececec", color: "#999" }}
                       />
                     )
                   )}
