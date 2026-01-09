@@ -3,6 +3,7 @@ import { createStyles } from "antd-style";
 import { Descriptions, Flex, Typography } from "antd";
 import { Paper } from "./Paper";
 import { PaperHeader } from "./PaperHeader";
+import { EditAction } from "./EditAction";
 import type { IAttributeRow } from "../modals/EditAttributesModal/types";
 
 // ============================================================================
@@ -137,7 +138,10 @@ export const AttributesSection = ({ data, onEdit }: IAttributesSectionProps) => 
 
   return (
     <Paper>
-      <PaperHeader title="Attributes" onEdit={onEdit} />
+      <PaperHeader
+        title="Attributes"
+        actions={onEdit && <EditAction onEdit={onEdit} label="Edit attributes" />}
+      />
       <Flex vertical gap={16}>
         {/* Root-level attributes (no group) */}
         <AttributeList

@@ -25,6 +25,7 @@ import { ReactNode, useState, useMemo, useCallback } from "react";
 import { Paper } from "./Paper";
 import { PaperHeader } from "./PaperHeader";
 import { Tile } from "./Tile";
+import { EditAction } from "./EditAction";
 import { MediaFilePlaceholder } from "./MediaFilePlaceholder";
 import { PricingBlock } from "./pricing/PricingBlock";
 import { ProductInfoHeader } from "./product-info-header";
@@ -449,14 +450,14 @@ const useStyles = createStyles(({ token }) => ({
 interface ISectionProps {
   title: string;
   children: ReactNode;
-  onEdit?: () => void;
+  actions?: ReactNode;
   extra?: ReactNode;
 }
 
-const Section = ({ title, children, onEdit, extra }: ISectionProps) => {
+const Section = ({ title, children, actions, extra }: ISectionProps) => {
   return (
     <Paper>
-      <PaperHeader title={title} extra={extra} onEdit={onEdit} />
+      <PaperHeader title={title} extra={extra} actions={actions} />
       <div>{children}</div>
     </Paper>
   );
@@ -963,7 +964,7 @@ export const ProductInfoCardA = ({
       />
 
       {/* MEDIA SECTION */}
-      <Section title="Media" onEdit={handleEditMedia}>
+      <Section title="Media" actions={<EditAction onEdit={handleEditMedia} label="Edit media" />}>
         {(() => {
           const showMore = product.gallery.length > 13;
           const gallerySlice = product.gallery.slice(0, showMore ? 12 : 13);
@@ -1014,17 +1015,22 @@ export const ProductInfoCardA = ({
         <div style={{ flex: 1 }}>
           <Section
             title="Categories"
-            onEdit={() => {
-              openEditCategoriesModal({
-                productId: product.id,
-                primaryCategoryId: product.primaryCategory?.id ?? null,
-                categoryIds: product.categories?.map((c) => c.id) || [],
-                onSave: () => {
-                  console.log("Saved categories:");
-                  // TODO: Implement actual save logic
-                },
-              });
-            }}
+            actions={
+              <EditAction
+                label="Edit categories"
+                onEdit={() => {
+                  openEditCategoriesModal({
+                    productId: product.id,
+                    primaryCategoryId: product.primaryCategory?.id ?? null,
+                    categoryIds: product.categories?.map((c) => c.id) || [],
+                    onSave: () => {
+                      console.log("Saved categories:");
+                      // TODO: Implement actual save logic
+                    },
+                  });
+                }}
+              />
+            }
           >
             {product.primaryCategory || product.categories?.length > 0 ? (
               <Flex gap={4} wrap="wrap">
@@ -1051,16 +1057,21 @@ export const ProductInfoCardA = ({
         <div style={{ flex: 1 }}>
           <Section
             title="Tags"
-            onEdit={() => {
-              openEditTagsModal({
-                productId: product.id,
-                selectedTagIds: product.tags?.map((t) => t.id) || [],
-                onSave: (data) => {
-                  console.log("Saved tags:", data);
-                  // TODO: Implement actual save logic
-                },
-              });
-            }}
+            actions={
+              <EditAction
+                label="Edit tags"
+                onEdit={() => {
+                  openEditTagsModal({
+                    productId: product.id,
+                    selectedTagIds: product.tags?.map((t) => t.id) || [],
+                    onSave: (data) => {
+                      console.log("Saved tags:", data);
+                      // TODO: Implement actual save logic
+                    },
+                  });
+                }}
+              />
+            }
           >
             {product.tags?.length > 0 ? (
               <Flex gap={4} wrap="wrap">
@@ -1080,7 +1091,7 @@ export const ProductInfoCardA = ({
       </Flex>
 
       {/* REVIEWS */}
-      <Section title="Reviews" onEdit={() => handleEdit("reviews")}>
+      <Section title="Reviews" actions={<EditAction onEdit={() => handleEdit("reviews")} label="Edit reviews" />}>
         <div className={styles.reviewsGrid}>
           {/* Left side - Average rating */}
           <Flex
@@ -1153,7 +1164,7 @@ export const ProductInfoCardA = ({
       {product.isVariableProduct && product.options?.length > 0 && (
         <Section
           title="Options"
-          onEdit={() => openEditOptionsModal({ productId: product.id })}
+          actions={<EditAction onEdit={() => openEditOptionsModal({ productId: product.id })} label="Edit options" />}
         >
           <Flex vertical gap={8}>
             {product.options.map((option) => (
@@ -1182,63 +1193,68 @@ export const ProductInfoCardA = ({
       {product.isVariableProduct && product.variants?.length > 0 && (
         <Section
           title="Variants"
-          onEdit={() => {
-            openEditVariantsModal({
-              productId: product.id,
-              variants:
-                product.variants?.map((v) => ({
-                  id: v.id,
-                  title:
-                    v.title ||
-                    v.options?.map((o) => o.title).join(" / ") ||
-                    v.sku ||
-                    v.id,
-                  imageUrl: v.gallery?.[0]?.url || null,
-                  // Inventory
-                  sku: v.sku,
-                  stock: Math.floor(Math.random() * 100), // TODO: get actual stock
-                  barcode: null,
-                  // Pricing
-                  price: v.price,
-                  compareAtPrice: v.oldPrice || null,
-                  costPrice: v.costPrice || null,
-                  // Shipping
-                  weight: v.weight,
-                  weightUnit: v.weightUnit,
-                  length: v.length,
-                  width: v.width,
-                  height: v.height,
-                  dimensionUnit: v.dimensionUnit,
-                  // Options
-                  options: v.options?.map((opt) => ({
-                    title: opt.title,
-                    group: {
-                      slug: opt.group.slug,
-                      title: opt.group.title,
-                    },
-                  })),
-                })) || [],
-              onSave: (
-                updated: Array<{
-                  id: string;
-                  sku: string | null;
-                  stock: number;
-                  barcode: string | null;
-                  price: number;
-                  compareAtPrice: number | null;
-                  costPrice: number | null;
-                  weight: number | null;
-                  weightUnit: string;
-                  length: number | null;
-                  width: number | null;
-                  height: number | null;
-                  dimensionUnit: string;
-                }>
-              ) => {
-                console.log("Saved variants:", updated);
-              },
-            });
-          }}
+          actions={
+            <EditAction
+              label="Edit variants"
+              onEdit={() => {
+                openEditVariantsModal({
+                  productId: product.id,
+                  variants:
+                    product.variants?.map((v) => ({
+                      id: v.id,
+                      title:
+                        v.title ||
+                        v.options?.map((o) => o.title).join(" / ") ||
+                        v.sku ||
+                        v.id,
+                      imageUrl: v.gallery?.[0]?.url || null,
+                      // Inventory
+                      sku: v.sku,
+                      stock: Math.floor(Math.random() * 100), // TODO: get actual stock
+                      barcode: null,
+                      // Pricing
+                      price: v.price,
+                      compareAtPrice: v.oldPrice || null,
+                      costPrice: v.costPrice || null,
+                      // Shipping
+                      weight: v.weight,
+                      weightUnit: v.weightUnit,
+                      length: v.length,
+                      width: v.width,
+                      height: v.height,
+                      dimensionUnit: v.dimensionUnit,
+                      // Options
+                      options: v.options?.map((opt) => ({
+                        title: opt.title,
+                        group: {
+                          slug: opt.group.slug,
+                          title: opt.group.title,
+                        },
+                      })),
+                    })) || [],
+                  onSave: (
+                    updated: Array<{
+                      id: string;
+                      sku: string | null;
+                      stock: number;
+                      barcode: string | null;
+                      price: number;
+                      compareAtPrice: number | null;
+                      costPrice: number | null;
+                      weight: number | null;
+                      weightUnit: string;
+                      length: number | null;
+                      width: number | null;
+                      height: number | null;
+                      dimensionUnit: string;
+                    }>
+                  ) => {
+                    console.log("Saved variants:", updated);
+                  },
+                });
+              }}
+            />
+          }
           extra={
             <Dropdown
               menu={{
@@ -1497,7 +1513,7 @@ export const ProductInfoCardA = ({
       {!product.isVariableProduct && (
         <Section
           title="Shipping & Dimensions"
-          onEdit={() => handleEdit("shipping")}
+          actions={<EditAction onEdit={() => handleEdit("shipping")} label="Edit shipping" />}
         >
           <Flex gap={8}>
             <Tile
@@ -1540,7 +1556,7 @@ export const ProductInfoCardA = ({
       {product.groups?.length > 0 && (
         <Section
           title="Components"
-          onEdit={() => openEditComponentsModal({ productId: product.id })}
+          actions={<EditAction onEdit={() => openEditComponentsModal({ productId: product.id })} label="Edit components" />}
         >
           <Flex vertical gap={8}>
             {product.groups.map((group) => (

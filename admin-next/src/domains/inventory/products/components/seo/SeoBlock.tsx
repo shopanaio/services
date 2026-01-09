@@ -2,6 +2,7 @@ import { Typography, Flex } from "antd";
 import { WarningOutlined } from "@ant-design/icons";
 import { Paper } from "../Paper";
 import { PaperHeader } from "../PaperHeader";
+import { EditAction } from "../EditAction";
 import { SeoPreview } from "./SeoPreview";
 import type { ISeoPreviewData } from "./SeoPreview.types";
 
@@ -43,7 +44,11 @@ export const SeoBlock = ({ data, onEdit }: ISeoBlockProps) => {
 
   return (
     <Paper>
-      <PaperHeader title="SEO" extra={issuesExtra} onEdit={onEdit} />
+      <PaperHeader
+        title="SEO"
+        extra={issuesExtra}
+        actions={onEdit && <EditAction onEdit={onEdit} label="Edit SEO" />}
+      />
       <SeoPreview data={previewData} />
     </Paper>
   );

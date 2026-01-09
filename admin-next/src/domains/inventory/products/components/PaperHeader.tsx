@@ -1,6 +1,5 @@
 import { createStyles } from "antd-style";
-import { Typography, Button, Dropdown, Flex } from "antd";
-import { MoreOutlined } from "@ant-design/icons";
+import { Typography, Flex } from "antd";
 import { ReactNode } from "react";
 
 // ============================================================================
@@ -32,12 +31,6 @@ interface IPaperHeaderProps {
   extra?: ReactNode;
   /** Custom actions on the right side (dropdown, buttons, etc.) */
   actions?: ReactNode;
-  /** Quick edit handler - adds a default dropdown with "Edit" action */
-  onEdit?: () => void;
-  /** Additional menu items when using onEdit */
-  menuItems?: Array<{ key: string; label: string; danger?: boolean }>;
-  /** Handler for menu item clicks (key of the clicked item) */
-  onMenuClick?: (key: string) => void;
   /** Whether to show bottom border (default: true) */
   bordered?: boolean;
   /** Custom class name */
@@ -52,43 +45,10 @@ export const PaperHeader = ({
   title,
   extra,
   actions,
-  onEdit,
-  menuItems,
-  onMenuClick,
   bordered = true,
   className,
 }: IPaperHeaderProps) => {
   const { styles, cx } = useStyles();
-
-  const defaultMenuItems = [{ key: "edit", label: "Edit" }];
-  const finalMenuItems = menuItems || defaultMenuItems;
-
-  const handleMenuClick = ({ key }: { key: string }) => {
-    if (key === "edit" && onEdit) {
-      onEdit();
-    }
-    onMenuClick?.(key);
-  };
-
-  const renderActions = () => {
-    if (actions) return actions;
-
-    if (onEdit || menuItems) {
-      return (
-        <Dropdown
-          menu={{
-            items: finalMenuItems,
-            onClick: handleMenuClick,
-          }}
-          trigger={["click"]}
-        >
-          <Button size="small" icon={<MoreOutlined />} />
-        </Dropdown>
-      );
-    }
-
-    return null;
-  };
 
   const renderTitle = () => {
     if (!title) return null;
@@ -112,7 +72,7 @@ export const PaperHeader = ({
         {renderTitle()}
         {extra && <div className={styles.extra}>{extra}</div>}
       </Flex>
-      {renderActions()}
+      {actions}
     </Flex>
   );
 };
