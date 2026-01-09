@@ -19,6 +19,7 @@ import {
   DeleteOutlined,
   CopyOutlined,
   PlusOutlined,
+  SettingOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 
@@ -114,6 +115,10 @@ const useStyles = createStyles(({ token }) => ({
     lineHeight: 1.3,
     color: token.colorTextSecondary,
   },
+  variantsCount: {
+    fontSize: 11,
+    color: token.colorTextTertiary,
+  },
   unavailable: {
     opacity: 0.5,
   },
@@ -208,6 +213,12 @@ const ProductCellRenderer = (params: IProductCellRendererParams) => {
   const title =
     data.customTitle || variant?.title || product?.title || "Unknown";
 
+  // Show variant count for products with variants
+  const variantsCount =
+    data.itemType === ComponentItemType.PRODUCT_WITH_VARIANTS
+      ? product?.variants?.length ?? 0
+      : 0;
+
   return (
     <div
       className={cx(
@@ -222,6 +233,11 @@ const ProductCellRenderer = (params: IProductCellRendererParams) => {
       />
       <div className={styles.productInfo}>
         <span className={styles.productTitle}>{title}</span>
+        {variantsCount > 0 && (
+          <span className={styles.variantsCount}>
+            {variantsCount} variant{variantsCount !== 1 ? "s" : ""}
+          </span>
+        )}
       </div>
     </div>
   );
@@ -354,7 +370,9 @@ const PriceRuleCellRenderer = ({
 
 interface IActionsCellRendererProps extends ICellRendererParams<ITableRow> {
   onDelete: (rowId: string, isVariant: boolean) => void;
+  onDeleteAllVariants: (parentItemId: string) => void;
   onDuplicate: (rowId: string) => void;
+  onEditVariants?: (item: IComponentItem) => void;
   onIncludeVariants?: (item: IComponentItem) => void;
   items: IComponentItem[];
 }
@@ -362,7 +380,9 @@ interface IActionsCellRendererProps extends ICellRendererParams<ITableRow> {
 const ActionsCellRenderer = ({
   data,
   onDelete,
+  onDeleteAllVariants,
   onDuplicate,
+  onEditVariants,
   onIncludeVariants,
   items,
 }: IActionsCellRendererProps) => {
@@ -373,10 +393,21 @@ const ActionsCellRenderer = ({
       {
         key: "delete",
         icon: <DeleteOutlined />,
-        label: "Remove variant",
+        label: "Remove",
         danger: true,
         onClick: () => onDelete(data.id, true),
       },
+      ...(data.parentItemId
+        ? [
+            {
+              key: "delete-all",
+              icon: <DeleteOutlined />,
+              label: "Remove all",
+              danger: true,
+              onClick: () => onDeleteAllVariants(data.parentItemId!),
+            },
+          ]
+        : []),
     ];
 
     return (
@@ -395,18 +426,32 @@ const ActionsCellRenderer = ({
       label: "Duplicate",
       onClick: () => onDuplicate(data.id),
     },
-    ...(data.itemType === ComponentItemType.PRODUCT_WITH_VARIANTS &&
-    onIncludeVariants &&
-    fullItem
+    ...(data.itemType === ComponentItemType.PRODUCT_WITH_VARIANTS && fullItem
       ? [
-          {
-            key: "include-variants",
-            icon: <PlusOutlined />,
-            label: "Include variants",
-            onClick: () => {
-              onIncludeVariants(fullItem);
-            },
-          },
+          ...(onEditVariants
+            ? [
+                {
+                  key: "edit-variants",
+                  icon: <SettingOutlined />,
+                  label: "Edit variants",
+                  onClick: () => {
+                    onEditVariants(fullItem);
+                  },
+                },
+              ]
+            : []),
+          ...(onIncludeVariants
+            ? [
+                {
+                  key: "include-variants",
+                  icon: <PlusOutlined />,
+                  label: "Show as variants",
+                  onClick: () => {
+                    onIncludeVariants(fullItem);
+                  },
+                },
+              ]
+            : []),
         ]
       : []),
     { type: "divider" as const },
@@ -433,6 +478,7 @@ const ActionsCellRenderer = ({
 export const ComponentsTable = ({
   items,
   onItemsChange,
+  onEditVariants,
   onIncludeVariants,
   pricingTemplates,
   bulkEditMode,
@@ -689,6 +735,20 @@ export const ComponentsTable = ({
     [items, onItemsChange]
   );
 
+  const handleDeleteAllVariants = useCallback(
+    (parentItemId: string) => {
+      const newItems = items.map((item) => {
+        if (item.id !== parentItemId) return item;
+        return {
+          ...item,
+          includedVariants: undefined,
+        };
+      });
+      onItemsChange(newItems);
+    },
+    [items, onItemsChange]
+  );
+
   const handleDuplicate = useCallback(
     (itemId: string) => {
       const itemToDuplicate = items.find((item) => item.id === itemId);
@@ -738,7 +798,11 @@ export const ComponentsTable = ({
       }
 
       // Get the new order of all rows from the grid
-      const newOrderedRows: { id: string; isVariant: boolean; parentItemId?: string }[] = [];
+      const newOrderedRows: {
+        id: string;
+        isVariant: boolean;
+        parentItemId?: string;
+      }[] = [];
       event.api.forEachNodeAfterFilterAndSort((rowNode) => {
         if (rowNode.data) {
           newOrderedRows.push({
@@ -880,7 +944,9 @@ export const ComponentsTable = ({
           <ActionsCellRenderer
             {...params}
             onDelete={handleDelete}
+            onDeleteAllVariants={handleDeleteAllVariants}
             onDuplicate={handleDuplicate}
+            onEditVariants={onEditVariants}
             onIncludeVariants={onIncludeVariants}
             items={items}
           />
@@ -894,7 +960,9 @@ export const ComponentsTable = ({
       handleToggleAll,
       handleToggleSelection,
       handleDelete,
+      handleDeleteAllVariants,
       handleDuplicate,
+      onEditVariants,
       onIncludeVariants,
       pricingTemplates,
       handlePriceRuleChange,
