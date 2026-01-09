@@ -5,7 +5,6 @@ import EditorJS, { OutputData, API } from "@editorjs/editorjs";
 import Paragraph from "@editorjs/paragraph";
 import Header from "@editorjs/header";
 import List from "@editorjs/list";
-import Quote from "@editorjs/quote";
 import Delimiter from "@editorjs/delimiter";
 import { createStyles } from "antd-style";
 import { inter } from "@/fonts/inter";
@@ -85,10 +84,6 @@ const BlockEditorCore = memo(function BlockEditorCore({
           config: {
             defaultStyle: "unordered",
           },
-        },
-        quote: {
-          class: Quote,
-          inlineToolbar: true,
         },
         delimiter: Delimiter,
       },

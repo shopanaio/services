@@ -60,13 +60,6 @@ const useStyles = createStyles(({ token }) => ({
     "& li": {
       marginBottom: 4,
     },
-    "& blockquote": {
-      margin: "8px 0",
-      paddingLeft: 12,
-      borderLeft: `3px solid ${token.colorBorder}`,
-      color: token.colorTextSecondary,
-      fontStyle: "italic",
-    },
     "&::after": {
       content: '""',
       position: "absolute" as const,

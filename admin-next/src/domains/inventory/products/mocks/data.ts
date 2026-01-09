@@ -474,15 +474,6 @@ const mockVariableProductDescription = JSON.stringify({
       },
     },
     {
-      id: "phone-desc-4",
-      type: "quote",
-      data: {
-        text: "The most powerful chip ever in a smartphone.",
-        caption: "Tech Review Magazine",
-        alignment: "left",
-      },
-    },
-    {
       id: "phone-desc-5",
       type: "paragraph",
       data: {
