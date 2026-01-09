@@ -6,11 +6,12 @@ import type { IVariantColumn, IOptionGroup } from "./types";
 
 export const MEDIA_COLUMNS: IVariantColumn[] = [
   {
-    field: "imageUrl",
+    field: "media",
     headerName: "Variant Media",
     defaultVisible: true,
     editable: false,
-    width: 72,
+    width: 120,
+    minWidth: 80,
     type: "media",
   },
 ];

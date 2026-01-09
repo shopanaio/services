@@ -331,7 +331,12 @@ const createVariant = (
     costPrice: pricing.costPrice || Math.floor(pricing.price * 0.6),
     sku: `SKU-${containerId.toUpperCase()}-${index}`,
     featured: createMediaFile(`variant-${containerId}`, index),
-    gallery: [createMediaFile(`variant-${containerId}`, index)],
+    gallery: [
+      createMediaFile(`variant-${containerId}`, index * 10),
+      createMediaFile(`variant-${containerId}`, index * 10 + 1),
+      createMediaFile(`variant-${containerId}`, index * 10 + 2),
+      createMediaFile(`variant-${containerId}`, index * 10 + 3),
+    ],
     weight: 150,
     weightUnit: WeightUnit.G,
     length: 150,

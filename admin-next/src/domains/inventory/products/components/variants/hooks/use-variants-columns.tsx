@@ -205,9 +205,8 @@ export function useVariantsColumns(
         field: col.field as keyof IVariantEditorRow,
         headerName: col.headerName,
         width: col.width,
+        minWidth: 80,
         cellRenderer: ImageCellRenderer,
-        sortable: false,
-        resizable: false,
       });
     }
 

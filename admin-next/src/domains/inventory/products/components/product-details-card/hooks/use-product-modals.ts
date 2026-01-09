@@ -113,6 +113,7 @@ export const useProductModals = (product: IProduct) => {
             v.sku ||
             v.id,
           imageUrl: v.gallery?.[0]?.url || null,
+          media: v.gallery?.map((m) => m.url) || null,
           sku: v.sku,
           stock: Math.floor(Math.random() * 100),
           barcode: null,

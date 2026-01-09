@@ -64,7 +64,7 @@ export interface IVariantColumn {
 // ============================================================================
 
 export type VariantColumnField =
-  | "imageUrl"
+  | "media"
   | "sku"
   | "barcode"
   | "price"
