@@ -6,47 +6,25 @@ import { Paper } from "../Paper";
 import { PaperHeader } from "../PaperHeader";
 import { Tile } from "../Tile";
 import { PeriodSwitch, CHART_PERIODS, ChartPeriod } from "../PeriodSwitch";
+import { PriceChart } from "./components";
 import {
+  formatPrice as defaultFormatPrice,
+  getPriceSourceLabel,
+  getMarginStatus,
+  filterHistoryByPeriod,
+} from "./utils";
+import { generateMockHistory, generateMockScheduledPrices, getMockVariantPrices } from "./mocks";
+import type {
   IPriceHistoryRecord,
-  generateMockHistory,
-  generateMockScheduledPrices,
-  getMockVariantPrices,
-} from "./PriceHistory";
+  IPricingData,
+  IVariantOption,
+  PriceSource,
+  MarginStatus,
+} from "./types";
 import {
   useProductPriceHistoryModal,
   useEditVariantsModal,
 } from "../../modals";
-
-// ============================================================================
-// Types
-// ============================================================================
-
-type PriceSource = "manual" | "rule-based" | "promo" | "market";
-type MarginStatus = "ok" | "warning" | "critical";
-
-interface IPricingData {
-  currentPrice: number;
-  previousPrice: number | null;
-  compareAtPrice: number | null;
-  costPrice: number | null;
-  margin: number | null;
-  marginStatus: MarginStatus;
-  minAllowedPrice: number | null;
-  maxPrice: number | null;
-  priceSource: PriceSource;
-  priceHistory: IPriceHistoryRecord[];
-  lastUpdatedAt: Date;
-  changesCount: number;
-  targetMargin?: number;
-}
-
-interface IVariantOption {
-  id: string;
-  title: string;
-  price: number;
-  margin: number | null;
-  hasWarning: boolean;
-}
 
 // Non-breaking space for currency formatting
 const NBSP = "\u00A0";
@@ -153,47 +131,7 @@ const useStyles = createStyles(({ token }) => ({
     color: token.colorWarning,
     fontSize: 10,
   },
-  chartSvg: {
-    display: "block",
-    width: "100%",
-    height: 100,
-    cursor: "crosshair",
-  },
 }));
-
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-const formatShortDate = (date: Date): string => {
-  return new Intl.DateTimeFormat("ru-RU", {
-    day: "numeric",
-    month: "short",
-  }).format(date);
-};
-
-const getMarginStatus = (
-  margin: number | null,
-  target: number = 35
-): MarginStatus => {
-  if (margin === null) return "warning";
-  if (margin < target - 10) return "critical";
-  if (margin < target) return "warning";
-  return "ok";
-};
-
-const getPriceSourceLabel = (source: PriceSource): string => {
-  switch (source) {
-    case "manual":
-      return "Manual";
-    case "rule-based":
-      return "Rule-based";
-    case "promo":
-      return "Promo";
-    case "market":
-      return "Market";
-  }
-};
 
 // ============================================================================
 // Sub-components
@@ -392,109 +330,26 @@ const CurrentPriceColumn = ({
   );
 };
 
-interface IPriceHistoryChartProps {
+interface IPriceHistoryChartColumnProps {
   history: IPriceHistoryRecord[];
   formatPrice: (amount: number) => string;
-  changesCount: number;
-  onViewLog?: () => void;
 }
 
-const PriceHistoryChart = ({
+const PriceHistoryChartColumn = ({
   history,
   formatPrice,
-}: IPriceHistoryChartProps) => {
-  const { styles, theme } = useStyles();
+}: IPriceHistoryChartColumnProps) => {
+  const { styles } = useStyles();
   const [timeRange, setTimeRange] = useState<ChartPeriod>("30D");
-  const [hoveredPoint, setHoveredPoint] = useState<{
-    x: number;
-    y: number;
-    price: number;
-    date: Date;
-    isMin?: boolean;
-    isMax?: boolean;
-    isCurrent?: boolean;
-  } | null>(null);
 
   const filteredHistory = useMemo(() => {
-    const now = new Date();
-    const days = timeRange === "7D" ? 7 : timeRange === "30D" ? 30 : 90;
-    const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-    return history.filter((h) => h.effectiveFrom >= cutoff);
-  }, [history, timeRange]);
-
-  const prices = useMemo(
-    () => [...filteredHistory].reverse().map((h) => h.amount),
-    [filteredHistory]
-  );
-  const min = prices.length > 0 ? Math.min(...prices) : 0;
-  const max = prices.length > 0 ? Math.max(...prices) : 0;
-
-  const width = 400;
-  const height = 100;
-  const padding = { top: 12, right: 12, bottom: 12, left: 12 };
-  const chartWidth = width - padding.left - padding.right;
-  const chartHeight = height - padding.top - padding.bottom;
-
-  const range = max - min || 1;
-  const points = prices.map((price, i) => {
-    const x = padding.left + (i / Math.max(prices.length - 1, 1)) * chartWidth;
-    const y = padding.top + chartHeight - ((price - min) / range) * chartHeight;
-    const record = filteredHistory[filteredHistory.length - 1 - i];
-    return {
-      x,
-      y,
-      price,
-      date: record?.effectiveFrom || new Date(),
-      isMin: price === min,
-      isMax: price === max,
-      isCurrent: record?.isCurrent,
+    const periodMap: Record<ChartPeriod, "7d" | "30d" | "90d"> = {
+      "7D": "7d",
+      "30D": "30d",
+      "90D": "90d",
     };
-  });
-
-  const linePath = points
-    .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x},${p.y}`)
-    .join(" ");
-  const areaPath =
-    points.length > 0
-      ? `${linePath} L ${points[points.length - 1].x},${
-          padding.top + chartHeight
-        } L ${points[0].x},${padding.top + chartHeight} Z`
-      : "";
-
-  const gridLines = [0, 0.5, 1].map((ratio) => ({
-    y: padding.top + chartHeight * (1 - ratio),
-    value: min + range * ratio,
-  }));
-
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent<SVGSVGElement>) => {
-      if (points.length < 2) return;
-
-      const svg = e.currentTarget;
-      const rect = svg.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-
-      let closest = points[0];
-      let minDist = Math.abs(mouseX - points[0].x);
-
-      for (const point of points) {
-        const dist = Math.abs(mouseX - point.x);
-        if (dist < minDist) {
-          minDist = dist;
-          closest = point;
-        }
-      }
-
-      if (minDist < 30) {
-        setHoveredPoint(closest);
-      } else {
-        setHoveredPoint(null);
-      }
-    },
-    [points]
-  );
-
-  const currentPoint = points.find((p) => p.isCurrent);
+    return filterHistoryByPeriod(history, periodMap[timeRange]);
+  }, [history, timeRange]);
 
   return (
     <div className={styles.column}>
@@ -513,94 +368,12 @@ const PriceHistoryChart = ({
         />
       </Flex>
 
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        preserveAspectRatio="none"
-        className={styles.chartSvg}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={() => setHoveredPoint(null)}
-      >
-        {gridLines.map((line, i) => (
-          <g key={i}>
-            <line
-              x1={padding.left}
-              y1={line.y}
-              x2={width - padding.right}
-              y2={line.y}
-              stroke={theme.colorBorderSecondary}
-              strokeDasharray="2,2"
-            />
-          </g>
-        ))}
-
-        {areaPath && <path d={areaPath} fill="rgba(22, 119, 255, 0.08)" />}
-
-        {linePath && (
-          <path
-            d={linePath}
-            fill="none"
-            stroke={theme.colorPrimary}
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        )}
-
-        {points.map((point, i) => (
-          <circle
-            key={i}
-            cx={point.x}
-            cy={point.y}
-            r={hoveredPoint === point ? 4 : 2}
-            fill={hoveredPoint === point ? theme.colorPrimary : "white"}
-            stroke={theme.colorPrimary}
-            strokeWidth="1.5"
-          />
-        ))}
-
-        {currentPoint && currentPoint !== hoveredPoint && (
-          <circle
-            cx={currentPoint.x}
-            cy={currentPoint.y}
-            r="4"
-            fill={theme.colorPrimary}
-            stroke="white"
-            strokeWidth="2"
-          />
-        )}
-
-        {hoveredPoint && (
-          <g>
-            <rect
-              x={Math.min(Math.max(hoveredPoint.x - 45, 5), width - 95)}
-              y={Math.max(hoveredPoint.y - 36, 5)}
-              width={90}
-              height={30}
-              rx={4}
-              fill={theme.colorTextBase}
-            />
-            <text
-              x={Math.min(Math.max(hoveredPoint.x, 50), width - 50)}
-              y={Math.max(hoveredPoint.y - 22, 18)}
-              textAnchor="middle"
-              fill="white"
-              fontSize="11"
-              fontWeight="600"
-            >
-              {formatPrice(hoveredPoint.price)}
-            </text>
-            <text
-              x={Math.min(Math.max(hoveredPoint.x, 50), width - 50)}
-              y={Math.max(hoveredPoint.y - 10, 30)}
-              textAnchor="middle"
-              fill="rgba(255,255,255,0.7)"
-              fontSize="9"
-            >
-              {formatShortDate(hoveredPoint.date)}
-            </text>
-          </g>
-        )}
-      </svg>
+      <PriceChart
+        history={filteredHistory}
+        formatPrice={formatPrice}
+        height={100}
+        gridLineCount={3}
+      />
     </div>
   );
 };
@@ -611,11 +384,10 @@ interface IKPIRowProps {
 }
 
 const KPIRow = ({ data, formatPrice }: IKPIRowProps) => {
-  const { styles, theme } = useStyles();
+  const { styles } = useStyles();
   const {
     costPrice,
     margin,
-    marginStatus,
     minAllowedPrice,
     maxPrice,
     priceHistory,
@@ -736,13 +508,7 @@ export const PricingBlock = ({
   const formatPrice =
     formatPriceProp ||
     ((amount: number) => {
-      const formatted = new Intl.NumberFormat("ru-RU", {
-        style: "currency",
-        currency: "RUB",
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(amount / 100);
-      return formatted.replace(/\s+/g, NBSP);
+      return defaultFormatPrice(amount);
     });
 
   const variantPrices = useMemo(() => {
@@ -832,7 +598,6 @@ export const PricingBlock = ({
             },
           ],
           formatPrice: formatPriceProp,
-          // Pricing-only mode: show only price columns, no settings button
           availableColumns: ["price", "compareAtPrice", "costPrice"],
           showColumnSettings: false,
           onSave: (
@@ -911,11 +676,9 @@ export const PricingBlock = ({
           <CurrentPriceColumn data={pricingData} formatPrice={formatPrice} />
         </div>
         <div className={styles.chartColumnWrapper}>
-          <PriceHistoryChart
+          <PriceHistoryChartColumn
             history={actualPriceHistory}
             formatPrice={formatPrice}
-            changesCount={changesCount}
-            onViewLog={onViewLog}
           />
         </div>
       </div>
@@ -925,5 +688,6 @@ export const PricingBlock = ({
   );
 };
 
-export { generateMockHistory, getMockVariantPrices };
-export type { IPricingData, IVariantOption, PriceSource, MarginStatus };
+// Re-exports for backward compatibility
+export { generateMockHistory, getMockVariantPrices } from "./mocks";
+export type { IPricingData, IVariantOption, PriceSource, MarginStatus } from "./types";

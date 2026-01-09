@@ -3,8 +3,7 @@ import type { IModalStackPayload } from '@/layouts/modals';
 import type { OutputData } from '@editorjs/editorjs';
 import type { RenderedContent } from '@/ui-kit/BlockEditor';
 import type { IProduct, IMediaFile } from './mocks/types';
-import type { IPriceHistoryRecord, IScheduledPriceRecord } from './components/pricing/PriceHistory';
-import type { PriceSource } from './components/pricing/PricingBlock';
+import type { IPriceHistoryRecord, IScheduledPriceRecord, PriceSource } from './components/pricing';
 import type { VariantColumnField } from './components/variants/config';
 
 // ============================================================================

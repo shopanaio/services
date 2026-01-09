@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   createContext,
@@ -7,9 +7,9 @@ import {
   Children,
   isValidElement,
   useMemo,
-} from 'react';
-import { createStyles } from 'antd-style';
-import { Badge, Typography, Flex, Spin } from 'antd';
+} from "react";
+import { createStyles } from "antd-style";
+import { Badge, Typography, Flex, Spin } from "antd";
 
 // ============================================================================
 // Styles
@@ -17,17 +17,17 @@ import { Badge, Typography, Flex, Spin } from 'antd';
 
 const useStyles = createStyles(({ token }) => ({
   layout: {
-    display: 'flex',
-    flexDirection: 'column',
-    height: '100%',
+    display: "flex",
+    flexDirection: "column",
+    height: "100%",
     paddingTop: token.padding,
-    paddingLeft: token.paddingLG,
-    paddingRight: token.paddingLG,
+    paddingLeft: token.paddingXL,
+    paddingRight: token.paddingXL,
   },
   header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
     minHeight: 32,
     marginBottom: token.padding,
   },
@@ -35,7 +35,7 @@ const useStyles = createStyles(({ token }) => ({
     marginBottom: token.padding,
   },
   toolbarSticky: {
-    position: 'sticky',
+    position: "sticky",
     top: -4,
     zIndex: 100,
     background: token.bgGradient,
@@ -43,24 +43,24 @@ const useStyles = createStyles(({ token }) => ({
     padding: `0 ${token.paddingLG}px ${token.paddingSM}px`,
   },
   toolbarInner: {
-    display: 'flex',
-    alignItems: 'center',
+    display: "flex",
+    alignItems: "center",
     gap: token.paddingXS,
   },
   toolbarLeft: {
-    display: 'flex',
-    alignItems: 'center',
+    display: "flex",
+    alignItems: "center",
     gap: token.paddingXS,
     flex: 1,
   },
   toolbarCenter: {
-    display: 'flex',
-    alignItems: 'center',
+    display: "flex",
+    alignItems: "center",
     gap: token.paddingXS,
   },
   toolbarRight: {
-    display: 'flex',
-    alignItems: 'center',
+    display: "flex",
+    alignItems: "center",
     gap: token.paddingXS,
   },
   content: {
@@ -72,7 +72,7 @@ const useStyles = createStyles(({ token }) => ({
     paddingBottom: token.padding,
   },
   footerSticky: {
-    position: 'sticky',
+    position: "sticky",
     bottom: 0,
     zIndex: 100,
     background: token.bgGradient,
@@ -80,9 +80,9 @@ const useStyles = createStyles(({ token }) => ({
     padding: `${token.paddingSM}px ${token.paddingLG}px ${token.padding}px`,
   },
   footerInner: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   title: {
     paddingRight: token.paddingSM,
@@ -117,7 +117,7 @@ const Header = ({ children, className }: IHeaderProps) => {
   return <div className={cx(styles.header, className)}>{children}</div>;
 };
 
-Header.displayName = 'DataLayout.Header';
+Header.displayName = "DataLayout.Header";
 
 // --- Header Title ---
 
@@ -138,14 +138,18 @@ const Title = ({ children, count }: ITitleProps) => {
       overflowCount={9999}
       offset={[count && count > 9 ? 6 : 0, 5]}
     >
-      <Typography.Title level={4} className={styles.title} data-testid="page-title">
+      <Typography.Title
+        level={4}
+        className={styles.title}
+        data-testid="page-title"
+      >
         {children}
       </Typography.Title>
     </Badge>
   );
 };
 
-Title.displayName = 'DataLayout.Title';
+Title.displayName = "DataLayout.Title";
 
 // --- Header Actions ---
 
@@ -154,10 +158,14 @@ interface IHeaderActionsProps {
 }
 
 const HeaderActions = ({ children }: IHeaderActionsProps) => {
-  return <Flex gap="middle" align="center">{children}</Flex>;
+  return (
+    <Flex gap="middle" align="center">
+      {children}
+    </Flex>
+  );
 };
 
-HeaderActions.displayName = 'DataLayout.HeaderActions';
+HeaderActions.displayName = "DataLayout.HeaderActions";
 
 // --- Toolbar ---
 
@@ -170,13 +178,25 @@ interface IToolbarProps {
   className?: string;
 }
 
-const Toolbar = ({ children, left, center, right, sticky = true, className }: IToolbarProps) => {
+const Toolbar = ({
+  children,
+  left,
+  center,
+  right,
+  sticky = true,
+  className,
+}: IToolbarProps) => {
   const { styles, cx } = useStyles();
 
   // If children provided, render as-is
   if (children) {
     return (
-      <div className={cx(sticky ? styles.toolbarSticky : styles.toolbar, className)}>
+      <div
+        className={cx(
+          sticky ? styles.toolbarSticky : styles.toolbar,
+          className
+        )}
+      >
         {children}
       </div>
     );
@@ -184,7 +204,9 @@ const Toolbar = ({ children, left, center, right, sticky = true, className }: IT
 
   // Otherwise use slots
   return (
-    <div className={cx(sticky ? styles.toolbarSticky : styles.toolbar, className)}>
+    <div
+      className={cx(sticky ? styles.toolbarSticky : styles.toolbar, className)}
+    >
       <div className={styles.toolbarInner}>
         {left && <div className={styles.toolbarLeft}>{left}</div>}
         {center && <div className={styles.toolbarCenter}>{center}</div>}
@@ -194,7 +216,7 @@ const Toolbar = ({ children, left, center, right, sticky = true, className }: IT
   );
 };
 
-Toolbar.displayName = 'DataLayout.Toolbar';
+Toolbar.displayName = "DataLayout.Toolbar";
 
 // --- Toolbar slots (for composition) ---
 
@@ -202,19 +224,19 @@ const ToolbarLeft = ({ children }: { children: ReactNode }) => {
   const { styles } = useStyles();
   return <div className={styles.toolbarLeft}>{children}</div>;
 };
-ToolbarLeft.displayName = 'DataLayout.Toolbar.Left';
+ToolbarLeft.displayName = "DataLayout.Toolbar.Left";
 
 const ToolbarCenter = ({ children }: { children: ReactNode }) => {
   const { styles } = useStyles();
   return <div className={styles.toolbarCenter}>{children}</div>;
 };
-ToolbarCenter.displayName = 'DataLayout.Toolbar.Center';
+ToolbarCenter.displayName = "DataLayout.Toolbar.Center";
 
 const ToolbarRight = ({ children }: { children: ReactNode }) => {
   const { styles } = useStyles();
   return <div className={styles.toolbarRight}>{children}</div>;
 };
-ToolbarRight.displayName = 'DataLayout.Toolbar.Right';
+ToolbarRight.displayName = "DataLayout.Toolbar.Right";
 
 // --- Content ---
 
@@ -230,7 +252,11 @@ const Content = ({ children, className }: IContentProps) => {
   if (loading) {
     return (
       <div className={cx(styles.content, className)}>
-        <Flex justify="center" align="center" style={{ height: '100%', minHeight: 200 }}>
+        <Flex
+          justify="center"
+          align="center"
+          style={{ height: "100%", minHeight: 200 }}
+        >
           <Spin size="large" />
         </Flex>
       </div>
@@ -240,7 +266,7 @@ const Content = ({ children, className }: IContentProps) => {
   return <div className={cx(styles.content, className)}>{children}</div>;
 };
 
-Content.displayName = 'DataLayout.Content';
+Content.displayName = "DataLayout.Content";
 
 // --- Footer ---
 
@@ -252,13 +278,21 @@ interface IFooterProps {
   className?: string;
 }
 
-const Footer = ({ children, left, right, sticky = true, className }: IFooterProps) => {
+const Footer = ({
+  children,
+  left,
+  right,
+  sticky = true,
+  className,
+}: IFooterProps) => {
   const { styles, cx } = useStyles();
 
   // If children provided, render as-is
   if (children) {
     return (
-      <div className={cx(sticky ? styles.footerSticky : styles.footer, className)}>
+      <div
+        className={cx(sticky ? styles.footerSticky : styles.footer, className)}
+      >
         {children}
       </div>
     );
@@ -266,7 +300,9 @@ const Footer = ({ children, left, right, sticky = true, className }: IFooterProp
 
   // Otherwise use slots
   return (
-    <div className={cx(sticky ? styles.footerSticky : styles.footer, className)}>
+    <div
+      className={cx(sticky ? styles.footerSticky : styles.footer, className)}
+    >
       <div className={styles.footerInner}>
         <div>{left}</div>
         <div>{right}</div>
@@ -275,7 +311,7 @@ const Footer = ({ children, left, right, sticky = true, className }: IFooterProp
   );
 };
 
-Footer.displayName = 'DataLayout.Footer';
+Footer.displayName = "DataLayout.Footer";
 
 // ============================================================================
 // Main Component
@@ -339,16 +375,16 @@ export const DataLayout = ({
       const displayName = (child.type as { displayName?: string })?.displayName;
 
       switch (displayName) {
-        case 'DataLayout.Header':
+        case "DataLayout.Header":
           result.header = child;
           break;
-        case 'DataLayout.Toolbar':
+        case "DataLayout.Toolbar":
           result.toolbar = child;
           break;
-        case 'DataLayout.Footer':
+        case "DataLayout.Footer":
           result.footer = child;
           break;
-        case 'DataLayout.Content':
+        case "DataLayout.Content":
           result.content.push(child);
           break;
         default:
@@ -360,22 +396,21 @@ export const DataLayout = ({
   }, [children]);
 
   // Determine what to render for each section
-  const headerNode = slots.header ?? (
-    (title || actions) && (
+  const headerNode =
+    slots.header ??
+    ((title || actions) && (
       <Header>
         {title && <Title count={count}>{title}</Title>}
         {actions && <HeaderActions>{actions}</HeaderActions>}
       </Header>
-    )
-  );
+    ));
 
-  const toolbarNode = slots.toolbar ?? (
-    toolbar && <Toolbar sticky={stickyToolbar}>{toolbar}</Toolbar>
-  );
+  const toolbarNode =
+    slots.toolbar ??
+    (toolbar && <Toolbar sticky={stickyToolbar}>{toolbar}</Toolbar>);
 
-  const footerNode = slots.footer ?? (
-    footer && <Footer sticky={stickyFooter}>{footer}</Footer>
-  );
+  const footerNode =
+    slots.footer ?? (footer && <Footer sticky={stickyFooter}>{footer}</Footer>);
 
   const contextValue = useMemo(() => ({ loading }), [loading]);
 
@@ -383,7 +418,7 @@ export const DataLayout = ({
     <DataLayoutContext.Provider value={contextValue}>
       <div
         className={cx(styles.layout, className)}
-        data-testid={name ? `${name}-layout` : 'data-layout'}
+        data-testid={name ? `${name}-layout` : "data-layout"}
       >
         {headerNode}
         {toolbarNode}
