@@ -104,10 +104,6 @@ const useStyles = createStyles(({ token }) => ({
       color: token.colorText,
     },
   },
-  expandIconPlaceholder: {
-    width: 16,
-    flexShrink: 0,
-  },
   productImage: {
     width: 36,
     height: 36,
@@ -233,7 +229,7 @@ const ProductCellRenderer = (params: IProductCellRendererParams) => {
     >
       <span className={styles.indent} style={{ width: indent }} />
 
-      {hasChildren ? (
+      {hasChildren && (
         <span
           className={styles.expandIcon}
           onClick={(e) => {
@@ -243,8 +239,6 @@ const ProductCellRenderer = (params: IProductCellRendererParams) => {
         >
           {isExpanded ? <DownOutlined /> : <RightOutlined />}
         </span>
-      ) : (
-        <span className={styles.expandIconPlaceholder} />
       )}
 
       <img
