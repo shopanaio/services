@@ -7,7 +7,6 @@ import {
   Select,
   Input,
   Button,
-  Flex,
   Typography,
   Spin,
   Alert,
@@ -19,8 +18,6 @@ import {
   TagOutlined,
   FolderOutlined,
 } from "@ant-design/icons";
-import { createStyles } from "antd-style";
-import type { OutputData } from "@editorjs/editorjs";
 import {
   useModalStackContext,
   ModalLayout,
@@ -31,224 +28,10 @@ import { Paper } from "../../components/paper";
 import type {
   IProductAIWriterModalPayload,
   AIGenerateTarget,
-  AITone,
 } from "../../modals";
-
-// ============================================================================
-// Types
-// ============================================================================
-
-interface IAIWriterForm {
-  target: AIGenerateTarget;
-  tone: AITone;
-  instructions: string;
-}
-
-interface IGeneratedContent {
-  description: OutputData | null;
-  excerpt: OutputData | null;
-}
-
-// ============================================================================
-// Styles
-// ============================================================================
-
-const useStyles = createStyles(({ token }) => ({
-  contextCard: {
-    padding: 16,
-    background: token.colorFillQuaternary,
-    borderRadius: 8,
-    marginBottom: 20,
-  },
-  contextHeader: {
-    fontSize: 11,
-    color: token.colorTextSecondary,
-    textTransform: "uppercase",
-    letterSpacing: "0.5px",
-    marginBottom: 12,
-    fontWeight: 600,
-  },
-  contextRow: {
-    display: "flex",
-    alignItems: "flex-start",
-    gap: 8,
-    marginBottom: 8,
-    "&:last-child": {
-      marginBottom: 0,
-    },
-  },
-  contextIcon: {
-    color: token.colorTextSecondary,
-    marginTop: 2,
-  },
-  contextLabel: {
-    fontSize: 12,
-    color: token.colorTextSecondary,
-    minWidth: 70,
-  },
-  contextValue: {
-    fontSize: 13,
-    color: token.colorText,
-    flex: 1,
-  },
-  formSection: {
-    padding: 20,
-  },
-  formLabel: {
-    display: "block",
-    marginBottom: 8,
-    fontWeight: 500,
-  },
-  formRow: {
-    marginBottom: 20,
-  },
-  generateButton: {
-    height: 44,
-    fontSize: 15,
-    fontWeight: 500,
-    background:
-      "linear-gradient(135deg, #8b5cf6 0%, #d946ef 50%, #e879f9 100%)",
-    border: "none",
-    "&:hover": {
-      background:
-        "linear-gradient(135deg, #7c3aed 0%, #c026d3 50%, #d946ef 100%)",
-    },
-  },
-  resultSection: {
-    marginTop: 20,
-    padding: 16,
-    border: `1px solid ${token.colorBorderSecondary}`,
-    borderRadius: 8,
-    background: token.colorBgContainer,
-  },
-  resultHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  resultTitle: {
-    fontSize: 13,
-    fontWeight: 600,
-    color: token.colorText,
-  },
-  loadingContainer: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 64,
-    gap: 20,
-  },
-  loadingText: {
-    fontSize: 14,
-    color: token.colorTextSecondary,
-  },
-  headerTitle: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-  },
-  headerIcon: {
-    color: "#a855f7",
-    fontSize: 18,
-  },
-  selectRow: {
-    display: "flex",
-    gap: 16,
-  },
-  selectItem: {
-    flex: 1,
-  },
-}));
-
-// ============================================================================
-// Mock AI Generation (replace with actual API)
-// ============================================================================
-
-interface IGenerateParams {
-  productContext: {
-    title: string;
-    category: string | null;
-    attributes: string[];
-    price: number;
-  };
-  target: AIGenerateTarget;
-  tone: AITone;
-  instructions: string;
-}
-
-const mockGenerateContent = async (
-  params: IGenerateParams
-): Promise<IGeneratedContent> => {
-  // Simulate API delay
-  await new Promise((resolve) => setTimeout(resolve, 2000));
-
-  const { productContext, target, tone } = params;
-
-  const toneStyles: Record<AITone, string> = {
-    professional:
-      "Experience premium quality and exceptional craftsmanship with",
-    casual: "Check out the awesome",
-    luxury: "Indulge in the exquisite elegance of",
-    friendly: "You're going to love",
-  };
-
-  const descriptionText = `${toneStyles[tone]} the ${productContext.title}. ${
-    productContext.category
-      ? `Perfect for ${productContext.category.toLowerCase()} enthusiasts, `
-      : ""
-  }this product delivers outstanding performance and style.
-
-Key Features:
-- Premium quality materials for lasting durability
-- Thoughtfully designed for optimal user experience
-- Versatile enough for any occasion
-${productContext.attributes.length > 0 ? `- Available with: ${productContext.attributes.join(", ")}` : ""}
-
-Whether you're looking for reliability, style, or both, the ${productContext.title} exceeds expectations at every turn.`;
-
-  const excerptText = `${toneStyles[tone]} the ${productContext.title}. Premium quality meets exceptional design for an unmatched experience.`;
-
-  const createEditorData = (text: string): OutputData => ({
-    time: Date.now(),
-    version: "2.28.2",
-    blocks: text.split("\n\n").map((paragraph, index) => {
-      if (paragraph.startsWith("Key Features:")) {
-        return {
-          id: `block-${index}`,
-          type: "header",
-          data: { text: "Key Features", level: 3 },
-        };
-      }
-      if (paragraph.startsWith("- ")) {
-        return {
-          id: `block-${index}`,
-          type: "list",
-          data: {
-            style: "unordered",
-            items: paragraph.split("\n").map((item) => item.replace(/^- /, "")),
-          },
-        };
-      }
-      return {
-        id: `block-${index}`,
-        type: "paragraph",
-        data: { text: paragraph },
-      };
-    }),
-  });
-
-  return {
-    description:
-      target === "excerpt" ? null : createEditorData(descriptionText),
-    excerpt: target === "description" ? null : createEditorData(excerptText),
-  };
-};
-
-// ============================================================================
-// Component
-// ============================================================================
+import { useStyles } from "./ai-writer-modal.styles";
+import type { IAIWriterForm, IGeneratedContent } from "./types";
+import { mockGenerateContent } from "./mocks";
 
 export const AIWriterModal = () => {
   const { styles } = useStyles();

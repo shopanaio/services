@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { createStyles } from "antd-style";
 import {
   useModalStackContext,
   ModalLayout,
@@ -14,16 +13,7 @@ import {
 import type { IEditMediaModalPayload } from "../../modals";
 import type { IMediaFile } from "../../mocks/types";
 import { FileDriver } from "../../mocks/types";
-
-const useStyles = createStyles(() => ({
-  container: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 16,
-    height: "100%",
-    padding: 16,
-  },
-}));
+import { useStyles } from "./edit-media-modal.styles";
 
 /**
  * Convert IMediaFile to IMediaItem for the gallery component

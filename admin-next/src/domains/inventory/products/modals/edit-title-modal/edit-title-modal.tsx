@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { Input, Typography } from "antd";
-import { createStyles } from "antd-style";
 import {
   useModalStackContext,
   ModalLayout,
@@ -12,35 +11,8 @@ import {
 import { Paper } from "../../components/paper";
 import { PaperHeader } from "../../components/paper-header";
 import type { IProductEditTitleModalPayload } from "../../modals";
-
-interface IEditTitleForm {
-  title: string;
-  handle: string;
-}
-
-const useStyles = createStyles(({ token }) => ({
-  formItem: {
-    marginBottom: 16,
-  },
-  formItemLast: {
-    marginBottom: 0,
-  },
-  label: {
-    display: "block",
-    marginBottom: 4,
-    fontSize: token.fontSize,
-  },
-  error: {
-    color: token.colorError,
-    fontSize: token.fontSizeSM,
-    marginTop: 4,
-  },
-  extra: {
-    color: token.colorTextSecondary,
-    fontSize: token.fontSizeSM,
-    marginTop: 4,
-  },
-}));
+import { useStyles } from "./edit-title-modal.styles";
+import type { IEditTitleForm } from "./types";
 
 export const EditTitleModal = () => {
   const { styles } = useStyles();

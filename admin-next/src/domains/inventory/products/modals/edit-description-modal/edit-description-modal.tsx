@@ -3,8 +3,6 @@
 import { useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { Tabs } from "antd";
-import { createStyles } from "antd-style";
-import type { OutputData } from "@editorjs/editorjs";
 import {
   useModalStackContext,
   ModalLayout,
@@ -15,17 +13,8 @@ import { AIButton } from "@/ui-kit/ai-button";
 import { Paper } from "../../components/paper";
 import type { IProductEditDescriptionModalPayload } from "../../modals";
 import { useProductAIWriterModal } from "../../modals";
-
-interface IEditDescriptionForm {
-  description: OutputData | null;
-  excerpt: OutputData | null;
-}
-
-const useStyles = createStyles(() => ({
-  tabsContainer: {
-    padding: "8px 12px 12px",
-  },
-}));
+import { useStyles } from "./edit-description-modal.styles";
+import type { IEditDescriptionForm } from "./types";
 
 export const EditDescriptionModal = () => {
   const { styles } = useStyles();
