@@ -121,7 +121,9 @@ export default function ProductsPage() {
     const selectedRows = gridRef.current?.api.getSelectedRows() || [];
     // Map product IDs to bulk editor format (prod-1, prod-2, etc.)
     // For demo purposes, we use the first 12 products from bulk editor mock
-    const bulkEditorIds = selectedRows.map((_, index) => `prod-${(index % 12) + 1}`);
+    const bulkEditorIds = selectedRows.map(
+      (_, index) => `prod-${(index % 12) + 1}`
+    );
     setSelectedProducts(bulkEditorIds);
     push("bulk-editor", { productIds: bulkEditorIds });
   }, [setSelectedProducts, push]);
@@ -189,7 +191,7 @@ export default function ProductsPage() {
             </Button>
           )}
           <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-            Add Product
+            Create
           </Button>
         </Space>
       }

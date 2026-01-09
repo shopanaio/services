@@ -34,11 +34,11 @@ Universal layout component for data pages (tables, cards, lists).
 ### Minimal
 
 ```tsx
-import { DataLayout } from '@/layouts/data';
+import { DataLayout } from "@/layouts/data";
 
 <DataLayout title="Products">
   <ProductTable />
-</DataLayout>
+</DataLayout>;
 ```
 
 ### With Quick Props
@@ -114,7 +114,7 @@ import { DataLayout } from '@/layouts/data';
       <Space>
         <Button icon={<DownloadOutlined />}>Export</Button>
         <Button type="primary" icon={<PlusOutlined />}>
-          Add Product
+          Create
         </Button>
       </Space>
     </Flex>
@@ -136,19 +136,19 @@ import { DataLayout } from '@/layouts/data';
 
 ### DataLayout Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `children` | `ReactNode` | **required** | Content (table, cards, etc.) |
-| `title` | `ReactNode` | - | Page title |
-| `count` | `number` | - | Badge count next to title |
-| `actions` | `ReactNode` | - | Action buttons in header |
-| `toolbar` | `ReactNode` | - | Toolbar content |
-| `footer` | `ReactNode` | - | Footer content |
-| `loading` | `boolean` | `false` | Show loading state |
-| `stickyToolbar` | `boolean` | `true` | Make toolbar sticky |
-| `stickyFooter` | `boolean` | `true` | Make footer sticky |
-| `name` | `string` | - | Test ID prefix |
-| `className` | `string` | - | Additional CSS class |
+| Prop            | Type        | Default      | Description                  |
+| --------------- | ----------- | ------------ | ---------------------------- |
+| `children`      | `ReactNode` | **required** | Content (table, cards, etc.) |
+| `title`         | `ReactNode` | -            | Page title                   |
+| `count`         | `number`    | -            | Badge count next to title    |
+| `actions`       | `ReactNode` | -            | Action buttons in header     |
+| `toolbar`       | `ReactNode` | -            | Toolbar content              |
+| `footer`        | `ReactNode` | -            | Footer content               |
+| `loading`       | `boolean`   | `false`      | Show loading state           |
+| `stickyToolbar` | `boolean`   | `true`       | Make toolbar sticky          |
+| `stickyFooter`  | `boolean`   | `true`       | Make footer sticky           |
+| `name`          | `string`    | -            | Test ID prefix               |
+| `className`     | `string`    | -            | Additional CSS class         |
 
 ### Compound Components
 
@@ -157,9 +157,7 @@ import { DataLayout } from '@/layouts/data';
 Custom header section.
 
 ```tsx
-<DataLayout.Header className="my-header">
-  {/* any content */}
-</DataLayout.Header>
+<DataLayout.Header className="my-header">{/* any content */}</DataLayout.Header>
 ```
 
 #### `<DataLayout.Title>`
@@ -170,10 +168,10 @@ Title with optional badge.
 <DataLayout.Title count={150}>Products</DataLayout.Title>
 ```
 
-| Prop | Type | Description |
-|------|------|-------------|
-| `children` | `ReactNode` | Title text |
-| `count` | `number` | Badge count |
+| Prop       | Type        | Description |
+| ---------- | ----------- | ----------- |
+| `children` | `ReactNode` | Title text  |
+| `count`    | `number`    | Badge count |
 
 #### `<DataLayout.HeaderActions>`
 
@@ -205,13 +203,13 @@ Toolbar section with optional slots.
 />
 ```
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `children` | `ReactNode` | - | Full custom content |
-| `left` | `ReactNode` | - | Left slot |
-| `center` | `ReactNode` | - | Center slot |
-| `right` | `ReactNode` | - | Right slot |
-| `sticky` | `boolean` | `true` | Sticky position |
+| Prop       | Type        | Default | Description         |
+| ---------- | ----------- | ------- | ------------------- |
+| `children` | `ReactNode` | -       | Full custom content |
+| `left`     | `ReactNode` | -       | Left slot           |
+| `center`   | `ReactNode` | -       | Center slot         |
+| `right`    | `ReactNode` | -       | Right slot          |
+| `sticky`   | `boolean`   | `true`  | Sticky position     |
 
 #### `<DataLayout.Toolbar.Left>`, `<DataLayout.Toolbar.Center>`, `<DataLayout.Toolbar.Right>`
 
@@ -246,12 +244,12 @@ Footer section with optional slots.
 <DataLayout.Footer left={<Pagination />} right={<RowsPerPage />} />
 ```
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `children` | `ReactNode` | - | Full custom content |
-| `left` | `ReactNode` | - | Left slot |
-| `right` | `ReactNode` | - | Right slot |
-| `sticky` | `boolean` | `true` | Sticky position |
+| Prop       | Type        | Default | Description         |
+| ---------- | ----------- | ------- | ------------------- |
+| `children` | `ReactNode` | -       | Full custom content |
+| `left`     | `ReactNode` | -       | Left slot           |
+| `right`    | `ReactNode` | -       | Right slot          |
+| `sticky`   | `boolean`   | `true`  | Sticky position     |
 
 ## Hooks
 
@@ -268,17 +266,17 @@ const { loading } = useDataLayoutContext();
 ### Products Page
 
 ```tsx
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Button } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
-import { DataLayout } from '@/layouts/data';
-import { FilterWidget, useFilters } from '@/layouts/filters';
-import { useModalStack } from '@/layouts/modals';
+import { useState } from "react";
+import { Button } from "antd";
+import { PlusOutlined } from "@ant-design/icons";
+import { DataLayout } from "@/layouts/data";
+import { FilterWidget, useFilters } from "@/layouts/filters";
+import { useModalStack } from "@/layouts/modals";
 
 export default function ProductsPage() {
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const { filters, widgetProps } = useFilters({ schema: filterSchema });
   const { push } = useModalStack();
 
@@ -293,12 +291,20 @@ export default function ProductsPage() {
       }
     >
       <DataLayout.Toolbar
-        left={<FilterWidget {...widgetProps} searchProps={{ searchValue: search, onChangeSearchValue: setSearch }} />}
+        left={
+          <FilterWidget
+            {...widgetProps}
+            searchProps={{
+              searchValue: search,
+              onChangeSearchValue: setSearch,
+            }}
+          />
+        }
       />
 
       <ProductTable
         data={products}
-        onRowClick={(row) => push('product', { entityId: row.id })}
+        onRowClick={(row) => push("product", { entityId: row.id })}
       />
 
       <DataLayout.Footer left={<Pagination page={1} total={100} />} />
@@ -310,11 +316,11 @@ export default function ProductsPage() {
 ### Orders Page with Bulk Actions
 
 ```tsx
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { DataLayout } from '@/layouts/data';
-import { BulkActions } from '@/components/BulkActions';
+import { useState } from "react";
+import { DataLayout } from "@/layouts/data";
+import { BulkActions } from "@/components/BulkActions";
 
 export default function OrdersPage() {
   const [selectedRows, setSelectedRows] = useState([]);

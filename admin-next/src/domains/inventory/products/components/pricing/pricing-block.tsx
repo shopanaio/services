@@ -1,6 +1,6 @@
 import { createStyles } from "antd-style";
-import { Typography, Button, Select, Tag, Tooltip, Dropdown, Flex } from "antd";
-import { MoreOutlined, WarningOutlined } from "@ant-design/icons";
+import { Typography, Button, Tag, Tooltip, Dropdown, Flex } from "antd";
+import { MoreOutlined, WarningOutlined, DownOutlined } from "@ant-design/icons";
 import { useState, useMemo, useCallback } from "react";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { Tile } from "../tile";
@@ -38,10 +38,7 @@ const useStyles = createStyles(({ token }) => ({
     minHeight: "auto",
   },
   headerSelect: {
-    minWidth: 160,
-    ".ant-select-selector": {
-      fontSize: "12px !important",
-    },
+    fontSize: 12,
   },
   twoColumn: {
     display: "flex",
@@ -161,43 +158,46 @@ const PricingHeader = ({
     { key: "history", label: "View history" },
   ];
 
+  const variantMenuItems = variants?.map((v) => ({
+    key: v.id,
+    label: (
+      <Flex justify="space-between" align="center" style={{ width: "100%" }}>
+        <span>{v.title}</span>
+        <Flex align="center" gap={8}>
+          {v.hasWarning && <WarningOutlined className={styles.warningIcon} />}
+          <Typography.Text style={{ fontWeight: 600, marginLeft: 24 }}>
+            {formatPrice ? formatPrice(v.price) : v.price}
+          </Typography.Text>
+        </Flex>
+      </Flex>
+    ),
+  }));
+
   const variantSelect =
     variants && variants.length > 1 ? (
-      <Select
-        value={selectedVariantId}
-        onChange={onVariantSelect}
-        size="small"
-        popupMatchSelectWidth={false}
-        className={styles.headerSelect}
-        labelRender={() => (
+      <Dropdown
+        menu={{
+          items: variantMenuItems,
+          selectedKeys: selectedVariantId ? [selectedVariantId] : [],
+          onClick: ({ key }) => onVariantSelect?.(key),
+        }}
+        trigger={["click"]}
+      >
+        <Button
+          size="small"
+          className={styles.headerSelect}
+          variant="text"
+          color="default"
+        >
           <Flex align="center" gap={4}>
             <span>{selectedVariant?.title || "Select variant"}</span>
             {selectedVariant?.hasWarning && (
               <WarningOutlined className={styles.warningIcon} />
             )}
+            <DownOutlined style={{ fontSize: 10, marginLeft: 4 }} />
           </Flex>
-        )}
-        options={variants.map((v) => ({
-          value: v.id,
-          label: (
-            <Flex
-              justify="space-between"
-              align="center"
-              style={{ width: "100%" }}
-            >
-              <span>{v.title}</span>
-              <Flex align="center" gap={8}>
-                {v.hasWarning && (
-                  <WarningOutlined className={styles.warningIcon} />
-                )}
-                <Typography.Text style={{ fontWeight: 600, marginLeft: 24 }}>
-                  {formatPrice ? formatPrice(v.price) : v.price}
-                </Typography.Text>
-              </Flex>
-            </Flex>
-          ),
-        }))}
-      />
+        </Button>
+      </Dropdown>
     ) : undefined;
 
   const actionsDropdown = onMoreAction ? (
@@ -212,13 +212,14 @@ const PricingHeader = ({
     </Dropdown>
   ) : undefined;
 
-  return (
-    <PaperHeader
-      title={title}
-      extra={variantSelect}
-      actions={actionsDropdown}
-    />
+  const actions = (
+    <Flex align="center" gap={12}>
+      {variantSelect}
+      {actionsDropdown}
+    </Flex>
   );
+
+  return <PaperHeader title={title} actions={actions} />;
 };
 
 interface ICurrentPriceColumnProps {
