@@ -148,7 +148,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'bulk-editor',
       component: dynamic(() =>
-        import('@/domains/inventory/products/bulk-editor/bulk-editor-modal').then(
+        import('@/domains/inventory/products/modals/bulk-editor-modal').then(
           (m) => m.BulkEditorModal
         )
       ),

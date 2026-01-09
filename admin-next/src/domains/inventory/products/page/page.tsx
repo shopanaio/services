@@ -22,7 +22,7 @@ import { useGridState, useGridSort } from "@/hooks";
 import { filterSchema } from "./filter-schema";
 import { useProducts } from "../hooks";
 import type { IProductListItem } from "../mocks/products-list";
-import { useBulkEditorStore } from "../bulk-editor";
+import { useBulkEditorStore } from "../modals/bulk-editor-modal";
 import { useProductCreateModal } from "../modals";
 
 ModuleRegistry.registerModules([
