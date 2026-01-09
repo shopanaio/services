@@ -12,7 +12,10 @@ import {
   generateMockScheduledPrices,
   getMockVariantPrices,
 } from "./PriceHistory";
-import { useProductPriceHistoryModal, useEditVariantsModal } from "../../modals";
+import {
+  useProductPriceHistoryModal,
+  useEditVariantsModal,
+} from "../../modals";
 
 // ============================================================================
 // Types
@@ -217,13 +220,8 @@ const PricingHeader = ({
   const selectedVariant = variants?.find((v) => v.id === selectedVariantId);
 
   const moreMenuItems = [
-    { key: "edit", label: "Edit prices" },
-    { key: "history", label: "View price history" },
-    { key: "audit", label: "View audit log" },
-    { key: "compare", label: "Compare variants" },
-    { type: "divider" as const },
-    { key: "rules", label: "Pricing rules" },
-    { key: "export", label: "Export data" },
+    { key: "edit", label: "Edit" },
+    { key: "history", label: "View history" },
   ];
 
   const variantSelect =
@@ -813,7 +811,9 @@ export const PricingBlock = ({
         pushEditVariantsModal({
           initialTab: "pricing",
           variants: variantPrices?.map((v) => {
-            const originalVariant = variants?.find((vv) => vv.id === v.variantId);
+            const originalVariant = variants?.find(
+              (vv) => vv.id === v.variantId
+            );
             return {
               id: v.variantId,
               title: v.variantTitle,
@@ -822,18 +822,36 @@ export const PricingBlock = ({
               costPrice: v.costPrice,
               options: originalVariant?.options,
             };
-          }) || [{
-            id: "default",
-            title: "Default",
-            price: actualPrice,
-            compareAtPrice: actualCompareAtPrice,
-            costPrice: actualCostPrice,
-          }],
+          }) || [
+            {
+              id: "default",
+              title: "Default",
+              price: actualPrice,
+              compareAtPrice: actualCompareAtPrice,
+              costPrice: actualCostPrice,
+            },
+          ],
           formatPrice: formatPriceProp,
           // Pricing-only mode: show only price columns, no settings button
           availableColumns: ["price", "compareAtPrice", "costPrice"],
           showColumnSettings: false,
-          onSave: (updatedVariants: Array<{ id: string; sku: string | null; stock: number; barcode: string | null; price: number; compareAtPrice: number | null; costPrice: number | null; weight: number | null; weightUnit: string; length: number | null; width: number | null; height: number | null; dimensionUnit: string }>) => {
+          onSave: (
+            updatedVariants: Array<{
+              id: string;
+              sku: string | null;
+              stock: number;
+              barcode: string | null;
+              price: number;
+              compareAtPrice: number | null;
+              costPrice: number | null;
+              weight: number | null;
+              weightUnit: string;
+              length: number | null;
+              width: number | null;
+              height: number | null;
+              dimensionUnit: string;
+            }>
+          ) => {
             console.log("Updated variants:", updatedVariants);
           },
         });

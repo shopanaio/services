@@ -32,7 +32,18 @@ import { ProductContentTabs } from "./ProductContentTabs";
 import { SeoBlock } from "./seo";
 import { IProduct, IMediaFile } from "../mocks/types";
 import { weightUnitOptions, dimensionUnitOptions } from "../constants";
-import { useProductModal, useEditMediaModal, useEditOptionsModal, useEditAttributesModal, useEditSeoModal, useEditVariantsModal, useEditCategoriesModal, useEditTagsModal, useEditComponentsModal, type IEditSeoModalPayload } from "../modals";
+import {
+  useProductModal,
+  useEditMediaModal,
+  useEditOptionsModal,
+  useEditAttributesModal,
+  useEditSeoModal,
+  useEditVariantsModal,
+  useEditCategoriesModal,
+  useEditTagsModal,
+  useEditComponentsModal,
+  type IEditSeoModalPayload,
+} from "../modals";
 import { createMockData as createAttributesMockData } from "../modals/EditAttributesModal/mocks";
 import { AttributesSection } from "./AttributesSection";
 
@@ -493,16 +504,7 @@ interface IInventoryActionsProps {
 }
 
 const InventoryActions = ({ onAction }: IInventoryActionsProps) => {
-  const items = [
-    { key: "edit", label: "Edit" },
-    { type: "divider" as const },
-    { key: "adjust", label: "Adjust stock" },
-    { key: "transfer", label: "Transfer" },
-    { key: "reserve", label: "Reserve" },
-    { key: "recount", label: "Recount" },
-    { type: "divider" as const },
-    { key: "export", label: "Export" },
-  ];
+  const items = [{ key: "edit", label: "Edit" }];
 
   return (
     <Dropdown
@@ -633,31 +635,59 @@ const InventorySection = ({ onEdit, product }: IInventorySectionProps) => {
     if (action === "edit" && product) {
       pushEditVariantsModal({
         initialTab: "inventory",
-        variants: product.variants?.map((v) => ({
-          id: v.id,
-          title: v.title,
-          sku: v.sku,
-          stock: Math.floor(Math.random() * 100),
-          weight: v.weight,
-          weightUnit: v.weightUnit,
-          barcode: null,
-          options: v.options?.map((opt) => ({
-            title: opt.title,
-            group: {
-              slug: opt.group.slug,
-              title: opt.group.title,
-            },
-          })),
-        })) || [],
+        variants:
+          product.variants?.map((v) => ({
+            id: v.id,
+            title: v.title,
+            sku: v.sku,
+            stock: Math.floor(Math.random() * 100),
+            weight: v.weight,
+            weightUnit: v.weightUnit,
+            barcode: null,
+            options: v.options?.map((opt) => ({
+              title: opt.title,
+              group: {
+                slug: opt.group.slug,
+                title: opt.group.title,
+              },
+            })),
+          })) || [],
         lowStockThreshold: 10,
         // Inventory-only mode: show only inventory columns, no settings button
-        availableColumns: ["sku", "barcode", "onHand", "unavailable", "reserved", "available"],
+        availableColumns: [
+          "sku",
+          "barcode",
+          "onHand",
+          "unavailable",
+          "reserved",
+          "available",
+        ],
         showColumnSettings: false,
-        onSave: (updated: Array<{ id: string; sku: string | null; stock: number; barcode: string | null; price: number; compareAtPrice: number | null; costPrice: number | null; weight: number | null; weightUnit: string; length: number | null; width: number | null; height: number | null; dimensionUnit: string }>) => {
+        onSave: (
+          updated: Array<{
+            id: string;
+            sku: string | null;
+            stock: number;
+            barcode: string | null;
+            price: number;
+            compareAtPrice: number | null;
+            costPrice: number | null;
+            weight: number | null;
+            weightUnit: string;
+            length: number | null;
+            width: number | null;
+            height: number | null;
+            dimensionUnit: string;
+          }>
+        ) => {
           console.log("Saved inventory:", updated);
         },
       });
-    } else if (action === "adjust" || action === "transfer" || action === "reserve") {
+    } else if (
+      action === "adjust" ||
+      action === "transfer" ||
+      action === "reserve"
+    ) {
       onEdit?.();
     }
   };
@@ -975,7 +1005,10 @@ export const ProductInfoCardA = ({
       </Section>
 
       {/* INVENTORY */}
-      <InventorySection onEdit={() => handleEdit("inventory")} product={product} />
+      <InventorySection
+        onEdit={() => handleEdit("inventory")}
+        product={product}
+      />
 
       {/* CATEGORIES & TAGS */}
       <Flex gap={12}>
@@ -987,8 +1020,8 @@ export const ProductInfoCardA = ({
                 productId: product.id,
                 primaryCategoryId: product.primaryCategory?.id ?? null,
                 categoryIds: product.categories?.map((c) => c.id) || [],
-                onSave: (data) => {
-                  console.log("Saved categories:", data);
+                onSave: () => {
+                  console.log("Saved categories:");
                   // TODO: Implement actual save logic
                 },
               });
@@ -1119,7 +1152,10 @@ export const ProductInfoCardA = ({
 
       {/* OPTIONS (variable products) */}
       {product.isVariableProduct && product.options?.length > 0 && (
-        <Section title="Options" onEdit={() => openEditOptionsModal({ productId: product.id })}>
+        <Section
+          title="Options"
+          onEdit={() => openEditOptionsModal({ productId: product.id })}
+        >
           <Flex vertical gap={8}>
             {product.options.map((option) => (
               <div key={option.id}>
@@ -1150,49 +1186,56 @@ export const ProductInfoCardA = ({
           onEdit={() => {
             openEditVariantsModal({
               productId: product.id,
-              variants: product.variants?.map((v) => ({
-                id: v.id,
-                title: v.title || v.options?.map((o) => o.title).join(" / ") || v.sku || v.id,
-                imageUrl: v.gallery?.[0]?.url || null,
-                // Inventory
-                sku: v.sku,
-                stock: Math.floor(Math.random() * 100), // TODO: get actual stock
-                barcode: null,
-                // Pricing
-                price: v.price,
-                compareAtPrice: v.oldPrice || null,
-                costPrice: v.costPrice || null,
-                // Shipping
-                weight: v.weight,
-                weightUnit: v.weightUnit,
-                length: v.length,
-                width: v.width,
-                height: v.height,
-                dimensionUnit: v.dimensionUnit,
-                // Options
-                options: v.options?.map((opt) => ({
-                  title: opt.title,
-                  group: {
-                    slug: opt.group.slug,
-                    title: opt.group.title,
-                  },
-                })),
-              })) || [],
-              onSave: (updated: Array<{
-                id: string;
-                sku: string | null;
-                stock: number;
-                barcode: string | null;
-                price: number;
-                compareAtPrice: number | null;
-                costPrice: number | null;
-                weight: number | null;
-                weightUnit: string;
-                length: number | null;
-                width: number | null;
-                height: number | null;
-                dimensionUnit: string;
-              }>) => {
+              variants:
+                product.variants?.map((v) => ({
+                  id: v.id,
+                  title:
+                    v.title ||
+                    v.options?.map((o) => o.title).join(" / ") ||
+                    v.sku ||
+                    v.id,
+                  imageUrl: v.gallery?.[0]?.url || null,
+                  // Inventory
+                  sku: v.sku,
+                  stock: Math.floor(Math.random() * 100), // TODO: get actual stock
+                  barcode: null,
+                  // Pricing
+                  price: v.price,
+                  compareAtPrice: v.oldPrice || null,
+                  costPrice: v.costPrice || null,
+                  // Shipping
+                  weight: v.weight,
+                  weightUnit: v.weightUnit,
+                  length: v.length,
+                  width: v.width,
+                  height: v.height,
+                  dimensionUnit: v.dimensionUnit,
+                  // Options
+                  options: v.options?.map((opt) => ({
+                    title: opt.title,
+                    group: {
+                      slug: opt.group.slug,
+                      title: opt.group.title,
+                    },
+                  })),
+                })) || [],
+              onSave: (
+                updated: Array<{
+                  id: string;
+                  sku: string | null;
+                  stock: number;
+                  barcode: string | null;
+                  price: number;
+                  compareAtPrice: number | null;
+                  costPrice: number | null;
+                  weight: number | null;
+                  weightUnit: string;
+                  length: number | null;
+                  width: number | null;
+                  height: number | null;
+                  dimensionUnit: string;
+                }>
+              ) => {
                 console.log("Saved variants:", updated);
               },
             });
@@ -1565,7 +1608,9 @@ export const ProductInfoCardA = ({
             productSlug: product.slug,
             seoTitle: product.seoTitle,
             seoDescription: product.seoDescription,
-            onSave: (values: Parameters<NonNullable<IEditSeoModalPayload['onSave']>>[0]) => {
+            onSave: (
+              values: Parameters<NonNullable<IEditSeoModalPayload["onSave"]>>[0]
+            ) => {
               console.log("Saved SEO:", values);
               // TODO: Implement actual save logic
             },
