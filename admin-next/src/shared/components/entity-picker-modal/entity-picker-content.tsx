@@ -25,19 +25,16 @@ const useStyles = createStyles(({ token }) => ({
     flex: 1,
   },
   toolbar: {
-    padding: `0 ${token.padding}px`,
     paddingTop: token.paddingSM,
     flexShrink: 0,
+    marginBottom: token.marginSM,
   },
   gridContainer: {
     flex: 1,
     minHeight: 400,
     width: "100%",
-    padding: `${token.paddingSM}px ${token.padding}px`,
   },
   pagination: {
-    borderTop: `1px solid ${token.colorBorderSecondary}`,
-    padding: `0 ${token.padding}px`,
     flexShrink: 0,
   },
 }));
@@ -138,7 +135,7 @@ export function EntityPickerContent<T extends IPickableEntity>({
             mode: selectionMode === "single" ? "singleRow" : "multiRow",
             checkboxes: true,
             headerCheckbox: selectionMode === "multi",
-            enableClickSelection: false,
+            enableClickSelection: true,
           }}
           selectionColumnDef={{
             cellStyle: { display: "flex", alignItems: "center" },
