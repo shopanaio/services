@@ -7,17 +7,11 @@ import { PricingBlock } from "../pricing/pricing-block";
 import { SeoBlock } from "../seo";
 import { AttributesSection } from "../attributes-section";
 import { EditAction } from "../edit-action";
-import { createMockData as createAttributesMockData } from "../../modals/edit-attributes-modal/mocks";
-import { MOCK_OPTION_GROUPS } from "../../modals/edit-options-modal/mocks";
-import { mockCategories } from "../../modals/edit-categories-modal/mocks";
-import { mockTags } from "../../modals/edit-tags-modal/mocks";
-import { mockGroups as mockComponentGroups } from "../../modals/edit-components-modal/mocks/mock-data";
 import {
   MediaSection,
   CategoriesSection,
   TagsSection,
   ReviewsSection,
-  defaultReviewsData,
   OptionsSection,
   ShippingSection,
   ComponentsSection,
@@ -26,7 +20,7 @@ import {
 } from "./sections";
 import { useProductModals } from "./hooks";
 import type { IProduct } from "../../mocks/types";
-import type { IVariantForTable } from "./types";
+import type { IVariantForTable, IProductDetailsMockData } from "./types";
 
 // ============================================================================
 // Helpers
@@ -44,11 +38,13 @@ const formatPrice = (price: number) =>
 
 interface IProductDetailsCardProps {
   product: IProduct;
+  mockData: IProductDetailsMockData;
   onEditSection?: (section: string) => void;
 }
 
 export const ProductDetailsCard = ({
   product,
+  mockData,
   onEditSection,
 }: IProductDetailsCardProps) => {
   const modals = useProductModals(product);
@@ -135,26 +131,27 @@ export const ProductDetailsCard = ({
       <InventorySection
         onEdit={() => handleEdit("inventory")}
         product={product}
+        stats={mockData.inventory}
       />
 
       {/* CATEGORIES & TAGS */}
 
       <CategoriesSection
-        primaryCategory={mockCategories[0]}
-        categories={mockCategories.slice(1, 4)}
+        primaryCategory={mockData.categories.primary}
+        categories={mockData.categories.list}
       />
 
       {/* REVIEWS */}
       <ReviewsSection
-        rating={defaultReviewsData.rating}
-        reviewsCount={defaultReviewsData.reviewsCount}
-        breakdown={defaultReviewsData.breakdown}
+        rating={mockData.reviews.rating}
+        reviewsCount={mockData.reviews.reviewsCount}
+        breakdown={mockData.reviews.breakdown}
         onEdit={() => handleEdit("reviews")}
       />
 
       {/* ATTRIBUTES */}
       <AttributesSection
-        data={createAttributesMockData()}
+        data={mockData.attributes}
         actions={
           <EditAction onEdit={modals.editAttributes} label="Edit attributes" />
         }
@@ -163,7 +160,7 @@ export const ProductDetailsCard = ({
       {/* OPTIONS (variable products) */}
       {product.isVariableProduct && (
         <OptionsSection
-          options={MOCK_OPTION_GROUPS}
+          options={mockData.options}
           onEdit={modals.editOptions}
         />
       )}
@@ -193,11 +190,11 @@ export const ProductDetailsCard = ({
 
       {/* GROUPS/COMPONENTS */}
       <ComponentsSection
-        groups={mockComponentGroups}
+        groups={mockData.components}
         onEdit={modals.editComponents}
       />
 
-      <TagsSection tags={mockTags.slice(0, 5)} />
+      <TagsSection tags={mockData.tags} />
 
       {/* SEO */}
       <SeoBlock

@@ -1,7 +1,7 @@
 export { MediaSection } from "./media-section";
 export { CategoriesSection } from "./categories-section";
 export { TagsSection } from "./tags-section";
-export { ReviewsSection, defaultReviewsData } from "./reviews-section";
+export { ReviewsSection } from "./reviews-section";
 export { OptionsSection } from "./options-section";
 export { ShippingSection } from "./shipping-section";
 export { ComponentsSection } from "./components-section";

@@ -3,7 +3,10 @@
 import { useState, useEffect } from "react";
 import { Flex, Skeleton } from "antd";
 import { useModalStackContext, ModalLayout } from "@/layouts/modals";
-import { ProductDetailsCard } from "../../components/product-details-card";
+import {
+  ProductDetailsCard,
+  productDetailsMockData,
+} from "../../components/product-details-card";
 import { mockVariableProduct, mockSimpleProduct } from "../../mocks/data";
 
 export const ProductModal = () => {
@@ -39,6 +42,7 @@ export const ProductModal = () => {
     return (
       <ProductDetailsCard
         product={product}
+        mockData={productDetailsMockData}
         onEditSection={(section) => console.log("Edit section:", section)}
       />
     );

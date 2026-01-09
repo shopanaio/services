@@ -22,28 +22,6 @@ import { useEditVariantsModal } from "../../../modals";
 import type { IInventoryStats } from "../types";
 import type { IProduct } from "../../../mocks/types";
 
-// ============================================================================
-// Mock Data
-// ============================================================================
-
-const getMockInventoryStats = (): IInventoryStats => {
-  return {
-    availableQty: 967,
-    onHandQty: 1032,
-    reservedQty: 65,
-    totalSKUs: 45,
-    lowStockSKUs: 8,
-    lowStockPercent: 18,
-    outOfStockSKUs: 4,
-    outOfStockPercent: 9,
-    backorderSKUs: 2,
-    pendingOrders: 13,
-    lastSyncAt: new Date(),
-    syncStatus: "synced",
-    changeVs7d: -12,
-    thresholdType: "safety_stock",
-  };
-};
 
 // ============================================================================
 // Sub-components
@@ -148,18 +126,18 @@ type InventoryState = "loading" | "no_data" | "ready";
 interface IInventorySectionProps {
   onEdit?: () => void;
   product?: IProduct;
+  stats: IInventoryStats;
 }
 
 export const InventorySection = ({
   onEdit,
   product,
+  stats,
 }: IInventorySectionProps) => {
   const { styles } = useInventoryStyles();
   const { push: pushEditVariantsModal } = useEditVariantsModal();
   const [activeKPI, setActiveKPI] = useState<string | undefined>();
   const [inventoryState] = useState<InventoryState>("ready");
-
-  const stats = getMockInventoryStats();
 
   const handleAction = useCallback(
     (action: string) => {

@@ -1,4 +1,5 @@
 export { ProductDetailsCard } from "./product-details-card";
+export { productDetailsMockData } from "./mocks";
 export type {
   IWarehouseStock,
   IInventoryStats,
@@ -8,4 +9,5 @@ export type {
   ISectionProps,
   IVariantOption,
   IVariantForTable,
+  IProductDetailsMockData,
 } from "./types";
