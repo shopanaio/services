@@ -1,5 +1,5 @@
 import { Upload, Typography, Image, Button, Flex } from "antd";
-import { PictureOutlined, DeleteOutlined } from "@ant-design/icons";
+import { UploadOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useStyles } from "../EditSeoModal.styles";
 import { FileDriver, type IMediaFile } from "../../../mocks/types";
 
@@ -59,12 +59,12 @@ export const ImageUpload = ({ value, onChange }: IImageUploadProps) => {
       beforeUpload={handleUpload}
     >
       <Flex align="center" justify="center" vertical>
-        <PictureOutlined className={styles.draggerIcon} />
+        <UploadOutlined className={styles.draggerIcon} />
         <Typography.Text strong type="secondary">
           Upload OG Image
         </Typography.Text>
-        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-          Drag and drop or click to upload. Recommended: 1200 x 630px
+        <Typography.Text type="secondary">
+          Recommended: 1200 x 630px
         </Typography.Text>
       </Flex>
     </Upload.Dragger>
