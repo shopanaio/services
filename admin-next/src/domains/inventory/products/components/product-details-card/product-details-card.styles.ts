@@ -48,15 +48,6 @@ export const useMediaStyles = createStyles(({ token }) => ({
   mediaCoverWrapper: {
     position: "relative",
   },
-  mediaCoverBadge: {
-    position: "absolute",
-    top: 6,
-    left: 6,
-    margin: 0,
-    fontSize: 10,
-    lineHeight: "16px",
-    padding: "0 6px",
-  },
 }));
 
 // ============================================================================

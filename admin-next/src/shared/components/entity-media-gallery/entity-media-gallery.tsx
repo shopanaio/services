@@ -24,6 +24,7 @@ import {
   UnorderedListOutlined,
   HolderOutlined,
 } from "@ant-design/icons";
+import { CoverBadge } from "@/ui-kit/cover-badge";
 import {
   DndContext,
   KeyboardSensor,
@@ -156,12 +157,7 @@ const SortableGridItem = ({
       {...attributes}
       className={cx(styles.mediaItem, isDragging && styles.mediaItemDragging)}
     >
-      {isCover && (
-        <div className={styles.coverBadge}>
-          <StarFilled style={{ fontSize: 10 }} />
-          {coverLabel}
-        </div>
-      )}
+      {isCover && <CoverBadge label={coverLabel} />}
 
       <img src={item.url} alt={item.name} className={styles.mediaImage} />
 

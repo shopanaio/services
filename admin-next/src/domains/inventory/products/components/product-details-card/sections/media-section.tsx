@@ -1,8 +1,9 @@
 "use client";
 
-import { Image, Flex, Tag } from "antd";
+import { Image, Flex } from "antd";
 import { EyeOutlined } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
+import { CoverBadge } from "@/ui-kit/cover-badge";
 import { EditAction } from "../../edit-action";
 import { MediaFilePlaceholder } from "../../media-file-placeholder";
 import { useMediaStyles } from "../product-details-card.styles";
@@ -43,7 +44,7 @@ export const MediaSection = ({ gallery, onEdit }: IMediaSectionProps) => {
                   ),
                 }}
               />
-              <Tag className={styles.mediaCoverBadge}>Cover</Tag>
+              <CoverBadge />
             </div>
           ) : (
             <Image
