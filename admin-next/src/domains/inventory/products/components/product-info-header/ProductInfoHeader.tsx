@@ -47,7 +47,6 @@ interface IKPIData {
 
 interface IProductInfoHeaderProps {
   product: IProduct;
-  onEditSection?: (section: string) => void;
   onViewStorefront?: () => void;
   onPreview?: () => void;
   onShare?: () => void;
@@ -277,7 +276,6 @@ const UserPopoverContent = ({
 
 export const ProductInfoHeader = ({
   product,
-  onEditSection,
   onViewStorefront,
   onPreview,
   onShare,
@@ -289,8 +287,6 @@ export const ProductInfoHeader = ({
   const { push: openEditTitleModal } = useProductEditTitleModal();
 
   const statusConfig = getStatusConfig(product.status);
-
-  const handleEdit = (section: string) => onEditSection?.(section);
 
   const handleEditTitle = () => {
     openEditTitleModal({
@@ -394,20 +390,13 @@ export const ProductInfoHeader = ({
       <Dropdown
         menu={{
           items: [
-            { key: "edit", label: "Edit" },
+            { key: "edit", label: "Edit title", onClick: handleEditTitle },
             { type: "divider" as const },
             { key: "duplicate", label: "Duplicate product" },
             { key: "export", label: "Export" },
             { type: "divider" as const },
             { key: "archive", label: "Archive", danger: true },
           ],
-          onClick: ({ key }) => {
-            if (key === "edit") {
-              handleEditTitle();
-            } else {
-              handleEdit(key);
-            }
-          },
         }}
         trigger={["click"]}
       >

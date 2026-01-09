@@ -54,6 +54,7 @@ export interface IProductEditTitleModalPayload extends IModalStackPayload {
 export interface IProductEditDescriptionModalPayload extends IModalStackPayload {
   description: OutputData | null;
   excerpt: OutputData | null;
+  product?: IProduct;
   onSave?: (values: { description: RenderedContent; excerpt: RenderedContent }) => void;
 }
 

@@ -920,7 +920,6 @@ export const ProductInfoCardA = ({
       {/* PRODUCT INFORMATION */}
       <ProductInfoHeader
         product={product}
-        onEditSection={handleEdit}
         onViewStorefront={() =>
           window.open(`/products/${product.slug}`, "_blank")
         }
@@ -929,7 +928,7 @@ export const ProductInfoCardA = ({
       />
 
       {/* CONTENT TABS */}
-      <ProductContentTabs product={product} onEditSection={handleEdit} />
+      <ProductContentTabs product={product} />
 
       {/* PRICING */}
       <PricingBlock

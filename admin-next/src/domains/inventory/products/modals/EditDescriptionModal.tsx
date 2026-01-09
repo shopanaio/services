@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { Tabs } from "antd";
-import { ThunderboltOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import type { OutputData } from "@editorjs/editorjs";
 import {
@@ -11,7 +10,8 @@ import {
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
-import { BlockEditor, renderContent, RenderedContent } from "@/ui-kit/BlockEditor";
+import { BlockEditor, renderContent, type RenderedContent } from "@/ui-kit/BlockEditor";
+import { AIButton } from "@/ui-kit/AIButton";
 import { Paper } from "../components/Paper";
 import type { IProductEditDescriptionModalPayload } from "../modals";
 import { useProductAIWriterModal } from "../modals";
@@ -31,13 +31,29 @@ export const EditDescriptionModal = () => {
   const { styles } = useStyles();
   const { payload, pop } = useModalStackContext();
   const typedPayload = payload as IProductEditDescriptionModalPayload;
+  const { push: openAIWriterModal } = useProductAIWriterModal();
 
-  const { control, handleSubmit } = useForm<IEditDescriptionForm>({
+  const { control, handleSubmit, setValue } = useForm<IEditDescriptionForm>({
     defaultValues: {
       description: typedPayload.description || null,
       excerpt: typedPayload.excerpt || null,
     },
   });
+
+  const handleWriteWithAI = () => {
+    if (!typedPayload.product) return;
+    openAIWriterModal({
+      product: typedPayload.product,
+      onApply: (values: { description?: RenderedContent; excerpt?: RenderedContent }) => {
+        if (values.description?.json) {
+          setValue("description", values.description.json);
+        }
+        if (values.excerpt?.json) {
+          setValue("excerpt", values.excerpt.json);
+        }
+      },
+    });
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -76,6 +92,11 @@ export const EditDescriptionModal = () => {
           <Tabs
             type="card"
             size="middle"
+            tabBarExtraContent={
+              typedPayload.product ? (
+                <AIButton onClick={handleWriteWithAI} />
+              ) : null
+            }
             items={[
               {
                 key: "description",

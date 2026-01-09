@@ -1,11 +1,15 @@
-import { createStyles } from 'antd-style';
-import { Button, Typography, Tabs, Dropdown, Flex } from 'antd';
-import { WarningOutlined, MoreOutlined, ThunderboltOutlined } from '@ant-design/icons';
-import type { OutputData } from '@editorjs/editorjs';
-import type { RenderedContent } from '@/ui-kit/BlockEditor';
-import { Paper } from '../Paper';
-import { IProduct } from '../../mocks/types';
-import { useProductEditDescriptionModal, useProductAIWriterModal } from '../../modals';
+import { createStyles } from "antd-style";
+import { Button, Typography, Tabs, Dropdown, Flex } from "antd";
+import { WarningOutlined, MoreOutlined } from "@ant-design/icons";
+import type { OutputData } from "@editorjs/editorjs";
+import type { RenderedContent } from "@/ui-kit/BlockEditor";
+import { AIButton } from "@/ui-kit/AIButton";
+import { Paper } from "../Paper";
+import { IProduct } from "../../mocks/types";
+import {
+  useProductEditDescriptionModal,
+  useProductAIWriterModal,
+} from "../../modals";
 
 // ============================================================================
 // Styles
@@ -13,46 +17,12 @@ import { useProductEditDescriptionModal, useProductAIWriterModal } from '../../m
 
 const useStyles = createStyles(({ token }) => ({
   tabsSection: {
-    padding: '8px 12px 12px',
+    padding: "8px 12px 12px",
     borderRadius: 8,
     minHeight: 120,
   },
-  aiButton: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 6,
-    padding: '4px 12px',
-    fontSize: 13,
-    fontWeight: 500,
-    borderRadius: 6,
-    cursor: 'pointer',
-    background: 'linear-gradient(#fff, #fff) padding-box, linear-gradient(135deg, #8b5cf6 0%, #d946ef 50%, #e879f9 100%) border-box',
-    border: '1px solid transparent',
-    transition: 'all 0.3s ease',
-    '& span': {
-      background: 'linear-gradient(135deg, #8b5cf6 0%, #d946ef 50%, #e879f9 100%)',
-      WebkitBackgroundClip: 'text',
-      WebkitTextFillColor: 'transparent',
-      backgroundClip: 'text',
-    },
-    '& svg': {
-      color: '#a855f7',
-    },
-    '&:hover': {
-      background: 'linear-gradient(135deg, #8b5cf6 0%, #d946ef 50%, #e879f9 100%) padding-box, linear-gradient(135deg, #8b5cf6 0%, #d946ef 50%, #e879f9 100%) border-box',
-      '& span': {
-        background: '#fff',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
-        backgroundClip: 'text',
-      },
-      '& svg': {
-        color: '#fff',
-      },
-    },
-  },
   contentText: {
-    '&&': {
+    "&&": {
       margin: 0,
       fontSize: 13,
       color: token.colorText,
@@ -60,7 +30,7 @@ const useStyles = createStyles(({ token }) => ({
     },
   },
   emptyContainer: {
-    padding: '16px 0',
+    padding: "16px 0",
   },
   emptyIcon: {
     color: token.colorTextQuaternary,
@@ -70,7 +40,7 @@ const useStyles = createStyles(({ token }) => ({
   },
   addButton: {
     padding: 0,
-    height: 'auto',
+    height: "auto",
   },
 }));
 
@@ -80,28 +50,25 @@ const useStyles = createStyles(({ token }) => ({
 
 interface IProductContentTabsProps {
   product: IProduct;
-  onEditSection?: (section: string) => void;
 }
 
 // ============================================================================
 // Main Component
 // ============================================================================
 
-export const ProductContentTabs = ({
-  product,
-  onEditSection,
-}: IProductContentTabsProps) => {
+export const ProductContentTabs = ({ product }: IProductContentTabsProps) => {
   const { styles } = useStyles();
   const { push: openEditDescriptionModal } = useProductEditDescriptionModal();
   const { push: openAIWriterModal } = useProductAIWriterModal();
 
-  const handleEdit = (section: string) => onEditSection?.(section);
-
   const handleWriteWithAI = () => {
     openAIWriterModal({
       product,
-      onApply: (values: { description?: RenderedContent; excerpt?: RenderedContent }) => {
-        console.log('AI generated content:', values);
+      onApply: (values: {
+        description?: RenderedContent;
+        excerpt?: RenderedContent;
+      }) => {
+        console.log("AI generated content:", values);
         // TODO: Apply content to product
       },
     });
@@ -120,8 +87,12 @@ export const ProductContentTabs = ({
     openEditDescriptionModal({
       description: parseEditorData(product.description),
       excerpt: parseEditorData(product.excerpt),
-      onSave: (values: { description: RenderedContent; excerpt: RenderedContent }) => {
-        console.log('Save content:', values);
+      product,
+      onSave: (values: {
+        description: RenderedContent;
+        excerpt: RenderedContent;
+      }) => {
+        console.log("Save content:", values);
         // values.description.plain - plain text
         // values.description.html - HTML
         // values.description.json - EditorJS JSON
@@ -136,22 +107,22 @@ export const ProductContentTabs = ({
       if (!parsed.blocks) return null;
       return parsed.blocks
         .map((block) => {
-          if (block.type === 'paragraph' || block.type === 'header') {
-            return (block.data as { text?: string }).text || '';
+          if (block.type === "paragraph" || block.type === "header") {
+            return (block.data as { text?: string }).text || "";
           }
-          if (block.type === 'list') {
-            return ((block.data as { items?: string[] }).items || []).join(' ');
+          if (block.type === "list") {
+            return ((block.data as { items?: string[] }).items || []).join(" ");
           }
-          if (block.type === 'quote') {
-            return (block.data as { text?: string }).text || '';
+          if (block.type === "quote") {
+            return (block.data as { text?: string }).text || "";
           }
-          return '';
+          return "";
         })
         .filter(Boolean)
-        .join(' ')
+        .join(" ")
         .slice(0, 300);
     } catch {
-      return typeof data === 'string' ? data.slice(0, 300) : null;
+      return typeof data === "string" ? data.slice(0, 300) : null;
     }
   };
 
@@ -165,17 +136,18 @@ export const ProductContentTabs = ({
         size="middle"
         tabBarExtraContent={
           <Flex gap={8}>
-            <button className={styles.aiButton} onClick={handleWriteWithAI}>
-              <ThunderboltOutlined />
-              <span>Write with AI</span>
-            </button>
+            <AIButton onClick={handleWriteWithAI} />
             <Dropdown
               menu={{
                 items: [
-                  { key: 'edit', label: 'Edit', onClick: handleEditDescription },
+                  {
+                    key: "edit",
+                    label: "Edit content",
+                    onClick: handleEditDescription,
+                  },
                 ],
               }}
-              trigger={['click']}
+              trigger={["click"]}
             >
               <Button size="small" icon={<MoreOutlined />} />
             </Dropdown>
@@ -183,15 +155,15 @@ export const ProductContentTabs = ({
         }
         items={[
           {
-            key: 'description',
-            label: 'Description',
+            key: "description",
+            label: "Description",
             children: descriptionPreview ? (
               <Typography.Paragraph
                 ellipsis={{ rows: 3 }}
                 className={styles.contentText}
               >
                 {descriptionPreview}
-                {descriptionPreview.length >= 300 && '...'}
+                {descriptionPreview.length >= 300 && "..."}
               </Typography.Paragraph>
             ) : (
               <Flex align="center" gap={8} className={styles.emptyContainer}>
@@ -211,8 +183,8 @@ export const ProductContentTabs = ({
             ),
           },
           {
-            key: 'excerpt',
-            label: 'Excerpt',
+            key: "excerpt",
+            label: "Excerpt",
             children: excerptPreview ? (
               <Typography.Paragraph
                 ellipsis={{ rows: 3 }}
