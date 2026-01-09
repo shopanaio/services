@@ -310,8 +310,7 @@ export const useComponentsStyles = createStyles(({ token }) => ({
       color: token.colorTextQuaternary,
     },
   },
-  groupTag: {
-    margin: 0,
-    fontSize: 10,
+  groupMeta: {
+    fontSize: token.fontSizeSM,
   },
 }));

@@ -1,6 +1,6 @@
 "use client";
 
-import { Typography, Tag, Flex, Avatar } from "antd";
+import { Typography, Flex, Avatar } from "antd";
 import { PictureOutlined } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "../../edit-action";
@@ -74,24 +74,16 @@ export const ComponentsSection = ({
                   )}
                 </Avatar.Group>
               </div>
-              <Flex gap={4} wrap="wrap">
-                {group.isMultiple && (
-                  <Tag className={styles.groupTag}>Multiple</Tag>
-                )}
-                {group.isRequired && (
-                  <Tag className={styles.groupTag}>Required</Tag>
-                )}
-                {group.minSelection > 0 && (
-                  <Tag className={styles.groupTag}>
-                    Min: {group.minSelection}
-                  </Tag>
-                )}
-                {group.maxSelection && (
-                  <Tag className={styles.groupTag}>
-                    Max: {group.maxSelection}
-                  </Tag>
-                )}
-              </Flex>
+              <Typography.Text type="secondary" className={styles.groupMeta}>
+                {[
+                  group.isMultiple && "Multiple",
+                  group.isRequired && "Required",
+                  group.minSelection > 0 && `Min: ${group.minSelection}`,
+                  group.maxSelection && `Max: ${group.maxSelection}`,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </Typography.Text>
             </div>
           );
         })}
