@@ -20,7 +20,9 @@ const useStyles = createStyles(({ token }) => ({
     display: "flex",
     flexDirection: "column",
     height: "100%",
+    width: "100%",
     minHeight: 0,
+    flex: 1,
   },
   toolbar: {
     padding: `0 ${token.padding}px`,
@@ -29,7 +31,8 @@ const useStyles = createStyles(({ token }) => ({
   },
   gridContainer: {
     flex: 1,
-    minHeight: 0,
+    minHeight: 400,
+    width: "100%",
     padding: `${token.paddingSM}px ${token.padding}px`,
   },
   pagination: {
@@ -44,7 +47,6 @@ export function EntityPickerContent<T extends IPickableEntity>({
   selectionMode,
   initialSelection,
   excludeIds,
-  maxSelection,
   onSelectionChange,
 }: IEntityPickerContentProps<T>) {
   const { styles } = useStyles();

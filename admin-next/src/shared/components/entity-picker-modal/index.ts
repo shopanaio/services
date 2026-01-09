@@ -11,6 +11,8 @@ export type {
 
 // Components
 export { EntityPickerModal } from "./entity-picker-modal";
+export { ProductPickerModal } from "./product-picker-modal";
+export type { IProductPickerPayload } from "./product-picker-modal";
 export { EntityPickerContent } from "./entity-picker-content";
 
 // Cell Renderers

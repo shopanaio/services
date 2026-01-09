@@ -27,14 +27,20 @@ const useStyles = createStyles(({ token }) => ({
     background: token.colorBgLayout,
     overflowY: "auto",
     flex: 1,
+    minHeight: 0,
+    display: "flex",
+    flexDirection: "column",
   },
   content: {
     marginInline: "auto",
+    width: "100%",
     maxWidth: 800,
     display: "flex",
     gap: 16,
     flexDirection: "column",
     paddingBlock: 16,
+    flex: 1,
+    minHeight: 0,
   },
   contentFullWidth: {
     marginInline: "auto",
@@ -44,6 +50,8 @@ const useStyles = createStyles(({ token }) => ({
     flexDirection: "column",
     paddingBlock: 16,
     paddingInline: 16,
+    flex: 1,
+    minHeight: 0,
   },
 }));
 
@@ -58,7 +66,10 @@ export const ModalLayout = ({
   const { styles, cx } = useStyles();
 
   return (
-    <div data-testid={`${name ? `${name}-` : ""}modal`} className={styles.container}>
+    <div
+      data-testid={`${name ? `${name}-` : ""}modal`}
+      className={styles.container}
+    >
       {header ?? (headerProps && <ModalHeader {...{ ...headerProps, name }} />)}
       <div className={cx(styles.body, bodyClassName)}>
         <div className={fullWidth ? styles.contentFullWidth : styles.content}>

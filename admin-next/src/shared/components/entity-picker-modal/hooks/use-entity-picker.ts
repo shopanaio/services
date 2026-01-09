@@ -65,6 +65,7 @@ export function useEntityPicker<T extends IPickableEntity>(
 
 /**
  * Hook specifically for product picker
+ * Uses dedicated product-picker modal for better reliability
  *
  * @example
  * ```tsx
@@ -78,8 +79,31 @@ export function useEntityPicker<T extends IPickableEntity>(
 export function useProductPicker(
   options: Omit<IUseEntityPickerOptions<IPickableEntity>, "entityType">
 ) {
-  return useEntityPicker({
-    ...options,
-    entityType: "product",
-  });
+  const { push } = useModalStack();
+  const {
+    selectionMode = "multi",
+    initialSelection = [],
+    excludeIds = [],
+    maxSelection,
+    onConfirm,
+  } = options;
+
+  const openPicker = useCallback(() => {
+    push("product-picker", {
+      selectionMode,
+      initialSelection,
+      excludeIds,
+      maxSelection,
+      onConfirm,
+    });
+  }, [
+    push,
+    selectionMode,
+    initialSelection,
+    excludeIds,
+    maxSelection,
+    onConfirm,
+  ]);
+
+  return { openPicker };
 }
