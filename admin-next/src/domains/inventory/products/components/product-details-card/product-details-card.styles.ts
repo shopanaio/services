@@ -281,20 +281,29 @@ export const useOptionsStyles = createStyles(({ token }) => ({
 // ============================================================================
 
 export const useComponentsStyles = createStyles(({ token }) => ({
-  groupBox: {
-    padding: token.paddingSM,
-    background: token.colorBgContainer,
-    borderRadius: token.borderRadius,
+  groupCard: {
+    flex: 1,
+    minWidth: 180,
+    padding: 12,
+    background: token.colorBgLayout,
+    borderRadius: 8,
+    border: `1px solid ${token.colorBorderSecondary}`,
   },
-  groupTitle: {},
-  groupItemsCount: {},
+  groupTitle: {
+    fontSize: 13,
+  },
+  groupItemsCount: {
+    fontSize: 11,
+  },
+  avatarRow: {
+    margin: "12px 0",
+  },
+  avatarPlaceholder: {
+    background: token.colorBgContainerDisabled,
+    color: token.colorTextQuaternary,
+  },
   groupTag: {
     margin: 0,
-  },
-  groupItems: {
-    marginTop: 8,
-  },
-  groupItemTag: {
-    margin: 0,
+    fontSize: 10,
   },
 }));

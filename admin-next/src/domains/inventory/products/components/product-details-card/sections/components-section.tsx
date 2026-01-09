@@ -1,6 +1,7 @@
 "use client";
 
-import { Typography, Tag, Flex } from "antd";
+import { Typography, Tag, Flex, Avatar } from "antd";
+import { PictureOutlined } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "../../edit-action";
 import { useComponentsStyles } from "../product-details-card.styles";
@@ -28,56 +29,70 @@ export const ComponentsSection = ({
         title="Components"
         actions={<EditAction onEdit={onEdit} label="Edit components" />}
       />
-      <Flex vertical gap={8}>
-        {groups.map((group) => (
-          <div key={group.id} className={styles.groupBox}>
-            <Flex justify="space-between" align="center">
-              <Typography.Text strong className={styles.groupTitle}>
-                {group.title}
-              </Typography.Text>
-              <Flex gap={4}>
-                {group.isRequired && (
-                  <Tag color="red" className={styles.groupTag}>
-                    Required
-                  </Tag>
-                )}
-                {group.isMultiple && (
-                  <Tag
-                    color="blue"
-                    className={styles.groupTag}
-                    variant="outlined"
-                  >
-                    Multiple
-                  </Tag>
-                )}
-                <Typography.Text
-                  type="secondary"
-                  className={styles.groupItemsCount}
-                >
+      <Flex gap={8} wrap="wrap">
+        {groups.map((group) => {
+          const itemImages = group.items?.map((item) => {
+            const variant = item.variantId
+              ? getVariantById(item.productId, item.variantId)
+              : undefined;
+            const product = getProductById(item.productId);
+            return variant?.imageUrl || product?.imageUrl || null;
+          });
+
+          return (
+            <div key={group.id} className={styles.groupCard}>
+              <Flex justify="space-between" align="center">
+                <Typography.Text strong className={styles.groupTitle}>
+                  {group.title}
+                </Typography.Text>
+                <Typography.Text type="secondary" className={styles.groupItemsCount}>
                   {group.items?.length || 0} items
                 </Typography.Text>
               </Flex>
-            </Flex>
-            {group.items && group.items.length > 0 && (
-              <Flex gap={4} wrap="wrap" className={styles.groupItems}>
-                {group.items.map((item) => {
-                  const product = getProductById(item.productId);
-                  const variant = item.variantId
-                    ? getVariantById(item.productId, item.variantId)
-                    : undefined;
-                  return (
-                    <Tag key={item.id} className={styles.groupItemTag}>
-                      {item.customTitle ||
-                        variant?.title ||
-                        product?.title ||
-                        "\u2014"}
-                    </Tag>
-                  );
-                })}
+              <div className={styles.avatarRow}>
+                <Avatar.Group
+                  max={{ count: 5, popover: { trigger: "hover" } }}
+                  size={40}
+                  shape="square"
+                >
+                  {itemImages?.map((img, idx) =>
+                    img ? (
+                      <Avatar key={idx} src={img} />
+                    ) : (
+                      <Avatar
+                        key={idx}
+                        icon={<PictureOutlined />}
+                        className={styles.avatarPlaceholder}
+                      />
+                    )
+                  )}
+                </Avatar.Group>
+              </div>
+              <Flex gap={4} wrap="wrap">
+                {group.isMultiple && (
+                  <Tag className={styles.groupTag} variant="outlined">
+                    Multiple
+                  </Tag>
+                )}
+                {group.isRequired && (
+                  <Tag className={styles.groupTag} variant="outlined">
+                    Required
+                  </Tag>
+                )}
+                {group.minSelection > 0 && (
+                  <Tag className={styles.groupTag} variant="outlined">
+                    Min: {group.minSelection}
+                  </Tag>
+                )}
+                {group.maxSelection && (
+                  <Tag className={styles.groupTag} variant="outlined">
+                    Max: {group.maxSelection}
+                  </Tag>
+                )}
               </Flex>
-            )}
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </Flex>
     </Paper>
   );
