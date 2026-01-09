@@ -282,9 +282,9 @@ export const useOptionsStyles = createStyles(({ token }) => ({
 
 export const useComponentsStyles = createStyles(({ token }) => ({
   groupBox: {
-    padding: "10px 12px",
-    background: token.colorBgLayout,
-    borderRadius: 6,
+    padding: token.paddingSM,
+    background: token.colorBgContainer,
+    borderRadius: token.borderRadius,
   },
   groupTitle: {},
   groupItemsCount: {},

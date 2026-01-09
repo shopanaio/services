@@ -4,25 +4,11 @@ import { Typography, Tag, Flex } from "antd";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "../../edit-action";
 import { useComponentsStyles } from "../product-details-card.styles";
-
-interface IGroupItem {
-  id: string;
-  product?: {
-    options?: Array<{ title: string }>;
-    sku?: string | null;
-  };
-}
-
-interface IGroup {
-  id: string;
-  title: string;
-  isRequired?: boolean;
-  isMultiple?: boolean;
-  items?: IGroupItem[];
-}
+import type { IComponentGroup } from "../../../modals/edit-components-modal/types";
+import { getProductById, getVariantById } from "../../../modals/edit-components-modal/mocks/mock-data";
 
 interface IComponentsSectionProps {
-  groups: IGroup[];
+  groups: IComponentGroup[];
   onEdit: () => void;
 }
 
@@ -74,13 +60,20 @@ export const ComponentsSection = ({
             </Flex>
             {group.items && group.items.length > 0 && (
               <Flex gap={4} wrap="wrap" className={styles.groupItems}>
-                {group.items.map((item) => (
-                  <Tag key={item.id} className={styles.groupItemTag}>
-                    {item.product?.options?.map((o) => o.title).join(" / ") ||
-                      item.product?.sku ||
-                      "\u2014"}
-                  </Tag>
-                ))}
+                {group.items.map((item) => {
+                  const product = getProductById(item.productId);
+                  const variant = item.variantId
+                    ? getVariantById(item.productId, item.variantId)
+                    : undefined;
+                  return (
+                    <Tag key={item.id} className={styles.groupItemTag}>
+                      {item.customTitle ||
+                        variant?.title ||
+                        product?.title ||
+                        "\u2014"}
+                    </Tag>
+                  );
+                })}
               </Flex>
             )}
           </div>

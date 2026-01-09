@@ -9,6 +9,9 @@ import { AttributesSection } from "../attributes-section";
 import { EditAction } from "../edit-action";
 import { createMockData as createAttributesMockData } from "../../modals/edit-attributes-modal/mocks";
 import { MOCK_OPTION_GROUPS } from "../../modals/edit-options-modal/mocks";
+import { mockCategories } from "../../modals/edit-categories-modal/mocks";
+import { mockTags } from "../../modals/edit-tags-modal/mocks";
+import { mockGroups as mockComponentGroups } from "../../modals/edit-components-modal/mocks/mock-data";
 import {
   MediaSection,
   CategoriesSection,
@@ -138,13 +141,13 @@ export const ProductDetailsCard = ({
       <Flex gap={12}>
         <div style={{ flex: 1 }}>
           <CategoriesSection
-            primaryCategory={product.primaryCategory}
-            categories={product.categories}
+            primaryCategory={mockCategories[0]}
+            categories={mockCategories.slice(1, 4)}
             onEdit={modals.editCategories}
           />
         </div>
         <div style={{ flex: 1 }}>
-          <TagsSection tags={product.tags} onEdit={modals.editTags} />
+          <TagsSection tags={mockTags.slice(0, 5)} onEdit={modals.editTags} />
         </div>
       </Flex>
 
@@ -196,12 +199,10 @@ export const ProductDetailsCard = ({
       )}
 
       {/* GROUPS/COMPONENTS */}
-      {product.groups && product.groups.length > 0 && (
-        <ComponentsSection
-          groups={product.groups}
-          onEdit={modals.editComponents}
-        />
-      )}
+      <ComponentsSection
+        groups={mockComponentGroups}
+        onEdit={modals.editComponents}
+      />
 
       {/* SEO */}
       <SeoBlock
