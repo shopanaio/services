@@ -212,12 +212,7 @@ const CopyableChip = ({
 
   return (
     <Tooltip title={copied ? "Copied!" : undefined}>
-      <Tag
-        color="default"
-        onClick={handleCopy}
-        className={styles.copyableChip}
-        variant="outlined"
-      >
+      <Tag color="default" onClick={handleCopy} className={styles.copyableChip}>
         {label && (
           <Typography.Text type="secondary" className={styles.chipLabel}>
             {label}
@@ -316,7 +311,6 @@ export const ProductInfoHeader = ({
           color={statusConfig.color}
           icon={statusConfig.icon}
           className={styles.statusTag}
-          variant="outlined"
         >
           {statusConfig.label}
         </Tag>

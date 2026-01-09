@@ -236,6 +236,9 @@ export const useOptionsStyles = createStyles(({ token }) => ({
   },
   optionHeader: {
     marginBottom: 8,
+    "& svg": {
+      marginTop: -2,
+    },
   },
   optionTitle: {
     fontSize: 13,

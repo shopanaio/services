@@ -416,11 +416,7 @@ export const InventorySection = ({
           secondary={`across ${stats.totalSKUs} SKUs`}
           isPrimary
           badge={
-            <Tag
-              color="success"
-              className={styles.inventoryTag}
-              variant="outlined"
-            >
+            <Tag color="success" className={styles.inventoryTag}>
               Sellable
             </Tag>
           }
@@ -452,11 +448,7 @@ export const InventorySection = ({
           variant={stats.reservedQty > 0 ? "info" : "default"}
           badge={
             stats.reservedQty > 0 ? (
-              <Tag
-                color="blue"
-                className={styles.inventoryTag}
-                variant="outlined"
-              >
+              <Tag color="blue" className={styles.inventoryTag}>
                 Reserved
               </Tag>
             ) : undefined

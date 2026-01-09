@@ -15,6 +15,8 @@ export { ProductPickerModal } from "./product-picker-modal";
 export type { IProductPickerPayload } from "./product-picker-modal";
 export { CategoryPickerModal } from "./category-picker-modal";
 export type { ICategoryPickerPayload } from "./category-picker-modal";
+export { TagPickerModal } from "./tag-picker-modal";
+export type { ITagPickerPayload } from "./tag-picker-modal";
 export { EntityPickerContent } from "./entity-picker-content";
 
 // Cell Renderers
@@ -25,6 +27,7 @@ export {
   useEntityPicker,
   useProductPicker,
   useCategoryPicker,
+  useTagPicker,
 } from "./hooks/use-entity-picker";
 
 // Config registry
@@ -40,3 +43,6 @@ export { productPickerConfig } from "./configs/product-picker-config";
 
 // Category config (auto-registers)
 export { categoryPickerConfig } from "./configs/category-picker-config";
+
+// Tag config (auto-registers)
+export { tagPickerConfig } from "./configs/tag-picker-config";

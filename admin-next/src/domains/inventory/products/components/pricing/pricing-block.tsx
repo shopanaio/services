@@ -260,9 +260,7 @@ const CurrentPriceColumn = ({
 
       <Flex align="center" gap={8} style={{ marginTop: 8 }}>
         {discountPercent && (
-          <Tag className={styles.discountTag} variant="outlined">
-            -{discountPercent}%
-          </Tag>
+          <Tag className={styles.discountTag}>-{discountPercent}%</Tag>
         )}
         <Tooltip
           title={
@@ -275,7 +273,7 @@ const CurrentPriceColumn = ({
               : "Market-based pricing"
           }
         >
-          <Tag className={styles.sourceTag} variant="outlined">
+          <Tag className={styles.sourceTag}>
             {getPriceSourceLabel(priceSource)}
           </Tag>
         </Tooltip>
@@ -301,11 +299,7 @@ const CurrentPriceColumn = ({
       <Flex align="center" gap={8} style={{ marginTop: 12 }}>
         {marginStatus === "warning" && (
           <Tooltip title={`Below target margin (${targetMargin}%)`}>
-            <Tag
-              color="warning"
-              className={styles.marginWarningTag}
-              variant="outlined"
-            >
+            <Tag color="warning" className={styles.marginWarningTag}>
               <WarningOutlined /> Below target
             </Tag>
           </Tooltip>
@@ -315,11 +309,7 @@ const CurrentPriceColumn = ({
           <Tooltip
             title={`Critical: margin significantly below target (${targetMargin}%)`}
           >
-            <Tag
-              color="error"
-              className={styles.marginWarningTag}
-              variant="outlined"
-            >
+            <Tag color="error" className={styles.marginWarningTag}>
               <WarningOutlined /> Below min margin
             </Tag>
           </Tooltip>
@@ -384,13 +374,7 @@ interface IKPIRowProps {
 
 const KPIRow = ({ data, formatPrice }: IKPIRowProps) => {
   const { styles } = useStyles();
-  const {
-    costPrice,
-    margin,
-    minAllowedPrice,
-    maxPrice,
-    priceHistory,
-  } = data;
+  const { costPrice, margin, minAllowedPrice, maxPrice, priceHistory } = data;
 
   const prices = priceHistory.map((h) => h.amount);
   const avg30d =
@@ -681,4 +665,9 @@ export const PricingBlock = ({
 
 // Re-exports for backward compatibility
 export { generateMockHistory, getMockVariantPrices } from "./mocks";
-export type { IPricingData, IVariantOption, PriceSource, MarginStatus } from "./types";
+export type {
+  IPricingData,
+  IVariantOption,
+  PriceSource,
+  MarginStatus,
+} from "./types";

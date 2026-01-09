@@ -74,7 +74,6 @@ export const ShippingSection = ({
             <Tag
               color={requiresShipping ? "blue" : "default"}
               style={{ margin: 0 }}
-              variant="outlined"
             >
               {requiresShipping ? "Active" : "Disabled"}
             </Tag>

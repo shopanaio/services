@@ -76,7 +76,6 @@ export function PeriodSwitch<T extends string>({
       <Flex align="center" gap={4}>
         {periods.map((period) => (
           <Tag
-            variant="outlined"
             key={period.value}
             onClick={() => onChange(period.value)}
             className={cx(

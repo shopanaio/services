@@ -6,7 +6,10 @@ import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "../../edit-action";
 import { useComponentsStyles } from "../product-details-card.styles";
 import type { IComponentGroup } from "../../../modals/edit-components-modal/types";
-import { getProductById, getVariantById } from "../../../modals/edit-components-modal/mocks/mock-data";
+import {
+  getProductById,
+  getVariantById,
+} from "../../../modals/edit-components-modal/mocks/mock-data";
 
 interface IComponentsSectionProps {
   groups: IComponentGroup[];
@@ -45,7 +48,10 @@ export const ComponentsSection = ({
                 <Typography.Text strong className={styles.groupTitle}>
                   {group.title}
                 </Typography.Text>
-                <Typography.Text type="secondary" className={styles.groupItemsCount}>
+                <Typography.Text
+                  type="secondary"
+                  className={styles.groupItemsCount}
+                >
                   {group.items?.length || 0} items
                 </Typography.Text>
               </Flex>
@@ -70,22 +76,18 @@ export const ComponentsSection = ({
               </div>
               <Flex gap={4} wrap="wrap">
                 {group.isMultiple && (
-                  <Tag className={styles.groupTag} variant="outlined">
-                    Multiple
-                  </Tag>
+                  <Tag className={styles.groupTag}>Multiple</Tag>
                 )}
                 {group.isRequired && (
-                  <Tag className={styles.groupTag} variant="outlined">
-                    Required
-                  </Tag>
+                  <Tag className={styles.groupTag}>Required</Tag>
                 )}
                 {group.minSelection > 0 && (
-                  <Tag className={styles.groupTag} variant="outlined">
+                  <Tag className={styles.groupTag}>
                     Min: {group.minSelection}
                   </Tag>
                 )}
                 {group.maxSelection && (
-                  <Tag className={styles.groupTag} variant="outlined">
+                  <Tag className={styles.groupTag}>
                     Max: {group.maxSelection}
                   </Tag>
                 )}

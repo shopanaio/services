@@ -52,7 +52,6 @@ export const DiscountBadge = ({
       <Tag
         color="red"
         className={size === "small" ? styles.tagSmall : styles.tagDefault}
-        variant="outlined"
       >
         -{discountPercent}%
       </Tag>

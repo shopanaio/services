@@ -162,5 +162,14 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
+    // Tag Picker modal
+    {
+      type: 'tag-picker',
+      component: dynamic(() =>
+        import('@/shared/components/entity-picker-modal/tag-picker-modal').then(
+          (m) => m.TagPickerModal
+        )
+      ),
+    },
   ];
 }

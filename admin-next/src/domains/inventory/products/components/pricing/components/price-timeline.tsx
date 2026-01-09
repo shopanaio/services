@@ -98,11 +98,7 @@ export const PriceTimeline = ({ history }: IPriceTimelineProps) => {
                   />
                 )}
                 {record.isCurrent && (
-                  <Tag
-                    color="blue"
-                    className={styles.currentTag}
-                    variant="outlined"
-                  >
+                  <Tag color="blue" className={styles.currentTag}>
                     current
                   </Tag>
                 )}

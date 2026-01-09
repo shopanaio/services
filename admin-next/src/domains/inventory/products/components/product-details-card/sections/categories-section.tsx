@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Tag, Typography, Flex, Dropdown } from "antd";
-import { PlusOutlined, MoreOutlined } from "@ant-design/icons";
+import { PlusOutlined, MoreOutlined, StarFilled } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useCategoryPicker } from "@/shared/components/entity-picker-modal";
 import type { IPickableEntity } from "@/shared/components/entity-picker-modal";
@@ -21,7 +21,9 @@ export const CategoriesSection = ({
     if (initialPrimaryCategory) {
       return [
         initialPrimaryCategory,
-        ...initialCategories.filter((cat) => cat.id !== initialPrimaryCategory.id),
+        ...initialCategories.filter(
+          (cat) => cat.id !== initialPrimaryCategory.id
+        ),
       ];
     }
     return initialCategories;
@@ -31,8 +33,11 @@ export const CategoriesSection = ({
     initialPrimaryCategory?.id ?? null
   );
 
-  const primaryCategory = categories.find((cat) => cat.id === primaryCategoryId) ?? null;
-  const nonPrimaryCategories = categories.filter((cat) => cat.id !== primaryCategoryId);
+  const primaryCategory =
+    categories.find((cat) => cat.id === primaryCategoryId) ?? null;
+  const nonPrimaryCategories = categories.filter(
+    (cat) => cat.id !== primaryCategoryId
+  );
 
   const deleteCategory = (id: string) => {
     setCategories((prev) => prev.filter((cat) => cat.id !== id));
@@ -71,7 +76,10 @@ export const CategoriesSection = ({
       });
       setCategories(newCategories);
 
-      if (primaryCategoryId && !entities.find((e) => e.id === primaryCategoryId)) {
+      if (
+        primaryCategoryId &&
+        !entities.find((e) => e.id === primaryCategoryId)
+      ) {
         setPrimaryCategoryId(newCategories[0]?.id ?? null);
       }
     },
@@ -97,8 +105,9 @@ export const CategoriesSection = ({
                 ],
               }}
             >
-              <Tag color="blue-inverse" style={{ cursor: "pointer" }}>
+              <Tag color="blue" style={{ cursor: "pointer" }}>
                 <Flex align="center" gap={4}>
+                  <StarFilled />
                   {primaryCategory.title}
                   <MoreOutlined />
                 </Flex>
@@ -124,7 +133,7 @@ export const CategoriesSection = ({
                 ],
               }}
             >
-              <Tag color="blue" style={{ cursor: "pointer" }}>
+              <Tag color="default" style={{ cursor: "pointer" }}>
                 <Flex align="center" gap={4}>
                   {category.title}
                   <MoreOutlined />

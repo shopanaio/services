@@ -81,22 +81,16 @@ export const OptionsSection = ({ options, onEdit }: IOptionsSectionProps) => {
 
           return (
             <div key={option.id} className={styles.optionGroup}>
-              <Flex align="center" gap={8} className={styles.optionHeader}>
+              <Flex align="center" gap={4} className={styles.optionHeader}>
+                {styleOption && styleOption.icon}
                 <Typography.Text strong className={styles.optionTitle}>
                   {option.name}
                 </Typography.Text>
-                {styleOption && (
-                  <Tag className={styles.styleTag} icon={styleOption.icon}>
-                    <span>{styleOption.label}</span>
-                  </Tag>
-                )}
               </Flex>
               <Flex gap={4} wrap="wrap">
                 {option.values?.map((value) => (
                   <Tag
-                    color="blue"
                     key={value.id}
-                    variant="outlined"
                     style={{
                       display: "flex",
                       alignItems: "center",

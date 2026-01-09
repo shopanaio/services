@@ -139,3 +139,35 @@ export function useCategoryPicker(
 
   return { openPicker };
 }
+
+export function useTagPicker(
+  options: Omit<IUseEntityPickerOptions<IPickableEntity>, "entityType">
+) {
+  const { push } = useModalStack();
+  const {
+    selectionMode = "multi",
+    initialSelection = [],
+    excludeIds = [],
+    maxSelection,
+    onConfirm,
+  } = options;
+
+  const openPicker = useCallback(() => {
+    push("tag-picker", {
+      selectionMode,
+      initialSelection,
+      excludeIds,
+      maxSelection,
+      onConfirm,
+    });
+  }, [
+    push,
+    selectionMode,
+    initialSelection,
+    excludeIds,
+    maxSelection,
+    onConfirm,
+  ]);
+
+  return { openPicker };
+}

@@ -138,17 +138,11 @@ export const ProductDetailsCard = ({
       />
 
       {/* CATEGORIES & TAGS */}
-      <Flex gap={12}>
-        <div style={{ flex: 1 }}>
-          <CategoriesSection
-            primaryCategory={mockCategories[0]}
-            categories={mockCategories.slice(1, 4)}
-          />
-        </div>
-        <div style={{ flex: 1 }}>
-          <TagsSection tags={mockTags.slice(0, 5)} onEdit={modals.editTags} />
-        </div>
-      </Flex>
+
+      <CategoriesSection
+        primaryCategory={mockCategories[0]}
+        categories={mockCategories.slice(1, 4)}
+      />
 
       {/* REVIEWS */}
       <ReviewsSection
@@ -202,6 +196,8 @@ export const ProductDetailsCard = ({
         groups={mockComponentGroups}
         onEdit={modals.editComponents}
       />
+
+      <TagsSection tags={mockTags.slice(0, 5)} />
 
       {/* SEO */}
       <SeoBlock
