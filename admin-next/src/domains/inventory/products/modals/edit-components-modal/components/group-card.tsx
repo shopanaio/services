@@ -13,9 +13,8 @@ import {
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 
-// Entity Picker Modal - imports for side effects (registration)
+// Entity Picker Modal
 import "@/shared/components/entity-picker-modal/register";
-import "@/shared/components/entity-picker-modal/configs/product-picker-config";
 import {
   useProductPicker,
   type IPickableEntity,

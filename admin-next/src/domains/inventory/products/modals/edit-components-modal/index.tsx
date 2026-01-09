@@ -193,7 +193,7 @@ export const EditComponentsModal = () => {
   const { styles } = useStyles();
   const { pop, setDirty, payload } = useModalStackContext();
 
-  const modalPayload = payload as IEditComponentsModalPayload | undefined;
+  const modalPayload = payload as unknown as IEditComponentsModalPayload | undefined;
 
   // State
   const [activeTab, setActiveTab] = useState<EditComponentsTabKey>("groups");
