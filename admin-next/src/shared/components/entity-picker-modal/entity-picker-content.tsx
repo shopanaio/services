@@ -148,7 +148,7 @@ export function EntityPickerContent<T extends IPickableEntity>({
           rowStyle={{ cursor: "pointer" }}
           loading={isLoading}
           defaultColDef={{
-            resizable: true,
+            resizable: false,
             sortable: false,
             cellStyle: { display: "flex", alignItems: "center" },
           }}
