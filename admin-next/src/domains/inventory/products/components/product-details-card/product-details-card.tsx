@@ -143,7 +143,6 @@ export const ProductDetailsCard = ({
           <CategoriesSection
             primaryCategory={mockCategories[0]}
             categories={mockCategories.slice(1, 4)}
-            onEdit={modals.editCategories}
           />
         </div>
         <div style={{ flex: 1 }}>

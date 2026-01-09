@@ -1,55 +1,164 @@
 "use client";
 
-import { Tag, Typography, Flex } from "antd";
+import { useState } from "react";
+import { Tag, Typography, Flex, Dropdown } from "antd";
+import { PlusOutlined, MoreOutlined } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import { EditAction } from "../../edit-action";
-
-interface ICategory {
-  id: string;
-  title: string;
-}
-
-interface ITag {
-  id: string;
-  title: string;
-}
+import { useCategoryPicker } from "@/shared/components/entity-picker-modal";
+import type { IPickableEntity } from "@/shared/components/entity-picker-modal";
+import { EntityStatus, type ICategory } from "../../../mocks/types";
 
 interface ICategoriesSectionProps {
   primaryCategory?: ICategory | null;
   categories?: ICategory[];
-  onEdit: () => void;
 }
 
 export const CategoriesSection = ({
-  primaryCategory,
-  categories = [],
-  onEdit,
+  primaryCategory: initialPrimaryCategory,
+  categories: initialCategories = [],
 }: ICategoriesSectionProps) => {
-  const hasCategories = primaryCategory || categories.length > 0;
+  const [categories, setCategories] = useState<ICategory[]>(() => {
+    if (initialPrimaryCategory) {
+      return [
+        initialPrimaryCategory,
+        ...initialCategories.filter((cat) => cat.id !== initialPrimaryCategory.id),
+      ];
+    }
+    return initialCategories;
+  });
+
+  const [primaryCategoryId, setPrimaryCategoryId] = useState<string | null>(
+    initialPrimaryCategory?.id ?? null
+  );
+
+  const primaryCategory = categories.find((cat) => cat.id === primaryCategoryId) ?? null;
+  const nonPrimaryCategories = categories.filter((cat) => cat.id !== primaryCategoryId);
+
+  const deleteCategory = (id: string) => {
+    setCategories((prev) => prev.filter((cat) => cat.id !== id));
+    if (primaryCategoryId === id) {
+      setPrimaryCategoryId(null);
+    }
+  };
+
+  const setPrimary = (id: string) => {
+    setPrimaryCategoryId(id);
+  };
+
+  const { openPicker } = useCategoryPicker({
+    initialSelection: categories.map((cat) => cat.id),
+    onConfirm: (entities: IPickableEntity[]) => {
+      const existingById = new Map(categories.map((c) => [c.id, c]));
+      const newCategories = entities.map((entity) => {
+        const existing = existingById.get(entity.id);
+        if (existing) {
+          return existing;
+        }
+        return {
+          id: entity.id,
+          title: entity.title,
+          slug: entity.id,
+          description: null,
+          excerpt: null,
+          seoTitle: null,
+          seoDescription: null,
+          status: EntityStatus.PUBLISHED,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          featured: null,
+          gallery: [],
+        } satisfies ICategory;
+      });
+      setCategories(newCategories);
+
+      if (primaryCategoryId && !entities.find((e) => e.id === primaryCategoryId)) {
+        setPrimaryCategoryId(newCategories[0]?.id ?? null);
+      }
+    },
+  });
+
+  const hasCategories = categories.length > 0;
 
   return (
     <Paper>
-      <PaperHeader
-        title="Categories"
-        actions={<EditAction label="Edit categories" onEdit={onEdit} />}
-      />
+      <PaperHeader title="Categories" />
       {hasCategories ? (
         <Flex gap={4} wrap="wrap">
           {primaryCategory && (
-            <Tag color="blue-inverse">{primaryCategory.title}</Tag>
-          )}
-          {categories
-            .filter((cat) => cat.id !== primaryCategory?.id)
-            .map((cat) => (
-              <Tag key={cat.id} color="blue">
-                {cat.title}
+            <Dropdown
+              trigger={["click"]}
+              menu={{
+                items: [
+                  {
+                    key: "delete",
+                    label: "Delete category",
+                    onClick: () => deleteCategory(primaryCategory.id),
+                  },
+                ],
+              }}
+            >
+              <Tag color="blue-inverse" style={{ cursor: "pointer" }}>
+                <Flex align="center" gap={4}>
+                  {primaryCategory.title}
+                  <MoreOutlined />
+                </Flex>
               </Tag>
-            ))}
+            </Dropdown>
+          )}
+          {nonPrimaryCategories.map((category) => (
+            <Dropdown
+              key={category.id}
+              trigger={["click"]}
+              menu={{
+                items: [
+                  {
+                    key: "set-as-primary",
+                    label: "Set as primary",
+                    onClick: () => setPrimary(category.id),
+                  },
+                  {
+                    key: "delete",
+                    label: "Delete category",
+                    onClick: () => deleteCategory(category.id),
+                  },
+                ],
+              }}
+            >
+              <Tag color="blue" style={{ cursor: "pointer" }}>
+                <Flex align="center" gap={4}>
+                  {category.title}
+                  <MoreOutlined />
+                </Flex>
+              </Tag>
+            </Dropdown>
+          ))}
+          <Tag
+            color="default"
+            onClick={openPicker}
+            style={{ cursor: "pointer" }}
+          >
+            <Flex align="center" gap={4}>
+              <PlusOutlined />
+              Category
+            </Flex>
+          </Tag>
         </Flex>
       ) : (
-        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-          No categories assigned
-        </Typography.Text>
+        <Flex gap={4} wrap="wrap">
+          <Tag
+            color="default"
+            onClick={openPicker}
+            style={{ cursor: "pointer" }}
+          >
+            <Flex align="center" gap={4}>
+              <PlusOutlined />
+              Category
+            </Flex>
+          </Tag>
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            No categories assigned
+          </Typography.Text>
+        </Flex>
       )}
     </Paper>
   );
