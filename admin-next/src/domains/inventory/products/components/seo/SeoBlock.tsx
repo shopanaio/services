@@ -1,8 +1,8 @@
 import { Typography, Flex } from "antd";
 import { WarningOutlined } from "@ant-design/icons";
+import { ReactNode } from "react";
 import { Paper } from "../Paper";
 import { PaperHeader } from "../PaperHeader";
-import { EditAction } from "../EditAction";
 import { SeoPreview } from "./SeoPreview";
 import type { ISeoPreviewData } from "./SeoPreview.types";
 
@@ -14,10 +14,10 @@ export interface ISeoData extends ISeoPreviewData {
 
 interface ISeoBlockProps {
   data: ISeoData;
-  onEdit?: () => void;
+  actions?: ReactNode;
 }
 
-export const SeoBlock = ({ data, onEdit }: ISeoBlockProps) => {
+export const SeoBlock = ({ data, actions }: ISeoBlockProps) => {
   const seoIssuesCount =
     (!data.seoTitle ? 1 : 0) + (!data.seoDescription ? 1 : 0);
 
@@ -44,11 +44,7 @@ export const SeoBlock = ({ data, onEdit }: ISeoBlockProps) => {
 
   return (
     <Paper>
-      <PaperHeader
-        title="SEO"
-        extra={issuesExtra}
-        actions={onEdit && <EditAction onEdit={onEdit} label="Edit SEO" />}
-      />
+      <PaperHeader title="SEO" extra={issuesExtra} actions={actions} />
       <SeoPreview data={previewData} />
     </Paper>
   );

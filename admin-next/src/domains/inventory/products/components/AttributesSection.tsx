@@ -1,9 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, ReactNode } from "react";
 import { createStyles } from "antd-style";
 import { Descriptions, Flex, Typography } from "antd";
 import { Paper } from "./Paper";
 import { PaperHeader } from "./PaperHeader";
-import { EditAction } from "./EditAction";
 import type { IAttributeRow } from "../modals/EditAttributesModal/types";
 
 // ============================================================================
@@ -41,7 +40,7 @@ const useStyles = createStyles(({ token }) => ({
 
 interface IAttributesSectionProps {
   data: IAttributeRow[];
-  onEdit?: () => void;
+  actions?: ReactNode;
 }
 
 interface IAttributeGroup {
@@ -104,7 +103,7 @@ const AttributeGroupBlock = ({
 // Main Component
 // ============================================================================
 
-export const AttributesSection = ({ data, onEdit }: IAttributesSectionProps) => {
+export const AttributesSection = ({ data, actions }: IAttributesSectionProps) => {
   const { styles } = useStyles();
 
   const { rootAttributes, groups } = useMemo(() => {
@@ -138,10 +137,7 @@ export const AttributesSection = ({ data, onEdit }: IAttributesSectionProps) => 
 
   return (
     <Paper>
-      <PaperHeader
-        title="Attributes"
-        actions={onEdit && <EditAction onEdit={onEdit} label="Edit attributes" />}
-      />
+      <PaperHeader title="Attributes" actions={actions} />
       <Flex vertical gap={16}>
         {/* Root-level attributes (no group) */}
         <AttributeList

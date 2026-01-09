@@ -1157,7 +1157,7 @@ export const ProductInfoCardA = ({
       {/* ATTRIBUTES */}
       <AttributesSection
         data={createAttributesMockData()}
-        onEdit={() => openEditAttributesModal({ productId: product.id })}
+        actions={<EditAction onEdit={() => openEditAttributesModal({ productId: product.id })} label="Edit attributes" />}
       />
 
       {/* OPTIONS (variable products) */}
@@ -1616,20 +1616,25 @@ export const ProductInfoCardA = ({
           excerpt: product.excerpt,
           slug: product.slug,
         }}
-        onEdit={() =>
-          openEditSeoModal({
-            productId: product.id,
-            productTitle: product.title,
-            productSlug: product.slug,
-            seoTitle: product.seoTitle,
-            seoDescription: product.seoDescription,
-            onSave: (
-              values: Parameters<NonNullable<IEditSeoModalPayload["onSave"]>>[0]
-            ) => {
-              console.log("Saved SEO:", values);
-              // TODO: Implement actual save logic
-            },
-          })
+        actions={
+          <EditAction
+            label="Edit SEO"
+            onEdit={() =>
+              openEditSeoModal({
+                productId: product.id,
+                productTitle: product.title,
+                productSlug: product.slug,
+                seoTitle: product.seoTitle,
+                seoDescription: product.seoDescription,
+                onSave: (
+                  values: Parameters<NonNullable<IEditSeoModalPayload["onSave"]>>[0]
+                ) => {
+                  console.log("Saved SEO:", values);
+                  // TODO: Implement actual save logic
+                },
+              })
+            }
+          />
         }
       />
 
