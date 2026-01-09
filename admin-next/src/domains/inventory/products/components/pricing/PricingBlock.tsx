@@ -13,7 +13,7 @@ import {
   getMarginStatus,
   filterHistoryByPeriod,
 } from "./utils";
-import { generateMockHistory, generateMockScheduledPrices, getMockVariantPrices } from "./mocks";
+import { generateMockHistory, getMockVariantPrices } from "./mocks";
 import type {
   IPriceHistoryRecord,
   IPricingData,
@@ -529,11 +529,6 @@ export const PricingBlock = ({
     priceHistoryProp ??
     generateMockHistory(price, compareAtPrice);
 
-  const actualScheduledPrices = useMemo(
-    () => generateMockScheduledPrices(actualPrice),
-    [actualPrice]
-  );
-
   const margin =
     actualCostPrice && actualCostPrice > 0
       ? Math.round(((actualPrice - actualCostPrice) / actualPrice) * 100)
@@ -627,14 +622,12 @@ export const PricingBlock = ({
           costPrice: actualCostPrice,
           priceSource,
           priceHistory: actualPriceHistory,
-          scheduledPrices: actualScheduledPrices,
           variants: variantPrices?.map((v) => ({
             id: v.variantId,
             title: v.variantTitle,
             price: v.currentPrice,
             compareAtPrice: v.compareAtPrice,
             priceHistory: v.priceHistory,
-            scheduledPrices: generateMockScheduledPrices(v.currentPrice),
           })),
           variantId: selectedVariantId,
           formatPrice: formatPriceProp,
@@ -651,7 +644,6 @@ export const PricingBlock = ({
       actualCostPrice,
       priceSource,
       actualPriceHistory,
-      actualScheduledPrices,
       variantPrices,
       variants,
       selectedVariantId,

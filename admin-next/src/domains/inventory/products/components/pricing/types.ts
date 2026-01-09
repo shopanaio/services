@@ -11,15 +11,6 @@ export interface IPriceHistoryRecord {
   isCurrent: boolean;
 }
 
-export interface IScheduledPriceRecord {
-  id: string;
-  amount: number; // in minor units (kopecks)
-  compareAt: number | null;
-  startsAt: Date;
-  endsAt: Date | null;
-  reason?: string; // e.g., "Promo: New Year Sale", "Return to regular price"
-}
-
 export interface IVariantPriceSummary {
   variantId: string;
   variantTitle: string;
@@ -68,13 +59,3 @@ export interface IVariantOption {
 
 export type ChartPeriod = "7D" | "30D" | "90D";
 export type KPIPeriod = "7d" | "30d" | "90d" | "ytd" | "all";
-
-export interface IChartPoint {
-  x: number;
-  y: number;
-  price: number;
-  date: Date;
-  isMin?: boolean;
-  isMax?: boolean;
-  isCurrent?: boolean;
-}

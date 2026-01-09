@@ -109,7 +109,7 @@ export const PriceChart = ({
           data: values,
           smooth: false,
           symbol: "circle",
-          symbolSize: (value: number, params: { dataIndex: number }) => {
+          symbolSize: (_value: number, params: { dataIndex: number }) => {
             return params.dataIndex === currentIndex ? 10 : 6;
           },
           itemStyle: {

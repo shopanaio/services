@@ -9,13 +9,11 @@ import {
 import { formatPrice as defaultFormatPrice } from "../../components/pricing/utils";
 import {
   OverviewSection,
-  ScheduledSection,
   ChangeLogSection,
 } from "./components";
 import type {
   IPriceHistoryModalPayload,
   IPriceHistoryRecord,
-  IScheduledPriceRecord,
 } from "./types";
 
 export const PriceHistoryModal = () => {
@@ -51,21 +49,6 @@ export const PriceHistoryModal = () => {
     );
   }, [typedPayload.variants]);
 
-  const allVariantsScheduled = useMemo(() => {
-    if (!typedPayload.variants?.length) return [];
-    const combined: IScheduledPriceRecord[] = [];
-    typedPayload.variants.forEach((v) => {
-      v.scheduledPrices?.forEach((s) => {
-        combined.push({
-          ...s,
-          id: `${v.id}-${s.id}`,
-          reason: `${v.title}: ${s.reason || "Scheduled change"}`,
-        });
-      });
-    });
-    return combined.sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
-  }, [typedPayload.variants]);
-
   const currentPrice = isAllVariants
     ? typedPayload.currentPrice
     : (selectedVariant?.price ?? typedPayload.currentPrice);
@@ -77,10 +60,6 @@ export const PriceHistoryModal = () => {
   const priceHistory = isAllVariants
     ? allVariantsHistory
     : (selectedVariant?.priceHistory ?? typedPayload.priceHistory);
-
-  const scheduledPrices = isAllVariants
-    ? allVariantsScheduled
-    : (selectedVariant?.scheduledPrices ?? typedPayload.scheduledPrices ?? []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -112,15 +91,6 @@ export const PriceHistoryModal = () => {
         selectedVariantId={selectedVariantId}
         onVariantSelect={setSelectedVariantId}
         formatPrice={formatPrice}
-      />
-
-      <ScheduledSection
-        scheduledPrices={scheduledPrices}
-        currentPrice={currentPrice}
-        formatPrice={formatPrice}
-        onAdd={typedPayload.onAddScheduled}
-        onEdit={typedPayload.onEditScheduled}
-        onDelete={typedPayload.onDeleteScheduled}
       />
 
       <ChangeLogSection history={priceHistory} />

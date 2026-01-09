@@ -62,10 +62,4 @@ export const useStyles = createStyles(({ token }) => ({
     maxHeight: 400,
     overflowY: "auto",
   },
-  scheduledPaper: {
-    padding: 16,
-  },
-  emptyScheduled: {
-    padding: "24px 0",
-  },
 }));

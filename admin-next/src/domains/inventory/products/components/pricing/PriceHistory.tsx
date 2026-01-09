@@ -3,13 +3,11 @@
 
 export type {
   IPriceHistoryRecord,
-  IScheduledPriceRecord,
   IVariantPriceSummary,
 } from "./types";
 
 export {
   generateMockHistory,
-  generateMockScheduledPrices,
   getMockVariantPrices,
 } from "./mocks";
 
