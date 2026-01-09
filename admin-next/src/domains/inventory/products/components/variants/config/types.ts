@@ -55,7 +55,7 @@ export interface IVariantColumn {
   width?: number;
   minWidth?: number;
   flex?: number;
-  type?: "text" | "number" | "badge" | "option";
+  type?: "text" | "number" | "badge" | "option" | "media";
 }
 
 // ============================================================================
@@ -63,6 +63,7 @@ export interface IVariantColumn {
 // ============================================================================
 
 export type VariantColumnField =
+  | "imageUrl"
   | "sku"
   | "barcode"
   | "price"

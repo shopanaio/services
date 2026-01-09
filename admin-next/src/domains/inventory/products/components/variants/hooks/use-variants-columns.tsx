@@ -3,6 +3,7 @@ import type { ColDef, ValueGetterParams, ValueSetterParams } from "ag-grid-commu
 import { useVariantsEditorStore } from "./use-variants-editor-store";
 import {
   VARIANT_COLUMNS,
+  MEDIA_COLUMNS,
   createOptionColumns,
   type IVariantEditorRow,
   type IOptionGroup,
@@ -178,20 +179,7 @@ export function useVariantsColumns(
   return useMemo(() => {
     const columns: ColDef<IVariantEditorRow>[] = [];
 
-    // Fixed: Image column (hide in restricted views like pricing/inventory)
-    if (!ignoreUserSettings) {
-      columns.push({
-        field: "imageUrl",
-        headerName: "Image",
-        width: 72,
-        cellRenderer: ImageCellRenderer,
-        pinned: "left",
-        sortable: false,
-        resizable: false,
-      });
-    }
-
-    // Fixed: Title column
+    // Fixed: Title column (always pinned left)
     columns.push({
       field: "title",
       headerName: "Title",
@@ -200,6 +188,28 @@ export function useVariantsColumns(
       cellRenderer: TitleCellRenderer,
       pinned: "left",
     });
+
+    // Variant Media column (toggleable like other columns)
+    for (const col of MEDIA_COLUMNS) {
+      // Check if column is available (if restricted)
+      if (availableColumns && !availableColumns.includes(col.field as VariantColumnField)) {
+        continue;
+      }
+
+      // Check visibility: either use user settings or availableColumns as the source of truth
+      if (!ignoreUserSettings && !columnVisibility[col.field]) {
+        continue;
+      }
+
+      columns.push({
+        field: col.field as keyof IVariantEditorRow,
+        headerName: col.headerName,
+        width: col.width,
+        cellRenderer: ImageCellRenderer,
+        sortable: false,
+        resizable: false,
+      });
+    }
 
     // Option columns (dynamic) - only show when not restricted or when user settings allow
     if (!ignoreUserSettings) {

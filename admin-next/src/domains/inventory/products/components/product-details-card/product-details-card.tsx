@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Flex } from "antd";
+import { Flex } from "antd";
 import { ProductInfoHeader } from "../product-info-header";
 import { ProductContentTabs } from "../product-content-tabs";
 import { PricingBlock } from "../pricing/pricing-block";
@@ -159,17 +159,19 @@ export const ProductDetailsCard = ({
       <AttributesSection
         data={createAttributesMockData()}
         actions={
-          <EditAction
-            onEdit={modals.editAttributes}
-            label="Edit attributes"
-          />
+          <EditAction onEdit={modals.editAttributes} label="Edit attributes" />
         }
       />
 
       {/* OPTIONS (variable products) */}
-      {product.isVariableProduct && product.options && product.options.length > 0 && (
-        <OptionsSection options={product.options} onEdit={modals.editOptions} />
-      )}
+      {product.isVariableProduct &&
+        product.options &&
+        product.options.length > 0 && (
+          <OptionsSection
+            options={product.options}
+            onEdit={modals.editOptions}
+          />
+        )}
 
       {/* VARIANTS TABLE (variable products) */}
       {product.isVariableProduct && variantsForTable.length > 0 && (
@@ -211,13 +213,8 @@ export const ProductDetailsCard = ({
           excerpt: product.excerpt,
           slug: product.slug,
         }}
-        actions={
-          <EditAction label="Edit SEO" onEdit={modals.editSeo} />
-        }
+        actions={<EditAction label="Edit SEO" onEdit={modals.editSeo} />}
       />
-
-      {/* OPEN IN MODAL (TEST) */}
-      <Button onClick={modals.openProductModal}>Open in stacked modal</Button>
     </Flex>
   );
 };

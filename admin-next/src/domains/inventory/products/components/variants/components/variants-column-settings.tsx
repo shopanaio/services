@@ -4,6 +4,7 @@ import { Popover, Checkbox, Divider, Typography, Button } from "antd";
 import { SettingOutlined } from "@ant-design/icons";
 import { useVariantsEditorStore } from "../hooks";
 import {
+  MEDIA_COLUMNS,
   PRICING_COLUMNS,
   INVENTORY_COLUMNS,
   ATTRIBUTES_COLUMNS,
@@ -77,10 +78,25 @@ export const VariantsColumnSettings: React.FC<VariantsColumnSettingsProps> = ({
 
   const content = (
     <div className={styles.content}>
-      {/* Title - always first and disabled */}
-      <Checkbox checked disabled className={styles.checkbox}>
-        Title
-      </Checkbox>
+      {/* General section: Title + Media */}
+      <div className={styles.section}>
+        <Text className={styles.sectionTitle}>General</Text>
+        <div className={styles.checkboxGroup}>
+          <Checkbox checked disabled className={styles.checkbox}>
+            Title
+          </Checkbox>
+          {MEDIA_COLUMNS.map((col) => (
+            <Checkbox
+              key={col.field}
+              checked={columnVisibility[col.field]}
+              onChange={() => toggleColumn(col.field)}
+              className={styles.checkbox}
+            >
+              {col.headerName}
+            </Checkbox>
+          ))}
+        </div>
+      </div>
 
       {sections.map((section) => {
         // Skip options section if no option groups

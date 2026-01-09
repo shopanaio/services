@@ -12,6 +12,8 @@ export interface IColumnVisibility {
 
 // Default column visibility for variants editor
 export const DEFAULT_VARIANTS_COLUMN_VISIBILITY: IColumnVisibility = {
+  // Media column
+  imageUrl: true,
   // Options columns are always visible by default (handled dynamically)
   // Variant columns
   sku: true,

@@ -32,8 +32,6 @@ export const ProductModal = () => {
       return (
         <Flex vertical gap={16} style={{ padding: 16 }}>
           <Skeleton active paragraph={{ rows: 4 }} />
-          <Skeleton active paragraph={{ rows: 4 }} />
-          <Skeleton active paragraph={{ rows: 4 }} />
         </Flex>
       );
     }

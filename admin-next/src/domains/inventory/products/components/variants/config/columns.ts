@@ -4,6 +4,17 @@ import type { IVariantColumn, IOptionGroup } from "./types";
 // Variant Columns Configuration (grouped like bulk editor)
 // ============================================================================
 
+export const MEDIA_COLUMNS: IVariantColumn[] = [
+  {
+    field: "imageUrl",
+    headerName: "Variant Media",
+    defaultVisible: true,
+    editable: false,
+    width: 72,
+    type: "media",
+  },
+];
+
 export const PRICING_COLUMNS: IVariantColumn[] = [
   {
     field: "price",
