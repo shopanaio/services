@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import type { ColDef } from "ag-grid-community";
-import { filterSchema } from "@/domains/inventory/products/page/filterSchema";
+import { filterSchema } from "@/domains/inventory/products/page/filter-schema";
 import {
   mockProductsList,
   type IProductListItem,

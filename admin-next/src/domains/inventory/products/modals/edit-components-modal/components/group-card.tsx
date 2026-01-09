@@ -1,17 +1,8 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { createStyles } from "antd-style";
-import {
-  Typography,
-  Tag,
-  Button,
-  Dropdown,
-  Empty,
-  Switch,
-  Select,
-  Flex,
-} from "antd";
+import { Typography, Button, Dropdown, Empty, Flex } from "antd";
 import {
   CaretDownOutlined,
   CaretRightOutlined,
@@ -22,14 +13,21 @@ import {
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 
+// Entity Picker Modal - imports for side effects (registration)
+import "@/shared/components/entity-picker-modal/register";
+import "@/shared/components/entity-picker-modal/configs/product-picker-config";
 import {
+  useProductPicker,
+  type IPickableEntity,
+} from "@/shared/components/entity-picker-modal";
+
+import {
+  ComponentItemType,
   ComponentPriceType,
-  PRICE_RULE_OPTIONS,
   type IComponentGroup,
   type IComponentItem,
   type IPricingRuleTemplate,
 } from "../types";
-import { formatPrice, calculateFinalPrice } from "../mocks/mock-data";
 import { GroupSettings } from "./group-settings";
 import { ComponentsTable } from "./components-table";
 
@@ -67,46 +65,6 @@ const useStyles = createStyles(({ token }) => ({
     textTransform: "uppercase",
     letterSpacing: "0.5px",
   },
-  tagsRow: {
-    display: "flex",
-    gap: 6,
-    flexWrap: "wrap",
-  },
-
-  itemsHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  itemsHeaderLeft: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-  },
-  itemsHeaderRight: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-  },
-  itemsTitle: {
-    fontSize: 13,
-    fontWeight: 500,
-  },
-  itemsCount: {
-    color: token.colorTextSecondary,
-    fontWeight: 400,
-  },
-  bulkSwitch: {
-    display: "flex",
-    alignItems: "center",
-    gap: 6,
-  },
-  selectedCount: {
-    fontSize: 12,
-    color: token.colorPrimary,
-    fontWeight: 500,
-  },
   emptyItems: {
     padding: "24px 0",
   },
@@ -123,7 +81,6 @@ interface IGroupCardProps {
   onChange: (group: IComponentGroup) => void;
   onDelete: () => void;
   onDuplicate: () => void;
-  onAddItem: () => void;
   onEditVariants?: (item: IComponentItem) => void;
   onIncludeVariants?: (item: IComponentItem) => void;
   pricingTemplates: IPricingRuleTemplate[];
@@ -133,8 +90,6 @@ interface IGroupCardProps {
 // Component
 // ============================================================================
 
-const TEMPLATE_PREFIX = "tpl:";
-
 export const GroupCard = ({
   group,
   isExpanded,
@@ -142,26 +97,56 @@ export const GroupCard = ({
   onChange,
   onDelete,
   onDuplicate,
-  onAddItem,
   onEditVariants,
   onIncludeVariants,
   pricingTemplates,
 }: IGroupCardProps) => {
   const { styles, cx } = useStyles();
 
-  // Bulk edit state
-  const [bulkEditMode, setBulkEditMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // Get existing product IDs to exclude from picker
+  const existingProductIds = useMemo(
+    () => group.items.map((item) => item.productId),
+    [group.items]
+  );
 
-  // Calculate price range
-  const priceRange = useMemo(() => {
-    if (group.items.length === 0) return null;
-    const prices = group.items.map((item) => item.finalPrice);
-    const min = Math.min(...prices);
-    const max = Math.max(...prices);
-    if (min === max) return formatPrice(min);
-    return `${formatPrice(min)} - ${formatPrice(max)}`;
-  }, [group.items]);
+  // Transform selected products to component items
+  const handleProductsSelected = useCallback(
+    (products: IPickableEntity[]) => {
+      const newItems: IComponentItem[] = products.map((product, index) => ({
+        id: `item-${Date.now()}-${index}`,
+        itemType: ComponentItemType.SIMPLE_PRODUCT,
+        productId: product.id,
+        priceType: ComponentPriceType.BASE,
+        priceValue: null,
+        basePrice: 0,
+        finalPrice: 0,
+        sortIndex: group.items.length + index,
+        isAvailable: true,
+        customTitle: product.title,
+      }));
+
+      onChange({
+        ...group,
+        items: [...group.items, ...newItems],
+      });
+    },
+    [group, onChange]
+  );
+
+  // Product picker hook
+  const { openPicker } = useProductPicker({
+    excludeIds: existingProductIds,
+    onConfirm: handleProductsSelected,
+  });
+
+  // Handle add button click
+  const handleAddClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      openPicker();
+    },
+    [openPicker]
+  );
 
   // Handlers
   const handleSettingsChange = useCallback(
@@ -177,17 +162,6 @@ export const GroupCard = ({
     },
     [group, onChange]
   );
-
-  const handleBulkEditToggle = useCallback((checked: boolean) => {
-    setBulkEditMode(checked);
-    if (!checked) {
-      setSelectedIds(new Set());
-    }
-  }, []);
-
-  const handleSelectionChange = useCallback((ids: Set<string>) => {
-    setSelectedIds(ids);
-  }, []);
 
   const handleMenuClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -224,13 +198,20 @@ export const GroupCard = ({
           </div>
         </div>
 
-        <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
+        <Flex gap={4}>
           <Button
             type="text"
-            icon={<MoreOutlined />}
-            onClick={handleMenuClick}
+            icon={<PlusOutlined />}
+            onClick={handleAddClick}
           />
-        </Dropdown>
+          <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
+            <Button
+              type="text"
+              icon={<MoreOutlined />}
+              onClick={handleMenuClick}
+            />
+          </Dropdown>
+        </Flex>
       </div>
 
       {/* Content */}
@@ -248,7 +229,7 @@ export const GroupCard = ({
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
-                onClick={onAddItem}
+                onClick={openPicker}
               >
                 Add first item
               </Button>
@@ -260,8 +241,6 @@ export const GroupCard = ({
               onEditVariants={onEditVariants}
               onIncludeVariants={onIncludeVariants}
               pricingTemplates={pricingTemplates}
-              bulkEditMode={bulkEditMode}
-              onSelectionChange={handleSelectionChange}
             />
           )}
         </div>

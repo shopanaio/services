@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useCallback, useRef, useState } from "react";
+import { useMemo, useCallback, useRef } from "react";
 import { createStyles } from "antd-style";
 import { AgGridReact } from "ag-grid-react";
 import {
@@ -13,7 +13,7 @@ import {
   RowDragEnterEvent,
   CellValueChangedEvent,
 } from "ag-grid-community";
-import { Button, Dropdown, Select, Checkbox } from "antd";
+import { Button, Dropdown, Select } from "antd";
 import {
   MoreOutlined,
   DeleteOutlined,
@@ -134,8 +134,6 @@ interface IComponentsTableProps {
   onEditVariants?: (item: IComponentItem) => void;
   onIncludeVariants?: (item: IComponentItem) => void;
   pricingTemplates: IPricingRuleTemplate[];
-  bulkEditMode: boolean;
-  onSelectionChange: (selectedIds: Set<string>) => void;
 }
 
 // Row type - either product or variant
@@ -240,30 +238,6 @@ const ProductCellRenderer = (params: IProductCellRendererParams) => {
         )}
       </div>
     </div>
-  );
-};
-
-// ============================================================================
-// Checkbox Cell Renderer (for bulk edit)
-// ============================================================================
-
-interface ICheckboxCellRendererProps extends ICellRendererParams<ITableRow> {
-  selectedIds: Set<string>;
-  onToggle: (itemId: string) => void;
-}
-
-const CheckboxCellRenderer = ({
-  data,
-  selectedIds,
-  onToggle,
-}: ICheckboxCellRendererProps) => {
-  if (!data || data.isVariant) return null;
-
-  return (
-    <Checkbox
-      checked={selectedIds.has(data.id)}
-      onChange={() => onToggle(data.id)}
-    />
   );
 };
 
@@ -481,45 +455,12 @@ export const ComponentsTable = ({
   onEditVariants,
   onIncludeVariants,
   pricingTemplates,
-  bulkEditMode,
-  onSelectionChange,
 }: IComponentsTableProps) => {
   const { styles } = useStyles();
   const gridRef = useRef<AgGridReact<ITableRow>>(null);
 
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-
   // Refs for drag handling
   const draggingRowIdRef = useRef<string | null>(null);
-
-  const updateSelection = useCallback(
-    (newSelectedIds: Set<string>) => {
-      setSelectedIds(newSelectedIds);
-      onSelectionChange(newSelectedIds);
-    },
-    [onSelectionChange]
-  );
-
-  const handleToggleSelection = useCallback(
-    (itemId: string) => {
-      const next = new Set(selectedIds);
-      if (next.has(itemId)) {
-        next.delete(itemId);
-      } else {
-        next.add(itemId);
-      }
-      updateSelection(next);
-    },
-    [selectedIds, updateSelection]
-  );
-
-  const handleToggleAll = useCallback(() => {
-    if (selectedIds.size === items.length) {
-      updateSelection(new Set());
-    } else {
-      updateSelection(new Set(items.map((item) => item.id)));
-    }
-  }, [items, selectedIds.size, updateSelection]);
 
   // Build all rows (products + variants) and sort by sortIndex
   // When a product has included variants, only show the variants (not the product row)
@@ -621,13 +562,8 @@ export const ComponentsTable = ({
         });
         onItemsChange(newItems);
       } else {
-        const applyToIds =
-          bulkEditMode && selectedIds.has(rowId)
-            ? selectedIds
-            : new Set([rowId]);
-
         const newItems = items.map((item) => {
-          if (!applyToIds.has(item.id)) return item;
+          if (item.id !== rowId) return item;
 
           const finalPrice = calculateFinalPrice(
             item.basePrice,
@@ -646,7 +582,7 @@ export const ComponentsTable = ({
         onItemsChange(newItems);
       }
     },
-    [items, onItemsChange, bulkEditMode, selectedIds]
+    [items, onItemsChange]
   );
 
   const handleCellValueChanged = useCallback(
@@ -686,13 +622,8 @@ export const ComponentsTable = ({
         });
         onItemsChange(newItems);
       } else {
-        const applyToIds =
-          bulkEditMode && selectedIds.has(rowId)
-            ? selectedIds
-            : new Set([rowId]);
-
         const newItems = items.map((item) => {
-          if (!applyToIds.has(item.id)) return item;
+          if (item.id !== rowId) return item;
 
           const finalPrice = calculateFinalPrice(
             item.basePrice,
@@ -710,7 +641,7 @@ export const ComponentsTable = ({
         onItemsChange(newItems);
       }
     },
-    [items, onItemsChange, bulkEditMode, selectedIds]
+    [items, onItemsChange]
   );
 
   const handleDelete = useCallback(
@@ -854,48 +785,15 @@ export const ComponentsTable = ({
 
   const columnDefs = useMemo<ColDef<ITableRow>[]>(
     () => [
-      ...(bulkEditMode
-        ? [
-            {
-              headerName: "",
-              field: "id" as const,
-              width: 50,
-              suppressMovable: true,
-              resizable: false,
-              headerComponent: () => (
-                <Checkbox
-                  checked={
-                    selectedIds.size === items.length && items.length > 0
-                  }
-                  indeterminate={
-                    selectedIds.size > 0 && selectedIds.size < items.length
-                  }
-                  onChange={handleToggleAll}
-                />
-              ),
-              cellRenderer: (params: ICellRendererParams<ITableRow>) => (
-                <CheckboxCellRenderer
-                  {...params}
-                  selectedIds={selectedIds}
-                  onToggle={handleToggleSelection}
-                />
-              ),
-            },
-          ]
-        : []),
-      ...(!bulkEditMode
-        ? [
-            {
-              headerName: "",
-              field: "sortIndex" as const,
-              width: 50,
-              rowDrag: true,
-              suppressMovable: true,
-              resizable: false,
-              valueFormatter: () => "",
-            },
-          ]
-        : []),
+      {
+        headerName: "",
+        field: "sortIndex" as const,
+        width: 50,
+        rowDrag: true,
+        suppressMovable: true,
+        resizable: false,
+        valueFormatter: () => "",
+      },
       {
         headerName: "Product",
         field: "productId",
@@ -954,11 +852,7 @@ export const ComponentsTable = ({
       },
     ],
     [
-      bulkEditMode,
-      selectedIds,
       items,
-      handleToggleAll,
-      handleToggleSelection,
       handleDelete,
       handleDeleteAllVariants,
       handleDuplicate,
@@ -993,7 +887,7 @@ export const ComponentsTable = ({
           defaultColDef={defaultColDef}
           getRowId={getRowId}
           getRowClass={getRowClass}
-          rowDragManaged={!bulkEditMode}
+          rowDragManaged
           animateRows
           suppressMovableColumns
           domLayout="autoHeight"

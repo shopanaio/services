@@ -36,7 +36,6 @@ import {
 } from "./mocks/mock-data";
 import {
   GroupCard,
-  ProductPicker,
   PricingRulesTab,
   PreviewTab,
   SettingsTab,
@@ -73,7 +72,6 @@ const useStyles = createStyles(() => ({
 interface IGroupsTabProps {
   groups: IComponentGroup[];
   onGroupsChange: (groups: IComponentGroup[]) => void;
-  onAddItem: (groupId: string) => void;
   onEditVariants?: (item: IComponentItem, groupId: string) => void;
   onIncludeVariants?: (item: IComponentItem, groupId: string) => void;
   pricingTemplates: IPricingRuleTemplate[];
@@ -82,7 +80,6 @@ interface IGroupsTabProps {
 const GroupsTab = ({
   groups,
   onGroupsChange,
-  onAddItem,
   onEditVariants,
   onIncludeVariants,
   pricingTemplates,
@@ -171,7 +168,6 @@ const GroupsTab = ({
           onChange={handleGroupChange}
           onDelete={() => handleDeleteGroup(group.id)}
           onDuplicate={() => handleDuplicateGroup(group.id)}
-          onAddItem={() => onAddItem(group.id)}
           onEditVariants={
             onEditVariants
               ? (item) => onEditVariants(item, group.id)
@@ -226,12 +222,6 @@ export const EditComponentsModal = () => {
       modalPayload?.validationMessage ?? mockModalSettings.validationMessage,
   });
 
-  // ProductPicker state
-  const [pickerState, setPickerState] = useState<{
-    open: boolean;
-    groupId: string | null;
-  }>({ open: false, groupId: null });
-
   // VariantSettingsModal hook
   const { push: pushVariantSettings } = useComponentVariantSettingsModal();
 
@@ -243,46 +233,6 @@ export const EditComponentsModal = () => {
     },
     [setDirty]
   );
-
-  const handleAddItem = useCallback((groupId: string) => {
-    setPickerState({ open: true, groupId });
-  }, []);
-
-  const handleClosePicker = useCallback(() => {
-    setPickerState({ open: false, groupId: null });
-  }, []);
-
-  const handleProductSelect = useCallback(
-    (items: IComponentItem[]) => {
-      if (!pickerState.groupId) return;
-
-      const updatedGroups = groups.map((group) => {
-        if (group.id !== pickerState.groupId) return group;
-
-        // Add items with correct sortIndex
-        const newItems = items.map((item, idx) => ({
-          ...item,
-          sortIndex: group.items.length + idx,
-        }));
-
-        return {
-          ...group,
-          items: [...group.items, ...newItems],
-        };
-      });
-
-      setGroups(updatedGroups);
-      setDirty(true);
-    },
-    [pickerState.groupId, groups, setDirty]
-  );
-
-  // Get excluded product IDs for current group
-  const excludeProductIds = useMemo(() => {
-    if (!pickerState.groupId) return [];
-    const group = groups.find((g) => g.id === pickerState.groupId);
-    return group?.items.map((item) => item.productId) ?? [];
-  }, [pickerState.groupId, groups]);
 
   const handleEditVariants = useCallback(
     (item: IComponentItem, groupId: string) => {
@@ -497,7 +447,6 @@ export const EditComponentsModal = () => {
           <GroupsTab
             groups={groups}
             onGroupsChange={handleGroupsChange}
-            onAddItem={handleAddItem}
             onEditVariants={handleEditVariants}
             onIncludeVariants={handleIncludeVariants}
             pricingTemplates={pricingTemplates}
@@ -598,7 +547,6 @@ export const EditComponentsModal = () => {
     [
       groups,
       handleGroupsChange,
-      handleAddItem,
       handleEditVariants,
       handleIncludeVariants,
       pricingTemplates,
@@ -633,14 +581,6 @@ export const EditComponentsModal = () => {
           className={styles.tabsWrapper}
         />
       </Paper>
-
-      {/* Product Picker Modal */}
-      <ProductPicker
-        open={pickerState.open}
-        onClose={handleClosePicker}
-        onSelect={handleProductSelect}
-        excludeProductIds={excludeProductIds}
-      />
     </ModalLayout>
   );
 };
