@@ -1,13 +1,13 @@
 import { Flex } from 'antd';
 import { ReactNode } from 'react';
-import { Actions, IActionsProps } from './Actions';
+import { Actions, IActionsProps } from './actions';
 import {
   FilterWidget,
   IFilterWidgetProps,
   IFilterWidgetSearchProps,
 } from '@/layouts/filters';
-import { IColumnsProps } from './Columns';
-import { ISortByProps } from './SortBy';
+import { IColumnsProps } from './columns';
+import { ISortByProps } from './sort-by';
 
 export interface ISelectedRowsProps<T = unknown> {
   selectedRows: T[];

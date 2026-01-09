@@ -6,7 +6,7 @@ export {
   type IVariantRowBase,
   type IOptionGroup,
   type IVariantsTableProps,
-} from "./VariantsTable";
+} from "./variants-table";
 
 export {
   UnifiedVariantsTable,
@@ -16,6 +16,6 @@ export {
   type IUnifiedVariantsTableProps,
   type VariantTabKey,
   type StockStatus,
-} from "./UnifiedVariantsTable";
+} from "./unified-variants-table";
 
-export { EditVariantsModal } from "./EditVariantsModal";
+export { EditVariantsModal } from "./edit-variants-modal";

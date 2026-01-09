@@ -1,9 +1,9 @@
-export { useGridState } from "./useGridState";
-export type { UseGridStateOptions, UseGridStateReturn } from "./useGridState";
+export { useGridState } from "./use-grid-state";
+export type { UseGridStateOptions, UseGridStateReturn } from "./use-grid-state";
 
-export { useGridSort } from "./useGridSort";
+export { useGridSort } from "./use-grid-sort";
 export type {
   UseGridSortOptions,
   UseGridSortReturn,
   SortModel,
-} from "./useGridSort";
+} from "./use-grid-sort";

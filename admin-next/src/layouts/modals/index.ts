@@ -1,12 +1,12 @@
 // ============================================================================
 // Components
 // ============================================================================
-export { ModalStack } from './components/Modals';
-export { ModalStackItem } from './components/Modal';
-export { ModalStackProvider } from './components/Provider';
-export { ModalLayout } from './components/ModalLayout';
-export { ModalHeader } from './components/ModalHeader';
-export type { IModalHeaderProps } from './components/ModalHeader';
+export { ModalStack } from './components/modals';
+export { ModalStackItem } from './components/modal';
+export { ModalStackProvider } from './components/provider';
+export { ModalLayout } from './components/modal-layout';
+export { ModalHeader } from './components/modal-header';
+export type { IModalHeaderProps } from './components/modal-header';
 
 // ============================================================================
 // Registry
@@ -15,7 +15,7 @@ export {
   modalStackRegistry,
   registerModalStackItem,
   registerModalStackItems,
-} from './registry/modalRegistry';
+} from './registry/modal-registry';
 
 // ============================================================================
 // Store
@@ -25,12 +25,12 @@ export { useModalStackStore } from './store/modals';
 // ============================================================================
 // Hooks
 // ============================================================================
-export { useModalStackContext } from './hooks/useModalContext';
+export { useModalStackContext } from './hooks/use-modal-context';
 export {
   useModalStack,
   useModalStackItem,
   createModalStackHook,
-} from './hooks/useModal';
+} from './hooks/use-modal';
 
 // ============================================================================
 // Types

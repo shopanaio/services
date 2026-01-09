@@ -1,1 +1,1 @@
-export * from "./mockPriceData";
+export * from "./mock-price-data";

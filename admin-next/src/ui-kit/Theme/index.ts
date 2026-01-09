@@ -1,3 +1,3 @@
-export { Theme } from './Theme';
-export { AntdRegistry } from './AntdRegistry';
-export { GlobalStyle } from './GlobalStyle';
+export { Theme } from './theme';
+export { AntdRegistry } from './antd-registry';
+export { GlobalStyle } from './global-style';

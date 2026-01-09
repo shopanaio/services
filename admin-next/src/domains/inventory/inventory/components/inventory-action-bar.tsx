@@ -1,0 +1,47 @@
+"use client";
+
+import { Button, Flex, Space, Typography } from "antd";
+import { createStyles } from "antd-style";
+import { useInventoryEditStore } from "../hooks/use-inventory-edit-store";
+
+const useStyles = createStyles(({ token }) => ({
+  actionBar: {
+    paddingBlock: token.paddingSM,
+  },
+  changesCount: {
+    color: token.colorTextSecondary,
+  },
+}));
+
+interface InventoryActionBarProps {
+  onSave: () => Promise<void>;
+  onDiscard: () => void;
+}
+
+export function InventoryActionBar({
+  onSave,
+  onDiscard,
+}: InventoryActionBarProps) {
+  const { styles } = useStyles();
+  const { hasChanges, getChangesCount, status } = useInventoryEditStore();
+
+  const changesCount = getChangesCount();
+
+  if (!hasChanges()) return null;
+
+  return (
+    <Flex align="center" justify="space-between" className={styles.actionBar}>
+      <Typography.Text className={styles.changesCount}>
+        {changesCount} unsaved {changesCount === 1 ? "change" : "changes"}
+      </Typography.Text>
+      <Space>
+        <Button onClick={onDiscard} disabled={status === "saving"}>
+          Discard
+        </Button>
+        <Button type="primary" onClick={onSave} loading={status === "saving"}>
+          Save changes
+        </Button>
+      </Space>
+    </Flex>
+  );
+}

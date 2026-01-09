@@ -1,9 +1,9 @@
-export { EditableNumberCell } from "./EditableNumberCell";
-export { CalculatedAvailableCell } from "./CalculatedAvailableCell";
-export { InventoryActionBar } from "./InventoryActionBar";
+export { EditableNumberCell } from "./editable-number-cell";
+export { CalculatedAvailableCell } from "./calculated-available-cell";
+export { InventoryActionBar } from "./inventory-action-bar";
 export {
   ProductCellRenderer,
   ReservedCellRenderer,
   OnHandCellRenderer,
   UnavailableCellRenderer,
-} from "./cellRenderers";
+} from "./cell-renderers";

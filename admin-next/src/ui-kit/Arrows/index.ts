@@ -1,1 +1,1 @@
-export { MiddleArrow, RightArrow, SubitemIcon } from './Arrows';
+export { MiddleArrow, RightArrow, SubitemIcon } from './arrows';

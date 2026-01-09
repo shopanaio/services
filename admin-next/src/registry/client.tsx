@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useRef, type ReactNode } from "react";
 import type { SidebarItem } from "./registry";
 import type { IModalStackDefinition } from "@/layouts/modals/types";
-import { registerModalStackItem } from "@/layouts/modals/registry/modalRegistry";
+import { registerModalStackItem } from "@/layouts/modals/registry/modal-registry";
 
 // ============================================================================
 // Sidebar Items Context

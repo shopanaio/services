@@ -1,7 +1,7 @@
 import { createModalStackHook } from '@/layouts/modals';
 import type { IModalStackPayload } from '@/layouts/modals';
 import type { OutputData } from '@editorjs/editorjs';
-import type { RenderedContent } from '@/ui-kit/BlockEditor';
+import type { RenderedContent } from '@/ui-kit/block-editor';
 import type { IProduct, IMediaFile } from './mocks/types';
 import type { IPriceHistoryRecord, PriceSource } from './components/pricing';
 import type { VariantColumnField } from './components/variants/config';

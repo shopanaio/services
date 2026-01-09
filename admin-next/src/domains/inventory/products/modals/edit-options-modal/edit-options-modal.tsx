@@ -1,0 +1,190 @@
+"use client";
+
+import { useState } from "react";
+import { Button, Typography, Flex } from "antd";
+import { PlusOutlined, HolderOutlined } from "@ant-design/icons";
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+  DragEndEvent,
+  DragStartEvent,
+  closestCenter,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import {
+  useModalStackContext,
+  ModalLayout,
+  ModalHeader,
+} from "@/layouts/modals";
+import { Paper } from "../../components/paper";
+import { PaperHeader } from "../../components/paper-header";
+import { useStyles } from "./edit-options-modal.styles";
+import type { IOptionGroup } from "./edit-options-modal.schema";
+import { useEditOptionsForm } from "./hooks/use-edit-options-form";
+import { SortableOptionGroup } from "./components/sortable-option-group";
+import { MOCK_OPTION_GROUPS } from "./mocks";
+
+interface EditOptionsModalProps {
+  initialGroups?: IOptionGroup[];
+}
+
+export const EditOptionsModal = ({ initialGroups = MOCK_OPTION_GROUPS }: EditOptionsModalProps) => {
+  const { styles } = useStyles();
+  const { pop } = useModalStackContext();
+  const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
+
+  const {
+    fields,
+    watchedGroups,
+    handleSubmit,
+    handleUpdateGroupName,
+    handleUpdateGroupStyle,
+    handleDeleteGroup,
+    handleUpdateValueLabel,
+    handleUpdateValueSwatch,
+    handleDeleteValue,
+    handleAddValue,
+    handleReorderValues,
+    handleAddGroup,
+    handleMoveGroup,
+  } = useEditOptionsForm({
+    defaultValues: { groups: initialGroups },
+    onSubmit: (data) => {
+      console.log("Saving options:", data.groups);
+      pop();
+    },
+  });
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 1,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveGroupId(event.active.id as string);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = fields.findIndex((f) => f.id === active.id);
+      const newIndex = fields.findIndex((f) => f.id === over.id);
+      handleMoveGroup(oldIndex, newIndex);
+    }
+    setActiveGroupId(null);
+  };
+
+  const activeFieldIndex = fields.findIndex((f) => f.id === activeGroupId);
+  const activeGroup =
+    activeFieldIndex >= 0 ? watchedGroups[activeFieldIndex] : null;
+
+  return (
+    <ModalLayout
+      name="edit-options"
+      header={
+        <ModalHeader
+          name="edit-options"
+          title="Edit Product Options"
+          onClose={pop}
+          submitButtonProps={{
+            children: "Save Changes",
+            onClick: handleSubmit,
+          }}
+        />
+      }
+    >
+      <div className={styles.container}>
+        <Paper>
+          <PaperHeader
+            title="Options"
+            actions={
+              <Button
+                size="small"
+                icon={<PlusOutlined />}
+                onClick={handleAddGroup}
+              >
+                Add
+              </Button>
+            }
+          />
+
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={fields.map((f) => f.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <Flex vertical gap={16}>
+                {fields.map((field, groupIndex) => (
+                  <SortableOptionGroup
+                    key={field.id}
+                    group={watchedGroups[groupIndex]}
+                    fieldId={field.id}
+                    onUpdateName={(name) =>
+                      handleUpdateGroupName(groupIndex, name)
+                    }
+                    onUpdateStyle={(style) =>
+                      handleUpdateGroupStyle(groupIndex, style)
+                    }
+                    onDeleteGroup={() => handleDeleteGroup(groupIndex)}
+                    onUpdateValueLabel={(valueIndex, label) =>
+                      handleUpdateValueLabel(groupIndex, valueIndex, label)
+                    }
+                    onUpdateValueSwatch={(valueIndex, swatch) =>
+                      handleUpdateValueSwatch(groupIndex, valueIndex, swatch)
+                    }
+                    onDeleteValue={(valueIndex) =>
+                      handleDeleteValue(groupIndex, valueIndex)
+                    }
+                    onAddValue={() => handleAddValue(groupIndex)}
+                    onReorderValues={(values) =>
+                      handleReorderValues(groupIndex, values)
+                    }
+                  />
+                ))}
+              </Flex>
+            </SortableContext>
+
+            <DragOverlay dropAnimation={null}>
+              {activeGroup && (
+                <div
+                  className={styles.optionGroupHeader}
+                  style={{
+                    width: 150,
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                    cursor: "grabbing",
+                  }}
+                >
+                  <span className={styles.optionGroupDragHandle}>
+                    <HolderOutlined />
+                  </span>
+                  <Typography.Text className={styles.optionGroupName}>
+                    {activeGroup.name}
+                  </Typography.Text>
+                </div>
+              )}
+            </DragOverlay>
+          </DndContext>
+        </Paper>
+      </div>
+    </ModalLayout>
+  );
+};

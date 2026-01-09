@@ -1,2 +1,2 @@
-export * from "./useInventory";
-export * from "./useInventoryEditStore";
+export * from "./use-inventory";
+export * from "./use-inventory-edit-store";

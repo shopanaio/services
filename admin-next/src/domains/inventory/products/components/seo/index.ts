@@ -1,3 +1,3 @@
-export * from "./SeoBlock";
-export * from "./SeoPreview";
-export type { ISeoPreviewData } from "./SeoPreview.types";
+export * from "./seo-block";
+export * from "./seo-preview";
+export type { ISeoPreviewData } from "./seo-preview.types";

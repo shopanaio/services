@@ -1,3 +1,3 @@
-export { useBulkEditorStore } from "./useBulkEditorStore";
-export { useBulkEditorData } from "./useBulkEditorData";
-export { useBulkEditorColumns } from "./useBulkEditorColumns";
+export { useBulkEditorStore } from "./use-bulk-editor-store";
+export { useBulkEditorData } from "./use-bulk-editor-data";
+export { useBulkEditorColumns } from "./use-bulk-editor-columns";

@@ -1,4 +1,4 @@
-export { EditorGrid } from "./EditorGrid";
+export { EditorGrid } from "./editor-grid";
 export { Dash, Diff, ImagePlaceholder } from "./cells";
 export type {
   IEditorGridProps,

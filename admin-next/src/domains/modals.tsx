@@ -13,7 +13,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'product',
       component: dynamic(() =>
-        import('@/domains/inventory/products/modals/ProductModal').then(
+        import('@/domains/inventory/products/modals/product-modal').then(
           (m) => m.ProductModal
         )
       ),
@@ -22,7 +22,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'product-create',
       component: dynamic(() =>
-        import('@/domains/inventory/products/modals/CreateProductModal').then(
+        import('@/domains/inventory/products/modals/create-product-modal').then(
           (m) => m.CreateProductModal
         )
       ),
@@ -31,7 +31,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'product-edit-title',
       component: dynamic(() =>
-        import('@/domains/inventory/products/modals/EditTitleModal').then(
+        import('@/domains/inventory/products/modals/edit-title-modal').then(
           (m) => m.EditTitleModal
         )
       ),
@@ -40,7 +40,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'product-edit-description',
       component: dynamic(() =>
-        import('@/domains/inventory/products/modals/EditDescriptionModal').then(
+        import('@/domains/inventory/products/modals/edit-description-modal').then(
           (m) => m.EditDescriptionModal
         )
       ),
@@ -49,7 +49,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'product-ai-writer',
       component: dynamic(() =>
-        import('@/domains/inventory/products/modals/AIWriterModal').then(
+        import('@/domains/inventory/products/modals/ai-writer-modal').then(
           (m) => m.AIWriterModal
         )
       ),
@@ -58,7 +58,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'product-price-history',
       component: dynamic(() =>
-        import('@/domains/inventory/products/modals/PriceHistoryModal').then(
+        import('@/domains/inventory/products/modals/price-history-modal').then(
           (m) => m.PriceHistoryModal
         )
       ),
@@ -67,7 +67,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'product-edit-media',
       component: dynamic(() =>
-        import('@/domains/inventory/products/modals/EditMediaModal').then(
+        import('@/domains/inventory/products/modals/edit-media-modal').then(
           (m) => m.EditMediaModal
         )
       ),
@@ -76,7 +76,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'product-edit-options',
       component: dynamic(() =>
-        import('@/domains/inventory/products/modals/EditOptionsModal').then(
+        import('@/domains/inventory/products/modals/edit-options-modal').then(
           (m) => m.EditOptionsModal
         )
       ),
@@ -85,7 +85,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'product-edit-attributes',
       component: dynamic(() =>
-        import('@/domains/inventory/products/modals/EditAttributesModal').then(
+        import('@/domains/inventory/products/modals/edit-attributes-modal').then(
           (m) => m.EditAttributesModal
         )
       ),
@@ -94,7 +94,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'product-edit-seo',
       component: dynamic(() =>
-        import('@/domains/inventory/products/modals/EditSeoModal').then(
+        import('@/domains/inventory/products/modals/edit-seo-modal').then(
           (m) => m.EditSeoModal
         )
       ),
@@ -103,7 +103,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'product-edit-variants',
       component: dynamic(() =>
-        import('@/domains/inventory/products/components/variants/EditVariantsModal').then(
+        import('@/domains/inventory/products/components/variants/edit-variants-modal').then(
           (m) => m.EditVariantsModal
         )
       ),
@@ -112,7 +112,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'product-edit-categories',
       component: dynamic(() =>
-        import('@/domains/inventory/products/modals/EditCategoriesModal').then(
+        import('@/domains/inventory/products/modals/edit-categories-modal').then(
           (m) => m.EditCategoriesModal
         )
       ),
@@ -121,7 +121,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'product-edit-tags',
       component: dynamic(() =>
-        import('@/domains/inventory/products/modals/EditTagsModal').then(
+        import('@/domains/inventory/products/modals/edit-tags-modal').then(
           (m) => m.EditTagsModal
         )
       ),
@@ -130,7 +130,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'product-edit-components',
       component: dynamic(() =>
-        import('@/domains/inventory/products/modals/EditComponentsModal').then(
+        import('@/domains/inventory/products/modals/edit-components-modal').then(
           (m) => m.EditComponentsModal
         )
       ),
@@ -139,7 +139,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'component-variant-settings',
       component: dynamic(() =>
-        import('@/domains/inventory/products/modals/EditComponentsModal/components/VariantSettingsModal').then(
+        import('@/domains/inventory/products/modals/edit-components-modal/components/variant-settings-modal').then(
           (m) => m.VariantSettingsModal
         )
       ),
@@ -148,7 +148,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'bulk-editor',
       component: dynamic(() =>
-        import('@/domains/inventory/products/bulk-editor/BulkEditorModal').then(
+        import('@/domains/inventory/products/bulk-editor/bulk-editor-modal').then(
           (m) => m.BulkEditorModal
         )
       ),

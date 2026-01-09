@@ -15,9 +15,9 @@ import {
 } from "ag-grid-community";
 import { DataLayout } from "@/layouts/data";
 import { useFilters, FilterWidget } from "@/layouts/filters";
-import { CursorPagination } from "@/ui-kit/CursorPagination";
+import { CursorPagination } from "@/ui-kit/cursor-pagination";
 import { useGridState } from "@/hooks";
-import { filterSchema } from "./filterSchema";
+import { filterSchema } from "./filter-schema";
 import { useInventory, useInventoryEditStore } from "../hooks";
 import { validateFieldChange } from "@/shared/utils/inventory";
 import type { IInventoryListItem } from "../mocks/inventory-list";

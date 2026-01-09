@@ -2,11 +2,11 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { ConfigProvider, Layout, Menu, MenuProps, Typography } from "antd";
-import { StoreMenu } from "@/layouts/app/components/StoreMenu/StoreMenu";
-import { SidebarLogo } from "@/layouts/app/components/Sidebar/SidebarLogo";
+import { StoreMenu } from "@/layouts/app/components/store-menu/store-menu";
+import { SidebarLogo } from "@/layouts/app/components/sidebar/sidebar-logo";
 import { createStyles } from "antd-style";
 import { useSidebarItems, type SidebarItem } from "@/registry";
-import { SubitemIcon } from "@/ui-kit/Arrows/Arrows";
+import { SubitemIcon } from "@/ui-kit/arrows/arrows";
 import { usePathname, useRouter } from "next/navigation";
 import { match } from "path-to-regexp";
 
@@ -43,10 +43,7 @@ function findMatchingItem(
   return null;
 }
 
-function findItemByKey(
-  items: SidebarItem[],
-  key: string
-): SidebarItem | null {
+function findItemByKey(items: SidebarItem[], key: string): SidebarItem | null {
   for (const item of items) {
     if (item.key === key) {
       return item;
@@ -68,9 +65,7 @@ function buildMenuItems(
 ): AntMenuItem[] {
   return items.map((item, index) => {
     const isFinal = isSubitem && index === parentChildrenCount - 1;
-    const icon = isSubitem
-      ? <SubitemIcon isFinal={isFinal} />
-      : item.icon;
+    const icon = isSubitem ? <SubitemIcon isFinal={isFinal} /> : item.icon;
 
     if (item.type === "group") {
       return {
@@ -81,9 +76,7 @@ function buildMenuItems(
           </Typography.Text>
         ),
         type: "group" as const,
-        children: item.children
-          ? buildMenuItems(item.children, false, 0)
-          : [],
+        children: item.children ? buildMenuItems(item.children, false, 0) : [],
       };
     }
 
@@ -136,7 +129,9 @@ const useStyles = createStyles(
       border: none;
       transition: width 0.2s ease;
       background: transparent;
-      width: ${collapsed ? `calc(100% - ${token.paddingXS}px)` : `calc(100% - ${token.padding}px)`};
+      width: ${collapsed
+        ? `calc(100% - ${token.paddingXS}px)`
+        : `calc(100% - ${token.padding}px)`};
     `,
   })
 );

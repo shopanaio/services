@@ -1,2 +1,2 @@
-export * from './FilterWidget';
-export * from './RelationControl';
+export * from './filter-widget';
+export * from './relation-control';

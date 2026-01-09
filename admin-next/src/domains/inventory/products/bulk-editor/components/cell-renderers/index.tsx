@@ -7,7 +7,7 @@ import {
   shouldShowDash,
   formatPrice,
 } from "../../types";
-import { useBulkEditorStore } from "../../hooks/useBulkEditorStore";
+import { useBulkEditorStore } from "../../hooks/use-bulk-editor-store";
 import { SelectableCell } from "@/shared/components/ag-grid-cell-selection";
 import { Dash, Diff } from "@/shared/components/editor-grid";
 import {

@@ -1,1 +1,1 @@
-export * from './findFilter';
+export * from './find-filter';

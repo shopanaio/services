@@ -1,5 +1,5 @@
 // Main components
-export { PricingBlock } from "./PricingBlock";
+export { PricingBlock } from "./pricing-block";
 
 // Sub-components
 export {

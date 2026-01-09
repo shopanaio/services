@@ -12,12 +12,12 @@ export {
   CellSelectionProvider,
   useCellSelectionContext,
   useCellSelectionStore,
-} from "./CellSelectionProvider";
+} from "./cell-selection-provider";
 
-export { useCellSelection } from "./useCellSelection";
+export { useCellSelection } from "./use-cell-selection";
 
 // Components
-export { SelectableCell } from "./SelectableCell";
+export { SelectableCell } from "./selectable-cell";
 
 // Styles
 export { useSelectionStyles, SELECTING_BODY_CLASS } from "./styles";
@@ -26,4 +26,4 @@ export { useSelectionStyles, SELECTING_BODY_CLASS } from "./styles";
 export {
   createCellSelectionStore,
   type CellSelectionStore,
-} from "./useCellSelectionStore";
+} from "./use-cell-selection-store";

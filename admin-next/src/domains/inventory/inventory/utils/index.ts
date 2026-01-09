@@ -1,1 +1,1 @@
-export * from "./inventoryCalculations";
+export * from "./inventory-calculations";

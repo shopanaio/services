@@ -1,1 +1,1 @@
-export { useFilters, useFilterState } from './useFilters';
+export { useFilters, useFilterState } from './use-filters';

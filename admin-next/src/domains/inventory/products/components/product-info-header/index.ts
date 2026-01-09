@@ -1,1 +1,1 @@
-export { ProductInfoHeader } from "./ProductInfoHeader";
+export { ProductInfoHeader } from "./product-info-header";

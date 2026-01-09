@@ -1,4 +1,4 @@
-export { EntityMediaGallery } from "./EntityMediaGallery";
+export { EntityMediaGallery } from "./entity-media-gallery";
 export type {
   IMediaItem,
   IEntityMediaGalleryProps,

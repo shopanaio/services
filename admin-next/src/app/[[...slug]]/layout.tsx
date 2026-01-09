@@ -1,5 +1,5 @@
 import { createLayout } from "@/registry";
-import { AppLayout } from "@/layouts/app/components/Layout/Layout";
+import { AppLayout } from "@/layouts/app/components/layout/layout";
 import { getModalStackDefinitions } from "@/domains/modals";
 
 const { Layout: ModuleLayout } = createLayout({

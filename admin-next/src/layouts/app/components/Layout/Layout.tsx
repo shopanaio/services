@@ -1,7 +1,7 @@
 "use client";
 
 import { Layout } from "antd";
-import { Sidebar } from "@/layouts/app/components/Sidebar/Sidebar";
+import { Sidebar } from "@/layouts/app/components/sidebar/sidebar";
 import { createStyles } from "antd-style";
 import { ReactNode } from "react";
 

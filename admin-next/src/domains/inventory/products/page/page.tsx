@@ -17,9 +17,9 @@ import {
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { DataLayout } from "@/layouts/data";
 import { useFilters, FilterWidget } from "@/layouts/filters";
-import { CursorPagination } from "@/ui-kit/CursorPagination";
+import { CursorPagination } from "@/ui-kit/cursor-pagination";
 import { useGridState, useGridSort } from "@/hooks";
-import { filterSchema } from "./filterSchema";
+import { filterSchema } from "./filter-schema";
 import { useProducts } from "../hooks";
 import type { IProductListItem } from "../mocks/products-list";
 import { useBulkEditorStore } from "../bulk-editor";

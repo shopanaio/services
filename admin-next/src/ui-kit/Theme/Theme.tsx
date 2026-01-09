@@ -1,9 +1,9 @@
 "use client";
 
-import { GlobalStyle } from "@/ui-kit/Theme/GlobalStyle";
+import { GlobalStyle } from "@/ui-kit/theme/global-style";
 import { App } from "antd";
 import { ThemeProvider } from "antd-style";
-import { AntdRegistry } from "@/ui-kit/Theme/AntdRegistry";
+import { AntdRegistry } from "@/ui-kit/theme/antd-registry";
 import { ModalStack } from "@/layouts/modals";
 
 const customToken = {

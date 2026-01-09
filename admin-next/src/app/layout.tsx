@@ -1,4 +1,4 @@
-import { Theme } from "@/ui-kit/Theme";
+import { Theme } from "@/ui-kit/theme";
 import { safiro } from "@/fonts/safiro";
 import { inter } from "@/fonts/inter";
 
