@@ -81,7 +81,7 @@ export const EditCategoriesModal = () => {
 
   // Handle check
   const handleCheck: TreeProps["onCheck"] = useCallback(
-    (checked) => {
+    (checked: React.Key[] | { checked: React.Key[]; halfChecked: React.Key[] }) => {
       const keys = Array.isArray(checked) ? checked : checked.checked;
       const newCheckedKeys = keys as string[];
       setCheckedKeys(newCheckedKeys);
@@ -97,7 +97,7 @@ export const EditCategoriesModal = () => {
   );
 
   // Handle expand
-  const handleExpand: TreeProps["onExpand"] = useCallback((keys) => {
+  const handleExpand: TreeProps["onExpand"] = useCallback((keys: React.Key[]) => {
     setExpandedKeys(keys as string[]);
   }, []);
 

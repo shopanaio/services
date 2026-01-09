@@ -1,4 +1,4 @@
-import type { ICategory } from "../../mocks/types";
+import { EntityStatus, type ICategory } from "../../mocks/types";
 
 const createCategory = (id: string, title: string, slug: string): ICategory => ({
   id,
@@ -8,7 +8,7 @@ const createCategory = (id: string, title: string, slug: string): ICategory => (
   excerpt: null,
   seoTitle: null,
   seoDescription: null,
-  status: "PUBLISHED" as const,
+  status: EntityStatus.PUBLISHED,
   createdAt: new Date(),
   updatedAt: new Date(),
   featured: null,

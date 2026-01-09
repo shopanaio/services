@@ -41,14 +41,14 @@ function generateSku(productIndex: number, variantIndex: number | null): string 
 
 let itemId = 0;
 export const mockInventoryList: IInventoryListItem[] = products.flatMap(
-  (product, productIndex) => {
+  (product, productIndex): IInventoryListItem[] => {
     if (product.variants === null) {
       const onHand = Math.floor(Math.random() * 200);
       const unavailable = Math.floor(Math.random() * Math.min(10, onHand));
       const reserved = Math.floor(Math.random() * Math.min(20, onHand - unavailable));
       const available = onHand - unavailable - reserved;
 
-      return {
+      return [{
         id: String(++itemId),
         productName: product.name,
         variantName: null,
@@ -58,7 +58,7 @@ export const mockInventoryList: IInventoryListItem[] = products.flatMap(
         reserved,
         available,
         image: `https://picsum.photos/seed/${productIndex + 1}/40/40`,
-      };
+      }];
     }
 
     return product.variants.map((variant, variantIndex) => {

@@ -310,14 +310,14 @@ const formatPriceDisplay = (
 
   const hasRange = item.finalPriceMax && item.finalPriceMax !== item.finalPrice;
   const price = hasRange
-    ? `${formatPrice(item.finalPrice)} - ${formatPrice(item.finalPriceMax)}`
+    ? `${formatPrice(item.finalPrice)} - ${formatPrice(item.finalPriceMax!)}`
     : formatPrice(item.finalPrice);
 
   let comparePrice: string | undefined;
   if (showComparePrice && item.basePrice !== item.finalPrice) {
     const hasBaseRange = item.basePriceMax && item.basePriceMax !== item.basePrice;
     comparePrice = hasBaseRange
-      ? `${formatPrice(item.basePrice)} - ${formatPrice(item.basePriceMax)}`
+      ? `${formatPrice(item.basePrice)} - ${formatPrice(item.basePriceMax!)}`
       : formatPrice(item.basePrice);
   }
 

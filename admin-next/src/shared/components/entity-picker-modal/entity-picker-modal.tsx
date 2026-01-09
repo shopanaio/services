@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { ModalLayout, ModalHeader } from "@/layouts/modals";
-import { useModalStackContext } from "@/layouts/modals/hooks/useModalContext";
+import { ModalLayout, ModalHeader, useModalStackContext } from "@/layouts/modals";
 import { EntityPickerContent } from "./entity-picker-content";
 import { getEntityPickerConfig } from "./configs";
 import type { IEntityPickerPayload, IPickableEntity } from "./types";

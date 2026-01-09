@@ -10,7 +10,7 @@ import {
 } from "ag-grid-community";
 import { createStyles } from "antd-style";
 import { useFilters, FilterWidget } from "@/layouts/filters";
-import { CursorPagination } from "@/ui-kit/CursorPagination";
+import { CursorPagination } from "@/ui-kit/cursor-pagination";
 import type { IEntityPickerContentProps, IPickableEntity } from "./types";
 
 ModuleRegistry.registerModules([AllCommunityModule, RowSelectionModule]);
