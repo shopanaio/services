@@ -10,7 +10,7 @@ import {
 } from "@/layouts/modals";
 import { BlockEditor, renderContent, type RenderedContent } from "@/ui-kit/block-editor";
 import { AIButton } from "@/ui-kit/ai-button";
-import { Paper } from "../../components/paper";
+import { Paper } from "@/ui-kit/paper";
 import type { IProductEditDescriptionModalPayload } from "../../modals";
 import { useProductAIWriterModal } from "../../modals";
 import { useStyles } from "./edit-description-modal.styles";

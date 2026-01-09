@@ -4,7 +4,7 @@ import { WarningOutlined, MoreOutlined } from "@ant-design/icons";
 import type { OutputData } from "@editorjs/editorjs";
 import type { RenderedContent } from "@/ui-kit/block-editor";
 import { AIButton } from "@/ui-kit/ai-button";
-import { Paper } from "../paper";
+import { Paper } from "@/ui-kit/paper";
 import { IProduct } from "../../mocks/types";
 import {
   useProductEditDescriptionModal,

@@ -7,8 +7,7 @@ import {
   LeftOutlined,
   RightOutlined,
 } from "@ant-design/icons";
-import { Paper } from "../../paper";
-import { PaperHeader } from "../../paper-header";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "../../edit-action";
 import { useVariantsTableStyles } from "../product-details-card.styles";
 import { weightUnitOptions, dimensionUnitOptions } from "../../../constants";

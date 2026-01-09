@@ -22,7 +22,7 @@ import {
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
-import { Paper } from "../../components/paper";
+import { Paper } from "@/ui-kit/paper";
 import type { ICategory } from "../../mocks/types";
 import { useStyles } from "./edit-categories-modal.styles";
 import type { IEditCategoriesModalProps, ICategoryTreeNode } from "./types";

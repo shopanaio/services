@@ -16,8 +16,7 @@ import {
   StopOutlined,
 } from "@ant-design/icons";
 import { useState, useMemo, useCallback } from "react";
-import { Paper } from "../../paper";
-import { PaperHeader } from "../../paper-header";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { Tile } from "../../tile";
 import { useInventoryStyles } from "../product-details-card.styles";
 import { useEditVariantsModal } from "../../../modals";

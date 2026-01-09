@@ -22,3 +22,5 @@ export const Paper = ({ children, className }: IPaperProps) => {
 
   return <div className={cx(styles.paper, className)}>{children}</div>;
 };
+
+export type { IPaperProps };

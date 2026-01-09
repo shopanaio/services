@@ -19,8 +19,7 @@ import {
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
-import { Paper } from "../../components/paper";
-import { PaperHeader } from "@/domains/inventory/products/components/paper-header";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 
 import { useStyles } from "./edit-attributes-modal.styles";
 import type { IAttributeRow } from "./types";

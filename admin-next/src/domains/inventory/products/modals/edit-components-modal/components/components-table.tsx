@@ -31,7 +31,11 @@ import {
   type IComponentItem,
   type IPricingRuleTemplate,
 } from "../types";
-import { getProductById, getVariantById, calculateFinalPrice } from "../mocks/mock-data";
+import {
+  getProductById,
+  getVariantById,
+  calculateFinalPrice,
+} from "../mocks/mock-data";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -212,7 +216,8 @@ const ProductCellRenderer = (params: IProductCellRendererParams) => {
       : null;
 
   const isVariant = data.isVariant;
-  const title = data.customTitle || variant?.title || product?.title || "Unknown";
+  const title =
+    data.customTitle || variant?.title || product?.title || "Unknown";
   const imageUrl = variant?.imageUrl || product?.imageUrl || "/placeholder.png";
 
   const hasChildren = data.hasIncludedVariants;
@@ -220,7 +225,12 @@ const ProductCellRenderer = (params: IProductCellRendererParams) => {
   const indent = data.level * 24;
 
   return (
-    <div className={cx(styles.productCell, !data.isAvailable && styles.unavailable)}>
+    <div
+      className={cx(
+        styles.productCell,
+        !data.isAvailable && styles.unavailable
+      )}
+    >
       <span className={styles.indent} style={{ width: indent }} />
 
       {hasChildren ? (
@@ -248,7 +258,8 @@ const ProductCellRenderer = (params: IProductCellRendererParams) => {
         </span>
         {hasChildren && (
           <span className={styles.variantsCount}>
-            {data.includedVariantsCount} variant{data.includedVariantsCount !== 1 ? 's' : ''} included
+            {data.includedVariantsCount} variant
+            {data.includedVariantsCount !== 1 ? "s" : ""}
           </span>
         )}
       </div>
@@ -310,7 +321,9 @@ const PriceRuleCellRenderer = ({
           {
             label: "Templates",
             options: pricingTemplates.map((tpl) => {
-              const rule = PRICE_RULE_OPTIONS.find((r) => r.value === tpl.priceType);
+              const rule = PRICE_RULE_OPTIONS.find(
+                (r) => r.value === tpl.priceType
+              );
               const valueStr =
                 tpl.priceValue !== null && rule?.valueSuffix
                   ? ` (${tpl.priceValue}${rule.valueSuffix})`
@@ -341,13 +354,25 @@ const PriceRuleCellRenderer = ({
       const templateId = value.replace(TEMPLATE_PREFIX, "");
       const template = pricingTemplates.find((t) => t.id === templateId);
       if (template) {
-        onPriceRuleChange(data.id, data.isVariant, template.priceType, template.priceValue, templateId);
+        onPriceRuleChange(
+          data.id,
+          data.isVariant,
+          template.priceType,
+          template.priceValue,
+          templateId
+        );
       }
     } else {
       const priceType = value as ComponentPriceType;
       const rule = PRICE_RULE_OPTIONS.find((r) => r.value === priceType);
       const priceValue = rule?.requiresValue ? data.priceValue ?? 0 : null;
-      onPriceRuleChange(data.id, data.isVariant, priceType, priceValue, undefined);
+      onPriceRuleChange(
+        data.id,
+        data.isVariant,
+        priceType,
+        priceValue,
+        undefined
+      );
     }
   };
 
@@ -412,7 +437,9 @@ const ActionsCellRenderer = ({
       label: "Duplicate",
       onClick: () => onDuplicate(data.id),
     },
-    ...(data.itemType === ComponentItemType.PRODUCT_WITH_VARIANTS && onIncludeVariants && fullItem
+    ...(data.itemType === ComponentItemType.PRODUCT_WITH_VARIANTS &&
+    onIncludeVariants &&
+    fullItem
       ? [
           {
             key: "include-variants",
@@ -527,7 +554,9 @@ export const ComponentsTable = ({
     const rows: ITableRow[] = [];
 
     items.forEach((item) => {
-      const hasIncludedVariants = !!(item.includedVariants && item.includedVariants.length > 0);
+      const hasIncludedVariants = !!(
+        item.includedVariants && item.includedVariants.length > 0
+      );
 
       rows.push({
         id: item.id,
@@ -596,12 +625,18 @@ export const ComponentsTable = ({
         const newItems = items.map((item) => {
           if (!item.includedVariants) return item;
 
-          const variantIndex = item.includedVariants.findIndex((v) => v.id === rowId);
+          const variantIndex = item.includedVariants.findIndex(
+            (v) => v.id === rowId
+          );
           if (variantIndex === -1) return item;
 
           const updatedVariants = [...item.includedVariants];
           const variant = updatedVariants[variantIndex];
-          const finalPrice = calculateFinalPrice(variant.basePrice, priceType, priceValue);
+          const finalPrice = calculateFinalPrice(
+            variant.basePrice,
+            priceType,
+            priceValue
+          );
 
           updatedVariants[variantIndex] = {
             ...variant,
@@ -615,14 +650,19 @@ export const ComponentsTable = ({
         });
         onItemsChange(newItems);
       } else {
-        const applyToIds = bulkEditMode && selectedIds.has(rowId)
-          ? selectedIds
-          : new Set([rowId]);
+        const applyToIds =
+          bulkEditMode && selectedIds.has(rowId)
+            ? selectedIds
+            : new Set([rowId]);
 
         const newItems = items.map((item) => {
           if (!applyToIds.has(item.id)) return item;
 
-          const finalPrice = calculateFinalPrice(item.basePrice, priceType, priceValue);
+          const finalPrice = calculateFinalPrice(
+            item.basePrice,
+            priceType,
+            priceValue
+          );
 
           return {
             ...item,
@@ -651,12 +691,18 @@ export const ComponentsTable = ({
         const newItems = items.map((item) => {
           if (!item.includedVariants) return item;
 
-          const variantIndex = item.includedVariants.findIndex((v) => v.id === rowId);
+          const variantIndex = item.includedVariants.findIndex(
+            (v) => v.id === rowId
+          );
           if (variantIndex === -1) return item;
 
           const updatedVariants = [...item.includedVariants];
           const variant = updatedVariants[variantIndex];
-          const finalPrice = calculateFinalPrice(variant.basePrice, variant.priceType, newPriceValue);
+          const finalPrice = calculateFinalPrice(
+            variant.basePrice,
+            variant.priceType,
+            newPriceValue
+          );
 
           updatedVariants[variantIndex] = {
             ...variant,
@@ -669,14 +715,19 @@ export const ComponentsTable = ({
         });
         onItemsChange(newItems);
       } else {
-        const applyToIds = bulkEditMode && selectedIds.has(rowId)
-          ? selectedIds
-          : new Set([rowId]);
+        const applyToIds =
+          bulkEditMode && selectedIds.has(rowId)
+            ? selectedIds
+            : new Set([rowId]);
 
         const newItems = items.map((item) => {
           if (!applyToIds.has(item.id)) return item;
 
-          const finalPrice = calculateFinalPrice(item.basePrice, item.priceType, newPriceValue);
+          const finalPrice = calculateFinalPrice(
+            item.basePrice,
+            item.priceType,
+            newPriceValue
+          );
 
           return {
             ...item,
@@ -697,7 +748,9 @@ export const ComponentsTable = ({
         const newItems = items.map((item) => {
           if (!item.includedVariants) return item;
 
-          const newVariants = item.includedVariants.filter((v) => v.id !== rowId);
+          const newVariants = item.includedVariants.filter(
+            (v) => v.id !== rowId
+          );
           return {
             ...item,
             includedVariants: newVariants.length > 0 ? newVariants : undefined,
@@ -731,19 +784,22 @@ export const ComponentsTable = ({
   );
 
   // Handle row drag enter - collapse all expanded products when dragging
-  const handleRowDragEnter = useCallback((event: RowDragEnterEvent<ITableRow>) => {
-    const movingData = event.node?.data;
-    if (!movingData || movingData.isVariant) return;
+  const handleRowDragEnter = useCallback(
+    (event: RowDragEnterEvent<ITableRow>) => {
+      const movingData = event.node?.data;
+      if (!movingData || movingData.isVariant) return;
 
-    // Prevent multiple triggers for same drag
-    if (draggingRowIdRef.current === movingData.id) return;
+      // Prevent multiple triggers for same drag
+      if (draggingRowIdRef.current === movingData.id) return;
 
-    draggingRowIdRef.current = movingData.id;
-    expandedBeforeDragRef.current = new Set(expandedIdsRef.current);
+      draggingRowIdRef.current = movingData.id;
+      expandedBeforeDragRef.current = new Set(expandedIdsRef.current);
 
-    // Collapse all products for easier reordering
-    setExpandedIds(new Set());
-  }, []);
+      // Collapse all products for easier reordering
+      setExpandedIds(new Set());
+    },
+    []
+  );
 
   const handleRowDragEnd = useCallback(
     (event: RowDragEndEvent<ITableRow>) => {
@@ -810,8 +866,12 @@ export const ComponentsTable = ({
               resizable: false,
               headerComponent: () => (
                 <Checkbox
-                  checked={selectedIds.size === items.length && items.length > 0}
-                  indeterminate={selectedIds.size > 0 && selectedIds.size < items.length}
+                  checked={
+                    selectedIds.size === items.length && items.length > 0
+                  }
+                  indeterminate={
+                    selectedIds.size > 0 && selectedIds.size < items.length
+                  }
                   onChange={handleToggleAll}
                 />
               ),
@@ -831,7 +891,8 @@ export const ComponentsTable = ({
               headerName: "",
               field: "sortIndex" as const,
               width: 50,
-              rowDrag: (params: { data?: ITableRow }) => !params.data?.isVariant,
+              rowDrag: (params: { data?: ITableRow }) =>
+                !params.data?.isVariant,
               suppressMovable: true,
               resizable: false,
               valueFormatter: () => "",
@@ -845,7 +906,8 @@ export const ComponentsTable = ({
         minWidth: 200,
         colSpan: (params) => {
           // Container products span across Product + Price Rule + Value columns
-          if (params.data?.hasIncludedVariants && !params.data?.isVariant) return 3;
+          if (params.data?.hasIncludedVariants && !params.data?.isVariant)
+            return 3;
           return 1;
         },
         cellRenderer: ProductCellRenderer,
@@ -871,11 +933,15 @@ export const ComponentsTable = ({
         field: "priceValue",
         width: 100,
         editable: (params) => {
-          const rule = PRICE_RULE_OPTIONS.find((r) => r.value === params.data?.priceType);
+          const rule = PRICE_RULE_OPTIONS.find(
+            (r) => r.value === params.data?.priceType
+          );
           return !!rule?.requiresValue;
         },
         cellRenderer: (params: ICellRendererParams<ITableRow>) => {
-          const rule = PRICE_RULE_OPTIONS.find((r) => r.value === params.data?.priceType);
+          const rule = PRICE_RULE_OPTIONS.find(
+            (r) => r.value === params.data?.priceType
+          );
           if (!rule?.requiresValue) return "—";
           if (params.value == null) return "—";
           return `${params.value}${rule.valueSuffix || ""}`;

@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
 import { Typography, Flex, Select } from "antd";
-import { Paper } from "../../../components/paper";
-import { PaperHeader } from "../../../components/paper-header";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { Tile } from "../../../components/tile";
 import { PeriodSwitch, KPI_PERIODS, KPIPeriod } from "../../../components/period-switch";
 import {

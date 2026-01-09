@@ -6,8 +6,7 @@ import { Input, Tooltip } from "antd";
 import { InfoCircleOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import { slugify } from "transliteration/dist/node/src/node/index.js";
-import { Paper } from "../../components/paper";
-import { PaperHeader } from "../../components/paper-header";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type { ICreateProductFormValues } from "./types";
 
 const useStyles = createStyles(({ token }) => ({

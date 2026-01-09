@@ -23,8 +23,7 @@ import {
   EditOutlined,
 } from "@ant-design/icons";
 import { useState } from "react";
-import { Paper } from "../paper";
-import { PaperHeader } from "../paper-header";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { Tile } from "../tile";
 import { PeriodSwitch, KPI_PERIODS, KPIPeriod } from "../period-switch";
 import { IProduct, EntityStatus } from "../../mocks/types";

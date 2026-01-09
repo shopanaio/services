@@ -7,8 +7,7 @@ import {
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
-import { Paper } from "../../components/paper";
-import { PaperHeader } from "../../components/paper-header";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { SeoPreview } from "../../components/seo";
 import type { IEditSeoModalPayload } from "../../modals";
 import { useStyles } from "./edit-seo-modal.styles";

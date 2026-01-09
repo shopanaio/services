@@ -14,8 +14,7 @@ import type {
 import { createStyles } from "antd-style";
 import { slugify } from "transliteration/dist/node/src/node/index.js";
 import { syntheticId } from "@/utils/synthetic-id";
-import { Paper } from "../../components/paper";
-import { PaperHeader } from "../../components/paper-header";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 import {
   generateVariants,
   countPotentialVariants,

@@ -24,7 +24,7 @@ import {
   ModalHeader,
 } from "@/layouts/modals";
 import { BlockEditor, renderContent } from "@/ui-kit/block-editor";
-import { Paper } from "../../components/paper";
+import { Paper } from "@/ui-kit/paper";
 import type {
   IProductAIWriterModalPayload,
   AIGenerateTarget,

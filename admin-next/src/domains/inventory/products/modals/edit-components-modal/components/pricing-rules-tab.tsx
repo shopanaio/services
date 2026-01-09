@@ -25,7 +25,7 @@ import {
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 
-import { Paper } from "../../../components/paper";
+import { Paper } from "@/ui-kit/paper";
 import {
   ComponentPriceType,
   type IPricingRuleTemplate,

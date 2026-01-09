@@ -1,8 +1,7 @@
 import { Typography, Flex } from "antd";
 import { WarningOutlined } from "@ant-design/icons";
 import { ReactNode } from "react";
-import { Paper } from "../paper";
-import { PaperHeader } from "../paper-header";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { SeoPreview } from "./seo-preview";
 import type { ISeoPreviewData } from "./seo-preview.types";
 

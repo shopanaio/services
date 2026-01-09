@@ -45,8 +45,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { syntheticId } from "@/utils/synthetic-id";
-import { Paper } from "@/domains/inventory/products/components/paper";
-import { PaperHeader } from "@/domains/inventory/products/components/paper-header";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useStyles } from "./styles";
 import type { IMediaItem, IEntityMediaGalleryProps, ViewMode } from "./types";
 

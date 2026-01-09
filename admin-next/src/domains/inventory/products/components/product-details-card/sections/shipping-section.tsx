@@ -1,8 +1,7 @@
 "use client";
 
 import { Tag, Flex } from "antd";
-import { Paper } from "../../paper";
-import { PaperHeader } from "../../paper-header";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "../../edit-action";
 import { Tile } from "../../tile";
 import { weightUnitOptions, dimensionUnitOptions } from "../../../constants";

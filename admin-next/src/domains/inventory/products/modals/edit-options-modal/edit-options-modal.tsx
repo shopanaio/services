@@ -24,8 +24,7 @@ import {
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
-import { Paper } from "../../components/paper";
-import { PaperHeader } from "../../components/paper-header";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useStyles } from "./edit-options-modal.styles";
 import type { IOptionGroup } from "./edit-options-modal.schema";
 import { useEditOptionsForm } from "./hooks/use-edit-options-form";

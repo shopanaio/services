@@ -1,8 +1,7 @@
 import { useMemo, ReactNode } from "react";
 import { createStyles } from "antd-style";
 import { Descriptions, Flex, Typography } from "antd";
-import { Paper } from "./paper";
-import { PaperHeader } from "./paper-header";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type { IAttributeRow } from "../modals/edit-attributes-modal/types";
 
 // ============================================================================

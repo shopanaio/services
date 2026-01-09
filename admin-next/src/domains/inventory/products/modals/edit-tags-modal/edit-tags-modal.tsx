@@ -20,7 +20,7 @@ import {
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
-import { Paper } from "../../components/paper";
+import { Paper } from "@/ui-kit/paper";
 import type { IEditTagsModalPayload, ITag } from "../../modals";
 import { useStyles } from "./edit-tags-modal.styles";
 import type { IEditTagsModalProps } from "./types";

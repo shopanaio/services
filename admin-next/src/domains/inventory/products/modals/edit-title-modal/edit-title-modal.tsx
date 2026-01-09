@@ -8,8 +8,7 @@ import {
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
-import { Paper } from "../../components/paper";
-import { PaperHeader } from "../../components/paper-header";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type { IProductEditTitleModalPayload } from "../../modals";
 import { useStyles } from "./edit-title-modal.styles";
 import type { IEditTitleForm } from "./types";

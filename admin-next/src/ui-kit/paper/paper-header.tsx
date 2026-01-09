@@ -2,10 +2,6 @@ import { createStyles } from "antd-style";
 import { Typography, Flex } from "antd";
 import { ReactNode } from "react";
 
-// ============================================================================
-// Styles
-// ============================================================================
-
 const useStyles = createStyles(({ token }) => ({
   title: {
     fontSize: token.fontSizeLG,
@@ -20,10 +16,6 @@ const useStyles = createStyles(({ token }) => ({
   },
 }));
 
-// ============================================================================
-// Types
-// ============================================================================
-
 interface IPaperHeaderProps {
   /** Title for the header (string or ReactNode) */
   title?: ReactNode;
@@ -36,10 +28,6 @@ interface IPaperHeaderProps {
   /** Custom class name */
   className?: string;
 }
-
-// ============================================================================
-// Component
-// ============================================================================
 
 export const PaperHeader = ({
   title,

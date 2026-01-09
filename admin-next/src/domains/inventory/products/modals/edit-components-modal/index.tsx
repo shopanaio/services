@@ -34,9 +34,16 @@ import {
   mockTieredDiscounts,
   mockModalSettings,
 } from "./mocks/mock-data";
-import { GroupCard, ProductPicker, PricingRulesTab, PreviewTab, SettingsTab } from "./components";
+import {
+  GroupCard,
+  ProductPicker,
+  PricingRulesTab,
+  PreviewTab,
+  SettingsTab,
+} from "./components";
 import { useComponentVariantSettingsModal } from "../../modals";
 import { getProductById } from "./mocks/mock-data";
+import { Paper } from "@/ui-kit/paper";
 
 // ============================================================================
 // Styles
@@ -58,7 +65,6 @@ const useStyles = createStyles(() => ({
     marginBottom: 12,
   },
 }));
-
 
 // ============================================================================
 // Groups Tab
@@ -183,7 +189,6 @@ const GroupsTab = ({
   );
 };
 
-
 // ============================================================================
 // Main Modal Component
 // ============================================================================
@@ -199,9 +204,9 @@ export const EditComponentsModal = () => {
   const [groups, setGroups] = useState<IComponentGroup[]>(
     modalPayload?.groups ?? mockGroups
   );
-  const [pricingTemplates, setPricingTemplates] = useState<IPricingRuleTemplate[]>(
-    modalPayload?.pricingTemplates ?? mockPricingTemplates
-  );
+  const [pricingTemplates, setPricingTemplates] = useState<
+    IPricingRuleTemplate[]
+  >(modalPayload?.pricingTemplates ?? mockPricingTemplates);
   const [tieredDiscounts, setTieredDiscounts] = useState<ITieredDiscount[]>(
     modalPayload?.tieredDiscounts ?? mockTieredDiscounts
   );
@@ -212,7 +217,8 @@ export const EditComponentsModal = () => {
     showImages: modalPayload?.showImages ?? mockModalSettings.showImages,
     showSku: modalPayload?.showSku ?? mockModalSettings.showSku,
     showStock: modalPayload?.showStock ?? mockModalSettings.showStock,
-    showComparePrice: modalPayload?.showComparePrice ?? mockModalSettings.showComparePrice,
+    showComparePrice:
+      modalPayload?.showComparePrice ?? mockModalSettings.showComparePrice,
     outOfStockBehavior: (modalPayload?.outOfStockBehavior ??
       mockModalSettings.outOfStockBehavior) as OutOfStockBehavior,
     inheritStock: modalPayload?.inheritStock ?? mockModalSettings.inheritStock,
@@ -333,7 +339,9 @@ export const EditComponentsModal = () => {
 
       // Get variants that are available for this item
       const availableVariants = item.availableVariantIds
-        ? product.variants.filter((v) => item.availableVariantIds!.includes(v.id))
+        ? product.variants.filter((v) =>
+            item.availableVariantIds!.includes(v.id)
+          )
         : product.variants;
 
       // Get already included variant IDs
@@ -551,12 +559,14 @@ export const EditComponentsModal = () => {
         />
       }
     >
-      <Tabs
-        activeKey={activeTab}
-        onChange={(key) => setActiveTab(key as EditComponentsTabKey)}
-        items={tabItems}
-        className={styles.tabsWrapper}
-      />
+      <Paper>
+        <Tabs
+          activeKey={activeTab}
+          onChange={(key) => setActiveTab(key as EditComponentsTabKey)}
+          items={tabItems}
+          className={styles.tabsWrapper}
+        />
+      </Paper>
 
       {/* Product Picker Modal */}
       <ProductPicker

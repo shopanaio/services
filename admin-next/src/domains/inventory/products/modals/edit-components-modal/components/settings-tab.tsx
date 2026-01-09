@@ -11,7 +11,7 @@ import {
 } from "antd";
 import { InfoCircleOutlined } from "@ant-design/icons";
 
-import { Paper } from "../../../components/paper";
+import { Paper } from "@/ui-kit/paper";
 import type { DisplayStyle, OutOfStockBehavior } from "../types";
 
 // ============================================================================
