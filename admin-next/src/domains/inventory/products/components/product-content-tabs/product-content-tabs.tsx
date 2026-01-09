@@ -2,7 +2,7 @@ import { createStyles } from "antd-style";
 import { Button, Typography, Tabs, Dropdown, Flex } from "antd";
 import { WarningOutlined, MoreOutlined } from "@ant-design/icons";
 import type { OutputData } from "@editorjs/editorjs";
-import type { RenderedContent } from "@/ui-kit/block-editor";
+import { renderToHtml, type RenderedContent } from "@/ui-kit/block-editor";
 import { AIButton } from "@/ui-kit/ai-button";
 import { Paper } from "@/ui-kit/paper";
 import { IProduct } from "../../mocks/types";
@@ -27,6 +27,54 @@ const useStyles = createStyles(({ token }) => ({
       fontSize: 13,
       color: token.colorText,
       lineHeight: 1.6,
+    },
+  },
+  renderedContent: {
+    fontSize: 13,
+    color: token.colorText,
+    lineHeight: 1.6,
+    maxHeight: 200,
+    overflow: "hidden",
+    position: "relative" as const,
+    "& p": {
+      margin: "0 0 8px 0",
+      "&:last-child": {
+        marginBottom: 0,
+      },
+    },
+    "& h1, & h2, & h3, & h4, & h5, & h6": {
+      margin: "12px 0 8px 0",
+      fontWeight: 600,
+      "&:first-child": {
+        marginTop: 0,
+      },
+    },
+    "& h3": {
+      fontSize: 14,
+    },
+    "& ul, & ol": {
+      margin: "8px 0",
+      paddingLeft: 20,
+    },
+    "& li": {
+      marginBottom: 4,
+    },
+    "& blockquote": {
+      margin: "8px 0",
+      paddingLeft: 12,
+      borderLeft: `3px solid ${token.colorBorder}`,
+      color: token.colorTextSecondary,
+      fontStyle: "italic",
+    },
+    "&::after": {
+      content: '""',
+      position: "absolute" as const,
+      bottom: 0,
+      left: 0,
+      right: 0,
+      height: 40,
+      background: `linear-gradient(transparent, ${token.colorBgContainer})`,
+      pointerEvents: "none" as const,
     },
   },
   emptyContainer: {
@@ -100,34 +148,19 @@ export const ProductContentTabs = ({ product }: IProductContentTabsProps) => {
     });
   };
 
-  const getTextFromEditorData = (data: string | null): string | null => {
+  const getHtmlFromEditorData = (data: string | null): string | null => {
     if (!data) return null;
     try {
       const parsed = JSON.parse(data) as OutputData;
       if (!parsed.blocks) return null;
-      return parsed.blocks
-        .map((block) => {
-          if (block.type === "paragraph" || block.type === "header") {
-            return (block.data as { text?: string }).text || "";
-          }
-          if (block.type === "list") {
-            return ((block.data as { items?: string[] }).items || []).join(" ");
-          }
-          if (block.type === "quote") {
-            return (block.data as { text?: string }).text || "";
-          }
-          return "";
-        })
-        .filter(Boolean)
-        .join(" ")
-        .slice(0, 300);
+      return renderToHtml(parsed);
     } catch {
-      return typeof data === "string" ? data.slice(0, 300) : null;
+      return typeof data === "string" ? `<p>${data}</p>` : null;
     }
   };
 
-  const descriptionPreview = getTextFromEditorData(product.description);
-  const excerptPreview = getTextFromEditorData(product.excerpt);
+  const descriptionHtml = getHtmlFromEditorData(product.description);
+  const excerptHtml = getHtmlFromEditorData(product.excerpt);
 
   return (
     <Paper className={styles.tabsSection}>
@@ -157,14 +190,11 @@ export const ProductContentTabs = ({ product }: IProductContentTabsProps) => {
           {
             key: "description",
             label: "Description",
-            children: descriptionPreview ? (
-              <Typography.Paragraph
-                ellipsis={{ rows: 3 }}
-                className={styles.contentText}
-              >
-                {descriptionPreview}
-                {descriptionPreview.length >= 300 && "..."}
-              </Typography.Paragraph>
+            children: descriptionHtml ? (
+              <div
+                className={styles.renderedContent}
+                dangerouslySetInnerHTML={{ __html: descriptionHtml }}
+              />
             ) : (
               <Flex align="center" gap={8} className={styles.emptyContainer}>
                 <WarningOutlined className={styles.emptyIcon} />
@@ -185,13 +215,11 @@ export const ProductContentTabs = ({ product }: IProductContentTabsProps) => {
           {
             key: "excerpt",
             label: "Excerpt",
-            children: excerptPreview ? (
-              <Typography.Paragraph
-                ellipsis={{ rows: 3 }}
-                className={styles.contentText}
-              >
-                {excerptPreview}
-              </Typography.Paragraph>
+            children: excerptHtml ? (
+              <div
+                className={styles.renderedContent}
+                dangerouslySetInnerHTML={{ __html: excerptHtml }}
+              />
             ) : (
               <Flex align="center" gap={8} className={styles.emptyContainer}>
                 <WarningOutlined className={styles.emptyIcon} />

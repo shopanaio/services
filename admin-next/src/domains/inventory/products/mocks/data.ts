@@ -381,6 +381,132 @@ const createMockProductGroup = (
 });
 
 // ============================================================================
+// Mock EditorJS Data
+// ============================================================================
+
+const mockSimpleProductDescription = JSON.stringify({
+  time: Date.now(),
+  version: "2.29.0",
+  blocks: [
+    {
+      id: "desc-1",
+      type: "paragraph",
+      data: {
+        text: "Premium quality cotton t-shirt with a modern fit. Perfect for everyday wear. Crafted from the finest organic cotton, this t-shirt offers exceptional comfort and durability.",
+      },
+    },
+    {
+      id: "desc-2",
+      type: "header",
+      data: {
+        text: "Features",
+        level: 3,
+      },
+    },
+    {
+      id: "desc-3",
+      type: "list",
+      data: {
+        style: "unordered",
+        items: [
+          "100% organic cotton",
+          "Pre-shrunk fabric",
+          "Reinforced seams",
+          "Machine washable",
+        ],
+      },
+    },
+    {
+      id: "desc-4",
+      type: "paragraph",
+      data: {
+        text: "Available in multiple colors and sizes. Order now and experience the comfort of premium cotton.",
+      },
+    },
+  ],
+});
+
+const mockSimpleProductExcerpt = JSON.stringify({
+  time: Date.now(),
+  version: "2.29.0",
+  blocks: [
+    {
+      id: "excerpt-1",
+      type: "paragraph",
+      data: {
+        text: "Premium quality cotton t-shirt with a modern fit. Perfect for everyday wear.",
+      },
+    },
+  ],
+});
+
+const mockVariableProductDescription = JSON.stringify({
+  time: Date.now(),
+  version: "2.29.0",
+  blocks: [
+    {
+      id: "phone-desc-1",
+      type: "paragraph",
+      data: {
+        text: "The most advanced smartphone ever. Featuring cutting-edge technology and premium titanium design that sets new standards in mobile innovation.",
+      },
+    },
+    {
+      id: "phone-desc-2",
+      type: "header",
+      data: {
+        text: "Key Features",
+        level: 3,
+      },
+    },
+    {
+      id: "phone-desc-3",
+      type: "list",
+      data: {
+        style: "unordered",
+        items: [
+          '6.7" Super Retina XDR display with ProMotion technology',
+          "A17 Pro chip with 6-core GPU for unprecedented performance",
+          "48MP main camera system with advanced computational photography",
+          "All-day battery life with fast charging support",
+          "Premium titanium design - lightest Pro model ever",
+        ],
+      },
+    },
+    {
+      id: "phone-desc-4",
+      type: "quote",
+      data: {
+        text: "The most powerful chip ever in a smartphone.",
+        caption: "Tech Review Magazine",
+        alignment: "left",
+      },
+    },
+    {
+      id: "phone-desc-5",
+      type: "paragraph",
+      data: {
+        text: "Available in Natural, Blue, White, and Black titanium finishes. Choose your storage capacity and get ready for the future of mobile technology.",
+      },
+    },
+  ],
+});
+
+const mockVariableProductExcerpt = JSON.stringify({
+  time: Date.now(),
+  version: "2.29.0",
+  blocks: [
+    {
+      id: "phone-excerpt-1",
+      type: "paragraph",
+      data: {
+        text: "The most advanced smartphone ever with cutting-edge A17 Pro chip, 48MP camera system, and premium titanium design.",
+      },
+    },
+  ],
+});
+
+// ============================================================================
 // Mock Products
 // ============================================================================
 
@@ -390,14 +516,8 @@ const createMockProductGroup = (
 export const mockSimpleProduct: IProduct = {
   id: 'prod-simple-1',
   title: 'Classic Cotton T-Shirt',
-  description: `<p>Premium quality cotton t-shirt with a modern fit. Perfect for everyday wear.</p>
-<ul>
-  <li>100% organic cotton</li>
-  <li>Pre-shrunk fabric</li>
-  <li>Reinforced seams</li>
-  <li>Machine washable</li>
-</ul>`,
-  excerpt: 'Premium quality cotton t-shirt with a modern fit.',
+  description: mockSimpleProductDescription,
+  excerpt: mockSimpleProductExcerpt,
   slug: 'classic-cotton-t-shirt',
   status: EntityStatus.PUBLISHED,
   price: 299900, // 2999.00 RUB in kopecks
@@ -461,16 +581,8 @@ export const mockVariableProduct: IProduct = (() => {
   return {
     id: containerId,
     title: 'Smartphone Pro Max 15',
-    description: `<p>The most advanced smartphone ever. Featuring cutting-edge technology and premium design.</p>
-<h3>Key Features:</h3>
-<ul>
-  <li>6.7" Super Retina XDR display</li>
-  <li>A17 Pro chip with 6-core GPU</li>
-  <li>48MP main camera system</li>
-  <li>All-day battery life</li>
-  <li>Titanium design</li>
-</ul>`,
-    excerpt: 'The most advanced smartphone ever with cutting-edge technology.',
+    description: mockVariableProductDescription,
+    excerpt: mockVariableProductExcerpt,
     slug: 'smartphone-pro-max-15',
     status: EntityStatus.PUBLISHED,
     price: variants[0].price,
