@@ -289,6 +289,8 @@ export const EditComponentsModal = () => {
       const product = getProductById(item.productId);
       if (!product || !product.variants) return;
 
+      const hasIncludedVariants = !!(item.includedVariants && item.includedVariants.length > 0);
+
       pushVariantSettings({
         itemId: item.id,
         productId: item.productId,
@@ -305,20 +307,69 @@ export const EditComponentsModal = () => {
           options: v.options,
         })),
         options: product.options,
-        onSave: (data: { availableVariantIds: string[] | null }) => {
-          const updatedGroups = groups.map((group) => {
-            if (group.id !== groupId) return group;
+        showAsVariants: hasIncludedVariants,
+        onSave: (data: { availableVariantIds: string[] | null; showAsVariants: boolean }) => {
+          // Calculate max sortIndex for new variants
+          const group = groups.find((g) => g.id === groupId);
+          let maxSortIndex = 0;
+          if (group) {
+            group.items.forEach((groupItem) => {
+              maxSortIndex = Math.max(maxSortIndex, groupItem.sortIndex);
+              groupItem.includedVariants?.forEach((v) => {
+                maxSortIndex = Math.max(maxSortIndex, v.sortIndex);
+              });
+            });
+          }
+
+          const updatedGroups = groups.map((grp) => {
+            if (grp.id !== groupId) return grp;
 
             return {
-              ...group,
-              items: group.items.map((i) =>
-                i.id === item.id
-                  ? {
-                      ...i,
-                      availableVariantIds: data.availableVariantIds,
-                    }
-                  : i
-              ),
+              ...grp,
+              items: grp.items.map((i) => {
+                if (i.id !== item.id) return i;
+
+                // Update available variant IDs
+                let updatedItem = {
+                  ...i,
+                  availableVariantIds: data.availableVariantIds,
+                };
+
+                // Handle showAsVariants toggle
+                if (data.showAsVariants && !hasIncludedVariants) {
+                  // Add variants to table
+                  const availableVariants = data.availableVariantIds
+                    ? product.variants!.filter((v) =>
+                        data.availableVariantIds!.includes(v.id)
+                      )
+                    : product.variants!;
+
+                  const newIncludedVariants: IIncludedVariant[] = availableVariants.map(
+                    (variant, index) => ({
+                      id: `inc-${Date.now()}-${variant.id}`,
+                      variantId: variant.id,
+                      sortIndex: maxSortIndex + 1 + index,
+                      priceType: item.priceType as ComponentPriceType,
+                      priceValue: item.priceValue,
+                      basePrice: variant.price,
+                      finalPrice: variant.price,
+                    })
+                  );
+
+                  updatedItem = {
+                    ...updatedItem,
+                    includedVariants: newIncludedVariants,
+                  };
+                } else if (!data.showAsVariants && hasIncludedVariants) {
+                  // Remove variants from table
+                  updatedItem = {
+                    ...updatedItem,
+                    includedVariants: undefined,
+                  };
+                }
+
+                return updatedItem;
+              }),
             };
           });
 

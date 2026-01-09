@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, useRef } from "react";
 import { createStyles } from "antd-style";
-import { Typography, Tag, Divider, Empty } from "antd";
+import { Typography, Tag, Divider, Empty, Switch, Flex } from "antd";
 import { AgGridReact } from "ag-grid-react";
 import {
   ColDef,
@@ -201,6 +201,7 @@ export const VariantSettingsModal = () => {
     priceValue = null,
     variants = [],
     options = [],
+    showAsVariants: initialShowAsVariants = false,
     onSave,
   } = modalPayload ?? {};
 
@@ -208,6 +209,7 @@ export const VariantSettingsModal = () => {
   const [selectedVariantIds, setSelectedVariantIds] = useState<string[]>(
     () => initialVariantIds ?? variants.map((v) => v.id)
   );
+  const [showAsVariants, setShowAsVariants] = useState(initialShowAsVariants);
 
   // Row data for grid (stateful for drag reordering)
   const [rowData, setRowData] = useState<IVariantRow[]>(() =>
@@ -331,9 +333,10 @@ export const VariantSettingsModal = () => {
 
     onSave?.({
       availableVariantIds: isAllSelected ? null : orderedSelectedIds,
+      showAsVariants,
     });
     pop();
-  }, [selectedVariantIds, variants, rowData, onSave, pop]);
+  }, [selectedVariantIds, variants, rowData, showAsVariants, onSave, pop]);
 
   // Price rule label for display
   const priceRuleLabel = useMemo(
@@ -513,6 +516,23 @@ export const VariantSettingsModal = () => {
             </div>
           )}
         </div>
+
+        <Divider style={{ margin: "12px 0" }} />
+
+        {/* Show as variants switch */}
+        <Flex justify="space-between" align="center">
+          <div>
+            <Typography.Text strong>Show as variants</Typography.Text>
+            <br />
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              Display each variant as a separate row in the components table
+            </Typography.Text>
+          </div>
+          <Switch
+            checked={showAsVariants}
+            onChange={setShowAsVariants}
+          />
+        </Flex>
       </div>
     </ModalLayout>
   );

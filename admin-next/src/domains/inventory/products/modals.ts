@@ -340,9 +340,12 @@ export interface IComponentVariantSettingsModalPayload extends IModalStackPayloa
     name: string;
     values: string[];
   }>;
+  /** Whether variants are already shown in table */
+  showAsVariants?: boolean;
   /** Callback when saved */
   onSave?: (data: {
     availableVariantIds: string[] | null;
+    showAsVariants: boolean;
   }) => void;
 }
 
