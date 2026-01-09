@@ -142,26 +142,34 @@ export const CategoriesSection = ({
             </Dropdown>
           ))}
           <Tag
-            color="default"
+            variant="outlined"
             onClick={openPicker}
-            style={{ cursor: "pointer" }}
+            style={{
+              cursor: "pointer",
+              background: "transparent",
+              borderStyle: "dashed",
+            }}
           >
             <Flex align="center" gap={4}>
               <PlusOutlined />
-              Category
+              Add Category
             </Flex>
           </Tag>
         </Flex>
       ) : (
         <Flex gap={4} wrap="wrap">
           <Tag
-            color="default"
+            variant="outlined"
             onClick={openPicker}
-            style={{ cursor: "pointer" }}
+            style={{
+              cursor: "pointer",
+              background: "transparent",
+              borderStyle: "dashed",
+            }}
           >
             <Flex align="center" gap={4}>
               <PlusOutlined />
-              Category
+              Add Category
             </Flex>
           </Tag>
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>

@@ -68,19 +68,35 @@ export const TagsSection = ({ tags: initialTags = [] }: ITagsSectionProps) => {
               </Tag>
             </Dropdown>
           ))}
-          <Tag color="default" onClick={openPicker} style={{ cursor: "pointer" }}>
+          <Tag
+            variant="outlined"
+            onClick={openPicker}
+            style={{
+              cursor: "pointer",
+              background: "transparent",
+              borderStyle: "dashed",
+            }}
+          >
             <Flex align="center" gap={4}>
               <PlusOutlined />
-              Tag
+              Add Tag
             </Flex>
           </Tag>
         </Flex>
       ) : (
         <Flex gap={4} wrap="wrap">
-          <Tag color="default" onClick={openPicker} style={{ cursor: "pointer" }}>
+          <Tag
+            variant="outlined"
+            onClick={openPicker}
+            style={{
+              cursor: "pointer",
+              background: "transparent",
+              borderStyle: "dashed",
+            }}
+          >
             <Flex align="center" gap={4}>
               <PlusOutlined />
-              Tag
+              Add Tag
             </Flex>
           </Tag>
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
