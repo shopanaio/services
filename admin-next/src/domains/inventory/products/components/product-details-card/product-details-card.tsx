@@ -8,6 +8,7 @@ import { SeoBlock } from "../seo";
 import { AttributesSection } from "../attributes-section";
 import { EditAction } from "../edit-action";
 import { createMockData as createAttributesMockData } from "../../modals/edit-attributes-modal/mocks";
+import { MOCK_OPTION_GROUPS } from "../../modals/edit-options-modal/mocks";
 import {
   MediaSection,
   CategoriesSection,
@@ -164,14 +165,12 @@ export const ProductDetailsCard = ({
       />
 
       {/* OPTIONS (variable products) */}
-      {product.isVariableProduct &&
-        product.options &&
-        product.options.length > 0 && (
-          <OptionsSection
-            options={product.options}
-            onEdit={modals.editOptions}
-          />
-        )}
+      {product.isVariableProduct && (
+        <OptionsSection
+          options={MOCK_OPTION_GROUPS}
+          onEdit={modals.editOptions}
+        />
+      )}
 
       {/* VARIANTS TABLE (variable products) */}
       {product.isVariableProduct && variantsForTable.length > 0 && (

@@ -228,14 +228,51 @@ export const useReviewsStyles = createStyles(({ token }) => ({
 // Options Section Styles
 // ============================================================================
 
-export const useOptionsStyles = createStyles(() => ({
-  optionTitle: {
-    fontSize: 12,
-    display: "block",
-    marginBottom: 4,
+export const useOptionsStyles = createStyles(({ token }) => ({
+  optionGroup: {
+    padding: token.paddingSM,
+    borderRadius: token.borderRadius,
+    border: `1px solid ${token.colorBorderSecondary}`,
   },
-  optionTag: {
+  optionHeader: {
+    marginBottom: 8,
+  },
+  optionTitle: {
+    fontSize: 13,
+  },
+  styleTag: {
     margin: 0,
+    fontSize: 11,
+    "& .anticon": {
+      fontSize: 11,
+    },
+  },
+  swatchPreview: {
+    width: 12,
+    height: 12,
+    borderRadius: "50%",
+    border: `1px solid ${token.colorBorderSecondary}`,
+    overflow: "hidden",
+    display: "inline-block",
+    flexShrink: 0,
+  },
+  swatchPreviewImg: {
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+  },
+  swatchPreviewPlaceholder: {
+    width: 14,
+    height: 14,
+    borderRadius: "50%",
+    border: `1px solid ${token.colorBorderSecondary}`,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: token.colorBgContainerDisabled,
+    color: token.colorTextSecondary,
+    fontSize: 8,
+    flexShrink: 0,
   },
 }));
 
