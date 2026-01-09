@@ -325,6 +325,7 @@ export const EditComponentsModal = () => {
   );
 
   // Handle including variants in the table with individual pricing
+  // Immediately adds all available variants without showing a modal
   const handleIncludeVariants = useCallback(
     (item: IComponentItem, groupId: string) => {
       const product = getProductById(item.productId);
@@ -340,77 +341,50 @@ export const EditComponentsModal = () => {
         item.includedVariants?.map((iv) => iv.variantId) ?? []
       );
 
-      pushVariantSettings({
-        itemId: item.id,
-        productId: item.productId,
-        productTitle: `Include variants: ${product.title}`,
-        availableVariantIds: availableVariants
-          .filter((v) => !alreadyIncludedIds.has(v.id))
-          .map((v) => v.id),
-        priceType: item.priceType,
-        priceValue: item.priceValue,
-        variants: availableVariants
-          .filter((v) => !alreadyIncludedIds.has(v.id))
-          .map((v) => ({
-            id: v.id,
-            title: v.title,
-            sku: v.sku,
-            price: v.price,
-            stock: v.stock,
-            options: v.options,
-          })),
-        options: product.options,
-        onSave: (data: { availableVariantIds: string[] | null }) => {
-          // If null, all variants were selected; if empty array, nothing selected
-          const selectedIds = data.availableVariantIds === null
-            ? availableVariants.filter((v) => !alreadyIncludedIds.has(v.id)).map((v) => v.id)
-            : data.availableVariantIds;
+      // Get variants that haven't been included yet
+      const variantsToAdd = availableVariants.filter(
+        (v) => !alreadyIncludedIds.has(v.id)
+      );
 
-          if (selectedIds.length === 0) {
-            return; // No variants selected
-          }
+      if (variantsToAdd.length === 0) {
+        return; // All variants already included
+      }
 
-          // Create included variants with default pricing (inherits from parent)
-          const newIncludedVariants: IIncludedVariant[] = selectedIds.map(
-            (variantId: string) => {
-              const variant = product.variants?.find((v) => v.id === variantId);
-              const basePrice = variant?.price ?? 0;
-              return {
-                id: `inc-${Date.now()}-${variantId}`,
-                variantId,
-                priceType: item.priceType as ComponentPriceType,
-                priceValue: item.priceValue,
-                basePrice,
-                finalPrice: basePrice, // Will be calculated properly
-              };
-            }
-          );
+      // Create included variants with default pricing (inherits from parent)
+      const newIncludedVariants: IIncludedVariant[] = variantsToAdd.map(
+        (variant) => ({
+          id: `inc-${Date.now()}-${variant.id}`,
+          variantId: variant.id,
+          priceType: item.priceType as ComponentPriceType,
+          priceValue: item.priceValue,
+          basePrice: variant.price,
+          finalPrice: variant.price,
+        })
+      );
 
-          const updatedGroups = groups.map((group) => {
-            if (group.id !== groupId) return group;
+      const updatedGroups = groups.map((group) => {
+        if (group.id !== groupId) return group;
 
-            return {
-              ...group,
-              items: group.items.map((i) =>
-                i.id === item.id
-                  ? {
-                      ...i,
-                      includedVariants: [
-                        ...(i.includedVariants ?? []),
-                        ...newIncludedVariants,
-                      ],
-                    }
-                  : i
-              ),
-            };
-          });
-
-          setGroups(updatedGroups);
-          setDirty(true);
-        },
+        return {
+          ...group,
+          items: group.items.map((i) =>
+            i.id === item.id
+              ? {
+                  ...i,
+                  includedVariants: [
+                    ...(i.includedVariants ?? []),
+                    ...newIncludedVariants,
+                  ],
+                }
+              : i
+          ),
+        };
       });
+
+      setGroups(updatedGroups);
+      setDirty(true);
     },
-    [pushVariantSettings, groups, setDirty]
+    [groups, setDirty]
   );
 
   const handleSave = useCallback(() => {

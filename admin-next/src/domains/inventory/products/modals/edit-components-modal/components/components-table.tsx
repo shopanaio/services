@@ -32,6 +32,7 @@ import {
   type IPricingRuleTemplate,
 } from "../types";
 import { getProductById, getVariantById, calculateFinalPrice } from "../mocks/mock-data";
+import { Dash } from "@/shared/components/editor-grid";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -69,6 +70,19 @@ const useStyles = createStyles(({ token }) => ({
     },
     "& .row-variant": {
       background: `${token.colorFillQuaternary} !important`,
+    },
+    "& .row-container": {
+      "& .ag-cell[col-id='priceType'], & .ag-cell[col-id='priceValue']": {
+        backgroundColor: token.colorFillQuaternary,
+      },
+    },
+    "& .ec-dash": {
+      display: "inline-block",
+      width: 24,
+      height: 4,
+      backgroundColor: token.colorBorder,
+      borderRadius: 2,
+      verticalAlign: "middle",
     },
     // Transparent resize handles (visible on hover), full height
     "& .ag-header-cell-resize": {
@@ -304,6 +318,11 @@ const PriceRuleCellRenderer = ({
 }: IPriceRuleCellRendererProps) => {
   if (!data) return null;
 
+  // Container products (with included variants) don't have their own price settings
+  if (data.hasIncludedVariants && !data.isVariant) {
+    return <Dash />;
+  }
+
   const options = [
     ...(pricingTemplates.length > 0
       ? [
@@ -371,6 +390,7 @@ interface IActionsCellRendererProps extends ICellRendererParams<ITableRow> {
   onDelete: (rowId: string, isVariant: boolean) => void;
   onDuplicate: (rowId: string) => void;
   onIncludeVariants?: (item: IComponentItem) => void;
+  onExpandItem: (id: string) => void;
   items: IComponentItem[];
 }
 
@@ -379,6 +399,7 @@ const ActionsCellRenderer = ({
   onDelete,
   onDuplicate,
   onIncludeVariants,
+  onExpandItem,
   items,
 }: IActionsCellRendererProps) => {
   if (!data) return null;
@@ -416,7 +437,11 @@ const ActionsCellRenderer = ({
             key: "include-variants",
             icon: <PlusOutlined />,
             label: "Include variants",
-            onClick: () => onIncludeVariants(fullItem),
+            onClick: () => {
+              onIncludeVariants(fullItem);
+              // Auto-expand after adding variants
+              onExpandItem(data.id);
+            },
           },
         ]
       : []),
@@ -502,6 +527,16 @@ export const ComponentsTable = ({
       } else {
         next.add(id);
       }
+      return next;
+    });
+  }, []);
+
+  // Expand only (never collapse) - used after adding variants
+  const handleExpandItem = useCallback((id: string) => {
+    setExpandedIds((prev) => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
       return next;
     });
   }, []);
@@ -779,6 +814,7 @@ export const ComponentsTable = ({
 
   const getRowClass = useCallback((params: { data: ITableRow | undefined }) => {
     if (params.data?.isVariant) return "row-variant";
+    if (params.data?.hasIncludedVariants) return "row-container";
     return "";
   }, []);
 
@@ -837,6 +873,11 @@ export const ComponentsTable = ({
         headerName: "Price Rule",
         field: "priceType",
         width: 180,
+        colSpan: (params) => {
+          // Container products span across priceType + priceValue columns
+          if (params.data?.hasIncludedVariants && !params.data?.isVariant) return 2;
+          return 1;
+        },
         cellRenderer: (params: ICellRendererParams<ITableRow>) => (
           <PriceRuleCellRenderer
             {...params}
@@ -850,17 +891,19 @@ export const ComponentsTable = ({
         field: "priceValue",
         width: 100,
         editable: (params) => {
+          // Container products (with included variants) are not editable
+          if (params.data?.hasIncludedVariants && !params.data?.isVariant) return false;
           const rule = PRICE_RULE_OPTIONS.find((r) => r.value === params.data?.priceType);
           return !!rule?.requiresValue;
         },
-        cellEditor: "agNumberCellEditor",
-        cellEditorParams: { min: 0, precision: 0 },
-        valueFormatter: (params) => {
+        cellRenderer: (params: ICellRendererParams<ITableRow>) => {
           const rule = PRICE_RULE_OPTIONS.find((r) => r.value === params.data?.priceType);
           if (!rule?.requiresValue) return "—";
           if (params.value == null) return "—";
           return `${params.value}${rule.valueSuffix || ""}`;
         },
+        cellEditor: "agNumberCellEditor",
+        cellEditorParams: { min: 0, precision: 0 },
       },
       {
         headerName: "",
@@ -872,6 +915,7 @@ export const ComponentsTable = ({
             onDelete={handleDelete}
             onDuplicate={handleDuplicate}
             onIncludeVariants={onIncludeVariants}
+            onExpandItem={handleExpandItem}
             items={items}
           />
         ),
@@ -885,6 +929,7 @@ export const ComponentsTable = ({
       handleToggleAll,
       handleToggleSelection,
       handleToggleExpand,
+      handleExpandItem,
       handleDelete,
       handleDuplicate,
       onIncludeVariants,
