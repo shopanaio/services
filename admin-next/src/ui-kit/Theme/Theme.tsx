@@ -71,7 +71,6 @@ export const Theme = ({ children }: { children: React.ReactNode }) => {
             },
             Modal: {
               boxShadow: customToken.boxShadowModal,
-              colorBgMask: "rgba(241, 241, 241, 0.8)",
             },
             Popover: {
               boxShadowSecondary: customToken.boxShadowModal,

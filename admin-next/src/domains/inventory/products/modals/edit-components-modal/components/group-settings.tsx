@@ -11,12 +11,7 @@ import type { IComponentGroup } from "../types";
 
 const useStyles = createStyles(({ token }) => ({
   container: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 12,
-    paddingBottom: 16,
-    marginBottom: 16,
-    borderBottom: `1px solid ${token.colorBorderSecondary}`,
+    paddingBlock: token.padding,
   },
   row: {
     display: "flex",
@@ -54,18 +49,13 @@ export const GroupSettings = ({ group, onChange }: IGroupSettingsProps) => {
 
   const handleTitleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const title = e.target.value;
-      const slug = title
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "");
-      onChange({ title, slug });
+      onChange({ title: e.target.value });
     },
     [onChange]
   );
 
   return (
-    <div className={styles.container}>
+    <Flex gap={12} className={styles.container}>
       {/* Row 1: Name, Checkboxes, Min/Max */}
       <Flex gap={16} align="center" wrap="wrap">
         <Input
@@ -120,7 +110,7 @@ export const GroupSettings = ({ group, onChange }: IGroupSettingsProps) => {
           />
         </Flex>
       </Flex>
-    </div>
+    </Flex>
   );
 };
 

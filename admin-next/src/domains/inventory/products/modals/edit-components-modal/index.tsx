@@ -157,8 +157,8 @@ const GroupsTab = ({
     <div className={styles.container}>
       <div className={styles.groupsHeader}>
         <Typography.Text strong>COMPONENT GROUPS</Typography.Text>
-        <Button icon={<PlusOutlined />} onClick={handleAddGroup}>
-          Add Group
+        <Button size="small" icon={<PlusOutlined />} onClick={handleAddGroup}>
+          Add
         </Button>
       </div>
 
@@ -561,6 +561,7 @@ export const EditComponentsModal = () => {
     >
       <Paper>
         <Tabs
+          type="card"
           activeKey={activeTab}
           onChange={(key) => setActiveTab(key as EditComponentsTabKey)}
           items={tabItems}

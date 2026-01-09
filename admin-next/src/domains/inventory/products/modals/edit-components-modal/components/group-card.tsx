@@ -2,7 +2,16 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { createStyles } from "antd-style";
-import { Typography, Tag, Button, Dropdown, Empty, Switch, Select, Flex } from "antd";
+import {
+  Typography,
+  Tag,
+  Button,
+  Dropdown,
+  Empty,
+  Switch,
+  Select,
+  Flex,
+} from "antd";
 import {
   CaretDownOutlined,
   CaretRightOutlined,
@@ -30,26 +39,17 @@ import { ComponentsTable } from "./components-table";
 
 const useStyles = createStyles(({ token }) => ({
   card: {
-    marginBottom: 12,
-    border: `1px solid ${token.colorBorderSecondary}`,
-    borderRadius: token.borderRadiusLG,
-    overflow: "hidden",
     background: token.colorBgContainer,
   },
   header: {
     display: "flex",
+    borderRadius: token.borderRadiusLG,
     justifyContent: "space-between",
+    background: token.colorBgLayout,
     alignItems: "center",
     padding: "12px 16px",
     cursor: "pointer",
     transition: "background 0.2s",
-    "&:hover": {
-      background: token.colorBgLayout,
-    },
-  },
-  headerExpanded: {
-    background: token.colorBgLayout,
-    borderBottom: `1px solid ${token.colorBorderSecondary}`,
   },
   headerLeft: {
     display: "flex",
@@ -72,9 +72,7 @@ const useStyles = createStyles(({ token }) => ({
     gap: 6,
     flexWrap: "wrap",
   },
-  content: {
-    padding: 16,
-  },
+
   itemsHeader: {
     display: "flex",
     justifyContent: "space-between",
@@ -165,35 +163,6 @@ export const GroupCard = ({
     return `${formatPrice(min)} - ${formatPrice(max)}`;
   }, [group.items]);
 
-  // Bulk price options
-  const bulkPriceOptions = useMemo(() => [
-    ...(pricingTemplates.length > 0
-      ? [
-          {
-            label: "Templates",
-            options: pricingTemplates.map((tpl) => {
-              const rule = PRICE_RULE_OPTIONS.find((r) => r.value === tpl.priceType);
-              const valueStr =
-                tpl.priceValue !== null && rule?.valueSuffix
-                  ? ` (${tpl.priceValue}${rule.valueSuffix})`
-                  : "";
-              return {
-                label: `${tpl.name}${valueStr}`,
-                value: `${TEMPLATE_PREFIX}${tpl.id}`,
-              };
-            }),
-          },
-        ]
-      : []),
-    {
-      label: "Custom",
-      options: PRICE_RULE_OPTIONS.map((opt) => ({
-        label: opt.label,
-        value: opt.value,
-      })),
-    },
-  ], [pricingTemplates]);
-
   // Handlers
   const handleSettingsChange = useCallback(
     (updates: Partial<IComponentGroup>) => {
@@ -220,65 +189,9 @@ export const GroupCard = ({
     setSelectedIds(ids);
   }, []);
 
-  // Apply pricing rule to selected items
-  const handleBulkApplyPriceRule = useCallback(
-    (value: string) => {
-      if (selectedIds.size === 0) return;
-
-      let priceType: ComponentPriceType;
-      let priceValue: number | null;
-      let templateId: string | undefined;
-
-      if (value.startsWith(TEMPLATE_PREFIX)) {
-        const tplId = value.replace(TEMPLATE_PREFIX, "");
-        const template = pricingTemplates.find((t) => t.id === tplId);
-        if (!template) return;
-        priceType = template.priceType;
-        priceValue = template.priceValue;
-        templateId = tplId;
-      } else {
-        priceType = value as ComponentPriceType;
-        const rule = PRICE_RULE_OPTIONS.find((r) => r.value === priceType);
-        priceValue = rule?.requiresValue ? 0 : null;
-        templateId = undefined;
-      }
-
-      const newItems = group.items.map((item) => {
-        if (!selectedIds.has(item.id)) return item;
-
-        const finalPrice = calculateFinalPrice(item.basePrice, priceType, priceValue);
-
-        return {
-          ...item,
-          priceType,
-          priceValue,
-          templateId,
-          finalPrice,
-        };
-      });
-
-      onChange({ ...group, items: newItems });
-      setSelectedIds(new Set());
-      setBulkEditMode(false);
-    },
-    [group, selectedIds, pricingTemplates, onChange]
-  );
-
-  // Delete selected items
-  const handleBulkDelete = useCallback(() => {
-    if (selectedIds.size === 0) return;
-    const newItems = group.items.filter((item) => !selectedIds.has(item.id));
-    onChange({ ...group, items: newItems });
-    setSelectedIds(new Set());
-    setBulkEditMode(false);
-  }, [group, selectedIds, onChange]);
-
-  const handleMenuClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-    },
-    []
-  );
+  const handleMenuClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+  }, []);
 
   // Menu items
   const menuItems: MenuProps["items"] = [
@@ -301,26 +214,13 @@ export const GroupCard = ({
   return (
     <div className={styles.card}>
       {/* Header */}
-      <div
-        className={cx(styles.header, isExpanded && styles.headerExpanded)}
-        onClick={onToggle}
-      >
+      <div className={cx(styles.header)} onClick={onToggle}>
         <div className={styles.headerLeft}>
           <div className={styles.titleRow}>
             {isExpanded ? <CaretDownOutlined /> : <CaretRightOutlined />}
             <Typography.Text className={styles.title}>
               {group.title}
             </Typography.Text>
-          </div>
-          <div className={styles.tagsRow}>
-            <Tag color={group.isRequired ? "red" : "default"}>
-              {group.isRequired ? "Required" : "Optional"}
-            </Tag>
-            <Tag color={group.isMultiple ? "blue" : "default"}>
-              {group.isMultiple ? "Multiple" : "Single"}
-            </Tag>
-            <Tag>{group.items.length} items</Tag>
-            {priceRange && <Tag color="green">{priceRange}</Tag>}
           </div>
         </div>
 
@@ -335,37 +235,9 @@ export const GroupCard = ({
 
       {/* Content */}
       {isExpanded && (
-        <div className={styles.content}>
+        <div>
           {/* Group Settings */}
           <GroupSettings group={group} onChange={handleSettingsChange} />
-
-          {/* Items Section */}
-          <div className={styles.itemsHeader}>
-            <div className={styles.itemsHeaderLeft}>
-              <Typography.Text className={styles.itemsTitle}>
-                Items{" "}
-                <span className={styles.itemsCount}>({group.items.length})</span>
-              </Typography.Text>
-              {group.items.length > 0 && (
-                <Flex align="center" gap={6}>
-                  <Switch
-                    size="small"
-                    checked={bulkEditMode}
-                    onChange={handleBulkEditToggle}
-                  />
-                  <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                    Bulk
-                  </Typography.Text>
-                </Flex>
-              )}
-            </div>
-            <Button
-              type="default"
-              size="small"
-              icon={<PlusOutlined />}
-              onClick={onAddItem}
-            />
-          </div>
 
           {group.items.length === 0 ? (
             <Empty
@@ -373,7 +245,11 @@ export const GroupCard = ({
               description="No items in this group"
               className={styles.emptyItems}
             >
-              <Button type="primary" icon={<PlusOutlined />} onClick={onAddItem}>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={onAddItem}
+              >
                 Add first item
               </Button>
             </Empty>
