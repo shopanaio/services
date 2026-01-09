@@ -36,10 +36,10 @@ export interface IEntityMediaGalleryProps {
   multiple?: boolean;
   /** Empty state message */
   emptyMessage?: string;
-  /** Label for cover badge */
-  coverLabel?: string;
-  /** Whether first item is automatically the cover */
-  hasCover?: boolean;
+  /** Label for featured badge */
+  featuredLabel?: string;
+  /** Whether first item is automatically the featured */
+  hasFeatured?: boolean;
   /** Title shown in Paper header */
   title?: string;
   /** Whether to wrap in Paper component */

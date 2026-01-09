@@ -86,7 +86,7 @@ export interface ICategory {
   status: EntityStatus;
   createdAt: Date;
   updatedAt: Date;
-  cover: IMediaFile | null;
+  featured: IMediaFile | null;
   gallery: IMediaFile[];
 }
 
@@ -159,7 +159,7 @@ export interface IProductVariant {
   oldPrice: number;
   costPrice: number;
   sku: string | null;
-  cover: IMediaFile | null;
+  featured: IMediaFile | null;
   gallery: IMediaFile[];
   weight: number | null;
   weightUnit: WeightUnit;
@@ -218,7 +218,7 @@ export interface IProduct {
   oldPrice: number;
   costPrice: number;
   sku: string | null;
-  cover: IMediaFile | null;
+  featured: IMediaFile | null;
   gallery: IMediaFile[];
   weight: number | null;
   weightUnit: WeightUnit;

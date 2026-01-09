@@ -33,13 +33,13 @@ export const useProductModals = (product: IProduct) => {
   const handleEditMedia = useCallback(() => {
     openEditMediaModal({
       productId: product.id,
-      cover: product.cover,
+      featured: product.featured,
       gallery: product.gallery,
-      onSave: (media: { cover: IMediaFile | null; gallery: IMediaFile[] }) => {
+      onSave: (media: { featured: IMediaFile | null; gallery: IMediaFile[] }) => {
         console.log("Saved media:", media);
       },
     });
-  }, [product.id, product.cover, product.gallery, openEditMediaModal]);
+  }, [product.id, product.featured, product.gallery, openEditMediaModal]);
 
   const handleEditCategories = useCallback(() => {
     openEditCategoriesModal({

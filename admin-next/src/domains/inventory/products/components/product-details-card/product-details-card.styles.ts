@@ -45,7 +45,7 @@ export const useMediaStyles = createStyles(({ token }) => ({
     borderRadius: 4,
     fontSize: 12,
   },
-  mediaCoverWrapper: {
+  mediaFeaturedWrapper: {
     position: "relative",
   },
 }));

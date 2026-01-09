@@ -67,7 +67,7 @@ export const mockCategories: ICategory[] = [
     status: EntityStatus.PUBLISHED,
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-06-01'),
-    cover: createMediaFile('electronics', 0),
+    featured: createMediaFile('electronics', 0),
     gallery: [],
   },
   {
@@ -81,7 +81,7 @@ export const mockCategories: ICategory[] = [
     status: EntityStatus.PUBLISHED,
     createdAt: new Date('2024-01-02'),
     updatedAt: new Date('2024-06-02'),
-    cover: createMediaFile('smartphones', 0),
+    featured: createMediaFile('smartphones', 0),
     gallery: [],
   },
   {
@@ -95,7 +95,7 @@ export const mockCategories: ICategory[] = [
     status: EntityStatus.PUBLISHED,
     createdAt: new Date('2024-01-03'),
     updatedAt: new Date('2024-06-03'),
-    cover: createMediaFile('clothing', 0),
+    featured: createMediaFile('clothing', 0),
     gallery: [],
   },
 ];
@@ -330,7 +330,7 @@ const createVariant = (
     oldPrice: pricing.oldPrice || 0,
     costPrice: pricing.costPrice || Math.floor(pricing.price * 0.6),
     sku: `SKU-${containerId.toUpperCase()}-${index}`,
-    cover: createMediaFile(`variant-${containerId}`, index),
+    featured: createMediaFile(`variant-${containerId}`, index),
     gallery: [createMediaFile(`variant-${containerId}`, index)],
     weight: 150,
     weightUnit: WeightUnit.G,
@@ -399,7 +399,7 @@ export const mockSimpleProduct: IProduct = {
   oldPrice: 399900,
   costPrice: 150000,
   sku: 'TSHIRT-001',
-  cover: createMediaFile('tshirt', 0),
+  featured: createMediaFile('tshirt', 0),
   gallery: [
     createMediaFile('tshirt', 1),
     createMediaFile('tshirt', 2),
@@ -472,7 +472,7 @@ export const mockVariableProduct: IProduct = (() => {
     oldPrice: variants[0].oldPrice,
     costPrice: Math.floor(variants[0].price * 0.65),
     sku: null,
-    cover: createMediaFile('phone', 0),
+    featured: createMediaFile('phone', 0),
     gallery: [
       createMediaFile('phone', 1),
       createMediaFile('phone', 2),
@@ -523,7 +523,7 @@ export const mockDraftProduct: IProduct = {
   excerpt: null,
   seoTitle: null,
   seoDescription: null,
-  cover: null,
+  featured: null,
   gallery: [],
   tags: [],
   containerId: 'prod-draft-1',

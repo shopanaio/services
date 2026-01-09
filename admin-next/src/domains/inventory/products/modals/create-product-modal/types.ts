@@ -9,7 +9,7 @@ export interface ILocalMediaItem {
   url: string; // Object URL for preview
   name: string;
   size: number;
-  isCover: boolean;
+  isFeatured: boolean;
 }
 
 /**

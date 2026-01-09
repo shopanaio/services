@@ -3,7 +3,7 @@
 import { Image, Flex } from "antd";
 import { EyeOutlined } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import { CoverBadge } from "@/ui-kit/cover-badge";
+import { FeaturedBadge } from "@/ui-kit/featured-badge";
 import { EditAction } from "../../edit-action";
 import { MediaFilePlaceholder } from "../../media-file-placeholder";
 import { useMediaStyles } from "../product-details-card.styles";
@@ -30,7 +30,7 @@ export const MediaSection = ({ gallery, onEdit }: IMediaSectionProps) => {
       <div className={styles.mediaGrid}>
         {gallerySlice.map((media, index) =>
           index === 0 ? (
-            <div key={media.id} className={styles.mediaCoverWrapper}>
+            <div key={media.id} className={styles.mediaFeaturedWrapper}>
               <Image
                 src={media.url}
                 alt={media.name || ""}
@@ -44,7 +44,7 @@ export const MediaSection = ({ gallery, onEdit }: IMediaSectionProps) => {
                   ),
                 }}
               />
-              <CoverBadge />
+              <FeaturedBadge />
             </div>
           ) : (
             <Image

@@ -45,7 +45,7 @@ const localMediaItemSchema = z.object({
   url: z.string(),
   name: z.string(),
   size: z.number(),
-  isCover: z.boolean(),
+  isFeatured: z.boolean(),
 });
 
 /**

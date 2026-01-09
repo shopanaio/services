@@ -48,10 +48,10 @@ export const EditMediaModal = () => {
   const [gallery, setGallery] = useState<IMediaItem[]>(() => {
     const items = [...typedPayload.gallery].map(toMediaItem);
     if (
-      typedPayload.cover &&
-      !items.find((i) => i.id === typedPayload.cover?.id)
+      typedPayload.featured &&
+      !items.find((i) => i.id === typedPayload.featured?.id)
     ) {
-      items.unshift(toMediaItem(typedPayload.cover));
+      items.unshift(toMediaItem(typedPayload.featured));
     }
     return items;
   });
@@ -80,8 +80,8 @@ export const EditMediaModal = () => {
 
   const handleSave = useCallback(() => {
     const mediaFiles = gallery.map(toMediaFile);
-    const newCover = mediaFiles[0] || null;
-    typedPayload.onSave?.({ cover: newCover, gallery: mediaFiles });
+    const newFeatured = mediaFiles[0] || null;
+    typedPayload.onSave?.({ featured: newFeatured, gallery: mediaFiles });
     pop();
   }, [typedPayload, gallery, pop]);
 
@@ -131,8 +131,8 @@ export const EditMediaModal = () => {
           showViewSwitcher
           accept="image/*,video/*"
           multiple
-          hasCover
-          coverLabel="Cover"
+          hasFeatured
+          featuredLabel="Featured"
           emptyMessage="No media files yet"
         />
       </div>

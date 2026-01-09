@@ -4,7 +4,7 @@ import { createStyles } from "antd-style";
 import { StarFilled } from "@ant-design/icons";
 
 const useStyles = createStyles(({ token }) => ({
-  coverBadge: {
+  featuredBadge: {
     position: "absolute",
     top: 8,
     left: 8,
@@ -21,21 +21,21 @@ const useStyles = createStyles(({ token }) => ({
   },
 }));
 
-interface ICoverBadgeProps {
+interface IFeaturedBadgeProps {
   label?: string;
   showIcon?: boolean;
   className?: string;
 }
 
-export const CoverBadge = ({
-  label = "Cover",
+export const FeaturedBadge = ({
+  label = "Featured",
   showIcon = true,
   className,
-}: ICoverBadgeProps) => {
+}: IFeaturedBadgeProps) => {
   const { styles, cx } = useStyles();
 
   return (
-    <div className={cx(styles.coverBadge, className)}>
+    <div className={cx(styles.featuredBadge, className)}>
       {showIcon && <StarFilled style={{ fontSize: 10 }} />}
       {label}
     </div>

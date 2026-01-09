@@ -139,10 +139,10 @@ export interface IEditVariantInventoryModalPayload extends IModalStackPayload {
 export interface IEditMediaModalPayload extends IModalStackPayload {
   productId?: string;
   variantId?: string;
-  cover: IMediaFile | null;
+  featured: IMediaFile | null;
   gallery: IMediaFile[];
   onSave?: (media: {
-    cover: IMediaFile | null;
+    featured: IMediaFile | null;
     gallery: IMediaFile[];
   }) => void;
   onUpload?: (files: File[]) => Promise<IMediaFile[]>;
@@ -471,7 +471,7 @@ export const useEditVariantInventoryModal = createModalStackHook(PRODUCT_EDIT_VA
  * @example
  * ```tsx
  * const { push } = useEditMediaModal();
- * push({ cover: null, gallery: [...], onSave: (media) => console.log(media) });
+ * push({ featured: null, gallery: [...], onSave: (media) => console.log(media) });
  * ```
  */
 export const useEditMediaModal = createModalStackHook(PRODUCT_EDIT_MEDIA_MODAL_TYPE);

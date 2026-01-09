@@ -24,7 +24,7 @@ import {
   UnorderedListOutlined,
   HolderOutlined,
 } from "@ant-design/icons";
-import { CoverBadge } from "@/ui-kit/cover-badge";
+import { FeaturedBadge } from "@/ui-kit/featured-badge";
 import {
   DndContext,
   KeyboardSensor,
@@ -73,9 +73,9 @@ const getFileExtension = (name: string): string => {
 interface ISortableGridItemProps {
   item: IMediaItem;
   index: number;
-  isCover: boolean;
-  coverLabel: string;
-  onSetCover: (item: IMediaItem) => void;
+  isFeatured: boolean;
+  featuredLabel: string;
+  onSetFeatured: (item: IMediaItem) => void;
   onDelete: (id: string) => void;
   onPreview?: (item: IMediaItem, index: number) => void;
 }
@@ -83,9 +83,9 @@ interface ISortableGridItemProps {
 const SortableGridItem = ({
   item,
   index,
-  isCover,
-  coverLabel,
-  onSetCover,
+  isFeatured,
+  featuredLabel,
+  onSetFeatured,
   onDelete,
   onPreview,
 }: ISortableGridItemProps) => {
@@ -157,7 +157,7 @@ const SortableGridItem = ({
       {...attributes}
       className={cx(styles.mediaItem, isDragging && styles.mediaItemDragging)}
     >
-      {isCover && <CoverBadge label={coverLabel} />}
+      {isFeatured && <FeaturedBadge label={featuredLabel} />}
 
       <img src={item.url} alt={item.name} className={styles.mediaImage} />
 
@@ -175,14 +175,14 @@ const SortableGridItem = ({
                     },
                   ]
                 : []),
-              ...(isCover
+              ...(isFeatured
                 ? []
                 : [
                     {
-                      key: "setCover",
-                      label: "Set as cover",
+                      key: "setFeatured",
+                      label: "Set as featured",
                       icon: <StarOutlined />,
-                      onClick: () => onSetCover(item),
+                      onClick: () => onSetFeatured(item),
                     },
                   ]),
               { type: "divider" as const },
@@ -220,9 +220,9 @@ const SortableGridItem = ({
 interface ISortableListItemProps {
   item: IMediaItem;
   index: number;
-  isCover: boolean;
-  coverLabel: string;
-  onSetCover: (item: IMediaItem) => void;
+  isFeatured: boolean;
+  featuredLabel: string;
+  onSetFeatured: (item: IMediaItem) => void;
   onDelete: (id: string) => void;
   onPreview?: (item: IMediaItem, index: number) => void;
 }
@@ -230,9 +230,9 @@ interface ISortableListItemProps {
 const SortableListItem = ({
   item,
   index,
-  isCover,
-  coverLabel,
-  onSetCover,
+  isFeatured,
+  featuredLabel,
+  onSetFeatured,
   onDelete,
   onPreview,
 }: ISortableListItemProps) => {
@@ -274,10 +274,10 @@ const SortableListItem = ({
         <div className={styles.listItemMeta}>
           <span>{formatFileSize(item.size)}</span>
           {ext && <span>{ext}</span>}
-          {isCover && (
+          {isFeatured && (
             <Typography.Text type="success" style={{ fontSize: 12 }}>
               <StarFilled style={{ marginRight: 4 }} />
-              {coverLabel}
+              {featuredLabel}
             </Typography.Text>
           )}
         </div>
@@ -298,15 +298,15 @@ const SortableListItem = ({
           </Tooltip>
         )}
 
-        {!isCover && (
-          <Tooltip title="Set as cover">
+        {!isFeatured && (
+          <Tooltip title="Set as featured">
             <Button
               size="small"
               type="text"
               icon={<StarOutlined />}
               onClick={(e) => {
                 e.stopPropagation();
-                onSetCover(item);
+                onSetFeatured(item);
               }}
             />
           </Tooltip>
@@ -325,14 +325,14 @@ const SortableListItem = ({
                     },
                   ]
                 : []),
-              ...(isCover
+              ...(isFeatured
                 ? []
                 : [
                     {
-                      key: "setCover",
-                      label: "Set as cover",
+                      key: "setFeatured",
+                      label: "Set as featured",
                       icon: <StarOutlined />,
-                      onClick: () => onSetCover(item),
+                      onClick: () => onSetFeatured(item),
                     },
                   ]),
               { type: "divider" as const },
@@ -365,14 +365,14 @@ const SortableListItem = ({
 
 interface IListItemPreviewProps {
   item: IMediaItem;
-  isCover: boolean;
-  coverLabel: string;
+  isFeatured: boolean;
+  featuredLabel: string;
 }
 
 const ListItemPreview = ({
   item,
-  isCover,
-  coverLabel,
+  isFeatured,
+  featuredLabel,
 }: IListItemPreviewProps) => {
   const { styles } = useStyles();
   const ext = item.ext || getFileExtension(item.name);
@@ -393,10 +393,10 @@ const ListItemPreview = ({
         <div className={styles.listItemMeta}>
           <span>{formatFileSize(item.size)}</span>
           {ext && <span>{ext}</span>}
-          {isCover && (
+          {isFeatured && (
             <Typography.Text type="success" style={{ fontSize: 12 }}>
               <StarFilled style={{ marginRight: 4 }} />
-              {coverLabel}
+              {featuredLabel}
             </Typography.Text>
           )}
         </div>
@@ -421,8 +421,8 @@ export const EntityMediaGallery = ({
   accept = "image/*",
   multiple = true,
   emptyMessage = "No media files yet",
-  coverLabel = "Cover",
-  hasCover = true,
+  featuredLabel = "Featured",
+  hasFeatured = true,
   minCells = 13,
   title,
   showPaper = false,
@@ -468,7 +468,7 @@ export const EntityMediaGallery = ({
     }
   };
 
-  const handleSetCover = useCallback(
+  const handleSetFeatured = useCallback(
     (item: IMediaItem) => {
       const filtered = value.filter((i) => i.id !== item.id);
       onChange([item, ...filtered]);
@@ -630,9 +630,9 @@ export const EntityMediaGallery = ({
                     key={item.id}
                     item={item}
                     index={idx}
-                    isCover={hasCover && idx === 0}
-                    coverLabel={coverLabel}
-                    onSetCover={handleSetCover}
+                    isFeatured={hasFeatured && idx === 0}
+                    featuredLabel={featuredLabel}
+                    onSetFeatured={handleSetFeatured}
                     onDelete={handleDelete}
                     onPreview={handlePreview}
                   />
@@ -692,9 +692,9 @@ export const EntityMediaGallery = ({
                   key={item.id}
                   item={item}
                   index={idx}
-                  isCover={hasCover && idx === 0}
-                  coverLabel={coverLabel}
-                  onSetCover={handleSetCover}
+                  isFeatured={hasFeatured && idx === 0}
+                  featuredLabel={featuredLabel}
+                  onSetFeatured={handleSetFeatured}
                   onDelete={handleDelete}
                   onPreview={handlePreview}
                 />
@@ -707,8 +707,8 @@ export const EntityMediaGallery = ({
           {activeItem && viewMode === "list" ? (
             <ListItemPreview
               item={activeItem}
-              isCover={hasCover && activeIndex === 0}
-              coverLabel={coverLabel}
+              isFeatured={hasFeatured && activeIndex === 0}
+              featuredLabel={featuredLabel}
             />
           ) : null}
         </DragOverlay>

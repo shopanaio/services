@@ -32,7 +32,7 @@ const toLocalMediaItem = (
   name: item.name,
   size: item.size,
   file: item.file!,
-  isCover: index === 0,
+  isFeatured: index === 0,
 });
 
 export const MediaSection = () => {
@@ -68,8 +68,8 @@ export const MediaSection = () => {
       showViewSwitcher
       accept="image/*"
       multiple
-      hasCover
-      coverLabel="Cover"
+      hasFeatured
+      featuredLabel="Featured"
     />
   );
 };

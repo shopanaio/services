@@ -11,7 +11,7 @@ const createCategory = (id: string, title: string, slug: string): ICategory => (
   status: "PUBLISHED" as const,
   createdAt: new Date(),
   updatedAt: new Date(),
-  cover: null,
+  featured: null,
   gallery: [],
 });
 
