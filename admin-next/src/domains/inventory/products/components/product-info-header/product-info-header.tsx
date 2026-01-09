@@ -488,6 +488,7 @@ export const ProductInfoHeader = ({
         <Button
           variant="text"
           color="default"
+          size="small"
           icon={linkCopied ? <CheckOutlined /> : <LinkOutlined />}
           onClick={handleCopyLink}
           className={styles.actionButton}
@@ -495,6 +496,7 @@ export const ProductInfoHeader = ({
         <Button
           variant="text"
           color="default"
+          size="small"
           icon={<EyeOutlined />}
           onClick={handleOpenStorefront}
           className={styles.actionButton}
@@ -512,6 +514,7 @@ export const ProductInfoHeader = ({
           arrow={false}
         >
           <Button
+            size="small"
             variant="text"
             color="default"
             icon={<ShareAltOutlined />}
