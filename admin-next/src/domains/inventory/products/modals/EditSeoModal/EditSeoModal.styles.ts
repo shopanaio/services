@@ -1,4 +1,9 @@
 import { createStyles } from "antd-style";
+import {
+  GOOGLE_TITLE_COLOR,
+  GOOGLE_URL_COLOR,
+  GOOGLE_DESCRIPTION_COLOR,
+} from "./EditSeoModal.constants";
 
 export const useStyles = createStyles(({ token }) => ({
   formItem: {
@@ -25,7 +30,7 @@ export const useStyles = createStyles(({ token }) => ({
   },
   googleTitle: {
     fontSize: 18,
-    color: "#1a0dab",
+    color: GOOGLE_TITLE_COLOR,
     display: "block",
     lineHeight: 1.3,
     marginBottom: 4,
@@ -36,13 +41,13 @@ export const useStyles = createStyles(({ token }) => ({
   },
   googleUrl: {
     fontSize: 13,
-    color: "#006621",
+    color: GOOGLE_URL_COLOR,
     display: "block",
     marginBottom: 4,
   },
   googleDescription: {
     fontSize: 13,
-    color: "#545454",
+    color: GOOGLE_DESCRIPTION_COLOR,
     lineHeight: 1.5,
     display: "-webkit-box",
     WebkitLineClamp: 2,
@@ -56,15 +61,32 @@ export const useStyles = createStyles(({ token }) => ({
     overflow: "hidden",
     border: `1px solid ${token.colorBorderSecondary}`,
   },
-  socialImage: {
+  socialImageWrapper: {
     width: "100%",
     height: 200,
-    objectFit: "cover",
     background: token.colorBgContainerDisabled,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     color: token.colorTextSecondary,
+    overflow: "hidden",
+    "& img": {
+      width: "100%",
+      height: "100%",
+      objectFit: "cover",
+    },
+  },
+  socialImagePlaceholder: {
+    width: "100%",
+    height: 200,
+    background: token.colorBgContainerDisabled,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: token.colorTextSecondary,
+  },
+  socialImageIcon: {
+    fontSize: 48,
   },
   socialContent: {
     padding: 12,

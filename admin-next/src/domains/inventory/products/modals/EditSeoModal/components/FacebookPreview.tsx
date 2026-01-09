@@ -18,16 +18,12 @@ export const FacebookPreview = ({
   return (
     <div className={styles.socialPreview}>
       {values.ogImage ? (
-        <Image
-          src={values.ogImage.url}
-          alt=""
-          className={styles.socialImage}
-          preview={false}
-          style={{ height: 200, objectFit: "cover" }}
-        />
+        <div className={styles.socialImageWrapper}>
+          <Image src={values.ogImage.url} alt="" preview={false} />
+        </div>
       ) : (
-        <div className={styles.socialImage}>
-          <PictureOutlined style={{ fontSize: 48 }} />
+        <div className={styles.socialImagePlaceholder}>
+          <PictureOutlined className={styles.socialImageIcon} />
         </div>
       )}
       <div className={styles.socialContent}>

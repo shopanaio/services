@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { Input, Typography, Tabs, Flex } from "antd";
 import { GoogleOutlined, FacebookOutlined } from "@ant-design/icons";
@@ -19,7 +19,12 @@ import {
   OG_TITLE_MAX,
   OG_DESCRIPTION_MAX,
 } from "./EditSeoModal.constants";
-import { GooglePreview, FacebookPreview, ImageUpload } from "./components";
+import {
+  GooglePreview,
+  FacebookPreview,
+  ImageUpload,
+  FormField,
+} from "./components";
 import type { ISeoFormValues } from "./types";
 
 export const EditSeoModal = () => {
@@ -46,45 +51,6 @@ export const EditSeoModal = () => {
     pop();
   };
 
-  const previewItems = useMemo(
-    () => [
-      {
-        key: "google",
-        label: (
-          <Flex align="center" gap={6}>
-            <GoogleOutlined />
-            Google
-          </Flex>
-        ),
-        children: (
-          <GooglePreview
-            values={values}
-            productTitle={typedPayload.productTitle || ""}
-            baseUrl={baseUrl}
-            slug={typedPayload.productSlug}
-          />
-        ),
-      },
-      {
-        key: "facebook",
-        label: (
-          <Flex align="center" gap={6}>
-            <FacebookOutlined />
-            Facebook
-          </Flex>
-        ),
-        children: (
-          <FacebookPreview
-            values={values}
-            productTitle={typedPayload.productTitle || ""}
-            baseUrl={baseUrl}
-          />
-        ),
-      },
-    ],
-    [values, typedPayload.productTitle, typedPayload.productSlug, baseUrl]
-  );
-
   return (
     <ModalLayout
       name="edit-seo"
@@ -102,10 +68,7 @@ export const EditSeoModal = () => {
       <Flex vertical gap={16}>
         <Paper>
           <PaperHeader title="Search Engine Optimization" />
-          <div className={styles.formItem}>
-            <Typography.Text strong className={styles.label}>
-              Meta Title
-            </Typography.Text>
+          <FormField label="Meta Title">
             <Controller
               name="seoTitle"
               control={control}
@@ -118,11 +81,8 @@ export const EditSeoModal = () => {
                 />
               )}
             />
-          </div>
-          <div className={styles.formItemLast}>
-            <Typography.Text strong className={styles.label}>
-              Meta Description
-            </Typography.Text>
+          </FormField>
+          <FormField label="Meta Description" isLast>
             <Controller
               name="seoDescription"
               control={control}
@@ -136,7 +96,7 @@ export const EditSeoModal = () => {
                 />
               )}
             />
-          </div>
+          </FormField>
         </Paper>
 
         <Paper>
@@ -148,10 +108,7 @@ export const EditSeoModal = () => {
               </Typography.Text>
             }
           />
-          <div className={styles.formItem}>
-            <Typography.Text strong className={styles.label}>
-              OG Title
-            </Typography.Text>
+          <FormField label="OG Title">
             <Controller
               name="ogTitle"
               control={control}
@@ -164,11 +121,8 @@ export const EditSeoModal = () => {
                 />
               )}
             />
-          </div>
-          <div className={styles.formItem}>
-            <Typography.Text strong className={styles.label}>
-              OG Description
-            </Typography.Text>
+          </FormField>
+          <FormField label="OG Description">
             <Controller
               name="ogDescription"
               control={control}
@@ -182,11 +136,8 @@ export const EditSeoModal = () => {
                 />
               )}
             />
-          </div>
-          <div className={styles.formItemLast}>
-            <Typography.Text strong className={styles.label}>
-              OG Image
-            </Typography.Text>
+          </FormField>
+          <FormField label="OG Image" isLast>
             <Controller
               name="ogImage"
               control={control}
@@ -194,7 +145,7 @@ export const EditSeoModal = () => {
                 <ImageUpload value={field.value} onChange={field.onChange} />
               )}
             />
-          </div>
+          </FormField>
         </Paper>
 
         <Paper>
@@ -202,7 +153,41 @@ export const EditSeoModal = () => {
           <Tabs
             activeKey={activeTab}
             onChange={setActiveTab}
-            items={previewItems}
+            items={[
+              {
+                key: "google",
+                label: (
+                  <Flex align="center" gap={6}>
+                    <GoogleOutlined />
+                    Google
+                  </Flex>
+                ),
+                children: (
+                  <GooglePreview
+                    values={values}
+                    productTitle={typedPayload.productTitle || ""}
+                    baseUrl={baseUrl}
+                    slug={typedPayload.productSlug}
+                  />
+                ),
+              },
+              {
+                key: "facebook",
+                label: (
+                  <Flex align="center" gap={6}>
+                    <FacebookOutlined />
+                    Facebook
+                  </Flex>
+                ),
+                children: (
+                  <FacebookPreview
+                    values={values}
+                    productTitle={typedPayload.productTitle || ""}
+                    baseUrl={baseUrl}
+                  />
+                ),
+              },
+            ]}
             className={styles.previewTabs}
             size="small"
           />
