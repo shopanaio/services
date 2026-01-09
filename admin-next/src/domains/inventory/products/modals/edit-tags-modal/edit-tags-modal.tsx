@@ -24,8 +24,8 @@ import {
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
-import { Paper } from "../components/paper";
-import type { IEditTagsModalPayload, ITag } from "../modals";
+import { Paper } from "../../components/paper";
+import type { IEditTagsModalPayload, ITag } from "../../modals";
 
 // ============================================================================
 // Styles

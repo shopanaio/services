@@ -9,9 +9,9 @@ import {
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
-import { Paper } from "../components/paper";
-import { PaperHeader } from "../components/paper-header";
-import type { IProductEditTitleModalPayload } from "../modals";
+import { Paper } from "../../components/paper";
+import { PaperHeader } from "../../components/paper-header";
+import type { IProductEditTitleModalPayload } from "../../modals";
 
 interface IEditTitleForm {
   title: string;

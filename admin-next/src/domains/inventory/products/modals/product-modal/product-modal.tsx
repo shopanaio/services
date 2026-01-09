@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { Flex, Skeleton } from "antd";
 import { useModalStackContext, ModalLayout } from "@/layouts/modals";
-import { ProductDetailsCard } from "../components/product-details-card";
-import { mockVariableProduct, mockSimpleProduct } from "../mocks/data";
+import { ProductDetailsCard } from "../../components/product-details-card";
+import { mockVariableProduct, mockSimpleProduct } from "../../mocks/data";
 
 export const ProductModal = () => {
   const { payload, pop, forcePop } = useModalStackContext();

@@ -11,9 +11,9 @@ import {
   EntityMediaGallery,
   type IMediaItem,
 } from "@/shared/components/entity-media-gallery";
-import type { IEditMediaModalPayload } from "../modals";
-import type { IMediaFile } from "../mocks/types";
-import { FileDriver } from "../mocks/types";
+import type { IEditMediaModalPayload } from "../../modals";
+import type { IMediaFile } from "../../mocks/types";
+import { FileDriver } from "../../mocks/types";
 
 const useStyles = createStyles(() => ({
   container: {

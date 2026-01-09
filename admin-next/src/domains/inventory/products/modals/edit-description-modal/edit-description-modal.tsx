@@ -12,9 +12,9 @@ import {
 } from "@/layouts/modals";
 import { BlockEditor, renderContent, type RenderedContent } from "@/ui-kit/block-editor";
 import { AIButton } from "@/ui-kit/ai-button";
-import { Paper } from "../components/paper";
-import type { IProductEditDescriptionModalPayload } from "../modals";
-import { useProductAIWriterModal } from "../modals";
+import { Paper } from "../../components/paper";
+import type { IProductEditDescriptionModalPayload } from "../../modals";
+import { useProductAIWriterModal } from "../../modals";
 
 interface IEditDescriptionForm {
   description: OutputData | null;

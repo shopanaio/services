@@ -23,8 +23,8 @@ import {
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
-import { Paper } from "../components/paper";
-import type { ICategory } from "../mocks/types";
+import { Paper } from "../../components/paper";
+import type { ICategory } from "../../mocks/types";
 
 // ============================================================================
 // Styles
