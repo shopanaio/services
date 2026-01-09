@@ -136,6 +136,7 @@ export function EntityPickerContent<T extends IPickableEntity>({
             checkboxes: true,
             headerCheckbox: selectionMode === "multi",
             enableClickSelection: true,
+            enableSelectionWithoutKeys: true,
           }}
           selectionColumnDef={{
             cellStyle: { display: "flex", alignItems: "center" },
