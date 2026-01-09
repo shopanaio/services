@@ -1,5 +1,5 @@
 import { createStyles } from "antd-style";
-import { Tag, Flex, Switch, Typography } from "antd";
+import { Tag, Flex, Switch, Typography, Tooltip } from "antd";
 
 // ============================================================================
 // Types
@@ -93,13 +93,15 @@ export function PeriodSwitch<T extends string>({
 
       {showCompare && onCompareChange && (
         <Flex align="center" gap={8}>
-          <Typography.Text
-            type="secondary"
-            className={styles.compareText}
-            onClick={() => onCompareChange(!compareEnabled)}
-          >
-            Compare to previous
-          </Typography.Text>
+          <Tooltip title="Compare with previous period">
+            <Typography.Text
+              type="secondary"
+              className={styles.compareText}
+              onClick={() => onCompareChange(!compareEnabled)}
+            >
+              Compare
+            </Typography.Text>
+          </Tooltip>
           <Switch
             size="small"
             checked={compareEnabled}
