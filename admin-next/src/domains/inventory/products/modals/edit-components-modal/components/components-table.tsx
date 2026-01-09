@@ -482,6 +482,7 @@ export const ComponentsTable = ({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
 
+
   // Refs for drag handling (like in EditAttributesModal)
   const expandedBeforeDragRef = useRef<Set<string> | null>(null);
   const draggingRowIdRef = useRef<string | null>(null);
@@ -1006,6 +1007,12 @@ export const ComponentsTable = ({
           domLayout="autoHeight"
           rowHeight={52}
           headerHeight={36}
+          rowDragText={(params) => {
+            const data = params.rowNode?.data;
+            if (!data) return "";
+            const product = getProductById(data.productId);
+            return data.customTitle || product?.title || "";
+          }}
           onRowDragEnter={handleRowDragEnter}
           onRowDragEnd={handleRowDragEnd}
           onCellValueChanged={handleCellValueChanged}
