@@ -33,7 +33,8 @@ const useStyles = createStyles(({ token }) => ({
     fontSize: 13,
     color: token.colorText,
     lineHeight: 1.6,
-    maxHeight: 200,
+    minHeight: 80,
+    maxHeight: 120,
     overflow: "hidden",
     position: "relative" as const,
     "& p": {
