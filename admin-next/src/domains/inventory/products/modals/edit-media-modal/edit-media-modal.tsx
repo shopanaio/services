@@ -11,8 +11,8 @@ import {
   type IMediaItem,
 } from "@/shared/components/entity-media-gallery";
 import type { IEditMediaModalPayload } from "../../modals";
-import type { IMediaFile } from "../../mocks/types";
-import { FileDriver } from "../../mocks/types";
+import type { IMediaFile } from "@/mocks/products/types";
+import { FileDriver } from "@/mocks/products/types";
 import { useStyles } from "./edit-media-modal.styles";
 
 /**

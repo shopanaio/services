@@ -6,7 +6,7 @@ import { PlusOutlined, MoreOutlined, StarFilled } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useCategoryPicker } from "@/shared/components/entity-picker-modal";
 import type { IPickableEntity } from "@/shared/components/entity-picker-modal";
-import { EntityStatus, type ICategory } from "../../../mocks/types";
+import { EntityStatus, ICategory } from "@/mocks";
 
 interface ICategoriesSectionProps {
   primaryCategory?: ICategory | null;

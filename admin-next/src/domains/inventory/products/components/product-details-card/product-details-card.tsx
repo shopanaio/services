@@ -19,7 +19,7 @@ import {
   VariantsTableSection,
 } from "./sections";
 import { useProductModals } from "./hooks";
-import type { IProduct } from "../../mocks/types";
+import type { IProduct } from "@/mocks/products/types";
 import type { IVariantForTable, IProductDetailsMockData } from "./types";
 
 // ============================================================================

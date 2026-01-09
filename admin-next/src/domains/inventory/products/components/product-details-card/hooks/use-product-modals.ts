@@ -13,7 +13,7 @@ import {
   useEditComponentsModal,
   type IEditSeoModalPayload,
 } from "../../../modals";
-import type { IProduct, IMediaFile } from "../../../mocks/types";
+import type { IProduct, IMediaFile } from "@/mocks/products/types";
 
 export const useProductModals = (product: IProduct) => {
   const { push: openProductModal } = useProductModal();

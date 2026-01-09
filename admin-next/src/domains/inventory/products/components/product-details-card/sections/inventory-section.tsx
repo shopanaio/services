@@ -20,7 +20,7 @@ import { Tile } from "../../tile";
 import { useInventoryStyles } from "../product-details-card.styles";
 import { useEditVariantsModal } from "../../../modals";
 import type { IInventoryStats } from "../types";
-import type { IProduct } from "../../../mocks/types";
+import type { IProduct } from "@/mocks/products/types";
 
 
 // ============================================================================

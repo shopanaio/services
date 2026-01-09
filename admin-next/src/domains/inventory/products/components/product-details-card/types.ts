@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { ICategory } from "../../mocks/types";
+import type { ICategory } from "@/mocks/products/types";
 import type { ITag } from "../../modals";
 import type { IOptionGroup } from "../../modals/edit-options-modal/edit-options-modal.schema";
 import type { IComponentGroup } from "../../modals/edit-components-modal/types";

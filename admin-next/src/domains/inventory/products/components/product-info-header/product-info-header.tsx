@@ -35,7 +35,7 @@ import { HiOutlineMail } from "react-icons/hi";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { Tile } from "../tile";
 import { PeriodSwitch, KPI_PERIODS, KPIPeriod } from "../period-switch";
-import { IProduct, EntityStatus } from "../../mocks/types";
+import { IProduct, EntityStatus } from "@/mocks/products/types";
 import { useProductEditTitleModal } from "../../modals";
 
 // ============================================================================

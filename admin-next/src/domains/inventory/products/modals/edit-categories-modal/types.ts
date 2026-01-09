@@ -1,5 +1,5 @@
 import type { TreeDataNode } from "antd";
-import type { ICategory } from "../../mocks/types";
+import type { ICategory } from "@/mocks/products/types";
 
 export interface ICategoryTreeNode extends TreeDataNode {
   category: ICategory;

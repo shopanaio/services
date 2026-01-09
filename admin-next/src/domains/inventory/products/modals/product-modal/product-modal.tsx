@@ -7,7 +7,7 @@ import {
   ProductDetailsCard,
   productDetailsMockData,
 } from "../../components/product-details-card";
-import { mockVariableProduct, mockSimpleProduct } from "../../mocks/data";
+import { mockVariableProduct, mockSimpleProduct } from "@/mocks/products/data";
 
 export const ProductModal = () => {
   const { payload, pop, forcePop } = useModalStackContext();

@@ -2,14 +2,7 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { createStyles } from "antd-style";
-import {
-  Typography,
-  Radio,
-  Checkbox,
-  Select,
-  Tag,
-  Image,
-} from "antd";
+import { Typography, Radio, Checkbox, Select, Tag, Image } from "antd";
 import {
   GiftOutlined,
   SafetyCertificateOutlined,
@@ -298,7 +291,12 @@ const getItemSku = (item: IComponentItem): string => {
 const formatPriceDisplay = (
   item: IComponentItem,
   showComparePrice: boolean
-): { price: string; comparePrice?: string; isFree: boolean; isIncluded: boolean } => {
+): {
+  price: string;
+  comparePrice?: string;
+  isFree: boolean;
+  isIncluded: boolean;
+} => {
   const isFree = item.priceType === ComponentPriceType.FREE;
   const isIncluded = item.priceType === ComponentPriceType.INCLUDED;
 
@@ -317,7 +315,8 @@ const formatPriceDisplay = (
 
   let comparePrice: string | undefined;
   if (showComparePrice && item.basePrice !== item.finalPrice) {
-    const hasBaseRange = item.basePriceMax && item.basePriceMax !== item.basePrice;
+    const hasBaseRange =
+      item.basePriceMax && item.basePriceMax !== item.basePrice;
     comparePrice = hasBaseRange
       ? `${formatPrice(item.basePrice)} - ${formatPrice(item.basePriceMax!)}`
       : formatPrice(item.basePrice);
@@ -352,10 +351,14 @@ const StorefrontItem = ({
   showComparePrice,
 }: IStorefrontItemProps) => {
   const { styles, cx } = useStyles();
-  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(
+    null
+  );
 
   const product = getProductById(item.productId);
-  const hasVariants = item.itemType === ComponentItemType.PRODUCT_WITH_VARIANTS && product?.variants;
+  const hasVariants =
+    item.itemType === ComponentItemType.PRODUCT_WITH_VARIANTS &&
+    product?.variants;
 
   // Get selected variant data if applicable
   const selectedVariant = useMemo(() => {
@@ -367,15 +370,18 @@ const StorefrontItem = ({
 
   const title = getItemTitle(item);
   const image = selectedVariant?.imageUrl ?? getItemImage(item);
-  const sku = hasVariants
-    ? (selectedVariant?.sku ?? null)
-    : getItemSku(item);
-  const { price, comparePrice, isFree, isIncluded } = formatPriceDisplay(item, showComparePrice);
+  const sku = hasVariants ? selectedVariant?.sku ?? null : getItemSku(item);
+  const { price, comparePrice, isFree, isIncluded } = formatPriceDisplay(
+    item,
+    showComparePrice
+  );
 
   const availableVariants = useMemo(() => {
     if (!hasVariants || !product?.variants) return [];
     if (!item.availableVariantIds) return product.variants;
-    return product.variants.filter((v) => item.availableVariantIds?.includes(v.id));
+    return product.variants.filter((v) =>
+      item.availableVariantIds?.includes(v.id)
+    );
   }, [hasVariants, product, item.availableVariantIds]);
 
   const handleClick = useCallback(() => {
@@ -393,7 +399,9 @@ const StorefrontItem = ({
       onClick={handleClick}
     >
       {/* Selection indicator */}
-      <div className={isMultiple ? styles.checkboxWrapper : styles.radioWrapper}>
+      <div
+        className={isMultiple ? styles.checkboxWrapper : styles.radioWrapper}
+      >
         {isMultiple ? (
           <Checkbox checked={isSelected} disabled={!item.isAvailable} />
         ) : (
@@ -402,8 +410,8 @@ const StorefrontItem = ({
       </div>
 
       {/* Image */}
-      {showImages && (
-        image ? (
+      {showImages &&
+        (image ? (
           <Image
             src={image}
             alt={title}
@@ -415,8 +423,7 @@ const StorefrontItem = ({
           <div className={styles.itemImagePlaceholder}>
             <ShoppingOutlined />
           </div>
-        )
-      )}
+        ))}
 
       {/* Content */}
       <div className={styles.itemContent}>
@@ -424,8 +431,13 @@ const StorefrontItem = ({
         <div className={styles.itemMeta}>
           {showSku && sku && <span>{sku}</span>}
           {showStock && item.totalStock !== undefined && (
-            <Tag color={item.totalStock > 0 ? "green" : "red"} style={{ margin: 0 }}>
-              {item.totalStock > 0 ? `${item.totalStock} in stock` : "Out of stock"}
+            <Tag
+              color={item.totalStock > 0 ? "green" : "red"}
+              style={{ margin: 0 }}
+            >
+              {item.totalStock > 0
+                ? `${item.totalStock} in stock`
+                : "Out of stock"}
             </Tag>
           )}
           {!item.isAvailable && item.stockStatus && (
@@ -510,7 +522,10 @@ const StorefrontGroup = ({
           onSelectionChange(newSelection);
         } else {
           // Select
-          if (group.maxSelection && selectedItemIds.length >= group.maxSelection) {
+          if (
+            group.maxSelection &&
+            selectedItemIds.length >= group.maxSelection
+          ) {
             return; // Can't exceed maximum
           }
           onSelectionChange([...selectedItemIds, itemId]);
@@ -557,7 +572,9 @@ const StorefrontGroup = ({
     <div className={styles.groupSection}>
       <div className={styles.groupHeader}>
         <span className={styles.groupIcon}>{icon}</span>
-        <Typography.Text className={styles.groupTitle}>{group.title}</Typography.Text>
+        <Typography.Text className={styles.groupTitle}>
+          {group.title}
+        </Typography.Text>
         {group.isRequired && (
           <Tag color="red" className={styles.requiredBadge}>
             Required
@@ -663,7 +680,9 @@ const PriceSummary = ({ groups, selectedItems }: IPriceSummaryProps) => {
 
       <div className={cx(styles.summaryRow, styles.summaryRowTotal)}>
         <span>Components Total</span>
-        <span className={styles.summaryValue}>{formatPrice(summary.subtotal)}</span>
+        <span className={styles.summaryValue}>
+          {formatPrice(summary.subtotal)}
+        </span>
       </div>
     </div>
   );
@@ -675,7 +694,6 @@ const PriceSummary = ({ groups, selectedItems }: IPriceSummaryProps) => {
 
 export const PreviewTab = ({
   groups,
-  displayStyle,
   showImages,
   showSku,
   showStock,
@@ -694,12 +712,15 @@ export const PreviewTab = ({
     return initial;
   });
 
-  const handleSelectionChange = useCallback((groupId: string, itemIds: string[]) => {
-    setSelectedItems((prev) => ({
-      ...prev,
-      [groupId]: itemIds,
-    }));
-  }, []);
+  const handleSelectionChange = useCallback(
+    (groupId: string, itemIds: string[]) => {
+      setSelectedItems((prev) => ({
+        ...prev,
+        [groupId]: itemIds,
+      }));
+    },
+    []
+  );
 
   return (
     <div className={styles.container}>
@@ -723,7 +744,9 @@ export const PreviewTab = ({
                 key={group.id}
                 group={group}
                 selectedItemIds={selectedItems[group.id] ?? []}
-                onSelectionChange={(ids) => handleSelectionChange(group.id, ids)}
+                onSelectionChange={(ids) =>
+                  handleSelectionChange(group.id, ids)
+                }
                 showImages={showImages}
                 showSku={showSku}
                 showStock={showStock}

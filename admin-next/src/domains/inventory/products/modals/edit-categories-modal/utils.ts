@@ -1,4 +1,4 @@
-import type { ICategory } from "../../mocks/types";
+import type { ICategory } from "@/mocks/products/types";
 import type { ICategoryTreeNode } from "./types";
 
 export const buildCategoryTree = (

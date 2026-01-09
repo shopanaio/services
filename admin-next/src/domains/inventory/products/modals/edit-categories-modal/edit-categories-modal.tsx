@@ -23,7 +23,7 @@ import {
   ModalHeader,
 } from "@/layouts/modals";
 import { Paper } from "@/ui-kit/paper";
-import type { ICategory } from "../../mocks/types";
+import type { ICategory } from "@/mocks/products/types";
 import { useStyles } from "./edit-categories-modal.styles";
 import type { IEditCategoriesModalProps, ICategoryTreeNode } from "./types";
 import { mockCategories, mockHierarchy } from "@/mocks/products/categories";

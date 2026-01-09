@@ -1,4 +1,4 @@
-import type { IMediaFile } from "../../mocks/types";
+import type { IMediaFile } from "@/mocks/products/types";
 
 // ============================================================================
 // Enums

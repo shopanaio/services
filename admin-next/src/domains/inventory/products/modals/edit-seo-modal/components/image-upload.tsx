@@ -1,7 +1,7 @@
 import { Upload, Typography, Image, Button, Flex } from "antd";
 import { UploadOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useStyles } from "../edit-seo-modal.styles";
-import { FileDriver, type IMediaFile } from "../../../mocks/types";
+import { FileDriver, type IMediaFile } from "@/mocks/products/types";
 
 interface IImageUploadProps {
   value: IMediaFile | null;

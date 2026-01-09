@@ -5,7 +5,7 @@ import type { OutputData } from "@editorjs/editorjs";
 import { renderToHtml, type RenderedContent } from "@/ui-kit/block-editor";
 import { AIButton } from "@/ui-kit/ai-button";
 import { Paper } from "@/ui-kit/paper";
-import { IProduct } from "../../mocks/types";
+import { IProduct } from "@/mocks/products/types";
 import {
   useProductEditDescriptionModal,
   useProductAIWriterModal,

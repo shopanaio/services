@@ -7,7 +7,7 @@ import { FeaturedBadge } from "@/ui-kit/featured-badge";
 import { EditAction } from "../../edit-action";
 import { MediaFilePlaceholder } from "../../media-file-placeholder";
 import { useMediaStyles } from "../product-details-card.styles";
-import type { IMediaFile } from "../../../mocks/types";
+import type { IMediaFile } from "@/mocks/products/types";
 
 interface IMediaSectionProps {
   gallery: IMediaFile[];
