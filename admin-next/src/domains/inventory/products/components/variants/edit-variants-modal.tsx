@@ -72,6 +72,7 @@ function transformVariantsToInput(
     id: v.id,
     title: v.title,
     imageUrl: v.imageUrl,
+    media: v.media,
     options:
       v.options?.map((o) => ({ name: o.group.title, value: o.title })) || [],
     sku: v.sku,

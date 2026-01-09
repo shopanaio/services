@@ -20,6 +20,7 @@ export interface IVariantInput {
   id: string;
   title: string;
   imageUrl?: string | null;
+  media?: string[] | null;
   options?: Array<{ name: string; value: string }>;
   // Inventory identification
   sku?: string | null;
@@ -89,6 +90,7 @@ function variantsToRows(variants: IVariantInput[]): IVariantEditorRow[] {
       id: v.id,
       title: v.title,
       imageUrl: v.imageUrl ?? null,
+      media: v.media ?? null,
       options: v.options || [],
       // Inventory identification
       sku: v.sku ?? null,

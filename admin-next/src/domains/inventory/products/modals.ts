@@ -215,6 +215,7 @@ export interface IEditVariantsModalPayload extends IModalStackPayload {
     id: string;
     title: string;
     imageUrl?: string | null;
+    media?: string[] | null;
     // Inventory identification
     sku?: string | null;
     barcode?: string | null;

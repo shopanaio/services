@@ -15,6 +15,7 @@ export interface IVariantEditorRow extends IEditorRowBase {
   // Display
   title: string;
   imageUrl: string | null;
+  media: string[] | null;
 
   // Options (dynamic, based on product options)
   options: IVariantOption[];

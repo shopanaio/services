@@ -1,5 +1,5 @@
 import React from "react";
-import { Image } from "antd";
+import { Avatar } from "antd";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { SelectableCell } from "@/shared/components/ag-grid-cell-selection";
 import { Diff, ImagePlaceholder } from "@/shared/components/editor-grid";
@@ -36,21 +36,15 @@ export const ImageCellRenderer: React.FC<
 
   if (!data) return null;
 
+  const media = data.media;
+  if (!media || media.length === 0) return <ImagePlaceholder />;
+
   return (
-    <div className="ec-cell ec-cell--center">
-      {data.imageUrl ? (
-        <Image
-          src={data.imageUrl}
-          alt={data.title}
-          width={40}
-          height={40}
-          className="ec-image"
-          preview={false}
-        />
-      ) : (
-        <ImagePlaceholder />
-      )}
-    </div>
+    <Avatar.Group max={{ count: 3 }} size={32}>
+      {media.map((url, index) => (
+        <Avatar key={index} src={url} shape="square" />
+      ))}
+    </Avatar.Group>
   );
 };
 
