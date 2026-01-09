@@ -95,17 +95,10 @@ export const useStyles = createStyles(({ token }) => ({
     overflow: "hidden",
   },
   // Image upload
-  imageUploadArea: {
-    border: `1px dashed ${token.colorBorder}`,
-    borderRadius: 8,
-    padding: 16,
-    textAlign: "center",
-    cursor: "pointer",
-    transition: "all 0.2s",
-    "&:hover": {
-      borderColor: token.colorPrimary,
-      background: token.colorBgTextHover,
-    },
+  draggerIcon: {
+    fontSize: 32,
+    color: token.colorTextSecondary,
+    marginBottom: 8,
   },
   imagePreviewContainer: {
     position: "relative",
