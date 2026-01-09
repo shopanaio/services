@@ -153,5 +153,14 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
+    // Category Picker modal
+    {
+      type: 'category-picker',
+      component: dynamic(() =>
+        import('@/shared/components/entity-picker-modal/category-picker-modal').then(
+          (m) => m.CategoryPickerModal
+        )
+      ),
+    },
   ];
 }
