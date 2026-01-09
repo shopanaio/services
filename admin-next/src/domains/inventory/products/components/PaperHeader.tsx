@@ -16,9 +16,6 @@ const useStyles = createStyles(({ token }) => ({
     paddingBottom: token.paddingSM,
     borderBottom: `1px solid ${token.colorBorderSecondary}`,
   },
-  headerNoBorder: {
-    marginBottom: token.paddingSM,
-  },
   extra: {
     flex: 1,
   },
@@ -109,10 +106,7 @@ export const PaperHeader = ({
     <Flex
       align="center"
       justify="space-between"
-      className={cx(
-        bordered ? styles.header : styles.headerNoBorder,
-        className
-      )}
+      className={cx(className, bordered && styles.header)}
     >
       <Flex align="center" gap={12} style={{ flex: 1 }}>
         {renderTitle()}

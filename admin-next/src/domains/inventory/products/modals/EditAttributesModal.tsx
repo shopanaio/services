@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { createStyles } from "antd-style";
-import { Button, Typography, Flex, Dropdown, Space } from "antd";
+import { Button, Typography, Flex, Dropdown } from "antd";
 import {
   PlusOutlined,
   DeleteOutlined,
@@ -31,6 +31,7 @@ import {
   ModalHeader,
 } from "@/layouts/modals";
 import { Paper } from "../components/Paper";
+import { PaperHeader } from "@/domains/inventory/products/components/PaperHeader";
 
 ModuleRegistry.registerModules([AllCommunityModule, RowDragModule]);
 
@@ -71,9 +72,6 @@ const useStyles = createStyles(({ token }) => ({
         opacity: 1,
       },
     },
-  },
-  toolbar: {
-    padding: "8px 12px",
   },
   nameCell: {
     display: "flex",
@@ -169,7 +167,14 @@ const createMockData = (): IAttributeRow[] => {
     },
 
     // Group: Physical Properties
-    { id: "g1", type: "group", name: "Physical Properties", parentId: null, sortIndex: 2, level: 0 },
+    {
+      id: "g1",
+      type: "group",
+      name: "Physical Properties",
+      parentId: null,
+      sortIndex: 2,
+      level: 0,
+    },
     {
       id: "a1",
       type: "attribute",
@@ -200,7 +205,14 @@ const createMockData = (): IAttributeRow[] => {
     },
 
     // Group: Brand Info
-    { id: "g2", type: "group", name: "Brand Info", parentId: null, sortIndex: 3, level: 0 },
+    {
+      id: "g2",
+      type: "group",
+      name: "Brand Info",
+      parentId: null,
+      sortIndex: 3,
+      level: 0,
+    },
     {
       id: "a3",
       type: "attribute",
@@ -217,7 +229,14 @@ const createMockData = (): IAttributeRow[] => {
     },
 
     // Group: Specifications
-    { id: "g3", type: "group", name: "Specifications", parentId: null, sortIndex: 4, level: 0 },
+    {
+      id: "g3",
+      type: "group",
+      name: "Specifications",
+      parentId: null,
+      sortIndex: 4,
+      level: 0,
+    },
     {
       id: "a4",
       type: "attribute",
@@ -252,7 +271,8 @@ const NameCellRenderer = (params: INameCellRendererParams) => {
 
   const { expandedIds, onToggleExpand, allRows } = params;
   // Only groups can have children (attributes)
-  const hasChildren = data.type === "group" && allRows.some((r) => r.parentId === data.id);
+  const hasChildren =
+    data.type === "group" && allRows.some((r) => r.parentId === data.id);
   const isExpanded = expandedIds.has(data.id);
 
   const getIcon = () => {
@@ -296,7 +316,8 @@ const NameCellRenderer = (params: INameCellRendererParams) => {
   );
 };
 
-interface IActionsCellRendererParams extends ICellRendererParams<IAttributeRow> {
+interface IActionsCellRendererParams
+  extends ICellRendererParams<IAttributeRow> {
   onDelete: (id: string) => void;
   onAdd: (parentId: string) => void;
 }
@@ -306,13 +327,27 @@ const ActionsCellRenderer = (params: IActionsCellRendererParams) => {
   const data = params.data;
   if (!data) return null;
 
-  const menuItems: Array<{ key: string; label: string; icon: React.ReactNode; danger?: boolean }> = [];
+  const menuItems: Array<{
+    key: string;
+    label: string;
+    icon: React.ReactNode;
+    danger?: boolean;
+  }> = [];
 
   if (data.type === "group") {
-    menuItems.push({ key: "add-attribute", label: "Add Attribute", icon: <PlusOutlined /> });
+    menuItems.push({
+      key: "add-attribute",
+      label: "Add Attribute",
+      icon: <PlusOutlined />,
+    });
   }
 
-  menuItems.push({ key: "delete", label: "Delete", icon: <DeleteOutlined />, danger: true });
+  menuItems.push({
+    key: "delete",
+    label: "Delete",
+    icon: <DeleteOutlined />,
+    danger: true,
+  });
 
   return (
     <div className={styles.actionsCell}>
@@ -389,7 +424,10 @@ export const EditAttributesModal = () => {
     return result;
   }, [allRows, expandedIds]);
 
-  const getRowId = useCallback((params: GetRowIdParams<IAttributeRow>) => params.data.id, []);
+  const getRowId = useCallback(
+    (params: GetRowIdParams<IAttributeRow>) => params.data.id,
+    []
+  );
 
   const handleToggleExpand = useCallback((id: string) => {
     setExpandedIds((prev) => {
@@ -404,143 +442,170 @@ export const EditAttributesModal = () => {
   }, []);
 
   // Handle row drag enter - collapse all groups when dragging a group
-  const handleRowDragEnter = useCallback((event: RowDragEnterEvent<IAttributeRow>) => {
-    const movingData = event.node?.data;
-    if (!movingData) return;
+  const handleRowDragEnter = useCallback(
+    (event: RowDragEnterEvent<IAttributeRow>) => {
+      const movingData = event.node?.data;
+      if (!movingData) return;
 
-    if (draggingRowIdRef.current === movingData.id) return;
+      if (draggingRowIdRef.current === movingData.id) return;
 
-    draggingRowIdRef.current = movingData.id;
-    expandedBeforeDragRef.current = new Set(expandedIdsRef.current);
+      draggingRowIdRef.current = movingData.id;
+      expandedBeforeDragRef.current = new Set(expandedIdsRef.current);
 
-    // Collapse ALL groups when dragging a group for easier reordering
-    if (movingData.type === "group") {
-      setExpandedIds(new Set());
-    }
-  }, []);
+      // Collapse ALL groups when dragging a group for easier reordering
+      if (movingData.type === "group") {
+        setExpandedIds(new Set());
+      }
+    },
+    []
+  );
 
   // Handle row drag end
-  const handleRowDragEnd = useCallback((event: RowDragEndEvent<IAttributeRow>) => {
-    const savedExpandedIds = expandedBeforeDragRef.current;
-    draggingRowIdRef.current = null;
-    expandedBeforeDragRef.current = null;
+  const handleRowDragEnd = useCallback(
+    (event: RowDragEndEvent<IAttributeRow>) => {
+      const savedExpandedIds = expandedBeforeDragRef.current;
+      draggingRowIdRef.current = null;
+      expandedBeforeDragRef.current = null;
 
-    const movingNode = event.node;
-    const movingData = movingNode?.data;
+      const movingNode = event.node;
+      const movingData = movingNode?.data;
 
-    if (!movingData) {
-      if (savedExpandedIds) setExpandedIds(savedExpandedIds);
-      return;
-    }
-
-    // Get the new order from the grid API
-    const newOrderedRows: IAttributeRow[] = [];
-    event.api.forEachNodeAfterFilterAndSort((node) => {
-      if (node.data) newOrderedRows.push(node.data);
-    });
-
-    // Update sortIndex and parentId based on the new visual order
-    // Rule: attributes before the first group stay at root level (parentId: null)
-    //       attributes after a group belong to that group
-    setAllRows((prev) => {
-      const rootSortIndexMap = new Map<string, number>(); // For root-level items (groups + root attrs)
-      const attrNewParentMap = new Map<string, string | null>(); // attrId -> new parentId (null = root)
-      const attrSortIndexByParent = new Map<string | null, Map<string, number>>(); // parentId -> (attrId -> sortIndex)
-
-      let currentGroupId: string | null = null;
-      let rootIndex = 0;
-
-      for (const row of newOrderedRows) {
-        if (row.type === "group") {
-          currentGroupId = row.id;
-          rootSortIndexMap.set(row.id, rootIndex++);
-        } else if (row.type === "attribute") {
-          if (currentGroupId === null) {
-            // Attribute before any group - stays at root level
-            attrNewParentMap.set(row.id, null);
-            rootSortIndexMap.set(row.id, rootIndex++);
-          } else {
-            // Attribute after a group - belongs to that group
-            attrNewParentMap.set(row.id, currentGroupId);
-
-            if (!attrSortIndexByParent.has(currentGroupId)) {
-              attrSortIndexByParent.set(currentGroupId, new Map());
-            }
-            const parentMap = attrSortIndexByParent.get(currentGroupId)!;
-            parentMap.set(row.id, parentMap.size);
-          }
-        }
+      if (!movingData) {
+        if (savedExpandedIds) setExpandedIds(savedExpandedIds);
+        return;
       }
 
-      return prev.map((r) => {
-        if (r.type === "group" && rootSortIndexMap.has(r.id)) {
-          return { ...r, sortIndex: rootSortIndexMap.get(r.id)! };
-        }
-        if (r.type === "attribute" && attrNewParentMap.has(r.id)) {
-          const newParentId = attrNewParentMap.get(r.id)!;
-          if (newParentId === null) {
-            // Root-level attribute
-            const newSortIndex = rootSortIndexMap.get(r.id) ?? r.sortIndex;
-            return { ...r, parentId: null, sortIndex: newSortIndex, level: 0 };
-          } else {
-            // Grouped attribute
-            const parentMap = attrSortIndexByParent.get(newParentId);
-            const newSortIndex = parentMap?.get(r.id) ?? r.sortIndex;
-            return { ...r, parentId: newParentId, sortIndex: newSortIndex, level: 1 };
-          }
-        }
-        return r;
+      // Get the new order from the grid API
+      const newOrderedRows: IAttributeRow[] = [];
+      event.api.forEachNodeAfterFilterAndSort((node) => {
+        if (node.data) newOrderedRows.push(node.data);
       });
-    });
 
-    // Restore expanded state after updating the order
-    if (savedExpandedIds) {
-      setExpandedIds(savedExpandedIds);
-    }
+      // Update sortIndex and parentId based on the new visual order
+      // Rule: attributes before the first group stay at root level (parentId: null)
+      //       attributes after a group belong to that group
+      setAllRows((prev) => {
+        const rootSortIndexMap = new Map<string, number>(); // For root-level items (groups + root attrs)
+        const attrNewParentMap = new Map<string, string | null>(); // attrId -> new parentId (null = root)
+        const attrSortIndexByParent = new Map<
+          string | null,
+          Map<string, number>
+        >(); // parentId -> (attrId -> sortIndex)
 
-    markDirty();
-  }, [markDirty]);
+        let currentGroupId: string | null = null;
+        let rootIndex = 0;
 
-  const handleDelete = useCallback((id: string) => {
-    setAllRows((prev) => {
-      const row = prev.find((r) => r.id === id);
-      if (!row) return prev;
+        for (const row of newOrderedRows) {
+          if (row.type === "group") {
+            currentGroupId = row.id;
+            rootSortIndexMap.set(row.id, rootIndex++);
+          } else if (row.type === "attribute") {
+            if (currentGroupId === null) {
+              // Attribute before any group - stays at root level
+              attrNewParentMap.set(row.id, null);
+              rootSortIndexMap.set(row.id, rootIndex++);
+            } else {
+              // Attribute after a group - belongs to that group
+              attrNewParentMap.set(row.id, currentGroupId);
 
-      if (row.type === "group") {
-        // Delete group and all its attributes
-        return prev.filter((r) => r.id !== id && r.parentId !== id);
+              if (!attrSortIndexByParent.has(currentGroupId)) {
+                attrSortIndexByParent.set(currentGroupId, new Map());
+              }
+              const parentMap = attrSortIndexByParent.get(currentGroupId)!;
+              parentMap.set(row.id, parentMap.size);
+            }
+          }
+        }
+
+        return prev.map((r) => {
+          if (r.type === "group" && rootSortIndexMap.has(r.id)) {
+            return { ...r, sortIndex: rootSortIndexMap.get(r.id)! };
+          }
+          if (r.type === "attribute" && attrNewParentMap.has(r.id)) {
+            const newParentId = attrNewParentMap.get(r.id)!;
+            if (newParentId === null) {
+              // Root-level attribute
+              const newSortIndex = rootSortIndexMap.get(r.id) ?? r.sortIndex;
+              return {
+                ...r,
+                parentId: null,
+                sortIndex: newSortIndex,
+                level: 0,
+              };
+            } else {
+              // Grouped attribute
+              const parentMap = attrSortIndexByParent.get(newParentId);
+              const newSortIndex = parentMap?.get(r.id) ?? r.sortIndex;
+              return {
+                ...r,
+                parentId: newParentId,
+                sortIndex: newSortIndex,
+                level: 1,
+              };
+            }
+          }
+          return r;
+        });
+      });
+
+      // Restore expanded state after updating the order
+      if (savedExpandedIds) {
+        setExpandedIds(savedExpandedIds);
       }
-      // Delete just the attribute
-      return prev.filter((r) => r.id !== id);
-    });
-    markDirty();
-  }, [markDirty]);
 
-  const handleAddAttribute = useCallback((parentId: string) => {
-    setAllRows((prev) => {
-      const parent = prev.find((r) => r.id === parentId);
-      if (!parent || parent.type !== "group") return prev;
+      markDirty();
+    },
+    [markDirty]
+  );
 
-      const newId = `a-${Date.now()}`;
-      const newName = "New Attribute";
+  const handleDelete = useCallback(
+    (id: string) => {
+      setAllRows((prev) => {
+        const row = prev.find((r) => r.id === id);
+        if (!row) return prev;
 
-      const newRow: IAttributeRow = {
-        id: newId,
-        type: "attribute",
-        name: newName,
-        displayType: "text",
-        parentId,
-        sortIndex: prev.filter((r) => r.parentId === parentId && r.type === "attribute").length,
-        level: 1,
-        values: [],
-      };
+        if (row.type === "group") {
+          // Delete group and all its attributes
+          return prev.filter((r) => r.id !== id && r.parentId !== id);
+        }
+        // Delete just the attribute
+        return prev.filter((r) => r.id !== id);
+      });
+      markDirty();
+    },
+    [markDirty]
+  );
 
-      return [...prev, newRow];
-    });
+  const handleAddAttribute = useCallback(
+    (parentId: string) => {
+      setAllRows((prev) => {
+        const parent = prev.find((r) => r.id === parentId);
+        if (!parent || parent.type !== "group") return prev;
 
-    setExpandedIds((prev) => new Set([...prev, parentId]));
-    markDirty();
-  }, [markDirty]);
+        const newId = `a-${Date.now()}`;
+        const newName = "New Attribute";
+
+        const newRow: IAttributeRow = {
+          id: newId,
+          type: "attribute",
+          name: newName,
+          displayType: "text",
+          parentId,
+          sortIndex: prev.filter(
+            (r) => r.parentId === parentId && r.type === "attribute"
+          ).length,
+          level: 1,
+          values: [],
+        };
+
+        return [...prev, newRow];
+      });
+
+      setExpandedIds((prev) => new Set([...prev, parentId]));
+      markDirty();
+    },
+    [markDirty]
+  );
 
   const handleAddGroup = useCallback(() => {
     const newId = `g-${Date.now()}`;
@@ -629,35 +694,41 @@ export const EditAttributesModal = () => {
     markDirty();
   }, [markDirty]);
 
-  const handleCellValueChanged = useCallback((event: CellValueChangedEvent<IAttributeRow>) => {
-    const { data, colDef, newValue } = event;
-    if (!data) return;
+  const handleCellValueChanged = useCallback(
+    (event: CellValueChangedEvent<IAttributeRow>) => {
+      const { data, colDef, newValue } = event;
+      if (!data) return;
 
-    setAllRows((prev) =>
-      prev.map((r) => {
-        if (r.id === data.id) {
-          return { ...r, [colDef.field as string]: newValue };
-        }
-        return r;
-      })
-    );
+      setAllRows((prev) =>
+        prev.map((r) => {
+          if (r.id === data.id) {
+            return { ...r, [colDef.field as string]: newValue };
+          }
+          return r;
+        })
+      );
 
-    markDirty();
-  }, [markDirty]);
+      markDirty();
+    },
+    [markDirty]
+  );
 
-  const getRowClass = useCallback((params: { data: IAttributeRow | undefined }) => {
-    const data = params.data;
-    if (!data) return "";
+  const getRowClass = useCallback(
+    (params: { data: IAttributeRow | undefined }) => {
+      const data = params.data;
+      if (!data) return "";
 
-    switch (data.type) {
-      case "group":
-        return "row-group";
-      case "attribute":
-        return "row-attribute";
-      default:
-        return "";
-    }
-  }, []);
+      switch (data.type) {
+        case "group":
+          return "row-group";
+        case "attribute":
+          return "row-attribute";
+        default:
+          return "";
+      }
+    },
+    []
+  );
 
   const columnDefs = useMemo<ColDef<IAttributeRow>[]>(
     () => [
@@ -682,7 +753,8 @@ export const EditAttributesModal = () => {
         minWidth: 300,
         editable: (params) => params.data?.type === "attribute",
         valueGetter: (params) => {
-          if (params.data?.type !== "attribute" || !params.data?.values) return "";
+          if (params.data?.type !== "attribute" || !params.data?.values)
+            return "";
           return params.data.values.map((v) => v.name).join(", ");
         },
         sortable: false,
@@ -734,29 +806,37 @@ export const EditAttributesModal = () => {
     >
       <div className={styles.container}>
         <Paper>
-          <div className={styles.toolbar}>
-            <Flex justify="space-between" align="center">
-              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                Drag to reorder. Attributes before groups stay ungrouped; after a group they belong to it.
-              </Typography.Text>
-              <Space>
-                <Button
-                  size="small"
-                  icon={<PlusOutlined />}
-                  onClick={handleAddRootAttribute}
-                >
-                  Add Attribute
+          <PaperHeader
+            bordered={false}
+            title="Attributes"
+            actions={
+              <Dropdown
+                menu={{
+                  items: [
+                    {
+                      key: "attribute",
+                      label: "Add Attribute",
+                      icon: <TagsOutlined />,
+                    },
+                    {
+                      key: "group",
+                      label: "Add Group",
+                      icon: <FolderOutlined />,
+                    },
+                  ],
+                  onClick: ({ key }) => {
+                    if (key === "attribute") handleAddRootAttribute();
+                    else if (key === "group") handleAddGroup();
+                  },
+                }}
+                trigger={["click"]}
+              >
+                <Button size="small" icon={<PlusOutlined />}>
+                  Add
                 </Button>
-                <Button
-                  size="small"
-                  icon={<PlusOutlined />}
-                  onClick={handleAddGroup}
-                >
-                  Add Group
-                </Button>
-              </Space>
-            </Flex>
-          </div>
+              </Dropdown>
+            }
+          />
         </Paper>
 
         <div className={`${styles.gridWrapper} ag-theme-quartz`}>
@@ -777,6 +857,12 @@ export const EditAttributesModal = () => {
             rowSelection="single"
           />
         </div>
+        <Paper>
+          <Typography.Text>
+            Define product characteristics. Organize attributes into logical
+            groups for structured display.
+          </Typography.Text>
+        </Paper>
       </div>
     </ModalLayout>
   );
