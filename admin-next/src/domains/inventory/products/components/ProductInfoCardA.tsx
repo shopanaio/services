@@ -34,6 +34,7 @@ import { SeoBlock } from "./seo";
 import { IProduct, IMediaFile } from "../mocks/types";
 import { weightUnitOptions, dimensionUnitOptions } from "../constants";
 import { useProductModal, useEditMediaModal, useEditOptionsModal, useEditAttributesModal, useEditSeoModal, useEditVariantsModal, useEditCategoriesModal, useEditTagsModal, useEditComponentsModal, type IEditSeoModalPayload } from "../modals";
+import { createMockData as createAttributesMockData } from "../modals/EditAttributesModal/mocks";
 
 // ============================================================================
 // Inventory Types & Mock Data
@@ -430,11 +431,20 @@ const useStyles = createStyles(({ token }) => ({
     "& .ant-descriptions-item-label": {
       color: token.colorTextSecondary,
       fontSize: 12,
-      minWidth: 120,
+      width: 300,
+      flexShrink: 0,
     },
     "& .ant-descriptions-item-content": {
       fontSize: 13,
     },
+  },
+  attributeGroupTitle: {
+    fontSize: 11,
+    fontWeight: 600,
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
+    color: token.colorTextSecondary,
+    marginBottom: 4,
   },
   // Colors for inventory
   colorSuccess: { color: token.colorSuccess },
@@ -1125,23 +1135,63 @@ export const ProductInfoCardA = ({
       </Section>
 
       {/* ATTRIBUTES */}
-      {product.attributes?.length > 0 && (
-        <Section title="Attributes" onEdit={() => openEditAttributesModal({ productId: product.id })}>
-          <Descriptions
-            size="small"
-            column={1}
-            bordered
-            colon={false}
-            className={styles.attributesDescriptions}
-          >
-            {product.attributes.map((attr) => (
-              <Descriptions.Item key={attr.id} label={attr.title}>
-                {attr.features?.map((f) => f.title).join(", ") || "—"}
-              </Descriptions.Item>
-            ))}
-          </Descriptions>
-        </Section>
-      )}
+      <Section title="Attributes" onEdit={() => openEditAttributesModal({ productId: product.id })}>
+        {(() => {
+          const mockData = createAttributesMockData();
+          const groups = mockData.filter((r) => r.type === "group");
+          const rootAttributes = mockData.filter((r) => r.type === "attribute" && r.parentId === null);
+          const getGroupAttributes = (groupId: string) =>
+            mockData.filter((r) => r.type === "attribute" && r.parentId === groupId);
+
+          return (
+            <Flex vertical gap={16}>
+              {/* Root-level attributes (no group) */}
+              {rootAttributes.length > 0 && (
+                <Descriptions
+                  size="small"
+                  column={1}
+                  bordered
+                  colon={false}
+                  className={styles.attributesDescriptions}
+                >
+                  {rootAttributes.map((attr) => (
+                    <Descriptions.Item key={attr.id} label={attr.name}>
+                      {attr.values?.map((v) => v.name).join(", ") || "—"}
+                    </Descriptions.Item>
+                  ))}
+                </Descriptions>
+              )}
+
+              {/* Grouped attributes */}
+              {groups.map((group) => {
+                const groupAttrs = getGroupAttributes(group.id);
+                if (groupAttrs.length === 0) return null;
+
+                return (
+                  <div key={group.id}>
+                    <Typography.Text className={styles.attributeGroupTitle}>
+                      {group.name}
+                    </Typography.Text>
+                    <Descriptions
+                      size="small"
+                      column={1}
+                      bordered
+                      colon={false}
+                      className={styles.attributesDescriptions}
+                    >
+                      {groupAttrs.map((attr) => (
+                        <Descriptions.Item key={attr.id} label={attr.name}>
+                          {attr.values?.map((v) => v.name).join(", ") || "—"}
+                        </Descriptions.Item>
+                      ))}
+                    </Descriptions>
+                  </div>
+                );
+              })}
+            </Flex>
+          );
+        })()}
+      </Section>
 
       {/* OPTIONS (variable products) */}
       {product.isVariableProduct && product.options?.length > 0 && (
