@@ -2,11 +2,7 @@
 
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { Button, Typography, Dropdown } from "antd";
-import {
-  PlusOutlined,
-  FolderOutlined,
-  TagsOutlined,
-} from "@ant-design/icons";
+import { PlusOutlined, FolderOutlined, TagsOutlined } from "@ant-design/icons";
 import { AgGridReact } from "ag-grid-react";
 import {
   ColDef,
@@ -395,7 +391,7 @@ export const EditAttributesModal = () => {
         field: "name",
         headerName: "Name",
         flex: 1,
-        minWidth: 200,
+        minWidth: 300,
         editable: true,
         resizable: true,
         rowDrag: true,
@@ -476,17 +472,15 @@ export const EditAttributesModal = () => {
                       key: "attribute",
                       label: "Add Attribute",
                       icon: <TagsOutlined />,
+                      onClick: handleAddRootAttribute,
                     },
                     {
                       key: "group",
                       label: "Add Group",
                       icon: <FolderOutlined />,
+                      onClick: handleAddGroup,
                     },
                   ],
-                  onClick: ({ key }) => {
-                    if (key === "attribute") handleAddRootAttribute();
-                    else if (key === "group") handleAddGroup();
-                  },
                 }}
                 trigger={["click"]}
               >
