@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useCallback, useRef, useState, useEffect } from "react";
+import { useMemo, useCallback, useRef, useState } from "react";
 import { createStyles } from "antd-style";
 import { AgGridReact } from "ag-grid-react";
 import {
@@ -19,8 +19,6 @@ import {
   DeleteOutlined,
   CopyOutlined,
   PlusOutlined,
-  RightOutlined,
-  DownOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 
@@ -91,19 +89,6 @@ const useStyles = createStyles(({ token }) => ({
     gap: 8,
     width: "100%",
   },
-  expandIcon: {
-    cursor: "pointer",
-    fontSize: 10,
-    color: token.colorTextSecondary,
-    width: 16,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-    "&:hover": {
-      color: token.colorText,
-    },
-  },
   productImage: {
     width: 36,
     height: 36,
@@ -137,15 +122,8 @@ const useStyles = createStyles(({ token }) => ({
     lineHeight: 1.3,
     color: token.colorTextSecondary,
   },
-  variantsCount: {
-    fontSize: 11,
-    color: token.colorTextTertiary,
-  },
   unavailable: {
     opacity: 0.5,
-  },
-  indent: {
-    display: "inline-block",
   },
 }));
 
@@ -193,17 +171,12 @@ interface ITableRow {
 // Cell Renderers
 // ============================================================================
 
-interface IProductCellRendererParams extends ICellRendererParams<ITableRow> {
-  expandedIds: Set<string>;
-  onToggleExpand: (id: string) => void;
-}
+type IProductCellRendererParams = ICellRendererParams<ITableRow>;
 
 const ProductCellRenderer = (params: IProductCellRendererParams) => {
   const { styles, cx } = useStyles();
   const data = params.data;
   if (!data) return null;
-
-  const { expandedIds, onToggleExpand } = params;
 
   const product = getProductById(data.productId);
   const variant =
@@ -211,14 +184,37 @@ const ProductCellRenderer = (params: IProductCellRendererParams) => {
       ? getVariantById(data.productId, data.variantId)
       : null;
 
-  const isVariant = data.isVariant;
-  const title =
-    data.customTitle || variant?.title || product?.title || "Unknown";
+  const isIncludedVariant = data.isVariant;
   const imageUrl = variant?.imageUrl || product?.imageUrl || "/placeholder.png";
 
-  const hasChildren = data.hasIncludedVariants;
-  const isExpanded = expandedIds.has(data.id);
-  const indent = data.level * 24;
+  // For included variants: show Product title + Variant title (like inventory page table)
+  if (isIncludedVariant) {
+    const productTitle = product?.title || "Unknown";
+    const variantTitle = variant?.title || "Unknown";
+
+    return (
+      <div
+        className={cx(
+          styles.productCell,
+          !data.isAvailable && styles.unavailable
+        )}
+      >
+        <img
+          src={imageUrl || "/placeholder.png"}
+          className={styles.variantImage}
+          alt=""
+        />
+        <div className={styles.productInfo}>
+          <span className={styles.productTitle}>{productTitle}</span>
+          <span className={styles.variantTitle}>{variantTitle}</span>
+        </div>
+      </div>
+    );
+  }
+
+  // For regular products/variants (not included variants)
+  const title =
+    data.customTitle || variant?.title || product?.title || "Unknown";
 
   return (
     <div
@@ -227,35 +223,13 @@ const ProductCellRenderer = (params: IProductCellRendererParams) => {
         !data.isAvailable && styles.unavailable
       )}
     >
-      <span className={styles.indent} style={{ width: indent }} />
-
-      {hasChildren && (
-        <span
-          className={styles.expandIcon}
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleExpand(data.id);
-          }}
-        >
-          {isExpanded ? <DownOutlined /> : <RightOutlined />}
-        </span>
-      )}
-
       <img
         src={imageUrl || "/placeholder.png"}
-        className={isVariant ? styles.variantImage : styles.productImage}
+        className={styles.productImage}
         alt=""
       />
       <div className={styles.productInfo}>
-        <span className={isVariant ? styles.variantTitle : styles.productTitle}>
-          {title}
-        </span>
-        {hasChildren && (
-          <span className={styles.variantsCount}>
-            {data.includedVariantsCount} variant
-            {data.includedVariantsCount !== 1 ? "s" : ""}
-          </span>
-        )}
+        <span className={styles.productTitle}>{title}</span>
       </div>
     </div>
   );
@@ -390,7 +364,6 @@ interface IActionsCellRendererProps extends ICellRendererParams<ITableRow> {
   onDelete: (rowId: string, isVariant: boolean) => void;
   onDuplicate: (rowId: string) => void;
   onIncludeVariants?: (item: IComponentItem) => void;
-  onExpandItem: (id: string) => void;
   items: IComponentItem[];
 }
 
@@ -399,7 +372,6 @@ const ActionsCellRenderer = ({
   onDelete,
   onDuplicate,
   onIncludeVariants,
-  onExpandItem,
   items,
 }: IActionsCellRendererProps) => {
   if (!data) return null;
@@ -441,8 +413,6 @@ const ActionsCellRenderer = ({
             label: "Include variants",
             onClick: () => {
               onIncludeVariants(fullItem);
-              // Auto-expand after adding variants
-              onExpandItem(data.id);
             },
           },
         ]
@@ -480,18 +450,9 @@ export const ComponentsTable = ({
   const gridRef = useRef<AgGridReact<ITableRow>>(null);
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
 
-
-  // Refs for drag handling (like in EditAttributesModal)
-  const expandedBeforeDragRef = useRef<Set<string> | null>(null);
+  // Refs for drag handling
   const draggingRowIdRef = useRef<string | null>(null);
-
-  // Refs to avoid stale closures in drag handlers
-  const expandedIdsRef = useRef(expandedIds);
-  useEffect(() => {
-    expandedIdsRef.current = expandedIds;
-  }, [expandedIds]);
 
   const updateSelection = useCallback(
     (newSelectedIds: Set<string>) => {
@@ -522,29 +483,8 @@ export const ComponentsTable = ({
     }
   }, [items, selectedIds.size, updateSelection]);
 
-  const handleToggleExpand = useCallback((id: string) => {
-    setExpandedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }, []);
-
-  // Expand only (never collapse) - used after adding variants
-  const handleExpandItem = useCallback((id: string) => {
-    setExpandedIds((prev) => {
-      if (prev.has(id)) return prev;
-      const next = new Set(prev);
-      next.add(id);
-      return next;
-    });
-  }, []);
-
   // Build all rows (products + variants)
+  // When a product has included variants, only show the variants (not the product row)
   const allRows = useMemo<ITableRow[]>(() => {
     const rows: ITableRow[] = [];
 
@@ -553,31 +493,13 @@ export const ComponentsTable = ({
         item.includedVariants && item.includedVariants.length > 0
       );
 
-      rows.push({
-        id: item.id,
-        isVariant: false,
-        level: 0,
-        productId: item.productId,
-        variantId: item.variantId,
-        itemType: item.itemType,
-        customTitle: item.customTitle,
-        isAvailable: item.isAvailable,
-        hasIncludedVariants,
-        includedVariantsCount: item.includedVariants?.length ?? 0,
-        priceType: item.priceType,
-        priceValue: item.priceValue,
-        templateId: item.templateId,
-        basePrice: item.basePrice,
-        finalPrice: item.finalPrice,
-        sortIndex: item.sortIndex,
-      });
-
-      if (item.includedVariants) {
+      // If item has included variants, only show the variants (skip the product row)
+      if (hasIncludedVariants && item.includedVariants) {
         item.includedVariants.forEach((variant) => {
           rows.push({
             id: variant.id,
             isVariant: true,
-            level: 1,
+            level: 0, // Root level - no indentation
             productId: item.productId,
             variantId: variant.variantId,
             itemType: ComponentItemType.SINGLE_VARIANT,
@@ -593,20 +515,34 @@ export const ComponentsTable = ({
             parentItemId: item.id,
           });
         });
+      } else {
+        // Regular product/variant without included variants
+        rows.push({
+          id: item.id,
+          isVariant: false,
+          level: 0,
+          productId: item.productId,
+          variantId: item.variantId,
+          itemType: item.itemType,
+          customTitle: item.customTitle,
+          isAvailable: item.isAvailable,
+          hasIncludedVariants: false,
+          includedVariantsCount: 0,
+          priceType: item.priceType,
+          priceValue: item.priceValue,
+          templateId: item.templateId,
+          basePrice: item.basePrice,
+          finalPrice: item.finalPrice,
+          sortIndex: item.sortIndex,
+        });
       }
     });
 
     return rows;
   }, [items]);
 
-  // Filter visible rows based on expanded state
-  const visibleRows = useMemo(() => {
-    return allRows.filter((row) => {
-      if (!row.isVariant) return true;
-      // Variant is visible only if parent is expanded
-      return row.parentItemId && expandedIds.has(row.parentItemId);
-    });
-  }, [allRows, expandedIds]);
+  // All rows are visible (no expand/collapse filtering needed)
+  const visibleRows = allRows;
 
   const handlePriceRuleChange = useCallback(
     (
@@ -778,7 +714,7 @@ export const ComponentsTable = ({
     [items, onItemsChange]
   );
 
-  // Handle row drag enter - collapse all expanded products when dragging products (not variants)
+  // Handle row drag enter
   const handleRowDragEnter = useCallback(
     (event: RowDragEnterEvent<ITableRow>) => {
       const movingData = event.node?.data;
@@ -788,33 +724,22 @@ export const ComponentsTable = ({
       if (draggingRowIdRef.current === movingData.id) return;
 
       draggingRowIdRef.current = movingData.id;
-      expandedBeforeDragRef.current = new Set(expandedIdsRef.current);
-
-      // Only collapse when dragging products, not variants
-      // Variants need to stay visible to drag within their parent
-      if (!movingData.isVariant) {
-        setExpandedIds(new Set());
-      }
     },
     []
   );
 
   const handleRowDragEnd = useCallback(
     (event: RowDragEndEvent<ITableRow>) => {
-      const savedExpandedIds = expandedBeforeDragRef.current;
       draggingRowIdRef.current = null;
-      expandedBeforeDragRef.current = null;
 
       const { node, overIndex, overNode } = event;
       const movingData = node?.data;
 
       if (!movingData) {
-        if (savedExpandedIds) setExpandedIds(savedExpandedIds);
         return;
       }
 
       if (overIndex === undefined || overIndex === null) {
-        if (savedExpandedIds) setExpandedIds(savedExpandedIds);
         return;
       }
 
@@ -886,11 +811,6 @@ export const ComponentsTable = ({
         }));
 
       onItemsChange(reorderedItems);
-
-      // Restore expanded state
-      if (savedExpandedIds) {
-        setExpandedIds(savedExpandedIds);
-      }
     },
     [items, onItemsChange]
   );
@@ -949,17 +869,7 @@ export const ComponentsTable = ({
         field: "productId",
         flex: 2,
         minWidth: 200,
-        colSpan: (params) => {
-          // Container products span across Product + Price Rule + Value columns
-          if (params.data?.hasIncludedVariants && !params.data?.isVariant)
-            return 3;
-          return 1;
-        },
         cellRenderer: ProductCellRenderer,
-        cellRendererParams: {
-          expandedIds,
-          onToggleExpand: handleToggleExpand,
-        },
       },
       {
         headerName: "Price Rule",
@@ -1004,7 +914,6 @@ export const ComponentsTable = ({
             onDelete={handleDelete}
             onDuplicate={handleDuplicate}
             onIncludeVariants={onIncludeVariants}
-            onExpandItem={handleExpandItem}
             items={items}
           />
         ),
@@ -1014,11 +923,8 @@ export const ComponentsTable = ({
       bulkEditMode,
       selectedIds,
       items,
-      expandedIds,
       handleToggleAll,
       handleToggleSelection,
-      handleToggleExpand,
-      handleExpandItem,
       handleDelete,
       handleDuplicate,
       onIncludeVariants,
