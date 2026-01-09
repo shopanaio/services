@@ -146,8 +146,30 @@ interface IAttributeRow {
 
 const createMockData = (): IAttributeRow[] => {
   return [
+    // Root-level attributes (before any group)
+    {
+      id: "a0",
+      type: "attribute",
+      name: "SKU",
+      displayType: "text",
+      parentId: null,
+      sortIndex: 0,
+      level: 0,
+      values: [],
+    },
+    {
+      id: "a00",
+      type: "attribute",
+      name: "Barcode",
+      displayType: "text",
+      parentId: null,
+      sortIndex: 1,
+      level: 0,
+      values: [],
+    },
+
     // Group: Physical Properties
-    { id: "g1", type: "group", name: "Physical Properties", parentId: null, sortIndex: 0, level: 0 },
+    { id: "g1", type: "group", name: "Physical Properties", parentId: null, sortIndex: 2, level: 0 },
     {
       id: "a1",
       type: "attribute",
@@ -178,7 +200,7 @@ const createMockData = (): IAttributeRow[] => {
     },
 
     // Group: Brand Info
-    { id: "g2", type: "group", name: "Brand Info", parentId: null, sortIndex: 1, level: 0 },
+    { id: "g2", type: "group", name: "Brand Info", parentId: null, sortIndex: 3, level: 0 },
     {
       id: "a3",
       type: "attribute",
@@ -195,7 +217,7 @@ const createMockData = (): IAttributeRow[] => {
     },
 
     // Group: Specifications
-    { id: "g3", type: "group", name: "Specifications", parentId: null, sortIndex: 2, level: 0 },
+    { id: "g3", type: "group", name: "Specifications", parentId: null, sortIndex: 4, level: 0 },
     {
       id: "a4",
       type: "attribute",
@@ -347,22 +369,23 @@ export const EditAttributesModal = () => {
   const visibleRows = useMemo(() => {
     const result: IAttributeRow[] = [];
 
-    const addRowAndChildren = (parentId: string | null) => {
-      const children = allRows
-        .filter((r) => r.parentId === parentId)
-        .sort((a, b) => a.sortIndex - b.sortIndex);
+    // Get root-level rows (both groups and attributes with parentId: null)
+    const rootRows = allRows
+      .filter((r) => r.parentId === null)
+      .sort((a, b) => a.sortIndex - b.sortIndex);
 
-      for (const child of children) {
-        result.push(child);
+    for (const row of rootRows) {
+      result.push(row);
 
-        // If this is a group and it's expanded, add its attributes
-        if (child.type === "group" && expandedIds.has(child.id)) {
-          addRowAndChildren(child.id);
-        }
+      // If this is a group and it's expanded, add its children (attributes)
+      if (row.type === "group" && expandedIds.has(row.id)) {
+        const children = allRows
+          .filter((r) => r.parentId === row.id)
+          .sort((a, b) => a.sortIndex - b.sortIndex);
+        result.push(...children);
       }
-    };
+    }
 
-    addRowAndChildren(null);
     return result;
   }, [allRows, expandedIds]);
 
@@ -417,42 +440,53 @@ export const EditAttributesModal = () => {
     });
 
     // Update sortIndex and parentId based on the new visual order
+    // Rule: attributes before the first group stay at root level (parentId: null)
+    //       attributes after a group belong to that group
     setAllRows((prev) => {
-      // Build new sortIndex for groups
-      // For attributes, also determine new parentId based on position
-      const groupSortIndexMap = new Map<string, number>();
-      const attrNewParentMap = new Map<string, string>(); // attrId -> new parentId
-      const attrSortIndexByParent = new Map<string, Map<string, number>>();
+      const rootSortIndexMap = new Map<string, number>(); // For root-level items (groups + root attrs)
+      const attrNewParentMap = new Map<string, string | null>(); // attrId -> new parentId (null = root)
+      const attrSortIndexByParent = new Map<string | null, Map<string, number>>(); // parentId -> (attrId -> sortIndex)
 
       let currentGroupId: string | null = null;
-      let groupIndex = 0;
+      let rootIndex = 0;
 
       for (const row of newOrderedRows) {
         if (row.type === "group") {
           currentGroupId = row.id;
-          groupSortIndexMap.set(row.id, groupIndex++);
-        } else if (row.type === "attribute" && currentGroupId) {
-          // Attribute belongs to the last seen group
-          attrNewParentMap.set(row.id, currentGroupId);
+          rootSortIndexMap.set(row.id, rootIndex++);
+        } else if (row.type === "attribute") {
+          if (currentGroupId === null) {
+            // Attribute before any group - stays at root level
+            attrNewParentMap.set(row.id, null);
+            rootSortIndexMap.set(row.id, rootIndex++);
+          } else {
+            // Attribute after a group - belongs to that group
+            attrNewParentMap.set(row.id, currentGroupId);
 
-          if (!attrSortIndexByParent.has(currentGroupId)) {
-            attrSortIndexByParent.set(currentGroupId, new Map());
+            if (!attrSortIndexByParent.has(currentGroupId)) {
+              attrSortIndexByParent.set(currentGroupId, new Map());
+            }
+            const parentMap = attrSortIndexByParent.get(currentGroupId)!;
+            parentMap.set(row.id, parentMap.size);
           }
-          const parentMap = attrSortIndexByParent.get(currentGroupId)!;
-          parentMap.set(row.id, parentMap.size);
         }
       }
 
       return prev.map((r) => {
-        if (r.type === "group" && groupSortIndexMap.has(r.id)) {
-          return { ...r, sortIndex: groupSortIndexMap.get(r.id)! };
+        if (r.type === "group" && rootSortIndexMap.has(r.id)) {
+          return { ...r, sortIndex: rootSortIndexMap.get(r.id)! };
         }
-        if (r.type === "attribute") {
-          const newParentId = attrNewParentMap.get(r.id);
-          if (newParentId) {
+        if (r.type === "attribute" && attrNewParentMap.has(r.id)) {
+          const newParentId = attrNewParentMap.get(r.id)!;
+          if (newParentId === null) {
+            // Root-level attribute
+            const newSortIndex = rootSortIndexMap.get(r.id) ?? r.sortIndex;
+            return { ...r, parentId: null, sortIndex: newSortIndex, level: 0 };
+          } else {
+            // Grouped attribute
             const parentMap = attrSortIndexByParent.get(newParentId);
             const newSortIndex = parentMap?.get(r.id) ?? r.sortIndex;
-            return { ...r, parentId: newParentId, sortIndex: newSortIndex };
+            return { ...r, parentId: newParentId, sortIndex: newSortIndex, level: 1 };
           }
         }
         return r;
@@ -512,17 +546,86 @@ export const EditAttributesModal = () => {
     const newId = `g-${Date.now()}`;
 
     setAllRows((prev) => {
+      // Find the max sortIndex among root-level items
+      const maxRootSortIndex = Math.max(
+        -1,
+        ...prev.filter((r) => r.parentId === null).map((r) => r.sortIndex)
+      );
+
       const newGroup: IAttributeRow = {
         id: newId,
         type: "group",
         name: "New Group",
         parentId: null,
-        sortIndex: prev.filter((r) => r.type === "group").length,
+        sortIndex: maxRootSortIndex + 1,
         level: 0,
       };
       return [...prev, newGroup];
     });
     setExpandedIds((prev) => new Set([...prev, newId]));
+    markDirty();
+  }, [markDirty]);
+
+  const handleAddRootAttribute = useCallback(() => {
+    const newId = `a-${Date.now()}`;
+
+    setAllRows((prev) => {
+      // Find if there are any groups
+      const firstGroupIndex = prev
+        .filter((r) => r.parentId === null)
+        .sort((a, b) => a.sortIndex - b.sortIndex)
+        .findIndex((r) => r.type === "group");
+
+      let newSortIndex: number;
+      if (firstGroupIndex === -1) {
+        // No groups - add at the end
+        const maxRootSortIndex = Math.max(
+          -1,
+          ...prev.filter((r) => r.parentId === null).map((r) => r.sortIndex)
+        );
+        newSortIndex = maxRootSortIndex + 1;
+      } else {
+        // Insert before the first group by shifting group sortIndexes
+        const rootRows = prev
+          .filter((r) => r.parentId === null)
+          .sort((a, b) => a.sortIndex - b.sortIndex);
+        const firstGroup = rootRows.find((r) => r.type === "group");
+        newSortIndex = firstGroup?.sortIndex ?? 0;
+
+        // Shift all groups and their positions
+        return [
+          ...prev.map((r) => {
+            if (r.parentId === null && r.sortIndex >= newSortIndex) {
+              return { ...r, sortIndex: r.sortIndex + 1 };
+            }
+            return r;
+          }),
+          {
+            id: newId,
+            type: "attribute" as const,
+            name: "New Attribute",
+            displayType: "text" as const,
+            parentId: null,
+            sortIndex: newSortIndex,
+            level: 0,
+            values: [],
+          },
+        ];
+      }
+
+      const newRow: IAttributeRow = {
+        id: newId,
+        type: "attribute",
+        name: "New Attribute",
+        displayType: "text",
+        parentId: null,
+        sortIndex: newSortIndex,
+        level: 0,
+        values: [],
+      };
+      return [...prev, newRow];
+    });
+
     markDirty();
   }, [markDirty]);
 
@@ -634,9 +737,16 @@ export const EditAttributesModal = () => {
           <div className={styles.toolbar}>
             <Flex justify="space-between" align="center">
               <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                Organize attributes into groups. Click arrows to expand/collapse.
+                Drag to reorder. Attributes before groups stay ungrouped; after a group they belong to it.
               </Typography.Text>
               <Space>
+                <Button
+                  size="small"
+                  icon={<PlusOutlined />}
+                  onClick={handleAddRootAttribute}
+                >
+                  Add Attribute
+                </Button>
                 <Button
                   size="small"
                   icon={<PlusOutlined />}
