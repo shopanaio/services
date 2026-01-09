@@ -299,8 +299,10 @@ export const useComponentsStyles = createStyles(({ token }) => ({
     margin: "12px 0",
   },
   avatarPlaceholder: {
-    background: token.colorBgContainerDisabled,
-    color: token.colorTextQuaternary,
+    "&&": {
+      background: token.colorFillSecondary,
+      color: token.colorTextQuaternary,
+    },
   },
   groupTag: {
     margin: 0,
