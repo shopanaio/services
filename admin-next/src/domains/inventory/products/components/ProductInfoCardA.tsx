@@ -504,7 +504,7 @@ interface IInventoryActionsProps {
 }
 
 const InventoryActions = ({ onAction }: IInventoryActionsProps) => {
-  const items = [{ key: "edit", label: "Edit" }];
+  const items = [{ key: "edit", label: "Edit inventory" }];
 
   return (
     <Dropdown

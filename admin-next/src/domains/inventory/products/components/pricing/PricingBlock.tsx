@@ -158,7 +158,7 @@ const PricingHeader = ({
   const selectedVariant = variants?.find((v) => v.id === selectedVariantId);
 
   const moreMenuItems = [
-    { key: "edit", label: "Edit" },
+    { key: "edit", label: "Edit prices" },
     { key: "history", label: "View history" },
   ];
 
