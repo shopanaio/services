@@ -107,3 +107,35 @@ export function useProductPicker(
 
   return { openPicker };
 }
+
+export function useCategoryPicker(
+  options: Omit<IUseEntityPickerOptions<IPickableEntity>, "entityType">
+) {
+  const { push } = useModalStack();
+  const {
+    selectionMode = "multi",
+    initialSelection = [],
+    excludeIds = [],
+    maxSelection,
+    onConfirm,
+  } = options;
+
+  const openPicker = useCallback(() => {
+    push("category-picker", {
+      selectionMode,
+      initialSelection,
+      excludeIds,
+      maxSelection,
+      onConfirm,
+    });
+  }, [
+    push,
+    selectionMode,
+    initialSelection,
+    excludeIds,
+    maxSelection,
+    onConfirm,
+  ]);
+
+  return { openPicker };
+}
