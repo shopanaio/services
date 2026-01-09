@@ -36,11 +36,26 @@ export const useMediaStyles = createStyles(({ token }) => ({
     objectFit: "cover",
     borderRadius: 4,
   },
+  mediaPreview: {
+    fontSize: token.fontSizeSM,
+  },
   mediaMoreButton: {
     aspectRatio: "1/1",
     background: token.colorBgContainerDisabled,
     borderRadius: 4,
     fontSize: 12,
+  },
+  mediaCoverWrapper: {
+    position: "relative",
+  },
+  mediaCoverBadge: {
+    position: "absolute",
+    top: 6,
+    left: 6,
+    margin: 0,
+    fontSize: 10,
+    lineHeight: "16px",
+    padding: "0 6px",
   },
 }));
 

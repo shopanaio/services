@@ -1,6 +1,7 @@
 "use client";
 
-import { Image, Flex } from "antd";
+import { Image, Flex, Tag } from "antd";
+import { EyeOutlined } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "../../edit-action";
 import { MediaFilePlaceholder } from "../../media-file-placeholder";
@@ -26,14 +27,41 @@ export const MediaSection = ({ gallery, onEdit }: IMediaSectionProps) => {
         actions={<EditAction onEdit={onEdit} label="Edit media" />}
       />
       <div className={styles.mediaGrid}>
-        {gallerySlice.map((media) => (
-          <Image
-            key={media.id}
-            src={media.url}
-            alt={media.name || ""}
-            className={styles.mediaImage}
-          />
-        ))}
+        {gallerySlice.map((media, index) =>
+          index === 0 ? (
+            <div key={media.id} className={styles.mediaCoverWrapper}>
+              <Image
+                src={media.url}
+                alt={media.name || ""}
+                className={styles.mediaImage}
+                preview={{
+                  mask: (
+                    <Flex gap={4} className={styles.mediaPreview}>
+                      <EyeOutlined />
+                      Preview
+                    </Flex>
+                  ),
+                }}
+              />
+              <Tag className={styles.mediaCoverBadge}>Cover</Tag>
+            </div>
+          ) : (
+            <Image
+              key={media.id}
+              src={media.url}
+              alt={media.name || ""}
+              className={styles.mediaImage}
+              preview={{
+                mask: (
+                  <Flex gap={4} className={styles.mediaPreview}>
+                    <EyeOutlined />
+                    Preview
+                  </Flex>
+                ),
+              }}
+            />
+          )
+        )}
         {showMore && (
           <Flex
             align="center"
