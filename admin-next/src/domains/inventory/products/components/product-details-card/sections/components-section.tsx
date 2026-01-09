@@ -6,19 +6,17 @@ import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "../../edit-action";
 import { useComponentsStyles } from "../product-details-card.styles";
 import type { IComponentGroup } from "../../../modals/edit-components-modal/types";
-import {
-  getProductById,
-  getVariantById,
-} from "../../../modals/edit-components-modal/mocks/mock-data";
 
 interface IComponentsSectionProps {
   groups: IComponentGroup[];
   onEdit: () => void;
+  getItemImage?: (productId: string, variantId?: string | null) => string | null;
 }
 
 export const ComponentsSection = ({
   groups,
   onEdit,
+  getItemImage,
 }: IComponentsSectionProps) => {
   const { styles } = useComponentsStyles();
 
@@ -35,11 +33,7 @@ export const ComponentsSection = ({
       <Flex gap={8} wrap="wrap">
         {groups.map((group) => {
           const itemImages = group.items?.map((item) => {
-            const variant = item.variantId
-              ? getVariantById(item.productId, item.variantId)
-              : undefined;
-            const product = getProductById(item.productId);
-            return variant?.imageUrl || product?.imageUrl || null;
+            return getItemImage?.(item.productId, item.variantId) ?? null;
           });
 
           return (

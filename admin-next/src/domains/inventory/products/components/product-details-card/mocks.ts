@@ -1,7 +1,11 @@
 import { mockCategories } from "../../modals/edit-categories-modal/mocks";
 import { mockTags } from "../../modals/edit-tags-modal/mocks";
 import { MOCK_OPTION_GROUPS } from "../../modals/edit-options-modal/mocks";
-import { mockGroups } from "../../modals/edit-components-modal/mocks/mock-data";
+import {
+  mockGroups,
+  getProductById,
+  getVariantById,
+} from "../../modals/edit-components-modal/mocks/mock-data";
 import { createMockData as createAttributesMockData } from "../../modals/edit-attributes-modal/mocks";
 import type { IProductDetailsMockData, IInventoryStats } from "./types";
 
@@ -34,6 +38,18 @@ const defaultReviewsData = {
   ],
 };
 
+const getComponentItemImage = (
+  productId: string,
+  variantId?: string | null
+): string | null => {
+  if (variantId) {
+    const variant = getVariantById(productId, variantId);
+    if (variant?.imageUrl) return variant.imageUrl;
+  }
+  const product = getProductById(productId);
+  return product?.imageUrl ?? null;
+};
+
 export const productDetailsMockData: IProductDetailsMockData = {
   categories: {
     primary: mockCategories[0],
@@ -45,4 +61,5 @@ export const productDetailsMockData: IProductDetailsMockData = {
   options: MOCK_OPTION_GROUPS,
   components: mockGroups,
   inventory: getMockInventoryStats(),
+  getComponentItemImage,
 };

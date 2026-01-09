@@ -192,6 +192,7 @@ export const ProductDetailsCard = ({
       <ComponentsSection
         groups={mockData.components}
         onEdit={modals.editComponents}
+        getItemImage={mockData.getComponentItemImage}
       />
 
       <TagsSection tags={mockData.tags} />

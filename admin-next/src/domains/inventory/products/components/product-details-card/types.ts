@@ -116,4 +116,5 @@ export interface IProductDetailsMockData {
   options: IOptionGroup[];
   components: IComponentGroup[];
   inventory: IInventoryStats;
+  getComponentItemImage: (productId: string, variantId?: string | null) => string | null;
 }
