@@ -63,13 +63,11 @@ export const MediaSection = () => {
       value={galleryItems}
       onChange={handleChange}
       onUpload={handleUpload}
-      showPaper
       title="Media"
       showViewSwitcher
       accept="image/*"
       multiple
       hasFeatured
-      featuredLabel="Featured"
     />
   );
 };

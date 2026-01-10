@@ -42,8 +42,6 @@ export interface IEntityMediaGalleryProps {
   hasFeatured?: boolean;
   /** Title shown in Paper header */
   title?: string;
-  /** Whether to wrap in Paper component */
-  showPaper?: boolean;
   /** Extra content for Paper header */
   headerExtra?: React.ReactNode;
   /** Minimum number of cells to show (fills empty cells with placeholders) */

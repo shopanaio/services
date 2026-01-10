@@ -14,13 +14,11 @@ const useStyles = createStyles(({ token }) => ({
 }));
 
 interface IFeaturedBadgeProps {
-  label?: string;
   showIcon?: boolean;
   className?: string;
 }
 
 export const FeaturedBadge = ({
-  label = "Featured",
   showIcon = true,
   className,
 }: IFeaturedBadgeProps) => {
@@ -32,7 +30,7 @@ export const FeaturedBadge = ({
       className={cx(styles.featuredBadge, className)}
       color="green"
     >
-      {label}
+      Featured
     </Tag>
   );
 };

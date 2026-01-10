@@ -74,7 +74,6 @@ interface ISortableGridItemProps {
   item: IMediaItem;
   index: number;
   isFeatured: boolean;
-  featuredLabel: string;
   onSetFeatured: (item: IMediaItem) => void;
   onDelete: (id: string) => void;
   onPreview?: (item: IMediaItem, index: number) => void;
@@ -84,7 +83,6 @@ const SortableGridItem = ({
   item,
   index,
   isFeatured,
-  featuredLabel,
   onSetFeatured,
   onDelete,
   onPreview,
@@ -157,7 +155,7 @@ const SortableGridItem = ({
       {...attributes}
       className={cx(styles.mediaItem, isDragging && styles.mediaItemDragging)}
     >
-      {isFeatured && <FeaturedBadge label={featuredLabel} />}
+      {isFeatured && <FeaturedBadge />}
 
       <img src={item.url} alt={item.name} className={styles.mediaImage} />
 
@@ -380,7 +378,10 @@ const ListItemPreview = ({
   return (
     <div
       className={styles.listItem}
-      style={{ boxShadow: "var(--ant-box-shadow-secondary)", cursor: "grabbing" }}
+      style={{
+        boxShadow: "var(--ant-box-shadow-secondary)",
+        cursor: "grabbing",
+      }}
     >
       <div className={styles.dragHandle}>
         <HolderOutlined />
@@ -421,11 +422,9 @@ export const EntityMediaGallery = ({
   accept = "image/*",
   multiple = true,
   emptyMessage = "No media files yet",
-  featuredLabel = "Featured",
   hasFeatured = true,
   minCells = 13,
   title,
-  showPaper = false,
 }: IEntityMediaGalleryProps) => {
   const { styles } = useStyles();
   const [internalViewMode, setInternalViewMode] = useState<ViewMode>("grid");
@@ -527,17 +526,11 @@ export const EntityMediaGallery = ({
 
   const hasMedia = value.length > 0;
 
-  const Wrapper = showPaper ? Paper : "div";
-
   const renderHeader = () => {
     if (!showViewSwitcher || !hasMedia) return null;
 
     return (
-      <Flex
-        justify="space-between"
-        align="center"
-        style={{ marginBottom: 12 }}
-      >
+      <Flex justify="space-between" align="center" style={{ marginBottom: 12 }}>
         <Typography.Text type="secondary">
           {value.length} file{value.length !== 1 ? "s" : ""}
         </Typography.Text>
@@ -572,8 +565,8 @@ export const EntityMediaGallery = ({
   };
 
   return (
-    <Wrapper>
-      {showPaper && title && <PaperHeader title={title} />}
+    <Paper>
+      {title && <PaperHeader title={title} />}
 
       <DndContext
         sensors={sensors}
@@ -590,6 +583,7 @@ export const EntityMediaGallery = ({
             multiple={multiple}
             showUploadList={false}
             beforeUpload={handleUpload}
+            style={{ display: "block" }}
           >
             <Flex align="center" justify="center" vertical>
               <UploadOutlined className={styles.draggerIcon} />
@@ -631,7 +625,6 @@ export const EntityMediaGallery = ({
                     item={item}
                     index={idx}
                     isFeatured={hasFeatured && idx === 0}
-                    featuredLabel={featuredLabel}
                     onSetFeatured={handleSetFeatured}
                     onDelete={handleDelete}
                     onPreview={handlePreview}
@@ -729,6 +722,6 @@ export const EntityMediaGallery = ({
           }))}
         />
       )}
-    </Wrapper>
+    </Paper>
   );
 };
