@@ -8,6 +8,7 @@ import List from "@editorjs/list";
 import Delimiter from "@editorjs/delimiter";
 import { createStyles } from "antd-style";
 import { inter } from "@/fonts/inter";
+import { EditorGlobalStyles } from "./editor-global-styles";
 
 const useStyles = createStyles(({ token }) => ({
   wrapper: {
@@ -15,11 +16,7 @@ const useStyles = createStyles(({ token }) => ({
     borderRadius: token.borderRadius,
     padding: "12px 16px",
     transition: `border-color ${token.motionDurationMid}, box-shadow ${token.motionDurationMid}`,
-  },
-  editor: {
-    "& *": {
-      fontFamily: "inherit !important",
-    },
+    backgroundColor: token.colorBgContainer,
   },
 }));
 
@@ -101,13 +98,16 @@ const BlockEditorCore = memo(function BlockEditorCore({
   }, [holderId]);
 
   return (
-    <div className={styles.wrapper}>
-      <div
-        id={holderId}
-        className={`${inter.className} ${styles.editor}`}
-        style={{ minHeight }}
-      />
-    </div>
+    <>
+      <EditorGlobalStyles />
+      <div className={styles.wrapper}>
+        <div
+          id={holderId}
+          className={inter.className}
+          style={{ minHeight }}
+        />
+      </div>
+    </>
   );
 });
 
