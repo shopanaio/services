@@ -33,7 +33,7 @@ CREATE TABLE inventory.stock_changes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id UUID NOT NULL,
   variant_id UUID NOT NULL REFERENCES inventory.variant(id) ON DELETE CASCADE,
-  warehouse_id UUID NOT NULL REFERENCES inventory.warehouses(id),
+  warehouse_id UUID NOT NULL,
 
   -- Дельты (знак = направление изменения)
   delta_on_hand INTEGER NOT NULL DEFAULT 0,
@@ -64,13 +64,16 @@ CREATE TABLE inventory.stock_changes (
   -- 'CUSTOMER_RETURN'  возврат покупателя
 
   -- Источник события (для идемпотентности/трассировки)
-  source_system VARCHAR(30),
-  source_event_id VARCHAR(128),
+  source_system VARCHAR(30) NOT NULL,
+  source_event_id VARCHAR(128) NOT NULL,
   correlation_id UUID, -- например, transfer_id для связки двух движений
 
   note TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  created_by UUID
+  created_by UUID,
+  CONSTRAINT stock_changes_warehouse_fk
+    FOREIGN KEY (project_id, warehouse_id)
+    REFERENCES inventory.warehouses(project_id, id) ON DELETE CASCADE
 );
 
 -- Индексы для аналитики
@@ -80,17 +83,21 @@ CREATE INDEX idx_stock_changes_project_date ON inventory.stock_changes(project_i
 CREATE INDEX idx_stock_changes_type_date ON inventory.stock_changes(movement_type, created_at DESC);
 CREATE INDEX idx_stock_changes_reason_date ON inventory.stock_changes(reason, created_at DESC);
 CREATE UNIQUE INDEX idx_stock_changes_idempotency
-  ON inventory.stock_changes(source_system, source_event_id, warehouse_id, variant_id);
+  ON inventory.stock_changes(project_id, source_system, source_event_id, warehouse_id, variant_id);
 ```
 
 Все изменения стока выполняются одной транзакцией: обновление `warehouse_stock` + insert в `stock_changes` (delta и balance_after).
 Чтобы не терять обновления при конкуренции, использовать `SELECT ... FOR UPDATE` по `warehouse_stock`
 или оптимистическую блокировку через `last_change_id`.
 `movement_type` и `reason` можно оформить как ENUM, чтобы избежать мусорных значений.
+Для идемпотентности `source_system` и `source_event_id` обязательны; при отсутствии
+естественного идентификатора генерировать ключ на стороне источника.
 
 ### 3. Резервирования `reservations`
 
 ```sql
+CREATE TYPE inventory.reservation_status AS ENUM ('ACTIVE', 'RELEASED', 'FULFILLED');
+
 CREATE TABLE inventory.reservations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id UUID NOT NULL,
@@ -102,7 +109,7 @@ CREATE TABLE inventory.reservations (
   order_id VARCHAR(255) NOT NULL,     -- ID заказа во внешней системе
 
   quantity INTEGER NOT NULL CHECK (quantity > 0),
-  status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',  -- ACTIVE, RELEASED, FULFILLED
+  status inventory.reservation_status NOT NULL DEFAULT 'ACTIVE',
 
   reserved_at TIMESTAMPTZ DEFAULT NOW(),
   released_at TIMESTAMPTZ,
@@ -194,8 +201,8 @@ WHERE v.product_id = $1 AND v.deleted_at IS NULL;
 
 ### backorder.quantity
 ```sql
--- backorder = max(0, -(available_for_sale))
-SELECT COALESCE(SUM(GREATEST(-(ws.quantity_on_hand - ws.reserved_qty - ws.unavailable_qty), 0)), 0) as backorder_qty
+-- backorder = max(0, -SUM(available_for_sale))
+SELECT GREATEST(COALESCE(-SUM(ws.quantity_on_hand - ws.reserved_qty - ws.unavailable_qty), 0), 0) as backorder_qty
 FROM inventory.warehouse_stock ws
 JOIN inventory.variant v ON v.id = ws.variant_id
 WHERE v.product_id = $1 AND v.deleted_at IS NULL;
@@ -211,7 +218,8 @@ FROM inventory.inbound_supply s
 JOIN inventory.variant v ON v.id = s.variant_id
 WHERE v.product_id = $1
   AND v.deleted_at IS NULL
-  AND s.status IN ('PLANNED', 'IN_TRANSIT');
+  AND s.status IN ('PLANNED', 'IN_TRANSIT')
+  AND s.expected_at >= NOW();
 ```
 
 ### availableChange7d
@@ -299,10 +307,12 @@ LEFT JOIN variant_oos vo ON vo.variant_id = variant_stock.id;
 ```
 
 ### Семантика out_of_stock_since / backorder_expected_at
-- `out_of_stock_since`: вычисляется по `stock_changes` как момент последнего перехода `available_after` из `> 0` в `<= 0`
+-- `out_of_stock_since`: вычисляется по `stock_changes` как момент последнего перехода `available_after` из `> 0` в `<= 0`
   (по складу, затем `MIN` по складам).
 - `backorder_expected_at`: вычисляется из `inbound_supply` (можно кэшировать отдельно, но в `warehouse_stock` не храним).
 - В виджете используется `MIN(expected_at)` по `inbound_supply`; при необходимости заменить на расчет по дефициту.
+- Для SKU без истории движений добавить seed-запись в `stock_changes` при миграции
+  (например, `movement_type = 'ADJUST'`) либо использовать fallback на `warehouse_stock.updated_at`.
 
 ### Расчет backorder_expected_at (по складу)
 ```sql
