@@ -22,6 +22,10 @@ ALTER TABLE inventory.warehouse_stock ADD COLUMN
 ALTER TABLE inventory.warehouse_stock
   ADD CONSTRAINT warehouse_stock_reserved_check CHECK (reserved_qty >= 0),
   ADD CONSTRAINT warehouse_stock_unavailable_check CHECK (unavailable_qty >= 0);
+
+-- Убедиться, что есть UNIQUE (project_id, warehouse_id, variant_id).
+-- Backorder разрешен, поэтому CHECK на non-negative available не добавляем.
+-- При необходимости добавить FK: last_change_id REFERENCES inventory.stock_changes(id).
 ```
 
 ### 2. Журнал изменений `stock_changes` (тонкий delta-log)
@@ -61,6 +65,11 @@ CREATE TABLE inventory.stock_changes (
   -- 'MANUAL'           ручная корректировка
   -- 'CUSTOMER_RETURN'  возврат покупателя
 
+  -- Источник события (для идемпотентности/трассировки)
+  source_system VARCHAR(30),
+  source_event_id VARCHAR(128),
+  correlation_id UUID, -- например, transfer_id для связки двух движений
+
   note TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_by UUID
@@ -68,12 +77,18 @@ CREATE TABLE inventory.stock_changes (
 
 -- Индексы для аналитики
 CREATE INDEX idx_stock_changes_variant_date ON inventory.stock_changes(variant_id, created_at DESC);
+CREATE INDEX idx_stock_changes_variant_warehouse_date ON inventory.stock_changes(variant_id, warehouse_id, created_at DESC);
 CREATE INDEX idx_stock_changes_project_date ON inventory.stock_changes(project_id, created_at DESC);
 CREATE INDEX idx_stock_changes_type_date ON inventory.stock_changes(movement_type, created_at DESC);
 CREATE INDEX idx_stock_changes_reason_date ON inventory.stock_changes(reason, created_at DESC);
+CREATE UNIQUE INDEX idx_stock_changes_idempotency
+  ON inventory.stock_changes(source_system, source_event_id, warehouse_id, variant_id);
 ```
 
 Все изменения стока выполняются одной транзакцией: обновление `warehouse_stock` + insert в `stock_changes` (delta и balance_after).
+Чтобы не терять обновления при конкуренции, использовать `SELECT ... FOR UPDATE` по `warehouse_stock`
+или оптимистическую блокировку через `last_change_id`.
+`movement_type` и `reason` можно оформить как ENUM, чтобы избежать мусорных значений.
 
 ### 3. Резервирования `reservations`
 
@@ -101,6 +116,9 @@ CREATE INDEX idx_reservations_variant ON inventory.reservations(variant_id);
 CREATE INDEX idx_reservations_order ON inventory.reservations(order_system, order_id);
 ```
 
+`reserved_qty` в `warehouse_stock` — агрегат по активным резервам; нужна строгая транзакция и периодическая сверка
+с `reservations` (SUM quantity WHERE status = 'ACTIVE').
+
 ### 4. Настройки алертов `product_inventory_settings`
 
 ```sql
@@ -109,9 +127,39 @@ CREATE TABLE inventory.product_inventory_settings (
   project_id UUID NOT NULL,
   alert_threshold_method VARCHAR(20) NOT NULL DEFAULT 'SAFETY_STOCK',
   alert_minimum_stock INTEGER NOT NULL DEFAULT 10,
+  backorder_enabled BOOLEAN NOT NULL DEFAULT false,
+  backorder_max_days INTEGER,
+  backorder_max_qty INTEGER,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+```
+
+### 5. Планируемые поступления `inbound_supply`
+
+```sql
+CREATE TABLE inventory.inbound_supply (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID NOT NULL,
+  variant_id UUID NOT NULL REFERENCES inventory.variant(id),
+  warehouse_id UUID NOT NULL REFERENCES inventory.warehouses(id),
+
+  source_type VARCHAR(30) NOT NULL, -- PURCHASE_ORDER, TRANSFER, RETURN
+  source_id UUID NOT NULL,
+
+  expected_at TIMESTAMPTZ NOT NULL,
+  qty_expected INTEGER NOT NULL CHECK (qty_expected > 0),
+  qty_received INTEGER NOT NULL DEFAULT 0 CHECK (qty_received >= 0),
+  status VARCHAR(20) NOT NULL DEFAULT 'PLANNED', -- PLANNED, IN_TRANSIT, RECEIVED, CANCELED
+
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+
+  UNIQUE(source_type, source_id, variant_id, warehouse_id)
+);
+
+CREATE INDEX idx_inbound_supply_variant_date
+  ON inventory.inbound_supply(variant_id, warehouse_id, expected_at);
 ```
 
 ---
@@ -148,7 +196,7 @@ WHERE v.product_id = $1 AND v.deleted_at IS NULL;
 
 ### salesVelocity.pendingOrders
 ```sql
-SELECT COUNT(DISTINCT r.order_id)
+SELECT COUNT(DISTINCT (r.order_system, r.order_id))
 FROM inventory.reservations r
 JOIN inventory.variant v ON v.id = r.variant_id
 WHERE v.product_id = $1
@@ -158,6 +206,7 @@ WHERE v.product_id = $1
 
 ### salesVelocity.weekOverWeekChange
 ```sql
+-- net change on_hand за 7 дней; если нужна только продажа, фильтровать movement_type = 'SELL'
 SELECT COALESCE(SUM(sc.delta_on_hand), 0)
 FROM inventory.stock_changes sc
 JOIN inventory.variant v ON v.id = sc.variant_id
@@ -172,12 +221,12 @@ WITH variant_stock AS (
   SELECT
     v.id,
     COALESCE(SUM(ws.quantity_on_hand - ws.reserved_qty - ws.unavailable_qty), 0) as available,
-    ws.out_of_stock_since,
-    ws.backorder_expected_at
+    MIN(ws.out_of_stock_since) as out_of_stock_since,
+    MIN(ws.backorder_expected_at) as backorder_expected_at
   FROM inventory.variant v
   LEFT JOIN inventory.warehouse_stock ws ON ws.variant_id = v.id
   WHERE v.product_id = $1 AND v.deleted_at IS NULL
-  GROUP BY v.id, ws.out_of_stock_since, ws.backorder_expected_at
+  GROUP BY v.id
 )
 SELECT
   COUNT(*) as total,
@@ -188,6 +237,48 @@ SELECT
   AVG(EXTRACT(DAY FROM backorder_expected_at - NOW())) FILTER (WHERE backorder_expected_at IS NOT NULL) as backorder_avg_days
 FROM variant_stock;
 ```
+
+### Семантика out_of_stock_since / backorder_expected_at
+- `out_of_stock_since`: ставим, когда `available_for_sale` на складе стал `<= 0`, очищаем при `> 0`.
+- `backorder_expected_at`: прогноз по складу на базе `inbound_supply`.
+- В виджете используется агрегация `MIN(...)` по складам; при другой логике заменить на нужную.
+
+### Расчет backorder_expected_at (по складу)
+```sql
+-- deficit = max(0, reserved_qty - quantity_on_hand)
+WITH deficit AS (
+  SELECT
+    ws.project_id,
+    ws.variant_id,
+    ws.warehouse_id,
+    GREATEST(ws.reserved_qty - ws.quantity_on_hand, 0) as deficit
+  FROM inventory.warehouse_stock ws
+  WHERE ws.variant_id = $1 AND ws.warehouse_id = $2
+),
+supply AS (
+  SELECT
+    s.expected_at,
+    SUM(s.qty_expected - s.qty_received) OVER (
+      ORDER BY s.expected_at
+      ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ) as running_qty
+  FROM inventory.inbound_supply s
+  JOIN deficit d
+    ON d.variant_id = s.variant_id AND d.warehouse_id = s.warehouse_id
+  WHERE s.status IN ('PLANNED', 'IN_TRANSIT')
+)
+SELECT expected_at
+FROM supply
+JOIN deficit d ON true
+WHERE running_qty >= d.deficit
+ORDER BY expected_at
+LIMIT 1;
+```
+
+### Политика backorder
+- `backorder_enabled = false`: запрет на `RESERVE` если `available_for_sale <= 0`.
+- `backorder_enabled = true`: `RESERVE` разрешен, `available_for_sale` может быть отрицательным.
+- Лимиты `backorder_max_days` / `backorder_max_qty` применяются на уровне бизнес-логики.
 
 ---
 
@@ -306,3 +397,4 @@ extend type WidgetQuery {
 
 ### Phase 3: Интеграция
 1. Обновить существующие операции (variantSetStock и др.) чтобы писали в stock_changes и обновляли warehouse_stock в одной транзакции
+2. Добавить reconcile job для сверки `reserved_qty` с `reservations` (на случай рассинхрона)
