@@ -16,6 +16,7 @@ const ThemeInner = ({ children }: { children: React.ReactNode }) => {
       theme={{
         cssVar: { prefix: "ant" },
         hashed: false,
+        zeroRuntime: true,
         algorithm: isDark ? antTheme.darkAlgorithm : antTheme.defaultAlgorithm,
         token: {
           colorLink: isDark ? "#8f8bfa" : "#26175d",

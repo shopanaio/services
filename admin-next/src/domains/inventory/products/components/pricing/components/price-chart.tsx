@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import ReactECharts from "echarts-for-react";
+import { graphic } from "echarts";
 import { useTheme } from "antd-style";
 import type { IPriceHistoryRecord } from "../types";
 import { formatShortDate, formatPrice as defaultFormatPrice } from "../utils";
@@ -92,7 +93,9 @@ export const PriceChart = ({
           const point = params[0];
           const item = chartData[point.dataIndex];
           return `<div style="font-weight:600">${formatPrice(point.value)}</div>
-                  <div style="opacity:0.7;font-size:10px">${formatShortDate(item.date)}</div>`;
+                  <div style="opacity:0.7;font-size:10px">${formatShortDate(
+                    item.date
+                  )}</div>`;
         },
         axisPointer: {
           type: "line",
@@ -130,7 +133,10 @@ export const PriceChart = ({
             width: 2,
           },
           areaStyle: {
-            color: theme.colorPrimaryBg,
+            color: new graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: theme.blue2 },
+              { offset: 1, color: theme.geekblue2 },
+            ]),
           },
           markPoint:
             currentIndex >= 0
