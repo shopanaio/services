@@ -513,7 +513,7 @@ export const EditAttributesModal = () => {
           />
         </div>
         <Paper>
-          <Typography.Text>
+          <Typography.Text type="secondary">
             Define product characteristics. Organize attributes into logical
             groups for structured display.
           </Typography.Text>
