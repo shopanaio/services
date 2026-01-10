@@ -214,20 +214,10 @@ WHERE v.product_id = $1
   AND s.status IN ('PLANNED', 'IN_TRANSIT');
 ```
 
-### salesVelocity.pendingOrders
+### availableChange7d
 ```sql
-SELECT COUNT(DISTINCT (r.order_system, r.order_id))
-FROM inventory.reservations r
-JOIN inventory.variant v ON v.id = r.variant_id
-WHERE v.product_id = $1
-  AND v.deleted_at IS NULL
-  AND r.status = 'ACTIVE';
-```
-
-### salesVelocity.weekOverWeekChange
-```sql
--- net change on_hand за 7 дней; если нужна только продажа, фильтровать movement_type = 'SELL'
-SELECT COALESCE(SUM(sc.delta_on_hand), 0)
+-- net change available за 7 дней
+SELECT COALESCE(SUM(sc.delta_on_hand - sc.delta_reserved - sc.delta_unavailable), 0)
 FROM inventory.stock_changes sc
 JOIN inventory.variant v ON v.id = sc.variant_id
 WHERE v.product_id = $1
@@ -412,11 +402,6 @@ type InventoryBackorder {
   etaAvgDays: Float
 }
 
-type InventorySalesVelocity {
-  pendingOrders: Int!
-  weekOverWeekChange: Int!
-}
-
 type InventoryAlertThreshold {
   method: ThresholdMethod!
   minimumStock: Int!
@@ -424,9 +409,9 @@ type InventoryAlertThreshold {
 
 type ProductInventoryWidget {
   quantities: InventoryQuantities!
+  availableChange7d: Int!
   skuStatus: InventorySkuStatus!
   backorder: InventoryBackorder!
-  salesVelocity: InventorySalesVelocity!
   alertThreshold: InventoryAlertThreshold!
 }
 

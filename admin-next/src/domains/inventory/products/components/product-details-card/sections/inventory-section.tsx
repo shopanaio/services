@@ -231,7 +231,13 @@ export const InventorySection = ({
           label="Available"
           tooltip="Units available for sale (On Hand minus Reserved)"
           value={stats.quantities.availableForSale.toLocaleString()}
-          secondary={`across ${stats.skuStatus.total} SKUs`}
+          secondary={
+            stats.availableChange7d !== 0
+              ? `${stats.availableChange7d > 0 ? "+" : ""}${
+                  stats.availableChange7d
+                } vs 7d`
+              : `across ${stats.skuStatus.total} SKUs`
+          }
           isPrimary
           badge={
             <Tag color="success" className={styles.inventoryTag}>
@@ -245,11 +251,6 @@ export const InventorySection = ({
           label="On Hand"
           tooltip="Total physical units in warehouse"
           value={stats.quantities.onHand.toLocaleString()}
-          secondary={
-            stats.salesVelocity.weekOverWeekChange !== 0
-              ? `${stats.salesVelocity.weekOverWeekChange > 0 ? "+" : ""}${stats.salesVelocity.weekOverWeekChange} vs 7d`
-              : undefined
-          }
           variant="success"
           active={activeKPI === "onhand"}
           onClick={() => handleKPIClick("onhand")}
@@ -258,11 +259,6 @@ export const InventorySection = ({
           label="Reserved"
           tooltip="Units allocated to pending orders"
           value={stats.quantities.reserved.toLocaleString()}
-          secondary={
-            stats.salesVelocity.pendingOrders > 0
-              ? `${stats.salesVelocity.pendingOrders} orders`
-              : undefined
-          }
           variant={stats.quantities.reserved > 0 ? "info" : "default"}
           badge={
             stats.quantities.reserved > 0 ? (

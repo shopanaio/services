@@ -31,17 +31,12 @@ interface SkuStatusMetric {
  *     "reserved": 250,
  *     "unavailable": 10
  *   },
+ *   "availableChange7d": -45,
  *   "skuStatus": {
  *     "total": 24,
  *     "lowStock": { "count": 3, "averageDays": 12 },
  *     "outOfStock": { "count": 1, "averageDays": 3 },
  *     "backorder": { "count": 2, "averageDays": 5 }
- *   },
- *   "salesVelocity": {
- *     "pendingOrders": 15,
- *     "unitsPerDay": 12.5,
- *     "daysUntilOutOfStock": 100,
- *     "weekOverWeekChange": -45
  *   },
  *   "alertThreshold": {
  *     "method": "SAFETY_STOCK",
@@ -63,6 +58,9 @@ export interface ProductInventoryWidget {
     unavailable: number;
   };
 
+  /** Available stock change compared to 7 days ago */
+  availableChange7d: number;
+
   /** SKU/variant status breakdown */
   skuStatus: {
     /** Total number of SKUs for this product */
@@ -73,18 +71,6 @@ export interface ProductInventoryWidget {
     outOfStock: SkuStatusMetric;
     /** SKUs on backorder (with avg days until arrival) */
     backorder: SkuStatusMetric;
-  };
-
-  /** Sales velocity and stock coverage */
-  salesVelocity: {
-    /** Number of orders awaiting fulfillment */
-    pendingOrders: number;
-    /** Average units sold per day (last 30 days) */
-    unitsPerDay: number;
-    /** Estimated days until out of stock at current rate */
-    daysUntilOutOfStock: number | null;
-    /** Stock level change compared to 7 days ago */
-    weekOverWeekChange: number;
   };
 
   /** Low stock alert configuration */
