@@ -53,7 +53,7 @@ export enum ThresholdType {
  * }
  * ```
  */
-export interface ProductInventoryStatsResponse {
+export interface ProductInventoryWidget {
   /** Quantity metrics (in units) */
   quantity: {
     /** Units available for sale (onHand - reserved - unavailable) */
@@ -142,13 +142,13 @@ export interface InventoryStats {
  * Transforms API response to component props format
  */
 export function mapInventoryResponseToStats(
-  response: ProductInventoryStatsResponse
+  response: ProductInventoryWidget
 ): InventoryStats {
   return {
     availableQty: response.quantity.available,
     onHandQty: response.quantity.onHand,
     reservedQty: response.reserved.quantity,
-    totalSKUs: response.skuCounts.total,
+    totalSKUs: response.totalSKU,
     lowStockSKUs: response.lowStock.count,
     lowStockAvgDaysUntilStockout: response.lowStock.avgDaysUntilStockout,
     outOfStockSKUs: response.outOfStock.count,
