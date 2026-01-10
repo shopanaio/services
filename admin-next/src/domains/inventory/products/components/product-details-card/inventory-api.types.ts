@@ -22,19 +22,24 @@ export enum ThresholdType {
  *     "onHand": 1500,
  *     "unavailable": 10
  *   },
- *   "reservations": {
+ *   "reserved": {
  *     "quantity": 250,
  *     "orders": 15
  *   },
  *   "skuCounts": {
- *     "total": 24,
- *     "lowStock": 3,
- *     "outOfStock": 1,
- *     "backorder": 2
+ *     "total": 24
  *   },
- *   "health": {
- *     "lowStockPercent": 12.5,
- *     "outOfStockPercent": 4.2
+ *   "lowStock": {
+ *     "count": 3,
+ *     "avgDaysUntilStockout": 12
+ *   },
+ *   "outOfStock": {
+ *     "count": 1,
+ *     "avgDaysSinceStockout": 3
+ *   },
+ *   "backorder": {
+ *     "count": 2,
+ *     "avgArrivalDays": 5
  *   },
  *   "settings": {
  *     "lowStockMethod": "SAFETY_STOCK",
@@ -55,11 +60,9 @@ export interface ProductInventoryStatsResponse {
     available: number;
     /** Total physical units in warehouse */
     onHand: number;
-    /** Unavailable (damaged, returning etc.) */
-    unavailable: number;
-    /** Reserved inventory for pending orders */
   };
 
+  /** Reserved inventory for pending orders */
   reserved: {
     /** Units allocated to pending orders */
     quantity: number;
@@ -67,24 +70,31 @@ export interface ProductInventoryStatsResponse {
     orders: number;
   };
 
-  /** SKU counts by stock status */
-  skuCounts: {
-    /** Total number of SKUs for this product */
-    total: number;
-    /** SKUs below threshold (safety stock or reorder point) */
-    lowStock: number;
-    /** SKUs with zero available units */
-    outOfStock: number;
-    /** SKUs with incoming stock expected */
-    backorder: number;
+  /** Total SKU count */
+  totalSKU: number;
+
+  /** Low stock SKUs (below threshold) */
+  lowStock: {
+    /** Number of SKUs below threshold */
+    count: number;
+    /** Average days until these SKUs run out (null if no low stock) */
+    avgDaysUntilStockout: number | null;
   };
 
-  /** Inventory health indicators */
-  health: {
-    /** Percentage of SKUs that are low stock */
-    lowStockPercent: number;
-    /** Percentage of SKUs that are out of stock */
-    outOfStockPercent: number;
+  /** Out of stock SKUs (zero available) */
+  outOfStock: {
+    /** Number of SKUs with zero available units */
+    count: number;
+    /** Average days since stockout occurred (null if none out of stock) */
+    avgDaysSinceStockout: number | null;
+  };
+
+  /** Backorder SKUs (incoming stock expected) */
+  backorder: {
+    /** Number of SKUs with incoming stock */
+    count: number;
+    /** Average days until backorder arrives (null if no backorders) */
+    avgArrivalDays: number | null;
   };
 
   /** Inventory tracking settings */
@@ -115,10 +125,11 @@ export interface InventoryStats {
   reservedQty: number;
   totalSKUs: number;
   lowStockSKUs: number;
-  lowStockPercent: number;
+  lowStockAvgDaysUntilStockout: number | null;
   outOfStockSKUs: number;
-  outOfStockPercent: number;
+  outOfStockAvgDaysSince: number | null;
   backorderSKUs: number;
+  backorderAvgArrivalDays: number | null;
   pendingOrders: number;
   velocityPerDay: number;
   daysOfStock: number | null;
@@ -136,14 +147,15 @@ export function mapInventoryResponseToStats(
   return {
     availableQty: response.quantity.available,
     onHandQty: response.quantity.onHand,
-    reservedQty: response.reservations.quantity,
+    reservedQty: response.reserved.quantity,
     totalSKUs: response.skuCounts.total,
-    lowStockSKUs: response.skuCounts.lowStock,
-    lowStockPercent: response.health.lowStockPercent,
-    outOfStockSKUs: response.skuCounts.outOfStock,
-    outOfStockPercent: response.health.outOfStockPercent,
-    backorderSKUs: response.skuCounts.backorder,
-    pendingOrders: response.reservations.orders,
+    lowStockSKUs: response.lowStock.count,
+    lowStockAvgDaysUntilStockout: response.lowStock.avgDaysUntilStockout,
+    outOfStockSKUs: response.outOfStock.count,
+    outOfStockAvgDaysSince: response.outOfStock.avgDaysSinceStockout,
+    backorderSKUs: response.backorder.count,
+    backorderAvgArrivalDays: response.backorder.avgArrivalDays,
+    pendingOrders: response.reserved.orders,
     velocityPerDay: response.trends.velocityPerDay,
     daysOfStock: response.trends.daysOfStock,
     stockChangeVs7d: response.trends.stockChangeVs7d,
