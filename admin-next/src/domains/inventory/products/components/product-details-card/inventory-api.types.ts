@@ -1,11 +1,19 @@
 /**
- * Type of threshold used for low stock calculation
+ * Method used to calculate low stock threshold
  */
 export enum ThresholdType {
   /** Minimum stock level to prevent stockouts */
   SAFETY_STOCK = "SAFETY_STOCK",
   /** Level at which new orders should be placed */
   REORDER_POINT = "REORDER_POINT",
+}
+
+/** Unified structure for SKU status metrics */
+interface SkuStatusMetric {
+  /** Number of SKUs in this status */
+  count: number;
+  /** Context-dependent average days (until/since out of stock, until arrival) */
+  averageDays: number | null;
 }
 
 /**
@@ -17,149 +25,73 @@ export enum ThresholdType {
  * @example
  * ```json
  * {
- *   "quantity": {
- *     "available": 1250,
+ *   "quantities": {
+ *     "availableForSale": 1250,
  *     "onHand": 1500,
+ *     "reserved": 250,
  *     "unavailable": 10
  *   },
- *   "reserved": {
- *     "quantity": 250,
- *     "orders": 15
+ *   "skuStatus": {
+ *     "total": 24,
+ *     "lowStock": { "count": 3, "averageDays": 12 },
+ *     "outOfStock": { "count": 1, "averageDays": 3 },
+ *     "backorder": { "count": 2, "averageDays": 5 }
  *   },
- *   "skuCounts": {
- *     "total": 24
+ *   "salesVelocity": {
+ *     "pendingOrders": 15,
+ *     "unitsPerDay": 12.5,
+ *     "daysUntilOutOfStock": 100,
+ *     "weekOverWeekChange": -45
  *   },
- *   "lowStock": {
- *     "count": 3,
- *     "avgDaysUntilStockout": 12
- *   },
- *   "outOfStock": {
- *     "count": 1,
- *     "avgDaysSinceStockout": 3
- *   },
- *   "backorder": {
- *     "count": 2,
- *     "avgArrivalDays": 5
- *   },
- *   "settings": {
- *     "lowStockMethod": "SAFETY_STOCK",
- *     "lowStockValue": 10
- *   },
- *   "trends": {
- *     "velocityPerDay": 12.5,
- *     "daysOfStock": 100,
- *     "stockChangeVs7d": -45
+ *   "alertThreshold": {
+ *     "method": "SAFETY_STOCK",
+ *     "minimumStock": 10
  *   }
  * }
  * ```
  */
 export interface ProductInventoryWidget {
-  /** Quantity metrics (in units) */
-  quantity: {
-    /** Units available for sale (onHand - reserved - unavailable) */
-    available: number;
+  /** Physical and logical stock quantities (in units) */
+  quantities: {
+    /** Units available for immediate sale */
+    availableForSale: number;
     /** Total physical units in warehouse */
     onHand: number;
-  };
-
-  /** Reserved inventory for pending orders */
-  reserved: {
     /** Units allocated to pending orders */
-    quantity: number;
-    /** Number of orders holding reservations */
-    orders: number;
+    reserved: number;
+    /** Units unavailable (damaged, on hold, etc.) */
+    unavailable: number;
   };
 
-  /** Total SKU count */
-  totalSKU: number;
-
-  /** Low stock SKUs (below threshold) */
-  lowStock: {
-    /** Number of SKUs below threshold */
-    count: number;
-    /** Average days until these SKUs run out (null if no low stock) */
-    avgDaysUntilStockout: number | null;
+  /** SKU/variant status breakdown */
+  skuStatus: {
+    /** Total number of SKUs for this product */
+    total: number;
+    /** SKUs below threshold (with avg days until out of stock) */
+    lowStock: SkuStatusMetric;
+    /** SKUs with zero available (with avg days since out of stock) */
+    outOfStock: SkuStatusMetric;
+    /** SKUs on backorder (with avg days until arrival) */
+    backorder: SkuStatusMetric;
   };
 
-  /** Out of stock SKUs (zero available) */
-  outOfStock: {
-    /** Number of SKUs with zero available units */
-    count: number;
-    /** Average days since stockout occurred (null if none out of stock) */
-    avgDaysSinceStockout: number | null;
-  };
-
-  /** Backorder SKUs (incoming stock expected) */
-  backorder: {
-    /** Number of SKUs with incoming stock */
-    count: number;
-    /** Average days until backorder arrives (null if no backorders) */
-    avgArrivalDays: number | null;
-  };
-
-  /** Inventory tracking settings */
-  settings: {
-    /** Method used to calculate low stock threshold */
-    lowStockMethod: ThresholdType;
-    /** Threshold value in units (when below this, SKU is "low stock") */
-    lowStockValue: number;
-  };
-
-  /** Trend and velocity metrics */
-  trends: {
+  /** Sales velocity and stock coverage */
+  salesVelocity: {
+    /** Number of orders awaiting fulfillment */
+    pendingOrders: number;
     /** Average units sold per day (last 30 days) */
-    velocityPerDay: number;
-    /** Estimated days until stockout at current velocity */
-    daysOfStock: number | null;
-    /** Stock level change vs 7 days ago (+/-) */
-    stockChangeVs7d: number;
+    unitsPerDay: number;
+    /** Estimated days until out of stock at current rate */
+    daysUntilOutOfStock: number | null;
+    /** Stock level change compared to 7 days ago */
+    weekOverWeekChange: number;
   };
-}
 
-/**
- * Flat inventory stats interface used by components
- */
-export interface InventoryStats {
-  availableQty: number;
-  onHandQty: number;
-  reservedQty: number;
-  totalSKUs: number;
-  lowStockSKUs: number;
-  lowStockAvgDaysUntilStockout: number | null;
-  outOfStockSKUs: number;
-  outOfStockAvgDaysSince: number | null;
-  backorderSKUs: number;
-  backorderAvgArrivalDays: number | null;
-  pendingOrders: number;
-  velocityPerDay: number;
-  daysOfStock: number | null;
-  stockChangeVs7d: number;
-  lowStockMethod: ThresholdType;
-  lowStockValue: number;
-}
-
-/**
- * Transforms API response to component props format
- */
-export function mapInventoryResponseToStats(
-  response: ProductInventoryWidget
-): InventoryStats {
-  return {
-    availableQty: response.quantity.available,
-    onHandQty: response.quantity.onHand,
-    reservedQty: response.reserved.quantity,
-    totalSKUs: response.totalSKU,
-    lowStockSKUs: response.lowStock.count,
-    lowStockAvgDaysUntilStockout: response.lowStock.avgDaysUntilStockout,
-    outOfStockSKUs: response.outOfStock.count,
-    outOfStockAvgDaysSince: response.outOfStock.avgDaysSinceStockout,
-    backorderSKUs: response.backorder.count,
-    backorderAvgArrivalDays: response.backorder.avgArrivalDays,
-    pendingOrders: response.reserved.orders,
-    velocityPerDay: response.trends.velocityPerDay,
-    daysOfStock: response.trends.daysOfStock,
-    stockChangeVs7d: response.trends.stockChangeVs7d,
-    lowStockMethod: response.settings.lowStockMethod,
-    lowStockValue: response.settings.lowStockValue,
+  /** Low stock alert configuration */
+  alertThreshold: {
+    /** Method used to calculate threshold */
+    method: ThresholdType;
+    /** Threshold value in units */
+    minimumStock: number;
   };
 }
