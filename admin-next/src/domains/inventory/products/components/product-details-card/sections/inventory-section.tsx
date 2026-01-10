@@ -19,7 +19,8 @@ import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { Tile } from "../../tile";
 import { useInventoryStyles } from "../product-details-card.styles";
 import { useEditVariantsModal } from "../../../modals";
-import type { IInventoryStats } from "../types";
+import type { ProductInventoryWidget } from "../inventory-widget.types";
+import { ThresholdType } from "../inventory-widget.types";
 import type { IProduct } from "@/mocks/products/types";
 
 
@@ -126,7 +127,7 @@ type InventoryState = "loading" | "no_data" | "ready";
 interface IInventorySectionProps {
   onEdit?: () => void;
   product?: IProduct;
-  stats: IInventoryStats;
+  stats: ProductInventoryWidget;
 }
 
 export const InventorySection = ({
@@ -229,8 +230,8 @@ export const InventorySection = ({
         <Tile
           label="Available"
           tooltip="Units available for sale (On Hand minus Reserved)"
-          value={stats.availableQty.toLocaleString()}
-          secondary={`across ${stats.totalSKUs} SKUs`}
+          value={stats.quantities.availableForSale.toLocaleString()}
+          secondary={`across ${stats.skuStatus.total} SKUs`}
           isPrimary
           badge={
             <Tag color="success" className={styles.inventoryTag}>
@@ -243,10 +244,10 @@ export const InventorySection = ({
         <Tile
           label="On Hand"
           tooltip="Total physical units in warehouse"
-          value={stats.onHandQty.toLocaleString()}
+          value={stats.quantities.onHand.toLocaleString()}
           secondary={
-            stats.changeVs7d !== 0
-              ? `${stats.changeVs7d > 0 ? "+" : ""}${stats.changeVs7d} vs 7d`
+            stats.salesVelocity.weekOverWeekChange !== 0
+              ? `${stats.salesVelocity.weekOverWeekChange > 0 ? "+" : ""}${stats.salesVelocity.weekOverWeekChange} vs 7d`
               : undefined
           }
           variant="success"
@@ -256,15 +257,15 @@ export const InventorySection = ({
         <Tile
           label="Reserved"
           tooltip="Units allocated to pending orders"
-          value={stats.reservedQty.toLocaleString()}
+          value={stats.quantities.reserved.toLocaleString()}
           secondary={
-            stats.pendingOrders > 0
-              ? `${stats.pendingOrders} orders`
+            stats.salesVelocity.pendingOrders > 0
+              ? `${stats.salesVelocity.pendingOrders} orders`
               : undefined
           }
-          variant={stats.reservedQty > 0 ? "info" : "default"}
+          variant={stats.quantities.reserved > 0 ? "info" : "default"}
           badge={
-            stats.reservedQty > 0 ? (
+            stats.quantities.reserved > 0 ? (
               <Tag color="blue" className={styles.inventoryTag}>
                 Reserved
               </Tag>
@@ -287,15 +288,19 @@ export const InventorySection = ({
         <Tile
           label="Low Stock"
           tooltip={`SKUs below ${
-            stats.thresholdType === "safety_stock"
+            stats.alertThreshold.method === ThresholdType.SAFETY_STOCK
               ? "safety stock"
               : "reorder point"
           } threshold`}
-          value={`${stats.lowStockSKUs} SKUs`}
-          secondary={`${stats.lowStockPercent}% of catalog`}
-          variant={stats.lowStockSKUs > 0 ? "warning" : "default"}
+          value={`${stats.skuStatus.lowStock.count} SKUs`}
+          secondary={
+            stats.skuStatus.lowStock.averageDays !== null
+              ? `~${stats.skuStatus.lowStock.averageDays}d until stockout`
+              : `${Math.round((stats.skuStatus.lowStock.count / stats.skuStatus.total) * 100)}% of catalog`
+          }
+          variant={stats.skuStatus.lowStock.count > 0 ? "warning" : "default"}
           badge={
-            stats.lowStockSKUs > 0 ? (
+            stats.skuStatus.lowStock.count > 0 ? (
               <WarningOutlined
                 className={styles.colorWarning}
                 style={{ fontSize: 11 }}
@@ -308,11 +313,15 @@ export const InventorySection = ({
         <Tile
           label="Out of Stock"
           tooltip="SKUs with zero available units"
-          value={`${stats.outOfStockSKUs} SKUs`}
-          secondary={`${stats.outOfStockPercent}% of catalog`}
-          variant={stats.outOfStockSKUs > 0 ? "danger" : "default"}
+          value={`${stats.skuStatus.outOfStock.count} SKUs`}
+          secondary={
+            stats.skuStatus.outOfStock.averageDays !== null
+              ? `for ~${stats.skuStatus.outOfStock.averageDays}d`
+              : `${Math.round((stats.skuStatus.outOfStock.count / stats.skuStatus.total) * 100)}% of catalog`
+          }
+          variant={stats.skuStatus.outOfStock.count > 0 ? "danger" : "default"}
           badge={
-            stats.outOfStockSKUs > 0 ? (
+            stats.skuStatus.outOfStock.count > 0 ? (
               <StopOutlined
                 className={styles.colorError}
                 style={{ fontSize: 11 }}
@@ -322,12 +331,16 @@ export const InventorySection = ({
           active={activeKPI === "outofstock"}
           onClick={() => handleKPIClick("outofstock")}
         />
-        {stats.backorderSKUs > 0 && (
+        {stats.skuStatus.backorder.count > 0 && (
           <Tile
             label="Backorder"
             tooltip="SKUs with incoming stock expected"
-            value={`${stats.backorderSKUs} SKUs`}
-            secondary="ETA avg 5d"
+            value={`${stats.skuStatus.backorder.count} SKUs`}
+            secondary={
+              stats.skuStatus.backorder.averageDays !== null
+                ? `ETA avg ${stats.skuStatus.backorder.averageDays}d`
+                : undefined
+            }
             variant="purple"
             badge={
               <ClockCircleFilled

@@ -4,45 +4,9 @@ import type { ITag } from "../../modals";
 import type { IOptionGroup } from "../../modals/edit-options-modal/edit-options-modal.schema";
 import type { IComponentGroup } from "../../modals/edit-components-modal/types";
 import type { IAttributeRow } from "../../modals/edit-attributes-modal/types";
+import type { ProductInventoryWidget } from "./inventory-widget.types";
 
-// ============================================================================
-// Inventory Types
-// ============================================================================
-
-export type SyncStatus = "synced" | "stale" | "error" | "syncing";
-
-export interface IWarehouseStock {
-  warehouseId: string;
-  warehouseName: string;
-  warehouseCode: string;
-  isDefault: boolean;
-  onHandQty: number;
-  reservedQty: number;
-  availableQty: number;
-  totalSKUs: number;
-  lowStockSKUs: number;
-  outOfStockSKUs: number;
-  backorderSKUs: number;
-  lastSyncAt: Date;
-  syncStatus: SyncStatus;
-}
-
-export interface IInventoryStats {
-  availableQty: number;
-  onHandQty: number;
-  reservedQty: number;
-  totalSKUs: number;
-  lowStockSKUs: number;
-  lowStockPercent: number;
-  outOfStockSKUs: number;
-  outOfStockPercent: number;
-  backorderSKUs: number;
-  pendingOrders: number;
-  lastSyncAt: Date;
-  syncStatus: SyncStatus;
-  changeVs7d: number;
-  thresholdType: "safety_stock" | "reorder_point";
-}
+export type { ProductInventoryWidget, ThresholdType } from "./inventory-widget.types";
 
 // ============================================================================
 // Review Types
@@ -115,6 +79,6 @@ export interface IProductDetailsMockData {
   attributes: IAttributeRow[];
   options: IOptionGroup[];
   components: IComponentGroup[];
-  inventory: IInventoryStats;
+  inventory: ProductInventoryWidget;
   getComponentItemImage: (productId: string, variantId?: string | null) => string | null;
 }

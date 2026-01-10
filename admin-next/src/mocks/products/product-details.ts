@@ -2,26 +2,35 @@ import { mockCategories, mockTags } from "./data";
 import { MOCK_OPTION_GROUPS } from "./options";
 import { mockGroups, getProductById, getVariantById } from "./components";
 import { createMockData as createAttributesMockData } from "./attributes";
-import type {
-  IProductDetailsMockData,
-  IInventoryStats,
-} from "@/domains/inventory/products/components/product-details-card/types";
+import type { IProductDetailsMockData } from "@/domains/inventory/products/components/product-details-card/types";
+import {
+  type ProductInventoryWidget,
+  ThresholdType,
+} from "@/domains/inventory/products/components/product-details-card/inventory-widget.types";
 
-const getMockInventoryStats = (): IInventoryStats => ({
-  availableQty: 967,
-  onHandQty: 1032,
-  reservedQty: 65,
-  totalSKUs: 45,
-  lowStockSKUs: 8,
-  lowStockPercent: 18,
-  outOfStockSKUs: 4,
-  outOfStockPercent: 9,
-  backorderSKUs: 2,
-  pendingOrders: 13,
-  lastSyncAt: new Date(),
-  syncStatus: "synced",
-  changeVs7d: -12,
-  thresholdType: "safety_stock",
+const getMockInventoryWidget = (): ProductInventoryWidget => ({
+  quantities: {
+    availableForSale: 1250,
+    onHand: 1500,
+    reserved: 250,
+    unavailable: 10,
+  },
+  skuStatus: {
+    total: 24,
+    lowStock: { count: 3, averageDays: 12 },
+    outOfStock: { count: 1, averageDays: 3 },
+    backorder: { count: 2, averageDays: 5 },
+  },
+  salesVelocity: {
+    pendingOrders: 15,
+    unitsPerDay: 12.5,
+    daysUntilOutOfStock: 100,
+    weekOverWeekChange: -45,
+  },
+  alertThreshold: {
+    method: ThresholdType.SAFETY_STOCK,
+    minimumStock: 10,
+  },
 });
 
 const defaultReviewsData = {
@@ -58,6 +67,6 @@ export const productDetailsMockData: IProductDetailsMockData = {
   attributes: createAttributesMockData(),
   options: MOCK_OPTION_GROUPS,
   components: mockGroups,
-  inventory: getMockInventoryStats(),
+  inventory: getMockInventoryWidget(),
   getComponentItemImage,
 };

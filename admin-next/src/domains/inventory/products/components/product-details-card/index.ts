@@ -1,8 +1,7 @@
 export { ProductDetailsCard } from "./product-details-card";
 export type {
-  IWarehouseStock,
-  IInventoryStats,
-  SyncStatus,
+  ProductInventoryWidget,
+  ThresholdType,
   IReviewBreakdown,
   IReviewsData,
   ISectionProps,
