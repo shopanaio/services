@@ -9,7 +9,7 @@ const useStyles = createStyles(({ token }) => ({
     padding: `${token.padding}px ${token.paddingLG}px`,
     justifyContent: 'space-between',
     alignItems: 'center',
-    background: token.bgGradient,
+    background: token.colorBgLayout,
   },
   title: {
     paddingRight: token.paddingSM,

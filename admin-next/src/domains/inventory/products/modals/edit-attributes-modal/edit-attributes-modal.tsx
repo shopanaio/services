@@ -25,11 +25,13 @@ import { useStyles } from "./edit-attributes-modal.styles";
 import type { IAttributeRow } from "./types";
 import { createMockData } from "@/mocks/products/attributes";
 import { NameCellRenderer, ActionsCellRenderer } from "./components";
+import { useAgGridTheme } from "@/hooks";
 
 ModuleRegistry.registerModules([AllCommunityModule, RowDragModule]);
 
 export const EditAttributesModal = () => {
   const { styles } = useStyles();
+  const agGridTheme = useAgGridTheme();
   const { pop, setDirty } = useModalStackContext();
   const gridRef = useRef<AgGridReact<IAttributeRow>>(null);
 
@@ -494,6 +496,7 @@ export const EditAttributesModal = () => {
         <div className={`${styles.gridWrapper} ag-theme-quartz`}>
           <AgGridReact<IAttributeRow>
             ref={gridRef}
+            theme={agGridTheme}
             rowData={visibleRows}
             columnDefs={columnDefs}
             defaultColDef={defaultColDef}

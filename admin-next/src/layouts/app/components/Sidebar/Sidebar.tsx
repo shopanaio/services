@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { ConfigProvider, Layout, Menu, MenuProps, Typography } from "antd";
 import { StoreMenu } from "@/layouts/app/components/store-menu/store-menu";
 import { SidebarLogo } from "@/layouts/app/components/sidebar/sidebar-logo";
+import { ThemeToggle } from "@/layouts/app/components/sidebar/theme-toggle";
 import { createStyles } from "antd-style";
 import { useSidebarItems, type SidebarItem } from "@/registry";
 import { SubitemIcon } from "@/ui-kit/arrows/arrows";
@@ -111,6 +112,8 @@ const useStyles = createStyles(
       top: 0;
       bottom: 0;
       background: transparent;
+      display: flex;
+      flex-direction: column;
 
       /* Hide scrollbar */
       scrollbar-width: none;
@@ -120,6 +123,9 @@ const useStyles = createStyles(
       }
     `,
     content: css`
+      flex: 1;
+      display: flex;
+      flex-direction: column;
       transition: transform 0.2s ease;
       transform: ${collapsed
         ? `translateX(${token.paddingXXS}px)`
@@ -129,6 +135,7 @@ const useStyles = createStyles(
       border: none;
       transition: width 0.2s ease;
       background: transparent;
+      flex: 1;
       width: ${collapsed
         ? `calc(100% - ${token.paddingXS}px)`
         : `calc(100% - ${token.padding}px)`};
@@ -222,6 +229,7 @@ export const Sidebar = () => {
               onClick={onClick}
             />
           </ConfigProvider>
+          <ThemeToggle isCollapsed={collapsed} />
         </div>
       </Layout.Sider>
     </>

@@ -18,7 +18,7 @@ import type { CustomCellRendererProps } from "ag-grid-react";
 import { DataLayout } from "@/layouts/data";
 import { useFilters, FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
-import { useGridState, useGridSort } from "@/hooks";
+import { useGridState, useGridSort, useAgGridTheme } from "@/hooks";
 import { filterSchema } from "./filter-schema";
 import { useProducts } from "../hooks";
 import type { IProductListItem } from "@/mocks/products/products-list";
@@ -75,6 +75,7 @@ const InventoryCellRenderer = (
 };
 
 export default function ProductsPage() {
+  const agGridTheme = useAgGridTheme();
   const gridRef = useRef<AgGridReact<IProductListItem>>(null);
   const [searchValue, setSearchValue] = useState("");
   const [selectedCount, setSelectedCount] = useState(0);
@@ -219,6 +220,7 @@ export default function ProductsPage() {
         <div style={{ flex: 1 }}>
           <AgGridReact<IProductListItem>
             ref={gridRef}
+            theme={agGridTheme}
             rowData={products}
             columnDefs={columnDefs}
             defaultColDef={defaultColDef}

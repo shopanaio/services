@@ -17,6 +17,7 @@ import { Badge, Typography, Flex, Spin } from "antd";
 
 const useStyles = createStyles(({ token }) => ({
   layout: {
+    backgroundColor: token.colorBgContainer,
     display: "flex",
     flexDirection: "column",
     height: "100%",
@@ -38,7 +39,6 @@ const useStyles = createStyles(({ token }) => ({
     position: "sticky",
     top: -4,
     zIndex: 100,
-    background: token.bgGradient,
     margin: `0 -${token.paddingLG}px`,
     padding: `0 ${token.paddingLG}px ${token.paddingSM}px`,
   },
@@ -75,7 +75,7 @@ const useStyles = createStyles(({ token }) => ({
     position: "sticky",
     bottom: 0,
     zIndex: 100,
-    background: token.bgGradient,
+    background: token.colorBgContainer,
     margin: `0 -${token.paddingLG}px`,
     padding: `${token.paddingSM}px ${token.paddingLG}px ${token.padding}px`,
   },

@@ -65,7 +65,7 @@ const useStyles = createStyles(({ token }) => ({
   },
   radioOptionSelected: {
     borderColor: token.colorPrimary,
-    backgroundColor: "rgba(22, 119, 255, 0.04)",
+    backgroundColor: token.colorPrimaryBg,
   },
   radioLabel: {
     fontWeight: 500,

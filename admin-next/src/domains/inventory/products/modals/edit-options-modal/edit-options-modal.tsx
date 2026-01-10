@@ -168,7 +168,7 @@ export const EditOptionsModal = ({ initialGroups = MOCK_OPTION_GROUPS }: EditOpt
                   className={styles.optionGroupHeader}
                   style={{
                     width: 150,
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                    boxShadow: "var(--ant-box-shadow-secondary)",
                     cursor: "grabbing",
                   }}
                 >

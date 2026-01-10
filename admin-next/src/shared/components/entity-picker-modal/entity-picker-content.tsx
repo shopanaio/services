@@ -12,6 +12,7 @@ import { createStyles } from "antd-style";
 import { useFilters, FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
 import type { IEntityPickerContentProps, IPickableEntity } from "./types";
+import { useAgGridTheme } from "@/hooks";
 
 ModuleRegistry.registerModules([AllCommunityModule, RowSelectionModule]);
 
@@ -47,6 +48,7 @@ export function EntityPickerContent<T extends IPickableEntity>({
   onSelectionChange,
 }: IEntityPickerContentProps<T>) {
   const { styles } = useStyles();
+  const agGridTheme = useAgGridTheme();
   const gridRef = useRef<AgGridReact<T>>(null);
   const [searchValue, setSearchValue] = useState("");
   const [pageSize, setPageSize] = useState(20);
@@ -126,6 +128,7 @@ export function EntityPickerContent<T extends IPickableEntity>({
       <div className={styles.gridContainer}>
         <AgGridReact<T>
           ref={gridRef}
+          theme={agGridTheme}
           rowData={filteredData}
           columnDefs={config.columns}
           getRowId={(params) => config.getRowId(params.data)}

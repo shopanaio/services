@@ -93,7 +93,7 @@ export const useInventoryStyles = createStyles(({ token }) => ({
   colorWarning: { color: token.colorWarning },
   colorError: { color: token.colorError },
   colorInfo: { color: token.colorInfo },
-  colorPurple: { color: "#722ed1" },
+  colorPurple: { color: token.purple },
 }));
 
 // ============================================================================
@@ -208,7 +208,7 @@ export const useReviewsStyles = createStyles(({ token }) => ({
   },
   reviewStarIcon: {
     fontSize: 12,
-    color: "#fadb14",
+    color: token.yellow,
   },
   reviewProgress: {
     flex: 1,

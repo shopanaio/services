@@ -12,7 +12,7 @@ export const useStyles = createStyles(({ token }) => ({
     opacity: 0.4,
   },
   dragOverlay: {
-    boxShadow: "0 8px 24px rgba(0, 0, 0, 0.15)",
+    boxShadow: token.boxShadowSecondary,
     borderRadius: 8,
     transform: "scale(1.02)",
     cursor: "grabbing",
@@ -160,13 +160,14 @@ export const useStyles = createStyles(({ token }) => ({
     position: "absolute" as const,
     top: 8,
     right: 8,
-    background: "rgba(0,0,0,0.5)",
+    background: token.colorBgMask,
     border: "none",
     borderRadius: 4,
-    color: "#fff",
+    color: token.colorTextLightSolid,
     "&:hover": {
-      background: "rgba(0,0,0,0.7)",
-      color: "#fff",
+      background: token.colorBgMask,
+      opacity: 0.9,
+      color: token.colorTextLightSolid,
     },
   },
 }));

@@ -85,14 +85,14 @@ export const PriceChart = ({
         borderColor: "transparent",
         padding: [8, 12],
         textStyle: {
-          color: "#fff",
+          color: theme.colorTextLightSolid,
           fontSize: 12,
         },
         formatter: (params: { dataIndex: number; value: number }[]) => {
           const point = params[0];
           const item = chartData[point.dataIndex];
           return `<div style="font-weight:600">${formatPrice(point.value)}</div>
-                  <div style="color:rgba(255,255,255,0.7);font-size:10px">${formatShortDate(item.date)}</div>`;
+                  <div style="opacity:0.7;font-size:10px">${formatShortDate(item.date)}</div>`;
         },
         axisPointer: {
           type: "line",
@@ -113,7 +113,7 @@ export const PriceChart = ({
             return params.dataIndex === currentIndex ? 10 : 6;
           },
           itemStyle: {
-            color: "#fff",
+            color: theme.colorBgContainer,
             borderColor: theme.colorPrimary,
             borderWidth: 2,
           },
@@ -130,7 +130,7 @@ export const PriceChart = ({
             width: 2,
           },
           areaStyle: {
-            color: "rgba(22, 119, 255, 0.08)",
+            color: theme.colorPrimaryBg,
           },
           markPoint:
             currentIndex >= 0
@@ -142,7 +142,7 @@ export const PriceChart = ({
                       symbolSize: 10,
                       itemStyle: {
                         color: theme.colorPrimary,
-                        borderColor: "#fff",
+                        borderColor: theme.colorBgContainer,
                         borderWidth: 2,
                       },
                     },

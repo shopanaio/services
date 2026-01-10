@@ -15,7 +15,7 @@ const useStyles = createStyles(({ css, token }, { hasRightColumn }: { hasRightCo
     padding-right: ${token.paddingLG}px;
   `,
   navigationWrapper: css`
-    background: ${token.bgGradient};
+    background: ${token.colorBgContainer};
     bottom: 0;
     margin: 0 -${token.paddingLG}px;
     overflow: hidden;
@@ -29,7 +29,7 @@ const useStyles = createStyles(({ css, token }, { hasRightColumn }: { hasRightCo
     gap: ${token.padding}px;
     grid-template-columns: 1fr ${hasRightColumn ? '356px' : ''};
     padding: 0 ${token.paddingLG}px ${token.paddingLG}px;
-    background: ${token.bgGradient};
+    background: ${token.colorBgContainer};
   `,
 }));
 

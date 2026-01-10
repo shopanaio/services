@@ -21,6 +21,7 @@ import {
 } from "./utils/generate-variants";
 import type { ICreateProductFormValues } from "./types";
 import type { IOptionInput, IOptionValueInput, IGeneratedVariant } from "./utils/generate-variants";
+import { useAgGridTheme } from "@/hooks";
 
 const useStyles = createStyles(({ token }) => ({
   switchRow: {
@@ -193,6 +194,7 @@ const OptionCard = ({
 
 export const VariantsSection = () => {
   const { styles } = useStyles();
+  const agGridTheme = useAgGridTheme();
   const { watch, setValue, getValues, formState: { errors } } =
     useFormContext<ICreateProductFormValues>();
   const gridRef = useRef<AgGridReact>(null);
@@ -421,6 +423,7 @@ export const VariantsSection = () => {
               <div className={styles.gridContainer}>
                 <AgGridReact
                   ref={gridRef}
+                  theme={agGridTheme}
                   rowData={variants}
                   columnDefs={columnDefs}
                   rowSelection={rowSelection}

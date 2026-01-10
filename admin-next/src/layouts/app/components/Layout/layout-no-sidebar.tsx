@@ -1,15 +1,12 @@
 "use client";
 
-import { Layout } from 'antd';
-import { createStyles } from 'antd-style';
-import { ReactNode } from 'react';
+import { Layout } from "antd";
+import { createStyles } from "antd-style";
+import { ReactNode } from "react";
 
-const useStyles = createStyles(({ token }) => ({
+const useStyles = createStyles(() => ({
   layout: {
-    minHeight: '100vh',
-  },
-  inner: {
-    background: token.bgGradient,
+    minHeight: "100vh",
   },
 }));
 
@@ -22,7 +19,7 @@ export const AppLayoutNoSidebar = ({ children }: AppLayoutNoSidebarProps) => {
 
   return (
     <Layout data-testid="project-layout-no-sidebar" className={styles.layout}>
-      <Layout className={styles.inner}>{children}</Layout>
+      <Layout>{children}</Layout>
     </Layout>
   );
 };

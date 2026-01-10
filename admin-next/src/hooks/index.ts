@@ -7,3 +7,5 @@ export type {
   UseGridSortReturn,
   SortModel,
 } from "./use-grid-sort";
+
+export { useAgGridTheme } from "@/shared/hooks/use-ag-grid-theme";

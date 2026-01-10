@@ -10,6 +10,7 @@ import {
   CellValueChangedEvent,
   GetRowIdParams,
 } from "ag-grid-community";
+import { useAgGridTheme } from "@/hooks";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -88,6 +89,7 @@ export function VariantsTable<T extends IVariantRowBase>({
   showOptions = false,
 }: IVariantsTableProps<T>) {
   const { styles } = useStyles();
+  const agGridTheme = useAgGridTheme();
   const gridRef = useRef<AgGridReact<T>>(null);
 
   // Build column definitions
@@ -143,6 +145,7 @@ export function VariantsTable<T extends IVariantRowBase>({
     <div className={styles.gridWrapper}>
       <AgGridReact<T>
         ref={gridRef}
+        theme={agGridTheme}
         rowData={rowData}
         columnDefs={columnDefs}
         defaultColDef={defaultColDef}

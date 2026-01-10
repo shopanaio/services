@@ -33,6 +33,7 @@ import {
   getVariantById,
   calculateFinalPrice,
 } from "@/mocks/products/components";
+import { useAgGridTheme } from "@/hooks";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -455,6 +456,7 @@ export const ComponentsTable = ({
   pricingTemplates,
 }: IComponentsTableProps) => {
   const { styles } = useStyles();
+  const agGridTheme = useAgGridTheme();
   const gridRef = useRef<AgGridReact<ITableRow>>(null);
 
   // Refs for drag handling
@@ -880,6 +882,7 @@ export const ComponentsTable = ({
       <div className={styles.gridWrapper}>
         <AgGridReact<ITableRow>
           ref={gridRef}
+          theme={agGridTheme}
           rowData={visibleRows}
           columnDefs={columnDefs}
           defaultColDef={defaultColDef}

@@ -6,7 +6,7 @@ export const useStyles = createStyles(({ css, token }) => ({
     align-items: center;
     background-color: ${token.colorBgContainer};
     border-radius: ${token.borderRadius}px;
-    box-shadow: ${token.shadowBorder};
+    box-shadow: ${token.boxShadowTertiary};
     box-sizing: border-box;
     display: flex;
     flex-wrap: wrap;
@@ -162,7 +162,7 @@ export const useStyles = createStyles(({ css, token }) => ({
 }));
 
 export const cardBodyStyle: React.CSSProperties = {
-  boxShadow: 'var(--ant-box-shadow-menu)',
+  boxShadow: 'var(--ant-box-shadow-secondary)',
   borderRadius: 'var(--ant-border-radius)',
   padding: 16,
   maxHeight: 'max(calc(100vh - 300px), 400px)',

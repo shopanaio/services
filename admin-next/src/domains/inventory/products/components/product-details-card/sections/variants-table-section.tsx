@@ -23,22 +23,22 @@ const stockStatusConfig: Record<
 > = {
   IN_STOCK: {
     icon: "\u25cf",
-    color: "#52c41a",
+    color: "var(--ant-color-success)",
     label: "In Stock",
   },
   LOW_STOCK: {
     icon: "\u25cb",
-    color: "#faad14",
+    color: "var(--ant-color-warning)",
     label: "Low Stock",
   },
   OUT_OF_STOCK: {
     icon: "\u2715",
-    color: "#ff4d4f",
+    color: "var(--ant-color-error)",
     label: "Out of Stock",
   },
   ON_BACKORDER: {
     icon: "\u25d0",
-    color: "#722ed1",
+    color: "var(--ant-purple)",
     label: "Backorder",
   },
 };

@@ -4,7 +4,7 @@ const useTopBorderStyles = createStyles(({ token }) => ({
   outer: {
     position: 'sticky',
     top: 64,
-    background: token.bgGradient,
+    background: token.colorBgLayout,
     zIndex: 100,
     padding: 0,
     marginLeft: 0,
@@ -36,7 +36,7 @@ const useBottomBorderStyles = createStyles(({ css, token }, { bottom }: { bottom
   outer: css`
     position: sticky;
     bottom: ${bottom}px;
-    background: ${token.bgGradient};
+    background: ${token.colorBgLayout};
     z-index: 100;
     padding: 0 0 ${token.paddingXS}px;
     margin-left: 0;

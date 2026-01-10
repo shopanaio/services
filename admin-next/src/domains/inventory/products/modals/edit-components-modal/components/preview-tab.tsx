@@ -116,12 +116,12 @@ const useStyles = createStyles(({ token }) => ({
     transition: "all 0.2s",
     "&:hover": {
       borderColor: token.colorPrimary,
-      backgroundColor: "rgba(22, 119, 255, 0.02)",
+      backgroundColor: token.colorPrimaryBgHover,
     },
   },
   itemCardSelected: {
     borderColor: token.colorPrimary,
-    backgroundColor: "rgba(22, 119, 255, 0.04)",
+    backgroundColor: token.colorPrimaryBg,
   },
   itemCardDisabled: {
     opacity: 0.5,

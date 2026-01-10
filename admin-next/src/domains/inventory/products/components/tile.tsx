@@ -78,7 +78,7 @@ const useStyles = createStyles(({ token }) => ({
   },
   tilePrimary: {
     flex: 1.5,
-    borderLeft: "2px solid #13c2c2", // cyan
+    borderLeft: `2px solid ${token.cyan}`,
   },
   tileCentered: {
     textAlign: "center",
@@ -101,7 +101,7 @@ const useStyles = createStyles(({ token }) => ({
     borderLeft: `2px solid ${token.colorInfo}`,
   },
   variantPurple: {
-    borderLeft: "2px solid #722ed1",
+    borderLeft: `2px solid ${token.purple}`,
   },
   // Label
   label: {
@@ -146,11 +146,11 @@ const useStyles = createStyles(({ token }) => ({
     whiteSpace: "nowrap",
   },
   trendPositive: {
-    background: "rgba(82, 196, 26, 0.1)",
+    background: token.colorSuccessBg,
     color: token.colorSuccess,
   },
   trendNegative: {
-    background: "rgba(255, 77, 79, 0.1)",
+    background: token.colorErrorBg,
     color: token.colorError,
   },
   trendNeutral: {

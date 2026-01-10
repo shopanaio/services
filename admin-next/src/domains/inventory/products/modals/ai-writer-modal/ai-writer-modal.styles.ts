@@ -97,7 +97,7 @@ export const useStyles = createStyles(({ token }) => ({
     gap: 8,
   },
   headerIcon: {
-    color: "#a855f7",
+    color: token.purple,
     fontSize: 18,
   },
   selectRow: {

@@ -8,7 +8,7 @@ import { ReactNode } from "react";
 const useStyles = createStyles(({ token }) => ({
   layout: {
     minHeight: "100vh",
-    background: token.bgGradient,
+    background: token.colorBgContainer,
     "& .ant-layout-sider-trigger": {
       display: "none",
     },
@@ -24,10 +24,10 @@ interface AppLayoutProps {
 }
 
 export const AppLayout = ({ children }: AppLayoutProps) => {
-  const { styles } = useStyles();
+  const { styles, cx } = useStyles();
 
   return (
-    <Layout className={styles.layout} hasSider>
+    <Layout className={cx(styles.layout)} hasSider>
       <Sidebar />
       <Layout>{children}</Layout>
     </Layout>

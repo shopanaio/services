@@ -15,6 +15,7 @@ import {
   useCellSelectionContext,
 } from "@/shared/components/ag-grid-cell-selection";
 import type { IEditorGridProps, IEditorRowBase } from "./types";
+import { useAgGridTheme } from "@/hooks";
 
 // ============================================================================
 // Styles
@@ -230,6 +231,7 @@ function EditorGridInnerComponent<T extends IEditorRowBase>({
   onSetFieldValue,
 }: EditorGridInnerProps<T>) {
   const { styles } = useStyles();
+  const agGridTheme = useAgGridTheme();
   const { api: selectionApi } = useCellSelectionContext();
 
   // Get row ID
@@ -282,6 +284,7 @@ function EditorGridInnerComponent<T extends IEditorRowBase>({
     <div className={styles.gridWrapper}>
       <AgGridReact<T>
         ref={gridRef}
+        theme={agGridTheme}
         rowData={displayRows}
         columnDefs={columns}
         rowHeight={rowHeight}

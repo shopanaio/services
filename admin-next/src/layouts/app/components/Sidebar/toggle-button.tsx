@@ -5,13 +5,13 @@ import { createStyles } from 'antd-style';
 const useStyles = createStyles(({ token }) => ({
   trigger: {
     background: token.colorFillTertiary,
-    boxShadow: '0 2px 0 0 rgba(0, 0, 0, 0.04)',
+    boxShadow: token.boxShadowTertiary,
     position: 'absolute',
     bottom: 20,
     right: -16,
   },
   button: {
-    boxShadow: '0 2px 0 0 rgba(0, 0, 0, 0.04)',
+    boxShadow: token.boxShadowTertiary,
     position: 'absolute',
     bottom: 20,
     right: -16,

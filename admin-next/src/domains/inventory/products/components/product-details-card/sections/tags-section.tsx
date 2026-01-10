@@ -32,7 +32,7 @@ export const TagsSection = ({ tags: initialTags = [] }: ITagsSectionProps) => {
           id: entity.id,
           title: entity.title,
           slug: entity.id,
-          color: "#1677ff",
+          color: "var(--ant-color-primary)",
         } satisfies ITag;
       });
       setTags(newTags);

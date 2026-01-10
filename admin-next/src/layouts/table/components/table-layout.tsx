@@ -30,7 +30,7 @@ const useStyles = createStyles(({ token }) => ({
     paddingRight: token.paddingLG,
   },
   navigationWrapper: {
-    background: token.bgGradient,
+    background: token.colorBgLayout,
     margin: `0 -${token.padding}px`,
     overflow: 'hidden',
     padding: `${token.padding}px 15px 0`,
@@ -39,11 +39,11 @@ const useStyles = createStyles(({ token }) => ({
     zIndex: 100,
   },
   navigationSpacer: {
-    background: token.bgGradient,
+    background: token.colorBgLayout,
     height: token.paddingSM,
   },
   tableContainer: {
-    minHeight: token.containerHeight,
+    minHeight: "calc(100vh - 250px)",
   },
   tableWrapper: {
     boxSizing: 'border-box',
@@ -52,7 +52,7 @@ const useStyles = createStyles(({ token }) => ({
     borderRight: `1px solid ${token.colorBorder}`,
     borderBottom: 'none',
     width: '100%',
-    minHeight: token.tableLayoutMinHeight,
+    minHeight: "calc(100vh - 300px)",
   },
   paginationWrapper: {
     position: 'sticky',
@@ -60,7 +60,7 @@ const useStyles = createStyles(({ token }) => ({
     overflow: 'hidden',
     padding: `0 ${token.paddingLG}px ${token.padding}px`,
     margin: `0 -${token.paddingLG}px`,
-    background: token.bgGradient,
+    background: token.colorBgLayout,
     zIndex: 100,
   },
 }));

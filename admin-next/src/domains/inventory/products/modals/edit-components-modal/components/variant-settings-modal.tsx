@@ -18,6 +18,7 @@ import {
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
+import { useAgGridTheme } from "@/hooks";
 
 import type { IComponentVariantSettingsModalPayload } from "../../../modals";
 import { formatPrice } from "@/mocks/products/components";
@@ -174,7 +175,7 @@ const useStyles = createStyles(({ token }) => ({
 
 const BasePriceCellRenderer = ({ data }: ICellRendererParams<IVariantRow>) => {
   if (!data) return null;
-  return <span style={{ color: "#8c8c8c" }}>{formatPrice(data.price)}</span>;
+  return <span style={{ color: "var(--ant-color-text-secondary)" }}>{formatPrice(data.price)}</span>;
 };
 
 const FinalPriceCellRenderer = ({ data }: ICellRendererParams<IVariantRow>) => {
@@ -188,6 +189,7 @@ const FinalPriceCellRenderer = ({ data }: ICellRendererParams<IVariantRow>) => {
 
 export const VariantSettingsModal = () => {
   const { styles } = useStyles();
+  const agGridTheme = useAgGridTheme();
   const { pop, payload } = useModalStackContext();
   const gridRef = useRef<AgGridReact<IVariantRow>>(null);
 
@@ -374,7 +376,7 @@ export const VariantSettingsModal = () => {
         field: "price",
         width: 90,
         valueGetter: () => priceRuleLabel,
-        cellStyle: { color: "#8c8c8c", fontSize: 12 },
+        cellStyle: { color: "var(--ant-color-text-secondary)", fontSize: 12 },
       },
       {
         headerName: "Final Price",
@@ -497,6 +499,7 @@ export const VariantSettingsModal = () => {
             <div className={styles.gridWrapper}>
               <AgGridReact<IVariantRow>
                 ref={gridRef}
+                theme={agGridTheme}
                 rowData={rowData}
                 columnDefs={columnDefs}
                 defaultColDef={defaultColDef}

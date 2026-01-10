@@ -7,6 +7,14 @@ const useStyles = createStyles(({ token }) => ({
     background: token.colorBgLayout,
     borderRadius: 4,
   },
+  up: {
+    "--sparkline-stroke": token.colorError,
+    "--sparkline-fill": token.colorErrorBg,
+  },
+  down: {
+    "--sparkline-stroke": token.colorSuccess,
+    "--sparkline-fill": token.colorSuccessBg,
+  },
 }));
 
 interface IPriceSparklineProps {
@@ -40,20 +48,18 @@ export const PriceSparkline = ({
   });
 
   const isUp = prices[prices.length - 1] > prices[0];
-  const strokeColor = isUp ? "#ff4d4f" : "#52c41a";
-  const fillColor = isUp ? "rgba(255, 77, 79, 0.1)" : "rgba(82, 196, 26, 0.1)";
 
   const areaPath = `M ${points[0]} L ${points.join(" L ")} L ${
     padding + chartWidth
   },${padding + chartHeight} L ${padding},${padding + chartHeight} Z`;
 
   return (
-    <svg width={width} height={height} className={styles.svg}>
-      <path d={areaPath} fill={fillColor} />
+    <svg width={width} height={height} className={`${styles.svg} ${isUp ? styles.up : styles.down}`}>
+      <path d={areaPath} fill="var(--sparkline-fill)" />
       <polyline
         points={points.join(" ")}
         fill="none"
-        stroke={strokeColor}
+        stroke="var(--sparkline-stroke)"
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -62,13 +68,13 @@ export const PriceSparkline = ({
         cx={points[points.length - 1].split(",")[0]}
         cy={points[points.length - 1].split(",")[1]}
         r="3"
-        fill={strokeColor}
+        fill="var(--sparkline-stroke)"
       />
       <circle
         cx={points[0].split(",")[0]}
         cy={points[0].split(",")[1]}
         r="2"
-        fill={strokeColor}
+        fill="var(--sparkline-stroke)"
         opacity="0.5"
       />
     </svg>

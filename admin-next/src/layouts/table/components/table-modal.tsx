@@ -1,7 +1,6 @@
 import { createStyles } from 'antd-style';
-import { ButtonProps, Flex, Modal, ModalProps } from 'antd';
-import { ReactNode, CSSProperties } from 'react';
-import { ITableNavigationProps, TableNavigation } from '@/layouts/table/components/navigation/navigation';
+import { ButtonProps, Flex, Modal } from 'antd';
+import { ReactNode } from 'react';
 import { DataTable, IDataTableProps } from '@/layouts/table/components/table';
 import { ITablePaginationProps, TablePagination } from '@/layouts/table/components/pagination';
 import { TableBottomBorder, TableTopBorder } from '@/layouts/table/components/table-borders';
@@ -16,7 +15,7 @@ const useStyles = createStyles(({ token }) => ({
     position: 'sticky',
     padding: `${token.paddingSM}px 1px`,
     top: 0,
-    background: token.bgGradient,
+    background: token.colorBgLayout,
     zIndex: 100,
   },
   paper: {
@@ -83,13 +82,13 @@ export const TableModal = ({
       onCancel={onCancel}
       styles={{
         body: {
-          background: 'var(--ant-bg-gradient)',
+          background: 'var(--ant-color-bg-layout)',
         },
         footer: {
-          background: 'var(--ant-bg-gradient)',
+          background: 'var(--ant-color-bg-layout)',
         },
         header: {
-          background: 'var(--ant-bg-gradient)',
+          background: 'var(--ant-color-bg-layout)',
         },
       }}
       afterOpenChange={(isOpen) => {

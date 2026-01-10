@@ -16,7 +16,7 @@ import {
 import { DataLayout } from "@/layouts/data";
 import { useFilters, FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
-import { useGridState } from "@/hooks";
+import { useGridState, useAgGridTheme } from "@/hooks";
 import { filterSchema } from "./filter-schema";
 import { useInventory, useInventoryEditStore } from "../hooks";
 import { validateFieldChange } from "@/shared/utils/inventory";
@@ -60,6 +60,7 @@ const useStyles = createStyles(({ token }) => ({
 
 export default function InventoryPage() {
   const { styles } = useStyles();
+  const agGridTheme = useAgGridTheme();
   const gridRef = useRef<AgGridReact<IInventoryListItem>>(null);
   const [searchValue, setSearchValue] = useState("");
   const { widgetProps } = useFilters({ schema: filterSchema });
@@ -250,6 +251,7 @@ export default function InventoryPage() {
         <div className={styles.gridWrapper}>
           <AgGridReact<IInventoryListItem>
             ref={gridRef}
+            theme={agGridTheme}
             rowData={displayData}
             columnDefs={columnDefs}
             defaultColDef={defaultColDef}

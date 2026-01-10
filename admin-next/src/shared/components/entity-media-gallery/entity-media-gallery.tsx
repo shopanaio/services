@@ -380,7 +380,7 @@ const ListItemPreview = ({
   return (
     <div
       className={styles.listItem}
-      style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.15)", cursor: "grabbing" }}
+      style={{ boxShadow: "var(--ant-box-shadow-secondary)", cursor: "grabbing" }}
     >
       <div className={styles.dragHandle}>
         <HolderOutlined />
