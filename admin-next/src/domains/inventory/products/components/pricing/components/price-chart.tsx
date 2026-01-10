@@ -9,7 +9,6 @@ interface IPriceChartProps {
   history: IPriceHistoryRecord[];
   formatPrice?: (amount: number) => string;
   height?: number;
-  showBackground?: boolean;
   showAxisLabels?: boolean;
   showDateLabels?: boolean;
   gridLineCount?: number;
@@ -19,7 +18,6 @@ export const PriceChart = ({
   history,
   formatPrice = defaultFormatPrice,
   height = 100,
-  showBackground = false,
   showAxisLabels = false,
   showDateLabels = false,
   gridLineCount = 3,
@@ -126,6 +124,12 @@ export const PriceChart = ({
               borderColor: theme.colorPrimary,
               borderWidth: 2,
             },
+            areaStyle: {
+              color: new graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: theme.blue2 },
+                { offset: 1, color: theme.geekblue3 },
+              ]),
+            },
             scale: 1.5,
           },
           lineStyle: {
@@ -175,8 +179,6 @@ export const PriceChart = ({
       style={{
         height,
         width: "100%",
-        background: showBackground ? theme.colorBgLayout : undefined,
-        borderRadius: showBackground ? 8 : undefined,
         cursor: "crosshair",
       }}
       notMerge

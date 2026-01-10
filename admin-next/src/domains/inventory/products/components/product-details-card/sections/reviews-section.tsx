@@ -67,8 +67,7 @@ export const ReviewsSection = ({
                 percent={item.percent}
                 showInfo={false}
                 strokeWidth={4}
-                strokeColor="var(--ant-color-primary)"
-                trailColor="var(--ant-color-fill-tertiary)"
+                railColor="var(--ant-color-fill-tertiary)"
                 size="small"
                 className={styles.reviewProgress}
               />
