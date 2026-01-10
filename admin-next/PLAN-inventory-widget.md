@@ -15,8 +15,6 @@
 ALTER TABLE inventory.warehouse_stock ADD COLUMN
   reserved_qty INTEGER NOT NULL DEFAULT 0,
   unavailable_qty INTEGER NOT NULL DEFAULT 0,
-  out_of_stock_since TIMESTAMPTZ,
-  backorder_expected_at TIMESTAMPTZ,
   last_change_id UUID;
 
 ALTER TABLE inventory.warehouse_stock
@@ -194,6 +192,28 @@ JOIN inventory.variant v ON v.id = ws.variant_id
 WHERE v.product_id = $1 AND v.deleted_at IS NULL;
 ```
 
+### backorder.quantity
+```sql
+-- backorder = max(0, -(available_for_sale))
+SELECT COALESCE(SUM(GREATEST(-(ws.quantity_on_hand - ws.reserved_qty - ws.unavailable_qty), 0)), 0) as backorder_qty
+FROM inventory.warehouse_stock ws
+JOIN inventory.variant v ON v.id = ws.variant_id
+WHERE v.product_id = $1 AND v.deleted_at IS NULL;
+```
+
+### backorder.etaAvgDays
+```sql
+-- Средневзвешенное ETA по планируемым поставкам
+SELECT
+  SUM(EXTRACT(EPOCH FROM (s.expected_at - NOW())) * (s.qty_expected - s.qty_received))
+  / NULLIF(SUM(s.qty_expected - s.qty_received), 0) / 86400 AS eta_avg_days
+FROM inventory.inbound_supply s
+JOIN inventory.variant v ON v.id = s.variant_id
+WHERE v.product_id = $1
+  AND v.deleted_at IS NULL
+  AND s.status IN ('PLANNED', 'IN_TRANSIT');
+```
+
 ### salesVelocity.pendingOrders
 ```sql
 SELECT COUNT(DISTINCT (r.order_system, r.order_id))
@@ -220,11 +240,58 @@ WHERE v.product_id = $1
 WITH variant_stock AS (
   SELECT
     v.id,
-    COALESCE(SUM(ws.quantity_on_hand - ws.reserved_qty - ws.unavailable_qty), 0) as available,
-    MIN(ws.out_of_stock_since) as out_of_stock_since,
-    MIN(ws.backorder_expected_at) as backorder_expected_at
+    COALESCE(SUM(ws.quantity_on_hand - ws.reserved_qty - ws.unavailable_qty), 0) as available
   FROM inventory.variant v
   LEFT JOIN inventory.warehouse_stock ws ON ws.variant_id = v.id
+  WHERE v.product_id = $1 AND v.deleted_at IS NULL
+  GROUP BY v.id
+),
+warehouse_available AS (
+  SELECT
+    ws.variant_id,
+    ws.warehouse_id,
+    (ws.quantity_on_hand - ws.reserved_qty - ws.unavailable_qty) as available
+  FROM inventory.warehouse_stock ws
+  JOIN inventory.variant v ON v.id = ws.variant_id
+  WHERE v.product_id = $1 AND v.deleted_at IS NULL
+),
+warehouse_oos AS (
+  SELECT
+    sc.variant_id,
+    sc.warehouse_id,
+    MAX(sc.created_at) as out_of_stock_since
+  FROM (
+    SELECT
+      sc.variant_id,
+      sc.warehouse_id,
+      sc.created_at,
+      (sc.on_hand_after - sc.reserved_after - sc.unavailable_after) as available_after,
+      LAG(sc.on_hand_after - sc.reserved_after - sc.unavailable_after)
+        OVER (PARTITION BY sc.variant_id, sc.warehouse_id ORDER BY sc.created_at) as prev_available
+    FROM inventory.stock_changes sc
+  ) sc
+  WHERE sc.available_after <= 0
+    AND (sc.prev_available IS NULL OR sc.prev_available > 0)
+  GROUP BY sc.variant_id, sc.warehouse_id
+),
+variant_oos AS (
+  SELECT
+    wa.variant_id,
+    MIN(wo.out_of_stock_since) as out_of_stock_since
+  FROM warehouse_available wa
+  LEFT JOIN warehouse_oos wo
+    ON wo.variant_id = wa.variant_id AND wo.warehouse_id = wa.warehouse_id
+  WHERE wa.available <= 0
+  GROUP BY wa.variant_id
+),
+variant_backorder_eta AS (
+  SELECT
+    v.id,
+    MIN(s.expected_at) as backorder_expected_at
+  FROM inventory.variant v
+  LEFT JOIN inventory.inbound_supply s
+    ON s.variant_id = v.id
+    AND s.status IN ('PLANNED', 'IN_TRANSIT')
   WHERE v.product_id = $1 AND v.deleted_at IS NULL
   GROUP BY v.id
 )
@@ -232,16 +299,20 @@ SELECT
   COUNT(*) as total,
   COUNT(*) FILTER (WHERE available > 0 AND available < $2) as low_stock_count,
   COUNT(*) FILTER (WHERE available <= 0 AND backorder_expected_at IS NULL) as out_of_stock_count,
-  AVG(EXTRACT(DAY FROM NOW() - out_of_stock_since)) FILTER (WHERE available <= 0) as out_of_stock_avg_days,
-  COUNT(*) FILTER (WHERE backorder_expected_at IS NOT NULL) as backorder_count,
-  AVG(EXTRACT(DAY FROM backorder_expected_at - NOW())) FILTER (WHERE backorder_expected_at IS NOT NULL) as backorder_avg_days
-FROM variant_stock;
+  AVG(EXTRACT(DAY FROM NOW() - vo.out_of_stock_since))
+    FILTER (WHERE available <= 0 AND backorder_expected_at IS NULL) as out_of_stock_avg_days,
+  COUNT(*) FILTER (WHERE available <= 0 AND backorder_expected_at IS NOT NULL) as backorder_count,
+  AVG(EXTRACT(DAY FROM backorder_expected_at - NOW())) FILTER (WHERE available <= 0 AND backorder_expected_at IS NOT NULL) as backorder_avg_days
+FROM variant_stock
+LEFT JOIN variant_backorder_eta USING (id)
+LEFT JOIN variant_oos vo ON vo.variant_id = variant_stock.id;
 ```
 
 ### Семантика out_of_stock_since / backorder_expected_at
-- `out_of_stock_since`: ставим, когда `available_for_sale` на складе стал `<= 0`, очищаем при `> 0`.
-- `backorder_expected_at`: прогноз по складу на базе `inbound_supply`.
-- В виджете используется агрегация `MIN(...)` по складам; при другой логике заменить на нужную.
+- `out_of_stock_since`: вычисляется по `stock_changes` как момент последнего перехода `available_after` из `> 0` в `<= 0`
+  (по складу, затем `MIN` по складам).
+- `backorder_expected_at`: вычисляется из `inbound_supply` (можно кэшировать отдельно, но в `warehouse_stock` не храним).
+- В виджете используется `MIN(expected_at)` по `inbound_supply`; при необходимости заменить на расчет по дефициту.
 
 ### Расчет backorder_expected_at (по складу)
 ```sql
@@ -336,6 +407,11 @@ type InventorySkuStatus {
   backorder: SkuStatusMetric!
 }
 
+type InventoryBackorder {
+  quantity: Int!
+  etaAvgDays: Float
+}
+
 type InventorySalesVelocity {
   pendingOrders: Int!
   weekOverWeekChange: Int!
@@ -349,6 +425,7 @@ type InventoryAlertThreshold {
 type ProductInventoryWidget {
   quantities: InventoryQuantities!
   skuStatus: InventorySkuStatus!
+  backorder: InventoryBackorder!
   salesVelocity: InventorySalesVelocity!
   alertThreshold: InventoryAlertThreshold!
 }
@@ -366,9 +443,10 @@ extend type WidgetQuery {
 1. `repositories/models/stock-changes.ts`
 2. `repositories/models/reservations.ts`
 3. `repositories/models/product-inventory-settings.ts`
+4. `repositories/models/inbound-supply.ts`
 
 ### Изменить модели
-1. `repositories/models/stock.ts` — добавить reserved_qty, unavailable_qty, out_of_stock_since, backorder_expected_at, last_change_id
+1. `repositories/models/stock.ts` — добавить reserved_qty, unavailable_qty, last_change_id
 
 ### Новые файлы
 1. `repositories/inventory-widget/InventoryWidgetRepository.ts`
@@ -387,8 +465,9 @@ extend type WidgetQuery {
 1. Миграция: CREATE stock_changes
 2. Миграция: CREATE reservations
 3. Миграция: CREATE product_inventory_settings
-4. Миграция: ALTER warehouse_stock (добавить поля)
-5. Drizzle models
+4. Миграция: CREATE inbound_supply
+5. Миграция: ALTER warehouse_stock (добавить поля)
+6. Drizzle models
 
 ### Phase 2: API
 1. InventoryWidgetRepository с SQL запросами
