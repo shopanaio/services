@@ -20,6 +20,7 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 const STORAGE_KEY = "shopana-theme-preference";
+const OLD_STORAGE_KEY = "shopana-theme-mode";
 
 function getSystemTheme(): "light" | "dark" {
   if (typeof window === "undefined") return "light";
@@ -35,7 +36,19 @@ export const ThemeContextProvider = ({ children }: { children: ReactNode }) => {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY) as ThemePreference | null;
+    // Check new key first
+    let stored = localStorage.getItem(STORAGE_KEY) as ThemePreference | null;
+
+    // Migrate from old key if needed
+    if (!stored) {
+      const oldStored = localStorage.getItem(OLD_STORAGE_KEY);
+      if (oldStored === "light" || oldStored === "dark") {
+        stored = oldStored;
+        localStorage.setItem(STORAGE_KEY, stored);
+        localStorage.removeItem(OLD_STORAGE_KEY);
+      }
+    }
+
     if (stored === "light" || stored === "dark" || stored === "auto") {
       setThemePreferenceState(stored);
     }

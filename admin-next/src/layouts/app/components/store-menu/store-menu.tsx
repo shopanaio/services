@@ -4,7 +4,7 @@ import { Dropdown, Typography, Flex } from 'antd';
 import { createStyles } from 'antd-style';
 import { MdLogout, MdOutlineAccountCircle } from 'react-icons/md';
 import { HiMiniChevronUpDown } from 'react-icons/hi2';
-import { MdLightMode, MdDarkMode, MdBrightness4 } from 'react-icons/md';
+import { MdLightMode, MdDarkMode, MdBrightness4, MdCheck } from 'react-icons/md';
 import type { MenuProps } from 'antd';
 
 import { ShopIcon } from '@/layouts/app/components/store-menu/shop-icon/shop-icon';
@@ -143,13 +143,14 @@ export const StoreMenu = ({
         key: `theme-${option.key}`,
         onClick: () => setThemePreference(option.key),
         label: (
-          <Flex gap="small" align="center">
-            {option.icon}
-            <Typography.Text
-              strong={themePreference === option.key}
-            >
-              {option.label}
-            </Typography.Text>
+          <Flex gap="small" align="center" justify="space-between" style={{ minWidth: 100 }}>
+            <Flex gap="small" align="center">
+              {option.icon}
+              <Typography.Text>
+                {option.label}
+              </Typography.Text>
+            </Flex>
+            {themePreference === option.key && <MdCheck />}
           </Flex>
         ),
       })),
@@ -203,6 +204,7 @@ export const StoreMenu = ({
         trigger={['click']}
         menu={{
           items,
+          selectedKeys: [`theme-${themePreference}`],
           className: 'store-menu-dropdown',
         }}
         placement="bottomRight"
