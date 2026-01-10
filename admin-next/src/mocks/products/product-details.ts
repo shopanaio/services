@@ -1,13 +1,11 @@
-import { mockCategories } from "@/mocks/products/categories";
-import { mockTags } from "@/mocks/products/tags";
-import { MOCK_OPTION_GROUPS } from "@/mocks/products/options";
-import {
-  mockGroups,
-  getProductById,
-  getVariantById,
-} from "@/mocks/products/components";
-import { createMockData as createAttributesMockData } from "@/mocks/products/attributes";
-import type { IProductDetailsMockData, IInventoryStats } from "./types";
+import { mockCategories, mockTags } from "./data";
+import { MOCK_OPTION_GROUPS } from "./options";
+import { mockGroups, getProductById, getVariantById } from "./components";
+import { createMockData as createAttributesMockData } from "./attributes";
+import type {
+  IProductDetailsMockData,
+  IInventoryStats,
+} from "@/domains/inventory/products/components/product-details-card/types";
 
 const getMockInventoryStats = (): IInventoryStats => ({
   availableQty: 967,
