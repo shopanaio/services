@@ -9,44 +9,54 @@ import {
   ReactNode,
 } from "react";
 
-type ThemeMode = "light" | "dark";
+type ThemePreference = "light" | "dark" | "auto";
 
 interface ThemeContextValue {
-  themeMode: ThemeMode;
-  toggleTheme: () => void;
-  setThemeMode: (mode: ThemeMode) => void;
+  themePreference: ThemePreference;
+  setThemePreference: (preference: ThemePreference) => void;
   isDark: boolean;
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-const STORAGE_KEY = "shopana-theme-mode";
+const STORAGE_KEY = "shopana-theme-preference";
+
+function getSystemTheme(): "light" | "dark" {
+  if (typeof window === "undefined") return "light";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
+}
 
 export const ThemeContextProvider = ({ children }: { children: ReactNode }) => {
-  const [themeMode, setThemeModeState] = useState<ThemeMode>("light");
+  const [themePreference, setThemePreferenceState] =
+    useState<ThemePreference>("auto");
+  const [systemTheme, setSystemTheme] = useState<"light" | "dark">("light");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY) as ThemeMode | null;
-    if (stored === "light" || stored === "dark") {
-      setThemeModeState(stored);
-    } else {
-      const prefersDark = window.matchMedia(
-        "(prefers-color-scheme: dark)"
-      ).matches;
-      setThemeModeState(prefersDark ? "dark" : "light");
+    const stored = localStorage.getItem(STORAGE_KEY) as ThemePreference | null;
+    if (stored === "light" || stored === "dark" || stored === "auto") {
+      setThemePreferenceState(stored);
     }
+    setSystemTheme(getSystemTheme());
     setMounted(true);
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleChange = (e: MediaQueryListEvent) => {
+      setSystemTheme(e.matches ? "dark" : "light");
+    };
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
   }, []);
 
-  const setThemeMode = useCallback((mode: ThemeMode) => {
-    setThemeModeState(mode);
-    localStorage.setItem(STORAGE_KEY, mode);
+  const setThemePreference = useCallback((preference: ThemePreference) => {
+    setThemePreferenceState(preference);
+    localStorage.setItem(STORAGE_KEY, preference);
   }, []);
 
-  const toggleTheme = useCallback(() => {
-    setThemeMode(themeMode === "light" ? "dark" : "light");
-  }, [themeMode, setThemeMode]);
+  const isDark =
+    themePreference === "auto" ? systemTheme === "dark" : themePreference === "dark";
 
   if (!mounted) {
     return null;
@@ -55,10 +65,9 @@ export const ThemeContextProvider = ({ children }: { children: ReactNode }) => {
   return (
     <ThemeContext.Provider
       value={{
-        themeMode,
-        toggleTheme,
-        setThemeMode,
-        isDark: themeMode === "dark",
+        themePreference,
+        setThemePreference,
+        isDark,
       }}
     >
       {children}

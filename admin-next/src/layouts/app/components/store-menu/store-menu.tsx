@@ -1,10 +1,14 @@
+'use client';
+
 import { Dropdown, Typography, Flex } from 'antd';
 import { createStyles } from 'antd-style';
 import { MdLogout, MdOutlineAccountCircle } from 'react-icons/md';
 import { HiMiniChevronUpDown } from 'react-icons/hi2';
+import { MdLightMode, MdDarkMode, MdBrightness4 } from 'react-icons/md';
 import type { MenuProps } from 'antd';
 
 import { ShopIcon } from '@/layouts/app/components/store-menu/shop-icon/shop-icon';
+import { useThemeContext } from '@/ui-kit/theme';
 
 const useStyles = createStyles(({ css, token }, { isCollapsed }: { isCollapsed: boolean }) => ({
   container: css`
@@ -82,6 +86,13 @@ export const StoreMenu = ({
   onLogoutClick,
 }: Props) => {
   const { styles } = useStyles({ isCollapsed });
+  const { themePreference, setThemePreference } = useThemeContext();
+
+  const themeOptions = [
+    { key: 'light', label: 'Light', icon: <MdLightMode /> },
+    { key: 'dark', label: 'Dark', icon: <MdDarkMode /> },
+    { key: 'auto', label: 'Auto', icon: <MdBrightness4 /> },
+  ] as const;
 
   const items: MenuProps['items'] = [
     {
@@ -119,6 +130,33 @@ export const StoreMenu = ({
     {
       type: 'divider' as const,
       key: 'divider-2',
+    },
+    {
+      key: 'theme',
+      label: (
+        <Flex gap="small" align="center" data-testid="project-menu-theme">
+          {themeOptions.find((t) => t.key === themePreference)?.icon}
+          <Typography.Text>Theme</Typography.Text>
+        </Flex>
+      ),
+      children: themeOptions.map((option) => ({
+        key: `theme-${option.key}`,
+        onClick: () => setThemePreference(option.key),
+        label: (
+          <Flex gap="small" align="center">
+            {option.icon}
+            <Typography.Text
+              strong={themePreference === option.key}
+            >
+              {option.label}
+            </Typography.Text>
+          </Flex>
+        ),
+      })),
+    },
+    {
+      type: 'divider' as const,
+      key: 'divider-3',
     },
     {
       key: 'stores',
