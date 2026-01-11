@@ -51,7 +51,7 @@ export const ProductDetailsCard = ({
   onEditSection,
   onVariantsPageChange,
 }: IProductDetailsCardProps) => {
-  const modals = useProductModals(product);
+  const modals = useProductModals(product, { components: mockData.components });
 
   const handleEdit = (section: string) => onEditSection?.(section);
 
@@ -137,7 +137,6 @@ export const ProductDetailsCard = ({
       <ComponentsSection
         groups={mockData.components}
         onEdit={modals.editComponents}
-        getItemImage={mockData.getComponentItemImage}
       />
 
       <TagsSection tags={mockData.tags} />

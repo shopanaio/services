@@ -21,7 +21,14 @@ import {
 import { useAgGridTheme } from "@/hooks";
 
 import type { IComponentVariantSettingsModalPayload } from "../../../modals";
-import { formatPrice } from "@/mocks/products/components";
+
+// Format price helper
+const formatPrice = (price: number): string => {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(price);
+};
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 

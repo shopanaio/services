@@ -23,16 +23,13 @@ import {
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 
-import { PRICE_RULE_OPTIONS } from "../types";
+import type { ComponentItem, PricingRuleTemplate } from "../types";
 import {
   ComponentItemType,
   ComponentPriceType,
-  type IComponentItem,
-  type IPricingRuleTemplate,
-  getProductById,
-  getVariantById,
-  calculateFinalPrice,
-} from "@/mocks/products/components";
+  PRICE_RULE_OPTIONS,
+} from "../types";
+import type { ApiProduct, ApiVariant, ApiFile } from "@/graphql/types";
 import { useAgGridTheme } from "@/hooks";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -128,38 +125,52 @@ const useStyles = createStyles(({ token }) => ({
 // ============================================================================
 
 interface IComponentsTableProps {
-  items: IComponentItem[];
-  onItemsChange: (items: IComponentItem[]) => void;
-  onEditVariants?: (item: IComponentItem) => void;
-  onIncludeVariants?: (item: IComponentItem) => void;
-  pricingTemplates: IPricingRuleTemplate[];
+  items: ComponentItem[];
+  onItemsChange: (items: ComponentItem[]) => void;
+  onEditVariants?: (item: ComponentItem) => void;
+  onIncludeVariants?: (item: ComponentItem) => void;
+  pricingTemplates: PricingRuleTemplate[];
 }
 
 // Row type - either product or variant
 interface ITableRow {
   id: string;
-  isVariant: boolean;
-  level: number; // 0 = product, 1 = variant
-  // Product-level fields
-  productId: string;
-  variantId?: string;
   itemType: ComponentItemType;
-  customTitle?: string | null;
-  isAvailable: boolean;
-  // For products with variants
-  hasIncludedVariants: boolean;
-  includedVariantsCount: number;
+
+  // For PRODUCT
+  assignedProduct?: ApiProduct;
+  excludeAssignedProductVariants?: string[] | null;
+
+  // For VARIANT
+  assignedVariant?: ApiVariant;
+
   // Pricing
-  priceType: ComponentPriceType;
-  priceValue: number | null;
-  templateId?: string;
-  basePrice: number;
-  finalPrice: number;
-  // For drag
+  pricingRule:
+    | {
+        priceType: ComponentPriceType;
+        priceValue: number | null;
+      }
+    | PricingRuleTemplate;
+
+  // Overrides
+  overrides: {
+    title: string | null;
+    featuredImage: ApiFile | null;
+  };
+
   sortIndex: number;
-  // Parent reference for variants
-  parentItemId?: string;
 }
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+// Helper to determine if pricingRule is a template
+const isTemplate = (
+  rule: ComponentItem["pricingRule"]
+): rule is PricingRuleTemplate => {
+  return "id" in rule && "name" in rule;
+};
 
 // ============================================================================
 // Cell Renderers
@@ -167,74 +178,59 @@ interface ITableRow {
 
 type IProductCellRendererParams = ICellRendererParams<ITableRow>;
 
+// Helper to get image URL from variant or product
+const getVariantImageUrl = (variant?: ApiVariant): string | null => {
+  if (!variant) return null;
+  const mediaItem = variant.media?.[0];
+  return mediaItem?.file?.url ?? null;
+};
+
 const ProductCellRenderer = (params: IProductCellRendererParams) => {
-  const { styles, cx } = useStyles();
+  const { styles } = useStyles();
   const data = params.data;
   if (!data) return null;
 
-  const product = getProductById(data.productId);
-  const variant =
-    data.variantId && product
-      ? getVariantById(data.productId, data.variantId)
-      : null;
-
-  const isIncludedVariant = data.isVariant;
-  const imageUrl = variant?.imageUrl || product?.imageUrl || "/placeholder.png";
-
-  // For included variants: show Product title + Variant title (like inventory page table)
-  if (isIncludedVariant) {
-    const productTitle = product?.title || "Unknown";
-    const variantTitle = variant?.title || "Unknown";
+  if (data.itemType === ComponentItemType.VARIANT) {
+    // For variant: show variant title (and optionally product title if available)
+    const variant = data.assignedVariant;
+    const productTitle = variant?.product?.title;
+    const variantTitle = data.overrides.title || variant?.title || variant?.sku || "Unknown Variant";
+    const imageUrl = getVariantImageUrl(variant);
 
     return (
-      <div
-        className={cx(
-          styles.productCell,
-          !data.isAvailable && styles.unavailable
-        )}
-      >
+      <div className={styles.productCell}>
         <img
           src={imageUrl || "/placeholder.png"}
           className={styles.productImage}
           alt=""
         />
         <div className={styles.productInfo}>
-          <span className={styles.productTitle}>{productTitle}</span>
-          <span className={styles.variantTitle}>{variantTitle}</span>
+          {productTitle ? (
+            <>
+              <span className={styles.productTitle}>{productTitle}</span>
+              <span className={styles.variantTitle}>{variantTitle}</span>
+            </>
+          ) : (
+            <span className={styles.productTitle}>{variantTitle}</span>
+          )}
         </div>
       </div>
     );
   }
 
-  // For regular products/variants (not included variants)
-  const title =
-    data.customTitle || variant?.title || product?.title || "Unknown";
-
-  // Show variant count for products with variants
-  const variantsCount =
-    data.itemType === ComponentItemType.PRODUCT_WITH_VARIANTS
-      ? product?.variants?.length ?? 0
-      : 0;
+  // For product - no direct media on ApiProduct, use placeholder
+  const product = data.assignedProduct;
+  const title = data.overrides.title || product?.title || "Unknown";
 
   return (
-    <div
-      className={cx(
-        styles.productCell,
-        !data.isAvailable && styles.unavailable
-      )}
-    >
+    <div className={styles.productCell}>
       <img
-        src={imageUrl || "/placeholder.png"}
+        src="/placeholder.png"
         className={styles.productImage}
         alt=""
       />
       <div className={styles.productInfo}>
         <span className={styles.productTitle}>{title}</span>
-        {variantsCount > 0 && (
-          <span className={styles.variantsCount}>
-            {variantsCount} variant{variantsCount !== 1 ? "s" : ""}
-          </span>
-        )}
       </div>
     </div>
   );
@@ -245,14 +241,8 @@ const ProductCellRenderer = (params: IProductCellRendererParams) => {
 // ============================================================================
 
 interface IPriceRuleCellRendererProps extends ICellRendererParams<ITableRow> {
-  pricingTemplates: IPricingRuleTemplate[];
-  onPriceRuleChange: (
-    rowId: string,
-    isVariant: boolean,
-    priceType: ComponentPriceType,
-    priceValue: number | null,
-    templateId?: string
-  ) => void;
+  pricingTemplates: PricingRuleTemplate[];
+  onPriceRuleChange: (itemId: string, pricingRule: ComponentItem["pricingRule"]) => void;
 }
 
 const TEMPLATE_PREFIX = "tpl:";
@@ -264,24 +254,23 @@ const PriceRuleCellRenderer = ({
 }: IPriceRuleCellRendererProps) => {
   if (!data) return null;
 
+  const { pricingRule } = data;
+
+  // Determine current value for Select
+  const currentValue = isTemplate(pricingRule)
+    ? `${TEMPLATE_PREFIX}${pricingRule.id}` // template
+    : pricingRule.priceType; // custom rule
+
+  // Options: Templates + Custom rules
   const options = [
     ...(pricingTemplates.length > 0
       ? [
           {
             label: "Templates",
-            options: pricingTemplates.map((tpl) => {
-              const rule = PRICE_RULE_OPTIONS.find(
-                (r) => r.value === tpl.priceType
-              );
-              const valueStr =
-                tpl.priceValue !== null && rule?.valueSuffix
-                  ? ` (${tpl.priceValue}${rule.valueSuffix})`
-                  : "";
-              return {
-                label: `${tpl.name}${valueStr}`,
-                value: `${TEMPLATE_PREFIX}${tpl.id}`,
-              };
-            }),
+            options: pricingTemplates.map((tpl) => ({
+              label: tpl.name,
+              value: `${TEMPLATE_PREFIX}${tpl.id}`,
+            })),
           },
         ]
       : []),
@@ -294,34 +283,28 @@ const PriceRuleCellRenderer = ({
     },
   ];
 
-  const currentValue = data.templateId
-    ? `${TEMPLATE_PREFIX}${data.templateId}`
-    : data.priceType;
-
   const handleChange = (value: string) => {
     if (value.startsWith(TEMPLATE_PREFIX)) {
+      // Template selected - save the whole template object
       const templateId = value.replace(TEMPLATE_PREFIX, "");
       const template = pricingTemplates.find((t) => t.id === templateId);
       if (template) {
-        onPriceRuleChange(
-          data.id,
-          data.isVariant,
-          template.priceType,
-          template.priceValue,
-          templateId
-        );
+        onPriceRuleChange(data.id, template);
       }
     } else {
+      // Custom rule selected - save inline object
       const priceType = value as ComponentPriceType;
       const rule = PRICE_RULE_OPTIONS.find((r) => r.value === priceType);
-      const priceValue = rule?.requiresValue ? data.priceValue ?? 0 : null;
-      onPriceRuleChange(
-        data.id,
-        data.isVariant,
+
+      // Preserve priceValue if previous rule had same type
+      const prevValue = isTemplate(pricingRule)
+        ? pricingRule.priceValue
+        : pricingRule.priceValue;
+
+      onPriceRuleChange(data.id, {
         priceType,
-        priceValue,
-        undefined
-      );
+        priceValue: rule?.requiresValue ? (prevValue ?? 0) : null,
+      });
     }
   };
 
@@ -342,12 +325,12 @@ const PriceRuleCellRenderer = ({
 // ============================================================================
 
 interface IActionsCellRendererProps extends ICellRendererParams<ITableRow> {
-  onDelete: (rowId: string, isVariant: boolean) => void;
-  onDeleteAllVariants: (parentItemId: string) => void;
-  onDuplicate: (rowId: string) => void;
-  onEditVariants?: (item: IComponentItem) => void;
-  onIncludeVariants?: (item: IComponentItem) => void;
-  items: IComponentItem[];
+  onDelete: (itemId: string) => void;
+  onDeleteAllVariants: (productId: string) => void;
+  onDuplicate: (itemId: string) => void;
+  onEditVariants?: (item: ComponentItem) => void;
+  onIncludeVariants?: (item: ComponentItem) => void;
+  items: ComponentItem[];
 }
 
 const ActionsCellRenderer = ({
@@ -361,23 +344,25 @@ const ActionsCellRenderer = ({
 }: IActionsCellRendererProps) => {
   if (!data) return null;
 
-  if (data.isVariant) {
+  // For VARIANT
+  if (data.itemType === ComponentItemType.VARIANT) {
+    const productId = data.assignedVariant?.product?.id;
     const menuItems: MenuProps["items"] = [
       {
         key: "delete",
         icon: <DeleteOutlined />,
         label: "Remove",
         danger: true,
-        onClick: () => onDelete(data.id, true),
+        onClick: () => onDelete(data.id),
       },
-      ...(data.parentItemId
+      ...(productId
         ? [
             {
               key: "delete-all",
               icon: <DeleteOutlined />,
-              label: "Remove all",
+              label: "Remove all variants",
               danger: true,
-              onClick: () => onDeleteAllVariants(data.parentItemId!),
+              onClick: () => onDeleteAllVariants(productId),
             },
           ]
         : []),
@@ -390,6 +375,7 @@ const ActionsCellRenderer = ({
     );
   }
 
+  // For PRODUCT
   const fullItem = items.find((item) => item.id === data.id);
 
   const menuItems: MenuProps["items"] = [
@@ -399,32 +385,28 @@ const ActionsCellRenderer = ({
       label: "Duplicate",
       onClick: () => onDuplicate(data.id),
     },
-    ...(data.itemType === ComponentItemType.PRODUCT_WITH_VARIANTS && fullItem
+    ...(fullItem && onEditVariants
       ? [
-          ...(onEditVariants
-            ? [
-                {
-                  key: "edit-variants",
-                  icon: <SettingOutlined />,
-                  label: "Edit variants",
-                  onClick: () => {
-                    onEditVariants(fullItem);
-                  },
-                },
-              ]
-            : []),
-          ...(onIncludeVariants
-            ? [
-                {
-                  key: "include-variants",
-                  icon: <PlusOutlined />,
-                  label: "Show as variants",
-                  onClick: () => {
-                    onIncludeVariants(fullItem);
-                  },
-                },
-              ]
-            : []),
+          {
+            key: "edit-variants",
+            icon: <SettingOutlined />,
+            label: "Edit variants",
+            onClick: () => {
+              onEditVariants(fullItem);
+            },
+          },
+        ]
+      : []),
+    ...(fullItem && onIncludeVariants
+      ? [
+          {
+            key: "include-variants",
+            icon: <PlusOutlined />,
+            label: "Show as variants",
+            onClick: () => {
+              onIncludeVariants(fullItem);
+            },
+          },
         ]
       : []),
     { type: "divider" as const },
@@ -433,7 +415,7 @@ const ActionsCellRenderer = ({
       icon: <DeleteOutlined />,
       label: "Delete",
       danger: true,
-      onClick: () => onDelete(data.id, false),
+      onClick: () => onDelete(data.id),
     },
   ];
 
@@ -462,217 +444,60 @@ export const ComponentsTable = ({
   // Refs for drag handling
   const draggingRowIdRef = useRef<string | null>(null);
 
-  // Build all rows (products + variants) and sort by sortIndex
-  // When a product has included variants, only show the variants (not the product row)
-  // All rows are sortable independently
+  // Build all rows - simplified flat structure
   const allRows = useMemo<ITableRow[]>(() => {
-    const rows: ITableRow[] = [];
-
-    items.forEach((item) => {
-      const hasIncludedVariants = !!(
-        item.includedVariants && item.includedVariants.length > 0
-      );
-
-      // If item has included variants, only show the variants (skip the product row)
-      if (hasIncludedVariants && item.includedVariants) {
-        item.includedVariants.forEach((variant) => {
-          rows.push({
-            id: variant.id,
-            isVariant: true,
-            level: 0,
-            productId: item.productId,
-            variantId: variant.variantId,
-            itemType: ComponentItemType.SINGLE_VARIANT,
-            isAvailable: item.isAvailable,
-            hasIncludedVariants: false,
-            includedVariantsCount: 0,
-            priceType: variant.priceType,
-            priceValue: variant.priceValue,
-            templateId: variant.templateId,
-            basePrice: variant.basePrice,
-            finalPrice: variant.finalPrice,
-            sortIndex: variant.sortIndex,
-            parentItemId: item.id,
-          });
-        });
-      } else {
-        // Regular product/variant without included variants
-        rows.push({
+    return items
+      .map(
+        (item): ITableRow => ({
           id: item.id,
-          isVariant: false,
-          level: 0,
-          productId: item.productId,
-          variantId: item.variantId,
           itemType: item.itemType,
-          customTitle: item.customTitle,
-          isAvailable: item.isAvailable,
-          hasIncludedVariants: false,
-          includedVariantsCount: 0,
-          priceType: item.priceType,
-          priceValue: item.priceValue,
-          templateId: item.templateId,
-          basePrice: item.basePrice,
-          finalPrice: item.finalPrice,
+          assignedProduct: item.assignedProduct,
+          assignedVariant: item.assignedVariant,
+          excludeAssignedProductVariants: item.excludeAssignedProductVariants,
+          pricingRule: item.pricingRule,
+          overrides: item.overrides,
           sortIndex: item.sortIndex,
-        });
-      }
-    });
-
-    // Sort all rows by sortIndex for global ordering
-    return rows.sort((a, b) => a.sortIndex - b.sortIndex);
+        })
+      )
+      .sort((a, b) => a.sortIndex - b.sortIndex);
   }, [items]);
 
   // All rows are visible (no expand/collapse filtering needed)
   const visibleRows = allRows;
 
+  // Handle price rule change
   const handlePriceRuleChange = useCallback(
-    (
-      rowId: string,
-      isVariant: boolean,
-      priceType: ComponentPriceType,
-      priceValue: number | null,
-      templateId?: string
-    ) => {
-      if (isVariant) {
-        const newItems = items.map((item) => {
-          if (!item.includedVariants) return item;
-
-          const variantIndex = item.includedVariants.findIndex(
-            (v) => v.id === rowId
-          );
-          if (variantIndex === -1) return item;
-
-          const updatedVariants = [...item.includedVariants];
-          const variant = updatedVariants[variantIndex];
-          const finalPrice = calculateFinalPrice(
-            variant.basePrice,
-            priceType,
-            priceValue
-          );
-
-          updatedVariants[variantIndex] = {
-            ...variant,
-            priceType,
-            priceValue,
-            templateId,
-            finalPrice,
-          };
-
-          return { ...item, includedVariants: updatedVariants };
-        });
-        onItemsChange(newItems);
-      } else {
-        const newItems = items.map((item) => {
-          if (item.id !== rowId) return item;
-
-          const finalPrice = calculateFinalPrice(
-            item.basePrice,
-            priceType,
-            priceValue
-          );
-
-          return {
-            ...item,
-            priceType,
-            priceValue,
-            templateId,
-            finalPrice,
-          };
-        });
-        onItemsChange(newItems);
-      }
+    (itemId: string, pricingRule: ComponentItem["pricingRule"]) => {
+      const newItems = items.map((item) => {
+        if (item.id !== itemId) return item;
+        return { ...item, pricingRule };
+      });
+      onItemsChange(newItems);
     },
     [items, onItemsChange]
   );
 
+  // Handle cell value changed (for inline editing of priceValue)
   const handleCellValueChanged = useCallback(
     (event: CellValueChangedEvent<ITableRow>) => {
-      const field = event.colDef?.field;
-      if (!event.data || field !== "priceValue") return;
+      if (!event.data) return;
 
       const rowId = event.data.id;
-      const isVariant = event.data.isVariant;
       const newPriceValue = event.newValue as number | null;
 
-      if (isVariant) {
-        const newItems = items.map((item) => {
-          if (!item.includedVariants) return item;
-
-          const variantIndex = item.includedVariants.findIndex(
-            (v) => v.id === rowId
-          );
-          if (variantIndex === -1) return item;
-
-          const updatedVariants = [...item.includedVariants];
-          const variant = updatedVariants[variantIndex];
-          const finalPrice = calculateFinalPrice(
-            variant.basePrice,
-            variant.priceType,
-            newPriceValue
-          );
-
-          updatedVariants[variantIndex] = {
-            ...variant,
-            priceValue: newPriceValue,
-            finalPrice,
-            templateId: undefined,
-          };
-
-          return { ...item, includedVariants: updatedVariants };
-        });
-        onItemsChange(newItems);
-      } else {
-        const newItems = items.map((item) => {
-          if (item.id !== rowId) return item;
-
-          const finalPrice = calculateFinalPrice(
-            item.basePrice,
-            item.priceType,
-            newPriceValue
-          );
-
-          return {
-            ...item,
-            priceValue: newPriceValue,
-            finalPrice,
-            templateId: undefined,
-          };
-        });
-        onItemsChange(newItems);
-      }
-    },
-    [items, onItemsChange]
-  );
-
-  const handleDelete = useCallback(
-    (rowId: string, isVariant: boolean) => {
-      if (isVariant) {
-        const newItems = items.map((item) => {
-          if (!item.includedVariants) return item;
-
-          const newVariants = item.includedVariants.filter(
-            (v) => v.id !== rowId
-          );
-          return {
-            ...item,
-            includedVariants: newVariants.length > 0 ? newVariants : undefined,
-          };
-        });
-        onItemsChange(newItems);
-      } else {
-        onItemsChange(items.filter((item) => item.id !== rowId));
-      }
-    },
-    [items, onItemsChange]
-  );
-
-  const handleDeleteAllVariants = useCallback(
-    (parentItemId: string) => {
       const newItems = items.map((item) => {
-        if (item.id !== parentItemId) return item;
+        if (item.id !== rowId) return item;
+
+        const rule = item.pricingRule;
+        const priceType = isTemplate(rule) ? rule.priceType : rule.priceType;
+
+        // Convert template to inline rule when editing value
         return {
           ...item,
-          includedVariants: undefined,
+          pricingRule: {
+            priceType,
+            priceValue: newPriceValue,
+          },
         };
       });
       onItemsChange(newItems);
@@ -680,19 +505,36 @@ export const ComponentsTable = ({
     [items, onItemsChange]
   );
 
+  // Delete item - simplified
+  const handleDelete = useCallback(
+    (itemId: string) => {
+      onItemsChange(items.filter((item) => item.id !== itemId));
+    },
+    [items, onItemsChange]
+  );
+
+  // Delete all variants of a product
+  const handleDeleteAllVariants = useCallback(
+    (productId: string) => {
+      const newItems = items.filter((item) => {
+        if (item.itemType !== ComponentItemType.VARIANT) return true;
+        return item.assignedVariant?.product?.id !== productId;
+      });
+      onItemsChange(newItems);
+    },
+    [items, onItemsChange]
+  );
+
+  // Duplicate item
   const handleDuplicate = useCallback(
     (itemId: string) => {
       const itemToDuplicate = items.find((item) => item.id === itemId);
       if (!itemToDuplicate) return;
 
-      const newItem: IComponentItem = {
+      const newItem: ComponentItem = {
         ...itemToDuplicate,
         id: `item-${Date.now()}`,
         sortIndex: items.length,
-        includedVariants: itemToDuplicate.includedVariants?.map((v) => ({
-          ...v,
-          id: `variant-${Date.now()}-${v.variantId}`,
-        })),
       };
       onItemsChange([...items, newItem]);
     },
@@ -713,6 +555,7 @@ export const ComponentsTable = ({
     []
   );
 
+  // Handle row drag end
   const handleRowDragEnd = useCallback(
     (event: RowDragEndEvent<ITableRow>) => {
       draggingRowIdRef.current = null;
@@ -720,57 +563,30 @@ export const ComponentsTable = ({
       const { node, overIndex } = event;
       const movingData = node?.data;
 
-      if (!movingData) {
-        return;
-      }
-
-      if (overIndex === undefined || overIndex === null) {
-        return;
-      }
+      if (!movingData) return;
+      if (overIndex === undefined || overIndex === null) return;
 
       // Get the new order of all rows from the grid
-      const newOrderedRows: {
-        id: string;
-        isVariant: boolean;
-        parentItemId?: string;
-      }[] = [];
+      const newOrderedIds: string[] = [];
       event.api.forEachNodeAfterFilterAndSort((rowNode) => {
         if (rowNode.data) {
-          newOrderedRows.push({
-            id: rowNode.data.id,
-            isVariant: rowNode.data.isVariant,
-            parentItemId: rowNode.data.parentItemId,
-          });
+          newOrderedIds.push(rowNode.data.id);
         }
       });
 
       // Build a map of new sortIndex for each row
       const sortIndexMap = new Map<string, number>();
-      newOrderedRows.forEach((row, index) => {
-        sortIndexMap.set(row.id, index);
+      newOrderedIds.forEach((id, index) => {
+        sortIndexMap.set(id, index);
       });
 
       // Update items with new sortIndex values
       const newItems = items.map((item) => {
-        const hasIncludedVariants = !!(
-          item.includedVariants && item.includedVariants.length > 0
-        );
-
-        if (hasIncludedVariants && item.includedVariants) {
-          // Update sortIndex for each included variant
-          const updatedVariants = item.includedVariants.map((variant) => ({
-            ...variant,
-            sortIndex: sortIndexMap.get(variant.id) ?? variant.sortIndex,
-          }));
-          return { ...item, includedVariants: updatedVariants };
-        } else {
-          // Update sortIndex for regular items
-          const newSortIndex = sortIndexMap.get(item.id);
-          if (newSortIndex !== undefined) {
-            return { ...item, sortIndex: newSortIndex };
-          }
-          return item;
+        const newSortIndex = sortIndexMap.get(item.id);
+        if (newSortIndex !== undefined) {
+          return { ...item, sortIndex: newSortIndex };
         }
+        return item;
       });
 
       onItemsChange(newItems);
@@ -778,16 +594,19 @@ export const ComponentsTable = ({
     [items, onItemsChange]
   );
 
+  // Row class for variants
   const getRowClass = useCallback((params: { data: ITableRow | undefined }) => {
-    if (params.data?.isVariant) return "row-variant";
+    if (params.data?.itemType === ComponentItemType.VARIANT)
+      return "row-variant";
     return "";
   }, []);
 
+  // Column definitions
   const columnDefs = useMemo<ColDef<ITableRow>[]>(
     () => [
       {
         headerName: "",
-        field: "sortIndex" as const,
+        field: "sortIndex",
         width: 50,
         rowDrag: true,
         suppressMovable: true,
@@ -796,14 +615,14 @@ export const ComponentsTable = ({
       },
       {
         headerName: "Product",
-        field: "productId",
+        field: "id",
         flex: 2,
         minWidth: 200,
         cellRenderer: ProductCellRenderer,
       },
       {
         headerName: "Price Rule",
-        field: "priceType",
+        field: "pricingRule",
         width: 180,
         cellRenderer: (params: ICellRendererParams<ITableRow>) => (
           <PriceRuleCellRenderer
@@ -815,21 +634,35 @@ export const ComponentsTable = ({
       },
       {
         headerName: "Value",
-        field: "priceValue",
+        field: "pricingRule",
         width: 100,
         editable: (params) => {
-          const rule = PRICE_RULE_OPTIONS.find(
-            (r) => r.value === params.data?.priceType
-          );
-          return !!rule?.requiresValue;
+          const rule = params.data?.pricingRule;
+          if (!rule) return false;
+          const priceType = isTemplate(rule) ? rule.priceType : rule.priceType;
+          const option = PRICE_RULE_OPTIONS.find((r) => r.value === priceType);
+          return !!option?.requiresValue;
+        },
+        valueGetter: (params) => {
+          const rule = params.data?.pricingRule;
+          if (!rule) return null;
+          return isTemplate(rule) ? rule.priceValue : rule.priceValue;
+        },
+        valueSetter: (params) => {
+          // Value will be handled by onCellValueChanged
+          return true;
         },
         cellRenderer: (params: ICellRendererParams<ITableRow>) => {
-          const rule = PRICE_RULE_OPTIONS.find(
-            (r) => r.value === params.data?.priceType
-          );
-          if (!rule?.requiresValue) return "—";
-          if (params.value == null) return "—";
-          return `${params.value}${rule.valueSuffix || ""}`;
+          const rule = params.data?.pricingRule;
+          if (!rule) return "—";
+
+          const priceType = isTemplate(rule) ? rule.priceType : rule.priceType;
+          const priceValue = isTemplate(rule) ? rule.priceValue : rule.priceValue;
+          const option = PRICE_RULE_OPTIONS.find((r) => r.value === priceType);
+
+          if (!option?.requiresValue) return "—";
+          if (priceValue == null) return "—";
+          return `${priceValue}${option.valueSuffix || ""}`;
         },
         cellEditor: "agNumberCellEditor",
         cellEditorParams: { min: 0, precision: 0 },
@@ -897,8 +730,10 @@ export const ComponentsTable = ({
           rowDragText={(params) => {
             const data = params.rowNode?.data;
             if (!data) return "";
-            const product = getProductById(data.productId);
-            return data.customTitle || product?.title || "";
+            if (data.itemType === ComponentItemType.VARIANT) {
+              return data.assignedVariant?.title || "";
+            }
+            return data.overrides.title || data.assignedProduct?.title || "";
           }}
           onRowDragEnter={handleRowDragEnter}
           onRowDragEnd={handleRowDragEnd}

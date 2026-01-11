@@ -305,6 +305,7 @@ export interface IEditTagsModalPayload extends IModalStackPayload {
 
 export interface IEditComponentsModalPayload extends IModalStackPayload {
   productId?: string;
+  groups?: import("./modals/edit-components-modal/types").IComponentGroup[];
 }
 
 export interface IBulkEditorModalPayload extends IModalStackPayload {

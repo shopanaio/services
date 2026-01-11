@@ -5,18 +5,31 @@ import { PictureOutlined } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "../../edit-action";
 import { useComponentsStyles } from "../product-details-card.styles";
-import type { IComponentGroup } from "../../../modals/edit-components-modal/types";
+import type { IComponentGroup, ComponentItem } from "../../../modals/edit-components-modal/types";
+import { ComponentItemType } from "../../../modals/edit-components-modal/types";
 
 interface IComponentsSectionProps {
   groups: IComponentGroup[];
   onEdit: () => void;
-  getItemImage?: (productId: string, variantId?: string | null) => string | null;
 }
+
+// Helper to get image from component item
+const getItemImageUrl = (item: ComponentItem): string | null => {
+  if (item.overrides.featuredImage?.url) {
+    return item.overrides.featuredImage.url;
+  }
+
+  if (item.itemType === ComponentItemType.VARIANT && item.assignedVariant) {
+    return item.assignedVariant.media?.[0]?.file?.url ?? null;
+  }
+
+  // ApiProduct doesn't have media directly in current schema
+  return null;
+};
 
 export const ComponentsSection = ({
   groups,
   onEdit,
-  getItemImage,
 }: IComponentsSectionProps) => {
   const { styles } = useComponentsStyles();
 
@@ -32,9 +45,7 @@ export const ComponentsSection = ({
       />
       <Flex gap={8} wrap="wrap">
         {groups.map((group) => {
-          const itemImages = group.items?.map((item) => {
-            return getItemImage?.(item.productId, item.variantId) ?? null;
-          });
+          const itemImages = group.items?.map((item) => getItemImageUrl(item));
 
           return (
             <div key={group.id} className={styles.groupCard}>
@@ -70,10 +81,10 @@ export const ComponentsSection = ({
               </div>
               <Typography.Text type="secondary" className={styles.groupMeta}>
                 {[
-                  group.isMultiple && "Multiple",
-                  group.isRequired && "Required",
-                  group.minSelection > 0 && `Min: ${group.minSelection}`,
-                  group.maxSelection && `Max: ${group.maxSelection}`,
+                  group.rules.isMultiple && "Multiple",
+                  group.rules.isRequired && "Required",
+                  group.rules.minSelection && group.rules.minSelection > 0 && `Min: ${group.rules.minSelection}`,
+                  group.rules.maxSelection && `Max: ${group.rules.maxSelection}`,
                 ]
                   .filter(Boolean)
                   .join(" · ")}

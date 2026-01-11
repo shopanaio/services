@@ -68,5 +68,4 @@ export interface IProductDetailsMockData {
   options: ApiProductOption[];
   components: IComponentGroup[];
   inventory: ProductInventoryWidget;
-  getComponentItemImage: (productId: string, variantId?: string | null) => string | null;
 }

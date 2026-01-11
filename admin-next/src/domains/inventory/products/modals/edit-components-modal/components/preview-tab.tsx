@@ -2,23 +2,23 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { createStyles } from "antd-style";
-import { Typography, Radio, Checkbox, Select, Tag, Image } from "antd";
-import {
-  GiftOutlined,
-  SafetyCertificateOutlined,
-  ShoppingOutlined,
-} from "@ant-design/icons";
+import { Typography, Radio, Checkbox, Tag, Image } from "antd";
+import { ShoppingOutlined } from "@ant-design/icons";
 
-import type { DisplayStyle } from "../types";
-import {
-  type IComponentGroup,
-  type IComponentItem,
-  ComponentItemType,
-  ComponentPriceType,
-  getProductById,
-  getVariantById,
-  formatPrice,
-} from "@/mocks/products/components";
+import type {
+  DisplayStyle,
+  IComponentGroup,
+  ComponentItem,
+} from "../types";
+import { ComponentItemType, ComponentPriceType } from "../types";
+
+// Format price helper
+const formatPrice = (price: number): string => {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(price);
+};
 
 // ============================================================================
 // Types
@@ -240,56 +240,74 @@ const useStyles = createStyles(({ token }) => ({
   },
 }));
 
+
 // ============================================================================
-// Group Icons
+// Helper Types
 // ============================================================================
 
-const GROUP_ICONS: Record<string, React.ReactNode> = {
-  accessories: <ShoppingOutlined />,
-  warranty: <SafetyCertificateOutlined />,
-  "gift-wrap": <GiftOutlined />,
+// Helper to check if pricingRule is a template
+const isTemplate = (rule: ComponentItem["pricingRule"]): boolean => {
+  return "id" in rule && "name" in rule;
+};
+
+const getPriceType = (item: ComponentItem): ComponentPriceType => {
+  return isTemplate(item.pricingRule)
+    ? item.pricingRule.priceType
+    : item.pricingRule.priceType;
 };
 
 // ============================================================================
 // Helper Functions
 // ============================================================================
 
-const getItemTitle = (item: IComponentItem): string => {
-  if (item.customTitle) return item.customTitle;
+const getItemTitle = (item: ComponentItem): string => {
+  if (item.overrides.title) return item.overrides.title;
 
-  if (item.itemType === ComponentItemType.SINGLE_VARIANT && item.variantId) {
-    const variant = getVariantById(item.productId, item.variantId);
-    if (variant) return variant.title;
+  if (item.itemType === ComponentItemType.VARIANT && item.assignedVariant) {
+    return item.assignedVariant.title ?? "Unknown Variant";
   }
 
-  const product = getProductById(item.productId);
-  return product?.title ?? "Unknown Product";
+  return item.assignedProduct?.title ?? "Unknown Product";
 };
 
-const getItemImage = (item: IComponentItem): string | null => {
-  if (item.customImage?.url) return item.customImage.url;
+const getItemImage = (item: ComponentItem): string | null => {
+  if (item.overrides.featuredImage?.url) return item.overrides.featuredImage.url;
 
-  if (item.itemType === ComponentItemType.SINGLE_VARIANT && item.variantId) {
-    const variant = getVariantById(item.productId, item.variantId);
-    if (variant?.imageUrl) return variant.imageUrl;
+  if (item.itemType === ComponentItemType.VARIANT && item.assignedVariant) {
+    const variantMedia = item.assignedVariant.media?.[0]?.file?.url;
+    if (variantMedia) return variantMedia;
+    // ApiProduct doesn't have media directly
+    return null;
   }
 
-  const product = getProductById(item.productId);
-  return product?.imageUrl ?? null;
+  // ApiProduct doesn't have media directly
+  return null;
 };
 
-const getItemSku = (item: IComponentItem): string => {
-  if (item.itemType === ComponentItemType.SINGLE_VARIANT && item.variantId) {
-    const variant = getVariantById(item.productId, item.variantId);
-    if (variant) return variant.sku;
+const getItemSku = (item: ComponentItem): string => {
+  if (item.itemType === ComponentItemType.VARIANT && item.assignedVariant) {
+    return item.assignedVariant.sku ?? "";
   }
+  // ApiProduct doesn't have sku directly
+  return "";
+};
 
-  const product = getProductById(item.productId);
-  return product?.sku ?? "";
+const getItemBasePrice = (item: ComponentItem): number => {
+  if (item.itemType === ComponentItemType.VARIANT && item.assignedVariant) {
+    // ApiVariant.price is ApiVariantPrice object with amountMinor in cents
+    const amountMinor = item.assignedVariant.price?.amountMinor;
+    return typeof amountMinor === "bigint"
+      ? Number(amountMinor) / 100
+      : typeof amountMinor === "number"
+        ? amountMinor / 100
+        : 0;
+  }
+  // ApiProduct doesn't have price directly
+  return 0;
 };
 
 const formatPriceDisplay = (
-  item: IComponentItem,
+  item: ComponentItem,
   showComparePrice: boolean
 ): {
   price: string;
@@ -297,8 +315,9 @@ const formatPriceDisplay = (
   isFree: boolean;
   isIncluded: boolean;
 } => {
-  const isFree = item.priceType === ComponentPriceType.FREE;
-  const isIncluded = item.priceType === ComponentPriceType.INCLUDED;
+  const priceType = getPriceType(item);
+  const isFree = priceType === ComponentPriceType.FREE;
+  const isIncluded = priceType === ComponentPriceType.INCLUDED;
 
   if (isFree) {
     return { price: "Free", isFree: true, isIncluded: false };
@@ -308,18 +327,37 @@ const formatPriceDisplay = (
     return { price: "Included", isFree: false, isIncluded: true };
   }
 
-  const hasRange = item.finalPriceMax && item.finalPriceMax !== item.finalPrice;
-  const price = hasRange
-    ? `${formatPrice(item.finalPrice)} - ${formatPrice(item.finalPriceMax!)}`
-    : formatPrice(item.finalPrice);
+  // Calculate final price based on pricing rule
+  const basePrice = getItemBasePrice(item);
+  const priceValue = isTemplate(item.pricingRule)
+    ? item.pricingRule.priceValue
+    : item.pricingRule.priceValue;
 
+  let finalPrice = basePrice;
+  switch (priceType) {
+    case ComponentPriceType.FIXED:
+      finalPrice = priceValue ?? 0;
+      break;
+    case ComponentPriceType.MARKUP_PERCENT:
+      finalPrice = basePrice * (1 + (priceValue ?? 0) / 100);
+      break;
+    case ComponentPriceType.DISCOUNT_PERCENT:
+      finalPrice = basePrice * (1 - (priceValue ?? 0) / 100);
+      break;
+    case ComponentPriceType.MARKUP_FIXED:
+      finalPrice = basePrice + (priceValue ?? 0);
+      break;
+    case ComponentPriceType.DISCOUNT_FIXED:
+      finalPrice = basePrice - (priceValue ?? 0);
+      break;
+    default:
+      finalPrice = basePrice;
+  }
+
+  const price = formatPrice(finalPrice);
   let comparePrice: string | undefined;
-  if (showComparePrice && item.basePrice !== item.finalPrice) {
-    const hasBaseRange =
-      item.basePriceMax && item.basePriceMax !== item.basePrice;
-    comparePrice = hasBaseRange
-      ? `${formatPrice(item.basePrice)} - ${formatPrice(item.basePriceMax!)}`
-      : formatPrice(item.basePrice);
+  if (showComparePrice && basePrice !== finalPrice) {
+    comparePrice = formatPrice(basePrice);
   }
 
   return { price, comparePrice, isFree: false, isIncluded: false };
@@ -330,7 +368,7 @@ const formatPriceDisplay = (
 // ============================================================================
 
 interface IStorefrontItemProps {
-  item: IComponentItem;
+  item: ComponentItem;
   isSelected: boolean;
   isMultiple: boolean;
   onSelect: () => void;
@@ -351,50 +389,29 @@ const StorefrontItem = ({
   showComparePrice,
 }: IStorefrontItemProps) => {
   const { styles, cx } = useStyles();
-  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(
-    null
-  );
-
-  const product = getProductById(item.productId);
-  const hasVariants =
-    item.itemType === ComponentItemType.PRODUCT_WITH_VARIANTS &&
-    product?.variants;
-
-  // Get selected variant data if applicable
-  const selectedVariant = useMemo(() => {
-    if (hasVariants && selectedVariantId) {
-      return getVariantById(item.productId, selectedVariantId);
-    }
-    return null;
-  }, [hasVariants, selectedVariantId, item.productId]);
 
   const title = getItemTitle(item);
-  const image = selectedVariant?.imageUrl ?? getItemImage(item);
-  const sku = hasVariants ? selectedVariant?.sku ?? null : getItemSku(item);
+  const image = getItemImage(item);
+  const sku = getItemSku(item);
   const { price, comparePrice, isFree, isIncluded } = formatPriceDisplay(
     item,
     showComparePrice
   );
 
-  const availableVariants = useMemo(() => {
-    if (!hasVariants || !product?.variants) return [];
-    if (!item.availableVariantIds) return product.variants;
-    return product.variants.filter((v) =>
-      item.availableVariantIds?.includes(v.id)
-    );
-  }, [hasVariants, product, item.availableVariantIds]);
+  // For now, items are always available (stock logic removed)
+  const isAvailable = true;
 
   const handleClick = useCallback(() => {
-    if (!item.isAvailable) return;
+    if (!isAvailable) return;
     onSelect();
-  }, [item.isAvailable, onSelect]);
+  }, [isAvailable, onSelect]);
 
   return (
     <div
       className={cx(
         styles.itemCard,
         isSelected && styles.itemCardSelected,
-        !item.isAvailable && styles.itemCardDisabled
+        !isAvailable && styles.itemCardDisabled
       )}
       onClick={handleClick}
     >
@@ -403,9 +420,9 @@ const StorefrontItem = ({
         className={isMultiple ? styles.checkboxWrapper : styles.radioWrapper}
       >
         {isMultiple ? (
-          <Checkbox checked={isSelected} disabled={!item.isAvailable} />
+          <Checkbox checked={isSelected} disabled={!isAvailable} />
         ) : (
-          <Radio checked={isSelected} disabled={!item.isAvailable} />
+          <Radio checked={isSelected} disabled={!isAvailable} />
         )}
       </div>
 
@@ -430,39 +447,12 @@ const StorefrontItem = ({
         <div className={styles.itemTitle}>{title}</div>
         <div className={styles.itemMeta}>
           {showSku && sku && <span>{sku}</span>}
-          {showStock && item.totalStock !== undefined && (
-            <Tag
-              color={item.totalStock > 0 ? "green" : "red"}
-              style={{ margin: 0 }}
-            >
-              {item.totalStock > 0
-                ? `${item.totalStock} in stock`
-                : "Out of stock"}
-            </Tag>
-          )}
-          {!item.isAvailable && item.stockStatus && (
-            <Tag color="red" style={{ margin: 0 }}>
-              {item.stockStatus}
+          {showStock && item.itemType === ComponentItemType.VARIANT && (
+            <Tag color="green" style={{ margin: 0 }}>
+              In stock
             </Tag>
           )}
         </div>
-
-        {/* Variant selector */}
-        {hasVariants && isSelected && availableVariants.length > 0 && (
-          <Select
-            className={styles.variantSelect}
-            placeholder="Select variant"
-            value={selectedVariantId}
-            onChange={setSelectedVariantId}
-            onClick={(e) => e.stopPropagation()}
-            options={availableVariants.map((v) => ({
-              value: v.id,
-              label: `${v.title} - ${formatPrice(v.price)}`,
-              disabled: v.stock === 0,
-            }))}
-            size="small"
-          />
-        )}
       </div>
 
       {/* Pricing */}
@@ -511,20 +501,21 @@ const StorefrontGroup = ({
 
   const handleItemSelect = useCallback(
     (itemId: string) => {
-      if (group.isMultiple) {
+      if (group.rules.isMultiple) {
         // Multiple selection
         if (selectedItemIds.includes(itemId)) {
           // Deselect
           const newSelection = selectedItemIds.filter((id) => id !== itemId);
-          if (group.isRequired && newSelection.length < group.minSelection) {
+          const minSelection = group.rules.minSelection ?? 0;
+          if (group.rules.isRequired && newSelection.length < minSelection) {
             return; // Can't go below minimum
           }
           onSelectionChange(newSelection);
         } else {
           // Select
           if (
-            group.maxSelection &&
-            selectedItemIds.length >= group.maxSelection
+            group.rules.maxSelection &&
+            selectedItemIds.length >= group.rules.maxSelection
           ) {
             return; // Can't exceed maximum
           }
@@ -534,7 +525,7 @@ const StorefrontGroup = ({
         // Single selection
         if (selectedItemIds.includes(itemId)) {
           // Deselect only if not required
-          if (!group.isRequired) {
+          if (!group.rules.isRequired) {
             onSelectionChange([]);
           }
         } else {
@@ -545,20 +536,21 @@ const StorefrontGroup = ({
     [group, selectedItemIds, onSelectionChange]
   );
 
-  const icon = GROUP_ICONS[group.slug] ?? <ShoppingOutlined />;
+  const icon = <ShoppingOutlined />;
 
   const selectionText = useMemo(() => {
     const parts: string[] = [];
-    if (group.isRequired) {
+    if (group.rules.isRequired) {
       parts.push("Required");
     }
-    if (group.isMultiple) {
-      if (group.minSelection > 0 && group.maxSelection) {
-        parts.push(`Select ${group.minSelection}-${group.maxSelection}`);
-      } else if (group.minSelection > 0) {
-        parts.push(`Select at least ${group.minSelection}`);
-      } else if (group.maxSelection) {
-        parts.push(`Select up to ${group.maxSelection}`);
+    if (group.rules.isMultiple) {
+      const minSelection = group.rules.minSelection ?? 0;
+      if (minSelection > 0 && group.rules.maxSelection) {
+        parts.push(`Select ${minSelection}-${group.rules.maxSelection}`);
+      } else if (minSelection > 0) {
+        parts.push(`Select at least ${minSelection}`);
+      } else if (group.rules.maxSelection) {
+        parts.push(`Select up to ${group.rules.maxSelection}`);
       } else {
         parts.push("Select multiple");
       }
@@ -575,7 +567,7 @@ const StorefrontGroup = ({
         <Typography.Text className={styles.groupTitle}>
           {group.title}
         </Typography.Text>
-        {group.isRequired && (
+        {group.rules.isRequired && (
           <Tag color="red" className={styles.requiredBadge}>
             Required
           </Tag>
@@ -591,7 +583,7 @@ const StorefrontGroup = ({
               key={item.id}
               item={item}
               isSelected={selectedItemIds.includes(item.id)}
-              isMultiple={group.isMultiple}
+              isMultiple={group.rules.isMultiple}
               onSelect={() => handleItemSelect(item.id)}
               showImages={showImages}
               showSku={showSku}
@@ -631,15 +623,48 @@ const PriceSummary = ({ groups, selectedItems }: IPriceSummaryProps) => {
         if (!item) return;
 
         const title = getItemTitle(item);
-        subtotal += item.finalPrice;
+        const basePrice = getItemBasePrice(item);
+        const priceType = getPriceType(item);
 
-        if (item.basePrice > item.finalPrice) {
-          savings += item.basePrice - item.finalPrice;
+        // Calculate final price
+        const priceValue = isTemplate(item.pricingRule)
+          ? item.pricingRule.priceValue
+          : item.pricingRule.priceValue;
+
+        let finalPrice = basePrice;
+        switch (priceType) {
+          case ComponentPriceType.FIXED:
+            finalPrice = priceValue ?? 0;
+            break;
+          case ComponentPriceType.MARKUP_PERCENT:
+            finalPrice = basePrice * (1 + (priceValue ?? 0) / 100);
+            break;
+          case ComponentPriceType.DISCOUNT_PERCENT:
+            finalPrice = basePrice * (1 - (priceValue ?? 0) / 100);
+            break;
+          case ComponentPriceType.MARKUP_FIXED:
+            finalPrice = basePrice + (priceValue ?? 0);
+            break;
+          case ComponentPriceType.DISCOUNT_FIXED:
+            finalPrice = basePrice - (priceValue ?? 0);
+            break;
+          case ComponentPriceType.FREE:
+          case ComponentPriceType.INCLUDED:
+            finalPrice = 0;
+            break;
+          default:
+            finalPrice = basePrice;
         }
 
-        if (item.finalPrice > 0) {
-          lines.push({ label: title, amount: item.finalPrice });
-        } else if (item.priceType === ComponentPriceType.FREE) {
+        subtotal += finalPrice;
+
+        if (basePrice > finalPrice) {
+          savings += basePrice - finalPrice;
+        }
+
+        if (finalPrice > 0) {
+          lines.push({ label: title, amount: finalPrice });
+        } else if (priceType === ComponentPriceType.FREE) {
           lines.push({ label: `${title} (Free)`, amount: 0 });
         }
       });
@@ -701,13 +726,11 @@ export const PreviewTab = ({
 }: IPreviewTabProps) => {
   const { styles } = useStyles();
 
-  // Initialize selected items with defaults
+  // Initialize selected items (no defaults in new structure)
   const [selectedItems, setSelectedItems] = useState<ISelectedItems>(() => {
     const initial: ISelectedItems = {};
     groups.forEach((group) => {
-      initial[group.id] = group.defaultItemIds.filter((id) =>
-        group.items.some((item) => item.id === id)
-      );
+      initial[group.id] = [];
     });
     return initial;
   });

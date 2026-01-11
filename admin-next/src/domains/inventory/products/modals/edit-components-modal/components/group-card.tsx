@@ -20,13 +20,13 @@ import {
   type IPickableEntity,
 } from "@/shared/components/entity-picker-modal";
 
-import {
-  ComponentItemType,
-  ComponentPriceType,
-  type IComponentGroup,
-  type IComponentItem,
-  type IPricingRuleTemplate,
+import type {
+  ComponentItem,
+  IComponentGroup,
+  PricingRuleTemplate,
 } from "../types";
+import { ComponentItemType, ComponentPriceType } from "../types";
+import type { ApiProduct } from "@/graphql/types";
 import { GroupSettings } from "./group-settings";
 import { ComponentsTable } from "./components-table";
 
@@ -80,9 +80,9 @@ interface IGroupCardProps {
   onChange: (group: IComponentGroup) => void;
   onDelete: () => void;
   onDuplicate: () => void;
-  onEditVariants?: (item: IComponentItem) => void;
-  onIncludeVariants?: (item: IComponentItem) => void;
-  pricingTemplates: IPricingRuleTemplate[];
+  onEditVariants?: (item: ComponentItem) => void;
+  onIncludeVariants?: (item: ComponentItem) => void;
+  pricingTemplates: PricingRuleTemplate[];
 }
 
 // ============================================================================
@@ -104,24 +104,30 @@ export const GroupCard = ({
 
   // Get existing product IDs to exclude from picker
   const existingProductIds = useMemo(
-    () => group.items.map((item) => item.productId),
+    () =>
+      group.items
+        .filter((item) => item.itemType === ComponentItemType.PRODUCT)
+        .map((item) => item.assignedProduct?.id)
+        .filter(Boolean) as string[],
     [group.items]
   );
 
   // Transform selected products to component items
   const handleProductsSelected = useCallback(
     (products: IPickableEntity[]) => {
-      const newItems: IComponentItem[] = products.map((product, index) => ({
+      const newItems: ComponentItem[] = products.map((product, index) => ({
         id: `item-${Date.now()}-${index}`,
-        itemType: ComponentItemType.SIMPLE_PRODUCT,
-        productId: product.id,
-        priceType: ComponentPriceType.BASE,
-        priceValue: null,
-        basePrice: 0,
-        finalPrice: 0,
+        itemType: ComponentItemType.PRODUCT,
+        assignedProduct: product as ApiProduct,
         sortIndex: group.items.length + index,
-        isAvailable: true,
-        customTitle: product.title,
+        pricingRule: {
+          priceType: ComponentPriceType.BASE,
+          priceValue: null,
+        },
+        overrides: {
+          title: null,
+          featuredImage: null,
+        },
       }));
 
       onChange({
@@ -156,7 +162,7 @@ export const GroupCard = ({
   );
 
   const handleItemsChange = useCallback(
-    (items: IComponentItem[]) => {
+    (items: ComponentItem[]) => {
       onChange({ ...group, items });
     },
     [group, onChange]

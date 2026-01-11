@@ -28,7 +28,7 @@ import type { ColumnsType } from "antd/es/table";
 import { Paper } from "@/ui-kit/paper";
 import {
   ComponentPriceType,
-  type IPricingRuleTemplate,
+  type PricingRuleTemplate,
   type ITieredDiscount,
   PRICE_RULE_OPTIONS,
 } from "../types";
@@ -78,13 +78,13 @@ const useStyles = createStyles(({ token }) => ({
 // ============================================================================
 
 interface IPricingRulesTabProps {
-  pricingTemplates: IPricingRuleTemplate[];
-  onPricingTemplatesChange: (templates: IPricingRuleTemplate[]) => void;
+  pricingTemplates: PricingRuleTemplate[];
+  onPricingTemplatesChange: (templates: PricingRuleTemplate[]) => void;
   tieredDiscounts: ITieredDiscount[];
   onTieredDiscountsChange: (discounts: ITieredDiscount[]) => void;
 }
 
-interface IEditingTemplate extends IPricingRuleTemplate {
+interface IEditingTemplate extends PricingRuleTemplate {
   isNew?: boolean;
 }
 
@@ -131,7 +131,7 @@ export const PricingRulesTab = ({
     setEditingTemplate(newTemplate);
   }, []);
 
-  const handleEditTemplate = useCallback((template: IPricingRuleTemplate) => {
+  const handleEditTemplate = useCallback((template: PricingRuleTemplate) => {
     setEditingTemplateId(template.id);
     setEditingTemplate({ ...template });
   }, []);
@@ -224,7 +224,7 @@ export const PricingRulesTab = ({
   // ========================================
   // Templates Table Columns
   // ========================================
-  const templateColumns: ColumnsType<IPricingRuleTemplate> = useMemo(
+  const templateColumns: ColumnsType<PricingRuleTemplate> = useMemo(
     () => [
       {
         title: "Name",

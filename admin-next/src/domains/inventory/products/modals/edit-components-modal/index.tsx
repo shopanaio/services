@@ -15,35 +15,23 @@ import {
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
+import { useComponentVariantSettingsModal } from "../../modals";
 
 import type {
-  IEditComponentsModalPayload,
   EditComponentsTabKey,
-  DisplayStyle,
-  OutOfStockBehavior,
-} from "./types";
-import type {
   IComponentGroup,
-  IComponentItem,
-  IPricingRuleTemplate,
+  ComponentItem,
+  PricingRuleTemplate,
   ITieredDiscount,
-  IIncludedVariant,
-  ComponentPriceType,
-} from "@/mocks/products/components";
-import {
-  mockGroups,
-  mockPricingTemplates,
-  mockTieredDiscounts,
-  mockModalSettings,
-  getProductById,
-} from "@/mocks/products/components";
+  IBundleSettings,
+} from "./types";
+import { ComponentItemType } from "./types";
 import {
   GroupCard,
   PricingRulesTab,
   PreviewTab,
   SettingsTab,
 } from "./components";
-import { useComponentVariantSettingsModal } from "../../modals";
 import { Paper } from "@/ui-kit/paper";
 
 // ============================================================================
@@ -74,9 +62,9 @@ const useStyles = createStyles(() => ({
 interface IGroupsTabProps {
   groups: IComponentGroup[];
   onGroupsChange: (groups: IComponentGroup[]) => void;
-  onEditVariants?: (item: IComponentItem, groupId: string) => void;
-  onIncludeVariants?: (item: IComponentItem, groupId: string) => void;
-  pricingTemplates: IPricingRuleTemplate[];
+  onEditVariants?: (item: ComponentItem, groupId: string) => void;
+  onIncludeVariants?: (item: ComponentItem, groupId: string) => void;
+  pricingTemplates: PricingRuleTemplate[];
 }
 
 const GroupsTab = ({
@@ -101,13 +89,13 @@ const GroupsTab = ({
     const newGroup: IComponentGroup = {
       id: `grp-${Date.now()}`,
       title: "New Group",
-      slug: `new-group-${Date.now()}`,
       sortIndex: groups.length,
-      isRequired: false,
-      isMultiple: false,
-      minSelection: 0,
-      maxSelection: 1,
-      defaultItemIds: [],
+      rules: {
+        isRequired: false,
+        isMultiple: false,
+        minSelection: null,
+        maxSelection: null,
+      },
       items: [],
     };
     onGroupsChange([...groups, newGroup]);
@@ -139,7 +127,6 @@ const GroupsTab = ({
         ...groupToDuplicate,
         id: `grp-${Date.now()}`,
         title: `${groupToDuplicate.title} (copy)`,
-        slug: `${groupToDuplicate.slug}-copy`,
         sortIndex: groups.length,
         items: groupToDuplicate.items.map((item) => ({
           ...item,
@@ -191,41 +178,48 @@ const GroupsTab = ({
 // Main Modal Component
 // ============================================================================
 
+// Payload interface for modal
+interface IEditComponentsModalPayload {
+  groups?: IComponentGroup[];
+  pricingTemplates?: PricingRuleTemplate[];
+  tieredDiscounts?: ITieredDiscount[];
+  bundleSettings?: IBundleSettings;
+  onSave?: (data: unknown) => void;
+}
+
+// Default bundle settings
+const DEFAULT_BUNDLE_SETTINGS: IBundleSettings = {
+  displayStyle: "accordion",
+  showImages: true,
+  showSku: true,
+  showStock: true,
+  showComparePrice: false,
+  outOfStockBehavior: "disable",
+  inheritStock: true,
+  validationMessage: null,
+};
+
 export const EditComponentsModal = () => {
   const { styles } = useStyles();
   const { pop, setDirty, payload } = useModalStackContext();
+  const { push: openVariantSettingsModal } = useComponentVariantSettingsModal();
 
   const modalPayload = payload as unknown as IEditComponentsModalPayload | undefined;
 
   // State
   const [activeTab, setActiveTab] = useState<EditComponentsTabKey>("groups");
   const [groups, setGroups] = useState<IComponentGroup[]>(
-    modalPayload?.groups ?? mockGroups
+    modalPayload?.groups ?? []
   );
-  const [pricingTemplates, setPricingTemplates] = useState<
-    IPricingRuleTemplate[]
-  >(modalPayload?.pricingTemplates ?? mockPricingTemplates);
+  const [pricingTemplates, setPricingTemplates] = useState<PricingRuleTemplate[]>(
+    modalPayload?.pricingTemplates ?? []
+  );
   const [tieredDiscounts, setTieredDiscounts] = useState<ITieredDiscount[]>(
-    modalPayload?.tieredDiscounts ?? mockTieredDiscounts
+    modalPayload?.tieredDiscounts ?? []
   );
-  const [displayStyle, setDisplayStyle] = useState<DisplayStyle>(
-    modalPayload?.displayStyle ?? mockModalSettings.displayStyle
+  const [bundleSettings, setBundleSettings] = useState<IBundleSettings>(
+    modalPayload?.bundleSettings ?? DEFAULT_BUNDLE_SETTINGS
   );
-  const [settings, setSettings] = useState({
-    showImages: modalPayload?.showImages ?? mockModalSettings.showImages,
-    showSku: modalPayload?.showSku ?? mockModalSettings.showSku,
-    showStock: modalPayload?.showStock ?? mockModalSettings.showStock,
-    showComparePrice:
-      modalPayload?.showComparePrice ?? mockModalSettings.showComparePrice,
-    outOfStockBehavior: (modalPayload?.outOfStockBehavior ??
-      mockModalSettings.outOfStockBehavior) as OutOfStockBehavior,
-    inheritStock: modalPayload?.inheritStock ?? mockModalSettings.inheritStock,
-    validationMessage:
-      modalPayload?.validationMessage ?? mockModalSettings.validationMessage,
-  });
-
-  // VariantSettingsModal hook
-  const { push: pushVariantSettings } = useComponentVariantSettingsModal();
 
   // Handlers
   const handleGroupsChange = useCallback(
@@ -236,180 +230,122 @@ export const EditComponentsModal = () => {
     [setDirty]
   );
 
+  // Handler for editing variant selection for a product component
   const handleEditVariants = useCallback(
-    (item: IComponentItem, groupId: string) => {
-      const product = getProductById(item.productId);
-      if (!product || !product.variants) return;
+    (item: ComponentItem, groupId: string) => {
+      if (item.itemType !== ComponentItemType.PRODUCT || !item.assignedProduct) {
+        return;
+      }
 
-      const hasIncludedVariants = !!(item.includedVariants && item.includedVariants.length > 0);
+      const product = item.assignedProduct;
+      const variantsFromConnection = product.variants?.edges?.map((e) => e.node) ?? [];
 
-      pushVariantSettings({
+      // Get price rule info
+      const priceType = "id" in item.pricingRule
+        ? "BASE"
+        : item.pricingRule.priceType;
+      const priceValue = "id" in item.pricingRule
+        ? null
+        : item.pricingRule.priceValue;
+
+      openVariantSettingsModal({
         itemId: item.id,
-        productId: item.productId,
-        productTitle: product.title,
-        availableVariantIds: item.availableVariantIds ?? null,
-        priceType: item.priceType,
-        priceValue: item.priceValue,
-        variants: product.variants.map((v) => ({
+        productId: product.id,
+        productTitle: item.overrides.title ?? product.title,
+        availableVariantIds: item.excludeAssignedProductVariants ?? null,
+        priceType: priceType as "BASE" | "FIXED" | "MARKUP_PERCENT" | "DISCOUNT_PERCENT" | "MARKUP_FIXED" | "DISCOUNT_FIXED" | "FREE" | "INCLUDED",
+        priceValue,
+        variants: variantsFromConnection.map((v) => ({
           id: v.id,
-          title: v.title,
-          sku: v.sku,
-          price: v.price,
-          stock: v.stock,
-          options: v.options,
+          title: v.title ?? v.sku ?? v.id,
+          sku: v.sku ?? "",
+          price: typeof v.price?.amountMinor === "bigint"
+            ? Number(v.price.amountMinor)
+            : typeof v.price?.amountMinor === "number"
+              ? v.price.amountMinor
+              : 0,
+          stock: v.stock?.[0]?.quantityOnHand ?? 0,
+          options: v.selectedOptions?.map((o) => ({
+            optionId: o.optionId,
+            value: o.optionValueId,
+          })),
         })),
-        options: product.options,
-        showAsVariants: hasIncludedVariants,
+        options: product.options?.map((o) => ({
+          id: o.id,
+          name: o.name,
+          values: o.values?.map((v) => v.name) ?? [],
+        })),
+        showAsVariants: false,
         onSave: (data: { availableVariantIds: string[] | null; showAsVariants: boolean }) => {
-          // Calculate max sortIndex for new variants
-          const group = groups.find((g) => g.id === groupId);
-          let maxSortIndex = 0;
-          if (group) {
-            group.items.forEach((groupItem) => {
-              maxSortIndex = Math.max(maxSortIndex, groupItem.sortIndex);
-              groupItem.includedVariants?.forEach((v) => {
-                maxSortIndex = Math.max(maxSortIndex, v.sortIndex);
-              });
-            });
-          }
-
-          const updatedGroups = groups.map((grp) => {
-            if (grp.id !== groupId) return grp;
-
-            return {
-              ...grp,
-              items: grp.items.map((i) => {
-                if (i.id !== item.id) return i;
-
-                // Update available variant IDs
-                let updatedItem = {
-                  ...i,
-                  availableVariantIds: data.availableVariantIds,
-                };
-
-                // Handle showAsVariants toggle
-                if (data.showAsVariants && !hasIncludedVariants) {
-                  // Add variants to table
-                  const availableVariants = data.availableVariantIds
-                    ? product.variants!.filter((v) =>
-                        data.availableVariantIds!.includes(v.id)
-                      )
-                    : product.variants!;
-
-                  const newIncludedVariants: IIncludedVariant[] = availableVariants.map(
-                    (variant, index) => ({
-                      id: `inc-${Date.now()}-${variant.id}`,
-                      variantId: variant.id,
-                      sortIndex: maxSortIndex + 1 + index,
-                      priceType: item.priceType as ComponentPriceType,
-                      priceValue: item.priceValue,
-                      basePrice: variant.price,
-                      finalPrice: variant.price,
-                    })
-                  );
-
-                  updatedItem = {
-                    ...updatedItem,
-                    includedVariants: newIncludedVariants,
-                  };
-                } else if (!data.showAsVariants && hasIncludedVariants) {
-                  // Remove variants from table
-                  updatedItem = {
-                    ...updatedItem,
-                    includedVariants: undefined,
-                  };
-                }
-
-                return updatedItem;
-              }),
-            };
-          });
-
-          setGroups(updatedGroups);
+          // Update the item with new variant selection
+          setGroups((prev) =>
+            prev.map((g) =>
+              g.id === groupId
+                ? {
+                    ...g,
+                    items: g.items.map((i) =>
+                      i.id === item.id
+                        ? { ...i, excludeAssignedProductVariants: data.availableVariantIds }
+                        : i
+                    ),
+                  }
+                : g
+            )
+          );
           setDirty(true);
         },
       });
     },
-    [pushVariantSettings, groups, setDirty]
+    [openVariantSettingsModal, setDirty]
   );
 
-  // Handle including variants in the table with individual pricing
-  // Immediately adds all available variants without showing a modal
+  // Handler for including variants as separate items
   const handleIncludeVariants = useCallback(
-    (item: IComponentItem, groupId: string) => {
-      const product = getProductById(item.productId);
-      if (!product || !product.variants) return;
-
-      // Get variants that are available for this item
-      const availableVariants = item.availableVariantIds
-        ? product.variants.filter((v) =>
-            item.availableVariantIds!.includes(v.id)
-          )
-        : product.variants;
-
-      // Get already included variant IDs
-      const alreadyIncludedIds = new Set(
-        item.includedVariants?.map((iv) => iv.variantId) ?? []
-      );
-
-      // Get variants that haven't been included yet
-      const variantsToAdd = availableVariants.filter(
-        (v) => !alreadyIncludedIds.has(v.id)
-      );
-
-      if (variantsToAdd.length === 0) {
-        return; // All variants already included
+    (item: ComponentItem, groupId: string) => {
+      if (item.itemType !== ComponentItemType.PRODUCT || !item.assignedProduct) {
+        return;
       }
 
-      // Calculate the starting sortIndex for new variants
-      // Find max sortIndex among all items and existing variants in the group
-      const group = groups.find((g) => g.id === groupId);
-      let maxSortIndex = 0;
-      if (group) {
-        group.items.forEach((groupItem) => {
-          maxSortIndex = Math.max(maxSortIndex, groupItem.sortIndex);
-          groupItem.includedVariants?.forEach((v) => {
-            maxSortIndex = Math.max(maxSortIndex, v.sortIndex);
-          });
-        });
+      const product = item.assignedProduct;
+      const variantsFromConnection = product.variants?.edges?.map((e) => e.node) ?? [];
+
+      if (variantsFromConnection.length === 0) {
+        console.log("No variants to include for product:", product.id);
+        return;
       }
 
-      // Create included variants with default pricing (inherits from parent)
-      const newIncludedVariants: IIncludedVariant[] = variantsToAdd.map(
-        (variant, index) => ({
-          id: `inc-${Date.now()}-${variant.id}`,
-          variantId: variant.id,
-          sortIndex: maxSortIndex + 1 + index,
-          priceType: item.priceType as ComponentPriceType,
-          priceValue: item.priceValue,
-          basePrice: variant.price,
-          finalPrice: variant.price,
+      // Create variant items from product variants
+      const variantItems: ComponentItem[] = variantsFromConnection.map((variant, index) => ({
+        id: `item-${Date.now()}-${index}`,
+        itemType: ComponentItemType.VARIANT,
+        assignedVariant: variant,
+        sortIndex: item.sortIndex + index + 1,
+        pricingRule: item.pricingRule,
+        overrides: {
+          title: null,
+          featuredImage: null,
+        },
+      }));
+
+      // Add variant items to the group after the product item
+      setGroups((prev) =>
+        prev.map((g) => {
+          if (g.id !== groupId) return g;
+
+          const itemIndex = g.items.findIndex((i) => i.id === item.id);
+          const newItems = [...g.items];
+          newItems.splice(itemIndex + 1, 0, ...variantItems);
+
+          // Update sort indices
+          return {
+            ...g,
+            items: newItems.map((i, idx) => ({ ...i, sortIndex: idx })),
+          };
         })
       );
-
-      const updatedGroups = groups.map((group) => {
-        if (group.id !== groupId) return group;
-
-        return {
-          ...group,
-          items: group.items.map((i) =>
-            i.id === item.id
-              ? {
-                  ...i,
-                  includedVariants: [
-                    ...(i.includedVariants ?? []),
-                    ...newIncludedVariants,
-                  ],
-                }
-              : i
-          ),
-        };
-      });
-
-      setGroups(updatedGroups);
       setDirty(true);
     },
-    [groups, setDirty]
+    [setDirty]
   );
 
   const handleSave = useCallback(() => {
@@ -417,22 +353,13 @@ export const EditComponentsModal = () => {
       groups,
       pricingTemplates,
       tieredDiscounts,
-      displayStyle,
-      settings,
+      bundleSettings,
     };
 
     console.log("Saving:", saveData);
     modalPayload?.onSave?.(saveData);
     pop();
-  }, [
-    groups,
-    pricingTemplates,
-    tieredDiscounts,
-    displayStyle,
-    settings,
-    modalPayload,
-    pop,
-  ]);
+  }, [groups, pricingTemplates, tieredDiscounts, bundleSettings, modalPayload, pop]);
 
   // Tab items
   const tabItems = useMemo(
@@ -489,11 +416,11 @@ export const EditComponentsModal = () => {
         children: (
           <PreviewTab
             groups={groups}
-            displayStyle={displayStyle}
-            showImages={settings.showImages}
-            showSku={settings.showSku}
-            showStock={settings.showStock}
-            showComparePrice={settings.showComparePrice}
+            displayStyle={bundleSettings.displayStyle}
+            showImages={bundleSettings.showImages}
+            showSku={bundleSettings.showSku}
+            showStock={bundleSettings.showStock}
+            showComparePrice={bundleSettings.showComparePrice}
           />
         ),
       },
@@ -507,39 +434,39 @@ export const EditComponentsModal = () => {
         ),
         children: (
           <SettingsTab
-            displayStyle={displayStyle}
+            displayStyle={bundleSettings.displayStyle}
             onDisplayStyleChange={(style) => {
-              setDisplayStyle(style);
+              setBundleSettings((prev) => ({ ...prev, displayStyle: style }));
               setDirty(true);
             }}
-            showImages={settings.showImages}
+            showImages={bundleSettings.showImages}
             onShowImagesChange={(value) => {
-              setSettings((prev) => ({ ...prev, showImages: value }));
+              setBundleSettings((prev) => ({ ...prev, showImages: value }));
               setDirty(true);
             }}
-            showSku={settings.showSku}
+            showSku={bundleSettings.showSku}
             onShowSkuChange={(value) => {
-              setSettings((prev) => ({ ...prev, showSku: value }));
+              setBundleSettings((prev) => ({ ...prev, showSku: value }));
               setDirty(true);
             }}
-            showStock={settings.showStock}
+            showStock={bundleSettings.showStock}
             onShowStockChange={(value) => {
-              setSettings((prev) => ({ ...prev, showStock: value }));
+              setBundleSettings((prev) => ({ ...prev, showStock: value }));
               setDirty(true);
             }}
-            showComparePrice={settings.showComparePrice}
+            showComparePrice={bundleSettings.showComparePrice}
             onShowComparePriceChange={(value) => {
-              setSettings((prev) => ({ ...prev, showComparePrice: value }));
+              setBundleSettings((prev) => ({ ...prev, showComparePrice: value }));
               setDirty(true);
             }}
-            outOfStockBehavior={settings.outOfStockBehavior}
+            outOfStockBehavior={bundleSettings.outOfStockBehavior}
             onOutOfStockBehaviorChange={(value) => {
-              setSettings((prev) => ({ ...prev, outOfStockBehavior: value }));
+              setBundleSettings((prev) => ({ ...prev, outOfStockBehavior: value }));
               setDirty(true);
             }}
-            inheritStock={settings.inheritStock}
+            inheritStock={bundleSettings.inheritStock}
             onInheritStockChange={(value) => {
-              setSettings((prev) => ({ ...prev, inheritStock: value }));
+              setBundleSettings((prev) => ({ ...prev, inheritStock: value }));
               setDirty(true);
             }}
           />
@@ -553,8 +480,7 @@ export const EditComponentsModal = () => {
       handleIncludeVariants,
       pricingTemplates,
       tieredDiscounts,
-      displayStyle,
-      settings,
+      bundleSettings,
       setDirty,
     ]
   );

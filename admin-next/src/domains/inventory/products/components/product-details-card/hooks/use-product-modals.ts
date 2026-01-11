@@ -14,8 +14,13 @@ import {
   type IEditSeoModalPayload,
 } from "../../../modals";
 import type { IProduct, IMediaFile } from "@/mocks/products/types";
+import type { IComponentGroup } from "../../../modals/edit-components-modal/types";
 
-export const useProductModals = (product: IProduct) => {
+interface IUseProductModalsOptions {
+  components?: IComponentGroup[];
+}
+
+export const useProductModals = (product: IProduct, options: IUseProductModalsOptions = {}) => {
   const { push: openProductModal } = useProductModal();
   const { push: openEditMediaModal } = useEditMediaModal();
   const { push: openEditOptionsModal } = useEditOptionsModal();
@@ -76,8 +81,11 @@ export const useProductModals = (product: IProduct) => {
   }, [product.id, openEditAttributesModal]);
 
   const handleEditComponents = useCallback(() => {
-    openEditComponentsModal({ productId: product.id });
-  }, [product.id, openEditComponentsModal]);
+    openEditComponentsModal({
+      productId: product.id,
+      groups: options.components,
+    });
+  }, [product.id, options.components, openEditComponentsModal]);
 
   const handleEditSeo = useCallback(() => {
     openEditSeoModal({

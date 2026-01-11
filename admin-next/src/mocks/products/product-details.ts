@@ -1,6 +1,5 @@
 import { mockCategories, mockTags } from "./data";
 import { MOCK_OPTION_GROUPS } from "./options";
-import { mockGroups, getProductById, getVariantById } from "./components";
 import { createMockData as createAttributesMockData } from "./attributes";
 import type {
   IProductDetailsMockData,
@@ -10,7 +9,9 @@ import {
   type ProductInventoryWidget,
   ThresholdType,
 } from "@/domains/inventory/products/components/product-details-card/inventory-widget.types";
-import { CurrencyCode, type ApiVariant, type ApiPageInfo } from "@/graphql/types";
+import { CurrencyCode, OptionDisplayType, type ApiVariant, type ApiPageInfo } from "@/graphql/types";
+import type { IComponentGroup } from "@/domains/inventory/products/modals/edit-components-modal/types";
+import { ComponentItemType, ComponentPriceType } from "@/domains/inventory/products/modals/edit-components-modal/types";
 
 const getMockInventoryWidget = (): ProductInventoryWidget => ({
   quantities: {
@@ -44,17 +45,229 @@ const defaultReviewsData = {
   ],
 };
 
-const getComponentItemImage = (
-  productId: string,
-  variantId?: string | null
-): string | null => {
-  if (variantId) {
-    const variant = getVariantById(productId, variantId);
-    if (variant?.imageUrl) return variant.imageUrl;
-  }
-  const product = getProductById(productId);
-  return product?.imageUrl ?? null;
-};
+// Helper to create mock variant for component products
+const createComponentVariant = (
+  id: string,
+  title: string,
+  sku: string,
+  price: number,
+  options: { optionId: string; optionValueId: string }[] = []
+): ApiVariant => ({
+  __typename: "Variant",
+  id,
+  title,
+  sku,
+  handle: id,
+  isDefault: false,
+  inStock: true,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  selectedOptions: options,
+  price: {
+    __typename: "VariantPrice",
+    id: `price-${id}`,
+    amountMinor: price,
+    compareAtMinor: null,
+    currency: CurrencyCode.Rub,
+    effectiveFrom: new Date().toISOString(),
+    isCurrent: true,
+    recordedAt: new Date().toISOString(),
+  },
+  cost: null,
+  costHistory: { __typename: "VariantCostConnection", edges: [], pageInfo: { __typename: "PageInfo", hasNextPage: false, hasPreviousPage: false, startCursor: null, endCursor: null }, totalCount: 0 },
+  priceHistory: { __typename: "VariantPriceConnection", edges: [], pageInfo: { __typename: "PageInfo", hasNextPage: false, hasPreviousPage: false, startCursor: null, endCursor: null }, totalCount: 0 },
+  weight: null,
+  dimensions: null,
+  media: [],
+  stock: [],
+  product: {} as ApiVariant["product"],
+});
+
+// Mock variants for Premium Case product
+const premiumCaseVariants: ApiVariant[] = [
+  createComponentVariant("case-var-1", "Black", "CASE-BLK", 199000, [{ optionId: "color", optionValueId: "black" }]),
+  createComponentVariant("case-var-2", "White", "CASE-WHT", 199000, [{ optionId: "color", optionValueId: "white" }]),
+  createComponentVariant("case-var-3", "Navy", "CASE-NVY", 219000, [{ optionId: "color", optionValueId: "navy" }]),
+  createComponentVariant("case-var-4", "Red", "CASE-RED", 219000, [{ optionId: "color", optionValueId: "red" }]),
+  createComponentVariant("case-var-5", "Green", "CASE-GRN", 239000, [{ optionId: "color", optionValueId: "green" }]),
+  createComponentVariant("case-var-6", "Gold", "CASE-GLD", 299000, [{ optionId: "color", optionValueId: "gold" }]),
+];
+
+// Mock component groups with new structure
+const mockComponentGroups: IComponentGroup[] = [
+  {
+    id: "grp-1",
+    title: "Accessories",
+    sortIndex: 0,
+    rules: {
+      isRequired: true,
+      isMultiple: true,
+      minSelection: 1,
+      maxSelection: 5,
+    },
+    items: [
+      {
+        id: "item-1",
+        itemType: ComponentItemType.PRODUCT,
+        assignedProduct: {
+          __typename: "Product",
+          id: "prod-1",
+          title: "Premium Case",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          isPublished: true,
+          options: [
+            {
+              __typename: "ProductOption",
+              id: "color",
+              name: "Color",
+              slug: "color",
+              displayType: OptionDisplayType.Swatch,
+              values: [
+                { __typename: "ProductOptionValue", id: "black", name: "Black", slug: "black" },
+                { __typename: "ProductOptionValue", id: "white", name: "White", slug: "white" },
+                { __typename: "ProductOptionValue", id: "navy", name: "Navy", slug: "navy" },
+                { __typename: "ProductOptionValue", id: "red", name: "Red", slug: "red" },
+                { __typename: "ProductOptionValue", id: "green", name: "Green", slug: "green" },
+                { __typename: "ProductOptionValue", id: "gold", name: "Gold", slug: "gold" },
+              ],
+            },
+          ],
+          features: [],
+          variants: {
+            __typename: "VariantConnection",
+            edges: premiumCaseVariants.map((v) => ({ __typename: "VariantEdge" as const, cursor: v.id, node: v })),
+            pageInfo: { __typename: "PageInfo", hasNextPage: false, hasPreviousPage: false, startCursor: null, endCursor: null },
+            totalCount: 6,
+          },
+          variantsCount: 6,
+        },
+        sortIndex: 0,
+        pricingRule: {
+          priceType: ComponentPriceType.MARKUP_PERCENT,
+          priceValue: 10,
+        },
+        overrides: {
+          title: null,
+          featuredImage: null,
+        },
+      },
+      {
+        id: "item-2",
+        itemType: ComponentItemType.PRODUCT,
+        assignedProduct: {
+          __typename: "Product",
+          id: "prod-2",
+          title: "Pro Charger 65W",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          isPublished: true,
+          options: [],
+          features: [],
+          variants: { __typename: "VariantConnection", edges: [], pageInfo: { __typename: "PageInfo", hasNextPage: false, hasPreviousPage: false, startCursor: null, endCursor: null }, totalCount: 0 },
+          variantsCount: 0,
+        },
+        sortIndex: 1,
+        pricingRule: {
+          priceType: ComponentPriceType.DISCOUNT_PERCENT,
+          priceValue: 10,
+        },
+        overrides: {
+          title: null,
+          featuredImage: null,
+        },
+      },
+      {
+        id: "item-3",
+        itemType: ComponentItemType.PRODUCT,
+        assignedProduct: {
+          __typename: "Product",
+          id: "prod-3",
+          title: "Screen Protector",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          isPublished: true,
+          options: [],
+          features: [],
+          variants: { __typename: "VariantConnection", edges: [], pageInfo: { __typename: "PageInfo", hasNextPage: false, hasPreviousPage: false, startCursor: null, endCursor: null }, totalCount: 0 },
+          variantsCount: 0,
+        },
+        sortIndex: 2,
+        pricingRule: {
+          priceType: ComponentPriceType.FREE,
+          priceValue: null,
+        },
+        overrides: {
+          title: null,
+          featuredImage: null,
+        },
+      },
+    ],
+  },
+  {
+    id: "grp-2",
+    title: "Warranty",
+    sortIndex: 1,
+    rules: {
+      isRequired: false,
+      isMultiple: false,
+      minSelection: null,
+      maxSelection: 1,
+    },
+    items: [
+      {
+        id: "item-4",
+        itemType: ComponentItemType.PRODUCT,
+        assignedProduct: {
+          __typename: "Product",
+          id: "war-1",
+          title: "1 Year Standard Warranty",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          isPublished: true,
+          options: [],
+          features: [],
+          variants: { __typename: "VariantConnection", edges: [], pageInfo: { __typename: "PageInfo", hasNextPage: false, hasPreviousPage: false, startCursor: null, endCursor: null }, totalCount: 0 },
+          variantsCount: 0,
+        },
+        sortIndex: 0,
+        pricingRule: {
+          priceType: ComponentPriceType.INCLUDED,
+          priceValue: null,
+        },
+        overrides: {
+          title: "1 Year Standard Warranty (included)",
+          featuredImage: null,
+        },
+      },
+      {
+        id: "item-5",
+        itemType: ComponentItemType.PRODUCT,
+        assignedProduct: {
+          __typename: "Product",
+          id: "war-2",
+          title: "2 Year Extended Warranty",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          isPublished: true,
+          options: [],
+          features: [],
+          variants: { __typename: "VariantConnection", edges: [], pageInfo: { __typename: "PageInfo", hasNextPage: false, hasPreviousPage: false, startCursor: null, endCursor: null }, totalCount: 0 },
+          variantsCount: 0,
+        },
+        sortIndex: 1,
+        pricingRule: {
+          priceType: ComponentPriceType.FIXED,
+          priceValue: 12990,
+        },
+        overrides: {
+          title: null,
+          featuredImage: null,
+        },
+      },
+    ],
+  },
+];
 
 export const productDetailsMockData: IProductDetailsMockData = {
   categories: {
@@ -65,9 +278,8 @@ export const productDetailsMockData: IProductDetailsMockData = {
   reviews: defaultReviewsData,
   attributes: createAttributesMockData(),
   options: MOCK_OPTION_GROUPS,
-  components: mockGroups,
+  components: mockComponentGroups,
   inventory: getMockInventoryWidget(),
-  getComponentItemImage,
 };
 
 // ============================================================================
