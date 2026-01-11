@@ -19,6 +19,7 @@ import {
   FileDriver,
   ProductGroupPriceType,
 } from './types';
+import type { ApiFile, ApiDescription, FileProvider } from '@/graphql/types';
 
 // ============================================================================
 // Helper Functions
@@ -38,6 +39,48 @@ const createMediaFile = (
   driver: FileDriver.S3,
   key: `products/${name}/${index}.jpg`,
   createdAt: new Date().toISOString(),
+});
+
+/**
+ * Create an ApiFile object for mock data
+ */
+const createApiFile = (
+  name: string,
+  index: number = 0,
+): ApiFile => ({
+  __typename: 'File',
+  id: generateId(),
+  url: `https://picsum.photos/seed/${name}-${index}/800/800`,
+  originalName: `${name}-${index}.jpg`,
+  altText: null,
+  ext: 'jpg',
+  mimeType: 'image/jpeg',
+  sizeBytes: 1024 * 100,
+  provider: 'S3' as FileProvider,
+  isProcessed: true,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  deletedAt: null,
+  dimensions: { __typename: 'MediaDimensions', width: 800, height: 800 },
+  durationMs: null,
+  externalData: null,
+  meta: null,
+  s3Data: null,
+  sourceUrl: null,
+});
+
+/**
+ * Create an ApiDescription object
+ */
+const createApiDescription = (
+  json: Record<string, unknown>,
+  text: string,
+  html: string,
+): ApiDescription => ({
+  __typename: 'Description',
+  json,
+  text,
+  html,
 });
 
 const createSwatch = (
@@ -384,7 +427,7 @@ const createMockProductGroup = (
 // Mock EditorJS Data
 // ============================================================================
 
-const mockSimpleProductDescription = JSON.stringify({
+const mockSimpleProductDescriptionJson = {
   time: Date.now(),
   version: "2.29.0",
   blocks: [
@@ -424,23 +467,15 @@ const mockSimpleProductDescription = JSON.stringify({
       },
     },
   ],
-});
+};
 
-const mockSimpleProductExcerpt = JSON.stringify({
-  time: Date.now(),
-  version: "2.29.0",
-  blocks: [
-    {
-      id: "excerpt-1",
-      type: "paragraph",
-      data: {
-        text: "Premium quality cotton t-shirt with a modern fit. Perfect for everyday wear.",
-      },
-    },
-  ],
-});
+const mockSimpleProductDescriptionApi = createApiDescription(
+  mockSimpleProductDescriptionJson as Record<string, unknown>,
+  'Premium quality cotton t-shirt with a modern fit. Perfect for everyday wear. Crafted from the finest organic cotton, this t-shirt offers exceptional comfort and durability. Features: 100% organic cotton, Pre-shrunk fabric, Reinforced seams, Machine washable. Available in multiple colors and sizes. Order now and experience the comfort of premium cotton.',
+  '<p>Premium quality cotton t-shirt with a modern fit. Perfect for everyday wear. Crafted from the finest organic cotton, this t-shirt offers exceptional comfort and durability.</p><h3>Features</h3><ul><li>100% organic cotton</li><li>Pre-shrunk fabric</li><li>Reinforced seams</li><li>Machine washable</li></ul><p>Available in multiple colors and sizes. Order now and experience the comfort of premium cotton.</p>',
+);
 
-const mockVariableProductDescription = JSON.stringify({
+const mockVariableProductDescriptionJson = {
   time: Date.now(),
   version: "2.29.0",
   blocks: [
@@ -481,21 +516,13 @@ const mockVariableProductDescription = JSON.stringify({
       },
     },
   ],
-});
+};
 
-const mockVariableProductExcerpt = JSON.stringify({
-  time: Date.now(),
-  version: "2.29.0",
-  blocks: [
-    {
-      id: "phone-excerpt-1",
-      type: "paragraph",
-      data: {
-        text: "The most advanced smartphone ever with cutting-edge A17 Pro chip, 48MP camera system, and premium titanium design.",
-      },
-    },
-  ],
-});
+const mockVariableProductDescriptionApi = createApiDescription(
+  mockVariableProductDescriptionJson as Record<string, unknown>,
+  'The most advanced smartphone ever. Featuring cutting-edge technology and premium titanium design that sets new standards in mobile innovation. Key Features: 6.7" Super Retina XDR display with ProMotion technology, A17 Pro chip with 6-core GPU for unprecedented performance, 48MP main camera system with advanced computational photography, All-day battery life with fast charging support, Premium titanium design - lightest Pro model ever. Available in Natural, Blue, White, and Black titanium finishes.',
+  '<p>The most advanced smartphone ever. Featuring cutting-edge technology and premium titanium design that sets new standards in mobile innovation.</p><h3>Key Features</h3><ul><li>6.7" Super Retina XDR display with ProMotion technology</li><li>A17 Pro chip with 6-core GPU for unprecedented performance</li><li>48MP main camera system with advanced computational photography</li><li>All-day battery life with fast charging support</li><li>Premium titanium design - lightest Pro model ever</li></ul><p>Available in Natural, Blue, White, and Black titanium finishes. Choose your storage capacity and get ready for the future of mobile technology.</p>',
+);
 
 // ============================================================================
 // Mock Products
@@ -507,20 +534,20 @@ const mockVariableProductExcerpt = JSON.stringify({
 export const mockSimpleProduct: IProduct = {
   id: 'prod-simple-1',
   title: 'Classic Cotton T-Shirt',
-  description: mockSimpleProductDescription,
-  excerpt: mockSimpleProductExcerpt,
+  description: mockSimpleProductDescriptionApi,
+  excerpt: 'Premium quality cotton t-shirt with a modern fit. Perfect for everyday wear.',
   slug: 'classic-cotton-t-shirt',
   status: EntityStatus.PUBLISHED,
   price: 299900, // 2999.00 RUB in kopecks
   oldPrice: 399900,
   costPrice: 150000,
   sku: 'TSHIRT-001',
-  featured: createMediaFile('tshirt', 0),
+  featured: createApiFile('tshirt', 0),
   gallery: [
-    createMediaFile('tshirt', 1),
-    createMediaFile('tshirt', 2),
-    createMediaFile('tshirt', 3),
-    createMediaFile('tshirt', 4),
+    createApiFile('tshirt', 1),
+    createApiFile('tshirt', 2),
+    createApiFile('tshirt', 3),
+    createApiFile('tshirt', 4),
   ],
   weight: 200,
   weightUnit: WeightUnit.G,
@@ -572,23 +599,23 @@ export const mockVariableProduct: IProduct = (() => {
   return {
     id: containerId,
     title: 'Smartphone Pro Max 15',
-    description: mockVariableProductDescription,
-    excerpt: mockVariableProductExcerpt,
+    description: mockVariableProductDescriptionApi,
+    excerpt: 'The most advanced smartphone ever with cutting-edge A17 Pro chip, 48MP camera system, and premium titanium design.',
     slug: 'smartphone-pro-max-15',
     status: EntityStatus.PUBLISHED,
     price: variants[0].price,
     oldPrice: variants[0].oldPrice,
     costPrice: Math.floor(variants[0].price * 0.65),
     sku: null,
-    featured: createMediaFile('phone', 0),
+    featured: createApiFile('phone', 0),
     gallery: [
-      createMediaFile('phone', 1),
-      createMediaFile('phone', 2),
-      createMediaFile('phone', 3),
-      createMediaFile('phone', 4),
-      createMediaFile('phone', 5),
-      createMediaFile('phone', 6),
-      createMediaFile('phone', 7),
+      createApiFile('phone', 1),
+      createApiFile('phone', 2),
+      createApiFile('phone', 3),
+      createApiFile('phone', 4),
+      createApiFile('phone', 5),
+      createApiFile('phone', 6),
+      createApiFile('phone', 7),
     ],
     weight: 221,
     weightUnit: WeightUnit.G,

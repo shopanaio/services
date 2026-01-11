@@ -2,10 +2,10 @@ import { createStyles } from "antd-style";
 import { Button, Typography, Tabs, Dropdown, Flex } from "antd";
 import { WarningOutlined, MoreOutlined } from "@ant-design/icons";
 import type { OutputData } from "@editorjs/editorjs";
-import { renderToHtml, type RenderedContent } from "@/ui-kit/block-editor";
+import { type RenderedContent } from "@/ui-kit/block-editor";
 import { AIButton } from "@/ui-kit/ai-button";
 import { Paper } from "@/ui-kit/paper";
-import { IProduct } from "@/mocks/products/types";
+import type { IProduct } from "@/mocks/products/types";
 import {
   useProductEditDescriptionModal,
   useProductAIWriterModal,
@@ -116,10 +116,13 @@ export const ProductContentTabs = ({ product }: IProductContentTabsProps) => {
     });
   };
 
-  const parseEditorData = (data: string | null): OutputData | null => {
-    if (!data) return null;
+  const parseEditorData = (json: unknown): OutputData | null => {
+    if (!json) return null;
     try {
-      return JSON.parse(data) as OutputData;
+      if (typeof json === "string") {
+        return JSON.parse(json) as OutputData;
+      }
+      return json as OutputData;
     } catch {
       return null;
     }
@@ -127,7 +130,7 @@ export const ProductContentTabs = ({ product }: IProductContentTabsProps) => {
 
   const handleEditDescription = () => {
     openEditDescriptionModal({
-      description: parseEditorData(product.description),
+      description: parseEditorData(product.description?.json),
       excerpt: parseEditorData(product.excerpt),
       product,
       onSave: (values: {
@@ -142,19 +145,8 @@ export const ProductContentTabs = ({ product }: IProductContentTabsProps) => {
     });
   };
 
-  const getHtmlFromEditorData = (data: string | null): string | null => {
-    if (!data) return null;
-    try {
-      const parsed = JSON.parse(data) as OutputData;
-      if (!parsed.blocks) return null;
-      return renderToHtml(parsed);
-    } catch {
-      return typeof data === "string" ? `<p>${data}</p>` : null;
-    }
-  };
-
-  const descriptionHtml = getHtmlFromEditorData(product.description);
-  const excerptHtml = getHtmlFromEditorData(product.excerpt);
+  const descriptionHtml = product.description?.html ?? null;
+  const excerptHtml = product.excerpt ? `<p>${product.excerpt}</p>` : null;
 
   return (
     <Paper className={styles.tabsSection}>

@@ -3,6 +3,8 @@
  * These are simplified interfaces for development/testing purposes
  */
 
+import type { ApiDescription, ApiFile } from '@/graphql/types';
+
 // ============================================================================
 // Enums (mock replacements for GraphQL types)
 // ============================================================================
@@ -57,7 +59,7 @@ export enum ProductGroupPriceType {
 type ID = string;
 
 // ============================================================================
-// Media File
+// Media File (legacy - use ApiFile instead)
 // ============================================================================
 
 export interface IMediaFile {
@@ -70,6 +72,9 @@ export interface IMediaFile {
   key: string;
   createdAt?: string;
 }
+
+// Re-export API types for convenience
+export type { ApiDescription, ApiFile };
 
 // ============================================================================
 // Category
@@ -210,7 +215,7 @@ export interface IProductGroup {
 export interface IProduct {
   id: ID;
   title: string;
-  description: string | null;
+  description: ApiDescription | null;
   excerpt: string | null;
   slug: string;
   status: EntityStatus;
@@ -218,8 +223,8 @@ export interface IProduct {
   oldPrice: number;
   costPrice: number;
   sku: string | null;
-  featured: IMediaFile | null;
-  gallery: IMediaFile[];
+  featured: ApiFile | null;
+  gallery: ApiFile[];
   weight: number | null;
   weightUnit: WeightUnit;
   length: number | null;

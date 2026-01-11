@@ -7,10 +7,10 @@ import { FeaturedBadge } from "@/ui-kit/featured-badge";
 import { EditAction } from "../../edit-action";
 import { MediaFilePlaceholder } from "../../media-file-placeholder";
 import { useMediaStyles } from "../product-details-card.styles";
-import type { IMediaFile } from "@/mocks/products/types";
+import type { ApiFile } from "@/graphql/types";
 
 interface IMediaSectionProps {
-  gallery: IMediaFile[];
+  gallery: ApiFile[];
   onEdit: () => void;
 }
 
@@ -33,7 +33,7 @@ export const MediaSection = ({ gallery, onEdit }: IMediaSectionProps) => {
             <div key={media.id} className={styles.mediaFeaturedWrapper}>
               <Image
                 src={media.url}
-                alt={media.name || ""}
+                alt={media.altText || media.originalName || ""}
                 className={styles.mediaImage}
                 preview={{
                   mask: (
@@ -50,7 +50,7 @@ export const MediaSection = ({ gallery, onEdit }: IMediaSectionProps) => {
             <Image
               key={media.id}
               src={media.url}
-              alt={media.name || ""}
+              alt={media.altText || media.originalName || ""}
               className={styles.mediaImage}
               preview={{
                 mask: (
