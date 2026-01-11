@@ -80,14 +80,7 @@ export const ProductDetailsCard = ({
   return (
     <Flex vertical gap={12} style={{ width: "100%" }}>
       {/* PRODUCT INFORMATION */}
-      <ProductInfoHeader
-        product={product}
-        onViewStorefront={() =>
-          window.open(`/products/${product.slug}`, "_blank")
-        }
-        onPreview={() => console.log("Preview")}
-        onShare={() => console.log("Share")}
-      />
+      <ProductInfoHeader product={product} />
 
       {/* CONTENT TABS */}
       <ProductContentTabs product={product} />
