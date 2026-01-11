@@ -1,6 +1,6 @@
 import { createStyles } from "antd-style";
 import { Typography, Button, Tag, Tooltip, Dropdown, Flex } from "antd";
-import { MoreOutlined, DownOutlined } from "@ant-design/icons";
+import { DownOutlined } from "@ant-design/icons";
 import { useState, useMemo } from "react";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { Tile } from "../tile";
@@ -114,29 +114,20 @@ const useStyles = createStyles(({ token }) => ({
 // ============================================================================
 
 interface IPricingHeaderProps {
-  title: string;
   variants?: ApiVariant[];
   selectedVariantId?: string;
   onVariantSelect?: (id: string) => void;
-  onMoreAction?: (action: string) => void;
   formatPrice?: (amount: number) => string;
 }
 
 const PricingHeader = ({
-  title,
   variants,
   selectedVariantId,
   onVariantSelect,
-  onMoreAction,
   formatPrice,
 }: IPricingHeaderProps) => {
   const { styles } = useStyles();
   const selectedVariant = variants?.find((v) => v.id === selectedVariantId);
-
-  const moreMenuItems = [
-    { key: "edit", label: "Edit prices" },
-    { key: "history", label: "View history" },
-  ];
 
   const getPrice = (v: ApiVariant): number => v.price?.amountMinor ?? 0;
 
@@ -176,26 +167,7 @@ const PricingHeader = ({
       </Dropdown>
     ) : undefined;
 
-  const actionsDropdown = onMoreAction ? (
-    <Dropdown
-      menu={{
-        items: moreMenuItems,
-        onClick: ({ key }) => onMoreAction(key),
-      }}
-      trigger={["click"]}
-    >
-      <Button size="small" icon={<MoreOutlined />} />
-    </Dropdown>
-  ) : undefined;
-
-  const actions = (
-    <Flex align="center" gap={12}>
-      {variantSelect}
-      {actionsDropdown}
-    </Flex>
-  );
-
-  return <PaperHeader title={title} actions={actions} />;
+  return <PaperHeader title="Pricing" actions={variantSelect} />;
 };
 
 interface ICurrentPriceColumnProps {
@@ -370,8 +342,6 @@ export const PricingBlock = ({
   selectedVariantId: selectedVariantIdProp,
   onVariantSelect,
   stats = null,
-  title = "Pricing",
-  onMoreAction,
   formatPrice: formatPriceProp,
 }: IPricingBlockProps) => {
   const { styles } = useStyles();
@@ -410,11 +380,9 @@ export const PricingBlock = ({
   return (
     <Paper className={styles.card}>
       <PricingHeader
-        title={title}
         variants={variants}
         selectedVariantId={selectedVariantId}
         onVariantSelect={handleVariantSelect}
-        onMoreAction={onMoreAction}
         formatPrice={formatPrice}
       />
 

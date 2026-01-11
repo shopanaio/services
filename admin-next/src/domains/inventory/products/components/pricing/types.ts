@@ -32,10 +32,6 @@ export interface IPricingBlockProps {
   onVariantSelect?: (id: string) => void;
   /** Computed statistics for selected variant */
   stats?: ApiVariantPriceHistoryStatistics | null;
-  /** Block title */
-  title?: string;
-  /** Callback for menu actions */
-  onMoreAction?: (action: string) => void;
   /** Custom price formatter */
   formatPrice?: (amount: number, currency?: CurrencyCode) => string;
 }
@@ -65,7 +61,7 @@ export interface ApiVariantPriceHistoryStatistics {
 /**
  * Pricing data returned from widget query
  */
-export interface PricingWidget {
+export interface PricingWidgetPayload {
   /** Current price */
   currentPrice: ApiVariantPrice | null;
   /** Current cost */
@@ -81,6 +77,6 @@ export interface PricingWidget {
  */
 export interface PricingWidgetQueryResponse {
   widgetQuery: {
-    pricing: PricingWidget;
+    pricing: PricingWidgetPayload;
   };
 }
