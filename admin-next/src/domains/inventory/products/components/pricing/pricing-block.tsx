@@ -11,7 +11,7 @@ import type {
   IPricingBlockProps,
   ApiVariant,
   ApiVariantPriceConnection,
-  ApiVariantPriceHistoryStats,
+  ApiVariantPriceHistoryStatistics,
 } from "./types";
 
 // Non-breaking space for currency formatting
@@ -319,7 +319,7 @@ const PriceHistoryChartColumn = ({
 };
 
 interface IKPIRowProps {
-  stats: ApiVariantPriceHistoryStats | null;
+  stats: ApiVariantPriceHistoryStatistics | null;
   costPrice: number | null;
   formatPrice: (amount: number) => string;
 }
