@@ -1,29 +1,18 @@
 import { createStyles } from "antd-style";
 import { Typography, Button, Tag, Tooltip, Dropdown, Flex } from "antd";
-import { MoreOutlined, WarningOutlined, DownOutlined } from "@ant-design/icons";
-import { useState, useMemo, useCallback } from "react";
+import { MoreOutlined, DownOutlined } from "@ant-design/icons";
+import { useState, useMemo } from "react";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { Tile } from "../tile";
 import { PeriodSwitch, CHART_PERIODS, ChartPeriod } from "../period-switch";
 import { PriceChart } from "./components";
-import {
-  formatPrice as defaultFormatPrice,
-  getPriceSourceLabel,
-  getMarginStatus,
-  filterHistoryByPeriod,
-} from "./utils";
-import { generateMockHistory, getMockVariantPrices } from "@/mocks/products/pricing";
+import { formatPrice as defaultFormatPrice } from "./utils";
 import type {
-  IPriceHistoryRecord,
-  IPricingData,
-  IVariantOption,
-  PriceSource,
-  MarginStatus,
+  IPricingBlockProps,
+  ApiVariant,
+  ApiVariantPriceConnection,
+  PriceHistoryStats,
 } from "./types";
-import {
-  useProductPriceHistoryModal,
-  useEditVariantsModal,
-} from "../../modals";
 
 // Non-breaking space for currency formatting
 const NBSP = "\u00A0";
@@ -99,20 +88,11 @@ const useStyles = createStyles(({ token }) => ({
     color: token.colorTextSecondary,
     cursor: "help",
   },
-  marginWarningTag: {
-    margin: 0,
-    fontSize: 10,
-    lineHeight: "16px",
-    cursor: "help",
-  },
   kpiRow: {
     display: "grid",
-    gridTemplateColumns: "repeat(5, 1fr)",
+    gridTemplateColumns: "repeat(4, 1fr)",
     gap: 8,
-    "@media (max-width: 1024px)": {
-      gridTemplateColumns: "repeat(3, 1fr)",
-    },
-    "@media (max-width: 600px)": {
+    "@media (max-width: 768px)": {
       gridTemplateColumns: "repeat(2, 1fr)",
     },
   },
@@ -135,7 +115,7 @@ const useStyles = createStyles(({ token }) => ({
 
 interface IPricingHeaderProps {
   title: string;
-  variants?: IVariantOption[];
+  variants?: ApiVariant[];
   selectedVariantId?: string;
   onVariantSelect?: (id: string) => void;
   onMoreAction?: (action: string) => void;
@@ -158,17 +138,16 @@ const PricingHeader = ({
     { key: "history", label: "View history" },
   ];
 
+  const getPrice = (v: ApiVariant): number => v.price?.amountMinor ?? 0;
+
   const variantMenuItems = variants?.map((v) => ({
     key: v.id,
     label: (
       <Flex justify="space-between" align="center" style={{ width: "100%" }}>
-        <span>{v.title}</span>
-        <Flex align="center" gap={8}>
-          {v.hasWarning && <WarningOutlined className={styles.warningIcon} />}
-          <Typography.Text style={{ fontWeight: 600, marginLeft: 24 }}>
-            {formatPrice ? formatPrice(v.price) : v.price}
-          </Typography.Text>
-        </Flex>
+        <span>{v.title ?? "Untitled"}</span>
+        <Typography.Text style={{ fontWeight: 600, marginLeft: 24 }}>
+          {formatPrice ? formatPrice(getPrice(v)) : getPrice(v)}
+        </Typography.Text>
       </Flex>
     ),
   }));
@@ -191,9 +170,6 @@ const PricingHeader = ({
         >
           <Flex align="center" gap={4}>
             <span>{selectedVariant?.title || "Select variant"}</span>
-            {selectedVariant?.hasWarning && (
-              <WarningOutlined className={styles.warningIcon} />
-            )}
             <DownOutlined style={{ fontSize: 10, marginLeft: 4 }} />
           </Flex>
         </Button>
@@ -223,27 +199,20 @@ const PricingHeader = ({
 };
 
 interface ICurrentPriceColumnProps {
-  data: IPricingData;
+  price: number;
+  compareAtPrice: number | null;
   formatPrice: (amount: number) => string;
 }
 
 const CurrentPriceColumn = ({
-  data,
+  price,
+  compareAtPrice,
   formatPrice,
 }: ICurrentPriceColumnProps) => {
   const { styles } = useStyles();
-  const {
-    currentPrice,
-    compareAtPrice,
-    priceSource,
-    marginStatus,
-    targetMargin = 35,
-  } = data;
 
   const saving =
-    compareAtPrice && compareAtPrice > currentPrice
-      ? compareAtPrice - currentPrice
-      : null;
+    compareAtPrice && compareAtPrice > price ? compareAtPrice - price : null;
   const discountPercent =
     saving && compareAtPrice
       ? Math.round((saving / compareAtPrice) * 100)
@@ -256,31 +225,19 @@ const CurrentPriceColumn = ({
       </Typography.Text>
 
       <Typography.Title level={2} className={styles.mainPrice}>
-        {formatPrice(currentPrice)}
+        {formatPrice(price)}
       </Typography.Title>
 
       <Flex align="center" gap={8} style={{ marginTop: 8 }}>
         {discountPercent && (
           <Tag className={styles.discountTag}>-{discountPercent}%</Tag>
         )}
-        <Tooltip
-          title={
-            priceSource === "manual"
-              ? "Price set manually by user"
-              : priceSource === "rule-based"
-              ? "Price calculated by pricing rule"
-              : priceSource === "promo"
-              ? "Promotional price active"
-              : "Market-based pricing"
-          }
-        >
-          <Tag className={styles.sourceTag}>
-            {getPriceSourceLabel(priceSource)}
-          </Tag>
+        <Tooltip title="Price set manually by user">
+          <Tag className={styles.sourceTag}>Manual</Tag>
         </Tooltip>
       </Flex>
 
-      {compareAtPrice && compareAtPrice > currentPrice && (
+      {compareAtPrice && compareAtPrice > price && (
         <Flex align="center" gap={12} style={{ marginTop: 12, fontSize: 13 }}>
           <Typography.Text type="secondary">
             Was:{NBSP}
@@ -296,32 +253,12 @@ const CurrentPriceColumn = ({
           )}
         </Flex>
       )}
-
-      <Flex align="center" gap={8} style={{ marginTop: 12 }}>
-        {marginStatus === "warning" && (
-          <Tooltip title={`Below target margin (${targetMargin}%)`}>
-            <Tag color="warning" className={styles.marginWarningTag}>
-              <WarningOutlined /> Below target
-            </Tag>
-          </Tooltip>
-        )}
-
-        {marginStatus === "critical" && (
-          <Tooltip
-            title={`Critical: margin significantly below target (${targetMargin}%)`}
-          >
-            <Tag color="error" className={styles.marginWarningTag}>
-              <WarningOutlined /> Below min margin
-            </Tag>
-          </Tooltip>
-        )}
-      </Flex>
     </div>
   );
 };
 
 interface IPriceHistoryChartColumnProps {
-  history: IPriceHistoryRecord[];
+  history: ApiVariantPriceConnection;
   formatPrice: (amount: number) => string;
 }
 
@@ -332,13 +269,26 @@ const PriceHistoryChartColumn = ({
   const { styles } = useStyles();
   const [timeRange, setTimeRange] = useState<ChartPeriod>("30D");
 
-  const filteredHistory = useMemo(() => {
-    const periodMap: Record<ChartPeriod, "7d" | "30d" | "90d"> = {
-      "7D": "7d",
-      "30D": "30d",
-      "90D": "90d",
+  // Filter history by time range
+  const filteredHistory = useMemo((): ApiVariantPriceConnection => {
+    const now = new Date();
+    const daysMap: Record<ChartPeriod, number> = {
+      "7D": 7,
+      "30D": 30,
+      "90D": 90,
     };
-    return filterHistoryByPeriod(history, periodMap[timeRange]);
+    const days = daysMap[timeRange];
+    const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+
+    const filteredEdges = history.edges.filter(
+      (edge) => new Date(edge.node.effectiveFrom) >= cutoff
+    );
+
+    return {
+      ...history,
+      edges: filteredEdges,
+      totalCount: filteredEdges.length,
+    };
   }, [history, timeRange]);
 
   return (
@@ -369,19 +319,13 @@ const PriceHistoryChartColumn = ({
 };
 
 interface IKPIRowProps {
-  data: IPricingData;
+  stats: PriceHistoryStats | null;
+  costPrice: number | null;
   formatPrice: (amount: number) => string;
 }
 
-const KPIRow = ({ data, formatPrice }: IKPIRowProps) => {
+const KPIRow = ({ stats, costPrice, formatPrice }: IKPIRowProps) => {
   const { styles } = useStyles();
-  const { costPrice, margin, minAllowedPrice, maxPrice, priceHistory } = data;
-
-  const prices = priceHistory.map((h) => h.amount);
-  const avg30d =
-    prices.length > 0
-      ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length)
-      : null;
 
   return (
     <div className={styles.kpiRow}>
@@ -393,30 +337,23 @@ const KPIRow = ({ data, formatPrice }: IKPIRowProps) => {
         className={styles.kpiTile}
       />
       <Tile
-        label="Margin"
-        value={margin !== null ? `${margin}%` : "—"}
-        tooltip="Profit margin percentage"
-        centered
-        className={styles.kpiTile}
-      />
-      <Tile
-        label="Min allowed"
-        value={minAllowedPrice ? formatPrice(minAllowedPrice) : "—"}
-        tooltip="Minimum price allowed by pricing policy"
+        label="Min"
+        value={stats?.minPrice ? formatPrice(stats.minPrice) : "—"}
+        tooltip="Minimum price over the period"
         centered
         className={styles.kpiTile}
       />
       <Tile
         label="Max"
-        value={maxPrice ? formatPrice(maxPrice) : "—"}
-        tooltip="Maximum historical price"
+        value={stats?.maxPrice ? formatPrice(stats.maxPrice) : "—"}
+        tooltip="Maximum price over the period"
         centered
         className={styles.kpiTile}
       />
       <Tile
-        label="Avg 30D"
-        value={avg30d ? formatPrice(avg30d) : "—"}
-        tooltip="Average price over last 30 days"
+        label="Avg"
+        value={stats?.avgPrice ? formatPrice(stats.avgPrice) : "—"}
+        tooltip="Average price over the period"
         centered
         className={styles.kpiTile}
       />
@@ -428,60 +365,20 @@ const KPIRow = ({ data, formatPrice }: IKPIRowProps) => {
 // Main Component
 // ============================================================================
 
-interface IPricingBlockProps {
-  price: number;
-  compareAtPrice?: number | null;
-  costPrice?: number | null;
-  priceHistory?: IPriceHistoryRecord[];
-  variants?: Array<{
-    id: string;
-    title: string;
-    price: number;
-    compareAtPrice?: number | null;
-    costPrice?: number | null;
-    options?: Array<{
-      title: string;
-      group: {
-        slug: string;
-        title: string;
-      };
-    }>;
-  }>;
-  selectedVariantId?: string;
-  onVariantSelect?: (id: string) => void;
-  title?: string;
-  priceSource?: PriceSource;
-  minAllowedPrice?: number | null;
-  targetMargin?: number;
-  onEdit?: () => void;
-  onViewLog?: () => void;
-  onMoreAction?: (action: string) => void;
-  formatPrice?: (amount: number) => string;
-}
-
 export const PricingBlock = ({
-  price,
-  compareAtPrice,
-  costPrice,
-  priceHistory: priceHistoryProp,
   variants,
   selectedVariantId: selectedVariantIdProp,
   onVariantSelect,
+  stats = null,
   title = "Pricing",
-  priceSource = "manual",
-  minAllowedPrice,
-  targetMargin = 35,
-  onViewLog,
   onMoreAction,
   formatPrice: formatPriceProp,
 }: IPricingBlockProps) => {
   const { styles } = useStyles();
-  const { push: pushPriceHistoryModal } = useProductPriceHistoryModal();
-  const { push: pushEditVariantsModal } = useEditVariantsModal();
 
   const [internalSelectedVariantId, setInternalSelectedVariantId] = useState<
     string | undefined
-  >(variants?.[0]?.id);
+  >(variants[0]?.id);
   const selectedVariantId = selectedVariantIdProp ?? internalSelectedVariantId;
 
   const handleVariantSelect = (id: string) => {
@@ -495,180 +392,49 @@ export const PricingBlock = ({
       return defaultFormatPrice(amount);
     });
 
-  const variantPrices = useMemo(() => {
-    if (!variants?.length) return null;
-    return getMockVariantPrices(variants);
-  }, [variants]);
+  // Get selected variant data
+  const selectedVariant = useMemo(() => {
+    return variants.find((v) => v.id === selectedVariantId) ?? variants[0];
+  }, [variants, selectedVariantId]);
 
-  const selectedVariantData = variantPrices?.find(
-    (v) => v.variantId === selectedVariantId
-  );
-
-  const actualPrice = selectedVariantData?.currentPrice ?? price;
-  const actualCompareAtPrice =
-    selectedVariantData?.compareAtPrice ?? compareAtPrice;
-  const actualCostPrice = selectedVariantData?.costPrice ?? costPrice;
-  const actualPriceHistory =
-    selectedVariantData?.priceHistory ??
-    priceHistoryProp ??
-    generateMockHistory(price, compareAtPrice);
-
-  const margin =
-    actualCostPrice && actualCostPrice > 0
-      ? Math.round(((actualPrice - actualCostPrice) / actualPrice) * 100)
-      : null;
-  const marginStatus = getMarginStatus(margin, targetMargin);
-
-  const maxPrice = Math.max(...actualPriceHistory.map((h) => h.amount));
-  const changesCount = actualPriceHistory.length - 1;
-
-  const pricingData: IPricingData = {
-    currentPrice: actualPrice,
-    previousPrice: actualPriceHistory[1]?.amount ?? null,
-    compareAtPrice: actualCompareAtPrice ?? null,
-    costPrice: actualCostPrice ?? null,
-    margin,
-    marginStatus,
-    minAllowedPrice:
-      minAllowedPrice ??
-      (actualCostPrice ? Math.round(actualCostPrice * 1.1) : null),
-    maxPrice,
-    priceSource,
-    priceHistory: actualPriceHistory,
-    lastUpdatedAt: new Date(),
-    changesCount,
-    targetMargin,
+  // Extract pricing data from selected variant
+  const price = selectedVariant?.price?.amountMinor ?? 0;
+  const compareAtPrice = selectedVariant?.price?.compareAtMinor ?? null;
+  const costPrice = selectedVariant?.cost?.unitCostMinor ?? null;
+  const priceHistory = selectedVariant?.priceHistory ?? {
+    edges: [],
+    pageInfo: { hasNextPage: false, hasPreviousPage: false },
+    totalCount: 0,
   };
-
-  const variantOptions: IVariantOption[] | undefined = variantPrices?.map(
-    (v) => ({
-      id: v.variantId,
-      title: v.variantTitle,
-      price: v.currentPrice,
-      margin: v.margin,
-      hasWarning: v.margin !== null && v.margin < targetMargin,
-    })
-  );
-
-  const handleMoreAction = useCallback(
-    (action: string) => {
-      if (action === "edit") {
-        pushEditVariantsModal({
-          initialTab: "pricing",
-          variants: variantPrices?.map((v) => {
-            const originalVariant = variants?.find(
-              (vv) => vv.id === v.variantId
-            );
-            return {
-              id: v.variantId,
-              title: v.variantTitle,
-              price: v.currentPrice,
-              compareAtPrice: v.compareAtPrice,
-              costPrice: v.costPrice,
-              options: originalVariant?.options,
-            };
-          }) || [
-            {
-              id: "default",
-              title: "Default",
-              price: actualPrice,
-              compareAtPrice: actualCompareAtPrice,
-              costPrice: actualCostPrice,
-            },
-          ],
-          formatPrice: formatPriceProp,
-          availableColumns: ["price", "compareAtPrice", "costPrice"],
-          showColumnSettings: false,
-          onSave: (
-            updatedVariants: Array<{
-              id: string;
-              sku: string | null;
-              stock: number;
-              barcode: string | null;
-              price: number;
-              compareAtPrice: number | null;
-              costPrice: number | null;
-              weight: number | null;
-              weightUnit: string;
-              length: number | null;
-              width: number | null;
-              height: number | null;
-              dimensionUnit: string;
-            }>
-          ) => {
-            console.log("Updated variants:", updatedVariants);
-          },
-        });
-      } else if (action === "history") {
-        pushPriceHistoryModal({
-          currentPrice: actualPrice,
-          compareAtPrice: actualCompareAtPrice,
-          costPrice: actualCostPrice,
-          priceSource,
-          priceHistory: actualPriceHistory,
-          variants: variantPrices?.map((v) => ({
-            id: v.variantId,
-            title: v.variantTitle,
-            price: v.currentPrice,
-            compareAtPrice: v.compareAtPrice,
-            priceHistory: v.priceHistory,
-          })),
-          variantId: selectedVariantId,
-          formatPrice: formatPriceProp,
-        });
-      } else {
-        onMoreAction?.(action);
-      }
-    },
-    [
-      pushEditVariantsModal,
-      pushPriceHistoryModal,
-      actualPrice,
-      actualCompareAtPrice,
-      actualCostPrice,
-      priceSource,
-      actualPriceHistory,
-      variantPrices,
-      variants,
-      selectedVariantId,
-      formatPriceProp,
-      onMoreAction,
-    ]
-  );
 
   return (
     <Paper className={styles.card}>
       <PricingHeader
         title={title}
-        variants={variantOptions}
+        variants={variants}
         selectedVariantId={selectedVariantId}
         onVariantSelect={handleVariantSelect}
-        onMoreAction={handleMoreAction}
+        onMoreAction={onMoreAction}
         formatPrice={formatPrice}
       />
 
       <div className={styles.twoColumn}>
         <div className={styles.priceColumnWrapper}>
-          <CurrentPriceColumn data={pricingData} formatPrice={formatPrice} />
+          <CurrentPriceColumn
+            price={price}
+            compareAtPrice={compareAtPrice}
+            formatPrice={formatPrice}
+          />
         </div>
         <div className={styles.chartColumnWrapper}>
           <PriceHistoryChartColumn
-            history={actualPriceHistory}
+            history={priceHistory}
             formatPrice={formatPrice}
           />
         </div>
       </div>
 
-      <KPIRow data={pricingData} formatPrice={formatPrice} />
+      <KPIRow stats={stats} costPrice={costPrice} formatPrice={formatPrice} />
     </Paper>
   );
 };
-
-// Re-exports for backward compatibility
-export { generateMockHistory, getMockVariantPrices } from "@/mocks/products/pricing";
-export type {
-  IPricingData,
-  IVariantOption,
-  PriceSource,
-  MarginStatus,
-} from "./types";

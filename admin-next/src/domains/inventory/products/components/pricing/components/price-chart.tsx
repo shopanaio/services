@@ -2,11 +2,11 @@ import { useMemo } from "react";
 import ReactECharts from "echarts-for-react";
 import { graphic } from "echarts";
 import { useTheme } from "antd-style";
-import type { IPriceHistoryRecord } from "../types";
+import type { ApiVariantPriceConnection } from "../types";
 import { formatShortDate, formatPrice as defaultFormatPrice } from "../utils";
 
 interface IPriceChartProps {
-  history: IPriceHistoryRecord[];
+  history: ApiVariantPriceConnection;
   formatPrice?: (amount: number) => string;
   height?: number;
   showAxisLabels?: boolean;
@@ -25,12 +25,13 @@ export const PriceChart = ({
   const theme = useTheme();
 
   const chartData = useMemo(() => {
-    const reversed = [...history].reverse();
-    return reversed.map((h) => ({
-      date: h.effectiveFrom,
-      value: h.amount,
-      isCurrent: h.isCurrent,
+    // Convert API format to chart format and reverse for chronological order
+    const items = history.edges.map((edge, index) => ({
+      date: new Date(edge.node.effectiveFrom),
+      value: edge.node.amountMinor,
+      isCurrent: index === 0, // First item is the current price
     }));
+    return items.reverse();
   }, [history]);
 
   const option = useMemo(() => {

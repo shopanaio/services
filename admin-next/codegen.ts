@@ -10,7 +10,7 @@ const scalars = {
   DateTime: { input: 'string', output: 'string' },
   Timestamp: { input: 'string', output: 'string' },
   Email: { input: 'string', output: 'string' },
-  BigInt: { input: 'string', output: 'string' },
+  BigInt: { input: 'number', output: 'number' },
   Upload: { input: 'File', output: 'File' },
   TransportOptions: { input: 'unknown', output: 'unknown' },
 };

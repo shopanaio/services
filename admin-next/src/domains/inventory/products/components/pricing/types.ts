@@ -10,7 +10,7 @@ import type {
   CurrencyCode,
 } from "@/graphql/types";
 
-// Re-export for convenience
+// Re-export API types for convenience
 export type {
   ApiVariant,
   ApiVariantPrice,
@@ -20,16 +20,25 @@ export type {
 };
 
 // ============================================================================
-// Derived Types (from existing GraphQL types)
+// Pricing Block Props
 // ============================================================================
 
-/**
- * Variant with pricing fields selected
- */
-export type VariantWithPricing = Pick<
-  ApiVariant,
-  "id" | "title" | "price" | "cost" | "priceHistory"
->;
+export interface IPricingBlockProps {
+  /** Variants with pricing data from API */
+  variants: ApiVariant[];
+  /** Currently selected variant ID */
+  selectedVariantId?: string;
+  /** Callback when variant selection changes */
+  onVariantSelect?: (id: string) => void;
+  /** Computed statistics for selected variant */
+  stats?: PriceHistoryStats | null;
+  /** Block title */
+  title?: string;
+  /** Callback for menu actions */
+  onMoreAction?: (action: string) => void;
+  /** Custom price formatter */
+  formatPrice?: (amount: number, currency?: CurrencyCode) => string;
+}
 
 // ============================================================================
 // Stats (computed on frontend from priceHistory)

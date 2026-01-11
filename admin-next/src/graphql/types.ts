@@ -12,7 +12,7 @@ export type Scalars = {
   Boolean: { input: boolean; output: boolean; }
   Int: { input: number; output: number; }
   Float: { input: number; output: number; }
-  BigInt: { input: string; output: string; }
+  BigInt: { input: number; output: number; }
   /** ISO 8601 date-time string */
   DateTime: { input: string; output: string; }
   /** Valid email address */
