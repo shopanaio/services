@@ -10,85 +10,95 @@ import {
   Tabs,
 } from "antd";
 import { CloseOutlined, PictureOutlined, UploadOutlined } from "@ant-design/icons";
+import { SwatchType, type ApiProductOptionSwatchInput, type ApiProductOptionSwatch } from "@/graphql/types";
 import { useStyles } from "../edit-options-modal.styles";
 import { SWATCH_MODE_OPTIONS, type SwatchModeType } from "../edit-options-modal.constants";
-import type { ISwatch } from "../edit-options-modal.schema";
+
+// Swatch can be either input type (for editing) or output type (from API)
+type SwatchValue = ApiProductOptionSwatchInput | ApiProductOptionSwatch | null;
 
 interface ISwatchPickerProps {
-  swatch: ISwatch;
-  onChange: (swatch: ISwatch) => void;
+  swatch: SwatchValue;
+  onChange: (swatch: ApiProductOptionSwatchInput) => void;
 }
 
 export const SwatchPicker = ({ swatch, onChange }: ISwatchPickerProps) => {
   const { styles } = useStyles();
   const [open, setOpen] = useState(false);
   const [activeColorTab, setActiveColorTab] = useState<"1" | "2">("1");
-  const { type, color1, color2, imageUrl } = swatch;
 
-  const mode: SwatchModeType = type === "image" ? "image" : "color";
-  const isDuotone = type === "color_duo";
+  if (!swatch) return null;
+
+  const { swatchType, colorOne, colorTwo } = swatch;
+  // Handle both input type (fileId) and output type (file)
+  const fileId = "fileId" in swatch ? swatch.fileId : undefined;
+  const fileUrl = "file" in swatch && swatch.file ? swatch.file.url : fileId;
+
+  const mode: SwatchModeType = swatchType === SwatchType.Image ? "image" : "color";
+  const isDuotone = swatchType === SwatchType.Gradient;
 
   const handleModeChange = (nextMode: SwatchModeType) => {
     if (nextMode === "color") {
       if (isDuotone) {
         onChange({
-          type: "color_duo",
-          color1: color1 || "#1677ff",
-          color2: color2 || "#333333",
+          swatchType: SwatchType.Gradient,
+          colorOne: colorOne || "#1677ff",
+          colorTwo: colorTwo || "#333333",
         });
       } else {
-        onChange({ type: "color", color1: color1 || "#1677ff" });
+        onChange({ swatchType: SwatchType.Color, colorOne: colorOne || "#1677ff" });
       }
     } else {
-      onChange({ type: "image", imageUrl: imageUrl || "" });
+      onChange({ swatchType: SwatchType.Image, fileId: fileId || "" });
     }
   };
 
   const handleAddSecondColor = () => {
     onChange({
-      type: "color_duo",
-      color1: color1 || "#1677ff",
-      color2: "#333333",
+      swatchType: SwatchType.Gradient,
+      colorOne: colorOne || "#1677ff",
+      colorTwo: "#333333",
     });
     setActiveColorTab("2");
   };
 
   const handleRemoveSecondColor = () => {
-    onChange({ type: "color", color1: color1 || "#1677ff" });
+    onChange({ swatchType: SwatchType.Color, colorOne: colorOne || "#1677ff" });
     setActiveColorTab("1");
   };
 
-  const handleColorChange = (colorKey: "color1" | "color2", value: string) => {
-    onChange({ ...swatch, [colorKey]: value });
+  const handleColorChange = (colorKey: "colorOne" | "colorTwo", value: string) => {
+    onChange({ swatchType, colorOne, colorTwo, [colorKey]: value });
   };
 
   const handleImageUpload = (file: File) => {
     const reader = new FileReader();
     reader.onload = (e) => {
-      onChange({ type: "image", imageUrl: e.target?.result as string });
+      // TODO: Upload file to server and get fileId
+      onChange({ swatchType: SwatchType.Image, fileId: e.target?.result as string });
     };
     reader.readAsDataURL(file);
   };
 
   const handleImageRemove = () => {
-    onChange({ type: "image", imageUrl: "" });
+    onChange({ swatchType: SwatchType.Image, fileId: "" });
   };
 
   const renderTrigger = () => {
-    if (type === "color") {
+    if (swatchType === SwatchType.Color) {
       return (
         <div className={styles.swatchTrigger}>
-          <div className={styles.swatchColor} style={{ background: color1 }} />
+          <div className={styles.swatchColor} style={{ background: colorOne ?? undefined }} />
         </div>
       );
     }
-    if (type === "color_duo") {
+    if (swatchType === SwatchType.Gradient) {
       return (
         <div className={styles.swatchTrigger}>
           <div
             className={styles.swatchColor}
             style={{
-              background: `linear-gradient(90deg, ${color1} 49.9%, ${color2} 50%, ${color2} 100%)`,
+              background: `linear-gradient(90deg, ${colorOne} 49.9%, ${colorTwo} 50%, ${colorTwo} 100%)`,
             }}
           />
         </div>
@@ -96,8 +106,8 @@ export const SwatchPicker = ({ swatch, onChange }: ISwatchPickerProps) => {
     }
     return (
       <div className={styles.swatchTrigger}>
-        {imageUrl ? (
-          <img src={imageUrl} alt="" className={styles.swatchImage} />
+        {fileUrl ? (
+          <img src={fileUrl} alt="" className={styles.swatchImage} />
         ) : (
           <div className={styles.swatchImagePlaceholder}>
             <PictureOutlined />
@@ -108,8 +118,8 @@ export const SwatchPicker = ({ swatch, onChange }: ISwatchPickerProps) => {
   };
 
   const renderColorContent = () => {
-    const currentColor = activeColorTab === "1" ? color1 : color2;
-    const colorKey = activeColorTab === "1" ? "color1" : "color2";
+    const currentColor = activeColorTab === "1" ? colorOne : colorTwo;
+    const colorKey = activeColorTab === "1" ? "colorOne" : "colorTwo";
 
     const tabItems = [
       {
@@ -182,10 +192,10 @@ export const SwatchPicker = ({ swatch, onChange }: ISwatchPickerProps) => {
   };
 
   const renderImageContent = () => {
-    if (imageUrl) {
+    if (fileUrl) {
       return (
         <div className={styles.swatchImagePreview}>
-          <img src={imageUrl} alt="" className={styles.swatchImagePreviewImg} />
+          <img src={fileUrl} alt="" className={styles.swatchImagePreviewImg} />
           <Button
             type="text"
             size="small"

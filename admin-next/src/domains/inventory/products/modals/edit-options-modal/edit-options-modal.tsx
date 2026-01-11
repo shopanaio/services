@@ -26,13 +26,13 @@ import {
 } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useStyles } from "./edit-options-modal.styles";
-import type { IOptionGroup } from "./edit-options-modal.schema";
+import type { ApiProductOption } from "@/graphql/types";
 import { useEditOptionsForm } from "./hooks/use-edit-options-form";
 import { SortableOptionGroup } from "./components/sortable-option-group";
 import { MOCK_OPTION_GROUPS } from "@/mocks/products/options";
 
 interface EditOptionsModalProps {
-  initialGroups?: IOptionGroup[];
+  initialGroups?: ApiProductOption[];
 }
 
 export const EditOptionsModal = ({ initialGroups = MOCK_OPTION_GROUPS }: EditOptionsModalProps) => {
@@ -45,9 +45,9 @@ export const EditOptionsModal = ({ initialGroups = MOCK_OPTION_GROUPS }: EditOpt
     watchedGroups,
     handleSubmit,
     handleUpdateGroupName,
-    handleUpdateGroupStyle,
+    handleUpdateGroupDisplayType,
     handleDeleteGroup,
-    handleUpdateValueLabel,
+    handleUpdateValueName,
     handleUpdateValueSwatch,
     handleDeleteValue,
     handleAddValue,
@@ -140,12 +140,12 @@ export const EditOptionsModal = ({ initialGroups = MOCK_OPTION_GROUPS }: EditOpt
                     onUpdateName={(name) =>
                       handleUpdateGroupName(groupIndex, name)
                     }
-                    onUpdateStyle={(style) =>
-                      handleUpdateGroupStyle(groupIndex, style)
+                    onUpdateDisplayType={(displayType) =>
+                      handleUpdateGroupDisplayType(groupIndex, displayType)
                     }
                     onDeleteGroup={() => handleDeleteGroup(groupIndex)}
-                    onUpdateValueLabel={(valueIndex, label) =>
-                      handleUpdateValueLabel(groupIndex, valueIndex, label)
+                    onUpdateValueName={(valueIndex, name) =>
+                      handleUpdateValueName(groupIndex, valueIndex, name)
                     }
                     onUpdateValueSwatch={(valueIndex, swatch) =>
                       handleUpdateValueSwatch(groupIndex, valueIndex, swatch)

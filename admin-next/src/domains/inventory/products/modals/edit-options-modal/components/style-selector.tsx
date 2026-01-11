@@ -1,16 +1,16 @@
 import { Button, Dropdown, Flex } from "antd";
-import { STYLE_OPTIONS } from "../edit-options-modal.constants";
-import type { FeatureStyleType } from "../edit-options-modal.schema";
+import { type OptionDisplayType } from "@/graphql/types";
+import { DISPLAY_TYPE_OPTIONS } from "../edit-options-modal.constants";
 
-interface IStyleSelectorProps {
-  value: FeatureStyleType;
-  onChange: (style: FeatureStyleType) => void;
+interface IDisplayTypeSelectorProps {
+  value: OptionDisplayType;
+  onChange: (displayType: OptionDisplayType) => void;
 }
 
-export const StyleSelector = ({ value, onChange }: IStyleSelectorProps) => {
-  const current = STYLE_OPTIONS.find((o) => o.key === value);
+export const DisplayTypeSelector = ({ value, onChange }: IDisplayTypeSelectorProps) => {
+  const current = DISPLAY_TYPE_OPTIONS.find((o) => o.key === value);
 
-  const menuItems = STYLE_OPTIONS.map((option) => ({
+  const menuItems = DISPLAY_TYPE_OPTIONS.map((option) => ({
     key: option.key,
     label: (
       <Flex gap={8} align="center">

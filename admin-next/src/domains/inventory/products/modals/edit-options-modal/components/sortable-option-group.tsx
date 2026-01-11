@@ -19,31 +19,36 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import {
+  OptionDisplayType,
+  type ApiProductOption,
+  type ApiProductOptionValue,
+  type ApiProductOptionSwatchInput,
+} from "@/graphql/types";
 import { useStyles } from "../edit-options-modal.styles";
-import type { IOptionGroup, IOptionValue, ISwatch, FeatureStyleType } from "../edit-options-modal.schema";
-import { StyleSelector } from "./style-selector";
+import { DisplayTypeSelector } from "./style-selector";
 import { SortableValue } from "./sortable-value";
 
 interface ISortableOptionGroupProps {
-  group: IOptionGroup;
+  group: ApiProductOption;
   fieldId: string;
   onUpdateName: (name: string) => void;
-  onUpdateStyle: (style: FeatureStyleType) => void;
+  onUpdateDisplayType: (displayType: OptionDisplayType) => void;
   onDeleteGroup: () => void;
-  onUpdateValueLabel: (valueIndex: number, label: string) => void;
-  onUpdateValueSwatch: (valueIndex: number, swatch: ISwatch) => void;
+  onUpdateValueName: (valueIndex: number, name: string) => void;
+  onUpdateValueSwatch: (valueIndex: number, swatch: ApiProductOptionSwatchInput) => void;
   onDeleteValue: (valueIndex: number) => void;
   onAddValue: () => void;
-  onReorderValues: (values: IOptionValue[]) => void;
+  onReorderValues: (values: ApiProductOptionValue[]) => void;
 }
 
 export const SortableOptionGroup = ({
   group,
   fieldId,
   onUpdateName,
-  onUpdateStyle,
+  onUpdateDisplayType,
   onDeleteGroup,
-  onUpdateValueLabel,
+  onUpdateValueName,
   onUpdateValueSwatch,
   onDeleteValue,
   onAddValue,
@@ -79,12 +84,7 @@ export const SortableOptionGroup = ({
     if (over && active.id !== over.id) {
       const oldIndex = group.values.findIndex((v) => v.id === active.id);
       const newIndex = group.values.findIndex((v) => v.id === over.id);
-      const newValues = arrayMove(group.values, oldIndex, newIndex).map(
-        (v, idx) => ({
-          ...v,
-          sortIndex: idx,
-        })
-      );
+      const newValues = arrayMove(group.values, oldIndex, newIndex);
       onReorderValues(newValues);
     }
   };
@@ -132,7 +132,7 @@ export const SortableOptionGroup = ({
               align="center"
               onPointerDown={(e) => e.stopPropagation()}
             >
-              <StyleSelector value={group.style} onChange={onUpdateStyle} />
+              <DisplayTypeSelector value={group.displayType} onChange={onUpdateDisplayType} />
               <Button
                 size="small"
                 type="text"
@@ -163,10 +163,10 @@ export const SortableOptionGroup = ({
                 <SortableValue
                   key={value.id}
                   value={value}
-                  groupStyle={group.style}
+                  groupDisplayType={group.displayType}
                   isDeleteDisabled={group.values.length <= 1}
-                  onLabelChange={(label) =>
-                    onUpdateValueLabel(valueIndex, label)
+                  onNameChange={(name) =>
+                    onUpdateValueName(valueIndex, name)
                   }
                   onSwatchChange={(swatch) =>
                     onUpdateValueSwatch(valueIndex, swatch)

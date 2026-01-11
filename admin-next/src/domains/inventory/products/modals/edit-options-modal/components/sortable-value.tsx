@@ -2,25 +2,29 @@ import { Button, Flex, Input } from "antd";
 import { CloseOutlined, HolderOutlined } from "@ant-design/icons";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import {
+  OptionDisplayType,
+  type ApiProductOptionValue,
+  type ApiProductOptionSwatchInput,
+} from "@/graphql/types";
 import { useStyles } from "../edit-options-modal.styles";
 import { DEFAULT_SWATCH } from "../edit-options-modal.constants";
-import type { IOptionValue, ISwatch, FeatureStyleType } from "../edit-options-modal.schema";
 import { SwatchPicker } from "./swatch-picker";
 
 interface ISortableValueProps {
-  value: IOptionValue;
-  groupStyle: FeatureStyleType;
+  value: ApiProductOptionValue;
+  groupDisplayType: OptionDisplayType;
   isDeleteDisabled?: boolean;
-  onLabelChange: (label: string) => void;
-  onSwatchChange: (swatch: ISwatch) => void;
+  onNameChange: (name: string) => void;
+  onSwatchChange: (swatch: ApiProductOptionSwatchInput) => void;
   onDelete: () => void;
 }
 
 export const SortableValue = ({
   value,
-  groupStyle,
+  groupDisplayType,
   isDeleteDisabled,
-  onLabelChange,
+  onNameChange,
   onSwatchChange,
   onDelete,
 }: ISortableValueProps) => {
@@ -41,7 +45,7 @@ export const SortableValue = ({
   };
 
   const swatch = value.swatch || DEFAULT_SWATCH;
-  const showSwatchControls = groupStyle === "swatch";
+  const showSwatchControls = groupDisplayType === OptionDisplayType.Swatch;
 
   return (
     <div
@@ -50,8 +54,8 @@ export const SortableValue = ({
       className={cx(styles.valueRow, isDragging && styles.valueRowDragging)}
     >
       <Input
-        value={value.label}
-        onChange={(e) => onLabelChange(e.target.value)}
+        value={value.name}
+        onChange={(e) => onNameChange(e.target.value)}
         placeholder="Value name"
         prefix={
           <Flex gap={8} align="center" className={styles.inputPrefix}>

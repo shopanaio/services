@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import type { ICategory } from "@/mocks/products/types";
 import type { ITag } from "../../modals";
-import type { IOptionGroup } from "../../modals/edit-options-modal/edit-options-modal.schema";
 import type { IComponentGroup } from "../../modals/edit-components-modal/types";
 import type { IAttributeRow } from "../../modals/edit-attributes-modal/types";
 import type { ProductInventoryWidget } from "./inventory-widget.types";
@@ -9,6 +8,7 @@ import type {
   ApiVariant,
   ApiVariantConnection,
   ApiPageInfo,
+  ApiProductOption,
 } from "@/graphql/types";
 
 export type { ProductInventoryWidget, ThresholdType } from "./inventory-widget.types";
@@ -65,7 +65,7 @@ export interface IProductDetailsMockData {
   tags: ITag[];
   reviews: IReviewsData;
   attributes: IAttributeRow[];
-  options: IOptionGroup[];
+  options: ApiProductOption[];
   components: IComponentGroup[];
   inventory: ProductInventoryWidget;
   getComponentItemImage: (productId: string, variantId?: string | null) => string | null;

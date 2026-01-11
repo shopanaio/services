@@ -1,22 +1,18 @@
 import {
   BgColorsOutlined,
-  PictureOutlined,
   CheckCircleOutlined,
   MenuOutlined,
-  ColumnWidthOutlined,
 } from "@ant-design/icons";
-import type { FeatureStyleType, ISwatch } from "./edit-options-modal.schema";
+import { OptionDisplayType, SwatchType, type ApiProductOptionSwatchInput } from "@/graphql/types";
 
-export const STYLE_OPTIONS: {
-  key: FeatureStyleType;
+export const DISPLAY_TYPE_OPTIONS: {
+  key: OptionDisplayType;
   label: string;
   icon: React.ReactNode;
 }[] = [
-  { key: "swatch", label: "Swatch", icon: <BgColorsOutlined /> },
-  { key: "cover", label: "Cover", icon: <PictureOutlined /> },
-  { key: "radio", label: "Radio", icon: <CheckCircleOutlined /> },
-  { key: "dropdown", label: "Dropdown", icon: <MenuOutlined /> },
-  { key: "size", label: "Size", icon: <ColumnWidthOutlined /> },
+  { key: OptionDisplayType.Swatch, label: "Swatch", icon: <BgColorsOutlined /> },
+  { key: OptionDisplayType.Buttons, label: "Buttons", icon: <CheckCircleOutlined /> },
+  { key: OptionDisplayType.Dropdown, label: "Dropdown", icon: <MenuOutlined /> },
 ];
 
 export type SwatchModeType = "color" | "image";
@@ -26,7 +22,7 @@ export const SWATCH_MODE_OPTIONS: { value: SwatchModeType; label: string }[] = [
   { value: "image", label: "Image" },
 ];
 
-export const DEFAULT_SWATCH: ISwatch = {
-  type: "color",
-  color1: "#1677ff",
+export const DEFAULT_SWATCH: ApiProductOptionSwatchInput = {
+  swatchType: SwatchType.Color,
+  colorOne: "#1677ff",
 };

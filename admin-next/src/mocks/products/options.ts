@@ -1,77 +1,55 @@
-export interface ISwatch {
-  type: "color" | "color_duo" | "image";
-  color1?: string;
-  color2?: string;
-  imageUrl?: string;
-}
+import { OptionDisplayType, SwatchType, type ApiProductOption } from "@/graphql/types";
 
-export interface IOptionValue {
-  id: string;
-  label: string;
-  slug: string;
-  sortIndex: number;
-  swatch?: ISwatch;
-}
-
-export interface IOptionGroup {
-  id: string;
-  name: string;
-  slug: string;
-  style: "radio" | "dropdown" | "swatch" | "cover" | "size";
-  values: IOptionValue[];
-  sortIndex: number;
-}
-
-export const MOCK_OPTION_GROUPS: IOptionGroup[] = [
+export const MOCK_OPTION_GROUPS: ApiProductOption[] = [
   {
+    __typename: "ProductOption",
     id: "opt-1",
     name: "Color",
     slug: "color",
-    style: "swatch",
-    sortIndex: 0,
+    displayType: OptionDisplayType.Swatch,
     values: [
       {
+        __typename: "ProductOptionValue",
         id: "val-1",
-        label: "Red",
+        name: "Red",
         slug: "red",
-        sortIndex: 0,
-        swatch: { type: "color", color1: "#ff4d4f" },
+        swatch: { __typename: "ProductOptionSwatch", id: "swatch-1", swatchType: SwatchType.Color, colorOne: "#ff4d4f", colorTwo: null, file: null, metadata: null },
       },
       {
+        __typename: "ProductOptionValue",
         id: "val-2",
-        label: "Blue",
+        name: "Blue",
         slug: "blue",
-        sortIndex: 1,
-        swatch: { type: "color", color1: "#1677ff" },
+        swatch: { __typename: "ProductOptionSwatch", id: "swatch-2", swatchType: SwatchType.Color, colorOne: "#1677ff", colorTwo: null, file: null, metadata: null },
       },
       {
+        __typename: "ProductOptionValue",
         id: "val-3",
-        label: "Green",
+        name: "Green",
         slug: "green",
-        sortIndex: 2,
-        swatch: { type: "color", color1: "#52c41a" },
+        swatch: { __typename: "ProductOptionSwatch", id: "swatch-3", swatchType: SwatchType.Color, colorOne: "#52c41a", colorTwo: null, file: null, metadata: null },
       },
       {
+        __typename: "ProductOptionValue",
         id: "val-4",
-        label: "Black",
+        name: "Black",
         slug: "black",
-        sortIndex: 3,
-        swatch: { type: "color_duo", color1: "#000000", color2: "#333333" },
+        swatch: { __typename: "ProductOptionSwatch", id: "swatch-4", swatchType: SwatchType.Gradient, colorOne: "#000000", colorTwo: "#333333", file: null, metadata: null },
       },
     ],
   },
   {
+    __typename: "ProductOption",
     id: "opt-2",
     name: "Size",
     slug: "size",
-    style: "size",
-    sortIndex: 1,
+    displayType: OptionDisplayType.Buttons,
     values: [
-      { id: "val-5", label: "S", slug: "s", sortIndex: 0 },
-      { id: "val-6", label: "M", slug: "m", sortIndex: 1 },
-      { id: "val-7", label: "L", slug: "l", sortIndex: 2 },
-      { id: "val-8", label: "XL", slug: "xl", sortIndex: 3 },
-      { id: "val-9", label: "XXL", slug: "xxl", sortIndex: 4 },
+      { __typename: "ProductOptionValue", id: "val-5", name: "S", slug: "s", swatch: null },
+      { __typename: "ProductOptionValue", id: "val-6", name: "M", slug: "m", swatch: null },
+      { __typename: "ProductOptionValue", id: "val-7", name: "L", slug: "l", swatch: null },
+      { __typename: "ProductOptionValue", id: "val-8", name: "XL", slug: "xl", swatch: null },
+      { __typename: "ProductOptionValue", id: "val-9", name: "XXL", slug: "xxl", swatch: null },
     ],
   },
 ];

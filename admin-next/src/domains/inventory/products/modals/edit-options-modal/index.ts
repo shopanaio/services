@@ -1,8 +1,12 @@
 export { EditOptionsModal } from "./edit-options-modal";
+export { DISPLAY_TYPE_OPTIONS } from "./edit-options-modal.constants";
+export type { IEditOptionsFormValues } from "./edit-options-modal.schema";
+// Re-export API types for convenience
 export type {
-  IEditOptionsFormValues,
-  IOptionGroup,
-  IOptionValue,
-  ISwatch,
-  FeatureStyleType,
-} from "./edit-options-modal.schema";
+  ApiProductOption,
+  ApiProductOptionValue,
+  ApiProductOptionSwatch,
+  ApiProductOptionSwatchInput,
+  OptionDisplayType,
+  SwatchType,
+} from "@/graphql/types";

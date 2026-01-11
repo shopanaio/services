@@ -1,14 +1,12 @@
 import { useCallback } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  editOptionsSchema,
-  type IEditOptionsFormValues,
-  type IOptionGroup,
-  type IOptionValue,
-  type ISwatch,
-  type FeatureStyleType,
-} from "../edit-options-modal.schema";
+  OptionDisplayType,
+  type ApiProductOption,
+  type ApiProductOptionValue,
+  type ApiProductOptionSwatchInput,
+} from "@/graphql/types";
+import type { IEditOptionsFormValues } from "../edit-options-modal.schema";
 import { DEFAULT_SWATCH } from "../edit-options-modal.constants";
 
 interface UseEditOptionsFormProps {
@@ -22,7 +20,6 @@ export const useEditOptionsForm = ({
 }: UseEditOptionsFormProps = {}) => {
   const { control, handleSubmit, watch, setValue, getValues } =
     useForm<IEditOptionsFormValues>({
-      resolver: zodResolver(editOptionsSchema),
       defaultValues,
     });
 
@@ -40,9 +37,9 @@ export const useEditOptionsForm = ({
     [setValue]
   );
 
-  const handleUpdateGroupStyle = useCallback(
-    (groupIndex: number, style: FeatureStyleType) => {
-      setValue(`groups.${groupIndex}.style`, style);
+  const handleUpdateGroupDisplayType = useCallback(
+    (groupIndex: number, displayType: OptionDisplayType) => {
+      setValue(`groups.${groupIndex}.displayType`, displayType);
     },
     [setValue]
   );
@@ -54,16 +51,16 @@ export const useEditOptionsForm = ({
     [remove]
   );
 
-  const handleUpdateValueLabel = useCallback(
-    (groupIndex: number, valueIndex: number, label: string) => {
-      setValue(`groups.${groupIndex}.values.${valueIndex}.label`, label);
+  const handleUpdateValueName = useCallback(
+    (groupIndex: number, valueIndex: number, name: string) => {
+      setValue(`groups.${groupIndex}.values.${valueIndex}.name`, name);
     },
     [setValue]
   );
 
   const handleUpdateValueSwatch = useCallback(
-    (groupIndex: number, valueIndex: number, swatch: ISwatch) => {
-      setValue(`groups.${groupIndex}.values.${valueIndex}.swatch`, swatch);
+    (groupIndex: number, valueIndex: number, swatch: ApiProductOptionSwatchInput) => {
+      setValue(`groups.${groupIndex}.values.${valueIndex}.swatch`, swatch as ApiProductOption["values"][0]["swatch"]);
     },
     [setValue]
   );
@@ -80,12 +77,12 @@ export const useEditOptionsForm = ({
   const handleAddValue = useCallback(
     (groupIndex: number) => {
       const currentValues = getValues(`groups.${groupIndex}.values`);
-      const newValue: IOptionValue = {
+      const newValue: ApiProductOptionValue = {
+        __typename: "ProductOptionValue",
         id: `val-${Date.now()}`,
-        label: "",
+        name: "",
         slug: "",
-        sortIndex: currentValues.length,
-        swatch: { ...DEFAULT_SWATCH },
+        swatch: { ...DEFAULT_SWATCH, __typename: "ProductOptionSwatch", id: `swatch-${Date.now()}`, file: null, metadata: null },
       };
       setValue(`groups.${groupIndex}.values`, [...currentValues, newValue]);
     },
@@ -93,24 +90,23 @@ export const useEditOptionsForm = ({
   );
 
   const handleReorderValues = useCallback(
-    (groupIndex: number, values: IOptionValue[]) => {
+    (groupIndex: number, values: ApiProductOptionValue[]) => {
       setValue(`groups.${groupIndex}.values`, values);
     },
     [setValue]
   );
 
   const handleAddGroup = useCallback(() => {
-    const currentGroups = getValues("groups");
-    const newGroup: IOptionGroup = {
+    const newGroup: ApiProductOption = {
+      __typename: "ProductOption",
       id: `opt-${Date.now()}`,
       name: "New Option",
       slug: "new-option",
-      style: "radio",
+      displayType: OptionDisplayType.Buttons,
       values: [],
-      sortIndex: currentGroups.length,
     };
     append(newGroup);
-  }, [append, getValues]);
+  }, [append]);
 
   const handleMoveGroup = useCallback(
     (oldIndex: number, newIndex: number) => {
@@ -131,9 +127,9 @@ export const useEditOptionsForm = ({
     watchedGroups,
     handleSubmit: handleSubmit(submitForm),
     handleUpdateGroupName,
-    handleUpdateGroupStyle,
+    handleUpdateGroupDisplayType,
     handleDeleteGroup,
-    handleUpdateValueLabel,
+    handleUpdateValueName,
     handleUpdateValueSwatch,
     handleDeleteValue,
     handleAddValue,
