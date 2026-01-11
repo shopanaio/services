@@ -8,13 +8,20 @@ import {
   mockVariableProduct,
   mockSimpleProduct,
   productDetailsMockData,
+  getMockVariantsTableData,
 } from "@/mocks/products";
 
 export const ProductModal = () => {
   const { payload, pop, forcePop } = useModalStackContext();
   const [loading, setLoading] = useState(true);
+  const [variantsPage, setVariantsPage] = useState(1);
 
   const product = payload.simple ? mockSimpleProduct : mockVariableProduct;
+  const variantsTableData = getMockVariantsTableData(variantsPage, 10, 25);
+
+  const handleVariantsPageChange = (direction: "next" | "prev") => {
+    setVariantsPage((prev) => (direction === "next" ? prev + 1 : prev - 1));
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 300);
@@ -44,7 +51,9 @@ export const ProductModal = () => {
       <ProductDetailsCard
         product={product}
         mockData={productDetailsMockData}
+        variantsTableData={variantsTableData}
         onEditSection={(section) => console.log("Edit section:", section)}
+        onVariantsPageChange={handleVariantsPageChange}
       />
     );
   };

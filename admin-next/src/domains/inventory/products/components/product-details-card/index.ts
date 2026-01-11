@@ -5,7 +5,9 @@ export type {
   IReviewBreakdown,
   IReviewsData,
   ISectionProps,
-  IVariantOption,
-  IVariantForTable,
+  IVariantsTableData,
   IProductDetailsMockData,
+  ApiVariant,
+  ApiVariantConnection,
+  ApiPageInfo,
 } from "./types";

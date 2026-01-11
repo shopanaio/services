@@ -10,8 +10,7 @@ import {
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "../../edit-action";
 import { useVariantsTableStyles } from "../product-details-card.styles";
-import { weightUnitOptions, dimensionUnitOptions } from "../../../constants";
-import type { IVariantForTable } from "../types";
+import type { ApiVariant, ApiPageInfo } from "../types";
 
 // ============================================================================
 // Stock Status Config
@@ -44,11 +43,45 @@ const stockStatusConfig: Record<
 };
 
 // ============================================================================
+// Helpers
+// ============================================================================
+
+const getStockStatus = (variant: ApiVariant): string => {
+  const totalStock = variant.stock.reduce(
+    (acc, s) => acc + s.quantityOnHand,
+    0
+  );
+
+  if (totalStock === 0) return "OUT_OF_STOCK";
+  if (totalStock < 10) return "LOW_STOCK";
+  return "IN_STOCK";
+};
+
+const formatWeight = (weight: ApiVariant["weight"]): string => {
+  if (!weight) return "\u2014";
+  // Weight is in grams
+  if (weight.value >= 1000) {
+    return `${(weight.value / 1000).toFixed(1)} kg`;
+  }
+  return `${weight.value} g`;
+};
+
+const formatDimensions = (dimensions: ApiVariant["dimensions"]): string => {
+  if (!dimensions) return "\u2014";
+  // Dimensions are in mm
+  const { length, width, height } = dimensions;
+  if (length >= 10 || width >= 10 || height >= 10) {
+    return `${(length / 10).toFixed(0)} \u00d7 ${(width / 10).toFixed(0)} \u00d7 ${(height / 10).toFixed(0)} cm`;
+  }
+  return `${length} \u00d7 ${width} \u00d7 ${height} mm`;
+};
+
+// ============================================================================
 // Sub-components
 // ============================================================================
 
 interface IVariantRowProps {
-  variant: IVariantForTable;
+  variant: ApiVariant;
   formatPrice: (price: number) => string;
   onAction: (action: string, variantId: string) => void;
 }
@@ -56,25 +89,30 @@ interface IVariantRowProps {
 const VariantRow = ({ variant, formatPrice, onAction }: IVariantRowProps) => {
   const { styles } = useVariantsTableStyles();
 
+  const price = variant.price?.amountMinor ?? 0;
+  const compareAtPrice = variant.price?.compareAtMinor ?? null;
   const discountPercent =
-    variant.oldPrice && variant.oldPrice > variant.price
-      ? Math.round((1 - variant.price / variant.oldPrice) * 100)
+    compareAtPrice && compareAtPrice > price
+      ? Math.round((1 - Number(price) / Number(compareAtPrice)) * 100)
       : 0;
 
-  const stockConfig = stockStatusConfig[variant.stockStatus] || {
+  const stockStatus = getStockStatus(variant);
+  const stockConfig = stockStatusConfig[stockStatus] || {
     icon: "\u25cb",
     color: "var(--ant-color-border)",
-    label: variant.stockStatus || "N/A",
+    label: "N/A",
   };
+
+  const imageUrl = variant.media?.[0]?.file?.url;
 
   return (
     <tr>
       {/* VARIANT */}
       <td>
         <Flex align="flex-start" gap={8}>
-          {variant.gallery?.[0] ? (
+          {imageUrl ? (
             <Image
-              src={variant.gallery[0].url}
+              src={imageUrl}
               alt=""
               width={40}
               height={40}
@@ -88,12 +126,14 @@ const VariantRow = ({ variant, formatPrice, onAction }: IVariantRowProps) => {
             <Typography.Text strong className={styles.variantTitle}>
               {variant.title || variant.sku || "\u2014"}
             </Typography.Text>
-            {variant.options && variant.options.length > 0 && (
+            {variant.selectedOptions && variant.selectedOptions.length > 0 && (
               <Typography.Text
                 type="secondary"
                 className={styles.variantOptions}
               >
-                {variant.options.map((o) => o.title).join(" / ")}
+                {variant.selectedOptions
+                  .map((o) => `${o.optionId}:${o.optionValueId}`)
+                  .join(" / ")}
               </Typography.Text>
             )}
           </Flex>
@@ -103,16 +143,16 @@ const VariantRow = ({ variant, formatPrice, onAction }: IVariantRowProps) => {
       {/* PRICING */}
       <td>
         <Flex vertical gap={0}>
-          <Typography.Text>{formatPrice(variant.price)}</Typography.Text>
-          {variant.oldPrice &&
-            variant.oldPrice > 0 &&
-            variant.oldPrice !== variant.price && (
+          <Typography.Text>{formatPrice(Number(price))}</Typography.Text>
+          {compareAtPrice &&
+            compareAtPrice > 0 &&
+            compareAtPrice !== price && (
               <Flex align="center" gap={4}>
                 <Typography.Text
                   type="secondary"
                   className={styles.priceStrikethrough}
                 >
-                  {formatPrice(variant.oldPrice)}
+                  {formatPrice(Number(compareAtPrice))}
                 </Typography.Text>
                 {discountPercent > 0 && (
                   <Typography.Text className={styles.discountPercent}>
@@ -151,28 +191,10 @@ const VariantRow = ({ variant, formatPrice, onAction }: IVariantRowProps) => {
       <td>
         <Flex vertical>
           <Typography.Text style={{ fontSize: 12 }}>
-            {variant.weight
-              ? `${variant.weight} ${
-                  weightUnitOptions[
-                    variant.weightUnit as keyof typeof weightUnitOptions
-                  ]?.label ||
-                  variant.weightUnit ||
-                  ""
-                }`
-              : "\u2014"}
+            {formatWeight(variant.weight)}
           </Typography.Text>
           <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-            {variant.length || variant.width || variant.height
-              ? `${variant.length || 0} \u00d7 ${variant.width || 0} \u00d7 ${
-                  variant.height || 0
-                } ${
-                  dimensionUnitOptions[
-                    variant.dimensionUnit as keyof typeof dimensionUnitOptions
-                  ]?.label ||
-                  variant.dimensionUnit ||
-                  ""
-                }`
-              : "\u2014"}
+            {formatDimensions(variant.dimensions)}
           </Typography.Text>
         </Flex>
       </td>
@@ -221,19 +243,25 @@ const sortMenuItems = [
 // ============================================================================
 
 interface IVariantsTableSectionProps {
-  variants: IVariantForTable[];
+  variants: ApiVariant[];
+  pageInfo: ApiPageInfo;
+  totalCount: number;
   formatPrice: (price: number) => string;
   onEdit: () => void;
   onSort?: (sortKey: string) => void;
   onVariantAction?: (action: string, variantId: string) => void;
+  onPageChange?: (direction: "next" | "prev") => void;
 }
 
 export const VariantsTableSection = ({
   variants,
+  pageInfo,
+  totalCount,
   formatPrice,
   onEdit,
   onSort,
   onVariantAction,
+  onPageChange,
 }: IVariantsTableSectionProps) => {
   const { styles } = useVariantsTableStyles();
 
@@ -242,12 +270,10 @@ export const VariantsTableSection = ({
   }
 
   const handleSort = (key: string) => {
-    console.log("Sort variants:", key);
     onSort?.(key);
   };
 
   const handleVariantAction = (action: string, variantId: string) => {
-    console.log("Variant action:", action, variantId);
     onVariantAction?.(action, variantId);
   };
 
@@ -308,11 +334,23 @@ export const VariantsTableSection = ({
           type="secondary"
           className={styles.variantsPaginationCount}
         >
-          {variants.length} variants
+          {totalCount} variant{totalCount !== 1 ? "s" : ""}
         </Typography.Text>
         <Flex gap={4}>
-          <Button size="small" type="text" icon={<LeftOutlined />} disabled />
-          <Button size="small" type="text" icon={<RightOutlined />} />
+          <Button
+            size="small"
+            type="text"
+            icon={<LeftOutlined />}
+            disabled={!pageInfo.hasPreviousPage}
+            onClick={() => onPageChange?.("prev")}
+          />
+          <Button
+            size="small"
+            type="text"
+            icon={<RightOutlined />}
+            disabled={!pageInfo.hasNextPage}
+            onClick={() => onPageChange?.("next")}
+          />
         </Flex>
       </Flex>
     </Paper>

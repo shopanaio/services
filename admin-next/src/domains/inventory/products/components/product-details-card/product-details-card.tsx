@@ -20,7 +20,7 @@ import {
 } from "./sections";
 import { useProductModals } from "./hooks";
 import type { IProduct } from "@/mocks/products/types";
-import type { IVariantForTable, IProductDetailsMockData } from "./types";
+import type { IVariantsTableData, IProductDetailsMockData } from "./types";
 
 // ============================================================================
 // Helpers
@@ -39,43 +39,21 @@ const formatPrice = (price: number) =>
 interface IProductDetailsCardProps {
   product: IProduct;
   mockData: IProductDetailsMockData;
+  variantsTableData?: IVariantsTableData;
   onEditSection?: (section: string) => void;
+  onVariantsPageChange?: (direction: "next" | "prev") => void;
 }
 
 export const ProductDetailsCard = ({
   product,
   mockData,
+  variantsTableData,
   onEditSection,
+  onVariantsPageChange,
 }: IProductDetailsCardProps) => {
   const modals = useProductModals(product);
 
   const handleEdit = (section: string) => onEditSection?.(section);
-
-  // Transform variants for table
-  const variantsForTable: IVariantForTable[] =
-    product.variants?.map((v) => ({
-      id: v.id,
-      title: v.title,
-      sku: v.sku,
-      price: v.price,
-      oldPrice: v.oldPrice,
-      costPrice: v.costPrice,
-      stockStatus: v.stockStatus,
-      weight: v.weight,
-      weightUnit: v.weightUnit,
-      length: v.length,
-      width: v.width,
-      height: v.height,
-      dimensionUnit: v.dimensionUnit,
-      options: v.options?.map((opt) => ({
-        title: opt.title,
-        group: {
-          slug: opt.group.slug,
-          title: opt.group.title,
-        },
-      })),
-      gallery: v.gallery,
-    })) || [];
 
   return (
     <Flex vertical gap={12} style={{ width: "100%" }}>
@@ -130,11 +108,14 @@ export const ProductDetailsCard = ({
       )}
 
       {/* VARIANTS TABLE (variable products) */}
-      {product.isVariableProduct && variantsForTable.length > 0 && (
+      {product.isVariableProduct && variantsTableData && variantsTableData.variants.length > 0 && (
         <VariantsTableSection
-          variants={variantsForTable}
+          variants={variantsTableData.variants}
+          pageInfo={variantsTableData.pageInfo}
+          totalCount={variantsTableData.totalCount}
           formatPrice={formatPrice}
           onEdit={modals.editVariants}
+          onPageChange={onVariantsPageChange}
         />
       )}
 

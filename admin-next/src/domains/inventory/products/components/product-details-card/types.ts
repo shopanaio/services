@@ -5,8 +5,16 @@ import type { IOptionGroup } from "../../modals/edit-options-modal/edit-options-
 import type { IComponentGroup } from "../../modals/edit-components-modal/types";
 import type { IAttributeRow } from "../../modals/edit-attributes-modal/types";
 import type { ProductInventoryWidget } from "./inventory-widget.types";
+import type {
+  ApiVariant,
+  ApiVariantConnection,
+  ApiPageInfo,
+} from "@/graphql/types";
 
 export type { ProductInventoryWidget, ThresholdType } from "./inventory-widget.types";
+
+// Re-export API types for table usage
+export type { ApiVariant, ApiVariantConnection, ApiPageInfo };
 
 // ============================================================================
 // Review Types
@@ -36,33 +44,13 @@ export interface ISectionProps {
 }
 
 // ============================================================================
-// Variant Types for Table
+// Variants Table Connection Types
 // ============================================================================
 
-export interface IVariantOption {
-  title: string;
-  group: {
-    slug: string;
-    title: string;
-  };
-}
-
-export interface IVariantForTable {
-  id: string;
-  title?: string | null;
-  sku?: string | null;
-  price: number;
-  oldPrice?: number | null;
-  costPrice?: number | null;
-  stockStatus: string;
-  weight?: number | null;
-  weightUnit?: string;
-  length?: number | null;
-  width?: number | null;
-  height?: number | null;
-  dimensionUnit?: string;
-  options?: IVariantOption[];
-  gallery?: Array<{ id: string; url: string; name?: string | null }>;
+export interface IVariantsTableData {
+  variants: ApiVariant[];
+  pageInfo: ApiPageInfo;
+  totalCount: number;
 }
 
 // ============================================================================
