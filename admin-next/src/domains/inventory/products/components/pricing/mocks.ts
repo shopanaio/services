@@ -186,17 +186,26 @@ export async function fetchVariants({
 
 export interface FetchPricingWidgetParams {
   variantId: string;
-  period: ChartPeriod;
+  period: string;
 }
 
-function getPeriodDays(period: ChartPeriod): number {
-  switch (period) {
-    case "7D":
+function getPeriodDays(period: string): number {
+  const p = period.toLowerCase();
+  switch (p) {
+    case "7d":
       return 7;
-    case "30D":
+    case "30d":
       return 30;
-    case "90D":
+    case "90d":
       return 90;
+    case "ytd":
+      const now = new Date();
+      const startOfYear = new Date(now.getFullYear(), 0, 1);
+      return Math.ceil((now.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
+    case "all":
+      return 365 * 10; // 10 years
+    default:
+      return 30;
   }
 }
 

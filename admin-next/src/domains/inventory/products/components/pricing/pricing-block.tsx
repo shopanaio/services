@@ -1,7 +1,8 @@
 import { createStyles } from "antd-style";
 import { Typography, Button, Tag, Tooltip, Dropdown, Flex, Spin } from "antd";
-import { DownOutlined, LoadingOutlined } from "@ant-design/icons";
+import { DownOutlined, LoadingOutlined, MoreOutlined } from "@ant-design/icons";
 import { useCallback, useRef } from "react";
+import { useProductPriceHistoryModal } from "../../modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { Tile } from "../tile";
 import { PeriodSwitch, CHART_PERIODS } from "../period-switch";
@@ -121,6 +122,7 @@ const useStyles = createStyles(({ token }) => ({
 // ============================================================================
 
 interface IPricingHeaderProps {
+  productId: string;
   variants: ApiVariantConnection;
   selectedVariantId: string | null;
   onVariantSelect: (id: string) => void;
@@ -130,6 +132,7 @@ interface IPricingHeaderProps {
 }
 
 const PricingHeader = ({
+  productId,
   variants,
   selectedVariantId,
   onVariantSelect,
@@ -138,6 +141,7 @@ const PricingHeader = ({
   formatPrice,
 }: IPricingHeaderProps) => {
   const { styles } = useStyles();
+  const { push: pushPriceHistory } = useProductPriceHistoryModal();
   const menuRef = useRef<HTMLDivElement>(null);
   const selectedVariant = variants.edges.find(
     (e) => e.node.id === selectedVariantId
@@ -216,7 +220,37 @@ const PricingHeader = ({
       </Dropdown>
     ) : undefined;
 
-  return <PaperHeader title="Pricing" actions={variantSelect} />;
+  const handleAction = (key: string) => {
+    if (key === "edit") {
+      // TODO: Add edit prices modal
+    } else if (key === "history") {
+      pushPriceHistory({ productId });
+    }
+  };
+
+  const actionsMenu = (
+    <Dropdown
+      menu={{
+        items: [
+          { key: "edit", label: "Edit Prices" },
+          { key: "history", label: "View History" },
+        ],
+        onClick: ({ key }) => handleAction(key),
+      }}
+      trigger={["click"]}
+    >
+      <Button size="small" icon={<MoreOutlined />} />
+    </Dropdown>
+  );
+
+  const actions = (
+    <Flex align="center" gap={12}>
+      {variantSelect}
+      {actionsMenu}
+    </Flex>
+  );
+
+  return <PaperHeader title="Pricing" actions={actions} />;
 };
 
 interface ICurrentPriceColumnProps {
@@ -420,6 +454,7 @@ export const PricingBlock = ({
   return (
     <Paper className={styles.card}>
       <PricingHeader
+        productId={productId}
         variants={variants}
         selectedVariantId={selectedVariantId}
         onVariantSelect={selectVariant}

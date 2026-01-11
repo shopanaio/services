@@ -3,7 +3,7 @@ import { DownOutlined, LoadingOutlined } from "@ant-design/icons";
 import { useCallback, useRef } from "react";
 import { Paper } from "@/ui-kit/paper";
 import { Tile } from "../../../components/tile";
-import { PeriodSwitch, CHART_PERIODS } from "../../../components/period-switch";
+import { PeriodSwitch, KPI_PERIODS, KPIPeriod } from "../../../components/period-switch";
 import {
   PriceChart,
   PriceChangeIndicator,
@@ -12,7 +12,6 @@ import type {
   ApiVariantConnection,
   ApiVariantPriceConnection,
   ApiVariantPriceHistoryStatistics,
-  ChartPeriod,
 } from "../../../components/pricing/types";
 import { useStyles } from "../price-history-modal.styles";
 
@@ -26,8 +25,8 @@ interface IOverviewSectionProps {
   onVariantSelect: (id: string) => void;
   onLoadMoreVariants: () => void;
   isLoadingVariants: boolean;
-  period: ChartPeriod;
-  onPeriodChange: (period: ChartPeriod) => void;
+  period: KPIPeriod;
+  onPeriodChange: (period: KPIPeriod) => void;
   formatPrice: (amount: number) => string;
 }
 
@@ -181,7 +180,7 @@ export const OverviewSection = ({
             Price Trend
           </Typography.Text>
           <PeriodSwitch
-            periods={CHART_PERIODS}
+            periods={KPI_PERIODS}
             value={period}
             onChange={onPeriodChange}
           />

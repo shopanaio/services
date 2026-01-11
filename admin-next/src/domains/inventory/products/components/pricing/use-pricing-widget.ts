@@ -1,12 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import type {
-  ApiVariantConnection,
-  PricingWidgetPayload,
-  ChartPeriod,
-} from "./types";
+import type { ApiVariantConnection, PricingWidgetPayload } from "./types";
 import { fetchVariants, fetchPricingWidget } from "./mocks";
 
-export interface UsePricingWidgetReturn {
+export interface UsePricingWidgetReturn<T extends string = string> {
   /** Pricing widget data for selected variant */
   data: PricingWidgetPayload | null;
   /** Loading state for widget data */
@@ -24,9 +20,9 @@ export interface UsePricingWidgetReturn {
   /** Select a variant */
   selectVariant: (id: string) => void;
   /** Current period filter */
-  period: ChartPeriod;
+  period: T;
   /** Set period filter */
-  setPeriod: (period: ChartPeriod) => void;
+  setPeriod: (period: T) => void;
 }
 
 const EMPTY_CONNECTION: ApiVariantConnection = {
@@ -40,7 +36,10 @@ const EMPTY_CONNECTION: ApiVariantConnection = {
   totalCount: 0,
 };
 
-export function usePricingWidget(productId: string): UsePricingWidgetReturn {
+export function usePricingWidget<T extends string = string>(
+  productId: string,
+  initialPeriod: T = "30D" as T
+): UsePricingWidgetReturn<T> {
   // Variants state
   const [variants, setVariants] =
     useState<ApiVariantConnection>(EMPTY_CONNECTION);
@@ -55,7 +54,7 @@ export function usePricingWidget(productId: string): UsePricingWidgetReturn {
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(
     null
   );
-  const [period, setPeriod] = useState<ChartPeriod>("30D");
+  const [period, setPeriod] = useState<T>(initialPeriod);
 
   // Load initial variants
   useEffect(() => {

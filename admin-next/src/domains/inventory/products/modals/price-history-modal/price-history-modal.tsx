@@ -10,6 +10,7 @@ import {
 } from "@/layouts/modals";
 import { formatPrice as defaultFormatPrice } from "../../components/pricing/utils";
 import { usePricingWidget } from "../../components/pricing/use-pricing-widget";
+import type { KPIPeriod } from "../../../components/period-switch";
 import { OverviewSection, ChangeLogSection } from "./components";
 import type { IPriceHistoryModalPayload } from "./types";
 

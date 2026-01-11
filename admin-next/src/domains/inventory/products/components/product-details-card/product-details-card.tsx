@@ -86,36 +86,7 @@ export const ProductDetailsCard = ({
       <ProductContentTabs product={product} />
 
       {/* PRICING */}
-      <PricingBlock
-        title="Pricing"
-        price={product.price}
-        compareAtPrice={product.oldPrice}
-        costPrice={product.costPrice}
-        variants={
-          product.isVariableProduct
-            ? product.variants?.map((v) => ({
-                id: v.id,
-                title:
-                  v.options?.map((o) => o.title).join(" / ") || v.sku || v.id,
-                price: v.price,
-                compareAtPrice: v.oldPrice || null,
-                costPrice: v.costPrice || null,
-                options: v.options?.map((opt) => ({
-                  title: opt.title,
-                  group: {
-                    slug: opt.group.slug,
-                    title: opt.group.title,
-                  },
-                })),
-              }))
-            : undefined
-        }
-        priceSource="manual"
-        targetMargin={35}
-        onViewLog={() => console.log("View price log")}
-        onMoreAction={(action) => console.log("Pricing action:", action)}
-        formatPrice={formatPrice}
-      />
+      <PricingBlock productId={product.id} formatPrice={formatPrice} />
 
       {/* MEDIA SECTION */}
       <MediaSection gallery={product.gallery} onEdit={modals.editMedia} />

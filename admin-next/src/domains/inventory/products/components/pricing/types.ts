@@ -33,10 +33,11 @@ export interface IPricingBlockProps {
 }
 
 // ============================================================================
-// Chart Period
+// Period Types
 // ============================================================================
 
 export type ChartPeriod = "7D" | "30D" | "90D";
+export type KPIPeriod = "7d" | "30d" | "90d" | "ytd" | "all";
 
 // ============================================================================
 // Pricing Widget Query Response
