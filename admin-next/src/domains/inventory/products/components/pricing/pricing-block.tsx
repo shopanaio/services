@@ -13,7 +13,6 @@ import type {
   ApiVariantConnection,
   ApiVariantPriceConnection,
   ApiVariantPriceHistoryStatistics,
-  ChartPeriod,
 } from "./types";
 
 // Non-breaking space for currency formatting
@@ -71,8 +70,6 @@ const useStyles = createStyles(({ token }) => ({
     "&&": {
       fontSize: 32,
       fontWeight: 700,
-      margin: 0,
-      lineHeight: 1.2,
       whiteSpace: "nowrap",
     },
   },
@@ -85,9 +82,6 @@ const useStyles = createStyles(({ token }) => ({
   },
   sourceTag: {
     margin: 0,
-    fontSize: 10,
-    background: "transparent",
-    color: token.colorTextSecondary,
     cursor: "help",
   },
   kpiRow: {
@@ -175,22 +169,17 @@ const PricingHeader = ({
       </ScrollableDropdown>
     ) : undefined;
 
-  const handleAction = (key: string) => {
-    if (key === "edit") {
-      // TODO: Add edit prices modal
-    } else if (key === "history") {
-      pushPriceHistory({ productId });
-    }
-  };
-
   const actionsMenu = (
     <Dropdown
       menu={{
         items: [
           { key: "edit", label: "Edit Prices" },
-          { key: "history", label: "View History" },
+          {
+            key: "history",
+            label: "View History",
+            onClick: () => pushPriceHistory({ productId }),
+          },
         ],
-        onClick: ({ key }) => handleAction(key),
       }}
       trigger={["click"]}
     >
@@ -233,36 +222,30 @@ const CurrentPriceColumn = ({
       <Typography.Text className={styles.sectionLabel}>
         Current price
       </Typography.Text>
-
       <Typography.Title level={2} className={styles.mainPrice}>
         {formatPrice(price)}
       </Typography.Title>
-
-      <Flex align="center" gap={8} style={{ marginTop: 8 }}>
-        {discountPercent && (
-          <Tag className={styles.discountTag}>-{discountPercent}%</Tag>
-        )}
-        <Tooltip title="Price set manually by user">
-          <Tag className={styles.sourceTag}>Manual</Tag>
-        </Tooltip>
-      </Flex>
-
-      {compareAtPrice && compareAtPrice > price && (
-        <Flex align="center" gap={12} style={{ marginTop: 12, fontSize: 13 }}>
+      <Flex align="center" gap={8}>
+        {compareAtPrice && (
           <Typography.Text type="secondary">
-            Was:{NBSP}
+            Compare at:{NBSP}
             <Typography.Text delete type="secondary">
               {formatPrice(compareAtPrice)}
             </Typography.Text>
           </Typography.Text>
-          {saving && (
-            <Typography.Text type="secondary">
-              Save{NBSP}
-              {formatPrice(saving)}
-            </Typography.Text>
-          )}
-        </Flex>
-      )}
+        )}
+        {discountPercent && (
+          <Tag color="red" className={styles.discountTag}>
+            -{discountPercent}%
+          </Tag>
+        )}
+      </Flex>
+
+      <Tooltip title="Price set manually by user">
+        <Tag className={styles.sourceTag} color="blue" style={{ marginTop: 8 }}>
+          Manual
+        </Tag>
+      </Tooltip>
     </div>
   );
 };
