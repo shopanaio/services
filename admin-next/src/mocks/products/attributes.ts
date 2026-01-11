@@ -1,5 +1,4 @@
 export type RowType = "group" | "attribute";
-export type DisplayType = "text" | "dropdown" | "multiselect";
 
 export interface IAttributeValue {
   id: string;
@@ -12,7 +11,6 @@ export interface IAttributeRow {
   id: string;
   type: RowType;
   name: string;
-  displayType?: DisplayType;
   parentId: string | null;
   sortIndex: number;
   level: number; // 0 = group, 1 = attribute
@@ -26,7 +24,6 @@ export const createMockData = (): IAttributeRow[] => {
       id: "a0",
       type: "attribute",
       name: "SKU",
-      displayType: "text",
       parentId: null,
       sortIndex: 0,
       level: 0,
@@ -36,7 +33,6 @@ export const createMockData = (): IAttributeRow[] => {
       id: "a00",
       type: "attribute",
       name: "Barcode",
-      displayType: "text",
       parentId: null,
       sortIndex: 1,
       level: 0,
@@ -56,7 +52,6 @@ export const createMockData = (): IAttributeRow[] => {
       id: "a1",
       type: "attribute",
       name: "Material",
-      displayType: "dropdown",
       parentId: "g1",
       sortIndex: 0,
       level: 1,
@@ -70,7 +65,6 @@ export const createMockData = (): IAttributeRow[] => {
       id: "a2",
       type: "attribute",
       name: "Weight",
-      displayType: "text",
       parentId: "g1",
       sortIndex: 1,
       level: 1,
@@ -94,7 +88,6 @@ export const createMockData = (): IAttributeRow[] => {
       id: "a3",
       type: "attribute",
       name: "Brand",
-      displayType: "dropdown",
       parentId: "g2",
       sortIndex: 0,
       level: 1,
@@ -118,7 +111,6 @@ export const createMockData = (): IAttributeRow[] => {
       id: "a4",
       type: "attribute",
       name: "Country of Origin",
-      displayType: "dropdown",
       parentId: "g3",
       sortIndex: 0,
       level: 1,

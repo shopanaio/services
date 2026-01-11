@@ -245,7 +245,6 @@ export const EditAttributesModal = () => {
           id: newId,
           type: "attribute",
           name: newName,
-          displayType: "text",
           parentId,
           sortIndex: prev.filter(
             (r) => r.parentId === parentId && r.type === "attribute"
@@ -325,7 +324,6 @@ export const EditAttributesModal = () => {
             id: newId,
             type: "attribute" as const,
             name: "New Attribute",
-            displayType: "text" as const,
             parentId: null,
             sortIndex: newSortIndex,
             level: 0,
@@ -338,7 +336,6 @@ export const EditAttributesModal = () => {
         id: newId,
         type: "attribute",
         name: "New Attribute",
-        displayType: "text",
         parentId: null,
         sortIndex: newSortIndex,
         level: 0,
