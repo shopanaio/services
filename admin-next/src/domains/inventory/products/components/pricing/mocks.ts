@@ -6,7 +6,7 @@ import type {
   PricingWidgetPayload,
   ApiVariantPriceHistoryStatistics,
 } from "./types";
-import { getPeriodDays } from "./types";
+import { getPeriodDays } from "../utils";
 
 // ============================================================================
 // Mock Data Generators

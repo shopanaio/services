@@ -33,24 +33,6 @@ export interface IPricingBlockProps {
 }
 
 // ============================================================================
-// Period Types (re-exported from unified utils)
-// ============================================================================
-
-export type { Period, ChartPeriod, DateRange, PeriodConfig } from "../utils";
-export {
-  PERIODS,
-  CHART_PERIODS,
-  DEFAULT_PERIOD,
-  DEFAULT_CHART_PERIOD,
-  getDateRangeForPeriod,
-  getPeriodConfig,
-  getPeriodDays,
-} from "../utils";
-
-/** @deprecated Use Period instead */
-export type KPIPeriod = import("../utils").Period;
-
-// ============================================================================
 // Pricing Widget Query Response
 // ============================================================================
 
