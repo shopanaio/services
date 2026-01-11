@@ -38,7 +38,7 @@ const EMPTY_CONNECTION: ApiVariantConnection = {
 
 export function usePricingWidget<T extends string = string>(
   productId: string,
-  initialPeriod: T = "30D" as T
+  initialPeriod: T = "30d" as T
 ): UsePricingWidgetReturn<T> {
   // Variants state
   const [variants, setVariants] =

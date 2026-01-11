@@ -5,8 +5,8 @@ import type {
   ApiVariantPriceConnection,
   PricingWidgetPayload,
   ApiVariantPriceHistoryStatistics,
-  ChartPeriod,
 } from "./types";
+import { getPeriodDays } from "./types";
 
 // ============================================================================
 // Mock Data Generators
@@ -189,25 +189,6 @@ export interface FetchPricingWidgetParams {
   period: string;
 }
 
-function getPeriodDays(period: string): number {
-  const p = period.toLowerCase();
-  switch (p) {
-    case "7d":
-      return 7;
-    case "30d":
-      return 30;
-    case "90d":
-      return 90;
-    case "ytd":
-      const now = new Date();
-      const startOfYear = new Date(now.getFullYear(), 0, 1);
-      return Math.ceil((now.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
-    case "all":
-      return 365 * 10; // 10 years
-    default:
-      return 30;
-  }
-}
 
 export async function fetchPricingWidget({
   variantId,

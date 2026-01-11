@@ -2,7 +2,7 @@ import { Typography, Flex, Button } from "antd";
 import { DownOutlined } from "@ant-design/icons";
 import { Paper } from "@/ui-kit/paper";
 import { Tile } from "../../../components/tile";
-import { PeriodSwitch, KPI_PERIODS, KPIPeriod } from "../../../components/period-switch";
+import { PeriodSwitch, PERIODS, type Period } from "../../../components/period-switch";
 import {
   PriceChart,
   PriceChangeIndicator,
@@ -25,8 +25,8 @@ interface IOverviewSectionProps {
   onVariantSelect: (id: string) => void;
   onLoadMoreVariants: () => void;
   isLoadingVariants: boolean;
-  period: KPIPeriod;
-  onPeriodChange: (period: KPIPeriod) => void;
+  period: Period;
+  onPeriodChange: (period: Period) => void;
   formatPrice: (amount: number) => string;
 }
 
@@ -145,7 +145,7 @@ export const OverviewSection = ({
             Price Trend
           </Typography.Text>
           <PeriodSwitch
-            periods={KPI_PERIODS}
+            periods={PERIODS}
             value={period}
             onChange={onPeriodChange}
           />

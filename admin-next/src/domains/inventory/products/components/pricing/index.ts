@@ -30,8 +30,23 @@ export type {
   ApiVariantConnection,
   ApiVariantPriceHistoryStatistics,
   PricingWidgetPayload,
-  ChartPeriod,
   CurrencyCode,
+  // Period types
+  Period,
+  ChartPeriod,
+  DateRange,
+  PeriodConfig,
+} from "./types";
+
+// Period utilities
+export {
+  PERIODS,
+  CHART_PERIODS,
+  DEFAULT_PERIOD,
+  DEFAULT_CHART_PERIOD,
+  getDateRangeForPeriod,
+  getPeriodConfig,
+  getPeriodDays,
 } from "./types";
 
 // Utilities

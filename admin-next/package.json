@@ -27,6 +27,7 @@
     "ag-grid-react": "^34.3.1",
     "antd": "^6.0.1",
     "antd-style": "^3.7.1",
+    "dayjs": "^1.11.19",
     "echarts": "^6.0.0",
     "echarts-for-react": "^3.0.5",
     "editorjs-html": "^4.0.5",

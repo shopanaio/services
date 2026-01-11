@@ -10,7 +10,7 @@ import {
 } from "@/layouts/modals";
 import { formatPrice as defaultFormatPrice } from "../../components/pricing/utils";
 import { usePricingWidget } from "../../components/pricing/use-pricing-widget";
-import type { KPIPeriod } from "../../../components/period-switch";
+import type { Period } from "../../components/period-switch";
 import { OverviewSection, ChangeLogSection } from "./components";
 import type { IPriceHistoryModalPayload } from "./types";
 
@@ -28,7 +28,7 @@ export const PriceHistoryModal = () => {
     selectVariant,
     period,
     setPeriod,
-  } = usePricingWidget(typedPayload.productId);
+  } = usePricingWidget<Period>(typedPayload.productId);
 
   const formatPrice = typedPayload.formatPrice || defaultFormatPrice;
 

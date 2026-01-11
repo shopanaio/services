@@ -1,17 +1,13 @@
 import { createStyles } from "antd-style";
 import { Tag, Flex, Switch, Typography, Tooltip } from "antd";
+import type { PeriodConfig } from "./utils";
 
 // ============================================================================
 // Types
 // ============================================================================
 
-interface IPeriodOption<T extends string> {
-  value: T;
-  label: string;
-}
-
 interface IPeriodSwitchProps<T extends string> {
-  periods: readonly IPeriodOption<T>[];
+  periods: readonly PeriodConfig<T>[];
   value: T;
   onChange: (value: T) => void;
   compareEnabled?: boolean;
@@ -114,22 +110,25 @@ export function PeriodSwitch<T extends string>({
 }
 
 // ============================================================================
-// Predefined period sets
+// Re-export unified periods from utils
 // ============================================================================
 
-export const KPI_PERIODS = [
-  { value: "7d", label: "7D" },
-  { value: "30d", label: "30D" },
-  { value: "90d", label: "90D" },
-  { value: "ytd", label: "YTD" },
-  { value: "all", label: "All" },
-] as const;
+export {
+  PERIODS,
+  CHART_PERIODS,
+  DEFAULT_PERIOD,
+  DEFAULT_CHART_PERIOD,
+  getDateRangeForPeriod,
+  getPeriodConfig,
+  getPeriodDays,
+  type Period,
+  type ChartPeriod,
+  type DateRange,
+  type PeriodConfig,
+} from "./utils";
 
-export const CHART_PERIODS = [
-  { value: "7D", label: "7D" },
-  { value: "30D", label: "30D" },
-  { value: "90D", label: "90D" },
-] as const;
+/** @deprecated Use Period instead */
+export type KPIPeriod = import("./utils").Period;
 
-export type KPIPeriod = (typeof KPI_PERIODS)[number]["value"];
-export type ChartPeriod = (typeof CHART_PERIODS)[number]["value"];
+/** @deprecated Use PERIODS instead */
+export { PERIODS as KPI_PERIODS } from "./utils";

@@ -34,7 +34,7 @@ import { FaXTwitter } from "react-icons/fa6";
 import { HiOutlineMail } from "react-icons/hi";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { Tile } from "../tile";
-import { PeriodSwitch, KPI_PERIODS, KPIPeriod } from "../period-switch";
+import { PeriodSwitch, PERIODS, type Period } from "../period-switch";
 import { IProduct, EntityStatus } from "@/mocks/products/types";
 import { useProductEditTitleModal } from "../../modals";
 
@@ -387,7 +387,7 @@ export const ProductInfoHeader = ({
   kpiData,
 }: IProductInfoHeaderProps) => {
   const { styles } = useStyles();
-  const [kpiPeriod, setKpiPeriod] = useState<KPIPeriod>("7d");
+  const [kpiPeriod, setKpiPeriod] = useState<Period>("7d");
   const [compareEnabled, setCompareEnabled] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
@@ -574,7 +574,7 @@ export const ProductInfoHeader = ({
       <div>
         <div style={{ marginBottom: 12 }}>
           <PeriodSwitch
-            periods={KPI_PERIODS}
+            periods={PERIODS}
             value={kpiPeriod}
             onChange={setKpiPeriod}
             showCompare
