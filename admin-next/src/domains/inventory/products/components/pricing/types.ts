@@ -31,7 +31,7 @@ export interface IPricingBlockProps {
   /** Callback when variant selection changes */
   onVariantSelect?: (id: string) => void;
   /** Computed statistics for selected variant */
-  stats?: PriceHistoryStats | null;
+  stats?: ApiVariantPriceHistoryStatistics | null;
   /** Block title */
   title?: string;
   /** Callback for menu actions */
@@ -44,16 +44,43 @@ export interface IPricingBlockProps {
 // Stats (computed on frontend from priceHistory)
 // ============================================================================
 
+// ============================================================================
+// Pricing Widget Query Response
+// ============================================================================
+
 /**
- * Computed statistics for price history
+ * Statistics returned from API for a variant's price history
  */
-export interface PriceHistoryStats {
-  /** Minimum price over the period (minor units) */
-  minPrice: number | null;
-  /** Maximum price over the period (minor units) */
-  maxPrice: number | null;
-  /** Average price over the period (minor units) */
-  avgPrice: number | null;
-  /** Number of price changes */
-  priceChangesCount: number;
+export interface ApiVariantPriceHistoryStatistics {
+  /** Minimum price over the period */
+  minPriceMinor: number;
+  /** Maximum price over the period */
+  maxPriceMinor: number;
+  /** Average price over the period */
+  avgPriceMinor: number;
+  /** Currency code */
+  currency: CurrencyCode;
+}
+
+/**
+ * Pricing data returned from widget query
+ */
+export interface PricingWidget {
+  /** Current price */
+  currentPrice: ApiVariantPrice | null;
+  /** Current cost */
+  currentCostPrice: ApiVariantCost | null;
+  /** Price history for the requested period with stats */
+  history: ApiVariantPriceConnection;
+  /** Computed statistics for the period */
+  statistics: ApiVariantPriceHistoryStatistics;
+}
+
+/**
+ * Full response from pricing widget query
+ */
+export interface PricingWidgetQueryResponse {
+  widgetQuery: {
+    pricing: PricingWidget;
+  };
 }

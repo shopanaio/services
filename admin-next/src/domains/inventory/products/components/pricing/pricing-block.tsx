@@ -11,7 +11,7 @@ import type {
   IPricingBlockProps,
   ApiVariant,
   ApiVariantPriceConnection,
-  PriceHistoryStats,
+  ApiVariantPriceHistoryStats,
 } from "./types";
 
 // Non-breaking space for currency formatting
@@ -319,7 +319,7 @@ const PriceHistoryChartColumn = ({
 };
 
 interface IKPIRowProps {
-  stats: PriceHistoryStats | null;
+  stats: ApiVariantPriceHistoryStats | null;
   costPrice: number | null;
   formatPrice: (amount: number) => string;
 }
@@ -338,21 +338,21 @@ const KPIRow = ({ stats, costPrice, formatPrice }: IKPIRowProps) => {
       />
       <Tile
         label="Min"
-        value={stats?.minPrice ? formatPrice(stats.minPrice) : "—"}
+        value={stats?.minPriceMinor ? formatPrice(stats.minPriceMinor) : "—"}
         tooltip="Minimum price over the period"
         centered
         className={styles.kpiTile}
       />
       <Tile
         label="Max"
-        value={stats?.maxPrice ? formatPrice(stats.maxPrice) : "—"}
+        value={stats?.maxPriceMinor ? formatPrice(stats.maxPriceMinor) : "—"}
         tooltip="Maximum price over the period"
         centered
         className={styles.kpiTile}
       />
       <Tile
         label="Avg"
-        value={stats?.avgPrice ? formatPrice(stats.avgPrice) : "—"}
+        value={stats?.avgPriceMinor ? formatPrice(stats.avgPriceMinor) : "—"}
         tooltip="Average price over the period"
         centered
         className={styles.kpiTile}
