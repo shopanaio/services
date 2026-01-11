@@ -2662,7 +2662,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/react@npm:^19":
+"@types/react-infinite-scroller@npm:^1.2.5":
+  version: 1.2.5
+  resolution: "@types/react-infinite-scroller@npm:1.2.5"
+  dependencies:
+    "@types/react": "npm:*"
+  checksum: 10/8b56f63c35802d2593cc25b3ab03bfbeceb2a5379997364fb5cea414cc8690341fbf3902d8fc7a6db43f87c144276009cb4a7f3388f1a52091ac3a4fd7de7d33
+  languageName: node
+  linkType: hard
+
+"@types/react@npm:*, @types/react@npm:^19":
   version: 19.2.8
   resolution: "@types/react@npm:19.2.8"
   dependencies:
@@ -3032,6 +3041,7 @@ __metadata:
     "@types/node": "npm:^20"
     "@types/react": "npm:^19"
     "@types/react-dom": "npm:^19"
+    "@types/react-infinite-scroller": "npm:^1.2.5"
     ag-grid-community: "npm:^34.3.1"
     ag-grid-react: "npm:^34.3.1"
     antd: "npm:^6.0.1"
@@ -3049,6 +3059,7 @@ __metadata:
     react-dom: "npm:19.2.0"
     react-hook-form: "npm:^7.70.0"
     react-icons: "npm:^5.5.0"
+    react-infinite-scroller: "npm:^1.2.6"
     transliteration: "npm:^2.6.0"
     typescript: "npm:^5"
     zod: "npm:^4.3.5"
@@ -6556,7 +6567,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prop-types@npm:^15.8.1":
+"prop-types@npm:^15.5.8, prop-types@npm:^15.8.1":
   version: 15.8.1
   resolution: "prop-types@npm:15.8.1"
   dependencies:
@@ -6620,6 +6631,17 @@ __metadata:
   peerDependencies:
     react: "*"
   checksum: 10/67d5b311c23f74829cb90d58b78ddc87959d2087eda7f29b78d1ab6e337b04b0358a00724d73ab60652469d9a2c66ba3c034b8b7d4f32caae942592f92f59a84
+  languageName: node
+  linkType: hard
+
+"react-infinite-scroller@npm:^1.2.6":
+  version: 1.2.6
+  resolution: "react-infinite-scroller@npm:1.2.6"
+  dependencies:
+    prop-types: "npm:^15.5.8"
+  peerDependencies:
+    react: ^0.14.9 || ^15.3.0 || ^16.0.0 || ^17.0.0 || ^18.0.0
+  checksum: 10/d37d3dfc99029e203631b155cc92181453f14cef1cfbbf9bb05504a67b97eedc0771ca6848d110d846c26e3001981702baefd951bcdcdf9fbec15b5dfb420cad
   languageName: node
   linkType: hard
 

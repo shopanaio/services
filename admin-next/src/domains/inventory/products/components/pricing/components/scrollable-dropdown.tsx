@@ -1,8 +1,8 @@
 import { Dropdown, Spin } from "antd";
-import type { DropdownProps, MenuProps } from "antd";
+import type { DropdownProps } from "antd";
 import { LoadingOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
-import { useCallback, useRef } from "react";
+import InfiniteScroll from "react-infinite-scroller";
 
 const useStyles = createStyles(() => ({
   dropdownMenu: {
@@ -26,7 +26,6 @@ export interface IScrollableDropdownProps
   hasNextPage: boolean;
   isLoadingMore: boolean;
   onLoadMore: () => void;
-  loadingKey?: string;
   threshold?: number;
 }
 
@@ -36,62 +35,30 @@ export const ScrollableDropdown = ({
   hasNextPage,
   isLoadingMore,
   onLoadMore,
-  loadingKey = "loading",
   threshold = 50,
   ...dropdownProps
 }: IScrollableDropdownProps) => {
   const { styles } = useStyles();
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  const handleScroll = useCallback(
-    (e: React.UIEvent<HTMLDivElement>) => {
-      const target = e.target as HTMLDivElement;
-      const isNearBottom =
-        target.scrollHeight - target.scrollTop - target.clientHeight <
-        threshold;
-
-      if (isNearBottom && hasNextPage && !isLoadingMore) {
-        onLoadMore();
-      }
-    },
-    [hasNextPage, isLoadingMore, onLoadMore, threshold]
-  );
-
-  const menuWithLoading: MenuProps | undefined = menu
-    ? {
-        ...menu,
-        items: isLoadingMore
-          ? [
-              ...(menu.items ?? []),
-              {
-                key: loadingKey,
-                label: (
-                  <div className={styles.loadingItem}>
-                    <Spin indicator={<LoadingOutlined spin />} size="small" />
-                  </div>
-                ),
-              },
-            ]
-          : menu.items,
-        onClick: (info) => {
-          if (info.key !== loadingKey) {
-            menu.onClick?.(info);
-          }
-        },
-      }
-    : undefined;
 
   return (
     <Dropdown
       {...dropdownProps}
-      menu={menuWithLoading}
+      menu={menu}
       dropdownRender={(menuNode) => (
-        <div
-          ref={menuRef}
-          className={styles.dropdownMenu}
-          onScroll={handleScroll}
-        >
-          {menuNode}
+        <div className={styles.dropdownMenu}>
+          <InfiniteScroll
+            loadMore={onLoadMore}
+            hasMore={hasNextPage && !isLoadingMore}
+            useWindow={false}
+            threshold={threshold}
+            loader={
+              <div key="loader" className={styles.loadingItem}>
+                <Spin indicator={<LoadingOutlined spin />} size="small" />
+              </div>
+            }
+          >
+            {menuNode}
+          </InfiniteScroll>
         </div>
       )}
     >
