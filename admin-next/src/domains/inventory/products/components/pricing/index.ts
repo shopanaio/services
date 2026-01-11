@@ -10,7 +10,6 @@ export {
   PriceChart,
   PriceChangeIndicator,
   DiscountBadge,
-  PriceSparkline,
   PriceStats,
   PriceTimeline,
   PriceHistoryTimeline,
@@ -26,6 +25,8 @@ export type {
   ApiVariantPriceHistoryStatistics,
   PricingWidgetPayload,
   CurrencyCode,
+  IPriceHistoryRecord,
+  IVariantPriceSummary,
 } from "./types";
 
 // Utilities

@@ -14,10 +14,12 @@ import {
   type IEditSeoModalPayload,
 } from "../../../modals";
 import type { IProduct, IMediaFile } from "@/mocks/products/types";
-import type { IComponentGroup } from "../../../modals/edit-components-modal/types";
+import type { IComponentGroup, PricingRuleTemplate, ITieredDiscount } from "../../../modals/edit-components-modal/types";
 
 interface IUseProductModalsOptions {
   components?: IComponentGroup[];
+  pricingTemplates?: PricingRuleTemplate[];
+  tieredDiscounts?: ITieredDiscount[];
 }
 
 export const useProductModals = (product: IProduct, options: IUseProductModalsOptions = {}) => {
@@ -84,8 +86,10 @@ export const useProductModals = (product: IProduct, options: IUseProductModalsOp
     openEditComponentsModal({
       productId: product.id,
       groups: options.components,
+      pricingTemplates: options.pricingTemplates,
+      tieredDiscounts: options.tieredDiscounts,
     });
-  }, [product.id, options.components, openEditComponentsModal]);
+  }, [product.id, options.components, options.pricingTemplates, options.tieredDiscounts, openEditComponentsModal]);
 
   const handleEditSeo = useCallback(() => {
     openEditSeoModal({

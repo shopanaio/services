@@ -14,7 +14,6 @@ export {
 export {
   PriceChangeIndicator,
   DiscountBadge,
-  PriceSparkline,
   PriceStats,
   PriceTimeline,
   PriceHistoryTimeline,

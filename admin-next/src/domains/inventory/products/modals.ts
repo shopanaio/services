@@ -306,6 +306,8 @@ export interface IEditTagsModalPayload extends IModalStackPayload {
 export interface IEditComponentsModalPayload extends IModalStackPayload {
   productId?: string;
   groups?: import("./modals/edit-components-modal/types").IComponentGroup[];
+  pricingTemplates?: import("./modals/edit-components-modal/types").PricingRuleTemplate[];
+  tieredDiscounts?: import("./modals/edit-components-modal/types").ITieredDiscount[];
 }
 
 export interface IBulkEditorModalPayload extends IModalStackPayload {

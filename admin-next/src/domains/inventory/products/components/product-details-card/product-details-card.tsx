@@ -51,7 +51,11 @@ export const ProductDetailsCard = ({
   onEditSection,
   onVariantsPageChange,
 }: IProductDetailsCardProps) => {
-  const modals = useProductModals(product, { components: mockData.components });
+  const modals = useProductModals(product, {
+    components: mockData.components,
+    pricingTemplates: mockData.pricingTemplates,
+    tieredDiscounts: mockData.tieredDiscounts,
+  });
 
   const handleEdit = (section: string) => onEditSection?.(section);
 

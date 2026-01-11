@@ -10,7 +10,7 @@ import {
   ThresholdType,
 } from "@/domains/inventory/products/components/product-details-card/inventory-widget.types";
 import { CurrencyCode, OptionDisplayType, type ApiVariant, type ApiPageInfo } from "@/graphql/types";
-import type { IComponentGroup } from "@/domains/inventory/products/modals/edit-components-modal/types";
+import type { IComponentGroup, PricingRuleTemplate, ITieredDiscount } from "@/domains/inventory/products/modals/edit-components-modal/types";
 import { ComponentItemType, ComponentPriceType } from "@/domains/inventory/products/modals/edit-components-modal/types";
 
 const getMockInventoryWidget = (): ProductInventoryWidget => ({
@@ -277,6 +277,35 @@ const mockComponentGroups: IComponentGroup[] = [
   },
 ];
 
+// Mock Pricing Templates
+const mockPricingTemplates: PricingRuleTemplate[] = [
+  {
+    id: "tpl-1",
+    name: "Bundle Discount",
+    priceType: ComponentPriceType.DISCOUNT_PERCENT,
+    priceValue: 15,
+  },
+  {
+    id: "tpl-2",
+    name: "Premium Markup",
+    priceType: ComponentPriceType.MARKUP_PERCENT,
+    priceValue: 20,
+  },
+  {
+    id: "tpl-3",
+    name: "Free Accessory",
+    priceType: ComponentPriceType.FREE,
+    priceValue: null,
+  },
+];
+
+// Mock Tiered Discounts
+const mockTieredDiscounts: ITieredDiscount[] = [
+  { id: "tier-1", minItems: 3, discountPercent: 5 },
+  { id: "tier-2", minItems: 5, discountPercent: 10 },
+  { id: "tier-3", minItems: 10, discountPercent: 15 },
+];
+
 export const productDetailsMockData: IProductDetailsMockData = {
   categories: {
     primary: mockCategories[0],
@@ -287,6 +316,8 @@ export const productDetailsMockData: IProductDetailsMockData = {
   attributes: createAttributesMockData(),
   options: MOCK_OPTION_GROUPS,
   components: mockComponentGroups,
+  pricingTemplates: mockPricingTemplates,
+  tieredDiscounts: mockTieredDiscounts,
   inventory: getMockInventoryWidget(),
 };
 
