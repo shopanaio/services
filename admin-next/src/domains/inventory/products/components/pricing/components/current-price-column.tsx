@@ -1,8 +1,13 @@
 import { Typography, Tag, Tooltip, Flex } from "antd";
 import { useStyles } from "../pricing-block.styles";
-import type { ICurrentPriceColumnProps } from "../types";
 
 const NBSP = "\u00A0";
+
+export interface ICurrentPriceColumnProps {
+  price: number;
+  compareAtPrice: number | null;
+  formatPrice: (amount: number) => string;
+}
 
 export const CurrentPriceColumn = ({
   price,

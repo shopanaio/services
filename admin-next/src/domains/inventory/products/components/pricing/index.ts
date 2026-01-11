@@ -18,11 +18,6 @@ export {
 
 // Types
 export type {
-  IPricingBlockProps,
-  IPricingHeaderProps,
-  ICurrentPriceColumnProps,
-  IPriceHistoryChartColumnProps,
-  IKPIRowProps,
   ApiVariant,
   ApiVariantPrice,
   ApiVariantCost,

@@ -22,17 +22,6 @@ export type {
 };
 
 // ============================================================================
-// Pricing Block Props
-// ============================================================================
-
-export interface IPricingBlockProps {
-  /** Product ID to fetch pricing data for */
-  productId: string;
-  /** Custom price formatter */
-  formatPrice?: (amount: number, currency?: CurrencyCode) => string;
-}
-
-// ============================================================================
 // Pricing Widget Query Response
 // ============================================================================
 
@@ -71,37 +60,4 @@ export interface PricingWidgetQueryResponse {
   widgetQuery: {
     pricing: PricingWidgetPayload;
   };
-}
-
-// ============================================================================
-// Sub-component Props
-// ============================================================================
-
-export interface IPricingHeaderProps {
-  productId: string;
-  variants: ApiVariantConnection;
-  selectedVariantId: string | null;
-  onVariantSelect: (id: string) => void;
-  onLoadMore: () => void;
-  isLoadingMore: boolean;
-  formatPrice: (amount: number) => string;
-}
-
-export interface ICurrentPriceColumnProps {
-  price: number;
-  compareAtPrice: number | null;
-  formatPrice: (amount: number) => string;
-}
-
-export interface IPriceHistoryChartColumnProps {
-  history: ApiVariantPriceConnection;
-  period: string;
-  onPeriodChange: (period: string) => void;
-  formatPrice: (amount: number) => string;
-}
-
-export interface IKPIRowProps {
-  stats: ApiVariantPriceHistoryStatistics | null;
-  costPrice: number | null;
-  formatPrice: (amount: number) => string;
 }

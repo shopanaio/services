@@ -4,7 +4,17 @@ import { useProductPriceHistoryModal } from "../../../modals";
 import { PaperHeader } from "@/ui-kit/paper";
 import { ScrollableDropdown } from "./scrollable-dropdown";
 import { useStyles } from "../pricing-block.styles";
-import type { IPricingHeaderProps } from "../types";
+import { ApiVariantConnection } from "@/graphql/types";
+
+export interface IPricingHeaderProps {
+  productId: string;
+  variants: ApiVariantConnection;
+  selectedVariantId: string | null;
+  onVariantSelect: (id: string) => void;
+  onLoadMore: () => void;
+  isLoadingMore: boolean;
+  formatPrice: (amount: number) => string;
+}
 
 export const PricingHeader = ({
   productId,

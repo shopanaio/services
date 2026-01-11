@@ -10,7 +10,14 @@ import {
 import { formatPrice as defaultFormatPrice } from "./utils";
 import { usePricingWidget } from "./use-pricing-widget";
 import { useStyles } from "./pricing-block.styles";
-import type { IPricingBlockProps, ApiVariantPriceConnection } from "./types";
+import type { ApiVariantPriceConnection, CurrencyCode } from "./types";
+
+interface IPricingBlockProps {
+  /** Product ID to fetch pricing data for */
+  productId: string;
+  /** Custom price formatter */
+  formatPrice?: (amount: number, currency?: CurrencyCode) => string;
+}
 
 const EMPTY_HISTORY: ApiVariantPriceConnection = {
   __typename: "VariantPriceConnection",
