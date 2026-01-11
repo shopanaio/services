@@ -1,12 +1,11 @@
 import { createStyles } from "antd-style";
 import { Typography, Button, Tag, Tooltip, Dropdown, Flex, Spin } from "antd";
 import { DownOutlined, LoadingOutlined, MoreOutlined } from "@ant-design/icons";
-import { useCallback, useRef } from "react";
 import { useProductPriceHistoryModal } from "../../modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { Tile } from "../tile";
 import { PeriodSwitch, CHART_PERIODS } from "../period-switch";
-import { PriceChart } from "./components";
+import { PriceChart, ScrollableDropdown } from "./components";
 import { formatPrice as defaultFormatPrice } from "./utils";
 import { usePricingWidget } from "./use-pricing-widget";
 import type {
@@ -106,15 +105,6 @@ const useStyles = createStyles(({ token }) => ({
     flexDirection: "column",
     justifyContent: "center",
   },
-  dropdownMenu: {
-    maxHeight: 300,
-    overflowY: "auto",
-  },
-  loadingItem: {
-    display: "flex",
-    justifyContent: "center",
-    padding: "8px 0",
-  },
 }));
 
 // ============================================================================
@@ -142,23 +132,9 @@ const PricingHeader = ({
 }: IPricingHeaderProps) => {
   const { styles } = useStyles();
   const { push: pushPriceHistory } = useProductPriceHistoryModal();
-  const menuRef = useRef<HTMLDivElement>(null);
   const selectedVariant = variants.edges.find(
     (e) => e.node.id === selectedVariantId
   )?.node;
-
-  const handleScroll = useCallback(
-    (e: React.UIEvent<HTMLDivElement>) => {
-      const target = e.target as HTMLDivElement;
-      const isNearBottom =
-        target.scrollHeight - target.scrollTop - target.clientHeight < 50;
-
-      if (isNearBottom && variants.pageInfo.hasNextPage && !isLoadingMore) {
-        onLoadMore();
-      }
-    },
-    [variants.pageInfo.hasNextPage, isLoadingMore, onLoadMore]
-  );
 
   const variantMenuItems = variants.edges.map((edge) => ({
     key: edge.node.id,
@@ -172,39 +148,18 @@ const PricingHeader = ({
     ),
   }));
 
-  if (isLoadingMore) {
-    variantMenuItems.push({
-      key: "loading",
-      label: (
-        <div className={styles.loadingItem}>
-          <Spin indicator={<LoadingOutlined spin />} size="small" />
-        </div>
-      ),
-    });
-  }
-
   const variantSelect =
     variants.edges.length > 1 ? (
-      <Dropdown
+      <ScrollableDropdown
         menu={{
           items: variantMenuItems,
           selectedKeys: selectedVariantId ? [selectedVariantId] : [],
-          onClick: ({ key }) => {
-            if (key !== "loading") {
-              onVariantSelect(key);
-            }
-          },
+          onClick: ({ key }) => onVariantSelect(key as string),
         }}
         trigger={["click"]}
-        dropdownRender={(menu) => (
-          <div
-            ref={menuRef}
-            className={styles.dropdownMenu}
-            onScroll={handleScroll}
-          >
-            {menu}
-          </div>
-        )}
+        hasNextPage={variants.pageInfo.hasNextPage}
+        isLoadingMore={isLoadingMore}
+        onLoadMore={onLoadMore}
       >
         <Button
           size="small"
@@ -217,7 +172,7 @@ const PricingHeader = ({
             <DownOutlined style={{ fontSize: 10, marginLeft: 4 }} />
           </Flex>
         </Button>
-      </Dropdown>
+      </ScrollableDropdown>
     ) : undefined;
 
   const handleAction = (key: string) => {
@@ -314,8 +269,8 @@ const CurrentPriceColumn = ({
 
 interface IPriceHistoryChartColumnProps {
   history: ApiVariantPriceConnection;
-  period: ChartPeriod;
-  onPeriodChange: (period: ChartPeriod) => void;
+  period: string;
+  onPeriodChange: (period: string) => void;
   formatPrice: (amount: number) => string;
 }
 

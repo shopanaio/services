@@ -1,12 +1,12 @@
-import { Typography, Flex, Dropdown, Button, Spin } from "antd";
-import { DownOutlined, LoadingOutlined } from "@ant-design/icons";
-import { useCallback, useRef } from "react";
+import { Typography, Flex, Button } from "antd";
+import { DownOutlined } from "@ant-design/icons";
 import { Paper } from "@/ui-kit/paper";
 import { Tile } from "../../../components/tile";
 import { PeriodSwitch, KPI_PERIODS, KPIPeriod } from "../../../components/period-switch";
 import {
   PriceChart,
   PriceChangeIndicator,
+  ScrollableDropdown,
 } from "../../../components/pricing/components";
 import type {
   ApiVariantConnection,
@@ -45,7 +45,6 @@ export const OverviewSection = ({
   formatPrice,
 }: IOverviewSectionProps) => {
   const { styles } = useStyles();
-  const menuRef = useRef<HTMLDivElement>(null);
 
   const selectedVariant = variants.edges.find(
     (e) => e.node.id === selectedVariantId
@@ -53,19 +52,6 @@ export const OverviewSection = ({
 
   const previousPrice =
     history.edges.length > 1 ? history.edges[1]?.node.amountMinor : null;
-
-  const handleScroll = useCallback(
-    (e: React.UIEvent<HTMLDivElement>) => {
-      const target = e.target as HTMLDivElement;
-      const isNearBottom =
-        target.scrollHeight - target.scrollTop - target.clientHeight < 50;
-
-      if (isNearBottom && variants.pageInfo.hasNextPage && !isLoadingVariants) {
-        onLoadMoreVariants();
-      }
-    },
-    [variants.pageInfo.hasNextPage, isLoadingVariants, onLoadMoreVariants]
-  );
 
   const variantMenuItems = variants.edges.map((edge) => ({
     key: edge.node.id,
@@ -78,17 +64,6 @@ export const OverviewSection = ({
       </Flex>
     ),
   }));
-
-  if (isLoadingVariants) {
-    variantMenuItems.push({
-      key: "loading",
-      label: (
-        <Flex justify="center" style={{ padding: "8px 0" }}>
-          <Spin indicator={<LoadingOutlined spin />} size="small" />
-        </Flex>
-      ),
-    });
-  }
 
   return (
     <Paper className={styles.overviewPaper}>
@@ -105,26 +80,16 @@ export const OverviewSection = ({
           >
             Variant
           </Typography.Text>
-          <Dropdown
+          <ScrollableDropdown
             menu={{
               items: variantMenuItems,
               selectedKeys: selectedVariantId ? [selectedVariantId] : [],
-              onClick: ({ key }) => {
-                if (key !== "loading") {
-                  onVariantSelect(key);
-                }
-              },
+              onClick: ({ key }) => onVariantSelect(key as string),
             }}
             trigger={["click"]}
-            dropdownRender={(menu) => (
-              <div
-                ref={menuRef}
-                style={{ maxHeight: 300, overflowY: "auto" }}
-                onScroll={handleScroll}
-              >
-                {menu}
-              </div>
-            )}
+            hasNextPage={variants.pageInfo.hasNextPage}
+            isLoadingMore={isLoadingVariants}
+            onLoadMore={onLoadMoreVariants}
           >
             <Button className={styles.variantSelect}>
               <Flex align="center" gap={8}>
@@ -132,7 +97,7 @@ export const OverviewSection = ({
                 <DownOutlined style={{ fontSize: 10 }} />
               </Flex>
             </Button>
-          </Dropdown>
+          </ScrollableDropdown>
         </div>
       )}
 
