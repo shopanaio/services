@@ -1,61 +1,50 @@
 // ============================================================================
-// Price History Types
+// Pricing Types
 // ============================================================================
 
-export interface IPriceHistoryRecord {
-  id: string;
-  amount: number; // in minor units (kopecks)
-  compareAt: number | null;
-  effectiveFrom: Date;
-  effectiveTo: Date | null;
-  isCurrent: boolean;
-}
+import type {
+  ApiVariant,
+  ApiVariantPrice,
+  ApiVariantCost,
+  ApiVariantPriceConnection,
+  CurrencyCode,
+} from "@/graphql/types";
 
-export interface IVariantPriceSummary {
-  variantId: string;
-  variantTitle: string;
-  currentPrice: number;
-  previousPrice: number | null;
-  compareAtPrice: number | null;
-  costPrice: number | null;
-  margin: number | null; // percentage
-  priceHistory: IPriceHistoryRecord[];
-}
+// Re-export for convenience
+export type {
+  ApiVariant,
+  ApiVariantPrice,
+  ApiVariantCost,
+  ApiVariantPriceConnection,
+  CurrencyCode,
+};
 
 // ============================================================================
-// Pricing Block Types
+// Derived Types (from existing GraphQL types)
 // ============================================================================
 
-export type PriceSource = "manual" | "rule-based" | "promo" | "market";
-export type MarginStatus = "ok" | "warning" | "critical";
+/**
+ * Variant with pricing fields selected
+ */
+export type VariantWithPricing = Pick<
+  ApiVariant,
+  "id" | "title" | "price" | "cost" | "priceHistory"
+>;
 
-export interface IPricingData {
-  currentPrice: number;
-  previousPrice: number | null;
-  compareAtPrice: number | null;
-  costPrice: number | null;
-  margin: number | null;
-  marginStatus: MarginStatus;
-  minAllowedPrice: number | null;
+// ============================================================================
+// Stats (computed on frontend from priceHistory)
+// ============================================================================
+
+/**
+ * Computed statistics for price history
+ */
+export interface PriceHistoryStats {
+  /** Minimum price over the period (minor units) */
+  minPrice: number | null;
+  /** Maximum price over the period (minor units) */
   maxPrice: number | null;
-  priceSource: PriceSource;
-  priceHistory: IPriceHistoryRecord[];
-  lastUpdatedAt: Date;
-  changesCount: number;
-  targetMargin?: number;
+  /** Average price over the period (minor units) */
+  avgPrice: number | null;
+  /** Number of price changes */
+  priceChangesCount: number;
 }
-
-export interface IVariantOption {
-  id: string;
-  title: string;
-  price: number;
-  margin: number | null;
-  hasWarning: boolean;
-}
-
-// ============================================================================
-// Chart Types
-// ============================================================================
-
-export type ChartPeriod = "7D" | "30D" | "90D";
-export type KPIPeriod = "7d" | "30d" | "90d" | "ytd" | "all";
