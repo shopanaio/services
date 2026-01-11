@@ -64,6 +64,7 @@ interface IGroupsTabProps {
   onGroupsChange: (groups: IComponentGroup[]) => void;
   onEditVariants?: (item: ComponentItem, groupId: string) => void;
   onIncludeVariants?: (item: ComponentItem, groupId: string) => void;
+  onShowAsProduct?: (item: ComponentItem, groupId: string) => void;
   pricingTemplates: PricingRuleTemplate[];
 }
 
@@ -72,6 +73,7 @@ const GroupsTab = ({
   onGroupsChange,
   onEditVariants,
   onIncludeVariants,
+  onShowAsProduct,
   pricingTemplates,
 }: IGroupsTabProps) => {
   const { styles } = useStyles();
@@ -167,6 +169,11 @@ const GroupsTab = ({
               ? (item) => onIncludeVariants(item, group.id)
               : undefined
           }
+          onShowAsProduct={
+            onShowAsProduct
+              ? (item) => onShowAsProduct(item, group.id)
+              : undefined
+          }
           pricingTemplates={pricingTemplates}
         />
       ))}
@@ -220,14 +227,79 @@ export const EditComponentsModal = () => {
   const [bundleSettings, setBundleSettings] = useState<IBundleSettings>(
     modalPayload?.bundleSettings ?? DEFAULT_BUNDLE_SETTINGS
   );
+  // Store expanded products (products converted to variants) for restoration
+  const [expandedProducts, setExpandedProducts] = useState<Map<string, ComponentItem>>(new Map());
 
   // Handlers
   const handleGroupsChange = useCallback(
     (newGroups: IComponentGroup[]) => {
-      setGroups(newGroups);
+      // Check if any expanded products need to be restored (all variants removed)
+      const productsToRestore: Array<{ productId: string; groupId: string; firstVariantIndex: number }> = [];
+
+      expandedProducts.forEach((_, productId) => {
+        // Check each group for variants of this product
+        for (const group of newGroups) {
+          const hasVariantsOfProduct = group.items.some(
+            (item) => item.itemType === ComponentItemType.VARIANT && item.assignedVariant?.product?.id === productId
+          );
+
+          if (!hasVariantsOfProduct) {
+            // Check if this group previously had variants of this product
+            const currentGroup = groups.find((g) => g.id === group.id);
+            const hadVariants = currentGroup?.items.some(
+              (item) => item.itemType === ComponentItemType.VARIANT && item.assignedVariant?.product?.id === productId
+            );
+
+            if (hadVariants) {
+              // Find where to insert the product (where first variant was)
+              const firstVariantIndex = currentGroup?.items.findIndex(
+                (item) => item.itemType === ComponentItemType.VARIANT && item.assignedVariant?.product?.id === productId
+              ) ?? 0;
+              productsToRestore.push({ productId, groupId: group.id, firstVariantIndex });
+            }
+          }
+        }
+      });
+
+      // Restore products if needed
+      if (productsToRestore.length > 0) {
+        let updatedGroups = newGroups;
+
+        for (const { productId, groupId, firstVariantIndex } of productsToRestore) {
+          const storedProduct = expandedProducts.get(productId);
+          if (!storedProduct) continue;
+
+          updatedGroups = updatedGroups.map((g) => {
+            if (g.id !== groupId) return g;
+
+            const newItems = [...g.items];
+            newItems.splice(firstVariantIndex, 0, {
+              ...storedProduct,
+              sortIndex: firstVariantIndex,
+            });
+
+            return {
+              ...g,
+              items: newItems.map((item, idx) => ({ ...item, sortIndex: idx })),
+            };
+          });
+
+          // Remove from expanded products
+          setExpandedProducts((prev) => {
+            const newMap = new Map(prev);
+            newMap.delete(productId);
+            return newMap;
+          });
+        }
+
+        setGroups(updatedGroups);
+      } else {
+        setGroups(newGroups);
+      }
+
       setDirty(true);
     },
-    [setDirty]
+    [setDirty, expandedProducts, groups]
   );
 
   // Handler for editing variant selection for a product component
@@ -299,7 +371,7 @@ export const EditComponentsModal = () => {
     [openVariantSettingsModal, setDirty]
   );
 
-  // Handler for including variants as separate items
+  // Handler for including variants as separate items (Show as variants)
   const handleIncludeVariants = useCallback(
     (item: ComponentItem, groupId: string) => {
       if (item.itemType !== ComponentItemType.PRODUCT || !item.assignedProduct) {
@@ -314,6 +386,9 @@ export const EditComponentsModal = () => {
         return;
       }
 
+      // Store the product item for later restoration
+      setExpandedProducts((prev) => new Map(prev).set(product.id, item));
+
       // Create variant items from product variants
       const variantItems: ComponentItem[] = variantsFromConnection.map((variant, index) => ({
         id: `item-${Date.now()}-${index}`,
@@ -327,14 +402,15 @@ export const EditComponentsModal = () => {
         },
       }));
 
-      // Add variant items to the group after the product item
+      // Replace product item with variant items
       setGroups((prev) =>
         prev.map((g) => {
           if (g.id !== groupId) return g;
 
           const itemIndex = g.items.findIndex((i) => i.id === item.id);
           const newItems = [...g.items];
-          newItems.splice(itemIndex + 1, 0, ...variantItems);
+          // Remove the product and insert variants in its place
+          newItems.splice(itemIndex, 1, ...variantItems);
 
           // Update sort indices
           return {
@@ -346,6 +422,61 @@ export const EditComponentsModal = () => {
       setDirty(true);
     },
     [setDirty]
+  );
+
+  // Handler for showing variants as product (restore product from variants)
+  const handleShowAsProduct = useCallback(
+    (item: ComponentItem, groupId: string) => {
+      if (item.itemType !== ComponentItemType.VARIANT || !item.assignedVariant) {
+        return;
+      }
+
+      const productId = item.assignedVariant.product?.id;
+      if (!productId) return;
+
+      // Get stored product item
+      const storedProduct = expandedProducts.get(productId);
+      if (!storedProduct) return;
+
+      // Remove from expanded products
+      setExpandedProducts((prev) => {
+        const newMap = new Map(prev);
+        newMap.delete(productId);
+        return newMap;
+      });
+
+      // Find first variant of this product to get its position
+      setGroups((prev) =>
+        prev.map((g) => {
+          if (g.id !== groupId) return g;
+
+          // Find the first variant of this product
+          const firstVariantIndex = g.items.findIndex(
+            (i) => i.itemType === ComponentItemType.VARIANT && i.assignedVariant?.product?.id === productId
+          );
+          if (firstVariantIndex === -1) return g;
+
+          // Remove all variants of this product and insert the product
+          const newItems = g.items.filter(
+            (i) => !(i.itemType === ComponentItemType.VARIANT && i.assignedVariant?.product?.id === productId)
+          );
+
+          // Insert product at the position where first variant was
+          newItems.splice(firstVariantIndex, 0, {
+            ...storedProduct,
+            sortIndex: firstVariantIndex,
+          });
+
+          // Update sort indices
+          return {
+            ...g,
+            items: newItems.map((i, idx) => ({ ...i, sortIndex: idx })),
+          };
+        })
+      );
+      setDirty(true);
+    },
+    [expandedProducts, setDirty]
   );
 
   const handleSave = useCallback(() => {
@@ -378,6 +509,7 @@ export const EditComponentsModal = () => {
             onGroupsChange={handleGroupsChange}
             onEditVariants={handleEditVariants}
             onIncludeVariants={handleIncludeVariants}
+            onShowAsProduct={handleShowAsProduct}
             pricingTemplates={pricingTemplates}
           />
         ),
@@ -478,6 +610,7 @@ export const EditComponentsModal = () => {
       handleGroupsChange,
       handleEditVariants,
       handleIncludeVariants,
+      handleShowAsProduct,
       pricingTemplates,
       tieredDiscounts,
       bundleSettings,

@@ -51,6 +51,7 @@ const createComponentVariant = (
   title: string,
   sku: string,
   price: number,
+  productRef: { id: string; title: string },
   options: { optionId: string; optionValueId: string }[] = []
 ): ApiVariant => ({
   __typename: "Variant",
@@ -80,17 +81,24 @@ const createComponentVariant = (
   dimensions: null,
   media: [],
   stock: [],
-  product: {} as ApiVariant["product"],
+  product: {
+    __typename: "Product",
+    id: productRef.id,
+    title: productRef.title,
+  } as ApiVariant["product"],
 });
+
+// Product reference for Premium Case
+const premiumCaseProductRef = { id: "prod-1", title: "Premium Case" };
 
 // Mock variants for Premium Case product
 const premiumCaseVariants: ApiVariant[] = [
-  createComponentVariant("case-var-1", "Black", "CASE-BLK", 199000, [{ optionId: "color", optionValueId: "black" }]),
-  createComponentVariant("case-var-2", "White", "CASE-WHT", 199000, [{ optionId: "color", optionValueId: "white" }]),
-  createComponentVariant("case-var-3", "Navy", "CASE-NVY", 219000, [{ optionId: "color", optionValueId: "navy" }]),
-  createComponentVariant("case-var-4", "Red", "CASE-RED", 219000, [{ optionId: "color", optionValueId: "red" }]),
-  createComponentVariant("case-var-5", "Green", "CASE-GRN", 239000, [{ optionId: "color", optionValueId: "green" }]),
-  createComponentVariant("case-var-6", "Gold", "CASE-GLD", 299000, [{ optionId: "color", optionValueId: "gold" }]),
+  createComponentVariant("case-var-1", "Black", "CASE-BLK", 199000, premiumCaseProductRef, [{ optionId: "color", optionValueId: "black" }]),
+  createComponentVariant("case-var-2", "White", "CASE-WHT", 199000, premiumCaseProductRef, [{ optionId: "color", optionValueId: "white" }]),
+  createComponentVariant("case-var-3", "Navy", "CASE-NVY", 219000, premiumCaseProductRef, [{ optionId: "color", optionValueId: "navy" }]),
+  createComponentVariant("case-var-4", "Red", "CASE-RED", 219000, premiumCaseProductRef, [{ optionId: "color", optionValueId: "red" }]),
+  createComponentVariant("case-var-5", "Green", "CASE-GRN", 239000, premiumCaseProductRef, [{ optionId: "color", optionValueId: "green" }]),
+  createComponentVariant("case-var-6", "Gold", "CASE-GLD", 299000, premiumCaseProductRef, [{ optionId: "color", optionValueId: "gold" }]),
 ];
 
 // Mock component groups with new structure

@@ -129,6 +129,7 @@ interface IComponentsTableProps {
   onItemsChange: (items: ComponentItem[]) => void;
   onEditVariants?: (item: ComponentItem) => void;
   onIncludeVariants?: (item: ComponentItem) => void;
+  onShowAsProduct?: (item: ComponentItem) => void;
   pricingTemplates: PricingRuleTemplate[];
 }
 
@@ -326,28 +327,39 @@ const PriceRuleCellRenderer = ({
 
 interface IActionsCellRendererProps extends ICellRendererParams<ITableRow> {
   onDelete: (itemId: string) => void;
-  onDeleteAllVariants: (productId: string) => void;
   onDuplicate: (itemId: string) => void;
   onEditVariants?: (item: ComponentItem) => void;
   onIncludeVariants?: (item: ComponentItem) => void;
+  onShowAsProduct?: (item: ComponentItem) => void;
   items: ComponentItem[];
 }
 
 const ActionsCellRenderer = ({
   data,
   onDelete,
-  onDeleteAllVariants,
   onDuplicate,
   onEditVariants,
   onIncludeVariants,
+  onShowAsProduct,
   items,
 }: IActionsCellRendererProps) => {
   if (!data) return null;
 
   // For VARIANT
   if (data.itemType === ComponentItemType.VARIANT) {
-    const productId = data.assignedVariant?.product?.id;
+    const fullItem = items.find((item) => item.id === data.id);
     const menuItems: MenuProps["items"] = [
+      ...(fullItem && onShowAsProduct
+        ? [
+            {
+              key: "show-as-product",
+              icon: <CopyOutlined />,
+              label: "Show as product",
+              onClick: () => onShowAsProduct(fullItem),
+            },
+          ]
+        : []),
+      { type: "divider" as const },
       {
         key: "delete",
         icon: <DeleteOutlined />,
@@ -355,17 +367,6 @@ const ActionsCellRenderer = ({
         danger: true,
         onClick: () => onDelete(data.id),
       },
-      ...(productId
-        ? [
-            {
-              key: "delete-all",
-              icon: <DeleteOutlined />,
-              label: "Remove all variants",
-              danger: true,
-              onClick: () => onDeleteAllVariants(productId),
-            },
-          ]
-        : []),
     ];
 
     return (
@@ -435,6 +436,7 @@ export const ComponentsTable = ({
   onItemsChange,
   onEditVariants,
   onIncludeVariants,
+  onShowAsProduct,
   pricingTemplates,
 }: IComponentsTableProps) => {
   const { styles } = useStyles();
@@ -513,17 +515,6 @@ export const ComponentsTable = ({
     [items, onItemsChange]
   );
 
-  // Delete all variants of a product
-  const handleDeleteAllVariants = useCallback(
-    (productId: string) => {
-      const newItems = items.filter((item) => {
-        if (item.itemType !== ComponentItemType.VARIANT) return true;
-        return item.assignedVariant?.product?.id !== productId;
-      });
-      onItemsChange(newItems);
-    },
-    [items, onItemsChange]
-  );
 
   // Duplicate item
   const handleDuplicate = useCallback(
@@ -675,10 +666,10 @@ export const ComponentsTable = ({
           <ActionsCellRenderer
             {...params}
             onDelete={handleDelete}
-            onDeleteAllVariants={handleDeleteAllVariants}
             onDuplicate={handleDuplicate}
             onEditVariants={onEditVariants}
             onIncludeVariants={onIncludeVariants}
+            onShowAsProduct={onShowAsProduct}
             items={items}
           />
         ),
@@ -687,10 +678,10 @@ export const ComponentsTable = ({
     [
       items,
       handleDelete,
-      handleDeleteAllVariants,
       handleDuplicate,
       onEditVariants,
       onIncludeVariants,
+      onShowAsProduct,
       pricingTemplates,
       handlePriceRuleChange,
     ]
