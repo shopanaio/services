@@ -1,17 +1,19 @@
 import { createStyles } from "antd-style";
-import { Typography, Button, Tag, Tooltip, Dropdown, Flex } from "antd";
-import { DownOutlined } from "@ant-design/icons";
-import { useState, useMemo } from "react";
+import { Typography, Button, Tag, Tooltip, Dropdown, Flex, Spin } from "antd";
+import { DownOutlined, LoadingOutlined } from "@ant-design/icons";
+import { useCallback, useRef } from "react";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { Tile } from "../tile";
-import { PeriodSwitch, CHART_PERIODS, ChartPeriod } from "../period-switch";
+import { PeriodSwitch, CHART_PERIODS } from "../period-switch";
 import { PriceChart } from "./components";
 import { formatPrice as defaultFormatPrice } from "./utils";
+import { usePricingWidget } from "./use-pricing-widget";
 import type {
   IPricingBlockProps,
-  ApiVariant,
+  ApiVariantConnection,
   ApiVariantPriceConnection,
   ApiVariantPriceHistoryStatistics,
+  ChartPeriod,
 } from "./types";
 
 // Non-breaking space for currency formatting
@@ -103,9 +105,14 @@ const useStyles = createStyles(({ token }) => ({
     flexDirection: "column",
     justifyContent: "center",
   },
-  warningIcon: {
-    color: token.colorWarning,
-    fontSize: 10,
+  dropdownMenu: {
+    maxHeight: 300,
+    overflowY: "auto",
+  },
+  loadingItem: {
+    display: "flex",
+    justifyContent: "center",
+    padding: "8px 0",
   },
 }));
 
@@ -114,44 +121,86 @@ const useStyles = createStyles(({ token }) => ({
 // ============================================================================
 
 interface IPricingHeaderProps {
-  variants?: ApiVariant[];
-  selectedVariantId?: string;
-  onVariantSelect?: (id: string) => void;
-  formatPrice?: (amount: number) => string;
+  variants: ApiVariantConnection;
+  selectedVariantId: string | null;
+  onVariantSelect: (id: string) => void;
+  onLoadMore: () => void;
+  isLoadingMore: boolean;
+  formatPrice: (amount: number) => string;
 }
 
 const PricingHeader = ({
   variants,
   selectedVariantId,
   onVariantSelect,
+  onLoadMore,
+  isLoadingMore,
   formatPrice,
 }: IPricingHeaderProps) => {
   const { styles } = useStyles();
-  const selectedVariant = variants?.find((v) => v.id === selectedVariantId);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const selectedVariant = variants.edges.find(
+    (e) => e.node.id === selectedVariantId
+  )?.node;
 
-  const getPrice = (v: ApiVariant): number => v.price?.amountMinor ?? 0;
+  const handleScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      const target = e.target as HTMLDivElement;
+      const isNearBottom =
+        target.scrollHeight - target.scrollTop - target.clientHeight < 50;
 
-  const variantMenuItems = variants?.map((v) => ({
-    key: v.id,
+      if (isNearBottom && variants.pageInfo.hasNextPage && !isLoadingMore) {
+        onLoadMore();
+      }
+    },
+    [variants.pageInfo.hasNextPage, isLoadingMore, onLoadMore]
+  );
+
+  const variantMenuItems = variants.edges.map((edge) => ({
+    key: edge.node.id,
     label: (
       <Flex justify="space-between" align="center" style={{ width: "100%" }}>
-        <span>{v.title ?? "Untitled"}</span>
+        <span>{edge.node.title ?? "Untitled"}</span>
         <Typography.Text style={{ fontWeight: 600, marginLeft: 24 }}>
-          {formatPrice ? formatPrice(getPrice(v)) : getPrice(v)}
+          {formatPrice(edge.node.price?.amountMinor ?? 0)}
         </Typography.Text>
       </Flex>
     ),
   }));
 
+  if (isLoadingMore) {
+    variantMenuItems.push({
+      key: "loading",
+      label: (
+        <div className={styles.loadingItem}>
+          <Spin indicator={<LoadingOutlined spin />} size="small" />
+        </div>
+      ),
+    });
+  }
+
   const variantSelect =
-    variants && variants.length > 1 ? (
+    variants.edges.length > 1 ? (
       <Dropdown
         menu={{
           items: variantMenuItems,
           selectedKeys: selectedVariantId ? [selectedVariantId] : [],
-          onClick: ({ key }) => onVariantSelect?.(key),
+          onClick: ({ key }) => {
+            if (key !== "loading") {
+              onVariantSelect(key);
+            }
+          },
         }}
         trigger={["click"]}
+        dropdownRender={(menu) => (
+          <div
+            ref={menuRef}
+            className={styles.dropdownMenu}
+            onScroll={handleScroll}
+          >
+            {menu}
+          </div>
+        )}
       >
         <Button
           size="small"
@@ -231,37 +280,18 @@ const CurrentPriceColumn = ({
 
 interface IPriceHistoryChartColumnProps {
   history: ApiVariantPriceConnection;
+  period: ChartPeriod;
+  onPeriodChange: (period: ChartPeriod) => void;
   formatPrice: (amount: number) => string;
 }
 
 const PriceHistoryChartColumn = ({
   history,
+  period,
+  onPeriodChange,
   formatPrice,
 }: IPriceHistoryChartColumnProps) => {
   const { styles } = useStyles();
-  const [timeRange, setTimeRange] = useState<ChartPeriod>("30D");
-
-  // Filter history by time range
-  const filteredHistory = useMemo((): ApiVariantPriceConnection => {
-    const now = new Date();
-    const daysMap: Record<ChartPeriod, number> = {
-      "7D": 7,
-      "30D": 30,
-      "90D": 90,
-    };
-    const days = daysMap[timeRange];
-    const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-
-    const filteredEdges = history.edges.filter(
-      (edge) => new Date(edge.node.effectiveFrom) >= cutoff
-    );
-
-    return {
-      ...history,
-      edges: filteredEdges,
-      totalCount: filteredEdges.length,
-    };
-  }, [history, timeRange]);
 
   return (
     <div className={styles.column}>
@@ -275,13 +305,13 @@ const PriceHistoryChartColumn = ({
 
         <PeriodSwitch
           periods={CHART_PERIODS}
-          value={timeRange}
-          onChange={setTimeRange}
+          value={period}
+          onChange={onPeriodChange}
         />
       </Flex>
 
       <PriceChart
-        history={filteredHistory}
+        history={history}
         formatPrice={formatPrice}
         height={100}
         gridLineCount={3}
@@ -338,23 +368,22 @@ const KPIRow = ({ stats, costPrice, formatPrice }: IKPIRowProps) => {
 // ============================================================================
 
 export const PricingBlock = ({
-  variants,
-  selectedVariantId: selectedVariantIdProp,
-  onVariantSelect,
-  stats = null,
+  productId,
   formatPrice: formatPriceProp,
 }: IPricingBlockProps) => {
   const { styles } = useStyles();
 
-  const [internalSelectedVariantId, setInternalSelectedVariantId] = useState<
-    string | undefined
-  >(variants[0]?.id);
-  const selectedVariantId = selectedVariantIdProp ?? internalSelectedVariantId;
-
-  const handleVariantSelect = (id: string) => {
-    setInternalSelectedVariantId(id);
-    onVariantSelect?.(id);
-  };
+  const {
+    data,
+    isLoading,
+    variants,
+    isLoadingVariants,
+    loadMoreVariants,
+    selectedVariantId,
+    selectVariant,
+    period,
+    setPeriod,
+  } = usePricingWidget(productId);
 
   const formatPrice =
     formatPriceProp ||
@@ -362,27 +391,40 @@ export const PricingBlock = ({
       return defaultFormatPrice(amount);
     });
 
-  // Get selected variant data
-  const selectedVariant = useMemo(() => {
-    return variants.find((v) => v.id === selectedVariantId) ?? variants[0];
-  }, [variants, selectedVariantId]);
-
-  // Extract pricing data from selected variant
-  const price = selectedVariant?.price?.amountMinor ?? 0;
-  const compareAtPrice = selectedVariant?.price?.compareAtMinor ?? null;
-  const costPrice = selectedVariant?.cost?.unitCostMinor ?? null;
-  const priceHistory = selectedVariant?.priceHistory ?? {
+  // Extract pricing data from widget response
+  const price = data?.currentPrice?.amountMinor ?? 0;
+  const compareAtPrice = data?.currentPrice?.compareAtMinor ?? null;
+  const costPrice = data?.currentCostPrice?.unitCostMinor ?? null;
+  const history = data?.history ?? {
+    __typename: "VariantPriceConnection" as const,
     edges: [],
-    pageInfo: { hasNextPage: false, hasPreviousPage: false },
+    pageInfo: {
+      __typename: "PageInfo" as const,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    },
     totalCount: 0,
   };
+  const stats = data?.statistics ?? null;
+
+  if (isLoading && !data) {
+    return (
+      <Paper className={styles.card}>
+        <Flex justify="center" align="center" style={{ minHeight: 200 }}>
+          <Spin indicator={<LoadingOutlined spin />} />
+        </Flex>
+      </Paper>
+    );
+  }
 
   return (
     <Paper className={styles.card}>
       <PricingHeader
         variants={variants}
         selectedVariantId={selectedVariantId}
-        onVariantSelect={handleVariantSelect}
+        onVariantSelect={selectVariant}
+        onLoadMore={loadMoreVariants}
+        isLoadingMore={isLoadingVariants}
         formatPrice={formatPrice}
       />
 
@@ -396,7 +438,9 @@ export const PricingBlock = ({
         </div>
         <div className={styles.chartColumnWrapper}>
           <PriceHistoryChartColumn
-            history={priceHistory}
+            history={history}
+            period={period}
+            onPeriodChange={setPeriod}
             formatPrice={formatPrice}
           />
         </div>

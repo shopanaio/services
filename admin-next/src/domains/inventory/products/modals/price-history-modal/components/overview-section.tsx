@@ -1,82 +1,99 @@
-import { useState, useMemo } from "react";
-import { Typography, Flex, Select } from "antd";
-import { Paper, PaperHeader } from "@/ui-kit/paper";
+import { Typography, Flex, Dropdown, Button, Spin } from "antd";
+import { DownOutlined, LoadingOutlined } from "@ant-design/icons";
+import { useCallback, useRef } from "react";
+import { Paper } from "@/ui-kit/paper";
 import { Tile } from "../../../components/tile";
-import { PeriodSwitch, KPI_PERIODS, KPIPeriod } from "../../../components/period-switch";
+import { PeriodSwitch, CHART_PERIODS } from "../../../components/period-switch";
 import {
   PriceChart,
   PriceChangeIndicator,
 } from "../../../components/pricing/components";
-import { filterHistoryByPeriod, calculatePriceStats } from "../../../components/pricing/utils";
-import type { IPriceHistoryRecord, IVariantPriceData } from "../types";
+import type {
+  ApiVariantConnection,
+  ApiVariantPriceConnection,
+  ApiVariantPriceHistoryStatistics,
+  ChartPeriod,
+} from "../../../components/pricing/types";
 import { useStyles } from "../price-history-modal.styles";
 
 interface IOverviewSectionProps {
   currentPrice: number;
   compareAtPrice: number | null;
-  priceHistory: IPriceHistoryRecord[];
-  variants?: IVariantPriceData[];
-  selectedVariantId?: string;
-  onVariantSelect?: (id: string) => void;
+  history: ApiVariantPriceConnection;
+  stats: ApiVariantPriceHistoryStatistics | null;
+  variants: ApiVariantConnection;
+  selectedVariantId: string | null;
+  onVariantSelect: (id: string) => void;
+  onLoadMoreVariants: () => void;
+  isLoadingVariants: boolean;
+  period: ChartPeriod;
+  onPeriodChange: (period: ChartPeriod) => void;
   formatPrice: (amount: number) => string;
 }
 
 export const OverviewSection = ({
   currentPrice,
   compareAtPrice,
-  priceHistory,
+  history,
+  stats,
   variants,
   selectedVariantId,
   onVariantSelect,
+  onLoadMoreVariants,
+  isLoadingVariants,
+  period,
+  onPeriodChange,
   formatPrice,
 }: IOverviewSectionProps) => {
   const { styles } = useStyles();
-  const [timeRange, setTimeRange] = useState<KPIPeriod>("30d");
+  const menuRef = useRef<HTMLDivElement>(null);
 
-  const filteredHistory = useMemo(
-    () => filterHistoryByPeriod(priceHistory, timeRange),
-    [priceHistory, timeRange]
+  const selectedVariant = variants.edges.find(
+    (e) => e.node.id === selectedVariantId
+  )?.node;
+
+  const previousPrice =
+    history.edges.length > 1 ? history.edges[1]?.node.amountMinor : null;
+
+  const handleScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      const target = e.target as HTMLDivElement;
+      const isNearBottom =
+        target.scrollHeight - target.scrollTop - target.clientHeight < 50;
+
+      if (isNearBottom && variants.pageInfo.hasNextPage && !isLoadingVariants) {
+        onLoadMoreVariants();
+      }
+    },
+    [variants.pageInfo.hasNextPage, isLoadingVariants, onLoadMoreVariants]
   );
 
-  const stats = useMemo(
-    () => calculatePriceStats(priceHistory),
-    [priceHistory]
-  );
+  const variantMenuItems = variants.edges.map((edge) => ({
+    key: edge.node.id,
+    label: (
+      <Flex justify="space-between" align="center" style={{ width: "100%" }}>
+        <span>{edge.node.title ?? "Untitled"}</span>
+        <Typography.Text style={{ fontWeight: 600, marginLeft: 24 }}>
+          {formatPrice(edge.node.price?.amountMinor ?? 0)}
+        </Typography.Text>
+      </Flex>
+    ),
+  }));
 
-  const previousPrice = priceHistory[1]?.amount ?? null;
-
-  const variantOptions = useMemo(() => {
-    if (!variants?.length) return [];
-
-    return [
-      {
-        value: "all",
-        label: (
-          <Flex justify="space-between" align="center" style={{ width: "100%" }}>
-            <span style={{ fontWeight: 500 }}>All variants</span>
-            <Typography.Text type="secondary" style={{ marginLeft: 24 }}>
-              {variants.length} variants
-            </Typography.Text>
-          </Flex>
-        ),
-      },
-      ...variants.map((v) => ({
-        value: v.id,
-        label: (
-          <Flex justify="space-between" align="center" style={{ width: "100%" }}>
-            <span>{v.title}</span>
-            <Typography.Text style={{ fontWeight: 600, marginLeft: 24 }}>
-              {formatPrice(v.price)}
-            </Typography.Text>
-          </Flex>
-        ),
-      })),
-    ];
-  }, [variants, formatPrice]);
+  if (isLoadingVariants) {
+    variantMenuItems.push({
+      key: "loading",
+      label: (
+        <Flex justify="center" style={{ padding: "8px 0" }}>
+          <Spin indicator={<LoadingOutlined spin />} size="small" />
+        </Flex>
+      ),
+    });
+  }
 
   return (
     <Paper className={styles.overviewPaper}>
-      {variants && variants.length > 1 && (
+      {variants.edges.length > 1 && (
         <div style={{ marginBottom: 16 }}>
           <Typography.Text
             type="secondary"
@@ -89,13 +106,34 @@ export const OverviewSection = ({
           >
             Variant
           </Typography.Text>
-          <Select
-            value={selectedVariantId}
-            onChange={onVariantSelect}
-            popupMatchSelectWidth={false}
-            className={styles.variantSelect}
-            options={variantOptions}
-          />
+          <Dropdown
+            menu={{
+              items: variantMenuItems,
+              selectedKeys: selectedVariantId ? [selectedVariantId] : [],
+              onClick: ({ key }) => {
+                if (key !== "loading") {
+                  onVariantSelect(key);
+                }
+              },
+            }}
+            trigger={["click"]}
+            dropdownRender={(menu) => (
+              <div
+                ref={menuRef}
+                style={{ maxHeight: 300, overflowY: "auto" }}
+                onScroll={handleScroll}
+              >
+                {menu}
+              </div>
+            )}
+          >
+            <Button className={styles.variantSelect}>
+              <Flex align="center" gap={8}>
+                <span>{selectedVariant?.title || "Select variant"}</span>
+                <DownOutlined style={{ fontSize: 10 }} />
+              </Flex>
+            </Button>
+          </Dropdown>
         </div>
       )}
 
@@ -143,16 +181,15 @@ export const OverviewSection = ({
             Price Trend
           </Typography.Text>
           <PeriodSwitch
-            periods={KPI_PERIODS}
-            value={timeRange}
-            onChange={setTimeRange}
+            periods={CHART_PERIODS}
+            value={period}
+            onChange={onPeriodChange}
           />
         </Flex>
         <PriceChart
-          history={filteredHistory}
+          history={history}
           formatPrice={formatPrice}
           height={180}
-          showBackground
           showAxisLabels
           showDateLabels
           gridLineCount={5}
@@ -162,7 +199,7 @@ export const OverviewSection = ({
       <div className={styles.kpiRow}>
         <Tile
           label="Min"
-          value={formatPrice(stats.min)}
+          value={stats?.minPriceMinor ? formatPrice(stats.minPriceMinor) : "—"}
           tooltip="Minimum price in period"
           centered
           className={styles.kpiTile}
@@ -170,7 +207,7 @@ export const OverviewSection = ({
         />
         <Tile
           label="Max"
-          value={formatPrice(stats.max)}
+          value={stats?.maxPriceMinor ? formatPrice(stats.maxPriceMinor) : "—"}
           tooltip="Maximum price in period"
           centered
           className={styles.kpiTile}
@@ -178,14 +215,14 @@ export const OverviewSection = ({
         />
         <Tile
           label="Average"
-          value={formatPrice(stats.avg)}
+          value={stats?.avgPriceMinor ? formatPrice(stats.avgPriceMinor) : "—"}
           tooltip="Average price over period"
           centered
           className={styles.kpiTile}
         />
         <Tile
           label="Changes"
-          value={String(stats.changes)}
+          value={String(history.totalCount)}
           tooltip="Total number of price changes"
           centered
           className={styles.kpiTile}

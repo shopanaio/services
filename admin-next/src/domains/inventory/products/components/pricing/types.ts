@@ -7,6 +7,7 @@ import type {
   ApiVariantPrice,
   ApiVariantCost,
   ApiVariantPriceConnection,
+  ApiVariantConnection,
   CurrencyCode,
 } from "@/graphql/types";
 
@@ -16,6 +17,7 @@ export type {
   ApiVariantPrice,
   ApiVariantCost,
   ApiVariantPriceConnection,
+  ApiVariantConnection,
   CurrencyCode,
 };
 
@@ -24,21 +26,17 @@ export type {
 // ============================================================================
 
 export interface IPricingBlockProps {
-  /** Variants with pricing data from API */
-  variants: ApiVariant[];
-  /** Currently selected variant ID */
-  selectedVariantId?: string;
-  /** Callback when variant selection changes */
-  onVariantSelect?: (id: string) => void;
-  /** Computed statistics for selected variant */
-  stats?: ApiVariantPriceHistoryStatistics | null;
+  /** Product ID to fetch pricing data for */
+  productId: string;
   /** Custom price formatter */
   formatPrice?: (amount: number, currency?: CurrencyCode) => string;
 }
 
 // ============================================================================
-// Stats (computed on frontend from priceHistory)
+// Chart Period
 // ============================================================================
+
+export type ChartPeriod = "7D" | "30D" | "90D";
 
 // ============================================================================
 // Pricing Widget Query Response

@@ -1,65 +1,50 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect } from "react";
+import { Flex, Spin } from "antd";
+import { LoadingOutlined } from "@ant-design/icons";
 import {
   useModalStackContext,
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
 import { formatPrice as defaultFormatPrice } from "../../components/pricing/utils";
-import {
-  OverviewSection,
-  ChangeLogSection,
-} from "./components";
-import type {
-  IPriceHistoryModalPayload,
-  IPriceHistoryRecord,
-} from "./types";
+import { usePricingWidget } from "../../components/pricing/use-pricing-widget";
+import { OverviewSection, ChangeLogSection } from "./components";
+import type { IPriceHistoryModalPayload } from "./types";
 
 export const PriceHistoryModal = () => {
   const { payload, pop } = useModalStackContext();
   const typedPayload = payload as unknown as IPriceHistoryModalPayload;
 
-  const [selectedVariantId, setSelectedVariantId] = useState<string | undefined>(
-    typedPayload.variantId || (typedPayload.variants?.length ? "all" : undefined)
-  );
+  const {
+    data,
+    isLoading,
+    variants,
+    isLoadingVariants,
+    loadMoreVariants,
+    selectedVariantId,
+    selectVariant,
+    period,
+    setPeriod,
+  } = usePricingWidget(typedPayload.productId);
 
   const formatPrice = typedPayload.formatPrice || defaultFormatPrice;
 
-  const isAllVariants = selectedVariantId === "all";
-
-  const selectedVariant = isAllVariants
-    ? undefined
-    : typedPayload.variants?.find((v) => v.id === selectedVariantId);
-
-  // Combine all variants data when "All variants" is selected
-  const allVariantsHistory = useMemo(() => {
-    if (!typedPayload.variants?.length) return [];
-    const combined: IPriceHistoryRecord[] = [];
-    typedPayload.variants.forEach((v) => {
-      v.priceHistory.forEach((h) => {
-        combined.push({
-          ...h,
-          id: `${v.id}-${h.id}`,
-        });
-      });
-    });
-    return combined.sort(
-      (a, b) => b.effectiveFrom.getTime() - a.effectiveFrom.getTime()
-    );
-  }, [typedPayload.variants]);
-
-  const currentPrice = isAllVariants
-    ? typedPayload.currentPrice
-    : (selectedVariant?.price ?? typedPayload.currentPrice);
-
-  const compareAtPrice = isAllVariants
-    ? typedPayload.compareAtPrice ?? null
-    : (selectedVariant?.compareAtPrice ?? typedPayload.compareAtPrice ?? null);
-
-  const priceHistory = isAllVariants
-    ? allVariantsHistory
-    : (selectedVariant?.priceHistory ?? typedPayload.priceHistory);
+  // Extract pricing data from widget response
+  const currentPrice = data?.currentPrice?.amountMinor ?? 0;
+  const compareAtPrice = data?.currentPrice?.compareAtMinor ?? null;
+  const history = data?.history ?? {
+    __typename: "VariantPriceConnection" as const,
+    edges: [],
+    pageInfo: {
+      __typename: "PageInfo" as const,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    },
+    totalCount: 0,
+  };
+  const stats = data?.statistics ?? null;
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -70,6 +55,26 @@ export const PriceHistoryModal = () => {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [pop]);
+
+  if (isLoading && !data) {
+    return (
+      <ModalLayout
+        name="price-history"
+        header={
+          <ModalHeader
+            name="price-history"
+            title="Price History"
+            onClose={pop}
+            submitButtonProps={null}
+          />
+        }
+      >
+        <Flex justify="center" align="center" style={{ minHeight: 300 }}>
+          <Spin indicator={<LoadingOutlined spin />} size="large" />
+        </Flex>
+      </ModalLayout>
+    );
+  }
 
   return (
     <ModalLayout
@@ -86,14 +91,19 @@ export const PriceHistoryModal = () => {
       <OverviewSection
         currentPrice={currentPrice}
         compareAtPrice={compareAtPrice}
-        priceHistory={priceHistory}
-        variants={typedPayload.variants}
+        history={history}
+        stats={stats}
+        variants={variants}
         selectedVariantId={selectedVariantId}
-        onVariantSelect={setSelectedVariantId}
+        onVariantSelect={selectVariant}
+        onLoadMoreVariants={loadMoreVariants}
+        isLoadingVariants={isLoadingVariants}
+        period={period}
+        onPeriodChange={setPeriod}
         formatPrice={formatPrice}
       />
 
-      <ChangeLogSection history={priceHistory} />
+      <ChangeLogSection history={history} />
     </ModalLayout>
   );
 };

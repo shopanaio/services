@@ -1,6 +1,6 @@
 import { Typography, Flex, Timeline, Tag } from "antd";
 import { createStyles } from "antd-style";
-import type { IPriceHistoryRecord } from "../types";
+import type { ApiVariantPriceConnection } from "../types";
 import { formatPrice, formatDateFull } from "../utils";
 import { PriceChangeIndicator } from "./price-change-indicator";
 import { DiscountBadge } from "./discount-badge";
@@ -39,7 +39,7 @@ const useStyles = createStyles(({ token }) => ({
 }));
 
 interface IPriceTimelineProps {
-  history: IPriceHistoryRecord[];
+  history: ApiVariantPriceConnection;
 }
 
 export const PriceTimeline = ({ history }: IPriceTimelineProps) => {
@@ -48,10 +48,11 @@ export const PriceTimeline = ({ history }: IPriceTimelineProps) => {
   return (
     <Timeline
       className={styles.timeline}
-      items={history.map((record, idx) => {
-        const prevRecord = history[idx + 1];
-        const priceChange = prevRecord
-          ? record.amount - prevRecord.amount
+      items={history.edges.map((edge, idx) => {
+        const record = edge.node;
+        const prevEdge = history.edges[idx + 1];
+        const priceChange = prevEdge
+          ? record.amountMinor - prevEdge.node.amountMinor
           : null;
         const isIncrease = priceChange !== null && priceChange > 0;
         const isDecrease = priceChange !== null && priceChange < 0;
@@ -71,29 +72,29 @@ export const PriceTimeline = ({ history }: IPriceTimelineProps) => {
                   strong={record.isCurrent}
                   className={styles.priceText}
                 >
-                  {formatPrice(record.amount)}
+                  {formatPrice(record.amountMinor)}
                 </Typography.Text>
-                {record.compareAt && (
+                {record.compareAtMinor && (
                   <>
                     <Typography.Text
                       delete
                       type="secondary"
                       className={styles.compareText}
                     >
-                      {formatPrice(record.compareAt)}
+                      {formatPrice(record.compareAtMinor)}
                     </Typography.Text>
                     <DiscountBadge
-                      price={record.amount}
-                      compareAtPrice={record.compareAt}
+                      price={record.amountMinor}
+                      compareAtPrice={record.compareAtMinor}
                       size="small"
                       showSaving={false}
                     />
                   </>
                 )}
-                {priceChange !== null && (
+                {priceChange !== null && prevEdge && (
                   <PriceChangeIndicator
-                    currentPrice={record.amount}
-                    previousPrice={prevRecord.amount}
+                    currentPrice={record.amountMinor}
+                    previousPrice={prevEdge.node.amountMinor}
                     size="small"
                   />
                 )}
@@ -104,9 +105,9 @@ export const PriceTimeline = ({ history }: IPriceTimelineProps) => {
                 )}
               </Flex>
               <Typography.Text type="secondary" className={styles.dateText}>
-                {formatDateFull(record.effectiveFrom)}
+                {formatDateFull(new Date(record.effectiveFrom))}
                 {record.effectiveTo &&
-                  ` — ${formatDateFull(record.effectiveTo)}`}
+                  ` — ${formatDateFull(new Date(record.effectiveTo))}`}
               </Typography.Text>
             </div>
           ),

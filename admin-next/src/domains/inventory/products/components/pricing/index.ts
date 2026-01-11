@@ -1,6 +1,10 @@
 // Main components
 export { PricingBlock } from "./pricing-block";
 
+// Hooks
+export { usePricingWidget } from "./use-pricing-widget";
+export type { UsePricingWidgetReturn } from "./use-pricing-widget";
+
 // Sub-components
 export {
   PriceChart,
@@ -15,11 +19,14 @@ export {
 // Types
 export type {
   IPricingBlockProps,
-  PriceHistoryStats,
   ApiVariant,
   ApiVariantPrice,
   ApiVariantCost,
   ApiVariantPriceConnection,
+  ApiVariantConnection,
+  ApiVariantPriceHistoryStatistics,
+  PricingWidgetPayload,
+  ChartPeriod,
   CurrencyCode,
 } from "./types";
 

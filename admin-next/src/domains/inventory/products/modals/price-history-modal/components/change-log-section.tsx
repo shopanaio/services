@@ -1,10 +1,10 @@
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { PriceTimeline } from "../../../components/pricing/components";
-import type { IPriceHistoryRecord } from "../types";
+import type { ApiVariantPriceConnection } from "../../../components/pricing/types";
 import { useStyles } from "../price-history-modal.styles";
 
 interface IChangeLogSectionProps {
-  history: IPriceHistoryRecord[];
+  history: ApiVariantPriceConnection;
 }
 
 export const ChangeLogSection = ({ history }: IChangeLogSectionProps) => {
