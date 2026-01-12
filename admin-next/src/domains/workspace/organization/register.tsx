@@ -1,6 +1,6 @@
 import { registerModule } from "@/registry";
 import dynamic from "next/dynamic";
-import { BankOutlined } from "@ant-design/icons";
+import { BankOutlined, ShopOutlined } from "@ant-design/icons";
 
 registerModule({
   key: "organization",
@@ -23,6 +23,18 @@ registerModule({
       },
     },
     {
+      key: "organization-stores",
+      path: "/workspace/stores",
+      component: dynamic(
+        () => import("@/domains/workspace/organization/page/stores-page")
+      ),
+      sidebar: {
+        label: "Stores",
+        icon: <ShopOutlined />,
+        order: 2,
+      },
+    },
+    {
       key: "organization-members",
       path: "/workspace/team",
       component: dynamic(
@@ -30,7 +42,7 @@ registerModule({
       ),
       sidebar: {
         label: "Members",
-        order: 2,
+        order: 3,
       },
     },
     {
@@ -41,7 +53,7 @@ registerModule({
       ),
       sidebar: {
         label: "Roles",
-        order: 3,
+        order: 4,
       },
     },
   ],

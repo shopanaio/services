@@ -8,12 +8,10 @@ import {
   Button,
   message,
   Descriptions,
-  Statistic,
-  Row,
-  Col,
   Avatar,
   Space,
   Dropdown,
+  Flex,
 } from "antd";
 import { createStyles } from "antd-style";
 import {
@@ -22,8 +20,10 @@ import {
   SafetyOutlined,
   CrownOutlined,
   MoreOutlined,
+  ShopOutlined,
 } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
+import { KPITile } from "@/ui-kit/kpi-tile";
 import { SettingsLayout } from "../../layout";
 import { DangerZone, PreviewCard } from "../../shared";
 import { useDeleteOrganizationModal, useEditAvatarModal } from "../../modals";
@@ -207,6 +207,7 @@ export default function OrganizationPage() {
 
   const memberCount = organization.membership.members.length;
   const roleCount = organization.membership.roles.length;
+  const storesCount = 5; // Mock data
 
   const {
     control,
@@ -265,6 +266,27 @@ export default function OrganizationPage() {
         image={undefined}
         onAvatarClick={handleEditLogo}
       />
+
+      <Flex gap={16}>
+        <KPITile
+          label="Stores"
+          value={storesCount}
+          icon={<ShopOutlined />}
+          tooltip="Total number of stores in organization"
+        />
+        <KPITile
+          label="Members"
+          value={memberCount}
+          icon={<TeamOutlined />}
+          tooltip="Total team members"
+        />
+        <KPITile
+          label="Roles"
+          value={roleCount}
+          icon={<SafetyOutlined />}
+          tooltip="Custom roles defined"
+        />
+      </Flex>
 
       <Paper>
         <PaperHeader
@@ -416,26 +438,6 @@ export default function OrganizationPage() {
             </Space>
           </div>
         )}
-      </Paper>
-
-      <Paper>
-        <PaperHeader title="Statistics" />
-        <Row gutter={[24, 16]}>
-          <Col xs={12} sm={8}>
-            <Statistic
-              title="Members"
-              value={memberCount}
-              prefix={<TeamOutlined />}
-            />
-          </Col>
-          <Col xs={12} sm={8}>
-            <Statistic
-              title="Roles"
-              value={roleCount}
-              prefix={<SafetyOutlined />}
-            />
-          </Col>
-        </Row>
       </Paper>
 
       <DangerZone
