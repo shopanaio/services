@@ -24,7 +24,8 @@ import {
   MoreOutlined,
 } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import { DangerZone, PageLayout, PreviewCard } from "../../shared";
+import { SettingsLayout } from "../../layout";
+import { DangerZone, PreviewCard } from "../../shared";
 import { useDeleteOrganizationModal, useEditAvatarModal } from "../../modals";
 import type {
   ApiOrganization,
@@ -255,7 +256,7 @@ export default function OrganizationPage() {
   };
 
   return (
-    <PageLayout>
+    <SettingsLayout name="organization">
       <PreviewCard
         type="organization"
         name={organization.displayName}
@@ -455,6 +456,6 @@ export default function OrganizationPage() {
           },
         ]}
       />
-    </PageLayout>
+    </SettingsLayout>
   );
 }

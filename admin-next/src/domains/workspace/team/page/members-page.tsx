@@ -22,7 +22,7 @@ import {
   UserAddOutlined,
 } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import { PageLayout } from "../../shared";
+import { SettingsLayout } from "../../layout";
 import type { ApiMember } from "@/graphql/types";
 import {
   mockMembers,
@@ -231,7 +231,7 @@ export default function MembersPage() {
   });
 
   return (
-    <PageLayout>
+    <SettingsLayout name="members">
       <Paper>
         <PaperHeader
           title="Team Members"
@@ -308,6 +308,6 @@ export default function MembersPage() {
           })}
         </Paper>
       )}
-    </PageLayout>
+    </SettingsLayout>
   );
 }

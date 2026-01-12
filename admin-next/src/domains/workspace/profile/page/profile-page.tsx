@@ -6,7 +6,8 @@ import { Input, Typography, Button, Select, message, Dropdown } from "antd";
 import { createStyles } from "antd-style";
 import { CheckCircleOutlined, MoreOutlined } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import { PageLayout, PreviewCard } from "../../shared";
+import { SettingsLayout } from "../../layout";
+import { PreviewCard } from "../../shared";
 import {
   mockCurrentUser,
   mockOrganization,
@@ -124,7 +125,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <PageLayout>
+    <SettingsLayout name="profile">
       <PreviewCard
         type="profile"
         name={displayName}
@@ -302,6 +303,6 @@ export default function ProfilePage() {
           />
         </div>
       </Paper>
-    </PageLayout>
+    </SettingsLayout>
   );
 }

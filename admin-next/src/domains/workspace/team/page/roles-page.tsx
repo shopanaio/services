@@ -12,7 +12,7 @@ import {
   MoreOutlined,
 } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import { PageLayout } from "../../shared";
+import { SettingsLayout } from "../../layout";
 import type { ApiRole } from "@/graphql/types";
 import { mockRoles } from "../../mocks/data";
 import { useEditRoleModal } from "../../modals";
@@ -92,7 +92,7 @@ export default function RolesPage() {
   };
 
   return (
-    <PageLayout>
+    <SettingsLayout name="roles">
       <Paper>
         <PaperHeader
           title="Roles"
@@ -122,7 +122,7 @@ export default function RolesPage() {
           />
         ))}
       </Paper>
-    </PageLayout>
+    </SettingsLayout>
   );
 }
 

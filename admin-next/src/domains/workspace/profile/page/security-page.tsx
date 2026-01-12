@@ -10,7 +10,8 @@ import {
   MoreOutlined,
 } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import { DangerZone, PageLayout } from "../../shared";
+import { SettingsLayout } from "../../layout";
+import { DangerZone } from "../../shared";
 import { mockSessions } from "../../mocks/data";
 import { useChangePasswordModal } from "../../modals";
 
@@ -117,7 +118,7 @@ export default function SecurityPage() {
   };
 
   return (
-    <PageLayout>
+    <SettingsLayout name="security">
       <Paper>
         <PaperHeader
           title="Password"
@@ -236,6 +237,6 @@ export default function SecurityPage() {
           },
         ]}
       />
-    </PageLayout>
+    </SettingsLayout>
   );
 }
