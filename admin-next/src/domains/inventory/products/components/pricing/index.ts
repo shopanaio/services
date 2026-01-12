@@ -25,9 +25,6 @@ export type {
   ApiVariantPriceHistoryStatistics,
   PricingWidgetPayload,
   CurrencyCode,
-  IPriceHistoryRecord,
-  IVariantPriceSummary,
-  PriceSource,
 } from "./types";
 
 // Utilities
@@ -36,5 +33,4 @@ export {
   formatShortDate,
   formatDateTime,
   formatDateFull,
-  getPriceSourceLabel,
 } from "./utils";

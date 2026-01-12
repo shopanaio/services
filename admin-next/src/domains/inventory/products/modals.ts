@@ -3,7 +3,7 @@ import type { IModalStackPayload } from '@/layouts/modals';
 import type { OutputData } from '@editorjs/editorjs';
 import type { RenderedContent } from '@/ui-kit/block-editor';
 import type { IProduct, IMediaFile } from "@/mocks/products/types";
-import type { IPriceHistoryRecord, PriceSource } from './components/pricing';
+import type { ApiVariantPrice } from './components/pricing';
 import type { VariantColumnField } from './components/variants/config';
 
 // ============================================================================
@@ -74,14 +74,13 @@ export interface IProductPriceHistoryModalPayload extends IModalStackPayload {
   currentPrice: number;
   compareAtPrice?: number | null;
   costPrice?: number | null;
-  priceSource?: PriceSource;
-  priceHistory: IPriceHistoryRecord[];
+  priceHistory: ApiVariantPrice[];
   variants?: Array<{
     id: string;
     title: string;
     price: number;
     compareAtPrice?: number | null;
-    priceHistory: IPriceHistoryRecord[];
+    priceHistory: ApiVariantPrice[];
   }>;
   formatPrice?: (amount: number) => string;
 }

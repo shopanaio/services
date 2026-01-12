@@ -1,6 +1,6 @@
 import { Typography, Flex } from "antd";
 import { createStyles } from "antd-style";
-import type { IPriceHistoryRecord } from "../types";
+import type { ApiVariantPrice } from "../types";
 import { formatPrice } from "../utils";
 
 const useStyles = createStyles(({ token }) => ({
@@ -28,7 +28,7 @@ const useStyles = createStyles(({ token }) => ({
 }));
 
 interface IPriceStatsProps {
-  history: IPriceHistoryRecord[];
+  history: ApiVariantPrice[];
   showChangesCount?: boolean;
   stretched?: boolean;
 }
@@ -40,7 +40,7 @@ export const PriceStats = ({
 }: IPriceStatsProps) => {
   const { styles } = useStyles();
 
-  const prices = history.map((h) => h.amount);
+  const prices = history.map((h) => Number(h.amountMinor));
   const min = Math.min(...prices);
   const max = Math.max(...prices);
   const avg = Math.round(prices.reduce((a, b) => a + b, 0) / prices.length);

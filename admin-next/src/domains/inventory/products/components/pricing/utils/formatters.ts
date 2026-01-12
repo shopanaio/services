@@ -39,18 +39,3 @@ export const formatDateFull = (date: Date, locale: string = "ru-RU"): string => 
     year: "numeric",
   }).format(date);
 };
-
-export const getPriceSourceLabel = (
-  source: "manual" | "rule-based" | "promo" | "market"
-): string => {
-  switch (source) {
-    case "manual":
-      return "Manual";
-    case "rule-based":
-      return "Rule-based";
-    case "promo":
-      return "Promo";
-    case "market":
-      return "Market";
-  }
-};
