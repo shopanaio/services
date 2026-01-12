@@ -1,0 +1,79 @@
+import { gql } from "@apollo/client";
+import {
+  USER_FRAGMENT,
+  ORGANIZATION_FRAGMENT,
+} from "./fragments";
+
+/**
+ * GraphQL queries for workspace domain.
+ * Covers user, organization, and authorization queries.
+ */
+
+// ============================================
+// User Queries
+// ============================================
+
+/**
+ * Get the current authenticated user.
+ * Returns null if not authenticated.
+ */
+export const CURRENT_USER_QUERY = gql`
+  query CurrentUser {
+    userQuery {
+      current {
+        ...UserFields
+      }
+    }
+  }
+  ${USER_FRAGMENT}
+`;
+
+/**
+ * Check if user is authorized for a specific action.
+ * Used for permission checks before performing operations.
+ */
+export const AUTHORIZE_QUERY = gql`
+  query Authorize($input: AuthorizeInput!) {
+    userQuery {
+      authorize(input: $input) {
+        allowed
+        deniedReason
+      }
+    }
+  }
+`;
+
+// ============================================
+// Organization Queries
+// ============================================
+
+/**
+ * Get organization by ID with full membership details.
+ * Includes all members, roles, and available resources.
+ */
+export const ORGANIZATION_QUERY = gql`
+  query Organization($id: ID!) {
+    organizationQuery {
+      organization(id: $id) {
+        ...OrganizationFields
+      }
+    }
+  }
+  ${ORGANIZATION_FRAGMENT}
+`;
+
+/**
+ * Get organization with minimal info (for lists, selections).
+ */
+export const ORGANIZATION_BASIC_QUERY = gql`
+  query OrganizationBasic($id: ID!) {
+    organizationQuery {
+      organization(id: $id) {
+        id
+        name
+        displayName
+        createdAt
+      }
+    }
+  }
+`;
