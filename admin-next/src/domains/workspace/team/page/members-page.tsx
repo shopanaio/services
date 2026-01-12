@@ -22,6 +22,7 @@ import {
   UserAddOutlined,
 } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
+import { PageLayout } from "../../shared";
 import type { ApiMember } from "@/graphql/types";
 import {
   mockMembers,
@@ -34,14 +35,6 @@ import type { IInvitation } from "../../mocks/data";
 import { useInviteMemberModal } from "../../modals";
 
 const useStyles = createStyles(({ token }) => ({
-  container: {
-    maxWidth: 1000,
-    margin: "0 auto",
-    padding: token.paddingLG,
-    display: "flex",
-    flexDirection: "column",
-    gap: token.marginLG,
-  },
   searchRow: {
     marginBottom: token.marginMD,
   },
@@ -238,7 +231,7 @@ export default function MembersPage() {
   });
 
   return (
-    <div className={styles.container}>
+    <PageLayout>
       <Paper>
         <PaperHeader
           title="Team Members"
@@ -315,6 +308,6 @@ export default function MembersPage() {
           })}
         </Paper>
       )}
-    </div>
+    </PageLayout>
   );
 }

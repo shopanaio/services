@@ -6,7 +6,7 @@ import { Input, Typography, Button, Select, message, Dropdown } from "antd";
 import { createStyles } from "antd-style";
 import { CheckCircleOutlined, MoreOutlined } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import { PreviewCard } from "../../shared";
+import { PageLayout, PreviewCard } from "../../shared";
 import {
   mockCurrentUser,
   mockOrganization,
@@ -18,14 +18,6 @@ import {
 import { useChangeEmailModal, useEditAvatarModal } from "../../modals";
 
 const useStyles = createStyles(({ token }) => ({
-  container: {
-    maxWidth: 800,
-    margin: "0 auto",
-    padding: token.paddingLG,
-    display: "flex",
-    flexDirection: "column",
-    gap: token.marginLG,
-  },
   formItem: {
     marginBottom: token.marginMD,
   },
@@ -132,7 +124,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className={styles.container}>
+    <PageLayout>
       <PreviewCard
         type="profile"
         name={displayName}
@@ -310,6 +302,6 @@ export default function ProfilePage() {
           />
         </div>
       </Paper>
-    </div>
+    </PageLayout>
   );
 }

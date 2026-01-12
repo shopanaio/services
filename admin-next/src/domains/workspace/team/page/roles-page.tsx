@@ -12,19 +12,12 @@ import {
   MoreOutlined,
 } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
+import { PageLayout } from "../../shared";
 import type { ApiRole } from "@/graphql/types";
 import { mockRoles } from "../../mocks/data";
 import { useEditRoleModal } from "../../modals";
 
 const useStyles = createStyles(({ token }) => ({
-  container: {
-    maxWidth: 800,
-    margin: "0 auto",
-    padding: token.paddingLG,
-    display: "flex",
-    flexDirection: "column",
-    gap: token.marginLG,
-  },
   roleCard: {
     display: "flex",
     alignItems: "flex-start",
@@ -99,7 +92,7 @@ export default function RolesPage() {
   };
 
   return (
-    <div className={styles.container}>
+    <PageLayout>
       <Paper>
         <PaperHeader
           title="Roles"
@@ -129,7 +122,7 @@ export default function RolesPage() {
           />
         ))}
       </Paper>
-    </div>
+    </PageLayout>
   );
 }
 

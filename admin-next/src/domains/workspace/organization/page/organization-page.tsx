@@ -24,7 +24,7 @@ import {
   MoreOutlined,
 } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import { PreviewCard, DangerZone } from "../../shared";
+import { DangerZone, PageLayout, PreviewCard } from "../../shared";
 import { useDeleteOrganizationModal, useEditAvatarModal } from "../../modals";
 import type {
   ApiOrganization,
@@ -33,14 +33,6 @@ import type {
 } from "@/graphql/types";
 
 const useStyles = createStyles(({ token }) => ({
-  container: {
-    maxWidth: 800,
-    margin: "0 auto",
-    padding: token.paddingLG,
-    display: "flex",
-    flexDirection: "column",
-    gap: token.marginLG,
-  },
   formItem: {
     marginBottom: token.marginMD,
   },
@@ -263,7 +255,7 @@ export default function OrganizationPage() {
   };
 
   return (
-    <div className={styles.container}>
+    <PageLayout>
       <PreviewCard
         type="organization"
         name={organization.displayName}
@@ -463,6 +455,6 @@ export default function OrganizationPage() {
           },
         ]}
       />
-    </div>
+    </PageLayout>
   );
 }

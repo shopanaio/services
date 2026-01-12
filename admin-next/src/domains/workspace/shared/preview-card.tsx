@@ -11,6 +11,7 @@ const useStyles = createStyles(({ token }) => ({
     backgroundColor: token.colorBgContainer,
     borderRadius: token.borderRadiusLG,
     boxShadow: token.boxShadowTertiary,
+    width: "100%",
   },
   avatar: {
     backgroundColor: token.colorPrimary,
@@ -73,7 +74,8 @@ export const PreviewCard = ({
       .slice(0, 2);
   };
 
-  const avatarIcon = type === "organization" ? <TeamOutlined /> : <UserOutlined />;
+  const avatarIcon =
+    type === "organization" ? <TeamOutlined /> : <UserOutlined />;
 
   return (
     <div className={cx(styles.card, className)}>
@@ -83,7 +85,10 @@ export const PreviewCard = ({
             size={64}
             src={image}
             icon={!image && avatarIcon}
-            className={cx(styles.avatar, onAvatarClick && styles.avatarClickable)}
+            className={cx(
+              styles.avatar,
+              onAvatarClick && styles.avatarClickable
+            )}
             onClick={onAvatarClick}
           >
             {!image && getInitials(name)}
@@ -100,11 +105,7 @@ export const PreviewCard = ({
                 {subtitle}
               </Typography.Text>
             )}
-            {meta && (
-              <div className={styles.meta}>
-                {meta}
-              </div>
-            )}
+            {meta && <div className={styles.meta}>{meta}</div>}
           </div>
         </Flex>
         {onEdit && (

@@ -10,19 +10,11 @@ import {
   MoreOutlined,
 } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import { DangerZone } from "../../shared";
+import { DangerZone, PageLayout } from "../../shared";
 import { mockSessions } from "../../mocks/data";
 import { useChangePasswordModal } from "../../modals";
 
 const useStyles = createStyles(({ token }) => ({
-  container: {
-    maxWidth: 800,
-    margin: "0 auto",
-    padding: token.paddingLG,
-    display: "flex",
-    flexDirection: "column",
-    gap: token.marginLG,
-  },
   passwordRow: {
     display: "flex",
     alignItems: "center",
@@ -125,7 +117,7 @@ export default function SecurityPage() {
   };
 
   return (
-    <div className={styles.container}>
+    <PageLayout>
       <Paper>
         <PaperHeader
           title="Password"
@@ -244,6 +236,6 @@ export default function SecurityPage() {
           },
         ]}
       />
-    </div>
+    </PageLayout>
   );
 }
