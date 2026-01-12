@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   Button,
   Tag,
@@ -11,9 +10,7 @@ import {
   Avatar,
 } from "antd";
 import {
-  CheckOutlined,
   MoreOutlined,
-  LinkOutlined,
   UserOutlined,
   CheckCircleOutlined,
 } from "@ant-design/icons";
@@ -46,9 +43,6 @@ const useStyles = createStyles(({ token }) => ({
   },
   metaText: {
     fontSize: token.fontSizeSM,
-  },
-  actionButton: {
-    padding: 0,
   },
   avatar: {
     backgroundColor: token.colorPrimary,
@@ -104,15 +98,8 @@ export const ProfileInfoHeader = ({
   onEdit,
 }: IProfileInfoHeaderProps) => {
   const { styles } = useStyles();
-  const [linkCopied, setLinkCopied] = useState(false);
 
   const displayName = getDisplayName(user);
-
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.href);
-    setLinkCopied(true);
-    setTimeout(() => setLinkCopied(false), 1500);
-  };
 
   const statusTitle = (
     <Flex align="center" gap={8}>
@@ -142,26 +129,14 @@ export const ProfileInfoHeader = ({
   );
 
   const topBarActions = (
-    <Flex align="center" gap={12}>
-      <Flex align="center" gap={8}>
-        <Button
-          variant="text"
-          color="default"
-          size="small"
-          icon={linkCopied ? <CheckOutlined /> : <LinkOutlined />}
-          onClick={handleCopyLink}
-          className={styles.actionButton}
-        />
-      </Flex>
-      <Dropdown
-        menu={{
-          items: [{ key: "edit", label: "Edit profile", onClick: onEdit }],
-        }}
-        trigger={["click"]}
-      >
-        <Button size="small" icon={<MoreOutlined />} />
-      </Dropdown>
-    </Flex>
+    <Dropdown
+      menu={{
+        items: [{ key: "edit", label: "Edit profile", onClick: onEdit }],
+      }}
+      trigger={["click"]}
+    >
+      <Button size="small" icon={<MoreOutlined />} />
+    </Dropdown>
   );
 
   return (
