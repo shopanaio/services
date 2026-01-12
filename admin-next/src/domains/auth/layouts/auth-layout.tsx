@@ -14,7 +14,6 @@ const useStyles = createStyles(({ token }) => ({
   content: {
     width: "100%",
     maxWidth: 400,
-    padding: token.padding,
   },
 }));
 

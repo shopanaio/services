@@ -1,10 +1,10 @@
 import { registerDomain } from "@/registry";
 import { SettingOutlined } from "@ant-design/icons";
-import { AppDomainLayout } from "@/layouts/app/components/layout/app-domain-layout";
+import { AppLayout } from "@/layouts/app/components/layout/layout";
 
 registerDomain({
   key: "workspace",
-  layout: AppDomainLayout,
+  layout: AppLayout,
   sidebar: {
     label: "Workspace",
     icon: <SettingOutlined />,

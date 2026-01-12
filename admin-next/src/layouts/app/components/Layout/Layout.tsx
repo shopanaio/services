@@ -4,6 +4,7 @@ import { Layout } from "antd";
 import { Sidebar } from "@/layouts/app/components/sidebar/sidebar";
 import { createStyles } from "antd-style";
 import { ReactNode } from "react";
+import { AuthGuard } from "@/domains/auth";
 
 const useStyles = createStyles(({ token }) => ({
   layout: {
@@ -27,9 +28,11 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
   const { styles, cx } = useStyles();
 
   return (
-    <Layout className={cx(styles.layout)} hasSider>
-      <Sidebar />
-      <Layout>{children}</Layout>
-    </Layout>
+    <AuthGuard>
+      <Layout className={cx(styles.layout)} hasSider>
+        <Sidebar />
+        <Layout>{children}</Layout>
+      </Layout>
+    </AuthGuard>
   );
 };
