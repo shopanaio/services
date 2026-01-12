@@ -9,6 +9,7 @@ import { createStyles } from "antd-style";
 
 const useStyles = createStyles(({ token }) => ({
   layout: {
+    width: "100%",
     maxWidth: 800,
     margin: "0 auto",
     padding: token.paddingLG,
