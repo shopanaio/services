@@ -72,7 +72,7 @@ export const DangerZone = ({ items, className }: IDangerZoneProps) => {
               {item.description}
             </Typography.Text>
           </div>
-          <Button danger onClick={item.onClick}>
+          <Button size="small" danger onClick={item.onClick}>
             {item.buttonText}
           </Button>
         </div>

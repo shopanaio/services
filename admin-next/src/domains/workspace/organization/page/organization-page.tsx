@@ -42,7 +42,11 @@ export default function OrganizationPage() {
       displayName: organization.displayName,
       slug: organization.name,
       currentLogo: null,
-      onSave: (values: { displayName: string; slug: string; logo: string | null }) => {
+      onSave: (values: {
+        displayName: string;
+        slug: string;
+        logo: string | null;
+      }) => {
         console.log("Saving organization:", values);
         message.success("Organization updated successfully");
       },
@@ -162,14 +166,14 @@ export default function OrganizationPage() {
             title: "Transfer Ownership",
             description:
               "Transfer this organization to another admin member. You will retain admin access.",
-            buttonText: "Transfer...",
+            buttonText: "Transfer",
             onClick: handleTransferOwnership,
           },
           {
             title: "Delete Organization",
             description:
               "Permanently delete this organization and all its data. This action cannot be undone.",
-            buttonText: "Delete...",
+            buttonText: "Delete",
             onClick: handleDeleteOrganization,
           },
         ]}

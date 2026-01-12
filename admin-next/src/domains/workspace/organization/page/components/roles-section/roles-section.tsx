@@ -1,26 +1,36 @@
 "use client";
 
-import { Typography, Button, Dropdown } from "antd";
+import { Typography, Button, Dropdown, Flex } from "antd";
 import { MoreOutlined, PlusOutlined } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { mockRoles } from "../../../../mocks/data";
 import type { IRolesSectionProps } from "../../types";
 import { RoleCard } from "../role-card";
 
-export function RolesSection({ onCreateRole, onEditRole, onDeleteRole }: IRolesSectionProps) {
+export function RolesSection({
+  onCreateRole,
+  onEditRole,
+  onDeleteRole,
+}: IRolesSectionProps) {
   return (
     <Paper>
       <PaperHeader
-        title="Roles"
-        extra={
-          <Typography.Text type="secondary">
-            Manage roles and their permissions
-          </Typography.Text>
+        title={
+          <Flex vertical>
+            <Typography.Text strong style={{ fontSize: 16 }}>
+              Roles
+            </Typography.Text>
+            <Typography.Text type="secondary">
+              Manage roles and their permissions
+            </Typography.Text>
+          </Flex>
         }
         actions={
           <Dropdown
             menu={{
-              items: [{ key: "create", label: "Create role", icon: <PlusOutlined /> }],
+              items: [
+                { key: "create", label: "Create role", icon: <PlusOutlined /> },
+              ],
               onClick: onCreateRole,
             }}
             trigger={["click"]}
