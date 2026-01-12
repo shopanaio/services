@@ -34,7 +34,8 @@ export const useStyles = createStyles(({ token }) => ({
   },
   title: {
     textAlign: "center",
-    marginBottom: token.marginLG,
+    marginBottom: `${token.marginXL}px !important`,
+    marginTop: `-${token.marginXL}px !important`,
   },
   formItem: {
     marginBottom: token.marginLG,

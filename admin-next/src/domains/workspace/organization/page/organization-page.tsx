@@ -661,7 +661,6 @@ export default function OrganizationPage() {
           title="Stores"
           actions={
             <Button
-              type="primary"
               size="small"
               icon={<PlusOutlined />}
               onClick={handleCreateStore}
