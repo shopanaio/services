@@ -15,6 +15,13 @@ const useStyles = createStyles(({ token }) => ({
   avatar: {
     backgroundColor: token.colorPrimary,
   },
+  avatarClickable: {
+    cursor: "pointer",
+    transition: "opacity 0.2s",
+    "&:hover": {
+      opacity: 0.8,
+    },
+  },
   name: {
     fontSize: token.fontSizeXL,
     fontWeight: 600,
@@ -40,6 +47,7 @@ interface IPreviewCardProps {
   image?: string | null;
   badge?: string;
   onEdit?: () => void;
+  onAvatarClick?: () => void;
   className?: string;
 }
 
@@ -51,6 +59,7 @@ export const PreviewCard = ({
   image,
   badge,
   onEdit,
+  onAvatarClick,
   className,
 }: IPreviewCardProps) => {
   const { styles, cx } = useStyles();
@@ -74,7 +83,8 @@ export const PreviewCard = ({
             size={64}
             src={image}
             icon={!image && avatarIcon}
-            className={styles.avatar}
+            className={cx(styles.avatar, onAvatarClick && styles.avatarClickable)}
+            onClick={onAvatarClick}
           >
             {!image && getInitials(name)}
           </Avatar>

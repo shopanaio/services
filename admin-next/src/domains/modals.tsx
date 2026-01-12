@@ -57,6 +57,15 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
+    // Edit Avatar modal
+    {
+      type: 'workspace-edit-avatar',
+      component: dynamic(() =>
+        import('@/domains/workspace/modals/edit-avatar-modal').then(
+          (m) => m.EditAvatarModal
+        )
+      ),
+    },
     // ========================================
     // Product modals
     // ========================================

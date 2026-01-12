@@ -20,8 +20,8 @@ import {
   UserOutlined,
   MailOutlined,
 } from "@ant-design/icons";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type { ApiMember } from "@/graphql/types";
-import { SettingsSection } from "../../shared";
 import {
   mockMembers,
   mockInvitations,
@@ -238,18 +238,19 @@ export default function MembersPage() {
 
   return (
     <div className={styles.container}>
-      <SettingsSection
-        title="Team Members"
-        actions={
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={handleInviteMember}
-          >
-            Invite Member
-          </Button>
-        }
-      >
+      <Paper>
+        <PaperHeader
+          title="Team Members"
+          actions={
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={handleInviteMember}
+            >
+              Invite Member
+            </Button>
+          }
+        />
         <div className={styles.searchRow}>
           <Input
             placeholder="Search members..."
@@ -270,10 +271,11 @@ export default function MembersPage() {
         <Typography.Text className={styles.footer}>
           Showing {filteredMembers.length} of {mockMembers.length} members
         </Typography.Text>
-      </SettingsSection>
+      </Paper>
 
       {mockInvitations.length > 0 && (
-        <SettingsSection title="Pending Invitations">
+        <Paper>
+          <PaperHeader title="Pending Invitations" />
           {mockInvitations.map((invitation: IInvitation) => {
             const role = getRoleByName(invitation.role);
             return (
@@ -285,8 +287,8 @@ export default function MembersPage() {
                       {invitation.email}
                     </Typography.Text>
                     <Typography.Text className={styles.invitationMeta}>
-                      Invited as: {role?.displayName || invitation.role} · Expires in{" "}
-                      {getDaysUntilExpiry(invitation.expiresAt)} days
+                      Invited as: {role?.displayName || invitation.role} ·
+                      Expires in {getDaysUntilExpiry(invitation.expiresAt)} days
                     </Typography.Text>
                   </div>
                 </div>
@@ -308,7 +310,7 @@ export default function MembersPage() {
               </div>
             );
           })}
-        </SettingsSection>
+        </Paper>
       )}
     </div>
   );

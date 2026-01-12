@@ -8,7 +8,8 @@ import {
   MobileOutlined,
   CloseOutlined,
 } from "@ant-design/icons";
-import { SettingsSection, DangerZone } from "../../shared";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
+import { DangerZone } from "../../shared";
 import { mockSessions } from "../../mocks/data";
 import { useChangePasswordModal } from "../../modals";
 
@@ -131,7 +132,8 @@ export default function SecurityPage() {
 
   return (
     <div className={styles.container}>
-      <SettingsSection title="Password">
+      <Paper>
+        <PaperHeader title="Password" />
         <div className={styles.passwordRow}>
           <div className={styles.passwordInfo}>
             <Typography.Text className={styles.passwordDots}>
@@ -143,9 +145,10 @@ export default function SecurityPage() {
           </div>
           <Button onClick={handleChangePassword}>Change Password</Button>
         </div>
-      </SettingsSection>
+      </Paper>
 
-      <SettingsSection title="Two-Factor Authentication">
+      <Paper>
+        <PaperHeader title="Two-Factor Authentication" />
         <div className={styles.twoFactorRow}>
           <div className={styles.twoFactorInfo}>
             <LockOutlined className={styles.twoFactorIcon} />
@@ -161,9 +164,10 @@ export default function SecurityPage() {
             Enable 2FA
           </Button>
         </div>
-      </SettingsSection>
+      </Paper>
 
-      <SettingsSection title="Active Sessions">
+      <Paper>
+        <PaperHeader title="Active Sessions" />
         {mockSessions.map((session) => (
           <div key={session.id} className={styles.sessionItem}>
             <div className={styles.sessionInfo}>
@@ -204,7 +208,7 @@ export default function SecurityPage() {
             Sign out all other sessions
           </Button>
         </div>
-      </SettingsSection>
+      </Paper>
 
       <DangerZone
         items={[

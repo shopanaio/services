@@ -23,14 +23,25 @@ registerModule({
       },
     },
     {
-      key: "organization-branding",
-      path: "/workspace/organization/branding",
+      key: "organization-members",
+      path: "/workspace/team",
       component: dynamic(
-        () => import("@/domains/workspace/organization/page/branding-page")
+        () => import("@/domains/workspace/team/page/members-page")
       ),
       sidebar: {
-        label: "Branding",
+        label: "Members",
         order: 2,
+      },
+    },
+    {
+      key: "organization-roles",
+      path: "/workspace/roles",
+      component: dynamic(
+        () => import("@/domains/workspace/team/page/roles-page")
+      ),
+      sidebar: {
+        label: "Roles",
+        order: 3,
       },
     },
   ],

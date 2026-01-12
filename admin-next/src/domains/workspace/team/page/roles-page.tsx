@@ -10,8 +10,8 @@ import {
   EyeOutlined,
   DeleteOutlined,
 } from "@ant-design/icons";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type { ApiRole } from "@/graphql/types";
-import { SettingsSection } from "../../shared";
 import { mockRoles } from "../../mocks/data";
 import { useEditRoleModal } from "../../modals";
 
@@ -99,19 +99,24 @@ export default function RolesPage() {
 
   return (
     <div className={styles.container}>
-      <SettingsSection
-        title="Roles"
-        description="Manage roles and their permissions"
-        actions={
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={handleCreateRole}
-          >
-            Create Role
-          </Button>
-        }
-      >
+      <Paper>
+        <PaperHeader
+          title="Roles"
+          extra={
+            <Typography.Text type="secondary">
+              Manage roles and their permissions
+            </Typography.Text>
+          }
+          actions={
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={handleCreateRole}
+            >
+              Create Role
+            </Button>
+          }
+        />
         {mockRoles.map((role) => (
           <RoleCard
             key={role.id}
@@ -120,7 +125,7 @@ export default function RolesPage() {
             onDelete={() => handleDeleteRole(role.id)}
           />
         ))}
-      </SettingsSection>
+      </Paper>
     </div>
   );
 }
@@ -169,7 +174,12 @@ function RoleCard({ role, onEdit, onDelete }: IRoleCardProps) {
           </Button>
         )}
         {!role.isSystem && (
-          <Button size="small" danger icon={<DeleteOutlined />} onClick={onDelete}>
+          <Button
+            size="small"
+            danger
+            icon={<DeleteOutlined />}
+            onClick={onDelete}
+          >
             Delete
           </Button>
         )}

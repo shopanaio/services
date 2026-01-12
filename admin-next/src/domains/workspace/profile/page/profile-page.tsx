@@ -5,7 +5,8 @@ import { useForm, Controller } from "react-hook-form";
 import { Input, Typography, Button, Select, message } from "antd";
 import { createStyles } from "antd-style";
 import { CheckCircleOutlined } from "@ant-design/icons";
-import { PreviewCard, SettingsSection } from "../../shared";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
+import { PreviewCard } from "../../shared";
 import {
   mockCurrentUser,
   mockOrganization,
@@ -14,7 +15,7 @@ import {
   dateFormatOptions,
   getUserDisplayName,
 } from "../../mocks/data";
-import { useChangeEmailModal } from "../../modals";
+import { useChangeEmailModal, useEditAvatarModal } from "../../modals";
 
 const useStyles = createStyles(({ token }) => ({
   container: {
@@ -81,6 +82,7 @@ export default function ProfilePage() {
   const { styles } = useStyles();
   const [isEditing, setIsEditing] = useState(false);
   const { push: pushChangeEmailModal } = useChangeEmailModal();
+  const { push: pushEditAvatarModal } = useEditAvatarModal();
 
   const displayName = getUserDisplayName(mockCurrentUser);
 
@@ -121,7 +123,13 @@ export default function ProfilePage() {
   };
 
   const handleEditPhoto = () => {
-    message.info("Edit photo modal would open");
+    pushEditAvatarModal({
+      currentImage: mockCurrentUser.avatar,
+      onSave: (imageUrl: string | null) => {
+        console.log("New avatar:", imageUrl);
+        message.success(imageUrl ? "Avatar updated" : "Avatar removed");
+      },
+    });
   };
 
   return (
@@ -133,17 +141,18 @@ export default function ProfilePage() {
         meta={`Admin · ${mockOrganization.displayName}`}
         image={mockCurrentUser.avatar}
         badge="Admin"
-        onEdit={handleEditPhoto}
+        onAvatarClick={handleEditPhoto}
       />
 
-      <SettingsSection
-        title="Personal Information"
-        actions={
-          !isEditing && (
-            <Button onClick={() => setIsEditing(true)}>Edit</Button>
-          )
-        }
-      >
+      <Paper>
+        <PaperHeader
+          title="Personal Information"
+          actions={
+            !isEditing && (
+              <Button onClick={() => setIsEditing(true)}>Edit</Button>
+            )
+          }
+        />
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className={styles.formItemRow}>
             <div>
@@ -213,12 +222,15 @@ export default function ProfilePage() {
             </div>
           )}
         </form>
-      </SettingsSection>
+      </Paper>
 
-      <SettingsSection title="Email">
+      <Paper>
+        <PaperHeader title="Email" />
         <div className={styles.emailRow}>
           <div className={styles.emailInfo}>
-            <Typography.Text strong>{String(mockCurrentUser.email)}</Typography.Text>
+            <Typography.Text strong>
+              {String(mockCurrentUser.email)}
+            </Typography.Text>
             {mockCurrentUser.emailVerified && (
               <span className={styles.verified}>
                 <CheckCircleOutlined />
@@ -228,9 +240,10 @@ export default function ProfilePage() {
           </div>
           <Button onClick={handleChangeEmail}>Change Email</Button>
         </div>
-      </SettingsSection>
+      </Paper>
 
-      <SettingsSection title="Preferences">
+      <Paper>
+        <PaperHeader title="Preferences" />
         <div className={styles.formItem}>
           <Typography.Text className={styles.label}>Language</Typography.Text>
           <Controller
@@ -262,7 +275,9 @@ export default function ProfilePage() {
         </div>
 
         <div className={styles.formItem}>
-          <Typography.Text className={styles.label}>Date Format</Typography.Text>
+          <Typography.Text className={styles.label}>
+            Date Format
+          </Typography.Text>
           <Controller
             name="dateFormat"
             control={control}
@@ -275,7 +290,7 @@ export default function ProfilePage() {
             )}
           />
         </div>
-      </SettingsSection>
+      </Paper>
     </div>
   );
 }
