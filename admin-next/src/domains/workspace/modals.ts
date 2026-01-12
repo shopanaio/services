@@ -1,6 +1,6 @@
 import { createModalStackHook } from "@/layouts/modals";
 import type { IModalStackPayload } from "@/layouts/modals/types";
-import type { IRole, IUser, IMember } from "./mocks/data";
+import type { ApiRole, ApiMember } from "@/graphql/types";
 
 // Modal type constants
 export const INVITE_MEMBER_MODAL_TYPE = "workspace-invite-member";
@@ -20,12 +20,12 @@ export interface IInviteMemberModalPayload extends IModalStackPayload {
 }
 
 export interface IEditRoleModalPayload extends IModalStackPayload {
-  role: IRole;
-  onSave?: (role: Partial<IRole>) => void;
+  role: ApiRole;
+  onSave?: (role: Partial<ApiRole>) => void;
 }
 
 export interface ICreateRoleModalPayload extends IModalStackPayload {
-  onSave?: (role: Omit<IRole, "id" | "memberCount">) => void;
+  onSave?: (role: Omit<ApiRole, "id" | "__typename">) => void;
 }
 
 export interface IEditOrganizationModalPayload extends IModalStackPayload {
@@ -36,7 +36,7 @@ export interface IEditOrganizationModalPayload extends IModalStackPayload {
 
 export interface ITransferOwnershipModalPayload extends IModalStackPayload {
   organizationName: string;
-  admins: IMember[];
+  admins: ApiMember[];
   onTransfer?: (newOwnerId: string) => void;
 }
 

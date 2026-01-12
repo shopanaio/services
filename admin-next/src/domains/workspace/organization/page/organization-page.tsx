@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
-import { Input, Typography, Button, Space, Flex, message } from "antd";
+import { Input, Typography, Button, message } from "antd";
 import { createStyles } from "antd-style";
 import { WarningOutlined } from "@ant-design/icons";
 import { PreviewCard, SettingsSection, DangerZone } from "../../shared";
@@ -91,22 +91,14 @@ export default function OrganizationPage() {
     });
   };
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
   return (
     <div className={styles.container}>
       <PreviewCard
         type="organization"
         name={mockOrganization.displayName}
         subtitle={mockOrganization.name}
-        meta={`Created: ${formatDate(mockOrganization.createdAt)}`}
-        image={mockOrganization.logo}
+        meta={`ID: ${mockOrganization.id}`}
+        image={undefined}
         onEdit={() => setIsEditing(true)}
       />
 

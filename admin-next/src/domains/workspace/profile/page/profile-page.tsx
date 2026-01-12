@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
-import { Input, Typography, Button, Select, Tag, message } from "antd";
+import { Input, Typography, Button, Select, message } from "antd";
 import { createStyles } from "antd-style";
 import { CheckCircleOutlined } from "@ant-design/icons";
 import { PreviewCard, SettingsSection } from "../../shared";
@@ -12,6 +12,7 @@ import {
   localeOptions,
   timezoneOptions,
   dateFormatOptions,
+  getUserDisplayName,
 } from "../../mocks/data";
 import { useChangeEmailModal } from "../../modals";
 
@@ -81,6 +82,8 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const { push: pushChangeEmailModal } = useChangeEmailModal();
 
+  const displayName = getUserDisplayName(mockCurrentUser);
+
   const {
     control,
     handleSubmit,
@@ -90,8 +93,8 @@ export default function ProfilePage() {
     defaultValues: {
       firstName: mockCurrentUser.firstName || "",
       lastName: mockCurrentUser.lastName || "",
-      displayName: mockCurrentUser.name,
-      locale: mockCurrentUser.locale || "en-US",
+      displayName: displayName,
+      locale: mockCurrentUser.locale || "en_US",
       timezone: "UTC",
       dateFormat: "MM/DD/YYYY",
     },
@@ -110,7 +113,7 @@ export default function ProfilePage() {
 
   const handleChangeEmail = () => {
     pushChangeEmailModal({
-      currentEmail: mockCurrentUser.email,
+      currentEmail: String(mockCurrentUser.email),
       onSave: (newEmail: string) => {
         message.success(`Verification sent to ${newEmail} (mock)`);
       },
@@ -125,10 +128,10 @@ export default function ProfilePage() {
     <div className={styles.container}>
       <PreviewCard
         type="profile"
-        name={mockCurrentUser.name}
-        subtitle={mockCurrentUser.email}
+        name={displayName}
+        subtitle={String(mockCurrentUser.email)}
         meta={`Admin · ${mockOrganization.displayName}`}
-        image={mockCurrentUser.image}
+        image={mockCurrentUser.avatar}
         badge="Admin"
         onEdit={handleEditPhoto}
       />
@@ -215,7 +218,7 @@ export default function ProfilePage() {
       <SettingsSection title="Email">
         <div className={styles.emailRow}>
           <div className={styles.emailInfo}>
-            <Typography.Text strong>{mockCurrentUser.email}</Typography.Text>
+            <Typography.Text strong>{String(mockCurrentUser.email)}</Typography.Text>
             {mockCurrentUser.emailVerified && (
               <span className={styles.verified}>
                 <CheckCircleOutlined />

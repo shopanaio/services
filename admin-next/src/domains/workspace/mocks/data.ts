@@ -1,228 +1,242 @@
 /**
  * Mock data for workspace domain (organization, users, team members, roles)
+ * Using API types from GraphQL schema
  */
 
-// Organization mock data
-export interface IOrganization {
-  id: string;
-  name: string;
-  displayName: string;
-  logo?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import type {
+  ApiOrganization,
+  ApiUser,
+  ApiMember,
+  ApiRole,
+  ApiRolePermission,
+} from "@/graphql/types";
 
-export const mockOrganization: IOrganization = {
+// Organization mock data
+export const mockOrganization: ApiOrganization = {
+  __typename: "Organization",
   id: "org-1",
   name: "acme-corp",
   displayName: "Acme Corporation",
-  logo: undefined,
-  createdAt: new Date("2024-01-15"),
-  updatedAt: new Date("2024-06-01"),
+  membership: {
+    __typename: "Membership",
+    domain: "org",
+    organizationId: "org-1",
+    members: [],
+    roles: [],
+  },
 };
 
 // User mock data
-export interface IUser {
-  id: string;
-  email: string;
-  name: string;
-  firstName: string | null;
-  lastName: string | null;
-  image: string | null;
-  admin: boolean;
-  emailVerified: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-  locale?: string;
-}
-
-export const mockCurrentUser: IUser = {
+export const mockCurrentUser: ApiUser = {
+  __typename: "User",
   id: "user-1",
-  email: "john.doe@acme.com",
-  name: "John Doe",
+  email: "john.doe@acme.com" as any,
   firstName: "John",
   lastName: "Doe",
-  image: null,
-  admin: true,
+  avatar: null,
+  isAdmin: true,
   emailVerified: true,
-  createdAt: new Date("2024-01-15"),
-  updatedAt: new Date("2024-06-01"),
-  locale: "en-US",
+  createdAt: "2024-01-15T00:00:00Z",
+  updatedAt: "2024-06-01T00:00:00Z",
+  locale: "en_US" as any,
+  isDeleted: false,
+  isForbidden: false,
 };
 
-// Team members mock data
-export interface IMember {
-  id: string;
-  user: IUser;
-  role: IRole;
-  joinedAt: Date;
-}
+// Role permissions mock data
+const ownerPermissions: ApiRolePermission[] = [
+  { __typename: "RolePermission", resource: "org.profile", actions: ["read", "write", "admin"] },
+  { __typename: "RolePermission", resource: "org.members", actions: ["read", "write", "admin"] },
+  { __typename: "RolePermission", resource: "store.products", actions: ["read", "write", "admin"] },
+  { __typename: "RolePermission", resource: "store.orders", actions: ["read", "write", "admin"] },
+  { __typename: "RolePermission", resource: "store.inventory", actions: ["read", "write", "admin"] },
+];
 
-export interface IRole {
-  id: string;
-  name: string;
-  description: string;
-  isSystem: boolean;
-  memberCount: number;
-  permissions: IPermission[];
-}
+const adminPermissions: ApiRolePermission[] = [
+  { __typename: "RolePermission", resource: "org.profile", actions: ["read", "write"] },
+  { __typename: "RolePermission", resource: "org.members", actions: ["read", "write"] },
+  { __typename: "RolePermission", resource: "store.products", actions: ["read", "write", "admin"] },
+  { __typename: "RolePermission", resource: "store.orders", actions: ["read", "write", "admin"] },
+  { __typename: "RolePermission", resource: "store.inventory", actions: ["read", "write", "admin"] },
+];
 
-export interface IPermission {
-  resource: string;
-  read: boolean;
-  write: boolean;
-  admin: boolean;
-}
+const editorPermissions: ApiRolePermission[] = [
+  { __typename: "RolePermission", resource: "org.profile", actions: ["read"] },
+  { __typename: "RolePermission", resource: "org.members", actions: ["read"] },
+  { __typename: "RolePermission", resource: "store.products", actions: ["read", "write"] },
+  { __typename: "RolePermission", resource: "store.orders", actions: ["read"] },
+  { __typename: "RolePermission", resource: "store.inventory", actions: ["read", "write"] },
+];
 
-export const mockRoles: IRole[] = [
+const viewerPermissions: ApiRolePermission[] = [
+  { __typename: "RolePermission", resource: "org.profile", actions: ["read"] },
+  { __typename: "RolePermission", resource: "org.members", actions: ["read"] },
+  { __typename: "RolePermission", resource: "store.products", actions: ["read"] },
+  { __typename: "RolePermission", resource: "store.orders", actions: ["read"] },
+  { __typename: "RolePermission", resource: "store.inventory", actions: ["read"] },
+];
+
+// Roles mock data
+export const mockRoles: ApiRole[] = [
   {
+    __typename: "Role",
     id: "role-owner",
-    name: "Owner",
+    name: "owner",
+    displayName: "Owner",
     description: "Full access · Cannot be modified",
+    domain: "org",
     isSystem: true,
-    memberCount: 1,
-    permissions: [
-      { resource: "products", read: true, write: true, admin: true },
-      { resource: "orders", read: true, write: true, admin: true },
-      { resource: "inventory", read: true, write: true, admin: true },
-      { resource: "members", read: true, write: true, admin: true },
-      { resource: "settings", read: true, write: true, admin: true },
-    ],
+    permissions: ownerPermissions,
+    createdAt: "2024-01-15T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
   },
   {
+    __typename: "Role",
     id: "role-admin",
-    name: "Admin",
+    name: "admin",
+    displayName: "Admin",
     description: "Organization management access",
+    domain: "org",
     isSystem: true,
-    memberCount: 2,
-    permissions: [
-      { resource: "products", read: true, write: true, admin: true },
-      { resource: "orders", read: true, write: true, admin: true },
-      { resource: "inventory", read: true, write: true, admin: true },
-      { resource: "members", read: true, write: true, admin: false },
-      { resource: "settings", read: true, write: true, admin: false },
-    ],
+    permissions: adminPermissions,
+    createdAt: "2024-01-15T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
   },
   {
+    __typename: "Role",
     id: "role-editor",
-    name: "Editor",
+    name: "editor",
+    displayName: "Editor",
     description: "Content editing permissions",
+    domain: "org",
     isSystem: false,
-    memberCount: 5,
-    permissions: [
-      { resource: "products", read: true, write: true, admin: false },
-      { resource: "orders", read: true, write: false, admin: false },
-      { resource: "inventory", read: true, write: true, admin: false },
-      { resource: "members", read: true, write: false, admin: false },
-      { resource: "settings", read: false, write: false, admin: false },
-    ],
+    permissions: editorPermissions,
+    createdAt: "2024-01-15T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
   },
   {
+    __typename: "Role",
     id: "role-viewer",
-    name: "Viewer",
+    name: "viewer",
+    displayName: "Viewer",
     description: "Read-only access",
+    domain: "org",
     isSystem: false,
-    memberCount: 3,
-    permissions: [
-      { resource: "products", read: true, write: false, admin: false },
-      { resource: "orders", read: true, write: false, admin: false },
-      { resource: "inventory", read: true, write: false, admin: false },
-      { resource: "members", read: true, write: false, admin: false },
-      { resource: "settings", read: false, write: false, admin: false },
-    ],
+    permissions: viewerPermissions,
+    createdAt: "2024-01-15T00:00:00Z",
+    updatedAt: "2024-01-15T00:00:00Z",
   },
 ];
 
-export const mockMembers: IMember[] = [
+// Team members mock data
+export const mockMembers: ApiMember[] = [
   {
+    __typename: "Member",
     id: "member-1",
     user: mockCurrentUser,
-    role: mockRoles[0], // Owner
-    joinedAt: new Date("2024-01-15"),
+    role: "owner",
+    isOwner: true,
+    grantedAt: "2024-01-15T00:00:00Z",
+    grantedBy: null,
   },
   {
+    __typename: "Member",
     id: "member-2",
     user: {
+      __typename: "User",
       id: "user-2",
-      email: "jane.smith@acme.com",
-      name: "Jane Smith",
+      email: "jane.smith@acme.com" as any,
       firstName: "Jane",
       lastName: "Smith",
-      image: null,
-      admin: true,
+      avatar: null,
+      isAdmin: true,
       emailVerified: true,
-      createdAt: new Date("2024-02-01"),
-      updatedAt: new Date("2024-05-15"),
-      locale: "en-US",
+      createdAt: "2024-02-01T00:00:00Z",
+      updatedAt: "2024-05-15T00:00:00Z",
+      locale: "en_US" as any,
+      isDeleted: false,
+      isForbidden: false,
     },
-    role: mockRoles[1], // Admin
-    joinedAt: new Date("2024-02-01"),
+    role: "admin",
+    isOwner: false,
+    grantedAt: "2024-02-01T00:00:00Z",
+    grantedBy: mockCurrentUser,
   },
   {
+    __typename: "Member",
     id: "member-3",
     user: {
+      __typename: "User",
       id: "user-3",
-      email: "bob.wilson@acme.com",
-      name: "Bob Wilson",
+      email: "bob.wilson@acme.com" as any,
       firstName: "Bob",
       lastName: "Wilson",
-      image: null,
-      admin: false,
+      avatar: null,
+      isAdmin: false,
       emailVerified: true,
-      createdAt: new Date("2024-03-10"),
-      updatedAt: new Date("2024-06-01"),
-      locale: "en-US",
+      createdAt: "2024-03-10T00:00:00Z",
+      updatedAt: "2024-06-01T00:00:00Z",
+      locale: "en_US" as any,
+      isDeleted: false,
+      isForbidden: false,
     },
-    role: mockRoles[2], // Editor
-    joinedAt: new Date("2024-03-10"),
+    role: "editor",
+    isOwner: false,
+    grantedAt: "2024-03-10T00:00:00Z",
+    grantedBy: mockCurrentUser,
   },
   {
+    __typename: "Member",
     id: "member-4",
     user: {
+      __typename: "User",
       id: "user-4",
-      email: "alice.johnson@acme.com",
-      name: "Alice Johnson",
+      email: "alice.johnson@acme.com" as any,
       firstName: "Alice",
       lastName: "Johnson",
-      image: null,
-      admin: false,
+      avatar: null,
+      isAdmin: false,
       emailVerified: true,
-      createdAt: new Date("2024-04-20"),
-      updatedAt: new Date("2024-05-30"),
-      locale: "en-US",
+      createdAt: "2024-04-20T00:00:00Z",
+      updatedAt: "2024-05-30T00:00:00Z",
+      locale: "en_US" as any,
+      isDeleted: false,
+      isForbidden: false,
     },
-    role: mockRoles[3], // Viewer
-    joinedAt: new Date("2024-04-20"),
+    role: "viewer",
+    isOwner: false,
+    grantedAt: "2024-04-20T00:00:00Z",
+    grantedBy: mockCurrentUser,
   },
 ];
 
-// Pending invitations mock data
+// Pending invitations mock data (local type - no API equivalent)
 export interface IInvitation {
   id: string;
   email: string;
-  role: IRole;
-  invitedAt: Date;
-  expiresAt: Date;
+  role: string;
+  invitedAt: string;
+  expiresAt: string;
 }
 
 export const mockInvitations: IInvitation[] = [
   {
     id: "inv-1",
     email: "alice@example.com",
-    role: mockRoles[2], // Editor
-    invitedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-    expiresAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), // 5 days from now
+    role: "editor",
+    invitedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    expiresAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
   },
 ];
 
-// Sessions mock data
+// Sessions mock data (local type - no API equivalent)
 export interface ISession {
   id: string;
   device: string;
   browser: string;
   os: string;
   location: string;
-  lastActive: Date;
+  lastActive: string;
   isCurrent: boolean;
 }
 
@@ -233,7 +247,7 @@ export const mockSessions: ISession[] = [
     browser: "Chrome",
     os: "macOS",
     location: "San Francisco, US",
-    lastActive: new Date(),
+    lastActive: new Date().toISOString(),
     isCurrent: true,
   },
   {
@@ -242,19 +256,19 @@ export const mockSessions: ISession[] = [
     browser: "Safari",
     os: "iPhone",
     location: "New York, US",
-    lastActive: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+    lastActive: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
     isCurrent: false,
   },
 ];
 
 // Locale options
 export const localeOptions = [
-  { value: "en-US", label: "English (US)" },
-  { value: "en-GB", label: "English (UK)" },
-  { value: "ru-RU", label: "Russian" },
-  { value: "de-DE", label: "German" },
-  { value: "fr-FR", label: "French" },
-  { value: "es-ES", label: "Spanish" },
+  { value: "en_US", label: "English (US)" },
+  { value: "en_GB", label: "English (UK)" },
+  { value: "ru_RU", label: "Russian" },
+  { value: "de_DE", label: "German" },
+  { value: "fr_FR", label: "French" },
+  { value: "es_ES", label: "Spanish" },
 ];
 
 // Timezone options
@@ -273,3 +287,16 @@ export const dateFormatOptions = [
   { value: "DD/MM/YYYY", label: "DD/MM/YYYY" },
   { value: "YYYY-MM-DD", label: "YYYY-MM-DD" },
 ];
+
+// Helper function to get role by name
+export function getRoleByName(roleName: string): ApiRole | undefined {
+  return mockRoles.find((r) => r.name === roleName);
+}
+
+// Helper function to get user display name
+export function getUserDisplayName(user: ApiUser): string {
+  if (user.firstName && user.lastName) {
+    return `${user.firstName} ${user.lastName}`;
+  }
+  return user.firstName || user.lastName || String(user.email);
+}

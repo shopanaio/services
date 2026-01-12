@@ -9,8 +9,8 @@ import {
   ModalHeader,
 } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
+import type { ApiRolePermission } from "@/graphql/types";
 import type { IEditRoleModalPayload } from "../../modals";
-import type { IPermission } from "../../mocks/data";
 
 const useStyles = createStyles(({ token }) => ({
   formItem: {
@@ -49,12 +49,26 @@ const useStyles = createStyles(({ token }) => ({
 }));
 
 interface IEditRoleForm {
-  name: string;
+  displayName: string;
   description: string;
-  permissions: IPermission[];
+  permissions: ApiRolePermission[];
 }
 
-const resources = ["products", "orders", "inventory", "members", "settings"];
+const resources = [
+  "org.profile",
+  "org.members",
+  "store.products",
+  "store.orders",
+  "store.inventory",
+];
+
+const resourceDisplayNames: Record<string, string> = {
+  "org.profile": "Organization",
+  "org.members": "Members",
+  "store.products": "Products",
+  "store.orders": "Orders",
+  "store.inventory": "Inventory",
+};
 
 export const EditRoleModal = () => {
   const { styles } = useStyles();
@@ -70,49 +84,60 @@ export const EditRoleModal = () => {
     formState: { errors },
   } = useForm<IEditRoleForm>({
     defaultValues: {
-      name: role.name,
-      description: role.description,
+      displayName: role.displayName,
+      description: role.description || "",
       permissions: role.permissions,
     },
   });
 
   const permissions = watch("permissions");
 
+  const hasAction = (resource: string, action: string): boolean => {
+    const perm = permissions.find((p) => p.resource === resource);
+    return perm?.actions.includes(action) ?? false;
+  };
+
   const updatePermission = (
     resource: string,
-    field: "read" | "write" | "admin",
+    action: "read" | "write" | "admin",
     value: boolean
   ) => {
     const newPermissions = permissions.map((p) => {
       if (p.resource === resource) {
-        const updated = { ...p, [field]: value };
-        // If admin is set, read and write should be set too
-        if (field === "admin" && value) {
-          updated.read = true;
-          updated.write = true;
+        let newActions = [...p.actions];
+
+        if (value) {
+          // Add the action
+          if (!newActions.includes(action)) {
+            newActions.push(action);
+          }
+          // If admin is set, read and write should be set too
+          if (action === "admin") {
+            if (!newActions.includes("read")) newActions.push("read");
+            if (!newActions.includes("write")) newActions.push("write");
+          }
+          // If write is set, read should be set too
+          if (action === "write" && !newActions.includes("read")) {
+            newActions.push("read");
+          }
+        } else {
+          // Remove the action
+          newActions = newActions.filter((a) => a !== action);
+          // If read is unset, write and admin should be unset too
+          if (action === "read") {
+            newActions = newActions.filter((a) => a !== "write" && a !== "admin");
+          }
+          // If write is unset, admin should be unset too
+          if (action === "write") {
+            newActions = newActions.filter((a) => a !== "admin");
+          }
         }
-        // If write is set, read should be set too
-        if (field === "write" && value) {
-          updated.read = true;
-        }
-        // If read is unset, write and admin should be unset too
-        if (field === "read" && !value) {
-          updated.write = false;
-          updated.admin = false;
-        }
-        // If write is unset, admin should be unset too
-        if (field === "write" && !value) {
-          updated.admin = false;
-        }
-        return updated;
+
+        return { ...p, actions: newActions };
       }
       return p;
     });
     setValue("permissions", newPermissions);
-  };
-
-  const getPermission = (resource: string): IPermission | undefined => {
-    return permissions.find((p) => p.resource === resource);
   };
 
   const onSubmit = (values: IEditRoleForm) => {
@@ -127,7 +152,7 @@ export const EditRoleModal = () => {
       header={
         <ModalHeader
           name="edit-role"
-          title={`Edit Role: ${role.name}`}
+          title={`Edit Role: ${role.displayName}`}
           onClose={pop}
           submitButtonProps={{
             onClick: handleSubmit(onSubmit),
@@ -141,21 +166,21 @@ export const EditRoleModal = () => {
           <div className={styles.formItem}>
             <Typography.Text className={styles.label}>Role Name</Typography.Text>
             <Controller
-              name="name"
+              name="displayName"
               control={control}
               rules={{ required: "Role name is required" }}
               render={({ field }) => (
                 <Input
                   {...field}
                   placeholder="Role name"
-                  status={errors.name ? "error" : undefined}
+                  status={errors.displayName ? "error" : undefined}
                   disabled={role.isSystem}
                 />
               )}
             />
-            {errors.name && (
+            {errors.displayName && (
               <Typography.Text className={styles.error}>
-                {errors.name.message}
+                {errors.displayName.message}
               </Typography.Text>
             )}
           </div>
@@ -185,43 +210,40 @@ export const EditRoleModal = () => {
           <div className={styles.permissionsHeader}>Write</div>
           <div className={styles.permissionsHeader}>Admin</div>
 
-          {resources.map((resource) => {
-            const perm = getPermission(resource);
-            return (
-              <>
-                <Typography.Text key={resource} className={styles.resourceName}>
-                  {resource}
-                </Typography.Text>
-                <div className={styles.checkboxCell}>
-                  <Checkbox
-                    checked={perm?.read}
-                    onChange={(e) =>
-                      updatePermission(resource, "read", e.target.checked)
-                    }
-                    disabled={role.isSystem}
-                  />
-                </div>
-                <div className={styles.checkboxCell}>
-                  <Checkbox
-                    checked={perm?.write}
-                    onChange={(e) =>
-                      updatePermission(resource, "write", e.target.checked)
-                    }
-                    disabled={role.isSystem}
-                  />
-                </div>
-                <div className={styles.checkboxCell}>
-                  <Checkbox
-                    checked={perm?.admin}
-                    onChange={(e) =>
-                      updatePermission(resource, "admin", e.target.checked)
-                    }
-                    disabled={role.isSystem}
-                  />
-                </div>
-              </>
-            );
-          })}
+          {resources.map((resource) => (
+            <>
+              <Typography.Text key={resource} className={styles.resourceName}>
+                {resourceDisplayNames[resource] || resource}
+              </Typography.Text>
+              <div className={styles.checkboxCell}>
+                <Checkbox
+                  checked={hasAction(resource, "read")}
+                  onChange={(e) =>
+                    updatePermission(resource, "read", e.target.checked)
+                  }
+                  disabled={role.isSystem}
+                />
+              </div>
+              <div className={styles.checkboxCell}>
+                <Checkbox
+                  checked={hasAction(resource, "write")}
+                  onChange={(e) =>
+                    updatePermission(resource, "write", e.target.checked)
+                  }
+                  disabled={role.isSystem}
+                />
+              </div>
+              <div className={styles.checkboxCell}>
+                <Checkbox
+                  checked={hasAction(resource, "admin")}
+                  onChange={(e) =>
+                    updatePermission(resource, "admin", e.target.checked)
+                  }
+                  disabled={role.isSystem}
+                />
+              </div>
+            </>
+          ))}
         </div>
       </Paper>
     </ModalLayout>

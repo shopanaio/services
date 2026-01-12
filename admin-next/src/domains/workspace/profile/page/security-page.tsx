@@ -1,10 +1,9 @@
 "use client";
 
-import { Typography, Button, List, Tag, message } from "antd";
+import { Typography, Button, Tag, message } from "antd";
 import { createStyles } from "antd-style";
 import {
   LockOutlined,
-  SafetyOutlined,
   DesktopOutlined,
   MobileOutlined,
   CloseOutlined,
@@ -117,7 +116,8 @@ export default function SecurityPage() {
     message.info("Delete account modal would open");
   };
 
-  const formatLastActive = (date: Date) => {
+  const formatLastActive = (dateStr: string) => {
+    const date = new Date(dateStr);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     const minutes = Math.floor(diff / 60000);

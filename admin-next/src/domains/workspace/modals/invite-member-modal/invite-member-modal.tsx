@@ -55,7 +55,7 @@ export const InviteMemberModal = () => {
   const typedPayload = payload as IInviteMemberModalPayload;
 
   // Filter out Owner role - can't invite as owner
-  const invitableRoles = mockRoles.filter((role) => role.name !== "Owner");
+  const invitableRoles = mockRoles.filter((role) => role.name !== "owner");
 
   const {
     control,
@@ -136,7 +136,7 @@ export const InviteMemberModal = () => {
                       <Radio key={role.id} value={role.id}>
                         <div className={styles.roleOption}>
                           <Typography.Text className={styles.roleName}>
-                            {role.name}
+                            {role.displayName}
                           </Typography.Text>
                           <Typography.Text className={styles.roleDescription}>
                             {role.description}

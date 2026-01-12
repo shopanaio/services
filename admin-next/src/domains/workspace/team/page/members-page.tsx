@@ -19,11 +19,17 @@ import {
   MoreOutlined,
   UserOutlined,
   MailOutlined,
-  ClockCircleOutlined,
 } from "@ant-design/icons";
+import type { ApiMember } from "@/graphql/types";
 import { SettingsSection } from "../../shared";
-import { mockMembers, mockInvitations, mockRoles } from "../../mocks/data";
-import type { IMember, IInvitation } from "../../mocks/data";
+import {
+  mockMembers,
+  mockInvitations,
+  mockRoles,
+  getUserDisplayName,
+  getRoleByName,
+} from "../../mocks/data";
+import type { IInvitation } from "../../mocks/data";
 import { useInviteMemberModal } from "../../modals";
 
 const useStyles = createStyles(({ token }) => ({
@@ -132,18 +138,19 @@ export default function MembersPage() {
       .slice(0, 2);
   };
 
-  const getDaysUntilExpiry = (expiresAt: Date) => {
+  const getDaysUntilExpiry = (expiresAt: string) => {
     const now = new Date();
-    const diff = expiresAt.getTime() - now.getTime();
+    const expiry = new Date(expiresAt);
+    const diff = expiry.getTime() - now.getTime();
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
   };
 
-  const getMemberActions = (member: IMember): MenuProps["items"] => {
+  const getMemberActions = (member: ApiMember): MenuProps["items"] => {
     const roleItems: MenuProps["items"] = mockRoles
-      .filter((role) => role.id !== member.role.id)
+      .filter((role) => role.name !== member.role)
       .map((role) => ({
         key: role.id,
-        label: role.name,
+        label: role.displayName,
         onClick: () => handleChangeRole(member.id, role.id),
       }));
 
@@ -174,37 +181,43 @@ export default function MembersPage() {
       title: "Member",
       dataIndex: "user",
       key: "user",
-      render: (_: unknown, record: IMember) => (
-        <div className={styles.memberCell}>
-          <Avatar src={record.user.image} icon={<UserOutlined />}>
-            {getInitials(record.user.name)}
-          </Avatar>
-          <div className={styles.memberInfo}>
-            <Typography.Text className={styles.memberName}>
-              {record.user.name}
-            </Typography.Text>
-            <Typography.Text className={styles.memberEmail}>
-              {record.user.email}
-            </Typography.Text>
+      render: (_: unknown, record: ApiMember) => {
+        const displayName = getUserDisplayName(record.user);
+        return (
+          <div className={styles.memberCell}>
+            <Avatar src={record.user.avatar} icon={<UserOutlined />}>
+              {getInitials(displayName)}
+            </Avatar>
+            <div className={styles.memberInfo}>
+              <Typography.Text className={styles.memberName}>
+                {displayName}
+              </Typography.Text>
+              <Typography.Text className={styles.memberEmail}>
+                {record.user.email}
+              </Typography.Text>
+            </div>
           </div>
-        </div>
-      ),
+        );
+      },
     },
     {
       title: "Role",
       dataIndex: "role",
       key: "role",
-      render: (_: unknown, record: IMember) => (
-        <Tag color={record.role.name === "Owner" ? "gold" : "default"}>
-          {record.role.name}
-        </Tag>
-      ),
+      render: (_: unknown, record: ApiMember) => {
+        const role = getRoleByName(record.role);
+        return (
+          <Tag color={record.isOwner ? "gold" : "default"}>
+            {role?.displayName || record.role}
+          </Tag>
+        );
+      },
     },
     {
       title: "Actions",
       key: "actions",
       width: 80,
-      render: (_: unknown, record: IMember) => (
+      render: (_: unknown, record: ApiMember) => (
         <Dropdown
           menu={{ items: getMemberActions(record) }}
           trigger={["click"]}
@@ -215,11 +228,13 @@ export default function MembersPage() {
     },
   ];
 
-  const filteredMembers = mockMembers.filter(
-    (member) =>
-      member.user.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-      member.user.email.toLowerCase().includes(searchValue.toLowerCase())
-  );
+  const filteredMembers = mockMembers.filter((member) => {
+    const displayName = getUserDisplayName(member.user);
+    return (
+      displayName.toLowerCase().includes(searchValue.toLowerCase()) ||
+      String(member.user.email).toLowerCase().includes(searchValue.toLowerCase())
+    );
+  });
 
   return (
     <div className={styles.container}>
@@ -259,37 +274,40 @@ export default function MembersPage() {
 
       {mockInvitations.length > 0 && (
         <SettingsSection title="Pending Invitations">
-          {mockInvitations.map((invitation) => (
-            <div key={invitation.id} className={styles.invitationItem}>
-              <div className={styles.invitationInfo}>
-                <MailOutlined className={styles.invitationIcon} />
-                <div className={styles.invitationDetails}>
-                  <Typography.Text className={styles.invitationEmail}>
-                    {invitation.email}
-                  </Typography.Text>
-                  <Typography.Text className={styles.invitationMeta}>
-                    Invited as: {invitation.role.name} · Expires in{" "}
-                    {getDaysUntilExpiry(invitation.expiresAt)} days
-                  </Typography.Text>
+          {mockInvitations.map((invitation: IInvitation) => {
+            const role = getRoleByName(invitation.role);
+            return (
+              <div key={invitation.id} className={styles.invitationItem}>
+                <div className={styles.invitationInfo}>
+                  <MailOutlined className={styles.invitationIcon} />
+                  <div className={styles.invitationDetails}>
+                    <Typography.Text className={styles.invitationEmail}>
+                      {invitation.email}
+                    </Typography.Text>
+                    <Typography.Text className={styles.invitationMeta}>
+                      Invited as: {role?.displayName || invitation.role} · Expires in{" "}
+                      {getDaysUntilExpiry(invitation.expiresAt)} days
+                    </Typography.Text>
+                  </div>
+                </div>
+                <div className={styles.invitationActions}>
+                  <Button
+                    size="small"
+                    onClick={() => handleResendInvitation(invitation.id)}
+                  >
+                    Resend
+                  </Button>
+                  <Button
+                    size="small"
+                    danger
+                    onClick={() => handleCancelInvitation(invitation.id)}
+                  >
+                    Cancel
+                  </Button>
                 </div>
               </div>
-              <div className={styles.invitationActions}>
-                <Button
-                  size="small"
-                  onClick={() => handleResendInvitation(invitation.id)}
-                >
-                  Resend
-                </Button>
-                <Button
-                  size="small"
-                  danger
-                  onClick={() => handleCancelInvitation(invitation.id)}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </SettingsSection>
       )}
     </div>

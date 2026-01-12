@@ -10,9 +10,9 @@ import {
   EyeOutlined,
   DeleteOutlined,
 } from "@ant-design/icons";
+import type { ApiRole } from "@/graphql/types";
 import { SettingsSection } from "../../shared";
 import { mockRoles } from "../../mocks/data";
-import type { IRole } from "../../mocks/data";
 import { useEditRoleModal } from "../../modals";
 
 const useStyles = createStyles(({ token }) => ({
@@ -58,7 +58,7 @@ const useStyles = createStyles(({ token }) => ({
     fontSize: token.fontSizeSM,
     marginTop: 2,
   },
-  roleMemberCount: {
+  roleDomain: {
     color: token.colorTextTertiary,
     fontSize: token.fontSizeSM,
     marginTop: token.marginXS,
@@ -70,10 +70,10 @@ const useStyles = createStyles(({ token }) => ({
 }));
 
 const roleIcons: Record<string, React.ReactNode> = {
-  Owner: <CrownOutlined style={{ color: "#faad14" }} />,
-  Admin: <SafetyOutlined style={{ color: "#1890ff" }} />,
-  Editor: <EditOutlined style={{ color: "#52c41a" }} />,
-  Viewer: <EyeOutlined style={{ color: "#8c8c8c" }} />,
+  owner: <CrownOutlined style={{ color: "#faad14" }} />,
+  admin: <SafetyOutlined style={{ color: "#1890ff" }} />,
+  editor: <EditOutlined style={{ color: "#52c41a" }} />,
+  viewer: <EyeOutlined style={{ color: "#8c8c8c" }} />,
 };
 
 export default function RolesPage() {
@@ -84,22 +84,17 @@ export default function RolesPage() {
     message.info("Create role modal would open");
   };
 
-  const handleEditRole = (role: IRole) => {
+  const handleEditRole = (role: ApiRole) => {
     pushEditRoleModal({
       role,
-      onSave: (updatedRole: Partial<IRole>) => {
-        message.success(`Role ${role.name} updated (mock)`);
+      onSave: (updatedRole: Partial<ApiRole>) => {
+        message.success(`Role ${role.displayName} updated (mock)`);
       },
     });
   };
 
   const handleDeleteRole = (roleId: string) => {
     message.info("Delete role confirmation would open");
-  };
-
-  const getMemberText = (count: number) => {
-    if (count === 1) return "1 member";
-    return `${count} members`;
   };
 
   return (
@@ -131,18 +126,13 @@ export default function RolesPage() {
 }
 
 interface IRoleCardProps {
-  role: IRole;
+  role: ApiRole;
   onEdit: () => void;
   onDelete: () => void;
 }
 
 function RoleCard({ role, onEdit, onDelete }: IRoleCardProps) {
   const { styles } = useStyles();
-
-  const getMemberText = (count: number) => {
-    if (count === 1) return "1 member";
-    return `${count} members`;
-  };
 
   return (
     <div className={styles.roleCard}>
@@ -152,7 +142,7 @@ function RoleCard({ role, onEdit, onDelete }: IRoleCardProps) {
         </span>
         <div className={styles.roleDetails}>
           <Typography.Text className={styles.roleName}>
-            {role.name}
+            {role.displayName}
             {role.isSystem && (
               <Tag color="default" style={{ marginLeft: 8 }}>
                 System
@@ -167,13 +157,13 @@ function RoleCard({ role, onEdit, onDelete }: IRoleCardProps) {
           <Typography.Text className={styles.roleDescription}>
             {role.description}
           </Typography.Text>
-          <Typography.Text className={styles.roleMemberCount}>
-            {getMemberText(role.memberCount)}
+          <Typography.Text className={styles.roleDomain}>
+            Domain: {role.domain}
           </Typography.Text>
         </div>
       </div>
       <div className={styles.roleActions}>
-        {role.name !== "Owner" && (
+        {role.name !== "owner" && (
           <Button size="small" onClick={onEdit}>
             Edit
           </Button>
