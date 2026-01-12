@@ -15,7 +15,6 @@ import {
   Empty,
 } from "antd";
 import type { MenuProps } from "antd";
-import { createStyles } from "antd-style";
 import {
   TeamOutlined,
   SafetyOutlined,
@@ -26,9 +25,6 @@ import {
   UserOutlined,
   MailOutlined,
   UserAddOutlined,
-  EditOutlined,
-  EyeOutlined,
-  DeleteOutlined,
 } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { KPITile } from "@/ui-kit/kpi-tile";
@@ -42,11 +38,7 @@ import {
   useEditRoleModal,
   useCreateStoreModal,
 } from "../../modals";
-import type {
-  ApiOrganization,
-  ApiMember,
-  ApiRole,
-} from "@/graphql/types";
+import type { ApiOrganization, ApiMember, ApiRole } from "@/graphql/types";
 import {
   mockMembers,
   mockInvitations,
@@ -55,161 +47,9 @@ import {
   getRoleByName,
 } from "../../mocks/data";
 import type { IInvitation } from "../../mocks/data";
-
-const useStyles = createStyles(({ token }) => ({
-  // Stores styles
-  storeItem: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: token.paddingMD,
-    backgroundColor: token.colorBgContainer,
-    border: `1px solid ${token.colorBorder}`,
-    borderRadius: token.borderRadiusLG,
-    cursor: "pointer",
-    transition: "all 0.2s ease-in-out",
-    "&:hover": {
-      backgroundColor: token.colorBgTextHover,
-      borderColor: token.colorPrimaryBorder,
-    },
-  },
-  storeItemDisabled: {
-    cursor: "not-allowed",
-    opacity: 0.6,
-    "&:hover": {
-      backgroundColor: token.colorBgContainer,
-      borderColor: token.colorBorder,
-    },
-  },
-  storeInfo: {
-    marginLeft: token.marginMD,
-  },
-  storeName: {
-    fontWeight: 500,
-    marginBottom: 0,
-  },
-  storeSlug: {
-    color: token.colorTextSecondary,
-    fontSize: token.fontSizeSM,
-  },
-  storeList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: token.marginSM,
-  },
-  emptyState: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: `${token.paddingXL * 2}px 0`,
-  },
-  // Members styles
-  searchRow: {
-    marginBottom: token.marginMD,
-  },
-  memberCell: {
-    display: "flex",
-    alignItems: "center",
-    gap: token.marginSM,
-  },
-  memberInfo: {
-    display: "flex",
-    flexDirection: "column",
-  },
-  memberName: {
-    fontWeight: 500,
-  },
-  memberEmail: {
-    color: token.colorTextSecondary,
-    fontSize: token.fontSizeSM,
-  },
-  invitationItem: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: token.padding,
-    backgroundColor: token.colorBgLayout,
-    borderRadius: token.borderRadius,
-    marginBottom: token.marginSM,
-  },
-  invitationInfo: {
-    display: "flex",
-    alignItems: "center",
-    gap: token.marginSM,
-  },
-  invitationIcon: {
-    fontSize: 20,
-    color: token.colorTextSecondary,
-  },
-  invitationDetails: {
-    display: "flex",
-    flexDirection: "column",
-  },
-  invitationEmail: {
-    fontWeight: 500,
-  },
-  invitationMeta: {
-    color: token.colorTextSecondary,
-    fontSize: token.fontSizeSM,
-  },
-  invitationActions: {
-    display: "flex",
-    gap: token.marginXS,
-  },
-  footer: {
-    color: token.colorTextSecondary,
-    fontSize: token.fontSizeSM,
-    marginTop: token.marginSM,
-  },
-  // Roles styles
-  roleCard: {
-    display: "flex",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    padding: token.padding,
-    backgroundColor: token.colorBgLayout,
-    borderRadius: token.borderRadius,
-    marginBottom: token.marginSM,
-    border: `1px solid ${token.colorBorder}`,
-  },
-  roleInfo: {
-    display: "flex",
-    alignItems: "flex-start",
-    gap: token.marginSM,
-  },
-  roleIcon: {
-    fontSize: 20,
-    marginTop: 2,
-  },
-  roleDetails: {
-    display: "flex",
-    flexDirection: "column",
-  },
-  roleName: {
-    fontWeight: 600,
-    display: "flex",
-    alignItems: "center",
-    gap: token.marginXS,
-  },
-  roleDescription: {
-    color: token.colorTextSecondary,
-    fontSize: token.fontSizeSM,
-    marginTop: 2,
-  },
-  roleActions: {
-    display: "flex",
-    gap: token.marginXS,
-  },
-}));
-
-interface Store {
-  id: string;
-  name: string;
-  slug: string;
-  status: "active" | "inactive";
-  color: string;
-}
+import { useStyles } from "./organization-page.styles";
+import type { IStore } from "./types";
+import { StoreItem, RoleCard } from "./components";
 
 const mockOrganization: ApiOrganization = {
   id: "org-123",
@@ -279,7 +119,7 @@ const mockOrganization: ApiOrganization = {
   },
 };
 
-const mockStores: Store[] = [
+const mockStores: IStore[] = [
   { id: "store-1", name: "Main Store", slug: "main-store", status: "active", color: "blue" },
   { id: "store-2", name: "Fashion Outlet", slug: "fashion-outlet", status: "active", color: "purple" },
   { id: "store-3", name: "Electronics Hub", slug: "electronics-hub", status: "active", color: "green" },
@@ -287,111 +127,8 @@ const mockStores: Store[] = [
   { id: "store-5", name: "Sports Gear", slug: "sports-gear", status: "active", color: "red" },
 ];
 
-const roleIcons: Record<string, React.ReactNode> = {
-  admin: <SafetyOutlined style={{ color: "#1890ff" }} />,
-  editor: <EditOutlined style={{ color: "#52c41a" }} />,
-  viewer: <EyeOutlined style={{ color: "#8c8c8c" }} />,
-};
-
-// Store Item Component
-interface StoreItemProps {
-  store: Store;
-  onClick?: () => void;
-}
-
-function StoreItem({ store, onClick }: StoreItemProps) {
-  const { styles, cx } = useStyles();
-  const isActive = store.status === "active";
-
-  const handleClick = () => {
-    if (isActive && onClick) {
-      onClick();
-    }
-  };
-
-  return (
-    <div
-      className={cx(styles.storeItem, !isActive && styles.storeItemDisabled)}
-      onClick={handleClick}
-    >
-      <Flex align="center">
-        <Avatar
-          size="large"
-          style={{
-            backgroundColor: isActive
-              ? `var(--ant-${store.color}-2, #e6f4ff)`
-              : "#f5f5f5",
-          }}
-        >
-          <ShopOutlined
-            style={{
-              color: isActive
-                ? `var(--ant-${store.color}-6, #1890ff)`
-                : "#8c8c8c",
-              fontSize: 20,
-            }}
-          />
-        </Avatar>
-        <div className={styles.storeInfo}>
-          <Typography.Text className={styles.storeName}>
-            {store.name}
-          </Typography.Text>
-          <div className={styles.storeSlug}>{store.slug}</div>
-        </div>
-      </Flex>
-      <Tag color={isActive ? "success" : "default"}>
-        {isActive ? "Active" : "Inactive"}
-      </Tag>
-    </div>
-  );
-}
-
-// Role Card Component
-interface RoleCardProps {
-  role: ApiRole;
-  onEdit: () => void;
-  onDelete: () => void;
-}
-
-function RoleCard({ role, onEdit, onDelete }: RoleCardProps) {
-  const { styles } = useStyles();
-
-  return (
-    <div className={styles.roleCard}>
-      <div className={styles.roleInfo}>
-        <span className={styles.roleIcon}>
-          {roleIcons[role.name] || <SafetyOutlined />}
-        </span>
-        <div className={styles.roleDetails}>
-          <Typography.Text className={styles.roleName}>
-            {role.displayName}
-          </Typography.Text>
-          <Typography.Text className={styles.roleDescription}>
-            {role.description}
-          </Typography.Text>
-        </div>
-      </div>
-      {!role.isSystem && (
-        <div className={styles.roleActions}>
-          <Button size="small" onClick={onEdit}>
-            Edit
-          </Button>
-          <Button
-            size="small"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={onDelete}
-          >
-            Delete
-          </Button>
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function OrganizationPage() {
-  const { styles, cx } = useStyles();
+  const { styles } = useStyles();
   const [searchValue, setSearchValue] = useState("");
   const [activeStoreTab, setActiveStoreTab] = useState("all");
 
@@ -437,21 +174,20 @@ export default function OrganizationPage() {
     });
   };
 
-  // Store handlers
-  const handleStoreClick = (store: Store) => {
+  const handleStoreClick = (store: IStore) => {
     console.log("Navigate to store:", store.slug);
   };
 
   const handleCreateStore = () => {
     pushCreateStoreModal({
-      onCreate: (values) => {
+      onCreate: (values: { name: string }) => {
         console.log("Creating store:", values);
         message.success(`Store "${values.name}" created successfully`);
       },
     });
   };
 
-  const renderStoreList = (storeList: Store[]) => {
+  const renderStoreList = (storeList: IStore[]) => {
     if (!storeList.length) {
       return (
         <div className={styles.emptyState}>
@@ -480,28 +216,27 @@ export default function OrganizationPage() {
     );
   };
 
-  // Member handlers
   const handleInviteMember = () => {
     pushInviteModal({
-      onInvite: (email: string, roleId: string) => {
+      onInvite: (email: string, _roleId: string) => {
         message.success(`Invitation sent to ${email} (mock)`);
       },
     });
   };
 
-  const handleChangeRole = (memberId: string, roleId: string) => {
+  const handleChangeRole = (_memberId: string, _roleId: string) => {
     message.success("Role updated");
   };
 
-  const handleRemoveMember = (memberId: string) => {
+  const handleRemoveMember = (_memberId: string) => {
     message.success("Member removed");
   };
 
-  const handleResendInvitation = (invitationId: string) => {
+  const handleResendInvitation = (_invitationId: string) => {
     message.success("Invitation resent");
   };
 
-  const handleCancelInvitation = (invitationId: string) => {
+  const handleCancelInvitation = (_invitationId: string) => {
     message.success("Invitation cancelled");
   };
 
@@ -603,7 +338,6 @@ export default function OrganizationPage() {
     );
   });
 
-  // Role handlers
   const handleCreateRole = () => {
     message.info("Create role modal would open");
   };
@@ -611,13 +345,13 @@ export default function OrganizationPage() {
   const handleEditRole = (role: ApiRole) => {
     pushEditRoleModal({
       role,
-      onSave: (updatedRole: Partial<ApiRole>) => {
+      onSave: (_updatedRole: Partial<ApiRole>) => {
         message.success(`Role ${role.displayName} updated (mock)`);
       },
     });
   };
 
-  const handleDeleteRole = (roleId: string) => {
+  const handleDeleteRole = (_roleId: string) => {
     message.info("Delete role confirmation would open");
   };
 
@@ -655,7 +389,6 @@ export default function OrganizationPage() {
         />
       </Flex>
 
-      {/* Stores Section */}
       <Paper>
         <PaperHeader
           title="Stores"
@@ -676,7 +409,6 @@ export default function OrganizationPage() {
         />
       </Paper>
 
-      {/* Members Section */}
       <Paper>
         <PaperHeader
           title="Team Members"
@@ -754,7 +486,6 @@ export default function OrganizationPage() {
         </Paper>
       )}
 
-      {/* Roles Section */}
       <Paper>
         <PaperHeader
           title="Roles"
