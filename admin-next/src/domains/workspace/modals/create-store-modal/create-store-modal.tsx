@@ -66,13 +66,13 @@ const useStyles = createStyles(({ token }) => ({
     height: "100%",
     minHeight: 0,
     padding: token.paddingLG,
+    background: token.colorBgLayout,
   },
   card: {
     display: "flex",
     flexDirection: "column",
     flex: 1,
     minHeight: 0,
-    overflow: "hidden",
   },
   stepsContainer: {
     padding: `${token.paddingMD}px ${token.paddingLG}px`,
@@ -119,6 +119,7 @@ const useStyles = createStyles(({ token }) => ({
     marginTop: token.marginXXS,
   },
   navigation: {
+    flexShrink: 0,
     display: "flex",
     justifyContent: "space-between",
     padding: token.paddingMD,
