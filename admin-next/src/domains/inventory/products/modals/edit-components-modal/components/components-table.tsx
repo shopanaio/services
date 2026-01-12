@@ -154,10 +154,8 @@ interface ITableRow {
     | PricingRuleTemplate;
 
   // Overrides
-  overrides: {
-    title: string | null;
-    featuredImage: ApiFile | null;
-  };
+  title: string | null;
+  featuredImage: ApiFile | null;
 
   sortIndex: number;
 }
@@ -195,7 +193,8 @@ const ProductCellRenderer = (params: IProductCellRendererParams) => {
     // For variant: show variant title (and optionally product title if available)
     const variant = data.assignedVariant;
     const productTitle = variant?.product?.title;
-    const variantTitle = data.overrides.title || variant?.title || variant?.sku || "Unknown Variant";
+    const variantTitle =
+      data.title || variant?.title || variant?.sku || "Unknown Variant";
     const imageUrl = getVariantImageUrl(variant);
 
     return (
@@ -221,15 +220,11 @@ const ProductCellRenderer = (params: IProductCellRendererParams) => {
 
   // For product - no direct media on ApiProduct, use placeholder
   const product = data.assignedProduct;
-  const title = data.overrides.title || product?.title || "Unknown";
+  const title = data.title || product?.title || "Unknown";
 
   return (
     <div className={styles.productCell}>
-      <img
-        src="/placeholder.png"
-        className={styles.productImage}
-        alt=""
-      />
+      <img src="/placeholder.png" className={styles.productImage} alt="" />
       <div className={styles.productInfo}>
         <span className={styles.productTitle}>{title}</span>
       </div>
@@ -243,7 +238,10 @@ const ProductCellRenderer = (params: IProductCellRendererParams) => {
 
 interface IPriceRuleCellRendererProps extends ICellRendererParams<ITableRow> {
   pricingTemplates: PricingRuleTemplate[];
-  onPriceRuleChange: (itemId: string, pricingRule: ComponentItem["pricingRule"]) => void;
+  onPriceRuleChange: (
+    itemId: string,
+    pricingRule: ComponentItem["pricingRule"]
+  ) => void;
 }
 
 const TEMPLATE_PREFIX = "tpl:";
@@ -304,7 +302,7 @@ const PriceRuleCellRenderer = ({
 
       onPriceRuleChange(data.id, {
         priceType,
-        priceValue: rule?.requiresValue ? (prevValue ?? 0) : null,
+        priceValue: rule?.requiresValue ? prevValue ?? 0 : null,
       });
     }
   };
@@ -457,7 +455,8 @@ export const ComponentsTable = ({
           assignedVariant: item.assignedVariant,
           excludeAssignedProductVariants: item.excludeAssignedProductVariants,
           pricingRule: item.pricingRule,
-          overrides: item.overrides,
+          title: item.title,
+          featuredImage: item.featuredImage,
           sortIndex: item.sortIndex,
         })
       )
@@ -514,7 +513,6 @@ export const ComponentsTable = ({
     },
     [items, onItemsChange]
   );
-
 
   // Duplicate item
   const handleDuplicate = useCallback(
@@ -648,7 +646,9 @@ export const ComponentsTable = ({
           if (!rule) return "—";
 
           const priceType = isTemplate(rule) ? rule.priceType : rule.priceType;
-          const priceValue = isTemplate(rule) ? rule.priceValue : rule.priceValue;
+          const priceValue = isTemplate(rule)
+            ? rule.priceValue
+            : rule.priceValue;
           const option = PRICE_RULE_OPTIONS.find((r) => r.value === priceType);
 
           if (!option?.requiresValue) return "—";
@@ -724,7 +724,7 @@ export const ComponentsTable = ({
             if (data.itemType === ComponentItemType.VARIANT) {
               return data.assignedVariant?.title || "";
             }
-            return data.overrides.title || data.assignedProduct?.title || "";
+            return data.title || data.assignedProduct?.title || "";
           }}
           onRowDragEnter={handleRowDragEnter}
           onRowDragEnd={handleRowDragEnd}

@@ -122,13 +122,11 @@ export const GroupCard = ({
         itemType: ComponentItemType.PRODUCT,
         assignedProduct: product as ApiProduct,
         sortIndex: group.items.length + index,
+        title: null,
+        featuredImage: null,
         pricingRule: {
           priceType: ComponentPriceType.BASE,
           priceValue: null,
-        },
-        overrides: {
-          title: null,
-          featuredImage: null,
         },
       }));
 

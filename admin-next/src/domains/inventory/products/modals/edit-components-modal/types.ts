@@ -56,19 +56,31 @@ export type StockStatus = "inStock" | "lowStock" | "outOfStock";
 // ============================================================================
 
 export interface ComponentItem {
+  /** Unique identifier for this item */
   id: string;
+
+  /** Component item type - determines how the item is displayed */
   itemType: ComponentItemType;
+
+  /** Sort index for display order */
+  sortIndex: number;
 
   /** Assigned product (PRODUCT only) */
   assignedProduct?: ApiProduct;
+
+  /** Custom title for this variant (overrides product title) */
+  title: string | null;
+
+  /** Custom featured image for this variant (overrides product image) */
+  featuredImage: ApiFile | null;
+
   /** Exclude variant IDs (for PRODUCT) - null = all variants are included */
   excludeAssignedProductVariants?: string[] | null;
 
   /** Assigned variant (VARIANT only). Variant has product field for product reference. */
   assignedVariant?: ApiVariant;
 
-  sortIndex: number;
-
+  /** Pricing rule for this variant (overrides product pricing) */
   pricingRule:
     | PricingRuleTemplate
     | {
@@ -77,12 +89,6 @@ export interface ComponentItem {
         priceValue: number | null;
         /** Template if using a pricing template */
       };
-
-  overrides: {
-    /** Custom overrides */
-    title: string | null;
-    featuredImage: ApiFile | null;
-  };
 }
 
 // ============================================================================
@@ -90,17 +96,26 @@ export interface ComponentItem {
 // ============================================================================
 
 export interface IComponentGroup {
+  /** Unique identifier for this group */
   id: string;
+
+  /** Title for this group */
   title: string;
+
+  /** Sort index for display order */
   sortIndex: number;
 
-  /** Selection rules */
-  rules: {
-    isRequired: boolean;
-    isMultiple: boolean;
-    minSelection: number | null;
-    maxSelection: number | null;
-  };
+  /** Whether this group is required to be selected */
+  isRequired: boolean;
+
+  /** Whether this group allows multiple items to be selected */
+  isMultiple: boolean;
+
+  /** Minimum number of items to select (null = no limit) */
+  minSelection: number | null;
+
+  /** Maximum number of items to select (null = no limit) */
+  maxSelection: number | null;
 
   /** Items in this group */
   items: ComponentItem[];

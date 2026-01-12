@@ -5,11 +5,7 @@ import { createStyles } from "antd-style";
 import { Typography, Radio, Checkbox, Tag, Image } from "antd";
 import { ShoppingOutlined } from "@ant-design/icons";
 
-import type {
-  DisplayStyle,
-  IComponentGroup,
-  ComponentItem,
-} from "../types";
+import type { DisplayStyle, IComponentGroup, ComponentItem } from "../types";
 import { ComponentItemType, ComponentPriceType } from "../types";
 
 // Format price helper
@@ -240,7 +236,6 @@ const useStyles = createStyles(({ token }) => ({
   },
 }));
 
-
 // ============================================================================
 // Helper Types
 // ============================================================================
@@ -261,7 +256,7 @@ const getPriceType = (item: ComponentItem): ComponentPriceType => {
 // ============================================================================
 
 const getItemTitle = (item: ComponentItem): string => {
-  if (item.overrides.title) return item.overrides.title;
+  if (item.title) return item.title;
 
   if (item.itemType === ComponentItemType.VARIANT && item.assignedVariant) {
     return item.assignedVariant.title ?? "Unknown Variant";
@@ -271,7 +266,7 @@ const getItemTitle = (item: ComponentItem): string => {
 };
 
 const getItemImage = (item: ComponentItem): string | null => {
-  if (item.overrides.featuredImage?.url) return item.overrides.featuredImage.url;
+  if (item.featuredImage?.url) return item.featuredImage.url;
 
   if (item.itemType === ComponentItemType.VARIANT && item.assignedVariant) {
     const variantMedia = item.assignedVariant.media?.[0]?.file?.url;
@@ -299,8 +294,8 @@ const getItemBasePrice = (item: ComponentItem): number => {
     return typeof amountMinor === "bigint"
       ? Number(amountMinor) / 100
       : typeof amountMinor === "number"
-        ? amountMinor / 100
-        : 0;
+      ? amountMinor / 100
+      : 0;
   }
   // ApiProduct doesn't have price directly
   return 0;
@@ -501,21 +496,21 @@ const StorefrontGroup = ({
 
   const handleItemSelect = useCallback(
     (itemId: string) => {
-      if (group.rules.isMultiple) {
+      if (group.isMultiple) {
         // Multiple selection
         if (selectedItemIds.includes(itemId)) {
           // Deselect
           const newSelection = selectedItemIds.filter((id) => id !== itemId);
-          const minSelection = group.rules.minSelection ?? 0;
-          if (group.rules.isRequired && newSelection.length < minSelection) {
+          const minSelection = group.minSelection ?? 0;
+          if (group.isRequired && newSelection.length < minSelection) {
             return; // Can't go below minimum
           }
           onSelectionChange(newSelection);
         } else {
           // Select
           if (
-            group.rules.maxSelection &&
-            selectedItemIds.length >= group.rules.maxSelection
+            group.maxSelection &&
+            selectedItemIds.length >= group.maxSelection
           ) {
             return; // Can't exceed maximum
           }
@@ -525,7 +520,7 @@ const StorefrontGroup = ({
         // Single selection
         if (selectedItemIds.includes(itemId)) {
           // Deselect only if not required
-          if (!group.rules.isRequired) {
+          if (!group.isRequired) {
             onSelectionChange([]);
           }
         } else {
@@ -540,17 +535,17 @@ const StorefrontGroup = ({
 
   const selectionText = useMemo(() => {
     const parts: string[] = [];
-    if (group.rules.isRequired) {
+    if (group.isRequired) {
       parts.push("Required");
     }
-    if (group.rules.isMultiple) {
-      const minSelection = group.rules.minSelection ?? 0;
-      if (minSelection > 0 && group.rules.maxSelection) {
-        parts.push(`Select ${minSelection}-${group.rules.maxSelection}`);
+    if (group.isMultiple) {
+      const minSelection = group.minSelection ?? 0;
+      if (minSelection > 0 && group.maxSelection) {
+        parts.push(`Select ${minSelection}-${group.maxSelection}`);
       } else if (minSelection > 0) {
         parts.push(`Select at least ${minSelection}`);
-      } else if (group.rules.maxSelection) {
-        parts.push(`Select up to ${group.rules.maxSelection}`);
+      } else if (group.maxSelection) {
+        parts.push(`Select up to ${group.maxSelection}`);
       } else {
         parts.push("Select multiple");
       }
@@ -567,7 +562,7 @@ const StorefrontGroup = ({
         <Typography.Text className={styles.groupTitle}>
           {group.title}
         </Typography.Text>
-        {group.rules.isRequired && (
+        {group.isRequired && (
           <Tag color="red" className={styles.requiredBadge}>
             Required
           </Tag>
@@ -583,7 +578,7 @@ const StorefrontGroup = ({
               key={item.id}
               item={item}
               isSelected={selectedItemIds.includes(item.id)}
-              isMultiple={group.rules.isMultiple}
+              isMultiple={group.isMultiple}
               onSelect={() => handleItemSelect(item.id)}
               showImages={showImages}
               showSku={showSku}
