@@ -19,32 +19,37 @@ export type KPITileVariant =
   | "success"
   | "warning"
   | "danger"
-  | "info";
+  | "info"
+  | "purple";
 
 export interface IKPITileProps {
-  /** The label displayed below the value */
+  /** Label text displayed above value */
   label: string;
-  /** The main value to display */
+  /** Main value to display */
   value: ReactNode;
-  /** Optional tooltip text */
-  tooltip?: string;
-  /** Trend value (positive/negative number shows arrow indicator) */
-  trend?: number;
-  /** Suffix for trend value (default: '%') */
-  trendSuffix?: string;
-  /** Secondary text below the value */
+  /** Secondary text below value */
   secondary?: ReactNode;
-  /** Badge element to display in top-right corner */
-  badge?: ReactNode;
-  /** Color variant for the tile */
+  /** Tooltip text for info icon */
+  tooltip?: string;
+  /** Visual variant for border accent */
   variant?: KPITileVariant;
-  /** Icon to display before the value */
+  /** Badge element (tag, icon, etc.) */
+  badge?: ReactNode;
+  /** Icon to display before value */
   icon?: ReactNode;
-  /** Whether the tile is in active/selected state */
+  /** Active/selected state */
   active?: boolean;
   /** Click handler */
   onClick?: () => void;
-  /** Additional CSS class */
+  /** Primary tile style (larger, success border) */
+  isPrimary?: boolean;
+  /** Trend value for indicator */
+  trend?: number;
+  /** Trend suffix (default: '%') */
+  trendSuffix?: string;
+  /** Center content */
+  centered?: boolean;
+  /** Custom className */
   className?: string;
 }
 
@@ -54,117 +59,113 @@ export interface IKPITileProps {
 
 const useStyles = createStyles(({ token }) => ({
   tile: {
-    flex: 1,
-    padding: `${token.paddingSM}px ${token.paddingMD}px`,
-    backgroundColor: token.colorBgLayout,
-    borderRadius: token.borderRadiusLG,
-    border: `1px solid ${token.colorBorder}`,
-    minHeight: 80,
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
+    padding: "8px 12px",
+    background: token.colorBgContainer,
+    borderRadius: 6,
+    border: `1px solid ${token.colorBorderSecondary}`,
+    cursor: "default",
     transition: "all 0.2s ease",
+    position: "relative",
+    minWidth: 0,
+    flex: 1,
   },
   tileClickable: {
     cursor: "pointer",
     "&:hover": {
-      backgroundColor: token.colorBgTextHover,
-      borderColor: token.colorBorderSecondary,
+      background: token.colorBgContainerDisabled,
+      borderColor: token.colorBorder,
     },
   },
   tileActive: {
     borderColor: token.colorPrimary,
-    backgroundColor: token.colorPrimaryBg,
+    background: token.colorPrimaryBg,
   },
-  variantPrimary: {
-    borderLeftWidth: 3,
-    borderLeftColor: token.colorSuccess,
+  tilePrimary: {
+    flex: 1.5,
+    borderLeft: `2px solid ${token.colorSuccess}`,
   },
+  tileCentered: {
+    textAlign: "center",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    minHeight: 56,
+  },
+  // Border variants (left accent)
   variantSuccess: {
-    borderLeftWidth: 3,
-    borderLeftColor: token.colorSuccess,
+    borderLeft: `2px solid ${token.colorSuccess}`,
   },
   variantWarning: {
-    borderLeftWidth: 3,
-    borderLeftColor: token.colorWarning,
+    borderLeft: `2px solid ${token.colorWarning}`,
   },
   variantDanger: {
-    borderLeftWidth: 3,
-    borderLeftColor: token.colorError,
+    borderLeft: `2px solid ${token.colorError}`,
   },
   variantInfo: {
-    borderLeftWidth: 3,
-    borderLeftColor: token.colorInfo,
+    borderLeft: `2px solid ${token.colorInfo}`,
   },
-  labelRow: {
-    marginBottom: token.marginXXS,
+  variantPurple: {
+    borderLeft: `2px solid ${token.purple}`,
   },
+  // Label
   label: {
-    fontSize: token.fontSizeSM - 1,
+    fontSize: 10,
     fontWeight: 500,
-    color: token.colorTextSecondary,
-    textTransform: "uppercase" as const,
+    color: token.colorTextTertiary,
+    textTransform: "uppercase",
     letterSpacing: "0.3px",
   },
-  tooltipIcon: {
+  infoIcon: {
     fontSize: 10,
-    color: token.colorTextQuaternary,
+    color: token.colorTextTertiary,
     cursor: "help",
-    marginLeft: token.marginXXS,
   },
-  valueRow: {
-    lineHeight: 1.2,
+  badgeWrapper: {
+    marginLeft: "auto",
   },
-  value: {
-    fontSize: token.fontSizeXL,
-    fontWeight: 600,
-    color: token.colorText,
-  },
+  // Icon
   icon: {
     fontSize: token.fontSizeLG,
     marginRight: token.marginXS,
     color: token.colorTextSecondary,
   },
+  // Value
+  value: {
+    fontSize: token.fontSizeXL,
+    fontWeight: 600,
+    display: "block",
+    lineHeight: 1.2,
+    color: token.colorText,
+  },
+  // Secondary
   secondary: {
-    fontSize: token.fontSizeSM - 1,
+    fontSize: 10,
     color: token.colorTextTertiary,
-    marginTop: token.marginXXS,
+    display: "block",
+    marginTop: 2,
+  },
+  // Trend indicator
+  trendBadge: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 2,
+    padding: "1px 6px",
+    borderRadius: 10,
+    fontSize: 10,
+    fontWeight: 500,
+    whiteSpace: "nowrap",
   },
   trendPositive: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 2,
-    padding: "1px 6px",
-    borderRadius: 10,
-    background: "rgba(82, 196, 26, 0.1)",
-    fontSize: 10,
-    fontWeight: 500,
+    background: token.colorSuccessBg,
     color: token.colorSuccess,
-    whiteSpace: "nowrap" as const,
   },
   trendNegative: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 2,
-    padding: "1px 6px",
-    borderRadius: 10,
-    background: "rgba(255, 77, 79, 0.1)",
-    fontSize: 10,
-    fontWeight: 500,
+    background: token.colorErrorBg,
     color: token.colorError,
-    whiteSpace: "nowrap" as const,
   },
   trendNeutral: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 2,
-    padding: "1px 6px",
-    borderRadius: 10,
-    background: token.colorBgTextHover,
-    fontSize: 10,
-    fontWeight: 500,
+    background: token.colorBgContainerDisabled,
     color: token.colorTextSecondary,
-    whiteSpace: "nowrap" as const,
   },
   trendArrow: {
     fontSize: 8,
@@ -174,13 +175,10 @@ const useStyles = createStyles(({ token }) => ({
     fontWeight: 400,
     opacity: 0.6,
   },
-  badge: {
-    marginLeft: "auto",
-  },
 }));
 
 // ============================================================================
-// Trend Indicator Component
+// Sub-components
 // ============================================================================
 
 interface ITrendIndicatorProps {
@@ -189,19 +187,21 @@ interface ITrendIndicatorProps {
 }
 
 const TrendIndicator = ({ value, suffix = "%" }: ITrendIndicatorProps) => {
-  const { styles } = useStyles();
-
+  const { styles, cx } = useStyles();
   const isPositive = value > 0;
   const isNeutral = value === 0;
 
-  const trendClass = isNeutral
-    ? styles.trendNeutral
-    : isPositive
-      ? styles.trendPositive
-      : styles.trendNegative;
-
   return (
-    <span className={trendClass}>
+    <span
+      className={cx(
+        styles.trendBadge,
+        isNeutral
+          ? styles.trendNeutral
+          : isPositive
+            ? styles.trendPositive
+            : styles.trendNegative
+      )}
+    >
       {!isNeutral && (
         <span className={styles.trendArrow}>
           {isPositive ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
@@ -223,26 +223,37 @@ const TrendIndicator = ({ value, suffix = "%" }: ITrendIndicatorProps) => {
 export const KPITile = ({
   label,
   value,
-  tooltip,
-  trend,
-  trendSuffix = "%",
   secondary,
-  badge,
+  tooltip,
   variant = "default",
+  badge,
   icon,
   active,
   onClick,
+  isPrimary,
+  trend,
+  trendSuffix = "%",
+  centered,
   className,
 }: IKPITileProps) => {
   const { styles, cx } = useStyles();
 
-  const variantStyles: Record<KPITileVariant, string | undefined> = {
-    default: undefined,
-    primary: styles.variantPrimary,
-    success: styles.variantSuccess,
-    warning: styles.variantWarning,
-    danger: styles.variantDanger,
-    info: styles.variantInfo,
+  const getVariantClass = () => {
+    if (isPrimary) return styles.tilePrimary;
+    switch (variant) {
+      case "success":
+        return styles.variantSuccess;
+      case "warning":
+        return styles.variantWarning;
+      case "danger":
+        return styles.variantDanger;
+      case "info":
+        return styles.variantInfo;
+      case "purple":
+        return styles.variantPurple;
+      default:
+        return undefined;
+    }
   };
 
   return (
@@ -251,32 +262,47 @@ export const KPITile = ({
         styles.tile,
         onClick && styles.tileClickable,
         active && styles.tileActive,
-        variantStyles[variant],
+        centered && styles.tileCentered,
+        getVariantClass(),
         className
       )}
       onClick={onClick}
     >
-      {/* Label Row with tooltip and badge */}
-      <Flex align="center" className={styles.labelRow}>
+      {/* Header row: label + info icon + badge */}
+      <Flex
+        align="center"
+        gap={4}
+        justify={centered ? "center" : undefined}
+        style={{ marginBottom: 2 }}
+      >
         <Typography.Text className={styles.label}>{label}</Typography.Text>
         {tooltip && (
           <Tooltip title={tooltip}>
-            <InfoCircleOutlined className={styles.tooltipIcon} />
+            <InfoCircleOutlined className={styles.infoIcon} />
           </Tooltip>
         )}
-        {badge && <div className={styles.badge}>{badge}</div>}
+        {badge && <div className={styles.badgeWrapper}>{badge}</div>}
       </Flex>
 
-      {/* Value Row with icon */}
-      <Flex align="center" className={styles.valueRow}>
+      {/* Value with optional icon */}
+      <Flex align="center" justify={centered ? "center" : undefined}>
         {icon && <span className={styles.icon}>{icon}</span>}
         <Typography.Text className={styles.value}>{value}</Typography.Text>
       </Flex>
 
-      {/* Secondary text or trend */}
+      {/* Secondary row: secondary text + trend */}
       {(secondary || trend !== undefined) && (
-        <Flex align="center" gap={8} className={styles.secondary}>
-          {secondary && <span>{secondary}</span>}
+        <Flex
+          align="center"
+          gap={8}
+          justify={centered ? "center" : undefined}
+          style={{ marginTop: 4 }}
+        >
+          {secondary && (
+            <Typography.Text className={styles.secondary}>
+              {secondary}
+            </Typography.Text>
+          )}
           {trend !== undefined && (
             <TrendIndicator value={trend} suffix={trendSuffix} />
           )}
@@ -285,3 +311,6 @@ export const KPITile = ({
     </div>
   );
 };
+
+// Re-export types
+export type { ITrendIndicatorProps };

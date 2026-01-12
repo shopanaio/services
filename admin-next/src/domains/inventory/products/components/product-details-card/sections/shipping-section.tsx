@@ -3,7 +3,7 @@
 import { Tag, Flex } from "antd";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "../../edit-action";
-import { Tile } from "../../tile";
+import { KPITile } from "@/ui-kit/kpi-tile";
 import { weightUnitOptions, dimensionUnitOptions } from "../../../constants";
 
 interface IShippingSectionProps {
@@ -54,19 +54,19 @@ export const ShippingSection = ({
         actions={<EditAction onEdit={onEdit} label="Edit shipping" />}
       />
       <Flex gap={8}>
-        <Tile
+        <KPITile
           label="Weight"
           value={formatWeight(weight, weightUnit)}
           variant="success"
           centered
         />
-        <Tile
+        <KPITile
           label="Dimensions"
           value={formatDimensions(length, width, height, dimensionUnit)}
           variant="info"
           centered
         />
-        <Tile
+        <KPITile
           label="Shipping"
           value={requiresShipping ? "Required" : "Not required"}
           variant={requiresShipping ? "purple" : "default"}

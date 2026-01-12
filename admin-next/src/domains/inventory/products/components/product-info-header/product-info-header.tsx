@@ -17,7 +17,7 @@ import {
   ShareAltOutlined,
 } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import { Tile } from "../tile";
+import { KPITile } from "@/ui-kit/kpi-tile";
 import { PeriodSwitch, PERIODS, type Period } from "../period-switch";
 import { EntityStatus } from "@/mocks/products/types";
 import { useProductEditTitleModal } from "../../modals";
@@ -237,21 +237,21 @@ export const ProductInfoHeader = ({
         </div>
 
         <Flex gap={12}>
-          <Tile
+          <KPITile
             label="Views"
             value={formatNumber(kpi.views)}
             trend={compareEnabled ? kpi.viewsTrend : undefined}
             tooltip="Total page views"
             className={styles.kpiTile}
           />
-          <Tile
+          <KPITile
             label="Orders"
             value={formatNumber(kpi.orders)}
             trend={compareEnabled ? kpi.ordersTrend : undefined}
             tooltip="Orders containing this product"
             className={styles.kpiTile}
           />
-          <Tile
+          <KPITile
             label="Conversion"
             value={formatPercent(kpi.conversion)}
             trend={compareEnabled ? kpi.conversionTrend : undefined}
@@ -259,7 +259,7 @@ export const ProductInfoHeader = ({
             tooltip="Add to cart conversion rate"
             className={styles.kpiTile}
           />
-          <Tile
+          <KPITile
             label="Revenue"
             value={formatCurrency(kpi.revenue)}
             trend={compareEnabled ? kpi.revenueTrend : undefined}

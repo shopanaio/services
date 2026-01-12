@@ -1,4 +1,4 @@
-import { Tile } from "../../tile";
+import { KPITile } from "@/ui-kit/kpi-tile";
 import { useStyles } from "../pricing-block.styles";
 import type { ApiVariantPriceHistoryStatistics } from "../types";
 
@@ -13,14 +13,14 @@ export const KPIRow = ({ stats, costPrice, formatPrice }: IKPIRowProps) => {
 
   return (
     <div className={styles.kpiRow}>
-      <Tile
+      <KPITile
         label="Cost"
         value={costPrice ? formatPrice(costPrice) : "\u2014"}
         tooltip={costPrice ? "Product cost price" : "Cost data missing"}
         centered
         className={styles.kpiTile}
       />
-      <Tile
+      <KPITile
         label="Min"
         value={
           stats?.minPriceMinor ? formatPrice(stats.minPriceMinor) : "\u2014"
@@ -29,7 +29,7 @@ export const KPIRow = ({ stats, costPrice, formatPrice }: IKPIRowProps) => {
         centered
         className={styles.kpiTile}
       />
-      <Tile
+      <KPITile
         label="Max"
         value={
           stats?.maxPriceMinor ? formatPrice(stats.maxPriceMinor) : "\u2014"
@@ -38,7 +38,7 @@ export const KPIRow = ({ stats, costPrice, formatPrice }: IKPIRowProps) => {
         centered
         className={styles.kpiTile}
       />
-      <Tile
+      <KPITile
         label="Avg"
         value={
           stats?.avgPriceMinor ? formatPrice(stats.avgPriceMinor) : "\u2014"

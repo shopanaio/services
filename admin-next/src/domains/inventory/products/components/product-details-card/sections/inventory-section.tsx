@@ -16,7 +16,7 @@ import {
 } from "@ant-design/icons";
 import { useState, useCallback } from "react";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import { Tile } from "../../tile";
+import { KPITile } from "@/ui-kit/kpi-tile";
 import { useInventoryStyles } from "../product-details-card.styles";
 import { useEditVariantsModal } from "../../../modals";
 import type { ProductInventoryWidget } from "../inventory-widget.types";
@@ -227,7 +227,7 @@ export const InventorySection = ({
         Quantity
       </Typography.Text>
       <div className={styles.tilesGroup}>
-        <Tile
+        <KPITile
           label="Available"
           tooltip="Units available for sale (On Hand minus Reserved)"
           value={stats.quantities.availableForSale.toLocaleString()}
@@ -247,7 +247,7 @@ export const InventorySection = ({
           active={activeKPI === "available"}
           onClick={() => handleKPIClick("available")}
         />
-        <Tile
+        <KPITile
           label="On Hand"
           tooltip="Total physical units in warehouse"
           value={stats.quantities.onHand.toLocaleString()}
@@ -255,7 +255,7 @@ export const InventorySection = ({
           active={activeKPI === "onhand"}
           onClick={() => handleKPIClick("onhand")}
         />
-        <Tile
+        <KPITile
           label="Reserved"
           tooltip="Units allocated to pending orders"
           value={stats.quantities.reserved.toLocaleString()}
@@ -281,7 +281,7 @@ export const InventorySection = ({
         Health
       </Typography.Text>
       <div className={styles.tilesGroup}>
-        <Tile
+        <KPITile
           label="Low Stock"
           tooltip={`SKUs below ${
             stats.alertThreshold.method === ThresholdType.SAFETY_STOCK
@@ -306,7 +306,7 @@ export const InventorySection = ({
           active={activeKPI === "lowstock"}
           onClick={() => handleKPIClick("lowstock")}
         />
-        <Tile
+        <KPITile
           label="Out of Stock"
           tooltip="SKUs with zero available units"
           value={`${stats.skuStatus.outOfStock.count} SKUs`}
@@ -328,7 +328,7 @@ export const InventorySection = ({
           onClick={() => handleKPIClick("outofstock")}
         />
         {stats.skuStatus.backorder.count > 0 && (
-          <Tile
+          <KPITile
             label="Backorder"
             tooltip="SKUs with incoming stock expected"
             value={`${stats.skuStatus.backorder.count} SKUs`}

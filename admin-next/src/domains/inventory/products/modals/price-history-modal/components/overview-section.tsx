@@ -1,7 +1,7 @@
 import { Typography, Flex, Button } from "antd";
 import { DownOutlined } from "@ant-design/icons";
 import { Paper } from "@/ui-kit/paper";
-import { Tile } from "../../../components/tile";
+import { KPITile } from "@/ui-kit/kpi-tile";
 import { PeriodSwitch, PERIODS, type Period } from "../../../components/period-switch";
 import {
   PriceChart,
@@ -161,7 +161,7 @@ export const OverviewSection = ({
       </div>
 
       <div className={styles.kpiRow}>
-        <Tile
+        <KPITile
           label="Min"
           value={stats?.minPriceMinor ? formatPrice(stats.minPriceMinor) : "—"}
           tooltip="Minimum price in period"
@@ -169,7 +169,7 @@ export const OverviewSection = ({
           className={styles.kpiTile}
           variant="success"
         />
-        <Tile
+        <KPITile
           label="Max"
           value={stats?.maxPriceMinor ? formatPrice(stats.maxPriceMinor) : "—"}
           tooltip="Maximum price in period"
@@ -177,14 +177,14 @@ export const OverviewSection = ({
           className={styles.kpiTile}
           variant="danger"
         />
-        <Tile
+        <KPITile
           label="Average"
           value={stats?.avgPriceMinor ? formatPrice(stats.avgPriceMinor) : "—"}
           tooltip="Average price over period"
           centered
           className={styles.kpiTile}
         />
-        <Tile
+        <KPITile
           label="Changes"
           value={String(history.totalCount)}
           tooltip="Total number of price changes"
