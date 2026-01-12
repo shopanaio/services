@@ -84,6 +84,15 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
+    // Create Store modal
+    {
+      type: 'workspace-create-store',
+      component: dynamic(() =>
+        import('@/domains/workspace/modals/create-store-modal').then(
+          (m) => m.CreateStoreModal
+        )
+      ),
+    },
     // ========================================
     // Product modals
     // ========================================

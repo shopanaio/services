@@ -40,6 +40,7 @@ import {
   useEditOrganizationModal,
   useInviteMemberModal,
   useEditRoleModal,
+  useCreateStoreModal,
 } from "../../modals";
 import type {
   ApiOrganization,
@@ -398,6 +399,7 @@ export default function OrganizationPage() {
   const { push: pushEditOrganizationModal } = useEditOrganizationModal();
   const { push: pushInviteModal } = useInviteMemberModal();
   const { push: pushEditRoleModal } = useEditRoleModal();
+  const { push: pushCreateStoreModal } = useCreateStoreModal();
 
   const organization = mockOrganization;
   const stores = mockStores;
@@ -438,6 +440,15 @@ export default function OrganizationPage() {
   // Store handlers
   const handleStoreClick = (store: Store) => {
     console.log("Navigate to store:", store.slug);
+  };
+
+  const handleCreateStore = () => {
+    pushCreateStoreModal({
+      onCreate: (values) => {
+        console.log("Creating store:", values);
+        message.success(`Store "${values.name}" created successfully`);
+      },
+    });
   };
 
   const renderStoreList = (storeList: Store[]) => {
@@ -646,7 +657,19 @@ export default function OrganizationPage() {
 
       {/* Stores Section */}
       <Paper>
-        <PaperHeader title="Stores" />
+        <PaperHeader
+          title="Stores"
+          actions={
+            <Button
+              type="primary"
+              size="small"
+              icon={<PlusOutlined />}
+              onClick={handleCreateStore}
+            >
+              Create Store
+            </Button>
+          }
+        />
         <Tabs
           activeKey={activeStoreTab}
           onChange={setActiveStoreTab}
