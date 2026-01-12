@@ -1,12 +1,13 @@
 "use client";
 
-import { Typography, Button, Tag, message } from "antd";
+import { Typography, Button, Tag, message, Dropdown } from "antd";
 import { createStyles } from "antd-style";
 import {
   LockOutlined,
   DesktopOutlined,
   MobileOutlined,
   CloseOutlined,
+  MoreOutlined,
 } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { DangerZone } from "../../shared";
@@ -25,7 +26,6 @@ const useStyles = createStyles(({ token }) => ({
   passwordRow: {
     display: "flex",
     alignItems: "center",
-    justifyContent: "space-between",
   },
   passwordInfo: {
     display: "flex",
@@ -42,7 +42,6 @@ const useStyles = createStyles(({ token }) => ({
   twoFactorRow: {
     display: "flex",
     alignItems: "center",
-    justifyContent: "space-between",
   },
   twoFactorInfo: {
     display: "flex",
@@ -81,11 +80,6 @@ const useStyles = createStyles(({ token }) => ({
   sessionMeta: {
     color: token.colorTextSecondary,
     fontSize: token.fontSizeSM,
-  },
-  signOutAll: {
-    marginTop: token.marginMD,
-    display: "flex",
-    justifyContent: "flex-end",
   },
 }));
 
@@ -133,7 +127,20 @@ export default function SecurityPage() {
   return (
     <div className={styles.container}>
       <Paper>
-        <PaperHeader title="Password" />
+        <PaperHeader
+          title="Password"
+          actions={
+            <Dropdown
+              menu={{
+                items: [{ key: "change", label: "Change password" }],
+                onClick: handleChangePassword,
+              }}
+              trigger={["click"]}
+            >
+              <Button size="small" icon={<MoreOutlined />} />
+            </Dropdown>
+          }
+        />
         <div className={styles.passwordRow}>
           <div className={styles.passwordInfo}>
             <Typography.Text className={styles.passwordDots}>
@@ -143,12 +150,24 @@ export default function SecurityPage() {
               Last changed: 3 months ago
             </Typography.Text>
           </div>
-          <Button onClick={handleChangePassword}>Change Password</Button>
         </div>
       </Paper>
 
       <Paper>
-        <PaperHeader title="Two-Factor Authentication" />
+        <PaperHeader
+          title="Two-Factor Authentication"
+          actions={
+            <Dropdown
+              menu={{
+                items: [{ key: "enable", label: "Enable 2FA" }],
+                onClick: handleEnable2FA,
+              }}
+              trigger={["click"]}
+            >
+              <Button size="small" icon={<MoreOutlined />} />
+            </Dropdown>
+          }
+        />
         <div className={styles.twoFactorRow}>
           <div className={styles.twoFactorInfo}>
             <LockOutlined className={styles.twoFactorIcon} />
@@ -160,14 +179,24 @@ export default function SecurityPage() {
               </Typography.Text>
             </div>
           </div>
-          <Button type="primary" onClick={handleEnable2FA}>
-            Enable 2FA
-          </Button>
         </div>
       </Paper>
 
       <Paper>
-        <PaperHeader title="Active Sessions" />
+        <PaperHeader
+          title="Active Sessions"
+          actions={
+            <Dropdown
+              menu={{
+                items: [{ key: "signout-all", label: "Sign out all other sessions", danger: true }],
+                onClick: handleSignOutAll,
+              }}
+              trigger={["click"]}
+            >
+              <Button size="small" icon={<MoreOutlined />} />
+            </Dropdown>
+          }
+        />
         {mockSessions.map((session) => (
           <div key={session.id} className={styles.sessionItem}>
             <div className={styles.sessionInfo}>
@@ -203,11 +232,6 @@ export default function SecurityPage() {
             )}
           </div>
         ))}
-        <div className={styles.signOutAll}>
-          <Button danger onClick={handleSignOutAll}>
-            Sign out all other sessions
-          </Button>
-        </div>
       </Paper>
 
       <DangerZone

@@ -19,6 +19,7 @@ import {
   MoreOutlined,
   UserOutlined,
   MailOutlined,
+  UserAddOutlined,
 } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type { ApiMember } from "@/graphql/types";
@@ -242,13 +243,15 @@ export default function MembersPage() {
         <PaperHeader
           title="Team Members"
           actions={
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={handleInviteMember}
+            <Dropdown
+              menu={{
+                items: [{ key: "invite", label: "Invite member", icon: <UserAddOutlined /> }],
+                onClick: handleInviteMember,
+              }}
+              trigger={["click"]}
             >
-              Invite Member
-            </Button>
+              <Button size="small" icon={<MoreOutlined />} />
+            </Dropdown>
           }
         />
         <div className={styles.searchRow}>

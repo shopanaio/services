@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
-import { Input, Typography, Button, Select, message } from "antd";
+import { Input, Typography, Button, Select, message, Dropdown } from "antd";
 import { createStyles } from "antd-style";
-import { CheckCircleOutlined } from "@ant-design/icons";
+import { CheckCircleOutlined, MoreOutlined } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { PreviewCard } from "../../shared";
 import {
@@ -51,7 +51,6 @@ const useStyles = createStyles(({ token }) => ({
   emailRow: {
     display: "flex",
     alignItems: "center",
-    justifyContent: "space-between",
   },
   emailInfo: {
     display: "flex",
@@ -149,7 +148,15 @@ export default function ProfilePage() {
           title="Personal Information"
           actions={
             !isEditing && (
-              <Button onClick={() => setIsEditing(true)}>Edit</Button>
+              <Dropdown
+                menu={{
+                  items: [{ key: "edit", label: "Edit" }],
+                  onClick: () => setIsEditing(true),
+                }}
+                trigger={["click"]}
+              >
+                <Button size="small" icon={<MoreOutlined />} />
+              </Dropdown>
             )
           }
         />
@@ -225,7 +232,20 @@ export default function ProfilePage() {
       </Paper>
 
       <Paper>
-        <PaperHeader title="Email" />
+        <PaperHeader
+          title="Email"
+          actions={
+            <Dropdown
+              menu={{
+                items: [{ key: "change", label: "Change email" }],
+                onClick: handleChangeEmail,
+              }}
+              trigger={["click"]}
+            >
+              <Button size="small" icon={<MoreOutlined />} />
+            </Dropdown>
+          }
+        />
         <div className={styles.emailRow}>
           <div className={styles.emailInfo}>
             <Typography.Text strong>
@@ -238,7 +258,6 @@ export default function ProfilePage() {
               </span>
             )}
           </div>
-          <Button onClick={handleChangeEmail}>Change Email</Button>
         </div>
       </Paper>
 

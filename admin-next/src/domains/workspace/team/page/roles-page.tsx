@@ -1,6 +1,6 @@
 "use client";
 
-import { Typography, Button, Tag, message } from "antd";
+import { Typography, Button, Tag, message, Dropdown } from "antd";
 import { createStyles } from "antd-style";
 import {
   PlusOutlined,
@@ -9,6 +9,7 @@ import {
   EditOutlined,
   EyeOutlined,
   DeleteOutlined,
+  MoreOutlined,
 } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type { ApiRole } from "@/graphql/types";
@@ -108,13 +109,15 @@ export default function RolesPage() {
             </Typography.Text>
           }
           actions={
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={handleCreateRole}
+            <Dropdown
+              menu={{
+                items: [{ key: "create", label: "Create role", icon: <PlusOutlined /> }],
+                onClick: handleCreateRole,
+              }}
+              trigger={["click"]}
             >
-              Create Role
-            </Button>
+              <Button size="small" icon={<MoreOutlined />} />
+            </Dropdown>
           }
         />
         {mockRoles.map((role) => (
