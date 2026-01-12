@@ -351,17 +351,6 @@ Pricing rule - either a template or inline values.
 union ComponentPricingRule = PricingRuleTemplate | InlinePricingRule
 
 """
-Component item overrides.
-"""
-type ComponentItemOverrides {
-  """Custom title override."""
-  title: String
-
-  """Custom featured image override."""
-  featuredImage: File
-}
-
-"""
 Selection rules for a component group.
 """
 type ComponentGroupRules {
@@ -486,8 +475,11 @@ type ComponentItem implements Node @key(fields: "id") {
   """Pricing rule configuration."""
   pricingRule: ComponentPricingRule!
 
-  """Display overrides."""
-  overrides: ComponentItemOverrides!
+  """Custom title override (overrides product/variant title)."""
+  title: String
+
+  """Custom featured image override (overrides product/variant image)."""
+  featuredImage: File
 }
 
 """
@@ -526,195 +518,95 @@ type TieredDiscount implements Node @key(fields: "id") {
 # ============================================================================
 
 """
-Input for display settings.
-"""
-input BundleDisplaySettingsInput {
-  """Display style on storefront."""
-  displayStyle: BundleDisplayStyle
-
-  """Show component images."""
-  showImages: Boolean
-
-  """Show SKU codes."""
-  showSku: Boolean
-
-  """Show stock status."""
-  showStock: Boolean
-
-  """Show compare at prices."""
-  showComparePrice: Boolean
-}
-
-"""
-Input for stock settings.
-"""
-input BundleStockSettingsInput {
-  """Behavior when component is out of stock."""
-  outOfStockBehavior: OutOfStockBehavior
-
-  """Inherit stock from components."""
-  inheritStock: Boolean
-}
-
-"""
-Input for bundle settings.
-"""
-input BundleSettingsInput {
-  """Display settings."""
-  displaySettings: BundleDisplaySettingsInput
-
-  """Stock settings."""
-  stockSettings: BundleStockSettingsInput
-
-  """Custom validation message."""
-  validationMessage: String
-}
-
-"""
-Input for component group rules.
-"""
-input ComponentGroupRulesInput {
-  """Whether selection from this group is required."""
-  isRequired: Boolean
-
-  """Whether multiple items can be selected."""
-  isMultiple: Boolean
-
-  """Minimum number of selections."""
-  minSelection: Int
-
-  """Maximum number of selections."""
-  maxSelection: Int
-}
-
-"""
-Input for creating a component group.
-"""
-input ComponentGroupCreateInput {
-  """Product ID to add the group to."""
-  productId: ID!
-
-  """Group title."""
-  title: String!
-
-  """Sort order within the bundle."""
-  sortIndex: Int
-
-  """Selection rules."""
-  rules: ComponentGroupRulesInput
-}
-
-"""
-Input for updating a component group.
-"""
-input ComponentGroupUpdateInput {
-  """The ID of the group to update."""
-  id: ID!
-
-  """Group title."""
-  title: String
-
-  """Sort order within the bundle."""
-  sortIndex: Int
-
-  """Selection rules."""
-  rules: ComponentGroupRulesInput
-}
-
-"""
-Input for deleting a component group.
-"""
-input ComponentGroupDeleteInput {
-  """The ID of the group to delete."""
-  id: ID!
-}
-
-"""
 Input for pricing rule (inline or template reference).
 """
 input ComponentPricingRuleInput {
-  """Use existing template ID."""
+  """Use existing template ID (mutually exclusive with priceType)."""
   templateId: ID
 
   """Price type (required if not using template)."""
   priceType: ComponentPriceType
 
-  """Price value."""
+  """Price value (for types that require it)."""
   priceValue: Decimal
 }
 
 """
-Input for component item overrides.
+Input for component item (used in bulk save).
+ID format determines operation:
+- UUID format (existing ID) = update existing item
+- Temporary ID (e.g., "item-1234567890") = create new item
+- Missing from array = delete
 """
-input ComponentItemOverridesInput {
-  """Override title."""
-  title: String
-
-  """Override featured image file ID."""
-  featuredImageId: ID
-}
-
-"""
-Input for creating a component item.
-"""
-input ComponentItemCreateInput {
-  """The ID of the group to add the item to."""
-  groupId: ID!
+input ComponentItemInput {
+  """Item ID (UUID for existing, temporary for new)."""
+  id: ID!
 
   """Type of item."""
   itemType: ComponentItemType!
 
   """Sort order within the group."""
-  sortIndex: Int
+  sortIndex: Int!
 
-  """Product ID (for PRODUCT type)."""
+  """Product ID (required for PRODUCT type)."""
   assignedProductId: ID
 
-  """Excluded variant IDs (for PRODUCT type)."""
+  """Excluded variant IDs (for PRODUCT type, null = all included)."""
   excludeAssignedProductVariants: [ID!]
 
-  """Variant ID (for VARIANT type)."""
+  """Variant ID (required for VARIANT type)."""
   assignedVariantId: ID
 
   """Pricing rule configuration."""
-  pricingRule: ComponentPricingRuleInput
+  pricingRule: ComponentPricingRuleInput!
 
-  """Display overrides."""
-  overrides: ComponentItemOverridesInput
+  """Custom title override."""
+  title: String
+
+  """Custom featured image file ID override."""
+  featuredImageId: ID
 }
 
 """
-Input for updating a component item.
+Input for component group (used in bulk save).
+ID format determines operation:
+- UUID format (existing ID) = update existing group
+- Temporary ID (e.g., "grp-1234567890") = create new group
+- Missing from array = delete
 """
-input ComponentItemUpdateInput {
-  """The ID of the item to update."""
+input ComponentGroupInput {
+  """Group ID (UUID for existing, temporary for new)."""
   id: ID!
 
-  """Sort order within the group."""
-  sortIndex: Int
+  """Group title."""
+  title: String!
 
-  """Excluded variant IDs (for PRODUCT type)."""
-  excludeAssignedProductVariants: [ID!]
+  """Sort order within the bundle."""
+  sortIndex: Int!
 
-  """Pricing rule configuration."""
-  pricingRule: ComponentPricingRuleInput
+  """Whether selection from this group is required."""
+  isRequired: Boolean!
 
-  """Display overrides."""
-  overrides: ComponentItemOverridesInput
+  """Whether multiple items can be selected."""
+  isMultiple: Boolean!
+
+  """Minimum number of selections (null = no minimum)."""
+  minSelection: Int
+
+  """Maximum number of selections (null = no maximum)."""
+  maxSelection: Int
+
+  """Items in this group (replaces all items)."""
+  items: [ComponentItemInput!]!
 }
 
 """
-Input for deleting a component item.
+Input for pricing rule template (used in bulk save).
 """
-input ComponentItemDeleteInput {
-  """The ID of the item to delete."""
+input PricingRuleTemplateInput {
+  """Template ID (UUID for existing, temporary for new)."""
   id: ID!
-}
 
-"""
-Input for creating a pricing rule template.
-"""
-input PricingRuleTemplateCreateInput {
   """Template name."""
   name: String!
 
@@ -723,31 +615,6 @@ input PricingRuleTemplateCreateInput {
 
   """Price value."""
   priceValue: Decimal
-}
-
-"""
-Input for updating a pricing rule template.
-"""
-input PricingRuleTemplateUpdateInput {
-  """The ID of the template to update."""
-  id: ID!
-
-  """Template name."""
-  name: String
-
-  """Price type."""
-  priceType: ComponentPriceType
-
-  """Price value."""
-  priceValue: Decimal
-}
-
-"""
-Input for deleting a pricing rule template.
-"""
-input PricingRuleTemplateDeleteInput {
-  """The ID of the template to delete."""
-  id: ID!
 }
 
 """
@@ -762,7 +629,37 @@ input TieredDiscountInput {
 }
 
 """
-Input for bulk updating bundle with all components.
+Input for bundle settings.
+"""
+input BundleSettingsInput {
+  """Display style on storefront."""
+  displayStyle: BundleDisplayStyle
+
+  """Show component images."""
+  showImages: Boolean
+
+  """Show SKU codes."""
+  showSku: Boolean
+
+  """Show stock status."""
+  showStock: Boolean
+
+  """Show compare at prices."""
+  showComparePrice: Boolean
+
+  """Behavior when component is out of stock."""
+  outOfStockBehavior: OutOfStockBehavior
+
+  """Inherit stock from components."""
+  inheritStock: Boolean
+
+  """Custom validation message."""
+  validationMessage: String
+}
+
+"""
+Input for bulk updating bundle (replace all approach).
+Frontend sends complete state, backend determines CRUD operations.
 """
 input BundleUpdateInput {
   """Product ID."""
@@ -771,25 +668,13 @@ input BundleUpdateInput {
   """Bundle settings."""
   settings: BundleSettingsInput
 
-  """Groups to create."""
-  createGroups: [ComponentGroupCreateInput!]
+  """All groups with their items (replaces existing groups)."""
+  groups: [ComponentGroupInput!]!
 
-  """Groups to update."""
-  updateGroups: [ComponentGroupUpdateInput!]
+  """All pricing templates (replaces existing templates)."""
+  pricingTemplates: [PricingRuleTemplateInput!]
 
-  """Group IDs to delete."""
-  deleteGroupIds: [ID!]
-
-  """Items to create."""
-  createItems: [ComponentItemCreateInput!]
-
-  """Items to update."""
-  updateItems: [ComponentItemUpdateInput!]
-
-  """Item IDs to delete."""
-  deleteItemIds: [ID!]
-
-  """Tiered discounts (replaces all)."""
+  """All tiered discounts (replaces existing discounts)."""
   tieredDiscounts: [TieredDiscountInput!]
 }
 
@@ -803,39 +688,6 @@ Payload for bundle update.
 type BundleUpdatePayload {
   """The updated bundle settings."""
   bundleSettings: BundleSettings
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-"""
-Payload for component group mutations.
-"""
-type ComponentGroupPayload {
-  """The component group."""
-  group: ComponentGroup
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-"""
-Payload for component item mutations.
-"""
-type ComponentItemPayload {
-  """The component item."""
-  item: ComponentItem
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-"""
-Payload for pricing rule template mutations.
-"""
-type PricingRuleTemplatePayload {
-  """The pricing rule template."""
-  template: PricingRuleTemplate
 
   """List of errors that occurred during the mutation."""
   userErrors: [GenericUserError!]!
@@ -880,35 +732,21 @@ type PricingRuleTemplateEdge {
 # ============================================================================
 
 extend type Mutation {
-  """Update bundle settings and components (bulk operation)."""
+  """
+  Bulk update bundle settings and all components.
+
+  This mutation uses a "replace all" approach:
+  - Frontend sends complete state (groups, items, templates, discounts)
+  - Backend compares with existing data and handles create/update/delete
+
+  ID handling:
+  - Existing UUIDs → update existing records
+  - Temporary IDs (e.g., "grp-1234567890") → create new records
+  - Records missing from input → deleted
+
+  The mutation returns the complete updated bundle with all new UUIDs.
+  """
   bundleUpdate(input: BundleUpdateInput!): BundleUpdatePayload!
-
-  """Create a component group."""
-  componentGroupCreate(input: ComponentGroupCreateInput!): ComponentGroupPayload!
-
-  """Update a component group."""
-  componentGroupUpdate(input: ComponentGroupUpdateInput!): ComponentGroupPayload!
-
-  """Delete a component group."""
-  componentGroupDelete(input: ComponentGroupDeleteInput!): ComponentGroupPayload!
-
-  """Create a component item."""
-  componentItemCreate(input: ComponentItemCreateInput!): ComponentItemPayload!
-
-  """Update a component item."""
-  componentItemUpdate(input: ComponentItemUpdateInput!): ComponentItemPayload!
-
-  """Delete a component item."""
-  componentItemDelete(input: ComponentItemDeleteInput!): ComponentItemPayload!
-
-  """Create a pricing rule template."""
-  pricingRuleTemplateCreate(input: PricingRuleTemplateCreateInput!): PricingRuleTemplatePayload!
-
-  """Update a pricing rule template."""
-  pricingRuleTemplateUpdate(input: PricingRuleTemplateUpdateInput!): PricingRuleTemplatePayload!
-
-  """Delete a pricing rule template."""
-  pricingRuleTemplateDelete(input: PricingRuleTemplateDeleteInput!): PricingRuleTemplatePayload!
 }
 
 # ============================================================================
@@ -961,4 +799,11 @@ PricingRuleTemplate (shared across project)
 
 5. **excludedVariants** - для PRODUCT типа можно исключить определенные варианты из выбора.
 
-6. **Bulk mutation** - `bundleUpdate` позволяет обновить все настройки бандла за одну операцию.
+6. **Bulk mutation (Replace All)** - единственная мутация `bundleUpdate`:
+   - Фронтенд отправляет полное состояние (groups с items, templates, discounts, settings)
+   - Бэкенд сравнивает с существующими данными и определяет что создать/обновить/удалить
+   - ID handling:
+     - Существующие UUID → обновление записи
+     - Временные ID (например, `grp-1234567890`) → создание новой записи
+     - Записи отсутствующие в input → удаление
+   - Мутация возвращает полный обновленный bundle с новыми UUID
