@@ -26,6 +26,7 @@ import {
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
+import { Paper } from "@/ui-kit/paper";
 import type { ICreateStoreModalPayload } from "../../modals";
 import {
   shopCountries,
@@ -35,6 +36,7 @@ import {
   shopLocales,
   allowedLocales,
 } from "@/defs/localization";
+import cartImg from "@/assets/shop-cart.png";
 
 // ============================================================================
 // Types
@@ -63,17 +65,25 @@ const useStyles = createStyles(({ token }) => ({
     flexDirection: "column",
     height: "100%",
     minHeight: 0,
+    padding: token.paddingLG,
+  },
+  card: {
+    display: "flex",
+    flexDirection: "column",
+    flex: 1,
+    minHeight: 0,
+    overflow: "hidden",
   },
   stepsContainer: {
     padding: `${token.paddingMD}px ${token.paddingLG}px`,
     borderBottom: `1px solid ${token.colorBorderSecondary}`,
-    background: token.colorBgContainer,
   },
   content: {
     flex: 1,
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
+    justifyContent: "center",
     padding: token.paddingLG,
     overflowY: "auto",
   },
@@ -113,7 +123,6 @@ const useStyles = createStyles(({ token }) => ({
     justifyContent: "space-between",
     padding: token.paddingMD,
     borderTop: `1px solid ${token.colorBorderSecondary}`,
-    background: token.colorBgContainer,
   },
   finishContainer: {
     display: "flex",
@@ -138,6 +147,17 @@ const useStyles = createStyles(({ token }) => ({
     marginRight: 3,
     display: "flex",
     alignItems: "center",
+  },
+  progressImageContainer: {
+    marginLeft: 21,
+    marginTop: 5,
+    borderRadius: "100%",
+    overflow: "hidden",
+    width: 160,
+  },
+  progressImage: {
+    width: "100%",
+    height: "100%",
   },
 }));
 
@@ -395,10 +415,22 @@ function FinishStep({ ready, onComplete }: FinishStepProps) {
       </Typography.Text>
       <div className={styles.progressContainer}>
         <Progress
+          format={() => (
+            <div className={styles.progressImageContainer}>
+              <img
+                src={cartImg.src}
+                alt=""
+                width={100}
+                height={100}
+                className={styles.progressImage}
+              />
+            </div>
+          )}
           type="circle"
           percent={progress}
-          size={180}
-          strokeWidth={6}
+          size={202}
+          strokeWidth={5}
+          strokeLinecap="butt"
           strokeColor={{
             "0%": "#1890ff",
             "50%": "#722ed1",
@@ -483,69 +515,71 @@ export const CreateStoreModal = () => {
       }
       bodyClassName={styles.container}
     >
-      <div className={styles.stepsContainer}>
-        <Steps
-          current={currentStep}
-          items={stepItems}
-          size="small"
-        />
-      </div>
-
-      <FormProvider {...methods}>
-        <div className={styles.content}>
-          {currentStep === CreateStoreSteps.Information && (
-            <InformationStep
-              onNext={() => setCurrentStep(CreateStoreSteps.Localization)}
-            />
-          )}
-          {currentStep === CreateStoreSteps.Localization && (
-            <LocalizationStep
-              onPrev={() => setCurrentStep(CreateStoreSteps.Information)}
-              onNext={() => handleSubmit()}
-            />
-          )}
-          {currentStep === CreateStoreSteps.Finish && (
-            <FinishStep ready={storeReady} onComplete={handleComplete} />
-          )}
+      <Paper className={styles.card}>
+        <div className={styles.stepsContainer}>
+          <Steps
+            current={currentStep}
+            items={stepItems}
+            size="small"
+          />
         </div>
 
-        {canProceed && (
-          <div className={styles.navigation}>
-            <div>
-              {currentStep > CreateStoreSteps.Information && (
-                <Button
-                  icon={<ArrowLeftOutlined />}
-                  onClick={() => setCurrentStep((prev) => prev - 1)}
-                >
-                  Back
-                </Button>
-              )}
-            </div>
-            <Button
-              type="primary"
-              onClick={() => {
-                if (currentStep === CreateStoreSteps.Information) {
-                  const isValid = methods.trigger("name");
-                  isValid.then((valid) => {
-                    if (valid) {
-                      setCurrentStep(CreateStoreSteps.Localization);
-                    }
-                  });
-                } else if (currentStep === CreateStoreSteps.Localization) {
-                  const isValid = methods.trigger(["country", "currency", "locales"]);
-                  isValid.then((valid) => {
-                    if (valid) {
-                      handleSubmit();
-                    }
-                  });
-                }
-              }}
-            >
-              {currentStep === CreateStoreSteps.Localization ? "Create Store" : "Next"}
-            </Button>
+        <FormProvider {...methods}>
+          <div className={styles.content}>
+            {currentStep === CreateStoreSteps.Information && (
+              <InformationStep
+                onNext={() => setCurrentStep(CreateStoreSteps.Localization)}
+              />
+            )}
+            {currentStep === CreateStoreSteps.Localization && (
+              <LocalizationStep
+                onPrev={() => setCurrentStep(CreateStoreSteps.Information)}
+                onNext={() => handleSubmit()}
+              />
+            )}
+            {currentStep === CreateStoreSteps.Finish && (
+              <FinishStep ready={storeReady} onComplete={handleComplete} />
+            )}
           </div>
-        )}
-      </FormProvider>
+
+          {canProceed && (
+            <div className={styles.navigation}>
+              <div>
+                {currentStep > CreateStoreSteps.Information && (
+                  <Button
+                    icon={<ArrowLeftOutlined />}
+                    onClick={() => setCurrentStep((prev) => prev - 1)}
+                  >
+                    Back
+                  </Button>
+                )}
+              </div>
+              <Button
+                type="primary"
+                onClick={() => {
+                  if (currentStep === CreateStoreSteps.Information) {
+                    const isValid = methods.trigger("name");
+                    isValid.then((valid) => {
+                      if (valid) {
+                        setCurrentStep(CreateStoreSteps.Localization);
+                      }
+                    });
+                  } else if (currentStep === CreateStoreSteps.Localization) {
+                    const isValid = methods.trigger(["country", "currency", "locales"]);
+                    isValid.then((valid) => {
+                      if (valid) {
+                        handleSubmit();
+                      }
+                    });
+                  }
+                }}
+              >
+                {currentStep === CreateStoreSteps.Localization ? "Create Store" : "Next"}
+              </Button>
+            </div>
+          )}
+        </FormProvider>
+      </Paper>
     </ModalLayout>
   );
 };
