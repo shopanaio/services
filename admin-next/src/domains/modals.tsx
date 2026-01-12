@@ -75,6 +75,15 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
+    // Edit Profile modal
+    {
+      type: 'workspace-edit-profile',
+      component: dynamic(() =>
+        import('@/domains/workspace/modals/edit-profile-modal').then(
+          (m) => m.EditProfileModal
+        )
+      ),
+    },
     // ========================================
     // Product modals
     // ========================================

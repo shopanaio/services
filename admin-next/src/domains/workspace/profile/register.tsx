@@ -12,26 +12,11 @@ registerModule({
   },
   items: [
     {
-      key: "profile-settings",
+      key: "profile",
       path: "/workspace/profile",
       component: dynamic(
         () => import("@/domains/workspace/profile/page/profile-page")
       ),
-      sidebar: {
-        label: "Profile",
-        order: 1,
-      },
-    },
-    {
-      key: "profile-security",
-      path: "/workspace/security",
-      component: dynamic(
-        () => import("@/domains/workspace/profile/page/security-page")
-      ),
-      sidebar: {
-        label: "Security",
-        order: 2,
-      },
     },
   ],
 });

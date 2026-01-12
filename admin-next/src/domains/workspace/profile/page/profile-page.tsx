@@ -1,46 +1,31 @@
 "use client";
 
-import { useState } from "react";
-import { useForm, Controller } from "react-hook-form";
-import { Input, Typography, Button, Select, message, Dropdown } from "antd";
+import { Typography, Button, Tag, message, Dropdown } from "antd";
 import { createStyles } from "antd-style";
-import { CheckCircleOutlined, MoreOutlined } from "@ant-design/icons";
+import {
+  LockOutlined,
+  DesktopOutlined,
+  MobileOutlined,
+  CloseOutlined,
+  MoreOutlined,
+  CheckCircleOutlined,
+} from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { SettingsLayout } from "../../layout";
-import { PreviewCard } from "../../shared";
+import { DangerZone } from "../../shared";
+import { ProfileInfoHeader } from "../components";
 import {
   mockCurrentUser,
   mockOrganization,
-  localeOptions,
-  timezoneOptions,
-  dateFormatOptions,
-  getUserDisplayName,
+  mockSessions,
 } from "../../mocks/data";
-import { useChangeEmailModal, useEditAvatarModal } from "../../modals";
+import {
+  useEditProfileModal,
+  useChangeEmailModal,
+  useChangePasswordModal,
+} from "../../modals";
 
 const useStyles = createStyles(({ token }) => ({
-  formItem: {
-    marginBottom: token.marginMD,
-  },
-  formItemRow: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: token.marginMD,
-    marginBottom: token.marginMD,
-  },
-  label: {
-    display: "block",
-    marginBottom: token.marginXS,
-    fontWeight: 500,
-  },
-  actions: {
-    display: "flex",
-    justifyContent: "flex-end",
-    gap: token.marginSM,
-    marginTop: token.marginMD,
-    paddingTop: token.paddingMD,
-    borderTop: `1px solid ${token.colorBorderSecondary}`,
-  },
   emailRow: {
     display: "flex",
     alignItems: "center",
@@ -56,53 +41,88 @@ const useStyles = createStyles(({ token }) => ({
     alignItems: "center",
     gap: 4,
   },
-  selectFullWidth: {
-    width: "100%",
+  passwordRow: {
+    display: "flex",
+    alignItems: "center",
+  },
+  passwordInfo: {
+    display: "flex",
+    flexDirection: "column",
+  },
+  passwordDots: {
+    fontSize: token.fontSizeLG,
+    letterSpacing: 2,
+  },
+  passwordMeta: {
+    color: token.colorTextSecondary,
+    fontSize: token.fontSizeSM,
+  },
+  twoFactorRow: {
+    display: "flex",
+    alignItems: "center",
+  },
+  twoFactorInfo: {
+    display: "flex",
+    alignItems: "center",
+    gap: token.marginSM,
+  },
+  twoFactorIcon: {
+    fontSize: 24,
+    color: token.colorTextSecondary,
+  },
+  sessionItem: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: `${token.paddingSM}px ${token.padding}px`,
+    backgroundColor: token.colorBgLayout,
+    borderRadius: token.borderRadius,
+    marginBottom: token.marginSM,
+  },
+  sessionInfo: {
+    display: "flex",
+    alignItems: "center",
+    gap: token.marginSM,
+  },
+  sessionIcon: {
+    fontSize: 20,
+    color: token.colorTextSecondary,
+  },
+  sessionDetails: {
+    display: "flex",
+    flexDirection: "column",
+  },
+  sessionDevice: {
+    fontWeight: 500,
+  },
+  sessionMeta: {
+    color: token.colorTextSecondary,
+    fontSize: token.fontSizeSM,
   },
 }));
 
-interface IProfileForm {
-  firstName: string;
-  lastName: string;
-  displayName: string;
-  locale: string;
-  timezone: string;
-  dateFormat: string;
-}
-
 export default function ProfilePage() {
   const { styles } = useStyles();
-  const [isEditing, setIsEditing] = useState(false);
+  const { push: pushEditProfileModal } = useEditProfileModal();
   const { push: pushChangeEmailModal } = useChangeEmailModal();
-  const { push: pushEditAvatarModal } = useEditAvatarModal();
+  const { push: pushChangePasswordModal } = useChangePasswordModal();
 
-  const displayName = getUserDisplayName(mockCurrentUser);
-
-  const {
-    control,
-    handleSubmit,
-    reset,
-    formState: { errors, isDirty },
-  } = useForm<IProfileForm>({
-    defaultValues: {
+  const handleEditProfile = () => {
+    pushEditProfileModal({
       firstName: mockCurrentUser.firstName || "",
       lastName: mockCurrentUser.lastName || "",
-      displayName: displayName,
+      currentAvatar: mockCurrentUser.avatar,
       locale: mockCurrentUser.locale || "en_US",
-      timezone: "UTC",
-      dateFormat: "MM/DD/YYYY",
-    },
-  });
-
-  const onSubmit = (values: IProfileForm) => {
-    console.log("Saving profile:", values);
-    message.success("Profile updated successfully");
-    setIsEditing(false);
-  };
-
-  const handleCancel = () => {
-    reset();
-    setIsEditing(false);
+      onSave: (values: {
+        firstName: string;
+        lastName: string;
+        avatar: string | null;
+        locale: string;
+      }) => {
+        console.log("Saving profile:", values);
+        message.success("Profile updated successfully");
+      },
+    });
   };
 
   const handleChangeEmail = () => {
@@ -114,116 +134,52 @@ export default function ProfilePage() {
     });
   };
 
-  const handleEditPhoto = () => {
-    pushEditAvatarModal({
-      currentImage: mockCurrentUser.avatar,
-      onSave: (imageUrl: string | null) => {
-        console.log("New avatar:", imageUrl);
-        message.success(imageUrl ? "Avatar updated" : "Avatar removed");
+  const handleChangePassword = () => {
+    pushChangePasswordModal({
+      onSave: (currentPassword: string, newPassword: string) => {
+        message.success("Password updated (mock)");
       },
     });
   };
 
+  const handleEnable2FA = () => {
+    message.info("2FA setup modal would open");
+  };
+
+  const handleRevokeSession = (sessionId: string) => {
+    message.success("Session revoked");
+  };
+
+  const handleSignOutAll = () => {
+    message.success("All other sessions signed out");
+  };
+
+  const handleDeleteAccount = () => {
+    message.info("Delete account modal would open");
+  };
+
+  const formatLastActive = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+
+    if (minutes < 1) return "Just now";
+    if (minutes < 60) return `${minutes} minutes ago`;
+    if (hours < 24) return `${hours} hours ago`;
+    return date.toLocaleDateString();
+  };
+
   return (
     <SettingsLayout name="profile">
-      <PreviewCard
-        type="profile"
-        name={displayName}
-        subtitle={String(mockCurrentUser.email)}
-        meta={`Admin · ${mockOrganization.displayName}`}
-        image={mockCurrentUser.avatar}
-        badge="Admin"
-        onAvatarClick={handleEditPhoto}
+      <ProfileInfoHeader
+        user={mockCurrentUser}
+        organizationName={mockOrganization.displayName}
+        onEdit={handleEditProfile}
       />
 
-      <Paper>
-        <PaperHeader
-          title="Personal Information"
-          actions={
-            !isEditing && (
-              <Dropdown
-                menu={{
-                  items: [{ key: "edit", label: "Edit" }],
-                  onClick: () => setIsEditing(true),
-                }}
-                trigger={["click"]}
-              >
-                <Button size="small" icon={<MoreOutlined />} />
-              </Dropdown>
-            )
-          }
-        />
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <div className={styles.formItemRow}>
-            <div>
-              <Typography.Text className={styles.label}>
-                First Name
-              </Typography.Text>
-              <Controller
-                name="firstName"
-                control={control}
-                render={({ field }) => (
-                  <Input
-                    {...field}
-                    placeholder="First name"
-                    disabled={!isEditing}
-                  />
-                )}
-              />
-            </div>
-            <div>
-              <Typography.Text className={styles.label}>
-                Last Name
-              </Typography.Text>
-              <Controller
-                name="lastName"
-                control={control}
-                render={({ field }) => (
-                  <Input
-                    {...field}
-                    placeholder="Last name"
-                    disabled={!isEditing}
-                  />
-                )}
-              />
-            </div>
-          </div>
-
-          <div className={styles.formItem}>
-            <Typography.Text className={styles.label}>
-              Display Name
-            </Typography.Text>
-            <Controller
-              name="displayName"
-              control={control}
-              rules={{ required: "Display name is required" }}
-              render={({ field }) => (
-                <Input
-                  {...field}
-                  placeholder="Display name"
-                  status={errors.displayName ? "error" : undefined}
-                  disabled={!isEditing}
-                />
-              )}
-            />
-            {errors.displayName && (
-              <Typography.Text type="danger">
-                {errors.displayName.message}
-              </Typography.Text>
-            )}
-          </div>
-
-          {isEditing && (
-            <div className={styles.actions}>
-              <Button onClick={handleCancel}>Cancel</Button>
-              <Button type="primary" htmlType="submit" disabled={!isDirty}>
-                Save Changes
-              </Button>
-            </div>
-          )}
-        </form>
-      </Paper>
-
+      {/* Email Section */}
       <Paper>
         <PaperHeader
           title="Email"
@@ -254,55 +210,134 @@ export default function ProfilePage() {
         </div>
       </Paper>
 
+      {/* Password Section */}
       <Paper>
-        <PaperHeader title="Preferences" />
-        <div className={styles.formItem}>
-          <Typography.Text className={styles.label}>Language</Typography.Text>
-          <Controller
-            name="locale"
-            control={control}
-            render={({ field }) => (
-              <Select
-                {...field}
-                options={localeOptions}
-                className={styles.selectFullWidth}
-              />
-            )}
-          />
-        </div>
-
-        <div className={styles.formItem}>
-          <Typography.Text className={styles.label}>Timezone</Typography.Text>
-          <Controller
-            name="timezone"
-            control={control}
-            render={({ field }) => (
-              <Select
-                {...field}
-                options={timezoneOptions}
-                className={styles.selectFullWidth}
-              />
-            )}
-          />
-        </div>
-
-        <div className={styles.formItem}>
-          <Typography.Text className={styles.label}>
-            Date Format
-          </Typography.Text>
-          <Controller
-            name="dateFormat"
-            control={control}
-            render={({ field }) => (
-              <Select
-                {...field}
-                options={dateFormatOptions}
-                className={styles.selectFullWidth}
-              />
-            )}
-          />
+        <PaperHeader
+          title="Password"
+          actions={
+            <Dropdown
+              menu={{
+                items: [{ key: "change", label: "Change password" }],
+                onClick: handleChangePassword,
+              }}
+              trigger={["click"]}
+            >
+              <Button size="small" icon={<MoreOutlined />} />
+            </Dropdown>
+          }
+        />
+        <div className={styles.passwordRow}>
+          <div className={styles.passwordInfo}>
+            <Typography.Text className={styles.passwordDots}>
+              ••••••••••••
+            </Typography.Text>
+            <Typography.Text className={styles.passwordMeta}>
+              Last changed: 3 months ago
+            </Typography.Text>
+          </div>
         </div>
       </Paper>
+
+      {/* Two-Factor Authentication Section */}
+      <Paper>
+        <PaperHeader
+          title="Two-Factor Authentication"
+          actions={
+            <Dropdown
+              menu={{
+                items: [{ key: "enable", label: "Enable 2FA" }],
+                onClick: handleEnable2FA,
+              }}
+              trigger={["click"]}
+            >
+              <Button size="small" icon={<MoreOutlined />} />
+            </Dropdown>
+          }
+        />
+        <div className={styles.twoFactorRow}>
+          <div className={styles.twoFactorInfo}>
+            <LockOutlined className={styles.twoFactorIcon} />
+            <div>
+              <Typography.Text strong>Not enabled</Typography.Text>
+              <br />
+              <Typography.Text type="secondary">
+                Add an extra layer of security to your account
+              </Typography.Text>
+            </div>
+          </div>
+        </div>
+      </Paper>
+
+      {/* Active Sessions Section */}
+      <Paper>
+        <PaperHeader
+          title="Active Sessions"
+          actions={
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: "signout-all",
+                    label: "Sign out all other sessions",
+                    danger: true,
+                  },
+                ],
+                onClick: handleSignOutAll,
+              }}
+              trigger={["click"]}
+            >
+              <Button size="small" icon={<MoreOutlined />} />
+            </Dropdown>
+          }
+        />
+        {mockSessions.map((session) => (
+          <div key={session.id} className={styles.sessionItem}>
+            <div className={styles.sessionInfo}>
+              {session.device === "desktop" ? (
+                <DesktopOutlined className={styles.sessionIcon} />
+              ) : (
+                <MobileOutlined className={styles.sessionIcon} />
+              )}
+              <div className={styles.sessionDetails}>
+                <Typography.Text className={styles.sessionDevice}>
+                  {session.browser} on {session.os}
+                  {session.isCurrent && (
+                    <Tag color="blue" style={{ marginLeft: 8 }}>
+                      Current session
+                    </Tag>
+                  )}
+                </Typography.Text>
+                <Typography.Text className={styles.sessionMeta}>
+                  {session.location} · Last active:{" "}
+                  {formatLastActive(session.lastActive)}
+                </Typography.Text>
+              </div>
+            </div>
+            {!session.isCurrent && (
+              <Button
+                danger
+                size="small"
+                icon={<CloseOutlined />}
+                onClick={() => handleRevokeSession(session.id)}
+              >
+                Revoke
+              </Button>
+            )}
+          </div>
+        ))}
+      </Paper>
+
+      {/* Danger Zone */}
+      <DangerZone
+        items={[
+          {
+            title: "Delete Account",
+            description: "Permanently delete your account and all your data",
+            buttonText: "Delete Account",
+            onClick: handleDeleteAccount,
+          },
+        ]}
+      />
     </SettingsLayout>
   );
 }
