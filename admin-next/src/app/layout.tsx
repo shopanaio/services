@@ -1,4 +1,5 @@
 import { Theme } from "@/ui-kit/theme";
+import { ApolloProvider } from "@/graphql/apollo-provider";
 import { safiro } from "@/fonts/safiro";
 import { inter } from "@/fonts/inter";
 
@@ -10,7 +11,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className={`${safiro.variable} ${inter.variable}`}>
       <body>
-        <Theme>{children}</Theme>
+        <ApolloProvider>
+          <Theme>{children}</Theme>
+        </ApolloProvider>
       </body>
     </html>
   );

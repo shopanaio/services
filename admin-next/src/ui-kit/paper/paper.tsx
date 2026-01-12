@@ -8,6 +8,7 @@ const useStyles = createStyles(({ token }) => ({
     borderRadius: token.borderRadiusLG,
     backgroundColor: token.colorBgContainer,
     boxShadow: token.boxShadowTertiary,
+    border: `1px solid ${token.colorBorderSecondary}`,
     width: "100%",
   },
 }));
