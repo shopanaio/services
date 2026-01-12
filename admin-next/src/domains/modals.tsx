@@ -9,6 +9,57 @@ import type { IModalStackDefinition } from '@/layouts/modals/types';
  */
 export function getModalStackDefinitions(): IModalStackDefinition[] {
   return [
+    // ========================================
+    // Workspace modals
+    // ========================================
+    // Invite Member modal
+    {
+      type: 'workspace-invite-member',
+      component: dynamic(() =>
+        import('@/domains/workspace/modals/invite-member-modal').then(
+          (m) => m.InviteMemberModal
+        )
+      ),
+    },
+    // Edit Role modal
+    {
+      type: 'workspace-edit-role',
+      component: dynamic(() =>
+        import('@/domains/workspace/modals/edit-role-modal').then(
+          (m) => m.EditRoleModal
+        )
+      ),
+    },
+    // Delete Organization modal
+    {
+      type: 'workspace-delete-organization',
+      component: dynamic(() =>
+        import('@/domains/workspace/modals/delete-organization-modal').then(
+          (m) => m.DeleteOrganizationModal
+        )
+      ),
+    },
+    // Change Password modal
+    {
+      type: 'workspace-change-password',
+      component: dynamic(() =>
+        import('@/domains/workspace/modals/change-password-modal').then(
+          (m) => m.ChangePasswordModal
+        )
+      ),
+    },
+    // Change Email modal
+    {
+      type: 'workspace-change-email',
+      component: dynamic(() =>
+        import('@/domains/workspace/modals/change-email-modal').then(
+          (m) => m.ChangeEmailModal
+        )
+      ),
+    },
+    // ========================================
+    // Product modals
+    // ========================================
     // Product modal
     {
       type: 'product',
