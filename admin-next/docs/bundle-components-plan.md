@@ -1,8 +1,8 @@
-# Bundle Components - Inventory Service Update
+# Package Components - Inventory Service Update
 
 ## Overview
 
-Добавление поддержки бандлов (bundles) и компонентов (components) для продуктов. Бандл позволяет объединять несколько продуктов/вариантов в группы с гибкими правилами ценообразования и выбора.
+Добавление поддержки пакетов (packages) и компонентов (components) для продуктов. Пакет позволяет объединять несколько продуктов/вариантов в группы с гибкими правилами ценообразования и выбора.
 
 ## Структура данных (Frontend Types Reference)
 
@@ -39,7 +39,7 @@ export const componentPriceTypeEnum = inventorySchema.enum("component_price_type
 ### Tables
 
 ```typescript
-// bundles.ts
+// packages.ts
 
 import {
   uuid,
@@ -57,11 +57,11 @@ import { product, variant } from "./products";
 import { componentPriceTypeEnum } from "./enums";
 
 // ============================================================================
-// Bundle Settings (1:1 с product)
+// Package Settings (1:1 с product)
 // ============================================================================
 
-export const bundleSettings = inventorySchema.table(
-  "bundle_settings",
+export const packageSettings = inventorySchema.table(
+  "package_settings",
   {
     id: uuid("id").primaryKey(),
     projectId: uuid("project_id").notNull(),
@@ -96,8 +96,8 @@ export const bundleSettings = inventorySchema.table(
       .defaultNow(),
   },
   (table) => [
-    index("idx_bundle_settings_project_id").on(table.projectId),
-    index("idx_bundle_settings_product_id").on(table.productId),
+    index("idx_package_settings_project_id").on(table.projectId),
+    index("idx_package_settings_product_id").on(table.productId),
   ]
 );
 
@@ -243,22 +243,22 @@ export const componentItemExcludedVariant = inventorySchema.table(
 // Tiered Discount (optional volume discounts)
 // ============================================================================
 
-export const bundleTieredDiscount = inventorySchema.table(
-  "bundle_tiered_discount",
+export const packageTieredDiscount = inventorySchema.table(
+  "package_tiered_discount",
   {
     id: uuid("id").primaryKey(),
     projectId: uuid("project_id").notNull(),
-    bundleSettingsId: uuid("bundle_settings_id")
+    packageSettingsId: uuid("package_settings_id")
       .notNull()
-      .references(() => bundleSettings.id, { onDelete: "cascade" }),
+      .references(() => packageSettings.id, { onDelete: "cascade" }),
 
     minItems: integer("min_items").notNull(),
     discountPercent: numeric("discount_percent", { precision: 5, scale: 2 }).notNull(),
   },
   (table) => [
-    index("idx_bundle_tiered_discount_bundle_id").on(table.bundleSettingsId),
-    unique("bundle_tiered_discount_unique").on(
-      table.bundleSettingsId,
+    index("idx_package_tiered_discount_package_id").on(table.packageSettingsId),
+    unique("package_tiered_discount_unique").on(
+      table.packageSettingsId,
       table.minItems
     ),
   ]
@@ -269,7 +269,7 @@ export const bundleTieredDiscount = inventorySchema.table(
 
 ## GraphQL Schema
 
-### File: `bundles.graphql`
+### File: `packages.graphql`
 
 ```graphql
 # ============================================================================
@@ -277,7 +277,7 @@ export const bundleTieredDiscount = inventorySchema.table(
 # ============================================================================
 
 """
-Type of component item in a bundle.
+Type of component item in a package.
 """
 enum ComponentItemType {
   """Simple product without specific variant selection."""
@@ -302,16 +302,16 @@ enum ComponentPriceType {
   MARKUP_FIXED
   """Subtract fixed amount from base."""
   DISCOUNT_FIXED
-  """100% discount, free in bundle."""
+  """100% discount, free in package."""
   FREE
-  """Price included in bundle base."""
+  """Price included in package base."""
   INCLUDED
 }
 
 """
-Display style for bundle on storefront.
+Display style for package on storefront.
 """
-enum BundleDisplayStyle {
+enum PackageDisplayStyle {
   accordion
   tabs
   flat
@@ -368,11 +368,11 @@ type ComponentGroupRules {
 }
 
 """
-Display settings for bundle.
+Display settings for package.
 """
-type BundleDisplaySettings {
+type PackageDisplaySettings {
   """Display style on storefront."""
-  displayStyle: BundleDisplayStyle!
+  displayStyle: PackageDisplayStyle!
 
   """Show component images."""
   showImages: Boolean!
@@ -388,9 +388,9 @@ type BundleDisplaySettings {
 }
 
 """
-Stock settings for bundle.
+Stock settings for package.
 """
-type BundleStockSettings {
+type PackageStockSettings {
   """Behavior when component is out of stock."""
   outOfStockBehavior: OutOfStockBehavior!
 
@@ -399,39 +399,39 @@ type BundleStockSettings {
 }
 
 """
-Bundle settings for a product.
+Package settings for a product.
 """
-type BundleSettings implements Node @key(fields: "id") {
+type PackageSettings implements Node @key(fields: "id") {
   """The globally unique ID."""
   id: ID!
 
-  """The product this bundle belongs to."""
+  """The product this package belongs to."""
   product: Product!
 
   """Display settings."""
-  displaySettings: BundleDisplaySettings!
+  displaySettings: PackageDisplaySettings!
 
   """Stock settings."""
-  stockSettings: BundleStockSettings!
+  stockSettings: PackageStockSettings!
 
   """Custom validation message."""
   validationMessage: String
 
-  """Component groups in this bundle."""
+  """Component groups in this package."""
   groups: [ComponentGroup!]!
 
   """Tiered volume discounts."""
   tieredDiscounts: [TieredDiscount!]!
 
-  """When the bundle was created."""
+  """When the package was created."""
   createdAt: DateTime!
 
-  """When the bundle was last updated."""
+  """When the package was last updated."""
   updatedAt: DateTime!
 }
 
 """
-A group of components within a bundle.
+A group of components within a package.
 """
 type ComponentGroup implements Node @key(fields: "id") {
   """The globally unique ID."""
@@ -440,7 +440,7 @@ type ComponentGroup implements Node @key(fields: "id") {
   """Group title."""
   title: String!
 
-  """Sort order within the bundle."""
+  """Sort order within the package."""
   sortIndex: Int!
 
   """Selection rules for this group."""
@@ -500,7 +500,7 @@ type PricingRuleTemplate implements Node @key(fields: "id") {
 }
 
 """
-Tiered volume discount for bundles.
+Tiered volume discount for packages.
 """
 type TieredDiscount implements Node @key(fields: "id") {
   """The globally unique ID."""
@@ -581,7 +581,7 @@ input ComponentGroupInput {
   """Group title."""
   title: String!
 
-  """Sort order within the bundle."""
+  """Sort order within the package."""
   sortIndex: Int!
 
   """Whether selection from this group is required."""
@@ -629,11 +629,11 @@ input TieredDiscountInput {
 }
 
 """
-Input for bundle settings.
+Input for package settings.
 """
-input BundleSettingsInput {
+input PackageSettingsInput {
   """Display style on storefront."""
-  displayStyle: BundleDisplayStyle
+  displayStyle: PackageDisplayStyle
 
   """Show component images."""
   showImages: Boolean
@@ -658,15 +658,15 @@ input BundleSettingsInput {
 }
 
 """
-Input for bulk updating bundle (replace all approach).
+Input for bulk updating package (replace all approach).
 Frontend sends complete state, backend determines CRUD operations.
 """
-input BundleUpdateInput {
+input PackageUpdateInput {
   """Product ID."""
   productId: ID!
 
-  """Bundle settings."""
-  settings: BundleSettingsInput
+  """Package settings."""
+  settings: PackageSettingsInput
 
   """All groups with their items (replaces existing groups)."""
   groups: [ComponentGroupInput!]!
@@ -683,11 +683,11 @@ input BundleUpdateInput {
 # ============================================================================
 
 """
-Payload for bundle update.
+Payload for package update.
 """
-type BundleUpdatePayload {
-  """The updated bundle settings."""
-  bundleSettings: BundleSettings
+type PackageUpdatePayload {
+  """The updated package settings."""
+  packageSettings: PackageSettings
 
   """List of errors that occurred during the mutation."""
   userErrors: [GenericUserError!]!
@@ -698,8 +698,8 @@ type BundleUpdatePayload {
 # ============================================================================
 
 extend type Query {
-  """Get bundle settings for a product."""
-  bundleSettings(productId: ID!): BundleSettings
+  """Get package settings for a product."""
+  packageSettings(productId: ID!): PackageSettings
 
   """List all pricing rule templates."""
   pricingRuleTemplates(
@@ -733,7 +733,7 @@ type PricingRuleTemplateEdge {
 
 extend type Mutation {
   """
-  Bulk update bundle settings and all components.
+  Bulk update package settings and all components.
 
   This mutation uses a "replace all" approach:
   - Frontend sends complete state (groups, items, templates, discounts)
@@ -744,9 +744,9 @@ extend type Mutation {
   - Temporary IDs (e.g., "grp-1234567890") → create new records
   - Records missing from input → deleted
 
-  The mutation returns the complete updated bundle with all new UUIDs.
+  The mutation returns the complete updated package with all new UUIDs.
   """
-  bundleUpdate(input: BundleUpdateInput!): BundleUpdatePayload!
+  packageUpdate(input: PackageUpdateInput!): PackageUpdatePayload!
 }
 
 # ============================================================================
@@ -754,11 +754,11 @@ extend type Mutation {
 # ============================================================================
 
 extend type Product {
-  """Bundle settings if this product is a bundle."""
-  bundleSettings: BundleSettings
+  """Package settings if this product is a package."""
+  packageSettings: PackageSettings
 
-  """Whether this product is a bundle."""
-  isBundle: Boolean!
+  """Whether this product is a package."""
+  isPackage: Boolean!
 }
 ```
 
@@ -767,7 +767,7 @@ extend type Product {
 ## Entity Relationships
 
 ```
-Product (1) ──────────── (0..1) BundleSettings
+Product (1) ──────────── (0..1) PackageSettings
                               │
                               ├── (1..*) ComponentGroup
                               │         │
@@ -780,7 +780,7 @@ Product (1) ──────────── (0..1) BundleSettings
                               │                   │
                               │                   └── → PricingRuleTemplate (optional)
                               │
-                              └── (0..*) BundleTieredDiscount
+                              └── (0..*) PackageTieredDiscount
 
 PricingRuleTemplate (shared across project)
 ```
@@ -789,7 +789,7 @@ PricingRuleTemplate (shared across project)
 
 ## Notes
 
-1. **bundleSettings** - связь 1:1 с product. Если у продукта есть bundleSettings, он считается бандлом.
+1. **packageSettings** - связь 1:1 с product. Если у продукта есть packageSettings, он считается пакетом.
 
 2. **componentGroup** - группа компонентов с правилами выбора (обязательный/множественный выбор).
 
@@ -799,11 +799,11 @@ PricingRuleTemplate (shared across project)
 
 5. **excludedVariants** - для PRODUCT типа можно исключить определенные варианты из выбора.
 
-6. **Bulk mutation (Replace All)** - единственная мутация `bundleUpdate`:
+6. **Bulk mutation (Replace All)** - единственная мутация `packageUpdate`:
    - Фронтенд отправляет полное состояние (groups с items, templates, discounts, settings)
    - Бэкенд сравнивает с существующими данными и определяет что создать/обновить/удалить
    - ID handling:
      - Существующие UUID → обновление записи
      - Временные ID (например, `grp-1234567890`) → создание новой записи
      - Записи отсутствующие в input → удаление
-   - Мутация возвращает полный обновленный bundle с новыми UUID
+   - Мутация возвращает полный обновленный package с новыми UUID
