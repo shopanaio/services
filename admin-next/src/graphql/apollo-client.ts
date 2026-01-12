@@ -9,6 +9,7 @@ const GRAPHQL_ENDPOINT = process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT || "http://loc
 export function makeClient() {
   const httpLink = new HttpLink({
     uri: GRAPHQL_ENDPOINT,
+    credentials: "include",
     fetchOptions: { cache: "no-store" },
   });
 
