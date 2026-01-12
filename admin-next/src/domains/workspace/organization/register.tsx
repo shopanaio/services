@@ -12,15 +12,11 @@ registerModule({
   },
   items: [
     {
-      key: "organization-general",
+      key: "organization",
       path: "/workspace/organization",
       component: dynamic(
         () => import("@/domains/workspace/organization/page/organization-page")
       ),
-      sidebar: {
-        label: "General",
-        order: 1,
-      },
     },
   ],
 });

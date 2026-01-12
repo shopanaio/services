@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import {
   Input,
@@ -9,7 +9,6 @@ import {
   message,
   Descriptions,
   Avatar,
-  Space,
   Dropdown,
   Flex,
   Table,
@@ -23,7 +22,6 @@ import {
   WarningOutlined,
   TeamOutlined,
   SafetyOutlined,
-  CrownOutlined,
   MoreOutlined,
   ShopOutlined,
   PlusOutlined,
@@ -48,7 +46,6 @@ import {
 import type {
   ApiOrganization,
   ApiMember,
-  ApiUser,
   ApiRole,
 } from "@/graphql/types";
 import {
@@ -84,25 +81,6 @@ const useStyles = createStyles(({ token }) => ({
     marginTop: token.marginMD,
     paddingTop: token.paddingMD,
     borderTop: `1px solid ${token.colorBorderSecondary}`,
-  },
-  ownerCard: {
-    display: "flex",
-    alignItems: "center",
-    gap: token.marginMD,
-    padding: token.paddingSM,
-    background: token.colorBgLayout,
-    borderRadius: token.borderRadiusLG,
-    border: `1px solid ${token.colorBorder}`,
-  },
-  ownerInfo: {
-    flex: 1,
-  },
-  ownerBadge: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 4,
-    color: token.colorWarning,
-    fontSize: token.fontSizeSM,
   },
   // Stores styles
   storeItem: {
@@ -244,11 +222,6 @@ const useStyles = createStyles(({ token }) => ({
     fontSize: token.fontSizeSM,
     marginTop: 2,
   },
-  roleDomain: {
-    color: token.colorTextTertiary,
-    fontSize: token.fontSizeSM,
-    marginTop: token.marginXS,
-  },
   roleActions: {
     display: "flex",
     gap: token.marginXS,
@@ -268,24 +241,6 @@ interface Store {
   color: string;
 }
 
-// Mock data using API types
-const mockOwner: ApiUser = {
-  id: "user-1",
-  email: "owner@example.com",
-  firstName: "John",
-  lastName: "Doe",
-  avatar: null,
-};
-
-const mockOwnerMember: ApiMember = {
-  id: "member-1",
-  user: mockOwner,
-  role: "owner",
-  isOwner: true,
-  grantedAt: "2024-01-01T00:00:00Z",
-  grantedBy: null,
-};
-
 const mockOrganization: ApiOrganization = {
   id: "org-123",
   name: "acme-corp",
@@ -296,11 +251,10 @@ const mockOrganization: ApiOrganization = {
     domain: "org",
     organizationId: "org-123",
     members: [
-      mockOwnerMember,
       {
-        id: "member-2",
+        id: "member-1",
         user: {
-          id: "user-2",
+          id: "user-1",
           email: "admin@example.com",
           firstName: "Jane",
           lastName: "Smith",
@@ -309,12 +263,12 @@ const mockOrganization: ApiOrganization = {
         role: "admin",
         isOwner: false,
         grantedAt: "2024-02-15T00:00:00Z",
-        grantedBy: mockOwner,
+        grantedBy: null,
       },
       {
-        id: "member-3",
+        id: "member-2",
         user: {
-          id: "user-3",
+          id: "user-2",
           email: "editor@example.com",
           firstName: "Bob",
           lastName: "Wilson",
@@ -323,7 +277,7 @@ const mockOrganization: ApiOrganization = {
         role: "editor",
         isOwner: false,
         grantedAt: "2024-03-01T00:00:00Z",
-        grantedBy: mockOwner,
+        grantedBy: null,
       },
     ],
     roles: [
@@ -364,7 +318,6 @@ const mockStores: Store[] = [
 ];
 
 const roleIcons: Record<string, React.ReactNode> = {
-  owner: <CrownOutlined style={{ color: "#faad14" }} />,
   admin: <SafetyOutlined style={{ color: "#1890ff" }} />,
   editor: <EditOutlined style={{ color: "#52c41a" }} />,
   viewer: <EyeOutlined style={{ color: "#8c8c8c" }} />,
@@ -376,20 +329,6 @@ function formatDate(dateString: string): string {
     month: "long",
     day: "numeric",
   });
-}
-
-function getDisplayName(user: ApiUser): string {
-  if (user.firstName || user.lastName) {
-    return [user.firstName, user.lastName].filter(Boolean).join(" ");
-  }
-  return user.email;
-}
-
-function getUserInitials(user: ApiUser): string {
-  if (user.firstName && user.lastName) {
-    return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
-  }
-  return user.email[0].toUpperCase();
 }
 
 // Store Item Component
@@ -464,32 +403,17 @@ function RoleCard({ role, onEdit, onDelete }: RoleCardProps) {
         <div className={styles.roleDetails}>
           <Typography.Text className={styles.roleName}>
             {role.displayName}
-            {role.isSystem && (
-              <Tag color="default" style={{ marginLeft: 8 }}>
-                System
-              </Tag>
-            )}
-            {!role.isSystem && (
-              <Tag color="blue" style={{ marginLeft: 8 }}>
-                Custom
-              </Tag>
-            )}
           </Typography.Text>
           <Typography.Text className={styles.roleDescription}>
             {role.description}
           </Typography.Text>
-          <Typography.Text className={styles.roleDomain}>
-            Domain: {role.domain}
-          </Typography.Text>
         </div>
       </div>
-      <div className={styles.roleActions}>
-        {role.name !== "owner" && (
+      {!role.isSystem && (
+        <div className={styles.roleActions}>
           <Button size="small" onClick={onEdit}>
             Edit
           </Button>
-        )}
-        {!role.isSystem && (
           <Button
             size="small"
             danger
@@ -498,8 +422,8 @@ function RoleCard({ role, onEdit, onDelete }: RoleCardProps) {
           >
             Delete
           </Button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -517,10 +441,6 @@ export default function OrganizationPage() {
 
   const organization = mockOrganization;
   const stores = mockStores;
-
-  const owner = useMemo(() => {
-    return organization.membership.members.find((m) => m.isOwner);
-  }, [organization.membership.members]);
 
   const memberCount = organization.membership.members.length;
   const roleCount = organization.membership.roles.length;
@@ -902,30 +822,6 @@ export default function OrganizationPage() {
             </Descriptions.Item>
           )}
         </Descriptions>
-      </Paper>
-
-      <Paper>
-        <PaperHeader title="Ownership" />
-        {owner && (
-          <div className={styles.ownerCard}>
-            <Avatar size={48} src={owner.user.avatar}>
-              {getUserInitials(owner.user)}
-            </Avatar>
-            <div className={styles.ownerInfo}>
-              <Typography.Text strong>
-                {getDisplayName(owner.user)}
-              </Typography.Text>
-              <br />
-              <Typography.Text type="secondary">
-                {owner.user.email}
-              </Typography.Text>
-            </div>
-            <Space className={styles.ownerBadge}>
-              <CrownOutlined />
-              <span>Owner</span>
-            </Space>
-          </div>
-        )}
       </Paper>
 
       {/* Stores Section */}

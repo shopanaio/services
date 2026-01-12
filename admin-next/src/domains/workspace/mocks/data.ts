@@ -44,14 +44,6 @@ export const mockCurrentUser: ApiUser = {
 };
 
 // Role permissions mock data
-const ownerPermissions: ApiRolePermission[] = [
-  { __typename: "RolePermission", resource: "org.profile", actions: ["read", "write", "admin"] },
-  { __typename: "RolePermission", resource: "org.members", actions: ["read", "write", "admin"] },
-  { __typename: "RolePermission", resource: "store.products", actions: ["read", "write", "admin"] },
-  { __typename: "RolePermission", resource: "store.orders", actions: ["read", "write", "admin"] },
-  { __typename: "RolePermission", resource: "store.inventory", actions: ["read", "write", "admin"] },
-];
-
 const adminPermissions: ApiRolePermission[] = [
   { __typename: "RolePermission", resource: "org.profile", actions: ["read", "write"] },
   { __typename: "RolePermission", resource: "org.members", actions: ["read", "write"] },
@@ -80,18 +72,6 @@ const viewerPermissions: ApiRolePermission[] = [
 export const mockRoles: ApiRole[] = [
   {
     __typename: "Role",
-    id: "role-owner",
-    name: "owner",
-    displayName: "Owner",
-    description: "Full access · Cannot be modified",
-    domain: "org",
-    isSystem: true,
-    permissions: ownerPermissions,
-    createdAt: "2024-01-15T00:00:00Z",
-    updatedAt: "2024-01-15T00:00:00Z",
-  },
-  {
-    __typename: "Role",
     id: "role-admin",
     name: "admin",
     displayName: "Admin",
@@ -109,7 +89,7 @@ export const mockRoles: ApiRole[] = [
     displayName: "Editor",
     description: "Content editing permissions",
     domain: "org",
-    isSystem: false,
+    isSystem: true,
     permissions: editorPermissions,
     createdAt: "2024-01-15T00:00:00Z",
     updatedAt: "2024-01-15T00:00:00Z",
@@ -121,7 +101,7 @@ export const mockRoles: ApiRole[] = [
     displayName: "Viewer",
     description: "Read-only access",
     domain: "org",
-    isSystem: false,
+    isSystem: true,
     permissions: viewerPermissions,
     createdAt: "2024-01-15T00:00:00Z",
     updatedAt: "2024-01-15T00:00:00Z",
@@ -134,8 +114,8 @@ export const mockMembers: ApiMember[] = [
     __typename: "Member",
     id: "member-1",
     user: mockCurrentUser,
-    role: "owner",
-    isOwner: true,
+    role: "admin",
+    isOwner: false,
     grantedAt: "2024-01-15T00:00:00Z",
     grantedBy: null,
   },

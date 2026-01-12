@@ -164,10 +164,16 @@ export class ModuleRegistry {
               path: item.path,
             }));
 
+          // If no children with sidebar, use first item's path for the module
+          const modulePath = moduleChildren.length === 0 && mod.items.length > 0
+            ? mod.items[0].path
+            : undefined;
+
           return {
             key: mod.key,
             label: mod.sidebar.label,
             icon: mod.sidebar.icon,
+            path: modulePath,
             children: moduleChildren.length > 0 ? moduleChildren : undefined,
           };
         });

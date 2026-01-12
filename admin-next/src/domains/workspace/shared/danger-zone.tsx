@@ -7,7 +7,6 @@ import { Typography, Flex, Button } from "antd";
 const useStyles = createStyles(({ token }) => ({
   section: {
     padding: token.paddingLG,
-    backgroundColor: token.colorErrorBg,
     borderRadius: token.borderRadiusLG,
     border: `1px solid ${token.colorErrorBorder}`,
   },
