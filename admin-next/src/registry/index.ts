@@ -5,6 +5,8 @@ export {
   type SidebarConfig,
   type SidebarItem,
   type DomainConfig,
+  type DomainSidebarConfig,
+  type DomainLayoutComponent,
   type ModuleItemConfig,
   type ModuleConfig,
   type RegisteredPageRecord,

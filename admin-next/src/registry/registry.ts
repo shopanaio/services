@@ -35,13 +35,28 @@ export interface SidebarItem {
 }
 
 /**
+ * Layout component type for domains.
+ */
+export type DomainLayoutComponent = ComponentType<{ children: ReactNode }>;
+
+/**
+ * Sidebar configuration for a domain.
+ */
+export interface DomainSidebarConfig {
+  label: string;
+  icon?: ReactNode;
+  order?: number;
+}
+
+/**
  * Configuration for registering a domain (group of modules).
  */
 export interface DomainConfig {
   key: string;
-  label: string;
-  icon?: ReactNode;
-  order?: number;
+  /** Layout component that wraps all pages in this domain */
+  layout: DomainLayoutComponent;
+  /** Sidebar configuration. If not provided, domain is hidden from sidebar */
+  sidebar?: DomainSidebarConfig;
 }
 
 /**
@@ -82,6 +97,8 @@ export interface RegisteredPageRecord {
 export interface ModuleMatchResult {
   record: RegisteredPageRecord;
   params: ParamData;
+  /** Domain configuration (includes layout if registered) */
+  domainConfig?: DomainConfig;
 }
 
 /**
@@ -121,13 +138,19 @@ export class ModuleRegistry {
     for (const record of this.pages) {
       const result = record.matcher(pathname);
       if (result) {
+        const domainConfig = this.domains.get(record.domain);
         return {
           record,
           params: result.params,
+          domainConfig,
         };
       }
     }
     return undefined;
+  }
+
+  getDomainConfig(key: string): DomainConfig | undefined {
+    return this.domains.get(key);
   }
 
   list(): string[] {
@@ -145,9 +168,10 @@ export class ModuleRegistry {
       modulesByDomain.set(mod.domain, existing);
     }
 
-    // Build sidebar items from domains
+    // Build sidebar items from domains (only those with sidebar config)
     const sortedDomains = Array.from(this.domains.values())
-      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+      .filter((d) => d.sidebar)
+      .sort((a, b) => (a.sidebar!.order ?? 0) - (b.sidebar!.order ?? 0));
 
     for (const domain of sortedDomains) {
       const modules = modulesByDomain.get(domain.key) ?? [];
@@ -180,8 +204,8 @@ export class ModuleRegistry {
 
       result.push({
         key: domain.key,
-        label: domain.label,
-        icon: domain.icon,
+        label: domain.sidebar!.label,
+        icon: domain.sidebar!.icon,
         type: "group",
         children: children.length > 0 ? children : undefined,
       });

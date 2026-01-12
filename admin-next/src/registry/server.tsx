@@ -1,6 +1,6 @@
-import React, { type ComponentType } from "react";
+import React, { Fragment, type ComponentType } from "react";
 import { notFound } from "next/navigation";
-import { moduleRegistry, type ModulePageProps } from "./registry";
+import { moduleRegistry, type ModulePageProps, type DomainLayoutComponent } from "./registry";
 import { ModuleProvider } from "./client";
 import type { IModalStackDefinition } from "@/layouts/modals/types";
 
@@ -15,9 +15,15 @@ interface PageProps {
 
 function renderComponent(
   Component: ComponentType<ModulePageProps>,
-  props: ModulePageProps
+  props: ModulePageProps,
+  Layout?: DomainLayoutComponent
 ): React.ReactElement {
-  return <Component {...props} />;
+  const Wrapper = Layout ?? Fragment;
+  return (
+    <Wrapper>
+      <Component {...props} />
+    </Wrapper>
+  );
 }
 
 export interface CreatePageOptions {
@@ -49,12 +55,17 @@ export function createPage(options: CreatePageOptions = {}) {
     const searchParams = rawSearchParams ? { ...rawSearchParams } : {};
 
     const Component = matchResult.record.component;
+    const Layout = matchResult.domainConfig?.layout;
 
-    return renderComponent(Component, {
-      params: { slug: segments },
-      searchParams,
-      pathParams: matchResult.params ? { ...matchResult.params } : {},
-    });
+    return renderComponent(
+      Component,
+      {
+        params: { slug: segments },
+        searchParams,
+        pathParams: matchResult.params ? { ...matchResult.params } : {},
+      },
+      Layout
+    );
   }
 
   return { Page };
