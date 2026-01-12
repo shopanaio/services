@@ -1,16 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useForm, Controller } from "react-hook-form";
 import {
-  Input,
   Typography,
   Button,
   message,
-  Descriptions,
   Avatar,
   Dropdown,
   Flex,
+  Input,
   Table,
   Tag,
   Tabs,
@@ -19,7 +17,6 @@ import {
 import type { MenuProps } from "antd";
 import { createStyles } from "antd-style";
 import {
-  WarningOutlined,
   TeamOutlined,
   SafetyOutlined,
   MoreOutlined,
@@ -36,10 +33,11 @@ import {
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { KPITile } from "@/ui-kit/kpi-tile";
 import { SettingsLayout } from "../../layout";
-import { DangerZone, PreviewCard } from "../../shared";
+import { DangerZone } from "../../shared";
+import { OrganizationInfoHeader } from "../components";
 import {
   useDeleteOrganizationModal,
-  useEditAvatarModal,
+  useEditOrganizationModal,
   useInviteMemberModal,
   useEditRoleModal,
 } from "../../modals";
@@ -58,30 +56,6 @@ import {
 import type { IInvitation } from "../../mocks/data";
 
 const useStyles = createStyles(({ token }) => ({
-  formItem: {
-    marginBottom: token.marginMD,
-  },
-  label: {
-    display: "block",
-    marginBottom: token.marginXS,
-    fontWeight: 500,
-  },
-  warning: {
-    display: "flex",
-    alignItems: "center",
-    gap: token.marginXS,
-    color: token.colorWarning,
-    fontSize: token.fontSizeSM,
-    marginTop: token.marginXS,
-  },
-  actions: {
-    display: "flex",
-    justifyContent: "flex-end",
-    gap: token.marginSM,
-    marginTop: token.marginMD,
-    paddingTop: token.paddingMD,
-    borderTop: `1px solid ${token.colorBorderSecondary}`,
-  },
   // Stores styles
   storeItem: {
     display: "flex",
@@ -228,11 +202,6 @@ const useStyles = createStyles(({ token }) => ({
   },
 }));
 
-interface OrganizationFormValues {
-  displayName: string;
-  name: string;
-}
-
 interface Store {
   id: string;
   name: string;
@@ -322,14 +291,6 @@ const roleIcons: Record<string, React.ReactNode> = {
   editor: <EditOutlined style={{ color: "#52c41a" }} />,
   viewer: <EyeOutlined style={{ color: "#8c8c8c" }} />,
 };
-
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-}
 
 // Store Item Component
 interface StoreItemProps {
@@ -430,12 +391,11 @@ function RoleCard({ role, onEdit, onDelete }: RoleCardProps) {
 
 export default function OrganizationPage() {
   const { styles, cx } = useStyles();
-  const [isEditing, setIsEditing] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const [activeStoreTab, setActiveStoreTab] = useState("all");
 
   const { push: pushDeleteModal } = useDeleteOrganizationModal();
-  const { push: pushEditAvatarModal } = useEditAvatarModal();
+  const { push: pushEditOrganizationModal } = useEditOrganizationModal();
   const { push: pushInviteModal } = useInviteMemberModal();
   const { push: pushEditRoleModal } = useEditRoleModal();
 
@@ -449,39 +409,18 @@ export default function OrganizationPage() {
   const activeStores = stores.filter((s) => s.status === "active");
   const inactiveStores = stores.filter((s) => s.status === "inactive");
 
-  const {
-    control,
-    handleSubmit,
-    reset,
-    formState: { errors, isDirty },
-  } = useForm<OrganizationFormValues>({
-    defaultValues: {
-      displayName: organization.displayName,
-      name: organization.name,
-    },
-  });
-
-  const onSubmit = (values: OrganizationFormValues) => {
-    console.log("Saving organization:", values);
-    message.success("Organization updated successfully");
-    setIsEditing(false);
-  };
-
-  const handleCancel = () => {
-    reset();
-    setIsEditing(false);
-  };
-
   const handleTransferOwnership = () => {
     message.info("Transfer ownership modal would open");
   };
 
-  const handleEditLogo = () => {
-    pushEditAvatarModal({
-      currentImage: null,
-      onSave: (imageUrl: string | null) => {
-        console.log("New logo:", imageUrl);
-        message.success(imageUrl ? "Logo updated" : "Logo removed");
+  const handleEditOrganization = () => {
+    pushEditOrganizationModal({
+      displayName: organization.displayName,
+      slug: organization.name,
+      currentLogo: null,
+      onSave: (values: { displayName: string; slug: string; logo: string | null }) => {
+        console.log("Saving organization:", values);
+        message.success("Organization updated successfully");
       },
     });
   };
@@ -679,13 +618,9 @@ export default function OrganizationPage() {
 
   return (
     <SettingsLayout name="organization">
-      <PreviewCard
-        type="organization"
-        name={organization.displayName}
-        subtitle={organization.name}
-        meta={`Created ${formatDate(organization.createdAt)}`}
-        image={undefined}
-        onAvatarClick={handleEditLogo}
+      <OrganizationInfoHeader
+        organization={organization}
+        onEdit={handleEditOrganization}
       />
 
       <Flex gap={16}>
@@ -708,121 +643,6 @@ export default function OrganizationPage() {
           tooltip="Custom roles defined"
         />
       </Flex>
-
-      <Paper>
-        <PaperHeader
-          title="General Information"
-          actions={
-            !isEditing && (
-              <Dropdown
-                menu={{
-                  items: [{ key: "edit", label: "Edit" }],
-                  onClick: () => setIsEditing(true),
-                }}
-                trigger={["click"]}
-              >
-                <Button size="small" icon={<MoreOutlined />} />
-              </Dropdown>
-            )
-          }
-        />
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <div className={styles.formItem}>
-            <Typography.Text className={styles.label}>
-              Display Name
-            </Typography.Text>
-            <Controller
-              name="displayName"
-              control={control}
-              rules={{
-                required: "Display name is required",
-                minLength: { value: 1, message: "Display name must be at least 1 character" },
-                maxLength: { value: 256, message: "Display name must be at most 256 characters" },
-              }}
-              render={({ field }) => (
-                <Input
-                  {...field}
-                  placeholder="Organization name"
-                  status={errors.displayName ? "error" : undefined}
-                  disabled={!isEditing}
-                />
-              )}
-            />
-            {errors.displayName && (
-              <Typography.Text type="danger">
-                {errors.displayName.message}
-              </Typography.Text>
-            )}
-          </div>
-
-          <div className={styles.formItem}>
-            <Typography.Text className={styles.label}>
-              Organization Slug
-            </Typography.Text>
-            <Controller
-              name="name"
-              control={control}
-              rules={{
-                required: "Slug is required",
-                minLength: { value: 3, message: "Slug must be at least 3 characters" },
-                maxLength: { value: 64, message: "Slug must be at most 64 characters" },
-                pattern: {
-                  value: /^[a-z0-9]+(-[a-z0-9]+)*$/,
-                  message: "Only lowercase letters, numbers, and hyphens allowed. Cannot start or end with hyphen.",
-                },
-              }}
-              render={({ field }) => (
-                <Input
-                  {...field}
-                  placeholder="organization-slug"
-                  status={errors.name ? "error" : undefined}
-                  disabled={!isEditing}
-                />
-              )}
-            />
-            {errors.name ? (
-              <Typography.Text type="danger">
-                {errors.name.message}
-              </Typography.Text>
-            ) : (
-              isEditing && (
-                <div className={styles.warning}>
-                  <WarningOutlined />
-                  <span>Changing slug will break existing links</span>
-                </div>
-              )
-            )}
-          </div>
-
-          {isEditing && (
-            <div className={styles.actions}>
-              <Button onClick={handleCancel}>Cancel</Button>
-              <Button type="primary" htmlType="submit" disabled={!isDirty}>
-                Save Changes
-              </Button>
-            </div>
-          )}
-        </form>
-      </Paper>
-
-      <Paper>
-        <PaperHeader title="Details" />
-        <Descriptions column={1} size="small">
-          <Descriptions.Item label="Organization ID">
-            <Typography.Text copyable={{ text: organization.id }}>
-              {organization.id}
-            </Typography.Text>
-          </Descriptions.Item>
-          <Descriptions.Item label="Created">
-            {formatDate(organization.createdAt)}
-          </Descriptions.Item>
-          {organization.updatedAt && (
-            <Descriptions.Item label="Last Updated">
-              {formatDate(organization.updatedAt)}
-            </Descriptions.Item>
-          )}
-        </Descriptions>
-      </Paper>
 
       {/* Stores Section */}
       <Paper>

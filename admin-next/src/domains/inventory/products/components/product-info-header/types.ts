@@ -25,13 +25,6 @@ export interface IProductInfoHeaderProps {
   kpiData?: IKPIData;
 }
 
-export interface ICopyableChipProps {
-  label?: string;
-  value: string;
-  displayValue?: string;
-  mono?: boolean;
-}
-
 export interface IUserPopoverProps {
   firstName: string;
   lastName: string;

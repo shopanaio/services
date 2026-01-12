@@ -17,6 +17,7 @@ export const mockOrganization: ApiOrganization = {
   id: "org-1",
   name: "acme-corp",
   displayName: "Acme Corporation",
+  createdAt: "2024-01-15T00:00:00Z",
   membership: {
     __typename: "Membership",
     domain: "org",

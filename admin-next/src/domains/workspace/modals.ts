@@ -31,7 +31,8 @@ export interface ICreateRoleModalPayload extends IModalStackPayload {
 export interface IEditOrganizationModalPayload extends IModalStackPayload {
   displayName: string;
   slug: string;
-  onSave?: (values: { displayName: string; slug: string }) => void;
+  currentLogo?: string | null;
+  onSave?: (values: { displayName: string; slug: string; logo: string | null }) => void;
 }
 
 export interface ITransferOwnershipModalPayload extends IModalStackPayload {

@@ -18,15 +18,12 @@ import {
 } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { KPITile } from "@/ui-kit/kpi-tile";
+import { CopyableChip } from "@/ui-kit/copyable-chip";
 import { PeriodSwitch, PERIODS, type Period } from "../period-switch";
 import { EntityStatus } from "@/mocks/products/types";
 import { useProductEditTitleModal } from "../../modals";
 import { useHeaderStyles } from "./product-info-header.styles";
-import {
-  CopyableChip,
-  UserPopoverContent,
-  SharePopoverContent,
-} from "./components";
+import { UserPopoverContent, SharePopoverContent } from "./components";
 import {
   getStatusConfig,
   formatNumber,

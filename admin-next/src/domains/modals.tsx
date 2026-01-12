@@ -66,6 +66,15 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
+    // Edit Organization modal
+    {
+      type: 'workspace-edit-organization',
+      component: dynamic(() =>
+        import('@/domains/workspace/modals/edit-organization-modal').then(
+          (m) => m.EditOrganizationModal
+        )
+      ),
+    },
     // ========================================
     // Product modals
     // ========================================

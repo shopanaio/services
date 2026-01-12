@@ -32,43 +32,6 @@ export const useHeaderStyles = createStyles(({ token }) => ({
 }));
 
 // ============================================================================
-// Copyable Chip Styles
-// ============================================================================
-
-export const useCopyableChipStyles = createStyles(({ token }) => ({
-  copyableChip: {
-    cursor: "pointer",
-    margin: 0,
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 0,
-  },
-  chipLabel: {
-    fontSize: token.fontSizeSM,
-    textTransform: "uppercase",
-    letterSpacing: "0.3px",
-    marginRight: 4,
-  },
-  chipValue: {
-    fontSize: 11,
-    color: token.colorTextSecondary,
-  },
-  chipValueMono: {
-    fontSize: 11,
-    color: token.colorTextSecondary,
-    fontFamily: "ui-monospace, SFMono-Regular, monospace",
-  },
-  chipIcon: {
-    fontSize: 9,
-    color: token.colorTextTertiary,
-  },
-  chipIconSuccess: {
-    fontSize: 9,
-    color: token.colorSuccess,
-  },
-}));
-
-// ============================================================================
 // User Popover Styles
 // ============================================================================
 
