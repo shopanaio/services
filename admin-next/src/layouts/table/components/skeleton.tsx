@@ -1,6 +1,6 @@
 import { createStyles } from 'antd-style';
 import { Flex, Skeleton } from 'antd';
-import SkeletonButton from 'antd/es/skeleton/button';
+import SkeletonButton from 'antd/es/skeleton/Button';
 
 const useStyles = createStyles(({ token }) => ({
   filters: {

@@ -126,7 +126,6 @@ export const EditMediaModal = () => {
           value={gallery}
           onChange={handleChange}
           onUpload={handleUpload}
-          showPaper
           title="Product Media"
           showViewSwitcher
           accept="image/*,video/*"

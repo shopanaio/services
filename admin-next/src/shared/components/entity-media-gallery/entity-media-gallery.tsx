@@ -422,6 +422,7 @@ export const EntityMediaGallery = ({
   accept = "image/*",
   multiple = true,
   emptyMessage = "No media files yet",
+  featuredLabel = "Featured",
   hasFeatured = true,
   minCells = 13,
   title,

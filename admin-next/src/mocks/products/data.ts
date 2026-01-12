@@ -98,7 +98,7 @@ const createSwatch = (
 // Mock Categories
 // ============================================================================
 
-export const mockCategories: ICategory[] = [
+const dataMockCategories: ICategory[] = [
   {
     id: 'cat-1',
     title: 'Electronics',
@@ -147,7 +147,7 @@ export const mockCategories: ICategory[] = [
 // Mock Tags
 // ============================================================================
 
-export const mockTags: ITag[] = [
+const dataMockTags: ITag[] = [
   { id: 'tag-1', title: 'New Arrival', slug: 'new-arrival', color: '#52c41a' },
   { id: 'tag-2', title: 'Bestseller', slug: 'bestseller', color: '#1677ff' },
   { id: 'tag-3', title: 'Sale', slug: 'sale', color: '#ff4d4f' },
@@ -393,7 +393,7 @@ const createVariant = (
     isVariant: true,
     variantSortIndex: index,
     inListing: true,
-    categories: [mockCategories[0], mockCategories[1]],
+    categories: [dataMockCategories[0], dataMockCategories[1]],
     options: variantOptions,
     container: null,
   };
@@ -566,9 +566,9 @@ export const mockSimpleProduct: IProduct = {
   variantId: 'var-simple-1',
   variants: [],
   embedVariant: null,
-  categories: [mockCategories[2]],
-  primaryCategory: { id: mockCategories[2].id, title: mockCategories[2].title },
-  tags: [mockTags[0], mockTags[4]],
+  categories: [dataMockCategories[2]],
+  primaryCategory: { id: dataMockCategories[2].id, title: dataMockCategories[2].title },
+  tags: [dataMockTags[0], dataMockTags[4]],
   attributes: [createMaterialAttributeGroup()],
   options: [],
   groups: [],
@@ -634,9 +634,9 @@ export const mockVariableProduct: IProduct = (() => {
     variantId: null,
     variants,
     embedVariant: null,
-    categories: [mockCategories[0], mockCategories[1]],
-    primaryCategory: { id: mockCategories[1].id, title: mockCategories[1].title },
-    tags: [mockTags[0], mockTags[1], mockTags[3]],
+    categories: [dataMockCategories[0], dataMockCategories[1]],
+    primaryCategory: { id: dataMockCategories[1].id, title: dataMockCategories[1].title },
+    tags: [dataMockTags[0], dataMockTags[1], dataMockTags[3]],
     attributes: [createBrandAttributeGroup()],
     options: [colorGroup, storageGroup],
     groups: [createMockProductGroup(containerId, 'Accessories', variants)],

@@ -27,6 +27,7 @@ export type {
   CurrencyCode,
   IPriceHistoryRecord,
   IVariantPriceSummary,
+  PriceSource,
 } from "./types";
 
 // Utilities

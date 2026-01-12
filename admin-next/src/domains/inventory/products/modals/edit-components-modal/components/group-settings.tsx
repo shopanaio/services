@@ -66,26 +66,21 @@ export const GroupSettings = ({ group, onChange }: IGroupSettingsProps) => {
         />
 
         <Checkbox
-          checked={group.rules.isRequired}
+          checked={group.isRequired}
           onChange={(e) =>
-            onChange({
-              rules: { ...group.rules, isRequired: e.target.checked },
-            })
+            onChange({ isRequired: e.target.checked })
           }
         >
           Required
         </Checkbox>
 
         <Checkbox
-          checked={group.rules.isMultiple}
+          checked={group.isMultiple}
           onChange={(e) => {
             const isMultiple = e.target.checked;
             onChange({
-              rules: {
-                ...group.rules,
-                isMultiple,
-                maxSelection: isMultiple ? group.rules.maxSelection : 1,
-              },
+              isMultiple,
+              maxSelection: isMultiple ? group.maxSelection : 1,
             });
           }}
         >
@@ -95,15 +90,12 @@ export const GroupSettings = ({ group, onChange }: IGroupSettingsProps) => {
         <Flex gap={8} align="center">
           <span className={styles.label}>Min</span>
           <InputNumber
-            value={group.rules.minSelection ?? 0}
+            value={group.minSelection ?? 0}
             min={0}
-            max={group.rules.maxSelection ?? undefined}
+            max={group.maxSelection ?? undefined}
             onChange={(value) =>
               onChange({
-                rules: {
-                  ...group.rules,
-                  minSelection: typeof value === "number" ? value : null,
-                },
+                minSelection: typeof value === "number" ? value : null,
               })
             }
             className={styles.numberInput}
@@ -114,20 +106,17 @@ export const GroupSettings = ({ group, onChange }: IGroupSettingsProps) => {
         <Flex gap={8} align="center">
           <span className={styles.label}>Max</span>
           <InputNumber
-            value={group.rules.maxSelection ?? undefined}
-            min={group.rules.minSelection ?? 0}
+            value={group.maxSelection ?? undefined}
+            min={group.minSelection ?? 0}
             placeholder="∞"
             onChange={(value) =>
               onChange({
-                rules: {
-                  ...group.rules,
-                  maxSelection: typeof value === "number" ? value : null,
-                },
+                maxSelection: typeof value === "number" ? value : null,
               })
             }
             className={styles.numberInput}
             size="small"
-            disabled={!group.rules.isMultiple}
+            disabled={!group.isMultiple}
           />
         </Flex>
       </Flex>

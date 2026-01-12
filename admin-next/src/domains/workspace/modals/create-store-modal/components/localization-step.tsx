@@ -3,8 +3,7 @@
 import { useCallback, useRef } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import { Typography, Select, Tag } from "antd";
-import type { CustomTagProps } from "rc-select/lib/BaseSelect";
-import type { BaseSelectRef } from "rc-select";
+import type { CustomTagProps, BaseSelectRef } from "@rc-component/select/lib/BaseSelect";
 import { useStyles } from "../create-store-modal.styles";
 import type { ICreateStoreFormValues } from "../types";
 import {

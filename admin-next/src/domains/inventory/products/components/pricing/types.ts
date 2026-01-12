@@ -61,3 +61,38 @@ export interface PricingWidgetQueryResponse {
     pricing: PricingWidgetPayload;
   };
 }
+
+// ============================================================================
+// Legacy Types (for backward compatibility)
+// ============================================================================
+
+/**
+ * Source of price change
+ */
+export type PriceSource = "manual" | "rule-based" | "promo" | "market";
+
+/**
+ * Single price history record
+ */
+export interface IPriceHistoryRecord {
+  id: string;
+  amount: number;
+  compareAt: number | null;
+  effectiveFrom: Date;
+  effectiveTo: Date | null;
+  isCurrent: boolean;
+}
+
+/**
+ * Summary of variant prices with history
+ */
+export interface IVariantPriceSummary {
+  variantId: string;
+  variantTitle: string;
+  currentPrice: number;
+  previousPrice: number | null;
+  compareAtPrice: number | null;
+  costPrice: number | null;
+  margin: number | null;
+  priceHistory: IPriceHistoryRecord[];
+}

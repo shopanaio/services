@@ -1,4 +1,5 @@
-import { mockCategories, mockTags } from "./data";
+import { mockCategories } from "./categories";
+import { mockTags } from "./tags";
 import { MOCK_OPTION_GROUPS } from "./options";
 import { createMockData as createAttributesMockData } from "./attributes";
 import type {
@@ -107,12 +108,10 @@ const mockComponentGroups: IComponentGroup[] = [
     id: "grp-1",
     title: "Accessories",
     sortIndex: 0,
-    rules: {
-      isRequired: true,
-      isMultiple: true,
-      minSelection: 1,
-      maxSelection: 5,
-    },
+    isRequired: true,
+    isMultiple: true,
+    minSelection: 1,
+    maxSelection: 5,
     items: [
       {
         id: "item-1",
@@ -155,10 +154,8 @@ const mockComponentGroups: IComponentGroup[] = [
           priceType: ComponentPriceType.MARKUP_PERCENT,
           priceValue: 10,
         },
-        overrides: {
-          title: null,
-          featuredImage: null,
-        },
+        title: null,
+        featuredImage: null,
       },
       {
         id: "item-2",
@@ -180,10 +177,8 @@ const mockComponentGroups: IComponentGroup[] = [
           priceType: ComponentPriceType.DISCOUNT_PERCENT,
           priceValue: 10,
         },
-        overrides: {
-          title: null,
-          featuredImage: null,
-        },
+        title: null,
+        featuredImage: null,
       },
       {
         id: "item-3",
@@ -205,10 +200,8 @@ const mockComponentGroups: IComponentGroup[] = [
           priceType: ComponentPriceType.FREE,
           priceValue: null,
         },
-        overrides: {
-          title: null,
-          featuredImage: null,
-        },
+        title: null,
+        featuredImage: null,
       },
     ],
   },
@@ -216,12 +209,10 @@ const mockComponentGroups: IComponentGroup[] = [
     id: "grp-2",
     title: "Warranty",
     sortIndex: 1,
-    rules: {
-      isRequired: false,
-      isMultiple: false,
-      minSelection: null,
-      maxSelection: 1,
-    },
+    isRequired: false,
+    isMultiple: false,
+    minSelection: null,
+    maxSelection: 1,
     items: [
       {
         id: "item-4",
@@ -243,10 +234,8 @@ const mockComponentGroups: IComponentGroup[] = [
           priceType: ComponentPriceType.INCLUDED,
           priceValue: null,
         },
-        overrides: {
-          title: "1 Year Standard Warranty (included)",
-          featuredImage: null,
-        },
+        title: "1 Year Standard Warranty (included)",
+        featuredImage: null,
       },
       {
         id: "item-5",
@@ -268,10 +257,8 @@ const mockComponentGroups: IComponentGroup[] = [
           priceType: ComponentPriceType.FIXED,
           priceValue: 12990,
         },
-        overrides: {
-          title: null,
-          featuredImage: null,
-        },
+        title: null,
+        featuredImage: null,
       },
     ],
   },

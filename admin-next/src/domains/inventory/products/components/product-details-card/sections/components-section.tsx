@@ -15,8 +15,8 @@ interface IComponentsSectionProps {
 
 // Helper to get image from component item
 const getItemImageUrl = (item: ComponentItem): string | null => {
-  if (item.overrides.featuredImage?.url) {
-    return item.overrides.featuredImage.url;
+  if (item.featuredImage?.url) {
+    return item.featuredImage.url;
   }
 
   if (item.itemType === ComponentItemType.VARIANT && item.assignedVariant) {
@@ -81,10 +81,10 @@ export const ComponentsSection = ({
               </div>
               <Typography.Text type="secondary" className={styles.groupMeta}>
                 {[
-                  group.rules.isMultiple && "Multiple",
-                  group.rules.isRequired && "Required",
-                  group.rules.minSelection && group.rules.minSelection > 0 && `Min: ${group.rules.minSelection}`,
-                  group.rules.maxSelection && `Max: ${group.rules.maxSelection}`,
+                  group.isMultiple && "Multiple",
+                  group.isRequired && "Required",
+                  group.minSelection && group.minSelection > 0 && `Min: ${group.minSelection}`,
+                  group.maxSelection && `Max: ${group.maxSelection}`,
                 ]
                   .filter(Boolean)
                   .join(" · ")}
