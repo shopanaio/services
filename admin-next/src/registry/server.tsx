@@ -17,18 +17,10 @@ interface PageProps {
 
 function renderComponent(
   Component: ComponentType<ModulePageProps>,
-  props: ModulePageProps,
-  Layout?: DomainLayoutComponent,
-  pathParams?: ParamData
+  props: ModulePageProps
 ): React.ReactElement {
-  const Wrapper = Layout ?? Fragment;
-  return (
-    <PathParamsProvider pathParams={pathParams ?? {}}>
-      <Wrapper>
-        <Component {...props} />
-      </Wrapper>
-    </PathParamsProvider>
-  );
+  // PathParamsProvider is handled by layout.tsx, not here
+  return <Component {...props} />;
 }
 
 export interface CreatePageOptions {
@@ -37,6 +29,7 @@ export interface CreatePageOptions {
 
 /**
  * Factory function to create page exports.
+ * The page only renders the component - layout wrapping is handled by layout.tsx
  */
 export function createPage(options: CreatePageOptions = {}) {
   const { modulesContext } = options;
@@ -60,19 +53,13 @@ export function createPage(options: CreatePageOptions = {}) {
     const searchParams = rawSearchParams ? { ...rawSearchParams } : {};
 
     const Component = matchResult.record.component;
-    const Layout = matchResult.domainConfig?.layout;
     const pathParams = matchResult.params ? { ...matchResult.params } : {};
 
-    return renderComponent(
-      Component,
-      {
-        params: { slug: segments },
-        searchParams,
-        pathParams,
-      },
-      Layout,
-      pathParams
-    );
+    return renderComponent(Component, {
+      params: { slug: segments },
+      searchParams,
+      pathParams,
+    });
   }
 
   return { Page };
@@ -89,18 +76,51 @@ export interface CreateLayoutOptions {
 }
 
 /**
+ * Resolves the domain layout component based on the pathname.
+ */
+export function resolveDomainLayout(pathname: string): {
+  Layout: DomainLayoutComponent | typeof Fragment;
+  pathParams: ParamData;
+} {
+  const matchResult = moduleRegistry.matchPath(pathname);
+
+  if (!matchResult) {
+    return { Layout: Fragment, pathParams: {} };
+  }
+
+  const Layout = matchResult.domainConfig?.layout ?? Fragment;
+  const pathParams = matchResult.params ? { ...matchResult.params } : {};
+
+  return { Layout, pathParams };
+}
+
+/**
  * Factory function to create layout exports with sidebar items from modules.
+ * The layout now handles domain layout wrapping using pathname from middleware headers.
  *
  * @example
  * ```tsx
  * // app/[[...slug]]/layout.tsx
- * import { createLayout } from "@/registry";
+ * import { headers } from "next/headers";
+ * import { createLayout, resolveDomainLayout } from "@/registry";
  * import { getModalStackDefinitions } from "@/domains/modals";
  *
- * const { Layout } = createLayout({
+ * const { ModuleLayout } = createLayout({
  *   modulesContext: require.context("../../domains", true, /(register|domain)\.tsx?$/),
  *   getModalStackItems: getModalStackDefinitions,
  * });
+ *
+ * export default async function Layout({ children }: { children: React.ReactNode }) {
+ *   const headersList = await headers();
+ *   const pathname = headersList.get("x-pathname") || "/";
+ *   const { Layout: DomainLayout, pathParams } = resolveDomainLayout(pathname);
+ *
+ *   return (
+ *     <ModuleLayout pathParams={pathParams}>
+ *       <DomainLayout>{children}</DomainLayout>
+ *     </ModuleLayout>
+ *   );
+ * }
  * ```
  */
 export function createLayout(options: CreateLayoutOptions) {
@@ -110,13 +130,19 @@ export function createLayout(options: CreateLayoutOptions) {
 
   const sidebarItems = moduleRegistry.getSidebarItems();
 
-  function Layout({ children }: { children: React.ReactNode }) {
+  function ModuleLayout({
+    children,
+    pathParams,
+  }: {
+    children: React.ReactNode;
+    pathParams: ParamData;
+  }) {
     return (
       <ModuleProvider sidebarItems={sidebarItems} getModalStackItems={getModalStackItems}>
-        {children}
+        <PathParamsProvider pathParams={pathParams}>{children}</PathParamsProvider>
       </ModuleProvider>
     );
   }
 
-  return { Layout, sidebarItems };
+  return { ModuleLayout, sidebarItems };
 }

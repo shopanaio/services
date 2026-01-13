@@ -23,6 +23,7 @@ export {
   type CreateLayoutOptions,
   createPage,
   createLayout,
+  resolveDomainLayout,
 } from "./server";
 
 // Client-side context and hooks
