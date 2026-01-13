@@ -1,15 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import {
-  Button,
-  Tag,
-  Typography,
-  Dropdown,
-  Tooltip,
-  Flex,
-  Avatar,
-} from "antd";
+import { ReactNode, useState } from "react";
+import { Button, Tag, Typography, Dropdown, Tooltip, Flex, Avatar } from "antd";
 import {
   CheckOutlined,
   MoreOutlined,
@@ -29,6 +21,7 @@ import type { ApiOrganization } from "@/graphql/types";
 export interface IOrganizationInfoHeaderProps {
   organization: ApiOrganization;
   onEdit?: () => void;
+  children?: ReactNode;
 }
 
 // ============================================================================
@@ -95,6 +88,7 @@ function getInitials(name: string): string {
 export const OrganizationInfoHeader = ({
   organization,
   onEdit,
+  children,
 }: IOrganizationInfoHeaderProps) => {
   const { styles } = useStyles();
   const [linkCopied, setLinkCopied] = useState(false);
@@ -180,6 +174,7 @@ export const OrganizationInfoHeader = ({
           </Flex>
         </Flex>
       </Flex>
+      {children}
     </Paper>
   );
 };

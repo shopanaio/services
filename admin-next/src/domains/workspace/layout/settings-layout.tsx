@@ -15,7 +15,7 @@ const useStyles = createStyles(({ token }) => ({
     padding: token.paddingLG,
     display: "flex",
     flexDirection: "column",
-    gap: token.marginLG,
+    gap: token.marginSM,
   },
 }));
 

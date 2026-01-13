@@ -51,10 +51,10 @@ export default function OrganizationsPage() {
     <SettingsLayout name="organizations">
       <div className={styles.pageHeader}>
         <Typography.Title level={2} className={styles.pageTitle}>
-          Organizations
+          Workspace
         </Typography.Title>
         <Typography.Text className={styles.pageDescription}>
-          Manage your organizations and access their settings
+          Manage your organizations and teams.
         </Typography.Text>
       </div>
 

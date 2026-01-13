@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { message, Flex, Skeleton } from "antd";
+import { message, Flex, Skeleton, Divider } from "antd";
 import { TeamOutlined, SafetyOutlined, ShopOutlined } from "@ant-design/icons";
 import { KPITile } from "@/ui-kit/kpi-tile";
 import { SettingsLayout } from "../../layout";
@@ -172,12 +172,14 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
   const handleInviteMember = useCallback(() => {
     if (!organization) return;
     pushInviteModal({
-      onInvite: async (email: string, roleId: string, _personalMessage?: string) => {
-        const { userErrors } = await inviteMember(
-          organization.id,
-          email,
-          [{ domain: "org", role: roleId }]
-        );
+      onInvite: async (
+        email: string,
+        roleId: string,
+        _personalMessage?: string
+      ) => {
+        const { userErrors } = await inviteMember(organization.id, email, [
+          { domain: "org", role: roleId },
+        ]);
 
         if (userErrors.length > 0) {
           userErrors.forEach((err) => message.error(err.message));
@@ -328,28 +330,29 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
       <OrganizationInfoHeader
         organization={organization}
         onEdit={handleEditOrganization}
-      />
-
-      <Flex gap={16}>
-        <KPITile
-          label="Stores"
-          value={storesCount}
-          icon={<ShopOutlined />}
-          tooltip="Total number of stores in organization"
-        />
-        <KPITile
-          label="Members"
-          value={memberCount}
-          icon={<TeamOutlined />}
-          tooltip="Total team members"
-        />
-        <KPITile
-          label="Roles"
-          value={roleCount}
-          icon={<SafetyOutlined />}
-          tooltip="Custom roles defined"
-        />
-      </Flex>
+      >
+        <Divider style={{ marginTop: 16, marginBottom: 12 }} />
+        <Flex gap={16}>
+          <KPITile
+            label="Stores"
+            value={storesCount}
+            icon={<ShopOutlined />}
+            tooltip="Total number of stores in organization"
+          />
+          <KPITile
+            label="Members"
+            value={memberCount}
+            icon={<TeamOutlined />}
+            tooltip="Total team members"
+          />
+          <KPITile
+            label="Roles"
+            value={roleCount}
+            icon={<SafetyOutlined />}
+            tooltip="Custom roles defined"
+          />
+        </Flex>
+      </OrganizationInfoHeader>
 
       <StoresSection
         stores={stores}

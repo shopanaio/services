@@ -1,14 +1,14 @@
 "use client";
 
-import { ReactNode } from "react";
 import { createStyles } from "antd-style";
-import { Typography, Flex, Button } from "antd";
+import { Typography, Button } from "antd";
 
 const useStyles = createStyles(({ token }) => ({
   section: {
     padding: token.paddingLG,
     borderRadius: token.borderRadiusLG,
     border: `1px solid ${token.colorErrorBorder}`,
+    backgroundColor: token.colorBgContainer,
   },
   header: {
     marginBottom: token.marginLG,

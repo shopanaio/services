@@ -6,7 +6,6 @@ import {
   useState,
   useCallback,
   useMemo,
-  useEffect,
   type ReactNode,
 } from "react";
 import type { ApiOrganization, ApiStore, ApiMember } from "@/graphql/types";
@@ -80,13 +79,6 @@ export interface WorkspaceContextValue {
 // ============================================
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
-
-// ============================================
-// Storage keys
-// ============================================
-
-const STORAGE_KEY_ORG = "workspace:organizationName";
-const STORAGE_KEY_STORE = "workspace:storeId";
 
 // ============================================
 // Provider
@@ -173,50 +165,16 @@ export function WorkspaceProvider({
   const selectOrganization = useCallback((name: string) => {
     setOrganizationName(name);
     setStoreId(null); // Clear store when switching organizations
-
-    // Persist to storage
-    if (typeof window !== "undefined") {
-      localStorage.setItem(STORAGE_KEY_ORG, name);
-      localStorage.removeItem(STORAGE_KEY_STORE);
-    }
   }, []);
 
   const selectStore = useCallback((id: string | null) => {
     setStoreId(id);
-
-    // Persist to storage
-    if (typeof window !== "undefined") {
-      if (id) {
-        localStorage.setItem(STORAGE_KEY_STORE, id);
-      } else {
-        localStorage.removeItem(STORAGE_KEY_STORE);
-      }
-    }
   }, []);
 
   const refresh = useCallback(() => {
     refetchOrganization();
     refetchStores();
   }, [refetchOrganization, refetchStores]);
-
-  // Load from storage on mount if no initial values
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    if (!initialOrganizationName) {
-      const storedOrgName = localStorage.getItem(STORAGE_KEY_ORG);
-      if (storedOrgName) {
-        setOrganizationName(storedOrgName);
-      }
-    }
-
-    if (!initialStoreId) {
-      const storedStoreId = localStorage.getItem(STORAGE_KEY_STORE);
-      if (storedStoreId) {
-        setStoreId(storedStoreId);
-      }
-    }
-  }, [initialOrganizationName, initialStoreId]);
 
   // Build context value
   const value = useMemo<WorkspaceContextValue>(
