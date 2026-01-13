@@ -93,8 +93,7 @@ export const RESOURCE_DEFINITION_FRAGMENT = gql`
   fragment ResourceDefinitionFields on ResourceDefinition {
     name
     displayName
-    description
-    allowedActions
+    actions
   }
 `;
 
