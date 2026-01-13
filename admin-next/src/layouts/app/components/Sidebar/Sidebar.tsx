@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useMemo, useEffect } from "react";
 import { ConfigProvider, Layout, Menu, MenuProps, Typography } from "antd";
 import { StoreMenu } from "@/layouts/app/components/store-menu/store-menu";
 import { SidebarLogo } from "@/layouts/app/components/sidebar/sidebar-logo";
@@ -9,6 +9,7 @@ import { useSidebarItems, usePathParamsOptional, type SidebarItem } from "@/regi
 import { SubitemIcon } from "@/ui-kit/arrows/arrows";
 import { usePathname, useRouter } from "next/navigation";
 import { match } from "path-to-regexp";
+import { useSidebarStore } from "./sidebar-store";
 
 type AntMenuItem = NonNullable<MenuProps["items"]>[number];
 
@@ -148,10 +149,14 @@ export const Sidebar = () => {
   const sidebarItems = useSidebarItems();
   const pathContext = usePathParamsOptional();
   const menuItems = useMemo(() => buildMenuItems(sidebarItems), [sidebarItems]);
-  const [collapsed, setCollapsed] = useState(false);
-  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
-  const [openKeys, setOpenKeys] = useState<string[]>([]);
+  const { collapsed, openKeys, setCollapsed, setOpenKeys } = useSidebarStore();
   const { styles } = useStyles({ collapsed });
+
+  // Derive selectedKeys from pathname
+  const selectedKeys = useMemo(() => {
+    const matched = findMatchingItem(sidebarItems, pathname);
+    return matched ? [matched.key] : [];
+  }, [sidebarItems, pathname]);
 
   const onOpenChange: MenuProps["onOpenChange"] = (keys) => {
     const latestOpenKey = keys.at(-1);
@@ -169,19 +174,13 @@ export const Sidebar = () => {
 
   const onCollapse = (value: boolean) => setCollapsed(value);
 
+  // Auto-open parent submenu when navigating to a page
   useEffect(() => {
     const matched = findMatchingItem(sidebarItems, pathname);
-    if (!matched) {
-      return;
-    }
-    setSelectedKeys([matched.key]);
-    setTimeout(() => {
-      if (collapsed || !matched.parentKey) {
-        return;
-      }
+    if (matched?.parentKey && !collapsed && !openKeys.includes(matched.parentKey)) {
       setOpenKeys([matched.parentKey]);
-    }, 100);
-  }, [pathname, sidebarItems, collapsed]);
+    }
+  }, [pathname, sidebarItems, collapsed, openKeys, setOpenKeys]);
 
   return (
     <>
