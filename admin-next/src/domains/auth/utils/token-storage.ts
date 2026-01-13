@@ -62,10 +62,13 @@ export function clearStoredTokens(): void {
   localStorage.removeItem(EXPIRES_AT_KEY);
 }
 
+// Match the buffer in apollo-client.ts for consistency
+const TOKEN_REFRESH_BUFFER_MS = 60 * 1000;
+
 export function isTokenExpired(): boolean {
   const tokens = getStoredTokens();
   if (!tokens) return true;
 
-  // Consider expired 30 seconds before actual expiry
-  return Date.now() >= tokens.expiresAt - 30000;
+  // Consider expired 60 seconds before actual expiry to allow proactive refresh
+  return Date.now() >= tokens.expiresAt - TOKEN_REFRESH_BUFFER_MS;
 }
