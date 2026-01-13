@@ -160,22 +160,22 @@ export const StoreMenu = ({
       key: 'divider-3',
     },
     {
-      key: 'profile',
+      key: 'account',
       onClick: () => router.push('/workspace/profile'),
       label: (
-        <Flex gap="small" align="center" data-testid="project-menu-profile">
+        <Flex gap="small" align="center" data-testid="project-menu-account">
           <MdOutlineAccountCircle />
-          <Typography.Text>Profile</Typography.Text>
+          <Typography.Text>Account</Typography.Text>
         </Flex>
       ),
     },
     {
-      key: 'workspace',
+      key: 'organization',
       onClick: () => router.push('/workspace/organization'),
       label: (
-        <Flex gap="small" align="center" data-testid="project-menu-workspace">
+        <Flex gap="small" align="center" data-testid="project-menu-organization">
           <MdBusiness />
-          <Typography.Text>Workspace</Typography.Text>
+          <Typography.Text>Organization</Typography.Text>
         </Flex>
       ),
     },
