@@ -1,10 +1,8 @@
-import {
-  ApolloClient,
-  InMemoryCache,
-} from "@apollo/client-integration-nextjs";
+import { ApolloClient, InMemoryCache } from "@apollo/client-integration-nextjs";
 import { HttpLink } from "@apollo/client";
 
-const GRAPHQL_ENDPOINT = process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT || "http://localhost:4000/graphql";
+const GRAPHQL_ENDPOINT =
+  process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT || "http://localhost:4001/graphql";
 
 export function makeClient() {
   const httpLink = new HttpLink({

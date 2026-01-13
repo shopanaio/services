@@ -5,10 +5,7 @@ import { useCallback } from "react";
 import { SIGN_UP_MUTATION, CURRENT_USER_QUERY } from "../graphql";
 import { createNetworkError } from "../utils";
 import type { SignUpInput, SignUpResult } from "../context/types";
-import type {
-  ApiUserSignUpInput,
-  ApiUserSignUpPayload,
-} from "@/graphql/types";
+import type { ApiUserSignUpInput, ApiUserSignUpPayload } from "@/graphql/types";
 
 export interface UseSignUpReturn {
   /** Execute sign-up mutation */
@@ -24,16 +21,12 @@ export interface UseSignUpReturn {
 /**
  * Hook for creating a new user account.
  * On success, returns the created user and auth tokens.
- * Automatically refetches the current user query after sign-up.
  */
 export function useSignUp(): UseSignUpReturn {
   const [mutate, { loading, error, reset }] = useMutation<
     { authMutation: { signUp: ApiUserSignUpPayload } },
     { input: ApiUserSignUpInput }
-  >(SIGN_UP_MUTATION, {
-    refetchQueries: [{ query: CURRENT_USER_QUERY }],
-    awaitRefetchQueries: true,
-  });
+  >(SIGN_UP_MUTATION);
 
   const signUp = useCallback(
     async (input: SignUpInput): Promise<SignUpResult> => {

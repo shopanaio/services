@@ -5,10 +5,7 @@ import { useCallback } from "react";
 import { SIGN_IN_MUTATION, CURRENT_USER_QUERY } from "../graphql";
 import { createNetworkError } from "../utils";
 import type { SignInInput, SignInResult } from "../context/types";
-import type {
-  ApiUserSignInInput,
-  ApiUserSignInPayload,
-} from "@/graphql/types";
+import type { ApiUserSignInInput, ApiUserSignInPayload } from "@/graphql/types";
 
 export interface UseSignInReturn {
   /** Execute sign-in mutation */
@@ -24,16 +21,13 @@ export interface UseSignInReturn {
 /**
  * Hook for signing in with email and password.
  * On success, returns user and auth tokens.
- * Automatically refetches the current user query after sign-in.
+ * Updates the current user in Apollo cache.
  */
 export function useSignIn(): UseSignInReturn {
   const [mutate, { loading, error, reset }] = useMutation<
     { authMutation: { signIn: ApiUserSignInPayload } },
     { input: ApiUserSignInInput }
-  >(SIGN_IN_MUTATION, {
-    refetchQueries: [{ query: CURRENT_USER_QUERY }],
-    awaitRefetchQueries: true,
-  });
+  >(SIGN_IN_MUTATION);
 
   const signIn = useCallback(
     async (input: SignInInput): Promise<SignInResult> => {
