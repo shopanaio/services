@@ -75,6 +75,7 @@ export async function startServer(serverConfig: ServerConfig) {
     "shared-locale.graphql",
     "shared-currency.graphql",
     "shared-units.graphql",
+    "relay.graphql",
     "base.graphql",
     "user.graphql",
     "role.graphql",

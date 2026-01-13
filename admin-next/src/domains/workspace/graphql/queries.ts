@@ -88,7 +88,9 @@ export const ORGANIZATIONS_QUERY = gql`
   query Organizations {
     organizationQuery {
       organizations {
-        ...OrganizationBasicFields
+        nodes {
+          ...OrganizationBasicFields
+        }
       }
     }
   }

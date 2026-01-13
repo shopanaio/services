@@ -6,7 +6,7 @@
 Organization - top level entity for multi-tenancy.
 Users belong to organizations, organizations contain stores.
 """
-type Organization @key(fields: "id") {
+type Organization implements Node @key(fields: "id") {
   """
   Unique identifier.
   """
@@ -31,6 +31,79 @@ type Organization @key(fields: "id") {
   Timestamp when the organization was last updated.
   """
   updatedAt: DateTime
+}
+
+# ============================================================================
+# CONNECTION TYPES
+# ============================================================================
+
+"""
+A connection to a list of Organization items.
+"""
+type OrganizationConnection {
+  """A list of edges."""
+  edges: [OrganizationEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of organizations."""
+  totalCount: Int!
+}
+
+"""
+An edge in an Organization connection.
+"""
+type OrganizationEdge {
+  """The item at the end of the edge."""
+  node: Organization!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+
+# ============================================================================
+# FILTER TYPES
+# ============================================================================
+
+"""Filter conditions for Organization"""
+input OrganizationWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [OrganizationWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [OrganizationWhereInput!]
+  """Negate the condition"""
+  _not: OrganizationWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by name"""
+  name: StringFilter
+  """Filter by displayName"""
+  displayName: StringFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+}
+
+"""Fields available for sorting Organization"""
+enum OrganizationOrderField {
+  """Sort by name"""
+  name
+  """Sort by displayName"""
+  displayName
+  """Sort by createdAt"""
+  createdAt
+  """Sort by updatedAt"""
+  updatedAt
+}
+
+"""Ordering configuration for Organization"""
+input OrganizationOrderByInput {
+  """Field to order by"""
+  field: OrganizationOrderField!
+  """Sort direction"""
+  direction: SortDirection!
 }
 
 # ============================================================================
@@ -223,6 +296,24 @@ type OrganizationQuery {
   Get organization by ID (if user has access).
   """
   organization(id: ID!): Organization
+  """
+  Get all organizations the current user has access to with cursor pagination.
+  Returns empty connection if not authenticated.
+  """
+  organizations(
+    """Returns the first n items"""
+    first: Int
+    """Returns items after this cursor"""
+    after: String
+    """Returns the last n items"""
+    last: Int
+    """Returns items before this cursor"""
+    before: String
+    """Filter conditions"""
+    where: OrganizationWhereInput
+    """Sort order"""
+    orderBy: [OrganizationOrderByInput!]
+  ): OrganizationConnection!
 }
 
 """

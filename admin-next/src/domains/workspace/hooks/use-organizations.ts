@@ -45,14 +45,14 @@ export function useOrganizations(
   const { skip = false } = options;
 
   const { data, loading, error, refetch } = useQuery<{
-    organizationQuery: { organizations: ApiOrganization[] };
+    organizationQuery: { organizations: { nodes: ApiOrganization[] } };
   }>(ORGANIZATIONS_QUERY, {
     skip,
     fetchPolicy: "cache-and-network",
   });
 
   return {
-    organizations: data?.organizationQuery.organizations ?? [],
+    organizations: data?.organizationQuery.organizations.nodes ?? [],
     loading,
     error: error ?? null,
     refetch: () => void refetch(),

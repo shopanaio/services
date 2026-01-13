@@ -1,0 +1,98 @@
+# ============================================================================
+# RELAY SPECIFICATION TYPES
+# ============================================================================
+
+"""
+The Node interface is implemented by all types that have a globally unique ID.
+"""
+interface Node {
+  """The globally unique ID of the object."""
+  id: ID!
+}
+
+"""
+Information about pagination in a connection.
+"""
+type PageInfo @shareable {
+  """When paginating forwards, are there more items?"""
+  hasNextPage: Boolean!
+
+  """When paginating backwards, are there more items?"""
+  hasPreviousPage: Boolean!
+
+  """When paginating backwards, the cursor to continue."""
+  startCursor: String
+
+  """When paginating forwards, the cursor to continue."""
+  endCursor: String
+}
+
+# ============================================================================
+# BASE FILTER TYPES
+# ============================================================================
+
+"""Filter operators for String fields"""
+input StringFilter {
+  """Equals"""
+  _eq: String
+  """Not equals"""
+  _neq: String
+  """In array"""
+  _in: [String!]
+  """Not in array"""
+  _notIn: [String!]
+  """Is null"""
+  _is: Boolean
+  """Is not null"""
+  _isNot: Boolean
+  """Contains substring (case-sensitive)"""
+  _contains: String
+  """Contains substring (case-insensitive)"""
+  _containsi: String
+  """Starts with (case-sensitive)"""
+  _startsWith: String
+  """Starts with (case-insensitive)"""
+  _startsWithi: String
+}
+
+"""Filter operators for ID fields"""
+input IDFilter {
+  """Equals"""
+  _eq: ID
+  """Not equals"""
+  _neq: ID
+  """In array"""
+  _in: [ID!]
+  """Not in array"""
+  _notIn: [ID!]
+  """Is null"""
+  _is: Boolean
+  """Is not null"""
+  _isNot: Boolean
+}
+
+"""Filter operators for DateTime fields"""
+input DateTimeFilter {
+  """Equals"""
+  _eq: DateTime
+  """Not equals"""
+  _neq: DateTime
+  """Greater than (after)"""
+  _gt: DateTime
+  """Greater than or equal (on or after)"""
+  _gte: DateTime
+  """Less than (before)"""
+  _lt: DateTime
+  """Less than or equal (on or before)"""
+  _lte: DateTime
+  """Is null"""
+  _is: Boolean
+  """Is not null"""
+  _isNot: Boolean
+}
+
+"""Sort direction"""
+enum SortDirection {
+  asc
+  desc
+}

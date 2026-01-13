@@ -1,5 +1,11 @@
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, count } from "drizzle-orm";
 import { Transactional, ReadOnly } from "@shopana/shared-kernel";
+import {
+  createQuery,
+  createRelayQuery,
+  type PageInfo,
+  type InferRelayInput,
+} from "@shopana/drizzle-query";
 import {
   organization,
   organizationMember,
@@ -11,6 +17,31 @@ import {
   type Role,
 } from "../models/authorization.js";
 import { BaseRepository } from "../BaseRepository.js";
+
+// ============================================================================
+// Relay Query Definition
+// ============================================================================
+
+export const organizationRelayQuery = createRelayQuery(
+  createQuery(organization)
+    .include(["id", "name", "displayName", "createdAt", "updatedAt"])
+    .maxLimit(100)
+    .defaultLimit(20),
+  { name: "organization", tieBreaker: "id" }
+);
+
+export type OrganizationRelayInput = InferRelayInput<
+  typeof organizationRelayQuery
+> & {
+  /** User ID to filter organizations by membership */
+  userId: string;
+};
+
+export interface OrganizationConnectionResult {
+  edges: Array<{ cursor: string; nodeId: string }>;
+  pageInfo: PageInfo;
+  totalCount: number;
+}
 
 // ============================================================================
 // Types
@@ -308,6 +339,96 @@ export class OrganizationRepository extends BaseRepository {
       );
 
     return members.map((m) => m.organization);
+  }
+
+  /**
+   * Count organizations where user is a member
+   */
+  @ReadOnly()
+  async countUserOrganizations(userId: string): Promise<number> {
+    const [result] = await this.connection
+      .select({ count: count() })
+      .from(organizationMember)
+      .innerJoin(
+        organization,
+        eq(organizationMember.organizationId, organization.id)
+      )
+      .where(
+        and(
+          eq(organizationMember.userId, userId),
+          isNull(organization.deletedAt)
+        )
+      );
+
+    return result?.count ?? 0;
+  }
+
+  /**
+   * Get paginated organizations with cursor-based pagination.
+   * Only returns organizations where the user is a member.
+   */
+  @ReadOnly()
+  async getConnection(
+    args: OrganizationRelayInput
+  ): Promise<OrganizationConnectionResult> {
+    const { userId, where, orderBy, ...paginationArgs } = args;
+
+    // First, get all organization IDs the user has access to
+    const userOrgIds = await this.connection
+      .select({ orgId: organizationMember.organizationId })
+      .from(organizationMember)
+      .innerJoin(
+        organization,
+        eq(organizationMember.organizationId, organization.id)
+      )
+      .where(
+        and(
+          eq(organizationMember.userId, userId),
+          isNull(organization.deletedAt)
+        )
+      );
+
+    const orgIds = userOrgIds.map((row) => row.orgId);
+
+    // If user has no organizations, return empty connection
+    if (orgIds.length === 0) {
+      return {
+        edges: [],
+        pageInfo: {
+          hasNextPage: false,
+          hasPreviousPage: false,
+          startCursor: null,
+          endCursor: null,
+        },
+        totalCount: 0,
+      };
+    }
+
+    // Build where clause with user's organization filter + any additional filters
+    const executeInput = {
+      ...paginationArgs,
+      where: {
+        _and: [
+          { id: { _in: orgIds } },
+          ...(where ? [where] : []),
+        ],
+      },
+      orderBy: orderBy ?? [{ field: "createdAt" as const, direction: "desc" as const }],
+    };
+
+    const [result, totalCount] = await Promise.all([
+      organizationRelayQuery.execute(this.connection, executeInput),
+      this.countUserOrganizations(userId),
+    ]);
+
+    return {
+      edges: result.edges.map((edge) => ({
+        cursor: edge.cursor,
+        nodeId: edge.node.id,
+      })),
+      pageInfo: result.pageInfo,
+      totalCount,
+    };
   }
 
   // ============================================================================
