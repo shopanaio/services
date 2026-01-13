@@ -160,3 +160,48 @@ export const USER_ERROR_FRAGMENT = gql`
     message
   }
 `;
+
+// ============================================
+// Store Fragments
+// ============================================
+
+// Store fragment - minimal info for lists and selectors
+export const STORE_BASIC_FRAGMENT = gql`
+  fragment StoreBasicFields on Store {
+    id
+    name
+    displayName
+    status
+    createdAt
+  }
+`;
+
+// Store fragment - full store with all settings
+export const STORE_FRAGMENT = gql`
+  fragment StoreFields on Store {
+    id
+    name
+    displayName
+    status
+    timezone
+    email
+    locales
+    currencies
+    baseCurrency
+    defaultLocale
+    defaultCurrency
+    defaultWeightUnit
+    defaultDimensionUnit
+    createdAt
+    updatedAt
+    organization {
+      id
+      name
+      displayName
+    }
+    membership {
+      ...MembershipFields
+    }
+  }
+  ${MEMBERSHIP_FRAGMENT}
+`;

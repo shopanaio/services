@@ -1,6 +1,6 @@
 /**
  * Workspace domain hooks.
- * Provides React hooks for all IAM service operations.
+ * Provides React hooks for all IAM and Project service operations.
  */
 
 // ============================================
@@ -25,11 +25,22 @@ export { useUpdatePassword } from "./use-update-password";
 // ============================================
 // Organization Hooks
 // ============================================
+export { useOrganizations } from "./use-organizations";
 export { useOrganization } from "./use-organization";
 export { useCreateOrganization } from "./use-create-organization";
 export { useUpdateOrganization } from "./use-update-organization";
 export { useDeleteOrganization } from "./use-delete-organization";
 export { useTransferOwnership } from "./use-transfer-ownership";
+
+// ============================================
+// Store Hooks
+// ============================================
+export { useStores } from "./use-stores";
+export { useStore } from "./use-store";
+export { useCurrentStore } from "./use-current-store";
+export { useCreateStore } from "./use-create-store";
+export { useUpdateStore } from "./use-update-store";
+export { useDeleteStore } from "./use-delete-store";
 
 // ============================================
 // Member Hooks

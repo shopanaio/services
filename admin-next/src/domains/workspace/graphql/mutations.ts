@@ -6,6 +6,7 @@ import {
   ORGANIZATION_FRAGMENT,
   ROLE_FRAGMENT,
   MEMBER_FRAGMENT,
+  STORE_FRAGMENT,
 } from "./fragments";
 
 /**
@@ -387,6 +388,70 @@ export const DELETE_ROLE_MUTATION = gql`
     roleMutation {
       roleDelete(input: $input) {
         deletedRoleName
+        userErrors {
+          ...UserErrorFields
+        }
+      }
+    }
+  }
+  ${USER_ERROR_FRAGMENT}
+`;
+
+// ============================================
+// Store Mutations
+// ============================================
+
+/**
+ * Create a new store within an organization.
+ * Requires store:create permission.
+ */
+export const CREATE_STORE_MUTATION = gql`
+  mutation CreateStore($input: StoreCreateInput!) {
+    storeMutation {
+      storeCreate(input: $input) {
+        store {
+          ...StoreFields
+        }
+        userErrors {
+          ...UserErrorFields
+        }
+      }
+    }
+  }
+  ${STORE_FRAGMENT}
+  ${USER_ERROR_FRAGMENT}
+`;
+
+/**
+ * Update store settings.
+ * Requires store:write permission.
+ */
+export const UPDATE_STORE_MUTATION = gql`
+  mutation UpdateStore($input: StoreUpdateInput!) {
+    storeMutation {
+      storeUpdate(input: $input) {
+        store {
+          ...StoreFields
+        }
+        userErrors {
+          ...UserErrorFields
+        }
+      }
+    }
+  }
+  ${STORE_FRAGMENT}
+  ${USER_ERROR_FRAGMENT}
+`;
+
+/**
+ * Delete a store.
+ * Requires store:admin permission.
+ */
+export const DELETE_STORE_MUTATION = gql`
+  mutation DeleteStore($input: StoreDeleteInput!) {
+    storeMutation {
+      storeDelete(input: $input) {
+        deletedStoreId
         userErrors {
           ...UserErrorFields
         }

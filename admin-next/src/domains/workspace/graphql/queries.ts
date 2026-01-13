@@ -2,6 +2,9 @@ import { gql } from "@apollo/client";
 import {
   USER_FRAGMENT,
   ORGANIZATION_FRAGMENT,
+  ORGANIZATION_BASIC_FRAGMENT,
+  STORE_FRAGMENT,
+  STORE_BASIC_FRAGMENT,
 } from "./fragments";
 
 /**
@@ -76,4 +79,65 @@ export const ORGANIZATION_BASIC_QUERY = gql`
       }
     }
   }
+`;
+
+/**
+ * List all organizations the current user has access to.
+ */
+export const ORGANIZATIONS_QUERY = gql`
+  query Organizations {
+    organizationQuery {
+      organizations {
+        ...OrganizationBasicFields
+      }
+    }
+  }
+  ${ORGANIZATION_BASIC_FRAGMENT}
+`;
+
+// ============================================
+// Store Queries
+// ============================================
+
+/**
+ * List all stores in an organization that the user has access to.
+ */
+export const STORES_QUERY = gql`
+  query Stores($organizationId: ID!) {
+    storeQuery {
+      stores(organizationId: $organizationId) {
+        ...StoreBasicFields
+      }
+    }
+  }
+  ${STORE_BASIC_FRAGMENT}
+`;
+
+/**
+ * Get the current store from context (set via headers).
+ * Returns full store details including membership.
+ */
+export const CURRENT_STORE_QUERY = gql`
+  query CurrentStore {
+    storeQuery {
+      currentStore {
+        ...StoreFields
+      }
+    }
+  }
+  ${STORE_FRAGMENT}
+`;
+
+/**
+ * Get a single store by ID with full details.
+ */
+export const STORE_QUERY = gql`
+  query Store($id: ID!, $organizationId: ID!) {
+    storeQuery {
+      store(id: $id, organizationId: $organizationId) {
+        ...StoreFields
+      }
+    }
+  }
+  ${STORE_FRAGMENT}
 `;
