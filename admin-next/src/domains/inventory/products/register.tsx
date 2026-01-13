@@ -13,7 +13,7 @@ registerModule({
   items: [
     {
       key: "products-list",
-      path: "/products",
+      path: "/:orgName/:storeName/products",
       component: dynamic(() => import("@/domains/inventory/products/page/page")),
       sidebar: {
         label: "All Products",
@@ -22,7 +22,7 @@ registerModule({
     },
     {
       key: "inventory-list",
-      path: "/inventory",
+      path: "/:orgName/:storeName/inventory",
       component: dynamic(
         () => import("@/domains/inventory/inventory/page/page")
       ),

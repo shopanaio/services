@@ -72,7 +72,7 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
   };
 
   const handleStoreClick = (store: IStore) => {
-    router.push(`/${orgName}/${store.slug}`);
+    router.push(`/${orgName}/${store.slug}/products`);
   };
 
   const handleCreateStore = () => {
