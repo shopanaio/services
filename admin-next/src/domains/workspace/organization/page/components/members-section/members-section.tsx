@@ -1,109 +1,128 @@
 "use client";
 
-import { useState } from "react";
-import { Typography, Button, Avatar, Dropdown, Input, Table, Tag } from "antd";
+import { useState, useMemo, useCallback } from "react";
+import { Typography, Button, Avatar, Dropdown, Input, Table, Tag, Skeleton } from "antd";
 import type { MenuProps } from "antd";
 import { MoreOutlined, SearchOutlined, UserOutlined, UserAddOutlined } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type { ApiMember } from "@/graphql/types";
-import { mockMembers, mockRoles, getUserDisplayName, getRoleByName } from "../../../../mocks/data";
 import { useStyles } from "../../organization-page.styles";
-import { getInitials } from "../../utils";
+import { getInitials, getUserDisplayName, getRoleByName } from "../../utils";
 import type { IMembersSectionProps } from "../../types";
 
-export function MembersSection({ onInviteMember }: IMembersSectionProps) {
+export function MembersSection({
+  members,
+  roles,
+  loading = false,
+  onInviteMember,
+  onChangeRole,
+  onRemoveMember,
+}: IMembersSectionProps) {
   const { styles } = useStyles();
   const [searchValue, setSearchValue] = useState("");
 
-  const handleChangeRole = (_memberId: string, _roleId: string) => {
-    // TODO: Implement role change
-  };
+  const getMemberActions = useCallback(
+    (member: ApiMember): MenuProps["items"] => {
+      const roleItems: MenuProps["items"] = roles
+        .filter((role) => role.name !== member.role)
+        .map((role) => ({
+          key: role.id,
+          label: role.displayName,
+          onClick: () => onChangeRole(member.id, role.name),
+        }));
 
-  const handleRemoveMember = (_memberId: string) => {
-    // TODO: Implement member removal
-  };
+      return [
+        { key: "view", label: "View Profile" },
+        { key: "role", label: "Change Role", children: roleItems },
+        { type: "divider" },
+        {
+          key: "remove",
+          label: "Remove from Team",
+          danger: true,
+          disabled: member.isOwner,
+          onClick: () => onRemoveMember(member.id),
+        },
+      ];
+    },
+    [roles, onChangeRole, onRemoveMember]
+  );
 
-  const getMemberActions = (member: ApiMember): MenuProps["items"] => {
-    const roleItems: MenuProps["items"] = mockRoles
-      .filter((role) => role.name !== member.role)
-      .map((role) => ({
-        key: role.id,
-        label: role.displayName,
-        onClick: () => handleChangeRole(member.id, role.id),
-      }));
-
-    return [
-      { key: "view", label: "View Profile" },
-      { key: "role", label: "Change Role", children: roleItems },
-      { type: "divider" },
+  const columns = useMemo(
+    () => [
       {
-        key: "remove",
-        label: "Remove from Team",
-        danger: true,
-        onClick: () => handleRemoveMember(member.id),
-      },
-    ];
-  };
-
-  const columns = [
-    {
-      title: "Member",
-      dataIndex: "user",
-      key: "user",
-      render: (_: unknown, record: ApiMember) => {
-        const displayName = getUserDisplayName(record.user);
-        return (
-          <div className={styles.memberCell}>
-            <Avatar src={record.user.avatar} icon={<UserOutlined />}>
-              {getInitials(displayName)}
-            </Avatar>
-            <div className={styles.memberInfo}>
-              <Typography.Text className={styles.memberName}>
-                {displayName}
-              </Typography.Text>
-              <Typography.Text className={styles.memberEmail}>
-                {record.user.email}
-              </Typography.Text>
+        title: "Member",
+        dataIndex: "user",
+        key: "user",
+        render: (_: unknown, record: ApiMember) => {
+          const displayName = getUserDisplayName(record.user);
+          return (
+            <div className={styles.memberCell}>
+              <Avatar src={record.user.avatar} icon={<UserOutlined />}>
+                {getInitials(displayName)}
+              </Avatar>
+              <div className={styles.memberInfo}>
+                <Typography.Text className={styles.memberName}>
+                  {displayName}
+                </Typography.Text>
+                <Typography.Text className={styles.memberEmail}>
+                  {record.user.email}
+                </Typography.Text>
+              </div>
             </div>
-          </div>
-        );
+          );
+        },
       },
-    },
-    {
-      title: "Role",
-      dataIndex: "role",
-      key: "role",
-      render: (_: unknown, record: ApiMember) => {
-        const role = getRoleByName(record.role);
-        return (
-          <Tag color={record.isOwner ? "gold" : "default"}>
-            {role?.displayName || record.role}
-          </Tag>
-        );
+      {
+        title: "Role",
+        dataIndex: "role",
+        key: "role",
+        render: (_: unknown, record: ApiMember) => {
+          const role = getRoleByName(roles, record.role);
+          return (
+            <Tag color={record.isOwner ? "gold" : "default"}>
+              {role?.displayName || record.role}
+            </Tag>
+          );
+        },
       },
-    },
-    {
-      title: "Actions",
-      key: "actions",
-      width: 80,
-      render: (_: unknown, record: ApiMember) => (
-        <Dropdown
-          menu={{ items: getMemberActions(record) }}
-          trigger={["click"]}
-        >
-          <Button type="text" icon={<MoreOutlined />} />
-        </Dropdown>
-      ),
-    },
-  ];
+      {
+        title: "Actions",
+        key: "actions",
+        width: 80,
+        render: (_: unknown, record: ApiMember) => (
+          <Dropdown
+            menu={{ items: getMemberActions(record) }}
+            trigger={["click"]}
+            disabled={record.isOwner}
+          >
+            <Button type="text" icon={<MoreOutlined />} />
+          </Dropdown>
+        ),
+      },
+    ],
+    [styles, roles, getMemberActions]
+  );
 
-  const filteredMembers = mockMembers.filter((member) => {
-    const displayName = getUserDisplayName(member.user);
+  const filteredMembers = useMemo(() => {
+    if (!searchValue) return members;
+    const search = searchValue.toLowerCase();
+    return members.filter((member) => {
+      const displayName = getUserDisplayName(member.user);
+      return (
+        displayName.toLowerCase().includes(search) ||
+        String(member.user.email).toLowerCase().includes(search)
+      );
+    });
+  }, [members, searchValue]);
+
+  if (loading) {
     return (
-      displayName.toLowerCase().includes(searchValue.toLowerCase()) ||
-      String(member.user.email).toLowerCase().includes(searchValue.toLowerCase())
+      <Paper>
+        <PaperHeader title="Team Members" />
+        <Skeleton active paragraph={{ rows: 3 }} />
+      </Paper>
     );
-  });
+  }
 
   return (
     <Paper>
@@ -136,10 +155,11 @@ export function MembersSection({ onInviteMember }: IMembersSectionProps) {
         dataSource={filteredMembers}
         rowKey="id"
         pagination={false}
+        locale={{ emptyText: "No members found" }}
       />
 
       <Typography.Text className={styles.footer}>
-        Showing {filteredMembers.length} of {mockMembers.length} members
+        Showing {filteredMembers.length} of {members.length} members
       </Typography.Text>
     </Paper>
   );

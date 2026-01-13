@@ -1,21 +1,42 @@
 "use client";
 
-import { useState } from "react";
-import { Typography, Button, Tabs, Empty } from "antd";
+import { useState, useMemo } from "react";
+import { Typography, Button, Tabs, Empty, Skeleton } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useStyles } from "../../organization-page.styles";
 import type { IStoresSectionProps, IStore } from "../../types";
 import { StoreItem } from "../store-item";
 
-export function StoresSection({ stores, onStoreClick, onCreateStore }: IStoresSectionProps) {
+export function StoresSection({
+  stores,
+  loading = false,
+  onStoreClick,
+  onCreateStore,
+}: IStoresSectionProps) {
   const { styles } = useStyles();
   const [activeTab, setActiveTab] = useState("all");
 
-  const activeStores = stores.filter((s) => s.status === "active");
-  const inactiveStores = stores.filter((s) => s.status === "inactive");
+  const activeStores = useMemo(
+    () => stores.filter((s) => s.status === "active"),
+    [stores]
+  );
+  const inactiveStores = useMemo(
+    () => stores.filter((s) => s.status === "inactive"),
+    [stores]
+  );
 
   const renderStoreList = (storeList: IStore[]) => {
+    if (loading) {
+      return (
+        <div className={styles.storeList}>
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} active paragraph={{ rows: 1 }} />
+          ))}
+        </div>
+      );
+    }
+
     if (!storeList.length) {
       return (
         <div className={styles.emptyState}>
@@ -45,9 +66,21 @@ export function StoresSection({ stores, onStoreClick, onCreateStore }: IStoresSe
   };
 
   const tabItems = [
-    { key: "all", label: `All (${stores.length})`, children: renderStoreList(stores) },
-    { key: "active", label: `Active (${activeStores.length})`, children: renderStoreList(activeStores) },
-    { key: "inactive", label: `Inactive (${inactiveStores.length})`, children: renderStoreList(inactiveStores) },
+    {
+      key: "all",
+      label: `All${loading ? "" : ` (${stores.length})`}`,
+      children: renderStoreList(stores),
+    },
+    {
+      key: "active",
+      label: `Active${loading ? "" : ` (${activeStores.length})`}`,
+      children: renderStoreList(activeStores),
+    },
+    {
+      key: "inactive",
+      label: `Inactive${loading ? "" : ` (${inactiveStores.length})`}`,
+      children: renderStoreList(inactiveStores),
+    },
   ];
 
   return (
@@ -59,6 +92,7 @@ export function StoresSection({ stores, onStoreClick, onCreateStore }: IStoresSe
             size="small"
             icon={<PlusOutlined />}
             onClick={onCreateStore}
+            loading={loading}
           >
             Create Store
           </Button>

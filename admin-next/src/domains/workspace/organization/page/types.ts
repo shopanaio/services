@@ -1,11 +1,10 @@
-import type { ApiRole } from "@/graphql/types";
+import type { ApiRole, ApiMember } from "@/graphql/types";
 
 export interface IStore {
   id: string;
   name: string;
   slug: string;
   status: "active" | "inactive";
-  color: string;
 }
 
 export interface IStoreItemProps {
@@ -21,12 +20,18 @@ export interface IRoleCardProps {
 
 export interface IStoresSectionProps {
   stores: IStore[];
+  loading?: boolean;
   onStoreClick: (store: IStore) => void;
   onCreateStore: () => void;
 }
 
 export interface IMembersSectionProps {
+  members: ApiMember[];
+  roles: ApiRole[];
+  loading?: boolean;
   onInviteMember: () => void;
+  onChangeRole: (memberId: string, roleId: string) => void;
+  onRemoveMember: (memberId: string) => void;
 }
 
 export interface IInvitationsSectionProps {
@@ -35,6 +40,8 @@ export interface IInvitationsSectionProps {
 }
 
 export interface IRolesSectionProps {
+  roles: ApiRole[];
+  loading?: boolean;
   onCreateRole: () => void;
   onEditRole: (role: ApiRole) => void;
   onDeleteRole: (roleId: string) => void;

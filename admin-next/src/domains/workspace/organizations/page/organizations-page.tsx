@@ -1,24 +1,55 @@
 "use client";
 
+import { useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Typography, message } from "antd";
 import { SettingsLayout } from "../../layout";
 import { OrganizationsSection } from "./components";
-import { mockOrganizations } from "./constants";
+import { useOrganizations, useCreateOrganization } from "../../hooks";
 import type { IOrganization } from "./types";
+import { toDisplayOrganization } from "./types";
 import { useStyles } from "./organizations-page.styles";
 
 export default function OrganizationsPage() {
   const router = useRouter();
   const { styles } = useStyles();
 
-  const handleOrganizationClick = (organization: IOrganization) => {
-    router.push(`/workspace/${organization.name}`);
-  };
+  // Fetch organizations from API
+  const { organizations: apiOrganizations, loading, refetch } = useOrganizations();
+  const { createOrganization, loading: creating } = useCreateOrganization();
 
-  const handleCreateOrganization = () => {
-    message.info("Create organization modal would open");
-  };
+  // Transform API data to display format
+  const organizations = useMemo(
+    () => apiOrganizations.map(toDisplayOrganization),
+    [apiOrganizations]
+  );
+
+  const handleOrganizationClick = useCallback(
+    (organization: IOrganization) => {
+      router.push(`/workspace/${organization.name}`);
+    },
+    [router]
+  );
+
+  const handleCreateOrganization = useCallback(async () => {
+    // TODO: Open create organization modal
+    // For now, create a test organization
+    const { organization, userErrors } = await createOrganization({
+      name: `org-${Date.now()}`,
+      displayName: "New Organization",
+    });
+
+    if (userErrors.length > 0) {
+      userErrors.forEach((err) => message.error(err.message));
+      return;
+    }
+
+    if (organization) {
+      message.success("Organization created successfully");
+      refetch();
+      router.push(`/workspace/${organization.name}`);
+    }
+  }, [createOrganization, refetch, router]);
 
   return (
     <SettingsLayout name="organizations">
@@ -32,7 +63,8 @@ export default function OrganizationsPage() {
       </div>
 
       <OrganizationsSection
-        organizations={mockOrganizations}
+        organizations={organizations}
+        loading={loading || creating}
         onOrganizationClick={handleOrganizationClick}
         onCreateOrganization={handleCreateOrganization}
       />

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Typography, Button, Tabs, Empty } from "antd";
+import { Typography, Button, Tabs, Empty, Skeleton } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useStyles } from "../../organizations-page.styles";
@@ -10,16 +10,24 @@ import { OrganizationItem } from "../organization-item";
 
 export function OrganizationsSection({
   organizations,
+  loading = false,
   onOrganizationClick,
   onCreateOrganization,
 }: IOrganizationsSectionProps) {
   const { styles } = useStyles();
   const [activeTab, setActiveTab] = useState("all");
 
-  const activeOrganizations = organizations.filter((o) => o.status === "active");
-  const inactiveOrganizations = organizations.filter((o) => o.status === "inactive");
-
   const renderOrganizationList = (orgList: IOrganization[]) => {
+    if (loading) {
+      return (
+        <div className={styles.organizationList}>
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} active paragraph={{ rows: 1 }} />
+          ))}
+        </div>
+      );
+    }
+
     if (!orgList.length) {
       return (
         <div className={styles.emptyState}>
@@ -51,18 +59,8 @@ export function OrganizationsSection({
   const tabItems = [
     {
       key: "all",
-      label: `All (${organizations.length})`,
+      label: `All${loading ? "" : ` (${organizations.length})`}`,
       children: renderOrganizationList(organizations),
-    },
-    {
-      key: "active",
-      label: `Active (${activeOrganizations.length})`,
-      children: renderOrganizationList(activeOrganizations),
-    },
-    {
-      key: "inactive",
-      label: `Inactive (${inactiveOrganizations.length})`,
-      children: renderOrganizationList(inactiveOrganizations),
     },
   ];
 
@@ -75,6 +73,7 @@ export function OrganizationsSection({
             size="small"
             icon={<PlusOutlined />}
             onClick={onCreateOrganization}
+            loading={loading}
           >
             Create Organization
           </Button>

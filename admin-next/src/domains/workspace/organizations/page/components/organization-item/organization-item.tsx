@@ -1,39 +1,38 @@
 "use client";
 
-import { Typography, Avatar, Flex, Tag } from "antd";
-import { BankOutlined, ShopOutlined, TeamOutlined } from "@ant-design/icons";
+import { Typography, Avatar, Flex } from "antd";
+import { BankOutlined, RightOutlined } from "@ant-design/icons";
 import { useStyles } from "../../organizations-page.styles";
 import type { IOrganizationItemProps } from "../../types";
 
-export function OrganizationItem({ organization, onClick }: IOrganizationItemProps) {
-  const { styles, cx } = useStyles();
-  const isActive = organization.status === "active";
+/**
+ * Generate a consistent color based on string hash.
+ */
+function getColorFromString(str: string): string {
+  const colors = ["blue", "purple", "green", "orange", "cyan", "magenta"];
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+}
 
-  const handleClick = () => {
-    if (isActive && onClick) {
-      onClick();
-    }
-  };
+export function OrganizationItem({ organization, onClick }: IOrganizationItemProps) {
+  const { styles } = useStyles();
+  const color = getColorFromString(organization.id);
 
   return (
-    <div
-      className={cx(styles.organizationItem, !isActive && styles.organizationItemDisabled)}
-      onClick={handleClick}
-    >
+    <div className={styles.organizationItem} onClick={onClick}>
       <Flex align="center">
         <Avatar
           size="large"
           style={{
-            backgroundColor: isActive
-              ? `var(--ant-${organization.color}-2, #e6f4ff)`
-              : "#f5f5f5",
+            backgroundColor: `var(--ant-${color}-2, #e6f4ff)`,
           }}
         >
           <BankOutlined
             style={{
-              color: isActive
-                ? `var(--ant-${organization.color}-6, #1890ff)`
-                : "#8c8c8c",
+              color: `var(--ant-${color}-6, #1890ff)`,
               fontSize: 20,
             }}
           />
@@ -43,19 +42,9 @@ export function OrganizationItem({ organization, onClick }: IOrganizationItemPro
             {organization.displayName}
           </Typography.Text>
           <div className={styles.organizationSlug}>{organization.name}</div>
-          <div className={styles.organizationMeta}>
-            <span>
-              <ShopOutlined /> {organization.storesCount} stores
-            </span>
-            <span>
-              <TeamOutlined /> {organization.membersCount} members
-            </span>
-          </div>
         </div>
       </Flex>
-      <Tag color={isActive ? "success" : "default"}>
-        {isActive ? "Active" : "Inactive"}
-      </Tag>
+      <RightOutlined style={{ color: "#8c8c8c" }} />
     </div>
   );
 }

@@ -70,9 +70,9 @@ export const mockOrganization: ApiOrganization = {
 };
 
 export const mockStores: IStore[] = [
-  { id: "store-1", name: "Main Store", slug: "main-store", status: "active", color: "blue" },
-  { id: "store-2", name: "Fashion Outlet", slug: "fashion-outlet", status: "active", color: "purple" },
-  { id: "store-3", name: "Electronics Hub", slug: "electronics-hub", status: "active", color: "green" },
-  { id: "store-4", name: "Home Decor", slug: "home-decor", status: "inactive", color: "orange" },
-  { id: "store-5", name: "Sports Gear", slug: "sports-gear", status: "active", color: "red" },
+  { id: "store-1", name: "Main Store", slug: "main-store", status: "active" },
+  { id: "store-2", name: "Fashion Outlet", slug: "fashion-outlet", status: "active" },
+  { id: "store-3", name: "Electronics Hub", slug: "electronics-hub", status: "active" },
+  { id: "store-4", name: "Home Decor", slug: "home-decor", status: "inactive" },
+  { id: "store-5", name: "Sports Gear", slug: "sports-gear", status: "active" },
 ];
