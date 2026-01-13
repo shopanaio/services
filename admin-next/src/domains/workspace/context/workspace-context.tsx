@@ -60,9 +60,9 @@ export interface WorkspaceContextValue {
   currentRole: string | null;
 
   /**
-   * Select a different organization.
+   * Select a different organization by name.
    */
-  selectOrganization: (id: string) => void;
+  selectOrganization: (name: string) => void;
 
   /**
    * Select a different store.
@@ -85,7 +85,7 @@ const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
 // Storage keys
 // ============================================
 
-const STORAGE_KEY_ORG = "workspace:organizationId";
+const STORAGE_KEY_ORG = "workspace:organizationName";
 const STORAGE_KEY_STORE = "workspace:storeId";
 
 // ============================================
@@ -95,9 +95,9 @@ const STORAGE_KEY_STORE = "workspace:storeId";
 export interface WorkspaceProviderProps {
   children: ReactNode;
   /**
-   * Initial organization ID (from URL or storage).
+   * Initial organization name (from URL or storage).
    */
-  initialOrganizationId?: string;
+  initialOrganizationName?: string;
   /**
    * Initial store ID (from URL or storage).
    */
@@ -111,22 +111,22 @@ export interface WorkspaceProviderProps {
  * @example
  * ```tsx
  * // In your app layout
- * <WorkspaceProvider initialOrganizationId={orgId}>
+ * <WorkspaceProvider initialOrganizationName={orgName}>
  *   <AppContent />
  * </WorkspaceProvider>
  * ```
  */
 export function WorkspaceProvider({
   children,
-  initialOrganizationId,
+  initialOrganizationName,
   initialStoreId,
 }: WorkspaceProviderProps) {
   // Get current user from auth
   const { user } = useSession();
 
   // State for current selections
-  const [organizationId, setOrganizationId] = useState<string | undefined>(
-    initialOrganizationId
+  const [organizationName, setOrganizationName] = useState<string | undefined>(
+    initialOrganizationName
   );
   const [storeId, setStoreId] = useState<string | null>(
     initialStoreId ?? null
@@ -137,18 +137,18 @@ export function WorkspaceProvider({
     organization,
     loading: organizationLoading,
     refetch: refetchOrganization,
-  } = useOrganization(organizationId ?? "", {
-    skip: !organizationId,
+  } = useOrganization(organizationName ?? "", {
+    skip: !organizationName,
   });
 
-  // Fetch stores for the organization
+  // Fetch stores for the organization (use organization.id once loaded)
   const {
     stores,
     loading: storesLoading,
     refetch: refetchStores,
   } = useStores({
-    organizationId: organizationId ?? "",
-    skip: !organizationId,
+    organizationId: organization?.id ?? "",
+    skip: !organization?.id,
   });
 
   // Find current user's member record
@@ -170,13 +170,13 @@ export function WorkspaceProvider({
   const currentRole = currentMember?.role ?? null;
 
   // Actions
-  const selectOrganization = useCallback((id: string) => {
-    setOrganizationId(id);
+  const selectOrganization = useCallback((name: string) => {
+    setOrganizationName(name);
     setStoreId(null); // Clear store when switching organizations
 
     // Persist to storage
     if (typeof window !== "undefined") {
-      localStorage.setItem(STORAGE_KEY_ORG, id);
+      localStorage.setItem(STORAGE_KEY_ORG, name);
       localStorage.removeItem(STORAGE_KEY_STORE);
     }
   }, []);
@@ -203,10 +203,10 @@ export function WorkspaceProvider({
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    if (!initialOrganizationId) {
-      const storedOrgId = localStorage.getItem(STORAGE_KEY_ORG);
-      if (storedOrgId) {
-        setOrganizationId(storedOrgId);
+    if (!initialOrganizationName) {
+      const storedOrgName = localStorage.getItem(STORAGE_KEY_ORG);
+      if (storedOrgName) {
+        setOrganizationName(storedOrgName);
       }
     }
 
@@ -216,7 +216,7 @@ export function WorkspaceProvider({
         setStoreId(storedStoreId);
       }
     }
-  }, [initialOrganizationId, initialStoreId]);
+  }, [initialOrganizationName, initialStoreId]);
 
   // Build context value
   const value = useMemo<WorkspaceContextValue>(

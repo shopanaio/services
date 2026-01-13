@@ -2504,7 +2504,10 @@ export enum OrganizationOrderField {
 /** Organization queries. */
 export type ApiOrganizationQuery = {
   __typename?: 'OrganizationQuery';
-  /** Get organization by ID (if user has access). */
+  /**
+   * Get organization by ID or name (if user has access).
+   * Provide either id or name, not both.
+   */
   organization?: Maybe<ApiOrganization>;
   /**
    * Get all organizations the current user has access to with cursor pagination.
@@ -2516,7 +2519,8 @@ export type ApiOrganizationQuery = {
 
 /** Organization queries. */
 export type ApiOrganizationQueryOrganizationArgs = {
-  id: Scalars['ID']['input'];
+  id?: InputMaybe<Scalars['ID']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
 };
 
 

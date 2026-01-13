@@ -39,7 +39,7 @@ import {
 
 export default function OrganizationPage({ pathParams }: ModulePageProps) {
   const router = useRouter();
-  const orgId = pathParams.orgName as string;
+  const orgName = pathParams.orgName as string;
   const { push: pushDeleteModal } = useDeleteOrganizationModal();
   const { push: pushEditOrganizationModal } = useEditOrganizationModal();
   const { push: pushInviteModal } = useInviteMemberModal();
@@ -50,15 +50,15 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
     organization,
     loading: orgLoading,
     refetch: refetchOrg,
-  } = useOrganization(orgId);
+  } = useOrganization(orgName);
 
   const {
     stores,
     loading: storesLoading,
     refetch: refetchStores,
   } = useStores({
-    organizationId: orgId,
-    skip: !orgId,
+    organizationId: organization?.id ?? "",
+    skip: !organization?.id,
   });
 
   const { updateOrganization } = useUpdateOrganization();

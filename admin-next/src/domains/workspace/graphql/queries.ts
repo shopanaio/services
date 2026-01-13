@@ -51,13 +51,13 @@ export const AUTHORIZE_QUERY = gql`
 // ============================================
 
 /**
- * Get organization by ID with full membership details.
+ * Get organization by name with full membership details.
  * Includes all members, roles, and available resources.
  */
 export const ORGANIZATION_QUERY = gql`
-  query Organization($id: ID!) {
+  query Organization($name: String!) {
     organizationQuery {
-      organization(id: $id) {
+      organization(name: $name) {
         ...OrganizationFields
       }
     }
@@ -69,9 +69,9 @@ export const ORGANIZATION_QUERY = gql`
  * Get organization with minimal info (for lists, selections).
  */
 export const ORGANIZATION_BASIC_QUERY = gql`
-  query OrganizationBasic($id: ID!) {
+  query OrganizationBasic($name: String!) {
     organizationQuery {
-      organization(id: $id) {
+      organization(name: $name) {
         id
         name
         displayName

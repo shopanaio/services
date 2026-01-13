@@ -19,11 +19,11 @@ interface UseOrganizationReturn {
  * Hook for fetching a single organization with full membership details.
  * Includes all members, roles, and available resources.
  *
- * @param id - The organization ID to fetch
+ * @param name - The organization name (URL-friendly identifier) to fetch
  * @param options - Optional configuration
  */
 export function useOrganization(
-  id: string,
+  name: string,
   options: UseOrganizationOptions = {}
 ): UseOrganizationReturn {
   const { skip = false } = options;
@@ -31,8 +31,8 @@ export function useOrganization(
   const { data, loading, error, refetch } = useQuery<{
     organizationQuery: { organization: ApiOrganization | null };
   }>(ORGANIZATION_QUERY, {
-    variables: { id },
-    skip: skip || !id,
+    variables: { name },
+    skip: skip || !name,
     fetchPolicy: "cache-and-network",
   });
 
