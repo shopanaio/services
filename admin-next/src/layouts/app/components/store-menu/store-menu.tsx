@@ -2,10 +2,11 @@
 
 import { Dropdown, Typography, Flex } from 'antd';
 import { createStyles } from 'antd-style';
-import { MdLogout, MdOutlineAccountCircle } from 'react-icons/md';
+import { MdLogout, MdOutlineAccountCircle, MdBusiness } from 'react-icons/md';
 import { HiMiniChevronUpDown } from 'react-icons/hi2';
 import { MdLightMode, MdDarkMode, MdBrightness4, MdCheck } from 'react-icons/md';
 import type { MenuProps } from 'antd';
+import { useRouter } from 'next/navigation';
 
 import { ShopIcon } from '@/layouts/app/components/store-menu/shop-icon/shop-icon';
 import { useThemeContext } from '@/ui-kit/theme';
@@ -72,7 +73,6 @@ interface Props {
   userName?: string;
   userEmail?: string;
   onAllStoresClick?: () => void;
-  onAccountClick?: () => void;
   onLogoutClick?: () => void;
 }
 
@@ -82,11 +82,11 @@ export const StoreMenu = ({
   userName = 'John Doe',
   userEmail = 'john@example.com',
   onAllStoresClick,
-  onAccountClick,
   onLogoutClick,
 }: Props) => {
   const { styles } = useStyles({ isCollapsed });
   const { themePreference, setThemePreference } = useThemeContext();
+  const router = useRouter();
 
   const themeOptions = [
     { key: 'light', label: 'Light', icon: <MdLightMode /> },
@@ -160,26 +160,36 @@ export const StoreMenu = ({
       key: 'divider-3',
     },
     {
+      key: 'profile',
+      onClick: () => router.push('/workspace/profile'),
+      label: (
+        <Flex gap="small" align="center" data-testid="project-menu-profile">
+          <MdOutlineAccountCircle />
+          <Typography.Text>Profile</Typography.Text>
+        </Flex>
+      ),
+    },
+    {
+      key: 'workspace',
+      onClick: () => router.push('/workspace/organization'),
+      label: (
+        <Flex gap="small" align="center" data-testid="project-menu-workspace">
+          <MdBusiness />
+          <Typography.Text>Workspace</Typography.Text>
+        </Flex>
+      ),
+    },
+    {
+      type: 'divider' as const,
+      key: 'divider-4',
+    },
+    {
       key: 'stores',
       onClick: onAllStoresClick,
       label: (
         <Flex gap="small" align="center" data-testid="project-menu-view-all">
           <ShopIcon color="var(--ant-color-text)" />
           <Typography.Text>All stores</Typography.Text>
-        </Flex>
-      ),
-    },
-    {
-      key: 'account',
-      onClick: onAccountClick,
-      label: (
-        <Flex
-          gap="small"
-          align="center"
-          data-testid="project-menu-manage-account"
-        >
-          <MdOutlineAccountCircle />
-          <Typography.Text>Manage account</Typography.Text>
         </Flex>
       ),
     },
