@@ -76,28 +76,14 @@ export interface TokenRefreshResult {
 
 /**
  * Main auth context value interface.
- * Provides auth state and operations to consumers.
+ * Provides session state to consumers.
+ * Auth operations (signIn, signUp, signOut) are available via separate hooks.
  */
 export interface AuthContextValue {
-  // State
   /** Current authenticated user or null if not authenticated */
   user: ApiUser | null;
   /** Whether user is authenticated */
   isAuthenticated: boolean;
-  /** Whether auth state is being loaded/verified */
+  /** Whether session state is being loaded */
   isLoading: boolean;
-  /** Current auth error if any */
-  error: AuthError | null;
-
-  // Actions
-  /** Sign in with email/password */
-  signIn: (input: SignInInput) => Promise<SignInResult>;
-  /** Sign up with email/password */
-  signUp: (input: SignUpInput) => Promise<SignUpResult>;
-  /** Sign out current user */
-  signOut: (options?: SignOutOptions) => Promise<SignOutResult>;
-  /** Refresh current session */
-  refreshSession: () => Promise<void>;
-  /** Clear current error */
-  clearError: () => void;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation } from "@apollo/client/react";
+import { useApolloClient, useMutation } from "@apollo/client/react";
 import { useCallback } from "react";
 import { SIGN_IN_MUTATION, CURRENT_USER_QUERY } from "../graphql";
 import { createNetworkError } from "../utils";
@@ -24,6 +24,7 @@ export interface UseSignInReturn {
  * Updates the current user in Apollo cache.
  */
 export function useSignIn(): UseSignInReturn {
+  const client = useApolloClient();
   const [mutate, { loading, error, reset }] = useMutation<
     { authMutation: { signIn: ApiUserSignInPayload } },
     { input: ApiUserSignInInput }
@@ -42,9 +43,23 @@ export function useSignIn(): UseSignInReturn {
         });
 
         const payload = data?.authMutation?.signIn;
+        const success = !!payload?.user && payload.userErrors.length === 0;
+
+        // Update Apollo cache with the authenticated user
+        if (success && payload?.user) {
+          client.writeQuery({
+            query: CURRENT_USER_QUERY,
+            data: {
+              userQuery: {
+                __typename: "UserQuery",
+                current: payload.user,
+              },
+            },
+          });
+        }
 
         return {
-          success: !!payload?.user && payload.userErrors.length === 0,
+          success,
           user: payload?.user ?? null,
           token: payload?.token ?? null,
           userErrors: payload?.userErrors ?? [],
@@ -58,7 +73,7 @@ export function useSignIn(): UseSignInReturn {
         };
       }
     },
-    [mutate]
+    [mutate, client]
   );
 
   return { signIn, loading, error: error ?? null, reset };
