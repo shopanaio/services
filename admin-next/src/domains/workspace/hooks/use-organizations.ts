@@ -2,7 +2,7 @@
 
 import { useQuery } from "@apollo/client/react";
 import { ORGANIZATIONS_QUERY } from "../graphql";
-import type { ApiOrganization } from "@/graphql/types";
+import type { ApiOrganization, ApiOrganizationQuery } from "@/graphql/types";
 
 interface UseOrganizationsOptions {
   /**
@@ -45,14 +45,14 @@ export function useOrganizations(
   const { skip = false } = options;
 
   const { data, loading, error, refetch } = useQuery<{
-    organizationQuery: { organizations: { nodes: ApiOrganization[] } };
+    organizationQuery: ApiOrganizationQuery;
   }>(ORGANIZATIONS_QUERY, {
     skip,
     fetchPolicy: "cache-and-network",
   });
 
   return {
-    organizations: data?.organizationQuery.organizations.nodes ?? [],
+    organizations: data?.organizationQuery.organizations.edges.map((e) => e.node) ?? [],
     loading,
     error: error ?? null,
     refetch: () => void refetch(),
