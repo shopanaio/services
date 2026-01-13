@@ -1,12 +1,6 @@
 import { eq, and, isNull, count } from "drizzle-orm";
 import { Transactional, ReadOnly } from "@shopana/shared-kernel";
 import {
-  createQuery,
-  createRelayQuery,
-  type PageInfo,
-  type InferRelayInput,
-} from "@shopana/drizzle-query";
-import {
   organization,
   organizationMember,
   userRole,
@@ -19,27 +13,27 @@ import {
 import { BaseRepository } from "../BaseRepository.js";
 
 // ============================================================================
-// Relay Query Definition
+// Connection Types
 // ============================================================================
 
-export const organizationRelayQuery = createRelayQuery(
-  createQuery(organization)
-    .include(["id", "name", "displayName", "createdAt", "updatedAt"])
-    .maxLimit(100)
-    .defaultLimit(20),
-  { name: "organization", tieBreaker: "id" }
-);
-
-export type OrganizationRelayInput = InferRelayInput<
-  typeof organizationRelayQuery
-> & {
-  /** User ID to filter organizations by membership */
+export interface OrganizationRelayInput {
   userId: string;
-};
+  first?: number | null;
+  after?: string | null;
+  last?: number | null;
+  before?: string | null;
+  where?: Record<string, unknown> | null;
+  orderBy?: Array<{ field: string; direction: "asc" | "desc" }> | null;
+}
 
 export interface OrganizationConnectionResult {
   edges: Array<{ cursor: string; nodeId: string }>;
-  pageInfo: PageInfo;
+  pageInfo: {
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+    startCursor: string | null;
+    endCursor: string | null;
+  };
   totalCount: number;
 }
 
@@ -366,32 +360,21 @@ export class OrganizationRepository extends BaseRepository {
   /**
    * Get paginated organizations with cursor-based pagination.
    * Only returns organizations where the user is a member.
+   *
+   * Simple offset-based pagination for now (cursor encoding can be added later).
    */
   @ReadOnly()
   async getConnection(
     args: OrganizationRelayInput
   ): Promise<OrganizationConnectionResult> {
-    const { userId, where, orderBy, ...paginationArgs } = args;
+    const { userId, first, after, last, before } = args;
 
-    // First, get all organization IDs the user has access to
-    const userOrgIds = await this.connection
-      .select({ orgId: organizationMember.organizationId })
-      .from(organizationMember)
-      .innerJoin(
-        organization,
-        eq(organizationMember.organizationId, organization.id)
-      )
-      .where(
-        and(
-          eq(organizationMember.userId, userId),
-          isNull(organization.deletedAt)
-        )
-      );
-
-    const orgIds = userOrgIds.map((row) => row.orgId);
+    // Get user's organizations
+    const userOrgs = await this.getUserOrganizations(userId);
+    const totalCount = userOrgs.length;
 
     // If user has no organizations, return empty connection
-    if (orgIds.length === 0) {
+    if (totalCount === 0) {
       return {
         edges: [],
         pageInfo: {
@@ -404,29 +387,42 @@ export class OrganizationRepository extends BaseRepository {
       };
     }
 
-    // Build where clause with user's organization filter + any additional filters
-    const executeInput = {
-      ...paginationArgs,
-      where: {
-        _and: [
-          { id: { _in: orgIds } },
-          ...(where ? [where] : []),
-        ],
-      },
-      orderBy: orderBy ?? [{ field: "createdAt" as const, direction: "desc" as const }],
-    };
+    // Simple pagination logic
+    const limit = first ?? last ?? 20;
+    let startIndex = 0;
 
-    const [result, totalCount] = await Promise.all([
-      organizationRelayQuery.execute(this.connection, executeInput),
-      this.countUserOrganizations(userId),
-    ]);
+    if (after) {
+      // Find index after the cursor
+      const afterIndex = userOrgs.findIndex(org => org.id === after);
+      if (afterIndex !== -1) {
+        startIndex = afterIndex + 1;
+      }
+    } else if (before) {
+      // Find index before the cursor
+      const beforeIndex = userOrgs.findIndex(org => org.id === before);
+      if (beforeIndex !== -1) {
+        startIndex = Math.max(0, beforeIndex - limit);
+      }
+    }
+
+    const slicedOrgs = userOrgs.slice(startIndex, startIndex + limit);
+
+    const edges = slicedOrgs.map((org) => ({
+      cursor: org.id,
+      nodeId: org.id,
+    }));
+
+    const hasNextPage = startIndex + limit < totalCount;
+    const hasPreviousPage = startIndex > 0;
 
     return {
-      edges: result.edges.map((edge) => ({
-        cursor: edge.cursor,
-        nodeId: edge.node.id,
-      })),
-      pageInfo: result.pageInfo,
+      edges,
+      pageInfo: {
+        hasNextPage,
+        hasPreviousPage,
+        startCursor: edges[0]?.cursor ?? null,
+        endCursor: edges[edges.length - 1]?.cursor ?? null,
+      },
       totalCount,
     };
   }

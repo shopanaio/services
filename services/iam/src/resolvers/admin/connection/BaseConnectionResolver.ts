@@ -1,4 +1,3 @@
-import { type PageInfo } from "@shopana/drizzle-query";
 import { IAMType } from "../IAMType.js";
 
 // ============ Types ============
@@ -9,6 +8,16 @@ import { IAMType } from "../IAMType.js";
 export interface EdgeData {
   cursor: string;
   nodeId: string;
+}
+
+/**
+ * PageInfo for Relay connections
+ */
+export interface PageInfo {
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+  startCursor: string | null;
+  endCursor: string | null;
 }
 
 /**
@@ -25,19 +34,6 @@ export interface ConnectionData {
 /**
  * Abstract base class for Connection resolvers.
  * Subclasses must implement $preload and createNodeResolver.
- *
- * @template TArgs - The type of arguments passed to the connection query
- *
- * @example
- * class OrganizationConnectionResolver extends BaseConnectionResolver<OrganizationRelayInput> {
- *   async $preload(): Promise<ConnectionData> {
- *     return this.$ctx.kernel.repository.organization.getConnection(this.$props);
- *   }
- *
- *   protected createNodeResolver(nodeId: string) {
- *     return new OrganizationResolver(nodeId, this.$ctx);
- *   }
- * }
  */
 export abstract class BaseConnectionResolver<TArgs = unknown> extends IAMType<
   TArgs,
@@ -51,7 +47,6 @@ export abstract class BaseConnectionResolver<TArgs = unknown> extends IAMType<
 
   /**
    * Override to create the node resolver for a given node ID.
-   * @param nodeId - The ID of the node to resolve
    */
   protected abstract createNodeResolver(nodeId: string): unknown;
 

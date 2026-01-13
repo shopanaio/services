@@ -8,7 +8,6 @@ import {
   OrganizationConnectionResolver,
   type OrganizationConnectionResolverInput,
 } from "./OrganizationConnectionResolver.js";
-import { type ConnectionData } from "./connection/BaseConnectionResolver.js";
 
 /**
  * Input args for the organizations query from GraphQL
@@ -21,20 +20,6 @@ interface OrganizationsQueryArgs {
   where?: OrganizationConnectionResolverInput["where"];
   orderBy?: Array<{ field: string; direction: "asc" | "desc" }> | null;
 }
-
-/**
- * Empty connection data for unauthenticated users
- */
-const EMPTY_CONNECTION: ConnectionData = {
-  edges: [],
-  pageInfo: {
-    hasNextPage: false,
-    hasPreviousPage: false,
-    startCursor: null,
-    endCursor: null,
-  },
-  totalCount: 0,
-};
 
 /**
  * OrganizationQuery namespace resolver.
@@ -56,15 +41,6 @@ export class OrganizationQueryResolver extends IAMType<Record<string, never>> {
   organizations(args: OrganizationsQueryArgs) {
     const { currentUser } = this.$ctx;
 
-    // Return empty connection if not authenticated
-    if (!currentUser?.id) {
-      return {
-        edges: () => [],
-        pageInfo: () => EMPTY_CONNECTION.pageInfo,
-        totalCount: () => 0,
-      };
-    }
-
     // Transform orderBy from GraphQL format to relay format
     const orderBy = args.orderBy?.map((o) => ({
       field: o.field as "name" | "displayName" | "createdAt" | "updatedAt",
@@ -72,7 +48,8 @@ export class OrganizationQueryResolver extends IAMType<Record<string, never>> {
     }));
 
     const input: OrganizationConnectionResolverInput = {
-      userId: currentUser.id,
+      // Use empty string for unauthenticated users - repository will return empty results
+      userId: currentUser?.id ?? "",
       first: args.first ?? undefined,
       after: args.after ?? undefined,
       last: args.last ?? undefined,
