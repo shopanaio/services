@@ -27,11 +27,26 @@ interface OrganizationsQueryArgs {
  */
 export class OrganizationQueryResolver extends IAMType<Record<string, never>> {
   /**
-   * Get organization by ID.
+   * Get organization by ID or name.
+   * Provide either id or name, not both.
    */
-  organization(args: { id: string }) {
-    const id = decodeGlobalIdByType(args.id, GlobalIdEntity.Organization);
-    return new OrganizationResolver(id, this.$ctx);
+  async organization(args: { id?: string | null; name?: string | null }) {
+    if (args.id) {
+      const id = decodeGlobalIdByType(args.id, GlobalIdEntity.Organization);
+      return new OrganizationResolver(id, this.$ctx);
+    }
+
+    if (args.name) {
+      const org = await this.$ctx.kernel.repository.organization.findByName(
+        args.name
+      );
+      if (!org) {
+        return null;
+      }
+      return new OrganizationResolver(org.id, this.$ctx);
+    }
+
+    return null;
   }
 
   /**
