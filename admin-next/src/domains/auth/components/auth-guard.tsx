@@ -1,19 +1,39 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
-import { useSession } from "../hooks/use-session";
-import { Spin } from "antd";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { Spin, Flex } from "antd";
+import { createStyles } from "antd-style";
+import { useSession } from "../hooks";
 
-const PUBLIC_PATHS = ["/sign-in", "/sign-up"];
+const useStyles = createStyles(({ token }) => ({
+  loading: {
+    height: "100vh",
+    width: "100vw",
+    background: token.colorBgLayout,
+  },
+}));
 
 interface AuthGuardProps {
   children: React.ReactNode;
 }
 
+/** Public paths that don't require authentication */
+const PUBLIC_PATHS = ["/sign-in", "/sign-up"];
+
+/**
+ * Auth guard component for protecting routes.
+ *
+ * Features:
+ * - Redirects unauthenticated users to sign-in with returnUrl
+ * - Redirects authenticated users away from auth pages
+ * - Shows loading spinner during auth state verification
+ */
 export function AuthGuard({ children }: AuthGuardProps) {
+  const { styles } = useStyles();
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { isAuthenticated, isLoading } = useSession();
 
   const isPublicPath = PUBLIC_PATHS.some(
@@ -21,28 +41,39 @@ export function AuthGuard({ children }: AuthGuardProps) {
   );
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated && !isPublicPath) {
-      router.replace("/sign-in");
-    }
-  }, [isLoading, isAuthenticated, isPublicPath, router]);
+    if (isLoading) return;
 
+    // Redirect authenticated users away from auth pages
+    if (isAuthenticated && isPublicPath) {
+      const returnUrl = searchParams.get("returnUrl");
+      router.replace(returnUrl || "/workspace/organization");
+      return;
+    }
+
+    // Redirect unauthenticated users to sign in with returnUrl
+    if (!isAuthenticated && !isPublicPath) {
+      const returnUrl = encodeURIComponent(pathname);
+      router.replace(`/sign-in?returnUrl=${returnUrl}`);
+      return;
+    }
+  }, [isAuthenticated, isLoading, isPublicPath, pathname, router, searchParams]);
+
+  // Show loading state while verifying auth
   if (isLoading) {
     return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "100vh",
-          width: "100vw",
-        }}
-      >
+      <Flex justify="center" align="center" className={styles.loading}>
         <Spin size="large" />
-      </div>
+      </Flex>
     );
   }
 
+  // Don't render protected content if not authenticated
   if (!isAuthenticated && !isPublicPath) {
+    return null;
+  }
+
+  // Don't render auth pages if authenticated (redirect will happen)
+  if (isAuthenticated && isPublicPath) {
     return null;
   }
 

@@ -5,6 +5,8 @@
 
 // ============================================
 // Authentication Hooks
+// @deprecated - These hooks have moved to @/domains/auth
+// Import from there instead for new code.
 // ============================================
 export { useSignIn } from "./use-sign-in";
 export { useSignUp } from "./use-sign-up";
@@ -13,6 +15,7 @@ export { useTokenRefresh } from "./use-token-refresh";
 
 // ============================================
 // User Hooks
+// @deprecated useCurrentUser - moved to @/domains/auth
 // ============================================
 export { useCurrentUser } from "./use-current-user";
 export { useUpdateProfile } from "./use-update-profile";
