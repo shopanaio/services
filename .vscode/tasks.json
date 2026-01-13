@@ -177,8 +177,11 @@
       "command": "claude --dangerously-skip-permissions",
       "presentation": {
         "reveal": "always",
-        "panel": "shared",
+        "panel": "new",
         "showReuseMessage": false
+      },
+      "runOptions": {
+        "instanceLimit": 5
       },
       "options": {
         "cwd": "${workspaceFolder}",

@@ -15,6 +15,7 @@ export const CHANGE_PASSWORD_MODAL_TYPE = "workspace-change-password";
 export const EDIT_AVATAR_MODAL_TYPE = "workspace-edit-avatar";
 export const DELETE_ACCOUNT_MODAL_TYPE = "workspace-delete-account";
 export const CREATE_STORE_MODAL_TYPE = "workspace-create-store";
+export const CREATE_ORGANIZATION_MODAL_TYPE = "workspace-create-organization";
 
 // Payload interfaces
 export interface IInviteMemberModalPayload extends IModalStackPayload {
@@ -90,6 +91,10 @@ export interface ICreateStoreModalPayload extends IModalStackPayload {
   }) => void;
 }
 
+export interface ICreateOrganizationModalPayload extends IModalStackPayload {
+  onCreate?: (values: { name: string; displayName: string }) => Promise<void> | void;
+}
+
 // Create typed hooks
 export const useInviteMemberModal = createModalStackHook(INVITE_MEMBER_MODAL_TYPE);
 export const useEditRoleModal = createModalStackHook(EDIT_ROLE_MODAL_TYPE);
@@ -103,6 +108,7 @@ export const useChangePasswordModal = createModalStackHook(CHANGE_PASSWORD_MODAL
 export const useEditAvatarModal = createModalStackHook(EDIT_AVATAR_MODAL_TYPE);
 export const useDeleteAccountModal = createModalStackHook(DELETE_ACCOUNT_MODAL_TYPE);
 export const useCreateStoreModal = createModalStackHook(CREATE_STORE_MODAL_TYPE);
+export const useCreateOrganizationModal = createModalStackHook(CREATE_ORGANIZATION_MODAL_TYPE);
 
 // Declare module augmentation for type safety
 declare module "@/layouts/modals" {
@@ -119,5 +125,6 @@ declare module "@/layouts/modals" {
     [EDIT_AVATAR_MODAL_TYPE]: IEditAvatarModalPayload;
     [DELETE_ACCOUNT_MODAL_TYPE]: IDeleteAccountModalPayload;
     [CREATE_STORE_MODAL_TYPE]: ICreateStoreModalPayload;
+    [CREATE_ORGANIZATION_MODAL_TYPE]: ICreateOrganizationModalPayload;
   }
 }

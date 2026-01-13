@@ -93,6 +93,15 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
+    // Create Organization modal
+    {
+      type: 'workspace-create-organization',
+      component: dynamic(() =>
+        import('@/domains/workspace/modals/create-organization-modal').then(
+          (m) => m.CreateOrganizationModal
+        )
+      ),
+    },
     // ========================================
     // Product modals
     // ========================================

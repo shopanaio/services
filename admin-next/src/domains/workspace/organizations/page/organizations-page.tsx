@@ -6,6 +6,7 @@ import { Typography, message } from "antd";
 import { SettingsLayout } from "../../layout";
 import { OrganizationsSection } from "./components";
 import { useOrganizations, useCreateOrganization } from "../../hooks";
+import { useCreateOrganizationModal } from "../../modals";
 import type { ApiOrganization } from "@/graphql/types";
 import { useStyles } from "./organizations-page.styles";
 
@@ -15,6 +16,7 @@ export default function OrganizationsPage() {
 
   const { organizations, loading, refetch } = useOrganizations();
   const { createOrganization, loading: creating } = useCreateOrganization();
+  const { push: openCreateModal } = useCreateOrganizationModal();
 
   const handleOrganizationClick = useCallback(
     (organization: ApiOrganization) => {
@@ -23,23 +25,27 @@ export default function OrganizationsPage() {
     [router]
   );
 
-  const handleCreateOrganization = useCallback(async () => {
-    const { organization, userErrors } = await createOrganization({
-      name: `org-${Date.now()}`,
-      displayName: "New Organization",
+  const handleCreateOrganization = useCallback(() => {
+    openCreateModal({
+      onCreate: async ({ name, displayName }: { name: string; displayName: string }) => {
+        const { organization, userErrors } = await createOrganization({
+          name,
+          displayName,
+        });
+
+        if (userErrors.length > 0) {
+          userErrors.forEach((err) => message.error(err.message));
+          throw new Error("Failed to create organization");
+        }
+
+        if (organization) {
+          message.success("Organization created successfully");
+          refetch();
+          router.push(`/workspace/${organization.name}`);
+        }
+      },
     });
-
-    if (userErrors.length > 0) {
-      userErrors.forEach((err) => message.error(err.message));
-      return;
-    }
-
-    if (organization) {
-      message.success("Organization created successfully");
-      refetch();
-      router.push(`/workspace/${organization.name}`);
-    }
-  }, [createOrganization, refetch, router]);
+  }, [openCreateModal, createOrganization, refetch, router]);
 
   return (
     <SettingsLayout name="organizations">

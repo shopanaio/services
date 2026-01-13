@@ -76,15 +76,11 @@ export function OrganizationsSection({
             onClick={onCreateOrganization}
             loading={loading}
           >
-            Create Organization
+            Create
           </Button>
         }
       />
-      <Tabs
-        activeKey={activeTab}
-        onChange={setActiveTab}
-        items={tabItems}
-      />
+      <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabItems} />
     </Paper>
   );
 }
