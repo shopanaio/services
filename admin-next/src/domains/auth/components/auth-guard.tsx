@@ -27,21 +27,25 @@ const PUBLIC_PATHS = ["/sign-in", "/sign-up"];
  * Features:
  * - Redirects unauthenticated users to sign-in with returnUrl
  * - Redirects authenticated users away from auth pages
- * - Shows loading spinner during auth state verification
+ * - Shows loading spinner only during initial auth verification (not on refetch)
  */
 export function AuthGuard({ children }: AuthGuardProps) {
   const { styles } = useStyles();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { isAuthenticated, isLoading } = useSession();
+  const { user, isAuthenticated, isLoading } = useSession();
 
   const isPublicPath = PUBLIC_PATHS.some(
     (path) => pathname === path || pathname?.startsWith(`${path}/`)
   );
 
+  // Only show loading on initial load (no cached user data yet)
+  const isInitialLoading = isLoading && user === null;
+
   useEffect(() => {
-    if (isLoading) return;
+    // Wait for initial load to complete before redirecting
+    if (isInitialLoading) return;
 
     // Redirect authenticated users away from auth pages
     if (isAuthenticated && isPublicPath) {
@@ -56,10 +60,10 @@ export function AuthGuard({ children }: AuthGuardProps) {
       router.replace(`/sign-in?returnUrl=${returnUrl}`);
       return;
     }
-  }, [isAuthenticated, isLoading, isPublicPath, pathname, router, searchParams]);
+  }, [isAuthenticated, isInitialLoading, isPublicPath, pathname, router, searchParams]);
 
-  // Show loading state while verifying auth
-  if (isLoading) {
+  // Show loading state only during initial auth verification
+  if (isInitialLoading) {
     return (
       <Flex justify="center" align="center" className={styles.loading}>
         <Spin size="large" />

@@ -3,7 +3,7 @@
 import { useMutation, useApolloClient } from "@apollo/client/react";
 import { useCallback } from "react";
 import { SIGN_OUT_MUTATION } from "../graphql";
-import { createNetworkError } from "../utils";
+import { createNetworkError, clearStoredTokens } from "../utils";
 import type { SignOutOptions, SignOutResult } from "../context/types";
 import type {
   ApiUserSignOutInput,
@@ -42,8 +42,9 @@ export function useSignOut(): UseSignOutReturn {
 
         const payload = data?.authMutation?.signOut;
 
-        // Clear Apollo cache on successful sign-out
+        // Clear tokens and Apollo cache on successful sign-out
         if (payload?.success) {
+          clearStoredTokens();
           await client.resetStore();
         }
 

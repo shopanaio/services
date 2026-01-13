@@ -3,7 +3,7 @@
 import { useApolloClient, useMutation } from "@apollo/client/react";
 import { useCallback } from "react";
 import { SIGN_IN_MUTATION, CURRENT_USER_QUERY } from "../graphql";
-import { createNetworkError } from "../utils";
+import { createNetworkError, setStoredTokens } from "../utils";
 import type { SignInInput, SignInResult } from "../context/types";
 import type { ApiUserSignInInput, ApiUserSignInPayload } from "@/graphql/types";
 
@@ -45,8 +45,14 @@ export function useSignIn(): UseSignInReturn {
         const payload = data?.authMutation?.signIn;
         const success = !!payload?.user && payload.userErrors.length === 0;
 
-        // Update Apollo cache with the authenticated user
-        if (success && payload?.user) {
+        // Store tokens and update Apollo cache
+        if (success && payload?.user && payload?.token) {
+          setStoredTokens(
+            payload.token.accessToken,
+            payload.token.refreshToken,
+            payload.token.expiresIn
+          );
+
           client.writeQuery({
             query: CURRENT_USER_QUERY,
             data: {
