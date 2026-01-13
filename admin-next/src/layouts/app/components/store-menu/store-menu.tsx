@@ -171,11 +171,11 @@ export const StoreMenu = ({
     },
     {
       key: 'organization',
-      onClick: () => router.push('/workspace/organization'),
+      onClick: () => router.push('/workspace'),
       label: (
         <Flex gap="small" align="center" data-testid="project-menu-organization">
           <MdBusiness />
-          <Typography.Text>Organization</Typography.Text>
+          <Typography.Text>Organizations</Typography.Text>
         </Flex>
       ),
     },

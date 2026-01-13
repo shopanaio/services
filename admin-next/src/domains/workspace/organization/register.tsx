@@ -13,7 +13,7 @@ registerModule({
   items: [
     {
       key: "organization",
-      path: "/workspace/organization",
+      path: "/workspace/:orgName",
       component: dynamic(
         () => import("@/domains/workspace/organization/page/organization-page")
       ),

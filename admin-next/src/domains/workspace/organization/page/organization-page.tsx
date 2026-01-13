@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { message, Flex } from "antd";
 import { TeamOutlined, SafetyOutlined, ShopOutlined } from "@ant-design/icons";
 import { KPITile } from "@/ui-kit/kpi-tile";
@@ -14,6 +15,7 @@ import {
   useCreateStoreModal,
 } from "../../modals";
 import type { ApiRole } from "@/graphql/types";
+import type { ModulePageProps } from "@/registry";
 import { mockOrganization, mockStores } from "./constants";
 import type { IStore } from "./types";
 import {
@@ -23,7 +25,9 @@ import {
   RolesSection,
 } from "./components";
 
-export default function OrganizationPage() {
+export default function OrganizationPage({ pathParams }: ModulePageProps) {
+  const router = useRouter();
+  const orgName = pathParams.orgName as string;
   const { push: pushDeleteModal } = useDeleteOrganizationModal();
   const { push: pushEditOrganizationModal } = useEditOrganizationModal();
   const { push: pushInviteModal } = useInviteMemberModal();
@@ -68,7 +72,7 @@ export default function OrganizationPage() {
   };
 
   const handleStoreClick = (store: IStore) => {
-    console.log("Navigate to store:", store.slug);
+    router.push(`/${orgName}/${store.slug}`);
   };
 
   const handleCreateStore = () => {
