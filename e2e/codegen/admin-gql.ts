@@ -1065,16 +1065,12 @@ export type ApiCustomer = {
 
 /** Filter operators for DateTime fields */
 export type ApiDateTimeFilter = {
-  /** Between range (inclusive) */
-  _between?: InputMaybe<Array<Scalars['DateTime']['input']>>;
   /** Equals */
   _eq?: InputMaybe<Scalars['DateTime']['input']>;
   /** Greater than (after) */
   _gt?: InputMaybe<Scalars['DateTime']['input']>;
   /** Greater than or equal (on or after) */
   _gte?: InputMaybe<Scalars['DateTime']['input']>;
-  /** In array */
-  _in?: InputMaybe<Array<Scalars['DateTime']['input']>>;
   /** Is null */
   _is?: InputMaybe<Scalars['Boolean']['input']>;
   /** Is not null */
@@ -1085,8 +1081,6 @@ export type ApiDateTimeFilter = {
   _lte?: InputMaybe<Scalars['DateTime']['input']>;
   /** Not equals */
   _neq?: InputMaybe<Scalars['DateTime']['input']>;
-  /** Not in array */
-  _notIn?: InputMaybe<Array<Scalars['DateTime']['input']>>;
 };
 
 /** Product description in multiple formats. */
@@ -2342,7 +2336,7 @@ export type ApiOrdersOutput = {
  * Organization - top level entity for multi-tenancy.
  * Users belong to organizations, organizations contain stores.
  */
-export type ApiOrganization = {
+export type ApiOrganization = ApiNode & {
   __typename?: 'Organization';
   /** Timestamp when the organization was created. */
   createdAt: Scalars['DateTime']['output'];
@@ -2356,6 +2350,17 @@ export type ApiOrganization = {
   name: Scalars['String']['output'];
   /** Timestamp when the organization was last updated. */
   updatedAt?: Maybe<Scalars['DateTime']['output']>;
+};
+
+/** A connection to a list of Organization items. */
+export type ApiOrganizationConnection = {
+  __typename?: 'OrganizationConnection';
+  /** A list of edges. */
+  edges: Array<ApiOrganizationEdge>;
+  /** Information to aid in pagination. */
+  pageInfo: ApiPageInfo;
+  /** The total number of organizations. */
+  totalCount: Scalars['Int']['output'];
 };
 
 /** Input for creating an organization. */
@@ -2376,6 +2381,15 @@ export type ApiOrganizationDeletePayload = {
   __typename?: 'OrganizationDeletePayload';
   deletedOrganizationId?: Maybe<Scalars['ID']['output']>;
   userErrors: Array<ApiGenericUserError>;
+};
+
+/** An edge in an Organization connection. */
+export type ApiOrganizationEdge = {
+  __typename?: 'OrganizationEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String']['output'];
+  /** The item at the end of the edge. */
+  node: ApiOrganization;
 };
 
 /** Organization mutations. */
@@ -2465,11 +2479,36 @@ export type ApiOrganizationMutationOwnershipTransferArgs = {
   input: ApiOwnershipTransferInput;
 };
 
+/** Ordering configuration for Organization */
+export type ApiOrganizationOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: OrganizationOrderField;
+};
+
+/** Fields available for sorting Organization */
+export enum OrganizationOrderField {
+  /** Sort by createdAt */
+  CreatedAt = 'createdAt',
+  /** Sort by displayName */
+  DisplayName = 'displayName',
+  /** Sort by name */
+  Name = 'name',
+  /** Sort by updatedAt */
+  UpdatedAt = 'updatedAt'
+}
+
 /** Organization queries. */
 export type ApiOrganizationQuery = {
   __typename?: 'OrganizationQuery';
   /** Get organization by ID (if user has access). */
   organization?: Maybe<ApiOrganization>;
+  /**
+   * Get all organizations the current user has access to with cursor pagination.
+   * Returns empty connection if not authenticated.
+   */
+  organizations: ApiOrganizationConnection;
 };
 
 
@@ -2478,9 +2517,24 @@ export type ApiOrganizationQueryOrganizationArgs = {
   id: Scalars['ID']['input'];
 };
 
+
+/** Organization queries. */
+export type ApiOrganizationQueryOrganizationsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiOrganizationOrderByInput>>;
+  where?: InputMaybe<ApiOrganizationWhereInput>;
+};
+
 /** Input for updating organization. */
 export type ApiOrganizationUpdateInput = {
-  /** New name. */
+  /** New display name. */
+  displayName?: InputMaybe<Scalars['String']['input']>;
+  /** Organization ID. */
+  id: Scalars['ID']['input'];
+  /** New name (URL-friendly identifier). */
   name?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -2488,6 +2542,26 @@ export type ApiOrganizationUpdatePayload = {
   __typename?: 'OrganizationUpdatePayload';
   organization?: Maybe<ApiOrganization>;
   userErrors: Array<ApiGenericUserError>;
+};
+
+/** Filter conditions for Organization */
+export type ApiOrganizationWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiOrganizationWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiOrganizationWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiOrganizationWhereInput>>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by displayName */
+  displayName?: InputMaybe<ApiStringFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by name */
+  name?: InputMaybe<ApiStringFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
 };
 
 /** Input for transferring organization ownership. */
@@ -3105,8 +3179,8 @@ export type ApiRoleMutationRoleUpdateArgs = {
 /** Role permission - access to resource with specific actions. */
 export type ApiRolePermission = {
   __typename?: 'RolePermission';
-  /** Action level (read, write, admin). */
-  action: Action;
+  /** Allowed actions (e.g.: create, read, update, delete). */
+  actions: Array<Scalars['String']['output']>;
   /** Resource name (e.g.: org.profile, store.members). */
   resource: Scalars['String']['output'];
 };
@@ -3429,10 +3503,6 @@ export type ApiStringFilter = {
   _contains?: InputMaybe<Scalars['String']['input']>;
   /** Contains substring (case-insensitive) */
   _containsi?: InputMaybe<Scalars['String']['input']>;
-  /** Ends with (case-sensitive) */
-  _endsWith?: InputMaybe<Scalars['String']['input']>;
-  /** Ends with (case-insensitive) */
-  _endsWithi?: InputMaybe<Scalars['String']['input']>;
   /** Equals */
   _eq?: InputMaybe<Scalars['String']['input']>;
   /** In array */
@@ -3443,10 +3513,6 @@ export type ApiStringFilter = {
   _isNot?: InputMaybe<Scalars['Boolean']['input']>;
   /** Not equals */
   _neq?: InputMaybe<Scalars['String']['input']>;
-  /** Does not contain substring (case-sensitive) */
-  _notContains?: InputMaybe<Scalars['String']['input']>;
-  /** Does not contain substring (case-insensitive) */
-  _notContainsi?: InputMaybe<Scalars['String']['input']>;
   /** Not in array */
   _notIn?: InputMaybe<Array<Scalars['String']['input']>>;
   /** Starts with (case-sensitive) */

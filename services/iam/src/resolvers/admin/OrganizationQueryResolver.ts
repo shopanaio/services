@@ -38,7 +38,7 @@ export class OrganizationQueryResolver extends IAMType<Record<string, never>> {
    * Get all organizations the current user has access to with cursor pagination.
    * Returns empty connection if user is not authenticated.
    */
-  organizations(args: OrganizationsQueryArgs) {
+  organizations(args: OrganizationsQueryArgs = {}) {
     const { currentUser } = this.$ctx;
 
     // Transform orderBy from GraphQL format to relay format

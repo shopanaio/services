@@ -1135,7 +1135,7 @@ type Membership {
 Organization - top level entity for multi-tenancy.
 Users belong to organizations, organizations contain stores.
 """
-type Organization {
+type Organization implements Node {
   """Unique identifier."""
   id: ID!
 
@@ -1153,6 +1153,27 @@ type Organization {
 
   """Timestamp when the organization was last updated."""
   updatedAt: DateTime
+}
+
+"""A connection to a list of Organization items."""
+type OrganizationConnection {
+  """A list of edges."""
+  edges: [OrganizationEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of organizations."""
+  totalCount: Int!
+}
+
+"""An edge in an Organization connection."""
+type OrganizationEdge {
+  """The item at the end of the edge."""
+  node: Organization!
+
+  """A cursor for use in pagination."""
+  cursor: String!
 }
 
 type OrganizationCreatePayload {
@@ -1200,6 +1221,30 @@ type OwnershipTransferPayload {
 type OrganizationQuery {
   """Get organization by ID (if user has access)."""
   organization(id: ID!): Organization
+
+  """
+  Get all organizations the current user has access to with cursor pagination.
+  Returns empty connection if not authenticated.
+  """
+  organizations(
+    """Returns the first n items"""
+    first: Int
+
+    """Returns items after this cursor"""
+    after: String
+
+    """Returns the last n items"""
+    last: Int
+
+    """Returns items before this cursor"""
+    before: String
+
+    """Filter conditions"""
+    where: OrganizationWhereInput
+
+    """Sort order"""
+    orderBy: [OrganizationOrderByInput!]
+  ): OrganizationConnection!
 }
 
 """Organization mutations."""
@@ -1247,6 +1292,21 @@ type OrganizationMutation {
   memberAccessRemove(input: MemberAccessRemoveInput!): MemberAccessRemovePayload!
 }
 
+"""Information about pagination in a connection."""
+type PageInfo {
+  """When paginating forwards, are there more items?"""
+  hasNextPage: Boolean!
+
+  """When paginating backwards, are there more items?"""
+  hasPreviousPage: Boolean!
+
+  """When paginating backwards, the cursor to continue."""
+  startCursor: String
+
+  """When paginating forwards, the cursor to continue."""
+  endCursor: String
+}
+
 """Role with permissions - universal, can be assigned at any level."""
 type Role {
   """Unique identifier."""
@@ -1286,8 +1346,8 @@ type RolePermission {
   """Resource name (e.g.: org.profile, store.members)."""
   resource: String!
 
-  """Action level (read, write, admin)."""
-  action: Action!
+  """Allowed actions (e.g.: create, read, update, delete)."""
+  actions: [String!]!
 }
 
 """Resource definition for role editor UI."""
@@ -1445,6 +1505,83 @@ interface UserError {
   code: String
 }
 
+"""
+The Node interface is implemented by all types that have a globally unique ID.
+"""
+interface Node {
+  """The globally unique ID of the object."""
+  id: ID!
+}
+
+"""Fields available for sorting Organization"""
+enum OrganizationOrderField {
+  """Sort by name"""
+  name
+
+  """Sort by displayName"""
+  displayName
+
+  """Sort by createdAt"""
+  createdAt
+
+  """Sort by updatedAt"""
+  updatedAt
+}
+
+"""Sort direction"""
+enum SortDirection {
+  asc
+  desc
+}
+
+"""
+Action level for permissions.
+Hierarchy: read < write < admin
+- admin includes write and read
+- write includes read
+"""
+enum Action {
+  read
+  write
+  admin
+}
+
+"""Filter conditions for Organization"""
+input OrganizationWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [OrganizationWhereInput!]
+
+  """Logical OR of multiple conditions"""
+  _or: [OrganizationWhereInput!]
+
+  """Negate the condition"""
+  _not: OrganizationWhereInput
+
+  """Filter by id"""
+  id: IDFilter
+
+  """Filter by name"""
+  name: StringFilter
+
+  """Filter by displayName"""
+  displayName: StringFilter
+
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+}
+
+"""Ordering configuration for Organization"""
+input OrganizationOrderByInput {
+  """Field to order by"""
+  field: OrganizationOrderField!
+
+  """Sort direction"""
+  direction: SortDirection!
+}
+
 """Input for creating an organization."""
 input OrganizationCreateInput {
   """URL-friendly unique identifier."""
@@ -1504,8 +1641,14 @@ input MemberAccessRemoveInput {
 
 """Input for updating organization."""
 input OrganizationUpdateInput {
-  """New name."""
+  """Organization ID."""
+  id: ID!
+
+  """New name (URL-friendly identifier)."""
   name: String
+
+  """New display name."""
+  displayName: String
 }
 
 """Input for transferring organization ownership."""
@@ -1524,6 +1667,87 @@ input MemberRemoveInput {
 
   """User ID of the member to remove."""
   userId: ID!
+}
+
+"""Filter operators for String fields"""
+input StringFilter {
+  """Equals"""
+  _eq: String
+
+  """Not equals"""
+  _neq: String
+
+  """In array"""
+  _in: [String!]
+
+  """Not in array"""
+  _notIn: [String!]
+
+  """Is null"""
+  _is: Boolean
+
+  """Is not null"""
+  _isNot: Boolean
+
+  """Contains substring (case-sensitive)"""
+  _contains: String
+
+  """Contains substring (case-insensitive)"""
+  _containsi: String
+
+  """Starts with (case-sensitive)"""
+  _startsWith: String
+
+  """Starts with (case-insensitive)"""
+  _startsWithi: String
+}
+
+"""Filter operators for ID fields"""
+input IDFilter {
+  """Equals"""
+  _eq: ID
+
+  """Not equals"""
+  _neq: ID
+
+  """In array"""
+  _in: [ID!]
+
+  """Not in array"""
+  _notIn: [ID!]
+
+  """Is null"""
+  _is: Boolean
+
+  """Is not null"""
+  _isNot: Boolean
+}
+
+"""Filter operators for DateTime fields"""
+input DateTimeFilter {
+  """Equals"""
+  _eq: DateTime
+
+  """Not equals"""
+  _neq: DateTime
+
+  """Greater than (after)"""
+  _gt: DateTime
+
+  """Greater than or equal (on or after)"""
+  _gte: DateTime
+
+  """Less than (before)"""
+  _lt: DateTime
+
+  """Less than or equal (on or before)"""
+  _lte: DateTime
+
+  """Is null"""
+  _is: Boolean
+
+  """Is not null"""
+  _isNot: Boolean
 }
 
 """Input for creating a role."""
@@ -1549,18 +1773,6 @@ input RoleCreateInput {
 
   """Role permissions."""
   permissions: [RolePermissionInput!]!
-}
-
-"""
-Action level for permissions.
-Hierarchy: read < write < admin
-- admin includes write and read
-- write includes read
-"""
-enum Action {
-  read
-  write
-  admin
 }
 
 """Input for role permission."""
@@ -2182,21 +2394,6 @@ type ProductUnpublishPayload {
   userErrors: [GenericUserError!]!
 }
 
-"""Information about pagination in a connection."""
-type PageInfo {
-  """When paginating forwards, are there more items?"""
-  hasNextPage: Boolean!
-
-  """When paginating backwards, are there more items?"""
-  hasPreviousPage: Boolean!
-
-  """When paginating backwards, the cursor to continue."""
-  startCursor: String
-
-  """When paginating forwards, the cursor to continue."""
-  endCursor: String
-}
-
 """A warehouse represents a physical location where inventory is stored."""
 type Warehouse implements Node {
   """The globally unique ID of the warehouse."""
@@ -2531,20 +2728,6 @@ type File implements Node {
   externalData: ExternalMediaData
 }
 
-"""
-The Node interface is implemented by all types that have a globally unique ID.
-"""
-interface Node {
-  """The globally unique ID of the object."""
-  id: ID!
-}
-
-"""Sort direction"""
-enum SortDirection {
-  asc
-  desc
-}
-
 """Fields available for sorting Warehouse"""
 enum WarehouseOrderField {
   """Sort by id"""
@@ -2599,72 +2782,6 @@ enum SwatchType {
   COLOR
   GRADIENT
   IMAGE
-}
-
-"""Filter operators for String fields"""
-input StringFilter {
-  """Equals"""
-  _eq: String
-
-  """Not equals"""
-  _neq: String
-
-  """In array"""
-  _in: [String!]
-
-  """Not in array"""
-  _notIn: [String!]
-
-  """Is null"""
-  _is: Boolean
-
-  """Is not null"""
-  _isNot: Boolean
-
-  """Contains substring (case-sensitive)"""
-  _contains: String
-
-  """Contains substring (case-insensitive)"""
-  _containsi: String
-
-  """Does not contain substring (case-sensitive)"""
-  _notContains: String
-
-  """Does not contain substring (case-insensitive)"""
-  _notContainsi: String
-
-  """Starts with (case-sensitive)"""
-  _startsWith: String
-
-  """Starts with (case-insensitive)"""
-  _startsWithi: String
-
-  """Ends with (case-sensitive)"""
-  _endsWith: String
-
-  """Ends with (case-insensitive)"""
-  _endsWithi: String
-}
-
-"""Filter operators for ID fields"""
-input IDFilter {
-  """Equals"""
-  _eq: ID
-
-  """Not equals"""
-  _neq: ID
-
-  """In array"""
-  _in: [ID!]
-
-  """Not in array"""
-  _notIn: [ID!]
-
-  """Is null"""
-  _is: Boolean
-
-  """Is not null"""
-  _isNot: Boolean
 }
 
 """Filter operators for Int fields"""
@@ -2752,42 +2869,6 @@ input BooleanFilter {
 
   """Is not null"""
   _isNot: Boolean
-}
-
-"""Filter operators for DateTime fields"""
-input DateTimeFilter {
-  """Equals"""
-  _eq: DateTime
-
-  """Not equals"""
-  _neq: DateTime
-
-  """Greater than (after)"""
-  _gt: DateTime
-
-  """Greater than or equal (on or after)"""
-  _gte: DateTime
-
-  """Less than (before)"""
-  _lt: DateTime
-
-  """Less than or equal (on or before)"""
-  _lte: DateTime
-
-  """In array"""
-  _in: [DateTime!]
-
-  """Not in array"""
-  _notIn: [DateTime!]
-
-  """Is null"""
-  _is: Boolean
-
-  """Is not null"""
-  _isNot: Boolean
-
-  """Between range (inclusive)"""
-  _between: [DateTime!]
 }
 
 """Filter conditions for Warehouse"""

@@ -7,6 +7,7 @@ export type GraphQLFileName =
   | 'iam-api/OrganizationDelete'
   | 'iam-api/OrganizationMembership'
   | 'iam-api/OrganizationRoles'
+  | 'iam-api/Organizations'
   | 'iam-api/OwnershipTransfer'
   | 'inventory-api/ProductCreate'
   | 'inventory-api/ProductFindMany'
