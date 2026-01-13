@@ -41,6 +41,15 @@ export class OrganizationQueryResolver extends IAMType<Record<string, never>> {
   organizations(args: OrganizationsQueryArgs = {}) {
     const { currentUser } = this.$ctx;
 
+    // Return empty connection for unauthenticated users
+    // Note: currentUser is always set by middleware, but id will be empty if not authenticated
+    if (!currentUser?.id) {
+      return new OrganizationConnectionResolver(
+        { userId: "", first: 0 },
+        this.$ctx
+      );
+    }
+
     // Transform orderBy from GraphQL format to relay format
     const orderBy = args.orderBy?.map((o) => ({
       field: o.field as "name" | "displayName" | "createdAt" | "updatedAt",
@@ -48,8 +57,7 @@ export class OrganizationQueryResolver extends IAMType<Record<string, never>> {
     }));
 
     const input: OrganizationConnectionResolverInput = {
-      // Use empty string for unauthenticated users - repository will return empty results
-      userId: currentUser?.id ?? "",
+      userId: currentUser.id,
       first: args.first ?? undefined,
       after: args.after ?? undefined,
       last: args.last ?? undefined,

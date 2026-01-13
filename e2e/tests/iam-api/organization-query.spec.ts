@@ -276,9 +276,7 @@ test.describe('Organizations Query', () => {
     expect(orgs.edges).toHaveLength(0);
   });
 
-  // Note: Skipping unauthenticated test - current server behavior returns organizations
-  // without auth. This may need server-side changes to properly filter by authenticated user.
-  test.skip('Unauthenticated user gets empty organization list', async ({ api }) => {
+  test('Unauthenticated user gets empty organization list', async ({ api }) => {
     // 1. Clear session
     api.session.clearSession();
 

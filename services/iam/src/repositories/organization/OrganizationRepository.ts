@@ -369,6 +369,20 @@ export class OrganizationRepository extends BaseRepository {
   ): Promise<OrganizationConnectionResult> {
     const { userId, first, after, last, before } = args;
 
+    // Return empty for unauthenticated users (empty userId)
+    if (!userId) {
+      return {
+        edges: [],
+        pageInfo: {
+          hasNextPage: false,
+          hasPreviousPage: false,
+          startCursor: null,
+          endCursor: null,
+        },
+        totalCount: 0,
+      };
+    }
+
     // Get user's organizations
     const userOrgs = await this.getUserOrganizations(userId);
     const totalCount = userOrgs.length;
