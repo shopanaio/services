@@ -2,7 +2,9 @@ import React, { Fragment, type ComponentType } from "react";
 import { notFound } from "next/navigation";
 import { moduleRegistry, type ModulePageProps, type DomainLayoutComponent } from "./registry";
 import { ModuleProvider } from "./client";
+import { PathParamsProvider } from "./path-params-context";
 import type { IModalStackDefinition } from "@/layouts/modals/types";
+import type { ParamData } from "path-to-regexp";
 
 // ============================================================================
 // Page Factory
@@ -16,13 +18,16 @@ interface PageProps {
 function renderComponent(
   Component: ComponentType<ModulePageProps>,
   props: ModulePageProps,
-  Layout?: DomainLayoutComponent
+  Layout?: DomainLayoutComponent,
+  pathParams?: ParamData
 ): React.ReactElement {
   const Wrapper = Layout ?? Fragment;
   return (
-    <Wrapper>
-      <Component {...props} />
-    </Wrapper>
+    <PathParamsProvider pathParams={pathParams ?? {}}>
+      <Wrapper>
+        <Component {...props} />
+      </Wrapper>
+    </PathParamsProvider>
   );
 }
 
@@ -56,15 +61,17 @@ export function createPage(options: CreatePageOptions = {}) {
 
     const Component = matchResult.record.component;
     const Layout = matchResult.domainConfig?.layout;
+    const pathParams = matchResult.params ? { ...matchResult.params } : {};
 
     return renderComponent(
       Component,
       {
         params: { slug: segments },
         searchParams,
-        pathParams: matchResult.params ? { ...matchResult.params } : {},
+        pathParams,
       },
-      Layout
+      Layout,
+      pathParams
     );
   }
 

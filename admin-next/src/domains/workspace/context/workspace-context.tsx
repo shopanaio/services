@@ -91,7 +91,12 @@ export interface WorkspaceProviderProps {
    */
   initialOrganizationName?: string;
   /**
+   * Initial store name (from URL path params).
+   */
+  initialStoreName?: string;
+  /**
    * Initial store ID (from URL or storage).
+   * @deprecated Use initialStoreName instead for URL-based routing.
    */
   initialStoreId?: string;
 }
@@ -111,6 +116,7 @@ export interface WorkspaceProviderProps {
 export function WorkspaceProvider({
   children,
   initialOrganizationName,
+  initialStoreName,
   initialStoreId,
 }: WorkspaceProviderProps) {
   // Get current user from auth
@@ -120,9 +126,10 @@ export function WorkspaceProvider({
   const [organizationName, setOrganizationName] = useState<string | undefined>(
     initialOrganizationName
   );
-  const [storeId, setStoreId] = useState<string | null>(
-    initialStoreId ?? null
+  const [storeName, setStoreName] = useState<string | undefined>(
+    initialStoreName
   );
+  const [storeId, setStoreId] = useState<string | null>(initialStoreId ?? null);
 
   // Fetch organization with full membership
   const {
@@ -151,11 +158,19 @@ export function WorkspaceProvider({
     );
   }, [organization?.membership?.members, user?.id]);
 
-  // Find current store from stores list
+  // Find current store from stores list (by name or id)
   const currentStore = useMemo(() => {
-    if (!storeId || stores.length === 0) return null;
-    return stores.find((s) => s.id === storeId) ?? null;
-  }, [storeId, stores]);
+    if (stores.length === 0) return null;
+    // Prefer name-based lookup (for URL routing)
+    if (storeName) {
+      return stores.find((s) => s.name === storeName) ?? null;
+    }
+    // Fallback to id-based lookup
+    if (storeId) {
+      return stores.find((s) => s.id === storeId) ?? null;
+    }
+    return null;
+  }, [storeName, storeId, stores]);
 
   // Derived state
   const isOwner = currentMember?.isOwner ?? false;
@@ -164,11 +179,13 @@ export function WorkspaceProvider({
   // Actions
   const selectOrganization = useCallback((name: string) => {
     setOrganizationName(name);
+    setStoreName(undefined);
     setStoreId(null); // Clear store when switching organizations
   }, []);
 
   const selectStore = useCallback((id: string | null) => {
     setStoreId(id);
+    setStoreName(undefined); // Clear name when selecting by id
   }, []);
 
   const refresh = useCallback(() => {

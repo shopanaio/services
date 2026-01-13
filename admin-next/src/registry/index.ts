@@ -27,3 +27,12 @@ export {
 
 // Client-side context and hooks
 export { useSidebarItems, ModuleProvider } from "./client";
+
+// Path params context and hooks
+export {
+  type PathParamsContextValue,
+  type PathParamsProviderProps,
+  PathParamsProvider,
+  usePathParams,
+  usePathParamsOptional,
+} from "./path-params-context";

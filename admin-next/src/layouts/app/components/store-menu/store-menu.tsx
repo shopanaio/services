@@ -15,6 +15,8 @@ import { useRouter } from "next/navigation";
 
 import { ShopIcon } from "@/layouts/app/components/store-menu/shop-icon/shop-icon";
 import { useThemeContext } from "@/ui-kit/theme";
+import { useWorkspaceOptional } from "@/domains/workspace/context/workspace-context";
+import { useSession, useSignOut } from "@/domains/auth";
 
 const useStyles = createStyles(
   ({ css, token }, { isCollapsed }: { isCollapsed: boolean }) => ({
@@ -76,24 +78,26 @@ const useStyles = createStyles(
 
 interface Props {
   isCollapsed: boolean;
-  storeName?: string;
-  userName?: string;
-  userEmail?: string;
-  onAllStoresClick?: () => void;
-  onLogoutClick?: () => void;
 }
 
-export const StoreMenu = ({
-  isCollapsed,
-  storeName = "My Store",
-  userName = "John Doe",
-  userEmail = "john@example.com",
-  onAllStoresClick,
-  onLogoutClick,
-}: Props) => {
+export const StoreMenu = ({ isCollapsed }: Props) => {
   const { styles } = useStyles({ isCollapsed });
   const { themePreference, setThemePreference } = useThemeContext();
   const router = useRouter();
+  const workspace = useWorkspaceOptional();
+  const { user } = useSession();
+  const { signOut } = useSignOut();
+
+  // Get display values from context or fallback
+  const displayName =
+    workspace?.store?.displayName ??
+    workspace?.organization?.displayName ??
+    "Select Store";
+  // Build user display name from firstName/lastName or fallback to email
+  const userName = user?.firstName
+    ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}`
+    : user?.email ?? "User";
+  const userEmail = user?.email ?? "";
 
   const themeOptions = [
     { key: "light", label: "Light", icon: <MdLightMode /> },
@@ -107,7 +111,7 @@ export const StoreMenu = ({
       type: "group" as const,
       label: (
         <Flex gap="small" align="center" data-testid="project-menu-current">
-          <Typography.Text ellipsis>{storeName}</Typography.Text>
+          <Typography.Text ellipsis>{displayName}</Typography.Text>
         </Flex>
       ),
     },
@@ -200,7 +204,7 @@ export const StoreMenu = ({
 
     {
       key: "logout",
-      onClick: onLogoutClick,
+      onClick: () => signOut(),
       label: (
         <Flex gap="small" align="center" data-testid="project-menu-logout">
           <MdLogout />
@@ -229,7 +233,7 @@ export const StoreMenu = ({
         >
           <Flex vertical className={styles.storeInfo}>
             <Typography.Text ellipsis strong>
-              {storeName}
+              {displayName}
             </Typography.Text>
             <Typography.Text className={styles.betaText} type="secondary" code>
               Beta
