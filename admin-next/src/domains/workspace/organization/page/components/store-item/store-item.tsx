@@ -2,12 +2,10 @@
 
 import { Typography, Avatar, Flex, Tag } from "antd";
 import { ShopOutlined, RightOutlined } from "@ant-design/icons";
+import { StoreStatus } from "@/graphql/types";
 import { useStyles } from "../../organization-page.styles";
-import type { IStoreItemProps } from "../../types";
+import type { StoreItemProps } from "../../types";
 
-/**
- * Generate a consistent color based on string hash.
- */
 function getColorFromString(str: string): string {
   const colors = ["blue", "purple", "green", "orange", "cyan", "magenta"];
   let hash = 0;
@@ -17,21 +15,15 @@ function getColorFromString(str: string): string {
   return colors[Math.abs(hash) % colors.length];
 }
 
-export function StoreItem({ store, onClick }: IStoreItemProps) {
+export function StoreItem({ store, onClick }: StoreItemProps) {
   const { styles, cx } = useStyles();
-  const isActive = store.status === "active";
+  const isActive = store.status === StoreStatus.Active;
   const color = getColorFromString(store.id);
-
-  const handleClick = () => {
-    if (onClick) {
-      onClick();
-    }
-  };
 
   return (
     <div
       className={cx(styles.storeItem, !isActive && styles.storeItemDisabled)}
-      onClick={handleClick}
+      onClick={onClick}
     >
       <Flex align="center">
         <Avatar
@@ -53,9 +45,9 @@ export function StoreItem({ store, onClick }: IStoreItemProps) {
         </Avatar>
         <div className={styles.storeInfo}>
           <Typography.Text className={styles.storeName}>
-            {store.name}
+            {store.displayName}
           </Typography.Text>
-          <div className={styles.storeSlug}>{store.slug}</div>
+          <div className={styles.storeSlug}>{store.name}</div>
         </div>
       </Flex>
       <Flex align="center" gap={8}>

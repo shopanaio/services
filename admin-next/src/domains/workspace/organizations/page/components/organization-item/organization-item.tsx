@@ -3,11 +3,8 @@
 import { Typography, Avatar, Flex } from "antd";
 import { BankOutlined, RightOutlined } from "@ant-design/icons";
 import { useStyles } from "../../organizations-page.styles";
-import type { IOrganizationItemProps } from "../../types";
+import type { OrganizationItemProps } from "../../types";
 
-/**
- * Generate a consistent color based on string hash.
- */
 function getColorFromString(str: string): string {
   const colors = ["blue", "purple", "green", "orange", "cyan", "magenta"];
   let hash = 0;
@@ -17,7 +14,7 @@ function getColorFromString(str: string): string {
   return colors[Math.abs(hash) % colors.length];
 }
 
-export function OrganizationItem({ organization, onClick }: IOrganizationItemProps) {
+export function OrganizationItem({ organization, onClick }: OrganizationItemProps) {
   const { styles } = useStyles();
   const color = getColorFromString(organization.id);
 

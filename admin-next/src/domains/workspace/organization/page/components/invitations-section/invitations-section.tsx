@@ -7,9 +7,9 @@ import { mockInvitations, getRoleByName } from "../../../../mocks/data";
 import type { IInvitation } from "../../../../mocks/data";
 import { useStyles } from "../../organization-page.styles";
 import { getDaysUntilExpiry } from "../../utils";
-import type { IInvitationsSectionProps } from "../../types";
+import type { InvitationsSectionProps } from "../../types";
 
-export function InvitationsSection({ onResend, onCancel }: IInvitationsSectionProps) {
+export function InvitationsSection({ onResend, onCancel }: InvitationsSectionProps) {
   const { styles } = useStyles();
 
   if (mockInvitations.length === 0) {

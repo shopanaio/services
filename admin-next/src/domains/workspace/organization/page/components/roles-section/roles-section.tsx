@@ -3,7 +3,7 @@
 import { Typography, Button, Dropdown, Flex, Skeleton, Empty } from "antd";
 import { MoreOutlined, PlusOutlined } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import type { IRolesSectionProps } from "../../types";
+import type { RolesSectionProps } from "../../types";
 import { RoleCard } from "../role-card";
 
 export function RolesSection({
@@ -12,7 +12,7 @@ export function RolesSection({
   onCreateRole,
   onEditRole,
   onDeleteRole,
-}: IRolesSectionProps) {
+}: RolesSectionProps) {
   if (loading) {
     return (
       <Paper>

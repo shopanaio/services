@@ -8,7 +8,7 @@ import {
   DeleteOutlined,
 } from "@ant-design/icons";
 import { useStyles } from "../../organization-page.styles";
-import type { IRoleCardProps } from "../../types";
+import type { RoleCardProps } from "../../types";
 
 const roleIcons: Record<string, React.ReactNode> = {
   admin: <SafetyOutlined style={{ color: "#1890ff" }} />,
@@ -16,7 +16,7 @@ const roleIcons: Record<string, React.ReactNode> = {
   viewer: <EyeOutlined style={{ color: "#8c8c8c" }} />,
 };
 
-export function RoleCard({ role, onEdit, onDelete }: IRoleCardProps) {
+export function RoleCard({ role, onEdit, onDelete }: RoleCardProps) {
   const { styles } = useStyles();
 
   return (

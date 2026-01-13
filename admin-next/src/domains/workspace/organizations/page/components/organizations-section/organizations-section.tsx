@@ -5,7 +5,8 @@ import { Typography, Button, Tabs, Empty, Skeleton } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useStyles } from "../../organizations-page.styles";
-import type { IOrganizationsSectionProps, IOrganization } from "../../types";
+import type { OrganizationsSectionProps } from "../../types";
+import type { ApiOrganization } from "@/graphql/types";
 import { OrganizationItem } from "../organization-item";
 
 export function OrganizationsSection({
@@ -13,11 +14,11 @@ export function OrganizationsSection({
   loading = false,
   onOrganizationClick,
   onCreateOrganization,
-}: IOrganizationsSectionProps) {
+}: OrganizationsSectionProps) {
   const { styles } = useStyles();
   const [activeTab, setActiveTab] = useState("all");
 
-  const renderOrganizationList = (orgList: IOrganization[]) => {
+  const renderOrganizationList = (orgList: ApiOrganization[]) => {
     if (loading) {
       return (
         <div className={styles.organizationList}>

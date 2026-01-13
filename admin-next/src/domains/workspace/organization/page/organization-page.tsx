@@ -39,14 +39,13 @@ import {
 
 export default function OrganizationPage({ pathParams }: ModulePageProps) {
   const router = useRouter();
-  const orgId = pathParams.orgName as string; // TODO: This should be orgId from route
+  const orgId = pathParams.orgName as string;
   const { push: pushDeleteModal } = useDeleteOrganizationModal();
   const { push: pushEditOrganizationModal } = useEditOrganizationModal();
   const { push: pushInviteModal } = useInviteMemberModal();
   const { push: pushEditRoleModal } = useEditRoleModal();
   const { push: pushCreateStoreModal } = useCreateStoreModal();
 
-  // Fetch organization and stores from API
   const {
     organization,
     loading: orgLoading,
@@ -54,7 +53,7 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
   } = useOrganization(orgId);
 
   const {
-    stores: apiStores,
+    stores,
     loading: storesLoading,
     refetch: refetchStores,
   } = useStores({
@@ -62,7 +61,6 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
     skip: !orgId,
   });
 
-  // Mutations
   const { updateOrganization } = useUpdateOrganization();
   const { deleteOrganization } = useDeleteOrganization();
   const { createStore } = useCreateStore();
@@ -73,20 +71,11 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
   const { updateRole } = useUpdateRole();
   const { deleteRole } = useDeleteRole();
 
-  // Get members and roles from organization membership
   const members = organization?.membership?.members ?? [];
   const roles = organization?.membership?.roles ?? [];
 
-  // Transform stores to display format
-  const stores = apiStores.map((store) => ({
-    id: store.id,
-    name: store.displayName,
-    slug: store.name,
-    status: store.status?.toLowerCase() as "active" | "inactive",
-  }));
-
-  const memberCount = organization?.membership?.members?.length ?? 0;
-  const roleCount = organization?.membership?.roles?.length ?? 0;
+  const memberCount = members.length;
+  const roleCount = roles.length;
   const storesCount = stores.length;
 
   const loading = orgLoading || storesLoading;
@@ -143,8 +132,8 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
   }, []);
 
   const handleStoreClick = useCallback(
-    (store: { slug: string }) => {
-      router.push(`/${organization?.name}/${store.slug}/products`);
+    (store: ApiStore) => {
+      router.push(`/${organization?.name}/${store.name}/products`);
     },
     [router, organization?.name]
   );
@@ -248,18 +237,15 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
   );
 
   const handleResendInvitation = useCallback((_invitationId: string) => {
-    // TODO: Implement resend invitation
     message.success("Invitation resent");
   }, []);
 
   const handleCancelInvitation = useCallback((_invitationId: string) => {
-    // TODO: Implement cancel invitation
     message.success("Invitation cancelled");
   }, []);
 
   const handleCreateRole = useCallback(async () => {
     if (!organization) return;
-    // TODO: Open create role modal
     const { role, userErrors } = await createRole({
       organizationId: organization.id,
       domain: "org",
@@ -285,8 +271,6 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
       pushEditRoleModal({
         role,
         onSave: async (updatedRole: Partial<ApiRole>) => {
-          // Note: Permission updates should be handled by the modal with proper
-          // ApiRolePermissionInput format (action: Action enum, not actions: string[])
           const { userErrors } = await updateRole({
             id: role.id,
             organizationId: organization.id,
@@ -323,7 +307,6 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
     [organization, deleteRole, refetchOrg]
   );
 
-  // Show loading state
   if (loading && !organization) {
     return (
       <SettingsLayout name="organization">
@@ -332,7 +315,6 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
     );
   }
 
-  // Handle not found
   if (!organization) {
     return (
       <SettingsLayout name="organization">

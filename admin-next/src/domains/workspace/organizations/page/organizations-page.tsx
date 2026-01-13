@@ -1,39 +1,29 @@
 "use client";
 
-import { useMemo, useCallback } from "react";
+import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Typography, message } from "antd";
 import { SettingsLayout } from "../../layout";
 import { OrganizationsSection } from "./components";
 import { useOrganizations, useCreateOrganization } from "../../hooks";
-import type { IOrganization } from "./types";
-import { toDisplayOrganization } from "./types";
+import type { ApiOrganization } from "@/graphql/types";
 import { useStyles } from "./organizations-page.styles";
 
 export default function OrganizationsPage() {
   const router = useRouter();
   const { styles } = useStyles();
 
-  // Fetch organizations from API
-  const { organizations: apiOrganizations, loading, refetch } = useOrganizations();
+  const { organizations, loading, refetch } = useOrganizations();
   const { createOrganization, loading: creating } = useCreateOrganization();
 
-  // Transform API data to display format
-  const organizations = useMemo(
-    () => apiOrganizations.map(toDisplayOrganization),
-    [apiOrganizations]
-  );
-
   const handleOrganizationClick = useCallback(
-    (organization: IOrganization) => {
+    (organization: ApiOrganization) => {
       router.push(`/workspace/${organization.name}`);
     },
     [router]
   );
 
   const handleCreateOrganization = useCallback(async () => {
-    // TODO: Open create organization modal
-    // For now, create a test organization
     const { organization, userErrors } = await createOrganization({
       name: `org-${Date.now()}`,
       displayName: "New Organization",

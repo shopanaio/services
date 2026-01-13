@@ -8,7 +8,7 @@ import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type { ApiMember } from "@/graphql/types";
 import { useStyles } from "../../organization-page.styles";
 import { getInitials, getUserDisplayName, getRoleByName } from "../../utils";
-import type { IMembersSectionProps } from "../../types";
+import type { MembersSectionProps } from "../../types";
 
 export function MembersSection({
   members,
@@ -17,7 +17,7 @@ export function MembersSection({
   onInviteMember,
   onChangeRole,
   onRemoveMember,
-}: IMembersSectionProps) {
+}: MembersSectionProps) {
   const { styles } = useStyles();
   const [searchValue, setSearchValue] = useState("");
 

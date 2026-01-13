@@ -4,8 +4,9 @@ import { useState, useMemo } from "react";
 import { Typography, Button, Tabs, Empty, Skeleton } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
+import { StoreStatus, type ApiStore } from "@/graphql/types";
 import { useStyles } from "../../organization-page.styles";
-import type { IStoresSectionProps, IStore } from "../../types";
+import type { StoresSectionProps } from "../../types";
 import { StoreItem } from "../store-item";
 
 export function StoresSection({
@@ -13,20 +14,20 @@ export function StoresSection({
   loading = false,
   onStoreClick,
   onCreateStore,
-}: IStoresSectionProps) {
+}: StoresSectionProps) {
   const { styles } = useStyles();
   const [activeTab, setActiveTab] = useState("all");
 
   const activeStores = useMemo(
-    () => stores.filter((s) => s.status === "active"),
+    () => stores.filter((s) => s.status === StoreStatus.Active),
     [stores]
   );
   const inactiveStores = useMemo(
-    () => stores.filter((s) => s.status === "inactive"),
+    () => stores.filter((s) => s.status === StoreStatus.Inactive),
     [stores]
   );
 
-  const renderStoreList = (storeList: IStore[]) => {
+  const renderStoreList = (storeList: ApiStore[]) => {
     if (loading) {
       return (
         <div className={styles.storeList}>
