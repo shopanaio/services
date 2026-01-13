@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Typography, Button, Tabs, Empty, Skeleton } from "antd";
+import { Typography, Button, Empty, Skeleton } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useStyles } from "../../organizations-page.styles";
@@ -57,14 +57,6 @@ export function OrganizationsSection({
     );
   };
 
-  const tabItems = [
-    {
-      key: "all",
-      label: `All${loading ? "" : ` (${organizations.length})`}`,
-      children: renderOrganizationList(organizations),
-    },
-  ];
-
   return (
     <Paper>
       <PaperHeader
@@ -80,7 +72,7 @@ export function OrganizationsSection({
           </Button>
         }
       />
-      <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabItems} />
+      {renderOrganizationList(organizations)}
     </Paper>
   );
 }

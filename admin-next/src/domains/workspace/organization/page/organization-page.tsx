@@ -7,7 +7,7 @@ import { TeamOutlined, SafetyOutlined, ShopOutlined } from "@ant-design/icons";
 import { KPITile } from "@/ui-kit/kpi-tile";
 import { SettingsLayout } from "../../layout";
 import { DangerZone } from "../../shared";
-import { OrganizationInfoHeader } from "../components";
+
 import {
   useDeleteOrganizationModal,
   useEditOrganizationModal,
@@ -35,6 +35,7 @@ import {
   MembersSection,
   InvitationsSection,
   RolesSection,
+  OrganizationInfoHeader,
 } from "./components";
 
 export default function OrganizationPage({ pathParams }: ModulePageProps) {

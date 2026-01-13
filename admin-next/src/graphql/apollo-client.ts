@@ -1,5 +1,5 @@
 import { ApolloClient, InMemoryCache } from "@apollo/client-integration-nextjs";
-import { HttpLink, from, ApolloLink } from "@apollo/client";
+import { HttpLink, ApolloLink } from "@apollo/client";
 import { ErrorLink } from "@apollo/client/link/error";
 import { CombinedGraphQLErrors } from "@apollo/client/errors";
 import { Observable } from "rxjs";
@@ -162,7 +162,7 @@ export function makeClient() {
   return new ApolloClient({
     cache: new InMemoryCache(),
     // Order: errorLink (fallback 401) -> proactiveRefreshLink (proactive refresh + auth header) -> httpLink
-    link: from([errorLink, proactiveRefreshLink, httpLink]),
+    link: ApolloLink.from([errorLink, proactiveRefreshLink, httpLink]),
     defaultOptions: {
       watchQuery: {
         fetchPolicy: "cache-and-network",

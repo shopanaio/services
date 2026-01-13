@@ -7,7 +7,7 @@ import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { StoreStatus, type ApiStore } from "@/graphql/types";
 import { useStyles } from "../../organization-page.styles";
 import type { StoresSectionProps } from "../../types";
-import { StoreItem } from "../store-item";
+import { StoreItem } from "./store-item";
 
 export function StoresSection({
   stores,
@@ -16,7 +16,7 @@ export function StoresSection({
   onCreateStore,
 }: StoresSectionProps) {
   const { styles } = useStyles();
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState("active");
 
   const activeStores = useMemo(
     () => stores.filter((s) => s.status === StoreStatus.Active),
@@ -68,18 +68,13 @@ export function StoresSection({
 
   const tabItems = [
     {
-      key: "all",
-      label: `All${loading ? "" : ` (${stores.length})`}`,
-      children: renderStoreList(stores),
-    },
-    {
       key: "active",
-      label: `Active${loading ? "" : ` (${activeStores.length})`}`,
+      label: `Active`,
       children: renderStoreList(activeStores),
     },
     {
       key: "inactive",
-      label: `Inactive${loading ? "" : ` (${inactiveStores.length})`}`,
+      label: `Inactive`,
       children: renderStoreList(inactiveStores),
     },
   ];
@@ -100,6 +95,8 @@ export function StoresSection({
         }
       />
       <Tabs
+        type="card"
+        size="small"
         activeKey={activeTab}
         onChange={setActiveTab}
         items={tabItems}
