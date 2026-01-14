@@ -84,7 +84,7 @@ export class MembershipResolver extends IAMType<
     // Map to ResourceDefinition format
     return Object.entries(resources).map(([name, def]) => ({
       name,
-      displayName: null,
+      displayName: def.displayName,
       actions: [...def.actions],
       description: def.description,
     }));
