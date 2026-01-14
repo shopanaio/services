@@ -7,8 +7,10 @@ export interface StoreItemProps {
 
 export interface RoleCardProps {
   role: ApiRole;
-  onEdit: () => void;
-  onDelete: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  selected?: boolean;
+  onSelect?: () => void;
 }
 
 export interface StoresSectionProps {

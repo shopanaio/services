@@ -1,7 +1,7 @@
 "use client";
 
 import { useForm, Controller } from "react-hook-form";
-import { Input, Typography, Radio, Space, message } from "antd";
+import { Input, Typography, message } from "antd";
 import { createStyles } from "antd-style";
 import {
   useModalStackContext,
@@ -9,31 +9,21 @@ import {
   ModalHeader,
 } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
+import { RoleCard } from "../../organization/page/components/roles-section/role-card";
 import type { IInviteMemberModalPayload } from "../../modals";
 
 const useStyles = createStyles(({ token }) => ({
   formItem: {
     marginBottom: token.marginMD,
   },
-  formItemLast: {
-    marginBottom: 0,
-  },
   label: {
     display: "block",
     marginBottom: token.marginXS,
     fontWeight: 500,
   },
-  roleOption: {
+  roleList: {
     display: "flex",
     flexDirection: "column",
-    padding: `${token.paddingSM}px 0`,
-  },
-  roleName: {
-    fontWeight: 500,
-  },
-  roleDescription: {
-    color: token.colorTextSecondary,
-    fontSize: token.fontSizeSM,
   },
   error: {
     color: token.colorError,
@@ -53,11 +43,6 @@ export const InviteMemberModal = () => {
   const { payload, pop } = useModalStackContext();
   const typedPayload = payload as IInviteMemberModalPayload;
 
-  // Filter out Owner role - can't invite as owner
-  const invitableRoles = (typedPayload.roles ?? []).filter(
-    (role) => role.name !== "owner"
-  );
-
   const {
     control,
     handleSubmit,
@@ -65,7 +50,7 @@ export const InviteMemberModal = () => {
   } = useForm<IInviteForm>({
     defaultValues: {
       email: "",
-      roleId: invitableRoles[0]?.id || "",
+      roleId: typedPayload.roles?.[0]?.id || "",
       personalMessage: "",
     },
   });
@@ -131,22 +116,16 @@ export const InviteMemberModal = () => {
               control={control}
               rules={{ required: "Please select a role" }}
               render={({ field }) => (
-                <Radio.Group {...field}>
-                  <Space direction="vertical" style={{ width: "100%" }}>
-                    {invitableRoles.map((role) => (
-                      <Radio key={role.id} value={role.id}>
-                        <div className={styles.roleOption}>
-                          <Typography.Text className={styles.roleName}>
-                            {role.displayName}
-                          </Typography.Text>
-                          <Typography.Text className={styles.roleDescription}>
-                            {role.description}
-                          </Typography.Text>
-                        </div>
-                      </Radio>
-                    ))}
-                  </Space>
-                </Radio.Group>
+                <div className={styles.roleList}>
+                  {typedPayload.roles?.map((role) => (
+                    <RoleCard
+                      key={role.id}
+                      role={role}
+                      selected={field.value === role.id}
+                      onSelect={() => field.onChange(role.id)}
+                    />
+                  ))}
+                </div>
               )}
             />
           </div>

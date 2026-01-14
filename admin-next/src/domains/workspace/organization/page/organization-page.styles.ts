@@ -123,6 +123,14 @@ export const useStyles = createStyles(({ token }) => ({
       borderColor: token.colorBorder,
     },
   },
+  roleCardSelected: {
+    borderColor: token.colorBorder,
+    backgroundColor: token.colorBgTextHover,
+  },
+  roleCheckIcon: {
+    color: token.colorPrimary,
+    fontSize: 18,
+  },
   roleInfo: {
     display: "flex",
     alignItems: "flex-start",

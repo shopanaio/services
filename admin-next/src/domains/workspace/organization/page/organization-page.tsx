@@ -28,7 +28,11 @@ import {
   useUpdateRole,
   useDeleteRole,
 } from "../../hooks";
-import type { ApiRole, ApiStore, ApiRolePermissionInput } from "@/graphql/types";
+import type {
+  ApiRole,
+  ApiStore,
+  ApiRolePermissionInput,
+} from "@/graphql/types";
 import type { ModulePageProps } from "@/registry";
 import {
   StoresSection,

@@ -15,6 +15,7 @@ const eslintConfig = defineConfig([
   ]),
   {
     rules: {
+      "react-hooks/preserve-manual-memoization": "off",
       "@next/next/no-img-element": "off",
     },
   },

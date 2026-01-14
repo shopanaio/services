@@ -18,11 +18,21 @@ const roleIcons: Record<string, React.ReactNode> = {
   member: <EyeOutlined style={{ color: "#8c8c8c" }} />,
 };
 
-export function RoleCard({ role, onEdit, onDelete }: RoleCardProps) {
-  const { styles } = useStyles();
+export function RoleCard({
+  role,
+  onEdit,
+  onDelete,
+  selected,
+  onSelect,
+}: RoleCardProps) {
+  const { styles, cx } = useStyles();
+  const isSelectable = onSelect !== undefined;
 
   return (
-    <div className={styles.roleCard} onClick={onEdit}>
+    <div
+      className={cx(styles.roleCard, selected && styles.roleCardSelected)}
+      onClick={isSelectable ? onSelect : onEdit}
+    >
       <div className={styles.roleInfo}>
         <span className={styles.roleIcon}>
           {roleIcons[role.name] || <EyeOutlined style={{ color: "#8c8c8c" }} />}
@@ -36,7 +46,8 @@ export function RoleCard({ role, onEdit, onDelete }: RoleCardProps) {
           </Typography.Text>
         </div>
       </div>
-      {!role.isSystem && (
+
+      {!isSelectable && !role.isSystem && (
         <Dropdown
           menu={{
             items: [
@@ -50,8 +61,8 @@ export function RoleCard({ role, onEdit, onDelete }: RoleCardProps) {
             ],
             onClick: ({ key, domEvent }) => {
               domEvent.stopPropagation();
-              if (key === "edit") onEdit();
-              if (key === "delete") onDelete();
+              if (key === "edit") onEdit?.();
+              if (key === "delete") onDelete?.();
             },
           }}
           trigger={["click"]}
