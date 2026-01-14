@@ -89,9 +89,7 @@ export function StoresSection({
             icon={<PlusOutlined />}
             onClick={onCreateStore}
             loading={loading}
-          >
-            Create Store
-          </Button>
+          />
         }
       />
       <Tabs

@@ -64,8 +64,6 @@ export const useStyles = createStyles(({ token }) => ({
     flexShrink: 0,
     display: "flex",
     justifyContent: "space-between",
-    padding: token.paddingMD,
-    borderTop: `1px solid ${token.colorBorderSecondary}`,
   },
   finishContainer: {
     display: "flex",

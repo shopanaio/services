@@ -19,8 +19,8 @@ const ThemeInner = ({ children }: { children: React.ReactNode }) => {
         zeroRuntime: true,
         algorithm: isDark ? antTheme.darkAlgorithm : antTheme.defaultAlgorithm,
         token: {
-          colorLink: isDark ? "#8f8bfa" : "#2e1b74",
-          colorPrimary: isDark ? "#8f8bfa" : "#26175d",
+          // colorLink: isDark ? "#8f8bfa" : "#2e1b74",
+          // colorPrimary: isDark ? "#8f8bfa" : "#26175d",
           fontFamily:
             'var(--font-safiro), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
         },

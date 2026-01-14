@@ -6,7 +6,7 @@ import {
   CheckOutlined,
   MoreOutlined,
   LinkOutlined,
-  TeamOutlined,
+  BankOutlined,
   CheckCircleOutlined,
 } from "@ant-design/icons";
 import { createStyles } from "antd-style";
@@ -146,7 +146,7 @@ export const OrganizationInfoHeader = ({
       <Flex gap={16} align="flex-start">
         <Avatar
           size={64}
-          icon={<TeamOutlined />}
+          icon={<BankOutlined />}
           className={styles.avatar}
           onClick={onEdit}
         >

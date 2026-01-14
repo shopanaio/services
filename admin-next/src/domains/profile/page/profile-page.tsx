@@ -9,10 +9,14 @@ import {
   CloseOutlined,
   MoreOutlined,
   CheckCircleOutlined,
+  SunOutlined,
+  MoonOutlined,
+  LaptopOutlined,
 } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { SettingsLayout } from "@/domains/workspace/layout";
 import { DangerZone } from "@/domains/workspace/shared";
+import { useThemeContext } from "@/ui-kit/theme/theme-context";
 import { ProfileInfoHeader } from "../components";
 import {
   mockCurrentUser,
@@ -99,13 +103,53 @@ const useStyles = createStyles(({ token }) => ({
     color: token.colorTextSecondary,
     fontSize: token.fontSizeSM,
   },
+  themeCards: {
+    display: "flex",
+    gap: token.margin,
+  },
+  themeCard: {
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    padding: token.paddingLG,
+    borderRadius: token.borderRadiusLG,
+    border: `2px solid ${token.colorBorder}`,
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+    "&:hover": {
+      borderColor: token.colorPrimaryHover,
+    },
+  },
+  themeCardSelected: {
+    borderColor: token.colorPrimary,
+    backgroundColor: token.colorPrimaryBg,
+  },
+  themeIcon: {
+    fontSize: 32,
+    marginBottom: token.marginSM,
+    color: token.colorTextSecondary,
+  },
+  themeIconSelected: {
+    color: token.colorPrimary,
+  },
+  themeLabel: {
+    fontWeight: 500,
+    marginBottom: 4,
+  },
+  themeDescription: {
+    color: token.colorTextSecondary,
+    fontSize: token.fontSizeSM,
+    textAlign: "center",
+  },
 }));
 
 export default function ProfilePage() {
-  const { styles } = useStyles();
+  const { styles, cx } = useStyles();
   const { push: pushEditProfileModal } = useEditProfileModal();
   const { push: pushChangeEmailModal } = useChangeEmailModal();
   const { push: pushChangePasswordModal } = useChangePasswordModal();
+  const { themePreference, setThemePreference } = useThemeContext();
 
   const handleEditProfile = () => {
     pushEditProfileModal({
@@ -264,6 +308,73 @@ export default function ProfilePage() {
                 Add an extra layer of security to your account
               </Typography.Text>
             </div>
+          </div>
+        </div>
+      </Paper>
+
+      {/* Appearance Section */}
+      <Paper>
+        <PaperHeader title="Appearance" />
+        <div className={styles.themeCards}>
+          <div
+            className={cx(
+              styles.themeCard,
+              themePreference === "light" && styles.themeCardSelected
+            )}
+            onClick={() => setThemePreference("light")}
+          >
+            <SunOutlined
+              className={cx(
+                styles.themeIcon,
+                themePreference === "light" && styles.themeIconSelected
+              )}
+            />
+            <Typography.Text className={styles.themeLabel}>
+              Light
+            </Typography.Text>
+            <Typography.Text className={styles.themeDescription}>
+              Classic light theme
+            </Typography.Text>
+          </div>
+          <div
+            className={cx(
+              styles.themeCard,
+              themePreference === "dark" && styles.themeCardSelected
+            )}
+            onClick={() => setThemePreference("dark")}
+          >
+            <MoonOutlined
+              className={cx(
+                styles.themeIcon,
+                themePreference === "dark" && styles.themeIconSelected
+              )}
+            />
+            <Typography.Text className={styles.themeLabel}>
+              Dark
+            </Typography.Text>
+            <Typography.Text className={styles.themeDescription}>
+              Easy on the eyes
+            </Typography.Text>
+          </div>
+          <div
+            className={cx(
+              styles.themeCard,
+              themePreference === "auto" && styles.themeCardSelected
+            )}
+            onClick={() => setThemePreference("auto")}
+          >
+            <LaptopOutlined
+              className={cx(
+                styles.themeIcon,
+                themePreference === "auto" && styles.themeIconSelected
+              )}
+            />
+            <Typography.Text className={styles.themeLabel}>
+              Auto
+            </Typography.Text>
+            <Typography.Text className={styles.themeDescription}>
+              Match system settings
+            </Typography.Text>
           </div>
         </div>
       </Paper>
