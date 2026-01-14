@@ -98,13 +98,13 @@ export class UserRepository {
     const { email, password, headers } = input;
 
     try {
-      // Build headers for better-auth to capture IP and User-Agent
-      const authHeaders: Record<string, string> = {};
+      // Build Headers object for better-auth to capture IP and User-Agent
+      const authHeaders = new Headers();
       if (headers?.userAgent) {
-        authHeaders["user-agent"] = headers.userAgent;
+        authHeaders.set("user-agent", headers.userAgent);
       }
       if (headers?.ipAddress) {
-        authHeaders["x-forwarded-for"] = headers.ipAddress;
+        authHeaders.set("x-forwarded-for", headers.ipAddress);
       }
 
       const result = await this.auth.api.signInEmail({
@@ -112,7 +112,7 @@ export class UserRepository {
           email,
           password,
         },
-        headers: Object.keys(authHeaders).length > 0 ? authHeaders : undefined,
+        headers: authHeaders,
       });
 
       if (!result.user || !result.token) {
@@ -160,13 +160,13 @@ export class UserRepository {
     const { email, password, name, headers } = input;
 
     try {
-      // Build headers for better-auth to capture IP and User-Agent
-      const authHeaders: Record<string, string> = {};
+      // Build Headers object for better-auth to capture IP and User-Agent
+      const authHeaders = new Headers();
       if (headers?.userAgent) {
-        authHeaders["user-agent"] = headers.userAgent;
+        authHeaders.set("user-agent", headers.userAgent);
       }
       if (headers?.ipAddress) {
-        authHeaders["x-forwarded-for"] = headers.ipAddress;
+        authHeaders.set("x-forwarded-for", headers.ipAddress);
       }
 
       const result = await this.auth.api.signUpEmail({
@@ -175,7 +175,7 @@ export class UserRepository {
           password,
           name: name || email.split("@")[0], // Default name from email
         },
-        headers: Object.keys(authHeaders).length > 0 ? authHeaders : undefined,
+        headers: authHeaders,
       });
 
       if (!result.user) {
