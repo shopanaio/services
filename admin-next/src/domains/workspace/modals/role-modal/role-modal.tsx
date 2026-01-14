@@ -384,6 +384,7 @@ export const RoleModal = () => {
                   name="description"
                   control={control}
                   rules={{
+                    required: "Description is required",
                     maxLength: {
                       value: 200,
                       message: "Description must be less than 200 characters",
@@ -397,6 +398,7 @@ export const RoleModal = () => {
                       disabled={isReadOnly}
                       showCount
                       maxLength={200}
+                      status={errors.description ? "error" : undefined}
                     />
                   )}
                 />

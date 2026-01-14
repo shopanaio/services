@@ -1,11 +1,12 @@
 "use client";
 
-import { Typography, Button } from "antd";
+import { Typography, Button, Dropdown } from "antd";
 import {
   SafetyOutlined,
   EditOutlined,
   EyeOutlined,
   DeleteOutlined,
+  MoreOutlined,
 } from "@ant-design/icons";
 import { useStyles } from "../../organization-page.styles";
 import type { RoleCardProps } from "../../types";
@@ -18,11 +19,6 @@ const roleIcons: Record<string, React.ReactNode> = {
 
 export function RoleCard({ role, onEdit, onDelete }: RoleCardProps) {
   const { styles } = useStyles();
-
-  const handleButtonClick = (e: React.MouseEvent, callback: () => void) => {
-    e.stopPropagation();
-    callback();
-  };
 
   return (
     <div className={styles.roleCard} onClick={onEdit}>
@@ -40,19 +36,26 @@ export function RoleCard({ role, onEdit, onDelete }: RoleCardProps) {
         </div>
       </div>
       {!role.isSystem && (
-        <div className={styles.roleActions}>
-          <Button size="small" onClick={(e) => handleButtonClick(e, onEdit)}>
-            Edit
-          </Button>
+        <Dropdown
+          menu={{
+            items: [
+              { key: "edit", label: "Edit", icon: <EditOutlined /> },
+              { key: "delete", label: "Delete", icon: <DeleteOutlined />, danger: true },
+            ],
+            onClick: ({ key, domEvent }) => {
+              domEvent.stopPropagation();
+              if (key === "edit") onEdit();
+              if (key === "delete") onDelete();
+            },
+          }}
+          trigger={["click"]}
+        >
           <Button
             size="small"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={(e) => handleButtonClick(e, onDelete)}
-          >
-            Delete
-          </Button>
-        </div>
+            icon={<MoreOutlined />}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </Dropdown>
       )}
     </div>
   );
