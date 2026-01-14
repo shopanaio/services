@@ -15,6 +15,7 @@ const roleIcons: Record<string, React.ReactNode> = {
   admin: <SafetyOutlined style={{ color: "#1890ff" }} />,
   editor: <EditOutlined style={{ color: "#52c41a" }} />,
   viewer: <EyeOutlined style={{ color: "#8c8c8c" }} />,
+  member: <EyeOutlined style={{ color: "#8c8c8c" }} />,
 };
 
 export function RoleCard({ role, onEdit, onDelete }: RoleCardProps) {
@@ -24,7 +25,7 @@ export function RoleCard({ role, onEdit, onDelete }: RoleCardProps) {
     <div className={styles.roleCard} onClick={onEdit}>
       <div className={styles.roleInfo}>
         <span className={styles.roleIcon}>
-          {roleIcons[role.name] || <SafetyOutlined />}
+          {roleIcons[role.name] || <EyeOutlined style={{ color: "#8c8c8c" }} />}
         </span>
         <div className={styles.roleDetails}>
           <Typography.Text className={styles.roleName}>
@@ -40,7 +41,12 @@ export function RoleCard({ role, onEdit, onDelete }: RoleCardProps) {
           menu={{
             items: [
               { key: "edit", label: "Edit", icon: <EditOutlined /> },
-              { key: "delete", label: "Delete", icon: <DeleteOutlined />, danger: true },
+              {
+                key: "delete",
+                label: "Delete",
+                icon: <DeleteOutlined />,
+                danger: true,
+              },
             ],
             onClick: ({ key, domEvent }) => {
               domEvent.stopPropagation();
@@ -51,6 +57,8 @@ export function RoleCard({ role, onEdit, onDelete }: RoleCardProps) {
           trigger={["click"]}
         >
           <Button
+            variant="text"
+            color="default"
             size="small"
             icon={<MoreOutlined />}
             onClick={(e) => e.stopPropagation()}

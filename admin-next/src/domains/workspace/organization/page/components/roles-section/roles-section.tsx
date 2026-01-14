@@ -4,7 +4,7 @@ import { Typography, Button, Dropdown, Flex, Skeleton, Empty } from "antd";
 import { MoreOutlined, PlusOutlined } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type { RolesSectionProps } from "../../types";
-import { RoleCard } from "../role-card";
+import { RoleCard } from "./role-card";
 
 export function RolesSection({
   roles,

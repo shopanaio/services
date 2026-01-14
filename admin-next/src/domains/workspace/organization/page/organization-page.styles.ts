@@ -109,18 +109,18 @@ export const useStyles = createStyles(({ token }) => ({
   // Roles styles
   roleCard: {
     display: "flex",
-    alignItems: "flex-start",
+    alignItems: "center",
     justifyContent: "space-between",
     padding: token.padding,
     backgroundColor: token.colorBgContainer,
     borderRadius: token.borderRadius,
-    marginBottom: token.marginSM,
-    border: `1px solid ${token.colorBorder}`,
+    marginBottom: token.marginXS,
+    border: `1px solid ${token.colorBorderSecondary}`,
     cursor: "pointer",
     transition: "all 0.2s ease-in-out",
     "&:hover": {
       backgroundColor: token.colorBgTextHover,
-      borderColor: token.colorPrimaryBorder,
+      borderColor: token.colorBorder,
     },
   },
   roleInfo: {

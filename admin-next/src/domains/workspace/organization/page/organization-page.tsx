@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { message, Flex, Skeleton, Divider } from "antd";
+import { Flex, Skeleton, Divider, App } from "antd";
 import { TeamOutlined, SafetyOutlined, ShopOutlined } from "@ant-design/icons";
 import { KPITile } from "@/ui-kit/kpi-tile";
 import { SettingsLayout } from "../../layout";
@@ -40,6 +40,7 @@ import {
 
 export default function OrganizationPage({ pathParams }: ModulePageProps) {
   const router = useRouter();
+  const { message, modal } = App.useApp();
   const orgName = pathParams.orgName as string;
   const { push: pushDeleteModal } = useDeleteOrganizationModal();
   const { push: pushEditOrganizationModal } = useEditOrganizationModal();
@@ -76,7 +77,10 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
     () => organization?.membership?.members ?? [],
     [organization?.membership?.members]
   );
-  const roles = organization?.membership?.roles ?? [];
+  const roles = useMemo(
+    () => organization?.membership?.roles ?? [],
+    [organization?.membership?.roles]
+  );
   const availableResources = useMemo(
     () => organization?.membership?.availableResources ?? [],
     [organization?.membership?.availableResources]
@@ -322,19 +326,29 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
   );
 
   const handleDeleteRole = useCallback(
-    async (roleId: string) => {
+    (roleId: string) => {
       if (!organization) return;
-      const { userErrors } = await deleteRole(roleId, organization.id);
+      const role = roles.find((r) => r.id === roleId);
 
-      if (userErrors.length > 0) {
-        userErrors.forEach((err) => message.error(err.message));
-        return;
-      }
+      modal.confirm({
+        title: "Delete Role",
+        content: `Are you sure you want to delete the role "${role?.displayName}"? This action cannot be undone.`,
+        okText: "Delete",
+        okButtonProps: { danger: true },
+        onOk: async () => {
+          const { userErrors } = await deleteRole(roleId, organization.id);
 
-      message.success("Role deleted");
-      refetchOrg();
+          if (userErrors.length > 0) {
+            userErrors.forEach((err) => message.error(err.message));
+            return;
+          }
+
+          message.success("Role deleted");
+          refetchOrg();
+        },
+      });
     },
-    [organization, deleteRole, refetchOrg]
+    [organization, roles, deleteRole, refetchOrg]
   );
 
   if (loading && !organization) {
