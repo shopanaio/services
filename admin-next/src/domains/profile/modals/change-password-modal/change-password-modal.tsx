@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
-import { Input, Typography, Progress, message } from "antd";
+import { Input, Typography, Progress, App } from "antd";
 import { createStyles } from "antd-style";
 import { EyeOutlined, EyeInvisibleOutlined, CheckOutlined, CloseOutlined } from "@ant-design/icons";
 import {
@@ -56,6 +56,7 @@ interface IPasswordForm {
 
 export const ChangePasswordModal = () => {
   const { styles } = useStyles();
+  const { message } = App.useApp();
   const { payload, pop } = useModalStackContext();
   const typedPayload = payload as IChangePasswordModalPayload;
 

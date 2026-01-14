@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
-import { Input, Typography, Alert, List, message } from "antd";
+import { Input, Typography, Alert, List, App } from "antd";
 import { createStyles } from "antd-style";
 import {
   useModalStackContext,
@@ -43,6 +43,7 @@ interface IDeleteForm {
 
 export const DeleteOrganizationModal = () => {
   const { styles } = useStyles();
+  const { message } = App.useApp();
   const { payload, pop } = useModalStackContext();
   const typedPayload = payload as IDeleteOrganizationModalPayload;
   const { organizationName, organizationSlug } = typedPayload;

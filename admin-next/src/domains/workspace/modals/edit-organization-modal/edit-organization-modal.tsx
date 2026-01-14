@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import { useForm, Controller } from "react-hook-form";
-import { Upload, Typography, Button, Input, Avatar, Flex, message } from "antd";
+import { Upload, Typography, Button, Input, Avatar, Flex, App } from "antd";
 import {
   UploadOutlined,
   TeamOutlined,
@@ -201,6 +201,7 @@ async function getCroppedImage(
 
 export const EditOrganizationModal = () => {
   const { styles } = useStyles();
+  const { message } = App.useApp();
   const { payload, pop } = useModalStackContext();
   const typedPayload = payload as IEditOrganizationModalPayload;
 

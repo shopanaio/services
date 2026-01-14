@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useForm, FormProvider } from "react-hook-form";
-import { Button, Steps, message } from "antd";
+import { Button, Steps, App } from "antd";
 import {
   ShopOutlined,
   GlobalOutlined,
@@ -35,6 +35,7 @@ const DEFAULT_VALUES: ICreateStoreFormValues = {
 
 export const CreateStoreModal = () => {
   const { styles } = useStyles();
+  const { message } = App.useApp();
   const { payload, pop } = useModalStackContext();
   const typedPayload = payload as ICreateStoreModalPayload;
 

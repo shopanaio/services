@@ -1,6 +1,6 @@
 "use client";
 
-import { Typography, Button, Tag, message, Dropdown, Spin } from "antd";
+import { Typography, Button, Tag, App, Dropdown, Spin } from "antd";
 import { createStyles } from "antd-style";
 import {
   LockOutlined,
@@ -23,7 +23,13 @@ import {
   useChangeEmailModal,
   useChangePasswordModal,
 } from "../modals";
-import { useUpdateProfile, useSessions, useRevokeSession } from "../hooks";
+import {
+  useUpdateProfile,
+  useUpdateEmail,
+  useUpdatePassword,
+  useSessions,
+  useRevokeSession,
+} from "../hooks";
 import { LocaleCode, type ApiSession } from "@/graphql/types";
 import { MdBrightness4 } from "react-icons/md";
 
@@ -194,12 +200,15 @@ const useStyles = createStyles(({ token }) => ({
 
 export default function ProfilePage() {
   const { styles, cx } = useStyles();
+  const { message } = App.useApp();
   const { user, refetch } = useSession();
   const { push: pushEditProfileModal } = useEditProfileModal();
   const { push: pushChangeEmailModal } = useChangeEmailModal();
   const { push: pushChangePasswordModal } = useChangePasswordModal();
   const { themePreference, setThemePreference } = useThemeContext();
   const { updateProfile } = useUpdateProfile();
+  const { updateEmail } = useUpdateEmail();
+  const { updatePassword } = useUpdatePassword();
   const { sessions, loading: sessionsLoading } = useSessions();
   const { revokeSession, revokeAllSessions } = useRevokeSession();
 
@@ -239,16 +248,35 @@ export default function ProfilePage() {
   const handleChangeEmail = () => {
     pushChangeEmailModal({
       currentEmail: user?.email ?? "",
-      onSave: (newEmail: string) => {
-        message.success(`Verification sent to ${newEmail} (mock)`);
+      onSave: async (newEmail: string) => {
+        try {
+          const result = await updateEmail(newEmail);
+          if (result.userErrors.length > 0) {
+            message.error(result.userErrors[0].message);
+            return;
+          }
+          refetch();
+          message.success("Email updated successfully");
+        } catch {
+          message.error("Failed to update email");
+        }
       },
     });
   };
 
   const handleChangePassword = () => {
     pushChangePasswordModal({
-      onSave: (currentPassword: string, newPassword: string) => {
-        message.success("Password updated (mock)");
+      onSave: async (currentPassword: string, newPassword: string) => {
+        try {
+          const result = await updatePassword(currentPassword, newPassword);
+          if (result.userErrors.length > 0) {
+            message.error(result.userErrors[0].message);
+            return;
+          }
+          message.success("Password updated successfully");
+        } catch {
+          message.error("Failed to update password");
+        }
       },
     });
   };

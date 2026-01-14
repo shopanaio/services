@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { Upload, Typography, Button, message } from "antd";
+import { Upload, Typography, Button, App } from "antd";
 import { UploadOutlined, UserOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import ReactCrop, {
@@ -145,6 +145,7 @@ async function getCroppedImage(
 
 export const EditAvatarModal = () => {
   const { styles } = useStyles();
+  const { message } = App.useApp();
   const { payload, pop } = useModalStackContext();
   const typedPayload = payload as IEditAvatarModalPayload;
 

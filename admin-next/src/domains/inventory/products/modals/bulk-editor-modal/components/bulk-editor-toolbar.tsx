@@ -1,6 +1,6 @@
 import React, { useCallback } from "react";
 import { createStyles } from "antd-style";
-import { Button, Space, Typography, Badge, message } from "antd";
+import { Button, Space, Typography, Badge, App } from "antd";
 import { useBulkEditorStore } from "../hooks/use-bulk-editor-store";
 import { ColumnSettingsPopover } from "./column-settings-popover";
 
@@ -38,6 +38,7 @@ const useStyles = createStyles(({ token }) => ({
 
 export const BulkEditorToolbar: React.FC = () => {
   const { styles } = useStyles();
+  const { message } = App.useApp();
   const hasChanges = useBulkEditorStore((s) => s.hasChanges());
   const changesCount = useBulkEditorStore((s) => s.getChangesCount());
   const status = useBulkEditorStore((s) => s.status);

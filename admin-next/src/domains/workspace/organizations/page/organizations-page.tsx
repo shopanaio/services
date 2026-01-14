@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Typography, message } from "antd";
+import { Typography, App } from "antd";
 import { SettingsLayout } from "../../layout";
 import { OrganizationsSection } from "./components";
 import { useOrganizations, useCreateOrganization } from "../../hooks";
@@ -13,6 +13,7 @@ import { useStyles } from "./organizations-page.styles";
 export default function OrganizationsPage() {
   const router = useRouter();
   const { styles } = useStyles();
+  const { message } = App.useApp();
 
   const { organizations, loading, refetch } = useOrganizations();
   const { createOrganization, loading: creating } = useCreateOrganization();

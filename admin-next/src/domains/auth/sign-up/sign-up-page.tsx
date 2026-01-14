@@ -4,7 +4,7 @@ import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { message } from "antd";
+import { App } from "antd";
 import { SignUpForm } from "./components/sign-up-form";
 import { useSignUp } from "../hooks";
 import { signUpSchema, type SignUpFormValues } from "../schemas";
@@ -17,6 +17,7 @@ import { mapGraphQLErrorsToForm } from "../utils";
 export default function SignUpPage() {
   const router = useRouter();
   const { signUp, loading } = useSignUp();
+  const { message } = App.useApp();
 
   const form = useForm<SignUpFormValues>({
     resolver: zodResolver(signUpSchema),

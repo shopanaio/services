@@ -4,7 +4,7 @@ import { useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { message } from "antd";
+import { App } from "antd";
 import { SignInForm } from "./components/sign-in-form";
 import { useSignIn } from "../hooks";
 import { signInSchema, type SignInFormValues } from "../schemas";
@@ -18,6 +18,7 @@ export default function SignInPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { signIn, loading } = useSignIn();
+  const { message } = App.useApp();
 
   const form = useForm<SignInFormValues>({
     resolver: zodResolver(signInSchema),

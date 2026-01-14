@@ -1,7 +1,7 @@
 "use client";
 
 import { useForm, Controller } from "react-hook-form";
-import { Input, Typography, Alert, message } from "antd";
+import { Input, Typography, Alert, App } from "antd";
 import { createStyles } from "antd-style";
 import {
   useModalStackContext,
@@ -39,6 +39,7 @@ interface IEmailForm {
 
 export const ChangeEmailModal = () => {
   const { styles } = useStyles();
+  const { message } = App.useApp();
   const { payload, pop } = useModalStackContext();
   const typedPayload = payload as IChangeEmailModalPayload;
   const { currentEmail } = typedPayload;

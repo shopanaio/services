@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { message } from "antd";
+import { App } from "antd";
 import { createStyles } from "antd-style";
 import {
   useModalStackContext,
@@ -37,6 +37,7 @@ const DEFAULT_VALUES: ICreateProductFormValues = {
 
 export const CreateProductModal = () => {
   const { styles } = useStyles();
+  const { message } = App.useApp();
   const { pop } = useModalStackContext();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
