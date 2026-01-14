@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import {
   Input,
@@ -20,6 +20,7 @@ import {
   InfoCircleOutlined,
 } from "@ant-design/icons";
 import { createStyles } from "antd-style";
+import { slugify } from "transliteration/dist/node/src/node/index.js";
 import {
   useModalStackContext,
   ModalLayout,
@@ -100,7 +101,13 @@ export const RoleModal = () => {
   const { payload, pop } = useModalStackContext();
   const typedPayload = payload as IRoleModalPayload;
 
-  const { mode, role, organizationId, domain = "org", availableResources } = typedPayload;
+  const {
+    mode,
+    role,
+    organizationId,
+    domain = "org",
+    availableResources,
+  } = typedPayload;
   const isViewMode = mode === "view";
   const isEditMode = mode === "edit";
   const isCreateMode = mode === "create";
@@ -125,22 +132,16 @@ export const RoleModal = () => {
       return fromApiPermissions(role, allResourceNames);
     }
     // For create mode, start with viewer preset
-    return PERMISSION_PRESETS.find((p) => p.id === "viewer")?.getPermissions(
-      allResourceNames
-    ) ?? getDefaultPermissions(allResourceNames);
+    return (
+      PERMISSION_PRESETS.find((p) => p.id === "viewer")?.getPermissions(
+        allResourceNames
+      ) ?? getDefaultPermissions(allResourceNames)
+    );
   }, [role, allResourceNames]);
 
   const [permissions, setPermissions] =
     useState<FormPermission[]>(initialPermissions);
-
-  // Generate slug from display name
-  const generateSlug = useCallback((displayName: string) => {
-    return displayName
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "");
-  }, []);
+  const [isNameManual, setIsNameManual] = useState(false);
 
   const {
     control,
@@ -158,17 +159,12 @@ export const RoleModal = () => {
 
   const displayName = watch("displayName");
 
-
-  // Auto-generate slug when display name changes (create mode only)
-  const handleDisplayNameChange = useCallback(
-    (value: string, onChange: (v: string) => void) => {
-      onChange(value);
-      if (isCreateMode) {
-        setValue("name", generateSlug(value));
-      }
-    },
-    [isCreateMode, generateSlug, setValue]
-  );
+  // Auto-generate name from displayName (unless manually edited)
+  useEffect(() => {
+    if (isCreateMode && !isNameManual && displayName) {
+      setValue("name", slugify(displayName));
+    }
+  }, [displayName, isCreateMode, isNameManual, setValue]);
 
   const handlePermissionsChange = useCallback(
     (newPermissions: FormPermission[]) => {
@@ -277,10 +273,15 @@ export const RoleModal = () => {
         <Paper>
           <PaperHeader title="Role Details" />
           <form>
-            <div className={isCreateMode ? styles.nameSlugContainer : undefined}>
+            <div
+              className={isCreateMode ? styles.nameSlugContainer : undefined}
+            >
               <div className={styles.formItem}>
                 <div className={styles.labelWithTooltip}>
-                  <Typography.Text className={styles.label} style={{ marginBottom: 0 }}>
+                  <Typography.Text
+                    className={styles.label}
+                    style={{ marginBottom: 0 }}
+                  >
                     Display Name
                   </Typography.Text>
                   <Tooltip title="The name shown to users in the interface">
@@ -307,9 +308,6 @@ export const RoleModal = () => {
                       placeholder="e.g., Store Manager"
                       status={errors.displayName ? "error" : undefined}
                       disabled={isReadOnly}
-                      onChange={(e) =>
-                        handleDisplayNameChange(e.target.value, field.onChange)
-                      }
                     />
                   )}
                 />
@@ -323,11 +321,16 @@ export const RoleModal = () => {
               {isCreateMode && (
                 <div className={styles.formItem}>
                   <div className={styles.labelWithTooltip}>
-                    <Typography.Text className={styles.label} style={{ marginBottom: 0 }}>
+                    <Typography.Text
+                      className={styles.label}
+                      style={{ marginBottom: 0 }}
+                    >
                       Role Identifier
                     </Typography.Text>
                     <Tooltip title="Unique identifier used in the system (auto-generated)">
-                      <InfoCircleOutlined style={{ color: "rgba(0,0,0,0.45)" }} />
+                      <InfoCircleOutlined
+                        style={{ color: "rgba(0,0,0,0.45)" }}
+                      />
                     </Tooltip>
                   </div>
                   <Controller
@@ -351,6 +354,11 @@ export const RoleModal = () => {
                         placeholder="e.g., store-manager"
                         status={errors.name ? "error" : undefined}
                         disabled={isReadOnly}
+                        onChange={(e) => {
+                          const value = slugify(e.target.value);
+                          setIsNameManual(true);
+                          field.onChange(value);
+                        }}
                       />
                     )}
                   />
@@ -359,18 +367,16 @@ export const RoleModal = () => {
                       {errors.name.message}
                     </Typography.Text>
                   )}
-                  {displayName && !errors.name && (
-                    <Typography.Text className={styles.slugPreview}>
-                      Identifier: {generateSlug(displayName) || "..."}
-                    </Typography.Text>
-                  )}
                 </div>
               )}
             </div>
 
             <div className={styles.formItem}>
               <div className={styles.labelWithTooltip}>
-                <Typography.Text className={styles.label} style={{ marginBottom: 0 }}>
+                <Typography.Text
+                  className={styles.label}
+                  style={{ marginBottom: 0 }}
+                >
                   Description
                 </Typography.Text>
                 <Tooltip title="Explain the purpose of this role and who should have it">
