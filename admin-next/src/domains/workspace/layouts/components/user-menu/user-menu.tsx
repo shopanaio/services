@@ -21,12 +21,6 @@ const useStyles = createStyles(({ css, token }) => ({
   dropdownContent: css`
     min-width: 200px;
   `,
-  userInfo: css`
-    padding: ${token.paddingXS}px ${token.paddingSM}px;
-  `,
-  userName: css`
-    font-weight: ${token.fontWeightStrong};
-  `,
   userEmail: css`
     color: ${token.colorTextSecondary};
     font-size: ${token.fontSizeSM}px;
@@ -43,16 +37,21 @@ export function UserMenu() {
     ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}`
     : user?.email ?? "User";
   const userEmail = user?.email ?? "";
-  const initials = user?.firstName?.[0]?.toUpperCase() ?? user?.email?.[0]?.toUpperCase() ?? "U";
+  const initials =
+    user?.firstName?.[0]?.toUpperCase() ??
+    user?.email?.[0]?.toUpperCase() ??
+    "U";
 
   const items: MenuProps["items"] = [
     {
       key: "user-info",
       type: "group",
       label: (
-        <Flex vertical className={styles.userInfo}>
-          <Typography.Text className={styles.userName}>{userName}</Typography.Text>
-          <Typography.Text className={styles.userEmail}>{userEmail}</Typography.Text>
+        <Flex vertical>
+          <Typography.Text strong>{userName}</Typography.Text>
+          <Typography.Text className={styles.userEmail}>
+            {userEmail}
+          </Typography.Text>
         </Flex>
       ),
     },

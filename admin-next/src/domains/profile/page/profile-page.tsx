@@ -11,7 +11,6 @@ import {
   CheckCircleOutlined,
   SunOutlined,
   MoonOutlined,
-  LaptopOutlined,
 } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { SettingsLayout } from "@/domains/workspace/layout";
@@ -27,6 +26,7 @@ import {
 } from "../modals";
 import { useUpdateProfile } from "../hooks";
 import { LocaleCode } from "@/graphql/types";
+import { MdBrightness4 } from "react-icons/md";
 
 const useStyles = createStyles(({ token }) => ({
   emailRow: {
@@ -373,7 +373,7 @@ export default function ProfilePage() {
             )}
             onClick={() => setThemePreference("auto")}
           >
-            <LaptopOutlined
+            <MdBrightness4
               className={cx(
                 styles.themeIcon,
                 themePreference === "auto" && styles.themeIconSelected

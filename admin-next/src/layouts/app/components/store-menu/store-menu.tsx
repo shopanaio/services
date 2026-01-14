@@ -65,6 +65,7 @@ const useStyles = createStyles(
     orgName: css`
       font-size: ${token.fontSizeSM}px;
       color: ${token.colorTextSecondary};
+      margin-top: -4px;
     `,
     chevron: css`
       margin-right: ${token.paddingXXS}px;
