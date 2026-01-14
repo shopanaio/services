@@ -1,6 +1,6 @@
 "use client";
 
-import { Dropdown, Typography, Flex } from "antd";
+import { Avatar, Dropdown, Typography, Flex } from "antd";
 import { createStyles } from "antd-style";
 import { MdLogout, MdOutlineAccountCircle, MdBusiness } from "react-icons/md";
 import { HiMiniChevronUpDown } from "react-icons/hi2";
@@ -13,7 +13,6 @@ import {
 import type { MenuProps } from "antd";
 import { useRouter } from "next/navigation";
 
-import { ShopIcon } from "@/layouts/app/components/store-menu/shop-icon/shop-icon";
 import { useThemeContext } from "@/ui-kit/theme";
 import { useWorkspaceOptional } from "@/domains/workspace/context/workspace-context";
 import { useSession, useSignOut } from "@/domains/auth";
@@ -52,15 +51,20 @@ const useStyles = createStyles(
         background-color: ${token.colorFillTertiary};
       }
     `,
+    avatar: css`
+      flex-shrink: 0;
+    `,
     storeInfo: css`
       flex-grow: 1;
       overflow: hidden;
       max-height: 48px;
       opacity: ${isCollapsed ? 0 : 1};
+      width: ${isCollapsed ? 0 : "auto"};
       transition: all 0.2s ease;
     `,
-    betaText: css`
-      font-size: 12px;
+    orgName: css`
+      font-size: ${token.fontSizeSM}px;
+      color: ${token.colorTextSecondary};
     `,
     chevron: css`
       margin-right: ${token.paddingXXS}px;
@@ -89,10 +93,9 @@ export const StoreMenu = ({ isCollapsed }: Props) => {
   const { signOut } = useSignOut();
 
   // Get display values from context or fallback
-  const displayName =
-    workspace?.store?.displayName ??
-    workspace?.organization?.displayName ??
-    "Select Store";
+  const storeName = workspace?.store?.displayName ?? "Select Store";
+  const orgName = workspace?.organization?.displayName ?? "";
+  const storeInitial = storeName[0]?.toUpperCase() ?? "S";
   // Build user display name from firstName/lastName or fallback to email
   const userName = user?.firstName
     ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}`
@@ -111,7 +114,7 @@ export const StoreMenu = ({ isCollapsed }: Props) => {
       type: "group" as const,
       label: (
         <Flex gap="small" align="center" data-testid="project-menu-current">
-          <Typography.Text ellipsis>{displayName}</Typography.Text>
+          <Typography.Text ellipsis>{storeName}</Typography.Text>
         </Flex>
       ),
     },
@@ -231,15 +234,22 @@ export const StoreMenu = ({ isCollapsed }: Props) => {
           style={{ width: "100%" }}
           className={styles.triggerWrapper}
         >
+          <Avatar size={32} className={styles.avatar}>
+            {storeInitial}
+          </Avatar>
           <Flex vertical className={styles.storeInfo}>
             <Typography.Text ellipsis strong>
-              {displayName}
+              {storeName}
             </Typography.Text>
-            <Typography.Text className={styles.betaText} type="secondary" code>
-              Beta
-            </Typography.Text>
+            {orgName && (
+              <Typography.Text ellipsis className={styles.orgName}>
+                {orgName}
+              </Typography.Text>
+            )}
           </Flex>
-          <HiMiniChevronUpDown size={18} className={styles.chevron} />
+          {!isCollapsed && (
+            <HiMiniChevronUpDown size={18} className={styles.chevron} />
+          )}
         </Flex>
       </Dropdown>
     </Flex>
