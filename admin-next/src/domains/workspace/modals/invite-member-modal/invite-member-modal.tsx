@@ -75,7 +75,7 @@ export const InviteMemberModal = () => {
       return;
     }
 
-    message.success(`Invitation sent to ${values.email}`);
+    message.success(`Member ${values.email} added successfully`);
     pop();
   };
 
@@ -85,18 +85,18 @@ export const InviteMemberModal = () => {
       header={
         <ModalHeader
           name="invite-member"
-          title="Invite Team Member"
+          title="Add Team Member"
           onClose={pop}
           submitButtonProps={{
             onClick: handleSubmit(onSubmit),
             loading,
-            children: "Send Invitation",
+            children: "Add Member",
           }}
         />
       }
     >
       <Paper>
-        <PaperHeader title="Invitation Details" />
+        <PaperHeader title="Member Details" />
         <form>
           <div className={styles.formItem}>
             <Typography.Text className={styles.label}>

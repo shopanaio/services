@@ -53,7 +53,7 @@ export class MemberRemoveScript extends BaseScript<
       };
     }
 
-    // Remove member
+    // Remove member from organizationMember table
     const removed = await this.repository.organization.removeMember(
       organizationId,
       userId
@@ -70,6 +70,23 @@ export class MemberRemoveScript extends BaseScript<
           },
         ],
       };
+    }
+
+    // Remove all roles from casbin (org domain)
+    await this.repository.casbin.removeAllRolesInDomain({
+      organizationId,
+      userId,
+      domain: "org",
+    });
+
+    // Find and delete userRole record
+    const userRole = await this.repository.organization.findUserRole(
+      organizationId,
+      userId,
+      "org"
+    );
+    if (userRole) {
+      await this.repository.organization.deleteUserRole(userRole.id);
     }
 
     return {

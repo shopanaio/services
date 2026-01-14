@@ -1,5 +1,5 @@
 // Base type
-export { IAMType, Cache } from "./admin/IAMType.js";
+export { IAMType } from "./admin/IAMType.js";
 
 // Root resolvers
 export { QueryResolver } from "./admin/QueryResolver.js";

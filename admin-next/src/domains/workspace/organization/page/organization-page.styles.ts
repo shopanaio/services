@@ -68,39 +68,6 @@ export const useStyles = createStyles(({ token }) => ({
     color: token.colorTextSecondary,
     fontSize: token.fontSizeSM,
   },
-  invitationItem: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: token.padding,
-    backgroundColor: token.colorBgLayout,
-    borderRadius: token.borderRadius,
-    marginBottom: token.marginSM,
-  },
-  invitationInfo: {
-    display: "flex",
-    alignItems: "center",
-    gap: token.marginSM,
-  },
-  invitationIcon: {
-    fontSize: 20,
-    color: token.colorTextSecondary,
-  },
-  invitationDetails: {
-    display: "flex",
-    flexDirection: "column",
-  },
-  invitationEmail: {
-    fontWeight: 500,
-  },
-  invitationMeta: {
-    color: token.colorTextSecondary,
-    fontSize: token.fontSizeSM,
-  },
-  invitationActions: {
-    display: "flex",
-    gap: token.marginXS,
-  },
   footer: {
     color: token.colorTextSecondary,
     fontSize: token.fontSizeSM,

@@ -191,25 +191,6 @@ export const mockMembers: ApiMember[] = [
   },
 ];
 
-// Pending invitations mock data (local type - no API equivalent)
-export interface IInvitation {
-  id: string;
-  email: string;
-  role: string;
-  invitedAt: string;
-  expiresAt: string;
-}
-
-export const mockInvitations: IInvitation[] = [
-  {
-    id: "inv-1",
-    email: "alice@example.com",
-    role: "editor",
-    invitedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    expiresAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-];
-
 // Sessions mock data (local type - no API equivalent)
 export interface ISession {
   id: string;

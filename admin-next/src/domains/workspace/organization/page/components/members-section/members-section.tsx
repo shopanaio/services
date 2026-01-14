@@ -118,7 +118,7 @@ export function MembersSection({
         actions={
           <Dropdown
             menu={{
-              items: [{ key: "invite", label: "Invite member", icon: <UserAddOutlined /> }],
+              items: [{ key: "add", label: "Add member", icon: <UserAddOutlined /> }],
               onClick: onInviteMember,
             }}
             trigger={["click"]}
