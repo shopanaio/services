@@ -25,8 +25,6 @@ import {
 } from "../modals";
 import {
   useUpdateProfile,
-  useUpdateEmail,
-  useUpdatePassword,
   useSessions,
   useRevokeSession,
 } from "../hooks";
@@ -207,8 +205,6 @@ export default function ProfilePage() {
   const { push: pushChangePasswordModal } = useChangePasswordModal();
   const { themePreference, setThemePreference } = useThemeContext();
   const { updateProfile } = useUpdateProfile();
-  const { updateEmail } = useUpdateEmail();
-  const { updatePassword } = useUpdatePassword();
   const { sessions, loading: sessionsLoading } = useSessions();
   const { revokeSession, revokeAllSessions } = useRevokeSession();
 
@@ -248,37 +244,11 @@ export default function ProfilePage() {
   const handleChangeEmail = () => {
     pushChangeEmailModal({
       currentEmail: user?.email ?? "",
-      onSave: async (newEmail: string) => {
-        try {
-          const result = await updateEmail(newEmail);
-          if (result.userErrors.length > 0) {
-            message.error(result.userErrors[0].message);
-            return;
-          }
-          refetch();
-          message.success("Email updated successfully");
-        } catch {
-          message.error("Failed to update email");
-        }
-      },
     });
   };
 
   const handleChangePassword = () => {
-    pushChangePasswordModal({
-      onSave: async (currentPassword: string, newPassword: string) => {
-        try {
-          const result = await updatePassword(currentPassword, newPassword);
-          if (result.userErrors.length > 0) {
-            message.error(result.userErrors[0].message);
-            return;
-          }
-          message.success("Password updated successfully");
-        } catch {
-          message.error("Failed to update password");
-        }
-      },
-    });
+    pushChangePasswordModal({});
   };
 
   const handleEnable2FA = () => {
@@ -380,7 +350,7 @@ export default function ProfilePage() {
         <div className={styles.passwordRow}>
           <div className={styles.passwordInfo}>
             <Typography.Text className={styles.passwordDots}>
-              ••••••••••••
+              •••••
             </Typography.Text>
             <Typography.Text className={styles.passwordMeta}>
               Last changed: 3 months ago

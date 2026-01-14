@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { Input, Typography, Alert, App } from "antd";
 import { createStyles } from "antd-style";
@@ -9,6 +10,7 @@ import {
   ModalHeader,
 } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
+import { useUpdateEmail } from "../../hooks";
 import type { IChangeEmailModalPayload } from "../../modals";
 
 const useStyles = createStyles(({ token }) => ({
@@ -43,6 +45,8 @@ export const ChangeEmailModal = () => {
   const { payload, pop } = useModalStackContext();
   const typedPayload = payload as IChangeEmailModalPayload;
   const { currentEmail } = typedPayload;
+  const { updateEmail } = useUpdateEmail();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
     control,
@@ -54,10 +58,21 @@ export const ChangeEmailModal = () => {
     },
   });
 
-  const onSubmit = (values: IEmailForm) => {
-    typedPayload.onSave?.(values.newEmail);
-    message.success("Verification email sent to " + values.newEmail);
-    pop();
+  const onSubmit = async (values: IEmailForm) => {
+    setIsSubmitting(true);
+    try {
+      const result = await updateEmail(values.newEmail);
+      if (result.userErrors.length > 0) {
+        message.error(result.userErrors[0].message);
+        return;
+      }
+      message.success("Verification email sent to " + values.newEmail);
+      pop();
+    } catch {
+      message.error("Failed to update email");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -71,6 +86,7 @@ export const ChangeEmailModal = () => {
           submitButtonProps={{
             onClick: handleSubmit(onSubmit),
             children: "Send Verification Email",
+            loading: isSubmitting,
           }}
         />
       }

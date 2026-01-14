@@ -25,12 +25,9 @@ export interface IEditProfileModalPayload extends IModalStackPayload {
 
 export interface IChangeEmailModalPayload extends IModalStackPayload {
   currentEmail: string;
-  onSave?: (newEmail: string) => void;
 }
 
-export interface IChangePasswordModalPayload extends IModalStackPayload {
-  onSave?: (currentPassword: string, newPassword: string) => void;
-}
+export interface IChangePasswordModalPayload extends IModalStackPayload {}
 
 export interface IEditAvatarModalPayload extends IModalStackPayload {
   currentImage?: string | null;

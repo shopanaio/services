@@ -2,16 +2,16 @@
 
 import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
-import { Input, Typography, Progress, App } from "antd";
+import { Input, Typography, App } from "antd";
 import { createStyles } from "antd-style";
-import { EyeOutlined, EyeInvisibleOutlined, CheckOutlined, CloseOutlined } from "@ant-design/icons";
+import { CheckOutlined, CloseOutlined } from "@ant-design/icons";
 import {
   useModalStackContext,
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import type { IChangePasswordModalPayload } from "../../modals";
+import { useUpdatePassword } from "../../hooks";
 
 const useStyles = createStyles(({ token }) => ({
   formItem: {
@@ -57,8 +57,9 @@ interface IPasswordForm {
 export const ChangePasswordModal = () => {
   const { styles } = useStyles();
   const { message } = App.useApp();
-  const { payload, pop } = useModalStackContext();
-  const typedPayload = payload as IChangePasswordModalPayload;
+  const { pop } = useModalStackContext();
+  const { updatePassword } = useUpdatePassword();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
     control,
@@ -87,14 +88,25 @@ export const ChangePasswordModal = () => {
 
   const allRequirementsMet = requirements.every((r) => r.met);
 
-  const onSubmit = (values: IPasswordForm) => {
+  const onSubmit = async (values: IPasswordForm) => {
     if (!allRequirementsMet) {
       message.error("Please meet all password requirements");
       return;
     }
-    typedPayload.onSave?.(values.currentPassword, values.newPassword);
-    message.success("Password updated successfully");
-    pop();
+    setIsSubmitting(true);
+    try {
+      const result = await updatePassword(values.currentPassword, values.newPassword);
+      if (result.userErrors.length > 0) {
+        message.error(result.userErrors[0].message);
+        return;
+      }
+      message.success("Password updated successfully");
+      pop();
+    } catch {
+      message.error("Failed to update password");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -109,6 +121,7 @@ export const ChangePasswordModal = () => {
             onClick: handleSubmit(onSubmit),
             children: "Update Password",
             disabled: !allRequirementsMet,
+            loading: isSubmitting,
           }}
         />
       }
