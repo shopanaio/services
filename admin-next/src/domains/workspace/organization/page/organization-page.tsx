@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { message, Flex, Skeleton, Divider } from "antd";
 import { TeamOutlined, SafetyOutlined, ShopOutlined } from "@ant-design/icons";
@@ -72,8 +72,15 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
   const { updateRole } = useUpdateRole();
   const { deleteRole } = useDeleteRole();
 
-  const members = organization?.membership?.members ?? [];
+  const members = useMemo(
+    () => organization?.membership?.members ?? [],
+    [organization?.membership?.members]
+  );
   const roles = organization?.membership?.roles ?? [];
+  const availableResources = useMemo(
+    () => organization?.membership?.availableResources ?? [],
+    [organization?.membership?.availableResources]
+  );
 
   const memberCount = members.length;
   const roleCount = roles.length;
@@ -253,6 +260,7 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
       mode: "create",
       organizationId: organization.id,
       domain: "org",
+      availableResources,
       onCreate: async (input: {
         name: string;
         displayName: string;
@@ -278,7 +286,7 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
         refetchOrg();
       },
     });
-  }, [organization, pushRoleModal, createRole, refetchOrg]);
+  }, [organization, pushRoleModal, createRole, refetchOrg, availableResources]);
 
   const handleEditRole = useCallback(
     (role: ApiRole) => {
@@ -290,6 +298,7 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
         organizationId: organization.id,
         domain: "org",
         role,
+        availableResources,
         onUpdate: async (input: {
           displayName?: string;
           description?: string;
@@ -312,7 +321,7 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
         },
       });
     },
-    [organization, pushRoleModal, updateRole, refetchOrg]
+    [organization, pushRoleModal, updateRole, refetchOrg, availableResources]
   );
 
   const handleDeleteRole = useCallback(

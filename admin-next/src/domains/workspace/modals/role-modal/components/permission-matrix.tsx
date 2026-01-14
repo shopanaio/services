@@ -8,8 +8,8 @@ import {
 } from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import { Action } from "@/graphql/types";
-import { PERMISSION_CATEGORIES, PERMISSION_LEVELS } from "../constants";
-import type { IResourcePermission } from "../types";
+import { PERMISSION_LEVELS } from "../constants";
+import type { IResourcePermission, IPermissionCategory } from "../types";
 
 const useStyles = createStyles(({ token }) => ({
   container: {
@@ -133,12 +133,14 @@ const useStyles = createStyles(({ token }) => ({
 }));
 
 interface IPermissionMatrixProps {
+  categories: IPermissionCategory[];
   permissions: IResourcePermission[];
   onChange: (permissions: IResourcePermission[]) => void;
   disabled?: boolean;
 }
 
 export const PermissionMatrix = ({
+  categories,
   permissions,
   onChange,
   disabled = false,
@@ -202,7 +204,7 @@ export const PermissionMatrix = ({
     }
   };
 
-  const collapseItems = PERMISSION_CATEGORIES.map((category) => {
+  const collapseItems = categories.map((category) => {
     const categoryResources = category.resources.map((r) => r.resource);
     const summary = getCategoryPermissionSummary(categoryResources);
 
@@ -300,7 +302,7 @@ export const PermissionMatrix = ({
     <div className={styles.container}>
       <Collapse
         className={styles.collapse}
-        defaultActiveKey={PERMISSION_CATEGORIES.map((c) => c.id)}
+        defaultActiveKey={categories.map((c) => c.id)}
         ghost
         items={collapseItems}
       />

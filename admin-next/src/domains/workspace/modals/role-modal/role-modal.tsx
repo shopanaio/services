@@ -28,7 +28,8 @@ import {
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { PermissionMatrix, PermissionPresets } from "./components";
 import {
-  ALL_RESOURCES,
+  buildPermissionCategories,
+  getAllResourceNames,
   getDefaultPermissions,
   PERMISSION_PRESETS,
 } from "./constants";
@@ -99,7 +100,7 @@ export const RoleModal = () => {
   const { payload, pop } = useModalStackContext();
   const typedPayload = payload as IRoleModalPayload;
 
-  const { mode, role, organizationId, domain = "org" } = typedPayload;
+  const { mode, role, organizationId, domain = "org", availableResources } = typedPayload;
   const isViewMode = mode === "view";
   const isEditMode = mode === "edit";
   const isCreateMode = mode === "create";
@@ -108,16 +109,26 @@ export const RoleModal = () => {
 
   const [loading, setLoading] = useState(false);
 
+  // Build categories and resource names from API data
+  const permissionCategories = useMemo(
+    () => buildPermissionCategories(availableResources),
+    [availableResources]
+  );
+  const allResourceNames = useMemo(
+    () => getAllResourceNames(availableResources),
+    [availableResources]
+  );
+
   // Initialize permissions state
   const initialPermissions = useMemo(() => {
     if (role) {
-      return fromApiPermissions(role, ALL_RESOURCES);
+      return fromApiPermissions(role, allResourceNames);
     }
     // For create mode, start with viewer preset
     return PERMISSION_PRESETS.find((p) => p.id === "viewer")?.getPermissions(
-      ALL_RESOURCES
-    ) ?? getDefaultPermissions();
-  }, [role]);
+      allResourceNames
+    ) ?? getDefaultPermissions(allResourceNames);
+  }, [role, allResourceNames]);
 
   const [permissions, setPermissions] =
     useState<IResourcePermission[]>(initialPermissions);
@@ -406,6 +417,7 @@ export const RoleModal = () => {
           />
           {!isReadOnly && (
             <PermissionPresets
+              resources={allResourceNames}
               permissions={permissions}
               onChange={handlePermissionsChange}
               disabled={isReadOnly}
@@ -413,6 +425,7 @@ export const RoleModal = () => {
           )}
           <div className={styles.divider} />
           <PermissionMatrix
+            categories={permissionCategories}
             permissions={permissions}
             onChange={handlePermissionsChange}
             disabled={isReadOnly}

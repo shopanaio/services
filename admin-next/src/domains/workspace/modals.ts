@@ -1,6 +1,6 @@
 import { createModalStackHook } from "@/layouts/modals";
 import type { IModalStackPayload } from "@/layouts/modals/types";
-import type { ApiRole, ApiMember, ApiRolePermissionInput } from "@/graphql/types";
+import type { ApiRole, ApiMember, ApiRolePermissionInput, ApiResourceDefinition } from "@/graphql/types";
 import type { RoleModalMode } from "./modals/role-modal/types";
 
 // Modal type constants
@@ -45,6 +45,8 @@ export interface IRoleModalPayload extends IModalStackPayload {
   domain?: string;
   /** Role data (required for edit/view modes) */
   role?: ApiRole;
+  /** Available resources from API */
+  availableResources: ApiResourceDefinition[];
   /** Callback for create mode */
   onCreate?: (input: {
     name: string;

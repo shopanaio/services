@@ -1,8 +1,8 @@
 "use client";
 
-import { Radio, Typography, Space } from "antd";
+import { Typography, Space } from "antd";
 import { createStyles } from "antd-style";
-import { PERMISSION_PRESETS, ALL_RESOURCES, detectPreset } from "../constants";
+import { PERMISSION_PRESETS, detectPreset } from "../constants";
 import type { IResourcePermission, IPermissionPreset } from "../types";
 
 const useStyles = createStyles(({ token }) => ({
@@ -67,12 +67,14 @@ const useStyles = createStyles(({ token }) => ({
 }));
 
 interface IPermissionPresetsProps {
+  resources: string[];
   permissions: IResourcePermission[];
   onChange: (permissions: IResourcePermission[]) => void;
   disabled?: boolean;
 }
 
 export const PermissionPresets = ({
+  resources,
   permissions,
   onChange,
   disabled = false,
@@ -83,7 +85,7 @@ export const PermissionPresets = ({
 
   const handlePresetChange = (preset: IPermissionPreset) => {
     if (disabled || preset.id === "custom") return;
-    const newPermissions = preset.getPermissions(ALL_RESOURCES);
+    const newPermissions = preset.getPermissions(resources);
     onChange(newPermissions);
   };
 

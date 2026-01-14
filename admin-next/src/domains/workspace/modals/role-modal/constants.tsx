@@ -1,5 +1,6 @@
 import { EyeOutlined, EditOutlined, SafetyOutlined } from "@ant-design/icons";
 import { Action } from "@/graphql/types";
+import type { ApiResourceDefinition } from "@/graphql/types";
 import type {
   IPermissionCategory,
   IPermissionLevel,
@@ -8,116 +9,69 @@ import type {
 } from "./types";
 
 /**
- * Permission categories with grouped resources
- * Aligned with @shopana/rbac definitions
+ * Category definitions for grouping resources in UI
  */
-export const PERMISSION_CATEGORIES: IPermissionCategory[] = [
-  {
-    id: "organization",
+const CATEGORY_CONFIG: Record<string, { label: string; description: string }> = {
+  org: {
     label: "Organization",
     description: "Organization-level settings and management",
-    resources: [
-      {
-        id: "org-profile",
-        resource: "org.profile",
-        label: "Organization Profile",
-        description: "Organization profile and settings",
-      },
-      {
-        id: "org-members",
-        resource: "org.members",
-        label: "Team Members",
-        description: "Organization members management",
-      },
-      {
-        id: "org-roles",
-        resource: "org.roles",
-        label: "Roles",
-        description: "Role management",
-      },
-      {
-        id: "org-stores",
-        resource: "org.stores",
-        label: "Stores",
-        description: "Store management",
-      },
-      {
-        id: "org-access",
-        resource: "org.access",
-        label: "Member Access",
-        description: "Member access to stores",
-      },
-    ],
   },
-  {
-    id: "store",
+  store: {
     label: "Store Management",
     description: "E-commerce store operations and data",
-    resources: [
-      {
-        id: "store-profile",
-        resource: "store.profile",
-        label: "Store Profile",
-        description: "Store profile and settings",
-      },
-      {
-        id: "store-members",
-        resource: "store.members",
-        label: "Store Members",
-        description: "Store members management",
-      },
-      {
-        id: "store-roles",
-        resource: "store.roles",
-        label: "Store Roles",
-        description: "Store role management",
-      },
-      {
-        id: "store-access",
-        resource: "store.access",
-        label: "Store Access",
-        description: "Member permissions in store",
-      },
-      {
-        id: "store-inventory",
-        resource: "store.inventory",
-        label: "Inventory",
-        description: "Store inventory management",
-      },
-      {
-        id: "store-orders",
-        resource: "store.orders",
-        label: "Orders",
-        description: "Store order management",
-      },
-      {
-        id: "store-listing",
-        resource: "store.listing",
-        label: "Listings",
-        description: "Store listing management",
-      },
-      {
-        id: "store-reviews",
-        resource: "store.reviews",
-        label: "Reviews",
-        description: "Store reviews management",
-      },
-      {
-        id: "store-search",
-        resource: "store.search",
-        label: "Search",
-        description: "Store search management",
-      },
-    ],
   },
-];
+};
 
 /**
- * All available resources flattened
+ * Build permission categories from API resources
  */
-export const ALL_RESOURCES = PERMISSION_CATEGORIES.flatMap((cat) =>
-  cat.resources.map((r) => r.resource)
-);
+export function buildPermissionCategories(
+  apiResources: ApiResourceDefinition[]
+): IPermissionCategory[] {
+  const categoryMap = new Map<string, IPermissionCategory>();
+
+  for (const resource of apiResources) {
+    const prefix = resource.name.split(".")[0];
+    const config = CATEGORY_CONFIG[prefix] ?? {
+      label: prefix.charAt(0).toUpperCase() + prefix.slice(1),
+      description: `${prefix} resources`,
+    };
+
+    if (!categoryMap.has(prefix)) {
+      categoryMap.set(prefix, {
+        id: prefix,
+        label: config.label,
+        description: config.description,
+        resources: [],
+      });
+    }
+
+    categoryMap.get(prefix)!.resources.push({
+      id: resource.name.replace(".", "-"),
+      resource: resource.name,
+      label: resource.displayName ?? resource.name,
+      description: resource.displayName ?? resource.name,
+    });
+  }
+
+  // Sort categories: org first, then store, then others
+  const order = ["org", "store"];
+  return Array.from(categoryMap.values()).sort((a, b) => {
+    const aIndex = order.indexOf(a.id);
+    const bIndex = order.indexOf(b.id);
+    if (aIndex === -1 && bIndex === -1) return a.id.localeCompare(b.id);
+    if (aIndex === -1) return 1;
+    if (bIndex === -1) return -1;
+    return aIndex - bIndex;
+  });
+}
+
+/**
+ * Get all resource names from API resources
+ */
+export function getAllResourceNames(apiResources: ApiResourceDefinition[]): string[] {
+  return apiResources.map((r) => r.name);
+}
 
 /**
  * Permission levels with hierarchy
@@ -182,30 +136,25 @@ export const PERMISSION_PRESETS: IPermissionPreset[] = [
 ];
 
 /**
- * Get default empty permissions for all resources
+ * Get default empty permissions for resources
  */
-export function getDefaultPermissions(): IResourcePermission[] {
-  return ALL_RESOURCES.map((resource) => ({ resource, action: null }));
+export function getDefaultPermissions(resources: string[]): IResourcePermission[] {
+  return resources.map((resource) => ({ resource, action: null }));
 }
 
 /**
  * Detect which preset matches current permissions
  */
 export function detectPreset(permissions: IResourcePermission[]): string {
-  const allRead = permissions.every(
-    (p) => p.action === Action.Read || p.action === null
-  );
-  const allWrite = permissions.every(
-    (p) => p.action === Action.Write || p.action === null
-  );
-  const allAdmin = permissions.every(
-    (p) => p.action === Action.Admin || p.action === null
-  );
   const hasAny = permissions.some((p) => p.action !== null);
-
   if (!hasAny) return "custom";
-  if (allAdmin && permissions.every((p) => p.action === Action.Admin)) return "admin";
-  if (allWrite && permissions.every((p) => p.action === Action.Write)) return "editor";
-  if (allRead && permissions.every((p) => p.action === Action.Read)) return "viewer";
+
+  const allAdmin = permissions.every((p) => p.action === Action.Admin);
+  const allWrite = permissions.every((p) => p.action === Action.Write);
+  const allRead = permissions.every((p) => p.action === Action.Read);
+
+  if (allAdmin) return "admin";
+  if (allWrite) return "editor";
+  if (allRead) return "viewer";
   return "custom";
 }
