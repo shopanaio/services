@@ -9,58 +9,19 @@ import type {
 } from "./types";
 
 /**
- * Category definitions for grouping resources in UI
- */
-const CATEGORY_CONFIG: Record<string, { label: string; description: string }> = {
-  org: {
-    label: "Organization",
-    description: "Organization-level settings and management",
-  },
-  store: {
-    label: "Store Management",
-    description: "E-commerce store operations and data",
-  },
-};
-
-/**
- * Build permission categories from API resources.
- * Uses ApiResourceDefinition directly without transformation.
+ * Build single permission category from API resources.
  */
 export function buildPermissionCategories(
   apiResources: ApiResourceDefinition[]
 ): IPermissionCategory[] {
-  const categoryMap = new Map<string, IPermissionCategory>();
-
-  for (const resource of apiResources) {
-    const prefix = resource.name.split(".")[0];
-    const config = CATEGORY_CONFIG[prefix] ?? {
-      label: prefix.charAt(0).toUpperCase() + prefix.slice(1),
-      description: `${prefix} resources`,
-    };
-
-    if (!categoryMap.has(prefix)) {
-      categoryMap.set(prefix, {
-        id: prefix,
-        label: config.label,
-        description: config.description,
-        resources: [],
-      });
-    }
-
-    // Push ApiResourceDefinition directly
-    categoryMap.get(prefix)!.resources.push(resource);
-  }
-
-  // Sort categories: org first, then store, then others
-  const order = ["org", "store"];
-  return Array.from(categoryMap.values()).sort((a, b) => {
-    const aIndex = order.indexOf(a.id);
-    const bIndex = order.indexOf(b.id);
-    if (aIndex === -1 && bIndex === -1) return a.id.localeCompare(b.id);
-    if (aIndex === -1) return 1;
-    if (bIndex === -1) return -1;
-    return aIndex - bIndex;
-  });
+  return [
+    {
+      id: "permissions",
+      label: "Permissions",
+      description: "Resource access permissions",
+      resources: apiResources,
+    },
+  ];
 }
 
 /**

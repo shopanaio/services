@@ -1,6 +1,6 @@
 "use client";
 
-import { Typography, Space } from "antd";
+import { Typography, Flex } from "antd";
 import { createStyles } from "antd-style";
 import { PERMISSION_PRESETS, detectPreset } from "../constants";
 import type { FormPermission, IPermissionPreset } from "../types";
@@ -94,12 +94,12 @@ export const PermissionPresets = ({
 
   return (
     <div className={styles.container}>
-      <Space direction="vertical" size="small" style={{ width: "100%", marginBottom: 8 }}>
+      <Flex vertical gap="small" style={{ width: "100%", marginBottom: 8 }}>
         <Typography.Text strong>Quick Setup</Typography.Text>
         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
           Select a preset to quickly configure permissions, or customize below
         </Typography.Text>
-      </Space>
+      </Flex>
       <div className={styles.presetGroup}>
         {displayPresets.map((preset) => {
           const isSelected = currentPreset === preset.id;
