@@ -496,7 +496,12 @@ export class UserRepository {
    */
   async updateProfile(
     userId: string,
-    updates: { name?: string; image?: string }
+    updates: {
+      name?: string;
+      firstName?: string;
+      lastName?: string;
+      image?: string;
+    }
   ): Promise<User | null> {
     const [result] = await this.db
       .update(user)
