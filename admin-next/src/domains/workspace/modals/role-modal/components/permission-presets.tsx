@@ -127,14 +127,6 @@ export const PermissionPresets = ({
           );
         })}
       </div>
-      {currentPreset === "custom" && (
-        <Typography.Text
-          type="secondary"
-          style={{ display: "block", marginTop: 8, fontSize: 12 }}
-        >
-          Custom permissions configured - adjust individual settings below
-        </Typography.Text>
-      )}
     </div>
   );
 };

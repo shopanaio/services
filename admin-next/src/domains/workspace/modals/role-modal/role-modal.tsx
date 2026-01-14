@@ -11,6 +11,7 @@ import {
   Tag,
   Flex,
   Tooltip,
+  Divider,
 } from "antd";
 import {
   LockOutlined,
@@ -69,10 +70,7 @@ const useStyles = createStyles(({ token }) => ({
   systemRoleAlert: {
     marginBottom: token.marginMD,
   },
-  divider: {
-    borderTop: `1px solid ${token.colorBorderSecondary}`,
-    margin: `${token.marginMD}px 0`,
-  },
+
   nameSlugContainer: {
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
@@ -432,7 +430,7 @@ export const RoleModal = () => {
                 disabled={isReadOnly}
               />
             )}
-            <div className={styles.divider} />
+            <Divider />
             <PermissionMatrix
               categories={permissionCategories}
               permissions={permissions}

@@ -1,30 +1,29 @@
 "use client";
 
 import { useMemo, useCallback } from "react";
-import { Tooltip } from "antd";
 import { CheckCircleFilled, MinusCircleOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import { AgGridReact } from "ag-grid-react";
 import {
   ModuleRegistry,
   AllCommunityModule,
+  TooltipModule,
   type ColDef,
   type ICellRendererParams,
-  type ValueGetterParams,
 } from "ag-grid-community";
 import { Action } from "@/graphql/types";
-
-ModuleRegistry.registerModules([AllCommunityModule]);
 import type { ApiResourceDefinition } from "@/graphql/types";
 import { PERMISSION_LEVELS } from "../constants";
 import type { FormPermission, IPermissionCategory } from "../types";
 import { useAgGridTheme } from "@/hooks";
 
+ModuleRegistry.registerModules([AllCommunityModule, TooltipModule]);
+
 const useStyles = createStyles(({ token }) => ({
   container: {
     width: "100%",
 
-    "--ag-row-border": "transparent",
+    // "--ag-row-border": "transparent",
 
     ".ag-cell": {
       display: "flex",
@@ -46,11 +45,6 @@ const useStyles = createStyles(({ token }) => ({
     color: token.colorTextSecondary,
     fontSize: 12,
     lineHeight: 1.3,
-  },
-  levelCell: {
-    display: "flex",
-    justifyContent: "center",
-    width: "100%",
   },
   levelButton: {
     width: 32,
@@ -177,30 +171,20 @@ export const PermissionMatrix = ({
         const bgColor = isActive ? getLevelColor(level.action) : undefined;
 
         return (
-          <div className={styles.levelCell}>
-            <Tooltip
-              title={disabled ? "System roles cannot be modified" : level.label}
-            >
-              <div
-                className={cx(
-                  styles.levelButton,
-                  isActive
-                    ? styles.levelButtonActive
-                    : styles.levelButtonInactive,
-                  disabled && styles.levelButtonDisabled
-                )}
-                style={isActive ? { background: bgColor } : undefined}
-                onClick={() =>
-                  handlePermissionChange(resourceName, level.action)
-                }
-              >
-                {isActive ? (
-                  <CheckCircleFilled style={{ fontSize: 16 }} />
-                ) : (
-                  <MinusCircleOutlined style={{ fontSize: 16 }} />
-                )}
-              </div>
-            </Tooltip>
+          <div
+            className={cx(
+              styles.levelButton,
+              isActive ? styles.levelButtonActive : styles.levelButtonInactive,
+              disabled && styles.levelButtonDisabled
+            )}
+            style={isActive ? { background: bgColor } : undefined}
+            onClick={() => handlePermissionChange(resourceName, level.action)}
+          >
+            {isActive ? (
+              <CheckCircleFilled style={{ fontSize: 16 }} />
+            ) : (
+              <MinusCircleOutlined style={{ fontSize: 16 }} />
+            )}
           </div>
         );
       };
@@ -227,17 +211,15 @@ export const PermissionMatrix = ({
     };
 
     const levelColumns: ColDef<RowData>[] = PERMISSION_LEVELS.map((level) => ({
+      colId: level.action,
       headerName: level.label,
-      field: level.action,
-      width: 100,
-      cellRenderer: createLevelCellRenderer(level),
       headerTooltip: level.description,
-      valueGetter: (params: ValueGetterParams<RowData>) =>
-        getPermissionForResource(params.data!.resource.name),
+      width: 120,
+      cellRenderer: createLevelCellRenderer(level),
     }));
 
     return [resourceColumn, ...levelColumns];
-  }, [ResourceCellRenderer, createLevelCellRenderer, getPermissionForResource]);
+  }, [ResourceCellRenderer, createLevelCellRenderer]);
 
   const defaultColDef = useMemo(
     (): ColDef<RowData> => ({
@@ -261,6 +243,7 @@ export const PermissionMatrix = ({
         domLayout="autoHeight"
         suppressRowHoverHighlight
         suppressCellFocus
+        tooltipShowDelay={300}
       />
     </div>
   );
