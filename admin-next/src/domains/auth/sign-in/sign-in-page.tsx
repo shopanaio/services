@@ -52,7 +52,7 @@ export default function SignInPage() {
 
       // Redirect to returnUrl if present, otherwise to default route
       const returnUrl = searchParams.get("returnUrl");
-      router.push(returnUrl || "/workspace/organization");
+      router.push(returnUrl || "/workspace");
     },
     [signIn, form.setError, router, searchParams]
   );

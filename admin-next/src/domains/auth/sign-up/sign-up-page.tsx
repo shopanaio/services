@@ -48,7 +48,7 @@ export default function SignUpPage() {
       }
 
       message.success("Account created successfully!");
-      router.push("/workspace/organization");
+      router.push("/workspace");
     },
     [signUp, form.setError, router]
   );

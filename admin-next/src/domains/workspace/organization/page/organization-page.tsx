@@ -138,7 +138,7 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
         }
 
         message.success("Organization deleted");
-        router.push("/workspace/organizations");
+        router.push("/workspace");
       },
     });
   }, [organization, pushDeleteModal, deleteOrganization, router]);

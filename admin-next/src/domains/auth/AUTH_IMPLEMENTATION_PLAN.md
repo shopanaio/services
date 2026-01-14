@@ -440,7 +440,7 @@ export default function SignInPage() {
       }
 
       message.success('Welcome back!');
-      router.push('/workspace/organization');
+      router.push('/workspace');
     },
     [signIn, form.setError, router]
   );

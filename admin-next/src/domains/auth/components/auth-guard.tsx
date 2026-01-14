@@ -50,7 +50,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
     // Redirect authenticated users away from auth pages
     if (isAuthenticated && isPublicPath) {
       const returnUrl = searchParams.get("returnUrl");
-      router.replace(returnUrl || "/workspace/organization");
+      router.replace(returnUrl || "/workspace");
       return;
     }
 
@@ -60,7 +60,14 @@ export function AuthGuard({ children }: AuthGuardProps) {
       router.replace(`/sign-in?returnUrl=${returnUrl}`);
       return;
     }
-  }, [isAuthenticated, isInitialLoading, isPublicPath, pathname, router, searchParams]);
+  }, [
+    isAuthenticated,
+    isInitialLoading,
+    isPublicPath,
+    pathname,
+    router,
+    searchParams,
+  ]);
 
   // Show loading state only during initial auth verification
   if (isInitialLoading) {
