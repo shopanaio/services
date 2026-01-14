@@ -67,9 +67,6 @@ const useStyles = createStyles(({ token }) => ({
     alignItems: "center",
     gap: token.marginXS,
   },
-  systemRoleAlert: {
-    marginBottom: token.marginMD,
-  },
 
   nameSlugContainer: {
     display: "grid",
@@ -260,11 +257,10 @@ export const RoleModal = () => {
         <Flex vertical gap={12}>
           {isSystemRole && (
             <Alert
-              className={styles.systemRoleAlert}
               type="info"
               icon={<LockOutlined />}
-              message="System Role"
-              description="This is a system-defined role and cannot be modified. You can view its permissions below."
+              title="System Role"
+              description="This is a system-defined role and cannot be modified."
               showIcon
             />
           )}
@@ -415,22 +411,28 @@ export const RoleModal = () => {
 
           <Paper>
             <PaperHeader
-              title="Permissions"
-              extra={
-                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                  Define what actions users with this role can perform
-                </Typography.Text>
+              title={
+                <Flex vertical>
+                  <Typography.Text strong style={{ fontSize: 16 }}>
+                    Permissions
+                  </Typography.Text>
+                  <Typography.Text type="secondary">
+                    Define what actions users with this role can perform
+                  </Typography.Text>
+                </Flex>
               }
             />
             {!isReadOnly && (
-              <PermissionPresets
-                resources={allResourceNames}
-                permissions={permissions}
-                onChange={handlePermissionsChange}
-                disabled={isReadOnly}
-              />
+              <>
+                <PermissionPresets
+                  resources={allResourceNames}
+                  permissions={permissions}
+                  onChange={handlePermissionsChange}
+                  disabled={isReadOnly}
+                />
+                <Divider />
+              </>
             )}
-            <Divider />
             <PermissionMatrix
               categories={permissionCategories}
               permissions={permissions}

@@ -92,7 +92,7 @@ export const PermissionPresets = ({
 
   return (
     <div className={styles.container}>
-      <Flex vertical gap="small" style={{ width: "100%", marginBottom: 8 }}>
+      <Flex vertical style={{ width: "100%", marginBottom: 12 }}>
         <Typography.Text strong>Quick Setup</Typography.Text>
         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
           Select a preset to quickly configure permissions, or customize below

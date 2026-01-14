@@ -116,6 +116,12 @@ export const useStyles = createStyles(({ token }) => ({
     borderRadius: token.borderRadius,
     marginBottom: token.marginSM,
     border: `1px solid ${token.colorBorder}`,
+    cursor: "pointer",
+    transition: "all 0.2s ease-in-out",
+    "&:hover": {
+      backgroundColor: token.colorBgTextHover,
+      borderColor: token.colorPrimaryBorder,
+    },
   },
   roleInfo: {
     display: "flex",

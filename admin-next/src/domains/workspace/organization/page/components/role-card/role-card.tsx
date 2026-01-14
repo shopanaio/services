@@ -19,8 +19,13 @@ const roleIcons: Record<string, React.ReactNode> = {
 export function RoleCard({ role, onEdit, onDelete }: RoleCardProps) {
   const { styles } = useStyles();
 
+  const handleButtonClick = (e: React.MouseEvent, callback: () => void) => {
+    e.stopPropagation();
+    callback();
+  };
+
   return (
-    <div className={styles.roleCard}>
+    <div className={styles.roleCard} onClick={onEdit}>
       <div className={styles.roleInfo}>
         <span className={styles.roleIcon}>
           {roleIcons[role.name] || <SafetyOutlined />}
@@ -36,14 +41,14 @@ export function RoleCard({ role, onEdit, onDelete }: RoleCardProps) {
       </div>
       {!role.isSystem && (
         <div className={styles.roleActions}>
-          <Button size="small" onClick={onEdit}>
+          <Button size="small" onClick={(e) => handleButtonClick(e, onEdit)}>
             Edit
           </Button>
           <Button
             size="small"
             danger
             icon={<DeleteOutlined />}
-            onClick={onDelete}
+            onClick={(e) => handleButtonClick(e, onDelete)}
           >
             Delete
           </Button>

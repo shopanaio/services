@@ -16,6 +16,7 @@ import type { ApiResourceDefinition } from "@/graphql/types";
 import { PERMISSION_LEVELS } from "../constants";
 import type { FormPermission, IPermissionCategory } from "../types";
 import { useAgGridTheme } from "@/hooks";
+import { Flex, Typography } from "antd";
 
 ModuleRegistry.registerModules([AllCommunityModule, TooltipModule]);
 
@@ -232,6 +233,14 @@ export const PermissionMatrix = ({
 
   return (
     <div className={styles.container}>
+      {!disabled && (
+        <Flex vertical style={{ width: "100%", marginBottom: 12 }}>
+          <Typography.Text strong>Permission Matrix</Typography.Text>
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            Customize permissions for each resource below
+          </Typography.Text>
+        </Flex>
+      )}
       <AgGridReact<RowData>
         theme={agGridTheme}
         rowData={rowData}
