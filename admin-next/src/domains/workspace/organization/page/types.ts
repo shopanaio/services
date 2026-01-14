@@ -29,11 +29,6 @@ export interface MembersSectionProps {
   onRemoveMember: (memberId: string) => void;
 }
 
-export interface InvitationsSectionProps {
-  onResend: (invitationId: string) => void;
-  onCancel: (invitationId: string) => void;
-}
-
 export interface RolesSectionProps {
   roles: ApiRole[];
   loading?: boolean;

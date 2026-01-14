@@ -36,7 +36,6 @@ import type { ModulePageProps } from "@/registry";
 import {
   StoresSection,
   MembersSection,
-  InvitationsSection,
   RolesSection,
   OrganizationInfoHeader,
 } from "./components";
@@ -237,14 +236,6 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
     [organization, members, removeMember, refetchOrg]
   );
 
-  const handleResendInvitation = useCallback((_invitationId: string) => {
-    message.success("Invitation resent");
-  }, []);
-
-  const handleCancelInvitation = useCallback((_invitationId: string) => {
-    message.success("Invitation cancelled");
-  }, []);
-
   const handleCreateRole = useCallback(() => {
     if (!organization) return;
     pushRoleModal({
@@ -400,11 +391,6 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
         onInviteMember={handleInviteMember}
         onChangeRole={handleChangeRole}
         onRemoveMember={handleRemoveMember}
-      />
-
-      <InvitationsSection
-        onResend={handleResendInvitation}
-        onCancel={handleCancelInvitation}
       />
 
       <RolesSection

@@ -13,16 +13,6 @@ export function getInitials(name: string): string {
 }
 
 /**
- * Calculate days until expiration.
- */
-export function getDaysUntilExpiry(expiresAt: string): number {
-  const now = new Date();
-  const expiry = new Date(expiresAt);
-  const diff = expiry.getTime() - now.getTime();
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
-}
-
-/**
  * Get display name for a user (firstName lastName or email).
  */
 export function getUserDisplayName(user: ApiUser): string {

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
-import { Typography, Button, Avatar, Dropdown, Input, Table, Tag, Skeleton } from "antd";
+import { useMemo, useCallback } from "react";
+import { Typography, Button, Avatar, Dropdown, Table, Tag, Skeleton } from "antd";
 import type { MenuProps } from "antd";
-import { MoreOutlined, SearchOutlined, UserOutlined, UserAddOutlined } from "@ant-design/icons";
+import { MoreOutlined, UserOutlined, UserAddOutlined } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type { ApiMember } from "@/graphql/types";
 import { useStyles } from "../../organization-page.styles";
@@ -19,7 +19,6 @@ export function MembersSection({
   onRemoveMember,
 }: MembersSectionProps) {
   const { styles } = useStyles();
-  const [searchValue, setSearchValue] = useState("");
 
   const getMemberActions = useCallback(
     (member: ApiMember): MenuProps["items"] => {
@@ -103,18 +102,6 @@ export function MembersSection({
     [styles, roles, getMemberActions]
   );
 
-  const filteredMembers = useMemo(() => {
-    if (!searchValue) return members;
-    const search = searchValue.toLowerCase();
-    return members.filter((member) => {
-      const displayName = getUserDisplayName(member.user);
-      return (
-        displayName.toLowerCase().includes(search) ||
-        String(member.user.email).toLowerCase().includes(search)
-      );
-    });
-  }, [members, searchValue]);
-
   if (loading) {
     return (
       <Paper>
@@ -140,26 +127,17 @@ export function MembersSection({
           </Dropdown>
         }
       />
-      <div className={styles.searchRow}>
-        <Input
-          placeholder="Search members..."
-          prefix={<SearchOutlined />}
-          value={searchValue}
-          onChange={(e) => setSearchValue(e.target.value)}
-          style={{ maxWidth: 300 }}
-        />
-      </div>
 
       <Table
         columns={columns}
-        dataSource={filteredMembers}
+        dataSource={members}
         rowKey="id"
         pagination={false}
         locale={{ emptyText: "No members found" }}
       />
 
       <Typography.Text className={styles.footer}>
-        Showing {filteredMembers.length} of {members.length} members
+        {members.length} members
       </Typography.Text>
     </Paper>
   );
