@@ -8,13 +8,13 @@ export const useStyles = createStyles(({ token }) => ({
     justifyContent: "space-between",
     padding: token.padding,
     backgroundColor: token.colorBgContainer,
-    border: `1px solid ${token.colorBorder}`,
+    border: `1px solid ${token.colorBorderSecondary}`,
     borderRadius: token.borderRadiusLG,
     cursor: "pointer",
     transition: "all 0.2s ease-in-out",
     "&:hover": {
       backgroundColor: token.colorBgTextHover,
-      borderColor: token.colorPrimaryBorder,
+      borderColor: token.colorBorder,
     },
   },
   storeItemDisabled: {
