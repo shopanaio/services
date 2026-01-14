@@ -21,7 +21,6 @@ import {
   useUpdateOrganization,
   useDeleteOrganization,
   useCreateStore,
-  useInviteMember,
   useRemoveMember,
   useChangeMemberRole,
   useCreateRole,
@@ -70,7 +69,6 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
   const { updateOrganization } = useUpdateOrganization();
   const { deleteOrganization } = useDeleteOrganization();
   const { createStore } = useCreateStore();
-  const { inviteMember } = useInviteMember();
   const { removeMember } = useRemoveMember();
   const { changeMemberRole } = useChangeMemberRole();
   const { createRole } = useCreateRole();
@@ -188,22 +186,10 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
   const handleInviteMember = useCallback(() => {
     if (!organization) return;
     pushInviteModal({
+      organizationId: organization.id,
       roles,
-      onInvite: async (email: string, roleId: string) => {
-        const { userErrors } = await inviteMember(organization.id, email, [
-          { domain: "org", role: roleId },
-        ]);
-
-        if (userErrors.length > 0) {
-          userErrors.forEach((err) => message.error(err.message));
-          return;
-        }
-
-        message.success(`Invitation sent to ${email}`);
-        refetchOrg();
-      },
     });
-  }, [organization, pushInviteModal, inviteMember, refetchOrg, roles]);
+  }, [organization, pushInviteModal, roles]);
 
   const handleChangeRole = useCallback(
     async (memberId: string, roleName: string) => {

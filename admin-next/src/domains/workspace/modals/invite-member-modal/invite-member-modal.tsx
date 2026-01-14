@@ -1,7 +1,7 @@
 "use client";
 
 import { useForm, Controller } from "react-hook-form";
-import { Input, Typography, message } from "antd";
+import { Input, Typography, App } from "antd";
 import { createStyles } from "antd-style";
 import {
   useModalStackContext,
@@ -10,6 +10,7 @@ import {
 } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { RoleCard } from "../../organization/page/components/roles-section/role-card";
+import { useInviteMember } from "../../hooks";
 import type { IInviteMemberModalPayload } from "../../modals";
 
 const useStyles = createStyles(({ token }) => ({
@@ -40,8 +41,10 @@ interface IInviteForm {
 
 export const InviteMemberModal = () => {
   const { styles } = useStyles();
+  const { message } = App.useApp();
   const { payload, pop } = useModalStackContext();
   const typedPayload = payload as IInviteMemberModalPayload;
+  const { inviteMember, loading } = useInviteMember();
 
   const {
     control,
@@ -55,8 +58,23 @@ export const InviteMemberModal = () => {
     },
   });
 
-  const onSubmit = (values: IInviteForm) => {
-    typedPayload.onInvite?.(values.email, values.roleId);
+  const onSubmit = async (values: IInviteForm) => {
+    const selectedRole = typedPayload.roles?.find(
+      (r) => r.id === values.roleId
+    );
+    if (!selectedRole) return;
+
+    const { userErrors } = await inviteMember(
+      typedPayload.organizationId,
+      values.email,
+      [{ domain: selectedRole.domain, role: selectedRole.name }]
+    );
+
+    if (userErrors.length > 0) {
+      userErrors.forEach((err) => message.error(err.message));
+      return;
+    }
+
     message.success(`Invitation sent to ${values.email}`);
     pop();
   };
@@ -71,6 +89,7 @@ export const InviteMemberModal = () => {
           onClose={pop}
           submitButtonProps={{
             onClick: handleSubmit(onSubmit),
+            loading,
             children: "Send Invitation",
           }}
         />

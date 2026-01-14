@@ -24,8 +24,8 @@ export const CREATE_ORGANIZATION_MODAL_TYPE = "workspace-create-organization";
 
 // Payload interfaces
 export interface IInviteMemberModalPayload extends IModalStackPayload {
+  organizationId: string;
   roles: ApiRole[];
-  onInvite?: (email: string, roleId: string) => void;
 }
 
 /**

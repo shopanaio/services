@@ -99,16 +99,13 @@ export class MemberInviteScript extends BaseScript<
       );
 
       if (!role) {
-        return {
-          member: null,
-          userErrors: [
-            {
-              code: "ROLE_NOT_FOUND",
-              message: `Role "${roleName}" not found in domain "${domain}"`,
-              field: ["roles"],
-            },
-          ],
-        };
+        throw new ValidationError([
+          {
+            code: "ROLE_NOT_FOUND",
+            message: `Role "${roleName}" not found in domain "${domain}"`,
+            field: ["roles"],
+          },
+        ]);
       }
 
       // Check if user already has this role in this domain
