@@ -9,7 +9,7 @@ import {
 import { createStyles } from "antd-style";
 import { Action } from "@/graphql/types";
 import { PERMISSION_LEVELS } from "../constants";
-import type { IResourcePermission, IPermissionCategory } from "../types";
+import type { FormPermission, IPermissionCategory } from "../types";
 
 const useStyles = createStyles(({ token }) => ({
   container: {
@@ -134,8 +134,8 @@ const useStyles = createStyles(({ token }) => ({
 
 interface IPermissionMatrixProps {
   categories: IPermissionCategory[];
-  permissions: IResourcePermission[];
-  onChange: (permissions: IResourcePermission[]) => void;
+  permissions: FormPermission[];
+  onChange: (permissions: FormPermission[]) => void;
   disabled?: boolean;
 }
 
@@ -205,7 +205,8 @@ export const PermissionMatrix = ({
   };
 
   const collapseItems = categories.map((category) => {
-    const categoryResources = category.resources.map((r) => r.resource);
+    // Use ApiResourceDefinition.name directly
+    const categoryResources = category.resources.map((r) => r.name);
     const summary = getCategoryPermissionSummary(categoryResources);
 
     return {
@@ -246,16 +247,17 @@ export const PermissionMatrix = ({
             ))}
           </div>
           {category.resources.map((resource) => {
-            const currentAction = getPermissionForResource(resource.resource);
+            // Use ApiResourceDefinition properties directly
+            const currentAction = getPermissionForResource(resource.name);
 
             return (
-              <div key={resource.id} className={styles.resourceRow}>
+              <div key={resource.name} className={styles.resourceRow}>
                 <div className={styles.resourceInfo}>
                   <Typography.Text className={styles.resourceLabel}>
-                    {resource.label}
+                    {resource.displayName ?? resource.name}
                   </Typography.Text>
                   <Typography.Text className={styles.resourceDescription}>
-                    {resource.description}
+                    {resource.description ?? resource.displayName ?? resource.name}
                   </Typography.Text>
                 </div>
                 {PERMISSION_LEVELS.map((level) => {
@@ -277,7 +279,7 @@ export const PermissionMatrix = ({
                           )}
                           style={isActive ? { background: bgColor } : undefined}
                           onClick={() =>
-                            handlePermissionChange(resource.resource, level.action)
+                            handlePermissionChange(resource.name, level.action)
                           }
                         >
                           {isActive ? (

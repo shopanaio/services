@@ -1,4 +1,8 @@
-import type { ApiRole, ApiRolePermissionInput } from "@/graphql/types";
+import type {
+  ApiResourceDefinition,
+  ApiRole,
+  ApiRolePermissionInput,
+} from "@/graphql/types";
 import { Action } from "@/graphql/types";
 
 /**
@@ -7,27 +11,18 @@ import { Action } from "@/graphql/types";
 export type RoleModalMode = "create" | "edit" | "view";
 
 /**
- * Permission resource category for UI grouping
+ * Permission resource category for UI grouping.
+ * Uses ApiResourceDefinition directly instead of local wrapper type.
  */
 export interface IPermissionCategory {
   id: string;
   label: string;
   description?: string;
-  resources: IPermissionResource[];
+  resources: ApiResourceDefinition[];
 }
 
 /**
- * Individual permission resource
- */
-export interface IPermissionResource {
-  id: string;
-  resource: string;
-  label: string;
-  description: string;
-}
-
-/**
- * Permission level with visual properties
+ * Permission level with visual properties (UI-only)
  */
 export interface IPermissionLevel {
   action: Action;
@@ -37,78 +32,54 @@ export interface IPermissionLevel {
 }
 
 /**
- * Permission state for a single resource
+ * Permission state for form - extends API input type to allow null (no permission).
+ * API type requires action, but form state needs to represent "no permission selected".
  */
-export interface IResourcePermission {
+export type FormPermission = {
   resource: string;
   action: Action | null;
-}
+};
 
 /**
- * Role form data
- */
-export interface IRoleFormData {
-  name: string;
-  displayName: string;
-  description: string;
-  permissions: IResourcePermission[];
-}
-
-/**
- * Permission preset template
+ * Permission preset template (UI-only)
  */
 export interface IPermissionPreset {
   id: string;
   label: string;
   description: string;
   icon: React.ReactNode;
-  getPermissions: (resources: string[]) => IResourcePermission[];
+  getPermissions: (resources: string[]) => FormPermission[];
 }
 
 /**
- * Props for role modal callback
- */
-export interface IRoleModalCallbacks {
-  onCreate?: (input: {
-    name: string;
-    displayName: string;
-    description?: string;
-    permissions: ApiRolePermissionInput[];
-  }) => Promise<void>;
-  onUpdate?: (input: {
-    displayName?: string;
-    description?: string;
-    permissions?: ApiRolePermissionInput[];
-  }) => Promise<void>;
-}
-
-/**
- * Transform form permissions to API format
+ * Transform form permissions to API format.
+ * Filters out null actions since API only accepts defined permissions.
  */
 export function toApiPermissions(
-  permissions: IResourcePermission[]
+  permissions: FormPermission[]
 ): ApiRolePermissionInput[] {
   return permissions
-    .filter((p) => p.action !== null)
+    .filter((p): p is FormPermission & { action: Action } => p.action !== null)
     .map((p) => ({
       resource: p.resource,
-      action: p.action!,
+      action: p.action,
     }));
 }
 
 /**
- * Transform API permissions to form format
+ * Transform API role permissions to form format.
+ * Creates dense array with all resources (null for no permission).
  */
 export function fromApiPermissions(
   role: ApiRole,
   allResources: string[]
-): IResourcePermission[] {
+): FormPermission[] {
   return allResources.map((resource) => {
     const apiPerm = role.permissions.find((p) => p.resource === resource);
     if (!apiPerm) {
       return { resource, action: null };
     }
-    // Determine the highest action level
+    // Determine the highest action level from API's actions array
     if (apiPerm.actions.includes("admin")) {
       return { resource, action: Action.Admin };
     }

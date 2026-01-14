@@ -36,7 +36,7 @@ import {
 import {
   toApiPermissions,
   fromApiPermissions,
-  type IResourcePermission,
+  type FormPermission,
 } from "./types";
 import type { IRoleModalPayload } from "../../modals";
 
@@ -131,7 +131,7 @@ export const RoleModal = () => {
   }, [role, allResourceNames]);
 
   const [permissions, setPermissions] =
-    useState<IResourcePermission[]>(initialPermissions);
+    useState<FormPermission[]>(initialPermissions);
 
   // Generate slug from display name
   const generateSlug = useCallback((displayName: string) => {
@@ -171,7 +171,7 @@ export const RoleModal = () => {
   );
 
   const handlePermissionsChange = useCallback(
-    (newPermissions: IResourcePermission[]) => {
+    (newPermissions: FormPermission[]) => {
       setPermissions(newPermissions);
     },
     []

@@ -5,7 +5,7 @@ import type {
   IPermissionCategory,
   IPermissionLevel,
   IPermissionPreset,
-  IResourcePermission,
+  FormPermission,
 } from "./types";
 
 /**
@@ -23,7 +23,8 @@ const CATEGORY_CONFIG: Record<string, { label: string; description: string }> = 
 };
 
 /**
- * Build permission categories from API resources
+ * Build permission categories from API resources.
+ * Uses ApiResourceDefinition directly without transformation.
  */
 export function buildPermissionCategories(
   apiResources: ApiResourceDefinition[]
@@ -46,12 +47,8 @@ export function buildPermissionCategories(
       });
     }
 
-    categoryMap.get(prefix)!.resources.push({
-      id: resource.name.replace(".", "-"),
-      resource: resource.name,
-      label: resource.displayName ?? resource.name,
-      description: resource.description ?? resource.displayName ?? resource.name,
-    });
+    // Push ApiResourceDefinition directly
+    categoryMap.get(prefix)!.resources.push(resource);
   }
 
   // Sort categories: org first, then store, then others
@@ -138,14 +135,14 @@ export const PERMISSION_PRESETS: IPermissionPreset[] = [
 /**
  * Get default empty permissions for resources
  */
-export function getDefaultPermissions(resources: string[]): IResourcePermission[] {
+export function getDefaultPermissions(resources: string[]): FormPermission[] {
   return resources.map((resource) => ({ resource, action: null }));
 }
 
 /**
  * Detect which preset matches current permissions
  */
-export function detectPreset(permissions: IResourcePermission[]): string {
+export function detectPreset(permissions: FormPermission[]): string {
   const hasAny = permissions.some((p) => p.action !== null);
   if (!hasAny) return "custom";
 

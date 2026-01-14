@@ -3,7 +3,7 @@
 import { Typography, Space } from "antd";
 import { createStyles } from "antd-style";
 import { PERMISSION_PRESETS, detectPreset } from "../constants";
-import type { IResourcePermission, IPermissionPreset } from "../types";
+import type { FormPermission, IPermissionPreset } from "../types";
 
 const useStyles = createStyles(({ token }) => ({
   container: {
@@ -68,8 +68,8 @@ const useStyles = createStyles(({ token }) => ({
 
 interface IPermissionPresetsProps {
   resources: string[];
-  permissions: IResourcePermission[];
-  onChange: (permissions: IResourcePermission[]) => void;
+  permissions: FormPermission[];
+  onChange: (permissions: FormPermission[]) => void;
   disabled?: boolean;
 }
 
