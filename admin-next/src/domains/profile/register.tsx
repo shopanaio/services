@@ -4,7 +4,7 @@ import { UserOutlined } from "@ant-design/icons";
 
 registerModule({
   key: "profile",
-  domain: "workspace",
+  domain: "profile",
   sidebar: {
     label: "Account",
     icon: <UserOutlined />,
@@ -13,9 +13,9 @@ registerModule({
   items: [
     {
       key: "profile",
-      path: "/workspace/profile",
+      path: "/profile",
       component: dynamic(
-        () => import("@/domains/workspace/profile/page/profile-page")
+        () => import("@/domains/profile/page/profile-page")
       ),
     },
   ],

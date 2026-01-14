@@ -46,10 +46,6 @@ export {
   // Authorization
   useAuthorize,
   useAuthorizeCheck,
-  // User profile
-  useUpdateProfile,
-  useUpdateEmail,
-  useUpdatePassword,
 } from "./hooks";
 
 // ============================================
@@ -93,7 +89,4 @@ export {
   CREATE_ROLE_MUTATION,
   UPDATE_ROLE_MUTATION,
   DELETE_ROLE_MUTATION,
-  UPDATE_PROFILE_MUTATION,
-  UPDATE_EMAIL_MUTATION,
-  UPDATE_PASSWORD_MUTATION,
 } from "./graphql";

@@ -22,7 +22,7 @@ import {
   ModalHeader,
 } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import { localeOptions } from "../../mocks/data";
+import { localeOptions } from "@/domains/workspace/mocks/data";
 import type { IEditProfileModalPayload } from "../../modals";
 
 // ============================================================================

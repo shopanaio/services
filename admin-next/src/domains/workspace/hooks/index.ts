@@ -16,11 +16,9 @@ export { useTokenRefresh } from "./use-token-refresh";
 // ============================================
 // User Hooks
 // @deprecated useCurrentUser - moved to @/domains/auth
+// @deprecated Profile hooks moved to @/domains/profile
 // ============================================
 export { useCurrentUser } from "./use-current-user";
-export { useUpdateProfile } from "./use-update-profile";
-export { useUpdateEmail } from "./use-update-email";
-export { useUpdatePassword } from "./use-update-password";
 
 // ============================================
 // Organization Hooks

@@ -11,19 +11,19 @@ import {
   CheckCircleOutlined,
 } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import { SettingsLayout } from "../../layout";
-import { DangerZone } from "../../shared";
+import { SettingsLayout } from "@/domains/workspace/layout";
+import { DangerZone } from "@/domains/workspace/shared";
 import { ProfileInfoHeader } from "../components";
 import {
   mockCurrentUser,
   mockOrganization,
   mockSessions,
-} from "../../mocks/data";
+} from "@/domains/workspace/mocks/data";
 import {
   useEditProfileModal,
   useChangeEmailModal,
   useChangePasswordModal,
-} from "../../modals";
+} from "../modals";
 
 const useStyles = createStyles(({ token }) => ({
   emailRow: {

@@ -189,7 +189,7 @@ export const StoreMenu = ({ isCollapsed }: Props) => {
     },
     {
       key: "account",
-      onClick: () => router.push("/workspace/profile"),
+      onClick: () => router.push("/profile"),
       label: (
         <Flex gap="small" align="center" data-testid="project-menu-account">
           <MdOutlineAccountCircle />

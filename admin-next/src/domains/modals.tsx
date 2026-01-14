@@ -39,29 +39,32 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
+    // ========================================
+    // Profile modals
+    // ========================================
     // Change Password modal
     {
-      type: 'workspace-change-password',
+      type: 'profile-change-password',
       component: dynamic(() =>
-        import('@/domains/workspace/modals/change-password-modal').then(
+        import('@/domains/profile/modals/change-password-modal').then(
           (m) => m.ChangePasswordModal
         )
       ),
     },
     // Change Email modal
     {
-      type: 'workspace-change-email',
+      type: 'profile-change-email',
       component: dynamic(() =>
-        import('@/domains/workspace/modals/change-email-modal').then(
+        import('@/domains/profile/modals/change-email-modal').then(
           (m) => m.ChangeEmailModal
         )
       ),
     },
     // Edit Avatar modal
     {
-      type: 'workspace-edit-avatar',
+      type: 'profile-edit-avatar',
       component: dynamic(() =>
-        import('@/domains/workspace/modals/edit-avatar-modal').then(
+        import('@/domains/profile/modals/edit-avatar-modal').then(
           (m) => m.EditAvatarModal
         )
       ),
@@ -77,9 +80,9 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     },
     // Edit Profile modal
     {
-      type: 'workspace-edit-profile',
+      type: 'profile-edit-profile',
       component: dynamic(() =>
-        import('@/domains/workspace/modals/edit-profile-modal').then(
+        import('@/domains/profile/modals/edit-profile-modal').then(
           (m) => m.EditProfileModal
         )
       ),
