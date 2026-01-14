@@ -43,3 +43,18 @@ export const USER_ERROR_FRAGMENT = gql`
     message
   }
 `;
+
+/**
+ * Session fragment - user session information
+ */
+export const SESSION_FRAGMENT = gql`
+  fragment SessionFields on Session {
+    id
+    ipAddress
+    userAgent
+    expiresAt
+    isCurrent
+    createdAt
+    updatedAt
+  }
+`;

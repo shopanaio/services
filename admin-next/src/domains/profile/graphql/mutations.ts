@@ -59,3 +59,37 @@ export const UPDATE_PASSWORD_MUTATION = gql`
   }
   ${USER_ERROR_FRAGMENT}
 `;
+
+/**
+ * Revoke a specific session by ID.
+ */
+export const REVOKE_SESSION_MUTATION = gql`
+  mutation RevokeSession($input: SessionRevokeInput!) {
+    userMutation {
+      sessionRevoke(input: $input) {
+        success
+        userErrors {
+          ...UserErrorFields
+        }
+      }
+    }
+  }
+  ${USER_ERROR_FRAGMENT}
+`;
+
+/**
+ * Revoke all sessions except the current one.
+ */
+export const REVOKE_ALL_SESSIONS_MUTATION = gql`
+  mutation RevokeAllSessions {
+    userMutation {
+      sessionRevokeAll {
+        revokedCount
+        userErrors {
+          ...UserErrorFields
+        }
+      }
+    }
+  }
+  ${USER_ERROR_FRAGMENT}
+`;

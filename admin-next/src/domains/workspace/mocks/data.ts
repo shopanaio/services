@@ -192,38 +192,6 @@ export const mockMembers: ApiMember[] = [
   },
 ];
 
-// Sessions mock data (local type - no API equivalent)
-export interface ISession {
-  id: string;
-  device: string;
-  browser: string;
-  os: string;
-  location: string;
-  lastActive: string;
-  isCurrent: boolean;
-}
-
-export const mockSessions: ISession[] = [
-  {
-    id: "session-1",
-    device: "desktop",
-    browser: "Chrome",
-    os: "macOS",
-    location: "San Francisco, US",
-    lastActive: new Date().toISOString(),
-    isCurrent: true,
-  },
-  {
-    id: "session-2",
-    device: "mobile",
-    browser: "Safari",
-    os: "iPhone",
-    location: "New York, US",
-    lastActive: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    isCurrent: false,
-  },
-];
-
 // Locale options
 export const localeOptions = [
   { value: LocaleCode.En, label: "English" },

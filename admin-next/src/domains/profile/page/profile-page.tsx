@@ -1,6 +1,6 @@
 "use client";
 
-import { Typography, Button, Tag, message, Dropdown } from "antd";
+import { Typography, Button, Tag, message, Dropdown, Spin } from "antd";
 import { createStyles } from "antd-style";
 import {
   LockOutlined,
@@ -18,15 +18,64 @@ import { DangerZone } from "@/domains/workspace/shared";
 import { useThemeContext } from "@/ui-kit/theme/theme-context";
 import { ProfileInfoHeader } from "../components";
 import { useSession } from "@/domains/auth";
-import { mockSessions } from "@/domains/workspace/mocks/data";
 import {
   useEditProfileModal,
   useChangeEmailModal,
   useChangePasswordModal,
 } from "../modals";
-import { useUpdateProfile } from "../hooks";
-import { LocaleCode } from "@/graphql/types";
+import { useUpdateProfile, useSessions, useRevokeSession } from "../hooks";
+import { LocaleCode, type ApiSession } from "@/graphql/types";
 import { MdBrightness4 } from "react-icons/md";
+
+/**
+ * Parse user agent string to extract browser, OS, and device type.
+ */
+function parseUserAgent(userAgent: string | null | undefined): {
+  browser: string;
+  os: string;
+  device: "desktop" | "mobile";
+} {
+  if (!userAgent) {
+    return { browser: "Unknown", os: "Unknown", device: "desktop" };
+  }
+
+  // Detect browser
+  let browser = "Unknown";
+  if (userAgent.includes("Chrome") && !userAgent.includes("Edg")) {
+    browser = "Chrome";
+  } else if (userAgent.includes("Safari") && !userAgent.includes("Chrome")) {
+    browser = "Safari";
+  } else if (userAgent.includes("Firefox")) {
+    browser = "Firefox";
+  } else if (userAgent.includes("Edg")) {
+    browser = "Edge";
+  } else if (userAgent.includes("Opera") || userAgent.includes("OPR")) {
+    browser = "Opera";
+  }
+
+  // Detect OS
+  let os = "Unknown";
+  if (userAgent.includes("Windows")) {
+    os = "Windows";
+  } else if (userAgent.includes("Mac OS X") || userAgent.includes("Macintosh")) {
+    os = "macOS";
+  } else if (userAgent.includes("Linux") && !userAgent.includes("Android")) {
+    os = "Linux";
+  } else if (userAgent.includes("Android")) {
+    os = "Android";
+  } else if (userAgent.includes("iPhone") || userAgent.includes("iPad")) {
+    os = "iOS";
+  }
+
+  // Detect device type
+  const isMobile =
+    userAgent.includes("Mobile") ||
+    userAgent.includes("Android") ||
+    userAgent.includes("iPhone") ||
+    userAgent.includes("iPad");
+
+  return { browser, os, device: isMobile ? "mobile" : "desktop" };
+}
 
 const useStyles = createStyles(({ token }) => ({
   emailRow: {
@@ -151,6 +200,8 @@ export default function ProfilePage() {
   const { push: pushChangePasswordModal } = useChangePasswordModal();
   const { themePreference, setThemePreference } = useThemeContext();
   const { updateProfile } = useUpdateProfile();
+  const { sessions, loading: sessionsLoading } = useSessions();
+  const { revokeSession, revokeAllSessions } = useRevokeSession();
 
   const handleEditProfile = () => {
     pushEditProfileModal({
@@ -206,12 +257,30 @@ export default function ProfilePage() {
     message.info("2FA setup modal would open");
   };
 
-  const handleRevokeSession = (sessionId: string) => {
-    message.success("Session revoked");
+  const handleRevokeSession = async (sessionId: string) => {
+    try {
+      const result = await revokeSession(sessionId);
+      if (result.userErrors.length > 0) {
+        message.error(result.userErrors[0].message);
+        return;
+      }
+      message.success("Session revoked");
+    } catch {
+      message.error("Failed to revoke session");
+    }
   };
 
-  const handleSignOutAll = () => {
-    message.success("All other sessions signed out");
+  const handleSignOutAll = async () => {
+    try {
+      const result = await revokeAllSessions();
+      if (result.userErrors.length > 0) {
+        message.error(result.userErrors[0].message);
+        return;
+      }
+      message.success(`${result.revokedCount} session(s) signed out`);
+    } catch {
+      message.error("Failed to sign out other sessions");
+    }
   };
 
   const handleDeleteAccount = () => {
@@ -411,41 +480,52 @@ export default function ProfilePage() {
             </Dropdown>
           }
         />
-        {mockSessions.map((session) => (
-          <div key={session.id} className={styles.sessionItem}>
-            <div className={styles.sessionInfo}>
-              {session.device === "desktop" ? (
-                <DesktopOutlined className={styles.sessionIcon} />
-              ) : (
-                <MobileOutlined className={styles.sessionIcon} />
-              )}
-              <div className={styles.sessionDetails}>
-                <Typography.Text className={styles.sessionDevice}>
-                  {session.browser} on {session.os}
-                  {session.isCurrent && (
-                    <Tag color="blue" style={{ marginLeft: 8 }}>
-                      Current session
-                    </Tag>
-                  )}
-                </Typography.Text>
-                <Typography.Text className={styles.sessionMeta}>
-                  {session.location} · Last active:{" "}
-                  {formatLastActive(session.lastActive)}
-                </Typography.Text>
-              </div>
-            </div>
-            {!session.isCurrent && (
-              <Button
-                danger
-                size="small"
-                icon={<CloseOutlined />}
-                onClick={() => handleRevokeSession(session.id)}
-              >
-                Revoke
-              </Button>
-            )}
+        {sessionsLoading ? (
+          <div style={{ textAlign: "center", padding: 24 }}>
+            <Spin />
           </div>
-        ))}
+        ) : sessions.length === 0 ? (
+          <Typography.Text type="secondary">No active sessions</Typography.Text>
+        ) : (
+          sessions.map((session) => {
+            const { browser, os, device } = parseUserAgent(session.userAgent);
+            return (
+              <div key={session.id} className={styles.sessionItem}>
+                <div className={styles.sessionInfo}>
+                  {device === "desktop" ? (
+                    <DesktopOutlined className={styles.sessionIcon} />
+                  ) : (
+                    <MobileOutlined className={styles.sessionIcon} />
+                  )}
+                  <div className={styles.sessionDetails}>
+                    <Typography.Text className={styles.sessionDevice}>
+                      {browser} on {os}
+                      {session.isCurrent && (
+                        <Tag color="blue" style={{ marginLeft: 8 }}>
+                          Current session
+                        </Tag>
+                      )}
+                    </Typography.Text>
+                    <Typography.Text className={styles.sessionMeta}>
+                      {session.ipAddress || "Unknown IP"} · Last active:{" "}
+                      {formatLastActive(session.updatedAt)}
+                    </Typography.Text>
+                  </div>
+                </div>
+                {!session.isCurrent && (
+                  <Button
+                    danger
+                    size="small"
+                    icon={<CloseOutlined />}
+                    onClick={() => handleRevokeSession(session.id)}
+                  >
+                    Revoke
+                  </Button>
+                )}
+              </div>
+            );
+          })
+        )}
       </Paper>
 
       {/* Danger Zone */}

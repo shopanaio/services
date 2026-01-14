@@ -5,3 +5,5 @@
 export { useUpdateProfile } from "./use-update-profile";
 export { useUpdateEmail } from "./use-update-email";
 export { useUpdatePassword } from "./use-update-password";
+export { useSessions } from "./use-sessions";
+export { useRevokeSession } from "./use-revoke-session";
