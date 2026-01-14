@@ -1,4 +1,8 @@
 import { ZodResolver } from "@shopana/type-resolver";
+import {
+  decodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 import { IAMType } from "./IAMType.js";
 import { UserResolver } from "./UserResolver.js";
 import { UserUpdateProfileScript } from "../../scripts/user/UserUpdateProfileScript.js";
@@ -8,11 +12,13 @@ import type {
   UserUpdateProfileInput,
   UserUpdateEmailInput,
   UserUpdatePasswordInput,
+  SessionRevokeInput,
 } from "./generated/types.js";
 import {
   UserUpdateProfileInputSchema,
   UserUpdateEmailInputSchema,
   UserUpdatePasswordInputSchema,
+  SessionRevokeInputSchema,
 } from "./generated/schemas.js";
 
 /**
@@ -125,6 +131,126 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
         message: e.message,
         field: e.field ?? null,
       })),
+    };
+  }
+
+  /**
+   * Revoke a specific session by ID.
+   */
+  @ZodResolver(SessionRevokeInputSchema())
+  async sessionRevoke(args: { input: SessionRevokeInput }) {
+    const { input } = args;
+    const { currentUser, kernel } = this.$ctx;
+
+    if (!currentUser?.id) {
+      return {
+        success: false,
+        userErrors: [
+          {
+            code: "UNAUTHORIZED",
+            message: "You must be logged in to revoke sessions",
+            field: null,
+          },
+        ],
+      };
+    }
+
+    // Decode the session ID from global ID
+    const sessionId = decodeGlobalIdByType(input.sessionId, GlobalIdEntity.Session);
+
+    // Prevent revoking current session
+    if (currentUser.sessionId === sessionId) {
+      return {
+        success: false,
+        userErrors: [
+          {
+            code: "INVALID_OPERATION",
+            message: "Cannot revoke current session. Use sign out instead.",
+            field: ["sessionId"],
+          },
+        ],
+      };
+    }
+
+    // Verify the session belongs to the current user
+    const sessions = await kernel.repository.user.getUserSessions(currentUser.id);
+    const sessionBelongsToUser = sessions.some((s) => s.id === sessionId);
+
+    if (!sessionBelongsToUser) {
+      return {
+        success: false,
+        userErrors: [
+          {
+            code: "NOT_FOUND",
+            message: "Session not found",
+            field: ["sessionId"],
+          },
+        ],
+      };
+    }
+
+    const success = await kernel.repository.user.revokeSession(sessionId);
+
+    return {
+      success,
+      userErrors: success
+        ? []
+        : [
+            {
+              code: "REVOKE_FAILED",
+              message: "Failed to revoke session",
+              field: null,
+            },
+          ],
+    };
+  }
+
+  /**
+   * Revoke all sessions except the current one.
+   */
+  async sessionRevokeAll() {
+    const { currentUser, kernel } = this.$ctx;
+
+    if (!currentUser?.id) {
+      return {
+        revokedCount: 0,
+        userErrors: [
+          {
+            code: "UNAUTHORIZED",
+            message: "You must be logged in to revoke sessions",
+            field: null,
+          },
+        ],
+      };
+    }
+
+    // Get all sessions to count them
+    const sessions = await kernel.repository.user.getUserSessions(currentUser.id);
+
+    // Filter out current session
+    const sessionsToRevoke = sessions.filter(
+      (s) => s.id !== currentUser.sessionId
+    );
+
+    if (sessionsToRevoke.length === 0) {
+      return {
+        revokedCount: 0,
+        userErrors: [],
+      };
+    }
+
+    // Revoke each session individually (to preserve current session)
+    let revokedCount = 0;
+    for (const session of sessionsToRevoke) {
+      const success = await kernel.repository.user.revokeSession(session.id);
+      if (success) {
+        revokedCount++;
+      }
+    }
+
+    return {
+      revokedCount,
+      userErrors: [],
     };
   }
 }

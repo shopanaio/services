@@ -70,6 +70,11 @@ type UserQuery {
   current: User
 
   """
+  Get all active sessions for the current user.
+  """
+  mySessions: [Session!]!
+
+  """
   Check authorization for current user.
   Used for server-side permission checks.
   For client-side checks, use project.roles + user.role.
@@ -84,6 +89,16 @@ type UserMutation {
   userUpdatePassword(
     input: UserUpdatePasswordInput!
   ): UserUpdatePasswordPayload!
+
+  # Sessions
+  """
+  Revoke a specific session by ID.
+  """
+  sessionRevoke(input: SessionRevokeInput!): SessionRevokePayload!
+  """
+  Revoke all sessions except the current one.
+  """
+  sessionRevokeAll: SessionRevokeAllPayload!
 }
 
 type AuthMutation {

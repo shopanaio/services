@@ -17,6 +17,8 @@ export interface ServiceContext {
     data: User | null;
     /** Current user ID */
     id: string;
+    /** Current session ID (from JWT sid claim) */
+    sessionId: string | null;
   } | null;
   /** Data loaders for batch loading */
   loaders: Loader;

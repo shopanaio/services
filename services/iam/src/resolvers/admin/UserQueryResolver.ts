@@ -5,6 +5,7 @@ import {
 } from "@shopana/shared-graphql-guid";
 import { IAMType } from "./IAMType.js";
 import { UserResolver } from "./UserResolver.js";
+import { SessionResolver } from "./SessionResolver.js";
 import { AuthorizeScript } from "../../scripts/organization/AuthorizeScript.js";
 import type { AuthorizeInput } from "./generated/types.js";
 import { AuthorizeInputSchema } from "./generated/schemas.js";
@@ -22,6 +23,28 @@ export class UserQueryResolver extends IAMType<Record<string, never>> {
       return null;
     }
     return new UserResolver(this.$ctx.currentUser.id, this.$ctx);
+  }
+
+  /**
+   * Get all active sessions for the current user.
+   */
+  async mySessions() {
+    const { currentUser, kernel } = this.$ctx;
+
+    if (!currentUser?.id) {
+      return [];
+    }
+
+    const sessions = await kernel.repository.user.getUserSessions(currentUser.id);
+    const currentSessionId = currentUser.sessionId;
+
+    return sessions.map(
+      (session) =>
+        new SessionResolver(
+          { session, currentSessionId },
+          this.$ctx
+        )
+    );
   }
 
   /**

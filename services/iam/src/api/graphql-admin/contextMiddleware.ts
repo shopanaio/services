@@ -7,6 +7,7 @@ declare module "fastify" {
     currentUser: {
       id: string;
       data: User | null;
+      sessionId: string | null;
     };
   }
 }
@@ -31,7 +32,7 @@ export function buildAdminContextMiddleware() {
     _reply: FastifyReply
   ) {
     const kernel = Kernel.getInstance();
-    request.currentUser = { id: "", data: null };
+    request.currentUser = { id: "", data: null, sessionId: null };
 
     const token = extractBearerToken(request.headers.authorization);
     // Validate user session
@@ -46,9 +47,13 @@ export function buildAdminContextMiddleware() {
       return;
     }
 
+    // Extract session ID from JWT payload (sid claim)
+    const sessionId = (result.payload as { sid?: string }).sid ?? null;
+
     request.currentUser = {
       id: result.payload.sub,
       data: null,
+      sessionId,
     };
   };
 }

@@ -101,6 +101,7 @@ export enum GlobalIdEntity {
   Role = "Role",
   Member = "Member",
   ApiKey = "ApiKey",
+  Session = "Session",
 }
 
 /**

@@ -1315,6 +1315,49 @@ export type RoleUpdatePayload = {
   userErrors: Array<GenericUserError>;
 };
 
+/** User session representing an active login. */
+export type Session = {
+  __typename?: 'Session';
+  /** The date and time when the session was created. */
+  createdAt: Scalars['DateTime']['output'];
+  /** When the session expires. */
+  expiresAt: Scalars['DateTime']['output'];
+  /** The globally unique ID of the session. */
+  id: Scalars['ID']['output'];
+  /** IP address from which the session was created. */
+  ipAddress?: Maybe<Scalars['String']['output']>;
+  /** Whether this is the current session making the request. */
+  isCurrent: Scalars['Boolean']['output'];
+  /** The date and time when the session was last updated. */
+  updatedAt: Scalars['DateTime']['output'];
+  /** User agent string (browser/device info). */
+  userAgent?: Maybe<Scalars['String']['output']>;
+};
+
+/** Payload for revoking all sessions. */
+export type SessionRevokeAllPayload = {
+  __typename?: 'SessionRevokeAllPayload';
+  /** Number of sessions revoked. */
+  revokedCount: Scalars['Int']['output'];
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<GenericUserError>;
+};
+
+/** Input for revoking a specific session. */
+export type SessionRevokeInput = {
+  /** The ID of the session to revoke. */
+  sessionId: Scalars['ID']['input'];
+};
+
+/** Payload for session revoke operation. */
+export type SessionRevokePayload = {
+  __typename?: 'SessionRevokePayload';
+  /** Whether the session was successfully revoked. */
+  success: Scalars['Boolean']['output'];
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<GenericUserError>;
+};
+
 /** Sort direction */
 export enum SortDirection {
   Asc = 'asc',
@@ -1386,9 +1429,18 @@ export type UserError = {
 
 export type UserMutation = {
   __typename?: 'UserMutation';
+  /** Revoke a specific session by ID. */
+  sessionRevoke: SessionRevokePayload;
+  /** Revoke all sessions except the current one. */
+  sessionRevokeAll: SessionRevokeAllPayload;
   userUpdateEmail: UserUpdateEmailPayload;
   userUpdatePassword: UserUpdatePasswordPayload;
   userUpdateProfile: UserUpdateProfilePayload;
+};
+
+
+export type UserMutationSessionRevokeArgs = {
+  input: SessionRevokeInput;
 };
 
 
@@ -1416,6 +1468,8 @@ export type UserQuery = {
   authorize: AuthorizePayload;
   /** Get current authenticated admin user */
   current?: Maybe<User>;
+  /** Get all active sessions for the current user. */
+  mySessions: Array<Session>;
 };
 
 
@@ -1701,6 +1755,10 @@ export type ResolversTypes = ResolversObject<{
   RolePermissionInput: RolePermissionInput;
   RoleUpdateInput: RoleUpdateInput;
   RoleUpdatePayload: ResolverTypeWrapper<RoleUpdatePayload>;
+  Session: ResolverTypeWrapper<Session>;
+  SessionRevokeAllPayload: ResolverTypeWrapper<SessionRevokeAllPayload>;
+  SessionRevokeInput: SessionRevokeInput;
+  SessionRevokePayload: ResolverTypeWrapper<SessionRevokePayload>;
   SortDirection: SortDirection;
   StringFilter: StringFilter;
   User: ResolverTypeWrapper<User>;
@@ -1780,6 +1838,10 @@ export type ResolversParentTypes = ResolversObject<{
   RolePermissionInput: RolePermissionInput;
   RoleUpdateInput: RoleUpdateInput;
   RoleUpdatePayload: RoleUpdatePayload;
+  Session: Session;
+  SessionRevokeAllPayload: SessionRevokeAllPayload;
+  SessionRevokeInput: SessionRevokeInput;
+  SessionRevokePayload: SessionRevokePayload;
   StringFilter: StringFilter;
   User: User;
   UserError: ResolversInterfaceTypes<ResolversParentTypes>['UserError'];
@@ -2030,6 +2092,29 @@ export type RoleUpdatePayloadResolvers<ContextType = ServiceContext, ParentType 
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type SessionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Session'] = ResolversParentTypes['Session']> = ResolversObject<{
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  expiresAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  ipAddress?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  isCurrent?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  userAgent?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type SessionRevokeAllPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SessionRevokeAllPayload'] = ResolversParentTypes['SessionRevokeAllPayload']> = ResolversObject<{
+  revokedCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type SessionRevokePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SessionRevokePayload'] = ResolversParentTypes['SessionRevokePayload']> = ResolversObject<{
+  success?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type UserResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['User'] = ResolversParentTypes['User']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['User']>, { __typename: 'User' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   avatar?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -2055,6 +2140,8 @@ export type UserErrorResolvers<ContextType = ServiceContext, ParentType extends 
 }>;
 
 export type UserMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['UserMutation'] = ResolversParentTypes['UserMutation']> = ResolversObject<{
+  sessionRevoke?: Resolver<ResolversTypes['SessionRevokePayload'], ParentType, ContextType, RequireFields<UserMutationSessionRevokeArgs, 'input'>>;
+  sessionRevokeAll?: Resolver<ResolversTypes['SessionRevokeAllPayload'], ParentType, ContextType>;
   userUpdateEmail?: Resolver<ResolversTypes['UserUpdateEmailPayload'], ParentType, ContextType, RequireFields<UserMutationUserUpdateEmailArgs, 'input'>>;
   userUpdatePassword?: Resolver<ResolversTypes['UserUpdatePasswordPayload'], ParentType, ContextType, RequireFields<UserMutationUserUpdatePasswordArgs, 'input'>>;
   userUpdateProfile?: Resolver<ResolversTypes['UserUpdateProfilePayload'], ParentType, ContextType, RequireFields<UserMutationUserUpdateProfileArgs, 'input'>>;
@@ -2064,6 +2151,7 @@ export type UserMutationResolvers<ContextType = ServiceContext, ParentType exten
 export type UserQueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['UserQuery'] = ResolversParentTypes['UserQuery']> = ResolversObject<{
   authorize?: Resolver<ResolversTypes['AuthorizePayload'], ParentType, ContextType, RequireFields<UserQueryAuthorizeArgs, 'input'>>;
   current?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
+  mySessions?: Resolver<Array<ResolversTypes['Session']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -2145,6 +2233,9 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   RoleMutation?: RoleMutationResolvers<ContextType>;
   RolePermission?: RolePermissionResolvers<ContextType>;
   RoleUpdatePayload?: RoleUpdatePayloadResolvers<ContextType>;
+  Session?: SessionResolvers<ContextType>;
+  SessionRevokeAllPayload?: SessionRevokeAllPayloadResolvers<ContextType>;
+  SessionRevokePayload?: SessionRevokePayloadResolvers<ContextType>;
   User?: UserResolvers<ContextType>;
   UserError?: UserErrorResolvers<ContextType>;
   UserMutation?: UserMutationResolvers<ContextType>;
