@@ -1,0 +1,424 @@
+"use client";
+
+import { useCallback, useMemo, useState } from "react";
+import { useForm, Controller } from "react-hook-form";
+import {
+  Input,
+  Typography,
+  message,
+  Alert,
+  Spin,
+  Tag,
+  Flex,
+  Tooltip,
+} from "antd";
+import {
+  LockOutlined,
+  EditOutlined,
+  EyeOutlined,
+  PlusOutlined,
+  InfoCircleOutlined,
+} from "@ant-design/icons";
+import { createStyles } from "antd-style";
+import {
+  useModalStackContext,
+  ModalLayout,
+  ModalHeader,
+} from "@/layouts/modals";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
+import { PermissionMatrix, PermissionPresets } from "./components";
+import {
+  ALL_RESOURCES,
+  getDefaultPermissions,
+  PERMISSION_PRESETS,
+} from "./constants";
+import {
+  toApiPermissions,
+  fromApiPermissions,
+  type IResourcePermission,
+} from "./types";
+import type { IRoleModalPayload } from "../../modals";
+
+const useStyles = createStyles(({ token }) => ({
+  formItem: {
+    marginBottom: token.marginMD,
+  },
+  label: {
+    display: "block",
+    marginBottom: token.marginXS,
+    fontWeight: 500,
+  },
+  labelWithTooltip: {
+    display: "flex",
+    alignItems: "center",
+    gap: token.marginXS,
+    marginBottom: token.marginXS,
+  },
+  error: {
+    color: token.colorError,
+    fontSize: token.fontSizeSM,
+    marginTop: token.marginXS,
+  },
+  modeIndicator: {
+    display: "flex",
+    alignItems: "center",
+    gap: token.marginXS,
+  },
+  systemRoleAlert: {
+    marginBottom: token.marginMD,
+  },
+  divider: {
+    borderTop: `1px solid ${token.colorBorderSecondary}`,
+    margin: `${token.marginMD}px 0`,
+  },
+  nameSlugContainer: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: token.marginMD,
+  },
+  slugPreview: {
+    fontSize: token.fontSizeSM,
+    color: token.colorTextSecondary,
+    marginTop: token.marginXS,
+  },
+  headerExtra: {
+    display: "flex",
+    alignItems: "center",
+    gap: token.marginSM,
+  },
+}));
+
+interface IRoleForm {
+  displayName: string;
+  name: string;
+  description: string;
+}
+
+export const RoleModal = () => {
+  const { styles } = useStyles();
+  const { payload, pop } = useModalStackContext();
+  const typedPayload = payload as IRoleModalPayload;
+
+  const { mode, role, organizationId, domain = "org" } = typedPayload;
+  const isViewMode = mode === "view";
+  const isEditMode = mode === "edit";
+  const isCreateMode = mode === "create";
+  const isSystemRole = role?.isSystem ?? false;
+  const isReadOnly = isViewMode || isSystemRole;
+
+  const [loading, setLoading] = useState(false);
+
+  // Initialize permissions state
+  const initialPermissions = useMemo(() => {
+    if (role) {
+      return fromApiPermissions(role, ALL_RESOURCES);
+    }
+    // For create mode, start with viewer preset
+    return PERMISSION_PRESETS.find((p) => p.id === "viewer")?.getPermissions(
+      ALL_RESOURCES
+    ) ?? getDefaultPermissions();
+  }, [role]);
+
+  const [permissions, setPermissions] =
+    useState<IResourcePermission[]>(initialPermissions);
+
+  // Generate slug from display name
+  const generateSlug = useCallback((displayName: string) => {
+    return displayName
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+  }, []);
+
+  const {
+    control,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm<IRoleForm>({
+    defaultValues: {
+      displayName: role?.displayName ?? "",
+      name: role?.name ?? "",
+      description: role?.description ?? "",
+    },
+  });
+
+  const displayName = watch("displayName");
+
+
+  // Auto-generate slug when display name changes (create mode only)
+  const handleDisplayNameChange = useCallback(
+    (value: string, onChange: (v: string) => void) => {
+      onChange(value);
+      if (isCreateMode) {
+        setValue("name", generateSlug(value));
+      }
+    },
+    [isCreateMode, generateSlug, setValue]
+  );
+
+  const handlePermissionsChange = useCallback(
+    (newPermissions: IResourcePermission[]) => {
+      setPermissions(newPermissions);
+    },
+    []
+  );
+
+  const onSubmit = async (values: IRoleForm) => {
+    if (isViewMode) return;
+
+    setLoading(true);
+    try {
+      const apiPermissions = toApiPermissions(permissions);
+
+      if (isCreateMode && typedPayload.onCreate) {
+        await typedPayload.onCreate({
+          name: values.name,
+          displayName: values.displayName,
+          description: values.description || undefined,
+          permissions: apiPermissions,
+          organizationId,
+          domain,
+        });
+        message.success(`Role "${values.displayName}" created successfully`);
+      } else if (isEditMode && typedPayload.onUpdate) {
+        await typedPayload.onUpdate({
+          displayName: values.displayName,
+          description: values.description || undefined,
+          permissions: apiPermissions,
+        });
+        message.success(`Role "${values.displayName}" updated successfully`);
+      }
+      pop();
+    } catch {
+      message.error("Failed to save role. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getModeIcon = () => {
+    if (isViewMode) return <EyeOutlined />;
+    if (isEditMode) return <EditOutlined />;
+    return <PlusOutlined />;
+  };
+
+  const getModeTitle = () => {
+    if (isViewMode) return `View Role: ${role?.displayName}`;
+    if (isEditMode) return `Edit Role: ${role?.displayName}`;
+    return "Create New Role";
+  };
+
+  const getModeTag = () => {
+    if (isSystemRole) {
+      return (
+        <Tag color="purple" icon={<LockOutlined />}>
+          System Role
+        </Tag>
+      );
+    }
+    if (isViewMode) return <Tag color="blue">View Only</Tag>;
+    if (isEditMode) return <Tag color="orange">Editing</Tag>;
+    return <Tag color="green">New</Tag>;
+  };
+
+  return (
+    <ModalLayout
+      name="role-modal"
+      header={
+        <ModalHeader
+          name="role-modal"
+          title={
+            <Flex align="center" gap={8}>
+              {getModeIcon()}
+              <span>{getModeTitle()}</span>
+            </Flex>
+          }
+          rawTitle
+          onClose={pop}
+          extra={getModeTag()}
+          submitButtonProps={
+            isReadOnly
+              ? null
+              : {
+                  onClick: handleSubmit(onSubmit),
+                  loading,
+                  children: isCreateMode ? "Create Role" : "Save Changes",
+                }
+          }
+        />
+      }
+    >
+      <Spin spinning={loading}>
+        {isSystemRole && (
+          <Alert
+            className={styles.systemRoleAlert}
+            type="info"
+            icon={<LockOutlined />}
+            message="System Role"
+            description="This is a system-defined role and cannot be modified. You can view its permissions below."
+            showIcon
+          />
+        )}
+
+        <Paper>
+          <PaperHeader title="Role Details" />
+          <form>
+            <div className={isCreateMode ? styles.nameSlugContainer : undefined}>
+              <div className={styles.formItem}>
+                <div className={styles.labelWithTooltip}>
+                  <Typography.Text className={styles.label} style={{ marginBottom: 0 }}>
+                    Display Name
+                  </Typography.Text>
+                  <Tooltip title="The name shown to users in the interface">
+                    <InfoCircleOutlined style={{ color: "rgba(0,0,0,0.45)" }} />
+                  </Tooltip>
+                </div>
+                <Controller
+                  name="displayName"
+                  control={control}
+                  rules={{
+                    required: "Display name is required",
+                    minLength: {
+                      value: 2,
+                      message: "Display name must be at least 2 characters",
+                    },
+                    maxLength: {
+                      value: 50,
+                      message: "Display name must be less than 50 characters",
+                    },
+                  }}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      placeholder="e.g., Store Manager"
+                      status={errors.displayName ? "error" : undefined}
+                      disabled={isReadOnly}
+                      onChange={(e) =>
+                        handleDisplayNameChange(e.target.value, field.onChange)
+                      }
+                    />
+                  )}
+                />
+                {errors.displayName && (
+                  <Typography.Text className={styles.error}>
+                    {errors.displayName.message}
+                  </Typography.Text>
+                )}
+              </div>
+
+              {isCreateMode && (
+                <div className={styles.formItem}>
+                  <div className={styles.labelWithTooltip}>
+                    <Typography.Text className={styles.label} style={{ marginBottom: 0 }}>
+                      Role Identifier
+                    </Typography.Text>
+                    <Tooltip title="Unique identifier used in the system (auto-generated)">
+                      <InfoCircleOutlined style={{ color: "rgba(0,0,0,0.45)" }} />
+                    </Tooltip>
+                  </div>
+                  <Controller
+                    name="name"
+                    control={control}
+                    rules={{
+                      required: "Role identifier is required",
+                      pattern: {
+                        value: /^[a-z0-9-]+$/,
+                        message:
+                          "Only lowercase letters, numbers, and hyphens allowed",
+                      },
+                      minLength: {
+                        value: 2,
+                        message: "Identifier must be at least 2 characters",
+                      },
+                    }}
+                    render={({ field }) => (
+                      <Input
+                        {...field}
+                        placeholder="e.g., store-manager"
+                        status={errors.name ? "error" : undefined}
+                        disabled={isReadOnly}
+                      />
+                    )}
+                  />
+                  {errors.name && (
+                    <Typography.Text className={styles.error}>
+                      {errors.name.message}
+                    </Typography.Text>
+                  )}
+                  {displayName && !errors.name && (
+                    <Typography.Text className={styles.slugPreview}>
+                      Identifier: {generateSlug(displayName) || "..."}
+                    </Typography.Text>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className={styles.formItem}>
+              <div className={styles.labelWithTooltip}>
+                <Typography.Text className={styles.label} style={{ marginBottom: 0 }}>
+                  Description
+                </Typography.Text>
+                <Tooltip title="Explain the purpose of this role and who should have it">
+                  <InfoCircleOutlined style={{ color: "rgba(0,0,0,0.45)" }} />
+                </Tooltip>
+              </div>
+              <Controller
+                name="description"
+                control={control}
+                rules={{
+                  maxLength: {
+                    value: 200,
+                    message: "Description must be less than 200 characters",
+                  },
+                }}
+                render={({ field }) => (
+                  <Input.TextArea
+                    {...field}
+                    placeholder="Describe what this role is for..."
+                    rows={2}
+                    disabled={isReadOnly}
+                    showCount
+                    maxLength={200}
+                  />
+                )}
+              />
+              {errors.description && (
+                <Typography.Text className={styles.error}>
+                  {errors.description.message}
+                </Typography.Text>
+              )}
+            </div>
+          </form>
+        </Paper>
+
+        <Paper>
+          <PaperHeader
+            title="Permissions"
+            extra={
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                Define what actions users with this role can perform
+              </Typography.Text>
+            }
+          />
+          {!isReadOnly && (
+            <PermissionPresets
+              permissions={permissions}
+              onChange={handlePermissionsChange}
+              disabled={isReadOnly}
+            />
+          )}
+          <div className={styles.divider} />
+          <PermissionMatrix
+            permissions={permissions}
+            onChange={handlePermissionsChange}
+            disabled={isReadOnly}
+          />
+        </Paper>
+      </Spin>
+    </ModalLayout>
+  );
+};

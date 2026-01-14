@@ -12,7 +12,7 @@ import {
   useDeleteOrganizationModal,
   useEditOrganizationModal,
   useInviteMemberModal,
-  useEditRoleModal,
+  useRoleModal,
   useCreateStoreModal,
 } from "../../modals";
 import {
@@ -28,7 +28,7 @@ import {
   useUpdateRole,
   useDeleteRole,
 } from "../../hooks";
-import type { ApiRole, ApiStore } from "@/graphql/types";
+import type { ApiRole, ApiStore, ApiRolePermissionInput } from "@/graphql/types";
 import type { ModulePageProps } from "@/registry";
 import {
   StoresSection,
@@ -44,7 +44,7 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
   const { push: pushDeleteModal } = useDeleteOrganizationModal();
   const { push: pushEditOrganizationModal } = useEditOrganizationModal();
   const { push: pushInviteModal } = useInviteMemberModal();
-  const { push: pushEditRoleModal } = useEditRoleModal();
+  const { push: pushRoleModal } = useRoleModal();
   const { push: pushCreateStoreModal } = useCreateStoreModal();
 
   const {
@@ -247,51 +247,72 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
     message.success("Invitation cancelled");
   }, []);
 
-  const handleCreateRole = useCallback(async () => {
+  const handleCreateRole = useCallback(() => {
     if (!organization) return;
-    const { role, userErrors } = await createRole({
+    pushRoleModal({
+      mode: "create",
       organizationId: organization.id,
       domain: "org",
-      name: `custom-role-${Date.now()}`,
-      displayName: "New Custom Role",
-      permissions: [],
+      onCreate: async (input: {
+        name: string;
+        displayName: string;
+        description?: string;
+        permissions: ApiRolePermissionInput[];
+        organizationId: string;
+        domain: string;
+      }) => {
+        const { userErrors } = await createRole({
+          organizationId: input.organizationId,
+          domain: input.domain,
+          name: input.name,
+          displayName: input.displayName,
+          description: input.description,
+          permissions: input.permissions,
+        });
+
+        if (userErrors.length > 0) {
+          userErrors.forEach((err) => message.error(err.message));
+          throw new Error("Failed to create role");
+        }
+
+        refetchOrg();
+      },
     });
-
-    if (userErrors.length > 0) {
-      userErrors.forEach((err) => message.error(err.message));
-      return;
-    }
-
-    if (role) {
-      message.success("Role created successfully");
-      refetchOrg();
-    }
-  }, [organization, createRole, refetchOrg]);
+  }, [organization, pushRoleModal, createRole, refetchOrg]);
 
   const handleEditRole = useCallback(
     (role: ApiRole) => {
       if (!organization) return;
-      pushEditRoleModal({
+      // Use view mode for system roles, edit mode for custom roles
+      const mode = role.isSystem ? "view" : "edit";
+      pushRoleModal({
+        mode,
+        organizationId: organization.id,
+        domain: "org",
         role,
-        onSave: async (updatedRole: Partial<ApiRole>) => {
+        onUpdate: async (input: {
+          displayName?: string;
+          description?: string;
+          permissions?: ApiRolePermissionInput[];
+        }) => {
           const { userErrors } = await updateRole({
             id: role.id,
             organizationId: organization.id,
-            displayName: updatedRole.displayName,
-            description: updatedRole.description ?? undefined,
+            displayName: input.displayName,
+            description: input.description,
+            permissions: input.permissions,
           });
 
           if (userErrors.length > 0) {
             userErrors.forEach((err) => message.error(err.message));
-            return;
+            throw new Error("Failed to update role");
           }
 
-          message.success(`Role ${role.displayName} updated`);
           refetchOrg();
         },
       });
     },
-    [organization, pushEditRoleModal, updateRole, refetchOrg]
+    [organization, pushRoleModal, updateRole, refetchOrg]
   );
 
   const handleDeleteRole = useCallback(

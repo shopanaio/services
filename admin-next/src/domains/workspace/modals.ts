@@ -1,11 +1,13 @@
 import { createModalStackHook } from "@/layouts/modals";
 import type { IModalStackPayload } from "@/layouts/modals/types";
-import type { ApiRole, ApiMember } from "@/graphql/types";
+import type { ApiRole, ApiMember, ApiRolePermissionInput } from "@/graphql/types";
+import type { RoleModalMode } from "./modals/role-modal/types";
 
 // Modal type constants
 export const INVITE_MEMBER_MODAL_TYPE = "workspace-invite-member";
 export const EDIT_ROLE_MODAL_TYPE = "workspace-edit-role";
 export const CREATE_ROLE_MODAL_TYPE = "workspace-create-role";
+export const ROLE_MODAL_TYPE = "workspace-role";
 export const EDIT_ORGANIZATION_MODAL_TYPE = "workspace-edit-organization";
 export const TRANSFER_OWNERSHIP_MODAL_TYPE = "workspace-transfer-ownership";
 export const DELETE_ORGANIZATION_MODAL_TYPE = "workspace-delete-organization";
@@ -29,6 +31,35 @@ export interface IEditRoleModalPayload extends IModalStackPayload {
 
 export interface ICreateRoleModalPayload extends IModalStackPayload {
   onSave?: (role: Omit<ApiRole, "id" | "__typename">) => void;
+}
+
+/**
+ * Unified role modal payload - supports create, edit, and view modes
+ */
+export interface IRoleModalPayload extends IModalStackPayload {
+  /** Modal mode: create, edit, or view */
+  mode: RoleModalMode;
+  /** Organization ID for the role */
+  organizationId: string;
+  /** Domain scope (org or store:{uuid}) */
+  domain?: string;
+  /** Role data (required for edit/view modes) */
+  role?: ApiRole;
+  /** Callback for create mode */
+  onCreate?: (input: {
+    name: string;
+    displayName: string;
+    description?: string;
+    permissions: ApiRolePermissionInput[];
+    organizationId: string;
+    domain: string;
+  }) => Promise<void>;
+  /** Callback for edit mode */
+  onUpdate?: (input: {
+    displayName?: string;
+    description?: string;
+    permissions?: ApiRolePermissionInput[];
+  }) => Promise<void>;
 }
 
 export interface IEditOrganizationModalPayload extends IModalStackPayload {
@@ -99,6 +130,7 @@ export interface ICreateOrganizationModalPayload extends IModalStackPayload {
 export const useInviteMemberModal = createModalStackHook(INVITE_MEMBER_MODAL_TYPE);
 export const useEditRoleModal = createModalStackHook(EDIT_ROLE_MODAL_TYPE);
 export const useCreateRoleModal = createModalStackHook(CREATE_ROLE_MODAL_TYPE);
+export const useRoleModal = createModalStackHook(ROLE_MODAL_TYPE);
 export const useEditOrganizationModal = createModalStackHook(EDIT_ORGANIZATION_MODAL_TYPE);
 export const useTransferOwnershipModal = createModalStackHook(TRANSFER_OWNERSHIP_MODAL_TYPE);
 export const useDeleteOrganizationModal = createModalStackHook(DELETE_ORGANIZATION_MODAL_TYPE);
@@ -116,6 +148,7 @@ declare module "@/layouts/modals" {
     [INVITE_MEMBER_MODAL_TYPE]: IInviteMemberModalPayload;
     [EDIT_ROLE_MODAL_TYPE]: IEditRoleModalPayload;
     [CREATE_ROLE_MODAL_TYPE]: ICreateRoleModalPayload;
+    [ROLE_MODAL_TYPE]: IRoleModalPayload;
     [EDIT_ORGANIZATION_MODAL_TYPE]: IEditOrganizationModalPayload;
     [TRANSFER_OWNERSHIP_MODAL_TYPE]: ITransferOwnershipModalPayload;
     [DELETE_ORGANIZATION_MODAL_TYPE]: IDeleteOrganizationModalPayload;
