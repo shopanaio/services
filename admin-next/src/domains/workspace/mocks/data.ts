@@ -3,12 +3,13 @@
  * Using API types from GraphQL schema
  */
 
-import type {
-  ApiOrganization,
-  ApiUser,
-  ApiMember,
-  ApiRole,
-  ApiRolePermission,
+import {
+  LocaleCode,
+  type ApiOrganization,
+  type ApiUser,
+  type ApiMember,
+  type ApiRole,
+  type ApiRolePermission,
 } from "@/graphql/types";
 
 // Organization mock data
@@ -225,12 +226,11 @@ export const mockSessions: ISession[] = [
 
 // Locale options
 export const localeOptions = [
-  { value: "en_US", label: "English (US)" },
-  { value: "en_GB", label: "English (UK)" },
-  { value: "ru_RU", label: "Russian" },
-  { value: "de_DE", label: "German" },
-  { value: "fr_FR", label: "French" },
-  { value: "es_ES", label: "Spanish" },
+  { value: LocaleCode.En, label: "English" },
+  { value: LocaleCode.Ru, label: "Russian" },
+  { value: LocaleCode.De, label: "German" },
+  { value: LocaleCode.Fr, label: "French" },
+  { value: LocaleCode.Es, label: "Spanish" },
 ];
 
 // Timezone options

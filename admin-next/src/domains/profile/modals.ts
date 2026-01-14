@@ -1,5 +1,6 @@
 import { createModalStackHook } from "@/layouts/modals";
 import type { IModalStackPayload } from "@/layouts/modals/types";
+import type { LocaleCode } from "@/graphql/types";
 
 // Modal type constants
 export const EDIT_PROFILE_MODAL_TYPE = "profile-edit-profile";
@@ -13,13 +14,13 @@ export interface IEditProfileModalPayload extends IModalStackPayload {
   firstName: string;
   lastName: string;
   currentAvatar?: string | null;
-  locale: string;
+  locale: LocaleCode;
   onSave?: (values: {
     firstName: string;
     lastName: string;
     avatar: string | null;
-    locale: string;
-  }) => void;
+    locale: LocaleCode;
+  }) => void | Promise<void>;
 }
 
 export interface IChangeEmailModalPayload extends IModalStackPayload {

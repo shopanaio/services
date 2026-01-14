@@ -6,8 +6,8 @@ import { USER_FRAGMENT } from "./fragments";
  */
 export const CURRENT_USER_QUERY = gql`
   query CurrentUser {
-    viewer {
-      me {
+    userQuery {
+      current {
         ...UserFields
       }
     }

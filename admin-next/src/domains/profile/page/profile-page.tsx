@@ -18,16 +18,15 @@ import { SettingsLayout } from "@/domains/workspace/layout";
 import { DangerZone } from "@/domains/workspace/shared";
 import { useThemeContext } from "@/ui-kit/theme/theme-context";
 import { ProfileInfoHeader } from "../components";
-import {
-  mockCurrentUser,
-  mockOrganization,
-  mockSessions,
-} from "@/domains/workspace/mocks/data";
+import { useSession } from "@/domains/auth";
+import { mockSessions } from "@/domains/workspace/mocks/data";
 import {
   useEditProfileModal,
   useChangeEmailModal,
   useChangePasswordModal,
 } from "../modals";
+import { useUpdateProfile } from "../hooks";
+import { LocaleCode } from "@/graphql/types";
 
 const useStyles = createStyles(({ token }) => ({
   emailRow: {
@@ -146,32 +145,49 @@ const useStyles = createStyles(({ token }) => ({
 
 export default function ProfilePage() {
   const { styles, cx } = useStyles();
+  const { user, refetch } = useSession();
   const { push: pushEditProfileModal } = useEditProfileModal();
   const { push: pushChangeEmailModal } = useChangeEmailModal();
   const { push: pushChangePasswordModal } = useChangePasswordModal();
   const { themePreference, setThemePreference } = useThemeContext();
+  const { updateProfile } = useUpdateProfile();
 
   const handleEditProfile = () => {
     pushEditProfileModal({
-      firstName: mockCurrentUser.firstName || "",
-      lastName: mockCurrentUser.lastName || "",
-      currentAvatar: mockCurrentUser.avatar,
-      locale: mockCurrentUser.locale || "en_US",
-      onSave: (values: {
+      firstName: user?.firstName || "",
+      lastName: user?.lastName || "",
+      currentAvatar: user?.avatar ?? null,
+      locale: user?.locale || LocaleCode.En,
+      onSave: async (values: {
         firstName: string;
         lastName: string;
         avatar: string | null;
-        locale: string;
+        locale: LocaleCode;
       }) => {
-        console.log("Saving profile:", values);
-        message.success("Profile updated successfully");
+        try {
+          const result = await updateProfile({
+            firstName: values.firstName || undefined,
+            lastName: values.lastName || undefined,
+            locale: values.locale,
+          });
+
+          if (result.userErrors.length > 0) {
+            message.error(result.userErrors[0].message);
+            return;
+          }
+
+          refetch();
+          message.success("Profile updated successfully");
+        } catch {
+          message.error("Failed to update profile");
+        }
       },
     });
   };
 
   const handleChangeEmail = () => {
     pushChangeEmailModal({
-      currentEmail: String(mockCurrentUser.email),
+      currentEmail: user?.email ?? "",
       onSave: (newEmail: string) => {
         message.success(`Verification sent to ${newEmail} (mock)`);
       },
@@ -217,11 +233,7 @@ export default function ProfilePage() {
 
   return (
     <SettingsLayout name="profile">
-      <ProfileInfoHeader
-        user={mockCurrentUser}
-        organizationName={mockOrganization.displayName}
-        onEdit={handleEditProfile}
-      />
+      {user && <ProfileInfoHeader user={user} onEdit={handleEditProfile} />}
 
       {/* Email Section */}
       <Paper>
@@ -241,10 +253,8 @@ export default function ProfilePage() {
         />
         <div className={styles.emailRow}>
           <div className={styles.emailInfo}>
-            <Typography.Text strong>
-              {String(mockCurrentUser.email)}
-            </Typography.Text>
-            {mockCurrentUser.emailVerified && (
+            <Typography.Text strong>{user?.email}</Typography.Text>
+            {user?.emailVerified && (
               <span className={styles.verified}>
                 <CheckCircleOutlined />
                 Verified

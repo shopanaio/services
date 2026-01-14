@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import { useForm, Controller } from "react-hook-form";
-import { Upload, Typography, Button, Input, Avatar, Flex, Select, message } from "antd";
+import { Upload, Typography, Button, Input, Flex, Select } from "antd";
 import {
   UploadOutlined,
   UserOutlined,
@@ -24,6 +24,7 @@ import {
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { localeOptions } from "@/domains/workspace/mocks/data";
 import type { IEditProfileModalPayload } from "../../modals";
+import type { LocaleCode } from "@/graphql/types";
 
 // ============================================================================
 // Types
@@ -32,7 +33,7 @@ import type { IEditProfileModalPayload } from "../../modals";
 interface ProfileFormValues {
   firstName: string;
   lastName: string;
-  locale: string;
+  locale: LocaleCode;
 }
 
 // ============================================================================
@@ -269,14 +270,13 @@ export const EditProfileModal = () => {
 
   // Form submit
   const onSubmit = useCallback(
-    (values: ProfileFormValues) => {
-      typedPayload.onSave?.({
+    async (values: ProfileFormValues) => {
+      await typedPayload.onSave?.({
         firstName: values.firstName,
         lastName: values.lastName,
         avatar: avatarUrl,
         locale: values.locale,
       });
-      message.success("Profile updated successfully");
       pop();
     },
     [typedPayload, avatarUrl, pop]
