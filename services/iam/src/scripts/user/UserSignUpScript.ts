@@ -11,7 +11,7 @@ export class UserSignUpScript extends BaseScript<
 > {
   @Transactional()
   protected async execute(params: UserSignUpParams): Promise<UserSignUpResult> {
-    const { email, password } = params;
+    const { email, password, headers } = params;
 
     // Check if user already exists
     const existingUser = await this.repository.user.findByEmail(email);
@@ -33,6 +33,7 @@ export class UserSignUpScript extends BaseScript<
     const result = await this.repository.user.signUp({
       email,
       password,
+      headers,
     });
 
     if (!result.success || !result.user) {

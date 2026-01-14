@@ -107,12 +107,27 @@ export async function startServer(serverConfig: ServerConfig) {
     await instance.register(fastifyApollo(apollo), {
       path: "/graphql",
       context: async (request, _reply): Promise<ServiceContext> => {
+        // Extract IP address from various headers (respecting proxies)
+        const forwardedFor = request.headers["x-forwarded-for"];
+        const realIp = request.headers["x-real-ip"];
+        const ipAddress =
+          (typeof forwardedFor === "string"
+            ? forwardedFor.split(",")[0].trim()
+            : Array.isArray(forwardedFor)
+            ? forwardedFor[0]
+            : realIp) || request.ip;
+
         const ctx: ServiceContext = {
           requestId: request.id as string,
           kernel: kernel!,
           currentUser: request.currentUser,
           // Create loaders per request for proper batching
           loaders: new Loader(kernel!.repository),
+          // Extract headers for session tracking
+          requestHeaders: {
+            userAgent: request.headers["user-agent"],
+            ipAddress: typeof ipAddress === "string" ? ipAddress : undefined,
+          },
         };
 
         // Set context in AsyncLocalStorage for all resolvers

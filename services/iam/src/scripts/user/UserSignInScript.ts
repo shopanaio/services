@@ -9,11 +9,12 @@ export class UserSignInScript extends BaseScript<
   UserSignInResult
 > {
   protected async execute(params: UserSignInParams): Promise<UserSignInResult> {
-    const { email, password } = params;
+    const { email, password, headers } = params;
 
     const result = await this.repository.user.signIn({
       email,
       password,
+      headers,
     });
 
     if (!result.success) {
