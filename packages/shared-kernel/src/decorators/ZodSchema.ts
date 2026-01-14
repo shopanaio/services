@@ -16,7 +16,7 @@ export interface UserError {
 export class ValidationError extends Error {
   constructor(
     public readonly errors: UserError[],
-    public readonly zodError: ZodError
+    public readonly zodError?: ZodError
   ) {
     super("Validation failed");
     this.name = "ValidationError";
