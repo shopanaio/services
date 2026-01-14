@@ -3060,6 +3060,8 @@ export type ApiResourceDefinition = {
   __typename?: 'ResourceDefinition';
   /** Available actions for resource. */
   actions: Array<Scalars['String']['output']>;
+  /** Resource description. */
+  description?: Maybe<Scalars['String']['output']>;
   /** Display name. */
   displayName?: Maybe<Scalars['String']['output']>;
   /** Resource name (product, order, etc.). */

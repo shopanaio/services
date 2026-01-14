@@ -50,7 +50,7 @@ export function buildPermissionCategories(
       id: resource.name.replace(".", "-"),
       resource: resource.name,
       label: resource.displayName ?? resource.name,
-      description: resource.displayName ?? resource.name,
+      description: resource.description ?? resource.displayName ?? resource.name,
     });
   }
 
