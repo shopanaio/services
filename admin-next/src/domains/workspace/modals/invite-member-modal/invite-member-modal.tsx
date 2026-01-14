@@ -10,7 +10,6 @@ import {
 } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type { IInviteMemberModalPayload } from "../../modals";
-import { mockRoles } from "../../mocks/data";
 
 const useStyles = createStyles(({ token }) => ({
   formItem: {
@@ -55,7 +54,9 @@ export const InviteMemberModal = () => {
   const typedPayload = payload as IInviteMemberModalPayload;
 
   // Filter out Owner role - can't invite as owner
-  const invitableRoles = mockRoles.filter((role) => role.name !== "owner");
+  const invitableRoles = (typedPayload.roles ?? []).filter(
+    (role) => role.name !== "owner"
+  );
 
   const {
     control,
@@ -70,7 +71,7 @@ export const InviteMemberModal = () => {
   });
 
   const onSubmit = (values: IInviteForm) => {
-    typedPayload.onInvite?.(values.email, values.roleId, values.personalMessage);
+    typedPayload.onInvite?.(values.email, values.roleId);
     message.success(`Invitation sent to ${values.email}`);
     pop();
   };
@@ -146,23 +147,6 @@ export const InviteMemberModal = () => {
                     ))}
                   </Space>
                 </Radio.Group>
-              )}
-            />
-          </div>
-
-          <div className={styles.formItemLast}>
-            <Typography.Text className={styles.label}>
-              Personal Message (optional)
-            </Typography.Text>
-            <Controller
-              name="personalMessage"
-              control={control}
-              render={({ field }) => (
-                <Input.TextArea
-                  {...field}
-                  placeholder="Join our team on Shopana!"
-                  rows={3}
-                />
               )}
             />
           </div>

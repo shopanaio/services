@@ -21,15 +21,6 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
-    // Edit Role modal (legacy)
-    {
-      type: 'workspace-edit-role',
-      component: dynamic(() =>
-        import('@/domains/workspace/modals/edit-role-modal').then(
-          (m) => m.EditRoleModal
-        )
-      ),
-    },
     // Role modal (unified create/edit/view)
     {
       type: 'workspace-role',

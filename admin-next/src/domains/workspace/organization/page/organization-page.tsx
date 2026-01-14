@@ -180,11 +180,8 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
   const handleInviteMember = useCallback(() => {
     if (!organization) return;
     pushInviteModal({
-      onInvite: async (
-        email: string,
-        roleId: string,
-        _personalMessage?: string
-      ) => {
+      roles,
+      onInvite: async (email: string, roleId: string) => {
         const { userErrors } = await inviteMember(organization.id, email, [
           { domain: "org", role: roleId },
         ]);
@@ -198,7 +195,7 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
         refetchOrg();
       },
     });
-  }, [organization, pushInviteModal, inviteMember, refetchOrg]);
+  }, [organization, pushInviteModal, inviteMember, refetchOrg, roles]);
 
   const handleChangeRole = useCallback(
     async (memberId: string, roleName: string) => {

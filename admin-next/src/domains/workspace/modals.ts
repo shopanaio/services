@@ -1,12 +1,15 @@
 import { createModalStackHook } from "@/layouts/modals";
 import type { IModalStackPayload } from "@/layouts/modals/types";
-import type { ApiRole, ApiMember, ApiRolePermissionInput, ApiResourceDefinition } from "@/graphql/types";
+import type {
+  ApiRole,
+  ApiMember,
+  ApiRolePermissionInput,
+  ApiResourceDefinition,
+} from "@/graphql/types";
 import type { RoleModalMode } from "./modals/role-modal/types";
 
 // Modal type constants
 export const INVITE_MEMBER_MODAL_TYPE = "workspace-invite-member";
-export const EDIT_ROLE_MODAL_TYPE = "workspace-edit-role";
-export const CREATE_ROLE_MODAL_TYPE = "workspace-create-role";
 export const ROLE_MODAL_TYPE = "workspace-role";
 export const EDIT_ORGANIZATION_MODAL_TYPE = "workspace-edit-organization";
 export const TRANSFER_OWNERSHIP_MODAL_TYPE = "workspace-transfer-ownership";
@@ -21,16 +24,8 @@ export const CREATE_ORGANIZATION_MODAL_TYPE = "workspace-create-organization";
 
 // Payload interfaces
 export interface IInviteMemberModalPayload extends IModalStackPayload {
-  onInvite?: (email: string, roleId: string, message?: string) => void;
-}
-
-export interface IEditRoleModalPayload extends IModalStackPayload {
-  role: ApiRole;
-  onSave?: (role: Partial<ApiRole>) => void;
-}
-
-export interface ICreateRoleModalPayload extends IModalStackPayload {
-  onSave?: (role: Omit<ApiRole, "id" | "__typename">) => void;
+  roles: ApiRole[];
+  onInvite?: (email: string, roleId: string) => void;
 }
 
 /**
@@ -68,7 +63,11 @@ export interface IEditOrganizationModalPayload extends IModalStackPayload {
   displayName: string;
   slug: string;
   currentLogo?: string | null;
-  onSave?: (values: { displayName: string; slug: string; logo: string | null }) => void;
+  onSave?: (values: {
+    displayName: string;
+    slug: string;
+    logo: string | null;
+  }) => void;
 }
 
 export interface ITransferOwnershipModalPayload extends IModalStackPayload {
@@ -125,31 +124,50 @@ export interface ICreateStoreModalPayload extends IModalStackPayload {
 }
 
 export interface ICreateOrganizationModalPayload extends IModalStackPayload {
-  onCreate?: (values: { name: string; displayName: string }) => Promise<void> | void;
+  onCreate?: (values: {
+    name: string;
+    displayName: string;
+  }) => Promise<void> | void;
 }
 
 // Create typed hooks
-export const useInviteMemberModal = createModalStackHook(INVITE_MEMBER_MODAL_TYPE);
-export const useEditRoleModal = createModalStackHook(EDIT_ROLE_MODAL_TYPE);
-export const useCreateRoleModal = createModalStackHook(CREATE_ROLE_MODAL_TYPE);
+export const useInviteMemberModal = createModalStackHook(
+  INVITE_MEMBER_MODAL_TYPE
+);
 export const useRoleModal = createModalStackHook(ROLE_MODAL_TYPE);
-export const useEditOrganizationModal = createModalStackHook(EDIT_ORGANIZATION_MODAL_TYPE);
-export const useTransferOwnershipModal = createModalStackHook(TRANSFER_OWNERSHIP_MODAL_TYPE);
-export const useDeleteOrganizationModal = createModalStackHook(DELETE_ORGANIZATION_MODAL_TYPE);
-export const useEditProfileModal = createModalStackHook(EDIT_PROFILE_MODAL_TYPE);
-export const useChangeEmailModal = createModalStackHook(CHANGE_EMAIL_MODAL_TYPE);
-export const useChangePasswordModal = createModalStackHook(CHANGE_PASSWORD_MODAL_TYPE);
+export const useEditOrganizationModal = createModalStackHook(
+  EDIT_ORGANIZATION_MODAL_TYPE
+);
+export const useTransferOwnershipModal = createModalStackHook(
+  TRANSFER_OWNERSHIP_MODAL_TYPE
+);
+export const useDeleteOrganizationModal = createModalStackHook(
+  DELETE_ORGANIZATION_MODAL_TYPE
+);
+export const useEditProfileModal = createModalStackHook(
+  EDIT_PROFILE_MODAL_TYPE
+);
+export const useChangeEmailModal = createModalStackHook(
+  CHANGE_EMAIL_MODAL_TYPE
+);
+export const useChangePasswordModal = createModalStackHook(
+  CHANGE_PASSWORD_MODAL_TYPE
+);
 export const useEditAvatarModal = createModalStackHook(EDIT_AVATAR_MODAL_TYPE);
-export const useDeleteAccountModal = createModalStackHook(DELETE_ACCOUNT_MODAL_TYPE);
-export const useCreateStoreModal = createModalStackHook(CREATE_STORE_MODAL_TYPE);
-export const useCreateOrganizationModal = createModalStackHook(CREATE_ORGANIZATION_MODAL_TYPE);
+export const useDeleteAccountModal = createModalStackHook(
+  DELETE_ACCOUNT_MODAL_TYPE
+);
+export const useCreateStoreModal = createModalStackHook(
+  CREATE_STORE_MODAL_TYPE
+);
+export const useCreateOrganizationModal = createModalStackHook(
+  CREATE_ORGANIZATION_MODAL_TYPE
+);
 
 // Declare module augmentation for type safety
 declare module "@/layouts/modals" {
   interface ModalStackPayloads {
     [INVITE_MEMBER_MODAL_TYPE]: IInviteMemberModalPayload;
-    [EDIT_ROLE_MODAL_TYPE]: IEditRoleModalPayload;
-    [CREATE_ROLE_MODAL_TYPE]: ICreateRoleModalPayload;
     [ROLE_MODAL_TYPE]: IRoleModalPayload;
     [EDIT_ORGANIZATION_MODAL_TYPE]: IEditOrganizationModalPayload;
     [TRANSFER_OWNERSHIP_MODAL_TYPE]: ITransferOwnershipModalPayload;
