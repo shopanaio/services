@@ -77,6 +77,10 @@ type ResourceDefinition {
   Display name.
   """
   displayName: String
+  """
+  Resource description.
+  """
+  description: String
 }
 
 # ============================================================================

@@ -8,4 +8,6 @@ export interface ResourceDefinition {
   displayName: string | null;
   /** Available actions for this resource */
   actions: string[];
+  /** Resource description */
+  description: string | null;
 }

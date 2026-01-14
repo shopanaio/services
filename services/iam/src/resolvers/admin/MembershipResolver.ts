@@ -1,8 +1,10 @@
 import { SubgraphReference } from "@shopana/type-resolver";
+import { Resources } from "@shopana/rbac";
 import { IAMType } from "./IAMType.js";
 import { MemberResolver } from "./MemberResolver.js";
 import { RoleResolver } from "./RoleResolver.js";
 import type { Domain } from "../../casbin/CasbinService.js";
+import type { ResourceDefinition } from "./interfaces/ResourceDefinition.js";
 
 export interface MembershipInput {
   domain: Domain;
@@ -71,5 +73,20 @@ export class MembershipResolver extends IAMType<
           this.$ctx
         )
     );
+  }
+
+  availableResources(): ResourceDefinition[] {
+    const { domain } = this.$props;
+
+    // Select resources based on domain
+    const resources = domain === "org" ? Resources.org : Resources.store;
+
+    // Map to ResourceDefinition format
+    return Object.entries(resources).map(([name, def]) => ({
+      name,
+      displayName: null,
+      actions: [...def.actions],
+      description: def.description,
+    }));
   }
 }

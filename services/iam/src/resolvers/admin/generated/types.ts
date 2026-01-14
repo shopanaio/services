@@ -1154,6 +1154,8 @@ export type ResourceDefinition = {
   __typename?: 'ResourceDefinition';
   /** Available actions for resource. */
   actions: Array<Scalars['String']['output']>;
+  /** Resource description. */
+  description?: Maybe<Scalars['String']['output']>;
   /** Display name. */
   displayName?: Maybe<Scalars['String']['output']>;
   /** Resource name (product, order, etc.). */
@@ -1977,6 +1979,7 @@ export type QueryResolvers<ContextType = ServiceContext, ParentType extends Reso
 
 export type ResourceDefinitionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ResourceDefinition'] = ResolversParentTypes['ResourceDefinition']> = ResolversObject<{
   actions?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
+  description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   displayName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
