@@ -259,184 +259,188 @@ export const RoleModal = () => {
       }
     >
       <Spin spinning={loading}>
-        {isSystemRole && (
-          <Alert
-            className={styles.systemRoleAlert}
-            type="info"
-            icon={<LockOutlined />}
-            message="System Role"
-            description="This is a system-defined role and cannot be modified. You can view its permissions below."
-            showIcon
-          />
-        )}
+        <Flex vertical gap={12}>
+          {isSystemRole && (
+            <Alert
+              className={styles.systemRoleAlert}
+              type="info"
+              icon={<LockOutlined />}
+              message="System Role"
+              description="This is a system-defined role and cannot be modified. You can view its permissions below."
+              showIcon
+            />
+          )}
 
-        <Paper>
-          <PaperHeader title="Role Details" />
-          <form>
-            <div
-              className={isCreateMode ? styles.nameSlugContainer : undefined}
-            >
-              <div className={styles.formItem}>
-                <div className={styles.labelWithTooltip}>
-                  <Typography.Text
-                    className={styles.label}
-                    style={{ marginBottom: 0 }}
-                  >
-                    Display Name
-                  </Typography.Text>
-                  <Tooltip title="The name shown to users in the interface">
-                    <InfoCircleOutlined style={{ color: "rgba(0,0,0,0.45)" }} />
-                  </Tooltip>
-                </div>
-                <Controller
-                  name="displayName"
-                  control={control}
-                  rules={{
-                    required: "Display name is required",
-                    minLength: {
-                      value: 2,
-                      message: "Display name must be at least 2 characters",
-                    },
-                    maxLength: {
-                      value: 50,
-                      message: "Display name must be less than 50 characters",
-                    },
-                  }}
-                  render={({ field }) => (
-                    <Input
-                      {...field}
-                      placeholder="e.g., Store Manager"
-                      status={errors.displayName ? "error" : undefined}
-                      disabled={isReadOnly}
-                    />
-                  )}
-                />
-                {errors.displayName && (
-                  <Typography.Text className={styles.error}>
-                    {errors.displayName.message}
-                  </Typography.Text>
-                )}
-              </div>
-
-              {isCreateMode && (
+          <Paper>
+            <PaperHeader title="Role Details" />
+            <form>
+              <div
+                className={isCreateMode ? styles.nameSlugContainer : undefined}
+              >
                 <div className={styles.formItem}>
                   <div className={styles.labelWithTooltip}>
                     <Typography.Text
                       className={styles.label}
                       style={{ marginBottom: 0 }}
                     >
-                      Role Identifier
+                      Display Name
                     </Typography.Text>
-                    <Tooltip title="Unique identifier used in the system (auto-generated)">
+                    <Tooltip title="The name shown to users in the interface">
                       <InfoCircleOutlined
                         style={{ color: "rgba(0,0,0,0.45)" }}
                       />
                     </Tooltip>
                   </div>
                   <Controller
-                    name="name"
+                    name="displayName"
                     control={control}
                     rules={{
-                      required: "Role identifier is required",
-                      pattern: {
-                        value: /^[a-z0-9-]+$/,
-                        message:
-                          "Only lowercase letters, numbers, and hyphens allowed",
-                      },
+                      required: "Display name is required",
                       minLength: {
                         value: 2,
-                        message: "Identifier must be at least 2 characters",
+                        message: "Display name must be at least 2 characters",
+                      },
+                      maxLength: {
+                        value: 50,
+                        message: "Display name must be less than 50 characters",
                       },
                     }}
                     render={({ field }) => (
                       <Input
                         {...field}
-                        placeholder="e.g., store-manager"
-                        status={errors.name ? "error" : undefined}
+                        placeholder="e.g., Store Manager"
+                        status={errors.displayName ? "error" : undefined}
                         disabled={isReadOnly}
-                        onChange={(e) => {
-                          const value = slugify(e.target.value);
-                          setIsNameManual(true);
-                          field.onChange(value);
-                        }}
                       />
                     )}
                   />
-                  {errors.name && (
+                  {errors.displayName && (
                     <Typography.Text className={styles.error}>
-                      {errors.name.message}
+                      {errors.displayName.message}
                     </Typography.Text>
                   )}
                 </div>
-              )}
-            </div>
 
-            <div className={styles.formItem}>
-              <div className={styles.labelWithTooltip}>
-                <Typography.Text
-                  className={styles.label}
-                  style={{ marginBottom: 0 }}
-                >
-                  Description
-                </Typography.Text>
-                <Tooltip title="Explain the purpose of this role and who should have it">
-                  <InfoCircleOutlined style={{ color: "rgba(0,0,0,0.45)" }} />
-                </Tooltip>
-              </div>
-              <Controller
-                name="description"
-                control={control}
-                rules={{
-                  maxLength: {
-                    value: 200,
-                    message: "Description must be less than 200 characters",
-                  },
-                }}
-                render={({ field }) => (
-                  <Input.TextArea
-                    {...field}
-                    placeholder="Describe what this role is for..."
-                    rows={2}
-                    disabled={isReadOnly}
-                    showCount
-                    maxLength={200}
-                  />
+                {isCreateMode && (
+                  <div className={styles.formItem}>
+                    <div className={styles.labelWithTooltip}>
+                      <Typography.Text
+                        className={styles.label}
+                        style={{ marginBottom: 0 }}
+                      >
+                        Role Identifier
+                      </Typography.Text>
+                      <Tooltip title="Unique identifier used in the system (auto-generated)">
+                        <InfoCircleOutlined
+                          style={{ color: "rgba(0,0,0,0.45)" }}
+                        />
+                      </Tooltip>
+                    </div>
+                    <Controller
+                      name="name"
+                      control={control}
+                      rules={{
+                        required: "Role identifier is required",
+                        pattern: {
+                          value: /^[a-z0-9-]+$/,
+                          message:
+                            "Only lowercase letters, numbers, and hyphens allowed",
+                        },
+                        minLength: {
+                          value: 2,
+                          message: "Identifier must be at least 2 characters",
+                        },
+                      }}
+                      render={({ field }) => (
+                        <Input
+                          {...field}
+                          placeholder="e.g., store-manager"
+                          status={errors.name ? "error" : undefined}
+                          disabled={isReadOnly}
+                          onChange={(e) => {
+                            const value = slugify(e.target.value);
+                            setIsNameManual(true);
+                            field.onChange(value);
+                          }}
+                        />
+                      )}
+                    />
+                    {errors.name && (
+                      <Typography.Text className={styles.error}>
+                        {errors.name.message}
+                      </Typography.Text>
+                    )}
+                  </div>
                 )}
-              />
-              {errors.description && (
-                <Typography.Text className={styles.error}>
-                  {errors.description.message}
-                </Typography.Text>
-              )}
-            </div>
-          </form>
-        </Paper>
+              </div>
 
-        <Paper>
-          <PaperHeader
-            title="Permissions"
-            extra={
-              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                Define what actions users with this role can perform
-              </Typography.Text>
-            }
-          />
-          {!isReadOnly && (
-            <PermissionPresets
-              resources={allResourceNames}
+              <div className={styles.formItem}>
+                <div className={styles.labelWithTooltip}>
+                  <Typography.Text
+                    className={styles.label}
+                    style={{ marginBottom: 0 }}
+                  >
+                    Description
+                  </Typography.Text>
+                  <Tooltip title="Explain the purpose of this role and who should have it">
+                    <InfoCircleOutlined style={{ color: "rgba(0,0,0,0.45)" }} />
+                  </Tooltip>
+                </div>
+                <Controller
+                  name="description"
+                  control={control}
+                  rules={{
+                    maxLength: {
+                      value: 200,
+                      message: "Description must be less than 200 characters",
+                    },
+                  }}
+                  render={({ field }) => (
+                    <Input.TextArea
+                      {...field}
+                      placeholder="Describe what this role is for..."
+                      rows={2}
+                      disabled={isReadOnly}
+                      showCount
+                      maxLength={200}
+                    />
+                  )}
+                />
+                {errors.description && (
+                  <Typography.Text className={styles.error}>
+                    {errors.description.message}
+                  </Typography.Text>
+                )}
+              </div>
+            </form>
+          </Paper>
+
+          <Paper>
+            <PaperHeader
+              title="Permissions"
+              extra={
+                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                  Define what actions users with this role can perform
+                </Typography.Text>
+              }
+            />
+            {!isReadOnly && (
+              <PermissionPresets
+                resources={allResourceNames}
+                permissions={permissions}
+                onChange={handlePermissionsChange}
+                disabled={isReadOnly}
+              />
+            )}
+            <div className={styles.divider} />
+            <PermissionMatrix
+              categories={permissionCategories}
               permissions={permissions}
               onChange={handlePermissionsChange}
               disabled={isReadOnly}
             />
-          )}
-          <div className={styles.divider} />
-          <PermissionMatrix
-            categories={permissionCategories}
-            permissions={permissions}
-            onChange={handlePermissionsChange}
-            disabled={isReadOnly}
-          />
-        </Paper>
+          </Paper>
+        </Flex>
       </Spin>
     </ModalLayout>
   );

@@ -23,14 +23,12 @@ const useStyles = createStyles(({ token }) => ({
     transition: "all 0.2s",
     background: token.colorBgContainer,
     "&:hover": {
-      borderColor: token.colorPrimary,
-      background: token.colorPrimaryBg,
+      borderColor: token.colorBorder,
     },
   },
   presetCardSelected: {
-    borderColor: token.colorPrimary,
-    background: token.colorPrimaryBg,
-    boxShadow: `0 0 0 2px ${token.colorPrimaryBgHover}`,
+    borderColor: token.colorBorder,
+    background: token.colorBgLayout,
   },
   presetCardDisabled: {
     cursor: "not-allowed",

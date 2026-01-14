@@ -1,87 +1,56 @@
 "use client";
 
-import { Typography, Tooltip, Collapse, Tag } from "antd";
-import {
-  CheckCircleFilled,
-  MinusCircleOutlined,
-  QuestionCircleOutlined,
-} from "@ant-design/icons";
+import { useMemo, useCallback } from "react";
+import { Tooltip } from "antd";
+import { CheckCircleFilled, MinusCircleOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
+import { AgGridReact } from "ag-grid-react";
+import {
+  ModuleRegistry,
+  AllCommunityModule,
+  type ColDef,
+  type ICellRendererParams,
+  type ValueGetterParams,
+} from "ag-grid-community";
 import { Action } from "@/graphql/types";
+
+ModuleRegistry.registerModules([AllCommunityModule]);
+import type { ApiResourceDefinition } from "@/graphql/types";
 import { PERMISSION_LEVELS } from "../constants";
 import type { FormPermission, IPermissionCategory } from "../types";
+import { useAgGridTheme } from "@/hooks";
 
 const useStyles = createStyles(({ token }) => ({
   container: {
     width: "100%",
-  },
-  collapse: {
-    background: "transparent",
-    border: "none",
-    "& .ant-collapse-item": {
-      border: `1px solid ${token.colorBorderSecondary}`,
-      borderRadius: `${token.borderRadiusLG}px !important`,
-      marginBottom: token.marginSM,
-      overflow: "hidden",
-    },
-    "& .ant-collapse-header": {
-      background: token.colorBgContainer,
-      padding: `${token.paddingSM}px ${token.paddingMD}px !important`,
-      alignItems: "center !important",
-    },
-    "& .ant-collapse-content": {
-      borderTop: `1px solid ${token.colorBorderSecondary}`,
-    },
-    "& .ant-collapse-content-box": {
-      padding: "0 !important",
+
+    "--ag-row-border": "transparent",
+
+    ".ag-cell": {
+      display: "flex",
+      alignItems: "center",
+      fontSize: 13,
     },
   },
-  categoryHeader: {
-    display: "flex",
-    alignItems: "center",
-    gap: token.marginSM,
-  },
-  categoryLabel: {
-    fontWeight: 600,
-    fontSize: token.fontSize,
-  },
-  categoryDescription: {
-    color: token.colorTextSecondary,
-    fontSize: token.fontSizeSM,
-  },
-  categoryBadge: {
-    marginLeft: "auto",
-  },
-  resourceRow: {
-    display: "grid",
-    gridTemplateColumns: "1fr repeat(3, 100px)",
-    alignItems: "center",
-    padding: `${token.paddingSM}px ${token.paddingMD}px`,
-    borderBottom: `1px solid ${token.colorBorderSecondary}`,
-    transition: "background 0.2s",
-    "&:last-child": {
-      borderBottom: "none",
-    },
-    "&:hover": {
-      background: token.colorBgTextHover,
-    },
-  },
-  resourceInfo: {
+  resourceCell: {
     display: "flex",
     flexDirection: "column",
     gap: 2,
+    padding: "8px 0",
   },
   resourceLabel: {
     fontWeight: 500,
+    lineHeight: 1.4,
   },
   resourceDescription: {
     color: token.colorTextSecondary,
-    fontSize: token.fontSizeSM,
-    lineHeight: 1.4,
+    fontSize: 12,
+    lineHeight: 1.3,
   },
   levelCell: {
     display: "flex",
     justifyContent: "center",
+    width: "100%",
   },
   levelButton: {
     width: 32,
@@ -92,7 +61,7 @@ const useStyles = createStyles(({ token }) => ({
     justifyContent: "center",
     cursor: "pointer",
     transition: "all 0.2s",
-    border: `2px solid transparent`,
+    border: "2px solid transparent",
   },
   levelButtonInactive: {
     background: token.colorBgContainerDisabled,
@@ -112,24 +81,6 @@ const useStyles = createStyles(({ token }) => ({
       borderColor: "transparent",
     },
   },
-  headerRow: {
-    display: "grid",
-    gridTemplateColumns: "1fr repeat(3, 100px)",
-    padding: `${token.paddingXS}px ${token.paddingMD}px`,
-    background: token.colorFillQuaternary,
-    borderBottom: `1px solid ${token.colorBorderSecondary}`,
-  },
-  headerLabel: {
-    fontSize: token.fontSizeSM,
-    fontWeight: 600,
-    color: token.colorTextSecondary,
-    textTransform: "uppercase",
-    textAlign: "center",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 4,
-  },
 }));
 
 interface IPermissionMatrixProps {
@@ -139,6 +90,12 @@ interface IPermissionMatrixProps {
   disabled?: boolean;
 }
 
+interface RowData {
+  id: string;
+  resource: ApiResourceDefinition;
+  category: IPermissionCategory;
+}
+
 export const PermissionMatrix = ({
   categories,
   permissions,
@@ -146,167 +103,164 @@ export const PermissionMatrix = ({
   disabled = false,
 }: IPermissionMatrixProps) => {
   const { styles, cx, theme } = useStyles();
+  const agGridTheme = useAgGridTheme();
 
-  const getPermissionForResource = (resource: string): Action | null => {
-    return permissions.find((p) => p.resource === resource)?.action ?? null;
-  };
-
-  const handlePermissionChange = (resource: string, action: Action | null) => {
-    if (disabled) return;
-
-    const currentAction = getPermissionForResource(resource);
-    const newAction = currentAction === action ? null : action;
-
-    const newPermissions = permissions.map((p) =>
-      p.resource === resource ? { ...p, action: newAction } : p
+  const rowData = useMemo((): RowData[] => {
+    return categories.flatMap((category) =>
+      category.resources.map((resource) => ({
+        id: resource.name,
+        resource,
+        category,
+      }))
     );
-    onChange(newPermissions);
-  };
+  }, [categories]);
 
-  const getCategoryPermissionSummary = (
-    categoryResources: string[]
-  ): { label: string; color: string } => {
-    const categoryPerms = categoryResources.map((r) =>
-      getPermissionForResource(r)
-    );
-    const hasAdmin = categoryPerms.some((p) => p === Action.Admin);
-    const hasWrite = categoryPerms.some((p) => p === Action.Write);
-    const hasRead = categoryPerms.some((p) => p === Action.Read);
-    const hasNone = categoryPerms.some((p) => p === null);
-    const allSame = categoryPerms.every((p) => p === categoryPerms[0]);
+  const getPermissionForResource = useCallback(
+    (resource: string): Action | null => {
+      return permissions.find((p) => p.resource === resource)?.action ?? null;
+    },
+    [permissions]
+  );
 
-    if (allSame && categoryPerms[0] === null) {
-      return { label: "No Access", color: "default" };
-    }
-    if (allSame && categoryPerms[0] === Action.Admin) {
-      return { label: "Full Access", color: "red" };
-    }
-    if (allSame && categoryPerms[0] === Action.Write) {
-      return { label: "Edit Access", color: "orange" };
-    }
-    if (allSame && categoryPerms[0] === Action.Read) {
-      return { label: "View Only", color: "blue" };
-    }
-    if (hasAdmin || hasWrite || hasRead) {
-      return { label: "Mixed", color: "purple" };
-    }
-    return { label: "No Access", color: "default" };
-  };
+  const handlePermissionChange = useCallback(
+    (resource: string, action: Action | null) => {
+      if (disabled) return;
 
-  const getLevelColor = (action: Action): string => {
-    switch (action) {
-      case Action.Read:
-        return theme.colorInfo;
-      case Action.Write:
-        return theme.colorWarning;
-      case Action.Admin:
-        return theme.colorError;
-    }
-  };
+      const currentAction = getPermissionForResource(resource);
+      const newAction = currentAction === action ? null : action;
 
-  const collapseItems = categories.map((category) => {
-    // Use ApiResourceDefinition.name directly
-    const categoryResources = category.resources.map((r) => r.name);
-    const summary = getCategoryPermissionSummary(categoryResources);
+      const newPermissions = permissions.map((p) =>
+        p.resource === resource ? { ...p, action: newAction } : p
+      );
+      onChange(newPermissions);
+    },
+    [disabled, getPermissionForResource, permissions, onChange]
+  );
 
-    return {
-      key: category.id,
-      label: (
-        <div className={styles.categoryHeader}>
-          <div>
-            <Typography.Text className={styles.categoryLabel}>
-              {category.label}
-            </Typography.Text>
-            {category.description && (
-              <Typography.Text className={styles.categoryDescription}>
-                {" "}
-                - {category.description}
-              </Typography.Text>
-            )}
+  const getLevelColor = useCallback(
+    (action: Action): string => {
+      switch (action) {
+        case Action.Read:
+          return theme.colorInfo;
+        case Action.Write:
+          return theme.colorWarning;
+        case Action.Admin:
+          return theme.colorError;
+      }
+    },
+    [theme]
+  );
+
+  const ResourceCellRenderer = useCallback(
+    (params: ICellRendererParams<RowData>) => {
+      const { resource } = params.data!;
+      return (
+        <div className={styles.resourceCell}>
+          <div className={styles.resourceLabel}>
+            {resource.displayName ?? resource.name}
           </div>
-          <div className={styles.categoryBadge}>
-            <Tag color={summary.color}>{summary.label}</Tag>
+          <div className={styles.resourceDescription}>
+            {resource.description ?? resource.displayName ?? resource.name}
           </div>
         </div>
-      ),
-      children: (
-        <>
-          <div className={styles.headerRow}>
-            <span />
-            {PERMISSION_LEVELS.map((level) => (
-              <Tooltip
-                key={level.action}
-                title={level.description}
-                placement="top"
+      );
+    },
+    [styles]
+  );
+
+  const createLevelCellRenderer = useCallback(
+    (level: (typeof PERMISSION_LEVELS)[number]) => {
+      const LevelCellRenderer = (params: ICellRendererParams<RowData>) => {
+        const resourceName = params.data!.resource.name;
+        const currentAction = getPermissionForResource(resourceName);
+        const isActive = currentAction === level.action;
+        const bgColor = isActive ? getLevelColor(level.action) : undefined;
+
+        return (
+          <div className={styles.levelCell}>
+            <Tooltip
+              title={disabled ? "System roles cannot be modified" : level.label}
+            >
+              <div
+                className={cx(
+                  styles.levelButton,
+                  isActive
+                    ? styles.levelButtonActive
+                    : styles.levelButtonInactive,
+                  disabled && styles.levelButtonDisabled
+                )}
+                style={isActive ? { background: bgColor } : undefined}
+                onClick={() =>
+                  handlePermissionChange(resourceName, level.action)
+                }
               >
-                <div className={styles.headerLabel}>
-                  {level.label}
-                  <QuestionCircleOutlined style={{ fontSize: 10 }} />
-                </div>
-              </Tooltip>
-            ))}
-          </div>
-          {category.resources.map((resource) => {
-            // Use ApiResourceDefinition properties directly
-            const currentAction = getPermissionForResource(resource.name);
-
-            return (
-              <div key={resource.name} className={styles.resourceRow}>
-                <div className={styles.resourceInfo}>
-                  <Typography.Text className={styles.resourceLabel}>
-                    {resource.displayName ?? resource.name}
-                  </Typography.Text>
-                  <Typography.Text className={styles.resourceDescription}>
-                    {resource.description ?? resource.displayName ?? resource.name}
-                  </Typography.Text>
-                </div>
-                {PERMISSION_LEVELS.map((level) => {
-                  const isActive = currentAction === level.action;
-                  const bgColor = isActive ? getLevelColor(level.action) : undefined;
-
-                  return (
-                    <div key={level.action} className={styles.levelCell}>
-                      <Tooltip
-                        title={disabled ? "System roles cannot be modified" : level.label}
-                      >
-                        <div
-                          className={cx(
-                            styles.levelButton,
-                            isActive
-                              ? styles.levelButtonActive
-                              : styles.levelButtonInactive,
-                            disabled && styles.levelButtonDisabled
-                          )}
-                          style={isActive ? { background: bgColor } : undefined}
-                          onClick={() =>
-                            handlePermissionChange(resource.name, level.action)
-                          }
-                        >
-                          {isActive ? (
-                            <CheckCircleFilled style={{ fontSize: 16 }} />
-                          ) : (
-                            <MinusCircleOutlined style={{ fontSize: 16 }} />
-                          )}
-                        </div>
-                      </Tooltip>
-                    </div>
-                  );
-                })}
+                {isActive ? (
+                  <CheckCircleFilled style={{ fontSize: 16 }} />
+                ) : (
+                  <MinusCircleOutlined style={{ fontSize: 16 }} />
+                )}
               </div>
-            );
-          })}
-        </>
-      ),
+            </Tooltip>
+          </div>
+        );
+      };
+      return LevelCellRenderer;
+    },
+    [
+      cx,
+      disabled,
+      getLevelColor,
+      getPermissionForResource,
+      handlePermissionChange,
+      styles,
+    ]
+  );
+
+  const columnDefs = useMemo((): ColDef<RowData>[] => {
+    const resourceColumn: ColDef<RowData> = {
+      headerName: "Resource",
+      field: "resource",
+      flex: 1,
+      minWidth: 200,
+      cellRenderer: ResourceCellRenderer,
+      autoHeight: true,
     };
-  });
+
+    const levelColumns: ColDef<RowData>[] = PERMISSION_LEVELS.map((level) => ({
+      headerName: level.label,
+      field: level.action,
+      width: 100,
+      cellRenderer: createLevelCellRenderer(level),
+      headerTooltip: level.description,
+      valueGetter: (params: ValueGetterParams<RowData>) =>
+        getPermissionForResource(params.data!.resource.name),
+    }));
+
+    return [resourceColumn, ...levelColumns];
+  }, [ResourceCellRenderer, createLevelCellRenderer, getPermissionForResource]);
+
+  const defaultColDef = useMemo(
+    (): ColDef<RowData> => ({
+      resizable: false,
+      sortable: false,
+      suppressMovable: true,
+    }),
+    []
+  );
 
   return (
     <div className={styles.container}>
-      <Collapse
-        className={styles.collapse}
-        defaultActiveKey={categories.map((c) => c.id)}
-        ghost
-        items={collapseItems}
+      <AgGridReact<RowData>
+        theme={agGridTheme}
+        rowData={rowData}
+        columnDefs={columnDefs}
+        defaultColDef={defaultColDef}
+        getRowId={(params) => params.data.id}
+        headerHeight={44}
+        rowHeight={60}
+        domLayout="autoHeight"
+        suppressRowHoverHighlight
+        suppressCellFocus
       />
     </div>
   );

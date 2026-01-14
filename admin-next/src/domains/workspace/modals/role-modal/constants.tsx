@@ -50,7 +50,7 @@ export const PERMISSION_LEVELS: IPermissionLevel[] = [
   },
   {
     action: Action.Admin,
-    label: "Full Access",
+    label: "Admin",
     description: "Full control including delete and settings",
     color: "red",
   },
