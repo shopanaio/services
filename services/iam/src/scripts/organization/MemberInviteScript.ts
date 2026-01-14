@@ -65,13 +65,24 @@ export class MemberInviteScript extends BaseScript<
       user.id
     );
 
-    if (!existingMember) {
-      await this.repository.organization.addMember({
-        organizationId,
-        userId: user.id,
-        invitedBy: currentUserId,
-      });
+    if (existingMember) {
+      return {
+        member: null,
+        userErrors: [
+          {
+            code: "USER_ALREADY_MEMBER",
+            message: `User with email "${email}" is already a member of the organization.`,
+            field: ["email"],
+          },
+        ],
+      };
     }
+
+    await this.repository.organization.addMember({
+      organizationId,
+      userId: user.id,
+      invitedBy: currentUserId,
+    });
 
     // 3. Assign roles
     let firstAssignment: InvitedMember | null = null;
