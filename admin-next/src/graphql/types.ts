@@ -3253,6 +3253,49 @@ export type ApiSelectedOptionInput = {
   optionValueId: Scalars['ID']['input'];
 };
 
+/** User session representing an active login. */
+export type ApiSession = {
+  __typename?: 'Session';
+  /** The date and time when the session was created. */
+  createdAt: Scalars['DateTime']['output'];
+  /** When the session expires. */
+  expiresAt: Scalars['DateTime']['output'];
+  /** The globally unique ID of the session. */
+  id: Scalars['ID']['output'];
+  /** IP address from which the session was created. */
+  ipAddress?: Maybe<Scalars['String']['output']>;
+  /** Whether this is the current session making the request. */
+  isCurrent: Scalars['Boolean']['output'];
+  /** The date and time when the session was last updated. */
+  updatedAt: Scalars['DateTime']['output'];
+  /** User agent string (browser/device info). */
+  userAgent?: Maybe<Scalars['String']['output']>;
+};
+
+/** Payload for revoking all sessions. */
+export type ApiSessionRevokeAllPayload = {
+  __typename?: 'SessionRevokeAllPayload';
+  /** Number of sessions revoked. */
+  revokedCount: Scalars['Int']['output'];
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Input for revoking a specific session. */
+export type ApiSessionRevokeInput = {
+  /** The ID of the session to revoke. */
+  sessionId: Scalars['ID']['input'];
+};
+
+/** Payload for session revoke operation. */
+export type ApiSessionRevokePayload = {
+  __typename?: 'SessionRevokePayload';
+  /** Whether the session was successfully revoked. */
+  success: Scalars['Boolean']['output'];
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<ApiGenericUserError>;
+};
+
 /** Sort direction */
 export enum SortDirection {
   Asc = 'asc',
@@ -3582,9 +3625,18 @@ export type ApiUserError = {
 
 export type ApiUserMutation = {
   __typename?: 'UserMutation';
+  /** Revoke a specific session by ID. */
+  sessionRevoke: ApiSessionRevokePayload;
+  /** Revoke all sessions except the current one. */
+  sessionRevokeAll: ApiSessionRevokeAllPayload;
   userUpdateEmail: ApiUserUpdateEmailPayload;
   userUpdatePassword: ApiUserUpdatePasswordPayload;
   userUpdateProfile: ApiUserUpdateProfilePayload;
+};
+
+
+export type ApiUserMutationSessionRevokeArgs = {
+  input: ApiSessionRevokeInput;
 };
 
 
@@ -3612,6 +3664,8 @@ export type ApiUserQuery = {
   authorize: ApiAuthorizePayload;
   /** Get current authenticated admin user */
   current?: Maybe<ApiUser>;
+  /** Get all active sessions for the current user. */
+  mySessions: Array<ApiSession>;
 };
 
 

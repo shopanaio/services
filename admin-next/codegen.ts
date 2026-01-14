@@ -17,7 +17,7 @@ const scalars = {
 
 const config: CodegenConfig = {
   overwrite: true,
-  schema: 'schema.graphql',
+  schema: '../infra/federation/supergraph-admin.graphql',
   // documents: ['src/**/*.graphql', 'src/**/*.gql'],
   generates: {
     'src/graphql/types.ts': {

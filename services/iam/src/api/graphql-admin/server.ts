@@ -78,6 +78,7 @@ export async function startServer(serverConfig: ServerConfig) {
     "relay.graphql",
     "base.graphql",
     "user.graphql",
+    "session.graphql",
     "role.graphql",
     "organization.graphql",
     "membership.graphql",
