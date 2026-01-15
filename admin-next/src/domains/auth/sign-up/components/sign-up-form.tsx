@@ -69,8 +69,10 @@ export function SignUpForm({ form, onSubmit, loading }: SignUpFormProps) {
   const {
     control,
     handleSubmit,
+    watch,
     formState: { errors },
   } = form;
+  const passwordValue = watch("password");
 
   return (
     <div className={styles.card}>
@@ -110,7 +112,7 @@ export function SignUpForm({ form, onSubmit, loading }: SignUpFormProps) {
           <Flex align="center" gap={4} style={{ marginBottom: 8 }}>
             <Typography.Text strong>Password</Typography.Text>
             <Popover
-              content={<PasswordStrength password="" showRequirements />}
+              content={<PasswordStrength password={passwordValue} showRequirements />}
               trigger="hover"
               placement="right"
             >
