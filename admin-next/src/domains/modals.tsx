@@ -286,7 +286,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'media-upload',
       component: dynamic(() =>
-        import('@/domains/modals/upload-media-modal').then(
+        import('@/domains/media/modals/upload-media-modal').then(
           (m) => m.UploadMediaModal
         )
       ),
