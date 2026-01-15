@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import { useThemeContext } from "@/ui-kit/theme";
 import { useWorkspaceOptional } from "@/domains/workspace/context/workspace-context";
 import { useSession, useSignOut } from "@/domains/auth";
+import { ShopOutlined } from "@ant-design/icons";
 
 const useStyles = createStyles(
   ({ css, token }, { isCollapsed }: { isCollapsed: boolean }) => ({
@@ -96,7 +97,6 @@ export const StoreMenu = ({ isCollapsed }: Props) => {
   // Get display values from context or fallback
   const storeName = workspace?.store?.displayName ?? "Select Store";
   const orgName = workspace?.organization?.displayName ?? "";
-  const storeInitial = storeName[0]?.toUpperCase() ?? "S";
   // Build user display name from firstName/lastName or fallback to email
   const userName = user?.firstName
     ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}`
@@ -235,9 +235,7 @@ export const StoreMenu = ({ isCollapsed }: Props) => {
           style={{ width: "100%" }}
           className={styles.triggerWrapper}
         >
-          <Avatar size={32} className={styles.avatar}>
-            {storeInitial}
-          </Avatar>
+          <Avatar size={32} className={styles.avatar} icon={<ShopOutlined />} />
           <Flex vertical className={styles.storeInfo}>
             <Typography.Text ellipsis strong>
               {storeName}
