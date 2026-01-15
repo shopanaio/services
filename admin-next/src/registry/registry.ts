@@ -75,7 +75,7 @@ export interface ModuleItemConfig {
 export interface ModuleConfig {
   key: string;
   domain: string;
-  sidebar: SidebarConfig;
+  sidebar?: SidebarConfig;
   items: ModuleItemConfig[];
 }
 
@@ -176,7 +176,8 @@ export class ModuleRegistry {
     for (const domain of sortedDomains) {
       const modules = modulesByDomain.get(domain.key) ?? [];
       const children = modules
-        .sort((a, b) => (a.sidebar.order ?? 0) - (b.sidebar.order ?? 0))
+        .filter((mod) => mod.sidebar)
+        .sort((a, b) => (a.sidebar!.order ?? 0) - (b.sidebar!.order ?? 0))
         .map((mod): SidebarItem => {
           const moduleChildren = mod.items
             .filter((item) => item.sidebar)
@@ -195,8 +196,8 @@ export class ModuleRegistry {
 
           return {
             key: mod.key,
-            label: mod.sidebar.label,
-            icon: mod.sidebar.icon,
+            label: mod.sidebar!.label,
+            icon: mod.sidebar!.icon,
             path: modulePath,
             children: moduleChildren.length > 0 ? moduleChildren : undefined,
           };

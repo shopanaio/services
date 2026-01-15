@@ -4,7 +4,7 @@ import { Layout } from "antd";
 import { Sidebar } from "@/layouts/app/components/sidebar/sidebar";
 import { createStyles } from "antd-style";
 import { ReactNode } from "react";
-import { AuthGuard } from "@/domains/auth";
+import { AuthGuard, ProfileCompletionGuard } from "@/domains/auth";
 import { WorkspaceProvider } from "@/domains/workspace/context/workspace-context";
 import { usePathParamsOptional } from "@/registry";
 
@@ -36,15 +36,17 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
 
   return (
     <AuthGuard>
-      <WorkspaceProvider
-        initialOrganizationName={orgName}
-        initialStoreName={storeName}
-      >
-        <Layout className={cx(styles.layout)} hasSider>
-          <Sidebar />
-          <Layout>{children}</Layout>
-        </Layout>
-      </WorkspaceProvider>
+      <ProfileCompletionGuard>
+        <WorkspaceProvider
+          initialOrganizationName={orgName}
+          initialStoreName={storeName}
+        >
+          <Layout className={cx(styles.layout)} hasSider>
+            <Sidebar />
+            <Layout>{children}</Layout>
+          </Layout>
+        </WorkspaceProvider>
+      </ProfileCompletionGuard>
     </AuthGuard>
   );
 };

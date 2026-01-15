@@ -2,7 +2,7 @@
 
 import { Layout } from "antd";
 import { createStyles } from "antd-style";
-import { AuthGuard } from "@/domains/auth";
+import { AuthGuard, ProfileCompletionGuard } from "@/domains/auth";
 import { FullLogo } from "@/ui-kit/logo/full-logo";
 import { UserMenu } from "./components";
 
@@ -35,13 +35,15 @@ export function WorkspaceLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthGuard>
-      <Layout className={styles.layout}>
-        <Layout.Header className={styles.header}>
-          <FullLogo size={20} />
-          <UserMenu />
-        </Layout.Header>
-        <Layout.Content className={styles.content}>{children}</Layout.Content>
-      </Layout>
+      <ProfileCompletionGuard>
+        <Layout className={styles.layout}>
+          <Layout.Header className={styles.header}>
+            <FullLogo size={20} />
+            <UserMenu />
+          </Layout.Header>
+          <Layout.Content className={styles.content}>{children}</Layout.Content>
+        </Layout>
+      </ProfileCompletionGuard>
     </AuthGuard>
   );
 }

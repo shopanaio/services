@@ -4,7 +4,7 @@
  */
 
 // Components
-export { AuthGuard, SessionProvider } from "./components";
+export { AuthGuard, ProfileCompletionGuard, SessionProvider } from "./components";
 
 // Context
 export { AuthContext } from "./context";

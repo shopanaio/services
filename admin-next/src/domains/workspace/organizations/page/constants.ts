@@ -1,6 +1,6 @@
 import type { ApiOrganization } from "@/graphql/types";
 
-export const mockOrganizations: ApiOrganization[] = [
+export const mockOrganizations: Partial<ApiOrganization>[] = [
   {
     id: "org-1",
     name: "acme-corp",

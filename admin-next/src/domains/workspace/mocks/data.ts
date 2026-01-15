@@ -43,6 +43,7 @@ export const mockCurrentUser: ApiUser = {
   locale: "en_US" as any,
   isDeleted: false,
   isForbidden: false,
+  isProfileComplete: true,
 };
 
 // Role permissions mock data
@@ -138,6 +139,7 @@ export const mockMembers: ApiMember[] = [
       locale: "en_US" as any,
       isDeleted: false,
       isForbidden: false,
+      isProfileComplete: true,
     },
     role: "admin",
     isOwner: false,
@@ -161,6 +163,7 @@ export const mockMembers: ApiMember[] = [
       locale: "en_US" as any,
       isDeleted: false,
       isForbidden: false,
+      isProfileComplete: true,
     },
     role: "editor",
     isOwner: false,
@@ -184,6 +187,7 @@ export const mockMembers: ApiMember[] = [
       locale: "en_US" as any,
       isDeleted: false,
       isForbidden: false,
+      isProfileComplete: true,
     },
     role: "viewer",
     isOwner: false,

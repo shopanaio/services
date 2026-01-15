@@ -3605,6 +3605,11 @@ export type ApiUser = {
   isDeleted?: Maybe<Scalars['Boolean']['output']>;
   /** Whether the user account is forbidden/banned. */
   isForbidden?: Maybe<Scalars['Boolean']['output']>;
+  /**
+   * Whether the user has completed their profile (firstName and lastName are filled).
+   * Used for onboarding flow to ensure required fields are present.
+   */
+  isProfileComplete: Scalars['Boolean']['output'];
   /** User's last name. */
   lastName?: Maybe<Scalars['String']['output']>;
   /** User's locale/language preference. */

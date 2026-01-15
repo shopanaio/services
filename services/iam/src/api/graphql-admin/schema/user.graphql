@@ -63,6 +63,12 @@ type User @key(fields: "id") {
   The date and time when the user was last updated.
   """
   updatedAt: DateTime
+
+  """
+  Whether the user has completed their profile (firstName and lastName are filled).
+  Used for onboarding flow to ensure required fields are present.
+  """
+  isProfileComplete: Boolean!
 }
 
 # ---- User Inputs ----

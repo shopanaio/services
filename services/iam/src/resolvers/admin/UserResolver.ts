@@ -70,4 +70,10 @@ export class UserResolver extends IAMType<string, User> {
   updatedAt() {
     return this.$get("updatedAt");
   }
+
+  async isProfileComplete() {
+    const firstName = await this.$get("firstName");
+    const lastName = await this.$get("lastName");
+    return Boolean(firstName?.trim() && lastName?.trim());
+  }
 }

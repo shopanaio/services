@@ -49,7 +49,7 @@ export default function SignUpPage() {
       }
 
       message.success("Account created successfully!");
-      router.push("/workspace");
+      router.push("/onboarding/complete-profile");
     },
     [signUp, form.setError, router]
   );

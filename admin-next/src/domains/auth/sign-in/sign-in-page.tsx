@@ -51,6 +51,12 @@ export default function SignInPage() {
 
       message.success("Welcome back!");
 
+      // Redirect to onboarding if profile is incomplete
+      if (!result.user?.isProfileComplete) {
+        router.push("/onboarding/complete-profile");
+        return;
+      }
+
       // Redirect to returnUrl if present, otherwise to default route
       const returnUrl = searchParams.get("returnUrl");
       router.push(returnUrl || "/workspace");

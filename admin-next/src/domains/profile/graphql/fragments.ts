@@ -15,6 +15,7 @@ export const USER_FRAGMENT = gql`
     emailVerified
     isDeleted
     isForbidden
+    isProfileComplete
     createdAt
     updatedAt
   }

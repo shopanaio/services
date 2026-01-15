@@ -1409,6 +1409,11 @@ export type User = {
   isDeleted?: Maybe<Scalars['Boolean']['output']>;
   /** Whether the user account is forbidden/banned. */
   isForbidden?: Maybe<Scalars['Boolean']['output']>;
+  /**
+   * Whether the user has completed their profile (firstName and lastName are filled).
+   * Used for onboarding flow to ensure required fields are present.
+   */
+  isProfileComplete: Scalars['Boolean']['output'];
   /** User's last name. */
   lastName?: Maybe<Scalars['String']['output']>;
   /** User's locale/language preference. */
@@ -2126,6 +2131,7 @@ export type UserResolvers<ContextType = ServiceContext, ParentType extends Resol
   isAdmin?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   isDeleted?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   isForbidden?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  isProfileComplete?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   lastName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   locale?: Resolver<Maybe<ResolversTypes['LocaleCode']>, ParentType, ContextType>;
   updatedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
