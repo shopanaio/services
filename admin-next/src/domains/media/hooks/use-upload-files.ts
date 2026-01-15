@@ -5,12 +5,15 @@ import { useMutation } from "@apollo/client/react";
 import {
   FILE_UPLOAD_MUTATION,
   FILE_UPLOAD_FROM_URL_MUTATION,
+  FILE_CREATE_EXTERNAL_MUTATION,
 } from "../graphql";
-import type {
-  ApiFile,
-  ApiGenericUserError,
-  ApiFileUploadMultipartInput,
-  ApiFileUploadFromUrlInput,
+import {
+  FileProvider,
+  type ApiFile,
+  type ApiGenericUserError,
+  type ApiFileUploadMultipartInput,
+  type ApiFileUploadFromUrlInput,
+  type ApiFileCreateExternalInput,
 } from "@/graphql/types";
 
 // ============================================
@@ -27,10 +30,22 @@ export interface UploadFilesResult {
   userErrors: ApiGenericUserError[];
 }
 
+export interface CreateExternalInput {
+  provider: FileProvider.Youtube | FileProvider.Vimeo;
+  externalId: string;
+  url: string;
+  thumbnailUrl?: string;
+  originalName?: string;
+}
+
 interface UseUploadFilesReturn {
   uploadFile: (file: File, altText?: string) => Promise<UploadFileResult>;
   uploadFiles: (files: File[]) => Promise<UploadFilesResult>;
-  uploadFromUrl: (sourceUrl: string, altText?: string) => Promise<UploadFileResult>;
+  uploadFromUrl: (
+    sourceUrl: string,
+    altText?: string
+  ) => Promise<UploadFileResult>;
+  createExternal: (input: CreateExternalInput) => Promise<UploadFileResult>;
   loading: boolean;
   progress: number;
   error: Error | null;
@@ -48,6 +63,15 @@ interface FileUploadResponse {
 interface FileUploadFromUrlResponse {
   mediaMutation: {
     fileUploadFromUrl: {
+      file: ApiFile | null;
+      userErrors: ApiGenericUserError[];
+    };
+  };
+}
+
+interface FileCreateExternalResponse {
+  mediaMutation: {
+    fileCreateExternal: {
       file: ApiFile | null;
       userErrors: ApiGenericUserError[];
     };
@@ -73,6 +97,11 @@ export function useUploadFiles(): UseUploadFilesReturn {
     { input: ApiFileUploadFromUrlInput }
   >(FILE_UPLOAD_FROM_URL_MUTATION);
 
+  const [createExternalMutation] = useMutation<
+    FileCreateExternalResponse,
+    { input: ApiFileCreateExternalInput }
+  >(FILE_CREATE_EXTERNAL_MUTATION);
+
   const uploadFile = useCallback(
     async (file: File, altText?: string): Promise<UploadFileResult> => {
       setLoading(true);
@@ -97,7 +126,8 @@ export function useUploadFiles(): UseUploadFilesReturn {
           userErrors: payload?.userErrors ?? [],
         };
       } catch (err) {
-        const errorObj = err instanceof Error ? err : new Error("Upload failed");
+        const errorObj =
+          err instanceof Error ? err : new Error("Upload failed");
         setError(errorObj);
         return {
           file: null,
@@ -150,7 +180,8 @@ export function useUploadFiles(): UseUploadFilesReturn {
           userErrors: allErrors,
         };
       } catch (err) {
-        const errorObj = err instanceof Error ? err : new Error("Upload failed");
+        const errorObj =
+          err instanceof Error ? err : new Error("Upload failed");
         setError(errorObj);
         return {
           files: uploadedFiles,
@@ -187,11 +218,14 @@ export function useUploadFiles(): UseUploadFilesReturn {
           userErrors: payload?.userErrors ?? [],
         };
       } catch (err) {
-        const errorObj = err instanceof Error ? err : new Error("Upload from URL failed");
+        const errorObj =
+          err instanceof Error ? err : new Error("Upload from URL failed");
         setError(errorObj);
         return {
           file: null,
-          userErrors: [{ message: errorObj.message, code: "UPLOAD_FROM_URL_FAILED" }],
+          userErrors: [
+            { message: errorObj.message, code: "UPLOAD_FROM_URL_FAILED" },
+          ],
         };
       } finally {
         setLoading(false);
@@ -200,10 +234,56 @@ export function useUploadFiles(): UseUploadFilesReturn {
     [uploadFromUrlMutation]
   );
 
+  const createExternal = useCallback(
+    async (input: CreateExternalInput): Promise<UploadFileResult> => {
+      setLoading(true);
+      setError(null);
+      setProgress(0);
+
+      try {
+        const result = await createExternalMutation({
+          variables: {
+            input: {
+              provider: input.provider,
+              externalId: input.externalId,
+              url: input.url,
+              thumbnailUrl: input.thumbnailUrl,
+              originalName: input.originalName,
+            },
+          },
+        });
+
+        const payload = result.data?.mediaMutation.fileCreateExternal;
+        setProgress(100);
+
+        return {
+          file: payload?.file ?? null,
+          userErrors: payload?.userErrors ?? [],
+        };
+      } catch (err) {
+        const errorObj =
+          err instanceof Error
+            ? err
+            : new Error("Failed to create external media");
+        setError(errorObj);
+        return {
+          file: null,
+          userErrors: [
+            { message: errorObj.message, code: "CREATE_EXTERNAL_FAILED" },
+          ],
+        };
+      } finally {
+        setLoading(false);
+      }
+    },
+    [createExternalMutation]
+  );
+
   return {
     uploadFile,
     uploadFiles,
     uploadFromUrl,
+    createExternal,
     loading,
     progress,
     error,

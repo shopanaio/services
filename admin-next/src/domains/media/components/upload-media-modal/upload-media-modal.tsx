@@ -19,7 +19,7 @@ import { useStyles } from "./upload-media-modal.styles";
 import { parseMediaUrl } from "./upload-media-modal.utils";
 import { useUploadFiles } from "../../hooks";
 import type { IUploadMediaModalPayload } from "../../modals";
-import type { ApiFile } from "@/graphql/types";
+import { FileProvider, type ApiFile } from "@/graphql/types";
 
 const { Dragger } = Upload;
 
@@ -33,6 +33,7 @@ export interface UploadedMedia {
   name: string;
   type: "image" | "video" | "youtube";
   thumbnailUrl?: string;
+  videoId?: string;
   file?: File;
 }
 
@@ -52,7 +53,7 @@ export const UploadMediaModal = () => {
   const { styles } = useStyles();
   const { payload, pop } = useModalStackContext();
   const typedPayload = payload as IUploadMediaModalPayload;
-  const { uploadFiles, uploadFromUrl, loading: uploading, progress } = useUploadFiles();
+  const { uploadFiles, uploadFromUrl, createExternal, loading: uploading, progress } = useUploadFiles();
 
   // Props from payload with defaults
   const accept = typedPayload?.accept ?? "image/*,video/*";
@@ -143,6 +144,7 @@ export const UploadMediaModal = () => {
         name: parsed.name,
         type: parsed.type,
         thumbnailUrl: parsed.thumbnailUrl,
+        videoId: parsed.videoId,
       };
 
       setUrlMedia((prev) => [...prev, newMedia]);
@@ -173,7 +175,23 @@ export const UploadMediaModal = () => {
 
       // Upload URL media
       for (const media of urlMedia) {
-        if (media.type === "youtube" || media.type === "image") {
+        if (media.type === "youtube" && media.videoId) {
+          // Use createExternal for YouTube videos (stores reference, no download)
+          const { file, userErrors } = await createExternal({
+            provider: FileProvider.Youtube,
+            externalId: media.videoId,
+            url: media.url,
+            thumbnailUrl: media.thumbnailUrl,
+            originalName: media.name,
+          });
+          if (file) {
+            uploadedFiles.push(file);
+          }
+          if (userErrors.length > 0) {
+            message.error(userErrors[0].message);
+          }
+        } else if (media.type === "image") {
+          // Use uploadFromUrl for images (downloads and uploads to S3)
           const { file, userErrors } = await uploadFromUrl(media.url);
           if (file) {
             uploadedFiles.push(file);
@@ -196,7 +214,7 @@ export const UploadMediaModal = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [urlMedia, uploadFromUrl, onUploadCallback, pop]);
+  }, [urlMedia, uploadFromUrl, createExternal, onUploadCallback, pop]);
 
   // Render preview item
   const renderPreviewItem = (media: UploadedMedia) => {

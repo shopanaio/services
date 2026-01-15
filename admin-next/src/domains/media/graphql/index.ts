@@ -13,4 +13,5 @@ export { FILES_QUERY, FILE_QUERY } from "./queries";
 export {
   FILE_UPLOAD_MUTATION,
   FILE_UPLOAD_FROM_URL_MUTATION,
+  FILE_CREATE_EXTERNAL_MUTATION,
 } from "./mutations";

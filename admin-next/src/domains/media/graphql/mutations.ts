@@ -60,3 +60,23 @@ export const FILE_UPLOAD_FROM_URL_MUTATION = gql`
   ${FILE_FRAGMENT}
   ${USER_ERROR_FRAGMENT}
 `;
+
+/**
+ * Create an external media file (YouTube, Vimeo, etc).
+ */
+export const FILE_CREATE_EXTERNAL_MUTATION = gql`
+  mutation FileCreateExternal($input: FileCreateExternalInput!) {
+    mediaMutation {
+      fileCreateExternal(input: $input) {
+        file {
+          ...FileFields
+        }
+        userErrors {
+          ...UserErrorFields
+        }
+      }
+    }
+  }
+  ${FILE_FRAGMENT}
+  ${USER_ERROR_FRAGMENT}
+`;
