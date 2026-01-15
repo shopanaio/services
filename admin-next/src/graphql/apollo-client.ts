@@ -160,7 +160,15 @@ export function makeClient() {
   });
 
   return new ApolloClient({
-    cache: new InMemoryCache(),
+    cache: new InMemoryCache({
+      typePolicies: {
+        Query: {
+          fields: {
+            userQuery: { merge: true },
+          },
+        },
+      },
+    }),
     // Order: errorLink (fallback 401) -> proactiveRefreshLink (proactive refresh + auth header) -> httpLink
     link: ApolloLink.from([errorLink, proactiveRefreshLink, httpLink]),
     defaultOptions: {
