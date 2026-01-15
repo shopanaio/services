@@ -273,6 +273,7 @@ export const EditAvatarModal = () => {
                     onChange={(c) => setCrop(c)}
                     onComplete={handleCropComplete}
                     aspect={1}
+                    keepSelection
                     circularCrop
                   >
                     <img

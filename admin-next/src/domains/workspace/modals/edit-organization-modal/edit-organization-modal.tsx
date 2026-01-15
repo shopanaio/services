@@ -379,6 +379,7 @@ export const EditOrganizationModal = () => {
                     onChange={(c) => setCrop(c)}
                     onComplete={handleCropComplete}
                     aspect={1}
+                    keepSelection
                   >
                     <img
                       ref={imgRef}
