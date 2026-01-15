@@ -1,3 +1,4 @@
+import type { OutputData } from '@editorjs/editorjs';
 import type { ApiFile } from '@/graphql/types';
 import type { IGeneratedVariant, IOptionInput } from './utils/generate-variants';
 
@@ -8,7 +9,7 @@ export interface ICreateProductFormValues {
   // General
   title: string;
   handle: string;
-  description: string;
+  description: OutputData | null;
 
   // Media (already uploaded to server)
   media: ApiFile[];

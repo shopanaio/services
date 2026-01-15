@@ -7,6 +7,7 @@ import { InfoCircleOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import { slugify } from "transliteration/dist/node/src/node/index.js";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
+import { Editor } from "@/ui-kit/editor";
 import type { ICreateProductFormValues } from "./types";
 
 const useStyles = createStyles(({ token }) => ({
@@ -117,12 +118,11 @@ export const GeneralSection = () => {
           control={control}
           render={({ field, fieldState: { error } }) => (
             <>
-              <Input.TextArea
-                {...field}
+              <Editor
+                value={field.value}
+                onChange={field.onChange}
                 placeholder="Describe your product..."
-                rows={3}
-                style={{ resize: "vertical" }}
-                status={error ? "error" : undefined}
+                minHeight={100}
               />
               {error && <div className={styles.error}>{error.message}</div>}
             </>

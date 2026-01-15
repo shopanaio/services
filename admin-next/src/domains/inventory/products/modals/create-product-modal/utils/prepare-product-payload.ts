@@ -1,5 +1,7 @@
+import type { OutputData } from '@editorjs/editorjs';
 import { slugify } from 'transliteration/dist/node/src/node/index.js';
 import type { ApiProductCreateInput, ApiFile } from '@/graphql/types';
+import { renderContent } from '@/ui-kit/editor';
 
 // ============================================
 // Types
@@ -26,7 +28,7 @@ export interface IGeneratedVariant {
 export interface CreateProductInput {
   title: string;
   handle: string;
-  description: string;
+  description: OutputData | null;
   media: ApiFile[];
   hasVariants: boolean;
   options: IOptionInput[];
@@ -41,15 +43,17 @@ export interface CreateProductInput {
  * Prepares description input for the API.
  * Returns undefined if description is empty.
  */
-export function prepareDescription(description: string) {
-  if (!description || description.trim() === '') {
+export function prepareDescription(description: OutputData | null) {
+  if (!description || !description.blocks?.length) {
     return undefined;
   }
 
+  const rendered = renderContent(description);
+
   return {
-    text: description,
-    html: `<p>${description}</p>`,
-    json: {},
+    text: rendered.plain,
+    html: rendered.html,
+    json: rendered.json as unknown as Record<string, unknown>,
   };
 }
 

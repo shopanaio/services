@@ -29,7 +29,7 @@ const useStyles = createStyles(() => ({
 const DEFAULT_VALUES: ICreateProductFormValues = {
   title: "",
   handle: "",
-  description: "",
+  description: null,
   media: [],
   hasVariants: false,
   options: [],

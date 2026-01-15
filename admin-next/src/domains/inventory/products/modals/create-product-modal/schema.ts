@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { OutputData } from '@editorjs/editorjs';
 
 /**
  * Schema for option value input
@@ -45,6 +46,13 @@ const apiFileSchema = z.custom<import('@/graphql/types').ApiFile>(
 );
 
 /**
+ * Schema for EditorJS OutputData
+ */
+const editorDataSchema = z.custom<OutputData>(
+  (val) => val === null || (val != null && typeof val === 'object' && 'blocks' in val)
+).nullable();
+
+/**
  * Schema for product handle (URL slug)
  */
 const handleSchema = z
@@ -67,7 +75,7 @@ export const createProductSchema = z
       .min(1, 'Title is required')
       .max(255, 'Title must be 255 characters or less'),
     handle: handleSchema,
-    description: z.string().max(5000, 'Description must be 5000 characters or less'),
+    description: editorDataSchema,
 
     // Media (already uploaded to server)
     media: z.array(apiFileSchema),
