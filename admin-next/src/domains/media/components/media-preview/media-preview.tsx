@@ -3,12 +3,21 @@
 import { useState, useMemo, useCallback } from "react";
 import { Image } from "antd";
 import ReactPlayer from "react-player";
-import type { ApiFile } from "@/graphql/types";
 import { FileProvider } from "@/graphql/types";
 import styles from "./media-preview.module.css";
 
-interface MediaPreviewProps {
-  files: ApiFile[];
+// Generic interface for preview items
+export interface IPreviewItem {
+  id: string;
+  url: string;
+  provider?: FileProvider | null;
+  externalData?: {
+    externalId?: string | null;
+  } | null;
+}
+
+interface MediaPreviewProps<T extends IPreviewItem> {
+  items: T[];
   visible: boolean;
   currentIndex: number;
   onClose: () => void;
@@ -19,28 +28,28 @@ const isVideoProvider = (provider?: FileProvider | null): boolean => {
   return provider === FileProvider.Youtube || provider === FileProvider.Vimeo;
 };
 
-export function MediaPreview({
-  files,
+export function MediaPreview<T extends IPreviewItem>({
+  items,
   visible,
   currentIndex,
   onClose,
   onIndexChange,
-}: MediaPreviewProps) {
+}: MediaPreviewProps<T>) {
   // Create items for PreviewGroup
   const previewItems = useMemo(
     () =>
-      files.map((file) => {
+      items.map((item) => {
         // For YouTube/Vimeo, generate thumbnail from external ID
-        if (isVideoProvider(file.provider) && file.externalData?.externalId) {
+        if (isVideoProvider(item.provider) && item.externalData?.externalId) {
           const thumbnailUrl =
-            file.provider === FileProvider.Youtube
-              ? `https://img.youtube.com/vi/${file.externalData.externalId}/hqdefault.jpg`
-              : file.url;
+            item.provider === FileProvider.Youtube
+              ? `https://img.youtube.com/vi/${item.externalData.externalId}/hqdefault.jpg`
+              : item.url;
           return { src: thumbnailUrl };
         }
-        return { src: file.url };
+        return { src: item.url };
       }),
-    [files]
+    [items]
   );
 
   // Custom render for preview - show ReactPlayer for videos
@@ -49,14 +58,14 @@ export function MediaPreview({
       originalNode: React.ReactElement,
       info: { current: number }
     ): React.ReactNode => {
-      const file = files[info.current];
-      if (!file) return originalNode;
+      const item = items[info.current];
+      if (!item) return originalNode;
 
-      if (isVideoProvider(file.provider)) {
+      if (isVideoProvider(item.provider)) {
         return (
           <div className={styles.videoContainer}>
             <ReactPlayer
-              src={file.url}
+              src={item.url}
               width="100%"
               height="100%"
               controls
@@ -67,7 +76,7 @@ export function MediaPreview({
 
       return originalNode;
     },
-    [files]
+    [items]
   );
 
   // Custom toolbar - hide zoom/rotate for videos
@@ -76,16 +85,16 @@ export function MediaPreview({
       originalNode: React.ReactElement,
       info: { current: number }
     ): React.ReactNode => {
-      const file = files[info.current];
-      if (isVideoProvider(file?.provider)) {
+      const item = items[info.current];
+      if (isVideoProvider(item?.provider)) {
         return null;
       }
       return originalNode;
     },
-    [files]
+    [items]
   );
 
-  if (!visible || files.length === 0) {
+  if (!visible || items.length === 0) {
     return null;
   }
 
@@ -103,14 +112,14 @@ export function MediaPreview({
         },
         imageRender,
         actionsRender,
-        movable: !isVideoProvider(files[currentIndex]?.provider),
+        movable: !isVideoProvider(items[currentIndex]?.provider),
       }}
     />
   );
 }
 
 // Hook for managing media preview state
-export function useMediaPreview(files: ApiFile[]) {
+export function useMediaPreview<T extends IPreviewItem>(items: T[]) {
   const [visible, setVisible] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -123,14 +132,14 @@ export function useMediaPreview(files: ApiFile[]) {
     setVisible(false);
   }, []);
 
-  const openByFileId = useCallback(
-    (fileId: string) => {
-      const index = files.findIndex((f) => f.id === fileId);
+  const openById = useCallback(
+    (id: string) => {
+      const index = items.findIndex((item) => item.id === id);
       if (index >= 0) {
         open(index);
       }
     },
-    [files, open]
+    [items, open]
   );
 
   return {
@@ -138,7 +147,7 @@ export function useMediaPreview(files: ApiFile[]) {
     currentIndex,
     open,
     close,
-    openByFileId,
+    openById,
     setCurrentIndex,
   };
 }

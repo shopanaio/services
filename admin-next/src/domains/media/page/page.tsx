@@ -232,7 +232,7 @@ export default function MediaPage() {
       }
 
       if (event.data) {
-        mediaPreview.openByFileId(event.data.id);
+        mediaPreview.openById(event.data.id);
       }
     },
     [mediaPreview]
@@ -320,7 +320,7 @@ export default function MediaPage() {
       </div>
 
       <MediaPreview
-        files={files}
+        items={files}
         visible={mediaPreview.visible}
         currentIndex={mediaPreview.currentIndex}
         onClose={mediaPreview.close}

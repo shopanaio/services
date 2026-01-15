@@ -10,7 +10,6 @@ import {
   Flex,
   Empty,
   Space,
-  Image,
 } from "antd";
 import {
   PlusOutlined,
@@ -50,6 +49,7 @@ import { syntheticId } from "@/utils/synthetic-id";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useUploadMediaModal } from "@/domains/media/modals";
 import { useMediaPicker } from "@/shared/components/entity-picker-modal";
+import { MediaPreview } from "../media-preview";
 import { useStyles } from "./styles";
 import type { IMediaItem, IEntityMediaGalleryProps, ViewMode } from "./types";
 import type { ApiFile } from "@/graphql/types";
@@ -748,17 +748,12 @@ export const EntityMediaGallery = ({
 
       {/* Built-in preview if no external handler */}
       {!externalOnPreview && (
-        <Image.PreviewGroup
-          preview={{
-            visible: previewVisible,
-            current: previewCurrent,
-            onVisibleChange: (v) => setPreviewVisible(v),
-            onChange: (current) => setPreviewCurrent(current),
-          }}
-          items={value.map((item) => ({
-            src: item.url,
-            alt: item.name,
-          }))}
+        <MediaPreview
+          items={value}
+          visible={previewVisible}
+          currentIndex={previewCurrent}
+          onClose={() => setPreviewVisible(false)}
+          onIndexChange={setPreviewCurrent}
         />
       )}
     </Paper>

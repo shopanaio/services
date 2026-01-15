@@ -7,6 +7,7 @@ import {
   AllCommunityModule,
   RowSelectionModule,
   SelectionChangedEvent,
+  RowDoubleClickedEvent,
 } from "ag-grid-community";
 import { Typography, Flex } from "antd";
 import {
@@ -19,6 +20,7 @@ import { CursorPagination } from "@/ui-kit/cursor-pagination";
 import { useAgGridTheme } from "@/hooks";
 import { useFiles } from "@/domains/media/hooks";
 import { useUploadMediaModal } from "@/domains/media/modals";
+import { MediaPreview, useMediaPreview } from "@/domains/media/components/media-preview";
 import { useMediaPickerStyles } from "./media-picker-modal.styles";
 import {
   mediaPickerConfig,
@@ -88,6 +90,9 @@ export function MediaPickerModal() {
     first: pageSize,
     after: cursor,
   });
+
+  // Media preview
+  const mediaPreview = useMediaPreview(files);
 
   // Transform files to picker entities
   const transformedData = useMemo(() => {
@@ -171,6 +176,16 @@ export function MediaPickerModal() {
   const handleGridReady = useCallback(() => {
     setIsGridReady(true);
   }, []);
+
+  // Double-click to open preview
+  const handleRowDoubleClicked = useCallback(
+    (event: RowDoubleClickedEvent<IMediaPickerEntity>) => {
+      if (event.data) {
+        mediaPreview.openById(event.data.id);
+      }
+    },
+    [mediaPreview]
+  );
 
   // Open upload modal
   const handleOpenUpload = useCallback(() => {
@@ -276,6 +291,7 @@ export function MediaPickerModal() {
             suppressMovableColumns
             onSelectionChanged={handleSelectionChanged}
             onGridReady={handleGridReady}
+            onRowDoubleClicked={handleRowDoubleClicked}
             rowStyle={{ cursor: "pointer" }}
             loading={loading}
             defaultColDef={{
@@ -301,6 +317,14 @@ export function MediaPickerModal() {
           />
         </div>
       </div>
+
+      <MediaPreview
+        items={files}
+        visible={mediaPreview.visible}
+        currentIndex={mediaPreview.currentIndex}
+        onClose={mediaPreview.close}
+        onIndexChange={mediaPreview.setCurrentIndex}
+      />
     </ModalLayout>
   );
 }
