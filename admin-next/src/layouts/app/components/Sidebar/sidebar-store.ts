@@ -16,8 +16,6 @@ export const useSidebarStore = create<SidebarState>()(
       setCollapsed: (collapsed) => set({ collapsed }),
       setOpenKeys: (openKeys) => set({ openKeys }),
     }),
-    {
-      name: "sidebar-state",
-    }
+    { name: "sidebar-state" }
   )
 );

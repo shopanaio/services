@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useEffect } from "react";
+import { useMemo } from "react";
 import { ConfigProvider, Layout, Menu, MenuProps, Typography } from "antd";
 import { StoreMenu } from "@/layouts/app/components/store-menu/store-menu";
 import { SidebarLogo } from "@/layouts/app/components/sidebar/sidebar-logo";
@@ -159,8 +159,7 @@ export const Sidebar = () => {
   }, [sidebarItems, pathname]);
 
   const onOpenChange: MenuProps["onOpenChange"] = (keys) => {
-    const latestOpenKey = keys.at(-1);
-    setOpenKeys(latestOpenKey ? [latestOpenKey] : []);
+    setOpenKeys(keys);
   };
 
   const onClick: MenuProps["onClick"] = (info) => {
@@ -173,14 +172,6 @@ export const Sidebar = () => {
   };
 
   const onCollapse = (value: boolean) => setCollapsed(value);
-
-  // Auto-open parent submenu when navigating to a page
-  useEffect(() => {
-    const matched = findMatchingItem(sidebarItems, pathname);
-    if (matched?.parentKey && !collapsed && !openKeys.includes(matched.parentKey)) {
-      setOpenKeys([matched.parentKey]);
-    }
-  }, [pathname, sidebarItems, collapsed, openKeys, setOpenKeys]);
 
   return (
     <>
