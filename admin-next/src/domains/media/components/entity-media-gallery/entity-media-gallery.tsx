@@ -579,7 +579,7 @@ export const EntityMediaGallery = ({
         <Flex gap={8} align="center">
           {showUpload && (
             <Button size="small" icon={<FolderOpenOutlined />} onClick={openMediaPicker}>
-              Files
+              Browse
             </Button>
           )}
           <Space.Compact size="small">
