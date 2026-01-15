@@ -46,11 +46,6 @@ const useStyles = createStyles(({ token }) => ({
     height: 400,
     overflow: "hidden",
   },
-  cropImage: {
-    width: "auto !important",
-    height: "400px !important",
-    maxWidth: "none !important",
-  },
   previewSection: {
     display: "flex",
     flexDirection: "column",
