@@ -158,8 +158,10 @@ function centerAspectCrop(
   mediaHeight: number,
   aspect: number
 ): Crop {
+  const minSide = Math.min(mediaWidth, mediaHeight);
+  const cropSize = (minSide / mediaWidth) * 90;
   return centerCrop(
-    makeAspectCrop({ unit: "%", width: 90 }, aspect, mediaWidth, mediaHeight),
+    makeAspectCrop({ unit: "%", width: cropSize }, aspect, mediaWidth, mediaHeight),
     mediaWidth,
     mediaHeight
   );
