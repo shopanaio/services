@@ -217,6 +217,27 @@ export const UPDATE_ORGANIZATION_MUTATION = gql`
 `;
 
 /**
+ * Update an organization's logo.
+ * Pass null logoId to remove the logo.
+ */
+export const UPDATE_ORGANIZATION_LOGO_MUTATION = gql`
+  mutation UpdateOrganizationLogo($input: OrganizationUpdateLogoInput!) {
+    organizationMutation {
+      organizationUpdateLogo(input: $input) {
+        organization {
+          ...OrganizationFields
+        }
+        userErrors {
+          ...UserErrorFields
+        }
+      }
+    }
+  }
+  ${ORGANIZATION_FRAGMENT}
+  ${USER_ERROR_FRAGMENT}
+`;
+
+/**
  * Delete an organization.
  * Only the owner can delete the organization.
  */

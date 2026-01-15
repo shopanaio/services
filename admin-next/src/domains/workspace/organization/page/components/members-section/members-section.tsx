@@ -56,7 +56,7 @@ export function MembersSection({
           const displayName = getUserDisplayName(record.user);
           return (
             <div className={styles.memberCell}>
-              <Avatar src={record.user.avatar} icon={<UserOutlined />}>
+              <Avatar src={record.user.avatar?.url} icon={<UserOutlined />}>
                 {getInitials(displayName)}
               </Avatar>
               <div className={styles.memberInfo}>

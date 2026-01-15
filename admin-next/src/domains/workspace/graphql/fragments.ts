@@ -5,6 +5,14 @@ import { gql } from "@apollo/client";
  * These fragments define the fields we typically need for each entity.
  */
 
+// File reference fragment - minimal fields for avatar/logo
+export const FILE_REF_FRAGMENT = gql`
+  fragment FileRefFields on File {
+    id
+    url
+  }
+`;
+
 // User fragment - basic user information
 export const USER_FRAGMENT = gql`
   fragment UserFields on User {
@@ -12,7 +20,9 @@ export const USER_FRAGMENT = gql`
     email
     firstName
     lastName
-    avatar
+    avatar {
+      ...FileRefFields
+    }
     locale
     isAdmin
     emailVerified
@@ -21,6 +31,7 @@ export const USER_FRAGMENT = gql`
     createdAt
     updatedAt
   }
+  ${FILE_REF_FRAGMENT}
 `;
 
 // User fragment - minimal info for lists and references
@@ -30,8 +41,11 @@ export const USER_BASIC_FRAGMENT = gql`
     email
     firstName
     lastName
-    avatar
+    avatar {
+      ...FileRefFields
+    }
   }
+  ${FILE_REF_FRAGMENT}
 `;
 
 // Role permission fragment
@@ -124,6 +138,9 @@ export const ORGANIZATION_FRAGMENT = gql`
     id
     name
     displayName
+    logo {
+      ...FileRefFields
+    }
     createdAt
     updatedAt
     membership {
@@ -131,6 +148,7 @@ export const ORGANIZATION_FRAGMENT = gql`
     }
   }
   ${MEMBERSHIP_FRAGMENT}
+  ${FILE_REF_FRAGMENT}
 `;
 
 // Organization fragment - minimal info for lists
@@ -139,8 +157,12 @@ export const ORGANIZATION_BASIC_FRAGMENT = gql`
     id
     name
     displayName
+    logo {
+      ...FileRefFields
+    }
     createdAt
   }
+  ${FILE_REF_FRAGMENT}
 `;
 
 // Auth token fragment

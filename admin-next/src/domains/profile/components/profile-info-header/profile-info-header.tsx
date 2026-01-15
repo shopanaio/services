@@ -146,7 +146,7 @@ export const ProfileInfoHeader = ({
       <Flex gap={16} align="flex-start">
         <Avatar
           size={64}
-          src={user.avatar}
+          src={user.avatar?.url}
           icon={<UserOutlined />}
           className={styles.avatar}
           onClick={onEdit}

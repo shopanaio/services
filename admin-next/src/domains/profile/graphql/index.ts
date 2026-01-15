@@ -4,6 +4,7 @@
 
 // Re-export all fragments
 export {
+  FILE_REF_FRAGMENT,
   USER_FRAGMENT,
   USER_BASIC_FRAGMENT,
   USER_ERROR_FRAGMENT,
@@ -16,6 +17,7 @@ export { MY_SESSIONS_QUERY } from "./queries";
 // Re-export all mutations
 export {
   UPDATE_PROFILE_MUTATION,
+  UPDATE_AVATAR_MUTATION,
   UPDATE_EMAIL_MUTATION,
   UPDATE_PASSWORD_MUTATION,
   REVOKE_SESSION_MUTATION,

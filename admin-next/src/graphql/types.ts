@@ -2376,6 +2376,8 @@ export type ApiOrganization = ApiNode & {
   displayName: Scalars['String']['output'];
   /** Unique identifier. */
   id: Scalars['ID']['output'];
+  /** Organization logo (from Media service). */
+  logo?: Maybe<ApiFile>;
   /** Membership info (members + roles). Domain = orgId. */
   membership: ApiMembership;
   /** URL-friendly unique identifier. */
@@ -2455,6 +2457,11 @@ export type ApiOrganizationMutation = {
    */
   organizationUpdate: ApiOrganizationUpdatePayload;
   /**
+   * Update organization logo.
+   * Requires: org admin or owner.
+   */
+  organizationUpdateLogo: ApiOrganizationUpdateLogoPayload;
+  /**
    * Transfer organization ownership to another admin.
    * Only the current owner can transfer ownership.
    * New owner must have admin role in the organization.
@@ -2503,6 +2510,12 @@ export type ApiOrganizationMutationOrganizationDeleteArgs = {
 /** Organization mutations. */
 export type ApiOrganizationMutationOrganizationUpdateArgs = {
   input: ApiOrganizationUpdateInput;
+};
+
+
+/** Organization mutations. */
+export type ApiOrganizationMutationOrganizationUpdateLogoArgs = {
+  input: ApiOrganizationUpdateLogoInput;
 };
 
 
@@ -2572,6 +2585,23 @@ export type ApiOrganizationUpdateInput = {
   id: Scalars['ID']['input'];
   /** New name (URL-friendly identifier). */
   name?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Input for updating organization logo. */
+export type ApiOrganizationUpdateLogoInput = {
+  /** Organization ID. */
+  id: Scalars['ID']['input'];
+  /** Media file ID for the logo. Pass null to remove logo. */
+  logoId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+/** Payload for organization logo update. */
+export type ApiOrganizationUpdateLogoPayload = {
+  __typename?: 'OrganizationUpdateLogoPayload';
+  /** The updated organization. */
+  organization?: Maybe<ApiOrganization>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<ApiGenericUserError>;
 };
 
 export type ApiOrganizationUpdatePayload = {
@@ -3617,8 +3647,8 @@ export type ApiTag = {
 /** User type representing admin users (CMS/backoffice). */
 export type ApiUser = {
   __typename?: 'User';
-  /** URL to user's avatar image. */
-  avatar?: Maybe<Scalars['String']['output']>;
+  /** User's avatar image (from Media service). */
+  avatar?: Maybe<ApiFile>;
   /** The date and time when the user was created. */
   createdAt?: Maybe<Scalars['DateTime']['output']>;
   /** User's email address. */
@@ -3664,6 +3694,8 @@ export type ApiUserMutation = {
   sessionRevoke: ApiSessionRevokePayload;
   /** Revoke all sessions except the current one. */
   sessionRevokeAll: ApiSessionRevokeAllPayload;
+  /** Update user avatar. Pass null avatarId to remove avatar. */
+  userUpdateAvatar: ApiUserUpdateAvatarPayload;
   userUpdateEmail: ApiUserUpdateEmailPayload;
   userUpdatePassword: ApiUserUpdatePasswordPayload;
   userUpdateProfile: ApiUserUpdateProfilePayload;
@@ -3672,6 +3704,11 @@ export type ApiUserMutation = {
 
 export type ApiUserMutationSessionRevokeArgs = {
   input: ApiSessionRevokeInput;
+};
+
+
+export type ApiUserMutationUserUpdateAvatarArgs = {
+  input: ApiUserUpdateAvatarInput;
 };
 
 
@@ -3772,6 +3809,21 @@ export type ApiUserTokenRefreshPayload = {
   __typename?: 'UserTokenRefreshPayload';
   /** New authentication tokens. */
   token?: Maybe<ApiAuthTokenPayload>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Input for updating user avatar. */
+export type ApiUserUpdateAvatarInput = {
+  /** Media file ID for the avatar. Pass null to remove avatar. */
+  avatarId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+/** Payload for user avatar update. */
+export type ApiUserUpdateAvatarPayload = {
+  __typename?: 'UserUpdateAvatarPayload';
+  /** The updated user. */
+  user?: Maybe<ApiUser>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<ApiGenericUserError>;
 };

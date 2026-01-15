@@ -212,7 +212,7 @@ export default function ProfilePage() {
     pushEditProfileModal({
       firstName: user?.firstName || "",
       lastName: user?.lastName || "",
-      currentAvatar: user?.avatar ?? null,
+      currentAvatar: user?.avatar?.url ?? null,
       locale: user?.locale || LocaleCode.En,
       onSave: async (values: {
         firstName: string;

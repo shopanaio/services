@@ -98,7 +98,7 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
     pushEditOrganizationModal({
       displayName: organization.displayName,
       slug: organization.name,
-      currentLogo: null,
+      currentLogo: organization.logo?.url ?? null,
       onSave: async (values: {
         displayName: string;
         slug: string;

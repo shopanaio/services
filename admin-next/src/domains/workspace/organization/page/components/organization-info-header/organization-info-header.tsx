@@ -146,6 +146,7 @@ export const OrganizationInfoHeader = ({
       <Flex gap={16} align="flex-start">
         <Avatar
           size={64}
+          src={organization.logo?.url}
           icon={<BankOutlined />}
           className={styles.avatar}
           onClick={onEdit}

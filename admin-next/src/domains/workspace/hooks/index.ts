@@ -27,6 +27,7 @@ export { useOrganizations } from "./use-organizations";
 export { useOrganization } from "./use-organization";
 export { useCreateOrganization } from "./use-create-organization";
 export { useUpdateOrganization } from "./use-update-organization";
+export { useUpdateOrganizationLogo } from "./use-update-organization-logo";
 export { useDeleteOrganization } from "./use-delete-organization";
 export { useTransferOwnership } from "./use-transfer-ownership";
 

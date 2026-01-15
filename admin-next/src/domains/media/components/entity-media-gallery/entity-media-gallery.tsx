@@ -47,6 +47,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { syntheticId } from "@/utils/synthetic-id";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
+import { useUploadMediaModal } from "@/domains/media/modals";
 import { useStyles } from "./styles";
 import type { IMediaItem, IEntityMediaGalleryProps, ViewMode } from "./types";
 
@@ -428,6 +429,7 @@ export const EntityMediaGallery = ({
   title,
 }: IEntityMediaGalleryProps) => {
   const { styles } = useStyles();
+  const { push: openUploadModal } = useUploadMediaModal();
   const [internalViewMode, setInternalViewMode] = useState<ViewMode>("grid");
   const [activeId, setActiveId] = useState<string | null>(null);
   const [previewVisible, setPreviewVisible] = useState(false);
@@ -537,16 +539,9 @@ export const EntityMediaGallery = ({
         </Typography.Text>
         <Flex gap={8} align="center">
           {showUpload && (
-            <Upload
-              accept={accept}
-              multiple={multiple}
-              showUploadList={false}
-              beforeUpload={handleUpload}
-            >
-              <Button size="small" icon={<UploadOutlined />}>
-                Upload
-              </Button>
-            </Upload>
+            <Button size="small" icon={<UploadOutlined />} onClick={() => openUploadModal({ accept })}>
+              Upload
+            </Button>
           )}
           <Space.Compact size="small">
             <Button

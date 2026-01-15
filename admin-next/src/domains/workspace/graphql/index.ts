@@ -5,6 +5,8 @@
 
 // Re-export all fragments
 export {
+  // File reference (for avatar/logo)
+  FILE_REF_FRAGMENT,
   // User
   USER_FRAGMENT,
   USER_BASIC_FRAGMENT,
@@ -58,6 +60,7 @@ export {
   // Organization
   CREATE_ORGANIZATION_MUTATION,
   UPDATE_ORGANIZATION_MUTATION,
+  UPDATE_ORGANIZATION_LOGO_MUTATION,
   DELETE_ORGANIZATION_MUTATION,
   TRANSFER_OWNERSHIP_MUTATION,
   // Member

@@ -6,6 +6,16 @@ import { gql } from "@apollo/client";
  */
 
 /**
+ * File reference fragment - minimal fields for avatar/logo
+ */
+export const FILE_REF_FRAGMENT = gql`
+  fragment FileRefFields on File {
+    id
+    url
+  }
+`;
+
+/**
  * User fields fragment - full user information for auth responses.
  */
 export const USER_FRAGMENT = gql`
@@ -14,7 +24,9 @@ export const USER_FRAGMENT = gql`
     email
     firstName
     lastName
-    avatar
+    avatar {
+      ...FileRefFields
+    }
     locale
     isAdmin
     emailVerified
@@ -24,6 +36,7 @@ export const USER_FRAGMENT = gql`
     createdAt
     updatedAt
   }
+  ${FILE_REF_FRAGMENT}
 `;
 
 /**
