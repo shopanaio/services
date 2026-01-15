@@ -270,5 +270,17 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
+    // ========================================
+    // Media modals
+    // ========================================
+    // Upload Media modal
+    {
+      type: 'media-upload',
+      component: dynamic(() =>
+        import('@/domains/media/components/upload-media-modal').then(
+          (m) => m.UploadMediaModal
+        )
+      ),
+    },
   ];
 }

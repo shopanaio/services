@@ -117,6 +117,17 @@ export type File = Node & {
   url: Scalars['String']['output'];
 };
 
+/** A connection to a list of File items. */
+export type FileConnection = {
+  __typename?: 'FileConnection';
+  /** A list of edges. */
+  edges: Array<FileEdge>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+  /** The total number of files. */
+  totalCount: Scalars['Int']['output'];
+};
+
 /** Input for creating an external media file (YouTube, Vimeo, etc). */
 export type FileCreateExternalInput = {
   /** Alt text for accessibility. */
@@ -167,6 +178,15 @@ export type FileDeletePayload = {
   deletedFileId?: Maybe<Scalars['ID']['output']>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
+};
+
+/** An edge in a File connection. */
+export type FileEdge = {
+  __typename?: 'FileEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String']['output'];
+  /** The item at the end of the edge. */
+  node: File;
 };
 
 /** Provider type for files. */
@@ -294,6 +314,8 @@ export type MediaQuery = {
   __typename?: 'MediaQuery';
   /** Get a file by ID */
   file?: Maybe<File>;
+  /** Get files with Relay-style pagination */
+  files: FileConnection;
   /** Get a node by its global ID */
   node?: Maybe<Node>;
   /** Get multiple nodes by their global IDs */
@@ -303,6 +325,14 @@ export type MediaQuery = {
 
 export type MediaQueryFileArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+export type MediaQueryFilesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
@@ -468,10 +498,12 @@ export type ResolversTypes = ResolversObject<{
   ExternalMediaData: ResolverTypeWrapper<ExternalMediaData>;
   File: ResolverTypeWrapper<File>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
+  FileConnection: ResolverTypeWrapper<FileConnection>;
   FileCreateExternalInput: FileCreateExternalInput;
   FileCreateExternalPayload: ResolverTypeWrapper<FileCreateExternalPayload>;
   FileDeleteInput: FileDeleteInput;
   FileDeletePayload: ResolverTypeWrapper<FileDeletePayload>;
+  FileEdge: ResolverTypeWrapper<FileEdge>;
   FileProvider: FileProvider;
   FileUpdateInput: FileUpdateInput;
   FileUpdatePayload: ResolverTypeWrapper<FileUpdatePayload>;
@@ -505,10 +537,12 @@ export type ResolversParentTypes = ResolversObject<{
   ExternalMediaData: ExternalMediaData;
   File: File;
   Boolean: Scalars['Boolean']['output'];
+  FileConnection: FileConnection;
   FileCreateExternalInput: FileCreateExternalInput;
   FileCreateExternalPayload: FileCreateExternalPayload;
   FileDeleteInput: FileDeleteInput;
   FileDeletePayload: FileDeletePayload;
+  FileEdge: FileEdge;
   FileUpdateInput: FileUpdateInput;
   FileUpdatePayload: FileUpdatePayload;
   FileUploadFromUrlInput: FileUploadFromUrlInput;
@@ -583,6 +617,13 @@ export type FileResolvers<ContextType = GraphQLContext, ParentType extends Resol
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type FileConnectionResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['FileConnection'] = ResolversParentTypes['FileConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['FileEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type FileCreateExternalPayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['FileCreateExternalPayload'] = ResolversParentTypes['FileCreateExternalPayload']> = ResolversObject<{
   file?: Resolver<Maybe<ResolversTypes['File']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
@@ -592,6 +633,12 @@ export type FileCreateExternalPayloadResolvers<ContextType = GraphQLContext, Par
 export type FileDeletePayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['FileDeletePayload'] = ResolversParentTypes['FileDeletePayload']> = ResolversObject<{
   deletedFileId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FileEdgeResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['FileEdge'] = ResolversParentTypes['FileEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['File'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -636,6 +683,7 @@ export type MediaMutationResolvers<ContextType = GraphQLContext, ParentType exte
 
 export type MediaQueryResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['MediaQuery'] = ResolversParentTypes['MediaQuery']> = ResolversObject<{
   file?: Resolver<Maybe<ResolversTypes['File']>, ParentType, ContextType, RequireFields<MediaQueryFileArgs, 'id'>>;
+  files?: Resolver<ResolversTypes['FileConnection'], ParentType, ContextType, Partial<MediaQueryFilesArgs>>;
   node?: Resolver<Maybe<ResolversTypes['Node']>, ParentType, ContextType, RequireFields<MediaQueryNodeArgs, 'id'>>;
   nodes?: Resolver<Array<Maybe<ResolversTypes['Node']>>, ParentType, ContextType, RequireFields<MediaQueryNodesArgs, 'ids'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -689,8 +737,10 @@ export type Resolvers<ContextType = GraphQLContext> = ResolversObject<{
   DateTime?: GraphQLScalarType;
   ExternalMediaData?: ExternalMediaDataResolvers<ContextType>;
   File?: FileResolvers<ContextType>;
+  FileConnection?: FileConnectionResolvers<ContextType>;
   FileCreateExternalPayload?: FileCreateExternalPayloadResolvers<ContextType>;
   FileDeletePayload?: FileDeletePayloadResolvers<ContextType>;
+  FileEdge?: FileEdgeResolvers<ContextType>;
   FileUpdatePayload?: FileUpdatePayloadResolvers<ContextType>;
   FileUploadPayload?: FileUploadPayloadResolvers<ContextType>;
   GenericUserError?: GenericUserErrorResolvers<ContextType>;

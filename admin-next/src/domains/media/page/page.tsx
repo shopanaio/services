@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useCallback } from "react";
-import { Image, Typography, Flex, Tag } from "antd";
+import { Image, Typography, Flex, Tag, Button } from "antd";
 import { AgGridReact } from "ag-grid-react";
 import {
   ColDef,
@@ -11,12 +11,14 @@ import {
   GridStateModule,
 } from "ag-grid-community";
 import type { CustomCellRendererProps } from "ag-grid-react";
+import { CloudUploadOutlined } from "@ant-design/icons";
 import { DataLayout } from "@/layouts/data";
 import { useFilters, FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
 import { useGridState, useGridSort, useAgGridTheme } from "@/hooks";
 import { filterSchema } from "./filter-schema";
 import { useFiles } from "../hooks";
+import { useUploadMediaModal } from "../modals";
 import type { ApiFile } from "@/graphql/types";
 import { FileProvider } from "@/graphql/types";
 
@@ -136,7 +138,11 @@ export default function MediaPage() {
     loading,
     fetchNextPage,
     fetchPreviousPage,
+    refetch,
   } = useFiles({ first: pageSize });
+
+  // Upload modal
+  const { push: pushUploadModal } = useUploadMediaModal();
 
   const { initialState, onStateUpdated } = useGridState({
     storageKey: "media-grid-state",
@@ -200,12 +206,39 @@ export default function MediaPage() {
     setPageSize(newSize);
   }, []);
 
+  const handleUpload = useCallback(() => {
+    pushUploadModal({
+      accept: "image/*,video/*",
+      maxSize: 10,
+      maxFiles: 20,
+      onUpload: async (media) => {
+        // TODO: Implement actual upload logic
+        console.log("Uploading media:", media);
+        // After successful upload, refetch the files
+        refetch();
+      },
+    });
+  }, [pushUploadModal, refetch]);
+
   // Calculate pagination display
   const rangeStart = files.length > 0 ? 1 : 0;
   const rangeEnd = files.length;
 
   return (
-    <DataLayout name="media" title="Media" count={totalCount}>
+    <DataLayout
+      name="media"
+      title="Media"
+      count={totalCount}
+      actions={
+        <Button
+          type="primary"
+          icon={<CloudUploadOutlined />}
+          onClick={handleUpload}
+        >
+          Upload
+        </Button>
+      }
+    >
       <DataLayout.Toolbar
         left={
           <FilterWidget

@@ -9,3 +9,11 @@ export {
 
 // Hooks
 export { useFiles } from "./hooks";
+
+// Components
+export { UploadMediaModal } from "./components";
+export type { IUploadMediaModalProps, UploadedMedia } from "./components";
+
+// Modals
+export { useUploadMediaModal, MEDIA_UPLOAD_MODAL_TYPE } from "./modals";
+export type { IUploadMediaModalPayload } from "./modals";
