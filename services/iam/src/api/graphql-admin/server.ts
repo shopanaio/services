@@ -77,6 +77,7 @@ export async function startServer(serverConfig: ServerConfig) {
     "shared-units.graphql",
     "relay.graphql",
     "base.graphql",
+    "media.graphql",
     "user.graphql",
     "session.graphql",
     "role.graphql",
