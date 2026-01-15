@@ -58,6 +58,7 @@ export const CreateProductModal = () => {
         media: data.media,
         hasVariants: data.hasVariants,
         options: data.options,
+        variants: data.variants,
       });
 
       if (userErrors.length > 0) {

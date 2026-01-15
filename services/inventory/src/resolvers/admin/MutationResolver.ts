@@ -44,6 +44,7 @@ import {
   FeatureDeleteScript,
 } from "../../scripts/feature/index.js";
 import type {
+  ProductCreateInput,
   ProductUpdateInput,
   ProductDeleteInput,
   ProductPublishInput,
@@ -68,6 +69,7 @@ import type {
   ProductFeatureDeleteInput,
 } from "./generated/types.js";
 import {
+  ProductCreateInputSchema,
   ProductUpdateInputSchema,
   ProductDeleteInputSchema,
   ProductPublishInputSchema,
@@ -115,10 +117,41 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   // ---- Product Mutations ----
 
   /**
-   * Create a new product.
+   * Create a new product with all its data in one request.
    */
-  async productCreate() {
-    const result = await this.$ctx.kernel.runScript(ProductCreateScript, {});
+  @ZodResolver(ProductCreateInputSchema())
+  async productCreate(args: { input: ProductCreateInput }) {
+    const { input } = args;
+
+    // Decode Global IDs to UUIDs for media files
+    const mediaFileIds = input.mediaFileIds?.map((fileId) =>
+      decodeGlobalIdByType(fileId, GlobalIdEntity.File)
+    );
+
+    const result = await this.$ctx.kernel.runScript(ProductCreateScript, {
+      title: input.title,
+      handle: input.handle,
+      description: input.description
+        ? {
+            text: input.description.text,
+            html: input.description.html,
+            json: input.description.json as Record<string, unknown>,
+          }
+        : undefined,
+      mediaFileIds,
+      options: input.options?.map((opt) => ({
+        name: opt.name,
+        slug: opt.slug,
+        displayType: opt.displayType ?? undefined,
+        values: opt.values.map((v) => ({
+          name: v.name,
+          slug: v.slug,
+        })),
+      })),
+      variants: input.variants?.map((v) => ({
+        handle: v.handle,
+      })),
+    });
 
     return {
       product: result.product

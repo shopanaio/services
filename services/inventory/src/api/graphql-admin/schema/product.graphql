@@ -163,6 +163,65 @@ type ProductUpdatePayload {
 }
 
 """
+Input for creating an option value during product creation.
+"""
+input ProductCreateOptionValueInput {
+  """Display name for the value."""
+  name: String!
+
+  """URL-friendly slug for the value."""
+  slug: String!
+}
+
+"""
+Input for creating an option during product creation.
+"""
+input ProductCreateOptionInput {
+  """Display name for the option."""
+  name: String!
+
+  """URL-friendly slug for the option."""
+  slug: String!
+
+  """How to display the option (default: DROPDOWN)."""
+  displayType: String
+
+  """The values for this option."""
+  values: [ProductCreateOptionValueInput!]!
+}
+
+"""
+Input for creating a variant during product creation.
+"""
+input ProductCreateVariantInput {
+  """Handle built from option value slugs (e.g., "red-s")."""
+  handle: String!
+}
+
+"""
+Input for creating a product with all its data in one request.
+"""
+input ProductCreateInput {
+  """Product title."""
+  title: String!
+
+  """URL-friendly handle for the product."""
+  handle: String!
+
+  """Product description."""
+  description: DescriptionInput
+
+  """File IDs for product media (already uploaded via mediaMutation.fileUpload)."""
+  mediaFileIds: [ID!]
+
+  """Product options (e.g., Color, Size)."""
+  options: [ProductCreateOptionInput!]
+
+  """Variants to create (only enabled ones from UI)."""
+  variants: [ProductCreateVariantInput!]
+}
+
+"""
 Payload for product creation.
 """
 type ProductCreatePayload {
@@ -232,4 +291,3 @@ type ProductUnpublishPayload {
   """List of errors that occurred during the mutation."""
   userErrors: [GenericUserError!]!
 }
-

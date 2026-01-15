@@ -9,6 +9,9 @@ export type {
 export type {
   ProductCreateParams,
   ProductCreateResult,
+  ProductCreateOptionInput,
+  ProductCreateOptionValueInput,
+  ProductCreateVariantInput,
 } from "./ProductCreateDto.js";
 
 // Product Update DTOs

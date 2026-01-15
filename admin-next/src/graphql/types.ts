@@ -1443,6 +1443,11 @@ export type ApiInventoryMutation = {
 };
 
 
+export type ApiInventoryMutationProductCreateArgs = {
+  input: ApiProductCreateInput;
+};
+
+
 export type ApiInventoryMutationProductDeleteArgs = {
   input: ApiProductDeleteInput;
 };
@@ -2715,6 +2720,42 @@ export type ApiProductConnection = {
   totalCount: Scalars['Int']['output'];
 };
 
+/** Input for creating a product with all its data in one request. */
+export type ApiProductCreateInput = {
+  /** Product description. */
+  description?: InputMaybe<ApiDescriptionInput>;
+  /** URL-friendly handle for the product. */
+  handle: Scalars['String']['input'];
+  /** File IDs for product media (already uploaded via mediaMutation.fileUpload). */
+  mediaFileIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Product options (e.g., Color, Size). */
+  options?: InputMaybe<Array<ApiProductCreateOptionInput>>;
+  /** Product title. */
+  title: Scalars['String']['input'];
+  /** Variants to create (only enabled ones from UI). */
+  variants?: InputMaybe<Array<ApiProductCreateVariantInput>>;
+};
+
+/** Input for creating an option during product creation. */
+export type ApiProductCreateOptionInput = {
+  /** How to display the option (default: DROPDOWN). */
+  displayType?: InputMaybe<Scalars['String']['input']>;
+  /** Display name for the option. */
+  name: Scalars['String']['input'];
+  /** URL-friendly slug for the option. */
+  slug: Scalars['String']['input'];
+  /** The values for this option. */
+  values: Array<ApiProductCreateOptionValueInput>;
+};
+
+/** Input for creating an option value during product creation. */
+export type ApiProductCreateOptionValueInput = {
+  /** Display name for the value. */
+  name: Scalars['String']['input'];
+  /** URL-friendly slug for the value. */
+  slug: Scalars['String']['input'];
+};
+
 /** Payload for product creation. */
 export type ApiProductCreatePayload = {
   __typename?: 'ProductCreatePayload';
@@ -2722,6 +2763,12 @@ export type ApiProductCreatePayload = {
   product?: Maybe<ApiProduct>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<ApiGenericUserError>;
+};
+
+/** Input for creating a variant during product creation. */
+export type ApiProductCreateVariantInput = {
+  /** Handle built from option value slugs (e.g., "red-s"). */
+  handle: Scalars['String']['input'];
 };
 
 /** Input for deleting a product. */

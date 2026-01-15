@@ -72,7 +72,7 @@ type InventoryQuery {
 
 type InventoryMutation {
   # Product mutations
-  productCreate: ProductCreatePayload!
+  productCreate(input: ProductCreateInput!): ProductCreatePayload!
   productUpdate(input: ProductUpdateInput!): ProductUpdatePayload!
   productDelete(input: ProductDeleteInput!): ProductDeletePayload!
   productPublish(input: ProductPublishInput!): ProductPublishPayload!

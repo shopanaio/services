@@ -541,6 +541,11 @@ export type InventoryMutation = {
 };
 
 
+export type InventoryMutationProductCreateArgs = {
+  input: ProductCreateInput;
+};
+
+
 export type InventoryMutationProductDeleteArgs = {
   input: ProductDeleteInput;
 };
@@ -1085,6 +1090,42 @@ export type ProductConnection = {
   totalCount: Scalars['Int']['output'];
 };
 
+/** Input for creating a product with all its data in one request. */
+export type ProductCreateInput = {
+  /** Product description. */
+  description?: InputMaybe<DescriptionInput>;
+  /** URL-friendly handle for the product. */
+  handle: Scalars['String']['input'];
+  /** File IDs for product media (already uploaded via mediaMutation.fileUpload). */
+  mediaFileIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Product options (e.g., Color, Size). */
+  options?: InputMaybe<Array<ProductCreateOptionInput>>;
+  /** Product title. */
+  title: Scalars['String']['input'];
+  /** Variants to create (only enabled ones from UI). */
+  variants?: InputMaybe<Array<ProductCreateVariantInput>>;
+};
+
+/** Input for creating an option during product creation. */
+export type ProductCreateOptionInput = {
+  /** How to display the option (default: DROPDOWN). */
+  displayType?: InputMaybe<Scalars['String']['input']>;
+  /** Display name for the option. */
+  name: Scalars['String']['input'];
+  /** URL-friendly slug for the option. */
+  slug: Scalars['String']['input'];
+  /** The values for this option. */
+  values: Array<ProductCreateOptionValueInput>;
+};
+
+/** Input for creating an option value during product creation. */
+export type ProductCreateOptionValueInput = {
+  /** Display name for the value. */
+  name: Scalars['String']['input'];
+  /** URL-friendly slug for the value. */
+  slug: Scalars['String']['input'];
+};
+
 /** Payload for product creation. */
 export type ProductCreatePayload = {
   __typename?: 'ProductCreatePayload';
@@ -1092,6 +1133,12 @@ export type ProductCreatePayload = {
   product: Maybe<Product>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
+};
+
+/** Input for creating a variant during product creation. */
+export type ProductCreateVariantInput = {
+  /** Handle built from option value slugs (e.g., "red-s"). */
+  handle: Scalars['String']['input'];
 };
 
 /** Input for deleting a product. */
@@ -2316,7 +2363,11 @@ export type ResolversTypes = ResolversObject<{
   PageInfo: ResolverTypeWrapper<PageInfo>;
   Product: ResolverTypeWrapper<Product>;
   ProductConnection: ResolverTypeWrapper<ProductConnection>;
+  ProductCreateInput: ProductCreateInput;
+  ProductCreateOptionInput: ProductCreateOptionInput;
+  ProductCreateOptionValueInput: ProductCreateOptionValueInput;
   ProductCreatePayload: ResolverTypeWrapper<ProductCreatePayload>;
+  ProductCreateVariantInput: ProductCreateVariantInput;
   ProductDeleteInput: ProductDeleteInput;
   ProductDeletePayload: ResolverTypeWrapper<ProductDeletePayload>;
   ProductEdge: ResolverTypeWrapper<ProductEdge>;
@@ -2441,7 +2492,11 @@ export type ResolversParentTypes = ResolversObject<{
   PageInfo: PageInfo;
   Product: Product;
   ProductConnection: ProductConnection;
+  ProductCreateInput: ProductCreateInput;
+  ProductCreateOptionInput: ProductCreateOptionInput;
+  ProductCreateOptionValueInput: ProductCreateOptionValueInput;
   ProductCreatePayload: ProductCreatePayload;
+  ProductCreateVariantInput: ProductCreateVariantInput;
   ProductDeleteInput: ProductDeleteInput;
   ProductDeletePayload: ProductDeletePayload;
   ProductEdge: ProductEdge;
@@ -2566,7 +2621,7 @@ export type GenericUserErrorResolvers<ContextType = ServiceContext, ParentType e
 }>;
 
 export type InventoryMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['InventoryMutation'] = ResolversParentTypes['InventoryMutation']> = ResolversObject<{
-  productCreate?: Resolver<ResolversTypes['ProductCreatePayload'], ParentType, ContextType>;
+  productCreate?: Resolver<ResolversTypes['ProductCreatePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductCreateArgs, 'input'>>;
   productDelete?: Resolver<ResolversTypes['ProductDeletePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductDeleteArgs, 'input'>>;
   productFeatureCreate?: Resolver<ResolversTypes['ProductFeatureCreatePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductFeatureCreateArgs, 'input'>>;
   productFeatureDelete?: Resolver<ResolversTypes['ProductFeatureDeletePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductFeatureDeleteArgs, 'input'>>;

@@ -17,18 +17,17 @@ import {
 // ============================================
 
 /**
- * Create a new empty product.
- * Returns a product with a default variant.
+ * Create a new product with all its data in one request.
  */
 export const PRODUCT_CREATE_MUTATION = gql`
-  mutation ProductCreate {
+  mutation ProductCreate($input: ProductCreateInput!) {
     inventoryMutation {
-      productCreate {
+      productCreate(input: $input) {
         product {
           id
           title
           handle
-          variants(first: 1) {
+          variants(first: 100) {
             edges {
               node {
                 id
