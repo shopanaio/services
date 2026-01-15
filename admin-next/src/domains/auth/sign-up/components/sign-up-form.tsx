@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { Controller, type UseFormReturn } from "react-hook-form";
-import { Button, Input, Typography, Flex } from "antd";
+import { Button, Input, Typography, Flex, Popover } from "antd";
 import { MailOutlined, LockOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import Link from "next/link";
@@ -66,6 +67,7 @@ interface SignUpFormProps {
  */
 export function SignUpForm({ form, onSubmit, loading }: SignUpFormProps) {
   const { styles } = useStyles();
+  const [passwordFocused, setPasswordFocused] = useState(false);
   const {
     control,
     handleSubmit,
@@ -116,14 +118,23 @@ export function SignUpForm({ form, onSubmit, loading }: SignUpFormProps) {
             name="password"
             control={control}
             render={({ field }) => (
-              <Input.Password
-                {...field}
-                prefix={<LockOutlined />}
-                placeholder="Create a password"
-                autoComplete="new-password"
-                size="large"
-                status={errors.password ? "error" : undefined}
-              />
+              <Popover
+                content={<PasswordStrength password={password || ""} />}
+                trigger="focus"
+                placement="right"
+                open={passwordFocused}
+              >
+                <Input.Password
+                  {...field}
+                  prefix={<LockOutlined />}
+                  placeholder="Create a password"
+                  autoComplete="new-password"
+                  size="large"
+                  status={errors.password ? "error" : undefined}
+                  onFocus={() => setPasswordFocused(true)}
+                  onBlur={() => setPasswordFocused(false)}
+                />
+              </Popover>
             )}
           />
           {errors.password && (
@@ -131,7 +142,6 @@ export function SignUpForm({ form, onSubmit, loading }: SignUpFormProps) {
               {errors.password.message}
             </Typography.Text>
           )}
-          <PasswordStrength password={password || ""} />
         </div>
 
         <div className={styles.formItem}>
