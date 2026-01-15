@@ -2,7 +2,6 @@
 
 import { useState, useCallback } from "react";
 import { Upload, Input, Button, Tabs, message, Progress } from "antd";
-import type { UploadFile } from "antd";
 import { Paper } from "@/ui-kit/paper";
 import {
   CloudUploadOutlined,
@@ -62,76 +61,50 @@ export const UploadMediaModal = () => {
   const onUploadCallback = typedPayload?.onUpload;
 
   const [activeTab, setActiveTab] = useState<"upload" | "url">("upload");
-  const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [urlInput, setUrlInput] = useState("");
   const [urlMedia, setUrlMedia] = useState<UploadedMedia[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Combine all media for preview
-  const allMedia: UploadedMedia[] = [
-    ...fileList
-      .filter((f) => f.originFileObj || f.url)
-      .map((f) => ({
-        id: f.uid,
-        url:
-          f.url ||
-          (f.originFileObj ? URL.createObjectURL(f.originFileObj) : ""),
-        name: f.name,
-        type: (f.type?.startsWith("video/") ? "video" : "image") as
-          | "image"
-          | "video",
-        file: f.originFileObj,
-      })),
-    ...urlMedia,
-  ];
-
-  // Handle file upload - upload immediately on select
-  const handleUploadChange = useCallback(
-    async (info: { fileList: UploadFile[] }) => {
-      const { fileList: newFileList } = info;
-
-      // Get new files that haven't been processed yet
-      const newFiles = newFileList.filter(
-        (f) => f.originFileObj && !fileList.some((existing) => existing.uid === f.uid)
-      );
-
-      if (newFiles.length === 0) return;
-
-      // Validate size
-      const validFiles: File[] = [];
-      for (const f of newFiles) {
-        if (f.size && f.size / 1024 / 1024 > maxSize) {
-          message.error(`${f.name} exceeds ${maxSize}MB limit`);
-          continue;
+  // Handle file upload - process all files once when last file is reached
+  const handleBeforeUpload = useCallback(
+    async (file: File, fileList: File[]) => {
+      // Process all files only once (when we hit the last file)
+      if (file === fileList[fileList.length - 1]) {
+        // Validate size
+        const validFiles: File[] = [];
+        for (const f of fileList) {
+          if (f.size / 1024 / 1024 > maxSize) {
+            message.error(`${f.name} exceeds ${maxSize}MB limit`);
+            continue;
+          }
+          validFiles.push(f);
         }
-        if (f.originFileObj) {
-          validFiles.push(f.originFileObj);
+
+        if (validFiles.length === 0) return false;
+
+        // Upload immediately
+        setIsLoading(true);
+        try {
+          const { files: uploadedFiles, userErrors } = await uploadFiles(validFiles);
+
+          if (userErrors.length > 0) {
+            message.error(userErrors[0].message);
+          }
+
+          if (uploadedFiles.length > 0) {
+            await onUploadCallback?.(uploadedFiles);
+            message.success(`Uploaded ${uploadedFiles.length} file(s)`);
+            pop();
+          }
+        } catch {
+          message.error("Upload failed");
+        } finally {
+          setIsLoading(false);
         }
       }
-
-      if (validFiles.length === 0) return;
-
-      // Upload immediately
-      setIsLoading(true);
-      try {
-        const { files: uploadedFiles, userErrors } = await uploadFiles(validFiles);
-
-        if (userErrors.length > 0) {
-          message.error(userErrors[0].message);
-        }
-
-        if (uploadedFiles.length > 0) {
-          await onUploadCallback?.(uploadedFiles);
-          message.success(`Uploaded ${uploadedFiles.length} file(s)`);
-          pop();
-        }
-      } catch {
-        message.error("Upload failed");
-      } finally {
-        setIsLoading(false);
-      }
+      return false;
     },
-    [maxSize, fileList, uploadFiles, onUploadCallback, pop]
+    [maxSize, uploadFiles, onUploadCallback, pop]
   );
 
   // Handle URL add
@@ -147,7 +120,7 @@ export const UploadMediaModal = () => {
     }
 
     // Check total limit
-    if (allMedia.length >= maxFiles) {
+    if (urlMedia.length >= maxFiles) {
       message.warning(`Maximum ${maxFiles} files allowed`);
       return;
     }
@@ -180,38 +153,23 @@ export const UploadMediaModal = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [urlInput, urlMedia, allMedia.length, maxFiles]);
+  }, [urlInput, urlMedia, maxFiles]);
 
-  // Handle remove media
+  // Handle remove URL media
   const handleRemoveMedia = useCallback((id: string) => {
-    setFileList((prev) => prev.filter((f) => f.uid !== id));
     setUrlMedia((prev) => prev.filter((m) => m.id !== id));
   }, []);
 
-  // Handle save
+  // Handle save (for URL media only - file uploads happen immediately)
   const handleSave = useCallback(async () => {
-    if (allMedia.length === 0) {
-      message.warning("Please add at least one media file");
+    if (urlMedia.length === 0) {
+      message.warning("Please add at least one media URL");
       return;
     }
 
     setIsLoading(true);
     try {
       const uploadedFiles: ApiFile[] = [];
-
-      // Upload local files
-      const localFiles = fileList
-        .filter((f) => f.originFileObj)
-        .map((f) => f.originFileObj as File);
-
-      if (localFiles.length > 0) {
-        const { files, userErrors } = await uploadFiles(localFiles);
-        uploadedFiles.push(...files);
-
-        if (userErrors.length > 0) {
-          message.error(userErrors[0].message);
-        }
-      }
 
       // Upload URL media
       for (const media of urlMedia) {
@@ -238,15 +196,7 @@ export const UploadMediaModal = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [allMedia.length, fileList, urlMedia, uploadFiles, uploadFromUrl, onUploadCallback, pop]);
-
-  // Custom upload request (don't actually upload, just add to list)
-  const customRequest = useCallback(
-    (options: { onSuccess?: (body: string) => void }) => {
-      setTimeout(() => options.onSuccess?.("ok"), 0);
-    },
-    []
-  );
+  }, [urlMedia, uploadFromUrl, onUploadCallback, pop]);
 
   // Render preview item
   const renderPreviewItem = (media: UploadedMedia) => {
@@ -300,7 +250,7 @@ export const UploadMediaModal = () => {
             children: uploading ? `Uploading... ${progress}%` : "Upload",
             onClick: handleSave,
             loading: isLoading || uploading,
-            disabled: allMedia.length === 0,
+            disabled: urlMedia.length === 0 && activeTab === "url",
           }}
         />
       }
@@ -336,9 +286,7 @@ export const UploadMediaModal = () => {
                   className={styles.dragger}
                   multiple
                   accept={accept}
-                  fileList={fileList}
-                  onChange={handleUploadChange}
-                  customRequest={customRequest}
+                  beforeUpload={handleBeforeUpload}
                   showUploadList={false}
                 >
                   <CloudUploadOutlined className={styles.uploadIcon} />
@@ -383,14 +331,14 @@ export const UploadMediaModal = () => {
           </div>
         </Paper>
 
-        {/* Preview Section */}
-        {allMedia.length > 0 && (
+        {/* Preview Section (URL media only - file uploads happen immediately) */}
+        {urlMedia.length > 0 && (
           <div className={styles.previewSection}>
             <div className={styles.previewTitle}>
-              Added Media ({allMedia.length}/{maxFiles})
+              Added URLs ({urlMedia.length}/{maxFiles})
             </div>
             <div className={styles.previewGrid}>
-              {allMedia.map(renderPreviewItem)}
+              {urlMedia.map(renderPreviewItem)}
             </div>
           </div>
         )}
