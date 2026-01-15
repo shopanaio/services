@@ -1,11 +1,11 @@
-import type { IMediaFile } from "@/mocks/products/types";
+import type { ApiFile } from "@/graphql/types";
 
 export interface ISeoFormValues {
   seoTitle: string;
   seoDescription: string;
   ogTitle: string;
   ogDescription: string;
-  ogImage: IMediaFile | null;
+  ogImage: ApiFile | null;
 }
 
 export interface IPreviewProps {

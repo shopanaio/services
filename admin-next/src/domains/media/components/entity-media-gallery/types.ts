@@ -1,23 +1,12 @@
-/**
- * Universal media item interface that works for both local files and server files
- */
-export interface IMediaItem {
-  id: string;
-  url: string;
-  name: string;
-  size: number;
-  ext?: string;
-  /** Original file object for local files (before upload) */
-  file?: File;
-}
+import type { ApiFile } from "@/graphql/types";
 
 export type ViewMode = "grid" | "list";
 
 export interface IEntityMediaGalleryProps {
-  /** Current media items */
-  value: IMediaItem[];
+  /** Current media items (already uploaded ApiFile objects) */
+  value: ApiFile[];
   /** Called when media items change (reorder, delete, add) */
-  onChange: (items: IMediaItem[]) => void;
+  onChange: (items: ApiFile[]) => void;
   /** Current view mode */
   viewMode?: ViewMode;
   /** Called when view mode changes */
@@ -26,14 +15,10 @@ export interface IEntityMediaGalleryProps {
   showViewSwitcher?: boolean;
   /** Whether to show the upload area */
   showUpload?: boolean;
-  /** Custom upload handler - receives files, should return new media items */
-  onUpload?: (files: File[]) => IMediaItem[] | Promise<IMediaItem[]>;
   /** Called when preview is requested */
-  onPreview?: (item: IMediaItem, index: number) => void;
+  onPreview?: (item: ApiFile, index: number) => void;
   /** Accept attribute for file input */
   accept?: string;
-  /** Whether multiple files can be selected */
-  multiple?: boolean;
   /** Empty state message */
   emptyMessage?: string;
   /** Label for featured badge */

@@ -47,7 +47,7 @@ export const CreateProductModal = () => {
     defaultValues: DEFAULT_VALUES,
   });
 
-  const { handleSubmit, getValues, setError } = methods;
+  const { handleSubmit, setError } = methods;
 
   const onSubmit = useCallback(
     async (data: ICreateProductFormValues) => {
@@ -83,10 +83,6 @@ export const CreateProductModal = () => {
 
       if (product) {
         message.success("Product created successfully");
-
-        // Clean up object URLs
-        data.media.forEach((m) => URL.revokeObjectURL(m.url));
-
         pop();
       }
     },
@@ -94,11 +90,8 @@ export const CreateProductModal = () => {
   );
 
   const handleClose = useCallback(() => {
-    // Clean up object URLs
-    const media = getValues("media");
-    media.forEach((m) => URL.revokeObjectURL(m.url));
     pop();
-  }, [getValues, pop]);
+  }, [pop]);
 
   return (
     <FormProvider {...methods}>

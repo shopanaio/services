@@ -37,16 +37,12 @@ const generatedVariantSchema = z.object({
 });
 
 /**
- * Schema for local media item (before upload)
+ * Schema for ApiFile (already uploaded to server)
+ * Uses z.any() since ApiFile comes from the upload modal and is already validated
  */
-const localMediaItemSchema = z.object({
-  id: z.string(),
-  file: z.instanceof(File),
-  url: z.string(),
-  name: z.string(),
-  size: z.number(),
-  isFeatured: z.boolean(),
-});
+const apiFileSchema = z.custom<import('@/graphql/types').ApiFile>(
+  (val) => val != null && typeof val === 'object' && 'id' in val && 'url' in val
+);
 
 /**
  * Schema for product handle (URL slug)
@@ -73,8 +69,8 @@ export const createProductSchema = z
     handle: handleSchema,
     description: z.string().max(5000, 'Description must be 5000 characters or less'),
 
-    // Media
-    media: z.array(localMediaItemSchema),
+    // Media (already uploaded to server)
+    media: z.array(apiFileSchema),
 
     // Variants
     hasVariants: z.boolean(),

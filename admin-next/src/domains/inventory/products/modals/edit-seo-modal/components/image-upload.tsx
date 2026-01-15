@@ -1,33 +1,31 @@
-import { Upload, Typography, Image, Button, Flex } from "antd";
+import { Typography, Image, Button, Flex } from "antd";
 import { UploadOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useStyles } from "../edit-seo-modal.styles";
-import { FileDriver, type IMediaFile } from "@/mocks/products/types";
+import { useUploadMediaModal } from "@/domains/media/modals";
+import type { ApiFile } from "@/graphql/types";
 
 interface IImageUploadProps {
-  value: IMediaFile | null;
-  onChange: (file: IMediaFile | null) => void;
+  value: ApiFile | null;
+  onChange: (file: ApiFile | null) => void;
 }
 
 export const ImageUpload = ({ value, onChange }: IImageUploadProps) => {
   const { styles } = useStyles();
+  const { push: openUploadModal } = useUploadMediaModal();
 
-  const handleUpload = (file: File) => {
-    onChange({
-      id: `file-${Date.now()}`,
-      url: URL.createObjectURL(file),
-      name: file.name,
-      size: file.size,
-      ext: file.name.split(".").pop() || "",
-      driver: FileDriver.LOCAL,
-      key: `og-image-${Date.now()}`,
+  const handleUploadClick = () => {
+    openUploadModal({
+      accept: "image/*",
+      maxFiles: 1,
+      onUpload: (files: ApiFile[]) => {
+        if (files.length > 0) {
+          onChange(files[0]);
+        }
+      },
     });
-    return false;
   };
 
   const handleRemove = () => {
-    if (value?.url.startsWith("blob:")) {
-      URL.revokeObjectURL(value.url);
-    }
     onChange(null);
   };
 
@@ -36,7 +34,7 @@ export const ImageUpload = ({ value, onChange }: IImageUploadProps) => {
       <div className={styles.imagePreviewContainer}>
         <Image
           src={value.url}
-          alt={value.name}
+          alt={value.originalName || "OG Image"}
           className={styles.imagePreview}
           preview={false}
         />
@@ -53,10 +51,16 @@ export const ImageUpload = ({ value, onChange }: IImageUploadProps) => {
   }
 
   return (
-    <Upload.Dragger
-      accept="image/*"
-      showUploadList={false}
-      beforeUpload={handleUpload}
+    <div
+      className={styles.uploadArea}
+      onClick={handleUploadClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          handleUploadClick();
+        }
+      }}
     >
       <Flex align="center" justify="center" vertical>
         <UploadOutlined className={styles.draggerIcon} />
@@ -67,6 +71,6 @@ export const ImageUpload = ({ value, onChange }: IImageUploadProps) => {
           Recommended: 1200 x 630px
         </Typography.Text>
       </Flex>
-    </Upload.Dragger>
+    </div>
   );
 };

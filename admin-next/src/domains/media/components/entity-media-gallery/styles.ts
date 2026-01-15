@@ -132,6 +132,17 @@ export const useStyles = createStyles(({ token }) => ({
     gridColumn: "1 / -1",
     padding: "40px 20px",
   },
+  emptyUploadArea: {
+    padding: "40px 20px",
+    border: `2px dashed ${token.colorBorder}`,
+    borderRadius: token.borderRadius,
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+    "&:hover": {
+      borderColor: token.colorPrimary,
+      background: token.colorPrimaryBg,
+    },
+  },
   // List view styles
   listContainer: {
     display: "flex",

@@ -1,16 +1,5 @@
+import type { ApiFile } from '@/graphql/types';
 import type { IGeneratedVariant, IOptionInput } from './utils/generate-variants';
-
-/**
- * Local media item for the create modal (before upload)
- */
-export interface ILocalMediaItem {
-  id: string;
-  file: File;
-  url: string; // Object URL for preview
-  name: string;
-  size: number;
-  isFeatured: boolean;
-}
 
 /**
  * Form values for creating a product (react-hook-form)
@@ -21,8 +10,8 @@ export interface ICreateProductFormValues {
   handle: string;
   description: string;
 
-  // Media
-  media: ILocalMediaItem[];
+  // Media (already uploaded to server)
+  media: ApiFile[];
 
   // Variants
   hasVariants: boolean;

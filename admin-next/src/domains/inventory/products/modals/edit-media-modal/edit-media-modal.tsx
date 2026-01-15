@@ -6,52 +6,23 @@ import {
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
-import {
-  EntityMediaGallery,
-  type IMediaItem,
-} from "@/domains/media/components";
+import { EntityMediaGallery } from "@/domains/media/components";
+import type { ApiFile } from "@/graphql/types";
 import type { IEditMediaModalPayload } from "../../modals";
-import type { IMediaFile } from "@/mocks/products/types";
-import { FileDriver } from "@/mocks/products/types";
 import { useStyles } from "./edit-media-modal.styles";
-
-/**
- * Convert IMediaFile to IMediaItem for the gallery component
- */
-const toMediaItem = (file: IMediaFile): IMediaItem => ({
-  id: file.id,
-  url: file.url,
-  name: file.name,
-  size: file.size,
-  ext: file.ext,
-});
-
-/**
- * Convert IMediaItem back to IMediaFile
- */
-const toMediaFile = (item: IMediaItem): IMediaFile => ({
-  id: item.id,
-  url: item.url,
-  name: item.name,
-  size: item.size,
-  ext: item.ext || item.name.split(".").pop() || "",
-  driver: FileDriver.LOCAL,
-  key: item.name,
-  createdAt: new Date().toISOString(),
-});
 
 export const EditMediaModal = () => {
   const { styles } = useStyles();
   const { payload, pop, setDirty } = useModalStackContext();
   const typedPayload = payload as IEditMediaModalPayload;
 
-  const [gallery, setGallery] = useState<IMediaItem[]>(() => {
-    const items = [...typedPayload.gallery].map(toMediaItem);
+  const [gallery, setGallery] = useState<ApiFile[]>(() => {
+    const items = [...typedPayload.gallery];
     if (
       typedPayload.featured &&
       !items.find((i) => i.id === typedPayload.featured?.id)
     ) {
-      items.unshift(toMediaItem(typedPayload.featured));
+      items.unshift(typedPayload.featured);
     }
     return items;
   });
@@ -71,7 +42,7 @@ export const EditMediaModal = () => {
   }, [pop]);
 
   const handleChange = useCallback(
-    (items: IMediaItem[]) => {
+    (items: ApiFile[]) => {
       setGallery(items);
       markDirty();
     },
@@ -79,32 +50,10 @@ export const EditMediaModal = () => {
   );
 
   const handleSave = useCallback(() => {
-    const mediaFiles = gallery.map(toMediaFile);
-    const newFeatured = mediaFiles[0] || null;
-    typedPayload.onSave?.({ featured: newFeatured, gallery: mediaFiles });
+    const newFeatured = gallery[0] || null;
+    typedPayload.onSave?.({ featured: newFeatured, gallery });
     pop();
   }, [typedPayload, gallery, pop]);
-
-  const handleUpload = useCallback(
-    async (files: File[]): Promise<IMediaItem[]> => {
-      // If custom upload handler is provided, use it
-      if (typedPayload.onUpload) {
-        const uploadedMedia = await typedPayload.onUpload(files);
-        return uploadedMedia.map(toMediaItem);
-      }
-
-      // Default: create local items
-      return files.map((file) => ({
-        id: `media-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
-        url: URL.createObjectURL(file),
-        name: file.name,
-        size: file.size,
-        ext: file.name.split(".").pop() || "",
-        file,
-      }));
-    },
-    [typedPayload]
-  );
 
   return (
     <ModalLayout
@@ -125,11 +74,9 @@ export const EditMediaModal = () => {
         <EntityMediaGallery
           value={gallery}
           onChange={handleChange}
-          onUpload={handleUpload}
           title="Product Media"
           showViewSwitcher
           accept="image/*,video/*"
-          multiple
           hasFeatured
           featuredLabel="Featured"
           emptyMessage="No media files yet"

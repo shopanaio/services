@@ -21,6 +21,17 @@ export const useStyles = createStyles(({ token }) => ({
     color: token.colorTextSecondary,
     marginBottom: 8,
   },
+  uploadArea: {
+    padding: "24px 16px",
+    border: `2px dashed ${token.colorBorder}`,
+    borderRadius: token.borderRadius,
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+    "&:hover": {
+      borderColor: token.colorPrimary,
+      background: token.colorPrimaryBg,
+    },
+  },
   imagePreviewContainer: {
     position: "relative",
     borderRadius: 8,

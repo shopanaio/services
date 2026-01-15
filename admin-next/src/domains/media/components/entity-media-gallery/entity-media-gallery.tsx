@@ -2,7 +2,6 @@
 
 import { useCallback, useState, CSSProperties } from "react";
 import {
-  Upload,
   Button,
   Typography,
   Tooltip,
@@ -45,13 +44,12 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { syntheticId } from "@/utils/synthetic-id";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useUploadMediaModal } from "@/domains/media/modals";
 import { useMediaPicker } from "@/shared/components/entity-picker-modal";
 import { MediaPreview } from "../media-preview";
 import { useStyles } from "./styles";
-import type { IMediaItem, IEntityMediaGalleryProps, ViewMode } from "./types";
+import type { IEntityMediaGalleryProps, ViewMode } from "./types";
 import type { ApiFile } from "@/graphql/types";
 
 // ============================================================================
@@ -66,21 +64,21 @@ const formatFileSize = (bytes: number): string => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
 };
 
-const getFileExtension = (name: string): string => {
-  return name.split(".").pop()?.toUpperCase() || "";
-};
+const getFileName = (file: ApiFile): string => file.originalName || file.id;
+const getFileSize = (file: ApiFile): number => Number(file.sizeBytes) || 0;
+const getFileExt = (file: ApiFile): string => file.ext?.toUpperCase() || "";
 
 // ============================================================================
 // SortableGridItem Component
 // ============================================================================
 
 interface ISortableGridItemProps {
-  item: IMediaItem;
+  item: ApiFile;
   index: number;
   isFeatured: boolean;
-  onSetFeatured: (item: IMediaItem) => void;
+  onSetFeatured: (item: ApiFile) => void;
   onDelete: (id: string) => void;
-  onPreview?: (item: IMediaItem, index: number) => void;
+  onPreview?: (item: ApiFile, index: number) => void;
 }
 
 const SortableGridItem = ({
@@ -151,6 +149,8 @@ const SortableGridItem = ({
     pointerEvents: isDragging ? "none" : "auto",
   };
 
+  const name = getFileName(item);
+
   return (
     <div
       ref={setNodeRef}
@@ -161,7 +161,7 @@ const SortableGridItem = ({
     >
       {isFeatured && <FeaturedBadge />}
 
-      <img src={item.url} alt={item.name} className={styles.mediaImage} />
+      <img src={item.url} alt={name} className={styles.mediaImage} />
 
       <div className={cx(styles.mediaActions, "media-actions")}>
         <Dropdown
@@ -209,7 +209,7 @@ const SortableGridItem = ({
       </div>
 
       <div className={styles.fileInfo}>
-        {item.name} - {formatFileSize(item.size)}
+        {name} - {formatFileSize(getFileSize(item))}
       </div>
     </div>
   );
@@ -220,13 +220,13 @@ const SortableGridItem = ({
 // ============================================================================
 
 interface ISortableListItemProps {
-  item: IMediaItem;
+  item: ApiFile;
   index: number;
   isFeatured: boolean;
   featuredLabel: string;
-  onSetFeatured: (item: IMediaItem) => void;
+  onSetFeatured: (item: ApiFile) => void;
   onDelete: (id: string) => void;
-  onPreview?: (item: IMediaItem, index: number) => void;
+  onPreview?: (item: ApiFile, index: number) => void;
 }
 
 const SortableListItem = ({
@@ -253,7 +253,8 @@ const SortableListItem = ({
     transition,
   };
 
-  const ext = item.ext || getFileExtension(item.name);
+  const name = getFileName(item);
+  const ext = getFileExt(item);
 
   return (
     <div
@@ -267,14 +268,14 @@ const SortableListItem = ({
         <HolderOutlined />
       </div>
 
-      <img src={item.url} alt={item.name} className={styles.listItemImage} />
+      <img src={item.url} alt={name} className={styles.listItemImage} />
 
       <div className={styles.listItemInfo}>
         <Typography.Text className={styles.listItemName}>
-          {item.name}
+          {name}
         </Typography.Text>
         <div className={styles.listItemMeta}>
-          <span>{formatFileSize(item.size)}</span>
+          <span>{formatFileSize(getFileSize(item))}</span>
           {ext && <span>{ext}</span>}
           {isFeatured && (
             <Typography.Text type="success" style={{ fontSize: 12 }}>
@@ -366,7 +367,7 @@ const SortableListItem = ({
 // ============================================================================
 
 interface IListItemPreviewProps {
-  item: IMediaItem;
+  item: ApiFile;
   isFeatured: boolean;
   featuredLabel: string;
 }
@@ -377,7 +378,8 @@ const ListItemPreview = ({
   featuredLabel,
 }: IListItemPreviewProps) => {
   const { styles } = useStyles();
-  const ext = item.ext || getFileExtension(item.name);
+  const name = getFileName(item);
+  const ext = getFileExt(item);
 
   return (
     <div
@@ -390,13 +392,13 @@ const ListItemPreview = ({
       <div className={styles.dragHandle}>
         <HolderOutlined />
       </div>
-      <img src={item.url} alt={item.name} className={styles.listItemImage} />
+      <img src={item.url} alt={name} className={styles.listItemImage} />
       <div className={styles.listItemInfo}>
         <Typography.Text className={styles.listItemName}>
-          {item.name}
+          {name}
         </Typography.Text>
         <div className={styles.listItemMeta}>
-          <span>{formatFileSize(item.size)}</span>
+          <span>{formatFileSize(getFileSize(item))}</span>
           {ext && <span>{ext}</span>}
           {isFeatured && (
             <Typography.Text type="success" style={{ fontSize: 12 }}>
@@ -421,10 +423,8 @@ export const EntityMediaGallery = ({
   onViewModeChange,
   showViewSwitcher = false,
   showUpload = true,
-  onUpload,
   onPreview: externalOnPreview,
   accept = "image/*",
-  multiple = true,
   emptyMessage = "No media files yet",
   featuredLabel = "Featured",
   hasFeatured = true,
@@ -441,20 +441,10 @@ export const EntityMediaGallery = ({
   const viewMode = controlledViewMode ?? internalViewMode;
   const setViewMode = onViewModeChange ?? setInternalViewMode;
 
-  // Convert ApiFile to IMediaItem
-  const apiFileToMediaItem = useCallback((file: ApiFile): IMediaItem => ({
-    id: file.id,
-    url: file.url,
-    name: file.originalName || file.id,
-    size: Number(file.sizeBytes) || 0,
-    ext: file.ext || undefined,
-  }), []);
-
   // Handle files selected from media picker
   const handleMediaPickerConfirm = useCallback((files: ApiFile[]) => {
-    const newItems = files.map(apiFileToMediaItem);
-    onChange([...value, ...newItems]);
-  }, [value, onChange, apiFileToMediaItem]);
+    onChange([...value, ...files]);
+  }, [value, onChange]);
 
   // Media picker hook
   const { openPicker: openMediaPicker } = useMediaPicker({
@@ -465,9 +455,8 @@ export const EntityMediaGallery = ({
 
   // Handle files uploaded from upload modal
   const handleUploadModalConfirm = useCallback((files: ApiFile[]) => {
-    const newItems = files.map(apiFileToMediaItem);
-    onChange([...value, ...newItems]);
-  }, [value, onChange, apiFileToMediaItem]);
+    onChange([...value, ...files]);
+  }, [value, onChange]);
 
   // Open upload modal handler
   const handleOpenUploadModal = useCallback(() => {
@@ -510,7 +499,7 @@ export const EntityMediaGallery = ({
   };
 
   const handleSetFeatured = useCallback(
-    (item: IMediaItem) => {
+    (item: ApiFile) => {
       const filtered = value.filter((i) => i.id !== item.id);
       onChange([item, ...filtered]);
     },
@@ -519,18 +508,13 @@ export const EntityMediaGallery = ({
 
   const handleDelete = useCallback(
     (id: string) => {
-      const item = value.find((m) => m.id === id);
-      // Revoke object URL if it's a local file
-      if (item?.file) {
-        URL.revokeObjectURL(item.url);
-      }
       onChange(value.filter((m) => m.id !== id));
     },
     [value, onChange]
   );
 
   const handlePreview = useCallback(
-    (item: IMediaItem, index: number) => {
+    (item: ApiFile, index: number) => {
       if (externalOnPreview) {
         externalOnPreview(item, index);
       } else {
@@ -539,31 +523,6 @@ export const EntityMediaGallery = ({
       }
     },
     [externalOnPreview]
-  );
-
-  const handleUpload = useCallback(
-    async (file: File, fileList: File[]) => {
-      // Process all files only once (when we hit the last file)
-      if (file === fileList[fileList.length - 1]) {
-        const files = fileList as File[];
-        if (onUpload) {
-          const newItems = await onUpload(files);
-          onChange([...value, ...newItems]);
-        } else {
-          const newItems: IMediaItem[] = files.map((f) => ({
-            id: syntheticId(),
-            file: f,
-            url: URL.createObjectURL(f),
-            name: f.name,
-            size: f.size,
-            ext: f.name.split(".").pop() || "",
-          }));
-          onChange([...value, ...newItems]);
-        }
-      }
-      return false;
-    },
-    [value, onChange, onUpload]
   );
 
   const hasMedia = value.length > 0;
@@ -611,29 +570,32 @@ export const EntityMediaGallery = ({
       >
         {renderHeader()}
 
-        {/* Empty state with dragger (only when no minCells) */}
+        {/* Empty state with upload button */}
         {!hasMedia && showUpload && (
-          <div>
-            <Upload.Dragger
-              accept={accept}
-              multiple={multiple}
-              showUploadList={false}
-              beforeUpload={handleUpload}
-            >
-              <Flex align="center" justify="center" vertical>
-                <UploadOutlined className={styles.draggerIcon} />
-                <Typography.Text
-                  strong
-                  type="secondary"
-                  className={styles.draggerTitle}
-                >
-                  Upload images
-                </Typography.Text>
-                <Typography.Text type="secondary">
-                  Drag and drop images here or click to upload.
-                </Typography.Text>
-              </Flex>
-            </Upload.Dragger>
+          <div
+            className={styles.emptyUploadArea}
+            onClick={handleOpenUploadModal}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                handleOpenUploadModal();
+              }
+            }}
+          >
+            <Flex align="center" justify="center" vertical>
+              <UploadOutlined className={styles.draggerIcon} />
+              <Typography.Text
+                strong
+                type="secondary"
+                className={styles.draggerTitle}
+              >
+                Upload images
+              </Typography.Text>
+              <Typography.Text type="secondary">
+                Click to upload images
+              </Typography.Text>
+            </Flex>
           </div>
         )}
 

@@ -2,7 +2,8 @@ import { createModalStackHook } from '@/layouts/modals';
 import type { IModalStackPayload } from '@/layouts/modals';
 import type { OutputData } from '@editorjs/editorjs';
 import type { RenderedContent } from '@/ui-kit/block-editor';
-import type { IProduct, IMediaFile } from "@/mocks/products/types";
+import type { IProduct } from "@/mocks/products/types";
+import type { ApiFile } from "@/graphql/types";
 import type { ApiVariantPrice } from './components/pricing';
 import type { VariantColumnField } from './components/variants/config';
 
@@ -138,13 +139,12 @@ export interface IEditVariantInventoryModalPayload extends IModalStackPayload {
 export interface IEditMediaModalPayload extends IModalStackPayload {
   productId?: string;
   variantId?: string;
-  featured: IMediaFile | null;
-  gallery: IMediaFile[];
+  featured: ApiFile | null;
+  gallery: ApiFile[];
   onSave?: (media: {
-    featured: IMediaFile | null;
-    gallery: IMediaFile[];
+    featured: ApiFile | null;
+    gallery: ApiFile[];
   }) => void;
-  onUpload?: (files: File[]) => Promise<IMediaFile[]>;
 }
 
 export interface IEditOptionsModalPayload extends IModalStackPayload {
@@ -166,14 +166,14 @@ export interface IEditSeoModalPayload extends IModalStackPayload {
   // Open Graph
   ogTitle?: string | null;
   ogDescription?: string | null;
-  ogImage?: IMediaFile | null;
+  ogImage?: ApiFile | null;
   // Callback
   onSave?: (values: {
     seoTitle: string;
     seoDescription: string;
     ogTitle: string;
     ogDescription: string;
-    ogImage: IMediaFile | null;
+    ogImage: ApiFile | null;
   }) => void;
 }
 

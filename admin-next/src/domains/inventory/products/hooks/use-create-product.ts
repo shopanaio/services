@@ -3,27 +3,17 @@
 import { useMutation } from "@apollo/client/react";
 import { useCallback, useState } from "react";
 import { slugify } from "transliteration/dist/node/src/node/index.js";
-import { PRODUCT_CREATE_MUTATION, FILE_UPLOAD_MUTATION } from "../../graphql";
+import { PRODUCT_CREATE_MUTATION } from "../../graphql";
 import type {
   ApiProduct,
   ApiGenericUserError,
   ApiProductCreateInput,
-  ApiFileUploadMultipartInput,
   ApiFile,
 } from "@/graphql/types";
 
 // ============================================
 // Types
 // ============================================
-
-interface ILocalMediaItem {
-  id: string;
-  file: File;
-  url: string;
-  name: string;
-  size: number;
-  isFeatured: boolean;
-}
 
 interface IOptionInput {
   id: string;
@@ -45,7 +35,7 @@ export interface CreateProductInput {
   title: string;
   handle: string;
   description: string;
-  media: ILocalMediaItem[];
+  media: ApiFile[];
   hasVariants: boolean;
   options: IOptionInput[];
   variants: IGeneratedVariant[];
@@ -69,9 +59,8 @@ interface UseCreateProductReturn {
 /**
  * Hook for creating a new product with all its data in a single API call.
  *
- * Flow:
- * 1. Upload media files (in parallel)
- * 2. Create product with all data (single API call)
+ * Media files should already be uploaded before calling this hook.
+ * The hook accepts media IDs of already uploaded files.
  *
  * @example
  * ```tsx
@@ -82,7 +71,7 @@ interface UseCreateProductReturn {
  *     title: data.title,
  *     handle: data.handle,
  *     description: data.description,
- *     media: data.media,
+ *     media: data.media, // Already uploaded media with IDs
  *     hasVariants: data.hasVariants,
  *     options: data.options,
  *     variants: data.variants,
@@ -100,7 +89,6 @@ export function useCreateProduct(): UseCreateProductReturn {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  // Mutations
   const [createProductMutation] = useMutation<
     {
       inventoryMutation: {
@@ -113,46 +101,15 @@ export function useCreateProduct(): UseCreateProductReturn {
     { input: ApiProductCreateInput }
   >(PRODUCT_CREATE_MUTATION);
 
-  const [uploadFileMutation] = useMutation<
-    {
-      mediaMutation: {
-        fileUpload: {
-          file: ApiFile | null;
-          userErrors: ApiGenericUserError[];
-        };
-      };
-    },
-    { input: ApiFileUploadMultipartInput }
-  >(FILE_UPLOAD_MUTATION);
-
-  // Main create function
   const createProduct = useCallback(
     async (input: CreateProductInput): Promise<CreateProductResult> => {
       setLoading(true);
       setError(null);
 
       try {
-        // Step 1: Upload media files in parallel
-        let mediaFileIds: string[] = [];
+        // Get media file IDs (already uploaded)
+        const mediaFileIds = input.media.map((m) => m.id);
 
-        if (input.media.length > 0) {
-          const uploadPromises = input.media.map((mediaItem) =>
-            uploadFileMutation({
-              variables: {
-                input: {
-                  file: mediaItem.file,
-                },
-              },
-            })
-          );
-
-          const uploadResults = await Promise.all(uploadPromises);
-          mediaFileIds = uploadResults
-            .map((result) => result.data?.mediaMutation.fileUpload.file?.id)
-            .filter((id): id is string => id != null);
-        }
-
-        // Step 2: Create product with all data
         const enabledVariants = input.variants.filter((v) => v.enabled);
 
         const createResult = await createProductMutation({
@@ -218,7 +175,7 @@ export function useCreateProduct(): UseCreateProductReturn {
         setLoading(false);
       }
     },
-    [createProductMutation, uploadFileMutation]
+    [createProductMutation]
   );
 
   return {
