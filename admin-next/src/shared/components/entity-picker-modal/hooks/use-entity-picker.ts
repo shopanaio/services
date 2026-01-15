@@ -171,3 +171,63 @@ export function useTagPicker(
 
   return { openPicker };
 }
+
+interface IUseMediaPickerOptions {
+  selectionMode?: "single" | "multi";
+  initialSelection?: string[];
+  excludeIds?: string[];
+  maxSelection?: number;
+  accept?: string;
+  maxSize?: number;
+  onConfirm: (files: unknown[]) => void;
+}
+
+/**
+ * Hook to open media picker modal with file upload capability
+ *
+ * @example
+ * ```tsx
+ * const { openPicker } = useMediaPicker({
+ *   onConfirm: (files) => {
+ *     console.log("Selected files:", files);
+ *   },
+ * });
+ *
+ * return <Button onClick={openPicker}>Select Files</Button>;
+ * ```
+ */
+export function useMediaPicker(options: IUseMediaPickerOptions) {
+  const { push } = useModalStack();
+  const {
+    selectionMode = "multi",
+    initialSelection = [],
+    excludeIds = [],
+    maxSelection,
+    accept = "image/*",
+    maxSize = 10,
+    onConfirm,
+  } = options;
+
+  const openPicker = useCallback(() => {
+    push("media-picker", {
+      selectionMode,
+      initialSelection,
+      excludeIds,
+      maxSelection,
+      accept,
+      maxSize,
+      onConfirm,
+    });
+  }, [
+    push,
+    selectionMode,
+    initialSelection,
+    excludeIds,
+    maxSelection,
+    accept,
+    maxSize,
+    onConfirm,
+  ]);
+
+  return { openPicker };
+}

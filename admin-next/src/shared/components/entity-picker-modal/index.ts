@@ -17,6 +17,8 @@ export { CategoryPickerModal } from "./category-picker-modal";
 export type { ICategoryPickerPayload } from "./category-picker-modal";
 export { TagPickerModal } from "./tag-picker-modal";
 export type { ITagPickerPayload } from "./tag-picker-modal";
+export { MediaPickerModal } from "./media-picker-modal";
+export type { IMediaPickerPayload } from "./media-picker-modal";
 export { EntityPickerContent } from "./entity-picker-content";
 
 // Cell Renderers
@@ -28,6 +30,7 @@ export {
   useProductPicker,
   useCategoryPicker,
   useTagPicker,
+  useMediaPicker,
 } from "./hooks/use-entity-picker";
 
 // Config registry
@@ -46,3 +49,7 @@ export { categoryPickerConfig } from "./configs/category-picker-config";
 
 // Tag config (auto-registers)
 export { tagPickerConfig } from "./configs/tag-picker-config";
+
+// Media config (auto-registers)
+export { mediaPickerConfig } from "./configs/media-picker-config";
+export type { IMediaPickerEntity } from "./configs/media-picker-config";
