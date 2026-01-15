@@ -45,8 +45,11 @@ export class UserResolver extends IAMType<string, User> {
     if (!imageId) {
       return null;
     }
-    // Return federation reference for File type
-    return { __typename: "File" as const, id: imageId };
+    // Return federation reference for File type with encoded Global ID
+    return {
+      __typename: "File" as const,
+      id: encodeGlobalIdByType(imageId, GlobalIdEntity.File),
+    };
   }
 
   async locale() {

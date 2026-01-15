@@ -50,8 +50,11 @@ export class OrganizationResolver extends IAMType<string, Organization> {
     if (!logoId) {
       return null;
     }
-    // Return federation reference for File type
-    return { __typename: "File" as const, id: logoId };
+    // Return federation reference for File type with encoded Global ID
+    return {
+      __typename: "File" as const,
+      id: encodeGlobalIdByType(logoId, GlobalIdEntity.File),
+    };
   }
 
   async createdAt() {
