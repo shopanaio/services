@@ -16,7 +16,7 @@ import {
   ModalHeader,
 } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import { ImageCrop } from "@/ui-kit/image-crop";
+import { ImageCropModal } from "@/ui-kit/image-crop";
 import type { IEditOrganizationModalPayload } from "../../modals";
 
 // ============================================================================
@@ -177,51 +177,50 @@ export const EditOrganizationModal = () => {
       <Paper>
         <PaperHeader title="Organization Logo" />
         <div className={styles.container}>
-          {!imageSrc ? (
-            <div className={styles.logoSection}>
-              {logoUrl ? (
-                <img
-                  src={logoUrl}
-                  alt="Organization logo"
-                  className={styles.avatarImage}
-                />
-              ) : (
-                <div className={styles.avatarPlaceholder}>
-                  <TeamOutlined />
-                </div>
-              )}
-              <Flex vertical gap={8}>
-                <Upload
-                  accept="image/png,image/jpeg,image/jpg,image/webp"
-                  showUploadList={false}
-                  beforeUpload={handleFileSelect}
+          <div className={styles.logoSection}>
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt="Organization logo"
+                className={styles.avatarImage}
+              />
+            ) : (
+              <div className={styles.avatarPlaceholder}>
+                <TeamOutlined />
+              </div>
+            )}
+            <Flex vertical gap={8}>
+              <Upload
+                accept="image/png,image/jpeg,image/jpg,image/webp"
+                showUploadList={false}
+                beforeUpload={handleFileSelect}
+              >
+                <Button icon={<UploadOutlined />}>
+                  {logoUrl ? "Change Logo" : "Upload Logo"}
+                </Button>
+              </Upload>
+              {logoUrl && (
+                <Button
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={handleRemoveLogo}
                 >
-                  <Button icon={<UploadOutlined />}>
-                    {logoUrl ? "Change Logo" : "Upload Logo"}
-                  </Button>
-                </Upload>
-                {logoUrl && (
-                  <Button
-                    danger
-                    icon={<DeleteOutlined />}
-                    onClick={handleRemoveLogo}
-                  >
-                    Remove
-                  </Button>
-                )}
-                <Typography.Text className={styles.logoHint}>
-                  PNG, JPG or WEBP. 256×256px recommended.
-                </Typography.Text>
-              </Flex>
-            </div>
-          ) : (
-            <ImageCrop
-              imageSrc={imageSrc}
-              previewBorderRadius={8}
-              onApply={handleApplyCrop}
-              onCancel={handleCancelCrop}
-            />
-          )}
+                  Remove
+                </Button>
+              )}
+              <Typography.Text className={styles.logoHint}>
+                PNG, JPG or WEBP. 256×256px recommended.
+              </Typography.Text>
+            </Flex>
+          </div>
+          <ImageCropModal
+            open={!!imageSrc}
+            imageSrc={imageSrc || ""}
+            title="Crop Logo"
+            previewBorderRadius={8}
+            onApply={handleApplyCrop}
+            onClose={handleCancelCrop}
+          />
         </div>
       </Paper>
 

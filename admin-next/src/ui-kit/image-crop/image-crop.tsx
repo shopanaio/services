@@ -30,10 +30,14 @@ export interface ImageCropProps {
   previewBorderRadius?: number | string;
   /** Show preview section (default: true) */
   showPreview?: boolean;
+  /** Show action buttons (default: true) */
+  showActions?: boolean;
   /** Called when crop is applied */
   onApply: (croppedImageUrl: string) => void;
   /** Called when crop is cancelled */
-  onCancel: () => void;
+  onCancel?: () => void;
+  /** Called when crop preview changes */
+  onCropChange?: (croppedImageUrl: string | null) => void;
 }
 
 // ============================================================================
@@ -44,7 +48,10 @@ const useStyles = createStyles(({ token }) => ({
   cropModal: {
     display: "flex",
     flexDirection: "column",
-    gap: token.marginMD,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: token.margin,
+    minHeight: 400,
   },
   cropContainer: {
     display: "flex",
@@ -81,7 +88,12 @@ function centerAspectCrop(
   const minSide = Math.min(mediaWidth, mediaHeight);
   const cropSize = (minSide / mediaWidth) * 90;
   return centerCrop(
-    makeAspectCrop({ unit: "%", width: cropSize }, aspect, mediaWidth, mediaHeight),
+    makeAspectCrop(
+      { unit: "%", width: cropSize },
+      aspect,
+      mediaWidth,
+      mediaHeight
+    ),
     mediaWidth,
     mediaHeight
   );
@@ -129,13 +141,16 @@ export const ImageCrop = ({
   aspect = 1,
   containerSize = 300,
   circularCrop = false,
-  previewSize = 80,
+  previewSize = 100,
   previewBorderRadius,
   showPreview = true,
+  showActions = true,
   onApply,
   onCancel,
+  onCropChange,
 }: ImageCropProps) => {
-  const resolvedBorderRadius = previewBorderRadius ?? (circularCrop ? "50%" : 8);
+  const resolvedBorderRadius =
+    previewBorderRadius ?? (circularCrop ? "50%" : 8);
   const { styles } = useStyles();
 
   const [crop, setCrop] = useState<Crop>();
@@ -150,12 +165,16 @@ export const ImageCrop = ({
     [aspect]
   );
 
-  const handleCropComplete = useCallback(async (pixelCrop: PixelCrop) => {
-    if (imgRef.current && pixelCrop.width && pixelCrop.height) {
-      const croppedUrl = await getCroppedImage(imgRef.current, pixelCrop);
-      setCropPreview(croppedUrl);
-    }
-  }, []);
+  const handleCropComplete = useCallback(
+    async (pixelCrop: PixelCrop) => {
+      if (imgRef.current && pixelCrop.width && pixelCrop.height) {
+        const croppedUrl = await getCroppedImage(imgRef.current, pixelCrop);
+        setCropPreview(croppedUrl);
+        onCropChange?.(croppedUrl);
+      }
+    },
+    [onCropChange]
+  );
 
   const handleApply = useCallback(() => {
     if (cropPreview) {
@@ -184,9 +203,6 @@ export const ImageCrop = ({
         </ReactCrop>
         {showPreview && cropPreview && (
           <div className={styles.previewSection}>
-            <Typography.Text className={styles.previewLabel}>
-              Preview
-            </Typography.Text>
             <img
               src={cropPreview}
               alt="Cropped preview"
@@ -201,12 +217,14 @@ export const ImageCrop = ({
           </div>
         )}
       </div>
-      <div className={styles.cropActions}>
-        <Button onClick={onCancel}>Cancel</Button>
-        <Button type="primary" onClick={handleApply} disabled={!cropPreview}>
-          Apply
-        </Button>
-      </div>
+      {showActions && (
+        <div className={styles.cropActions}>
+          <Button onClick={onCancel}>Cancel</Button>
+          <Button type="primary" onClick={handleApply} disabled={!cropPreview}>
+            Apply
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

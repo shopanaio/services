@@ -10,7 +10,7 @@ import {
   ModalHeader,
 } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import { ImageCrop } from "@/ui-kit/image-crop";
+import { ImageCropModal } from "@/ui-kit/image-crop";
 import type { IEditAvatarModalPayload } from "../../modals";
 
 const useStyles = createStyles(({ token }) => ({
@@ -104,29 +104,28 @@ export const EditAvatarModal = () => {
       <Paper>
         <PaperHeader title="Profile Photo" />
         <div className={styles.container}>
-          {!imageSrc ? (
-            <div className={styles.uploadArea}>
-              <Upload
-                accept="image/png,image/jpeg,image/jpg,image/webp"
-                showUploadList={false}
-                beforeUpload={handleFileSelect}
-              >
-                <Button icon={<UploadOutlined />}>Select Image</Button>
-              </Upload>
-              <Typography.Text className={styles.hint}>
-                Supports PNG, JPG, JPEG, WEBP. Recommended size: 256x256px.
-              </Typography.Text>
-            </div>
-          ) : (
-            <ImageCrop
-              imageSrc={imageSrc}
-              containerSize={400}
-              previewSize={100}
-              circularCrop
-              onApply={handleApplyCrop}
-              onCancel={handleCancelCrop}
-            />
-          )}
+          <div className={styles.uploadArea}>
+            <Upload
+              accept="image/png,image/jpeg,image/jpg,image/webp"
+              showUploadList={false}
+              beforeUpload={handleFileSelect}
+            >
+              <Button icon={<UploadOutlined />}>Select Image</Button>
+            </Upload>
+            <Typography.Text className={styles.hint}>
+              Supports PNG, JPG, JPEG, WEBP. Recommended size: 256x256px.
+            </Typography.Text>
+          </div>
+          <ImageCropModal
+            open={!!imageSrc}
+            imageSrc={imageSrc || ""}
+            title="Crop Photo"
+            containerSize={400}
+            previewSize={100}
+            circularCrop
+            onApply={handleApplyCrop}
+            onClose={handleCancelCrop}
+          />
           {!imageSrc && typedPayload.currentImage && (
             <div className={styles.actions}>
               <Button danger onClick={handleRemove}>

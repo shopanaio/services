@@ -15,7 +15,7 @@ import {
   ModalHeader,
 } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import { ImageCrop } from "@/ui-kit/image-crop";
+import { ImageCropModal } from "@/ui-kit/image-crop";
 import { localeOptions } from "@/domains/workspace/mocks/data";
 import type { IEditProfileModalPayload } from "../../modals";
 import type { LocaleCode } from "@/graphql/types";
@@ -179,51 +179,50 @@ export const EditProfileModal = () => {
       <Paper>
         <PaperHeader title="Profile Photo" />
         <div className={styles.container}>
-          {!imageSrc ? (
-            <div className={styles.avatarSection}>
-              {avatarUrl ? (
-                <img
-                  src={avatarUrl}
-                  alt="Profile"
-                  className={styles.avatarImage}
-                />
-              ) : (
-                <div className={styles.avatarPlaceholder}>
-                  <UserOutlined />
-                </div>
-              )}
-              <Flex vertical gap={8}>
-                <Upload
-                  accept="image/png,image/jpeg,image/jpg,image/webp"
-                  showUploadList={false}
-                  beforeUpload={handleFileSelect}
+          <div className={styles.avatarSection}>
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt="Profile"
+                className={styles.avatarImage}
+              />
+            ) : (
+              <div className={styles.avatarPlaceholder}>
+                <UserOutlined />
+              </div>
+            )}
+            <Flex vertical gap={8}>
+              <Upload
+                accept="image/png,image/jpeg,image/jpg,image/webp"
+                showUploadList={false}
+                beforeUpload={handleFileSelect}
+              >
+                <Button icon={<UploadOutlined />}>
+                  {avatarUrl ? "Change Photo" : "Upload Photo"}
+                </Button>
+              </Upload>
+              {avatarUrl && (
+                <Button
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={handleRemoveAvatar}
                 >
-                  <Button icon={<UploadOutlined />}>
-                    {avatarUrl ? "Change Photo" : "Upload Photo"}
-                  </Button>
-                </Upload>
-                {avatarUrl && (
-                  <Button
-                    danger
-                    icon={<DeleteOutlined />}
-                    onClick={handleRemoveAvatar}
-                  >
-                    Remove
-                  </Button>
-                )}
-                <Typography.Text className={styles.avatarHint}>
-                  PNG, JPG or WEBP. 256×256px recommended.
-                </Typography.Text>
-              </Flex>
-            </div>
-          ) : (
-            <ImageCrop
-              imageSrc={imageSrc}
-              circularCrop
-              onApply={handleApplyCrop}
-              onCancel={handleCancelCrop}
-            />
-          )}
+                  Remove
+                </Button>
+              )}
+              <Typography.Text className={styles.avatarHint}>
+                PNG, JPG or WEBP. 256×256px recommended.
+              </Typography.Text>
+            </Flex>
+          </div>
+          <ImageCropModal
+            open={!!imageSrc}
+            imageSrc={imageSrc || ""}
+            title="Crop Photo"
+            circularCrop
+            onApply={handleApplyCrop}
+            onClose={handleCancelCrop}
+          />
         </div>
       </Paper>
 
