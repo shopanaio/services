@@ -44,19 +44,23 @@ export function ProfileCompletionGuard({
     (path) => pathname === path || pathname?.startsWith(`${path}/`)
   );
 
+  // Only show loading on initial load (no cached user data yet)
+  const isInitialLoading = isLoading && user === null;
+
   const needsOnboarding = user && !user.isProfileComplete;
 
   useEffect(() => {
-    if (isLoading || !user) return;
+    // Wait for initial load to complete before redirecting
+    if (isInitialLoading || !user) return;
 
     // Redirect to onboarding if profile is incomplete and not on allowed path
     if (needsOnboarding && !isAllowedPath) {
       router.replace("/onboarding/complete-profile");
     }
-  }, [user, isLoading, needsOnboarding, isAllowedPath, pathname, router]);
+  }, [user, isInitialLoading, needsOnboarding, isAllowedPath, pathname, router]);
 
-  // Show loading state while checking
-  if (isLoading) {
+  // Show loading state only during initial load
+  if (isInitialLoading) {
     return (
       <Flex justify="center" align="center" className={styles.loading}>
         <Spin size="large" />

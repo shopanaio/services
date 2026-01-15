@@ -579,27 +579,28 @@ export const EntityMediaGallery = ({
 
         {/* Empty state with dragger (only when no minCells) */}
         {!hasMedia && showUpload && (
-          <Upload.Dragger
-            accept={accept}
-            multiple={multiple}
-            showUploadList={false}
-            beforeUpload={handleUpload}
-            style={{ display: "block" }}
-          >
-            <Flex align="center" justify="center" vertical>
-              <UploadOutlined className={styles.draggerIcon} />
-              <Typography.Text
-                strong
-                type="secondary"
-                className={styles.draggerTitle}
-              >
-                Upload images
-              </Typography.Text>
-              <Typography.Text type="secondary">
-                Drag and drop images here or click to upload.
-              </Typography.Text>
-            </Flex>
-          </Upload.Dragger>
+          <div>
+            <Upload.Dragger
+              accept={accept}
+              multiple={multiple}
+              showUploadList={false}
+              beforeUpload={handleUpload}
+            >
+              <Flex align="center" justify="center" vertical>
+                <UploadOutlined className={styles.draggerIcon} />
+                <Typography.Text
+                  strong
+                  type="secondary"
+                  className={styles.draggerTitle}
+                >
+                  Upload images
+                </Typography.Text>
+                <Typography.Text type="secondary">
+                  Drag and drop images here or click to upload.
+                </Typography.Text>
+              </Flex>
+            </Upload.Dragger>
+          </div>
         )}
 
         {/* Empty state without upload */}
