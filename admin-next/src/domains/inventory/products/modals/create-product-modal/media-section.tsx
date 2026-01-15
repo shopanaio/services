@@ -5,7 +5,7 @@ import { useFormContext } from "react-hook-form";
 import {
   EntityMediaGallery,
   type IMediaItem,
-} from "@/shared/components/entity-media-gallery";
+} from "@/domains/media/components";
 import { syntheticId } from "@/utils/synthetic-id";
 import type { ICreateProductFormValues, ILocalMediaItem } from "./types";
 

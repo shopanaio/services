@@ -9,7 +9,7 @@ import {
 import {
   EntityMediaGallery,
   type IMediaItem,
-} from "@/shared/components/entity-media-gallery";
+} from "@/domains/media/components";
 import type { IEditMediaModalPayload } from "../../modals";
 import type { IMediaFile } from "@/mocks/products/types";
 import { FileDriver } from "@/mocks/products/types";
