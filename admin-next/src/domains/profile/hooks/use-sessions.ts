@@ -17,7 +17,9 @@ interface UseSessionsReturn {
 export function useSessions(): UseSessionsReturn {
   const { data, loading, error, refetch } = useQuery<{
     userQuery: { mySessions: ApiSession[] };
-  }>(MY_SESSIONS_QUERY);
+  }>(MY_SESSIONS_QUERY, {
+    fetchPolicy: "no-cache",
+  });
 
   return {
     sessions: data?.userQuery.mySessions ?? [],
