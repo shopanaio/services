@@ -95,25 +95,27 @@ export function PasswordStrength({
     return { label: "Strong", color: "#52c41a" };
   }, [score]);
 
-  if (!password) return null;
-
   return (
     <div className={styles.container}>
-      <Flex justify="space-between" align="center" className={styles.header}>
-        <Typography.Text type="secondary" className={styles.label}>
-          Password strength
-        </Typography.Text>
-        <Typography.Text style={{ color: strengthLevel.color }}>
-          {strengthLevel.label}
-        </Typography.Text>
-      </Flex>
+      {password && (
+        <>
+          <Flex justify="space-between" align="center" className={styles.header}>
+            <Typography.Text type="secondary" className={styles.label}>
+              Password strength
+            </Typography.Text>
+            <Typography.Text style={{ color: strengthLevel.color }}>
+              {strengthLevel.label}
+            </Typography.Text>
+          </Flex>
 
-      <Progress
-        percent={score}
-        showInfo={false}
-        strokeColor={strengthLevel.color}
-        size="small"
-      />
+          <Progress
+            percent={score}
+            showInfo={false}
+            strokeColor={strengthLevel.color}
+            size="small"
+          />
+        </>
+      )}
 
       {showRequirements && (
         <ul className={styles.requirements}>

@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { Controller, type UseFormReturn } from "react-hook-form";
 import { Button, Input, Typography, Flex, Popover } from "antd";
-import { MailOutlined, LockOutlined } from "@ant-design/icons";
+import { LockOutlined, InfoCircleOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import Link from "next/link";
 import type { SignUpFormValues } from "../../schemas";
@@ -12,8 +11,8 @@ import { PasswordStrength } from "./password-strength";
 const useStyles = createStyles(({ token }) => ({
   card: {
     backgroundColor: token.colorBgContainer,
-    borderRadius: token.borderRadiusLG,
-    padding: token.paddingXL,
+    borderRadius: token.borderRadius,
+    padding: token.paddingLG,
     boxShadow: token.boxShadowTertiary,
   },
   header: {
@@ -67,20 +66,16 @@ interface SignUpFormProps {
  */
 export function SignUpForm({ form, onSubmit, loading }: SignUpFormProps) {
   const { styles } = useStyles();
-  const [passwordFocused, setPasswordFocused] = useState(false);
   const {
     control,
     handleSubmit,
-    watch,
     formState: { errors },
   } = form;
-
-  const password = watch("password");
 
   return (
     <div className={styles.card}>
       <div className={styles.header}>
-        <Typography.Title level={2} className={styles.title}>
+        <Typography.Title level={3} className={styles.title}>
           Create Account
         </Typography.Title>
         <Typography.Text className={styles.subtitle}>
@@ -97,7 +92,6 @@ export function SignUpForm({ form, onSubmit, loading }: SignUpFormProps) {
             render={({ field }) => (
               <Input
                 {...field}
-                prefix={<MailOutlined />}
                 placeholder="email@example.com"
                 autoComplete="email"
                 size="large"
@@ -113,60 +107,44 @@ export function SignUpForm({ form, onSubmit, loading }: SignUpFormProps) {
         </div>
 
         <div className={styles.formItem}>
-          <Typography.Text className={styles.label}>Password</Typography.Text>
+          <Flex align="center" gap={4} style={{ marginBottom: 8 }}>
+            <Typography.Text strong>Password</Typography.Text>
+            <Popover
+              content={<PasswordStrength password="" showRequirements />}
+              trigger="hover"
+              placement="right"
+            >
+              <InfoCircleOutlined style={{ cursor: "help" }} />
+            </Popover>
+          </Flex>
           <Controller
             name="password"
-            control={control}
-            render={({ field }) => (
-              <Popover
-                content={<PasswordStrength password={password || ""} />}
-                trigger="focus"
-                placement="right"
-                open={passwordFocused}
-              >
-                <Input.Password
-                  {...field}
-                  prefix={<LockOutlined />}
-                  placeholder="Create a password"
-                  autoComplete="new-password"
-                  size="large"
-                  status={errors.password ? "error" : undefined}
-                  onFocus={() => setPasswordFocused(true)}
-                  onBlur={() => setPasswordFocused(false)}
-                />
-              </Popover>
-            )}
-          />
-          {errors.password && (
-            <Typography.Text className={styles.error}>
-              {errors.password.message}
-            </Typography.Text>
-          )}
-        </div>
-
-        <div className={styles.formItem}>
-          <Typography.Text className={styles.label}>
-            Confirm Password
-          </Typography.Text>
-          <Controller
-            name="confirmPassword"
             control={control}
             render={({ field }) => (
               <Input.Password
                 {...field}
                 prefix={<LockOutlined />}
-                placeholder="Confirm your password"
+                placeholder="Create a password"
                 autoComplete="new-password"
                 size="large"
-                status={errors.confirmPassword ? "error" : undefined}
+                status={errors.password ? "error" : undefined}
               />
             )}
           />
-          {errors.confirmPassword && (
-            <Typography.Text className={styles.error}>
-              {errors.confirmPassword.message}
+          {errors.password && (
+            <Typography.Text
+              className={styles.error}
+              style={{ display: "block" }}
+            >
+              {errors.password.message}
             </Typography.Text>
           )}
+          <Typography.Text
+            type="secondary"
+            style={{ fontSize: 12, display: "block", marginTop: 8 }}
+          >
+            Use 8+ characters with uppercase, lowercase, numbers and symbols
+          </Typography.Text>
         </div>
 
         <Button

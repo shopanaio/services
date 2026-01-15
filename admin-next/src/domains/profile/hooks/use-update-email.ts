@@ -2,7 +2,8 @@
 
 import { useMutation } from "@apollo/client/react";
 import { useCallback } from "react";
-import { UPDATE_EMAIL_MUTATION, CURRENT_USER_QUERY } from "../graphql";
+import { UPDATE_EMAIL_MUTATION } from "../graphql";
+import { CURRENT_USER_QUERY } from "@/domains/auth/graphql";
 import type {
   ApiUserUpdateEmailInput,
   ApiUserUpdateEmailPayload,

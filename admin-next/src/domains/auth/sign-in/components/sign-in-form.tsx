@@ -2,7 +2,7 @@
 
 import { Controller, type UseFormReturn } from "react-hook-form";
 import { Button, Input, Typography, Checkbox, Flex } from "antd";
-import { MailOutlined, LockOutlined } from "@ant-design/icons";
+import { LockOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import Link from "next/link";
 import type { SignInFormValues } from "../../schemas";
@@ -11,7 +11,7 @@ const useStyles = createStyles(({ token }) => ({
   card: {
     backgroundColor: token.colorBgContainer,
     borderRadius: token.borderRadiusLG,
-    padding: token.paddingXL,
+    padding: token.paddingLG,
     boxShadow: token.boxShadowTertiary,
   },
   header: {
@@ -77,7 +77,7 @@ export function SignInForm({ form, onSubmit, loading }: SignInFormProps) {
   return (
     <div className={styles.card}>
       <div className={styles.header}>
-        <Typography.Title level={2} className={styles.title}>
+        <Typography.Title level={3} className={styles.title}>
           Sign In
         </Typography.Title>
         <Typography.Text className={styles.subtitle}>
@@ -94,7 +94,6 @@ export function SignInForm({ form, onSubmit, loading }: SignInFormProps) {
             render={({ field }) => (
               <Input
                 {...field}
-                prefix={<MailOutlined />}
                 placeholder="email@example.com"
                 autoComplete="email"
                 size="large"

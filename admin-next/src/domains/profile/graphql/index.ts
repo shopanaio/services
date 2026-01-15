@@ -11,7 +11,7 @@ export {
 } from "./fragments";
 
 // Re-export all queries
-export { CURRENT_USER_QUERY, MY_SESSIONS_QUERY } from "./queries";
+export { MY_SESSIONS_QUERY } from "./queries";
 
 // Re-export all mutations
 export {

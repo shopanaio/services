@@ -24,7 +24,6 @@ export default function SignUpPage() {
     defaultValues: {
       email: "",
       password: "",
-      confirmPassword: "",
     },
     mode: "onSubmit",
   });
@@ -51,7 +50,7 @@ export default function SignUpPage() {
       message.success("Account created successfully!");
       router.push("/onboarding/complete-profile");
     },
-    [signUp, form.setError, router]
+    [signUp, form.setError, router, message]
   );
 
   return <SignUpForm form={form} onSubmit={onSubmit} loading={loading} />;

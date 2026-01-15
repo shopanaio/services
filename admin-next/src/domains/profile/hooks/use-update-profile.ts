@@ -2,7 +2,8 @@
 
 import { useMutation } from "@apollo/client/react";
 import { useCallback } from "react";
-import { UPDATE_PROFILE_MUTATION, CURRENT_USER_QUERY } from "../graphql";
+import { UPDATE_PROFILE_MUTATION } from "../graphql";
+import { CURRENT_USER_QUERY } from "@/domains/auth/graphql";
 import type {
   ApiUserUpdateProfileInput,
   ApiUserUpdateProfilePayload,
@@ -32,6 +33,7 @@ export function useUpdateProfile(): UseUpdateProfileReturn {
     { input: ApiUserUpdateProfileInput }
   >(UPDATE_PROFILE_MUTATION, {
     refetchQueries: [{ query: CURRENT_USER_QUERY }],
+    awaitRefetchQueries: true,
   });
 
   const updateProfile = useCallback(

@@ -30,39 +30,36 @@ export default function SignInPage() {
     mode: "onSubmit",
   });
 
-  const onSubmit = useCallback(
-    async (values: SignInFormValues) => {
-      const result = await signIn({
-        email: values.email,
-        password: values.password,
-      });
+  const onSubmit = async (values: SignInFormValues) => {
+    const result = await signIn({
+      email: values.email,
+      password: values.password,
+    });
 
-      if (!result.success) {
-        const { generalErrors } = mapGraphQLErrorsToForm<SignInFormValues>(
-          result.userErrors,
-          form.setError
-        );
+    if (!result.success) {
+      const { generalErrors } = mapGraphQLErrorsToForm<SignInFormValues>(
+        result.userErrors,
+        form.setError
+      );
 
-        if (generalErrors.length > 0) {
-          message.error(generalErrors[0]);
-        }
-        return;
+      if (generalErrors.length > 0) {
+        message.error(generalErrors[0]);
       }
+      return;
+    }
 
-      message.success("Welcome back!");
+    message.success("Welcome back!");
 
-      // Redirect to onboarding if profile is incomplete
-      if (!result.user?.isProfileComplete) {
-        router.push("/onboarding/complete-profile");
-        return;
-      }
+    // Redirect to onboarding if profile is incomplete
+    if (!result.user?.isProfileComplete) {
+      router.push("/onboarding/complete-profile");
+      return;
+    }
 
-      // Redirect to returnUrl if present, otherwise to default route
-      const returnUrl = searchParams.get("returnUrl");
-      router.push(returnUrl || "/workspace");
-    },
-    [signIn, form.setError, router, searchParams]
-  );
+    // Redirect to returnUrl if present, otherwise to default route
+    const returnUrl = searchParams.get("returnUrl");
+    router.push(returnUrl || "/workspace");
+  };
 
   return <SignInForm form={form} onSubmit={onSubmit} loading={loading} />;
 }
