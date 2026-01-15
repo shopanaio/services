@@ -1,10 +1,7 @@
-import React, { Fragment, type ComponentType } from "react";
+import React, { type ComponentType } from "react";
 import { notFound } from "next/navigation";
-import { moduleRegistry, type ModulePageProps, type DomainLayoutComponent } from "./registry";
-import { ModuleProvider } from "./client";
-import { PathParamsProvider } from "./path-params-context";
+import { moduleRegistry, type ModulePageProps } from "./registry";
 import type { IModalStackDefinition } from "@/layouts/modals/types";
-import type { ParamData } from "path-to-regexp";
 
 // ============================================================================
 // Page Factory
@@ -76,49 +73,32 @@ export interface CreateLayoutOptions {
 }
 
 /**
- * Resolves the domain layout component based on the pathname.
- */
-export function resolveDomainLayout(pathname: string): {
-  Layout: DomainLayoutComponent | typeof Fragment;
-  pathParams: ParamData;
-} {
-  const matchResult = moduleRegistry.matchPath(pathname);
-
-  if (!matchResult) {
-    return { Layout: Fragment, pathParams: {} };
-  }
-
-  const Layout = matchResult.domainConfig?.layout ?? Fragment;
-  const pathParams = matchResult.params ? { ...matchResult.params } : {};
-
-  return { Layout, pathParams };
-}
-
-/**
- * Factory function to create layout exports with sidebar items from modules.
- * The layout now handles domain layout wrapping using pathname from middleware headers.
+ * Factory function to initialize modules and get layout data.
+ * Returns sidebarItems and getModalStackItems for use with ClientLayoutResolver.
  *
  * @example
  * ```tsx
- * // app/[[...slug]]/layout.tsx
- * import { headers } from "next/headers";
- * import { createLayout, resolveDomainLayout } from "@/registry";
+ * // app/layout.tsx
+ * import { createLayout, ClientLayoutResolver } from "@/registry";
  * import { getModalStackDefinitions } from "@/domains/modals";
  *
- * const { ModuleLayout } = createLayout({
- *   modulesContext: require.context("../../domains", true, /(register|domain)\.tsx?$/),
+ * const { sidebarItems, getModalStackItems } = createLayout({
+ *   modulesContext: require.context("../domains", true, /(register|domain)\.tsx?$/),
  *   getModalStackItems: getModalStackDefinitions,
  * });
  *
- * export default async function Layout({ children }: { children: React.ReactNode }) {
- *   const headersList = await headers();
- *   const pathname = headersList.get("x-pathname") || "/";
- *   const { Layout: DomainLayout, pathParams } = resolveDomainLayout(pathname);
- *
+ * export default function RootLayout({ children }: { children: React.ReactNode }) {
  *   return (
- *     <ModuleLayout pathParams={pathParams}>
- *       <DomainLayout>{children}</DomainLayout>
- *     </ModuleLayout>
+ *     <html lang="en">
+ *       <body>
+ *         <ClientLayoutResolver
+ *           sidebarItems={sidebarItems}
+ *           getModalStackItems={getModalStackItems}
+ *         >
+ *           {children}
+ *         </ClientLayoutResolver>
+ *       </body>
+ *     </html>
  *   );
  * }
  * ```
@@ -130,19 +110,5 @@ export function createLayout(options: CreateLayoutOptions) {
 
   const sidebarItems = moduleRegistry.getSidebarItems();
 
-  function ModuleLayout({
-    children,
-    pathParams,
-  }: {
-    children: React.ReactNode;
-    pathParams: ParamData;
-  }) {
-    return (
-      <ModuleProvider sidebarItems={sidebarItems} getModalStackItems={getModalStackItems}>
-        <PathParamsProvider pathParams={pathParams}>{children}</PathParamsProvider>
-      </ModuleProvider>
-    );
-  }
-
-  return { ModuleLayout, sidebarItems };
+  return { sidebarItems, getModalStackItems };
 }

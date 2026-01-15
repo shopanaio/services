@@ -23,11 +23,10 @@ export {
   type CreateLayoutOptions,
   createPage,
   createLayout,
-  resolveDomainLayout,
 } from "./server";
 
 // Client-side context and hooks
-export { useSidebarItems, ModuleProvider } from "./client";
+export { useSidebarItems, ModuleProvider, ClientLayoutResolver } from "./client";
 
 // Path params context and hooks
 export {
