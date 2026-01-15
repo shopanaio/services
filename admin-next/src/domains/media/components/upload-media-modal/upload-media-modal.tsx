@@ -180,9 +180,12 @@ export const UploadMediaModal = () => {
   }, [allMedia, onUploadCallback, pop]);
 
   // Custom upload request (don't actually upload, just add to list)
-  const customRequest = useCallback((options) => {
-    setTimeout(() => options.onSuccess?.("ok"), 0);
-  }, []);
+  const customRequest = useCallback(
+    (options: { onSuccess?: (body: string) => void }) => {
+      setTimeout(() => options.onSuccess?.("ok"), 0);
+    },
+    []
+  );
 
   // Render preview item
   const renderPreviewItem = (media: UploadedMedia) => {
@@ -205,7 +208,6 @@ export const UploadMediaModal = () => {
         ) : media.type === "video" ? (
           <div className={styles.previewVideo}>
             <PlayCircleOutlined style={{ fontSize: 32 }} />
-            <Text style={{ color: "#fff", marginTop: 8 }}>{media.name}</Text>
           </div>
         ) : (
           <img
@@ -284,6 +286,9 @@ export const UploadMediaModal = () => {
                     or <span className={styles.browseLink}>browse</span> to
                     choose files
                   </p>
+                  <p className={styles.uploadFormats}>
+                    Images (JPG, PNG, GIF, WebP) or Videos (MP4, WebM)
+                  </p>
                 </Dragger>
               </div>
             )}
@@ -294,7 +299,7 @@ export const UploadMediaModal = () => {
                 <div className={styles.urlInputWrapper}>
                   <Input
                     className={styles.urlInput}
-                    placeholder="Enter image URL or YouTube video URL"
+                    placeholder="Paste image URL or YouTube link"
                     value={urlInput}
                     onChange={(e) => setUrlInput(e.target.value)}
                     onPressEnter={handleAddUrl}
@@ -309,6 +314,9 @@ export const UploadMediaModal = () => {
                     Add
                   </Button>
                 </div>
+                <p className={styles.urlHint}>
+                  Direct image links or YouTube videos (youtube.com, youtu.be)
+                </p>
               </div>
             )}
           </div>

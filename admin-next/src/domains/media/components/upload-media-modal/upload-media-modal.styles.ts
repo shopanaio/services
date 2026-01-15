@@ -72,6 +72,12 @@ export const useStyles = createStyles(({ token }) => ({
     margin: "0 0 2px 0",
     lineHeight: 1.5,
   },
+  uploadFormats: {
+    fontSize: 12,
+    color: token.colorTextTertiary,
+    textAlign: "center" as const,
+    margin: "8px 0 0 0",
+  },
   browseLink: {
     color: token.colorPrimary,
     cursor: "pointer",
@@ -96,6 +102,11 @@ export const useStyles = createStyles(({ token }) => ({
   },
   urlButton: {
     minWidth: 100,
+  },
+  urlHint: {
+    fontSize: 12,
+    color: token.colorTextTertiary,
+    margin: 0,
   },
 
   // Preview section
