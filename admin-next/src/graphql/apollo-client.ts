@@ -15,6 +15,14 @@ import { TOKEN_REFRESH_MUTATION } from "@/domains/auth/graphql";
 const GRAPHQL_ENDPOINT =
   process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT || "http://localhost:4001/graphql";
 
+// Extract store name from URL path (pattern: /:orgName/:storeName/...)
+function getStoreNameFromUrl(): string | null {
+  if (typeof window === "undefined") return null;
+  const segments = window.location.pathname.split("/").filter(Boolean);
+  // URL pattern: /orgName/storeName/...
+  return segments.length >= 2 ? segments[1] : null;
+}
+
 // Refresh token 60 seconds before expiry to avoid race conditions
 const TOKEN_REFRESH_BUFFER_MS = 60 * 1000;
 
@@ -90,15 +98,19 @@ const proactiveRefreshLink = new ApolloLink((operation, forward) => {
   return new Observable((observer) => {
     ensureFreshToken()
       .then((token) => {
+        const oldHeaders = operation.getContext().headers || {};
+        const headers: Record<string, string> = { ...oldHeaders };
+
         if (token) {
-          const oldHeaders = operation.getContext().headers || {};
-          operation.setContext({
-            headers: {
-              ...oldHeaders,
-              Authorization: `Bearer ${token}`,
-            },
-          });
+          headers.Authorization = `Bearer ${token}`;
         }
+
+        const storeName = getStoreNameFromUrl();
+        if (storeName) {
+          headers["x-store-name"] = storeName;
+        }
+
+        operation.setContext({ headers });
         forward(operation).subscribe(observer);
       })
       .catch(() => {
@@ -134,13 +146,18 @@ const errorLink = new ErrorLink(({ error, operation, forward }) => {
     ensureFreshToken()
       .then((token) => {
         if (token) {
-          const oldHeaders = operation.getContext().headers;
-          operation.setContext({
-            headers: {
-              ...oldHeaders,
-              Authorization: `Bearer ${token}`,
-            },
-          });
+          const oldHeaders = operation.getContext().headers || {};
+          const headers: Record<string, string> = {
+            ...oldHeaders,
+            Authorization: `Bearer ${token}`,
+          };
+
+          const storeName = getStoreNameFromUrl();
+          if (storeName) {
+            headers["x-store-name"] = storeName;
+          }
+
+          operation.setContext({ headers });
           forward(operation).subscribe(observer);
         } else {
           observer.error(new Error("Token refresh failed"));

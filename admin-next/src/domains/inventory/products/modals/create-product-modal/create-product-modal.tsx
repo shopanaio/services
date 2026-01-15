@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { App } from "antd";
@@ -10,6 +10,7 @@ import {
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
+import { useCreateProduct } from "../../hooks";
 import type { ICreateProductFormValues } from "./types";
 import { createProductSchema } from "./schema";
 import { GeneralSection } from "./general-section";
@@ -39,37 +40,56 @@ export const CreateProductModal = () => {
   const { styles } = useStyles();
   const { message } = App.useApp();
   const { pop } = useModalStackContext();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { createProduct, loading: isSubmitting } = useCreateProduct();
 
   const methods = useForm<ICreateProductFormValues>({
     resolver: zodResolver(createProductSchema),
     defaultValues: DEFAULT_VALUES,
   });
 
-  const { handleSubmit, getValues } = methods;
+  const { handleSubmit, getValues, setError } = methods;
 
   const onSubmit = useCallback(
     async (data: ICreateProductFormValues) => {
-      setIsSubmitting(true);
+      const { product, userErrors } = await createProduct({
+        title: data.title,
+        handle: data.handle,
+        description: data.description,
+        media: data.media,
+        hasVariants: data.hasVariants,
+        options: data.options,
+      });
 
-      try {
-        // TODO: Call actual mutation
-        console.log("Creating product:", data);
+      if (userErrors.length > 0) {
+        // Map API errors to form errors
+        userErrors.forEach((error) => {
+          if (error.field && error.field.length > 0) {
+            const fieldName = error.field[error.field.length - 1];
+            if (
+              fieldName === "title" ||
+              fieldName === "handle" ||
+              fieldName === "description"
+            ) {
+              setError(fieldName, { message: error.message });
+            }
+          }
+        });
 
+        // Show first error as notification
+        message.error(userErrors[0].message);
+        return;
+      }
+
+      if (product) {
         message.success("Product created successfully");
 
         // Clean up object URLs
         data.media.forEach((m) => URL.revokeObjectURL(m.url));
 
         pop();
-      } catch (err) {
-        console.error("Failed to create product:", err);
-        message.error("Failed to create product");
-      } finally {
-        setIsSubmitting(false);
       }
     },
-    [pop]
+    [createProduct, setError, message, pop]
   );
 
   const handleClose = useCallback(() => {
