@@ -140,36 +140,14 @@ export const ImageCrop = ({
 
   const [crop, setCrop] = useState<Crop>();
   const [cropPreview, setCropPreview] = useState<string | null>(null);
-  const [imgStyle, setImgStyle] = useState<React.CSSProperties>({});
   const imgRef = useRef<HTMLImageElement>(null);
 
   const onImageLoad = useCallback(
     (e: React.SyntheticEvent<HTMLImageElement>) => {
-      const { naturalWidth, naturalHeight, width, height } = e.currentTarget;
-      const isLandscape = naturalWidth > naturalHeight;
-
-      if (isLandscape) {
-        const scaledWidth = (naturalWidth / naturalHeight) * containerSize;
-        const offsetX = (scaledWidth - containerSize) / 2;
-        setImgStyle({
-          height: containerSize,
-          width: "auto",
-          maxWidth: "none",
-          marginLeft: -offsetX,
-        });
-      } else {
-        const scaledHeight = (naturalHeight / naturalWidth) * containerSize;
-        const offsetY = (scaledHeight - containerSize) / 2;
-        setImgStyle({
-          width: containerSize,
-          height: "auto",
-          maxHeight: "none",
-          marginTop: -offsetY,
-        });
-      }
-      setCrop(centerAspectCrop(width, height, aspect));
+      const { naturalWidth, naturalHeight } = e.currentTarget;
+      setCrop(centerAspectCrop(naturalWidth, naturalHeight, aspect));
     },
-    [containerSize, aspect]
+    [aspect]
   );
 
   const handleCropComplete = useCallback(async (pixelCrop: PixelCrop) => {
@@ -188,24 +166,22 @@ export const ImageCrop = ({
   return (
     <div className={styles.cropModal}>
       <div className={styles.cropContainer}>
-        <div style={{ width: containerSize, height: containerSize, overflow: "hidden" }}>
-          <ReactCrop
-            crop={crop}
-            onChange={(c) => setCrop(c)}
-            onComplete={handleCropComplete}
-            aspect={aspect}
-            keepSelection
-            circularCrop={circularCrop}
-          >
-            <img
-              ref={imgRef}
-              src={imageSrc}
-              alt="Crop preview"
-              style={imgStyle}
-              onLoad={onImageLoad}
-            />
-          </ReactCrop>
-        </div>
+        <ReactCrop
+          crop={crop}
+          onChange={(c) => setCrop(c)}
+          onComplete={handleCropComplete}
+          aspect={aspect}
+          keepSelection
+          circularCrop={circularCrop}
+        >
+          <img
+            ref={imgRef}
+            src={imageSrc}
+            alt="Crop preview"
+            style={{ maxWidth: containerSize, maxHeight: containerSize }}
+            onLoad={onImageLoad}
+          />
+        </ReactCrop>
         {showPreview && cropPreview && (
           <div className={styles.previewSection}>
             <Typography.Text className={styles.previewLabel}>
