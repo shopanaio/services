@@ -211,10 +211,8 @@ export default function MediaPage() {
       accept: "image/*,video/*",
       maxSize: 10,
       maxFiles: 20,
-      onUpload: async (media) => {
-        // TODO: Implement actual upload logic
-        console.log("Uploading media:", media);
-        // After successful upload, refetch the files
+      onUpload: async (files: ApiFile[]) => {
+        console.log("Uploaded files:", files);
         refetch();
       },
     });

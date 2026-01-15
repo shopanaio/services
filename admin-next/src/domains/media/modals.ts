@@ -1,6 +1,6 @@
 import { createModalStackHook } from "@/layouts/modals";
 import type { IModalStackPayload } from "@/layouts/modals";
-import type { UploadedMedia } from "./components";
+import type { ApiFile } from "@/graphql/types";
 
 // ============================================================================
 // Modal Types
@@ -26,9 +26,9 @@ export interface IUploadMediaModalPayload extends IModalStackPayload {
    */
   maxFiles?: number;
   /**
-   * Callback when media is uploaded
+   * Callback when files are uploaded
    */
-  onUpload?: (media: UploadedMedia[]) => void | Promise<void>;
+  onUpload?: (files: ApiFile[]) => void | Promise<void>;
 }
 
 // ============================================================================

@@ -8,3 +8,9 @@ export {
 
 // Queries
 export { FILES_QUERY, FILE_QUERY } from "./queries";
+
+// Mutations
+export {
+  FILE_UPLOAD_MUTATION,
+  FILE_UPLOAD_FROM_URL_MUTATION,
+} from "./mutations";

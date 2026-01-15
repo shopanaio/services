@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Upload, Input, Button, Tabs, message } from "antd";
+import { Upload, Input, Button, Tabs, message, Progress } from "antd";
 import type { UploadFile } from "antd";
 import { Paper } from "@/ui-kit/paper";
 import {
@@ -18,7 +18,9 @@ import {
 } from "@/layouts/modals";
 import { useStyles } from "./upload-media-modal.styles";
 import { parseMediaUrl } from "./upload-media-modal.utils";
+import { useUploadFiles } from "../../hooks";
 import type { IUploadMediaModalPayload } from "../../modals";
+import type { ApiFile } from "@/graphql/types";
 
 const { Dragger } = Upload;
 
@@ -37,7 +39,7 @@ export interface UploadedMedia {
 
 export interface IUploadMediaModalProps {
   onClose: () => void;
-  onUpload: (media: UploadedMedia[]) => void | Promise<void>;
+  onUpload: (files: ApiFile[]) => void | Promise<void>;
   accept?: string;
   maxSize?: number; // in MB
   maxFiles?: number;
@@ -51,6 +53,7 @@ export const UploadMediaModal = () => {
   const { styles } = useStyles();
   const { payload, pop } = useModalStackContext();
   const typedPayload = payload as IUploadMediaModalPayload;
+  const { uploadFiles, uploadFromUrl, loading: uploading, progress } = useUploadFiles();
 
   // Props from payload with defaults
   const accept = typedPayload?.accept ?? "image/*,video/*";
@@ -82,29 +85,53 @@ export const UploadMediaModal = () => {
     ...urlMedia,
   ];
 
-  // Handle file upload
+  // Handle file upload - upload immediately on select
   const handleUploadChange = useCallback(
-    (info: { fileList: UploadFile[] }) => {
+    async (info: { fileList: UploadFile[] }) => {
       const { fileList: newFileList } = info;
-      // Filter by size
-      const validFiles = newFileList.filter((file) => {
-        if (file.size && file.size / 1024 / 1024 > maxSize) {
-          message.error(`${file.name} exceeds ${maxSize}MB limit`);
-          return false;
-        }
-        return true;
-      });
 
-      // Limit total files
-      if (validFiles.length + urlMedia.length > maxFiles) {
-        message.warning(`Maximum ${maxFiles} files allowed`);
-        setFileList(validFiles.slice(0, maxFiles - urlMedia.length));
-        return;
+      // Get new files that haven't been processed yet
+      const newFiles = newFileList.filter(
+        (f) => f.originFileObj && !fileList.some((existing) => existing.uid === f.uid)
+      );
+
+      if (newFiles.length === 0) return;
+
+      // Validate size
+      const validFiles: File[] = [];
+      for (const f of newFiles) {
+        if (f.size && f.size / 1024 / 1024 > maxSize) {
+          message.error(`${f.name} exceeds ${maxSize}MB limit`);
+          continue;
+        }
+        if (f.originFileObj) {
+          validFiles.push(f.originFileObj);
+        }
       }
 
-      setFileList(validFiles);
+      if (validFiles.length === 0) return;
+
+      // Upload immediately
+      setIsLoading(true);
+      try {
+        const { files: uploadedFiles, userErrors } = await uploadFiles(validFiles);
+
+        if (userErrors.length > 0) {
+          message.error(userErrors[0].message);
+        }
+
+        if (uploadedFiles.length > 0) {
+          await onUploadCallback?.(uploadedFiles);
+          message.success(`Uploaded ${uploadedFiles.length} file(s)`);
+          pop();
+        }
+      } catch {
+        message.error("Upload failed");
+      } finally {
+        setIsLoading(false);
+      }
     },
-    [maxSize, maxFiles, urlMedia.length]
+    [maxSize, fileList, uploadFiles, onUploadCallback, pop]
   );
 
   // Handle URL add
@@ -170,14 +197,48 @@ export const UploadMediaModal = () => {
 
     setIsLoading(true);
     try {
-      await onUploadCallback?.(allMedia);
-      pop();
+      const uploadedFiles: ApiFile[] = [];
+
+      // Upload local files
+      const localFiles = fileList
+        .filter((f) => f.originFileObj)
+        .map((f) => f.originFileObj as File);
+
+      if (localFiles.length > 0) {
+        const { files, userErrors } = await uploadFiles(localFiles);
+        uploadedFiles.push(...files);
+
+        if (userErrors.length > 0) {
+          message.error(userErrors[0].message);
+        }
+      }
+
+      // Upload URL media
+      for (const media of urlMedia) {
+        if (media.type === "youtube" || media.type === "image") {
+          const { file, userErrors } = await uploadFromUrl(media.url);
+          if (file) {
+            uploadedFiles.push(file);
+          }
+          if (userErrors.length > 0) {
+            message.error(userErrors[0].message);
+          }
+        }
+      }
+
+      if (uploadedFiles.length > 0) {
+        await onUploadCallback?.(uploadedFiles);
+        message.success(`Uploaded ${uploadedFiles.length} file(s) successfully`);
+        pop();
+      } else {
+        message.error("No files were uploaded");
+      }
     } catch {
       message.error("Failed to upload media");
     } finally {
       setIsLoading(false);
     }
-  }, [allMedia, onUploadCallback, pop]);
+  }, [allMedia.length, fileList, urlMedia, uploadFiles, uploadFromUrl, onUploadCallback, pop]);
 
   // Custom upload request (don't actually upload, just add to list)
   const customRequest = useCallback(
@@ -236,9 +297,9 @@ export const UploadMediaModal = () => {
           title="Upload Media"
           onClose={pop}
           submitButtonProps={{
-            children: "Upload",
+            children: uploading ? `Uploading... ${progress}%` : "Upload",
             onClick: handleSave,
-            loading: isLoading,
+            loading: isLoading || uploading,
             disabled: allMedia.length === 0,
           }}
         />
@@ -331,6 +392,13 @@ export const UploadMediaModal = () => {
             <div className={styles.previewGrid}>
               {allMedia.map(renderPreviewItem)}
             </div>
+          </div>
+        )}
+
+        {/* Upload Progress */}
+        {uploading && (
+          <div style={{ padding: "0 16px" }}>
+            <Progress percent={progress} status="active" />
           </div>
         )}
 

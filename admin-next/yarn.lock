@@ -151,6 +151,37 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@apollo/client@npm:^4.0.0":
+  version: 4.0.13
+  resolution: "@apollo/client@npm:4.0.13"
+  dependencies:
+    "@graphql-typed-document-node/core": "npm:^3.1.1"
+    "@wry/caches": "npm:^1.0.0"
+    "@wry/equality": "npm:^0.5.6"
+    "@wry/trie": "npm:^0.5.0"
+    graphql-tag: "npm:^2.12.6"
+    optimism: "npm:^0.18.0"
+    tslib: "npm:^2.3.0"
+  peerDependencies:
+    graphql: ^16.0.0
+    graphql-ws: ^5.5.5 || ^6.0.3
+    react: ^17.0.0 || ^18.0.0 || >=19.0.0-rc
+    react-dom: ^17.0.0 || ^18.0.0 || >=19.0.0-rc
+    rxjs: ^7.3.0
+    subscriptions-transport-ws: ^0.9.0 || ^0.11.0
+  peerDependenciesMeta:
+    graphql-ws:
+      optional: true
+    react:
+      optional: true
+    react-dom:
+      optional: true
+    subscriptions-transport-ws:
+      optional: true
+  checksum: 10/d7009f4435eabcad73d67d8b39dceb8e4c583eb51e2f9b219c5e54846f9123c8f7e0ba33e6b1eb9d93cdca2671a1a14a7791b38b6859b0c50e503cbf1216a3bf
+  languageName: node
+  linkType: hard
+
 "@apollo/client@npm:^4.0.12":
   version: 4.0.12
   resolution: "@apollo/client@npm:4.0.12"
@@ -3187,10 +3218,28 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/apollo-upload-client@npm:^19.0.0":
+  version: 19.0.0
+  resolution: "@types/apollo-upload-client@npm:19.0.0"
+  dependencies:
+    "@apollo/client": "npm:^4.0.0"
+    "@types/extract-files": "npm:*"
+    graphql: "npm:14 - 16"
+  checksum: 10/ff3be0c31bb48aa51bcd74b2c340fb333c6fccfe9f5215d0c5e665b2745992c8b642a4cabcf1dec3f77ab2cc1feeedd0e41ce8c4b6feef2f4e1e925ff73eac55
+  languageName: node
+  linkType: hard
+
 "@types/estree@npm:^1.0.6":
   version: 1.0.8
   resolution: "@types/estree@npm:1.0.8"
   checksum: 10/25a4c16a6752538ffde2826c2cc0c6491d90e69cd6187bef4a006dd2c3c45469f049e643d7e516c515f21484dc3d48fd5c870be158a5beb72f5baf3dc43e4099
+  languageName: node
+  linkType: hard
+
+"@types/extract-files@npm:*":
+  version: 13.0.2
+  resolution: "@types/extract-files@npm:13.0.2"
+  checksum: 10/62c4d5c73250cf88c5c138a4008d099ce2732c86c0de298281e0630ffb889d3420d2a92a18b3120127c3d603106f6a9a11e3c5252b5ab76fbc59c662a2f37d1d
   languageName: node
   linkType: hard
 
@@ -3671,6 +3720,7 @@ __metadata:
     "@graphql-codegen/typescript-operations": "npm:^4.6.1"
     "@graphql-codegen/typescript-react-apollo": "npm:^4.4.0"
     "@hookform/resolvers": "npm:^5.2.2"
+    "@types/apollo-upload-client": "npm:^19.0.0"
     "@types/html-to-text": "npm:^9.0.4"
     "@types/node": "npm:^20"
     "@types/react": "npm:^19"
@@ -3680,6 +3730,7 @@ __metadata:
     ag-grid-react: "npm:^34.3.1"
     antd: "npm:^6.0.1"
     antd-style: "npm:^3.7.1"
+    apollo-upload-client: "npm:^19.0.0"
     dayjs: "npm:^1.11.19"
     echarts: "npm:^6.0.0"
     echarts-for-react: "npm:^3.0.5"
@@ -3861,6 +3912,19 @@ __metadata:
     react: ">=18.0.0"
     react-dom: ">=18.0.0"
   checksum: 10/54dae8e36a720d1ef1f85f96d492a508c7329789b3fb7ce19294fb1e3edd8c83b39e4898a67ec364c1da39ccfbeb6a6c29eec950c6fd55e09f1431f1c85ae62e
+  languageName: node
+  linkType: hard
+
+"apollo-upload-client@npm:^19.0.0":
+  version: 19.0.0
+  resolution: "apollo-upload-client@npm:19.0.0"
+  dependencies:
+    extract-files: "npm:^13.0.0"
+  peerDependencies:
+    "@apollo/client": ^4.0.0
+    graphql: 14 - 16
+    rxjs: ^7.3.0
+  checksum: 10/d1b23fb55d1d74ee16950686dd0d7cde3cf2ded9ad1a8a01d66e40d58c4e3f533351137bcf3b4fd568e6d76195d26ca73cbbabce527ba2ace17fe0328f51cf92
   languageName: node
   linkType: hard
 
@@ -5341,6 +5405,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"extract-files@npm:^13.0.0":
+  version: 13.0.0
+  resolution: "extract-files@npm:13.0.0"
+  dependencies:
+    is-plain-obj: "npm:^4.1.0"
+  checksum: 10/b6fa0eb69115416808b4e92bfdaf69895a50daf3b28320a1dd99bc8a3c9163ac0fa1c1f5494bff00c16bdc029f2b8a89b1b0b879e9a06d6148f6f6ec50305b7a
+  languageName: node
+  linkType: hard
+
 "fast-deep-equal@npm:^3.1.1, fast-deep-equal@npm:^3.1.3":
   version: 3.1.3
   resolution: "fast-deep-equal@npm:3.1.3"
@@ -5793,7 +5866,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"graphql@npm:^16.9.0":
+"graphql@npm:14 - 16, graphql@npm:^16.9.0":
   version: 16.12.0
   resolution: "graphql@npm:16.12.0"
   checksum: 10/e299bc97cca178e549c8c1ed4cb164f631f07be987d3657f76cdf18c0250040cc0d456d4b6d41c87b855cac97b15a62ed345557527efcb0546492895a893bb87
@@ -6267,6 +6340,13 @@ __metadata:
   version: 7.0.0
   resolution: "is-number@npm:7.0.0"
   checksum: 10/6a6c3383f68afa1e05b286af866017c78f1226d43ac8cb064e115ff9ed85eb33f5c4f7216c96a71e4dfea289ef52c5da3aef5bbfade8ffe47a0465d70c0c8e86
+  languageName: node
+  linkType: hard
+
+"is-plain-obj@npm:^4.1.0":
+  version: 4.1.0
+  resolution: "is-plain-obj@npm:4.1.0"
+  checksum: 10/6dc45da70d04a81f35c9310971e78a6a3c7a63547ef782e3a07ee3674695081b6ca4e977fbb8efc48dae3375e0b34558d2bcd722aec9bddfa2d7db5b041be8ce
   languageName: node
   linkType: hard
 

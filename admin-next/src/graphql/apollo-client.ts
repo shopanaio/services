@@ -1,8 +1,9 @@
 import { ApolloClient, InMemoryCache } from "@apollo/client-integration-nextjs";
-import { HttpLink, ApolloLink } from "@apollo/client";
+import { ApolloLink } from "@apollo/client";
 import { ErrorLink } from "@apollo/client/link/error";
 import { CombinedGraphQLErrors } from "@apollo/client/errors";
 import { Observable } from "rxjs";
+import UploadHttpLink from "apollo-upload-client/UploadHttpLink.mjs";
 import {
   getAccessToken,
   getRefreshToken,
@@ -170,10 +171,13 @@ const errorLink = new ErrorLink(({ error, operation, forward }) => {
 });
 
 export function makeClient() {
-  const httpLink = new HttpLink({
+  const uploadLink = new UploadHttpLink({
     uri: GRAPHQL_ENDPOINT,
     credentials: "include",
     fetchOptions: { cache: "no-store" },
+    headers: {
+      "apollo-require-preflight": "true",
+    },
   });
 
   return new ApolloClient({
@@ -186,8 +190,8 @@ export function makeClient() {
         },
       },
     }),
-    // Order: errorLink (fallback 401) -> proactiveRefreshLink (proactive refresh + auth header) -> httpLink
-    link: ApolloLink.from([errorLink, proactiveRefreshLink, httpLink]),
+    // Order: errorLink (fallback 401) -> proactiveRefreshLink (proactive refresh + auth header) -> uploadLink
+    link: ApolloLink.from([errorLink, proactiveRefreshLink, uploadLink as unknown as ApolloLink]),
     defaultOptions: {
       watchQuery: {
         fetchPolicy: "cache-and-network",
