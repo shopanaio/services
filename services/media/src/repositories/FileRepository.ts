@@ -326,7 +326,7 @@ export class FileRepository {
     projectId: string,
     args: FileRelayInput
   ): Promise<FileConnectionResult> {
-    const { where, order, ...paginationArgs } = args;
+    const { where, orderBy, ...paginationArgs } = args;
 
     // Merge user-provided where with projectId and deletedAt filters
     const mergedWhere: FileRelayInput["where"] = {
@@ -340,10 +340,10 @@ export class FileRepository {
     const executeInput: FileRelayInput = {
       ...paginationArgs,
       where: mergedWhere,
-      order: order ?? [
-        { field: "createdAt", order: "desc" },
-        { field: "id", order: "desc" },
-      ],
+      orderBy: orderBy ?? ([
+        { field: "createdAt", direction: "desc" },
+        { field: "id", direction: "desc" },
+      ] as FileRelayInput["orderBy"]),
     };
 
     const [result, totalCount] = await Promise.all([
