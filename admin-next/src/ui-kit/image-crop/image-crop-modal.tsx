@@ -58,7 +58,8 @@ export const ImageCropModal = ({
       cancelButtonProps={{ size: "small" }}
       destroyOnHidden
       width={800}
-      transitionName="fade"
+      transitionName=""
+      maskTransitionName=""
     >
       <ImageCrop
         {...cropProps}

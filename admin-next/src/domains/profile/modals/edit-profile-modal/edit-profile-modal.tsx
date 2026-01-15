@@ -42,7 +42,7 @@ const useStyles = createStyles(({ token }) => ({
   },
   avatarSection: {
     display: "flex",
-    alignItems: "flex-start",
+    alignItems: "center",
     gap: token.marginLG,
   },
   avatarImage: {
@@ -197,19 +197,11 @@ export const EditProfileModal = () => {
                 showUploadList={false}
                 beforeUpload={handleFileSelect}
               >
-                <Button icon={<UploadOutlined />}>
+                <Button icon={<UploadOutlined />} size="small">
                   {avatarUrl ? "Change Photo" : "Upload Photo"}
                 </Button>
               </Upload>
-              {avatarUrl && (
-                <Button
-                  danger
-                  icon={<DeleteOutlined />}
-                  onClick={handleRemoveAvatar}
-                >
-                  Remove
-                </Button>
-              )}
+
               <Typography.Text className={styles.avatarHint}>
                 PNG, JPG or WEBP. 256×256px recommended.
               </Typography.Text>

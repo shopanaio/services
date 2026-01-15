@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { Typography, Button } from "antd";
+import { Button } from "antd";
 import { createStyles } from "antd-style";
 import ReactCrop, {
   centerCrop,
@@ -144,9 +144,6 @@ export const ImageCrop = ({
   previewSize = 100,
   previewBorderRadius,
   showPreview = true,
-  showActions = true,
-  onApply,
-  onCancel,
   onCropChange,
 }: ImageCropProps) => {
   const resolvedBorderRadius =
@@ -175,12 +172,6 @@ export const ImageCrop = ({
     },
     [onCropChange]
   );
-
-  const handleApply = useCallback(() => {
-    if (cropPreview) {
-      onApply(cropPreview);
-    }
-  }, [cropPreview, onApply]);
 
   return (
     <div className={styles.cropModal}>
@@ -217,14 +208,6 @@ export const ImageCrop = ({
           </div>
         )}
       </div>
-      {showActions && (
-        <div className={styles.cropActions}>
-          <Button onClick={onCancel}>Cancel</Button>
-          <Button type="primary" onClick={handleApply} disabled={!cropPreview}>
-            Apply
-          </Button>
-        </div>
-      )}
     </div>
   );
 };

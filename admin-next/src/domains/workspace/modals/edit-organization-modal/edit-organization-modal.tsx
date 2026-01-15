@@ -40,7 +40,7 @@ const useStyles = createStyles(({ token }) => ({
   },
   logoSection: {
     display: "flex",
-    alignItems: "flex-start",
+    alignItems: "center",
     gap: token.marginLG,
   },
   avatarImage: {
@@ -199,15 +199,6 @@ export const EditOrganizationModal = () => {
                   {logoUrl ? "Change Logo" : "Upload Logo"}
                 </Button>
               </Upload>
-              {logoUrl && (
-                <Button
-                  danger
-                  icon={<DeleteOutlined />}
-                  onClick={handleRemoveLogo}
-                >
-                  Remove
-                </Button>
-              )}
               <Typography.Text className={styles.logoHint}>
                 PNG, JPG or WEBP. 256×256px recommended.
               </Typography.Text>
