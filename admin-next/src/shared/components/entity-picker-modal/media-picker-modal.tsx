@@ -104,6 +104,7 @@ export function MediaPickerModal() {
         sizeBytes: Number(file.sizeBytes) || 0,
         ext: file.ext ?? null,
         createdAt: file.createdAt,
+        provider: file.provider,
       })
     );
 

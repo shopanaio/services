@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import type { ColDef, ICellRendererParams } from "ag-grid-community";
-import { Image, Typography } from "antd";
+import { Image, Typography, Flex, Tag } from "antd";
+import type { ColDef } from "ag-grid-community";
+import type { CustomCellRendererProps } from "ag-grid-react";
 import { registerEntityPickerConfig } from ".";
 import type {
   IEntityPickerConfig,
@@ -12,6 +13,7 @@ import type {
 import type { IFilterValue } from "@/layouts/filters";
 import { useFiles } from "@/domains/media/hooks";
 import type { ApiFile } from "@/graphql/types";
+import { FileProvider } from "@/graphql/types";
 
 /**
  * Media entity adapted for picker
@@ -23,6 +25,7 @@ export interface IMediaPickerEntity extends IPickableEntity {
   sizeBytes: number;
   ext: string | null;
   createdAt: string;
+  provider: FileProvider;
 }
 
 /**
@@ -39,67 +42,68 @@ function transformFile(file: ApiFile): IMediaPickerEntity {
     sizeBytes: Number(file.sizeBytes) || 0,
     ext: file.ext ?? null,
     createdAt: file.createdAt,
+    provider: file.provider,
   };
 }
 
-/**
- * Format file size in human-readable format
- */
-function formatFileSize(bytes: number): string {
-  if (bytes === 0) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
-}
+// ============================================
+// Cell Renderers (same as media page)
+// ============================================
 
-/**
- * Media cell renderer
- */
-function MediaCellRenderer(params: ICellRendererParams<IMediaPickerEntity>) {
-  const data = params.data;
+const FileCellRenderer = (props: CustomCellRendererProps<IMediaPickerEntity>) => {
+  const { data } = props;
   if (!data) return null;
 
+  const isImage = data.mimeType?.startsWith("image/");
+
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-      <Image
-        src={data.url}
-        alt={data.title}
-        width={40}
-        height={40}
-        style={{ objectFit: "cover", borderRadius: 4 }}
-        preview={false}
-      />
-      <div style={{ minWidth: 0 }}>
-        <Typography.Text
-          ellipsis
-          style={{ display: "block", fontWeight: 500 }}
+    <Flex align="center" gap="small">
+      {isImage ? (
+        <Image
+          src={data.url}
+          alt={data.originalName ?? "File"}
+          width={40}
+          height={40}
+          style={{ borderRadius: 4, objectFit: "cover" }}
+          preview={false}
+        />
+      ) : (
+        <div
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 4,
+            backgroundColor: "#f0f0f0",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 10,
+            fontWeight: 500,
+            color: "#666",
+          }}
         >
-          {data.originalName || data.id}
-        </Typography.Text>
-        {data.ext && (
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            {data.ext.toUpperCase()}
-          </Typography.Text>
-        )}
-      </div>
-    </div>
+          {data.ext?.toUpperCase() ?? "FILE"}
+        </div>
+      )}
+      <Typography.Text strong ellipsis style={{ maxWidth: 200 }}>
+        {data.originalName ?? "Untitled"}
+      </Typography.Text>
+    </Flex>
   );
-}
+};
 
-/**
- * Size cell renderer
- */
-function SizeCellRenderer(params: ICellRendererParams<IMediaPickerEntity>) {
-  const data = params.data;
-  if (!data) return null;
-
-  return (
-    <Typography.Text type="secondary">
-      {formatFileSize(data.sizeBytes)}
-    </Typography.Text>
-  );
-}
+const ProviderCellRenderer = (props: CustomCellRendererProps<IMediaPickerEntity>) => {
+  const { value } = props;
+  const config: Record<string, { color: string; label: string }> = {
+    [FileProvider.S3]: { color: "orange", label: "S3" },
+    [FileProvider.Youtube]: { color: "red", label: "YouTube" },
+    [FileProvider.Vimeo]: { color: "blue", label: "Vimeo" },
+    [FileProvider.Url]: { color: "purple", label: "URL" },
+    [FileProvider.Local]: { color: "default", label: "Local" },
+  };
+  const { color, label } = config[value] || config[FileProvider.Local];
+  return <Tag color={color}>{label}</Tag>;
+};
 
 /**
  * Data hook for media picker
@@ -168,16 +172,21 @@ function useMediaPickerData(options: {
 const mediaPickerColumns: ColDef<IMediaPickerEntity>[] = [
   {
     headerName: "File",
-    field: "title",
-    cellRenderer: MediaCellRenderer,
+    field: "originalName",
+    cellRenderer: FileCellRenderer,
+    minWidth: 300,
     flex: 1,
-    minWidth: 250,
   },
   {
-    headerName: "Size",
-    field: "sizeBytes",
-    cellRenderer: SizeCellRenderer,
-    width: 100,
+    headerName: "Type",
+    field: "mimeType",
+    width: 120,
+  },
+  {
+    headerName: "Provider",
+    field: "provider",
+    cellRenderer: ProviderCellRenderer,
+    width: 120,
   },
 ];
 
