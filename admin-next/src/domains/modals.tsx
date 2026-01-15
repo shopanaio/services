@@ -270,6 +270,15 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
+    // Media Picker modal
+    {
+      type: 'media-picker',
+      component: dynamic(() =>
+        import('@/shared/components/entity-picker-modal/media-picker-modal').then(
+          (m) => m.MediaPickerModal
+        )
+      ),
+    },
     // ========================================
     // Media modals
     // ========================================

@@ -23,6 +23,7 @@ import {
   AppstoreOutlined,
   UnorderedListOutlined,
   HolderOutlined,
+  FolderOpenOutlined,
 } from "@ant-design/icons";
 import { FeaturedBadge } from "@/ui-kit/featured-badge";
 import {
@@ -48,8 +49,10 @@ import { CSS } from "@dnd-kit/utilities";
 import { syntheticId } from "@/utils/synthetic-id";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useUploadMediaModal } from "@/domains/media/modals";
+import { useMediaPicker } from "@/shared/components/entity-picker-modal";
 import { useStyles } from "./styles";
 import type { IMediaItem, IEntityMediaGalleryProps, ViewMode } from "./types";
+import type { ApiFile } from "@/graphql/types";
 
 // ============================================================================
 // Helpers
@@ -438,6 +441,42 @@ export const EntityMediaGallery = ({
   const viewMode = controlledViewMode ?? internalViewMode;
   const setViewMode = onViewModeChange ?? setInternalViewMode;
 
+  // Convert ApiFile to IMediaItem
+  const apiFileToMediaItem = useCallback((file: ApiFile): IMediaItem => ({
+    id: file.id,
+    url: file.url,
+    name: file.originalName || file.id,
+    size: Number(file.sizeBytes) || 0,
+    ext: file.ext || undefined,
+  }), []);
+
+  // Handle files selected from media picker
+  const handleMediaPickerConfirm = useCallback((files: ApiFile[]) => {
+    const newItems = files.map(apiFileToMediaItem);
+    onChange([...value, ...newItems]);
+  }, [value, onChange, apiFileToMediaItem]);
+
+  // Media picker hook
+  const { openPicker: openMediaPicker } = useMediaPicker({
+    accept,
+    onConfirm: handleMediaPickerConfirm,
+    excludeIds: value.map((item) => item.id),
+  });
+
+  // Handle files uploaded from upload modal
+  const handleUploadModalConfirm = useCallback((files: ApiFile[]) => {
+    const newItems = files.map(apiFileToMediaItem);
+    onChange([...value, ...newItems]);
+  }, [value, onChange, apiFileToMediaItem]);
+
+  // Open upload modal handler
+  const handleOpenUploadModal = useCallback(() => {
+    openUploadModal({
+      accept,
+      onUpload: handleUploadModalConfirm,
+    });
+  }, [openUploadModal, accept, handleUploadModalConfirm]);
+
   const activeItem = value.find((it) => it.id === activeId);
   const activeIndex = activeItem ? value.indexOf(activeItem) : -1;
 
@@ -539,8 +578,8 @@ export const EntityMediaGallery = ({
         </Typography.Text>
         <Flex gap={8} align="center">
           {showUpload && (
-            <Button size="small" icon={<UploadOutlined />} onClick={() => openUploadModal({ accept })}>
-              Upload
+            <Button size="small" icon={<FolderOpenOutlined />} onClick={openMediaPicker}>
+              Files
             </Button>
           )}
           <Space.Compact size="small">
@@ -631,19 +670,22 @@ export const EntityMediaGallery = ({
 
               {showUpload && (
                 <div className={styles.uploadCell}>
-                  <Upload
-                    accept={accept}
-                    multiple={multiple}
-                    showUploadList={false}
-                    beforeUpload={handleUpload}
+                  <div
+                    className={styles.uploadArea}
+                    onClick={handleOpenUploadModal}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        handleOpenUploadModal();
+                      }
+                    }}
                   >
-                    <div className={styles.uploadArea}>
-                      <PlusOutlined className={styles.uploadIcon} />
-                      <Typography.Text className={styles.uploadText}>
-                        Upload
-                      </Typography.Text>
-                    </div>
-                  </Upload>
+                    <PlusOutlined className={styles.uploadIcon} />
+                    <Typography.Text className={styles.uploadText}>
+                      Upload
+                    </Typography.Text>
+                  </div>
                 </div>
               )}
 

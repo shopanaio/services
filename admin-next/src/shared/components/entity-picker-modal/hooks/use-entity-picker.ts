@@ -3,6 +3,7 @@
 import { useCallback } from "react";
 import { useModalStack } from "@/layouts/modals";
 import type { IPickableEntity, IEntityPickerPayload } from "../types";
+import type { ApiFile } from "@/graphql/types";
 
 interface IUseEntityPickerOptions<T extends IPickableEntity> {
   entityType: string;
@@ -179,7 +180,7 @@ interface IUseMediaPickerOptions {
   maxSelection?: number;
   accept?: string;
   maxSize?: number;
-  onConfirm: (files: unknown[]) => void;
+  onConfirm: (files: ApiFile[]) => void;
 }
 
 /**
