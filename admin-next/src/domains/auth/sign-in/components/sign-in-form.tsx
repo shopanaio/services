@@ -99,7 +99,6 @@ export function SignInForm({ form, onSubmit, loading }: SignInFormProps) {
                 autoComplete="email"
                 size="large"
                 status={errors.email ? "error" : undefined}
-                autoFocus
               />
             )}
           />

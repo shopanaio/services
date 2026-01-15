@@ -100,7 +100,6 @@ export function SignUpForm({ form, onSubmit, loading }: SignUpFormProps) {
                 autoComplete="email"
                 size="large"
                 status={errors.email ? "error" : undefined}
-                autoFocus
               />
             )}
           />

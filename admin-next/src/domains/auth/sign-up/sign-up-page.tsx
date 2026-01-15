@@ -26,7 +26,7 @@ export default function SignUpPage() {
       password: "",
       confirmPassword: "",
     },
-    mode: "onBlur", // Validate on blur for better UX
+    mode: "onSubmit",
   });
 
   const onSubmit = useCallback(

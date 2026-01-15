@@ -27,7 +27,7 @@ export default function SignInPage() {
       password: "",
       rememberMe: false,
     },
-    mode: "onBlur", // Validate on blur for better UX
+    mode: "onSubmit",
   });
 
   const onSubmit = useCallback(
