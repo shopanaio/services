@@ -48,6 +48,32 @@ export const useMediaStyles = createStyles(({ token }) => ({
   mediaFeaturedWrapper: {
     position: "relative",
   },
+  uploadCell: {
+    aspectRatio: "1/1",
+    width: "100%",
+  },
+  uploadArea: {
+    width: "100%",
+    height: "100%",
+    display: "flex",
+    flexDirection: "column" as const,
+    alignItems: "center",
+    justifyContent: "center",
+    background: token.colorBgLayout,
+    border: `2px dashed ${token.colorBorder}`,
+    borderRadius: 8,
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+    boxSizing: "border-box" as const,
+    "&:hover": {
+      borderColor: token.colorPrimary,
+      background: token.colorPrimaryBg,
+    },
+  },
+  uploadIcon: {
+    fontSize: 20,
+    color: token.colorIcon,
+  },
 }));
 
 // ============================================================================

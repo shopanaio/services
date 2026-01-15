@@ -1,7 +1,7 @@
 "use client";
 
 import { Image, Flex } from "antd";
-import { EyeOutlined } from "@ant-design/icons";
+import { EyeOutlined, PlusOutlined } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { FeaturedBadge } from "@/ui-kit/featured-badge";
 import { MediaPreview, useMediaPreview } from "@/domains/media/components/media-preview";
@@ -19,9 +19,9 @@ export const MediaSection = ({ gallery, onEdit }: IMediaSectionProps) => {
   const { styles } = useMediaStyles();
   const mediaPreview = useMediaPreview(gallery);
 
-  const showMore = gallery.length > 13;
-  const gallerySlice = gallery.slice(0, showMore ? 12 : 13);
-  const overlayItemsCount = gallerySlice.length + (showMore ? 1 : 0);
+  const showMore = gallery.length > 12;
+  const gallerySlice = gallery.slice(0, showMore ? 11 : 12);
+  const overlayItemsCount = gallerySlice.length + (showMore ? 1 : 0) + 1; // +1 for upload cell
 
   return (
     <Paper>
@@ -74,16 +74,31 @@ export const MediaSection = ({ gallery, onEdit }: IMediaSectionProps) => {
             align="center"
             justify="center"
             className={styles.mediaMoreButton}
-            onClick={() => mediaPreview.open(12)}
+            onClick={() => mediaPreview.open(11)}
           >
-            +{gallery.length - 12}
+            +{gallery.length - 11}
           </Flex>
         )}
+        <div className={styles.uploadCell}>
+          <div
+            className={styles.uploadArea}
+            onClick={onEdit}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                onEdit();
+              }
+            }}
+          >
+            <PlusOutlined className={styles.uploadIcon} />
+          </div>
+        </div>
         <div className={styles.mediaOverlay}>
           {Array.from({ length: overlayItemsCount }).map((_, idx) => (
             <div key={`spacer-${idx}`} style={{ aspectRatio: "1/1" }} />
           ))}
-          {Array.from({ length: 13 - gallerySlice.length }).map((_, idx) => (
+          {Array.from({ length: Math.max(0, 13 - overlayItemsCount) }).map((_, idx) => (
             <MediaFilePlaceholder key={`placeholder-${idx}`} />
           ))}
         </div>
