@@ -17,47 +17,13 @@ export const useMediaPickerStyles = createStyles(({ token }) => ({
   draggerSection: {
     marginBottom: token.marginSM,
   },
-  dragger: {
-    borderRadius: 8,
-    border: `2px dashed ${token.colorBorder}`,
-    background: token.colorBgContainer,
-    transition: "all 0.2s ease",
-    "&:hover": {
-      borderColor: token.colorPrimary,
-      background: token.colorPrimaryBg,
-    },
-    "& .ant-upload": {
-      padding: 0,
-    },
-    "& .ant-upload-btn": {
-      padding: "16px 24px !important",
-    },
-    "& .ant-upload-drag-container": {
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-    },
-  },
   draggerIcon: {
     fontSize: 24,
-    color: token.colorPrimary,
+    color: token.colorIcon,
     marginBottom: token.marginXS,
   },
   draggerTitle: {
     fontSize: token.fontSizeLG,
-    fontWeight: 600,
-    color: token.colorText,
-    marginBottom: 4,
-  },
-  draggerHint: {
-    fontSize: 13,
-    color: token.colorTextSecondary,
-  },
-  browseLink: {
-    color: token.colorPrimary,
-    cursor: "pointer",
-    fontWeight: 500,
   },
   gridContainer: {
     flex: 1,

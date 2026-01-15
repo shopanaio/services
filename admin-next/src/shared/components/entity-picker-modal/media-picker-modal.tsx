@@ -9,14 +9,21 @@ import {
   SelectionChangedEvent,
 } from "ag-grid-community";
 import { Upload, Typography, Flex, message, Progress } from "antd";
-import { CloudUploadOutlined } from "@ant-design/icons";
-import { ModalLayout, ModalHeader, useModalStackContext } from "@/layouts/modals";
+import { UploadOutlined } from "@ant-design/icons";
+import {
+  ModalLayout,
+  ModalHeader,
+  useModalStackContext,
+} from "@/layouts/modals";
 import { useFilters, FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
 import { useAgGridTheme } from "@/hooks";
 import { useFiles, useUploadFiles } from "@/domains/media/hooks";
 import { useMediaPickerStyles } from "./media-picker-modal.styles";
-import { mediaPickerConfig, type IMediaPickerEntity } from "./configs/media-picker-config";
+import {
+  mediaPickerConfig,
+  type IMediaPickerEntity,
+} from "./configs/media-picker-config";
 import type { ApiFile } from "@/graphql/types";
 
 const { Dragger } = Upload;
@@ -62,7 +69,9 @@ export function MediaPickerModal() {
 
   // Selection state
   const [selectedIds, setSelectedIds] = useState<string[]>(initialSelection);
-  const [selectedEntities, setSelectedEntities] = useState<IMediaPickerEntity[]>([]);
+  const [selectedEntities, setSelectedEntities] = useState<
+    IMediaPickerEntity[]
+  >([]);
   const [isGridReady, setIsGridReady] = useState(false);
 
   // Filter state
@@ -84,17 +93,19 @@ export function MediaPickerModal() {
 
   // Transform files to picker entities
   const transformedData = useMemo(() => {
-    const transformed = files.map((file): IMediaPickerEntity => ({
-      id: file.id,
-      title: file.originalName || file.id,
-      image: file.url,
-      url: file.url,
-      originalName: file.originalName ?? null,
-      mimeType: file.mimeType ?? null,
-      sizeBytes: Number(file.sizeBytes) || 0,
-      ext: file.ext ?? null,
-      createdAt: file.createdAt,
-    }));
+    const transformed = files.map(
+      (file): IMediaPickerEntity => ({
+        id: file.id,
+        title: file.originalName || file.id,
+        image: file.url,
+        url: file.url,
+        originalName: file.originalName ?? null,
+        mimeType: file.mimeType ?? null,
+        sizeBytes: Number(file.sizeBytes) || 0,
+        ext: file.ext ?? null,
+        createdAt: file.createdAt,
+      })
+    );
 
     // Filter out excluded IDs
     if (excludeIds.length > 0) {
@@ -149,7 +160,10 @@ export function MediaPickerModal() {
     if (!api) return;
 
     api.forEachNode((node) => {
-      if (node.data && initialSelection.includes(mediaPickerConfig.getRowId(node.data))) {
+      if (
+        node.data &&
+        initialSelection.includes(mediaPickerConfig.getRowId(node.data))
+      ) {
         node.setSelected(true);
       }
     });
@@ -177,7 +191,9 @@ export function MediaPickerModal() {
         if (validFiles.length === 0) return false;
 
         try {
-          const { files: uploadedFiles, userErrors } = await uploadFiles(validFiles);
+          const { files: uploadedFiles, userErrors } = await uploadFiles(
+            validFiles
+          );
 
           if (userErrors.length > 0) {
             message.error(userErrors[0].message);
@@ -216,7 +232,6 @@ export function MediaPickerModal() {
 
   return (
     <ModalLayout
-      fullWidth
       name="media-picker"
       bodyClassName="media-picker-body"
       header={
@@ -247,7 +262,6 @@ export function MediaPickerModal() {
         {/* Upload Dragger */}
         <div className={styles.draggerSection}>
           <Dragger
-            className={styles.dragger}
             multiple
             accept={accept}
             beforeUpload={handleBeforeUpload}
@@ -256,20 +270,30 @@ export function MediaPickerModal() {
           >
             {uploading ? (
               <div style={{ padding: "8px 0" }}>
-                <Progress percent={progress} status="active" style={{ width: 200 }} />
-                <Typography.Text type="secondary" style={{ marginTop: 8, display: "block" }}>
+                <Progress
+                  percent={progress}
+                  status="active"
+                  style={{ width: 200 }}
+                />
+                <Typography.Text
+                  type="secondary"
+                  style={{ marginTop: 8, display: "block" }}
+                >
                   Uploading...
                 </Typography.Text>
               </div>
             ) : (
               <Flex align="center" justify="center" vertical>
-                <CloudUploadOutlined className={styles.draggerIcon} />
-                <Typography.Text className={styles.draggerTitle}>
+                <UploadOutlined className={styles.draggerIcon} />
+                <Typography.Text
+                  strong
+                  type="secondary"
+                  className={styles.draggerTitle}
+                >
                   Upload images
                 </Typography.Text>
-                <Typography.Text className={styles.draggerHint}>
-                  Drag and drop files here or{" "}
-                  <span className={styles.browseLink}>browse</span>
+                <Typography.Text type="secondary">
+                  Drag and drop images here or click to upload.
                 </Typography.Text>
               </Flex>
             )}
