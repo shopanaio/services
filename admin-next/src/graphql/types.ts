@@ -1189,6 +1189,17 @@ export type ApiFile = ApiNode & {
   url: Scalars['String']['output'];
 };
 
+/** A connection to a list of File items. */
+export type ApiFileConnection = {
+  __typename?: 'FileConnection';
+  /** A list of edges. */
+  edges: Array<ApiFileEdge>;
+  /** Information to aid in pagination. */
+  pageInfo: ApiPageInfo;
+  /** The total number of files. */
+  totalCount: Scalars['Int']['output'];
+};
+
 /** Input for creating an external media file (YouTube, Vimeo, etc). */
 export type ApiFileCreateExternalInput = {
   /** Alt text for accessibility. */
@@ -1239,6 +1250,15 @@ export type ApiFileDeletePayload = {
   deletedFileId?: Maybe<Scalars['ID']['output']>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<ApiGenericUserError>;
+};
+
+/** An edge in a File connection. */
+export type ApiFileEdge = {
+  __typename?: 'FileEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String']['output'];
+  /** The item at the end of the edge. */
+  node: ApiFile;
 };
 
 /** Provider type for files. */
@@ -1995,6 +2015,8 @@ export type ApiMediaQuery = {
   __typename?: 'MediaQuery';
   /** Get a file by ID */
   file?: Maybe<ApiFile>;
+  /** Get files with Relay-style pagination */
+  files: ApiFileConnection;
   /** Get a node by its global ID */
   node?: Maybe<ApiNode>;
   /** Get multiple nodes by their global IDs */
@@ -2004,6 +2026,14 @@ export type ApiMediaQuery = {
 
 export type ApiMediaQueryFileArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+export type ApiMediaQueryFilesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
