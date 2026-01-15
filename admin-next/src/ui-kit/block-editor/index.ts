@@ -1,8 +1,9 @@
-export { BlockEditor } from "./block-editor";
-export type { BlockEditorProps } from "./block-editor";
+// Re-export from editor for backward compatibility
+export { Editor as BlockEditor } from "@/ui-kit/editor";
+export type { EditorProps as BlockEditorProps } from "@/ui-kit/editor";
 export {
   renderToPlainText,
   renderToHtml,
   renderContent,
   type RenderedContent,
-} from "./renderers";
+} from "@/ui-kit/editor";

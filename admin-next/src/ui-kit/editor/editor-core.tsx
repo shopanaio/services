@@ -20,23 +20,23 @@ const useStyles = createStyles(({ token }) => ({
   },
 }));
 
-export interface BlockEditorProps {
-  value?: OutputData;
-  onChange?: (data: OutputData) => void;
+export interface EditorProps {
+  value?: OutputData | null;
+  onChange?: (data: OutputData | null) => void;
   placeholder?: string;
   readOnly?: boolean;
   minHeight?: number;
   autofocus?: boolean;
 }
 
-const BlockEditorCore = memo(function BlockEditorCore({
+const EditorCore = memo(function EditorCore({
   value,
   onChange,
   placeholder = "Start writing...",
   readOnly = false,
-  minHeight = 200,
+  minHeight = 100,
   autofocus = false,
-}: BlockEditorProps) {
+}: EditorProps) {
   const { styles } = useStyles();
   const editorRef = useRef<EditorJS | null>(null);
   const holderId = useId().replace(/:/g, "-");
@@ -46,7 +46,7 @@ const BlockEditorCore = memo(function BlockEditorCore({
     async (api: API) => {
       if (!onChange) return;
       const data = await api.saver.save();
-      onChange(data);
+      onChange(data.blocks?.length ? data : null);
     },
     [onChange]
   );
@@ -57,7 +57,7 @@ const BlockEditorCore = memo(function BlockEditorCore({
 
     const editor = new EditorJS({
       holder: holderId,
-      data: value,
+      data: value || undefined,
       placeholder,
       readOnly,
       autofocus,
@@ -111,4 +111,4 @@ const BlockEditorCore = memo(function BlockEditorCore({
   );
 });
 
-export default BlockEditorCore;
+export default EditorCore;

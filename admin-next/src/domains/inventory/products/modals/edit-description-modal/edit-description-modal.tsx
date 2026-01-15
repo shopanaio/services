@@ -8,7 +8,7 @@ import {
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
-import { BlockEditor, renderContent, type RenderedContent } from "@/ui-kit/block-editor";
+import { Editor, renderContent, type RenderedContent } from "@/ui-kit/editor";
 import { AIButton } from "@/ui-kit/ai-button";
 import { Paper } from "@/ui-kit/paper";
 import type { IProductEditDescriptionModalPayload } from "../../modals";
@@ -95,8 +95,8 @@ export const EditDescriptionModal = () => {
                     name="description"
                     control={control}
                     render={({ field }) => (
-                      <BlockEditor
-                        value={field.value || undefined}
+                      <Editor
+                        value={field.value}
                         onChange={field.onChange}
                         placeholder="Start writing product description..."
                         minHeight={250}
@@ -114,8 +114,8 @@ export const EditDescriptionModal = () => {
                     name="excerpt"
                     control={control}
                     render={({ field }) => (
-                      <BlockEditor
-                        value={field.value || undefined}
+                      <Editor
+                        value={field.value}
                         onChange={field.onChange}
                         placeholder="Write a short product excerpt..."
                         minHeight={150}

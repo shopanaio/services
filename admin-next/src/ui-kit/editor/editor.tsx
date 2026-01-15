@@ -1,26 +1,11 @@
 "use client";
 
-import { BlockEditor, type BlockEditorProps } from "@/ui-kit/block-editor";
+import dynamic from "next/dynamic";
+import { Skeleton } from "antd";
 
-export interface EditorProps extends Omit<BlockEditorProps, "value" | "onChange"> {
-  value?: BlockEditorProps["value"] | null;
-  onChange?: (value: BlockEditorProps["value"] | null) => void;
-}
+export type { EditorProps } from "./editor-core";
 
-export const Editor = ({
-  value,
-  onChange,
-  placeholder = "Start writing...",
-  minHeight = 100,
-  ...props
-}: EditorProps) => {
-  return (
-    <BlockEditor
-      value={value || undefined}
-      onChange={(data) => onChange?.(data.blocks?.length ? data : null)}
-      placeholder={placeholder}
-      minHeight={minHeight}
-      {...props}
-    />
-  );
-};
+export const Editor = dynamic(() => import("./editor-core"), {
+  ssr: false,
+  loading: () => <Skeleton.Input active block style={{ height: 100 }} />,
+});

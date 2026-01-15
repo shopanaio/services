@@ -23,7 +23,7 @@ import {
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
-import { BlockEditor, renderContent } from "@/ui-kit/block-editor";
+import { Editor, renderContent } from "@/ui-kit/editor";
 import { Paper } from "@/ui-kit/paper";
 import type {
   IProductAIWriterModalPayload,
@@ -307,7 +307,7 @@ export const AIWriterModal = () => {
                       Regenerate
                     </Button>
                   </div>
-                  <BlockEditor
+                  <Editor
                     value={generatedContent.description}
                     onChange={(data) =>
                       setGeneratedContent((prev) => ({
@@ -336,7 +336,7 @@ export const AIWriterModal = () => {
                       Regenerate
                     </Button>
                   </div>
-                  <BlockEditor
+                  <Editor
                     value={generatedContent.excerpt}
                     onChange={(data) =>
                       setGeneratedContent((prev) => ({
