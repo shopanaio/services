@@ -89,19 +89,11 @@ const useStyles = createStyles(({ token }) => ({
     width: 300,
     height: 300,
     overflow: "hidden",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    "& .ReactCrop": {
-      maxWidth: "100%",
-      maxHeight: "100%",
-    },
   },
   cropImage: {
-    display: "block",
-    maxWidth: 300,
-    maxHeight: 300,
-    objectFit: "contain",
+    width: "auto !important",
+    height: "300px !important",
+    maxWidth: "none !important",
   },
   previewSection: {
     display: "flex",
@@ -214,6 +206,7 @@ export const EditProfileModal = () => {
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
   const [cropPreview, setCropPreview] = useState<string | null>(null);
+  const [imgStyle, setImgStyle] = useState<React.CSSProperties>({});
   const imgRef = useRef<HTMLImageElement>(null);
 
   // Form state
@@ -245,7 +238,29 @@ export const EditProfileModal = () => {
 
   const onImageLoad = useCallback(
     (e: React.SyntheticEvent<HTMLImageElement>) => {
-      const { width, height } = e.currentTarget;
+      const { naturalWidth, naturalHeight, width, height } = e.currentTarget;
+      const isLandscape = naturalWidth > naturalHeight;
+      const containerSize = 300;
+
+      if (isLandscape) {
+        const scaledWidth = (naturalWidth / naturalHeight) * containerSize;
+        const offsetX = (scaledWidth - containerSize) / 2;
+        setImgStyle({
+          height: containerSize,
+          width: "auto",
+          maxWidth: "none",
+          marginLeft: -offsetX,
+        });
+      } else {
+        const scaledHeight = (naturalHeight / naturalWidth) * containerSize;
+        const offsetY = (scaledHeight - containerSize) / 2;
+        setImgStyle({
+          width: containerSize,
+          height: "auto",
+          maxHeight: "none",
+          marginTop: -offsetY,
+        });
+      }
       setCrop(centerAspectCrop(width, height, 1));
     },
     []
@@ -365,7 +380,7 @@ export const EditProfileModal = () => {
                       ref={imgRef}
                       src={imageSrc}
                       alt="Crop preview"
-                      className={styles.cropImage}
+                      style={imgStyle}
                       onLoad={onImageLoad}
                     />
                   </ReactCrop>

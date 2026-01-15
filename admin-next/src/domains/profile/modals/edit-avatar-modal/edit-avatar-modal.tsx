@@ -45,19 +45,11 @@ const useStyles = createStyles(({ token }) => ({
     width: 400,
     height: 400,
     overflow: "hidden",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    "& .ReactCrop": {
-      maxWidth: "100%",
-      maxHeight: "100%",
-    },
   },
   cropImage: {
-    display: "block",
-    maxWidth: 400,
-    maxHeight: 400,
-    objectFit: "contain",
+    width: "auto !important",
+    height: "400px !important",
+    maxWidth: "none !important",
   },
   previewSection: {
     display: "flex",
@@ -167,6 +159,7 @@ export const EditAvatarModal = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(
     typedPayload.currentImage || null
   );
+  const [imgStyle, setImgStyle] = useState<React.CSSProperties>({});
   const imgRef = useRef<HTMLImageElement>(null);
 
   const handleFileSelect = useCallback(
@@ -184,7 +177,29 @@ export const EditAvatarModal = () => {
 
   const onImageLoad = useCallback(
     (e: React.SyntheticEvent<HTMLImageElement>) => {
-      const { width, height } = e.currentTarget;
+      const { naturalWidth, naturalHeight, width, height } = e.currentTarget;
+      const isLandscape = naturalWidth > naturalHeight;
+      const containerSize = 400;
+
+      if (isLandscape) {
+        const scaledWidth = (naturalWidth / naturalHeight) * containerSize;
+        const offsetX = (scaledWidth - containerSize) / 2;
+        setImgStyle({
+          height: containerSize,
+          width: "auto",
+          maxWidth: "none",
+          marginLeft: -offsetX,
+        });
+      } else {
+        const scaledHeight = (naturalHeight / naturalWidth) * containerSize;
+        const offsetY = (scaledHeight - containerSize) / 2;
+        setImgStyle({
+          width: containerSize,
+          height: "auto",
+          maxHeight: "none",
+          marginTop: -offsetY,
+        });
+      }
       setCrop(centerAspectCrop(width, height, 1));
     },
     []
@@ -269,7 +284,7 @@ export const EditAvatarModal = () => {
                       ref={imgRef}
                       src={imageSrc}
                       alt="Crop preview"
-                      className={styles.cropImage}
+                      style={imgStyle}
                       onLoad={onImageLoad}
                     />
                   </ReactCrop>
