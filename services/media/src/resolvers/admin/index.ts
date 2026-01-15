@@ -15,5 +15,8 @@ export { BucketResolver } from "./BucketResolver.js";
 export { S3DataResolver } from "./S3DataResolver.js";
 export { ExternalDataResolver } from "./ExternalDataResolver.js";
 
+// Connection resolvers
+export * from "./connection/index.js";
+
 // Utils
 export * from "./utils/index.js";

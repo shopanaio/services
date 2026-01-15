@@ -1,6 +1,27 @@
-import { eq, and, isNull, inArray, sql } from "drizzle-orm";
+import { eq, and, isNull, inArray, sql, count } from "drizzle-orm";
+import {
+  createQuery,
+  createRelayQuery,
+  type PageInfo,
+  type InferRelayInput,
+} from "@shopana/drizzle-query";
 import type { Database } from "../infrastructure/db/database";
 import { files, type File, type NewFile } from "./models";
+
+// ---- Relay Query Builder ----
+
+const fileRelayQuery = createRelayQuery(
+  createQuery(files).include(["id"]).maxLimit(100).defaultLimit(20),
+  { name: "file", tieBreaker: "id" }
+);
+
+export type FileRelayInput = InferRelayInput<typeof fileRelayQuery>;
+
+export interface FileConnectionResult {
+  edges: Array<{ cursor: string; nodeId: string }>;
+  pageInfo: PageInfo;
+  totalCount: number;
+}
 
 // ---- Types ----
 
@@ -281,5 +302,62 @@ export class FileRepository {
       .returning();
 
     return result[0] ?? null;
+  }
+
+  // ---- Connection methods ----
+
+  /**
+   * Count files in a project
+   */
+  async count(projectId: string): Promise<number> {
+    const result = await this.db
+      .select({ count: count() })
+      .from(files)
+      .where(
+        and(eq(files.projectId, projectId), isNull(files.deletedAt))
+      );
+    return result[0]?.count ?? 0;
+  }
+
+  /**
+   * Get files with Relay-style cursor pagination
+   */
+  async getConnection(
+    projectId: string,
+    args: FileRelayInput
+  ): Promise<FileConnectionResult> {
+    const { where, order, ...paginationArgs } = args;
+
+    // Merge user-provided where with projectId and deletedAt filters
+    const mergedWhere: FileRelayInput["where"] = {
+      _and: [
+        { projectId: { _eq: projectId } },
+        { deletedAt: { _is: null } },
+        ...(where ? [where] : []),
+      ],
+    };
+
+    const executeInput: FileRelayInput = {
+      ...paginationArgs,
+      where: mergedWhere,
+      order: order ?? [
+        { field: "createdAt", order: "desc" },
+        { field: "id", order: "desc" },
+      ],
+    };
+
+    const [result, totalCount] = await Promise.all([
+      fileRelayQuery.execute(this.db, executeInput),
+      this.count(projectId),
+    ]);
+
+    return {
+      edges: result.edges.map((edge) => ({
+        cursor: edge.cursor,
+        nodeId: edge.node.id,
+      })),
+      pageInfo: result.pageInfo,
+      totalCount,
+    };
   }
 }

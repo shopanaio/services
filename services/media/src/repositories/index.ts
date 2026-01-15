@@ -17,6 +17,8 @@ export type {
   FileProvider,
   CreateFileInput,
   UpdateFileInput,
+  FileRelayInput,
+  FileConnectionResult,
 } from "./FileRepository";
 
 // S3ObjectRepository types

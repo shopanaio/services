@@ -1,6 +1,8 @@
 import { MediaType } from "./MediaType.js";
 import { FileResolver } from "./FileResolver.js";
+import { FileConnectionResolver } from "./connection/index.js";
 import { decodeGlobalId } from "./utils/globalId.js";
+import type { FileRelayInput } from "../../repositories/FileRepository.js";
 
 /**
  * MediaQuery namespace resolver.
@@ -51,5 +53,12 @@ export class MediaQueryResolver extends MediaType<Record<string, never>> {
     }
 
     return new FileResolver(decoded.id, this.$ctx);
+  }
+
+  /**
+   * Get files with Relay-style pagination
+   */
+  files(args: FileRelayInput) {
+    return new FileConnectionResolver(args, this.$ctx);
   }
 }

@@ -40,6 +40,16 @@ type MediaQuery {
   Get a file by ID
   """
   file(id: ID!): File
+
+  """
+  Get files with Relay-style pagination
+  """
+  files(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): FileConnection!
 }
 
 type MediaMutation {
