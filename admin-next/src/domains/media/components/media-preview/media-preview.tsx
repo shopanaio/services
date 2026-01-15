@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import { Image, Modal } from "antd";
+import { Image } from "antd";
 import ReactPlayer from "react-player";
 import type { ApiFile } from "@/graphql/types";
 import { FileProvider } from "@/graphql/types";
@@ -16,16 +16,7 @@ interface MediaPreviewProps {
 }
 
 const isVideoProvider = (provider?: FileProvider | null): boolean => {
-  return (
-    provider === FileProvider.Youtube || provider === FileProvider.Vimeo
-  );
-};
-
-const isImageFile = (file: ApiFile): boolean => {
-  return (
-    file.mimeType?.startsWith("image/") ||
-    (!isVideoProvider(file.provider) && !file.mimeType?.startsWith("video/"))
-  );
+  return provider === FileProvider.Youtube || provider === FileProvider.Vimeo;
 };
 
 export function MediaPreview({
@@ -35,114 +26,87 @@ export function MediaPreview({
   onClose,
   onIndexChange,
 }: MediaPreviewProps) {
-  const currentFile = files[currentIndex];
-
-  // Separate images for the Image.PreviewGroup
-  const imageFiles = useMemo(
-    () => files.filter((f) => isImageFile(f)),
+  // Create items for PreviewGroup
+  const previewItems = useMemo(
+    () =>
+      files.map((file) => {
+        // For YouTube/Vimeo, generate thumbnail from external ID
+        if (isVideoProvider(file.provider) && file.externalData?.externalId) {
+          const thumbnailUrl =
+            file.provider === FileProvider.Youtube
+              ? `https://img.youtube.com/vi/${file.externalData.externalId}/hqdefault.jpg`
+              : file.url;
+          return { src: thumbnailUrl };
+        }
+        return { src: file.url };
+      }),
     [files]
   );
 
-  const imageUrls = useMemo(
-    () => imageFiles.map((f) => f.url),
-    [imageFiles]
+  // Custom render for preview - show ReactPlayer for videos
+  const imageRender = useCallback(
+    (
+      originalNode: React.ReactElement,
+      info: { current: number }
+    ): React.ReactNode => {
+      const file = files[info.current];
+      if (!file) return originalNode;
+
+      if (isVideoProvider(file.provider)) {
+        return (
+          <div className={styles.videoContainer}>
+            <ReactPlayer
+              src={file.url}
+              width="100%"
+              height="100%"
+              controls
+            />
+          </div>
+        );
+      }
+
+      return originalNode;
+    },
+    [files]
   );
 
-  // Find the image index within imageFiles array
-  const currentImageIndex = useMemo(() => {
-    if (!currentFile || !isImageFile(currentFile)) return -1;
-    return imageFiles.findIndex((f) => f.id === currentFile.id);
-  }, [currentFile, imageFiles]);
+  // Custom toolbar - hide zoom/rotate for videos
+  const actionsRender = useCallback(
+    (
+      originalNode: React.ReactElement,
+      info: { current: number }
+    ): React.ReactNode => {
+      const file = files[info.current];
+      if (isVideoProvider(file?.provider)) {
+        return null;
+      }
+      return originalNode;
+    },
+    [files]
+  );
 
-  const isCurrentVideo = currentFile && isVideoProvider(currentFile.provider);
-
-  // Handle navigation for videos
-  const handlePrev = useCallback(() => {
-    if (currentIndex > 0) {
-      onIndexChange(currentIndex - 1);
-    }
-  }, [currentIndex, onIndexChange]);
-
-  const handleNext = useCallback(() => {
-    if (currentIndex < files.length - 1) {
-      onIndexChange(currentIndex + 1);
-    }
-  }, [currentIndex, files.length, onIndexChange]);
-
-  // Video modal for YouTube/Vimeo
-  if (isCurrentVideo && visible) {
-    return (
-      <Modal
-        open={visible}
-        onCancel={onClose}
-        footer={null}
-        width={900}
-        centered
-        destroyOnClose
-        className={styles.videoModal}
-        styles={{
-          body: { padding: 0, backgroundColor: "#000" },
-        }}
-      >
-        <div className={styles.videoContainer}>
-          <ReactPlayer
-            src={currentFile.url}
-            width="100%"
-            height="100%"
-            controls
-            playing
-          />
-        </div>
-        {files.length > 1 && (
-          <div className={styles.videoNavigation}>
-            <button
-              className={styles.navButton}
-              onClick={handlePrev}
-              disabled={currentIndex === 0}
-            >
-              ←
-            </button>
-            <span className={styles.navCounter}>
-              {currentIndex + 1} / {files.length}
-            </span>
-            <button
-              className={styles.navButton}
-              onClick={handleNext}
-              disabled={currentIndex === files.length - 1}
-            >
-              →
-            </button>
-          </div>
-        )}
-      </Modal>
-    );
+  if (!visible || files.length === 0) {
+    return null;
   }
 
-  // Image preview group for images
-  if (visible && currentImageIndex >= 0) {
-    return (
-      <Image.PreviewGroup
-        preview={{
-          visible: true,
-          current: currentImageIndex,
-          onVisibleChange: (vis) => {
-            if (!vis) onClose();
-          },
-          onChange: (current) => {
-            // Find the actual file index from image index
-            const imageFile = imageFiles[current];
-            const fileIndex = files.findIndex((f) => f.id === imageFile.id);
-            if (fileIndex >= 0) {
-              onIndexChange(fileIndex);
-            }
-          },
-        }}
-        items={imageUrls}
-      />
-    );
-  }
-
-  return null;
+  return (
+    <Image.PreviewGroup
+      items={previewItems}
+      preview={{
+        open: visible,
+        current: currentIndex,
+        onOpenChange: (open) => {
+          if (!open) onClose();
+        },
+        onChange: (current) => {
+          onIndexChange(current);
+        },
+        imageRender,
+        actionsRender,
+        movable: !isVideoProvider(files[currentIndex]?.provider),
+      }}
+    />
+  );
 }
 
 // Hook for managing media preview state
