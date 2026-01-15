@@ -9,6 +9,7 @@ import {
   AllCommunityModule,
   RowSelectionModule,
   GridStateModule,
+  RowClickedEvent,
 } from "ag-grid-community";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { CloudUploadOutlined } from "@ant-design/icons";
@@ -19,6 +20,7 @@ import { useGridState, useGridSort, useAgGridTheme } from "@/hooks";
 import { filterSchema } from "./filter-schema";
 import { useFiles } from "../hooks";
 import { useUploadMediaModal } from "../modals";
+import { MediaPreview, useMediaPreview } from "../components/media-preview";
 import type { ApiFile } from "@/graphql/types";
 import { FileProvider } from "@/graphql/types";
 
@@ -144,6 +146,9 @@ export default function MediaPage() {
   // Upload modal
   const { push: pushUploadModal } = useUploadMediaModal();
 
+  // Media preview
+  const mediaPreview = useMediaPreview(files);
+
   const { initialState, onStateUpdated } = useGridState({
     storageKey: "media-grid-state",
   });
@@ -218,6 +223,21 @@ export default function MediaPage() {
     });
   }, [pushUploadModal, refetch]);
 
+  const handleRowClicked = useCallback(
+    (event: RowClickedEvent<ApiFile>) => {
+      // Don't open preview if clicking on checkbox
+      const target = event.event?.target as HTMLElement;
+      if (target?.closest('[role="checkbox"]') || target?.closest('.ag-checkbox')) {
+        return;
+      }
+
+      if (event.data) {
+        mediaPreview.openByFileId(event.data.id);
+      }
+    },
+    [mediaPreview]
+  );
+
   // Calculate pagination display
   const rangeStart = files.length > 0 ? 1 : 0;
   const rangeEnd = files.length;
@@ -282,6 +302,7 @@ export default function MediaPage() {
             initialState={initialState}
             onStateUpdated={onStateUpdated}
             onSortChanged={onSortChanged}
+            onRowClicked={handleRowClicked}
           />
         </div>
 
@@ -297,6 +318,14 @@ export default function MediaPage() {
           onPageSizeChange={handlePageSizeChange}
         />
       </div>
+
+      <MediaPreview
+        files={files}
+        visible={mediaPreview.visible}
+        currentIndex={mediaPreview.currentIndex}
+        onClose={mediaPreview.close}
+        onIndexChange={mediaPreview.setCurrentIndex}
+      />
     </DataLayout>
   );
 }
