@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useForm, Controller } from "react-hook-form";
-import { Upload, Typography, Button, Input, Avatar, Flex, App } from "antd";
+import { Upload, Typography, Button, Input, Flex, App } from "antd";
 import {
   UploadOutlined,
   TeamOutlined,
@@ -10,19 +10,13 @@ import {
   DeleteOutlined,
 } from "@ant-design/icons";
 import { createStyles } from "antd-style";
-import ReactCrop, {
-  centerCrop,
-  makeAspectCrop,
-  type Crop,
-  type PixelCrop,
-} from "react-image-crop";
-import "react-image-crop/dist/ReactCrop.css";
 import {
   useModalStackContext,
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
+import { ImageCrop } from "@/ui-kit/image-crop";
 import type { IEditOrganizationModalPayload } from "../../modals";
 
 // ============================================================================
@@ -49,13 +43,6 @@ const useStyles = createStyles(({ token }) => ({
     alignItems: "flex-start",
     gap: token.marginLG,
   },
-  avatarWrapper: {
-    position: "relative",
-    flexShrink: 0,
-  },
-  avatar: {
-    backgroundColor: token.colorPrimary,
-  },
   avatarImage: {
     width: 80,
     height: 80,
@@ -75,52 +62,9 @@ const useStyles = createStyles(({ token }) => ({
     color: token.colorPrimary,
     fontSize: 28,
   },
-  logoActions: {
-    display: "flex",
-    flexDirection: "column",
-    gap: token.marginXS,
-  },
   logoHint: {
     color: token.colorTextSecondary,
     fontSize: token.fontSizeSM,
-  },
-  cropModal: {
-    display: "flex",
-    flexDirection: "column",
-    gap: token.marginMD,
-  },
-  cropContainer: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: token.marginLG,
-  },
-  cropArea: {
-    width: 300,
-    height: 300,
-    overflow: "hidden",
-  },
-  previewSection: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: token.marginXS,
-  },
-  previewLabel: {
-    color: token.colorTextSecondary,
-    fontSize: token.fontSizeSM,
-  },
-  previewAvatar: {
-    width: 80,
-    height: 80,
-    borderRadius: token.borderRadiusLG,
-    objectFit: "cover",
-    border: `1px solid ${token.colorBorder}`,
-  },
-  cropActions: {
-    display: "flex",
-    justifyContent: "center",
-    gap: token.marginSM,
   },
   formSection: {
     display: "flex",
@@ -147,54 +91,6 @@ const useStyles = createStyles(({ token }) => ({
 }));
 
 // ============================================================================
-// Helpers
-// ============================================================================
-
-function centerAspectCrop(
-  mediaWidth: number,
-  mediaHeight: number,
-  aspect: number
-): Crop {
-  const minSide = Math.min(mediaWidth, mediaHeight);
-  const cropSize = (minSide / mediaWidth) * 90;
-  return centerCrop(
-    makeAspectCrop({ unit: "%", width: cropSize }, aspect, mediaWidth, mediaHeight),
-    mediaWidth,
-    mediaHeight
-  );
-}
-
-async function getCroppedImage(
-  image: HTMLImageElement,
-  crop: PixelCrop
-): Promise<string> {
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d");
-
-  if (!ctx) throw new Error("No 2d context");
-
-  const scaleX = image.naturalWidth / image.width;
-  const scaleY = image.naturalHeight / image.height;
-
-  canvas.width = crop.width;
-  canvas.height = crop.height;
-
-  ctx.drawImage(
-    image,
-    crop.x * scaleX,
-    crop.y * scaleY,
-    crop.width * scaleX,
-    crop.height * scaleY,
-    0,
-    0,
-    crop.width,
-    crop.height
-  );
-
-  return canvas.toDataURL("image/jpeg", 0.9);
-}
-
-// ============================================================================
 // Component
 // ============================================================================
 
@@ -209,11 +105,6 @@ export const EditOrganizationModal = () => {
     typedPayload.currentLogo || null
   );
   const [imageSrc, setImageSrc] = useState<string | null>(null);
-  const [crop, setCrop] = useState<Crop>();
-  const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
-  const [cropPreview, setCropPreview] = useState<string | null>(null);
-  const [imgStyle, setImgStyle] = useState<React.CSSProperties>({});
-  const imgRef = useRef<HTMLImageElement>(null);
 
   // Form state
   const {
@@ -235,65 +126,18 @@ export const EditOrganizationModal = () => {
     const reader = new FileReader();
     reader.addEventListener("load", () => {
       setImageSrc(reader.result as string);
-      setCropPreview(null);
     });
     reader.readAsDataURL(file);
     return false;
   }, []);
 
-  const onImageLoad = useCallback(
-    (e: React.SyntheticEvent<HTMLImageElement>) => {
-      const { naturalWidth, naturalHeight, width, height } = e.currentTarget;
-      const isLandscape = naturalWidth > naturalHeight;
-      const containerSize = 300;
-
-      if (isLandscape) {
-        const scaledWidth = (naturalWidth / naturalHeight) * containerSize;
-        const offsetX = (scaledWidth - containerSize) / 2;
-        setImgStyle({
-          height: containerSize,
-          width: "auto",
-          maxWidth: "none",
-          marginLeft: -offsetX,
-        });
-      } else {
-        const scaledHeight = (naturalHeight / naturalWidth) * containerSize;
-        const offsetY = (scaledHeight - containerSize) / 2;
-        setImgStyle({
-          width: containerSize,
-          height: "auto",
-          maxHeight: "none",
-          marginTop: -offsetY,
-        });
-      }
-      setCrop(centerAspectCrop(width, height, 1));
-    },
-    []
-  );
-
-  const handleCropComplete = useCallback(async (pixelCrop: PixelCrop) => {
-    setCompletedCrop(pixelCrop);
-    if (imgRef.current && pixelCrop.width && pixelCrop.height) {
-      const croppedUrl = await getCroppedImage(imgRef.current, pixelCrop);
-      setCropPreview(croppedUrl);
-    }
+  const handleApplyCrop = useCallback((croppedUrl: string) => {
+    setLogoUrl(croppedUrl);
+    setImageSrc(null);
   }, []);
-
-  const handleApplyCrop = useCallback(() => {
-    if (cropPreview) {
-      setLogoUrl(cropPreview);
-      setImageSrc(null);
-      setCrop(undefined);
-      setCompletedCrop(undefined);
-      setCropPreview(null);
-    }
-  }, [cropPreview]);
 
   const handleCancelCrop = useCallback(() => {
     setImageSrc(null);
-    setCrop(undefined);
-    setCompletedCrop(undefined);
-    setCropPreview(null);
   }, []);
 
   const handleRemoveLogo = useCallback(() => {
@@ -311,7 +155,7 @@ export const EditOrganizationModal = () => {
       message.success("Organization updated successfully");
       pop();
     },
-    [typedPayload, logoUrl, pop]
+    [typedPayload, logoUrl, message, pop]
   );
 
   return (
@@ -371,49 +215,12 @@ export const EditOrganizationModal = () => {
               </Flex>
             </div>
           ) : (
-            <div className={styles.cropModal}>
-              <div className={styles.cropContainer}>
-                <div className={styles.cropArea}>
-                  <ReactCrop
-                    crop={crop}
-                    onChange={(c) => setCrop(c)}
-                    onComplete={handleCropComplete}
-                    aspect={1}
-                    keepSelection
-                  >
-                    <img
-                      ref={imgRef}
-                      src={imageSrc}
-                      alt="Crop preview"
-                      style={imgStyle}
-                      onLoad={onImageLoad}
-                    />
-                  </ReactCrop>
-                </div>
-                {cropPreview && (
-                  <div className={styles.previewSection}>
-                    <Typography.Text className={styles.previewLabel}>
-                      Preview
-                    </Typography.Text>
-                    <img
-                      src={cropPreview}
-                      alt="Logo preview"
-                      className={styles.previewAvatar}
-                    />
-                  </div>
-                )}
-              </div>
-              <div className={styles.cropActions}>
-                <Button onClick={handleCancelCrop}>Cancel</Button>
-                <Button
-                  type="primary"
-                  onClick={handleApplyCrop}
-                  disabled={!cropPreview}
-                >
-                  Apply
-                </Button>
-              </div>
-            </div>
+            <ImageCrop
+              imageSrc={imageSrc}
+              previewBorderRadius={8}
+              onApply={handleApplyCrop}
+              onCancel={handleCancelCrop}
+            />
           )}
         </div>
       </Paper>

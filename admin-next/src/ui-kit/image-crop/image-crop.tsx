@@ -1,0 +1,233 @@
+"use client";
+
+import { useState, useRef, useCallback } from "react";
+import { Typography, Button } from "antd";
+import { createStyles } from "antd-style";
+import ReactCrop, {
+  centerCrop,
+  makeAspectCrop,
+  type Crop,
+  type PixelCrop,
+} from "react-image-crop";
+import "react-image-crop/dist/ReactCrop.css";
+
+// ============================================================================
+// Types
+// ============================================================================
+
+export interface ImageCropProps {
+  /** Image source (base64 or URL) */
+  imageSrc: string;
+  /** Aspect ratio for crop (default: 1) */
+  aspect?: number;
+  /** Container size in pixels (default: 300) */
+  containerSize?: number;
+  /** Use circular crop selection (default: false) */
+  circularCrop?: boolean;
+  /** Preview size in pixels (default: 80) */
+  previewSize?: number;
+  /** Preview border radius (default: "50%" for circular, 8 for square) */
+  previewBorderRadius?: number | string;
+  /** Show preview section (default: true) */
+  showPreview?: boolean;
+  /** Called when crop is applied */
+  onApply: (croppedImageUrl: string) => void;
+  /** Called when crop is cancelled */
+  onCancel: () => void;
+}
+
+// ============================================================================
+// Styles
+// ============================================================================
+
+const useStyles = createStyles(({ token }) => ({
+  cropModal: {
+    display: "flex",
+    flexDirection: "column",
+    gap: token.marginMD,
+  },
+  cropContainer: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: token.marginLG,
+  },
+  previewSection: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: token.marginXS,
+  },
+  previewLabel: {
+    color: token.colorTextSecondary,
+    fontSize: token.fontSizeSM,
+  },
+  cropActions: {
+    display: "flex",
+    justifyContent: "center",
+    gap: token.marginSM,
+  },
+}));
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+function centerAspectCrop(
+  mediaWidth: number,
+  mediaHeight: number,
+  aspect: number
+): Crop {
+  const minSide = Math.min(mediaWidth, mediaHeight);
+  const cropSize = (minSide / mediaWidth) * 90;
+  return centerCrop(
+    makeAspectCrop({ unit: "%", width: cropSize }, aspect, mediaWidth, mediaHeight),
+    mediaWidth,
+    mediaHeight
+  );
+}
+
+async function getCroppedImage(
+  image: HTMLImageElement,
+  crop: PixelCrop
+): Promise<string> {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+
+  if (!ctx) throw new Error("No 2d context");
+
+  const scaleX = image.naturalWidth / image.width;
+  const scaleY = image.naturalHeight / image.height;
+
+  canvas.width = crop.width;
+  canvas.height = crop.height;
+
+  ctx.drawImage(
+    image,
+    crop.x * scaleX,
+    crop.y * scaleY,
+    crop.width * scaleX,
+    crop.height * scaleY,
+    0,
+    0,
+    crop.width,
+    crop.height
+  );
+
+  return canvas.toDataURL("image/jpeg", 0.9);
+}
+
+// ============================================================================
+// Component
+// ============================================================================
+
+export const ImageCrop = ({
+  imageSrc,
+  aspect = 1,
+  containerSize = 300,
+  circularCrop = false,
+  previewSize = 80,
+  previewBorderRadius,
+  showPreview = true,
+  onApply,
+  onCancel,
+}: ImageCropProps) => {
+  const resolvedBorderRadius = previewBorderRadius ?? (circularCrop ? "50%" : 8);
+  const { styles } = useStyles();
+
+  const [crop, setCrop] = useState<Crop>();
+  const [cropPreview, setCropPreview] = useState<string | null>(null);
+  const [imgStyle, setImgStyle] = useState<React.CSSProperties>({});
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  const onImageLoad = useCallback(
+    (e: React.SyntheticEvent<HTMLImageElement>) => {
+      const { naturalWidth, naturalHeight, width, height } = e.currentTarget;
+      const isLandscape = naturalWidth > naturalHeight;
+
+      if (isLandscape) {
+        const scaledWidth = (naturalWidth / naturalHeight) * containerSize;
+        const offsetX = (scaledWidth - containerSize) / 2;
+        setImgStyle({
+          height: containerSize,
+          width: "auto",
+          maxWidth: "none",
+          marginLeft: -offsetX,
+        });
+      } else {
+        const scaledHeight = (naturalHeight / naturalWidth) * containerSize;
+        const offsetY = (scaledHeight - containerSize) / 2;
+        setImgStyle({
+          width: containerSize,
+          height: "auto",
+          maxHeight: "none",
+          marginTop: -offsetY,
+        });
+      }
+      setCrop(centerAspectCrop(width, height, aspect));
+    },
+    [containerSize, aspect]
+  );
+
+  const handleCropComplete = useCallback(async (pixelCrop: PixelCrop) => {
+    if (imgRef.current && pixelCrop.width && pixelCrop.height) {
+      const croppedUrl = await getCroppedImage(imgRef.current, pixelCrop);
+      setCropPreview(croppedUrl);
+    }
+  }, []);
+
+  const handleApply = useCallback(() => {
+    if (cropPreview) {
+      onApply(cropPreview);
+    }
+  }, [cropPreview, onApply]);
+
+  return (
+    <div className={styles.cropModal}>
+      <div className={styles.cropContainer}>
+        <div style={{ width: containerSize, height: containerSize, overflow: "hidden" }}>
+          <ReactCrop
+            crop={crop}
+            onChange={(c) => setCrop(c)}
+            onComplete={handleCropComplete}
+            aspect={aspect}
+            keepSelection
+            circularCrop={circularCrop}
+          >
+            <img
+              ref={imgRef}
+              src={imageSrc}
+              alt="Crop preview"
+              style={imgStyle}
+              onLoad={onImageLoad}
+            />
+          </ReactCrop>
+        </div>
+        {showPreview && cropPreview && (
+          <div className={styles.previewSection}>
+            <Typography.Text className={styles.previewLabel}>
+              Preview
+            </Typography.Text>
+            <img
+              src={cropPreview}
+              alt="Cropped preview"
+              style={{
+                width: previewSize,
+                height: previewSize,
+                borderRadius: resolvedBorderRadius,
+                objectFit: "cover",
+                border: "1px solid var(--ant-color-border)",
+              }}
+            />
+          </div>
+        )}
+      </div>
+      <div className={styles.cropActions}>
+        <Button onClick={onCancel}>Cancel</Button>
+        <Button type="primary" onClick={handleApply} disabled={!cropPreview}>
+          Apply
+        </Button>
+      </div>
+    </div>
+  );
+};
