@@ -86,12 +86,22 @@ const useStyles = createStyles(({ token }) => ({
     gap: token.marginLG,
   },
   cropArea: {
-    maxWidth: 300,
-    maxHeight: 300,
+    width: 300,
+    height: 300,
+    overflow: "hidden",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    "& .ReactCrop": {
+      maxWidth: "100%",
+      maxHeight: "100%",
+    },
   },
   cropImage: {
-    maxWidth: "100%",
+    display: "block",
+    maxWidth: 300,
     maxHeight: 300,
+    objectFit: "contain",
   },
   previewSection: {
     display: "flex",
