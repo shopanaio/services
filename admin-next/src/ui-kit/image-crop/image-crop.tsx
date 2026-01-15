@@ -96,11 +96,14 @@ async function getCroppedImage(
 
   if (!ctx) throw new Error("No 2d context");
 
-  const scaleX = image.naturalWidth / image.width;
-  const scaleY = image.naturalHeight / image.height;
+  // Use getBoundingClientRect to get actual displayed dimensions (accounts for CSS styles)
+  const rect = image.getBoundingClientRect();
+  const scaleX = image.naturalWidth / rect.width;
+  const scaleY = image.naturalHeight / rect.height;
 
-  canvas.width = crop.width;
-  canvas.height = crop.height;
+  // Canvas size should be in natural image scale for better quality
+  canvas.width = crop.width * scaleX;
+  canvas.height = crop.height * scaleY;
 
   ctx.drawImage(
     image,
@@ -110,8 +113,8 @@ async function getCroppedImage(
     crop.height * scaleY,
     0,
     0,
-    crop.width,
-    crop.height
+    canvas.width,
+    canvas.height
   );
 
   return canvas.toDataURL("image/jpeg", 0.9);
