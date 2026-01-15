@@ -15,10 +15,6 @@ registerModule({
       key: "files-list",
       path: "/:orgName/:storeName/files",
       component: dynamic(() => import("@/domains/media/page/page")),
-      sidebar: {
-        label: "All Files",
-        order: 1,
-      },
     },
   ],
 });
