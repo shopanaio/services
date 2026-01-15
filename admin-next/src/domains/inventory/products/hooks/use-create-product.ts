@@ -2,44 +2,14 @@
 
 import { useMutation } from "@apollo/client/react";
 import { useCallback, useState } from "react";
-import { slugify } from "transliteration/dist/node/src/node/index.js";
 import { PRODUCT_CREATE_MUTATION } from "../../graphql";
-import type {
-  ApiProduct,
-  ApiGenericUserError,
-  ApiProductCreateInput,
-  ApiFile,
-} from "@/graphql/types";
+import type { ApiProduct, ApiGenericUserError, ApiProductCreateInput } from "@/graphql/types";
+import {
+  prepareProductPayload,
+  type CreateProductInput,
+} from "../modals/create-product-modal/utils/prepare-product-payload";
 
-// ============================================
-// Types
-// ============================================
-
-interface IOptionInput {
-  id: string;
-  name: string;
-  values: Array<{
-    value: string;
-    slug: string;
-  }>;
-}
-
-interface IGeneratedVariant {
-  id: string;
-  title: string;
-  options: Array<{ name: string; value: string; slug: string }>;
-  enabled: boolean;
-}
-
-export interface CreateProductInput {
-  title: string;
-  handle: string;
-  description: string;
-  media: ApiFile[];
-  hasVariants: boolean;
-  options: IOptionInput[];
-  variants: IGeneratedVariant[];
-}
+export type { CreateProductInput };
 
 interface CreateProductResult {
   product: ApiProduct | null;
@@ -107,44 +77,11 @@ export function useCreateProduct(): UseCreateProductReturn {
       setError(null);
 
       try {
-        // Get media file IDs (already uploaded)
-        const mediaFileIds = input.media.map((m) => m.id);
-
-        const enabledVariants = input.variants.filter((v) => v.enabled);
+        const payload = prepareProductPayload(input);
 
         const createResult = await createProductMutation({
           variables: {
-            input: {
-              title: input.title,
-              handle: input.handle,
-              description: input.description
-                ? {
-                    text: input.description,
-                    html: `<p>${input.description}</p>`,
-                    json: {},
-                  }
-                : undefined,
-              mediaFileIds: mediaFileIds.length > 0 ? mediaFileIds : undefined,
-              options:
-                input.hasVariants && input.options.length > 0
-                  ? input.options
-                      .filter((opt) => opt.name.trim() && opt.values.length > 0)
-                      .map((opt) => ({
-                        name: opt.name,
-                        slug: slugify(opt.name),
-                        values: opt.values.map((v) => ({
-                          name: v.value,
-                          slug: v.slug,
-                        })),
-                      }))
-                  : undefined,
-              variants:
-                input.hasVariants && enabledVariants.length > 0
-                  ? enabledVariants.map((v) => ({
-                      handle: v.id, // id is built from option value slugs (e.g., "red-s")
-                    }))
-                  : undefined,
-            },
+            input: payload,
           },
         });
 
