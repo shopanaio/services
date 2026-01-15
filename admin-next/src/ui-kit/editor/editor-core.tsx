@@ -12,11 +12,17 @@ import { EditorGlobalStyles } from "./editor-global-styles";
 
 const useStyles = createStyles(({ token }) => ({
   wrapper: {
-    border: `1px solid ${token.colorBorder}`,
+    border: `1px solid ${token.colorBorderSecondary}`,
     borderRadius: token.borderRadius,
-    padding: "12px 16px",
+    padding: "4px 16px 4px 32px",
     transition: `border-color ${token.motionDurationMid}, box-shadow ${token.motionDurationMid}`,
     backgroundColor: token.colorBgContainer,
+    "&:hover": {
+      borderColor: token.colorPrimaryHover,
+    },
+    "&:focus-within": {
+      borderColor: token.colorPrimary,
+    },
   },
 }));
 
@@ -101,11 +107,7 @@ const EditorCore = memo(function EditorCore({
     <>
       <EditorGlobalStyles />
       <div className={styles.wrapper}>
-        <div
-          id={holderId}
-          className={inter.className}
-          style={{ minHeight }}
-        />
+        <div id={holderId} className={inter.className} style={{ minHeight }} />
       </div>
     </>
   );
