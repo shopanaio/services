@@ -17,8 +17,8 @@ import {
 } from "@/layouts/modals";
 import { useStyles } from "./upload-media-modal.styles";
 import { parseMediaUrl } from "./upload-media-modal.utils";
-import { useUploadFiles } from "../../hooks";
-import type { IUploadMediaModalPayload } from "../../modals";
+import { useUploadFiles } from "@/domains/media/hooks";
+import type { IUploadMediaModalPayload } from "@/domains/media/modals";
 import { FileProvider, type ApiFile } from "@/graphql/types";
 
 const { Dragger } = Upload;
