@@ -16,11 +16,15 @@ export const useMediaPickerStyles = createStyles(({ token }) => ({
   },
   draggerSection: {
     marginBottom: token.marginSM,
-  },
-  draggerIcon: {
-    fontSize: 24,
-    color: token.colorIcon,
-    marginBottom: token.marginXS,
+    border: `1px dashed ${token.colorBorder}`,
+    borderRadius: token.borderRadiusLG,
+    padding: token.padding,
+    cursor: "pointer",
+    transition: "border-color 0.2s",
+    backgroundColor: token.colorBgTextHover,
+    "&:hover": {
+      borderColor: token.colorPrimary,
+    },
   },
   draggerTitle: {
     fontSize: token.fontSizeLG,

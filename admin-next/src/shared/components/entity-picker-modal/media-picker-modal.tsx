@@ -8,8 +8,7 @@ import {
   RowSelectionModule,
   SelectionChangedEvent,
 } from "ag-grid-community";
-import { Upload, Typography, Flex, message, Progress } from "antd";
-import { UploadOutlined } from "@ant-design/icons";
+import { Typography, Flex } from "antd";
 import {
   ModalLayout,
   ModalHeader,
@@ -18,15 +17,14 @@ import {
 import { useFilters, FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
 import { useAgGridTheme } from "@/hooks";
-import { useFiles, useUploadFiles } from "@/domains/media/hooks";
+import { useFiles } from "@/domains/media/hooks";
+import { useUploadMediaModal } from "@/domains/media/modals";
 import { useMediaPickerStyles } from "./media-picker-modal.styles";
 import {
   mediaPickerConfig,
   type IMediaPickerEntity,
 } from "./configs/media-picker-config";
 import type { ApiFile } from "@/graphql/types";
-
-const { Dragger } = Upload;
 
 ModuleRegistry.registerModules([AllCommunityModule, RowSelectionModule]);
 
@@ -64,8 +62,8 @@ export function MediaPickerModal() {
     onConfirm,
   } = typedPayload;
 
-  // Upload state
-  const { uploadFiles, loading: uploading, progress } = useUploadFiles();
+  // Upload modal
+  const { push: openUploadModal } = useUploadMediaModal();
 
   // Selection state
   const [selectedIds, setSelectedIds] = useState<string[]>(initialSelection);
@@ -174,47 +172,19 @@ export function MediaPickerModal() {
     setIsGridReady(true);
   }, []);
 
-  // File upload handling
-  const handleBeforeUpload = useCallback(
-    async (file: File, fileList: File[]) => {
-      // Process all files only once (when we hit the last file)
-      if (file === fileList[fileList.length - 1]) {
-        // Validate size
-        const validFiles: File[] = [];
-        for (const f of fileList) {
-          if (f.size / 1024 / 1024 > maxSize) {
-            message.error(`${f.name} exceeds ${maxSize}MB limit`);
-            continue;
-          }
-          validFiles.push(f);
-        }
-
-        if (validFiles.length === 0) return false;
-
-        try {
-          const { files: uploadedFiles, userErrors } = await uploadFiles(
-            validFiles
-          );
-
-          if (userErrors.length > 0) {
-            message.error(userErrors[0].message);
-          }
-
-          if (uploadedFiles.length > 0) {
-            message.success(`Uploaded ${uploadedFiles.length} file(s)`);
-            // Reset pagination to first page and refetch
-            setCursor(null);
-            setCursorStack([]);
-            refetch();
-          }
-        } catch {
-          message.error("Upload failed");
-        }
-      }
-      return false;
-    },
-    [maxSize, uploadFiles, refetch]
-  );
+  // Open upload modal
+  const handleOpenUpload = useCallback(() => {
+    openUploadModal({
+      accept,
+      maxSize,
+      onUpload: () => {
+        // Reset pagination to first page and refetch
+        setCursor(null);
+        setCursorStack([]);
+        refetch();
+      },
+    });
+  }, [openUploadModal, accept, maxSize, refetch]);
 
   // Confirm handler
   const handleConfirm = useCallback(() => {
@@ -260,45 +230,26 @@ export function MediaPickerModal() {
           />
         </div>
 
-        {/* Upload Dragger */}
-        <div className={styles.draggerSection}>
-          <Dragger
-            multiple
-            accept={accept}
-            beforeUpload={handleBeforeUpload}
-            showUploadList={false}
-            disabled={uploading}
-          >
-            {uploading ? (
-              <div style={{ padding: "8px 0" }}>
-                <Progress
-                  percent={progress}
-                  status="active"
-                  style={{ width: 200 }}
-                />
-                <Typography.Text
-                  type="secondary"
-                  style={{ marginTop: 8, display: "block" }}
-                >
-                  Uploading...
-                </Typography.Text>
-              </div>
-            ) : (
-              <Flex align="center" justify="center" vertical>
-                <UploadOutlined className={styles.draggerIcon} />
-                <Typography.Text
-                  strong
-                  type="secondary"
-                  className={styles.draggerTitle}
-                >
-                  Upload images
-                </Typography.Text>
-                <Typography.Text type="secondary">
-                  Drag and drop images here or click to upload.
-                </Typography.Text>
-              </Flex>
-            )}
-          </Dragger>
+        {/* Upload Button */}
+        <div
+          className={styles.draggerSection}
+          onClick={handleOpenUpload}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === "Enter" && handleOpenUpload()}
+        >
+          <Flex align="center" justify="center" vertical>
+            <Typography.Text
+              strong
+              type="secondary"
+              className={styles.draggerTitle}
+            >
+              Upload images
+            </Typography.Text>
+            <Typography.Text type="secondary">
+              Click to upload images or videos.
+            </Typography.Text>
+          </Flex>
         </div>
 
         {/* AG Grid */}

@@ -11,8 +11,8 @@ export {
 export { useFiles } from "./hooks";
 
 // Components
-export { UploadMediaModal } from "@/domains/modals/upload-media-modal";
-export type { IUploadMediaModalProps, UploadedMedia } from "@/domains/modals/upload-media-modal";
+export { UploadMediaModal } from "@/domains/media/modals/upload-media-modal";
+export type { IUploadMediaModalProps, UploadedMedia } from "@/domains/media/modals/upload-media-modal";
 
 // Modals
 export { useUploadMediaModal, MEDIA_UPLOAD_MODAL_TYPE } from "./modals";
