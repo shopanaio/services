@@ -24,6 +24,8 @@ export const organization = iamSchema.table(
     name: varchar("name", { length: 128 }).notNull(),
     /** Human-readable display name (e.g., "My Organization") */
     displayName: varchar("display_name", { length: 256 }).notNull(),
+    /** Media file ID for organization logo (references media service) */
+    logoId: text("logo_id"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

@@ -12,12 +12,14 @@ import type {
   UserUpdateProfileInput,
   UserUpdateEmailInput,
   UserUpdatePasswordInput,
+  UserUpdateAvatarInput,
   SessionRevokeInput,
 } from "./generated/types.js";
 import {
   UserUpdateProfileInputSchema,
   UserUpdateEmailInputSchema,
   UserUpdatePasswordInputSchema,
+  UserUpdateAvatarInputSchema,
   SessionRevokeInputSchema,
 } from "./generated/schemas.js";
 
@@ -131,6 +133,62 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
         message: e.message,
         field: e.field ?? null,
       })),
+    };
+  }
+
+  /**
+   * Update user's avatar image.
+   */
+  @ZodResolver(UserUpdateAvatarInputSchema())
+  async userUpdateAvatar(args: { input: UserUpdateAvatarInput }) {
+    const { input } = args;
+    const { currentUser, kernel } = this.$ctx;
+
+    if (!currentUser?.id) {
+      return {
+        user: null,
+        userErrors: [
+          {
+            code: "UNAUTHORIZED",
+            message: "You must be logged in to update your avatar",
+            field: null,
+          },
+        ],
+      };
+    }
+
+    // Decode file ID if provided
+    let imageId: string | null = null;
+    if (input.avatarId) {
+      try {
+        imageId = decodeGlobalIdByType(input.avatarId, GlobalIdEntity.File);
+      } catch {
+        // If decoding fails, use the raw ID (might be a raw UUID)
+        imageId = input.avatarId;
+      }
+    }
+
+    // Update avatar directly via repository
+    const updated = await kernel.repository.user.updateProfile(currentUser.id, {
+      image: imageId ?? undefined,
+    });
+
+    if (!updated) {
+      return {
+        user: null,
+        userErrors: [
+          {
+            code: "UPDATE_FAILED",
+            message: "Failed to update avatar",
+            field: null,
+          },
+        ],
+      };
+    }
+
+    return {
+      user: new UserResolver(updated.id, this.$ctx),
+      userErrors: [],
     };
   }
 

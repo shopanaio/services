@@ -41,7 +41,12 @@ export class UserResolver extends IAMType<string, User> {
   }
 
   async avatar() {
-    return this.$get("image");
+    const imageId = await this.$get("image");
+    if (!imageId) {
+      return null;
+    }
+    // Return federation reference for File type
+    return { __typename: "File" as const, id: imageId };
   }
 
   async locale() {

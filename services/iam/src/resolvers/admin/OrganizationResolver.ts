@@ -45,6 +45,15 @@ export class OrganizationResolver extends IAMType<string, Organization> {
     return this.$get("displayName");
   }
 
+  async logo() {
+    const logoId = await this.$get("logoId");
+    if (!logoId) {
+      return null;
+    }
+    // Return federation reference for File type
+    return { __typename: "File" as const, id: logoId };
+  }
+
   async createdAt() {
     return this.$get("createdAt");
   }

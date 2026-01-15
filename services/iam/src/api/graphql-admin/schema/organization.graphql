@@ -20,6 +20,10 @@ type Organization implements Node @key(fields: "id") {
   """
   displayName: String!
   """
+  Organization logo (from Media service).
+  """
+  logo: File
+  """
   Membership info (members + roles). Domain = orgId.
   """
   membership: Membership!
@@ -288,6 +292,36 @@ type OwnershipTransferPayload {
   success: Boolean!
   userErrors: [GenericUserError!]!
 }
+
+"""
+Input for updating organization logo.
+"""
+input OrganizationUpdateLogoInput {
+  """
+  Organization ID.
+  """
+  id: ID!
+  """
+  Media file ID for the logo. Pass null to remove logo.
+  """
+  logoId: ID
+}
+
+"""
+Payload for organization logo update.
+"""
+type OrganizationUpdateLogoPayload {
+  """
+  The updated organization.
+  """
+  organization: Organization
+
+  """
+  List of errors that occurred during the mutation.
+  """
+  userErrors: [GenericUserError!]!
+}
+
 """
 Organization queries.
 """
@@ -335,6 +369,13 @@ type OrganizationMutation {
   organizationUpdate(
     input: OrganizationUpdateInput!
   ): OrganizationUpdatePayload!
+  """
+  Update organization logo.
+  Requires: org admin or owner.
+  """
+  organizationUpdateLogo(
+    input: OrganizationUpdateLogoInput!
+  ): OrganizationUpdateLogoPayload!
   """
   Delete organization. Requires: org owner only.
   """

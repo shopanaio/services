@@ -18,6 +18,7 @@ import { MemberAccessRemoveScript } from "../../scripts/organization/MemberAcces
 import type {
   OrganizationCreateInput,
   OrganizationUpdateInput,
+  OrganizationUpdateLogoInput,
   MemberInviteInput,
   MemberRoleChangeInput,
   MemberAccessRemoveInput,
@@ -25,6 +26,7 @@ import type {
 import {
   OrganizationCreateInputSchema,
   OrganizationUpdateInputSchema,
+  OrganizationUpdateLogoInputSchema,
   MemberInviteInputSchema,
   MemberRoleChangeInputSchema,
   MemberAccessRemoveInputSchema,
@@ -85,6 +87,88 @@ export class OrganizationMutationResolver extends IAMType<
         message: e.message,
         field: e.field,
       })),
+    };
+  }
+
+  /**
+   * Update organization logo.
+   * Requires org admin or owner role.
+   */
+  @ZodResolver(OrganizationUpdateLogoInputSchema())
+  async organizationUpdateLogo(args: { input: OrganizationUpdateLogoInput }) {
+    const { input } = args;
+    const { currentUser, kernel } = this.$ctx;
+
+    if (!currentUser?.id) {
+      return {
+        organization: null,
+        userErrors: [
+          {
+            code: "UNAUTHORIZED",
+            message: "You must be logged in to update organization logo",
+            field: null,
+          },
+        ],
+      };
+    }
+
+    const organizationId = decodeGlobalIdByType(
+      input.id,
+      GlobalIdEntity.Organization
+    );
+
+    // Check if user has permission to update organization
+    const member = await kernel.repository.organization.findMember(
+      organizationId,
+      currentUser.id
+    );
+
+    if (!member) {
+      return {
+        organization: null,
+        userErrors: [
+          {
+            code: "FORBIDDEN",
+            message: "You are not a member of this organization",
+            field: null,
+          },
+        ],
+      };
+    }
+
+    // Decode file ID if provided
+    let logoId: string | null = null;
+    if (input.logoId) {
+      try {
+        logoId = decodeGlobalIdByType(input.logoId, GlobalIdEntity.File);
+      } catch {
+        // If decoding fails, use the raw ID (might be a raw UUID)
+        logoId = input.logoId;
+      }
+    }
+
+    // Update logo
+    const updated = await kernel.repository.organization.updateLogo(
+      organizationId,
+      logoId
+    );
+
+    if (!updated) {
+      return {
+        organization: null,
+        userErrors: [
+          {
+            code: "NOT_FOUND",
+            message: "Organization not found",
+            field: null,
+          },
+        ],
+      };
+    }
+
+    return {
+      organization: new OrganizationResolver(updated.id, this.$ctx),
+      userErrors: [],
     };
   }
 

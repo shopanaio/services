@@ -30,9 +30,9 @@ type User @key(fields: "id") {
   lastName: String
 
   """
-  URL to user's avatar image.
+  User's avatar image (from Media service).
   """
-  avatar: String
+  avatar: File
 
   """
   User's locale/language preference.
@@ -278,6 +278,33 @@ type UserUpdatePasswordPayload {
   Whether the password was changed successfully.
   """
   success: Boolean!
+
+  """
+  List of errors that occurred during the mutation.
+  """
+  userErrors: [GenericUserError!]!
+}
+
+# ---- User Avatar ----
+
+"""
+Input for updating user avatar.
+"""
+input UserUpdateAvatarInput {
+  """
+  Media file ID for the avatar. Pass null to remove avatar.
+  """
+  avatarId: ID
+}
+
+"""
+Payload for user avatar update.
+"""
+type UserUpdateAvatarPayload {
+  """
+  The updated user.
+  """
+  user: User
 
   """
   List of errors that occurred during the mutation.

@@ -159,6 +159,23 @@ export class OrganizationRepository extends BaseRepository {
   }
 
   /**
+   * Update organization logo
+   */
+  @Transactional()
+  async updateLogo(
+    id: string,
+    logoId: string | null
+  ): Promise<Organization | null> {
+    const [result] = await this.connection
+      .update(organization)
+      .set({ logoId, updatedAt: new Date() })
+      .where(and(eq(organization.id, id), isNull(organization.deletedAt)))
+      .returning();
+
+    return result ?? null;
+  }
+
+  /**
    * Soft delete organization
    */
   @Transactional()

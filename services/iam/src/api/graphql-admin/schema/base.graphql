@@ -89,6 +89,10 @@ type UserMutation {
   userUpdatePassword(
     input: UserUpdatePasswordInput!
   ): UserUpdatePasswordPayload!
+  """
+  Update user avatar. Pass null avatarId to remove avatar.
+  """
+  userUpdateAvatar(input: UserUpdateAvatarInput!): UserUpdateAvatarPayload!
 
   # Sessions
   """
