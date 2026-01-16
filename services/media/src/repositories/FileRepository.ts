@@ -56,6 +56,8 @@ export interface CreateFileInput {
   idempotencyKey?: string | null;
   isProcessed?: boolean;
   meta?: Record<string, unknown> | null;
+  /** Asset group ID to associate this file with */
+  assetGroupId?: string | null;
 }
 
 export interface UpdateFileInput {
@@ -115,13 +117,16 @@ export class FileRepository {
 
   /**
    * Create a new file
+   * @param projectId - Store ID (can be null for asset group files)
+   * @param data - File data including optional assetGroupId
    */
-  async create(projectId: string, data: CreateFileInput): Promise<File> {
+  async create(projectId: string | null, data: CreateFileInput): Promise<File> {
     const id = data.id ?? crypto.randomUUID();
 
     const newFile: NewFile = {
       id,
-      projectId,
+      projectId: projectId ?? null,
+      assetGroupId: data.assetGroupId ?? null,
       provider: data.provider,
       url: data.url,
       mimeType: data.mimeType ?? null,

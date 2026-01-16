@@ -7,6 +7,7 @@ import type {
   FileUploadFromUrlParams,
   FileUploadFromUrlResult,
 } from "./dto/FileUploadFromUrlDto.js";
+import type { AssetOwnerType } from "../../repositories/models/index.js";
 
 interface FetchResult {
   success: true;
@@ -27,6 +28,16 @@ export class FileUploadFromUrlScript extends BaseScript<
 > {
   protected async execute(params: FileUploadFromUrlParams): Promise<FileUploadFromUrlResult> {
     const projectId = this.storeId;
+
+    // Resolve asset group ID from ownerType + ownerId
+    let assetGroupId: string | null = null;
+    if (params.ownerType && params.ownerId) {
+      const assetGroup = await this.repository.assetGroup.findByOwner(
+        params.ownerType as AssetOwnerType,
+        params.ownerId
+      );
+      assetGroupId = assetGroup?.id ?? null;
+    }
 
     this.logger.info({ params, projectId }, "FileUploadFromUrlScript: starting");
 
@@ -168,6 +179,7 @@ export class FileUploadFromUrlScript extends BaseScript<
       sourceUrl: isDataUrl ? null : params.sourceUrl,
       idempotencyKey: params.idempotencyKey ?? null,
       isProcessed: true,
+      assetGroupId,
     });
 
     // 8. Create record in `s3Objects` table

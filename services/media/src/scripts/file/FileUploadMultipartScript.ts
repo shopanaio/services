@@ -6,6 +6,7 @@ import type {
   FileUploadMultipartParams,
   FileUploadMultipartResult,
 } from "./dto/FileUploadMultipartDto.js";
+import type { AssetOwnerType } from "../../repositories/models/index.js";
 
 export class FileUploadMultipartScript extends BaseScript<
   FileUploadMultipartParams,
@@ -13,6 +14,16 @@ export class FileUploadMultipartScript extends BaseScript<
 > {
   protected async execute(params: FileUploadMultipartParams): Promise<FileUploadMultipartResult> {
     const projectId = this.storeId;
+
+    // Resolve asset group ID from ownerType + ownerId
+    let assetGroupId: string | null = null;
+    if (params.ownerType && params.ownerId) {
+      const assetGroup = await this.repository.assetGroup.findByOwner(
+        params.ownerType as AssetOwnerType,
+        params.ownerId
+      );
+      assetGroupId = assetGroup?.id ?? null;
+    }
 
     this.logger.info({ projectId }, "FileUploadMultipartScript: starting");
 
@@ -125,6 +136,7 @@ export class FileUploadMultipartScript extends BaseScript<
       sourceUrl: null,
       idempotencyKey: params.idempotencyKey ?? null,
       isProcessed: true,
+      assetGroupId,
     });
 
     // 7. Create record in `s3Objects` table

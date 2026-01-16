@@ -59,6 +59,8 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       file: Promise<FileUpload>;
       altText?: string;
       idempotencyKey?: string;
+      ownerType?: string;
+      ownerId?: string;
     };
   }) {
     const { kernel } = this.$ctx;
@@ -67,6 +69,8 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       file: input.file,
       altText: input.altText,
       idempotencyKey: input.idempotencyKey,
+      ownerType: input.ownerType as any,
+      ownerId: input.ownerId,
     });
 
     return {
@@ -85,6 +89,8 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       sourceUrl: string;
       altText?: string;
       idempotencyKey?: string;
+      ownerType?: string;
+      ownerId?: string;
     };
   }) {
     const { kernel } = this.$ctx;
@@ -93,6 +99,8 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       sourceUrl: input.sourceUrl,
       altText: input.altText,
       idempotencyKey: input.idempotencyKey,
+      ownerType: input.ownerType as any,
+      ownerId: input.ownerId,
     });
 
     return {
@@ -119,6 +127,8 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       altText?: string;
       providerMeta?: Record<string, unknown>;
       idempotencyKey?: string;
+      ownerType?: string;
+      ownerId?: string;
     };
   }) {
     const { kernel } = this.$ctx;
@@ -135,6 +145,8 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       altText: input.altText,
       providerMeta: input.providerMeta,
       idempotencyKey: input.idempotencyKey,
+      ownerType: input.ownerType as any,
+      ownerId: input.ownerId,
     });
 
     return {

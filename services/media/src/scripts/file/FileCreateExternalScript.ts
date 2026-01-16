@@ -4,6 +4,7 @@ import type {
   FileCreateExternalParams,
   FileCreateExternalResult,
 } from "./dto/FileCreateExternalDto.js";
+import type { AssetOwnerType } from "../../repositories/models/index.js";
 
 const VALID_PROVIDERS = ["YOUTUBE", "VIMEO", "URL"] as const;
 type ExternalProvider = (typeof VALID_PROVIDERS)[number];
@@ -29,6 +30,16 @@ export class FileCreateExternalScript extends BaseScript<
 > {
   protected async execute(params: FileCreateExternalParams): Promise<FileCreateExternalResult> {
     const projectId = this.storeId;
+
+    // Resolve asset group ID from ownerType + ownerId
+    let assetGroupId: string | null = null;
+    if (params.ownerType && params.ownerId) {
+      const assetGroup = await this.repository.assetGroup.findByOwner(
+        params.ownerType as AssetOwnerType,
+        params.ownerId
+      );
+      assetGroupId = assetGroup?.id ?? null;
+    }
 
     this.logger.info({ params, projectId }, "FileCreateExternalScript: starting");
 
@@ -108,6 +119,7 @@ export class FileCreateExternalScript extends BaseScript<
       sourceUrl: params.url,
       idempotencyKey: params.idempotencyKey ?? null,
       isProcessed: true,
+      assetGroupId,
     });
 
     // 6. Create record in `externalMedia` table
