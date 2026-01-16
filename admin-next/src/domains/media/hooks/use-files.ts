@@ -140,16 +140,20 @@ export function useFiles(options: UseFilesOptions = {}): UseFilesReturn {
     return { _and: conditions };
   }, [search, externalWhere]);
 
-  const { data, loading, error, refetch } =
+  const { data, previousData, loading, error, refetch } =
     useQuery<FilesQueryResponse>(FILES_QUERY, {
       variables: { first, last, after, before, where, orderBy },
       skip,
       fetchPolicy: "cache-and-network",
     });
 
-  const files = data?.mediaQuery.files.edges.map((edge) => edge.node) ?? [];
-  const pageInfo = data?.mediaQuery.files.pageInfo ?? null;
-  const totalCount = data?.mediaQuery.files.totalCount ?? 0;
+  // Use previousData while loading to prevent UI flickering
+  const effectiveData = data ?? previousData;
+
+  const files =
+    effectiveData?.mediaQuery.files.edges.map((edge) => edge.node) ?? [];
+  const pageInfo = effectiveData?.mediaQuery.files.pageInfo ?? null;
+  const totalCount = effectiveData?.mediaQuery.files.totalCount ?? 0;
 
   return {
     files,
