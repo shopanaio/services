@@ -12,12 +12,16 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { mediaSchema } from "./schema";
+import { assetGroups } from "./assetGroups";
 
 export const files = mediaSchema.table(
   "files",
   {
     id: uuid("id").primaryKey(),
-    projectId: uuid("project_id").notNull(),
+    projectId: uuid("project_id"),
+    assetGroupId: uuid("asset_group_id").references(() => assetGroups.id, {
+      onDelete: "cascade",
+    }),
     provider: varchar("provider", { length: 32 }).notNull(),
     url: text("url").notNull(),
     mimeType: varchar("mime_type", { length: 127 }),
@@ -43,7 +47,10 @@ export const files = mediaSchema.table(
   (table) => [
     index("idx_files_project_id")
       .on(table.projectId)
-      .where(sql`deleted_at IS NULL`),
+      .where(sql`deleted_at IS NULL AND project_id IS NOT NULL`),
+    index("idx_files_asset_group")
+      .on(table.assetGroupId)
+      .where(sql`deleted_at IS NULL AND asset_group_id IS NOT NULL`),
     index("idx_files_provider")
       .on(table.projectId, table.provider)
       .where(sql`deleted_at IS NULL`),

@@ -47,6 +47,12 @@ export class OrganizationDeleteScript extends BaseScript<
       };
     }
 
+    // Delete media asset group (cascades to all files)
+    await this.services.broker.call("media.deleteAssetGroup", {
+      ownerType: "organization",
+      ownerId: organizationId,
+    });
+
     // Delete organization
     const deleted = await this.repository.organization.delete(organizationId);
 

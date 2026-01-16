@@ -33,6 +33,12 @@ export class StoreDeleteScript extends BaseScript<
       };
     }
 
+    // Delete media asset group (cascades to all files)
+    await this.services.broker.call("media.deleteAssetGroup", {
+      ownerType: "store",
+      ownerId: params.id,
+    });
+
     await this.repository.store.delete(params.id);
 
     return {

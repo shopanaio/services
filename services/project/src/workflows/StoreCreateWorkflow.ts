@@ -83,6 +83,9 @@ export class StoreCreateWorkflow extends BaseWorkflow {
     // Step 4: Assign admin role to creator
     await this.assignAdminRole(storeId, organizationId, userId);
 
+    // Step 5: Create media asset group for this store
+    await this.createMediaAssetGroup(storeId);
+
     return { storeId, organizationId };
   }
 
@@ -146,5 +149,16 @@ export class StoreCreateWorkflow extends BaseWorkflow {
     if (!result.success) {
       throw new Error(result.error || "Failed to assign admin role");
     }
+  }
+
+  /**
+   * Step: Create media asset group for this store
+   */
+  @DBOS.step()
+  async createMediaAssetGroup(storeId: string) {
+    await this.broker.call("media.createAssetGroup", {
+      ownerType: "store",
+      ownerId: storeId,
+    });
   }
 }

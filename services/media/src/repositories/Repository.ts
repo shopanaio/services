@@ -1,5 +1,6 @@
 import { TransactionManager } from "@shopana/shared-kernel";
 import type { Database } from "../infrastructure/db/database";
+import { AssetGroupRepository } from "./AssetGroupRepository";
 import { BucketRepository } from "./BucketRepository";
 import { FileRepository } from "./FileRepository";
 import { S3ObjectRepository } from "./S3ObjectRepository";
@@ -15,6 +16,7 @@ export interface RepositoryConfig {
  * Repository aggregator for media service.
  */
 export class Repository {
+  public readonly assetGroup: AssetGroupRepository;
   public readonly bucket: BucketRepository;
   public readonly file: FileRepository;
   public readonly s3Object: S3ObjectRepository;
@@ -24,6 +26,7 @@ export class Repository {
   public readonly txManager: TransactionManager<Database>;
 
   private constructor(
+    assetGroup: AssetGroupRepository,
     bucket: BucketRepository,
     file: FileRepository,
     s3Object: S3ObjectRepository,
@@ -32,6 +35,7 @@ export class Repository {
     bucketRotationLog: BucketRotationLogRepository,
     txManager: TransactionManager<Database>
   ) {
+    this.assetGroup = assetGroup;
     this.bucket = bucket;
     this.file = file;
     this.s3Object = s3Object;
@@ -51,6 +55,7 @@ export class Repository {
     const txManager = new TransactionManager(db);
 
     // Create repositories
+    const assetGroup = new AssetGroupRepository(db);
     const bucket = new BucketRepository(db);
     const file = new FileRepository(db);
     const s3Object = new S3ObjectRepository(db);
@@ -59,6 +64,7 @@ export class Repository {
     const bucketRotationLog = new BucketRotationLogRepository(db);
 
     return new Repository(
+      assetGroup,
       bucket,
       file,
       s3Object,

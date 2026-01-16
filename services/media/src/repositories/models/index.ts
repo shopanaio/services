@@ -1,6 +1,9 @@
 // Schema
 export * from "./schema";
 
+// Asset Groups (media libraries for organizations, stores, profiles)
+export * from "./assetGroups";
+
 // S3 Buckets
 export * from "./buckets";
 
