@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { Action, AuthorizeInput, CurrencyCode, DateTimeFilter, DimensionUnit, IdFilter, LocaleCode, MemberAccessRemoveInput, MemberInviteInput, MemberRemoveInput, MemberRoleChangeInput, OrganizationCreateInput, OrganizationOrderByInput, OrganizationOrderField, OrganizationUpdateInput, OrganizationUpdateLogoInput, OrganizationWhereInput, OwnershipTransferInput, RoleAssignment, RoleCreateInput, RoleDeleteInput, RolePermissionInput, RoleUpdateInput, SessionRevokeInput, SortDirection, StringFilter, UserSignInInput, UserSignOutInput, UserSignUpInput, UserTokenRefreshInput, UserUpdateAvatarInput, UserUpdateEmailInput, UserUpdatePasswordInput, UserUpdateProfileInput, WeightUnit } from './types.js'
+import { Action, AuthorizeInput, CurrencyCode, DateTimeFilter, DimensionUnit, IdFilter, LocaleCode, MemberAccessRemoveInput, MemberInviteInput, MemberRemoveInput, MemberRoleChangeInput, OrganizationCreateInput, OrganizationOrderByInput, OrganizationOrderField, OrganizationUpdateInput, OrganizationWhereInput, OwnershipTransferInput, RoleAssignment, RoleCreateInput, RoleDeleteInput, RolePermissionInput, RoleUpdateInput, SessionRevokeInput, SortDirection, StringFilter, UserSignInInput, UserSignOutInput, UserSignUpInput, UserTokenRefreshInput, UserUpdateEmailInput, UserUpdatePasswordInput, UserUpdateProfileInput, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -108,14 +108,8 @@ export function OrganizationUpdateInputSchema(): z.ZodObject<Properties<Organiza
   return z.object({
     displayName: z.string().nullish(),
     id: z.string(),
+    logoId: z.string().nullish(),
     name: z.string().nullish()
-  })
-}
-
-export function OrganizationUpdateLogoInputSchema(): z.ZodObject<Properties<OrganizationUpdateLogoInput>> {
-  return z.object({
-    id: z.string(),
-    logoId: z.string().nullish()
   })
 }
 
@@ -228,12 +222,6 @@ export function UserTokenRefreshInputSchema(): z.ZodObject<Properties<UserTokenR
   })
 }
 
-export function UserUpdateAvatarInputSchema(): z.ZodObject<Properties<UserUpdateAvatarInput>> {
-  return z.object({
-    avatarId: z.string().nullish()
-  })
-}
-
 export function UserUpdateEmailInputSchema(): z.ZodObject<Properties<UserUpdateEmailInput>> {
   return z.object({
     newEmail: z.string().email()
@@ -249,6 +237,7 @@ export function UserUpdatePasswordInputSchema(): z.ZodObject<Properties<UserUpda
 
 export function UserUpdateProfileInputSchema(): z.ZodObject<Properties<UserUpdateProfileInput>> {
   return z.object({
+    avatarId: z.string().nullish(),
     firstName: z.string().nullish(),
     lastName: z.string().nullish(),
     locale: LocaleCodeSchema.nullish()

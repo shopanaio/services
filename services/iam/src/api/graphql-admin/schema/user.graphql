@@ -91,6 +91,11 @@ input UserUpdateProfileInput {
   User's locale/language preference.
   """
   locale: LocaleCode
+
+  """
+  Media file ID for the avatar. Pass null to remove avatar.
+  """
+  avatarId: ID
 }
 
 """
@@ -285,29 +290,3 @@ type UserUpdatePasswordPayload {
   userErrors: [GenericUserError!]!
 }
 
-# ---- User Avatar ----
-
-"""
-Input for updating user avatar.
-"""
-input UserUpdateAvatarInput {
-  """
-  Media file ID for the avatar. Pass null to remove avatar.
-  """
-  avatarId: ID
-}
-
-"""
-Payload for user avatar update.
-"""
-type UserUpdateAvatarPayload {
-  """
-  The updated user.
-  """
-  user: User
-
-  """
-  List of errors that occurred during the mutation.
-  """
-  userErrors: [GenericUserError!]!
-}

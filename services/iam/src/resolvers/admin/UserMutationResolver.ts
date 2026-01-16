@@ -12,14 +12,12 @@ import type {
   UserUpdateProfileInput,
   UserUpdateEmailInput,
   UserUpdatePasswordInput,
-  UserUpdateAvatarInput,
   SessionRevokeInput,
 } from "./generated/types.js";
 import {
   UserUpdateProfileInputSchema,
   UserUpdateEmailInputSchema,
   UserUpdatePasswordInputSchema,
-  UserUpdateAvatarInputSchema,
   SessionRevokeInputSchema,
 } from "./generated/schemas.js";
 
@@ -29,7 +27,7 @@ import {
  */
 export class UserMutationResolver extends IAMType<Record<string, never>> {
   /**
-   * Update user's profile (firstName, lastName, language).
+   * Update user's profile (firstName, lastName, language, avatar).
    */
   @ZodResolver(UserUpdateProfileInputSchema())
   async userUpdateProfile(args: { input: UserUpdateProfileInput }) {
@@ -49,19 +47,56 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
       };
     }
 
+    // Update profile via script (firstName, lastName, locale)
     const result = await kernel.runScript(UserUpdateProfileScript, {
       firstName: input.firstName ?? undefined,
       lastName: input.lastName ?? undefined,
       language: input.locale ?? undefined,
     });
 
+    if (result.userErrors.length > 0) {
+      return {
+        user: result.userId ? new UserResolver(result.userId, this.$ctx) : null,
+        userErrors: result.userErrors.map((e) => ({
+          code: e.code,
+          message: e.message,
+          field: e.field ?? null,
+        })),
+      };
+    }
+
+    // Handle avatar update separately if provided
+    if (input.avatarId !== undefined) {
+      let imageId: string | null = null;
+      if (input.avatarId) {
+        try {
+          imageId = decodeGlobalIdByType(input.avatarId, GlobalIdEntity.File);
+        } catch {
+          imageId = input.avatarId;
+        }
+      }
+
+      const updated = await kernel.repository.user.updateProfile(currentUser.id, {
+        image: imageId ?? undefined,
+      });
+
+      if (!updated) {
+        return {
+          user: null,
+          userErrors: [
+            {
+              code: "UPDATE_FAILED",
+              message: "Failed to update avatar",
+              field: ["avatarId"],
+            },
+          ],
+        };
+      }
+    }
+
     return {
-      user: result.userId ? new UserResolver(result.userId, this.$ctx) : null,
-      userErrors: result.userErrors.map((e) => ({
-        code: e.code,
-        message: e.message,
-        field: e.field ?? null,
-      })),
+      user: new UserResolver(currentUser.id, this.$ctx),
+      userErrors: [],
     };
   }
 
@@ -133,62 +168,6 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
         message: e.message,
         field: e.field ?? null,
       })),
-    };
-  }
-
-  /**
-   * Update user's avatar image.
-   */
-  @ZodResolver(UserUpdateAvatarInputSchema())
-  async userUpdateAvatar(args: { input: UserUpdateAvatarInput }) {
-    const { input } = args;
-    const { currentUser, kernel } = this.$ctx;
-
-    if (!currentUser?.id) {
-      return {
-        user: null,
-        userErrors: [
-          {
-            code: "UNAUTHORIZED",
-            message: "You must be logged in to update your avatar",
-            field: null,
-          },
-        ],
-      };
-    }
-
-    // Decode file ID if provided
-    let imageId: string | null = null;
-    if (input.avatarId) {
-      try {
-        imageId = decodeGlobalIdByType(input.avatarId, GlobalIdEntity.File);
-      } catch {
-        // If decoding fails, use the raw ID (might be a raw UUID)
-        imageId = input.avatarId;
-      }
-    }
-
-    // Update avatar directly via repository
-    const updated = await kernel.repository.user.updateProfile(currentUser.id, {
-      image: imageId ?? undefined,
-    });
-
-    if (!updated) {
-      return {
-        user: null,
-        userErrors: [
-          {
-            code: "UPDATE_FAILED",
-            message: "Failed to update avatar",
-            field: null,
-          },
-        ],
-      };
-    }
-
-    return {
-      user: new UserResolver(updated.id, this.$ctx),
-      userErrors: [],
     };
   }
 

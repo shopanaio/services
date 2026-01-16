@@ -975,11 +975,6 @@ export type OrganizationMutation = {
    */
   organizationUpdate: OrganizationUpdatePayload;
   /**
-   * Update organization logo.
-   * Requires: org admin or owner.
-   */
-  organizationUpdateLogo: OrganizationUpdateLogoPayload;
-  /**
    * Transfer organization ownership to another admin.
    * Only the current owner can transfer ownership.
    * New owner must have admin role in the organization.
@@ -1028,12 +1023,6 @@ export type OrganizationMutationOrganizationDeleteArgs = {
 /** Organization mutations. */
 export type OrganizationMutationOrganizationUpdateArgs = {
   input: OrganizationUpdateInput;
-};
-
-
-/** Organization mutations. */
-export type OrganizationMutationOrganizationUpdateLogoArgs = {
-  input: OrganizationUpdateLogoInput;
 };
 
 
@@ -1101,25 +1090,10 @@ export type OrganizationUpdateInput = {
   displayName?: InputMaybe<Scalars['String']['input']>;
   /** Organization ID. */
   id: Scalars['ID']['input'];
-  /** New name (URL-friendly identifier). */
-  name?: InputMaybe<Scalars['String']['input']>;
-};
-
-/** Input for updating organization logo. */
-export type OrganizationUpdateLogoInput = {
-  /** Organization ID. */
-  id: Scalars['ID']['input'];
   /** Media file ID for the logo. Pass null to remove logo. */
   logoId?: InputMaybe<Scalars['ID']['input']>;
-};
-
-/** Payload for organization logo update. */
-export type OrganizationUpdateLogoPayload = {
-  __typename?: 'OrganizationUpdateLogoPayload';
-  /** The updated organization. */
-  organization?: Maybe<Organization>;
-  /** List of errors that occurred during the mutation. */
-  userErrors: Array<GenericUserError>;
+  /** New name (URL-friendly identifier). */
+  name?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type OrganizationUpdatePayload = {
@@ -1473,8 +1447,6 @@ export type UserMutation = {
   sessionRevoke: SessionRevokePayload;
   /** Revoke all sessions except the current one. */
   sessionRevokeAll: SessionRevokeAllPayload;
-  /** Update user avatar. Pass null avatarId to remove avatar. */
-  userUpdateAvatar: UserUpdateAvatarPayload;
   userUpdateEmail: UserUpdateEmailPayload;
   userUpdatePassword: UserUpdatePasswordPayload;
   userUpdateProfile: UserUpdateProfilePayload;
@@ -1483,11 +1455,6 @@ export type UserMutation = {
 
 export type UserMutationSessionRevokeArgs = {
   input: SessionRevokeInput;
-};
-
-
-export type UserMutationUserUpdateAvatarArgs = {
-  input: UserUpdateAvatarInput;
 };
 
 
@@ -1592,21 +1559,6 @@ export type UserTokenRefreshPayload = {
   userErrors: Array<GenericUserError>;
 };
 
-/** Input for updating user avatar. */
-export type UserUpdateAvatarInput = {
-  /** Media file ID for the avatar. Pass null to remove avatar. */
-  avatarId?: InputMaybe<Scalars['ID']['input']>;
-};
-
-/** Payload for user avatar update. */
-export type UserUpdateAvatarPayload = {
-  __typename?: 'UserUpdateAvatarPayload';
-  /** The updated user. */
-  user?: Maybe<User>;
-  /** List of errors that occurred during the mutation. */
-  userErrors: Array<GenericUserError>;
-};
-
 /** Input for updating user email. */
 export type UserUpdateEmailInput = {
   /** New email address. */
@@ -1641,6 +1593,8 @@ export type UserUpdatePasswordPayload = {
 
 /** Input for updating user profile. */
 export type UserUpdateProfileInput = {
+  /** Media file ID for the avatar. Pass null to remove avatar. */
+  avatarId?: InputMaybe<Scalars['ID']['input']>;
   /** User's first name. */
   firstName?: InputMaybe<Scalars['String']['input']>;
   /** User's last name. */
@@ -1800,8 +1754,6 @@ export type ResolversTypes = ResolversObject<{
   OrganizationOrderField: OrganizationOrderField;
   OrganizationQuery: ResolverTypeWrapper<OrganizationQuery>;
   OrganizationUpdateInput: OrganizationUpdateInput;
-  OrganizationUpdateLogoInput: OrganizationUpdateLogoInput;
-  OrganizationUpdateLogoPayload: ResolverTypeWrapper<OrganizationUpdateLogoPayload>;
   OrganizationUpdatePayload: ResolverTypeWrapper<OrganizationUpdatePayload>;
   OrganizationWhereInput: OrganizationWhereInput;
   OwnershipTransferInput: OwnershipTransferInput;
@@ -1838,8 +1790,6 @@ export type ResolversTypes = ResolversObject<{
   UserSignUpPayload: ResolverTypeWrapper<UserSignUpPayload>;
   UserTokenRefreshInput: UserTokenRefreshInput;
   UserTokenRefreshPayload: ResolverTypeWrapper<UserTokenRefreshPayload>;
-  UserUpdateAvatarInput: UserUpdateAvatarInput;
-  UserUpdateAvatarPayload: ResolverTypeWrapper<UserUpdateAvatarPayload>;
   UserUpdateEmailInput: UserUpdateEmailInput;
   UserUpdateEmailPayload: ResolverTypeWrapper<UserUpdateEmailPayload>;
   UserUpdatePasswordInput: UserUpdatePasswordInput;
@@ -1888,8 +1838,6 @@ export type ResolversParentTypes = ResolversObject<{
   OrganizationOrderByInput: OrganizationOrderByInput;
   OrganizationQuery: OrganizationQuery;
   OrganizationUpdateInput: OrganizationUpdateInput;
-  OrganizationUpdateLogoInput: OrganizationUpdateLogoInput;
-  OrganizationUpdateLogoPayload: OrganizationUpdateLogoPayload;
   OrganizationUpdatePayload: OrganizationUpdatePayload;
   OrganizationWhereInput: OrganizationWhereInput;
   OwnershipTransferInput: OwnershipTransferInput;
@@ -1925,8 +1873,6 @@ export type ResolversParentTypes = ResolversObject<{
   UserSignUpPayload: UserSignUpPayload;
   UserTokenRefreshInput: UserTokenRefreshInput;
   UserTokenRefreshPayload: UserTokenRefreshPayload;
-  UserUpdateAvatarInput: UserUpdateAvatarInput;
-  UserUpdateAvatarPayload: UserUpdateAvatarPayload;
   UserUpdateEmailInput: UserUpdateEmailInput;
   UserUpdateEmailPayload: UserUpdateEmailPayload;
   UserUpdatePasswordInput: UserUpdatePasswordInput;
@@ -2083,7 +2029,6 @@ export type OrganizationMutationResolvers<ContextType = ServiceContext, ParentTy
   organizationCreate?: Resolver<ResolversTypes['OrganizationCreatePayload'], ParentType, ContextType, RequireFields<OrganizationMutationOrganizationCreateArgs, 'input'>>;
   organizationDelete?: Resolver<ResolversTypes['OrganizationDeletePayload'], ParentType, ContextType, RequireFields<OrganizationMutationOrganizationDeleteArgs, 'id'>>;
   organizationUpdate?: Resolver<ResolversTypes['OrganizationUpdatePayload'], ParentType, ContextType, RequireFields<OrganizationMutationOrganizationUpdateArgs, 'input'>>;
-  organizationUpdateLogo?: Resolver<ResolversTypes['OrganizationUpdateLogoPayload'], ParentType, ContextType, RequireFields<OrganizationMutationOrganizationUpdateLogoArgs, 'input'>>;
   ownershipTransfer?: Resolver<ResolversTypes['OwnershipTransferPayload'], ParentType, ContextType, RequireFields<OrganizationMutationOwnershipTransferArgs, 'input'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -2091,12 +2036,6 @@ export type OrganizationMutationResolvers<ContextType = ServiceContext, ParentTy
 export type OrganizationQueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['OrganizationQuery'] = ResolversParentTypes['OrganizationQuery']> = ResolversObject<{
   organization?: Resolver<Maybe<ResolversTypes['Organization']>, ParentType, ContextType, Partial<OrganizationQueryOrganizationArgs>>;
   organizations?: Resolver<ResolversTypes['OrganizationConnection'], ParentType, ContextType, Partial<OrganizationQueryOrganizationsArgs>>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type OrganizationUpdateLogoPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['OrganizationUpdateLogoPayload'] = ResolversParentTypes['OrganizationUpdateLogoPayload']> = ResolversObject<{
-  organization?: Resolver<Maybe<ResolversTypes['Organization']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -2229,7 +2168,6 @@ export type UserErrorResolvers<ContextType = ServiceContext, ParentType extends 
 export type UserMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['UserMutation'] = ResolversParentTypes['UserMutation']> = ResolversObject<{
   sessionRevoke?: Resolver<ResolversTypes['SessionRevokePayload'], ParentType, ContextType, RequireFields<UserMutationSessionRevokeArgs, 'input'>>;
   sessionRevokeAll?: Resolver<ResolversTypes['SessionRevokeAllPayload'], ParentType, ContextType>;
-  userUpdateAvatar?: Resolver<ResolversTypes['UserUpdateAvatarPayload'], ParentType, ContextType, RequireFields<UserMutationUserUpdateAvatarArgs, 'input'>>;
   userUpdateEmail?: Resolver<ResolversTypes['UserUpdateEmailPayload'], ParentType, ContextType, RequireFields<UserMutationUserUpdateEmailArgs, 'input'>>;
   userUpdatePassword?: Resolver<ResolversTypes['UserUpdatePasswordPayload'], ParentType, ContextType, RequireFields<UserMutationUserUpdatePasswordArgs, 'input'>>;
   userUpdateProfile?: Resolver<ResolversTypes['UserUpdateProfilePayload'], ParentType, ContextType, RequireFields<UserMutationUserUpdateProfileArgs, 'input'>>;
@@ -2265,12 +2203,6 @@ export type UserSignUpPayloadResolvers<ContextType = ServiceContext, ParentType 
 
 export type UserTokenRefreshPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['UserTokenRefreshPayload'] = ResolversParentTypes['UserTokenRefreshPayload']> = ResolversObject<{
   token?: Resolver<Maybe<ResolversTypes['AuthTokenPayload']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type UserUpdateAvatarPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['UserUpdateAvatarPayload'] = ResolversParentTypes['UserUpdateAvatarPayload']> = ResolversObject<{
-  user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -2317,7 +2249,6 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   OrganizationEdge?: OrganizationEdgeResolvers<ContextType>;
   OrganizationMutation?: OrganizationMutationResolvers<ContextType>;
   OrganizationQuery?: OrganizationQueryResolvers<ContextType>;
-  OrganizationUpdateLogoPayload?: OrganizationUpdateLogoPayloadResolvers<ContextType>;
   OrganizationUpdatePayload?: OrganizationUpdatePayloadResolvers<ContextType>;
   OwnershipTransferPayload?: OwnershipTransferPayloadResolvers<ContextType>;
   PageInfo?: PageInfoResolvers<ContextType>;
@@ -2340,7 +2271,6 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   UserSignOutPayload?: UserSignOutPayloadResolvers<ContextType>;
   UserSignUpPayload?: UserSignUpPayloadResolvers<ContextType>;
   UserTokenRefreshPayload?: UserTokenRefreshPayloadResolvers<ContextType>;
-  UserUpdateAvatarPayload?: UserUpdateAvatarPayloadResolvers<ContextType>;
   UserUpdateEmailPayload?: UserUpdateEmailPayloadResolvers<ContextType>;
   UserUpdatePasswordPayload?: UserUpdatePasswordPayloadResolvers<ContextType>;
   UserUpdateProfilePayload?: UserUpdateProfilePayloadResolvers<ContextType>;

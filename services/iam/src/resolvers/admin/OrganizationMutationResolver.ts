@@ -18,7 +18,6 @@ import { MemberAccessRemoveScript } from "../../scripts/organization/MemberAcces
 import type {
   OrganizationCreateInput,
   OrganizationUpdateInput,
-  OrganizationUpdateLogoInput,
   MemberInviteInput,
   MemberRoleChangeInput,
   MemberAccessRemoveInput,
@@ -26,7 +25,6 @@ import type {
 import {
   OrganizationCreateInputSchema,
   OrganizationUpdateInputSchema,
-  OrganizationUpdateLogoInputSchema,
   MemberInviteInputSchema,
   MemberRoleChangeInputSchema,
   MemberAccessRemoveInputSchema,
@@ -63,111 +61,69 @@ export class OrganizationMutationResolver extends IAMType<
   }
 
   /**
-   * Update organization name.
+   * Update organization (name, displayName, logo).
    */
   @ZodResolver(OrganizationUpdateInputSchema())
   async organizationUpdate(args: { input: OrganizationUpdateInput }) {
     const { input } = args;
+    const { kernel } = this.$ctx;
     const organizationId = decodeGlobalIdByType(
       input.id,
       GlobalIdEntity.Organization
     );
-    const result = await this.$ctx.kernel.runScript(OrganizationUpdateScript, {
+
+    // Update name/displayName via script
+    const result = await kernel.runScript(OrganizationUpdateScript, {
       organizationId,
       name: input.name ?? undefined,
       displayName: input.displayName ?? undefined,
     });
 
-    return {
-      organization: result.organization
-        ? new OrganizationResolver(result.organization.id, this.$ctx)
-        : null,
-      userErrors: result.userErrors.map((e) => ({
-        code: e.code ?? "UNKNOWN_ERROR",
-        message: e.message,
-        field: e.field,
-      })),
-    };
-  }
-
-  /**
-   * Update organization logo.
-   * Requires org admin or owner role.
-   */
-  @ZodResolver(OrganizationUpdateLogoInputSchema())
-  async organizationUpdateLogo(args: { input: OrganizationUpdateLogoInput }) {
-    const { input } = args;
-    const { currentUser, kernel } = this.$ctx;
-
-    if (!currentUser?.id) {
+    if (result.userErrors.length > 0) {
       return {
-        organization: null,
-        userErrors: [
-          {
-            code: "UNAUTHORIZED",
-            message: "You must be logged in to update organization logo",
-            field: null,
-          },
-        ],
+        organization: result.organization
+          ? new OrganizationResolver(result.organization.id, this.$ctx)
+          : null,
+        userErrors: result.userErrors.map((e) => ({
+          code: e.code ?? "UNKNOWN_ERROR",
+          message: e.message,
+          field: e.field,
+        })),
       };
     }
 
-    const organizationId = decodeGlobalIdByType(
-      input.id,
-      GlobalIdEntity.Organization
-    );
+    // Handle logo update separately if provided
+    if (input.logoId !== undefined) {
+      let logoId: string | null = null;
+      if (input.logoId) {
+        try {
+          logoId = decodeGlobalIdByType(input.logoId, GlobalIdEntity.File);
+        } catch {
+          logoId = input.logoId;
+        }
+      }
 
-    // Check if user has permission to update organization
-    const member = await kernel.repository.organization.findMember(
-      organizationId,
-      currentUser.id
-    );
+      const updated = await kernel.repository.organization.updateLogo(
+        organizationId,
+        logoId
+      );
 
-    if (!member) {
-      return {
-        organization: null,
-        userErrors: [
-          {
-            code: "FORBIDDEN",
-            message: "You are not a member of this organization",
-            field: null,
-          },
-        ],
-      };
-    }
-
-    // Decode file ID if provided
-    let logoId: string | null = null;
-    if (input.logoId) {
-      try {
-        logoId = decodeGlobalIdByType(input.logoId, GlobalIdEntity.File);
-      } catch {
-        // If decoding fails, use the raw ID (might be a raw UUID)
-        logoId = input.logoId;
+      if (!updated) {
+        return {
+          organization: null,
+          userErrors: [
+            {
+              code: "UPDATE_FAILED",
+              message: "Failed to update logo",
+              field: ["logoId"],
+            },
+          ],
+        };
       }
     }
 
-    // Update logo
-    const updated = await kernel.repository.organization.updateLogo(
-      organizationId,
-      logoId
-    );
-
-    if (!updated) {
-      return {
-        organization: null,
-        userErrors: [
-          {
-            code: "NOT_FOUND",
-            message: "Organization not found",
-            field: null,
-          },
-        ],
-      };
-    }
-
     return {
-      organization: new OrganizationResolver(updated.id, this.$ctx),
+      organization: new OrganizationResolver(organizationId, this.$ctx),
       userErrors: [],
     };
   }
