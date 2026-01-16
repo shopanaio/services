@@ -146,14 +146,19 @@ export default function MediaPage() {
   const {
     searchValue,
     pageSize,
+    pageSizeOptions,
     where,
     orderBy,
+    first,
+    last,
+    after,
+    before,
     filterWidgetProps,
     gridStateProps,
     onSortChanged,
     setPageSize,
-    nextPage,
-    prevPage,
+    goToNextPage,
+    goToPrevPage,
     getRangeStart,
     getRangeEnd,
   } = usePageConfig<ApiFile, ApiFileWhereInput, FileOrderField>({
@@ -174,11 +179,12 @@ export default function MediaPage() {
     totalCount,
     pageInfo,
     loading,
-    fetchNextPage,
-    fetchPreviousPage,
     refetch,
   } = useFiles({
-    first: pageSize,
+    first,
+    last,
+    after,
+    before,
     search: searchValue,
     where,
     orderBy: orderBy as ApiFileOrderByInput[] | undefined,
@@ -186,12 +192,16 @@ export default function MediaPage() {
 
   // Pagination handlers
   const handleNextPage = useCallback(() => {
-    fetchNextPage().then(nextPage);
-  }, [fetchNextPage, nextPage]);
+    if (pageInfo?.endCursor) {
+      goToNextPage(pageInfo.endCursor);
+    }
+  }, [pageInfo?.endCursor, goToNextPage]);
 
   const handlePrevPage = useCallback(() => {
-    fetchPreviousPage().then(prevPage);
-  }, [fetchPreviousPage, prevPage]);
+    if (pageInfo?.startCursor) {
+      goToPrevPage(pageInfo.startCursor);
+    }
+  }, [pageInfo?.startCursor, goToPrevPage]);
 
   // Upload modal
   const { push: pushUploadModal } = useUploadMediaModal();
@@ -333,6 +343,7 @@ export default function MediaPage() {
           rangeStart={getRangeStart(files.length)}
           rangeEnd={getRangeEnd(files.length)}
           pageSize={pageSize}
+          pageSizeOptions={pageSizeOptions}
           hasNext={pageInfo?.hasNextPage ?? false}
           hasPrev={pageInfo?.hasPreviousPage ?? false}
           onNext={handleNextPage}

@@ -1,17 +1,15 @@
+import { useMemo } from "react";
 import { Flex, Button, Select, Typography } from "antd";
 import { LeftOutlined, RightOutlined } from "@ant-design/icons";
 
-const PAGE_SIZE_OPTIONS = [
-  { value: 10, label: "10" },
-  { value: 20, label: "20" },
-  { value: 50, label: "50" },
-];
+const DEFAULT_PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 export interface CursorPaginationProps {
   total: number;
   rangeStart: number;
   rangeEnd: number;
   pageSize: number;
+  pageSizeOptions?: number[];
   hasNext: boolean;
   hasPrev: boolean;
   onNext: () => void;
@@ -24,12 +22,18 @@ export function CursorPagination({
   rangeStart,
   rangeEnd,
   pageSize,
+  pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
   hasNext,
   hasPrev,
   onNext,
   onPrev,
   onPageSizeChange,
 }: CursorPaginationProps) {
+  const selectOptions = useMemo(
+    () => pageSizeOptions.map((size) => ({ value: size, label: String(size) })),
+    [pageSizeOptions]
+  );
+
   return (
     <Flex justify="space-between" align="center" style={{ padding: "12px 0" }}>
       <Flex align="center" gap="small">
@@ -37,7 +41,7 @@ export function CursorPagination({
         <Select
           value={pageSize}
           onChange={onPageSizeChange}
-          options={PAGE_SIZE_OPTIONS}
+          options={selectOptions}
           size="small"
           style={{ width: 70 }}
         />

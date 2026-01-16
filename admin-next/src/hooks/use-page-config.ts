@@ -68,6 +68,9 @@ export interface UsePageConfigOptions<
   /** Default page size */
   defaultPageSize?: number;
 
+  /** Available page size options for selector */
+  pageSizeOptions?: number[];
+
   /** Search field name for building where clause (e.g., 'originalName', 'name') */
   searchField?: string;
 
@@ -76,6 +79,16 @@ export interface UsePageConfigOptions<
 
   /** Custom search condition builder */
   buildSearchCondition?: (search: string) => Partial<TWhereInput>;
+}
+
+/**
+ * Pagination state for cursor-based pagination
+ */
+export interface PaginationState {
+  first: number | undefined;
+  last: number | undefined;
+  after: string | null;
+  before: string | null;
 }
 
 /**
@@ -90,6 +103,8 @@ export interface UsePageConfigReturn<
   searchValue: string;
   /** Current page size */
   pageSize: number;
+  /** Available page size options */
+  pageSizeOptions: number[];
   /** Current sort model */
   sortModel: SortModel[];
   /** Current filter values */
@@ -102,6 +117,14 @@ export interface UsePageConfigReturn<
   where: TWhereInput | undefined;
   /** Converted GraphQL orderBy input */
   orderBy: OrderByInput<TOrderField>[] | undefined;
+  /** Items count for forward pagination (undefined when going backward) */
+  first: number | undefined;
+  /** Items count for backward pagination (undefined when going forward) */
+  last: number | undefined;
+  /** Cursor for forward pagination */
+  after: string | null;
+  /** Cursor for backward pagination */
+  before: string | null;
 
   // ---- Setters ----
   /** Set search value */
@@ -112,16 +135,14 @@ export interface UsePageConfigReturn<
   setSortModel: (model: SortModel[]) => void;
   /** Set filters */
   setFilters: (filters: IFilterValue[]) => void;
-  /** Set current page */
-  setCurrentPage: (page: number) => void;
-  /** Go to next page */
-  nextPage: () => void;
-  /** Go to previous page */
-  prevPage: () => void;
   /** Reset all state */
   reset: () => void;
 
-  // ---- Pagination Helpers ----
+  // ---- Pagination Methods ----
+  /** Go to next page using end cursor */
+  goToNextPage: (endCursor: string) => void;
+  /** Go to previous page using start cursor */
+  goToPrevPage: (startCursor: string) => void;
   /** Calculate range start (1-indexed) for display */
   getRangeStart: (itemCount: number) => number;
   /** Calculate range end for display */
@@ -244,6 +265,7 @@ export function usePageConfig<
     sortFieldMapping,
     defaultSort = [],
     defaultPageSize = 20,
+    pageSizeOptions = [10, 20, 50, 100],
     searchField,
     filterTransformers = {},
     buildSearchCondition,
@@ -254,6 +276,10 @@ export function usePageConfig<
   const [pageSize, setPageSize] = useState(defaultPageSize);
   const [sortModel, setSortModel] = useState<SortModel[]>(defaultSort);
   const [currentPage, setCurrentPage] = useState(0);
+  const [cursor, setCursor] = useState<{ after: string | null; before: string | null }>({
+    after: null,
+    before: null,
+  });
 
   // ---- Filters ----
   const { widgetProps, filters, setFilters, reset: resetFilters } = useFilters({
@@ -370,14 +396,30 @@ export function usePageConfig<
   // ---- Reset Pagination on Parameter Changes ----
   useEffect(() => {
     setCurrentPage(0);
+    setCursor({ after: null, before: null });
   }, [where, orderBy, pageSize]);
 
+  // ---- Pagination State ----
+  const pagination = useMemo((): PaginationState => {
+    // If we have a cursor, use it for pagination direction
+    if (cursor.after) {
+      return { first: pageSize, last: undefined, after: cursor.after, before: null };
+    }
+    if (cursor.before) {
+      return { first: undefined, last: pageSize, after: null, before: cursor.before };
+    }
+    // Default: first page
+    return { first: pageSize, last: undefined, after: null, before: null };
+  }, [pageSize, cursor]);
+
   // ---- Pagination Methods ----
-  const nextPage = useCallback(() => {
+  const goToNextPage = useCallback((endCursor: string) => {
+    setCursor({ after: endCursor, before: null });
     setCurrentPage((p) => p + 1);
   }, []);
 
-  const prevPage = useCallback(() => {
+  const goToPrevPage = useCallback((startCursor: string) => {
+    setCursor({ after: null, before: startCursor });
     setCurrentPage((p) => Math.max(0, p - 1));
   }, []);
 
@@ -397,6 +439,7 @@ export function usePageConfig<
     setPageSize(defaultPageSize);
     setSortModel(defaultSort);
     setCurrentPage(0);
+    setCursor({ after: null, before: null });
     resetFilters();
   }, [defaultPageSize, defaultSort, resetFilters]);
 
@@ -424,6 +467,7 @@ export function usePageConfig<
     // State
     searchValue,
     pageSize,
+    pageSizeOptions,
     sortModel,
     filters,
     currentPage,
@@ -431,18 +475,21 @@ export function usePageConfig<
     // GraphQL variables
     where,
     orderBy,
+    first: cursor.before ? undefined : pageSize,
+    last: cursor.before ? pageSize : undefined,
+    after: cursor.after,
+    before: cursor.before,
 
     // Setters
     setSearchValue,
     setPageSize,
     setSortModel,
     setFilters,
-    setCurrentPage,
-    nextPage,
-    prevPage,
     reset,
 
-    // Pagination helpers
+    // Pagination methods
+    goToNextPage,
+    goToPrevPage,
     getRangeStart,
     getRangeEnd,
 

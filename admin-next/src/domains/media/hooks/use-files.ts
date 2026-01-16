@@ -13,13 +13,21 @@ import { SortDirection, FileOrderField } from "@/graphql/types";
 
 interface UseFilesOptions {
   /**
-   * Number of items to fetch.
+   * Number of items for forward pagination.
    */
   first?: number;
+  /**
+   * Number of items for backward pagination.
+   */
+  last?: number;
   /**
    * Cursor for forward pagination.
    */
   after?: string | null;
+  /**
+   * Cursor for backward pagination.
+   */
+  before?: string | null;
   /**
    * Skip the query.
    */
@@ -63,14 +71,6 @@ interface UseFilesReturn {
    * Refetch the files list.
    */
   refetch: () => void;
-  /**
-   * Fetch the next page. Returns Promise that resolves when complete.
-   */
-  fetchNextPage: () => Promise<void>;
-  /**
-   * Fetch the previous page. Returns Promise that resolves when complete.
-   */
-  fetchPreviousPage: () => Promise<void>;
 }
 
 export { SortDirection, FileOrderField };
@@ -109,8 +109,10 @@ interface FilesQueryResponse {
  */
 export function useFiles(options: UseFilesOptions = {}): UseFilesReturn {
   const {
-    first = 20,
+    first,
+    last,
     after = null,
+    before = null,
     skip = false,
     search,
     where: externalWhere,
@@ -138,9 +140,9 @@ export function useFiles(options: UseFilesOptions = {}): UseFilesReturn {
     return { _and: conditions };
   }, [search, externalWhere]);
 
-  const { data, loading, error, refetch, fetchMore } =
+  const { data, loading, error, refetch } =
     useQuery<FilesQueryResponse>(FILES_QUERY, {
-      variables: { first, after, where, orderBy },
+      variables: { first, last, after, before, where, orderBy },
       skip,
       fetchPolicy: "cache-and-network",
     });
@@ -149,44 +151,6 @@ export function useFiles(options: UseFilesOptions = {}): UseFilesReturn {
   const pageInfo = data?.mediaQuery.files.pageInfo ?? null;
   const totalCount = data?.mediaQuery.files.totalCount ?? 0;
 
-  const fetchNextPage = async () => {
-    if (pageInfo?.hasNextPage && pageInfo.endCursor) {
-      await fetchMore({
-        variables: {
-          first,
-          after: pageInfo.endCursor,
-          last: undefined,
-          before: undefined,
-          where,
-          orderBy,
-        },
-        updateQuery: (prev, { fetchMoreResult }) => {
-          if (!fetchMoreResult) return prev;
-          return fetchMoreResult;
-        },
-      });
-    }
-  };
-
-  const fetchPreviousPage = async () => {
-    if (pageInfo?.hasPreviousPage && pageInfo.startCursor) {
-      await fetchMore({
-        variables: {
-          first: undefined,
-          after: undefined,
-          last: first,
-          before: pageInfo.startCursor,
-          where,
-          orderBy,
-        },
-        updateQuery: (prev, { fetchMoreResult }) => {
-          if (!fetchMoreResult) return prev;
-          return fetchMoreResult;
-        },
-      });
-    }
-  };
-
   return {
     files,
     totalCount,
@@ -194,7 +158,5 @@ export function useFiles(options: UseFilesOptions = {}): UseFilesReturn {
     loading,
     error: error ?? null,
     refetch: () => void refetch(),
-    fetchNextPage,
-    fetchPreviousPage,
   };
 }
