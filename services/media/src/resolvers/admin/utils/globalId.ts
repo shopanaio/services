@@ -4,7 +4,7 @@ import {
   parseGlobalId,
 } from "@shopana/shared-graphql-guid";
 
-export type NodeType = "File" | "Bucket";
+export type NodeType = "File" | "Bucket" | "MediaAssetGroup";
 
 export function encodeGlobalId(type: NodeType, id: string): string {
   return encodeGlobalIdByType(id, GlobalIdEntity[type]);
@@ -20,6 +20,9 @@ export function decodeGlobalId(
     }
     if (parsed.typeName === GlobalIdEntity.Bucket) {
       return { type: "Bucket", id: parsed.id };
+    }
+    if (parsed.typeName === GlobalIdEntity.MediaAssetGroup) {
+      return { type: "MediaAssetGroup", id: parsed.id };
     }
     return null;
   } catch {

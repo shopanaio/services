@@ -46,7 +46,13 @@ export class MediaQueryResolver extends MediaType<Record<string, never>> {
   /**
    * Get a single file by ID
    */
-  file({ id }: { id: string }) {
+  file({ bucketId, id }: { bucketId: string; id: string }) {
+    // Decode bucketId (MediaAssetGroup GID) to assetGroupId
+    const decodedBucket = decodeGlobalId(bucketId);
+    if (!decodedBucket || decodedBucket.type !== "MediaAssetGroup") {
+      return null;
+    }
+
     const decoded = decodeGlobalId(id);
     if (!decoded || decoded.type !== "File") {
       return null;

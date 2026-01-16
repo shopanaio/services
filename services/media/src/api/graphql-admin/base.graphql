@@ -39,19 +39,36 @@ type MediaQuery {
   """
   Get a file by ID
   """
-  file(id: ID!): File
+  file(
+    """
+    Media bucket ID (MediaAssetGroup GID)
+    """
+    bucketId: ID!
+    """
+    File ID
+    """
+    id: ID!
+  ): File
 
   """
   Get files with Relay-style pagination
   """
   files(
+    """
+    Media bucket ID (MediaAssetGroup GID)
+    """
+    bucketId: ID!
     first: Int
     after: String
     last: Int
     before: String
-    """Filter conditions"""
+    """
+    Filter conditions
+    """
     where: FileWhereInput
-    """Sort order"""
+    """
+    Sort order
+    """
     orderBy: [FileOrderByInput!]
   ): FileConnection!
 }

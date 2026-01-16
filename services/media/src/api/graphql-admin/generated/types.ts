@@ -186,6 +186,8 @@ export type FileConnectionInput = {
 export type FileCreateExternalInput = {
   /** Alt text for accessibility. */
   altText?: InputMaybe<Scalars['String']['input']>;
+  /** Media bucket ID (MediaAssetGroup GID) to associate this file with. */
+  bucketId?: InputMaybe<Scalars['ID']['input']>;
   /** Duration in milliseconds. */
   durationMs?: InputMaybe<Scalars['Int']['input']>;
   /** External ID (YouTube video ID, Vimeo ID, etc). */
@@ -328,6 +330,8 @@ export type FileUpdatePayload = {
 export type FileUploadFromUrlInput = {
   /** Alt text for accessibility. */
   altText?: InputMaybe<Scalars['String']['input']>;
+  /** Media bucket ID (MediaAssetGroup GID) to associate this file with. */
+  bucketId?: InputMaybe<Scalars['ID']['input']>;
   /** Idempotency key for deduplication. */
   idempotencyKey?: InputMaybe<Scalars['String']['input']>;
   /** URL to fetch the file from. */
@@ -338,6 +342,8 @@ export type FileUploadFromUrlInput = {
 export type FileUploadMultipartInput = {
   /** Alt text for accessibility. */
   altText?: InputMaybe<Scalars['String']['input']>;
+  /** Media bucket ID (MediaAssetGroup GID) to associate this file with. */
+  bucketId?: InputMaybe<Scalars['ID']['input']>;
   /** The file to upload. */
   file: Scalars['Upload']['input'];
   /** Idempotency key for deduplication. */
@@ -536,6 +542,7 @@ export type MediaQuery = {
 
 
 export type MediaQueryFileArgs = {
+  bucketId: Scalars['ID']['input'];
   id: Scalars['ID']['input'];
 };
 
@@ -543,6 +550,7 @@ export type MediaQueryFileArgs = {
 export type MediaQueryFilesArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   before?: InputMaybe<Scalars['String']['input']>;
+  bucketId: Scalars['ID']['input'];
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
   orderBy?: InputMaybe<Array<FileOrderByInput>>;
@@ -956,8 +964,8 @@ export type MediaMutationResolvers<ContextType = GraphQLContext, ParentType exte
 }>;
 
 export type MediaQueryResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['MediaQuery'] = ResolversParentTypes['MediaQuery']> = ResolversObject<{
-  file?: Resolver<Maybe<ResolversTypes['File']>, ParentType, ContextType, RequireFields<MediaQueryFileArgs, 'id'>>;
-  files?: Resolver<ResolversTypes['FileConnection'], ParentType, ContextType, Partial<MediaQueryFilesArgs>>;
+  file?: Resolver<Maybe<ResolversTypes['File']>, ParentType, ContextType, RequireFields<MediaQueryFileArgs, 'bucketId' | 'id'>>;
+  files?: Resolver<ResolversTypes['FileConnection'], ParentType, ContextType, RequireFields<MediaQueryFilesArgs, 'bucketId'>>;
   node?: Resolver<Maybe<ResolversTypes['Node']>, ParentType, ContextType, RequireFields<MediaQueryNodeArgs, 'id'>>;
   nodes?: Resolver<Array<Maybe<ResolversTypes['Node']>>, ParentType, ContextType, RequireFields<MediaQueryNodesArgs, 'ids'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
