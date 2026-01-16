@@ -28,11 +28,11 @@ describe("cursor encode/decode", () => {
       expect(encoded).not.toContain("=");
 
       const decoded = decode(encoded);
-      // Date strings are converted to Date objects during decode
+      // Date strings remain as strings (no dateReviver)
       expect(decoded.type).toBe(params.type);
       expect(decoded.filtersHash).toBe(params.filtersHash);
       expect(decoded.seek[0].field).toBe("updatedAt");
-      expect(decoded.seek[0].value).toEqual(new Date("2024-01-01T00:00:00Z"));
+      expect(decoded.seek[0].value).toBe("2024-01-01T00:00:00Z");
       expect(decoded.seek[0].direction).toBe("desc");
       expect(decoded.seek[1]).toEqual(params.seek[1]);
     });
