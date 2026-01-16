@@ -1,29 +1,27 @@
 import crypto from "node:crypto";
 import { BaseScript } from "../../kernel/BaseScript.js";
-import { getS3Client, getBucketName, buildPublicUrl } from "../../infrastructure/s3/index.js";
+import {
+  getS3Client,
+  getBucketName,
+  buildPublicUrl,
+} from "../../infrastructure/s3/index.js";
 import { analyzeMedia } from "../../infrastructure/media/index.js";
 import type {
   FileUploadMultipartParams,
   FileUploadMultipartResult,
 } from "./dto/FileUploadMultipartDto.js";
-import type { AssetOwnerType } from "../../repositories/models/index.js";
 
 export class FileUploadMultipartScript extends BaseScript<
   FileUploadMultipartParams,
   FileUploadMultipartResult
 > {
-  protected async execute(params: FileUploadMultipartParams): Promise<FileUploadMultipartResult> {
+  protected async execute(
+    params: FileUploadMultipartParams
+  ): Promise<FileUploadMultipartResult> {
     const projectId = this.storeId;
 
     // Resolve asset group ID from ownerType + ownerId
-    let assetGroupId: string | null = null;
-    if (params.ownerType && params.ownerId) {
-      const assetGroup = await this.repository.assetGroup.findByOwner(
-        params.ownerType as AssetOwnerType,
-        params.ownerId
-      );
-      assetGroupId = assetGroup?.id ?? null;
-    }
+    // let assetGroupId: string | null = null;
 
     this.logger.info({ projectId }, "FileUploadMultipartScript: starting");
 
@@ -50,7 +48,10 @@ export class FileUploadMultipartScript extends BaseScript<
     const upload = await params.file;
     const { filename, mimetype, createReadStream } = upload;
 
-    this.logger.info({ filename, mimetype }, "FileUploadMultipartScript: processing file");
+    this.logger.info(
+      { filename, mimetype },
+      "FileUploadMultipartScript: processing file"
+    );
 
     // Read file stream into buffer
     const stream = createReadStream();
@@ -91,7 +92,10 @@ export class FileUploadMultipartScript extends BaseScript<
 
     // 4. Generate object key and upload to S3
     const objectKey = this.generateObjectKey(projectId, metadata.ext);
-    const contentHash = crypto.createHash("sha256").update(buffer).digest("hex");
+    const contentHash = crypto
+      .createHash("sha256")
+      .update(buffer)
+      .digest("hex");
 
     // Initialize S3 client
     const s3Client = getS3Client();
@@ -136,7 +140,7 @@ export class FileUploadMultipartScript extends BaseScript<
       sourceUrl: null,
       idempotencyKey: params.idempotencyKey ?? null,
       isProcessed: true,
-      assetGroupId,
+      assetGroupId: params.groupId,
     });
 
     // 7. Create record in `s3Objects` table
@@ -149,7 +153,10 @@ export class FileUploadMultipartScript extends BaseScript<
       storageClass: "STANDARD",
     });
 
-    this.logger.info({ fileId: file.id }, "FileUploadMultipartScript: completed successfully");
+    this.logger.info(
+      { fileId: file.id },
+      "FileUploadMultipartScript: completed successfully"
+    );
 
     return {
       file: { id: file.id },
@@ -166,7 +173,9 @@ export class FileUploadMultipartScript extends BaseScript<
   protected handleError(_error: unknown): FileUploadMultipartResult {
     return {
       file: null,
-      userErrors: [{ message: "Failed to upload file", code: "INTERNAL_ERROR" }],
+      userErrors: [
+        { message: "Failed to upload file", code: "INTERNAL_ERROR" },
+      ],
     };
   }
 }

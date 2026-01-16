@@ -3,13 +3,11 @@ import type { FileResultBase } from "./shared.js";
 import type { AssetOwnerType } from "../../../repositories/models/index.js";
 
 export interface FileUploadMultipartParams {
-  readonly file: Promise<FileUpload>;
-  readonly altText?: string;
-  readonly idempotencyKey?: string;
-  /** Owner type for asset group lookup */
-  readonly ownerType?: AssetOwnerType;
-  /** Owner ID for asset group lookup */
-  readonly ownerId?: string;
+  file: Promise<FileUpload>;
+  altText?: string;
+  idempotencyKey?: string;
+  /** Group ID for asset group lookup */
+  groupId: string;
 }
 
 export interface FileUploadMultipartResult extends FileResultBase {

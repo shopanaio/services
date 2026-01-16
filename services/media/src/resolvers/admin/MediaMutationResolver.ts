@@ -2,7 +2,6 @@ import type { FileUpload } from "graphql-upload-minimal";
 import { MediaType } from "./MediaType.js";
 import { FileResolver } from "./FileResolver.js";
 import { BucketResolver } from "./BucketResolver.js";
-import { decodeGlobalId, encodeGlobalId } from "./utils/globalId.js";
 import {
   BucketCreateScript,
   FileUploadMultipartScript,
@@ -11,6 +10,11 @@ import {
   FileUpdateScript,
   FileDeleteScript,
 } from "../../scripts/index.js";
+import {
+  decodeGlobalIdByType,
+  encodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 
 /**
  * MediaMutation namespace resolver.
@@ -59,8 +63,7 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       file: Promise<FileUpload>;
       altText?: string;
       idempotencyKey?: string;
-      ownerType?: string;
-      ownerId?: string;
+      groupId: string;
     };
   }) {
     const { kernel } = this.$ctx;
@@ -69,8 +72,7 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       file: input.file,
       altText: input.altText,
       idempotencyKey: input.idempotencyKey,
-      ownerType: input.ownerType as any,
-      ownerId: input.ownerId,
+      groupId: input.groupId,
     });
 
     return {
@@ -168,8 +170,8 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       meta?: Record<string, unknown>;
     };
   }) {
-    const decoded = decodeGlobalId(input.id);
-    if (!decoded || decoded.type !== "File") {
+    const fileId = decodeGlobalIdByType(input.id, GlobalIdEntity.File);
+    if (!fileId) {
       return {
         file: null,
         userErrors: [
@@ -181,7 +183,7 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
     const { kernel } = this.$ctx;
 
     const result = await kernel.runScript(FileUpdateScript, {
-      id: decoded.id,
+      id: fileId,
       altText: input.altText,
       originalName: input.originalName,
       meta: input.meta,
@@ -204,8 +206,8 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       permanent?: boolean;
     };
   }) {
-    const decoded = decodeGlobalId(input.id);
-    if (!decoded || decoded.type !== "File") {
+    const fileId = decodeGlobalIdByType(input.id, GlobalIdEntity.File);
+    if (!fileId) {
       return {
         deletedFileId: null,
         userErrors: [
@@ -217,13 +219,13 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
     const { kernel } = this.$ctx;
 
     const result = await kernel.runScript(FileDeleteScript, {
-      id: decoded.id,
+      id: fileId,
       permanent: input.permanent,
     });
 
     return {
       deletedFileId: result.deletedFileId
-        ? encodeGlobalId("File", result.deletedFileId)
+        ? encodeGlobalIdByType(result.deletedFileId, GlobalIdEntity.File)
         : null,
       userErrors: result.userErrors,
     };

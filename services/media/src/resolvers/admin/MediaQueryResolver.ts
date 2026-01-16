@@ -1,8 +1,11 @@
 import { MediaType } from "./MediaType.js";
 import { FileResolver } from "./FileResolver.js";
 import { FileConnectionResolver } from "./connection/index.js";
-import { decodeGlobalId } from "./utils/globalId.js";
 import type { FileRelayInput } from "../../repositories/FileRepository.js";
+import {
+  decodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 
 /**
  * MediaQuery namespace resolver.
@@ -13,16 +16,12 @@ export class MediaQueryResolver extends MediaType<Record<string, never>> {
    * Get a node by its global ID (Relay Node interface)
    */
   node({ id }: { id: string }) {
-    const decoded = decodeGlobalId(id);
-    if (!decoded) {
+    const fileId = decodeGlobalIdByType(id, GlobalIdEntity.File);
+    if (!fileId) {
       return null;
     }
 
-    if (decoded.type === "File") {
-      return new FileResolver(decoded.id, this.$ctx);
-    }
-
-    return null;
+    return new FileResolver(fileId, this.$ctx);
   }
 
   /**
@@ -30,42 +29,56 @@ export class MediaQueryResolver extends MediaType<Record<string, never>> {
    */
   nodes({ ids }: { ids: string[] }) {
     return ids.map((id) => {
-      const decoded = decodeGlobalId(id);
-      if (!decoded) {
+      const fileId = decodeGlobalIdByType(id, GlobalIdEntity.File);
+      if (!fileId) {
         return null;
       }
 
-      if (decoded.type === "File") {
-        return new FileResolver(decoded.id, this.$ctx);
-      }
-
-      return null;
+      return new FileResolver(fileId, this.$ctx);
     });
   }
 
   /**
    * Get a single file by ID
    */
-  file({ bucketId, id }: { bucketId: string; id: string }) {
-    // Decode bucketId (MediaAssetGroup GID) to assetGroupId
-    const decodedBucket = decodeGlobalId(bucketId);
-    if (!decodedBucket || decodedBucket.type !== "MediaAssetGroup") {
+  file({ groupId, id }: { groupId: string; id: string }) {
+    // Decode groupId (MediaAssetGroup GID) to assetGroupId
+    const assetGroupId = decodeGlobalIdByType(
+      groupId,
+      GlobalIdEntity.MediaAssetGroup
+    );
+    if (!assetGroupId) {
       return null;
     }
 
-    const decoded = decodeGlobalId(id);
-    if (!decoded || decoded.type !== "File") {
+    // Decode fileId (File GID) to fileId
+    const fileId = decodeGlobalIdByType(id, GlobalIdEntity.File);
+    if (!fileId) {
       return null;
     }
 
-    return new FileResolver(decoded.id, this.$ctx);
+    // TODO: authorize by group id
+
+    return new FileResolver(fileId, this.$ctx);
   }
 
   /**
    * Get files with Relay-style pagination
    */
   files(args: FileRelayInput) {
+    // Decode groupId (MediaAssetGroup GID) to assetGroupId
+    const assetGroupId = decodeGlobalIdByType(
+      args.groupId,
+      GlobalIdEntity.MediaAssetGroup
+    );
+    if (!assetGroupId) {
+      return null;
+    }
 
-    return new FileConnectionResolver(args, this.$ctx);
+    return new FileConnectionResolver(
+      // Add decoded groupId to args
+      { ...args, groupId: assetGroupId },
+      this.$ctx
+    );
   }
 }

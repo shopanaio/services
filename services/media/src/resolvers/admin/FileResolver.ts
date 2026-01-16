@@ -2,8 +2,11 @@ import { SubgraphReference } from "@shopana/type-resolver";
 import { MediaType, Cache } from "./MediaType.js";
 import { S3DataResolver } from "./S3DataResolver.js";
 import { ExternalDataResolver } from "./ExternalDataResolver.js";
-import { encodeGlobalId, decodeGlobalId } from "./utils/globalId.js";
 import type { File } from "../../repositories/models/index.js";
+import {
+  encodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 
 /**
  * File resolver - resolves File type
@@ -25,7 +28,7 @@ export class FileResolver extends MediaType<string, File> {
   }
 
   id() {
-    return encodeGlobalId("File", this.$props);
+    return encodeGlobalIdByType(this.$props, GlobalIdEntity.File);
   }
 
   async url() {

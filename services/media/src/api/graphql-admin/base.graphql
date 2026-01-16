@@ -41,23 +41,19 @@ type MediaQuery {
   """
   file(
     """
-    Media bucket ID (MediaAssetGroup GID)
-    """
-    bucketId: ID!
-    """
     File ID
     """
     id: ID!
+    """
+    Media bucket ID
+    """
+    groupId: ID!
   ): File
 
   """
   Get files with Relay-style pagination
   """
   files(
-    """
-    Media bucket ID (MediaAssetGroup GID)
-    """
-    bucketId: ID!
     first: Int
     after: String
     last: Int
@@ -70,6 +66,11 @@ type MediaQuery {
     Sort order
     """
     orderBy: [FileOrderByInput!]
+
+    """
+    Media Asset Group ID
+    """
+    groupId: ID!
   ): FileConnection!
 }
 

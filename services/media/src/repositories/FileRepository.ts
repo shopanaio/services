@@ -28,7 +28,9 @@ export const fileRelayQuery = createRelayQuery(
   }
 );
 
-export type FileRelayInput = InferRelayInput<typeof fileRelayQuery>;
+export type FileRelayInput = InferRelayInput<typeof fileRelayQuery> & {
+  groupId: string;
+};
 
 export interface FileConnectionResult {
   edges: Array<{ cursor: string; nodeId: string }>;
@@ -339,18 +341,19 @@ export class FileRepository {
     projectId: string,
     args: FileRelayInput
   ): Promise<FileConnectionResult> {
-    const { where, orderBy, ...paginationArgs } = args;
+    const { where, orderBy, groupId, ...paginationArgs } = args;
 
     // Merge user-provided where with projectId and deletedAt filters
     const mergedWhere: FileRelayInput["where"] = {
       _and: [
         { projectId: { _eq: projectId } },
         { deletedAt: { _is: null } },
+        { assetGroupId: { _eq: groupId } },
         ...(where ? [where] : []),
       ],
     };
 
-    const executeInput: FileRelayInput = {
+    const executeInput = {
       ...paginationArgs,
       where: mergedWhere,
       orderBy:

@@ -96,6 +96,8 @@ export enum GlobalIdEntity {
   Customer = "Customer",
   ProductVariant = "ProductVariant",
   File = "File",
+  MediaAssetGroup = "MediaAssetGroup",
+  Bucket = "Bucket",
   Store = "Store",
   Organization = "Organization",
   Role = "Role",

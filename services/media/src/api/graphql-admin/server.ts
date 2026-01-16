@@ -127,6 +127,7 @@ export async function startServer(serverConfig: ServerConfig) {
   // Create Apollo Server
   const apollo = new ApolloServer<ServiceContext>({
     introspection: true,
+    // @ts-expect-error - buildSubgraphSchema expects ServiceContext but we pass ServiceContextOptions
     schema: buildSubgraphSchema(modules),
     plugins: [fastifyApolloDrainPlugin(app)],
   });

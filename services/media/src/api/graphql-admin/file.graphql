@@ -242,7 +242,7 @@ input FileUploadMultipartInput {
   """
   Media bucket ID (MediaAssetGroup GID) to associate this file with.
   """
-  bucketId: ID
+  bucketId: ID!
 }
 
 """
@@ -267,7 +267,7 @@ input FileUploadFromUrlInput {
   """
   Media bucket ID (MediaAssetGroup GID) to associate this file with.
   """
-  bucketId: ID
+  bucketId: ID!
 }
 
 """
@@ -332,7 +332,7 @@ input FileCreateExternalInput {
   """
   Media bucket ID (MediaAssetGroup GID) to associate this file with.
   """
-  bucketId: ID
+  bucketId: ID!
 }
 
 """
