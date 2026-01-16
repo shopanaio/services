@@ -422,3 +422,36 @@ type FileDeletePayload {
   """
   userErrors: [GenericUserError!]!
 }
+
+# ---- Avatar/Logo Upload ----
+
+"""
+Input for uploading avatar or logo.
+"""
+input AvatarUploadInput {
+  """
+  Owner ID (User or Organization global ID).
+  The asset group will be resolved by this ID.
+  """
+  ownerId: ID!
+
+  """
+  The file to upload.
+  """
+  file: Upload!
+}
+
+"""
+Payload for avatar/logo upload.
+"""
+type AvatarUploadPayload {
+  """
+  The uploaded file.
+  """
+  file: File
+
+  """
+  List of errors that occurred during the mutation.
+  """
+  userErrors: [GenericUserError!]!
+}

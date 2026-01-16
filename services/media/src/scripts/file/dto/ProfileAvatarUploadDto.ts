@@ -6,7 +6,6 @@ export interface ProfileAvatarUploadParams {
   file: Promise<FileUpload>;
   ownerType: AssetOwnerType;
   ownerId: string;
-  altText?: string;
 }
 
 export interface ProfileAvatarUploadResult extends FileResultBase {

@@ -9,8 +9,11 @@ import {
   FileCreateExternalScript,
   FileUpdateScript,
   FileDeleteScript,
+  ProfileAvatarUploadScript,
 } from "../../scripts/index.js";
+import type { AssetOwnerType } from "../../repositories/models/index.js";
 import {
+  decodeGlobalId,
   decodeGlobalIdByType,
   encodeGlobalIdByType,
   GlobalIdEntity,
@@ -221,6 +224,72 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       deletedFileId: result.deletedFileId
         ? encodeGlobalIdByType(result.deletedFileId, GlobalIdEntity.File)
         : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  /**
+   * Upload avatar or logo for an entity (user profile or organization).
+   * The file is stored in the entity's asset group.
+   */
+  async avatarUpload({
+    input,
+  }: {
+    input: {
+      ownerId: string;
+      file: Promise<FileUpload>;
+    };
+  }) {
+    const { kernel } = this.$ctx;
+
+    // Decode ownerId and determine ownerType from global ID
+    let ownerId: string;
+    let ownerType: AssetOwnerType;
+
+    try {
+      const decoded = decodeGlobalId(input.ownerId);
+      ownerId = decoded.id;
+
+      // Map GlobalIdEntity type to AssetOwnerType
+      if (decoded.typeName === GlobalIdEntity.User) {
+        ownerType = "user_profile";
+      } else if (decoded.typeName === GlobalIdEntity.Organization) {
+        ownerType = "organization";
+      } else if (decoded.typeName === GlobalIdEntity.Store) {
+        ownerType = "store";
+      } else {
+        return {
+          file: null,
+          userErrors: [
+            {
+              message: `Invalid owner type: ${decoded.typeName}. Expected User, Organization, or Store.`,
+              field: ["ownerId"],
+              code: "INVALID_OWNER_TYPE",
+            },
+          ],
+        };
+      }
+    } catch {
+      return {
+        file: null,
+        userErrors: [
+          {
+            message: "Invalid ownerId format",
+            field: ["ownerId"],
+            code: "INVALID_ID",
+          },
+        ],
+      };
+    }
+
+    const result = await kernel.runScript(ProfileAvatarUploadScript, {
+      file: input.file,
+      ownerType,
+      ownerId,
+    });
+
+    return {
+      file: result.file ? new FileResolver(result.file.id, this.$ctx) : null,
       userErrors: result.userErrors,
     };
   }

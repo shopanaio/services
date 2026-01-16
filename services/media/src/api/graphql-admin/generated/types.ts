@@ -23,6 +23,26 @@ export type Scalars = {
   _FieldSet: { input: any; output: any; }
 };
 
+/** Input for uploading avatar or logo. */
+export type AvatarUploadInput = {
+  /** The file to upload. */
+  file: Scalars['Upload']['input'];
+  /**
+   * Owner ID (User or Organization global ID).
+   * The asset group will be resolved by this ID.
+   */
+  ownerId: Scalars['ID']['input'];
+};
+
+/** Payload for avatar/logo upload. */
+export type AvatarUploadPayload = {
+  __typename?: 'AvatarUploadPayload';
+  /** The uploaded file. */
+  file?: Maybe<File>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<GenericUserError>;
+};
+
 /** Filter operators for Boolean fields */
 export type BooleanFilter = {
   /** Equals */
@@ -493,12 +513,22 @@ export type MediaDimensions = {
 
 export type MediaMutation = {
   __typename?: 'MediaMutation';
+  /**
+   * Upload avatar or logo for an entity (user profile or organization).
+   * The file is stored in the entity's asset group.
+   */
+  avatarUpload: AvatarUploadPayload;
   bucketCreate: BucketCreatePayload;
   fileCreateExternal: FileCreateExternalPayload;
   fileDelete: FileDeletePayload;
   fileUpdate: FileUpdatePayload;
   fileUpload: FileUploadPayload;
   fileUploadFromUrl: FileUploadPayload;
+};
+
+
+export type MediaMutationAvatarUploadArgs = {
+  input: AvatarUploadInput;
 };
 
 
@@ -582,51 +612,6 @@ export type Node = {
   id: Scalars['ID']['output'];
 };
 
-/** Organization type stub for federation. */
-export type Organization = {
-  __typename?: 'Organization';
-  id: Scalars['ID']['output'];
-};
-
-/** Input for uploading organization logo. */
-export type OrganizationLogoUploadInput = {
-  /** Alt text for accessibility. */
-  altText?: InputMaybe<Scalars['String']['input']>;
-  /** The file to upload. */
-  file: Scalars['Upload']['input'];
-  /** Organization ID. */
-  organizationId: Scalars['ID']['input'];
-};
-
-/** Payload for organization logo upload. */
-export type OrganizationLogoUploadPayload = {
-  __typename?: 'OrganizationLogoUploadPayload';
-  /** The uploaded file. */
-  file?: Maybe<File>;
-  /** The updated organization. */
-  organization?: Maybe<Organization>;
-  /** List of errors that occurred during the mutation. */
-  userErrors: Array<GenericUserError>;
-};
-
-/** OrganizationMutation stub for federation extension. */
-export type OrganizationMutation = {
-  __typename?: 'OrganizationMutation';
-  _: Scalars['ID']['output'];
-  /**
-   * Upload logo for an organization.
-   * Requires organization membership.
-   * The file is stored in the organization's asset group.
-   */
-  logoUpload: OrganizationLogoUploadPayload;
-};
-
-
-/** OrganizationMutation stub for federation extension. */
-export type OrganizationMutationLogoUploadArgs = {
-  input: OrganizationLogoUploadInput;
-};
-
 /** Information about pagination in a connection. */
 export type PageInfo = {
   __typename?: 'PageInfo';
@@ -698,31 +683,6 @@ export type StringFilter = {
   _startsWithi?: InputMaybe<Scalars['String']['input']>;
 };
 
-/** User type stub for federation. */
-export type User = {
-  __typename?: 'User';
-  id: Scalars['ID']['output'];
-};
-
-/** Input for uploading user avatar. */
-export type UserAvatarUploadInput = {
-  /** Alt text for accessibility. */
-  altText?: InputMaybe<Scalars['String']['input']>;
-  /** The file to upload. */
-  file: Scalars['Upload']['input'];
-};
-
-/** Payload for user avatar upload. */
-export type UserAvatarUploadPayload = {
-  __typename?: 'UserAvatarUploadPayload';
-  /** The uploaded file. */
-  file?: Maybe<File>;
-  /** The updated user. */
-  user?: Maybe<User>;
-  /** List of errors that occurred during the mutation. */
-  userErrors: Array<GenericUserError>;
-};
-
 /** A generic user error interface for mutation responses. */
 export type UserError = {
   /** An error code for programmatic handling. */
@@ -731,23 +691,6 @@ export type UserError = {
   field?: Maybe<Array<Scalars['String']['output']>>;
   /** The error message. */
   message: Scalars['String']['output'];
-};
-
-/** UserMutation stub for federation extension. */
-export type UserMutation = {
-  __typename?: 'UserMutation';
-  _: Scalars['ID']['output'];
-  /**
-   * Upload avatar for the current user.
-   * The file is stored in the user's asset group.
-   */
-  avatarUpload: UserAvatarUploadPayload;
-};
-
-
-/** UserMutation stub for federation extension. */
-export type UserMutationAvatarUploadArgs = {
-  input: UserAvatarUploadInput;
 };
 
 export type WithIndex<TObject> = TObject & Record<string, any>;
@@ -838,12 +781,14 @@ export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = 
 
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = ResolversObject<{
+  AvatarUploadInput: AvatarUploadInput;
+  ID: ResolverTypeWrapper<Scalars['ID']['output']>;
+  AvatarUploadPayload: ResolverTypeWrapper<AvatarUploadPayload>;
   BigInt: ResolverTypeWrapper<Scalars['BigInt']['output']>;
   BooleanFilter: BooleanFilter;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   Bucket: ResolverTypeWrapper<Bucket>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
-  ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   BucketCreateInput: BucketCreateInput;
   BucketCreatePayload: ResolverTypeWrapper<BucketCreatePayload>;
@@ -878,31 +823,25 @@ export type ResolversTypes = ResolversObject<{
   MediaQuery: ResolverTypeWrapper<Omit<MediaQuery, 'node' | 'nodes'> & { node?: Maybe<ResolversTypes['Node']>, nodes: Array<Maybe<ResolversTypes['Node']>> }>;
   Mutation: ResolverTypeWrapper<{}>;
   Node: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['Node']>;
-  Organization: ResolverTypeWrapper<Organization>;
-  OrganizationLogoUploadInput: OrganizationLogoUploadInput;
-  OrganizationLogoUploadPayload: ResolverTypeWrapper<OrganizationLogoUploadPayload>;
-  OrganizationMutation: ResolverTypeWrapper<OrganizationMutation>;
   PageInfo: ResolverTypeWrapper<PageInfo>;
   Query: ResolverTypeWrapper<{}>;
   S3ObjectData: ResolverTypeWrapper<S3ObjectData>;
   SortDirection: SortDirection;
   StringFilter: StringFilter;
   Upload: ResolverTypeWrapper<Scalars['Upload']['output']>;
-  User: ResolverTypeWrapper<User>;
-  UserAvatarUploadInput: UserAvatarUploadInput;
-  UserAvatarUploadPayload: ResolverTypeWrapper<UserAvatarUploadPayload>;
   UserError: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['UserError']>;
-  UserMutation: ResolverTypeWrapper<UserMutation>;
 }>;
 
 /** Mapping between all available schema types and the resolvers parents */
 export type ResolversParentTypes = ResolversObject<{
+  AvatarUploadInput: AvatarUploadInput;
+  ID: Scalars['ID']['output'];
+  AvatarUploadPayload: AvatarUploadPayload;
   BigInt: Scalars['BigInt']['output'];
   BooleanFilter: BooleanFilter;
   Boolean: Scalars['Boolean']['output'];
   Bucket: Bucket;
   String: Scalars['String']['output'];
-  ID: Scalars['ID']['output'];
   Int: Scalars['Int']['output'];
   BucketCreateInput: BucketCreateInput;
   BucketCreatePayload: BucketCreatePayload;
@@ -935,20 +874,18 @@ export type ResolversParentTypes = ResolversObject<{
   MediaQuery: Omit<MediaQuery, 'node' | 'nodes'> & { node?: Maybe<ResolversParentTypes['Node']>, nodes: Array<Maybe<ResolversParentTypes['Node']>> };
   Mutation: {};
   Node: ResolversInterfaceTypes<ResolversParentTypes>['Node'];
-  Organization: Organization;
-  OrganizationLogoUploadInput: OrganizationLogoUploadInput;
-  OrganizationLogoUploadPayload: OrganizationLogoUploadPayload;
-  OrganizationMutation: OrganizationMutation;
   PageInfo: PageInfo;
   Query: {};
   S3ObjectData: S3ObjectData;
   StringFilter: StringFilter;
   Upload: Scalars['Upload']['output'];
-  User: User;
-  UserAvatarUploadInput: UserAvatarUploadInput;
-  UserAvatarUploadPayload: UserAvatarUploadPayload;
   UserError: ResolversInterfaceTypes<ResolversParentTypes>['UserError'];
-  UserMutation: UserMutation;
+}>;
+
+export type AvatarUploadPayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['AvatarUploadPayload'] = ResolversParentTypes['AvatarUploadPayload']> = ResolversObject<{
+  file?: Resolver<Maybe<ResolversTypes['File']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export interface BigIntScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['BigInt'], any> {
@@ -1061,6 +998,7 @@ export type MediaDimensionsResolvers<ContextType = GraphQLContext, ParentType ex
 }>;
 
 export type MediaMutationResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['MediaMutation'] = ResolversParentTypes['MediaMutation']> = ResolversObject<{
+  avatarUpload?: Resolver<ResolversTypes['AvatarUploadPayload'], ParentType, ContextType, RequireFields<MediaMutationAvatarUploadArgs, 'input'>>;
   bucketCreate?: Resolver<ResolversTypes['BucketCreatePayload'], ParentType, ContextType, RequireFields<MediaMutationBucketCreateArgs, 'input'>>;
   fileCreateExternal?: Resolver<ResolversTypes['FileCreateExternalPayload'], ParentType, ContextType, RequireFields<MediaMutationFileCreateExternalArgs, 'input'>>;
   fileDelete?: Resolver<ResolversTypes['FileDeletePayload'], ParentType, ContextType, RequireFields<MediaMutationFileDeleteArgs, 'input'>>;
@@ -1085,26 +1023,6 @@ export type MutationResolvers<ContextType = GraphQLContext, ParentType extends R
 export type NodeResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['Node'] = ResolversParentTypes['Node']> = ResolversObject<{
   __resolveType: TypeResolveFn<'File', ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-}>;
-
-export type OrganizationResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['Organization'] = ResolversParentTypes['Organization']> = ResolversObject<{
-  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Organization']>, ParentType, ContextType>;
-  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type OrganizationLogoUploadPayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['OrganizationLogoUploadPayload'] = ResolversParentTypes['OrganizationLogoUploadPayload']> = ResolversObject<{
-  file?: Resolver<Maybe<ResolversTypes['File']>, ParentType, ContextType>;
-  organization?: Resolver<Maybe<ResolversTypes['Organization']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type OrganizationMutationResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['OrganizationMutation'] = ResolversParentTypes['OrganizationMutation']> = ResolversObject<{
-  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['OrganizationMutation']>, ParentType, ContextType>;
-  _?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  logoUpload?: Resolver<ResolversTypes['OrganizationLogoUploadPayload'], ParentType, ContextType, RequireFields<OrganizationMutationLogoUploadArgs, 'input'>>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type PageInfoResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['PageInfo'] = ResolversParentTypes['PageInfo']> = ResolversObject<{
@@ -1132,19 +1050,6 @@ export interface UploadScalarConfig extends GraphQLScalarTypeConfig<ResolversTyp
   name: 'Upload';
 }
 
-export type UserResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['User'] = ResolversParentTypes['User']> = ResolversObject<{
-  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
-  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type UserAvatarUploadPayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['UserAvatarUploadPayload'] = ResolversParentTypes['UserAvatarUploadPayload']> = ResolversObject<{
-  file?: Resolver<Maybe<ResolversTypes['File']>, ParentType, ContextType>;
-  user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
 export type UserErrorResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['UserError'] = ResolversParentTypes['UserError']> = ResolversObject<{
   __resolveType: TypeResolveFn<'GenericUserError', ParentType, ContextType>;
   code?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -1152,14 +1057,8 @@ export type UserErrorResolvers<ContextType = GraphQLContext, ParentType extends 
   message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
 }>;
 
-export type UserMutationResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['UserMutation'] = ResolversParentTypes['UserMutation']> = ResolversObject<{
-  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['UserMutation']>, ParentType, ContextType>;
-  _?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  avatarUpload?: Resolver<ResolversTypes['UserAvatarUploadPayload'], ParentType, ContextType, RequireFields<UserMutationAvatarUploadArgs, 'input'>>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
 export type Resolvers<ContextType = GraphQLContext> = ResolversObject<{
+  AvatarUploadPayload?: AvatarUploadPayloadResolvers<ContextType>;
   BigInt?: GraphQLScalarType;
   Bucket?: BucketResolvers<ContextType>;
   BucketCreatePayload?: BucketCreatePayloadResolvers<ContextType>;
@@ -1179,16 +1078,10 @@ export type Resolvers<ContextType = GraphQLContext> = ResolversObject<{
   MediaQuery?: MediaQueryResolvers<ContextType>;
   Mutation?: MutationResolvers<ContextType>;
   Node?: NodeResolvers<ContextType>;
-  Organization?: OrganizationResolvers<ContextType>;
-  OrganizationLogoUploadPayload?: OrganizationLogoUploadPayloadResolvers<ContextType>;
-  OrganizationMutation?: OrganizationMutationResolvers<ContextType>;
   PageInfo?: PageInfoResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   S3ObjectData?: S3ObjectDataResolvers<ContextType>;
   Upload?: GraphQLScalarType;
-  User?: UserResolvers<ContextType>;
-  UserAvatarUploadPayload?: UserAvatarUploadPayloadResolvers<ContextType>;
   UserError?: UserErrorResolvers<ContextType>;
-  UserMutation?: UserMutationResolvers<ContextType>;
 }>;
 

@@ -9,10 +9,6 @@ export { MutationResolver } from "./MutationResolver.js";
 export { MediaQueryResolver } from "./MediaQueryResolver.js";
 export { MediaMutationResolver } from "./MediaMutationResolver.js";
 
-// Federation resolvers
-export { UserMutationResolver } from "./UserMutationResolver.js";
-export { OrganizationMutationResolver } from "./OrganizationMutationResolver.js";
-
 // Type resolvers
 export { FileResolver } from "./FileResolver.js";
 export { BucketResolver } from "./BucketResolver.js";

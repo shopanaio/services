@@ -78,4 +78,11 @@ type MediaMutation {
   ): FileCreateExternalPayload!
   fileUpdate(input: FileUpdateInput!): FileUpdatePayload!
   fileDelete(input: FileDeleteInput!): FileDeletePayload!
+
+  # Avatar/Logo upload
+  """
+  Upload avatar or logo for an entity (user profile or organization).
+  The file is stored in the entity's asset group.
+  """
+  avatarUpload(input: AvatarUploadInput!): AvatarUploadPayload!
 }

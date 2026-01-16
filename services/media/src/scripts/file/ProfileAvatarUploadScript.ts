@@ -165,7 +165,7 @@ export class ProfileAvatarUploadScript extends BaseScript<
       width: metadata.width ?? null,
       height: metadata.height ?? null,
       durationMs: null,
-      altText: params.altText ?? null,
+      altText: null,
       sourceUrl: null,
       idempotencyKey: null,
       isProcessed: true,
