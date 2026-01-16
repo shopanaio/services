@@ -1,5 +1,4 @@
 import type { FileResultBase } from "./shared.js";
-import type { AssetOwnerType } from "../../../repositories/models/index.js";
 
 export interface FileCreateExternalParams {
   readonly provider: string;
@@ -13,10 +12,7 @@ export interface FileCreateExternalParams {
   readonly altText?: string;
   readonly providerMeta?: Record<string, unknown>;
   readonly idempotencyKey?: string;
-  /** Owner type for asset group lookup */
-  readonly ownerType?: AssetOwnerType;
-  /** Owner ID for asset group lookup */
-  readonly ownerId?: string;
+  // ownerId is taken from store context (this.storeId)
 }
 
 export interface FileCreateExternalResult extends FileResultBase {

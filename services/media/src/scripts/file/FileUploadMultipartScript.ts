@@ -20,10 +20,14 @@ export class FileUploadMultipartScript extends BaseScript<
   ): Promise<FileUploadMultipartResult> {
     const projectId = this.storeId;
 
-    // Resolve asset group ID from ownerType + ownerId
-    // let assetGroupId: string | null = null;
+    // Resolve asset group ID from store context (ownerType = "store", ownerId = storeId)
+    const assetGroup = await this.repository.assetGroup.findByOwner(
+      "store",
+      this.storeId
+    );
+    const assetGroupId = assetGroup?.id ?? null;
 
-    this.logger.info({ projectId }, "FileUploadMultipartScript: starting");
+    this.logger.info({ projectId, ownerId: this.storeId, assetGroupId }, "FileUploadMultipartScript: starting");
 
     // 1. Check idempotency key
     if (params.idempotencyKey) {
@@ -140,7 +144,7 @@ export class FileUploadMultipartScript extends BaseScript<
       sourceUrl: null,
       idempotencyKey: params.idempotencyKey ?? null,
       isProcessed: true,
-      assetGroupId: params.groupId,
+      assetGroupId,
     });
 
     // 7. Create record in `s3Objects` table

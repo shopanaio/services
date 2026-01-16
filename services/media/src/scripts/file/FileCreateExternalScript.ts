@@ -4,7 +4,6 @@ import type {
   FileCreateExternalParams,
   FileCreateExternalResult,
 } from "./dto/FileCreateExternalDto.js";
-import type { AssetOwnerType } from "../../repositories/models/index.js";
 
 const VALID_PROVIDERS = ["YOUTUBE", "VIMEO", "URL"] as const;
 type ExternalProvider = (typeof VALID_PROVIDERS)[number];
@@ -31,17 +30,14 @@ export class FileCreateExternalScript extends BaseScript<
   protected async execute(params: FileCreateExternalParams): Promise<FileCreateExternalResult> {
     const projectId = this.storeId;
 
-    // Resolve asset group ID from ownerType + ownerId
-    let assetGroupId: string | null = null;
-    if (params.ownerType && params.ownerId) {
-      const assetGroup = await this.repository.assetGroup.findByOwner(
-        params.ownerType as AssetOwnerType,
-        params.ownerId
-      );
-      assetGroupId = assetGroup?.id ?? null;
-    }
+    // Resolve asset group ID from store context (ownerType = "store", ownerId = storeId)
+    const assetGroup = await this.repository.assetGroup.findByOwner(
+      "store",
+      this.storeId
+    );
+    const assetGroupId = assetGroup?.id ?? null;
 
-    this.logger.info({ params, projectId }, "FileCreateExternalScript: starting");
+    this.logger.info({ params, projectId, ownerId: this.storeId, assetGroupId }, "FileCreateExternalScript: starting");
 
     // 1. Validate provider
     if (!isValidProvider(params.provider)) {

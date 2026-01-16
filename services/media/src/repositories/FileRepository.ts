@@ -6,11 +6,11 @@ import {
   type InferRelayInput,
 } from "@shopana/drizzle-query";
 import type { Database } from "../infrastructure/db/database";
-import { files, type File, type NewFile } from "./models";
+import { files, assetGroups, type File, type NewFile } from "./models";
 import {
   encodeGlobalId,
   decodeGlobalId,
-} from "../resolvers/admin/utils/globalId";
+} from "@shopana/shared-graphql-guid";
 
 // ---- Relay Query Builder ----
 
@@ -28,8 +28,13 @@ export const fileRelayQuery = createRelayQuery(
   }
 );
 
+export type AssetOwnerType = "organization" | "store" | "user_profile";
+
 export type FileRelayInput = InferRelayInput<typeof fileRelayQuery> & {
-  groupId: string;
+  /** Owner type - defaults to "store" */
+  ownerType?: AssetOwnerType;
+  /** Owner ID (store ID from context) */
+  ownerId: string;
 };
 
 export interface FileConnectionResult {
@@ -335,20 +340,58 @@ export class FileRepository {
   // ---- Connection methods ----
 
   /**
+   * Resolve asset group ID from owner type and owner ID
+   */
+  private async resolveAssetGroupId(
+    ownerType: AssetOwnerType,
+    ownerId: string
+  ): Promise<string | null> {
+    const result = await this.db
+      .select({ id: assetGroups.id })
+      .from(assetGroups)
+      .where(
+        and(
+          eq(assetGroups.ownerType, ownerType),
+          eq(assetGroups.ownerId, ownerId)
+        )
+      )
+      .limit(1);
+
+    return result[0]?.id ?? null;
+  }
+
+  /**
    * Get files with Relay-style cursor pagination
    */
   async getConnection(
     projectId: string,
     args: FileRelayInput
   ): Promise<FileConnectionResult> {
-    const { where, orderBy, groupId, ...paginationArgs } = args;
+    const { where, orderBy, ownerType = "store", ownerId, ...paginationArgs } = args;
+
+    // Resolve asset group ID from owner type + owner ID
+    const assetGroupId = await this.resolveAssetGroupId(ownerType, ownerId);
+
+    // If no asset group found, return empty result
+    if (!assetGroupId) {
+      return {
+        edges: [],
+        pageInfo: {
+          hasNextPage: false,
+          hasPreviousPage: false,
+          startCursor: null,
+          endCursor: null,
+        },
+        totalCount: 0,
+      };
+    }
 
     // Merge user-provided where with projectId and deletedAt filters
     const mergedWhere: FileRelayInput["where"] = {
       _and: [
         { projectId: { _eq: projectId } },
         { deletedAt: { _is: null } },
-        { assetGroupId: { _eq: groupId } },
+        { assetGroupId: { _eq: assetGroupId } },
         ...(where ? [where] : []),
       ],
     };

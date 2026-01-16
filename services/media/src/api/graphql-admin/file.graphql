@@ -222,6 +222,7 @@ type File implements Node @key(fields: "id") {
 
 """
 Input for uploading a file via multipart form data.
+Store context is determined from x-store-name header.
 """
 input FileUploadMultipartInput {
   """
@@ -238,15 +239,11 @@ input FileUploadMultipartInput {
   Idempotency key for deduplication.
   """
   idempotencyKey: String
-
-  """
-  Media bucket ID (MediaAssetGroup GID) to associate this file with.
-  """
-  bucketId: ID!
 }
 
 """
 Input for uploading a file from URL.
+Store context is determined from x-store-name header.
 """
 input FileUploadFromUrlInput {
   """
@@ -263,15 +260,11 @@ input FileUploadFromUrlInput {
   Idempotency key for deduplication.
   """
   idempotencyKey: String
-
-  """
-  Media bucket ID (MediaAssetGroup GID) to associate this file with.
-  """
-  bucketId: ID!
 }
 
 """
 Input for creating an external media file (YouTube, Vimeo, etc).
+Store context is determined from x-store-name header.
 """
 input FileCreateExternalInput {
   """
@@ -328,11 +321,6 @@ input FileCreateExternalInput {
   Idempotency key for deduplication.
   """
   idempotencyKey: String
-
-  """
-  Media bucket ID (MediaAssetGroup GID) to associate this file with.
-  """
-  bucketId: ID!
 }
 
 """

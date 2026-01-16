@@ -2,14 +2,12 @@ import { MediaType } from "./MediaType.js";
 import { FileResolver } from "./FileResolver.js";
 import { FileConnectionResolver } from "./connection/index.js";
 import type { FileRelayInput } from "../../repositories/FileRepository.js";
-import {
-  decodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
+import { decodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 
 /**
  * MediaQuery namespace resolver.
  * Handles all media query operations.
+ * Store context is determined from x-store-name header.
  */
 export class MediaQueryResolver extends MediaType<Record<string, never>> {
   /**
@@ -41,43 +39,29 @@ export class MediaQueryResolver extends MediaType<Record<string, never>> {
   /**
    * Get a single file by ID
    */
-  file({ groupId, id }: { groupId: string; id: string }) {
-    // Decode groupId (MediaAssetGroup GID) to assetGroupId
-    const assetGroupId = decodeGlobalIdByType(
-      groupId,
-      GlobalIdEntity.MediaAssetGroup
-    );
-    if (!assetGroupId) {
-      return null;
-    }
-
+  file({ id }: { id: string }) {
     // Decode fileId (File GID) to fileId
     const fileId = decodeGlobalIdByType(id, GlobalIdEntity.File);
     if (!fileId) {
       return null;
     }
 
-    // TODO: authorize by group id
-
     return new FileResolver(fileId, this.$ctx);
   }
 
   /**
-   * Get files with Relay-style pagination
+   * Get files with Relay-style pagination.
+   * Uses store.id from context as ownerId.
    */
-  files(args: FileRelayInput) {
-    // Decode groupId (MediaAssetGroup GID) to assetGroupId
-    const assetGroupId = decodeGlobalIdByType(
-      args.groupId,
-      GlobalIdEntity.MediaAssetGroup
-    );
-    if (!assetGroupId) {
-      return null;
-    }
+  files(args: Omit<FileRelayInput, "ownerId">) {
+    // Get store ID from context (determined by x-store-name header)
+    const ownerId = this.$ctx.store.id;
 
     return new FileConnectionResolver(
-      // Add decoded groupId to args
-      { ...args, groupId: assetGroupId },
+      {
+        ...args,
+        ownerId,
+      },
       this.$ctx
     );
   }

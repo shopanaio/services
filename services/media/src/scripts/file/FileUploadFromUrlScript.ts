@@ -7,7 +7,6 @@ import type {
   FileUploadFromUrlParams,
   FileUploadFromUrlResult,
 } from "./dto/FileUploadFromUrlDto.js";
-import type { AssetOwnerType } from "../../repositories/models/index.js";
 
 interface FetchResult {
   success: true;
@@ -29,17 +28,14 @@ export class FileUploadFromUrlScript extends BaseScript<
   protected async execute(params: FileUploadFromUrlParams): Promise<FileUploadFromUrlResult> {
     const projectId = this.storeId;
 
-    // Resolve asset group ID from ownerType + ownerId
-    let assetGroupId: string | null = null;
-    if (params.ownerType && params.ownerId) {
-      const assetGroup = await this.repository.assetGroup.findByOwner(
-        params.ownerType as AssetOwnerType,
-        params.ownerId
-      );
-      assetGroupId = assetGroup?.id ?? null;
-    }
+    // Resolve asset group ID from store context (ownerType = "store", ownerId = storeId)
+    const assetGroup = await this.repository.assetGroup.findByOwner(
+      "store",
+      this.storeId
+    );
+    const assetGroupId = assetGroup?.id ?? null;
 
-    this.logger.info({ params, projectId }, "FileUploadFromUrlScript: starting");
+    this.logger.info({ params, projectId, ownerId: this.storeId, assetGroupId }, "FileUploadFromUrlScript: starting");
 
     // Validate URL format (skip for data URLs)
     if (!params.sourceUrl.startsWith("data:")) {

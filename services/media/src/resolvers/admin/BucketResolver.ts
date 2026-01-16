@@ -1,5 +1,8 @@
 import { MediaType, Cache } from "./MediaType.js";
-import { encodeGlobalId } from "./utils/globalId.js";
+import {
+  encodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 import type { Bucket } from "../../repositories/models/index.js";
 
 /**
@@ -18,7 +21,7 @@ export class BucketResolver extends MediaType<string, Bucket | null> {
   }
 
   id() {
-    return encodeGlobalId("Bucket", this.$props);
+    return encodeGlobalIdByType(this.$props, GlobalIdEntity.Bucket);
   }
 
   async bucketName() {
