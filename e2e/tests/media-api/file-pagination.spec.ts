@@ -53,9 +53,6 @@ createConnectionPaginationTests<ApiFile>({
   queryName: 'media-api/FileFindMany',
   suiteName: 'File cursor pagination',
   prepare: prepareFiles,
-  // NOTE: createdAt sorting is not tested because PostgreSQL timestamps have
-  // microsecond precision but JS Date only has millisecond precision. This causes
-  // cursor pagination to fail when timestamps differ by less than 1ms.
   sortCases: [
     {
       name: 'originalName ASC',
@@ -68,6 +65,18 @@ createConnectionPaginationTests<ApiFile>({
       orderBy: [{ field: 'originalName', direction: 'desc' }],
       sortExpected: (items) =>
         [...items].sort((a, b) => (b.originalName ?? '').localeCompare(a.originalName ?? '')),
+    },
+    {
+      name: 'createdAt ASC',
+      orderBy: [{ field: 'createdAt', direction: 'asc' }],
+      sortExpected: (items) =>
+        [...items].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
+    },
+    {
+      name: 'createdAt DESC',
+      orderBy: [{ field: 'createdAt', direction: 'desc' }],
+      sortExpected: (items) =>
+        [...items].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
     },
   ],
   filterCases: [
