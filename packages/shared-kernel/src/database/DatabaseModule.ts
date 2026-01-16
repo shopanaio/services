@@ -6,12 +6,12 @@ import {
   Module,
   OnApplicationShutdown,
   Logger,
-} from '@nestjs/common';
-import postgres, { type Sql } from 'postgres';
-import type { DbConfig } from '@shopana/shared-service-config';
-import { buildDbUrl } from '@shopana/shared-service-config';
+} from "@nestjs/common";
+import postgres, { type Sql } from "postgres";
+import type { DbConfig } from "@shopana/shared-service-config";
+import { buildDbUrl } from "@shopana/shared-service-config";
 
-export const DATABASE_CLIENT = Symbol('DATABASE_CLIENT');
+export const DATABASE_CLIENT = Symbol("DATABASE_CLIENT");
 
 export type DatabaseClient = Sql;
 
@@ -31,17 +31,17 @@ export const InjectDatabaseClient = () => Inject(DATABASE_CLIENT);
 
 @Injectable()
 class DatabaseLifecycle implements OnApplicationShutdown {
-  private readonly logger = new Logger('DatabaseModule');
+  private readonly logger = new Logger("DatabaseModule");
 
   constructor(
     @Inject(DATABASE_CLIENT)
-    private readonly client: DatabaseClient,
+    private readonly client: DatabaseClient
   ) {}
 
   async onApplicationShutdown(): Promise<void> {
-    this.logger.log('Closing database connection pool...');
+    this.logger.log("Closing database connection pool...");
     await this.client.end();
-    this.logger.log('Database connection pool closed');
+    this.logger.log("Database connection pool closed");
   }
 }
 
@@ -49,7 +49,7 @@ class DatabaseLifecycle implements OnApplicationShutdown {
 @Module({})
 export class DatabaseModule {
   static forRoot(options: DatabaseModuleOptions): DynamicModule {
-    const logger = new Logger('DatabaseModule');
+    const logger = new Logger("DatabaseModule");
 
     // Build connection string from config (without schema for shared pool)
     const connectionString = buildDbUrl({ ...options.db, schema: null });
@@ -64,14 +64,17 @@ export class DatabaseModule {
         date: {
           to: 1184,
           from: [1114, 1184],
-          serialize: (x: Date | string) => (x instanceof Date ? x.toISOString() : x),
+          serialize: (x: Date | string) =>
+            x instanceof Date ? x.toISOString() : x,
           parse: (x: string) => x,
         },
       },
       onnotice: () => {},
     });
 
-    logger.log(`Database pool initialized (max: ${options.pool?.max ?? 20} connections)`);
+    logger.log(
+      `Database pool initialized (max: ${options.pool?.max ?? 20} connections)`
+    );
 
     return {
       module: DatabaseModule,
