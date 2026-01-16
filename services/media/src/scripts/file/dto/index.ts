@@ -4,3 +4,4 @@ export * from "./FileUploadFromUrlDto.js";
 export * from "./FileCreateExternalDto.js";
 export * from "./FileUpdateDto.js";
 export * from "./FileDeleteDto.js";
+export * from "./ProfileAvatarUploadDto.js";

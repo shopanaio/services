@@ -1,6 +1,8 @@
 import { ApolloMutation } from "@shopana/type-resolver";
 import { MediaType } from "./MediaType.js";
 import { MediaMutationResolver } from "./MediaMutationResolver.js";
+import { UserMutationResolver } from "./UserMutationResolver.js";
+import { OrganizationMutationResolver } from "./OrganizationMutationResolver.js";
 
 /**
  * Root Mutation resolver.
@@ -14,5 +16,21 @@ export class MutationResolver extends MediaType<Record<string, never>> {
    */
   mediaMutation() {
     return new MediaMutationResolver({}, this.$ctx);
+  }
+
+  /**
+   * Federation extension for UserMutation.
+   * Returns resolver that handles user avatar upload.
+   */
+  userMutation() {
+    return new UserMutationResolver({}, this.$ctx);
+  }
+
+  /**
+   * Federation extension for OrganizationMutation.
+   * Returns resolver that handles organization logo upload.
+   */
+  organizationMutation() {
+    return new OrganizationMutationResolver({}, this.$ctx);
   }
 }
