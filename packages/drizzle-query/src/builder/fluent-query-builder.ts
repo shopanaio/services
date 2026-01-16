@@ -14,6 +14,7 @@ import type {
   FluentFieldsDef,
   ToFieldsDef,
   ExecuteOptions,
+  CountOptions,
   FluentQueryConfig,
   QuerySnapshot,
   FluentQueryBuilderLike,
@@ -246,6 +247,41 @@ export class FluentQueryBuilder<
       limit: resolvedOptions.limit,
       offset: resolvedOptions.offset,
     });
+  }
+
+  /**
+   * Execute count query and return total number of matching rows.
+   * Uses only where filter, no sorting or pagination needed.
+   *
+   * @example
+   * ```ts
+   * const total = await query.count(db, {
+   *   where: { status: "active" }
+   * });
+   * ```
+   */
+  async count(
+    db: DrizzleExecutor,
+    options?: CountOptions<InferredFields>
+  ): Promise<number> {
+    const where = options?.where ?? this.config.defaultWhere;
+    const qb = this.getQueryBuilder();
+    return qb.count(db, { where: where as NestedWhereInput<FieldsDef> });
+  }
+
+  /**
+   * Get count SQL without executing
+   *
+   * @example
+   * ```ts
+   * const sql = query.getCountSql({ where: { status: "active" } });
+   * console.log(sql.toQuery());
+   * ```
+   */
+  getCountSql(options?: CountOptions<InferredFields>): SQL {
+    const where = options?.where ?? this.config.defaultWhere;
+    const qb = this.getQueryBuilder();
+    return qb.buildCountSql({ where: where as NestedWhereInput<FieldsDef> });
   }
 
   /**

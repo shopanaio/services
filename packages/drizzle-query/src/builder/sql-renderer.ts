@@ -62,6 +62,10 @@ type RenderOptions = {
   offset: number;
 };
 
+type CountRenderOptions = {
+  whereSql?: SQL;
+};
+
 export class SqlRenderer<
   Fields extends FieldsDef,
 > {
@@ -92,6 +96,21 @@ export class SqlRenderer<
     const orderSql = options.orderSql ? sql` ORDER BY ${options.orderSql}` : sql``;
 
     return sql`SELECT ${selectSql} FROM ${fromSql}${joinsSql}${whereSql}${orderSql} LIMIT ${options.limit} OFFSET ${options.offset}`;
+  }
+
+  renderCount(options: CountRenderOptions): SQL {
+    const mainAlias = tablePrefix(this.schema.tableName, 0);
+    const mainAliased = this.joinCollector.getOrCreateAliasedTable(
+      this.schema.table,
+      mainAlias
+    );
+
+    const fromSql = formatAliasedTableReference(mainAliased);
+    const joinParts = this.buildJoinClauses(this.joinCollector.getJoins());
+    const joinsSql = joinParts.length > 0 ? sql` ${sql.join(joinParts, sql` `)}` : sql``;
+    const whereSql = options.whereSql ? sql` WHERE ${options.whereSql}` : sql``;
+
+    return sql`SELECT COUNT(*) AS count FROM ${fromSql}${joinsSql}${whereSql}`;
   }
 
   private buildSelectFieldsSql(

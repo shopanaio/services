@@ -15,6 +15,7 @@ export {
 } from "./builder/pagination-query-builder.js";
 
 export type {
+  CountInput,
   CursorQueryConfig,
   CursorQueryInput,
   CursorQueryResult,

@@ -40,6 +40,10 @@ export type TypedInput<Fields extends FieldsDef> = {
   where?: NestedWhereInput<Fields> | null;
 };
 
+export type CountInput<Fields extends FieldsDef> = {
+  where?: NestedWhereInput<Fields> | null;
+};
+
 type PaginationResult = {
   limit: number;
   offset: number;
@@ -98,6 +102,48 @@ export class QueryBuilder<
   buildSelectSql(input: TypedInput<Fields> | undefined | null): SQL {
     const { sql } = this.buildRawQuery(input);
     return sql;
+  }
+
+  buildCountSql(input: CountInput<Fields> | undefined | null): SQL {
+    const joinCollector = this.createJoinCollector();
+    const whereBuilder = new WhereBuilder(
+      this.schema,
+      joinCollector,
+      this.config.maxJoinDepth
+    );
+    const whereResult = whereBuilder.build(input?.where);
+
+    const renderer = new SqlRenderer(this.schema, joinCollector);
+    return renderer.renderCount({ whereSql: whereResult.sql });
+  }
+
+  /**
+   * Execute count query and return total number of matching rows.
+   *
+   * @example
+   * ```ts
+   * const total = await qb.count(db, {
+   *   where: { status: "active" }
+   * });
+   * ```
+   */
+  async count(
+    db: DrizzleExecutor,
+    input?: CountInput<Fields> | null
+  ): Promise<number> {
+    const sql = this.buildCountSql(input);
+    this.log("executingCount", { input });
+    const result = await db.execute(sql);
+    if (Array.isArray(result) && result.length > 0) {
+      return Number((result[0] as { count: unknown }).count);
+    }
+    if (result && typeof result === "object" && "rows" in result) {
+      const rows = (result as { rows: Array<{ count: unknown }> }).rows;
+      if (rows.length > 0) {
+        return Number(rows[0].count);
+      }
+    }
+    return 0;
   }
 
   /**

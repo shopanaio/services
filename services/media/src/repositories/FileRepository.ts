@@ -1,4 +1,4 @@
-import { eq, and, isNull, inArray, sql, count } from "drizzle-orm";
+import { eq, and, isNull, inArray, sql } from "drizzle-orm";
 import {
   createQuery,
   createRelayQuery,
@@ -328,17 +328,6 @@ export class FileRepository {
   // ---- Connection methods ----
 
   /**
-   * Count files in a project
-   */
-  async count(projectId: string): Promise<number> {
-    const result = await this.db
-      .select({ count: count() })
-      .from(files)
-      .where(and(eq(files.projectId, projectId), isNull(files.deletedAt)));
-    return result[0]?.count ?? 0;
-  }
-
-  /**
    * Get files with Relay-style cursor pagination
    */
   async getConnection(
@@ -367,9 +356,10 @@ export class FileRepository {
         ] as FileRelayInput["orderBy"]),
     };
 
+    // Execute paginated query and count with the same filters in parallel
     const [result, totalCount] = await Promise.all([
       fileRelayQuery.execute(this.db, executeInput),
-      this.count(projectId),
+      fileRelayQuery.count(this.db, { where: mergedWhere }),
     ]);
 
     return {

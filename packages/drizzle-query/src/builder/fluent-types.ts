@@ -121,6 +121,14 @@ export type ExecuteOptions<Fields extends FieldsDef> = {
 };
 
 /**
+ * Count options - only where filter, no sorting or pagination
+ */
+export type CountOptions<Fields extends FieldsDef> = {
+  /** Filter conditions */
+  where?: NestedWhereInput<Fields>;
+};
+
+/**
  * Query snapshot - current configuration state
  */
 export type QuerySnapshot<Fields extends FieldsDef = FieldsDef> = {

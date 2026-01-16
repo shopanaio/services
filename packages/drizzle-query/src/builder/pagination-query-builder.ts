@@ -69,6 +69,14 @@ export type RelayQueryInput<InferredFields extends FieldsDef> = {
 };
 
 /**
+ * Count input - only where filter, no sorting or pagination
+ */
+export type CountInput<InferredFields extends FieldsDef> = {
+  /** Filter conditions */
+  where?: NestedWhereInput<InferredFields> | null;
+};
+
+/**
  * Relay query result (Connection + filtersChanged)
  */
 export type RelayQueryResult<T> = Connection<T> & {
@@ -327,6 +335,46 @@ export class RelayQueryBuilder<
       name: this.cursorType,
       tieBreaker: this.tieBreaker,
     };
+  }
+
+  /**
+   * Execute count query with the same filters.
+   * Useful for totalCount resolver in Relay connections.
+   *
+   * @example
+   * ```ts
+   * const total = await pagination.count(db, {
+   *   where: { status: "active" },
+   * });
+   * ```
+   */
+  async count(
+    db: DrizzleExecutor,
+    input?: CountInput<InferredFields>
+  ): Promise<number> {
+    const snapshot = this.queryBuilder.getSnapshot();
+
+    // Merge where with default where from fluent builder
+    let where = input?.where ?? undefined;
+    if (!where && snapshot.config.defaultWhere) {
+      where = snapshot.config.defaultWhere;
+    }
+
+    return this.queryBuilder.count(db, { where });
+  }
+
+  /**
+   * Get count SQL without executing
+   */
+  getCountSql(input?: CountInput<InferredFields>) {
+    const snapshot = this.queryBuilder.getSnapshot();
+
+    let where = input?.where ?? undefined;
+    if (!where && snapshot.config.defaultWhere) {
+      where = snapshot.config.defaultWhere;
+    }
+
+    return this.queryBuilder.getCountSql({ where });
   }
 }
 
@@ -657,6 +705,46 @@ export class CursorQueryBuilder<
       name: this.cursorType,
       tieBreaker: this.tieBreaker,
     };
+  }
+
+  /**
+   * Execute count query with the same filters.
+   * Useful for totalCount in paginated responses.
+   *
+   * @example
+   * ```ts
+   * const total = await cursor.count(db, {
+   *   where: { status: "active" },
+   * });
+   * ```
+   */
+  async count(
+    db: DrizzleExecutor,
+    input?: CountInput<InferredFields>
+  ): Promise<number> {
+    const snapshot = this.queryBuilder.getSnapshot();
+
+    // Merge where with default where from fluent builder
+    let where = input?.where ?? undefined;
+    if (!where && snapshot.config.defaultWhere) {
+      where = snapshot.config.defaultWhere;
+    }
+
+    return this.queryBuilder.count(db, { where });
+  }
+
+  /**
+   * Get count SQL without executing
+   */
+  getCountSql(input?: CountInput<InferredFields>) {
+    const snapshot = this.queryBuilder.getSnapshot();
+
+    let where = input?.where ?? undefined;
+    if (!where && snapshot.config.defaultWhere) {
+      where = snapshot.config.defaultWhere;
+    }
+
+    return this.queryBuilder.getCountSql({ where });
   }
 }
 
