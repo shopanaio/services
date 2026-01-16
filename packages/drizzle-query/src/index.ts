@@ -5,6 +5,7 @@ export {
   MaxLimitExceededError,
   field,
 } from "./builder/index.js";
+export type { FieldBuilder } from "./builder/index.js";
 
 // Pagination Query Builders
 export {

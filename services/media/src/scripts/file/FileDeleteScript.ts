@@ -10,25 +10,19 @@ export class FileDeleteScript extends BaseScript<
   FileDeleteResult
 > {
   protected async execute(params: FileDeleteParams): Promise<FileDeleteResult> {
-    const projectId = this.storeId;
-
-    this.logger.info({ params, projectId }, "FileDeleteScript: starting");
+    this.logger.info({ params }, "FileDeleteScript: starting");
 
     // 1. Find file by ID (include deleted for permanent delete check)
-    const existingFile = await this.repository.file.findById(projectId, params.id);
+    const existingFile = await this.repository.file.findById(params.id);
 
     // 2. Check that file exists
     if (!existingFile) {
       // Check if it was already deleted (for permanent delete)
       if (params.permanent) {
-        const deletedFile = await this.repository.file.findDeletedById(projectId, params.id);
+        const deletedFile = await this.repository.file.findDeletedById(params.id);
         if (deletedFile) {
           // File exists but is soft-deleted, proceed with permanent delete
-          return await this.performPermanentDelete(
-            projectId,
-            params.id,
-            deletedFile.provider
-          );
+          return await this.performPermanentDelete(params.id, deletedFile.provider);
         }
       }
 
@@ -47,15 +41,11 @@ export class FileDeleteScript extends BaseScript<
 
     // 3. Perform delete (permanent or soft)
     if (params.permanent) {
-      return await this.performPermanentDelete(
-        projectId,
-        params.id,
-        existingFile.provider
-      );
+      return await this.performPermanentDelete(params.id, existingFile.provider);
     }
 
     // 4. Soft delete - set deletedAt
-    await this.repository.file.softDelete(projectId, params.id);
+    await this.repository.file.softDelete(params.id);
 
     this.logger.info({ fileId: params.id }, "FileDeleteScript: soft delete completed");
 
@@ -66,14 +56,13 @@ export class FileDeleteScript extends BaseScript<
   }
 
   private async performPermanentDelete(
-    projectId: string,
     fileId: string,
     provider: string
   ): Promise<FileDeleteResult> {
     // Delete related records based on provider
     if (provider === "S3") {
       // Get S3 object info before deleting
-      const s3Object = await this.repository.s3Object.findByFileId(projectId, fileId);
+      const s3Object = await this.repository.s3Object.findByFileId(fileId);
 
       if (s3Object) {
         // Delete from S3 storage
@@ -93,17 +82,17 @@ export class FileDeleteScript extends BaseScript<
         }
 
         // Delete s3Objects record
-        await this.repository.s3Object.delete(projectId, fileId);
+        await this.repository.s3Object.delete(fileId);
         this.logger.info({ fileId }, "FileDeleteScript: deleted S3 object record");
       }
     } else if (["YOUTUBE", "VIMEO", "URL"].includes(provider)) {
       // Delete externalMedia record
-      await this.repository.externalMedia.delete(projectId, fileId);
+      await this.repository.externalMedia.delete(fileId);
       this.logger.info({ fileId }, "FileDeleteScript: deleted external media record");
     }
 
     // Delete the file record
-    await this.repository.file.hardDelete(projectId, fileId);
+    await this.repository.file.hardDelete(fileId);
 
     this.logger.info({ fileId }, "FileDeleteScript: permanent delete completed");
 

@@ -8,8 +8,9 @@ import {
 import type { Database } from "../infrastructure/db/database";
 import { files, assetGroups, type File, type NewFile } from "./models";
 import {
-  encodeGlobalId,
+  encodeGlobalIdByType,
   decodeGlobalId,
+  GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
 
 // ---- Relay Query Builder ----
@@ -21,7 +22,7 @@ export const fileRelayQuery = createRelayQuery(
     tieBreaker: "id",
     seekTransforms: {
       id: {
-        encode: (uuid) => encodeGlobalId("File", uuid as string),
+        encode: (uuid) => encodeGlobalIdByType(uuid as string, GlobalIdEntity.File),
         decode: (globalId) => decodeGlobalId(globalId as string)?.id,
       },
     },
@@ -33,7 +34,7 @@ export type AssetOwnerType = "organization" | "store" | "user_profile";
 export type FileRelayInput = InferRelayInput<typeof fileRelayQuery> & {
   /** Owner type - defaults to "store" */
   ownerType?: AssetOwnerType;
-  /** Owner ID (store ID from context) */
+  /** Owner ID */
   ownerId: string;
 };
 
@@ -63,8 +64,6 @@ export interface CreateFileInput {
   idempotencyKey?: string | null;
   isProcessed?: boolean;
   meta?: Record<string, unknown> | null;
-  /** Asset group ID to associate this file with */
-  assetGroupId?: string | null;
 }
 
 export interface UpdateFileInput {
@@ -82,15 +81,14 @@ export class FileRepository {
   // ---- Read methods ----
 
   /**
-   * Find a file by ID within a project
+   * Find a file by ID
    */
-  async findById(projectId: string, fileId: string): Promise<File | null> {
+  async findById(fileId: string): Promise<File | null> {
     const result = await this.db
       .select()
       .from(files)
       .where(
         and(
-          eq(files.projectId, projectId),
           eq(files.id, fileId),
           isNull(files.deletedAt)
         )
@@ -103,7 +101,7 @@ export class FileRepository {
   /**
    * Find multiple files by IDs (batch load)
    */
-  async findByIds(projectId: string, ids: string[]): Promise<File[]> {
+  async findByIds(ids: string[]): Promise<File[]> {
     if (ids.length === 0) {
       return [];
     }
@@ -113,7 +111,6 @@ export class FileRepository {
       .from(files)
       .where(
         and(
-          eq(files.projectId, projectId),
           inArray(files.id, ids),
           isNull(files.deletedAt)
         )
@@ -124,16 +121,22 @@ export class FileRepository {
 
   /**
    * Create a new file or return existing one if idempotency key matches
-   * @param projectId - Store ID (can be null for asset group files)
-   * @param data - File data including optional assetGroupId
    */
-  async create(projectId: string | null, data: CreateFileInput): Promise<File> {
+  async create(assetGroupId: string, data: CreateFileInput): Promise<File> {
     // Check for existing file by idempotency key
-    if (data.idempotencyKey && data.assetGroupId) {
+    if (data.idempotencyKey) {
       const existing = await this.findByIdempotencyKey(
-        data.assetGroupId,
+        assetGroupId,
         data.idempotencyKey
       );
+      if (existing) {
+        return existing;
+      }
+    }
+
+    // Check for existing file by source URL
+    if (data.sourceUrl) {
+      const existing = await this.findBySourceUrl(assetGroupId, data.sourceUrl);
       if (existing) {
         return existing;
       }
@@ -143,8 +146,7 @@ export class FileRepository {
 
     const newFile: NewFile = {
       id,
-      projectId: projectId ?? null,
-      assetGroupId: data.assetGroupId ?? null,
+      assetGroupId,
       provider: data.provider,
       url: data.url,
       mimeType: data.mimeType ?? null,
@@ -169,11 +171,7 @@ export class FileRepository {
   /**
    * Update an existing file
    */
-  async update(
-    projectId: string,
-    fileId: string,
-    data: UpdateFileInput
-  ): Promise<File | null> {
+  async update(fileId: string, data: UpdateFileInput): Promise<File | null> {
     const updateData: Partial<NewFile> = {
       updatedAt: new Date().toISOString(),
     };
@@ -196,7 +194,6 @@ export class FileRepository {
       .set(updateData)
       .where(
         and(
-          eq(files.projectId, projectId),
           eq(files.id, fileId),
           isNull(files.deletedAt)
         )
@@ -209,7 +206,7 @@ export class FileRepository {
   /**
    * Soft delete a file (set deletedAt)
    */
-  async softDelete(projectId: string, fileId: string): Promise<void> {
+  async softDelete(fileId: string): Promise<void> {
     await this.db
       .update(files)
       .set({
@@ -218,7 +215,6 @@ export class FileRepository {
       })
       .where(
         and(
-          eq(files.projectId, projectId),
           eq(files.id, fileId),
           isNull(files.deletedAt)
         )
@@ -228,10 +224,10 @@ export class FileRepository {
   /**
    * Hard delete a file (permanent removal)
    */
-  async hardDelete(projectId: string, fileId: string): Promise<void> {
+  async hardDelete(fileId: string): Promise<void> {
     await this.db
       .delete(files)
-      .where(and(eq(files.projectId, projectId), eq(files.id, fileId)));
+      .where(eq(files.id, fileId));
   }
 
   // ---- Utility methods ----
@@ -261,13 +257,12 @@ export class FileRepository {
   /**
    * Check if a file exists
    */
-  async exists(projectId: string, fileId: string): Promise<boolean> {
+  async exists(fileId: string): Promise<boolean> {
     const result = await this.db
       .select({ id: files.id })
       .from(files)
       .where(
         and(
-          eq(files.projectId, projectId),
           eq(files.id, fileId),
           isNull(files.deletedAt)
         )
@@ -278,13 +273,12 @@ export class FileRepository {
   }
 
   /**
-   * Find a file by source URL (for deduplication of URL uploads)
+   * Find a file by source URL within an asset group (for deduplication)
    */
   async findBySourceUrl(
-    projectId: string,
+    assetGroupId: string,
     sourceUrl: string
   ): Promise<File | null> {
-    // Empty strings are not valid for deduplication
     if (!sourceUrl) {
       return null;
     }
@@ -294,7 +288,7 @@ export class FileRepository {
       .from(files)
       .where(
         and(
-          eq(files.projectId, projectId),
+          eq(files.assetGroupId, assetGroupId),
           eq(files.sourceUrl, sourceUrl),
           isNull(files.deletedAt)
         )
@@ -307,16 +301,12 @@ export class FileRepository {
   /**
    * Find deleted file by ID (for restoration purposes)
    */
-  async findDeletedById(
-    projectId: string,
-    fileId: string
-  ): Promise<File | null> {
+  async findDeletedById(fileId: string): Promise<File | null> {
     const result = await this.db
       .select()
       .from(files)
       .where(
         and(
-          eq(files.projectId, projectId),
           eq(files.id, fileId),
           sql`${files.deletedAt} IS NOT NULL`
         )
@@ -329,7 +319,7 @@ export class FileRepository {
   /**
    * Restore a soft-deleted file
    */
-  async restore(projectId: string, fileId: string): Promise<File | null> {
+  async restore(fileId: string): Promise<File | null> {
     const result = await this.db
       .update(files)
       .set({
@@ -338,7 +328,6 @@ export class FileRepository {
       })
       .where(
         and(
-          eq(files.projectId, projectId),
           eq(files.id, fileId),
           sql`${files.deletedAt} IS NOT NULL`
         )
@@ -374,10 +363,7 @@ export class FileRepository {
   /**
    * Get files with Relay-style cursor pagination
    */
-  async getConnection(
-    projectId: string,
-    args: FileRelayInput
-  ): Promise<FileConnectionResult> {
+  async getConnection(args: FileRelayInput): Promise<FileConnectionResult> {
     const { where, orderBy, ownerType = "store", ownerId, ...paginationArgs } = args;
 
     // Resolve asset group ID from owner type + owner ID
@@ -397,10 +383,9 @@ export class FileRepository {
       };
     }
 
-    // Merge user-provided where with projectId and deletedAt filters
+    // Merge user-provided where with assetGroupId and deletedAt filters
     const mergedWhere: FileRelayInput["where"] = {
       _and: [
-        { projectId: { _eq: projectId } },
         { deletedAt: { _is: null } },
         { assetGroupId: { _eq: assetGroupId } },
         ...(where ? [where] : []),

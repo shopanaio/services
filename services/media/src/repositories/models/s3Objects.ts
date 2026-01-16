@@ -8,6 +8,7 @@ import { sql } from "drizzle-orm";
 import { mediaSchema } from "./schema";
 import { files } from "./files";
 import { buckets } from "./buckets";
+import { assetGroups } from "./assetGroups";
 
 export const s3Objects = mediaSchema.table(
   "s3_objects",
@@ -15,7 +16,9 @@ export const s3Objects = mediaSchema.table(
     fileId: uuid("file_id")
       .primaryKey()
       .references(() => files.id, { onDelete: "cascade" }),
-    projectId: uuid("project_id").notNull(),
+    assetGroupId: uuid("asset_group_id")
+      .notNull()
+      .references(() => assetGroups.id, { onDelete: "cascade" }),
     bucketId: uuid("bucket_id")
       .notNull()
       .references(() => buckets.id, { onDelete: "restrict" }),
@@ -29,9 +32,10 @@ export const s3Objects = mediaSchema.table(
   (table) => [
     uniqueIndex("idx_s3_objects_key").on(table.bucketId, table.objectKey),
     uniqueIndex("idx_s3_objects_hash")
-      .on(table.projectId, table.contentHash)
+      .on(table.assetGroupId, table.contentHash)
       .where(sql`content_hash IS NOT NULL`),
     index("idx_s3_objects_bucket").on(table.bucketId),
+    index("idx_s3_objects_asset_group").on(table.assetGroupId),
   ]
 );
 

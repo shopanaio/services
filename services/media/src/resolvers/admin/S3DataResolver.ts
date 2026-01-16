@@ -5,13 +5,17 @@ import type { S3Object } from "../../repositories/models/index.js";
 /**
  * S3Data resolver - resolves S3 storage data for files
  */
-export class S3DataResolver extends MediaType<string, S3Object | null> {
+export class S3DataResolver extends MediaType<string, S3Object> {
   @Cache({
     cacheName: "media:s3object",
     key: (resolver: S3DataResolver) => resolver.$props,
   })
   async $preload() {
-    return this.$ctx.loaders.s3Object.load(this.$props);
+    const s3Object = await this.$ctx.loaders.s3Object.load(this.$props);
+    if (!s3Object) {
+      throw new Error(`S3 object not found for file: ${this.$props}`);
+    }
+    return s3Object;
   }
 
   async objectKey() {

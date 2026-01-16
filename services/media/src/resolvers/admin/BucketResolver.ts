@@ -8,16 +8,20 @@ import type { Bucket } from "../../repositories/models/index.js";
 /**
  * Bucket resolver - resolves Bucket type
  */
-export class BucketResolver extends MediaType<string, Bucket | null> {
+export class BucketResolver extends MediaType<string, Bucket> {
   @Cache({
     cacheName: "media:bucket",
     key: (resolver: BucketResolver) => resolver.$props,
   })
   async $preload() {
-    return this.$ctx.kernel.repository.bucket.findById(
+    const bucket = await this.$ctx.kernel.repository.bucket.findById(
       this.$ctx.store.id,
       this.$props
     );
+    if (!bucket) {
+      throw new Error(`Bucket not found: ${this.$props}`);
+    }
+    return bucket;
   }
 
   id() {

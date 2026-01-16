@@ -1,7 +1,6 @@
 import DataLoader from "dataloader";
 import type { Repository } from "../repositories/index.js";
 import type { File } from "../repositories/models/index.js";
-import { getContext } from "../context/index.js";
 
 /**
  * FileLoader - batch loads file data by ID
@@ -11,8 +10,7 @@ export class FileLoader {
 
   constructor(repository: Repository) {
     this.file = new DataLoader<string, File | null>(async (ids) => {
-      const storeId = getContext().store.id;
-      const files = await repository.file.findByIds(storeId, ids as string[]);
+      const files = await repository.file.findByIds(ids as string[]);
       const fileMap = new Map(files.map((f) => [f.id, f]));
       return ids.map((id) => fileMap.get(id) ?? null);
     });

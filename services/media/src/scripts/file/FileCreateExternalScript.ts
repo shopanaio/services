@@ -28,8 +28,6 @@ export class FileCreateExternalScript extends BaseScript<
   FileCreateExternalResult
 > {
   protected async execute(params: FileCreateExternalParams): Promise<FileCreateExternalResult> {
-    const projectId = this.storeId;
-
     // Resolve asset group ID from store context (ownerType = "store", ownerId = storeId)
     const assetGroup = await this.repository.assetGroup.findByOwner(
       "store",
@@ -37,7 +35,7 @@ export class FileCreateExternalScript extends BaseScript<
     );
     const assetGroupId = assetGroup?.id ?? null;
 
-    this.logger.info({ params, projectId, ownerId: this.storeId, assetGroupId }, "FileCreateExternalScript: starting");
+    this.logger.info({ params, storeId: this.storeId, assetGroupId }, "FileCreateExternalScript: starting");
 
     // 1. Validate provider
     if (!isValidProvider(params.provider)) {
@@ -74,27 +72,28 @@ export class FileCreateExternalScript extends BaseScript<
     }
 
     // 3. Check for existing file by externalId (deduplication)
-    const existingExternal = await this.repository.externalMedia.findByExternalId(
-      projectId,
-      params.externalId
-    );
-
-    if (existingExternal) {
-      // Check if the existing file's provider matches
-      const existingFile = await this.repository.file.findById(
-        projectId,
-        existingExternal.fileId
+    if (assetGroupId) {
+      const existingExternal = await this.repository.externalMedia.findByExternalId(
+        assetGroupId,
+        params.externalId
       );
 
-      if (existingFile && existingFile.provider === params.provider) {
-        this.logger.info(
-          { fileId: existingFile.id, externalId: params.externalId },
-          "FileCreateExternalScript: returning existing file by external ID"
+      if (existingExternal) {
+        // Check if the existing file's provider matches
+        const existingFile = await this.repository.file.findById(
+          existingExternal.fileId
         );
-        return {
-          file: { id: existingFile.id },
-          userErrors: [],
-        };
+
+        if (existingFile && existingFile.provider === params.provider) {
+          this.logger.info(
+            { fileId: existingFile.id, externalId: params.externalId },
+            "FileCreateExternalScript: returning existing file by external ID"
+          );
+          return {
+            file: { id: existingFile.id },
+            userErrors: [],
+          };
+        }
       }
     }
 
@@ -102,7 +101,7 @@ export class FileCreateExternalScript extends BaseScript<
     const mimeType = getMimeTypeForProvider(params.provider);
 
     // 5. Create record in `files` table
-    const file = await this.repository.file.create(projectId, {
+    const file = await this.repository.file.create(assetGroupId!, {
       provider: params.provider as FileProvider,
       url: params.url,
       mimeType,
@@ -115,11 +114,10 @@ export class FileCreateExternalScript extends BaseScript<
       sourceUrl: params.url,
       idempotencyKey: params.idempotencyKey ?? null,
       isProcessed: true,
-      assetGroupId,
     });
 
     // 6. Create record in `externalMedia` table
-    await this.repository.externalMedia.create(projectId, {
+    await this.repository.externalMedia.create(assetGroupId!, {
       fileId: file.id,
       externalId: params.externalId,
       providerMeta: {

@@ -28,10 +28,9 @@ export class ProfileAvatarUploadScript extends BaseScript<
     params: ProfileAvatarUploadParams
   ): Promise<ProfileAvatarUploadResult> {
     const { ownerType, ownerId } = params;
-    const projectId = this.storeId;
 
     this.logger.info(
-      { projectId, ownerType, ownerId },
+      { ownerType, ownerId },
       "ProfileAvatarUploadScript: starting"
     );
 
@@ -155,7 +154,7 @@ export class ProfileAvatarUploadScript extends BaseScript<
     const publicUrl = buildPublicUrl(objectKey);
 
     // 6. Create record in `files` table with detected metadata
-    const file = await this.repository.file.create(projectId, {
+    const file = await this.repository.file.create(assetGroupId, {
       provider: "S3",
       url: publicUrl,
       mimeType: metadata.mimeType,
@@ -169,11 +168,10 @@ export class ProfileAvatarUploadScript extends BaseScript<
       sourceUrl: null,
       idempotencyKey: null,
       isProcessed: true,
-      assetGroupId,
     });
 
     // 7. Create record in `s3Objects` table
-    await this.repository.s3Object.create(projectId, {
+    await this.repository.s3Object.create(assetGroupId, {
       fileId: file.id,
       bucketId: bucket.id,
       objectKey,

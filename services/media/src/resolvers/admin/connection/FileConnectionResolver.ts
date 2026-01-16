@@ -10,10 +10,7 @@ import type { FileRelayInput } from "../../../repositories/FileRepository.js";
  */
 export class FileConnectionResolver extends BaseConnectionResolver<FileRelayInput> {
   async $preload(): Promise<ConnectionData> {
-    return this.$ctx.kernel.repository.file.getConnection(
-      this.$ctx.store.id,
-      this.$props
-    );
+    return this.$ctx.kernel.repository.file.getConnection(this.$props);
   }
 
   protected createNodeResolver(nodeId: string) {

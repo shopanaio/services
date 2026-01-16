@@ -9,12 +9,10 @@ export class FileUpdateScript extends BaseScript<
   FileUpdateResult
 > {
   protected async execute(params: FileUpdateParams): Promise<FileUpdateResult> {
-    const projectId = this.storeId;
-
-    this.logger.info({ params, projectId }, "FileUpdateScript: starting");
+    this.logger.info({ params }, "FileUpdateScript: starting");
 
     // 1. Find file by ID
-    const existingFile = await this.repository.file.findById(projectId, params.id);
+    const existingFile = await this.repository.file.findById(params.id);
 
     // 2. Check that file exists
     if (!existingFile) {
@@ -58,7 +56,7 @@ export class FileUpdateScript extends BaseScript<
     }
 
     // 4. Update the file
-    const updatedFile = await this.repository.file.update(projectId, params.id, updateData);
+    const updatedFile = await this.repository.file.update(params.id, updateData);
 
     if (!updatedFile) {
       this.logger.error({ fileId: params.id }, "FileUpdateScript: update failed unexpectedly");

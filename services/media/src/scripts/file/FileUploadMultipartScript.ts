@@ -18,8 +18,6 @@ export class FileUploadMultipartScript extends BaseScript<
   protected async execute(
     params: FileUploadMultipartParams
   ): Promise<FileUploadMultipartResult> {
-    const projectId = this.storeId;
-
     // Resolve asset group ID from store context (ownerType = "store", ownerId = storeId)
     const assetGroup = await this.repository.assetGroup.findByOwner(
       "store",
@@ -27,7 +25,7 @@ export class FileUploadMultipartScript extends BaseScript<
     );
     const assetGroupId = assetGroup?.id ?? null;
 
-    this.logger.info({ projectId, ownerId: this.storeId, assetGroupId }, "FileUploadMultipartScript: starting");
+    this.logger.info({ storeId: this.storeId, assetGroupId }, "FileUploadMultipartScript: starting");
 
     // 1. Check idempotency key
     if (params.idempotencyKey && assetGroupId) {
@@ -95,7 +93,7 @@ export class FileUploadMultipartScript extends BaseScript<
     );
 
     // 4. Generate object key and upload to S3
-    const objectKey = this.generateObjectKey(projectId, metadata.ext);
+    const objectKey = this.generateObjectKey(this.storeId, metadata.ext);
     const contentHash = crypto
       .createHash("sha256")
       .update(buffer)
@@ -130,7 +128,7 @@ export class FileUploadMultipartScript extends BaseScript<
     const publicUrl = buildPublicUrl(objectKey);
 
     // 6. Create record in `files` table with detected metadata
-    const file = await this.repository.file.create(projectId, {
+    const file = await this.repository.file.create(assetGroupId!, {
       provider: "S3",
       url: publicUrl,
       mimeType: metadata.mimeType,
@@ -144,11 +142,10 @@ export class FileUploadMultipartScript extends BaseScript<
       sourceUrl: null,
       idempotencyKey: params.idempotencyKey ?? null,
       isProcessed: true,
-      assetGroupId,
     });
 
     // 7. Create record in `s3Objects` table
-    await this.repository.s3Object.create(projectId, {
+    await this.repository.s3Object.create(assetGroupId!, {
       fileId: file.id,
       bucketId: bucket.id,
       objectKey,
@@ -168,10 +165,10 @@ export class FileUploadMultipartScript extends BaseScript<
     };
   }
 
-  private generateObjectKey(projectId: string, ext: string): string {
+  private generateObjectKey(storeId: string, ext: string): string {
     const timestamp = Date.now();
     const random = crypto.randomBytes(8).toString("hex");
-    return `${projectId}/${timestamp}-${random}.${ext}`;
+    return `${storeId}/${timestamp}-${random}.${ext}`;
   }
 
   protected handleError(_error: unknown): FileUploadMultipartResult {

@@ -8,6 +8,7 @@ export { createQuery, FluentQueryBuilder, MaxLimitExceededError } from "./fluent
 
 // Field helper
 export { field } from "./helpers.js";
+export type { FieldBuilder } from "./helpers.js";
 
 // Internal: used by cursor builders
 export function createQueryBuilder<

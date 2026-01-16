@@ -26,8 +26,6 @@ export class FileUploadFromUrlScript extends BaseScript<
   FileUploadFromUrlResult
 > {
   protected async execute(params: FileUploadFromUrlParams): Promise<FileUploadFromUrlResult> {
-    const projectId = this.storeId;
-
     // Resolve asset group ID from store context (ownerType = "store", ownerId = storeId)
     const assetGroup = await this.repository.assetGroup.findByOwner(
       "store",
@@ -35,7 +33,7 @@ export class FileUploadFromUrlScript extends BaseScript<
     );
     const assetGroupId = assetGroup?.id ?? null;
 
-    this.logger.info({ params, projectId, ownerId: this.storeId, assetGroupId }, "FileUploadFromUrlScript: starting");
+    this.logger.info({ params, storeId: this.storeId, assetGroupId }, "FileUploadFromUrlScript: starting");
 
     // Validate URL format (skip for data URLs)
     if (!params.sourceUrl.startsWith("data:")) {
@@ -79,9 +77,9 @@ export class FileUploadFromUrlScript extends BaseScript<
 
     // 2. Check for existing file by source URL (deduplication)
     // Skip for data URLs as they are unique uploads
-    if (!isDataUrl) {
+    if (!isDataUrl && assetGroupId) {
       const existingByUrl = await this.repository.file.findBySourceUrl(
-        projectId,
+        assetGroupId,
         params.sourceUrl
       );
 
@@ -128,7 +126,7 @@ export class FileUploadFromUrlScript extends BaseScript<
     );
 
     // 5. Generate object key and upload to S3
-    const objectKey = this.generateObjectKey(projectId, metadata.ext);
+    const objectKey = this.generateObjectKey(this.storeId, metadata.ext);
     const contentHash = crypto.createHash("sha256").update(buffer).digest("hex");
 
     // Initialize S3 client
@@ -160,7 +158,7 @@ export class FileUploadFromUrlScript extends BaseScript<
     const publicUrl = buildPublicUrl(objectKey);
 
     // 7. Create record in `files` table with detected metadata
-    const file = await this.repository.file.create(projectId, {
+    const file = await this.repository.file.create(assetGroupId!, {
       provider: "S3",
       url: publicUrl,
       mimeType: metadata.mimeType,
@@ -175,11 +173,10 @@ export class FileUploadFromUrlScript extends BaseScript<
       sourceUrl: isDataUrl ? null : params.sourceUrl,
       idempotencyKey: params.idempotencyKey ?? null,
       isProcessed: true,
-      assetGroupId,
     });
 
     // 8. Create record in `s3Objects` table
-    await this.repository.s3Object.create(projectId, {
+    await this.repository.s3Object.create(assetGroupId!, {
       fileId: file.id,
       bucketId: bucket.id,
       objectKey,
@@ -292,10 +289,10 @@ export class FileUploadFromUrlScript extends BaseScript<
     }
   }
 
-  private generateObjectKey(projectId: string, ext: string): string {
+  private generateObjectKey(storeId: string, ext: string): string {
     const timestamp = Date.now();
     const random = crypto.randomBytes(8).toString("hex");
-    return `${projectId}/${timestamp}-${random}.${ext}`;
+    return `${storeId}/${timestamp}-${random}.${ext}`;
   }
 
   protected handleError(_error: unknown): FileUploadFromUrlResult {
