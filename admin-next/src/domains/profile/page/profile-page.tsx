@@ -25,6 +25,7 @@ import {
 } from "../modals";
 import {
   useUpdateProfile,
+  useUpdateAvatar,
   useSessions,
   useRevokeSession,
 } from "../hooks";
@@ -205,6 +206,7 @@ export default function ProfilePage() {
   const { push: pushChangePasswordModal } = useChangePasswordModal();
   const { themePreference, setThemePreference } = useThemeContext();
   const { updateProfile } = useUpdateProfile();
+  const { updateAvatar } = useUpdateAvatar();
   const { sessions, loading: sessionsLoading } = useSessions();
   const { revokeSession, revokeAllSessions } = useRevokeSession();
 
@@ -213,23 +215,38 @@ export default function ProfilePage() {
       firstName: user?.firstName || "",
       lastName: user?.lastName || "",
       currentAvatar: user?.avatar?.url ?? null,
+      currentAvatarId: user?.avatar?.id ?? null,
       locale: user?.locale || LocaleCode.En,
       onSave: async (values: {
         firstName: string;
         lastName: string;
-        avatar: string | null;
+        avatarId: string | null;
         locale: LocaleCode;
       }) => {
         try {
-          const result = await updateProfile({
+          // Update profile info
+          const profileResult = await updateProfile({
             firstName: values.firstName || undefined,
             lastName: values.lastName || undefined,
             locale: values.locale,
           });
 
-          if (result.userErrors.length > 0) {
-            message.error(result.userErrors[0].message);
+          if (profileResult.userErrors.length > 0) {
+            message.error(profileResult.userErrors[0].message);
             return;
+          }
+
+          // Update avatar if changed
+          const currentAvatarId = user?.avatar?.id ?? null;
+          if (values.avatarId !== currentAvatarId) {
+            const avatarResult = await updateAvatar({
+              avatarId: values.avatarId,
+            });
+
+            if (avatarResult.userErrors.length > 0) {
+              message.error(avatarResult.userErrors[0].message);
+              return;
+            }
           }
 
           refetch();

@@ -2,11 +2,12 @@
 
 import { useState, useCallback } from "react";
 import { useForm, Controller } from "react-hook-form";
-import { Upload, Typography, Button, Input, Flex, Select } from "antd";
+import { Upload, Typography, Button, Input, Flex, Select, Spin } from "antd";
 import {
   UploadOutlined,
   UserOutlined,
   DeleteOutlined,
+  LoadingOutlined,
 } from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import {
@@ -17,6 +18,7 @@ import {
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { ImageCropModal } from "@/ui-kit/image-crop";
 import { localeOptions } from "@/domains/workspace/mocks/data";
+import { useUploadFiles } from "@/domains/media/hooks/use-upload-files";
 import type { IEditProfileModalPayload } from "../../modals";
 import type { LocaleCode } from "@/graphql/types";
 
@@ -101,9 +103,15 @@ export const EditProfileModal = () => {
   const { payload, pop } = useModalStackContext();
   const typedPayload = payload as IEditProfileModalPayload;
 
-  // Avatar state
+  // Upload hook
+  const { uploadFile, loading: uploading } = useUploadFiles();
+
+  // Avatar state - store both URL (for display) and ID (for form submission)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(
     typedPayload.currentAvatar || null
+  );
+  const [avatarId, setAvatarId] = useState<string | null>(
+    typedPayload.currentAvatarId || null
   );
   const [imageSrc, setImageSrc] = useState<string | null>(null);
 
@@ -120,7 +128,7 @@ export const EditProfileModal = () => {
     },
   });
 
-  const avatarChanged = avatarUrl !== (typedPayload.currentAvatar || null);
+  const avatarChanged = avatarId !== (typedPayload.currentAvatarId || null);
   const hasChanges = isDirty || avatarChanged;
 
   // Avatar handlers
@@ -133,10 +141,25 @@ export const EditProfileModal = () => {
     return false;
   }, []);
 
-  const handleApplyCrop = useCallback((croppedUrl: string) => {
-    setAvatarUrl(croppedUrl);
-    setImageSrc(null);
-  }, []);
+  const handleApplyCrop = useCallback(
+    async (croppedUrl: string) => {
+      setImageSrc(null);
+
+      // Convert base64 to File
+      const response = await fetch(croppedUrl);
+      const blob = await response.blob();
+      const file = new File([blob], "avatar.jpg", { type: "image/jpeg" });
+
+      // Upload file to server
+      const result = await uploadFile(file);
+
+      if (result.file) {
+        setAvatarUrl(result.file.url);
+        setAvatarId(result.file.id);
+      }
+    },
+    [uploadFile]
+  );
 
   const handleCancelCrop = useCallback(() => {
     setImageSrc(null);
@@ -144,6 +167,7 @@ export const EditProfileModal = () => {
 
   const handleRemoveAvatar = useCallback(() => {
     setAvatarUrl(null);
+    setAvatarId(null);
   }, []);
 
   // Form submit
@@ -152,12 +176,12 @@ export const EditProfileModal = () => {
       await typedPayload.onSave?.({
         firstName: values.firstName,
         lastName: values.lastName,
-        avatar: avatarUrl,
+        avatarId,
         locale: values.locale,
       });
       pop();
     },
-    [typedPayload, avatarUrl, pop]
+    [typedPayload, avatarId, pop]
   );
 
   return (
@@ -180,7 +204,11 @@ export const EditProfileModal = () => {
         <PaperHeader title="Profile Photo" />
         <div className={styles.container}>
           <div className={styles.avatarSection}>
-            {avatarUrl ? (
+            {uploading ? (
+              <div className={styles.avatarPlaceholder}>
+                <Spin indicator={<LoadingOutlined spin />} />
+              </div>
+            ) : avatarUrl ? (
               <img
                 src={avatarUrl}
                 alt="Profile"
@@ -192,15 +220,31 @@ export const EditProfileModal = () => {
               </div>
             )}
             <Flex vertical gap={8}>
-              <Upload
-                accept="image/png,image/jpeg,image/jpg,image/webp"
-                showUploadList={false}
-                beforeUpload={handleFileSelect}
-              >
-                <Button icon={<UploadOutlined />} size="small">
-                  {avatarUrl ? "Change Photo" : "Upload Photo"}
-                </Button>
-              </Upload>
+              <Flex gap={8}>
+                <Upload
+                  accept="image/png,image/jpeg,image/jpg,image/webp"
+                  showUploadList={false}
+                  beforeUpload={handleFileSelect}
+                  disabled={uploading}
+                >
+                  <Button
+                    icon={<UploadOutlined />}
+                    size="small"
+                    disabled={uploading}
+                  >
+                    {avatarUrl ? "Change Photo" : "Upload Photo"}
+                  </Button>
+                </Upload>
+                {avatarUrl && (
+                  <Button
+                    icon={<DeleteOutlined />}
+                    size="small"
+                    danger
+                    onClick={handleRemoveAvatar}
+                    disabled={uploading}
+                  />
+                )}
+              </Flex>
 
               <Typography.Text className={styles.avatarHint}>
                 PNG, JPG or WEBP. 256×256px recommended.

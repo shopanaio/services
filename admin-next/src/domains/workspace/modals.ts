@@ -58,10 +58,11 @@ export interface IEditOrganizationModalPayload extends IModalStackPayload {
   displayName: string;
   slug: string;
   currentLogo?: string | null;
+  currentLogoId?: string | null;
   onSave?: (values: {
     displayName: string;
     slug: string;
-    logo: string | null;
+    logoId: string | null;
   }) => void;
 }
 

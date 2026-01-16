@@ -2,12 +2,13 @@
 
 import { useState, useCallback } from "react";
 import { useForm, Controller } from "react-hook-form";
-import { Upload, Typography, Button, Input, Flex, App } from "antd";
+import { Upload, Typography, Button, Input, Flex, App, Spin } from "antd";
 import {
   UploadOutlined,
   TeamOutlined,
   WarningOutlined,
   DeleteOutlined,
+  LoadingOutlined,
 } from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import {
@@ -17,6 +18,7 @@ import {
 } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { ImageCropModal } from "@/ui-kit/image-crop";
+import { useUploadFiles } from "@/domains/media/hooks/use-upload-files";
 import type { IEditOrganizationModalPayload } from "../../modals";
 
 // ============================================================================
@@ -100,9 +102,15 @@ export const EditOrganizationModal = () => {
   const { payload, pop } = useModalStackContext();
   const typedPayload = payload as IEditOrganizationModalPayload;
 
-  // Logo state
+  // Upload hook
+  const { uploadFile, loading: uploading } = useUploadFiles();
+
+  // Logo state - store both URL (for display) and ID (for form submission)
   const [logoUrl, setLogoUrl] = useState<string | null>(
     typedPayload.currentLogo || null
+  );
+  const [logoId, setLogoId] = useState<string | null>(
+    typedPayload.currentLogoId || null
   );
   const [imageSrc, setImageSrc] = useState<string | null>(null);
 
@@ -118,7 +126,7 @@ export const EditOrganizationModal = () => {
     },
   });
 
-  const logoChanged = logoUrl !== (typedPayload.currentLogo || null);
+  const logoChanged = logoId !== (typedPayload.currentLogoId || null);
   const hasChanges = isDirty || logoChanged;
 
   // Logo handlers
@@ -131,10 +139,25 @@ export const EditOrganizationModal = () => {
     return false;
   }, []);
 
-  const handleApplyCrop = useCallback((croppedUrl: string) => {
-    setLogoUrl(croppedUrl);
-    setImageSrc(null);
-  }, []);
+  const handleApplyCrop = useCallback(
+    async (croppedUrl: string) => {
+      setImageSrc(null);
+
+      // Convert base64 to File
+      const response = await fetch(croppedUrl);
+      const blob = await response.blob();
+      const file = new File([blob], "logo.jpg", { type: "image/jpeg" });
+
+      // Upload file to server
+      const result = await uploadFile(file);
+
+      if (result.file) {
+        setLogoUrl(result.file.url);
+        setLogoId(result.file.id);
+      }
+    },
+    [uploadFile]
+  );
 
   const handleCancelCrop = useCallback(() => {
     setImageSrc(null);
@@ -142,6 +165,7 @@ export const EditOrganizationModal = () => {
 
   const handleRemoveLogo = useCallback(() => {
     setLogoUrl(null);
+    setLogoId(null);
   }, []);
 
   // Form submit
@@ -150,12 +174,12 @@ export const EditOrganizationModal = () => {
       typedPayload.onSave?.({
         displayName: values.displayName,
         slug: values.slug,
-        logo: logoUrl,
+        logoId,
       });
       message.success("Organization updated successfully");
       pop();
     },
-    [typedPayload, logoUrl, message, pop]
+    [typedPayload, logoId, message, pop]
   );
 
   return (
@@ -178,7 +202,11 @@ export const EditOrganizationModal = () => {
         <PaperHeader title="Organization Logo" />
         <div className={styles.container}>
           <div className={styles.logoSection}>
-            {logoUrl ? (
+            {uploading ? (
+              <div className={styles.avatarPlaceholder}>
+                <Spin indicator={<LoadingOutlined spin />} />
+              </div>
+            ) : logoUrl ? (
               <img
                 src={logoUrl}
                 alt="Organization logo"
@@ -190,15 +218,26 @@ export const EditOrganizationModal = () => {
               </div>
             )}
             <Flex vertical gap={8}>
-              <Upload
-                accept="image/png,image/jpeg,image/jpg,image/webp"
-                showUploadList={false}
-                beforeUpload={handleFileSelect}
-              >
-                <Button icon={<UploadOutlined />}>
-                  {logoUrl ? "Change Logo" : "Upload Logo"}
-                </Button>
-              </Upload>
+              <Flex gap={8}>
+                <Upload
+                  accept="image/png,image/jpeg,image/jpg,image/webp"
+                  showUploadList={false}
+                  beforeUpload={handleFileSelect}
+                  disabled={uploading}
+                >
+                  <Button icon={<UploadOutlined />} disabled={uploading}>
+                    {logoUrl ? "Change Logo" : "Upload Logo"}
+                  </Button>
+                </Upload>
+                {logoUrl && (
+                  <Button
+                    icon={<DeleteOutlined />}
+                    danger
+                    onClick={handleRemoveLogo}
+                    disabled={uploading}
+                  />
+                )}
+              </Flex>
               <Typography.Text className={styles.logoHint}>
                 PNG, JPG or WEBP. 256×256px recommended.
               </Typography.Text>

@@ -14,11 +14,12 @@ export interface IEditProfileModalPayload extends IModalStackPayload {
   firstName: string;
   lastName: string;
   currentAvatar?: string | null;
+  currentAvatarId?: string | null;
   locale: LocaleCode;
   onSave?: (values: {
     firstName: string;
     lastName: string;
-    avatar: string | null;
+    avatarId: string | null;
     locale: LocaleCode;
   }) => void | Promise<void>;
 }

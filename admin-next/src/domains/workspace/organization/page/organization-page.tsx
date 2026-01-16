@@ -19,6 +19,7 @@ import {
   useOrganization,
   useStores,
   useUpdateOrganization,
+  useUpdateOrganizationLogo,
   useDeleteOrganization,
   useCreateStore,
   useRemoveMember,
@@ -66,6 +67,7 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
   });
 
   const { updateOrganization } = useUpdateOrganization();
+  const { updateOrganizationLogo } = useUpdateOrganizationLogo();
   const { deleteOrganization } = useDeleteOrganization();
   const { createStore } = useCreateStore();
   const { removeMember } = useRemoveMember();
@@ -99,11 +101,13 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
       displayName: organization.displayName,
       slug: organization.name,
       currentLogo: organization.logo?.url ?? null,
+      currentLogoId: organization.logo?.id ?? null,
       onSave: async (values: {
         displayName: string;
         slug: string;
-        logo: string | null;
+        logoId: string | null;
       }) => {
+        // Update organization info
         const { userErrors } = await updateOrganization({
           id: organization.id,
           displayName: values.displayName,
@@ -115,11 +119,25 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
           return;
         }
 
+        // Update logo if changed
+        const currentLogoId = organization.logo?.id ?? null;
+        if (values.logoId !== currentLogoId) {
+          const logoResult = await updateOrganizationLogo({
+            id: organization.id,
+            logoId: values.logoId,
+          });
+
+          if (logoResult.userErrors.length > 0) {
+            logoResult.userErrors.forEach((err) => message.error(err.message));
+            return;
+          }
+        }
+
         message.success("Organization updated successfully");
         refetchOrg();
       },
     });
-  }, [organization, pushEditOrganizationModal, updateOrganization, refetchOrg]);
+  }, [organization, pushEditOrganizationModal, updateOrganization, updateOrganizationLogo, refetchOrg]);
 
   const handleDeleteOrganization = useCallback(() => {
     if (!organization) return;
