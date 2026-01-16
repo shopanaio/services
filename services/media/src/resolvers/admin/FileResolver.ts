@@ -13,10 +13,6 @@ import {
  */
 @SubgraphReference()
 export class FileResolver extends MediaType<string, File> {
-  // @Cache({
-  //   cacheName: "media:file",
-  //   key: (resolver: FileResolver) => resolver.$props,
-  // })
   async $preload() {
     const file = await this.$ctx.loaders.file.load(this.$props);
 

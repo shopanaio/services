@@ -7,7 +7,6 @@ import {
   UploadOutlined,
   TeamOutlined,
   WarningOutlined,
-  DeleteOutlined,
   LoadingOutlined,
 } from "@ant-design/icons";
 import { createStyles } from "antd-style";
@@ -170,11 +169,6 @@ export const EditOrganizationModal = () => {
     setImageSrc(null);
   }, []);
 
-  const handleRemoveLogo = useCallback(() => {
-    setValue("logoId", null, { shouldDirty: true });
-    setValue("logoUrl", null);
-  }, [setValue]);
-
   // Form submit
   const onSubmit = useCallback(
     (values: OrganizationFormValues) => {
@@ -236,14 +230,6 @@ export const EditOrganizationModal = () => {
                     {logoUrl ? "Change Logo" : "Upload Logo"}
                   </Button>
                 </Upload>
-                {logoUrl && (
-                  <Button
-                    icon={<DeleteOutlined />}
-                    danger
-                    onClick={handleRemoveLogo}
-                    disabled={uploading}
-                  />
-                )}
               </Flex>
               <Typography.Text className={styles.logoHint}>
                 PNG, JPG or WEBP. 256×256px recommended.

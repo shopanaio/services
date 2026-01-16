@@ -5,12 +5,10 @@ import type { ExternalMedia } from "../../repositories/models/index.js";
  * ExternalData resolver - resolves external media data (YouTube, Vimeo, etc.)
  */
 export class ExternalDataResolver extends MediaType<string, ExternalMedia> {
-  @Cache({
-    cacheName: "media:external",
-    key: (resolver: ExternalDataResolver) => resolver.$props,
-  })
   async $preload() {
-    const externalMedia = await this.$ctx.loaders.externalMedia.load(this.$props);
+    const externalMedia = await this.$ctx.loaders.externalMedia.load(
+      this.$props
+    );
     if (!externalMedia) {
       throw new Error(`External media not found for file: ${this.$props}`);
     }

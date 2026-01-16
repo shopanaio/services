@@ -22,7 +22,9 @@ export const userUpdateProfileInputSchema = z.object({
     .optional(),
 });
 
-export type UserUpdateProfileInput = z.infer<typeof userUpdateProfileInputSchema>;
+export type UserUpdateProfileInput = z.infer<
+  typeof userUpdateProfileInputSchema
+>;
 
 /**
  * Script params
@@ -31,6 +33,7 @@ export interface UserUpdateProfileParams {
   firstName?: string;
   lastName?: string;
   language?: string;
+  image?: string;
 }
 
 /**

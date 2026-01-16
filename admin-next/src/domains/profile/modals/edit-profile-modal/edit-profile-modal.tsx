@@ -6,7 +6,6 @@ import { Upload, Typography, Button, Input, Flex, Select, Spin } from "antd";
 import {
   UploadOutlined,
   UserOutlined,
-  DeleteOutlined,
   LoadingOutlined,
 } from "@ant-design/icons";
 import { createStyles } from "antd-style";
@@ -170,11 +169,6 @@ export const EditProfileModal = () => {
     setImageSrc(null);
   }, []);
 
-  const handleRemoveAvatar = useCallback(() => {
-    setValue("avatarId", null, { shouldDirty: true });
-    setValue("avatarUrl", null);
-  }, [setValue]);
-
   // Form submit
   const onSubmit = useCallback(
     async (values: ProfileFormValues) => {
@@ -240,15 +234,6 @@ export const EditProfileModal = () => {
                     {avatarUrl ? "Change Photo" : "Upload Photo"}
                   </Button>
                 </Upload>
-                {avatarUrl && (
-                  <Button
-                    icon={<DeleteOutlined />}
-                    size="small"
-                    danger
-                    onClick={handleRemoveAvatar}
-                    disabled={uploading}
-                  />
-                )}
               </Flex>
 
               <Typography.Text className={styles.avatarHint}>

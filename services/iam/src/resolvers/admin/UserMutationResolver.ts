@@ -53,7 +53,7 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
       lastName: input.lastName ?? undefined,
       language: input.locale ?? undefined,
       ...(input.avatarId
-        ? { imageId: decodeGlobalIdByType(input.avatarId, GlobalIdEntity.File) }
+        ? { image: decodeGlobalIdByType(input.avatarId, GlobalIdEntity.File) }
         : {}),
     });
 
@@ -66,12 +66,6 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
           field: e.field ?? null,
         })),
       };
-    }
-
-    // Handle avatar update separately if provided
-    if (input.avatarId !== undefined) {
-      if (input.avatarId) {
-      }
     }
 
     return {

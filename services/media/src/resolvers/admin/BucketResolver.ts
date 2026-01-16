@@ -9,10 +9,6 @@ import type { Bucket } from "../../repositories/models/index.js";
  * Bucket resolver - resolves Bucket type
  */
 export class BucketResolver extends MediaType<string, Bucket> {
-  @Cache({
-    cacheName: "media:bucket",
-    key: (resolver: BucketResolver) => resolver.$props,
-  })
   async $preload() {
     const bucket = await this.$ctx.kernel.repository.bucket.findById(
       this.$ctx.store.id,

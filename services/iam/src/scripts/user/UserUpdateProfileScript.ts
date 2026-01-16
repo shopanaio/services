@@ -25,14 +25,15 @@ export class UserUpdateProfileScript extends BaseScript<
   protected async execute(
     params: UserUpdateProfileParams
   ): Promise<UserUpdateProfileResult> {
-    const { firstName, lastName, language } = params;
+    const { firstName, lastName, language, image } = params;
     const userId = this.currentUser.id;
 
     // Check if there's anything to update
     if (
       firstName === undefined &&
       lastName === undefined &&
-      language === undefined
+      language === undefined &&
+      image === undefined
     ) {
       return {
         userId,
@@ -45,7 +46,17 @@ export class UserUpdateProfileScript extends BaseScript<
       firstName?: string;
       lastName?: string;
       name?: string;
+      language?: string;
+      image?: string;
     } = {};
+
+    if (language !== undefined) {
+      updateData.language = language;
+    }
+
+    if (image !== undefined) {
+      updateData.image = image;
+    }
 
     if (firstName !== undefined) {
       updateData.firstName = firstName;
@@ -74,11 +85,17 @@ export class UserUpdateProfileScript extends BaseScript<
 
       const newFirstName = firstName ?? currentUserData.firstName ?? "";
       const newLastName = lastName ?? currentUserData.lastName ?? "";
-      updateData.name = `${newFirstName} ${newLastName}`.trim() || currentUserData.name;
+      updateData.name =
+        `${newFirstName} ${newLastName}`.trim() || currentUserData.name;
     }
 
+    console.log(updateData, "updateData");
+
     // Update the user profile
-    const updated = await this.repository.user.updateProfile(userId, updateData);
+    const updated = await this.repository.user.updateProfile(
+      userId,
+      updateData
+    );
 
     if (!updated) {
       return {
