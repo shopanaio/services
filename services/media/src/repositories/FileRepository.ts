@@ -7,12 +7,25 @@ import {
 } from "@shopana/drizzle-query";
 import type { Database } from "../infrastructure/db/database";
 import { files, type File, type NewFile } from "./models";
+import {
+  encodeGlobalId,
+  decodeGlobalId,
+} from "../resolvers/admin/utils/globalId";
 
 // ---- Relay Query Builder ----
 
 export const fileRelayQuery = createRelayQuery(
   createQuery(files).include(["id"]).maxLimit(100).defaultLimit(20),
-  { name: "file", tieBreaker: "id" }
+  {
+    name: "file",
+    tieBreaker: "id",
+    seekTransforms: {
+      id: {
+        encode: (uuid) => encodeGlobalId("File", uuid as string),
+        decode: (globalId) => decodeGlobalId(globalId as string)?.id,
+      },
+    },
+  }
 );
 
 export type FileRelayInput = InferRelayInput<typeof fileRelayQuery>;
@@ -133,9 +146,13 @@ export class FileRepository {
   /**
    * Update an existing file
    */
-  async update(projectId: string, fileId: string, data: UpdateFileInput): Promise<File | null> {
+  async update(
+    projectId: string,
+    fileId: string,
+    data: UpdateFileInput
+  ): Promise<File | null> {
     const updateData: Partial<NewFile> = {
-      updatedAt: new Date(),
+      updatedAt: new Date().toISOString(),
     };
 
     if (data.altText !== undefined) {
@@ -173,8 +190,8 @@ export class FileRepository {
     await this.db
       .update(files)
       .set({
-        deletedAt: new Date(),
-        updatedAt: new Date(),
+        deletedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       })
       .where(
         and(
@@ -191,12 +208,7 @@ export class FileRepository {
   async hardDelete(projectId: string, fileId: string): Promise<void> {
     await this.db
       .delete(files)
-      .where(
-        and(
-          eq(files.projectId, projectId),
-          eq(files.id, fileId)
-        )
-      );
+      .where(and(eq(files.projectId, projectId), eq(files.id, fileId)));
   }
 
   // ---- Utility methods ----
@@ -204,7 +216,10 @@ export class FileRepository {
   /**
    * Find a file by idempotency key
    */
-  async findByIdempotencyKey(projectId: string, key: string): Promise<File | null> {
+  async findByIdempotencyKey(
+    projectId: string,
+    key: string
+  ): Promise<File | null> {
     const result = await this.db
       .select()
       .from(files)
@@ -242,7 +257,10 @@ export class FileRepository {
   /**
    * Find a file by source URL (for deduplication of URL uploads)
    */
-  async findBySourceUrl(projectId: string, sourceUrl: string): Promise<File | null> {
+  async findBySourceUrl(
+    projectId: string,
+    sourceUrl: string
+  ): Promise<File | null> {
     // Empty strings are not valid for deduplication
     if (!sourceUrl) {
       return null;
@@ -266,7 +284,10 @@ export class FileRepository {
   /**
    * Find deleted file by ID (for restoration purposes)
    */
-  async findDeletedById(projectId: string, fileId: string): Promise<File | null> {
+  async findDeletedById(
+    projectId: string,
+    fileId: string
+  ): Promise<File | null> {
     const result = await this.db
       .select()
       .from(files)
@@ -290,7 +311,7 @@ export class FileRepository {
       .update(files)
       .set({
         deletedAt: null,
-        updatedAt: new Date(),
+        updatedAt: new Date().toISOString(),
       })
       .where(
         and(
@@ -313,9 +334,7 @@ export class FileRepository {
     const result = await this.db
       .select({ count: count() })
       .from(files)
-      .where(
-        and(eq(files.projectId, projectId), isNull(files.deletedAt))
-      );
+      .where(and(eq(files.projectId, projectId), isNull(files.deletedAt)));
     return result[0]?.count ?? 0;
   }
 
@@ -340,10 +359,12 @@ export class FileRepository {
     const executeInput: FileRelayInput = {
       ...paginationArgs,
       where: mergedWhere,
-      orderBy: orderBy ?? ([
-        { field: "createdAt", direction: "desc" },
-        { field: "id", direction: "desc" },
-      ] as FileRelayInput["orderBy"]),
+      orderBy:
+        orderBy ??
+        ([
+          { field: "createdAt", direction: "desc" },
+          { field: "id", direction: "desc" },
+        ] as FileRelayInput["orderBy"]),
     };
 
     const [result, totalCount] = await Promise.all([

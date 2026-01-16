@@ -23,6 +23,18 @@ export type Scalars = {
   _FieldSet: { input: any; output: any; }
 };
 
+/** Filter operators for Boolean fields */
+export type BooleanFilter = {
+  /** Equals */
+  _eq?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Is null */
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Is not null */
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Not equals */
+  _neq?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
 /** A bucket represents an S3 storage bucket for a project. */
 export type Bucket = {
   __typename?: 'Bucket';
@@ -65,6 +77,32 @@ export type BucketCreatePayload = {
   bucket?: Maybe<Bucket>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
+};
+
+/** Filter operators for DateTime fields */
+export type DateTimeFilter = {
+  /** Between range (inclusive) */
+  _between?: InputMaybe<Array<Scalars['DateTime']['input']>>;
+  /** Equals */
+  _eq?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Greater than (after) */
+  _gt?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Greater than or equal (on or after) */
+  _gte?: InputMaybe<Scalars['DateTime']['input']>;
+  /** In array */
+  _in?: InputMaybe<Array<Scalars['DateTime']['input']>>;
+  /** Is null */
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Is not null */
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Less than (before) */
+  _lt?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Less than or equal (on or before) */
+  _lte?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Not equals */
+  _neq?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Not in array */
+  _notIn?: InputMaybe<Array<Scalars['DateTime']['input']>>;
 };
 
 /** External media data (YouTube, Vimeo, etc). */
@@ -128,6 +166,22 @@ export type FileConnection = {
   totalCount: Scalars['Int']['output'];
 };
 
+/** Relay-style pagination input for File */
+export type FileConnectionInput = {
+  /** Returns items after this cursor */
+  after?: InputMaybe<Scalars['String']['input']>;
+  /** Returns items before this cursor */
+  before?: InputMaybe<Scalars['String']['input']>;
+  /** Returns the first n items */
+  first?: InputMaybe<Scalars['Int']['input']>;
+  /** Returns the last n items */
+  last?: InputMaybe<Scalars['Int']['input']>;
+  /** Sort order */
+  orderBy?: InputMaybe<Array<FileOrderByInput>>;
+  /** Filter conditions */
+  where?: InputMaybe<FileWhereInput>;
+};
+
 /** Input for creating an external media file (YouTube, Vimeo, etc). */
 export type FileCreateExternalInput = {
   /** Alt text for accessibility. */
@@ -188,6 +242,52 @@ export type FileEdge = {
   /** The item at the end of the edge. */
   node: File;
 };
+
+/** Ordering configuration for File */
+export type FileOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: FileOrderField;
+};
+
+/** Fields available for sorting File */
+export enum FileOrderField {
+  /** Sort by altText */
+  AltText = 'altText',
+  /** Sort by createdAt */
+  CreatedAt = 'createdAt',
+  /** Sort by durationMs */
+  DurationMs = 'durationMs',
+  /** Sort by ext */
+  Ext = 'ext',
+  /** Sort by height */
+  Height = 'height',
+  /** Sort by id */
+  Id = 'id',
+  /** Sort by idempotencyKey */
+  IdempotencyKey = 'idempotencyKey',
+  /** Sort by isProcessed */
+  IsProcessed = 'isProcessed',
+  /** Sort by meta */
+  Meta = 'meta',
+  /** Sort by mimeType */
+  MimeType = 'mimeType',
+  /** Sort by originalName */
+  OriginalName = 'originalName',
+  /** Sort by provider */
+  Provider = 'provider',
+  /** Sort by sizeBytes */
+  SizeBytes = 'sizeBytes',
+  /** Sort by sourceUrl */
+  SourceUrl = 'sourceUrl',
+  /** Sort by updatedAt */
+  UpdatedAt = 'updatedAt',
+  /** Sort by url */
+  Url = 'url',
+  /** Sort by width */
+  Width = 'width'
+}
 
 /** Provider type for files. */
 export enum FileProvider {
@@ -253,12 +353,124 @@ export type FileUploadPayload = {
   userErrors: Array<GenericUserError>;
 };
 
+/** Filter conditions for File */
+export type FileWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<FileWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<FileWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<FileWhereInput>>;
+  /** Filter by altText */
+  altText?: InputMaybe<StringFilter>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by durationMs */
+  durationMs?: InputMaybe<IntFilter>;
+  /** Filter by ext */
+  ext?: InputMaybe<StringFilter>;
+  /** Filter by height */
+  height?: InputMaybe<IntFilter>;
+  /** Filter by id */
+  id?: InputMaybe<IdFilter>;
+  /** Filter by idempotencyKey */
+  idempotencyKey?: InputMaybe<StringFilter>;
+  /** Filter by isProcessed */
+  isProcessed?: InputMaybe<BooleanFilter>;
+  /** Filter by meta */
+  meta?: InputMaybe<StringFilter>;
+  /** Filter by mimeType */
+  mimeType?: InputMaybe<StringFilter>;
+  /** Filter by originalName */
+  originalName?: InputMaybe<StringFilter>;
+  /** Filter by provider */
+  provider?: InputMaybe<StringFilter>;
+  /** Filter by sizeBytes */
+  sizeBytes?: InputMaybe<IntFilter>;
+  /** Filter by sourceUrl */
+  sourceUrl?: InputMaybe<StringFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by url */
+  url?: InputMaybe<StringFilter>;
+  /** Filter by width */
+  width?: InputMaybe<IntFilter>;
+};
+
+/** Filter operators for Float fields */
+export type FloatFilter = {
+  /** Between range (inclusive) */
+  _between?: InputMaybe<Array<Scalars['Float']['input']>>;
+  /** Equals */
+  _eq?: InputMaybe<Scalars['Float']['input']>;
+  /** Greater than */
+  _gt?: InputMaybe<Scalars['Float']['input']>;
+  /** Greater than or equal */
+  _gte?: InputMaybe<Scalars['Float']['input']>;
+  /** In array */
+  _in?: InputMaybe<Array<Scalars['Float']['input']>>;
+  /** Is null */
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Is not null */
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Less than */
+  _lt?: InputMaybe<Scalars['Float']['input']>;
+  /** Less than or equal */
+  _lte?: InputMaybe<Scalars['Float']['input']>;
+  /** Not equals */
+  _neq?: InputMaybe<Scalars['Float']['input']>;
+  /** Not in array */
+  _notIn?: InputMaybe<Array<Scalars['Float']['input']>>;
+};
+
 /** A generic user error type for mutation responses. */
 export type GenericUserError = UserError & {
   __typename?: 'GenericUserError';
   code?: Maybe<Scalars['String']['output']>;
   field?: Maybe<Array<Scalars['String']['output']>>;
   message: Scalars['String']['output'];
+};
+
+/** Filter operators for ID fields */
+export type IdFilter = {
+  /** Equals */
+  _eq?: InputMaybe<Scalars['ID']['input']>;
+  /** In array */
+  _in?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Is null */
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Is not null */
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Not equals */
+  _neq?: InputMaybe<Scalars['ID']['input']>;
+  /** Not in array */
+  _notIn?: InputMaybe<Array<Scalars['ID']['input']>>;
+};
+
+/** Filter operators for Int fields */
+export type IntFilter = {
+  /** Between range (inclusive) */
+  _between?: InputMaybe<Array<Scalars['Int']['input']>>;
+  /** Equals */
+  _eq?: InputMaybe<Scalars['Int']['input']>;
+  /** Greater than */
+  _gt?: InputMaybe<Scalars['Int']['input']>;
+  /** Greater than or equal */
+  _gte?: InputMaybe<Scalars['Int']['input']>;
+  /** In array */
+  _in?: InputMaybe<Array<Scalars['Int']['input']>>;
+  /** Is null */
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Is not null */
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Less than */
+  _lt?: InputMaybe<Scalars['Int']['input']>;
+  /** Less than or equal */
+  _lte?: InputMaybe<Scalars['Int']['input']>;
+  /** Not equals */
+  _neq?: InputMaybe<Scalars['Int']['input']>;
+  /** Not in array */
+  _notIn?: InputMaybe<Array<Scalars['Int']['input']>>;
 };
 
 /** Image/video dimensions. */
@@ -333,6 +545,8 @@ export type MediaQueryFilesArgs = {
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<FileOrderByInput>>;
+  where?: InputMaybe<FileWhereInput>;
 };
 
 
@@ -387,6 +601,44 @@ export type S3ObjectData = {
   objectKey: Scalars['String']['output'];
   /** Storage class (STANDARD, GLACIER, etc). */
   storageClass: Scalars['String']['output'];
+};
+
+/** Sort direction */
+export enum SortDirection {
+  Asc = 'asc',
+  Desc = 'desc'
+}
+
+/** Filter operators for String fields */
+export type StringFilter = {
+  /** Contains substring (case-sensitive) */
+  _contains?: InputMaybe<Scalars['String']['input']>;
+  /** Contains substring (case-insensitive) */
+  _containsi?: InputMaybe<Scalars['String']['input']>;
+  /** Ends with (case-sensitive) */
+  _endsWith?: InputMaybe<Scalars['String']['input']>;
+  /** Ends with (case-insensitive) */
+  _endsWithi?: InputMaybe<Scalars['String']['input']>;
+  /** Equals */
+  _eq?: InputMaybe<Scalars['String']['input']>;
+  /** In array */
+  _in?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** Is null */
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Is not null */
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Not equals */
+  _neq?: InputMaybe<Scalars['String']['input']>;
+  /** Does not contain substring (case-sensitive) */
+  _notContains?: InputMaybe<Scalars['String']['input']>;
+  /** Does not contain substring (case-insensitive) */
+  _notContainsi?: InputMaybe<Scalars['String']['input']>;
+  /** Not in array */
+  _notIn?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** Starts with (case-sensitive) */
+  _startsWith?: InputMaybe<Scalars['String']['input']>;
+  /** Starts with (case-insensitive) */
+  _startsWithi?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** A generic user error interface for mutation responses. */
@@ -488,6 +740,8 @@ export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = 
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = ResolversObject<{
   BigInt: ResolverTypeWrapper<Scalars['BigInt']['output']>;
+  BooleanFilter: BooleanFilter;
+  Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   Bucket: ResolverTypeWrapper<Bucket>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
@@ -495,22 +749,30 @@ export type ResolversTypes = ResolversObject<{
   BucketCreateInput: BucketCreateInput;
   BucketCreatePayload: ResolverTypeWrapper<BucketCreatePayload>;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
+  DateTimeFilter: DateTimeFilter;
   ExternalMediaData: ResolverTypeWrapper<ExternalMediaData>;
   File: ResolverTypeWrapper<File>;
-  Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   FileConnection: ResolverTypeWrapper<FileConnection>;
+  FileConnectionInput: FileConnectionInput;
   FileCreateExternalInput: FileCreateExternalInput;
   FileCreateExternalPayload: ResolverTypeWrapper<FileCreateExternalPayload>;
   FileDeleteInput: FileDeleteInput;
   FileDeletePayload: ResolverTypeWrapper<FileDeletePayload>;
   FileEdge: ResolverTypeWrapper<FileEdge>;
+  FileOrderByInput: FileOrderByInput;
+  FileOrderField: FileOrderField;
   FileProvider: FileProvider;
   FileUpdateInput: FileUpdateInput;
   FileUpdatePayload: ResolverTypeWrapper<FileUpdatePayload>;
   FileUploadFromUrlInput: FileUploadFromUrlInput;
   FileUploadMultipartInput: FileUploadMultipartInput;
   FileUploadPayload: ResolverTypeWrapper<FileUploadPayload>;
+  FileWhereInput: FileWhereInput;
+  FloatFilter: FloatFilter;
+  Float: ResolverTypeWrapper<Scalars['Float']['output']>;
   GenericUserError: ResolverTypeWrapper<GenericUserError>;
+  IDFilter: IdFilter;
+  IntFilter: IntFilter;
   JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
   MediaDimensions: ResolverTypeWrapper<MediaDimensions>;
   MediaMutation: ResolverTypeWrapper<MediaMutation>;
@@ -520,6 +782,8 @@ export type ResolversTypes = ResolversObject<{
   PageInfo: ResolverTypeWrapper<PageInfo>;
   Query: ResolverTypeWrapper<{}>;
   S3ObjectData: ResolverTypeWrapper<S3ObjectData>;
+  SortDirection: SortDirection;
+  StringFilter: StringFilter;
   Upload: ResolverTypeWrapper<Scalars['Upload']['output']>;
   UserError: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['UserError']>;
 }>;
@@ -527,6 +791,8 @@ export type ResolversTypes = ResolversObject<{
 /** Mapping between all available schema types and the resolvers parents */
 export type ResolversParentTypes = ResolversObject<{
   BigInt: Scalars['BigInt']['output'];
+  BooleanFilter: BooleanFilter;
+  Boolean: Scalars['Boolean']['output'];
   Bucket: Bucket;
   String: Scalars['String']['output'];
   ID: Scalars['ID']['output'];
@@ -534,21 +800,28 @@ export type ResolversParentTypes = ResolversObject<{
   BucketCreateInput: BucketCreateInput;
   BucketCreatePayload: BucketCreatePayload;
   DateTime: Scalars['DateTime']['output'];
+  DateTimeFilter: DateTimeFilter;
   ExternalMediaData: ExternalMediaData;
   File: File;
-  Boolean: Scalars['Boolean']['output'];
   FileConnection: FileConnection;
+  FileConnectionInput: FileConnectionInput;
   FileCreateExternalInput: FileCreateExternalInput;
   FileCreateExternalPayload: FileCreateExternalPayload;
   FileDeleteInput: FileDeleteInput;
   FileDeletePayload: FileDeletePayload;
   FileEdge: FileEdge;
+  FileOrderByInput: FileOrderByInput;
   FileUpdateInput: FileUpdateInput;
   FileUpdatePayload: FileUpdatePayload;
   FileUploadFromUrlInput: FileUploadFromUrlInput;
   FileUploadMultipartInput: FileUploadMultipartInput;
   FileUploadPayload: FileUploadPayload;
+  FileWhereInput: FileWhereInput;
+  FloatFilter: FloatFilter;
+  Float: Scalars['Float']['output'];
   GenericUserError: GenericUserError;
+  IDFilter: IdFilter;
+  IntFilter: IntFilter;
   JSON: Scalars['JSON']['output'];
   MediaDimensions: MediaDimensions;
   MediaMutation: MediaMutation;
@@ -558,6 +831,7 @@ export type ResolversParentTypes = ResolversObject<{
   PageInfo: PageInfo;
   Query: {};
   S3ObjectData: S3ObjectData;
+  StringFilter: StringFilter;
   Upload: Scalars['Upload']['output'];
   UserError: ResolversInterfaceTypes<ResolversParentTypes>['UserError'];
 }>;

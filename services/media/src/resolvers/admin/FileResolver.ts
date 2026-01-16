@@ -9,13 +9,19 @@ import type { File } from "../../repositories/models/index.js";
  * File resolver - resolves File type
  */
 @SubgraphReference()
-export class FileResolver extends MediaType<string, File | null> {
+export class FileResolver extends MediaType<string, File> {
   // @Cache({
   //   cacheName: "media:file",
   //   key: (resolver: FileResolver) => resolver.$props,
   // })
   async $preload() {
-    return this.$ctx.loaders.file.load(this.$props);
+    const file = await this.$ctx.loaders.file.load(this.$props);
+
+    if (!file) {
+      throw new Error(`File not found: ${this.$props}`);
+    }
+
+    return file;
   }
 
   id() {
@@ -85,18 +91,15 @@ export class FileResolver extends MediaType<string, File | null> {
   }
 
   async createdAt() {
-    const date = await this.$get("createdAt");
-    return date?.toISOString() ?? null;
+    return this.$get("createdAt");
   }
 
   async updatedAt() {
-    const date = await this.$get("updatedAt");
-    return date?.toISOString() ?? null;
+    return this.$get("updatedAt");
   }
 
   async deletedAt() {
-    const date = await this.$get("deletedAt");
-    return date?.toISOString() ?? null;
+    return this.$get("deletedAt");
   }
 
   /**

@@ -42,12 +42,10 @@ export class BucketResolver extends MediaType<string, Bucket | null> {
   }
 
   async createdAt() {
-    const date = await this.$get("createdAt");
-    return date?.toISOString() ?? null;
+    return this.$get("createdAt");
   }
 
   async updatedAt() {
-    const date = await this.$get("updatedAt");
-    return date?.toISOString() ?? null;
+    return this.$get("updatedAt");
   }
 }

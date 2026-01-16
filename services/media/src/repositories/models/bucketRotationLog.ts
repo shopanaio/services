@@ -22,7 +22,7 @@ export const bucketRotationLog = mediaSchema.table(
     }),
     reason: varchar("reason", { length: 64 }).notNull(),
     details: jsonb("details"),
-    createdAt: timestamp("created_at", { withTimezone: true })
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
   },

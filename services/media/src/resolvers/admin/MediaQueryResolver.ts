@@ -59,6 +59,7 @@ export class MediaQueryResolver extends MediaType<Record<string, never>> {
    * Get files with Relay-style pagination
    */
   files(args: FileRelayInput) {
+
     return new FileConnectionResolver(args, this.$ctx);
   }
 }
