@@ -10,12 +10,26 @@ import { FILE_BASIC_FRAGMENT, FILE_FRAGMENT, PAGE_INFO_FRAGMENT } from "./fragme
 // ============================================
 
 /**
- * Get paginated list of files.
+ * Get paginated list of files with filtering and sorting.
  */
 export const FILES_QUERY = gql`
-  query Files($first: Int, $after: String, $last: Int, $before: String) {
+  query Files(
+    $first: Int
+    $after: String
+    $last: Int
+    $before: String
+    $where: FileWhereInput
+    $orderBy: [FileOrderByInput!]
+  ) {
     mediaQuery {
-      files(first: $first, after: $after, last: $last, before: $before) {
+      files(
+        first: $first
+        after: $after
+        last: $last
+        before: $before
+        where: $where
+        orderBy: $orderBy
+      ) {
         edges {
           cursor
           node {

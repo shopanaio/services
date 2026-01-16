@@ -1200,6 +1200,22 @@ export type ApiFileConnection = {
   totalCount: Scalars['Int']['output'];
 };
 
+/** Relay-style pagination input for File */
+export type ApiFileConnectionInput = {
+  /** Returns items after this cursor */
+  after?: InputMaybe<Scalars['String']['input']>;
+  /** Returns items before this cursor */
+  before?: InputMaybe<Scalars['String']['input']>;
+  /** Returns the first n items */
+  first?: InputMaybe<Scalars['Int']['input']>;
+  /** Returns the last n items */
+  last?: InputMaybe<Scalars['Int']['input']>;
+  /** Sort order */
+  orderBy?: InputMaybe<Array<ApiFileOrderByInput>>;
+  /** Filter conditions */
+  where?: InputMaybe<ApiFileWhereInput>;
+};
+
 /** Input for creating an external media file (YouTube, Vimeo, etc). */
 export type ApiFileCreateExternalInput = {
   /** Alt text for accessibility. */
@@ -1260,6 +1276,52 @@ export type ApiFileEdge = {
   /** The item at the end of the edge. */
   node: ApiFile;
 };
+
+/** Ordering configuration for File */
+export type ApiFileOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: FileOrderField;
+};
+
+/** Fields available for sorting File */
+export enum FileOrderField {
+  /** Sort by altText */
+  AltText = 'altText',
+  /** Sort by createdAt */
+  CreatedAt = 'createdAt',
+  /** Sort by durationMs */
+  DurationMs = 'durationMs',
+  /** Sort by ext */
+  Ext = 'ext',
+  /** Sort by height */
+  Height = 'height',
+  /** Sort by id */
+  Id = 'id',
+  /** Sort by idempotencyKey */
+  IdempotencyKey = 'idempotencyKey',
+  /** Sort by isProcessed */
+  IsProcessed = 'isProcessed',
+  /** Sort by meta */
+  Meta = 'meta',
+  /** Sort by mimeType */
+  MimeType = 'mimeType',
+  /** Sort by originalName */
+  OriginalName = 'originalName',
+  /** Sort by provider */
+  Provider = 'provider',
+  /** Sort by sizeBytes */
+  SizeBytes = 'sizeBytes',
+  /** Sort by sourceUrl */
+  SourceUrl = 'sourceUrl',
+  /** Sort by updatedAt */
+  UpdatedAt = 'updatedAt',
+  /** Sort by url */
+  Url = 'url',
+  /** Sort by width */
+  Width = 'width'
+}
 
 /** Provider type for files. */
 export enum FileProvider {
@@ -1323,6 +1385,50 @@ export type ApiFileUploadPayload = {
   file?: Maybe<ApiFile>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<ApiGenericUserError>;
+};
+
+/** Filter conditions for File */
+export type ApiFileWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiFileWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiFileWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiFileWhereInput>>;
+  /** Filter by altText */
+  altText?: InputMaybe<ApiStringFilter>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by durationMs */
+  durationMs?: InputMaybe<ApiIntFilter>;
+  /** Filter by ext */
+  ext?: InputMaybe<ApiStringFilter>;
+  /** Filter by height */
+  height?: InputMaybe<ApiIntFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by idempotencyKey */
+  idempotencyKey?: InputMaybe<ApiStringFilter>;
+  /** Filter by isProcessed */
+  isProcessed?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by meta */
+  meta?: InputMaybe<ApiStringFilter>;
+  /** Filter by mimeType */
+  mimeType?: InputMaybe<ApiStringFilter>;
+  /** Filter by originalName */
+  originalName?: InputMaybe<ApiStringFilter>;
+  /** Filter by provider */
+  provider?: InputMaybe<ApiStringFilter>;
+  /** Filter by sizeBytes */
+  sizeBytes?: InputMaybe<ApiIntFilter>;
+  /** Filter by sourceUrl */
+  sourceUrl?: InputMaybe<ApiStringFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by url */
+  url?: InputMaybe<ApiStringFilter>;
+  /** Filter by width */
+  width?: InputMaybe<ApiIntFilter>;
 };
 
 /** Filter operators for Float fields */
@@ -2039,6 +2145,8 @@ export type ApiMediaQueryFilesArgs = {
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiFileOrderByInput>>;
+  where?: InputMaybe<ApiFileWhereInput>;
 };
 
 

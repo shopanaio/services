@@ -14,14 +14,20 @@ import {
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { CloudUploadOutlined } from "@ant-design/icons";
 import { DataLayout } from "@/layouts/data";
-import { useFilters, FilterWidget } from "@/layouts/filters";
+import {
+  useFilters,
+  FilterWidget,
+  FilterOperator,
+  type IFilterValue,
+} from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
-import { useGridState, useGridSort, useAgGridTheme } from "@/hooks";
+import { useGridState, useGridSort, type SortModel } from "@/hooks";
+import { useAgGridTheme } from "@/hooks";
 import { filterSchema } from "./filter-schema";
-import { useFiles } from "../hooks";
+import { useFiles, SortDirection, FileOrderField } from "../hooks";
 import { useUploadMediaModal } from "../modals";
 import { MediaPreview, useMediaPreview } from "../components/media-preview";
-import type { ApiFile } from "@/graphql/types";
+import type { ApiFile, ApiFileWhereInput, ApiFileOrderByInput } from "@/graphql/types";
 import { FileProvider } from "@/graphql/types";
 
 ModuleRegistry.registerModules([
@@ -29,6 +35,128 @@ ModuleRegistry.registerModules([
   RowSelectionModule,
   GridStateModule,
 ]);
+
+// ============================================
+// Filter & Sort Conversion
+// ============================================
+
+/**
+ * Map AG Grid column IDs to FileOrderField enum values.
+ */
+const columnToOrderField: Record<string, FileOrderField> = {
+  originalName: FileOrderField.OriginalName,
+  mimeType: FileOrderField.MimeType,
+  provider: FileOrderField.Provider,
+  sizeBytes: FileOrderField.SizeBytes,
+  createdAt: FileOrderField.CreatedAt,
+};
+
+/**
+ * Convert AG Grid sort model to GraphQL orderBy input.
+ */
+function convertSortModel(sortModel: SortModel[]): ApiFileOrderByInput[] | undefined {
+  if (sortModel.length === 0) return undefined;
+
+  return sortModel
+    .map((sort) => {
+      const field = columnToOrderField[sort.colId];
+      if (!field) return null;
+      return {
+        field,
+        direction: sort.sort === "asc" ? SortDirection.Asc : SortDirection.Desc,
+      };
+    })
+    .filter((item): item is ApiFileOrderByInput => item !== null);
+}
+
+/**
+ * Map filter operators to GraphQL filter operators.
+ */
+const operatorToGraphQL: Record<FilterOperator, string> = {
+  [FilterOperator.Eq]: "_eq",
+  [FilterOperator.NotEq]: "_neq",
+  [FilterOperator.Gt]: "_gt",
+  [FilterOperator.Gte]: "_gte",
+  [FilterOperator.Lt]: "_lt",
+  [FilterOperator.Lte]: "_lte",
+  [FilterOperator.In]: "_in",
+  [FilterOperator.NotIn]: "_notIn",
+  [FilterOperator.Like]: "_contains",
+  [FilterOperator.NotLike]: "_notContains",
+  [FilterOperator.ILike]: "_containsi",
+  [FilterOperator.NotILike]: "_notContainsi",
+  [FilterOperator.Is]: "_is",
+  [FilterOperator.IsNot]: "_isNot",
+  [FilterOperator.Between]: "_between",
+};
+
+/**
+ * Check if a filter value is empty and should be skipped.
+ */
+function isEmptyFilterValue(value: unknown): boolean {
+  if (value === null || value === undefined) return true;
+  if (value === "") return true;
+  if (Array.isArray(value) && value.length === 0) return true;
+  return false;
+}
+
+/**
+ * Convert filter values to GraphQL where input.
+ */
+function convertFilters(filters: IFilterValue[]): ApiFileWhereInput | undefined {
+  if (filters.length === 0) return undefined;
+
+  const conditions: ApiFileWhereInput[] = [];
+
+  for (const filter of filters) {
+    // Skip empty filter values
+    if (isEmptyFilterValue(filter.value)) continue;
+
+    const gqlOperator = operatorToGraphQL[filter.operator];
+
+    // Special handling for mimeType - use startsWith for partial matching
+    if (filter.payloadKey === "mimeType") {
+      const values = Array.isArray(filter.value) ? filter.value : [filter.value];
+      const nonEmptyValues = values.filter((v) => v !== null && v !== undefined && v !== "");
+      if (nonEmptyValues.length === 0) continue;
+
+      const mimeConditions = nonEmptyValues.map((v) => ({
+        mimeType: { _startsWithi: String(v) },
+      }));
+      conditions.push(
+        mimeConditions.length === 1
+          ? mimeConditions[0]
+          : { _or: mimeConditions }
+      );
+      continue;
+    }
+
+    // Handle date range (Between operator)
+    if (filter.operator === FilterOperator.Between && Array.isArray(filter.value)) {
+      const [start, end] = filter.value;
+      if (!start && !end) continue;
+
+      const dateCondition: Record<string, unknown> = {};
+      if (start) dateCondition._gte = start;
+      if (end) dateCondition._lte = end;
+
+      conditions.push({
+        [filter.payloadKey]: dateCondition,
+      } as ApiFileWhereInput);
+      continue;
+    }
+
+    conditions.push({
+      [filter.payloadKey]: {
+        [gqlOperator]: filter.value,
+      },
+    } as ApiFileWhereInput);
+  }
+
+  if (conditions.length === 0) return undefined;
+  if (conditions.length === 1) return conditions[0];
+  return { _and: conditions };
+}
 
 // ============================================
 // Cell Renderers
@@ -131,7 +259,15 @@ export default function MediaPage() {
   const gridRef = useRef<AgGridReact<ApiFile>>(null);
   const [searchValue, setSearchValue] = useState("");
   const [pageSize, setPageSize] = useState(20);
-  const { widgetProps } = useFilters({ schema: filterSchema });
+  const [sortModel, setSortModel] = useState<SortModel[]>([
+    { colId: "createdAt", sort: "desc" },
+  ]);
+
+  const { widgetProps, filters } = useFilters({ schema: filterSchema });
+
+  // Convert filters and sort to GraphQL format
+  const orderBy = useMemo(() => convertSortModel(sortModel), [sortModel]);
+  const where = useMemo(() => convertFilters(filters), [filters]);
 
   const {
     files,
@@ -143,7 +279,12 @@ export default function MediaPage() {
     fetchNextPage,
     fetchPreviousPage,
     refetch,
-  } = useFiles({ first: pageSize });
+  } = useFiles({
+    first: pageSize,
+    search: searchValue,
+    where,
+    orderBy,
+  });
 
   // Upload modal
   const { push: pushUploadModal } = useUploadMediaModal();
@@ -157,9 +298,8 @@ export default function MediaPage() {
 
   const { onSortChanged } = useGridSort({
     gridRef,
-    onSortChange: (model) => {
-      console.log("Sort changed:", model);
-    },
+    sortModel,
+    onSortChange: setSortModel,
   });
 
   const columnDefs = useMemo<ColDef<ApiFile>[]>(

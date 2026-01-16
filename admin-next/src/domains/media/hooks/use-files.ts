@@ -1,9 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@apollo/client/react";
 import { FILES_QUERY } from "../graphql";
-import type { ApiFile, ApiPageInfo } from "@/graphql/types";
+import type {
+  ApiFile,
+  ApiPageInfo,
+  ApiFileWhereInput,
+  ApiFileOrderByInput,
+} from "@/graphql/types";
+import { SortDirection, FileOrderField } from "@/graphql/types";
 
 interface UseFilesOptions {
   /**
@@ -18,6 +24,18 @@ interface UseFilesOptions {
    * Skip the query.
    */
   skip?: boolean;
+  /**
+   * Search query for file name.
+   */
+  search?: string;
+  /**
+   * Filter conditions.
+   */
+  where?: ApiFileWhereInput;
+  /**
+   * Sort configuration.
+   */
+  orderBy?: ApiFileOrderByInput[];
 }
 
 interface UseFilesReturn {
@@ -63,6 +81,8 @@ interface UseFilesReturn {
   fetchPreviousPage: () => void;
 }
 
+export { SortDirection, FileOrderField };
+
 interface FilesQueryResponse {
   mediaQuery: {
     files: {
@@ -83,14 +103,53 @@ interface FilesQueryResponse {
  * ```tsx
  * const { files, loading, pageInfo } = useFiles({ first: 20 });
  * ```
+ *
+ * @example
+ * ```tsx
+ * // With search and filters
+ * const { files } = useFiles({
+ *   first: 20,
+ *   search: "photo",
+ *   where: { provider: { _eq: "S3" } },
+ *   orderBy: [{ field: FileOrderField.CreatedAt, direction: SortDirection.Desc }],
+ * });
+ * ```
  */
 export function useFiles(options: UseFilesOptions = {}): UseFilesReturn {
-  const { first = 20, after = null, skip = false } = options;
+  const {
+    first = 20,
+    after = null,
+    skip = false,
+    search,
+    where: externalWhere,
+    orderBy,
+  } = options;
   const [currentPage, setCurrentPage] = useState(0);
+
+  // Build the combined where clause with search
+  const where = useMemo<ApiFileWhereInput | undefined>(() => {
+    const conditions: ApiFileWhereInput[] = [];
+
+    // Add search condition (case-insensitive contains on originalName)
+    if (search && search.trim()) {
+      conditions.push({
+        originalName: { _containsi: search.trim() },
+      });
+    }
+
+    // Add external filters
+    if (externalWhere) {
+      conditions.push(externalWhere);
+    }
+
+    if (conditions.length === 0) return undefined;
+    if (conditions.length === 1) return conditions[0];
+    return { _and: conditions };
+  }, [search, externalWhere]);
 
   const { data, loading, error, refetch, fetchMore } =
     useQuery<FilesQueryResponse>(FILES_QUERY, {
-      variables: { first, after },
+      variables: { first, after, where, orderBy },
       skip,
       fetchPolicy: "cache-and-network",
     });
@@ -110,6 +169,8 @@ export function useFiles(options: UseFilesOptions = {}): UseFilesReturn {
           after: pageInfo.endCursor,
           last: undefined,
           before: undefined,
+          where,
+          orderBy,
         },
         updateQuery: (prev, { fetchMoreResult }) => {
           if (!fetchMoreResult) return prev;
@@ -129,6 +190,8 @@ export function useFiles(options: UseFilesOptions = {}): UseFilesReturn {
           after: undefined,
           last: first,
           before: pageInfo.startCursor,
+          where,
+          orderBy,
         },
         updateQuery: (prev, { fetchMoreResult }) => {
           if (!fetchMoreResult) return prev;
