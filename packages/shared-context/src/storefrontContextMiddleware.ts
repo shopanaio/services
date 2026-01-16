@@ -8,7 +8,7 @@ import type {
 
 declare module "fastify" {
   interface FastifyRequest {
-    store: ContextStore;
+    store?: ContextStore;
     customer: ContextCustomer | null;
   }
 }

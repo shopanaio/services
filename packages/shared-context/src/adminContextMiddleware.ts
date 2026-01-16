@@ -9,7 +9,7 @@ import type {
 
 declare module "fastify" {
   interface FastifyRequest {
-    store: ContextStore;
+    store?: ContextStore;
     user: ContextUser;
   }
 }
@@ -34,6 +34,8 @@ function isGraphqlIntrospectionRequest(request: FastifyRequest): boolean {
 export interface AdminContextMiddlewareOptions {
   /** Service name for logging */
   serviceName?: string;
+  /** Whether x-store-name header is required (default: true) */
+  requireStore?: boolean;
 }
 
 /**
@@ -49,6 +51,7 @@ export function buildAdminContextMiddleware(
   options: AdminContextMiddlewareOptions = {}
 ) {
   const serviceName = options.serviceName ?? "SERVICE";
+  const requireStore = options.requireStore ?? true;
 
   return async function adminContextMiddleware(
     request: FastifyRequest,
@@ -61,7 +64,7 @@ export function buildAdminContextMiddleware(
     const storeName = request.headers["x-store-name"] as string | undefined;
     const authorization = request.headers.authorization;
 
-    if (!storeName) {
+    if (requireStore && !storeName) {
       return reply.status(400).send({
         data: null,
         errors: [{ message: "Missing x-store-name header" }],
@@ -78,17 +81,11 @@ export function buildAdminContextMiddleware(
     const accessToken = authorization.slice(7);
 
     try {
-      // Parallel calls to IAM and Project services
-      const [userResult, storeResult] = await Promise.all([
-        broker.call<GetCurrentUserResult, { accessToken: string }>(
-          "iam.getCurrentUser",
-          { accessToken }
-        ),
-        broker.call<GetCurrentStoreResult, { name: string }>(
-          "project.getCurrentStore",
-          { name: storeName }
-        ),
-      ]);
+      // Get user
+      const userResult = await broker.call<
+        GetCurrentUserResult,
+        { accessToken: string }
+      >("iam.getCurrentUser", { accessToken });
 
       if (!userResult?.user) {
         return reply.status(401).send({
@@ -99,20 +96,29 @@ export function buildAdminContextMiddleware(
         });
       }
 
-      if (!storeResult?.store) {
-        return reply.status(404).send({
-          data: null,
-          errors: [
-            {
-              message:
-                storeResult?.userErrors?.[0]?.message || "Store not found",
-            },
-          ],
-        });
-      }
-
       request.user = userResult.user;
-      request.store = storeResult.store;
+
+      // Get store if provided
+      if (storeName) {
+        const storeResult = await broker.call<
+          GetCurrentStoreResult,
+          { name: string }
+        >("project.getCurrentStore", { name: storeName });
+
+        if (!storeResult?.store) {
+          return reply.status(404).send({
+            data: null,
+            errors: [
+              {
+                message:
+                  storeResult?.userErrors?.[0]?.message || "Store not found",
+              },
+            ],
+          });
+        }
+
+        request.store = storeResult.store;
+      }
     } catch (error) {
       console.error(`[${serviceName}] Context loading failed:`, error);
       return reply.status(500).send({
