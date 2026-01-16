@@ -1,5 +1,12 @@
 CREATE SCHEMA "media";
 --> statement-breakpoint
+CREATE TABLE "media"."asset_groups" (
+	"id" uuid PRIMARY KEY NOT NULL,
+	"owner_type" varchar(50) NOT NULL,
+	"owner_id" varchar(255) NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "media"."buckets" (
 	"id" uuid PRIMARY KEY NOT NULL,
 	"project_id" uuid NOT NULL,
@@ -17,7 +24,7 @@ CREATE TABLE "media"."buckets" (
 --> statement-breakpoint
 CREATE TABLE "media"."files" (
 	"id" uuid PRIMARY KEY NOT NULL,
-	"project_id" uuid NOT NULL,
+	"asset_group_id" uuid NOT NULL,
 	"provider" varchar(32) NOT NULL,
 	"url" text NOT NULL,
 	"mime_type" varchar(127),
@@ -39,7 +46,7 @@ CREATE TABLE "media"."files" (
 --> statement-breakpoint
 CREATE TABLE "media"."s3_objects" (
 	"file_id" uuid PRIMARY KEY NOT NULL,
-	"project_id" uuid NOT NULL,
+	"asset_group_id" uuid NOT NULL,
 	"bucket_id" uuid NOT NULL,
 	"object_key" varchar(1024) NOT NULL,
 	"content_hash" varchar(64),
@@ -49,7 +56,7 @@ CREATE TABLE "media"."s3_objects" (
 --> statement-breakpoint
 CREATE TABLE "media"."external_media" (
 	"file_id" uuid PRIMARY KEY NOT NULL,
-	"project_id" uuid NOT NULL,
+	"asset_group_id" uuid NOT NULL,
 	"external_id" varchar(255) NOT NULL,
 	"provider_meta" jsonb
 );
@@ -80,24 +87,31 @@ CREATE TABLE "media"."bucket_rotation_log" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+ALTER TABLE "media"."files" ADD CONSTRAINT "files_asset_group_id_asset_groups_id_fk" FOREIGN KEY ("asset_group_id") REFERENCES "media"."asset_groups"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "media"."s3_objects" ADD CONSTRAINT "s3_objects_file_id_files_id_fk" FOREIGN KEY ("file_id") REFERENCES "media"."files"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "media"."s3_objects" ADD CONSTRAINT "s3_objects_asset_group_id_asset_groups_id_fk" FOREIGN KEY ("asset_group_id") REFERENCES "media"."asset_groups"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "media"."s3_objects" ADD CONSTRAINT "s3_objects_bucket_id_buckets_id_fk" FOREIGN KEY ("bucket_id") REFERENCES "media"."buckets"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "media"."external_media" ADD CONSTRAINT "external_media_file_id_files_id_fk" FOREIGN KEY ("file_id") REFERENCES "media"."files"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "media"."external_media" ADD CONSTRAINT "external_media_asset_group_id_asset_groups_id_fk" FOREIGN KEY ("asset_group_id") REFERENCES "media"."asset_groups"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "media"."upload_sessions" ADD CONSTRAINT "upload_sessions_bucket_id_buckets_id_fk" FOREIGN KEY ("bucket_id") REFERENCES "media"."buckets"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "media"."bucket_rotation_log" ADD CONSTRAINT "bucket_rotation_log_old_bucket_id_buckets_id_fk" FOREIGN KEY ("old_bucket_id") REFERENCES "media"."buckets"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "media"."bucket_rotation_log" ADD CONSTRAINT "bucket_rotation_log_new_bucket_id_buckets_id_fk" FOREIGN KEY ("new_bucket_id") REFERENCES "media"."buckets"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+CREATE UNIQUE INDEX "idx_asset_groups_owner" ON "media"."asset_groups" USING btree ("owner_type","owner_id");--> statement-breakpoint
+CREATE INDEX "idx_asset_groups_owner_type" ON "media"."asset_groups" USING btree ("owner_type");--> statement-breakpoint
 CREATE INDEX "idx_buckets_project_id" ON "media"."buckets" USING btree ("project_id");--> statement-breakpoint
 CREATE INDEX "idx_buckets_status" ON "media"."buckets" USING btree ("status") WHERE deleted_at IS NULL;--> statement-breakpoint
-CREATE INDEX "idx_files_project_id" ON "media"."files" USING btree ("project_id") WHERE deleted_at IS NULL;--> statement-breakpoint
-CREATE INDEX "idx_files_provider" ON "media"."files" USING btree ("project_id","provider") WHERE deleted_at IS NULL;--> statement-breakpoint
-CREATE INDEX "idx_files_created_at" ON "media"."files" USING btree ("project_id","created_at" DESC) WHERE deleted_at IS NULL;--> statement-breakpoint
+CREATE INDEX "idx_files_asset_group" ON "media"."files" USING btree ("asset_group_id") WHERE deleted_at IS NULL;--> statement-breakpoint
+CREATE INDEX "idx_files_provider" ON "media"."files" USING btree ("asset_group_id","provider") WHERE deleted_at IS NULL;--> statement-breakpoint
+CREATE INDEX "idx_files_created_at" ON "media"."files" USING btree ("asset_group_id","created_at" DESC) WHERE deleted_at IS NULL;--> statement-breakpoint
 CREATE INDEX "idx_files_deleted_at" ON "media"."files" USING btree ("deleted_at") WHERE deleted_at IS NOT NULL;--> statement-breakpoint
-CREATE UNIQUE INDEX "idx_files_source_url" ON "media"."files" USING btree ("project_id","source_url") WHERE deleted_at IS NULL AND source_url IS NOT NULL;--> statement-breakpoint
-CREATE UNIQUE INDEX "idx_files_idempotency_key" ON "media"."files" USING btree ("project_id","idempotency_key") WHERE deleted_at IS NULL AND idempotency_key IS NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "idx_files_source_url" ON "media"."files" USING btree ("asset_group_id","source_url") WHERE deleted_at IS NULL AND source_url IS NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "idx_files_idempotency_key" ON "media"."files" USING btree ("asset_group_id","idempotency_key") WHERE deleted_at IS NULL AND idempotency_key IS NOT NULL;--> statement-breakpoint
 CREATE UNIQUE INDEX "idx_s3_objects_key" ON "media"."s3_objects" USING btree ("bucket_id","object_key");--> statement-breakpoint
-CREATE UNIQUE INDEX "idx_s3_objects_hash" ON "media"."s3_objects" USING btree ("project_id","content_hash") WHERE content_hash IS NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "idx_s3_objects_hash" ON "media"."s3_objects" USING btree ("asset_group_id","content_hash") WHERE content_hash IS NOT NULL;--> statement-breakpoint
 CREATE INDEX "idx_s3_objects_bucket" ON "media"."s3_objects" USING btree ("bucket_id");--> statement-breakpoint
-CREATE INDEX "idx_external_media_external_id" ON "media"."external_media" USING btree ("project_id","external_id");--> statement-breakpoint
+CREATE INDEX "idx_s3_objects_asset_group" ON "media"."s3_objects" USING btree ("asset_group_id");--> statement-breakpoint
+CREATE INDEX "idx_external_media_external_id" ON "media"."external_media" USING btree ("asset_group_id","external_id");--> statement-breakpoint
+CREATE INDEX "idx_external_media_asset_group" ON "media"."external_media" USING btree ("asset_group_id");--> statement-breakpoint
 CREATE INDEX "idx_upload_sessions_project" ON "media"."upload_sessions" USING btree ("project_id");--> statement-breakpoint
 CREATE INDEX "idx_upload_sessions_expires" ON "media"."upload_sessions" USING btree ("expires_at") WHERE status = 'pending';--> statement-breakpoint
 CREATE INDEX "idx_bucket_rotation_log_project" ON "media"."bucket_rotation_log" USING btree ("project_id","created_at" DESC);

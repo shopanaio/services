@@ -1,2 +1,0 @@
-DROP INDEX "media"."idx_files_idempotency_key";--> statement-breakpoint
-CREATE UNIQUE INDEX "idx_files_idempotency_key" ON "media"."files" USING btree ("asset_group_id","idempotency_key") WHERE deleted_at IS NULL AND idempotency_key IS NOT NULL AND asset_group_id IS NOT NULL;

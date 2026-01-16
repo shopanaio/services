@@ -5,29 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1766408443297,
-      "tag": "0000_unknown_spencer_smythe",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1768564610224,
-      "tag": "0001_strong_iceman",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1768586437115,
-      "tag": "0002_greedy_inhumans",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1768587851501,
-      "tag": "0003_calm_sue_storm",
+      "when": 1768588052477,
+      "tag": "0000_dashing_shiva",
       "breakpoints": true
     }
   ]
