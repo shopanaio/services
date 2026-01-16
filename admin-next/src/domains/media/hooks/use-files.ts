@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "@apollo/client/react";
 import { FILES_QUERY } from "../graphql";
 import type { ApiFile, ApiPageInfo } from "@/graphql/types";
@@ -32,6 +33,14 @@ interface UseFilesReturn {
    * Pagination info.
    */
   pageInfo: ApiPageInfo | null;
+  /**
+   * Start of the current range (1-indexed).
+   */
+  rangeStart: number;
+  /**
+   * End of the current range.
+   */
+  rangeEnd: number;
   /**
    * Whether the query is loading.
    */
@@ -77,6 +86,7 @@ interface FilesQueryResponse {
  */
 export function useFiles(options: UseFilesOptions = {}): UseFilesReturn {
   const { first = 20, after = null, skip = false } = options;
+  const [currentPage, setCurrentPage] = useState(0);
 
   const { data, loading, error, refetch, fetchMore } =
     useQuery<FilesQueryResponse>(FILES_QUERY, {
@@ -89,14 +99,24 @@ export function useFiles(options: UseFilesOptions = {}): UseFilesReturn {
   const pageInfo = data?.mediaQuery.files.pageInfo ?? null;
   const totalCount = data?.mediaQuery.files.totalCount ?? 0;
 
+  const rangeStart = files.length > 0 ? currentPage * first + 1 : 0;
+  const rangeEnd = currentPage * first + files.length;
+
   const fetchNextPage = () => {
     if (pageInfo?.hasNextPage && pageInfo.endCursor) {
       fetchMore({
-        variables: { first, after: pageInfo.endCursor },
+        variables: {
+          first,
+          after: pageInfo.endCursor,
+          last: undefined,
+          before: undefined,
+        },
         updateQuery: (prev, { fetchMoreResult }) => {
           if (!fetchMoreResult) return prev;
           return fetchMoreResult;
         },
+      }).then(() => {
+        setCurrentPage((p) => p + 1);
       });
     }
   };
@@ -104,11 +124,18 @@ export function useFiles(options: UseFilesOptions = {}): UseFilesReturn {
   const fetchPreviousPage = () => {
     if (pageInfo?.hasPreviousPage && pageInfo.startCursor) {
       fetchMore({
-        variables: { last: first, before: pageInfo.startCursor },
+        variables: {
+          first: undefined,
+          after: undefined,
+          last: first,
+          before: pageInfo.startCursor,
+        },
         updateQuery: (prev, { fetchMoreResult }) => {
           if (!fetchMoreResult) return prev;
           return fetchMoreResult;
         },
+      }).then(() => {
+        setCurrentPage((p) => Math.max(0, p - 1));
       });
     }
   };
@@ -117,6 +144,8 @@ export function useFiles(options: UseFilesOptions = {}): UseFilesReturn {
     files,
     totalCount,
     pageInfo,
+    rangeStart,
+    rangeEnd,
     loading,
     error: error ?? null,
     refetch: () => void refetch(),

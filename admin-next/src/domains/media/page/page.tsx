@@ -137,6 +137,8 @@ export default function MediaPage() {
     files,
     totalCount,
     pageInfo,
+    rangeStart,
+    rangeEnd,
     loading,
     fetchNextPage,
     fetchPreviousPage,
@@ -237,10 +239,6 @@ export default function MediaPage() {
     },
     [mediaPreview]
   );
-
-  // Calculate pagination display
-  const rangeStart = files.length > 0 ? 1 : 0;
-  const rangeEnd = files.length;
 
   return (
     <DataLayout
