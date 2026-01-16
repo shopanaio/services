@@ -152,6 +152,10 @@ export default function MediaPage() {
     gridStateProps,
     onSortChanged,
     setPageSize,
+    nextPage,
+    prevPage,
+    getRangeStart,
+    getRangeEnd,
   } = usePageConfig<ApiFile, ApiFileWhereInput, FileOrderField>({
     gridRef,
     storageKey: "media-grid-state",
@@ -169,8 +173,6 @@ export default function MediaPage() {
     files,
     totalCount,
     pageInfo,
-    rangeStart,
-    rangeEnd,
     loading,
     fetchNextPage,
     fetchPreviousPage,
@@ -181,6 +183,15 @@ export default function MediaPage() {
     where,
     orderBy: orderBy as ApiFileOrderByInput[] | undefined,
   });
+
+  // Pagination handlers
+  const handleNextPage = useCallback(() => {
+    fetchNextPage().then(nextPage);
+  }, [fetchNextPage, nextPage]);
+
+  const handlePrevPage = useCallback(() => {
+    fetchPreviousPage().then(prevPage);
+  }, [fetchPreviousPage, prevPage]);
 
   // Upload modal
   const { push: pushUploadModal } = useUploadMediaModal();
@@ -319,13 +330,13 @@ export default function MediaPage() {
 
         <CursorPagination
           total={totalCount}
-          rangeStart={rangeStart}
-          rangeEnd={rangeEnd}
+          rangeStart={getRangeStart(files.length)}
+          rangeEnd={getRangeEnd(files.length)}
           pageSize={pageSize}
           hasNext={pageInfo?.hasNextPage ?? false}
           hasPrev={pageInfo?.hasPreviousPage ?? false}
-          onNext={fetchNextPage}
-          onPrev={fetchPreviousPage}
+          onNext={handleNextPage}
+          onPrev={handlePrevPage}
           onPageSizeChange={setPageSize}
         />
       </div>

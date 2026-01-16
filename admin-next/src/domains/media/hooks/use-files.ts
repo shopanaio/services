@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { useQuery } from "@apollo/client/react";
 import { FILES_QUERY } from "../graphql";
 import type {
@@ -52,14 +52,6 @@ interface UseFilesReturn {
    */
   pageInfo: ApiPageInfo | null;
   /**
-   * Start of the current range (1-indexed).
-   */
-  rangeStart: number;
-  /**
-   * End of the current range.
-   */
-  rangeEnd: number;
-  /**
    * Whether the query is loading.
    */
   loading: boolean;
@@ -72,13 +64,13 @@ interface UseFilesReturn {
    */
   refetch: () => void;
   /**
-   * Fetch the next page.
+   * Fetch the next page. Returns Promise that resolves when complete.
    */
-  fetchNextPage: () => void;
+  fetchNextPage: () => Promise<void>;
   /**
-   * Fetch the previous page.
+   * Fetch the previous page. Returns Promise that resolves when complete.
    */
-  fetchPreviousPage: () => void;
+  fetchPreviousPage: () => Promise<void>;
 }
 
 export { SortDirection, FileOrderField };
@@ -124,7 +116,6 @@ export function useFiles(options: UseFilesOptions = {}): UseFilesReturn {
     where: externalWhere,
     orderBy,
   } = options;
-  const [currentPage, setCurrentPage] = useState(0);
 
   // Build the combined where clause with search
   const where = useMemo<ApiFileWhereInput | undefined>(() => {
@@ -158,12 +149,9 @@ export function useFiles(options: UseFilesOptions = {}): UseFilesReturn {
   const pageInfo = data?.mediaQuery.files.pageInfo ?? null;
   const totalCount = data?.mediaQuery.files.totalCount ?? 0;
 
-  const rangeStart = files.length > 0 ? currentPage * first + 1 : 0;
-  const rangeEnd = currentPage * first + files.length;
-
-  const fetchNextPage = () => {
+  const fetchNextPage = async () => {
     if (pageInfo?.hasNextPage && pageInfo.endCursor) {
-      fetchMore({
+      await fetchMore({
         variables: {
           first,
           after: pageInfo.endCursor,
@@ -176,15 +164,13 @@ export function useFiles(options: UseFilesOptions = {}): UseFilesReturn {
           if (!fetchMoreResult) return prev;
           return fetchMoreResult;
         },
-      }).then(() => {
-        setCurrentPage((p) => p + 1);
       });
     }
   };
 
-  const fetchPreviousPage = () => {
+  const fetchPreviousPage = async () => {
     if (pageInfo?.hasPreviousPage && pageInfo.startCursor) {
-      fetchMore({
+      await fetchMore({
         variables: {
           first: undefined,
           after: undefined,
@@ -197,8 +183,6 @@ export function useFiles(options: UseFilesOptions = {}): UseFilesReturn {
           if (!fetchMoreResult) return prev;
           return fetchMoreResult;
         },
-      }).then(() => {
-        setCurrentPage((p) => Math.max(0, p - 1));
       });
     }
   };
@@ -207,8 +191,6 @@ export function useFiles(options: UseFilesOptions = {}): UseFilesReturn {
     files,
     totalCount,
     pageInfo,
-    rangeStart,
-    rangeEnd,
     loading,
     error: error ?? null,
     refetch: () => void refetch(),

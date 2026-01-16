@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, RefObject } from "react";
+import { useState, useMemo, useCallback, useEffect, RefObject } from "react";
 import type { AgGridReact } from "ag-grid-react";
 import type { SortDirection as AgSortDirection } from "ag-grid-community";
 import {
@@ -94,6 +94,8 @@ export interface UsePageConfigReturn<
   sortModel: SortModel[];
   /** Current filter values */
   filters: IFilterValue[];
+  /** Current page index (0-based) */
+  currentPage: number;
 
   // ---- GraphQL Variables ----
   /** Converted GraphQL where input (filters + search combined) */
@@ -110,8 +112,20 @@ export interface UsePageConfigReturn<
   setSortModel: (model: SortModel[]) => void;
   /** Set filters */
   setFilters: (filters: IFilterValue[]) => void;
+  /** Set current page */
+  setCurrentPage: (page: number) => void;
+  /** Go to next page */
+  nextPage: () => void;
+  /** Go to previous page */
+  prevPage: () => void;
   /** Reset all state */
   reset: () => void;
+
+  // ---- Pagination Helpers ----
+  /** Calculate range start (1-indexed) for display */
+  getRangeStart: (itemCount: number) => number;
+  /** Calculate range end for display */
+  getRangeEnd: (itemCount: number) => number;
 
   // ---- Component Props ----
   /** Props to spread to FilterWidget */
@@ -239,6 +253,7 @@ export function usePageConfig<
   const [searchValue, setSearchValue] = useState("");
   const [pageSize, setPageSize] = useState(defaultPageSize);
   const [sortModel, setSortModel] = useState<SortModel[]>(defaultSort);
+  const [currentPage, setCurrentPage] = useState(0);
 
   // ---- Filters ----
   const { widgetProps, filters, setFilters, reset: resetFilters } = useFilters({
@@ -352,11 +367,36 @@ export function usePageConfig<
     return { _and: conditions } as unknown as TWhereInput;
   }, [searchValue, searchField, buildSearchCondition, filters, filterTransformers]);
 
+  // ---- Reset Pagination on Parameter Changes ----
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [where, orderBy, pageSize]);
+
+  // ---- Pagination Methods ----
+  const nextPage = useCallback(() => {
+    setCurrentPage((p) => p + 1);
+  }, []);
+
+  const prevPage = useCallback(() => {
+    setCurrentPage((p) => Math.max(0, p - 1));
+  }, []);
+
+  const getRangeStart = useCallback(
+    (itemCount: number) => (itemCount > 0 ? currentPage * pageSize + 1 : 0),
+    [currentPage, pageSize]
+  );
+
+  const getRangeEnd = useCallback(
+    (itemCount: number) => currentPage * pageSize + itemCount,
+    [currentPage, pageSize]
+  );
+
   // ---- Reset All ----
   const reset = useCallback(() => {
     setSearchValue("");
     setPageSize(defaultPageSize);
     setSortModel(defaultSort);
+    setCurrentPage(0);
     resetFilters();
   }, [defaultPageSize, defaultSort, resetFilters]);
 
@@ -386,6 +426,7 @@ export function usePageConfig<
     pageSize,
     sortModel,
     filters,
+    currentPage,
 
     // GraphQL variables
     where,
@@ -396,7 +437,14 @@ export function usePageConfig<
     setPageSize,
     setSortModel,
     setFilters,
+    setCurrentPage,
+    nextPage,
+    prevPage,
     reset,
+
+    // Pagination helpers
+    getRangeStart,
+    getRangeEnd,
 
     // Component props
     filterWidgetProps,
