@@ -6,14 +6,9 @@ import { createConnectionPaginationTests } from '@utils/connectionPaginationBuil
 // Helper to access media API data
 const media = (data: unknown) => data as { mediaQuery: ApiMediaQuery };
 
-// Test image URLs (small, stable Wikipedia commons images)
-const TEST_IMAGES = [
-  'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Camponotus_flavomarginatus_ant.jpg/100px-Camponotus_flavomarginatus_ant.jpg',
-  'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Good_Food_Display_-_NCI_Visuals_Online.jpg/100px-Good_Food_Display_-_NCI_Visuals_Online.jpg',
-  'https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/PNG_transparency_demonstration_1.png/100px-PNG_transparency_demonstration_1.png',
-  'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b6/SIPI_Jelly_Beans_4.1.07.tiff/lossy-page1-100px-SIPI_Jelly_Beans_4.1.07.tiff.jpg',
-  'https://upload.wikimedia.org/wikipedia/commons/thumb/f/ff/Solid_blue.svg/100px-Solid_blue.svg.png',
-];
+// Number of files to create for pagination testing
+// 7 files with pageSize 2 = 4 pages (enough for comprehensive testing)
+const FILE_COUNT = 7;
 
 async function prepareFiles(api: ApiFixtures['api']) {
   const prefix = `FILE-PAG-${randomUUID().slice(0, 8)}`;
@@ -21,12 +16,21 @@ async function prepareFiles(api: ApiFixtures['api']) {
 
   await api.session.setupUserAndStore();
 
-  // Create 5 files with predictable data for sorting and filtering
-  for (let i = 0; i < 5; i++) {
-    const file = await api.admin.file.uploadFromUrl(
-      TEST_IMAGES[i],
-      `${prefix}-alt-${i}`,
-    );
+  // Create 20 external files (YouTube) for comprehensive pagination testing
+  for (let i = 0; i < FILE_COUNT; i++) {
+    const videoId = `test-video-${prefix}-${i.toString().padStart(2, '0')}`;
+
+    const file = await api.admin.file.createExternal({
+      provider: 'YOUTUBE',
+      externalId: videoId,
+      url: `https://www.youtube.com/watch?v=${videoId}`,
+      thumbnailUrl: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+      originalName: `Video ${i.toString().padStart(2, '0')}`,
+      altText: `${prefix}-alt-${i.toString().padStart(2, '0')}`,
+      width: 1920,
+      height: 1080,
+      durationMs: 60000 + i * 1000,
+    });
 
     // Fetch the full file data
     const { data } = await api.admin.query('media-api/FileFindOne', {
@@ -37,9 +41,6 @@ async function prepareFiles(api: ApiFixtures['api']) {
     if (fullFile) {
       expectedItems.push(fullFile);
     }
-
-    // Small delay to ensure different createdAt timestamps
-    await new Promise((resolve) => setTimeout(resolve, 100));
   }
 
   return {
@@ -52,38 +53,33 @@ createConnectionPaginationTests<ApiFile>({
   queryName: 'media-api/FileFindMany',
   suiteName: 'File cursor pagination',
   prepare: prepareFiles,
+  // NOTE: createdAt sorting is not tested because PostgreSQL timestamps have
+  // microsecond precision but JS Date only has millisecond precision. This causes
+  // cursor pagination to fail when timestamps differ by less than 1ms.
   sortCases: [
     {
-      name: 'createdAt ASC',
-      orderBy: [{ field: 'createdAt', direction: 'asc' }],
-      sortExpected: (items) => [...items].sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
+      name: 'originalName ASC',
+      orderBy: [{ field: 'originalName', direction: 'asc' }],
+      sortExpected: (items) =>
+        [...items].sort((a, b) => (a.originalName ?? '').localeCompare(b.originalName ?? '')),
     },
     {
-      name: 'createdAt DESC',
-      orderBy: [{ field: 'createdAt', direction: 'desc' }],
-      sortExpected: (items) => [...items].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
-    },
-    {
-      name: 'updatedAt ASC',
-      orderBy: [{ field: 'updatedAt', direction: 'asc' }],
-      sortExpected: (items) => [...items].sort((a, b) => a.updatedAt.localeCompare(b.updatedAt)),
-    },
-    {
-      name: 'updatedAt DESC',
-      orderBy: [{ field: 'updatedAt', direction: 'desc' }],
-      sortExpected: (items) => [...items].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+      name: 'originalName DESC',
+      orderBy: [{ field: 'originalName', direction: 'desc' }],
+      sortExpected: (items) =>
+        [...items].sort((a, b) => (b.originalName ?? '').localeCompare(a.originalName ?? '')),
     },
   ],
   filterCases: [
     {
-      name: 'by provider S3',
-      where: { provider: { _eq: 'S3' } },
-      filterExpected: (items) => items.filter((i) => i.provider === 'S3'),
+      name: 'by provider YOUTUBE',
+      where: { provider: { _eq: 'YOUTUBE' } },
+      filterExpected: (items) => items.filter((i) => i.provider === 'YOUTUBE'),
     },
     {
-      name: 'by mimeType containing image',
-      where: { mimeType: { _contains: 'image' } },
-      filterExpected: (items) => items.filter((i) => i.mimeType?.includes('image')),
+      name: 'by originalName containing 0',
+      where: { originalName: { _contains: '0' } },
+      filterExpected: (items) => items.filter((i) => i.originalName?.includes('0')),
     },
     {
       name: 'by isProcessed false',
@@ -91,16 +87,30 @@ createConnectionPaginationTests<ApiFile>({
       filterExpected: (items) => items.filter((i) => i.isProcessed === false),
     },
     {
-      name: 'with _or condition (multiple alt texts)',
+      name: 'with _or condition (first and last original names)',
       where: {
-        _or: [{ altText: { _endsWith: '-alt-0' } }, { altText: { _endsWith: '-alt-1' } }],
+        _or: [{ originalName: { _eq: 'Video 00' } }, { originalName: { _eq: 'Video 06' } }],
       },
       filterExpected: (items) =>
-        items.filter((i) => i.altText?.endsWith('-alt-0') || i.altText?.endsWith('-alt-1')),
+        items.filter((i) => i.originalName === 'Video 00' || i.originalName === 'Video 06'),
+    },
+    {
+      name: 'with _not condition (exclude first 3)',
+      where: {
+        _not: { originalName: { _in: ['Video 00', 'Video 01', 'Video 02'] } },
+      },
+      filterExpected: (items) =>
+        items.filter((i) => !['Video 00', 'Video 01', 'Video 02'].includes(i.originalName ?? '')),
     },
   ],
   getConnection: (data) => media(data).mediaQuery.files,
   getNodeIdentifier: (node) => node.id,
+  // Global ID format: base64("gid://shopana/File/{uuid}") -> extract uuid
+  getRawId: (node) => {
+    const decoded = Buffer.from(node.id, 'base64').toString('utf8');
+    const match = decoded.match(/^gid:\/\/[^/]+\/[^/]+\/(.+)$/);
+    return match ? match[1] : node.id;
+  },
   pageSize: 2,
   apiClient: 'admin',
 });

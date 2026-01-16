@@ -101,6 +101,9 @@ interface ConnectionPaginationTestParams<
 
   /** Whether to skip cursor structure validation (defaults to false) */
   skipCursorValidation?: boolean;
+
+  /** Extract raw ID from node for ID-based filtering (defaults to node.id, use for global ID -> raw UUID conversion) */
+  getRawId?: (node: TNode) => string;
 }
 
 /**
@@ -123,6 +126,7 @@ export function createConnectionPaginationTests<
     filterCases = [],
     getConnection,
     getNodeIdentifier = (node) => node.id,
+    getRawId = (node) => node.id,
     pageSize = 2,
     apiClient = 'admin',
     skipCursorValidation = false,
@@ -448,10 +452,11 @@ export function createConnectionPaginationTests<
       const { expectedItems, baseVariables = {}, whereFilter } = await prepare(api);
       const sortedItems = sortCases[0].sortExpected(expectedItems);
 
-      // Filter to get only the first item
+      // Filter to get only the first item (using raw ID for database filtering)
+      const rawId = getRawId(sortedItems[0]);
       const singleItemFilter = whereFilter
-        ? { _and: [whereFilter, { id: { _eq: sortedItems[0].id } }] }
-        : { id: { _eq: sortedItems[0].id } };
+        ? { _and: [whereFilter, { id: { _eq: rawId } }] }
+        : { id: { _eq: rawId } };
 
       const { data } = await getApi(api).query(queryName, {
         variables: {
@@ -572,6 +577,150 @@ export function createConnectionPaginationTests<
       expect(getNodeIdentifier(lastBackwardItem.node)).toBe(
         getNodeIdentifier(sortedItems[middleIndex - 1]),
       );
+    });
+
+    test('full forward then backward traversal with cursor consistency', async ({ api }) => {
+      const { expectedItems, baseVariables = {}, whereFilter } = await prepare(api);
+      const sortedItems = sortCases[0].sortExpected(expectedItems);
+      const expectedPageCount = Math.ceil(sortedItems.length / pageSize);
+
+      // === FORWARD PAGINATION ===
+      const forwardPages: Array<{
+        items: string[];
+        startCursor: string | null;
+        endCursor: string | null;
+        hasNextPage: boolean;
+        hasPreviousPage: boolean;
+      }> = [];
+
+      let afterCursor: string | undefined;
+      let forwardPageNum = 0;
+
+      while (true) {
+        const { data } = await getApi(api).query(queryName, {
+          variables: {
+            ...baseVariables,
+            first: pageSize,
+            ...(afterCursor && { after: afterCursor }),
+            orderBy: sortCases[0].orderBy,
+            ...(whereFilter && { where: whereFilter }),
+          },
+        });
+
+        const conn = getConnection(data as Record<string, unknown>);
+        forwardPageNum++;
+
+        forwardPages.push({
+          items: conn.edges.map((e) => getNodeIdentifier(e.node)),
+          startCursor: conn.pageInfo.startCursor ?? null,
+          endCursor: conn.pageInfo.endCursor ?? null,
+          hasNextPage: conn.pageInfo.hasNextPage,
+          hasPreviousPage: conn.pageInfo.hasPreviousPage,
+        });
+
+        // First page should have hasPreviousPage = false
+        if (forwardPageNum === 1) {
+          expect(conn.pageInfo.hasPreviousPage).toBe(false);
+        } else {
+          expect(conn.pageInfo.hasPreviousPage).toBe(true);
+        }
+
+        if (!conn.pageInfo.hasNextPage) {
+          break;
+        }
+
+        afterCursor = conn.pageInfo.endCursor ?? undefined;
+
+        // Safety limit
+        if (forwardPageNum > expectedPageCount + 1) {
+          throw new Error('Forward pagination exceeded expected page count');
+        }
+      }
+
+      // Verify we got expected number of pages
+      expect(forwardPages.length).toBe(expectedPageCount);
+
+      // Last page should have hasNextPage = false
+      expect(forwardPages[forwardPages.length - 1].hasNextPage).toBe(false);
+
+      // Collect all forward items
+      const allForwardItems = forwardPages.flatMap((p) => p.items);
+      expect(allForwardItems).toHaveLength(sortedItems.length);
+
+      // === BACKWARD PAGINATION ===
+      const backwardPages: Array<{
+        items: string[];
+        startCursor: string | null;
+        endCursor: string | null;
+        hasNextPage: boolean;
+        hasPreviousPage: boolean;
+      }> = [];
+
+      let beforeCursor: string | undefined;
+      let backwardPageNum = 0;
+
+      while (true) {
+        const { data } = await getApi(api).query(queryName, {
+          variables: {
+            ...baseVariables,
+            last: pageSize,
+            ...(beforeCursor && { before: beforeCursor }),
+            orderBy: sortCases[0].orderBy,
+            ...(whereFilter && { where: whereFilter }),
+          },
+        });
+
+        const conn = getConnection(data as Record<string, unknown>);
+        backwardPageNum++;
+
+        backwardPages.unshift({
+          items: conn.edges.map((e) => getNodeIdentifier(e.node)),
+          startCursor: conn.pageInfo.startCursor ?? null,
+          endCursor: conn.pageInfo.endCursor ?? null,
+          hasNextPage: conn.pageInfo.hasNextPage,
+          hasPreviousPage: conn.pageInfo.hasPreviousPage,
+        });
+
+        // Last page (first fetched in backward) should have hasNextPage = false
+        if (backwardPageNum === 1) {
+          expect(conn.pageInfo.hasNextPage).toBe(false);
+        } else {
+          expect(conn.pageInfo.hasNextPage).toBe(true);
+        }
+
+        if (!conn.pageInfo.hasPreviousPage) {
+          break;
+        }
+
+        beforeCursor = conn.pageInfo.startCursor ?? undefined;
+
+        // Safety limit
+        if (backwardPageNum > expectedPageCount + 1) {
+          throw new Error('Backward pagination exceeded expected page count');
+        }
+      }
+
+      // Verify we got expected number of pages
+      expect(backwardPages.length).toBe(expectedPageCount);
+
+      // First page should have hasPreviousPage = false
+      expect(backwardPages[0].hasPreviousPage).toBe(false);
+
+      // Collect all backward items
+      const allBackwardItems = backwardPages.flatMap((p) => p.items);
+      expect(allBackwardItems).toHaveLength(sortedItems.length);
+
+      // === CURSOR CONSISTENCY ===
+      // First cursor from forward should match first cursor from backward traversal
+      expect(forwardPages[0].startCursor).toBe(backwardPages[0].startCursor);
+
+      // Last cursor from forward should match last cursor from backward traversal
+      expect(forwardPages[forwardPages.length - 1].endCursor).toBe(
+        backwardPages[backwardPages.length - 1].endCursor,
+      );
+
+      // All items should match in same order
+      expect(allForwardItems).toEqual(allBackwardItems);
     });
 
     test('tie-breaker ensures stable pagination with duplicate sort values', async ({ api }) => {
