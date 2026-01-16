@@ -64,8 +64,8 @@ export class DatabaseModule {
         date: {
           to: 1184,
           from: [1114, 1184],
-          serialize: (x: Date) => x.toISOString(),
-          parse: (x: string) => new Date(x),
+          serialize: (x: Date | string) => (x instanceof Date ? x.toISOString() : x),
+          parse: (x: string) => x,
         },
       },
       onnotice: () => {},
