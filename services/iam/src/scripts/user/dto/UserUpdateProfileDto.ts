@@ -20,6 +20,7 @@ export const userUpdateProfileInputSchema = z.object({
     .min(2, "Language code must be at least 2 characters")
     .max(10, "Language code must be at most 10 characters")
     .optional(),
+  image: z.string().uuid("Invalid image ID").optional(),
 });
 
 export type UserUpdateProfileInput = z.infer<
