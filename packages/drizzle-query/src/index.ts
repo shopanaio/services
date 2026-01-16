@@ -26,6 +26,9 @@ export type {
 // Relay Connection types
 export type { Connection, Edge, PageInfo } from "./cursor/connection.js";
 
+// Cursor types
+export type { SeekTransform, SeekTransforms } from "./cursor/types.js";
+
 // Types
 export type { DrizzleExecutor } from "./types.js";
 

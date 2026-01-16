@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { buildCursorWhereInput } from "../../cursor/where.js";
 import type { CursorParams } from "../../cursor/cursor.js";
+import type { SeekTransforms } from "../../cursor/types.js";
 
 // ============ buildCursorWhereInput ============
 
@@ -251,6 +252,148 @@ describe("buildCursorWhereInput", () => {
         _or: [
           { price: { _lt: 99.99 } },
           { price: { _eq: 99.99 }, id: { _lt: "123" } },
+        ],
+      });
+    });
+  });
+
+  describe("seekTransforms", () => {
+    it("applies decode transform to seek values", () => {
+      const params: CursorParams = {
+        type: "file",
+        filtersHash: "",
+        seek: [
+          { field: "id", value: "Z2lkOi8vc2hvcGFuYS9GaWxlLzEyMzQ1Njc4", direction: "desc" },
+        ],
+      };
+
+      const seekTransforms: SeekTransforms = {
+        id: {
+          encode: (v) => `encoded-${v}`,
+          decode: (v) => (v as string).replace("Z2lkOi8vc2hvcGFuYS9GaWxlLw==", "").replace("Z2lkOi8vc2hvcGFuYS9GaWxlLzEyMzQ1Njc4", "12345678"),
+        },
+      };
+
+      const where = buildCursorWhereInput(params, true, seekTransforms);
+      expect(where).toEqual({
+        _or: [
+          { id: { _lt: "12345678" } },
+        ],
+      });
+    });
+
+    it("applies decode transform to multiple seek values", () => {
+      const params: CursorParams = {
+        type: "file",
+        filtersHash: "",
+        seek: [
+          { field: "createdAt", value: "2024-01-01", direction: "desc" },
+          { field: "id", value: "global-id-123", direction: "desc" },
+        ],
+      };
+
+      const seekTransforms: SeekTransforms = {
+        id: {
+          encode: (v) => `global-${v}`,
+          decode: (v) => (v as string).replace("global-id-", "uuid-"),
+        },
+      };
+
+      const where = buildCursorWhereInput(params, true, seekTransforms);
+      expect(where).toEqual({
+        _or: [
+          { createdAt: { _lt: "2024-01-01" } },
+          { createdAt: { _eq: "2024-01-01" }, id: { _lt: "uuid-123" } },
+        ],
+      });
+    });
+
+    it("applies decode transform in equality conditions", () => {
+      const params: CursorParams = {
+        type: "item",
+        filtersHash: "",
+        seek: [
+          { field: "parentId", value: "global-parent-1", direction: "asc" },
+          { field: "id", value: "global-id-2", direction: "asc" },
+        ],
+      };
+
+      const seekTransforms: SeekTransforms = {
+        parentId: {
+          encode: (v) => `global-parent-${v}`,
+          decode: (v) => (v as string).replace("global-parent-", ""),
+        },
+        id: {
+          encode: (v) => `global-id-${v}`,
+          decode: (v) => (v as string).replace("global-id-", ""),
+        },
+      };
+
+      const where = buildCursorWhereInput(params, true, seekTransforms);
+      expect(where).toEqual({
+        _or: [
+          { parentId: { _gt: "1" } },
+          { parentId: { _eq: "1" }, id: { _gt: "2" } },
+        ],
+      });
+    });
+
+    it("does not transform fields without transforms", () => {
+      const params: CursorParams = {
+        type: "item",
+        filtersHash: "",
+        seek: [
+          { field: "status", value: "ACTIVE", direction: "desc" },
+          { field: "id", value: "global-123", direction: "desc" },
+        ],
+      };
+
+      const seekTransforms: SeekTransforms = {
+        id: {
+          encode: (v) => `global-${v}`,
+          decode: (v) => (v as string).replace("global-", ""),
+        },
+      };
+
+      const where = buildCursorWhereInput(params, true, seekTransforms);
+      expect(where).toEqual({
+        _or: [
+          { status: { _lt: "ACTIVE" } },
+          { status: { _eq: "ACTIVE" }, id: { _lt: "123" } },
+        ],
+      });
+    });
+
+    it("works without seekTransforms (backward compatibility)", () => {
+      const params: CursorParams = {
+        type: "item",
+        filtersHash: "",
+        seek: [
+          { field: "id", value: "raw-uuid", direction: "desc" },
+        ],
+      };
+
+      const where = buildCursorWhereInput(params, true);
+      expect(where).toEqual({
+        _or: [
+          { id: { _lt: "raw-uuid" } },
+        ],
+      });
+    });
+
+    it("works with undefined seekTransforms", () => {
+      const params: CursorParams = {
+        type: "item",
+        filtersHash: "",
+        seek: [
+          { field: "id", value: "raw-uuid", direction: "desc" },
+        ],
+      };
+
+      const where = buildCursorWhereInput(params, true, undefined);
+      expect(where).toEqual({
+        _or: [
+          { id: { _lt: "raw-uuid" } },
         ],
       });
     });

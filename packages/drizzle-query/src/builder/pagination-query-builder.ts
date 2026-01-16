@@ -6,6 +6,7 @@ import type {
   NestedWhereInput,
   OrderByItem,
 } from "../types.js";
+import type { SeekTransforms } from "../cursor/types.js";
 import { createRelayBuilder } from "../cursor/relay-builder.js";
 import {
   createBaseCursorBuilder,
@@ -28,6 +29,21 @@ export type RelayQueryConfig = {
   name?: string;
   /** Tie-breaker field for stable sorting (defaults to "id", throws if field doesn't exist) */
   tieBreaker?: string;
+  /**
+   * Transforms for seek values in cursors.
+   * Use to convert between database values and cursor values (e.g., UUID ↔ Global ID).
+   *
+   * @example
+   * ```ts
+   * seekTransforms: {
+   *   id: {
+   *     encode: (uuid) => encodeGlobalId("shopana", "File", uuid),
+   *     decode: (globalId) => decodeGlobalId(globalId).id,
+   *   }
+   * }
+   * ```
+   */
+  seekTransforms?: SeekTransforms;
 };
 
 /**
@@ -108,6 +124,7 @@ export class RelayQueryBuilder<
   >;
   private readonly cursorType: string;
   private readonly tieBreaker: string;
+  private readonly seekTransforms?: SeekTransforms;
 
   constructor(
     queryBuilder: FluentQueryBuilder<T, Fields, InferredFields, Types>,
@@ -126,6 +143,7 @@ export class RelayQueryBuilder<
     this.queryBuilder = queryBuilder;
     this.cursorType = config?.name ?? queryBuilder.getTableName();
     this.tieBreaker = tieBreaker;
+    this.seekTransforms = config?.seekTransforms;
   }
 
   /**
@@ -163,6 +181,7 @@ export class RelayQueryBuilder<
         tieBreaker: this.tieBreaker as never,
         queryConfig:
           Object.keys(queryConfig).length > 0 ? queryConfig : undefined,
+        seekTransforms: this.seekTransforms,
       }
     );
 
@@ -236,6 +255,7 @@ export class RelayQueryBuilder<
         tieBreaker: this.tieBreaker as never,
         queryConfig:
           Object.keys(queryConfig).length > 0 ? queryConfig : undefined,
+        seekTransforms: this.seekTransforms,
       }
     );
 
@@ -358,6 +378,11 @@ export type CursorQueryConfig = {
   name?: string;
   /** Tie-breaker field for stable sorting (defaults to "id", throws if field doesn't exist) */
   tieBreaker?: string;
+  /**
+   * Transforms for seek values in cursors.
+   * Use to convert between database values and cursor values (e.g., UUID ↔ Global ID).
+   */
+  seekTransforms?: SeekTransforms;
 };
 
 /**
@@ -433,6 +458,7 @@ export class CursorQueryBuilder<
   >;
   private readonly cursorType: string;
   private readonly tieBreaker: string;
+  private readonly seekTransforms?: SeekTransforms;
 
   constructor(
     queryBuilder: FluentQueryBuilder<T, Fields, InferredFields, Types>,
@@ -451,6 +477,7 @@ export class CursorQueryBuilder<
     this.queryBuilder = queryBuilder;
     this.cursorType = config?.name ?? queryBuilder.getTableName();
     this.tieBreaker = tieBreaker;
+    this.seekTransforms = config?.seekTransforms;
   }
 
   /**
@@ -489,6 +516,7 @@ export class CursorQueryBuilder<
         tieBreaker: this.tieBreaker as never,
         queryConfig:
           Object.keys(queryConfig).length > 0 ? queryConfig : undefined,
+        seekTransforms: this.seekTransforms,
       }
     );
 
@@ -558,6 +586,7 @@ export class CursorQueryBuilder<
         tieBreaker: this.tieBreaker as never,
         queryConfig:
           Object.keys(queryConfig).length > 0 ? queryConfig : undefined,
+        seekTransforms: this.seekTransforms,
       }
     );
 
