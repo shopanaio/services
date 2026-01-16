@@ -10,7 +10,7 @@ import { files, type File, type NewFile } from "./models";
 
 // ---- Relay Query Builder ----
 
-const fileRelayQuery = createRelayQuery(
+export const fileRelayQuery = createRelayQuery(
   createQuery(files).include(["id"]).maxLimit(100).defaultLimit(20),
   { name: "file", tieBreaker: "id" }
 );

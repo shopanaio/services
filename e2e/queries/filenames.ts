@@ -28,6 +28,7 @@ export type GraphQLFileName =
   | 'media-api/BucketCreate'
   | 'media-api/FileCreateExternal'
   | 'media-api/FileDelete'
+  | 'media-api/FileFindMany'
   | 'media-api/FileFindOne'
   | 'media-api/FileUpdate'
   | 'media-api/FileUpload'

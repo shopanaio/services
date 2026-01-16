@@ -22,6 +22,8 @@ export type Scalars = {
   Timestamp: { input: string; output: string; }
   TransportOptions: { input: any; output: any; }
   Upload: { input: File; output: File; }
+  join__FieldSet: { input: any; output: any; }
+  link__Import: { input: any; output: any; }
 };
 
 /**
@@ -1187,6 +1189,33 @@ export type ApiFile = ApiNode & {
   url: Scalars['String']['output'];
 };
 
+/** A connection to a list of File items. */
+export type ApiFileConnection = {
+  __typename?: 'FileConnection';
+  /** A list of edges. */
+  edges: Array<ApiFileEdge>;
+  /** Information to aid in pagination. */
+  pageInfo: ApiPageInfo;
+  /** The total number of files. */
+  totalCount: Scalars['Int']['output'];
+};
+
+/** Relay-style pagination input for File */
+export type ApiFileConnectionInput = {
+  /** Returns items after this cursor */
+  after?: InputMaybe<Scalars['String']['input']>;
+  /** Returns items before this cursor */
+  before?: InputMaybe<Scalars['String']['input']>;
+  /** Returns the first n items */
+  first?: InputMaybe<Scalars['Int']['input']>;
+  /** Returns the last n items */
+  last?: InputMaybe<Scalars['Int']['input']>;
+  /** Sort order */
+  orderBy?: InputMaybe<Array<ApiFileOrderByInput>>;
+  /** Filter conditions */
+  where?: InputMaybe<ApiFileWhereInput>;
+};
+
 /** Input for creating an external media file (YouTube, Vimeo, etc). */
 export type ApiFileCreateExternalInput = {
   /** Alt text for accessibility. */
@@ -1238,6 +1267,61 @@ export type ApiFileDeletePayload = {
   /** List of errors that occurred during the mutation. */
   userErrors: Array<ApiGenericUserError>;
 };
+
+/** An edge in a File connection. */
+export type ApiFileEdge = {
+  __typename?: 'FileEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String']['output'];
+  /** The item at the end of the edge. */
+  node: ApiFile;
+};
+
+/** Ordering configuration for File */
+export type ApiFileOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: FileOrderField;
+};
+
+/** Fields available for sorting File */
+export enum FileOrderField {
+  /** Sort by altText */
+  AltText = 'altText',
+  /** Sort by createdAt */
+  CreatedAt = 'createdAt',
+  /** Sort by durationMs */
+  DurationMs = 'durationMs',
+  /** Sort by ext */
+  Ext = 'ext',
+  /** Sort by height */
+  Height = 'height',
+  /** Sort by id */
+  Id = 'id',
+  /** Sort by idempotencyKey */
+  IdempotencyKey = 'idempotencyKey',
+  /** Sort by isProcessed */
+  IsProcessed = 'isProcessed',
+  /** Sort by meta */
+  Meta = 'meta',
+  /** Sort by mimeType */
+  MimeType = 'mimeType',
+  /** Sort by originalName */
+  OriginalName = 'originalName',
+  /** Sort by provider */
+  Provider = 'provider',
+  /** Sort by sizeBytes */
+  SizeBytes = 'sizeBytes',
+  /** Sort by sourceUrl */
+  SourceUrl = 'sourceUrl',
+  /** Sort by updatedAt */
+  UpdatedAt = 'updatedAt',
+  /** Sort by url */
+  Url = 'url',
+  /** Sort by width */
+  Width = 'width'
+}
 
 /** Provider type for files. */
 export enum FileProvider {
@@ -1301,6 +1385,50 @@ export type ApiFileUploadPayload = {
   file?: Maybe<ApiFile>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<ApiGenericUserError>;
+};
+
+/** Filter conditions for File */
+export type ApiFileWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiFileWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiFileWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiFileWhereInput>>;
+  /** Filter by altText */
+  altText?: InputMaybe<ApiStringFilter>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by durationMs */
+  durationMs?: InputMaybe<ApiIntFilter>;
+  /** Filter by ext */
+  ext?: InputMaybe<ApiStringFilter>;
+  /** Filter by height */
+  height?: InputMaybe<ApiIntFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by idempotencyKey */
+  idempotencyKey?: InputMaybe<ApiStringFilter>;
+  /** Filter by isProcessed */
+  isProcessed?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by meta */
+  meta?: InputMaybe<ApiStringFilter>;
+  /** Filter by mimeType */
+  mimeType?: InputMaybe<ApiStringFilter>;
+  /** Filter by originalName */
+  originalName?: InputMaybe<ApiStringFilter>;
+  /** Filter by provider */
+  provider?: InputMaybe<ApiStringFilter>;
+  /** Filter by sizeBytes */
+  sizeBytes?: InputMaybe<ApiIntFilter>;
+  /** Filter by sourceUrl */
+  sourceUrl?: InputMaybe<ApiStringFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by url */
+  url?: InputMaybe<ApiStringFilter>;
+  /** Filter by width */
+  width?: InputMaybe<ApiIntFilter>;
 };
 
 /** Filter operators for Float fields */
@@ -1418,6 +1546,11 @@ export type ApiInventoryMutation = {
   warehouseCreate: ApiWarehouseCreatePayload;
   warehouseDelete: ApiWarehouseDeletePayload;
   warehouseUpdate: ApiWarehouseUpdatePayload;
+};
+
+
+export type ApiInventoryMutationProductCreateArgs = {
+  input: ApiProductCreateInput;
 };
 
 
@@ -1993,6 +2126,8 @@ export type ApiMediaQuery = {
   __typename?: 'MediaQuery';
   /** Get a file by ID */
   file?: Maybe<ApiFile>;
+  /** Get files with Relay-style pagination */
+  files: ApiFileConnection;
   /** Get a node by its global ID */
   node?: Maybe<ApiNode>;
   /** Get multiple nodes by their global IDs */
@@ -2002,6 +2137,16 @@ export type ApiMediaQuery = {
 
 export type ApiMediaQueryFileArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+export type ApiMediaQueryFilesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiFileOrderByInput>>;
+  where?: InputMaybe<ApiFileWhereInput>;
 };
 
 
@@ -2344,6 +2489,8 @@ export type ApiOrganization = ApiNode & {
   displayName: Scalars['String']['output'];
   /** Unique identifier. */
   id: Scalars['ID']['output'];
+  /** Organization logo (from Media service). */
+  logo?: Maybe<ApiFile>;
   /** Membership info (members + roles). Domain = orgId. */
   membership: ApiMembership;
   /** URL-friendly unique identifier. */
@@ -2423,6 +2570,11 @@ export type ApiOrganizationMutation = {
    */
   organizationUpdate: ApiOrganizationUpdatePayload;
   /**
+   * Update organization logo.
+   * Requires: org admin or owner.
+   */
+  organizationUpdateLogo: ApiOrganizationUpdateLogoPayload;
+  /**
    * Transfer organization ownership to another admin.
    * Only the current owner can transfer ownership.
    * New owner must have admin role in the organization.
@@ -2475,6 +2627,12 @@ export type ApiOrganizationMutationOrganizationUpdateArgs = {
 
 
 /** Organization mutations. */
+export type ApiOrganizationMutationOrganizationUpdateLogoArgs = {
+  input: ApiOrganizationUpdateLogoInput;
+};
+
+
+/** Organization mutations. */
 export type ApiOrganizationMutationOwnershipTransferArgs = {
   input: ApiOwnershipTransferInput;
 };
@@ -2502,7 +2660,10 @@ export enum OrganizationOrderField {
 /** Organization queries. */
 export type ApiOrganizationQuery = {
   __typename?: 'OrganizationQuery';
-  /** Get organization by ID (if user has access). */
+  /**
+   * Get organization by ID or name (if user has access).
+   * Provide either id or name, not both.
+   */
   organization?: Maybe<ApiOrganization>;
   /**
    * Get all organizations the current user has access to with cursor pagination.
@@ -2514,7 +2675,8 @@ export type ApiOrganizationQuery = {
 
 /** Organization queries. */
 export type ApiOrganizationQueryOrganizationArgs = {
-  id: Scalars['ID']['input'];
+  id?: InputMaybe<Scalars['ID']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -2536,6 +2698,23 @@ export type ApiOrganizationUpdateInput = {
   id: Scalars['ID']['input'];
   /** New name (URL-friendly identifier). */
   name?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Input for updating organization logo. */
+export type ApiOrganizationUpdateLogoInput = {
+  /** Organization ID. */
+  id: Scalars['ID']['input'];
+  /** Media file ID for the logo. Pass null to remove logo. */
+  logoId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+/** Payload for organization logo update. */
+export type ApiOrganizationUpdateLogoPayload = {
+  __typename?: 'OrganizationUpdateLogoPayload';
+  /** The updated organization. */
+  organization?: Maybe<ApiOrganization>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<ApiGenericUserError>;
 };
 
 export type ApiOrganizationUpdatePayload = {
@@ -2649,6 +2828,42 @@ export type ApiProductConnection = {
   totalCount: Scalars['Int']['output'];
 };
 
+/** Input for creating a product with all its data in one request. */
+export type ApiProductCreateInput = {
+  /** Product description. */
+  description?: InputMaybe<ApiDescriptionInput>;
+  /** URL-friendly handle for the product. */
+  handle: Scalars['String']['input'];
+  /** File IDs for product media (already uploaded via mediaMutation.fileUpload). */
+  mediaFileIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Product options (e.g., Color, Size). */
+  options?: InputMaybe<Array<ApiProductCreateOptionInput>>;
+  /** Product title. */
+  title: Scalars['String']['input'];
+  /** Variants to create (only enabled ones from UI). */
+  variants?: InputMaybe<Array<ApiProductCreateVariantInput>>;
+};
+
+/** Input for creating an option during product creation. */
+export type ApiProductCreateOptionInput = {
+  /** How to display the option (default: DROPDOWN). */
+  displayType?: InputMaybe<Scalars['String']['input']>;
+  /** Display name for the option. */
+  name: Scalars['String']['input'];
+  /** URL-friendly slug for the option. */
+  slug: Scalars['String']['input'];
+  /** The values for this option. */
+  values: Array<ApiProductCreateOptionValueInput>;
+};
+
+/** Input for creating an option value during product creation. */
+export type ApiProductCreateOptionValueInput = {
+  /** Display name for the value. */
+  name: Scalars['String']['input'];
+  /** URL-friendly slug for the value. */
+  slug: Scalars['String']['input'];
+};
+
 /** Payload for product creation. */
 export type ApiProductCreatePayload = {
   __typename?: 'ProductCreatePayload';
@@ -2656,6 +2871,12 @@ export type ApiProductCreatePayload = {
   product?: Maybe<ApiProduct>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<ApiGenericUserError>;
+};
+
+/** Input for creating a variant during product creation. */
+export type ApiProductCreateVariantInput = {
+  /** Handle built from option value slugs (e.g., "red-s"). */
+  handle: Scalars['String']['input'];
 };
 
 /** Input for deleting a product. */
@@ -3054,6 +3275,8 @@ export type ApiResourceDefinition = {
   __typename?: 'ResourceDefinition';
   /** Available actions for resource. */
   actions: Array<Scalars['String']['output']>;
+  /** Resource description. */
+  description?: Maybe<Scalars['String']['output']>;
   /** Display name. */
   displayName?: Maybe<Scalars['String']['output']>;
   /** Resource name (product, order, etc.). */
@@ -3243,6 +3466,49 @@ export type ApiSelectedOptionInput = {
   optionId: Scalars['ID']['input'];
   /** The ID of the option value. */
   optionValueId: Scalars['ID']['input'];
+};
+
+/** User session representing an active login. */
+export type ApiSession = {
+  __typename?: 'Session';
+  /** The date and time when the session was created. */
+  createdAt: Scalars['DateTime']['output'];
+  /** When the session expires. */
+  expiresAt: Scalars['DateTime']['output'];
+  /** The globally unique ID of the session. */
+  id: Scalars['ID']['output'];
+  /** IP address from which the session was created. */
+  ipAddress?: Maybe<Scalars['String']['output']>;
+  /** Whether this is the current session making the request. */
+  isCurrent: Scalars['Boolean']['output'];
+  /** The date and time when the session was last updated. */
+  updatedAt: Scalars['DateTime']['output'];
+  /** User agent string (browser/device info). */
+  userAgent?: Maybe<Scalars['String']['output']>;
+};
+
+/** Payload for revoking all sessions. */
+export type ApiSessionRevokeAllPayload = {
+  __typename?: 'SessionRevokeAllPayload';
+  /** Number of sessions revoked. */
+  revokedCount: Scalars['Int']['output'];
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Input for revoking a specific session. */
+export type ApiSessionRevokeInput = {
+  /** The ID of the session to revoke. */
+  sessionId: Scalars['ID']['input'];
+};
+
+/** Payload for session revoke operation. */
+export type ApiSessionRevokePayload = {
+  __typename?: 'SessionRevokePayload';
+  /** Whether the session was successfully revoked. */
+  success: Scalars['Boolean']['output'];
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<ApiGenericUserError>;
 };
 
 /** Sort direction */
@@ -3536,8 +3802,8 @@ export type ApiTag = {
 /** User type representing admin users (CMS/backoffice). */
 export type ApiUser = {
   __typename?: 'User';
-  /** URL to user's avatar image. */
-  avatar?: Maybe<Scalars['String']['output']>;
+  /** User's avatar image (from Media service). */
+  avatar?: Maybe<ApiFile>;
   /** The date and time when the user was created. */
   createdAt?: Maybe<Scalars['DateTime']['output']>;
   /** User's email address. */
@@ -3554,6 +3820,11 @@ export type ApiUser = {
   isDeleted?: Maybe<Scalars['Boolean']['output']>;
   /** Whether the user account is forbidden/banned. */
   isForbidden?: Maybe<Scalars['Boolean']['output']>;
+  /**
+   * Whether the user has completed their profile (firstName and lastName are filled).
+   * Used for onboarding flow to ensure required fields are present.
+   */
+  isProfileComplete: Scalars['Boolean']['output'];
   /** User's last name. */
   lastName?: Maybe<Scalars['String']['output']>;
   /** User's locale/language preference. */
@@ -3574,9 +3845,25 @@ export type ApiUserError = {
 
 export type ApiUserMutation = {
   __typename?: 'UserMutation';
+  /** Revoke a specific session by ID. */
+  sessionRevoke: ApiSessionRevokePayload;
+  /** Revoke all sessions except the current one. */
+  sessionRevokeAll: ApiSessionRevokeAllPayload;
+  /** Update user avatar. Pass null avatarId to remove avatar. */
+  userUpdateAvatar: ApiUserUpdateAvatarPayload;
   userUpdateEmail: ApiUserUpdateEmailPayload;
   userUpdatePassword: ApiUserUpdatePasswordPayload;
   userUpdateProfile: ApiUserUpdateProfilePayload;
+};
+
+
+export type ApiUserMutationSessionRevokeArgs = {
+  input: ApiSessionRevokeInput;
+};
+
+
+export type ApiUserMutationUserUpdateAvatarArgs = {
+  input: ApiUserUpdateAvatarInput;
 };
 
 
@@ -3604,6 +3891,8 @@ export type ApiUserQuery = {
   authorize: ApiAuthorizePayload;
   /** Get current authenticated admin user */
   current?: Maybe<ApiUser>;
+  /** Get all active sessions for the current user. */
+  mySessions: Array<ApiSession>;
 };
 
 
@@ -3675,6 +3964,21 @@ export type ApiUserTokenRefreshPayload = {
   __typename?: 'UserTokenRefreshPayload';
   /** New authentication tokens. */
   token?: Maybe<ApiAuthTokenPayload>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Input for updating user avatar. */
+export type ApiUserUpdateAvatarInput = {
+  /** Media file ID for the avatar. Pass null to remove avatar. */
+  avatarId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+/** Payload for user avatar update. */
+export type ApiUserUpdateAvatarPayload = {
+  __typename?: 'UserUpdateAvatarPayload';
+  /** The updated user. */
+  user?: Maybe<ApiUser>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<ApiGenericUserError>;
 };
@@ -4395,4 +4699,20 @@ export enum WeightUnit {
   Lb = 'lb',
   /** Ounce */
   Oz = 'oz'
+}
+
+export enum Join__Graph {
+  AppsAdmin = 'APPS_ADMIN',
+  IamAdmin = 'IAM_ADMIN',
+  InventoryAdmin = 'INVENTORY_ADMIN',
+  MediaAdmin = 'MEDIA_ADMIN',
+  OrdersAdmin = 'ORDERS_ADMIN',
+  ProjectAdmin = 'PROJECT_ADMIN'
+}
+
+export enum Link__Purpose {
+  /** `EXECUTION` features provide metadata necessary for operation execution. */
+  Execution = 'EXECUTION',
+  /** `SECURITY` features provide metadata necessary to securely resolve fields. */
+  Security = 'SECURITY'
 }

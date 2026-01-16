@@ -49,6 +49,10 @@ type MediaQuery {
     after: String
     last: Int
     before: String
+    """Filter conditions"""
+    where: FileWhereInput
+    """Sort order"""
+    orderBy: [FileOrderByInput!]
   ): FileConnection!
 }
 

@@ -25,7 +25,7 @@ const config: CodegenConfig = {
   // ['src/**/*.gql', 'src/**/*.graphql'],
   generates: {
     'codegen/admin-gql.ts': {
-      schema: 'schema-admin.graphql',
+      schema: '../infra/federation/supergraph-admin.graphql',
       plugins: ['typescript', 'typescript-operations'],
       config: {
         typesPrefix: 'Api',
