@@ -30,9 +30,9 @@ export class FileUploadMultipartScript extends BaseScript<
     this.logger.info({ projectId, ownerId: this.storeId, assetGroupId }, "FileUploadMultipartScript: starting");
 
     // 1. Check idempotency key
-    if (params.idempotencyKey) {
+    if (params.idempotencyKey && assetGroupId) {
       const existingFile = await this.repository.file.findByIdempotencyKey(
-        projectId,
+        assetGroupId,
         params.idempotencyKey
       );
 

@@ -64,8 +64,8 @@ export const files = mediaSchema.table(
       .on(table.projectId, table.sourceUrl)
       .where(sql`deleted_at IS NULL AND source_url IS NOT NULL`),
     uniqueIndex("idx_files_idempotency_key")
-      .on(table.projectId, table.idempotencyKey)
-      .where(sql`deleted_at IS NULL AND idempotency_key IS NOT NULL`),
+      .on(table.assetGroupId, table.idempotencyKey)
+      .where(sql`deleted_at IS NULL AND idempotency_key IS NOT NULL AND asset_group_id IS NOT NULL`),
   ]
 );
 

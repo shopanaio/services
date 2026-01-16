@@ -123,11 +123,22 @@ export class FileRepository {
   // ---- Write methods ----
 
   /**
-   * Create a new file
+   * Create a new file or return existing one if idempotency key matches
    * @param projectId - Store ID (can be null for asset group files)
    * @param data - File data including optional assetGroupId
    */
   async create(projectId: string | null, data: CreateFileInput): Promise<File> {
+    // Check for existing file by idempotency key
+    if (data.idempotencyKey && data.assetGroupId) {
+      const existing = await this.findByIdempotencyKey(
+        data.assetGroupId,
+        data.idempotencyKey
+      );
+      if (existing) {
+        return existing;
+      }
+    }
+
     const id = data.id ?? crypto.randomUUID();
 
     const newFile: NewFile = {
@@ -226,10 +237,10 @@ export class FileRepository {
   // ---- Utility methods ----
 
   /**
-   * Find a file by idempotency key
+   * Find a file by idempotency key within an asset group
    */
   async findByIdempotencyKey(
-    projectId: string,
+    assetGroupId: string,
     key: string
   ): Promise<File | null> {
     const result = await this.db
@@ -237,7 +248,7 @@ export class FileRepository {
       .from(files)
       .where(
         and(
-          eq(files.projectId, projectId),
+          eq(files.assetGroupId, assetGroupId),
           eq(files.idempotencyKey, key),
           isNull(files.deletedAt)
         )

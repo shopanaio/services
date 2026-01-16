@@ -15,6 +15,13 @@
       "when": 1768564610224,
       "tag": "0001_strong_iceman",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1768586437115,
+      "tag": "0002_greedy_inhumans",
+      "breakpoints": true
     }
   ]
 }

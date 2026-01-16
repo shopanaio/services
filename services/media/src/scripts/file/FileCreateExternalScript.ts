@@ -55,9 +55,9 @@ export class FileCreateExternalScript extends BaseScript<
     }
 
     // 2. Check idempotency key
-    if (params.idempotencyKey) {
+    if (params.idempotencyKey && assetGroupId) {
       const existingFile = await this.repository.file.findByIdempotencyKey(
-        projectId,
+        assetGroupId,
         params.idempotencyKey
       );
 
