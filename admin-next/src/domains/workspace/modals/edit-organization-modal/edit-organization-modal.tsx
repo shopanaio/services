@@ -30,6 +30,8 @@ import type { IEditOrganizationModalPayload } from "../../modals";
 interface OrganizationFormValues {
   displayName: string;
   slug: string;
+  logoId: string | null;
+  logoUrl: string | null;
 }
 
 // ============================================================================
@@ -108,26 +110,27 @@ export const EditOrganizationModal = () => {
   // Upload hook
   const { uploadAvatar, loading: uploading } = useAvatarUpload();
 
-  // Logo state - store URL for display and track if changed
-  const [logoUrl, setLogoUrl] = useState<string | null>(
-    typedPayload.currentLogo || null
-  );
-  const [logoChanged, setLogoChanged] = useState(false);
+  // Image crop state
   const [imageSrc, setImageSrc] = useState<string | null>(null);
 
   // Form state
   const {
     control,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors, isDirty },
   } = useForm<OrganizationFormValues>({
     defaultValues: {
       displayName: typedPayload.displayName,
       slug: typedPayload.slug,
+      logoId: typedPayload.currentLogoId || null,
+      logoUrl: typedPayload.currentLogo || null,
     },
   });
 
-  const hasChanges = isDirty || logoChanged;
+  const logoUrl = watch("logoUrl");
+  const hasChanges = isDirty;
 
   // Logo handlers
   const handleFileSelect = useCallback((file: File) => {
@@ -152,15 +155,15 @@ export const EditOrganizationModal = () => {
       const result = await uploadAvatar(file, typedPayload.organizationId);
 
       if (result.file) {
-        setLogoUrl(result.file.url);
-        setLogoChanged(true);
+        setValue("logoId", result.file.id, { shouldDirty: true });
+        setValue("logoUrl", result.file.url);
         // Refetch organization to update logo in UI
         apolloClient.refetchQueries({
           include: [ORGANIZATION_QUERY],
         });
       }
     },
-    [uploadAvatar, typedPayload.organizationId, apolloClient]
+    [uploadAvatar, typedPayload.organizationId, apolloClient, setValue]
   );
 
   const handleCancelCrop = useCallback(() => {
@@ -168,10 +171,9 @@ export const EditOrganizationModal = () => {
   }, []);
 
   const handleRemoveLogo = useCallback(() => {
-    setLogoUrl(null);
-    setLogoChanged(true);
-    // TODO: Implement logo removal when API supports it
-  }, []);
+    setValue("logoId", null, { shouldDirty: true });
+    setValue("logoUrl", null);
+  }, [setValue]);
 
   // Form submit
   const onSubmit = useCallback(
@@ -179,12 +181,12 @@ export const EditOrganizationModal = () => {
       typedPayload.onSave?.({
         displayName: values.displayName,
         slug: values.slug,
-        logoChanged,
+        logoId: values.logoId,
       });
       message.success("Organization updated successfully");
       pop();
     },
-    [typedPayload, logoChanged, message, pop]
+    [typedPayload, message, pop]
   );
 
   return (

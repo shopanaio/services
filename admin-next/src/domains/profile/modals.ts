@@ -20,7 +20,7 @@ export interface IEditProfileModalPayload extends IModalStackPayload {
   onSave?: (values: {
     firstName: string;
     lastName: string;
-    avatarChanged: boolean;
+    avatarId: string | null;
     locale: LocaleCode;
   }) => void | Promise<void>;
 }

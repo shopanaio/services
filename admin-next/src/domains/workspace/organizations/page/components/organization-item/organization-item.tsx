@@ -23,16 +23,21 @@ export function OrganizationItem({ organization, onClick }: OrganizationItemProp
       <Flex align="center">
         <Avatar
           size="large"
-          style={{
-            backgroundColor: `var(--ant-${color}-2, #e6f4ff)`,
-          }}
+          src={organization.logo?.url}
+          style={
+            organization.logo?.url
+              ? undefined
+              : { backgroundColor: `var(--ant-${color}-2, #e6f4ff)` }
+          }
         >
-          <BankOutlined
-            style={{
-              color: `var(--ant-${color}-6, #1890ff)`,
-              fontSize: 20,
-            }}
-          />
+          {!organization.logo?.url && (
+            <BankOutlined
+              style={{
+                color: `var(--ant-${color}-6, #1890ff)`,
+                fontSize: 20,
+              }}
+            />
+          )}
         </Avatar>
         <div className={styles.organizationInfo}>
           <Typography.Text className={styles.organizationName}>

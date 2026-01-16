@@ -101,7 +101,7 @@ export function UserMenu() {
       menu={{ items, className: styles.dropdownContent }}
       placement="bottomRight"
     >
-      <Avatar size={36} className={styles.trigger}>
+      <Avatar size={36} className={styles.trigger} src={user?.avatar?.url}>
         {initials}
       </Avatar>
     </Dropdown>

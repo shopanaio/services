@@ -32,6 +32,8 @@ interface ProfileFormValues {
   firstName: string;
   lastName: string;
   locale: LocaleCode;
+  avatarId: string | null;
+  avatarUrl: string | null;
 }
 
 // ============================================================================
@@ -109,27 +111,28 @@ export const EditProfileModal = () => {
   // Upload hook
   const { uploadAvatar, loading: uploading } = useAvatarUpload();
 
-  // Avatar state - store URL for display and track if changed
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(
-    typedPayload.currentAvatar || null
-  );
-  const [avatarChanged, setAvatarChanged] = useState(false);
+  // Image crop state
   const [imageSrc, setImageSrc] = useState<string | null>(null);
 
   // Form state
   const {
     control,
     handleSubmit,
+    setValue,
+    watch,
     formState: { isDirty },
   } = useForm<ProfileFormValues>({
     defaultValues: {
       firstName: typedPayload.firstName,
       lastName: typedPayload.lastName,
       locale: typedPayload.locale,
+      avatarId: typedPayload.currentAvatarId || null,
+      avatarUrl: typedPayload.currentAvatar || null,
     },
   });
 
-  const hasChanges = isDirty || avatarChanged;
+  const avatarUrl = watch("avatarUrl");
+  const hasChanges = isDirty;
 
   // Avatar handlers
   const handleFileSelect = useCallback((file: File) => {
@@ -154,13 +157,13 @@ export const EditProfileModal = () => {
       const result = await uploadAvatar(file, typedPayload.userId);
 
       if (result.file) {
-        setAvatarUrl(result.file.url);
-        setAvatarChanged(true);
+        setValue("avatarId", result.file.id, { shouldDirty: true });
+        setValue("avatarUrl", result.file.url);
         // Refetch current user to update avatar in UI
         apolloClient.refetchQueries({ include: [CURRENT_USER_QUERY] });
       }
     },
-    [uploadAvatar, typedPayload.userId, apolloClient]
+    [uploadAvatar, typedPayload.userId, apolloClient, setValue]
   );
 
   const handleCancelCrop = useCallback(() => {
@@ -168,10 +171,9 @@ export const EditProfileModal = () => {
   }, []);
 
   const handleRemoveAvatar = useCallback(() => {
-    setAvatarUrl(null);
-    setAvatarChanged(true);
-    // TODO: Implement avatar removal when API supports it
-  }, []);
+    setValue("avatarId", null, { shouldDirty: true });
+    setValue("avatarUrl", null);
+  }, [setValue]);
 
   // Form submit
   const onSubmit = useCallback(
@@ -179,12 +181,12 @@ export const EditProfileModal = () => {
       await typedPayload.onSave?.({
         firstName: values.firstName,
         lastName: values.lastName,
-        avatarChanged,
+        avatarId: values.avatarId,
         locale: values.locale,
       });
       pop();
     },
-    [typedPayload, avatarChanged, pop]
+    [typedPayload, pop]
   );
 
   return (

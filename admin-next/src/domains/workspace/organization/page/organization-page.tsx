@@ -104,13 +104,14 @@ export default function OrganizationPage({ pathParams }: ModulePageProps) {
       onSave: async (values: {
         displayName: string;
         slug: string;
-        logoChanged: boolean;
+        logoId: string | null;
       }) => {
         // Update organization info
         const { userErrors } = await updateOrganization({
           id: organization.id,
           displayName: values.displayName,
           name: values.slug,
+          logoId: values.logoId,
         });
 
         if (userErrors.length > 0) {

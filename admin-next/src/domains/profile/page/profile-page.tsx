@@ -221,7 +221,7 @@ export default function ProfilePage() {
       onSave: async (values: {
         firstName: string;
         lastName: string;
-        avatarChanged: boolean;
+        avatarId: string | null;
         locale: LocaleCode;
       }) => {
         try {
@@ -230,6 +230,7 @@ export default function ProfilePage() {
             firstName: values.firstName || undefined,
             lastName: values.lastName || undefined,
             locale: values.locale,
+            avatarId: values.avatarId,
           });
 
           if (profileResult.userErrors.length > 0) {
