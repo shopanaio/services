@@ -25,7 +25,6 @@ import {
 } from "../modals";
 import {
   useUpdateProfile,
-  useUpdateAvatar,
   useSessions,
   useRevokeSession,
 } from "../hooks";
@@ -206,12 +205,14 @@ export default function ProfilePage() {
   const { push: pushChangePasswordModal } = useChangePasswordModal();
   const { themePreference, setThemePreference } = useThemeContext();
   const { updateProfile } = useUpdateProfile();
-  const { updateAvatar } = useUpdateAvatar();
   const { sessions, loading: sessionsLoading } = useSessions();
   const { revokeSession, revokeAllSessions } = useRevokeSession();
 
   const handleEditProfile = () => {
+    if (!user?.id) return;
+
     pushEditProfileModal({
+      userId: user.id,
       firstName: user?.firstName || "",
       lastName: user?.lastName || "",
       currentAvatar: user?.avatar?.url ?? null,
@@ -220,7 +221,7 @@ export default function ProfilePage() {
       onSave: async (values: {
         firstName: string;
         lastName: string;
-        avatarId: string | null;
+        avatarChanged: boolean;
         locale: LocaleCode;
       }) => {
         try {
@@ -236,19 +237,8 @@ export default function ProfilePage() {
             return;
           }
 
-          // Update avatar if changed
-          const currentAvatarId = user?.avatar?.id ?? null;
-          if (values.avatarId !== currentAvatarId) {
-            const avatarResult = await updateAvatar({
-              avatarId: values.avatarId,
-            });
-
-            if (avatarResult.userErrors.length > 0) {
-              message.error(avatarResult.userErrors[0].message);
-              return;
-            }
-          }
-
+          // Avatar is already uploaded via useAvatarUpload in the modal
+          // Just refetch to get updated data
           refetch();
           message.success("Profile updated successfully");
         } catch {

@@ -11,6 +11,7 @@ export const DELETE_ACCOUNT_MODAL_TYPE = "profile-delete-account";
 
 // Payload interfaces
 export interface IEditProfileModalPayload extends IModalStackPayload {
+  userId: string;
   firstName: string;
   lastName: string;
   currentAvatar?: string | null;
@@ -19,7 +20,7 @@ export interface IEditProfileModalPayload extends IModalStackPayload {
   onSave?: (values: {
     firstName: string;
     lastName: string;
-    avatarId: string | null;
+    avatarChanged: boolean;
     locale: LocaleCode;
   }) => void | Promise<void>;
 }

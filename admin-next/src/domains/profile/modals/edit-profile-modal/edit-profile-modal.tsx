@@ -18,7 +18,9 @@ import {
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { ImageCropModal } from "@/ui-kit/image-crop";
 import { localeOptions } from "@/domains/workspace/mocks/data";
-import { useUploadFiles } from "@/domains/media/hooks/use-upload-files";
+import { useAvatarUpload } from "@/domains/media/hooks/use-avatar-upload";
+import { CURRENT_USER_QUERY } from "@/domains/auth/graphql";
+import { useApolloClient } from "@apollo/client/react";
 import type { IEditProfileModalPayload } from "../../modals";
 import type { LocaleCode } from "@/graphql/types";
 
@@ -102,17 +104,16 @@ export const EditProfileModal = () => {
   const { styles } = useStyles();
   const { payload, pop } = useModalStackContext();
   const typedPayload = payload as IEditProfileModalPayload;
+  const apolloClient = useApolloClient();
 
   // Upload hook
-  const { uploadFile, loading: uploading } = useUploadFiles();
+  const { uploadAvatar, loading: uploading } = useAvatarUpload();
 
-  // Avatar state - store both URL (for display) and ID (for form submission)
+  // Avatar state - store URL for display and track if changed
   const [avatarUrl, setAvatarUrl] = useState<string | null>(
     typedPayload.currentAvatar || null
   );
-  const [avatarId, setAvatarId] = useState<string | null>(
-    typedPayload.currentAvatarId || null
-  );
+  const [avatarChanged, setAvatarChanged] = useState(false);
   const [imageSrc, setImageSrc] = useState<string | null>(null);
 
   // Form state
@@ -128,7 +129,6 @@ export const EditProfileModal = () => {
     },
   });
 
-  const avatarChanged = avatarId !== (typedPayload.currentAvatarId || null);
   const hasChanges = isDirty || avatarChanged;
 
   // Avatar handlers
@@ -150,15 +150,17 @@ export const EditProfileModal = () => {
       const blob = await response.blob();
       const file = new File([blob], "avatar.jpg", { type: "image/jpeg" });
 
-      // Upload file to server
-      const result = await uploadFile(file);
+      // Upload avatar directly to user's asset group
+      const result = await uploadAvatar(file, typedPayload.userId);
 
       if (result.file) {
         setAvatarUrl(result.file.url);
-        setAvatarId(result.file.id);
+        setAvatarChanged(true);
+        // Refetch current user to update avatar in UI
+        apolloClient.refetchQueries({ include: [CURRENT_USER_QUERY] });
       }
     },
-    [uploadFile]
+    [uploadAvatar, typedPayload.userId, apolloClient]
   );
 
   const handleCancelCrop = useCallback(() => {
@@ -167,7 +169,8 @@ export const EditProfileModal = () => {
 
   const handleRemoveAvatar = useCallback(() => {
     setAvatarUrl(null);
-    setAvatarId(null);
+    setAvatarChanged(true);
+    // TODO: Implement avatar removal when API supports it
   }, []);
 
   // Form submit
@@ -176,12 +179,12 @@ export const EditProfileModal = () => {
       await typedPayload.onSave?.({
         firstName: values.firstName,
         lastName: values.lastName,
-        avatarId,
+        avatarChanged,
         locale: values.locale,
       });
       pop();
     },
-    [typedPayload, avatarId, pop]
+    [typedPayload, avatarChanged, pop]
   );
 
   return (

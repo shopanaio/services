@@ -80,3 +80,24 @@ export const FILE_CREATE_EXTERNAL_MUTATION = gql`
   ${FILE_FRAGMENT}
   ${USER_ERROR_FRAGMENT}
 `;
+
+/**
+ * Upload avatar or logo for a user or organization.
+ * The file is stored in the entity's asset group.
+ */
+export const AVATAR_UPLOAD_MUTATION = gql`
+  mutation AvatarUpload($input: AvatarUploadInput!) {
+    mediaMutation {
+      avatarUpload(input: $input) {
+        file {
+          ...FileFields
+        }
+        userErrors {
+          ...UserErrorFields
+        }
+      }
+    }
+  }
+  ${FILE_FRAGMENT}
+  ${USER_ERROR_FRAGMENT}
+`;

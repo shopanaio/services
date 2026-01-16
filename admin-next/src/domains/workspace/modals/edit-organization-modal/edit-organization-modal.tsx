@@ -18,7 +18,9 @@ import {
 } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { ImageCropModal } from "@/ui-kit/image-crop";
-import { useUploadFiles } from "@/domains/media/hooks/use-upload-files";
+import { useAvatarUpload } from "@/domains/media/hooks/use-avatar-upload";
+import { ORGANIZATION_QUERY } from "../../graphql";
+import { useApolloClient } from "@apollo/client/react";
 import type { IEditOrganizationModalPayload } from "../../modals";
 
 // ============================================================================
@@ -101,17 +103,16 @@ export const EditOrganizationModal = () => {
   const { message } = App.useApp();
   const { payload, pop } = useModalStackContext();
   const typedPayload = payload as IEditOrganizationModalPayload;
+  const apolloClient = useApolloClient();
 
   // Upload hook
-  const { uploadFile, loading: uploading } = useUploadFiles();
+  const { uploadAvatar, loading: uploading } = useAvatarUpload();
 
-  // Logo state - store both URL (for display) and ID (for form submission)
+  // Logo state - store URL for display and track if changed
   const [logoUrl, setLogoUrl] = useState<string | null>(
     typedPayload.currentLogo || null
   );
-  const [logoId, setLogoId] = useState<string | null>(
-    typedPayload.currentLogoId || null
-  );
+  const [logoChanged, setLogoChanged] = useState(false);
   const [imageSrc, setImageSrc] = useState<string | null>(null);
 
   // Form state
@@ -126,7 +127,6 @@ export const EditOrganizationModal = () => {
     },
   });
 
-  const logoChanged = logoId !== (typedPayload.currentLogoId || null);
   const hasChanges = isDirty || logoChanged;
 
   // Logo handlers
@@ -148,15 +148,19 @@ export const EditOrganizationModal = () => {
       const blob = await response.blob();
       const file = new File([blob], "logo.jpg", { type: "image/jpeg" });
 
-      // Upload file to server
-      const result = await uploadFile(file);
+      // Upload logo directly to organization's asset group
+      const result = await uploadAvatar(file, typedPayload.organizationId);
 
       if (result.file) {
         setLogoUrl(result.file.url);
-        setLogoId(result.file.id);
+        setLogoChanged(true);
+        // Refetch organization to update logo in UI
+        apolloClient.refetchQueries({
+          include: [ORGANIZATION_QUERY],
+        });
       }
     },
-    [uploadFile]
+    [uploadAvatar, typedPayload.organizationId, apolloClient]
   );
 
   const handleCancelCrop = useCallback(() => {
@@ -165,7 +169,8 @@ export const EditOrganizationModal = () => {
 
   const handleRemoveLogo = useCallback(() => {
     setLogoUrl(null);
-    setLogoId(null);
+    setLogoChanged(true);
+    // TODO: Implement logo removal when API supports it
   }, []);
 
   // Form submit
@@ -174,12 +179,12 @@ export const EditOrganizationModal = () => {
       typedPayload.onSave?.({
         displayName: values.displayName,
         slug: values.slug,
-        logoId,
+        logoChanged,
       });
       message.success("Organization updated successfully");
       pop();
     },
-    [typedPayload, logoId, message, pop]
+    [typedPayload, logoChanged, message, pop]
   );
 
   return (

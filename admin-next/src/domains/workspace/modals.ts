@@ -55,6 +55,7 @@ export interface IRoleModalPayload extends IModalStackPayload {
 }
 
 export interface IEditOrganizationModalPayload extends IModalStackPayload {
+  organizationId: string;
   displayName: string;
   slug: string;
   currentLogo?: string | null;
@@ -62,7 +63,7 @@ export interface IEditOrganizationModalPayload extends IModalStackPayload {
   onSave?: (values: {
     displayName: string;
     slug: string;
-    logoId: string | null;
+    logoChanged: boolean;
   }) => void;
 }
 

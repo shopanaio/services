@@ -200,6 +200,26 @@ export type ApiAuthorizePayload = {
   deniedReason?: Maybe<Scalars['String']['output']>;
 };
 
+/** Input for uploading avatar or logo. */
+export type ApiAvatarUploadInput = {
+  /** The file to upload. */
+  file: Scalars['Upload']['input'];
+  /**
+   * Owner ID (User or Organization global ID).
+   * The asset group will be resolved by this ID.
+   */
+  ownerId: Scalars['ID']['input'];
+};
+
+/** Payload for avatar/logo upload. */
+export type ApiAvatarUploadPayload = {
+  __typename?: 'AvatarUploadPayload';
+  /** The uploaded file. */
+  file?: Maybe<ApiFile>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<ApiGenericUserError>;
+};
+
 /** Filter operators for Boolean fields */
 export type ApiBooleanFilter = {
   /** Equals */
@@ -1216,7 +1236,10 @@ export type ApiFileConnectionInput = {
   where?: InputMaybe<ApiFileWhereInput>;
 };
 
-/** Input for creating an external media file (YouTube, Vimeo, etc). */
+/**
+ * Input for creating an external media file (YouTube, Vimeo, etc).
+ * Store context is determined from x-store-name header.
+ */
 export type ApiFileCreateExternalInput = {
   /** Alt text for accessibility. */
   altText?: InputMaybe<Scalars['String']['input']>;
@@ -1358,7 +1381,10 @@ export type ApiFileUpdatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
-/** Input for uploading a file from URL. */
+/**
+ * Input for uploading a file from URL.
+ * Store context is determined from x-store-name header.
+ */
 export type ApiFileUploadFromUrlInput = {
   /** Alt text for accessibility. */
   altText?: InputMaybe<Scalars['String']['input']>;
@@ -1368,7 +1394,10 @@ export type ApiFileUploadFromUrlInput = {
   sourceUrl: Scalars['String']['input'];
 };
 
-/** Input for uploading a file via multipart form data. */
+/**
+ * Input for uploading a file via multipart form data.
+ * Store context is determined from x-store-name header.
+ */
 export type ApiFileUploadMultipartInput = {
   /** Alt text for accessibility. */
   altText?: InputMaybe<Scalars['String']['input']>;
@@ -2084,12 +2113,22 @@ export type ApiMediaDimensions = {
 
 export type ApiMediaMutation = {
   __typename?: 'MediaMutation';
+  /**
+   * Upload avatar or logo for an entity (user profile or organization).
+   * The file is stored in the entity's asset group.
+   */
+  avatarUpload: ApiAvatarUploadPayload;
   bucketCreate: ApiBucketCreatePayload;
   fileCreateExternal: ApiFileCreateExternalPayload;
   fileDelete: ApiFileDeletePayload;
   fileUpdate: ApiFileUpdatePayload;
   fileUpload: ApiFileUploadPayload;
   fileUploadFromUrl: ApiFileUploadPayload;
+};
+
+
+export type ApiMediaMutationAvatarUploadArgs = {
+  input: ApiAvatarUploadInput;
 };
 
 
@@ -2126,7 +2165,10 @@ export type ApiMediaQuery = {
   __typename?: 'MediaQuery';
   /** Get a file by ID */
   file?: Maybe<ApiFile>;
-  /** Get files with Relay-style pagination */
+  /**
+   * Get files with Relay-style pagination.
+   * Store context is determined from x-store-name header.
+   */
   files: ApiFileConnection;
   /** Get a node by its global ID */
   node?: Maybe<ApiNode>;
@@ -2570,11 +2612,6 @@ export type ApiOrganizationMutation = {
    */
   organizationUpdate: ApiOrganizationUpdatePayload;
   /**
-   * Update organization logo.
-   * Requires: org admin or owner.
-   */
-  organizationUpdateLogo: ApiOrganizationUpdateLogoPayload;
-  /**
    * Transfer organization ownership to another admin.
    * Only the current owner can transfer ownership.
    * New owner must have admin role in the organization.
@@ -2623,12 +2660,6 @@ export type ApiOrganizationMutationOrganizationDeleteArgs = {
 /** Organization mutations. */
 export type ApiOrganizationMutationOrganizationUpdateArgs = {
   input: ApiOrganizationUpdateInput;
-};
-
-
-/** Organization mutations. */
-export type ApiOrganizationMutationOrganizationUpdateLogoArgs = {
-  input: ApiOrganizationUpdateLogoInput;
 };
 
 
@@ -2696,25 +2727,10 @@ export type ApiOrganizationUpdateInput = {
   displayName?: InputMaybe<Scalars['String']['input']>;
   /** Organization ID. */
   id: Scalars['ID']['input'];
-  /** New name (URL-friendly identifier). */
-  name?: InputMaybe<Scalars['String']['input']>;
-};
-
-/** Input for updating organization logo. */
-export type ApiOrganizationUpdateLogoInput = {
-  /** Organization ID. */
-  id: Scalars['ID']['input'];
   /** Media file ID for the logo. Pass null to remove logo. */
   logoId?: InputMaybe<Scalars['ID']['input']>;
-};
-
-/** Payload for organization logo update. */
-export type ApiOrganizationUpdateLogoPayload = {
-  __typename?: 'OrganizationUpdateLogoPayload';
-  /** The updated organization. */
-  organization?: Maybe<ApiOrganization>;
-  /** List of errors that occurred during the mutation. */
-  userErrors: Array<ApiGenericUserError>;
+  /** New name (URL-friendly identifier). */
+  name?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type ApiOrganizationUpdatePayload = {
@@ -3849,8 +3865,6 @@ export type ApiUserMutation = {
   sessionRevoke: ApiSessionRevokePayload;
   /** Revoke all sessions except the current one. */
   sessionRevokeAll: ApiSessionRevokeAllPayload;
-  /** Update user avatar. Pass null avatarId to remove avatar. */
-  userUpdateAvatar: ApiUserUpdateAvatarPayload;
   userUpdateEmail: ApiUserUpdateEmailPayload;
   userUpdatePassword: ApiUserUpdatePasswordPayload;
   userUpdateProfile: ApiUserUpdateProfilePayload;
@@ -3859,11 +3873,6 @@ export type ApiUserMutation = {
 
 export type ApiUserMutationSessionRevokeArgs = {
   input: ApiSessionRevokeInput;
-};
-
-
-export type ApiUserMutationUserUpdateAvatarArgs = {
-  input: ApiUserUpdateAvatarInput;
 };
 
 
@@ -3968,21 +3977,6 @@ export type ApiUserTokenRefreshPayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
-/** Input for updating user avatar. */
-export type ApiUserUpdateAvatarInput = {
-  /** Media file ID for the avatar. Pass null to remove avatar. */
-  avatarId?: InputMaybe<Scalars['ID']['input']>;
-};
-
-/** Payload for user avatar update. */
-export type ApiUserUpdateAvatarPayload = {
-  __typename?: 'UserUpdateAvatarPayload';
-  /** The updated user. */
-  user?: Maybe<ApiUser>;
-  /** List of errors that occurred during the mutation. */
-  userErrors: Array<ApiGenericUserError>;
-};
-
 /** Input for updating user email. */
 export type ApiUserUpdateEmailInput = {
   /** New email address. */
@@ -4017,6 +4011,8 @@ export type ApiUserUpdatePasswordPayload = {
 
 /** Input for updating user profile. */
 export type ApiUserUpdateProfileInput = {
+  /** Media file ID for the avatar. Pass null to remove avatar. */
+  avatarId?: InputMaybe<Scalars['ID']['input']>;
   /** User's first name. */
   firstName?: InputMaybe<Scalars['String']['input']>;
   /** User's last name. */

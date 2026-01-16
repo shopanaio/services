@@ -93,24 +93,3 @@ export const REVOKE_ALL_SESSIONS_MUTATION = gql`
   }
   ${USER_ERROR_FRAGMENT}
 `;
-
-/**
- * Update the current user's avatar.
- * Pass null avatarId to remove the avatar.
- */
-export const UPDATE_AVATAR_MUTATION = gql`
-  mutation UpdateAvatar($input: UserUpdateAvatarInput!) {
-    userMutation {
-      userUpdateAvatar(input: $input) {
-        user {
-          ...UserFields
-        }
-        userErrors {
-          ...UserErrorFields
-        }
-      }
-    }
-  }
-  ${USER_FRAGMENT}
-  ${USER_ERROR_FRAGMENT}
-`;
