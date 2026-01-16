@@ -9,20 +9,16 @@ import {
   type IFilterSchema,
   type IFilterValue,
 } from "@/layouts/filters";
+import { SortDirection } from "@/graphql/types";
 import { useGridState } from "./use-grid-state";
 import { useGridSort, type SortModel } from "./use-grid-sort";
+
+// Re-export for convenience
+export { SortDirection } from "@/graphql/types";
 
 // ============================================
 // Types
 // ============================================
-
-/**
- * GraphQL sort direction enum
- */
-export enum SortDirection {
-  Asc = "ASC",
-  Desc = "DESC",
-}
 
 /**
  * Generic GraphQL orderBy input
@@ -440,26 +436,3 @@ export function createStartsWithTransformer<TWhereInput extends Record<string, u
   };
 }
 
-/**
- * Create a transformer that maps filter values before sending
- * (e.g., transform UI labels to API enum values)
- */
-export function createValueMapTransformer<TWhereInput extends Record<string, unknown>>(
-  fieldName: string,
-  valueMap: Record<string, unknown>
-): FilterTransformer<TWhereInput> {
-  return (filter, gqlOperator) => {
-    const mapValue = (v: unknown): unknown => {
-      const mapped = valueMap[String(v)];
-      return mapped !== undefined ? mapped : v;
-    };
-
-    const value = Array.isArray(filter.value)
-      ? filter.value.map(mapValue)
-      : mapValue(filter.value);
-
-    return {
-      [fieldName]: { [gqlOperator]: value },
-    } as Partial<TWhereInput>;
-  };
-}
