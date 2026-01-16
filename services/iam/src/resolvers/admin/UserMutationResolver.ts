@@ -52,6 +52,9 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
       firstName: input.firstName ?? undefined,
       lastName: input.lastName ?? undefined,
       language: input.locale ?? undefined,
+      ...(input.avatarId
+        ? { imageId: decodeGlobalIdByType(input.avatarId, GlobalIdEntity.File) }
+        : {}),
     });
 
     if (result.userErrors.length > 0) {
@@ -67,30 +70,7 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
 
     // Handle avatar update separately if provided
     if (input.avatarId !== undefined) {
-      let imageId: string | null = null;
       if (input.avatarId) {
-        try {
-          imageId = decodeGlobalIdByType(input.avatarId, GlobalIdEntity.File);
-        } catch {
-          imageId = input.avatarId;
-        }
-      }
-
-      const updated = await kernel.repository.user.updateProfile(currentUser.id, {
-        image: imageId ?? undefined,
-      });
-
-      if (!updated) {
-        return {
-          user: null,
-          userErrors: [
-            {
-              code: "UPDATE_FAILED",
-              message: "Failed to update avatar",
-              field: ["avatarId"],
-            },
-          ],
-        };
       }
     }
 
@@ -193,7 +173,10 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
     }
 
     // Decode the session ID from global ID
-    const sessionId = decodeGlobalIdByType(input.sessionId, GlobalIdEntity.Session);
+    const sessionId = decodeGlobalIdByType(
+      input.sessionId,
+      GlobalIdEntity.Session
+    );
 
     // Prevent revoking current session
     if (currentUser.sessionId === sessionId) {
@@ -210,7 +193,9 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
     }
 
     // Verify the session belongs to the current user
-    const sessions = await kernel.repository.user.getUserSessions(currentUser.id);
+    const sessions = await kernel.repository.user.getUserSessions(
+      currentUser.id
+    );
     const sessionBelongsToUser = sessions.some((s) => s.id === sessionId);
 
     if (!sessionBelongsToUser) {
@@ -262,7 +247,9 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
     }
 
     // Get all sessions to count them
-    const sessions = await kernel.repository.user.getUserSessions(currentUser.id);
+    const sessions = await kernel.repository.user.getUserSessions(
+      currentUser.id
+    );
 
     // Filter out current session
     const sessionsToRevoke = sessions.filter(
