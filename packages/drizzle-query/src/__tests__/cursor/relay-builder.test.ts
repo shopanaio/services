@@ -746,10 +746,13 @@ describe("createRelayQuery (fluent API)", () => {
           "products" AS "t0_products"
         WHERE
           (
-            "t0_products"."price" < $1
-            OR (
-              "t0_products"."price" = $2
-              AND "t0_products"."id" < $3
+            "t0_products"."deleted_at" IS NULL
+            AND (
+              "t0_products"."price" < $1
+              OR (
+                "t0_products"."price" = $2
+                AND "t0_products"."id" < $3
+              )
             )
           )
         ORDER BY

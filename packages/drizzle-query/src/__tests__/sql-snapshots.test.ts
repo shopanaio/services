@@ -288,6 +288,8 @@ describe("SQL Snapshot Tests", () => {
           "t0_users"."age" AS "age"
         FROM
           "users" AS "t0_users"
+        WHERE
+          "t0_users"."age" IS NULL
         LIMIT
           $1
         OFFSET
@@ -304,6 +306,8 @@ describe("SQL Snapshot Tests", () => {
           "t0_users"."age" AS "age"
         FROM
           "users" AS "t0_users"
+        WHERE
+          "t0_users"."age" IS NOT NULL
         LIMIT
           $1
         OFFSET
