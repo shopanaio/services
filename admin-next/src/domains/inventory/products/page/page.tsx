@@ -10,7 +10,6 @@ import {
   ModuleRegistry,
   AllCommunityModule,
   RowSelectionModule,
-  CellClickedEvent,
   GridStateModule,
   SelectionChangedEvent,
 } from "ag-grid-community";
@@ -18,7 +17,7 @@ import type { CustomCellRendererProps } from "ag-grid-react";
 import { DataLayout } from "@/layouts/data";
 import { useFilters, FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
-import { useGridState, useGridSort, useAgGridTheme } from "@/hooks";
+import { useGridState, useGridSort, useAgGridTheme, useAgGridRowSelection } from "@/hooks";
 import { filterSchema } from "./filter-schema";
 import { useProducts } from "../hooks";
 import type { IProductListItem } from "@/mocks/products/products-list";
@@ -100,13 +99,10 @@ export default function ProductsPage() {
     },
   });
 
-  const handleCellClick = (event: CellClickedEvent<IProductListItem>) => {
-    if (event.column.getColId() === "ag-Grid-SelectionColumn") {
-      event.node.setSelected(!event.node.isSelected());
-      return;
-    }
-    push("product", { level: 1 });
-  };
+  // Row selection with checkbox isolation
+  const { rowSelection, selectionColumnDef, onCellClicked } = useAgGridRowSelection<IProductListItem>({
+    onRowAction: () => push("product", { level: 1 }),
+  });
 
   // Handle selection changes
   const handleSelectionChanged = useCallback(
@@ -226,18 +222,11 @@ export default function ProductsPage() {
             defaultColDef={defaultColDef}
             getRowId={(params) => params.data.id}
             rowHeight={52}
-            rowSelection={{
-              mode: "multiRow",
-              checkboxes: true,
-              headerCheckbox: true,
-              enableClickSelection: false,
-            }}
-            selectionColumnDef={{
-              cellStyle: { display: "flex", alignItems: "center" },
-            }}
+            rowSelection={rowSelection}
+            selectionColumnDef={selectionColumnDef}
             suppressCellFocus
             suppressMovableColumns
-            onCellClicked={handleCellClick}
+            onCellClicked={onCellClicked}
             onSelectionChanged={handleSelectionChanged}
             rowStyle={{ cursor: "pointer" }}
             initialState={initialState}

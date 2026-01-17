@@ -1,6 +1,12 @@
 export { useGridState } from "./use-grid-state";
 export type { UseGridStateOptions, UseGridStateReturn } from "./use-grid-state";
 
+export { useAgGridRowSelection } from "./use-ag-grid-row-selection";
+export type {
+  UseAgGridRowSelectionOptions,
+  UseAgGridRowSelectionReturn,
+} from "./use-ag-grid-row-selection";
+
 export { useGridSort } from "./use-grid-sort";
 export type {
   UseGridSortOptions,

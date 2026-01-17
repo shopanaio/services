@@ -9,14 +9,13 @@ import {
   ModuleRegistry,
   AllCommunityModule,
   RowSelectionModule,
-  CellClickedEvent,
   GridStateModule,
   CellEditRequestEvent,
 } from "ag-grid-community";
 import { DataLayout } from "@/layouts/data";
 import { useFilters, FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
-import { useGridState, useAgGridTheme } from "@/hooks";
+import { useGridState, useAgGridTheme, useAgGridRowSelection } from "@/hooks";
 import { filterSchema } from "./filter-schema";
 import { useInventory, useInventoryEditStore } from "../hooks";
 import { validateFieldChange } from "@/shared/utils/inventory";
@@ -154,11 +153,8 @@ export default function InventoryPage() {
     [message, setFieldValue, edits, serverData]
   );
 
-  const handleCellClick = (event: CellClickedEvent<IInventoryListItem>) => {
-    if (event.column.getColId() === "ag-Grid-SelectionColumn") {
-      event.node.setSelected(!event.node.isSelected());
-    }
-  };
+  // Row selection with checkbox isolation
+  const { rowSelection, selectionColumnDef, onCellClicked } = useAgGridRowSelection<IInventoryListItem>();
 
   const columnDefs = useMemo<ColDef<IInventoryListItem>[]>(
     () => [
@@ -257,19 +253,12 @@ export default function InventoryPage() {
             defaultColDef={defaultColDef}
             getRowId={(params) => params.data.id}
             rowHeight={56}
-            rowSelection={{
-              mode: "multiRow",
-              checkboxes: true,
-              headerCheckbox: true,
-              enableClickSelection: false,
-            }}
-            selectionColumnDef={{
-              cellStyle: { display: "flex", alignItems: "center" },
-            }}
+            rowSelection={rowSelection}
+            selectionColumnDef={selectionColumnDef}
             suppressMovableColumns
             readOnlyEdit
             onCellEditRequest={handleCellEditRequest}
-            onCellClicked={handleCellClick}
+            onCellClicked={onCellClicked}
             initialState={initialState}
             onStateUpdated={onStateUpdated}
             stopEditingWhenCellsLoseFocus

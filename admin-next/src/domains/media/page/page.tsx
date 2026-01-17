@@ -9,14 +9,13 @@ import {
   AllCommunityModule,
   RowSelectionModule,
   GridStateModule,
-  RowClickedEvent,
 } from "ag-grid-community";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { CloudUploadOutlined } from "@ant-design/icons";
 import { DataLayout } from "@/layouts/data";
 import { FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
-import { usePageConfig, createStartsWithTransformer, useAgGridTheme } from "@/hooks";
+import { usePageConfig, createStartsWithTransformer, useAgGridTheme, useAgGridRowSelection } from "@/hooks";
 import { filterSchema } from "./filter-schema";
 import { useFiles, FileOrderField } from "../hooks";
 import { useUploadMediaModal } from "../modals";
@@ -209,6 +208,11 @@ export default function MediaPage() {
   // Media preview
   const mediaPreview = useMediaPreview(files);
 
+  // Row selection with checkbox isolation
+  const { rowSelection, selectionColumnDef, onCellClicked } = useAgGridRowSelection<ApiFile>({
+    onRowAction: (data) => mediaPreview.openById(data.id),
+  });
+
   const columnDefs = useMemo<ColDef<ApiFile>[]>(
     () => [
       {
@@ -268,21 +272,6 @@ export default function MediaPage() {
     });
   }, [pushUploadModal, refetch]);
 
-  const handleRowClicked = useCallback(
-    (event: RowClickedEvent<ApiFile>) => {
-      // Don't open preview if clicking on checkbox
-      const target = event.event?.target as HTMLElement;
-      if (target?.closest('[role="checkbox"]') || target?.closest('.ag-checkbox')) {
-        return;
-      }
-
-      if (event.data) {
-        mediaPreview.openById(event.data.id);
-      }
-    },
-    [mediaPreview]
-  );
-
   return (
     <DataLayout
       name="media"
@@ -320,21 +309,14 @@ export default function MediaPage() {
             getRowId={(params) => params.data.id}
             rowHeight={52}
             loading={loading}
-            rowSelection={{
-              mode: "multiRow",
-              checkboxes: true,
-              headerCheckbox: true,
-              enableClickSelection: false,
-            }}
-            selectionColumnDef={{
-              cellStyle: { display: "flex", alignItems: "center" },
-            }}
+            rowSelection={rowSelection}
+            selectionColumnDef={selectionColumnDef}
             suppressCellFocus
             suppressMovableColumns
             rowStyle={{ cursor: "pointer" }}
             {...gridStateProps}
             onSortChanged={onSortChanged}
-            onRowClicked={handleRowClicked}
+            onCellClicked={onCellClicked}
           />
         </div>
 
