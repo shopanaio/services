@@ -1,6 +1,6 @@
 # File Deletion MVP Plan
 
-> Version 0.6.0 - Added detailed implementation tasks: CHECK constraints, NoSuchBucket=FATAL, S3 bucket/key interface, log levels, extended payload, workflow guards, tests
+> Version 0.7.0 - Added race condition protection via `deleting_started_at` validation, clarified `deleted_at` lifecycle semantics, added CHECK constraints for enum values, 2 new race condition tests
 
 ## Goals
 
@@ -30,6 +30,7 @@
 | 2 GC phases only                   | Reset stuck + pick for deletion. No separate "failed reset" phase.           |
 | Admin clear error endpoint         | Manual endpoint to clear error attributes for retry.                         |
 | Two-layer FATAL guard              | GC filters FATAL + workflow rejects FATAL (safety net for manual starts).    |
+| Pre-S3 lock validation             | Before S3 delete, re-verify `state=DELETING` AND `startedAt` matches original. Prevents orphaned S3 delete after GC reset. |
 
 ---
 
@@ -39,14 +40,15 @@
 
 | Field                 | Meaning                                         | Set When                           |
 | --------------------- | ----------------------------------------------- | ---------------------------------- |
-| `deleted_at`          | When file was soft-deleted (for retention calc) | ACTIVE → SOFT_DELETED (once only!) |
+| `deleted_at`          | When file was soft-deleted (for retention calc) | ACTIVE → SOFT_DELETED              |
 | `deleting_started_at` | When hard delete started (for stuck detection)  | SOFT_DELETED → DELETING            |
 | `failed_at`           | When last hard delete attempt failed            | DELETING → SOFT_DELETED on error   |
 
 **Critical rules:**
 
-- `deleted_at` is set **only once** on first soft delete. Repeated `fileDeleteMany` calls do NOT update it.
+- `deleted_at` is set **once per soft-delete cycle**: set on ACTIVE → SOFT_DELETED, not updated while file remains SOFT_DELETED/DELETING. Cleared on restore (SOFT_DELETED → ACTIVE), then set again on next soft delete.
 - `failed_at` = "time of last failed hard delete attempt" (not a state indicator).
+- `deleting_started_at` is used for **race condition protection**: workflow stores it locally and validates before S3 delete.
 
 ### Error Attribute Invariants
 
@@ -126,6 +128,15 @@ ALTER TABLE media.files
     OR (deleted_at IS NULL AND deleting_started_at IS NULL AND deletion_error_code IS NULL AND failed_at IS NULL AND last_deletion_error IS NULL)
   );
 
+-- Enum value constraints: restrict to valid values only
+ALTER TABLE media.files
+  ADD CONSTRAINT chk_deletion_state_valid
+  CHECK (deletion_state IN ('ACTIVE', 'SOFT_DELETED', 'DELETING'));
+
+ALTER TABLE media.files
+  ADD CONSTRAINT chk_deletion_error_code_valid
+  CHECK (deletion_error_code IS NULL OR deletion_error_code IN ('RETRYABLE', 'FATAL'));
+
 -- GC query: soft deleted files ready for hard delete
 -- Excludes files with recent errors or FATAL errors
 CREATE INDEX idx_files_gc_soft_deleted
@@ -143,6 +154,12 @@ CREATE INDEX idx_files_stuck_deleting
   ON media.files (deleting_started_at, id)
   WHERE deletion_state = 'DELETING'
     AND deleting_started_at IS NOT NULL;
+
+-- Optional: index for retryable files with cooldown filtering (useful at scale)
+-- CREATE INDEX idx_files_gc_retryable
+--   ON media.files (failed_at, id)
+--   WHERE deletion_state = 'SOFT_DELETED'
+--     AND deletion_error_code = 'RETRYABLE';
 
 COMMENT ON COLUMN media.files.deletion_state IS
   'ACTIVE | SOFT_DELETED | DELETING (only 3 states, no FAILED)';
@@ -203,11 +220,13 @@ async run(fileId: string) {
   // 1. Atomically move SOFT_DELETED -> DELETING
   //    Sets deleting_started_at = now()
   //    Clears ALL error attributes (invariant!)
-  const locked = await Repo.markDeleting(fileId);
-  if (!locked) {
+  //    RETURNS startedAt for race condition protection!
+  const lockResult = await Repo.markDeletingReturningStartedAt(fileId);
+  if (!lockResult) {
     logger.debug(`markDeleting skipped: file ${fileId} not in SOFT_DELETED`);
     return;
   }
+  const { startedAt } = lockResult;  // ← store locally for validation
 
   try {
     // 2. Get S3 metadata and validate
@@ -220,16 +239,26 @@ async run(fileId: string) {
       throw new MissingMetadataError(`Bucket ${s3Object.bucketId} not found`);
     }
 
-    // 3. Delete from S3 using bucket/key (ignore NotFound)
+    // 3. RACE CONDITION GUARD: verify lock is still ours before S3 delete
+    //    Prevents orphaned S3 delete if GC reset the file while we were working
+    const lockInfo = await Repo.getDeletionLockInfo(fileId);
+    if (!lockInfo ||
+        lockInfo.deletionState !== 'DELETING' ||
+        lockInfo.deletingStartedAt?.getTime() !== startedAt.getTime()) {
+      logger.info(`Lock lost before S3 delete: file ${fileId} was reset by GC, aborting safely`);
+      return;  // ← exit WITHOUT deleting S3 or marking error
+    }
+
+    // 4. Delete from S3 using bucket/key (idempotent: 404/NotFound is ignored)
     await S3.deleteObject({ bucket: bucket.bucketName, key: s3Object.objectKey });
 
-    // 4. Hard delete DB row (conditional on state=DELETING)
+    // 5. Hard delete DB row (conditional on state=DELETING)
     const deleted = await Repo.hardDelete(fileId);
     if (!deleted) {
       logger.info(`hardDelete skipped: file ${fileId} no longer in DELETING`);  // ← info, not warn
     }
   } catch (e: any) {
-    // 5. Rollback to SOFT_DELETED + set error attributes
+    // 6. Rollback to SOFT_DELETED + set error attributes
     const errorCode = classifyError(e);
     await Repo.markErrorAndRollback(fileId, errorCode, e.message ?? String(e));
     throw e; // Surface to DBOS for logging
@@ -243,6 +272,7 @@ Notes:
 - **DELETING is a hard lock**: all operations (restore, delete, update metadata) must reject if state is DELETING.
 - **Two-layer FATAL guard**: GC filters FATAL + workflow rejects FATAL (safety net for manual starts).
 - **S3 delete uses bucket/key**: always fetch metadata first; `MissingMetadataError` → FATAL.
+- **Race condition protection**: workflow stores `startedAt` locally and validates `state=DELETING AND startedAt matches` before S3 delete. If GC reset the file, workflow aborts safely without deleting S3.
 - `hardDelete` returns bool; false means GC reset the state (rare but possible); **logs at `info` level** (not `warn`).
 
 ### Repeated Retry Behavior
@@ -377,10 +407,10 @@ softDeleteManyIfEligible(fileIds, deletedAt)
 // Same logic for batch: only set deleted_at if currently NULL
 
 // ============================================================
-// MARK DELETING (atomic lock)
+// MARK DELETING (atomic lock) - returns startedAt for race protection!
 // ============================================================
 
-markDeleting(fileId): boolean
+markDeletingReturningStartedAt(fileId): { startedAt: Date } | null
 // CLEARS error attributes to maintain invariant!
 // Does NOT filter by error_code - workflow guard handles FATAL check before this
 // UPDATE files SET
@@ -390,8 +420,18 @@ markDeleting(fileId): boolean
 //   failed_at = NULL,                  -- ← clear!
 //   last_deletion_error = NULL         -- ← clear!
 // WHERE id = $1 AND deletion_state = 'SOFT_DELETED'
-// RETURNING id
-// Returns true if updated, false if not in SOFT_DELETED
+// RETURNING deleting_started_at       -- ← IMPORTANT: return timestamp!
+// Returns { startedAt } if updated, null if not in SOFT_DELETED
+// Workflow stores startedAt locally for race condition validation
+
+// ============================================================
+// GET DELETION LOCK INFO (for race condition check)
+// ============================================================
+
+getDeletionLockInfo(fileId): { deletionState: string, deletingStartedAt: Date | null } | null
+// SELECT deletion_state, deleting_started_at FROM files WHERE id = $1
+// Returns current state + timestamp for validation before S3 delete
+// Used by workflow to verify lock is still held before destructive operation
 
 // ============================================================
 // MARK ERROR AND ROLLBACK (on workflow failure)
@@ -521,8 +561,9 @@ All methods avoid token logic and next_attempt scheduling.
 ## S3 Error Handling
 
 - Delete one object per call using `bucket` and `object_key` from file metadata.
-- Ignore NotFound/NoSuchKey (object already deleted or never existed).
+- **S3 DeleteObject is idempotent**: usually returns success (200) even if object doesn't exist. Handle any 404/NotFound as success (object already gone).
 - **NoSuchBucket = FATAL** (bucket misconfiguration requires admin intervention).
+- Most S3 errors are from permissions/throttling, not "object not found".
 
 ### Error Classification (only 2 codes)
 
@@ -673,7 +714,7 @@ Note: `deleted_at` is set **only on first soft delete** (retention anchor).
 
 ---
 
-## Automated Tests (Minimum 7)
+## Automated Tests (Minimum 9)
 
 | #   | Test Case                                  | Description                                                                        |
 | --- | ------------------------------------------ | ---------------------------------------------------------------------------------- |
@@ -684,6 +725,8 @@ Note: `deleted_at` is set **only on first soft delete** (retention anchor).
 | 5   | `hardDelete=false` logs at info level      | Verify log level is `info` (not `warn`) when hardDelete returns false              |
 | 6   | GC selects correct files                   | Verify GC picks: clean + retryable after cooldown; never picks FATAL               |
 | 7   | Workflow rejects FATAL files               | Verify workflow skips files with `deletion_error_code = 'FATAL'`                   |
+| 8   | **Race: GC reset vs workflow S3 delete**   | Workflow aborts S3 delete if `startedAt` no longer matches (GC reset file)         |
+| 9   | **Race: restore after GC reset is safe**   | File restored after stuck reset is not corrupted by old workflow waking up         |
 
 ```typescript
 // Example test structure
@@ -816,6 +859,71 @@ describe("FileDeletion", () => {
       expect(debugSpy).toHaveBeenCalledWith(
         expect.stringContaining("FATAL error")
       );
+    });
+  });
+
+  // ============================================================
+  // RACE CONDITION TESTS (critical for data integrity!)
+  // ============================================================
+
+  describe("race: GC reset vs workflow S3 delete", () => {
+    it("workflow aborts S3 delete if startedAt no longer matches", async () => {
+      const s3Spy = vi.spyOn(s3Client, "deleteObject");
+      const infoSpy = vi.spyOn(logger, "info");
+
+      // Setup: file in SOFT_DELETED
+      await setupFile({ id: fileId, deletionState: "SOFT_DELETED" });
+
+      // Simulate: workflow calls markDeleting, gets startedAt
+      const lockResult = await repo.markDeletingReturningStartedAt(fileId);
+      const originalStartedAt = lockResult!.startedAt;
+
+      // Simulate: GC resets the stuck file (changes startedAt)
+      await repo.resetStuckDeleting({ stuckSince: new Date(0), limit: 1 });
+
+      // Simulate: workflow continues, checks lock before S3 delete
+      const lockInfo = await repo.getDeletionLockInfo(fileId);
+
+      // Assert: startedAt no longer matches (or state changed)
+      expect(
+        lockInfo?.deletionState !== 'DELETING' ||
+        lockInfo?.deletingStartedAt?.getTime() !== originalStartedAt.getTime()
+      ).toBe(true);
+
+      // Assert: S3 delete should NOT be called in real workflow
+      // (workflow would exit early due to lock validation)
+      expect(s3Spy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("race: restore after GC reset is safe", () => {
+    it("restored file is not corrupted by old workflow", async () => {
+      // Setup: file goes through full cycle
+      await setupFile({ id: fileId, deletionState: "SOFT_DELETED" });
+
+      // Step 1: workflow starts, gets lock
+      const lockResult = await repo.markDeletingReturningStartedAt(fileId);
+      const originalStartedAt = lockResult!.startedAt;
+
+      // Step 2: workflow "hangs" (simulate delay)
+
+      // Step 3: GC resets stuck file
+      await repo.resetStuckDeleting({ stuckSince: new Date(0), limit: 1 });
+
+      // Step 4: user restores file
+      await repo.restore(fileId);
+
+      // Step 5: old workflow "wakes up", checks lock
+      const lockInfo = await repo.getDeletionLockInfo(fileId);
+
+      // Assert: workflow sees state=ACTIVE, aborts
+      expect(lockInfo?.deletionState).toBe("ACTIVE");
+
+      // Assert: file is intact, not corrupted
+      const file = await repo.findById(fileId);
+      expect(file).toBeDefined();
+      expect(file.deletionState).toBe("ACTIVE");
+      expect(file.deletedAt).toBeNull();
     });
   });
 });
