@@ -390,7 +390,7 @@ export class FileRepository {
     // Merge user-provided where with assetGroupId and deletedAt filters
     const mergedWhere: FileRelayInput["where"] = {
       _and: [
-        { deletedAt: { _is_null: true } },
+        { deletedAt: { _is: null } },
         { assetGroupId: { _eq: assetGroupId } },
         ...(where ? [where] : []),
       ],

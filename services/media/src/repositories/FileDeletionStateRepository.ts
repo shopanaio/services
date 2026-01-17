@@ -171,7 +171,7 @@ export class FileDeletionStateRepository {
       ) as exists
     `);
 
-    return result.rows[0]?.exists ?? false;
+    return result[0]?.exists ?? false;
   }
 
   /**
@@ -256,7 +256,7 @@ export class FileDeletionStateRepository {
       RETURNING fds.file_id
     `);
 
-    return result.rowCount ?? 0;
+    return result.length;
   }
 
   /**
