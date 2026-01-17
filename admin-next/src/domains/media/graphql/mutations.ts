@@ -101,3 +101,45 @@ export const AVATAR_UPLOAD_MUTATION = gql`
   ${FILE_FRAGMENT}
   ${USER_ERROR_FRAGMENT}
 `;
+
+// ============================================
+// File Delete Mutations
+// ============================================
+
+/**
+ * Delete multiple files (soft delete by default, hard delete optional).
+ */
+export const FILE_DELETE_MANY_MUTATION = gql`
+  mutation FileDeleteMany($input: FileDeleteManyInput!) {
+    mediaMutation {
+      fileDeleteMany(input: $input) {
+        acceptedIds
+        startedHardDeleteIds
+        userErrors {
+          ...UserErrorFields
+        }
+      }
+    }
+  }
+  ${USER_ERROR_FRAGMENT}
+`;
+
+/**
+ * Restore a soft-deleted file.
+ */
+export const FILE_RESTORE_MUTATION = gql`
+  mutation FileRestore($input: FileRestoreInput!) {
+    mediaMutation {
+      fileRestore(input: $input) {
+        file {
+          ...FileFields
+        }
+        userErrors {
+          ...UserErrorFields
+        }
+      }
+    }
+  }
+  ${FILE_FRAGMENT}
+  ${USER_ERROR_FRAGMENT}
+`;

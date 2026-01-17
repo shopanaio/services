@@ -61,6 +61,7 @@ const createApiFile = (
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
   deletedAt: null,
+  deletionState: 'ACTIVE',
   dimensions: { __typename: 'MediaDimensions', width: 800, height: 800 },
   durationMs: null,
   externalData: null,

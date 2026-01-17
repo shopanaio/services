@@ -23,7 +23,7 @@ import {
 } from "@/ui-kit/floating-panel-stack";
 import { usePageConfig, createStartsWithTransformer, useAgGridTheme, useAgGridRowSelection } from "@/hooks";
 import { filterSchema } from "./filter-schema";
-import { useFiles, FileOrderField } from "../hooks";
+import { useFiles, useDeleteFiles, useRestoreFiles, FileOrderField } from "../hooks";
 import { useUploadMediaModal } from "../modals";
 import { MediaPreview, useMediaPreview } from "../components/media-preview";
 import type { ApiFile, ApiFileWhereInput, ApiFileOrderByInput } from "@/graphql/types";
@@ -211,6 +211,10 @@ export default function MediaPage() {
   // Upload modal
   const { push: pushUploadModal } = useUploadMediaModal();
 
+  // Delete and restore hooks
+  const { deleteFiles, loading: deleteLoading } = useDeleteFiles();
+  const { restoreFiles, loading: restoreLoading } = useRestoreFiles();
+
   // Media preview
   const mediaPreview = useMediaPreview(files);
 
@@ -250,26 +254,30 @@ export default function MediaPage() {
   }, []);
 
   // Delete selected files
-  const handleDeleteSelected = useCallback(() => {
+  const handleDeleteSelected = useCallback(async () => {
     const activeIds = selectedIds.filter((id) => {
       const file = files.find((f) => f.id === id);
       return file && !file.deletedAt;
     });
-    // TODO: Implement delete mutation
-    console.log("Delete files:", activeIds);
+    if (activeIds.length === 0) return;
+
+    await deleteFiles(activeIds);
     deselectAll();
-  }, [selectedIds, files, deselectAll]);
+    refetch();
+  }, [selectedIds, files, deselectAll, deleteFiles, refetch]);
 
   // Restore selected files
-  const handleRestoreSelected = useCallback(() => {
+  const handleRestoreSelected = useCallback(async () => {
     const deletedIds = selectedIds.filter((id) => {
       const file = files.find((f) => f.id === id);
       return file && file.deletedAt;
     });
-    // TODO: Implement restore mutation
-    console.log("Restore files:", deletedIds);
+    if (deletedIds.length === 0) return;
+
+    await restoreFiles(deletedIds);
     deselectAll();
-  }, [selectedIds, files, deselectAll]);
+    refetch();
+  }, [selectedIds, files, deselectAll, restoreFiles, refetch]);
 
   const columnDefs = useMemo<ColDef<ApiFile>[]>(
     () => [
@@ -339,6 +347,7 @@ export default function MediaPage() {
         icon: <DeleteOutlined />,
         count: selectionByState.active,
         danger: true,
+        loading: deleteLoading,
         onClick: handleDeleteSelected,
       },
       {
@@ -346,10 +355,11 @@ export default function MediaPage() {
         label: "Restore",
         icon: <UndoOutlined />,
         count: selectionByState.deleted,
+        loading: restoreLoading,
         onClick: handleRestoreSelected,
       },
     ],
-    [selectionByState, handleDeleteSelected, handleRestoreSelected]
+    [selectionByState, handleDeleteSelected, handleRestoreSelected, deleteLoading, restoreLoading]
   );
 
   // Build floating panels

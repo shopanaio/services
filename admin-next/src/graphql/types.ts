@@ -1177,6 +1177,10 @@ export type ApiFile = ApiNode & {
   createdAt: Scalars['DateTime']['output'];
   /** The date and time when the file was deleted (soft delete). */
   deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Deletion error code, if any. */
+  deletionErrorCode?: Maybe<Scalars['String']['output']>;
+  /** Current deletion state (ACTIVE, SOFT_DELETED, DELETING). */
+  deletionState: Scalars['String']['output'];
   /** Image/video dimensions (null if not applicable). */
   dimensions?: Maybe<ApiMediaDimensions>;
   /** Duration in milliseconds (for video/audio). */
@@ -1185,10 +1189,14 @@ export type ApiFile = ApiNode & {
   ext?: Maybe<Scalars['String']['output']>;
   /** External media data (for YouTube, Vimeo, etc). */
   externalData?: Maybe<ApiExternalMediaData>;
+  /** The date and time when the last deletion error occurred. */
+  failedAt?: Maybe<Scalars['DateTime']['output']>;
   /** The globally unique ID of the file. */
   id: Scalars['ID']['output'];
   /** Whether the file has been processed. */
   isProcessed: Scalars['Boolean']['output'];
+  /** Last deletion error details. */
+  lastDeletionError?: Maybe<Scalars['String']['output']>;
   /** Additional metadata. */
   meta?: Maybe<Scalars['JSON']['output']>;
   /** MIME type. */
@@ -1207,6 +1215,19 @@ export type ApiFile = ApiNode & {
   updatedAt: Scalars['DateTime']['output'];
   /** Public URL to access file. */
   url: Scalars['String']['output'];
+};
+
+export type ApiFileClearErrorInput = {
+  /** The ID of the file to clear deletion error for. */
+  id: Scalars['ID']['input'];
+};
+
+export type ApiFileClearErrorPayload = {
+  __typename?: 'FileClearErrorPayload';
+  /** The file with cleared deletion error. */
+  file?: Maybe<ApiFile>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<ApiGenericUserError>;
 };
 
 /** A connection to a list of File items. */
@@ -1280,6 +1301,23 @@ export type ApiFileDeleteInput = {
   id: Scalars['ID']['input'];
   /** Whether to permanently delete the file (hard delete). */
   permanent?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type ApiFileDeleteManyInput = {
+  /** The IDs of files to delete. */
+  ids: Array<Scalars['ID']['input']>;
+  /** Whether to permanently delete the files (hard delete). */
+  permanent?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type ApiFileDeleteManyPayload = {
+  __typename?: 'FileDeleteManyPayload';
+  /** Files that were eligible and transitioned to SOFT_DELETED. */
+  acceptedIds: Array<Scalars['ID']['output']>;
+  /** Files for which hard delete workflow was started. */
+  startedHardDeleteIds: Array<Scalars['ID']['output']>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<ApiGenericUserError>;
 };
 
 /** Payload for file deletion. */
@@ -1359,6 +1397,19 @@ export enum FileProvider {
   /** YouTube video */
   Youtube = 'YOUTUBE'
 }
+
+export type ApiFileRestoreInput = {
+  /** The ID of the file to restore. */
+  id: Scalars['ID']['input'];
+};
+
+export type ApiFileRestorePayload = {
+  __typename?: 'FileRestorePayload';
+  /** The restored file. */
+  file?: Maybe<ApiFile>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<ApiGenericUserError>;
+};
 
 /** Input for updating a file. */
 export type ApiFileUpdateInput = {
@@ -2113,52 +2164,24 @@ export type ApiMediaDimensions = {
 
 export type ApiMediaMutation = {
   __typename?: 'MediaMutation';
-  /**
-   * Upload avatar or logo for an entity (user profile or organization).
-   * The file is stored in the entity's asset group.
-   */
-  avatarUpload: ApiAvatarUploadPayload;
-  bucketCreate: ApiBucketCreatePayload;
-  fileCreateExternal: ApiFileCreateExternalPayload;
-  fileDelete: ApiFileDeletePayload;
-  fileUpdate: ApiFileUpdatePayload;
-  fileUpload: ApiFileUploadPayload;
-  fileUploadFromUrl: ApiFileUploadPayload;
+  fileClearError: ApiFileClearErrorPayload;
+  fileDeleteMany: ApiFileDeleteManyPayload;
+  fileRestore: ApiFileRestorePayload;
 };
 
 
-export type ApiMediaMutationAvatarUploadArgs = {
-  input: ApiAvatarUploadInput;
+export type ApiMediaMutationFileClearErrorArgs = {
+  input: ApiFileClearErrorInput;
 };
 
 
-export type ApiMediaMutationBucketCreateArgs = {
-  input: ApiBucketCreateInput;
+export type ApiMediaMutationFileDeleteManyArgs = {
+  input: ApiFileDeleteManyInput;
 };
 
 
-export type ApiMediaMutationFileCreateExternalArgs = {
-  input: ApiFileCreateExternalInput;
-};
-
-
-export type ApiMediaMutationFileDeleteArgs = {
-  input: ApiFileDeleteInput;
-};
-
-
-export type ApiMediaMutationFileUpdateArgs = {
-  input: ApiFileUpdateInput;
-};
-
-
-export type ApiMediaMutationFileUploadArgs = {
-  input: ApiFileUploadMultipartInput;
-};
-
-
-export type ApiMediaMutationFileUploadFromUrlArgs = {
-  input: ApiFileUploadFromUrlInput;
+export type ApiMediaMutationFileRestoreArgs = {
+  input: ApiFileRestoreInput;
 };
 
 export type ApiMediaQuery = {

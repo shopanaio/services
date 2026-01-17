@@ -22,6 +22,8 @@ export const FILE_BASIC_FRAGMENT = gql`
     originalName
     provider
     createdAt
+    deletedAt
+    deletionState
   }
 `;
 
