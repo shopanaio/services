@@ -28,7 +28,6 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
   actionCount: css`
     margin-left: 4px;
-    color: ${token.colorTextSecondary};
   `,
 }));
 
@@ -72,7 +71,8 @@ export function SelectionPanel({
       <Flex align="center" gap="small">
         {actions.map((action) => {
           const isDisabled =
-            action.disabled || (action.count !== undefined && action.count === 0);
+            action.disabled ||
+            (action.count !== undefined && action.count === 0);
 
           const button = (
             <Button
