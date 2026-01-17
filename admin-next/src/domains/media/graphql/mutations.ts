@@ -124,22 +124,3 @@ export const FILE_DELETE_MANY_MUTATION = gql`
   ${USER_ERROR_FRAGMENT}
 `;
 
-/**
- * Restore a soft-deleted file.
- */
-export const FILE_RESTORE_MUTATION = gql`
-  mutation FileRestore($input: FileRestoreInput!) {
-    mediaMutation {
-      fileRestore(input: $input) {
-        file {
-          ...FileFields
-        }
-        userErrors {
-          ...UserErrorFields
-        }
-      }
-    }
-  }
-  ${FILE_FRAGMENT}
-  ${USER_ERROR_FRAGMENT}
-`;

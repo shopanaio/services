@@ -8,18 +8,6 @@ import {
 
 export const filterSchema: IFilterSchema[] = [
   {
-    key: "deletionState",
-    label: "Status",
-    description: "Filter by deletion status",
-    type: FilterType.Enum,
-    operators: enumOperators,
-    payloadKey: "deletionState",
-    options: [
-      { label: "Active", value: "ACTIVE" },
-      { label: "Deleted", value: "SOFT_DELETED" },
-    ],
-  },
-  {
     key: "provider",
     label: "Provider",
     description: "Filter by storage provider",

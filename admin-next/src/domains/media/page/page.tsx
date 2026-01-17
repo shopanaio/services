@@ -12,7 +12,7 @@ import {
   SelectionChangedEvent,
 } from "ag-grid-community";
 import type { CustomCellRendererProps } from "ag-grid-react";
-import { CloudUploadOutlined, DeleteOutlined, UndoOutlined } from "@ant-design/icons";
+import { CloudUploadOutlined, DeleteOutlined } from "@ant-design/icons";
 import { DataLayout } from "@/layouts/data";
 import { FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
@@ -23,7 +23,7 @@ import {
 } from "@/ui-kit/floating-panel-stack";
 import { usePageConfig, createStartsWithTransformer, useAgGridTheme, useAgGridRowSelection } from "@/hooks";
 import { filterSchema } from "./filter-schema";
-import { useFiles, useDeleteFiles, useRestoreFiles, FileOrderField } from "../hooks";
+import { useFiles, useDeleteFiles, FileOrderField } from "../hooks";
 import { useUploadMediaModal } from "../modals";
 import { MediaPreview, useMediaPreview } from "../components/media-preview";
 import type { ApiFile, ApiFileWhereInput, ApiFileOrderByInput } from "@/graphql/types";
@@ -211,19 +211,15 @@ export default function MediaPage() {
   // Upload modal
   const { push: pushUploadModal } = useUploadMediaModal();
 
-  // Delete and restore hooks
+  // Delete hook
   const { deleteFiles, loading: deleteLoading } = useDeleteFiles();
-  const { restoreFiles, loading: restoreLoading } = useRestoreFiles();
 
   // Media preview
   const mediaPreview = useMediaPreview(files);
 
   // Selection state
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [selectionByState, setSelectionByState] = useState<{
-    active: number;
-    deleted: number;
-  }>({ active: 0, deleted: 0 });
+  const [activeSelectionCount, setActiveSelectionCount] = useState(0);
 
   // Row selection with checkbox isolation
   const { rowSelection, selectionColumnDef, onCellClicked } = useAgGridRowSelection<ApiFile>({
@@ -236,12 +232,7 @@ export default function MediaPage() {
       const selectedRows = event.api.getSelectedRows();
       const ids = selectedRows.map((row) => row.id);
       setSelectedIds(ids);
-
-      // Count by state based on deletedAt field
-      setSelectionByState({
-        active: selectedRows.filter((r) => !r.deletedAt).length,
-        deleted: selectedRows.filter((r) => !!r.deletedAt).length,
-      });
+      setActiveSelectionCount(selectedRows.filter((r) => !r.deletedAt).length);
     },
     []
   );
@@ -250,7 +241,7 @@ export default function MediaPage() {
   const deselectAll = useCallback(() => {
     gridRef.current?.api.deselectAll();
     setSelectedIds([]);
-    setSelectionByState({ active: 0, deleted: 0 });
+    setActiveSelectionCount(0);
   }, []);
 
   // Delete selected files
@@ -265,19 +256,6 @@ export default function MediaPage() {
     deselectAll();
     refetch();
   }, [selectedIds, files, deselectAll, deleteFiles, refetch]);
-
-  // Restore selected files
-  const handleRestoreSelected = useCallback(async () => {
-    const deletedIds = selectedIds.filter((id) => {
-      const file = files.find((f) => f.id === id);
-      return file && file.deletedAt;
-    });
-    if (deletedIds.length === 0) return;
-
-    await restoreFiles(deletedIds);
-    deselectAll();
-    refetch();
-  }, [selectedIds, files, deselectAll, restoreFiles, refetch]);
 
   const columnDefs = useMemo<ColDef<ApiFile>[]>(
     () => [
@@ -345,21 +323,13 @@ export default function MediaPage() {
         key: "delete",
         label: "Delete",
         icon: <DeleteOutlined />,
-        count: selectionByState.active,
+        count: activeSelectionCount,
         danger: true,
         loading: deleteLoading,
         onClick: handleDeleteSelected,
       },
-      {
-        key: "restore",
-        label: "Restore",
-        icon: <UndoOutlined />,
-        count: selectionByState.deleted,
-        loading: restoreLoading,
-        onClick: handleRestoreSelected,
-      },
     ],
-    [selectionByState, handleDeleteSelected, handleRestoreSelected, deleteLoading, restoreLoading]
+    [activeSelectionCount, handleDeleteSelected, deleteLoading]
   );
 
   // Build floating panels
