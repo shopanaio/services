@@ -143,6 +143,10 @@ export type File = Node & {
   createdAt: Scalars['DateTime']['output'];
   /** The date and time when the file was deleted (soft delete). */
   deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Deletion error code, if any. */
+  deletionErrorCode?: Maybe<Scalars['String']['output']>;
+  /** Current deletion state (ACTIVE, SOFT_DELETED, DELETING). */
+  deletionState: Scalars['String']['output'];
   /** Image/video dimensions (null if not applicable). */
   dimensions?: Maybe<MediaDimensions>;
   /** Duration in milliseconds (for video/audio). */
@@ -151,10 +155,14 @@ export type File = Node & {
   ext?: Maybe<Scalars['String']['output']>;
   /** External media data (for YouTube, Vimeo, etc). */
   externalData?: Maybe<ExternalMediaData>;
+  /** The date and time when the last deletion error occurred. */
+  failedAt?: Maybe<Scalars['DateTime']['output']>;
   /** The globally unique ID of the file. */
   id: Scalars['ID']['output'];
   /** Whether the file has been processed. */
   isProcessed: Scalars['Boolean']['output'];
+  /** Last deletion error details. */
+  lastDeletionError?: Maybe<Scalars['String']['output']>;
   /** Additional metadata. */
   meta?: Maybe<Scalars['JSON']['output']>;
   /** MIME type. */
@@ -173,6 +181,19 @@ export type File = Node & {
   updatedAt: Scalars['DateTime']['output'];
   /** Public URL to access file. */
   url: Scalars['String']['output'];
+};
+
+export type FileClearErrorInput = {
+  /** The ID of the file to clear deletion error for. */
+  id: Scalars['ID']['input'];
+};
+
+export type FileClearErrorPayload = {
+  __typename?: 'FileClearErrorPayload';
+  /** The file with cleared deletion error. */
+  file?: Maybe<File>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<GenericUserError>;
 };
 
 /** A connection to a list of File items. */
@@ -246,6 +267,23 @@ export type FileDeleteInput = {
   id: Scalars['ID']['input'];
   /** Whether to permanently delete the file (hard delete). */
   permanent?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type FileDeleteManyInput = {
+  /** The IDs of files to delete. */
+  ids: Array<Scalars['ID']['input']>;
+  /** Whether to permanently delete the files (hard delete). */
+  permanent?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type FileDeleteManyPayload = {
+  __typename?: 'FileDeleteManyPayload';
+  /** Files that were eligible and transitioned to SOFT_DELETED. */
+  acceptedIds: Array<Scalars['ID']['output']>;
+  /** Files for which hard delete workflow was started. */
+  startedHardDeleteIds: Array<Scalars['ID']['output']>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<GenericUserError>;
 };
 
 /** Payload for file deletion. */
@@ -325,6 +363,32 @@ export enum FileProvider {
   /** YouTube video */
   Youtube = 'YOUTUBE'
 }
+
+export type FileRestoreInput = {
+  /** The ID of the file to restore. */
+  id: Scalars['ID']['input'];
+};
+
+export type FileRestoreManyInput = {
+  /** The IDs of files to restore. */
+  ids: Array<Scalars['ID']['input']>;
+};
+
+export type FileRestoreManyPayload = {
+  __typename?: 'FileRestoreManyPayload';
+  /** Files that were successfully restored. */
+  restoredIds: Array<Scalars['ID']['output']>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<GenericUserError>;
+};
+
+export type FileRestorePayload = {
+  __typename?: 'FileRestorePayload';
+  /** The restored file. */
+  file?: Maybe<File>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<GenericUserError>;
+};
 
 /** Input for updating a file. */
 export type FileUpdateInput = {
@@ -519,8 +583,16 @@ export type MediaMutation = {
    */
   avatarUpload: AvatarUploadPayload;
   bucketCreate: BucketCreatePayload;
+  /** Clear errors for multiple files by ID. */
+  fileClearError: FileClearErrorPayload;
   fileCreateExternal: FileCreateExternalPayload;
   fileDelete: FileDeletePayload;
+  /** Delete multiple files by ID. */
+  fileDeleteMany: FileDeleteManyPayload;
+  /** Restore a single deleted file by ID. */
+  fileRestore: FileRestorePayload;
+  /** Restore multiple deleted files by ID. */
+  fileRestoreMany: FileRestoreManyPayload;
   fileUpdate: FileUpdatePayload;
   fileUpload: FileUploadPayload;
   fileUploadFromUrl: FileUploadPayload;
@@ -537,6 +609,11 @@ export type MediaMutationBucketCreateArgs = {
 };
 
 
+export type MediaMutationFileClearErrorArgs = {
+  input: FileClearErrorInput;
+};
+
+
 export type MediaMutationFileCreateExternalArgs = {
   input: FileCreateExternalInput;
 };
@@ -544,6 +621,21 @@ export type MediaMutationFileCreateExternalArgs = {
 
 export type MediaMutationFileDeleteArgs = {
   input: FileDeleteInput;
+};
+
+
+export type MediaMutationFileDeleteManyArgs = {
+  input: FileDeleteManyInput;
+};
+
+
+export type MediaMutationFileRestoreArgs = {
+  input: FileRestoreInput;
+};
+
+
+export type MediaMutationFileRestoreManyArgs = {
+  input: FileRestoreManyInput;
 };
 
 
@@ -635,8 +727,6 @@ export type S3ObjectData = {
   __typename?: 'S3ObjectData';
   /** The bucket ID where this file is stored. */
   bucketId: Scalars['ID']['output'];
-  /** Content hash (SHA-256) for deduplication. */
-  contentHash?: Maybe<Scalars['String']['output']>;
   /** ETag from S3. */
   etag?: Maybe<Scalars['String']['output']>;
   /** S3 object key (path within bucket). */
@@ -796,16 +886,24 @@ export type ResolversTypes = ResolversObject<{
   DateTimeFilter: DateTimeFilter;
   ExternalMediaData: ResolverTypeWrapper<ExternalMediaData>;
   File: ResolverTypeWrapper<File>;
+  FileClearErrorInput: FileClearErrorInput;
+  FileClearErrorPayload: ResolverTypeWrapper<FileClearErrorPayload>;
   FileConnection: ResolverTypeWrapper<FileConnection>;
   FileConnectionInput: FileConnectionInput;
   FileCreateExternalInput: FileCreateExternalInput;
   FileCreateExternalPayload: ResolverTypeWrapper<FileCreateExternalPayload>;
   FileDeleteInput: FileDeleteInput;
+  FileDeleteManyInput: FileDeleteManyInput;
+  FileDeleteManyPayload: ResolverTypeWrapper<FileDeleteManyPayload>;
   FileDeletePayload: ResolverTypeWrapper<FileDeletePayload>;
   FileEdge: ResolverTypeWrapper<FileEdge>;
   FileOrderByInput: FileOrderByInput;
   FileOrderField: FileOrderField;
   FileProvider: FileProvider;
+  FileRestoreInput: FileRestoreInput;
+  FileRestoreManyInput: FileRestoreManyInput;
+  FileRestoreManyPayload: ResolverTypeWrapper<FileRestoreManyPayload>;
+  FileRestorePayload: ResolverTypeWrapper<FileRestorePayload>;
   FileUpdateInput: FileUpdateInput;
   FileUpdatePayload: ResolverTypeWrapper<FileUpdatePayload>;
   FileUploadFromUrlInput: FileUploadFromUrlInput;
@@ -849,14 +947,22 @@ export type ResolversParentTypes = ResolversObject<{
   DateTimeFilter: DateTimeFilter;
   ExternalMediaData: ExternalMediaData;
   File: File;
+  FileClearErrorInput: FileClearErrorInput;
+  FileClearErrorPayload: FileClearErrorPayload;
   FileConnection: FileConnection;
   FileConnectionInput: FileConnectionInput;
   FileCreateExternalInput: FileCreateExternalInput;
   FileCreateExternalPayload: FileCreateExternalPayload;
   FileDeleteInput: FileDeleteInput;
+  FileDeleteManyInput: FileDeleteManyInput;
+  FileDeleteManyPayload: FileDeleteManyPayload;
   FileDeletePayload: FileDeletePayload;
   FileEdge: FileEdge;
   FileOrderByInput: FileOrderByInput;
+  FileRestoreInput: FileRestoreInput;
+  FileRestoreManyInput: FileRestoreManyInput;
+  FileRestoreManyPayload: FileRestoreManyPayload;
+  FileRestorePayload: FileRestorePayload;
   FileUpdateInput: FileUpdateInput;
   FileUpdatePayload: FileUpdatePayload;
   FileUploadFromUrlInput: FileUploadFromUrlInput;
@@ -925,12 +1031,16 @@ export type FileResolvers<ContextType = GraphQLContext, ParentType extends Resol
   altText?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   deletedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  deletionErrorCode?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  deletionState?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   dimensions?: Resolver<Maybe<ResolversTypes['MediaDimensions']>, ParentType, ContextType>;
   durationMs?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   ext?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   externalData?: Resolver<Maybe<ResolversTypes['ExternalMediaData']>, ParentType, ContextType>;
+  failedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   isProcessed?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  lastDeletionError?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   meta?: Resolver<Maybe<ResolversTypes['JSON']>, ParentType, ContextType>;
   mimeType?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   originalName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -940,6 +1050,12 @@ export type FileResolvers<ContextType = GraphQLContext, ParentType extends Resol
   sourceUrl?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   url?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FileClearErrorPayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['FileClearErrorPayload'] = ResolversParentTypes['FileClearErrorPayload']> = ResolversObject<{
+  file?: Resolver<Maybe<ResolversTypes['File']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -956,6 +1072,13 @@ export type FileCreateExternalPayloadResolvers<ContextType = GraphQLContext, Par
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type FileDeleteManyPayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['FileDeleteManyPayload'] = ResolversParentTypes['FileDeleteManyPayload']> = ResolversObject<{
+  acceptedIds?: Resolver<Array<ResolversTypes['ID']>, ParentType, ContextType>;
+  startedHardDeleteIds?: Resolver<Array<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type FileDeletePayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['FileDeletePayload'] = ResolversParentTypes['FileDeletePayload']> = ResolversObject<{
   deletedFileId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
@@ -965,6 +1088,18 @@ export type FileDeletePayloadResolvers<ContextType = GraphQLContext, ParentType 
 export type FileEdgeResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['FileEdge'] = ResolversParentTypes['FileEdge']> = ResolversObject<{
   cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   node?: Resolver<ResolversTypes['File'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FileRestoreManyPayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['FileRestoreManyPayload'] = ResolversParentTypes['FileRestoreManyPayload']> = ResolversObject<{
+  restoredIds?: Resolver<Array<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FileRestorePayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['FileRestorePayload'] = ResolversParentTypes['FileRestorePayload']> = ResolversObject<{
+  file?: Resolver<Maybe<ResolversTypes['File']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1000,8 +1135,12 @@ export type MediaDimensionsResolvers<ContextType = GraphQLContext, ParentType ex
 export type MediaMutationResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['MediaMutation'] = ResolversParentTypes['MediaMutation']> = ResolversObject<{
   avatarUpload?: Resolver<ResolversTypes['AvatarUploadPayload'], ParentType, ContextType, RequireFields<MediaMutationAvatarUploadArgs, 'input'>>;
   bucketCreate?: Resolver<ResolversTypes['BucketCreatePayload'], ParentType, ContextType, RequireFields<MediaMutationBucketCreateArgs, 'input'>>;
+  fileClearError?: Resolver<ResolversTypes['FileClearErrorPayload'], ParentType, ContextType, RequireFields<MediaMutationFileClearErrorArgs, 'input'>>;
   fileCreateExternal?: Resolver<ResolversTypes['FileCreateExternalPayload'], ParentType, ContextType, RequireFields<MediaMutationFileCreateExternalArgs, 'input'>>;
   fileDelete?: Resolver<ResolversTypes['FileDeletePayload'], ParentType, ContextType, RequireFields<MediaMutationFileDeleteArgs, 'input'>>;
+  fileDeleteMany?: Resolver<ResolversTypes['FileDeleteManyPayload'], ParentType, ContextType, RequireFields<MediaMutationFileDeleteManyArgs, 'input'>>;
+  fileRestore?: Resolver<ResolversTypes['FileRestorePayload'], ParentType, ContextType, RequireFields<MediaMutationFileRestoreArgs, 'input'>>;
+  fileRestoreMany?: Resolver<ResolversTypes['FileRestoreManyPayload'], ParentType, ContextType, RequireFields<MediaMutationFileRestoreManyArgs, 'input'>>;
   fileUpdate?: Resolver<ResolversTypes['FileUpdatePayload'], ParentType, ContextType, RequireFields<MediaMutationFileUpdateArgs, 'input'>>;
   fileUpload?: Resolver<ResolversTypes['FileUploadPayload'], ParentType, ContextType, RequireFields<MediaMutationFileUploadArgs, 'input'>>;
   fileUploadFromUrl?: Resolver<ResolversTypes['FileUploadPayload'], ParentType, ContextType, RequireFields<MediaMutationFileUploadFromUrlArgs, 'input'>>;
@@ -1039,7 +1178,6 @@ export type QueryResolvers<ContextType = GraphQLContext, ParentType extends Reso
 
 export type S3ObjectDataResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['S3ObjectData'] = ResolversParentTypes['S3ObjectData']> = ResolversObject<{
   bucketId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  contentHash?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   etag?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   objectKey?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   storageClass?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -1065,10 +1203,14 @@ export type Resolvers<ContextType = GraphQLContext> = ResolversObject<{
   DateTime?: GraphQLScalarType;
   ExternalMediaData?: ExternalMediaDataResolvers<ContextType>;
   File?: FileResolvers<ContextType>;
+  FileClearErrorPayload?: FileClearErrorPayloadResolvers<ContextType>;
   FileConnection?: FileConnectionResolvers<ContextType>;
   FileCreateExternalPayload?: FileCreateExternalPayloadResolvers<ContextType>;
+  FileDeleteManyPayload?: FileDeleteManyPayloadResolvers<ContextType>;
   FileDeletePayload?: FileDeletePayloadResolvers<ContextType>;
   FileEdge?: FileEdgeResolvers<ContextType>;
+  FileRestoreManyPayload?: FileRestoreManyPayloadResolvers<ContextType>;
+  FileRestorePayload?: FileRestorePayloadResolvers<ContextType>;
   FileUpdatePayload?: FileUpdatePayloadResolvers<ContextType>;
   FileUploadPayload?: FileUploadPayloadResolvers<ContextType>;
   GenericUserError?: GenericUserErrorResolvers<ContextType>;

@@ -127,7 +127,6 @@ export class FileUploadFromUrlScript extends BaseScript<
 
     // 5. Generate object key and upload to S3
     const objectKey = this.generateObjectKey(this.storeId, metadata.ext);
-    const contentHash = crypto.createHash("sha256").update(buffer).digest("hex");
 
     // Initialize S3 client
     const s3Client = getS3Client();
@@ -145,7 +144,6 @@ export class FileUploadFromUrlScript extends BaseScript<
       {
         "Content-Type": metadata.mimeType,
         "x-amz-meta-source-url": params.sourceUrl,
-        "x-amz-meta-content-hash": contentHash,
       }
     );
 
@@ -180,7 +178,6 @@ export class FileUploadFromUrlScript extends BaseScript<
       fileId: file.id,
       bucketId: bucket.id,
       objectKey,
-      contentHash,
       etag: uploadResult.etag,
       storageClass: "STANDARD",
     });

@@ -8,13 +8,11 @@ export interface CreateS3ObjectInput {
   fileId: string;
   bucketId: string;
   objectKey: string;
-  contentHash?: string | null;
   etag?: string | null;
   storageClass?: string;
 }
 
 export interface UpdateS3ObjectInput {
-  contentHash?: string | null;
   etag?: string | null;
   storageClass?: string;
 }
@@ -59,23 +57,14 @@ export class S3ObjectRepository {
   }
 
   /**
-   * Create a new S3 object record or return existing one by content hash
+   * Create a new S3 object record
    */
   async create(assetGroupId: string, data: CreateS3ObjectInput): Promise<S3Object> {
-    // Check for existing S3 object by content hash (deduplication)
-    if (data.contentHash) {
-      const existing = await this.findByContentHash(assetGroupId, data.contentHash);
-      if (existing) {
-        return existing;
-      }
-    }
-
     const newS3Object: NewS3Object = {
       fileId: data.fileId,
       assetGroupId,
       bucketId: data.bucketId,
       objectKey: data.objectKey,
-      contentHash: data.contentHash ?? null,
       etag: data.etag ?? null,
       storageClass: data.storageClass ?? "STANDARD",
     };
@@ -91,9 +80,6 @@ export class S3ObjectRepository {
   async update(fileId: string, data: UpdateS3ObjectInput): Promise<S3Object | null> {
     const updateData: Partial<NewS3Object> = {};
 
-    if (data.contentHash !== undefined) {
-      updateData.contentHash = data.contentHash;
-    }
     if (data.etag !== undefined) {
       updateData.etag = data.etag;
     }
@@ -121,24 +107,6 @@ export class S3ObjectRepository {
     await this.db
       .delete(s3Objects)
       .where(eq(s3Objects.fileId, fileId));
-  }
-
-  /**
-   * Find S3 object by content hash within asset group (for deduplication)
-   */
-  async findByContentHash(assetGroupId: string, hash: string): Promise<S3Object | null> {
-    const result = await this.db
-      .select()
-      .from(s3Objects)
-      .where(
-        and(
-          eq(s3Objects.assetGroupId, assetGroupId),
-          eq(s3Objects.contentHash, hash)
-        )
-      )
-      .limit(1);
-
-    return result[0] ?? null;
   }
 
   /**

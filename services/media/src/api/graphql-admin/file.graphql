@@ -93,11 +93,6 @@ type S3ObjectData {
   objectKey: String!
 
   """
-  Content hash (SHA-256) for deduplication.
-  """
-  contentHash: String
-
-  """
   ETag from S3.
   """
   etag: String

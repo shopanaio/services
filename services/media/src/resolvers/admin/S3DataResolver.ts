@@ -18,10 +18,6 @@ export class S3DataResolver extends MediaType<string, S3Object> {
     return this.$get("objectKey");
   }
 
-  async contentHash() {
-    return this.$get("contentHash");
-  }
-
   async etag() {
     return this.$get("etag");
   }

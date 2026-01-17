@@ -94,10 +94,6 @@ export class FileUploadMultipartScript extends BaseScript<
 
     // 4. Generate object key and upload to S3
     const objectKey = this.generateObjectKey(this.storeId, metadata.ext);
-    const contentHash = crypto
-      .createHash("sha256")
-      .update(buffer)
-      .digest("hex");
 
     // Initialize S3 client
     const s3Client = getS3Client();
@@ -114,7 +110,6 @@ export class FileUploadMultipartScript extends BaseScript<
       buffer.length,
       {
         "Content-Type": metadata.mimeType,
-        "x-amz-meta-content-hash": contentHash,
         "x-amz-meta-original-name": encodeURIComponent(filename),
       }
     );
@@ -149,7 +144,6 @@ export class FileUploadMultipartScript extends BaseScript<
       fileId: file.id,
       bucketId: bucket.id,
       objectKey,
-      contentHash,
       etag: uploadResult.etag,
       storageClass: "STANDARD",
     });
