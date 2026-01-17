@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo, useRef, useCallback } from "react";
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { Flex, Button, App } from "antd";
+import { DeleteOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import { AgGridReact } from "ag-grid-react";
 import {
@@ -11,10 +12,17 @@ import {
   RowSelectionModule,
   GridStateModule,
   CellEditRequestEvent,
+  SelectionChangedEvent,
 } from "ag-grid-community";
 import { DataLayout } from "@/layouts/data";
 import { useFilters, FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
+import {
+  FloatingPanelStack,
+  usePanelOrder,
+  type PanelConfig,
+  type ActionConfig,
+} from "@/ui-kit/floating-panel-stack";
 import { useGridState, useAgGridTheme, useAgGridRowSelection } from "@/hooks";
 import { filterSchema } from "./filter-schema";
 import { useInventory, useInventoryEditStore } from "../hooks";
@@ -22,7 +30,6 @@ import { validateFieldChange } from "@/shared/utils/inventory";
 import type { IInventoryListItem } from "@/mocks/inventory/inventory-list";
 import {
   CalculatedAvailableCell,
-  InventoryActionBar,
   ProductCellRenderer,
   ReservedCellRenderer,
   OnHandCellRenderer,
@@ -70,13 +77,18 @@ export default function InventoryPage() {
 
   const {
     hasChanges,
+    getChangesCount,
     discardAll,
     startSaving,
     onSaveSuccess,
     setFieldValue,
     edits,
+    status,
   } = useInventoryEditStore();
   const { message } = App.useApp();
+
+  // Selection state
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   // Compute display data by merging server data with pending edits
   const displayData = useMemo(() => {
@@ -113,6 +125,28 @@ export default function InventoryPage() {
     onSaveSuccess();
     await refetch();
   }, [startSaving, onSaveSuccess, refetch]);
+
+  // Handle selection changes
+  const handleSelectionChanged = useCallback(
+    (event: SelectionChangedEvent<IInventoryListItem>) => {
+      const selectedRows = event.api.getSelectedRows();
+      setSelectedIds(selectedRows.map((row) => row.id));
+    },
+    []
+  );
+
+  // Deselect all rows
+  const handleDeselectAll = useCallback(() => {
+    gridRef.current?.api.deselectAll();
+    setSelectedIds([]);
+  }, []);
+
+  // Delete selected items
+  const handleDeleteSelected = useCallback(() => {
+    // TODO: Implement delete mutation
+    console.log("Delete items:", selectedIds);
+    handleDeselectAll();
+  }, [selectedIds, handleDeselectAll]);
 
   const handleCellEditRequest = useCallback(
     (event: CellEditRequestEvent<IInventoryListItem>) => {
@@ -219,6 +253,76 @@ export default function InventoryPage() {
     []
   );
 
+  // Build selection actions
+  const selectionActions = useMemo<ActionConfig[]>(
+    () => [
+      {
+        key: "delete",
+        label: "Delete",
+        icon: <DeleteOutlined />,
+        danger: true,
+        onClick: handleDeleteSelected,
+      },
+    ],
+    [handleDeleteSelected]
+  );
+
+  // Track panel activation order
+  const { sortPanels, trackActivePanels } = usePanelOrder();
+
+  const hasEditingPanel = hasChanges();
+  const hasSelectionPanel = selectedIds.length > 0;
+
+  // Auto-track panel activations
+  useEffect(() => {
+    trackActivePanels({
+      hasEditing: hasEditingPanel,
+      hasSelection: hasSelectionPanel,
+    });
+  }, [hasEditingPanel, hasSelectionPanel, trackActivePanels]);
+
+  // Build floating panels (sorted by activation order)
+  const panels = useMemo<PanelConfig[]>(() => {
+    const result: PanelConfig[] = [];
+
+    if (hasEditingPanel) {
+      result.push({
+        type: "editing",
+        changesCount: getChangesCount(),
+        hasChanges: true,
+        saving: status === "saving",
+        onSave: handleSave,
+        onCancel: handleDiscard,
+      });
+    }
+
+    if (hasSelectionPanel) {
+      result.push({
+        type: "selection",
+        count: selectedIds.length,
+        actions: selectionActions,
+        onDeselectAll: handleDeselectAll,
+      });
+    }
+
+    // Sort by activation order (most recent on top)
+    return sortPanels(result);
+  }, [
+    hasEditingPanel,
+    hasSelectionPanel,
+    status,
+    handleSave,
+    handleDiscard,
+    selectedIds.length,
+    selectionActions,
+    handleDeselectAll,
+    sortPanels,
+    getChangesCount,
+  ]);
+
+  // Block pagination when editing
+  const canNavigate = !hasChanges() && status !== "saving";
+
   return (
     <DataLayout
       name="inventory"
@@ -259,28 +363,29 @@ export default function InventoryPage() {
             readOnlyEdit
             onCellEditRequest={handleCellEditRequest}
             onCellClicked={onCellClicked}
+            onSelectionChanged={handleSelectionChanged}
             initialState={initialState}
             onStateUpdated={onStateUpdated}
             stopEditingWhenCellsLoseFocus
           />
         </div>
 
-        {hasChanges() ? (
-          <InventoryActionBar onSave={handleSave} onDiscard={handleDiscard} />
-        ) : (
-          <CursorPagination
-            total={displayData.length}
-            rangeStart={1}
-            rangeEnd={Math.min(20, displayData.length)}
-            pageSize={20}
-            hasNext={displayData.length > 20}
-            hasPrev={false}
-            onNext={() => {}}
-            onPrev={() => {}}
-            onPageSizeChange={() => {}}
-          />
-        )}
+        <CursorPagination
+          total={displayData.length}
+          rangeStart={1}
+          rangeEnd={Math.min(20, displayData.length)}
+          pageSize={20}
+          hasNext={displayData.length > 20}
+          hasPrev={false}
+          onNext={() => {}}
+          onPrev={() => {}}
+          onPageSizeChange={() => {}}
+          disabled={!canNavigate}
+          disabledReason="Save or discard changes to navigate"
+        />
       </div>
+
+      <FloatingPanelStack panels={panels} />
     </DataLayout>
   );
 }

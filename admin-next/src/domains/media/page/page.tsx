@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useCallback } from "react";
+import { useMemo, useRef, useCallback, useState, useEffect } from "react";
 import { Image, Typography, Flex, Tag, Button } from "antd";
 import { AgGridReact } from "ag-grid-react";
 import {
@@ -9,12 +9,19 @@ import {
   AllCommunityModule,
   RowSelectionModule,
   GridStateModule,
+  SelectionChangedEvent,
 } from "ag-grid-community";
 import type { CustomCellRendererProps } from "ag-grid-react";
-import { CloudUploadOutlined } from "@ant-design/icons";
+import { CloudUploadOutlined, DeleteOutlined, UndoOutlined } from "@ant-design/icons";
 import { DataLayout } from "@/layouts/data";
 import { FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
+import {
+  FloatingPanelStack,
+  usePanelOrder,
+  type PanelConfig,
+  type ActionConfig,
+} from "@/ui-kit/floating-panel-stack";
 import { usePageConfig, createStartsWithTransformer, useAgGridTheme, useAgGridRowSelection } from "@/hooks";
 import { filterSchema } from "./filter-schema";
 import { useFiles, FileOrderField } from "../hooks";
@@ -208,10 +215,62 @@ export default function MediaPage() {
   // Media preview
   const mediaPreview = useMediaPreview(files);
 
+  // Selection state
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [selectionByState, setSelectionByState] = useState<{
+    active: number;
+    deleted: number;
+  }>({ active: 0, deleted: 0 });
+
   // Row selection with checkbox isolation
   const { rowSelection, selectionColumnDef, onCellClicked } = useAgGridRowSelection<ApiFile>({
     onRowAction: (data) => mediaPreview.openById(data.id),
   });
+
+  // Handle selection changes
+  const handleSelectionChanged = useCallback(
+    (event: SelectionChangedEvent<ApiFile>) => {
+      const selectedRows = event.api.getSelectedRows();
+      const ids = selectedRows.map((row) => row.id);
+      setSelectedIds(ids);
+
+      // Count by state based on deletedAt field
+      setSelectionByState({
+        active: selectedRows.filter((r) => !r.deletedAt).length,
+        deleted: selectedRows.filter((r) => !!r.deletedAt).length,
+      });
+    },
+    []
+  );
+
+  // Deselect all rows
+  const handleDeselectAll = useCallback(() => {
+    gridRef.current?.api.deselectAll();
+    setSelectedIds([]);
+    setSelectionByState({ active: 0, deleted: 0 });
+  }, []);
+
+  // Delete selected files
+  const handleDeleteSelected = useCallback(() => {
+    const activeIds = selectedIds.filter((id) => {
+      const file = files.find((f) => f.id === id);
+      return file && !file.deletedAt;
+    });
+    // TODO: Implement delete mutation
+    console.log("Delete files:", activeIds);
+    handleDeselectAll();
+  }, [selectedIds, files, handleDeselectAll]);
+
+  // Restore selected files
+  const handleRestoreSelected = useCallback(() => {
+    const deletedIds = selectedIds.filter((id) => {
+      const file = files.find((f) => f.id === id);
+      return file && file.deletedAt;
+    });
+    // TODO: Implement restore mutation
+    console.log("Restore files:", deletedIds);
+    handleDeselectAll();
+  }, [selectedIds, files, handleDeselectAll]);
 
   const columnDefs = useMemo<ColDef<ApiFile>[]>(
     () => [
@@ -272,6 +331,57 @@ export default function MediaPage() {
     });
   }, [pushUploadModal, refetch]);
 
+  // Build selection actions with counts
+  const selectionActions = useMemo<ActionConfig[]>(
+    () => [
+      {
+        key: "delete",
+        label: "Delete",
+        icon: <DeleteOutlined />,
+        count: selectionByState.active,
+        danger: true,
+        onClick: handleDeleteSelected,
+      },
+      {
+        key: "restore",
+        label: "Restore",
+        icon: <UndoOutlined />,
+        count: selectionByState.deleted,
+        onClick: handleRestoreSelected,
+      },
+    ],
+    [selectionByState, handleDeleteSelected, handleRestoreSelected]
+  );
+
+  // Track panel activation order
+  const { sortPanels, trackActivePanels } = usePanelOrder();
+
+  const hasSelectionPanel = selectedIds.length > 0;
+
+  // Auto-track panel activations
+  useEffect(() => {
+    trackActivePanels({
+      hasEditing: false, // Media page doesn't have inline editing yet
+      hasSelection: hasSelectionPanel,
+    });
+  }, [hasSelectionPanel, trackActivePanels]);
+
+  // Build floating panels (sorted by activation order)
+  const panels = useMemo<PanelConfig[]>(() => {
+    const result: PanelConfig[] = [];
+
+    if (hasSelectionPanel) {
+      result.push({
+        type: "selection",
+        count: selectedIds.length,
+        actions: selectionActions,
+        onDeselectAll: handleDeselectAll,
+      });
+    }
+
+    return sortPanels(result);
+  }, [hasSelectionPanel, selectedIds.length, selectionActions, handleDeselectAll, sortPanels]);
+
   return (
     <DataLayout
       name="media"
@@ -317,6 +427,7 @@ export default function MediaPage() {
             {...gridStateProps}
             onSortChanged={onSortChanged}
             onCellClicked={onCellClicked}
+            onSelectionChanged={handleSelectionChanged}
           />
         </div>
 
@@ -341,6 +452,8 @@ export default function MediaPage() {
         onClose={mediaPreview.close}
         onIndexChange={mediaPreview.setCurrentIndex}
       />
+
+      <FloatingPanelStack panels={panels} />
     </DataLayout>
   );
 }

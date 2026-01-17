@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo, useRef, useCallback } from "react";
-import { Image, Typography, Flex, Button, Tag, Space } from "antd";
-import { PlusOutlined, EditOutlined } from "@ant-design/icons";
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import { Image, Typography, Flex, Button, Tag } from "antd";
+import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { AgGridReact } from "ag-grid-react";
 import { useModalStack } from "@/layouts/modals";
 import {
@@ -17,6 +17,12 @@ import type { CustomCellRendererProps } from "ag-grid-react";
 import { DataLayout } from "@/layouts/data";
 import { useFilters, FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
+import {
+  FloatingPanelStack,
+  usePanelOrder,
+  type PanelConfig,
+  type ActionConfig,
+} from "@/ui-kit/floating-panel-stack";
 import { useGridState, useGridSort, useAgGridTheme, useAgGridRowSelection } from "@/hooks";
 import { filterSchema } from "./filter-schema";
 import { useProducts } from "../hooks";
@@ -125,6 +131,62 @@ export default function ProductsPage() {
     push("bulk-editor", { productIds: bulkEditorIds });
   }, [setSelectedProducts, push]);
 
+  // Delete selected products
+  const handleDeleteSelected = useCallback(() => {
+    const selectedRows = gridRef.current?.api.getSelectedRows() || [];
+    // TODO: Implement delete mutation
+    console.log("Delete products:", selectedRows.map((r) => r.id));
+  }, []);
+
+  // Build selection actions
+  const selectionActions = useMemo<ActionConfig[]>(
+    () => [
+      {
+        key: "bulk-edit",
+        label: "Bulk Edit",
+        icon: <EditOutlined />,
+        onClick: handleBulkEdit,
+      },
+      {
+        key: "delete",
+        label: "Delete",
+        icon: <DeleteOutlined />,
+        danger: true,
+        onClick: handleDeleteSelected,
+      },
+    ],
+    [handleBulkEdit, handleDeleteSelected]
+  );
+
+  // Track panel activation order
+  const { sortPanels, trackActivePanels } = usePanelOrder();
+
+  const hasSelectionPanel = selectedCount > 0;
+
+  // Auto-track panel activations
+  useEffect(() => {
+    trackActivePanels({
+      hasEditing: false,
+      hasSelection: hasSelectionPanel,
+    });
+  }, [hasSelectionPanel, trackActivePanels]);
+
+  // Build floating panels
+  const panels = useMemo<PanelConfig[]>(() => {
+    const result: PanelConfig[] = [];
+
+    if (hasSelectionPanel) {
+      result.push({
+        type: "selection",
+        count: selectedCount,
+        actions: selectionActions,
+        onDeselectAll: () => gridRef.current?.api.deselectAll(),
+      });
+    }
+
+    return sortPanels(result);
+  }, [hasSelectionPanel, selectedCount, selectionActions, sortPanels]);
+
   const columnDefs = useMemo<ColDef<IProductListItem>[]>(
     () => [
       {
@@ -181,16 +243,9 @@ export default function ProductsPage() {
       title="Products"
       count={products.length}
       actions={
-        <Space>
-          {selectedCount > 0 && (
-            <Button icon={<EditOutlined />} onClick={handleBulkEdit}>
-              Bulk Edit ({selectedCount})
-            </Button>
-          )}
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-            Create
-          </Button>
-        </Space>
+        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+          Create
+        </Button>
       }
     >
       <DataLayout.Toolbar
@@ -247,6 +302,8 @@ export default function ProductsPage() {
           onPageSizeChange={() => {}}
         />
       </div>
+
+      <FloatingPanelStack panels={panels} />
     </DataLayout>
   );
 }
