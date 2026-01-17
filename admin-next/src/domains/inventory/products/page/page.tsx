@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
 import { Image, Typography, Flex, Button, Tag } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { AgGridReact } from "ag-grid-react";
@@ -19,7 +19,6 @@ import { useFilters, FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
 import {
   FloatingPanelStack,
-  usePanelOrder,
   type PanelConfig,
   type ActionConfig,
 } from "@/ui-kit/floating-panel-stack";
@@ -119,6 +118,12 @@ export default function ProductsPage() {
     []
   );
 
+  // Deselect all
+  const deselectAll = useCallback(() => {
+    gridRef.current?.api.deselectAll();
+    setSelectedCount(0);
+  }, []);
+
   // Open bulk editor with selected products
   const handleBulkEdit = useCallback(() => {
     const selectedRows = gridRef.current?.api.getSelectedRows() || [];
@@ -136,7 +141,8 @@ export default function ProductsPage() {
     const selectedRows = gridRef.current?.api.getSelectedRows() || [];
     // TODO: Implement delete mutation
     console.log("Delete products:", selectedRows.map((r) => r.id));
-  }, []);
+    deselectAll();
+  }, [deselectAll]);
 
   // Build selection actions
   const selectionActions = useMemo<ActionConfig[]>(
@@ -158,34 +164,22 @@ export default function ProductsPage() {
     [handleBulkEdit, handleDeleteSelected]
   );
 
-  // Track panel activation order
-  const { sortPanels, trackActivePanels } = usePanelOrder();
-
-  const hasSelectionPanel = selectedCount > 0;
-
-  // Auto-track panel activations
-  useEffect(() => {
-    trackActivePanels({
-      hasEditing: false,
-      hasSelection: hasSelectionPanel,
-    });
-  }, [hasSelectionPanel, trackActivePanels]);
-
   // Build floating panels
   const panels = useMemo<PanelConfig[]>(() => {
     const result: PanelConfig[] = [];
 
-    if (hasSelectionPanel) {
+    if (selectedCount > 0) {
+      // eslint-disable-next-line react-hooks/refs -- deselectAll is called on click, not during render
       result.push({
         type: "selection",
         count: selectedCount,
         actions: selectionActions,
-        onDeselectAll: () => gridRef.current?.api.deselectAll(),
+        onDeselectAll: deselectAll,
       });
     }
 
-    return sortPanels(result);
-  }, [hasSelectionPanel, selectedCount, selectionActions, sortPanels]);
+    return result;
+  }, [selectedCount, selectionActions, deselectAll]);
 
   const columnDefs = useMemo<ColDef<IProductListItem>[]>(
     () => [

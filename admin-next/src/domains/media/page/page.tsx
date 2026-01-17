@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useCallback, useState, useEffect } from "react";
+import { useMemo, useRef, useCallback, useState } from "react";
 import { Image, Typography, Flex, Tag, Button } from "antd";
 import { AgGridReact } from "ag-grid-react";
 import {
@@ -18,7 +18,6 @@ import { FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
 import {
   FloatingPanelStack,
-  usePanelOrder,
   type PanelConfig,
   type ActionConfig,
 } from "@/ui-kit/floating-panel-stack";
@@ -244,7 +243,7 @@ export default function MediaPage() {
   );
 
   // Deselect all rows
-  const handleDeselectAll = useCallback(() => {
+  const deselectAll = useCallback(() => {
     gridRef.current?.api.deselectAll();
     setSelectedIds([]);
     setSelectionByState({ active: 0, deleted: 0 });
@@ -258,8 +257,8 @@ export default function MediaPage() {
     });
     // TODO: Implement delete mutation
     console.log("Delete files:", activeIds);
-    handleDeselectAll();
-  }, [selectedIds, files, handleDeselectAll]);
+    deselectAll();
+  }, [selectedIds, files, deselectAll]);
 
   // Restore selected files
   const handleRestoreSelected = useCallback(() => {
@@ -269,8 +268,8 @@ export default function MediaPage() {
     });
     // TODO: Implement restore mutation
     console.log("Restore files:", deletedIds);
-    handleDeselectAll();
-  }, [selectedIds, files, handleDeselectAll]);
+    deselectAll();
+  }, [selectedIds, files, deselectAll]);
 
   const columnDefs = useMemo<ColDef<ApiFile>[]>(
     () => [
@@ -353,34 +352,22 @@ export default function MediaPage() {
     [selectionByState, handleDeleteSelected, handleRestoreSelected]
   );
 
-  // Track panel activation order
-  const { sortPanels, trackActivePanels } = usePanelOrder();
-
-  const hasSelectionPanel = selectedIds.length > 0;
-
-  // Auto-track panel activations
-  useEffect(() => {
-    trackActivePanels({
-      hasEditing: false, // Media page doesn't have inline editing yet
-      hasSelection: hasSelectionPanel,
-    });
-  }, [hasSelectionPanel, trackActivePanels]);
-
-  // Build floating panels (sorted by activation order)
+  // Build floating panels
   const panels = useMemo<PanelConfig[]>(() => {
     const result: PanelConfig[] = [];
 
-    if (hasSelectionPanel) {
+    if (selectedIds.length > 0) {
+      // eslint-disable-next-line react-hooks/refs -- deselectAll is called on click, not during render
       result.push({
         type: "selection",
         count: selectedIds.length,
         actions: selectionActions,
-        onDeselectAll: handleDeselectAll,
+        onDeselectAll: deselectAll,
       });
     }
 
-    return sortPanels(result);
-  }, [hasSelectionPanel, selectedIds.length, selectionActions, handleDeselectAll, sortPanels]);
+    return result;
+  }, [selectedIds.length, selectionActions, deselectAll]);
 
   return (
     <DataLayout

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
 import { Flex, Button, App } from "antd";
 import { DeleteOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
@@ -19,7 +19,6 @@ import { useFilters, FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
 import {
   FloatingPanelStack,
-  usePanelOrder,
   type PanelConfig,
   type ActionConfig,
 } from "@/ui-kit/floating-panel-stack";
@@ -136,7 +135,7 @@ export default function InventoryPage() {
   );
 
   // Deselect all rows
-  const handleDeselectAll = useCallback(() => {
+  const deselectAll = useCallback(() => {
     gridRef.current?.api.deselectAll();
     setSelectedIds([]);
   }, []);
@@ -145,8 +144,8 @@ export default function InventoryPage() {
   const handleDeleteSelected = useCallback(() => {
     // TODO: Implement delete mutation
     console.log("Delete items:", selectedIds);
-    handleDeselectAll();
-  }, [selectedIds, handleDeselectAll]);
+    deselectAll();
+  }, [selectedIds, deselectAll]);
 
   const handleCellEditRequest = useCallback(
     (event: CellEditRequestEvent<IInventoryListItem>) => {
@@ -188,7 +187,8 @@ export default function InventoryPage() {
   );
 
   // Row selection with checkbox isolation
-  const { rowSelection, selectionColumnDef, onCellClicked } = useAgGridRowSelection<IInventoryListItem>();
+  const { rowSelection, selectionColumnDef, onCellClicked } =
+    useAgGridRowSelection<IInventoryListItem>();
 
   const columnDefs = useMemo<ColDef<IInventoryListItem>[]>(
     () => [
@@ -267,25 +267,11 @@ export default function InventoryPage() {
     [handleDeleteSelected]
   );
 
-  // Track panel activation order
-  const { sortPanels, trackActivePanels } = usePanelOrder();
-
-  const hasEditingPanel = hasChanges();
-  const hasSelectionPanel = selectedIds.length > 0;
-
-  // Auto-track panel activations
-  useEffect(() => {
-    trackActivePanels({
-      hasEditing: hasEditingPanel,
-      hasSelection: hasSelectionPanel,
-    });
-  }, [hasEditingPanel, hasSelectionPanel, trackActivePanels]);
-
-  // Build floating panels (sorted by activation order)
+  // Build floating panels
   const panels = useMemo<PanelConfig[]>(() => {
     const result: PanelConfig[] = [];
 
-    if (hasEditingPanel) {
+    if (hasChanges()) {
       result.push({
         type: "editing",
         changesCount: getChangesCount(),
@@ -296,28 +282,26 @@ export default function InventoryPage() {
       });
     }
 
-    if (hasSelectionPanel) {
+    if (selectedIds.length > 0) {
+      // eslint-disable-next-line react-hooks/refs -- deselectAll is called on click, not during render
       result.push({
         type: "selection",
         count: selectedIds.length,
         actions: selectionActions,
-        onDeselectAll: handleDeselectAll,
+        onDeselectAll: deselectAll,
       });
     }
 
-    // Sort by activation order (most recent on top)
-    return sortPanels(result);
+    return result;
   }, [
-    hasEditingPanel,
-    hasSelectionPanel,
+    hasChanges,
+    getChangesCount,
     status,
     handleSave,
     handleDiscard,
     selectedIds.length,
     selectionActions,
-    handleDeselectAll,
-    sortPanels,
-    getChangesCount,
+    deselectAll,
   ]);
 
   // Block pagination when editing
