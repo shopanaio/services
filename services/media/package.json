@@ -17,6 +17,7 @@
     "@apollo/server": "^4.11.0",
     "@apollo/subgraph": "^2.9.0",
     "@as-integrations/fastify": "^2.1.1",
+    "@nestjs/schedule": "^4.1.0",
     "@shopana/platform-api": "0.0.1",
     "@shopana/shared-context": "*",
     "@shopana/shared-graphql-guid": "*",
