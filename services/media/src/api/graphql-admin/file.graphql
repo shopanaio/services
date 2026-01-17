@@ -208,6 +208,26 @@ type File implements Node @key(fields: "id") {
   deletedAt: DateTime
 
   """
+  Current deletion state (ACTIVE, SOFT_DELETED, DELETING).
+  """
+  deletionState: String!
+
+  """
+  Deletion error code, if any.
+  """
+  deletionErrorCode: String
+
+  """
+  Last deletion error details.
+  """
+  lastDeletionError: String
+
+  """
+  The date and time when the last deletion error occurred.
+  """
+  failedAt: DateTime
+
+  """
   S3-specific data (only for S3 provider).
   """
   s3Data: S3ObjectData
@@ -421,6 +441,81 @@ type FileDeletePayload {
   List of errors that occurred during the mutation.
   """
   userErrors: [GenericUserError!]!
+}
+
+# ---- File Deletion (Batch/Restore/Clear Error) ----
+
+input FileDeleteManyInput {
+  """
+  The IDs of files to delete.
+  """
+  ids: [ID!]!
+
+  """
+  Whether to permanently delete the files (hard delete).
+  """
+  permanent: Boolean
+}
+
+type FileDeleteManyPayload {
+  """
+  Files that were eligible and transitioned to SOFT_DELETED.
+  """
+  acceptedIds: [ID!]!
+
+  """
+  Files for which hard delete workflow was started.
+  """
+  startedHardDeleteIds: [ID!]!
+
+  """
+  List of errors that occurred during the mutation.
+  """
+  userErrors: [GenericUserError!]!
+}
+
+input FileRestoreInput {
+  """
+  The ID of the file to restore.
+  """
+  id: ID!
+}
+
+type FileRestorePayload {
+  """
+  The restored file.
+  """
+  file: File
+
+  """
+  List of errors that occurred during the mutation.
+  """
+  userErrors: [GenericUserError!]!
+}
+
+input FileClearErrorInput {
+  """
+  The ID of the file to clear deletion error for.
+  """
+  id: ID!
+}
+
+type FileClearErrorPayload {
+  """
+  The file with cleared deletion error.
+  """
+  file: File
+
+  """
+  List of errors that occurred during the mutation.
+  """
+  userErrors: [GenericUserError!]!
+}
+
+extend type MediaMutation {
+  fileDeleteMany(input: FileDeleteManyInput!): FileDeleteManyPayload!
+  fileRestore(input: FileRestoreInput!): FileRestorePayload!
+  fileClearError(input: FileClearErrorInput!): FileClearErrorPayload!
 }
 
 # ---- Avatar/Logo Upload ----

@@ -27,6 +27,7 @@ export abstract class BaseScript<TParams, TResult> implements Authorizable {
   protected readonly services: MediaKernelServices;
   protected readonly repository: MediaKernelServices["repository"];
   protected readonly logger: MediaKernelServices["logger"];
+  protected readonly workflow: MediaKernelServices["workflow"];
 
   /**
    * Transaction manager for @Transactional() decorator
@@ -38,6 +39,7 @@ export abstract class BaseScript<TParams, TResult> implements Authorizable {
     this.services = services;
     this.repository = services.repository;
     this.logger = services.logger;
+    this.workflow = services.workflow;
     this.txManager = services.repository.txManager;
   }
 

@@ -1,4 +1,4 @@
-import { eq, and, isNull, inArray, sql } from "drizzle-orm";
+import { eq, and, isNull, inArray, sql, lt, or, isNotNull } from "drizzle-orm";
 import {
   createQuery,
   createRelayQuery,
@@ -7,6 +7,13 @@ import {
 } from "@shopana/drizzle-query";
 import type { Database } from "../infrastructure/db/database";
 import { files, assetGroups, type File, type NewFile } from "./models";
+import type {
+  DeletionErrorCode,
+  FindSoftDeletedForGCParams,
+  MarkDeletingResult,
+  ResetStuckDeletingParams,
+  RestoreResult,
+} from "../types/deletion.js";
 import {
   encodeGlobalIdByType,
   decodeGlobalId,
@@ -90,7 +97,7 @@ export class FileRepository {
       .where(
         and(
           eq(files.id, fileId),
-          isNull(files.deletedAt)
+          eq(files.deletionState, "ACTIVE")
         )
       )
       .limit(1);
@@ -112,7 +119,7 @@ export class FileRepository {
       .where(
         and(
           inArray(files.id, ids),
-          isNull(files.deletedAt)
+          eq(files.deletionState, "ACTIVE")
         )
       );
   }
@@ -195,7 +202,7 @@ export class FileRepository {
       .where(
         and(
           eq(files.id, fileId),
-          isNull(files.deletedAt)
+          eq(files.deletionState, "ACTIVE")
         )
       )
       .returning();
@@ -207,18 +214,7 @@ export class FileRepository {
    * Soft delete a file (set deletedAt)
    */
   async softDelete(fileId: string): Promise<void> {
-    await this.db
-      .update(files)
-      .set({
-        deletedAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      })
-      .where(
-        and(
-          eq(files.id, fileId),
-          isNull(files.deletedAt)
-        )
-      );
+    await this.softDeleteIfEligible(fileId, new Date());
   }
 
   /**
@@ -228,6 +224,215 @@ export class FileRepository {
     await this.db
       .delete(files)
       .where(eq(files.id, fileId));
+  }
+
+  /**
+   * Soft delete a file if it is ACTIVE
+   */
+  async softDeleteIfEligible(
+    fileId: string,
+    deletedAt: Date
+  ): Promise<string | null> {
+    const result = await this.db
+      .update(files)
+      .set({
+        deletionState: "SOFT_DELETED",
+        deletedAt: sql`COALESCE(${files.deletedAt}, ${deletedAt.toISOString()})`,
+      })
+      .where(
+        and(eq(files.id, fileId), eq(files.deletionState, "ACTIVE"))
+      )
+      .returning({ id: files.id });
+
+    return result[0]?.id ?? null;
+  }
+
+  /**
+   * Soft delete multiple files if they are ACTIVE
+   */
+  async softDeleteManyIfEligible(
+    fileIds: string[],
+    deletedAt: Date
+  ): Promise<string[]> {
+    if (fileIds.length === 0) {
+      return [];
+    }
+
+    const result = await this.db
+      .update(files)
+      .set({
+        deletionState: "SOFT_DELETED",
+        deletedAt: sql`COALESCE(${files.deletedAt}, ${deletedAt.toISOString()})`,
+      })
+      .where(
+        and(inArray(files.id, fileIds), eq(files.deletionState, "ACTIVE"))
+      )
+      .returning({ id: files.id });
+
+    return result.map((row) => row.id);
+  }
+
+  /**
+   * Mark a SOFT_DELETED file as DELETING and return the started_at timestamp
+   */
+  async markDeletingReturningStartedAt(
+    fileId: string
+  ): Promise<MarkDeletingResult | null> {
+    const result = await this.db
+      .update(files)
+      .set({
+        deletionState: "DELETING",
+        deletingStartedAt: sql`now()`,
+        deletionErrorCode: null,
+        failedAt: null,
+        lastDeletionError: null,
+      })
+      .where(
+        and(eq(files.id, fileId), eq(files.deletionState, "SOFT_DELETED"))
+      )
+      .returning({ startedAt: files.deletingStartedAt });
+
+    if (!result[0]?.startedAt) {
+      return null;
+    }
+
+    return { startedAt: new Date(result[0].startedAt) };
+  }
+
+  /**
+   * Verify DELETING lock with DB-side timestamp comparison
+   */
+  async isDeletionLockValid(
+    fileId: string,
+    expectedStartedAt: Date
+  ): Promise<boolean> {
+    const result = await this.db.execute<{ exists: boolean }>(sql`
+      SELECT EXISTS (
+        SELECT 1 FROM media.files
+        WHERE id = ${fileId}
+          AND deletion_state = 'DELETING'
+          AND deleting_started_at = ${expectedStartedAt.toISOString()}
+      ) as exists
+    `);
+
+    return result.rows[0]?.exists ?? false;
+  }
+
+  /**
+   * Roll back a DELETING file to SOFT_DELETED with error attributes
+   */
+  async markErrorAndRollback(
+    fileId: string,
+    errorCode: DeletionErrorCode,
+    errorMessage: string
+  ): Promise<boolean> {
+    const result = await this.db
+      .update(files)
+      .set({
+        deletionState: "SOFT_DELETED",
+        deletionErrorCode: errorCode,
+        lastDeletionError: errorMessage,
+        failedAt: sql`now()`,
+        deletingStartedAt: null,
+      })
+      .where(
+        and(eq(files.id, fileId), eq(files.deletionState, "DELETING"))
+      )
+      .returning({ id: files.id });
+
+    return result.length > 0;
+  }
+
+  /**
+   * Hard delete only if the file is DELETING
+   */
+  async hardDeleteIfDeleting(fileId: string): Promise<boolean> {
+    const result = await this.db
+      .delete(files)
+      .where(
+        and(eq(files.id, fileId), eq(files.deletionState, "DELETING"))
+      )
+      .returning({ id: files.id });
+
+    return result.length > 0;
+  }
+
+  /**
+   * Find SOFT_DELETED files eligible for GC
+   */
+  async findSoftDeletedForGC(
+    params: FindSoftDeletedForGCParams
+  ): Promise<File[]> {
+    return this.db
+      .select()
+      .from(files)
+      .where(
+        and(
+          eq(files.deletionState, "SOFT_DELETED"),
+          lt(files.deletedAt, params.cutoffDate.toISOString()),
+          or(
+            isNull(files.deletionErrorCode),
+            and(
+              eq(files.deletionErrorCode, "RETRYABLE"),
+              isNotNull(files.failedAt),
+              lt(files.failedAt, params.errorCooldown.toISOString())
+            )
+          )
+        )
+      )
+      .orderBy(files.deletedAt, files.id)
+      .limit(params.limit);
+  }
+
+  /**
+   * Reset DELETING files that are stuck beyond timeout
+   */
+  async resetStuckDeleting(params: ResetStuckDeletingParams): Promise<number> {
+    const result = await this.db.execute<{ id: string }>(sql`
+      WITH cte AS (
+        SELECT id FROM media.files
+        WHERE deletion_state = 'DELETING'
+          AND deleting_started_at IS NOT NULL
+          AND deleting_started_at < ${params.stuckSince.toISOString()}
+        ORDER BY deleting_started_at, id
+        LIMIT ${params.limit}
+      )
+      UPDATE media.files f
+      SET
+        deletion_state = 'SOFT_DELETED',
+        deleting_started_at = NULL,
+        deletion_error_code = 'RETRYABLE',
+        failed_at = now(),
+        last_deletion_error = 'stuck deleting timeout'
+      FROM cte
+      WHERE f.id = cte.id
+      RETURNING f.id
+    `);
+
+    return result.rowCount ?? 0;
+  }
+
+  /**
+   * Clear error attributes on SOFT_DELETED files
+   */
+  async clearError(fileId: string): Promise<boolean> {
+    const result = await this.db
+      .update(files)
+      .set({
+        deletionErrorCode: null,
+        lastDeletionError: null,
+        failedAt: null,
+      })
+      .where(
+        and(
+          eq(files.id, fileId),
+          eq(files.deletionState, "SOFT_DELETED"),
+          isNotNull(files.deletionErrorCode)
+        )
+      )
+      .returning({ id: files.id });
+
+    return result.length > 0;
   }
 
   // ---- Utility methods ----
@@ -246,7 +451,7 @@ export class FileRepository {
         and(
           eq(files.assetGroupId, assetGroupId),
           eq(files.idempotencyKey, key),
-          isNull(files.deletedAt)
+          eq(files.deletionState, "ACTIVE")
         )
       )
       .limit(1);
@@ -264,7 +469,7 @@ export class FileRepository {
       .where(
         and(
           eq(files.id, fileId),
-          isNull(files.deletedAt)
+          eq(files.deletionState, "ACTIVE")
         )
       )
       .limit(1);
@@ -290,7 +495,7 @@ export class FileRepository {
         and(
           eq(files.assetGroupId, assetGroupId),
           eq(files.sourceUrl, sourceUrl),
-          isNull(files.deletedAt)
+          eq(files.deletionState, "ACTIVE")
         )
       )
       .limit(1);
@@ -308,7 +513,7 @@ export class FileRepository {
       .where(
         and(
           eq(files.id, fileId),
-          sql`${files.deletedAt} IS NOT NULL`
+          eq(files.deletionState, "SOFT_DELETED")
         )
       )
       .limit(1);
@@ -317,24 +522,46 @@ export class FileRepository {
   }
 
   /**
-   * Restore a soft-deleted file
+   * Find a file by ID in any state
    */
-  async restore(fileId: string): Promise<File | null> {
+  async findAnyById(fileId: string): Promise<File | null> {
     const result = await this.db
-      .update(files)
-      .set({
-        deletedAt: null,
-        updatedAt: new Date().toISOString(),
-      })
-      .where(
-        and(
-          eq(files.id, fileId),
-          sql`${files.deletedAt} IS NOT NULL`
-        )
-      )
-      .returning();
+      .select()
+      .from(files)
+      .where(eq(files.id, fileId))
+      .limit(1);
 
     return result[0] ?? null;
+  }
+
+  /**
+   * Restore a soft-deleted file
+   */
+  async restore(fileId: string): Promise<RestoreResult> {
+    const current = await this.findAnyById(fileId);
+    if (!current) {
+      return { success: false, error: "INVALID_STATE" };
+    }
+    if (current.deletionState === "DELETING") {
+      return { success: false, error: "FILE_BEING_DELETED" };
+    }
+    if (current.deletionState === "ACTIVE") {
+      return { success: false, error: "INVALID_STATE" };
+    }
+
+    await this.db
+      .update(files)
+      .set({
+        deletionState: "ACTIVE",
+        deletedAt: null,
+        deletionErrorCode: null,
+        lastDeletionError: null,
+        failedAt: null,
+        deletingStartedAt: null,
+      })
+      .where(eq(files.id, fileId));
+
+    return { success: true };
   }
 
   // ---- Connection methods ----
@@ -383,10 +610,10 @@ export class FileRepository {
       };
     }
 
-    // Merge user-provided where with assetGroupId and deletedAt filters
+    // Merge user-provided where with assetGroupId and deletionState filters
     const mergedWhere: FileRelayInput["where"] = {
       _and: [
-        { deletedAt: { _is: null } },
+        { deletionState: { _eq: "ACTIVE" } },
         { assetGroupId: { _eq: assetGroupId } },
         ...(where ? [where] : []),
       ],

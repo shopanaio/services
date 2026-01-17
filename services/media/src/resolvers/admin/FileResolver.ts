@@ -8,13 +8,11 @@ import {
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
 
-/**
- * File resolver - resolves File type
- */
-@SubgraphReference()
-export class FileResolver extends MediaType<string, File> {
+abstract class FileResolverBase extends MediaType<string, File> {
+  protected abstract loadFile(fileId: string): Promise<File | null>;
+
   async $preload() {
-    const file = await this.$ctx.loaders.file.load(this.$props);
+    const file = await this.loadFile(this.$props);
 
     if (!file) {
       throw new Error(`File not found: ${this.$props}`);
@@ -101,6 +99,23 @@ export class FileResolver extends MediaType<string, File> {
     return this.$get("deletedAt");
   }
 
+  async deletionState() {
+    return this.$get("deletionState");
+  }
+
+  async deletionErrorCode() {
+    return this.$get("deletionErrorCode");
+  }
+
+  async lastDeletionError() {
+    return this.$get("lastDeletionError");
+  }
+
+  async failedAt() {
+    const failedAt = await this.$get("failedAt");
+    return failedAt ? new Date(failedAt) : null;
+  }
+
   /**
    * Resolve S3 data for S3 provider files
    */
@@ -121,5 +136,21 @@ export class FileResolver extends MediaType<string, File> {
       return null;
     }
     return new ExternalDataResolver(this.$props, this.$ctx);
+  }
+}
+
+/**
+ * File resolver - resolves File type
+ */
+@SubgraphReference()
+export class FileResolver extends FileResolverBase {
+  protected loadFile(fileId: string): Promise<File | null> {
+    return this.$ctx.loaders.file.load(fileId);
+  }
+}
+
+export class FileAnyResolver extends FileResolverBase {
+  protected loadFile(fileId: string): Promise<File | null> {
+    return this.$ctx.kernel.repository.file.findAnyById(fileId);
   }
 }

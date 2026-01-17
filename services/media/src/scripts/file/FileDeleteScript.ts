@@ -1,5 +1,6 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
-import { getS3Client, getBucketName } from "../../infrastructure/s3/index.js";
+import { DBOS } from "@shopana/workflows";
+import { FileHardDeleteWorkflow } from "../../workflows/FileHardDeleteWorkflow.js";
 import type {
   FileDeleteParams,
   FileDeleteResult,
@@ -10,96 +11,51 @@ export class FileDeleteScript extends BaseScript<
   FileDeleteResult
 > {
   protected async execute(params: FileDeleteParams): Promise<FileDeleteResult> {
-    this.logger.info({ params }, "FileDeleteScript: starting");
-
-    // 1. Find file by ID (include deleted for permanent delete check)
-    const existingFile = await this.repository.file.findById(params.id);
-
-    // 2. Check that file exists
-    if (!existingFile) {
-      // Check if it was already deleted (for permanent delete)
-      if (params.permanent) {
-        const deletedFile = await this.repository.file.findDeletedById(params.id);
-        if (deletedFile) {
-          // File exists but is soft-deleted, proceed with permanent delete
-          return await this.performPermanentDelete(params.id, deletedFile.provider);
-        }
-      }
-
-      this.logger.warn({ fileId: params.id }, "FileDeleteScript: file not found");
+    const file = await this.repository.file.findAnyById(params.id);
+    if (!file) {
       return {
         deletedFileId: null,
         userErrors: [
           {
             message: "File not found",
             field: ["id"],
-            code: "NOT_FOUND",
+            code: "FILE_NOT_FOUND",
           },
         ],
       };
     }
 
-    // 3. Perform delete (permanent or soft)
-    if (params.permanent) {
-      return await this.performPermanentDelete(params.id, existingFile.provider);
+    if (file.deletionState === "DELETING") {
+      return {
+        deletedFileId: null,
+        userErrors: [
+          {
+            message: "File is currently being deleted",
+            field: ["id"],
+            code: "FILE_BEING_DELETED",
+          },
+        ],
+      };
     }
 
-    // 4. Soft delete - set deletedAt
-    await this.repository.file.softDelete(params.id);
+    if (file.deletionState === "ACTIVE") {
+      await this.repository.file.softDeleteIfEligible(params.id, new Date());
+    }
 
-    this.logger.info({ fileId: params.id }, "FileDeleteScript: soft delete completed");
+    if (params.permanent) {
+      await this.startHardDeleteWorkflow(params.id);
+    }
 
     return {
-      deletedFileId: params.id,
+      deletedFileId: file.id,
       userErrors: [],
     };
   }
 
-  private async performPermanentDelete(
-    fileId: string,
-    provider: string
-  ): Promise<FileDeleteResult> {
-    // Delete related records based on provider
-    if (provider === "S3") {
-      // Get S3 object info before deleting
-      const s3Object = await this.repository.s3Object.findByFileId(fileId);
-
-      if (s3Object) {
-        // Delete from S3 storage
-        try {
-          const s3Client = getS3Client();
-          await s3Client.removeObject(getBucketName(), s3Object.objectKey);
-          this.logger.info(
-            { fileId, objectKey: s3Object.objectKey },
-            "FileDeleteScript: deleted object from S3"
-          );
-        } catch (s3Error) {
-          // Log but don't fail - file might already be deleted from S3
-          this.logger.warn(
-            { fileId, objectKey: s3Object.objectKey, error: s3Error },
-            "FileDeleteScript: failed to delete from S3, continuing with DB cleanup"
-          );
-        }
-
-        // Delete s3Objects record
-        await this.repository.s3Object.delete(fileId);
-        this.logger.info({ fileId }, "FileDeleteScript: deleted S3 object record");
-      }
-    } else if (["YOUTUBE", "VIMEO", "URL"].includes(provider)) {
-      // Delete externalMedia record
-      await this.repository.externalMedia.delete(fileId);
-      this.logger.info({ fileId }, "FileDeleteScript: deleted external media record");
-    }
-
-    // Delete the file record
-    await this.repository.file.hardDelete(fileId);
-
-    this.logger.info({ fileId }, "FileDeleteScript: permanent delete completed");
-
-    return {
-      deletedFileId: fileId,
-      userErrors: [],
-    };
+  private async startHardDeleteWorkflow(fileId: string): Promise<void> {
+    const workflow =
+      this.workflow.get<FileHardDeleteWorkflow>("fileHardDelete");
+    await DBOS.startWorkflow(workflow).run(fileId);
   }
 
   protected handleError(_error: unknown): FileDeleteResult {

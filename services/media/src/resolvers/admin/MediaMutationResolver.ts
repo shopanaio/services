@@ -1,6 +1,6 @@
 import type { FileUpload } from "graphql-upload-minimal";
 import { MediaType } from "./MediaType.js";
-import { FileResolver } from "./FileResolver.js";
+import { FileResolver, FileAnyResolver } from "./FileResolver.js";
 import { BucketResolver } from "./BucketResolver.js";
 import {
   BucketCreateScript,
@@ -9,6 +9,9 @@ import {
   FileCreateExternalScript,
   FileUpdateScript,
   FileDeleteScript,
+  FileDeleteManyScript,
+  FileRestoreScript,
+  FileClearErrorScript,
   ProfileAvatarUploadScript,
 } from "../../scripts/index.js";
 import type { AssetOwnerType } from "../../repositories/models/index.js";
@@ -228,6 +231,142 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
     };
   }
 
+  async fileDeleteMany({
+    input,
+  }: {
+    input: {
+      ids: string[];
+      permanent?: boolean;
+    };
+  }) {
+    const decodedIds: string[] = [];
+    const invalidIds: string[] = [];
+
+    for (const id of input.ids) {
+      const fileId = decodeGlobalIdByType(id, GlobalIdEntity.File);
+      if (!fileId) {
+        invalidIds.push(id);
+        continue;
+      }
+      decodedIds.push(fileId);
+    }
+
+    const { kernel } = this.$ctx;
+    const result = await kernel.runScript(FileDeleteManyScript, {
+      ids: decodedIds,
+      permanent: input.permanent ?? false,
+    });
+
+    const userErrors = [
+      ...invalidIds.map(() => ({
+        field: ["ids"],
+        code: "INVALID_ID",
+        message: this.getErrorMessage("INVALID_ID"),
+      })),
+      ...result.errors.map((error) => ({
+        field: ["ids"],
+        code: error.code,
+        message: this.getErrorMessage(error.code),
+      })),
+    ];
+
+    return {
+      acceptedIds: result.acceptedIds.map((id) =>
+        encodeGlobalIdByType(id, GlobalIdEntity.File)
+      ),
+      startedHardDeleteIds: result.startedHardDeleteIds.map((id) =>
+        encodeGlobalIdByType(id, GlobalIdEntity.File)
+      ),
+      userErrors,
+    };
+  }
+
+  async fileRestore({
+    input,
+  }: {
+    input: {
+      id: string;
+    };
+  }) {
+    const fileId = decodeGlobalIdByType(input.id, GlobalIdEntity.File);
+    if (!fileId) {
+      return {
+        file: null,
+        userErrors: [
+          {
+            field: ["id"],
+            code: "INVALID_ID",
+            message: this.getErrorMessage("INVALID_ID"),
+          },
+        ],
+      };
+    }
+
+    const { kernel } = this.$ctx;
+    const result = await kernel.runScript(FileRestoreScript, { id: fileId });
+
+    if (result.error) {
+      return {
+        file: null,
+        userErrors: [
+          {
+            field: ["id"],
+            code: result.error,
+            message: this.getErrorMessage(result.error),
+          },
+        ],
+      };
+    }
+
+    return {
+      file: result.file ? new FileResolver(result.file.id, this.$ctx) : null,
+      userErrors: [],
+    };
+  }
+
+  async fileClearError({
+    input,
+  }: {
+    input: {
+      id: string;
+    };
+  }) {
+    const fileId = decodeGlobalIdByType(input.id, GlobalIdEntity.File);
+    if (!fileId) {
+      return {
+        file: null,
+        userErrors: [
+          {
+            field: ["id"],
+            code: "INVALID_ID",
+            message: this.getErrorMessage("INVALID_ID"),
+          },
+        ],
+      };
+    }
+
+    const { kernel } = this.$ctx;
+    const result = await kernel.runScript(FileClearErrorScript, { id: fileId });
+
+    if (result.error) {
+      return {
+        file: null,
+        userErrors: [
+          {
+            field: ["id"],
+            code: result.error,
+            message: this.getErrorMessage(result.error),
+          },
+        ],
+      };
+    }
+
+    return {
+      file: result.file ? new FileAnyResolver(result.file.id, this.$ctx) : null,
+      userErrors: [],
+    };
+  }
+
   /**
    * Upload avatar or logo for an entity (user profile or organization).
    * The file is stored in the entity's asset group.
@@ -292,5 +431,16 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       file: result.file ? new FileResolver(result.file.id, this.$ctx) : null,
       userErrors: result.userErrors,
     };
+  }
+
+  private getErrorMessage(code: string): string {
+    const messages: Record<string, string> = {
+      FILE_NOT_FOUND: "File not found",
+      FILE_BEING_DELETED: "File is currently being deleted",
+      INVALID_STATE: "Invalid file state for this operation",
+      INVALID_ID: "Invalid file ID",
+      INTERNAL_ERROR: "Internal error",
+    };
+    return messages[code] ?? "Unknown error";
   }
 }

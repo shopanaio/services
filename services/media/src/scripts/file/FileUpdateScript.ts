@@ -11,12 +11,36 @@ export class FileUpdateScript extends BaseScript<
   protected async execute(params: FileUpdateParams): Promise<FileUpdateResult> {
     this.logger.info({ params }, "FileUpdateScript: starting");
 
-    // 1. Find file by ID
-    const existingFile = await this.repository.file.findById(params.id);
+    // 1. Find file by ID (any state to block DELETING)
+    const existingFile = await this.repository.file.findAnyById(params.id);
 
     // 2. Check that file exists
     if (!existingFile) {
       this.logger.warn({ fileId: params.id }, "FileUpdateScript: file not found");
+      return {
+        file: null,
+        userErrors: [
+          {
+            message: "File not found",
+            field: ["id"],
+            code: "NOT_FOUND",
+          },
+        ],
+      };
+    }
+    if (existingFile.deletionState === "DELETING") {
+      return {
+        file: null,
+        userErrors: [
+          {
+            message: "File is currently being deleted",
+            field: ["id"],
+            code: "FILE_BEING_DELETED",
+          },
+        ],
+      };
+    }
+    if (existingFile.deletionState !== "ACTIVE") {
       return {
         file: null,
         userErrors: [

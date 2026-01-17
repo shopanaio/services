@@ -5,6 +5,7 @@ import type {
 } from "@shopana/shared-kernel";
 import type { Cache } from "cache-manager";
 import type { Repository } from "../repositories";
+import type { WorkflowRegistry } from "@shopana/workflows";
 
 /**
  * Logger interface for the media service
@@ -22,6 +23,7 @@ export interface Logger {
 export interface MediaKernelServices extends BaseKernelServices {
   readonly repository: Repository;
   readonly cache: Cache;
+  readonly workflow: WorkflowRegistry;
 }
 
 /**
