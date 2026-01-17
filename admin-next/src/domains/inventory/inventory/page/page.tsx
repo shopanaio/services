@@ -75,8 +75,6 @@ export default function InventoryPage() {
   });
 
   const {
-    hasChanges,
-    getChangesCount,
     discardAll,
     startSaving,
     onSaveSuccess,
@@ -267,14 +265,21 @@ export default function InventoryPage() {
     [handleDeleteSelected]
   );
 
+  // Derive reactive values from edits
+  const hasUnsavedChanges = Object.keys(edits).length > 0;
+  const changesCount = Object.values(edits).reduce(
+    (count, fields) => count + Object.keys(fields || {}).length,
+    0
+  );
+
   // Build floating panels
   const panels = useMemo<PanelConfig[]>(() => {
     const result: PanelConfig[] = [];
 
-    if (hasChanges()) {
+    if (hasUnsavedChanges) {
       result.push({
         type: "editing",
-        changesCount: getChangesCount(),
+        changesCount,
         hasChanges: true,
         saving: status === "saving",
         onSave: handleSave,
@@ -294,8 +299,8 @@ export default function InventoryPage() {
 
     return result;
   }, [
-    hasChanges,
-    getChangesCount,
+    hasUnsavedChanges,
+    changesCount,
     status,
     handleSave,
     handleDiscard,
@@ -305,7 +310,7 @@ export default function InventoryPage() {
   ]);
 
   // Block pagination when editing
-  const canNavigate = !hasChanges() && status !== "saving";
+  const canNavigate = !hasUnsavedChanges && status !== "saving";
 
   return (
     <DataLayout
