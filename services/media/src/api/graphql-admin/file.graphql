@@ -493,6 +493,25 @@ type FileRestorePayload {
   userErrors: [GenericUserError!]!
 }
 
+input FileRestoreManyInput {
+  """
+  The IDs of files to restore.
+  """
+  ids: [ID!]!
+}
+
+type FileRestoreManyPayload {
+  """
+  Files that were successfully restored.
+  """
+  restoredIds: [ID!]!
+
+  """
+  List of errors that occurred during the mutation.
+  """
+  userErrors: [GenericUserError!]!
+}
+
 input FileClearErrorInput {
   """
   The ID of the file to clear deletion error for.
@@ -510,12 +529,6 @@ type FileClearErrorPayload {
   List of errors that occurred during the mutation.
   """
   userErrors: [GenericUserError!]!
-}
-
-extend type MediaMutation {
-  fileDeleteMany(input: FileDeleteManyInput!): FileDeleteManyPayload!
-  fileRestore(input: FileRestoreInput!): FileRestorePayload!
-  fileClearError(input: FileClearErrorInput!): FileClearErrorPayload!
 }
 
 # ---- Avatar/Logo Upload ----

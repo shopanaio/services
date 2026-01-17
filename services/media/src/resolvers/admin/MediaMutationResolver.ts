@@ -11,6 +11,7 @@ import {
   FileDeleteScript,
   FileDeleteManyScript,
   FileRestoreScript,
+  FileRestoreManyScript,
   FileClearErrorScript,
   ProfileAvatarUploadScript,
 } from "../../scripts/index.js";
@@ -321,6 +322,51 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
     return {
       file: result.file ? new FileResolver(result.file.id, this.$ctx) : null,
       userErrors: [],
+    };
+  }
+
+  async fileRestoreMany({
+    input,
+  }: {
+    input: {
+      ids: string[];
+    };
+  }) {
+    const decodedIds: string[] = [];
+    const invalidIds: string[] = [];
+
+    for (const id of input.ids) {
+      const fileId = decodeGlobalIdByType(id, GlobalIdEntity.File);
+      if (!fileId) {
+        invalidIds.push(id);
+        continue;
+      }
+      decodedIds.push(fileId);
+    }
+
+    const { kernel } = this.$ctx;
+    const result = await kernel.runScript(FileRestoreManyScript, {
+      ids: decodedIds,
+    });
+
+    const userErrors = [
+      ...invalidIds.map(() => ({
+        field: ["ids"],
+        code: "INVALID_ID",
+        message: this.getErrorMessage("INVALID_ID"),
+      })),
+      ...result.errors.map((error) => ({
+        field: ["ids"],
+        code: error.code,
+        message: this.getErrorMessage(error.code),
+      })),
+    ];
+
+    return {
+      restoredIds: result.restoredIds.map((id) =>
+        encodeGlobalIdByType(id, GlobalIdEntity.File)
+      ),
+      userErrors,
     };
   }
 

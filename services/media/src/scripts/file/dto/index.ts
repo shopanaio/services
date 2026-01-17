@@ -6,5 +6,6 @@ export * from "./FileUpdateDto.js";
 export * from "./FileDeleteDto.js";
 export * from "./FileDeleteManyDto.js";
 export * from "./FileRestoreDto.js";
+export * from "./FileRestoreManyDto.js";
 export * from "./FileClearErrorDto.js";
 export * from "./ProfileAvatarUploadDto.js";

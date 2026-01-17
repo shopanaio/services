@@ -85,4 +85,24 @@ type MediaMutation {
   The file is stored in the entity's asset group.
   """
   avatarUpload(input: AvatarUploadInput!): AvatarUploadPayload!
+
+  """
+  Delete multiple files by ID.
+  """
+  fileDeleteMany(input: FileDeleteManyInput!): FileDeleteManyPayload!
+
+  """
+  Restore a single deleted file by ID.
+  """
+  fileRestore(input: FileRestoreInput!): FileRestorePayload!
+
+  """
+  Restore multiple deleted files by ID.
+  """
+  fileRestoreMany(input: FileRestoreManyInput!): FileRestoreManyPayload!
+
+  """
+  Clear errors for multiple files by ID.
+  """
+  fileClearError(input: FileClearErrorInput!): FileClearErrorPayload!
 }
