@@ -10,6 +10,9 @@ export * from "./buckets";
 // Files (base table)
 export * from "./files";
 
+// File Deletion States (1:1 with files for GC lifecycle)
+export * from "./fileDeletionStates";
+
 // S3 Objects (1:1 with files for provider='s3')
 export * from "./s3Objects";
 

@@ -16,10 +16,14 @@ export class FileRestoreScript extends BaseScript<
       return { error: "FILE_NOT_FOUND" };
     }
 
-    const result = await this.repository.file.restore(params.id);
+    // Restore deletion state first
+    const result = await this.repository.fileDeletionState.restore(params.id);
     if (!result.success) {
       return { error: result.error };
     }
+
+    // Clear deletedAt on file
+    await this.repository.file.restore(params.id);
 
     const restored = await this.repository.file.findById(params.id);
     if (!restored) {

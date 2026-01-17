@@ -33,11 +33,12 @@ export class FileGarbageCollectorWorkflow extends BaseWorkflow {
   @DBOS.workflow()
   async run(): Promise<void> {
     const logger = DBOS.logger;
-    const fileRepo = this.repository.file;
+    const fileDeletionStateRepo = this.repository.fileDeletionState;
 
+    // Phase 1: Reset stuck DELETING -> SOFT_DELETED (with error marking)
     let totalStuck = 0;
     for (let i = 0; i < MAX_RESET_BATCHES; i++) {
-      const count = await fileRepo.resetStuckDeleting({
+      const count = await fileDeletionStateRepo.resetStuckDeleting({
         stuckSince: hoursAgo(STUCK_TIMEOUT_HOURS),
         limit: BATCH_LIMIT,
       });
@@ -52,9 +53,10 @@ export class FileGarbageCollectorWorkflow extends BaseWorkflow {
       );
     }
 
+    // Phase 2: Pick SOFT_DELETED files for hard delete
     let batchesProcessed = 0;
     while (batchesProcessed < MAX_GC_BATCHES) {
-      const batch = await fileRepo.findSoftDeletedForGC({
+      const batch = await fileDeletionStateRepo.findSoftDeletedForGC({
         cutoffDate: daysAgo(RETENTION_DAYS),
         errorCooldown: hoursAgo(ERROR_COOLDOWN_HOURS),
         limit: BATCH_LIMIT,
@@ -66,13 +68,12 @@ export class FileGarbageCollectorWorkflow extends BaseWorkflow {
 
       await pMap(
         batch,
-        async (file) => {
+        async (deletionState) => {
           try {
-            await this.startHardDeleteWorkflow(file.id);
+            await this.startHardDeleteWorkflow(deletionState.fileId);
           } catch (error) {
             logger.error(
-              { fileId: file.id, error },
-              "Failed to start hard delete workflow"
+              `Failed to start hard delete workflow for fileId=${deletionState.fileId}: ${error}`
             );
           }
         },

@@ -19,28 +19,39 @@ export class FileHardDeleteWorkflow extends BaseWorkflow {
   async run(fileId: string): Promise<void> {
     const logger = DBOS.logger;
     const fileRepo = this.repository.file;
+    const fileDeletionStateRepo = this.repository.fileDeletionState;
     const s3ObjectRepo = this.repository.s3Object;
     const bucketRepo = this.repository.bucket;
 
+    // Get file and its deletion state
     const file = await fileRepo.findAnyById(fileId);
     if (!file) {
       logger.debug(`File ${fileId} not found, skipping`);
       return;
     }
-    if (file.deletionState !== "SOFT_DELETED") {
+
+    const deletionState = await fileDeletionStateRepo.findByFileId(fileId);
+    if (!deletionState) {
+      logger.debug(`File ${fileId} has no deletion state, skipping`);
+      return;
+    }
+
+    if (deletionState.deletionState !== "SOFT_DELETED") {
       logger.debug(
-        `File ${fileId} not in SOFT_DELETED (state=${file.deletionState}), skipping`
+        `File ${fileId} not in SOFT_DELETED (state=${deletionState.deletionState}), skipping`
       );
       return;
     }
-    if (file.deletionErrorCode === "FATAL") {
+    if (deletionState.deletionErrorCode === "FATAL") {
       logger.debug(
         `File ${fileId} has FATAL error, admin must clear first via fileClearError`
       );
       return;
     }
 
-    const lockResult = await fileRepo.markDeletingReturningStartedAt(fileId);
+    // Lock: transition SOFT_DELETED -> DELETING
+    const lockResult =
+      await fileDeletionStateRepo.markDeletingReturningStartedAt(fileId);
     if (!lockResult) {
       logger.debug(`markDeleting skipped: file ${fileId} not in SOFT_DELETED`);
       return;
@@ -68,21 +79,25 @@ export class FileHardDeleteWorkflow extends BaseWorkflow {
         objectKey = s3Object.objectKey;
       }
 
-      const isLockValid = await fileRepo.isDeletionLockValid(fileId, startedAt);
+      // Verify lock is still valid before S3 delete
+      const isLockValid = await fileDeletionStateRepo.isDeletionLockValid(
+        fileId,
+        startedAt
+      );
       if (!isLockValid) {
-        const current = await fileRepo.findAnyById(fileId);
-        const reason = !current
+        const currentState = await fileDeletionStateRepo.findByFileId(fileId);
+        const reason = !currentState
           ? "row_missing"
-          : current.deletionState !== "DELETING"
-            ? `state_changed:${current.deletionState}`
+          : currentState.deletionState !== "DELETING"
+            ? `state_changed:${currentState.deletionState}`
             : "startedAt_mismatch";
         logger.info(
-          { fileId, reason },
-          "Lock lost before S3 delete, aborting safely"
+          `Lock lost before S3 delete, aborting safely: fileId=${fileId}, reason=${reason}`
         );
         return;
       }
 
+      // Delete from S3
       if (bucketName && objectKey) {
         await this.s3Client.deleteObject({
           bucket: bucketName,
@@ -90,16 +105,21 @@ export class FileHardDeleteWorkflow extends BaseWorkflow {
         });
       }
 
-      const deleted = await fileRepo.hardDeleteIfDeleting(fileId);
+      // Hard delete file row (cascades to file_deletion_states via FK)
+      const deleted = await fileRepo.hardDelete(fileId);
       if (!deleted) {
-        logger.info(
-          `hardDelete skipped: file ${fileId} no longer in DELETING`
-        );
+        logger.info(`hardDelete skipped: file ${fileId} already deleted`);
       }
     } catch (error: unknown) {
+      // Rollback: DELETING -> SOFT_DELETED with error
       const errorCode = classifyError(error);
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      await fileRepo.markErrorAndRollback(fileId, errorCode, errorMessage);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      await fileDeletionStateRepo.markErrorAndRollback(
+        fileId,
+        errorCode,
+        errorMessage
+      );
       throw error;
     }
   }

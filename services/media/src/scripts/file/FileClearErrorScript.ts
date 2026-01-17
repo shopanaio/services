@@ -15,27 +15,31 @@ export class FileClearErrorScript extends BaseScript<
     if (!file) {
       return { error: "FILE_NOT_FOUND" };
     }
-    if (file.deletionState === "DELETING") {
-      return { error: "FILE_BEING_DELETED" };
-    }
-    if (file.deletionState === "ACTIVE") {
+
+    const deletionState = await this.repository.fileDeletionState.findByFileId(
+      params.id
+    );
+    if (!deletionState) {
       return { error: "INVALID_STATE" };
     }
-    if (!file.deletionErrorCode) {
+    if (deletionState.deletionState === "DELETING") {
+      return { error: "FILE_BEING_DELETED" };
+    }
+    if (deletionState.deletionState === "ACTIVE") {
+      return { error: "INVALID_STATE" };
+    }
+    if (!deletionState.deletionErrorCode) {
       return { error: "INVALID_STATE" };
     }
 
-    const success = await this.repository.file.clearError(params.id);
+    const success = await this.repository.fileDeletionState.clearError(
+      params.id
+    );
     if (!success) {
       return { error: "INVALID_STATE" };
     }
 
-    const updated = await this.repository.file.findAnyById(params.id);
-    if (!updated) {
-      return { error: "INTERNAL_ERROR" };
-    }
-
-    return { file: updated };
+    return { file };
   }
 
   protected handleError(_error: unknown): FileClearErrorResult {

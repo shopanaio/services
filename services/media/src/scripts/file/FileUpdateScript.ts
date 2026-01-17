@@ -28,7 +28,12 @@ export class FileUpdateScript extends BaseScript<
         ],
       };
     }
-    if (existingFile.deletionState === "DELETING") {
+
+    // 3. Check deletion state
+    const deletionState = await this.repository.fileDeletionState.findByFileId(
+      params.id
+    );
+    if (deletionState?.deletionState === "DELETING") {
       return {
         file: null,
         userErrors: [
@@ -40,7 +45,7 @@ export class FileUpdateScript extends BaseScript<
         ],
       };
     }
-    if (existingFile.deletionState !== "ACTIVE") {
+    if (deletionState && deletionState.deletionState !== "ACTIVE") {
       return {
         file: null,
         userErrors: [

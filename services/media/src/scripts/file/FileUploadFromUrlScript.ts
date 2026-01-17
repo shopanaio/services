@@ -185,6 +185,9 @@ export class FileUploadFromUrlScript extends BaseScript<
       storageClass: "STANDARD",
     });
 
+    // 9. Create deletion state record
+    await this.repository.fileDeletionState.create(file.id);
+
     this.logger.info({ fileId: file.id }, "FileUploadFromUrlScript: completed successfully");
 
     return {

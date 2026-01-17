@@ -1,7 +1,7 @@
 import type {
   DeletionErrorCode,
   DeletionState,
-} from "../repositories/models/files.js";
+} from "../repositories/models/fileDeletionStates.js";
 
 export type { DeletionErrorCode, DeletionState };
 

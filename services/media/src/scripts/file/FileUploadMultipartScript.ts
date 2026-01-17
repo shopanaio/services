@@ -154,6 +154,9 @@ export class FileUploadMultipartScript extends BaseScript<
       storageClass: "STANDARD",
     });
 
+    // 8. Create deletion state record
+    await this.repository.fileDeletionState.create(file.id);
+
     this.logger.info(
       { fileId: file.id },
       "FileUploadMultipartScript: completed successfully"

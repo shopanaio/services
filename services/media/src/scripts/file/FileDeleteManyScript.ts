@@ -1,11 +1,16 @@
 import { DBOS } from "@shopana/workflows";
 import { BaseScript } from "../../kernel/BaseScript.js";
-import type { File } from "../../repositories/models/index.js";
+import type { File, FileDeletionState } from "../../repositories/models/index.js";
 import { FileHardDeleteWorkflow } from "../../workflows/FileHardDeleteWorkflow.js";
 import type {
   FileDeleteManyParams,
   FileDeleteManyResult,
 } from "./dto/FileDeleteManyDto.js";
+
+interface FileWithState {
+  file: File;
+  state: FileDeletionState | null;
+}
 
 export class FileDeleteManyScript extends BaseScript<
   FileDeleteManyParams,
@@ -15,43 +20,49 @@ export class FileDeleteManyScript extends BaseScript<
     params: FileDeleteManyParams
   ): Promise<FileDeleteManyResult> {
     const { ids, permanent = false } = params;
-    const now = new Date();
 
     const acceptedIds: string[] = [];
     const startedHardDeleteIds: string[] = [];
     const errors: FileDeleteManyResult["errors"] = [];
 
-    const filesMap = new Map<string, File>();
+    // Collect files and their deletion states
+    const filesMap = new Map<string, FileWithState>();
     for (const id of ids) {
       const file = await this.repository.file.findAnyById(id);
       if (!file) {
         errors.push({ id, code: "FILE_NOT_FOUND" });
         continue;
       }
-      if (file.deletionState === "DELETING") {
+      const state = await this.repository.fileDeletionState.findByFileId(id);
+      if (state?.deletionState === "DELETING") {
         errors.push({ id, code: "FILE_BEING_DELETED" });
         continue;
       }
-      filesMap.set(id, file);
+      filesMap.set(id, { file, state });
     }
 
+    // Get IDs that need soft delete (ACTIVE state)
     const activeIds = [...filesMap.entries()]
-      .filter(([_, file]) => file.deletionState === "ACTIVE")
+      .filter(([_, { state }]) => !state || state.deletionState === "ACTIVE")
       .map(([id]) => id);
 
+    // Soft delete: set deletedAt on files and state on deletion states
     if (activeIds.length > 0) {
-      const softDeleted = await this.repository.file.softDeleteManyIfEligible(
-        activeIds,
-        now
-      );
+      await this.repository.file.softDeleteMany(activeIds);
+      const softDeleted =
+        await this.repository.fileDeletionState.softDeleteManyIfEligible(
+          activeIds
+        );
       acceptedIds.push(...softDeleted);
     }
 
+    // Already soft-deleted are also accepted (idempotent)
     const alreadySoftDeleted = [...filesMap.entries()]
-      .filter(([_, file]) => file.deletionState === "SOFT_DELETED")
+      .filter(([_, { state }]) => state?.deletionState === "SOFT_DELETED")
       .map(([id]) => id);
     acceptedIds.push(...alreadySoftDeleted);
 
+    // Start hard delete workflows if permanent
     if (permanent) {
       for (const id of filesMap.keys()) {
         const started = await this.startHardDeleteWorkflow(id);

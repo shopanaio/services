@@ -126,6 +126,9 @@ export class FileCreateExternalScript extends BaseScript<
       },
     });
 
+    // 7. Create deletion state record
+    await this.repository.fileDeletionState.create(file.id);
+
     this.logger.info({ fileId: file.id }, "FileCreateExternalScript: completed successfully");
 
     return {

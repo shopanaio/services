@@ -25,7 +25,11 @@ export class FileDeleteScript extends BaseScript<
       };
     }
 
-    if (file.deletionState === "DELETING") {
+    const deletionState = await this.repository.fileDeletionState.findByFileId(
+      params.id
+    );
+
+    if (deletionState?.deletionState === "DELETING") {
       return {
         deletedFileId: null,
         userErrors: [
@@ -38,8 +42,10 @@ export class FileDeleteScript extends BaseScript<
       };
     }
 
-    if (file.deletionState === "ACTIVE") {
-      await this.repository.file.softDeleteIfEligible(params.id, new Date());
+    // Soft delete: set deletedAt on file and state on deletion state
+    if (!deletionState || deletionState.deletionState === "ACTIVE") {
+      await this.repository.file.softDelete(params.id);
+      await this.repository.fileDeletionState.softDeleteIfEligible(params.id);
     }
 
     if (params.permanent) {

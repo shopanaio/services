@@ -100,20 +100,31 @@ abstract class FileResolverBase extends MediaType<string, File> {
   }
 
   async deletionState() {
-    return this.$get("deletionState");
+    const state = await this.$ctx.kernel.repository.fileDeletionState.findByFileId(
+      this.$props
+    );
+    return state?.deletionState ?? "ACTIVE";
   }
 
   async deletionErrorCode() {
-    return this.$get("deletionErrorCode");
+    const state = await this.$ctx.kernel.repository.fileDeletionState.findByFileId(
+      this.$props
+    );
+    return state?.deletionErrorCode ?? null;
   }
 
   async lastDeletionError() {
-    return this.$get("lastDeletionError");
+    const state = await this.$ctx.kernel.repository.fileDeletionState.findByFileId(
+      this.$props
+    );
+    return state?.lastDeletionError ?? null;
   }
 
   async failedAt() {
-    const failedAt = await this.$get("failedAt");
-    return failedAt ? new Date(failedAt) : null;
+    const state = await this.$ctx.kernel.repository.fileDeletionState.findByFileId(
+      this.$props
+    );
+    return state?.failedAt ? new Date(state.failedAt) : null;
   }
 
   /**

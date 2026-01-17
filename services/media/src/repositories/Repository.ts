@@ -3,6 +3,7 @@ import type { Database } from "../infrastructure/db/database";
 import { AssetGroupRepository } from "./AssetGroupRepository";
 import { BucketRepository } from "./BucketRepository";
 import { FileRepository } from "./FileRepository";
+import { FileDeletionStateRepository } from "./FileDeletionStateRepository";
 import { S3ObjectRepository } from "./S3ObjectRepository";
 import { ExternalMediaRepository } from "./ExternalMediaRepository";
 import { UploadSessionRepository } from "./UploadSessionRepository";
@@ -19,6 +20,7 @@ export class Repository {
   public readonly assetGroup: AssetGroupRepository;
   public readonly bucket: BucketRepository;
   public readonly file: FileRepository;
+  public readonly fileDeletionState: FileDeletionStateRepository;
   public readonly s3Object: S3ObjectRepository;
   public readonly externalMedia: ExternalMediaRepository;
   public readonly uploadSession: UploadSessionRepository;
@@ -29,6 +31,7 @@ export class Repository {
     assetGroup: AssetGroupRepository,
     bucket: BucketRepository,
     file: FileRepository,
+    fileDeletionState: FileDeletionStateRepository,
     s3Object: S3ObjectRepository,
     externalMedia: ExternalMediaRepository,
     uploadSession: UploadSessionRepository,
@@ -38,6 +41,7 @@ export class Repository {
     this.assetGroup = assetGroup;
     this.bucket = bucket;
     this.file = file;
+    this.fileDeletionState = fileDeletionState;
     this.s3Object = s3Object;
     this.externalMedia = externalMedia;
     this.uploadSession = uploadSession;
@@ -58,6 +62,7 @@ export class Repository {
     const assetGroup = new AssetGroupRepository(db);
     const bucket = new BucketRepository(db);
     const file = new FileRepository(db);
+    const fileDeletionState = new FileDeletionStateRepository(db);
     const s3Object = new S3ObjectRepository(db);
     const externalMedia = new ExternalMediaRepository(db);
     const uploadSession = new UploadSessionRepository(db);
@@ -67,6 +72,7 @@ export class Repository {
       assetGroup,
       bucket,
       file,
+      fileDeletionState,
       s3Object,
       externalMedia,
       uploadSession,
