@@ -47,8 +47,8 @@ export interface FloatingPanelStackProps {
 // ============================================================================
 
 const ANIMATION_DURATION = DEFAULT_STACK_CONFIG.animationDuration;
-const SCALE_FACTOR = DEFAULT_STACK_CONFIG.scaleFactor;
-const TRANSLATE_Y = DEFAULT_STACK_CONFIG.translateY;
+const SCALE_FACTOR = 0.08; // Increased from 0.05 for more visible stacking
+const TRANSLATE_Y = 20;
 
 // ============================================================================
 // Global Styles
