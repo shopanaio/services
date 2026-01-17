@@ -23,5 +23,6 @@ export function buildAdminContextMiddleware() {
   return buildMiddleware(kernel.getServices().broker, {
     serviceName: "MEDIA",
     requireStore: false,
+    requireAuth: false,
   });
 }

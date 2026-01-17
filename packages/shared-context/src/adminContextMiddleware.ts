@@ -36,6 +36,8 @@ export interface AdminContextMiddlewareOptions {
   serviceName?: string;
   /** Whether x-store-name header is required (default: true) */
   requireStore?: boolean;
+  /** Whether authorization header is required (default: true) */
+  requireAuth?: boolean;
 }
 
 /**
@@ -52,6 +54,7 @@ export function buildAdminContextMiddleware(
 ) {
   const serviceName = options.serviceName ?? "SERVICE";
   const requireStore = options.requireStore ?? true;
+  const requireAuth = options.requireAuth ?? true;
 
   return async function adminContextMiddleware(
     request: FastifyRequest,
@@ -72,10 +75,14 @@ export function buildAdminContextMiddleware(
     }
 
     if (!authorization?.startsWith("Bearer ")) {
-      return reply.status(401).send({
-        data: null,
-        errors: [{ message: "Missing or invalid authorization header" }],
-      });
+      if (requireAuth) {
+        return reply.status(401).send({
+          data: null,
+          errors: [{ message: "Missing or invalid authorization header" }],
+        });
+      }
+      // Auth not required, continue without user context
+      return;
     }
 
     const accessToken = authorization.slice(7);
@@ -88,12 +95,16 @@ export function buildAdminContextMiddleware(
       >("iam.getCurrentUser", { accessToken });
 
       if (!userResult?.user) {
-        return reply.status(401).send({
-          data: null,
-          errors: [
-            { message: userResult?.userErrors?.[0]?.message || "Unauthorized" },
-          ],
-        });
+        if (requireAuth) {
+          return reply.status(401).send({
+            data: null,
+            errors: [
+              { message: userResult?.userErrors?.[0]?.message || "Unauthorized" },
+            ],
+          });
+        }
+        // Auth not required, continue without user context
+        return;
       }
 
       request.user = userResult.user;
