@@ -130,6 +130,16 @@ CREATE UNIQUE INDEX idx_stock_changes_idempotency
 -- Индекс для быстрого lookup без variant_id/warehouse_id (проверка "был ли event вообще")
 CREATE INDEX idx_stock_changes_idempo_lookup
   ON inventory.stock_changes(project_id, source_system, source_event_id);
+
+-- Индекс для availableChange7d и других time-based запросов
+CREATE INDEX idx_stock_changes_variant_created
+  ON inventory.stock_changes(variant_id, created_at DESC);
+```
+
+```sql
+-- Индекс для быстрого получения вариантов продукта (skuStatus и др.)
+CREATE INDEX idx_variant_product_active
+  ON inventory.variant(product_id) WHERE deleted_at IS NULL;
 ```
 
 ### Атомарный UPSERT с идемпотентностью (критично!)
@@ -180,9 +190,18 @@ update_after AS (
   FROM ins, upsert_stock us
   WHERE sc.id = ins.id
   RETURNING sc.*
+),
+cleanup AS (
+  -- Удаляем intent-запись если upsert_stock не сработал (нарушение CHECK и т.п.)
+  -- Гарантирует отсутствие "вечных NULL after"
+  DELETE FROM inventory.stock_changes sc
+  USING ins
+  WHERE sc.id = ins.id
+    AND NOT EXISTS (SELECT 1 FROM update_after)
+  RETURNING 1
 )
 SELECT * FROM update_after;
--- Пустой результат = идемпотентный повтор (операция уже была выполнена)
+-- Пустой результат = идемпотентный повтор ИЛИ ошибка (проверять cleanup)
 ```
 
 **Важно**: строка `warehouse_stock` должна существовать до операций типа SELL/RESERVE/RELEASE.
@@ -333,13 +352,14 @@ WHERE v.product_id = $1
 ### availableChange7d
 ```sql
 -- net change available за 7 дней
--- Фильтр по времени для бизнес-логики, seq не используем (не нужен порядок)
+-- Исключаем intent-записи с NULL after (race condition защита)
 SELECT COALESCE(SUM(sc.delta_on_hand - sc.delta_reserved - sc.delta_unavailable), 0)
 FROM inventory.stock_changes sc
 JOIN inventory.variant v ON v.id = sc.variant_id
 WHERE v.product_id = $1
   AND v.deleted_at IS NULL
-  AND sc.created_at >= NOW() - INTERVAL '7 days';
+  AND sc.created_at >= NOW() - INTERVAL '7 days'
+  AND sc.on_hand_after IS NOT NULL;  -- только завершённые записи
 ```
 
 ### skuStatus (low stock, out of stock, backorder)
