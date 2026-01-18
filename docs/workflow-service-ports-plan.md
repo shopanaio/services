@@ -75,16 +75,23 @@ export interface ActionContext {
   /** DBOS workflow ID - globally unique */
   operationId: string;
 
+  /** Target service name */
+  service: string;
+
+  /** Action being called */
+  action: string;
+
   /**
-   * Unique key for idempotency.
-   * Format: operationId:service:action:callId
-   *
-   * callId ensures multiple calls to same action within one workflow
-   * are distinguishable (e.g., assigning roles to different users).
-   *
-   * IMPORTANT: callId MUST be deterministic (derived from workflow input
-   * or saved step results). Random UUIDs are FORBIDDEN as they break
-   * idempotency on workflow recovery.
+   * Deterministic call identifier.
+   * MUST be derived from workflow input or saved step results.
+   * Used to distinguish multiple calls to same action within one workflow.
+   */
+  callId: string;
+
+  /**
+   * Unique key for idempotency lookup.
+   * Generated as SHA-256 hash of: operationId + service + action + callId
+   * This avoids delimiter collision issues with raw concatenation.
    */
   idempotencyKey: string;
 
@@ -261,7 +268,9 @@ export class LocalServicePort implements ServicePort {
           this.name,
           action,
           response.error.code,
-          response.error.message
+          response.error.message,
+          undefined,
+          response.error.retryable  // Pass explicit retryable from service
         );
       }
 
@@ -319,8 +328,9 @@ export class LocalServicePort implements ServicePort {
       if ("result" in obj) {
         return { result: obj.result as T };
       }
-      // Fallback: return success indicator (legacy commands without explicit result)
-      return { result: { success: true } as T };
+      // Legacy command without explicit result - return undefined
+      // Caller should not depend on result value for legacy success responses
+      return { result: undefined as T };
     }
 
     // Raw result (no envelope)
@@ -390,15 +400,34 @@ export abstract class BaseWorkflow extends ConfiguredInstance {
    *                 Examples: storeId, `${storeId}:${userId}`, `${orderId}:${itemId}`
    */
   protected buildContext(service: string, action: string, callId: string): ActionContext {
+    // Validate callId is provided and non-empty
+    if (!callId || !callId.trim()) {
+      throw new Error(`callId is required and must be deterministic for ${service}.${action}`);
+    }
+
     const operationId = DBOS.workflowID!;
+
+    // Generate idempotency key as SHA-256 hash to avoid delimiter collisions
+    const idempotencyKey = this.hashIdempotencyKey(operationId, service, action, callId);
 
     return {
       version: 1,
       operationId,
-      idempotencyKey: `${operationId}:${service}:${action}:${callId}`,
-      // Optional observability fields (not for business logic)
+      service,
+      action,
+      callId,
+      idempotencyKey,
       traceId: DBOS.traceId,  // if available from DBOS
     };
+  }
+
+  /**
+   * Generate SHA-256 hash for idempotency key.
+   * Using hash avoids issues with delimiter collisions in component values.
+   */
+  private hashIdempotencyKey(operationId: string, service: string, action: string, callId: string): string {
+    const data = [operationId, service, action, callId].join("\n");
+    return crypto.createHash("sha256").update(data).digest("hex");
   }
 
   /**
@@ -687,6 +716,36 @@ export class ProjectModule implements OnModuleInit {
 
 Services need to accept the new `ActionRequest` envelope format.
 
+### Unknown Action Handling (Centralized)
+
+Unknown actions must be handled at the broker/router level (not in each action handler):
+
+```typescript
+// In ActionRegistry or ServiceBroker dispatcher
+async dispatch(qualifiedAction: string, request: ActionRequest): Promise<ActionResponse> {
+  const handler = this.registry.resolve(qualifiedAction);
+
+  if (!handler) {
+    // Return standard error response (not throw) for unknown action
+    return {
+      result: null,
+      error: {
+        code: "VALIDATION_UNKNOWN_ACTION",
+        message: `Unknown action: ${qualifiedAction}`,
+        retryable: false,
+      },
+    };
+  }
+
+  return handler(request);
+}
+```
+
+This ensures:
+- Consistent error format for all unknown actions
+- Not wrapped as transient error (which would cause retries)
+- Centralized handling, not duplicated in every service
+
 ### Updated BrokerActions Pattern
 
 ```typescript
@@ -772,18 +831,29 @@ export class IamBrokerActions extends BrokerActions {
 ```sql
 -- In each service's migrations
 CREATE TABLE IF NOT EXISTS processed_requests (
+  -- SHA-256 hash of (operation_id, service, action, call_id)
   idempotency_key TEXT PRIMARY KEY,
+
+  -- Store components separately for debugging/querying
+  operation_id TEXT NOT NULL,
   service TEXT NOT NULL,
   action TEXT NOT NULL,
-  operation_id TEXT NOT NULL,
+  call_id TEXT NOT NULL,
+
   -- Result caching is OPT-IN (see guidelines below)
   result JSONB,
   result_cached BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+
+  -- Status for atomic reservation pattern
+  status TEXT NOT NULL DEFAULT 'reserved',  -- 'reserved' | 'completed' | 'failed'
+
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  completed_at TIMESTAMPTZ
 );
 
 CREATE INDEX idx_processed_requests_created_at ON processed_requests(created_at);
 CREATE INDEX idx_processed_requests_operation_id ON processed_requests(operation_id);
+CREATE INDEX idx_processed_requests_lookup ON processed_requests(service, action, call_id);
 
 -- Cleanup old entries (e.g., keep 7 days)
 -- Run periodically via scheduled job:
@@ -792,36 +862,64 @@ CREATE INDEX idx_processed_requests_operation_id ON processed_requests(operation
 
 ### Idempotency Implementation Rules
 
-#### Rule 1: Commands MUST Return Success on Duplicate
+#### Rule 1: Use Atomic Reservation Pattern (No Race Conditions)
 
-For **commands** (write operations), the service must:
-1. Check if already processed
-2. If yes: **return success** (not error!)
-3. If no: execute and mark processed
+For **commands** (write operations), use INSERT-RESERVE pattern to prevent race conditions:
+
+1. Try to INSERT with `ON CONFLICT DO NOTHING`
+2. If insert **failed** (conflict) → already processed, return success with `meta.idempotent`
+3. If insert **succeeded** → execute action, then UPDATE status to 'completed'
+4. On failure → UPDATE status to 'failed' (allows retry)
 
 ```typescript
 @Action("createRoles")
 async createRoles(input: ActionRequest<CreateRolesPayload>): Promise<ActionResponse> {
   const { payload, ctx } = this.unwrapRequest(input);
 
-  // Check if already processed
-  const wasProcessed = await this.idempotencyCheck(ctx.idempotencyKey);
-  if (wasProcessed) {
-    // RETURN SUCCESS with meta.idempotent flag
-    // The operation was already done, which is the desired outcome
-    return {
-      result: { success: true },
-      meta: { idempotent: true },
-    };
+  // Step 1: Try to reserve this idempotency key (atomic)
+  const reserved = await this.reserveIdempotencyKey(ctx);
+
+  if (!reserved) {
+    // Already processed - check if completed or still in progress
+    const existing = await this.getIdempotencyRecord(ctx.idempotencyKey);
+
+    if (existing?.status === 'completed') {
+      // Return success - operation was already done
+      return {
+        result: existing.result_cached ? existing.result : { success: true },
+        meta: { idempotent: true },
+      };
+    }
+
+    // Status is 'reserved' or 'failed' - another request is processing or failed
+    // Could wait/retry or fail fast depending on requirements
+    throw ServiceError.conflict(ctx.service, ctx.action, "Request already in progress");
   }
 
-  // Execute the actual logic
-  const result = await this.kernel.runScript(CreateRolesScript, payload);
+  try {
+    // Step 2: Execute the actual logic
+    const result = await this.kernel.runScript(CreateRolesScript, payload);
 
-  // Mark as processed
-  await this.markProcessed(ctx.idempotencyKey);
+    // Step 3: Mark as completed
+    await this.completeIdempotencyKey(ctx.idempotencyKey, result);
 
-  return { result };
+    return { result };
+  } catch (error) {
+    // Mark as failed (allows retry with same key)
+    await this.failIdempotencyKey(ctx.idempotencyKey);
+    throw error;
+  }
+}
+
+// Helper: Atomic insert with ON CONFLICT DO NOTHING
+async reserveIdempotencyKey(ctx: ActionContext): Promise<boolean> {
+  const result = await this.db.execute(sql`
+    INSERT INTO processed_requests (idempotency_key, operation_id, service, action, call_id, status)
+    VALUES (${ctx.idempotencyKey}, ${ctx.operationId}, ${ctx.service}, ${ctx.action}, ${ctx.callId}, 'reserved')
+    ON CONFLICT (idempotency_key) DO NOTHING
+    RETURNING idempotency_key
+  `);
+  return result.rowCount > 0;
 }
 ```
 
@@ -907,7 +1005,9 @@ Use only values from:
 - Workflow input parameters
 - Results of previous `@DBOS.step()` calls (saved by DBOS)
 
-**FORBIDDEN**: Random UUIDs generated inside step (breaks recovery)
+**ALLOWED**: Generate storeId/orderId in a separate `@DBOS.step()`, then use that saved ID as callId.
+
+**FORBIDDEN**: Random/UUID callId at the point of `callService()` call (not saved by DBOS, breaks recovery)
 
 ```typescript
 // WRONG - different key on recovery

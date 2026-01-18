@@ -43,13 +43,23 @@ Integration between Inventory and Media services for:
 ### EntityRef Format
 
 ```typescript
-{
-  service: "inventory",
-  entityType: "variant",
-  entityId: "<variant-uuid>",
-  role: "gallery"           // always "gallery" for variant media
+// EntityRef identifies the entity (WHO is linking)
+interface EntityRef {
+  service: string;      // "inventory"
+  entityType: string;   // "variant"
+  entityId: string;     // "<variant-uuid>"
+}
+
+// FileLinkItem describes the link (WHAT file and HOW it's used)
+interface FileLinkItem {
+  fileId: string;
+  role: string;         // "gallery", "main", "avatar", etc.
 }
 ```
+
+**Separation of concerns:**
+- `EntityRef` = "какая сущность" (who)
+- `item.role` = "как использует файл" (how)
 
 ### Error Handling Strategy
 
