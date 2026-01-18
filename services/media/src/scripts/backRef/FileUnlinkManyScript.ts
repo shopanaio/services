@@ -17,20 +17,25 @@ export class FileUnlinkManyScript extends BaseScript<
       return { unlinkedCount: 0, skippedCount: 0 };
     }
 
+    // Deduplicate items by fileId+role first
+    const uniqueItems = Array.from(
+      new Map(items.map((item) => [`${item.fileId}:${item.role}`, item])).values()
+    );
+
     const unlinkedCount = await this.repository.fileBackRef.unlinkMany({
-      items,
+      items: uniqueItems,
       service: entityRef.service,
       entityType: entityRef.entityType,
       entityId: entityRef.entityId,
     });
 
-    const uniqueItems = new Set(items.map((item) => `${item.fileId}:${item.role}`));
-    const skippedCount = uniqueItems.size - unlinkedCount;
+    // skippedCount = items that didn't exist (already unlinked or never linked)
+    const skippedCount = uniqueItems.length - unlinkedCount;
 
     if (skippedCount > 0) {
       this.logger.info(
-        { skippedCount, totalCount: uniqueItems.size },
-        "fileUnlinkMany: some refs missing or already unlinked"
+        { skippedCount, totalCount: uniqueItems.length, unlinkedCount },
+        "fileUnlinkMany: some refs were already unlinked or never existed"
       );
     }
 

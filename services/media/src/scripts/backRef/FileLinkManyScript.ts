@@ -17,28 +17,24 @@ export class FileLinkManyScript extends BaseScript<
       return { linkedCount: 0, skippedCount: 0 };
     }
 
-    const uniqueFileIds = Array.from(
-      new Set(items.map((item) => item.fileId))
+    // Deduplicate items by fileId+role for accurate counting
+    const uniqueItems = Array.from(
+      new Map(items.map((item) => [`${item.fileId}:${item.role}`, item])).values()
     );
-    const activeFiles = await this.repository.file.findByIds(uniqueFileIds);
-    const activeIds = new Set(activeFiles.map((file) => file.id));
 
-    const activeItems = items.filter((item) => activeIds.has(item.fileId));
-    const linkedCount = activeItems.length;
-    const skippedCount = items.length - linkedCount;
+    // linkMany handles soft-delete check in SQL and returns accurate count
+    const { linkedCount } = await this.repository.fileBackRef.linkMany({
+      items: uniqueItems,
+      service: entityRef.service,
+      entityType: entityRef.entityType,
+      entityId: entityRef.entityId,
+    });
 
-    if (linkedCount > 0) {
-      await this.repository.fileBackRef.linkMany({
-        items: activeItems,
-        service: entityRef.service,
-        entityType: entityRef.entityType,
-        entityId: entityRef.entityId,
-      });
-    }
+    const skippedCount = uniqueItems.length - linkedCount;
 
     if (skippedCount > 0) {
       this.logger.info(
-        { skippedCount, totalCount: items.length },
+        { skippedCount, totalCount: uniqueItems.length, linkedCount },
         "fileLinkMany: some files missing or soft-deleted"
       );
     }

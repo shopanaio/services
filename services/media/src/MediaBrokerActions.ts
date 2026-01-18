@@ -30,17 +30,22 @@ import { FileUnlinkScript } from "./scripts/backRef/FileUnlinkScript.js";
 import { FileLinkManyScript } from "./scripts/backRef/FileLinkManyScript.js";
 import { FileUnlinkManyScript } from "./scripts/backRef/FileUnlinkManyScript.js";
 import { EntityDeletedScript } from "./scripts/backRef/EntityDeletedScript.js";
-import type {
-  FileLinkParams,
-  FileLinkResult,
-  FileUnlinkParams,
-  FileUnlinkResult,
-  FileLinkManyParams,
-  FileLinkManyResult,
-  FileUnlinkManyParams,
-  FileUnlinkManyResult,
-  EntityDeletedParams,
-  EntityDeletedResult,
+import {
+  fileLinkSchema,
+  fileUnlinkSchema,
+  fileLinkManySchema,
+  fileUnlinkManySchema,
+  entityDeletedSchema,
+  type FileLinkParams,
+  type FileLinkResult,
+  type FileUnlinkParams,
+  type FileUnlinkResult,
+  type FileLinkManyParams,
+  type FileLinkManyResult,
+  type FileUnlinkManyParams,
+  type FileUnlinkManyResult,
+  type EntityDeletedParams,
+  type EntityDeletedResult,
 } from "./scripts/backRef/dto/index.js";
 
 /**
@@ -95,6 +100,7 @@ export class MediaBrokerActions extends BrokerActions {
    * Action: fileLink - link file to entity
    */
   @Action("fileLink")
+  @ZodSchema(fileLinkSchema)
   async fileLink(params: FileLinkParams): Promise<FileLinkResult> {
     return this.kernel.runScript(FileLinkScript, params);
   }
@@ -103,6 +109,7 @@ export class MediaBrokerActions extends BrokerActions {
    * Action: fileUnlink - unlink file from entity
    */
   @Action("fileUnlink")
+  @ZodSchema(fileUnlinkSchema)
   async fileUnlink(params: FileUnlinkParams): Promise<FileUnlinkResult> {
     return this.kernel.runScript(FileUnlinkScript, params);
   }
@@ -111,6 +118,7 @@ export class MediaBrokerActions extends BrokerActions {
    * Action: fileLinkMany - batch link files to entity
    */
   @Action("fileLinkMany")
+  @ZodSchema(fileLinkManySchema)
   async fileLinkMany(
     params: FileLinkManyParams
   ): Promise<FileLinkManyResult> {
@@ -121,6 +129,7 @@ export class MediaBrokerActions extends BrokerActions {
    * Action: fileUnlinkMany - batch unlink files from entity
    */
   @Action("fileUnlinkMany")
+  @ZodSchema(fileUnlinkManySchema)
   async fileUnlinkMany(
     params: FileUnlinkManyParams
   ): Promise<FileUnlinkManyResult> {
@@ -131,6 +140,7 @@ export class MediaBrokerActions extends BrokerActions {
    * Action: entityDeleted - unlink all files from entity
    */
   @Action("entityDeleted")
+  @ZodSchema(entityDeletedSchema)
   async entityDeleted(
     params: EntityDeletedParams
   ): Promise<EntityDeletedResult> {

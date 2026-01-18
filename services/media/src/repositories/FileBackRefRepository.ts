@@ -23,20 +23,31 @@ export interface FileUsageCount {
   count: number;
 }
 
+export interface LinkResult {
+  inserted: boolean;
+}
+
+export interface LinkManyResult {
+  linkedCount: number;
+}
+
 export class FileBackRefRepository {
   constructor(private readonly db: Database) {}
 
-  async link(params: FileBackRefKey): Promise<void> {
+  async link(params: FileBackRefKey): Promise<LinkResult> {
     const { fileId, service, entityType, entityId, role } = params;
 
-    await this.db.execute(sql`
+    const result = await this.db.execute<{ file_id: string }>(sql`
       INSERT INTO media.file_back_refs
         (file_id, service, entity_type, entity_id, role, created_at)
       SELECT ${fileId}, ${service}, ${entityType}, ${entityId}, ${role}, NOW()
       FROM media.files
       WHERE id = ${fileId} AND deleted_at IS NULL
       ON CONFLICT DO NOTHING
+      RETURNING file_id
     `);
+
+    return { inserted: result.length > 0 };
   }
 
   async linkMany(params: {
@@ -44,23 +55,31 @@ export class FileBackRefRepository {
     service: string;
     entityType: string;
     entityId: string;
-  }): Promise<void> {
+  }): Promise<LinkManyResult> {
     const { items, service, entityType, entityId } = params;
 
     if (items.length === 0) {
-      return;
+      return { linkedCount: 0 };
     }
 
-    const values = items.map((item) => sql`(${item.fileId}, ${item.role})`);
+    // Deduplicate by fileId+role
+    const uniqueItems = Array.from(
+      new Map(items.map((item) => [`${item.fileId}:${item.role}`, item])).values()
+    );
 
-    await this.db.execute(sql`
+    const values = uniqueItems.map((item) => sql`(${item.fileId}::uuid, ${item.role})`);
+
+    const result = await this.db.execute<{ file_id: string }>(sql`
       INSERT INTO media.file_back_refs
         (file_id, service, entity_type, entity_id, role, created_at)
       SELECT v.file_id, ${service}, ${entityType}, ${entityId}, v.role, NOW()
       FROM (VALUES ${sql.join(values, sql`, `)}) AS v(file_id, role)
       INNER JOIN media.files f ON f.id = v.file_id AND f.deleted_at IS NULL
       ON CONFLICT DO NOTHING
+      RETURNING file_id
     `);
+
+    return { linkedCount: result.length };
   }
 
   async unlink(params: FileBackRefKey): Promise<void> {

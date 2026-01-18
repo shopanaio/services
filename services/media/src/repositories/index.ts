@@ -27,6 +27,8 @@ export type {
   FileBackRefKey,
   FileBackRefItem,
   FileUsageCount,
+  LinkResult,
+  LinkManyResult,
 } from "./FileBackRefRepository";
 
 // S3ObjectRepository types

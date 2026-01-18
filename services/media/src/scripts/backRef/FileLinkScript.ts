@@ -5,7 +5,18 @@ export class FileLinkScript extends BaseScript<FileLinkParams, FileLinkResult> {
   protected async execute(params: FileLinkParams): Promise<FileLinkResult> {
     const { fileId, entityRef, role } = params;
 
+    // 1. Attempt to link (SQL handles soft-delete check atomically)
+    await this.repository.fileBackRef.link({
+      fileId,
+      service: entityRef.service,
+      entityType: entityRef.entityType,
+      entityId: entityRef.entityId,
+      role,
+    });
+
+    // 2. Check file status for response
     const file = await this.repository.file.findAnyById(fileId);
+
     if (!file) {
       this.logger.info({ fileId }, "fileLink: file not found");
       return {
@@ -26,14 +37,7 @@ export class FileLinkScript extends BaseScript<FileLinkParams, FileLinkResult> {
       };
     }
 
-    await this.repository.fileBackRef.link({
-      fileId,
-      service: entityRef.service,
-      entityType: entityRef.entityType,
-      entityId: entityRef.entityId,
-      role,
-    });
-
+    // 3. File is active, count refs
     const activeRefCount = await this.repository.fileBackRef.countByFileId(fileId);
 
     return {

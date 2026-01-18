@@ -72,10 +72,15 @@ export class VariantSetMediaScript extends BaseScript<VariantSetMediaParams, Var
         fileIds: uniqueNextFileIds,
       });
     } catch (error) {
-      this.logger.warn(
-        { variantId, error },
-        "Variant media backrefs sync failed"
+      // Log at error level for workflow start failures (not transient)
+      // These indicate configuration or code issues, not network problems
+      this.logger.error(
+        { variantId, error, fileCount: uniqueNextFileIds.length },
+        "Failed to start backref sync workflow"
       );
+      // Note: We don't rethrow because backref sync is best-effort.
+      // The variant media update already succeeded in the database.
+      // Manual reconciliation can fix orphaned backrefs later if needed.
     }
   }
 }

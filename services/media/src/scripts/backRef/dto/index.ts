@@ -1,3 +1,46 @@
+import { z } from "zod";
+
+// ---- Zod Schemas ----
+
+export const entityRefSchema = z.object({
+  service: z.string().min(1).max(64),
+  entityType: z.string().min(1).max(64),
+  entityId: z.string().min(1).max(255),
+});
+
+export const fileLinkItemSchema = z.object({
+  fileId: z.string().uuid(),
+  role: z.string().min(1).max(32),
+});
+
+export const fileLinkSchema = z.object({
+  fileId: z.string().uuid(),
+  entityRef: entityRefSchema,
+  role: z.string().min(1).max(32),
+});
+
+export const fileUnlinkSchema = z.object({
+  fileId: z.string().uuid(),
+  entityRef: entityRefSchema,
+  role: z.string().min(1).max(32),
+});
+
+export const fileLinkManySchema = z.object({
+  items: z.array(fileLinkItemSchema).max(1000),
+  entityRef: entityRefSchema,
+});
+
+export const fileUnlinkManySchema = z.object({
+  items: z.array(fileLinkItemSchema).max(1000),
+  entityRef: entityRefSchema,
+});
+
+export const entityDeletedSchema = z.object({
+  entityRef: entityRefSchema,
+});
+
+// ---- Interfaces ----
+
 export interface EntityRef {
   service: string;
   entityType: string;
