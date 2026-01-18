@@ -132,63 +132,97 @@ CREATE INDEX idx_variant_product_active
 
 ### Атомарный UPSERT с идемпотентностью (критично!)
 
-**Проблема**: при параллельных запросах SELECT-проверка идемпотентности не блокирует — два потока могут оба увидеть "нет записи" и оба применить дельты.
+**Проблема**: при параллельных запросах SELECT-проверка идемпотентности не блокирует — два потока могут оба увидеть "нет записи" и оба применить дельты. Также использование `EXCLUDED.*` в `ON CONFLICT DO UPDATE` приводит к lost-update при конкурентных операциях.
 
-**Решение**: идемпотентность через `INSERT ... ON CONFLICT DO NOTHING RETURNING` — только успешная вставка в `stock_changes` разрешает изменение `warehouse_stock`:
+**Решение**:
+- Идемпотентность через `INSERT ... ON CONFLICT DO NOTHING RETURNING`
+- Инкремент от текущей строки в `DO UPDATE` (не от `EXCLUDED`)
+- Валидность проверяется на реальной строке в `WHERE` (race-safe)
 
 ```sql
-WITH ins AS (
-  -- 1. Идемпотентность через INSERT с UNIQUE constraint
-  -- Только один поток получит RETURNING id
+WITH
+-- 1. Идемпотентность: INSERT с UNIQUE constraint, только один поток получит id
+ins AS (
   INSERT INTO inventory.stock_changes (
     project_id, warehouse_id, variant_id,
     delta_on_hand, delta_reserved, delta_unavailable,
     movement_type, reason, transfer_direction,
     source_system, source_event_id, correlation_id, note, created_by,
-    on_hand_after, reserved_after, unavailable_after  -- placeholder, обновим в fix
+    on_hand_after, reserved_after, unavailable_after  -- placeholder
   )
   SELECT
     $project_id, $warehouse_id, $variant_id,
     $delta_on_hand, $delta_reserved, $delta_unavailable,
     $movement_type, $reason, $transfer_direction,
     $source_system, $source_event_id, $correlation_id, $note, $created_by,
-    0, 0, 0  -- placeholder (удовлетворяет CHECK: 0>=0, 0>=0, 0>=0, 0<=0)
+    0, 0, 0  -- placeholder (0>=0, 0>=0, 0>=0, 0<=0 — проходит CHECK)
   ON CONFLICT (project_id, source_system, source_event_id, warehouse_id, variant_id)
   DO NOTHING
   RETURNING id
 ),
+
+-- 2. UPSERT warehouse_stock: только если ins вставился И результат валиден
 up AS (
-  -- 2. UPSERT warehouse_stock ТОЛЬКО если ins вернул строку
-  INSERT INTO inventory.warehouse_stock (project_id, warehouse_id, variant_id, quantity_on_hand, reserved_qty, unavailable_qty)
-  SELECT $project_id, $warehouse_id, $variant_id, $delta_on_hand, $delta_reserved, $delta_unavailable
-  WHERE EXISTS (SELECT 1 FROM ins)  -- гейт: только если вставка лога прошла
+  INSERT INTO inventory.warehouse_stock (
+    project_id, warehouse_id, variant_id,
+    quantity_on_hand, reserved_qty, unavailable_qty
+  )
+  -- INSERT-ветка (строки нет): вставляем дельты как итог, но только если валидно
+  SELECT
+    $project_id, $warehouse_id, $variant_id,
+    $delta_on_hand, $delta_reserved, $delta_unavailable
+  FROM ins
+  WHERE
+    $delta_on_hand >= 0
+    AND $delta_reserved >= 0
+    AND $delta_unavailable >= 0
+    AND $delta_unavailable <= $delta_on_hand
+
   ON CONFLICT (project_id, warehouse_id, variant_id) DO UPDATE SET
+    -- UPDATE-ветка (строка есть): инкремент от текущего значения (нет lost-update)
     quantity_on_hand = inventory.warehouse_stock.quantity_on_hand + $delta_on_hand,
     reserved_qty     = inventory.warehouse_stock.reserved_qty     + $delta_reserved,
     unavailable_qty  = inventory.warehouse_stock.unavailable_qty  + $delta_unavailable,
     updated_at = NOW()
+  -- Валидность проверяется на реальной строке (race-safe)
+  WHERE
+    EXISTS (SELECT 1 FROM ins)
+    AND (inventory.warehouse_stock.quantity_on_hand + $delta_on_hand) >= 0
+    AND (inventory.warehouse_stock.reserved_qty     + $delta_reserved) >= 0
+    AND (inventory.warehouse_stock.unavailable_qty  + $delta_unavailable) >= 0
+    AND (inventory.warehouse_stock.unavailable_qty  + $delta_unavailable)
+        <= (inventory.warehouse_stock.quantity_on_hand + $delta_on_hand)
+
   RETURNING quantity_on_hand, reserved_qty, unavailable_qty
 ),
+
+-- 3. Обновляем after-поля в stock_changes
 fix AS (
-  -- 3. Обновляем after-поля в stock_changes актуальными значениями
   UPDATE inventory.stock_changes sc
   SET
-    on_hand_after = up.quantity_on_hand,
-    reserved_after = up.reserved_qty,
+    on_hand_after     = up.quantity_on_hand,
+    reserved_after    = up.reserved_qty,
     unavailable_after = up.unavailable_qty
   FROM ins, up
   WHERE sc.id = ins.id
   RETURNING sc.*
+),
+
+-- 4. Удаляем placeholder если up не прошёл (результат невалиден)
+cleanup AS (
+  DELETE FROM inventory.stock_changes sc
+  USING ins
+  WHERE sc.id = ins.id
+    AND NOT EXISTS (SELECT 1 FROM fix)
+  RETURNING 1
 )
--- 4. Возвращаем статус + результат
+
+-- 5. Возвращаем статус + результат
 SELECT
   CASE
     WHEN EXISTS (SELECT 1 FROM fix) THEN 'APPLIED'
-    WHEN EXISTS (SELECT 1 FROM inventory.stock_changes
-                 WHERE project_id=$project_id AND source_system=$source_system
-                   AND source_event_id=$source_event_id AND warehouse_id=$warehouse_id
-                   AND variant_id=$variant_id) THEN 'DUPLICATE'
-    ELSE 'REJECTED'  -- CHECK constraint failed → transaction rolled back
+    WHEN EXISTS (SELECT 1 FROM ins) THEN 'REJECTED'  -- ins был, но up не прошёл (cleanup удалил)
+    ELSE 'DUPLICATE'  -- ins не вернул id → запись уже существует
   END AS status,
   fix.*
 FROM (SELECT 1) x
@@ -197,14 +231,15 @@ LEFT JOIN fix ON true;
 
 **Статусы**:
 - `APPLIED` — операция выполнена, `fix.*` содержит запись
-- `DUPLICATE` — идемпотентный повтор (ins не вернул строку, но запись существует)
-- `REJECTED` — нарушение CHECK → транзакция откатится (весь CTE атомарен)
+- `DUPLICATE` — идемпотентный повтор (событие уже обработано)
+- `REJECTED` — результат невалиден (недостаточно стока, нарушение CHECK)
 
-**Почему это безопасно**:
-- `INSERT ... ON CONFLICT DO NOTHING` — единственный безгоночный способ идемпотентности
-- `WHERE EXISTS (SELECT 1 FROM ins)` — warehouse_stock меняется только если лог записан
-- Если CHECK на warehouse_stock упадёт — весь CTE откатится, включая ins
-- Placeholder `0,0,0` удовлетворяет CHECK и обновляется в `fix`
+**Гарантии**:
+- `INSERT ... ON CONFLICT DO NOTHING` — единственный race-free способ идемпотентности
+- Инкремент от `warehouse_stock.*` а не от `EXCLUDED.*` — нет lost-update
+- Валидность на `warehouse_stock.* + delta` в WHERE — race-safe проверка
+- `cleanup` удаляет placeholder если up не прошёл — нет "висящих" записей
+- INSERT-ветка проверяет валидность дельт для новой строки
 
 `movement_type` и `reason` можно оформить как ENUM, чтобы избежать мусорных значений.
 Для идемпотентности `source_system` и `source_event_id` обязательны; при отсутствии
@@ -347,11 +382,14 @@ WHERE v.product_id = $1
 ### availableChange7d
 ```sql
 -- net change available за 7 дней
+-- Оптимизация: сначала получаем variant_id, затем фильтруем stock_changes по IN
+WITH product_variants AS (
+  SELECT id FROM inventory.variant
+  WHERE product_id = $1 AND deleted_at IS NULL
+)
 SELECT COALESCE(SUM(sc.delta_on_hand - sc.delta_reserved - sc.delta_unavailable), 0)
 FROM inventory.stock_changes sc
-JOIN inventory.variant v ON v.id = sc.variant_id
-WHERE v.product_id = $1
-  AND v.deleted_at IS NULL
+WHERE sc.variant_id IN (SELECT id FROM product_variants)
   AND sc.created_at >= NOW() - INTERVAL '7 days';
 ```
 
@@ -464,8 +502,8 @@ SELECT
   COALESCE(ws.unavailable_qty, 0),
   'SEED',
   'MIGRATION',
-  -- Детерминированный короткий ключ (64 hex = 64 символа < 128)
-  encode(digest(concat_ws(':', ws.project_id::text, ws.warehouse_id::text, ws.variant_id::text), 'sha256'), 'hex'),
+  -- Детерминированный короткий ключ с префиксом seed: (5 + 64 hex = 69 символов < 128)
+  'seed:' || encode(digest(concat_ws(':', ws.project_id::text, ws.warehouse_id::text, ws.variant_id::text), 'sha256'), 'hex'),
   COALESCE(ws.updated_at, ws.created_at, NOW())
 FROM inventory.warehouse_stock ws;
 ```
