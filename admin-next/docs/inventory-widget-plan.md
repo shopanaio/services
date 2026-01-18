@@ -14,16 +14,16 @@
 -- Существующая таблица, добавляем поля для виджета и истории
 ALTER TABLE inventory.warehouse_stock ADD COLUMN
   reserved_qty INTEGER NOT NULL DEFAULT 0,
-  unavailable_qty INTEGER NOT NULL DEFAULT 0,
-  last_change_id UUID;
+  unavailable_qty INTEGER NOT NULL DEFAULT 0;
 
 ALTER TABLE inventory.warehouse_stock
   ADD CONSTRAINT warehouse_stock_reserved_check CHECK (reserved_qty >= 0),
-  ADD CONSTRAINT warehouse_stock_unavailable_check CHECK (unavailable_qty >= 0);
+  ADD CONSTRAINT warehouse_stock_unavailable_check CHECK (unavailable_qty >= 0),
+  ADD CONSTRAINT warehouse_stock_unavailable_le_onhand CHECK (unavailable_qty <= quantity_on_hand);
 
 -- Убедиться, что есть UNIQUE (project_id, warehouse_id, variant_id).
 -- Backorder разрешен, поэтому CHECK на non-negative available не добавляем.
--- При необходимости добавить FK: last_change_id REFERENCES inventory.stock_changes(id).
+-- last_change_id убран — актуальный change можно получить по seq DESC.
 ```
 
 ### 2. Журнал изменений `stock_changes` (тонкий delta-log)
@@ -31,6 +31,7 @@ ALTER TABLE inventory.warehouse_stock
 ```sql
 CREATE TABLE inventory.stock_changes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  seq BIGINT GENERATED ALWAYS AS IDENTITY,  -- монотонный порядок, решает created_at-гонки
   project_id UUID NOT NULL,
   variant_id UUID NOT NULL REFERENCES inventory.variant(id) ON DELETE CASCADE,
   warehouse_id UUID NOT NULL,
@@ -39,15 +40,22 @@ CREATE TABLE inventory.stock_changes (
   delta_on_hand INTEGER NOT NULL DEFAULT 0,
   delta_reserved INTEGER NOT NULL DEFAULT 0,
   delta_unavailable INTEGER NOT NULL DEFAULT 0,
-  CHECK (delta_on_hand <> 0 OR delta_reserved <> 0 OR delta_unavailable <> 0),
+  -- SEED разрешает delta=0 для начальной миграции
+  CHECK (
+    movement_type = 'SEED'
+    OR delta_on_hand <> 0
+    OR delta_reserved <> 0
+    OR delta_unavailable <> 0
+  ),
 
   -- Баланс после изменения (история без пересчета)
   on_hand_after INTEGER NOT NULL,
-  reserved_after INTEGER NOT NULL,
-  unavailable_after INTEGER NOT NULL,
+  reserved_after INTEGER NOT NULL CHECK (reserved_after >= 0),
+  unavailable_after INTEGER NOT NULL CHECK (unavailable_after >= 0),
 
   -- Тип операции (что произошло)
   movement_type VARCHAR(20) NOT NULL,
+  -- 'SEED'       начальный остаток (миграция)
   -- 'RECEIVE'    приход товара
   -- 'SELL'       продажа (списание)
   -- 'RETURN'     возврат от покупателя
@@ -55,6 +63,16 @@ CREATE TABLE inventory.stock_changes (
   -- 'RESERVE'    резервирование под заказ
   -- 'RELEASE'    снятие резерва
   -- 'TRANSFER'   перемещение между складами
+
+  -- Направление для TRANSFER (IN = приход на склад, OUT = уход со склада)
+  -- NOT NULL для TRANSFER, NULL для остальных
+  transfer_direction VARCHAR(3),
+  CONSTRAINT stock_changes_transfer_dir CHECK (
+    CASE
+      WHEN movement_type = 'TRANSFER' THEN transfer_direction IN ('IN', 'OUT')
+      ELSE transfer_direction IS NULL
+    END
+  ),
 
   -- Причина (почему произошло)
   reason VARCHAR(30),
@@ -66,29 +84,98 @@ CREATE TABLE inventory.stock_changes (
   -- Источник события (для идемпотентности/трассировки)
   source_system VARCHAR(30) NOT NULL,
   source_event_id VARCHAR(128) NOT NULL,
-  correlation_id UUID, -- например, transfer_id для связки двух движений
+  -- correlation_id обязателен для TRANSFER (связка IN/OUT)
+  correlation_id UUID,
+  CHECK (movement_type <> 'TRANSFER' OR correlation_id IS NOT NULL),
 
   note TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_by UUID,
+
+  -- FK только на warehouse_id (project_id денормализован для запросов)
   CONSTRAINT stock_changes_warehouse_fk
-    FOREIGN KEY (project_id, warehouse_id)
-    REFERENCES inventory.warehouses(project_id, id) ON DELETE CASCADE
+    FOREIGN KEY (warehouse_id) REFERENCES inventory.warehouses(id) ON DELETE CASCADE
 );
 
--- Индексы для аналитики
-CREATE INDEX idx_stock_changes_variant_date ON inventory.stock_changes(variant_id, created_at DESC);
-CREATE INDEX idx_stock_changes_variant_warehouse_date ON inventory.stock_changes(variant_id, warehouse_id, created_at DESC);
-CREATE INDEX idx_stock_changes_project_date ON inventory.stock_changes(project_id, created_at DESC);
-CREATE INDEX idx_stock_changes_type_date ON inventory.stock_changes(movement_type, created_at DESC);
-CREATE INDEX idx_stock_changes_reason_date ON inventory.stock_changes(reason, created_at DESC);
+-- seq должен быть уникальным
+ALTER TABLE inventory.stock_changes ADD CONSTRAINT stock_changes_seq_unique UNIQUE (seq);
+
+-- Физический инвариант: unavailable не может превышать on_hand
+ALTER TABLE inventory.stock_changes
+  ADD CONSTRAINT stock_changes_unavailable_le_onhand CHECK (unavailable_after <= on_hand_after);
+
+-- Индексы для аналитики (используем seq для корректного порядка)
+CREATE INDEX idx_stock_changes_variant_seq ON inventory.stock_changes(variant_id, seq DESC);
+CREATE INDEX idx_stock_changes_variant_warehouse_seq ON inventory.stock_changes(variant_id, warehouse_id, seq DESC);
+CREATE INDEX idx_stock_changes_project_seq ON inventory.stock_changes(project_id, seq DESC);
+CREATE INDEX idx_stock_changes_type_seq ON inventory.stock_changes(movement_type, seq DESC);
+CREATE INDEX idx_stock_changes_reason_seq ON inventory.stock_changes(reason, seq DESC);
+
+-- Идемпотентность
 CREATE UNIQUE INDEX idx_stock_changes_idempotency
   ON inventory.stock_changes(project_id, source_system, source_event_id, warehouse_id, variant_id);
+-- Индекс для быстрого lookup без variant_id/warehouse_id (проверка "был ли event вообще")
+CREATE INDEX idx_stock_changes_idempo_lookup
+  ON inventory.stock_changes(project_id, source_system, source_event_id);
 ```
 
-Все изменения стока выполняются одной транзакцией: обновление `warehouse_stock` + insert в `stock_changes` (delta и balance_after).
-Чтобы не терять обновления при конкуренции, использовать `SELECT ... FOR UPDATE` по `warehouse_stock`
-или оптимистическую блокировку через `last_change_id`.
+### Атомарный UPSERT с идемпотентностью (критично!)
+
+**Проблема**: если сначала обновить `warehouse_stock`, а потом вставить в `stock_changes` с `ON CONFLICT DO NOTHING` — при повторном вызове `warehouse_stock` обновится дважды.
+
+**Решение**: одна команда CTE — сначала пытаемся вставить в `stock_changes`, и только если вставка прошла — обновляем `warehouse_stock`:
+
+```sql
+WITH ins AS (
+  -- Сначала пытаемся записать в журнал (идемпотентность)
+  INSERT INTO inventory.stock_changes (
+    project_id, warehouse_id, variant_id,
+    delta_on_hand, delta_reserved, delta_unavailable,
+    on_hand_after, reserved_after, unavailable_after,  -- пока placeholder, обновим ниже
+    movement_type, reason, transfer_direction,
+    source_system, source_event_id, correlation_id, note, created_by
+  )
+  VALUES ($project_id, $warehouse_id, $variant_id,
+          $delta_on_hand, $delta_reserved, $delta_unavailable,
+          0, 0, 0,  -- placeholder
+          $movement_type, $reason, $transfer_direction,
+          $source_system, $source_event_id, $correlation_id, $note, $created_by)
+  ON CONFLICT (project_id, source_system, source_event_id, warehouse_id, variant_id)
+  DO NOTHING
+  RETURNING id
+),
+upsert_stock AS (
+  -- Обновляем warehouse_stock ТОЛЬКО если ins вставился
+  INSERT INTO inventory.warehouse_stock (project_id, warehouse_id, variant_id, quantity_on_hand, reserved_qty, unavailable_qty)
+  VALUES ($project_id, $warehouse_id, $variant_id,
+          $delta_on_hand, $delta_reserved, $delta_unavailable)  -- начальные значения = дельты для новой строки
+  ON CONFLICT (project_id, warehouse_id, variant_id) DO UPDATE SET
+    quantity_on_hand = inventory.warehouse_stock.quantity_on_hand + $delta_on_hand,
+    reserved_qty     = inventory.warehouse_stock.reserved_qty     + $delta_reserved,
+    unavailable_qty  = inventory.warehouse_stock.unavailable_qty  + $delta_unavailable,
+    updated_at = NOW()
+  WHERE EXISTS (SELECT 1 FROM ins)
+  RETURNING quantity_on_hand, reserved_qty, unavailable_qty
+),
+update_after AS (
+  -- Обновляем *_after в stock_changes актуальными значениями
+  UPDATE inventory.stock_changes sc
+  SET
+    on_hand_after = us.quantity_on_hand,
+    reserved_after = us.reserved_qty,
+    unavailable_after = us.unavailable_qty
+  FROM ins, upsert_stock us
+  WHERE sc.id = ins.id
+  RETURNING sc.*
+)
+SELECT * FROM update_after;
+-- Пустой результат = идемпотентный повтор (операция уже была выполнена)
+```
+
+**Важно**:
+- Пустой результат означает идемпотентный повтор — это **не ошибка**
+- Последний change для строки можно получить по `ORDER BY seq DESC LIMIT 1`
+
 `movement_type` и `reason` можно оформить как ENUM, чтобы избежать мусорных значений.
 Для идемпотентности `source_system` и `source_event_id` обязательны; при отсутствии
 естественного идентификатора генерировать ключ на стороне источника.
@@ -102,7 +189,7 @@ CREATE TABLE inventory.reservations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id UUID NOT NULL,
   variant_id UUID NOT NULL REFERENCES inventory.variant(id),
-  warehouse_id UUID NOT NULL REFERENCES inventory.warehouses(id),
+  warehouse_id UUID NOT NULL,
 
   -- Внешняя система заказов
   order_system VARCHAR(50) NOT NULL,  -- 'SHOPANA', 'SHOPIFY', 'WOOCOMMERCE', etc.
@@ -114,7 +201,12 @@ CREATE TABLE inventory.reservations (
   reserved_at TIMESTAMPTZ DEFAULT NOW(),
   released_at TIMESTAMPTZ,
 
-  UNIQUE(order_system, order_id, variant_id, warehouse_id)
+  -- project_id в UNIQUE для изоляции между проектами
+  UNIQUE(project_id, order_system, order_id, variant_id, warehouse_id),
+
+  -- FK только на warehouse_id (project_id денормализован)
+  CONSTRAINT reservations_warehouse_fk
+    FOREIGN KEY (warehouse_id) REFERENCES inventory.warehouses(id) ON DELETE CASCADE
 );
 
 CREATE INDEX idx_reservations_variant ON inventory.reservations(variant_id);
@@ -225,6 +317,7 @@ WHERE v.product_id = $1
 ### availableChange7d
 ```sql
 -- net change available за 7 дней
+-- Фильтр по времени для бизнес-логики, seq не используем (не нужен порядок)
 SELECT COALESCE(SUM(sc.delta_on_hand - sc.delta_reserved - sc.delta_unavailable), 0)
 FROM inventory.stock_changes sc
 JOIN inventory.variant v ON v.id = sc.variant_id
@@ -235,13 +328,17 @@ WHERE v.product_id = $1
 
 ### skuStatus (low stock, out of stock, backorder)
 ```sql
-WITH variant_stock AS (
+WITH product_variants AS (
+  -- Сначала определяем варианты продукта для фильтрации stock_changes
+  SELECT id FROM inventory.variant
+  WHERE product_id = $1 AND deleted_at IS NULL
+),
+variant_stock AS (
   SELECT
     v.id,
     COALESCE(SUM(ws.quantity_on_hand - ws.reserved_qty - ws.unavailable_qty), 0) as available
-  FROM inventory.variant v
+  FROM product_variants v
   LEFT JOIN inventory.warehouse_stock ws ON ws.variant_id = v.id
-  WHERE v.product_id = $1 AND v.deleted_at IS NULL
   GROUP BY v.id
 ),
 warehouse_available AS (
@@ -250,10 +347,10 @@ warehouse_available AS (
     ws.warehouse_id,
     (ws.quantity_on_hand - ws.reserved_qty - ws.unavailable_qty) as available
   FROM inventory.warehouse_stock ws
-  JOIN inventory.variant v ON v.id = ws.variant_id
-  WHERE v.product_id = $1 AND v.deleted_at IS NULL
+  WHERE ws.variant_id IN (SELECT id FROM product_variants)
 ),
 warehouse_oos AS (
+  -- Фильтруем stock_changes ДО окна LAG для производительности
   SELECT
     sc.variant_id,
     sc.warehouse_id,
@@ -265,8 +362,9 @@ warehouse_oos AS (
       sc.created_at,
       (sc.on_hand_after - sc.reserved_after - sc.unavailable_after) as available_after,
       LAG(sc.on_hand_after - sc.reserved_after - sc.unavailable_after)
-        OVER (PARTITION BY sc.variant_id, sc.warehouse_id ORDER BY sc.created_at) as prev_available
+        OVER (PARTITION BY sc.variant_id, sc.warehouse_id ORDER BY sc.seq) as prev_available
     FROM inventory.stock_changes sc
+    WHERE sc.variant_id IN (SELECT id FROM product_variants)  -- фильтр до окна
   ) sc
   WHERE sc.available_after <= 0
     AND (sc.prev_available IS NULL OR sc.prev_available > 0)
@@ -286,11 +384,10 @@ variant_backorder_eta AS (
   SELECT
     v.id,
     MIN(s.expected_at) as backorder_expected_at
-  FROM inventory.variant v
+  FROM product_variants v
   LEFT JOIN inventory.inbound_supply s
     ON s.variant_id = v.id
     AND s.status IN ('PLANNED', 'IN_TRANSIT')
-  WHERE v.product_id = $1 AND v.deleted_at IS NULL
   GROUP BY v.id
 )
 SELECT
@@ -307,12 +404,41 @@ LEFT JOIN variant_oos vo ON vo.variant_id = variant_stock.id;
 ```
 
 ### Семантика out_of_stock_since / backorder_expected_at
--- `out_of_stock_since`: вычисляется по `stock_changes` как момент последнего перехода `available_after` из `> 0` в `<= 0`
+- `out_of_stock_since`: вычисляется по `stock_changes` как момент последнего перехода `available_after` из `> 0` в `<= 0`
   (по складу, затем `MIN` по складам).
 - `backorder_expected_at`: вычисляется из `inbound_supply` (можно кэшировать отдельно, но в `warehouse_stock` не храним).
 - В виджете используется `MIN(expected_at)` по `inbound_supply`; при необходимости заменить на расчет по дефициту.
-- Для SKU без истории движений добавить seed-запись в `stock_changes` при миграции
-  (например, `movement_type = 'ADJUST'`) либо использовать fallback на `warehouse_stock.updated_at`.
+
+### Seed миграция для существующих остатков
+
+При первой миграции добавить стартовую запись в `stock_changes` для каждой строки `warehouse_stock`:
+
+```sql
+-- Seed-записи для существующих остатков
+-- source_event_id должен быть <= 128 символов, используем короткий хеш
+INSERT INTO inventory.stock_changes (
+  project_id, warehouse_id, variant_id,
+  delta_on_hand, delta_reserved, delta_unavailable,
+  on_hand_after, reserved_after, unavailable_after,
+  movement_type, source_system, source_event_id, created_at
+)
+SELECT
+  ws.project_id,
+  ws.warehouse_id,
+  ws.variant_id,
+  0, 0, 0,  -- delta=0 разрешено для SEED
+  ws.quantity_on_hand,
+  COALESCE(ws.reserved_qty, 0),
+  COALESCE(ws.unavailable_qty, 0),
+  'SEED',
+  'MIGRATION',
+  -- Детерминированный короткий ключ (64 hex = 64 символа < 128)
+  encode(sha256((ws.project_id || ws.warehouse_id || ws.variant_id)::bytea), 'hex'),
+  COALESCE(ws.updated_at, ws.created_at, NOW())
+FROM inventory.warehouse_stock ws;
+```
+
+**Fallback для SKU без истории**: если `stock_changes` пустой — использовать `warehouse_stock.updated_at` как `out_of_stock_since`.
 
 ### Расчет backorder_expected_at (по складу)
 ```sql
@@ -361,12 +487,12 @@ SELECT COALESCE(SUM(-delta_on_hand), 0)
 FROM inventory.stock_changes
 WHERE variant_id = $1 AND movement_type = 'SELL' AND created_at >= NOW() - INTERVAL '30 days';
 
--- История стока на любую дату
+-- История стока на любую дату (сортировка по created_at + seq для корректности)
 SELECT COALESCE((
   SELECT sc.on_hand_after
   FROM inventory.stock_changes sc
   WHERE sc.variant_id = $1 AND sc.created_at <= $2
-  ORDER BY sc.created_at DESC
+  ORDER BY sc.created_at DESC, sc.seq DESC
   LIMIT 1
 ), 0);
 
@@ -457,12 +583,13 @@ extend type WidgetQuery {
 ## Порядок реализации
 
 ### Phase 1: Database
-1. Миграция: CREATE stock_changes
+1. Миграция: CREATE stock_changes (с seq BIGINT GENERATED ALWAYS AS IDENTITY)
 2. Миграция: CREATE reservations
 3. Миграция: CREATE product_inventory_settings
 4. Миграция: CREATE inbound_supply
-5. Миграция: ALTER warehouse_stock (добавить поля)
-6. Drizzle models
+5. Миграция: ALTER warehouse_stock (добавить поля + CHECK constraints)
+6. Миграция: SEED stock_changes для существующих warehouse_stock
+7. Drizzle models
 
 ### Phase 2: API
 1. InventoryWidgetRepository с SQL запросами
@@ -471,4 +598,4 @@ extend type WidgetQuery {
 
 ### Phase 3: Интеграция
 1. Обновить существующие операции (variantSetStock и др.) чтобы писали в stock_changes и обновляли warehouse_stock в одной транзакции
-2. Добавить reconcile job для сверки `reserved_qty` с `reservations` (на случай рассинхрона)
+2. Добавить reconcile job для сверки `reserved_qty` с `reservations` (на случай рассинхронизации)
