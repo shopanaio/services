@@ -140,13 +140,17 @@ type ProductFeature implements Node @key(fields: "id") {
 }
 
 input ProductFeatureSyncItemInput {
+  """Database ID. Null for new records."""
   id: ID
-  clientId: String
+  """
+  Tree-like index that serves as both identifier and sort position.
+  Format: "0", "1", "2" for root items; "0-0", "0-1", "1-0" for children.
+  Parent is derived from index: parent of "0-0" is "0", parent of "1-2" is "1".
+  Root items have no dash. Groups must be root items.
+  """
+  index: String!
   isGroup: Boolean!
-  parentId: ID
-  parentClientId: String
   name: String!
-  sortIndex: Int
   values: [ProductFeatureValueSyncInput!]
 }
 
@@ -156,9 +160,11 @@ type ProductFeatureValue implements Node @key(fields: "id") {
 }
 
 input ProductFeatureValueSyncInput {
+  """Database ID. Null for new records."""
   id: ID
+  """Sort index within the feature's values (0, 1, 2, ...)"""
+  index: Int!
   name: String!
-  sortIndex: Int
 }
 ```
 
@@ -166,6 +172,14 @@ input ProductFeatureValueSyncInput {
 - `slug` из ProductFeature
 - `slug` из ProductFeatureValue
 - `slug` из всех input типов
+- Добавлен `index` — древовидный идентификатор
+- `sortIndex` — теперь вычисляется из `index`
+
+**Новый контракт index:**
+- Формат: `"0"`, `"1"`, `"2"` для root items; `"0-0"`, `"0-1"`, `"1-0"` для children
+- Parent вычисляется из index: parent of `"0-0"` is `"0"`, parent of `"1-2"` is `"1"`
+- Root items (без dash) могут быть группами или атрибутами без родителя
+- Items с dash (children) — только атрибуты, их родитель — группа с index до dash
 
 ---
 
@@ -183,11 +197,28 @@ import type {
 } from "./dto/index.js";
 
 interface ResolvedFeature {
-  readonly index: number;
+  readonly index: string;           // tree index: "0", "1", "0-0", "0-1"
   readonly input: FeatureSyncItemInput;
   readonly id: string;
   readonly parentId: string | null;
-  readonly sortIndex: number;
+  readonly sortIndex: number;       // numeric sort within container
+}
+
+/**
+ * Парсит tree index и возвращает parent index и позицию.
+ * "0" → { parent: null, position: 0 }
+ * "0-0" → { parent: "0", position: 0 }
+ * "1-2" → { parent: "1", position: 2 }
+ */
+function parseTreeIndex(index: string): { parent: string | null; position: number } {
+  const dashPos = index.lastIndexOf("-");
+  if (dashPos === -1) {
+    return { parent: null, position: parseInt(index, 10) };
+  }
+  return {
+    parent: index.slice(0, dashPos),
+    position: parseInt(index.slice(dashPos + 1), 10),
+  };
 }
 
 export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyncResult> {
@@ -201,7 +232,7 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
       return this.error("Product not found", ["productId"], "NOT_FOUND");
     }
 
-    // 2. Валидация input (двухпроходная для forward references)
+    // 2. Валидация input
     const errors = this.validateInput(features);
     if (errors.length > 0) {
       return { product: undefined, features: [], userErrors: errors };
@@ -211,7 +242,7 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
     const keepIds = features.filter((f) => f.id).map((f) => f.id!);
     await this.repository.feature.deleteExcept(productId, keepIds);
 
-    // 4. Резолвить ID, parentId и нормализовать sortIndex
+    // 4. Резолвить ID, parentId и sortIndex из tree index
     const resolved = await this.resolveFeatures(productId, features);
 
     // 5. Upsert все features
@@ -236,63 +267,64 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
   }
 
   /**
-   * Двухпроходная валидация:
-   * 1. Первый проход — собираем все id/clientId и проверяем дубликаты
-   * 2. Второй проход — валидируем ссылки (parentId/parentClientId)
+   * Валидация input с использованием tree index.
    */
   private validateInput(features: FeatureSyncItemInput[]): UserError[] {
     const errors: UserError[] = [];
 
-    // Индексы для быстрого поиска
-    const idToIndex = new Map<string, number>();
-    const clientIdToIndex = new Map<string, number>();
+    // Индексы для поиска
+    const idSet = new Set<string>();
+    const indexToItem = new Map<string, { i: number; input: FeatureSyncItemInput }>();
 
-    const path = (i: number, field: string) => ["features", String(i), field];
+    const path = (index: string, field: string) => ["features", index, field];
 
     // ═══════════════════════════════════════════════════════════════════
     // Первый проход: собираем индексы, проверяем дубликаты и базовые правила
     // ═══════════════════════════════════════════════════════════════════
     for (const [i, f] of features.entries()) {
+      const idx = f.index;
+
+      // index обязателен и должен быть валидным форматом
+      if (!idx || !/^\d+(-\d+)?$/.test(idx)) {
+        errors.push({
+          message: `Invalid index format "${idx}". Expected: "0", "1", "0-0", "1-2", etc.`,
+          field: path(idx ?? String(i), "index"),
+          code: "INVALID"
+        });
+        continue;
+      }
+
+      // Дубликаты index
+      if (indexToItem.has(idx)) {
+        errors.push({
+          message: `Duplicate index "${idx}"`,
+          field: path(idx, "index"),
+          code: "DUPLICATE"
+        });
+      } else {
+        indexToItem.set(idx, { i, input: f });
+      }
+
       // Дубликаты id
       if (f.id) {
-        if (idToIndex.has(f.id)) {
+        if (idSet.has(f.id)) {
           errors.push({
             message: `Duplicate id "${f.id}"`,
-            field: path(i, "id"),
+            field: path(idx, "id"),
             code: "DUPLICATE"
           });
         } else {
-          idToIndex.set(f.id, i);
+          idSet.add(f.id);
         }
       }
 
-      // Дубликаты clientId
-      if (f.clientId) {
-        if (clientIdToIndex.has(f.clientId)) {
-          errors.push({
-            message: `Duplicate clientId "${f.clientId}"`,
-            field: path(i, "clientId"),
-            code: "DUPLICATE"
-          });
-        } else {
-          clientIdToIndex.set(f.clientId, i);
-        }
-      }
+      const parsed = parseTreeIndex(idx);
 
-      // isGroup обязателен для новых элементов (контракт)
-      if (f.id == null && f.isGroup == null) {
+      // Группы должны быть root (без dash)
+      if (f.isGroup && parsed.parent !== null) {
         errors.push({
-          message: "isGroup is required for new features",
-          field: path(i, "isGroup"),
-          code: "REQUIRED"
-        });
-      }
-
-      // Группы не могут иметь parent
-      if (f.isGroup && (f.parentId || f.parentClientId)) {
-        errors.push({
-          message: "Groups cannot have a parent",
-          field: path(i, "parentId"),
+          message: "Groups must be root items (index without dash)",
+          field: path(idx, "index"),
           code: "INVALID"
         });
       }
@@ -301,202 +333,152 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
       if (f.isGroup && f.values?.length) {
         errors.push({
           message: "Groups cannot have values",
-          field: path(i, "values"),
+          field: path(idx, "values"),
           code: "INVALID"
         });
-      }
-
-      // Нельзя указать оба parentId и parentClientId
-      if (f.parentId && f.parentClientId) {
-        errors.push({
-          message: "Cannot specify both parentId and parentClientId",
-          field: path(i, "parentId"),
-          code: "INVALID"
-        });
-      }
-
-      // Валидация values
-      if (f.values) {
-        const valueIds = new Set<string>();
-        for (const [vi, v] of f.values.entries()) {
-          if (v.id) {
-            if (valueIds.has(v.id)) {
-              errors.push({
-                message: `Duplicate value id "${v.id}"`,
-                field: [...path(i, "values"), String(vi), "id"],
-                code: "DUPLICATE",
-              });
-            } else {
-              valueIds.add(v.id);
-            }
-          }
-          if (!v.name?.trim()) {
-            errors.push({
-              message: "Value name is required",
-              field: [...path(i, "values"), String(vi), "name"],
-              code: "REQUIRED",
-            });
-          }
-        }
       }
 
       // name обязателен
       if (!f.name?.trim()) {
         errors.push({
           message: "Name is required",
-          field: path(i, "name"),
+          field: path(idx, "name"),
           code: "REQUIRED"
         });
       }
-    }
 
-    // ═══════════════════════════════════════════════════════════════════
-    // Второй проход: валидируем ссылки (теперь все clientId известны)
-    // ═══════════════════════════════════════════════════════════════════
-    for (const [i, f] of features.entries()) {
-      // Пропускаем группы — у них не может быть parent
-      if (f.isGroup) continue;
-
-      if (f.parentClientId) {
-        const parentIndex = clientIdToIndex.get(f.parentClientId);
-
-        if (parentIndex === undefined) {
-          errors.push({
-            message: `Parent with clientId "${f.parentClientId}" not found`,
-            field: path(i, "parentClientId"),
-            code: "NOT_FOUND"
-          });
-        } else {
-          const parent = features[parentIndex];
-          if (!parent.isGroup) {
+      // Валидация values
+      if (f.values) {
+        const valueIds = new Set<string>();
+        const valueIndexes = new Set<number>();
+        for (const v of f.values) {
+          if (v.id) {
+            if (valueIds.has(v.id)) {
+              errors.push({
+                message: `Duplicate value id "${v.id}"`,
+                field: path(idx, `values[${v.index}].id`),
+                code: "DUPLICATE",
+              });
+            } else {
+              valueIds.add(v.id);
+            }
+          }
+          if (valueIndexes.has(v.index)) {
             errors.push({
-              message: `Parent "${f.parentClientId}" must be a group`,
-              field: path(i, "parentClientId"),
-              code: "INVALID"
+              message: `Duplicate value index ${v.index}`,
+              field: path(idx, `values[${v.index}].index`),
+              code: "DUPLICATE",
+            });
+          } else {
+            valueIndexes.add(v.index);
+          }
+          if (!v.name?.trim()) {
+            errors.push({
+              message: "Value name is required",
+              field: path(idx, `values[${v.index}].name`),
+              code: "REQUIRED",
             });
           }
         }
       }
+    }
 
-      // parentId будет проверен в resolveFeatures через БД
+    // ═══════════════════════════════════════════════════════════════════
+    // Второй проход: валидируем parent ссылки (теперь все index известны)
+    // ═══════════════════════════════════════════════════════════════════
+    for (const [idx, { input: f }] of indexToItem) {
+      const parsed = parseTreeIndex(idx);
+
+      // Если есть parent (dash в index), проверяем что parent существует и это группа
+      if (parsed.parent !== null) {
+        const parentItem = indexToItem.get(parsed.parent);
+
+        if (!parentItem) {
+          errors.push({
+            message: `Parent index "${parsed.parent}" not found`,
+            field: path(idx, "index"),
+            code: "NOT_FOUND"
+          });
+        } else if (!parentItem.input.isGroup) {
+          errors.push({
+            message: `Parent "${parsed.parent}" must be a group`,
+            field: path(idx, "index"),
+            code: "INVALID"
+          });
+        }
+      }
     }
 
     return errors;
   }
 
   /**
-   * Резолвит features: создаёт новые группы, разрешает parentId, нормализует sortIndex.
-   * Возвращает immutable массив ResolvedFeature.
+   * Резолвит features: создаёт новые записи, разрешает parentId из tree index.
    */
   private async resolveFeatures(
     productId: string,
     features: FeatureSyncItemInput[]
   ): Promise<ResolvedFeature[]> {
-    // clientId → созданный id (для новых групп)
-    const clientIdToId = new Map<string, string>();
-    // index → созданный id (для новых items)
-    const indexToId = new Map<number, string>();
+    // index → database id (для новых записей)
+    const indexToDbId = new Map<string, string>();
+
+    // Сначала обрабатываем существующие записи (у которых есть id)
+    for (const f of features) {
+      if (f.id) {
+        indexToDbId.set(f.index, f.id);
+      }
+    }
 
     // ═══════════════════════════════════════════════════════════════════
-    // Шаг 1: Создаём новые группы (они не имеют parentId, поэтому первыми)
+    // Шаг 1: Создаём новые группы (root items, они не зависят от других)
     // ═══════════════════════════════════════════════════════════════════
-    for (const [i, f] of features.entries()) {
+    for (const f of features) {
       if (f.isGroup && !f.id) {
         const created = await this.repository.feature.create(productId, {
           isGroup: true,
           parentId: null,
           sortIndex: 0,
         });
-        indexToId.set(i, created.id);
-        if (f.clientId) {
-          clientIdToId.set(f.clientId, created.id);
-        }
+        indexToDbId.set(f.index, created.id);
       }
     }
 
     // ═══════════════════════════════════════════════════════════════════
     // Шаг 2: Создаём новые атрибуты
     // ═══════════════════════════════════════════════════════════════════
-    for (const [i, f] of features.entries()) {
+    for (const f of features) {
       if (!f.isGroup && !f.id) {
         const created = await this.repository.feature.create(productId, {
           isGroup: false,
           parentId: null, // временно, обновим в upsert
           sortIndex: 0,
         });
-        indexToId.set(i, created.id);
-        if (f.clientId) {
-          clientIdToId.set(f.clientId, created.id);
-        }
+        indexToDbId.set(f.index, created.id);
       }
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // Шаг 3: Резолвим parentId для каждого item
+    // Шаг 3: Собираем resolved items с parentId из tree index
     // ═══════════════════════════════════════════════════════════════════
-    const resolveParentId = (f: FeatureSyncItemInput): string | null => {
-      if (f.isGroup) return null;
-      if (f.parentId) return f.parentId;
-      if (f.parentClientId) {
-        const resolved = clientIdToId.get(f.parentClientId);
-        if (!resolved) {
-          // parentClientId ссылается на существующую группу с id
-          const parentIndex = features.findIndex(
-            (p) => p.clientId === f.parentClientId
-          );
-          if (parentIndex !== -1 && features[parentIndex].id) {
-            return features[parentIndex].id!;
-          }
-        }
-        return resolved ?? null;
-      }
-      return null;
-    };
+    const resolved: ResolvedFeature[] = features.map((f) => {
+      const parsed = parseTreeIndex(f.index);
+      const parentId = parsed.parent ? (indexToDbId.get(parsed.parent) ?? null) : null;
 
-    // ═══════════════════════════════════════════════════════════════════
-    // Шаг 4: Группируем по контейнеру и нормализуем sortIndex
-    // ═══════════════════════════════════════════════════════════════════
-    const items: Array<{
-      index: number;
-      input: FeatureSyncItemInput;
-      id: string;
-      parentId: string | null;
-      sortIndex: number;
-    }> = features.map((f, i) => ({
-      index: i,
-      input: f,
-      id: f.id ?? indexToId.get(i)!,
-      parentId: resolveParentId(f),
-      sortIndex: f.sortIndex ?? i,
-    }));
+      return {
+        index: f.index,
+        input: f,
+        id: indexToDbId.get(f.index)!,
+        parentId,
+        sortIndex: parsed.position,
+      };
+    });
 
-    // Проверить, что parentId принадлежит этому продукту и что parent — группа
-    // Проверить, что parentId != id (нет self-parent)
-    // Проверить, что isGroup для существующих id совпадает с БД
-
-    // Группируем по parentId для нормализации sortIndex
-    const byContainer = new Map<string, typeof items>();
-    for (const item of items) {
-      const key = item.parentId ?? "__root__";
-      const list = byContainer.get(key) ?? [];
-      list.push(item);
-      byContainer.set(key, list);
-    }
-
-    // Нормализуем sortIndex в каждом контейнере (0, 1, 2, ...)
-    for (const containerItems of byContainer.values()) {
-      containerItems.sort((a, b) => a.sortIndex - b.sortIndex);
-      containerItems.forEach((item, idx) => {
-        item.sortIndex = idx;
-      });
-    }
-
-    return items;
+    return resolved;
   }
 
   private async upsertFeature(productId: string, item: ResolvedFeature): Promise<void> {
     const data = {
-      isGroup: item.input.isGroup ?? false,
+      isGroup: item.input.isGroup,
       parentId: item.parentId,
       sortIndex: item.sortIndex,
     };
@@ -516,27 +498,20 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
     const keepIds = values.filter((v) => v.id).map((v) => v.id!);
     await this.repository.feature.deleteValuesExcept(featureId, keepIds);
 
-    // Сортируем и нормализуем sortIndex
-    const sorted = [...values]
-      .map((v, i) => ({ ...v, sortIndex: v.sortIndex ?? i }))
-      .sort((a, b) => a.sortIndex - b.sortIndex);
+    // Сортируем по index
+    const sorted = [...values].sort((a, b) => a.index - b.index);
 
-    // valueId map для новых values
-    const valueIdMap = new Map<number, string>();
-
-    for (const [index, value] of sorted.entries()) {
+    for (const value of sorted) {
       let valueId: string;
 
       if (value.id) {
-        // Перед обновлением убедиться, что value.id принадлежит featureId
-        await this.repository.feature.updateValue(value.id, { sortIndex: index });
+        await this.repository.feature.updateValue(value.id, { sortIndex: value.index });
         valueId = value.id;
       } else {
         const created = await this.repository.feature.createValue(featureId, {
-          sortIndex: index
+          sortIndex: value.index
         });
         valueId = created.id;
-        valueIdMap.set(index, valueId);
       }
 
       await this.repository.translation.upsertFeatureValueTranslation({
@@ -624,10 +599,14 @@ ALTER TABLE inventory.product_feature_value_translation
 ## 7. Контракт синхронизации (важно)
 
 - Sync получает **полный** список features для продукта (snapshot). Частичные обновления запрещены.
-- `isGroup` обязателен для всех новых элементов.
+- `index` — обязательное поле, формат: `"0"`, `"1"`, `"0-0"`, `"1-2"` и т.д.
+- `id` — опционально, null для новых записей.
+- `isGroup` — обязателен для всех элементов.
+- Группы должны быть root items (index без dash).
+- Parent вычисляется из index: `"0-0"` → parent `"0"`.
 - Для существующих `id` запрещена смена типа (group ↔ attribute).
-- `parentId` должен быть группой из того же `productId`.
 - `value.id` должен принадлежать текущему `featureId`.
+- `value.index` — числовой индекс для сортировки (0, 1, 2, ...).
 
 ---
 
@@ -650,7 +629,8 @@ ALTER TABLE inventory.product_feature_value_translation
 | Temp slugs | Да | Нет |
 | Edge cases | Много | Нет |
 | Колонки в БД | 6 + 4 | 5 + 3 |
-| Forward references | Не поддерживает | Поддерживает |
+| Tree index | Нет | Да |
+| Forward references | Не поддерживает | Автоматически (tree index) |
 | Мутация input | Да | Нет (immutable) |
 
 ---
@@ -677,27 +657,42 @@ ProductFeatureValue:
 2. [ ] Создать миграцию `0005_remove_feature_slug.sql`
 3. [ ] Проверить/добавить `ON DELETE CASCADE` для translations
 4. [ ] Обновить модель `features.ts` (удалить slug везде)
-5. [ ] Обновить GraphQL schema (удалить slug везде, `isGroup` сделать обязательным)
+5. [ ] Обновить GraphQL schema:
+   - Удалить slug везде
+   - Добавить `index: String!` для tree index
+   - Для values заменить `sortIndex` на `index: Int!`
 6. [ ] Обновить FeatureResolver (удалить slug метод)
 7. [ ] Обновить FeatureValueResolver (удалить slug метод)
 8. [ ] Добавить методы `deleteExcept`, `deleteValuesExcept` в repository
-9. [ ] Переписать `FeaturesSyncScript.ts` (с двухпроходной валидацией и проверкой ownership)
-10. [ ] Обновить DTO (удалить slug из input)
+9. [ ] Переписать `FeaturesSyncScript.ts` (с tree index и двухпроходной валидацией)
+10. [ ] Обновить DTO (добавить tree index)
 11. [ ] Удалить `offsetSortIndexes` из repository
-12. [ ] Запустить тесты
-13. [ ] Применить миграцию
+12. [ ] Обновить фронтенд — генерировать tree index
+13. [ ] Запустить тесты
+14. [ ] Применить миграцию
 
 ---
 
 ## Ключевые улучшения валидации
 
+### Tree Index формат
+```
+Root items:   "0", "1", "2", "3"
+Children:     "0-0", "0-1", "1-0", "2-0", "2-1"
+
+Parent вычисляется автоматически:
+  "0-0" → parent = "0"
+  "1-2" → parent = "1"
+  "0"   → parent = null (root)
+```
+
 ### Двухпроходная валидация
 ```
-Проход 1: Собираем все id/clientId → Map<string, index>
-          Проверяем дубликаты, базовые правила
+Проход 1: Собираем все index → Map<string, item>
+          Проверяем дубликаты, формат index, базовые правила
 
-Проход 2: Валидируем ссылки (parentId/parentClientId)
-          Теперь все clientId известны → forward references работают
+Проход 2: Валидируем parent ссылки
+          Проверяем что parent существует и является группой
 ```
 
 ### Immutable подход
@@ -707,4 +702,26 @@ Input → resolveFeatures() → ResolvedFeature[] (readonly)
                          upsertFeature()
 ```
 
-Входные данные не мутируются. Все созданные ID хранятся в отдельных Map.
+Входные данные не мутируются. Все созданные ID хранятся в `indexToDbId` Map.
+
+### Пример input
+```json
+{
+  "features": [
+    { "index": "0", "isGroup": true, "name": "Размеры" },
+    { "index": "0-0", "isGroup": false, "name": "Длина", "values": [
+      { "index": 0, "name": "100 см" },
+      { "index": 1, "name": "150 см" }
+    ]},
+    { "index": "0-1", "isGroup": false, "name": "Ширина" },
+    { "index": "1", "isGroup": true, "name": "Материалы" },
+    { "index": "1-0", "isGroup": false, "name": "Основа" },
+    { "index": "2", "isGroup": false, "name": "Цвет" }
+  ]
+}
+```
+
+- `"0"`, `"1"`, `"2"` — root items (группы или атрибуты без родителя)
+- `"0-0"`, `"0-1"` — дети группы `"0"` (Размеры)
+- `"1-0"` — ребёнок группы `"1"` (Материалы)
+- `id` можно не указывать для новых записей
