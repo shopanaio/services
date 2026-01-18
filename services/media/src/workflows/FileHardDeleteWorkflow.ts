@@ -2,6 +2,7 @@ import { DBOS } from "@shopana/workflows";
 import { BaseWorkflow, type WorkflowServices } from "./BaseWorkflow.js";
 import { classifyError, MissingMetadataError } from "../utils/classifyError.js";
 import { S3Client } from "../infrastructure/S3Client.js";
+import { FileDeleteCleanupWorkflow } from "./FileDeleteCleanupWorkflow.js";
 
 interface Dependencies extends WorkflowServices {
   s3Client: S3Client;
@@ -110,6 +111,12 @@ export class FileHardDeleteWorkflow extends BaseWorkflow {
       if (!deleted) {
         logger.info(`hardDelete skipped: file ${fileId} already deleted`);
       }
+
+      const cleanupWorkflow =
+        this.services.workflow.get<FileDeleteCleanupWorkflow>("fileDeleteCleanup");
+      await DBOS.startWorkflow(cleanupWorkflow, {
+        workflowID: FileDeleteCleanupWorkflow.workflowID(fileId),
+      }).run(fileId);
     } catch (error: unknown) {
       // Rollback: DELETING -> SOFT_DELETED with error
       const errorCode = classifyError(error);

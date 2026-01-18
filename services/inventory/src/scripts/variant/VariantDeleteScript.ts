@@ -1,4 +1,6 @@
+import { DBOS } from "@shopana/workflows";
 import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
+import { EntityDeletedNotifyWorkflow } from "../../workflows/EntityDeletedNotifyWorkflow.js";
 
 export interface VariantDeleteParams {
   readonly id: string;
@@ -31,6 +33,25 @@ export class VariantDeleteScript extends BaseScript<VariantDeleteParams, Variant
         deletedVariantId: undefined,
         userErrors: [{ message: "Failed to delete variant", code: "DELETE_FAILED" }],
       };
+    }
+
+    if (permanent) {
+      try {
+        const workflow =
+          this.workflow.get<EntityDeletedNotifyWorkflow>("entityDeletedNotify");
+        await DBOS.startWorkflow(workflow).run({
+          entityRef: {
+            service: "inventory",
+            entityType: "variant",
+            entityId: id,
+          },
+        });
+      } catch (error) {
+        this.logger.warn(
+          { variantId: id, error },
+          "Failed to notify media about deleted variant"
+        );
+      }
     }
 
     this.logger.info({ variantId: id, permanent }, "Variant deleted successfully");

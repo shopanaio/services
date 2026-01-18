@@ -69,6 +69,21 @@ export class OrganizationDeleteScript extends BaseScript<
       };
     }
 
+    try {
+      await this.services.broker.call("media.entityDeleted", {
+        entityRef: {
+          service: "iam",
+          entityType: "organization",
+          entityId: organizationId,
+        },
+      });
+    } catch (error) {
+      this.logger.warn(
+        { organizationId, error },
+        "Failed to unlink media backrefs for deleted organization"
+      );
+    }
+
     return {
       deletedOrganizationId: organizationId,
       userErrors: [],

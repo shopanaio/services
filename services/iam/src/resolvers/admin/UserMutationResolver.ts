@@ -47,14 +47,31 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
       };
     }
 
+    const previousUser = await kernel.repository.user.findById(currentUser.id);
+    const previousAvatarId = previousUser?.image ?? null;
+    let nextAvatarId: string | null | undefined;
+
+    if (input.avatarId !== undefined) {
+      if (input.avatarId) {
+        try {
+          nextAvatarId = decodeGlobalIdByType(
+            input.avatarId,
+            GlobalIdEntity.File
+          );
+        } catch {
+          nextAvatarId = input.avatarId;
+        }
+      } else {
+        nextAvatarId = null;
+      }
+    }
+
     // Update profile via script (firstName, lastName, locale)
     const result = await kernel.runScript(UserUpdateProfileScript, {
       firstName: input.firstName ?? undefined,
       lastName: input.lastName ?? undefined,
       language: input.locale ?? undefined,
-      ...(input.avatarId
-        ? { image: decodeGlobalIdByType(input.avatarId, GlobalIdEntity.File) }
-        : {}),
+      ...(input.avatarId !== undefined ? { image: nextAvatarId } : {}),
     });
 
     if (result.userErrors.length > 0) {
@@ -66,6 +83,14 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
           field: e.field ?? null,
         })),
       };
+    }
+
+    if (input.avatarId !== undefined) {
+      await this.syncAvatarBackRefs(
+        currentUser.id,
+        previousAvatarId,
+        nextAvatarId ?? null
+      );
     }
 
     return {
@@ -270,5 +295,65 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
       revokedCount,
       userErrors: [],
     };
+  }
+
+  private async syncAvatarBackRefs(
+    userId: string,
+    previousAvatarId: string | null,
+    nextAvatarId: string | null
+  ): Promise<void> {
+    try {
+      if (previousAvatarId === nextAvatarId) {
+        return;
+      }
+
+      const broker = this.$ctx.kernel.getServices().broker;
+      const entityRef = { service: "iam", entityType: "user", entityId: userId };
+      const role = "avatar";
+      const tasks: Array<Promise<unknown>> = [];
+
+      if (nextAvatarId) {
+        tasks.push(
+          broker.call("media.fileLink", {
+            fileId: nextAvatarId,
+            entityRef,
+            role,
+          })
+        );
+      }
+
+      if (previousAvatarId) {
+        tasks.push(
+          broker.call("media.fileUnlink", {
+            fileId: previousAvatarId,
+            entityRef,
+            role,
+          })
+        );
+      }
+
+      if (tasks.length === 0) {
+        return;
+      }
+
+      const results = await Promise.allSettled(tasks);
+      const failures = results.filter((result) => result.status === "rejected");
+
+      if (failures.length > 0) {
+        this.$ctx.kernel.getServices().logger.warn(
+          {
+            userId,
+            failedCount: failures.length,
+            errors: failures.map((failure) => failure.reason),
+          },
+          "User avatar backrefs sync failed"
+        );
+      }
+    } catch (error) {
+      this.$ctx.kernel.getServices().logger.warn(
+        { userId, error },
+        "User avatar backrefs sync failed"
+      );
+    }
   }
 }

@@ -233,6 +233,44 @@ type File implements Node @key(fields: "id") {
   externalData: ExternalMediaData
 }
 
+# ---- File Usage Types ----
+
+type FileUsageCount {
+  """
+  Entity type (variant, user, organization, etc).
+  """
+  entityType: String!
+
+  """
+  Number of unique entities referencing the file.
+  """
+  count: Int!
+}
+
+type FileUsageSummary {
+  """
+  Total number of unique entities referencing the file.
+  """
+  totalCount: Int!
+
+  """
+  Usage breakdown by entity type.
+  """
+  byEntity: [FileUsageCount!]!
+
+  """
+  Whether the file is active (not soft-deleted).
+  """
+  fileActive: Boolean!
+}
+
+extend type File {
+  """
+  Usage summary for this file.
+  """
+  usage: FileUsageSummary!
+}
+
 # ---- File Mutation Inputs ----
 
 """

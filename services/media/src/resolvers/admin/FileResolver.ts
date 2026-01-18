@@ -148,6 +148,16 @@ abstract class FileResolverBase extends MediaType<string, File> {
     }
     return new ExternalDataResolver(this.$props, this.$ctx);
   }
+
+  async usage() {
+    const deletedAt = await this.$get("deletedAt");
+    if (deletedAt) {
+      return { totalCount: 0, byEntity: [], fileActive: false };
+    }
+
+    const usage = await this.$ctx.loaders.fileUsage.load(this.$props);
+    return { ...usage, fileActive: true };
+  }
 }
 
 /**

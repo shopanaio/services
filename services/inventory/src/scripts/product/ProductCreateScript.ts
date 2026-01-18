@@ -1,3 +1,4 @@
+import { DBOS } from "@shopana/workflows";
 import { BaseScript } from "../../kernel/BaseScript.js";
 import type {
   ProductCreateParams,
@@ -6,6 +7,7 @@ import type {
   ProductCreateVariantInput,
 } from "./dto/index.js";
 import type { Variant, ProductOptionValue } from "../../repositories/models/index.js";
+import { BackRefNotifyWorkflow } from "../../workflows/BackRefNotifyWorkflow.js";
 
 export class ProductCreateScript extends BaseScript<ProductCreateParams, ProductCreateResult> {
   protected async execute(params: ProductCreateParams): Promise<ProductCreateResult> {
@@ -55,6 +57,7 @@ export class ProductCreateScript extends BaseScript<ProductCreateParams, Product
       // Attach media to default variant
       if (mediaFileIds && mediaFileIds.length > 0) {
         await this.repository.media.setVariantMedia(defaultVariant.id, mediaFileIds);
+        await this.linkVariantMediaBackRefs(defaultVariant.id, mediaFileIds);
       }
     }
 
@@ -174,6 +177,7 @@ export class ProductCreateScript extends BaseScript<ProductCreateParams, Product
       // Attach media to variant (all variants get the same media)
       if (mediaFileIds && mediaFileIds.length > 0) {
         await this.repository.media.setVariantMedia(variant.id, mediaFileIds);
+        await this.linkVariantMediaBackRefs(variant.id, mediaFileIds);
       }
 
       createdVariants.push(variant);
@@ -187,5 +191,34 @@ export class ProductCreateScript extends BaseScript<ProductCreateParams, Product
       product: undefined,
       userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR" }],
     };
+  }
+
+  private async linkVariantMediaBackRefs(
+    variantId: string,
+    fileIds?: string[]
+  ): Promise<void> {
+    if (!fileIds || fileIds.length === 0) {
+      return;
+    }
+
+    const uniqueFileIds = Array.from(new Set(fileIds));
+
+    try {
+      const workflow =
+        this.workflow.get<BackRefNotifyWorkflow>("backRefNotify");
+      await DBOS.startWorkflow(workflow).run({
+        entityRef: {
+          service: "inventory",
+          entityType: "variant",
+          entityId: variantId,
+        },
+        fileIds: uniqueFileIds,
+      });
+    } catch (error) {
+      this.logger.warn(
+        { variantId, error },
+        "Failed to link variant media backrefs"
+      );
+    }
   }
 }

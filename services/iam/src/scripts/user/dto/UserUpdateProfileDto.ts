@@ -20,7 +20,7 @@ export const userUpdateProfileInputSchema = z.object({
     .min(2, "Language code must be at least 2 characters")
     .max(10, "Language code must be at most 10 characters")
     .optional(),
-  image: z.string().uuid("Invalid image ID").optional(),
+  image: z.string().uuid("Invalid image ID").nullable().optional(),
 });
 
 export type UserUpdateProfileInput = z.infer<
@@ -34,7 +34,7 @@ export interface UserUpdateProfileParams {
   firstName?: string;
   lastName?: string;
   language?: string;
-  image?: string;
+  image?: string | null;
 }
 
 /**

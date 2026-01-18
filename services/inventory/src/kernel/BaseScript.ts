@@ -27,6 +27,7 @@ export abstract class BaseScript<TParams, TResult> implements Authorizable {
   protected readonly services: InventoryKernelServices;
   protected readonly repository: InventoryKernelServices["repository"];
   protected readonly logger: InventoryKernelServices["logger"];
+  protected readonly workflow: InventoryKernelServices["workflow"];
 
   /**
    * Transaction manager for @Transactional() decorator
@@ -38,6 +39,7 @@ export abstract class BaseScript<TParams, TResult> implements Authorizable {
     this.services = services;
     this.repository = services.repository;
     this.logger = services.logger;
+    this.workflow = services.workflow;
     this.txManager = services.repository.txManager;
   }
 

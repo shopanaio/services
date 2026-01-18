@@ -25,6 +25,23 @@ import {
   type AssetGroupGetParams,
   type AssetGroupGetResult,
 } from "./scripts/assetGroup/dto/AssetGroupGetDto.js";
+import { FileLinkScript } from "./scripts/backRef/FileLinkScript.js";
+import { FileUnlinkScript } from "./scripts/backRef/FileUnlinkScript.js";
+import { FileLinkManyScript } from "./scripts/backRef/FileLinkManyScript.js";
+import { FileUnlinkManyScript } from "./scripts/backRef/FileUnlinkManyScript.js";
+import { EntityDeletedScript } from "./scripts/backRef/EntityDeletedScript.js";
+import type {
+  FileLinkParams,
+  FileLinkResult,
+  FileUnlinkParams,
+  FileUnlinkResult,
+  FileLinkManyParams,
+  FileLinkManyResult,
+  FileUnlinkManyParams,
+  FileUnlinkManyResult,
+  EntityDeletedParams,
+  EntityDeletedResult,
+} from "./scripts/backRef/dto/index.js";
 
 /**
  * Media broker actions registered with @Action decorator.
@@ -72,5 +89,51 @@ export class MediaBrokerActions extends BrokerActions {
     params: AssetGroupGetParams
   ): Promise<AssetGroupGetResult> {
     return this.kernel.runScript(AssetGroupGetScript, params);
+  }
+
+  /**
+   * Action: fileLink - link file to entity
+   */
+  @Action("fileLink")
+  async fileLink(params: FileLinkParams): Promise<FileLinkResult> {
+    return this.kernel.runScript(FileLinkScript, params);
+  }
+
+  /**
+   * Action: fileUnlink - unlink file from entity
+   */
+  @Action("fileUnlink")
+  async fileUnlink(params: FileUnlinkParams): Promise<FileUnlinkResult> {
+    return this.kernel.runScript(FileUnlinkScript, params);
+  }
+
+  /**
+   * Action: fileLinkMany - batch link files to entity
+   */
+  @Action("fileLinkMany")
+  async fileLinkMany(
+    params: FileLinkManyParams
+  ): Promise<FileLinkManyResult> {
+    return this.kernel.runScript(FileLinkManyScript, params);
+  }
+
+  /**
+   * Action: fileUnlinkMany - batch unlink files from entity
+   */
+  @Action("fileUnlinkMany")
+  async fileUnlinkMany(
+    params: FileUnlinkManyParams
+  ): Promise<FileUnlinkManyResult> {
+    return this.kernel.runScript(FileUnlinkManyScript, params);
+  }
+
+  /**
+   * Action: entityDeleted - unlink all files from entity
+   */
+  @Action("entityDeleted")
+  async entityDeleted(
+    params: EntityDeletedParams
+  ): Promise<EntityDeletedResult> {
+    return this.kernel.runScript(EntityDeletedScript, params);
   }
 }

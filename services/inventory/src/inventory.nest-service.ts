@@ -14,6 +14,7 @@ import {
   ServiceBroker,
   type DatabaseClient,
 } from "@shopana/shared-kernel";
+import { WORKFLOW_REGISTRY, WorkflowRegistry } from "@shopana/workflows";
 import {
   getServiceConfig,
   buildS3Config,
@@ -29,6 +30,10 @@ import type {
 } from "./inventory.events";
 import { processInventoryUpdate } from "./processInventoryUpdate";
 import { InventoryObjectStorage } from "./storage";
+import {
+  BackRefNotifyWorkflow,
+  EntityDeletedNotifyWorkflow,
+} from "./workflows/index.js";
 
 export interface EmitTestEventParams {
   eventType: "product.updated" | "stock.changed";
@@ -44,14 +49,26 @@ export class InventoryNestService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     @InjectBroker("inventory") private readonly broker: ServiceBroker,
+    @Inject(WORKFLOW_REGISTRY) private readonly workflow: WorkflowRegistry,
     @Inject(DATABASE_CLIENT) private readonly dbClient: DatabaseClient
   ) {}
 
   async onModuleInit() {
     this.logger.debug("Inventory onModuleInit started");
 
-    this.kernel = await Kernel.create(this.broker, this.dbClient);
+    this.kernel = await Kernel.create(this.broker, this.workflow, this.dbClient);
     this.logger.debug("Kernel created");
+
+    const backRefNotifyWorkflow = new BackRefNotifyWorkflow("backRefNotify", {
+      kernel: this.kernel,
+    });
+    this.workflow.register("backRefNotify", backRefNotifyWorkflow);
+
+    const entityDeletedNotifyWorkflow = new EntityDeletedNotifyWorkflow(
+      "entityDeletedNotify",
+      { kernel: this.kernel }
+    );
+    this.workflow.register("entityDeletedNotify", entityDeletedNotifyWorkflow);
 
     const storageConfig = service.s3 ? buildS3Config(service.s3) : null;
     this.storageGateway = new InventoryObjectStorage(
@@ -76,6 +93,11 @@ export class InventoryNestService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy() {
+    if (this.workflow) {
+      this.workflow.deregister("backRefNotify");
+      this.workflow.deregister("entityDeletedNotify");
+    }
+
     if (this.graphqlServer) {
       await this.graphqlServer.close();
     }

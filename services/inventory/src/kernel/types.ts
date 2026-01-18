@@ -5,6 +5,7 @@ import type {
 } from "@shopana/shared-kernel";
 import type { Cache } from "cache-manager";
 import type { Repository } from "../repositories/Repository";
+import type { WorkflowRegistry } from "@shopana/workflows";
 
 /**
  * Logger interface for the inventory service
@@ -22,6 +23,7 @@ export interface Logger {
 export interface InventoryKernelServices extends BaseKernelServices {
   readonly repository: Repository;
   readonly cache: Cache;
+  readonly workflow: WorkflowRegistry;
 }
 
 /**

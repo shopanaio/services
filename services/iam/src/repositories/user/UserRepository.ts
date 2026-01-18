@@ -526,7 +526,7 @@ export class UserRepository {
       name?: string;
       firstName?: string;
       lastName?: string;
-      image?: string;
+      image?: string | null;
     }
   ): Promise<User | null> {
     const [result] = await this.db

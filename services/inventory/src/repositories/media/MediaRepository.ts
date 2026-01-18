@@ -176,4 +176,16 @@ export class MediaRepository extends BaseRepository {
 
     return results.map((r) => r.variantId);
   }
+
+  /**
+   * Remove all variant media references for a file (hard delete cleanup)
+   */
+  async removeByFileId(fileId: string): Promise<number> {
+    const result = await this.connection
+      .delete(variantMedia)
+      .where(eq(variantMedia.fileId, fileId))
+      .returning({ fileId: variantMedia.fileId });
+
+    return result.length;
+  }
 }

@@ -1,13 +1,13 @@
 import { ConfiguredInstance } from "@dbos-inc/dbos-sdk";
 import type { Kernel } from "../kernel/Kernel.js";
-import type { MediaKernelServices } from "../kernel/types.js";
+import type { InventoryKernelServices } from "../kernel/types.js";
 
 export interface WorkflowServices {
   kernel: Kernel;
 }
 
 /**
- * Base class for durable workflows in media service.
+ * Base class for durable workflows in inventory service.
  * Extends ConfiguredInstance for DBOS decorator support.
  */
 export abstract class BaseWorkflow extends ConfiguredInstance {
@@ -18,7 +18,7 @@ export abstract class BaseWorkflow extends ConfiguredInstance {
     this.kernel = services.kernel;
   }
 
-  protected get services(): MediaKernelServices {
+  protected get services(): InventoryKernelServices {
     return this.kernel.getServices();
   }
 

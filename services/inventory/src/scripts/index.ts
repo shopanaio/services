@@ -15,3 +15,6 @@ export * from './feature/index.js';
 
 // Warehouse scripts
 export * from './warehouse/index.js';
+
+// Media scripts
+export * from './media/index.js';

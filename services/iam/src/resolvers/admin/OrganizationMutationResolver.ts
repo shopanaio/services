@@ -92,6 +92,8 @@ export class OrganizationMutationResolver extends IAMType<
       };
     }
 
+    const previousLogoId = result.organization?.logoId ?? null;
+
     // Handle logo update separately if provided
     if (input.logoId !== undefined) {
       let logoId: string | null = null;
@@ -120,6 +122,8 @@ export class OrganizationMutationResolver extends IAMType<
           ],
         };
       }
+
+      await this.syncLogoBackRefs(organizationId, previousLogoId, logoId);
     }
 
     return {
@@ -319,5 +323,69 @@ export class OrganizationMutationResolver extends IAMType<
         field: e.field,
       })),
     };
+  }
+
+  private async syncLogoBackRefs(
+    organizationId: string,
+    previousLogoId: string | null,
+    nextLogoId: string | null
+  ): Promise<void> {
+    try {
+      if (previousLogoId === nextLogoId) {
+        return;
+      }
+
+      const broker = this.$ctx.kernel.getServices().broker;
+      const entityRef = {
+        service: "iam",
+        entityType: "organization",
+        entityId: organizationId,
+      };
+      const role = "logo";
+      const tasks: Array<Promise<unknown>> = [];
+
+      if (nextLogoId) {
+        tasks.push(
+          broker.call("media.fileLink", {
+            fileId: nextLogoId,
+            entityRef,
+            role,
+          })
+        );
+      }
+
+      if (previousLogoId) {
+        tasks.push(
+          broker.call("media.fileUnlink", {
+            fileId: previousLogoId,
+            entityRef,
+            role,
+          })
+        );
+      }
+
+      if (tasks.length === 0) {
+        return;
+      }
+
+      const results = await Promise.allSettled(tasks);
+      const failures = results.filter((result) => result.status === "rejected");
+
+      if (failures.length > 0) {
+        this.$ctx.kernel.getServices().logger.warn(
+          {
+            organizationId,
+            failedCount: failures.length,
+            errors: failures.map((failure) => failure.reason),
+          },
+          "Organization logo backrefs sync failed"
+        );
+      }
+    } catch (error) {
+      this.$ctx.kernel.getServices().logger.warn(
+        { organizationId, error },
+        "Organization logo backrefs sync failed"
+      );
+    }
   }
 }

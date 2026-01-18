@@ -10,7 +10,11 @@ import { DBOS, WORKFLOW_REGISTRY, WorkflowRegistry } from "@shopana/workflows";
 import type { FastifyInstance } from 'fastify';
 import { startServer } from './api/graphql-admin/server';
 import { Kernel } from './kernel/Kernel';
-import { FileGarbageCollectorWorkflow, FileHardDeleteWorkflow } from "./workflows/index.js";
+import {
+  FileGarbageCollectorWorkflow,
+  FileHardDeleteWorkflow,
+  FileDeleteCleanupWorkflow,
+} from "./workflows/index.js";
 import { S3Client } from "./infrastructure/S3Client.js";
 
 const { service } = getServiceConfig("media");
@@ -41,6 +45,12 @@ export class MediaNestService implements OnModuleInit, OnModuleDestroy {
     });
     this.workflow.register("fileHardDelete", hardDeleteWorkflow);
 
+    const deleteCleanupWorkflow = new FileDeleteCleanupWorkflow(
+      "fileDeleteCleanup",
+      { kernel: this.kernel }
+    );
+    this.workflow.register("fileDeleteCleanup", deleteCleanupWorkflow);
+
     const startHardDeleteWorkflow = async (fileId: string) => {
       await DBOS.startWorkflow(hardDeleteWorkflow).run(fileId);
     };
@@ -63,6 +73,7 @@ export class MediaNestService implements OnModuleInit, OnModuleDestroy {
   async onModuleDestroy() {
     if (this.workflow) {
       this.workflow.deregister("fileHardDelete");
+      this.workflow.deregister("fileDeleteCleanup");
       this.workflow.deregister("fileGarbageCollector");
     }
 

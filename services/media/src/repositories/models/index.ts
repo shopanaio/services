@@ -10,6 +10,9 @@ export * from "./buckets";
 // Files (base table)
 export * from "./files";
 
+// File Back References (usage tracking)
+export * from "./fileBackRefs";
+
 // File Deletion States (1:1 with files for GC lifecycle)
 export * from "./fileDeletionStates";
 

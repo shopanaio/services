@@ -47,7 +47,7 @@ export class UserUpdateProfileScript extends BaseScript<
       lastName?: string;
       name?: string;
       language?: string;
-      image?: string;
+      image?: string | null;
     } = {};
 
     if (language !== undefined) {

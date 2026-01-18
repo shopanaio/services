@@ -1,5 +1,6 @@
 import { Kernel as BaseKernel, consoleLogger } from "@shopana/shared-kernel";
 import type { ServiceBroker, Logger, DatabaseClient } from "@shopana/shared-kernel";
+import type { WorkflowRegistry } from "@shopana/workflows";
 import { createCache, type Cache } from "cache-manager";
 import type { InventoryKernelServices } from "./types";
 import { Repository } from "../repositories/Repository.js";
@@ -15,21 +16,28 @@ export class Kernel extends BaseKernel<InventoryKernelServices> {
   public repository!: Repository;
   public cache!: Cache;
   public db!: Database;
+  public workflow!: WorkflowRegistry;
 
   private constructor(
     broker: ServiceBroker,
     logger: Logger,
     repository: Repository,
+    workflow: WorkflowRegistry,
     cache: Cache,
     db: Database
   ) {
-    super(broker, logger, { repository, cache });
+    super(broker, logger, { repository, workflow, cache });
     this.repository = repository;
+    this.workflow = workflow;
     this.cache = cache;
     this.db = db;
   }
 
-  static async create(broker: ServiceBroker, dbClient: DatabaseClient): Promise<Kernel> {
+  static async create(
+    broker: ServiceBroker,
+    workflow: WorkflowRegistry,
+    dbClient: DatabaseClient
+  ): Promise<Kernel> {
     if (this.instance) {
       return this.instance;
     }
@@ -49,6 +57,7 @@ export class Kernel extends BaseKernel<InventoryKernelServices> {
       broker,
       consoleLogger,
       repository,
+      workflow,
       cache,
       db
     );
@@ -59,7 +68,7 @@ export class Kernel extends BaseKernel<InventoryKernelServices> {
   static getInstance(): Kernel {
     if (!this.instance) {
       throw new Error(
-        "Kernel not initialized. Call Kernel.create(broker) first."
+        "Kernel not initialized. Call Kernel.create(broker, workflow, dbClient) first."
       );
     }
     return this.instance;
