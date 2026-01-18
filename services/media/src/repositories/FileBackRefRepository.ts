@@ -1,6 +1,6 @@
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { Database } from "../infrastructure/db/database";
-import { fileBackRefs, type FileBackRef } from "./models";
+import { fileBackRefs, files, type FileBackRef } from "./models";
 
 export interface FileBackRefEntityRef {
   service: string;
@@ -34,22 +34,42 @@ export interface LinkManyResult {
 export class FileBackRefRepository {
   constructor(private readonly db: Database) {}
 
+  /**
+   * Link a file to an entity. Only links if file exists and is not soft-deleted.
+   */
   async link(params: FileBackRefKey): Promise<LinkResult> {
     const { fileId, service, entityType, entityId, role } = params;
 
-    const result = await this.db.execute<{ file_id: string }>(sql`
-      INSERT INTO media.file_back_refs
-        (file_id, service, entity_type, entity_id, role, created_at)
-      SELECT ${fileId}, ${service}, ${entityType}, ${entityId}, ${role}, NOW()
-      FROM media.files
-      WHERE id = ${fileId} AND deleted_at IS NULL
-      ON CONFLICT DO NOTHING
-      RETURNING file_id
-    `);
+    // Check if file exists and is active
+    const file = await this.db
+      .select({ id: files.id })
+      .from(files)
+      .where(and(eq(files.id, fileId), isNull(files.deletedAt)))
+      .limit(1);
+
+    if (file.length === 0) {
+      return { inserted: false };
+    }
+
+    // Insert with conflict handling
+    const result = await this.db
+      .insert(fileBackRefs)
+      .values({
+        fileId,
+        service,
+        entityType,
+        entityId,
+        role,
+      })
+      .onConflictDoNothing()
+      .returning({ fileId: fileBackRefs.fileId });
 
     return { inserted: result.length > 0 };
   }
 
+  /**
+   * Link multiple files to an entity. Only links files that exist and are not soft-deleted.
+   */
   async linkMany(params: {
     items: FileBackRefItem[];
     service: string;
@@ -67,21 +87,41 @@ export class FileBackRefRepository {
       new Map(items.map((item) => [`${item.fileId}:${item.role}`, item])).values()
     );
 
-    const values = uniqueItems.map((item) => sql`(${item.fileId}::uuid, ${item.role})`);
+    // Get active file IDs
+    const fileIds = uniqueItems.map((item) => item.fileId);
+    const activeFiles = await this.db
+      .select({ id: files.id })
+      .from(files)
+      .where(and(inArray(files.id, fileIds), isNull(files.deletedAt)));
 
-    const result = await this.db.execute<{ file_id: string }>(sql`
-      INSERT INTO media.file_back_refs
-        (file_id, service, entity_type, entity_id, role, created_at)
-      SELECT v.file_id, ${service}, ${entityType}, ${entityId}, v.role, NOW()
-      FROM (VALUES ${sql.join(values, sql`, `)}) AS v(file_id, role)
-      INNER JOIN media.files f ON f.id = v.file_id AND f.deleted_at IS NULL
-      ON CONFLICT DO NOTHING
-      RETURNING file_id
-    `);
+    const activeIds = new Set(activeFiles.map((f) => f.id));
+    const activeItems = uniqueItems.filter((item) => activeIds.has(item.fileId));
+
+    if (activeItems.length === 0) {
+      return { linkedCount: 0 };
+    }
+
+    // Insert all active items
+    const values = activeItems.map((item) => ({
+      fileId: item.fileId,
+      service,
+      entityType,
+      entityId,
+      role: item.role,
+    }));
+
+    const result = await this.db
+      .insert(fileBackRefs)
+      .values(values)
+      .onConflictDoNothing()
+      .returning({ fileId: fileBackRefs.fileId });
 
     return { linkedCount: result.length };
   }
 
+  /**
+   * Unlink a file from an entity.
+   */
   async unlink(params: FileBackRefKey): Promise<void> {
     const { fileId, service, entityType, entityId, role } = params;
 
@@ -98,6 +138,9 @@ export class FileBackRefRepository {
       );
   }
 
+  /**
+   * Unlink all files from an entity.
+   */
   async unlinkAllByEntity(params: FileBackRefEntityRef): Promise<number> {
     const { service, entityType, entityId } = params;
 
@@ -115,6 +158,9 @@ export class FileBackRefRepository {
     return result.length;
   }
 
+  /**
+   * Unlink multiple specific file+role combinations from an entity.
+   */
   async unlinkMany(params: {
     items: FileBackRefItem[];
     service: string;
@@ -127,57 +173,73 @@ export class FileBackRefRepository {
       return 0;
     }
 
+    // Deduplicate by fileId+role
     const uniqueItems = Array.from(
       new Map(items.map((item) => [`${item.fileId}:${item.role}`, item])).values()
     );
-    const values = uniqueItems.map((item) => sql`(${item.fileId}, ${item.role})`);
 
-    const result = await this.db.execute<{ file_id: string }>(sql`
-      DELETE FROM media.file_back_refs f
-      USING (VALUES ${sql.join(values, sql`, `)}) AS v(file_id, role)
-      WHERE f.service = ${service}
-        AND f.entity_type = ${entityType}
-        AND f.entity_id = ${entityId}
-        AND f.file_id = v.file_id
-        AND f.role = v.role
-      RETURNING f.file_id
-    `);
+    // Delete each item individually and count successes
+    let deletedCount = 0;
+    for (const item of uniqueItems) {
+      const result = await this.db
+        .delete(fileBackRefs)
+        .where(
+          and(
+            eq(fileBackRefs.fileId, item.fileId),
+            eq(fileBackRefs.service, service),
+            eq(fileBackRefs.entityType, entityType),
+            eq(fileBackRefs.entityId, entityId),
+            eq(fileBackRefs.role, item.role)
+          )
+        )
+        .returning({ fileId: fileBackRefs.fileId });
 
-    return result.length;
+      deletedCount += result.length;
+    }
+
+    return deletedCount;
   }
 
+  /**
+   * Count back references for a single file.
+   */
   async countByFileId(fileId: string): Promise<number> {
-    const result = await this.db.execute<{ count: number }>(sql`
-      SELECT COUNT(*)::int AS count
-      FROM media.file_back_refs
-      WHERE file_id = ${fileId}
-    `);
+    const result = await this.db
+      .select({ count: count() })
+      .from(fileBackRefs)
+      .where(eq(fileBackRefs.fileId, fileId));
 
     return result[0]?.count ?? 0;
   }
 
+  /**
+   * Count back references for multiple files.
+   */
   async countByFileIds(fileIds: string[]): Promise<Map<string, number>> {
     if (fileIds.length === 0) {
       return new Map();
     }
 
-    const values = fileIds.map((fileId) => sql`${fileId}`);
-
-    const result = await this.db.execute<{ file_id: string; count: number }>(sql`
-      SELECT file_id, COUNT(*)::int AS count
-      FROM media.file_back_refs
-      WHERE file_id IN (${sql.join(values, sql`, `)})
-      GROUP BY file_id
-    `);
+    const result = await this.db
+      .select({
+        fileId: fileBackRefs.fileId,
+        count: count(),
+      })
+      .from(fileBackRefs)
+      .where(inArray(fileBackRefs.fileId, fileIds))
+      .groupBy(fileBackRefs.fileId);
 
     const map = new Map<string, number>();
     for (const row of result) {
-      map.set(row.file_id, row.count ?? 0);
+      map.set(row.fileId, row.count);
     }
 
     return map;
   }
 
+  /**
+   * Find back references for a file.
+   */
   async findByFileId(fileId: string, limit = 100): Promise<FileBackRef[]> {
     return this.db
       .select()
@@ -187,43 +249,48 @@ export class FileBackRefRepository {
       .limit(limit);
   }
 
+  /**
+   * Get usage counts by entity type for a single file.
+   */
   async getUsageByFileId(fileId: string): Promise<FileUsageCount[]> {
-    const result = await this.db.execute<{ entity_type: string; count: number }>(sql`
-      SELECT entity_type, COUNT(DISTINCT entity_id)::int AS count
-      FROM media.file_back_refs
-      WHERE file_id = ${fileId}
-      GROUP BY entity_type
-    `);
+    const result = await this.db
+      .select({
+        entityType: fileBackRefs.entityType,
+        count: sql<number>`count(distinct ${fileBackRefs.entityId})::int`,
+      })
+      .from(fileBackRefs)
+      .where(eq(fileBackRefs.fileId, fileId))
+      .groupBy(fileBackRefs.entityType);
 
     return result.map((row) => ({
-      entityType: row.entity_type,
+      entityType: row.entityType,
       count: row.count ?? 0,
     }));
   }
 
+  /**
+   * Get usage counts by entity type for multiple files.
+   */
   async getUsageByFileIds(fileIds: string[]): Promise<Map<string, FileUsageCount[]>> {
     if (fileIds.length === 0) {
       return new Map();
     }
 
-    const values = fileIds.map((fileId) => sql`${fileId}`);
-
-    const result = await this.db.execute<{
-      file_id: string;
-      entity_type: string;
-      count: number;
-    }>(sql`
-      SELECT file_id, entity_type, COUNT(DISTINCT entity_id)::int AS count
-      FROM media.file_back_refs
-      WHERE file_id IN (${sql.join(values, sql`, `)})
-      GROUP BY file_id, entity_type
-    `);
+    const result = await this.db
+      .select({
+        fileId: fileBackRefs.fileId,
+        entityType: fileBackRefs.entityType,
+        count: sql<number>`count(distinct ${fileBackRefs.entityId})::int`,
+      })
+      .from(fileBackRefs)
+      .where(inArray(fileBackRefs.fileId, fileIds))
+      .groupBy(fileBackRefs.fileId, fileBackRefs.entityType);
 
     const map = new Map<string, FileUsageCount[]>();
     for (const row of result) {
-      const existing = map.get(row.file_id) ?? [];
-      existing.push({ entityType: row.entity_type, count: row.count ?? 0 });
-      map.set(row.file_id, existing);
+      const existing = map.get(row.fileId) ?? [];
+      existing.push({ entityType: row.entityType, count: row.count ?? 0 });
+      map.set(row.fileId, existing);
     }
 
     return map;
