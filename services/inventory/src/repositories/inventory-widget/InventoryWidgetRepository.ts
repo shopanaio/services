@@ -1,5 +1,12 @@
-import { sql } from "drizzle-orm";
+import { sql, eq, and, isNull, inArray, gte, sum } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
+import {
+  productInventorySettings,
+  variant,
+  warehouseStock,
+  stockChanges,
+  inboundSupply,
+} from "../models/index.js";
 
 export type ThresholdMethod = "SAFETY_STOCK" | "REORDER_POINT";
 
@@ -86,18 +93,19 @@ export class InventoryWidgetRepository extends BaseRepository {
   private async getAlertThreshold(
     productId: string
   ): Promise<InventoryAlertThreshold> {
-    const result = await this.connection.execute<{
-      method: string | null;
-      minimum_stock: number | null;
-    }>(sql`
-      SELECT
-        alert_threshold_method as method,
-        alert_minimum_stock as minimum_stock
-      FROM inventory.product_inventory_settings
-      WHERE project_id = ${this.storeId}
-        AND product_id = ${productId}
-      LIMIT 1
-    `);
+    const result = await this.connection
+      .select({
+        method: productInventorySettings.alertThresholdMethod,
+        minimumStock: productInventorySettings.alertMinimumStock,
+      })
+      .from(productInventorySettings)
+      .where(
+        and(
+          eq(productInventorySettings.projectId, this.storeId),
+          eq(productInventorySettings.productId, productId)
+        )
+      )
+      .limit(1);
 
     const row = result[0];
 
@@ -106,90 +114,127 @@ export class InventoryWidgetRepository extends BaseRepository {
     }
 
     const method = (row.method ?? DEFAULT_ALERT_THRESHOLD.method) as ThresholdMethod;
-    const minimumStock = toNumber(row.minimum_stock, DEFAULT_ALERT_THRESHOLD.minimumStock);
+    const minimumStock = toNumber(row.minimumStock, DEFAULT_ALERT_THRESHOLD.minimumStock);
 
     return { method, minimumStock };
   }
 
   private async getQuantities(productId: string): Promise<InventoryQuantities> {
-    const result = await this.connection.execute<{
-      on_hand: number | null;
-      reserved: number | null;
-      unavailable: number | null;
-      available_for_sale: number | null;
-    }>(sql`
-      SELECT
-        COALESCE(SUM(ws.quantity_on_hand), 0) as on_hand,
-        COALESCE(SUM(ws.reserved_qty), 0) as reserved,
-        COALESCE(SUM(ws.unavailable_qty), 0) as unavailable,
-        COALESCE(SUM(ws.quantity_on_hand - ws.reserved_qty - ws.unavailable_qty), 0) as available_for_sale
-      FROM inventory.warehouse_stock ws
-      JOIN inventory.variant v ON v.id = ws.variant_id
-      WHERE ws.project_id = ${this.storeId}
-        AND v.project_id = ${this.storeId}
-        AND v.product_id = ${productId}
-        AND v.deleted_at IS NULL
-    `);
+    const result = await this.connection
+      .select({
+        onHand: sql<number>`COALESCE(${sum(warehouseStock.quantityOnHand)}, 0)`,
+        reserved: sql<number>`COALESCE(${sum(warehouseStock.reservedQty)}, 0)`,
+        unavailable: sql<number>`COALESCE(${sum(warehouseStock.unavailableQty)}, 0)`,
+        availableForSale: sql<number>`COALESCE(SUM(${warehouseStock.quantityOnHand} - ${warehouseStock.reservedQty} - ${warehouseStock.unavailableQty}), 0)`,
+      })
+      .from(warehouseStock)
+      .innerJoin(variant, eq(variant.id, warehouseStock.variantId))
+      .where(
+        and(
+          eq(warehouseStock.projectId, this.storeId),
+          eq(variant.projectId, this.storeId),
+          eq(variant.productId, productId),
+          isNull(variant.deletedAt)
+        )
+      );
 
     const row = result[0];
 
     return {
-      onHand: toNumber(row?.on_hand),
+      onHand: toNumber(row?.onHand),
       reserved: toNumber(row?.reserved),
       unavailable: toNumber(row?.unavailable),
-      availableForSale: toNumber(row?.available_for_sale),
+      availableForSale: toNumber(row?.availableForSale),
     };
   }
 
   private async getAvailableChange7d(productId: string): Promise<number> {
-    const result = await this.connection.execute<{
-      available_change: number | null;
-    }>(sql`
-      WITH product_variants AS (
-        SELECT id
-        FROM inventory.variant
-        WHERE project_id = ${this.storeId}
-          AND product_id = ${productId}
-          AND deleted_at IS NULL
-      )
-      SELECT COALESCE(SUM(sc.delta_on_hand - sc.delta_reserved - sc.delta_unavailable), 0) as available_change
-      FROM inventory.stock_changes sc
-      WHERE sc.project_id = ${this.storeId}
-        AND sc.variant_id IN (SELECT id FROM product_variants)
-        AND sc.apply_status = 'APPLIED'
-        AND sc.created_at >= NOW() - INTERVAL '7 days'
-    `);
+    const productVariants = this.connection.$with("product_variants").as(
+      this.connection
+        .select({ id: variant.id })
+        .from(variant)
+        .where(
+          and(
+            eq(variant.projectId, this.storeId),
+            eq(variant.productId, productId),
+            isNull(variant.deletedAt)
+          )
+        )
+    );
 
-    return toNumber(result[0]?.available_change);
+    const result = await this.connection
+      .with(productVariants)
+      .select({
+        availableChange: sql<number>`COALESCE(SUM(${stockChanges.deltaOnHand} - ${stockChanges.deltaReserved} - ${stockChanges.deltaUnavailable}), 0)`,
+      })
+      .from(stockChanges)
+      .where(
+        and(
+          eq(stockChanges.projectId, this.storeId),
+          inArray(stockChanges.variantId, this.connection.select({ id: productVariants.id }).from(productVariants)),
+          eq(stockChanges.applyStatus, "APPLIED"),
+          gte(stockChanges.createdAt, sql`NOW() - INTERVAL '7 days'`)
+        )
+      );
+
+    return toNumber(result[0]?.availableChange);
   }
 
   private async getBackorderEtaAvgDays(
     productId: string
   ): Promise<number | null> {
-    const result = await this.connection.execute<{
-      eta_avg_days: number | null;
-    }>(sql`
-      SELECT
-        SUM(EXTRACT(EPOCH FROM (s.expected_at - NOW())) * (s.qty_expected - s.qty_received))
-        / NULLIF(SUM(s.qty_expected - s.qty_received), 0) / 86400 AS eta_avg_days
-      FROM inventory.inbound_supply s
-      JOIN inventory.variant v ON v.id = s.variant_id
-      WHERE s.project_id = ${this.storeId}
-        AND v.project_id = ${this.storeId}
-        AND v.product_id = ${productId}
-        AND v.deleted_at IS NULL
-        AND s.status IN ('PLANNED', 'IN_TRANSIT')
-        AND (s.qty_expected - s.qty_received) > 0
-        AND s.expected_at >= NOW()
-    `);
+    const productVariants = this.connection.$with("product_variants").as(
+      this.connection
+        .select({ id: variant.id })
+        .from(variant)
+        .where(
+          and(
+            eq(variant.projectId, this.storeId),
+            eq(variant.productId, productId),
+            isNull(variant.deletedAt)
+          )
+        )
+    );
 
-    return toNumberOrNull(result[0]?.eta_avg_days);
+    // Weighted average ETA: sum(seconds_until_eta * remaining_qty) / sum(remaining_qty) / 86400
+    const result = await this.connection
+      .with(productVariants)
+      .select({
+        etaAvgDays: sql<number | null>`
+          SUM(EXTRACT(EPOCH FROM (${inboundSupply.expectedAt} - NOW())) * (${inboundSupply.qtyExpected} - ${inboundSupply.qtyReceived}))
+          / NULLIF(SUM(${inboundSupply.qtyExpected} - ${inboundSupply.qtyReceived}), 0) / 86400
+        `,
+      })
+      .from(inboundSupply)
+      .innerJoin(productVariants, eq(productVariants.id, inboundSupply.variantId))
+      .where(
+        and(
+          eq(inboundSupply.projectId, this.storeId),
+          inArray(inboundSupply.status, ["PLANNED", "IN_TRANSIT"]),
+          sql`(${inboundSupply.qtyExpected} - ${inboundSupply.qtyReceived}) > 0`,
+          gte(inboundSupply.expectedAt, sql`NOW()`)
+        )
+      );
+
+    return toNumberOrNull(result[0]?.etaAvgDays);
   }
 
+  /**
+   * Get SKU status metrics with out-of-stock and backorder analysis.
+   * Uses raw SQL due to:
+   * - LAG() window function for detecting OOS transitions
+   * - COUNT/AVG with FILTER clause for conditional aggregates
+   */
   private async getSkuStatus(
     productId: string,
     lowStockThreshold: number
   ): Promise<InventorySkuStatus> {
+    // Column references for type safety in raw SQL
+    const v = variant;
+    const ws = warehouseStock;
+    const sc = stockChanges;
+    const s = inboundSupply;
+
     const result = await this.connection.execute<{
       total: number | null;
       low_stock_count: number | null;
@@ -199,63 +244,63 @@ export class InventoryWidgetRepository extends BaseRepository {
       backorder_avg_days: number | null;
     }>(sql`
       WITH product_variants AS (
-        SELECT id
-        FROM inventory.variant
-        WHERE project_id = ${this.storeId}
-          AND product_id = ${productId}
-          AND deleted_at IS NULL
+        SELECT ${v.id}
+        FROM ${v}
+        WHERE ${v.projectId} = ${this.storeId}
+          AND ${v.productId} = ${productId}
+          AND ${v.deletedAt} IS NULL
       ),
       variant_stock AS (
         SELECT
-          v.id,
-          COALESCE(SUM(ws.quantity_on_hand - ws.reserved_qty - ws.unavailable_qty), 0) as available
-        FROM product_variants v
-        LEFT JOIN inventory.warehouse_stock ws
-          ON ws.variant_id = v.id
-         AND ws.project_id = ${this.storeId}
-        GROUP BY v.id
+          pv.id,
+          COALESCE(SUM(${ws.quantityOnHand} - ${ws.reservedQty} - ${ws.unavailableQty}), 0) as available
+        FROM product_variants pv
+        LEFT JOIN ${ws}
+          ON ${ws.variantId} = pv.id
+         AND ${ws.projectId} = ${this.storeId}
+        GROUP BY pv.id
       ),
       warehouse_available AS (
         SELECT
-          ws.variant_id,
-          ws.warehouse_id,
-          (ws.quantity_on_hand - ws.reserved_qty - ws.unavailable_qty) as available
-        FROM inventory.warehouse_stock ws
-        WHERE ws.project_id = ${this.storeId}
-          AND ws.variant_id IN (SELECT id FROM product_variants)
+          ${ws.variantId} as variant_id,
+          ${ws.warehouseId} as warehouse_id,
+          (${ws.quantityOnHand} - ${ws.reservedQty} - ${ws.unavailableQty}) as available
+        FROM ${ws}
+        WHERE ${ws.projectId} = ${this.storeId}
+          AND ${ws.variantId} IN (SELECT id FROM product_variants)
       ),
       warehouse_oos AS (
         SELECT
-          sc.variant_id,
-          sc.warehouse_id,
-          MAX(sc.created_at) as out_of_stock_since
+          sc_inner.variant_id,
+          sc_inner.warehouse_id,
+          MAX(sc_inner.created_at) as out_of_stock_since
         FROM (
           SELECT
-            sc.variant_id,
-            sc.warehouse_id,
-            sc.created_at,
-            (sc.on_hand_after - sc.reserved_after - sc.unavailable_after) as available_after,
-            LAG(sc.on_hand_after - sc.reserved_after - sc.unavailable_after)
-              OVER (PARTITION BY sc.variant_id, sc.warehouse_id ORDER BY sc.created_at, sc.seq) as prev_available
-          FROM inventory.stock_changes sc
-          WHERE sc.project_id = ${this.storeId}
-            AND sc.variant_id IN (SELECT id FROM product_variants)
-            AND sc.apply_status = 'APPLIED'
-        ) sc
-        WHERE sc.available_after <= 0
-          AND (sc.prev_available IS NULL OR sc.prev_available > 0)
-        GROUP BY sc.variant_id, sc.warehouse_id
+            ${sc.variantId} as variant_id,
+            ${sc.warehouseId} as warehouse_id,
+            ${sc.createdAt} as created_at,
+            (${sc.onHandAfter} - ${sc.reservedAfter} - ${sc.unavailableAfter}) as available_after,
+            LAG(${sc.onHandAfter} - ${sc.reservedAfter} - ${sc.unavailableAfter})
+              OVER (PARTITION BY ${sc.variantId}, ${sc.warehouseId} ORDER BY ${sc.createdAt}, ${sc.seq}) as prev_available
+          FROM ${sc}
+          WHERE ${sc.projectId} = ${this.storeId}
+            AND ${sc.variantId} IN (SELECT id FROM product_variants)
+            AND ${sc.applyStatus} = 'APPLIED'
+        ) sc_inner
+        WHERE sc_inner.available_after <= 0
+          AND (sc_inner.prev_available IS NULL OR sc_inner.prev_available > 0)
+        GROUP BY sc_inner.variant_id, sc_inner.warehouse_id
       ),
       warehouse_oos_fallback AS (
         SELECT
           wa.variant_id,
           wa.warehouse_id,
-          ws.updated_at as out_of_stock_since
+          ${ws.updatedAt} as out_of_stock_since
         FROM warehouse_available wa
-        JOIN inventory.warehouse_stock ws
-          ON ws.variant_id = wa.variant_id
-         AND ws.warehouse_id = wa.warehouse_id
-         AND ws.project_id = ${this.storeId}
+        JOIN ${ws}
+          ON ${ws.variantId} = wa.variant_id
+         AND ${ws.warehouseId} = wa.warehouse_id
+         AND ${ws.projectId} = ${this.storeId}
         WHERE wa.available <= 0
           AND NOT EXISTS (
             SELECT 1
@@ -278,14 +323,14 @@ export class InventoryWidgetRepository extends BaseRepository {
       ),
       variant_backorder_eta AS (
         SELECT
-          v.id,
-          MIN(s.expected_at) as backorder_expected_at
-        FROM product_variants v
-        LEFT JOIN inventory.inbound_supply s
-          ON s.variant_id = v.id
-         AND s.project_id = ${this.storeId}
-         AND s.status IN ('PLANNED', 'IN_TRANSIT')
-        GROUP BY v.id
+          pv.id,
+          MIN(${s.expectedAt}) as backorder_expected_at
+        FROM product_variants pv
+        LEFT JOIN ${s}
+          ON ${s.variantId} = pv.id
+         AND ${s.projectId} = ${this.storeId}
+         AND ${s.status} IN ('PLANNED', 'IN_TRANSIT')
+        GROUP BY pv.id
       )
       SELECT
         COUNT(*) as total,
