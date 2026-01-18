@@ -333,6 +333,26 @@ export class ProductRepository extends BaseRepository {
       );
   }
 
+  async getRootFeatureIdsByProductIds(
+    productIds: readonly string[]
+  ): Promise<Array<{ id: string; productId: string; sortIndex: number }>> {
+    return this.connection
+      .select({
+        id: productFeature.id,
+        productId: productFeature.productId,
+        sortIndex: productFeature.sortIndex,
+      })
+      .from(productFeature)
+      .where(
+        and(
+          eq(productFeature.projectId, this.storeId),
+          inArray(productFeature.productId, [...productIds]),
+          isNull(productFeature.parentId)
+        )
+      )
+      .orderBy(productFeature.sortIndex);
+  }
+
   async getOptionsByIds(optionIds: readonly string[]): Promise<ProductOption[]> {
     return this.connection
       .select()

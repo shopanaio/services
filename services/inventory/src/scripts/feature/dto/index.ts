@@ -21,3 +21,10 @@ export type {
   FeatureDeleteParams,
   FeatureDeleteResult,
 } from "./FeatureDeleteDto.js";
+
+export type {
+  FeatureSyncParams,
+  FeatureSyncResult,
+  FeatureSyncItemInput,
+  FeatureValueSyncInput,
+} from "./FeatureSyncDto.js";

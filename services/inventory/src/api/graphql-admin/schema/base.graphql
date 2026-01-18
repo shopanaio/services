@@ -138,6 +138,9 @@ type InventoryMutation {
   productFeatureDelete(
     input: ProductFeatureDeleteInput!
   ): ProductFeatureDeletePayload!
+  productFeaturesSync(
+    input: ProductFeaturesSyncInput!
+  ): ProductFeaturesSyncPayload!
 
   # Warehouse mutations
   warehouseCreate(input: WarehouseCreateInput!): WarehouseCreatePayload!

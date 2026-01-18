@@ -14,6 +14,7 @@ export class ProductLoader {
   public readonly productSeo: DataLoader<string, ProductSeo | null>;
   public readonly productOptionIds: DataLoader<string, string[]>;
   public readonly productFeatureIds: DataLoader<string, string[]>;
+  public readonly productRootFeatureIds: DataLoader<string, string[]>;
   public readonly productOption: DataLoader<string, ProductOption | null>;
   public readonly productFeature: DataLoader<string, ProductFeature | null>;
 
@@ -46,6 +47,20 @@ export class ProductLoader {
         results.filter((f) => f.productId === id).map((f) => f.id)
       );
     });
+
+    this.productRootFeatureIds = new DataLoader<string, string[]>(
+      async (productIds) => {
+        const results = await repository.product.getRootFeatureIdsByProductIds(
+          productIds
+        );
+        return productIds.map((id) =>
+          results
+            .filter((f) => f.productId === id)
+            .sort((a, b) => a.sortIndex - b.sortIndex)
+            .map((f) => f.id)
+        );
+      }
+    );
 
     this.productOption = new DataLoader<string, ProductOption | null>(async (optionIds) => {
       const results = await repository.product.getOptionsByIds(optionIds);

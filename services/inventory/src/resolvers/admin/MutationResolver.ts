@@ -43,6 +43,7 @@ import {
   FeatureCreateScript,
   FeatureUpdateScript,
   FeatureDeleteScript,
+  FeaturesSyncScript,
 } from "../../scripts/feature/index.js";
 import type {
   ProductCreateInput,
@@ -68,6 +69,7 @@ import type {
   ProductFeatureCreateInput,
   ProductFeatureUpdateInput,
   ProductFeatureDeleteInput,
+  ProductFeaturesSyncInput,
 } from "./generated/types.js";
 import {
   ProductCreateInputSchema,
@@ -93,6 +95,7 @@ import {
   ProductFeatureCreateInputSchema,
   ProductFeatureUpdateInputSchema,
   ProductFeatureDeleteInputSchema,
+  ProductFeaturesSyncInputSchema,
 } from "./generated/schemas.js";
 
 /**
@@ -728,6 +731,44 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
 
     return {
       deletedFeatureId: result.deletedFeatureId ?? null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  /**
+   * Sync all product features for a product.
+   */
+  @ZodResolver(ProductFeaturesSyncInputSchema())
+  async productFeaturesSync(args: { input: ProductFeaturesSyncInput }) {
+    const { input } = args;
+
+    const result = await this.$ctx.kernel.runScript(FeaturesSyncScript, {
+      productId: input.productId,
+      features: input.features.map((feature) => ({
+        id: feature.id ?? undefined,
+        clientId: feature.clientId ?? undefined,
+        isGroup: feature.isGroup ?? undefined,
+        parentId: feature.parentId ?? undefined,
+        parentClientId: feature.parentClientId ?? undefined,
+        slug: feature.slug,
+        name: feature.name,
+        sortIndex: feature.sortIndex ?? undefined,
+        values: feature.values?.map((value) => ({
+          id: value.id ?? undefined,
+          slug: value.slug,
+          name: value.name,
+          sortIndex: value.sortIndex ?? undefined,
+        })),
+      })),
+    });
+
+    return {
+      product: result.product
+        ? new ProductResolver(result.product.id, this.$ctx)
+        : null,
+      features: result.features.map(
+        (feature) => new FeatureResolver(feature.id, this.$ctx)
+      ),
       userErrors: result.userErrors,
     };
   }

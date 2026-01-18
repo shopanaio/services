@@ -115,6 +115,14 @@ export class ProductResolver extends InventoryType<string, Product | null> {
   }
 
   /**
+   * Returns root-level features for this product
+   */
+  async rootFeatures() {
+    const ids = await this.$ctx.loaders.productRootFeatureIds.load(this.$props);
+    return ids.map((id) => new FeatureResolver(id, this.$ctx));
+  }
+
+  /**
    * Returns the count of variants for this product
    */
   async variantsCount(): Promise<number> {

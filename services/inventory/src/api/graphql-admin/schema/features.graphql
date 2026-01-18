@@ -1,19 +1,29 @@
 # ---- Product Feature Types ----
 
-"""
-A product feature represents a searchable attribute of a product (e.g., Material, Brand).
-"""
+"""A product feature represents either a group or an attribute."""
 type ProductFeature implements Node @key(fields: "id") {
   """The globally unique ID of the feature."""
   id: ID!
 
-  """The URL-friendly identifier for this feature."""
+  """Whether this feature is a group (container) or an attribute (leaf)."""
+  isGroup: Boolean!
+
+  """The URL-friendly identifier."""
   slug: String!
 
   """Display name."""
   name: String!
 
-  """The available values for this feature."""
+  """Sort order within parent (or at root level)."""
+  sortIndex: Int!
+
+  """Parent group, if this feature belongs to a group."""
+  parent: ProductFeature
+
+  """Child features. Returns empty array for attributes (isGroup = false)."""
+  children: [ProductFeature!]!
+
+  """Values. Returns empty array for groups (isGroup = true)."""
   values: [ProductFeatureValue!]!
 }
 
@@ -156,3 +166,73 @@ type ProductFeatureDeletePayload {
   userErrors: [GenericUserError!]!
 }
 
+# ---- Feature Sync ----
+
+"""Sync all product features in a single transaction."""
+input ProductFeaturesSyncInput {
+  """The ID of the product."""
+  productId: ID!
+  """Complete list of features (replaces all existing features)."""
+  features: [ProductFeatureSyncItemInput!]!
+}
+
+input ProductFeatureSyncItemInput {
+  """
+  Feature ID for existing features.
+  - If provided: update existing feature
+  - If null/omitted: create new feature (backend generates ID)
+  Features in DB but not in this list will be DELETED.
+  """
+  id: ID
+
+  """
+  Temporary client-side ID for new features (frontend generates, e.g., UUID).
+  Used to reference this item as a parent before it has a real ID.
+  Only needed for new items that will be referenced by other new items.
+  """
+  clientId: String
+
+  """Whether this is a group (true) or attribute (false). Default: false."""
+  isGroup: Boolean
+
+  """
+  Parent reference for tree structure:
+  - parentId: ID of an existing group (use for existing parents)
+  - parentClientId: clientId of a new group in the same request (use for new parents)
+  - Both null: root-level feature
+  """
+  parentId: ID
+  parentClientId: String
+
+  """The URL-friendly slug."""
+  slug: String!
+
+  """Display name."""
+  name: String!
+
+  """Sort order (position in the list determines sortIndex if omitted)."""
+  sortIndex: Int
+
+  """Values for this feature (only when isGroup = false)."""
+  values: [ProductFeatureValueSyncInput!]
+}
+
+input ProductFeatureValueSyncInput {
+  """Value ID for existing values. Null = create new."""
+  id: ID
+  """The URL-friendly slug."""
+  slug: String!
+  """Display name."""
+  name: String!
+  """Sort order."""
+  sortIndex: Int
+}
+
+type ProductFeaturesSyncPayload {
+  """The updated product."""
+  product: Product
+  """List of all synced features with their final IDs."""
+  features: [ProductFeature!]!
+  """Any validation errors."""
+  userErrors: [GenericUserError!]!
+}

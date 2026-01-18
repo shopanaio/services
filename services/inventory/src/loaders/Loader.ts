@@ -13,6 +13,7 @@ export class Loader {
   public readonly productSeo;
   public readonly productOptionIds;
   public readonly productFeatureIds;
+  public readonly productRootFeatureIds;
   public readonly productOption;
   public readonly productFeature;
 
@@ -41,6 +42,7 @@ export class Loader {
   public readonly featureValueIds;
   public readonly featureValue;
   public readonly featureValueTranslation;
+  public readonly featureChildIds;
 
   // Warehouse
   public readonly warehouse;
@@ -61,6 +63,7 @@ export class Loader {
     this.productSeo = productLoader.productSeo;
     this.productOptionIds = productLoader.productOptionIds;
     this.productFeatureIds = productLoader.productFeatureIds;
+    this.productRootFeatureIds = productLoader.productRootFeatureIds;
     this.productOption = productLoader.productOption;
     this.productFeature = productLoader.productFeature;
 
@@ -89,6 +92,7 @@ export class Loader {
     this.featureValueIds = featureLoader.featureValueIds;
     this.featureValue = featureLoader.featureValue;
     this.featureValueTranslation = featureLoader.featureValueTranslation;
+    this.featureChildIds = featureLoader.featureChildIds;
 
     // Warehouse
     this.warehouse = warehouseLoader.warehouse;

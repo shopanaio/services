@@ -27,10 +27,23 @@ export class FeatureCreateScript extends BaseScript<FeatureCreateParams, Feature
       };
     }
 
-    // 3. Create feature
-    const feature = await this.repository.feature.create(productId, { slug });
+    // 3. Determine root-level sort index
+    const existingFeatures = await this.repository.feature.findByProductId(productId);
+    const rootSortIndex =
+      existingFeatures
+        .filter((featureItem) => featureItem.parentId === null)
+        .reduce((max, featureItem) => Math.max(max, featureItem.sortIndex), -1) +
+      1;
 
-    // 4. Create feature translation
+    // 4. Create feature
+    const feature = await this.repository.feature.create(productId, {
+      slug,
+      isGroup: false,
+      parentId: null,
+      sortIndex: rootSortIndex,
+    });
+
+    // 5. Create feature translation
     await this.repository.translation.upsertFeatureTranslation({
       projectId: this.getProjectId(),
       featureId: feature.id,
@@ -38,7 +51,7 @@ export class FeatureCreateScript extends BaseScript<FeatureCreateParams, Feature
       name,
     });
 
-    // 5. Create values
+    // 6. Create values
     for (let i = 0; i < values.length; i++) {
       const valueInput = values[i];
       const featureValue = await this.repository.feature.createValue(feature.id, {

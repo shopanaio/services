@@ -14,6 +14,17 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
       };
     }
 
+    if (existingFeature.isGroup && values) {
+      return {
+        feature: undefined,
+        userErrors: [{
+          message: "Groups cannot have values",
+          field: ["values"],
+          code: "INVALID_VALUES",
+        }],
+      };
+    }
+
     // 2. Check slug uniqueness if changing
     if (slug !== undefined && slug !== existingFeature.slug) {
       const featureWithSlug = await this.repository.feature.findBySlug(

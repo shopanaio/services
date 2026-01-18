@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { BaseRepository } from "../BaseRepository.js";
 import {
@@ -86,7 +86,15 @@ export class FeatureRepository extends BaseRepository {
     return map;
   }
 
-  async create(productId: string, data: { slug: string }): Promise<ProductFeature> {
+  async create(
+    productId: string,
+    data: {
+      slug: string;
+      isGroup?: boolean;
+      parentId?: string | null;
+      sortIndex?: number;
+    }
+  ): Promise<ProductFeature> {
     const id = randomUUID();
 
     const newFeature: NewProductFeature = {
@@ -94,6 +102,9 @@ export class FeatureRepository extends BaseRepository {
       projectId: this.storeId,
       productId,
       slug: data.slug,
+      isGroup: data.isGroup ?? false,
+      parentId: data.parentId ?? null,
+      sortIndex: data.sortIndex ?? 0,
     };
 
     const result = await this.connection
@@ -104,10 +115,15 @@ export class FeatureRepository extends BaseRepository {
     return result[0];
   }
 
-  async update(id: string, data: { slug?: string }): Promise<ProductFeature | null> {
+  async update(
+    id: string,
+    data: { slug?: string; parentId?: string | null; sortIndex?: number }
+  ): Promise<ProductFeature | null> {
     const updateData: Partial<NewProductFeature> = {};
 
     if (data.slug !== undefined) updateData.slug = data.slug;
+    if (data.parentId !== undefined) updateData.parentId = data.parentId;
+    if (data.sortIndex !== undefined) updateData.sortIndex = data.sortIndex;
 
     if (Object.keys(updateData).length === 0) {
       return this.findById(id);
@@ -125,6 +141,20 @@ export class FeatureRepository extends BaseRepository {
       .returning();
 
     return result[0] ?? null;
+  }
+
+  async offsetSortIndexes(ids: string[], offset: number): Promise<void> {
+    if (ids.length === 0) return;
+
+    await this.connection
+      .update(productFeature)
+      .set({ sortIndex: sql`${productFeature.sortIndex} + ${offset}` })
+      .where(
+        and(
+          eq(productFeature.projectId, this.storeId),
+          inArray(productFeature.id, ids)
+        )
+      );
   }
 
   async delete(id: string): Promise<boolean> {
@@ -319,5 +349,31 @@ export class FeatureRepository extends BaseRepository {
           eq(productFeatureValueTranslation.locale, this.locale)
         )
       );
+  }
+
+  async getChildIdsByParentIds(
+    productIds: readonly string[],
+    parentIds: readonly string[]
+  ): Promise<
+    Array<{ id: string; productId: string; parentId: string | null; sortIndex: number }>
+  > {
+    if (productIds.length === 0 || parentIds.length === 0) return [];
+
+    return this.connection
+      .select({
+        id: productFeature.id,
+        productId: productFeature.productId,
+        parentId: productFeature.parentId,
+        sortIndex: productFeature.sortIndex,
+      })
+      .from(productFeature)
+      .where(
+        and(
+          eq(productFeature.projectId, this.storeId),
+          inArray(productFeature.productId, [...productIds]),
+          inArray(productFeature.parentId, [...parentIds])
+        )
+      )
+      .orderBy(productFeature.sortIndex);
   }
 }

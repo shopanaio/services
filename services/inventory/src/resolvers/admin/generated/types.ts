@@ -532,6 +532,7 @@ export type InventoryMutation = {
   productFeatureCreate: ProductFeatureCreatePayload;
   productFeatureDelete: ProductFeatureDeletePayload;
   productFeatureUpdate: ProductFeatureUpdatePayload;
+  productFeaturesSync: ProductFeaturesSyncPayload;
   productOptionCreate: ProductOptionCreatePayload;
   productOptionDelete: ProductOptionDeletePayload;
   productOptionUpdate: ProductOptionUpdatePayload;
@@ -575,6 +576,10 @@ export type InventoryMutationProductFeatureDeleteArgs = {
 
 export type InventoryMutationProductFeatureUpdateArgs = {
   input: ProductFeatureUpdateInput;
+};
+
+export type InventoryMutationProductFeaturesSyncArgs = {
+  input: ProductFeaturesSyncInput;
 };
 
 
@@ -1072,8 +1077,10 @@ export type Product = Node & {
   description: Maybe<Description>;
   /** Short excerpt. */
   excerpt: Maybe<Scalars['String']['output']>;
-  /** The features of this product. */
+  /** All features (flat list, includes both groups and attributes). */
   features: Array<ProductFeature>;
+  /** Root-level features only (groups and ungrouped attributes). */
+  rootFeatures: Array<ProductFeature>;
   /** The URL-friendly handle for the product. */
   handle: Maybe<Scalars['String']['output']>;
   /** The globally unique ID of the product. */
@@ -1196,10 +1203,18 @@ export type ProductEdge = {
 /** A product feature represents a searchable attribute of a product (e.g., Material, Brand). */
 export type ProductFeature = Node & {
   __typename?: 'ProductFeature';
+  /** Child features. Returns empty array for attributes (isGroup = false). */
+  children: Array<ProductFeature>;
   /** The globally unique ID of the feature. */
   id: Scalars['ID']['output'];
+  /** Whether this feature is a group (container) or an attribute (leaf). */
+  isGroup: Scalars['Boolean']['output'];
   /** Display name. */
   name: Scalars['String']['output'];
+  /** Parent group, if this feature belongs to a group. */
+  parent: Maybe<ProductFeature>;
+  /** Sort order within parent (or at root level). */
+  sortIndex: Scalars['Int']['output'];
   /** The URL-friendly identifier for this feature. */
   slug: Scalars['String']['output'];
   /** The available values for this feature. */
@@ -1243,6 +1258,69 @@ export type ProductFeatureDeletePayload = {
   /** The product with updated features. */
   product: Maybe<Product>;
   /** List of errors that occurred during the mutation. */
+  userErrors: Array<GenericUserError>;
+};
+
+/** Sync all product features in a single transaction. */
+export type ProductFeaturesSyncInput = {
+  /** Complete list of features (replaces all existing features). */
+  features: Array<ProductFeatureSyncItemInput>;
+  /** The ID of the product. */
+  productId: Scalars['ID']['input'];
+};
+
+export type ProductFeatureSyncItemInput = {
+  /**
+   * Feature ID for existing features.
+   * - If provided: update existing feature
+   * - If null/omitted: create new feature (backend generates ID)
+   * Features in DB but not in this list will be DELETED.
+   */
+  id?: InputMaybe<Scalars['ID']['input']>;
+  /**
+   * Temporary client-side ID for new features (frontend generates, e.g., UUID).
+   * Used to reference this item as a parent before it has a real ID.
+   * Only needed for new items that will be referenced by other new items.
+   */
+  clientId?: InputMaybe<Scalars['String']['input']>;
+  /** Whether this is a group (true) or attribute (false). Default: false. */
+  isGroup?: InputMaybe<Scalars['Boolean']['input']>;
+  /**
+   * Parent reference for tree structure:
+   * - parentId: ID of an existing group (use for existing parents)
+   * - parentClientId: clientId of a new group in the same request (use for new parents)
+   * - Both null: root-level feature
+   */
+  parentId?: InputMaybe<Scalars['ID']['input']>;
+  parentClientId?: InputMaybe<Scalars['String']['input']>;
+  /** The URL-friendly slug. */
+  slug: Scalars['String']['input'];
+  /** Display name. */
+  name: Scalars['String']['input'];
+  /** Sort order (position in the list determines sortIndex if omitted). */
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  /** Values for this feature (only when isGroup = false). */
+  values?: InputMaybe<Array<ProductFeatureValueSyncInput>>;
+};
+
+export type ProductFeatureValueSyncInput = {
+  /** Value ID for existing values. Null = create new. */
+  id?: InputMaybe<Scalars['ID']['input']>;
+  /** The URL-friendly slug. */
+  slug: Scalars['String']['input'];
+  /** Display name. */
+  name: Scalars['String']['input'];
+  /** Sort order. */
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ProductFeaturesSyncPayload = {
+  __typename?: 'ProductFeaturesSyncPayload';
+  /** List of all synced features with their final IDs. */
+  features: Array<ProductFeature>;
+  /** The updated product. */
+  product: Maybe<Product>;
+  /** Any validation errors. */
   userErrors: Array<GenericUserError>;
 };
 
@@ -2468,13 +2546,17 @@ export type ResolversTypes = ResolversObject<{
   ProductFeatureCreatePayload: ResolverTypeWrapper<ProductFeatureCreatePayload>;
   ProductFeatureDeleteInput: ProductFeatureDeleteInput;
   ProductFeatureDeletePayload: ResolverTypeWrapper<ProductFeatureDeletePayload>;
+  ProductFeatureSyncItemInput: ProductFeatureSyncItemInput;
   ProductFeatureInput: ProductFeatureInput;
   ProductFeatureUpdateInput: ProductFeatureUpdateInput;
   ProductFeatureUpdatePayload: ResolverTypeWrapper<ProductFeatureUpdatePayload>;
   ProductFeatureValue: ResolverTypeWrapper<ProductFeatureValue>;
   ProductFeatureValueCreateInput: ProductFeatureValueCreateInput;
+  ProductFeatureValueSyncInput: ProductFeatureValueSyncInput;
   ProductFeatureValueUpdateInput: ProductFeatureValueUpdateInput;
   ProductFeatureValuesInput: ProductFeatureValuesInput;
+  ProductFeaturesSyncInput: ProductFeaturesSyncInput;
+  ProductFeaturesSyncPayload: ResolverTypeWrapper<ProductFeaturesSyncPayload>;
   ProductInventoryWidget: ResolverTypeWrapper<ProductInventoryWidget>;
   ProductOption: ResolverTypeWrapper<ProductOption>;
   ProductOptionCreateInput: ProductOptionCreateInput;
@@ -2607,13 +2689,17 @@ export type ResolversParentTypes = ResolversObject<{
   ProductFeatureCreatePayload: ProductFeatureCreatePayload;
   ProductFeatureDeleteInput: ProductFeatureDeleteInput;
   ProductFeatureDeletePayload: ProductFeatureDeletePayload;
+  ProductFeatureSyncItemInput: ProductFeatureSyncItemInput;
   ProductFeatureInput: ProductFeatureInput;
   ProductFeatureUpdateInput: ProductFeatureUpdateInput;
   ProductFeatureUpdatePayload: ProductFeatureUpdatePayload;
   ProductFeatureValue: ProductFeatureValue;
   ProductFeatureValueCreateInput: ProductFeatureValueCreateInput;
+  ProductFeatureValueSyncInput: ProductFeatureValueSyncInput;
   ProductFeatureValueUpdateInput: ProductFeatureValueUpdateInput;
   ProductFeatureValuesInput: ProductFeatureValuesInput;
+  ProductFeaturesSyncInput: ProductFeaturesSyncInput;
+  ProductFeaturesSyncPayload: ProductFeaturesSyncPayload;
   ProductInventoryWidget: ProductInventoryWidget;
   ProductOption: ProductOption;
   ProductOptionCreateInput: ProductOptionCreateInput;
@@ -2745,6 +2831,7 @@ export type InventoryMutationResolvers<ContextType = ServiceContext, ParentType 
   productFeatureCreate?: Resolver<ResolversTypes['ProductFeatureCreatePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductFeatureCreateArgs, 'input'>>;
   productFeatureDelete?: Resolver<ResolversTypes['ProductFeatureDeletePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductFeatureDeleteArgs, 'input'>>;
   productFeatureUpdate?: Resolver<ResolversTypes['ProductFeatureUpdatePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductFeatureUpdateArgs, 'input'>>;
+  productFeaturesSync?: Resolver<ResolversTypes['ProductFeaturesSyncPayload'], ParentType, ContextType, RequireFields<InventoryMutationProductFeaturesSyncArgs, 'input'>>;
   productOptionCreate?: Resolver<ResolversTypes['ProductOptionCreatePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductOptionCreateArgs, 'input'>>;
   productOptionDelete?: Resolver<ResolversTypes['ProductOptionDeletePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductOptionDeleteArgs, 'input'>>;
   productOptionUpdate?: Resolver<ResolversTypes['ProductOptionUpdatePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductOptionUpdateArgs, 'input'>>;
@@ -2827,6 +2914,7 @@ export type ProductResolvers<ContextType = ServiceContext, ParentType extends Re
   isPublished?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   options?: Resolver<Array<ResolversTypes['ProductOption']>, ParentType, ContextType>;
   publishedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  rootFeatures?: Resolver<Array<ResolversTypes['ProductFeature']>, ParentType, ContextType>;
   seo?: Resolver<Maybe<ResolversTypes['ProductSeo']>, ParentType, ContextType>;
   title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
@@ -2862,8 +2950,12 @@ export type ProductEdgeResolvers<ContextType = ServiceContext, ParentType extend
 
 export type ProductFeatureResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductFeature'] = ResolversParentTypes['ProductFeature']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['ProductFeature']>, { __typename: 'ProductFeature' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  children?: Resolver<Array<ResolversTypes['ProductFeature']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  isGroup?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  parent?: Resolver<Maybe<ResolversTypes['ProductFeature']>, ParentType, ContextType>;
+  sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   slug?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   values?: Resolver<Array<ResolversTypes['ProductFeatureValue']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -2885,6 +2977,13 @@ export type ProductFeatureDeletePayloadResolvers<ContextType = ServiceContext, P
 
 export type ProductFeatureUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductFeatureUpdatePayload'] = ResolversParentTypes['ProductFeatureUpdatePayload']> = ResolversObject<{
   feature?: Resolver<Maybe<ResolversTypes['ProductFeature']>, ParentType, ContextType>;
+  product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ProductFeaturesSyncPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductFeaturesSyncPayload'] = ResolversParentTypes['ProductFeaturesSyncPayload']> = ResolversObject<{
+  features?: Resolver<Array<ResolversTypes['ProductFeature']>, ParentType, ContextType>;
   product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -3270,6 +3369,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   ProductFeatureCreatePayload?: ProductFeatureCreatePayloadResolvers<ContextType>;
   ProductFeatureDeletePayload?: ProductFeatureDeletePayloadResolvers<ContextType>;
   ProductFeatureUpdatePayload?: ProductFeatureUpdatePayloadResolvers<ContextType>;
+  ProductFeaturesSyncPayload?: ProductFeaturesSyncPayloadResolvers<ContextType>;
   ProductFeatureValue?: ProductFeatureValueResolvers<ContextType>;
   ProductInventoryWidget?: ProductInventoryWidgetResolvers<ContextType>;
   ProductOption?: ProductOptionResolvers<ContextType>;
@@ -3318,4 +3418,3 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   WarehouseUpdatePayload?: WarehouseUpdatePayloadResolvers<ContextType>;
   WidgetQuery?: WidgetQueryResolvers<ContextType>;
 }>;
-
