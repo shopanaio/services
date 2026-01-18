@@ -13,6 +13,7 @@
 1. **Удалить slug из features** — name хранится в translations, slug избыточен
 2. **Убрать unique constraints** на sortIndex — не нужны для бизнес-логики
 3. **Упростить sync алгоритм** — DELETE лишние → UPSERT остальные
+4. **Уточнить контракт и валидацию** — запретить неоднозначные типы и некорректные связи
 
 ---
 
@@ -141,7 +142,7 @@ type ProductFeature implements Node @key(fields: "id") {
 input ProductFeatureSyncItemInput {
   id: ID
   clientId: String
-  isGroup: Boolean
+  isGroup: Boolean!
   parentId: ID
   parentClientId: String
   name: String!
@@ -181,11 +182,13 @@ import type {
   FeatureValueSyncInput,
 } from "./dto/index.js";
 
-type ResolvedItem = FeatureSyncItemInput & {
-  resolvedId?: string;
-  resolvedParentId: string | null;
-  sortIndex: number;
-};
+interface ResolvedFeature {
+  readonly index: number;
+  readonly input: FeatureSyncItemInput;
+  readonly id: string;
+  readonly parentId: string | null;
+  readonly sortIndex: number;
+}
 
 export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyncResult> {
 
@@ -198,33 +201,32 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
       return this.error("Product not found", ["productId"], "NOT_FOUND");
     }
 
-    // 2. Валидация input
+    // 2. Валидация input (двухпроходная для forward references)
     const errors = this.validateInput(features);
     if (errors.length > 0) {
       return { product: undefined, features: [], userErrors: errors };
     }
 
     // 3. Удалить лишние features (которых нет в input)
-    const keepIds = features.filter((f) => f.id).map((f) => f.id as string);
+    const keepIds = features.filter((f) => f.id).map((f) => f.id!);
     await this.repository.feature.deleteExcept(productId, keepIds);
 
-    // 4. Создать новые группы и построить clientId → id map
-    const clientIdMap = await this.createNewGroups(productId, features);
+    // 4. Резолвить ID, parentId и нормализовать sortIndex
+    const resolved = await this.resolveFeatures(productId, features);
 
-    // 5. Резолвить parentId и нормализовать sortIndex
-    const resolved = this.resolveAndNormalize(features, clientIdMap);
-
-    // 6. Upsert все features
+    // 5. Upsert все features
     for (const item of resolved) {
       await this.upsertFeature(productId, item);
     }
 
-    // 7. Sync values для атрибутов
-    for (const item of resolved.filter((f) => !f.isGroup && f.resolvedId)) {
-      await this.syncValues(item.resolvedId!, item.values ?? []);
+    // 6. Sync values для атрибутов
+    for (const item of resolved) {
+      if (!item.input.isGroup) {
+        await this.syncValues(item.id, item.input.values ?? []);
+      }
     }
 
-    // 8. Вернуть результат
+    // 7. Вернуть результат
     const [product, syncedFeatures] = await Promise.all([
       this.repository.product.findById(productId),
       this.repository.feature.findByProductId(productId),
@@ -233,140 +235,313 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
     return { product: product ?? undefined, features: syncedFeatures, userErrors: [] };
   }
 
+  /**
+   * Двухпроходная валидация:
+   * 1. Первый проход — собираем все id/clientId и проверяем дубликаты
+   * 2. Второй проход — валидируем ссылки (parentId/parentClientId)
+   */
   private validateInput(features: FeatureSyncItemInput[]): UserError[] {
     const errors: UserError[] = [];
-    const seenIds = new Set<string>();
-    const seenClientIds = new Set<string>();
-    const clientIdToItem = new Map<string, FeatureSyncItemInput>();
 
+    // Индексы для быстрого поиска
+    const idToIndex = new Map<string, number>();
+    const clientIdToIndex = new Map<string, number>();
+
+    const path = (i: number, field: string) => ["features", String(i), field];
+
+    // ═══════════════════════════════════════════════════════════════════
+    // Первый проход: собираем индексы, проверяем дубликаты и базовые правила
+    // ═══════════════════════════════════════════════════════════════════
     for (const [i, f] of features.entries()) {
-      const path = (field: string) => ["features", String(i), field];
-
-      if (f.id && seenIds.has(f.id)) {
-        errors.push({ message: "Duplicate id", field: path("id"), code: "DUPLICATE" });
-      }
-      if (f.id) seenIds.add(f.id);
-
-      if (f.clientId && seenClientIds.has(f.clientId)) {
-        errors.push({ message: "Duplicate clientId", field: path("clientId"), code: "DUPLICATE" });
-      }
-      if (f.clientId) {
-        seenClientIds.add(f.clientId);
-        clientIdToItem.set(f.clientId, f);
-      }
-
-      if (f.isGroup && (f.parentId || f.parentClientId)) {
-        errors.push({ message: "Groups cannot have parent", field: path("parentId"), code: "INVALID" });
-      }
-
-      if (f.isGroup && f.values?.length) {
-        errors.push({ message: "Groups cannot have values", field: path("values"), code: "INVALID" });
-      }
-
-      if (f.parentId && f.parentClientId) {
-        errors.push({ message: "Use parentId or parentClientId, not both", field: path("parentId"), code: "INVALID" });
-      }
-
-      // Validate parentClientId references
-      if (f.parentClientId) {
-        const parent = clientIdToItem.get(f.parentClientId);
-        if (!parent) {
-          errors.push({ message: "parentClientId not found", field: path("parentClientId"), code: "NOT_FOUND" });
-        } else if (!parent.isGroup) {
-          errors.push({ message: "Parent must be a group", field: path("parentClientId"), code: "INVALID" });
+      // Дубликаты id
+      if (f.id) {
+        if (idToIndex.has(f.id)) {
+          errors.push({
+            message: `Duplicate id "${f.id}"`,
+            field: path(i, "id"),
+            code: "DUPLICATE"
+          });
+        } else {
+          idToIndex.set(f.id, i);
         }
       }
+
+      // Дубликаты clientId
+      if (f.clientId) {
+        if (clientIdToIndex.has(f.clientId)) {
+          errors.push({
+            message: `Duplicate clientId "${f.clientId}"`,
+            field: path(i, "clientId"),
+            code: "DUPLICATE"
+          });
+        } else {
+          clientIdToIndex.set(f.clientId, i);
+        }
+      }
+
+      // isGroup обязателен для новых элементов (контракт)
+      if (f.id == null && f.isGroup == null) {
+        errors.push({
+          message: "isGroup is required for new features",
+          field: path(i, "isGroup"),
+          code: "REQUIRED"
+        });
+      }
+
+      // Группы не могут иметь parent
+      if (f.isGroup && (f.parentId || f.parentClientId)) {
+        errors.push({
+          message: "Groups cannot have a parent",
+          field: path(i, "parentId"),
+          code: "INVALID"
+        });
+      }
+
+      // Группы не могут иметь values
+      if (f.isGroup && f.values?.length) {
+        errors.push({
+          message: "Groups cannot have values",
+          field: path(i, "values"),
+          code: "INVALID"
+        });
+      }
+
+      // Нельзя указать оба parentId и parentClientId
+      if (f.parentId && f.parentClientId) {
+        errors.push({
+          message: "Cannot specify both parentId and parentClientId",
+          field: path(i, "parentId"),
+          code: "INVALID"
+        });
+      }
+
+      // Валидация values
+      if (f.values) {
+        const valueIds = new Set<string>();
+        for (const [vi, v] of f.values.entries()) {
+          if (v.id) {
+            if (valueIds.has(v.id)) {
+              errors.push({
+                message: `Duplicate value id "${v.id}"`,
+                field: [...path(i, "values"), String(vi), "id"],
+                code: "DUPLICATE",
+              });
+            } else {
+              valueIds.add(v.id);
+            }
+          }
+          if (!v.name?.trim()) {
+            errors.push({
+              message: "Value name is required",
+              field: [...path(i, "values"), String(vi), "name"],
+              code: "REQUIRED",
+            });
+          }
+        }
+      }
+
+      // name обязателен
+      if (!f.name?.trim()) {
+        errors.push({
+          message: "Name is required",
+          field: path(i, "name"),
+          code: "REQUIRED"
+        });
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // Второй проход: валидируем ссылки (теперь все clientId известны)
+    // ═══════════════════════════════════════════════════════════════════
+    for (const [i, f] of features.entries()) {
+      // Пропускаем группы — у них не может быть parent
+      if (f.isGroup) continue;
+
+      if (f.parentClientId) {
+        const parentIndex = clientIdToIndex.get(f.parentClientId);
+
+        if (parentIndex === undefined) {
+          errors.push({
+            message: `Parent with clientId "${f.parentClientId}" not found`,
+            field: path(i, "parentClientId"),
+            code: "NOT_FOUND"
+          });
+        } else {
+          const parent = features[parentIndex];
+          if (!parent.isGroup) {
+            errors.push({
+              message: `Parent "${f.parentClientId}" must be a group`,
+              field: path(i, "parentClientId"),
+              code: "INVALID"
+            });
+          }
+        }
+      }
+
+      // parentId будет проверен в resolveFeatures через БД
     }
 
     return errors;
   }
 
-  private async createNewGroups(
+  /**
+   * Резолвит features: создаёт новые группы, разрешает parentId, нормализует sortIndex.
+   * Возвращает immutable массив ResolvedFeature.
+   */
+  private async resolveFeatures(
     productId: string,
     features: FeatureSyncItemInput[]
-  ): Promise<Map<string, string>> {
-    const clientIdMap = new Map<string, string>();
+  ): Promise<ResolvedFeature[]> {
+    // clientId → созданный id (для новых групп)
+    const clientIdToId = new Map<string, string>();
+    // index → созданный id (для новых items)
+    const indexToId = new Map<number, string>();
 
-    for (const group of features.filter((f) => f.isGroup && !f.id)) {
-      const created = await this.repository.feature.create(productId, {
-        isGroup: true,
-        parentId: null,
-        sortIndex: 0,
-      });
-      group.id = created.id;
-      if (group.clientId) clientIdMap.set(group.clientId, created.id);
+    // ═══════════════════════════════════════════════════════════════════
+    // Шаг 1: Создаём новые группы (они не имеют parentId, поэтому первыми)
+    // ═══════════════════════════════════════════════════════════════════
+    for (const [i, f] of features.entries()) {
+      if (f.isGroup && !f.id) {
+        const created = await this.repository.feature.create(productId, {
+          isGroup: true,
+          parentId: null,
+          sortIndex: 0,
+        });
+        indexToId.set(i, created.id);
+        if (f.clientId) {
+          clientIdToId.set(f.clientId, created.id);
+        }
+      }
     }
 
-    return clientIdMap;
-  }
+    // ═══════════════════════════════════════════════════════════════════
+    // Шаг 2: Создаём новые атрибуты
+    // ═══════════════════════════════════════════════════════════════════
+    for (const [i, f] of features.entries()) {
+      if (!f.isGroup && !f.id) {
+        const created = await this.repository.feature.create(productId, {
+          isGroup: false,
+          parentId: null, // временно, обновим в upsert
+          sortIndex: 0,
+        });
+        indexToId.set(i, created.id);
+        if (f.clientId) {
+          clientIdToId.set(f.clientId, created.id);
+        }
+      }
+    }
 
-  private resolveAndNormalize(
-    features: FeatureSyncItemInput[],
-    clientIdMap: Map<string, string>
-  ): ResolvedItem[] {
-    const resolved: ResolvedItem[] = features.map((f, i) => ({
-      ...f,
-      resolvedId: f.id ?? undefined,
-      resolvedParentId: f.isGroup ? null : (f.parentId ?? clientIdMap.get(f.parentClientId!) ?? null),
+    // ═══════════════════════════════════════════════════════════════════
+    // Шаг 3: Резолвим parentId для каждого item
+    // ═══════════════════════════════════════════════════════════════════
+    const resolveParentId = (f: FeatureSyncItemInput): string | null => {
+      if (f.isGroup) return null;
+      if (f.parentId) return f.parentId;
+      if (f.parentClientId) {
+        const resolved = clientIdToId.get(f.parentClientId);
+        if (!resolved) {
+          // parentClientId ссылается на существующую группу с id
+          const parentIndex = features.findIndex(
+            (p) => p.clientId === f.parentClientId
+          );
+          if (parentIndex !== -1 && features[parentIndex].id) {
+            return features[parentIndex].id!;
+          }
+        }
+        return resolved ?? null;
+      }
+      return null;
+    };
+
+    // ═══════════════════════════════════════════════════════════════════
+    // Шаг 4: Группируем по контейнеру и нормализуем sortIndex
+    // ═══════════════════════════════════════════════════════════════════
+    const items: Array<{
+      index: number;
+      input: FeatureSyncItemInput;
+      id: string;
+      parentId: string | null;
+      sortIndex: number;
+    }> = features.map((f, i) => ({
+      index: i,
+      input: f,
+      id: f.id ?? indexToId.get(i)!,
+      parentId: resolveParentId(f),
       sortIndex: f.sortIndex ?? i,
     }));
 
-    // Нормализуем sortIndex по контейнерам
-    const byContainer = new Map<string, ResolvedItem[]>();
-    for (const item of resolved) {
-      const key = item.resolvedParentId ?? "__root__";
+    // Проверить, что parentId принадлежит этому продукту и что parent — группа
+    // Проверить, что parentId != id (нет self-parent)
+    // Проверить, что isGroup для существующих id совпадает с БД
+
+    // Группируем по parentId для нормализации sortIndex
+    const byContainer = new Map<string, typeof items>();
+    for (const item of items) {
+      const key = item.parentId ?? "__root__";
       const list = byContainer.get(key) ?? [];
       list.push(item);
       byContainer.set(key, list);
     }
 
-    for (const items of byContainer.values()) {
-      items.sort((a, b) => a.sortIndex - b.sortIndex);
-      items.forEach((item, idx) => (item.sortIndex = idx));
+    // Нормализуем sortIndex в каждом контейнере (0, 1, 2, ...)
+    for (const containerItems of byContainer.values()) {
+      containerItems.sort((a, b) => a.sortIndex - b.sortIndex);
+      containerItems.forEach((item, idx) => {
+        item.sortIndex = idx;
+      });
     }
 
-    return resolved;
+    return items;
   }
 
-  private async upsertFeature(productId: string, item: ResolvedItem): Promise<void> {
+  private async upsertFeature(productId: string, item: ResolvedFeature): Promise<void> {
     const data = {
-      isGroup: item.isGroup ?? false,
-      parentId: item.resolvedParentId,
+      isGroup: item.input.isGroup ?? false,
+      parentId: item.parentId,
       sortIndex: item.sortIndex,
     };
 
-    if (item.resolvedId) {
-      await this.repository.feature.update(item.resolvedId, data);
-    } else {
-      const created = await this.repository.feature.create(productId, data);
-      item.resolvedId = created.id;
-    }
+    // Всегда update, потому что новые уже созданы в resolveFeatures
+    await this.repository.feature.update(item.id, data);
 
     await this.repository.translation.upsertFeatureTranslation({
       projectId: this.getProjectId(),
-      featureId: item.resolvedId!,
+      featureId: item.id,
       locale: this.getLocale(),
-      name: item.name,
+      name: item.input.name,
     });
   }
 
   private async syncValues(featureId: string, values: FeatureValueSyncInput[]): Promise<void> {
-    const keepIds = values.filter((v) => v.id).map((v) => v.id as string);
+    const keepIds = values.filter((v) => v.id).map((v) => v.id!);
     await this.repository.feature.deleteValuesExcept(featureId, keepIds);
 
-    const sorted = [...values].sort((a, b) => (a.sortIndex ?? 0) - (b.sortIndex ?? 0));
+    // Сортируем и нормализуем sortIndex
+    const sorted = [...values]
+      .map((v, i) => ({ ...v, sortIndex: v.sortIndex ?? i }))
+      .sort((a, b) => a.sortIndex - b.sortIndex);
+
+    // valueId map для новых values
+    const valueIdMap = new Map<number, string>();
 
     for (const [index, value] of sorted.entries()) {
+      let valueId: string;
+
       if (value.id) {
+        // Перед обновлением убедиться, что value.id принадлежит featureId
         await this.repository.feature.updateValue(value.id, { sortIndex: index });
+        valueId = value.id;
       } else {
-        const created = await this.repository.feature.createValue(featureId, { sortIndex: index });
-        value.id = created.id;
+        const created = await this.repository.feature.createValue(featureId, {
+          sortIndex: index
+        });
+        valueId = created.id;
+        valueIdMap.set(index, valueId);
       }
 
       await this.repository.translation.upsertFeatureValueTranslation({
         projectId: this.getProjectId(),
-        featureValueId: value.id!,
+        featureValueId: valueId,
         locale: this.getLocale(),
         name: value.name,
       });
@@ -421,7 +596,42 @@ async deleteValuesExcept(featureId: string, keepIds: string[]): Promise<void> {
 
 ---
 
-## 6. Что удалить
+## 6. Cascade Delete для Translations
+
+**Важно:** При удалении features/values должны удаляться и translations.
+
+Убедиться что в таблицах translations есть `ON DELETE CASCADE`:
+
+```sql
+-- В миграции translations (если ещё нет)
+ALTER TABLE inventory.product_feature_translation
+  DROP CONSTRAINT IF EXISTS product_feature_translation_feature_id_fkey,
+  ADD CONSTRAINT product_feature_translation_feature_id_fkey
+    FOREIGN KEY (feature_id)
+    REFERENCES inventory.product_feature(id)
+    ON DELETE CASCADE;
+
+ALTER TABLE inventory.product_feature_value_translation
+  DROP CONSTRAINT IF EXISTS product_feature_value_translation_value_id_fkey,
+  ADD CONSTRAINT product_feature_value_translation_value_id_fkey
+    FOREIGN KEY (feature_value_id)
+    REFERENCES inventory.product_feature_value(id)
+    ON DELETE CASCADE;
+```
+
+---
+
+## 7. Контракт синхронизации (важно)
+
+- Sync получает **полный** список features для продукта (snapshot). Частичные обновления запрещены.
+- `isGroup` обязателен для всех новых элементов.
+- Для существующих `id` запрещена смена типа (group ↔ attribute).
+- `parentId` должен быть группой из того же `productId`.
+- `value.id` должен принадлежать текущему `featureId`.
+
+---
+
+## 8. Что удалить
 
 После рефакторинга удалить:
 - `offsetSortIndexes()` из FeatureRepository
@@ -434,12 +644,14 @@ async deleteValuesExcept(featureId: string, keepIds: string[]): Promise<void> {
 
 | Метрика | До | После |
 |---------|-----|-------|
-| Строк кода | ~500 | ~100 |
+| Строк кода | ~500 | ~180 |
 | Unique constraints | 3 | 0 |
 | Two-phase updates | Да | Нет |
 | Temp slugs | Да | Нет |
 | Edge cases | Много | Нет |
 | Колонки в БД | 6 + 4 | 5 + 3 |
+| Forward references | Не поддерживает | Поддерживает |
+| Мутация input | Да | Нет (immutable) |
 
 ---
 
@@ -461,14 +673,38 @@ ProductFeatureValue:
 
 ## План выполнения
 
-1. [ ] Создать миграцию `0005_remove_feature_slug.sql`
-2. [ ] Обновить модель `features.ts` (удалить slug везде)
-3. [ ] Обновить GraphQL schema (удалить slug везде)
-4. [ ] Обновить FeatureResolver (удалить slug метод)
-5. [ ] Обновить FeatureValueResolver (удалить slug метод)
-6. [ ] Добавить методы `deleteExcept`, `deleteValuesExcept` в repository
-7. [ ] Переписать `FeaturesSyncScript.ts`
-8. [ ] Обновить DTO (удалить slug из input)
-9. [ ] Удалить `offsetSortIndexes` из repository
-10. [ ] Запустить тесты
-11. [ ] Применить миграцию
+1. [ ] Проверить использование `slug` в фронтенде/API (breaking change?)
+2. [ ] Создать миграцию `0005_remove_feature_slug.sql`
+3. [ ] Проверить/добавить `ON DELETE CASCADE` для translations
+4. [ ] Обновить модель `features.ts` (удалить slug везде)
+5. [ ] Обновить GraphQL schema (удалить slug везде, `isGroup` сделать обязательным)
+6. [ ] Обновить FeatureResolver (удалить slug метод)
+7. [ ] Обновить FeatureValueResolver (удалить slug метод)
+8. [ ] Добавить методы `deleteExcept`, `deleteValuesExcept` в repository
+9. [ ] Переписать `FeaturesSyncScript.ts` (с двухпроходной валидацией и проверкой ownership)
+10. [ ] Обновить DTO (удалить slug из input)
+11. [ ] Удалить `offsetSortIndexes` из repository
+12. [ ] Запустить тесты
+13. [ ] Применить миграцию
+
+---
+
+## Ключевые улучшения валидации
+
+### Двухпроходная валидация
+```
+Проход 1: Собираем все id/clientId → Map<string, index>
+          Проверяем дубликаты, базовые правила
+
+Проход 2: Валидируем ссылки (parentId/parentClientId)
+          Теперь все clientId известны → forward references работают
+```
+
+### Immutable подход
+```
+Input → resolveFeatures() → ResolvedFeature[] (readonly)
+                              ↓
+                         upsertFeature()
+```
+
+Входные данные не мутируются. Все созданные ID хранятся в отдельных Map.
