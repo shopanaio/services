@@ -68,6 +68,11 @@ type InventoryQuery {
   ): VariantConnection!
 
   """
+  Get pricing widget data for a variant.
+  """
+  pricingWidget(input: PricingWidgetInput!): PricingWidgetPayload!
+
+  """
   Get a warehouse by ID
   """
   warehouse(id: ID!): Warehouse

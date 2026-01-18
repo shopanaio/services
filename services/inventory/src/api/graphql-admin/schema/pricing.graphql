@@ -105,6 +105,54 @@ type VariantCostEdge {
   cursor: String!
 }
 
+# ---- Pricing Widget Types ----
+
+"""
+Statistics for variant price history over a period.
+"""
+type VariantPriceHistoryStatistics {
+  """Minimum price over the period (minor units)."""
+  minPriceMinor: BigInt!
+  """Maximum price over the period (minor units)."""
+  maxPriceMinor: BigInt!
+  """Average price over the period (minor units)."""
+  avgPriceMinor: BigInt!
+  """Currency code."""
+  currency: CurrencyCode!
+}
+
+"""
+Pricing widget payload with current price, cost, history and statistics.
+"""
+type PricingWidgetPayload {
+  """Current active price."""
+  currentPrice: VariantPrice
+  """Current active cost."""
+  currentCostPrice: VariantCost
+  """Price history for the period."""
+  history: VariantPriceConnection!
+  """Computed statistics for the period."""
+  statistics: VariantPriceHistoryStatistics!
+}
+
+"""
+Input for pricing widget query.
+"""
+input PricingWidgetInput {
+  """The variant ID to get pricing data for."""
+  variantId: ID!
+  """Currency code to filter by."""
+  currency: CurrencyCode!
+  """Start of the period (optional, defaults to 30 days ago)."""
+  from: DateTime
+  """End of the period (optional, defaults to now)."""
+  to: DateTime
+  """Pagination: first N items."""
+  first: Int
+  """Pagination: cursor after."""
+  after: String
+}
+
 # ---- Variant Pricing Mutations ----
 
 """

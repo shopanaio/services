@@ -12,6 +12,7 @@ import {
 } from "./WarehouseConnectionResolver.js";
 import { VariantResolver } from "./VariantResolver.js";
 import { WidgetQueryResolver } from "./InventoryWidgetResolver.js";
+import { PricingWidgetResolver, type PricingWidgetInput } from "./PricingWidgetResolver.js";
 import type { VariantRelayInput } from "../../repositories/variant/VariantRepository.js";
 
 /**
@@ -127,5 +128,12 @@ export class InventoryQueryResolver extends InventoryType<Record<string, never>>
    */
   warehouses(args: WarehouseConnectionResolverInput) {
     return new WarehouseConnectionResolver(args, this.$ctx);
+  }
+
+  /**
+   * Get pricing widget data for a variant.
+   */
+  pricingWidget(args: { input: PricingWidgetInput }) {
+    return new PricingWidgetResolver(args.input, this.$ctx);
   }
 }

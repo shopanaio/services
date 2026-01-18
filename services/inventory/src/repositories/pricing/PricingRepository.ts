@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import {
   createQuery,
@@ -7,7 +7,12 @@ import {
   type InferCursorInput,
 } from "@shopana/drizzle-query";
 import { BaseRepository } from "../BaseRepository.js";
-import { itemPricing, type ItemPricing, type NewItemPricing } from "../models/index.js";
+import {
+  itemPricing,
+  variantPricesCurrent,
+  type ItemPricing,
+  type NewItemPricing,
+} from "../models/index.js";
 
 type Currency = "UAH" | "USD" | "EUR";
 
@@ -21,7 +26,41 @@ const pricingPaginationQuery = createCursorQuery(
 export type PricingQueryInput = InferExecuteOptions<typeof pricingQuery>;
 export type PricingCursorInput = InferCursorInput<typeof pricingPaginationQuery>;
 
+export interface PriceHistoryStatistics {
+  minPriceMinor: number;
+  maxPriceMinor: number;
+  avgPriceMinor: number;
+  currency: Currency;
+}
+
+export interface GetCurrentPriceInput {
+  variantId: string;
+  currency: Currency;
+}
+
+export interface GetPriceHistoryInput {
+  variantId: string;
+  currency: Currency;
+  from: Date;
+  to: Date;
+  limit: number;
+  after?: string;
+}
+
+export interface GetPriceStatisticsInput {
+  variantId: string;
+  currency: Currency;
+  from: Date;
+  to: Date;
+}
+
 export class PricingRepository extends BaseRepository {
+  private decodeCursor(cursor?: string | null): string | null {
+    if (!cursor) return null;
+    const decoded = Buffer.from(cursor, "base64").toString("utf8").trim();
+    return decoded.length > 0 ? decoded : null;
+  }
+
   // ============ CRUD ============
 
   async closeCurrent(variantId: string, currency: Currency): Promise<void> {
@@ -129,5 +168,104 @@ export class PricingRepository extends BaseRepository {
     });
 
     return result.items.map((item) => item.id);
+  }
+
+  async getCurrentPrice(input: GetCurrentPriceInput): Promise<ItemPricing | null> {
+    const result = await this.connection
+      .select()
+      .from(variantPricesCurrent)
+      .where(
+        and(
+          eq(variantPricesCurrent.projectId, this.storeId),
+          eq(variantPricesCurrent.variantId, input.variantId),
+          eq(variantPricesCurrent.currency, input.currency)
+        )
+      )
+      .limit(1);
+
+    return result[0] ?? null;
+  }
+
+  async getPriceHistory(input: GetPriceHistoryInput): Promise<ItemPricing[]> {
+    const cursorId = this.decodeCursor(input.after);
+    let cursorEffectiveFrom: Date | null = null;
+
+    if (cursorId) {
+      const cursorResult = await this.connection
+        .select({ effectiveFrom: itemPricing.effectiveFrom })
+        .from(itemPricing)
+        .where(
+          and(
+            eq(itemPricing.projectId, this.storeId),
+            eq(itemPricing.variantId, input.variantId),
+            eq(itemPricing.currency, input.currency),
+            eq(itemPricing.id, cursorId)
+          )
+        )
+        .limit(1);
+
+      cursorEffectiveFrom = cursorResult[0]?.effectiveFrom ?? null;
+    }
+
+    const overlapCondition = and(
+      lte(itemPricing.effectiveFrom, input.to),
+      or(isNull(itemPricing.effectiveTo), gte(itemPricing.effectiveTo, input.from))
+    );
+
+    const cursorCondition =
+      cursorId && cursorEffectiveFrom
+        ? or(
+            lt(itemPricing.effectiveFrom, cursorEffectiveFrom),
+            and(
+              eq(itemPricing.effectiveFrom, cursorEffectiveFrom),
+              lt(itemPricing.id, cursorId)
+            )
+          )
+        : null;
+
+    return this.connection
+      .select()
+      .from(itemPricing)
+      .where(
+        and(
+          eq(itemPricing.projectId, this.storeId),
+          eq(itemPricing.variantId, input.variantId),
+          eq(itemPricing.currency, input.currency),
+          overlapCondition,
+          ...(cursorCondition ? [cursorCondition] : [])
+        )
+      )
+      .orderBy(desc(itemPricing.effectiveFrom), desc(itemPricing.id))
+      .limit(input.limit);
+  }
+
+  async getPriceStatistics(
+    input: GetPriceStatisticsInput
+  ): Promise<PriceHistoryStatistics | null> {
+    const result = await this.connection
+      .select({
+        minPriceMinor: sql<number>`MIN(${itemPricing.amountMinor})`,
+        maxPriceMinor: sql<number>`MAX(${itemPricing.amountMinor})`,
+        avgPriceMinor: sql<number>`ROUND(AVG(${itemPricing.amountMinor}))::bigint`,
+      })
+      .from(itemPricing)
+      .where(
+        and(
+          eq(itemPricing.projectId, this.storeId),
+          eq(itemPricing.variantId, input.variantId),
+          eq(itemPricing.currency, input.currency),
+          lte(itemPricing.effectiveFrom, input.to),
+          or(isNull(itemPricing.effectiveTo), gte(itemPricing.effectiveTo, input.from))
+        )
+      );
+
+    if (!result[0] || result[0].minPriceMinor === null) {
+      return null;
+    }
+
+    return {
+      ...result[0],
+      currency: input.currency,
+    };
   }
 }

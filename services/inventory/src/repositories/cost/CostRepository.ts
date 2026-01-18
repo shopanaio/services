@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   productVariantCostHistory,
+  variantCostsCurrent,
   type ProductVariantCostHistory,
   type NewProductVariantCostHistory,
 } from "../models";
@@ -10,6 +11,25 @@ import {
 type Currency = "UAH" | "USD" | "EUR";
 
 export class CostRepository extends BaseRepository {
+  async getCurrentCost(input: {
+    variantId: string;
+    currency: Currency;
+  }): Promise<ProductVariantCostHistory | null> {
+    const result = await this.connection
+      .select()
+      .from(variantCostsCurrent)
+      .where(
+        and(
+          eq(variantCostsCurrent.projectId, this.storeId),
+          eq(variantCostsCurrent.variantId, input.variantId),
+          eq(variantCostsCurrent.currency, input.currency)
+        )
+      )
+      .limit(1);
+
+    return result[0] ?? null;
+  }
+
   /**
    * Close current cost record for a variant and currency
    * Sets effectiveTo = NOW() on the active record (where effectiveTo IS NULL)
