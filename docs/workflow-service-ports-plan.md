@@ -1,6 +1,5 @@
 # DBOS Workflow Service Ports Architecture
 
-**Status**: Proposed (v2)
 **Author**: Generated from existing codebase patterns
 **Date**: 2025-01-18
 **Last Updated**: 2025-01-18
@@ -10,7 +9,7 @@
 This document describes how to evolve our DBOS workflows to use **Service Ports** - an abstraction layer that enables:
 
 - **Today**: In-process calls via `ServiceBroker` (current pattern)
-- **Tomorrow**: gRPC calls to separate microservices (zero workflow changes)
+- **Future**: Architecture supports migration to gRPC if services are extracted to separate processes
 
 The key insight: workflows should not know *how* they communicate with services, only *what* they need to call.
 
@@ -79,11 +78,26 @@ export interface ActionContext {
    *
    * callId ensures multiple calls to same action within one workflow
    * are distinguishable (e.g., assigning roles to different users).
+   *
+   * IMPORTANT: callId MUST be deterministic (derived from workflow input
+   * or saved step results). Random UUIDs are FORBIDDEN as they break
+   * idempotency on workflow recovery.
    */
   idempotencyKey: string;
 
-  /** ISO timestamp when action was initiated */
-  timestamp: string;
+  /**
+   * Optional timestamp for observability/tracing only.
+   *
+   * CRITICAL RULES:
+   * - NOT used for idempotency checks
+   * - NOT used in business logic decisions
+   * - May differ on retry/recovery (non-deterministic)
+   * - Services MUST ignore this field in domain logic
+   *
+   * If you need a stable timestamp for business logic,
+   * save it as a @DBOS.step() result in the workflow.
+   */
+  timestamp?: string;
 }
 ```
 
@@ -139,7 +153,21 @@ export interface ServicePort {
   ): Promise<TResult>;
 }
 
+/**
+ * Error codes convention:
+ * - TRANSIENT_* : Retry is safe (network timeout, temporary unavailable)
+ * - VALIDATION_* : Do not retry (bad input)
+ * - NOT_FOUND : Do not retry (resource doesn't exist)
+ * - CONFLICT : Do not retry (duplicate, already exists)
+ * - INTERNAL_* : May retry with backoff
+ */
 export class ServiceError extends Error {
+  /**
+   * Whether this error is safe to retry.
+   * Derived from code prefix or explicitly set.
+   */
+  public readonly retryable: boolean;
+
   constructor(
     public readonly service: string,
     public readonly action: string,
@@ -149,6 +177,25 @@ export class ServiceError extends Error {
   ) {
     super(`[${service}.${action}] ${message}`);
     this.name = "ServiceError";
+
+    // Derive retryable from code convention
+    this.retryable = code.startsWith("TRANSIENT_") || code.startsWith("INTERNAL_");
+  }
+
+  static transient(service: string, action: string, message: string, cause?: unknown): ServiceError {
+    return new ServiceError(service, action, "TRANSIENT_ERROR", message, cause);
+  }
+
+  static validation(service: string, action: string, message: string): ServiceError {
+    return new ServiceError(service, action, "VALIDATION_ERROR", message);
+  }
+
+  static notFound(service: string, action: string, message: string): ServiceError {
+    return new ServiceError(service, action, "NOT_FOUND", message);
+  }
+
+  static conflict(service: string, action: string, message: string): ServiceError {
+    return new ServiceError(service, action, "CONFLICT", message);
   }
 }
 ```
@@ -157,13 +204,16 @@ export class ServiceError extends Error {
 
 #### LocalServicePort (Current: In-Process)
 
-Wraps existing `ServiceBroker.call()` with explicit envelope:
+Wraps existing `ServiceBroker.call()` with explicit envelope.
+
+**Migration strategy**: Services should migrate to return `ActionResponse<T>`. During transition,
+the port handles legacy `{success, error}` format via adapter.
 
 ```typescript
 // packages/workflows/src/ports/LocalServicePort.ts
 
 import { ServiceBroker } from "@shopana/shared-kernel";
-import type { ServicePort, ActionContext, ActionRequest } from "./types.js";
+import type { ServicePort, ActionContext, ActionRequest, ActionResponse } from "./types.js";
 import { ServiceError } from "./types.js";
 
 export class LocalServicePort implements ServicePort {
@@ -178,78 +228,13 @@ export class LocalServicePort implements ServicePort {
     ctx: ActionContext
   ): Promise<TResult> {
     const qualifiedAction = `${this.name}.${action}`;
-
-    // Send as explicit envelope (not mixed into payload)
     const request: ActionRequest = { payload, ctx };
 
     try {
-      const response = await this.broker.call<{ result?: TResult; success?: boolean; error?: string }>(
-        qualifiedAction,
-        request
-      );
+      const raw = await this.broker.call<unknown>(qualifiedAction, request);
 
-      // Handle legacy {success, error} responses - convert to throw
-      if (response && typeof response === "object" && "success" in response) {
-        if (!response.success) {
-          throw new ServiceError(
-            this.name,
-            action,
-            "ACTION_FAILED",
-            response.error || "Action failed without error message"
-          );
-        }
-        // Return result if present, otherwise the whole response
-        return (response.result ?? response) as TResult;
-      }
-
-      return response as TResult;
-    } catch (error) {
-      if (error instanceof ServiceError) throw error;
-
-      throw new ServiceError(
-        this.name,
-        action,
-        "CALL_FAILED",
-        error instanceof Error ? error.message : String(error),
-        error
-      );
-    }
-  }
-}
-```
-
-#### GrpcServicePort (Future: Remote Calls)
-
-```typescript
-// packages/workflows/src/ports/GrpcServicePort.ts
-
-import type { ServicePort, ActionContext, ActionRequest, ActionResponse } from "./types.js";
-import { ServiceError } from "./types.js";
-
-export interface GrpcClient {
-  handle(request: ActionRequest): Promise<ActionResponse>;
-}
-
-export interface GrpcServicePortOptions {
-  timeoutMs?: number;
-}
-
-export class GrpcServicePort implements ServicePort {
-  constructor(
-    public readonly name: string,
-    private readonly client: GrpcClient,
-    private readonly options: GrpcServicePortOptions = {}
-  ) {}
-
-  async handle<TResult = unknown>(
-    action: string,
-    payload: unknown,
-    ctx: ActionContext
-  ): Promise<TResult> {
-    const request: ActionRequest = { payload, ctx };
-
-    try {
-      const response = await this.client.handle(request);
+      // Normalize response to ActionResponse format
+      const response = this.normalizeResponse<TResult>(raw);
 
       if (response.error) {
         throw new ServiceError(
@@ -260,18 +245,58 @@ export class GrpcServicePort implements ServicePort {
         );
       }
 
-      return response.result as TResult;
+      return response.result;
     } catch (error) {
       if (error instanceof ServiceError) throw error;
 
-      throw new ServiceError(
+      // Network/broker errors are transient
+      throw ServiceError.transient(
         this.name,
         action,
-        "GRPC_ERROR",
         error instanceof Error ? error.message : String(error),
         error
       );
     }
+  }
+
+  /**
+   * Normalize various response formats to ActionResponse.
+   *
+   * Supported formats:
+   * 1. ActionResponse<T> - new standard (preferred)
+   * 2. { success: boolean, error?: string, ...data } - legacy format
+   * 3. Raw result T - direct return (wrapped)
+   */
+  private normalizeResponse<T>(raw: unknown): ActionResponse<T> {
+    if (!raw || typeof raw !== "object") {
+      return { result: raw as T };
+    }
+
+    const obj = raw as Record<string, unknown>;
+
+    // New format: ActionResponse
+    if ("result" in obj && !("success" in obj)) {
+      return obj as ActionResponse<T>;
+    }
+
+    // Legacy format: {success, error?, ...rest}
+    if ("success" in obj) {
+      if (!obj.success) {
+        return {
+          result: undefined as T,
+          error: {
+            code: (obj.code as string) || "ACTION_FAILED",
+            message: (obj.error as string) || "Action failed",
+          },
+        };
+      }
+      // Success case: extract result or return whole object
+      const { success, error, ...rest } = obj;
+      return { result: (obj.result ?? rest) as T };
+    }
+
+    // Raw result
+    return { result: raw as T };
   }
 }
 ```
@@ -332,19 +357,17 @@ export abstract class BaseWorkflow extends ConfiguredInstance {
    *
    * @param service - Target service name
    * @param action - Action being called
-   * @param callId - Unique identifier for this specific call.
-   *                 REQUIRED when calling same action multiple times in one workflow.
-   *                 Use deterministic values (e.g., storeId, `${userId}:admin`) for
-   *                 reproducibility during workflow recovery.
+   * @param callId - REQUIRED: Unique identifier for this specific call.
+   *                 MUST be deterministic (derived from workflow input or saved step results).
+   *                 Examples: storeId, `${storeId}:${userId}`, `${orderId}:${itemId}`
    */
-  protected buildContext(service: string, action: string, callId?: string): ActionContext {
+  protected buildContext(service: string, action: string, callId: string): ActionContext {
     const operationId = DBOS.workflowID!;
-    const effectiveCallId = callId ?? "default";
 
     return {
       operationId,
-      idempotencyKey: `${operationId}:${service}:${action}:${effectiveCallId}`,
-      timestamp: new Date().toISOString(),
+      idempotencyKey: `${operationId}:${service}:${action}:${callId}`,
+      // timestamp is optional - only for observability, not determinism
     };
   }
 
@@ -354,16 +377,27 @@ export abstract class BaseWorkflow extends ConfiguredInstance {
    * @param serviceName - Target service (e.g., "iam", "media")
    * @param action - Action name (e.g., "createRoles")
    * @param payload - Action payload (type-safe via generic)
-   * @param callId - Optional call identifier for idempotency (required if calling
-   *                 same action multiple times within workflow)
+   * @param callId - REQUIRED: Deterministic identifier for idempotency.
+   *                 Must be derived from workflow input or saved step results.
+   *                 Random UUIDs are FORBIDDEN (breaks recovery).
    *
    * @throws ServiceError on any failure (never returns error objects)
+   *
+   * @example
+   * // Good - deterministic from input
+   * await this.callService("iam", "createRoles", payload, storeId);
+   *
+   * // Good - composite key for multiple calls
+   * await this.callService("iam", "assignRole", payload, `${storeId}:${userId}`);
+   *
+   * // BAD - random UUID breaks recovery
+   * await this.callService("iam", "createRoles", payload, crypto.randomUUID());
    */
   protected async callService<TResult = unknown>(
     serviceName: string,
     action: string,
     payload: unknown,
-    callId?: string
+    callId: string  // REQUIRED - not optional
   ): Promise<TResult> {
     const port = this.getPort(serviceName);
     const ctx = this.buildContext(serviceName, action, callId);
@@ -531,51 +565,28 @@ export class StoreCreateWorkflow extends BaseWorkflow {
 
 ## Wiring: NestJS Module
 
-### Port Factory with Proper DI
+### Port Factory
 
 ```typescript
 // packages/workflows/src/ports/PortFactory.ts
 
-import { Inject, Injectable } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
+import { Injectable, Logger } from "@nestjs/common";
 import { ServiceBroker } from "@shopana/shared-kernel";
 import { LocalServicePort } from "./LocalServicePort.js";
-import { GrpcServicePort, type GrpcClient } from "./GrpcServicePort.js";
 import type { ServicePort } from "./types.js";
 
-export const PORT_FACTORY_CONFIG = Symbol("PORT_FACTORY_CONFIG");
-
-export type TransportMode = "local" | "grpc";
-
-export interface PortFactoryConfig {
-  mode: TransportMode;
-  grpcClients?: Map<string, GrpcClient>;
-}
-
+/**
+ * Factory for creating service ports.
+ * Currently supports in-process calls via ServiceBroker.
+ * Architecture is designed to support gRPC in the future if needed.
+ */
 @Injectable()
 export class PortFactory {
-  private readonly mode: TransportMode;
-  private readonly grpcClients: Map<string, GrpcClient>;
+  private readonly logger = new Logger(PortFactory.name);
 
-  constructor(
-    private readonly broker: ServiceBroker,
-    private readonly configService: ConfigService,
-    @Inject(PORT_FACTORY_CONFIG)
-    config?: PortFactoryConfig
-  ) {
-    // Priority: injected config > env > default
-    this.mode = config?.mode
-      ?? (this.configService.get<string>("TRANSPORT_MODE") as TransportMode)
-      ?? "local";
-    this.grpcClients = config?.grpcClients ?? new Map();
-  }
+  constructor(private readonly broker: ServiceBroker) {}
 
   create(serviceName: string): ServicePort {
-    if (this.mode === "grpc" && this.grpcClients.has(serviceName)) {
-      const client = this.grpcClients.get(serviceName)!;
-      return new GrpcServicePort(serviceName, client);
-    }
-
     return new LocalServicePort(serviceName, this.broker);
   }
 
@@ -594,27 +605,14 @@ export class PortFactory {
 ```typescript
 // packages/workflows/src/workflows.module.ts
 
-import { Module, type DynamicModule } from "@nestjs/common";
-import { ConfigModule } from "@nestjs/config";
-import { PortFactory, PORT_FACTORY_CONFIG, type PortFactoryConfig } from "./ports/PortFactory.js";
+import { Module } from "@nestjs/common";
+import { PortFactory } from "./ports/PortFactory.js";
 
-@Module({})
-export class WorkflowsModule {
-  static forRoot(config?: PortFactoryConfig): DynamicModule {
-    return {
-      module: WorkflowsModule,
-      imports: [ConfigModule],
-      providers: [
-        {
-          provide: PORT_FACTORY_CONFIG,
-          useValue: config ?? { mode: "local" },
-        },
-        PortFactory,
-      ],
-      exports: [PortFactory],
-    };
-  }
-}
+@Module({
+  providers: [PortFactory],
+  exports: [PortFactory],
+})
+export class WorkflowsModule {}
 ```
 
 ### Workflow Registration in Project Module
@@ -748,14 +746,94 @@ CREATE TABLE IF NOT EXISTS processed_requests (
   service TEXT NOT NULL,
   action TEXT NOT NULL,
   operation_id TEXT NOT NULL,
-  result JSONB,  -- Cache the result for replay
+  -- Result caching is OPT-IN (see guidelines below)
+  result JSONB,
+  result_cached BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_processed_requests_created_at ON processed_requests(created_at);
+CREATE INDEX idx_processed_requests_operation_id ON processed_requests(operation_id);
 
 -- Cleanup old entries (e.g., keep 7 days)
--- Run periodically: DELETE FROM processed_requests WHERE created_at < NOW() - INTERVAL '7 days';
+-- Run periodically via scheduled job:
+-- DELETE FROM processed_requests WHERE created_at < NOW() - INTERVAL '7 days';
+```
+
+### Idempotency Implementation Rules
+
+#### Rule 1: Commands MUST Return Success on Duplicate
+
+For **commands** (write operations), the service must:
+1. Check if already processed
+2. If yes: **return success** (not error!)
+3. If no: execute and mark processed
+
+```typescript
+@Action("createRoles")
+async createRoles(input: ActionRequest<CreateRolesPayload>): Promise<ActionResponse> {
+  const { payload, ctx } = this.unwrapRequest(input);
+
+  // Check if already processed
+  const wasProcessed = await this.idempotencyCheck(ctx.idempotencyKey);
+  if (wasProcessed) {
+    // RETURN SUCCESS - not an error!
+    // The operation was already done, which is the desired outcome
+    return { result: { success: true, idempotent: true } };
+  }
+
+  // Execute the actual logic
+  const result = await this.kernel.runScript(CreateRolesScript, payload);
+
+  // Mark as processed
+  await this.markProcessed(ctx.idempotencyKey);
+
+  return { result };
+}
+```
+
+#### Rule 2: Domain Logic Must Be Idempotent
+
+The underlying domain logic should handle duplicates gracefully:
+
+```typescript
+// In CreateRolesScript
+async execute(params: CreateRolesPayload) {
+  for (const role of params.roles) {
+    // Use upsert, not insert
+    await this.repo.upsertRole({
+      domain: params.domain,
+      name: role.name,
+      // ...
+    });
+  }
+  return { success: true };
+}
+```
+
+#### Rule 3: Result Caching is Opt-In
+
+**By default: store only the fact of processing** (no result).
+
+Cache result (`result_cached = true`) only when:
+- Action is a **query** (safe to replay cached result)
+- Result is small and contains no PII/secrets
+- Caller needs exact same result on retry
+
+**Never cache result** when:
+- Result contains sensitive data (tokens, passwords, PII)
+- Result size is unpredictable (could be large)
+- Command where "success" is sufficient response
+
+```typescript
+// Query - may cache result
+@Action("getAssetGroup")
+// stored: { result_cached: true, result: { assetGroup: {...} } }
+
+// Command - store fact only, return success on retry
+@Action("createRoles")
+// stored: { result_cached: false }
+// on retry: return { success: true, idempotent: true }
 ```
 
 ### Idempotency Key Format
@@ -769,14 +847,42 @@ Examples:
 - store:create:my-store:media:createAssetGroup:store-123
 ```
 
-**callId selection guidelines:**
+### callId Rules (MANDATORY)
 
-| Scenario | callId |
-|----------|--------|
-| One call per workflow | `"default"` or omit |
-| Store-scoped operation | `storeId` |
-| User-scoped operation | `${storeId}:${userId}` |
-| Multiple items | `${storeId}:${itemId}` |
+**Rule 1: callId MUST be deterministic**
+
+Use only values from:
+- Workflow input parameters
+- Results of previous `@DBOS.step()` calls (saved by DBOS)
+
+**FORBIDDEN**: Random UUIDs generated inside step (breaks recovery)
+
+```typescript
+// WRONG - different key on recovery
+await this.callService("iam", "createRoles", payload, crypto.randomUUID());
+
+// CORRECT - deterministic from input/saved state
+await this.callService("iam", "createRoles", payload, storeId);
+```
+
+**Rule 2: callId must distinguish parallel calls to same action**
+
+If you call `iam.assignRole` twice in one workflow, each needs unique callId:
+
+```typescript
+await this.callService("iam", "assignRole", { userId: user1, ... }, `${storeId}:${user1}`);
+await this.callService("iam", "assignRole", { userId: user2, ... }, `${storeId}:${user2}`);
+```
+
+**callId patterns:**
+
+| Scenario | callId | Example |
+|----------|--------|---------|
+| Single call per workflow | `"default"` or omit | `storeId` |
+| Entity-scoped | `entityId` | `storeId`, `orderId` |
+| User-scoped | `${entityId}:${userId}` | `store-123:user-456` |
+| Role-scoped | `${entityId}:${role}:${userId}` | `store-123:admin:user-456` |
+| Item in collection | `${entityId}:${itemId}` | `order-123:item-789` |
 
 ---
 
@@ -905,19 +1011,308 @@ MEDIA_GRPC_HOST=media-service:50051
 
 ---
 
+## Testing Workflows
+
+### Mock ServicePort for Unit Tests
+
+```typescript
+// packages/workflows/src/ports/MockServicePort.ts
+
+import type { ServicePort, ActionContext } from "./types.js";
+import { ServiceError } from "./types.js";
+
+type MockHandler = (action: string, payload: unknown, ctx: ActionContext) => unknown;
+
+export class MockServicePort implements ServicePort {
+  private handlers = new Map<string, MockHandler>();
+  private calls: Array<{ action: string; payload: unknown; ctx: ActionContext }> = [];
+
+  constructor(public readonly name: string) {}
+
+  /**
+   * Register mock handler for an action.
+   */
+  onAction(action: string, handler: MockHandler): this {
+    this.handlers.set(action, handler);
+    return this;
+  }
+
+  /**
+   * Register mock to return fixed result.
+   */
+  onActionReturn<T>(action: string, result: T): this {
+    return this.onAction(action, () => result);
+  }
+
+  /**
+   * Register mock to throw error.
+   */
+  onActionThrow(action: string, error: ServiceError): this {
+    return this.onAction(action, () => { throw error; });
+  }
+
+  async handle<TResult = unknown>(
+    action: string,
+    payload: unknown,
+    ctx: ActionContext
+  ): Promise<TResult> {
+    this.calls.push({ action, payload, ctx });
+
+    const handler = this.handlers.get(action);
+    if (!handler) {
+      throw new Error(`MockServicePort[${this.name}]: No handler for '${action}'`);
+    }
+
+    return handler(action, payload, ctx) as TResult;
+  }
+
+  /**
+   * Get recorded calls for assertions.
+   */
+  getCalls(action?: string) {
+    return action ? this.calls.filter(c => c.action === action) : this.calls;
+  }
+
+  /**
+   * Clear recorded calls.
+   */
+  reset() {
+    this.calls = [];
+    return this;
+  }
+}
+```
+
+### Test Example
+
+```typescript
+// services/project/src/workflows/__tests__/StoreCreateWorkflow.test.ts
+
+import { MockServicePort } from "@shopana/workflows/ports";
+import { StoreCreateWorkflow } from "../StoreCreateWorkflow.js";
+
+describe("StoreCreateWorkflow", () => {
+  let iamPort: MockServicePort;
+  let mediaPort: MockServicePort;
+  let workflow: StoreCreateWorkflow;
+
+  beforeEach(() => {
+    iamPort = new MockServicePort("iam")
+      .onActionReturn("createRoles", { success: true })
+      .onActionReturn("assignRole", { success: true });
+
+    mediaPort = new MockServicePort("media")
+      .onActionReturn("createAssetGroup", { assetGroup: { id: "ag-123" } });
+
+    const ports = new Map([
+      ["iam", iamPort],
+      ["media", mediaPort],
+    ]);
+
+    workflow = new StoreCreateWorkflow("test", {
+      kernel: mockKernel,
+      ports,
+    });
+  });
+
+  it("calls IAM and Media services", async () => {
+    await workflow.run({
+      name: "test-store",
+      displayName: "Test Store",
+      organizationId: "org-123",
+      userId: "user-456",
+      // ...other fields
+    });
+
+    expect(iamPort.getCalls("createRoles")).toHaveLength(1);
+    expect(iamPort.getCalls("assignRole")).toHaveLength(1);
+    expect(mediaPort.getCalls("createAssetGroup")).toHaveLength(1);
+  });
+
+  it("propagates service errors", async () => {
+    iamPort.onActionThrow("createRoles",
+      ServiceError.validation("iam", "createRoles", "Domain already exists")
+    );
+
+    await expect(workflow.run({ ... })).rejects.toThrow("Domain already exists");
+  });
+});
+```
+
+---
+
+## Type-Safe Actions (Future Improvement)
+
+For better DX, define action types per service:
+
+```typescript
+// packages/contracts/src/iam/actions.ts
+
+export interface IamActions {
+  createRoles: {
+    request: { userId: string; organizationId: string; domain: string; roles: RoleConfig[] };
+    response: { success: boolean };
+  };
+  assignRole: {
+    request: { userId: string; organizationId: string; domain: string; roleName: string };
+    response: { success: boolean };
+  };
+}
+
+// Type-safe callService in BaseWorkflow
+protected async callService<
+  TService extends keyof ServiceActions,
+  TAction extends keyof ServiceActions[TService]
+>(
+  service: TService,
+  action: TAction,
+  payload: ServiceActions[TService][TAction]["request"],
+  callId?: string
+): Promise<ServiceActions[TService][TAction]["response"]> {
+  // ...implementation
+}
+
+// Usage - fully typed
+await this.callService("iam", "createRoles", {
+  userId,           // TypeScript knows this is required
+  organizationId,
+  domain: `store:${storeId}`,
+  roles: buildStoreRoles(),
+}, storeId);
+```
+
+This is not required for Phase 1 but significantly improves developer experience.
+
+---
+
+## Parallel Calls in Workflows
+
+### CRITICAL: Don't `Promise.all` on `@DBOS.step()` Methods
+
+**WRONG** - unpredictable recovery behavior:
+```typescript
+// DON'T DO THIS - step tracking may not work as expected
+await Promise.all([
+  this.stepA(),  // @DBOS.step()
+  this.stepB(),  // @DBOS.step()
+  this.stepC(),  // @DBOS.step()
+]);
+```
+
+### Two Safe Patterns for Parallel Calls
+
+#### Pattern A: Fanout Inside Single Step (Recommended)
+
+One `@DBOS.step()` that internally parallelizes port calls:
+
+```typescript
+@DBOS.workflow()
+async run(input: StoreCreateInput): Promise<StoreCreateOutput> {
+  const storeId = await this.generateStoreId();
+  await this.createStore(storeId, input);
+
+  // Single step that fans out to multiple services
+  await this.initializeAllServices(storeId, input.organizationId, input.userId);
+
+  return { storeId, organizationId: input.organizationId };
+}
+
+/**
+ * Fanout step: calls multiple services in parallel.
+ * On retry, ALL calls are re-executed (must be idempotent).
+ */
+@DBOS.step()
+private async initializeAllServices(storeId: string, organizationId: string, userId: string) {
+  const results = await Promise.allSettled([
+    this.callService("iam", "createRoles", { ... }, storeId),
+    this.callService("media", "createAssetGroup", { ... }, storeId),
+    this.callService("inventory", "initializeStore", { ... }, storeId),
+  ]);
+
+  // Check for failures
+  const failures = results.filter(r => r.status === "rejected");
+  if (failures.length > 0) {
+    throw new Error(`Failed: ${failures.map(f => f.reason).join(", ")}`);
+  }
+}
+```
+
+#### Pattern B: Sequential Steps (Simplest, Safest)
+
+For most workflows, sequential is better:
+
+```typescript
+@DBOS.workflow()
+async run(input: StoreCreateInput): Promise<StoreCreateOutput> {
+  const storeId = await this.generateStoreId();
+  await this.createStore(storeId, input);
+
+  // Sequential - each is a separate step with clear recovery
+  await this.createStoreRoles(storeId, input.organizationId, input.userId);
+  await this.assignAdminRole(storeId, input.organizationId, input.userId);
+  await this.createMediaAssetGroup(storeId);
+
+  return { storeId, organizationId: input.organizationId };
+}
+```
+
+### When to Use Each Pattern
+
+| Pattern | Use When |
+|---------|----------|
+| **Sequential** | Default choice; clear ordering; dependencies between calls |
+| **Fanout Step** | No dependencies; latency-sensitive; ALL calls are idempotent |
+
+### Recovery Behavior
+
+| Pattern | On Recovery |
+|---------|-------------|
+| **Sequential** | DBOS replays completed steps; retries failed step |
+| **Fanout Step** | Entire fanout re-executes; services must handle duplicate calls via idempotency |
+
+**Rule**: For fanout, ALL services MUST implement idempotency via `processed_requests` table.
+
+---
+
 ## Action Naming Convention
 
-| Level | Format | Example |
-|-------|--------|---------|
-| Broker action | `service.action` | `iam.createRoles` |
-| Port call | `action` only (port adds service) | `createRoles` |
-| Lifecycle actions | `entity.verb` | `store.initialize`, `store.cleanup` |
+### Naming Structure
 
-In port calls, the service is implicit:
+| Category | Format | Examples |
+|----------|--------|----------|
+| Domain actions | `verbNoun` | `createRoles`, `assignRole`, `getAssetGroup` |
+| Lifecycle actions | `lifecycle:entity:verb` | `lifecycle:store:initialize`, `lifecycle:store:cleanup` |
+| Broker (fully qualified) | `service.action` | `iam.createRoles`, `iam.lifecycle:store:initialize` |
+
+### Why Namespace Lifecycle Actions?
+
+Lifecycle actions (`store.initialize`) could collide with domain actions. Using `lifecycle:` prefix:
+- Clearly separates orchestration concerns from domain logic
+- Allows services to group handlers differently
+- Maps cleanly to gRPC proto packages
+
 ```typescript
-// Port knows it's "iam", so we just say "createRoles"
-await this.callService("iam", "createRoles", payload);
-// Internally becomes: broker.call("iam.createRoles", { payload, ctx })
+// Domain action - core IAM functionality
+await this.callService("iam", "createRoles", payload, storeId);
+// -> broker.call("iam.createRoles", { payload, ctx })
+
+// Lifecycle action - orchestration concern
+await this.callService("iam", "lifecycle:store:initialize", payload, storeId);
+// -> broker.call("iam.lifecycle:store:initialize", { payload, ctx })
+```
+
+### Service Handler Routing
+
+```typescript
+// services/iam/src/IamBrokerActions.ts
+@Action("createRoles")
+async createRoles(...) { /* domain logic */ }
+
+@Action("lifecycle:store:initialize")
+async storeInitialize(...) { /* create default roles/permissions for new store */ }
+
+@Action("lifecycle:store:cleanup")
+async storeCleanup(...) { /* remove all store-related data */ }
 ```
 
 ---
@@ -926,14 +1321,16 @@ await this.callService("iam", "createRoles", payload);
 
 | Aspect | Before | After |
 |--------|--------|-------|
-| Service calls | `this.broker.call("iam.action", params)` | `this.callService("iam", "action", params, callId)` |
+| Service calls | `this.broker.call("iam.action", params)` | `this.callService("iam", "action", payload, callId)` |
+| callId | N/A | **REQUIRED**, deterministic from input/saved state |
 | Payload format | Mixed into params | Explicit `{ payload, ctx }` envelope |
-| Idempotency | None | `operationId:service:action:callId` |
-| Error handling | Return `{success, error}` | Always throw `ServiceError` |
-| Step granularity | Multiple calls in one step | One external call per step |
-| Transport | Hardcoded in-process | Pluggable via `ServicePort` |
+| Idempotency | None | `operationId:service:action:callId` + services return success on duplicate |
+| Error handling | Return `{success, error}` | Always throw `ServiceError` with `retryable` flag |
+| Parallel calls | Multiple `@DBOS.step()` in Promise.all | Single fanout step OR sequential steps |
+| Transport | Hardcoded broker calls | Abstracted via `ServicePort` (supports future gRPC) |
 | Testing | Need full broker | Mock `ServicePort` interface |
-| gRPC migration | Rewrite workflows | Change env config |
+| Lifecycle actions | N/A | Namespaced: `lifecycle:store:initialize` |
+| Unknown action | Varies | `VALIDATION_ERROR` (not retryable) |
 
 ### Files to Create
 
@@ -942,12 +1339,12 @@ packages/workflows/src/ports/
 ├── index.ts
 ├── types.ts              # ActionContext, ActionRequest, ActionResponse, ServicePort, ServiceError
 ├── LocalServicePort.ts
-├── GrpcServicePort.ts
+├── MockServicePort.ts    # For unit testing
 └── PortFactory.ts
 
 packages/workflows/src/
 ├── BaseWorkflow.ts       # Port-focused base class
-└── workflows.module.ts   # NestJS module with proper DI
+└── workflows.module.ts   # NestJS module
 ```
 
 ### Files to Modify
@@ -998,3 +1395,88 @@ Each service should implement:
 | `store.cleanup` | Remove all store data (compensation) |
 | `store.suspend` | Soft-disable store access |
 | `store.resume` | Re-enable store access |
+
+---
+
+## Implementation Checklist
+
+### Phase 1: Core Infrastructure
+
+- [ ] Create `packages/workflows/src/ports/types.ts`
+  - [ ] `ActionContext` interface (timestamp optional, not for business logic)
+  - [ ] `ActionRequest<T>` / `ActionResponse<T>` interfaces
+  - [ ] `ServicePort` interface
+  - [ ] `ServiceError` class with `retryable` flag and factory methods
+
+- [ ] Create `packages/workflows/src/ports/LocalServicePort.ts`
+  - [ ] `normalizeResponse()` for legacy format handling
+  - [ ] Proper error wrapping with `ServiceError.transient()`
+
+- [ ] Create `packages/workflows/src/ports/MockServicePort.ts`
+  - [ ] `onAction()`, `onActionReturn()`, `onActionThrow()`
+  - [ ] `getCalls()` for test assertions
+
+- [ ] Create `packages/workflows/src/ports/PortFactory.ts`
+
+- [ ] Create `packages/workflows/src/BaseWorkflow.ts`
+  - [ ] `buildContext()` without timestamp (observability only)
+  - [ ] `callService()` with **required** `callId` parameter
+
+- [ ] Create `packages/workflows/src/workflows.module.ts`
+
+### Phase 2: Pilot Workflow Migration (StoreCreateWorkflow)
+
+- [ ] Update `services/project/src/workflows/StoreCreateWorkflow.ts`
+  - [ ] Extend new `BaseWorkflow`
+  - [ ] Use `callService()` with deterministic `callId`:
+    - `createRoles`: `storeId`
+    - `assignRole`: `${storeId}:${userId}:admin`
+    - `createAssetGroup`: `storeId`
+  - [ ] Choose pattern: sequential steps OR single fanout step
+
+- [ ] Update `services/project/src/project.module.ts`
+  - [ ] Inject `PortFactory`
+  - [ ] Create ports for dependent services
+
+- [ ] Write unit tests using `MockServicePort`
+
+### Phase 3: Service-Side Envelope Support
+
+- [ ] Update `services/*/src/*BrokerActions.ts` to accept `ActionRequest` envelope
+  - [ ] Add `unwrapRequest()` helper for backwards compatibility
+  - [ ] Zod schema supporting both formats
+  - [ ] Unknown action returns `VALIDATION_ERROR` (not retryable)
+
+- [ ] Add lifecycle action handlers:
+  - [ ] `@Action("lifecycle:store:initialize")`
+  - [ ] `@Action("lifecycle:store:cleanup")`
+
+### Phase 4: Idempotency Infrastructure
+
+- [ ] Create `processed_requests` migration in each service
+  - [ ] `idempotency_key` PRIMARY KEY
+  - [ ] `service`, `action`, `operation_id`
+  - [ ] `result` (nullable), `result_cached` flag
+  - [ ] Indexes on `created_at` and `operation_id`
+
+- [ ] Implement idempotency in BrokerActions:
+  - [ ] Check before execute
+  - [ ] **Return success on duplicate** (not error!)
+  - [ ] Mark processed after success
+
+- [ ] Setup TTL cleanup job (7 days default)
+
+### Phase 5: Error Standardization
+
+- [ ] Define error code conventions in shared-kernel:
+  - [ ] `TRANSIENT_*` for retryable (network, temporary failures)
+  - [ ] `VALIDATION_*` for bad input (not retryable)
+  - [ ] `NOT_FOUND` for missing resources (not retryable)
+  - [ ] `CONFLICT` for duplicates (not retryable)
+
+- [ ] Update all services to use `ActionResponse` format
+- [ ] Remove legacy `{success, error}` pattern
+
+> **Note**: The `ServicePort` abstraction is designed to support gRPC in the future
+> if services need to be extracted to separate processes. When that time comes,
+> implement `GrpcServicePort` and add transport mode configuration to `PortFactory`.
