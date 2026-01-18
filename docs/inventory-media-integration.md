@@ -66,16 +66,31 @@ Integration between Inventory and Media services for:
 
 **DBOS provides automatic retry** — broker calls inside `@DBOS.step()` will be retried on transient failures.
 
+**Retryable errors** (DBOS will retry):
+- Network timeout
+- 5xx responses
+- Connection refused
+
+**Non-retryable errors** (fail immediately):
+- 4xx responses (validation, not found)
+- Schema validation errors
+
 ---
 
 ## Flow 1: Inventory → Media
 
-### 1.1 VariantSetMediaScript
+### 1.1 VariantSetMediaScript + BackRefNotifyWorkflow
 
 **When:** `variantSetMedia` mutation
 
-**Logic:**
+**Architecture:**
+- Script handles sync business logic (DB update)
+- Workflow handles async notification (DBOS durability + retries)
+
+**Script (sync):**
 ```typescript
+// services/inventory/src/scripts/variant/VariantSetMediaScript.ts
+
 async execute(params: VariantSetMediaParams): Promise<VariantSetMediaResult> {
   const { variantId, fileIds: newFileIds } = params;
 
@@ -87,49 +102,94 @@ async execute(params: VariantSetMediaParams): Promise<VariantSetMediaResult> {
   const currentMedia = await this.repository.media.getVariantMedia(variantId);
   const oldFileIds = currentMedia.map(m => m.fileId);
 
-  // 3. Compute diff
-  const toLink = newFileIds.filter(id => !oldFileIds.includes(id));
-  const toUnlink = oldFileIds.filter(id => !newFileIds.includes(id));
+  // 3. Compute diff (O(n) with Set)
+  const oldSet = new Set(oldFileIds);
+  const newSet = new Set(newFileIds);
+  const toLink = newFileIds.filter(id => !oldSet.has(id));
+  const toUnlink = oldFileIds.filter(id => !newSet.has(id));
 
-  const entityRef = {
-    service: "inventory",
-    entityType: "variant",
-    entityId: variantId,
-  };
-
-  // 4. Call Media broker (before DB update)
-  if (toLink.length > 0) {
-    await this.broker.call("media.fileLinkMany", {
-      items: toLink.map(fileId => ({ fileId, role: "gallery" })),
-      entityRef,
-    });
-  }
-
-  if (toUnlink.length > 0) {
-    await this.broker.call("media.fileUnlinkMany", {
-      items: toUnlink.map(fileId => ({ fileId, role: "gallery" })),
-      entityRef,
-    });
-  }
-
-  // 5. Update local DB
+  // 4. Update local DB (sync, source of truth)
   await this.repository.media.setVariantMedia(variantId, newFileIds);
+
+  // 5. Start background workflow for Media notification (async, durable)
+  if (toLink.length > 0 || toUnlink.length > 0) {
+    const workflow = this.workflow.get<BackRefNotifyWorkflow>("backRefNotify");
+    await DBOS.startWorkflow(workflow).run({
+      entityRef: {
+        service: "inventory",
+        entityType: "variant",
+        entityId: variantId,
+      },
+      toLink: toLink.map(fileId => ({ fileId, role: "gallery" })),
+      toUnlink: toUnlink.map(fileId => ({ fileId, role: "gallery" })),
+    });
+  }
 
   return { variant, userErrors: [] };
 }
 ```
 
+**Workflow (async, durable):**
+```typescript
+// services/inventory/src/workflows/BackRefNotifyWorkflow.ts
+
+export interface BackRefNotifyInput {
+  entityRef: EntityRef;
+  toLink: Array<{ fileId: string; role: string }>;
+  toUnlink: Array<{ fileId: string; role: string }>;
+}
+
+export class BackRefNotifyWorkflow extends BaseWorkflow {
+
+  @DBOS.workflow()
+  async run(input: BackRefNotifyInput): Promise<void> {
+    const { entityRef, toLink, toUnlink } = input;
+
+    if (toLink.length > 0) {
+      await this.linkFiles(toLink, entityRef);
+    }
+
+    if (toUnlink.length > 0) {
+      await this.unlinkFiles(toUnlink, entityRef);
+    }
+  }
+
+  @DBOS.step()
+  async linkFiles(items: Array<{ fileId: string; role: string }>, entityRef: EntityRef): Promise<void> {
+    const result = await this.broker.call("media.fileLinkMany", { items, entityRef });
+    // Log result but don't throw — best-effort tracking
+    this.logger.info({ linkedCount: result.linkedCount }, "BackRef link completed");
+  }
+
+  @DBOS.step()
+  async unlinkFiles(items: Array<{ fileId: string; role: string }>, entityRef: EntityRef): Promise<void> {
+    const result = await this.broker.call("media.fileUnlinkMany", { items, entityRef });
+    this.logger.info({ unlinkedCount: result.unlinkedCount }, "BackRef unlink completed");
+  }
+}
+```
+
 **Order of operations:**
-1. Broker calls BEFORE local DB update
-2. If broker fails — operation rolls back, variant_media unchanged
-3. If local DB fails after broker — inconsistency (acceptably rare)
+1. Script updates `variant_media` (sync, source of truth)
+2. Script starts `BackRefNotifyWorkflow` in background
+3. Mutation returns immediately — user sees success
+4. Workflow runs async with DBOS durability:
+   - If Media unavailable → DBOS retries with backoff
+   - Steps are persisted → survives service restart
+   - Eventually consistent backRefs
 
 ### 1.2 VariantDeleteScript (hard delete only)
 
 **When:** `variantDelete(permanent: true)` mutation
 
+**Architecture:**
+- Script handles hard delete synchronously
+- Background workflow notifies Media about entity deletion
+
 **Logic:**
 ```typescript
+// services/inventory/src/scripts/variant/VariantDeleteScript.ts
+
 async execute(params: VariantDeleteParams): Promise<VariantDeleteResult> {
   const { id, permanent } = params;
 
@@ -137,17 +197,18 @@ async execute(params: VariantDeleteParams): Promise<VariantDeleteResult> {
   if (!variant) throw NotFoundError;
 
   if (permanent) {
-    // 1. Notify Media before delete
-    const entityRef = {
-      service: "inventory",
-      entityType: "variant",
-      entityId: id,
-    };
-
-    await this.broker.call("media.entityDeleted", { entityRef });
-
-    // 2. Hard delete (cascades variant_media)
+    // 1. Hard delete first (cascades variant_media)
     await this.repository.variant.hardDelete(id);
+
+    // 2. Start background workflow to notify Media
+    const workflow = this.workflow.get<EntityDeletedNotifyWorkflow>("entityDeletedNotify");
+    await DBOS.startWorkflow(workflow).run({
+      entityRef: {
+        service: "inventory",
+        entityType: "variant",
+        entityId: id,
+      },
+    });
   } else {
     // Soft delete: do nothing with Media
     await this.repository.variant.softDelete(id);
@@ -157,67 +218,118 @@ async execute(params: VariantDeleteParams): Promise<VariantDeleteResult> {
 }
 ```
 
+**Workflow:**
+```typescript
+// services/inventory/src/workflows/EntityDeletedNotifyWorkflow.ts
+
+export class EntityDeletedNotifyWorkflow extends BaseWorkflow {
+
+  @DBOS.workflow()
+  async run(input: { entityRef: EntityRef }): Promise<void> {
+    await this.notifyMedia(input.entityRef);
+  }
+
+  @DBOS.step()
+  async notifyMedia(entityRef: EntityRef): Promise<void> {
+    const result = await this.broker.call("media.entityDeleted", { entityRef });
+    this.logger.info({ unlinkedCount: result.unlinkedCount }, "Entity deleted notification sent");
+  }
+}
+```
+
 **Soft delete:** don't call `entityDeleted` — files remain linked, variant can be restored.
 
 ---
 
 ## Flow 2: Media → Inventory
 
-### 2.1 File Soft Delete → Cleanup variant_media
+### 2.1 File Lifecycle & Cleanup
 
-**When:** user deletes file in Media UI
+**Important:** Don't cleanup `variant_media` on soft-delete!
 
-**Approach:** Media calls Inventory broker action to cleanup `variant_media`
+| File State | variant_media | UI Behavior | Rationale |
+|------------|---------------|-------------|-----------|
+| Active | kept | shows normally | — |
+| Soft-deleted | **kept** | File resolves to null, UI shows placeholder | file can be restored, retention period |
+| Hard-deleted (GC) | **cleaned up** | rows removed | file is permanently gone |
 
-**Media side:**
+**Why not cleanup on soft-delete:**
+- Soft-delete is reversible (admin can restore file)
+- Retention period exists (30 days before GC)
+- Cleaning up immediately breaks undo capability
+- BackRefs remain anyway, so inventory should too
+
+### 2.2 Hard Delete (GC) → Cleanup variant_media
+
+**When:** GC workflow hard-deletes file after retention period
+
+**Media side — add step to existing FileHardDeleteWorkflow:**
 ```typescript
-// services/media/src/scripts/file/FileDeleteScript.ts
+// services/media/src/workflows/FileHardDeleteWorkflow.ts
 
-async execute(params: FileDeleteParams): Promise<FileDeleteResult> {
-  const { fileId } = params;
+@DBOS.workflow()
+async run(fileId: string): Promise<void> {
+  // ... existing logic: fetch file, verify state ...
 
-  // 1. Soft delete file
-  await this.repository.file.softDelete(fileId);
+  // Step: Delete from S3
+  await this.deleteFromS3(fileId, file.s3Key);
 
-  // 2. Notify consumers to cleanup references (best-effort)
+  // Step: Hard delete from DB
+  await this.hardDeleteFromDb(fileId);
+
+  // Step: Notify consumers (NEW)
+  await this.notifyConsumers(fileId);
+}
+
+// NEW STEP
+@DBOS.step()
+async notifyConsumers(fileId: string): Promise<void> {
+  // Best-effort: log errors but don't throw
+  // If we throw, DBOS will retry the step
+  // If inventory is permanently down, workflow will be stuck
   try {
-    await this.broker.call("inventory.fileDeleted", { fileId });
+    const result = await this.broker.call("inventory.fileHardDeleted", { fileId });
+    this.logger.info({ fileId, deletedCount: result.deletedCount }, "Inventory notified");
   } catch (error) {
-    // Log but don't fail — file is already deleted
-    this.logger.warn({ fileId, error }, "Failed to notify inventory about file deletion");
+    // Log and continue — file is already deleted, can't undo
+    this.logger.warn({ fileId, error }, "Failed to notify inventory, continuing");
   }
-
-  return { success: true };
 }
 ```
+
+**Error handling in notifyConsumers:**
+- try/catch inside step — don't throw, workflow completes
+- If we throw — DBOS retries, but file is already gone from S3/DB
+- Best-effort: log failure, alert ops if needed
 
 **Inventory side — new broker action:**
 ```typescript
 // services/inventory/src/InventoryBrokerActions.ts
 
-@Action("fileDeleted")
-async fileDeleted(params: FileDeletedParams): Promise<FileDeletedResult> {
-  return this.kernel.runScript(FileDeletedScript, params);
+@Action("fileHardDeleted")
+async fileHardDeleted(params: FileHardDeletedParams): Promise<FileHardDeletedResult> {
+  return this.kernel.runScript(FileHardDeletedScript, params);
 }
 ```
 
 ```typescript
-// services/inventory/src/scripts/media/FileDeletedScript.ts
+// services/inventory/src/scripts/media/FileHardDeletedScript.ts
 
-interface FileDeletedParams {
+interface FileHardDeletedParams {
   fileId: string;
 }
 
-interface FileDeletedResult {
+interface FileHardDeletedResult {
   deletedCount: number;
 }
 
-async execute(params: FileDeletedParams): Promise<FileDeletedResult> {
+async execute(params: FileHardDeletedParams): Promise<FileHardDeletedResult> {
   const { fileId } = params;
 
+  // Just cleanup, do NOT call back to media (avoid cycles)
   const deletedCount = await this.repository.media.removeByFileId(fileId);
 
-  this.logger.info({ fileId, deletedCount }, "Cleaned up variant_media for deleted file");
+  this.logger.info({ fileId, deletedCount }, "Cleaned up variant_media for hard-deleted file");
 
   return { deletedCount };
 }
@@ -236,9 +348,9 @@ async removeByFileId(fileId: string): Promise<number> {
 }
 ```
 
-### 2.2 Graceful UI Handling
+### 2.3 Graceful UI Handling (during soft-delete period)
 
-If broker call fails, UI should gracefully handle missing File:
+While file is soft-deleted (before GC), `variant_media` still exists but File won't resolve:
 
 ```typescript
 // GraphQL resolver
@@ -252,9 +364,12 @@ async media(): Promise<VariantMediaItem[]> {
 }
 ```
 
-**Federation gateway:** if File not found, returns `null` for that item.
+**Federation gateway:** if File soft-deleted or not found, returns `null`.
 
-**UI:** shows placeholder or filters out null items.
+**UI behavior:**
+- Shows placeholder for missing files
+- Or filters out null items from gallery
+- User sees "some images unavailable" if needed
 
 ---
 
@@ -290,18 +405,20 @@ async fileUnlinkMany(params: FileUnlinkManyParams): Promise<FileUnlinkManyResult
 
 ### Inventory Service
 
-#### inventory.fileDeleted
+#### inventory.fileHardDeleted
 
-New action to cleanup variant_media when file is deleted:
+New action to cleanup variant_media when file is permanently deleted by GC:
 
 ```typescript
 // services/inventory/src/InventoryBrokerActions.ts
 
-@Action("fileDeleted")
-async fileDeleted(params: FileDeletedParams): Promise<FileDeletedResult> {
-  return this.kernel.runScript(FileDeletedScript, params);
+@Action("fileHardDeleted")
+async fileHardDeleted(params: FileHardDeletedParams): Promise<FileHardDeletedResult> {
+  return this.kernel.runScript(FileHardDeletedScript, params);
 }
 ```
+
+**Important:** This script must NOT call back to media (no unlink calls) — just cleanup local data.
 
 ---
 
@@ -315,17 +432,17 @@ async fileDeleted(params: FileDeletedParams): Promise<FileDeletedResult> {
 
 ### Phase 2: Inventory Service — Integration
 1. Add `removeByFileId` to MediaRepository
-2. Create `FileDeletedScript` + broker action
-3. Update `VariantSetMediaScript` with broker calls
+2. Create `FileHardDeletedScript` + broker action
+3. Update `VariantSetMediaScript` with broker calls (DB first, then notify)
 4. Update `VariantDeleteScript` with entityDeleted call
 
-### Phase 3: Media Service — Notify Inventory
-1. Update `FileDeleteScript` — call `inventory.fileDeleted`
+### Phase 3: Media Service — GC Notification
+1. Update `FileHardDeleteWorkflow` — call `inventory.fileHardDeleted` after hard delete
 
 ### Phase 4: Testing
 1. Unit tests for new scripts
 2. Integration tests for broker calls
-3. E2E test: delete file in Media → verify variant_media cleanup
+3. E2E test: GC hard-delete file → verify variant_media cleanup
 
 ---
 
@@ -343,17 +460,20 @@ async fileDeleted(params: FileDeletedParams): Promise<FileDeletedResult> {
 | Create | `services/media/src/scripts/backRef/FileUnlinkManyScript.ts` |
 | Create | `services/media/src/scripts/backRef/EntityDeletedScript.ts` |
 | Update | `services/media/src/MediaBrokerActions.ts` — add backRef actions |
-| Update | `services/media/src/scripts/file/FileDeleteScript.ts` — call inventory.fileDeleted |
+| Update | `services/media/src/workflows/FileHardDeleteWorkflow.ts` — add notifyConsumers step |
 
 ### Inventory Service
 
 | Action | File |
 |--------|------|
-| Create | `services/inventory/src/scripts/media/FileDeletedScript.ts` |
-| Update | `services/inventory/src/InventoryBrokerActions.ts` — add fileDeleted |
+| Create | `services/inventory/src/workflows/BackRefNotifyWorkflow.ts` |
+| Create | `services/inventory/src/workflows/EntityDeletedNotifyWorkflow.ts` |
+| Create | `services/inventory/src/scripts/media/FileHardDeletedScript.ts` |
+| Update | `services/inventory/src/InventoryBrokerActions.ts` — add fileHardDeleted |
 | Update | `services/inventory/src/repositories/media/MediaRepository.ts` — add removeByFileId |
-| Update | `services/inventory/src/scripts/variant/VariantSetMediaScript.ts` — add broker calls |
-| Update | `services/inventory/src/scripts/variant/VariantDeleteScript.ts` — add entityDeleted |
+| Update | `services/inventory/src/scripts/variant/VariantSetMediaScript.ts` — start BackRefNotifyWorkflow |
+| Update | `services/inventory/src/scripts/variant/VariantDeleteScript.ts` — start EntityDeletedNotifyWorkflow |
+| Update | `services/inventory/src/inventory.nest-service.ts` — register workflows |
 
 ---
 
@@ -362,22 +482,25 @@ async fileDeleted(params: FileDeletedParams): Promise<FileDeletedResult> {
 ### Set Variant Media
 
 ```
-User                Inventory               Media
- │                      │                      │
- │──variantSetMedia────▶│                      │
- │                      │                      │
- │                      │──media.fileLinkMany─▶│
- │                      │◀─────────────────────│
- │                      │                      │
- │                      │──media.fileUnlinkMany▶│
- │                      │◀─────────────────────│
- │                      │                      │
- │                      │ UPDATE variant_media │
- │                      │                      │
- │◀─────result──────────│                      │
+User                Inventory               Media             DBOS
+ │                      │                      │                │
+ │──variantSetMedia────▶│                      │                │
+ │                      │                      │                │
+ │                      │ UPDATE variant_media │                │
+ │                      │ (sync)               │                │
+ │                      │                      │                │
+ │                      │──startWorkflow──────────────────────▶│
+ │                      │                      │                │ (async)
+ │◀─────result──────────│                      │                │
+ │                      │                      │                │
+ │                      │                      │◀───linkFiles───│
+ │                      │                      │───result──────▶│
+ │                      │                      │                │
+ │                      │                      │◀──unlinkFiles──│
+ │                      │                      │───result──────▶│
 ```
 
-### Delete File in Media
+### Soft Delete File in Media (no cleanup)
 
 ```
 User                Media                  Inventory
@@ -385,28 +508,47 @@ User                Media                  Inventory
  │──deleteFile─────────▶│                      │
  │                      │                      │
  │                      │ SET deletedAt        │
+ │                      │ (soft delete)        │
  │                      │                      │
- │                      │──inventory.fileDeleted▶│
+ │◀─────result──────────│                      │
+ │                      │                      │
+ │  (variant_media kept, File resolves to null in UI)
+```
+
+### Hard Delete File (GC) → Cleanup
+
+```
+GC Scheduler        Media                  Inventory
+ │                      │                      │
+ │──FileHardDelete─────▶│                      │
+ │   Workflow           │                      │
+ │                      │                      │
+ │                      │ DELETE from S3       │
+ │                      │ DELETE from DB       │
+ │                      │                      │
+ │                      │──inventory.fileHardDeleted▶│
  │                      │◀─────────────────────│
  │                      │                      │ DELETE variant_media
- │◀─────result──────────│                      │ WHERE file_id = ?
+ │◀─────done────────────│                      │ WHERE file_id = ?
 ```
 
 ### Delete Variant (hard)
 
 ```
-User                Inventory               Media
- │                      │                      │
- │──variantDelete──────▶│                      │
- │   (permanent=true)   │                      │
- │                      │                      │
- │                      │──media.entityDeleted─▶│
- │                      │◀─────────────────────│
- │                      │                      │
- │                      │ DELETE variant       │
- │                      │ (cascades media)     │
- │                      │                      │
- │◀─────result──────────│                      │
+User                Inventory               Media             DBOS
+ │                      │                      │                │
+ │──variantDelete──────▶│                      │                │
+ │   (permanent=true)   │                      │                │
+ │                      │                      │                │
+ │                      │ DELETE variant       │                │
+ │                      │ (cascades media)     │                │
+ │                      │                      │                │
+ │                      │──startWorkflow──────────────────────▶│
+ │                      │                      │                │ (async)
+ │◀─────result──────────│                      │                │
+ │                      │                      │                │
+ │                      │                      │◀─entityDeleted─│
+ │                      │                      │───result──────▶│
 ```
 
 ---
@@ -418,4 +560,6 @@ User                Inventory               Media
 | Inventory → Media | Set variant media | `media.fileLinkMany` | Track new file refs |
 | Inventory → Media | Set variant media | `media.fileUnlinkMany` | Remove old file refs |
 | Inventory → Media | Hard delete variant | `media.entityDeleted` | Remove all refs for entity |
-| Media → Inventory | Soft delete file | `inventory.fileDeleted` | Cleanup variant_media |
+| Media → Inventory | **Hard delete (GC)** | `inventory.fileHardDeleted` | Cleanup variant_media |
+
+**Note:** Soft delete does NOT trigger cleanup — file can be restored during retention period.
