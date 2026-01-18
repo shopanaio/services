@@ -13,41 +13,27 @@ export interface BackRefNotifyInput {
 export class BackRefNotifyWorkflow extends BaseWorkflow {
   @DBOS.workflow()
   async run(input: BackRefNotifyInput): Promise<void> {
-    const { entityRef } = input;
-    const uniqueFileIds = Array.from(new Set(input.fileIds));
-
-    await this.clearBackRefs(entityRef);
-
-    if (uniqueFileIds.length > 0) {
-      await this.linkFiles(uniqueFileIds, entityRef);
-    }
+    await this.syncFiles(input);
   }
 
   @DBOS.step()
-  async clearBackRefs(entityRef: BackRefNotifyInput["entityRef"]): Promise<void> {
-    const result = await this.broker.call("media.entityDeleted", { entityRef });
-    this.logger.info(
-      { unlinkedCount: result?.unlinkedCount },
-      "BackRef reset completed"
-    );
-  }
+  async syncFiles(input: BackRefNotifyInput): Promise<void> {
+    const { entityRef, fileIds } = input;
+    const uniqueFileIds = Array.from(new Set(fileIds));
 
-  @DBOS.step()
-  async linkFiles(
-    fileIds: string[],
-    entityRef: BackRefNotifyInput["entityRef"]
-  ): Promise<void> {
-    const items = fileIds.map((fileId) => ({ fileId, role: "gallery" }));
-    const result = await this.broker.call("media.fileLinkMany", {
-      items,
+    const result = await this.broker.call("media.syncEntityFiles", {
       entityRef,
+      fileIds: uniqueFileIds,
     });
+
     this.logger.info(
       {
+        entityRef,
+        unlinkedCount: result?.unlinkedCount,
         linkedCount: result?.linkedCount,
         skippedCount: result?.skippedCount,
       },
-      "BackRef link completed"
+      "BackRef sync completed"
     );
   }
 }

@@ -1,5 +1,5 @@
 import { DBOS } from "@shopana/workflows";
-import { DBOSMaxStepRetriesError } from "@dbos-inc/dbos-sdk";
+import { Error as DBOSErrors } from "@dbos-inc/dbos-sdk";
 import { BaseWorkflow } from "./BaseWorkflow.js";
 
 export class FileDeleteCleanupWorkflow extends BaseWorkflow {
@@ -15,7 +15,7 @@ export class FileDeleteCleanupWorkflow extends BaseWorkflow {
     try {
       await this.notifyInventory(fileId);
     } catch (error) {
-      if (error instanceof DBOSMaxStepRetriesError) {
+      if (error instanceof DBOSErrors.DBOSMaxStepRetriesError) {
         await this.markNeedsAttention(fileId, error);
         return;
       }

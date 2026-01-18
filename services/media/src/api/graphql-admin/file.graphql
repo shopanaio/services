@@ -231,6 +231,11 @@ type File implements Node @key(fields: "id") {
   External media data (for YouTube, Vimeo, etc).
   """
   externalData: ExternalMediaData
+
+  """
+  Usage summary for this file.
+  """
+  usage: FileUsageSummary!
 }
 
 # ---- File Usage Types ----
@@ -262,13 +267,6 @@ type FileUsageSummary {
   Whether the file is active (not soft-deleted).
   """
   fileActive: Boolean!
-}
-
-extend type File {
-  """
-  Usage summary for this file.
-  """
-  usage: FileUsageSummary!
 }
 
 # ---- File Mutation Inputs ----

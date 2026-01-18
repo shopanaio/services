@@ -30,12 +30,14 @@ import { FileUnlinkScript } from "./scripts/backRef/FileUnlinkScript.js";
 import { FileLinkManyScript } from "./scripts/backRef/FileLinkManyScript.js";
 import { FileUnlinkManyScript } from "./scripts/backRef/FileUnlinkManyScript.js";
 import { EntityDeletedScript } from "./scripts/backRef/EntityDeletedScript.js";
+import { SyncEntityFilesScript } from "./scripts/backRef/SyncEntityFilesScript.js";
 import {
   fileLinkSchema,
   fileUnlinkSchema,
   fileLinkManySchema,
   fileUnlinkManySchema,
   entityDeletedSchema,
+  syncEntityFilesSchema,
   type FileLinkParams,
   type FileLinkResult,
   type FileUnlinkParams,
@@ -46,6 +48,8 @@ import {
   type FileUnlinkManyResult,
   type EntityDeletedParams,
   type EntityDeletedResult,
+  type SyncEntityFilesParams,
+  type SyncEntityFilesResult,
 } from "./scripts/backRef/dto/index.js";
 
 /**
@@ -145,5 +149,17 @@ export class MediaBrokerActions extends BrokerActions {
     params: EntityDeletedParams
   ): Promise<EntityDeletedResult> {
     return this.kernel.runScript(EntityDeletedScript, params);
+  }
+
+  /**
+   * Action: syncEntityFiles - atomic reset + relink operation.
+   * Clears all existing back-refs for entity and links the provided files.
+   */
+  @Action("syncEntityFiles")
+  @ZodSchema(syncEntityFilesSchema)
+  async syncEntityFiles(
+    params: SyncEntityFilesParams
+  ): Promise<SyncEntityFilesResult> {
+    return this.kernel.runScript(SyncEntityFilesScript, params);
   }
 }

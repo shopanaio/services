@@ -39,6 +39,12 @@ export const entityDeletedSchema = z.object({
   entityRef: entityRefSchema,
 });
 
+export const syncEntityFilesSchema = z.object({
+  entityRef: entityRefSchema,
+  fileIds: z.array(z.string().uuid()).max(1000),
+  role: z.string().min(1).max(32).default("gallery"),
+});
+
 // ---- Interfaces ----
 
 export interface EntityRef {
@@ -104,4 +110,16 @@ export interface EntityDeletedParams {
 
 export interface EntityDeletedResult {
   unlinkedCount: number;
+}
+
+export interface SyncEntityFilesParams {
+  entityRef: EntityRef;
+  fileIds: string[];
+  role?: string;
+}
+
+export interface SyncEntityFilesResult {
+  unlinkedCount: number;
+  linkedCount: number;
+  skippedCount: number;
 }
