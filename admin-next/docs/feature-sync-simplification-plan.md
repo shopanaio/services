@@ -3,7 +3,7 @@
 ## Проблема
 
 Текущий `FeaturesSyncScript` (~500 строк) слишком сложный из-за обхода unique constraints:
-- Two-phase sortIndex updates (offset + final)
+- Two-phase updates (offset + final)
 - Temp slugs для избежания конфликтов
 - Сложный порядок операций (UPDATE → DELETE vs DELETE → UPDATE)
 - Много edge cases
@@ -29,25 +29,38 @@ ALTER TABLE inventory.product_feature
 ALTER TABLE inventory.product_feature
   DROP CONSTRAINT IF EXISTS product_feature_slug_unique;
 
--- 2. Убираем partial unique indexes на sortIndex
+-- 2. Убираем partial unique indexes
 DROP INDEX IF EXISTS inventory.product_feature_root_sort_idx;
 DROP INDEX IF EXISTS inventory.product_feature_child_sort_idx;
 
--- 2.1 Добавляем строковый index (как в контракте)
+-- 3. Добавляем index как int[]
 ALTER TABLE inventory.product_feature
-  ADD COLUMN index text NOT NULL;
+  ADD COLUMN index integer[] NOT NULL DEFAULT '{}';
 
--- 2.2 Уникальность index в рамках продукта (отложенная проверка)
+-- 4. Уникальность index в рамках продукта (отложенная проверка)
 ALTER TABLE inventory.product_feature
   ADD CONSTRAINT product_feature_product_id_index_uniq
     UNIQUE (product_id, index)
     DEFERRABLE INITIALLY DEFERRED;
 
--- 3. Удаляем колонку slug
+-- 5. CHECK constraints для index
+ALTER TABLE inventory.product_feature
+  ADD CONSTRAINT feature_index_not_empty
+    CHECK (array_length(index, 1) > 0);
+
+ALTER TABLE inventory.product_feature
+  ADD CONSTRAINT feature_group_root_only
+    CHECK (is_group = false OR array_length(index, 1) = 1);
+
+-- 6. Удаляем старую колонку sort_index
+ALTER TABLE inventory.product_feature
+  DROP COLUMN sort_index;
+
+-- 7. Удаляем колонку slug
 ALTER TABLE inventory.product_feature
   DROP COLUMN slug;
 
--- 4. Убираем slug из values тоже
+-- 8. Values: убираем slug, переименовываем sort_index → index
 ALTER TABLE inventory.product_feature_value
   DROP CONSTRAINT IF EXISTS product_feature_value_feature_id_slug_key;
 
@@ -56,7 +69,16 @@ ALTER TABLE inventory.product_feature_value
 
 ALTER TABLE inventory.product_feature_value
   DROP COLUMN slug;
+
+ALTER TABLE inventory.product_feature_value
+  RENAME COLUMN sort_index TO index;
 ```
+
+**Преимущества `int[]` над `text`:**
+- Нативная сортировка PostgreSQL: `ORDER BY index` работает корректно
+- Нет парсинга строк — `index[1:array_length(index,1)-1]` для parent
+- GIN index для поиска по prefix (если нужно)
+- Type safety — невозможно записать невалидные данные
 
 ---
 
@@ -71,7 +93,6 @@ import {
   check,
   index,
   integer,
-  text,
   unique,
   uuid,
 } from "drizzle-orm/pg-core";
@@ -87,23 +108,29 @@ export const productFeature = inventorySchema.table(
     productId: uuid("product_id")
       .notNull()
       .references(() => product.id, { onDelete: "cascade" }),
-    index: text("index").notNull(),
+    index: integer("index").array().notNull(),  // int[] — tree position
     isGroup: boolean("is_group").notNull().default(false),
     parentId: uuid("parent_id").references(
       (): AnyPgColumn => productFeature.id,
       { onDelete: "cascade" }
     ),
-    sortIndex: integer("sort_index").notNull().default(0),
   },
   (table) => [
     check(
       "feature_group_no_parent",
       sql`${table.isGroup} = false OR ${table.parentId} IS NULL`
     ),
-    index("product_feature_children_idx").on(
+    check(
+      "feature_index_not_empty",
+      sql`array_length(${table.index}, 1) > 0`
+    ),
+    check(
+      "feature_group_root_only",
+      sql`${table.isGroup} = false OR array_length(${table.index}, 1) = 1`
+    ),
+    index("product_feature_sort_idx").on(
       table.productId,
-      table.parentId,
-      table.sortIndex
+      table.index
     ),
     unique("product_feature_product_id_index_uniq").on(
       table.productId,
@@ -120,7 +147,7 @@ export const productFeatureValue = inventorySchema.table(
     featureId: uuid("feature_id")
       .notNull()
       .references(() => productFeature.id, { onDelete: "cascade" }),
-    sortIndex: integer("sort_index").notNull(),
+    index: integer("index").notNull(),  // position within feature: 0, 1, 2, ...
   },
   (table) => [
     index("idx_product_feature_value_feature_id").on(table.featureId),
@@ -129,17 +156,20 @@ export const productFeatureValue = inventorySchema.table(
 ```
 
 **Что убрали:**
-- `slug` из ProductFeature
-- `slug` из ProductFeatureValue
+- `slug` из ProductFeature и ProductFeatureValue
+- `sort_index` из ProductFeature → заменён на `index: int[]`
+- `sort_index` из ProductFeatureValue → переименован в `index: int`
 - Все unique constraints на slug
-- Partial unique indexes на sortIndex
+- Partial unique indexes
 
 **Что добавили:**
-- `index` (string) как в контракте
-- `unique("product_feature_product_id_index_uniq")` на `(product_id, index)` — в миграции DEFERRABLE
+- `index: integer[].notNull()` — tree position как массив
+- `check("feature_index_not_empty")` — index не может быть пустым
+- `check("feature_group_root_only")` — группы только на root (length = 1)
+- `unique` на `(product_id, index)` — в миграции DEFERRABLE
 
 **Что оставили:**
-- `index("product_feature_children_idx")` — для ORDER BY
+- `check("feature_group_no_parent")` — группы не могут иметь parent
 - `index("idx_product_feature_value_feature_id")` — для JOIN
 
 ---
@@ -152,9 +182,10 @@ export const productFeatureValue = inventorySchema.table(
 """A product feature represents either a group or an attribute."""
 type ProductFeature implements Node @key(fields: "id") {
   id: ID!
+  """Tree position as array: [0] for root, [0, 1] for child of first group."""
+  index: [Int!]!
   isGroup: Boolean!
   name: String!           # из translations
-  sortIndex: Int!
   parent: ProductFeature
   children: [ProductFeature!]!
   values: [ProductFeatureValue!]!
@@ -164,12 +195,13 @@ input ProductFeatureSyncItemInput {
   """Database ID. Null for new records."""
   id: ID
   """
-  Tree-like index that serves as both identifier and sort position.
-  Format: "0", "1", "2" for root items; "0-0", "0-1", "1-0" for children.
-  Parent is derived from index: parent of "0-0" is "0", parent of "1-2" is "1".
-  Root items have no dash. Groups must be root items.
+  Tree position as integer array.
+  - [0], [1], [2] for root items
+  - [0, 0], [0, 1], [1, 0] for children
+  Parent is derived: parent of [0, 1] is [0].
+  Groups must have length 1 (root only).
   """
-  index: String!
+  index: [Int!]!
   isGroup: Boolean!
   name: String!
   values: [ProductFeatureValueSyncInput!]
@@ -177,30 +209,28 @@ input ProductFeatureSyncItemInput {
 
 type ProductFeatureValue implements Node @key(fields: "id") {
   id: ID!
+  index: Int!             # position: 0, 1, 2, ...
   name: String!           # из translations
 }
 
 input ProductFeatureValueSyncInput {
   """Database ID. Null for new records."""
   id: ID
-  """Sort index within the feature's values (0, 1, 2, ...)"""
+  """Position within the feature's values (0, 1, 2, ...)"""
   index: Int!
   name: String!
 }
 ```
 
 **Убрано:**
-- `slug` из ProductFeature
-- `slug` из ProductFeatureValue
-- `slug` из всех input типов
-- Добавлен `index` — древовидный идентификатор
-- `sortIndex` — теперь вычисляется из `index`
+- `slug` из ProductFeature и ProductFeatureValue
 
-**Новый контракт index:**
-- Формат: `"0"`, `"1"`, `"2"` для root items; `"0-0"`, `"0-1"`, `"1-0"` для children
-- Parent вычисляется из index: parent of `"0-0"` is `"0"`, parent of `"1-2"` is `"1"`
-- Root items (без dash) могут быть группами или атрибутами без родителя
-- Items с dash (children) — только атрибуты, их родитель — группа с index до dash
+**Новый контракт `index`:**
+- `[0]`, `[1]`, `[2]` — root items (группы или standalone атрибуты)
+- `[0, 0]`, `[0, 1]`, `[1, 0]` — children (атрибуты внутри групп)
+- Parent вычисляется: `[0, 1].slice(0, -1)` = `[0]`
+- Группы: только `length === 1` (root level)
+- Сортировка: нативная PostgreSQL `ORDER BY index`
 
 ---
 
@@ -213,15 +243,14 @@ import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import type { FeatureSyncParams, FeatureSyncResult } from "./dto/index.js";
 import type { ValidatedFeatureInput, ValidatedValueInput } from "./validation/schema.js";
 import { FeatureSyncInputSchema } from "./validation/schema.js";
-import { validateSemantic, parseTreeIndex } from "./validation/semantic.js";
+import { validateSemantic, indexToKey, getParentIndex } from "./validation/semantic.js";
 import { loadDbContext, validateDatabase } from "./validation/database.js";
 
 interface ResolvedFeature {
-  readonly index: string;
+  readonly index: number[];
   readonly input: ValidatedFeatureInput;
   readonly id: string;
   readonly parentId: string | null;
-  readonly sortIndex: number;
 }
 
 export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyncResult> {
@@ -299,18 +328,18 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
   }
 
   /**
-   * Резолвит features: создаёт новые записи, разрешает parentId из tree index.
+   * Резолвит features: создаёт новые записи, разрешает parentId из index.
    */
   private async resolveFeatures(
     productId: string,
     features: ValidatedFeatureInput[]
   ): Promise<ResolvedFeature[]> {
-    const indexToDbId = new Map<string, string>();
+    const indexKeyToDbId = new Map<string, string>();
 
-    // Сначала маппим существующие
+    // Маппим существующие
     for (const f of features) {
       if (f.id) {
-        indexToDbId.set(f.index, f.id);
+        indexKeyToDbId.set(indexToKey(f.index), f.id);
       }
     }
 
@@ -321,9 +350,8 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
           isGroup: true,
           parentId: null,
           index: f.index,
-          sortIndex: 0,
         });
-        indexToDbId.set(f.index, created.id);
+        indexKeyToDbId.set(indexToKey(f.index), created.id);
       }
     }
 
@@ -334,23 +362,21 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
           isGroup: false,
           index: f.index,
           parentId: null,
-          sortIndex: 0,
         });
-        indexToDbId.set(f.index, created.id);
+        indexKeyToDbId.set(indexToKey(f.index), created.id);
       }
     }
 
-    // Собираем resolved с parentId из tree index
+    // Собираем resolved с parentId
     return features.map((f) => {
-      const parsed = parseTreeIndex(f.index);
-      const parentId = parsed.parent ? (indexToDbId.get(parsed.parent) ?? null) : null;
+      const parentIndex = getParentIndex(f.index);
+      const parentId = parentIndex ? (indexKeyToDbId.get(indexToKey(parentIndex)) ?? null) : null;
 
       return {
         index: f.index,
         input: f,
-        id: indexToDbId.get(f.index)!,
+        id: indexKeyToDbId.get(indexToKey(f.index))!,
         parentId,
-        sortIndex: parsed.position,
       };
     });
   }
@@ -359,7 +385,6 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
     await this.repository.feature.update(item.id, {
       isGroup: item.input.isGroup,
       parentId: item.parentId,
-      sortIndex: item.sortIndex,
       index: item.index,
     });
 
@@ -381,10 +406,10 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
       let valueId: string;
 
       if (value.id) {
-        await this.repository.feature.updateValue(featureId, value.id, { sortIndex: value.index });
+        await this.repository.feature.updateValue(featureId, value.id, { index: value.index });
         valueId = value.id;
       } else {
-        const created = await this.repository.feature.createValue(featureId, { sortIndex: value.index });
+        const created = await this.repository.feature.createValue(featureId, { index: value.index });
         valueId = created.id;
       }
 
@@ -408,10 +433,12 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
 ```
 
 **Что изменилось:**
-- Валидация вынесена в отдельные модули (`validation/schema.ts`, `validation/semantic.ts`, `validation/database.ts`)
-- Script содержит только sync-логику (~120 строк вместо ~300)
-- Чёткое разделение: Zod → Semantic → Database → Sync
-- Все ошибки имеют корректные array-based paths (`["features", "0", "name"]`)
+- `index` теперь `number[]` вместо `string`
+- Позиция внутри parent: `index[index.length - 1]`
+- `indexToKey()` для использования массива как ключа Map
+- `getParentIndex()` — просто `index.slice(0, -1)`
+- Валидация вынесена в отдельные модули
+- ~100 строк вместо ~500
 
 ---
 
@@ -482,7 +509,7 @@ async deleteValuesExcept(featureId: string, keepIds: string[]): Promise<void> {
 async updateValue(
   featureId: string,
   valueId: string,
-  data: { sortIndex: number }
+  data: { index: number }
 ): Promise<void> {
   await this.db.update(productFeatureValue)
     .set(data)
@@ -548,15 +575,18 @@ ALTER TABLE inventory.product_feature_value_translation
 
 | Метрика | До | После |
 |---------|-----|-------|
-| Строк кода (script) | ~500 | ~120 |
-| Строк кода (валидация) | inline ~200 | 3 модуля ~200 |
+| Строк кода (script) | ~500 | ~100 |
+| Строк кода (валидация) | inline ~200 | 3 модуля ~180 |
 | Unique constraints | 3 | 1 (DEFERRABLE) |
 | Two-phase updates | Да | Нет |
 | Temp slugs | Да | Нет |
 | Edge cases | Много | Нет |
-| Колонки в БД | 7 + 5 | 7 + 4 |
-| Tree index | Нет | Да |
-| Forward references | Не поддерживает | Автоматически (tree index) |
+| Колонки в БД (feature) | 7 | 5 (`id`, `projectId`, `productId`, `index`, `isGroup`, `parentId`) |
+| Колонки в БД (value) | 5 | 4 (`id`, `projectId`, `featureId`, `index`) |
+| Feature.index | — | `int[]` |
+| Value.index | — | `int` |
+| Сортировка | Ручная | PostgreSQL `ORDER BY index` |
+| Forward references | Не поддерживает | Автоматически |
 | Мутация input | Да | Нет (immutable) |
 | Валидация | Inline в script | 3-layer модульная |
 | Zod schema | Нет | Да |
@@ -570,15 +600,29 @@ ALTER TABLE inventory.product_feature_value_translation
 
 ```
 ProductFeature:
-  id, projectId, productId, index, isGroup, parentId, sortIndex
+  id          UUID PRIMARY KEY
+  projectId   UUID NOT NULL
+  productId   UUID NOT NULL REFERENCES product(id)
+  index       INTEGER[] NOT NULL        -- tree position: [0], [0, 1], etc.
+  isGroup     BOOLEAN NOT NULL
+  parentId    UUID REFERENCES product_feature(id)
   + translations: name
 
 ProductFeatureValue:
-  id, projectId, featureId, sortIndex
+  id          UUID PRIMARY KEY
+  projectId   UUID NOT NULL
+  featureId   UUID NOT NULL REFERENCES product_feature(id)
+  index       INTEGER NOT NULL          -- position: 0, 1, 2, ...
   + translations: name
 ```
 
-**Один DEFERRABLE unique constraint на `(product_id, index)`, никаких slug — только ID и name из translations.**
+**Constraints:**
+- `UNIQUE (product_id, index) DEFERRABLE INITIALLY DEFERRED`
+- `CHECK (array_length(index, 1) > 0)` — index не пустой
+- `CHECK (is_group = false OR array_length(index, 1) = 1)` — группы только root
+- `CHECK (is_group = false OR parent_id IS NULL)` — группы без родителя
+
+**Никаких slug — только ID, index и name из translations.**
 
 ---
 
@@ -586,17 +630,20 @@ ProductFeatureValue:
 
 ### Phase 1: Database & Models
 1. [ ] Проверить использование `slug` в фронтенде/API (breaking change?)
-2. [ ] Создать миграцию `0005_remove_feature_slug.sql`
+2. [ ] Создать миграцию `0005_simplify_features.sql`:
+   - Удалить `slug` из features и values
+   - Удалить `sort_index` из features, добавить `index: int[]`
+   - Переименовать `sort_index` → `index` в values
 3. [ ] Проверить/добавить `ON DELETE CASCADE` для translations
-4. [ ] Обновить модель `features.ts` (удалить slug, добавить index)
+4. [ ] Обновить модель `features.ts`
 
 ### Phase 2: GraphQL Schema
 5. [ ] Обновить GraphQL schema:
-   - Удалить slug везде
-   - Добавить `index: String!` для tree index
-   - Для values заменить `sortIndex` на `index: Int!`
-6. [ ] Обновить FeatureResolver (удалить slug метод)
-7. [ ] Обновить FeatureValueResolver (удалить slug метод)
+   - Удалить `slug` везде
+   - Добавить `index: [Int!]!` для features
+   - Добавить `index: Int!` для values
+6. [ ] Обновить FeatureResolver (удалить slug, добавить index)
+7. [ ] Обновить FeatureValueResolver (удалить slug)
 
 ### Phase 3: Validation (новые файлы)
 8. [ ] Создать `validation/schema.ts` — Zod schemas для структурной валидации
@@ -624,15 +671,15 @@ ProductFeatureValue:
 
 ## Ключевые улучшения валидации
 
-### Tree Index формат
+### Index формат (`int[]`)
 ```
-Root items:   "0", "1", "2", "3"
-Children:     "0-0", "0-1", "1-0", "2-0", "2-1"
+Root items:   [0], [1], [2], [3]
+Children:     [0, 0], [0, 1], [1, 0], [2, 0], [2, 1]
 
 Parent вычисляется автоматически:
-  "0-0" → parent = "0"
-  "1-2" → parent = "1"
-  "0"   → parent = null (root)
+  [0, 0] → parent = [0]
+  [1, 2] → parent = [1]
+  [0]    → parent = null (root, length === 1)
 ```
 
 ### Архитектура валидации
@@ -673,16 +720,15 @@ Parent вычисляется автоматически:
 import { z } from "zod";
 
 /**
- * Tree index: "0", "1", "0-0", "1-2"
- * - Только один уровень вложенности (максимум один dash)
- * - Без ведущих нулей (кроме самого "0")
- * - Не пустой
+ * Tree index as int[]:
+ * - Минимум 1 элемент
+ * - Максимум 2 элемента (root + child)
+ * - Все элементы >= 0
  */
-const TREE_INDEX_REGEX = /^(0|[1-9]\d*)(?:-(0|[1-9]\d*))?$/;
-
-const TreeIndexSchema = z.string().regex(TREE_INDEX_REGEX, {
-  message: 'Invalid tree index format. Expected "0", "1", "0-0", "1-2", etc.',
-});
+const TreeIndexSchema = z
+  .array(z.number().int().min(0))
+  .min(1, "Index must have at least 1 element")
+  .max(2, "Index can have at most 2 elements (one level of nesting)");
 
 const FeatureValueInputSchema = z.object({
   id: z.string().uuid().optional(),
@@ -717,24 +763,27 @@ export type ValidatedValueInput = z.infer<typeof FeatureValueInputSchema>;
 import type { UserError } from "../../../kernel/BaseScript.js";
 import type { ValidatedFeatureInput, ValidatedValueInput } from "./schema.js";
 
-/** Парсит tree index: "0-1" → { parent: "0", position: 1 } */
-export function parseTreeIndex(index: string): { parent: string | null; position: number } {
-  const dashPos = index.indexOf("-");
-  if (dashPos === -1) {
-    return { parent: null, position: parseInt(index, 10) };
-  }
-  return {
-    parent: index.slice(0, dashPos),
-    position: parseInt(index.slice(dashPos + 1), 10),
-  };
+/** Конвертирует index в строку для использования как ключ Map */
+export function indexToKey(index: number[]): string {
+  return index.join(",");
+}
+
+/** Возвращает parent index или null для root */
+export function getParentIndex(index: number[]): number[] | null {
+  return index.length > 1 ? index.slice(0, -1) : null;
+}
+
+/** Возвращает позицию внутри parent */
+export function getPosition(index: number[]): number {
+  return index[index.length - 1];
 }
 
 interface SemanticContext {
-  readonly indexToArrayIdx: Map<string, number>;
-  readonly indexToItem: Map<string, ValidatedFeatureInput>;
+  readonly indexKeyToArrayIdx: Map<string, number>;
+  readonly indexKeyToItem: Map<string, ValidatedFeatureInput>;
   readonly seenFeatureIds: Set<string>;
   readonly seenValueIds: Set<string>;
-  readonly positionsByParent: Map<string, Set<number>>;
+  readonly positionsByParentKey: Map<string, Set<number>>;
 }
 
 /**
@@ -744,28 +793,29 @@ interface SemanticContext {
 export function validateSemantic(features: ValidatedFeatureInput[]): UserError[] {
   const errors: UserError[] = [];
   const ctx: SemanticContext = {
-    indexToArrayIdx: new Map(),
-    indexToItem: new Map(),
+    indexKeyToArrayIdx: new Map(),
+    indexKeyToItem: new Map(),
     seenFeatureIds: new Set(),
     seenValueIds: new Set(),
-    positionsByParent: new Map(),
+    positionsByParentKey: new Map(),
   };
 
   // Первый проход: собираем карты и проверяем уникальность
   for (let i = 0; i < features.length; i++) {
     const f = features[i];
+    const key = indexToKey(f.index);
     const path = (field: string) => ["features", String(i), field];
 
     // Уникальность index
-    if (ctx.indexToItem.has(f.index)) {
+    if (ctx.indexKeyToItem.has(key)) {
       errors.push({
-        message: `Duplicate tree index "${f.index}"`,
+        message: `Duplicate index [${f.index.join(", ")}]`,
         field: path("index"),
         code: "DUPLICATE_INDEX",
       });
     } else {
-      ctx.indexToArrayIdx.set(f.index, i);
-      ctx.indexToItem.set(f.index, f);
+      ctx.indexKeyToArrayIdx.set(key, i);
+      ctx.indexKeyToItem.set(key, f);
     }
 
     // Уникальность id
@@ -781,25 +831,26 @@ export function validateSemantic(features: ValidatedFeatureInput[]): UserError[]
       }
     }
 
-    // Уникальность sortIndex внутри parent
-    const parsed = parseTreeIndex(f.index);
-    const parentKey = parsed.parent ?? "__root__";
-    const positions = ctx.positionsByParent.get(parentKey) ?? new Set();
-    if (positions.has(parsed.position)) {
+    // Уникальность position внутри parent
+    const parentIndex = getParentIndex(f.index);
+    const parentKey = parentIndex ? indexToKey(parentIndex) : "__root__";
+    const position = getPosition(f.index);
+    const positions = ctx.positionsByParentKey.get(parentKey) ?? new Set();
+    if (positions.has(position)) {
       errors.push({
-        message: `Duplicate position ${parsed.position} under parent "${parentKey}"`,
+        message: `Duplicate position ${position} under parent [${parentIndex?.join(", ") ?? "root"}]`,
         field: path("index"),
         code: "DUPLICATE_POSITION",
       });
     } else {
-      positions.add(parsed.position);
-      ctx.positionsByParent.set(parentKey, positions);
+      positions.add(position);
+      ctx.positionsByParentKey.set(parentKey, positions);
     }
 
-    // Группы только на root уровне
-    if (f.isGroup && parsed.parent !== null) {
+    // Группы только на root уровне (length === 1)
+    if (f.isGroup && f.index.length !== 1) {
       errors.push({
-        message: "Groups must be root items (index without dash)",
+        message: "Groups must be root items (index.length === 1)",
         field: path("index"),
         code: "GROUP_NOT_ROOT",
       });
@@ -821,17 +872,18 @@ export function validateSemantic(features: ValidatedFeatureInput[]): UserError[]
   }
 
   // Второй проход: проверяем parent ссылки
-  for (const [index, item] of ctx.indexToItem) {
-    const parsed = parseTreeIndex(index);
-    if (parsed.parent === null) continue;
+  for (const [key, item] of ctx.indexKeyToItem) {
+    const parentIndex = getParentIndex(item.index);
+    if (parentIndex === null) continue;
 
-    const arrayIdx = ctx.indexToArrayIdx.get(index)!;
+    const arrayIdx = ctx.indexKeyToArrayIdx.get(key)!;
     const path = (field: string) => ["features", String(arrayIdx), field];
+    const parentKey = indexToKey(parentIndex);
 
-    const parentItem = ctx.indexToItem.get(parsed.parent);
+    const parentItem = ctx.indexKeyToItem.get(parentKey);
     if (!parentItem) {
       errors.push({
-        message: `Parent "${parsed.parent}" not found in features list`,
+        message: `Parent [${parentIndex.join(", ")}] not found in features list`,
         field: path("index"),
         code: "PARENT_NOT_FOUND",
       });
@@ -840,7 +892,7 @@ export function validateSemantic(features: ValidatedFeatureInput[]): UserError[]
 
     if (!parentItem.isGroup) {
       errors.push({
-        message: `Parent "${parsed.parent}" must be a group`,
+        message: `Parent [${parentIndex.join(", ")}] must be a group`,
         field: path("index"),
         code: "PARENT_NOT_GROUP",
       });
@@ -1073,18 +1125,18 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
 {
   "productId": "...",
   "features": [
-    { "index": "0", "isGroup": true, "name": "Размеры" },
-    { "index": "0", "isGroup": false, "name": "Дубликат" },  // дубликат index
-    { "index": "0-0", "isGroup": true, "name": "Вложенная группа" },  // группа не на root
-    { "index": "1-0", "isGroup": false, "name": "Сирота" }  // parent "1" не существует
+    { "index": [0], "isGroup": true, "name": "Размеры" },
+    { "index": [0], "isGroup": false, "name": "Дубликат" },     // дубликат index
+    { "index": [0, 0], "isGroup": true, "name": "Вложенная" },  // группа не на root
+    { "index": [1, 0], "isGroup": false, "name": "Сирота" }     // parent [1] не существует
   ]
 }
 
 // Errors
 [
-  { "message": "Duplicate tree index \"0\"", "field": ["features", "1", "index"], "code": "DUPLICATE_INDEX" },
-  { "message": "Groups must be root items", "field": ["features", "2", "index"], "code": "GROUP_NOT_ROOT" },
-  { "message": "Parent \"1\" not found in features list", "field": ["features", "3", "index"], "code": "PARENT_NOT_FOUND" }
+  { "message": "Duplicate index [0]", "field": ["features", "1", "index"], "code": "DUPLICATE_INDEX" },
+  { "message": "Groups must be root items (index.length === 1)", "field": ["features", "2", "index"], "code": "GROUP_NOT_ROOT" },
+  { "message": "Parent [1] not found in features list", "field": ["features", "3", "index"], "code": "PARENT_NOT_FOUND" }
 ]
 ```
 
@@ -1105,7 +1157,7 @@ Input → Zod parse → ValidatedFeatureInput[]
                     upsertFeature()
 ```
 
-Входные данные не мутируются. Все созданные ID хранятся в `indexToDbId` Map.
+Входные данные не мутируются. Все созданные ID хранятся в `indexKeyToDbId` Map.
 
 ---
 
@@ -1113,20 +1165,21 @@ Input → Zod parse → ValidatedFeatureInput[]
 ```json
 {
   "features": [
-    { "index": "0", "isGroup": true, "name": "Размеры" },
-    { "index": "0-0", "isGroup": false, "name": "Длина", "values": [
+    { "index": [0], "isGroup": true, "name": "Размеры" },
+    { "index": [0, 0], "isGroup": false, "name": "Длина", "values": [
       { "index": 0, "name": "100 см" },
       { "index": 1, "name": "150 см" }
     ]},
-    { "index": "0-1", "isGroup": false, "name": "Ширина" },
-    { "index": "1", "isGroup": true, "name": "Материалы" },
-    { "index": "1-0", "isGroup": false, "name": "Основа" },
-    { "index": "2", "isGroup": false, "name": "Цвет" }
+    { "index": [0, 1], "isGroup": false, "name": "Ширина" },
+    { "index": [1], "isGroup": true, "name": "Материалы" },
+    { "index": [1, 0], "isGroup": false, "name": "Основа" },
+    { "index": [2], "isGroup": false, "name": "Цвет" }
   ]
 }
 ```
 
-- `"0"`, `"1"`, `"2"` — root items (группы или атрибуты без родителя)
-- `"0-0"`, `"0-1"` — дети группы `"0"` (Размеры)
-- `"1-0"` — ребёнок группы `"1"` (Материалы)
+- `[0]`, `[1]`, `[2]` — root items (группы или атрибуты без родителя)
+- `[0, 0]`, `[0, 1]` — дети группы `[0]` (Размеры)
+- `[1, 0]` — ребёнок группы `[1]` (Материалы)
 - `id` можно не указывать для новых записей
+- Сортировка: PostgreSQL `ORDER BY index` автоматически сортирует как `[0] < [0, 0] < [0, 1] < [1] < [1, 0] < [2]`
