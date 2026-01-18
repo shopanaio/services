@@ -52,21 +52,11 @@ CREATE TABLE inventory.stock_changes (
     OR delta_unavailable <> 0
   ),
 
-  -- Баланс после изменения (заполняется после upsert warehouse_stock)
-  -- NULLable для intent-вставки, NOT NULL гарантируется CHECK + обязательным UPDATE
-  on_hand_after INTEGER,
-  reserved_after INTEGER,
-  unavailable_after INTEGER,
-  -- После заполнения: все >= 0, unavailable <= on_hand
-  CONSTRAINT stock_changes_after_filled CHECK (
-    (on_hand_after IS NULL AND reserved_after IS NULL AND unavailable_after IS NULL)
-    OR (
-      on_hand_after IS NOT NULL AND on_hand_after >= 0
-      AND reserved_after IS NOT NULL AND reserved_after >= 0
-      AND unavailable_after IS NOT NULL AND unavailable_after >= 0
-      AND unavailable_after <= on_hand_after
-    )
-  ),
+  -- Баланс после изменения (заполняется одновременно с INSERT)
+  on_hand_after INTEGER NOT NULL CHECK (on_hand_after >= 0),
+  reserved_after INTEGER NOT NULL CHECK (reserved_after >= 0),
+  unavailable_after INTEGER NOT NULL CHECK (unavailable_after >= 0),
+  CONSTRAINT stock_changes_unavailable_le_onhand CHECK (unavailable_after <= on_hand_after),
 
   -- Тип операции (что произошло)
   movement_type VARCHAR(20) NOT NULL,
@@ -112,10 +102,8 @@ CREATE TABLE inventory.stock_changes (
     FOREIGN KEY (warehouse_id) REFERENCES inventory.warehouses(id) ON DELETE CASCADE
 );
 
--- seq должен быть уникальным
+-- IDENTITY не создаёт UNIQUE constraint, добавляем явно
 ALTER TABLE inventory.stock_changes ADD CONSTRAINT stock_changes_seq_unique UNIQUE (seq);
-
--- Инвариант unavailable <= on_hand уже в stock_changes_after_filled CHECK
 
 -- Индексы для аналитики (используем seq для корректного порядка)
 CREATE INDEX idx_stock_changes_variant_seq ON inventory.stock_changes(variant_id, seq DESC);
@@ -144,35 +132,36 @@ CREATE INDEX idx_variant_product_active
 
 ### Атомарный UPSERT с идемпотентностью (критично!)
 
-**Проблема**: если сначала обновить `warehouse_stock`, а потом вставить в `stock_changes` с `ON CONFLICT DO NOTHING` — при повторном вызове `warehouse_stock` обновится дважды.
+**Проблема**: при параллельных запросах SELECT-проверка идемпотентности не блокирует — два потока могут оба увидеть "нет записи" и оба применить дельты.
 
-**Решение**: одна команда CTE — сначала пытаемся вставить в `stock_changes`, и только если вставка прошла — обновляем `warehouse_stock`:
+**Решение**: идемпотентность через `INSERT ... ON CONFLICT DO NOTHING RETURNING` — только успешная вставка в `stock_changes` разрешает изменение `warehouse_stock`:
 
 ```sql
 WITH ins AS (
-  -- Intent-вставка: дельты + мета, after-поля NULL (заполним после upsert)
+  -- 1. Идемпотентность через INSERT с UNIQUE constraint
+  -- Только один поток получит RETURNING id
   INSERT INTO inventory.stock_changes (
     project_id, warehouse_id, variant_id,
     delta_on_hand, delta_reserved, delta_unavailable,
-    -- on_hand_after, reserved_after, unavailable_after — NULL, заполним в update_after
     movement_type, reason, transfer_direction,
-    source_system, source_event_id, correlation_id, note, created_by
+    source_system, source_event_id, correlation_id, note, created_by,
+    on_hand_after, reserved_after, unavailable_after  -- placeholder, обновим в fix
   )
-  VALUES ($project_id, $warehouse_id, $variant_id,
-          $delta_on_hand, $delta_reserved, $delta_unavailable,
-          $movement_type, $reason, $transfer_direction,
-          $source_system, $source_event_id, $correlation_id, $note, $created_by)
+  SELECT
+    $project_id, $warehouse_id, $variant_id,
+    $delta_on_hand, $delta_reserved, $delta_unavailable,
+    $movement_type, $reason, $transfer_direction,
+    $source_system, $source_event_id, $correlation_id, $note, $created_by,
+    0, 0, 0  -- placeholder (удовлетворяет CHECK: 0>=0, 0>=0, 0>=0, 0<=0)
   ON CONFLICT (project_id, source_system, source_event_id, warehouse_id, variant_id)
   DO NOTHING
   RETURNING id
 ),
-upsert_stock AS (
-  -- Обновляем warehouse_stock ТОЛЬКО если ins вставился
-  -- INSERT берёт данные из SELECT (не VALUES!) чтобы загейтить через ins
-  -- Для новой строки: нули, дельты применяются только в DO UPDATE
+up AS (
+  -- 2. UPSERT warehouse_stock ТОЛЬКО если ins вернул строку
   INSERT INTO inventory.warehouse_stock (project_id, warehouse_id, variant_id, quantity_on_hand, reserved_qty, unavailable_qty)
-  SELECT $project_id, $warehouse_id, $variant_id, 0, 0, 0
-  FROM ins  -- INSERT выполнится только если ins вернул строку
+  SELECT $project_id, $warehouse_id, $variant_id, $delta_on_hand, $delta_reserved, $delta_unavailable
+  WHERE EXISTS (SELECT 1 FROM ins)  -- гейт: только если вставка лога прошла
   ON CONFLICT (project_id, warehouse_id, variant_id) DO UPDATE SET
     quantity_on_hand = inventory.warehouse_stock.quantity_on_hand + $delta_on_hand,
     reserved_qty     = inventory.warehouse_stock.reserved_qty     + $delta_reserved,
@@ -180,36 +169,42 @@ upsert_stock AS (
     updated_at = NOW()
   RETURNING quantity_on_hand, reserved_qty, unavailable_qty
 ),
-update_after AS (
-  -- Обновляем *_after в stock_changes актуальными значениями
+fix AS (
+  -- 3. Обновляем after-поля в stock_changes актуальными значениями
   UPDATE inventory.stock_changes sc
   SET
-    on_hand_after = us.quantity_on_hand,
-    reserved_after = us.reserved_qty,
-    unavailable_after = us.unavailable_qty
-  FROM ins, upsert_stock us
+    on_hand_after = up.quantity_on_hand,
+    reserved_after = up.reserved_qty,
+    unavailable_after = up.unavailable_qty
+  FROM ins, up
   WHERE sc.id = ins.id
   RETURNING sc.*
-),
-cleanup AS (
-  -- Удаляем intent-запись если upsert_stock не сработал (нарушение CHECK и т.п.)
-  -- Гарантирует отсутствие "вечных NULL after"
-  DELETE FROM inventory.stock_changes sc
-  USING ins
-  WHERE sc.id = ins.id
-    AND NOT EXISTS (SELECT 1 FROM update_after)
-  RETURNING 1
 )
-SELECT * FROM update_after;
--- Пустой результат = идемпотентный повтор ИЛИ ошибка (проверять cleanup)
+-- 4. Возвращаем статус + результат
+SELECT
+  CASE
+    WHEN EXISTS (SELECT 1 FROM fix) THEN 'APPLIED'
+    WHEN EXISTS (SELECT 1 FROM inventory.stock_changes
+                 WHERE project_id=$project_id AND source_system=$source_system
+                   AND source_event_id=$source_event_id AND warehouse_id=$warehouse_id
+                   AND variant_id=$variant_id) THEN 'DUPLICATE'
+    ELSE 'REJECTED'  -- CHECK constraint failed → transaction rolled back
+  END AS status,
+  fix.*
+FROM (SELECT 1) x
+LEFT JOIN fix ON true;
 ```
 
-**Важно**: строка `warehouse_stock` должна существовать до операций типа SELL/RESERVE/RELEASE.
-Для первого события (RECEIVE/SEED) вставляется с нулями, затем применяется дельта в DO UPDATE.
+**Статусы**:
+- `APPLIED` — операция выполнена, `fix.*` содержит запись
+- `DUPLICATE` — идемпотентный повтор (ins не вернул строку, но запись существует)
+- `REJECTED` — нарушение CHECK → транзакция откатится (весь CTE атомарен)
 
-**Важно**:
-- Пустой результат означает идемпотентный повтор — это **не ошибка**
-- Последний change для строки можно получить по `ORDER BY seq DESC LIMIT 1`
+**Почему это безопасно**:
+- `INSERT ... ON CONFLICT DO NOTHING` — единственный безгоночный способ идемпотентности
+- `WHERE EXISTS (SELECT 1 FROM ins)` — warehouse_stock меняется только если лог записан
+- Если CHECK на warehouse_stock упадёт — весь CTE откатится, включая ins
+- Placeholder `0,0,0` удовлетворяет CHECK и обновляется в `fix`
 
 `movement_type` и `reason` можно оформить как ENUM, чтобы избежать мусорных значений.
 Для идемпотентности `source_system` и `source_event_id` обязательны; при отсутствии
@@ -352,14 +347,12 @@ WHERE v.product_id = $1
 ### availableChange7d
 ```sql
 -- net change available за 7 дней
--- Исключаем intent-записи с NULL after (race condition защита)
 SELECT COALESCE(SUM(sc.delta_on_hand - sc.delta_reserved - sc.delta_unavailable), 0)
 FROM inventory.stock_changes sc
 JOIN inventory.variant v ON v.id = sc.variant_id
 WHERE v.product_id = $1
   AND v.deleted_at IS NULL
-  AND sc.created_at >= NOW() - INTERVAL '7 days'
-  AND sc.on_hand_after IS NOT NULL;  -- только завершённые записи
+  AND sc.created_at >= NOW() - INTERVAL '7 days';
 ```
 
 ### skuStatus (low stock, out of stock, backorder)
