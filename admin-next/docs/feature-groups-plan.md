@@ -127,29 +127,44 @@ CREATE UNIQUE INDEX product_feature_child_sort_idx
 
 ### sortIndex Collision Handling
 
-The sync script **auto-normalizes** sortIndex values to avoid unique constraint violations:
+The sync script **auto-normalizes** sortIndex values to avoid unique constraint violations.
+
+**Important:** Normalization happens **after** resolving `parentClientId → parentId` to ensure
+items with `parentClientId` and `parentId` pointing to the same group are in the same container.
 
 ```typescript
 // If sortIndex not provided → use array position
 // If provided but collisions exist → re-number 0..N-1 within each container
 
-function normalizeSortIndexes(features: InputItem[]): void {
-  // Group by container (null for root, parentId/parentClientId for children)
-  const byContainer = groupBy(features, f => f.parentId ?? f.parentClientId ?? "root");
+function normalizeSortIndexes(features: ResolvedItem[]): void {
+  // Group by container (null for root, parentId for children)
+  // Note: parentClientId already resolved to parentId at this point
+  const byContainer = groupBy(features, f => f.parentId ?? "root");
 
   for (const [container, items] of byContainer) {
-    // Sort by provided sortIndex (or Infinity if missing), then by array position
-    items.sort((a, b) => (a.sortIndex ?? Infinity) - (b.sortIndex ?? Infinity));
+    // Stable sort: by sortIndex, then by input array position (tie-breaker)
+    const withIndex = items.map((item, inputIndex) => ({ item, inputIndex }));
+    withIndex.sort((a, b) => {
+      const aSort = a.item.sortIndex ?? Infinity;
+      const bSort = b.item.sortIndex ?? Infinity;
+      if (aSort !== bSort) return aSort - bSort;
+      return a.inputIndex - b.inputIndex; // stable tie-breaker
+    });
     // Re-assign sequential sortIndex
-    items.forEach((item, idx) => { item.sortIndex = idx; });
+    withIndex.forEach(({ item }, idx) => { item.sortIndex = idx; });
   }
 }
 ```
 
 This approach:
 - Preserves relative order when sortIndex is provided
+- Uses input array position as stable tie-breaker for equal/missing sortIndex
 - Fills gaps and resolves collisions automatically
 - Ensures partial unique constraints always succeed
+
+> **API Contract:** The backend **may change** sortIndex values during normalization.
+> The response always contains final sortIndex values. Frontend should use these
+> for subsequent updates rather than assuming the sent values were preserved.
 
 ---
 
@@ -293,33 +308,53 @@ Transaction:
 3. Determine operations:
    - TO_DELETE = existingById.keys() - inputById.keys()
    - TO_UPDATE = existingById.keys() ∩ inputById.keys()
-   - TO_CREATE = newItems
+   - TO_CREATE_GROUPS = newItems.filter(isGroup = true)
+   - TO_CREATE_ATTRS = newItems.filter(isGroup = false)
 
-4. Validate:
+4. Validate (before any writes):
    - Slugs unique within product
    - Groups cannot have values
    - Attributes cannot have children
-   - parentId/parentClientId references valid groups
+   - parentId/parentClientId references valid groups (including new groups by clientId)
    - isGroup cannot change for existing features
-   - No cycles in parent references
+   - parentId and parentClientId are mutually exclusive
 
-5. Normalize sortIndex (auto-normalize to avoid unique constraint violations)
+5. CREATE new GROUPS (isGroup = true):
+   - Groups are always root-level, no parent resolution needed
+   - Build clientIdMap: clientId → generated real ID
 
-6. Execute in order (IMPORTANT: UPDATE/CREATE before DELETE to prevent CASCADE issues):
-   a. UPDATE features in TO_UPDATE (including parentId changes for moves)
-   b. CREATE new GROUPS first (isGroup = true):
-      - Groups are always root-level, no parent resolution needed
-      - Build clientIdMap: clientId → generated real ID
-   c. CREATE new ATTRIBUTES (isGroup = false):
-      - Now we can resolve parentClientId → real parentId using clientIdMap
-      - Attributes are created with final parentId (never temporarily root)
-      - This avoids conflicts with product_feature_root_sort_idx
-   d. Sync values for each attribute (same create/update/delete logic)
-   e. DELETE features in TO_DELETE (CASCADE deletes children & values)
-      - Safe now because all moves have been processed
+6. Resolve parentClientId → parentId for all items using clientIdMap
 
-7. Return all features with final IDs
+7. Normalize sortIndex (AFTER resolution, so containers are correct)
+
+8. Execute writes (IMPORTANT: UPDATE/CREATE before DELETE):
+   a. Two-phase UPDATE for sortIndex changes (see below)
+   b. CREATE new ATTRIBUTES with final parentId
+   c. Sync values for each attribute
+   d. DELETE features in TO_DELETE (CASCADE deletes children & values)
+
+9. Return all features with final IDs
 ```
+
+### Two-Phase sortIndex Updates
+
+To avoid unique constraint violations when reordering items within a container:
+
+```typescript
+// Phase 1: Set temporary sortIndex (offset by large number)
+await db.update(productFeature)
+  .set({ sortIndex: sql`sort_index + 1000000` })
+  .where(inArray(productFeature.id, itemsToReorder.map(i => i.id)));
+
+// Phase 2: Set final sortIndex values
+for (const item of itemsToReorder) {
+  await db.update(productFeature)
+    .set({ sortIndex: item.sortIndex })
+    .where(eq(productFeature.id, item.id));
+}
+```
+
+This prevents transient unique constraint violations when swapping positions.
 
 > **Why UPDATE/CREATE before DELETE?**
 > If an attribute is moved from Group A to Group B, and Group A is being deleted,
@@ -327,10 +362,8 @@ Transaction:
 > By processing moves first, we ensure the attribute is safely re-parented before the old group is removed.
 
 > **Why CREATE groups before attributes?**
-> If we created all new items with `parentId = null` first (to later update with resolved parentId),
-> new attributes would temporarily be root-level and could conflict with the `product_feature_root_sort_idx`
-> unique constraint. By creating groups first, we have their real IDs available to assign correct
-> `parentId` values when creating attributes.
+> We need group IDs in clientIdMap before we can resolve `parentClientId` for attributes.
+> This ensures all parentId references are resolved before normalization and attribute creation.
 
 ### Alternative: Separate Mutations (for granular operations)
 
