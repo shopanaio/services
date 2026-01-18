@@ -209,76 +209,87 @@ input ProductFeatureValueSyncInput {
 **Файл:** `services/inventory/src/scripts/feature/FeaturesSyncScript.ts`
 
 ```typescript
-import { BaseScript, Transactional, type UserError } from "../../kernel/BaseScript.js";
-import type {
-  FeatureSyncParams,
-  FeatureSyncResult,
-  FeatureSyncItemInput,
-  FeatureValueSyncInput,
-} from "./dto/index.js";
+import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
+import type { FeatureSyncParams, FeatureSyncResult } from "./dto/index.js";
+import type { ValidatedFeatureInput, ValidatedValueInput } from "./validation/schema.js";
+import { FeatureSyncInputSchema } from "./validation/schema.js";
+import { validateSemantic, parseTreeIndex } from "./validation/semantic.js";
+import { loadDbContext, validateDatabase } from "./validation/database.js";
 
 interface ResolvedFeature {
-  readonly index: string;           // tree index: "0", "1", "0-0", "0-1"
-  readonly input: FeatureSyncItemInput;
+  readonly index: string;
+  readonly input: ValidatedFeatureInput;
   readonly id: string;
   readonly parentId: string | null;
-  readonly sortIndex: number;       // numeric sort within container
-}
-
-/**
- * Парсит tree index и возвращает parent index и позицию.
- * "0" → { parent: null, position: 0 }
- * "0-0" → { parent: "0", position: 0 }
- * "1-2" → { parent: "1", position: 2 }
- */
-function parseTreeIndex(index: string): { parent: string | null; position: number } {
-  const dashPos = index.lastIndexOf("-");
-  if (dashPos === -1) {
-    return { parent: null, position: parseInt(index, 10) };
-  }
-  return {
-    parent: index.slice(0, dashPos),
-    position: parseInt(index.slice(dashPos + 1), 10),
-  };
+  readonly sortIndex: number;
 }
 
 export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyncResult> {
 
   @Transactional()
   protected async execute(params: FeatureSyncParams): Promise<FeatureSyncResult> {
-    const { productId, features } = params;
+    // ═══════════════════════════════════════════════════════════════════
+    // Layer 1: Structural validation (Zod)
+    // ═══════════════════════════════════════════════════════════════════
+    const parseResult = FeatureSyncInputSchema.safeParse(params);
+    if (!parseResult.success) {
+      return {
+        product: undefined,
+        features: [],
+        userErrors: parseResult.error.issues.map((issue) => ({
+          message: issue.message,
+          field: issue.path.map(String),
+          code: "VALIDATION_ERROR",
+        })),
+      };
+    }
+    const { productId, features } = parseResult.data;
 
-    // 1. Проверить что product существует
+    // ═══════════════════════════════════════════════════════════════════
+    // Product existence check
+    // ═══════════════════════════════════════════════════════════════════
     if (!(await this.repository.product.exists(productId))) {
       return this.error("Product not found", ["productId"], "NOT_FOUND");
     }
 
-    // 2. Валидация input
-    const errors = await this.validateInput(productId, features);
-    if (errors.length > 0) {
-      return { product: undefined, features: [], userErrors: errors };
+    // ═══════════════════════════════════════════════════════════════════
+    // Layer 2: Semantic validation (sync, no DB)
+    // ═══════════════════════════════════════════════════════════════════
+    const semanticErrors = validateSemantic(features);
+    if (semanticErrors.length > 0) {
+      return { product: undefined, features: [], userErrors: semanticErrors };
     }
 
-    // 3. Удалить лишние features (которых нет в input)
-    const keepIds = features.filter((f) => f.id).map((f) => f.id!);
+    // ═══════════════════════════════════════════════════════════════════
+    // Layer 3: Database validation (async, batch queries)
+    // ═══════════════════════════════════════════════════════════════════
+    const dbCtx = await loadDbContext(this.repository.feature, productId, features);
+    const dbErrors = validateDatabase(features, dbCtx);
+    if (dbErrors.length > 0) {
+      return { product: undefined, features: [], userErrors: dbErrors };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // Sync: Delete → Create → Update
+    // ═══════════════════════════════════════════════════════════════════
+    const keepIds = features.flatMap((f) => (f.id ? [f.id] : []));
     await this.repository.feature.deleteExcept(productId, keepIds);
 
-    // 4. Резолвить ID, parentId и sortIndex из tree index
     const resolved = await this.resolveFeatures(productId, features);
 
-    // 5. Upsert все features
     for (const item of resolved) {
-      await this.upsertFeature(productId, item);
+      await this.upsertFeature(item);
     }
 
-    // 6. Sync values для атрибутов
     for (const item of resolved) {
       if (!item.input.isGroup) {
         await this.syncValues(item.id, item.input.values ?? []);
       }
     }
 
-    // 7. Вернуть результат
+    // ═══════════════════════════════════════════════════════════════════
+    // Return result
+    // ═══════════════════════════════════════════════════════════════════
     const [product, syncedFeatures] = await Promise.all([
       this.repository.product.findById(productId),
       this.repository.feature.findByProductId(productId),
@@ -288,181 +299,22 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
   }
 
   /**
-   * Валидация input с использованием tree index.
-   * Двухпроходная: сначала локальные правила, потом ссылки и принадлежность ID.
-   */
-  private async validateInput(
-    productId: string,
-    features: FeatureSyncItemInput[]
-  ): Promise<UserError[]> {
-    const errors: UserError[] = [];
-    const indexRegex = /^(0|[1-9]\d*)(-(0|[1-9]\d*))?$/;
-    const path = (index: string, field: string) => ["features", index, field];
-    const addError = (index: string, field: string, message: string, code: string) => {
-      errors.push({ message, field: path(index, field), code });
-    };
-
-    const indexToItem = new Map<string, FeatureSyncItemInput>();
-    const positionsByParent = new Map<string, Set<number>>();
-    const idSet = new Set<string>();
-    const valueIdSet = new Set<string>();
-
-    const inputFeatureIds = features.flatMap((f) => (f.id ? [f.id] : []));
-    const existingById = await this.loadExistingFeatures(productId, inputFeatureIds);
-
-    for (const [i, f] of features.entries()) {
-      const idx = f.index ?? String(i);
-      if (!f.index || !indexRegex.test(f.index)) {
-        addError(idx, "index", `Invalid index format "${f.index}"`, "INVALID");
-        continue;
-      }
-
-      if (indexToItem.has(f.index)) {
-        addError(f.index, "index", `Duplicate index "${f.index}"`, "DUPLICATE");
-      } else {
-        indexToItem.set(f.index, f);
-      }
-
-      if (f.id) {
-        if (idSet.has(f.id)) {
-          addError(f.index, "id", `Duplicate id "${f.id}"`, "DUPLICATE");
-        } else {
-          idSet.add(f.id);
-        }
-
-        const existing = existingById.get(f.id);
-        if (!existing) {
-          addError(f.index, "id", `Feature id "${f.id}" does not belong to product`, "NOT_FOUND");
-        } else if (existing.isGroup !== f.isGroup) {
-          addError(f.index, "isGroup", "Changing feature type is not allowed", "INVALID");
-        }
-      }
-
-      const parsed = parseTreeIndex(f.index);
-      const parentKey = parsed.parent ?? "__root__";
-      const positions = positionsByParent.get(parentKey) ?? new Set<number>();
-      if (positions.has(parsed.position)) {
-        addError(f.index, "index", `Duplicate sortIndex ${parsed.position} under same parent`, "DUPLICATE");
-      } else {
-        positions.add(parsed.position);
-        positionsByParent.set(parentKey, positions);
-      }
-
-      if (f.isGroup && parsed.parent !== null) {
-        addError(f.index, "index", "Groups must be root items (index without dash)", "INVALID");
-      }
-      if (f.isGroup && f.values?.length) {
-        addError(f.index, "values", "Groups cannot have values", "INVALID");
-      }
-      if (!f.name?.trim()) {
-        addError(f.index, "name", "Name is required", "REQUIRED");
-      }
-
-      this.validateValuesLocal(f, valueIdSet, addError);
-    }
-
-    this.validateParentLinks(indexToItem, addError);
-    await this.validateValueOwnership(features, addError);
-
-    return errors;
-  }
-
-  private async loadExistingFeatures(productId: string, ids: string[]) {
-    const existing = await this.repository.feature.findByIds(productId, ids);
-    return new Map(existing.map((f) => [f.id, f]));
-  }
-
-  private validateParentLinks(
-    indexToItem: Map<string, FeatureSyncItemInput>,
-    addError: (index: string, field: string, message: string, code: string) => void
-  ): void {
-    for (const [idx, f] of indexToItem) {
-      const parsed = parseTreeIndex(idx);
-      if (parsed.parent === null) continue;
-      const parentItem = indexToItem.get(parsed.parent);
-      if (!parentItem) {
-        addError(idx, "index", `Parent index "${parsed.parent}" not found`, "NOT_FOUND");
-      } else if (!parentItem.isGroup) {
-        addError(idx, "index", `Parent "${parsed.parent}" must be a group`, "INVALID");
-      }
-    }
-  }
-
-  private validateValuesLocal(
-    feature: FeatureSyncItemInput,
-    globalValueIds: Set<string>,
-    addError: (index: string, field: string, message: string, code: string) => void
-  ): void {
-    if (!feature.values) return;
-    const localIds = new Set<string>();
-    const localIndexes = new Set<number>();
-
-    for (const v of feature.values) {
-      if (v.id) {
-        if (globalValueIds.has(v.id)) {
-          addError(feature.index, `values[${v.index}].id`, `Duplicate value id "${v.id}"`, "DUPLICATE");
-        } else {
-          globalValueIds.add(v.id);
-        }
-
-        if (localIds.has(v.id)) {
-          addError(feature.index, `values[${v.index}].id`, `Duplicate value id "${v.id}"`, "DUPLICATE");
-        } else {
-          localIds.add(v.id);
-        }
-      }
-
-      if (localIndexes.has(v.index)) {
-        addError(feature.index, `values[${v.index}].index`, `Duplicate value index ${v.index}`, "DUPLICATE");
-      } else {
-        localIndexes.add(v.index);
-      }
-
-      if (!v.name?.trim()) {
-        addError(feature.index, `values[${v.index}].name`, "Value name is required", "REQUIRED");
-      }
-    }
-  }
-
-  private async validateValueOwnership(
-    features: FeatureSyncItemInput[],
-    addError: (index: string, field: string, message: string, code: string) => void
-  ): Promise<void> {
-    const featureIds = features.filter((f) => f.id && f.values?.length).map((f) => f.id!);
-    if (featureIds.length === 0) return;
-
-    const valueIdsByFeature = await this.repository.feature.findValueIdsByFeatureIds(featureIds);
-    for (const f of features) {
-      if (!f.id || !f.values?.length) continue;
-      const allowed = new Set(valueIdsByFeature.get(f.id) ?? []);
-      for (const v of f.values) {
-        if (v.id && !allowed.has(v.id)) {
-          addError(f.index, `values[${v.index}].id`, `Value id "${v.id}" does not belong to feature`, "NOT_FOUND");
-        }
-      }
-    }
-  }
-
-  /**
    * Резолвит features: создаёт новые записи, разрешает parentId из tree index.
    */
   private async resolveFeatures(
     productId: string,
-    features: FeatureSyncItemInput[]
+    features: ValidatedFeatureInput[]
   ): Promise<ResolvedFeature[]> {
-    // index → database id (для новых записей)
     const indexToDbId = new Map<string, string>();
 
-    // Сначала обрабатываем существующие записи (у которых есть id)
+    // Сначала маппим существующие
     for (const f of features) {
       if (f.id) {
         indexToDbId.set(f.index, f.id);
       }
     }
 
-    // ═══════════════════════════════════════════════════════════════════
-    // Шаг 1: Создаём новые группы (root items, они не зависят от других)
-    // ═══════════════════════════════════════════════════════════════════
+    // Создаём новые группы (root, без зависимостей)
     for (const f of features) {
       if (f.isGroup && !f.id) {
         const created = await this.repository.feature.create(productId, {
@@ -475,25 +327,21 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
       }
     }
 
-    // ═══════════════════════════════════════════════════════════════════
-    // Шаг 2: Создаём новые атрибуты
-    // ═══════════════════════════════════════════════════════════════════
+    // Создаём новые атрибуты
     for (const f of features) {
       if (!f.isGroup && !f.id) {
         const created = await this.repository.feature.create(productId, {
           isGroup: false,
           index: f.index,
-          parentId: null, // временно, обновим в upsert
+          parentId: null,
           sortIndex: 0,
         });
         indexToDbId.set(f.index, created.id);
       }
     }
 
-    // ═══════════════════════════════════════════════════════════════════
-    // Шаг 3: Собираем resolved items с parentId из tree index
-    // ═══════════════════════════════════════════════════════════════════
-    const resolved: ResolvedFeature[] = features.map((f) => {
+    // Собираем resolved с parentId из tree index
+    return features.map((f) => {
       const parsed = parseTreeIndex(f.index);
       const parentId = parsed.parent ? (indexToDbId.get(parsed.parent) ?? null) : null;
 
@@ -505,20 +353,15 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
         sortIndex: parsed.position,
       };
     });
-
-    return resolved;
   }
 
-  private async upsertFeature(productId: string, item: ResolvedFeature): Promise<void> {
-    const data = {
+  private async upsertFeature(item: ResolvedFeature): Promise<void> {
+    await this.repository.feature.update(item.id, {
       isGroup: item.input.isGroup,
       parentId: item.parentId,
       sortIndex: item.sortIndex,
       index: item.index,
-    };
-
-    // Всегда update, потому что новые уже созданы в resolveFeatures
-    await this.repository.feature.update(item.id, data);
+    });
 
     await this.repository.translation.upsertFeatureTranslation({
       projectId: this.getProjectId(),
@@ -528,24 +371,20 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
     });
   }
 
-  private async syncValues(featureId: string, values: FeatureValueSyncInput[]): Promise<void> {
-    const keepIds = values.filter((v) => v.id).map((v) => v.id!);
+  private async syncValues(featureId: string, values: ValidatedValueInput[]): Promise<void> {
+    const keepIds = values.flatMap((v) => (v.id ? [v.id] : []));
     await this.repository.feature.deleteValuesExcept(featureId, keepIds);
 
-    // Сортируем по index
     const sorted = [...values].sort((a, b) => a.index - b.index);
 
     for (const value of sorted) {
       let valueId: string;
 
       if (value.id) {
-        // Обновляем только если value принадлежит текущему featureId.
         await this.repository.feature.updateValue(featureId, value.id, { sortIndex: value.index });
         valueId = value.id;
       } else {
-        const created = await this.repository.feature.createValue(featureId, {
-          sortIndex: value.index
-        });
+        const created = await this.repository.feature.createValue(featureId, { sortIndex: value.index });
         valueId = created.id;
       }
 
@@ -567,6 +406,12 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
   }
 }
 ```
+
+**Что изменилось:**
+- Валидация вынесена в отдельные модули (`validation/schema.ts`, `validation/semantic.ts`, `validation/database.ts`)
+- Script содержит только sync-логику (~120 строк вместо ~300)
+- Чёткое разделение: Zod → Semantic → Database → Sync
+- Все ошибки имеют корректные array-based paths (`["features", "0", "name"]`)
 
 ---
 
@@ -703,7 +548,8 @@ ALTER TABLE inventory.product_feature_value_translation
 
 | Метрика | До | После |
 |---------|-----|-------|
-| Строк кода | ~500 | ~180 |
+| Строк кода (script) | ~500 | ~120 |
+| Строк кода (валидация) | inline ~200 | 3 модуля ~200 |
 | Unique constraints | 3 | 1 (DEFERRABLE) |
 | Two-phase updates | Да | Нет |
 | Temp slugs | Да | Нет |
@@ -712,6 +558,11 @@ ALTER TABLE inventory.product_feature_value_translation
 | Tree index | Нет | Да |
 | Forward references | Не поддерживает | Автоматически (tree index) |
 | Мутация input | Да | Нет (immutable) |
+| Валидация | Inline в script | 3-layer модульная |
+| Zod schema | Нет | Да |
+| DB queries в валидации | N+1 | 2 batch queries |
+| Error paths | Иногда tree index | Всегда array index |
+| Тестируемость валидации | Сложно (async) | Легко (2 sync + 1 async) |
 
 ---
 
@@ -733,23 +584,41 @@ ProductFeatureValue:
 
 ## План выполнения
 
+### Phase 1: Database & Models
 1. [ ] Проверить использование `slug` в фронтенде/API (breaking change?)
 2. [ ] Создать миграцию `0005_remove_feature_slug.sql`
 3. [ ] Проверить/добавить `ON DELETE CASCADE` для translations
-4. [ ] Обновить модель `features.ts` (удалить slug везде)
+4. [ ] Обновить модель `features.ts` (удалить slug, добавить index)
+
+### Phase 2: GraphQL Schema
 5. [ ] Обновить GraphQL schema:
    - Удалить slug везде
    - Добавить `index: String!` для tree index
    - Для values заменить `sortIndex` на `index: Int!`
 6. [ ] Обновить FeatureResolver (удалить slug метод)
 7. [ ] Обновить FeatureValueResolver (удалить slug метод)
-8. [ ] Добавить методы `findByIds`, `findValueIdsByFeatureIds`, `deleteExcept`, `deleteValuesExcept`, `updateValue(featureId, valueId, data)` в repository
-9. [ ] Переписать `FeaturesSyncScript.ts` (tree index, двухпроходная валидация, проверка принадлежности id, запрет смены типа)
-10. [ ] Обновить DTO (добавить tree index)
-11. [ ] Удалить `offsetSortIndexes` из repository
-12. [ ] Обновить фронтенд — генерировать tree index
-13. [ ] Запустить тесты
-14. [ ] Применить миграцию
+
+### Phase 3: Validation (новые файлы)
+8. [ ] Создать `validation/schema.ts` — Zod schemas для структурной валидации
+9. [ ] Создать `validation/semantic.ts` — бизнес-правила без БД
+10. [ ] Создать `validation/database.ts` — проверки принадлежности ID
+11. [ ] Создать `validation/index.ts` — re-export
+
+### Phase 4: Repository & Script
+12. [ ] Добавить методы в repository:
+    - `findByIds(productId, ids)`
+    - `findValueIdsByFeatureIds(featureIds)`
+    - `deleteExcept(productId, keepIds)`
+    - `deleteValuesExcept(featureId, keepIds)`
+    - `updateValue(featureId, valueId, data)`
+13. [ ] Переписать `FeaturesSyncScript.ts` с новой валидацией
+14. [ ] Обновить DTO (добавить tree index types)
+15. [ ] Удалить `offsetSortIndexes` из repository
+
+### Phase 5: Frontend & Testing
+16. [ ] Обновить фронтенд — генерировать tree index
+17. [ ] Запустить тесты
+18. [ ] Применить миграцию
 
 ---
 
@@ -766,23 +635,479 @@ Parent вычисляется автоматически:
   "0"   → parent = null (root)
 ```
 
-### Двухпроходная валидация
-```
-Проход 1: Собираем все index → Map<string, item>
-          Проверяем дубликаты, формат index, базовые правила
+### Архитектура валидации
 
-Проход 2: Валидируем parent ссылки
-          Проверяем что parent существует и является группой
+Валидация разделена на **три слоя**, каждый выполняется последовательно с early exit:
+
 ```
+┌─────────────────────────────────────────────────────────────┐
+│  Layer 1: Structural (Zod)                                  │
+│  - Типы полей, обязательные поля, форматы                   │
+│  - Синхронная, быстрая                                      │
+│  - При ошибке → сразу return                                │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│  Layer 2: Semantic (sync)                                   │
+│  - Бизнес-правила на уровне input                           │
+│  - Дубликаты index/id, parent ссылки, group constraints     │
+│  - Синхронная, не требует БД                                │
+│  - Собирает ВСЕ ошибки (не early exit)                      │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│  Layer 3: Database (async)                                  │
+│  - Принадлежность ID продукту                               │
+│  - Принадлежность value ID фиче                             │
+│  - Один batch-запрос, потом валидация                       │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Layer 1: Zod Schema
+
+**Файл:** `services/inventory/src/scripts/feature/validation/schema.ts`
+
+```typescript
+import { z } from "zod";
+
+/**
+ * Tree index: "0", "1", "0-0", "1-2"
+ * - Только один уровень вложенности (максимум один dash)
+ * - Без ведущих нулей (кроме самого "0")
+ * - Не пустой
+ */
+const TREE_INDEX_REGEX = /^(0|[1-9]\d*)(?:-(0|[1-9]\d*))?$/;
+
+const TreeIndexSchema = z.string().regex(TREE_INDEX_REGEX, {
+  message: 'Invalid tree index format. Expected "0", "1", "0-0", "1-2", etc.',
+});
+
+const FeatureValueInputSchema = z.object({
+  id: z.string().uuid().optional(),
+  index: z.number().int().min(0),
+  name: z.string().min(1, "Value name is required").max(255),
+});
+
+const FeatureSyncItemSchema = z.object({
+  id: z.string().uuid().optional(),
+  index: TreeIndexSchema,
+  isGroup: z.boolean(),
+  name: z.string().min(1, "Feature name is required").max(255),
+  values: z.array(FeatureValueInputSchema).optional(),
+});
+
+export const FeatureSyncInputSchema = z.object({
+  productId: z.string().uuid(),
+  features: z.array(FeatureSyncItemSchema),
+});
+
+export type ValidatedFeatureInput = z.infer<typeof FeatureSyncItemSchema>;
+export type ValidatedValueInput = z.infer<typeof FeatureValueInputSchema>;
+```
+
+---
+
+### Layer 2: Semantic Validation
+
+**Файл:** `services/inventory/src/scripts/feature/validation/semantic.ts`
+
+```typescript
+import type { UserError } from "../../../kernel/BaseScript.js";
+import type { ValidatedFeatureInput, ValidatedValueInput } from "./schema.js";
+
+/** Парсит tree index: "0-1" → { parent: "0", position: 1 } */
+export function parseTreeIndex(index: string): { parent: string | null; position: number } {
+  const dashPos = index.indexOf("-");
+  if (dashPos === -1) {
+    return { parent: null, position: parseInt(index, 10) };
+  }
+  return {
+    parent: index.slice(0, dashPos),
+    position: parseInt(index.slice(dashPos + 1), 10),
+  };
+}
+
+interface SemanticContext {
+  readonly indexToArrayIdx: Map<string, number>;
+  readonly indexToItem: Map<string, ValidatedFeatureInput>;
+  readonly seenFeatureIds: Set<string>;
+  readonly seenValueIds: Set<string>;
+  readonly positionsByParent: Map<string, Set<number>>;
+}
+
+/**
+ * Валидирует бизнес-правила на уровне input (без БД).
+ * Возвращает все найденные ошибки.
+ */
+export function validateSemantic(features: ValidatedFeatureInput[]): UserError[] {
+  const errors: UserError[] = [];
+  const ctx: SemanticContext = {
+    indexToArrayIdx: new Map(),
+    indexToItem: new Map(),
+    seenFeatureIds: new Set(),
+    seenValueIds: new Set(),
+    positionsByParent: new Map(),
+  };
+
+  // Первый проход: собираем карты и проверяем уникальность
+  for (let i = 0; i < features.length; i++) {
+    const f = features[i];
+    const path = (field: string) => ["features", String(i), field];
+
+    // Уникальность index
+    if (ctx.indexToItem.has(f.index)) {
+      errors.push({
+        message: `Duplicate tree index "${f.index}"`,
+        field: path("index"),
+        code: "DUPLICATE_INDEX",
+      });
+    } else {
+      ctx.indexToArrayIdx.set(f.index, i);
+      ctx.indexToItem.set(f.index, f);
+    }
+
+    // Уникальность id
+    if (f.id) {
+      if (ctx.seenFeatureIds.has(f.id)) {
+        errors.push({
+          message: `Duplicate feature id "${f.id}"`,
+          field: path("id"),
+          code: "DUPLICATE_ID",
+        });
+      } else {
+        ctx.seenFeatureIds.add(f.id);
+      }
+    }
+
+    // Уникальность sortIndex внутри parent
+    const parsed = parseTreeIndex(f.index);
+    const parentKey = parsed.parent ?? "__root__";
+    const positions = ctx.positionsByParent.get(parentKey) ?? new Set();
+    if (positions.has(parsed.position)) {
+      errors.push({
+        message: `Duplicate position ${parsed.position} under parent "${parentKey}"`,
+        field: path("index"),
+        code: "DUPLICATE_POSITION",
+      });
+    } else {
+      positions.add(parsed.position);
+      ctx.positionsByParent.set(parentKey, positions);
+    }
+
+    // Группы только на root уровне
+    if (f.isGroup && parsed.parent !== null) {
+      errors.push({
+        message: "Groups must be root items (index without dash)",
+        field: path("index"),
+        code: "GROUP_NOT_ROOT",
+      });
+    }
+
+    // Группы не могут иметь values
+    if (f.isGroup && f.values && f.values.length > 0) {
+      errors.push({
+        message: "Groups cannot have values",
+        field: path("values"),
+        code: "GROUP_HAS_VALUES",
+      });
+    }
+
+    // Валидация values
+    if (f.values) {
+      validateValues(f.values, i, ctx.seenValueIds, errors);
+    }
+  }
+
+  // Второй проход: проверяем parent ссылки
+  for (const [index, item] of ctx.indexToItem) {
+    const parsed = parseTreeIndex(index);
+    if (parsed.parent === null) continue;
+
+    const arrayIdx = ctx.indexToArrayIdx.get(index)!;
+    const path = (field: string) => ["features", String(arrayIdx), field];
+
+    const parentItem = ctx.indexToItem.get(parsed.parent);
+    if (!parentItem) {
+      errors.push({
+        message: `Parent "${parsed.parent}" not found in features list`,
+        field: path("index"),
+        code: "PARENT_NOT_FOUND",
+      });
+      continue;
+    }
+
+    if (!parentItem.isGroup) {
+      errors.push({
+        message: `Parent "${parsed.parent}" must be a group`,
+        field: path("index"),
+        code: "PARENT_NOT_GROUP",
+      });
+    }
+  }
+
+  return errors;
+}
+
+function validateValues(
+  values: ValidatedValueInput[],
+  featureArrayIdx: number,
+  globalValueIds: Set<string>,
+  errors: UserError[]
+): void {
+  const localIndexes = new Set<number>();
+
+  for (let i = 0; i < values.length; i++) {
+    const v = values[i];
+    const path = (field: string) => ["features", String(featureArrayIdx), "values", String(i), field];
+
+    // Уникальность value id глобально
+    if (v.id) {
+      if (globalValueIds.has(v.id)) {
+        errors.push({
+          message: `Duplicate value id "${v.id}"`,
+          field: path("id"),
+          code: "DUPLICATE_ID",
+        });
+      } else {
+        globalValueIds.add(v.id);
+      }
+    }
+
+    // Уникальность index внутри feature
+    if (localIndexes.has(v.index)) {
+      errors.push({
+        message: `Duplicate value index ${v.index}`,
+        field: path("index"),
+        code: "DUPLICATE_INDEX",
+      });
+    } else {
+      localIndexes.add(v.index);
+    }
+  }
+}
+```
+
+---
+
+### Layer 3: Database Validation
+
+**Файл:** `services/inventory/src/scripts/feature/validation/database.ts`
+
+```typescript
+import type { UserError } from "../../../kernel/BaseScript.js";
+import type { ValidatedFeatureInput } from "./schema.js";
+
+interface ExistingFeature {
+  id: string;
+  isGroup: boolean;
+}
+
+interface DbValidationContext {
+  existingById: Map<string, ExistingFeature>;
+  valueIdsByFeatureId: Map<string, Set<string>>;
+}
+
+/**
+ * Загружает данные из БД для валидации.
+ * Один batch-запрос на features, один на values.
+ */
+export async function loadDbContext(
+  repository: FeatureRepository,
+  productId: string,
+  features: ValidatedFeatureInput[]
+): Promise<DbValidationContext> {
+  const featureIds = features.flatMap((f) => (f.id ? [f.id] : []));
+  const existing = await repository.findByIds(productId, featureIds);
+
+  const featureIdsWithValues = features
+    .filter((f) => f.id && f.values?.some((v) => v.id))
+    .map((f) => f.id!);
+  const valueIdMap = await repository.findValueIdsByFeatureIds(featureIdsWithValues);
+
+  return {
+    existingById: new Map(existing.map((f) => [f.id, f])),
+    valueIdsByFeatureId: new Map(
+      Array.from(valueIdMap.entries()).map(([k, v]) => [k, new Set(v)])
+    ),
+  };
+}
+
+/**
+ * Валидирует принадлежность ID и immutable constraints.
+ */
+export function validateDatabase(
+  features: ValidatedFeatureInput[],
+  ctx: DbValidationContext
+): UserError[] {
+  const errors: UserError[] = [];
+
+  for (let i = 0; i < features.length; i++) {
+    const f = features[i];
+    const path = (field: string) => ["features", String(i), field];
+
+    if (f.id) {
+      const existing = ctx.existingById.get(f.id);
+
+      // ID должен принадлежать продукту
+      if (!existing) {
+        errors.push({
+          message: `Feature "${f.id}" not found in this product`,
+          field: path("id"),
+          code: "NOT_FOUND",
+        });
+        continue;
+      }
+
+      // Нельзя менять тип (group ↔ attribute)
+      if (existing.isGroup !== f.isGroup) {
+        errors.push({
+          message: "Cannot change feature type (group ↔ attribute)",
+          field: path("isGroup"),
+          code: "TYPE_CHANGE_FORBIDDEN",
+        });
+      }
+    }
+
+    // Валидация value ownership
+    if (f.id && f.values) {
+      const allowedValueIds = ctx.valueIdsByFeatureId.get(f.id) ?? new Set();
+
+      for (let j = 0; j < f.values.length; j++) {
+        const v = f.values[j];
+        if (v.id && !allowedValueIds.has(v.id)) {
+          errors.push({
+            message: `Value "${v.id}" does not belong to this feature`,
+            field: ["features", String(i), "values", String(j), "id"],
+            code: "VALUE_NOT_FOUND",
+          });
+        }
+      }
+    }
+
+    // Новая feature не может ссылаться на существующие values
+    if (!f.id && f.values?.some((v) => v.id)) {
+      errors.push({
+        message: "New feature cannot reference existing value IDs",
+        field: path("values"),
+        code: "INVALID_VALUE_REFERENCE",
+      });
+    }
+  }
+
+  return errors;
+}
+```
+
+---
+
+### Интеграция в Script
+
+**Файл:** `services/inventory/src/scripts/feature/FeaturesSyncScript.ts`
+
+```typescript
+import { FeatureSyncInputSchema } from "./validation/schema.js";
+import { validateSemantic, parseTreeIndex } from "./validation/semantic.js";
+import { loadDbContext, validateDatabase } from "./validation/database.js";
+
+export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyncResult> {
+
+  @Transactional()
+  protected async execute(params: FeatureSyncParams): Promise<FeatureSyncResult> {
+    // ═══════════════════════════════════════════════════════════════════
+    // Layer 1: Structural validation (Zod)
+    // ═══════════════════════════════════════════════════════════════════
+    const parseResult = FeatureSyncInputSchema.safeParse(params);
+    if (!parseResult.success) {
+      return {
+        product: undefined,
+        features: [],
+        userErrors: parseResult.error.issues.map((issue) => ({
+          message: issue.message,
+          field: issue.path.map(String),
+          code: "VALIDATION_ERROR",
+        })),
+      };
+    }
+    const { productId, features } = parseResult.data;
+
+    // ═══════════════════════════════════════════════════════════════════
+    // Product existence check
+    // ═══════════════════════════════════════════════════════════════════
+    if (!(await this.repository.product.exists(productId))) {
+      return this.error("Product not found", ["productId"], "NOT_FOUND");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // Layer 2: Semantic validation (sync, no DB)
+    // ═══════════════════════════════════════════════════════════════════
+    const semanticErrors = validateSemantic(features);
+    if (semanticErrors.length > 0) {
+      return { product: undefined, features: [], userErrors: semanticErrors };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // Layer 3: Database validation (async, batch queries)
+    // ═══════════════════════════════════════════════════════════════════
+    const dbCtx = await loadDbContext(this.repository.feature, productId, features);
+    const dbErrors = validateDatabase(features, dbCtx);
+    if (dbErrors.length > 0) {
+      return { product: undefined, features: [], userErrors: dbErrors };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // Sync logic (после успешной валидации)
+    // ═══════════════════════════════════════════════════════════════════
+    // ... остальная логика sync
+  }
+}
+```
+
+---
+
+### Пример ошибок
+
+```json
+// Input
+{
+  "productId": "...",
+  "features": [
+    { "index": "0", "isGroup": true, "name": "Размеры" },
+    { "index": "0", "isGroup": false, "name": "Дубликат" },  // дубликат index
+    { "index": "0-0", "isGroup": true, "name": "Вложенная группа" },  // группа не на root
+    { "index": "1-0", "isGroup": false, "name": "Сирота" }  // parent "1" не существует
+  ]
+}
+
+// Errors
+[
+  { "message": "Duplicate tree index \"0\"", "field": ["features", "1", "index"], "code": "DUPLICATE_INDEX" },
+  { "message": "Groups must be root items", "field": ["features", "2", "index"], "code": "GROUP_NOT_ROOT" },
+  { "message": "Parent \"1\" not found in features list", "field": ["features", "3", "index"], "code": "PARENT_NOT_FOUND" }
+]
+```
+
+---
 
 ### Immutable подход
 ```
-Input → resolveFeatures() → ResolvedFeature[] (readonly)
+Input → Zod parse → ValidatedFeatureInput[]
                               ↓
-                         upsertFeature()
+                    validateSemantic() → errors или продолжаем
+                              ↓
+                    loadDbContext() → DbValidationContext
+                              ↓
+                    validateDatabase() → errors или продолжаем
+                              ↓
+                    resolveFeatures() → ResolvedFeature[] (readonly)
+                              ↓
+                    upsertFeature()
 ```
 
 Входные данные не мутируются. Все созданные ID хранятся в `indexToDbId` Map.
+
+---
 
 ### Пример input
 ```json
