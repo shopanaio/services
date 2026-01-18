@@ -1,13 +1,13 @@
 import { registerModule } from "@/registry";
 import dynamic from "next/dynamic";
-import { FileOutlined } from "@ant-design/icons";
+import { PictureOutlined } from "@ant-design/icons";
 
 registerModule({
   key: "files",
   domain: "media",
   sidebar: {
     label: "Files",
-    icon: <FileOutlined />,
+    icon: null,
     order: 1,
   },
   items: [

@@ -1,13 +1,13 @@
 import { AppLayout } from "@/layouts/app/components/layout/layout";
 import { registerDomain } from "@/registry";
-import { ShoppingOutlined } from "@ant-design/icons";
+import { ShopOutlined } from "@ant-design/icons";
 
 registerDomain({
-  key: "inventory",
+  key: "store",
   layout: AppLayout,
   sidebar: {
-    label: "Inventory",
-    icon: <ShoppingOutlined />,
+    label: "Store",
+    icon: <ShopOutlined />,
     order: 1,
   },
 });

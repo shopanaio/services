@@ -4,10 +4,10 @@ import { ShoppingOutlined } from "@ant-design/icons";
 
 registerModule({
   key: "products",
-  domain: "inventory",
+  domain: "store",
   sidebar: {
     label: "Products",
-    icon: <ShoppingOutlined />,
+    icon: null,
     order: 1,
   },
   items: [

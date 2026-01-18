@@ -73,7 +73,7 @@ function buildMenuItems(
         key: item.key,
         label: (
           <Typography.Text ellipsis type="secondary">
-            {item.label}
+            {item.icon} {item.label}
           </Typography.Text>
         ),
         type: "group" as const,
@@ -204,7 +204,7 @@ export const Sidebar = () => {
                   activeBarBorderWidth: 0,
                   itemHeight: 32,
                   itemMarginInline: 0,
-                  itemMarginBlock: 4,
+                  itemMarginBlock: 0,
                   subMenuItemBg: "transparent",
                 },
               },
