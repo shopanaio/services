@@ -61,8 +61,10 @@ export const productFeature = pgTable(
       .on(table.productId, table.slug),
     index("product_feature_product_id_idx")
       .on(table.productId),
-    index("product_feature_parent_id_idx")  // NEW
-      .on(table.parentId),
+    // Composite index for efficient children queries:
+    // WHERE product_id = ? AND parent_id = ? ORDER BY sort_index
+    index("product_feature_children_idx")
+      .on(table.productId, table.parentId, table.sortIndex),
   ]
 );
 ```
@@ -76,7 +78,10 @@ ALTER TABLE product_feature
   ADD COLUMN parent_id UUID REFERENCES product_feature(id) ON DELETE CASCADE,
   ADD COLUMN sort_index INTEGER NOT NULL DEFAULT 0;
 
-CREATE INDEX product_feature_parent_id_idx ON product_feature(parent_id);
+-- Composite index for efficient children queries:
+-- WHERE product_id = ? AND parent_id = ? ORDER BY sort_index
+CREATE INDEX product_feature_children_idx
+  ON product_feature(product_id, parent_id, sort_index);
 
 -- Backfill existing features as attributes (is_group = false, already default)
 -- Backfill sort_index based on id to ensure deterministic ordering
@@ -101,7 +106,23 @@ WHERE product_feature.id = ranked.id;
 ALTER TABLE product_feature
   ADD CONSTRAINT feature_group_no_parent
   CHECK (is_group = false OR parent_id IS NULL);
+
+-- Ensure sortIndex is unique within each "container" to prevent unstable ordering
+-- Root-level features: unique (product_id, sort_index) where parent_id IS NULL
+CREATE UNIQUE INDEX product_feature_root_sort_idx
+  ON product_feature(product_id, sort_index)
+  WHERE parent_id IS NULL;
+
+-- Child features: unique (parent_id, sort_index) where parent_id IS NOT NULL
+CREATE UNIQUE INDEX product_feature_child_sort_idx
+  ON product_feature(parent_id, sort_index)
+  WHERE parent_id IS NOT NULL;
 ```
+
+> **Why partial unique indexes for sortIndex?**
+> Without these constraints, duplicate sortIndex values within the same container
+> lead to unstable ordering (non-deterministic query results). These indexes
+> catch frontend bugs early and ensure consistent UI behavior.
 
 ---
 
@@ -335,6 +356,52 @@ services/inventory/src/
 > **Cycle protection:**
 > With single-level nesting (groups always at root), cycles are structurally impossible.
 > However, if the model evolves to support deeper nesting, cycle detection will be required.
+
+### Parent Reference Validation (App Layer)
+
+When `parentId` or `parentClientId` is provided, validate ALL of the following:
+
+```typescript
+// Pseudo-code for parent validation
+function validateParent(parent: ProductFeature | null, child: InputItem): ValidationError[] {
+  if (!parent) {
+    return [{ field: "parentId", message: "Parent not found" }];
+  }
+
+  const errors: ValidationError[] = [];
+
+  // 1. Parent must be a group
+  if (!parent.isGroup) {
+    errors.push({
+      field: "parentId",
+      message: "Parent must be a group (isGroup = true)",
+    });
+  }
+
+  // 2. Parent must be at root level (no nested groups)
+  if (parent.parentId !== null) {
+    errors.push({
+      field: "parentId",
+      message: "Parent group must be at root level",
+    });
+  }
+
+  // 3. Parent must belong to the same product
+  if (parent.productId !== child.productId) {
+    errors.push({
+      field: "parentId",
+      message: "Parent must belong to the same product",
+    });
+  }
+
+  return errors;
+}
+```
+
+This validation ensures:
+- Attributes cannot be parents (only groups can have children)
+- Groups cannot be nested (single-level hierarchy enforced)
+- Cross-product references are rejected
 
 ---
 
