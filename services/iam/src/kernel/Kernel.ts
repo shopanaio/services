@@ -1,5 +1,6 @@
 import { Kernel as BaseKernel, consoleLogger } from "@shopana/shared-kernel";
 import type { ServiceBroker, Logger, DatabaseClient } from "@shopana/shared-kernel";
+import type { WorkflowRegistry } from "@shopana/workflows";
 import { createCache, type Cache } from "cache-manager";
 import { getServiceConfig, buildDbUrl } from "@shopana/shared-service-config";
 import type { IamKernelServices } from "./types.js";
@@ -19,6 +20,7 @@ export class Kernel extends BaseKernel<IamKernelServices> {
   public cache!: Cache;
   public authCache!: AuthorizationCache;
   public nameResolver!: NameResolver;
+  public workflow!: WorkflowRegistry;
   public db!: Database;
   public auth!: Auth;
 
@@ -29,19 +31,25 @@ export class Kernel extends BaseKernel<IamKernelServices> {
     cache: Cache,
     authCache: AuthorizationCache,
     nameResolver: NameResolver,
+    workflow: WorkflowRegistry,
     db: Database,
     auth: Auth
   ) {
-    super(broker, logger, { repository, cache, authCache, nameResolver });
+    super(broker, logger, { repository, cache, authCache, nameResolver, workflow });
     this.repository = repository;
     this.cache = cache;
     this.authCache = authCache;
     this.nameResolver = nameResolver;
+    this.workflow = workflow;
     this.db = db;
     this.auth = auth;
   }
 
-  static async create(broker: ServiceBroker, dbClient: DatabaseClient): Promise<Kernel> {
+  static async create(
+    broker: ServiceBroker,
+    workflow: WorkflowRegistry,
+    dbClient: DatabaseClient
+  ): Promise<Kernel> {
     if (this.instance) {
       return this.instance;
     }
@@ -78,6 +86,7 @@ export class Kernel extends BaseKernel<IamKernelServices> {
       cache,
       authCache,
       nameResolver,
+      workflow,
       db,
       auth
     );

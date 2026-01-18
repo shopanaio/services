@@ -1,4 +1,5 @@
 import { ZodResolver } from "@shopana/type-resolver";
+import { DBOS } from "@shopana/workflows";
 import {
   decodeGlobalIdByType,
   encodeGlobalIdByType,
@@ -7,10 +8,12 @@ import {
 import { IAMType } from "./IAMType.js";
 import { OrganizationResolver } from "./OrganizationResolver.js";
 import { MemberResolver } from "./MemberResolver.js";
-import { OrganizationCreateScript } from "../../scripts/organization/OrganizationCreateScript.js";
 import { OrganizationUpdateScript } from "../../scripts/organization/OrganizationUpdateScript.js";
-import { OrganizationDeleteScript } from "../../scripts/organization/OrganizationDeleteScript.js";
 import { OwnershipTransferScript } from "../../scripts/organization/OwnershipTransferScript.js";
+import {
+  OrganizationCreateWorkflow,
+  OrganizationDeleteWorkflow,
+} from "../../workflows/index.js";
 import { MemberInviteScript } from "../../scripts/organization/MemberInviteScript.js";
 import { MemberRemoveScript } from "../../scripts/organization/MemberRemoveScript.js";
 import { MemberRoleChangeScript } from "../../scripts/organization/MemberRoleChangeScript.js";
@@ -39,14 +42,16 @@ export class OrganizationMutationResolver extends IAMType<
 > {
   /**
    * Create a new organization.
+   * Uses OrganizationCreateWorkflow to ensure media asset group is created after DB commit.
    */
   @ZodResolver(OrganizationCreateInputSchema())
   async organizationCreate(args: { input: OrganizationCreateInput }) {
     const { input } = args;
-    const result = await this.$ctx.kernel.runScript(
-      OrganizationCreateScript,
-      input
-    );
+
+    const workflow =
+      this.$ctx.kernel.workflow.get<OrganizationCreateWorkflow>("organizationCreate");
+    const handle = await DBOS.startWorkflow(workflow).run(input);
+    const result = await handle.getResult();
 
     return {
       organization: result.organization
@@ -135,15 +140,18 @@ export class OrganizationMutationResolver extends IAMType<
   /**
    * Soft delete organization.
    * Only the organization owner can delete the organization.
+   * Uses OrganizationDeleteWorkflow to ensure cleanup happens after DB commit.
    */
   async organizationDelete(args: { id: string }) {
     const organizationId = decodeGlobalIdByType(
       args.id,
       GlobalIdEntity.Organization
     );
-    const result = await this.$ctx.kernel.runScript(OrganizationDeleteScript, {
-      organizationId,
-    });
+
+    const workflow =
+      this.$ctx.kernel.workflow.get<OrganizationDeleteWorkflow>("organizationDelete");
+    const handle = await DBOS.startWorkflow(workflow).run({ organizationId });
+    const result = await handle.getResult();
 
     return {
       deletedOrganizationId: result.deletedOrganizationId

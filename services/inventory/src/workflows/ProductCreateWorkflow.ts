@@ -23,7 +23,7 @@ export class ProductCreateWorkflow extends BaseWorkflow {
   @DBOS.workflow()
   async run(input: ProductCreateParams): Promise<ProductCreateResult> {
     // Step 1: Create product in database (transactional)
-    const result = await this.createProductInDb(input);
+    const result = await this.createProduct(input);
 
     // If there are user errors, return early (no back-ref sync needed)
     if (result.userErrors.length > 0 || !result.product) {
@@ -40,10 +40,9 @@ export class ProductCreateWorkflow extends BaseWorkflow {
 
   /**
    * Step: Create product in database
-   * Uses ProductCreateScript which handles the transaction internally
    */
   @DBOS.step()
-  async createProductInDb(input: ProductCreateParams): Promise<ProductCreateResult> {
+  async createProduct(input: ProductCreateParams): Promise<ProductCreateResult> {
     return this.kernel.runScript(ProductCreateScript, input);
   }
 

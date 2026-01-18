@@ -47,12 +47,6 @@ export class OrganizationDeleteScript extends BaseScript<
       };
     }
 
-    // Delete media asset group (cascades to all files)
-    await this.services.broker.call("media.deleteAssetGroup", {
-      ownerType: "organization",
-      ownerId: organizationId,
-    });
-
     // Delete organization
     const deleted = await this.repository.organization.delete(organizationId);
 
@@ -69,20 +63,8 @@ export class OrganizationDeleteScript extends BaseScript<
       };
     }
 
-    try {
-      await this.services.broker.call("media.entityDeleted", {
-        entityRef: {
-          service: "iam",
-          entityType: "organization",
-          entityId: organizationId,
-        },
-      });
-    } catch (error) {
-      this.logger.warn(
-        { organizationId, error },
-        "Failed to unlink media backrefs for deleted organization"
-      );
-    }
+    // Note: Media asset group deletion and back-ref cleanup are handled
+    // by OrganizationDeleteWorkflow after this transaction commits successfully
 
     return {
       deletedOrganizationId: organizationId,

@@ -124,11 +124,8 @@ export class OrganizationCreateScript extends BaseScript<
       domain,
     });
 
-    // Create media asset group for this organization
-    await this.services.broker.call("media.createAssetGroup", {
-      ownerType: "organization",
-      ownerId: org.id,
-    });
+    // Note: Media asset group is created by OrganizationCreateWorkflow
+    // after this transaction commits successfully
 
     return {
       organization: org,
