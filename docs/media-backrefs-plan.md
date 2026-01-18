@@ -61,12 +61,10 @@ export const fileBackRefs = mediaSchema.table(
   (table) => [
     // One file can only be linked once per entity+role combination
     primaryKey({ columns: [table.fileId, table.service, table.entityType, table.entityId, table.role] }),
-    // For counting refs per file
-    index("idx_fbr_file_id").on(table.fileId),
     // For entityDeleted: find all files for an entity
     index("idx_fbr_entity").on(table.service, table.entityType, table.entityId),
-    // For UI: show refs sorted by createdAt (simpler index, works with ORDER BY)
-    index("idx_fbr_file_created").on(table.fileId, table.createdAt),
+    // For usage query: GROUP BY entity_type, COUNT(DISTINCT entity_id)
+    index("idx_fbr_file_usage").on(table.fileId, table.entityType, table.entityId),
   ]
 );
 
@@ -80,6 +78,11 @@ export function formatEntityRef(service: string, entityType: string, entityId: s
 - No `entityRef` column - generated on-the-fly for UI to avoid sync issues
 - `entityId` is varchar(255) for flexibility (external IDs, composites)
 - `role` distinguishes different usages (main image vs gallery vs avatar)
+
+**Index strategy:**
+- `idx_fbr_entity` — for `entityDeleted`: find all backRefs by entity
+- `idx_fbr_file_usage` — for usage query: `GROUP BY entity_type, COUNT(DISTINCT entity_id)`
+- No separate `(file_id)` index — `idx_fbr_file_usage` covers simple lookups too
 
 **Files to modify:**
 - Create: `services/media/src/repositories/models/fileBackRefs.ts`
@@ -96,7 +99,7 @@ export function formatEntityRef(service: string, entityType: string, entityId: s
 
 Key methods:
 - `link(fileId, entityRef, role)` - **INSERT ... SELECT FROM files WHERE id=?** (no FK error if file missing), returns activeRefCount
-- `linkMany(fileIds, entityRef, role)` - batch link via INSERT SELECT, returns linkedCount
+- `linkMany(items: {fileId, role}[], entityRef)` - batch link, returns linkedCount
 - `unlink(fileId, entityRef, role)` - DELETE + count, returns `{ remainingCount }`
 - `unlinkAllByEntity(entityRef)` - DELETE all backRefs for entity, returns count
 - `countByFileId(fileId)` - single file count
@@ -146,6 +149,21 @@ export interface FileUnlinkResult {
   activeRefCount: number; // remaining backRefs if fileActive, else 0
   fileExists: boolean;    // file row exists in DB
   fileActive: boolean;    // file exists AND deletedAt == null
+}
+
+export interface FileLinkItem {
+  fileId: string;
+  role: string;           // "main", "gallery", etc.
+}
+
+export interface FileLinkManyParams {
+  items: FileLinkItem[];  // [{fileId, role}, ...]
+  entityRef: EntityRef;   // single entity for all items
+}
+
+export interface FileLinkManyResult {
+  linkedCount: number;    // successfully linked (new or existed)
+  skippedCount: number;   // files not found or soft-deleted
 }
 
 export interface EntityDeletedParams {
@@ -281,7 +299,7 @@ Add actions:
 ```typescript
 @Action("fileLink")        // Link file to entity
 @Action("fileUnlink")      // Unlink backRef
-@Action("fileLinkMany")    // Batch link
+@Action("fileLinkMany")    // Batch link: [{fileId, role}, ...] + entityRef
 @Action("entityDeleted")   // Unlink all files from entity
 ```
 
@@ -294,46 +312,67 @@ Add actions:
 **File:** `services/media/src/api/graphql-admin/file.graphql`
 
 ```graphql
-type FileBackRef {
-  service: String!
-  entityType: String!
-  entityId: String!
-  role: String!
-  entityRef: String!   # Generated: "service:entityType:entityId"
-  createdAt: DateTime!
+type FileUsageCount {
+  entityType: String!   # "variant", "category", "user"
+  count: Int!           # number of unique entities (ignores role)
 }
 
-type FileBackRefsSummary {
-  totalCount: Int!
-  refs: [FileBackRef!]!  # Server-side limit: max 100 (prevents admin UI explosion)
+type FileUsageSummary {
+  totalCount: Int!              # 0 if file soft-deleted
+  byEntity: [FileUsageCount!]!  # [] if file soft-deleted
+  fileActive: Boolean!          # false if deletedAt != null
 }
 
 extend type File {
-  backRefs: FileBackRefsSummary!
+  usage: FileUsageSummary!
 }
 ```
 
+**Resolver logic:**
+```typescript
+// 1. Check file status
+if (file.deletedAt !== null) {
+  return { totalCount: 0, byEntity: [], fileActive: false };
+}
+
+// 2. Query usage (only for active files)
+const byEntity = await db.execute(sql`
+  SELECT entity_type, COUNT(DISTINCT entity_id) as count
+  FROM file_back_refs
+  WHERE file_id = ${fileId}
+  GROUP BY entity_type
+`);
+
+const totalCount = byEntity.reduce((sum, row) => sum + row.count, 0);
+return { totalCount, byEntity, fileActive: true };
+```
+
 **Note:**
-- `refs` limited to 100 on server, sorted by `created_at DESC, entity_id ASC` (stable order)
-- `totalCount` from separate `COUNT(*)` query — shows real count for UI warning
+- Consistent with broker API: usage = 0 for soft-deleted files
+- `fileActive: false` → UI shows "file pending deletion" instead of usage warning
+- Groups by `entity_type` only (service is internal detail)
 
 ### 4.2 Update resolver
 
 **File:** `services/media/src/resolvers/admin/FileResolver.ts`
 
-Add `backRefs` field resolver.
+Add `usage` field resolver.
 
 ### 4.3 UX hint for Media Library
 
-Before "Delete" button, show warning if `backRefs.totalCount > 0`:
-- "This file is used in N places"
+**Active files (`usage.fileActive: true`):**
+- Show warning if `usage.totalCount > 0`: "Used by 20 products, 5 categories"
 - **Only soft-delete allowed in UI** — hard-delete only via GC (after retention)
+
+**Soft-deleted files (`usage.fileActive: false`):**
+- Show status: "Pending deletion"
+- No usage warning (irrelevant, file already scheduled for GC)
 
 ### 4.4 DataLoader (optional optimization)
 
-**File:** `services/media/src/loaders/FileBackRefLoader.ts`
+**File:** `services/media/src/loaders/FileUsageLoader.ts`
 
-Batch load backRef counts for list views.
+Batch load usage counts for list views.
 
 ---
 
@@ -390,4 +429,5 @@ Batch load backRef counts for list views.
 | EntityDeleted Script | `services/media/src/scripts/backRef/EntityDeletedScript.ts` |
 | GraphQL Schema | `services/media/src/api/graphql-admin/file.graphql` |
 | File Resolver | `services/media/src/resolvers/admin/FileResolver.ts` |
+| Usage Loader | `services/media/src/loaders/FileUsageLoader.ts` |
 | Inventory Media | `services/inventory/src/scripts/media/VariantSetMediaScript.ts` |
