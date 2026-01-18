@@ -80,48 +80,19 @@ export interface ActionContext {
    * | Concept | Purpose | Format | Source |
    * |---------|---------|--------|--------|
    * | `dedupeKey` | Prevent duplicate business operations | Human-readable: `store:create:my-store` | `Workflow.workflowID(input)` static method |
-   * | `executionId` | Track calls within ONE execution | UUID: `019234ab-...` | DBOS internal OR generated in first step |
-   *
-   * `operationId` in this context = `executionId` (NOT dedupeKey!)
-   *
-   * PROBLEM: In some DBOS configurations, `DBOS.workflowID` IS the user-provided
-   * deduplication key (e.g., "store:create:my-store"), NOT a UUID.
-   *
-   * MANDATORY VERIFICATION before using DBOS.workflowID as operationId:
-   *
-   * 1. Check: Does DBOS have a separate `DBOS.executionID` or similar?
-   *    - If yes → use that for operationId
-   *    - If no → generate UUID in first workflow step
-   *
-   * 2. NEVER use DBOS.workflowID directly without validation:
-   *    - If it's human-readable → it's a dedupeKey, NOT executionId
-   *    - Only UUIDs are valid for operationId
+   * | `executionId` | Track calls within ONE execution | UUID: `019234ab-...` | Generated in first @DBOS.step() and passed explicitly |
    *
    * IMPLEMENTATION:
-   * ```typescript
-   * // In first @DBOS.step() of workflow:
-   * @DBOS.step()
-   * async initExecution(): Promise<{ executionId: string }> {
-   *   // Option 1: DBOS provides separate execution ID
-   *   const dbosExecId = (DBOS as any).executionID;
-   *   if (dbosExecId && this.isUUID(dbosExecId)) {
-   *     return { executionId: dbosExecId };
-   *   }
+   * - Generate UUID in first `@DBOS.step()` (result is saved by DBOS)
+   * - Pass `executionId` explicitly to all subsequent methods that need it
+   * - NEVER store in mutable class state (`this.executionId = ...`)
    *
-   *   // Option 2: DBOS.workflowID is UUID (not user-provided dedupeKey)
-   *   if (DBOS.workflowID && this.isUUID(DBOS.workflowID)) {
-   *     return { executionId: DBOS.workflowID };
-   *   }
-   *
-   *   // Option 3: Generate our own UUID (saved by DBOS step)
-   *   return { executionId: uuidv7() };
-   * }
-   * ```
-   *
-   * The executionId from initExecution() is saved by DBOS and replayed on recovery,
-   * ensuring idempotency keys remain stable.
+   * WHY explicit passing instead of class state?
+   * - Mutable state inside `@DBOS.step()` is a side effect that won't replay
+   * - Calling `buildContext()` before `initExecution()` would silently fail
+   * - Explicit parameter makes dependencies visible and testable
    */
-  operationId: string;  // MUST be UUID, use executionId pattern above
+  executionId: string;  // MUST be UUID, passed explicitly from initExecution() result
 
   /** Target service name */
   service: string;
@@ -138,7 +109,7 @@ export interface ActionContext {
 
   /**
    * Unique key for idempotency lookup.
-   * Generated as SHA-256 hash of: operationId + service + action + callId
+   * Generated as SHA-256 hash of: executionId + service + action + callId
    * This avoids delimiter collision issues with raw concatenation.
    */
   idempotencyKey: string;
@@ -340,50 +311,69 @@ the port handles legacy `{success, error}` format via adapter.
 **ENFORCEMENT MECHANISM** (required to ensure migration happens):
 
 ```typescript
-// packages/workflows/src/ports/LegacyResponseTracker.ts
+// packages/shared-kernel/src/observability/LegacyResponseTracker.ts
+//
+// ⚠️ IMPORTANT: This class is in the OBSERVABILITY layer, NOT in ports!
+// It uses non-deterministic operations (Date, metrics) that must NEVER
+// be called from within workflow/port code paths.
+//
+// USAGE: Call from LocalServicePort ONLY for logging/metrics,
+// but NEVER let it affect workflow behavior or state.
 
 interface LegacyResponseMetric {
   service: string;
   action: string;
   format: "legacy_success_error" | "raw_result";
   count: number;
-  lastSeen: Date;
+  firstSeen: number;  // Unix timestamp (ms) - deterministic serialization
+  lastSeen: number;   // Unix timestamp (ms)
 }
 
 /**
  * Tracks legacy response formats for migration monitoring.
- * MANDATORY: Wire this to your metrics/alerting system.
+ *
+ * ⚠️ OBSERVABILITY ONLY - DO NOT USE FOR BUSINESS LOGIC
+ *
+ * This class:
+ * - Uses Date.now() which is non-deterministic
+ * - Is for metrics/alerting only
+ * - Must NEVER affect workflow execution or be called inside @DBOS.step()
+ *
+ * MANDATORY: Wire this to your metrics/alerting system (Prometheus, DataDog, etc.)
  */
 export class LegacyResponseTracker {
   private static metrics = new Map<string, LegacyResponseMetric>();
 
+  /**
+   * Track a legacy response format occurrence.
+   *
+   * Call this from LocalServicePort.normalizeResponse() AFTER the response
+   * has been processed, for logging/metrics purposes only.
+   */
   static track(service: string, action: string, format: LegacyResponseMetric["format"]): void {
     const key = `${service}.${action}`;
+    const now = Date.now();
     const existing = this.metrics.get(key);
 
     if (existing) {
       existing.count++;
-      existing.lastSeen = new Date();
+      existing.lastSeen = now;
     } else {
-      this.metrics.set(key, { service, action, format, count: 1, lastSeen: new Date() });
+      this.metrics.set(key, { service, action, format, count: 1, firstSeen: now, lastSeen: now });
     }
 
     // REQUIRED: Emit metric to your observability system
-    // metrics.increment("legacy_response_format", { service, action, format });
-
-    // After deadline: fail instead of warn
-    if (this.isPastDeadline()) {
-      throw new Error(
-        `[MIGRATION DEADLINE PASSED] Service ${service}.${action} still using ${format}. ` +
-        `Update to ActionResponse format immediately.`
-      );
-    }
+    // metricsClient.increment("legacy_response_format", { service, action, format });
   }
 
-  private static isPastDeadline(): boolean {
+  /**
+   * Check if migration deadline has passed.
+   * Called separately from track() to keep metrics pure.
+   */
+  static isPastDeadline(): boolean {
     // SET YOUR DEADLINE HERE
-    const DEADLINE = new Date("2025-04-01");  // Example: April 1, 2025
-    return new Date() > DEADLINE;
+    const DEADLINE_MS = Date.parse("2025-04-01T00:00:00Z");
+    return Date.now() > DEADLINE_MS;
   }
 
   static getReport(): LegacyResponseMetric[] {
@@ -452,30 +442,20 @@ export class LocalServicePort implements ServicePort {
 
       // Check if error has structured info (e.g., from broker/service)
       if (this.isStructuredError(error)) {
-        // Preserve ALL original error data for logging/telemetry
-        const originalError = error as Record<string, unknown>;
+        // Create ServiceError preserving code/message/retryable
+        // Original error is passed as `cause` for stack trace preservation
         const serviceError = new ServiceError(
           this.name,
           action,
           error.code,
           error.message,
-          error,  // Original error as cause
+          error,  // Original error as cause - preserves full context
           error.retryable
         );
 
-        // Copy additional fields for observability (status, details, etc.)
-        // These are preserved but not used for business logic
-        (serviceError as any).originalData = {
-          status: originalError.status,
-          details: originalError.details,
-          stack: originalError.stack,
-          // Any other fields from original error
-          ...Object.fromEntries(
-            Object.entries(originalError).filter(
-              ([k]) => !["code", "message", "retryable"].includes(k)
-            )
-          ),
-        };
+        // Log additional fields for observability SEPARATELY
+        // DO NOT attach to ServiceError object (breaks serialization, creates implicit API)
+        this.logOriginalErrorDetails(action, error);
 
         throw serviceError;
       }
@@ -525,6 +505,31 @@ export class LocalServicePort implements ServicePort {
    * - errno codes (checked against err.code)
    * - message substrings (checked against err.message)
    */
+  /**
+   * Log original error details for observability.
+   * Keeps error context separate from ServiceError to avoid implicit API.
+   */
+  private logOriginalErrorDetails(action: string, error: unknown): void {
+    // Extract additional fields that may be useful for debugging
+    const errorObj = error as Record<string, unknown>;
+    const details = {
+      service: this.name,
+      action,
+      status: errorObj.status,
+      details: errorObj.details,
+      // Include any non-standard fields
+      extra: Object.fromEntries(
+        Object.entries(errorObj).filter(
+          ([k]) => !["code", "message", "retryable", "status", "details", "stack"].includes(k)
+        )
+      ),
+    };
+
+    // Log to your observability system (not console in production)
+    // logger.warn("Service error with additional context", details);
+    console.warn(`[${this.name}.${action}] Error details:`, details);
+  }
+
   private isTransportError(error: unknown): boolean {
     if (!(error instanceof Error)) return false;
 
@@ -689,29 +694,35 @@ export abstract class BaseWorkflow extends ConfiguredInstance {
   }
 
   /**
-   * Build ActionContext for current workflow step.
+   * Build ActionContext for a service call.
    *
+   * @param executionId - UUID from initExecution() step result (passed explicitly!)
    * @param service - Target service name
    * @param action - Action being called
    * @param callId - REQUIRED: Unique identifier for this specific call.
    *                 MUST be deterministic (derived from workflow input or saved step results).
    *                 Examples: storeId, `${storeId}:${userId}`, `${orderId}:${itemId}`
    */
-  protected buildContext(service: string, action: string, callId: string): ActionContext {
+  protected buildContext(executionId: string, service: string, action: string, callId: string): ActionContext {
+    // Validate executionId
+    if (!executionId || !this.isUUID(executionId)) {
+      throw new Error(
+        `executionId must be a valid UUID, got: "${executionId}". ` +
+        `Pass the result from initExecution() explicitly.`
+      );
+    }
+
     // Validate callId is provided and non-empty
     if (!callId || !callId.trim()) {
       throw new Error(`callId is required and must be deterministic for ${service}.${action}`);
     }
 
-    // Get operationId - MUST be UUID, not business key
-    const operationId = this.getOperationId();
-
     // Generate idempotency key as SHA-256 hash to avoid delimiter collisions
-    const idempotencyKey = this.hashIdempotencyKey(operationId, service, action, callId);
+    const idempotencyKey = this.hashIdempotencyKey(executionId, service, action, callId);
 
     return {
       version: 1,
-      operationId,
+      executionId,
       service,
       action,
       callId,
@@ -724,19 +735,6 @@ export abstract class BaseWorkflow extends ConfiguredInstance {
   }
 
   /**
-   * Execution ID for idempotency tracking.
-   *
-   * CRITICAL: This MUST be set by the workflow's run() method AFTER calling initExecution():
-   *
-   *   const { executionId } = await this.initExecution();
-   *   this.executionId = executionId;  // Assignment OUTSIDE the step!
-   *
-   * WHY: DBOS step replay returns saved result WITHOUT executing step body.
-   * Any `this.x = ...` inside @DBOS.step() is a side effect that won't replay.
-   */
-  protected executionId?: string;
-
-  /**
    * MANDATORY: Call this as the FIRST step in every workflow.
    *
    * Returns executionId that is:
@@ -744,52 +742,18 @@ export abstract class BaseWorkflow extends ConfiguredInstance {
    * - Stable across recovery (saved by DBOS step)
    * - Different from deduplication key (workflowID)
    *
-   * USAGE (in your workflow's run() method):
+   * USAGE: Pass the returned executionId explicitly to all methods that need it:
    *   const { executionId } = await this.initExecution();
-   *   this.executionId = executionId;  // MUST assign outside step!
+   *   await this.createStoreRoles(executionId, storeId, ...);
    *
-   * DO NOT rely on side effects inside this step - they won't replay!
+   * ⚠️ DO NOT store in class state (`this.executionId = ...`) - that's a side effect
+   * that won't replay on recovery!
    */
   @DBOS.step()
   protected async initExecution(): Promise<{ executionId: string }> {
-    // Option 1: DBOS provides separate execution ID
-    const dbosExecId = (DBOS as any).executionID ?? (DBOS as any).executionId;
-    if (dbosExecId && this.isUUID(dbosExecId)) {
-      return { executionId: dbosExecId };
-    }
-
-    // Option 2: DBOS.workflowID is UUID (not user-provided dedupeKey)
-    const workflowId = DBOS.workflowID;
-    if (workflowId && this.isUUID(workflowId)) {
-      return { executionId: workflowId };
-    }
-
-    // Option 3: Generate our own UUID
+    // Always generate our own UUID
     // Result is saved by DBOS and replayed on recovery
     return { executionId: uuidv7() };
-  }
-
-  /**
-   * Get unique operation ID for current workflow execution.
-   *
-   * @throws Error if executionId was not set after initExecution()
-   */
-  protected getOperationId(): string {
-    if (!this.executionId) {
-      throw new Error(
-        "executionId not set. In your run() method, you MUST do:\n" +
-        "  const { executionId } = await this.initExecution();\n" +
-        "  this.executionId = executionId;"
-      );
-    }
-
-    if (!this.isUUID(this.executionId)) {
-      throw new Error(
-        `executionId must be UUID format, got: "${this.executionId}".`
-      );
-    }
-
-    return this.executionId;
   }
 
   private isUUID(value: string): boolean {
@@ -800,14 +764,15 @@ export abstract class BaseWorkflow extends ConfiguredInstance {
    * Generate SHA-256 hash for idempotency key.
    * Using hash avoids issues with delimiter collisions in component values.
    */
-  private hashIdempotencyKey(operationId: string, service: string, action: string, callId: string): string {
-    const data = [operationId, service, action, callId].join("\n");
+  private hashIdempotencyKey(executionId: string, service: string, action: string, callId: string): string {
+    const data = [executionId, service, action, callId].join("\n");
     return crypto.createHash("sha256").update(data).digest("hex");
   }
 
   /**
    * Call a service action through its port.
    *
+   * @param executionId - UUID from initExecution() step result (passed explicitly!)
    * @param serviceName - Target service (e.g., "iam", "media")
    * @param action - Action name (e.g., "createRoles")
    * @param payload - Action payload (type-safe via generic)
@@ -819,22 +784,23 @@ export abstract class BaseWorkflow extends ConfiguredInstance {
    *
    * @example
    * // Good - deterministic from input
-   * await this.callService("iam", "createRoles", payload, storeId);
+   * await this.callService(executionId, "iam", "createRoles", payload, storeId);
    *
    * // Good - composite key for multiple calls
-   * await this.callService("iam", "assignRole", payload, `${storeId}:${userId}`);
+   * await this.callService(executionId, "iam", "assignRole", payload, `${storeId}:${userId}`);
    *
    * // BAD - random UUID breaks recovery
-   * await this.callService("iam", "createRoles", payload, crypto.randomUUID());
+   * await this.callService(executionId, "iam", "createRoles", payload, crypto.randomUUID());
    */
   protected async callService<TResult = unknown>(
+    executionId: string,  // REQUIRED - passed explicitly from initExecution()
     serviceName: string,
     action: string,
     payload: unknown,
     callId: string  // REQUIRED - not optional
   ): Promise<TResult> {
     const port = this.getPort(serviceName);
-    const ctx = this.buildContext(serviceName, action, callId);
+    const ctx = this.buildContext(executionId, serviceName, action, callId);
     return port.handle<TResult>(action, payload, ctx);
   }
 }
@@ -898,11 +864,9 @@ export class StoreCreateWorkflow extends BaseWorkflow {
   async run(input: StoreCreateInput): Promise<StoreCreateOutput> {
     const { organizationId, userId } = input;
 
-    // Step 0: MANDATORY - initialize execution ID for idempotency
-    // CRITICAL: Capture return value and assign OUTSIDE the step!
-    // Side effects inside @DBOS.step() don't replay on recovery.
+    // Step 0: MANDATORY - get execution ID for idempotency
+    // Pass executionId explicitly to all subsequent steps that need it
     const { executionId } = await this.initExecution();
-    this.executionId = executionId;
 
     // Step 1: Generate store ID (deterministic on recovery)
     const storeId = await this.generateStoreId();
@@ -911,13 +875,14 @@ export class StoreCreateWorkflow extends BaseWorkflow {
     await this.createStore(storeId, input, organizationId);
 
     // Step 3: Create roles for this store domain
-    await this.createStoreRoles(storeId, organizationId, userId);
+    // Note: executionId passed explicitly, NOT stored in class state
+    await this.createStoreRoles(executionId, storeId, organizationId, userId);
 
     // Step 4: Assign admin role to creator
-    await this.assignAdminRole(storeId, organizationId, userId);
+    await this.assignAdminRole(executionId, storeId, organizationId, userId);
 
     // Step 5: Create media asset group
-    await this.createMediaAssetGroup(storeId);
+    await this.createMediaAssetGroup(executionId, storeId);
 
     return { storeId, organizationId };
   }
@@ -948,9 +913,10 @@ export class StoreCreateWorkflow extends BaseWorkflow {
    * Uses storeId as callId since this is store-scoped.
    */
   @DBOS.step()
-  private async createStoreRoles(storeId: string, organizationId: string, userId: string) {
+  private async createStoreRoles(executionId: string, storeId: string, organizationId: string, userId: string) {
     // callId = storeId ensures idempotency for this store's role creation
     await this.callService(
+      executionId,
       "iam",
       "createRoles",
       {
@@ -968,9 +934,10 @@ export class StoreCreateWorkflow extends BaseWorkflow {
    * Uses composite callId since we might assign roles to multiple users.
    */
   @DBOS.step()
-  private async assignAdminRole(storeId: string, organizationId: string, userId: string) {
+  private async assignAdminRole(executionId: string, storeId: string, organizationId: string, userId: string) {
     // callId includes userId in case we assign multiple roles to different users
     await this.callService(
+      executionId,
       "iam",
       "assignRole",
       {
@@ -987,8 +954,9 @@ export class StoreCreateWorkflow extends BaseWorkflow {
    * Step: Create media asset group for this store.
    */
   @DBOS.step()
-  private async createMediaAssetGroup(storeId: string) {
+  private async createMediaAssetGroup(executionId: string, storeId: string) {
     await this.callService(
+      executionId,
       "media",
       "createAssetGroup",
       {
@@ -1120,16 +1088,21 @@ async dispatch(qualifiedAction: string, request: ActionRequest): Promise<ActionR
       };
     }
 
-    // Execute handler - may throw or return ActionResponse
+    // Execute handler - MUST return ActionResponse
     const result = await handler(request);
 
-    // Ensure result is ActionResponse format
-    if (this.isActionResponse(result)) {
-      return result;
+    // Validate response format
+    if (!this.isActionResponse(result)) {
+      // STRICT MODE: Raw results are NOT allowed
+      // This enforces the ActionResponse contract
+      throw new Error(
+        `Handler for ${qualifiedAction} returned invalid format. ` +
+        `Expected ActionResponse { result, error? }, got: ${JSON.stringify(result)?.slice(0, 100)}. ` +
+        `Update the handler to return ActionResponse format.`
+      );
     }
 
-    // Wrap raw result
-    return { result };
+    return result;
 
   } catch (error) {
     // MANDATORY: Convert ALL exceptions to ActionResponse.error
@@ -1182,8 +1155,38 @@ private errorToResponse(qualifiedAction: string, error: unknown): ActionResponse
   };
 }
 
+/**
+ * Strict type guard for ActionResponse.
+ *
+ * Checks:
+ * 1. Has 'result' key (required)
+ * 2. Does NOT have 'success' key (would indicate legacy format)
+ * 3. If 'error' present, must have code (string) and message (string)
+ *
+ * This prevents random DTOs with a 'result' field from being misidentified.
+ */
 private isActionResponse(value: unknown): value is ActionResponse {
-  return value !== null && typeof value === "object" && "result" in value;
+  if (value === null || typeof value !== "object") return false;
+
+  const obj = value as Record<string, unknown>;
+
+  // Must have 'result' key
+  if (!("result" in obj)) return false;
+
+  // Must NOT have 'success' key (that's legacy format)
+  if ("success" in obj) return false;
+
+  // If 'error' is present, validate its shape
+  if ("error" in obj && obj.error !== null && obj.error !== undefined) {
+    const error = obj.error as Record<string, unknown>;
+    if (typeof error !== "object") return false;
+    if (typeof error.code !== "string") return false;
+    if (typeof error.message !== "string") return false;
+    // retryable is optional but must be boolean if present
+    if ("retryable" in error && typeof error.retryable !== "boolean") return false;
+  }
+
+  return true;
 }
 
 private isStructuredError(error: unknown): error is { code: string; message: string; retryable?: boolean } {
@@ -1300,11 +1303,11 @@ export class IamBrokerActions extends BrokerActions {
 ```sql
 -- In each service's migrations
 CREATE TABLE IF NOT EXISTS processed_requests (
-  -- SHA-256 hash of (operation_id, service, action, call_id)
+  -- SHA-256 hash of (execution_id, service, action, call_id)
   idempotency_key TEXT PRIMARY KEY,
 
   -- Store components separately for debugging/querying
-  operation_id TEXT NOT NULL,
+  execution_id TEXT NOT NULL,
   service TEXT NOT NULL,
   action TEXT NOT NULL,
   call_id TEXT NOT NULL,
@@ -1327,7 +1330,7 @@ CREATE TABLE IF NOT EXISTS processed_requests (
 );
 
 CREATE INDEX idx_processed_requests_created_at ON processed_requests(created_at);
-CREATE INDEX idx_processed_requests_operation_id ON processed_requests(operation_id);
+CREATE INDEX idx_processed_requests_execution_id ON processed_requests(execution_id);
 CREATE INDEX idx_processed_requests_lookup ON processed_requests(service, action, call_id);
 CREATE INDEX idx_processed_requests_status ON processed_requests(status);
 
@@ -1366,10 +1369,10 @@ CREATE INDEX idx_processed_requests_status ON processed_requests(status);
 --
 -- Wire this to your alerting system (PagerDuty, Slack, etc.)
 CREATE OR REPLACE FUNCTION alert_stale_reserved_requests()
-RETURNS TABLE(idempotency_key TEXT, operation_id TEXT, created_at TIMESTAMPTZ, age_hours NUMERIC) AS $$
+RETURNS TABLE(idempotency_key TEXT, execution_id TEXT, created_at TIMESTAMPTZ, age_hours NUMERIC) AS $$
   SELECT
     idempotency_key,
-    operation_id,
+    execution_id,
     created_at,
     EXTRACT(EPOCH FROM (NOW() - created_at)) / 3600 AS age_hours
   FROM processed_requests
@@ -1397,12 +1400,15 @@ export interface CleanupConfig {
   staleReservedThresholdMinutes: number;
   /** Batch size for deletion (default: 1000) */
   batchSize: number;
+  /** Maximum batches per single job run to prevent runaway execution (default: 10) */
+  maxBatchesPerRun: number;
 }
 
 const DEFAULT_CONFIG: CleanupConfig = {
   retentionDays: 7,
   staleReservedThresholdMinutes: 60,
   batchSize: 1000,
+  maxBatchesPerRun: 10,  // Prevents unbounded execution
 };
 
 @Injectable()
@@ -1429,38 +1435,57 @@ export class ProcessedRequestsCleanupJob implements OnModuleInit {
   /**
    * Run cleanup daily at 3 AM.
    * CRITICAL: This job is MANDATORY for production.
+   *
+   * Uses bounded batching: processes up to maxBatchesPerRun batches in one job run.
+   * If more records remain, they will be cleaned up in the next scheduled run.
+   * This prevents unbounded execution that could overload the database.
    */
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
   async cleanupExpiredRecords(): Promise<void> {
     const startTime = Date.now();
+    let totalDeleted = 0;
+    let batchesProcessed = 0;
 
     try {
-      // SAFETY CHECK: Never delete 'reserved' records!
-      // NOTE: PostgreSQL doesn't support DELETE ... LIMIT directly.
-      // Use subquery with LIMIT instead.
-      const result = await this.db.execute(sql`
-        DELETE FROM processed_requests
-        WHERE idempotency_key IN (
-          SELECT idempotency_key
-          FROM processed_requests
-          WHERE status IN ('completed', 'failed')
-            AND created_at < NOW() - INTERVAL '${this.config.retentionDays} days'
-          LIMIT ${this.config.batchSize}
-        )
-        RETURNING idempotency_key
-      `);
+      // Process batches up to the configured limit
+      while (batchesProcessed < this.config.maxBatchesPerRun) {
+        // SAFETY CHECK: Never delete 'reserved' records!
+        // NOTE: PostgreSQL doesn't support DELETE ... LIMIT directly.
+        // Use subquery with LIMIT instead.
+        const result = await this.db.execute(sql`
+          DELETE FROM processed_requests
+          WHERE idempotency_key IN (
+            SELECT idempotency_key
+            FROM processed_requests
+            WHERE status IN ('completed', 'failed')
+              AND created_at < NOW() - INTERVAL '${this.config.retentionDays} days'
+            LIMIT ${this.config.batchSize}
+          )
+          RETURNING idempotency_key
+        `);
 
-      const deletedCount = result.rowCount ?? 0;
+        const deletedCount = result.rowCount ?? 0;
+        totalDeleted += deletedCount;
+        batchesProcessed++;
+
+        // If we didn't get a full batch, no more records to delete
+        if (deletedCount < this.config.batchSize) {
+          break;
+        }
+      }
+
       const duration = Date.now() - startTime;
 
       this.logger.log(
-        `Cleanup completed: deleted ${deletedCount} records in ${duration}ms`
+        `Cleanup completed: deleted ${totalDeleted} records in ${batchesProcessed} batches (${duration}ms)`
       );
 
-      // If we deleted a full batch, there might be more - schedule another run
-      if (deletedCount >= this.config.batchSize) {
-        this.logger.log("Batch limit reached, scheduling continuation...");
-        setImmediate(() => this.cleanupExpiredRecords());
+      // Warn if we hit the batch limit (more records may remain)
+      if (batchesProcessed >= this.config.maxBatchesPerRun) {
+        this.logger.warn(
+          `Hit maxBatchesPerRun limit (${this.config.maxBatchesPerRun}). ` +
+          `Remaining records will be cleaned up in next scheduled run.`
+        );
       }
     } catch (error) {
       this.logger.error("Cleanup failed", error);
@@ -1478,7 +1503,7 @@ export class ProcessedRequestsCleanupJob implements OnModuleInit {
       const staleRecords = await this.db.execute(sql`
         SELECT
           idempotency_key,
-          operation_id,
+          execution_id,
           service,
           action,
           created_at,
@@ -1598,8 +1623,8 @@ async createRoles(input: ActionRequest<CreateRolesPayload>): Promise<ActionRespo
 // Helper: Atomic insert with ON CONFLICT DO NOTHING
 async reserveIdempotencyKey(ctx: ActionContext): Promise<boolean> {
   const result = await this.db.execute(sql`
-    INSERT INTO processed_requests (idempotency_key, operation_id, service, action, call_id, status, attempt)
-    VALUES (${ctx.idempotencyKey}, ${ctx.operationId}, ${ctx.service}, ${ctx.action}, ${ctx.callId}, 'reserved', 1)
+    INSERT INTO processed_requests (idempotency_key, execution_id, service, action, call_id, status, attempt)
+    VALUES (${ctx.idempotencyKey}, ${ctx.executionId}, ${ctx.service}, ${ctx.action}, ${ctx.callId}, 'reserved', 1)
     ON CONFLICT (idempotency_key) DO NOTHING
     RETURNING idempotency_key
   `);
@@ -1621,37 +1646,49 @@ async claimFailedIdempotencyKey(idempotencyKey: string): Promise<boolean> {
 }
 
 // Helper: Mark as completed
-// IMPORTANT: `result` column is JSONB - pass object directly, NOT JSON.stringify()
+// IMPORTANT: JSONB serialization MUST go through the driver, not raw SQL interpolation
 async completeIdempotencyKey(idempotencyKey: string, result?: unknown, cacheResult = false): Promise<void> {
-  // For JSONB columns, the driver handles serialization
-  // Passing JSON.stringify() would cause double-serialization (string inside JSON)
-  await this.db.execute(sql`
-    UPDATE processed_requests
-    SET status = 'completed',
-        result = ${cacheResult ? result : null}::jsonb,
-        result_cached = ${cacheResult},
-        completed_at = NOW()
-    WHERE idempotency_key = ${idempotencyKey}
-  `);
-
   /*
-   * ⚠️ JSONB SERIALIZATION WARNING:
+   * ⚠️ JSONB SERIALIZATION - USE DRIVER METHODS, NOT RAW INTERPOLATION
    *
-   * WRONG: result = ${JSON.stringify(result)}
-   *   → Stores: '"{\\"key\\":\\"value\\"}"' (string literal)
-   *   → Reading back: you get a string, not an object
+   * PROBLEM with raw SQL interpolation:
+   *   ${result}::jsonb  -- May not serialize correctly depending on driver
+   *   ${JSON.stringify(result)}::jsonb  -- Double-escaping risk
    *
-   * CORRECT: result = ${result}::jsonb
-   *   → Stores: '{"key":"value"}' (JSON object)
-   *   → Reading back: you get the original object
+   * SOLUTION: Use driver-specific JSONB handling:
    *
-   * Most SQL drivers (pg, drizzle, etc.) automatically serialize
-   * objects to JSON for JSONB columns. Check your driver's docs.
+   * For Drizzle ORM:
+   *   - Use jsonb() column type in schema
+   *   - Pass object directly to update()
    *
-   * If your driver requires explicit serialization:
-   *   result = ${JSON.stringify(result)}::jsonb
-   * But NEVER without the ::jsonb cast!
+   * For raw pg driver:
+   *   - Use parameterized query with JSON.stringify()
+   *   - Driver handles escaping
    */
+
+  if (cacheResult && result !== undefined) {
+    // Use ORM update() method for proper JSONB serialization
+    await this.db
+      .update(processedRequests)
+      .set({
+        status: 'completed',
+        result: result,  // Drizzle handles JSONB serialization
+        resultCached: true,
+        completedAt: new Date(),
+      })
+      .where(eq(processedRequests.idempotencyKey, idempotencyKey));
+  } else {
+    // No result to cache
+    await this.db
+      .update(processedRequests)
+      .set({
+        status: 'completed',
+        result: null,
+        resultCached: false,
+        completedAt: new Date(),
+      })
+      .where(eq(processedRequests.idempotencyKey, idempotencyKey));
+  }
 }
 
 // Helper: Mark as failed (keeps record for retry)
@@ -1716,7 +1753,7 @@ Cache result (`result_cached = true`) only when:
 
 ```typescript
 // Generation
-const data = [operationId, service, action, callId].join("\n");
+const data = [executionId, service, action, callId].join("\n");
 const idempotencyKey = crypto.createHash("sha256").update(data).digest("hex");
 ```
 
@@ -1724,7 +1761,7 @@ const idempotencyKey = crypto.createHash("sha256").update(data).digest("hex");
 
 | Column | Example Value |
 |--------|---------------|
-| `operation_id` | `019234ab-5678-7def-...` (UUID from DBOS) |
+| `execution_id` | `019234ab-5678-7def-...` (UUID from initExecution()) |
 | `service` | `iam` |
 | `action` | `createRoles` |
 | `call_id` | `store-123` |
@@ -1976,7 +2013,54 @@ export function calculateDelay(attempt: number, config: RetryConfig = DEFAULT_RE
 }
 ```
 
-#### Retry Strategy: DBOS-Native OR Workflow Restart Only
+#### Retry Strategy: Workflow-Level Restart (MANDATORY)
+
+**THE ONE RETRY MECHANISM:**
+
+Retries happen at the **workflow level**, not step level. When a step fails:
+1. Step throws `ServiceError`
+2. Workflow fails
+3. External orchestrator (Kubernetes restart, job queue, manual trigger) restarts workflow
+4. DBOS replays completed steps (skips them)
+5. Failed step is re-executed
+
+**WHY workflow-level restart?**
+- DBOS step retry (if available) requires careful configuration and testing
+- Service-side idempotency (`processed_requests` table) makes retries safe
+- Simple mental model: fail fast, restart clean
+- No hidden state or timing issues from in-process retry loops
+
+**RETRY POLICY CONFIGURATION:**
+
+```typescript
+// packages/workflows/src/retry/RetryPolicy.ts
+
+export interface WorkflowRetryPolicy {
+  /** Maximum restart attempts before marking workflow as permanently failed */
+  maxRestarts: number;  // Default: 3
+  /** Minimum delay between restarts (exponential backoff applied) */
+  initialDelayMs: number;  // Default: 1000
+  /** Maximum delay between restarts */
+  maxDelayMs: number;  // Default: 60000
+  /** Backoff multiplier */
+  backoffMultiplier: number;  // Default: 2
+}
+
+export const DEFAULT_RETRY_POLICY: WorkflowRetryPolicy = {
+  maxRestarts: 3,
+  initialDelayMs: 1000,
+  maxDelayMs: 60000,
+  backoffMultiplier: 2,
+};
+```
+
+**ORCHESTRATOR RESPONSIBILITIES:**
+
+The external orchestrator (your choice: Kubernetes, Bull queue, custom) MUST:
+1. Track restart count per workflow instance (by dedupeKey)
+2. Apply backoff delay between restarts
+3. Mark workflow as `permanently_failed` after `maxRestarts`
+4. Alert on permanently failed workflows
 
 **⛔ FORBIDDEN PATTERNS:**
 
@@ -1984,53 +2068,32 @@ export function calculateDelay(attempt: number, config: RetryConfig = DEFAULT_RE
 2. **NO custom decorator wrapping `@DBOS.step()`** - breaks DBOS step tracking
 3. **NO retry loops inside step methods** - unpredictable on replay
 4. **NO mutable class state (`this.x = ...`) inside `@DBOS.step()`** - side effects don't replay
+5. **NO step-level retry configuration** - use workflow restart instead
 
 Any of these patterns will cause **silent data corruption** on workflow recovery.
 
-**✅ ALLOWED RETRY PATTERNS:**
-
-**Option 1: DBOS Native Retry (PREFERRED - if supported)**
-
-Check your DBOS version for native retry support:
-
-```typescript
-// Verify actual DBOS API in your version
-@DBOS.step({
-  retries: 3,
-  retryIntervalSeconds: 1,
-  backoffRate: 2,
-  // CRITICAL: If DBOS supports retry predicate, use shouldRetry()
-  // retryPredicate: shouldRetry,  // Check if this exists in your DBOS version
-})
-async createStoreRoles(storeId: string, organizationId: string, userId: string) {
-  await this.callService("iam", "createRoles", { ... }, storeId);
-}
-```
-
-**Option 2: Workflow Restart (External Orchestrator)**
-
-Let step fail, rely on external mechanism to restart workflow:
+**✅ CORRECT PATTERN:**
 
 ```typescript
 @DBOS.workflow()
 async run(input: StoreCreateInput): Promise<StoreCreateOutput> {
-  await this.initExecution();  // MANDATORY first step
+  const { executionId } = await this.initExecution();
   const storeId = await this.generateStoreId();
   await this.createStore(storeId, input);
 
-  // Step fails → workflow fails → external orchestrator restarts
-  // On restart, DBOS replays completed steps, retries failed step
-  await this.createStoreRoles(storeId, input.organizationId, input.userId);
-  await this.assignAdminRole(storeId, input.organizationId, input.userId);
-  await this.createMediaAssetGroup(storeId);
+  // If any step throws → workflow fails → orchestrator restarts
+  // DBOS replays completed steps automatically
+  await this.createStoreRoles(executionId, storeId, input.organizationId, input.userId);
+  await this.assignAdminRole(executionId, storeId, input.organizationId, input.userId);
+  await this.createMediaAssetGroup(executionId, storeId);
 
   return { storeId, organizationId: input.organizationId };
 }
 
-// Plain @DBOS.step() - NO custom wrapper
+// Plain @DBOS.step() - NO retry configuration
 @DBOS.step()
-private async createStoreRoles(storeId: string, organizationId: string, userId: string) {
-  await this.callService("iam", "createRoles", { ... }, storeId);
+private async createStoreRoles(executionId: string, storeId: string, organizationId: string, userId: string) {
+  await this.callService(executionId, "iam", "createRoles", { ... }, storeId);
 }
 ```
 
@@ -2471,10 +2534,10 @@ async storeCleanup(...) { /* remove all store-related data */ }
 
 | Aspect | Before | After |
 |--------|--------|-------|
-| Service calls | `this.broker.call("iam.action", params)` | `this.callService("iam", "action", payload, callId)` |
+| Service calls | `this.broker.call("iam.action", params)` | `this.callService(executionId, "iam", "action", payload, callId)` |
 | callId | N/A | **REQUIRED**, deterministic from input/saved state |
-| operationId | N/A | **UUID** from `initExecution()` step (NOT DBOS.workflowID directly!) |
-| Context | N/A | `ActionContext` with version, operationId, idempotencyKey, traceId |
+| executionId | N/A | **UUID** from `initExecution()` step, passed explicitly |
+| Context | N/A | `ActionContext` with version, executionId, idempotencyKey, traceId |
 | Payload format | Mixed into params | Explicit `{ payload, ctx }` envelope |
 | Idempotency | None | Services return success + `meta.idempotent` on duplicate |
 | In-progress state | N/A | `TRANSIENT_IN_PROGRESS` (retryable, DBOS backs off) |
@@ -2494,9 +2557,12 @@ async storeCleanup(...) { /* remove all store-related data */ }
 packages/workflows/src/ports/
 ├── index.ts
 ├── types.ts              # ActionContext, ActionRequest, ActionResponse, ServicePort, ServiceError
-├── LocalServicePort.ts   # With isStructuredError(), isTransportError() helpers
+├── LocalServicePort.ts   # With isStructuredError(), isTransportError(), logOriginalErrorDetails() helpers
 ├── MockServicePort.ts    # For unit testing
 └── PortFactory.ts
+
+packages/shared-kernel/src/observability/
+└── LegacyResponseTracker.ts  # Migration tracking (uses Date, NOT in ports layer)
 
 packages/workflows/src/retry/
 ├── index.ts
@@ -2568,7 +2634,7 @@ Each service should implement:
 
 - [ ] Create `packages/workflows/src/ports/types.ts`
   - [ ] `ActionContext` interface:
-    - [ ] `operationId` - UUID (NOT human-readable, NOT dedupeKey)
+    - [ ] `executionId` - UUID (NOT human-readable, NOT dedupeKey)
     - [ ] `callId` required field
     - [ ] NO `timestamp` field (non-deterministic, breaks recovery)
   - [ ] `ActionRequest<T>` / `ActionResponse<T>` interfaces
@@ -2583,9 +2649,10 @@ Each service should implement:
   - [ ] Unknown errors → `INTERNAL_ERROR` (not retryable)
   - [ ] Use `isServiceError()` instead of `instanceof ServiceError`
 
-- [ ] Create `packages/workflows/src/ports/LegacyResponseTracker.ts`
+- [ ] Create `packages/shared-kernel/src/observability/LegacyResponseTracker.ts`
   - [ ] Track legacy response format usage for migration monitoring
   - [ ] Support enforcement mode (warn → fail after deadline)
+  - [ ] **IN OBSERVABILITY LAYER, NOT PORTS** (uses non-deterministic Date)
 
 - [ ] Create `packages/workflows/src/ports/MockServicePort.ts`
   - [ ] `onAction()`, `onActionReturn()`, `onActionThrow()`
@@ -2658,14 +2725,14 @@ Each service should implement:
 
 - [ ] Create `processed_requests` migration in each service
   - [ ] `idempotency_key` PRIMARY KEY (SHA-256 hash)
-  - [ ] `operation_id`, `service`, `action`, `call_id` columns
+  - [ ] `execution_id`, `service`, `action`, `call_id` columns
   - [ ] `status` column: `'reserved' | 'completed' | 'failed'`
   - [ ] `attempt` INTEGER for retry tracking (no deletion on failure)
   - [ ] `last_error` TEXT for debugging failed attempts
   - [ ] `result` JSONB (nullable), `result_cached` flag
   - [ ] **JSONB: pass object directly, NOT JSON.stringify()** (avoids double-serialization)
   - [ ] `updated_at` TIMESTAMPTZ for status changes
-  - [ ] Indexes: `created_at`, `operation_id`, `status`
+  - [ ] Indexes: `created_at`, `execution_id`, `status`
   - [ ] `alert_stale_reserved_requests()` function for monitoring
 
 - [ ] Implement atomic reservation pattern in BrokerActions:
