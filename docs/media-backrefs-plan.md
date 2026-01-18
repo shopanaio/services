@@ -78,8 +78,8 @@ export function formatEntityRef(service: string, entityType: string, entityId: s
 **File:** `services/media/src/repositories/FileBackRefRepository.ts`
 
 Key methods:
-- `link(fileId, entityRef, role)` - idempotent (ON CONFLICT DO NOTHING), returns refCount
-- `linkMany(fileIds, entityRef, role)` - batch link, returns linkedCount
+- `link(fileId, entityRef, role)` - **INSERT ... SELECT FROM files WHERE id=?** (no FK error if file missing), returns refCount
+- `linkMany(fileIds, entityRef, role)` - batch link via INSERT SELECT, returns linkedCount
 - `unlink(fileId, entityRef, role)` - DELETE + count, returns `{ remainingCount }`
 - `unlinkAllByEntity(entityRef)` - **DELETE ... RETURNING file_id** → batch count → fileIds with 0 refs
 - `countByFileId(fileId)` - single file count
@@ -147,15 +147,28 @@ export interface EntityDeletedResult {
 | linked (new or existed) | true | actual count | — |
 | file not found | true | 0 | WARN log, no insert |
 
+**link() SQL pattern** (no FK violation if file missing):
+```sql
+INSERT INTO file_back_refs (file_id, service, entity_type, entity_id, role, created_at)
+SELECT $fileId, $service, $entityType, $entityId, $role, NOW()
+FROM files WHERE id = $fileId
+ON CONFLICT DO NOTHING
+```
+Returns 0 rows if file doesn't exist → `refCount=0`, WARN log.
+
 **`fileUnlink`:**
 | Case | success | refCount | deleted |
 |------|---------|----------|---------|
 | backRef deleted | true | actual remaining | false (or true if triggered hardDelete) |
 | backRef didn't exist | true | actual remaining | false |
-| file deleted concurrently | true | 0 (best-effort) | false |
+| file not found | true | 0 | false |
+| file deleted concurrently | true | 0 | false |
 | hardDelete triggered by THIS call | true | 0 | true |
 
-**Note:** `refCount` is best-effort. On concurrent delete it may be 0, but `deleted=false` because THIS call didn't trigger it.
+**Note:** `refCount` is best-effort, equals 0 when:
+- file not found (never existed or already deleted)
+- file deleted concurrently
+- FK cascade removed refs
 
 **`entityDeleted`:**
 - `unlinkedCount` = number of **backRef rows deleted** (not files)
