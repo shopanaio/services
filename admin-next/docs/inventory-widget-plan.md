@@ -17,13 +17,17 @@ ALTER TABLE inventory.warehouse_stock ADD COLUMN
   unavailable_qty INTEGER NOT NULL DEFAULT 0;
 
 ALTER TABLE inventory.warehouse_stock
+  ADD CONSTRAINT warehouse_stock_onhand_check CHECK (quantity_on_hand >= 0),
   ADD CONSTRAINT warehouse_stock_reserved_check CHECK (reserved_qty >= 0),
   ADD CONSTRAINT warehouse_stock_unavailable_check CHECK (unavailable_qty >= 0),
   ADD CONSTRAINT warehouse_stock_unavailable_le_onhand CHECK (unavailable_qty <= quantity_on_hand);
 
 -- Убедиться, что есть UNIQUE (project_id, warehouse_id, variant_id).
--- Backorder разрешен, поэтому CHECK на non-negative available не добавляем.
--- last_change_id убран — актуальный change можно получить по seq DESC.
+--
+-- Backorder семантика:
+--   quantity_on_hand >= 0 всегда (физический остаток не может быть отрицательным)
+--   reserved_qty может превышать on_hand → available = on_hand - reserved - unavailable < 0
+--   Backorder = max(0, -available) — реализуется через reserved > on_hand, НЕ через отрицательный on_hand
 ```
 
 ### 2. Журнал изменений `stock_changes` (тонкий delta-log)
@@ -48,10 +52,21 @@ CREATE TABLE inventory.stock_changes (
     OR delta_unavailable <> 0
   ),
 
-  -- Баланс после изменения (история без пересчета)
-  on_hand_after INTEGER NOT NULL,
-  reserved_after INTEGER NOT NULL CHECK (reserved_after >= 0),
-  unavailable_after INTEGER NOT NULL CHECK (unavailable_after >= 0),
+  -- Баланс после изменения (заполняется после upsert warehouse_stock)
+  -- NULLable для intent-вставки, NOT NULL гарантируется CHECK + обязательным UPDATE
+  on_hand_after INTEGER,
+  reserved_after INTEGER,
+  unavailable_after INTEGER,
+  -- После заполнения: все >= 0, unavailable <= on_hand
+  CONSTRAINT stock_changes_after_filled CHECK (
+    (on_hand_after IS NULL AND reserved_after IS NULL AND unavailable_after IS NULL)
+    OR (
+      on_hand_after IS NOT NULL AND on_hand_after >= 0
+      AND reserved_after IS NOT NULL AND reserved_after >= 0
+      AND unavailable_after IS NOT NULL AND unavailable_after >= 0
+      AND unavailable_after <= on_hand_after
+    )
+  ),
 
   -- Тип операции (что произошло)
   movement_type VARCHAR(20) NOT NULL,
@@ -100,9 +115,7 @@ CREATE TABLE inventory.stock_changes (
 -- seq должен быть уникальным
 ALTER TABLE inventory.stock_changes ADD CONSTRAINT stock_changes_seq_unique UNIQUE (seq);
 
--- Физический инвариант: unavailable не может превышать on_hand
-ALTER TABLE inventory.stock_changes
-  ADD CONSTRAINT stock_changes_unavailable_le_onhand CHECK (unavailable_after <= on_hand_after);
+-- Инвариант unavailable <= on_hand уже в stock_changes_after_filled CHECK
 
 -- Индексы для аналитики (используем seq для корректного порядка)
 CREATE INDEX idx_stock_changes_variant_seq ON inventory.stock_changes(variant_id, seq DESC);
@@ -127,17 +140,16 @@ CREATE INDEX idx_stock_changes_idempo_lookup
 
 ```sql
 WITH ins AS (
-  -- Сначала пытаемся записать в журнал (идемпотентность)
+  -- Intent-вставка: дельты + мета, after-поля NULL (заполним после upsert)
   INSERT INTO inventory.stock_changes (
     project_id, warehouse_id, variant_id,
     delta_on_hand, delta_reserved, delta_unavailable,
-    on_hand_after, reserved_after, unavailable_after,  -- пока placeholder, обновим ниже
+    -- on_hand_after, reserved_after, unavailable_after — NULL, заполним в update_after
     movement_type, reason, transfer_direction,
     source_system, source_event_id, correlation_id, note, created_by
   )
   VALUES ($project_id, $warehouse_id, $variant_id,
           $delta_on_hand, $delta_reserved, $delta_unavailable,
-          0, 0, 0,  -- placeholder
           $movement_type, $reason, $transfer_direction,
           $source_system, $source_event_id, $correlation_id, $note, $created_by)
   ON CONFLICT (project_id, source_system, source_event_id, warehouse_id, variant_id)
@@ -146,15 +158,16 @@ WITH ins AS (
 ),
 upsert_stock AS (
   -- Обновляем warehouse_stock ТОЛЬКО если ins вставился
+  -- INSERT берёт данные из SELECT (не VALUES!) чтобы загейтить через ins
+  -- Для новой строки: нули, дельты применяются только в DO UPDATE
   INSERT INTO inventory.warehouse_stock (project_id, warehouse_id, variant_id, quantity_on_hand, reserved_qty, unavailable_qty)
-  VALUES ($project_id, $warehouse_id, $variant_id,
-          $delta_on_hand, $delta_reserved, $delta_unavailable)  -- начальные значения = дельты для новой строки
+  SELECT $project_id, $warehouse_id, $variant_id, 0, 0, 0
+  FROM ins  -- INSERT выполнится только если ins вернул строку
   ON CONFLICT (project_id, warehouse_id, variant_id) DO UPDATE SET
     quantity_on_hand = inventory.warehouse_stock.quantity_on_hand + $delta_on_hand,
     reserved_qty     = inventory.warehouse_stock.reserved_qty     + $delta_reserved,
     unavailable_qty  = inventory.warehouse_stock.unavailable_qty  + $delta_unavailable,
     updated_at = NOW()
-  WHERE EXISTS (SELECT 1 FROM ins)
   RETURNING quantity_on_hand, reserved_qty, unavailable_qty
 ),
 update_after AS (
@@ -171,6 +184,9 @@ update_after AS (
 SELECT * FROM update_after;
 -- Пустой результат = идемпотентный повтор (операция уже была выполнена)
 ```
+
+**Важно**: строка `warehouse_stock` должна существовать до операций типа SELL/RESERVE/RELEASE.
+Для первого события (RECEIVE/SEED) вставляется с нулями, затем применяется дельта в DO UPDATE.
 
 **Важно**:
 - Пустой результат означает идемпотентный повтор — это **не ошибка**
@@ -414,6 +430,9 @@ LEFT JOIN variant_oos vo ON vo.variant_id = variant_stock.id;
 При первой миграции добавить стартовую запись в `stock_changes` для каждой строки `warehouse_stock`:
 
 ```sql
+-- Требуется pgcrypto для digest()
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- Seed-записи для существующих остатков
 -- source_event_id должен быть <= 128 символов, используем короткий хеш
 INSERT INTO inventory.stock_changes (
@@ -433,7 +452,7 @@ SELECT
   'SEED',
   'MIGRATION',
   -- Детерминированный короткий ключ (64 hex = 64 символа < 128)
-  encode(sha256((ws.project_id || ws.warehouse_id || ws.variant_id)::bytea), 'hex'),
+  encode(digest(concat_ws(':', ws.project_id::text, ws.warehouse_id::text, ws.variant_id::text), 'sha256'), 'hex'),
   COALESCE(ws.updated_at, ws.created_at, NOW())
 FROM inventory.warehouse_stock ws;
 ```
@@ -567,7 +586,7 @@ extend type WidgetQuery {
 4. `repositories/models/inbound-supply.ts`
 
 ### Изменить модели
-1. `repositories/models/stock.ts` — добавить reserved_qty, unavailable_qty, last_change_id
+1. `repositories/models/stock.ts` — добавить reserved_qty, unavailable_qty
 
 ### Новые файлы
 1. `repositories/inventory-widget/InventoryWidgetRepository.ts`
