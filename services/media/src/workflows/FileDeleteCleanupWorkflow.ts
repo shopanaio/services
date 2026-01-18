@@ -33,8 +33,7 @@ export class FileDeleteCleanupWorkflow extends BaseWorkflow {
     const result = await this.broker.call("inventory.fileHardDeleted", {
       fileId,
     });
-    // Use DBOS.logger for proper context in step retries
-    DBOS.logger.info(
+    this.logger.info(
       { fileId, deletedCount: result?.deletedCount },
       "Inventory notified"
     );
@@ -42,8 +41,7 @@ export class FileDeleteCleanupWorkflow extends BaseWorkflow {
 
   @DBOS.step()
   async markNeedsAttention(fileId: string, error: Error): Promise<void> {
-    // Use DBOS.logger for proper context in step
-    DBOS.logger.error(
+    this.logger.error(
       { fileId, error: error.message },
       "File cleanup failed after max retries, needs manual attention"
     );

@@ -48,19 +48,19 @@ export class VariantSetMediaScript extends BaseScript<VariantSetMediaParams, Var
     nextFileIds: string[],
     previousFileIds: string[]
   ): Promise<void> {
+    const uniqueNextFileIds = Array.from(new Set(nextFileIds));
+    const previousSet = new Set(previousFileIds);
+    const nextSet = new Set(uniqueNextFileIds);
+    const hasChanges =
+      previousFileIds.length !== uniqueNextFileIds.length ||
+      previousFileIds.some((fileId) => !nextSet.has(fileId)) ||
+      uniqueNextFileIds.some((fileId) => !previousSet.has(fileId));
+
+    if (!hasChanges) {
+      return;
+    }
+
     try {
-      const uniqueNextFileIds = Array.from(new Set(nextFileIds));
-      const previousSet = new Set(previousFileIds);
-      const nextSet = new Set(uniqueNextFileIds);
-      const hasChanges =
-        previousFileIds.length !== uniqueNextFileIds.length ||
-        previousFileIds.some((fileId) => !nextSet.has(fileId)) ||
-        uniqueNextFileIds.some((fileId) => !previousSet.has(fileId));
-
-      if (!hasChanges) {
-        return;
-      }
-
       const workflow =
         this.workflow.get<BackRefNotifyWorkflow>("backRefNotify");
       await DBOS.startWorkflow(workflow).run({
