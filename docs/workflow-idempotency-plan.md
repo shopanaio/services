@@ -1,4 +1,6 @@
-# DBOS Workflow Idempotency Architecture
+---
+
+# DBOS Workflow Idempotency Architecture (Corrected v2)
 
 **Author**: Generated from existing codebase patterns
 **Date**: 2025-01-18
@@ -8,7 +10,19 @@
 
 This document describes how to add idempotency support to DBOS workflows when calling external services via `ServiceBroker`. The goal is to make workflow retries and recovery safe without duplicate side effects.
 
-**Key insight**: Idempotency key must be based on **business operation identity** (`dedupeKey`), not execution instance. This ensures idempotency works even when workflow is restarted by orchestrator (new pod, new DBOS execution).
+**Key insight**: Idempotency must be based on **business operation identity** (`dedupeKey`), not an execution instance. This ensures idempotency survives orchestrator restarts (new pod, new DBOS execution).
+
+✅ **Corrections included in this revision (v2)**
+
+1. **Payload safety**: “same idempotency key” must imply **same payload** → add `payloadHash` and enforce it service-side **for all statuses**.
+2. **Lease safety**: prevent dual-execution in stale-claim races → add `lease_owner` + `lease_expires_at`, and make completion **owner-aware** (only the current lease owner can complete/fail).
+3. **Attempt-scoped lease owner**: `lease_owner` must be a per-attempt UUID (not `executionId`, not `"unknown"`).
+4. **dedupeKey normalization**: canonical `dedupeKey` to avoid accidental mismatch (case/whitespace/unicode).
+5. **Canonical JSON contract**: define stable canonicalization rules to avoid false conflicts.
+6. **Result semantics**: if you don’t cache full results, return a deterministic **receipt** rather than a fake `{success:true}`.
+7. **Transient/non-transient mapping**: strict contract (`TRANSIENT_*` => retryable) so orchestrator restarts correctly.
+
+---
 
 ## Current Architecture
 
@@ -71,17 +85,10 @@ export interface ActionContext {
   /**
    * Business operation identifier - the PRIMARY key for idempotency.
    *
-   * ⚠️ CRITICAL: This is what makes idempotency work across restarts!
-   *
    * | Concept | Purpose | Format | Source |
    * |---------|---------|--------|--------|
-   * | `dedupeKey` | Global idempotency (survives restarts) | Human-readable: `store:create:my-store` | `Workflow.workflowID(input)` |
-   * | `executionId` | Tracing/diagnostics only | UUID | Optional, for debugging |
-   *
-   * WHY dedupeKey, not executionId?
-   * - Orchestrator restarts workflow → new DBOS execution → new executionId
-   * - But dedupeKey stays the same → service recognizes duplicate
-   * - Manual retry with same input → same dedupeKey → idempotent
+   * | `dedupeKey` | Global idempotency (survives restarts) | Canonical: `store:create:org-123:my-store` | `Workflow.workflowID(input)` |
+   * | `executionId` | Tracing/diagnostics only | UUID | Optional |
    */
   dedupeKey: string;
 
@@ -95,32 +102,28 @@ export interface ActionContext {
    * Deterministic call identifier within the workflow.
    * MUST be derived from workflow input or deterministic computation.
    * Used to distinguish multiple calls to same action within one workflow.
-   *
-   * Examples: storeId, `${storeId}:${userId}`, `${orderId}:${itemId}`
    */
   callId: string;
 
   /**
    * Unique key for idempotency lookup.
    * Generated as SHA-256 hash of: dedupeKey + service + action + callId
-   *
-   * WHY hash?
-   * - Avoids delimiter collision (if callId contains `:`)
-   * - Fixed-length key for consistent indexing
-   * - Components stored separately for human inspection
    */
   idempotencyKey: string;
 
   /**
-   * Optional: Current execution instance ID (for tracing/diagnostics only).
+   * Hash of canonical JSON payload.
+   * Enforces "same idempotencyKey => same payload".
+   */
+  payloadHash: string;
+
+  /**
+   * Optional: Current execution instance ID (for tracing only).
    * May differ on restart - NOT used for idempotency!
    */
   executionId?: string;
 
-  /**
-   * Optional: Distributed tracing ID.
-   * Used for observability only, NOT for business logic.
-   */
+  /** Optional: distributed tracing ID. */
   traceId?: string;
 }
 ```
@@ -130,60 +133,46 @@ export interface ActionContext {
 ```typescript
 // packages/workflows/src/types.ts
 
-/**
- * Standard request envelope for all service calls.
- */
 export interface ActionRequest<T = unknown> {
   payload: T;
   ctx: ActionContext;
 }
 
-/**
- * Standard response envelope.
- *
- * RULE: Action handlers ALWAYS return ActionResponse, NEVER throw.
- * Throwing is reserved for programmer errors / invariant violations only.
- */
 export interface ActionResponse<T = unknown> {
   result: T;
   error?: ActionError;
   meta?: {
     /** True if this was a duplicate request (idempotent replay) */
     idempotent?: boolean;
+
+    /** Attempt counter from service-side record */
+    attempt?: number;
+
+    /** Optional receipt for non-cached responses */
+    receipt?: ActionReceipt;
   };
+}
+
+export interface ActionReceipt {
+  idempotencyKey: string;
+  status: "completed";
+  completedAt: string; // ISO
 }
 
 export interface ActionError {
   code: string;
   message: string;
-  /** Explicit retryable flag. If not set, derived from code prefix. */
   retryable?: boolean;
 }
 ```
 
 #### 3. ServiceError (for Workflow-Side)
 
+(kept as-is)
+
 ```typescript
 // packages/workflows/src/types.ts
 
-/**
- * Error codes convention:
- *
- * RETRYABLE (workflow will be restarted):
- * - TRANSIENT_ERROR        : Generic transient failure
- * - TRANSIENT_TIMEOUT      : Request timed out
- * - TRANSIENT_UNAVAILABLE  : Service temporarily unavailable
- * - TRANSIENT_IN_PROGRESS  : Another execution is processing (will complete soon)
- *
- * NOT RETRYABLE (fail immediately):
- * - VALIDATION_*           : Bad input, schema violation
- * - VALIDATION_UNKNOWN_ACTION : Action doesn't exist
- * - NOT_FOUND              : Resource doesn't exist
- * - CONFLICT               : Already exists, duplicate (but completed)
- * - INTERNAL_*             : Invariant violated, logic error
- *
- * RULE: Only codes starting with "TRANSIENT_" are auto-retryable.
- */
 export class ServiceError extends Error {
   public readonly retryable: boolean;
 
@@ -221,10 +210,6 @@ export class ServiceError extends Error {
   }
 }
 
-/**
- * Shape-based type guard for ServiceError.
- * Use this instead of `instanceof` for cross-package compatibility.
- */
 export function isServiceError(error: unknown): error is ServiceError {
   if (error === null || typeof error !== "object") return false;
   const obj = error as Record<string, unknown>;
@@ -243,6 +228,13 @@ export function isServiceError(error: unknown): error is ServiceError {
 
 ## Context Builder
 
+✅ **Fixes applied**:
+
+* `dedupeKey` must be **canonical** so the same business intent maps to the same key.
+* Add `payloadHash`, derived from **canonical JSON** of payload.
+* `idempotencyKey` stays `sha256(dedupeKey/service/action/callId)`.
+* Canonical JSON rules are specified explicitly (see below).
+
 ```typescript
 // packages/workflows/src/context.ts
 
@@ -251,50 +243,66 @@ import { DBOS } from "@dbos-inc/dbos-sdk";
 import type { ActionContext } from "./types.js";
 
 /**
- * Build ActionContext for a service call.
+ * Canonicalize dedupeKey inputs to avoid accidental mismatch:
+ * - trim
+ * - lowercase (prefer fixed locale or constrain to slug)
+ * - unicode normalize (NFKC)
  *
- * @param dedupeKey - Business operation ID from Workflow.workflowID(input)
- * @param service - Target service name
- * @param action - Action being called
- * @param callId - Deterministic identifier for this specific call within workflow
- * @param executionId - Optional: current execution ID for tracing (NOT for idempotency!)
+ * If you already validate to a slug/handle, canonicalize variable parts there instead.
  */
-export function buildActionContext(
+function canonicalizeDedupeKey(dedupeKey: string): string {
+  return dedupeKey.trim().toLowerCase().normalize("NFKC");
+}
+
+/**
+ * Canonical JSON: stable key ordering + deterministic representation.
+ *
+ * Rules (MUST be consistent everywhere payloadHash is computed):
+ * - Objects: keys sorted lexicographically
+ * - Arrays: preserve order (do NOT sort)
+ * - Date: convert to ISO string before hashing (caller responsibility or handled here)
+ * - BigInt: convert to string
+ * - undefined: either removed or converted (choose ONE; here we REMOVE)
+ * - Functions/classes/symbols: prohibited
+ */
+function canonicalJson(value: unknown): string {
+  return stableStringify(value); // implement/import stable stringify with the rules above
+}
+
+function sha256Hex(data: string): string {
+  return crypto.createHash("sha256").update(data).digest("hex");
+}
+
+export function buildActionContext<TPayload>(
   dedupeKey: string,
   service: string,
   action: string,
   callId: string,
+  payload: TPayload,
   executionId?: string
 ): ActionContext {
   if (!dedupeKey || !dedupeKey.trim()) {
     throw new Error(`dedupeKey is required for ${service}.${action}`);
   }
-
   if (!callId || !callId.trim()) {
     throw new Error(`callId is required and must be deterministic for ${service}.${action}`);
   }
 
-  // Idempotency key based on BUSINESS operation, not execution instance
-  const idempotencyKey = hashIdempotencyKey(dedupeKey, service, action, callId);
+  const canonicalKey = canonicalizeDedupeKey(dedupeKey);
+  const idempotencyKey = sha256Hex([canonicalKey, service, action, callId].join("\n"));
+  const payloadHash = sha256Hex(canonicalJson(payload));
 
   return {
     version: 1,
-    dedupeKey,
+    dedupeKey: canonicalKey,
     service,
     action,
     callId,
     idempotencyKey,
+    payloadHash,
     executionId,
     traceId: DBOS.traceId,
   };
-}
-
-/**
- * Generate SHA-256 hash for idempotency key.
- */
-function hashIdempotencyKey(dedupeKey: string, service: string, action: string, callId: string): string {
-  const data = [dedupeKey, service, action, callId].join("\n");
-  return crypto.createHash("sha256").update(data).digest("hex");
 }
 ```
 
@@ -302,173 +310,42 @@ function hashIdempotencyKey(dedupeKey: string, service: string, action: string, 
 
 ## Refactored Workflow
 
-### Key Changes
+✅ **Fix applied**: recommend making `workflowID()` produce **canonical** key (orgId + normalized store handle).
 
-1. `dedupeKey` from `Workflow.workflowID(input)` — survives restarts
-2. Each external service call is a **separate `@DBOS.step()`**
-3. `callId` distinguishes multiple calls to same action
-4. Check `response.error` and throw `ServiceError` for workflow control flow
+```typescript
+static workflowID(input: StoreCreateInput): string {
+  const name = input.name.trim().toLowerCase().normalize("NFKC");
+  return `store:create:${input.organizationId}:${name}`;
+}
+```
+
+Workflow steps build payload first → build ctx with payload → call broker with envelope.
 
 ```typescript
 // services/project/src/workflows/StoreCreateWorkflow.ts
 
-import { DBOS, ConfiguredInstance } from "@dbos-inc/dbos-sdk";
-import { v7 as uuidv7 } from "uuid";
-import { buildActionContext, ServiceError } from "@shopana/workflows";
-import type { ActionRequest, ActionResponse } from "@shopana/workflows";
-import { Roles, RolesMeta } from "@shopana/rbac";
-import type { Kernel } from "../kernel/Kernel.js";
-import type { StoreCreateInput, StoreCreateOutput } from "./types.js";
+@DBOS.step()
+private async createStoreRoles(dedupeKey: string, storeId: string, organizationId: string, userId: string) {
+  const payload = {
+    userId,
+    organizationId,
+    domain: `store:${storeId}`,
+    roles: buildStoreRoles(),
+  };
 
-export class StoreCreateWorkflow extends ConfiguredInstance {
-  constructor(
-    name: string,
-    private readonly kernel: Kernel,
-    private readonly broker: ServiceBroker
-  ) {
-    super(name);
+  const ctx = buildActionContext(dedupeKey, "iam", "createRoles", storeId, payload);
+
+  const request: ActionRequest = { payload, ctx };
+
+  const response = await this.broker.call<ActionResponse>("iam.createRoles", request);
+
+  if (response.error) {
+    throw ServiceError.fromActionError("iam", "createRoles", response.error);
   }
-
-  protected get repository() {
-    return this.kernel.getServices().repository;
-  }
-
-  /**
-   * Business operation ID - MUST be deterministic from input.
-   * This is what makes idempotency work across restarts!
-   */
-  static workflowID(input: StoreCreateInput): string {
-    return `store:create:${input.name}`;
-  }
-
-  @DBOS.workflow()
-  async run(input: StoreCreateInput): Promise<StoreCreateOutput> {
-    const { organizationId, userId } = input;
-
-    // dedupeKey is deterministic from input - survives workflow restarts
-    const dedupeKey = StoreCreateWorkflow.workflowID(input);
-
-    // Step 1: Generate store ID (deterministic on DBOS recovery)
-    const storeId = await this.generateStoreId();
-
-    // Step 2: Create store in local database
-    await this.createStore(storeId, input, organizationId);
-
-    // Step 3-5: External service calls with idempotency
-    await this.createStoreRoles(dedupeKey, storeId, organizationId, userId);
-    await this.assignAdminRole(dedupeKey, storeId, organizationId, userId);
-    await this.createMediaAssetGroup(dedupeKey, storeId);
-
-    return { storeId, organizationId };
-  }
-
-  @DBOS.step()
-  private async generateStoreId(): Promise<string> {
-    return uuidv7();
-  }
-
-  @DBOS.step()
-  private async createStore(storeId: string, input: StoreCreateInput, organizationId: string) {
-    return this.repository.store.create({
-      id: storeId,
-      organizationId,
-      name: input.name,
-      displayName: input.displayName,
-      locales: input.locales,
-      currencies: input.currencies,
-      defaultCurrency: input.defaultCurrency,
-      status: input.status,
-      timezone: input.timezone,
-      email: input.email,
-    });
-  }
-
-  /**
-   * Step: Create roles for store domain.
-   * callId = storeId (unique within this workflow)
-   */
-  @DBOS.step()
-  private async createStoreRoles(dedupeKey: string, storeId: string, organizationId: string, userId: string) {
-    const ctx = buildActionContext(dedupeKey, "iam", "createRoles", storeId);
-
-    const request: ActionRequest = {
-      payload: {
-        userId,
-        organizationId,
-        domain: `store:${storeId}`,
-        roles: buildStoreRoles(),
-      },
-      ctx,
-    };
-
-    const response = await this.broker.call<ActionResponse>("iam.createRoles", request);
-
-    if (response.error) {
-      throw ServiceError.fromActionError("iam", "createRoles", response.error);
-    }
-  }
-
-  /**
-   * Step: Assign admin role to store creator.
-   * callId includes userId to distinguish multiple role assignments.
-   */
-  @DBOS.step()
-  private async assignAdminRole(dedupeKey: string, storeId: string, organizationId: string, userId: string) {
-    const ctx = buildActionContext(dedupeKey, "iam", "assignRole", `${storeId}:admin:${userId}`);
-
-    const request: ActionRequest = {
-      payload: {
-        userId,
-        organizationId,
-        domain: `store:${storeId}`,
-        roleName: "admin",
-      },
-      ctx,
-    };
-
-    const response = await this.broker.call<ActionResponse>("iam.assignRole", request);
-
-    if (response.error) {
-      throw ServiceError.fromActionError("iam", "assignRole", response.error);
-    }
-  }
-
-  /**
-   * Step: Create media asset group for this store.
-   */
-  @DBOS.step()
-  private async createMediaAssetGroup(dedupeKey: string, storeId: string) {
-    const ctx = buildActionContext(dedupeKey, "media", "createAssetGroup", storeId);
-
-    const request: ActionRequest = {
-      payload: {
-        ownerType: "store",
-        ownerId: storeId,
-      },
-      ctx,
-    };
-
-    const response = await this.broker.call<ActionResponse>("media.createAssetGroup", request);
-
-    if (response.error) {
-      throw ServiceError.fromActionError("media", "createAssetGroup", response.error);
-    }
-  }
-}
-
-function buildStoreRoles() {
-  return (Object.keys(Roles.store) as Array<keyof typeof Roles.store>).map((roleName) => {
-    const permissions = Roles.store[roleName];
-    const meta = RolesMeta.store[roleName];
-    return {
-      name: roleName,
-      displayName: meta.displayName,
-      description: meta.description,
-      permissions: permissions.map((p) => ({ resource: p.resource, action: p.action })),
-    };
-  });
 }
 ```
+
+Do the same for `assignRole`, `createAssetGroup`, etc.
 
 ---
 
@@ -476,202 +353,129 @@ function buildStoreRoles() {
 
 ### Design Rule: Never Throw, Always Return
 
-**Action handlers ALWAYS return `ActionResponse`, NEVER throw.**
+**Action handlers ALWAYS return `ActionResponse`, NEVER throw** (except programmer errors; dispatcher catches them and returns `INTERNAL_ERROR`).
 
-- `return { result }` — success
-- `return { result: null, error: { code, message, retryable } }` — expected error
-- Throwing is only for programmer errors / invariant violations (and dispatcher catches those)
+✅ **Fixes applied**:
 
-This makes control flow explicit and eliminates "mixed style" confusion.
-
-### Updated BrokerActions Pattern
-
-```typescript
-// Example: services/iam/src/IamBrokerActions.ts
-
-import { Injectable } from "@nestjs/common";
-import { BrokerActions, Action } from "@shopana/shared-kernel";
-import type { ActionRequest, ActionResponse, ActionContext } from "@shopana/workflows";
-
-@Injectable()
-export class IamBrokerActions extends BrokerActions {
-
-  @Action("createRoles")
-  async createRoles(
-    input: ActionRequest<CreateRolesPayload> | CreateRolesPayload
-  ): Promise<ActionResponse<CreateRolesResult>> {
-    const { payload, ctx } = this.unwrapRequest(input);
-
-    // No context = legacy call, execute directly
-    if (!ctx) {
-      const result = await this.kernel.runScript(CreateRolesScript, payload);
-      return { result };
-    }
-
-    // Try to reserve idempotency key
-    const reservation = await this.tryReserveIdempotencyKey(ctx);
-
-    if (!reservation.acquired) {
-      // Key already exists - check status
-      if (reservation.existing.status === 'completed') {
-        return {
-          result: reservation.existing.resultCached
-            ? reservation.existing.result
-            : { success: true },
-          meta: { idempotent: true },
-        };
-      }
-
-      // Status is 'reserved' - check if stale
-      if (reservation.existing.status === 'reserved') {
-        // Try to claim stale reservation
-        const claimed = await this.tryClaimStaleReservation(ctx.idempotencyKey);
-        if (!claimed) {
-          return {
-            result: null as any,
-            error: {
-              code: "TRANSIENT_IN_PROGRESS",
-              message: "Request already in progress, please retry",
-              retryable: true,
-            },
-          };
-        }
-        // Successfully claimed stale reservation, continue to execute
-      }
-
-      // Status is 'failed' - claim for retry
-      if (reservation.existing.status === 'failed') {
-        const claimed = await this.tryClaimFailedKey(ctx.idempotencyKey);
-        if (!claimed) {
-          return {
-            result: null as any,
-            error: {
-              code: "TRANSIENT_IN_PROGRESS",
-              message: "Request retry already in progress",
-              retryable: true,
-            },
-          };
-        }
-        // Successfully claimed, continue to execute
-      }
-    }
-
-    // Execute the action
-    try {
-      const result = await this.kernel.runScript(CreateRolesScript, payload);
-      await this.completeIdempotencyKey(ctx.idempotencyKey, result);
-      return { result };
-    } catch (error) {
-      // Mark as failed for potential retry
-      await this.failIdempotencyKey(ctx.idempotencyKey, String(error));
-
-      // Return error response (NOT throw!)
-      return {
-        result: null as any,
-        error: {
-          code: "INTERNAL_ERROR",
-          message: error instanceof Error ? error.message : String(error),
-          retryable: false,
-        },
-      };
-    }
-  }
-
-  private unwrapRequest<T>(input: ActionRequest<T> | T): { payload: T; ctx?: ActionContext } {
-    if (input && typeof input === "object" && "payload" in input && "ctx" in input) {
-      return input as ActionRequest<T>;
-    }
-    return { payload: input as T };
-  }
-}
-```
+* Enforce `payloadHash` consistency **for any existing key** (reserved/completed/failed).
+* Use **lease owner + expiration** to prevent dual execution.
+* Make completion/failure **owner-aware** so stale workers can’t overwrite a newer attempt.
 
 ---
 
 ## Idempotency Support
 
-### Database Table
+### Database Table (Corrected v2)
+
+✅ **Fixes applied**:
+
+* store `payload_hash`
+* add lease fields: `lease_owner`, `lease_expires_at`
+* add `lease_token` (attempt-scoped UUID) OR use `lease_owner` as that token (recommended)
+* optional `status` check constraint
 
 ```sql
--- In each service's migrations
 CREATE TABLE IF NOT EXISTS processed_requests (
-  -- SHA-256 hash of (dedupe_key, service, action, call_id)
   idempotency_key TEXT PRIMARY KEY,
 
-  -- Components for debugging/querying
-  dedupe_key TEXT NOT NULL,      -- Business operation ID (survives restarts)
+  dedupe_key TEXT NOT NULL,
   service TEXT NOT NULL,
   action TEXT NOT NULL,
   call_id TEXT NOT NULL,
 
-  -- Optional: which execution made this attempt (for tracing only)
+  -- Enforce same key => same payload
+  payload_hash TEXT NOT NULL,
+
   execution_id TEXT,
 
-  -- Result caching (opt-in)
   result JSONB,
   result_cached BOOLEAN NOT NULL DEFAULT FALSE,
 
-  -- Status for atomic reservation with lease
   status TEXT NOT NULL DEFAULT 'reserved',  -- 'reserved' | 'completed' | 'failed'
 
-  -- Retry tracking
   attempt INTEGER NOT NULL DEFAULT 1,
   last_error TEXT,
 
-  -- Timestamps - ALL NOT NULL for lease mechanism
+  -- Lease mechanism
+  lease_owner TEXT,            -- attempt-scoped UUID (NOT executionId)
+  lease_expires_at TIMESTAMPTZ,
+
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),  -- Used for stale detection!
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   completed_at TIMESTAMPTZ
 );
 
--- Primary lookup by idempotency key (implicit from PRIMARY KEY)
+-- Optional safety: status constraint
+ALTER TABLE processed_requests
+  ADD CONSTRAINT processed_requests_status_chk
+  CHECK (status IN ('reserved', 'completed', 'failed'));
 
--- For debugging: find all requests for a business operation
 CREATE INDEX idx_processed_requests_dedupe_key ON processed_requests(dedupe_key);
-
--- For cleanup: find old completed/failed records
 CREATE INDEX idx_processed_requests_cleanup ON processed_requests(status, created_at)
   WHERE status IN ('completed', 'failed');
 
--- For stale detection: find old reserved records
-CREATE INDEX idx_processed_requests_stale ON processed_requests(status, updated_at)
+CREATE INDEX idx_processed_requests_lease ON processed_requests(status, lease_expires_at)
   WHERE status = 'reserved';
+
+-- Optional debugging index
+CREATE INDEX idx_processed_requests_service_action_dedupe
+  ON processed_requests(service, action, dedupe_key);
 ```
 
-### Idempotency Helper Methods
+---
+
+## Idempotency Helper Methods (Corrected v2)
+
+Key changes:
+
+* Lease owner is a **new UUID per attempt** (`attemptOwner`)
+* Claim only if `lease_expires_at < now()`
+* Heartbeat extends lease (optional)
+* **Complete/fail are owner-aware**: update only when `lease_owner = attemptOwner` and `status='reserved'`
 
 ```typescript
 // In BrokerActions base class or mixin
 
-/** Stale reservation threshold (configurable) */
-private readonly STALE_RESERVATION_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
+import crypto from "node:crypto";
+
+private readonly LEASE_MS = 5 * 60 * 1000; // 5 minutes
+
+private leaseExpiry(): Date {
+  return new Date(Date.now() + this.LEASE_MS);
+}
+
+private newAttemptOwner(): string {
+  return crypto.randomUUID();
+}
 
 interface ReservationResult {
   acquired: boolean;
   existing?: ProcessedRequest;
+  attemptOwner?: string; // present when this call owns the lease and may execute
 }
 
 /**
- * Try to atomically reserve idempotency key.
- * Returns { acquired: true } if we got the key.
- * Returns { acquired: false, existing } if key already exists.
+ * Reserve attempts to create a new record and acquire the lease.
+ * If conflict, it loads existing record for decision logic.
  */
 async tryReserveIdempotencyKey(ctx: ActionContext): Promise<ReservationResult> {
-  // First try to insert
+  const attemptOwner = this.newAttemptOwner();
+
   const insertResult = await this.db.execute(sql`
     INSERT INTO processed_requests
-      (idempotency_key, dedupe_key, service, action, call_id, execution_id, status, attempt, created_at, updated_at)
+      (idempotency_key, dedupe_key, service, action, call_id, payload_hash,
+       execution_id, status, attempt, lease_owner, lease_expires_at, created_at, updated_at)
     VALUES
-      (${ctx.idempotencyKey}, ${ctx.dedupeKey}, ${ctx.service}, ${ctx.action}, ${ctx.callId}, ${ctx.executionId ?? null}, 'reserved', 1, NOW(), NOW())
+      (${ctx.idempotencyKey}, ${ctx.dedupeKey}, ${ctx.service}, ${ctx.action}, ${ctx.callId}, ${ctx.payloadHash},
+       ${ctx.executionId ?? null}, 'reserved', 1, ${attemptOwner}, ${this.leaseExpiry()}, NOW(), NOW())
     ON CONFLICT (idempotency_key) DO NOTHING
     RETURNING idempotency_key
   `);
 
   if ((insertResult.rowCount ?? 0) > 0) {
-    return { acquired: true };
+    return { acquired: true, attemptOwner };
   }
 
-  // Key exists - fetch current state
   const existing = await this.db.query.processedRequests.findFirst({
     where: eq(processedRequests.idempotencyKey, ctx.idempotencyKey),
   });
@@ -679,441 +483,417 @@ async tryReserveIdempotencyKey(ctx: ActionContext): Promise<ReservationResult> {
   return { acquired: false, existing: existing ?? undefined };
 }
 
-/**
- * Try to claim a STALE 'reserved' record.
- * Only succeeds if updated_at is older than threshold.
- */
-async tryClaimStaleReservation(idempotencyKey: string): Promise<boolean> {
+/** Claim only if lease expired (reserved status) */
+async tryClaimExpiredLease(idempotencyKey: string): Promise<{ claimed: boolean; attemptOwner?: string }> {
+  const attemptOwner = this.newAttemptOwner();
+
   const result = await this.db.execute(sql`
     UPDATE processed_requests
-    SET status = 'reserved',
+    SET lease_owner = ${attemptOwner},
+        lease_expires_at = ${this.leaseExpiry()},
         attempt = attempt + 1,
         updated_at = NOW()
     WHERE idempotency_key = ${idempotencyKey}
       AND status = 'reserved'
-      AND updated_at < NOW() - MAKE_INTERVAL(secs => ${this.STALE_RESERVATION_THRESHOLD_MS / 1000})
+      AND lease_expires_at IS NOT NULL
+      AND lease_expires_at < NOW()
     RETURNING idempotency_key
   `);
-  return (result.rowCount ?? 0) > 0;
+
+  return { claimed: (result.rowCount ?? 0) > 0, attemptOwner: (result.rowCount ?? 0) > 0 ? attemptOwner : undefined };
 }
 
-/**
- * Try to claim a 'failed' record for retry.
- */
-async tryClaimFailedKey(idempotencyKey: string): Promise<boolean> {
+/** Claim failed record for retry (become reserved + new lease) */
+async tryClaimFailedKey(idempotencyKey: string): Promise<{ claimed: boolean; attemptOwner?: string }> {
+  const attemptOwner = this.newAttemptOwner();
+
   const result = await this.db.execute(sql`
     UPDATE processed_requests
     SET status = 'reserved',
+        lease_owner = ${attemptOwner},
+        lease_expires_at = ${this.leaseExpiry()},
         attempt = attempt + 1,
         updated_at = NOW()
     WHERE idempotency_key = ${idempotencyKey}
       AND status = 'failed'
     RETURNING idempotency_key
   `);
-  return (result.rowCount ?? 0) > 0;
+
+  return { claimed: (result.rowCount ?? 0) > 0, attemptOwner: (result.rowCount ?? 0) > 0 ? attemptOwner : undefined };
+}
+
+/** Optional: extend lease while executing long work */
+async heartbeatLease(idempotencyKey: string, attemptOwner: string): Promise<void> {
+  await this.db.execute(sql`
+    UPDATE processed_requests
+    SET lease_expires_at = ${this.leaseExpiry()},
+        updated_at = NOW()
+    WHERE idempotency_key = ${idempotencyKey}
+      AND status = 'reserved'
+      AND lease_owner = ${attemptOwner}
+  `);
 }
 
 /**
- * Mark as completed.
+ * Complete is owner-aware to prevent stale workers overwriting newer attempts.
  */
-async completeIdempotencyKey(idempotencyKey: string, result?: unknown, cacheResult = false): Promise<void> {
-  await this.db
-    .update(processedRequests)
-    .set({
-      status: 'completed',
-      result: cacheResult ? result : null,
-      resultCached: cacheResult && result !== undefined,
-      updatedAt: new Date(),
-      completedAt: new Date(),
-    })
-    .where(eq(processedRequests.idempotencyKey, idempotencyKey));
+async completeIdempotencyKey(
+  idempotencyKey: string,
+  attemptOwner: string,
+  result?: unknown,
+  cacheResult = false
+): Promise<boolean> {
+  const update = await this.db.execute(sql`
+    UPDATE processed_requests
+    SET status = 'completed',
+        result = ${cacheResult ? result : null},
+        result_cached = ${cacheResult && result !== undefined},
+        updated_at = NOW(),
+        completed_at = NOW(),
+        lease_owner = NULL,
+        lease_expires_at = NULL
+    WHERE idempotency_key = ${idempotencyKey}
+      AND status = 'reserved'
+      AND lease_owner = ${attemptOwner}
+    RETURNING idempotency_key
+  `);
+
+  return (update.rowCount ?? 0) > 0;
 }
 
 /**
- * Mark as failed (allows retry).
+ * Fail is owner-aware for the same reason.
  */
-async failIdempotencyKey(idempotencyKey: string, errorInfo?: string): Promise<void> {
-  await this.db
-    .update(processedRequests)
-    .set({
-      status: 'failed',
-      lastError: errorInfo ?? null,
-      updatedAt: new Date(),
-    })
-    .where(eq(processedRequests.idempotencyKey, idempotencyKey));
+async failIdempotencyKey(idempotencyKey: string, attemptOwner: string, errorInfo?: string): Promise<boolean> {
+  const update = await this.db.execute(sql`
+    UPDATE processed_requests
+    SET status = 'failed',
+        last_error = ${errorInfo ?? null},
+        updated_at = NOW(),
+        lease_owner = NULL,
+        lease_expires_at = NULL
+    WHERE idempotency_key = ${idempotencyKey}
+      AND status = 'reserved'
+      AND lease_owner = ${attemptOwner}
+    RETURNING idempotency_key
+  `);
+
+  return (update.rowCount ?? 0) > 0;
 }
 ```
 
-### TTL Cleanup Job
-
-```typescript
-// packages/shared-kernel/src/jobs/ProcessedRequestsCleanupJob.ts
-
-import { Injectable, Logger } from "@nestjs/common";
-import { Cron, CronExpression } from "@nestjs/schedule";
-import { sql } from "drizzle-orm";
-
-export interface CleanupConfig {
-  /** Retention period for completed/failed records (default: 7 days) */
-  retentionDays: number;
-  /** Threshold for stale 'reserved' alert (default: 1 hour) */
-  staleReservedAlertThresholdMinutes: number;
-  /** Batch size for deletion (default: 1000) */
-  batchSize: number;
-  /** Maximum batches per single job run (default: 10) */
-  maxBatchesPerRun: number;
-}
-
-const DEFAULT_CONFIG: CleanupConfig = {
-  retentionDays: 7,
-  staleReservedAlertThresholdMinutes: 60,
-  batchSize: 1000,
-  maxBatchesPerRun: 10,
-};
-
-@Injectable()
-export class ProcessedRequestsCleanupJob {
-  private readonly logger = new Logger(ProcessedRequestsCleanupJob.name);
-  private config: CleanupConfig;
-
-  constructor(
-    private readonly db: DrizzleDatabase,
-    private readonly alertService: AlertService,
-    config?: Partial<CleanupConfig>
-  ) {
-    this.config = { ...DEFAULT_CONFIG, ...config };
-  }
-
-  /**
-   * Run cleanup daily at 3 AM.
-   * Only deletes 'completed' and 'failed' records.
-   * 'reserved' records are handled by stale detection + claim mechanism.
-   */
-  @Cron(CronExpression.EVERY_DAY_AT_3AM)
-  async cleanupExpiredRecords(): Promise<void> {
-    let totalDeleted = 0;
-    let batchesProcessed = 0;
-
-    try {
-      while (batchesProcessed < this.config.maxBatchesPerRun) {
-        const result = await this.db.execute(sql`
-          DELETE FROM processed_requests
-          WHERE idempotency_key IN (
-            SELECT idempotency_key
-            FROM processed_requests
-            WHERE status IN ('completed', 'failed')
-              AND created_at < NOW() - MAKE_INTERVAL(days => ${this.config.retentionDays})
-            LIMIT ${this.config.batchSize}
-          )
-          RETURNING idempotency_key
-        `);
-
-        const deletedCount = result.rowCount ?? 0;
-        totalDeleted += deletedCount;
-        batchesProcessed++;
-
-        if (deletedCount < this.config.batchSize) break;
-      }
-
-      this.logger.log(`Cleanup completed: deleted ${totalDeleted} records in ${batchesProcessed} batches`);
-    } catch (error) {
-      this.logger.error("Cleanup failed", error);
-    }
-  }
-
-  /**
-   * Alert on very old 'reserved' records (likely dead workers that never got claimed).
-   * Note: normal stale reservations are claimed automatically via tryClaimStaleReservation().
-   * This alert is for records that are VERY old (threshold much higher than claim threshold).
-   */
-  @Cron(CronExpression.EVERY_15_MINUTES)
-  async alertVeryStaleReservedRecords(): Promise<void> {
-    try {
-      const staleRecords = await this.db.execute(sql`
-        SELECT idempotency_key, dedupe_key, service, action, created_at, updated_at
-        FROM processed_requests
-        WHERE status = 'reserved'
-          AND updated_at < NOW() - MAKE_INTERVAL(mins => ${this.config.staleReservedAlertThresholdMinutes})
-        ORDER BY updated_at ASC
-        LIMIT 100
-      `);
-
-      if (staleRecords.rowCount && staleRecords.rowCount > 0) {
-        this.logger.warn(`Found ${staleRecords.rowCount} very stale 'reserved' records!`);
-
-        await this.alertService.sendAlert({
-          severity: "warning",
-          title: "Very stale idempotency records detected",
-          message: `${staleRecords.rowCount} requests stuck in 'reserved' for > ${this.config.staleReservedAlertThresholdMinutes} minutes`,
-          data: staleRecords.rows,
-        });
-      }
-    } catch (error) {
-      this.logger.error("Stale record check failed", error);
-    }
-  }
-}
-```
-
-### Idempotency Implementation Rules
-
-#### Rule 1: Use Atomic Reservation Pattern with Stale Claim
-
-1. Try to INSERT with `ON CONFLICT DO NOTHING`
-2. If insert **failed** → check existing status:
-   - `completed` → return cached result with `meta.idempotent: true`
-   - `reserved` → try to claim if stale (updated_at < threshold), else return `TRANSIENT_IN_PROGRESS`
-   - `failed` → claim for retry
-3. If insert **succeeded** → execute action, then mark `completed` or `failed`
-
-#### Rule 2: Domain Logic Should Also Be Idempotent
-
-Defense in depth - the underlying logic should handle duplicates:
-
-```typescript
-// Use upsert, not insert
-await this.repo.upsertRole({ domain, name, ... });
-```
-
-#### Rule 3: Result Caching is Opt-In
-
-**By default: store only the fact of processing** (no result).
-
-Cache result only when:
-- Action is a **query** (safe to replay cached result)
-- Result is small and contains no PII/secrets
-
-### Idempotency Key Format
-
-**Primary key**: SHA-256 hash of `(dedupeKey, service, action, callId)`
-
-```typescript
-const data = [dedupeKey, service, action, callId].join("\n");
-const idempotencyKey = crypto.createHash("sha256").update(data).digest("hex");
-```
-
-**Components stored separately for debugging**:
-
-| Column | Example Value |
-|--------|---------------|
-| `dedupe_key` | `store:create:my-store` (business operation) |
-| `service` | `iam` |
-| `action` | `createRoles` |
-| `call_id` | `store-123` |
-| `idempotency_key` | `a1b2c3d4e5f6...` (64-char hex) |
+**Attempt semantics**: `attempt` counts **lease acquisitions / execution attempts**, i.e., it increments when a worker becomes eligible to execute (insert or claim). It does **not** increment on heartbeat.
 
 ---
 
-## Determinism Rules (MANDATORY)
+## Service-Side BrokerActions Pattern (Corrected v2)
 
-**Any non-deterministic operation (uuid, timestamp, random) MUST be inside a `@DBOS.step()`.**
+Key updates:
+
+1. Reserve uses attempt-scoped `attemptOwner`.
+2. On conflict: always verify payloadHash; mismatch => `CONFLICT` for any status.
+3. If `completed`: return cached result if available; otherwise return deterministic **receipt**.
+4. If `reserved`: claim only if lease expired; else return `TRANSIENT_IN_PROGRESS`.
+5. If `failed`: claim for retry; if claim fails, return `TRANSIENT_IN_PROGRESS`.
+6. Completion/failure is owner-aware; if it fails (stale owner), return transient and let retry reconcile.
 
 ```typescript
-// CORRECT - uuid generated in step, result saved by DBOS
-@DBOS.step()
-async generateStoreId(): Promise<string> {
-  return uuidv7();  // Saved on first run, replayed on DBOS recovery
+@Action("createRoles")
+async createRoles(
+  input: ActionRequest<CreateRolesPayload> | CreateRolesPayload
+): Promise<ActionResponse<CreateRolesResult | null>> {
+  const { payload, ctx } = this.unwrapRequest(input);
+
+  // Legacy: no ctx => no idempotency
+  if (!ctx) {
+    const result = await this.kernel.runScript(CreateRolesScript, payload);
+    return { result };
+  }
+
+  // 1) Try reserve (atomic insert + acquire lease)
+  const reservation = await this.tryReserveIdempotencyKey(ctx);
+
+  let attemptOwner: string | undefined = reservation.attemptOwner;
+
+  if (!reservation.acquired) {
+    const existing = reservation.existing!;
+    if (!existing) {
+      // Should be rare: conflict but record not found due to read path.
+      return {
+        result: null,
+        error: { code: "TRANSIENT_ERROR", message: "Idempotency state unavailable", retryable: true },
+      };
+    }
+
+    // ✅ Payload safety: always enforce for any existing record status
+    if (existing.payloadHash !== ctx.payloadHash) {
+      return {
+        result: null,
+        error: {
+          code: "CONFLICT",
+          message: "Idempotency key reused with different payload",
+          retryable: false,
+        },
+      };
+    }
+
+    if (existing.status === "completed") {
+      if (existing.resultCached) {
+        return {
+          result: existing.result as any,
+          meta: { idempotent: true, attempt: existing.attempt },
+        };
+      }
+
+      // ✅ Deterministic receipt when result is not cached
+      return {
+        result: null,
+        meta: {
+          idempotent: true,
+          attempt: existing.attempt,
+          receipt: {
+            idempotencyKey: existing.idempotencyKey,
+            status: "completed",
+            completedAt: existing.completedAt?.toISOString?.() ?? new Date().toISOString(),
+          },
+        },
+      };
+    }
+
+    if (existing.status === "reserved") {
+      // 2) Try claim if lease expired
+      const claim = await this.tryClaimExpiredLease(ctx.idempotencyKey);
+      if (!claim.claimed) {
+        return {
+          result: null,
+          error: {
+            code: "TRANSIENT_IN_PROGRESS",
+            message: "Request already in progress, please retry",
+            retryable: true,
+          },
+        };
+      }
+      attemptOwner = claim.attemptOwner;
+    }
+
+    if (existing.status === "failed") {
+      const claim = await this.tryClaimFailedKey(ctx.idempotencyKey);
+      if (!claim.claimed) {
+        return {
+          result: null,
+          error: {
+            code: "TRANSIENT_IN_PROGRESS",
+            message: "Request retry already in progress",
+            retryable: true,
+          },
+        };
+      }
+      attemptOwner = claim.attemptOwner;
+    }
+  }
+
+  if (!attemptOwner) {
+    return {
+      result: null,
+      error: { code: "TRANSIENT_ERROR", message: "Lease owner missing", retryable: true },
+    };
+  }
+
+  // 3) Execute + complete/fail (owner-aware)
+  try {
+    // Optional heartbeat for long scripts:
+    // await this.heartbeatLease(ctx.idempotencyKey, attemptOwner);
+
+    const result = await this.kernel.runScript(CreateRolesScript, payload);
+
+    const completed = await this.completeIdempotencyKey(ctx.idempotencyKey, attemptOwner, result, /*cacheResult=*/false);
+
+    if (!completed) {
+      // We likely lost lease (expired & claimed by another worker); treat as transient
+      return {
+        result: null,
+        error: {
+          code: "TRANSIENT_IN_PROGRESS",
+          message: "Lost lease while completing; retry to reconcile",
+          retryable: true,
+        },
+      };
+    }
+
+    // If not caching result, return receipt via meta
+    return {
+      result: result as any,
+    };
+  } catch (error) {
+    const mapped = mapToActionError(error);
+
+    const failed = await this.failIdempotencyKey(ctx.idempotencyKey, attemptOwner, String(error));
+    if (!failed) {
+      // Lost lease while failing; transient reconcile
+      return {
+        result: null,
+        error: {
+          code: "TRANSIENT_IN_PROGRESS",
+          message: "Lost lease while failing; retry to reconcile",
+          retryable: true,
+        },
+      };
+    }
+
+    return { result: null, error: mapped };
+  }
 }
-
-// WRONG - uuid in workflow body
-@DBOS.workflow()
-async run() {
-  const id = uuidv7();  // Different on DBOS recovery!
-}
 ```
-
-### callId Rules (MANDATORY)
-
-**Rule 1: callId MUST be deterministic**
-
-Use only values from:
-- Workflow input parameters
-- Results of previous `@DBOS.step()` calls
-
-```typescript
-// WRONG - random value
-callId: crypto.randomUUID()
-
-// CORRECT - from input or step result
-callId: storeId  // storeId came from generateStoreId() step
-```
-
-**Rule 2: callId must distinguish parallel calls to same action**
-
-```typescript
-// Two calls to assignRole need different callIds
-callId: `${storeId}:${user1}`
-callId: `${storeId}:${user2}`
-```
-
-**callId patterns:**
-
-| Scenario | callId | Example |
-|----------|--------|---------|
-| Single call per workflow | `entityId` | `storeId` |
-| User-scoped | `${entityId}:${userId}` | `store-123:user-456` |
-| Role-scoped | `${entityId}:${role}:${userId}` | `store-123:admin:user-456` |
 
 ---
 
-## Error Handling
+## Error Handling (Corrected v2)
 
 ### Retry Strategy: Workflow-Level Restart
 
-1. Step gets `ActionResponse` with `error`
-2. Workflow throws `ServiceError`
-3. Workflow fails
-4. External orchestrator restarts workflow
-5. DBOS replays completed steps
-6. Failed step re-executes → service sees same `idempotencyKey` (because `dedupeKey` is same!)
+Workflow code throws `ServiceError` and DBOS/orchestrator retries the step/workflow depending on your configuration.
 
-**This is why `dedupeKey` must be business operation ID, not execution ID.**
+### ✅ Strict Error Contract (Service-Side)
 
-### ⛔ FORBIDDEN PATTERNS
+**Mandatory rule**:
 
-| Pattern | Problem |
-|---------|---------|
-| `setTimeout`/`sleep()` in step | Non-deterministic, breaks DBOS recovery |
-| `this.x = ...` inside step | Side effect doesn't replay |
-| `throw` in action handlers | Use `return { error }` instead |
-| `Promise.all` on `@DBOS.step()` methods | Unpredictable recovery |
+* `error.retryable === true` **iff** `error.code` starts with `TRANSIENT_`
+* All transient infra errors MUST map to `TRANSIENT_*`
+* Domain errors MUST NOT be transient
 
-### Retry Decision Matrix
+Example mapping helper:
 
-| Error Code | `retryable` | Behavior |
-|------------|-------------|----------|
-| `TRANSIENT_*` | `true` | Orchestrator will restart workflow |
-| `VALIDATION_*` | `false` | Fail immediately |
-| `NOT_FOUND` | `false` | Fail immediately |
-| `CONFLICT` | `false` | Fail immediately |
-| `INTERNAL_*` | `false` | Fail immediately |
+```ts
+function mapToActionError(err: unknown): ActionError {
+  // timeouts / network / 503 / connection
+  if (isTimeout(err)) return { code: "TRANSIENT_TIMEOUT", message: "Timed out", retryable: true };
+  if (isUnavailable(err)) return { code: "TRANSIENT_UNAVAILABLE", message: "Service unavailable", retryable: true };
+  if (isDeadlockOrSerialization(err)) return { code: "TRANSIENT_ERROR", message: "Transient DB error", retryable: true };
+
+  // domain/validation
+  if (isValidation(err)) return { code: "VALIDATION_ERROR", message: getMessage(err), retryable: false };
+  if (isNotFound(err)) return { code: "NOT_FOUND", message: getMessage(err), retryable: false };
+  if (isConflict(err)) return { code: "CONFLICT", message: getMessage(err), retryable: false };
+
+  // default: internal bug/invariant
+  return { code: "INTERNAL_ERROR", message: getMessage(err), retryable: false };
+}
+```
+
+---
+
+## Idempotency Implementation Rules (Corrected v2)
+
+### Rule 1: Atomic reservation + lease-claim + owner-aware completion
+
+1. Try INSERT with lease owner + expiry (`ON CONFLICT DO NOTHING`)
+2. If key exists:
+
+   * **verify payload_hash matches** → else `CONFLICT`
+   * `completed` → return cached OR receipt (meta.idempotent=true)
+   * `reserved` → claim only if `lease_expires_at < now()` else `TRANSIENT_IN_PROGRESS`
+   * `failed` → claim for retry (set to reserved + new lease) else `TRANSIENT_IN_PROGRESS`
+3. If insert succeeded or claim succeeded → execute
+4. On completion/failure: update only if `lease_owner == attemptOwner` and `status='reserved'`
+
+   * If that update fails, return `TRANSIENT_IN_PROGRESS` (lost lease) and let retry reconcile.
+
+### Rule 2: Domain logic should also be idempotent
+
+Even with leases, rare double-run scenarios can happen (misconfigured TTL, manual DB edits, extreme latency). Domain scripts should:
+
+* Use unique constraints
+* Use upserts where possible
+* Be safe on retry
+
+### Rule 3: Result caching is opt-in, but must have deterministic replay semantics
+
+If `result_cached=false`, service MUST:
+
+* Either cache a minimal deterministic result (recommended), OR
+* Return a deterministic receipt on `completed` replay (do not fake `{success:true}`)
 
 ---
 
 ## Parallel Calls in Workflows
 
-### Pattern A: Fanout Inside Single Step
+Fanout can be supported if each call has a distinct deterministic `callId`. However, fanout increases load and the chance of “in progress” contention.
 
-```typescript
-@DBOS.step()
-private async initializeAllServices(dedupeKey: string, storeId: string, ...) {
-  const results = await Promise.allSettled([
-    this.broker.call("iam.createRoles", {
-      payload: { ... },
-      ctx: buildActionContext(dedupeKey, "iam", "createRoles", storeId),
-    }),
-    this.broker.call("media.createAssetGroup", {
-      payload: { ... },
-      ctx: buildActionContext(dedupeKey, "media", "createAssetGroup", storeId),
-    }),
-  ]);
+**Recommendation**: default to sequential steps unless latency is critical. If you do fanout, ensure:
 
-  // Check for failures...
-}
-```
-
-### Pattern B: Sequential Steps (Default)
-
-```typescript
-await this.createStoreRoles(dedupeKey, storeId, ...);
-await this.assignAdminRole(dedupeKey, storeId, ...);
-await this.createMediaAssetGroup(dedupeKey, storeId);
-```
-
-| Pattern | Use When |
-|---------|----------|
-| **Sequential** | Default; clear ordering; dependencies |
-| **Fanout Step** | No dependencies; latency-sensitive; ALL idempotent |
+* callIds are stable and unique per sub-operation
+* services strictly enforce idempotency + leases
 
 ---
 
 ## Testing Workflows
 
-```typescript
-describe("StoreCreateWorkflow", () => {
-  let mockBroker: jest.Mocked<ServiceBroker>;
+Tests remain valid. Update expectations for ctx to include `payloadHash`.
 
-  beforeEach(() => {
-    mockBroker = { call: jest.fn() } as any;
+Example:
 
-    mockBroker.call.mockImplementation(async (action: string) => {
-      if (action === "iam.createRoles") return { result: { success: true } };
-      if (action === "iam.assignRole") return { result: { success: true } };
-      if (action === "media.createAssetGroup") return { result: { assetGroup: { id: "ag-123" } } };
-      return { error: { code: "UNKNOWN_ACTION", message: "Unknown", retryable: false } };
-    });
-  });
-
-  it("calls services with correct dedupeKey", async () => {
-    await workflow.run({ name: "test-store", ... });
-
-    expect(mockBroker.call).toHaveBeenCalledWith(
-      "iam.createRoles",
-      expect.objectContaining({
-        ctx: expect.objectContaining({
-          dedupeKey: "store:create:test-store",  // Based on input, not execution!
-        }),
-      })
-    );
-  });
-});
-```
+* Assert ctx contains `idempotencyKey` and `payloadHash` as strings (`expect.any(String)`).
+* Verify same input => same `dedupeKey`, same `payloadHash`.
+* Verify different payload with same key => service returns `CONFLICT`.
 
 ---
 
 ## Migration Path
 
-### Phase 1: Add Types and Context Builder
+### Phase 1: Add Types + Context Builder
 
-1. Create `packages/workflows/src/types.ts`
-2. Create `packages/workflows/src/context.ts` with `buildActionContext()`
+1. Create `packages/workflows/src/types.ts` (ActionContext includes `payloadHash`, receipts)
+2. Create `packages/workflows/src/context.ts`
+
+   * canonicalize dedupeKey
+   * compute payloadHash from canonical JSON
 3. Export from `packages/workflows/src/index.ts`
 
 ### Phase 2: Update Workflows
 
-1. Ensure `Workflow.workflowID(input)` returns deterministic business key
-2. Use `dedupeKey` (not executionId) in `buildActionContext()`
-3. Split multi-call steps into individual `@DBOS.step()` methods
+1. Ensure `Workflow.workflowID(input)` is deterministic **and canonical**
+2. Use `buildActionContext(dedupeKey, service, action, callId, payload)`
+3. Split multi-call steps into individual `@DBOS.step()`
 4. Handle `response.error` by throwing `ServiceError`
 
 ### Phase 3: Add Service-Side Idempotency
 
-1. Create `processed_requests` table with `dedupe_key` column
-2. Update `BrokerActions` to:
-   - Accept `ActionRequest` envelope
-   - Implement reserve/claim/complete pattern
-   - Always return `ActionResponse`, never throw
+1. Create/alter `processed_requests` table:
+
+   * add `payload_hash`, `lease_owner`, `lease_expires_at`
+   * add status constraint (optional)
+2. Update `BrokerActions`:
+
+   * accept `ActionRequest`
+   * implement reserve/claim/complete with lease + payloadHash check
+   * completion/failure must be owner-aware
+   * always return `ActionResponse`, never throw
+   * map transient errors to `TRANSIENT_*` strictly
 3. Add cleanup job
+
+---
+
+## TTL Cleanup Job (Corrected v2)
+
+Cleanup remains the same for `completed/failed`.
+
+For `reserved`, alert/cleanup should be based on lease expiry:
+
+* Alert if `lease_expires_at < now() - X` (very overdue lease)
+* Optionally mark as failed (or keep reserved but visible) depending on ops policy
 
 ---
 
 ## Summary
 
-| Aspect | Before | After |
-|--------|--------|-------|
-| Idempotency key based on | N/A | `dedupeKey` (business operation, survives restarts) |
-| Service calls | `broker.call("iam.action", params)` | `broker.call("iam.action", { payload, ctx })` |
-| Action handlers | Mixed throw/return | Always return `ActionResponse` |
-| Stale reservations | Stuck forever | Auto-claimed after threshold |
-| Error handling | Inconsistent | `ServiceError.fromActionError()` |
-
-### Files to Create
-
-```
-packages/workflows/src/
-├── index.ts
-├── types.ts              # ActionContext, ActionRequest, ActionResponse, ServiceError
-└── context.ts            # buildActionContext()
-
-packages/shared-kernel/src/jobs/
-└── ProcessedRequestsCleanupJob.ts
-```
-
-### Files to Modify
-
-```
-services/project/src/workflows/
-└── StoreCreateWorkflow.ts    # Use dedupeKey, separate steps
-
-services/*/src/*BrokerActions.ts  # Accept ActionRequest, implement idempotency, return not throw
-```
+| Aspect                   | Before                              | After                                                              |
+| ------------------------ | ----------------------------------- | ------------------------------------------------------------------ |
+| Idempotency key based on | N/A                                 | `dedupeKey` (business operation, survives restarts)                |
+| Payload safety           | None                                | ✅ `payloadHash` enforced for all statuses                          |
+| In-progress safety       | stale updated_at claim only         | ✅ lease owner + expiry prevents dual execution                     |
+| Lease owner              | N/A / executionId-ish               | ✅ attempt-scoped UUID per lease acquisition                        |
+| Completion safety        | overwrite possible                  | ✅ owner-aware complete/fail prevents stale worker overwrites       |
+| Service calls            | `broker.call("iam.action", params)` | `broker.call("iam.action", { payload, ctx })`                      |
+| Action handlers          | Mixed throw/return                  | Always return `ActionResponse`                                     |
+| Result replay semantics  | ad-hoc                              | ✅ cached result OR deterministic receipt                           |
+| Error handling           | Inconsistent                        | ✅ strict `TRANSIENT_*` contract + `ServiceError.fromActionError()` |
