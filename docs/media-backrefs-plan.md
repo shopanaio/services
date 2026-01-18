@@ -4,14 +4,19 @@
 
 Implement back-references tracking in the media service to:
 1. Track which entities (variants, users, orgs) reference each file
-2. Display usage info in UI
-3. Enable immediate hard-delete when backRefs=0
-4. Broadcast `file.deleted` events for consuming services
+2. Display usage info in UI (with warning before delete)
+3. **Auto hard-delete**: when refCount→0 after unlink/entityDeleted
+4. **Manual hard-delete**: allowed anytime from library (even if refCount>0; cascade removes refs)
 
 **Design Decisions:**
 - Entity-level tracking: `inventory:variant:uuid123`
-- Delete + notify async: delete immediately, broadcast event
 - Immediate deletion when backRefs=0 (no 30-day retention)
+- GC is independent: backRefs only live while file exists (FK cascade cleans up)
+
+**Idempotency Rules:**
+- `fileLink`: repeated call → OK, file not found → OK (WARN log)
+- `fileUnlink`: backRef gone → OK, returns **actual refCount** (not 0)
+- `hardDelete`: returns `didDelete` (true = actually deleted, false = already gone)
 
 ---
 
@@ -30,7 +35,7 @@ export const fileBackRefs = mediaSchema.table(
       .references(() => files.id, { onDelete: "cascade" }),
     service: varchar("service", { length: 64 }).notNull(),       // "inventory", "iam", etc.
     entityType: varchar("entity_type", { length: 64 }).notNull(), // "variant", "user", "organization"
-    entityId: varchar("entity_id", { length: 128 }).notNull(),   // varchar for flexibility (not all IDs are UUIDs)
+    entityId: varchar("entity_id", { length: 255 }).notNull(),   // varchar for flexibility (external IDs, composites)
     role: varchar("role", { length: 32 }).notNull(),             // "main", "gallery", "avatar", "logo", etc.
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
@@ -39,10 +44,12 @@ export const fileBackRefs = mediaSchema.table(
   (table) => [
     // One file can only be linked once per entity+role combination
     primaryKey({ columns: [table.fileId, table.service, table.entityType, table.entityId, table.role] }),
-    // For GC: count refs per file
+    // For counting refs per file
     index("idx_fbr_file_id").on(table.fileId),
-    // For entityDeleted: find all files for an entity (most important for cleanup)
+    // For entityDeleted: find all files for an entity
     index("idx_fbr_entity").on(table.service, table.entityType, table.entityId),
+    // For UI: show refs sorted by createdAt (simpler index, works with ORDER BY)
+    index("idx_fbr_file_created").on(table.fileId, table.createdAt),
   ]
 );
 
@@ -54,7 +61,7 @@ export function formatEntityRef(service: string, entityType: string, entityId: s
 
 **Design notes:**
 - No `entityRef` column - generated on-the-fly for UI to avoid sync issues
-- `entityId` is varchar(128) for flexibility (not all services use UUIDs)
+- `entityId` is varchar(255) for flexibility (external IDs, composites)
 - `role` distinguishes different usages (main image vs gallery vs avatar)
 
 **Files to modify:**
@@ -71,13 +78,13 @@ export function formatEntityRef(service: string, entityType: string, entityId: s
 **File:** `services/media/src/repositories/FileBackRefRepository.ts`
 
 Key methods:
-- `link(fileId, entityRef)` - idempotent (ON CONFLICT DO NOTHING)
-- `linkMany(fileIds, entityRef)` - batch link
-- `unlink(fileId, entityRef)` - returns `{ deleted, remainingCount }`
-- `unlinkAllByEntity(entityRef)` - returns fileIds with 0 refs
+- `link(fileId, entityRef, role)` - idempotent (ON CONFLICT DO NOTHING), returns refCount
+- `linkMany(fileIds, entityRef, role)` - batch link, returns linkedCount
+- `unlink(fileId, entityRef, role)` - DELETE + count, returns `{ remainingCount }`
+- `unlinkAllByEntity(entityRef)` - **DELETE ... RETURNING file_id** → batch count → fileIds with 0 refs
 - `countByFileId(fileId)` - single file count
-- `countByFileIds(fileIds)` - batch counts (for GC)
-- `findByFileId(fileId)` - get all refs for UI
+- `countByFileIds(fileIds)` - batch counts (for entityDeleted optimization)
+- `findByFileId(fileId, limit=100)` - **ORDER BY created_at DESC, entity_id ASC** (stable sort)
 
 **Files to modify:**
 - Create: `services/media/src/repositories/FileBackRefRepository.ts`
@@ -104,6 +111,11 @@ export interface FileLinkParams {
   role: string;        // "main", "gallery", "avatar", "logo"
 }
 
+export interface FileLinkResult {
+  success: boolean;    // true = linked (or already existed)
+  refCount: number;    // total refs for this file after operation
+}
+
 export interface FileUnlinkParams {
   fileId: string;
   entityRef: EntityRef;
@@ -111,9 +123,9 @@ export interface FileUnlinkParams {
 }
 
 export interface FileUnlinkResult {
-  success: boolean;
-  refCount: number;
-  deleted: boolean;  // true if hard-deleted
+  success: boolean;    // true = operation completed (idempotent)
+  refCount: number;    // remaining refs (0 if file deleted or didn't exist)
+  deleted: boolean;    // true ONLY if THIS call triggered hard-delete (didDelete=true)
 }
 
 export interface EntityDeletedParams {
@@ -121,18 +133,105 @@ export interface EntityDeletedParams {
 }
 
 export interface EntityDeletedResult {
-  unlinkedCount: number;
-  deletedFileIds: string[];
+  unlinkedCount: number;   // backRefs removed in this call
+  deletedFileIds: string[]; // files where: refCount→0 AND hardDelete returned didDelete=true
 }
+```
+
+**Contract Semantics:**
+- All operations are **idempotent** — safe to retry
+
+**`fileLink`:**
+| Case | success | refCount | Note |
+|------|---------|----------|------|
+| linked (new or existed) | true | actual count | — |
+| file not found | true | 0 | WARN log, no insert |
+
+**`fileUnlink`:**
+| Case | success | refCount | deleted |
+|------|---------|----------|---------|
+| backRef deleted | true | actual remaining | false (or true if triggered hardDelete) |
+| backRef didn't exist | true | actual remaining | false |
+| file deleted concurrently | true | 0 (best-effort) | false |
+| hardDelete triggered by THIS call | true | 0 | true |
+
+**Note:** `refCount` is best-effort. On concurrent delete it may be 0, but `deleted=false` because THIS call didn't trigger it.
+
+**`entityDeleted`:**
+- `unlinkedCount` = number of **backRef rows deleted** (not files)
+- `deletedFileIds` = files where refCount→0 AND hardDelete returned didDelete=true
+
+**EntityDeletedScript algorithm:**
+```typescript
+// 1. Delete all refs for entity, get affected fileIds
+const { rows, rowCount } = await db
+  .delete(fileBackRefs)
+  .where(and(eq(service, ?), eq(entityType, ?), eq(entityId, ?)))
+  .returning({ fileId: fileBackRefs.fileId });
+
+const unlinkedCount = rowCount;
+const affectedFileIds = [...new Set(rows.map(r => r.fileId))];
+
+// 2. Batch count remaining refs for affected files
+const counts = await backRefRepo.countByFileIds(affectedFileIds);
+const zeroRefFileIds = affectedFileIds.filter(id => counts.get(id) === 0);
+
+// 3. Hard delete files with 0 refs
+const deletedFileIds = [];
+for (const fileId of zeroRefFileIds) {
+  const { didDelete } = await FileHardDeleteWorkflow.run(fileId);
+  if (didDelete) deletedFileIds.push(fileId);
+}
+
+return { unlinkedCount, deletedFileIds };
 ```
 
 ### 3.2 Scripts
 
 **Files to create:**
 - `services/media/src/scripts/backRef/FileLinkScript.ts`
-- `services/media/src/scripts/backRef/FileUnlinkScript.ts` (triggers hard-delete if refCount=0)
+- `services/media/src/scripts/backRef/FileUnlinkScript.ts`
 - `services/media/src/scripts/backRef/FileLinkManyScript.ts`
 - `services/media/src/scripts/backRef/EntityDeletedScript.ts`
+
+**FileUnlinkScript algorithm:**
+```typescript
+// 1. Delete backRef (idempotent - works even if file already deleted)
+DELETE FROM file_back_refs
+WHERE file_id = ? AND service = ? AND entity_type = ? AND entity_id = ? AND role = ?
+
+// 2. Count remaining refs (best-effort: 0 if file deleted concurrently)
+const refCount = await backRefRepo.countByFileId(fileId);
+
+// 3. If 0 refs → call hard delete workflow (idempotent)
+if (refCount === 0) {
+  const { didDelete } = await FileHardDeleteWorkflow.run(fileId);
+  return { success: true, refCount: 0, deleted: didDelete };
+}
+
+return { success: true, refCount, deleted: false };
+```
+
+**No `exists()` check needed** — DELETE is idempotent, COUNT returns 0 if file gone, workflow is idempotent.
+
+**FileHardDeleteWorkflow returns:**
+```typescript
+interface HardDeleteResult {
+  didDelete: boolean;  // true = actually deleted, false = already gone
+}
+
+// Correct order: S3 first, then DB
+// 1. Delete from S3 (idempotent - ignore NotFound)
+await s3Client.deleteObject({ bucket, key });  // no error if already gone
+
+// 2. Delete DB row - didDelete based on rowCount
+const { rowCount } = await db.delete(files).where(eq(files.id, fileId));
+const didDelete = rowCount === 1;
+
+return { didDelete };
+```
+
+**Why S3 first:** If DB delete succeeds but S3 fails, we lose the reference to clean up S3. Reverse order is safer.
 
 ### 3.3 Broker Actions
 
@@ -148,26 +247,9 @@ Add actions:
 
 ---
 
-## Phase 4: Event Broadcasting
+## Phase 4: GraphQL Extensions
 
-### 4.1 Add `file.deleted` event
-
-**File:** `services/media/src/workflows/FileHardDeleteWorkflow.ts`
-
-After successful hard-delete, emit event:
-```typescript
-await broker.emit("file.deleted", { fileId, deletedAt });
-```
-
-**File:** `services/media/src/scripts/backRef/FileUnlinkScript.ts`
-
-When triggering immediate hard-delete (refCount=0), also emit event.
-
----
-
-## Phase 5: GraphQL Extensions
-
-### 5.1 Update schema
+### 4.1 Update schema
 
 **File:** `services/media/src/api/graphql-admin/file.graphql`
 
@@ -183,7 +265,7 @@ type FileBackRef {
 
 type FileBackRefsSummary {
   totalCount: Int!
-  refs: [FileBackRef!]!
+  refs: [FileBackRef!]!  # Server-side limit: max 100 (prevents admin UI explosion)
 }
 
 extend type File {
@@ -191,13 +273,23 @@ extend type File {
 }
 ```
 
-### 5.2 Update resolver
+**Note:**
+- `refs` limited to 100 on server, sorted by `created_at DESC, entity_id ASC` (stable order)
+- `totalCount` from separate `COUNT(*)` query — shows real count for UI warning
+
+### 4.2 Update resolver
 
 **File:** `services/media/src/resolvers/admin/FileResolver.ts`
 
 Add `backRefs` field resolver.
 
-### 5.3 DataLoader (optional optimization)
+### 4.3 UX hint for Media Library
+
+Before "Delete" button, show warning if `backRefs.totalCount > 0`:
+- "This file is used in N places"
+- Still allow deletion (delete + notify async)
+
+### 4.4 DataLoader (optional optimization)
 
 **File:** `services/media/src/loaders/FileBackRefLoader.ts`
 
@@ -205,25 +297,27 @@ Batch load backRef counts for list views.
 
 ---
 
-## Phase 6: Consumer Services Integration
+## Phase 5: Consumer Services Integration
 
-### 6.1 Inventory Service
+**Best-effort rule:** `fileLink`/`fileUnlink` errors should NOT block business operations.
+- Log errors, retry a few times, but don't fail variant update or avatar change
+- Dangling links are acceptable (user can manually clean up in media library)
+
+### 5.1 Inventory Service
 
 **Files to modify:**
 
 1. Update `VariantSetMediaScript` to call link/unlink:
    - `services/inventory/src/scripts/media/VariantSetMediaScript.ts`
+   - Wrap in try/catch, log errors, don't block variant save
 
 2. Call `media.entityDeleted` when variant is deleted
 
-3. Add event handler for `file.deleted`:
-   - Create: `services/inventory/src/events/MediaEventsHandler.ts`
-
-### 6.2 IAM Service
+### 5.2 IAM Service
 
 **Files to modify:**
 
-1. Update user avatar/org logo mutations to call link/unlink
+1. Update user avatar/org logo mutations to call link/unlink (best-effort)
 2. Call `media.entityDeleted` when user/org is deleted
 
 ---
@@ -236,15 +330,11 @@ Batch load backRef counts for list views.
 2. **Broker Actions** (Phase 3)
    - DTOs, scripts, MediaBrokerActions
 
-3. **Event Broadcasting** (Phase 4)
-   - Add `file.deleted` event emission
-
-4. **GraphQL** (Phase 5)
+3. **GraphQL** (Phase 4)
    - Schema, resolver, DataLoader
 
-5. **Consumer Integration** (Phase 6)
+4. **Consumer Integration** (Phase 5)
    - Inventory link/unlink calls
-   - Event handlers
 
 ---
 
