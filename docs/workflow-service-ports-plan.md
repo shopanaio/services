@@ -647,6 +647,7 @@ BaseWorkflow handles **only** port-related concerns. Domain services (kernel, re
 // packages/workflows/src/BaseWorkflow.ts
 
 import crypto from "node:crypto";  // Node.js built-in, no external dependency
+import { v7 as uuidv7 } from "uuid";  // Required for initExecution() fallback
 import { ConfiguredInstance } from "@dbos-inc/dbos-sdk";
 import { DBOS } from "@dbos-inc/dbos-sdk";
 import type { ServicePort, ActionContext } from "./ports/types.js";
@@ -724,59 +725,67 @@ export abstract class BaseWorkflow extends ConfiguredInstance {
 
   /**
    * Execution ID for idempotency tracking.
-   * Set by initExecution() step - MUST be called first in every workflow.
+   *
+   * CRITICAL: This MUST be set by the workflow's run() method AFTER calling initExecution():
+   *
+   *   const { executionId } = await this.initExecution();
+   *   this.executionId = executionId;  // Assignment OUTSIDE the step!
+   *
+   * WHY: DBOS step replay returns saved result WITHOUT executing step body.
+   * Any `this.x = ...` inside @DBOS.step() is a side effect that won't replay.
    */
   protected executionId?: string;
 
   /**
    * MANDATORY: Call this as the FIRST step in every workflow.
+   *
    * Returns executionId that is:
    * - UUID format (not human-readable)
    * - Stable across recovery (saved by DBOS step)
    * - Different from deduplication key (workflowID)
+   *
+   * USAGE (in your workflow's run() method):
+   *   const { executionId } = await this.initExecution();
+   *   this.executionId = executionId;  // MUST assign outside step!
+   *
+   * DO NOT rely on side effects inside this step - they won't replay!
    */
   @DBOS.step()
   protected async initExecution(): Promise<{ executionId: string }> {
     // Option 1: DBOS provides separate execution ID
     const dbosExecId = (DBOS as any).executionID ?? (DBOS as any).executionId;
     if (dbosExecId && this.isUUID(dbosExecId)) {
-      this.executionId = dbosExecId;
       return { executionId: dbosExecId };
     }
 
     // Option 2: DBOS.workflowID is UUID (not user-provided dedupeKey)
-    // This is ONLY valid if you're NOT using custom workflowID for deduplication
     const workflowId = DBOS.workflowID;
     if (workflowId && this.isUUID(workflowId)) {
-      this.executionId = workflowId;
       return { executionId: workflowId };
     }
 
     // Option 3: Generate our own UUID
-    // CRITICAL: This is inside @DBOS.step(), so result is saved and replayed
-    const newId = uuidv7();
-    this.executionId = newId;
-    return { executionId: newId };
+    // Result is saved by DBOS and replayed on recovery
+    return { executionId: uuidv7() };
   }
 
   /**
    * Get unique operation ID for current workflow execution.
-   * CRITICAL: This MUST return a UUID, not a business key.
    *
-   * @throws Error if initExecution() was not called first
+   * @throws Error if executionId was not set after initExecution()
    */
   protected getOperationId(): string {
     if (!this.executionId) {
       throw new Error(
-        "executionId not set. You MUST call initExecution() as the FIRST step in your workflow. " +
-        "This ensures idempotency keys are stable across recovery."
+        "executionId not set. In your run() method, you MUST do:\n" +
+        "  const { executionId } = await this.initExecution();\n" +
+        "  this.executionId = executionId;"
       );
     }
 
     if (!this.isUUID(this.executionId)) {
       throw new Error(
-        `executionId must be UUID format, got: "${this.executionId}". ` +
-        "Check initExecution() implementation."
+        `executionId must be UUID format, got: "${this.executionId}".`
       );
     }
 
@@ -890,8 +899,10 @@ export class StoreCreateWorkflow extends BaseWorkflow {
     const { organizationId, userId } = input;
 
     // Step 0: MANDATORY - initialize execution ID for idempotency
-    // This MUST be the first step to ensure stable idempotency keys on recovery
-    await this.initExecution();
+    // CRITICAL: Capture return value and assign OUTSIDE the step!
+    // Side effects inside @DBOS.step() don't replay on recovery.
+    const { executionId } = await this.initExecution();
+    this.executionId = executionId;
 
     // Step 1: Generate store ID (deterministic on recovery)
     const storeId = await this.generateStoreId();
@@ -1249,18 +1260,31 @@ export class IamBrokerActions extends BrokerActions {
     return { payload: input as T };
   }
 
+  /**
+   * Check if result is cached for idempotency.
+   *
+   * NOTE: `result` column is JSONB - driver returns object directly.
+   * Do NOT use JSON.parse() - that's only needed if stored as TEXT.
+   */
   private async checkIdempotency(key: string): Promise<CreateRolesResult | null> {
     const cached = await this.kernel.repository.processedRequest.find(key);
-    if (cached) {
-      return JSON.parse(cached.result);
+    if (cached?.result) {
+      return cached.result as CreateRolesResult;  // JSONB returns object directly
     }
     return null;
   }
 
+  /**
+   * Store result for idempotency.
+   *
+   * NOTE: `result` column is JSONB - pass object directly!
+   * Do NOT use JSON.stringify() - that causes double serialization.
+   * The ORM/driver handles JSON serialization for JSONB columns.
+   */
   private async storeIdempotency(key: string, result: CreateRolesResult): Promise<void> {
     await this.kernel.repository.processedRequest.upsert({
       idempotencyKey: key,
-      result: JSON.stringify(result),
+      result,  // Object, NOT JSON.stringify(result)
       createdAt: new Date(),
     });
   }
@@ -1412,11 +1436,17 @@ export class ProcessedRequestsCleanupJob implements OnModuleInit {
 
     try {
       // SAFETY CHECK: Never delete 'reserved' records!
+      // NOTE: PostgreSQL doesn't support DELETE ... LIMIT directly.
+      // Use subquery with LIMIT instead.
       const result = await this.db.execute(sql`
         DELETE FROM processed_requests
-        WHERE status IN ('completed', 'failed')
-          AND created_at < NOW() - INTERVAL '${this.config.retentionDays} days'
-        LIMIT ${this.config.batchSize}
+        WHERE idempotency_key IN (
+          SELECT idempotency_key
+          FROM processed_requests
+          WHERE status IN ('completed', 'failed')
+            AND created_at < NOW() - INTERVAL '${this.config.retentionDays} days'
+          LIMIT ${this.config.batchSize}
+        )
         RETURNING idempotency_key
       `);
 
@@ -1918,7 +1948,8 @@ export const DEFAULT_RETRY_CONFIG: RetryConfig = {
  * All other errors fail immediately (no retry).
  */
 export function shouldRetry(error: unknown): boolean {
-  if (error instanceof ServiceError) {
+  // Use shape check, not instanceof (cross-package compatibility)
+  if (isServiceError(error)) {
     return error.retryable === true;
   }
 
@@ -1952,25 +1983,9 @@ export function calculateDelay(attempt: number, config: RetryConfig = DEFAULT_RE
 1. **NO `setTimeout`/`sleep()` inside `@DBOS.step()`** - non-deterministic, breaks recovery
 2. **NO custom decorator wrapping `@DBOS.step()`** - breaks DBOS step tracking
 3. **NO retry loops inside step methods** - unpredictable on replay
+4. **NO mutable class state (`this.x = ...`) inside `@DBOS.step()`** - side effects don't replay
 
-```typescript
-// ❌ WRONG - DO NOT DO THIS
-@DBOS.step()
-async createRolesWithRetry() {
-  for (let i = 0; i < 3; i++) {
-    try {
-      return await this.callService(...);
-    } catch (e) {
-      await sleep(1000 * Math.pow(2, i));  // ❌ Non-deterministic delay
-    }
-  }
-}
-
-// ❌ WRONG - DO NOT DO THIS
-@RetryableStep()  // ❌ Custom decorator wrapping @DBOS.step()
-@DBOS.step()
-async createRoles() { ... }
-```
+Any of these patterns will cause **silent data corruption** on workflow recovery.
 
 **✅ ALLOWED RETRY PATTERNS:**
 
@@ -2026,6 +2041,7 @@ private async createStoreRoles(storeId: string, organizationId: string, userId: 
 | `setTimeout`/`sleep()` | Different delay values on recovery → non-deterministic |
 | Custom decorator over `@DBOS.step()` | DBOS can't track step properly → double execution or missed replay |
 | Retry loop in step | Step result includes partial retries → inconsistent state on recovery |
+| `this.x = ...` inside step | Side effect doesn't execute on replay → class state is stale |
 
 **Safe retry is achieved through:**
 - **Service-side idempotency**: Services use `processed_requests` table
@@ -2358,7 +2374,8 @@ private async initializeAllServices(storeId: string, organizationId: string, use
     )
     .map(({ result, service }) => {
       const err = result.reason;
-      if (err instanceof ServiceError) {
+      // Use shape check, not instanceof (cross-package compatibility)
+      if (isServiceError(err)) {
         return `${service}: [${err.code}] ${err.message}`;
       }
       return `${service}: ${String(err)}`;
@@ -2456,14 +2473,14 @@ async storeCleanup(...) { /* remove all store-related data */ }
 |--------|--------|-------|
 | Service calls | `this.broker.call("iam.action", params)` | `this.callService("iam", "action", payload, callId)` |
 | callId | N/A | **REQUIRED**, deterministic from input/saved state |
-| operationId | N/A | **UUID** from DBOS (NOT human-readable business keys) |
+| operationId | N/A | **UUID** from `initExecution()` step (NOT DBOS.workflowID directly!) |
 | Context | N/A | `ActionContext` with version, operationId, idempotencyKey, traceId |
 | Payload format | Mixed into params | Explicit `{ payload, ctx }` envelope |
 | Idempotency | None | Services return success + `meta.idempotent` on duplicate |
 | In-progress state | N/A | `TRANSIENT_IN_PROGRESS` (retryable, DBOS backs off) |
 | Error handling | Return `{success, error}` | Always throw `ServiceError`; only `TRANSIENT_*` retryable |
 | Error source | Guessed | Preserved from service; TRANSIENT only for transport errors |
-| Retry policy | Implicit/unpredictable | Explicit `@RetryableStep()` + `shouldRetry()` in code |
+| Retry policy | Implicit/unpredictable | DBOS-native retry OR workflow restart (NO custom decorators) |
 | Parallel calls | Multiple `@DBOS.step()` in Promise.all | Single fanout step OR sequential steps |
 | Transport | Hardcoded broker calls | Abstracted via `ServicePort` (supports future gRPC) |
 | Testing | Need full broker | Mock `ServicePort` interface |
@@ -2606,8 +2623,8 @@ Each service should implement:
 
 - [ ] Update `services/project/src/workflows/StoreCreateWorkflow.ts`
   - [ ] Extend new `BaseWorkflow`
-  - [ ] **Call `initExecution()` as FIRST step** in `run()`
-  - [ ] Use plain `@DBOS.step()` (NOT RetryableStep - it's removed!)
+  - [ ] **FIRST in `run()`**: `const { executionId } = await this.initExecution(); this.executionId = executionId;`
+  - [ ] Use plain `@DBOS.step()` - NO custom retry decorators
   - [ ] Use `callService()` with deterministic `callId`:
     - `createRoles`: `storeId`
     - `assignRole`: `${storeId}:admin:${userId}`
