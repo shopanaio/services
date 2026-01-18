@@ -97,6 +97,8 @@ CREATE TABLE inventory.stock_changes (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_by UUID,
   apply_status VARCHAR(10) NOT NULL DEFAULT 'APPLIED', -- APPLIED | REJECTED
+  CONSTRAINT stock_changes_apply_status_check
+    CHECK (apply_status IN ('APPLIED', 'REJECTED')),
 
   -- FK только на warehouse_id (project_id денормализован для запросов)
   CONSTRAINT stock_changes_warehouse_fk
@@ -160,6 +162,15 @@ ins AS (
   ON CONFLICT (project_id, source_system, source_event_id, warehouse_id, variant_id)
   DO NOTHING
   RETURNING id
+),
+existing AS (
+  SELECT id
+  FROM inventory.stock_changes
+  WHERE project_id = $project_id
+    AND source_system = $source_system
+    AND source_event_id = $source_event_id
+    AND warehouse_id = $warehouse_id
+    AND variant_id = $variant_id
 ),
 
 -- 2. UPSERT warehouse_stock: только если ins вставился И результат валиден
@@ -230,11 +241,16 @@ result AS (
   SELECT 'APPLIED' as status, id FROM fix
   UNION ALL
   SELECT 'REJECTED' as status, id FROM reject
+  UNION ALL
+  SELECT 'DUPLICATE' as status, id
+  FROM existing
+  WHERE NOT EXISTS (SELECT 1 FROM fix)
+    AND NOT EXISTS (SELECT 1 FROM reject)
 )
 
 -- 5. Возвращаем статус + результат
 SELECT
-  COALESCE(r.status, 'DUPLICATE') as status,
+  r.status as status,
   sc.*
 FROM (SELECT 1) x
 LEFT JOIN result r ON true
@@ -388,6 +404,7 @@ JOIN inventory.variant v ON v.id = s.variant_id
 WHERE v.product_id = $1
   AND v.deleted_at IS NULL
   AND s.status IN ('PLANNED', 'IN_TRANSIT')
+  AND (s.qty_expected - s.qty_received) > 0
   AND s.expected_at >= NOW();
 ```
 
@@ -402,6 +419,7 @@ WITH product_variants AS (
 SELECT COALESCE(SUM(sc.delta_on_hand - sc.delta_reserved - sc.delta_unavailable), 0)
 FROM inventory.stock_changes sc
 WHERE sc.variant_id IN (SELECT id FROM product_variants)
+  AND sc.apply_status = 'APPLIED'
   AND sc.created_at >= NOW() - INTERVAL '7 days';
 ```
 
@@ -444,6 +462,7 @@ warehouse_oos AS (
         OVER (PARTITION BY sc.variant_id, sc.warehouse_id ORDER BY sc.seq) as prev_available
     FROM inventory.stock_changes sc
     WHERE sc.variant_id IN (SELECT id FROM product_variants)  -- фильтр до окна
+      AND sc.apply_status = 'APPLIED'
   ) sc
   WHERE sc.available_after <= 0
     AND (sc.prev_available IS NULL OR sc.prev_available > 0)
@@ -543,7 +562,7 @@ FROM inventory.warehouse_stock ws;
 
 ### Расчет backorder_expected_at (по складу)
 ```sql
--- deficit = max(0, reserved_qty - quantity_on_hand)
+-- deficit = max(0, reserved_qty + unavailable_qty - quantity_on_hand)
 WITH deficit AS (
   SELECT
     ws.project_id,
@@ -586,13 +605,18 @@ LIMIT 1;
 -- Продажи за последние 30 дней
 SELECT COALESCE(SUM(-delta_on_hand), 0)
 FROM inventory.stock_changes
-WHERE variant_id = $1 AND movement_type = 'SELL' AND created_at >= NOW() - INTERVAL '30 days';
+WHERE variant_id = $1
+  AND movement_type = 'SELL'
+  AND apply_status = 'APPLIED'
+  AND created_at >= NOW() - INTERVAL '30 days';
 
 -- История стока на любую дату (сортировка по created_at + seq для корректности)
 SELECT COALESCE((
   SELECT sc.on_hand_after
   FROM inventory.stock_changes sc
-  WHERE sc.variant_id = $1 AND sc.created_at <= $2
+  WHERE sc.variant_id = $1
+    AND sc.apply_status = 'APPLIED'
+    AND sc.created_at <= $2
   ORDER BY sc.created_at DESC, sc.seq DESC
   LIMIT 1
 ), 0);
@@ -600,7 +624,9 @@ SELECT COALESCE((
 -- Топ продаваемых товаров
 SELECT variant_id, SUM(-delta_on_hand) as sold
 FROM inventory.stock_changes
-WHERE movement_type = 'SELL' AND created_at >= NOW() - INTERVAL '30 days'
+WHERE movement_type = 'SELL'
+  AND apply_status = 'APPLIED'
+  AND created_at >= NOW() - INTERVAL '30 days'
 GROUP BY variant_id
 ORDER BY sold DESC;
 ```
