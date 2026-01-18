@@ -24,6 +24,13 @@ export const FILE_BASIC_FRAGMENT = gql`
     createdAt
     deletedAt
     deletionState
+    usage {
+      totalCount
+      byEntity {
+        entityType
+        count
+      }
+    }
   }
 `;
 

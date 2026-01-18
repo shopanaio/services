@@ -1215,6 +1215,8 @@ export type ApiFile = ApiNode & {
   updatedAt: Scalars['DateTime']['output'];
   /** Public URL to access file. */
   url: Scalars['String']['output'];
+  /** Usage summary for this file. */
+  usage: ApiFileUsageSummary;
 };
 
 export type ApiFileClearErrorInput = {
@@ -1403,6 +1405,19 @@ export type ApiFileRestoreInput = {
   id: Scalars['ID']['input'];
 };
 
+export type ApiFileRestoreManyInput = {
+  /** The IDs of files to restore. */
+  ids: Array<Scalars['ID']['input']>;
+};
+
+export type ApiFileRestoreManyPayload = {
+  __typename?: 'FileRestoreManyPayload';
+  /** Files that were successfully restored. */
+  restoredIds: Array<Scalars['ID']['output']>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<ApiGenericUserError>;
+};
+
 export type ApiFileRestorePayload = {
   __typename?: 'FileRestorePayload';
   /** The restored file. */
@@ -1465,6 +1480,24 @@ export type ApiFileUploadPayload = {
   file?: Maybe<ApiFile>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiFileUsageCount = {
+  __typename?: 'FileUsageCount';
+  /** Number of unique entities referencing the file. */
+  count: Scalars['Int']['output'];
+  /** Entity type (variant, user, organization, etc). */
+  entityType: Scalars['String']['output'];
+};
+
+export type ApiFileUsageSummary = {
+  __typename?: 'FileUsageSummary';
+  /** Usage breakdown by entity type. */
+  byEntity: Array<ApiFileUsageCount>;
+  /** Whether the file is active (not soft-deleted). */
+  fileActive: Scalars['Boolean']['output'];
+  /** Total number of unique entities referencing the file. */
+  totalCount: Scalars['Int']['output'];
 };
 
 /** Filter conditions for File */
@@ -2164,14 +2197,50 @@ export type ApiMediaDimensions = {
 
 export type ApiMediaMutation = {
   __typename?: 'MediaMutation';
+  /**
+   * Upload avatar or logo for an entity (user profile or organization).
+   * The file is stored in the entity's asset group.
+   */
+  avatarUpload: ApiAvatarUploadPayload;
+  bucketCreate: ApiBucketCreatePayload;
+  /** Clear errors for multiple files by ID. */
   fileClearError: ApiFileClearErrorPayload;
+  fileCreateExternal: ApiFileCreateExternalPayload;
+  fileDelete: ApiFileDeletePayload;
+  /** Delete multiple files by ID. */
   fileDeleteMany: ApiFileDeleteManyPayload;
+  /** Restore a single deleted file by ID. */
   fileRestore: ApiFileRestorePayload;
+  /** Restore multiple deleted files by ID. */
+  fileRestoreMany: ApiFileRestoreManyPayload;
+  fileUpdate: ApiFileUpdatePayload;
+  fileUpload: ApiFileUploadPayload;
+  fileUploadFromUrl: ApiFileUploadPayload;
+};
+
+
+export type ApiMediaMutationAvatarUploadArgs = {
+  input: ApiAvatarUploadInput;
+};
+
+
+export type ApiMediaMutationBucketCreateArgs = {
+  input: ApiBucketCreateInput;
 };
 
 
 export type ApiMediaMutationFileClearErrorArgs = {
   input: ApiFileClearErrorInput;
+};
+
+
+export type ApiMediaMutationFileCreateExternalArgs = {
+  input: ApiFileCreateExternalInput;
+};
+
+
+export type ApiMediaMutationFileDeleteArgs = {
+  input: ApiFileDeleteInput;
 };
 
 
@@ -2182,6 +2251,26 @@ export type ApiMediaMutationFileDeleteManyArgs = {
 
 export type ApiMediaMutationFileRestoreArgs = {
   input: ApiFileRestoreInput;
+};
+
+
+export type ApiMediaMutationFileRestoreManyArgs = {
+  input: ApiFileRestoreManyInput;
+};
+
+
+export type ApiMediaMutationFileUpdateArgs = {
+  input: ApiFileUpdateInput;
+};
+
+
+export type ApiMediaMutationFileUploadArgs = {
+  input: ApiFileUploadMultipartInput;
+};
+
+
+export type ApiMediaMutationFileUploadFromUrlArgs = {
+  input: ApiFileUploadFromUrlInput;
 };
 
 export type ApiMediaQuery = {
@@ -3480,8 +3569,6 @@ export type ApiS3ObjectData = {
   __typename?: 'S3ObjectData';
   /** The bucket ID where this file is stored. */
   bucketId: Scalars['ID']['output'];
-  /** Content hash (SHA-256) for deduplication. */
-  contentHash?: Maybe<Scalars['String']['output']>;
   /** ETag from S3. */
   etag?: Maybe<Scalars['String']['output']>;
   /** S3 object key (path within bucket). */

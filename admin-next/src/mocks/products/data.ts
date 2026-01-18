@@ -68,6 +68,7 @@ const createApiFile = (
   meta: null,
   s3Data: null,
   sourceUrl: null,
+  usage: { __typename: 'FileUsageSummary', totalCount: 0, byEntity: [], fileActive: true },
 });
 
 /**

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useCallback, useState } from "react";
-import { Image, Typography, Flex, Tag, Button } from "antd";
+import { Image, Typography, Flex, Tag, Button, Popover } from "antd";
 import { AgGridReact } from "ag-grid-react";
 import {
   ColDef,
@@ -136,6 +136,58 @@ const DateCellRenderer = (props: CustomCellRendererProps<ApiFile>) => {
         day: "numeric",
       })}
     </Typography.Text>
+  );
+};
+
+const entityTypeLabels: Record<string, { singular: string; plural: string }> = {
+  variant: { singular: "product", plural: "products" },
+  user: { singular: "user", plural: "users" },
+  organization: { singular: "organization", plural: "organizations" },
+};
+
+const formatEntityType = (entityType: string, count: number): string => {
+  const labels = entityTypeLabels[entityType] ?? {
+    singular: entityType,
+    plural: `${entityType}s`,
+  };
+  return count === 1 ? labels.singular : labels.plural;
+};
+
+const ReferencesCellRenderer = (props: CustomCellRendererProps<ApiFile>) => {
+  const { data } = props;
+  const usage = data?.usage;
+
+  if (!usage || usage.totalCount === 0) {
+    return <Typography.Text type="secondary">-</Typography.Text>;
+  }
+
+  const { byEntity, totalCount } = usage;
+
+  if (byEntity.length === 1) {
+    const { entityType, count } = byEntity[0];
+    return (
+      <Typography.Text>
+        {count} {formatEntityType(entityType, count)}
+      </Typography.Text>
+    );
+  }
+
+  const popoverContent = (
+    <Flex vertical gap={4}>
+      {byEntity.map(({ entityType, count }) => (
+        <Typography.Text key={entityType}>
+          {count} {formatEntityType(entityType, count)}
+        </Typography.Text>
+      ))}
+    </Flex>
+  );
+
+  return (
+    <Popover content={popoverContent} trigger="click" placement="bottom">
+      <Typography.Link style={{ cursor: "pointer" }}>
+        {totalCount} references
+      </Typography.Link>
+    </Popover>
   );
 };
 
@@ -288,7 +340,14 @@ export default function MediaPage() {
         field: "createdAt",
         cellRenderer: DateCellRenderer,
         minWidth: 120,
+      },
+      {
+        headerName: "References",
+        field: "usage",
+        cellRenderer: ReferencesCellRenderer,
+        minWidth: 120,
         resizable: false,
+        sortable: false,
       },
     ],
     []
