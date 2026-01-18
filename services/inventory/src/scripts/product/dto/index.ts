@@ -19,6 +19,7 @@ export type {
 export type {
   ProductUpdateParams,
   ProductUpdateResult,
+  ProductSeoInput,
 } from "./ProductUpdateDto.js";
 
 // Product Delete DTOs

@@ -1056,10 +1056,8 @@ export type Product = Node & {
   options: Array<ProductOption>;
   /** The date and time when the product was published, or null if unpublished. */
   publishedAt: Maybe<Scalars['DateTime']['output']>;
-  /** SEO description. */
-  seoDescription: Maybe<Scalars['String']['output']>;
-  /** SEO title. */
-  seoTitle: Maybe<Scalars['String']['output']>;
+  /** SEO and Open Graph metadata. */
+  seo: Maybe<ProductSeo>;
   /** Product title. */
   title: Scalars['String']['output'];
   /** The date and time when the product was last updated. */
@@ -1465,6 +1463,35 @@ export type ProductPublishPayload = {
   userErrors: Array<GenericUserError>;
 };
 
+/** SEO and Open Graph metadata for a product. */
+export type ProductSeo = {
+  __typename?: 'ProductSeo';
+  /** Open Graph description for social media sharing. */
+  ogDescription: Maybe<Scalars['String']['output']>;
+  /** Open Graph image for social media sharing. */
+  ogImage: Maybe<File>;
+  /** Open Graph title for social media sharing (max 95 chars). */
+  ogTitle: Maybe<Scalars['String']['output']>;
+  /** SEO description for search engines (max 160 chars). */
+  seoDescription: Maybe<Scalars['String']['output']>;
+  /** SEO title for search engines (max 70 chars). */
+  seoTitle: Maybe<Scalars['String']['output']>;
+};
+
+/** Input for updating product SEO data. */
+export type ProductSeoInput = {
+  /** Open Graph description. */
+  ogDescription?: InputMaybe<Scalars['String']['input']>;
+  /** Open Graph image file ID. */
+  ogImageId?: InputMaybe<Scalars['ID']['input']>;
+  /** Open Graph title (max 95 chars). */
+  ogTitle?: InputMaybe<Scalars['String']['input']>;
+  /** SEO description (max 160 chars). */
+  seoDescription?: InputMaybe<Scalars['String']['input']>;
+  /** SEO title (max 70 chars). */
+  seoTitle?: InputMaybe<Scalars['String']['input']>;
+};
+
 /** Input for unpublishing a product. */
 export type ProductUnpublishInput = {
   /** The ID of the product to unpublish. */
@@ -1490,10 +1517,8 @@ export type ProductUpdateInput = {
   handle?: InputMaybe<Scalars['String']['input']>;
   /** The product ID. */
   id: Scalars['ID']['input'];
-  /** SEO description. */
-  seoDescription?: InputMaybe<Scalars['String']['input']>;
-  /** SEO title. */
-  seoTitle?: InputMaybe<Scalars['String']['input']>;
+  /** SEO and Open Graph metadata. */
+  seo?: InputMaybe<ProductSeoInput>;
   /** Product title. */
   title?: InputMaybe<Scalars['String']['input']>;
 };
@@ -2398,6 +2423,8 @@ export type ResolversTypes = ResolversObject<{
   ProductOptionValuesInput: ProductOptionValuesInput;
   ProductPublishInput: ProductPublishInput;
   ProductPublishPayload: ResolverTypeWrapper<ProductPublishPayload>;
+  ProductSeo: ResolverTypeWrapper<ProductSeo>;
+  ProductSeoInput: ProductSeoInput;
   ProductUnpublishInput: ProductUnpublishInput;
   ProductUnpublishPayload: ResolverTypeWrapper<ProductUnpublishPayload>;
   ProductUpdateInput: ProductUpdateInput;
@@ -2527,6 +2554,8 @@ export type ResolversParentTypes = ResolversObject<{
   ProductOptionValuesInput: ProductOptionValuesInput;
   ProductPublishInput: ProductPublishInput;
   ProductPublishPayload: ProductPublishPayload;
+  ProductSeo: ProductSeo;
+  ProductSeoInput: ProductSeoInput;
   ProductUnpublishInput: ProductUnpublishInput;
   ProductUnpublishPayload: ProductUnpublishPayload;
   ProductUpdateInput: ProductUpdateInput;
@@ -2692,8 +2721,7 @@ export type ProductResolvers<ContextType = ServiceContext, ParentType extends Re
   isPublished?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   options?: Resolver<Array<ResolversTypes['ProductOption']>, ParentType, ContextType>;
   publishedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
-  seoDescription?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  seoTitle?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  seo?: Resolver<Maybe<ResolversTypes['ProductSeo']>, ParentType, ContextType>;
   title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   variants?: Resolver<ResolversTypes['VariantConnection'], ParentType, ContextType, Partial<ProductVariantsArgs>>;
@@ -2818,6 +2846,15 @@ export type ProductOptionValueResolvers<ContextType = ServiceContext, ParentType
 export type ProductPublishPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductPublishPayload'] = ResolversParentTypes['ProductPublishPayload']> = ResolversObject<{
   product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ProductSeoResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductSeo'] = ResolversParentTypes['ProductSeo']> = ResolversObject<{
+  ogDescription?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  ogImage?: Resolver<Maybe<ResolversTypes['File']>, ParentType, ContextType>;
+  ogTitle?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  seoDescription?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  seoTitle?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -3109,6 +3146,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   ProductOptionUpdatePayload?: ProductOptionUpdatePayloadResolvers<ContextType>;
   ProductOptionValue?: ProductOptionValueResolvers<ContextType>;
   ProductPublishPayload?: ProductPublishPayloadResolvers<ContextType>;
+  ProductSeo?: ProductSeoResolvers<ContextType>;
   ProductUnpublishPayload?: ProductUnpublishPayloadResolvers<ContextType>;
   ProductUpdatePayload?: ProductUpdatePayloadResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;

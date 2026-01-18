@@ -5,6 +5,7 @@ import type { VariantRelayInput } from "../../repositories/variant/VariantReposi
 import { InventoryType } from "./InventoryType.js";
 import { FeatureResolver } from "./FeatureResolver.js";
 import { OptionResolver } from "./OptionResolver.js";
+import { ProductSeoResolver } from "./ProductSeoResolver.js";
 import { VariantConnectionResolver } from "./VariantConnectionResolver.js";
 
 /**
@@ -74,18 +75,13 @@ export class ProductResolver extends InventoryType<string, Product | null> {
     return translation?.excerpt ?? null;
   }
 
-  async seoTitle() {
-    const translation = await this.$ctx.loaders.productTranslation.load(
-      this.$props
-    );
-    return translation?.seoTitle ?? null;
-  }
-
-  async seoDescription() {
-    const translation = await this.$ctx.loaders.productTranslation.load(
-      this.$props
-    );
-    return translation?.seoDescription ?? null;
+  /**
+   * Returns SEO and Open Graph metadata for this product
+   */
+  async seo() {
+    const seoData = await this.$ctx.loaders.productSeo.load(this.$props);
+    if (!seoData) return null;
+    return new ProductSeoResolver(seoData, this.$ctx);
   }
 
   /**

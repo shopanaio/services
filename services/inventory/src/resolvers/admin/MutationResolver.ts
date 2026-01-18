@@ -186,8 +186,15 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
           }
         : undefined,
       excerpt: input.excerpt ?? undefined,
-      seoTitle: input.seoTitle ?? undefined,
-      seoDescription: input.seoDescription ?? undefined,
+      seo: input.seo
+        ? {
+            seoTitle: input.seo.seoTitle ?? undefined,
+            seoDescription: input.seo.seoDescription ?? undefined,
+            ogTitle: input.seo.ogTitle ?? undefined,
+            ogDescription: input.seo.ogDescription ?? undefined,
+            ogImageId: input.seo.ogImageId ?? undefined,
+          }
+        : undefined,
     });
 
     return {

@@ -4,12 +4,14 @@ import type {
   ProductTranslation,
   ProductOption,
   ProductFeature,
+  ProductSeo,
 } from "../repositories/models/index.js";
 import type { Repository } from "../repositories/Repository.js";
 
 export class ProductLoader {
   public readonly product: DataLoader<string, Product | null>;
   public readonly productTranslation: DataLoader<string, ProductTranslation | null>;
+  public readonly productSeo: DataLoader<string, ProductSeo | null>;
   public readonly productOptionIds: DataLoader<string, string[]>;
   public readonly productFeatureIds: DataLoader<string, string[]>;
   public readonly productOption: DataLoader<string, ProductOption | null>;
@@ -24,6 +26,11 @@ export class ProductLoader {
     this.productTranslation = new DataLoader<string, ProductTranslation | null>(async (productIds) => {
       const results = await repository.product.getTranslationsByProductIds(productIds);
       return productIds.map((id) => results.find((t) => t.productId === id) ?? null);
+    });
+
+    this.productSeo = new DataLoader<string, ProductSeo | null>(async (productIds) => {
+      const results = await repository.translation.getProductSeoBatch(productIds);
+      return productIds.map((id) => results.get(id) ?? null);
     });
 
     this.productOptionIds = new DataLoader<string, string[]>(async (productIds) => {

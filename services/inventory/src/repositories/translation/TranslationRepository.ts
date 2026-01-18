@@ -9,6 +9,7 @@ import {
   productFeatureTranslation,
   productFeatureValueTranslation,
   warehouseTranslation,
+  productSeo,
   type ProductTranslation,
   type NewProductTranslation,
   type VariantTranslation,
@@ -23,6 +24,8 @@ import {
   type NewProductFeatureValueTranslation,
   type WarehouseTranslation,
   type NewWarehouseTranslation,
+  type ProductSeo,
+  type NewProductSeo,
 } from "../models";
 
 export class TranslationRepository {
@@ -100,8 +103,6 @@ export class TranslationRepository {
           descriptionHtml: data.descriptionHtml,
           descriptionJson: data.descriptionJson,
           excerpt: data.excerpt,
-          seoTitle: data.seoTitle,
-          seoDescription: data.seoDescription,
         },
       })
       .returning();
@@ -125,8 +126,6 @@ export class TranslationRepository {
           descriptionHtml: productTranslation.descriptionHtml,
           descriptionJson: productTranslation.descriptionJson,
           excerpt: productTranslation.excerpt,
-          seoTitle: productTranslation.seoTitle,
-          seoDescription: productTranslation.seoDescription,
         },
       })
       .returning();
@@ -448,5 +447,70 @@ export class TranslationRepository {
       .returning();
 
     return result[0];
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Product SEO
+  // ─────────────────────────────────────────────────────────────────────────
+
+  async getProductSeo(
+    productId: string,
+    locale: string
+  ): Promise<ProductSeo | undefined> {
+    const result = await this.connection
+      .select()
+      .from(productSeo)
+      .where(
+        and(
+          eq(productSeo.productId, productId),
+          eq(productSeo.locale, locale)
+        )
+      )
+      .limit(1);
+
+    return result[0];
+  }
+
+  async getProductSeoBatch(
+    productIds: readonly string[]
+  ): Promise<Map<string, ProductSeo>> {
+    if (productIds.length === 0) return new Map();
+
+    const results = await this.connection
+      .select()
+      .from(productSeo)
+      .where(inArray(productSeo.productId, productIds as string[]));
+
+    return new Map(results.map((s) => [s.productId, s]));
+  }
+
+  async upsertProductSeo(data: NewProductSeo): Promise<ProductSeo> {
+    const result = await this.connection
+      .insert(productSeo)
+      .values(data)
+      .onConflictDoUpdate({
+        target: [productSeo.productId, productSeo.locale],
+        set: {
+          seoTitle: data.seoTitle,
+          seoDescription: data.seoDescription,
+          ogTitle: data.ogTitle,
+          ogDescription: data.ogDescription,
+          ogImageId: data.ogImageId,
+        },
+      })
+      .returning();
+
+    return result[0];
+  }
+
+  async deleteProductSeo(productId: string, locale: string): Promise<void> {
+    await this.connection
+      .delete(productSeo)
+      .where(
+        and(
+          eq(productSeo.productId, productId),
+          eq(productSeo.locale, locale)
+        )
+      );
   }
 }

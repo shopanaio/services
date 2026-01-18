@@ -7,6 +7,7 @@ export { MutationResolver, InventoryMutationResolver } from "./MutationResolver.
 
 // Type resolvers
 export { ProductResolver } from "./ProductResolver.js";
+export { ProductSeoResolver } from "./ProductSeoResolver.js";
 export { VariantResolver } from "./VariantResolver.js";
 export { WarehouseResolver } from "./WarehouseResolver.js";
 export { OptionResolver } from "./OptionResolver.js";

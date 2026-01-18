@@ -6,6 +6,7 @@
 
 import type { TypeResult } from "@shopana/type-resolver";
 import type { ProductResolver } from "../ProductResolver.js";
+import type { ProductSeoResolver } from "../ProductSeoResolver.js";
 import type { VariantResolver } from "../VariantResolver.js";
 import type { WarehouseResolver } from "../WarehouseResolver.js";
 import type { OptionResolver } from "../OptionResolver.js";
@@ -20,6 +21,9 @@ import type { VariantPriceResolver } from "../VariantPriceResolver.js";
 
 /** Product type derived from ProductResolver */
 export type Product = TypeResult<typeof ProductResolver>;
+
+/** ProductSeo type derived from ProductSeoResolver */
+export type ProductSeo = TypeResult<typeof ProductSeoResolver>;
 
 /** Variant type derived from VariantResolver */
 export type Variant = TypeResult<typeof VariantResolver>;

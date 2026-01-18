@@ -8,6 +8,20 @@
       "when": 1766408442654,
       "tag": "0000_loving_prism",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1768757276453,
+      "tag": "0001_bumpy_synch",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1768757545995,
+      "tag": "0002_elite_shiva",
+      "breakpoints": true
     }
   ]
 }

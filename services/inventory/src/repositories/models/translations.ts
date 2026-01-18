@@ -37,10 +37,6 @@ export const productTranslation = inventorySchema.table(
 
     // Short summary
     excerpt: text("excerpt"),
-
-    // SEO fields
-    seoTitle: varchar("seo_title", { length: 255 }),
-    seoDescription: text("seo_description"),
   },
   (table) => [
     primaryKey({ columns: [table.productId, table.locale] }),

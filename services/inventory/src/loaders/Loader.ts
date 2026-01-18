@@ -10,6 +10,7 @@ export class Loader {
   // Product
   public readonly product;
   public readonly productTranslation;
+  public readonly productSeo;
   public readonly productOptionIds;
   public readonly productFeatureIds;
   public readonly productOption;
@@ -57,6 +58,7 @@ export class Loader {
     // Product
     this.product = productLoader.product;
     this.productTranslation = productLoader.productTranslation;
+    this.productSeo = productLoader.productSeo;
     this.productOptionIds = productLoader.productOptionIds;
     this.productFeatureIds = productLoader.productFeatureIds;
     this.productOption = productLoader.productOption;

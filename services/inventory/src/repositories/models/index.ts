@@ -27,3 +27,6 @@ export * from "./media";
 
 // Translations (i18n)
 export * from "./translations";
+
+// SEO (search engine & social media metadata)
+export * from "./seo";

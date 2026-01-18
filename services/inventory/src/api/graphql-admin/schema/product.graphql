@@ -79,11 +79,8 @@ type Product implements Node @key(fields: "id") {
   """Short excerpt."""
   excerpt: String
 
-  """SEO title."""
-  seoTitle: String
-
-  """SEO description."""
-  seoDescription: String
+  """SEO and Open Graph metadata."""
+  seo: ProductSeo
 }
 
 """
@@ -144,11 +141,8 @@ input ProductUpdateInput {
   """Short excerpt."""
   excerpt: String
 
-  """SEO title."""
-  seoTitle: String
-
-  """SEO description."""
-  seoDescription: String
+  """SEO and Open Graph metadata."""
+  seo: ProductSeoInput
 }
 
 """

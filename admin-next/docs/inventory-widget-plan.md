@@ -33,6 +33,27 @@ ALTER TABLE inventory.warehouse_stock
 ### 2. Журнал изменений `stock_changes` (тонкий delta-log)
 
 ```sql
+CREATE TYPE inventory.stock_movement_type AS ENUM (
+  'SEED',
+  'RECEIVE',
+  'SELL',
+  'RETURN',
+  'ADJUST',
+  'RESERVE',
+  'RELEASE',
+  'TRANSFER'
+);
+
+CREATE TYPE inventory.stock_movement_reason AS ENUM (
+  'DAMAGE',
+  'INVENTORY_COUNT',
+  'MANUAL',
+  'CUSTOMER_RETURN'
+);
+
+CREATE TYPE inventory.stock_transfer_direction AS ENUM ('IN', 'OUT');
+CREATE TYPE inventory.stock_apply_status AS ENUM ('APPLIED', 'REJECTED');
+
 CREATE TABLE inventory.stock_changes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   seq BIGINT GENERATED ALWAYS AS IDENTITY,  -- монотонный порядок, решает created_at-гонки
@@ -59,7 +80,7 @@ CREATE TABLE inventory.stock_changes (
   CONSTRAINT stock_changes_unavailable_le_onhand CHECK (unavailable_after <= on_hand_after),
 
   -- Тип операции (что произошло)
-  movement_type VARCHAR(20) NOT NULL,
+  movement_type inventory.stock_movement_type NOT NULL,
   -- 'SEED'       начальный остаток (миграция)
   -- 'RECEIVE'    приход товара
   -- 'SELL'       продажа (списание)
@@ -71,16 +92,16 @@ CREATE TABLE inventory.stock_changes (
 
   -- Направление для TRANSFER (IN = приход на склад, OUT = уход со склада)
   -- NOT NULL для TRANSFER, NULL для остальных
-  transfer_direction VARCHAR(3),
+  transfer_direction inventory.stock_transfer_direction,
   CONSTRAINT stock_changes_transfer_dir CHECK (
     CASE
-      WHEN movement_type = 'TRANSFER' THEN transfer_direction IN ('IN', 'OUT')
+      WHEN movement_type = 'TRANSFER' THEN transfer_direction IS NOT NULL
       ELSE transfer_direction IS NULL
     END
   ),
 
   -- Причина (почему произошло)
-  reason VARCHAR(30),
+  reason inventory.stock_movement_reason,
   -- 'DAMAGE'           брак/потери
   -- 'INVENTORY_COUNT'  инвентаризация
   -- 'MANUAL'           ручная корректировка
@@ -96,9 +117,7 @@ CREATE TABLE inventory.stock_changes (
   note TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_by UUID,
-  apply_status VARCHAR(10) NOT NULL DEFAULT 'APPLIED', -- APPLIED | REJECTED
-  CONSTRAINT stock_changes_apply_status_check
-    CHECK (apply_status IN ('APPLIED', 'REJECTED')),
+  apply_status inventory.stock_apply_status NOT NULL DEFAULT 'APPLIED',
 
   -- FK только на warehouse_id (project_id денормализован для запросов)
   CONSTRAINT stock_changes_warehouse_fk
@@ -109,8 +128,10 @@ CREATE TABLE inventory.stock_changes (
 ALTER TABLE inventory.stock_changes ADD CONSTRAINT stock_changes_seq_unique UNIQUE (seq);
 
 -- Индексы для аналитики (используем seq для корректного порядка)
-CREATE INDEX idx_stock_changes_variant_seq ON inventory.stock_changes(variant_id, seq DESC);
-CREATE INDEX idx_stock_changes_variant_warehouse_seq ON inventory.stock_changes(variant_id, warehouse_id, seq DESC);
+CREATE INDEX idx_stock_changes_variant_created_seq
+  ON inventory.stock_changes(variant_id, created_at DESC, seq DESC);
+CREATE INDEX idx_stock_changes_variant_warehouse_created_seq
+  ON inventory.stock_changes(variant_id, warehouse_id, created_at DESC, seq DESC);
 CREATE INDEX idx_stock_changes_project_seq ON inventory.stock_changes(project_id, seq DESC);
 CREATE INDEX idx_stock_changes_type_seq ON inventory.stock_changes(movement_type, seq DESC);
 CREATE INDEX idx_stock_changes_reason_seq ON inventory.stock_changes(reason, seq DESC);
@@ -123,8 +144,6 @@ CREATE INDEX idx_stock_changes_idempo_lookup
   ON inventory.stock_changes(project_id, source_system, source_event_id);
 
 -- Индекс для availableChange7d и других time-based запросов
-CREATE INDEX idx_stock_changes_variant_created
-  ON inventory.stock_changes(variant_id, created_at DESC);
 ```
 
 ```sql
@@ -260,7 +279,7 @@ LEFT JOIN inventory.stock_changes sc ON sc.id = r.id;
 **Статусы**:
 - `APPLIED` — операция выполнена, `sc.*` содержит запись
 - `DUPLICATE` — идемпотентный повтор (событие уже обработано)
-- `REJECTED` — результат невалиден (недостаточно стока, нарушение CHECK), запись сохранена с `apply_status = 'REJECTED'`
+- `REJECTED` — результат невалиден (недостаточно стока, нарушение CHECK или конкурирующее обновление); запись сохранена с `apply_status = 'REJECTED'`
 
 **Гарантии**:
 - `INSERT ... ON CONFLICT DO NOTHING` — единственный race-free способ идемпотентности
@@ -269,9 +288,21 @@ LEFT JOIN inventory.stock_changes sc ON sc.id = r.id;
 - `reject` фиксирует REJECTED с текущими балансами — событие остаётся идемпотентным
 - INSERT-ветка проверяет валидность дельт для новой строки
 
-`movement_type` и `reason` можно оформить как ENUM, чтобы избежать мусорных значений.
-Для идемпотентности `source_system` и `source_event_id` обязательны; при отсутствии
-естественного идентификатора генерировать ключ на стороне источника.
+`movement_type`, `reason` и `apply_status` оформлены как ENUM, чтобы избежать мусорных значений.
+Для идемпотентности `source_system` и `source_event_id` обязательны; `source_event_id`
+должен быть уникальным на уровне SKU+склада (например, `order_id:line_id:warehouse_id`).
+Если нужен event-level идемпотентный ключ на несколько строк — добавить отдельный `stock_events`.
+
+**Семантика дельт по movement_type (минимум):**
+- `RECEIVE`: `delta_on_hand = +qty`
+- `SELL`: `delta_on_hand = -qty`, `delta_reserved = -qty` (если списание из резерва)
+- `RETURN`: `delta_on_hand = +qty`
+- `ADJUST`: любые дельты (ручная корректировка)
+- `RESERVE`: `delta_reserved = +qty`
+- `RELEASE`: `delta_reserved = -qty`
+- `TRANSFER`: две записи с одним `correlation_id`:
+  - `OUT`: `delta_on_hand = -qty`
+  - `IN`: `delta_on_hand = +qty`
 
 ### 3. Резервирования `reservations`
 
@@ -308,20 +339,23 @@ CREATE INDEX idx_reservations_order ON inventory.reservations(order_system, orde
 
 `reserved_qty` в `warehouse_stock` — агрегат по активным резервам; нужна строгая транзакция и периодическая сверка
 с `reservations` (SUM quantity WHERE status = 'ACTIVE').
+Для идемпотентности резервов — `INSERT ... ON CONFLICT DO NOTHING` по UNIQUE; `order_id` должен быть
+уникальным на уровне позиции (если у заказа есть несколько line-items с одинаковым SKU).
 
 ### 4. Настройки алертов `product_inventory_settings`
 
 ```sql
 CREATE TABLE inventory.product_inventory_settings (
-  product_id UUID PRIMARY KEY REFERENCES inventory.product(id) ON DELETE CASCADE,
   project_id UUID NOT NULL,
+  product_id UUID NOT NULL REFERENCES inventory.product(id) ON DELETE CASCADE,
   alert_threshold_method VARCHAR(20) NOT NULL DEFAULT 'SAFETY_STOCK',
   alert_minimum_stock INTEGER NOT NULL DEFAULT 10,
   backorder_enabled BOOLEAN NOT NULL DEFAULT false,
   backorder_max_days INTEGER,
   backorder_max_qty INTEGER,
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (project_id, product_id)
 );
 ```
 
@@ -345,7 +379,7 @@ CREATE TABLE inventory.inbound_supply (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
 
-  UNIQUE(source_type, source_id, variant_id, warehouse_id)
+  UNIQUE(project_id, source_type, source_id, variant_id, warehouse_id)
 );
 
 CREATE INDEX idx_inbound_supply_variant_date
@@ -459,7 +493,7 @@ warehouse_oos AS (
       sc.created_at,
       (sc.on_hand_after - sc.reserved_after - sc.unavailable_after) as available_after,
       LAG(sc.on_hand_after - sc.reserved_after - sc.unavailable_after)
-        OVER (PARTITION BY sc.variant_id, sc.warehouse_id ORDER BY sc.seq) as prev_available
+        OVER (PARTITION BY sc.variant_id, sc.warehouse_id ORDER BY sc.created_at, sc.seq) as prev_available
     FROM inventory.stock_changes sc
     WHERE sc.variant_id IN (SELECT id FROM product_variants)  -- фильтр до окна
       AND sc.apply_status = 'APPLIED'
