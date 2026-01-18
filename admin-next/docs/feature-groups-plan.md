@@ -79,6 +79,17 @@ ALTER TABLE product_feature
 CREATE INDEX product_feature_parent_id_idx ON product_feature(parent_id);
 
 -- Backfill existing features as attributes (is_group = false, already default)
+-- Backfill sort_index based on id to ensure deterministic ordering
+WITH ranked AS (
+  SELECT
+    id,
+    ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY id) - 1 as new_sort_index
+  FROM product_feature
+)
+UPDATE product_feature
+SET sort_index = ranked.new_sort_index
+FROM ranked
+WHERE product_feature.id = ranked.id;
 ```
 
 ### Constraints
@@ -113,16 +124,19 @@ type ProductFeature implements Node {
   sortIndex: Int!
   """Parent group, if this feature belongs to a group."""
   parent: ProductFeature
-  """Child features (only when isGroup = true)."""
+  """Child features. Returns empty array for attributes (isGroup = false)."""
   children: [ProductFeature!]!
-  """Values (only when isGroup = false, empty for groups)."""
+  """Values. Returns empty array for groups (isGroup = true)."""
   values: [ProductFeatureValue!]!
 }
 
 type Product implements Node {
   # ... existing fields ...
 
-  """All features (flat list)."""
+  """
+  All features (flat list, includes both groups and attributes).
+  @deprecated Use rootFeatures for tree structure.
+  """
   features: [ProductFeature!]!
 
   """Root-level features only (groups and ungrouped attributes)."""
@@ -154,17 +168,24 @@ input ProductFeatureSyncItemInput {
   """
   id: ID
 
+  """
+  Temporary client-side ID for new features (frontend generates, e.g., UUID).
+  Used to reference this item as a parent before it has a real ID.
+  Only needed for new items that will be referenced by other new items.
+  """
+  clientId: String
+
   """Whether this is a group (true) or attribute (false). Default: false."""
   isGroup: Boolean
 
   """
-  Parent reference for tree structure.
-  - For new items: index in the features array (0-based) pointing to parent group
-  - For existing items: ID of parent group, or null for root level
-  Use `parentIndex` for new items to reference other new items in same request.
+  Parent reference for tree structure:
+  - parentId: ID of an existing group (use for existing parents)
+  - parentClientId: clientId of a new group in the same request (use for new parents)
+  - Both null: root-level feature
   """
   parentId: ID
-  parentIndex: Int
+  parentClientId: String
 
   """The URL-friendly slug."""
   slug: String!
@@ -219,6 +240,7 @@ Transaction:
    - existingById: Map<ID, Feature>
    - inputById: Map<ID, InputItem> (items with id)
    - newItems: InputItem[] (items without id)
+   - clientIdMap: Map<String, ID> (for resolving clientId → real ID)
 
 3. Determine operations:
    - TO_DELETE = existingById.keys() - inputById.keys()
@@ -229,16 +251,27 @@ Transaction:
    - Slugs unique within product
    - Groups cannot have values
    - Attributes cannot have children
-   - parentId/parentIndex references valid groups
+   - parentId/parentClientId references valid groups
+   - isGroup cannot change for existing features
+   - No cycles in parent references
 
-5. Execute in order:
-   a. DELETE features in TO_DELETE (CASCADE deletes children & values)
-   b. UPDATE features in TO_UPDATE
-   c. CREATE features in TO_CREATE (resolve parentIndex → real parentId)
-   d. Sync values for each attribute (same create/update/delete logic)
+5. Execute in order (IMPORTANT: UPDATE/CREATE before DELETE to prevent CASCADE issues):
+   a. UPDATE features in TO_UPDATE (including parentId changes for moves)
+   b. CREATE features in TO_CREATE:
+      - First pass: create all items (parentId = null temporarily for new parents)
+      - Build clientIdMap: clientId → generated real ID
+      - Second pass: resolve parentClientId → real parentId using clientIdMap
+   c. Sync values for each attribute (same create/update/delete logic)
+   d. DELETE features in TO_DELETE (CASCADE deletes children & values)
+      - Safe now because all moves have been processed
 
 6. Return all features with final IDs
 ```
+
+> **Why UPDATE/CREATE before DELETE?**
+> If an attribute is moved from Group A to Group B, and Group A is being deleted,
+> executing DELETE first would CASCADE-delete the attribute before we can update its parentId.
+> By processing moves first, we ensure the attribute is safely re-parented before the old group is removed.
 
 ### Alternative: Separate Mutations (for granular operations)
 
@@ -281,14 +314,27 @@ services/inventory/src/
 
 ## 4. Validation Rules
 
-| Rule | Description |
-|------|-------------|
-| **isGroup immutable** | Cannot change `isGroup` after creation |
-| **Groups have no values** | Features with `isGroup = true` cannot have values |
-| **Attributes have no children** | Features with `isGroup = false` cannot have children |
-| **Single-level nesting** | Groups cannot have a parent (groups are always root-level) |
-| **Valid parent** | `parentId` must reference a group (`isGroup = true`) in the same product |
-| **Unique slug** | Slug must be unique within the product |
+| Rule | Description | Enforcement |
+|------|-------------|-------------|
+| **isGroup immutable** | Cannot change `isGroup` after creation | App layer (sync script) |
+| **Groups have no values** | Features with `isGroup = true` cannot have values | App layer |
+| **Attributes have no children** | Features with `isGroup = false` cannot have children | App layer |
+| **Single-level nesting** | Groups cannot have a parent (groups are always root-level) | DB constraint + App layer |
+| **Valid parent reference** | `parentId` must reference a feature with `isGroup = true` in the same product | App layer (DB can't cross-check) |
+| **Same product constraint** | Parent must belong to the same `productId` as the child | App layer |
+| **Unique slug** | Slug must be unique within the product (both groups and attributes share namespace) | DB unique index |
+| **No orphan clientId refs** | `parentClientId` must reference an existing `clientId` in the same request | App layer |
+
+### Validation Notes
+
+> **Why app-layer validation for parent reference?**
+> SQL CHECK constraints cannot reference other rows. The constraint `CHECK (is_group = false OR parent_id IS NULL)`
+> only ensures groups have no parent, but cannot verify that `parentId` points to a valid group.
+> This must be validated in the application layer before insert/update.
+
+> **Cycle protection:**
+> With single-level nesting (groups always at root), cycles are structurally impossible.
+> However, if the model evolves to support deeper nesting, cycle detection will be required.
 
 ---
 
@@ -304,30 +350,31 @@ mutation {
     productFeaturesSync(input: {
       productId: "prod-123"
       features: [
-        # Group (new - no id)
+        # Group (new - no id, has clientId for referencing)
         {
+          clientId: "temp-group-1"  # frontend-generated temp ID
           isGroup: true
           slug: "physical-properties"
           name: "Physical Properties"
           sortIndex: 0
         }
-        # Attribute in group (new - references group by index)
+        # Attribute in group (new - references group by clientId)
         {
           slug: "material"
           name: "Material"
-          parentIndex: 0  # references first item (the group above)
+          parentClientId: "temp-group-1"  # references the new group above
           sortIndex: 0
           values: [
             { slug: "cotton", name: "Cotton" }
             { slug: "wool", name: "Wool" }
           ]
         }
-        # Existing attribute (update - has id)
+        # Existing attribute moved to new group (has id, uses parentClientId)
         {
           id: "existing-feat-456"
           slug: "color"
           name: "Color"
-          parentIndex: 0
+          parentClientId: "temp-group-1"  # moved into new group
           sortIndex: 1
           values: [
             { id: "existing-val-1", slug: "red", name: "Red" }
@@ -525,3 +572,26 @@ When a group is deleted, all child features (attributes) are also deleted via CA
 ### Sort Index Management
 - Root-level items (groups and root attributes) share the same `sortIndex` sequence
 - Child attributes within a group have their own `sortIndex` sequence starting from 0
+
+### Resolver Behavior
+- `children` always returns `[]` for attributes (`isGroup = false`) - schema is predictable
+- `values` always returns `[]` for groups (`isGroup = true`)
+- `features` (flat list) is deprecated in favor of `rootFeatures` for tree structure
+
+### DataLoader Implementation
+For efficient loading of `children`:
+```typescript
+// Load children by batching (productId, parentId) pairs
+const childrenLoader = new DataLoader<string, ProductFeature[]>(
+  async (parentIds) => {
+    const children = await db.query.productFeature.findMany({
+      where: inArray(productFeature.parentId, parentIds),
+      orderBy: [asc(productFeature.sortIndex)],
+    });
+    // Group by parentId and return in order
+    return parentIds.map(parentId =>
+      children.filter(c => c.parentId === parentId)
+    );
+  }
+);
+```
