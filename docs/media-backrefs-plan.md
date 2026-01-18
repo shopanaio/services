@@ -5,18 +5,29 @@
 Implement back-references tracking in the media service to:
 1. Track which entities (variants, users, orgs) reference each file
 2. Display usage info in UI (with warning before delete)
-3. **Auto hard-delete**: when refCount→0 after unlink/entityDeleted
-4. **Manual hard-delete**: allowed anytime from library (even if refCount>0; cascade removes refs)
+3. **No auto-delete**: files remain even with refCount=0
+4. **Deletion flow**: UI soft-delete → GC hard-delete (after retention)
 
 **Design Decisions:**
 - Entity-level tracking: `inventory:variant:uuid123`
-- Immediate deletion when backRefs=0 (no 30-day retention)
+- BackRefs are **tracking only** — no auto-deletion
 - GC is independent: backRefs only live while file exists (FK cascade cleans up)
 
 **Idempotency Rules:**
 - `fileLink`: repeated call → OK, file not found → OK (WARN log)
-- `fileUnlink`: backRef gone → OK, returns **actual refCount** (not 0)
-- `hardDelete`: returns `didDelete` (true = actually deleted, false = already gone)
+- `fileUnlink`: backRef gone → OK, returns **actual refCount**
+- `entityDeleted`: all backRefs for entity removed, returns count
+
+**Soft-Deleted Files (`deletedAt != null`):**
+- `fileLink`: treated as "file not found" — no insert, `refCount: 0`, WARN log
+- `fileUnlink`: idempotent — `success: true, refCount: 0`
+- Rationale: don't create new references to files pending GC
+
+**`refCount` Semantics:**
+- `refCount` = "active refs for active file" (not raw DB row count)
+- Returns 0 when file is missing or soft-deleted, even if backRef rows exist in DB
+- Use `fileExists` + `fileActive` flags to understand why `refCount` is 0
+- UI can show: "file pending deletion" when `fileExists && !fileActive`
 
 ---
 
@@ -81,7 +92,7 @@ Key methods:
 - `link(fileId, entityRef, role)` - **INSERT ... SELECT FROM files WHERE id=?** (no FK error if file missing), returns refCount
 - `linkMany(fileIds, entityRef, role)` - batch link via INSERT SELECT, returns linkedCount
 - `unlink(fileId, entityRef, role)` - DELETE + count, returns `{ remainingCount }`
-- `unlinkAllByEntity(entityRef)` - **DELETE ... RETURNING file_id** → batch count → fileIds with 0 refs
+- `unlinkAllByEntity(entityRef)` - DELETE all backRefs for entity, returns count
 - `countByFileId(fileId)` - single file count
 - `countByFileIds(fileIds)` - batch counts (for entityDeleted optimization)
 - `findByFileId(fileId, limit=100)` - **ORDER BY created_at DESC, entity_id ASC** (stable sort)
@@ -113,7 +124,9 @@ export interface FileLinkParams {
 
 export interface FileLinkResult {
   success: boolean;    // true = linked (or already existed)
-  refCount: number;    // total refs for this file after operation
+  refCount: number;    // total refs for this file (0 if file missing/inactive)
+  fileExists: boolean; // file row exists in DB
+  fileActive: boolean; // file exists AND deletedAt == null
 }
 
 export interface FileUnlinkParams {
@@ -124,8 +137,9 @@ export interface FileUnlinkParams {
 
 export interface FileUnlinkResult {
   success: boolean;    // true = operation completed (idempotent)
-  refCount: number;    // remaining refs (0 if file deleted or didn't exist)
-  deleted: boolean;    // true ONLY if THIS call triggered hard-delete (didDelete=true)
+  refCount: number;    // remaining refs (0 if file missing/inactive)
+  fileExists: boolean; // file row exists in DB
+  fileActive: boolean; // file exists AND deletedAt == null
 }
 
 export interface EntityDeletedParams {
@@ -134,7 +148,6 @@ export interface EntityDeletedParams {
 
 export interface EntityDeletedResult {
   unlinkedCount: number;   // backRefs removed in this call
-  deletedFileIds: string[]; // files where: refCount→0 AND hardDelete returned didDelete=true
 }
 ```
 
@@ -142,62 +155,49 @@ export interface EntityDeletedResult {
 - All operations are **idempotent** — safe to retry
 
 **`fileLink`:**
-| Case | success | refCount | Note |
-|------|---------|----------|------|
-| linked (new or existed) | true | actual count | — |
-| file not found | true | 0 | WARN log, no insert |
+| Case | success | refCount | fileExists | fileActive | Note |
+|------|---------|----------|------------|------------|------|
+| linked (new or existed) | true | actual | true | true | — |
+| file not found | true | 0 | false | false | WARN log, no insert |
+| file soft-deleted | true | 0 | true | false | WARN log, no insert |
 
-**link() SQL pattern** (no FK violation if file missing):
+**link() SQL pattern** (no FK violation if file missing or soft-deleted):
 ```sql
 INSERT INTO file_back_refs (file_id, service, entity_type, entity_id, role, created_at)
 SELECT $fileId, $service, $entityType, $entityId, $role, NOW()
-FROM files WHERE id = $fileId
+FROM files WHERE id = $fileId AND deleted_at IS NULL
 ON CONFLICT DO NOTHING
 ```
-Returns 0 rows if file doesn't exist → `refCount=0`, WARN log.
+Returns 0 rows if file doesn't exist or is soft-deleted → `refCount=0`, WARN log.
 
 **`fileUnlink`:**
-| Case | success | refCount | deleted |
-|------|---------|----------|---------|
-| backRef deleted | true | actual remaining | false (or true if triggered hardDelete) |
-| backRef didn't exist | true | actual remaining | false |
-| file not found | true | 0 | false |
-| file deleted concurrently | true | 0 | false |
-| hardDelete triggered by THIS call | true | 0 | true |
+| Case | success | refCount | fileExists | fileActive |
+|------|---------|----------|------------|------------|
+| backRef deleted | true | actual remaining | true | true |
+| backRef didn't exist | true | actual remaining | true | true |
+| file not found | true | 0 | false | false |
+| file soft-deleted | true | 0 | true | false |
+| file deleted concurrently | true | 0 | false | false |
 
-**Note:** `refCount` is best-effort, equals 0 when:
-- file not found (never existed or already deleted)
-- file deleted concurrently
-- FK cascade removed refs
+**Note:** `refCount` equals 0 when `fileActive == false`. Use flags to distinguish:
+- `fileExists: false` → file never existed or hard-deleted
+- `fileExists: true, fileActive: false` → file pending GC (soft-deleted)
+- File deleted concurrently → race condition, `fileExists: false`
 
 **`entityDeleted`:**
 - `unlinkedCount` = number of **backRef rows deleted** (not files)
-- `deletedFileIds` = files where refCount→0 AND hardDelete returned didDelete=true
 
 **EntityDeletedScript algorithm:**
 ```typescript
-// 1. Delete all refs for entity, get affected fileIds
-const { rows, rowCount } = await db
+// Delete all refs for entity
+const { rowCount } = await db
   .delete(fileBackRefs)
-  .where(and(eq(service, ?), eq(entityType, ?), eq(entityId, ?)))
-  .returning({ fileId: fileBackRefs.fileId });
+  .where(and(eq(service, ?), eq(entityType, ?), eq(entityId, ?)));
 
-const unlinkedCount = rowCount;
-const affectedFileIds = [...new Set(rows.map(r => r.fileId))];
-
-// 2. Batch count remaining refs for affected files
-const counts = await backRefRepo.countByFileIds(affectedFileIds);
-const zeroRefFileIds = affectedFileIds.filter(id => counts.get(id) === 0);
-
-// 3. Hard delete files with 0 refs
-const deletedFileIds = [];
-for (const fileId of zeroRefFileIds) {
-  const { didDelete } = await FileHardDeleteWorkflow.run(fileId);
-  if (didDelete) deletedFileIds.push(fileId);
-}
-
-return { unlinkedCount, deletedFileIds };
+return { unlinkedCount: rowCount };
 ```
+
+**No auto-delete** — files remain even with refCount=0.
 
 ### 3.2 Scripts
 
@@ -207,44 +207,67 @@ return { unlinkedCount, deletedFileIds };
 - `services/media/src/scripts/backRef/FileLinkManyScript.ts`
 - `services/media/src/scripts/backRef/EntityDeletedScript.ts`
 
+**FileLinkScript algorithm:**
+```typescript
+// 1. Insert backRef only if file exists and is active
+const inserted = await db.execute(sql`
+  INSERT INTO file_back_refs (file_id, service, entity_type, entity_id, role, created_at)
+  SELECT ${fileId}, ${service}, ${entityType}, ${entityId}, ${role}, NOW()
+  FROM files WHERE id = ${fileId} AND deleted_at IS NULL
+  ON CONFLICT DO NOTHING
+`);
+
+// 2. Check file status and count refs
+const file = await db.query.files.findFirst({
+  where: eq(files.id, fileId),
+  columns: { id: true, deletedAt: true }
+});
+
+if (!file) {
+  logger.warn(`fileLink: file not found`, { fileId });
+  return { success: true, refCount: 0, fileExists: false, fileActive: false };
+}
+
+if (file.deletedAt !== null) {
+  logger.warn(`fileLink: file is soft-deleted`, { fileId });
+  return { success: true, refCount: 0, fileExists: true, fileActive: false };
+}
+
+const refCount = await backRefRepo.countByFileId(fileId);
+return { success: true, refCount, fileExists: true, fileActive: true };
+```
+
 **FileUnlinkScript algorithm:**
 ```typescript
 // 1. Delete backRef (idempotent - works even if file already deleted)
-DELETE FROM file_back_refs
-WHERE file_id = ? AND service = ? AND entity_type = ? AND entity_id = ? AND role = ?
+await db.delete(fileBackRefs).where(and(
+  eq(fileBackRefs.fileId, fileId),
+  eq(fileBackRefs.service, service),
+  eq(fileBackRefs.entityType, entityType),
+  eq(fileBackRefs.entityId, entityId),
+  eq(fileBackRefs.role, role)
+));
 
-// 2. Count remaining refs (best-effort: 0 if file deleted concurrently)
+// 2. Check file status
+const file = await db.query.files.findFirst({
+  where: eq(files.id, fileId),
+  columns: { id: true, deletedAt: true }
+});
+
+if (!file) {
+  return { success: true, refCount: 0, fileExists: false, fileActive: false };
+}
+
+if (file.deletedAt !== null) {
+  return { success: true, refCount: 0, fileExists: true, fileActive: false };
+}
+
+// 3. Count refs only for active files
 const refCount = await backRefRepo.countByFileId(fileId);
-
-// 3. If 0 refs → call hard delete workflow (idempotent)
-if (refCount === 0) {
-  const { didDelete } = await FileHardDeleteWorkflow.run(fileId);
-  return { success: true, refCount: 0, deleted: didDelete };
-}
-
-return { success: true, refCount, deleted: false };
+return { success: true, refCount, fileExists: true, fileActive: true };
 ```
 
-**No `exists()` check needed** — DELETE is idempotent, COUNT returns 0 if file gone, workflow is idempotent.
-
-**FileHardDeleteWorkflow returns:**
-```typescript
-interface HardDeleteResult {
-  didDelete: boolean;  // true = actually deleted, false = already gone
-}
-
-// Correct order: S3 first, then DB
-// 1. Delete from S3 (idempotent - ignore NotFound)
-await s3Client.deleteObject({ bucket, key });  // no error if already gone
-
-// 2. Delete DB row - didDelete based on rowCount
-const { rowCount } = await db.delete(files).where(eq(files.id, fileId));
-const didDelete = rowCount === 1;
-
-return { didDelete };
-```
-
-**Why S3 first:** If DB delete succeeds but S3 fails, we lose the reference to clean up S3. Reverse order is safer.
+**No auto-delete** — file remains even with refCount=0. Deletion only through media UI → GC.
 
 ### 3.3 Broker Actions
 
@@ -253,7 +276,7 @@ return { didDelete };
 Add actions:
 ```typescript
 @Action("fileLink")        // Link file to entity
-@Action("fileUnlink")      // Unlink, hard-delete if refCount=0
+@Action("fileUnlink")      // Unlink backRef
 @Action("fileLinkMany")    // Batch link
 @Action("entityDeleted")   // Unlink all files from entity
 ```
@@ -300,7 +323,7 @@ Add `backRefs` field resolver.
 
 Before "Delete" button, show warning if `backRefs.totalCount > 0`:
 - "This file is used in N places"
-- Still allow deletion (delete + notify async)
+- **Only soft-delete allowed in UI** — hard-delete only via GC (after retention)
 
 ### 4.4 DataLoader (optional optimization)
 
@@ -360,7 +383,7 @@ Batch load backRef counts for list views.
 | Broker Actions | `services/media/src/MediaBrokerActions.ts` |
 | Link Script | `services/media/src/scripts/backRef/FileLinkScript.ts` |
 | Unlink Script | `services/media/src/scripts/backRef/FileUnlinkScript.ts` |
-| Hard Delete Workflow | `services/media/src/workflows/FileHardDeleteWorkflow.ts` |
+| EntityDeleted Script | `services/media/src/scripts/backRef/EntityDeletedScript.ts` |
 | GraphQL Schema | `services/media/src/api/graphql-admin/file.graphql` |
 | File Resolver | `services/media/src/resolvers/admin/FileResolver.ts` |
 | Inventory Media | `services/inventory/src/scripts/media/VariantSetMediaScript.ts` |
