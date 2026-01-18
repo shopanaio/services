@@ -71,6 +71,8 @@ import {
   check,
   index,
   integer,
+  text,
+  unique,
   uuid,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
@@ -103,6 +105,10 @@ export const productFeature = inventorySchema.table(
       table.parentId,
       table.sortIndex
     ),
+    unique("product_feature_product_id_index_uniq").on(
+      table.productId,
+      table.index
+    ),
   ]
 );
 
@@ -130,7 +136,7 @@ export const productFeatureValue = inventorySchema.table(
 
 **Что добавили:**
 - `index` (string) как в контракте
-- `DEFERRABLE` уникальный constraint на `(product_id, index)`
+- `unique("product_feature_product_id_index_uniq")` на `(product_id, index)` — в миграции DEFERRABLE
 
 **Что оставили:**
 - `index("product_feature_children_idx")` — для ORDER BY
@@ -698,11 +704,11 @@ ALTER TABLE inventory.product_feature_value_translation
 | Метрика | До | После |
 |---------|-----|-------|
 | Строк кода | ~500 | ~180 |
-| Unique constraints | 3 | 0 |
+| Unique constraints | 3 | 1 (DEFERRABLE) |
 | Two-phase updates | Да | Нет |
 | Temp slugs | Да | Нет |
 | Edge cases | Много | Нет |
-| Колонки в БД | 6 + 4 | 5 + 3 |
+| Колонки в БД | 7 + 5 | 7 + 4 |
 | Tree index | Нет | Да |
 | Forward references | Не поддерживает | Автоматически (tree index) |
 | Мутация input | Да | Нет (immutable) |
@@ -721,7 +727,7 @@ ProductFeatureValue:
   + translations: name
 ```
 
-**Никаких unique constraints, никаких slug — только ID и name из translations.**
+**Один DEFERRABLE unique constraint на `(product_id, index)`, никаких slug — только ID и name из translations.**
 
 ---
 
