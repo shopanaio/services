@@ -306,45 +306,29 @@ export class EntityDeletedNotifyWorkflow extends BaseWorkflow {
 
 **When:** GC workflow hard-deletes file after retention period
 
-**Problem with simple try/catch:**
-- If we catch error and continue → notification lost forever
-- If we throw → DBOS retries, but workflow "hangs" if inventory down for hours
-- Need guaranteed delivery without blocking GC
+**Solution: Two separate DBOS workflows (no outbox needed)**
 
-**Solution: Outbox pattern (no RabbitMQ)**
+DBOS provides built-in retry policy for steps:
+- `retriesAllowed: true`
+- `maxAttempts: number`
+- `intervalSeconds: number` (base interval)
+- `backoffRate: number` (exponential multiplier)
+- When exhausted → throws `DBOSMaxStepRetriesError`
 
-#### 2.2.1 Outbox Table
+**Architecture:**
+1. `FileHardDeleteWorkflow` — handles S3 + DB deletion, then starts cleanup workflow
+2. `FileDeleteCleanupWorkflow` — handles consumer notifications with retries
 
-```typescript
-// services/media/src/repositories/models/fileDeleteNotifications.ts
+This separation ensures GC doesn't hang waiting for inventory.
 
-export const fileDeleteNotifications = mediaSchema.table(
-  "file_delete_notifications",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    fileId: uuid("file_id").notNull(),
-    consumerService: varchar("consumer_service", { length: 64 }).notNull(), // "inventory"
-    status: varchar("status", { length: 16 }).notNull().default("PENDING"), // PENDING, SENT, FAILED
-    attempts: integer("attempts").notNull().default(0),
-    nextRetryAt: timestamp("next_retry_at", { withTimezone: true, mode: "string" }),
-    lastError: text("last_error"),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
-    sentAt: timestamp("sent_at", { withTimezone: true, mode: "string" }),
-  },
-  (table) => [
-    index("idx_fdn_pending").on(table.status, table.nextRetryAt),
-  ]
-);
-```
-
-#### 2.2.2 FileHardDeleteWorkflow (updated)
+#### 2.2.1 FileHardDeleteWorkflow (updated)
 
 ```typescript
 // services/media/src/workflows/FileHardDeleteWorkflow.ts
 
 @DBOS.workflow()
 async run(fileId: string): Promise<void> {
-  // ... existing logic: fetch file, verify state ...
+  // ... existing logic: fetch file, verify state, lock ...
 
   // Step 1: Delete from S3
   await this.deleteFromS3(fileId, file.s3Key);
@@ -352,78 +336,83 @@ async run(fileId: string): Promise<void> {
   // Step 2: Hard delete from DB
   await this.hardDeleteFromDb(fileId);
 
-  // Step 3: Create notification record (guaranteed)
-  await this.createNotification(fileId);
-
-  // Step 4: Try immediate delivery (best-effort)
-  await this.tryDeliverNotification(fileId);
+  // Step 3: Start cleanup workflow (fire-and-forget, durable)
+  await this.startCleanupWorkflow(fileId);
 }
 
 @DBOS.step()
-async createNotification(fileId: string): Promise<void> {
-  await this.repository.fileDeleteNotification.create({
-    fileId,
-    consumerService: "inventory",
-    status: "PENDING",
-    nextRetryAt: new Date().toISOString(),
-  });
-}
-
-@DBOS.step()
-async tryDeliverNotification(fileId: string): Promise<void> {
-  try {
-    const result = await this.broker.call("inventory.fileHardDeleted", { fileId });
-    await this.repository.fileDeleteNotification.markSent(fileId, "inventory");
-    this.logger.info({ fileId, deletedCount: result.deletedCount }, "Notification delivered");
-  } catch (error) {
-    // Don't throw — record stays PENDING, retry scheduler will handle
-    await this.repository.fileDeleteNotification.markFailed(fileId, "inventory", error);
-    this.logger.warn({ fileId, error }, "Notification failed, will retry");
-  }
+async startCleanupWorkflow(fileId: string): Promise<void> {
+  const workflow = this.workflow.get<FileDeleteCleanupWorkflow>("fileDeleteCleanup");
+  // Deterministic ID for deduplication
+  await DBOS.startWorkflow(workflow, {
+    workflowID: FileDeleteCleanupWorkflow.workflowID(fileId)
+  }).run(fileId);
 }
 ```
 
-#### 2.2.3 NotificationRetryScheduler
+#### 2.2.2 FileDeleteCleanupWorkflow (new)
 
 ```typescript
-// services/media/src/scheduled/NotificationRetryScheduler.ts
+// services/media/src/workflows/FileDeleteCleanupWorkflow.ts
 
-@Injectable()
-export class NotificationRetryScheduler {
+export class FileDeleteCleanupWorkflow extends BaseWorkflow {
 
-  @Cron(CronExpression.EVERY_MINUTE)
-  async retryPendingNotifications(): Promise<void> {
-    const pending = await this.repository.fileDeleteNotification.findPendingForRetry({
-      limit: 100,
-      maxAttempts: 10,
-    });
+  /**
+   * Deterministic workflow ID for deduplication.
+   * Same fileId always gets same workflow ID → prevents duplicates.
+   */
+  static workflowID(fileId: string): string {
+    return `file:cleanup:${fileId}`;
+  }
 
-    for (const notification of pending) {
-      try {
-        await this.broker.call(`${notification.consumerService}.fileHardDeleted`, {
-          fileId: notification.fileId,
-        });
-        await this.repository.fileDeleteNotification.markSent(notification.id);
-      } catch (error) {
-        const nextRetryAt = this.calculateBackoff(notification.attempts);
-        await this.repository.fileDeleteNotification.markFailed(notification.id, error, nextRetryAt);
+  @DBOS.workflow()
+  async run(fileId: string): Promise<void> {
+    try {
+      await this.notifyInventory(fileId);
+    } catch (error) {
+      if (error instanceof DBOSMaxStepRetriesError) {
+        // All retries exhausted → log alert, workflow completes
+        await this.markNeedsAttention(fileId, error);
+        return;
       }
+      throw error;
     }
   }
 
-  private calculateBackoff(attempts: number): Date {
-    // Exponential backoff: 1m, 2m, 4m, 8m, 16m, 32m, 1h, 1h, 1h...
-    const delayMinutes = Math.min(Math.pow(2, attempts), 60);
-    return new Date(Date.now() + delayMinutes * 60 * 1000);
+  /**
+   * Step with automatic retry policy.
+   * DBOS will retry on transient errors with exponential backoff.
+   * Don't catch errors here — let DBOS handle retries.
+   */
+  @DBOS.step({
+    retriesAllowed: true,
+    maxAttempts: 10,
+    intervalSeconds: 60,      // Start with 1 minute
+    backoffRate: 2,           // 1m, 2m, 4m, 8m, 16m, 32m, 64m...
+  })
+  async notifyInventory(fileId: string): Promise<void> {
+    const result = await this.broker.call("inventory.fileHardDeleted", { fileId });
+    this.logger.info({ fileId, deletedCount: result.deletedCount }, "Inventory notified");
+    // Don't catch errors — DBOS will retry transient failures
+  }
+
+  @DBOS.step()
+  async markNeedsAttention(fileId: string, error: Error): Promise<void> {
+    this.logger.error(
+      { fileId, error: error.message },
+      "File cleanup failed after max retries, needs manual attention"
+    );
+    // Optional: write to alerts table, send to monitoring, etc.
   }
 }
 ```
 
 **Guarantees:**
-- Notification record created in same DB as file delete (atomic)
-- If immediate delivery fails → retry scheduler picks it up
-- Exponential backoff prevents thundering herd
-- After 10 attempts → stays FAILED, requires manual intervention / alert
+- Cleanup workflow is durable — survives service restarts
+- Deterministic workflow ID prevents duplicate cleanup attempts
+- Exponential backoff: 1m → 2m → 4m → ... up to ~17 hours total retry window
+- After 10 attempts → logs alert, workflow completes (doesn't hang forever)
+- GC workflow completes immediately after starting cleanup (no blocking)
 
 **Inventory side — new broker action:**
 ```typescript
@@ -576,17 +565,16 @@ async fileHardDeleted(params: FileHardDeletedParams): Promise<FileHardDeletedRes
 | Action | File |
 |--------|------|
 | Create | `services/media/src/repositories/models/fileBackRefs.ts` |
-| Create | `services/media/src/repositories/models/fileDeleteNotifications.ts` |
 | Create | `services/media/src/repositories/FileBackRefRepository.ts` |
-| Create | `services/media/src/repositories/FileDeleteNotificationRepository.ts` |
 | Create | `services/media/src/scripts/backRef/FileLinkScript.ts` |
 | Create | `services/media/src/scripts/backRef/FileUnlinkScript.ts` |
 | Create | `services/media/src/scripts/backRef/FileLinkManyScript.ts` |
 | Create | `services/media/src/scripts/backRef/FileUnlinkManyScript.ts` |
 | Create | `services/media/src/scripts/backRef/EntityDeletedScript.ts` |
-| Create | `services/media/src/scheduled/NotificationRetryScheduler.ts` |
+| Create | `services/media/src/workflows/FileDeleteCleanupWorkflow.ts` |
 | Update | `services/media/src/MediaBrokerActions.ts` — add backRef actions |
-| Update | `services/media/src/workflows/FileHardDeleteWorkflow.ts` — add outbox + notify steps |
+| Update | `services/media/src/workflows/FileHardDeleteWorkflow.ts` — start cleanup workflow |
+| Update | `services/media/src/media.nest-service.ts` — register FileDeleteCleanupWorkflow |
 
 ### Inventory Service
 
@@ -641,34 +629,32 @@ User                Media                  Inventory
  │  (variant_media kept, File resolves to null in UI)
 ```
 
-### Hard Delete File (GC) → Cleanup (with Outbox)
+### Hard Delete File (GC) → Cleanup (with separate DBOS workflow)
 
 ```
-GC Scheduler        Media                  Inventory          Retry Scheduler
+GC Scheduler        FileHardDelete         FileDeleteCleanup       Inventory
+ │                   Workflow               Workflow                  │
  │                      │                      │                      │
- │──FileHardDelete─────▶│                      │                      │
- │   Workflow           │                      │                      │
+ │──start──────────────▶│                      │                      │
  │                      │                      │                      │
  │                      │ DELETE from S3       │                      │
  │                      │ DELETE from DB       │                      │
  │                      │                      │                      │
- │                      │ INSERT notification  │                      │
- │                      │ (PENDING)            │                      │
- │                      │                      │                      │
- │                      │──inventory.fileHardDeleted▶│               │
- │                      │◀──────(success)──────│                      │
- │                      │                      │ DELETE variant_media │
- │                      │ UPDATE notification  │                      │
- │                      │ (SENT)               │                      │
+ │                      │──startWorkflow──────▶│                      │
+ │                      │  (fire-and-forget)   │                      │
  │◀─────done────────────│                      │                      │
  │                      │                      │                      │
- ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ if delivery failed ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+ │                      │                      │──fileHardDeleted────▶│
+ │                      │                      │◀──────(success)──────│
+ │                      │                      │                      │ DELETE variant_media
+ │                      │                      │ done                 │
  │                      │                      │                      │
- │                      │◀──────────────────────────────@Cron(1min)───│
+ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ if delivery failed, DBOS auto-retries ─ ─ ─ ─
  │                      │                      │                      │
- │                      │──inventory.fileHardDeleted▶│               │
- │                      │◀──────(success)──────│                      │
- │                      │ UPDATE (SENT)        │                      │
+ │                      │                      │──fileHardDeleted────▶│
+ │                      │                      │  (retry #2, backoff) │
+ │                      │                      │◀──────(success)──────│
+ │                      │                      │ done                 │
 ```
 
 ### Delete Variant (hard)
@@ -698,11 +684,19 @@ User                Inventory               Media             DBOS
 |-----------|---------|-------------|----------|
 | Inventory → Media | Set variant media | `media.entityDeleted` + `media.fileLinkMany` | DBOS workflow (async) |
 | Inventory → Media | Hard delete variant | `media.entityDeleted` | DBOS workflow (async) |
-| Media → Inventory | Hard delete (GC) | `inventory.fileHardDeleted` | Outbox + retry scheduler |
+| Media → Inventory | Hard delete (GC) | `inventory.fileHardDeleted` | DBOS workflow with step retries |
 
 **Key guarantees:**
-- Inventory → Media: DBOS workflow survives service restart, retries on failure
-- Media → Inventory: Outbox pattern ensures delivery even if inventory down for hours
-- All operations idempotent — safe to retry
+- **DBOS durability**: All workflows survive service restarts
+- **Automatic retries**: `@DBOS.step({ retriesAllowed: true, maxAttempts: 10, backoffRate: 2 })`
+- **Deduplication**: Deterministic workflow IDs prevent duplicate processing
+- **Bounded retries**: After max attempts → `DBOSMaxStepRetriesError` → alert, workflow completes
+- **All operations idempotent** — safe to retry
+
+**No outbox needed** — DBOS workflows provide durability + retries out of the box.
 
 **Note:** Soft delete does NOT trigger cleanup — file can be restored during retention period.
+
+Sources:
+- [DBOS Steps Documentation](https://docs.dbos.dev/typescript/tutorials/step-tutorial)
+- [DBOS Workflows Reference](https://docs.dbos.dev/typescript/reference/workflows-steps)

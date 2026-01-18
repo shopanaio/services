@@ -69,6 +69,9 @@ async createRoles(storeId: string, organizationId: string, userId: string) {
 // packages/workflows/src/ports/types.ts
 
 export interface ActionContext {
+  /** Schema version for future compatibility */
+  version: 1;
+
   /** DBOS workflow ID - globally unique */
   operationId: string;
 
@@ -86,17 +89,10 @@ export interface ActionContext {
   idempotencyKey: string;
 
   /**
-   * Optional timestamp for observability/tracing only.
-   *
-   * CRITICAL RULES:
-   * - NOT used for idempotency checks
-   * - NOT used in business logic decisions
-   * - May differ on retry/recovery (non-deterministic)
-   * - Services MUST ignore this field in domain logic
-   *
-   * If you need a stable timestamp for business logic,
-   * save it as a @DBOS.step() result in the workflow.
+   * Optional fields for observability (NOT for business logic).
+   * May differ on retry/recovery.
    */
+  traceId?: string;
   timestamp?: string;
 }
 ```
@@ -122,10 +118,18 @@ export interface ActionRequest<T = unknown> {
  */
 export interface ActionResponse<T = unknown> {
   result: T;
-  error?: {
-    code: string;
-    message: string;
+  error?: ActionError;
+  meta?: {
+    /** True if this was a duplicate request (idempotent replay) */
+    idempotent?: boolean;
   };
+}
+
+export interface ActionError {
+  code: string;
+  message: string;
+  /** Explicit retryable flag. If not set, derived from code prefix. */
+  retryable?: boolean;
 }
 ```
 
@@ -159,13 +163,11 @@ export interface ServicePort {
  * - VALIDATION_* : Do not retry (bad input)
  * - NOT_FOUND : Do not retry (resource doesn't exist)
  * - CONFLICT : Do not retry (duplicate, already exists)
- * - INTERNAL_* : May retry with backoff
+ * - INTERNAL_* : Do NOT retry (invariant violated, logic error)
+ *
+ * Only TRANSIENT_* is auto-retryable. All other errors fail fast.
  */
 export class ServiceError extends Error {
-  /**
-   * Whether this error is safe to retry.
-   * Derived from code prefix or explicitly set.
-   */
   public readonly retryable: boolean;
 
   constructor(
@@ -173,29 +175,47 @@ export class ServiceError extends Error {
     public readonly action: string,
     public readonly code: string,
     message: string,
-    public readonly cause?: unknown
+    public readonly cause?: unknown,
+    retryable?: boolean  // Explicit override
   ) {
     super(`[${service}.${action}] ${message}`);
     this.name = "ServiceError";
 
-    // Derive retryable from code convention
-    this.retryable = code.startsWith("TRANSIENT_") || code.startsWith("INTERNAL_");
+    // Only TRANSIENT_* is retryable by default
+    // Can be explicitly overridden via parameter
+    this.retryable = retryable ?? code.startsWith("TRANSIENT_");
   }
 
   static transient(service: string, action: string, message: string, cause?: unknown): ServiceError {
-    return new ServiceError(service, action, "TRANSIENT_ERROR", message, cause);
+    return new ServiceError(service, action, "TRANSIENT_ERROR", message, cause, true);
   }
 
   static validation(service: string, action: string, message: string): ServiceError {
-    return new ServiceError(service, action, "VALIDATION_ERROR", message);
+    return new ServiceError(service, action, "VALIDATION_ERROR", message, undefined, false);
   }
 
   static notFound(service: string, action: string, message: string): ServiceError {
-    return new ServiceError(service, action, "NOT_FOUND", message);
+    return new ServiceError(service, action, "NOT_FOUND", message, undefined, false);
   }
 
   static conflict(service: string, action: string, message: string): ServiceError {
-    return new ServiceError(service, action, "CONFLICT", message);
+    return new ServiceError(service, action, "CONFLICT", message, undefined, false);
+  }
+
+  static unknownAction(service: string, action: string): ServiceError {
+    return new ServiceError(service, action, "VALIDATION_UNKNOWN_ACTION", `Unknown action: ${action}`, undefined, false);
+  }
+
+  /** Format for logging/aggregation */
+  toJSON() {
+    return {
+      name: this.name,
+      service: this.service,
+      action: this.action,
+      code: this.code,
+      message: this.message,
+      retryable: this.retryable,
+    };
   }
 }
 ```
@@ -264,8 +284,11 @@ export class LocalServicePort implements ServicePort {
    *
    * Supported formats:
    * 1. ActionResponse<T> - new standard (preferred)
-   * 2. { success: boolean, error?: string, ...data } - legacy format
+   * 2. { success: boolean, error?: string, result?: T } - legacy format
    * 3. Raw result T - direct return (wrapped)
+   *
+   * NOTE: Legacy format should be phased out. After migration,
+   * consider removing this compatibility layer.
    */
   private normalizeResponse<T>(raw: unknown): ActionResponse<T> {
     if (!raw || typeof raw !== "object") {
@@ -274,12 +297,12 @@ export class LocalServicePort implements ServicePort {
 
     const obj = raw as Record<string, unknown>;
 
-    // New format: ActionResponse
+    // New format: ActionResponse (has 'result' but no 'success')
     if ("result" in obj && !("success" in obj)) {
       return obj as ActionResponse<T>;
     }
 
-    // Legacy format: {success, error?, ...rest}
+    // Legacy format: {success, error?, result?}
     if ("success" in obj) {
       if (!obj.success) {
         return {
@@ -287,15 +310,20 @@ export class LocalServicePort implements ServicePort {
           error: {
             code: (obj.code as string) || "ACTION_FAILED",
             message: (obj.error as string) || "Action failed",
+            retryable: (obj.retryable as boolean) ?? false,
           },
         };
       }
-      // Success case: extract result or return whole object
-      const { success, error, ...rest } = obj;
-      return { result: (obj.result ?? rest) as T };
+      // Success case: prefer explicit 'result' field over spreading rest
+      // (spreading rest can include garbage fields)
+      if ("result" in obj) {
+        return { result: obj.result as T };
+      }
+      // Fallback: return success indicator (legacy commands without explicit result)
+      return { result: { success: true } as T };
     }
 
-    // Raw result
+    // Raw result (no envelope)
     return { result: raw as T };
   }
 }
@@ -365,9 +393,11 @@ export abstract class BaseWorkflow extends ConfiguredInstance {
     const operationId = DBOS.workflowID!;
 
     return {
+      version: 1,
       operationId,
       idempotencyKey: `${operationId}:${service}:${action}:${callId}`,
-      // timestamp is optional - only for observability, not determinism
+      // Optional observability fields (not for business logic)
+      traceId: DBOS.traceId,  // if available from DBOS
     };
   }
 
@@ -777,9 +807,12 @@ async createRoles(input: ActionRequest<CreateRolesPayload>): Promise<ActionRespo
   // Check if already processed
   const wasProcessed = await this.idempotencyCheck(ctx.idempotencyKey);
   if (wasProcessed) {
-    // RETURN SUCCESS - not an error!
+    // RETURN SUCCESS with meta.idempotent flag
     // The operation was already done, which is the desired outcome
-    return { result: { success: true, idempotent: true } };
+    return {
+      result: { success: true },
+      meta: { idempotent: true },
+    };
   }
 
   // Execute the actual logic
@@ -845,6 +878,25 @@ Examples:
 - store:create:my-store:iam:createRoles:store-123
 - store:create:my-store:iam:assignRole:store-123:admin:user-456
 - store:create:my-store:media:createAssetGroup:store-123
+```
+
+### Determinism Rules (MANDATORY)
+
+**Any non-deterministic operation (uuid, timestamp, random) MUST be inside a `@DBOS.step()`.**
+The result is saved by DBOS and replayed on recovery.
+
+```typescript
+// CORRECT - uuid generated in step, result saved
+@DBOS.step()
+async generateStoreId(): Promise<string> {
+  return uuidv7();  // Saved on first run, replayed on recovery
+}
+
+// WRONG - uuid in workflow body (not a step)
+@DBOS.workflow()
+async run() {
+  const id = uuidv7();  // Different on recovery!
+}
 ```
 
 ### callId Rules (MANDATORY)
@@ -1223,16 +1275,30 @@ async run(input: StoreCreateInput): Promise<StoreCreateOutput> {
  */
 @DBOS.step()
 private async initializeAllServices(storeId: string, organizationId: string, userId: string) {
+  const services = ["iam", "media", "inventory"] as const;
+
   const results = await Promise.allSettled([
-    this.callService("iam", "createRoles", { ... }, storeId),
-    this.callService("media", "createAssetGroup", { ... }, storeId),
-    this.callService("inventory", "initializeStore", { ... }, storeId),
+    this.callService("iam", "lifecycle:store:initialize", { storeId, organizationId, userId }, storeId),
+    this.callService("media", "lifecycle:store:initialize", { storeId }, storeId),
+    this.callService("inventory", "lifecycle:store:initialize", { storeId }, storeId),
   ]);
 
-  // Check for failures
-  const failures = results.filter(r => r.status === "rejected");
+  // Collect failures with proper formatting
+  const failures = results
+    .map((r, i) => ({ result: r, service: services[i] }))
+    .filter((x): x is { result: PromiseRejectedResult; service: string } =>
+      x.result.status === "rejected"
+    )
+    .map(({ result, service }) => {
+      const err = result.reason;
+      if (err instanceof ServiceError) {
+        return `${service}: [${err.code}] ${err.message}`;
+      }
+      return `${service}: ${String(err)}`;
+    });
+
   if (failures.length > 0) {
-    throw new Error(`Failed: ${failures.map(f => f.reason).join(", ")}`);
+    throw new Error(`Store initialization failed:\n${failures.join("\n")}`);
   }
 }
 ```
@@ -1323,14 +1389,15 @@ async storeCleanup(...) { /* remove all store-related data */ }
 |--------|--------|-------|
 | Service calls | `this.broker.call("iam.action", params)` | `this.callService("iam", "action", payload, callId)` |
 | callId | N/A | **REQUIRED**, deterministic from input/saved state |
+| Context | N/A | `ActionContext` with version, operationId, idempotencyKey, traceId |
 | Payload format | Mixed into params | Explicit `{ payload, ctx }` envelope |
-| Idempotency | None | `operationId:service:action:callId` + services return success on duplicate |
-| Error handling | Return `{success, error}` | Always throw `ServiceError` with `retryable` flag |
+| Idempotency | None | Services return success + `meta.idempotent` on duplicate |
+| Error handling | Return `{success, error}` | Always throw `ServiceError`; only `TRANSIENT_*` retryable |
 | Parallel calls | Multiple `@DBOS.step()` in Promise.all | Single fanout step OR sequential steps |
 | Transport | Hardcoded broker calls | Abstracted via `ServicePort` (supports future gRPC) |
 | Testing | Need full broker | Mock `ServicePort` interface |
 | Lifecycle actions | N/A | Namespaced: `lifecycle:store:initialize` |
-| Unknown action | Varies | `VALIDATION_ERROR` (not retryable) |
+| Unknown action | Varies | `VALIDATION_UNKNOWN_ACTION` (not retryable) |
 
 ### Files to Create
 
@@ -1473,9 +1540,11 @@ Each service should implement:
   - [ ] `VALIDATION_*` for bad input (not retryable)
   - [ ] `NOT_FOUND` for missing resources (not retryable)
   - [ ] `CONFLICT` for duplicates (not retryable)
+  - [ ] `INTERNAL_*` for logic errors (not retryable)
+  - [ ] Only `TRANSIENT_*` is auto-retryable
 
-- [ ] Update all services to use `ActionResponse` format
-- [ ] Remove legacy `{success, error}` pattern
+- [ ] Update all services to use `ActionResponse` format with `meta.idempotent`
+- [ ] Remove legacy `{success, error}` pattern (set deadline for removal)
 
 > **Note**: The `ServicePort` abstraction is designed to support gRPC in the future
 > if services need to be extracted to separate processes. When that time comes,
