@@ -72,8 +72,56 @@ export interface ActionContext {
   /** Schema version for future compatibility */
   version: 1;
 
-  /** DBOS workflow ID - globally unique */
-  operationId: string;
+  /**
+   * Unique identifier for this workflow execution instance.
+   *
+   * ⚠️ CRITICAL DISTINCTION:
+   *
+   * | Concept | Purpose | Format | Source |
+   * |---------|---------|--------|--------|
+   * | `dedupeKey` | Prevent duplicate business operations | Human-readable: `store:create:my-store` | `Workflow.workflowID(input)` static method |
+   * | `executionId` | Track calls within ONE execution | UUID: `019234ab-...` | DBOS internal OR generated in first step |
+   *
+   * `operationId` in this context = `executionId` (NOT dedupeKey!)
+   *
+   * PROBLEM: In some DBOS configurations, `DBOS.workflowID` IS the user-provided
+   * deduplication key (e.g., "store:create:my-store"), NOT a UUID.
+   *
+   * MANDATORY VERIFICATION before using DBOS.workflowID as operationId:
+   *
+   * 1. Check: Does DBOS have a separate `DBOS.executionID` or similar?
+   *    - If yes → use that for operationId
+   *    - If no → generate UUID in first workflow step
+   *
+   * 2. NEVER use DBOS.workflowID directly without validation:
+   *    - If it's human-readable → it's a dedupeKey, NOT executionId
+   *    - Only UUIDs are valid for operationId
+   *
+   * IMPLEMENTATION:
+   * ```typescript
+   * // In first @DBOS.step() of workflow:
+   * @DBOS.step()
+   * async initExecution(): Promise<{ executionId: string }> {
+   *   // Option 1: DBOS provides separate execution ID
+   *   const dbosExecId = (DBOS as any).executionID;
+   *   if (dbosExecId && this.isUUID(dbosExecId)) {
+   *     return { executionId: dbosExecId };
+   *   }
+   *
+   *   // Option 2: DBOS.workflowID is UUID (not user-provided dedupeKey)
+   *   if (DBOS.workflowID && this.isUUID(DBOS.workflowID)) {
+   *     return { executionId: DBOS.workflowID };
+   *   }
+   *
+   *   // Option 3: Generate our own UUID (saved by DBOS step)
+   *   return { executionId: uuidv7() };
+   * }
+   * ```
+   *
+   * The executionId from initExecution() is saved by DBOS and replayed on recovery,
+   * ensuring idempotency keys remain stable.
+   */
+  operationId: string;  // MUST be UUID, use executionId pattern above
 
   /** Target service name */
   service: string;
@@ -96,11 +144,30 @@ export interface ActionContext {
   idempotencyKey: string;
 
   /**
-   * Optional fields for observability (NOT for business logic).
+   * Optional: Distributed tracing ID.
+   * Used for observability only, NOT for business logic.
    * May differ on retry/recovery.
    */
   traceId?: string;
-  timestamp?: string;
+
+  /**
+   * DEPRECATED/REMOVED: Do not use timestamp field.
+   *
+   * WHY: Timestamps are non-deterministic and break workflow recovery.
+   * - new Date() returns different values on replay
+   * - Services should NOT compare/rely on this value
+   * - Causes subtle bugs when services use it for ordering/validation
+   *
+   * DO NOT:
+   * - Auto-populate in buildContext()
+   * - Set in port implementations
+   * - Use for any business logic
+   *
+   * If you need timestamps for observability:
+   * - Log them separately (not in ActionContext)
+   * - Use DBOS-provided execution timestamps
+   */
+  // timestamp?: string;  // INTENTIONALLY REMOVED
 }
 ```
 
@@ -166,13 +233,23 @@ export interface ServicePort {
 
 /**
  * Error codes convention:
- * - TRANSIENT_* : Retry is safe (network timeout, temporary unavailable)
- * - VALIDATION_* : Do not retry (bad input)
- * - NOT_FOUND : Do not retry (resource doesn't exist)
- * - CONFLICT : Do not retry (duplicate, already exists)
- * - INTERNAL_* : Do NOT retry (invariant violated, logic error)
  *
- * Only TRANSIENT_* is auto-retryable. All other errors fail fast.
+ * RETRYABLE (DBOS will retry with backoff):
+ * - TRANSIENT_ERROR        : Generic transient failure
+ * - TRANSIENT_TIMEOUT      : Request timed out
+ * - TRANSIENT_UNAVAILABLE  : Service temporarily unavailable
+ * - TRANSIENT_IN_PROGRESS  : Idempotency check - another request is processing
+ *
+ * NOT RETRYABLE (fail immediately):
+ * - VALIDATION_*           : Bad input, schema violation
+ * - VALIDATION_UNKNOWN_ACTION : Action doesn't exist
+ * - NOT_FOUND              : Resource doesn't exist
+ * - CONFLICT               : Already exists, duplicate (but completed)
+ * - INTERNAL_*             : Invariant violated, logic error
+ * - INTERNAL_ERROR         : Unknown/unexpected error
+ *
+ * RULE: Only codes starting with "TRANSIENT_" are auto-retryable.
+ * All other codes cause immediate failure (no retry).
  */
 export class ServiceError extends Error {
   public readonly retryable: boolean;
@@ -225,6 +302,30 @@ export class ServiceError extends Error {
     };
   }
 }
+
+/**
+ * Shape-based type guard for ServiceError.
+ *
+ * WHY NOT instanceof?
+ * - ServiceError may be defined in multiple packages (workflows, shared-kernel)
+ * - instanceof checks fail across package boundaries (different class instances)
+ * - Shape checking works regardless of where the error was created
+ *
+ * This function should be used EVERYWHERE instead of `instanceof ServiceError`.
+ */
+export function isServiceError(error: unknown): error is ServiceError {
+  if (error === null || typeof error !== "object") return false;
+
+  const obj = error as Record<string, unknown>;
+  return (
+    obj.name === "ServiceError" &&
+    typeof obj.service === "string" &&
+    typeof obj.action === "string" &&
+    typeof obj.code === "string" &&
+    typeof obj.message === "string" &&
+    typeof obj.retryable === "boolean"
+  );
+}
 ```
 
 ### Port Implementations
@@ -235,6 +336,73 @@ Wraps existing `ServiceBroker.call()` with explicit envelope.
 
 **Migration strategy**: Services should migrate to return `ActionResponse<T>`. During transition,
 the port handles legacy `{success, error}` format via adapter.
+
+**ENFORCEMENT MECHANISM** (required to ensure migration happens):
+
+```typescript
+// packages/workflows/src/ports/LegacyResponseTracker.ts
+
+interface LegacyResponseMetric {
+  service: string;
+  action: string;
+  format: "legacy_success_error" | "raw_result";
+  count: number;
+  lastSeen: Date;
+}
+
+/**
+ * Tracks legacy response formats for migration monitoring.
+ * MANDATORY: Wire this to your metrics/alerting system.
+ */
+export class LegacyResponseTracker {
+  private static metrics = new Map<string, LegacyResponseMetric>();
+
+  static track(service: string, action: string, format: LegacyResponseMetric["format"]): void {
+    const key = `${service}.${action}`;
+    const existing = this.metrics.get(key);
+
+    if (existing) {
+      existing.count++;
+      existing.lastSeen = new Date();
+    } else {
+      this.metrics.set(key, { service, action, format, count: 1, lastSeen: new Date() });
+    }
+
+    // REQUIRED: Emit metric to your observability system
+    // metrics.increment("legacy_response_format", { service, action, format });
+
+    // After deadline: fail instead of warn
+    if (this.isPastDeadline()) {
+      throw new Error(
+        `[MIGRATION DEADLINE PASSED] Service ${service}.${action} still using ${format}. ` +
+        `Update to ActionResponse format immediately.`
+      );
+    }
+  }
+
+  private static isPastDeadline(): boolean {
+    // SET YOUR DEADLINE HERE
+    const DEADLINE = new Date("2025-04-01");  // Example: April 1, 2025
+    return new Date() > DEADLINE;
+  }
+
+  static getReport(): LegacyResponseMetric[] {
+    return [...this.metrics.values()];
+  }
+}
+```
+
+**Configuration flag** for gradual enforcement:
+
+```typescript
+// In environment or config
+LEGACY_RESPONSE_MODE: "warn" | "fail" | "allow"  // Default: "warn"
+
+// In normalizeResponse():
+if (this.config.legacyResponseMode === "fail" && isLegacyFormat) {
+  throw new Error(`Legacy response format not allowed. Update ${service}.${action}`);
+}
+```
 
 ```typescript
 // packages/workflows/src/ports/LocalServicePort.ts
@@ -276,64 +444,192 @@ export class LocalServicePort implements ServicePort {
 
       return response.result;
     } catch (error) {
-      if (error instanceof ServiceError) throw error;
+      // Already a ServiceError - preserve all attributes
+      // Use shape check instead of instanceof for cross-package compatibility
+      if (isServiceError(error)) {
+        throw error;
+      }
 
-      // Network/broker errors are transient
-      throw ServiceError.transient(
+      // Check if error has structured info (e.g., from broker/service)
+      if (this.isStructuredError(error)) {
+        // Preserve ALL original error data for logging/telemetry
+        const originalError = error as Record<string, unknown>;
+        const serviceError = new ServiceError(
+          this.name,
+          action,
+          error.code,
+          error.message,
+          error,  // Original error as cause
+          error.retryable
+        );
+
+        // Copy additional fields for observability (status, details, etc.)
+        // These are preserved but not used for business logic
+        (serviceError as any).originalData = {
+          status: originalError.status,
+          details: originalError.details,
+          stack: originalError.stack,
+          // Any other fields from original error
+          ...Object.fromEntries(
+            Object.entries(originalError).filter(
+              ([k]) => !["code", "message", "retryable"].includes(k)
+            )
+          ),
+        };
+
+        throw serviceError;
+      }
+
+      // ONLY network/transport errors become TRANSIENT
+      // Examples: connection refused, timeout, DNS failure
+      if (this.isTransportError(error)) {
+        throw ServiceError.transient(
+          this.name,
+          action,
+          error instanceof Error ? error.message : String(error),
+          error
+        );
+      }
+
+      // Unknown errors - do NOT assume transient!
+      // Use INTERNAL_ERROR (not retryable by default)
+      throw new ServiceError(
         this.name,
         action,
+        "INTERNAL_ERROR",
         error instanceof Error ? error.message : String(error),
-        error
+        error,
+        false  // Explicitly not retryable
       );
     }
   }
 
   /**
-   * Normalize various response formats to ActionResponse.
+   * Check if error has structured code/retryable info.
+   * Both `code` and `message` must be strings.
+   */
+  private isStructuredError(error: unknown): error is { code: string; message: string; retryable?: boolean } {
+    if (error === null || typeof error !== "object") return false;
+    const obj = error as Record<string, unknown>;
+    return (
+      typeof obj.code === "string" &&
+      typeof obj.message === "string"
+    );
+  }
+
+  /**
+   * Check if error is a transport/infrastructure error.
+   * ONLY these should be wrapped as TRANSIENT.
    *
-   * Supported formats:
-   * 1. ActionResponse<T> - new standard (preferred)
-   * 2. { success: boolean, error?: string, result?: T } - legacy format
-   * 3. Raw result T - direct return (wrapped)
+   * Separates:
+   * - errno codes (checked against err.code)
+   * - message substrings (checked against err.message)
+   */
+  private isTransportError(error: unknown): boolean {
+    if (!(error instanceof Error)) return false;
+
+    // Standard Node.js errno codes for network/transport errors
+    const ERRNO_CODES = new Set([
+      "ECONNREFUSED",
+      "ECONNRESET",
+      "ECONNABORTED",
+      "ETIMEDOUT",
+      "ENOTFOUND",
+      "EAI_AGAIN",
+      "EPIPE",
+      "ENETUNREACH",
+      "EHOSTUNREACH",
+    ]);
+
+    // Message substrings indicating transport errors
+    const MESSAGE_PATTERNS = [
+      "socket hang up",
+      "network error",
+      "connection reset",
+      "connection refused",
+      "dns lookup failed",
+    ];
+
+    const errnoCode = (error as NodeJS.ErrnoException).code;
+    if (errnoCode && ERRNO_CODES.has(errnoCode)) {
+      return true;
+    }
+
+    const msgLower = error.message.toLowerCase();
+    return MESSAGE_PATTERNS.some((pattern) => msgLower.includes(pattern));
+  }
+
+  /**
+   * Normalize response to ActionResponse format.
    *
-   * NOTE: Legacy format should be phased out. After migration,
-   * consider removing this compatibility layer.
+   * CONTRACT:
+   * - PRIMARY: ActionResponse<T> is the ONLY official contract
+   * - All services MUST return ActionResponse format
+   *
+   * MIGRATION COMPATIBILITY (temporary):
+   * - { success, error?, result? } - legacy format, DEADLINE: [SET DATE]
+   * - Raw result T - wrapped for compatibility, DEADLINE: [SET DATE]
+   *
+   * After migration deadlines, this method will ONLY accept ActionResponse.
+   * All legacy handling will be removed.
+   *
+   * @deprecated Legacy format support - migrate services to ActionResponse
    */
   private normalizeResponse<T>(raw: unknown): ActionResponse<T> {
-    if (!raw || typeof raw !== "object") {
-      return { result: raw as T };
+    // ========== PRIMARY CONTRACT ==========
+    // ActionResponse format (has 'result' key, no 'success' key)
+    if (raw !== null && typeof raw === "object") {
+      const obj = raw as Record<string, unknown>;
+      if ("result" in obj && !("success" in obj)) {
+        return obj as ActionResponse<T>;
+      }
     }
 
-    const obj = raw as Record<string, unknown>;
+    // ========== LEGACY COMPATIBILITY (REMOVE AFTER MIGRATION) ==========
 
-    // New format: ActionResponse (has 'result' but no 'success')
-    if ("result" in obj && !("success" in obj)) {
-      return obj as ActionResponse<T>;
-    }
+    /**
+     * LEGACY FORMAT DEFINITION (strict):
+     *
+     * Success: { success: true, result?: T }
+     * Failure: { success: false, error: string }
+     *
+     * NOTE: Legacy format does NOT have 'code' or 'retryable' fields!
+     * All legacy errors are mapped to ACTION_FAILED (not retryable).
+     */
+    if (raw !== null && typeof raw === "object" && "success" in raw) {
+      const obj = raw as Record<string, unknown>;
 
-    // Legacy format: {success, error?, result?}
-    if ("success" in obj) {
+      // Log deprecation warning
+      console.warn(
+        `[DEPRECATED] Service returned legacy format {success, error?, result?}. ` +
+        `Migrate to ActionResponse format. Deadline: [SET DATE]`
+      );
+
       if (!obj.success) {
+        // LEGACY ERROR: Only has 'error' field (string message)
+        // No 'code' or 'retryable' in legacy format - use defaults
         return {
           result: undefined as T,
           error: {
-            code: (obj.code as string) || "ACTION_FAILED",
-            message: (obj.error as string) || "Action failed",
-            retryable: (obj.retryable as boolean) ?? false,
+            code: "ACTION_FAILED",  // Fixed code for all legacy errors
+            message: typeof obj.error === "string" ? obj.error : "Action failed",
+            retryable: false,  // Legacy errors are NOT retryable (no way to know)
           },
         };
       }
-      // Success case: prefer explicit 'result' field over spreading rest
-      // (spreading rest can include garbage fields)
+
+      // LEGACY SUCCESS
       if ("result" in obj) {
         return { result: obj.result as T };
       }
-      // Legacy command without explicit result - return undefined
-      // Caller should not depend on result value for legacy success responses
       return { result: undefined as T };
     }
 
-    // Raw result (no envelope)
+    // Raw result (no envelope) - wrap for compatibility
+    console.warn(
+      `[DEPRECATED] Service returned raw result without envelope. ` +
+      `Migrate to ActionResponse format. Deadline: [SET DATE]`
+    );
     return { result: raw as T };
   }
 }
@@ -350,6 +646,7 @@ BaseWorkflow handles **only** port-related concerns. Domain services (kernel, re
 ```typescript
 // packages/workflows/src/BaseWorkflow.ts
 
+import crypto from "node:crypto";  // Node.js built-in, no external dependency
 import { ConfiguredInstance } from "@dbos-inc/dbos-sdk";
 import { DBOS } from "@dbos-inc/dbos-sdk";
 import type { ServicePort, ActionContext } from "./ports/types.js";
@@ -405,7 +702,8 @@ export abstract class BaseWorkflow extends ConfiguredInstance {
       throw new Error(`callId is required and must be deterministic for ${service}.${action}`);
     }
 
-    const operationId = DBOS.workflowID!;
+    // Get operationId - MUST be UUID, not business key
+    const operationId = this.getOperationId();
 
     // Generate idempotency key as SHA-256 hash to avoid delimiter collisions
     const idempotencyKey = this.hashIdempotencyKey(operationId, service, action, callId);
@@ -417,8 +715,76 @@ export abstract class BaseWorkflow extends ConfiguredInstance {
       action,
       callId,
       idempotencyKey,
-      traceId: DBOS.traceId,  // if available from DBOS
+      // traceId is for observability only, may differ on recovery
+      // This is acceptable - it's not used for business logic
+      traceId: DBOS.traceId,
+      // NOTE: Do NOT add timestamp here - it's non-deterministic
     };
+  }
+
+  /**
+   * Execution ID for idempotency tracking.
+   * Set by initExecution() step - MUST be called first in every workflow.
+   */
+  protected executionId?: string;
+
+  /**
+   * MANDATORY: Call this as the FIRST step in every workflow.
+   * Returns executionId that is:
+   * - UUID format (not human-readable)
+   * - Stable across recovery (saved by DBOS step)
+   * - Different from deduplication key (workflowID)
+   */
+  @DBOS.step()
+  protected async initExecution(): Promise<{ executionId: string }> {
+    // Option 1: DBOS provides separate execution ID
+    const dbosExecId = (DBOS as any).executionID ?? (DBOS as any).executionId;
+    if (dbosExecId && this.isUUID(dbosExecId)) {
+      this.executionId = dbosExecId;
+      return { executionId: dbosExecId };
+    }
+
+    // Option 2: DBOS.workflowID is UUID (not user-provided dedupeKey)
+    // This is ONLY valid if you're NOT using custom workflowID for deduplication
+    const workflowId = DBOS.workflowID;
+    if (workflowId && this.isUUID(workflowId)) {
+      this.executionId = workflowId;
+      return { executionId: workflowId };
+    }
+
+    // Option 3: Generate our own UUID
+    // CRITICAL: This is inside @DBOS.step(), so result is saved and replayed
+    const newId = uuidv7();
+    this.executionId = newId;
+    return { executionId: newId };
+  }
+
+  /**
+   * Get unique operation ID for current workflow execution.
+   * CRITICAL: This MUST return a UUID, not a business key.
+   *
+   * @throws Error if initExecution() was not called first
+   */
+  protected getOperationId(): string {
+    if (!this.executionId) {
+      throw new Error(
+        "executionId not set. You MUST call initExecution() as the FIRST step in your workflow. " +
+        "This ensures idempotency keys are stable across recovery."
+      );
+    }
+
+    if (!this.isUUID(this.executionId)) {
+      throw new Error(
+        `executionId must be UUID format, got: "${this.executionId}". ` +
+        "Check initExecution() implementation."
+      );
+    }
+
+    return this.executionId;
+  }
+
+  private isUUID(value: string): boolean {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
   }
 
   /**
@@ -522,6 +888,10 @@ export class StoreCreateWorkflow extends BaseWorkflow {
   @DBOS.workflow()
   async run(input: StoreCreateInput): Promise<StoreCreateOutput> {
     const { organizationId, userId } = input;
+
+    // Step 0: MANDATORY - initialize execution ID for idempotency
+    // This MUST be the first step to ensure stable idempotency keys on recovery
+    await this.initExecution();
 
     // Step 1: Generate store ID (deterministic on recovery)
     const storeId = await this.generateStoreId();
@@ -716,35 +1086,110 @@ export class ProjectModule implements OnModuleInit {
 
 Services need to accept the new `ActionRequest` envelope format.
 
-### Unknown Action Handling (Centralized)
+### Dispatcher Error Handling (Centralized)
 
-Unknown actions must be handled at the broker/router level (not in each action handler):
+**CRITICAL**: The dispatcher MUST wrap ALL errors (including unknown actions) in `ActionResponse` format.
+Raw exceptions must NEVER escape as the main response path.
 
 ```typescript
 // In ActionRegistry or ServiceBroker dispatcher
 async dispatch(qualifiedAction: string, request: ActionRequest): Promise<ActionResponse> {
-  const handler = this.registry.resolve(qualifiedAction);
+  try {
+    const handler = this.registry.resolve(qualifiedAction);
 
-  if (!handler) {
-    // Return standard error response (not throw) for unknown action
+    if (!handler) {
+      // Unknown action - return error response (NOT throw)
+      return {
+        result: null,
+        error: {
+          code: "VALIDATION_UNKNOWN_ACTION",
+          message: `Unknown action: ${qualifiedAction}`,
+          retryable: false,
+        },
+      };
+    }
+
+    // Execute handler - may throw or return ActionResponse
+    const result = await handler(request);
+
+    // Ensure result is ActionResponse format
+    if (this.isActionResponse(result)) {
+      return result;
+    }
+
+    // Wrap raw result
+    return { result };
+
+  } catch (error) {
+    // MANDATORY: Convert ALL exceptions to ActionResponse.error
+    return this.errorToResponse(qualifiedAction, error);
+  }
+}
+
+/**
+ * Convert any thrown error to ActionResponse format.
+ * This is the ONLY place where raw exceptions are converted.
+ *
+ * IMPORTANT: Use isServiceError() shape check, NOT instanceof.
+ * ServiceError may be defined in different packages (workflows vs shared-kernel),
+ * and instanceof fails across package boundaries.
+ */
+private errorToResponse(qualifiedAction: string, error: unknown): ActionResponse {
+  // ServiceError - preserve all attributes
+  // Use shape check instead of instanceof for cross-package compatibility
+  if (isServiceError(error)) {
     return {
       result: null,
       error: {
-        code: "VALIDATION_UNKNOWN_ACTION",
-        message: `Unknown action: ${qualifiedAction}`,
-        retryable: false,
+        code: error.code,
+        message: error.message,
+        retryable: error.retryable,
       },
     };
   }
 
-  return handler(request);
+  // Structured error with code (not ServiceError but has similar shape)
+  if (this.isStructuredError(error)) {
+    return {
+      result: null,
+      error: {
+        code: error.code,
+        message: error.message,
+        retryable: error.retryable ?? false,
+      },
+    };
+  }
+
+  // Unknown error - INTERNAL, not retryable
+  return {
+    result: null,
+    error: {
+      code: "INTERNAL_ERROR",
+      message: error instanceof Error ? error.message : String(error),
+      retryable: false,  // Unknown errors are NOT retryable
+    },
+  };
+}
+
+private isActionResponse(value: unknown): value is ActionResponse {
+  return value !== null && typeof value === "object" && "result" in value;
+}
+
+private isStructuredError(error: unknown): error is { code: string; message: string; retryable?: boolean } {
+  if (error === null || typeof error !== "object") return false;
+  const obj = error as Record<string, unknown>;
+  return (
+    typeof obj.code === "string" &&
+    typeof obj.message === "string"
+  );
 }
 ```
 
 This ensures:
-- Consistent error format for all unknown actions
-- Not wrapped as transient error (which would cause retries)
-- Centralized handling, not duplicated in every service
+- **Consistent format**: All responses (success and error) are `ActionResponse`
+- **No raw exceptions**: Callers never receive unexpected exception types
+- **Preserved attributes**: `code` and `retryable` are passed through correctly
+- **Centralized handling**: Error conversion logic is not duplicated in each handler
 
 ### Updated BrokerActions Pattern
 
@@ -847,17 +1292,202 @@ CREATE TABLE IF NOT EXISTS processed_requests (
   -- Status for atomic reservation pattern
   status TEXT NOT NULL DEFAULT 'reserved',  -- 'reserved' | 'completed' | 'failed'
 
+  -- Retry tracking (no deletion on failure - preserves audit trail)
+  attempt INTEGER NOT NULL DEFAULT 1,
+  last_error TEXT,  -- Error info from last failed attempt
+
+  -- Timestamps
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ,  -- Last status change
   completed_at TIMESTAMPTZ
 );
 
 CREATE INDEX idx_processed_requests_created_at ON processed_requests(created_at);
 CREATE INDEX idx_processed_requests_operation_id ON processed_requests(operation_id);
 CREATE INDEX idx_processed_requests_lookup ON processed_requests(service, action, call_id);
+CREATE INDEX idx_processed_requests_status ON processed_requests(status);
 
--- Cleanup old entries (e.g., keep 7 days)
--- Run periodically via scheduled job:
--- DELETE FROM processed_requests WHERE created_at < NOW() - INTERVAL '7 days';
+/*
+ * ============================================================
+ * TTL CLEANUP - MANDATORY INFRASTRUCTURE COMPONENT
+ * ============================================================
+ *
+ * CRITICAL: This is NOT optional! Without cleanup, the table will grow unbounded.
+ * CRITICAL: NEVER delete 'reserved' records - they indicate in-progress work!
+ *
+ * Choose ONE implementation approach below.
+ */
+
+-- Option 1: PostgreSQL pg_cron extension (RECOMMENDED)
+-- Requires: CREATE EXTENSION pg_cron;
+--
+-- SELECT cron.schedule(
+--   'cleanup_processed_requests',
+--   '0 3 * * *',  -- Run daily at 3 AM
+--   $$DELETE FROM processed_requests
+--     WHERE status IN ('completed', 'failed')
+--     AND created_at < NOW() - INTERVAL '7 days'$$
+-- );
+
+-- Option 2: Application-level scheduled job
+-- Add to your service startup or use a job scheduler (Bull, Agenda, etc.)
+--
+-- See ProcessedRequestsCleanupJob below for implementation.
+
+-- MANDATORY: Alert on stale 'reserved' records (dead workers)
+-- Records stuck in 'reserved' for > 1 hour indicate:
+-- - Worker crashed mid-execution
+-- - Network partition
+-- - Bug in completion logic
+--
+-- Wire this to your alerting system (PagerDuty, Slack, etc.)
+CREATE OR REPLACE FUNCTION alert_stale_reserved_requests()
+RETURNS TABLE(idempotency_key TEXT, operation_id TEXT, created_at TIMESTAMPTZ, age_hours NUMERIC) AS $$
+  SELECT
+    idempotency_key,
+    operation_id,
+    created_at,
+    EXTRACT(EPOCH FROM (NOW() - created_at)) / 3600 AS age_hours
+  FROM processed_requests
+  WHERE status = 'reserved'
+    AND created_at < NOW() - INTERVAL '1 hour'
+  ORDER BY created_at ASC;
+$$ LANGUAGE SQL;
+```
+
+### MANDATORY: Application-Level Cleanup Job
+
+If not using pg_cron, implement this NestJS scheduled job:
+
+```typescript
+// packages/shared-kernel/src/jobs/ProcessedRequestsCleanupJob.ts
+
+import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
+import { Cron, CronExpression } from "@nestjs/schedule";
+import { sql } from "drizzle-orm";
+
+export interface CleanupConfig {
+  /** Retention period for completed/failed records (default: 7 days) */
+  retentionDays: number;
+  /** Threshold for stale 'reserved' records alert (default: 1 hour) */
+  staleReservedThresholdMinutes: number;
+  /** Batch size for deletion (default: 1000) */
+  batchSize: number;
+}
+
+const DEFAULT_CONFIG: CleanupConfig = {
+  retentionDays: 7,
+  staleReservedThresholdMinutes: 60,
+  batchSize: 1000,
+};
+
+@Injectable()
+export class ProcessedRequestsCleanupJob implements OnModuleInit {
+  private readonly logger = new Logger(ProcessedRequestsCleanupJob.name);
+  private config: CleanupConfig;
+
+  constructor(
+    private readonly db: DrizzleDatabase,
+    private readonly alertService: AlertService,  // Your alerting integration
+    config?: Partial<CleanupConfig>
+  ) {
+    this.config = { ...DEFAULT_CONFIG, ...config };
+  }
+
+  onModuleInit() {
+    this.logger.log(
+      `ProcessedRequestsCleanupJob initialized. ` +
+      `Retention: ${this.config.retentionDays} days, ` +
+      `Stale alert threshold: ${this.config.staleReservedThresholdMinutes} minutes`
+    );
+  }
+
+  /**
+   * Run cleanup daily at 3 AM.
+   * CRITICAL: This job is MANDATORY for production.
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_3AM)
+  async cleanupExpiredRecords(): Promise<void> {
+    const startTime = Date.now();
+
+    try {
+      // SAFETY CHECK: Never delete 'reserved' records!
+      const result = await this.db.execute(sql`
+        DELETE FROM processed_requests
+        WHERE status IN ('completed', 'failed')
+          AND created_at < NOW() - INTERVAL '${this.config.retentionDays} days'
+        LIMIT ${this.config.batchSize}
+        RETURNING idempotency_key
+      `);
+
+      const deletedCount = result.rowCount ?? 0;
+      const duration = Date.now() - startTime;
+
+      this.logger.log(
+        `Cleanup completed: deleted ${deletedCount} records in ${duration}ms`
+      );
+
+      // If we deleted a full batch, there might be more - schedule another run
+      if (deletedCount >= this.config.batchSize) {
+        this.logger.log("Batch limit reached, scheduling continuation...");
+        setImmediate(() => this.cleanupExpiredRecords());
+      }
+    } catch (error) {
+      this.logger.error("Cleanup failed", error);
+      // Don't throw - job should not crash the service
+    }
+  }
+
+  /**
+   * Check for stale 'reserved' records every 15 minutes.
+   * These indicate dead workers or bugs.
+   */
+  @Cron(CronExpression.EVERY_15_MINUTES)
+  async alertStaleReservedRecords(): Promise<void> {
+    try {
+      const staleRecords = await this.db.execute(sql`
+        SELECT
+          idempotency_key,
+          operation_id,
+          service,
+          action,
+          created_at,
+          EXTRACT(EPOCH FROM (NOW() - created_at)) / 60 AS age_minutes
+        FROM processed_requests
+        WHERE status = 'reserved'
+          AND created_at < NOW() - INTERVAL '${this.config.staleReservedThresholdMinutes} minutes'
+        ORDER BY created_at ASC
+        LIMIT 100
+      `);
+
+      if (staleRecords.rowCount && staleRecords.rowCount > 0) {
+        this.logger.warn(
+          `Found ${staleRecords.rowCount} stale 'reserved' records! ` +
+          `These may indicate dead workers.`
+        );
+
+        // MANDATORY: Send alert to ops team
+        await this.alertService.sendAlert({
+          severity: "warning",
+          title: "Stale idempotency records detected",
+          message: `${staleRecords.rowCount} requests stuck in 'reserved' status for > ${this.config.staleReservedThresholdMinutes} minutes`,
+          data: staleRecords.rows,
+        });
+      }
+    } catch (error) {
+      this.logger.error("Stale record check failed", error);
+    }
+  }
+}
+```
+
+### Checklist: TTL Cleanup Deployment
+
+- [ ] **Option A (pg_cron)**: Enable pg_cron extension and schedule cleanup job in migration
+- [ ] **Option B (Application)**: Register `ProcessedRequestsCleanupJob` in your service module
+- [ ] **Wire AlertService**: Connect to PagerDuty/Slack/email for stale record alerts
+- [ ] **Monitor**: Add dashboard for `processed_requests` table size over time
+- [ ] **Test**: Verify cleanup runs and doesn't delete 'reserved' records
 ```
 
 ### Idempotency Implementation Rules
@@ -877,27 +1507,51 @@ async createRoles(input: ActionRequest<CreateRolesPayload>): Promise<ActionRespo
   const { payload, ctx } = this.unwrapRequest(input);
 
   // Step 1: Try to reserve this idempotency key (atomic)
-  const reserved = await this.reserveIdempotencyKey(ctx);
+  let canExecute = await this.reserveIdempotencyKey(ctx);
 
-  if (!reserved) {
-    // Already processed - check if completed or still in progress
+  if (!canExecute) {
+    // Already exists - check status
     const existing = await this.getIdempotencyRecord(ctx.idempotencyKey);
 
     if (existing?.status === 'completed') {
-      // Return success - operation was already done
+      // Already done - return idempotent response
       return {
         result: existing.result_cached ? existing.result : { success: true },
         meta: { idempotent: true },
       };
     }
 
-    // Status is 'reserved' or 'failed' - another request is processing or failed
-    // Could wait/retry or fail fast depending on requirements
-    throw ServiceError.conflict(ctx.service, ctx.action, "Request already in progress");
+    if (existing?.status === 'failed') {
+      // Previous attempt failed - try to claim for retry
+      // NEVER delete (preserves audit trail, prevents race conditions)
+      canExecute = await this.claimFailedIdempotencyKey(ctx.idempotencyKey);
+      if (!canExecute) {
+        // Another request already claimed it
+        throw new ServiceError(
+          ctx.service,
+          ctx.action,
+          "TRANSIENT_IN_PROGRESS",
+          "Request retry already in progress",
+          undefined,
+          true  // RETRYABLE
+        );
+      }
+      // Successfully claimed - canExecute is now true, fall through to execute
+    } else {
+      // Status is 'reserved' - another request is processing
+      throw new ServiceError(
+        ctx.service,
+        ctx.action,
+        "TRANSIENT_IN_PROGRESS",
+        "Request already in progress, please retry",
+        undefined,
+        true  // RETRYABLE
+      );
+    }
   }
 
+  // Step 2: Execute (only reached if canExecute === true)
   try {
-    // Step 2: Execute the actual logic
     const result = await this.kernel.runScript(CreateRolesScript, payload);
 
     // Step 3: Mark as completed
@@ -906,7 +1560,7 @@ async createRoles(input: ActionRequest<CreateRolesPayload>): Promise<ActionRespo
     return { result };
   } catch (error) {
     // Mark as failed (allows retry with same key)
-    await this.failIdempotencyKey(ctx.idempotencyKey);
+    await this.failIdempotencyKey(ctx.idempotencyKey, String(error));
     throw error;
   }
 }
@@ -914,12 +1568,71 @@ async createRoles(input: ActionRequest<CreateRolesPayload>): Promise<ActionRespo
 // Helper: Atomic insert with ON CONFLICT DO NOTHING
 async reserveIdempotencyKey(ctx: ActionContext): Promise<boolean> {
   const result = await this.db.execute(sql`
-    INSERT INTO processed_requests (idempotency_key, operation_id, service, action, call_id, status)
-    VALUES (${ctx.idempotencyKey}, ${ctx.operationId}, ${ctx.service}, ${ctx.action}, ${ctx.callId}, 'reserved')
+    INSERT INTO processed_requests (idempotency_key, operation_id, service, action, call_id, status, attempt)
+    VALUES (${ctx.idempotencyKey}, ${ctx.operationId}, ${ctx.service}, ${ctx.action}, ${ctx.callId}, 'reserved', 1)
     ON CONFLICT (idempotency_key) DO NOTHING
     RETURNING idempotency_key
   `);
   return result.rowCount > 0;
+}
+
+// Helper: Atomically claim a failed record for retry (NO DELETE - preserves audit)
+async claimFailedIdempotencyKey(idempotencyKey: string): Promise<boolean> {
+  const result = await this.db.execute(sql`
+    UPDATE processed_requests
+    SET status = 'reserved',
+        attempt = attempt + 1,
+        updated_at = NOW()
+    WHERE idempotency_key = ${idempotencyKey}
+      AND status = 'failed'
+    RETURNING idempotency_key
+  `);
+  return result.rowCount > 0;
+}
+
+// Helper: Mark as completed
+// IMPORTANT: `result` column is JSONB - pass object directly, NOT JSON.stringify()
+async completeIdempotencyKey(idempotencyKey: string, result?: unknown, cacheResult = false): Promise<void> {
+  // For JSONB columns, the driver handles serialization
+  // Passing JSON.stringify() would cause double-serialization (string inside JSON)
+  await this.db.execute(sql`
+    UPDATE processed_requests
+    SET status = 'completed',
+        result = ${cacheResult ? result : null}::jsonb,
+        result_cached = ${cacheResult},
+        completed_at = NOW()
+    WHERE idempotency_key = ${idempotencyKey}
+  `);
+
+  /*
+   * ⚠️ JSONB SERIALIZATION WARNING:
+   *
+   * WRONG: result = ${JSON.stringify(result)}
+   *   → Stores: '"{\\"key\\":\\"value\\"}"' (string literal)
+   *   → Reading back: you get a string, not an object
+   *
+   * CORRECT: result = ${result}::jsonb
+   *   → Stores: '{"key":"value"}' (JSON object)
+   *   → Reading back: you get the original object
+   *
+   * Most SQL drivers (pg, drizzle, etc.) automatically serialize
+   * objects to JSON for JSONB columns. Check your driver's docs.
+   *
+   * If your driver requires explicit serialization:
+   *   result = ${JSON.stringify(result)}::jsonb
+   * But NEVER without the ::jsonb cast!
+   */
+}
+
+// Helper: Mark as failed (keeps record for retry)
+async failIdempotencyKey(idempotencyKey: string, errorInfo?: string): Promise<void> {
+  await this.db.execute(sql`
+    UPDATE processed_requests
+    SET status = 'failed',
+        last_error = ${errorInfo ?? null},
+        updated_at = NOW()
+    WHERE idempotency_key = ${idempotencyKey}
+  `);
 }
 ```
 
@@ -969,14 +1682,28 @@ Cache result (`result_cached = true`) only when:
 
 ### Idempotency Key Format
 
-```
-{operationId}:{service}:{action}:{callId}
+**Primary key** (`idempotency_key` column): SHA-256 hash of components.
 
-Examples:
-- store:create:my-store:iam:createRoles:store-123
-- store:create:my-store:iam:assignRole:store-123:admin:user-456
-- store:create:my-store:media:createAssetGroup:store-123
+```typescript
+// Generation
+const data = [operationId, service, action, callId].join("\n");
+const idempotencyKey = crypto.createHash("sha256").update(data).digest("hex");
 ```
+
+**Human-readable components** stored in separate columns for debugging/querying:
+
+| Column | Example Value |
+|--------|---------------|
+| `operation_id` | `019234ab-5678-7def-...` (UUID from DBOS) |
+| `service` | `iam` |
+| `action` | `createRoles` |
+| `call_id` | `store-123` |
+| `idempotency_key` | `a1b2c3d4e5f6...` (64-char hex) |
+
+**Why SHA-256?**
+- Avoids delimiter collision (e.g., if callId contains `:`)
+- Fixed-length key for consistent indexing
+- Components stored separately for human inspection
 
 ### Determinism Rules (MANDATORY)
 
@@ -994,6 +1721,49 @@ async generateStoreId(): Promise<string> {
 @DBOS.workflow()
 async run() {
   const id = uuidv7();  // Different on recovery!
+}
+```
+
+#### VERIFICATION REQUIRED: DBOS Step Result Persistence
+
+**CRITICAL**: Before using `uuidv7()` or any non-deterministic operation in a `@DBOS.step()`,
+you MUST verify that your DBOS version actually saves and replays step results.
+
+**Verification steps:**
+
+1. Check DBOS documentation for step result persistence guarantees
+2. Write a test that:
+   - Runs a workflow with a step that returns `uuidv7()`
+   - Simulates recovery (restart workflow mid-execution)
+   - Verifies the same UUID is returned on replay
+
+```typescript
+// MANDATORY TEST - add to workflow tests
+describe("DBOS step determinism", () => {
+  it("replays step results on recovery", async () => {
+    // 1. Start workflow, capture storeId from generateStoreId() step
+    // 2. Force workflow crash/restart after step completes
+    // 3. Resume workflow
+    // 4. Verify generateStoreId() returns SAME value (not new UUID)
+  });
+});
+```
+
+**If DBOS does NOT persist step results**, use one of these alternatives:
+
+```typescript
+// Alternative 1: Use DBOS-provided deterministic ID generator (if available)
+@DBOS.step()
+async generateStoreId(): Promise<string> {
+  return DBOS.generateDeterministicId();  // Check if this API exists
+}
+
+// Alternative 2: Derive ID from workflow input + step index
+@DBOS.step()
+async generateStoreId(workflowInput: StoreCreateInput): Promise<string> {
+  // Hash of input + step name = deterministic
+  const data = JSON.stringify({ input: workflowInput, step: "generateStoreId" });
+  return crypto.createHash("sha256").update(data).digest("hex").slice(0, 32);
 }
 ```
 
@@ -1112,6 +1882,203 @@ private async compensate(storeId: string): Promise<void> {
   await this.repository.store.delete(storeId);
 }
 ```
+
+### DBOS Retry Policy Configuration
+
+**CRITICAL**: Retry behavior MUST be configured in code, not left to conventions.
+DBOS steps should only retry when `ServiceError.retryable === true`.
+
+```typescript
+// packages/workflows/src/retry/RetryPolicy.ts
+
+import { ServiceError } from "../ports/types.js";
+
+export interface RetryConfig {
+  maxRetries: number;
+  initialDelayMs: number;
+  maxDelayMs: number;
+  backoffMultiplier: number;
+}
+
+export const DEFAULT_RETRY_CONFIG: RetryConfig = {
+  maxRetries: 3,
+  initialDelayMs: 100,
+  maxDelayMs: 5000,
+  backoffMultiplier: 2,
+};
+
+/**
+ * Determines if an error should be retried.
+ * This is the SINGLE SOURCE OF TRUTH for retry decisions.
+ *
+ * ONLY retries when:
+ * 1. Error is ServiceError with retryable === true
+ * 2. Error code starts with "TRANSIENT_"
+ *
+ * All other errors fail immediately (no retry).
+ */
+export function shouldRetry(error: unknown): boolean {
+  if (error instanceof ServiceError) {
+    return error.retryable === true;
+  }
+
+  // Structured error with explicit retryable flag
+  if (
+    error !== null &&
+    typeof error === "object" &&
+    "retryable" in error &&
+    typeof (error as { retryable: unknown }).retryable === "boolean"
+  ) {
+    return (error as { retryable: boolean }).retryable;
+  }
+
+  // Unknown errors are NOT retryable
+  return false;
+}
+
+/**
+ * Calculate delay for retry attempt with exponential backoff.
+ */
+export function calculateDelay(attempt: number, config: RetryConfig = DEFAULT_RETRY_CONFIG): number {
+  const delay = config.initialDelayMs * Math.pow(config.backoffMultiplier, attempt);
+  return Math.min(delay, config.maxDelayMs);
+}
+```
+
+#### Retry Strategy: DBOS-Native OR Workflow Restart Only
+
+**⛔ FORBIDDEN PATTERNS:**
+
+1. **NO `setTimeout`/`sleep()` inside `@DBOS.step()`** - non-deterministic, breaks recovery
+2. **NO custom decorator wrapping `@DBOS.step()`** - breaks DBOS step tracking
+3. **NO retry loops inside step methods** - unpredictable on replay
+
+```typescript
+// ❌ WRONG - DO NOT DO THIS
+@DBOS.step()
+async createRolesWithRetry() {
+  for (let i = 0; i < 3; i++) {
+    try {
+      return await this.callService(...);
+    } catch (e) {
+      await sleep(1000 * Math.pow(2, i));  // ❌ Non-deterministic delay
+    }
+  }
+}
+
+// ❌ WRONG - DO NOT DO THIS
+@RetryableStep()  // ❌ Custom decorator wrapping @DBOS.step()
+@DBOS.step()
+async createRoles() { ... }
+```
+
+**✅ ALLOWED RETRY PATTERNS:**
+
+**Option 1: DBOS Native Retry (PREFERRED - if supported)**
+
+Check your DBOS version for native retry support:
+
+```typescript
+// Verify actual DBOS API in your version
+@DBOS.step({
+  retries: 3,
+  retryIntervalSeconds: 1,
+  backoffRate: 2,
+  // CRITICAL: If DBOS supports retry predicate, use shouldRetry()
+  // retryPredicate: shouldRetry,  // Check if this exists in your DBOS version
+})
+async createStoreRoles(storeId: string, organizationId: string, userId: string) {
+  await this.callService("iam", "createRoles", { ... }, storeId);
+}
+```
+
+**Option 2: Workflow Restart (External Orchestrator)**
+
+Let step fail, rely on external mechanism to restart workflow:
+
+```typescript
+@DBOS.workflow()
+async run(input: StoreCreateInput): Promise<StoreCreateOutput> {
+  await this.initExecution();  // MANDATORY first step
+  const storeId = await this.generateStoreId();
+  await this.createStore(storeId, input);
+
+  // Step fails → workflow fails → external orchestrator restarts
+  // On restart, DBOS replays completed steps, retries failed step
+  await this.createStoreRoles(storeId, input.organizationId, input.userId);
+  await this.assignAdminRole(storeId, input.organizationId, input.userId);
+  await this.createMediaAssetGroup(storeId);
+
+  return { storeId, organizationId: input.organizationId };
+}
+
+// Plain @DBOS.step() - NO custom wrapper
+@DBOS.step()
+private async createStoreRoles(storeId: string, organizationId: string, userId: string) {
+  await this.callService("iam", "createRoles", { ... }, storeId);
+}
+```
+
+**Why these restrictions?**
+
+| Forbidden Pattern | Problem |
+|-------------------|---------|
+| `setTimeout`/`sleep()` | Different delay values on recovery → non-deterministic |
+| Custom decorator over `@DBOS.step()` | DBOS can't track step properly → double execution or missed replay |
+| Retry loop in step | Step result includes partial retries → inconsistent state on recovery |
+
+**Safe retry is achieved through:**
+- **Service-side idempotency**: Services use `processed_requests` table
+- **DBOS step replay**: Completed steps are not re-executed
+- **Workflow restart**: External orchestrator restarts failed workflows
+
+```typescript
+// packages/workflows/src/retry/RetryPolicy.ts
+
+import { ServiceError, isServiceError } from "../ports/types.js";
+
+/**
+ * Determines if an error should be retried.
+ * Used for logging/metrics ONLY - actual retry is handled by DBOS or orchestrator.
+ *
+ * RULE: Only returns true if error.retryable === true explicitly.
+ */
+export function shouldRetry(error: unknown): boolean {
+  // Use shape check, not instanceof (cross-package compatibility)
+  if (isServiceError(error)) {
+    return error.retryable === true;
+  }
+
+  if (
+    error !== null &&
+    typeof error === "object" &&
+    "retryable" in error &&
+    (error as { retryable: unknown }).retryable === true
+  ) {
+    return true;
+  }
+
+  // Unknown errors are NOT retryable
+  return false;
+}
+```
+
+#### Retry Decision Matrix
+
+| Error Code | `retryable` | DBOS Behavior |
+|------------|-------------|---------------|
+| `TRANSIENT_ERROR` | `true` | Retry with backoff |
+| `TRANSIENT_IN_PROGRESS` | `true` | Retry with backoff |
+| `TRANSIENT_TIMEOUT` | `true` | Retry with backoff |
+| `TRANSIENT_UNAVAILABLE` | `true` | Retry with backoff |
+| `VALIDATION_*` | `false` | Fail immediately |
+| `NOT_FOUND` | `false` | Fail immediately |
+| `CONFLICT` | `false` | Fail immediately |
+| `INTERNAL_*` | `false` | Fail immediately |
+| Unknown error | `false` | Fail immediately |
+
+**Key principle**: If `retryable` is not explicitly `true`, the error is NOT retried.
+This is enforced in code, not by convention.
 
 ---
 
@@ -1489,15 +2456,20 @@ async storeCleanup(...) { /* remove all store-related data */ }
 |--------|--------|-------|
 | Service calls | `this.broker.call("iam.action", params)` | `this.callService("iam", "action", payload, callId)` |
 | callId | N/A | **REQUIRED**, deterministic from input/saved state |
+| operationId | N/A | **UUID** from DBOS (NOT human-readable business keys) |
 | Context | N/A | `ActionContext` with version, operationId, idempotencyKey, traceId |
 | Payload format | Mixed into params | Explicit `{ payload, ctx }` envelope |
 | Idempotency | None | Services return success + `meta.idempotent` on duplicate |
+| In-progress state | N/A | `TRANSIENT_IN_PROGRESS` (retryable, DBOS backs off) |
 | Error handling | Return `{success, error}` | Always throw `ServiceError`; only `TRANSIENT_*` retryable |
+| Error source | Guessed | Preserved from service; TRANSIENT only for transport errors |
+| Retry policy | Implicit/unpredictable | Explicit `@RetryableStep()` + `shouldRetry()` in code |
 | Parallel calls | Multiple `@DBOS.step()` in Promise.all | Single fanout step OR sequential steps |
 | Transport | Hardcoded broker calls | Abstracted via `ServicePort` (supports future gRPC) |
 | Testing | Need full broker | Mock `ServicePort` interface |
 | Lifecycle actions | N/A | Namespaced: `lifecycle:store:initialize` |
 | Unknown action | Varies | `VALIDATION_UNKNOWN_ACTION` (not retryable) |
+| Dispatcher errors | Raw exceptions | Always `ActionResponse` with proper `code`/`retryable` |
 
 ### Files to Create
 
@@ -1505,13 +2477,21 @@ async storeCleanup(...) { /* remove all store-related data */ }
 packages/workflows/src/ports/
 ├── index.ts
 ├── types.ts              # ActionContext, ActionRequest, ActionResponse, ServicePort, ServiceError
-├── LocalServicePort.ts
+├── LocalServicePort.ts   # With isStructuredError(), isTransportError() helpers
 ├── MockServicePort.ts    # For unit testing
 └── PortFactory.ts
 
+packages/workflows/src/retry/
+├── index.ts
+└── RetryPolicy.ts        # shouldRetry() - for logging/metrics only, NOT for custom retry
+# NOTE: RetryableStep.ts is REMOVED - see "Retry Strategy" section
+
 packages/workflows/src/
-├── BaseWorkflow.ts       # Port-focused base class
+├── BaseWorkflow.ts       # Port-focused base class with initExecution()
 └── workflows.module.ts   # NestJS module
+
+packages/shared-kernel/src/jobs/
+└── ProcessedRequestsCleanupJob.ts  # MANDATORY TTL cleanup job
 ```
 
 ### Files to Modify
@@ -1570,14 +2550,25 @@ Each service should implement:
 ### Phase 1: Core Infrastructure
 
 - [ ] Create `packages/workflows/src/ports/types.ts`
-  - [ ] `ActionContext` interface (timestamp optional, not for business logic)
+  - [ ] `ActionContext` interface:
+    - [ ] `operationId` - UUID (NOT human-readable, NOT dedupeKey)
+    - [ ] `callId` required field
+    - [ ] NO `timestamp` field (non-deterministic, breaks recovery)
   - [ ] `ActionRequest<T>` / `ActionResponse<T>` interfaces
   - [ ] `ServicePort` interface
   - [ ] `ServiceError` class with `retryable` flag and factory methods
+  - [ ] **`isServiceError()` shape-based type guard** (use instead of instanceof!)
 
 - [ ] Create `packages/workflows/src/ports/LocalServicePort.ts`
-  - [ ] `normalizeResponse()` for legacy format handling
-  - [ ] Proper error wrapping with `ServiceError.transient()`
+  - [ ] `normalizeResponse()` for legacy format handling with deprecation warnings
+  - [ ] `isStructuredError()` - preserve service error codes AND additional fields
+  - [ ] `isTransportError()` - ONLY transport errors become TRANSIENT
+  - [ ] Unknown errors → `INTERNAL_ERROR` (not retryable)
+  - [ ] Use `isServiceError()` instead of `instanceof ServiceError`
+
+- [ ] Create `packages/workflows/src/ports/LegacyResponseTracker.ts`
+  - [ ] Track legacy response format usage for migration monitoring
+  - [ ] Support enforcement mode (warn → fail after deadline)
 
 - [ ] Create `packages/workflows/src/ports/MockServicePort.ts`
   - [ ] `onAction()`, `onActionReturn()`, `onActionThrow()`
@@ -1586,18 +2577,40 @@ Each service should implement:
 - [ ] Create `packages/workflows/src/ports/PortFactory.ts`
 
 - [ ] Create `packages/workflows/src/BaseWorkflow.ts`
-  - [ ] `buildContext()` without timestamp (observability only)
+  - [ ] **`initExecution()` step** - MUST be called first in every workflow
+  - [ ] `executionId` property (UUID, separate from dedupeKey)
+  - [ ] `getOperationId()` - returns executionId, throws if not initialized
+  - [ ] `buildContext()` using executionId (NOT DBOS.workflowID directly)
   - [ ] `callService()` with **required** `callId` parameter
+  - [ ] Validate callId is non-empty
 
 - [ ] Create `packages/workflows/src/workflows.module.ts`
 
-### Phase 2: Pilot Workflow Migration (StoreCreateWorkflow)
+### Phase 2: DBOS Verification (MANDATORY before any workflow code)
+
+- [ ] **Verify DBOS step result persistence**
+  - [ ] Write test: run workflow with `uuidv7()` in step → crash → resume
+  - [ ] Verify: same UUID returned on recovery
+  - [ ] If fails: implement `initExecution()` with DBOS-saved UUID
+
+- [ ] **Verify DBOS.workflowID vs executionId**
+  - [ ] Check if DBOS has separate `DBOS.executionID`
+  - [ ] If DBOS.workflowID can be user-provided (dedupeKey), use `initExecution()` pattern
+
+- [ ] Create `packages/workflows/src/retry/RetryPolicy.ts`
+  - [ ] `shouldRetry(error)` - for logging/metrics only
+  - [ ] Use `isServiceError()` shape check (not instanceof)
+  - [ ] **NO custom retry decorator** (see "Retry Strategy" section)
+
+### Phase 3: Pilot Workflow Migration (StoreCreateWorkflow)
 
 - [ ] Update `services/project/src/workflows/StoreCreateWorkflow.ts`
   - [ ] Extend new `BaseWorkflow`
+  - [ ] **Call `initExecution()` as FIRST step** in `run()`
+  - [ ] Use plain `@DBOS.step()` (NOT RetryableStep - it's removed!)
   - [ ] Use `callService()` with deterministic `callId`:
     - `createRoles`: `storeId`
-    - `assignRole`: `${storeId}:${userId}:admin`
+    - `assignRole`: `${storeId}:admin:${userId}`
     - `createAssetGroup`: `storeId`
   - [ ] Choose pattern: sequential steps OR single fanout step
 
@@ -1607,39 +2620,60 @@ Each service should implement:
 
 - [ ] Write unit tests using `MockServicePort`
 
-### Phase 3: Service-Side Envelope Support
+### Phase 4: Service-Side Envelope & Dispatcher
+
+- [ ] Implement centralized dispatcher error handling
+  - [ ] Wrap ALL handler execution in try/catch
+  - [ ] Always return `ActionResponse` (never raw exceptions)
+  - [ ] Unknown action → `VALIDATION_UNKNOWN_ACTION` (not retryable)
+  - [ ] **Use `isServiceError()` shape check** (not instanceof - cross-package issue!)
+  - [ ] Preserve `code` and `retryable` from service errors
 
 - [ ] Update `services/*/src/*BrokerActions.ts` to accept `ActionRequest` envelope
   - [ ] Add `unwrapRequest()` helper for backwards compatibility
   - [ ] Zod schema supporting both formats
-  - [ ] Unknown action returns `VALIDATION_ERROR` (not retryable)
 
 - [ ] Add lifecycle action handlers:
   - [ ] `@Action("lifecycle:store:initialize")`
   - [ ] `@Action("lifecycle:store:cleanup")`
 
-### Phase 4: Idempotency Infrastructure
+### Phase 5: Idempotency Infrastructure
 
 - [ ] Create `processed_requests` migration in each service
-  - [ ] `idempotency_key` PRIMARY KEY
-  - [ ] `service`, `action`, `operation_id`
-  - [ ] `result` (nullable), `result_cached` flag
-  - [ ] Indexes on `created_at` and `operation_id`
+  - [ ] `idempotency_key` PRIMARY KEY (SHA-256 hash)
+  - [ ] `operation_id`, `service`, `action`, `call_id` columns
+  - [ ] `status` column: `'reserved' | 'completed' | 'failed'`
+  - [ ] `attempt` INTEGER for retry tracking (no deletion on failure)
+  - [ ] `last_error` TEXT for debugging failed attempts
+  - [ ] `result` JSONB (nullable), `result_cached` flag
+  - [ ] **JSONB: pass object directly, NOT JSON.stringify()** (avoids double-serialization)
+  - [ ] `updated_at` TIMESTAMPTZ for status changes
+  - [ ] Indexes: `created_at`, `operation_id`, `status`
+  - [ ] `alert_stale_reserved_requests()` function for monitoring
 
-- [ ] Implement idempotency in BrokerActions:
-  - [ ] Check before execute
-  - [ ] **Return success on duplicate** (not error!)
-  - [ ] Mark processed after success
+- [ ] Implement atomic reservation pattern in BrokerActions:
+  - [ ] `INSERT ON CONFLICT DO NOTHING` to reserve (with `attempt = 1`)
+  - [ ] If already `completed` → return success + `meta.idempotent`
+  - [ ] If `reserved` (in progress) → throw `TRANSIENT_IN_PROGRESS` (retryable!)
+  - [ ] If `failed` → claim via `UPDATE WHERE status='failed'`, increment attempt (NO DELETE!)
+  - [ ] On success → update status to `completed`
+  - [ ] On error → update status to `failed` with `last_error` info
 
-- [ ] Setup TTL cleanup job (7 days default)
+- [ ] **MANDATORY: Deploy TTL cleanup infrastructure** (choose one):
+  - [ ] Option A: pg_cron extension with scheduled DELETE query
+  - [ ] Option B: `ProcessedRequestsCleanupJob` NestJS scheduled job
+  - [ ] Wire `AlertService` for stale 'reserved' records alerts
+  - [ ] Add monitoring dashboard for table size over time
+  - [ ] **Test: verify cleanup never deletes 'reserved' records!**
 
-### Phase 5: Error Standardization
+### Phase 6: Error Standardization
 
 - [ ] Define error code conventions in shared-kernel:
-  - [ ] `TRANSIENT_*` for retryable (network, temporary failures)
+  - [ ] `TRANSIENT_*` for retryable (network, temporary failures, in-progress)
+  - [ ] `TRANSIENT_IN_PROGRESS` for idempotency "reserved" or "retry in progress" state
   - [ ] `VALIDATION_*` for bad input (not retryable)
   - [ ] `NOT_FOUND` for missing resources (not retryable)
-  - [ ] `CONFLICT` for duplicates (not retryable)
+  - [ ] `CONFLICT` for duplicates that are completed (not retryable)
   - [ ] `INTERNAL_*` for logic errors (not retryable)
   - [ ] Only `TRANSIENT_*` is auto-retryable
 
