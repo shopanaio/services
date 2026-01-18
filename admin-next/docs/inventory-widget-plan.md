@@ -96,6 +96,7 @@ CREATE TABLE inventory.stock_changes (
   note TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_by UUID,
+  apply_status VARCHAR(10) NOT NULL DEFAULT 'APPLIED', -- APPLIED | REJECTED
 
   -- FK только на warehouse_id (project_id денормализован для запросов)
   CONSTRAINT stock_changes_warehouse_fk
@@ -208,37 +209,48 @@ fix AS (
   RETURNING sc.*
 ),
 
--- 4. Удаляем placeholder если up не прошёл (результат невалиден)
-cleanup AS (
-  DELETE FROM inventory.stock_changes sc
-  USING ins
+-- 4. Если up не прошёл, фиксируем REJECTED, чтобы событие было идемпотентным
+reject AS (
+  UPDATE inventory.stock_changes sc
+  SET
+    on_hand_after     = COALESCE(ws.quantity_on_hand, 0),
+    reserved_after    = COALESCE(ws.reserved_qty, 0),
+    unavailable_after = COALESCE(ws.unavailable_qty, 0),
+    apply_status      = 'REJECTED'
+  FROM ins
+  LEFT JOIN inventory.warehouse_stock ws
+    ON ws.project_id = sc.project_id
+   AND ws.warehouse_id = sc.warehouse_id
+   AND ws.variant_id = sc.variant_id
   WHERE sc.id = ins.id
     AND NOT EXISTS (SELECT 1 FROM fix)
-  RETURNING 1
+  RETURNING sc.*
+),
+result AS (
+  SELECT 'APPLIED' as status, id FROM fix
+  UNION ALL
+  SELECT 'REJECTED' as status, id FROM reject
 )
 
 -- 5. Возвращаем статус + результат
 SELECT
-  CASE
-    WHEN EXISTS (SELECT 1 FROM fix) THEN 'APPLIED'
-    WHEN EXISTS (SELECT 1 FROM ins) THEN 'REJECTED'  -- ins был, но up не прошёл (cleanup удалил)
-    ELSE 'DUPLICATE'  -- ins не вернул id → запись уже существует
-  END AS status,
-  fix.*
+  COALESCE(r.status, 'DUPLICATE') as status,
+  sc.*
 FROM (SELECT 1) x
-LEFT JOIN fix ON true;
+LEFT JOIN result r ON true
+LEFT JOIN inventory.stock_changes sc ON sc.id = r.id;
 ```
 
 **Статусы**:
-- `APPLIED` — операция выполнена, `fix.*` содержит запись
+- `APPLIED` — операция выполнена, `sc.*` содержит запись
 - `DUPLICATE` — идемпотентный повтор (событие уже обработано)
-- `REJECTED` — результат невалиден (недостаточно стока, нарушение CHECK)
+- `REJECTED` — результат невалиден (недостаточно стока, нарушение CHECK), запись сохранена с `apply_status = 'REJECTED'`
 
 **Гарантии**:
 - `INSERT ... ON CONFLICT DO NOTHING` — единственный race-free способ идемпотентности
 - Инкремент от `warehouse_stock.*` а не от `EXCLUDED.*` — нет lost-update
 - Валидность на `warehouse_stock.* + delta` в WHERE — race-safe проверка
-- `cleanup` удаляет placeholder если up не прошёл — нет "висящих" записей
+- `reject` фиксирует REJECTED с текущими балансами — событие остаётся идемпотентным
 - INSERT-ветка проверяет валидность дельт для новой строки
 
 `movement_type` и `reason` можно оформить как ENUM, чтобы избежать мусорных значений.
@@ -437,13 +449,32 @@ warehouse_oos AS (
     AND (sc.prev_available IS NULL OR sc.prev_available > 0)
   GROUP BY sc.variant_id, sc.warehouse_id
 ),
+warehouse_oos_fallback AS (
+  SELECT
+    wa.variant_id,
+    wa.warehouse_id,
+    ws.updated_at as out_of_stock_since
+  FROM warehouse_available wa
+  JOIN inventory.warehouse_stock ws
+    ON ws.variant_id = wa.variant_id
+   AND ws.warehouse_id = wa.warehouse_id
+  WHERE wa.available <= 0
+    AND NOT EXISTS (
+      SELECT 1
+      FROM warehouse_oos wo
+      WHERE wo.variant_id = wa.variant_id
+        AND wo.warehouse_id = wa.warehouse_id
+    )
+),
 variant_oos AS (
   SELECT
     wa.variant_id,
-    MIN(wo.out_of_stock_since) as out_of_stock_since
+    MIN(COALESCE(wo.out_of_stock_since, wof.out_of_stock_since)) as out_of_stock_since
   FROM warehouse_available wa
   LEFT JOIN warehouse_oos wo
     ON wo.variant_id = wa.variant_id AND wo.warehouse_id = wa.warehouse_id
+  LEFT JOIN warehouse_oos_fallback wof
+    ON wof.variant_id = wa.variant_id AND wof.warehouse_id = wa.warehouse_id
   WHERE wa.available <= 0
   GROUP BY wa.variant_id
 ),
@@ -518,7 +549,7 @@ WITH deficit AS (
     ws.project_id,
     ws.variant_id,
     ws.warehouse_id,
-    GREATEST(ws.reserved_qty - ws.quantity_on_hand, 0) as deficit
+    GREATEST(ws.reserved_qty + ws.unavailable_qty - ws.quantity_on_hand, 0) as deficit
   FROM inventory.warehouse_stock ws
   WHERE ws.variant_id = $1 AND ws.warehouse_id = $2
 ),
