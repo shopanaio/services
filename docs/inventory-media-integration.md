@@ -347,18 +347,15 @@ async run(fileId: string): Promise<void> {
   await this.hardDeleteFromDb(fileId);
 
   // Step 3: Start cleanup workflow (fire-and-forget, durable)
-  await this.startCleanupWorkflow(fileId);
-}
-
-@DBOS.step()
-async startCleanupWorkflow(fileId: string): Promise<void> {
-  const workflow = this.workflow.get<FileDeleteCleanupWorkflow>("fileDeleteCleanup");
-  // Deterministic ID for deduplication
-  await DBOS.startWorkflow(workflow, {
+  // NOTE: startWorkflow must be called from workflow body, NOT from @DBOS.step()
+  const cleanupWorkflow = this.workflow.get<FileDeleteCleanupWorkflow>("fileDeleteCleanup");
+  await DBOS.startWorkflow(cleanupWorkflow, {
     workflowID: FileDeleteCleanupWorkflow.workflowID(fileId)
   }).run(fileId);
 }
 ```
+
+**Important:** `DBOS.startWorkflow()` must be called directly from workflow body, not from inside a `@DBOS.step()`. Steps are for external calls (DB, HTTP, broker), not for workflow orchestration.
 
 #### 2.2.2 FileDeleteCleanupWorkflow (new)
 
