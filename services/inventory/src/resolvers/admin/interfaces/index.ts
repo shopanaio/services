@@ -165,6 +165,54 @@ export interface WarehouseStock {
   updatedAt: Date;
 }
 
+// --- Inventory Widget ---
+
+/** Alert threshold method */
+export type ThresholdMethod = "SAFETY_STOCK" | "REORDER_POINT";
+
+/** Aggregated stock quantities */
+export interface InventoryQuantities {
+  availableForSale: number;
+  onHand: number;
+  reserved: number;
+  unavailable: number;
+}
+
+/** SKU status metric with optional average age */
+export interface SkuStatusMetric {
+  count: number;
+  averageDays: number | null;
+}
+
+/** SKU status breakdown */
+export interface InventorySkuStatus {
+  total: number;
+  lowStock: SkuStatusMetric;
+  outOfStock: SkuStatusMetric;
+  backorder: SkuStatusMetric;
+}
+
+/** Backorder information */
+export interface InventoryBackorder {
+  quantity: number;
+  etaAvgDays: number | null;
+}
+
+/** Alert threshold configuration */
+export interface InventoryAlertThreshold {
+  method: ThresholdMethod;
+  minimumStock: number;
+}
+
+/** Product inventory widget payload */
+export interface ProductInventoryWidget {
+  quantities: InventoryQuantities;
+  availableChange7d: number;
+  skuStatus: InventorySkuStatus;
+  backorder: InventoryBackorder;
+  alertThreshold: InventoryAlertThreshold;
+}
+
 // --- Options ---
 
 /** Display type for product options in the UI */

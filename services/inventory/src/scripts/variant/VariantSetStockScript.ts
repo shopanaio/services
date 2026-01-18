@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
 import type { WarehouseStock } from "../../repositories/models/index.js";
 
@@ -39,7 +40,58 @@ export class VariantSetStockScript extends BaseScript<VariantSetStockParams, Var
       };
     }
 
-    const stock = await this.repository.stock.upsert(variantId, warehouseId, quantity);
+    const existingStock = await this.repository.stock.findByVariantWarehouse(
+      variantId,
+      warehouseId
+    );
+    const currentQuantity = existingStock?.quantityOnHand ?? 0;
+    const deltaOnHand = quantity - currentQuantity;
+
+    if (deltaOnHand === 0 && existingStock) {
+      return { stock: existingStock, userErrors: [] };
+    }
+
+    const movementType = deltaOnHand === 0 ? "SEED" : "ADJUST";
+    const applyResult = await this.repository.stock.applyStockChange({
+      variantId,
+      warehouseId,
+      deltaOnHand,
+      movementType,
+      reason: movementType === "ADJUST" ? "MANUAL" : null,
+      sourceSystem: "INVENTORY_ADMIN",
+      sourceEventId: randomUUID(),
+      createdBy: this.context.hasUser ? this.context.user.id : null,
+    });
+
+    if (applyResult.status === "REJECTED") {
+      return {
+        stock: undefined,
+        userErrors: [
+          {
+            message: "Stock update rejected",
+            field: ["quantity"],
+            code: "STOCK_REJECTED",
+          },
+        ],
+      };
+    }
+
+    const stock = await this.repository.stock.findByVariantWarehouse(
+      variantId,
+      warehouseId
+    );
+
+    if (!stock) {
+      return {
+        stock: undefined,
+        userErrors: [
+          {
+            message: "Stock record not found after update",
+            code: "NOT_FOUND",
+          },
+        ],
+      };
+    }
 
     this.logger.info({ variantId, warehouseId, quantity }, "Variant stock set successfully");
 

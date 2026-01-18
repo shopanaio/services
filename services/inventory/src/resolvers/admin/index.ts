@@ -16,6 +16,7 @@ export { StockResolver } from "./StockResolver.js";
 export { OptionValueResolver } from "./OptionValueResolver.js";
 export { FeatureValueResolver } from "./FeatureValueResolver.js";
 export { VariantPriceResolver } from "./VariantPriceResolver.js";
+export { InventoryWidgetResolver, WidgetQueryResolver } from "./InventoryWidgetResolver.js";
 
 // Connection resolvers
 export {

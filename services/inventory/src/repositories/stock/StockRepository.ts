@@ -1,4 +1,4 @@
-import { and, eq, inArray, count } from "drizzle-orm";
+import { and, eq, inArray, count, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import {
   createQuery,
@@ -20,6 +20,37 @@ export interface StockConnectionResult {
   edges: Array<{ cursor: string; nodeId: string }>;
   pageInfo: PageInfo;
   totalCount: number;
+}
+
+export type StockChangeStatus = "APPLIED" | "REJECTED" | "DUPLICATE";
+
+export interface ApplyStockChangeInput {
+  variantId: string;
+  warehouseId: string;
+  deltaOnHand: number;
+  deltaReserved?: number;
+  deltaUnavailable?: number;
+  movementType:
+    | "SEED"
+    | "RECEIVE"
+    | "SELL"
+    | "RETURN"
+    | "ADJUST"
+    | "RESERVE"
+    | "RELEASE"
+    | "TRANSFER";
+  reason?: "DAMAGE" | "INVENTORY_COUNT" | "MANUAL" | "CUSTOMER_RETURN" | null;
+  transferDirection?: "IN" | "OUT" | null;
+  sourceSystem: string;
+  sourceEventId: string;
+  correlationId?: string | null;
+  note?: string | null;
+  createdBy?: string | null;
+}
+
+export interface ApplyStockChangeResult {
+  status: StockChangeStatus;
+  changeId?: string | null;
 }
 
 export class StockRepository extends BaseRepository {
@@ -55,6 +86,146 @@ export class StockRepository extends BaseRepository {
       .returning();
 
     return result[0];
+  }
+
+  /**
+   * Get stock by variant + warehouse
+   */
+  async findByVariantWarehouse(
+    variantId: string,
+    warehouseId: string
+  ): Promise<WarehouseStock | null> {
+    const result = await this.connection
+      .select()
+      .from(warehouseStock)
+      .where(
+        and(
+          eq(warehouseStock.projectId, this.storeId),
+          eq(warehouseStock.variantId, variantId),
+          eq(warehouseStock.warehouseId, warehouseId)
+        )
+      )
+      .limit(1);
+
+    return result[0] ?? null;
+  }
+
+  /**
+   * Apply a stock change with idempotency and constraints.
+   */
+  async applyStockChange(
+    input: ApplyStockChangeInput
+  ): Promise<ApplyStockChangeResult> {
+    const deltaReserved = input.deltaReserved ?? 0;
+    const deltaUnavailable = input.deltaUnavailable ?? 0;
+    const result = await this.connection.execute<{
+      status: StockChangeStatus | null;
+      id: string | null;
+    }>(sql`
+      WITH ins AS (
+        INSERT INTO inventory.stock_changes (
+          project_id, warehouse_id, variant_id,
+          delta_on_hand, delta_reserved, delta_unavailable,
+          movement_type, reason, transfer_direction,
+          source_system, source_event_id, correlation_id, note, created_by,
+          on_hand_after, reserved_after, unavailable_after
+        )
+        SELECT
+          ${this.storeId}, ${input.warehouseId}, ${input.variantId},
+          ${input.deltaOnHand}, ${deltaReserved}, ${deltaUnavailable},
+          ${input.movementType}, ${input.reason ?? null}, ${input.transferDirection ?? null},
+          ${input.sourceSystem}, ${input.sourceEventId}, ${input.correlationId ?? null}, ${input.note ?? null}, ${input.createdBy ?? null},
+          0, 0, 0
+        ON CONFLICT (project_id, source_system, source_event_id, warehouse_id, variant_id)
+        DO NOTHING
+        RETURNING id
+      ),
+      existing AS (
+        SELECT id
+        FROM inventory.stock_changes
+        WHERE project_id = ${this.storeId}
+          AND source_system = ${input.sourceSystem}
+          AND source_event_id = ${input.sourceEventId}
+          AND warehouse_id = ${input.warehouseId}
+          AND variant_id = ${input.variantId}
+      ),
+      up AS (
+        INSERT INTO inventory.warehouse_stock (
+          project_id, warehouse_id, variant_id,
+          quantity_on_hand, reserved_qty, unavailable_qty
+        )
+        SELECT
+          ${this.storeId}, ${input.warehouseId}, ${input.variantId},
+          ${input.deltaOnHand}, ${deltaReserved}, ${deltaUnavailable}
+        FROM ins
+        WHERE
+          ${input.deltaOnHand} >= 0
+          AND ${deltaReserved} >= 0
+          AND ${deltaUnavailable} >= 0
+          AND ${deltaUnavailable} <= ${input.deltaOnHand}
+        ON CONFLICT (project_id, warehouse_id, variant_id) DO UPDATE SET
+          quantity_on_hand = inventory.warehouse_stock.quantity_on_hand + ${input.deltaOnHand},
+          reserved_qty = inventory.warehouse_stock.reserved_qty + ${deltaReserved},
+          unavailable_qty = inventory.warehouse_stock.unavailable_qty + ${deltaUnavailable},
+          updated_at = NOW()
+        WHERE
+          EXISTS (SELECT 1 FROM ins)
+          AND (inventory.warehouse_stock.quantity_on_hand + ${input.deltaOnHand}) >= 0
+          AND (inventory.warehouse_stock.reserved_qty + ${deltaReserved}) >= 0
+          AND (inventory.warehouse_stock.unavailable_qty + ${deltaUnavailable}) >= 0
+          AND (inventory.warehouse_stock.unavailable_qty + ${deltaUnavailable})
+              <= (inventory.warehouse_stock.quantity_on_hand + ${input.deltaOnHand})
+        RETURNING quantity_on_hand, reserved_qty, unavailable_qty
+      ),
+      fix AS (
+        UPDATE inventory.stock_changes sc
+        SET
+          on_hand_after = up.quantity_on_hand,
+          reserved_after = up.reserved_qty,
+          unavailable_after = up.unavailable_qty
+        FROM ins, up
+        WHERE sc.id = ins.id
+        RETURNING sc.*
+      ),
+      reject AS (
+        UPDATE inventory.stock_changes sc
+        SET
+          on_hand_after = COALESCE(ws.quantity_on_hand, 0),
+          reserved_after = COALESCE(ws.reserved_qty, 0),
+          unavailable_after = COALESCE(ws.unavailable_qty, 0),
+          apply_status = 'REJECTED'
+        FROM ins
+        LEFT JOIN inventory.warehouse_stock ws
+          ON ws.project_id = sc.project_id
+         AND ws.warehouse_id = sc.warehouse_id
+         AND ws.variant_id = sc.variant_id
+        WHERE sc.id = ins.id
+          AND NOT EXISTS (SELECT 1 FROM fix)
+        RETURNING sc.*
+      ),
+      result AS (
+        SELECT 'APPLIED' as status, id FROM fix
+        UNION ALL
+        SELECT 'REJECTED' as status, id FROM reject
+        UNION ALL
+        SELECT 'DUPLICATE' as status, id
+        FROM existing
+        WHERE NOT EXISTS (SELECT 1 FROM fix)
+          AND NOT EXISTS (SELECT 1 FROM reject)
+      )
+      SELECT
+        r.status as status,
+        sc.id as id
+      FROM (SELECT 1) x
+      LEFT JOIN result r ON true
+      LEFT JOIN inventory.stock_changes sc ON sc.id = r.id
+    `);
+
+    const row = result[0];
+    return {
+      status: row?.status ?? "REJECTED",
+      changeId: row?.id ?? null,
+    };
   }
 
   /**

@@ -11,6 +11,7 @@ import {
   type WarehouseConnectionResolverInput,
 } from "./WarehouseConnectionResolver.js";
 import { VariantResolver } from "./VariantResolver.js";
+import { WidgetQueryResolver } from "./InventoryWidgetResolver.js";
 import type { VariantRelayInput } from "../../repositories/variant/VariantRepository.js";
 
 /**
@@ -25,6 +26,13 @@ export class QueryResolver extends InventoryType<Record<string, never>> {
    */
   inventoryQuery() {
     return new InventoryQueryResolver({}, this.$ctx);
+  }
+
+  /**
+   * Entry point for widget-related queries.
+   */
+  widgetQuery() {
+    return new WidgetQueryResolver({}, this.$ctx);
   }
 }
 

@@ -83,6 +83,9 @@ export const variant = inventorySchema.table(
       .where(sql`deleted_at IS NULL AND external_id IS NOT NULL`),
     index("idx_variant_project_id").on(table.projectId),
     index("idx_variant_product_id").on(table.productId),
+    index("idx_variant_product_active")
+      .on(table.productId)
+      .where(sql`deleted_at IS NULL`),
     index("idx_variant_created_at").on(table.createdAt),
     index("idx_variant_updated_at").on(table.updatedAt),
     index("idx_variant_deleted_at")

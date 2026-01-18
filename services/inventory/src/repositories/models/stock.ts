@@ -49,6 +49,8 @@ export const warehouseStock = inventorySchema.table(
       .notNull()
       .references(() => variant.id, { onDelete: "cascade" }),
     quantityOnHand: integer("quantity_on_hand").notNull().default(0),
+    reservedQty: integer("reserved_qty").notNull().default(0),
+    unavailableQty: integer("unavailable_qty").notNull().default(0),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -59,6 +61,15 @@ export const warehouseStock = inventorySchema.table(
   (table) => [
     // CHECK constraint
     check("warehouse_stock_quantity_check", sql`${table.quantityOnHand} >= 0`),
+    check("warehouse_stock_reserved_check", sql`${table.reservedQty} >= 0`),
+    check(
+      "warehouse_stock_unavailable_check",
+      sql`${table.unavailableQty} >= 0`
+    ),
+    check(
+      "warehouse_stock_unavailable_le_onhand_check",
+      sql`${table.unavailableQty} <= ${table.quantityOnHand}`
+    ),
     // Unique constraint
     unique("warehouse_stock_project_id_warehouse_id_variant_id_key").on(
       table.projectId,

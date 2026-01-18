@@ -1,0 +1,37 @@
+import {
+  uuid,
+  varchar,
+  integer,
+  boolean,
+  timestamp,
+  primaryKey,
+} from "drizzle-orm/pg-core";
+import { inventorySchema } from "./schema";
+import { product } from "./products";
+
+export const productInventorySettings = inventorySchema.table(
+  "product_inventory_settings",
+  {
+    projectId: uuid("project_id").notNull(),
+    productId: uuid("product_id")
+      .notNull()
+      .references(() => product.id, { onDelete: "cascade" }),
+    alertThresholdMethod: varchar("alert_threshold_method", { length: 20 })
+      .notNull()
+      .default("SAFETY_STOCK"),
+    alertMinimumStock: integer("alert_minimum_stock").notNull().default(10),
+    backorderEnabled: boolean("backorder_enabled").notNull().default(false),
+    backorderMaxDays: integer("backorder_max_days"),
+    backorderMaxQty: integer("backorder_max_qty"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.projectId, table.productId] }),
+  ]
+);
+
+export type ProductInventorySettings =
+  typeof productInventorySettings.$inferSelect;
+export type NewProductInventorySettings =
+  typeof productInventorySettings.$inferInsert;

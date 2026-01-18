@@ -11,6 +11,7 @@ import { StockRepository } from "./stock/StockRepository.js";
 import { WarehouseRepository } from "./warehouse/WarehouseRepository.js";
 import { TranslationRepository } from "./translation/TranslationRepository.js";
 import { MediaRepository } from "./media/MediaRepository.js";
+import { InventoryWidgetRepository } from "./inventory-widget/InventoryWidgetRepository.js";
 
 export interface RepositoryConfig {
   db: Database;
@@ -31,6 +32,7 @@ export class Repository {
   public readonly warehouse: WarehouseRepository;
   public readonly translation: TranslationRepository;
   public readonly media: MediaRepository;
+  public readonly inventoryWidget: InventoryWidgetRepository;
   public readonly txManager: TransactionManager<Database>;
 
   private constructor(
@@ -45,6 +47,7 @@ export class Repository {
     warehouse: WarehouseRepository,
     translation: TranslationRepository,
     media: MediaRepository,
+    inventoryWidget: InventoryWidgetRepository,
     txManager: TransactionManager<Database>
   ) {
     this.product = product;
@@ -58,6 +61,7 @@ export class Repository {
     this.warehouse = warehouse;
     this.translation = translation;
     this.media = media;
+    this.inventoryWidget = inventoryWidget;
     this.txManager = txManager;
   }
 
@@ -82,6 +86,7 @@ export class Repository {
     const warehouse = new WarehouseRepository(db, txManager);
     const translation = new TranslationRepository(db, txManager);
     const media = new MediaRepository(db, txManager);
+    const inventoryWidget = new InventoryWidgetRepository(db, txManager);
 
     return new Repository(
       product,
@@ -95,6 +100,7 @@ export class Repository {
       warehouse,
       translation,
       media,
+      inventoryWidget,
       txManager
     );
   }

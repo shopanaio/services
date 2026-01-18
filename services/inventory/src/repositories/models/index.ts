@@ -21,6 +21,10 @@ export * from "./physical";
 
 // Stock & Warehouses
 export * from "./stock";
+export * from "./stock-changes";
+export * from "./reservations";
+export * from "./product-inventory-settings";
+export * from "./inbound-supply";
 
 // Media links
 export * from "./media";
