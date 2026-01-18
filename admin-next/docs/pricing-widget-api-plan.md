@@ -126,7 +126,7 @@ async getPriceStatistics(input: GetPriceStatisticsInput): Promise<PriceHistorySt
     .select({
       minPriceMinor: sql<number>`MIN(${itemPricing.amountMinor})`,
       maxPriceMinor: sql<number>`MAX(${itemPricing.amountMinor})`,
-      avgPriceMinor: sql<number>`AVG(${itemPricing.amountMinor})::bigint`,
+      avgPriceMinor: sql<number>`ROUND(AVG(${itemPricing.amountMinor}))::bigint`,
     })
     .from(itemPricing)
     .where(
@@ -134,8 +134,9 @@ async getPriceStatistics(input: GetPriceStatisticsInput): Promise<PriceHistorySt
         eq(itemPricing.projectId, input.projectId),
         eq(itemPricing.variantId, input.variantId),
         eq(itemPricing.currency, input.currency),
-        gte(itemPricing.effectiveFrom, input.from),
-        lte(itemPricing.effectiveFrom, input.to)
+        // Period overlap: [effectiveFrom, effectiveTo] intersects [from, to].
+        lte(itemPricing.effectiveFrom, input.to),
+        or(isNull(itemPricing.effectiveTo), gte(itemPricing.effectiveTo, input.from))
       )
     );
 
@@ -149,6 +150,9 @@ async getPriceStatistics(input: GetPriceStatisticsInput): Promise<PriceHistorySt
   };
 }
 ```
+
+Use the same period-overlap condition in `getPriceHistory` so that any price whose
+`[effectiveFrom, effectiveTo]` intersects `[from, to]` is included.
 
 ---
 
