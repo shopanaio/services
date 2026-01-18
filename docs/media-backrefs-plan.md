@@ -28,23 +28,34 @@ export const fileBackRefs = mediaSchema.table(
     fileId: uuid("file_id")
       .notNull()
       .references(() => files.id, { onDelete: "cascade" }),
-    entityRef: varchar("entity_ref", { length: 512 }).notNull(),  // "service:entity:id"
-    service: varchar("service", { length: 64 }).notNull(),
-    entityType: varchar("entity_type", { length: 64 }).notNull(),
-    entityId: uuid("entity_id").notNull(),
+    service: varchar("service", { length: 64 }).notNull(),       // "inventory", "iam", etc.
+    entityType: varchar("entity_type", { length: 64 }).notNull(), // "variant", "user", "organization"
+    entityId: varchar("entity_id", { length: 128 }).notNull(),   // varchar for flexibility (not all IDs are UUIDs)
+    role: varchar("role", { length: 32 }).notNull(),             // "main", "gallery", "avatar", "logo", etc.
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
   },
   (table) => [
-    primaryKey({ columns: [table.fileId, table.entityRef] }),
+    // One file can only be linked once per entity+role combination
+    primaryKey({ columns: [table.fileId, table.service, table.entityType, table.entityId, table.role] }),
+    // For GC: count refs per file
     index("idx_fbr_file_id").on(table.fileId),
-    index("idx_fbr_entity_ref").on(table.entityRef),
-    index("idx_fbr_service").on(table.service),
-    index("idx_fbr_entity_id").on(table.entityId),
+    // For entityDeleted: find all files for an entity (most important for cleanup)
+    index("idx_fbr_entity").on(table.service, table.entityType, table.entityId),
   ]
 );
+
+// Helper to generate entityRef string for UI display (not stored in DB)
+export function formatEntityRef(service: string, entityType: string, entityId: string): string {
+  return `${service}:${entityType}:${entityId}`;
+}
 ```
+
+**Design notes:**
+- No `entityRef` column - generated on-the-fly for UI to avoid sync issues
+- `entityId` is varchar(128) for flexibility (not all services use UUIDs)
+- `role` distinguishes different usages (main image vs gallery vs avatar)
 
 **Files to modify:**
 - Create: `services/media/src/repositories/models/fileBackRefs.ts`
@@ -81,14 +92,22 @@ Key methods:
 **File:** `services/media/src/scripts/backRef/dto/index.ts`
 
 ```typescript
+export interface EntityRef {
+  service: string;     // "inventory", "iam"
+  entityType: string;  // "variant", "user", "organization"
+  entityId: string;    // varchar, not necessarily UUID
+}
+
 export interface FileLinkParams {
   fileId: string;
-  entityRef: { service: string; entityType: string; entityId: string };
+  entityRef: EntityRef;
+  role: string;        // "main", "gallery", "avatar", "logo"
 }
 
 export interface FileUnlinkParams {
   fileId: string;
-  entityRef: { service: string; entityType: string; entityId: string };
+  entityRef: EntityRef;
+  role: string;
 }
 
 export interface FileUnlinkResult {
@@ -98,7 +117,7 @@ export interface FileUnlinkResult {
 }
 
 export interface EntityDeletedParams {
-  entityRef: { service: string; entityType: string; entityId: string };
+  entityRef: EntityRef;  // unlinks ALL roles for this entity
 }
 
 export interface EntityDeletedResult {
@@ -129,28 +148,9 @@ Add actions:
 
 ---
 
-## Phase 4: GC Modifications
+## Phase 4: Event Broadcasting
 
-### 4.1 Update `FileGarbageCollectorWorkflow`
-
-**File:** `services/media/src/workflows/FileGarbageCollectorWorkflow.ts`
-
-Modify Phase 2 to filter out files with backRefs > 0:
-
-```typescript
-const batch = await fileDeletionStateRepo.findSoftDeletedForGC({...});
-const fileIds = batch.map((s) => s.fileId);
-const backRefCounts = await this.repository.fileBackRef.countByFileIds(fileIds);
-const eligibleForDeletion = batch.filter(
-  (s) => (backRefCounts.get(s.fileId) ?? 0) === 0
-);
-```
-
----
-
-## Phase 5: Event Broadcasting
-
-### 5.1 Add `file.deleted` event
+### 4.1 Add `file.deleted` event
 
 **File:** `services/media/src/workflows/FileHardDeleteWorkflow.ts`
 
@@ -165,18 +165,19 @@ When triggering immediate hard-delete (refCount=0), also emit event.
 
 ---
 
-## Phase 6: GraphQL Extensions
+## Phase 5: GraphQL Extensions
 
-### 6.1 Update schema
+### 5.1 Update schema
 
 **File:** `services/media/src/api/graphql-admin/file.graphql`
 
 ```graphql
 type FileBackRef {
-  entityRef: String!
   service: String!
   entityType: String!
-  entityId: ID!
+  entityId: String!
+  role: String!
+  entityRef: String!   # Generated: "service:entityType:entityId"
   createdAt: DateTime!
 }
 
@@ -190,13 +191,13 @@ extend type File {
 }
 ```
 
-### 6.2 Update resolver
+### 5.2 Update resolver
 
 **File:** `services/media/src/resolvers/admin/FileResolver.ts`
 
 Add `backRefs` field resolver.
 
-### 6.3 DataLoader (optional optimization)
+### 5.3 DataLoader (optional optimization)
 
 **File:** `services/media/src/loaders/FileBackRefLoader.ts`
 
@@ -204,9 +205,9 @@ Batch load backRef counts for list views.
 
 ---
 
-## Phase 7: Consumer Services Integration
+## Phase 6: Consumer Services Integration
 
-### 7.1 Inventory Service
+### 6.1 Inventory Service
 
 **Files to modify:**
 
@@ -218,28 +219,12 @@ Batch load backRef counts for list views.
 3. Add event handler for `file.deleted`:
    - Create: `services/inventory/src/events/MediaEventsHandler.ts`
 
-### 7.2 IAM Service
+### 6.2 IAM Service
 
 **Files to modify:**
 
 1. Update user avatar/org logo mutations to call link/unlink
 2. Call `media.entityDeleted` when user/org is deleted
-
----
-
-## Phase 8: Migration (backfill existing refs)
-
-### 8.1 Inventory variant_media backfill
-
-Create one-time migration script:
-- Read all `variant_media` records
-- Call `media.fileLinkMany` for each variant's files
-
-### 8.2 IAM avatars/logos backfill
-
-Create one-time migration script:
-- Read users with avatars, orgs with logos
-- Call `media.fileLink` for each
 
 ---
 
@@ -251,18 +236,15 @@ Create one-time migration script:
 2. **Broker Actions** (Phase 3)
    - DTOs, scripts, MediaBrokerActions
 
-3. **GC & Events** (Phase 4-5)
-   - Update GC workflow, add event emission
+3. **Event Broadcasting** (Phase 4)
+   - Add `file.deleted` event emission
 
-4. **GraphQL** (Phase 6)
+4. **GraphQL** (Phase 5)
    - Schema, resolver, DataLoader
 
-5. **Consumer Integration** (Phase 7)
+5. **Consumer Integration** (Phase 6)
    - Inventory link/unlink calls
    - Event handlers
-
-6. **Migration** (Phase 8)
-   - Backfill scripts
 
 ---
 
@@ -275,7 +257,6 @@ Create one-time migration script:
 | Broker Actions | `services/media/src/MediaBrokerActions.ts` |
 | Link Script | `services/media/src/scripts/backRef/FileLinkScript.ts` |
 | Unlink Script | `services/media/src/scripts/backRef/FileUnlinkScript.ts` |
-| GC Workflow | `services/media/src/workflows/FileGarbageCollectorWorkflow.ts` |
 | Hard Delete Workflow | `services/media/src/workflows/FileHardDeleteWorkflow.ts` |
 | GraphQL Schema | `services/media/src/api/graphql-admin/file.graphql` |
 | File Resolver | `services/media/src/resolvers/admin/FileResolver.ts` |
