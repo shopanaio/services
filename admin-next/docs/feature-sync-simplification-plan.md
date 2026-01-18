@@ -72,6 +72,12 @@ ALTER TABLE inventory.product_feature_value
 
 ALTER TABLE inventory.product_feature_value
   RENAME COLUMN sort_index TO index;
+
+-- 9. Unique constraint для value index
+ALTER TABLE inventory.product_feature_value
+  ADD CONSTRAINT product_feature_value_feature_id_index_uniq
+    UNIQUE (feature_id, index)
+    DEFERRABLE INITIALLY DEFERRED;
 ```
 
 **Преимущества `int[]` над `text`:**
@@ -151,6 +157,10 @@ export const productFeatureValue = inventorySchema.table(
   },
   (table) => [
     index("idx_product_feature_value_feature_id").on(table.featureId),
+    unique("product_feature_value_feature_id_index_uniq").on(
+      table.featureId,
+      table.index
+    ),
   ]
 );
 ```
@@ -550,15 +560,14 @@ ALTER TABLE inventory.product_feature_value_translation
 ## 7. Контракт синхронизации (важно)
 
 - Sync получает **полный** список features для продукта (snapshot). Частичные обновления запрещены.
-- `index` — обязательное поле, формат: `"0"`, `"1"`, `"0-0"`, `"1-2"` и т.д.
-- `id` — опционально, null для новых записей.
-- `isGroup` — обязателен для всех элементов.
-- Группы должны быть root items (index без dash).
-- Parent вычисляется из index: `"0-0"` → parent `"0"`.
-- Для существующих `id` запрещена смена типа (group ↔ attribute).
-- `value.id` должен принадлежать текущему `featureId`.
-- `value.index` — числовой индекс для сортировки (0, 1, 2, ...).
-- `index` формат без ведущих нулей (кроме "0"), чтобы избежать коллизий сортировки.
+- `feature.index: [Int!]!` — tree position: `[0]`, `[1]`, `[0, 0]`, `[1, 2]`
+- `feature.id` — опционально, null для новых записей
+- `feature.isGroup` — обязателен для всех элементов
+- Группы: `index.length === 1` (только root level)
+- Parent вычисляется: `[0, 1].slice(0, -1)` → `[0]`
+- Для существующих `id` запрещена смена типа (group ↔ attribute)
+- `value.index: Int!` — позиция в списке (0, 1, 2, ...)
+- `value.id` должен принадлежать текущему `featureId`
 
 ---
 
@@ -577,7 +586,7 @@ ALTER TABLE inventory.product_feature_value_translation
 |---------|-----|-------|
 | Строк кода (script) | ~500 | ~100 |
 | Строк кода (валидация) | inline ~200 | 3 модуля ~180 |
-| Unique constraints | 3 | 1 (DEFERRABLE) |
+| Unique constraints | 3 | 2 (DEFERRABLE) |
 | Two-phase updates | Да | Нет |
 | Temp slugs | Да | Нет |
 | Edge cases | Много | Нет |
@@ -616,11 +625,14 @@ ProductFeatureValue:
   + translations: name
 ```
 
-**Constraints:**
+**Constraints (ProductFeature):**
 - `UNIQUE (product_id, index) DEFERRABLE INITIALLY DEFERRED`
 - `CHECK (array_length(index, 1) > 0)` — index не пустой
 - `CHECK (is_group = false OR array_length(index, 1) = 1)` — группы только root
 - `CHECK (is_group = false OR parent_id IS NULL)` — группы без родителя
+
+**Constraints (ProductFeatureValue):**
+- `UNIQUE (feature_id, index) DEFERRABLE INITIALLY DEFERRED`
 
 **Никаких slug — только ID, index и name из translations.**
 
