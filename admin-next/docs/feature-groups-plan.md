@@ -113,9 +113,10 @@ CREATE UNIQUE INDEX product_feature_root_sort_idx
   ON product_feature(product_id, sort_index)
   WHERE parent_id IS NULL;
 
--- Child features: unique (parent_id, sort_index) where parent_id IS NOT NULL
+-- Child features: unique (product_id, parent_id, sort_index) where parent_id IS NOT NULL
+-- Including product_id helps query planner and self-documents the invariant
 CREATE UNIQUE INDEX product_feature_child_sort_idx
-  ON product_feature(parent_id, sort_index)
+  ON product_feature(product_id, parent_id, sort_index)
   WHERE parent_id IS NOT NULL;
 ```
 
@@ -123,6 +124,32 @@ CREATE UNIQUE INDEX product_feature_child_sort_idx
 > Without these constraints, duplicate sortIndex values within the same container
 > lead to unstable ordering (non-deterministic query results). These indexes
 > catch frontend bugs early and ensure consistent UI behavior.
+
+### sortIndex Collision Handling
+
+The sync script **auto-normalizes** sortIndex values to avoid unique constraint violations:
+
+```typescript
+// If sortIndex not provided → use array position
+// If provided but collisions exist → re-number 0..N-1 within each container
+
+function normalizeSortIndexes(features: InputItem[]): void {
+  // Group by container (null for root, parentId/parentClientId for children)
+  const byContainer = groupBy(features, f => f.parentId ?? f.parentClientId ?? "root");
+
+  for (const [container, items] of byContainer) {
+    // Sort by provided sortIndex (or Infinity if missing), then by array position
+    items.sort((a, b) => (a.sortIndex ?? Infinity) - (b.sortIndex ?? Infinity));
+    // Re-assign sequential sortIndex
+    items.forEach((item, idx) => { item.sortIndex = idx; });
+  }
+}
+```
+
+This approach:
+- Preserves relative order when sortIndex is provided
+- Fills gaps and resolves collisions automatically
+- Ensures partial unique constraints always succeed
 
 ---
 
@@ -276,23 +303,34 @@ Transaction:
    - isGroup cannot change for existing features
    - No cycles in parent references
 
-5. Execute in order (IMPORTANT: UPDATE/CREATE before DELETE to prevent CASCADE issues):
+5. Normalize sortIndex (auto-normalize to avoid unique constraint violations)
+
+6. Execute in order (IMPORTANT: UPDATE/CREATE before DELETE to prevent CASCADE issues):
    a. UPDATE features in TO_UPDATE (including parentId changes for moves)
-   b. CREATE features in TO_CREATE:
-      - First pass: create all items (parentId = null temporarily for new parents)
+   b. CREATE new GROUPS first (isGroup = true):
+      - Groups are always root-level, no parent resolution needed
       - Build clientIdMap: clientId → generated real ID
-      - Second pass: resolve parentClientId → real parentId using clientIdMap
-   c. Sync values for each attribute (same create/update/delete logic)
-   d. DELETE features in TO_DELETE (CASCADE deletes children & values)
+   c. CREATE new ATTRIBUTES (isGroup = false):
+      - Now we can resolve parentClientId → real parentId using clientIdMap
+      - Attributes are created with final parentId (never temporarily root)
+      - This avoids conflicts with product_feature_root_sort_idx
+   d. Sync values for each attribute (same create/update/delete logic)
+   e. DELETE features in TO_DELETE (CASCADE deletes children & values)
       - Safe now because all moves have been processed
 
-6. Return all features with final IDs
+7. Return all features with final IDs
 ```
 
 > **Why UPDATE/CREATE before DELETE?**
 > If an attribute is moved from Group A to Group B, and Group A is being deleted,
 > executing DELETE first would CASCADE-delete the attribute before we can update its parentId.
 > By processing moves first, we ensure the attribute is safely re-parented before the old group is removed.
+
+> **Why CREATE groups before attributes?**
+> If we created all new items with `parentId = null` first (to later update with resolved parentId),
+> new attributes would temporarily be root-level and could conflict with the `product_feature_root_sort_idx`
+> unique constraint. By creating groups first, we have their real IDs available to assign correct
+> `parentId` values when creating attributes.
 
 ### Alternative: Separate Mutations (for granular operations)
 
@@ -345,6 +383,8 @@ services/inventory/src/
 | **Same product constraint** | Parent must belong to the same `productId` as the child | App layer |
 | **Unique slug** | Slug must be unique within the product (both groups and attributes share namespace) | DB unique index |
 | **No orphan clientId refs** | `parentClientId` must reference an existing `clientId` in the same request | App layer |
+| **Mutual exclusion** | Cannot provide both `parentId` and `parentClientId` simultaneously | App layer |
+| **clientId must be group** | If `parentClientId` is provided, the referenced item must have `isGroup = true` | App layer |
 
 ### Validation Notes
 
@@ -646,19 +686,52 @@ When a group is deleted, all child features (attributes) are also deleted via CA
 - `features` (flat list) is deprecated in favor of `rootFeatures` for tree structure
 
 ### DataLoader Implementation
-For efficient loading of `children`:
+
+For efficient loading of `children`, use composite keys `${productId}:${parentId}`:
+
 ```typescript
-// Load children by batching (productId, parentId) pairs
-const childrenLoader = new DataLoader<string, ProductFeature[]>(
-  async (parentIds) => {
+type ChildrenLoaderKey = { productId: string; parentId: string };
+
+// Efficient O(N) loader with productId filter
+const childrenLoader = new DataLoader<ChildrenLoaderKey, ProductFeature[]>(
+  async (keys) => {
+    // Extract unique productIds and parentIds
+    const productIds = [...new Set(keys.map(k => k.productId))];
+    const parentIds = [...new Set(keys.map(k => k.parentId))];
+
+    // Single query with productId filter (uses composite index)
     const children = await db.query.productFeature.findMany({
-      where: inArray(productFeature.parentId, parentIds),
+      where: and(
+        inArray(productFeature.productId, productIds),
+        inArray(productFeature.parentId, parentIds),
+      ),
       orderBy: [asc(productFeature.sortIndex)],
     });
-    // Group by parentId and return in order
-    return parentIds.map(parentId =>
-      children.filter(c => c.parentId === parentId)
-    );
+
+    // O(N) grouping into Map
+    const byKey = new Map<string, ProductFeature[]>();
+    for (const child of children) {
+      const key = `${child.productId}:${child.parentId}`;
+      const arr = byKey.get(key) ?? [];
+      arr.push(child);
+      byKey.set(key, arr);
+    }
+
+    // Return in request order
+    return keys.map(k => byKey.get(`${k.productId}:${k.parentId}`) ?? []);
+  },
+  {
+    // Custom cache key for composite keys
+    cacheKeyFn: (key) => `${key.productId}:${key.parentId}`,
   }
 );
+
+// Usage in resolver:
+// childrenLoader.load({ productId: parent.productId, parentId: parent.id })
 ```
+
+This approach:
+- Uses composite key `${productId}:${parentId}` for proper batching
+- Filters by `productId` to leverage the composite index
+- Groups results in O(N) using Map instead of O(P×C) with filter
+- Returns empty array `[]` for groups with no children
