@@ -33,6 +33,7 @@ import { InventoryObjectStorage } from "./storage";
 import {
   BackRefNotifyWorkflow,
   EntityDeletedNotifyWorkflow,
+  ProductCreateWorkflow,
 } from "./workflows/index.js";
 
 export interface EmitTestEventParams {
@@ -70,6 +71,11 @@ export class InventoryNestService implements OnModuleInit, OnModuleDestroy {
     );
     this.workflow.register("entityDeletedNotify", entityDeletedNotifyWorkflow);
 
+    const productCreateWorkflow = new ProductCreateWorkflow("productCreate", {
+      kernel: this.kernel,
+    });
+    this.workflow.register("productCreate", productCreateWorkflow);
+
     const storageConfig = service.s3 ? buildS3Config(service.s3) : null;
     this.storageGateway = new InventoryObjectStorage(
       storageConfig
@@ -96,6 +102,7 @@ export class InventoryNestService implements OnModuleInit, OnModuleDestroy {
     if (this.workflow) {
       this.workflow.deregister("backRefNotify");
       this.workflow.deregister("entityDeletedNotify");
+      this.workflow.deregister("productCreate");
     }
 
     if (this.graphqlServer) {

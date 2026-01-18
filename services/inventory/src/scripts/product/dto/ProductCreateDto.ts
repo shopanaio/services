@@ -44,6 +44,13 @@ export interface ProductCreateParams {
   readonly variants?: ProductCreateVariantInput[];
 }
 
+export interface VariantMediaEntry {
+  variantId: string;
+  fileIds: string[];
+}
+
 export interface ProductCreateResult extends ProductResultBase {
   product?: ProductWithVariants;
+  /** Map of variant IDs to file IDs for back-ref syncing */
+  variantMediaMap?: VariantMediaEntry[];
 }

@@ -1,17 +1,23 @@
-import { DBOS } from "@shopana/workflows";
-import { BaseScript } from "../../kernel/BaseScript.js";
+import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import type {
   ProductCreateParams,
   ProductCreateResult,
   ProductCreateOptionInput,
   ProductCreateVariantInput,
 } from "./dto/index.js";
-import type { Variant, ProductOptionValue } from "../../repositories/models/index.js";
-import { BackRefNotifyWorkflow } from "../../workflows/BackRefNotifyWorkflow.js";
+import type { Variant } from "../../repositories/models/index.js";
+import type { VariantMediaEntry } from "./dto/index.js";
 
-export class ProductCreateScript extends BaseScript<ProductCreateParams, ProductCreateResult> {
-  protected async execute(params: ProductCreateParams): Promise<ProductCreateResult> {
-    const { title, handle, description, mediaFileIds, options, variants } = params;
+export class ProductCreateScript extends BaseScript<
+  ProductCreateParams,
+  ProductCreateResult
+> {
+  @Transactional()
+  protected async execute(
+    params: ProductCreateParams
+  ): Promise<ProductCreateResult> {
+    const { title, handle, description, mediaFileIds, options, variants } =
+      params;
 
     // 1. Create product with handle
     const product = await this.repository.product.create({});
@@ -32,20 +38,26 @@ export class ProductCreateScript extends BaseScript<ProductCreateParams, Product
     });
 
     let createdVariants: Variant[] = [];
+    const variantMediaMap: VariantMediaEntry[] = [];
 
     // 3. Handle options and variants
     if (options && options.length > 0 && variants && variants.length > 0) {
       // Create options and collect option values for variant linking
-      const optionValuesBySlug = await this.createOptionsWithValues(product.id, options);
+      const optionValuesBySlug = await this.createOptionsWithValues(
+        product.id,
+        options
+      );
 
-      // Create variants
-      createdVariants = await this.createVariants(
+      // Create variants and collect media mapping
+      const result = await this.createVariants(
         product.id,
         variants,
         optionValuesBySlug,
         options,
         mediaFileIds
       );
+      createdVariants = result.variants;
+      variantMediaMap.push(...result.mediaMap);
     } else {
       // No options - create default variant
       const defaultVariant = await this.repository.variant.create(product.id, {
@@ -54,10 +66,16 @@ export class ProductCreateScript extends BaseScript<ProductCreateParams, Product
       });
       createdVariants = [defaultVariant];
 
-      // Attach media to default variant
+      // Attach media to default variant and collect for back-ref sync
       if (mediaFileIds && mediaFileIds.length > 0) {
-        await this.repository.media.setVariantMedia(defaultVariant.id, mediaFileIds);
-        await this.linkVariantMediaBackRefs(defaultVariant.id, mediaFileIds);
+        await this.repository.media.setVariantMedia(
+          defaultVariant.id,
+          mediaFileIds
+        );
+        variantMediaMap.push({
+          variantId: defaultVariant.id,
+          fileIds: Array.from(new Set(mediaFileIds)),
+        });
       }
     }
 
@@ -78,6 +96,7 @@ export class ProductCreateScript extends BaseScript<ProductCreateParams, Product
         ? { ...updatedProduct, _variants: createdVariants }
         : undefined,
       userErrors: [],
+      variantMediaMap: variantMediaMap.length > 0 ? variantMediaMap : undefined,
     };
   }
 
@@ -88,7 +107,10 @@ export class ProductCreateScript extends BaseScript<ProductCreateParams, Product
     productId: string,
     options: ProductCreateOptionInput[]
   ): Promise<Map<string, { optionId: string; valueId: string }>> {
-    const optionValuesBySlug = new Map<string, { optionId: string; valueId: string }>();
+    const optionValuesBySlug = new Map<
+      string,
+      { optionId: string; valueId: string }
+    >();
 
     for (const optionInput of options) {
       // Create option
@@ -109,10 +131,13 @@ export class ProductCreateScript extends BaseScript<ProductCreateParams, Product
       for (let i = 0; i < optionInput.values.length; i++) {
         const valueInput = optionInput.values[i];
 
-        const optionValue = await this.repository.option.createValue(option.id, {
-          slug: valueInput.slug,
-          sortIndex: i,
-        });
+        const optionValue = await this.repository.option.createValue(
+          option.id,
+          {
+            slug: valueInput.slug,
+            sortIndex: i,
+          }
+        );
 
         // Create value translation
         await this.repository.translation.upsertOptionValueTranslation({
@@ -134,7 +159,8 @@ export class ProductCreateScript extends BaseScript<ProductCreateParams, Product
   }
 
   /**
-   * Creates variants and links them to option values
+   * Creates variants and links them to option values.
+   * Returns created variants and media mapping for back-ref sync.
    */
   private async createVariants(
     productId: string,
@@ -142,8 +168,9 @@ export class ProductCreateScript extends BaseScript<ProductCreateParams, Product
     optionValuesBySlug: Map<string, { optionId: string; valueId: string }>,
     options: ProductCreateOptionInput[],
     mediaFileIds?: string[]
-  ): Promise<Variant[]> {
+  ): Promise<{ variants: Variant[]; mediaMap: VariantMediaEntry[] }> {
     const createdVariants: Variant[] = [];
+    const mediaMap: VariantMediaEntry[] = [];
 
     for (let i = 0; i < variants.length; i++) {
       const variantInput = variants[i];
@@ -174,16 +201,19 @@ export class ProductCreateScript extends BaseScript<ProductCreateParams, Product
         }
       }
 
-      // Attach media to variant (all variants get the same media)
+      // Attach media to variant and collect for back-ref sync
       if (mediaFileIds && mediaFileIds.length > 0) {
         await this.repository.media.setVariantMedia(variant.id, mediaFileIds);
-        await this.linkVariantMediaBackRefs(variant.id, mediaFileIds);
+        mediaMap.push({
+          variantId: variant.id,
+          fileIds: Array.from(new Set(mediaFileIds)),
+        });
       }
 
       createdVariants.push(variant);
     }
 
-    return createdVariants;
+    return { variants: createdVariants, mediaMap };
   }
 
   protected handleError(_error: unknown): ProductCreateResult {
@@ -191,34 +221,5 @@ export class ProductCreateScript extends BaseScript<ProductCreateParams, Product
       product: undefined,
       userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR" }],
     };
-  }
-
-  private async linkVariantMediaBackRefs(
-    variantId: string,
-    fileIds?: string[]
-  ): Promise<void> {
-    if (!fileIds || fileIds.length === 0) {
-      return;
-    }
-
-    const uniqueFileIds = Array.from(new Set(fileIds));
-
-    try {
-      const workflow =
-        this.workflow.get<BackRefNotifyWorkflow>("backRefNotify");
-      await DBOS.startWorkflow(workflow).run({
-        entityRef: {
-          service: "inventory",
-          entityType: "variant",
-          entityId: variantId,
-        },
-        fileIds: uniqueFileIds,
-      });
-    } catch (error) {
-      this.logger.warn(
-        { variantId, error },
-        "Failed to link variant media backrefs"
-      );
-    }
   }
 }
