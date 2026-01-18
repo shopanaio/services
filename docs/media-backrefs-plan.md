@@ -5,7 +5,7 @@
 Implement back-references tracking in the media service to:
 1. Track which entities (variants, users, orgs) reference each file
 2. Display usage info in UI (with warning before delete)
-3. **No auto-delete**: files remain even with refCount=0
+3. **No auto-delete**: files remain even with activeRefCount=0
 4. **Deletion flow**: UI soft-delete → GC hard-delete (after retention)
 
 **Design Decisions:**
@@ -14,19 +14,25 @@ Implement back-references tracking in the media service to:
 - GC is independent: backRefs only live while file exists (FK cascade cleans up)
 
 **Idempotency Rules:**
-- `fileLink`: repeated call → OK, file not found → OK (WARN log)
-- `fileUnlink`: backRef gone → OK, returns **actual refCount**
+- `fileLink`: repeated call → OK, file not found → OK (INFO log)
+- `fileUnlink`: backRef gone → OK, returns **activeRefCount**
 - `entityDeleted`: all backRefs for entity removed, returns count
 
 **Soft-Deleted Files (`deletedAt != null`):**
-- `fileLink`: treated as "file not found" — no insert, `refCount: 0`, WARN log
-- `fileUnlink`: idempotent — `success: true, refCount: 0`
+- `fileLink`: treated as "file not found" — no insert, `activeRefCount: 0`
+- `fileUnlink`: idempotent — `success: true, activeRefCount: 0`
 - Rationale: don't create new references to files pending GC
 
-**`refCount` Semantics:**
-- `refCount` = "active refs for active file" (not raw DB row count)
-- Returns 0 when file is missing or soft-deleted, even if backRef rows exist in DB
-- Use `fileExists` + `fileActive` flags to understand why `refCount` is 0
+**Logging Policy:**
+- `INFO`: file not found, file soft-deleted (expected in best-effort scenarios)
+- `WARN`: DB errors, schema violations, unexpected failures
+- Rationale: consumers retry best-effort calls, so missing files are normal
+
+**`activeRefCount` Semantics:**
+- `activeRefCount` = COUNT of backRefs **only when `fileActive=true`**, otherwise 0
+- Not a raw DB row count — semantic value for "usable refs for usable file"
+- Existing backRefs remain in DB after soft-delete (cleaned up by FK cascade on hard-delete)
+- Use `fileExists` + `fileActive` flags to understand why `activeRefCount` is 0
 - UI can show: "file pending deletion" when `fileExists && !fileActive`
 
 ---
@@ -89,7 +95,7 @@ export function formatEntityRef(service: string, entityType: string, entityId: s
 **File:** `services/media/src/repositories/FileBackRefRepository.ts`
 
 Key methods:
-- `link(fileId, entityRef, role)` - **INSERT ... SELECT FROM files WHERE id=?** (no FK error if file missing), returns refCount
+- `link(fileId, entityRef, role)` - **INSERT ... SELECT FROM files WHERE id=?** (no FK error if file missing), returns activeRefCount
 - `linkMany(fileIds, entityRef, role)` - batch link via INSERT SELECT, returns linkedCount
 - `unlink(fileId, entityRef, role)` - DELETE + count, returns `{ remainingCount }`
 - `unlinkAllByEntity(entityRef)` - DELETE all backRefs for entity, returns count
@@ -123,10 +129,10 @@ export interface FileLinkParams {
 }
 
 export interface FileLinkResult {
-  success: boolean;    // true = linked (or already existed)
-  refCount: number;    // total refs for this file (0 if file missing/inactive)
-  fileExists: boolean; // file row exists in DB
-  fileActive: boolean; // file exists AND deletedAt == null
+  success: boolean;       // true = linked (or already existed)
+  activeRefCount: number; // COUNT of backRefs if fileActive, else 0
+  fileExists: boolean;    // file row exists in DB
+  fileActive: boolean;    // file exists AND deletedAt == null
 }
 
 export interface FileUnlinkParams {
@@ -136,10 +142,10 @@ export interface FileUnlinkParams {
 }
 
 export interface FileUnlinkResult {
-  success: boolean;    // true = operation completed (idempotent)
-  refCount: number;    // remaining refs (0 if file missing/inactive)
-  fileExists: boolean; // file row exists in DB
-  fileActive: boolean; // file exists AND deletedAt == null
+  success: boolean;       // true = operation completed (idempotent)
+  activeRefCount: number; // remaining backRefs if fileActive, else 0
+  fileExists: boolean;    // file row exists in DB
+  fileActive: boolean;    // file exists AND deletedAt == null
 }
 
 export interface EntityDeletedParams {
@@ -155,11 +161,11 @@ export interface EntityDeletedResult {
 - All operations are **idempotent** — safe to retry
 
 **`fileLink`:**
-| Case | success | refCount | fileExists | fileActive | Note |
-|------|---------|----------|------------|------------|------|
-| linked (new or existed) | true | actual | true | true | — |
-| file not found | true | 0 | false | false | WARN log, no insert |
-| file soft-deleted | true | 0 | true | false | WARN log, no insert |
+| Case | success | activeRefCount | fileExists | fileActive | Note |
+|------|---------|----------------|------------|------------|------|
+| linked (new or existed) | true | COUNT(*) | true | true | — |
+| file not found | true | 0 | false | false | INFO log, no insert |
+| file soft-deleted | true | 0 | true | false | INFO log, no insert |
 
 **link() SQL pattern** (no FK violation if file missing or soft-deleted):
 ```sql
@@ -168,18 +174,18 @@ SELECT $fileId, $service, $entityType, $entityId, $role, NOW()
 FROM files WHERE id = $fileId AND deleted_at IS NULL
 ON CONFLICT DO NOTHING
 ```
-Returns 0 rows if file doesn't exist or is soft-deleted → `refCount=0`, WARN log.
+Returns 0 rows if file doesn't exist or is soft-deleted → `activeRefCount=0`, INFO log.
 
 **`fileUnlink`:**
-| Case | success | refCount | fileExists | fileActive |
-|------|---------|----------|------------|------------|
-| backRef deleted | true | actual remaining | true | true |
-| backRef didn't exist | true | actual remaining | true | true |
+| Case | success | activeRefCount | fileExists | fileActive |
+|------|---------|----------------|------------|------------|
+| backRef deleted | true | COUNT(*) | true | true |
+| backRef didn't exist | true | COUNT(*) | true | true |
 | file not found | true | 0 | false | false |
 | file soft-deleted | true | 0 | true | false |
 | file deleted concurrently | true | 0 | false | false |
 
-**Note:** `refCount` equals 0 when `fileActive == false`. Use flags to distinguish:
+**Note:** `activeRefCount` = 0 when `fileActive == false`. Use flags to distinguish:
 - `fileExists: false` → file never existed or hard-deleted
 - `fileExists: true, fileActive: false` → file pending GC (soft-deleted)
 - File deleted concurrently → race condition, `fileExists: false`
@@ -197,7 +203,7 @@ const { rowCount } = await db
 return { unlinkedCount: rowCount };
 ```
 
-**No auto-delete** — files remain even with refCount=0.
+**No auto-delete** — files remain even with activeRefCount=0.
 
 ### 3.2 Scripts
 
@@ -209,32 +215,30 @@ return { unlinkedCount: rowCount };
 
 **FileLinkScript algorithm:**
 ```typescript
-// 1. Insert backRef only if file exists and is active
-const inserted = await db.execute(sql`
-  INSERT INTO file_back_refs (file_id, service, entity_type, entity_id, role, created_at)
-  SELECT ${fileId}, ${service}, ${entityType}, ${entityId}, ${role}, NOW()
-  FROM files WHERE id = ${fileId} AND deleted_at IS NULL
-  ON CONFLICT DO NOTHING
-`);
-
-// 2. Check file status and count refs
+// 1. Check file status first
 const file = await db.query.files.findFirst({
   where: eq(files.id, fileId),
   columns: { id: true, deletedAt: true }
 });
 
 if (!file) {
-  logger.warn(`fileLink: file not found`, { fileId });
-  return { success: true, refCount: 0, fileExists: false, fileActive: false };
+  logger.info(`fileLink: file not found`, { fileId });
+  return { success: true, activeRefCount: 0, fileExists: false, fileActive: false };
 }
 
 if (file.deletedAt !== null) {
-  logger.warn(`fileLink: file is soft-deleted`, { fileId });
-  return { success: true, refCount: 0, fileExists: true, fileActive: false };
+  logger.info(`fileLink: file is soft-deleted`, { fileId });
+  return { success: true, activeRefCount: 0, fileExists: true, fileActive: false };
 }
 
-const refCount = await backRefRepo.countByFileId(fileId);
-return { success: true, refCount, fileExists: true, fileActive: true };
+// 2. Insert backRef (file is active)
+await db.insert(fileBackRefs)
+  .values({ fileId, service, entityType, entityId, role })
+  .onConflictDoNothing();
+
+// 3. Count refs
+const activeRefCount = await backRefRepo.countByFileId(fileId);
+return { success: true, activeRefCount, fileExists: true, fileActive: true };
 ```
 
 **FileUnlinkScript algorithm:**
@@ -255,19 +259,19 @@ const file = await db.query.files.findFirst({
 });
 
 if (!file) {
-  return { success: true, refCount: 0, fileExists: false, fileActive: false };
+  return { success: true, activeRefCount: 0, fileExists: false, fileActive: false };
 }
 
 if (file.deletedAt !== null) {
-  return { success: true, refCount: 0, fileExists: true, fileActive: false };
+  return { success: true, activeRefCount: 0, fileExists: true, fileActive: false };
 }
 
 // 3. Count refs only for active files
-const refCount = await backRefRepo.countByFileId(fileId);
-return { success: true, refCount, fileExists: true, fileActive: true };
+const activeRefCount = await backRefRepo.countByFileId(fileId);
+return { success: true, activeRefCount, fileExists: true, fileActive: true };
 ```
 
-**No auto-delete** — file remains even with refCount=0. Deletion only through media UI → GC.
+**No auto-delete** — file remains even with activeRefCount=0. Deletion only through media UI → GC.
 
 ### 3.3 Broker Actions
 
