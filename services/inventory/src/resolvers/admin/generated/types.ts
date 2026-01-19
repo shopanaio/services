@@ -578,6 +578,7 @@ export type InventoryMutationProductFeatureUpdateArgs = {
   input: ProductFeatureUpdateInput;
 };
 
+
 export type InventoryMutationProductFeaturesSyncArgs = {
   input: ProductFeaturesSyncInput;
 };
@@ -686,6 +687,8 @@ export type InventoryQuery = {
   node: Maybe<Node>;
   /** Get multiple nodes by their global IDs */
   nodes: Array<Maybe<Node>>;
+  /** Get pricing widget data for a variant. */
+  pricingWidget: PricingWidgetPayload;
   /** Get a product by ID */
   product: Maybe<Product>;
   /** Get products with Relay-style pagination */
@@ -708,6 +711,11 @@ export type InventoryQueryNodeArgs = {
 
 export type InventoryQueryNodesArgs = {
   ids: Array<Scalars['ID']['input']>;
+};
+
+
+export type InventoryQueryPricingWidgetArgs = {
+  input: PricingWidgetInput;
 };
 
 
@@ -1066,6 +1074,35 @@ export type PageInfo = {
   startCursor: Maybe<Scalars['String']['output']>;
 };
 
+/** Input for pricing widget query. */
+export type PricingWidgetInput = {
+  /** Pagination: cursor after. */
+  after?: InputMaybe<Scalars['String']['input']>;
+  /** Currency code to filter by. */
+  currency: CurrencyCode;
+  /** Pagination: first N items. */
+  first?: InputMaybe<Scalars['Int']['input']>;
+  /** Start of the period (optional, defaults to 30 days ago). */
+  from?: InputMaybe<Scalars['DateTime']['input']>;
+  /** End of the period (optional, defaults to now). */
+  to?: InputMaybe<Scalars['DateTime']['input']>;
+  /** The variant ID to get pricing data for. */
+  variantId: Scalars['ID']['input'];
+};
+
+/** Pricing widget payload with current price, cost, history and statistics. */
+export type PricingWidgetPayload = {
+  __typename?: 'PricingWidgetPayload';
+  /** Current active cost. */
+  currentCostPrice: Maybe<VariantCost>;
+  /** Current active price. */
+  currentPrice: Maybe<VariantPrice>;
+  /** Price history for the period. */
+  history: VariantPriceConnection;
+  /** Computed statistics for the period. */
+  statistics: VariantPriceHistoryStatistics;
+};
+
 /** A product represents an item that can be sold. */
 export type Product = Node & {
   __typename?: 'Product';
@@ -1077,10 +1114,8 @@ export type Product = Node & {
   description: Maybe<Description>;
   /** Short excerpt. */
   excerpt: Maybe<Scalars['String']['output']>;
-  /** All features (flat list, includes both groups and attributes). */
+  /** The features of this product. */
   features: Array<ProductFeature>;
-  /** Root-level features only (groups and ungrouped attributes). */
-  rootFeatures: Array<ProductFeature>;
   /** The URL-friendly handle for the product. */
   handle: Maybe<Scalars['String']['output']>;
   /** The globally unique ID of the product. */
@@ -1200,24 +1235,22 @@ export type ProductEdge = {
   node: Product;
 };
 
-/** A product feature represents a searchable attribute of a product (e.g., Material, Brand). */
+/** A product feature represents either a group or an attribute. */
 export type ProductFeature = Node & {
   __typename?: 'ProductFeature';
   /** Child features. Returns empty array for attributes (isGroup = false). */
   children: Array<ProductFeature>;
   /** The globally unique ID of the feature. */
   id: Scalars['ID']['output'];
+  /** Tree position as array: [0] for root, [0, 1] for child of first group. */
+  index: Array<Scalars['Int']['output']>;
   /** Whether this feature is a group (container) or an attribute (leaf). */
   isGroup: Scalars['Boolean']['output'];
-  /** Display name. */
+  /** Display name (from translations). */
   name: Scalars['String']['output'];
   /** Parent group, if this feature belongs to a group. */
   parent: Maybe<ProductFeature>;
-  /** Sort order within parent (or at root level). */
-  sortIndex: Scalars['Int']['output'];
-  /** The URL-friendly identifier for this feature. */
-  slug: Scalars['String']['output'];
-  /** The available values for this feature. */
+  /** Values. Returns empty array for groups (isGroup = true). */
   values: Array<ProductFeatureValue>;
 };
 
@@ -1227,8 +1260,6 @@ export type ProductFeatureCreateInput = {
   name: Scalars['String']['input'];
   /** The ID of the product. */
   productId: Scalars['ID']['input'];
-  /** The URL-friendly slug for the feature. */
-  slug: Scalars['String']['input'];
   /** The values for this feature. */
   values: Array<ProductFeatureValueCreateInput>;
 };
@@ -1261,69 +1292,6 @@ export type ProductFeatureDeletePayload = {
   userErrors: Array<GenericUserError>;
 };
 
-/** Sync all product features in a single transaction. */
-export type ProductFeaturesSyncInput = {
-  /** Complete list of features (replaces all existing features). */
-  features: Array<ProductFeatureSyncItemInput>;
-  /** The ID of the product. */
-  productId: Scalars['ID']['input'];
-};
-
-export type ProductFeatureSyncItemInput = {
-  /**
-   * Feature ID for existing features.
-   * - If provided: update existing feature
-   * - If null/omitted: create new feature (backend generates ID)
-   * Features in DB but not in this list will be DELETED.
-   */
-  id?: InputMaybe<Scalars['ID']['input']>;
-  /**
-   * Temporary client-side ID for new features (frontend generates, e.g., UUID).
-   * Used to reference this item as a parent before it has a real ID.
-   * Only needed for new items that will be referenced by other new items.
-   */
-  clientId?: InputMaybe<Scalars['String']['input']>;
-  /** Whether this is a group (true) or attribute (false). Default: false. */
-  isGroup?: InputMaybe<Scalars['Boolean']['input']>;
-  /**
-   * Parent reference for tree structure:
-   * - parentId: ID of an existing group (use for existing parents)
-   * - parentClientId: clientId of a new group in the same request (use for new parents)
-   * - Both null: root-level feature
-   */
-  parentId?: InputMaybe<Scalars['ID']['input']>;
-  parentClientId?: InputMaybe<Scalars['String']['input']>;
-  /** The URL-friendly slug. */
-  slug: Scalars['String']['input'];
-  /** Display name. */
-  name: Scalars['String']['input'];
-  /** Sort order (position in the list determines sortIndex if omitted). */
-  sortIndex?: InputMaybe<Scalars['Int']['input']>;
-  /** Values for this feature (only when isGroup = false). */
-  values?: InputMaybe<Array<ProductFeatureValueSyncInput>>;
-};
-
-export type ProductFeatureValueSyncInput = {
-  /** Value ID for existing values. Null = create new. */
-  id?: InputMaybe<Scalars['ID']['input']>;
-  /** The URL-friendly slug. */
-  slug: Scalars['String']['input'];
-  /** Display name. */
-  name: Scalars['String']['input'];
-  /** Sort order. */
-  sortIndex?: InputMaybe<Scalars['Int']['input']>;
-};
-
-export type ProductFeaturesSyncPayload = {
-  __typename?: 'ProductFeaturesSyncPayload';
-  /** List of all synced features with their final IDs. */
-  features: Array<ProductFeature>;
-  /** The updated product. */
-  product: Maybe<Product>;
-  /** Any validation errors. */
-  userErrors: Array<GenericUserError>;
-};
-
 /** Input for creating a feature during product creation. */
 export type ProductFeatureInput = {
   /** Display name. */
@@ -1334,14 +1302,36 @@ export type ProductFeatureInput = {
   values: Array<ProductFeatureValueCreateInput>;
 };
 
+export type ProductFeatureSyncItemInput = {
+  /**
+   * Database ID. Null for new records.
+   * - If provided: update existing feature
+   * - If null/omitted: create new feature (backend generates ID)
+   * Features in DB but not in this list will be DELETED.
+   */
+  id?: InputMaybe<Scalars['ID']['input']>;
+  /**
+   * Tree position as integer array.
+   * - [0], [1], [2] for root items
+   * - [0, 0], [0, 1], [1, 0] for children
+   * Parent is derived: parent of [0, 1] is [0].
+   * Groups must have length 1 (root only).
+   */
+  index: Array<Scalars['Int']['input']>;
+  /** Whether this is a group (true) or attribute (false). */
+  isGroup: Scalars['Boolean']['input'];
+  /** Display name. */
+  name: Scalars['String']['input'];
+  /** Values for this feature (only when isGroup = false). */
+  values?: InputMaybe<Array<ProductFeatureValueSyncInput>>;
+};
+
 /** Input for updating a feature. */
 export type ProductFeatureUpdateInput = {
   /** The ID of the feature to update. */
   id: Scalars['ID']['input'];
   /** Display name. */
   name?: InputMaybe<Scalars['String']['input']>;
-  /** The new slug for the feature. */
-  slug?: InputMaybe<Scalars['String']['input']>;
   /** Nested value operations. */
   values?: InputMaybe<ProductFeatureValuesInput>;
 };
@@ -1362,18 +1352,25 @@ export type ProductFeatureValue = Node & {
   __typename?: 'ProductFeatureValue';
   /** The globally unique ID of the feature value. */
   id: Scalars['ID']['output'];
-  /** Display name. */
+  /** Position within the feature's values (0, 1, 2, ...). */
+  index: Scalars['Int']['output'];
+  /** Display name (from translations). */
   name: Scalars['String']['output'];
-  /** The URL-friendly identifier for this value. */
-  slug: Scalars['String']['output'];
 };
 
 /** Input for creating a feature value. */
 export type ProductFeatureValueCreateInput = {
   /** Display name. */
   name: Scalars['String']['input'];
-  /** The URL-friendly slug for the value. */
-  slug: Scalars['String']['input'];
+};
+
+export type ProductFeatureValueSyncInput = {
+  /** Database ID. Null for new records. */
+  id?: InputMaybe<Scalars['ID']['input']>;
+  /** Position within the feature's values (0, 1, 2, ...). */
+  index: Scalars['Int']['input'];
+  /** Display name. */
+  name: Scalars['String']['input'];
 };
 
 /** Input for updating an existing feature value. */
@@ -1382,8 +1379,6 @@ export type ProductFeatureValueUpdateInput = {
   id: Scalars['ID']['input'];
   /** Display name. */
   name?: InputMaybe<Scalars['String']['input']>;
-  /** The new slug for the value. */
-  slug?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** Input for nested value operations in feature update. */
@@ -1394,6 +1389,24 @@ export type ProductFeatureValuesInput = {
   delete?: InputMaybe<Array<Scalars['ID']['input']>>;
   /** Values to update. */
   update?: InputMaybe<Array<ProductFeatureValueUpdateInput>>;
+};
+
+/** Sync all product features in a single transaction. */
+export type ProductFeaturesSyncInput = {
+  /** Complete list of features (replaces all existing features). */
+  features: Array<ProductFeatureSyncItemInput>;
+  /** The ID of the product. */
+  productId: Scalars['ID']['input'];
+};
+
+export type ProductFeaturesSyncPayload = {
+  __typename?: 'ProductFeaturesSyncPayload';
+  /** List of all synced features with their final IDs. */
+  features: Array<ProductFeature>;
+  /** The updated product. */
+  product: Maybe<Product>;
+  /** Any validation errors. */
+  userErrors: Array<GenericUserError>;
 };
 
 export type ProductInventoryWidget = {
@@ -1975,6 +1988,19 @@ export type VariantPriceEdge = {
   node: VariantPrice;
 };
 
+/** Statistics for variant price history over a period. */
+export type VariantPriceHistoryStatistics = {
+  __typename?: 'VariantPriceHistoryStatistics';
+  /** Average price over the period (minor units). */
+  avgPriceMinor: Scalars['BigInt']['output'];
+  /** Currency code. */
+  currency: CurrencyCode;
+  /** Maximum price over the period (minor units). */
+  maxPriceMinor: Scalars['BigInt']['output'];
+  /** Minimum price over the period (minor units). */
+  minPriceMinor: Scalars['BigInt']['output'];
+};
+
 /** Input for setting a cost on a variant. */
 export type VariantSetCostInput = {
   /** The currency code. */
@@ -2400,8 +2426,6 @@ export enum WeightUnit {
 /** Widget query namespace for dashboard widgets. */
 export type WidgetQuery = {
   __typename?: 'WidgetQuery';
-  /** Placeholder field for schema composition. */
-  _empty: Maybe<Scalars['Boolean']['output']>;
   inventory: Maybe<ProductInventoryWidget>;
 };
 
@@ -2531,6 +2555,8 @@ export type ResolversTypes = ResolversObject<{
   Node: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['Node']>;
   OptionDisplayType: OptionDisplayType;
   PageInfo: ResolverTypeWrapper<PageInfo>;
+  PricingWidgetInput: PricingWidgetInput;
+  PricingWidgetPayload: ResolverTypeWrapper<PricingWidgetPayload>;
   Product: ResolverTypeWrapper<Product>;
   ProductConnection: ResolverTypeWrapper<ProductConnection>;
   ProductCreateInput: ProductCreateInput;
@@ -2546,8 +2572,8 @@ export type ResolversTypes = ResolversObject<{
   ProductFeatureCreatePayload: ResolverTypeWrapper<ProductFeatureCreatePayload>;
   ProductFeatureDeleteInput: ProductFeatureDeleteInput;
   ProductFeatureDeletePayload: ResolverTypeWrapper<ProductFeatureDeletePayload>;
-  ProductFeatureSyncItemInput: ProductFeatureSyncItemInput;
   ProductFeatureInput: ProductFeatureInput;
+  ProductFeatureSyncItemInput: ProductFeatureSyncItemInput;
   ProductFeatureUpdateInput: ProductFeatureUpdateInput;
   ProductFeatureUpdatePayload: ResolverTypeWrapper<ProductFeatureUpdatePayload>;
   ProductFeatureValue: ResolverTypeWrapper<ProductFeatureValue>;
@@ -2604,6 +2630,7 @@ export type ResolversTypes = ResolversObject<{
   VariantPrice: ResolverTypeWrapper<VariantPrice>;
   VariantPriceConnection: ResolverTypeWrapper<VariantPriceConnection>;
   VariantPriceEdge: ResolverTypeWrapper<VariantPriceEdge>;
+  VariantPriceHistoryStatistics: ResolverTypeWrapper<VariantPriceHistoryStatistics>;
   VariantSetCostInput: VariantSetCostInput;
   VariantSetCostPayload: ResolverTypeWrapper<VariantSetCostPayload>;
   VariantSetDimensionsInput: VariantSetDimensionsInput;
@@ -2674,6 +2701,8 @@ export type ResolversParentTypes = ResolversObject<{
   Mutation: {};
   Node: ResolversInterfaceTypes<ResolversParentTypes>['Node'];
   PageInfo: PageInfo;
+  PricingWidgetInput: PricingWidgetInput;
+  PricingWidgetPayload: PricingWidgetPayload;
   Product: Product;
   ProductConnection: ProductConnection;
   ProductCreateInput: ProductCreateInput;
@@ -2689,8 +2718,8 @@ export type ResolversParentTypes = ResolversObject<{
   ProductFeatureCreatePayload: ProductFeatureCreatePayload;
   ProductFeatureDeleteInput: ProductFeatureDeleteInput;
   ProductFeatureDeletePayload: ProductFeatureDeletePayload;
-  ProductFeatureSyncItemInput: ProductFeatureSyncItemInput;
   ProductFeatureInput: ProductFeatureInput;
+  ProductFeatureSyncItemInput: ProductFeatureSyncItemInput;
   ProductFeatureUpdateInput: ProductFeatureUpdateInput;
   ProductFeatureUpdatePayload: ProductFeatureUpdatePayload;
   ProductFeatureValue: ProductFeatureValue;
@@ -2744,6 +2773,7 @@ export type ResolversParentTypes = ResolversObject<{
   VariantPrice: VariantPrice;
   VariantPriceConnection: VariantPriceConnection;
   VariantPriceEdge: VariantPriceEdge;
+  VariantPriceHistoryStatistics: VariantPriceHistoryStatistics;
   VariantSetCostInput: VariantSetCostInput;
   VariantSetCostPayload: VariantSetCostPayload;
   VariantSetDimensionsInput: VariantSetDimensionsInput;
@@ -2864,6 +2894,7 @@ export type InventoryQuantitiesResolvers<ContextType = ServiceContext, ParentTyp
 export type InventoryQueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['InventoryQuery'] = ResolversParentTypes['InventoryQuery']> = ResolversObject<{
   node?: Resolver<Maybe<ResolversTypes['Node']>, ParentType, ContextType, RequireFields<InventoryQueryNodeArgs, 'id'>>;
   nodes?: Resolver<Array<Maybe<ResolversTypes['Node']>>, ParentType, ContextType, RequireFields<InventoryQueryNodesArgs, 'ids'>>;
+  pricingWidget?: Resolver<ResolversTypes['PricingWidgetPayload'], ParentType, ContextType, RequireFields<InventoryQueryPricingWidgetArgs, 'input'>>;
   product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType, RequireFields<InventoryQueryProductArgs, 'id'>>;
   products?: Resolver<ResolversTypes['ProductConnection'], ParentType, ContextType, Partial<InventoryQueryProductsArgs>>;
   variant?: Resolver<Maybe<ResolversTypes['Variant']>, ParentType, ContextType, RequireFields<InventoryQueryVariantArgs, 'id'>>;
@@ -2902,6 +2933,14 @@ export type PageInfoResolvers<ContextType = ServiceContext, ParentType extends R
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type PricingWidgetPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['PricingWidgetPayload'] = ResolversParentTypes['PricingWidgetPayload']> = ResolversObject<{
+  currentCostPrice?: Resolver<Maybe<ResolversTypes['VariantCost']>, ParentType, ContextType>;
+  currentPrice?: Resolver<Maybe<ResolversTypes['VariantPrice']>, ParentType, ContextType>;
+  history?: Resolver<ResolversTypes['VariantPriceConnection'], ParentType, ContextType>;
+  statistics?: Resolver<ResolversTypes['VariantPriceHistoryStatistics'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type ProductResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Product'] = ResolversParentTypes['Product']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Product']>, { __typename: 'Product' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
@@ -2914,7 +2953,6 @@ export type ProductResolvers<ContextType = ServiceContext, ParentType extends Re
   isPublished?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   options?: Resolver<Array<ResolversTypes['ProductOption']>, ParentType, ContextType>;
   publishedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
-  rootFeatures?: Resolver<Array<ResolversTypes['ProductFeature']>, ParentType, ContextType>;
   seo?: Resolver<Maybe<ResolversTypes['ProductSeo']>, ParentType, ContextType>;
   title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
@@ -2952,11 +2990,10 @@ export type ProductFeatureResolvers<ContextType = ServiceContext, ParentType ext
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['ProductFeature']>, { __typename: 'ProductFeature' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   children?: Resolver<Array<ResolversTypes['ProductFeature']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  index?: Resolver<Array<ResolversTypes['Int']>, ParentType, ContextType>;
   isGroup?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   parent?: Resolver<Maybe<ResolversTypes['ProductFeature']>, ParentType, ContextType>;
-  sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  slug?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   values?: Resolver<Array<ResolversTypes['ProductFeatureValue']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -2982,18 +3019,18 @@ export type ProductFeatureUpdatePayloadResolvers<ContextType = ServiceContext, P
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type ProductFeatureValueResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductFeatureValue'] = ResolversParentTypes['ProductFeatureValue']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['ProductFeatureValue']>, { __typename: 'ProductFeatureValue' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  index?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type ProductFeaturesSyncPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductFeaturesSyncPayload'] = ResolversParentTypes['ProductFeaturesSyncPayload']> = ResolversObject<{
   features?: Resolver<Array<ResolversTypes['ProductFeature']>, ParentType, ContextType>;
   product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type ProductFeatureValueResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductFeatureValue'] = ResolversParentTypes['ProductFeatureValue']> = ResolversObject<{
-  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['ProductFeatureValue']>, { __typename: 'ProductFeatureValue' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
-  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  slug?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -3222,6 +3259,14 @@ export type VariantPriceEdgeResolvers<ContextType = ServiceContext, ParentType e
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type VariantPriceHistoryStatisticsResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantPriceHistoryStatistics'] = ResolversParentTypes['VariantPriceHistoryStatistics']> = ResolversObject<{
+  avgPriceMinor?: Resolver<ResolversTypes['BigInt'], ParentType, ContextType>;
+  currency?: Resolver<ResolversTypes['CurrencyCode'], ParentType, ContextType>;
+  maxPriceMinor?: Resolver<ResolversTypes['BigInt'], ParentType, ContextType>;
+  minPriceMinor?: Resolver<ResolversTypes['BigInt'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type VariantSetCostPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantSetCostPayload'] = ResolversParentTypes['VariantSetCostPayload']> = ResolversObject<{
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   variant?: Resolver<Maybe<ResolversTypes['Variant']>, ParentType, ContextType>;
@@ -3338,7 +3383,6 @@ export type WarehouseUpdatePayloadResolvers<ContextType = ServiceContext, Parent
 }>;
 
 export type WidgetQueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['WidgetQuery'] = ResolversParentTypes['WidgetQuery']> = ResolversObject<{
-  _empty?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   inventory?: Resolver<Maybe<ResolversTypes['ProductInventoryWidget']>, ParentType, ContextType, RequireFields<WidgetQueryInventoryArgs, 'productId'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -3360,6 +3404,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   Mutation?: MutationResolvers<ContextType>;
   Node?: NodeResolvers<ContextType>;
   PageInfo?: PageInfoResolvers<ContextType>;
+  PricingWidgetPayload?: PricingWidgetPayloadResolvers<ContextType>;
   Product?: ProductResolvers<ContextType>;
   ProductConnection?: ProductConnectionResolvers<ContextType>;
   ProductCreatePayload?: ProductCreatePayloadResolvers<ContextType>;
@@ -3369,8 +3414,8 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   ProductFeatureCreatePayload?: ProductFeatureCreatePayloadResolvers<ContextType>;
   ProductFeatureDeletePayload?: ProductFeatureDeletePayloadResolvers<ContextType>;
   ProductFeatureUpdatePayload?: ProductFeatureUpdatePayloadResolvers<ContextType>;
-  ProductFeaturesSyncPayload?: ProductFeaturesSyncPayloadResolvers<ContextType>;
   ProductFeatureValue?: ProductFeatureValueResolvers<ContextType>;
+  ProductFeaturesSyncPayload?: ProductFeaturesSyncPayloadResolvers<ContextType>;
   ProductInventoryWidget?: ProductInventoryWidgetResolvers<ContextType>;
   ProductOption?: ProductOptionResolvers<ContextType>;
   ProductOptionCreatePayload?: ProductOptionCreatePayloadResolvers<ContextType>;
@@ -3399,6 +3444,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   VariantPrice?: VariantPriceResolvers<ContextType>;
   VariantPriceConnection?: VariantPriceConnectionResolvers<ContextType>;
   VariantPriceEdge?: VariantPriceEdgeResolvers<ContextType>;
+  VariantPriceHistoryStatistics?: VariantPriceHistoryStatisticsResolvers<ContextType>;
   VariantSetCostPayload?: VariantSetCostPayloadResolvers<ContextType>;
   VariantSetDimensionsPayload?: VariantSetDimensionsPayloadResolvers<ContextType>;
   VariantSetMediaPayload?: VariantSetMediaPayloadResolvers<ContextType>;
@@ -3418,3 +3464,4 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   WarehouseUpdatePayload?: WarehouseUpdatePayloadResolvers<ContextType>;
   WidgetQuery?: WidgetQueryResolvers<ContextType>;
 }>;
+

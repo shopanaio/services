@@ -3,7 +3,7 @@ import type { FeatureCreateParams, FeatureCreateResult } from "./dto/index.js";
 
 export class FeatureCreateScript extends BaseScript<FeatureCreateParams, FeatureCreateResult> {
   protected async execute(params: FeatureCreateParams): Promise<FeatureCreateResult> {
-    const { productId, slug, name, values } = params;
+    const { productId, name, values } = params;
 
     // 1. Validate: product exists
     const productExists = await this.repository.product.exists(productId);
@@ -14,36 +14,21 @@ export class FeatureCreateScript extends BaseScript<FeatureCreateParams, Feature
       };
     }
 
-    // 2. Validate: slug is unique
-    const existingFeature = await this.repository.feature.findBySlug(productId, slug);
-    if (existingFeature) {
-      return {
-        feature: undefined,
-        userErrors: [{
-          message: `Feature with slug "${slug}" already exists`,
-          field: ["slug"],
-          code: "SLUG_ALREADY_EXISTS",
-        }],
-      };
-    }
-
-    // 3. Determine root-level sort index
+    // 2. Determine root-level index
     const existingFeatures = await this.repository.feature.findByProductId(productId);
-    const rootSortIndex =
-      existingFeatures
-        .filter((featureItem) => featureItem.parentId === null)
-        .reduce((max, featureItem) => Math.max(max, featureItem.sortIndex), -1) +
-      1;
+    const maxRootIndex = existingFeatures
+      .filter((f) => f.index.length === 1)
+      .reduce((max, f) => Math.max(max, f.index[0]), -1);
+    const newIndex = [maxRootIndex + 1];
 
-    // 4. Create feature
+    // 3. Create feature
     const feature = await this.repository.feature.create(productId, {
-      slug,
       isGroup: false,
       parentId: null,
-      sortIndex: rootSortIndex,
+      index: newIndex,
     });
 
-    // 5. Create feature translation
+    // 4. Create feature translation
     await this.repository.translation.upsertFeatureTranslation({
       projectId: this.getProjectId(),
       featureId: feature.id,
@@ -51,12 +36,11 @@ export class FeatureCreateScript extends BaseScript<FeatureCreateParams, Feature
       name,
     });
 
-    // 6. Create values
+    // 5. Create values
     for (let i = 0; i < values.length; i++) {
       const valueInput = values[i];
       const featureValue = await this.repository.feature.createValue(feature.id, {
-        slug: valueInput.slug,
-        sortIndex: i,
+        index: i,
       });
 
       await this.repository.translation.upsertFeatureValueTranslation({

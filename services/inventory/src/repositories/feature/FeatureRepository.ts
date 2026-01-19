@@ -1,4 +1,4 @@
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, notInArray } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { BaseRepository } from "../BaseRepository.js";
 import {
@@ -36,20 +36,18 @@ export class FeatureRepository extends BaseRepository {
     return result[0] ?? null;
   }
 
-  async findBySlug(productId: string, slug: string): Promise<ProductFeature | null> {
-    const result = await this.connection
+  async findByIds(productId: string, ids: string[]): Promise<ProductFeature[]> {
+    if (ids.length === 0) return [];
+    return this.connection
       .select()
       .from(productFeature)
       .where(
         and(
           eq(productFeature.projectId, this.storeId),
           eq(productFeature.productId, productId),
-          eq(productFeature.slug, slug)
+          inArray(productFeature.id, ids)
         )
-      )
-      .limit(1);
-
-    return result[0] ?? null;
+      );
   }
 
   async findByProductId(productId: string): Promise<ProductFeature[]> {
@@ -61,7 +59,8 @@ export class FeatureRepository extends BaseRepository {
           eq(productFeature.projectId, this.storeId),
           eq(productFeature.productId, productId)
         )
-      );
+      )
+      .orderBy(productFeature.index);
   }
 
   async findByProductIds(productIds: string[]): Promise<Map<string, ProductFeature[]>> {
@@ -75,7 +74,8 @@ export class FeatureRepository extends BaseRepository {
           eq(productFeature.projectId, this.storeId),
           inArray(productFeature.productId, productIds)
         )
-      );
+      )
+      .orderBy(productFeature.index);
 
     const map = new Map<string, ProductFeature[]>();
     for (const feature of results) {
@@ -89,10 +89,9 @@ export class FeatureRepository extends BaseRepository {
   async create(
     productId: string,
     data: {
-      slug: string;
       isGroup?: boolean;
       parentId?: string | null;
-      sortIndex?: number;
+      index: number[];
     }
   ): Promise<ProductFeature> {
     const id = randomUUID();
@@ -101,10 +100,9 @@ export class FeatureRepository extends BaseRepository {
       id,
       projectId: this.storeId,
       productId,
-      slug: data.slug,
+      index: data.index,
       isGroup: data.isGroup ?? false,
       parentId: data.parentId ?? null,
-      sortIndex: data.sortIndex ?? 0,
     };
 
     const result = await this.connection
@@ -117,13 +115,13 @@ export class FeatureRepository extends BaseRepository {
 
   async update(
     id: string,
-    data: { slug?: string; parentId?: string | null; sortIndex?: number }
+    data: { isGroup?: boolean; parentId?: string | null; index?: number[] }
   ): Promise<ProductFeature | null> {
     const updateData: Partial<NewProductFeature> = {};
 
-    if (data.slug !== undefined) updateData.slug = data.slug;
+    if (data.isGroup !== undefined) updateData.isGroup = data.isGroup;
     if (data.parentId !== undefined) updateData.parentId = data.parentId;
-    if (data.sortIndex !== undefined) updateData.sortIndex = data.sortIndex;
+    if (data.index !== undefined) updateData.index = data.index;
 
     if (Object.keys(updateData).length === 0) {
       return this.findById(id);
@@ -143,18 +141,27 @@ export class FeatureRepository extends BaseRepository {
     return result[0] ?? null;
   }
 
-  async offsetSortIndexes(ids: string[], offset: number): Promise<void> {
-    if (ids.length === 0) return;
-
-    await this.connection
-      .update(productFeature)
-      .set({ sortIndex: sql`${productFeature.sortIndex} + ${offset}` })
-      .where(
-        and(
-          eq(productFeature.projectId, this.storeId),
-          inArray(productFeature.id, ids)
-        )
-      );
+  async deleteExcept(productId: string, keepIds: string[]): Promise<void> {
+    if (keepIds.length === 0) {
+      await this.connection
+        .delete(productFeature)
+        .where(
+          and(
+            eq(productFeature.projectId, this.storeId),
+            eq(productFeature.productId, productId)
+          )
+        );
+    } else {
+      await this.connection
+        .delete(productFeature)
+        .where(
+          and(
+            eq(productFeature.projectId, this.storeId),
+            eq(productFeature.productId, productId),
+            notInArray(productFeature.id, keepIds)
+          )
+        );
+    }
   }
 
   async delete(id: string): Promise<boolean> {
@@ -188,6 +195,31 @@ export class FeatureRepository extends BaseRepository {
     return result[0] ?? null;
   }
 
+  async findValueIdsByFeatureIds(featureIds: string[]): Promise<Map<string, string[]>> {
+    if (featureIds.length === 0) return new Map();
+
+    const rows = await this.connection
+      .select({
+        id: productFeatureValue.id,
+        featureId: productFeatureValue.featureId,
+      })
+      .from(productFeatureValue)
+      .where(
+        and(
+          eq(productFeatureValue.projectId, this.storeId),
+          inArray(productFeatureValue.featureId, featureIds)
+        )
+      );
+
+    const map = new Map<string, string[]>();
+    for (const row of rows) {
+      const list = map.get(row.featureId) ?? [];
+      list.push(row.id);
+      map.set(row.featureId, list);
+    }
+    return map;
+  }
+
   async findValuesByFeatureId(featureId: string): Promise<ProductFeatureValue[]> {
     return this.connection
       .select()
@@ -198,7 +230,7 @@ export class FeatureRepository extends BaseRepository {
           eq(productFeatureValue.featureId, featureId)
         )
       )
-      .orderBy(productFeatureValue.sortIndex);
+      .orderBy(productFeatureValue.index);
   }
 
   async findValuesByFeatureIds(
@@ -215,7 +247,7 @@ export class FeatureRepository extends BaseRepository {
           inArray(productFeatureValue.featureId, featureIds)
         )
       )
-      .orderBy(productFeatureValue.sortIndex);
+      .orderBy(productFeatureValue.index);
 
     const map = new Map<string, ProductFeatureValue[]>();
     for (const value of results) {
@@ -228,7 +260,7 @@ export class FeatureRepository extends BaseRepository {
 
   async createValue(
     featureId: string,
-    data: { slug: string; sortIndex: number }
+    data: { index: number }
   ): Promise<ProductFeatureValue> {
     const id = randomUUID();
 
@@ -236,8 +268,7 @@ export class FeatureRepository extends BaseRepository {
       id,
       projectId: this.storeId,
       featureId,
-      slug: data.slug,
-      sortIndex: data.sortIndex,
+      index: data.index,
     };
 
     const result = await this.connection
@@ -249,30 +280,43 @@ export class FeatureRepository extends BaseRepository {
   }
 
   async updateValue(
-    id: string,
-    data: { slug?: string; sortIndex?: number }
-  ): Promise<ProductFeatureValue | null> {
-    const updateData: Partial<NewProductFeatureValue> = {};
-
-    if (data.slug !== undefined) updateData.slug = data.slug;
-    if (data.sortIndex !== undefined) updateData.sortIndex = data.sortIndex;
-
-    if (Object.keys(updateData).length === 0) {
-      return this.findValueById(id);
-    }
-
-    const result = await this.connection
+    featureId: string,
+    valueId: string,
+    data: { index: number }
+  ): Promise<void> {
+    await this.connection
       .update(productFeatureValue)
-      .set(updateData)
+      .set({ index: data.index })
       .where(
         and(
           eq(productFeatureValue.projectId, this.storeId),
-          eq(productFeatureValue.id, id)
+          eq(productFeatureValue.id, valueId),
+          eq(productFeatureValue.featureId, featureId)
         )
-      )
-      .returning();
+      );
+  }
 
-    return result[0] ?? null;
+  async deleteValuesExcept(featureId: string, keepIds: string[]): Promise<void> {
+    if (keepIds.length === 0) {
+      await this.connection
+        .delete(productFeatureValue)
+        .where(
+          and(
+            eq(productFeatureValue.projectId, this.storeId),
+            eq(productFeatureValue.featureId, featureId)
+          )
+        );
+    } else {
+      await this.connection
+        .delete(productFeatureValue)
+        .where(
+          and(
+            eq(productFeatureValue.projectId, this.storeId),
+            eq(productFeatureValue.featureId, featureId),
+            notInArray(productFeatureValue.id, keepIds)
+          )
+        );
+    }
   }
 
   async deleteValue(id: string): Promise<boolean> {
@@ -289,7 +333,7 @@ export class FeatureRepository extends BaseRepository {
     return result.length > 0;
   }
 
-  // ============ Loader ============
+  // ============ Loaders ============
 
   async getTranslationsByFeatureIds(
     featureIds: readonly string[]
@@ -308,12 +352,12 @@ export class FeatureRepository extends BaseRepository {
 
   async getValueIdsByFeatureIds(
     featureIds: readonly string[]
-  ): Promise<Array<{ id: string; featureId: string; sortIndex: number }>> {
+  ): Promise<Array<{ id: string; featureId: string; index: number }>> {
     return this.connection
       .select({
         id: productFeatureValue.id,
         featureId: productFeatureValue.featureId,
-        sortIndex: productFeatureValue.sortIndex,
+        index: productFeatureValue.index,
       })
       .from(productFeatureValue)
       .where(
@@ -321,7 +365,8 @@ export class FeatureRepository extends BaseRepository {
           eq(productFeatureValue.projectId, this.storeId),
           inArray(productFeatureValue.featureId, [...featureIds])
         )
-      );
+      )
+      .orderBy(productFeatureValue.index);
   }
 
   async getValuesByIds(valueIds: readonly string[]): Promise<ProductFeatureValue[]> {
@@ -355,7 +400,7 @@ export class FeatureRepository extends BaseRepository {
     productIds: readonly string[],
     parentIds: readonly string[]
   ): Promise<
-    Array<{ id: string; productId: string; parentId: string | null; sortIndex: number }>
+    Array<{ id: string; productId: string; parentId: string | null; index: number[] }>
   > {
     if (productIds.length === 0 || parentIds.length === 0) return [];
 
@@ -364,7 +409,7 @@ export class FeatureRepository extends BaseRepository {
         id: productFeature.id,
         productId: productFeature.productId,
         parentId: productFeature.parentId,
-        sortIndex: productFeature.sortIndex,
+        index: productFeature.index,
       })
       .from(productFeature)
       .where(
@@ -374,6 +419,6 @@ export class FeatureRepository extends BaseRepository {
           inArray(productFeature.parentId, [...parentIds])
         )
       )
-      .orderBy(productFeature.sortIndex);
+      .orderBy(productFeature.index);
   }
 }

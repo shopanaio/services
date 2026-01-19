@@ -3,20 +3,15 @@ import type { FeatureResultBase } from "./shared.js";
 
 export interface FeatureValueSyncInput {
   readonly id?: string;
-  readonly slug: string;
+  readonly index: number;
   readonly name: string;
-  readonly sortIndex?: number;
 }
 
 export interface FeatureSyncItemInput {
   readonly id?: string;
-  readonly clientId?: string;
-  readonly isGroup?: boolean;
-  readonly parentId?: string;
-  readonly parentClientId?: string;
-  readonly slug: string;
+  readonly index: number[];
+  readonly isGroup: boolean;
   readonly name: string;
-  readonly sortIndex?: number;
   readonly values?: FeatureValueSyncInput[];
 }
 

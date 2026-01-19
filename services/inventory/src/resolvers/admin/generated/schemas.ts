@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BooleanFilter, CurrencyCode, DateTimeFilter, DescriptionInput, DimensionUnit, DimensionsInput, FloatFilter, IdFilter, IntFilter, LocaleCode, OptionDisplayType, ProductCreateInput, ProductCreateOptionInput, ProductCreateOptionValueInput, ProductCreateVariantInput, ProductDeleteInput, ProductFeatureCreateInput, ProductFeatureDeleteInput, ProductFeatureInput, ProductFeatureSyncItemInput, ProductFeatureUpdateInput, ProductFeatureValueCreateInput, ProductFeatureValueSyncInput, ProductFeatureValueUpdateInput, ProductFeatureValuesInput, ProductFeaturesSyncInput, ProductOptionCreateInput, ProductOptionDeleteInput, ProductOptionSwatchInput, ProductOptionUpdateInput, ProductOptionValueCreateInput, ProductOptionValueUpdateInput, ProductOptionValuesInput, ProductPublishInput, ProductSeoInput, ProductUnpublishInput, ProductUpdateInput, SelectedOptionInput, SortDirection, StringFilter, SwatchType, ThresholdMethod, VariantCreateInput, VariantDeleteInput, VariantInput, VariantSetCostInput, VariantSetDimensionsInput, VariantSetMediaInput, VariantSetPricingInput, VariantSetSkuInput, VariantSetStockInput, VariantSetWeightInput, WarehouseConnectionInput, WarehouseCreateInput, WarehouseDeleteInput, WarehouseOrderByInput, WarehouseOrderField, WarehouseStockConnectionInput, WarehouseStockOrderByInput, WarehouseStockOrderField, WarehouseStockWhereInput, WarehouseUpdateInput, WarehouseWhereInput, WeightInput, WeightUnit } from './types.js'
+import { BooleanFilter, CurrencyCode, DateTimeFilter, DescriptionInput, DimensionUnit, DimensionsInput, FloatFilter, IdFilter, IntFilter, LocaleCode, OptionDisplayType, PricingWidgetInput, ProductCreateInput, ProductCreateOptionInput, ProductCreateOptionValueInput, ProductCreateVariantInput, ProductDeleteInput, ProductFeatureCreateInput, ProductFeatureDeleteInput, ProductFeatureInput, ProductFeatureSyncItemInput, ProductFeatureUpdateInput, ProductFeatureValueCreateInput, ProductFeatureValueSyncInput, ProductFeatureValueUpdateInput, ProductFeatureValuesInput, ProductFeaturesSyncInput, ProductOptionCreateInput, ProductOptionDeleteInput, ProductOptionSwatchInput, ProductOptionUpdateInput, ProductOptionValueCreateInput, ProductOptionValueUpdateInput, ProductOptionValuesInput, ProductPublishInput, ProductSeoInput, ProductUnpublishInput, ProductUpdateInput, SelectedOptionInput, SortDirection, StringFilter, SwatchType, ThresholdMethod, VariantCreateInput, VariantDeleteInput, VariantInput, VariantSetCostInput, VariantSetDimensionsInput, VariantSetMediaInput, VariantSetPricingInput, VariantSetSkuInput, VariantSetStockInput, VariantSetWeightInput, WarehouseConnectionInput, WarehouseCreateInput, WarehouseDeleteInput, WarehouseOrderByInput, WarehouseOrderField, WarehouseStockConnectionInput, WarehouseStockOrderByInput, WarehouseStockOrderField, WarehouseStockWhereInput, WarehouseUpdateInput, WarehouseWhereInput, WeightInput, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -115,6 +115,17 @@ export function IntFilterSchema(): z.ZodObject<Properties<IntFilter>> {
   })
 }
 
+export function PricingWidgetInputSchema(): z.ZodObject<Properties<PricingWidgetInput>> {
+  return z.object({
+    after: z.string().nullish(),
+    currency: CurrencyCodeSchema,
+    first: z.number().nullish(),
+    from: z.string().nullish(),
+    to: z.string().nullish(),
+    variantId: z.string()
+  })
+}
+
 export function ProductCreateInputSchema(): z.ZodObject<Properties<ProductCreateInput>> {
   return z.object({
     description: z.lazy(() => DescriptionInputSchema().nullish()),
@@ -159,7 +170,6 @@ export function ProductFeatureCreateInputSchema(): z.ZodObject<Properties<Produc
   return z.object({
     name: z.string(),
     productId: z.string(),
-    slug: z.string(),
     values: z.array(z.lazy(() => ProductFeatureValueCreateInputSchema()))
   })
 }
@@ -167,36 +177,6 @@ export function ProductFeatureCreateInputSchema(): z.ZodObject<Properties<Produc
 export function ProductFeatureDeleteInputSchema(): z.ZodObject<Properties<ProductFeatureDeleteInput>> {
   return z.object({
     id: z.string()
-  })
-}
-
-export function ProductFeaturesSyncInputSchema(): z.ZodObject<Properties<ProductFeaturesSyncInput>> {
-  return z.object({
-    features: z.array(z.lazy(() => ProductFeatureSyncItemInputSchema())),
-    productId: z.string()
-  })
-}
-
-export function ProductFeatureSyncItemInputSchema(): z.ZodObject<Properties<ProductFeatureSyncItemInput>> {
-  return z.object({
-    clientId: z.string().nullish(),
-    id: z.string().nullish(),
-    isGroup: z.boolean().nullish(),
-    name: z.string(),
-    parentClientId: z.string().nullish(),
-    parentId: z.string().nullish(),
-    slug: z.string(),
-    sortIndex: z.number().nullish(),
-    values: z.array(z.lazy(() => ProductFeatureValueSyncInputSchema())).nullish()
-  })
-}
-
-export function ProductFeatureValueSyncInputSchema(): z.ZodObject<Properties<ProductFeatureValueSyncInput>> {
-  return z.object({
-    id: z.string().nullish(),
-    name: z.string(),
-    slug: z.string(),
-    sortIndex: z.number().nullish()
   })
 }
 
@@ -208,27 +188,42 @@ export function ProductFeatureInputSchema(): z.ZodObject<Properties<ProductFeatu
   })
 }
 
+export function ProductFeatureSyncItemInputSchema(): z.ZodObject<Properties<ProductFeatureSyncItemInput>> {
+  return z.object({
+    id: z.string().nullish(),
+    index: z.array(z.number()),
+    isGroup: z.boolean(),
+    name: z.string(),
+    values: z.array(z.lazy(() => ProductFeatureValueSyncInputSchema())).nullish()
+  })
+}
+
 export function ProductFeatureUpdateInputSchema(): z.ZodObject<Properties<ProductFeatureUpdateInput>> {
   return z.object({
     id: z.string(),
     name: z.string().nullish(),
-    slug: z.string().nullish(),
     values: z.lazy(() => ProductFeatureValuesInputSchema().nullish())
   })
 }
 
 export function ProductFeatureValueCreateInputSchema(): z.ZodObject<Properties<ProductFeatureValueCreateInput>> {
   return z.object({
-    name: z.string(),
-    slug: z.string()
+    name: z.string()
+  })
+}
+
+export function ProductFeatureValueSyncInputSchema(): z.ZodObject<Properties<ProductFeatureValueSyncInput>> {
+  return z.object({
+    id: z.string().nullish(),
+    index: z.number(),
+    name: z.string()
   })
 }
 
 export function ProductFeatureValueUpdateInputSchema(): z.ZodObject<Properties<ProductFeatureValueUpdateInput>> {
   return z.object({
     id: z.string(),
-    name: z.string().nullish(),
-    slug: z.string().nullish()
+    name: z.string().nullish()
   })
 }
 
@@ -237,6 +232,13 @@ export function ProductFeatureValuesInputSchema(): z.ZodObject<Properties<Produc
     create: z.array(z.lazy(() => ProductFeatureValueCreateInputSchema())).nullish(),
     delete: z.array(z.string()).nullish(),
     update: z.array(z.lazy(() => ProductFeatureValueUpdateInputSchema())).nullish()
+  })
+}
+
+export function ProductFeaturesSyncInputSchema(): z.ZodObject<Properties<ProductFeaturesSyncInput>> {
+  return z.object({
+    features: z.array(z.lazy(() => ProductFeatureSyncItemInputSchema())),
+    productId: z.string()
   })
 }
 

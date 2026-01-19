@@ -3,7 +3,7 @@ import type { FeatureUpdateParams, FeatureUpdateResult, FeatureValuesInput } fro
 
 export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, FeatureUpdateResult> {
   protected async execute(params: FeatureUpdateParams): Promise<FeatureUpdateResult> {
-    const { id, slug, name, values } = params;
+    const { id, name, values } = params;
 
     // 1. Check feature exists
     const existingFeature = await this.repository.feature.findById(id);
@@ -25,30 +25,7 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
       };
     }
 
-    // 2. Check slug uniqueness if changing
-    if (slug !== undefined && slug !== existingFeature.slug) {
-      const featureWithSlug = await this.repository.feature.findBySlug(
-        existingFeature.productId,
-        slug
-      );
-      if (featureWithSlug) {
-        return {
-          feature: undefined,
-          userErrors: [{
-            message: `Feature with slug "${slug}" already exists`,
-            field: ["slug"],
-            code: "SLUG_ALREADY_EXISTS",
-          }],
-        };
-      }
-    }
-
-    // 3. Update feature
-    if (slug !== undefined) {
-      await this.repository.feature.update(id, { slug });
-    }
-
-    // 4. Update translation if name provided
+    // 2. Update translation if name provided
     if (name !== undefined) {
       await this.repository.translation.upsertFeatureTranslation({
         projectId: this.getProjectId(),
@@ -58,7 +35,7 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
       });
     }
 
-    // 5. Handle values updates
+    // 3. Handle values updates
     if (values) {
       const errors = await this.processValuesUpdate(id, values);
       if (errors.length > 0) {
@@ -66,7 +43,7 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
       }
     }
 
-    // 6. Fetch updated feature
+    // 4. Fetch updated feature
     const feature = await this.repository.feature.findById(id);
 
     this.logger.info({ featureId: id }, "Feature updated");
@@ -89,16 +66,12 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
       }
     }
 
-    // Update existing values
+    // Update existing values (only name now, no slug)
     if (values.update?.length) {
       for (const valueUpdate of values.update) {
         const existingValue = await this.repository.feature.findValueById(valueUpdate.id);
         if (!existingValue) {
           return [{ message: "Feature value not found", field: ["values", "update"], code: "NOT_FOUND" }];
-        }
-
-        if (valueUpdate.slug !== undefined) {
-          await this.repository.feature.updateValue(valueUpdate.id, { slug: valueUpdate.slug });
         }
 
         if (valueUpdate.name !== undefined) {
@@ -115,14 +88,13 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
     // Create new values
     if (values.create?.length) {
       const existingValues = await this.repository.feature.findValuesByFeatureId(featureId);
-      let sortIndex = existingValues.length > 0
-        ? Math.max(...existingValues.map((v) => v.sortIndex)) + 1
+      let index = existingValues.length > 0
+        ? Math.max(...existingValues.map((v) => v.index)) + 1
         : 0;
 
       for (const valueInput of values.create) {
         const featureValue = await this.repository.feature.createValue(featureId, {
-          slug: valueInput.slug,
-          sortIndex: sortIndex++,
+          index: index++,
         });
 
         await this.repository.translation.upsertFeatureValueTranslation({

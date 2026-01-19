@@ -1,10 +1,9 @@
 import type { UserError } from "../../../kernel/BaseScript.js";
 
 /**
- * Input for creating/updating a feature value
+ * Input for creating a feature value
  */
 export interface FeatureValueInput {
-  readonly slug: string;
   readonly name: string;
 }
 
@@ -13,7 +12,6 @@ export interface FeatureValueInput {
  */
 export interface FeatureValueUpdateInput {
   readonly id: string;
-  readonly slug?: string;
   readonly name?: string;
 }
 

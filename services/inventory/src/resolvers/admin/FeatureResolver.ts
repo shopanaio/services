@@ -15,8 +15,8 @@ export class FeatureResolver extends InventoryType<string, ProductFeature | null
     return this.$props;
   }
 
-  async slug() {
-    return (await this.$get("slug")) ?? "";
+  async index() {
+    return (await this.$get("index")) ?? [];
   }
 
   async name() {
@@ -24,15 +24,13 @@ export class FeatureResolver extends InventoryType<string, ProductFeature | null
       this.$props
     );
     if (translation?.name) return translation.name;
-    return (await this.$get("slug")) ?? "";
+    // Fallback to index representation if no translation
+    const idx = await this.index();
+    return `Feature [${idx.join(", ")}]`;
   }
 
   async isGroup() {
     return (await this.$get("isGroup")) ?? false;
-  }
-
-  async sortIndex() {
-    return (await this.$get("sortIndex")) ?? 0;
   }
 
   async parent() {

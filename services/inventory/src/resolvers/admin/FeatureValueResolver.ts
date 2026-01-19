@@ -7,18 +7,22 @@ import { InventoryType } from "./InventoryType.js";
  */
 export class FeatureValueResolver extends InventoryType<
   string,
-  ProductFeatureValue | null
+  ProductFeatureValue
 > {
   async $preload() {
-    return this.$ctx.loaders.featureValue.load(this.$props);
+    const data = await this.$ctx.loaders.featureValue.load(this.$props);
+    if (!data) {
+      throw new Error(`Feature value ${this.$props} not found`);
+    }
+    return data;
   }
 
   id() {
     return this.$props;
   }
 
-  async slug() {
-    return (await this.$get("slug")) ?? "";
+  async index() {
+    return (await this.$get("index")) ?? 0;
   }
 
   async name() {
@@ -26,6 +30,8 @@ export class FeatureValueResolver extends InventoryType<
       this.$props
     );
     if (translation?.name) return translation.name;
-    return (await this.$get("slug")) ?? "";
+    // Fallback to index representation if no translation
+    const idx = await this.index();
+    return `Value ${idx}`;
   }
 }

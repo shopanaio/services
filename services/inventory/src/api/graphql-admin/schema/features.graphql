@@ -5,17 +5,14 @@ type ProductFeature implements Node @key(fields: "id") {
   """The globally unique ID of the feature."""
   id: ID!
 
+  """Tree position as array: [0] for root, [0, 1] for child of first group."""
+  index: [Int!]!
+
   """Whether this feature is a group (container) or an attribute (leaf)."""
   isGroup: Boolean!
 
-  """The URL-friendly identifier."""
-  slug: String!
-
-  """Display name."""
+  """Display name (from translations)."""
   name: String!
-
-  """Sort order within parent (or at root level)."""
-  sortIndex: Int!
 
   """Parent group, if this feature belongs to a group."""
   parent: ProductFeature
@@ -27,146 +24,19 @@ type ProductFeature implements Node @key(fields: "id") {
   values: [ProductFeatureValue!]!
 }
 
-"""
-A value for a product feature.
-"""
+"""A value for a product feature."""
 type ProductFeatureValue implements Node @key(fields: "id") {
   """The globally unique ID of the feature value."""
   id: ID!
 
-  """The URL-friendly identifier for this value."""
-  slug: String!
+  """Position within the feature's values (0, 1, 2, ...)."""
+  index: Int!
 
-  """Display name."""
+  """Display name (from translations)."""
   name: String!
 }
 
-# ---- Feature Mutations ----
-
-"""
-Input for creating a feature value.
-"""
-input ProductFeatureValueCreateInput {
-  """The URL-friendly slug for the value."""
-  slug: String!
-
-  """Display name."""
-  name: String!
-}
-
-"""
-Input for creating a feature on a product.
-"""
-input ProductFeatureCreateInput {
-  """The ID of the product."""
-  productId: ID!
-
-  """The URL-friendly slug for the feature."""
-  slug: String!
-
-  """Display name."""
-  name: String!
-
-  """The values for this feature."""
-  values: [ProductFeatureValueCreateInput!]!
-}
-
-"""
-Payload for feature create.
-"""
-type ProductFeatureCreatePayload {
-  """The product with updated features."""
-  product: Product
-
-  """The created feature."""
-  feature: ProductFeature
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-"""
-Input for updating an existing feature value.
-"""
-input ProductFeatureValueUpdateInput {
-  """The ID of the value to update."""
-  id: ID!
-
-  """The new slug for the value."""
-  slug: String
-
-  """Display name."""
-  name: String
-}
-
-"""
-Input for nested value operations in feature update.
-"""
-input ProductFeatureValuesInput {
-  """Values to create."""
-  create: [ProductFeatureValueCreateInput!]
-
-  """Values to update."""
-  update: [ProductFeatureValueUpdateInput!]
-
-  """IDs of values to delete."""
-  delete: [ID!]
-}
-
-"""
-Input for updating a feature.
-"""
-input ProductFeatureUpdateInput {
-  """The ID of the feature to update."""
-  id: ID!
-
-  """The new slug for the feature."""
-  slug: String
-
-  """Display name."""
-  name: String
-
-  """Nested value operations."""
-  values: ProductFeatureValuesInput
-}
-
-"""
-Payload for feature update.
-"""
-type ProductFeatureUpdatePayload {
-  """The product with updated features."""
-  product: Product
-
-  """The updated feature."""
-  feature: ProductFeature
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-"""
-Input for deleting a feature from a product.
-"""
-input ProductFeatureDeleteInput {
-  """The ID of the feature to delete."""
-  id: ID!
-}
-
-"""
-Payload for feature delete.
-"""
-type ProductFeatureDeletePayload {
-  """The product with updated features."""
-  product: Product
-
-  """The ID of the deleted feature."""
-  deletedFeatureId: ID
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-# ---- Feature Sync ----
+# ---- Feature Sync (primary API) ----
 
 """Sync all product features in a single transaction."""
 input ProductFeaturesSyncInput {
@@ -178,7 +48,7 @@ input ProductFeaturesSyncInput {
 
 input ProductFeatureSyncItemInput {
   """
-  Feature ID for existing features.
+  Database ID. Null for new records.
   - If provided: update existing feature
   - If null/omitted: create new feature (backend generates ID)
   Features in DB but not in this list will be DELETED.
@@ -186,46 +56,31 @@ input ProductFeatureSyncItemInput {
   id: ID
 
   """
-  Temporary client-side ID for new features (frontend generates, e.g., UUID).
-  Used to reference this item as a parent before it has a real ID.
-  Only needed for new items that will be referenced by other new items.
+  Tree position as integer array.
+  - [0], [1], [2] for root items
+  - [0, 0], [0, 1], [1, 0] for children
+  Parent is derived: parent of [0, 1] is [0].
+  Groups must have length 1 (root only).
   """
-  clientId: String
+  index: [Int!]!
 
-  """Whether this is a group (true) or attribute (false). Default: false."""
-  isGroup: Boolean
-
-  """
-  Parent reference for tree structure:
-  - parentId: ID of an existing group (use for existing parents)
-  - parentClientId: clientId of a new group in the same request (use for new parents)
-  - Both null: root-level feature
-  """
-  parentId: ID
-  parentClientId: String
-
-  """The URL-friendly slug."""
-  slug: String!
+  """Whether this is a group (true) or attribute (false)."""
+  isGroup: Boolean!
 
   """Display name."""
   name: String!
-
-  """Sort order (position in the list determines sortIndex if omitted)."""
-  sortIndex: Int
 
   """Values for this feature (only when isGroup = false)."""
   values: [ProductFeatureValueSyncInput!]
 }
 
 input ProductFeatureValueSyncInput {
-  """Value ID for existing values. Null = create new."""
+  """Database ID. Null for new records."""
   id: ID
-  """The URL-friendly slug."""
-  slug: String!
+  """Position within the feature's values (0, 1, 2, ...)."""
+  index: Int!
   """Display name."""
   name: String!
-  """Sort order."""
-  sortIndex: Int
 }
 
 type ProductFeaturesSyncPayload {
@@ -234,5 +89,100 @@ type ProductFeaturesSyncPayload {
   """List of all synced features with their final IDs."""
   features: [ProductFeature!]!
   """Any validation errors."""
+  userErrors: [GenericUserError!]!
+}
+
+# ---- Legacy Mutations (deprecated, use sync) ----
+
+"""Input for creating a feature value."""
+input ProductFeatureValueCreateInput {
+  """Display name."""
+  name: String!
+}
+
+"""Input for creating a feature on a product."""
+input ProductFeatureCreateInput {
+  """The ID of the product."""
+  productId: ID!
+
+  """Display name."""
+  name: String!
+
+  """The values for this feature."""
+  values: [ProductFeatureValueCreateInput!]!
+}
+
+"""Payload for feature create."""
+type ProductFeatureCreatePayload {
+  """The product with updated features."""
+  product: Product
+
+  """The created feature."""
+  feature: ProductFeature
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""Input for updating an existing feature value."""
+input ProductFeatureValueUpdateInput {
+  """The ID of the value to update."""
+  id: ID!
+
+  """Display name."""
+  name: String
+}
+
+"""Input for nested value operations in feature update."""
+input ProductFeatureValuesInput {
+  """Values to create."""
+  create: [ProductFeatureValueCreateInput!]
+
+  """Values to update."""
+  update: [ProductFeatureValueUpdateInput!]
+
+  """IDs of values to delete."""
+  delete: [ID!]
+}
+
+"""Input for updating a feature."""
+input ProductFeatureUpdateInput {
+  """The ID of the feature to update."""
+  id: ID!
+
+  """Display name."""
+  name: String
+
+  """Nested value operations."""
+  values: ProductFeatureValuesInput
+}
+
+"""Payload for feature update."""
+type ProductFeatureUpdatePayload {
+  """The product with updated features."""
+  product: Product
+
+  """The updated feature."""
+  feature: ProductFeature
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""Input for deleting a feature from a product."""
+input ProductFeatureDeleteInput {
+  """The ID of the feature to delete."""
+  id: ID!
+}
+
+"""Payload for feature delete."""
+type ProductFeatureDeletePayload {
+  """The product with updated features."""
+  product: Product
+
+  """The ID of the deleted feature."""
+  deletedFeatureId: ID
+
+  """List of errors that occurred during the mutation."""
   userErrors: [GenericUserError!]!
 }

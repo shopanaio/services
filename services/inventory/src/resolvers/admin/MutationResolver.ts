@@ -667,10 +667,8 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
 
     const result = await this.$ctx.kernel.runScript(FeatureCreateScript, {
       productId: input.productId,
-      slug: input.slug,
       name: input.name,
       values: input.values.map((v) => ({
-        slug: v.slug,
         name: v.name,
       })),
     });
@@ -692,17 +690,14 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
 
     const result = await this.$ctx.kernel.runScript(FeatureUpdateScript, {
       id: input.id,
-      slug: input.slug ?? undefined,
       name: input.name ?? undefined,
       values: input.values
         ? {
             create: input.values.create?.map((v) => ({
-              slug: v.slug,
               name: v.name,
             })),
             update: input.values.update?.map((v) => ({
               id: v.id,
-              slug: v.slug ?? undefined,
               name: v.name ?? undefined,
             })),
             delete: input.values.delete ?? undefined,
@@ -746,18 +741,13 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
       productId: input.productId,
       features: input.features.map((feature) => ({
         id: feature.id ?? undefined,
-        clientId: feature.clientId ?? undefined,
-        isGroup: feature.isGroup ?? undefined,
-        parentId: feature.parentId ?? undefined,
-        parentClientId: feature.parentClientId ?? undefined,
-        slug: feature.slug,
+        index: feature.index,
+        isGroup: feature.isGroup,
         name: feature.name,
-        sortIndex: feature.sortIndex ?? undefined,
         values: feature.values?.map((value) => ({
           id: value.id ?? undefined,
-          slug: value.slug,
+          index: value.index,
           name: value.name,
-          sortIndex: value.sortIndex ?? undefined,
         })),
       })),
     });

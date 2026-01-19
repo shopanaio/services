@@ -5,9 +5,7 @@ import {
   index,
   integer,
   unique,
-  uniqueIndex,
   uuid,
-  varchar,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { product } from "./products";
@@ -21,34 +19,36 @@ export const productFeature = inventorySchema.table(
     productId: uuid("product_id")
       .notNull()
       .references(() => product.id, { onDelete: "cascade" }),
+    index: integer("index").array().notNull(), // int[] - tree position: [0], [0, 1], etc.
     isGroup: boolean("is_group").notNull().default(false),
     parentId: uuid("parent_id").references(
       (): AnyPgColumn => productFeature.id,
       { onDelete: "cascade" }
     ),
-    sortIndex: integer("sort_index").notNull().default(0),
-    slug: varchar("slug", { length: 255 }).notNull(),
   },
   (table) => [
     check(
       "feature_group_no_parent",
       sql`${table.isGroup} = false OR ${table.parentId} IS NULL`
     ),
-    unique("product_feature_product_id_slug_key").on(
-      table.productId,
-      table.slug
+    check(
+      "feature_index_not_empty",
+      sql`array_length(${table.index}, 1) > 0`
     ),
-    uniqueIndex("product_feature_root_sort_idx")
-      .on(table.productId, table.sortIndex)
-      .where(sql`${table.parentId} IS NULL`),
-    uniqueIndex("product_feature_child_sort_idx")
-      .on(table.productId, table.parentId, table.sortIndex)
-      .where(sql`${table.parentId} IS NOT NULL`),
+    check(
+      "feature_group_root_only",
+      sql`${table.isGroup} = false OR array_length(${table.index}, 1) = 1`
+    ),
+    index("product_feature_sort_idx").on(table.productId, table.index),
     index("idx_product_feature_product_id").on(table.productId),
     index("product_feature_children_idx").on(
       table.productId,
       table.parentId,
-      table.sortIndex
+      table.index
+    ),
+    unique("product_feature_product_id_index_uniq").on(
+      table.productId,
+      table.index
     ),
   ]
 );
@@ -61,15 +61,14 @@ export const productFeatureValue = inventorySchema.table(
     featureId: uuid("feature_id")
       .notNull()
       .references(() => productFeature.id, { onDelete: "cascade" }),
-    slug: varchar("slug", { length: 255 }).notNull(),
-    sortIndex: integer("sort_index").notNull(),
+    index: integer("index").notNull(), // position within feature: 0, 1, 2, ...
   },
   (table) => [
-    unique("product_feature_value_feature_id_slug_key").on(
-      table.featureId,
-      table.slug
-    ),
     index("idx_product_feature_value_feature_id").on(table.featureId),
+    unique("product_feature_value_feature_id_index_uniq").on(
+      table.featureId,
+      table.index
+    ),
   ]
 );
 
