@@ -618,7 +618,7 @@ const LEASE_MS = 5 * 60 * 1000; // 5 minutes
 
 export interface ReservationResult {
   acquired: boolean;
-  existing?: ProcessedRequest;
+  existing?: ProcessedRequestRecord;
   attemptOwner?: string;
 }
 
@@ -870,6 +870,17 @@ export async function withIdempotency<TPayload, TResult>(
       };
     }
 
+    if (existing.status === "failed" && !ctx.operation.allowSamePayloadRetry) {
+      return {
+        result: null as TResult,
+        error: {
+          code: "CONFLICT",
+          message: "Idempotency key previously failed; retries disabled",
+          retryable: false,
+        },
+      };
+    }
+
     // Completed: return cached/receipt
     if (existing.status === "completed") {
       return buildCompletedResponse(existing, ctx);
@@ -920,7 +931,7 @@ export async function withIdempotency<TPayload, TResult>(
       };
     }
 
-    return { result };
+    return buildSuccessResponse(result, ctx);
   } catch (error) {
     const errorInfo = error instanceof Error ? error.message : String(error);
     await repo.fail(ctx.idempotencyKey, attemptOwner, errorInfo, ctx.operation.ttlMs);
@@ -932,13 +943,44 @@ export async function withIdempotency<TPayload, TResult>(
   }
 }
 
-function buildCompletedResponse<TResult>(
-  existing: ProcessedRequest,
+function buildSuccessResponse<TResult>(
+  result: TResult,
   ctx: ActionContext
 ): ActionResponse<TResult> {
-  if (existing.resultCached && existing.result !== null) {
+  if (ctx.operation.resultMode === "full") {
+    return { result };
+  }
+
+  if (ctx.operation.resultMode === "minimal") {
+    return { result: null as TResult };
+  }
+
+  return {
+    result: null as TResult,
+    meta: {
+      receipt: {
+        idempotencyKey: ctx.idempotencyKey,
+        status: "completed",
+        completedAt: new Date().toISOString(),
+      },
+    },
+  };
+}
+
+function buildCompletedResponse<TResult>(
+  existing: ProcessedRequestRecord,
+  ctx: ActionContext
+): ActionResponse<TResult> {
+  if (ctx.operation.resultMode === "full" && existing.resultCached && existing.result !== null) {
     return {
       result: existing.result as TResult,
+      meta: { idempotent: true, attempt: existing.attempt },
+    };
+  }
+
+  if (ctx.operation.resultMode === "minimal") {
+    return {
+      result: null as TResult,
       meta: { idempotent: true, attempt: existing.attempt },
     };
   }
@@ -958,7 +1000,9 @@ function buildCompletedResponse<TResult>(
   };
 }
 
-function buildInProgressResponse<TResult>(existing: ProcessedRequest): ActionResponse<TResult> {
+function buildInProgressResponse<TResult>(
+  existing: ProcessedRequestRecord
+): ActionResponse<TResult> {
   const leaseExpiresAt = existing.leaseExpiresAt;
   const now = Date.now();
 
@@ -1059,13 +1103,33 @@ async fire<TResult = unknown, TPayload = unknown>(
   ctx?: ActionContext
 ): Promise<ActionResponse<TResult>> {
   const qualifiedAction = this.assertFullyQualified(action);
-  const handler = this.registry.resolve<ActionRequest<TPayload>, ActionResponse<TResult>>(
-    qualifiedAction + "__fire"
-  );
+  let handler:
+    | ((input: ActionRequest<TPayload>) => Promise<ActionResponse<TResult>>)
+    | undefined;
+
+  try {
+    handler = this.registry.resolve<ActionRequest<TPayload>, ActionResponse<TResult>>(
+      qualifiedAction + "__fire"
+    );
+  } catch {
+    handler = undefined;
+  }
 
   // If no __fire handler registered, fall back to legacy call
   if (!handler) {
-    const legacyHandler = this.registry.resolve<TPayload, TResult>(qualifiedAction);
+    let legacyHandler: ((payload: TPayload) => Promise<TResult>) | undefined;
+    try {
+      legacyHandler = this.registry.resolve<TPayload, TResult>(qualifiedAction);
+    } catch {
+      return {
+        result: null as TResult,
+        error: {
+          code: "NOT_FOUND",
+          message: `Action not found: ${qualifiedAction}`,
+          retryable: false,
+        },
+      };
+    }
     try {
       const result = await legacyHandler(payload);
       return { result };
@@ -1110,8 +1174,8 @@ export interface FireMetadata {
  *
  * @example
  * @Fire("createUser", OperationPresets.CREATE)
- * async createUserFire(input: ActionRequest<CreateUserParams>): Promise<ActionResponse<User>> {
- *   return withIdempotency(input.ctx, input.payload, { repo: this.repo }, (p) => this.doCreate(p));
+ * async createUserFire(params: CreateUserParams): Promise<User> {
+ *   return this.doCreate(params);
  * }
  */
 export function Fire(actionName: string, operation: OperationConfig): MethodDecorator {
@@ -1144,7 +1208,13 @@ and make idempotency automatic for `@Fire` without service-level imports.
 ```typescript
 import { ACTION_METADATA_KEY, type ActionMetadata } from "../decorators/Action.js";
 import { FIRE_METADATA_KEY, type FireMetadata } from "../decorators/Fire.js";
-import { withIdempotency, type ActionRequest, type ActionResponse, type ActionContext } from "@shopana/idempotency";
+import {
+  withIdempotency,
+  type ActionRequest,
+  type ActionResponse,
+  type ActionContext,
+  type OperationConfig,
+} from "@shopana/idempotency";
 import type { IdempotencyRepository } from "@shopana/idempotency";
 
 // In BrokerActions registration method:
@@ -1206,8 +1276,19 @@ private wrapFireHandler<TPayload, TResult>(
     const repo = this.getIdempotencyRepo();
     if (!repo) {
       // No repo configured: fall back to direct execution
-      const result = await method(input.payload);
-      return { result };
+      try {
+        const result = await method(input.payload);
+        return { result };
+      } catch (error) {
+        return {
+          result: null as TResult,
+          error: {
+            code: "INTERNAL_ERROR",
+            message: error instanceof Error ? error.message : String(error),
+            retryable: false,
+          },
+        };
+      }
     }
 
     return withIdempotency(ctx, input.payload, { repo }, (payload) => method(payload));
@@ -1224,12 +1305,11 @@ private wrapFireHandler<TPayload, TResult>(
 **File: `services/project/src/workflows/StoreCreateWorkflow.ts`**
 
 ```typescript
-import { DBOS, WorkflowContext } from "@dbos-inc/dbos-sdk";
+import { DBOS } from "@dbos-inc/dbos-sdk";
 import {
   buildWorkflowContext,
   ServiceError,
   OperationPresets,
-  type ActionResponse,
 } from "@shopana/idempotency";
 
 export class StoreCreateWorkflow {
@@ -1448,7 +1528,7 @@ export type EventType = ShopanaEvent["eventType"];
 **File: `packages/events/src/schema.ts`**
 
 ```typescript
-import { pgSchema, text, integer, timestamp, jsonb, uuid, index } from "drizzle-orm/pg-core";
+import { pgSchema, text, integer, timestamp, jsonb, uuid, index, sql } from "drizzle-orm/pg-core";
 
 export const eventsSchema = pgSchema("events");
 
@@ -1506,6 +1586,7 @@ export type NewDeadLetterEntry = typeof deadLetterQueue.$inferInsert;
 
 ```sql
 CREATE SCHEMA IF NOT EXISTS events;
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 CREATE TABLE IF NOT EXISTS events.dead_letter_queue (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1831,7 +1912,21 @@ export class EventDispatchWorkflow {
     for (let i = 0; i < handlers.length; i += limit) {
       const batch = handlers.slice(i, i + limit);
       const batchResults = await Promise.all(
-        batch.map((h) => this.invokeHandler(event, h))
+        batch.map(async (h) => {
+          try {
+            return await this.invokeHandler(event, h);
+          } catch (error) {
+            return {
+              service: h.service,
+              action: h.action,
+              critical: h.critical,
+              success: false,
+              error: error instanceof Error ? error.message : String(error),
+              errorCode: "TRANSIENT_MAX_RETRIES",
+              attempts: EventDispatchWorkflow.MAX_ATTEMPTS,
+            };
+          }
+        })
       );
       results.push(...batchResults);
 
