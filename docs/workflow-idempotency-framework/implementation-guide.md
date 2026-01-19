@@ -1191,7 +1191,7 @@ private wrapFireHandler<TPayload, TResult>(
 **File: `services/project/src/workflows/StoreCreateWorkflow.ts`**
 
 ```typescript
-import { DBOS } from "@dbos-inc/dbos-sdk";
+import { DBOS, WorkflowContext } from "@dbos-inc/dbos-sdk";
 import {
   buildWorkflowContext,
   ServiceError,
@@ -1202,14 +1202,29 @@ import {
 export class StoreCreateWorkflow {
   constructor(private readonly broker: ServiceBroker) {}
 
+  /**
+   * Compute deterministic workflow ID for idempotency.
+   * Callers MUST use this when starting the workflow.
+   */
   static workflowID(input: StoreCreateInput): string {
     const name = input.name.trim().toLowerCase().normalize("NFKC");
     return `store:create:${input.organizationId}:${name}`;
   }
 
+  /**
+   * Start workflow with idempotent ID.
+   * Use this instead of calling run() directly.
+   */
+  static async start(input: StoreCreateInput): Promise<StoreCreateResult> {
+    const workflowID = StoreCreateWorkflow.workflowID(input);
+    const handle = await DBOS.startWorkflow(StoreCreateWorkflow, { workflowID });
+    return handle.run(input);
+  }
+
   @DBOS.workflow()
   async run(input: StoreCreateInput): Promise<StoreCreateResult> {
-    const dedupeKey = StoreCreateWorkflow.workflowID(input);
+    // Get workflowID from DBOS context (was set in start())
+    const dedupeKey = DBOS.workflowID;
 
     // Step 1: Create store
     const store = await this.createStore(dedupeKey, input);
@@ -1437,6 +1452,15 @@ export class EventDispatchWorkflow {
     return `event:dispatch:${event.eventType}:${event.eventId}`;
   }
 
+  /**
+   * Start dispatch workflow with idempotent ID.
+   */
+  static async start(event: DomainEvent): Promise<EventDispatchResult> {
+    const workflowID = EventDispatchWorkflow.workflowID(event);
+    const handle = await DBOS.startWorkflow(EventDispatchWorkflow, { workflowID });
+    return handle.dispatch(event);
+  }
+
   private static readonly CONCURRENCY_LIMIT = 5;
 
   @DBOS.workflow()
@@ -1587,16 +1611,17 @@ import { EventDispatchWorkflow, type EventDispatchResult } from "./workflows/Eve
 
 export class EventEmitter {
   /**
-   * Emit an event (starts durable dispatch workflow).
-   * Call from within a @DBOS.step() for durability guarantee.
+   * Emit an event (fire-and-forget, starts durable dispatch workflow).
+   * The workflow runs with idempotent ID based on eventId.
    */
   @DBOS.step()
   async emit<TEvent extends DomainEvent>(event: TEvent): Promise<{ workflowId: string }> {
     const workflowId = EventDispatchWorkflow.workflowID(event);
 
-    await DBOS
-      .startWorkflow(EventDispatchWorkflow, { workflowID: workflowId })
-      .dispatch(event);
+    // Start workflow in background (don't await result)
+    DBOS.startWorkflow(EventDispatchWorkflow, { workflowID: workflowId })
+      .dispatch(event)
+      .catch((err) => console.error("EventDispatch failed", { workflowId, err }));
 
     return { workflowId };
   }
@@ -1606,9 +1631,7 @@ export class EventEmitter {
    */
   @DBOS.step()
   async emitAndWait<TEvent extends DomainEvent>(event: TEvent): Promise<EventDispatchResult> {
-    const { workflowId } = await this.emit(event);
-    const handle = DBOS.retrieveWorkflow(workflowId);
-    return handle.getResult();
+    return EventDispatchWorkflow.start(event);
   }
 }
 ```
