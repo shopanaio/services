@@ -195,6 +195,31 @@ export const pricingRuleTemplate = inventorySchema.table(
   (table) => [
     index("idx_pricing_rule_template_project_id").on(table.projectId),
     unique("pricing_rule_template_project_name").on(table.projectId, table.name),
+    // Pricing value validation based on price type
+    check(
+      "pricing_rule_template_price_value_valid",
+      // BASE, FREE, INCLUDED → priceValue must be NULL
+      table.priceType.in(["BASE", "FREE", "INCLUDED"])
+        .and(table.priceValue.isNull())
+        .or(
+          // FIXED, MARKUP_*, DISCOUNT_* → priceValue required
+          table.priceType.in([
+            "FIXED",
+            "MARKUP_PERCENT",
+            "DISCOUNT_PERCENT",
+            "MARKUP_FIXED",
+            "DISCOUNT_FIXED",
+          ]).and(table.priceValue.isNotNull())
+        )
+    ),
+    // Percent types should be in range 0-100
+    check(
+      "pricing_rule_template_percent_range",
+      table.priceType.notIn(["MARKUP_PERCENT", "DISCOUNT_PERCENT"])
+        .or(
+          table.priceValue.gte(0).and(table.priceValue.lte(100))
+        )
+    ),
   ]
 );
 
@@ -266,6 +291,38 @@ export const componentItem = inventorySchema.table(
         .or(
           table.pricingTemplateId.isNull()
             .and(table.priceType.isNotNull())
+        )
+    ),
+    // Pricing value validation based on price type
+    // BASE, FREE, INCLUDED → priceValue must be NULL
+    // FIXED, MARKUP_*, DISCOUNT_* → priceValue required
+    check(
+      "component_item_price_value_valid",
+      // When using template, skip this check (priceType is null)
+      table.priceType.isNull()
+        .or(
+          // BASE, FREE, INCLUDED → priceValue must be NULL
+          table.priceType.in(["BASE", "FREE", "INCLUDED"])
+            .and(table.priceValue.isNull())
+        )
+        .or(
+          // FIXED, MARKUP_*, DISCOUNT_* → priceValue required
+          table.priceType.in([
+            "FIXED",
+            "MARKUP_PERCENT",
+            "DISCOUNT_PERCENT",
+            "MARKUP_FIXED",
+            "DISCOUNT_FIXED",
+          ]).and(table.priceValue.isNotNull())
+        )
+    ),
+    // Percent types should be in range 0-100
+    check(
+      "component_item_percent_range",
+      table.priceType.isNull()
+        .or(table.priceType.notIn(["MARKUP_PERCENT", "DISCOUNT_PERCENT"]))
+        .or(
+          table.priceValue.gte(0).and(table.priceValue.lte(100))
         )
     ),
   ]
@@ -730,6 +787,13 @@ input PackageUpdateInput {
   """Product ID."""
   productId: ID!
 
+  """
+  Expected updatedAt timestamp for optimistic locking.
+  If provided and doesn't match current DB value, mutation fails with CONCURRENT_MODIFICATION error.
+  Optional for new packages (when creating package for the first time).
+  """
+  expectedUpdatedAt: DateTime
+
   """Package settings."""
   settings: PackageSettingsInput
 
@@ -748,11 +812,30 @@ input PackageUpdateInput {
 # ============================================================================
 
 """
+Mapping from temporary client ID to generated server UUID.
+Used to help frontend update local state after mutation.
+"""
+type IdMapping {
+  """Temporary ID sent by client (e.g., "grp-1234567890")."""
+  tempId: ID!
+
+  """Generated UUID on server."""
+  newId: ID!
+}
+
+"""
 Payload for package update.
 """
 type PackageUpdatePayload {
   """The updated package settings."""
   packageSettings: PackageSettings
+
+  """
+  Mappings from temporary IDs to new UUIDs.
+  Only includes entries for newly created entities.
+  Frontend can use this to update local state with real IDs.
+  """
+  idMappings: [IdMapping!]!
 
   """List of errors that occurred during the mutation."""
   userErrors: [GenericUserError!]!
@@ -874,7 +957,7 @@ PricingRuleTemplate (shared across project)
    - Все enum-поля в БД совпадают с GraphQL enum значениями.
    - `pricing_template_id` должен принадлежать тому же `project_id`, что и `component_item` (валидация на уровне сервиса).
 
-6. **Bulk mutation (Replace All)** - единственная мутация `packageUpdate`:
+7. **Bulk mutation (Replace All)** - единственная мутация `packageUpdate`:
    - Фронтенд отправляет полное состояние (groups с items, templates, discounts, settings)
    - Бэкенд сравнивает с существующими данными и определяет что создать/обновить/удалить
    - ID handling:
@@ -882,3 +965,382 @@ PricingRuleTemplate (shared across project)
      - Временные ID (например, `grp-1234567890`) → создание новой записи
      - Записи отсутствующие в input → удаление
    - Мутация возвращает полный обновленный package с новыми UUID
+
+---
+
+## Service Validation Rules (Critical)
+
+Эти правила должны быть реализованы на уровне сервиса, так как DB constraints не могут покрыть все случаи.
+
+### 1. Pricing: priceType ↔ priceValue
+
+| priceType | priceValue |
+|-----------|------------|
+| `BASE`, `FREE`, `INCLUDED` | **must be NULL** |
+| `FIXED`, `MARKUP_FIXED`, `DISCOUNT_FIXED` | **required, any positive value** |
+| `MARKUP_PERCENT`, `DISCOUNT_PERCENT` | **required, range 0-100** |
+
+```typescript
+// Service validation example
+function validatePricingRule(priceType: ComponentPriceType, priceValue: Decimal | null): UserError[] {
+  const errors: UserError[] = [];
+
+  const noValueTypes = ["BASE", "FREE", "INCLUDED"];
+  const valueRequiredTypes = ["FIXED", "MARKUP_FIXED", "DISCOUNT_FIXED", "MARKUP_PERCENT", "DISCOUNT_PERCENT"];
+  const percentTypes = ["MARKUP_PERCENT", "DISCOUNT_PERCENT"];
+
+  if (noValueTypes.includes(priceType) && priceValue !== null) {
+    errors.push({ field: "priceValue", message: `priceValue must be null for ${priceType}` });
+  }
+
+  if (valueRequiredTypes.includes(priceType) && priceValue === null) {
+    errors.push({ field: "priceValue", message: `priceValue is required for ${priceType}` });
+  }
+
+  if (percentTypes.includes(priceType) && priceValue !== null) {
+    if (priceValue < 0 || priceValue > 100) {
+      errors.push({ field: "priceValue", message: "Percent value must be between 0 and 100" });
+    }
+  }
+
+  return errors;
+}
+```
+
+### 2. ComponentGroupRules: isMultiple ↔ min/max
+
+| isMultiple | isRequired | Expected min/max |
+|------------|------------|------------------|
+| `false` | `false` | min=NULL, max=NULL (0 or 1 selection) |
+| `false` | `true` | min=NULL, max=NULL (exactly 1 selection) |
+| `true` | `false` | min=0 or NULL, max=any (0 to N selections) |
+| `true` | `true` | min≥1, max=any (1 to N selections) |
+
+```typescript
+function validateGroupRules(
+  isMultiple: boolean,
+  isRequired: boolean,
+  minSelection: number | null,
+  maxSelection: number | null
+): UserError[] {
+  const errors: UserError[] = [];
+
+  if (!isMultiple) {
+    // Single selection mode: min/max should be null (implicitly 0-1 or exactly 1)
+    if (minSelection !== null || maxSelection !== null) {
+      errors.push({
+        field: "minSelection",
+        message: "min/maxSelection should be null when isMultiple=false"
+      });
+    }
+  } else {
+    // Multiple selection mode
+    if (isRequired && (minSelection === null || minSelection < 1)) {
+      errors.push({
+        field: "minSelection",
+        message: "minSelection must be ≥1 when isRequired=true and isMultiple=true"
+      });
+    }
+  }
+
+  return errors;
+}
+```
+
+### 3. excludedVariants: принадлежность assignedProduct
+
+FK не может гарантировать, что variant принадлежит assignedProduct. Проверяем на уровне сервиса:
+
+```typescript
+async function validateExcludedVariants(
+  itemType: ComponentItemType,
+  assignedProductId: string | null,
+  excludedVariantIds: string[]
+): Promise<UserError[]> {
+  const errors: UserError[] = [];
+
+  // excludedVariants только для PRODUCT type
+  if (itemType !== "PRODUCT" && excludedVariantIds.length > 0) {
+    errors.push({
+      field: "excludeAssignedProductVariants",
+      message: "excludedVariants only allowed for PRODUCT type items"
+    });
+    return errors;
+  }
+
+  if (itemType === "PRODUCT" && excludedVariantIds.length > 0) {
+    // Загружаем варианты и проверяем принадлежность
+    const variants = await db.query.variant.findMany({
+      where: inArray(variant.id, excludedVariantIds),
+      columns: { id: true, productId: true }
+    });
+
+    for (const v of variants) {
+      if (v.productId !== assignedProductId) {
+        errors.push({
+          field: "excludeAssignedProductVariants",
+          message: `Variant ${v.id} does not belong to assigned product`
+        });
+      }
+    }
+  }
+
+  return errors;
+}
+```
+
+### 4. projectId Cross-Validation
+
+Все связанные сущности должны принадлежать одному projectId:
+
+```typescript
+async function validateProjectOwnership(
+  projectId: string,
+  input: PackageUpdateInput
+): Promise<UserError[]> {
+  const errors: UserError[] = [];
+
+  // Validate pricingTemplateId references
+  const templateIds = input.groups
+    .flatMap(g => g.items)
+    .map(i => i.pricingRule.templateId)
+    .filter(Boolean);
+
+  if (templateIds.length > 0) {
+    const templates = await db.query.pricingRuleTemplate.findMany({
+      where: and(
+        inArray(pricingRuleTemplate.id, templateIds),
+        eq(pricingRuleTemplate.projectId, projectId)
+      )
+    });
+
+    const foundIds = new Set(templates.map(t => t.id));
+    for (const id of templateIds) {
+      if (!foundIds.has(id)) {
+        errors.push({
+          field: "pricingRule.templateId",
+          message: `Template ${id} not found or belongs to different project`
+        });
+      }
+    }
+  }
+
+  // Similarly validate assignedProductId, assignedVariantId, etc.
+
+  return errors;
+}
+```
+
+---
+
+## Concurrency Protection (Optimistic Locking)
+
+Replace-all мутация может перезаписать изменения другого пользователя. Решение: optimistic locking.
+
+### GraphQL Schema Update
+
+```graphql
+input PackageUpdateInput {
+  """Product ID."""
+  productId: ID!
+
+  """
+  Expected updatedAt timestamp for optimistic locking.
+  If provided and doesn't match current DB value, mutation fails with CONCURRENT_MODIFICATION error.
+  Optional for new packages.
+  """
+  expectedUpdatedAt: DateTime
+
+  # ... rest of fields
+}
+
+type PackageUpdatePayload {
+  packageSettings: PackageSettings
+  userErrors: [GenericUserError!]!
+}
+```
+
+### Service Implementation
+
+```typescript
+async function packageUpdate(
+  projectId: string,
+  input: PackageUpdateInput
+): Promise<PackageUpdatePayload> {
+  return await db.transaction(async (tx) => {
+    // 1. Check optimistic lock
+    const existing = await tx.query.packageSettings.findFirst({
+      where: eq(packageSettings.productId, input.productId)
+    });
+
+    if (existing && input.expectedUpdatedAt) {
+      if (existing.updatedAt.getTime() !== new Date(input.expectedUpdatedAt).getTime()) {
+        return {
+          packageSettings: null,
+          userErrors: [{
+            field: "expectedUpdatedAt",
+            code: "CONCURRENT_MODIFICATION",
+            message: "Package was modified by another user. Please refresh and try again."
+          }]
+        };
+      }
+    }
+
+    // 2. Perform all operations within transaction
+    // ... create/update/delete logic
+
+    // 3. Return updated package with new updatedAt
+  });
+}
+```
+
+---
+
+## ID Mapping (Temp ID → UUID)
+
+Фронтенд использует временные ID для новых сущностей. Мутация должна вернуть маппинг.
+
+### GraphQL Schema Update
+
+```graphql
+"""
+Mapping from temporary client ID to generated server UUID.
+"""
+type IdMapping {
+  """Temporary ID sent by client."""
+  tempId: ID!
+
+  """Generated UUID on server."""
+  newId: ID!
+}
+
+type PackageUpdatePayload {
+  packageSettings: PackageSettings
+
+  """
+  Mappings from temporary IDs to new UUIDs.
+  Only includes entries for newly created entities.
+  """
+  idMappings: [IdMapping!]!
+
+  userErrors: [GenericUserError!]!
+}
+```
+
+### Service Implementation
+
+```typescript
+function isTemporaryId(id: string): boolean {
+  // Temporary IDs: "grp-", "item-", "tpl-", "tier-" prefixes
+  return /^(grp|item|tpl|tier)-/.test(id);
+}
+
+async function packageUpdate(input: PackageUpdateInput): Promise<PackageUpdatePayload> {
+  const idMappings: IdMapping[] = [];
+
+  for (const groupInput of input.groups) {
+    if (isTemporaryId(groupInput.id)) {
+      const newId = crypto.randomUUID();
+      idMappings.push({ tempId: groupInput.id, newId });
+      // Use newId for insert
+    }
+
+    for (const itemInput of groupInput.items) {
+      if (isTemporaryId(itemInput.id)) {
+        const newId = crypto.randomUUID();
+        idMappings.push({ tempId: itemInput.id, newId });
+      }
+    }
+  }
+
+  // ... same for templates and tieredDiscounts
+
+  return {
+    packageSettings: updatedPackage,
+    idMappings,
+    userErrors: []
+  };
+}
+```
+
+---
+
+## GraphQL Validation Notes
+
+### ComponentPricingRuleInput: Mutual Exclusivity
+
+```typescript
+function validatePricingRuleInput(input: ComponentPricingRuleInput): UserError[] {
+  const errors: UserError[] = [];
+
+  const hasTemplate = input.templateId !== null && input.templateId !== undefined;
+  const hasInline = input.priceType !== null && input.priceType !== undefined;
+
+  if (hasTemplate && hasInline) {
+    errors.push({
+      field: "pricingRule",
+      message: "Cannot specify both templateId and priceType. Choose one."
+    });
+  }
+
+  if (!hasTemplate && !hasInline) {
+    errors.push({
+      field: "pricingRule",
+      message: "Must specify either templateId or priceType."
+    });
+  }
+
+  return errors;
+}
+```
+
+### excludeAssignedProductVariants: null vs []
+
+- `null` или отсутствует → все варианты включены (по умолчанию)
+- `[]` (пустой массив) → все варианты включены (эквивалент null)
+- `[id1, id2]` → указанные варианты исключены
+
+```typescript
+// В резолвере
+excludeAssignedProductVariants: async (item) => {
+  if (item.itemType !== "PRODUCT") return null;
+
+  const excluded = await db.query.componentItemExcludedVariant.findMany({
+    where: eq(componentItemExcludedVariant.componentItemId, item.id)
+  });
+
+  return excluded.length > 0
+    ? excluded.map(e => e.variantId)
+    : null; // Return null, not [] for "all included"
+}
+```
+
+### Sorting
+
+Явно определяем сортировку в резолверах:
+
+```typescript
+// PackageSettings.groups
+groups: async (packageSettings) => {
+  return db.query.componentGroup.findMany({
+    where: eq(componentGroup.productId, packageSettings.productId),
+    orderBy: asc(componentGroup.sortIndex) // Explicit sort
+  });
+}
+
+// PackageSettings.tieredDiscounts
+tieredDiscounts: async (packageSettings) => {
+  return db.query.packageTieredDiscount.findMany({
+    where: eq(packageTieredDiscount.packageSettingsId, packageSettings.id),
+    orderBy: asc(packageTieredDiscount.minItems) // Explicit sort by minItems
+  });
+}
+
+// ComponentGroup.items
+items: async (group) => {
+  return db.query.componentItem.findMany({
+    where: eq(componentItem.groupId, group.id),
+    orderBy: asc(componentItem.sortIndex) // Explicit sort
+  });
+}
+```
