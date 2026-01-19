@@ -2070,7 +2070,584 @@ type EventLogEvent =
 
 ---
 
-## Part 11: Migration Path
+## Part 11: Dead Letter Queue (DLQ)
+
+### 11.1 Overview
+
+Dead Letter Queue stores events that failed processing after all retry attempts. This prevents data loss and enables manual/automated recovery.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        DEAD LETTER QUEUE FLOW                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Event → Handler → ❌ Transient Error → Retry (3x) → ❌ Still Fails         │
+│                                                            │                │
+│                                                            ▼                │
+│                                                     ┌─────────────┐         │
+│                                                     │    DLQ      │         │
+│                                                     │  (stored)   │         │
+│                                                     └──────┬──────┘         │
+│                                                            │                │
+│                              ┌─────────────────────────────┼────────────┐   │
+│                              │                             │            │   │
+│                              ▼                             ▼            ▼   │
+│                        Manual Retry               Auto Retry      Discard   │
+│                        (admin API)                (cron job)    (bad data)  │
+│                              │                             │                │
+│                              ▼                             ▼                │
+│                         ✅ Success                    ✅ Success            │
+│                      status: retried               status: retried          │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 11.2 DLQ Schema
+
+```sql
+-- packages/events/migrations/0002_dead_letter_queue.sql
+
+CREATE TABLE IF NOT EXISTS events.dead_letter_queue (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  -- Event reference
+  event_id TEXT NOT NULL,
+  event_type TEXT NOT NULL,
+  event JSONB NOT NULL,
+
+  -- Failed handler
+  handler_service TEXT NOT NULL,
+  handler_action TEXT NOT NULL,
+  handler_critical BOOLEAN NOT NULL DEFAULT FALSE,
+
+  -- Error info
+  error TEXT NOT NULL,
+  error_code TEXT,
+  attempts INTEGER NOT NULL,
+
+  -- Context
+  project_id TEXT,
+  correlation_id TEXT,
+
+  -- Status: failed | retried | discarded
+  status TEXT NOT NULL DEFAULT 'failed'
+    CHECK (status IN ('failed', 'retried', 'discarded')),
+
+  -- Timestamps
+  failed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  retried_at TIMESTAMPTZ,
+  discarded_at TIMESTAMPTZ,
+  expires_at TIMESTAMPTZ,  -- Auto-cleanup after 30 days
+
+  CONSTRAINT dlq_event_handler_unique
+    UNIQUE (event_id, handler_service, handler_action)
+);
+
+-- Indexes
+CREATE INDEX idx_dlq_status ON events.dead_letter_queue(status);
+CREATE INDEX idx_dlq_event_type ON events.dead_letter_queue(event_type, status);
+CREATE INDEX idx_dlq_project ON events.dead_letter_queue(project_id, status);
+CREATE INDEX idx_dlq_handler ON events.dead_letter_queue(handler_service, handler_action);
+CREATE INDEX idx_dlq_expires ON events.dead_letter_queue(expires_at)
+  WHERE expires_at IS NOT NULL;
+```
+
+### 11.3 DLQ Repository
+
+```typescript
+// packages/events/src/dlq/repository.ts
+
+import { eq, and, sql } from "drizzle-orm";
+import type { PgDatabase } from "drizzle-orm/pg-core";
+
+export interface FailedHandlerInfo {
+  event: DomainEvent;
+  handler: { service: string; action: string; critical: boolean };
+  error: string;
+  errorCode?: string;
+  attempts: number;
+}
+
+export class DeadLetterRepository {
+  constructor(private readonly db: PgDatabase<any, any, any>) {}
+
+  /**
+   * Add a failed handler to DLQ.
+   */
+  async add(info: FailedHandlerInfo): Promise<DeadLetterEntry> {
+    const [result] = await this.db.insert(deadLetterQueue).values({
+      eventId: info.event.eventId,
+      eventType: info.event.eventType,
+      event: info.event as unknown as Record<string, unknown>,
+      handlerService: info.handler.service,
+      handlerAction: info.handler.action,
+      handlerCritical: info.handler.critical,
+      error: info.error,
+      errorCode: info.errorCode,
+      attempts: info.attempts,
+      projectId: info.event.context.tenantId,
+      correlationId: info.event.context.correlationId,
+      status: "failed",
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+    }).onConflictDoUpdate({
+      target: [deadLetterQueue.eventId, deadLetterQueue.handlerService, deadLetterQueue.handlerAction],
+      set: {
+        error: info.error,
+        errorCode: info.errorCode,
+        attempts: info.attempts,
+        failedAt: new Date(),
+        status: "failed",
+      },
+    }).returning();
+
+    return result;
+  }
+
+  /**
+   * Get failed entries for retry.
+   */
+  async getFailedEntries(limit: number = 100): Promise<DeadLetterEntry[]> {
+    return this.db
+      .select()
+      .from(deadLetterQueue)
+      .where(eq(deadLetterQueue.status, "failed"))
+      .orderBy(deadLetterQueue.failedAt)
+      .limit(limit);
+  }
+
+  /**
+   * Get failed entries by event type.
+   */
+  async getByEventType(eventType: string, limit: number = 100): Promise<DeadLetterEntry[]> {
+    return this.db
+      .select()
+      .from(deadLetterQueue)
+      .where(and(
+        eq(deadLetterQueue.eventType, eventType),
+        eq(deadLetterQueue.status, "failed")
+      ))
+      .orderBy(deadLetterQueue.failedAt)
+      .limit(limit);
+  }
+
+  /**
+   * Mark entry as successfully retried.
+   */
+  async markRetried(id: string): Promise<boolean> {
+    const result = await this.db
+      .update(deadLetterQueue)
+      .set({ status: "retried", retriedAt: new Date() })
+      .where(and(
+        eq(deadLetterQueue.id, id),
+        eq(deadLetterQueue.status, "failed")
+      ));
+
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  /**
+   * Discard entry (won't be retried).
+   */
+  async discard(id: string, reason?: string): Promise<boolean> {
+    const result = await this.db
+      .update(deadLetterQueue)
+      .set({
+        status: "discarded",
+        discardedAt: new Date(),
+        error: reason ? `DISCARDED: ${reason}` : undefined,
+      })
+      .where(and(
+        eq(deadLetterQueue.id, id),
+        eq(deadLetterQueue.status, "failed")
+      ));
+
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  /**
+   * Cleanup expired entries.
+   */
+  async cleanup(batchSize: number = 1000): Promise<number> {
+    const result = await this.db.execute(sql`
+      DELETE FROM events.dead_letter_queue
+      WHERE id IN (
+        SELECT id FROM events.dead_letter_queue
+        WHERE expires_at IS NOT NULL AND expires_at < NOW()
+        LIMIT ${batchSize}
+      )
+    `);
+
+    return result.rowCount ?? 0;
+  }
+
+  /**
+   * Get DLQ statistics.
+   */
+  async getStats(): Promise<DLQStats> {
+    const result = await this.db.execute(sql`
+      SELECT
+        status,
+        event_type,
+        handler_service,
+        COUNT(*) as count
+      FROM events.dead_letter_queue
+      GROUP BY status, event_type, handler_service
+    `);
+
+    return {
+      total: result.rows.reduce((sum, r) => sum + Number(r.count), 0),
+      byStatus: this.groupBy(result.rows, "status"),
+      byEventType: this.groupBy(result.rows, "event_type"),
+      byHandler: this.groupBy(result.rows, "handler_service"),
+    };
+  }
+
+  private groupBy(rows: any[], key: string): Record<string, number> {
+    return rows.reduce((acc, row) => {
+      const k = row[key];
+      acc[k] = (acc[k] || 0) + Number(row.count);
+      return acc;
+    }, {});
+  }
+}
+
+export interface DLQStats {
+  total: number;
+  byStatus: Record<string, number>;
+  byEventType: Record<string, number>;
+  byHandler: Record<string, number>;
+}
+```
+
+### 11.4 Integration with EventDispatchWorkflow
+
+Update `invokeHandler` to send permanently failed handlers to DLQ:
+
+```typescript
+// In EventDispatchWorkflow
+
+@DBOS.step({ maxAttempts: 3, intervalSeconds: 1, backoffRate: 2 })
+private async invokeHandler(
+  event: DomainEvent,
+  handler: HandlerInfo
+): Promise<HandlerInvocationResult> {
+  const startTime = Date.now();
+
+  const ctx = buildEventHandlerContext(event, handler.service, handler.action);
+
+  const response: ActionResponse<unknown> = await this.broker.fire(
+    `${handler.service}.${handler.action}`,
+    { event },
+    ctx
+  );
+
+  const durationMs = Date.now() - startTime;
+
+  if (response.error) {
+    if (response.error.retryable) {
+      // Transient → DBOS will retry
+      throw new Error(`TRANSIENT: ${response.error.message}`);
+    }
+
+    // Permanent failure → send to DLQ
+    await this.sendToDLQ(event, handler, response.error, 3);
+
+    return {
+      service: handler.service,
+      action: handler.action,
+      critical: handler.critical,
+      status: "failed",
+      idempotentReplay: false,
+      error: response.error.message,
+      durationMs,
+    };
+  }
+
+  return {
+    service: handler.service,
+    action: handler.action,
+    critical: handler.critical,
+    status: "success",
+    idempotentReplay: response.meta?.idempotent ?? false,
+    durationMs,
+  };
+}
+
+/**
+ * Send permanently failed handler to Dead Letter Queue.
+ */
+@DBOS.step()
+private async sendToDLQ(
+  event: DomainEvent,
+  handler: HandlerInfo,
+  error: ActionError,
+  attempts: number
+): Promise<void> {
+  await this.dlqRepo.add({
+    event,
+    handler: {
+      service: handler.service,
+      action: handler.action,
+      critical: handler.critical,
+    },
+    error: error.message,
+    errorCode: error.code,
+    attempts,
+  });
+
+  console.warn("Handler failed permanently, sent to DLQ", {
+    eventId: event.eventId,
+    eventType: event.eventType,
+    handler: `${handler.service}.${handler.action}`,
+    error: error.message,
+  });
+}
+```
+
+### 11.5 DLQ Retry Workflow
+
+```typescript
+// packages/events/src/dlq/retry.ts
+
+import { DBOS } from "@dbos-inc/dbos-sdk";
+import type { DeadLetterRepository, DeadLetterEntry } from "./repository.js";
+import { buildEventHandlerContext, OperationPresets } from "@shopana/idempotency";
+
+export interface DLQRetryResult {
+  processed: number;
+  succeeded: number;
+  failed: number;
+}
+
+export class DLQRetryWorkflow {
+  constructor(
+    private readonly broker: ServiceBroker,
+    private readonly dlqRepo: DeadLetterRepository
+  ) {}
+
+  /**
+   * Retry a single DLQ entry.
+   */
+  @DBOS.workflow()
+  async retryEntry(entryId: string): Promise<{ success: boolean; error?: string }> {
+    const entries = await this.dlqRepo.getFailedEntries(1);
+    const entry = entries.find((e) => e.id === entryId);
+
+    if (!entry) {
+      return { success: false, error: "Entry not found or already processed" };
+    }
+
+    const result = await this.invokeHandler(entry);
+
+    if (result.success) {
+      await this.dlqRepo.markRetried(entryId);
+    }
+
+    return result;
+  }
+
+  /**
+   * Retry all failed entries for a specific event type.
+   * Useful after deploying a bug fix.
+   */
+  @DBOS.workflow()
+  async retryByEventType(eventType: string, limit: number = 100): Promise<DLQRetryResult> {
+    const entries = await this.dlqRepo.getByEventType(eventType, limit);
+    return this.retryEntries(entries);
+  }
+
+  /**
+   * Retry batch of oldest failed entries.
+   */
+  @DBOS.workflow()
+  async retryBatch(limit: number = 50): Promise<DLQRetryResult> {
+    const entries = await this.dlqRepo.getFailedEntries(limit);
+    return this.retryEntries(entries);
+  }
+
+  private async retryEntries(entries: DeadLetterEntry[]): Promise<DLQRetryResult> {
+    let succeeded = 0;
+    let failed = 0;
+
+    for (const entry of entries) {
+      const result = await this.invokeHandler(entry);
+
+      if (result.success) {
+        await this.dlqRepo.markRetried(entry.id);
+        succeeded++;
+      } else {
+        failed++;
+      }
+    }
+
+    return { processed: entries.length, succeeded, failed };
+  }
+
+  @DBOS.step({ maxAttempts: 1 }) // No auto-retry - we control retries
+  private async invokeHandler(entry: DeadLetterEntry): Promise<{ success: boolean; error?: string }> {
+    const event = entry.event as unknown as DomainEvent;
+
+    const ctx = buildEventHandlerContext(
+      event,
+      entry.handlerService,
+      entry.handlerAction,
+      OperationPresets.CREATE
+    );
+
+    const response = await this.broker.fire(
+      `${entry.handlerService}.${entry.handlerAction}`,
+      { event },
+      ctx
+    );
+
+    if (response.error) {
+      return { success: false, error: response.error.message };
+    }
+
+    return { success: true };
+  }
+}
+```
+
+### 11.6 DLQ Admin API
+
+```typescript
+// packages/events/src/dlq/admin.ts
+
+/**
+ * Admin operations for Dead Letter Queue.
+ * Expose via internal API or CLI tool.
+ */
+export class DLQAdmin {
+  constructor(
+    private readonly dlqRepo: DeadLetterRepository,
+    private readonly retryWorkflow: DLQRetryWorkflow
+  ) {}
+
+  /** Get DLQ statistics for monitoring dashboard */
+  async getStats(): Promise<DLQStats> {
+    return this.dlqRepo.getStats();
+  }
+
+  /** Retry a specific failed entry */
+  async retryEntry(entryId: string): Promise<{ success: boolean; error?: string }> {
+    return this.retryWorkflow.retryEntry(entryId);
+  }
+
+  /** Retry all failed entries for an event type (after deploying fix) */
+  async retryEventType(eventType: string, limit?: number): Promise<DLQRetryResult> {
+    return this.retryWorkflow.retryByEventType(eventType, limit);
+  }
+
+  /** Retry a batch of oldest failed entries */
+  async retryBatch(limit?: number): Promise<DLQRetryResult> {
+    return this.retryWorkflow.retryBatch(limit);
+  }
+
+  /** Discard an entry (known-bad data that can't be processed) */
+  async discardEntry(entryId: string, reason: string): Promise<boolean> {
+    return this.dlqRepo.discard(entryId, reason);
+  }
+
+  /** List failed entries for inspection */
+  async listFailed(limit: number = 100) {
+    return this.dlqRepo.getFailedEntries(limit);
+  }
+
+  /** List failed entries by event type */
+  async listByEventType(eventType: string, limit: number = 100) {
+    return this.dlqRepo.getByEventType(eventType, limit);
+  }
+}
+```
+
+### 11.7 DLQ Cleanup Job
+
+```typescript
+// packages/events/src/dlq/cleanup.ts
+
+import { DBOS } from "@dbos-inc/dbos-sdk";
+
+export class DLQCleanupJob {
+  constructor(private readonly dlqRepo: DeadLetterRepository) {}
+
+  /**
+   * Run DLQ cleanup daily at 3 AM.
+   * Deletes entries older than 30 days.
+   */
+  @DBOS.scheduled({ crontab: "0 3 * * *" })
+  @DBOS.workflow()
+  async cleanup(): Promise<{ deleted: number }> {
+    let totalDeleted = 0;
+    let batchDeleted: number;
+
+    do {
+      batchDeleted = await this.cleanupBatch();
+      totalDeleted += batchDeleted;
+    } while (batchDeleted > 0);
+
+    console.log(`DLQ cleanup: deleted ${totalDeleted} expired entries`);
+    return { deleted: totalDeleted };
+  }
+
+  @DBOS.step()
+  private async cleanupBatch(): Promise<number> {
+    return this.dlqRepo.cleanup(1000);
+  }
+}
+```
+
+### 11.8 DLQ Metrics
+
+```typescript
+const DLQ_METRICS = {
+  // Entries
+  "dlq.entries.added": "New entries added to DLQ",
+  "dlq.entries.retried": "Entries successfully retried",
+  "dlq.entries.discarded": "Entries discarded",
+  "dlq.entries.expired": "Entries auto-expired (cleanup)",
+
+  // Retry operations
+  "dlq.retry.started": "Retry operations started",
+  "dlq.retry.succeeded": "Retry operations succeeded",
+  "dlq.retry.failed": "Retry operations failed again",
+
+  // Gauges
+  "dlq.entries.pending": "Pending entries (status=failed)",
+  "dlq.entries.by_event_type": "Pending entries by event type",
+  "dlq.entries.by_handler": "Pending entries by handler",
+} as const;
+```
+
+### 11.9 DLQ Usage Examples
+
+```typescript
+// After deploying a fix for inventory handler
+const admin = new DLQAdmin(dlqRepo, retryWorkflow);
+
+// Check how many entries are stuck
+const stats = await admin.getStats();
+console.log(stats);
+// { total: 150, byEventType: { "product.created": 120, ... }, ... }
+
+// Retry all product.created failures
+const result = await admin.retryEventType("product.created", 100);
+console.log(result);
+// { processed: 100, succeeded: 95, failed: 5 }
+
+// Inspect remaining failures
+const remaining = await admin.listByEventType("product.created", 10);
+for (const entry of remaining) {
+  console.log(`${entry.eventId}: ${entry.error}`);
+}
+
+// Discard known-bad entry
+await admin.discardEntry(remaining[0].id, "Invalid product data - ticket #123");
+```
+
+---
+
+## Part 12: Migration Path
 
 ### Phase 1: Core Infrastructure
 
@@ -2087,13 +2664,28 @@ type EventLogEvent =
 
 3. Add `domain_events` table migration
 
-### Phase 2: Bootstrap Service Updates
+### Phase 2: Dead Letter Queue
+
+1. Create `packages/events/src/dlq/` with:
+   - Schema (`schema.ts`) — `dead_letter_queue` table
+   - Repository (`repository.ts`) — CRUD operations
+   - Retry workflow (`retry.ts`) — re-invoke failed handlers
+   - Admin API (`admin.ts`) — operations for dashboard/CLI
+   - Cleanup job (`cleanup.ts`) — remove expired entries
+
+2. Add `dead_letter_queue` table migration
+
+3. Integrate DLQ with `EventDispatchWorkflow`:
+   - Send permanently failed handlers to DLQ
+   - Add `dlqEntries` to `EventDispatchResult`
+
+### Phase 3: Bootstrap Service Updates
 
 1. Add `GlobalEventHandlerRegistry` to bootstrap service
 2. Add `registerEventHandler` and `getEventHandlers` actions
 3. Update service startup to register handlers
 
-### Phase 3: Service Integration
+### Phase 4: Service Integration
 
 For each service that needs to react to events:
 
@@ -2102,7 +2694,7 @@ For each service that needs to react to events:
 3. Add corresponding broker actions
 4. Register handlers on service startup
 
-### Phase 4: Event Emission
+### Phase 5: Event Emission
 
 For each service that emits events:
 
@@ -2110,16 +2702,17 @@ For each service that emits events:
 2. Use `EventEmitter.emit()` in workflows/steps
 3. Add appropriate event types
 
-### Phase 5: Testing & Validation
+### Phase 6: Testing & Validation
 
 1. Unit tests for event handlers (mock broker)
 2. Integration tests for event dispatch workflow
-3. E2E tests for complete event flows
-4. Load testing for concurrent event handling
+3. Integration tests for DLQ (add → retry → success)
+4. E2E tests for complete event flows
+5. Load testing for concurrent event handling
 
 ---
 
-## Part 12: Summary
+## Part 13: Summary
 
 ### Unified Contract
 
@@ -2149,7 +2742,8 @@ Event-driven architecture is **fully built on the idempotency framework**:
 | Non-critical Handlers | Best-effort: failure logged, event = "completed_with_errors" |
 | Event Status | `completed` / `completed_with_errors` / `failed` |
 | Retry | DBOS step retry policies (transient errors only) |
-| Audit | `domain_events` table with handler results |
+| Dead Letter Queue | Permanently failed handlers stored for retry/inspection |
+| Audit | `domain_events` + `dead_letter_queue` tables |
 
 ### Key Design Decisions
 
@@ -2160,6 +2754,7 @@ Event-driven architecture is **fully built on the idempotency framework**:
 5. **Parallel fan-out** — Handlers are invoked in parallel batches (CONCURRENCY_LIMIT=5)
 6. **Critical vs Non-critical** — Stop-on-failure for critical, best-effort for non-critical
 7. **Independent handlers** — Handlers for the same event should not depend on each other
+8. **Dead Letter Queue** — Permanent failures go to DLQ for retry after fix deployment
 
 ### Benefits
 
@@ -2170,5 +2765,6 @@ Event-driven architecture is **fully built on the idempotency framework**:
 5. **Parallel Execution**: Batched concurrent handler invocation (configurable limit)
 6. **Granular Failure Handling**: Critical (stop-on-failure) vs non-critical (best-effort)
 7. **Clear Event Status**: `completed` / `completed_with_errors` / `failed`
-8. **Full Audit Trail**: `domain_events` + `processed_requests` tables
-9. **No Infrastructure Overhead**: No separate message queue needed
+8. **No Data Loss**: Failed handlers go to DLQ, can be retried after fix
+9. **Full Audit Trail**: `domain_events` + `processed_requests` + `dead_letter_queue` tables
+10. **No Infrastructure Overhead**: No separate message queue needed

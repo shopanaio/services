@@ -1421,7 +1421,266 @@ export type ShopanaEvent = ProductCreatedEvent | StoreCreatedEvent;
 export type EventType = ShopanaEvent["eventType"];
 ```
 
-### Step 6.2: Event Dispatch Workflow
+### Step 6.2: Dead Letter Queue Schema
+
+**File: `packages/events/src/schema.ts`**
+
+```typescript
+import { pgSchema, text, integer, timestamp, jsonb, uuid, index } from "drizzle-orm/pg-core";
+
+export const eventsSchema = pgSchema("events");
+
+/**
+ * Dead Letter Queue for failed event handlers.
+ * Stores events that couldn't be processed after all retries.
+ */
+export const deadLetterQueue = eventsSchema.table(
+  "dead_letter_queue",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+
+    // Event reference
+    eventId: text("event_id").notNull(),
+    eventType: text("event_type").notNull(),
+    event: jsonb("event").notNull(),
+
+    // Failed handler
+    handlerService: text("handler_service").notNull(),
+    handlerAction: text("handler_action").notNull(),
+    handlerCritical: boolean("handler_critical").notNull().default(false),
+
+    // Error info
+    error: text("error").notNull(),
+    errorCode: text("error_code"),
+    attempts: integer("attempts").notNull(),
+
+    // Context
+    projectId: text("project_id"),
+    correlationId: text("correlation_id"),
+
+    // Status
+    status: text("status").notNull().default("failed"), // failed | retried | discarded
+
+    // Timestamps
+    failedAt: timestamp("failed_at", { withTimezone: true }).notNull().defaultNow(),
+    retriedAt: timestamp("retried_at", { withTimezone: true }),
+    discardedAt: timestamp("discarded_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("idx_dlq_status").on(table.status),
+    index("idx_dlq_event_type").on(table.eventType, table.status),
+    index("idx_dlq_project").on(table.projectId, table.status),
+    index("idx_dlq_handler").on(table.handlerService, table.handlerAction),
+    index("idx_dlq_expires").on(table.expiresAt).where(sql`expires_at IS NOT NULL`),
+  ]
+);
+
+export type DeadLetterEntry = typeof deadLetterQueue.$inferSelect;
+export type NewDeadLetterEntry = typeof deadLetterQueue.$inferInsert;
+```
+
+**SQL Migration: `packages/events/migrations/0001_dead_letter_queue.sql`**
+
+```sql
+CREATE SCHEMA IF NOT EXISTS events;
+
+CREATE TABLE IF NOT EXISTS events.dead_letter_queue (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  event_id TEXT NOT NULL,
+  event_type TEXT NOT NULL,
+  event JSONB NOT NULL,
+
+  handler_service TEXT NOT NULL,
+  handler_action TEXT NOT NULL,
+  handler_critical BOOLEAN NOT NULL DEFAULT FALSE,
+
+  error TEXT NOT NULL,
+  error_code TEXT,
+  attempts INTEGER NOT NULL,
+
+  project_id TEXT,
+  correlation_id TEXT,
+
+  status TEXT NOT NULL DEFAULT 'failed' CHECK (status IN ('failed', 'retried', 'discarded')),
+
+  failed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  retried_at TIMESTAMPTZ,
+  discarded_at TIMESTAMPTZ,
+  expires_at TIMESTAMPTZ
+);
+
+CREATE INDEX idx_dlq_status ON events.dead_letter_queue(status);
+CREATE INDEX idx_dlq_event_type ON events.dead_letter_queue(event_type, status);
+CREATE INDEX idx_dlq_project ON events.dead_letter_queue(project_id, status);
+CREATE INDEX idx_dlq_handler ON events.dead_letter_queue(handler_service, handler_action);
+CREATE INDEX idx_dlq_expires ON events.dead_letter_queue(expires_at) WHERE expires_at IS NOT NULL;
+```
+
+### Step 6.3: Dead Letter Queue Repository
+
+**File: `packages/events/src/dlq/repository.ts`**
+
+```typescript
+import { eq, and, sql, lt } from "drizzle-orm";
+import type { PgDatabase } from "drizzle-orm/pg-core";
+import { deadLetterQueue, type DeadLetterEntry, type NewDeadLetterEntry } from "../schema.js";
+import type { DomainEvent } from "../types.js";
+
+export interface FailedHandlerInfo {
+  event: DomainEvent;
+  handler: { service: string; action: string; critical: boolean };
+  error: string;
+  errorCode?: string;
+  attempts: number;
+}
+
+export class DeadLetterRepository {
+  constructor(private readonly db: PgDatabase<any, any, any>) {}
+
+  /**
+   * Add a failed handler invocation to DLQ.
+   */
+  async add(info: FailedHandlerInfo): Promise<DeadLetterEntry> {
+    const entry: NewDeadLetterEntry = {
+      eventId: info.event.eventId,
+      eventType: info.event.eventType,
+      event: info.event as unknown as Record<string, unknown>,
+      handlerService: info.handler.service,
+      handlerAction: info.handler.action,
+      handlerCritical: info.handler.critical,
+      error: info.error,
+      errorCode: info.errorCode,
+      attempts: info.attempts,
+      projectId: info.event.context.projectId,
+      correlationId: info.event.context.correlationId,
+      status: "failed",
+      // Auto-expire after 30 days
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    };
+
+    const [result] = await this.db.insert(deadLetterQueue).values(entry).returning();
+    return result;
+  }
+
+  /**
+   * Get failed entries for retry.
+   */
+  async getFailedEntries(limit: number = 100): Promise<DeadLetterEntry[]> {
+    return this.db
+      .select()
+      .from(deadLetterQueue)
+      .where(eq(deadLetterQueue.status, "failed"))
+      .orderBy(deadLetterQueue.failedAt)
+      .limit(limit);
+  }
+
+  /**
+   * Get failed entries by event type.
+   */
+  async getByEventType(eventType: string, limit: number = 100): Promise<DeadLetterEntry[]> {
+    return this.db
+      .select()
+      .from(deadLetterQueue)
+      .where(and(
+        eq(deadLetterQueue.eventType, eventType),
+        eq(deadLetterQueue.status, "failed")
+      ))
+      .orderBy(deadLetterQueue.failedAt)
+      .limit(limit);
+  }
+
+  /**
+   * Mark entry as retried (will be re-processed).
+   */
+  async markRetried(id: string): Promise<boolean> {
+    const result = await this.db
+      .update(deadLetterQueue)
+      .set({ status: "retried", retriedAt: new Date() })
+      .where(and(
+        eq(deadLetterQueue.id, id),
+        eq(deadLetterQueue.status, "failed")
+      ));
+
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  /**
+   * Discard entry (won't be retried).
+   */
+  async discard(id: string, reason?: string): Promise<boolean> {
+    const result = await this.db
+      .update(deadLetterQueue)
+      .set({
+        status: "discarded",
+        discardedAt: new Date(),
+        error: reason ? `DISCARDED: ${reason}` : undefined,
+      })
+      .where(and(
+        eq(deadLetterQueue.id, id),
+        eq(deadLetterQueue.status, "failed")
+      ));
+
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  /**
+   * Cleanup expired entries.
+   */
+  async cleanup(batchSize: number = 1000): Promise<number> {
+    const result = await this.db.execute(sql`
+      DELETE FROM events.dead_letter_queue
+      WHERE id IN (
+        SELECT id FROM events.dead_letter_queue
+        WHERE expires_at IS NOT NULL AND expires_at < NOW()
+        LIMIT ${batchSize}
+      )
+    `);
+
+    return result.rowCount ?? 0;
+  }
+
+  /**
+   * Get DLQ stats for monitoring.
+   */
+  async getStats(): Promise<DLQStats> {
+    const result = await this.db.execute(sql`
+      SELECT
+        status,
+        event_type,
+        handler_service,
+        COUNT(*) as count
+      FROM events.dead_letter_queue
+      GROUP BY status, event_type, handler_service
+    `);
+
+    return {
+      total: result.rows.reduce((sum, r) => sum + Number(r.count), 0),
+      byStatus: this.groupBy(result.rows, "status"),
+      byEventType: this.groupBy(result.rows, "event_type"),
+      byHandler: this.groupBy(result.rows, "handler_service"),
+    };
+  }
+
+  private groupBy(rows: any[], key: string): Record<string, number> {
+    return rows.reduce((acc, row) => {
+      const k = row[key];
+      acc[k] = (acc[k] || 0) + Number(row.count);
+      return acc;
+    }, {});
+  }
+}
+
+export interface DLQStats {
+  total: number;
+  byStatus: Record<string, number>;
+  byEventType: Record<string, number>;
+  byHandler: Record<string, number>;
+}
+```
+
+### Step 6.4: Event Dispatch Workflow
 
 **File: `packages/events/src/workflows/EventDispatchWorkflow.ts`**
 
@@ -1435,6 +1694,7 @@ import {
   type ActionResponse,
 } from "@shopana/idempotency";
 import type { ServiceBroker } from "@shopana/shared-kernel";
+import type { DeadLetterRepository } from "../dlq/repository.js";
 
 export interface EventDispatchResult {
   eventId: string;
@@ -1443,10 +1703,14 @@ export interface EventDispatchResult {
   handlersInvoked: number;
   handlersSucceeded: number;
   handlersFailed: number;
+  dlqEntries: number;
 }
 
 export class EventDispatchWorkflow {
-  constructor(private readonly broker: ServiceBroker) {}
+  constructor(
+    private readonly broker: ServiceBroker,
+    private readonly dlqRepo: DeadLetterRepository
+  ) {}
 
   static workflowID(event: DomainEvent): string {
     return `event:dispatch:${event.eventType}:${event.eventId}`;
@@ -1462,6 +1726,7 @@ export class EventDispatchWorkflow {
   }
 
   private static readonly CONCURRENCY_LIMIT = 5;
+  private static readonly MAX_ATTEMPTS = 3;
 
   @DBOS.workflow()
   async dispatch(event: DomainEvent): Promise<EventDispatchResult> {
@@ -1479,6 +1744,7 @@ export class EventDispatchWorkflow {
         handlersInvoked: 0,
         handlersSucceeded: 0,
         handlersFailed: 0,
+        dlqEntries: 0,
       };
     }
 
@@ -1503,12 +1769,19 @@ export class EventDispatchWorkflow {
 
     const allResults = [...criticalResults, ...nonCriticalResults];
     const succeeded = allResults.filter((r) => r.success).length;
-    const failed = allResults.filter((r) => !r.success).length;
+    const failedResults = allResults.filter((r) => !r.success);
+
+    // Step 6: Send permanently failed handlers to DLQ
+    let dlqEntries = 0;
+    for (const result of failedResults) {
+      await this.sendToDLQ(event, result);
+      dlqEntries++;
+    }
 
     let status: EventDispatchResult["status"];
     if (criticalFailed) {
       status = "failed";
-    } else if (failed > 0) {
+    } else if (failedResults.length > 0) {
       status = "completed_with_errors";
     } else {
       status = "completed";
@@ -1520,7 +1793,8 @@ export class EventDispatchWorkflow {
       status,
       handlersInvoked: allResults.length,
       handlersSucceeded: succeeded,
-      handlersFailed: failed,
+      handlersFailed: failedResults.length,
+      dlqEntries,
     };
   }
 
@@ -1578,12 +1852,54 @@ export class EventDispatchWorkflow {
 
     if (response.error) {
       if (response.error.retryable) {
+        // Transient error - throw to trigger DBOS retry
         throw new Error(`TRANSIENT: ${response.error.message}`);
       }
-      return { service: handler.service, action: handler.action, success: false };
+      // Permanent error - return failure (will go to DLQ)
+      return {
+        service: handler.service,
+        action: handler.action,
+        critical: handler.critical,
+        success: false,
+        error: response.error.message,
+        errorCode: response.error.code,
+        attempts: EventDispatchWorkflow.MAX_ATTEMPTS,
+      };
     }
 
-    return { service: handler.service, action: handler.action, success: true };
+    return {
+      service: handler.service,
+      action: handler.action,
+      critical: handler.critical,
+      success: true,
+    };
+  }
+
+  /**
+   * Send permanently failed handler to Dead Letter Queue.
+   */
+  @DBOS.step()
+  private async sendToDLQ(event: DomainEvent, result: HandlerResult): Promise<void> {
+    if (result.success) return;
+
+    await this.dlqRepo.add({
+      event,
+      handler: {
+        service: result.service,
+        action: result.action,
+        critical: result.critical,
+      },
+      error: result.error ?? "Unknown error",
+      errorCode: result.errorCode,
+      attempts: result.attempts ?? EventDispatchWorkflow.MAX_ATTEMPTS,
+    });
+
+    console.warn("Handler failed permanently, sent to DLQ", {
+      eventId: event.eventId,
+      eventType: event.eventType,
+      handler: `${result.service}.${result.action}`,
+      error: result.error,
+    });
   }
 }
 
@@ -1596,11 +1912,15 @@ interface HandlerInfo {
 interface HandlerResult {
   service: string;
   action: string;
+  critical: boolean;
   success: boolean;
+  error?: string;
+  errorCode?: string;
+  attempts?: number;
 }
 ```
 
-### Step 6.3: Event Emitter
+### Step 6.5: Event Emitter
 
 **File: `packages/events/src/emitter.ts`**
 
@@ -1636,11 +1956,196 @@ export class EventEmitter {
 }
 ```
 
+### Step 6.6: DLQ Retry Workflow
+
+**File: `packages/events/src/dlq/retry.ts`**
+
+```typescript
+import { DBOS } from "@dbos-inc/dbos-sdk";
+import type { DeadLetterRepository, DeadLetterEntry } from "./repository.js";
+import type { DomainEvent } from "../types.js";
+import type { ServiceBroker } from "@shopana/shared-kernel";
+import { buildEventHandlerContext, OperationPresets, type ActionResponse } from "@shopana/idempotency";
+
+export interface DLQRetryResult {
+  processed: number;
+  succeeded: number;
+  failed: number;
+}
+
+export class DLQRetryWorkflow {
+  constructor(
+    private readonly broker: ServiceBroker,
+    private readonly dlqRepo: DeadLetterRepository
+  ) {}
+
+  /**
+   * Retry a single DLQ entry.
+   */
+  @DBOS.workflow()
+  async retryEntry(entryId: string): Promise<{ success: boolean; error?: string }> {
+    const entries = await this.dlqRepo.getFailedEntries(1);
+    const entry = entries.find((e) => e.id === entryId);
+
+    if (!entry) {
+      return { success: false, error: "Entry not found or already processed" };
+    }
+
+    const result = await this.invokeHandler(entry);
+
+    if (result.success) {
+      await this.dlqRepo.markRetried(entryId);
+    }
+
+    return result;
+  }
+
+  /**
+   * Retry all failed entries for a specific event type.
+   * Useful after deploying a bug fix.
+   */
+  @DBOS.workflow()
+  async retryByEventType(eventType: string, limit: number = 100): Promise<DLQRetryResult> {
+    const entries = await this.dlqRepo.getByEventType(eventType, limit);
+    return this.retryEntries(entries);
+  }
+
+  /**
+   * Retry batch of failed entries.
+   */
+  @DBOS.workflow()
+  async retryBatch(limit: number = 50): Promise<DLQRetryResult> {
+    const entries = await this.dlqRepo.getFailedEntries(limit);
+    return this.retryEntries(entries);
+  }
+
+  private async retryEntries(entries: DeadLetterEntry[]): Promise<DLQRetryResult> {
+    let succeeded = 0;
+    let failed = 0;
+
+    for (const entry of entries) {
+      const result = await this.invokeHandler(entry);
+
+      if (result.success) {
+        await this.dlqRepo.markRetried(entry.id);
+        succeeded++;
+      } else {
+        failed++;
+      }
+    }
+
+    return {
+      processed: entries.length,
+      succeeded,
+      failed,
+    };
+  }
+
+  @DBOS.step({ maxAttempts: 1 }) // No auto-retry for DLQ - we control retries
+  private async invokeHandler(entry: DeadLetterEntry): Promise<{ success: boolean; error?: string }> {
+    const event = entry.event as unknown as DomainEvent;
+
+    const ctx = buildEventHandlerContext(
+      entry.eventType,
+      entry.eventId,
+      entry.handlerService,
+      entry.handlerAction,
+      event,
+      OperationPresets.CREATE,
+      entry.projectId ?? undefined
+    );
+
+    const response: ActionResponse<unknown> = await this.broker.fire(
+      `${entry.handlerService}.${entry.handlerAction}`,
+      { event },
+      ctx
+    );
+
+    if (response.error) {
+      return { success: false, error: response.error.message };
+    }
+
+    return { success: true };
+  }
+}
+```
+
+### Step 6.7: DLQ Admin Operations
+
+**File: `packages/events/src/dlq/admin.ts`**
+
+```typescript
+import type { DeadLetterRepository, DLQStats } from "./repository.js";
+import { DLQRetryWorkflow, type DLQRetryResult } from "./retry.js";
+
+/**
+ * Admin operations for Dead Letter Queue.
+ * Expose via internal API or CLI tool.
+ */
+export class DLQAdmin {
+  constructor(
+    private readonly dlqRepo: DeadLetterRepository,
+    private readonly retryWorkflow: DLQRetryWorkflow
+  ) {}
+
+  /**
+   * Get DLQ statistics for monitoring dashboard.
+   */
+  async getStats(): Promise<DLQStats> {
+    return this.dlqRepo.getStats();
+  }
+
+  /**
+   * Retry a specific failed entry.
+   */
+  async retryEntry(entryId: string): Promise<{ success: boolean; error?: string }> {
+    return this.retryWorkflow.retryEntry(entryId);
+  }
+
+  /**
+   * Retry all failed entries for an event type.
+   * Use after deploying a fix for a handler bug.
+   */
+  async retryEventType(eventType: string, limit?: number): Promise<DLQRetryResult> {
+    return this.retryWorkflow.retryByEventType(eventType, limit);
+  }
+
+  /**
+   * Retry a batch of oldest failed entries.
+   */
+  async retryBatch(limit?: number): Promise<DLQRetryResult> {
+    return this.retryWorkflow.retryBatch(limit);
+  }
+
+  /**
+   * Discard an entry (won't be retried).
+   * Use for known-bad data that can't be processed.
+   */
+  async discardEntry(entryId: string, reason: string): Promise<boolean> {
+    return this.dlqRepo.discard(entryId, reason);
+  }
+
+  /**
+   * Get failed entries for inspection.
+   */
+  async listFailed(limit: number = 100) {
+    return this.dlqRepo.getFailedEntries(limit);
+  }
+
+  /**
+   * Get failed entries by event type.
+   */
+  async listByEventType(eventType: string, limit: number = 100) {
+    return this.dlqRepo.getByEventType(eventType, limit);
+  }
+}
+```
+
 ---
 
-## Phase 7: Cleanup Job
+## Phase 7: Cleanup Jobs
 
-### Step 7.1: Cleanup Cron
+### Step 7.1: Idempotency Cleanup
 
 **File: `packages/idempotency/src/cleanup.ts`**
 
@@ -1677,11 +2182,50 @@ export class IdempotencyCleanupJob {
 }
 ```
 
+### Step 7.2: DLQ Cleanup
+
+**File: `packages/events/src/dlq/cleanup.ts`**
+
+```typescript
+import { DBOS } from "@dbos-inc/dbos-sdk";
+import type { DeadLetterRepository } from "./repository.js";
+
+export class DLQCleanupJob {
+  constructor(private readonly dlqRepo: DeadLetterRepository) {}
+
+  /**
+   * Run DLQ cleanup daily at 3 AM.
+   * Deletes entries older than 30 days.
+   */
+  @DBOS.scheduled({ crontab: "0 3 * * *" })
+  @DBOS.workflow()
+  async cleanup(): Promise<{ deleted: number }> {
+    let totalDeleted = 0;
+    let batchDeleted: number;
+
+    do {
+      batchDeleted = await this.cleanupBatch();
+      totalDeleted += batchDeleted;
+    } while (batchDeleted > 0);
+
+    console.log(`DLQ cleanup: deleted ${totalDeleted} expired entries`);
+    return { deleted: totalDeleted };
+  }
+
+  @DBOS.step()
+  private async cleanupBatch(): Promise<number> {
+    return this.dlqRepo.cleanup(1000);
+  }
+}
+```
+
 ---
 
 ## Summary: File Checklist
 
 ### New Packages
+
+**@shopana/idempotency**
 
 | File | Purpose |
 |------|---------|
@@ -1694,9 +2238,20 @@ export class IdempotencyCleanupJob {
 | `packages/idempotency/src/withIdempotency.ts` | Main helper |
 | `packages/idempotency/src/cleanup.ts` | Cleanup job |
 | `packages/idempotency/src/index.ts` | Exports |
+
+**@shopana/events**
+
+| File | Purpose |
+|------|---------|
 | `packages/events/src/types.ts` | Event types |
+| `packages/events/src/schema.ts` | DLQ schema |
 | `packages/events/src/emitter.ts` | Event emitter |
 | `packages/events/src/workflows/EventDispatchWorkflow.ts` | Dispatch workflow |
+| `packages/events/src/dlq/repository.ts` | DLQ repository |
+| `packages/events/src/dlq/retry.ts` | DLQ retry workflow |
+| `packages/events/src/dlq/admin.ts` | DLQ admin operations |
+| `packages/events/src/dlq/cleanup.ts` | DLQ cleanup job |
+| `packages/events/migrations/0001_dead_letter_queue.sql` | DLQ migration |
 
 ### New Files
 
@@ -1723,12 +2278,15 @@ export class IdempotencyCleanupJob {
 4. ✅ Update IamBrokerActions with `@Fire` handlers
 5. ✅ Update StoreCreateWorkflow to use broker.fire()
 6. ✅ Create `@shopana/events` package
-7. ✅ Add EventDispatchWorkflow
-8. ✅ Add cleanup job
+7. ✅ Add EventDispatchWorkflow with DLQ integration
+8. ✅ Add Dead Letter Queue (schema, repository, retry, admin)
+9. ✅ Add cleanup jobs (idempotency + DLQ)
 
 ---
 
 ## Testing Checklist
+
+### Idempotency
 
 - [ ] Unit test: canonicalJson produces stable output
 - [ ] Unit test: buildWorkflowContext generates consistent keys
@@ -1736,5 +2294,21 @@ export class IdempotencyCleanupJob {
 - [ ] Unit test: withIdempotency detects payload conflict
 - [ ] Integration test: broker.fire() with IdempotencyRepository
 - [ ] Integration test: StoreCreateWorkflow retry produces no duplicates
+
+### Event Dispatch
+
 - [ ] Integration test: EventDispatchWorkflow fan-out
-- [ ] E2E test: Full store creation flow with idempotency
+- [ ] Integration test: Critical handler failure stops non-critical
+- [ ] Integration test: Failed handlers go to DLQ
+
+### Dead Letter Queue
+
+- [ ] Unit test: DLQ repository add/get/mark operations
+- [ ] Integration test: DLQ retry workflow re-invokes handler
+- [ ] Integration test: DLQ cleanup removes expired entries
+- [ ] Integration test: DLQ stats aggregation
+
+### E2E
+
+- [ ] Full store creation flow with idempotency
+- [ ] Event emission with handler failure → DLQ → retry
