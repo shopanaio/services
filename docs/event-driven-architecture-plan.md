@@ -28,7 +28,7 @@
 
 ### Ключевые принципы
 
-1. **No Outbox** — workflow сам гарантирует доставку, не нужен отдельный outbox pattern
+1. **No Outbox** — workflow гарантирует доставку только если emit выполняется из DBOS workflow/step после durable DB‑транзакции; иначе нужна outbox/буфер
 2. **Parallel fan-out** — handlers вызываются параллельно (batches по CONCURRENCY_LIMIT)
 3. **Единый контракт** — `ActionRequest`/`ActionResponse` для всего (API, workflow, events)
 4. **Per-service idempotency** — `source: "workflow"` с ключом `event:{type}:{id}:{service}:{action}`
@@ -307,6 +307,9 @@ import type { ServiceBroker } from "@shopana/shared-kernel";
  * IMPORTANT: This should be called from within a DBOS step to ensure
  * the event emission is durable.
  *
+ * Rule: Emit events only from DBOS workflow/step after the domain write step
+ * completes. Emitting from a plain HTTP handler reintroduces the outbox gap.
+ *
  * The workflow will:
  * 1. Persist the event
  * 2. Fan-out to all registered handlers
@@ -325,7 +328,9 @@ export class EventEmitter {
     // Start the dispatch workflow with deterministic ID based on eventId
     const workflowId = `event:dispatch:${event.eventType}:${event.eventId}`;
 
-    await DBOS.startWorkflow(EventDispatchWorkflow, workflowId).dispatch(event);
+    await DBOS
+      .startWorkflow(EventDispatchWorkflow, { workflowID: workflowId })
+      .dispatch(event);
 
     return { workflowId };
   }
@@ -357,7 +362,7 @@ export class EventEmitter {
 ```typescript
 // packages/events/src/workflows/EventDispatchWorkflow.ts
 
-import { DBOS, Workflow } from "@dbos-inc/dbos-sdk";
+import { DBOS } from "@dbos-inc/dbos-sdk";
 import type { DomainEvent } from "../types.js";
 import type { ActionResponse } from "@shopana/idempotency";
 import type { ServiceBroker } from "@shopana/shared-kernel";
@@ -416,7 +421,7 @@ export class EventDispatchWorkflow {
   /** Max concurrent handler invocations per batch */
   private static readonly CONCURRENCY_LIMIT = 5;
 
-  @Workflow()
+  @DBOS.workflow()
   async dispatch(event: DomainEvent): Promise<EventDispatchResult> {
     // Step 1: Persist event (idempotent)
     await this.persistEvent(event);
@@ -438,8 +443,21 @@ export class EventDispatchWorkflow {
 
     // Step 3: Invoke handlers in parallel batches
     // Critical handlers first (must all succeed), then non-critical (best-effort)
-    const criticalHandlers = handlers.filter((h) => h.critical);
-    const nonCriticalHandlers = handlers.filter((h) => !h.critical);
+    const sortedHandlers = handlers
+      .slice()
+      .sort((a, b) => {
+        if (a.critical !== b.critical) {
+          return a.critical ? -1 : 1;
+        }
+        const serviceCmp = a.service.localeCompare(b.service);
+        if (serviceCmp !== 0) {
+          return serviceCmp;
+        }
+        return a.action.localeCompare(b.action);
+      });
+
+    const criticalHandlers = sortedHandlers.filter((h) => h.critical);
+    const nonCriticalHandlers = sortedHandlers.filter((h) => !h.critical);
 
     const results: HandlerInvocationResult[] = [];
 
@@ -675,6 +693,8 @@ interface HandlerInfo {
 - `invokeHandler` — единственный durable `@DBOS.step()` для каждого handler вызова.
 - Любой retry (transient) происходит внутри `invokeHandler` по step retry policy; после исчерпания ретраев шаг считается failed и workflow двигается дальше.
 - Параллелизм реализован на уровне workflow (`Promise.all` над шагами), а не внутри шага — это важно для корректности и прозрачности выполнения.
+- Порядок запуска шагов стабилизирован: handlers сортируются детерминированно (critical → service → action).
+- Для дополнительной устойчивости можно заменить `Promise.all` на `Promise.allSettled`, но в текущем виде `invokeHandlerSafe` гарантирует, что batch не упадёт из-за ошибки одного handler.
 
 #### Retry policies per handler criticality
 
@@ -683,15 +703,13 @@ interface HandlerInfo {
 export const RetryPolicies = {
   CRITICAL: {
     maxAttempts: 5,
-    initialDelayMs: 500,
-    maxDelayMs: 60000,
-    backoffMultiplier: 2,
+    intervalSeconds: 0.5,
+    backoffRate: 2,
   },
   BEST_EFFORT: {
     maxAttempts: 2,
-    initialDelayMs: 2000,
-    maxDelayMs: 10000,
-    backoffMultiplier: 1.5,
+    intervalSeconds: 2,
+    backoffRate: 1.5,
   },
 } satisfies Record<string, RetryPolicy>;
 ```
@@ -699,7 +717,15 @@ export const RetryPolicies = {
 ```typescript
 // packages/events/src/workflows/EventDispatchWorkflow.ts
 @DBOS.step({
-  retryPolicy: handler.critical ? RetryPolicies.CRITICAL : RetryPolicies.BEST_EFFORT,
+  maxAttempts: handler.critical
+    ? RetryPolicies.CRITICAL.maxAttempts
+    : RetryPolicies.BEST_EFFORT.maxAttempts,
+  intervalSeconds: handler.critical
+    ? RetryPolicies.CRITICAL.intervalSeconds
+    : RetryPolicies.BEST_EFFORT.intervalSeconds,
+  backoffRate: handler.critical
+    ? RetryPolicies.CRITICAL.backoffRate
+    : RetryPolicies.BEST_EFFORT.backoffRate,
 })
 private async invokeHandler(
   event: DomainEvent,
@@ -1585,7 +1611,7 @@ export class EventStoreBrokerActions extends BrokerActions {
 │  Second emission: product.created eventId="evt-123" (DUPLICATE)             │
 │  │                                                                          │
 │  ▼                                                                          │
-│  DBOS.startWorkflow(EventDispatchWorkflow, "event:dispatch:...evt-123")     │
+│  DBOS.startWorkflow(EventDispatchWorkflow, { workflowID: "event:dispatch:...evt-123" }) │
 │  │                                                                          │
 │  │  ┌───────────────────────────────────────────┐                           │
 │  │  │ DBOS Workflow Idempotency:                │                           │
