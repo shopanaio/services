@@ -1224,107 +1224,7 @@ return {
 
 ---
 
-## Part 13: Security & Rate Limiting
-
-### Client Key Validation
-
-```typescript
-const CLIENT_KEY_LIMITS = {
-  MIN_LENGTH: 8,
-  MAX_LENGTH: 256,
-  ALLOWED_PATTERN: /^[a-zA-Z0-9_\-:.]+$/,
-} as const;
-
-function validateClientKey(key: string): { valid: boolean; error?: string } {
-  if (key.length < CLIENT_KEY_LIMITS.MIN_LENGTH) {
-    return { valid: false, error: `Key must be at least ${CLIENT_KEY_LIMITS.MIN_LENGTH} chars` };
-  }
-  if (key.length > CLIENT_KEY_LIMITS.MAX_LENGTH) {
-    return { valid: false, error: `Key must be at most ${CLIENT_KEY_LIMITS.MAX_LENGTH} chars` };
-  }
-  if (!CLIENT_KEY_LIMITS.ALLOWED_PATTERN.test(key)) {
-    return { valid: false, error: "Key contains invalid characters" };
-  }
-  return { valid: true };
-}
-```
-
-### Rate Limiting
-
-```typescript
-interface IdempotencyRateLimits {
-  /** Max unique keys per tenant per hour */
-  maxKeysPerTenantPerHour: number;
-  /** Max requests per key per minute (replay abuse) */
-  maxRequestsPerKeyPerMinute: number;
-  /** Max concurrent in-progress per tenant */
-  maxConcurrentPerTenant: number;
-}
-
-const RATE_LIMITS: IdempotencyRateLimits = {
-  maxKeysPerTenantPerHour: 10000,
-  maxRequestsPerKeyPerMinute: 60,
-  maxConcurrentPerTenant: 100,
-};
-
-async function checkRateLimits(
-  tenantId: string,
-  idempotencyKey: string
-): Promise<{ allowed: boolean; error?: string }> {
-  // 1. Check tenant key creation rate
-  const recentKeys = await redis.scard(`idempotency:keys:${tenantId}:${currentHour()}`);
-  if (recentKeys >= RATE_LIMITS.maxKeysPerTenantPerHour) {
-    return { allowed: false, error: "Too many unique idempotency keys" };
-  }
-
-  // 2. Check per-key request rate (replay spam)
-  const keyRequests = await redis.incr(`idempotency:requests:${idempotencyKey}:${currentMinute()}`);
-  if (keyRequests > RATE_LIMITS.maxRequestsPerKeyPerMinute) {
-    return { allowed: false, error: "Too many requests with same idempotency key" };
-  }
-
-  // 3. Check concurrent in-progress
-  const concurrent = await db.query.processedRequests.count({
-    where: and(
-      eq(processedRequests.tenantId, tenantId),
-      eq(processedRequests.status, "reserved")
-    ),
-  });
-  if (concurrent >= RATE_LIMITS.maxConcurrentPerTenant) {
-    return { allowed: false, error: "Too many concurrent operations" };
-  }
-
-  return { allowed: true };
-}
-```
-
-### Post-Completion Key Reuse Prevention
-
-```typescript
-// After TTL expires, key is deleted and can be reused
-// But within TTL, completed key with DIFFERENT payload = CONFLICT
-
-// Optional stricter mode: prevent ANY reuse after completion
-interface StrictModeConfig {
-  preventReuseAfterCompletion: boolean;
-}
-
-if (strictMode.preventReuseAfterCompletion && existing.status === "completed") {
-  // Even same payload gets rejected (force new key)
-  return {
-    result: null,
-    error: {
-      code: "KEY_ALREADY_USED",
-      message: "Idempotency key was already used. Generate a new key.",
-      retryable: false,
-    },
-  };
-}
-```
-
----
-
-## Part 14: DevX Helper
+## Part 13: DevX Helper
 
 ### withIdempotency Wrapper
 
@@ -1345,22 +1245,11 @@ export async function withIdempotency<TPayload, TResult>(
     return { result };
   }
 
-  // 2. Rate limit check (for client keys)
-  if (ctx.source === "client" && ctx.tenantId) {
-    const rateCheck = await checkRateLimits(ctx.tenantId, ctx.idempotencyKey);
-    if (!rateCheck.allowed) {
-      return {
-        result: null as TResult,
-        error: { code: "RATE_LIMITED", message: rateCheck.error!, retryable: false },
-      };
-    }
-  }
-
-  // 3. Try reserve
+  // 2. Try reserve
   const reservation = await helpers.tryReserve(ctx);
   let attemptOwner = reservation.attemptOwner;
 
-  // 4. Handle existing record
+  // 3. Handle existing record
   if (!reservation.acquired) {
     const existing = reservation.existing!;
 
@@ -1404,7 +1293,7 @@ export async function withIdempotency<TPayload, TResult>(
     }
   }
 
-  // 5. Execute
+  // 4. Execute
   try {
     const result = await execute(payload);
 
@@ -1442,7 +1331,7 @@ async createOrder(
 
 ---
 
-## Part 15: Observability
+## Part 14: Observability
 
 ### Metrics
 
@@ -1489,7 +1378,7 @@ type IdempotencyLogEvent =
 
 ---
 
-## Part 16: Summary Comparison
+## Part 15: Summary Comparison
 
 | Aspect | v2 | v3 (Final) |
 |--------|-----|------------|
@@ -1504,7 +1393,6 @@ type IdempotencyLogEvent =
 | Scoping | Global | Tenant + Service + Operation |
 | Result caching | Boolean | **Modes: full/minimal/receipt** |
 | In-progress response | Generic error | **retryAfterMs + leaseExpiresAt** |
-| Rate limiting | ❌ | ✅ Per-tenant + per-key |
 | Observability | Basic | **Full metrics + structured logs** |
 | DevX | Manual | **`withIdempotency()` helper** |
 | State machine | Implicit | **Explicit spec + transitions** |
