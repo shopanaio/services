@@ -204,6 +204,20 @@ export interface ActionError {
   retryable: boolean;
 }
 
+/**
+ * Minimal shape used by withIdempotency (service schema may include more fields).
+ */
+export interface ProcessedRequestRecord {
+  idempotencyKey: string;
+  status: "reserved" | "completed" | "failed";
+  payloadHash: string;
+  attempt: number;
+  result?: unknown;
+  resultCached: boolean;
+  leaseExpiresAt?: Date | null;
+  completedAt?: Date | null;
+}
+
 // ═══════════════════════════════════════════════════════════════════
 // SERVICE ERROR (for workflow-side throwing)
 // ═══════════════════════════════════════════════════════════════════
@@ -452,19 +466,19 @@ export {
 
 ## Phase 2: Database Schema
 
-### Step 2.1: Create Migration for processed_requests
+### Step 2.1: Add processed_requests Schema per Service
 
-This table needs to exist in **each service database** that uses idempotency.
+This table must exist in **each service database** that uses idempotency.
+Each service keeps its own Drizzle schema file (not a shared schema in the
+`@shopana/idempotency` package). The table lives in the service’s default
+schema (no shared `idempotency` schema namespace).
 
-**File: `packages/idempotency/src/schema.ts`**
+**File (example): `services/<service>/src/db/processedRequests.ts`**
 
 ```typescript
-import { pgSchema, text, boolean, integer, timestamp, jsonb, index } from "drizzle-orm/pg-core";
+import { pgTable, text, boolean, integer, timestamp, jsonb, index } from "drizzle-orm/pg-core";
 
-// Separate schema for idempotency data
-export const idempotencySchema = pgSchema("idempotency");
-
-export const processedRequests = idempotencySchema.table(
+export const processedRequests = pgTable(
   "processed_requests",
   {
     // Primary key
@@ -531,15 +545,13 @@ export type NewProcessedRequest = typeof processedRequests.$inferInsert;
 
 ### Step 2.2: SQL Migration Template
 
-**File: `packages/idempotency/migrations/0001_processed_requests.sql`**
+**File (per service): `services/<service>/migrations/0001_processed_requests.sql`**
 
 ```sql
 -- Idempotency tracking table
 -- Copy this to each service that needs idempotency support
 
-CREATE SCHEMA IF NOT EXISTS idempotency;
-
-CREATE TABLE IF NOT EXISTS idempotency.processed_requests (
+CREATE TABLE IF NOT EXISTS processed_requests (
   idempotency_key TEXT PRIMARY KEY,
 
   source TEXT NOT NULL CHECK (source IN ('client', 'workflow', 'content')),
@@ -578,11 +590,11 @@ CREATE TABLE IF NOT EXISTS idempotency.processed_requests (
   expires_at TIMESTAMPTZ
 );
 
-CREATE INDEX IF NOT EXISTS idx_pr_project_client ON idempotency.processed_requests(project_id, client_key) WHERE source = 'client';
-CREATE INDEX IF NOT EXISTS idx_pr_workflow ON idempotency.processed_requests(workflow_id, step_id) WHERE source = 'workflow';
-CREATE INDEX IF NOT EXISTS idx_pr_resource ON idempotency.processed_requests(resource_id, action) WHERE source = 'content';
-CREATE INDEX IF NOT EXISTS idx_pr_cleanup ON idempotency.processed_requests(expires_at) WHERE expires_at IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_pr_lease ON idempotency.processed_requests(status, lease_expires_at) WHERE status = 'reserved';
+CREATE INDEX IF NOT EXISTS idx_pr_project_client ON processed_requests(project_id, client_key) WHERE source = 'client';
+CREATE INDEX IF NOT EXISTS idx_pr_workflow ON processed_requests(workflow_id, step_id) WHERE source = 'workflow';
+CREATE INDEX IF NOT EXISTS idx_pr_resource ON processed_requests(resource_id, action) WHERE source = 'content';
+CREATE INDEX IF NOT EXISTS idx_pr_cleanup ON processed_requests(expires_at) WHERE expires_at IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_pr_lease ON processed_requests(status, lease_expires_at) WHERE status = 'reserved';
 ```
 
 ---
@@ -593,11 +605,13 @@ CREATE INDEX IF NOT EXISTS idx_pr_lease ON idempotency.processed_requests(status
 
 **File: `packages/idempotency/src/repository.ts`**
 
+Repository expects the service-local `processedRequests` table to be provided
+via constructor (schema lives in each service).
+
 ```typescript
 import { eq, sql, and, lt } from "drizzle-orm";
 import type { PgDatabase } from "drizzle-orm/pg-core";
-import { processedRequests, type ProcessedRequest } from "./schema.js";
-import type { ActionContext } from "./types.js";
+import type { ActionContext, ProcessedRequestRecord } from "./types.js";
 import { generateLeaseOwner } from "./utils.js";
 
 const LEASE_MS = 5 * 60 * 1000; // 5 minutes
@@ -614,7 +628,10 @@ export interface ClaimResult {
 }
 
 export class IdempotencyRepository {
-  constructor(private readonly db: PgDatabase<any, any, any>) {}
+  constructor(
+    private readonly db: PgDatabase<any, any, any>,
+    private readonly processedRequests: any
+  ) {}
 
   private leaseExpiry(): Date {
     return new Date(Date.now() + LEASE_MS);
@@ -627,7 +644,7 @@ export class IdempotencyRepository {
     const attemptOwner = generateLeaseOwner();
 
     const insertResult = await this.db.execute(sql`
-      INSERT INTO idempotency.processed_requests (
+      INSERT INTO processed_requests (
         idempotency_key, source, project_id, client_key, api_key_id,
         workflow_id, step_id, call_id, resource_id,
         service, action, operation_type, payload_hash,
@@ -651,11 +668,11 @@ export class IdempotencyRepository {
     // Conflict - load existing
     const existing = await this.db
       .select()
-      .from(processedRequests)
-      .where(eq(processedRequests.idempotencyKey, ctx.idempotencyKey))
+      .from(this.processedRequests)
+      .where(eq(this.processedRequests.idempotencyKey, ctx.idempotencyKey))
       .limit(1);
 
-    return { acquired: false, existing: existing[0] };
+    return { acquired: false, existing: existing[0] as ProcessedRequestRecord };
   }
 
   /**
@@ -665,7 +682,7 @@ export class IdempotencyRepository {
     const attemptOwner = generateLeaseOwner();
 
     const result = await this.db.execute(sql`
-      UPDATE idempotency.processed_requests
+      UPDATE processed_requests
       SET lease_owner = ${attemptOwner},
           lease_expires_at = ${this.leaseExpiry()},
           attempt = attempt + 1,
@@ -688,7 +705,7 @@ export class IdempotencyRepository {
     const attemptOwner = generateLeaseOwner();
 
     const result = await this.db.execute(sql`
-      UPDATE idempotency.processed_requests
+      UPDATE processed_requests
       SET status = 'reserved',
           lease_owner = ${attemptOwner},
           lease_expires_at = ${this.leaseExpiry()},
@@ -716,7 +733,7 @@ export class IdempotencyRepository {
     const expiresAt = new Date(Date.now() + ttlMs);
 
     const updateResult = await this.db.execute(sql`
-      UPDATE idempotency.processed_requests
+      UPDATE processed_requests
       SET status = 'completed',
           result = ${cacheResult ? JSON.stringify(result) : null},
           result_cached = ${cacheResult && result !== undefined},
@@ -746,7 +763,7 @@ export class IdempotencyRepository {
     const expiresAt = new Date(Date.now() + ttlMs);
 
     const updateResult = await this.db.execute(sql`
-      UPDATE idempotency.processed_requests
+      UPDATE processed_requests
       SET status = 'failed',
           last_error = ${errorInfo},
           updated_at = NOW(),
@@ -768,10 +785,10 @@ export class IdempotencyRepository {
    */
   async cleanup(batchSize: number = 1000): Promise<number> {
     const result = await this.db.execute(sql`
-      DELETE FROM idempotency.processed_requests
+      DELETE FROM processed_requests
       WHERE idempotency_key IN (
         SELECT idempotency_key
-        FROM idempotency.processed_requests
+        FROM processed_requests
         WHERE expires_at IS NOT NULL AND expires_at < NOW()
         LIMIT ${batchSize}
       )
@@ -796,7 +813,7 @@ import type {
   ActionContext,
   ActionResponse,
   ActionError,
-  ProcessedRequest,
+  ProcessedRequestRecord,
 } from "./types.js";
 import type { IdempotencyRepository } from "./repository.js";
 
@@ -999,9 +1016,6 @@ function mapToActionError(error: unknown): ActionError {
 
 ```typescript
 // ... existing exports ...
-
-// Schema
-export { processedRequests, type ProcessedRequest, type NewProcessedRequest } from "./schema.js";
 
 // Repository
 export { IdempotencyRepository, type ReservationResult, type ClaimResult } from "./repository.js";
@@ -1349,13 +1363,14 @@ import {
   OperationPresets,
   IdempotencyRepository,
 } from "@shopana/idempotency";
+import { processedRequests } from "./db/processedRequests.js";
 
 export class IamBrokerActions extends BrokerActions {
   private readonly idempotencyRepo: IdempotencyRepository;
 
   constructor(/* ... */) {
     super(/* ... */);
-    this.idempotencyRepo = new IdempotencyRepository(this.db);
+    this.idempotencyRepo = new IdempotencyRepository(this.db, processedRequests);
   }
 
   protected getIdempotencyRepo(): IdempotencyRepository | undefined {
@@ -2240,7 +2255,6 @@ export class DLQCleanupJob {
 | `packages/idempotency/src/types.ts` | Core types |
 | `packages/idempotency/src/utils.ts` | Utility functions |
 | `packages/idempotency/src/context.ts` | Context builders |
-| `packages/idempotency/src/schema.ts` | Drizzle schema |
 | `packages/idempotency/src/repository.ts` | DB operations |
 | `packages/idempotency/src/withIdempotency.ts` | Main helper |
 | `packages/idempotency/src/cleanup.ts` | Cleanup job |
@@ -2273,7 +2287,8 @@ export class DLQCleanupJob {
 | `packages/shared-kernel/src/broker/ServiceBroker.ts` | Add `fire()` method |
 | `packages/shared-kernel/src/decorators/index.ts` | Export `Fire` decorator |
 | `packages/shared-kernel/src/broker/BrokerActions.ts` | Register `__fire` handlers via `@Fire` |
-| `services/*/migrations/` | Add `processed_requests` table |
+| `services/<service>/src/db/processedRequests.ts` | Service-local processed_requests table |
+| `services/*/migrations/` | Add `processed_requests` table per service |
 | `services/*/src/*BrokerActions.ts` | Add `@Fire` handlers |
 | `services/*/src/workflows/*.ts` | Use `broker.fire()` with context |
 
