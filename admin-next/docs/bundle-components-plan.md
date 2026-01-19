@@ -52,6 +52,11 @@ export const outOfStockBehaviorEnum = inventorySchema.enum("out_of_stock_behavio
   "disable",
   "backorder",
 ]);
+
+export const tieredDiscountBasisEnum = inventorySchema.enum("tiered_discount_basis", [
+  "UNIQUE_ITEMS",    // Count of distinct selected items
+  "TOTAL_QUANTITY",  // Sum of quantities across all selected items
+]);
 ```
 
 ### Tables
@@ -141,11 +146,15 @@ export const componentGroup = inventorySchema.table(
     title: varchar("title", { length: 255 }).notNull(),
     sortIndex: integer("sort_index").notNull().default(0),
 
-    // Selection rules
+    // Selection rules (how many DIFFERENT items can be selected)
     isRequired: boolean("is_required").notNull().default(false),
     isMultiple: boolean("is_multiple").notNull().default(false),
-    minSelection: integer("min_selection"),
-    maxSelection: integer("max_selection"),
+    minSelection: integer("min_selection"), // Min unique items to select
+    maxSelection: integer("max_selection"), // Max unique items to select
+
+    // Total quantity rules (sum of quantities across all selected items)
+    minTotalQuantity: integer("min_total_quantity"), // Min total units (e.g., "pick at least 5 items total")
+    maxTotalQuantity: integer("max_total_quantity"), // Max total units (e.g., "pick up to 10 items total")
 
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -166,6 +175,17 @@ export const componentGroup = inventorySchema.table(
           table.minSelection.isNull()
             .or(table.maxSelection.isNull())
             .or(table.minSelection.lte(table.maxSelection))
+        )
+    ),
+    // Total quantity constraints
+    check(
+      "component_group_min_max_total_quantity_valid",
+      table.minTotalQuantity.isNull().or(table.minTotalQuantity.gte(1))
+        .and(table.maxTotalQuantity.isNull().or(table.maxTotalQuantity.gte(1)))
+        .and(
+          table.minTotalQuantity.isNull()
+            .or(table.maxTotalQuantity.isNull())
+            .or(table.minTotalQuantity.lte(table.maxTotalQuantity))
         )
     ),
   ]
@@ -247,6 +267,12 @@ export const componentItem = inventorySchema.table(
     assignedVariantId: uuid("assigned_variant_id")
       .references(() => variant.id, { onDelete: "cascade" }),
 
+    // Quantity settings
+    quantity: integer("quantity").notNull().default(1), // Default/fixed quantity per item
+    isQuantityAdjustable: boolean("is_quantity_adjustable").notNull().default(false),
+    minQuantity: integer("min_quantity"), // Min if adjustable (null = 1)
+    maxQuantity: integer("max_quantity"), // Max if adjustable (null = unlimited)
+
     // Pricing (inline or template reference)
     pricingTemplateId: uuid("pricing_template_id")
       .references(() => pricingRuleTemplate.id, { onDelete: "set null" }),
@@ -325,6 +351,34 @@ export const componentItem = inventorySchema.table(
           table.priceValue.gte(0).and(table.priceValue.lte(100))
         )
     ),
+    // Quantity must be >= 1
+    check(
+      "component_item_quantity_positive",
+      table.quantity.gte(1)
+    ),
+    // Quantity validation when adjustable
+    check(
+      "component_item_quantity_adjustable_valid",
+      // If not adjustable, min/max should be null
+      table.isQuantityAdjustable.eq(false)
+        .and(table.minQuantity.isNull())
+        .and(table.maxQuantity.isNull())
+        .or(
+          // If adjustable, validate min/max ranges
+          table.isQuantityAdjustable.eq(true)
+            .and(
+              table.minQuantity.isNull().or(table.minQuantity.gte(1))
+            )
+            .and(
+              table.maxQuantity.isNull().or(table.maxQuantity.gte(1))
+            )
+            .and(
+              table.minQuantity.isNull()
+                .or(table.maxQuantity.isNull())
+                .or(table.minQuantity.lte(table.maxQuantity))
+            )
+        )
+    ),
   ]
 );
 
@@ -366,22 +420,28 @@ export const packageTieredDiscount = inventorySchema.table(
       .notNull()
       .references(() => packageSettings.id, { onDelete: "cascade" }),
 
-    minItems: integer("min_items").notNull(),
+    // What to count for the threshold
+    basis: tieredDiscountBasisEnum("basis").notNull().default("TOTAL_QUANTITY"),
+
+    // Threshold value (interpretation depends on basis)
+    minCount: integer("min_count").notNull(), // renamed from minItems for clarity
     discountPercent: numeric("discount_percent", { precision: 5, scale: 2 }).notNull(),
   },
   (table) => [
     index("idx_package_tiered_discount_package_id").on(table.packageSettingsId),
+    // Unique per package + basis + threshold (allows different rules for UNIQUE_ITEMS vs TOTAL_QUANTITY)
     unique("package_tiered_discount_unique").on(
       table.packageSettingsId,
-      table.minItems
+      table.basis,
+      table.minCount
     ),
     check(
       "package_tiered_discount_percent_range",
       table.discountPercent.gte(0).and(table.discountPercent.lte(100))
     ),
     check(
-      "package_tiered_discount_min_items_positive",
-      table.minItems.gte(1)
+      "package_tiered_discount_min_count_positive",
+      table.minCount.gte(1)
     ),
   ]
 );
@@ -452,6 +512,16 @@ enum OutOfStockBehavior {
   backorder
 }
 
+"""
+Basis for calculating tiered discount threshold.
+"""
+enum TieredDiscountBasis {
+  """Count distinct selected items (positions)."""
+  UNIQUE_ITEMS
+  """Sum of quantities across all selected items (total units)."""
+  TOTAL_QUANTITY
+}
+
 # ============================================================================
 # Types
 # ============================================================================
@@ -474,19 +544,49 @@ union ComponentPricingRule = PricingRuleTemplate | InlinePricingRule
 
 """
 Selection rules for a component group.
+Controls how many DIFFERENT items can be selected from the group.
 """
-type ComponentGroupRules {
+type ComponentGroupSelectionRules {
   """Whether selection from this group is required."""
   isRequired: Boolean!
 
   """Whether multiple items can be selected."""
   isMultiple: Boolean!
 
-  """Minimum number of selections (if multiple)."""
+  """Minimum number of unique items to select (if multiple)."""
   minSelection: Int
 
-  """Maximum number of selections (if multiple)."""
+  """Maximum number of unique items to select (if multiple)."""
   maxSelection: Int
+}
+
+"""
+Total quantity rules for a component group.
+Controls the SUM of quantities across all selected items.
+"""
+type ComponentGroupQuantityRules {
+  """Minimum total units required (e.g., "pick at least 5 items total")."""
+  minTotalQuantity: Int
+
+  """Maximum total units allowed (e.g., "pick up to 10 items total")."""
+  maxTotalQuantity: Int
+}
+
+"""
+Quantity settings for a component item.
+"""
+type ComponentItemQuantitySettings {
+  """Default/fixed quantity of this item when selected."""
+  quantity: Int!
+
+  """Whether the customer can adjust the quantity."""
+  isAdjustable: Boolean!
+
+  """Minimum quantity allowed (when adjustable). Null means 1."""
+  minQuantity: Int
+
+  """Maximum quantity allowed (when adjustable). Null means unlimited."""
+  maxQuantity: Int
 }
 
 """
@@ -565,8 +665,11 @@ type ComponentGroup implements Node @key(fields: "id") {
   """Sort order within the package."""
   sortIndex: Int!
 
-  """Selection rules for this group."""
-  rules: ComponentGroupRules!
+  """Selection rules (how many DIFFERENT items can be selected)."""
+  selectionRules: ComponentGroupSelectionRules!
+
+  """Total quantity rules (sum of quantities across selected items)."""
+  quantityRules: ComponentGroupQuantityRules!
 
   """Items in this group."""
   items: [ComponentItem!]!
@@ -593,6 +696,9 @@ type ComponentItem implements Node @key(fields: "id") {
 
   """Sort order within the group."""
   sortIndex: Int!
+
+  """Quantity settings for this item."""
+  quantitySettings: ComponentItemQuantitySettings!
 
   """Pricing rule configuration."""
   pricingRule: ComponentPricingRule!
@@ -628,8 +734,11 @@ type TieredDiscount implements Node @key(fields: "id") {
   """The globally unique ID."""
   id: ID!
 
-  """Minimum items to qualify."""
-  minItems: Int!
+  """What to count for the threshold."""
+  basis: TieredDiscountBasis!
+
+  """Minimum count to qualify (interpretation depends on basis)."""
+  minCount: Int!
 
   """Discount percentage."""
   discountPercent: Decimal!
@@ -651,6 +760,23 @@ input ComponentPricingRuleInput {
 
   """Price value (for types that require it)."""
   priceValue: Decimal
+}
+
+"""
+Input for quantity settings.
+"""
+input ComponentItemQuantityInput {
+  """Default/fixed quantity of this item when selected. Default: 1."""
+  quantity: Int
+
+  """Whether the customer can adjust the quantity. Default: false."""
+  isAdjustable: Boolean
+
+  """Minimum quantity allowed (when adjustable). Null means 1."""
+  minQuantity: Int
+
+  """Maximum quantity allowed (when adjustable). Null means unlimited."""
+  maxQuantity: Int
 }
 
 """
@@ -679,6 +805,9 @@ input ComponentItemInput {
   """Variant ID (required for VARIANT type)."""
   assignedVariantId: ID
 
+  """Quantity settings. If not provided, defaults to quantity=1, not adjustable."""
+  quantitySettings: ComponentItemQuantityInput
+
   """Pricing rule configuration."""
   pricingRule: ComponentPricingRuleInput!
 
@@ -706,17 +835,25 @@ input ComponentGroupInput {
   """Sort order within the package."""
   sortIndex: Int!
 
+  # Selection rules (how many DIFFERENT items)
   """Whether selection from this group is required."""
   isRequired: Boolean!
 
   """Whether multiple items can be selected."""
   isMultiple: Boolean!
 
-  """Minimum number of selections (null = no minimum)."""
+  """Minimum number of unique items to select (null = no minimum)."""
   minSelection: Int
 
-  """Maximum number of selections (null = no maximum)."""
+  """Maximum number of unique items to select (null = no maximum)."""
   maxSelection: Int
+
+  # Total quantity rules (sum of quantities)
+  """Minimum total units across all selected items (null = no minimum)."""
+  minTotalQuantity: Int
+
+  """Maximum total units across all selected items (null = no maximum)."""
+  maxTotalQuantity: Int
 
   """Items in this group (replaces all items)."""
   items: [ComponentItemInput!]!
@@ -743,8 +880,11 @@ input PricingRuleTemplateInput {
 Input for tiered discount.
 """
 input TieredDiscountInput {
-  """Minimum items to qualify."""
-  minItems: Int!
+  """What to count for the threshold. Default: TOTAL_QUANTITY."""
+  basis: TieredDiscountBasis
+
+  """Minimum count to qualify (interpretation depends on basis)."""
+  minCount: Int!
 
   """Discount percentage."""
   discountPercent: Decimal!
@@ -918,8 +1058,11 @@ extend type Product {
 Product (1) ──────────── (0..1) PackageSettings
                               │
                               ├── (1..*) ComponentGroup
+                              │         │  - selectionRules: minSelection, maxSelection
+                              │         │  - quantityRules: minTotalQuantity, maxTotalQuantity
                               │         │
                               │         └── (1..*) ComponentItem
+                              │                   │  - quantitySettings: quantity, isAdjustable, min/max
                               │                   │
                               │                   ├── → Product (PRODUCT type)
                               │                   │    └── ComponentItemExcludedVariant
@@ -929,6 +1072,8 @@ Product (1) ──────────── (0..1) PackageSettings
                               │                   └── → PricingRuleTemplate (optional)
                               │
                               └── (0..*) PackageTieredDiscount
+                                         - basis: UNIQUE_ITEMS | TOTAL_QUANTITY
+                                         - minCount, discountPercent
 
 PricingRuleTemplate (shared across project)
 ```
@@ -939,25 +1084,53 @@ PricingRuleTemplate (shared across project)
 
 1. **packageSettings** - связь 1:1 с product. Если у продукта есть packageSettings, он считается пакетом.
 
-2. **componentGroup** - группа компонентов с правилами выбора (обязательный/множественный выбор).
+2. **componentGroup** - группа компонентов с двумя типами лимитов:
+
+   | Лимит | Что контролирует | Поля |
+   |-------|-----------------|------|
+   | **Selection** | Сколько **разных позиций** можно выбрать | `minSelection`, `maxSelection` |
+   | **Total Quantity** | Сколько **штук суммарно** можно выбрать | `minTotalQuantity`, `maxTotalQuantity` |
+
+   **Примеры бизнес-кейсов:**
+   - "Выбери 1-3 разных напитка" → `minSelection=1, maxSelection=3`
+   - "Выбери всего 5 штук из списка" → `minTotalQuantity=5, maxTotalQuantity=5`
+   - "Выбери 2-4 разных товара, но не более 10 штук всего" → `minSelection=2, maxSelection=4, maxTotalQuantity=10`
 
 3. **componentItem** - элемент группы, может быть либо PRODUCT (все варианты), либо VARIANT (конкретный вариант).
 
-4. **Pricing** - может использовать шаблон (pricingTemplateId) или inline значения (priceType + priceValue).
+4. **Quantity per Item** - каждый `componentItem` имеет настройки количества:
+   - `quantity` - базовое/фиксированное количество единиц товара при выборе (например, "2 футболки")
+   - `isQuantityAdjustable` - может ли покупатель изменять количество
+   - `minQuantity` / `maxQuantity` - диапазон допустимого количества (только если adjustable=true)
 
-5. **excludedVariants** - для PRODUCT типа можно исключить определенные варианты из выбора.
+   **Примеры использования:**
+   - Фиксированный набор: `quantity=2, isAdjustable=false` → "В комплект входит 2 носка"
+   - Настраиваемое количество: `quantity=1, isAdjustable=true, minQuantity=1, maxQuantity=5` → "Выберите от 1 до 5 штук"
 
-6. **Validation rules**:
+5. **Pricing** - может использовать шаблон (pricingTemplateId) или inline значения (priceType + priceValue). Цена применяется **за единицу товара**, итоговая цена = priceValue × quantity.
+
+6. **Tiered Discount** - теперь с явным `basis`:
+   - `UNIQUE_ITEMS` - скидка по количеству выбранных позиций ("выбери 3 разных товара — скидка 10%")
+   - `TOTAL_QUANTITY` - скидка по общему количеству штук ("купи 5 штук — скидка 10%")
+
+   **Default: TOTAL_QUANTITY** — это более привычная логика для большинства мерчантов.
+
+7. **excludedVariants** - для PRODUCT типа можно исключить определенные варианты из выбора.
+
+8. **Validation rules**:
    - `component_item`:
-     - `item_type = PRODUCT` -> `assigned_product_id` is not null and `assigned_variant_id` is null.
-     - `item_type = VARIANT` -> `assigned_variant_id` is not null and `assigned_product_id` is null.
-     - Pricing: либо `pricing_template_id` (и тогда `price_type`/`price_value` null), либо inline `price_type` (а `price_value` обязателен для типов, где он нужен).
-   - `component_group`: `min_selection >= 0`, `max_selection >= 1`, `min_selection <= max_selection` (если оба заданы).
-   - `package_tiered_discount`: `min_items >= 1`, `discount_percent` в диапазоне 0..100.
+     - `item_type = PRODUCT` → `assigned_product_id` is not null and `assigned_variant_id` is null.
+     - `item_type = VARIANT` → `assigned_variant_id` is not null and `assigned_product_id` is null.
+     - Pricing: либо `pricing_template_id` (и тогда `price_type`/`price_value` null), либо inline `price_type`.
+     - Quantity: `quantity >= 1`; если `is_quantity_adjustable = false` → `min/max_quantity` должны быть NULL.
+   - `component_group`:
+     - Selection: `min_selection >= 0`, `max_selection >= 1`, `min <= max` (если оба заданы).
+     - Total Quantity: `min_total_quantity >= 1`, `max_total_quantity >= 1`, `min <= max` (если оба заданы).
+   - `package_tiered_discount`: `min_count >= 1`, `discount_percent` в диапазоне 0..100.
    - Все enum-поля в БД совпадают с GraphQL enum значениями.
    - `pricing_template_id` должен принадлежать тому же `project_id`, что и `component_item` (валидация на уровне сервиса).
 
-7. **Bulk mutation (Replace All)** - единственная мутация `packageUpdate`:
+9. **Bulk mutation (Replace All)** - единственная мутация `packageUpdate`:
    - Фронтенд отправляет полное состояние (groups с items, templates, discounts, settings)
    - Бэкенд сравнивает с существующими данными и определяет что создать/обновить/удалить
    - ID handling:
@@ -1007,24 +1180,107 @@ function validatePricingRule(priceType: ComponentPriceType, priceValue: Decimal 
 }
 ```
 
-### 2. ComponentGroupRules: isMultiple ↔ min/max
+### 2. Quantity Settings Validation
 
-| isMultiple | isRequired | Expected min/max |
-|------------|------------|------------------|
-| `false` | `false` | min=NULL, max=NULL (0 or 1 selection) |
-| `false` | `true` | min=NULL, max=NULL (exactly 1 selection) |
-| `true` | `false` | min=0 or NULL, max=any (0 to N selections) |
-| `true` | `true` | min≥1, max=any (1 to N selections) |
+| isAdjustable | quantity | minQuantity | maxQuantity |
+|--------------|----------|-------------|-------------|
+| `false` | ≥1 (fixed) | **must be NULL** | **must be NULL** |
+| `true` | ≥1 (default) | NULL or ≥1 | NULL or ≥1, ≥minQuantity |
 
 ```typescript
-function validateGroupRules(
-  isMultiple: boolean,
-  isRequired: boolean,
-  minSelection: number | null,
-  maxSelection: number | null
+function validateQuantitySettings(
+  quantity: number,
+  isAdjustable: boolean,
+  minQuantity: number | null,
+  maxQuantity: number | null
 ): UserError[] {
   const errors: UserError[] = [];
 
+  // Quantity must be at least 1
+  if (quantity < 1) {
+    errors.push({
+      field: "quantitySettings.quantity",
+      message: "Quantity must be at least 1"
+    });
+  }
+
+  if (!isAdjustable) {
+    // Fixed quantity mode: min/max should be null
+    if (minQuantity !== null || maxQuantity !== null) {
+      errors.push({
+        field: "quantitySettings.minQuantity",
+        message: "min/maxQuantity should be null when isAdjustable=false"
+      });
+    }
+  } else {
+    // Adjustable mode
+    if (minQuantity !== null && minQuantity < 1) {
+      errors.push({
+        field: "quantitySettings.minQuantity",
+        message: "minQuantity must be at least 1"
+      });
+    }
+
+    if (maxQuantity !== null && maxQuantity < 1) {
+      errors.push({
+        field: "quantitySettings.maxQuantity",
+        message: "maxQuantity must be at least 1"
+      });
+    }
+
+    if (minQuantity !== null && maxQuantity !== null && minQuantity > maxQuantity) {
+      errors.push({
+        field: "quantitySettings.minQuantity",
+        message: "minQuantity cannot exceed maxQuantity"
+      });
+    }
+
+    // Default quantity should be within min/max range
+    const effectiveMin = minQuantity ?? 1;
+    const effectiveMax = maxQuantity ?? Infinity;
+    if (quantity < effectiveMin || quantity > effectiveMax) {
+      errors.push({
+        field: "quantitySettings.quantity",
+        message: `Default quantity must be between ${effectiveMin} and ${effectiveMax === Infinity ? 'unlimited' : effectiveMax}`
+      });
+    }
+  }
+
+  return errors;
+}
+```
+
+### 3. ComponentGroupRules: Selection vs Total Quantity
+
+**Selection Rules** (сколько РАЗНЫХ позиций):
+
+| isMultiple | isRequired | Expected minSelection/maxSelection |
+|------------|------------|-----------------------------------|
+| `false` | `false` | NULL, NULL (0 or 1 selection) |
+| `false` | `true` | NULL, NULL (exactly 1 selection) |
+| `true` | `false` | 0 or NULL, any (0 to N selections) |
+| `true` | `true` | ≥1, any (1 to N selections) |
+
+**Total Quantity Rules** (сколько ШТУК суммарно):
+- Независимы от isMultiple/isRequired
+- `minTotalQuantity` и `maxTotalQuantity` могут быть NULL (без ограничений)
+- Если заданы оба: `min <= max`
+
+```typescript
+interface GroupRulesInput {
+  isMultiple: boolean;
+  isRequired: boolean;
+  minSelection: number | null;
+  maxSelection: number | null;
+  minTotalQuantity: number | null;
+  maxTotalQuantity: number | null;
+}
+
+function validateGroupRules(input: GroupRulesInput): UserError[] {
+  const errors: UserError[] = [];
+  const { isMultiple, isRequired, minSelection, maxSelection, minTotalQuantity, maxTotalQuantity } = input;
+
+  // === Selection Rules ===
   if (!isMultiple) {
     // Single selection mode: min/max should be null (implicitly 0-1 or exactly 1)
     if (minSelection !== null || maxSelection !== null) {
@@ -1043,11 +1299,33 @@ function validateGroupRules(
     }
   }
 
+  // === Total Quantity Rules ===
+  if (minTotalQuantity !== null && minTotalQuantity < 1) {
+    errors.push({
+      field: "minTotalQuantity",
+      message: "minTotalQuantity must be at least 1"
+    });
+  }
+
+  if (maxTotalQuantity !== null && maxTotalQuantity < 1) {
+    errors.push({
+      field: "maxTotalQuantity",
+      message: "maxTotalQuantity must be at least 1"
+    });
+  }
+
+  if (minTotalQuantity !== null && maxTotalQuantity !== null && minTotalQuantity > maxTotalQuantity) {
+    errors.push({
+      field: "minTotalQuantity",
+      message: "minTotalQuantity cannot exceed maxTotalQuantity"
+    });
+  }
+
   return errors;
 }
 ```
 
-### 3. excludedVariants: принадлежность assignedProduct
+### 4. excludedVariants: принадлежность assignedProduct
 
 FK не может гарантировать, что variant принадлежит assignedProduct. Проверяем на уровне сервиса:
 
@@ -1089,7 +1367,7 @@ async function validateExcludedVariants(
 }
 ```
 
-### 4. projectId Cross-Validation
+### 5. projectId Cross-Validation
 
 Все связанные сущности должны принадлежать одному projectId:
 
