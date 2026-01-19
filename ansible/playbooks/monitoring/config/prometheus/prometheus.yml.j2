@@ -79,21 +79,3 @@ scrape_configs:
     scrape_timeout: {{ moleculer_scrape_timeout | default('10s') }}
 {% endfor %}
 {% endif %}
-
-  # Apollo Router services metrics
-{% if apollo_services is defined and apollo_services | length > 0 %}
-{% for service in apollo_services %}
-  - job_name: '{{ service.name }}'
-    static_configs:
-      - targets: ['{{ service.host }}:{{ service.metrics_port }}']
-        labels:
-          service: '{{ service.name }}'
-          service_type: 'apollo-router'
-          namespace: '{{ service.namespace | default("shopana") }}'
-{% if service.metrics_path is defined %}
-    metrics_path: '{{ service.metrics_path }}'
-{% endif %}
-    scrape_interval: {{ moleculer_scrape_interval | default('15s') }}
-    scrape_timeout: {{ moleculer_scrape_timeout | default('10s') }}
-{% endfor %}
-{% endif %}

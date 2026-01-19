@@ -30,7 +30,7 @@ admin/
 ```yaml
 admin_env: production
 admin_subdomain: "admin.shopana.io"
-admin_api_url: "http://apollo-router-admin:4000/graphql"
+admin_api_url: "http://admin-api:4000/graphql"
 admin_container_port: 80
 admin_traefik_enabled: true
 ```
@@ -225,11 +225,11 @@ ansible-playbook ansible/playbooks/admin/deploy.yml \
 ┌──────────────▼───────────────────────┐
 │     Admin Container (Port 80)        │
 │  - Nginx serving React app           │
-│  - API calls to Apollo Router        │
+│  - API calls to GraphQL API          │
 └──────────────┬───────────────────────┘
                │
 ┌──────────────▼───────────────────────┐
-│   Apollo Router Admin (Port 4000)    │
+│   Admin GraphQL API (Port 4000)      │
 │  - GraphQL Gateway                   │
 └──────────────────────────────────────┘
 ```
@@ -241,4 +241,4 @@ ansible-playbook ansible/playbooks/admin/deploy.yml \
 - API URL is configured at build time via build args
 - Traefik automatically discovers the container via Docker labels
 - Container runs nginx on port 80 serving the built React application
-- All GraphQL requests are proxied to Apollo Router Admin API
+- All GraphQL requests are proxied to Admin GraphQL API

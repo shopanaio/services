@@ -3,7 +3,7 @@ import { InventoryType } from "./InventoryType.js";
 
 /**
  * File reference for federation.
- * Returns { __typename: "File", id: string } for Apollo Router to resolve.
+ * Returns { __typename: "File", id: string } for the federation gateway to resolve.
  */
 interface FileReference {
   __typename: "File";
@@ -37,7 +37,7 @@ export class ProductSeoResolver extends InventoryType<ProductSeoModel, ProductSe
 
   /**
    * Returns File reference for federation resolution.
-   * Apollo Router will resolve this to the actual File entity.
+   * The federation gateway will resolve this to the actual File entity.
    */
   ogImage(): FileReference | null {
     if (!this.$props.ogImageId) return null;
