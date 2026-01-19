@@ -144,7 +144,7 @@ export interface ActionContext {
   operation: OperationConfig;
 
   // === Scope ===
-  tenantId?: string;
+  projectId?: string;
 
   // === Workflow source fields ===
   workflowId?: string;
@@ -300,7 +300,7 @@ export function buildWorkflowContext<TPayload>(
   action: string,
   payload: TPayload,
   operation: OperationConfig = OperationPresets.CREATE,
-  tenantId?: string
+  projectId?: string
 ): ActionContext {
   const keyParts = [workflowId, stepId, callId, service, action];
   const idempotencyKey = sha256(keyParts.join(":"));
@@ -317,7 +317,7 @@ export function buildWorkflowContext<TPayload>(
     workflowId,
     stepId,
     callId,
-    tenantId,
+    projectId,
   };
 }
 
@@ -327,14 +327,14 @@ export function buildWorkflowContext<TPayload>(
  */
 export function buildClientContext<TPayload>(
   clientKey: string,
-  tenantId: string,
+  projectId: string,
   service: string,
   action: string,
   payload: TPayload,
   operation: OperationConfig = OperationPresets.CREATE,
   apiKeyId?: string
 ): ActionContext {
-  const keyParts = [tenantId, apiKeyId ?? "default", service, action, clientKey];
+  const keyParts = [projectId, apiKeyId ?? "default", service, action, clientKey];
   const idempotencyKey = sha256(keyParts.join(":"));
   const payloadHash = sha256(canonicalJson(payload));
 
@@ -346,7 +346,7 @@ export function buildClientContext<TPayload>(
     service,
     action,
     operation,
-    tenantId,
+    projectId,
     clientKey,
     apiKeyId,
   };
@@ -362,7 +362,7 @@ export function buildContentContext<TPayload>(
   action: string,
   payload: TPayload,
   operation: OperationConfig = OperationPresets.UPDATE,
-  tenantId?: string
+  projectId?: string
 ): ActionContext {
   const payloadHash = sha256(canonicalJson(payload));
   const keyParts = [resourceId, service, action, payloadHash];
@@ -377,7 +377,7 @@ export function buildContentContext<TPayload>(
     action,
     operation,
     resourceId,
-    tenantId,
+    projectId,
   };
 }
 
@@ -392,7 +392,7 @@ export function buildEventHandlerContext(
   action: string,
   eventPayload: unknown,
   operation: OperationConfig = OperationPresets.CREATE,
-  tenantId?: string
+  projectId?: string
 ): ActionContext {
   const keyParts = ["event", eventType, eventId, service, action];
   const idempotencyKey = sha256(keyParts.join(":"));
@@ -409,7 +409,7 @@ export function buildEventHandlerContext(
     workflowId: `event:dispatch:${eventType}:${eventId}`,
     stepId: `invoke:${service}:${action}`,
     callId: eventId,
-    tenantId,
+    projectId,
   };
 }
 ```
@@ -459,9 +459,12 @@ This table needs to exist in **each service database** that uses idempotency.
 **File: `packages/idempotency/src/schema.ts`**
 
 ```typescript
-import { pgTable, text, boolean, integer, timestamp, jsonb, index } from "drizzle-orm/pg-core";
+import { pgSchema, text, boolean, integer, timestamp, jsonb, index } from "drizzle-orm/pg-core";
 
-export const processedRequests = pgTable(
+// Separate schema for idempotency data
+export const idempotencySchema = pgSchema("idempotency");
+
+export const processedRequests = idempotencySchema.table(
   "processed_requests",
   {
     // Primary key
@@ -471,7 +474,7 @@ export const processedRequests = pgTable(
     source: text("source").notNull(), // 'client' | 'workflow' | 'content'
 
     // For client-provided keys
-    tenantId: text("tenant_id"),
+    projectId: text("project_id"),
     clientKey: text("client_key"),
     apiKeyId: text("api_key_id"),
 
@@ -514,7 +517,7 @@ export const processedRequests = pgTable(
     expiresAt: timestamp("expires_at", { withTimezone: true }),
   },
   (table) => [
-    index("idx_pr_tenant_client").on(table.tenantId, table.clientKey),
+    index("idx_pr_project_client").on(table.projectId, table.clientKey),
     index("idx_pr_workflow").on(table.workflowId, table.stepId),
     index("idx_pr_resource").on(table.resourceId, table.action),
     index("idx_pr_cleanup").on(table.expiresAt),
@@ -534,12 +537,14 @@ export type NewProcessedRequest = typeof processedRequests.$inferInsert;
 -- Idempotency tracking table
 -- Copy this to each service that needs idempotency support
 
-CREATE TABLE IF NOT EXISTS processed_requests (
+CREATE SCHEMA IF NOT EXISTS idempotency;
+
+CREATE TABLE IF NOT EXISTS idempotency.processed_requests (
   idempotency_key TEXT PRIMARY KEY,
 
   source TEXT NOT NULL CHECK (source IN ('client', 'workflow', 'content')),
 
-  tenant_id TEXT,
+  project_id TEXT,
   client_key TEXT,
   api_key_id TEXT,
 
@@ -573,11 +578,11 @@ CREATE TABLE IF NOT EXISTS processed_requests (
   expires_at TIMESTAMPTZ
 );
 
-CREATE INDEX IF NOT EXISTS idx_pr_tenant_client ON processed_requests(tenant_id, client_key) WHERE source = 'client';
-CREATE INDEX IF NOT EXISTS idx_pr_workflow ON processed_requests(workflow_id, step_id) WHERE source = 'workflow';
-CREATE INDEX IF NOT EXISTS idx_pr_resource ON processed_requests(resource_id, action) WHERE source = 'content';
-CREATE INDEX IF NOT EXISTS idx_pr_cleanup ON processed_requests(expires_at) WHERE expires_at IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_pr_lease ON processed_requests(status, lease_expires_at) WHERE status = 'reserved';
+CREATE INDEX IF NOT EXISTS idx_pr_project_client ON idempotency.processed_requests(project_id, client_key) WHERE source = 'client';
+CREATE INDEX IF NOT EXISTS idx_pr_workflow ON idempotency.processed_requests(workflow_id, step_id) WHERE source = 'workflow';
+CREATE INDEX IF NOT EXISTS idx_pr_resource ON idempotency.processed_requests(resource_id, action) WHERE source = 'content';
+CREATE INDEX IF NOT EXISTS idx_pr_cleanup ON idempotency.processed_requests(expires_at) WHERE expires_at IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_pr_lease ON idempotency.processed_requests(status, lease_expires_at) WHERE status = 'reserved';
 ```
 
 ---
@@ -622,14 +627,14 @@ export class IdempotencyRepository {
     const attemptOwner = generateLeaseOwner();
 
     const insertResult = await this.db.execute(sql`
-      INSERT INTO processed_requests (
-        idempotency_key, source, tenant_id, client_key, api_key_id,
+      INSERT INTO idempotency.processed_requests (
+        idempotency_key, source, project_id, client_key, api_key_id,
         workflow_id, step_id, call_id, resource_id,
         service, action, operation_type, payload_hash,
         status, attempt, lease_owner, lease_expires_at,
         expires_at, created_at, updated_at
       ) VALUES (
-        ${ctx.idempotencyKey}, ${ctx.source}, ${ctx.tenantId ?? null}, ${ctx.clientKey ?? null}, ${ctx.apiKeyId ?? null},
+        ${ctx.idempotencyKey}, ${ctx.source}, ${ctx.projectId ?? null}, ${ctx.clientKey ?? null}, ${ctx.apiKeyId ?? null},
         ${ctx.workflowId ?? null}, ${ctx.stepId ?? null}, ${ctx.callId ?? null}, ${ctx.resourceId ?? null},
         ${ctx.service}, ${ctx.action}, ${ctx.operation.type}, ${ctx.payloadHash},
         'reserved', 1, ${attemptOwner}, ${this.leaseExpiry()},
@@ -660,7 +665,7 @@ export class IdempotencyRepository {
     const attemptOwner = generateLeaseOwner();
 
     const result = await this.db.execute(sql`
-      UPDATE processed_requests
+      UPDATE idempotency.processed_requests
       SET lease_owner = ${attemptOwner},
           lease_expires_at = ${this.leaseExpiry()},
           attempt = attempt + 1,
@@ -683,7 +688,7 @@ export class IdempotencyRepository {
     const attemptOwner = generateLeaseOwner();
 
     const result = await this.db.execute(sql`
-      UPDATE processed_requests
+      UPDATE idempotency.processed_requests
       SET status = 'reserved',
           lease_owner = ${attemptOwner},
           lease_expires_at = ${this.leaseExpiry()},
@@ -711,7 +716,7 @@ export class IdempotencyRepository {
     const expiresAt = new Date(Date.now() + ttlMs);
 
     const updateResult = await this.db.execute(sql`
-      UPDATE processed_requests
+      UPDATE idempotency.processed_requests
       SET status = 'completed',
           result = ${cacheResult ? JSON.stringify(result) : null},
           result_cached = ${cacheResult && result !== undefined},
@@ -741,7 +746,7 @@ export class IdempotencyRepository {
     const expiresAt = new Date(Date.now() + ttlMs);
 
     const updateResult = await this.db.execute(sql`
-      UPDATE processed_requests
+      UPDATE idempotency.processed_requests
       SET status = 'failed',
           last_error = ${errorInfo},
           updated_at = NOW(),
@@ -762,7 +767,7 @@ export class IdempotencyRepository {
    */
   async cleanup(batchSize: number = 1000): Promise<number> {
     const result = await this.db.execute(sql`
-      DELETE FROM processed_requests
+      DELETE FROM idempotency.processed_requests
       WHERE expires_at IS NOT NULL
         AND expires_at < NOW()
       LIMIT ${batchSize}
@@ -1366,7 +1371,7 @@ export interface DomainEvent<TType extends string = string, TPayload = unknown> 
 }
 
 export interface EventContext {
-  tenantId: string;
+  projectId: string;
   userId?: string;
   correlationId: string;
   causationId?: string;
@@ -1526,7 +1531,7 @@ export class EventDispatchWorkflow {
       handler.action,
       event,
       OperationPresets.CREATE,
-      event.context.tenantId
+      event.context.projectId
     );
 
     const response: ActionResponse<unknown> = await this.broker.fire(
