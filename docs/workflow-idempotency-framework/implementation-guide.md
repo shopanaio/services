@@ -806,6 +806,7 @@ export interface IdempotencyHelpers {
 
 /**
  * Universal idempotency wrapper for BrokerActions.
+ * This is invoked by shared-kernel (not by service code directly).
  */
 export async function withIdempotency<TPayload, TResult>(
   ctx: ActionContext | undefined,
@@ -1119,15 +1120,18 @@ export { Action, ACTION_METADATA_KEY, type ActionMetadata } from "./Action.js";
 export { Fire, FIRE_METADATA_KEY, type FireMetadata } from "./Fire.js";
 ```
 
-### Step 4.3: Update BrokerActions Registration
+### Step 4.3: Update BrokerActions Registration (Declarative Idempotency)
 
 **File: `packages/shared-kernel/src/broker/BrokerActions.ts`**
 
-Update the registration logic to handle both `@Action` and `@Fire` decorators:
+Update the registration logic to handle both `@Action` and `@Fire` decorators,
+and make idempotency automatic for `@Fire` without service-level imports.
 
 ```typescript
 import { ACTION_METADATA_KEY, type ActionMetadata } from "../decorators/Action.js";
 import { FIRE_METADATA_KEY, type FireMetadata } from "../decorators/Fire.js";
+import { withIdempotency, type ActionRequest, type ActionResponse, type ActionContext } from "@shopana/idempotency";
+import type { IdempotencyRepository } from "@shopana/idempotency";
 
 // In BrokerActions registration method:
 
@@ -1168,16 +1172,31 @@ protected registerActions(): void {
   }
 }
 
+/**
+ * Override in services that support idempotency.
+ * Keeps idempotency wiring out of service method bodies.
+ */
+protected getIdempotencyRepo(): IdempotencyRepository | undefined {
+  return undefined;
+}
+
 private wrapFireHandler<TPayload, TResult>(
-  method: (input: ActionRequest<TPayload>) => Promise<ActionResponse<TResult>>,
+  method: (payload: TPayload) => Promise<TResult>,
   operation: OperationConfig
 ): (input: ActionRequest<TPayload>) => Promise<ActionResponse<TResult>> {
   return async (input: ActionRequest<TPayload>) => {
-    // Inject operation config if not provided in context
-    if (input.ctx && !input.ctx.operation) {
-      input.ctx = { ...input.ctx, operation };
+    const ctx: ActionContext | undefined = input.ctx
+      ? { ...input.ctx, operation: input.ctx.operation ?? operation }
+      : undefined;
+
+    const repo = this.getIdempotencyRepo();
+    if (!repo) {
+      // No repo configured: fall back to direct execution
+      const result = await method(input.payload);
+      return { result };
     }
-    return method(input);
+
+    return withIdempotency(ctx, input.payload, { repo }, (payload) => method(payload));
   };
 }
 ```
@@ -1315,7 +1334,7 @@ export class StoreCreateWorkflow {
 }
 ```
 
-### Step 5.2: Example - IamBrokerActions with Idempotency
+### Step 5.2: Example - IamBrokerActions (Declarative Idempotency)
 
 **File: `services/iam/src/IamBrokerActions.ts`**
 
@@ -1327,10 +1346,7 @@ import {
   ZodSchema,
 } from "@shopana/shared-kernel";
 import {
-  type ActionRequest,
-  type ActionResponse,
   OperationPresets,
-  withIdempotency,
   IdempotencyRepository,
 } from "@shopana/idempotency";
 
@@ -1340,6 +1356,10 @@ export class IamBrokerActions extends BrokerActions {
   constructor(/* ... */) {
     super(/* ... */);
     this.idempotencyRepo = new IdempotencyRepository(this.db);
+  }
+
+  protected getIdempotencyRepo(): IdempotencyRepository | undefined {
+    return this.idempotencyRepo;
   }
 
   /**
@@ -1353,28 +1373,15 @@ export class IamBrokerActions extends BrokerActions {
 
   /**
    * Idempotent handler (for broker.fire)
+   * Idempotency is handled by BrokerActions.wrapFireHandler.
    */
   @Fire("createRoles", OperationPresets.CREATE)
-  async createRolesFire(
-    input: ActionRequest<CreateRolesParams>
-  ): Promise<ActionResponse<CreateRolesResult>> {
-    const { payload, ctx } = input;
-
-    return withIdempotency(
-      ctx,
-      payload,
-      { repo: this.idempotencyRepo },
-      async (p) => {
-        const result = await this.kernel.runScript(CreateRolesScript, p);
-
-        // Convert legacy result to ActionResponse-compatible
-        if (result.userErrors?.length) {
-          throw new Error(result.userErrors[0].message);
-        }
-
-        return result;
-      }
-    );
+  async createRolesFire(params: CreateRolesParams): Promise<CreateRolesResult> {
+    const result = await this.kernel.runScript(CreateRolesScript, params);
+    if (result.userErrors?.length) {
+      throw new Error(result.userErrors[0].message);
+    }
+    return result;
   }
 }
 ```
