@@ -338,17 +338,18 @@ export class EventEmitter {
   /**
    * Emit event and wait for all handlers to complete.
    * Use sparingly - prefer async emission.
+   *
+   * If you need a timeout, wrap handle.getResult() with Promise.race at the call site.
    */
   @DBOS.step()
   async emitAndWait<TEvent extends DomainEvent>(
-    event: TEvent,
-    timeoutMs: number = 30000
+    event: TEvent
   ): Promise<EventDispatchResult> {
     const { workflowId } = await this.emit(event);
 
     // Get workflow handle and await completion
     const handle = DBOS.retrieveWorkflow(workflowId);
-    return handle.getResult(timeoutMs);
+    return handle.getResult();
   }
 }
 ```
@@ -610,8 +611,41 @@ export class EventDispatchWorkflow {
    * - Handler service checks processed_requests table
    * - Same event + same service = execute once
    */
-  @DBOS.step()
+  @DBOS.step({
+    maxAttempts: 5,
+    intervalSeconds: 0.5,
+    backoffRate: 2,
+  })
+  private async invokeCriticalHandler(
+    event: DomainEvent,
+    handler: HandlerInfo
+  ): Promise<HandlerInvocationResult> {
+    return this.invokeHandlerInner(event, handler);
+  }
+
+  @DBOS.step({
+    maxAttempts: 2,
+    intervalSeconds: 2,
+    backoffRate: 1.5,
+  })
+  private async invokeBestEffortHandler(
+    event: DomainEvent,
+    handler: HandlerInfo
+  ): Promise<HandlerInvocationResult> {
+    return this.invokeHandlerInner(event, handler);
+  }
+
   private async invokeHandler(
+    event: DomainEvent,
+    handler: HandlerInfo
+  ): Promise<HandlerInvocationResult> {
+    if (handler.critical) {
+      return this.invokeCriticalHandler(event, handler);
+    }
+    return this.invokeBestEffortHandler(event, handler);
+  }
+
+  private async invokeHandlerInner(
     event: DomainEvent,
     handler: HandlerInfo
   ): Promise<HandlerInvocationResult> {
@@ -691,7 +725,7 @@ interface HandlerInfo {
 
 - `EventDispatchWorkflow.dispatch` — это workflow, а не step; внутри него выполняется только детерминированная координация (fan-out, batching).
 - `invokeHandler` — единственный durable `@DBOS.step()` для каждого handler вызова.
-- Любой retry (transient) происходит внутри `invokeHandler` по step retry policy; после исчерпания ретраев шаг считается failed и workflow двигается дальше.
+  - Любой retry (transient) происходит внутри `invokeCriticalHandler`/`invokeBestEffortHandler` по step retry policy; после исчерпания ретраев шаг считается failed и workflow двигается дальше.
 - Параллелизм реализован на уровне workflow (`Promise.all` над шагами), а не внутри шага — это важно для корректности и прозрачности выполнения.
 - Порядок запуска шагов стабилизирован: handlers сортируются детерминированно (critical → service → action).
 - Для дополнительной устойчивости можно заменить `Promise.all` на `Promise.allSettled`, но в текущем виде `invokeHandlerSafe` гарантирует, что batch не упадёт из-за ошибки одного handler.
@@ -716,22 +750,14 @@ export const RetryPolicies = {
 
 ```typescript
 // packages/events/src/workflows/EventDispatchWorkflow.ts
-@DBOS.step({
-  maxAttempts: handler.critical
-    ? RetryPolicies.CRITICAL.maxAttempts
-    : RetryPolicies.BEST_EFFORT.maxAttempts,
-  intervalSeconds: handler.critical
-    ? RetryPolicies.CRITICAL.intervalSeconds
-    : RetryPolicies.BEST_EFFORT.intervalSeconds,
-  backoffRate: handler.critical
-    ? RetryPolicies.CRITICAL.backoffRate
-    : RetryPolicies.BEST_EFFORT.backoffRate,
-})
-private async invokeHandler(
-  event: DomainEvent,
-  handler: HandlerInfo
-): Promise<HandlerInvocationResult> {
-  // ...
+@DBOS.step({ maxAttempts: 5, intervalSeconds: 0.5, backoffRate: 2 })
+private async invokeCriticalHandler(event: DomainEvent, handler: HandlerInfo) {
+  return this.invokeHandlerInner(event, handler);
+}
+
+@DBOS.step({ maxAttempts: 2, intervalSeconds: 2, backoffRate: 1.5 })
+private async invokeBestEffortHandler(event: DomainEvent, handler: HandlerInfo) {
+  return this.invokeHandlerInner(event, handler);
 }
 ```
 
@@ -771,7 +797,7 @@ export function buildEventHandlerContext(
   ];
 
   const idempotencyKey = sha256(keyParts.join(":"));
-  const payloadHash = sha256(canonicalJson(event));
+  const payloadHash = sha256(canonicalJson({ event }));
 
   return {
     version: 3,
@@ -1006,6 +1032,10 @@ interface ActionResponse<T> {
 
 ### 5.1 Service Registration
 
+**Note**: `GlobalEventHandlerRegistry` is in-memory. All services must register on startup.
+If `discoverHandlers` returns 0 for a fresh event, consider a short backoff/retry to
+avoid false "completed (0 handlers)" due to bootstrap restarts.
+
 ```typescript
 // services/bootstrap/src/EventHandlerRegistry.ts
 
@@ -1232,6 +1262,7 @@ export class EventStoreBrokerActions extends BrokerActions {
    * Persist an event (idempotent).
    *
    * Uses standard ActionRequest/ActionResponse contract.
+   * Status "dispatching" means the dispatch workflow has started.
    */
   @Action("persistEvent", { operation: OperationPresets.CREATE })
   async persistEvent(
@@ -1951,9 +1982,8 @@ export const RetryPolicies = {
    */
   STANDARD: {
     maxAttempts: 3,
-    initialDelayMs: 1000,
-    maxDelayMs: 30000,
-    backoffMultiplier: 2,
+    intervalSeconds: 1,
+    backoffRate: 2,
   },
 
   /**
@@ -1961,9 +1991,8 @@ export const RetryPolicies = {
    */
   CRITICAL: {
     maxAttempts: 5,
-    initialDelayMs: 500,
-    maxDelayMs: 60000,
-    backoffMultiplier: 2,
+    intervalSeconds: 0.5,
+    backoffRate: 2,
   },
 
   /**
@@ -1971,9 +2000,8 @@ export const RetryPolicies = {
    */
   BEST_EFFORT: {
     maxAttempts: 2,
-    initialDelayMs: 2000,
-    maxDelayMs: 10000,
-    backoffMultiplier: 1.5,
+    intervalSeconds: 2,
+    backoffRate: 1.5,
   },
 
   /**
@@ -1981,9 +2009,8 @@ export const RetryPolicies = {
    */
   NONE: {
     maxAttempts: 1,
-    initialDelayMs: 0,
-    maxDelayMs: 0,
-    backoffMultiplier: 1,
+    intervalSeconds: 0,
+    backoffRate: 1,
   },
 } satisfies Record<string, RetryPolicy>;
 ```
@@ -2128,7 +2155,7 @@ Event-driven архитектура **полностью построена на
 
 1. **Единый контракт** — Events используют тот же `ActionRequest`/`ActionResponse`, что и API/workflows
 2. **`source: "workflow"`** — Key зависит от `eventId`, не от payload (exactly-once per event)
-3. **No Outbox** — DBOS workflow сам гарантирует delivery
+3. **No Outbox** — delivery гарантирован только при emit из DBOS workflow/step после durable DB‑транзакции
 4. **Handlers = Actions** — Event handlers это обычные `@Action` методы
 5. **Parallel fan-out** — Handlers вызываются параллельно батчами (CONCURRENCY_LIMIT=5)
 6. **Critical vs Non-critical** — Stop-on-failure для critical, best-effort для non-critical
