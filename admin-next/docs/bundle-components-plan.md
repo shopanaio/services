@@ -34,6 +34,24 @@ export const componentPriceTypeEnum = inventorySchema.enum("component_price_type
   "FREE",
   "INCLUDED",
 ]);
+
+export const componentItemTypeEnum = inventorySchema.enum("component_item_type", [
+  "PRODUCT",
+  "VARIANT",
+]);
+
+export const packageDisplayStyleEnum = inventorySchema.enum("package_display_style", [
+  "accordion",
+  "tabs",
+  "flat",
+  "wizard",
+]);
+
+export const outOfStockBehaviorEnum = inventorySchema.enum("out_of_stock_behavior", [
+  "hide",
+  "disable",
+  "backorder",
+]);
 ```
 
 ### Tables
@@ -51,10 +69,16 @@ import {
   timestamp,
   index,
   unique,
+  check,
 } from "drizzle-orm/pg-core";
 import { inventorySchema } from "./schema";
 import { product, variant } from "./products";
-import { componentPriceTypeEnum } from "./enums";
+import {
+  componentPriceTypeEnum,
+  componentItemTypeEnum,
+  packageDisplayStyleEnum,
+  outOfStockBehaviorEnum,
+} from "./enums";
 
 // ============================================================================
 // Package Settings (1:1 с product)
@@ -71,7 +95,7 @@ export const packageSettings = inventorySchema.table(
       .references(() => product.id, { onDelete: "cascade" }),
 
     // Display settings
-    displayStyle: varchar("display_style", { length: 32 })
+    displayStyle: packageDisplayStyleEnum("display_style")
       .notNull()
       .default("accordion"),
     showImages: boolean("show_images").notNull().default(true),
@@ -80,7 +104,7 @@ export const packageSettings = inventorySchema.table(
     showComparePrice: boolean("show_compare_price").notNull().default(false),
 
     // Stock settings
-    outOfStockBehavior: varchar("out_of_stock_behavior", { length: 32 })
+    outOfStockBehavior: outOfStockBehaviorEnum("out_of_stock_behavior")
       .notNull()
       .default("disable"),
     inheritStock: boolean("inherit_stock").notNull().default(true),
@@ -134,6 +158,16 @@ export const componentGroup = inventorySchema.table(
     index("idx_component_group_project_id").on(table.projectId),
     index("idx_component_group_product_id").on(table.productId),
     index("idx_component_group_sort_index").on(table.productId, table.sortIndex),
+    check(
+      "component_group_min_max_selection_valid",
+      table.minSelection.isNull().or(table.minSelection.gte(0))
+        .and(table.maxSelection.isNull().or(table.maxSelection.gte(1)))
+        .and(
+          table.minSelection.isNull()
+            .or(table.maxSelection.isNull())
+            .or(table.minSelection.lte(table.maxSelection))
+        )
+    ),
   ]
 );
 
@@ -177,7 +211,7 @@ export const componentItem = inventorySchema.table(
       .notNull()
       .references(() => componentGroup.id, { onDelete: "cascade" }),
 
-    itemType: varchar("item_type", { length: 32 }).notNull(), // PRODUCT | VARIANT
+    itemType: componentItemTypeEnum("item_type").notNull(), // PRODUCT | VARIANT
     sortIndex: integer("sort_index").notNull().default(0),
 
     // For PRODUCT type
@@ -211,6 +245,29 @@ export const componentItem = inventorySchema.table(
     index("idx_component_item_assigned_product_id").on(table.assignedProductId),
     index("idx_component_item_assigned_variant_id").on(table.assignedVariantId),
     index("idx_component_item_sort_index").on(table.groupId, table.sortIndex),
+    check(
+      "component_item_type_assignment_valid",
+      table.itemType
+        .eq("PRODUCT")
+        .and(table.assignedProductId.isNotNull())
+        .and(table.assignedVariantId.isNull())
+        .or(
+          table.itemType
+            .eq("VARIANT")
+            .and(table.assignedVariantId.isNotNull())
+            .and(table.assignedProductId.isNull())
+        )
+    ),
+    check(
+      "component_item_pricing_rule_valid",
+      table.pricingTemplateId.isNotNull()
+        .and(table.priceType.isNull())
+        .and(table.priceValue.isNull())
+        .or(
+          table.pricingTemplateId.isNull()
+            .and(table.priceType.isNotNull())
+        )
+    ),
   ]
 );
 
@@ -260,6 +317,14 @@ export const packageTieredDiscount = inventorySchema.table(
     unique("package_tiered_discount_unique").on(
       table.packageSettingsId,
       table.minItems
+    ),
+    check(
+      "package_tiered_discount_percent_range",
+      table.discountPercent.gte(0).and(table.discountPercent.lte(100))
+    ),
+    check(
+      "package_tiered_discount_min_items_positive",
+      table.minItems.gte(1)
     ),
   ]
 );
@@ -798,6 +863,16 @@ PricingRuleTemplate (shared across project)
 4. **Pricing** - может использовать шаблон (pricingTemplateId) или inline значения (priceType + priceValue).
 
 5. **excludedVariants** - для PRODUCT типа можно исключить определенные варианты из выбора.
+
+6. **Validation rules**:
+   - `component_item`:
+     - `item_type = PRODUCT` -> `assigned_product_id` is not null and `assigned_variant_id` is null.
+     - `item_type = VARIANT` -> `assigned_variant_id` is not null and `assigned_product_id` is null.
+     - Pricing: либо `pricing_template_id` (и тогда `price_type`/`price_value` null), либо inline `price_type` (а `price_value` обязателен для типов, где он нужен).
+   - `component_group`: `min_selection >= 0`, `max_selection >= 1`, `min_selection <= max_selection` (если оба заданы).
+   - `package_tiered_discount`: `min_items >= 1`, `discount_percent` в диапазоне 0..100.
+   - Все enum-поля в БД совпадают с GraphQL enum значениями.
+   - `pricing_template_id` должен принадлежать тому же `project_id`, что и `component_item` (валидация на уровне сервиса).
 
 6. **Bulk mutation (Replace All)** - единственная мутация `packageUpdate`:
    - Фронтенд отправляет полное состояние (groups с items, templates, discounts, settings)
