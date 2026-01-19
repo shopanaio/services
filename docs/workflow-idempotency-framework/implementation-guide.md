@@ -764,13 +764,17 @@ export class IdempotencyRepository {
 
   /**
    * Cleanup expired records.
+   * Uses subquery because PostgreSQL doesn't support LIMIT in DELETE.
    */
   async cleanup(batchSize: number = 1000): Promise<number> {
     const result = await this.db.execute(sql`
       DELETE FROM idempotency.processed_requests
-      WHERE expires_at IS NOT NULL
-        AND expires_at < NOW()
-      LIMIT ${batchSize}
+      WHERE idempotency_key IN (
+        SELECT idempotency_key
+        FROM idempotency.processed_requests
+        WHERE expires_at IS NOT NULL AND expires_at < NOW()
+        LIMIT ${batchSize}
+      )
     `);
 
     return result.rowCount ?? 0;
@@ -1071,60 +1075,59 @@ async fire<TResult = unknown, TPayload = unknown>(
 }
 ```
 
-### Step 4.2: Update Action Decorator
+### Step 4.2: Create Fire Decorator
 
-**File: `packages/shared-kernel/src/decorators/Action.ts`**
+**File: `packages/shared-kernel/src/decorators/Fire.ts`**
 
 ```typescript
 import type { OperationConfig } from "@shopana/idempotency";
 
-export interface ActionMetadata {
+export const FIRE_METADATA_KEY = Symbol("fire");
+
+export interface FireMetadata {
   actionName: string;
-  operation?: OperationConfig;
+  operation: OperationConfig;
 }
-
-export interface ActionOptions {
-  operation?: OperationConfig;
-}
-
-export const ACTION_METADATA_KEY = Symbol("action");
 
 /**
- * @Action decorator with optional idempotency configuration.
+ * @Fire decorator for idempotent actions (broker.fire()).
+ * Registers handler as "service.action__fire".
  *
  * @example
- * // Legacy (no idempotency)
- * @Action("getUser")
- *
- * // With idempotency
- * @Action("createUser", { operation: OperationPresets.CREATE })
+ * @Fire("createUser", OperationPresets.CREATE)
+ * async createUserFire(input: ActionRequest<CreateUserParams>): Promise<ActionResponse<User>> {
+ *   return withIdempotency(input.ctx, input.payload, { repo: this.repo }, (p) => this.doCreate(p));
+ * }
  */
-export function Action(actionName: string, options?: ActionOptions): MethodDecorator {
+export function Fire(actionName: string, operation: OperationConfig): MethodDecorator {
   return function (
     target: object,
     propertyKey: string | symbol,
     descriptor: PropertyDescriptor
   ): PropertyDescriptor {
-    const metadata: ActionMetadata = {
-      actionName,
-      operation: options?.operation,
-    };
-
-    Reflect.defineMetadata(ACTION_METADATA_KEY, metadata, target, propertyKey);
+    const metadata: FireMetadata = { actionName, operation };
+    Reflect.defineMetadata(FIRE_METADATA_KEY, metadata, target, propertyKey);
     return descriptor;
   };
 }
+```
+
+**Update: `packages/shared-kernel/src/decorators/index.ts`**
+
+```typescript
+export { Action, ACTION_METADATA_KEY, type ActionMetadata } from "./Action.js";
+export { Fire, FIRE_METADATA_KEY, type FireMetadata } from "./Fire.js";
 ```
 
 ### Step 4.3: Update BrokerActions Registration
 
 **File: `packages/shared-kernel/src/broker/BrokerActions.ts`**
 
-Update the registration logic to register both legacy and fire handlers:
+Update the registration logic to handle both `@Action` and `@Fire` decorators:
 
 ```typescript
-import type { ActionRequest, ActionResponse, OperationConfig } from "@shopana/idempotency";
 import { ACTION_METADATA_KEY, type ActionMetadata } from "../decorators/Action.js";
+import { FIRE_METADATA_KEY, type FireMetadata } from "../decorators/Fire.js";
 
 // In BrokerActions registration method:
 
@@ -1133,36 +1136,44 @@ protected registerActions(): void {
   const methodNames = Object.getOwnPropertyNames(prototype);
 
   for (const methodName of methodNames) {
-    const metadata: ActionMetadata | undefined = Reflect.getMetadata(
+    const method = (this as any)[methodName].bind(this);
+
+    // Legacy @Action → registers "service.action"
+    const actionMeta: ActionMetadata | undefined = Reflect.getMetadata(
       ACTION_METADATA_KEY,
       prototype,
       methodName
     );
 
-    if (!metadata) continue;
-
-    const qualifiedName = `${this.serviceName}.${metadata.actionName}`;
-    const method = (this as any)[methodName].bind(this);
-
-    // Register legacy handler (for broker.call)
-    this.registry.register(qualifiedName, method);
-
-    // If operation is configured, register fire handler
-    if (metadata.operation) {
+    if (actionMeta) {
       this.registry.register(
-        `${qualifiedName}__fire`,
-        this.createFireHandler(method, metadata.operation)
+        `${this.serviceName}.${actionMeta.actionName}`,
+        method
+      );
+    }
+
+    // New @Fire → registers "service.action__fire"
+    const fireMeta: FireMetadata | undefined = Reflect.getMetadata(
+      FIRE_METADATA_KEY,
+      prototype,
+      methodName
+    );
+
+    if (fireMeta) {
+      this.registry.register(
+        `${this.serviceName}.${fireMeta.actionName}__fire`,
+        this.wrapFireHandler(method, fireMeta.operation)
       );
     }
   }
 }
 
-private createFireHandler<TPayload, TResult>(
+private wrapFireHandler<TPayload, TResult>(
   method: (input: ActionRequest<TPayload>) => Promise<ActionResponse<TResult>>,
   operation: OperationConfig
 ): (input: ActionRequest<TPayload>) => Promise<ActionResponse<TResult>> {
   return async (input: ActionRequest<TPayload>) => {
-    // Inject operation config if not provided
+    // Inject operation config if not provided in context
     if (input.ctx && !input.ctx.operation) {
       input.ctx = { ...input.ctx, operation };
     }
@@ -1296,6 +1307,7 @@ export class StoreCreateWorkflow {
 ```typescript
 import {
   Action,
+  Fire,
   BrokerActions,
   ZodSchema,
 } from "@shopana/shared-kernel";
@@ -1327,7 +1339,7 @@ export class IamBrokerActions extends BrokerActions {
   /**
    * Idempotent handler (for broker.fire)
    */
-  @Action("createRoles", { operation: OperationPresets.CREATE })
+  @Fire("createRoles", OperationPresets.CREATE)
   async createRolesFire(
     input: ActionRequest<CreateRolesParams>
   ): Promise<ActionResponse<CreateRolesResult>> {
@@ -1663,23 +1675,29 @@ export class IdempotencyCleanupJob {
 | `packages/events/src/emitter.ts` | Event emitter |
 | `packages/events/src/workflows/EventDispatchWorkflow.ts` | Dispatch workflow |
 
+### New Files
+
+| File | Purpose |
+|------|---------|
+| `packages/shared-kernel/src/decorators/Fire.ts` | `@Fire` decorator for idempotent actions |
+
 ### Modified Files
 
 | File | Changes |
 |------|---------|
 | `packages/shared-kernel/src/broker/ServiceBroker.ts` | Add `fire()` method |
-| `packages/shared-kernel/src/decorators/Action.ts` | Add `options` parameter |
-| `packages/shared-kernel/src/broker/BrokerActions.ts` | Register `__fire` handlers |
+| `packages/shared-kernel/src/decorators/index.ts` | Export `Fire` decorator |
+| `packages/shared-kernel/src/broker/BrokerActions.ts` | Register `__fire` handlers via `@Fire` |
 | `services/*/migrations/` | Add `processed_requests` table |
-| `services/*/src/*BrokerActions.ts` | Add idempotent handlers |
+| `services/*/src/*BrokerActions.ts` | Add `@Fire` handlers |
 | `services/*/src/workflows/*.ts` | Use `broker.fire()` with context |
 
 ### Migration Order
 
 1. ✅ Create `@shopana/idempotency` package
-2. ✅ Update `@shopana/shared-kernel` (broker.fire, Action decorator)
+2. ✅ Update `@shopana/shared-kernel` (broker.fire, @Fire decorator)
 3. ✅ Add `processed_requests` migration to IAM, Project, Media
-4. ✅ Update IamBrokerActions with idempotent handlers
+4. ✅ Update IamBrokerActions with `@Fire` handlers
 5. ✅ Update StoreCreateWorkflow to use broker.fire()
 6. ✅ Create `@shopana/events` package
 7. ✅ Add EventDispatchWorkflow
