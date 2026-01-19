@@ -6,11 +6,11 @@
 
 ## Overview
 
-Классическая event-driven архитектура, построенная на **idempotency framework** из `workflow-idempotency-plan.md`.
+Classic event-driven architecture built on the **idempotency framework** from `workflow-idempotency-plan.md`.
 
-**Ключевая идея**: События — это просто ещё один способ вызвать action. Используем тот же контракт `ActionRequest`/`ActionResponse`, тот же `processed_requests` table, тот же `withIdempotency()` helper.
+**Key idea**: Events are just another way to invoke an action. We use the same `ActionRequest`/`ActionResponse` contract, the same `processed_requests` table, the same `withIdempotency()` helper.
 
-### Архитектурные слои
+### Architectural Layers
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -26,13 +26,13 @@
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Ключевые принципы
+### Key Principles
 
-1. **No Outbox** — workflow гарантирует доставку только если emit выполняется из DBOS workflow/step после durable DB‑транзакции; иначе нужна outbox/буфер
-2. **Parallel fan-out** — handlers вызываются параллельно (batches по CONCURRENCY_LIMIT)
-3. **Единый контракт** — `ActionRequest`/`ActionResponse` для всего (API, workflow, events)
-4. **Per-service idempotency** — `source: "workflow"` с ключом `event:{type}:{id}:{service}:{action}`
-5. **Critical vs Non-critical** — stop-on-failure для critical (batch level), best-effort для non-critical
+1. **No Outbox** — workflow guarantees delivery only if emit is executed from a DBOS workflow/step after a durable DB transaction; otherwise an outbox/buffer is needed
+2. **Parallel fan-out** — handlers are invoked in parallel (batches of CONCURRENCY_LIMIT)
+3. **Unified contract** — `ActionRequest`/`ActionResponse` for everything (API, workflow, events)
+4. **Per-service idempotency** — `source: "workflow"` with key `event:{type}:{id}:{service}:{action}`
+5. **Critical vs Non-critical** — stop-on-failure for critical (batch level), best-effort for non-critical
 
 ---
 
@@ -44,25 +44,25 @@
 // packages/events/src/types.ts
 
 /**
- * Базовый интерфейс для всех доменных событий.
+ * Base interface for all domain events.
  */
 export interface DomainEvent<TType extends string = string, TPayload = unknown> {
-  /** Уникальный ID события (UUID или детерминистичный) */
+  /** Unique event ID (UUID or deterministic) */
   eventId: string;
 
-  /** Тип события: "product.created", "order.completed", etc. */
+  /** Event type: "product.created", "order.completed", etc. */
   eventType: TType;
 
-  /** Время создания события (ISO 8601) */
+  /** Event creation time (ISO 8601) */
   timestamp: string;
 
-  /** Источник события (service name) */
+  /** Event source (service name) */
   source: string;
 
-  /** Данные события */
+  /** Event data */
   payload: TPayload;
 
-  /** Контекст: tenant, user, correlation */
+  /** Context: tenant, user, correlation */
   context: EventContext;
 }
 
@@ -148,8 +148,8 @@ import type { OperationConfig } from "@shopana/idempotency";
 /**
  * Metadata about registered event handler.
  *
- * NOTE: Handlers — это обычные BrokerActions.
- * Здесь храним только метаданные для discovery.
+ * NOTE: Handlers are regular BrokerActions.
+ * Here we only store metadata for discovery.
  */
 export interface EventHandlerRegistration {
   /** Event type this handler responds to */
@@ -201,37 +201,37 @@ export class EventHandlerRegistry {
 export const eventRegistry = new EventHandlerRegistry();
 ```
 
-### 1.3 Event Handler — это обычный Action
+### 1.3 Event Handler — Just a Regular Action
 
 ```typescript
-// Event handler — это просто Action с определённой сигнатурой.
-// Используем стандартный @Action декоратор из idempotency framework.
+// Event handler is simply an Action with a specific signature.
+// We use the standard @Action decorator from the idempotency framework.
 
 // packages/events/src/types.ts
 
 import type { ActionRequest, ActionResponse } from "@shopana/idempotency";
 
 /**
- * Payload для event handler action.
- * Event передаётся как часть payload.
+ * Payload for event handler action.
+ * Event is passed as part of the payload.
  */
 export interface EventHandlerPayload<TEvent extends DomainEvent = DomainEvent> {
   event: TEvent;
 }
 
 /**
- * Event handler — это Action с сигнатурой:
+ * Event handler is an Action with signature:
  *
  * ActionRequest<EventHandlerPayload<TEvent>> → ActionResponse<TResult>
  *
- * Где TResult — любой тип результата (void для side-effect handlers).
+ * Where TResult is any result type (void for side-effect handlers).
  */
 export type EventHandlerAction<TEvent extends DomainEvent, TResult = void> = (
   input: ActionRequest<EventHandlerPayload<TEvent>>
 ) => Promise<ActionResponse<TResult>>;
 ```
 
-**Важно**: Нет отдельного `@EventHandler` декоратора. Используем стандартный `@Action` из idempotency framework. Регистрация event handlers происходит на уровне сервиса при startup.
+**Important**: There is no separate `@EventHandler` decorator. We use the standard `@Action` from the idempotency framework. Event handler registration happens at the service level during startup.
 
 ---
 
@@ -723,12 +723,12 @@ interface HandlerInfo {
 
 #### DBOS guarantees / assumptions
 
-- `EventDispatchWorkflow.dispatch` — это workflow, а не step; внутри него выполняется только детерминированная координация (fan-out, batching).
-- `invokeHandler` — единственный durable `@DBOS.step()` для каждого handler вызова.
-  - Любой retry (transient) происходит внутри `invokeCriticalHandler`/`invokeBestEffortHandler` по step retry policy; после исчерпания ретраев шаг считается failed и workflow двигается дальше.
-- Параллелизм реализован на уровне workflow (`Promise.all` над шагами), а не внутри шага — это важно для корректности и прозрачности выполнения.
-- Порядок запуска шагов стабилизирован: handlers сортируются детерминированно (critical → service → action).
-- Для дополнительной устойчивости можно заменить `Promise.all` на `Promise.allSettled`, но в текущем виде `invokeHandlerSafe` гарантирует, что batch не упадёт из-за ошибки одного handler.
+- `EventDispatchWorkflow.dispatch` is a workflow, not a step; only deterministic coordination (fan-out, batching) is performed inside it.
+- `invokeHandler` is the only durable `@DBOS.step()` for each handler invocation.
+  - Any retry (transient) happens inside `invokeCriticalHandler`/`invokeBestEffortHandler` according to the step retry policy; after retries are exhausted, the step is considered failed and the workflow moves on.
+- Parallelism is implemented at the workflow level (`Promise.all` over steps), not inside a step — this is important for correctness and execution transparency.
+- Step launch order is stabilized: handlers are sorted deterministically (critical → service → action).
+- For additional resilience, `Promise.all` can be replaced with `Promise.allSettled`, but in the current form `invokeHandlerSafe` ensures that a batch won't fail due to one handler's error.
 
 #### Retry policies per handler criticality
 
@@ -830,9 +830,9 @@ function sha256(data: string): string {
 
 ## Part 4: Service-Side Event Handlers
 
-Event handlers — это **обычные Actions**, использующие тот же контракт `ActionRequest`/`ActionResponse` из idempotency framework.
+Event handlers are **regular Actions** using the same `ActionRequest`/`ActionResponse` contract from the idempotency framework.
 
-### 4.1 BrokerActions с Event Handlers
+### 4.1 BrokerActions with Event Handlers
 
 ```typescript
 // services/inventory/src/InventoryBrokerActions.ts
@@ -849,13 +849,13 @@ import type { ProductCreatedEvent, ProductDeletedEvent } from "@shopana/events";
 export class InventoryBrokerActions extends BrokerActions {
 
   // ═══════════════════════════════════════════════════════════════════
-  // EVENT HANDLERS — обычные Actions с payload: { event: DomainEvent }
+  // EVENT HANDLERS — regular Actions with payload: { event: DomainEvent }
   // ═══════════════════════════════════════════════════════════════════
 
   /**
    * Handle product.created: Initialize inventory record.
    *
-   * Вызывается из EventDispatchWorkflow с idempotency context:
+   * Called from EventDispatchWorkflow with idempotency context:
    * - source: "workflow"
    * - idempotencyKey: event:product.created:{eventId}:inventory:handleProductCreated
    */
@@ -882,7 +882,7 @@ export class InventoryBrokerActions extends BrokerActions {
   /**
    * Handle product.deleted: Remove inventory record.
    *
-   * Идемпотентно: удаление несуществующего inventory — OK.
+   * Idempotent: deleting non-existent inventory is OK.
    */
   @Action("handleProductDeleted", { operation: OperationPresets.DELETE })
   async handleProductDeleted(
@@ -903,7 +903,7 @@ export class InventoryBrokerActions extends BrokerActions {
   /**
    * Handle product.updated: Sync inventory metadata.
    *
-   * Возвращает данные (не void) — framework кэширует для replay.
+   * Returns data (not void) — framework caches for replay.
    */
   @Action("handleProductUpdated", { operation: OperationPresets.UPDATE })
   async handleProductUpdated(
@@ -925,12 +925,12 @@ export class InventoryBrokerActions extends BrokerActions {
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  // REGULAR ACTIONS — для сравнения, та же структура
+  // REGULAR ACTIONS — for comparison, same structure
   // ═══════════════════════════════════════════════════════════════════
 
   @Action("getStock", { operation: OperationPresets.READ })
   async getStock(payload: { productId: string }): Promise<ActionResponse<Stock>> {
-    // READ — без idempotency
+    // READ — no idempotency
     const stock = await this.kernel.runScript(GetStockScript, payload);
     return { result: stock };
   }
@@ -948,12 +948,12 @@ export class InventoryBrokerActions extends BrokerActions {
 }
 ```
 
-### 4.2 Обработка ошибок в Event Handlers
+### 4.2 Error Handling in Event Handlers
 
 ```typescript
 /**
- * Ошибки обрабатываются так же, как в любом Action:
- * - throw → withIdempotency ловит → ActionResponse.error
+ * Errors are handled the same way as in any Action:
+ * - throw → withIdempotency catches → ActionResponse.error
  * - TRANSIENT_* errors → DBOS retry
  * - Domain errors → fail permanently
  */
@@ -971,7 +971,7 @@ async handleProductCreated(
         // ...
       });
     } catch (error) {
-      // Duplicate key = уже инициализировали, идемпотентно OK
+      // Duplicate key = already initialized, idempotently OK
       if (isDuplicateKeyError(error)) {
         return; // Success (void)
       }
@@ -993,32 +993,32 @@ async handleProductCreated(
 }
 ```
 
-### 4.3 Единый контракт: Events vs Direct Calls
+### 4.3 Unified Contract: Events vs Direct Calls
 
 ```typescript
 // ═══════════════════════════════════════════════════════════════════
-// Event handlers и обычные actions используют ОДИНАКОВЫЙ контракт
+// Event handlers and regular actions use the SAME contract
 // ═══════════════════════════════════════════════════════════════════
 
-// Вызов из EventDispatchWorkflow:
+// Call from EventDispatchWorkflow:
 await broker.call("inventory.handleProductCreated", {
   payload: { event: productCreatedEvent },
   ctx: buildEventHandlerContext(event, "inventory", "handleProductCreated"),
 });
 
-// Вызов из другого workflow:
+// Call from another workflow:
 await broker.call("inventory.setStock", {
   payload: { productId: "123", quantity: 100 },
   ctx: buildActionContext(dedupeKey, "inventory", "setStock", callId, payload),
 });
 
-// Вызов из GraphQL (с client idempotency key):
+// Call from GraphQL (with client idempotency key):
 await broker.call("orders.createOrder", {
   payload: orderInput,
   ctx: buildClientActionContext(clientKey, "orders", "createOrder", orderInput),
 });
 
-// Response всегда одинаковый:
+// Response is always the same:
 interface ActionResponse<T> {
   result: T;
   error?: ActionError;
@@ -1719,7 +1719,7 @@ export class EventStoreBrokerActions extends BrokerActions {
 │  3. Event Handler (source: "workflow")                                      │
 │     ┌──────────────────────────────────────────────────────────────────┐    │
 │     │ request = {                                                      │    │
-│     │   payload: { event: ProductCreatedEvent },  // ← Event в payload │    │
+│     │   payload: { event: ProductCreatedEvent },  // ← Event in payload │    │
 │     │   ctx: {                                                         │    │
 │     │     source: "workflow",                                          │    │
 │     │     idempotencyKey: hash("event:product.created:evt-1:inv:..."), │    │
@@ -1730,18 +1730,18 @@ export class EventStoreBrokerActions extends BrokerActions {
 │     │ }                                                                │    │
 │     │                                                                  │    │
 │     │ response = { result: undefined }  // void handler                │    │
-│     │ // или                                                           │    │
+│     │ // or                                                             │    │
 │     │ response = { result: { stockInitialized: true } }                │    │
 │     └──────────────────────────────────────────────────────────────────┘    │
 │                                                                             │
 │  ═══════════════════════════════════════════════════════════════════════    │
 │                                                                             │
-│  ВСЕ ТРИ СЦЕНАРИЯ:                                                          │
-│  - Используют ActionRequest<T> / ActionResponse<R>                          │
-│  - Используют ActionContextV3                                               │
-│  - Используют withIdempotency() wrapper                                     │
-│  - Используют processed_requests table                                      │
-│  - Различаются только source и формула idempotencyKey                       │
+│  ALL THREE SCENARIOS:                                                       │
+│  - Use ActionRequest<T> / ActionResponse<R>                                 │
+│  - Use ActionContextV3                                                      │
+│  - Use withIdempotency() wrapper                                            │
+│  - Use processed_requests table                                             │
+│  - Only differ in source and idempotencyKey formula                         │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -1832,11 +1832,11 @@ export class EventStoreBrokerActions extends BrokerActions {
 
 ---
 
-## Part 9: Idempotency Source для Events
+## Part 9: Idempotency Source for Events
 
-### 9.1 Почему `source: "workflow"`
+### 9.1 Why `source: "workflow"`
 
-Из трёх source types в idempotency framework (`client`, `workflow`, `content`), для event handlers используется `workflow`:
+Of the three source types in the idempotency framework (`client`, `workflow`, `content`), `workflow` is used for event handlers:
 
 ```typescript
 // packages/events/src/context.ts
@@ -1849,14 +1849,14 @@ export function buildEventHandlerContext(
 ): ActionContextV3 {
   return {
     version: 3,
-    source: "workflow",  // ← Этот source
+    source: "workflow",  // ← This source
 
     // Key structure: event:{eventType}:{eventId}:{service}:{action}
     idempotencyKey: sha256(
       `event:${event.eventType}:${event.eventId}:${service}:${action}`
     ),
 
-    // Payload hash для conflict detection
+    // Payload hash for conflict detection
     payloadHash: sha256(canonicalJson({ event })),
 
     // Workflow context
@@ -1874,54 +1874,54 @@ export function buildEventHandlerContext(
 }
 ```
 
-### 9.2 Сравнение source types
+### 9.2 Comparison of Source Types
 
 | Aspect | `client` | `workflow` | `content` |
 |--------|----------|------------|-----------|
 | Key source | HTTP header | Workflow context | Payload hash |
 | Use case | External API | Internal workflows, **events** | Idempotent updates |
 | Key formula | `tenant:apiKey:clientKey` | `workflowId:stepId:callId` | `resourceId:operation:payloadHash` |
-| Для events | ❌ Нет header'а | ✅ Вызов из workflow | ❌ Разный payload = разный key |
+| For events | ❌ No header | ✅ Called from workflow | ❌ Different payload = different key |
 
-### 9.3 Почему не `content`?
+### 9.3 Why Not `content`?
 
 ```typescript
-// ❌ ПРОБЛЕМА с content source:
+// ❌ PROBLEM with content source:
 
 // Event 1: product.created, eventId="evt-123"
 // payload: { productId: "p1", name: "Widget", timestamp: "2024-01-01T10:00:00Z" }
 // contentKey = hash(payload) = "abc123"
 
-// Event 2: тот же product.created, eventId="evt-123" (retry/duplicate)
+// Event 2: same product.created, eventId="evt-123" (retry/duplicate)
 // payload: { productId: "p1", name: "Widget", timestamp: "2024-01-01T10:00:01Z" }
-//                                              ^^^ timestamp изменился
-// contentKey = hash(payload) = "def456" ← ДРУГОЙ KEY!
+//                                              ^^^ timestamp changed
+// contentKey = hash(payload) = "def456" ← DIFFERENT KEY!
 
-// Результат: handler выполнится дважды — НЕ exactly-once!
+// Result: handler executes twice — NOT exactly-once!
 
-// ✅ С workflow source:
+// ✅ With workflow source:
 
 // Event 1: eventId="evt-123"
 // workflowKey = hash("event:product.created:evt-123:inventory:handleProductCreated")
 
 // Event 2: eventId="evt-123" (duplicate)
 // workflowKey = hash("event:product.created:evt-123:inventory:handleProductCreated")
-//              ^^^ ТОТ ЖЕ KEY (eventId тот же)
+//              ^^^ SAME KEY (eventId is the same)
 
-// Результат: handler выполнится один раз — exactly-once!
+// Result: handler executes once — exactly-once!
 ```
 
-### 9.4 Operation Presets для Event Handlers
+### 9.4 Operation Presets for Event Handlers
 
-Используем стандартные presets из idempotency framework:
+We use standard presets from the idempotency framework:
 
 ```typescript
 import { OperationPresets } from "@shopana/idempotency";
 
-// Event handlers используют те же presets:
+// Event handlers use the same presets:
 
 @Action("handleProductCreated", { operation: OperationPresets.CREATE })
-// CREATE: полный idempotency tracking, 24h TTL, cache result
+// CREATE: full idempotency tracking, 24h TTL, cache result
 
 @Action("handleProductDeleted", { operation: OperationPresets.DELETE })
 // DELETE: idempotent by nature, 24h TTL, receipt only
@@ -1933,7 +1933,7 @@ import { OperationPresets } from "@shopana/idempotency";
 // ASYNC_JOB: fire-and-forget, 7d TTL, receipt only
 ```
 
-### 9.5 Custom Presets для Event Handlers (опционально)
+### 9.5 Custom Presets for Event Handlers (optional)
 
 ```typescript
 // packages/events/src/presets.ts
@@ -2123,7 +2123,7 @@ For each service that emits events:
 
 ### Unified Contract
 
-Event-driven архитектура **полностью построена на idempotency framework**:
+Event-driven architecture is **fully built on the idempotency framework**:
 
 | Component | Uses From Idempotency Framework |
 |-----------|--------------------------------|
@@ -2153,13 +2153,13 @@ Event-driven архитектура **полностью построена на
 
 ### Key Design Decisions
 
-1. **Единый контракт** — Events используют тот же `ActionRequest`/`ActionResponse`, что и API/workflows
-2. **`source: "workflow"`** — Key зависит от `eventId`, не от payload (exactly-once per event)
-3. **No Outbox** — delivery гарантирован только при emit из DBOS workflow/step после durable DB‑транзакции
-4. **Handlers = Actions** — Event handlers это обычные `@Action` методы
-5. **Parallel fan-out** — Handlers вызываются параллельно батчами (CONCURRENCY_LIMIT=5)
-6. **Critical vs Non-critical** — Stop-on-failure для critical, best-effort для non-critical
-7. **Independent handlers** — Handlers для одного event не должны зависеть друг от друга
+1. **Unified contract** — Events use the same `ActionRequest`/`ActionResponse` as API/workflows
+2. **`source: "workflow"`** — Key depends on `eventId`, not payload (exactly-once per event)
+3. **No Outbox** — delivery is guaranteed only when emit is from DBOS workflow/step after durable DB transaction
+4. **Handlers = Actions** — Event handlers are regular `@Action` methods
+5. **Parallel fan-out** — Handlers are invoked in parallel batches (CONCURRENCY_LIMIT=5)
+6. **Critical vs Non-critical** — Stop-on-failure for critical, best-effort for non-critical
+7. **Independent handlers** — Handlers for the same event should not depend on each other
 
 ### Benefits
 
