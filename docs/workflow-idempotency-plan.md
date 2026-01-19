@@ -52,29 +52,44 @@ broker.call("inventory.setStock", { sku: "ABC", quantity: 100 });
 
 ```typescript
 export type OperationType = "read" | "write" | "idempotent_write";
+export type ResultMode = "full" | "minimal" | "receipt_only";
 
+/**
+ * Canonical operation configuration.
+ * All fields are REQUIRED — use OperationPresets for sensible defaults.
+ */
 export interface OperationConfig {
   type: OperationType;
 
   /** Whether this operation requires idempotency tracking */
   requiresIdempotency: boolean;
 
-  /** TTL for idempotency records (ms). Default: 24h for writes, 0 for reads */
-  ttlMs?: number;
+  /** TTL for idempotency records (ms) */
+  ttlMs: number;
 
   /** Whether to cache and return results on replay */
-  cacheResult?: boolean;
+  cacheResult: boolean;
+
+  /** What to store: full result, minimal IDs, or just receipt */
+  resultMode: ResultMode;
 
   /** Allow same-payload retries without conflict (for updates) */
-  allowSamePayloadRetry?: boolean;
+  allowSamePayloadRetry: boolean;
 }
 
-// Presets (like Stripe categories)
-export const OperationPresets = {
+// ═══════════════════════════════════════════════════════════════════
+// PRESETS — fully specified, use these as defaults
+// ═══════════════════════════════════════════════════════════════════
+
+export const OperationPresets: Record<string, OperationConfig> = {
   /** Query operations — no idempotency needed */
   READ: {
     type: "read",
     requiresIdempotency: false,
+    ttlMs: 0,
+    cacheResult: false,
+    resultMode: "receipt_only",
+    allowSamePayloadRetry: true,
   },
 
   /** Create operations — full idempotency, 24h TTL */
@@ -83,6 +98,8 @@ export const OperationPresets = {
     requiresIdempotency: true,
     ttlMs: 24 * 60 * 60 * 1000, // 24 hours (Stripe default)
     cacheResult: true,
+    resultMode: "full",
+    allowSamePayloadRetry: false,
   },
 
   /** Update operations — idempotent, same-payload allowed */
@@ -90,7 +107,8 @@ export const OperationPresets = {
     type: "idempotent_write",
     requiresIdempotency: true,
     ttlMs: 1 * 60 * 60 * 1000, // 1 hour
-    cacheResult: false,
+    cacheResult: true,
+    resultMode: "minimal", // { id, updatedAt, version }
     allowSamePayloadRetry: true,
   },
 
@@ -100,6 +118,7 @@ export const OperationPresets = {
     requiresIdempotency: true,
     ttlMs: 24 * 60 * 60 * 1000,
     cacheResult: false,
+    resultMode: "receipt_only",
     allowSamePayloadRetry: true,
   },
 
@@ -109,6 +128,8 @@ export const OperationPresets = {
     requiresIdempotency: true,
     ttlMs: 7 * 24 * 60 * 60 * 1000, // 7 days
     cacheResult: false,
+    resultMode: "receipt_only",
+    allowSamePayloadRetry: false,
   },
 } as const;
 ```
@@ -665,25 +686,785 @@ app.post("/orders", async (req, res) => {
 
 ---
 
-## Part 8: Summary Comparison
+## Part 8: Unified Wire Contract (Final v3)
 
-| Aspect | v2 | v3 (Enterprise) |
-|--------|-----|-----------------|
-| Operation types | Implicit | Explicit: `read` / `write` / `idempotent_write` |
-| Key sources | Workflow only | Client + Workflow + Content |
-| External keys | ❌ | ✅ `Idempotency-Key` header |
-| No-idempotency mode | Legacy fallback | Explicit opt-out |
-| Same-payload handling | Conflict | Configurable: allow or conflict |
-| TTL | Fixed | Per operation type |
-| Scoping | Global | Tenant + Service + Operation |
-| API integration | Manual | Middleware + automatic |
+### Single Source of Truth
+
+**v3 is the ONLY wire format.** Legacy v2 contexts are upgraded via adapter.
+
+```typescript
+// ═══════════════════════════════════════════════════════════════════
+// FINAL WIRE CONTRACT — all services MUST use this format
+// ═══════════════════════════════════════════════════════════════════
+
+export interface ActionContextV3 {
+  /** Always 3 */
+  readonly version: 3;
+
+  // ─── Key Identity ───────────────────────────────────────────────
+  /** Storage key (hash). PK in database. */
+  idempotencyKey: string;
+
+  /** How the key was derived */
+  source: "client" | "workflow" | "content" | "none";
+
+  // ─── Scope (always present for non-"none") ──────────────────────
+  /** Tenant/org scope (REQUIRED for client keys) */
+  tenantId?: string;
+
+  /** Service being called */
+  service: string;
+
+  /** Action being called */
+  action: string;
+
+  // ─── Payload Verification ───────────────────────────────────────
+  /** SHA-256 of canonical JSON payload */
+  payloadHash: string;
+
+  // ─── Operation Config ───────────────────────────────────────────
+  /** See OperationConfig definition in Part 1 */
+  operation: OperationConfig;
+
+  // ─── Source-Specific Metadata ───────────────────────────────────
+  /** client: original key from header */
+  clientKey?: string;
+  /** client: API key ID for additional scoping */
+  apiKeyId?: string;
+
+  /** workflow: business ID (e.g., "store:create:org-123:my-store") */
+  workflowId?: string;
+  /** workflow: step name */
+  stepId?: string;
+  /** workflow: call ID for fan-out */
+  callId?: string;
+
+  /** content: resource being modified */
+  resourceId?: string;
+
+  // ─── Tracing (optional) ─────────────────────────────────────────
+  executionId?: string;
+  traceId?: string;
+}
+
+// OperationConfig, OperationType, ResultMode — see Part 1 for canonical definitions
+```
+
+### Legacy Adapter (v1/v2 → v3)
+
+```typescript
+/**
+ * Normalize any context version to v3.
+ * MUST be called at service entry point.
+ */
+export function normalizeContext(
+  input: ActionContextV1 | ActionContextV2 | ActionContextV3 | undefined,
+  service: string,
+  action: string,
+  payload: unknown,
+  defaultOperation: OperationConfig
+): ActionContextV3 | null {
+  if (!input) return null;
+
+  // Already v3
+  if (input.version === 3) return input as ActionContextV3;
+
+  // Upgrade v1/v2
+  const legacy = input as ActionContextV1 | ActionContextV2;
+
+  const keyParts = [
+    legacy.dedupeKey,
+    legacy.service ?? service,
+    legacy.action ?? action,
+    legacy.callId ?? "default",
+  ].join(":");
+
+  return {
+    version: 3,
+    idempotencyKey: legacy.idempotencyKey ?? sha256(keyParts),
+    source: "workflow", // v1/v2 were workflow-only
+    service: legacy.service ?? service,
+    action: legacy.action ?? action,
+    payloadHash: legacy.payloadHash ?? sha256(canonicalJson(payload)),
+    operation: defaultOperation,
+    workflowId: legacy.dedupeKey,
+    stepId: legacy.action ?? action,
+    callId: legacy.callId,
+    executionId: legacy.executionId,
+    traceId: legacy.traceId,
+  };
+}
+```
 
 ---
 
-## v2 Technical Details (Preserved)
+## Part 9: State Machine Specification
 
-The following sections contain the detailed v2 implementation that remains valid.
-Все технические детали v2 остаются актуальными и используются как основа для v3.
+### States & Transitions
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         IDEMPOTENCY STATE MACHINE                       │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│    ┌──────────┐                                                         │
+│    │  (new)   │                                                         │
+│    └────┬─────┘                                                         │
+│         │ INSERT (acquire lease + set hard TTL)                         │
+│         ▼                                                               │
+│    ┌──────────┐         lease expired           ┌──────────┐            │
+│    │ RESERVED │ ◄───────────────────────────────│ RESERVED │            │
+│    │ (owned)  │         claim by new worker     │ (stale)  │            │
+│    └────┬─────┘                                 └──────────┘            │
+│         │                                             ▲                 │
+│         │ execute                                     │ lease timeout   │
+│         │                                             │                 │
+│    ┌────┴────┐                                        │                 │
+│    │         │                                        │                 │
+│    ▼         ▼                                        │                 │
+│ SUCCESS    FAILURE                                    │                 │
+│    │         │                                        │                 │
+│    │         │ (owner-aware update)                   │                 │
+│    ▼         ▼                                        │                 │
+│ ┌───────────┐  ┌────────┐                             │                 │
+│ │ COMPLETED │  │ FAILED │ ────retry claim─────────────┘                 │
+│ └───────────┘  └────────┘                                               │
+│       │              ▲                                                  │
+│       │              │  hard TTL exceeded (abandoned)                   │
+│       │              │  ┌──────────┐                                    │
+│       │              └──│ RESERVED │ (no one came back for 7 days)      │
+│       │                 └──────────┘                                    │
+│       │              │                                                  │
+│       │              │  TTL expires                                     │
+│       ▼              ▼                                                  │
+│    ┌──────────────────┐                                                 │
+│    │     DELETED      │ (cleanup job)                                   │
+│    └──────────────────┘                                                 │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Transition Table
+
+| From | To | Trigger | Condition | Action |
+|------|----|---------|-----------|--------|
+| (new) | RESERVED | INSERT | - | Set `lease_owner`, `lease_expires_at`, `expires_at` (hard TTL) |
+| RESERVED | RESERVED | CLAIM | `lease_expires_at < NOW()` | New `lease_owner`, `attempt++` |
+| RESERVED | COMPLETED | COMPLETE | `lease_owner == attemptOwner` | Clear lease, set `completed_at`, update `expires_at` |
+| RESERVED | FAILED | FAIL | `lease_owner == attemptOwner` | Clear lease, set `last_error`, update `expires_at` |
+| RESERVED | FAILED | HARD_TTL | `created_at + RESERVED_HARD_TTL < NOW()` | Mark abandoned, set `expires_at` |
+| FAILED | RESERVED | RETRY_CLAIM | - | New `lease_owner`, `attempt++` |
+| COMPLETED | (deleted) | CLEANUP | `expires_at < NOW()` | DELETE row |
+| FAILED | (deleted) | CLEANUP | `expires_at < NOW()` | DELETE row |
+
+### Conflict Resolution Matrix
+
+| Existing Status | Same Payload | Different Payload | Action |
+|-----------------|--------------|-------------------|--------|
+| COMPLETED | ✅ Return cached/receipt | ❌ CONFLICT | - |
+| RESERVED (owned) | ⏳ TRANSIENT_IN_PROGRESS | ❌ CONFLICT | Include `retryAfterMs` |
+| RESERVED (stale) | 🔄 Claim & execute | ❌ CONFLICT | - |
+| FAILED | 🔄 Claim & retry | ❌ CONFLICT | - |
+
+### Content-Derived Key Special Case
+
+```typescript
+// For source="content": different payload = different key (by design)
+// If conflict detected → this is a BUG in canonicalJson
+
+if (ctx.source === "content" && existing.payloadHash !== ctx.payloadHash) {
+  // This should NEVER happen if canonicalJson is deterministic
+  logger.error("CANONICAL_JSON_BUG", {
+    idempotencyKey: ctx.idempotencyKey,
+    existingHash: existing.payloadHash,
+    newHash: ctx.payloadHash,
+  });
+  metrics.increment("idempotency.canonical_json_bug");
+
+  return {
+    result: null,
+    error: {
+      code: "INTERNAL_ERROR",
+      message: "Idempotency canonicalization error",
+      retryable: false,
+    },
+  };
+}
+```
+
+---
+
+## Part 10: TTL & Lifecycle Rules
+
+### TTL Configuration
+
+```typescript
+export const TTL_DEFAULTS = {
+  // Per operation type (for completed/failed)
+  CREATE: 24 * 60 * 60 * 1000,        // 24 hours (Stripe standard)
+  UPDATE: 1 * 60 * 60 * 1000,         // 1 hour
+  DELETE: 24 * 60 * 60 * 1000,        // 24 hours
+  ASYNC_JOB: 7 * 24 * 60 * 60 * 1000, // 7 days
+
+  // Lease settings
+  LEASE_DURATION: 5 * 60 * 1000,      // 5 minutes
+  LEASE_STALE_THRESHOLD: 15 * 60 * 1000, // 15 min = alert
+
+  // Hard TTL for reserved records (catastrophe protection)
+  RESERVED_HARD_TTL: 7 * 24 * 60 * 60 * 1000, // 7 days max for any reserved
+
+  // Result cache
+  RESULT_MAX_SIZE_BYTES: 64 * 1024,   // 64KB max cached result
+} as const;
+```
+
+### Expires_at Rules
+
+```typescript
+function computeExpiresAt(
+  status: "reserved" | "completed" | "failed",
+  operation: OperationConfig,
+  createdAt: Date
+): Date {
+  switch (status) {
+    case "reserved":
+      // Hard TTL for catastrophe protection (worker died, no one comes back)
+      // This prevents "reserved forever" garbage accumulation
+      return new Date(createdAt.getTime() + TTL_DEFAULTS.RESERVED_HARD_TTL);
+
+    case "completed":
+    case "failed":
+      // Start TTL countdown from completion
+      return new Date(Date.now() + operation.ttlMs);
+  }
+}
+```
+
+### Reserved Hard TTL Policy
+
+When a reserved record exceeds its hard TTL:
+
+```typescript
+// Cleanup job handles reserved records that exceeded hard TTL
+async function cleanupAbandonedReserved(): Promise<void> {
+  const hardTtlThreshold = new Date(Date.now() - TTL_DEFAULTS.RESERVED_HARD_TTL);
+
+  const abandoned = await db.query.processedRequests.findMany({
+    where: and(
+      eq(processedRequests.status, "reserved"),
+      lt(processedRequests.createdAt, hardTtlThreshold)
+    ),
+  });
+
+  for (const record of abandoned) {
+    logger.warn("ABANDONED_RESERVED_CLEANUP", {
+      idempotencyKey: record.idempotencyKey,
+      service: record.service,
+      action: record.action,
+      createdAt: record.createdAt,
+      attempts: record.attempt,
+    });
+
+    // Policy options:
+    // 1. Mark as failed (allows retry if client comes back)
+    await db.update(processedRequests)
+      .set({
+        status: "failed",
+        lastError: "ABANDONED: exceeded reserved hard TTL",
+        expiresAt: new Date(Date.now() + TTL_DEFAULTS.CREATE), // Give 24h before deletion
+        updatedAt: new Date(),
+      })
+      .where(eq(processedRequests.idempotencyKey, record.idempotencyKey));
+
+    // 2. Or delete directly (more aggressive)
+    // await db.delete(processedRequests)
+    //   .where(eq(processedRequests.idempotencyKey, record.idempotencyKey));
+
+    metrics.increment("idempotency.abandoned_reserved_cleaned");
+  }
+}
+```
+
+### Stuck Detection & Alerting
+
+```typescript
+// Cron job: every 5 minutes
+async function detectStuckRequests(): Promise<void> {
+  const stuckThreshold = new Date(Date.now() - TTL_DEFAULTS.LEASE_STALE_THRESHOLD);
+
+  const stuck = await db.query.processedRequests.findMany({
+    where: and(
+      eq(processedRequests.status, "reserved"),
+      lt(processedRequests.leaseExpiresAt, stuckThreshold)
+    ),
+  });
+
+  if (stuck.length > 0) {
+    logger.warn("STUCK_IDEMPOTENCY_REQUESTS", { count: stuck.length });
+    metrics.gauge("idempotency.stuck_count", stuck.length);
+
+    for (const record of stuck) {
+      // Alert per record (PagerDuty/Slack)
+      await alerting.fire("idempotency_stuck", {
+        idempotencyKey: record.idempotencyKey,
+        service: record.service,
+        action: record.action,
+        stuckSince: record.leaseExpiresAt,
+        attempts: record.attempt,
+      });
+    }
+  }
+}
+```
+
+---
+
+## Part 11: Result Caching Modes
+
+### Result Mode Options
+
+```typescript
+// ResultMode type — see Part 1 for canonical definition: "full" | "minimal" | "receipt_only"
+
+interface ResultModeConfig {
+  /** Store entire result object */
+  full: {
+    maxSizeBytes: number;
+    truncateOnOversize: boolean;
+  };
+
+  /** Store only key identifiers (e.g., { orderId: "..." }) */
+  minimal: {
+    extractKeys: string[]; // ["id", "orderId", "transactionId"]
+  };
+
+  /** Store nothing, return receipt on replay */
+  receipt_only: {};
+}
+```
+
+### Implementation
+
+```typescript
+async function cacheResult(
+  ctx: ActionContextV3,
+  result: unknown
+): Promise<{ cached: unknown; isCached: boolean }> {
+  const mode = ctx.operation.resultMode;
+
+  switch (mode) {
+    case "full": {
+      const json = JSON.stringify(result);
+      if (json.length > TTL_DEFAULTS.RESULT_MAX_SIZE_BYTES) {
+        logger.warn("RESULT_TOO_LARGE", {
+          idempotencyKey: ctx.idempotencyKey,
+          size: json.length,
+        });
+        // Fallback to minimal
+        return cacheMinimalResult(result);
+      }
+      return { cached: result, isCached: true };
+    }
+
+    case "minimal": {
+      return cacheMinimalResult(result);
+    }
+
+    case "receipt_only": {
+      return { cached: null, isCached: false };
+    }
+  }
+}
+
+function cacheMinimalResult(result: unknown): { cached: unknown; isCached: boolean } {
+  if (typeof result !== "object" || result === null) {
+    return { cached: null, isCached: false };
+  }
+
+  const minimal: Record<string, unknown> = {};
+  const extractKeys = ["id", "orderId", "transactionId", "storeId", "userId"];
+
+  for (const key of extractKeys) {
+    if (key in result) {
+      minimal[key] = (result as Record<string, unknown>)[key];
+    }
+  }
+
+  return Object.keys(minimal).length > 0
+    ? { cached: minimal, isCached: true }
+    : { cached: null, isCached: false };
+}
+```
+
+---
+
+## Part 12: In-Progress Response with Backoff Hints
+
+### Enhanced ActionResponse
+
+```typescript
+export interface ActionResponse<T = unknown> {
+  result: T;
+  error?: ActionError;
+  meta?: {
+    idempotent?: boolean;
+    attempt?: number;
+    receipt?: ActionReceipt;
+
+    // ─── NEW: Backoff hints ───────────────────────────────
+    /** Suggested retry delay in ms */
+    retryAfterMs?: number;
+    /** When the current lease expires (for debugging) */
+    leaseExpiresAt?: string;
+  };
+}
+```
+
+### In-Progress Handler
+
+```typescript
+function buildInProgressResponse(existing: ProcessedRequest): ActionResponse<null> {
+  const leaseExpiresAt = existing.leaseExpiresAt;
+  const now = Date.now();
+
+  // Calculate suggested retry time
+  let retryAfterMs: number;
+
+  if (leaseExpiresAt && leaseExpiresAt.getTime() > now) {
+    // Lease still valid: wait until it expires + small buffer
+    retryAfterMs = leaseExpiresAt.getTime() - now + 1000;
+  } else {
+    // Lease already expired (should claim, but lost race)
+    // Exponential backoff based on attempts
+    retryAfterMs = Math.min(1000 * Math.pow(2, existing.attempt - 1), 30000);
+  }
+
+  return {
+    result: null,
+    error: {
+      code: "TRANSIENT_IN_PROGRESS",
+      message: "Request already in progress, please retry",
+      retryable: true,
+    },
+    meta: {
+      attempt: existing.attempt,
+      retryAfterMs,
+      leaseExpiresAt: leaseExpiresAt?.toISOString(),
+    },
+  };
+}
+```
+
+### REST/GraphQL Integration
+
+```typescript
+// REST: Use Retry-After header
+if (response.meta?.retryAfterMs) {
+  res.set("Retry-After", Math.ceil(response.meta.retryAfterMs / 1000).toString());
+}
+
+// GraphQL: Include in extensions
+return {
+  data: null,
+  errors: [{ message: response.error.message, extensions: {
+    code: response.error.code,
+    retryAfterMs: response.meta?.retryAfterMs,
+  }}],
+};
+```
+
+---
+
+## Part 13: Security & Rate Limiting
+
+### Client Key Validation
+
+```typescript
+const CLIENT_KEY_LIMITS = {
+  MIN_LENGTH: 8,
+  MAX_LENGTH: 256,
+  ALLOWED_PATTERN: /^[a-zA-Z0-9_\-:.]+$/,
+} as const;
+
+function validateClientKey(key: string): { valid: boolean; error?: string } {
+  if (key.length < CLIENT_KEY_LIMITS.MIN_LENGTH) {
+    return { valid: false, error: `Key must be at least ${CLIENT_KEY_LIMITS.MIN_LENGTH} chars` };
+  }
+  if (key.length > CLIENT_KEY_LIMITS.MAX_LENGTH) {
+    return { valid: false, error: `Key must be at most ${CLIENT_KEY_LIMITS.MAX_LENGTH} chars` };
+  }
+  if (!CLIENT_KEY_LIMITS.ALLOWED_PATTERN.test(key)) {
+    return { valid: false, error: "Key contains invalid characters" };
+  }
+  return { valid: true };
+}
+```
+
+### Rate Limiting
+
+```typescript
+interface IdempotencyRateLimits {
+  /** Max unique keys per tenant per hour */
+  maxKeysPerTenantPerHour: number;
+  /** Max requests per key per minute (replay abuse) */
+  maxRequestsPerKeyPerMinute: number;
+  /** Max concurrent in-progress per tenant */
+  maxConcurrentPerTenant: number;
+}
+
+const RATE_LIMITS: IdempotencyRateLimits = {
+  maxKeysPerTenantPerHour: 10000,
+  maxRequestsPerKeyPerMinute: 60,
+  maxConcurrentPerTenant: 100,
+};
+
+async function checkRateLimits(
+  tenantId: string,
+  idempotencyKey: string
+): Promise<{ allowed: boolean; error?: string }> {
+  // 1. Check tenant key creation rate
+  const recentKeys = await redis.scard(`idempotency:keys:${tenantId}:${currentHour()}`);
+  if (recentKeys >= RATE_LIMITS.maxKeysPerTenantPerHour) {
+    return { allowed: false, error: "Too many unique idempotency keys" };
+  }
+
+  // 2. Check per-key request rate (replay spam)
+  const keyRequests = await redis.incr(`idempotency:requests:${idempotencyKey}:${currentMinute()}`);
+  if (keyRequests > RATE_LIMITS.maxRequestsPerKeyPerMinute) {
+    return { allowed: false, error: "Too many requests with same idempotency key" };
+  }
+
+  // 3. Check concurrent in-progress
+  const concurrent = await db.query.processedRequests.count({
+    where: and(
+      eq(processedRequests.tenantId, tenantId),
+      eq(processedRequests.status, "reserved")
+    ),
+  });
+  if (concurrent >= RATE_LIMITS.maxConcurrentPerTenant) {
+    return { allowed: false, error: "Too many concurrent operations" };
+  }
+
+  return { allowed: true };
+}
+```
+
+### Post-Completion Key Reuse Prevention
+
+```typescript
+// After TTL expires, key is deleted and can be reused
+// But within TTL, completed key with DIFFERENT payload = CONFLICT
+
+// Optional stricter mode: prevent ANY reuse after completion
+interface StrictModeConfig {
+  preventReuseAfterCompletion: boolean;
+}
+
+if (strictMode.preventReuseAfterCompletion && existing.status === "completed") {
+  // Even same payload gets rejected (force new key)
+  return {
+    result: null,
+    error: {
+      code: "KEY_ALREADY_USED",
+      message: "Idempotency key was already used. Generate a new key.",
+      retryable: false,
+    },
+  };
+}
+```
+
+---
+
+## Part 14: DevX Helper
+
+### withIdempotency Wrapper
+
+```typescript
+/**
+ * Universal idempotency wrapper for BrokerActions.
+ * Eliminates boilerplate in action handlers.
+ */
+export async function withIdempotency<TPayload, TResult>(
+  ctx: ActionContextV3 | null,
+  payload: TPayload,
+  helpers: IdempotencyHelpers,
+  execute: (payload: TPayload) => Promise<TResult>
+): Promise<ActionResponse<TResult>> {
+  // 1. No context = no idempotency
+  if (!ctx || ctx.source === "none" || !ctx.operation.requiresIdempotency) {
+    const result = await execute(payload);
+    return { result };
+  }
+
+  // 2. Rate limit check (for client keys)
+  if (ctx.source === "client" && ctx.tenantId) {
+    const rateCheck = await checkRateLimits(ctx.tenantId, ctx.idempotencyKey);
+    if (!rateCheck.allowed) {
+      return {
+        result: null as TResult,
+        error: { code: "RATE_LIMITED", message: rateCheck.error!, retryable: false },
+      };
+    }
+  }
+
+  // 3. Try reserve
+  const reservation = await helpers.tryReserve(ctx);
+  let attemptOwner = reservation.attemptOwner;
+
+  // 4. Handle existing record
+  if (!reservation.acquired) {
+    const existing = reservation.existing!;
+
+    // Payload safety
+    if (existing.payloadHash !== ctx.payloadHash) {
+      // Content-derived: this is a bug
+      if (ctx.source === "content") {
+        helpers.logCanonicalBug(ctx, existing);
+        return {
+          result: null as TResult,
+          error: { code: "INTERNAL_ERROR", message: "Canonicalization error", retryable: false },
+        };
+      }
+      return {
+        result: null as TResult,
+        error: { code: "CONFLICT", message: "Key reused with different payload", retryable: false },
+      };
+    }
+
+    // Completed: return cached/receipt
+    if (existing.status === "completed") {
+      return helpers.buildCompletedResponse(existing, ctx);
+    }
+
+    // Reserved: try claim if stale
+    if (existing.status === "reserved") {
+      const claim = await helpers.tryClaimExpired(ctx.idempotencyKey);
+      if (!claim.claimed) {
+        return buildInProgressResponse(existing);
+      }
+      attemptOwner = claim.attemptOwner;
+    }
+
+    // Failed: retry claim
+    if (existing.status === "failed") {
+      const claim = await helpers.tryClaimFailed(ctx.idempotencyKey);
+      if (!claim.claimed) {
+        return buildInProgressResponse(existing);
+      }
+      attemptOwner = claim.attemptOwner;
+    }
+  }
+
+  // 5. Execute
+  try {
+    const result = await execute(payload);
+
+    const completed = await helpers.complete(ctx.idempotencyKey, attemptOwner!, result);
+    if (!completed) {
+      return {
+        result: null as TResult,
+        error: { code: "TRANSIENT_IN_PROGRESS", message: "Lost lease", retryable: true },
+      };
+    }
+
+    return { result };
+  } catch (error) {
+    await helpers.fail(ctx.idempotencyKey, attemptOwner!, String(error));
+    return { result: null as TResult, error: mapToActionError(error) };
+  }
+}
+```
+
+### Usage in BrokerActions
+
+```typescript
+@Action("createOrder", { operation: OperationPresets.CREATE })
+async createOrder(
+  input: ActionRequest<CreateOrderPayload> | CreateOrderPayload
+): Promise<ActionResponse<Order>> {
+  const { payload, ctx } = this.unwrapRequest(input);
+  const normalizedCtx = normalizeContext(ctx, "orders", "createOrder", payload, OperationPresets.CREATE);
+
+  return withIdempotency(normalizedCtx, payload, this.idempotencyHelpers, async (p) => {
+    return this.kernel.runScript(CreateOrderScript, p);
+  });
+}
+```
+
+---
+
+## Part 15: Observability
+
+### Metrics
+
+```typescript
+const IDEMPOTENCY_METRICS = {
+  // Counters
+  "idempotency.request.total": "Total idempotent requests",
+  "idempotency.request.new": "New (first-time) requests",
+  "idempotency.request.replay": "Replayed (cached) requests",
+  "idempotency.request.conflict": "Payload conflicts",
+  "idempotency.request.in_progress": "In-progress rejections",
+
+  // Lease metrics
+  "idempotency.lease.acquired": "Leases acquired",
+  "idempotency.lease.claimed_expired": "Expired leases claimed",
+  "idempotency.lease.claimed_failed": "Failed records retried",
+  "idempotency.lease.lost": "Leases lost (stale owner)",
+
+  // Gauges
+  "idempotency.reserved.count": "Current reserved records",
+  "idempotency.stuck.count": "Stuck (overdue) records",
+
+  // Histograms
+  "idempotency.execution.duration_ms": "Execution time",
+
+  // Errors
+  "idempotency.canonical_json_bug": "Canonicalization bugs",
+} as const;
+```
+
+### Logging
+
+```typescript
+// Structured log events
+type IdempotencyLogEvent =
+  | { event: "IDEMPOTENCY_NEW"; key: string; source: string; service: string; action: string }
+  | { event: "IDEMPOTENCY_REPLAY"; key: string; attempt: number }
+  | { event: "IDEMPOTENCY_CONFLICT"; key: string; existingHash: string; newHash: string }
+  | { event: "IDEMPOTENCY_IN_PROGRESS"; key: string; leaseExpiresAt: string }
+  | { event: "IDEMPOTENCY_LEASE_CLAIMED"; key: string; previousOwner: string; newOwner: string }
+  | { event: "IDEMPOTENCY_LEASE_LOST"; key: string; owner: string }
+  | { event: "IDEMPOTENCY_STUCK"; key: string; stuckSince: string; attempts: number };
+```
+
+---
+
+## Part 16: Summary Comparison
+
+| Aspect | v2 | v3 (Final) |
+|--------|-----|------------|
+| Wire contract | v1/v2 mixed | **Single v3 + upgrade adapter** |
+| Operation types | Implicit | Explicit: `read/write/idempotent_write` |
+| Key sources | Workflow only | Client + Workflow + Content + None |
+| Key storage | Hash only | Hash (PK) + raw + scope fields |
+| External keys | ❌ | ✅ `Idempotency-Key` header |
+| No-idempotency | Legacy fallback | Explicit `source: "none"` |
+| Same-payload handling | Conflict | Configurable per operation |
+| TTL | Fixed | Per operation type + `expires_at` |
+| Scoping | Global | Tenant + Service + Operation |
+| Result caching | Boolean | **Modes: full/minimal/receipt** |
+| In-progress response | Generic error | **retryAfterMs + leaseExpiresAt** |
+| Rate limiting | ❌ | ✅ Per-tenant + per-key |
+| Observability | Basic | **Full metrics + structured logs** |
+| DevX | Manual | **`withIdempotency()` helper** |
+| State machine | Implicit | **Explicit spec + transitions** |
+
+---
+
+## v2 Technical Details (Reference)
+
+The following v2 sections are preserved for reference. All v2 concepts (lease mechanism, payloadHash, owner-aware completion) are incorporated into v3.
 
 ---
 
