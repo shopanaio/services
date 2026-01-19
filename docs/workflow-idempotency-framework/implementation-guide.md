@@ -117,12 +117,12 @@ export const OperationPresets = {
 } as const satisfies Record<string, OperationConfig>;
 
 // ═══════════════════════════════════════════════════════════════════
-// ACTION CONTEXT V3
+// ACTION CONTEXT
 // ═══════════════════════════════════════════════════════════════════
 
 export type IdempotencySource = "client" | "workflow" | "content" | "none";
 
-export interface ActionContextV3 {
+export interface ActionContext {
   readonly version: 3;
 
   /** How the idempotency key was derived */
@@ -172,7 +172,7 @@ export interface ActionContextV3 {
  */
 export interface ActionRequest<TPayload = unknown> {
   payload: TPayload;
-  ctx?: ActionContextV3;
+  ctx?: ActionContext;
 }
 
 /**
@@ -284,7 +284,7 @@ export function generateLeaseOwner(): string {
 **File: `packages/idempotency/src/context.ts`**
 
 ```typescript
-import type { ActionContextV3, OperationConfig } from "./types.js";
+import type { ActionContext, OperationConfig } from "./types.js";
 import { OperationPresets } from "./types.js";
 import { canonicalJson, sha256 } from "./utils.js";
 
@@ -301,7 +301,7 @@ export function buildWorkflowContext<TPayload>(
   payload: TPayload,
   operation: OperationConfig = OperationPresets.CREATE,
   tenantId?: string
-): ActionContextV3 {
+): ActionContext {
   const keyParts = [workflowId, stepId, callId, service, action];
   const idempotencyKey = sha256(keyParts.join(":"));
   const payloadHash = sha256(canonicalJson(payload));
@@ -333,7 +333,7 @@ export function buildClientContext<TPayload>(
   payload: TPayload,
   operation: OperationConfig = OperationPresets.CREATE,
   apiKeyId?: string
-): ActionContextV3 {
+): ActionContext {
   const keyParts = [tenantId, apiKeyId ?? "default", service, action, clientKey];
   const idempotencyKey = sha256(keyParts.join(":"));
   const payloadHash = sha256(canonicalJson(payload));
@@ -363,7 +363,7 @@ export function buildContentContext<TPayload>(
   payload: TPayload,
   operation: OperationConfig = OperationPresets.UPDATE,
   tenantId?: string
-): ActionContextV3 {
+): ActionContext {
   const payloadHash = sha256(canonicalJson(payload));
   const keyParts = [resourceId, service, action, payloadHash];
   const idempotencyKey = sha256(keyParts.join(":"));
@@ -393,7 +393,7 @@ export function buildEventHandlerContext(
   eventPayload: unknown,
   operation: OperationConfig = OperationPresets.CREATE,
   tenantId?: string
-): ActionContextV3 {
+): ActionContext {
   const keyParts = ["event", eventType, eventId, service, action];
   const idempotencyKey = sha256(keyParts.join(":"));
   const payloadHash = sha256(canonicalJson({ event: eventPayload }));
@@ -425,7 +425,7 @@ export type {
   ResultMode,
   OperationConfig,
   IdempotencySource,
-  ActionContextV3,
+  ActionContext,
   ActionRequest,
   ActionResponse,
   ActionResponseMeta,
@@ -592,7 +592,7 @@ CREATE INDEX IF NOT EXISTS idx_pr_lease ON processed_requests(status, lease_expi
 import { eq, sql, and, lt } from "drizzle-orm";
 import type { PgDatabase } from "drizzle-orm/pg-core";
 import { processedRequests, type ProcessedRequest } from "./schema.js";
-import type { ActionContextV3 } from "./types.js";
+import type { ActionContext } from "./types.js";
 import { generateLeaseOwner } from "./utils.js";
 
 const LEASE_MS = 5 * 60 * 1000; // 5 minutes
@@ -618,7 +618,7 @@ export class IdempotencyRepository {
   /**
    * Try to reserve an idempotency key (atomic insert).
    */
-  async tryReserve(ctx: ActionContextV3): Promise<ReservationResult> {
+  async tryReserve(ctx: ActionContext): Promise<ReservationResult> {
     const attemptOwner = generateLeaseOwner();
 
     const insertResult = await this.db.execute(sql`
@@ -771,7 +771,7 @@ export class IdempotencyRepository {
     return result.rowCount ?? 0;
   }
 
-  private computeExpiresAt(ctx: ActionContextV3): Date {
+  private computeExpiresAt(ctx: ActionContext): Date {
     // For reserved: hard TTL of 7 days (catastrophe protection)
     return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   }
@@ -784,7 +784,7 @@ export class IdempotencyRepository {
 
 ```typescript
 import type {
-  ActionContextV3,
+  ActionContext,
   ActionResponse,
   ActionError,
   ProcessedRequest,
@@ -799,7 +799,7 @@ export interface IdempotencyHelpers {
  * Universal idempotency wrapper for BrokerActions.
  */
 export async function withIdempotency<TPayload, TResult>(
-  ctx: ActionContextV3 | undefined,
+  ctx: ActionContext | undefined,
   payload: TPayload,
   helpers: IdempotencyHelpers,
   execute: (payload: TPayload) => Promise<TResult>
@@ -907,7 +907,7 @@ export async function withIdempotency<TPayload, TResult>(
 
 function buildCompletedResponse<TResult>(
   existing: ProcessedRequest,
-  ctx: ActionContextV3
+  ctx: ActionContext
 ): ActionResponse<TResult> {
   if (existing.resultCached && existing.result !== null) {
     return {
@@ -1011,7 +1011,7 @@ export { withIdempotency, type IdempotencyHelpers } from "./withIdempotency.js";
 Add this method to the existing `ServiceBroker` class:
 
 ```typescript
-import type { ActionRequest, ActionResponse, ActionContextV3 } from "@shopana/idempotency";
+import type { ActionRequest, ActionResponse, ActionContext } from "@shopana/idempotency";
 
 // Inside ServiceBroker class:
 
@@ -1032,7 +1032,7 @@ import type { ActionRequest, ActionResponse, ActionContextV3 } from "@shopana/id
 async fire<TResult = unknown, TPayload = unknown>(
   action: string,
   payload: TPayload,
-  ctx?: ActionContextV3
+  ctx?: ActionContext
 ): Promise<ActionResponse<TResult>> {
   const qualifiedAction = this.assertFullyQualified(action);
   const handler = this.registry.resolve<ActionRequest<TPayload>, ActionResponse<TResult>>(
