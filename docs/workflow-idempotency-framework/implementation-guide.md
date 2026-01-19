@@ -39,6 +39,7 @@ mkdir -p packages/idempotency/src
     "dev": "tsc --watch"
   },
   "dependencies": {
+    "canonicalize": "^2.0.0",
     "drizzle-orm": "^0.38.0"
   },
   "peerDependencies": {
@@ -255,33 +256,18 @@ export function isServiceError(error: unknown): error is ServiceError {
 
 ```typescript
 import crypto from "node:crypto";
+import canonicalize from "canonicalize";
 
 /**
- * Canonical JSON for deterministic hashing.
- * - Objects: keys sorted lexicographically
- * - Arrays: preserve order
- * - undefined: removed
- * - Date: ISO string
- * - BigInt: string
+ * Canonical JSON for deterministic hashing (RFC 8785 compliant).
+ * Uses the `canonicalize` library for proper JSON Canonicalization Scheme (JCS).
  */
 export function canonicalJson(value: unknown): string {
-  return JSON.stringify(value, (_, v) => {
-    if (v === undefined) return undefined;
-    if (typeof v === "bigint") return v.toString();
-    if (v instanceof Date) return v.toISOString();
-    if (v && typeof v === "object" && !Array.isArray(v)) {
-      return Object.keys(v)
-        .sort()
-        .reduce(
-          (sorted, key) => {
-            sorted[key] = v[key];
-            return sorted;
-          },
-          {} as Record<string, unknown>
-        );
-    }
-    return v;
-  });
+  const result = canonicalize(value);
+  if (result === undefined) {
+    throw new Error("Cannot canonicalize undefined value");
+  }
+  return result;
 }
 
 export function sha256(data: string): string {
