@@ -748,6 +748,71 @@ export interface ActionContextV3 {
 }
 
 // OperationConfig, OperationType, ResultMode — see Part 1 for canonical definitions
+
+// ═══════════════════════════════════════════════════════════════════
+// ACTION ENVELOPE — request/response wrappers
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Envelope for idempotent action calls.
+ * Services receive this wrapper containing payload + context.
+ */
+export interface ActionRequest<TPayload = unknown> {
+  /** The actual operation payload */
+  payload: TPayload;
+
+  /** Idempotency context (optional for backward compatibility) */
+  ctx?: ActionContextV3;
+}
+
+/**
+ * Standard response from idempotent actions.
+ * Services MUST return this (never throw for business errors).
+ */
+export interface ActionResponse<TResult = unknown> {
+  /** Operation result (null if error) */
+  result: TResult;
+
+  /** Error info (present if operation failed) */
+  error?: ActionError;
+
+  /** Metadata about the operation */
+  meta?: ActionResponseMeta;
+}
+
+export interface ActionResponseMeta {
+  /** True if this was a duplicate request (idempotent replay) */
+  idempotent?: boolean;
+
+  /** Attempt counter from service-side record */
+  attempt?: number;
+
+  /** Receipt for completed operations (when result not cached) */
+  receipt?: ActionReceipt;
+
+  /** Suggested retry delay in ms (for TRANSIENT_IN_PROGRESS) */
+  retryAfterMs?: number;
+
+  /** When the current lease expires (for debugging) */
+  leaseExpiresAt?: string;
+}
+
+export interface ActionReceipt {
+  idempotencyKey: string;
+  status: "completed";
+  completedAt: string; // ISO 8601
+}
+
+export interface ActionError {
+  /** Error code (TRANSIENT_* = retryable, others = terminal) */
+  code: string;
+
+  /** Human-readable message */
+  message: string;
+
+  /** Explicit retryability flag */
+  retryable: boolean;
+}
 ```
 
 ### Legacy Adapter (v1/v2 → v3)
@@ -1100,25 +1165,9 @@ function cacheMinimalResult(result: unknown): { cached: unknown; isCached: boole
 
 ## Part 12: In-Progress Response with Backoff Hints
 
-### Enhanced ActionResponse
-
-```typescript
-export interface ActionResponse<T = unknown> {
-  result: T;
-  error?: ActionError;
-  meta?: {
-    idempotent?: boolean;
-    attempt?: number;
-    receipt?: ActionReceipt;
-
-    // ─── NEW: Backoff hints ───────────────────────────────
-    /** Suggested retry delay in ms */
-    retryAfterMs?: number;
-    /** When the current lease expires (for debugging) */
-    leaseExpiresAt?: string;
-  };
-}
-```
+`ActionResponseMeta` includes backoff hints — see Part 8 for canonical definition:
+- `retryAfterMs` — suggested retry delay in ms
+- `leaseExpiresAt` — when current lease expires (for debugging)
 
 ### In-Progress Handler
 
@@ -1574,41 +1623,12 @@ export interface ActionContext {
 
 #### 2. ActionRequest / ActionResponse (Explicit Envelope)
 
-```typescript
-// packages/workflows/src/types.ts
-
-export interface ActionRequest<T = unknown> {
-  payload: T;
-  ctx: ActionContext;
-}
-
-export interface ActionResponse<T = unknown> {
-  result: T;
-  error?: ActionError;
-  meta?: {
-    /** True if this was a duplicate request (idempotent replay) */
-    idempotent?: boolean;
-
-    /** Attempt counter from service-side record */
-    attempt?: number;
-
-    /** Optional receipt for non-cached responses */
-    receipt?: ActionReceipt;
-  };
-}
-
-export interface ActionReceipt {
-  idempotencyKey: string;
-  status: "completed";
-  completedAt: string; // ISO
-}
-
-export interface ActionError {
-  code: string;
-  message: string;
-  retryable?: boolean;
-}
-```
+**See Part 8 for canonical v3 definitions:**
+- `ActionRequest<TPayload>` — envelope with `payload` + `ctx`
+- `ActionResponse<TResult>` — response with `result`, `error?`, `meta?`
+- `ActionResponseMeta` — includes `idempotent`, `attempt`, `receipt`, `retryAfterMs`, `leaseExpiresAt`
+- `ActionReceipt` — completion receipt
+- `ActionError` — error with `code`, `message`, `retryable`
 
 #### 3. ServiceError (for Workflow-Side)
 
