@@ -2,21 +2,37 @@
 
 **Author**: Generated from workflow-idempotency-plan.md
 **Date**: 2026-01-19
+**Based on**: [Workflow Idempotency Plan v3](./workflow-idempotency-plan.md)
 
 ## Overview
 
-Классическая event-driven архитектура где:
-- **События** (product.created, order.completed) — первоклассные сущности
-- **Сервисы** регистрируют handlers на события которые их интересуют
-- **DBOS workflows** обеспечивают durability (событие не потеряется при падении)
-- **Idempotency framework** обеспечивает exactly-once semantics per service
+Классическая event-driven архитектура, построенная на **idempotency framework** из `workflow-idempotency-plan.md`.
+
+**Ключевая идея**: События — это просто ещё один способ вызвать action. Используем тот же контракт `ActionRequest`/`ActionResponse`, тот же `processed_requests` table, тот же `withIdempotency()` helper.
+
+### Архитектурные слои
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     EVENT-DRIVEN LAYER                          │
+│  DomainEvent, EventEmitter, EventDispatchWorkflow               │
+├─────────────────────────────────────────────────────────────────┤
+│                     IDEMPOTENCY FRAMEWORK                       │
+│  ActionRequest, ActionResponse, ActionContextV3                 │
+│  withIdempotency(), processed_requests table                    │
+├─────────────────────────────────────────────────────────────────┤
+│                     DBOS DURABILITY                             │
+│  Workflows, Steps, Retry policies                               │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ### Ключевые принципы
 
 1. **No Outbox** — workflow сам гарантирует доставку, не нужен отдельный outbox pattern
-2. **Fan-out через workflow** — одно событие → один workflow → вызовы всех подписчиков
-3. **Per-service idempotency** — каждый сервис обрабатывает событие ровно один раз
-4. **Event source in idempotency key** — `{eventType}:{eventId}:{service}` обеспечивает изоляцию
+2. **Parallel fan-out** — handlers вызываются параллельно (batches по CONCURRENCY_LIMIT)
+3. **Единый контракт** — `ActionRequest`/`ActionResponse` для всего (API, workflow, events)
+4. **Per-service idempotency** — `source: "workflow"` с ключом `event:{type}:{id}:{service}:{action}`
+5. **Critical vs Non-critical** — stop-on-failure для critical (batch level), best-effort для non-critical
 
 ---
 
@@ -121,140 +137,101 @@ export type ShopanaEvent =
 export type EventType = ShopanaEvent["eventType"];
 ```
 
-### 1.2 Event Registry (Service-Side)
+### 1.2 Event Handler Registration
 
 ```typescript
 // packages/events/src/registry.ts
 
 import type { DomainEvent, EventType } from "./types.js";
+import type { OperationConfig } from "@shopana/idempotency";
 
 /**
- * Handler configuration for an event type.
+ * Metadata about registered event handler.
+ *
+ * NOTE: Handlers — это обычные BrokerActions.
+ * Здесь храним только метаданные для discovery.
  */
-export interface EventHandlerConfig<TEvent extends DomainEvent = DomainEvent> {
-  /** Event type to handle */
-  eventType: TEvent["eventType"];
+export interface EventHandlerRegistration {
+  /** Event type this handler responds to */
+  eventType: EventType;
 
-  /** Handler function */
-  handler: (event: TEvent) => Promise<EventHandlerResult>;
+  /** Service that owns this handler */
+  service: string;
 
-  /** Operation preset for idempotency (from workflow-idempotency-plan) */
+  /** Action name to call (e.g., "handleProductCreated") */
+  action: string;
+
+  /** Operation config for idempotency */
   operation: OperationConfig;
 
-  /** Optional: custom idempotency key builder */
-  buildIdempotencyKey?: (event: TEvent) => string;
-
-  /** Whether this handler is critical (blocks event completion) */
-  critical?: boolean;
-
-  /** Retry policy override */
-  retryPolicy?: RetryPolicy;
-}
-
-export interface EventHandlerResult {
-  success: boolean;
-  error?: {
-    code: string;
-    message: string;
-    retryable: boolean;
-  };
-  /** Optional data to include in event log */
-  metadata?: Record<string, unknown>;
-}
-
-export interface RetryPolicy {
-  maxAttempts: number;
-  initialDelayMs: number;
-  maxDelayMs: number;
-  backoffMultiplier: number;
+  /** Whether failure of this handler should fail the whole event dispatch */
+  critical: boolean;
 }
 
 /**
- * Service-level event registry.
- * Each service registers its event handlers here.
+ * Service-level registry of event handlers.
+ * Used by EventDispatchWorkflow to discover who to call.
  */
 export class EventHandlerRegistry {
-  private handlers = new Map<EventType, EventHandlerConfig[]>();
+  private handlers = new Map<EventType, EventHandlerRegistration[]>();
 
-  /**
-   * Register a handler for an event type.
-   * Multiple handlers per event type are allowed (within same service).
-   */
-  register<TEvent extends DomainEvent>(config: EventHandlerConfig<TEvent>): void {
-    const existing = this.handlers.get(config.eventType) ?? [];
-    existing.push(config as EventHandlerConfig);
-    this.handlers.set(config.eventType, existing);
+  register(registration: EventHandlerRegistration): void {
+    const existing = this.handlers.get(registration.eventType) ?? [];
+
+    // Prevent duplicates
+    const isDuplicate = existing.some(
+      (h) => h.service === registration.service && h.action === registration.action
+    );
+
+    if (!isDuplicate) {
+      existing.push(registration);
+      this.handlers.set(registration.eventType, existing);
+    }
   }
 
-  /**
-   * Get all handlers for an event type.
-   */
-  getHandlers(eventType: EventType): EventHandlerConfig[] {
+  getHandlers(eventType: EventType): EventHandlerRegistration[] {
     return this.handlers.get(eventType) ?? [];
   }
 
-  /**
-   * Get all registered event types.
-   */
-  getRegisteredEventTypes(): EventType[] {
+  getAllEventTypes(): EventType[] {
     return Array.from(this.handlers.keys());
   }
 }
 
-// Global registry instance per service
 export const eventRegistry = new EventHandlerRegistry();
 ```
 
-### 1.3 Event Handler Decorator
+### 1.3 Event Handler — это обычный Action
 
 ```typescript
-// packages/events/src/decorators.ts
+// Event handler — это просто Action с определённой сигнатурой.
+// Используем стандартный @Action декоратор из idempotency framework.
 
-import { eventRegistry, type EventHandlerConfig } from "./registry.js";
-import { OperationPresets, type OperationConfig } from "../idempotency/types.js";
-import type { DomainEvent } from "./types.js";
+// packages/events/src/types.ts
+
+import type { ActionRequest, ActionResponse } from "@shopana/idempotency";
 
 /**
- * Decorator to register a method as an event handler.
- *
- * @example
- * class InventoryEventHandlers {
- *   @EventHandler("product.created", { operation: OperationPresets.CREATE })
- *   async onProductCreated(event: ProductCreatedEvent): Promise<EventHandlerResult> {
- *     // Initialize inventory record for new product
- *     await this.inventoryService.initializeStock(event.payload.productId);
- *     return { success: true };
- *   }
- * }
+ * Payload для event handler action.
+ * Event передаётся как часть payload.
  */
-export function EventHandler<TEvent extends DomainEvent>(
-  eventType: TEvent["eventType"],
-  options: {
-    operation?: OperationConfig;
-    critical?: boolean;
-    retryPolicy?: RetryPolicy;
-  } = {}
-): MethodDecorator {
-  return function (
-    target: any,
-    propertyKey: string | symbol,
-    descriptor: PropertyDescriptor
-  ) {
-    const originalMethod = descriptor.value;
-
-    // Register handler in registry
-    eventRegistry.register<TEvent>({
-      eventType,
-      handler: originalMethod.bind(target),
-      operation: options.operation ?? OperationPresets.CREATE,
-      critical: options.critical ?? true,
-      retryPolicy: options.retryPolicy,
-    });
-
-    return descriptor;
-  };
+export interface EventHandlerPayload<TEvent extends DomainEvent = DomainEvent> {
+  event: TEvent;
 }
+
+/**
+ * Event handler — это Action с сигнатурой:
+ *
+ * ActionRequest<EventHandlerPayload<TEvent>> → ActionResponse<TResult>
+ *
+ * Где TResult — любой тип результата (void для side-effect handlers).
+ */
+export type EventHandlerAction<TEvent extends DomainEvent, TResult = void> = (
+  input: ActionRequest<EventHandlerPayload<TEvent>>
+) => Promise<ActionResponse<TResult>>;
 ```
+
+**Важно**: Нет отдельного `@EventHandler` декоратора. Используем стандартный `@Action` из idempotency framework. Регистрация event handlers происходит на уровне сервиса при startup.
 
 ---
 
@@ -382,12 +359,25 @@ export class EventEmitter {
 
 import { DBOS, Workflow } from "@dbos-inc/dbos-sdk";
 import type { DomainEvent } from "../types.js";
+import type { ActionResponse } from "@shopana/idempotency";
 import type { ServiceBroker } from "@shopana/shared-kernel";
 import { buildEventHandlerContext } from "../context.js";
 
+/**
+ * Result of event dispatch workflow.
+ */
 export interface EventDispatchResult {
   eventId: string;
   eventType: string;
+
+  /**
+   * Final status:
+   * - "completed": all handlers succeeded
+   * - "completed_with_errors": critical handlers OK, some non-critical failed
+   * - "failed": at least one critical handler failed
+   */
+  status: "completed" | "completed_with_errors" | "failed";
+
   handlersInvoked: number;
   handlersSucceeded: number;
   handlersFailed: number;
@@ -396,8 +386,10 @@ export interface EventDispatchResult {
 
 export interface HandlerInvocationResult {
   service: string;
-  handlerName: string;
-  status: "success" | "failed" | "skipped";
+  action: string;
+  critical: boolean;
+  status: "success" | "failed";
+  idempotentReplay: boolean;
   error?: string;
   durationMs: number;
 }
@@ -405,37 +397,38 @@ export interface HandlerInvocationResult {
 /**
  * Main event dispatch workflow.
  *
- * This workflow is the SINGLE source of truth for event delivery.
- * - DBOS guarantees it will complete even if service restarts
- * - Built-in retry policies handle transient failures
- * - Idempotency framework ensures each handler runs exactly once
+ * DBOS Workflow guarantees:
+ * - Completion even if service restarts (durability)
+ * - Automatic retry on transient failures
+ * - Idempotent execution (same workflowId = execute once)
  */
 export class EventDispatchWorkflow {
   constructor(private readonly broker: ServiceBroker) {}
 
   /**
    * Deterministic workflow ID based on event.
-   * Same event = same workflow = idempotent dispatch.
+   * Same eventId = same workflow = dispatch once.
    */
   static workflowID(event: DomainEvent): string {
     return `event:dispatch:${event.eventType}:${event.eventId}`;
   }
 
-  /**
-   * Main dispatch entry point.
-   */
+  /** Max concurrent handler invocations per batch */
+  private static readonly CONCURRENCY_LIMIT = 5;
+
   @Workflow()
   async dispatch(event: DomainEvent): Promise<EventDispatchResult> {
-    // Step 1: Persist event (for audit/replay)
+    // Step 1: Persist event (idempotent)
     await this.persistEvent(event);
 
-    // Step 2: Get all handlers for this event type
+    // Step 2: Discover handlers
     const handlers = await this.discoverHandlers(event.eventType);
 
     if (handlers.length === 0) {
       return {
         eventId: event.eventId,
         eventType: event.eventType,
+        status: "completed",
         handlersInvoked: 0,
         handlersSucceeded: 0,
         handlersFailed: 0,
@@ -443,23 +436,57 @@ export class EventDispatchWorkflow {
       };
     }
 
-    // Step 3: Invoke each handler (fan-out)
-    // Each invocation is a separate step for durability
+    // Step 3: Invoke handlers in parallel batches
+    // Critical handlers first (must all succeed), then non-critical (best-effort)
+    const criticalHandlers = handlers.filter((h) => h.critical);
+    const nonCriticalHandlers = handlers.filter((h) => !h.critical);
+
     const results: HandlerInvocationResult[] = [];
 
-    for (const handler of handlers) {
-      const result = await this.invokeHandler(event, handler);
-      results.push(result);
+    // 3a: Critical handlers — parallel batches, stop on failure
+    const criticalResults = await this.invokeHandlersBatch(
+      event,
+      criticalHandlers,
+      { stopOnBatchFailure: true }
+    );
+    results.push(...criticalResults);
+
+    const criticalFailed = criticalResults.some((r) => r.status === "failed");
+
+    // 3b: Non-critical handlers — parallel batches, best-effort (only if critical succeeded)
+    if (!criticalFailed && nonCriticalHandlers.length > 0) {
+      const nonCriticalResults = await this.invokeHandlersBatch(
+        event,
+        nonCriticalHandlers,
+        { stopOnBatchFailure: false }
+      );
+      results.push(...nonCriticalResults);
     }
 
-    // Step 4: Summarize results
+    // Step 4: Determine final status
     const succeeded = results.filter((r) => r.status === "success").length;
     const failed = results.filter((r) => r.status === "failed").length;
+    const nonCriticalFailed = results.filter(
+      (r) => r.status === "failed" && !r.critical
+    ).length;
+
+    let status: EventDispatchResult["status"];
+    if (criticalFailed) {
+      status = "failed";
+    } else if (nonCriticalFailed > 0) {
+      status = "completed_with_errors";
+    } else {
+      status = "completed";
+    }
+
+    // Step 5: Update event status
+    await this.updateEventStatus(event.eventId, status, results);
 
     return {
       eventId: event.eventId,
       eventType: event.eventType,
-      handlersInvoked: handlers.length,
+      status,
+      handlersInvoked: results.length,
       handlersSucceeded: succeeded,
       handlersFailed: failed,
       results,
@@ -467,36 +494,103 @@ export class EventDispatchWorkflow {
   }
 
   /**
-   * Persist event for audit trail and potential replay.
+   * Invoke handlers in parallel batches.
+   *
+   * DBOS durability: Each invokeHandler is a @DBOS.step(), so individual
+   * handler invocations are durable. Batch coordination stays in workflow code
+   * (no @DBOS.step here) to avoid nested steps and keep determinism clear.
+   *
+   * @param stopOnBatchFailure - If true, don't start next batch if current has failures.
+   *                             NOTE: Within a batch, all handlers run to completion
+   *                             (Promise.all waits for all). This is "fail-fast between
+   *                             batches", not instant abort.
    */
-  @DBOS.step()
-  private async persistEvent(event: DomainEvent): Promise<void> {
-    await this.broker.call("events.persistEvent", {
-      payload: event,
-      ctx: buildEventHandlerContext(event, "events", "persistEvent"),
-    });
+  private async invokeHandlersBatch(
+    event: DomainEvent,
+    handlers: HandlerInfo[],
+    options: { stopOnBatchFailure: boolean }
+  ): Promise<HandlerInvocationResult[]> {
+    const results: HandlerInvocationResult[] = [];
+    const limit = Math.max(1, EventDispatchWorkflow.CONCURRENCY_LIMIT);
+
+    // Process in batches of CONCURRENCY_LIMIT
+    for (let i = 0; i < handlers.length; i += limit) {
+      const batch = handlers.slice(i, i + limit);
+
+      // Execute batch in parallel (all handlers in batch run to completion)
+      const batchPromises = batch.map((handler) =>
+        this.invokeHandlerSafe(event, handler)
+      );
+
+      const batchResults = await Promise.all(batchPromises);
+      results.push(...batchResults);
+
+      // Stop before next batch if any handler failed
+      if (options.stopOnBatchFailure) {
+        const failed = batchResults.some((r) => r.status === "failed");
+        if (failed) {
+          // Don't start next batch, but current batch already completed
+          break;
+        }
+      }
+    }
+
+    return results;
   }
 
   /**
-   * Discover handlers for event type across all services.
-   * Returns service + handler info from service registry.
+   * Safe wrapper that never throws (for Promise.all).
+   *
+   * Transient failures are retried inside the invokeHandler @DBOS.step()
+   * according to its retry policy. If retries are exhausted, we treat the
+   * handler as failed and continue the workflow.
    */
+  private async invokeHandlerSafe(
+    event: DomainEvent,
+    handler: HandlerInfo
+  ): Promise<HandlerInvocationResult> {
+    try {
+      return await this.invokeHandler(event, handler);
+    } catch (error) {
+      // Any error here means the step failed after retries (if configured)
+      return {
+        service: handler.service,
+        action: handler.action,
+        critical: handler.critical,
+        status: "failed",
+        idempotentReplay: false,
+        error: String(error),
+        durationMs: 0,
+      };
+    }
+  }
+
+  @DBOS.step()
+  private async persistEvent(event: DomainEvent): Promise<void> {
+    const ctx = buildEventHandlerContext(event, "events", "persistEvent");
+
+    await this.broker.call("events.persistEvent", {
+      payload: event,
+      ctx,
+    });
+  }
+
   @DBOS.step()
   private async discoverHandlers(eventType: string): Promise<HandlerInfo[]> {
-    // Call bootstrap/registry service to get all handlers
     const response = await this.broker.call("bootstrap.getEventHandlers", {
       eventType,
     });
 
-    return response.handlers ?? [];
+    return response.result?.handlers ?? [];
   }
 
   /**
-   * Invoke a single handler with full idempotency.
+   * Invoke a single handler.
    *
-   * This is the KEY step where:
-   * - DBOS ensures the step completes (durability)
-   * - Idempotency framework ensures exactly-once per handler
+   * Idempotency:
+   * - ctx.idempotencyKey = event:{type}:{eventId}:{service}:{action}
+   * - Handler service checks processed_requests table
+   * - Same event + same service = execute once
    */
   @DBOS.step()
   private async invokeHandler(
@@ -505,69 +599,66 @@ export class EventDispatchWorkflow {
   ): Promise<HandlerInvocationResult> {
     const startTime = Date.now();
 
-    try {
-      // Build idempotency context for this specific handler
-      // Key: eventId + service ensures each service processes event once
-      const ctx = buildEventHandlerContext(
-        event,
-        handler.service,
-        handler.action
-      );
+    // Build idempotency context
+    // Key includes: eventType, eventId, service, action
+    const ctx = buildEventHandlerContext(
+      event,
+      handler.service,
+      handler.action
+    );
 
-      const response = await this.broker.call(
-        `${handler.service}.${handler.action}`,
-        {
-          payload: { event },
-          ctx,
-        }
-      );
+    // Call handler action with standard ActionRequest
+    const response: ActionResponse<unknown> = await this.broker.call(
+      `${handler.service}.${handler.action}`,
+      {
+        payload: { event },
+        ctx,
+      }
+    );
 
-      if (response.error) {
-        // Non-retryable error from handler
-        if (!response.error.retryable) {
-          return {
-            service: handler.service,
-            handlerName: handler.action,
-            status: "failed",
-            error: response.error.message,
-            durationMs: Date.now() - startTime,
-          };
-        }
+    const durationMs = Date.now() - startTime;
 
-        // Retryable error - DBOS will retry the step
+    // Handle response using standard ActionResponse contract
+    if (response.error) {
+      // Retryable error → throw so DBOS retries the step
+      if (response.error.retryable) {
         throw new Error(`TRANSIENT: ${response.error.message}`);
       }
 
-      // Check if this was an idempotent replay
-      if (response.meta?.idempotent) {
-        return {
-          service: handler.service,
-          handlerName: handler.action,
-          status: "success",
-          durationMs: Date.now() - startTime,
-        };
-      }
-
+      // Non-retryable error → permanent failure
       return {
         service: handler.service,
-        handlerName: handler.action,
-        status: "success",
-        durationMs: Date.now() - startTime,
-      };
-    } catch (error) {
-      // Let DBOS retry transient errors
-      if (String(error).includes("TRANSIENT")) {
-        throw error;
-      }
-
-      return {
-        service: handler.service,
-        handlerName: handler.action,
+        action: handler.action,
+        critical: handler.critical,
         status: "failed",
-        error: String(error),
-        durationMs: Date.now() - startTime,
+        idempotentReplay: false,
+        error: response.error.message,
+        durationMs,
       };
     }
+
+    // Success (may be idempotent replay)
+    return {
+      service: handler.service,
+      action: handler.action,
+      critical: handler.critical,
+      status: "success",
+      idempotentReplay: response.meta?.idempotent ?? false,
+      durationMs,
+    };
+  }
+
+  @DBOS.step()
+  private async updateEventStatus(
+    eventId: string,
+    status: EventDispatchResult["status"],
+    results: HandlerInvocationResult[]
+  ): Promise<void> {
+    await this.broker.call("events.updateEventStatus", {
+      eventId,
+      status,
+      handlerResults: results,
+    });
   }
 }
 
@@ -575,6 +666,46 @@ interface HandlerInfo {
   service: string;
   action: string;
   critical: boolean;
+}
+```
+
+#### DBOS guarantees / assumptions
+
+- `EventDispatchWorkflow.dispatch` — это workflow, а не step; внутри него выполняется только детерминированная координация (fan-out, batching).
+- `invokeHandler` — единственный durable `@DBOS.step()` для каждого handler вызова.
+- Любой retry (transient) происходит внутри `invokeHandler` по step retry policy; после исчерпания ретраев шаг считается failed и workflow двигается дальше.
+- Параллелизм реализован на уровне workflow (`Promise.all` над шагами), а не внутри шага — это важно для корректности и прозрачности выполнения.
+
+#### Retry policies per handler criticality
+
+```typescript
+// packages/events/src/retry.ts
+export const RetryPolicies = {
+  CRITICAL: {
+    maxAttempts: 5,
+    initialDelayMs: 500,
+    maxDelayMs: 60000,
+    backoffMultiplier: 2,
+  },
+  BEST_EFFORT: {
+    maxAttempts: 2,
+    initialDelayMs: 2000,
+    maxDelayMs: 10000,
+    backoffMultiplier: 1.5,
+  },
+} satisfies Record<string, RetryPolicy>;
+```
+
+```typescript
+// packages/events/src/workflows/EventDispatchWorkflow.ts
+@DBOS.step({
+  retryPolicy: handler.critical ? RetryPolicies.CRITICAL : RetryPolicies.BEST_EFFORT,
+})
+private async invokeHandler(
+  event: DomainEvent,
+  handler: HandlerInfo
+): Promise<HandlerInvocationResult> {
+  // ...
 }
 ```
 
@@ -647,40 +778,44 @@ function sha256(data: string): string {
 
 ## Part 4: Service-Side Event Handlers
 
-### 4.1 Handler Implementation Pattern
+Event handlers — это **обычные Actions**, использующие тот же контракт `ActionRequest`/`ActionResponse` из idempotency framework.
+
+### 4.1 BrokerActions с Event Handlers
 
 ```typescript
-// services/inventory/src/InventoryEventHandlers.ts
+// services/inventory/src/InventoryBrokerActions.ts
 
-import { EventHandler, type EventHandlerResult } from "@shopana/events";
+import { Action, BrokerActions } from "@shopana/shared-kernel";
+import {
+  type ActionRequest,
+  type ActionResponse,
+  OperationPresets,
+  withIdempotency,
+} from "@shopana/idempotency";
 import type { ProductCreatedEvent, ProductDeletedEvent } from "@shopana/events";
-import { OperationPresets } from "@shopana/idempotency";
-import { InventoryKernel } from "./InventoryKernel.js";
 
-/**
- * Inventory service event handlers.
- *
- * Each handler:
- * - Receives event from EventDispatchWorkflow
- * - Has idempotency guaranteed by framework
- * - Returns success/failure (never throws for business errors)
- */
-export class InventoryEventHandlers {
-  constructor(private readonly kernel: InventoryKernel) {}
+export class InventoryBrokerActions extends BrokerActions {
+
+  // ═══════════════════════════════════════════════════════════════════
+  // EVENT HANDLERS — обычные Actions с payload: { event: DomainEvent }
+  // ═══════════════════════════════════════════════════════════════════
 
   /**
    * Handle product.created: Initialize inventory record.
    *
-   * Idempotency: Same product creation event = initialize once.
+   * Вызывается из EventDispatchWorkflow с idempotency context:
+   * - source: "workflow"
+   * - idempotencyKey: event:product.created:{eventId}:inventory:handleProductCreated
    */
-  @EventHandler("product.created", {
-    operation: OperationPresets.CREATE,
-    critical: true,
-  })
-  async onProductCreated(event: ProductCreatedEvent): Promise<EventHandlerResult> {
-    const { productId, storeId, sku } = event.payload;
+  @Action("handleProductCreated", { operation: OperationPresets.CREATE })
+  async handleProductCreated(
+    input: ActionRequest<{ event: ProductCreatedEvent }>
+  ): Promise<ActionResponse<void>> {
+    const { payload, ctx } = this.unwrapRequest(input);
 
-    try {
+    return withIdempotency(ctx, payload, this.idempotencyHelpers, async (p) => {
+      const { productId, storeId, sku } = p.event.payload;
+
       await this.kernel.runScript(InitializeInventoryScript, {
         productId,
         storeId,
@@ -688,111 +823,154 @@ export class InventoryEventHandlers {
         initialQuantity: 0,
       });
 
-      return { success: true };
-    } catch (error) {
-      // Check if this is a duplicate (product already has inventory)
-      if (isDuplicateError(error)) {
-        // Idempotent: already initialized, that's fine
-        return { success: true, metadata: { alreadyExists: true } };
-      }
-
-      return {
-        success: false,
-        error: {
-          code: isTransient(error) ? "TRANSIENT_ERROR" : "INTERNAL_ERROR",
-          message: String(error),
-          retryable: isTransient(error),
-        },
-      };
-    }
+      // void return = success
+    });
   }
 
   /**
    * Handle product.deleted: Remove inventory record.
    *
-   * Idempotency: Deleting non-existent inventory is fine.
-   */
-  @EventHandler("product.deleted", {
-    operation: OperationPresets.DELETE,
-    critical: false, // Non-critical: event completes even if this fails
-  })
-  async onProductDeleted(event: ProductDeletedEvent): Promise<EventHandlerResult> {
-    const { productId, storeId } = event.payload;
-
-    try {
-      await this.kernel.runScript(DeleteInventoryScript, {
-        productId,
-        storeId,
-      });
-
-      return { success: true };
-    } catch (error) {
-      if (isNotFoundError(error)) {
-        // Idempotent: already deleted or never existed
-        return { success: true, metadata: { notFound: true } };
-      }
-
-      return {
-        success: false,
-        error: {
-          code: "TRANSIENT_ERROR",
-          message: String(error),
-          retryable: true,
-        },
-      };
-    }
-  }
-}
-```
-
-### 4.2 BrokerActions Integration
-
-```typescript
-// services/inventory/src/InventoryBrokerActions.ts
-
-import { Action, BrokerActions } from "@shopana/shared-kernel";
-import type { ActionRequest, ActionResponse } from "@shopana/idempotency";
-import { withIdempotency } from "@shopana/idempotency";
-import type { ProductCreatedEvent, ProductDeletedEvent } from "@shopana/events";
-import { InventoryEventHandlers } from "./InventoryEventHandlers.js";
-
-export class InventoryBrokerActions extends BrokerActions {
-  private eventHandlers: InventoryEventHandlers;
-
-  constructor(kernel: InventoryKernel) {
-    super(kernel);
-    this.eventHandlers = new InventoryEventHandlers(kernel);
-  }
-
-  /**
-   * Event handler action: product.created
-   *
-   * Called by EventDispatchWorkflow with full idempotency context.
-   */
-  @Action("handleProductCreated", { operation: OperationPresets.CREATE })
-  async handleProductCreated(
-    input: ActionRequest<{ event: ProductCreatedEvent }>
-  ): Promise<ActionResponse<EventHandlerResult>> {
-    const { payload, ctx } = this.unwrapRequest(input);
-
-    return withIdempotency(ctx, payload, this.idempotencyHelpers, async (p) => {
-      return this.eventHandlers.onProductCreated(p.event);
-    });
-  }
-
-  /**
-   * Event handler action: product.deleted
+   * Идемпотентно: удаление несуществующего inventory — OK.
    */
   @Action("handleProductDeleted", { operation: OperationPresets.DELETE })
   async handleProductDeleted(
     input: ActionRequest<{ event: ProductDeletedEvent }>
-  ): Promise<ActionResponse<EventHandlerResult>> {
+  ): Promise<ActionResponse<void>> {
     const { payload, ctx } = this.unwrapRequest(input);
 
     return withIdempotency(ctx, payload, this.idempotencyHelpers, async (p) => {
-      return this.eventHandlers.onProductDeleted(p.event);
+      const { productId, storeId } = p.event.payload;
+
+      await this.kernel.runScript(DeleteInventoryScript, {
+        productId,
+        storeId,
+      });
     });
   }
+
+  /**
+   * Handle product.updated: Sync inventory metadata.
+   *
+   * Возвращает данные (не void) — framework кэширует для replay.
+   */
+  @Action("handleProductUpdated", { operation: OperationPresets.UPDATE })
+  async handleProductUpdated(
+    input: ActionRequest<{ event: ProductUpdatedEvent }>
+  ): Promise<ActionResponse<{ synced: boolean; updatedFields: string[] }>> {
+    const { payload, ctx } = this.unwrapRequest(input);
+
+    return withIdempotency(ctx, payload, this.idempotencyHelpers, async (p) => {
+      const { productId, changes } = p.event.payload;
+
+      const updatedFields = await this.kernel.runScript(SyncInventoryMetadataScript, {
+        productId,
+        changes,
+      });
+
+      // Return data = cached for idempotent replay
+      return { synced: true, updatedFields };
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // REGULAR ACTIONS — для сравнения, та же структура
+  // ═══════════════════════════════════════════════════════════════════
+
+  @Action("getStock", { operation: OperationPresets.READ })
+  async getStock(payload: { productId: string }): Promise<ActionResponse<Stock>> {
+    // READ — без idempotency
+    const stock = await this.kernel.runScript(GetStockScript, payload);
+    return { result: stock };
+  }
+
+  @Action("setStock", { operation: OperationPresets.UPDATE })
+  async setStock(
+    input: ActionRequest<{ productId: string; quantity: number }>
+  ): Promise<ActionResponse<Stock>> {
+    const { payload, ctx } = this.unwrapRequest(input);
+
+    return withIdempotency(ctx, payload, this.idempotencyHelpers, async (p) => {
+      return this.kernel.runScript(SetStockScript, p);
+    });
+  }
+}
+```
+
+### 4.2 Обработка ошибок в Event Handlers
+
+```typescript
+/**
+ * Ошибки обрабатываются так же, как в любом Action:
+ * - throw → withIdempotency ловит → ActionResponse.error
+ * - TRANSIENT_* errors → DBOS retry
+ * - Domain errors → fail permanently
+ */
+
+@Action("handleProductCreated", { operation: OperationPresets.CREATE })
+async handleProductCreated(
+  input: ActionRequest<{ event: ProductCreatedEvent }>
+): Promise<ActionResponse<void>> {
+  const { payload, ctx } = this.unwrapRequest(input);
+
+  return withIdempotency(ctx, payload, this.idempotencyHelpers, async (p) => {
+    try {
+      await this.kernel.runScript(InitializeInventoryScript, {
+        productId: p.event.payload.productId,
+        // ...
+      });
+    } catch (error) {
+      // Duplicate key = уже инициализировали, идемпотентно OK
+      if (isDuplicateKeyError(error)) {
+        return; // Success (void)
+      }
+
+      // Connection error = transient, DBOS will retry
+      if (isConnectionError(error)) {
+        throw ServiceError.transient("inventory", "handleProductCreated", String(error));
+      }
+
+      // Validation error = permanent failure
+      if (isValidationError(error)) {
+        throw ServiceError.validation("inventory", "handleProductCreated", String(error));
+      }
+
+      // Unknown = internal error
+      throw error;
+    }
+  });
+}
+```
+
+### 4.3 Единый контракт: Events vs Direct Calls
+
+```typescript
+// ═══════════════════════════════════════════════════════════════════
+// Event handlers и обычные actions используют ОДИНАКОВЫЙ контракт
+// ═══════════════════════════════════════════════════════════════════
+
+// Вызов из EventDispatchWorkflow:
+await broker.call("inventory.handleProductCreated", {
+  payload: { event: productCreatedEvent },
+  ctx: buildEventHandlerContext(event, "inventory", "handleProductCreated"),
+});
+
+// Вызов из другого workflow:
+await broker.call("inventory.setStock", {
+  payload: { productId: "123", quantity: 100 },
+  ctx: buildActionContext(dedupeKey, "inventory", "setStock", callId, payload),
+});
+
+// Вызов из GraphQL (с client idempotency key):
+await broker.call("orders.createOrder", {
+  payload: orderInput,
+  ctx: buildClientActionContext(clientKey, "orders", "createOrder", orderInput),
+});
+
+// Response всегда одинаковый:
+interface ActionResponse<T> {
+  result: T;
+  error?: ActionError;
+  meta?: { idempotent?: boolean; attempt?: number; receipt?: ActionReceipt };
 }
 ```
 
@@ -876,46 +1054,54 @@ export const globalEventRegistry = new GlobalEventHandlerRegistry();
 // services/bootstrap/src/BootstrapBrokerActions.ts
 
 import { Action, BrokerActions } from "@shopana/shared-kernel";
+import { type ActionResponse, OperationPresets } from "@shopana/idempotency";
 import { globalEventRegistry } from "./EventHandlerRegistry.js";
 
 export class BootstrapBrokerActions extends BrokerActions {
+
   /**
    * Register an event handler (called by services on startup).
+   *
+   * READ operation — registration is idempotent by nature (deduped in registry).
    */
-  @Action("registerEventHandler")
+  @Action("registerEventHandler", { operation: OperationPresets.READ })
   async registerEventHandler(params: {
     service: string;
     action: string;
     eventType: string;
     critical: boolean;
-  }): Promise<{ success: boolean }> {
+  }): Promise<ActionResponse<{ registered: boolean }>> {
     globalEventRegistry.register(params);
-    return { success: true };
+    return { result: { registered: true } };
   }
 
   /**
    * Get handlers for an event type (called by EventDispatchWorkflow).
    */
-  @Action("getEventHandlers")
-  async getEventHandlers(params: { eventType: string }): Promise<{
+  @Action("getEventHandlers", { operation: OperationPresets.READ })
+  async getEventHandlers(params: {
+    eventType: string;
+  }): Promise<ActionResponse<{
     handlers: Array<{ service: string; action: string; critical: boolean }>;
-  }> {
+  }>> {
     const handlers = globalEventRegistry.getHandlers(params.eventType as any);
     return {
-      handlers: handlers.map((h) => ({
-        service: h.service,
-        action: h.action,
-        critical: h.critical,
-      })),
+      result: {
+        handlers: handlers.map((h) => ({
+          service: h.service,
+          action: h.action,
+          critical: h.critical,
+        })),
+      },
     };
   }
 
   /**
    * Get full registry state (for debugging).
    */
-  @Action("getEventRegistry")
-  async getEventRegistry(): Promise<{ registry: Record<string, any[]> }> {
-    return { registry: globalEventRegistry.export() };
+  @Action("getEventRegistry", { operation: OperationPresets.READ })
+  async getEventRegistry(): Promise<ActionResponse<{ registry: Record<string, any[]> }>> {
+    return { result: { registry: globalEventRegistry.export() } };
   }
 }
 ```
@@ -972,19 +1158,24 @@ CREATE TABLE IF NOT EXISTS domain_events (
   causation_id TEXT,
 
   -- Processing status
-  status TEXT NOT NULL DEFAULT 'pending',  -- 'pending' | 'dispatching' | 'completed' | 'failed'
+  -- 'pending': event created, not yet dispatching
+  -- 'dispatching': workflow started, handlers being invoked
+  -- 'completed': all handlers succeeded
+  -- 'completed_with_errors': critical handlers OK, some non-critical failed
+  -- 'failed': at least one critical handler failed
+  status TEXT NOT NULL DEFAULT 'pending',
   dispatch_started_at TIMESTAMPTZ,
   dispatch_completed_at TIMESTAMPTZ,
 
-  -- Handler results
-  handler_results JSONB,  -- Array of per-handler results
+  -- Handler results (per-handler outcomes)
+  handler_results JSONB,  -- Array of HandlerInvocationResult
 
   -- Timestamps
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
   CONSTRAINT domain_events_status_chk
-    CHECK (status IN ('pending', 'dispatching', 'completed', 'failed'))
+    CHECK (status IN ('pending', 'dispatching', 'completed', 'completed_with_errors', 'failed'))
 );
 
 -- Indexes
@@ -1002,11 +1193,19 @@ CREATE INDEX idx_events_timestamp ON domain_events(timestamp);
 
 import { Action, BrokerActions } from "@shopana/shared-kernel";
 import type { DomainEvent } from "@shopana/events";
-import { withIdempotency, OperationPresets } from "@shopana/idempotency";
+import {
+  type ActionRequest,
+  type ActionResponse,
+  OperationPresets,
+  withIdempotency,
+} from "@shopana/idempotency";
 
 export class EventStoreBrokerActions extends BrokerActions {
+
   /**
    * Persist an event (idempotent).
+   *
+   * Uses standard ActionRequest/ActionResponse contract.
    */
   @Action("persistEvent", { operation: OperationPresets.CREATE })
   async persistEvent(
@@ -1036,33 +1235,39 @@ export class EventStoreBrokerActions extends BrokerActions {
   /**
    * Update event dispatch status.
    */
-  @Action("updateEventStatus")
-  async updateEventStatus(params: {
-    eventId: string;
-    status: "completed" | "failed";
-    handlerResults: Array<{ service: string; status: string; error?: string }>;
-  }): Promise<{ updated: boolean }> {
+  @Action("updateEventStatus", { operation: OperationPresets.UPDATE })
+  async updateEventStatus(
+    input: ActionRequest<{
+      eventId: string;
+      status: "completed" | "completed_with_errors" | "failed";
+      handlerResults: HandlerInvocationResult[];
+    }>
+  ): Promise<ActionResponse<{ updated: boolean }>> {
+    const { payload } = this.unwrapRequest(input);
+
     await this.db.update(domainEvents)
       .set({
-        status: params.status,
+        status: payload.status,
         dispatchCompletedAt: new Date(),
-        handlerResults: params.handlerResults,
+        handlerResults: payload.handlerResults,
         updatedAt: new Date(),
       })
-      .where(eq(domainEvents.eventId, params.eventId));
+      .where(eq(domainEvents.eventId, payload.eventId));
 
-    return { updated: true };
+    return { result: { updated: true } };
   }
 
   /**
    * Get events for replay (e.g., new service catching up).
+   *
+   * READ operation — no idempotency.
    */
-  @Action("getEventsForReplay")
+  @Action("getEventsForReplay", { operation: OperationPresets.READ })
   async getEventsForReplay(params: {
     eventTypes: string[];
     since: string;
     limit: number;
-  }): Promise<{ events: DomainEvent[] }> {
+  }): Promise<ActionResponse<{ events: DomainEvent[] }>> {
     const events = await this.db.query.domainEvents.findMany({
       where: and(
         inArray(domainEvents.eventType, params.eventTypes),
@@ -1073,19 +1278,21 @@ export class EventStoreBrokerActions extends BrokerActions {
     });
 
     return {
-      events: events.map((e) => ({
-        eventId: e.eventId,
-        eventType: e.eventType,
-        timestamp: e.timestamp.toISOString(),
-        source: e.source,
-        payload: e.payload,
-        context: {
-          tenantId: e.tenantId,
-          userId: e.userId,
-          correlationId: e.correlationId,
-          causationId: e.causationId,
-        },
-      })),
+      result: {
+        events: events.map((e) => ({
+          eventId: e.eventId,
+          eventType: e.eventType as any,
+          timestamp: e.timestamp.toISOString(),
+          source: e.source,
+          payload: e.payload,
+          context: {
+            tenantId: e.tenantId,
+            userId: e.userId,
+            correlationId: e.correlationId,
+            causationId: e.causationId,
+          },
+        })),
+      },
     };
   }
 }
@@ -1157,49 +1364,193 @@ export class EventStoreBrokerActions extends BrokerActions {
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 7.2 Failure & Retry Flow
+### 7.2 Parallel Execution with Critical/Non-Critical
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     PARALLEL EXECUTION MODEL                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Configuration:                                                             │
+│  ┌────────────────┬──────────┬─────────────────────────────────────────┐    │
+│  │ Handler        │ Critical │ Failure behavior                        │    │
+│  ├────────────────┼──────────┼─────────────────────────────────────────┤    │
+│  │ inventory      │ true     │ Stop after batch, skip Phase 2          │    │
+│  │ pricing        │ true     │ Stop after batch, skip Phase 2          │    │
+│  │ search         │ false    │ Best-effort: log error, continue        │    │
+│  │ notifications  │ false    │ Best-effort: log error, continue        │    │
+│  │ analytics      │ false    │ Best-effort: log error, continue        │    │
+│  └────────────────┴──────────┴─────────────────────────────────────────┘    │
+│                                                                             │
+│  CONCURRENCY_LIMIT = 5 (configurable)                                       │
+│                                                                             │
+│  ═══════════════════════════════════════════════════════════════════════    │
+│                                                                             │
+│  Execution semantics:                                                       │
+│                                                                             │
+│  • Within a batch: Promise.all — all handlers run to completion             │
+│  • Between batches: Check for failures, stop if critical failed             │
+│  • NOT instant abort (JS doesn't support true cancellation)                 │
+│                                                                             │
+│  ═══════════════════════════════════════════════════════════════════════    │
+│                                                                             │
+│  Phase 1: Critical handlers (parallel batch, stop-on-failure)               │
+│  ┌─────────────────────────────────────────────────────────┐                │
+│  │  Batch 1 (up to CONCURRENCY_LIMIT):                     │                │
+│  │  ┌──────────────┐  ┌──────────────┐                     │                │
+│  │  │  inventory   │  │   pricing    │   ← parallel        │                │
+│  │  │    ✅        │  │     ✅       │   (both complete)   │                │
+│  │  └──────────────┘  └──────────────┘                     │                │
+│  │                                                         │                │
+│  │  All OK → proceed to Phase 2                            │                │
+│  │  Any FAIL → skip next batches & Phase 2                 │                │
+│  └─────────────────────────────────────────────────────────┘                │
+│                          │                                                  │
+│                          ▼                                                  │
+│  Phase 2: Non-critical handlers (parallel batch, best-effort)               │
+│  ┌─────────────────────────────────────────────────────────┐                │
+│  │  Batch 1:                                               │                │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐   │                │
+│  │  │   search     │  │ notifications│  │  analytics   │   │                │
+│  │  │    ❌        │  │     ✅       │  │     ✅       │   │                │
+│  │  └──────────────┘  └──────────────┘  └──────────────┘   │                │
+│  │                                                         │                │
+│  │  Failures logged, all batches continue                  │                │
+│  └─────────────────────────────────────────────────────────┘                │
+│                                                                             │
+│  Result: status = "completed_with_errors"                                   │
+│                                                                             │
+│  ═══════════════════════════════════════════════════════════════════════    │
+│                                                                             │
+│  Scenario: Critical fails — batch completes, then stops                     │
+│                                                                             │
+│  Phase 1: Critical handlers                                                 │
+│  ┌─────────────────────────────────────────────────────────┐                │
+│  │  Batch 1:                                               │                │
+│  │  ┌──────────────┐  ┌──────────────┐                     │                │
+│  │  │  inventory   │  │   pricing    │                     │                │
+│  │  │    ✅        │  │     ❌       │  ← fails            │                │
+│  │  │  (100ms)     │  │   (50ms)     │                     │                │
+│  │  └──────────────┘  └──────────────┘                     │                │
+│  │                                                         │                │
+│  │  Promise.all waits for BOTH to complete (100ms total)   │                │
+│  │  Then sees failure → don't start Batch 2 or Phase 2     │                │
+│  └─────────────────────────────────────────────────────────┘                │
+│                                                                             │
+│  Phase 2: SKIPPED                                                           │
+│                                                                             │
+│  Result: status = "failed"                                                  │
+│                                                                             │
+│  Note: inventory still completed even though pricing failed.                │
+│  This is fine — handlers should be idempotent anyway.                       │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 7.3 Ordering Considerations
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     ORDERING: WHEN DOES IT MATTER?                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Q: Do handlers need to execute in specific order?                          │
+│                                                                             │
+│  A: Usually NO — each handler is independent:                               │
+│     • inventory.handleProductCreated — creates inventory record             │
+│     • search.handleProductCreated — indexes for search                      │
+│     • pricing.handleProductCreated — creates default price                  │
+│                                                                             │
+│     These don't depend on each other → parallel is safe.                    │
+│                                                                             │
+│  ═══════════════════════════════════════════════════════════════════════    │
+│                                                                             │
+│  EXCEPTION: When ordering matters                                           │
+│                                                                             │
+│  If handler B depends on handler A's result:                                │
+│  • Use workflow steps instead of event handlers                             │
+│  • Or model as separate events: A emits event → B handles that event        │
+│                                                                             │
+│  Example:                                                                   │
+│  ┌─────────────────────────────────────────────────────────────────┐        │
+│  │ BAD: pricing depends on inventory                               │        │
+│  │                                                                 │        │
+│  │ product.created                                                 │        │
+│  │   ├── inventory.handle (creates stock record)                   │        │
+│  │   └── pricing.handle (needs stock to calculate price) ← RACE!   │        │
+│  └─────────────────────────────────────────────────────────────────┘        │
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────┐        │
+│  │ GOOD: separate events                                           │        │
+│  │                                                                 │        │
+│  │ product.created                                                 │        │
+│  │   └── inventory.handle → creates stock → emits inventory.ready  │        │
+│  │                                                                 │        │
+│  │ inventory.ready                                                 │        │
+│  │   └── pricing.handle (now stock exists)                         │        │
+│  └─────────────────────────────────────────────────────────────────┘        │
+│                                                                             │
+│  Rule: Handlers for same event should be INDEPENDENT.                       │
+│  If they're not → use event chaining or workflow steps.                     │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 7.4 Failure & Retry Flow
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                        FAILURE & RECOVERY FLOW                              │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│  Scenario: Inventory service fails during handleProductCreated              │
+│  Scenario: Transient error (DBOS retries)                                   │
 │                                                                             │
 │  1. EventDispatchWorkflow running...                                        │
 │     │                                                                       │
-│     ├──[Step 3]─► invokeHandler(event, inventory)                           │
-│     │             │                                                         │
-│     │             ▼                                                         │
-│     │             inventory.handleProductCreated(event)                     │
-│     │             ❌ FAILS: "Connection timeout"                            │
-│     │             Returns: { error: { code: "TRANSIENT_ERROR", ... } }      │
-│     │                                                                       │
-│     │             ┌───────────────────────────────────────────┐             │
-│     │             │ DBOS Step Retry Policy kicks in:          │             │
-│     │             │ - maxAttempts: 3                          │             │
-│     │             │ - backoff: 1s, 2s, 4s                     │             │
-│     │             └───────────────────────────────────────────┘             │
-│     │                                                                       │
-│     ├──[Retry 1]─► invokeHandler(event, inventory)                          │
-│     │             ❌ FAILS again                                            │
-│     │                                                                       │
-│     ├──[Retry 2]─► invokeHandler(event, inventory)                          │
-│     │             ✅ SUCCESS                                                │
-│     │             - Idempotency check: not processed yet                    │
-│     │             - Executes handler                                        │
-│     │             - Marks as completed                                      │
+│     ├──[Step]─► invokeHandler(event, inventory)                             │
+│     │           │                                                           │
+│     │           ▼                                                           │
+│     │           inventory.handleProductCreated(event)                       │
+│     │           Returns: { error: { code: "TRANSIENT_ERROR", ... } }        │
+│     │           │                                                           │
+│     │           │  ┌───────────────────────────────────────────┐            │
+│     │           │  │ ActionResponse.error.retryable = true     │            │
+│     │           │  │ → throw Error("TRANSIENT: ...")           │            │
+│     │           │  │ → DBOS Step Retry Policy kicks in         │            │
+│     │           │  └───────────────────────────────────────────┘            │
+│     │           │                                                           │
+│     ├──[Retry 1]─► invokeHandler(event, inventory) ❌ FAILS                 │
+│     ├──[Retry 2]─► invokeHandler(event, inventory) ✅ SUCCESS               │
 │     │                                                                       │
 │     └──► Continue with remaining handlers...                                │
+│                                                                             │
+│  ═══════════════════════════════════════════════════════════════════════    │
+│                                                                             │
+│  Scenario: Non-retryable error on critical handler                          │
+│                                                                             │
+│     ├──[Step]─► invokeHandler(event, pricing)  // critical=true             │
+│     │           │                                                           │
+│     │           ▼                                                           │
+│     │           pricing.handleProductCreated(event)                         │
+│     │           Returns: { error: { code: "VALIDATION_ERROR", ... } }       │
+│     │           │                                                           │
+│     │           │  ┌───────────────────────────────────────────┐            │
+│     │           │  │ ActionResponse.error.retryable = false    │            │
+│     │           │  │ → return { status: "failed", ... }        │            │
+│     │           │  │ → critical handler failed                 │            │
+│     │           │  │ → STOP DISPATCH (fail-fast)               │            │
+│     │           │  └───────────────────────────────────────────┘            │
+│     │                                                                       │
+│     └──► Event status = "failed", remaining handlers SKIPPED                │
 │                                                                             │
 │  ═══════════════════════════════════════════════════════════════════════    │
 │                                                                             │
 │  Scenario: Service crashes mid-workflow                                     │
 │                                                                             │
 │  1. EventDispatchWorkflow running...                                        │
-│     ├──[Step 3]─► invokeHandler(event, inventory) ✅                        │
-│     ├──[Step 4]─► invokeHandler(event, search)                              │
-│     │             💥 SERVICE CRASHES                                        │
+│     ├──[Step]─► invokeHandler(event, inventory) ✅                          │
+│     ├──[Step]─► invokeHandler(event, search)                                │
+│     │           💥 SERVICE CRASHES                                          │
 │     │                                                                       │
 │  2. Service restarts...                                                     │
 │     │                                                                       │
@@ -1207,26 +1558,17 @@ export class EventStoreBrokerActions extends BrokerActions {
 │     │  │ DBOS Workflow Recovery:                   │                        │
 │     │  │ - Detects incomplete workflow             │                        │
 │     │  │ - Resumes from last completed step        │                        │
-│     │  │ - Step 3 (inventory) already done         │                        │
-│     │  │ - Resumes at Step 4 (search)              │                        │
 │     │  └───────────────────────────────────────────┘                        │
 │     │                                                                       │
-│     ├──[Step 4]─► invokeHandler(event, search)                              │
-│     │             │                                                         │
-│     │             ▼                                                         │
-│     │             Idempotency check for search handler:                     │
-│     │             - Key: event:product.created:{eventId}:search:...         │
-│     │             - Status: NOT FOUND (wasn't processed before crash)       │
-│     │             - Execute handler normally                                │
+│     ├──[Step]─► invokeHandler(event, search)                                │
+│     │           Idempotency check: NOT FOUND → execute                      │
 │     │                                                                       │
-│     ├──[Step 5]─► invokeHandler(event, pricing) ✅                          │
-│     │                                                                       │
-│     └──[Complete]─► Workflow completes successfully                         │
+│     └──[Complete]─► Workflow completes                                      │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 7.3 Idempotent Replay (Duplicate Event)
+### 7.5 Idempotent Replay (Duplicate Event)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -1271,10 +1613,78 @@ export class EventStoreBrokerActions extends BrokerActions {
 │  │  │ Domain-level idempotency:                 │                           │
 │  │  │ - INSERT inventory ON CONFLICT DO NOTHING │                           │
 │  │  │ - Product already has inventory record    │                           │
-│  │  │ - Returns { success: true, alreadyExists }│                           │
+│  │  │ - Handler returns successfully (void)     │                           │
+│  │  │ - ActionResponse: { result: undefined }   │                           │
 │  │  └───────────────────────────────────────────┘                           │
 │  │                                                                          │
 │  └──► Handler succeeds (idempotent at domain level)                         │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 7.6 Unified Contract Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     UNIFIED CONTRACT: ActionRequest → ActionResponse        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  1. GraphQL API (source: "client")                                          │
+│     ┌──────────────────────────────────────────────────────────────────┐    │
+│     │ request = {                                                      │    │
+│     │   payload: { name: "Widget", price: 100 },                       │    │
+│     │   ctx: {                                                         │    │
+│     │     source: "client",                                            │    │
+│     │     idempotencyKey: hash("tenant:apiKey:user-provided-key"),     │    │
+│     │     ...                                                          │    │
+│     │   }                                                              │    │
+│     │ }                                                                │    │
+│     │                                                                  │    │
+│     │ response = { result: { productId: "p-123" } }                    │    │
+│     └──────────────────────────────────────────────────────────────────┘    │
+│                                                                             │
+│  2. Workflow Step (source: "workflow")                                      │
+│     ┌──────────────────────────────────────────────────────────────────┐    │
+│     │ request = {                                                      │    │
+│     │   payload: { storeId: "s-1", roles: [...] },                     │    │
+│     │   ctx: {                                                         │    │
+│     │     source: "workflow",                                          │    │
+│     │     idempotencyKey: hash("store:create:org-1:my-store:iam:..."), │    │
+│     │     workflowId: "store:create:org-1:my-store",                   │    │
+│     │     stepId: "createRoles",                                       │    │
+│     │     ...                                                          │    │
+│     │   }                                                              │    │
+│     │ }                                                                │    │
+│     │                                                                  │    │
+│     │ response = { result: { rolesCreated: 3 } }                       │    │
+│     └──────────────────────────────────────────────────────────────────┘    │
+│                                                                             │
+│  3. Event Handler (source: "workflow")                                      │
+│     ┌──────────────────────────────────────────────────────────────────┐    │
+│     │ request = {                                                      │    │
+│     │   payload: { event: ProductCreatedEvent },  // ← Event в payload │    │
+│     │   ctx: {                                                         │    │
+│     │     source: "workflow",                                          │    │
+│     │     idempotencyKey: hash("event:product.created:evt-1:inv:..."), │    │
+│     │     workflowId: "event:dispatch:product.created:evt-1",          │    │
+│     │     stepId: "invoke:inventory:handleProductCreated",             │    │
+│     │     ...                                                          │    │
+│     │   }                                                              │    │
+│     │ }                                                                │    │
+│     │                                                                  │    │
+│     │ response = { result: undefined }  // void handler                │    │
+│     │ // или                                                           │    │
+│     │ response = { result: { stockInitialized: true } }                │    │
+│     └──────────────────────────────────────────────────────────────────┘    │
+│                                                                             │
+│  ═══════════════════════════════════════════════════════════════════════    │
+│                                                                             │
+│  ВСЕ ТРИ СЦЕНАРИЯ:                                                          │
+│  - Используют ActionRequest<T> / ActionResponse<R>                          │
+│  - Используют ActionContextV3                                               │
+│  - Используют withIdempotency() wrapper                                     │
+│  - Используют processed_requests table                                      │
+│  - Различаются только source и формула idempotencyKey                       │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -1365,9 +1775,108 @@ export class EventStoreBrokerActions extends BrokerActions {
 
 ---
 
-## Part 9: Configuration & Presets
+## Part 9: Idempotency Source для Events
 
-### 9.1 Event Handler Operation Presets
+### 9.1 Почему `source: "workflow"`
+
+Из трёх source types в idempotency framework (`client`, `workflow`, `content`), для event handlers используется `workflow`:
+
+```typescript
+// packages/events/src/context.ts
+
+export function buildEventHandlerContext(
+  event: DomainEvent,
+  service: string,
+  action: string,
+  operation: OperationConfig = OperationPresets.CREATE
+): ActionContextV3 {
+  return {
+    version: 3,
+    source: "workflow",  // ← Этот source
+
+    // Key structure: event:{eventType}:{eventId}:{service}:{action}
+    idempotencyKey: sha256(
+      `event:${event.eventType}:${event.eventId}:${service}:${action}`
+    ),
+
+    // Payload hash для conflict detection
+    payloadHash: sha256(canonicalJson({ event })),
+
+    // Workflow context
+    workflowId: EventDispatchWorkflow.workflowID(event),
+    stepId: `invoke:${service}:${action}`,
+    callId: event.eventId,
+
+    // Standard fields
+    service,
+    action,
+    operation,
+    tenantId: event.context.tenantId,
+    traceId: event.context.correlationId,
+  };
+}
+```
+
+### 9.2 Сравнение source types
+
+| Aspect | `client` | `workflow` | `content` |
+|--------|----------|------------|-----------|
+| Key source | HTTP header | Workflow context | Payload hash |
+| Use case | External API | Internal workflows, **events** | Idempotent updates |
+| Key formula | `tenant:apiKey:clientKey` | `workflowId:stepId:callId` | `resourceId:operation:payloadHash` |
+| Для events | ❌ Нет header'а | ✅ Вызов из workflow | ❌ Разный payload = разный key |
+
+### 9.3 Почему не `content`?
+
+```typescript
+// ❌ ПРОБЛЕМА с content source:
+
+// Event 1: product.created, eventId="evt-123"
+// payload: { productId: "p1", name: "Widget", timestamp: "2024-01-01T10:00:00Z" }
+// contentKey = hash(payload) = "abc123"
+
+// Event 2: тот же product.created, eventId="evt-123" (retry/duplicate)
+// payload: { productId: "p1", name: "Widget", timestamp: "2024-01-01T10:00:01Z" }
+//                                              ^^^ timestamp изменился
+// contentKey = hash(payload) = "def456" ← ДРУГОЙ KEY!
+
+// Результат: handler выполнится дважды — НЕ exactly-once!
+
+// ✅ С workflow source:
+
+// Event 1: eventId="evt-123"
+// workflowKey = hash("event:product.created:evt-123:inventory:handleProductCreated")
+
+// Event 2: eventId="evt-123" (duplicate)
+// workflowKey = hash("event:product.created:evt-123:inventory:handleProductCreated")
+//              ^^^ ТОТ ЖЕ KEY (eventId тот же)
+
+// Результат: handler выполнится один раз — exactly-once!
+```
+
+### 9.4 Operation Presets для Event Handlers
+
+Используем стандартные presets из idempotency framework:
+
+```typescript
+import { OperationPresets } from "@shopana/idempotency";
+
+// Event handlers используют те же presets:
+
+@Action("handleProductCreated", { operation: OperationPresets.CREATE })
+// CREATE: полный idempotency tracking, 24h TTL, cache result
+
+@Action("handleProductDeleted", { operation: OperationPresets.DELETE })
+// DELETE: idempotent by nature, 24h TTL, receipt only
+
+@Action("handleProductUpdated", { operation: OperationPresets.UPDATE })
+// UPDATE: allowSamePayloadRetry=true, 1h TTL
+
+@Action("handleOrderNotification", { operation: OperationPresets.ASYNC_JOB })
+// ASYNC_JOB: fire-and-forget, 7d TTL, receipt only
+```
+
+### 9.5 Custom Presets для Event Handlers (опционально)
 
 ```typescript
 // packages/events/src/presets.ts
@@ -1375,46 +1884,32 @@ export class EventStoreBrokerActions extends BrokerActions {
 import { OperationPresets, type OperationConfig } from "@shopana/idempotency";
 
 /**
- * Operation presets specifically for event handlers.
+ * Extended presets for event handlers with longer TTLs.
+ * (Events need longer audit trail)
  */
 export const EventHandlerPresets = {
-  /**
-   * Standard event handler - creates something in response to event.
-   * Examples: Initialize inventory, index for search, create notification.
-   */
+  /** Standard event handler — creates data */
   STANDARD: {
     ...OperationPresets.CREATE,
-    ttlMs: 7 * 24 * 60 * 60 * 1000, // 7 days (longer for event audit)
+    ttlMs: 7 * 24 * 60 * 60 * 1000, // 7 days (longer for audit)
   },
 
-  /**
-   * Idempotent update handler - updates state based on event.
-   * Examples: Update counters, sync data, set flags.
-   */
+  /** Sync handler — updates data */
   SYNC: {
     ...OperationPresets.UPDATE,
-    ttlMs: 24 * 60 * 60 * 1000, // 24 hours
-    allowSamePayloadRetry: true,
+    ttlMs: 24 * 60 * 60 * 1000,
   },
 
-  /**
-   * Cleanup handler - removes data in response to event.
-   * Examples: Delete inventory, remove from search index.
-   */
+  /** Cleanup handler — deletes data */
   CLEANUP: {
     ...OperationPresets.DELETE,
-    ttlMs: 7 * 24 * 60 * 60 * 1000, // 7 days
+    ttlMs: 7 * 24 * 60 * 60 * 1000,
   },
 
-  /**
-   * Notification handler - fire-and-forget style.
-   * Examples: Send email, push notification, webhook.
-   */
+  /** Notification handler — fire-and-forget */
   NOTIFY: {
     ...OperationPresets.ASYNC_JOB,
-    ttlMs: 30 * 24 * 60 * 60 * 1000, // 30 days (for audit)
-    cacheResult: false,
-    resultMode: "receipt_only" as const,
+    ttlMs: 30 * 24 * 60 * 60 * 1000, // 30 days for audit
   },
 } satisfies Record<string, OperationConfig>;
 ```
@@ -1479,21 +1974,26 @@ const EVENT_METRICS = {
   "events.emitted.total": "Total events emitted",
   "events.emitted.by_type": "Events emitted by type",
 
-  // Dispatch workflow
+  // Dispatch workflow - by status
   "events.dispatch.started": "Dispatch workflows started",
-  "events.dispatch.completed": "Dispatch workflows completed",
-  "events.dispatch.failed": "Dispatch workflows failed",
+  "events.dispatch.completed": "Completed (all handlers OK)",
+  "events.dispatch.completed_with_errors": "Completed with non-critical failures",
+  "events.dispatch.failed": "Failed (critical handler failed)",
   "events.dispatch.duration_ms": "Dispatch workflow duration",
 
-  // Handler invocation
+  // Handler invocation - by criticality
   "events.handler.invoked": "Handler invocations",
+  "events.handler.invoked.critical": "Critical handler invocations",
+  "events.handler.invoked.non_critical": "Non-critical handler invocations",
   "events.handler.succeeded": "Handler successes",
-  "events.handler.failed": "Handler failures",
+  "events.handler.failed.critical": "Critical handler failures (cause event failure)",
+  "events.handler.failed.non_critical": "Non-critical failures (event continues)",
+  "events.handler.skipped": "Handlers skipped (due to fail-fast)",
   "events.handler.idempotent_replay": "Idempotent replays",
   "events.handler.duration_ms": "Handler execution duration",
 
   // Retry metrics
-  "events.handler.retried": "Handler retries",
+  "events.handler.retried": "Handler retries (transient errors)",
   "events.handler.retry_exhausted": "Retry exhaustion",
 
   // Gauges
@@ -1568,23 +2068,54 @@ For each service that emits events:
 
 ## Part 12: Summary
 
+### Unified Contract
+
+Event-driven архитектура **полностью построена на idempotency framework**:
+
+| Component | Uses From Idempotency Framework |
+|-----------|--------------------------------|
+| Handler signature | `ActionRequest<{ event: TEvent }>` → `ActionResponse<TResult>` |
+| Idempotency context | `ActionContextV3` with `source: "workflow"` |
+| Execution wrapper | `withIdempotency()` helper |
+| Storage | `processed_requests` table |
+| Operation config | `OperationPresets.CREATE/UPDATE/DELETE/ASYNC_JOB` |
+
+### Architecture Overview
+
 | Aspect | Implementation |
 |--------|----------------|
 | Event Definition | Typed `DomainEvent<TType, TPayload>` with context |
 | Event Emission | `EventEmitter.emit()` starts durable workflow |
 | Durability | DBOS workflow guarantees delivery |
-| Fan-out | Workflow calls all registered handlers |
-| Per-service Idempotency | `event:{type}:{id}:{service}:{action}` key |
-| Handler Registration | Decorator + startup registration |
-| Retry | DBOS step retry + custom policies |
-| Audit | `domain_events` table with full history |
-| No Outbox | Workflow IS the delivery guarantee |
+| Fan-out | Parallel batches (CONCURRENCY_LIMIT=5) |
+| Idempotency Source | `source: "workflow"` (not `content`!) |
+| Idempotency Key | `event:{eventType}:{eventId}:{service}:{action}` |
+| Handler Contract | Standard `ActionRequest`/`ActionResponse` |
+| Handler Registration | Service startup registration to bootstrap |
+| Critical Handlers | Stop after batch: failure skips remaining, event = "failed" |
+| Non-critical Handlers | Best-effort: failure logged, event = "completed_with_errors" |
+| Event Status | `completed` / `completed_with_errors` / `failed` |
+| Retry | DBOS step retry policies (transient errors only) |
+| Audit | `domain_events` table with handler results |
 
-### Key Benefits
+### Key Design Decisions
 
-1. **Simple Mental Model**: Event → Workflow → Handlers
+1. **Единый контракт** — Events используют тот же `ActionRequest`/`ActionResponse`, что и API/workflows
+2. **`source: "workflow"`** — Key зависит от `eventId`, не от payload (exactly-once per event)
+3. **No Outbox** — DBOS workflow сам гарантирует delivery
+4. **Handlers = Actions** — Event handlers это обычные `@Action` методы
+5. **Parallel fan-out** — Handlers вызываются параллельно батчами (CONCURRENCY_LIMIT=5)
+6. **Critical vs Non-critical** — Stop-on-failure для critical, best-effort для non-critical
+7. **Independent handlers** — Handlers для одного event не должны зависеть друг от друга
+
+### Benefits
+
+1. **Simple Mental Model**: Event → Workflow → Handlers (all use same contract)
 2. **Guaranteed Delivery**: DBOS workflow durability
-3. **Exactly-Once per Service**: Idempotency framework
-4. **Easy to Add Handlers**: Decorator + registration
-5. **Full Audit Trail**: Event store with handler results
-6. **No Infrastructure Overhead**: No separate message queue needed
+3. **Exactly-Once per Service**: Idempotency framework with `source: "workflow"`
+4. **No New Abstractions**: Reuses existing `ActionRequest`/`ActionResponse`
+5. **Parallel Execution**: Batched concurrent handler invocation (configurable limit)
+6. **Granular Failure Handling**: Critical (stop-on-failure) vs non-critical (best-effort)
+7. **Clear Event Status**: `completed` / `completed_with_errors` / `failed`
+8. **Full Audit Trail**: `domain_events` + `processed_requests` tables
+9. **No Infrastructure Overhead**: No separate message queue needed
