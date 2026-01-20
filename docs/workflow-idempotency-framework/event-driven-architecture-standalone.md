@@ -731,6 +731,46 @@ export function makeEventId(params: {
 }): string {
   return sha256(`eventId:v1:${params.tenantId}:${params.dispatchWorkflowId}`).slice(0, 32);
 }
+
+/**
+ * Generate deterministic timestamp from workflowId.
+ *
+ * IMPORTANT: We do NOT use new Date() because it's non-deterministic on replay.
+ * Instead, we encode a "logical timestamp" derived from the workflowId hash.
+ *
+ * This is a pseudo-timestamp for ordering/tracing purposes only.
+ * If you need real wall-clock time, capture it in a @DBOS.step() so it's checkpointed.
+ */
+export function makeDeterministicTimestamp(workflowId: string): string {
+  // Use first 12 hex chars of hash as milliseconds offset from epoch base
+  // This gives us ~281 trillion unique "timestamps" — more than enough
+  const hashHex = sha256(`timestamp:v1:${workflowId}`).slice(0, 12);
+  const offset = parseInt(hashHex, 16);
+
+  // Base: 2020-01-01T00:00:00Z — all our "timestamps" are after this
+  const baseMs = 1577836800000;
+  const pseudoMs = baseMs + (offset % (10 * 365 * 24 * 60 * 60 * 1000)); // within 10 years
+
+  return new Date(pseudoMs).toISOString();
+}
+
+/**
+ * Generate deterministic correlationId from parentWorkflowId.
+ *
+ * IMPORTANT: We do NOT use crypto.randomUUID() because it's non-deterministic on replay.
+ * Instead, we derive correlationId from the parent workflow.
+ */
+export function makeDeterministicCorrelationId(parentWorkflowId: string): string {
+  // Format as UUID-like string for compatibility with tracing systems
+  const hash = sha256(`correlationId:v1:${parentWorkflowId}`);
+  return [
+    hash.slice(0, 8),
+    hash.slice(8, 12),
+    hash.slice(12, 16),
+    hash.slice(16, 20),
+    hash.slice(20, 32),
+  ].join("-");
+}
 ```
 
 ### 2.2 emitKey Rules
@@ -878,6 +918,11 @@ export class EventEmitter {
    *
    * This ensures: same parent + same eventType + same emitKey = same dispatch workflow.
    *
+   * DETERMINISM: All event fields are deterministic on workflow replay:
+   * - eventId: derived from tenantId + dispatchWorkflowId
+   * - timestamp: derived from dispatchWorkflowId (not wall clock!)
+   * - correlationId: derived from parentWorkflowId (not random!)
+   *
    * @example
    * @DBOS.workflow()
    * async createProduct(input: CreateProductInput) {
@@ -930,18 +975,27 @@ export class EventEmitter {
       dispatchWorkflowId: workflowId,
     });
 
-    // Build full event object
+    // DETERMINISM: timestamp derived from workflowId, not wall clock
+    // This ensures same event on replay has same timestamp
+    const timestamp = makeDeterministicTimestamp(workflowId);
+
+    // DETERMINISM: correlationId derived from parentWorkflowId if not provided
+    // This ensures same event on replay has same correlationId
+    const correlationId = input.context.correlationId
+      ?? makeDeterministicCorrelationId(parentWorkflowId);
+
+    // Build full event object — ALL fields are deterministic!
     const event: DomainEvent<TType, TPayload> = {
       eventId,
       eventType: input.eventType,
-      timestamp: new Date().toISOString(),
+      timestamp,
       source: input.source,
       payload: input.payload,
       emitKey,
       parentWorkflowId,
       context: {
         ...input.context,
-        correlationId: input.context.correlationId ?? crypto.randomUUID(),
+        correlationId,
       },
     };
 
@@ -989,17 +1043,22 @@ export class EventEmitter {
       dispatchWorkflowId: workflowId,
     });
 
+    // DETERMINISM: all fields derived from workflowId/parentWorkflowId
+    const timestamp = makeDeterministicTimestamp(workflowId);
+    const correlationId = input.context.correlationId
+      ?? makeDeterministicCorrelationId(parentWorkflowId);
+
     const event: DomainEvent<TType, TPayload> = {
       eventId,
       eventType: input.eventType,
-      timestamp: new Date().toISOString(),
+      timestamp,
       source: input.source,
       payload: input.payload,
       emitKey,
       parentWorkflowId,
       context: {
         ...input.context,
-        correlationId: input.context.correlationId ?? crypto.randomUUID(),
+        correlationId,
       },
     };
 
