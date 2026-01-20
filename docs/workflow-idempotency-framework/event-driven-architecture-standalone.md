@@ -681,15 +681,19 @@ const sha256 = (s: string) => crypto.createHash("sha256").update(s).digest("hex"
  * Generate dispatch workflow ID.
  * Deterministic: same parent + eventType + emitKey = same workflowId.
  *
- * Format: {parentWorkflowId}:dispatch:{eventType}:{emitKeyHash}
+ * Format: {parentWorkflowId}:dispatch:v1:{eventType}:{emitKeyHash}
+ *
+ * Version prefix (v1) allows changing the formula later without breaking
+ * existing workflows or causing unexpected collisions.
  */
 export function makeDispatchWorkflowId(params: {
   parentWorkflowId: string;
   eventType: string;
   emitKey: string;
 }): string {
-  const emitKeyHash = sha256(params.emitKey).slice(0, 16);
-  return `${params.parentWorkflowId}:dispatch:${params.eventType}:${emitKeyHash}`;
+  // v1 in hash input ensures formula changes don't collide with old hashes
+  const emitKeyHash = sha256(`emitKey:v1:${params.emitKey}`).slice(0, 16);
+  return `${params.parentWorkflowId}:dispatch:v1:${params.eventType}:${emitKeyHash}`;
 }
 
 /**
@@ -699,12 +703,14 @@ export function makeDispatchWorkflowId(params: {
  * This ensures:
  * - Retry of same emit = same eventId (no duplicate in event store)
  * - Different emits = different eventIds
+ *
+ * Version prefix (v1) allows changing the formula later.
  */
 export function makeEventId(params: {
   tenantId: string;
   dispatchWorkflowId: string;
 }): string {
-  return sha256(`evt:v1:${params.tenantId}:${params.dispatchWorkflowId}`).slice(0, 32);
+  return sha256(`eventId:v1:${params.tenantId}:${params.dispatchWorkflowId}`).slice(0, 32);
 }
 ```
 
@@ -747,6 +753,73 @@ Date.now().toString()
 
 // ❌ Too generic - collisions within workflow
 "productUpdated"
+```
+
+### 2.2.1 Critical Edge Case: Same emitKey, Different Payload
+
+⚠️ **If you emit the same emitKey with different payload, idempotency "wins" and the second emit is IGNORED.**
+
+```typescript
+// WRONG: same emitKey, different payload → second emit silently ignored!
+await EventEmitter.emit(
+  { eventType: "productUpdated", payload: { price: 100 }, ... },
+  "product:123"  // same emitKey
+);
+await EventEmitter.emit(
+  { eventType: "productUpdated", payload: { price: 200 }, ... },  // different payload!
+  "product:123"  // same emitKey → IGNORED, dispatch workflow already exists
+);
+```
+
+**Rule: One emitKey = One business result**
+
+If payload changes by meaning → emitKey MUST change too:
+
+```typescript
+// CORRECT: different changes → different emitKeys
+await EventEmitter.emit(
+  { eventType: "productUpdated", payload: { field: "price", value: 100 }, ... },
+  "product:123:change:price"  // unique emitKey for price change
+);
+await EventEmitter.emit(
+  { eventType: "productUpdated", payload: { field: "name", value: "New Name" }, ... },
+  "product:123:change:name"  // unique emitKey for name change
+);
+```
+
+Or include payload hash in emitKey for content-addressed events:
+
+```typescript
+const payloadHash = sha256(JSON.stringify(payload)).slice(0, 8);
+await EventEmitter.emit(
+  { eventType: "stockUpdated", payload, ... },
+  `sku:${sku}:setStock:${payloadHash}`  // payload change → different emitKey
+);
+```
+
+### 2.2.2 emitKey Templates by Event Type
+
+| Event Type | emitKey Template | Example |
+|------------|------------------|---------|
+| `productCreated` | `"product:" + productId` | `"product:prod-123"` |
+| `productUpdated` | `"product:" + productId + ":change:" + field` | `"product:prod-123:change:price"` |
+| `productDeleted` | `"product:" + productId` | `"product:prod-123"` |
+| `orderCreated` | `"order:" + orderId` | `"order:ord-456"` |
+| `orderCompleted` | `"order:" + orderId + ":completed"` | `"order:ord-456:completed"` |
+| `storeCreated` | `"store:" + storeId` | `"store:store-789"` |
+| `stockUpdated` | `"sku:" + sku + ":setStock:" + payloadHash` | `"sku:ABC:setStock:a1b2c3d4"` |
+| `itemReserved` | `"lineItem:" + lineItemId` | `"lineItem:li-001"` |
+
+**For batch operations** (e.g., updating multiple items in one workflow):
+
+```typescript
+// Each item gets its own emitKey
+for (const item of order.items) {
+  await EventEmitter.emit(
+    { eventType: "itemReserved", payload: { itemId: item.id, quantity: item.qty }, ... },
+    `lineItem:${item.id}`  // unique per item
+  );
+}
 ```
 ```
 
@@ -816,6 +889,11 @@ export class EventEmitter {
     },
     emitKey: string
   ): Promise<{ workflowId: string; eventId: string }> {
+    // Validate emitKey — must be non-empty
+    if (!emitKey || emitKey.trim().length === 0) {
+      throw new Error("emitKey is required and must be non-empty");
+    }
+
     const parentWorkflowId = DBOS.workflowID;
     if (!parentWorkflowId) {
       throw new Error("EventEmitter.emit() must be called from workflow code (not from a step).");
@@ -871,6 +949,11 @@ export class EventEmitter {
     },
     emitKey: string
   ): Promise<EventDispatchResult> {
+    // Validate emitKey — must be non-empty
+    if (!emitKey || emitKey.trim().length === 0) {
+      throw new Error("emitKey is required and must be non-empty");
+    }
+
     const parentWorkflowId = DBOS.workflowID;
     if (!parentWorkflowId) {
       throw new Error("EventEmitter.emitAndWait() must be called from workflow code.");
@@ -954,7 +1037,7 @@ export interface HandlerInvocationResult {
  * - Idempotent execution (same workflowId = execute once)
  *
  * NOTE: Workflow ID is generated by EventEmitter using makeDispatchWorkflowId().
- * Pattern: {parentWorkflowId}:dispatch:{eventType}:{emitKeyHash}
+ * Pattern: {parentWorkflowId}:dispatch:v1:{eventType}:{emitKeyHash}
  */
 export class EventDispatchWorkflow {
   constructor(private readonly broker: ServiceBroker) {}
@@ -1862,7 +1945,7 @@ type EventLogEvent =
 │  3. EventEmitter.emit({ eventType, payload, context, source }, emitKey)     │
 │     │  - emitKey = "product:" + productId (deterministic!)                  │
 │     │  - Starts EventDispatchWorkflow                                       │
-│     │  - Workflow ID: {parentWorkflowId}:dispatch:productCreated:{hash}     │
+│     │  - Workflow ID: {parentWorkflowId}:dispatch:v1:productCreated:{hash}  │
 │     │                                                                       │
 │     ▼                                                                       │
 │  4. EventDispatchWorkflow                                                   │
@@ -2067,13 +2150,14 @@ async setStock(payload: SetStockInput) {
 │                                                                             │
 │  Layer 1: DBOS Workflow Idempotency (Dispatch Level)                        │
 │  ───────────────────────────────────────────────────                        │
-│  Key: {parentWorkflowId}:dispatch:{eventType}:{emitKeyHash}                 │
-│  Example: wf-create-product-123:dispatch:productCreated:a1b2c3d4            │
+│  Key: {parentWorkflowId}:dispatch:v1:{eventType}:{emitKeyHash}              │
+│  Example: wf-create-product-123:dispatch:v1:productCreated:a1b2c3d4         │
 │                                                                             │
 │  Components:                                                                │
 │  - parentWorkflowId: From DBOS.workflowID                                   │
+│  - v1: Version prefix (allows formula changes without collisions)           │
 │  - eventType: "productCreated", "orderCompleted", etc.                      │
-│  - emitKeyHash: sha256(emitKey).slice(0, 16)                                │
+│  - emitKeyHash: sha256("emitKey:v1:" + emitKey).slice(0, 16)                │
 │                                                                             │
 │  Guarantees: Same parent + same eventType + same emitKey = dispatch once    │
 │  Note: emitKey allows multiple events of same type from one workflow        │
