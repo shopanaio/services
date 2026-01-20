@@ -6266,7 +6266,6 @@ __metadata:
     "@shopana/project-service": "npm:0.0.1"
     "@shopana/shared-kernel": "npm:1.0.0"
     "@shopana/shared-service-config": "npm:0.0.1"
-    "@shopana/workflows": "npm:1.0.0"
     "@types/node": "npm:^22.7.4"
     dotenv: "npm:^16.4.5"
     reflect-metadata: "npm:^0.2.2"
@@ -6582,7 +6581,6 @@ __metadata:
     "@shopana/shared-graphql-guid": "npm:*"
     "@shopana/shared-kernel": "npm:*"
     "@shopana/shared-service-config": "npm:*"
-    "@shopana/workflows": "npm:*"
     "@types/node": "npm:^20.14.14"
     dataloader: "npm:^2.2.3"
     dotenv: "npm:^16.4.5"
@@ -6759,7 +6757,6 @@ __metadata:
     "@shopana/shared-kernel": "npm:*"
     "@shopana/shared-references": "npm:*"
     "@shopana/type-resolver": "npm:*"
-    "@shopana/workflows": "npm:*"
     "@types/node": "npm:^20.14.14"
     cache-manager: "npm:^7.2.7"
     dataloader: "npm:^2.2.3"
@@ -6837,16 +6834,18 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@shopana/shared-kernel@npm:*, @shopana/shared-kernel@npm:1.0.0, @shopana/shared-kernel@workspace:*, @shopana/shared-kernel@workspace:packages/shared-kernel":
+"@shopana/shared-kernel@npm:*, @shopana/shared-kernel@npm:1.0.0, @shopana/shared-kernel@workspace:packages/shared-kernel":
   version: 0.0.0-use.local
   resolution: "@shopana/shared-kernel@workspace:packages/shared-kernel"
   dependencies:
+    "@dbos-inc/dbos-sdk": "npm:^2.0.0"
     "@golevelup/nestjs-rabbitmq": "npm:^4.0.0"
     "@nestjs/common": "npm:^10.0.0"
     "@nestjs/core": "npm:^10.0.0"
     "@shopana/rbac": "npm:*"
     "@types/jest": "npm:^30.0.0"
     "@types/node": "npm:^20.12.7"
+    canonicalize: "npm:^1.0.8"
     drizzle-orm: "npm:^0.45.1"
     jest: "npm:^30.1.3"
     postgres: "npm:^3.4.7"
@@ -6973,23 +6972,6 @@ __metadata:
     typescript: "npm:^5.5.4"
   peerDependencies:
     express: ^5.0.0
-  languageName: unknown
-  linkType: soft
-
-"@shopana/workflows@npm:*, @shopana/workflows@npm:1.0.0, @shopana/workflows@workspace:packages/workflows":
-  version: 0.0.0-use.local
-  resolution: "@shopana/workflows@workspace:packages/workflows"
-  dependencies:
-    "@dbos-inc/dbos-sdk": "npm:^2.0.0"
-    "@shopana/shared-kernel": "workspace:*"
-    "@types/jest": "npm:^30.0.0"
-    "@types/node": "npm:^20.12.7"
-    jest: "npm:^30.1.3"
-    ts-jest: "npm:^29.4.6"
-    typescript: "npm:^5.4.5"
-  peerDependencies:
-    "@nestjs/common": ^10.0.0
-    "@nestjs/core": ^10.0.0
   languageName: unknown
   linkType: soft
 
@@ -9565,6 +9547,13 @@ __metadata:
   version: 1.0.30001743
   resolution: "caniuse-lite@npm:1.0.30001743"
   checksum: 10/e55b13b4a547c9f610a68d5f5668a3239ada4a4aef5d198860397757ab7c03a5b0590675b7e82c5d3d57316b40499e1da52decb08a97ef3066a338871bbb5c37
+  languageName: node
+  linkType: hard
+
+"canonicalize@npm:^1.0.8":
+  version: 1.0.8
+  resolution: "canonicalize@npm:1.0.8"
+  checksum: 10/4087d6de4a2412b9d36f9cbc0825336d97fa61021365d53869b30d3476a348425f193d019e18a21c97ebd042ac9f98f93f6059f14b4105b741c69b4b940bd91a
   languageName: node
   linkType: hard
 

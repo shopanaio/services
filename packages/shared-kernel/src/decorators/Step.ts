@@ -46,6 +46,8 @@ export function Step(options?: StepMetadata): MethodDecorator {
       stepConfig.backoffRate = options.backoffRate;
     }
 
-    return DBOS.step(stepConfig)(target, propertyKey, descriptor);
+    // DBOS.step expects string, but MethodDecorator provides string | symbol
+    const key = typeof propertyKey === "symbol" ? propertyKey.toString() : propertyKey;
+    return DBOS.step(stepConfig)(target, key, descriptor);
   };
 }

@@ -14,16 +14,34 @@ export interface WorkflowMetadata {
  * Decorator that marks a method as a durable workflow.
  * Wraps DBOS.workflow() and adds registration metadata.
  *
+ * IMPORTANT: The decorated method MUST be named `run` for WorkflowRegistry.start() to work.
+ * This is because DBOS.startWorkflow(instance).run(params) convention is used internally.
+ *
  * @param name - Workflow name (will be prefixed with service name)
  * @param options - Optional configuration
  *
  * @example
- * class StoreWorkflows extends BrokerWorkflows {
+ * class StoreCreateWorkflow extends BrokerWorkflows {
  *   @Workflow("storeCreate")
- *   async createStore(input: StoreCreateInput): Promise<StoreCreateOutput> {
- *     // workflow implementation
+ *   async run(input: StoreCreateInput): Promise<StoreCreateOutput> {
+ *     const storeId = await this.generateStoreId();
+ *     await this.createStore(storeId, input);
+ *     return { storeId };
+ *   }
+ *
+ *   @Step()
+ *   private async generateStoreId(): Promise<string> {
+ *     return uuidv7();
  *   }
  * }
+ *
+ * // Usage via broker:
+ * await broker.runWorkflow("project.storeCreate", input, {
+ *   source: "client",
+ *   clientKey: ctx.idempotencyKey,
+ *   tenantId: ctx.organizationId,
+ *   apiKeyId: ctx.apiKeyId,
+ * });
  */
 export function Workflow(
   name: string,
@@ -46,6 +64,8 @@ export function Workflow(
       propertyKey,
     );
 
-    return DBOS.workflow()(target, propertyKey, descriptor);
+    // DBOS.workflow expects string, but MethodDecorator provides string | symbol
+    const key = typeof propertyKey === "symbol" ? propertyKey.toString() : propertyKey;
+    return DBOS.workflow()(target, key, descriptor);
   };
 }

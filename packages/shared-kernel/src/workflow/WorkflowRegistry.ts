@@ -1,5 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { DBOS } from "@dbos-inc/dbos-sdk";
+import { DBOS, ConfiguredInstance } from "@dbos-inc/dbos-sdk";
 import type { WorkflowHandle } from "./types.js";
 import { buildIdempotencyKey, type IdempotencyContext } from "./idempotency.js";
 
@@ -120,8 +120,9 @@ export class WorkflowRegistry {
     // Build deterministic workflow ID from idempotency context
     const workflowID = buildIdempotencyKey(qualifiedName, idempotencyCtx);
 
-    // Start workflow using DBOS with the standard `run` method convention.
-    const workflowInstance = descriptor.instance as {
+    // Cast to ConfiguredInstance with run method for DBOS.startWorkflow().
+    // All BrokerWorkflows extend ConfiguredInstance and have a `run` method.
+    const workflowInstance = descriptor.instance as ConfiguredInstance & {
       run: (params: TParams) => Promise<TResult>;
     };
 

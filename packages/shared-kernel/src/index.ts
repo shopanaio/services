@@ -13,7 +13,7 @@ export {
   type ServiceBrokerOptions,
 } from "./broker/ServiceBroker";
 export { BrokerActions } from "./broker/BrokerActions";
-export { BrokerWorkflows } from "./broker/BrokerWorkflows";
+export { BrokerWorkflows, type WorkflowServices } from "./broker/BrokerWorkflows";
 export {
   BrokerCoreModule,
   type BrokerCoreModuleOptions,
@@ -65,12 +65,18 @@ export {
   AuthorizationError,
   Action,
   ACTION_METADATA_KEY,
+  Workflow,
+  WORKFLOW_METADATA_KEY,
+  Step,
+  STEP_METADATA_KEY,
   type UserError,
   type Authorizable,
   type AuthProvider,
   type AuthorizeParams,
   type AuthorizeOptions,
   type ActionMetadata,
+  type WorkflowMetadata,
+  type StepMetadata,
 } from "./decorators";
 
 // Resource discovery types
