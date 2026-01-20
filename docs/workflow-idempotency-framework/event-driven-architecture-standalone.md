@@ -722,7 +722,7 @@ export class EventDispatchWorkflow {
     event: DomainEvent,
     handler: HandlerInfo
   ): Promise<HandlerInvocationResult> {
-    return this.invokeHandlerInner(event, handler);
+    return this.invokeHandlerInner(event, handler, 5);
   }
 
   /**
@@ -737,7 +737,7 @@ export class EventDispatchWorkflow {
     event: DomainEvent,
     handler: HandlerInfo
   ): Promise<HandlerInvocationResult> {
-    return this.invokeHandlerInner(event, handler);
+    return this.invokeHandlerInner(event, handler, 2);
   }
 
   private async invokeHandler(
@@ -752,7 +752,8 @@ export class EventDispatchWorkflow {
 
   private async invokeHandlerInner(
     event: DomainEvent,
-    handler: HandlerInfo
+    handler: HandlerInfo,
+    attempts: number
   ): Promise<HandlerInvocationResult> {
     const startTime = Date.now();
 
@@ -770,7 +771,9 @@ export class EventDispatchWorkflow {
         throw new Error(`TRANSIENT: ${response.error.message}`);
       }
 
-      // Non-retryable error -> permanent failure
+      // Non-retryable error -> permanent failure -> send to DLQ
+      await this.sendToDLQ(event, handler, response.error, attempts);
+
       return {
         service: handler.service,
         action: handler.action,
@@ -788,6 +791,36 @@ export class EventDispatchWorkflow {
       status: "success",
       durationMs,
     };
+  }
+
+  /**
+   * Send permanently failed handler to Dead Letter Queue.
+   */
+  @DBOS.step()
+  private async sendToDLQ(
+    event: DomainEvent,
+    handler: HandlerInfo,
+    error: { message: string; code?: string },
+    attempts: number
+  ): Promise<void> {
+    await this.broker.call("events.addToDLQ", {
+      event,
+      handler: {
+        service: handler.service,
+        action: handler.action,
+        critical: handler.critical,
+      },
+      error: error.message,
+      errorCode: error.code,
+      attempts,
+    });
+
+    this.logger.warn("Handler failed permanently, sent to DLQ", {
+      eventId: event.eventId,
+      eventType: event.eventType,
+      handler: `${handler.service}.${handler.action}`,
+      error: error.message,
+    });
   }
 
   @DBOS.step()
@@ -1241,6 +1274,44 @@ export class EventStoreBrokerActions extends BrokerActions {
     return { updated: true };
   }
 
+  /**
+   * Add failed handler to Dead Letter Queue.
+   */
+  @Action("addToDLQ")
+  async addToDLQ(params: {
+    event: DomainEvent;
+    handler: { service: string; action: string; critical: boolean };
+    error: string;
+    errorCode?: string;
+    attempts: number;
+  }): Promise<{ added: boolean }> {
+    await this.db.insert(deadLetterQueue).values({
+      eventId: params.event.eventId,
+      eventType: params.event.eventType,
+      event: params.event as unknown as Record<string, unknown>,
+      handlerService: params.handler.service,
+      handlerAction: params.handler.action,
+      handlerCritical: params.handler.critical,
+      error: params.error,
+      errorCode: params.errorCode,
+      attempts: params.attempts,
+      tenantId: params.event.context.tenantId,
+      correlationId: params.event.context.correlationId,
+      status: "failed",
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+    }).onConflictDoUpdate({
+      target: [deadLetterQueue.eventId, deadLetterQueue.handlerService, deadLetterQueue.handlerAction],
+      set: {
+        error: params.error,
+        errorCode: params.errorCode,
+        attempts: params.attempts,
+        failedAt: new Date(),
+        status: "failed",
+      },
+    });
+
+    return { added: true };
+  }
 }
 ```
 
