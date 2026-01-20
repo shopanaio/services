@@ -939,9 +939,12 @@ for (const item of order.items) {
 // packages/events/src/emitter.ts
 
 import { DBOS } from "@dbos-inc/dbos-sdk";
-import crypto from "node:crypto";
 import type { DomainEvent, EventContext } from "./types.js";
-import { makeDispatchWorkflowId, makeEventId } from "./idempotency.js";
+import {
+  makeDispatchWorkflowId,
+  makeEventId,
+  makeDeterministicCorrelationId,
+} from "./idempotency.js";
 import { EventDispatchWorkflow, type EventDispatchResult } from "./workflows/EventDispatchWorkflow.js";
 
 /**
@@ -2868,7 +2871,7 @@ async setStock(payload: SetStockInput) {
 │  - parentWorkflowId: From DBOS.workflowID                                   │
 │  - v1: Version prefix (allows formula changes without collisions)           │
 │  - eventType: "productCreated", "orderCompleted", etc.                      │
-│  - emitKeyHash: sha256("emitKey:v1:" + emitKey).slice(0, 16)                │
+│  - emitKeyHash: sha256("emitKey:v1:" + emitKey).slice(0, 32)                │
 │                                                                             │
 │  Guarantees: Same parent + same eventType + same emitKey = dispatch once    │
 │  Note: emitKey allows multiple events of same type from one workflow        │
