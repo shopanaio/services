@@ -79,12 +79,6 @@ export interface SagaStepConfig {
    * Fatal errors skip retry and trigger immediate compensation.
    */
   retry?: RetryPolicy;
-  /**
-   * Timeout hint в миллисекундах.
-   * Passed to ctx.brokerCall() for external call timeout.
-   * NOT enforced at workflow level (would break determinism).
-   */
-  timeoutHint?: number;
 }
 
 /** Метаданные шага с компенсацией */
@@ -414,10 +408,8 @@ export function Saga(name: string): ClassDecorator {
  */
 export class SagaContextManager<TInput = unknown> {
   private context: SagaContext<TInput>;
-  private readonly broker: ServiceBroker;
 
-  constructor(sagaId: string, input: TInput, broker: ServiceBroker) {
-    this.broker = broker;
+  constructor(sagaId: string, input: TInput) {
     this.context = {
       sagaId,
       input,
@@ -433,74 +425,6 @@ export class SagaContextManager<TInput = unknown> {
   /** Saga ID */
   get sagaId(): string {
     return this.context.sagaId;
-  }
-
-  /**
-   * Generate idempotency key for external calls.
-   * Format: sagaId:stepName
-   */
-  getIdempotencyKey(stepName: string): string {
-    return `${this.context.sagaId}:${stepName}`;
-  }
-
-  /**
-   * Execute broker call with automatic idempotency.
-   * This is the PREFERRED way to make external calls from saga steps.
-   *
-   * @example
-   * const result = await ctx.call("createRoles", () =>
-   *   this.broker.call<IAM.CreateRolesResult>("iam.createRoles", params)
-   * );
-   */
-  async call<TResult>(
-    stepName: string,
-    fn: (idempotencyKey: string) => Promise<TResult>,
-  ): Promise<TResult> {
-    const idempotencyKey = this.getIdempotencyKey(stepName);
-    return fn(idempotencyKey);
-  }
-
-  /**
-   * Execute broker action with automatic idempotency (convenience method).
-   * Unified with GraphQL IdempotencyContext pattern.
-   *
-   * @example
-   * // Simple usage
-   * const result = await ctx.brokerCall<IAM.CreateRolesResult>(
-   *   "createRoles",
-   *   "iam.createRoles",
-   *   params
-   * );
-   *
-   * // With timeout and additional context
-   * const result = await ctx.brokerCall<IAM.CreateRolesResult>(
-   *   "createRoles",
-   *   "iam.createRoles",
-   *   params,
-   *   { timeout: 5000, tenantId: ctx.getInput().organizationId }
-   * );
-   */
-  async brokerCall<TResult, TParams = unknown>(
-    stepName: string,
-    action: string,
-    params: TParams,
-    options?: {
-      /** Timeout for broker call in milliseconds */
-      timeout?: number;
-    } & Partial<IdempotencyContext>,
-  ): Promise<TResult> {
-    const { timeout, ...idempotencyCtx } = options ?? {};
-
-    // Merge saga idempotency with provided context
-    const fullCtx: IdempotencyContext = {
-      source: "workflow",
-      workflowId: this.context.sagaId,
-      stepId: stepName,
-      ...idempotencyCtx,
-    };
-
-    // Timeout is handled by broker.call (not workflow)
-    return this.broker.call<TResult, TParams>(action, params, fullCtx, { timeout });
   }
 
   /** Получить текущий контекст (deep immutable snapshot) */
@@ -655,11 +579,7 @@ export class SagaExecutor<TInput, TOutput> {
    * Выполняет сагу с автоматической компенсацией при ошибках.
    */
   async execute(sagaId: string, input: TInput): Promise<SagaResult<TOutput>> {
-    const ctx = new SagaContextManager<TInput>(
-      sagaId,
-      input,
-      this.sagaInstance.broker, // Pass broker for ctx.brokerCall()
-    );
+    const ctx = new SagaContextManager<TInput>(sagaId, input);
     ctx.setStatus("running");
 
     const compensationErrors: Error[] = [];
@@ -850,8 +770,6 @@ export class SagaExecutor<TInput, TOutput> {
 
   /**
    * Execute step method.
-   * Timeout is NOT enforced here (would break workflow determinism).
-   * Use ctx.brokerCall() with timeout for external calls.
    */
   private async executeStep(
     step: SagaStepDefinition,
@@ -1069,13 +987,11 @@ export abstract class BrokerSaga<TInput, TOutput>
 async runSaga<TResult, TParams>(
   sagaName: string,
   params: TParams,
-  idempotencyCtx?: IdempotencyContext,
 ): Promise<SagaResult<TResult>> {
   // Использует тот же механизм, что и runWorkflow
   return this.runWorkflow<SagaResult<TResult>, TParams>(
     sagaName,
     params,
-    idempotencyCtx,
   );
 }
 ```
@@ -1163,9 +1079,7 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
 
     let result: IAM.CreateRolesResult;
     try {
-      // ctx.brokerCall automatically adds idempotency key
-      result = await ctx.brokerCall<IAM.CreateRolesResult>(
-        "createRoles", // step name for idempotency key
+      result = await this.broker.call<IAM.CreateRolesResult>(
         "iam.createRoles",
         {
           userId: input.userId,
@@ -1215,12 +1129,9 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
   async createMediaAssetGroup(ctx: SagaContextManager<StoreCreateInput>): Promise<void> {
     const storeId = ctx.getStepResult<string>("generateId")!;
 
-    // Timeout is passed to broker.call, not enforced at workflow level
-    await ctx.brokerCall<Media.CreateAssetGroupResult>(
-      "createMediaAssetGroup",
+    await this.broker.call<Media.CreateAssetGroupResult>(
       "media.createAssetGroup",
       { ownerType: "store", ownerId: storeId },
-      { timeout: 5000 },
     );
   }
 
@@ -1228,8 +1139,6 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
   // COMPENSATIONS
   // Convention: compensate + PascalCase(stepName)
   // Signature: compensateX(ctx, stepResult) - stepResult is what step returned
-  //
-  // IMPORTANT: Use ctx.brokerCall() for idempotency - compensations are retried!
   // ═══════════════════════════════════════════════════════════════
 
   async compensateCreateStore(
@@ -1238,7 +1147,6 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
   ): Promise<void> {
     const storeId = ctx.getStepResult<string>("generateId");
     if (storeId) {
-      // Local DB - idempotent by nature (delete is idempotent)
       await this.kernel.repository.store.delete(storeId);
       this.logger.info({ storeId }, "Compensated: deleted store");
     }
@@ -1252,8 +1160,7 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
     const storeId = ctx.getStepResult<string>("generateId");
 
     if (storeId) {
-      // Use ctx.brokerCall for idempotency (compensations are retried!)
-      await ctx.brokerCall("compensateCreateRoles", "iam.deleteRoles", {
+      await this.broker.call("iam.deleteRoles", {
         organizationId: input.organizationId,
         domain: `store:${storeId}`,
       });
@@ -1269,8 +1176,7 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
     const storeId = ctx.getStepResult<string>("generateId");
 
     if (storeId) {
-      // Use ctx.brokerCall for idempotency
-      await ctx.brokerCall("compensateAssignAdminRole", "iam.unassignRole", {
+      await this.broker.call("iam.unassignRole", {
         userId: input.userId,
         organizationId: input.organizationId,
         domain: `store:${storeId}`,
@@ -1288,8 +1194,7 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
 
     if (storeId) {
       try {
-        // Use ctx.brokerCall for idempotency
-        await ctx.brokerCall("compensateCreateMediaAssetGroup", "media.deleteAssetGroup", {
+        await this.broker.call("media.deleteAssetGroup", {
           ownerType: "store",
           ownerId: storeId,
         });
@@ -1329,12 +1234,6 @@ async storeCreate(
       organizationId: ctx.organizationId,
       userId: ctx.userId,
     },
-    {
-      source: "client",
-      clientKey: ctx.idempotencyKey,
-      tenantId: ctx.organizationId,
-      apiKeyId: ctx.apiKeyId,
-    },
   );
 
   if (!result.success) {
@@ -1366,7 +1265,7 @@ packages/shared-kernel/src/saga/
 ├── errors.ts                # SagaError, RetryableError, FatalError, isRetryableError, toErrorInfo
 ├── utils.ts                 # addJitter
 ├── decorators.ts            # @Saga, @SagaStep
-├── SagaContext.ts           # SagaContextManager (with ctx.brokerCall)
+├── SagaContext.ts           # SagaContextManager
 ├── SagaExecutor.ts          # Движок выполнения
 └── BrokerSaga.ts            # Базовый класс
 ```
@@ -1475,10 +1374,8 @@ async createRoles(ctx: SagaContextManager<Input>): Promise<void> {
   let result: IAM.CreateRolesResult;
 
   try {
-    // ctx.brokerCall automatically adds idempotency key (sagaId:stepName)
-    result = await ctx.brokerCall<IAM.CreateRolesResult>(
-      "createRoles",       // step name for idempotency
-      "iam.createRoles",   // action
+    result = await this.broker.call<IAM.CreateRolesResult>(
+      "iam.createRoles",
       params,
     );
   } catch (error) {
@@ -1492,45 +1389,6 @@ async createRoles(ctx: SagaContextManager<Input>): Promise<void> {
   }
 }
 ```
-
-### Idempotency API (built into context)
-
-**ALWAYS use `ctx.brokerCall()` or `ctx.call()` for external calls.**
-This enforces idempotency by contract, not by convention.
-
-```typescript
-// Option 1: ctx.brokerCall (recommended for broker actions)
-const result = await ctx.brokerCall<IAM.Result>("createRoles", "iam.createRoles", params);
-
-// Option 2: ctx.call (for custom idempotency logic)
-const result = await ctx.call("createRoles", (idempotencyKey) =>
-  this.customClient.createWithIdempotency(params, idempotencyKey)
-);
-
-// Option 3: Manual (discouraged, but available)
-const idempotencyKey = ctx.getIdempotencyKey("createRoles"); // sagaId:createRoles
-```
-
-### Timeout handling
-
-**Timeouts are NOT enforced at workflow level** - `Promise.race` with `setTimeout` would break determinism.
-
-Instead, timeout is passed to `broker.call()` which handles it at transport level:
-
-```typescript
-// ✅ Correct: timeout at broker level (deterministic workflow)
-await ctx.brokerCall("createMedia", "media.create", params, { timeout: 5000 });
-
-// ❌ Wrong: Promise.race with setTimeout (non-deterministic)
-await Promise.race([
-  step(),
-  new Promise((_, reject) => setTimeout(() => reject(...), 5000))
-]);
-```
-
-With idempotency, timeout + retry is safe:
-- Retry with same key → returns cached result (no duplicate)
-- "Already exists" responses should be treated as success, not fatal
 
 ### Compensation retry policy
 
