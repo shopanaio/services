@@ -97,6 +97,29 @@ export interface SagaStepDefinition {
   compensateMethod: string;
 }
 
+/** Compensation exhaustion handler (for DLQ/alerting extension point) */
+export type OnCompensationExhausted = (
+  stepName: string,
+  methodName: string,
+  error: Error,
+  ctx: SagaContext,
+) => void | Promise<void>;
+
+/** SagaExecutor configuration */
+export interface SagaExecutorConfig {
+  /**
+   * Called when compensation retries are exhausted.
+   * Use for DLQ, alerting, manual intervention flags.
+   * Default: logs error.
+   */
+  onCompensationExhausted?: OnCompensationExhausted;
+  /**
+   * Compensation retry policy override.
+   * Default: { maxAttempts: 10, intervalSeconds: 1, backoffRate: 2 }
+   */
+  compensationRetryPolicy?: RetryPolicy;
+}
+
 // ─────────────────────────────────────────────────────────────────
 // Error Classification (same pattern as broker actions/events)
 // ─────────────────────────────────────────────────────────────────
@@ -230,10 +253,15 @@ export interface SagaContext<TInput = unknown> {
   /** Результаты выполненных шагов (по имени шага) - Record для сериализации */
   stepResults: Record<string, StepResult>;
   /**
-   * Все успешно выполненные шаги (immutable history).
-   * Никогда не уменьшается - для диагностики.
+   * Шаги, которые были запущены (включая failed).
+   * Полезно для метрик и диагностики.
    */
-  executedSteps: string[];
+  attemptedSteps: string[];
+  /**
+   * Шаги, которые успешно завершились.
+   * Используется для определения compensatable шагов.
+   */
+  succeededSteps: string[];
   /**
    * Шаги, которые были скомпенсированы.
    * Растёт по мере выполнения компенсаций.
@@ -255,8 +283,10 @@ export interface SagaResult<TOutput = unknown> {
   /** Error info (serializable, no Error objects) */
   error?: ErrorInfo;
   failedStep?: string;
-  /** All steps that were executed (history) */
-  executedSteps: string[];
+  /** All steps that were attempted (including failed) */
+  attemptedSteps: string[];
+  /** Steps that succeeded */
+  succeededSteps: string[];
   /** Steps that were successfully compensated */
   compensatedSteps: string[];
   compensated: boolean;
@@ -367,8 +397,9 @@ export class SagaContextManager<TInput = unknown> {
       input,
       status: "pending",
       stepResults: {},
-      executedSteps: [],      // immutable history
-      compensatedSteps: [],   // grows during compensation
+      attemptedSteps: [],     // all steps that were started
+      succeededSteps: [],     // steps that completed successfully
+      compensatedSteps: [],   // steps that were compensated
       warnings: [],
     };
   }
@@ -405,22 +436,38 @@ export class SagaContextManager<TInput = unknown> {
 
   /**
    * Execute broker action with automatic idempotency (convenience method).
+   * Unified with GraphQL IdempotencyContext pattern.
    *
    * @example
+   * // Simple usage
    * const result = await ctx.brokerCall<IAM.CreateRolesResult>(
    *   "createRoles",
    *   "iam.createRoles",
    *   params
+   * );
+   *
+   * // With additional context (e.g., from GraphQL request)
+   * const result = await ctx.brokerCall<IAM.CreateRolesResult>(
+   *   "createRoles",
+   *   "iam.createRoles",
+   *   params,
+   *   { tenantId: ctx.getInput().organizationId }
    * );
    */
   async brokerCall<TResult, TParams = unknown>(
     stepName: string,
     action: string,
     params: TParams,
+    idempotencyCtx?: Partial<IdempotencyContext>,
   ): Promise<TResult> {
-    return this.broker.call<TResult, TParams>(action, params, {
-      idempotencyKey: this.getIdempotencyKey(stepName),
-    });
+    // Merge saga idempotency with provided context
+    const fullCtx: IdempotencyContext = {
+      source: "workflow",
+      workflowId: this.context.sagaId,
+      stepId: stepName,
+      ...idempotencyCtx,
+    };
+    return this.broker.call<TResult, TParams>(action, params, fullCtx);
   }
 
   /** Получить текущий контекст (deep immutable snapshot) */
@@ -428,7 +475,8 @@ export class SagaContextManager<TInput = unknown> {
     return {
       ...this.context,
       stepResults: { ...this.context.stepResults },
-      executedSteps: [...this.context.executedSteps],
+      attemptedSteps: [...this.context.attemptedSteps],
+      succeededSteps: [...this.context.succeededSteps],
       compensatedSteps: [...this.context.compensatedSteps],
       warnings: [...this.context.warnings],
     };
@@ -454,10 +502,17 @@ export class SagaContextManager<TInput = unknown> {
     this.context.status = status;
   }
 
+  /** Record step attempt (called before execution) */
+  recordAttempt(stepName: string): void {
+    if (!this.context.attemptedSteps.includes(stepName)) {
+      this.context.attemptedSteps.push(stepName);
+    }
+  }
+
   /** Записать успешный результат шага */
   recordSuccess<T>(stepName: string, data: T): void {
     this.context.stepResults[stepName] = { success: true, data };
-    this.context.executedSteps.push(stepName); // immutable history
+    this.context.succeededSteps.push(stepName);
   }
 
   /** Записать ошибку шага */
@@ -474,11 +529,11 @@ export class SagaContextManager<TInput = unknown> {
 
   /**
    * Получить шаги для компенсации (в обратном порядке).
-   * Returns only steps that haven't been compensated yet.
+   * Returns only succeeded steps that haven't been compensated yet.
    */
   getStepsToCompensate(): string[] {
     const compensated = new Set(this.context.compensatedSteps);
-    return [...this.context.executedSteps]
+    return [...this.context.succeededSteps]
       .filter((step) => !compensated.has(step))
       .reverse();
   }
@@ -503,7 +558,8 @@ export class SagaContextManager<TInput = unknown> {
       data,
       error: error ? toErrorInfo(error) : undefined,
       failedStep: this.context.failedStep,
-      executedSteps: [...this.context.executedSteps],
+      attemptedSteps: [...this.context.attemptedSteps],
+      succeededSteps: [...this.context.succeededSteps],
       compensatedSteps: [...this.context.compensatedSteps],
       compensated: !success && compensationErrors.length === 0,
       compensationErrors: compensationErrors.map(toErrorInfo),
@@ -534,13 +590,29 @@ import { DBOS } from "@dbos-inc/dbos-sdk";
  */
 export class SagaExecutor<TInput, TOutput> {
   private readonly logger = new Logger(SagaExecutor.name);
+  private readonly config: Required<SagaExecutorConfig>;
 
   constructor(
     private readonly sagaInstance: BrokerSaga<TInput, TOutput>,
     private readonly steps: SagaStepDefinition[],
     /** Map: stepName → compensationMethodName */
     private readonly compensations: Map<string, string>,
-  ) {}
+    config?: SagaExecutorConfig,
+  ) {
+    this.config = {
+      onCompensationExhausted: config?.onCompensationExhausted ?? ((step, method, err) => {
+        this.logger.error(
+          { step, method, error: err.message },
+          "Compensation exhausted - manual intervention required",
+        );
+      }),
+      compensationRetryPolicy: config?.compensationRetryPolicy ?? {
+        maxAttempts: 10,
+        intervalSeconds: 1,
+        backoffRate: 2,
+      },
+    };
+  }
 
   /**
    * Выполняет сагу с автоматической компенсацией при ошибках.
@@ -560,6 +632,7 @@ export class SagaExecutor<TInput, TOutput> {
       // Execute steps sequentially
       for (const step of this.steps) {
         this.logger.debug(`Executing step: ${step.config.name}`);
+        ctx.recordAttempt(step.config.name); // Track all attempts
 
         try {
           const result = await this.executeStepWithRetry(step, ctx);
@@ -608,6 +681,7 @@ export class SagaExecutor<TInput, TOutput> {
         try {
           this.logger.debug(`Running compensation: ${compensateMethod}`);
           await this.executeCompensationWithRetry(
+            stepName,
             compensateMethod,
             ctx,
             stepResult?.data,
@@ -681,17 +755,15 @@ export class SagaExecutor<TInput, TOutput> {
   /**
    * Execute compensation with aggressive retry.
    * Compensations MUST succeed - they get more attempts and always retry.
+   * On exhaustion, calls onCompensationExhausted hook (for DLQ/alerting).
    */
   private async executeCompensationWithRetry(
+    stepName: string,
     methodName: string,
     ctx: SagaContextManager<TInput>,
     stepResult: unknown,
   ): Promise<void> {
-    const policy: RetryPolicy = {
-      maxAttempts: 10,
-      intervalSeconds: 1,
-      backoffRate: 2,
-    };
+    const policy = this.config.compensationRetryPolicy;
 
     let lastError: Error | undefined;
     let interval = policy.intervalSeconds * 1000;
@@ -707,6 +779,15 @@ export class SagaExecutor<TInput, TOutput> {
           this.logger.error(
             `Compensation ${methodName} failed after ${attempt} attempts`,
           );
+
+          // Extension point: DLQ, alerting, manual intervention
+          await this.config.onCompensationExhausted(
+            stepName,
+            methodName,
+            lastError,
+            ctx.getContext(),
+          );
+
           throw error;
         }
 
@@ -1265,15 +1346,21 @@ export { BrokerSaga } from "./BrokerSaga.js";
 // Context
 export { SagaContextManager } from "./SagaContext.js";
 
+// Executor (for advanced config)
+export { SagaExecutor } from "./SagaExecutor.js";
+
 // Types
 export type {
   SagaContext,
   SagaResult,
   SagaStatus,
   SagaStepConfig,
+  SagaStepDefinition,
+  SagaExecutorConfig,
   StepResult,
   RetryPolicy,
   ErrorInfo,
+  OnCompensationExhausted,
 } from "./types.js";
 
 // Errors
@@ -1284,6 +1371,9 @@ export {
   isRetryableError,
   toErrorInfo,
 } from "./errors.js";
+
+// Utils
+export { addJitter } from "./utils.js";
 ```
 
 ## Error Classification Pattern
@@ -1397,6 +1487,38 @@ Compensations always use aggressive retry (10 attempts, exponential backoff) bec
 1. Compensations MUST succeed to maintain consistency
 2. If original step succeeded, compensation should eventually succeed
 3. Failed compensation leaves system in inconsistent state
+
+### Extension point: onCompensationExhausted
+
+When compensation retries are exhausted, the engine calls `onCompensationExhausted` hook:
+
+```typescript
+// In BrokerSaga subclass or module configuration
+const executor = new SagaExecutor(saga, steps, compensations, {
+  onCompensationExhausted: async (stepName, methodName, error, ctx) => {
+    // Option 1: Send to DLQ
+    await this.dlqService.enqueue({
+      sagaId: ctx.sagaId,
+      step: stepName,
+      compensation: methodName,
+      error: toErrorInfo(error),
+      context: ctx,
+    });
+
+    // Option 2: Alert ops team
+    await this.alertService.critical({
+      title: `Saga compensation failed: ${ctx.sagaId}`,
+      message: `Step ${stepName} compensation exhausted after retries`,
+    });
+
+    // Option 3: Flag for manual intervention
+    await this.db.saga.update(ctx.sagaId, {
+      status: "requires_manual_intervention",
+      failedCompensation: stepName,
+    });
+  },
+});
+```
 
 ## Roadmap / Future Enhancements
 
