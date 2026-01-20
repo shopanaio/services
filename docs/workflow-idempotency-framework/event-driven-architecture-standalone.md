@@ -692,7 +692,8 @@ export function makeDispatchWorkflowId(params: {
   emitKey: string;
 }): string {
   // v1 in hash input ensures formula changes don't collide with old hashes
-  const emitKeyHash = sha256(`emitKey:v1:${params.emitKey}`).slice(0, 16);
+  // 32 chars = 128 bits of entropy, virtually no collision risk
+  const emitKeyHash = sha256(`emitKey:v1:${params.emitKey}`).slice(0, 32);
   return `${params.parentWorkflowId}:dispatch:v1:${params.eventType}:${emitKeyHash}`;
 }
 
@@ -1026,6 +1027,14 @@ export interface HandlerInvocationResult {
 }
 
 /**
+ * Internal type for step return value.
+ * Allows distinguishing success vs non-retryable failure without throwing.
+ */
+type StepReturn =
+  | { kind: "ok" }
+  | { kind: "nonRetryableFailure"; error: { message: string; code?: string } };
+
+/**
  * Main event dispatch workflow.
  *
  * Iterates over all services from config and tries to call
@@ -1106,14 +1115,6 @@ export class EventDispatchWorkflow {
     const config = getConfig();
     return Object.keys(config.services);
   }
-
-  /**
-   * Internal type for step return value.
-   * Allows distinguishing success vs non-retryable failure without throwing.
-   */
-  private type StepReturn =
-    | { kind: "ok" }
-    | { kind: "nonRetryableFailure"; error: { message: string; code?: string } };
 
   /**
    * Try to invoke event handler on a service.
