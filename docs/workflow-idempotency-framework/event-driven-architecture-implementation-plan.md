@@ -39,15 +39,13 @@
 | 3.2 | Implement Drizzle schema: `domain_events` table | ⬜ Pending | With UI/timeline fields |
 | 3.3 | Implement Drizzle schema: `dead_letter_queue` table | ⬜ Pending | Reference-only, no payload |
 | 3.4 | Generate initial SQL migration | ⬜ Pending | `pnpm db:generate` |
-| 3.5 | Implement `EventFormatters.ts` — formatter registry | ⬜ Pending | formatEventForUI() |
-| 3.6 | Register built-in formatters (product, order, store) | ⬜ Pending | In EventFormatters.ts |
-| 3.7 | Implement `EventsBrokerActions` — persistence actions | ⬜ Pending | persistEvent, updateEventStatus |
-| 3.8 | Implement DLQ actions in EventsBrokerActions | ⬜ Pending | addToDLQ, getDLQEntries, cleanupDLQ |
-| 3.9 | Implement retention actions | ⬜ Pending | cleanupDomainEvents |
-| 3.10 | Implement `CleanupScheduler` | ⬜ Pending | Daily cron jobs |
-| 3.11 | Create `EventsNestService` | ⬜ Pending | Register EventDispatchWorkflow |
-| 3.12 | Create `EventsModule` | ⬜ Pending | Wire up all providers |
-| 3.13 | Add events service to bootstrap | ⬜ Pending | Update bootstrap.module.ts |
+| 3.5 | Implement `EventsBrokerActions` — persistence actions | ⬜ Pending | persistEvent, updateEventStatus |
+| 3.6 | Implement DLQ actions in EventsBrokerActions | ⬜ Pending | addToDLQ, getDLQEntries, cleanupDLQ |
+| 3.7 | Implement retention actions | ⬜ Pending | cleanupDomainEvents |
+| 3.8 | Implement `CleanupScheduler` | ⬜ Pending | Daily cron jobs |
+| 3.9 | Create `EventsNestService` | ⬜ Pending | Register EventDispatchWorkflow |
+| 3.10 | Create `EventsModule` | ⬜ Pending | Wire up all providers |
+| 3.11 | Add events service to bootstrap | ⬜ Pending | Update bootstrap.module.ts |
 
 ### Phase 4: Service Integration — Inventory (Example)
 | # | Task | Status | Notes |
@@ -667,10 +665,9 @@ services/events/
 ├── src/
 │   ├── main.ts
 │   ├── events.module.ts
+│   ├── events.nest-service.ts
 │   ├── EventsBrokerActions.ts
 │   ├── CleanupScheduler.ts
-│   ├── formatters/
-│   │   └── EventFormatters.ts
 │   └── repositories/
 │       └── models/
 │           ├── index.ts
@@ -687,9 +684,9 @@ services/events/
 - `event_type`, `source`, `timestamp`
 - `tenant_id`, `user_id`, `correlation_id`, `causation_id`
 - `emit_key`, `parent_workflow_id`
-- `status` (pending → dispatching → completed)
-- UI fields: `subject_type`, `subject_id`, `related`, `actor_type`, `actor_id`
-- Display fields: `severity`, `title`, `message`, `ui_data`, `payload_hash`
+- `status` (dispatching → completed)
+- `subject_type`, `subject_id`, `related`, `actor_type`, `actor_id`
+- `payload_hash`
 
 **Indexes**:
 - `idx_events_tenant_timestamp` — for timeline queries
@@ -705,24 +702,7 @@ services/events/
 
 ---
 
-#### 3.5-3.6 Event Formatters
-
-**formatEventForUI(event)** — Transforms DomainEvent to UI-safe record:
-- Computes `title`, `message` from payload
-- Extracts whitelisted `uiData` (NO PII!)
-- Calculates `payloadHash` for verification
-
-**Built-in formatters**:
-- `productCreated` → "Product created" + name/sku
-- `productUpdated` → "Product updated" + changed fields
-- `productDeleted` → "Product deleted" + severity: warning
-- `orderCreated` → "Order created" + items count, total
-- `orderCompleted` → "Order completed"
-- `storeCreated` → "Store created" + name
-
----
-
-#### 3.7-3.9 EventsBrokerActions
+#### 3.5-3.7 EventsBrokerActions
 
 **Persistence actions**:
 - `persistEvent({ event })` — Insert to domain_events with `ON CONFLICT DO NOTHING`
@@ -738,7 +718,7 @@ services/events/
 
 ---
 
-#### 3.10 CleanupScheduler
+#### 3.8 CleanupScheduler
 
 **Cron jobs**:
 - `@Cron(EVERY_DAY_AT_3AM)` — cleanupExpiredDLQEntries
@@ -748,7 +728,7 @@ services/events/
 
 ---
 
-#### 3.12 Bootstrap Integration
+#### 3.9-3.11 EventsNestService, EventsModule & Bootstrap Integration
 
 **Update bootstrap.module.ts**:
 ```typescript
@@ -881,9 +861,9 @@ async createProduct(input: CreateProductInput) {
 - `services/events/package.json`
 - `services/events/drizzle.config.ts`
 - `services/events/src/events.module.ts`
+- `services/events/src/events.nest-service.ts`
 - `services/events/src/EventsBrokerActions.ts`
 - `services/events/src/CleanupScheduler.ts`
-- `services/events/src/formatters/EventFormatters.ts`
 - `services/events/src/repositories/models/index.ts`
 - `services/events/src/repositories/models/domainEvents.ts`
 - `services/events/src/repositories/models/deadLetterQueue.ts`
@@ -915,10 +895,6 @@ async createProduct(input: CreateProductInput) {
 | Already done (duplicate key) | `{ ok: true }` |
 | Transient error | `{ ok: false, retryable: true }` |
 | Business/validation error | `{ ok: false, retryable: false }` |
-
-### PII Protection (uiData)
-**Never store**: email, phone, address, payment data, tokens, IP
-**Safe to store**: entity IDs, names, counts, amounts, timestamps, statuses
 
 ---
 
