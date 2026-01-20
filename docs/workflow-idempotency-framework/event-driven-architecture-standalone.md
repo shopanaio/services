@@ -285,7 +285,7 @@ export function deterministicEventId(...parts: string[]): string {
 }
 ```
 
-### 2.2 Event Emitter (In Workflow Context)
+### 2.2 Event Emitter
 
 ```typescript
 // packages/events/src/emitter.ts
@@ -297,23 +297,38 @@ import { EventDispatchWorkflow, type EventDispatchResult } from "./workflows/Eve
 /**
  * Emit an event by starting its dispatch workflow.
  *
- * IMPORTANT: This should be called from within a DBOS step to ensure
- * the event emission is durable.
+ * IMPORTANT: Cannot be called from inside a @DBOS.step() — workflows cannot
+ * be started from steps. Call from workflow code directly or from HTTP handler.
  *
- * Rule: Emit events only from DBOS workflow/step after the domain write step
- * completes. Emitting from a plain HTTP handler reintroduces the outbox gap.
+ * Two usage patterns:
+ * 1. From workflow code (after a step completes) — durable, recommended
+ * 2. From HTTP handler — not durable, use only for fire-and-forget
  */
 export class EventEmitter {
   /**
    * Emit an event. Starts EventDispatchWorkflow.
    *
+   * MUST be called from workflow code (not from step!) or HTTP handler.
+   *
+   * @example
+   * // From workflow code (recommended):
+   * @DBOS.workflow()
+   * async createProduct(input: CreateProductInput) {
+   *   const product = await this.saveProduct(input);  // @DBOS.step()
+   *
+   *   // After step completes, emit event from workflow code
+   *   const event = createEvent("product.created", { productId: product.id, ... }, ...);
+   *   await EventEmitter.emit(event);  // Starts child workflow
+   *
+   *   return product;
+   * }
+   *
    * @returns Workflow handle for tracking
    */
-  @DBOS.step()
   static async emit<TEvent extends DomainEvent>(event: TEvent): Promise<{ workflowId: string }> {
-    // Start the dispatch workflow with deterministic ID based on eventId
     const workflowId = EventDispatchWorkflow.workflowID(event);
 
+    // Start as child workflow (if called from workflow) or standalone workflow
     await DBOS
       .startWorkflow(EventDispatchWorkflow, { workflowID: workflowId })
       .dispatch(event);
@@ -325,16 +340,17 @@ export class EventEmitter {
    * Emit event and wait for all handlers to complete.
    * Use sparingly - prefer async emission.
    *
-   * If you need a timeout, wrap handle.getResult() with Promise.race at the call site.
+   * MUST be called from workflow code (not from step!).
    */
-  @DBOS.step()
   static async emitAndWait<TEvent extends DomainEvent>(
     event: TEvent
   ): Promise<EventDispatchResult> {
-    const { workflowId } = await EventEmitter.emit(event);
+    const workflowId = EventDispatchWorkflow.workflowID(event);
 
-    // Get workflow handle and await completion
-    const handle = DBOS.retrieveWorkflow(workflowId);
+    const handle = await DBOS
+      .startWorkflow(EventDispatchWorkflow, { workflowID: workflowId })
+      .dispatch(event);
+
     return handle.getResult();
   }
 }
@@ -1080,37 +1096,6 @@ export class EventStoreBrokerActions extends BrokerActions {
     return { updated: true };
   }
 
-  @Action("getEventsForReplay")
-  async getEventsForReplay(params: {
-    eventTypes: string[];
-    since: string;
-    limit: number;
-  }): Promise<{ events: DomainEvent[] }> {
-    const events = await this.db.query.domainEvents.findMany({
-      where: and(
-        inArray(domainEvents.eventType, params.eventTypes),
-        gte(domainEvents.timestamp, new Date(params.since))
-      ),
-      orderBy: asc(domainEvents.timestamp),
-      limit: params.limit,
-    });
-
-    return {
-      events: events.map((e) => ({
-        eventId: e.eventId,
-        eventType: e.eventType as any,
-        timestamp: e.timestamp.toISOString(),
-        source: e.source,
-        payload: e.payload,
-        context: {
-          tenantId: e.tenantId,
-          userId: e.userId,
-          correlationId: e.correlationId,
-          causationId: e.causationId,
-        },
-      })),
-    };
-  }
 }
 ```
 
