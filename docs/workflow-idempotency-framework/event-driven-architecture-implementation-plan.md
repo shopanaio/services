@@ -45,8 +45,9 @@
 | 3.8 | Implement DLQ actions in EventsBrokerActions | ⬜ Pending | addToDLQ, getDLQEntries, cleanupDLQ |
 | 3.9 | Implement retention actions | ⬜ Pending | cleanupDomainEvents |
 | 3.10 | Implement `CleanupScheduler` | ⬜ Pending | Daily cron jobs |
-| 3.11 | Create `EventsModule` | ⬜ Pending | Wire up all providers |
-| 3.12 | Add events service to bootstrap | ⬜ Pending | Update bootstrap.module.ts |
+| 3.11 | Create `EventsNestService` | ⬜ Pending | Register EventDispatchWorkflow |
+| 3.12 | Create `EventsModule` | ⬜ Pending | Wire up all providers |
+| 3.13 | Add events service to bootstrap | ⬜ Pending | Update bootstrap.module.ts |
 
 ### Phase 4: Service Integration — Inventory (Example)
 | # | Task | Status | Notes |
@@ -168,11 +169,58 @@ export interface DomainEvent<TType extends string = string, TPayload = unknown> 
   actor?: { type: "user" | "service" | "system"; id?: string };
 }
 
+// EventContext — context passed with every event
+export interface EventContext {
+  /** Tenant/organization scope */
+  tenantId: string;
+
+  /** User who triggered the event (if applicable) */
+  userId?: string;
+
+  /** Correlation ID for distributed tracing */
+  correlationId: string;
+
+  /** Causation ID (parent event if this is a reaction) */
+  causationId?: string;
+}
+
 // EventHandlerResponse — handler return type
 export type EventHandlerResponse =
   | { ok: true }
   | { ok: false; error: { message: string; code?: string; retryable: boolean } };
+
+// HandlerInfo — captured at checkpoint time for deterministic replay
+interface HandlerInfo {
+  serviceName: string;
+  action: string;  // e.g., "inventory.productCreated"
+  retryPolicy: {
+    maxAttempts: number;
+    intervalSeconds: number;
+    backoffRate: number;
+  };
+}
+
+// EventDispatchResult — workflow return type
+export interface EventDispatchResult {
+  eventId: string;
+  eventType: string;
+  status: "completed";
+  servicesNotified: number;
+  results: HandlerInvocationResult[];
+}
+
+export interface HandlerInvocationResult {
+  service: string;
+  status: "success" | "failed";
+  error?: string;
+  durationMs: number;
+}
 ```
+
+**Note on emitKey**:
+- `emitKey` is stored in `DomainEvent` after construction
+- But passed as **separate argument** to `EventEmitter.emit(input, emitKey)`
+- This makes the API explicit: emitKey is REQUIRED and must be consciously provided
 
 ---
 
@@ -194,11 +242,106 @@ export type EventHandlerResponse =
 #### 1.4-1.5 Implement EventEmitter and EventDispatchWorkflow
 
 **EventEmitter**:
-- Static `emit()` method — fire and forget
-- Static `emitAndWait()` method — wait for all handlers
-- Validates emitKey is non-empty
-- Builds DomainEvent with deterministic IDs
-- Starts EventDispatchWorkflow via DBOS.startWorkflow()
+
+```typescript
+// packages/events/src/emitter.ts
+
+import { DBOS } from "@dbos-inc/dbos-sdk";
+import { Kernel } from "@shopana/shared-kernel";  // For workflow registry access
+import type { DomainEvent, EventContext } from "./types.js";
+import {
+  makeDispatchWorkflowId,
+  makeEventId,
+  makeDeterministicCorrelationId,
+} from "./idempotency.js";
+import { EventDispatchWorkflow } from "./workflows/EventDispatchWorkflow.js";
+
+export class EventEmitter {
+  /**
+   * Emit an event (fire and forget).
+   * MUST be called from workflow code (not from a step!).
+   *
+   * @param input - Event data (all fields except eventId, timestamp, emitKey)
+   * @param emitKey - REQUIRED: Deterministic key derived from business context
+   */
+  static async emit<TType extends string, TPayload>(
+    input: {
+      eventType: TType;
+      payload: TPayload;
+      source: string;
+      context: Omit<EventContext, "correlationId"> & { correlationId?: string };
+      subject: { type: string; id: string };
+      related?: Array<{ type: string; id: string }>;
+      actor?: { type: "user" | "service" | "system"; id?: string };
+    },
+    emitKey: string  // Separate argument — explicit and required!
+  ): Promise<{ workflowId: string; eventId: string }> {
+    // Validate emitKey
+    if (!emitKey || emitKey.trim().length === 0) {
+      throw new Error("emitKey is required and must be non-empty");
+    }
+
+    const parentWorkflowId = DBOS.workflowID;
+    if (!parentWorkflowId) {
+      throw new Error("EventEmitter.emit() must be called from workflow code");
+    }
+
+    // Build deterministic IDs
+    const workflowId = makeDispatchWorkflowId({
+      parentWorkflowId,
+      eventType: input.eventType,
+      emitKey,
+    });
+
+    const eventId = makeEventId({
+      tenantId: input.context.tenantId,
+      dispatchWorkflowId: workflowId,
+    });
+
+    const correlationId = input.context.correlationId
+      ?? makeDeterministicCorrelationId(parentWorkflowId);
+
+    // Build event (timestamp will be set in persistEventStep)
+    const event: DomainEvent<TType, TPayload> = {
+      eventId,
+      eventType: input.eventType,
+      timestamp: "",  // Set in persistEventStep with real time
+      source: input.source,
+      payload: input.payload,
+      emitKey,
+      parentWorkflowId,
+      context: { ...input.context, correlationId },
+      subject: input.subject,
+      related: input.related ?? [],
+      actor: input.actor ?? { type: "service", id: input.source },
+    };
+
+    // Get registered workflow instance from Kernel
+    const workflowRegistry = Kernel.getInstance().workflow;
+    const dispatchWorkflow = workflowRegistry.get<EventDispatchWorkflow>("eventDispatch");
+
+    // Start dispatch workflow (fire and forget)
+    await DBOS
+      .startWorkflow(dispatchWorkflow, { workflowID: workflowId })
+      .dispatch(event);
+
+    return { workflowId, eventId };
+  }
+
+  /**
+   * Emit event and wait for all handlers to complete.
+   * Same signature as emit(), returns EventDispatchResult.
+   */
+  static async emitAndWait<TType extends string, TPayload>(
+    input: { /* same as emit */ },
+    emitKey: string
+  ): Promise<EventDispatchResult> {
+    // Same as emit() but:
+    // const handle = await DBOS.startWorkflow(dispatchWorkflow, { workflowID }).dispatch(event);
+    // return handle.getResult();
+  }
+}
+```
 
 **EventDispatchWorkflow**:
 - `dispatch(event)` workflow method
@@ -207,10 +350,178 @@ export type EventHandlerResponse =
 - Step 3: `tryInvokeHandler()` — parallel invocation with retry/DLQ logic
 - Step 4: `updateEventStatus()` — mark completed
 
-**Critical implementation detail in tryInvokeHandler**:
-- Success: return `{ kind: "ok", durationMs }`
-- Non-retryable: return `{ kind: "nonRetryableFailure", error, durationMs }` (NO throw)
-- Retryable: throw error → DBOS retries
+**ServiceBroker injection** (через существующий Kernel паттерн):
+
+Workflows в проекте используют `ConfiguredInstance` + `Kernel` singleton:
+
+```typescript
+// packages/events/src/workflows/EventDispatchWorkflow.ts
+
+import { ConfiguredInstance, DBOS } from "@dbos-inc/dbos-sdk";
+import type { DomainEvent } from "../types.js";
+import type { ServiceBroker } from "@shopana/shared-kernel";
+import { getConfig } from "@shopana/shared-service-config";
+
+interface EventDispatchWorkflowServices {
+  broker: ServiceBroker;
+}
+
+export class EventDispatchWorkflow extends ConfiguredInstance {
+  private readonly broker: ServiceBroker;
+
+  constructor(name: string, services: EventDispatchWorkflowServices) {
+    super(name);
+    this.broker = services.broker;
+  }
+
+  @DBOS.workflow()
+  async dispatch(event: DomainEvent): Promise<EventDispatchResult> {
+    // this.broker доступен через constructor injection
+  }
+}
+```
+
+**Регистрация в events service**:
+
+```typescript
+// services/events/src/events.nest-service.ts
+
+@Injectable()
+export class EventsNestService implements OnModuleInit, OnModuleDestroy {
+  constructor(
+    @InjectBroker("events") private readonly broker: ServiceBroker,
+    @Inject(WORKFLOW_REGISTRY) private readonly workflow: WorkflowRegistry,
+  ) {}
+
+  async onModuleInit() {
+    // Регистрируем workflow с broker dependency
+    const dispatchWorkflow = new EventDispatchWorkflow("eventDispatch", {
+      broker: this.broker,
+    });
+    this.workflow.register("eventDispatch", dispatchWorkflow);
+  }
+
+  async onModuleDestroy() {
+    this.workflow.deregister("eventDispatch");
+  }
+}
+```
+
+**Запуск из EventEmitter**:
+
+```typescript
+// EventEmitter.emit() получает workflow из registry
+const registry = Kernel.getInstance().workflow;
+const workflow = registry.get<EventDispatchWorkflow>("eventDispatch");
+
+await DBOS.startWorkflow(workflow, { workflowID }).dispatch(event);
+```
+
+**getAvailableHandlers() — handler discovery**:
+
+```typescript
+/**
+ * DETERMINISM: This is a @DBOS.step(), result is checkpointed.
+ * On replay, same handler list returned even if registrations changed.
+ */
+@DBOS.step()
+private async getAvailableHandlers(eventType: string): Promise<HandlerInfo[]> {
+  const config = getConfig();  // From @shopana/shared-service-config
+  const serviceNames = Object.keys(config.services);
+  const handlers: HandlerInfo[] = [];
+
+  for (const serviceName of serviceNames) {
+    const action = `${serviceName}.${eventType}`;
+
+    // Check if this service has a handler for this event type
+    if (this.broker.hasAction(action)) {
+      const metadata = this.broker.getActionMetadata(action);
+      const retryPolicy = metadata?.retryPolicy ?? {
+        maxAttempts: 3,
+        intervalSeconds: 1,
+        backoffRate: 2,
+      };
+
+      handlers.push({ serviceName, action, retryPolicy });
+    }
+  }
+
+  return handlers;
+}
+```
+
+**tryInvokeHandler() — DBOS.runStep() с retry**:
+
+```typescript
+/**
+ * Key insight: DBOS only retries when step THROWS.
+ * - Return marker for non-retryable → no retry
+ * - Throw for retryable → DBOS retries according to policy
+ */
+private async tryInvokeHandler(
+  event: DomainEvent,
+  handler: HandlerInfo
+): Promise<HandlerInvocationResult> {
+  const { serviceName, action, retryPolicy } = handler;
+
+  type InvokeStepResult =
+    | { kind: "ok"; durationMs: number }
+    | { kind: "nonRetryableFailure"; error: { message: string; code?: string }; durationMs: number };
+
+  let stepResult: InvokeStepResult;
+
+  try {
+    stepResult = await DBOS.runStep<InvokeStepResult>(
+      async () => {
+        const startTime = Date.now();
+        const resp: EventHandlerResponse = await this.broker.call(action, { event });
+        const durationMs = Date.now() - startTime;
+
+        if (resp.ok) {
+          return { kind: "ok", durationMs };
+        }
+
+        // Non-retryable: DON'T throw → DBOS won't retry
+        if (!resp.error.retryable) {
+          return {
+            kind: "nonRetryableFailure",
+            error: { message: resp.error.message, code: resp.error.code },
+            durationMs,
+          };
+        }
+
+        // Retryable: throw → DBOS retries this step
+        throw new Error(resp.error.message);
+      },
+      {
+        name: `handler:${action}:${event.eventId}`,
+        retriesAllowed: true,
+        maxAttempts: retryPolicy.maxAttempts,
+        intervalSeconds: retryPolicy.intervalSeconds,
+        backoffRate: retryPolicy.backoffRate,
+      }
+    );
+  } catch (e) {
+    // DBOS exhausted retries → DLQ
+    const errorMsg = e instanceof Error ? e.message : String(e);
+    await this.sendToDLQ(event, serviceName, errorMsg, undefined, retryPolicy.maxAttempts);
+    return { service: serviceName, status: "failed", error: errorMsg, durationMs: 0 };
+  }
+
+  if (stepResult.kind === "nonRetryableFailure") {
+    // Non-retryable → DLQ immediately (1 attempt)
+    await this.sendToDLQ(event, serviceName, stepResult.error.message, stepResult.error.code, 1);
+    return {
+      service: serviceName,
+      status: "failed",
+      error: stepResult.error.message,
+      durationMs: stepResult.durationMs,
+    };
+  }
+
+  return { service: serviceName, status: "success", durationMs: stepResult.durationMs };
+}
+```
 
 ---
 
@@ -255,14 +566,91 @@ has(action: string): boolean
 #### 2.7-2.8 @EventHandler Decorator and EventHandlers Base Class
 
 **@EventHandler decorator** (`decorators/EventHandler.ts`):
-- Stores metadata via `Reflect.defineMetadata()`
-- Metadata: `{ eventType, retryPolicy }`
-- Default retry policy: 3 attempts, 1s interval, 2x backoff
+
+```typescript
+// packages/shared-kernel/src/decorators/EventHandler.ts
+
+import "reflect-metadata";
+
+export const EVENT_HANDLER_METADATA_KEY = Symbol("broker:eventHandler");
+
+export interface EventHandlerMetadata {
+  eventType: string;
+  retryPolicy: {
+    maxAttempts: number;
+    intervalSeconds: number;
+    backoffRate: number;
+  };
+}
+
+export function EventHandler(
+  eventType: string,
+  options: { retry?: Partial<EventHandlerMetadata["retryPolicy"]> } = {}
+): MethodDecorator {
+  return function (target, propertyKey, descriptor) {
+    const metadata: EventHandlerMetadata = {
+      eventType,
+      retryPolicy: {
+        maxAttempts: options.retry?.maxAttempts ?? 3,
+        intervalSeconds: options.retry?.intervalSeconds ?? 1,
+        backoffRate: options.retry?.backoffRate ?? 2,
+      },
+    };
+
+    Reflect.defineMetadata(EVENT_HANDLER_METADATA_KEY, metadata, target, propertyKey);
+    return descriptor;
+  };
+}
+```
 
 **EventHandlers base class** (`broker/EventHandlers.ts`):
-- Implements `OnModuleInit`
-- `onModuleInit()` scans for @EventHandler methods
-- Registers each handler with broker including retry metadata
+
+```typescript
+// packages/shared-kernel/src/broker/EventHandlers.ts
+
+import { Logger, OnModuleInit } from "@nestjs/common";
+import { ServiceBroker } from "./ServiceBroker.js";
+import { EVENT_HANDLER_METADATA_KEY, EventHandlerMetadata } from "../decorators/EventHandler.js";
+
+export abstract class EventHandlers implements OnModuleInit {
+  protected readonly logger: Logger;
+
+  constructor(protected readonly broker: ServiceBroker) {
+    this.logger = new Logger(this.constructor.name);
+  }
+
+  onModuleInit(): void {
+    const prototype = Object.getPrototypeOf(this);
+    const methodNames = Object.getOwnPropertyNames(prototype)
+      .filter(name => name !== "constructor" && typeof prototype[name] === "function");
+
+    for (const methodName of methodNames) {
+      const metadata = Reflect.getMetadata(
+        EVENT_HANDLER_METADATA_KEY,
+        prototype,
+        methodName
+      ) as EventHandlerMetadata | undefined;
+
+      if (metadata) {
+        const boundMethod = (this as any)[methodName].bind(this);
+
+        // Register with eventType as action name + retry metadata
+        this.broker.register(metadata.eventType, boundMethod, {
+          retryPolicy: metadata.retryPolicy,
+        });
+
+        this.logger.debug(`Registered handler: ${metadata.eventType}`);
+      }
+    }
+  }
+}
+```
+
+**Action naming convention**:
+- Handler decorated with `@EventHandler("productCreated")` in `InventoryEventHandlers`
+- Broker service name: `inventory`
+- Registered action: `inventory.productCreated`
+- Dispatch workflow calls: `broker.call("inventory.productCreated", { event })`
 
 ---
 
@@ -542,6 +930,33 @@ pnpm add canonicalize
 
 # In services/events
 pnpm add @nestjs/schedule
+```
+
+### Required Package Dependencies
+
+**packages/events/package.json** должен включать:
+```json
+{
+  "dependencies": {
+    "@dbos-inc/dbos-sdk": "^2.0.0",
+    "@shopana/shared-kernel": "*",
+    "@shopana/shared-service-config": "*",
+    "canonicalize": "^2.0.0"
+  }
+}
+```
+
+**`@shopana/shared-service-config`** — предоставляет:
+- `getConfig()` — returns service configuration with all registered services
+- Used in `getAvailableHandlers()` to iterate over `config.services`
+
+```typescript
+// Usage in EventDispatchWorkflow
+import { getConfig } from "@shopana/shared-service-config";
+
+const config = getConfig();
+const serviceNames = Object.keys(config.services);
+// → ["inventory", "listing", "orders", "payments", ...]
 ```
 
 ---
