@@ -32,7 +32,6 @@
   },
   "dependencies": {
     "@dbos-inc/dbos-sdk": "^2.0.0",
-    "@golevelup/nestjs-rabbitmq": "^4.0.0",
     "@nestjs/common": "^10.0.0",
     "@nestjs/core": "^10.0.0",
     "@shopana/rbac": "*",

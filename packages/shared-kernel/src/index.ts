@@ -15,6 +15,7 @@ export {
 export {
   ServiceBroker,
   type ServiceBrokerOptions,
+  type EmitParams,
 } from "./broker/ServiceBroker";
 export { BrokerActions } from "./broker/BrokerActions";
 export { EventHandlers } from "./broker/EventHandlers";
@@ -27,7 +28,6 @@ export { BrokerModule, type BrokerFeatureOptions } from "./broker/BrokerModule";
 export {
   SERVICE_BROKER,
   SERVICE_NAME,
-  BROKER_AMQP,
   InjectBroker,
   getBrokerToken,
 } from "./broker/tokens";

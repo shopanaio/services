@@ -1,14 +1,30 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, Optional } from '@nestjs/common';
-import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
-import { randomUUID } from 'node:crypto';
 import { ActionHandler, ActionRegistry, type ActionMetadata } from './ActionRegistry';
-import { BROKER_AMQP } from './tokens';
 import type { WorkflowRegistry } from '../workflow/WorkflowRegistry.js';
 import { WORKFLOW_REGISTRY } from '../workflow/tokens.js';
 import type { IdempotencyContext } from '../workflow/idempotency.js';
 
 export interface ServiceBrokerOptions {
   serviceName: string;
+}
+
+/**
+ * Parameters for emitting domain events via the events service.
+ */
+export interface EmitParams {
+  eventType: string;
+  payload: unknown;
+  source: string;
+  context: {
+    tenantId: string;
+    userId?: string;
+    correlationId?: string;
+    causationId?: string;
+  };
+  subject: { type: string; id: string };
+  related?: Array<{ type: string; id: string }>;
+  actor?: { type: 'user' | 'service' | 'system'; id?: string };
+  emitKey: string;
 }
 
 @Injectable()
@@ -19,9 +35,6 @@ export class ServiceBroker implements OnModuleDestroy {
 
   constructor(
     private readonly registry: ActionRegistry,
-    @Optional()
-    @Inject(BROKER_AMQP)
-    private readonly amqp: AmqpConnection | null,
     private readonly options: ServiceBrokerOptions,
     @Optional()
     @Inject(WORKFLOW_REGISTRY)
@@ -77,37 +90,17 @@ export class ServiceBroker implements OnModuleDestroy {
   }
 
   /**
-   * Emits a service-scoped RabbitMQ event.
+   * Emits a domain event via the events service.
+   * This is a convenience method that calls broker.call("events.emit", params).
+   *
+   * @param params - Event emission parameters
+   * @returns Promise with workflowId and eventId
    */
-  async emit(event: string, payload?: unknown): Promise<void> {
-    if (!this.amqp) {
-      this.logger.warn(`emit(${event}) ignored: RabbitMQ disabled`);
-      return;
-    }
-
-    await this.amqp.publish('shopana.events', event, payload ?? {}, {
-      persistent: true,
-      correlationId: randomUUID(),
-      headers: {
-        'x-source-service': this.options.serviceName,
-      },
-    });
-  }
-
-  /**
-   * Sends a broadcast RabbitMQ event to all listeners.
-   */
-  async broadcast(event: string, payload?: unknown): Promise<void> {
-    if (!this.amqp) {
-      this.logger.warn(`broadcast(${event}) ignored: RabbitMQ disabled`);
-      return;
-    }
-
-    await this.amqp.publish('shopana.broadcast', event, payload ?? {}, {
-      headers: {
-        'x-source-service': this.options.serviceName,
-      },
-    });
+  async emit(params: EmitParams): Promise<{ workflowId: string; eventId: string }> {
+    return this.call<{ workflowId: string; eventId: string }, EmitParams>(
+      'events.emit',
+      params,
+    );
   }
 
   /**
@@ -159,10 +152,10 @@ export class ServiceBroker implements OnModuleDestroy {
   }
 
   /**
-   * Returns true when broker can communicate with RabbitMQ.
+   * Returns true when broker is healthy.
    */
   isHealthy(): boolean {
-    return this.amqp ? this.amqp.connected : true;
+    return true;
   }
 
   /**
@@ -170,7 +163,6 @@ export class ServiceBroker implements OnModuleDestroy {
    */
   getHealth() {
     return {
-      connected: this.amqp?.connected ?? false,
       serviceName: this.options.serviceName,
       registeredActions: Array.from(this.localActions),
       inFlight: this.inFlight,

@@ -5,7 +5,7 @@ import type { ActionHandler } from '../ActionRegistry';
 
 const createBroker = (options?: { registry?: ActionRegistry }) => {
   const registry = options?.registry ?? new ActionRegistry();
-  return new ServiceBroker(registry, null, { serviceName: 'payments' });
+  return new ServiceBroker(registry, { serviceName: 'payments' });
 };
 
 describe('ServiceBroker', () => {
@@ -65,36 +65,40 @@ describe('ServiceBroker', () => {
     });
   });
 
-  it('publishes events when RabbitMQ is available', async () => {
+  it('emit() calls events.emit action', async () => {
+    const registry = new ActionRegistry();
+    const broker = createBroker({ registry });
+
+    // Register a mock events.emit action
+    const mockEmitResult = { workflowId: 'wf-123', eventId: 'evt-456' };
+    registry.register('events.emit', jest.fn().mockResolvedValue(mockEmitResult));
+
+    const result = await broker.emit({
+      eventType: 'order.created',
+      payload: { id: '1' },
+      source: 'payments',
+      context: { tenantId: 'tenant-1' },
+      subject: { type: 'order', id: '1' },
+      emitKey: 'order:1',
+    });
+
+    expect(result).toEqual(mockEmitResult);
+  });
+
+  it('isHealthy returns true', () => {
     const broker = createBroker();
-    const amqp = {
-      publish: jest.fn(async () => {}),
-      connected: true,
-    };
+    expect(broker.isHealthy()).toBe(true);
+  });
 
-    Reflect.set(broker, 'amqp', amqp);
+  it('getHealth returns service info', () => {
+    const registry = new ActionRegistry();
+    const broker = createBroker({ registry });
+    broker.register('testAction', jest.fn());
 
-    await broker.emit('order.created', { id: '1' });
-    await broker.broadcast('cache.invalidate');
+    const health = broker.getHealth();
 
-    expect(amqp.publish).toHaveBeenNthCalledWith(
-      1,
-      'shopana.events',
-      'order.created',
-      { id: '1' },
-      expect.objectContaining({
-        headers: expect.objectContaining({ 'x-source-service': 'payments' }),
-      }),
-    );
-
-    expect(amqp.publish).toHaveBeenNthCalledWith(
-      2,
-      'shopana.broadcast',
-      'cache.invalidate',
-      {},
-      expect.objectContaining({
-        headers: expect.objectContaining({ 'x-source-service': 'payments' }),
-      }),
-    );
+    expect(health.serviceName).toBe('payments');
+    expect(health.registeredActions).toContain('payments.testAction');
+    expect(health.inFlight).toBe(0);
   });
 });
