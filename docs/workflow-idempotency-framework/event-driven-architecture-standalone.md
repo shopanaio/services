@@ -53,14 +53,16 @@ services/events/
 ├── src/
 │   ├── main.ts
 │   ├── events.module.ts
-│   ├── EventsBrokerActions.ts          # @Action: persistEvent, updateEventStatus, addToDLQ, etc.
-│   ├── DLQCleanupScheduler.ts          # Scheduled cleanup job
+│   ├── EventsBrokerActions.ts          # @Action: persistEvent, listEvents, getTimeline, etc.
+│   ├── CleanupScheduler.ts             # Scheduled cleanup (DLQ + domain events retention)
 │   ├── context/
 │   │   └── index.ts
+│   ├── formatters/
+│   │   └── EventFormatters.ts          # Formatter registry for UI-safe event data
 │   ├── repositories/
 │   │   └── models/
 │   │       ├── index.ts
-│   │       ├── domainEvents.ts         # domain_events table schema
+│   │       ├── domainEvents.ts         # domain_events table schema (with UI fields)
 │   │       └── deadLetterQueue.ts      # dead_letter_queue table schema
 │   └── infrastructure/
 │       └── db/
@@ -73,7 +75,7 @@ services/events/
 {
   "name": "@shopana/events-service",
   "version": "0.0.1",
-  "description": "Event store, dispatch tracking, and Dead Letter Queue service",
+  "description": "Event store, DLQ, UI event log, entity timelines, and retention management",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
@@ -165,7 +167,13 @@ export interface DomainEvent<TType extends string = string, TPayload = unknown> 
   /** Event type: "productCreated", "orderCompleted", etc. */
   eventType: TType;
 
-  /** Event creation time (ISO 8601) */
+  /**
+   * Event timestamp (ISO 8601).
+   *
+   * NOTE: This is set to "" in EventEmitter and filled with REAL wall-clock
+   * time in persistEvent step. The step is checkpointed by DBOS, so on replay
+   * we get the same timestamp (determinism + real time).
+   */
   timestamp: string;
 
   /** Event source (service name) */
@@ -191,6 +199,41 @@ export interface DomainEvent<TType extends string = string, TPayload = unknown> 
 
   /** Parent workflow ID (for tracing) */
   parentWorkflowId?: string;
+
+  // ═══════════════════════════════════════════════════════════════════
+  // UI / TIMELINE FIELDS (REQUIRED for all events)
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * REQUIRED: Primary subject of the event (for timeline grouping).
+   * The main entity this event is about.
+   */
+  subject: {
+    /** Entity type: "product", "order", "store", "user", etc. */
+    type: string;
+    /** Entity ID */
+    id: string;
+  };
+
+  /**
+   * Related entities (for cross-entity queries).
+   * Entities that are associated with but not the primary subject.
+   */
+  related?: Array<{
+    type: string;
+    id: string;
+  }>;
+
+  /**
+   * Who/what triggered this event.
+   * Used for audit trail and filtering.
+   */
+  actor?: {
+    /** Actor type: "user" (human), "service" (automated), "system" (cron/scheduler) */
+    type: "user" | "service" | "system";
+    /** User ID or service name */
+    id?: string;
+  };
 }
 
 export interface EventContext {
@@ -208,7 +251,7 @@ export interface EventContext {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// CONCRETE EVENT TYPES
+// CONCRETE EVENT TYPES (with subject/related/actor examples)
 // ═══════════════════════════════════════════════════════════════════
 
 // Product events
@@ -217,18 +260,28 @@ export interface ProductCreatedEvent extends DomainEvent<"productCreated", {
   storeId: string;
   name: string;
   sku?: string;
-}> {}
+}> {
+  // subject: { type: "product", id: productId }
+  // related: [{ type: "store", id: storeId }]
+  // actor: { type: "user", id: userId } or { type: "service", id: "listing" }
+}
 
 export interface ProductDeletedEvent extends DomainEvent<"productDeleted", {
   productId: string;
   storeId: string;
-}> {}
+}> {
+  // subject: { type: "product", id: productId }
+  // related: [{ type: "store", id: storeId }]
+}
 
 export interface ProductUpdatedEvent extends DomainEvent<"productUpdated", {
   productId: string;
   storeId: string;
   changes: Record<string, { old: unknown; new: unknown }>;
-}> {}
+}> {
+  // subject: { type: "product", id: productId }
+  // related: [{ type: "store", id: storeId }]
+}
 
 // Order events
 export interface OrderCreatedEvent extends DomainEvent<"orderCreated", {
@@ -237,20 +290,29 @@ export interface OrderCreatedEvent extends DomainEvent<"orderCreated", {
   customerId: string;
   items: Array<{ productId: string; quantity: number; price: number }>;
   total: number;
-}> {}
+}> {
+  // subject: { type: "order", id: orderId }
+  // related: [{ type: "store", id: storeId }, { type: "customer", id: customerId }, ...items.map(i => ({ type: "product", id: i.productId }))]
+}
 
 export interface OrderCompletedEvent extends DomainEvent<"orderCompleted", {
   orderId: string;
   storeId: string;
   completedAt: string;
-}> {}
+}> {
+  // subject: { type: "order", id: orderId }
+  // related: [{ type: "store", id: storeId }]
+}
 
 // Store events
 export interface StoreCreatedEvent extends DomainEvent<"storeCreated", {
   storeId: string;
   organizationId: string;
   name: string;
-}> {}
+}> {
+  // subject: { type: "store", id: storeId }
+  // related: [{ type: "organization", id: organizationId }]
+}
 
 // Union type for type safety
 export type ShopanaEvent =
@@ -732,27 +794,14 @@ export function makeEventId(params: {
   return sha256(`eventId:v1:${params.tenantId}:${params.dispatchWorkflowId}`).slice(0, 32);
 }
 
-/**
- * Generate deterministic timestamp from workflowId.
- *
- * IMPORTANT: We do NOT use new Date() because it's non-deterministic on replay.
- * Instead, we encode a "logical timestamp" derived from the workflowId hash.
- *
- * This is a pseudo-timestamp for ordering/tracing purposes only.
- * If you need real wall-clock time, capture it in a @DBOS.step() so it's checkpointed.
- */
-export function makeDeterministicTimestamp(workflowId: string): string {
-  // Use first 12 hex chars of hash as milliseconds offset from epoch base
-  // This gives us ~281 trillion unique "timestamps" — more than enough
-  const hashHex = sha256(`timestamp:v1:${workflowId}`).slice(0, 12);
-  const offset = parseInt(hashHex, 16);
-
-  // Base: 2020-01-01T00:00:00Z — all our "timestamps" are after this
-  const baseMs = 1577836800000;
-  const pseudoMs = baseMs + (offset % (10 * 365 * 24 * 60 * 60 * 1000)); // within 10 years
-
-  return new Date(pseudoMs).toISOString();
-}
+// ═══════════════════════════════════════════════════════════════════
+// NOTE: Real timestamp is captured in persistEvent step (see Part 5.4)
+// We do NOT generate fake timestamps from hashes - that would break
+// timeline ordering in UI.
+//
+// The timestamp field in DomainEvent is set to empty string initially,
+// and replaced with real time when persisted (inside @DBOS.step).
+// ═══════════════════════════════════════════════════════════════════
 
 /**
  * Generate deterministic correlationId from parentWorkflowId.
@@ -975,20 +1024,17 @@ export class EventEmitter {
       dispatchWorkflowId: workflowId,
     });
 
-    // DETERMINISM: timestamp derived from workflowId, not wall clock
-    // This ensures same event on replay has same timestamp
-    const timestamp = makeDeterministicTimestamp(workflowId);
-
     // DETERMINISM: correlationId derived from parentWorkflowId if not provided
-    // This ensures same event on replay has same correlationId
     const correlationId = input.context.correlationId
       ?? makeDeterministicCorrelationId(parentWorkflowId);
 
-    // Build full event object — ALL fields are deterministic!
+    // Build event object
+    // NOTE: timestamp is NOT set here — it will be captured in persistEvent step
+    // (real wall-clock time, checkpointed by DBOS for replay safety)
     const event: DomainEvent<TType, TPayload> = {
       eventId,
       eventType: input.eventType,
-      timestamp,
+      timestamp: "",  // Will be set in persistEvent step with real time
       source: input.source,
       payload: input.payload,
       emitKey,
@@ -1043,15 +1089,15 @@ export class EventEmitter {
       dispatchWorkflowId: workflowId,
     });
 
-    // DETERMINISM: all fields derived from workflowId/parentWorkflowId
-    const timestamp = makeDeterministicTimestamp(workflowId);
+    // DETERMINISM: correlationId derived from parentWorkflowId if not provided
     const correlationId = input.context.correlationId
       ?? makeDeterministicCorrelationId(parentWorkflowId);
 
+    // NOTE: timestamp will be set in persistEvent step with real time
     const event: DomainEvent<TType, TPayload> = {
       eventId,
       eventType: input.eventType,
-      timestamp,
+      timestamp: "",  // Will be set in persistEvent step
       source: input.source,
       payload: input.payload,
       emitKey,
@@ -1300,6 +1346,9 @@ export class EventDispatchWorkflow {
 
   /**
    * Send failed handler to Dead Letter Queue for later inspection/retry.
+   *
+   * NOTE: We do NOT pass the full event (PII protection).
+   * Only event_id reference + handler info + error are stored.
    */
   @DBOS.step()
   private async sendToDLQ(
@@ -1310,7 +1359,11 @@ export class EventDispatchWorkflow {
     attempts: number
   ): Promise<void> {
     await this.broker.call("events.addToDLQ", {
-      event,
+      // Reference only — NO full event passed!
+      eventId: event.eventId,
+      eventType: event.eventType,
+      tenantId: event.context.tenantId,
+      correlationId: event.context.correlationId,
       handler: {
         service: serviceName,
         action: event.eventType,
@@ -1569,31 +1622,82 @@ import { pgTable, text, timestamp, jsonb, index } from "drizzle-orm/pg-core";
 export const domainEvents = pgTable(
   "domain_events",
   {
+    // ═══════════════════════════════════════════════════════════════════
+    // CORE EVENT FIELDS
+    // ═══════════════════════════════════════════════════════════════════
     eventId: text("event_id").primaryKey(),
     eventType: text("event_type").notNull(),
     source: text("source").notNull(),
     timestamp: timestamp("timestamp", { withTimezone: true }).notNull(),
-    payload: jsonb("payload").notNull(),
+
+    // Context fields
     tenantId: text("tenant_id").notNull(),
     userId: text("user_id"),
     correlationId: text("correlation_id").notNull(),
     causationId: text("causation_id"),
-    // New fields for emitKey-based idempotency
+
+    // Idempotency fields
     emitKey: text("emit_key").notNull(),
     parentWorkflowId: text("parent_workflow_id"),
+
+    // Dispatch status
     status: text("status").notNull().default("pending"),
     dispatchStartedAt: timestamp("dispatch_started_at", { withTimezone: true }),
     dispatchCompletedAt: timestamp("dispatch_completed_at", { withTimezone: true }),
     handlerResults: jsonb("handler_results"),
+
+    // ═══════════════════════════════════════════════════════════════════
+    // UI / TIMELINE FIELDS (for event log and entity timelines)
+    // ═══════════════════════════════════════════════════════════════════
+
+    /** Primary subject: { type, id } — main entity this event is about */
+    subjectType: text("subject_type").notNull(),
+    subjectId: text("subject_id").notNull(),
+
+    /** Related entities: array of { type, id } — for cross-entity queries */
+    related: jsonb("related").notNull().default([]),
+
+    /** Actor info: who triggered the event */
+    actorType: text("actor_type").notNull().default("service"),  // "user" | "service" | "system"
+    actorId: text("actor_id"),  // userId or service name
+
+    /** Severity level for UI filtering */
+    severity: text("severity").notNull().default("info"),  // "info" | "warning" | "error"
+
+    /** Short title for event log display */
+    title: text("title").notNull(),
+
+    /** Human-readable message for timeline */
+    message: text("message"),
+
+    /** Whitelisted data for UI (NO PII/secrets!) */
+    uiData: jsonb("ui_data").notNull().default({}),
+
+    /** Hash of original payload for verification (optional) */
+    payloadHash: text("payload_hash"),
+
+    // ═══════════════════════════════════════════════════════════════════
+    // NOTE: payload is NOT stored in this table!
+    // UI only sees uiData (whitelisted, safe for display).
+    // Full payload is not persisted to avoid PII/secrets leakage.
+    // ═══════════════════════════════════════════════════════════════════
+
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
+    // Core indexes
     index("idx_events_type").on(table.eventType),
-    index("idx_events_tenant").on(table.tenantId),
     index("idx_events_correlation").on(table.correlationId),
-    index("idx_events_timestamp").on(table.timestamp),
     index("idx_events_parent_workflow").on(table.parentWorkflowId, table.eventType),
+
+    // Timeline indexes (for UI queries)
+    index("idx_events_tenant_timestamp").on(table.tenantId, table.timestamp),
+    index("idx_events_subject_timeline").on(table.tenantId, table.subjectType, table.subjectId, table.timestamp),
+    index("idx_events_type_timestamp").on(table.tenantId, table.eventType, table.timestamp),
+
+    // GIN index for related entities (enables filtering by related.type/related.id)
+    // CREATE INDEX idx_events_related ON domain_events USING GIN (related);
   ]
 );
 
@@ -1609,43 +1713,288 @@ export type NewDomainEventRecord = typeof domainEvents.$inferInsert;
 CREATE TABLE IF NOT EXISTS domain_events (
   event_id TEXT PRIMARY KEY,
 
+  -- ═══════════════════════════════════════════════════════════════════
+  -- CORE EVENT FIELDS
+  -- ═══════════════════════════════════════════════════════════════════
   event_type TEXT NOT NULL,
   source TEXT NOT NULL,
   timestamp TIMESTAMPTZ NOT NULL,
 
-  payload JSONB NOT NULL,
-
+  -- Context fields
   tenant_id TEXT NOT NULL,
   user_id TEXT,
   correlation_id TEXT NOT NULL,
   causation_id TEXT,
 
-  -- emitKey-based idempotency fields
+  -- Idempotency fields
   emit_key TEXT NOT NULL,
   parent_workflow_id TEXT,
 
+  -- Dispatch status
   status TEXT NOT NULL DEFAULT 'pending',
   dispatch_started_at TIMESTAMPTZ,
   dispatch_completed_at TIMESTAMPTZ,
-
   handler_results JSONB,
+
+  -- ═══════════════════════════════════════════════════════════════════
+  -- UI / TIMELINE FIELDS
+  -- ═══════════════════════════════════════════════════════════════════
+
+  -- Primary subject (for timeline grouping)
+  subject_type TEXT NOT NULL,
+  subject_id TEXT NOT NULL,
+
+  -- Related entities (for cross-entity queries)
+  related JSONB NOT NULL DEFAULT '[]'::jsonb,
+
+  -- Actor info
+  actor_type TEXT NOT NULL DEFAULT 'service',  -- 'user' | 'service' | 'system'
+  actor_id TEXT,
+
+  -- UI display fields
+  severity TEXT NOT NULL DEFAULT 'info',  -- 'info' | 'warning' | 'error'
+  title TEXT NOT NULL,
+  message TEXT,
+
+  -- Whitelisted data for UI (NO PII!)
+  ui_data JSONB NOT NULL DEFAULT '{}'::jsonb,
+
+  -- Payload hash for verification
+  payload_hash TEXT,
+
+  -- NOTE: payload is NOT stored! Only ui_data (whitelisted) is persisted.
 
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
   CONSTRAINT domain_events_status_chk
-    CHECK (status IN ('pending', 'dispatching', 'completed'))
+    CHECK (status IN ('pending', 'dispatching', 'completed')),
+  CONSTRAINT domain_events_actor_type_chk
+    CHECK (actor_type IN ('user', 'service', 'system')),
+  CONSTRAINT domain_events_severity_chk
+    CHECK (severity IN ('info', 'warning', 'error'))
 );
 
+-- Core indexes
 CREATE INDEX idx_events_type ON domain_events(event_type);
-CREATE INDEX idx_events_tenant ON domain_events(tenant_id);
 CREATE INDEX idx_events_correlation ON domain_events(correlation_id);
 CREATE INDEX idx_events_status ON domain_events(status) WHERE status != 'completed';
-CREATE INDEX idx_events_timestamp ON domain_events(timestamp);
 CREATE INDEX idx_events_parent_workflow ON domain_events(parent_workflow_id, event_type);
+
+-- Timeline indexes (for UI queries)
+CREATE INDEX idx_events_tenant_timestamp ON domain_events(tenant_id, timestamp DESC);
+CREATE INDEX idx_events_subject_timeline ON domain_events(tenant_id, subject_type, subject_id, timestamp DESC);
+CREATE INDEX idx_events_type_timestamp ON domain_events(tenant_id, event_type, timestamp DESC);
+
+-- GIN index for related entities (enables @> containment queries)
+CREATE INDEX idx_events_related ON domain_events USING GIN (related);
 ```
 
-### 5.3 Event Store Service
+### 5.3 Event Formatter Registry
+
+```typescript
+// services/events/src/formatters/EventFormatters.ts
+
+import crypto from "node:crypto";
+import canonicalize from "canonicalize";
+import type { DomainEvent } from "@shopana/events";
+
+/**
+ * UI-safe event data computed by formatters.
+ */
+export interface FormattedEventData {
+  /** Primary subject: { type, id } */
+  subject: { type: string; id: string };
+
+  /** Related entities */
+  related: Array<{ type: string; id: string }>;
+
+  /** Actor info */
+  actor: { type: "user" | "service" | "system"; id?: string };
+
+  /** Severity level */
+  severity: "info" | "warning" | "error";
+
+  /** Short title for event log */
+  title: string;
+
+  /** Human-readable message for timeline */
+  message: string;
+
+  /** Whitelisted data for UI (NO PII!) */
+  uiData: Record<string, unknown>;
+
+  /** SHA-256 hash of canonical payload */
+  payloadHash: string;
+}
+
+/**
+ * Event formatter function signature.
+ */
+type EventFormatter<T extends DomainEvent = DomainEvent> = (
+  event: T
+) => FormattedEventData;
+
+/**
+ * Registry of event formatters by event type.
+ */
+const formatters = new Map<string, EventFormatter>();
+
+/**
+ * Register a formatter for an event type.
+ */
+export function registerFormatter<T extends DomainEvent>(
+  eventType: string,
+  formatter: EventFormatter<T>
+): void {
+  formatters.set(eventType, formatter as EventFormatter);
+}
+
+/**
+ * Format an event for UI storage.
+ *
+ * IMPORTANT: This function ensures NO PII/secrets are stored in uiData.
+ * Each formatter is responsible for whitelisting only safe fields.
+ */
+export function formatEventForUI(event: DomainEvent): FormattedEventData {
+  const formatter = formatters.get(event.eventType);
+
+  if (formatter) {
+    return formatter(event);
+  }
+
+  // Default formatter for unknown event types
+  return {
+    subject: event.subject ?? { type: "unknown", id: "unknown" },
+    related: event.related ?? [],
+    actor: event.actor ?? { type: "service", id: event.source },
+    severity: "info",
+    title: event.eventType,
+    message: `Event ${event.eventType} from ${event.source}`,
+    uiData: {},
+    payloadHash: computePayloadHash(event.payload),
+  };
+}
+
+/**
+ * Compute SHA-256 hash of payload using canonical JSON.
+ */
+function computePayloadHash(payload: unknown): string {
+  const canonical = canonicalize(payload) ?? "{}";
+  return crypto.createHash("sha256").update(canonical).digest("hex");
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// BUILT-IN FORMATTERS
+// ═══════════════════════════════════════════════════════════════════
+
+// Product events
+registerFormatter("productCreated", (event) => ({
+  subject: { type: "product", id: event.payload.productId },
+  related: [{ type: "store", id: event.payload.storeId }],
+  actor: event.actor ?? { type: "service", id: event.source },
+  severity: "info",
+  title: "Product created",
+  message: `Created product "${event.payload.name}"${event.payload.sku ? ` (SKU: ${event.payload.sku})` : ""}`,
+  uiData: {
+    productId: event.payload.productId,
+    storeId: event.payload.storeId,
+    name: event.payload.name,
+    sku: event.payload.sku,
+  },
+  payloadHash: computePayloadHash(event.payload),
+}));
+
+registerFormatter("productUpdated", (event) => {
+  const changedFields = Object.keys(event.payload.changes ?? {});
+  return {
+    subject: { type: "product", id: event.payload.productId },
+    related: [{ type: "store", id: event.payload.storeId }],
+    actor: event.actor ?? { type: "service", id: event.source },
+    severity: "info",
+    title: "Product updated",
+    message: `Updated ${changedFields.length} field(s): ${changedFields.join(", ")}`,
+    uiData: {
+      productId: event.payload.productId,
+      storeId: event.payload.storeId,
+      changedFields,
+    },
+    payloadHash: computePayloadHash(event.payload),
+  };
+});
+
+registerFormatter("productDeleted", (event) => ({
+  subject: { type: "product", id: event.payload.productId },
+  related: [{ type: "store", id: event.payload.storeId }],
+  actor: event.actor ?? { type: "service", id: event.source },
+  severity: "warning",
+  title: "Product deleted",
+  message: `Product ${event.payload.productId} deleted`,
+  uiData: {
+    productId: event.payload.productId,
+    storeId: event.payload.storeId,
+  },
+  payloadHash: computePayloadHash(event.payload),
+}));
+
+// Order events
+registerFormatter("orderCreated", (event) => ({
+  subject: { type: "order", id: event.payload.orderId },
+  related: [
+    { type: "store", id: event.payload.storeId },
+    { type: "customer", id: event.payload.customerId },
+    ...event.payload.items.map((i: { productId: string }) => ({
+      type: "product",
+      id: i.productId,
+    })),
+  ],
+  actor: event.actor ?? { type: "user", id: event.payload.customerId },
+  severity: "info",
+  title: "Order created",
+  message: `Order created: ${event.payload.items.length} item(s), total ${event.payload.total}`,
+  uiData: {
+    orderId: event.payload.orderId,
+    storeId: event.payload.storeId,
+    itemsCount: event.payload.items.length,
+    total: event.payload.total,
+    // NOTE: customerId is NOT included (PII)
+  },
+  payloadHash: computePayloadHash(event.payload),
+}));
+
+registerFormatter("orderCompleted", (event) => ({
+  subject: { type: "order", id: event.payload.orderId },
+  related: [{ type: "store", id: event.payload.storeId }],
+  actor: event.actor ?? { type: "system" },
+  severity: "info",
+  title: "Order completed",
+  message: `Order ${event.payload.orderId} completed`,
+  uiData: {
+    orderId: event.payload.orderId,
+    storeId: event.payload.storeId,
+    completedAt: event.payload.completedAt,
+  },
+  payloadHash: computePayloadHash(event.payload),
+}));
+
+// Store events
+registerFormatter("storeCreated", (event) => ({
+  subject: { type: "store", id: event.payload.storeId },
+  related: [{ type: "organization", id: event.payload.organizationId }],
+  actor: event.actor ?? { type: "service", id: event.source },
+  severity: "info",
+  title: "Store created",
+  message: `Store "${event.payload.name}" created`,
+  uiData: {
+    storeId: event.payload.storeId,
+    organizationId: event.payload.organizationId,
+    name: event.payload.name,
+  },
+  payloadHash: computePayloadHash(event.payload),
+}));
+```
+
+### 5.4 Event Store Service
 
 ```typescript
 // services/events/src/EventsBrokerActions.ts
@@ -1658,12 +2007,13 @@ import {
   ServiceBroker,
 } from "@shopana/shared-kernel";
 import type { DomainEvent } from "@shopana/events";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, and, desc, gte, lte, like, or } from "drizzle-orm";
 import { domainEvents } from "./repositories/models/domainEvents.js";
 import { deadLetterQueue, type DLQEntry } from "./repositories/models/deadLetterQueue.js";
+import { formatEventForUI } from "./formatters/EventFormatters.js";
 
 /**
- * Broker actions for event persistence and DLQ management.
+ * Broker actions for event persistence, DLQ management, and UI queries.
  * Lives in the `events` service.
  */
 @Injectable()
@@ -1672,16 +2022,34 @@ export class EventsBrokerActions extends BrokerActions {
     super(broker);
   }
 
+  // ═══════════════════════════════════════════════════════════════════
+  // PERSISTENCE ACTIONS
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Persist event to domain_events table.
+   *
+   * IMPORTANT: This is a @DBOS.step(), so `new Date()` here is checkpointed.
+   * On workflow replay, DBOS returns the saved timestamp, not a new one.
+   * This gives us REAL wall-clock time AND determinism.
+   */
   @Action("persistEvent")
-  async persistEvent(params: { event: DomainEvent }): Promise<{ persisted: boolean }> {
+  async persistEvent(params: { event: DomainEvent }): Promise<{ persisted: boolean; timestamp: string }> {
     const { event } = params;
+
+    // Capture REAL timestamp (this runs inside a step → checkpointed)
+    const realTimestamp = new Date();
+
+    // Format event for UI (computes title, message, uiData, etc.)
+    const formatted = formatEventForUI(event);
 
     await this.db.insert(domainEvents).values({
       eventId: event.eventId,
       eventType: event.eventType,
       source: event.source,
-      timestamp: new Date(event.timestamp),
-      payload: event.payload,
+      // REAL timestamp captured in this step (NOT from event object)
+      timestamp: realTimestamp,
+      // NOTE: payload is NOT stored! Only uiData is persisted.
       tenantId: event.context.tenantId,
       userId: event.context.userId,
       correlationId: event.context.correlationId,
@@ -1689,10 +2057,22 @@ export class EventsBrokerActions extends BrokerActions {
       emitKey: event.emitKey,
       parentWorkflowId: event.parentWorkflowId,
       status: "dispatching",
-      dispatchStartedAt: new Date(),
+      dispatchStartedAt: realTimestamp,
+
+      // UI fields from formatter
+      subjectType: formatted.subject.type,
+      subjectId: formatted.subject.id,
+      related: formatted.related,
+      actorType: formatted.actor.type,
+      actorId: formatted.actor.id,
+      severity: formatted.severity,
+      title: formatted.title,
+      message: formatted.message,
+      uiData: formatted.uiData,
+      payloadHash: formatted.payloadHash,
     }).onConflictDoNothing();
 
-    return { persisted: true };
+    return { persisted: true, timestamp: realTimestamp.toISOString() };
   }
 
   @Action("updateEventStatus")
@@ -1715,26 +2095,33 @@ export class EventsBrokerActions extends BrokerActions {
 
   /**
    * Add failed handler to Dead Letter Queue.
+   *
+   * NOTE: We do NOT store the full event (PII protection).
+   * Only event_id reference + handler info + error are stored.
+   * To inspect the event, join with domain_events table.
    */
   @Action("addToDLQ")
   async addToDLQ(params: {
-    event: DomainEvent;
+    eventId: string;
+    eventType: string;
+    tenantId: string;
+    correlationId?: string;
     handler: { service: string; action: string };
     error: string;
     errorCode?: string;
     attempts: number;
   }): Promise<{ added: boolean }> {
     await this.db.insert(deadLetterQueue).values({
-      eventId: params.event.eventId,
-      eventType: params.event.eventType,
-      event: params.event as unknown as Record<string, unknown>,
+      // Reference only — NO full event stored!
+      eventId: params.eventId,
+      eventType: params.eventType,
       handlerService: params.handler.service,
       handlerAction: params.handler.action,
       error: params.error,
       errorCode: params.errorCode,
       attempts: params.attempts,
-      tenantId: params.event.context.tenantId,
-      correlationId: params.event.context.correlationId,
+      tenantId: params.tenantId,
+      correlationId: params.correlationId,
       status: "failed",
       expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
     }).onConflictDoUpdate({
@@ -1795,36 +2182,384 @@ export class EventsBrokerActions extends BrokerActions {
     const entries = await query;
     return { entries };
   }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // UI API ACTIONS (Event Log & Timeline)
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * List events for admin event log.
+   * Supports filtering, sorting, and cursor-based pagination.
+   */
+  @Action("listEvents")
+  async listEvents(params: {
+    tenantId: string;
+    // Filters
+    eventType?: string;
+    source?: string;
+    severity?: "info" | "warning" | "error";
+    status?: "pending" | "dispatching" | "completed";
+    timeFrom?: string;  // ISO 8601
+    timeTo?: string;    // ISO 8601
+    text?: string;      // Search in title/message
+    correlationId?: string;
+    subjectType?: string;
+    subjectId?: string;
+    // Pagination (cursor-based)
+    cursor?: { timestamp: string; eventId: string };
+    limit?: number;
+  }): Promise<{
+    events: Array<{
+      eventId: string;
+      eventType: string;
+      source: string;
+      timestamp: string;
+      severity: string;
+      status: string;
+      title: string;
+      message: string | null;
+      subjectType: string;
+      subjectId: string;
+      actorType: string;
+      actorId: string | null;
+      handlerResults: unknown;
+    }>;
+    nextCursor?: { timestamp: string; eventId: string };
+    hasMore: boolean;
+  }> {
+    const limit = Math.min(params.limit ?? 50, 200);
+
+    // Build conditions
+    const conditions = [eq(domainEvents.tenantId, params.tenantId)];
+
+    if (params.eventType) {
+      conditions.push(eq(domainEvents.eventType, params.eventType));
+    }
+    if (params.source) {
+      conditions.push(eq(domainEvents.source, params.source));
+    }
+    if (params.severity) {
+      conditions.push(eq(domainEvents.severity, params.severity));
+    }
+    if (params.status) {
+      conditions.push(eq(domainEvents.status, params.status));
+    }
+    if (params.timeFrom) {
+      conditions.push(gte(domainEvents.timestamp, new Date(params.timeFrom)));
+    }
+    if (params.timeTo) {
+      conditions.push(lte(domainEvents.timestamp, new Date(params.timeTo)));
+    }
+    if (params.text) {
+      conditions.push(
+        or(
+          like(domainEvents.title, `%${params.text}%`),
+          like(domainEvents.message, `%${params.text}%`)
+        )!
+      );
+    }
+    if (params.correlationId) {
+      conditions.push(eq(domainEvents.correlationId, params.correlationId));
+    }
+    if (params.subjectType) {
+      conditions.push(eq(domainEvents.subjectType, params.subjectType));
+    }
+    if (params.subjectId) {
+      conditions.push(eq(domainEvents.subjectId, params.subjectId));
+    }
+
+    // Cursor pagination: events older than cursor
+    if (params.cursor) {
+      conditions.push(
+        or(
+          lte(domainEvents.timestamp, new Date(params.cursor.timestamp)),
+          and(
+            eq(domainEvents.timestamp, new Date(params.cursor.timestamp)),
+            lte(domainEvents.eventId, params.cursor.eventId)
+          )
+        )!
+      );
+    }
+
+    const events = await this.db
+      .select({
+        eventId: domainEvents.eventId,
+        eventType: domainEvents.eventType,
+        source: domainEvents.source,
+        timestamp: domainEvents.timestamp,
+        severity: domainEvents.severity,
+        status: domainEvents.status,
+        title: domainEvents.title,
+        message: domainEvents.message,
+        subjectType: domainEvents.subjectType,
+        subjectId: domainEvents.subjectId,
+        actorType: domainEvents.actorType,
+        actorId: domainEvents.actorId,
+        handlerResults: domainEvents.handlerResults,
+      })
+      .from(domainEvents)
+      .where(and(...conditions))
+      .orderBy(desc(domainEvents.timestamp), desc(domainEvents.eventId))
+      .limit(limit + 1);  // +1 to check if there's more
+
+    const hasMore = events.length > limit;
+    const resultEvents = hasMore ? events.slice(0, limit) : events;
+
+    const nextCursor = hasMore && resultEvents.length > 0
+      ? {
+          timestamp: resultEvents[resultEvents.length - 1].timestamp.toISOString(),
+          eventId: resultEvents[resultEvents.length - 1].eventId,
+        }
+      : undefined;
+
+    return {
+      events: resultEvents.map((e) => ({
+        ...e,
+        timestamp: e.timestamp.toISOString(),
+      })),
+      nextCursor,
+      hasMore,
+    };
+  }
+
+  /**
+   * Get timeline for a specific entity (product, order, store, etc.).
+   * Returns events where entity is subject OR in related array.
+   */
+  @Action("getTimeline")
+  async getTimeline(params: {
+    tenantId: string;
+    subjectType: string;
+    subjectId: string;
+    // Pagination
+    cursor?: { timestamp: string; eventId: string };
+    limit?: number;
+  }): Promise<{
+    events: Array<{
+      eventId: string;
+      eventType: string;
+      timestamp: string;
+      severity: string;
+      title: string;
+      message: string | null;
+      actorType: string;
+      actorId: string | null;
+      uiData: unknown;
+    }>;
+    nextCursor?: { timestamp: string; eventId: string };
+    hasMore: boolean;
+  }> {
+    const limit = Math.min(params.limit ?? 50, 200);
+
+    // Query: subject matches OR related contains { type, id }
+    const subjectCondition = and(
+      eq(domainEvents.tenantId, params.tenantId),
+      or(
+        // Direct subject match
+        and(
+          eq(domainEvents.subjectType, params.subjectType),
+          eq(domainEvents.subjectId, params.subjectId)
+        ),
+        // Related entity match (JSONB containment)
+        sql`${domainEvents.related} @> ${JSON.stringify([{ type: params.subjectType, id: params.subjectId }])}::jsonb`
+      )
+    );
+
+    const conditions = [subjectCondition];
+
+    if (params.cursor) {
+      conditions.push(
+        or(
+          lte(domainEvents.timestamp, new Date(params.cursor.timestamp)),
+          and(
+            eq(domainEvents.timestamp, new Date(params.cursor.timestamp)),
+            lte(domainEvents.eventId, params.cursor.eventId)
+          )
+        )!
+      );
+    }
+
+    const events = await this.db
+      .select({
+        eventId: domainEvents.eventId,
+        eventType: domainEvents.eventType,
+        timestamp: domainEvents.timestamp,
+        severity: domainEvents.severity,
+        title: domainEvents.title,
+        message: domainEvents.message,
+        actorType: domainEvents.actorType,
+        actorId: domainEvents.actorId,
+        uiData: domainEvents.uiData,
+      })
+      .from(domainEvents)
+      .where(and(...conditions))
+      .orderBy(desc(domainEvents.timestamp), desc(domainEvents.eventId))
+      .limit(limit + 1);
+
+    const hasMore = events.length > limit;
+    const resultEvents = hasMore ? events.slice(0, limit) : events;
+
+    const nextCursor = hasMore && resultEvents.length > 0
+      ? {
+          timestamp: resultEvents[resultEvents.length - 1].timestamp.toISOString(),
+          eventId: resultEvents[resultEvents.length - 1].eventId,
+        }
+      : undefined;
+
+    return {
+      events: resultEvents.map((e) => ({
+        ...e,
+        timestamp: e.timestamp.toISOString(),
+      })),
+      nextCursor,
+      hasMore,
+    };
+  }
+
+  /**
+   * Get detailed event information for drilldown view.
+   */
+  @Action("getEventDetails")
+  async getEventDetails(params: {
+    tenantId: string;
+    eventId: string;
+  }): Promise<{
+    event: {
+      eventId: string;
+      eventType: string;
+      source: string;
+      timestamp: string;
+      status: string;
+      correlationId: string;
+      causationId: string | null;
+      emitKey: string;
+      parentWorkflowId: string | null;
+      // Subject/Related/Actor
+      subjectType: string;
+      subjectId: string;
+      related: unknown;
+      actorType: string;
+      actorId: string | null;
+      // UI fields
+      severity: string;
+      title: string;
+      message: string | null;
+      uiData: unknown;
+      payloadHash: string | null;
+      // Dispatch info
+      dispatchStartedAt: string | null;
+      dispatchCompletedAt: string | null;
+      handlerResults: unknown;
+    } | null;
+  }> {
+    const results = await this.db
+      .select()
+      .from(domainEvents)
+      .where(
+        and(
+          eq(domainEvents.tenantId, params.tenantId),
+          eq(domainEvents.eventId, params.eventId)
+        )
+      )
+      .limit(1);
+
+    if (results.length === 0) {
+      return { event: null };
+    }
+
+    const e = results[0];
+    return {
+      event: {
+        eventId: e.eventId,
+        eventType: e.eventType,
+        source: e.source,
+        timestamp: e.timestamp.toISOString(),
+        status: e.status,
+        correlationId: e.correlationId,
+        causationId: e.causationId,
+        emitKey: e.emitKey,
+        parentWorkflowId: e.parentWorkflowId,
+        subjectType: e.subjectType,
+        subjectId: e.subjectId,
+        related: e.related,
+        actorType: e.actorType,
+        actorId: e.actorId,
+        severity: e.severity,
+        title: e.title,
+        message: e.message,
+        uiData: e.uiData,
+        payloadHash: e.payloadHash,
+        dispatchStartedAt: e.dispatchStartedAt?.toISOString() ?? null,
+        dispatchCompletedAt: e.dispatchCompletedAt?.toISOString() ?? null,
+        handlerResults: e.handlerResults,
+      },
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // RETENTION / CLEANUP ACTIONS
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Cleanup old domain events.
+   * Should be called periodically (e.g., daily cron job).
+   *
+   * @param retentionDays - Delete events older than this (default: 90)
+   * @param batchSize - Max events to delete per call (default: 5000)
+   */
+  @Action("cleanupDomainEvents")
+  async cleanupDomainEvents(params: {
+    retentionDays?: number;
+    batchSize?: number;
+  }): Promise<{ deleted: number }> {
+    const retentionDays = params.retentionDays ?? 90;
+    const batchSize = params.batchSize ?? 5000;
+    const cutoffDate = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
+
+    const result = await this.db.execute(sql`
+      DELETE FROM domain_events
+      WHERE event_id IN (
+        SELECT event_id FROM domain_events
+        WHERE timestamp < ${cutoffDate}
+        LIMIT ${batchSize}
+      )
+    `);
+
+    return { deleted: result.rowCount ?? 0 };
+  }
 }
 ```
 
 ---
 
-### 5.4 DLQ Cleanup Scheduler
+### 5.5 Cleanup Scheduler (DLQ + Domain Events Retention)
 
 ```typescript
-// services/events/src/DLQCleanupScheduler.ts
+// services/events/src/CleanupScheduler.ts
 
 import { Injectable, Logger } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { InjectBroker, ServiceBroker } from "@shopana/shared-kernel";
 
 /**
- * Scheduled job to cleanup expired DLQ entries.
- * Runs daily at 3 AM.
+ * Scheduled jobs for cleanup:
+ * 1. DLQ cleanup (expired entries) - daily at 3 AM
+ * 2. Domain events retention (old events) - daily at 4 AM
  */
 @Injectable()
-export class DLQCleanupScheduler {
-  private readonly logger = new Logger(DLQCleanupScheduler.name);
+export class CleanupScheduler {
+  private readonly logger = new Logger(CleanupScheduler.name);
 
   constructor(@InjectBroker("events") private readonly broker: ServiceBroker) {}
 
+  /**
+   * Cleanup expired DLQ entries (entries older than expiresAt).
+   */
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
-  async cleanupExpiredEntries(): Promise<void> {
+  async cleanupExpiredDLQEntries(): Promise<void> {
     let totalDeleted = 0;
     let deleted: number;
 
-    // Process in batches until no more expired entries
     do {
       const result = await this.broker.call("events.cleanupDLQ", {
         batchSize: 1000,
@@ -1837,10 +2572,41 @@ export class DLQCleanupScheduler {
       this.logger.log(`DLQ cleanup: deleted ${totalDeleted} expired entries`);
     }
   }
+
+  /**
+   * Cleanup old domain events (retention policy: 90 days).
+   * Runs in batches to avoid long-running transactions.
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_4AM)
+  async cleanupOldDomainEvents(): Promise<void> {
+    const RETENTION_DAYS = 90;
+    const BATCH_SIZE = 5000;
+
+    let totalDeleted = 0;
+    let deleted: number;
+
+    do {
+      const result = await this.broker.call("events.cleanupDomainEvents", {
+        retentionDays: RETENTION_DAYS,
+        batchSize: BATCH_SIZE,
+      });
+      deleted = result.deleted;
+      totalDeleted += deleted;
+
+      // Small delay between batches to reduce DB load
+      if (deleted > 0) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+    } while (deleted > 0);
+
+    if (totalDeleted > 0) {
+      this.logger.log(`Domain events cleanup: deleted ${totalDeleted} events older than ${RETENTION_DAYS} days`);
+    }
+  }
 }
 ```
 
-### 5.5 Events Module
+### 5.6 Events Module
 
 ```typescript
 // services/events/src/events.module.ts
@@ -1848,18 +2614,88 @@ export class DLQCleanupScheduler {
 import { Module } from "@nestjs/common";
 import { ScheduleModule } from "@nestjs/schedule";
 import { EventsBrokerActions } from "./EventsBrokerActions.js";
-import { DLQCleanupScheduler } from "./DLQCleanupScheduler.js";
+import { CleanupScheduler } from "./CleanupScheduler.js";
 
 @Module({
   imports: [ScheduleModule.forRoot()],
   providers: [
     EventsBrokerActions,
-    DLQCleanupScheduler,
+    CleanupScheduler,
   ],
   exports: [EventsBrokerActions],
 })
 export class EventsModule {}
 ```
+
+### 5.7 PII & Security Rules
+
+> **CRITICAL**: These rules are mandatory for all event formatters and handlers.
+
+#### Never Store in `uiData`
+
+| Data Type | Examples | Why |
+|-----------|----------|-----|
+| **Email** | `user@example.com` | PII, GDPR |
+| **Phone** | `+1-555-123-4567` | PII, GDPR |
+| **Address** | Street, city, postal code | PII, GDPR |
+| **Payment data** | Card numbers, CVV, bank accounts | PCI-DSS |
+| **Tokens/Secrets** | API keys, passwords, JWT | Security |
+| **IP addresses** | `192.168.1.1` | PII in some jurisdictions |
+| **Full names** | When combined with other PII | Context-dependent |
+
+#### Safe to Store in `uiData`
+
+| Data Type | Examples | Notes |
+|-----------|----------|-------|
+| **Entity IDs** | `productId`, `orderId`, `storeId` | Always safe |
+| **Entity names** | Product name, store name | Usually safe |
+| **Counts** | `itemsCount: 5`, `changesCount: 3` | Always safe |
+| **Amounts** | `total: 99.99` (without currency details) | Usually safe |
+| **Timestamps** | `completedAt`, `createdAt` | Always safe |
+| **Status values** | `"completed"`, `"pending"` | Always safe |
+| **Changed field names** | `["price", "name", "sku"]` | Safe (no values) |
+
+#### Formatter Implementation Rules
+
+```typescript
+// ❌ BAD: Includes PII
+registerFormatter("orderCreated", (event) => ({
+  // ...
+  uiData: {
+    orderId: event.payload.orderId,
+    customerEmail: event.payload.customerEmail,  // ❌ PII!
+    shippingAddress: event.payload.address,      // ❌ PII!
+    total: event.payload.total,
+  },
+}));
+
+// ✅ GOOD: Only whitelisted fields
+registerFormatter("orderCreated", (event) => ({
+  // ...
+  uiData: {
+    orderId: event.payload.orderId,
+    storeId: event.payload.storeId,
+    itemsCount: event.payload.items.length,
+    total: event.payload.total,
+    // NOTE: customerId, email, address are NOT included
+  },
+}));
+```
+
+#### Masked Data (when necessary)
+
+If you must reference PII for context, use masking:
+
+```typescript
+function maskEmail(email: string): string {
+  const [local, domain] = email.split("@");
+  return `${local.slice(0, 2)}***@${domain}`;
+}
+
+// Result: "jo***@example.com"
+```
+
+**Rule of thumb**: If you're unsure whether a field is PII, **don't include it** in `uiData`.
 
 ---
 
@@ -1867,28 +2703,48 @@ export class EventsModule {}
 
 > **Note**: DLQ tables и broker actions находятся в сервисе `events`.
 
+> **IMPORTANT**: DLQ does NOT store the full event payload (PII protection).
+> It only stores a reference to `event_id` in `domain_events` table + handler info + error.
+
 ### 6.1 Drizzle Schema Model
 
 ```typescript
 // services/events/src/repositories/models/deadLetterQueue.ts
 
-import { pgTable, text, timestamp, jsonb, integer, uuid, uniqueIndex, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, integer, uuid, uniqueIndex, index } from "drizzle-orm/pg-core";
 
+/**
+ * Dead Letter Queue for failed event handlers.
+ *
+ * IMPORTANT: We do NOT store the full event here (PII protection).
+ * Instead, we store a reference to domain_events.event_id.
+ * To inspect the event, join with domain_events table.
+ */
 export const deadLetterQueue = pgTable(
   "dead_letter_queue",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    eventId: text("event_id").notNull(),
-    eventType: text("event_type").notNull(),
-    event: jsonb("event").notNull(),
+
+    // Reference to domain_events (NOT the full event!)
+    eventId: text("event_id").notNull(),  // FK to domain_events.event_id
+    eventType: text("event_type").notNull(),  // Denormalized for filtering
+
+    // Handler that failed
     handlerService: text("handler_service").notNull(),
     handlerAction: text("handler_action").notNull(),
+
+    // Error info
     error: text("error").notNull(),
     errorCode: text("error_code"),
     attempts: integer("attempts").notNull(),
-    tenantId: text("tenant_id"),
+
+    // Context (denormalized for queries without join)
+    tenantId: text("tenant_id").notNull(),
     correlationId: text("correlation_id"),
-    status: text("status").notNull().default("failed"),
+
+    // Status
+    status: text("status").notNull().default("failed"),  // 'failed' | 'retried' | 'resolved'
+
     failedAt: timestamp("failed_at", { withTimezone: true }).notNull().defaultNow(),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
   },
@@ -1925,36 +2781,50 @@ export * from "./deadLetterQueue.js";
 CREATE TABLE IF NOT EXISTS dead_letter_queue (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
-  event_id TEXT NOT NULL,
-  event_type TEXT NOT NULL,
-  event JSONB NOT NULL,
+  -- Reference to domain_events (NOT the full event!)
+  event_id TEXT NOT NULL,  -- FK to domain_events.event_id
+  event_type TEXT NOT NULL,  -- Denormalized for filtering
 
+  -- NOTE: We do NOT store the full event here (PII protection)
+  -- To inspect the event, join with domain_events table
+
+  -- Handler that failed
   handler_service TEXT NOT NULL,
   handler_action TEXT NOT NULL,
 
+  -- Error info
   error TEXT NOT NULL,
   error_code TEXT,
   attempts INTEGER NOT NULL,
 
-  tenant_id TEXT,
+  -- Context (denormalized)
+  tenant_id TEXT NOT NULL,
   correlation_id TEXT,
 
+  -- Status: 'failed' | 'retried' | 'resolved'
   status TEXT NOT NULL DEFAULT 'failed',
 
   failed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   expires_at TIMESTAMPTZ,
 
   CONSTRAINT dlq_event_handler_unique
-    UNIQUE (event_id, handler_service, handler_action)
+    UNIQUE (event_id, handler_service, handler_action),
+  CONSTRAINT dlq_status_chk
+    CHECK (status IN ('failed', 'retried', 'resolved'))
 );
 
 CREATE INDEX idx_dlq_status ON dead_letter_queue(status);
 CREATE INDEX idx_dlq_event_type ON dead_letter_queue(event_type, status);
 CREATE INDEX idx_dlq_tenant ON dead_letter_queue(tenant_id, status);
 CREATE INDEX idx_dlq_expires ON dead_letter_queue(expires_at) WHERE expires_at IS NOT NULL;
+
+-- Optional: FK to domain_events (if you want referential integrity)
+-- ALTER TABLE dead_letter_queue
+--   ADD CONSTRAINT dlq_event_fk FOREIGN KEY (event_id)
+--   REFERENCES domain_events(event_id) ON DELETE CASCADE;
 ```
 
-> **Note**: DLQ operations (add, get, cleanup) реализованы в `EventsBrokerActions` (см. Part 5.3).
+> **Note**: DLQ operations (add, get, cleanup) реализованы в `EventsBrokerActions` (см. Part 5.4).
 
 ---
 
@@ -2284,7 +3154,7 @@ async setStock(payload: SetStockInput) {
 
 | Aspect | Implementation |
 |--------|----------------|
-| Event Definition | Typed `DomainEvent<TType, TPayload>` with `emitKey` and context |
+| Event Definition | Typed `DomainEvent<TType, TPayload>` with `emitKey`, `subject`, `related`, `actor` |
 | Event Emission | `EventEmitter.emit(input, emitKey)` — fire and forget, emitKey REQUIRED |
 | emitKey | Mandatory, deterministic, derived from business context (e.g., `"product:" + productId`) |
 | Durability | DBOS workflow guarantees delivery |
@@ -2293,12 +3163,17 @@ async setStock(payload: SetStockInput) {
 | Handler Contract | `(params: { event }) => Promise<EventHandlerResponse>` — handler decides retryable vs non-retryable |
 | Handler Registration | `@EventHandler("eventName", { retry })` → `broker.register(eventName, handler, metadata)` |
 | Retry Policy | Per-handler via `@EventHandler` options, used in `DBOS.runStep()` |
-| Event Store | `events` service — `domain_events` table with Drizzle ORM |
+| Event Store | `events` service — `domain_events` table with UI fields (NO payload stored) |
 | Dead Letter Queue | `events` service — failed handlers sent to `events.addToDLQ` |
 | Handler Independence | Each service processes independently, failures don't affect others |
 | Event Status | Always `completed` (dispatch done, regardless of failures) |
 | Idempotency | DBOS workflow (parent + eventType + emitKey) + domain-level (ON CONFLICT, upserts) |
 | Consistency | Eventual — system converges over time |
+| **UI Event Log** | `events.listEvents` — filterable admin event log |
+| **Entity Timeline** | `events.getTimeline` — events for product/order/store |
+| **Formatter Registry** | `formatEventForUI()` — converts events to UI-safe format |
+| **Retention** | 90 days default, daily cleanup via `events.cleanupDomainEvents` |
+| **PII Protection** | Payload NOT stored; only whitelisted `uiData` persisted |
 
 ### Key Design Decisions
 
@@ -2315,6 +3190,10 @@ async setStock(payload: SetStockInput) {
 11. **Separate classes** — `BrokerActions` for `@Action`, `EventHandlers` for `@EventHandler`
 12. **DBOS workflow idempotency** — Same parent + eventType + emitKey = same dispatch workflow
 13. **Domain-level idempotency** — Handlers use DB constraints (`ON CONFLICT DO NOTHING`)
+14. **Subject/Related/Actor** — Every event has subject (primary entity), related entities, and actor info
+15. **Formatter registry** — Centralized formatters compute title/message/uiData from payload
+16. **No PII in storage** — Payload is NOT persisted; only whitelisted `uiData` is stored
+17. **Retention policy** — Old events automatically cleaned up (default: 90 days)
 
 ### Benefits
 
@@ -2331,9 +3210,14 @@ async setStock(payload: SetStockInput) {
 11. **No Central Registry**: Services discovered from existing `config.yml`
 12. **No Infrastructure Overhead**: No separate message queue
 13. **Dedicated Events Service**: Event store, DLQ, and scheduling isolated in `events` service with own migrations
+14. **UI-Ready Event Log**: Admin can filter/search events with pagination
+15. **Entity Timelines**: View all events for a product/order/store
+16. **PII-Safe Storage**: Only whitelisted, UI-safe data is persisted
+17. **Automatic Cleanup**: Retention policy prevents unbounded storage growth
 
 ### Trade-offs
 
 1. **Eventual consistency** — Data may be temporarily inconsistent
 2. **No ordering guarantees** — Handlers may process in any order
 3. **Broadcast overhead** — All services are called even if they don't handle the event
+4. **No full payload** — Original payload is not stored (by design, for PII protection)
