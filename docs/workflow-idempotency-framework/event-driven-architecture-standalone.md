@@ -38,6 +38,116 @@ Simplified event-driven architecture built directly on DBOS durability primitive
 
 ---
 
+## Service Structure: `events` Service
+
+Event store, DLQ, и scheduling живут в отдельном сервисе `events` (не в `bootstrap`).
+
+### Directory Structure
+
+```
+services/events/
+├── package.json
+├── drizzle.config.ts
+├── migrations/
+│   └── 0000_initial.sql
+├── src/
+│   ├── main.ts
+│   ├── events.module.ts
+│   ├── EventsBrokerActions.ts          # @Action: persistEvent, updateEventStatus, addToDLQ, etc.
+│   ├── DLQCleanupScheduler.ts          # Scheduled cleanup job
+│   ├── context/
+│   │   └── index.ts
+│   ├── repositories/
+│   │   └── models/
+│   │       ├── index.ts
+│   │       ├── domainEvents.ts         # domain_events table schema
+│   │       └── deadLetterQueue.ts      # dead_letter_queue table schema
+│   └── infrastructure/
+│       └── db/
+│           └── migrate.ts
+```
+
+### package.json
+
+```json
+{
+  "name": "@shopana/events-service",
+  "version": "0.0.1",
+  "description": "Event store, dispatch tracking, and Dead Letter Queue service",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "db:generate": "drizzle-kit generate"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/events.module.js",
+      "default": "./src/events.module.ts"
+    }
+  },
+  "dependencies": {
+    "@nestjs/common": "^10.0.0",
+    "@nestjs/schedule": "^4.0.0",
+    "@shopana/shared-kernel": "*",
+    "@shopana/shared-context": "*",
+    "drizzle-orm": "^0.44.7",
+    "postgres": "^3.4.7",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@shopana/build-tools": "0.0.1",
+    "@types/node": "^20.14.14",
+    "drizzle-kit": "^0.31.7",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.4"
+  }
+}
+```
+
+### drizzle.config.ts
+
+```typescript
+import { defineConfig } from "drizzle-kit";
+
+export default defineConfig({
+  schema: "./src/repositories/models/index.ts",
+  out: "./migrations",
+  dialect: "postgresql",
+});
+```
+
+### Bootstrap Integration
+
+`bootstrap` сервис импортирует `events` модуль:
+
+```typescript
+// services/bootstrap/src/bootstrap.module.ts
+
+import { Module } from "@nestjs/common";
+import { EventsModule } from "@shopana/events-service";
+// ... other imports
+
+@Module({
+  imports: [
+    EventsModule,  // Event store, DLQ, scheduling
+    // ... other modules
+  ],
+})
+export class BootstrapModule {}
+```
+
+```json
+// services/bootstrap/package.json (добавить зависимость)
+{
+  "dependencies": {
+    "@shopana/events-service": "0.0.1",
+    // ... existing deps
+  }
+}
+```
+
+---
+
 ## Part 1: Event Types & Registry
 
 ### 1.1 Event Definition
@@ -678,7 +788,7 @@ export class EventDispatchWorkflow {
    */
   @DBOS.step()
   private async persistEvent(event: DomainEvent): Promise<void> {
-    await this.broker.call("bootstrap.persistEvent", { event });
+    await this.broker.call("events.persistEvent", { event });
   }
 
   /**
@@ -689,7 +799,7 @@ export class EventDispatchWorkflow {
     eventId: string,
     results: HandlerInvocationResult[]
   ): Promise<void> {
-    await this.broker.call("bootstrap.updateEventStatus", {
+    await this.broker.call("events.updateEventStatus", {
       eventId,
       status: "completed",
       handlerResults: results,
@@ -778,7 +888,7 @@ export class EventDispatchWorkflow {
     error: string,
     attempts: number
   ): Promise<void> {
-    await this.broker.call("bootstrap.addToDLQ", {
+    await this.broker.call("events.addToDLQ", {
       event,
       handler: {
         service: serviceName,
@@ -1010,9 +1120,51 @@ services/inventory/src/
 
 ## Part 5: Event Persistence & Audit
 
-### 5.1 Event Store Schema
+> **Note**: Все таблицы и broker actions этой части находятся в сервисе `events` (не `bootstrap`).
+
+### 5.1 Drizzle Schema Models
+
+```typescript
+// services/events/src/repositories/models/domainEvents.ts
+
+import { pgTable, text, timestamp, jsonb, index } from "drizzle-orm/pg-core";
+
+export const domainEvents = pgTable(
+  "domain_events",
+  {
+    eventId: text("event_id").primaryKey(),
+    eventType: text("event_type").notNull(),
+    source: text("source").notNull(),
+    timestamp: timestamp("timestamp", { withTimezone: true }).notNull(),
+    payload: jsonb("payload").notNull(),
+    tenantId: text("tenant_id").notNull(),
+    userId: text("user_id"),
+    correlationId: text("correlation_id").notNull(),
+    causationId: text("causation_id"),
+    status: text("status").notNull().default("pending"),
+    dispatchStartedAt: timestamp("dispatch_started_at", { withTimezone: true }),
+    dispatchCompletedAt: timestamp("dispatch_completed_at", { withTimezone: true }),
+    handlerResults: jsonb("handler_results"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_events_type").on(table.eventType),
+    index("idx_events_tenant").on(table.tenantId),
+    index("idx_events_correlation").on(table.correlationId),
+    index("idx_events_timestamp").on(table.timestamp),
+  ]
+);
+
+export type DomainEventRecord = typeof domainEvents.$inferSelect;
+export type NewDomainEventRecord = typeof domainEvents.$inferInsert;
+```
+
+### 5.2 Generated SQL Migration
 
 ```sql
+-- services/events/migrations/0000_initial.sql
+
 CREATE TABLE IF NOT EXISTS domain_events (
   event_id TEXT PRIMARY KEY,
 
@@ -1047,15 +1199,32 @@ CREATE INDEX idx_events_status ON domain_events(status) WHERE status != 'complet
 CREATE INDEX idx_events_timestamp ON domain_events(timestamp);
 ```
 
-### 5.2 Event Store Service
+### 5.3 Event Store Service
 
 ```typescript
-// services/bootstrap/src/EventStoreBrokerActions.ts
+// services/events/src/EventsBrokerActions.ts
 
-import { Action, BrokerActions } from "@shopana/shared-kernel";
+import { Injectable } from "@nestjs/common";
+import {
+  Action,
+  BrokerActions,
+  InjectBroker,
+  ServiceBroker,
+} from "@shopana/shared-kernel";
 import type { DomainEvent } from "@shopana/events";
+import { eq, sql } from "drizzle-orm";
+import { domainEvents } from "./repositories/models/domainEvents.js";
+import { deadLetterQueue, type DLQEntry } from "./repositories/models/deadLetterQueue.js";
 
-export class EventStoreBrokerActions extends BrokerActions {
+/**
+ * Broker actions for event persistence and DLQ management.
+ * Lives in the `events` service.
+ */
+@Injectable()
+export class EventsBrokerActions extends BrokerActions {
+  constructor(@InjectBroker("events") broker: ServiceBroker) {
+    super(broker);
+  }
 
   @Action("persistEvent")
   async persistEvent(params: { event: DomainEvent }): Promise<{ persisted: boolean }> {
@@ -1183,12 +1352,12 @@ export class EventStoreBrokerActions extends BrokerActions {
 
 ---
 
-### 5.3 DLQ Cleanup Scheduler
+### 5.4 DLQ Cleanup Scheduler
 
 ```typescript
-// services/bootstrap/src/DLQCleanupScheduler.ts
+// services/events/src/DLQCleanupScheduler.ts
 
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { InjectBroker, ServiceBroker } from "@shopana/shared-kernel";
 
@@ -1198,7 +1367,9 @@ import { InjectBroker, ServiceBroker } from "@shopana/shared-kernel";
  */
 @Injectable()
 export class DLQCleanupScheduler {
-  constructor(@InjectBroker("bootstrap") private readonly broker: ServiceBroker) {}
+  private readonly logger = new Logger(DLQCleanupScheduler.name);
+
+  constructor(@InjectBroker("events") private readonly broker: ServiceBroker) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
   async cleanupExpiredEntries(): Promise<void> {
@@ -1207,7 +1378,7 @@ export class DLQCleanupScheduler {
 
     // Process in batches until no more expired entries
     do {
-      const result = await this.broker.call("bootstrap.cleanupDLQ", {
+      const result = await this.broker.call("events.cleanupDLQ", {
         batchSize: 1000,
       });
       deleted = result.deleted;
@@ -1215,37 +1386,94 @@ export class DLQCleanupScheduler {
     } while (deleted > 0);
 
     if (totalDeleted > 0) {
-      console.log(`DLQ cleanup: deleted ${totalDeleted} expired entries`);
+      this.logger.log(`DLQ cleanup: deleted ${totalDeleted} expired entries`);
     }
   }
 }
 ```
 
+### 5.5 Events Module
+
 ```typescript
-// services/bootstrap/src/bootstrap.module.ts
+// services/events/src/events.module.ts
 
 import { Module } from "@nestjs/common";
 import { ScheduleModule } from "@nestjs/schedule";
-import { EventStoreBrokerActions } from "./EventStoreBrokerActions.js";
+import { EventsBrokerActions } from "./EventsBrokerActions.js";
 import { DLQCleanupScheduler } from "./DLQCleanupScheduler.js";
 
 @Module({
   imports: [ScheduleModule.forRoot()],
   providers: [
-    EventStoreBrokerActions,
+    EventsBrokerActions,
     DLQCleanupScheduler,
   ],
+  exports: [EventsBrokerActions],
 })
-export class BootstrapModule {}
+export class EventsModule {}
 ```
 
 ---
 
 ## Part 6: Dead Letter Queue (DLQ)
 
-### 6.1 DLQ Schema
+> **Note**: DLQ tables и broker actions находятся в сервисе `events`.
+
+### 6.1 Drizzle Schema Model
+
+```typescript
+// services/events/src/repositories/models/deadLetterQueue.ts
+
+import { pgTable, text, timestamp, jsonb, integer, uuid, uniqueIndex, index } from "drizzle-orm/pg-core";
+
+export const deadLetterQueue = pgTable(
+  "dead_letter_queue",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: text("event_id").notNull(),
+    eventType: text("event_type").notNull(),
+    event: jsonb("event").notNull(),
+    handlerService: text("handler_service").notNull(),
+    handlerAction: text("handler_action").notNull(),
+    error: text("error").notNull(),
+    errorCode: text("error_code"),
+    attempts: integer("attempts").notNull(),
+    tenantId: text("tenant_id"),
+    correlationId: text("correlation_id"),
+    status: text("status").notNull().default("failed"),
+    failedAt: timestamp("failed_at", { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("dlq_event_handler_unique").on(
+      table.eventId,
+      table.handlerService,
+      table.handlerAction
+    ),
+    index("idx_dlq_status").on(table.status),
+    index("idx_dlq_event_type").on(table.eventType, table.status),
+    index("idx_dlq_tenant").on(table.tenantId, table.status),
+  ]
+);
+
+export type DLQEntry = typeof deadLetterQueue.$inferSelect;
+export type NewDLQEntry = typeof deadLetterQueue.$inferInsert;
+```
+
+### 6.2 Models Index
+
+```typescript
+// services/events/src/repositories/models/index.ts
+
+export * from "./domainEvents.js";
+export * from "./deadLetterQueue.js";
+```
+
+### 6.3 Generated SQL Migration
 
 ```sql
+-- services/events/migrations/0000_initial.sql (continued)
+
 CREATE TABLE IF NOT EXISTS dead_letter_queue (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
@@ -1278,79 +1506,7 @@ CREATE INDEX idx_dlq_tenant ON dead_letter_queue(tenant_id, status);
 CREATE INDEX idx_dlq_expires ON dead_letter_queue(expires_at) WHERE expires_at IS NOT NULL;
 ```
 
-### 6.2 DLQ Repository
-
-```typescript
-// packages/events/src/dlq/repository.ts
-
-export interface FailedHandlerInfo {
-  event: DomainEvent;
-  handler: { service: string; action: string };
-  error: string;
-  errorCode?: string;
-  attempts: number;
-}
-
-export class DeadLetterRepository {
-  constructor(private readonly db: PgDatabase<any, any, any>) {}
-
-  async add(info: FailedHandlerInfo): Promise<DeadLetterEntry> {
-    const [result] = await this.db.insert(deadLetterQueue).values({
-      eventId: info.event.eventId,
-      eventType: info.event.eventType,
-      event: info.event as unknown as Record<string, unknown>,
-      handlerService: info.handler.service,
-      handlerAction: info.handler.action,
-      error: info.error,
-      errorCode: info.errorCode,
-      attempts: info.attempts,
-      tenantId: info.event.context.tenantId,
-      correlationId: info.event.context.correlationId,
-      status: "failed",
-      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-    }).onConflictDoUpdate({
-      target: [deadLetterQueue.eventId, deadLetterQueue.handlerService, deadLetterQueue.handlerAction],
-      set: {
-        error: info.error,
-        errorCode: info.errorCode,
-        attempts: info.attempts,
-        failedAt: new Date(),
-        status: "failed",
-      },
-    }).returning();
-
-    return result;
-  }
-
-  /**
-   * Get failed entries for inspection/debugging.
-   */
-  async getFailedEntries(limit: number = 100): Promise<DeadLetterEntry[]> {
-    return this.db
-      .select()
-      .from(deadLetterQueue)
-      .where(eq(deadLetterQueue.status, "failed"))
-      .orderBy(deadLetterQueue.failedAt)
-      .limit(limit);
-  }
-
-  /**
-   * Cleanup expired entries.
-   */
-  async cleanup(batchSize: number = 1000): Promise<number> {
-    const result = await this.db.execute(sql`
-      DELETE FROM dead_letter_queue
-      WHERE id IN (
-        SELECT id FROM dead_letter_queue
-        WHERE expires_at IS NOT NULL AND expires_at < NOW()
-        LIMIT ${batchSize}
-      )
-    `);
-
-    return result.rowCount ?? 0;
-  }
-}
-```
+> **Note**: DLQ operations (add, get, cleanup) реализованы в `EventsBrokerActions` (см. Part 5.3).
 
 ---
 
@@ -1412,16 +1568,19 @@ type EventLogEvent =
 │     ▼                                                                       │
 │  2. ProductService.createProduct()                                          │
 │     │  - Creates product in DB                                              │
-│     │  - Emits productCreated event (fire & forget)                          │
+│     │  - Emits productCreated event (fire & forget)                         │
 │     │  - Returns immediately to client                                      │
 │     │                                                                       │
 │     ▼                                                                       │
 │  3. EventEmitter.emit(ProductCreatedEvent)                                  │
 │     │  - Starts EventDispatchWorkflow                                       │
-│     │  - Workflow ID: event:dispatch:productCreated:{eventId}                │
+│     │  - Workflow ID: event:dispatch:productCreated:{eventId}               │
 │     │                                                                       │
 │     ▼                                                                       │
 │  4. EventDispatchWorkflow                                                   │
+│     │                                                                       │
+│     ├──[Step 0]─► persistEvent() ─────────────► events.persistEvent         │
+│     │             - Stores event in domain_events table                     │
 │     │                                                                       │
 │     ├──[Step 1]─► getServiceNames()                                         │
 │     │             - Gets all services from config.yml                       │
@@ -1438,13 +1597,18 @@ type EventLogEvent =
 │     │             ├─► search.productCreated ────────────────► OK            │
 │     │             │   - Index product                                       │
 │     │             │                                                         │
-│     │             └─► pricing.productCreated ───────────────► FAILED → DLQ  │
-│     │                 - Retries exhausted → sendToDLQ()                     │
+│     │             └─► pricing.productCreated ───────────────► FAILED        │
+│     │                 │  - Retries exhausted                                │
+│     │                 └──► events.addToDLQ ─────────────────► DLQ           │
+│     │                                                                       │
+│     ├──[Step 3]─► updateEventStatus() ────────► events.updateEventStatus    │
+│     │             - Marks event as completed with handler results           │
 │     │                                                                       │
 │     └──[Complete]─► Return EventDispatchResult                              │
 │                     { status: "completed", servicesNotified: 3 }            │
 │                                                                             │
 │  Note: Services without handler are skipped. Failed handlers go to DLQ.    │
+│        Event persistence and DLQ managed by `events` service.              │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -1513,7 +1677,8 @@ type EventLogEvent =
 | Handler Contract | `(params: { event }) => Promise<void>` |
 | Handler Registration | `@EventHandler("eventName", { retry })` → `broker.register(eventName, handler, metadata)` |
 | Retry Policy | Per-handler via `@EventHandler` options, used in `DBOS.runStep()` |
-| Dead Letter Queue | Failed handlers (after retries) sent to `bootstrap.addToDLQ` |
+| Event Store | `events` service — `domain_events` table with Drizzle ORM |
+| Dead Letter Queue | `events` service — failed handlers sent to `events.addToDLQ` |
 | Handler Independence | Each service processes independently, failures don't affect others |
 | Event Status | Always `completed` (dispatch done, regardless of failures) |
 | Idempotency | DBOS workflow + domain-level (ON CONFLICT, upserts) |
@@ -1526,11 +1691,13 @@ type EventLogEvent =
 3. **Convention over configuration** — `@EventHandler("productCreated")` → `{service}.productCreated`
 4. **Metadata in broker** — `ActionRegistry` stores handler + metadata (retry policy)
 5. **Per-handler retry** — Each handler can define own retry policy via decorator
-6. **Dead Letter Queue** — Failed handlers (after retries) stored in bootstrap for inspection
+6. **Dead Letter Queue** — Failed handlers (after retries) stored in `events` service for inspection
 7. **Independent handlers** — Each handler succeeds or fails independently
-8. **Separate classes** — `BrokerActions` for `@Action`, `EventHandlers` for `@EventHandler`
-9. **DBOS workflow idempotency** — Same eventId = same workflow = dispatch once
-10. **Domain-level idempotency** — Handlers use DB constraints (`ON CONFLICT DO NOTHING`)
+8. **Dedicated events service** — Event store, DLQ, and cleanup scheduling in separate `events` service
+8. **Dedicated events service** — Event store, DLQ, and cleanup scheduling in separate `events` service
+9. **Separate classes** — `BrokerActions` for `@Action`, `EventHandlers` for `@EventHandler`
+10. **DBOS workflow idempotency** — Same eventId = same workflow = dispatch once
+11. **Domain-level idempotency** — Handlers use DB constraints (`ON CONFLICT DO NOTHING`)
 
 ### Benefits
 
@@ -1543,6 +1710,7 @@ type EventLogEvent =
 7. **Dead Letter Queue**: Failed handlers stored for inspection and manual retry
 8. **No Central Registry**: Services discovered from existing `config.yml`
 9. **No Infrastructure Overhead**: No separate message queue
+10. **Dedicated Events Service**: Event store, DLQ, and scheduling isolated in `events` service with own migrations
 
 ### Trade-offs
 
