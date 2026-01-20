@@ -90,6 +90,13 @@ export interface SagaStepMetadata {
   order: number;
 }
 
+/** Runtime step definition used by SagaExecutor */
+export interface SagaStepDefinition {
+  method: string;
+  config: SagaStepConfig;
+  compensateMethod: string;
+}
+
 // ─────────────────────────────────────────────────────────────────
 // Error Classification (same pattern as broker actions/events)
 // ─────────────────────────────────────────────────────────────────
@@ -99,6 +106,8 @@ export interface SagaStepMetadata {
  */
 export abstract class SagaError extends Error {
   abstract readonly retryable: boolean;
+  /** Optional error code for API responses */
+  code?: string;
 }
 
 /**
@@ -108,9 +117,11 @@ export abstract class SagaError extends Error {
 export class RetryableError extends SagaError {
   readonly retryable = true;
 
-  constructor(message: string, public readonly cause?: Error) {
-    super(message);
+  constructor(message: string, cause?: Error) {
+    // Node 16+ supports cause in options
+    super(message, cause ? { cause } : undefined);
     this.name = "RetryableError";
+    this.code = "RETRYABLE_ERROR";
   }
 }
 
@@ -121,17 +132,23 @@ export class RetryableError extends SagaError {
 export class FatalError extends SagaError {
   readonly retryable = false;
 
-  constructor(message: string, public readonly cause?: Error) {
-    super(message);
+  constructor(message: string, cause?: Error, code?: string) {
+    super(message, cause ? { cause } : undefined);
     this.name = "FatalError";
+    this.code = code ?? "FATAL_ERROR";
   }
 }
 
 /**
  * Helper to classify unknown errors.
- * By default, unknown errors are treated as retryable (safe default).
+ * IMPORTANT: Unknown errors are treated as FATAL by default.
+ * Only explicitly retryable patterns trigger retry.
+ *
+ * Rationale: Unknown errors often indicate bugs, type errors, invariant
+ * violations - retrying them wastes resources and delays compensation.
  */
 export function isRetryableError(error: unknown): boolean {
+  // Explicit classification via SagaError subclasses
   if (error instanceof SagaError) {
     return error.retryable;
   }
@@ -139,23 +156,40 @@ export function isRetryableError(error: unknown): boolean {
   // Network/connection errors are retryable
   if (error instanceof Error) {
     const message = error.message.toLowerCase();
+    const name = error.name.toLowerCase();
+
     const retryablePatterns = [
       "econnrefused",
       "econnreset",
       "etimedout",
+      "enotfound",
       "socket hang up",
       "network",
       "timeout",
       "unavailable",
+      "service_unavailable",
       "503",
       "502",
       "504",
     ];
-    return retryablePatterns.some((p) => message.includes(p));
+
+    if (retryablePatterns.some((p) => message.includes(p) || name.includes(p))) {
+      return true;
+    }
   }
 
-  // Unknown errors - retry by default (safe)
-  return true;
+  // Unknown errors → FATAL (no retry)
+  // Forces explicit classification via RetryableError/FatalError
+  return false;
+}
+
+/**
+ * Add jitter to prevent thundering herd on mass failures.
+ * Returns interval with ±25% random variance.
+ */
+export function addJitter(intervalMs: number): number {
+  const jitter = intervalMs * 0.25;
+  return intervalMs + (Math.random() * 2 - 1) * jitter;
 }
 
 /** Состояние выполнения саги */
@@ -167,6 +201,24 @@ export type SagaStatus =
   | "compensated"
   | "failed";
 
+/** Serializable error info (for GraphQL/logging) */
+export interface ErrorInfo {
+  name: string;
+  message: string;
+  code?: string;
+  stack?: string;
+}
+
+/** Convert Error to serializable shape */
+export function toErrorInfo(error: Error): ErrorInfo {
+  return {
+    name: error.name,
+    message: error.message,
+    code: (error as any).code,
+    stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+  };
+}
+
 /** Контекст выполнения саги */
 export interface SagaContext<TInput = unknown> {
   /** Уникальный ID саги */
@@ -175,23 +227,42 @@ export interface SagaContext<TInput = unknown> {
   input: TInput;
   /** Текущий статус */
   status: SagaStatus;
-  /** Результаты выполненных шагов (по имени шага) */
-  stepResults: Map<string, StepResult>;
-  /** Порядок выполненных шагов (для компенсации в обратном порядке) */
-  completedSteps: string[];
+  /** Результаты выполненных шагов (по имени шага) - Record для сериализации */
+  stepResults: Record<string, StepResult>;
+  /**
+   * Все успешно выполненные шаги (immutable history).
+   * Никогда не уменьшается - для диагностики.
+   */
+  executedSteps: string[];
+  /**
+   * Шаги, которые были скомпенсированы.
+   * Растёт по мере выполнения компенсаций.
+   */
+  compensatedSteps: string[];
   /** Ошибка, вызвавшая компенсацию */
   failureError?: Error;
   /** Шаг, на котором произошла ошибка */
   failedStep?: string;
+  /** Warnings от non-critical шагов */
+  warnings: Array<{ step: string; message: string }>;
 }
 
-/** Результат выполнения саги */
+/** Результат выполнения саги (serializable) */
 export interface SagaResult<TOutput = unknown> {
   success: boolean;
+  status: SagaStatus;
   data?: TOutput;
-  error?: Error;
+  /** Error info (serializable, no Error objects) */
+  error?: ErrorInfo;
+  failedStep?: string;
+  /** All steps that were executed (history) */
+  executedSteps: string[];
+  /** Steps that were successfully compensated */
+  compensatedSteps: string[];
   compensated: boolean;
-  compensationErrors: Error[];
+  /** Compensation errors (serializable) */
+  compensationErrors: ErrorInfo[];
+  warnings: Array<{ step: string; message: string }>;
 }
 ```
 
@@ -214,27 +285,24 @@ export const SAGA_DEFINITION_KEY = Symbol("saga:definition");
  * - Можно переопределить через опцию `compensate: "customMethodName"`
  * - Если compensation метод не найден - шаг считается некомпенсируемым
  *
+ * Compensation signature: `compensateX(ctx: SagaContextManager, stepResult: T)`
+ * - stepResult содержит данные, возвращённые шагом (для rollback)
+ *
  * @example
- * // Convention: compensateCreateStore будет найден автоматически
- * @SagaStep({ name: "createStore", critical: true })
+ * @SagaStep({ name: "createStore" })
  * async createStore(ctx: SagaContext<StoreInput>): Promise<string> {
- *   return this.repository.store.create(ctx.input);
+ *   const storeId = await this.repository.store.create(ctx.input);
+ *   return storeId; // This will be passed to compensation
  * }
  *
- * // Compensation method (no decorator needed)
+ * // Compensation receives stepResult (storeId)
  * async compensateCreateStore(ctx: SagaContext, storeId: string): Promise<void> {
  *   await this.repository.store.delete(storeId);
  * }
- *
- * @example
- * // Override compensation method name
- * @SagaStep({ name: "createStore", compensate: "rollbackStore" })
- * async createStore(ctx) { ... }
- *
- * async rollbackStore(ctx, storeId) { ... }
  */
 export function SagaStep(config: SagaStepConfig): MethodDecorator {
   return function(target, propertyKey, descriptor) {
+    // IMPORTANT: Always read/write metadata from prototype (target)
     const existingSteps = Reflect.getMetadata(SAGA_STEP_KEY, target) || [];
 
     // Convention: compensate + PascalCase(stepName)
@@ -246,17 +314,17 @@ export function SagaStep(config: SagaStepConfig): MethodDecorator {
       order: existingSteps.length,
     };
 
+    // Store on prototype for consistent retrieval
     Reflect.defineMetadata(SAGA_STEP_KEY, [...existingSteps, {
       method: propertyKey,
       metadata
     }], target);
 
-    // Wrap with DBOS.step for durability
+    // DBOS.step for durability only - NO RETRIES here
+    // All retries are handled by SagaExecutor to avoid double-retry
     return DBOS.step({
-      retriesAllowed: config.retry !== undefined,
-      maxAttempts: config.retry?.maxAttempts,
-      intervalSeconds: config.retry?.intervalSeconds,
-      backoffRate: config.retry?.backoffRate,
+      retriesAllowed: false,  // Executor handles retries
+      maxAttempts: 1,
     })(target, propertyKey as string, descriptor);
   };
 }
@@ -286,23 +354,84 @@ export function Saga(name: string): ClassDecorator {
 ```typescript
 /**
  * Управляет состоянием и результатами шагов саги.
+ * Uses Record (not Map) for easy serialization/observability.
  */
 export class SagaContextManager<TInput = unknown> {
   private context: SagaContext<TInput>;
+  private readonly broker: ServiceBroker;
 
-  constructor(sagaId: string, input: TInput) {
+  constructor(sagaId: string, input: TInput, broker: ServiceBroker) {
+    this.broker = broker;
     this.context = {
       sagaId,
       input,
       status: "pending",
-      stepResults: new Map(),
-      completedSteps: [],
+      stepResults: {},
+      executedSteps: [],      // immutable history
+      compensatedSteps: [],   // grows during compensation
+      warnings: [],
     };
   }
 
-  /** Получить текущий контекст (immutable snapshot) */
+  /** Saga ID */
+  get sagaId(): string {
+    return this.context.sagaId;
+  }
+
+  /**
+   * Generate idempotency key for external calls.
+   * Format: sagaId:stepName
+   */
+  getIdempotencyKey(stepName: string): string {
+    return `${this.context.sagaId}:${stepName}`;
+  }
+
+  /**
+   * Execute broker call with automatic idempotency.
+   * This is the PREFERRED way to make external calls from saga steps.
+   *
+   * @example
+   * const result = await ctx.call("createRoles", () =>
+   *   this.broker.call<IAM.CreateRolesResult>("iam.createRoles", params)
+   * );
+   */
+  async call<TResult>(
+    stepName: string,
+    fn: (idempotencyKey: string) => Promise<TResult>,
+  ): Promise<TResult> {
+    const idempotencyKey = this.getIdempotencyKey(stepName);
+    return fn(idempotencyKey);
+  }
+
+  /**
+   * Execute broker action with automatic idempotency (convenience method).
+   *
+   * @example
+   * const result = await ctx.brokerCall<IAM.CreateRolesResult>(
+   *   "createRoles",
+   *   "iam.createRoles",
+   *   params
+   * );
+   */
+  async brokerCall<TResult, TParams = unknown>(
+    stepName: string,
+    action: string,
+    params: TParams,
+  ): Promise<TResult> {
+    return this.broker.call<TResult, TParams>(action, params, {
+      idempotencyKey: this.getIdempotencyKey(stepName),
+    });
+  }
+
+  /** Получить текущий контекст (deep immutable snapshot) */
   getContext(): Readonly<SagaContext<TInput>> {
-    return { ...this.context };
+    return {
+      ...this.context,
+      stepResults: { ...this.context.stepResults },
+      executedSteps: [...this.context.executedSteps],
+      compensatedSteps: [...this.context.compensatedSteps],
+      warnings: [...this.context.warnings],
+    };
   }
 
   /** Получить входные данные */
@@ -312,7 +441,12 @@ export class SagaContextManager<TInput = unknown> {
 
   /** Получить результат конкретного шага */
   getStepResult<T>(stepName: string): T | undefined {
-    return this.context.stepResults.get(stepName)?.data as T | undefined;
+    return this.context.stepResults[stepName]?.data as T | undefined;
+  }
+
+  /** Получить полный StepResult (для передачи в компенсацию) */
+  getStepResultFull(stepName: string): StepResult | undefined {
+    return this.context.stepResults[stepName];
   }
 
   /** Установить статус */
@@ -322,28 +456,59 @@ export class SagaContextManager<TInput = unknown> {
 
   /** Записать успешный результат шага */
   recordSuccess<T>(stepName: string, data: T): void {
-    this.context.stepResults.set(stepName, { success: true, data });
-    this.context.completedSteps.push(stepName);
+    this.context.stepResults[stepName] = { success: true, data };
+    this.context.executedSteps.push(stepName); // immutable history
   }
 
   /** Записать ошибку шага */
   recordFailure(stepName: string, error: Error): void {
-    this.context.stepResults.set(stepName, { success: false, error });
+    this.context.stepResults[stepName] = { success: false, error };
     this.context.failedStep = stepName;
     this.context.failureError = error;
   }
 
-  /** Получить шаги для компенсации (в обратном порядке) */
-  getStepsToCompensate(): string[] {
-    return [...this.context.completedSteps].reverse();
+  /** Записать warning от non-critical шага */
+  recordWarning(stepName: string, error: Error): void {
+    this.context.warnings.push({ step: stepName, message: error.message });
   }
 
-  /** Удалить шаг из списка завершённых (после компенсации) */
+  /**
+   * Получить шаги для компенсации (в обратном порядке).
+   * Returns only steps that haven't been compensated yet.
+   */
+  getStepsToCompensate(): string[] {
+    const compensated = new Set(this.context.compensatedSteps);
+    return [...this.context.executedSteps]
+      .filter((step) => !compensated.has(step))
+      .reverse();
+  }
+
+  /** Mark step as compensated (adds to compensatedSteps) */
   markCompensated(stepName: string): void {
-    const index = this.context.completedSteps.indexOf(stepName);
-    if (index > -1) {
-      this.context.completedSteps.splice(index, 1);
+    if (!this.context.compensatedSteps.includes(stepName)) {
+      this.context.compensatedSteps.push(stepName);
     }
+  }
+
+  /** Build final SagaResult (serializable) */
+  toResult<TOutput>(
+    success: boolean,
+    data?: TOutput,
+    error?: Error,
+    compensationErrors: Error[] = [],
+  ): SagaResult<TOutput> {
+    return {
+      success,
+      status: this.context.status,
+      data,
+      error: error ? toErrorInfo(error) : undefined,
+      failedStep: this.context.failedStep,
+      executedSteps: [...this.context.executedSteps],
+      compensatedSteps: [...this.context.compensatedSteps],
+      compensated: !success && compensationErrors.length === 0,
+      compensationErrors: compensationErrors.map(toErrorInfo),
+      warnings: [...this.context.warnings],
+    };
   }
 }
 ```
@@ -362,7 +527,10 @@ import { DBOS } from "@dbos-inc/dbos-sdk";
  * Error handling strategy (aligned with broker pattern):
  * - RetryableError → retry according to step's retry policy
  * - FatalError → immediate compensation, no retry
- * - Unknown errors → classify via isRetryableError(), default to retry
+ * - Unknown errors → FATAL by default (no retry) - forces explicit classification
+ *
+ * Compensation signature: compensateX(ctx, stepResult)
+ * - stepResult is the value returned by the original step
  */
 export class SagaExecutor<TInput, TOutput> {
   private readonly logger = new Logger(SagaExecutor.name);
@@ -378,7 +546,11 @@ export class SagaExecutor<TInput, TOutput> {
    * Выполняет сагу с автоматической компенсацией при ошибках.
    */
   async execute(sagaId: string, input: TInput): Promise<SagaResult<TOutput>> {
-    const ctx = new SagaContextManager<TInput>(sagaId, input);
+    const ctx = new SagaContextManager<TInput>(
+      sagaId,
+      input,
+      this.sagaInstance.broker, // Pass broker for ctx.brokerCall()
+    );
     ctx.setStatus("running");
 
     const compensationErrors: Error[] = [];
@@ -393,12 +565,13 @@ export class SagaExecutor<TInput, TOutput> {
           const result = await this.executeStepWithRetry(step, ctx);
           ctx.recordSuccess(step.config.name, result);
         } catch (error) {
-          ctx.recordFailure(step.config.name, error as Error);
-
           if (step.config.critical !== false) {
+            ctx.recordFailure(step.config.name, error as Error);
             throw error; // Trigger compensation
           }
 
+          // Non-critical: record warning, continue
+          ctx.recordWarning(step.config.name, error as Error);
           this.logger.warn(
             `Non-critical step ${step.config.name} failed, continuing`,
             error,
@@ -410,12 +583,7 @@ export class SagaExecutor<TInput, TOutput> {
       output = await this.sagaInstance.buildOutput(ctx);
       ctx.setStatus("completed");
 
-      return {
-        success: true,
-        data: output,
-        compensated: false,
-        compensationErrors: [],
-      };
+      return ctx.toResult(true, output);
 
     } catch (error) {
       this.logger.error(
@@ -434,10 +602,16 @@ export class SagaExecutor<TInput, TOutput> {
           continue;
         }
 
+        // Get the step result to pass to compensation
+        const stepResult = ctx.getStepResultFull(stepName);
+
         try {
           this.logger.debug(`Running compensation: ${compensateMethod}`);
-          // Compensations always retry aggressively
-          await this.executeCompensationWithRetry(compensateMethod, ctx);
+          await this.executeCompensationWithRetry(
+            compensateMethod,
+            ctx,
+            stepResult?.data,
+          );
           ctx.markCompensated(stepName);
         } catch (compError) {
           this.logger.error(`Compensation ${compensateMethod} failed`, compError);
@@ -447,19 +621,14 @@ export class SagaExecutor<TInput, TOutput> {
 
       ctx.setStatus(compensationErrors.length > 0 ? "failed" : "compensated");
 
-      return {
-        success: false,
-        error: error as Error,
-        compensated: compensationErrors.length === 0,
-        compensationErrors,
-      };
+      return ctx.toResult(false, undefined, error as Error, compensationErrors);
     }
   }
 
   /**
    * Execute step with retry policy.
-   * FatalError → immediate throw (no retry)
-   * RetryableError → retry according to policy
+   * FatalError / unknown → no retry, immediate compensation
+   * RetryableError → retry according to policy with jitter
    */
   private async executeStepWithRetry(
     step: SagaStepDefinition,
@@ -480,18 +649,10 @@ export class SagaExecutor<TInput, TOutput> {
       } catch (error) {
         lastError = error as Error;
 
-        // FatalError → no retry, immediate compensation
-        if (error instanceof FatalError) {
-          this.logger.debug(
-            `Step ${step.config.name} failed with FatalError, skipping retry`,
-          );
-          throw error;
-        }
-
-        // Check if error is retryable
+        // FatalError or unknown → no retry
         if (!isRetryableError(error)) {
           this.logger.debug(
-            `Step ${step.config.name} failed with non-retryable error`,
+            `Step ${step.config.name} failed with non-retryable error, no retry`,
           );
           throw error;
         }
@@ -504,11 +665,12 @@ export class SagaExecutor<TInput, TOutput> {
           throw error;
         }
 
-        // Wait before retry
+        // Wait before retry (with jitter to prevent thundering herd)
+        const jitteredInterval = addJitter(interval);
         this.logger.debug(
-          `Step ${step.config.name} attempt ${attempt} failed, retrying in ${interval}ms`,
+          `Step ${step.config.name} attempt ${attempt} failed, retrying in ${jitteredInterval}ms`,
         );
-        await this.sleep(interval);
+        await this.sleep(jitteredInterval);
         interval *= policy.backoffRate;
       }
     }
@@ -517,11 +679,13 @@ export class SagaExecutor<TInput, TOutput> {
   }
 
   /**
-   * Execute compensation with aggressive retry (compensations must succeed).
+   * Execute compensation with aggressive retry.
+   * Compensations MUST succeed - they get more attempts and always retry.
    */
   private async executeCompensationWithRetry(
     methodName: string,
     ctx: SagaContextManager<TInput>,
+    stepResult: unknown,
   ): Promise<void> {
     const policy: RetryPolicy = {
       maxAttempts: 10,
@@ -534,7 +698,7 @@ export class SagaExecutor<TInput, TOutput> {
 
     for (let attempt = 1; attempt <= policy.maxAttempts; attempt++) {
       try {
-        await this.executeCompensation(methodName, ctx);
+        await this.executeCompensation(methodName, ctx, stepResult);
         return;
       } catch (error) {
         lastError = error as Error;
@@ -546,10 +710,11 @@ export class SagaExecutor<TInput, TOutput> {
           throw error;
         }
 
+        const jitteredInterval = addJitter(interval);
         this.logger.warn(
-          `Compensation ${methodName} attempt ${attempt} failed, retrying`,
+          `Compensation ${methodName} attempt ${attempt} failed, retrying in ${jitteredInterval}ms`,
         );
-        await this.sleep(interval);
+        await this.sleep(jitteredInterval);
         interval *= policy.backoffRate;
       }
     }
@@ -573,12 +738,17 @@ export class SagaExecutor<TInput, TOutput> {
     return method.call(this.sagaInstance, ctx);
   }
 
+  /**
+   * Execute compensation method with stepResult.
+   * Signature: compensateX(ctx: SagaContextManager, stepResult: T)
+   */
   private async executeCompensation(
     methodName: string,
     ctx: SagaContextManager<TInput>,
+    stepResult: unknown,
   ): Promise<void> {
     const method = (this.sagaInstance as any)[methodName];
-    await method.call(this.sagaInstance, ctx);
+    await method.call(this.sagaInstance, ctx, stepResult);
   }
 
   private timeout(ms: number, stepName: string): Promise<never> {
@@ -657,7 +827,8 @@ export abstract class BrokerSaga<TInput, TOutput>
   protected readonly logger: Logger;
   private executor: SagaExecutor<TInput, TOutput> | null = null;
 
-  constructor(protected readonly broker: ServiceBroker) {
+  // Public for SagaExecutor to pass to SagaContextManager
+  constructor(public readonly broker: ServiceBroker) {
     super(new.target.name);
     this.logger = new Logger(this.constructor.name);
   }
@@ -683,8 +854,10 @@ export abstract class BrokerSaga<TInput, TOutput>
    * Инициализирует executor на основе декораторов.
    */
   private initializeExecutor(): void {
-    const steps = this.collectSteps();
-    const compensations = this.collectCompensations();
+    // IMPORTANT: Always read metadata from prototype for consistency
+    const prototype = Object.getPrototypeOf(this);
+    const steps = this.collectSteps(prototype);
+    const compensations = this.collectCompensations(prototype, steps);
 
     this.executor = new SagaExecutor<TInput, TOutput>(
       this,
@@ -695,37 +868,41 @@ export abstract class BrokerSaga<TInput, TOutput>
 
   /**
    * Собирает шаги из декораторов @SagaStep.
+   * Reads from prototype to match where decorator stores metadata.
    */
-  private collectSteps(): SagaStepDefinition[] {
-    const stepsMetadata = Reflect.getMetadata(SAGA_STEP_KEY, this) || [];
+  private collectSteps(prototype: object): SagaStepDefinition[] {
+    const stepsMetadata = Reflect.getMetadata(SAGA_STEP_KEY, prototype) || [];
     return stepsMetadata
       .sort((a: any, b: any) => a.metadata.order - b.metadata.order)
       .map((s: any) => ({
         method: s.method,
         config: s.metadata.stepConfig,
+        compensateMethod: s.metadata.compensateMethod,
       }));
   }
 
   /**
    * Собирает компенсации по convention: compensate + PascalCase(stepName)
+   * Uses already collected steps to avoid re-reading metadata.
    */
-  private collectCompensations(): Map<string, string> {
+  private collectCompensations(
+    prototype: object,
+    steps: SagaStepDefinition[],
+  ): Map<string, string> {
     const compensations = new Map<string, string>();
-    const prototype = Object.getPrototypeOf(this);
-    const stepsMetadata = Reflect.getMetadata(SAGA_STEP_KEY, prototype) || [];
 
-    for (const step of stepsMetadata) {
-      const compensateMethod = step.metadata.compensateMethod;
+    for (const step of steps) {
+      const compensateMethod = step.compensateMethod;
 
       // Check if compensation method exists on the class
       if (typeof (this as any)[compensateMethod] === "function") {
-        compensations.set(step.metadata.stepConfig.name, compensateMethod);
+        compensations.set(step.config.name, compensateMethod);
         this.logger.debug(
-          `Found compensation for step "${step.metadata.stepConfig.name}": ${compensateMethod}`,
+          `Found compensation for step "${step.config.name}": ${compensateMethod}`,
         );
       } else {
         this.logger.debug(
-          `No compensation method "${compensateMethod}" for step "${step.metadata.stepConfig.name}"`,
+          `No compensation method "${compensateMethod}" for step "${step.config.name}"`,
         );
       }
     }
@@ -875,7 +1052,9 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
 
     let result: IAM.CreateRolesResult;
     try {
-      result = await this.broker.call<IAM.CreateRolesResult>(
+      // ctx.brokerCall automatically adds idempotency key
+      result = await ctx.brokerCall<IAM.CreateRolesResult>(
+        "createRoles", // step name for idempotency key
         "iam.createRoles",
         {
           userId: input.userId,
@@ -933,10 +1112,16 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // COMPENSATIONS (convention: compensate + PascalCase(stepName))
+  // COMPENSATIONS
+  // Convention: compensate + PascalCase(stepName)
+  // Signature: compensateX(ctx, stepResult) - stepResult is what step returned
   // ═══════════════════════════════════════════════════════════════
 
-  async compensateCreateStore(ctx: SagaContextManager<StoreCreateInput>): Promise<void> {
+  // stepResult = storeId returned by createStore step (but we use generateId result)
+  async compensateCreateStore(
+    ctx: SagaContextManager<StoreCreateInput>,
+    _stepResult: void,
+  ): Promise<void> {
     const storeId = ctx.getStepResult<string>("generateId");
     if (storeId) {
       await this.kernel.repository.store.delete(storeId);
@@ -944,7 +1129,10 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
     }
   }
 
-  async compensateCreateRoles(ctx: SagaContextManager<StoreCreateInput>): Promise<void> {
+  async compensateCreateRoles(
+    ctx: SagaContextManager<StoreCreateInput>,
+    _stepResult: void,
+  ): Promise<void> {
     const input = ctx.getInput();
     const storeId = ctx.getStepResult<string>("generateId");
 
@@ -957,7 +1145,10 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
     }
   }
 
-  async compensateAssignAdminRole(ctx: SagaContextManager<StoreCreateInput>): Promise<void> {
+  async compensateAssignAdminRole(
+    ctx: SagaContextManager<StoreCreateInput>,
+    _stepResult: void,
+  ): Promise<void> {
     const input = ctx.getInput();
     const storeId = ctx.getStepResult<string>("generateId");
 
@@ -972,7 +1163,10 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
     }
   }
 
-  async compensateCreateMediaAssetGroup(ctx: SagaContextManager<StoreCreateInput>): Promise<void> {
+  async compensateCreateMediaAssetGroup(
+    ctx: SagaContextManager<StoreCreateInput>,
+    _stepResult: void,
+  ): Promise<void> {
     const storeId = ctx.getStepResult<string>("generateId");
 
     if (storeId) {
@@ -1050,12 +1244,46 @@ async storeCreate(
 ```
 packages/shared-kernel/src/saga/
 ├── index.ts                 # Public exports
-├── types.ts                 # Типы и интерфейсы
-├── errors.ts                # RetryableError, FatalError, isRetryableError
+├── types.ts                 # SagaContext, SagaResult, StepResult, ErrorInfo
+├── errors.ts                # SagaError, RetryableError, FatalError, isRetryableError, toErrorInfo
+├── utils.ts                 # addJitter
 ├── decorators.ts            # @Saga, @SagaStep
-├── SagaContext.ts           # SagaContextManager
+├── SagaContext.ts           # SagaContextManager (with ctx.brokerCall)
 ├── SagaExecutor.ts          # Движок выполнения
 └── BrokerSaga.ts            # Базовый класс
+```
+
+### Public API (index.ts exports)
+
+```typescript
+// Decorators
+export { Saga, SagaStep } from "./decorators.js";
+
+// Base class
+export { BrokerSaga } from "./BrokerSaga.js";
+
+// Context
+export { SagaContextManager } from "./SagaContext.js";
+
+// Types
+export type {
+  SagaContext,
+  SagaResult,
+  SagaStatus,
+  SagaStepConfig,
+  StepResult,
+  RetryPolicy,
+  ErrorInfo,
+} from "./types.js";
+
+// Errors
+export {
+  SagaError,
+  RetryableError,
+  FatalError,
+  isRetryableError,
+  toErrorInfo,
+} from "./errors.js";
 ```
 
 ## Error Classification Pattern
@@ -1104,7 +1332,13 @@ packages/shared-kernel/src/saga/
 |------------|-------------|----------|
 | `RetryableError` | Transient failures that may succeed on retry | Network timeout, service unavailable, 502/503/504 |
 | `FatalError` | Business/validation errors that won't change | Invalid input, resource not found, conflict |
-| Unknown errors | Classified via `isRetryableError()` | Default: retry (safe) |
+| Unknown errors | Classified via `isRetryableError()` | **Default: FATAL** (no retry) |
+
+**Why unknown = FATAL?**
+- Unknown errors often indicate bugs, TypeErrors, invariant violations
+- Retrying them wastes resources and delays compensation
+- Forces explicit classification via `RetryableError`/`FatalError`
+- Pattern: "be explicit about what's safe to retry"
 
 ### Example usage in step
 
@@ -1114,7 +1348,12 @@ async createRoles(ctx: SagaContextManager<Input>): Promise<void> {
   let result: IAM.CreateRolesResult;
 
   try {
-    result = await this.broker.call("iam.createRoles", params);
+    // ctx.brokerCall automatically adds idempotency key (sagaId:stepName)
+    result = await ctx.brokerCall<IAM.CreateRolesResult>(
+      "createRoles",       // step name for idempotency
+      "iam.createRoles",   // action
+      params,
+    );
   } catch (error) {
     // Network error → retryable
     throw new RetryableError("IAM service unavailable", error);
@@ -1122,10 +1361,35 @@ async createRoles(ctx: SagaContextManager<Input>): Promise<void> {
 
   if (!result.success) {
     // Business error → fatal, immediate compensation
-    throw new FatalError(result.error);
+    throw new FatalError(result.error, undefined, "ROLE_CREATE_FAILED");
   }
 }
 ```
+
+### Idempotency API (built into context)
+
+**ALWAYS use `ctx.brokerCall()` or `ctx.call()` for external calls.**
+This enforces idempotency by contract, not by convention.
+
+```typescript
+// Option 1: ctx.brokerCall (recommended for broker actions)
+const result = await ctx.brokerCall<IAM.Result>("createRoles", "iam.createRoles", params);
+
+// Option 2: ctx.call (for custom idempotency logic)
+const result = await ctx.call("createRoles", (idempotencyKey) =>
+  this.customClient.createWithIdempotency(params, idempotencyKey)
+);
+
+// Option 3: Manual (discouraged, but available)
+const idempotencyKey = ctx.getIdempotencyKey("createRoles"); // sagaId:createRoles
+```
+
+### Why idempotency matters for timeouts
+
+Timeout via `Promise.race` doesn't cancel the actual operation. The step may complete
+after timeout and create resources. With idempotency:
+- Retry with same key → returns cached result (no duplicate)
+- "Already exists" responses should be treated as success, not fatal
 
 ### Compensation retry policy
 
