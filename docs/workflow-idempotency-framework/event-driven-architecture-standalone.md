@@ -56,12 +56,10 @@ services/events/
 │   ├── CleanupScheduler.ts             # Scheduled cleanup (DLQ + domain events retention)
 │   ├── context/
 │   │   └── index.ts
-│   ├── formatters/
-│   │   └── EventFormatters.ts          # Formatter registry for UI-safe event data
 │   ├── repositories/
 │   │   └── models/
 │   │       ├── index.ts
-│   │       ├── domainEvents.ts         # domain_events table schema (with UI fields)
+│   │       ├── domainEvents.ts         # domain_events table schema
 │   │       └── deadLetterQueue.ts      # dead_letter_queue table schema
 │   └── infrastructure/
 │       └── db/
@@ -1733,26 +1731,8 @@ export const domainEvents = pgTable(
     actorType: text("actor_type").notNull().default("service"),  // "user" | "service" | "system"
     actorId: text("actor_id"),  // userId or service name
 
-    /** Severity level for UI filtering */
-    severity: text("severity").notNull().default("info"),  // "info" | "warning" | "error"
-
-    /** Short title for event log display */
-    title: text("title").notNull(),
-
-    /** Human-readable message for timeline */
-    message: text("message"),
-
-    /** Whitelisted data for UI (NO PII/secrets!) */
-    uiData: jsonb("ui_data").notNull().default({}),
-
     /** Hash of original payload for verification (optional) */
     payloadHash: text("payload_hash"),
-
-    // ═══════════════════════════════════════════════════════════════════
-    // NOTE: payload is NOT stored in this table!
-    // UI only sees uiData (whitelisted, safe for display).
-    // Full payload is not persisted to avoid PII/secrets leakage.
-    // ═══════════════════════════════════════════════════════════════════
 
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -1823,28 +1803,16 @@ CREATE TABLE IF NOT EXISTS domain_events (
   actor_type TEXT NOT NULL DEFAULT 'service',  -- 'user' | 'service' | 'system'
   actor_id TEXT,
 
-  -- UI display fields
-  severity TEXT NOT NULL DEFAULT 'info',  -- 'info' | 'warning' | 'error'
-  title TEXT NOT NULL,
-  message TEXT,
-
-  -- Whitelisted data for UI (NO PII!)
-  ui_data JSONB NOT NULL DEFAULT '{}'::jsonb,
-
   -- Payload hash for verification
   payload_hash TEXT,
-
-  -- NOTE: payload is NOT stored! Only ui_data (whitelisted) is persisted.
 
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
   CONSTRAINT domain_events_status_chk
-    CHECK (status IN ('pending', 'dispatching', 'completed')),
+    CHECK (status IN ('dispatching', 'completed')),
   CONSTRAINT domain_events_actor_type_chk
-    CHECK (actor_type IN ('user', 'service', 'system')),
-  CONSTRAINT domain_events_severity_chk
-    CHECK (severity IN ('info', 'warning', 'error'))
+    CHECK (actor_type IN ('user', 'service', 'system'))
 );
 
 -- Core indexes
@@ -1862,211 +1830,7 @@ CREATE INDEX idx_events_type_timestamp ON domain_events(tenant_id, event_type, t
 CREATE INDEX idx_events_related ON domain_events USING GIN (related);
 ```
 
-### 5.3 Event Formatter Registry
-
-```typescript
-// services/events/src/formatters/EventFormatters.ts
-
-import crypto from "node:crypto";
-import canonicalize from "canonicalize";
-import type { DomainEvent } from "@shopana/events";
-
-/**
- * UI-safe event data computed by formatters.
- */
-export interface FormattedEventData {
-  /** Primary subject: { type, id } */
-  subject: { type: string; id: string };
-
-  /** Related entities */
-  related: Array<{ type: string; id: string }>;
-
-  /** Actor info */
-  actor: { type: "user" | "service" | "system"; id?: string };
-
-  /** Severity level */
-  severity: "info" | "warning" | "error";
-
-  /** Short title for event log */
-  title: string;
-
-  /** Human-readable message for timeline */
-  message: string;
-
-  /** Whitelisted data for UI (NO PII!) */
-  uiData: Record<string, unknown>;
-
-  /** SHA-256 hash of canonical payload */
-  payloadHash: string;
-}
-
-/**
- * Event formatter function signature.
- */
-type EventFormatter<T extends DomainEvent = DomainEvent> = (
-  event: T
-) => FormattedEventData;
-
-/**
- * Registry of event formatters by event type.
- */
-const formatters = new Map<string, EventFormatter>();
-
-/**
- * Register a formatter for an event type.
- */
-export function registerFormatter<T extends DomainEvent>(
-  eventType: string,
-  formatter: EventFormatter<T>
-): void {
-  formatters.set(eventType, formatter as EventFormatter);
-}
-
-/**
- * Format an event for UI storage.
- *
- * IMPORTANT: This function ensures NO PII/secrets are stored in uiData.
- * Each formatter is responsible for whitelisting only safe fields.
- */
-export function formatEventForUI(event: DomainEvent): FormattedEventData {
-  const formatter = formatters.get(event.eventType);
-
-  if (formatter) {
-    return formatter(event);
-  }
-
-  // Default formatter for unknown event types
-  return {
-    subject: event.subject ?? { type: "unknown", id: "unknown" },
-    related: event.related ?? [],
-    actor: event.actor ?? { type: "service", id: event.source },
-    severity: "info",
-    title: event.eventType,
-    message: `Event ${event.eventType} from ${event.source}`,
-    uiData: {},
-    payloadHash: computePayloadHash(event.payload),
-  };
-}
-
-/**
- * Compute SHA-256 hash of payload using canonical JSON.
- */
-function computePayloadHash(payload: unknown): string {
-  const canonical = canonicalize(payload) ?? "{}";
-  return crypto.createHash("sha256").update(canonical).digest("hex");
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// BUILT-IN FORMATTERS
-// ═══════════════════════════════════════════════════════════════════
-
-// Product events
-registerFormatter("productCreated", (event) => ({
-  subject: { type: "product", id: event.payload.productId },
-  related: [{ type: "store", id: event.payload.storeId }],
-  actor: event.actor ?? { type: "service", id: event.source },
-  severity: "info",
-  title: "Product created",
-  message: `Created product "${event.payload.name}"${event.payload.sku ? ` (SKU: ${event.payload.sku})` : ""}`,
-  uiData: {
-    productId: event.payload.productId,
-    storeId: event.payload.storeId,
-    name: event.payload.name,
-    sku: event.payload.sku,
-  },
-  payloadHash: computePayloadHash(event.payload),
-}));
-
-registerFormatter("productUpdated", (event) => {
-  const changedFields = Object.keys(event.payload.changes ?? {});
-  return {
-    subject: { type: "product", id: event.payload.productId },
-    related: [{ type: "store", id: event.payload.storeId }],
-    actor: event.actor ?? { type: "service", id: event.source },
-    severity: "info",
-    title: "Product updated",
-    message: `Updated ${changedFields.length} field(s): ${changedFields.join(", ")}`,
-    uiData: {
-      productId: event.payload.productId,
-      storeId: event.payload.storeId,
-      changedFields,
-    },
-    payloadHash: computePayloadHash(event.payload),
-  };
-});
-
-registerFormatter("productDeleted", (event) => ({
-  subject: { type: "product", id: event.payload.productId },
-  related: [{ type: "store", id: event.payload.storeId }],
-  actor: event.actor ?? { type: "service", id: event.source },
-  severity: "warning",
-  title: "Product deleted",
-  message: `Product ${event.payload.productId} deleted`,
-  uiData: {
-    productId: event.payload.productId,
-    storeId: event.payload.storeId,
-  },
-  payloadHash: computePayloadHash(event.payload),
-}));
-
-// Order events
-registerFormatter("orderCreated", (event) => ({
-  subject: { type: "order", id: event.payload.orderId },
-  related: [
-    { type: "store", id: event.payload.storeId },
-    { type: "customer", id: event.payload.customerId },
-    ...event.payload.items.map((i: { productId: string }) => ({
-      type: "product",
-      id: i.productId,
-    })),
-  ],
-  actor: event.actor ?? { type: "user", id: event.payload.customerId },
-  severity: "info",
-  title: "Order created",
-  message: `Order created: ${event.payload.items.length} item(s), total ${event.payload.total}`,
-  uiData: {
-    orderId: event.payload.orderId,
-    storeId: event.payload.storeId,
-    itemsCount: event.payload.items.length,
-    total: event.payload.total,
-    // NOTE: customerId is NOT included (PII)
-  },
-  payloadHash: computePayloadHash(event.payload),
-}));
-
-registerFormatter("orderCompleted", (event) => ({
-  subject: { type: "order", id: event.payload.orderId },
-  related: [{ type: "store", id: event.payload.storeId }],
-  actor: event.actor ?? { type: "system" },
-  severity: "info",
-  title: "Order completed",
-  message: `Order ${event.payload.orderId} completed`,
-  uiData: {
-    orderId: event.payload.orderId,
-    storeId: event.payload.storeId,
-    completedAt: event.payload.completedAt,
-  },
-  payloadHash: computePayloadHash(event.payload),
-}));
-
-// Store events
-registerFormatter("storeCreated", (event) => ({
-  subject: { type: "store", id: event.payload.storeId },
-  related: [{ type: "organization", id: event.payload.organizationId }],
-  actor: event.actor ?? { type: "service", id: event.source },
-  severity: "info",
-  title: "Store created",
-  message: `Store "${event.payload.name}" created`,
-  uiData: {
-    storeId: event.payload.storeId,
-    organizationId: event.payload.organizationId,
-    name: event.payload.name,
-  },
-  payloadHash: computePayloadHash(event.payload),
-}));
-```
-
-### 5.4 Event Store Service
+### 5.3 Event Store Service
 
 ```typescript
 // services/events/src/EventsBrokerActions.ts
@@ -2082,7 +1846,7 @@ import type { DomainEvent } from "@shopana/events";
 import { eq, sql, and, desc, gte, lte, like, or } from "drizzle-orm";
 import { domainEvents } from "./repositories/models/domainEvents.js";
 import { deadLetterQueue, type DLQEntry } from "./repositories/models/deadLetterQueue.js";
-import { formatEventForUI } from "./formatters/EventFormatters.js";
+import { computePayloadHash } from "./utils/hash.js";
 
 /**
  * Broker actions for event persistence, DLQ management, and UI queries.
@@ -2119,16 +1883,11 @@ export class EventsBrokerActions extends BrokerActions {
     // (this action is called from a checkpointed step, so on replay it won't run)
     const realTimestamp = new Date();
 
-    // Format event for UI (computes title, message, uiData, etc.)
-    const formatted = formatEventForUI(event);
-
     await this.db.insert(domainEvents).values({
       eventId: event.eventId,
       eventType: event.eventType,
       source: event.source,
-      // REAL timestamp captured in this step (NOT from event object)
       timestamp: realTimestamp,
-      // NOTE: payload is NOT stored! Only uiData is persisted.
       tenantId: event.context.tenantId,
       userId: event.context.userId,
       correlationId: event.context.correlationId,
@@ -2137,18 +1896,13 @@ export class EventsBrokerActions extends BrokerActions {
       parentWorkflowId: event.parentWorkflowId,
       status: "dispatching",
       dispatchStartedAt: realTimestamp,
-
-      // UI fields from formatter
-      subjectType: formatted.subject.type,
-      subjectId: formatted.subject.id,
-      related: formatted.related,
-      actorType: formatted.actor.type,
-      actorId: formatted.actor.id,
-      severity: formatted.severity,
-      title: formatted.title,
-      message: formatted.message,
-      uiData: formatted.uiData,
-      payloadHash: formatted.payloadHash,
+      // Subject/related/actor from event
+      subjectType: event.subject.type,
+      subjectId: event.subject.id,
+      related: event.related ?? [],
+      actorType: event.actor?.type ?? "service",
+      actorId: event.actor?.id,
+      payloadHash: computePayloadHash(event.payload),
     }).onConflictDoNothing();
 
     return { persisted: true, timestamp: realTimestamp.toISOString() };
@@ -2392,76 +2146,6 @@ import { CleanupScheduler } from "./CleanupScheduler.js";
 })
 export class EventsModule {}
 ```
-
-### 5.7 PII & Security Rules
-
-> **CRITICAL**: These rules are mandatory for all event formatters and handlers.
-
-#### Never Store in `uiData`
-
-| Data Type | Examples | Why |
-|-----------|----------|-----|
-| **Email** | `user@example.com` | PII, GDPR |
-| **Phone** | `+1-555-123-4567` | PII, GDPR |
-| **Address** | Street, city, postal code | PII, GDPR |
-| **Payment data** | Card numbers, CVV, bank accounts | PCI-DSS |
-| **Tokens/Secrets** | API keys, passwords, JWT | Security |
-| **IP addresses** | `192.168.1.1` | PII in some jurisdictions |
-| **Full names** | When combined with other PII | Context-dependent |
-
-#### Safe to Store in `uiData`
-
-| Data Type | Examples | Notes |
-|-----------|----------|-------|
-| **Entity IDs** | `productId`, `orderId`, `storeId` | Always safe |
-| **Entity names** | Product name, store name | Usually safe |
-| **Counts** | `itemsCount: 5`, `changesCount: 3` | Always safe |
-| **Amounts** | `total: 99.99` (without currency details) | Usually safe |
-| **Timestamps** | `completedAt`, `createdAt` | Always safe |
-| **Status values** | `"completed"`, `"pending"` | Always safe |
-| **Changed field names** | `["price", "name", "sku"]` | Safe (no values) |
-
-#### Formatter Implementation Rules
-
-```typescript
-// ❌ BAD: Includes PII
-registerFormatter("orderCreated", (event) => ({
-  // ...
-  uiData: {
-    orderId: event.payload.orderId,
-    customerEmail: event.payload.customerEmail,  // ❌ PII!
-    shippingAddress: event.payload.address,      // ❌ PII!
-    total: event.payload.total,
-  },
-}));
-
-// ✅ GOOD: Only whitelisted fields
-registerFormatter("orderCreated", (event) => ({
-  // ...
-  uiData: {
-    orderId: event.payload.orderId,
-    storeId: event.payload.storeId,
-    itemsCount: event.payload.items.length,
-    total: event.payload.total,
-    // NOTE: customerId, email, address are NOT included
-  },
-}));
-```
-
-#### Masked Data (when necessary)
-
-If you must reference PII for context, use masking:
-
-```typescript
-function maskEmail(email: string): string {
-  const [local, domain] = email.split("@");
-  return `${local.slice(0, 2)}***@${domain}`;
-}
-
-// Result: "jo***@example.com"
-```
-
-**Rule of thumb**: If you're unsure whether a field is PII, **don't include it** in `uiData`.
 
 ---
 
@@ -2935,9 +2619,7 @@ async setStock(payload: SetStockInput) {
 | Event Status | Always `completed` (dispatch done, regardless of failures) |
 | Idempotency | DBOS workflow (parent + eventType + emitKey) + domain-level (ON CONFLICT, upserts) |
 | Consistency | Eventual — system converges over time |
-| **Formatter Registry** | `formatEventForUI()` — converts events to UI-safe format |
 | **Retention** | 90 days default, daily cleanup via `events.cleanupDomainEvents` |
-| **PII Protection** | Payload NOT stored; only whitelisted `uiData` persisted |
 
 ### Key Design Decisions
 
@@ -2955,9 +2637,7 @@ async setStock(payload: SetStockInput) {
 12. **DBOS workflow idempotency** — Same parent + eventType + emitKey = same dispatch workflow
 13. **Domain-level idempotency** — Handlers use DB constraints (`ON CONFLICT DO NOTHING`)
 14. **Subject/Related/Actor** — Every event has subject (primary entity), related entities, and actor info
-15. **Formatter registry** — Centralized formatters compute title/message/uiData from payload
-16. **No PII in storage** — Payload is NOT persisted; only whitelisted `uiData` is stored
-17. **Retention policy** — Old events automatically cleaned up (default: 90 days)
+15. **Retention policy** — Old events automatically cleaned up (default: 90 days)
 
 ### Benefits
 
@@ -2974,8 +2654,7 @@ async setStock(payload: SetStockInput) {
 11. **No Central Registry**: Services discovered from existing `config.yml`
 12. **No Infrastructure Overhead**: No separate message queue
 13. **Dedicated Events Service**: Event store, DLQ, and scheduling isolated in `events` service with own migrations
-14. **PII-Safe Storage**: Only whitelisted, UI-safe data is persisted
-15. **Automatic Cleanup**: Retention policy prevents unbounded storage growth
+14. **Automatic Cleanup**: Retention policy prevents unbounded storage growth
 
 ### Trade-offs
 
