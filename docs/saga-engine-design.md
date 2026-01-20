@@ -1547,29 +1547,30 @@ When compensation retries are exhausted, the engine calls `onCompensationExhaust
 // In BrokerSaga subclass or module configuration
 const executor = new SagaExecutor(saga, steps, compensations, {
   onCompensationExhausted: async (stepName, methodName, error, ctx) => {
-    // Option 1: Send to DLQ
-    await this.dlqService.enqueue({
-      sagaId: ctx.sagaId,
-      step: stepName,
-      compensation: methodName,
-      error: toErrorInfo(error),
-      context: ctx,
+    // Use existing events.addToDLQ action
+    await this.broker.call("events.addToDLQ", {
+      eventId: `saga:${ctx.sagaId}:compensation:${stepName}`,
+      eventType: "saga.compensation.failed",
+      tenantId: ctx.input.organizationId,
+      correlationId: ctx.sagaId,
+      handler: {
+        service: "saga",
+        action: methodName,
+      },
+      error: error.message,
+      errorCode: (error as any).code,
+      attempts: ctx.attempts[stepName] ?? 0,
     });
 
-    // Option 2: Alert ops team
-    await this.alertService.critical({
-      title: `Saga compensation failed: ${ctx.sagaId}`,
-      message: `Step ${stepName} compensation exhausted after retries`,
-    });
-
-    // Option 3: Flag for manual intervention
-    await this.db.saga.update(ctx.sagaId, {
-      status: "requires_manual_intervention",
-      failedCompensation: stepName,
-    });
+    this.logger.error(
+      { sagaId: ctx.sagaId, step: stepName, method: methodName },
+      "Saga compensation exhausted - added to DLQ",
+    );
   },
 });
 ```
+
+DLQ entries can be monitored via `events.getDLQEntries` and cleaned up via `events.cleanupDLQ`.
 
 ## Roadmap / Future Enhancements
 
