@@ -15,6 +15,18 @@ import type {
 
 export type { OrganizationCreateParams, OrganizationCreateResult };
 
+/** Params for media.createAssetGroup broker call */
+interface CreateAssetGroupParams {
+  ownerType: "organization" | "store";
+  ownerId: string;
+}
+
+/** Result from media.createAssetGroup broker call */
+interface CreateAssetGroupResult {
+  assetGroup: { id: string; ownerType: string; ownerId: string } | null;
+  userErrors: Array<{ field: string[]; message: string }>;
+}
+
 /**
  * Durable workflow for organization creation.
  *
@@ -59,10 +71,13 @@ export class OrganizationCreateWorkflow extends BrokerWorkflows {
   @Step()
   async createMediaAssetGroup(organizationId: string): Promise<void> {
     try {
-      await this.broker.call("media.createAssetGroup", {
-        ownerType: "organization",
-        ownerId: organizationId,
-      });
+      await this.broker.call<CreateAssetGroupResult, CreateAssetGroupParams>(
+        "media.createAssetGroup",
+        {
+          ownerType: "organization",
+          ownerId: organizationId,
+        },
+      );
       this.logger.debug(
         { organizationId },
         "Created media asset group for organization",

@@ -74,6 +74,7 @@ export async function startServer(serverConfig: ServerConfig) {
     "options.graphql",
     "features.graphql",
     "media.graphql",
+    "seo.graphql",
     "variant.graphql",
     "product.graphql",
     // Generated schemas

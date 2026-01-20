@@ -6,39 +6,39 @@ import {
   Action,
   ZodSchema,
 } from "@shopana/shared-kernel";
-import { Kernel } from "./kernel/Kernel.js";
-import { runWithContext, type ServiceContext } from "./context/index.js";
-import { Loader } from "./loaders/Loader.js";
-import { GetCurrentUserScript } from "./scripts/user/GetCurrentUserScript.js";
-import { AssignRoleScript } from "./scripts/organization/AssignRoleScript.js";
-import { AuthorizeScript } from "./scripts/organization/AuthorizeScript.js";
-import { BatchAuthorizeScript } from "./scripts/organization/BatchAuthorizeScript.js";
-import { CreateRolesScript } from "./scripts/organization/CreateRolesScript.js";
+import { Kernel } from "../kernel/Kernel.js";
+import { runWithContext, type ServiceContext } from "../context/index.js";
+import { Loader } from "../loaders/Loader.js";
+import { GetCurrentUserScript } from "../scripts/user/GetCurrentUserScript.js";
+import { AssignRoleScript } from "../scripts/organization/AssignRoleScript.js";
+import { AuthorizeScript } from "../scripts/organization/AuthorizeScript.js";
+import { BatchAuthorizeScript } from "../scripts/organization/BatchAuthorizeScript.js";
+import { CreateRolesScript } from "../scripts/organization/CreateRolesScript.js";
 import {
   getCurrentUserInputSchema,
   type GetCurrentUserParams,
-} from "./scripts/user/dto/GetCurrentUserDto.js";
+} from "../scripts/user/dto/GetCurrentUserDto.js";
 import {
   assignRoleInputSchema,
   type AssignRoleParams,
   type AssignRoleResult,
-} from "./scripts/organization/dto/AssignRoleDto.js";
+} from "../scripts/organization/dto/AssignRoleDto.js";
 import {
   authorizeInputSchema,
   type AuthorizeParams,
   type AuthorizeResult,
-} from "./scripts/organization/dto/AuthorizeDto.js";
+} from "../scripts/organization/dto/AuthorizeDto.js";
 import {
   batchAuthorizeInputSchema,
   type BatchAuthorizeParams,
   type BatchAuthorizeResult,
-} from "./scripts/organization/dto/BatchAuthorizeDto.js";
+} from "../scripts/organization/dto/BatchAuthorizeDto.js";
 import {
   createRolesInputSchema,
   type CreateRolesParams,
   type CreateRolesResult,
-} from "./scripts/organization/dto/CreateRolesDto.js";
-import { ORG_DOMAIN } from "./casbin/CasbinService.js";
+} from "../scripts/organization/dto/CreateRolesDto.js";
+import { ORG_DOMAIN } from "../casbin/CasbinService.js";
 import { User } from "@src/repositories/Repository.js";
 
 /**
@@ -60,9 +60,11 @@ export class IamBrokerActions extends BrokerActions {
     return {
       requestId: `broker-${Date.now()}`,
       kernel: this.kernel,
+      // @ts-expect-error
       currentUser: {
         id: userId,
         data: null,
+        // sessionId: params.sessionId, TODO: add sessionId
       },
       loaders: new Loader(this.kernel.repository),
     };
@@ -107,7 +109,7 @@ export class IamBrokerActions extends BrokerActions {
         domain: params.domain ?? ORG_DOMAIN,
         resource: params.resource,
         action: params.action,
-      })
+      }),
     );
   }
 
@@ -117,11 +119,11 @@ export class IamBrokerActions extends BrokerActions {
   @Action("batchAuthorize")
   @ZodSchema(batchAuthorizeInputSchema)
   async batchAuthorize(
-    params: BatchAuthorizeParams
+    params: BatchAuthorizeParams,
   ): Promise<BatchAuthorizeResult> {
     const ctx = await this.createUserContext(params.requests[0]?.userId ?? "");
     return runWithContext(ctx, () =>
-      this.kernel.runScript(BatchAuthorizeScript, params)
+      this.kernel.runScript(BatchAuthorizeScript, params),
     );
   }
 
@@ -133,7 +135,7 @@ export class IamBrokerActions extends BrokerActions {
   async createRoles(params: CreateRolesParams): Promise<CreateRolesResult> {
     const ctx = await this.createUserContext(params.userId);
     return runWithContext(ctx, () =>
-      this.kernel.runScript(CreateRolesScript, params)
+      this.kernel.runScript(CreateRolesScript, params),
     );
   }
 
@@ -145,7 +147,7 @@ export class IamBrokerActions extends BrokerActions {
   async assignRole(params: AssignRoleParams): Promise<AssignRoleResult> {
     const ctx = await this.createUserContext(params.userId);
     return runWithContext(ctx, () =>
-      this.kernel.runScript(AssignRoleScript, params)
+      this.kernel.runScript(AssignRoleScript, params),
     );
   }
 }

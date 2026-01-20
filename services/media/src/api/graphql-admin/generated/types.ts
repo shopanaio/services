@@ -181,6 +181,8 @@ export type File = Node & {
   updatedAt: Scalars['DateTime']['output'];
   /** Public URL to access file. */
   url: Scalars['String']['output'];
+  /** Usage summary for this file. */
+  usage: FileUsageSummary;
 };
 
 export type FileClearErrorInput = {
@@ -444,6 +446,24 @@ export type FileUploadPayload = {
   file?: Maybe<File>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
+};
+
+export type FileUsageCount = {
+  __typename?: 'FileUsageCount';
+  /** Number of unique entities referencing the file. */
+  count: Scalars['Int']['output'];
+  /** Entity type (variant, user, organization, etc). */
+  entityType: Scalars['String']['output'];
+};
+
+export type FileUsageSummary = {
+  __typename?: 'FileUsageSummary';
+  /** Usage breakdown by entity type. */
+  byEntity: Array<FileUsageCount>;
+  /** Whether the file is active (not soft-deleted). */
+  fileActive: Scalars['Boolean']['output'];
+  /** Total number of unique entities referencing the file. */
+  totalCount: Scalars['Int']['output'];
 };
 
 /** Filter conditions for File */
@@ -909,6 +929,8 @@ export type ResolversTypes = ResolversObject<{
   FileUploadFromUrlInput: FileUploadFromUrlInput;
   FileUploadMultipartInput: FileUploadMultipartInput;
   FileUploadPayload: ResolverTypeWrapper<FileUploadPayload>;
+  FileUsageCount: ResolverTypeWrapper<FileUsageCount>;
+  FileUsageSummary: ResolverTypeWrapper<FileUsageSummary>;
   FileWhereInput: FileWhereInput;
   FloatFilter: FloatFilter;
   Float: ResolverTypeWrapper<Scalars['Float']['output']>;
@@ -968,6 +990,8 @@ export type ResolversParentTypes = ResolversObject<{
   FileUploadFromUrlInput: FileUploadFromUrlInput;
   FileUploadMultipartInput: FileUploadMultipartInput;
   FileUploadPayload: FileUploadPayload;
+  FileUsageCount: FileUsageCount;
+  FileUsageSummary: FileUsageSummary;
   FileWhereInput: FileWhereInput;
   FloatFilter: FloatFilter;
   Float: Scalars['Float']['output'];
@@ -1050,6 +1074,7 @@ export type FileResolvers<ContextType = GraphQLContext, ParentType extends Resol
   sourceUrl?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   url?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  usage?: Resolver<ResolversTypes['FileUsageSummary'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1112,6 +1137,19 @@ export type FileUpdatePayloadResolvers<ContextType = GraphQLContext, ParentType 
 export type FileUploadPayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['FileUploadPayload'] = ResolversParentTypes['FileUploadPayload']> = ResolversObject<{
   file?: Resolver<Maybe<ResolversTypes['File']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FileUsageCountResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['FileUsageCount'] = ResolversParentTypes['FileUsageCount']> = ResolversObject<{
+  count?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  entityType?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FileUsageSummaryResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['FileUsageSummary'] = ResolversParentTypes['FileUsageSummary']> = ResolversObject<{
+  byEntity?: Resolver<Array<ResolversTypes['FileUsageCount']>, ParentType, ContextType>;
+  fileActive?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1213,6 +1251,8 @@ export type Resolvers<ContextType = GraphQLContext> = ResolversObject<{
   FileRestorePayload?: FileRestorePayloadResolvers<ContextType>;
   FileUpdatePayload?: FileUpdatePayloadResolvers<ContextType>;
   FileUploadPayload?: FileUploadPayloadResolvers<ContextType>;
+  FileUsageCount?: FileUsageCountResolvers<ContextType>;
+  FileUsageSummary?: FileUsageSummaryResolvers<ContextType>;
   GenericUserError?: GenericUserErrorResolvers<ContextType>;
   JSON?: GraphQLScalarType;
   MediaDimensions?: MediaDimensionsResolvers<ContextType>;
