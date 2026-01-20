@@ -430,26 +430,62 @@ export class ServiceBroker {
 }
 ```
 
-### 1.5 Event Handler Result Type
+### 1.5 Handler Contract
 
 ```typescript
 // packages/events/src/types.ts (continued)
 
 /**
- * Result of an event handler invocation.
+ * Event handler contract:
+ *
+ * - Return normally (void) → success
+ * - Return normally for idempotent "already done" cases (duplicate key, etc.)
+ * - Throw exception → DBOS retries according to retry policy
+ * - After retries exhausted → EventDispatchWorkflow catches and sends to DLQ
+ *
+ * NO special result types needed. Just throw or return.
  */
-export interface EventHandlerResult<T = void> {
-  /** Handler output (can be void) */
-  result?: T;
+export type EventHandler<TEvent> = (params: { event: TEvent }) => Promise<void>;
+```
 
-  /** Error if handler failed */
-  error?: {
-    message: string;
-    code?: string;
-    /** If true, DBOS will retry the step */
-    retryable: boolean;
-  };
-}
+### 1.6 Error Handling Pattern
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         HANDLER ERROR FLOW                                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Handler execution:                                                         │
+│                                                                             │
+│  ┌─────────────┐     ┌──────────────┐     ┌─────────────┐                  │
+│  │   Handler   │────►│ Return void  │────►│   SUCCESS   │                  │
+│  │  executes   │     └──────────────┘     └─────────────┘                  │
+│  │             │                                                            │
+│  │             │     ┌──────────────┐     ┌─────────────┐     ┌─────────┐  │
+│  │             │────►│ Throw error  │────►│ DBOS retry  │────►│   DLQ   │  │
+│  └─────────────┘     └──────────────┘     │ (N times)   │     └─────────┘  │
+│                                           └─────────────┘                  │
+│                                                                             │
+│  Idempotent cases (return normally, don't throw):                          │
+│  - Duplicate key error (record already exists)                             │
+│  - Version mismatch (already processed by another event)                   │
+│  - Resource not found for DELETE (already deleted)                         │
+│                                                                             │
+│  Retryable cases (throw, DBOS will retry):                                 │
+│  - Connection errors (ECONNREFUSED, timeout)                               │
+│  - Deadlock / serialization failure                                        │
+│  - Temporary unavailability                                                │
+│                                                                             │
+│  Non-retryable cases (throw, goes to DLQ after 1 attempt):                 │
+│  - Validation errors                                                       │
+│  - Business rule violations                                                │
+│  - Data corruption                                                         │
+│                                                                             │
+│  Note: DBOS doesn't distinguish retryable vs non-retryable errors.         │
+│  All errors are retried up to maxAttempts, then sent to DLQ.               │
+│  This is simple and predictable.                                           │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 1.4 EventHandlers Base Class
@@ -963,13 +999,16 @@ import type {
   ProductCreatedEvent,
   ProductDeletedEvent,
   ProductUpdatedEvent,
-  EventHandlerResult,
 } from "@shopana/events";
 import { Kernel } from "./kernel/Kernel.js";
 
 /**
  * Event handlers for inventory service.
  * Separate from BrokerActions for clean separation of concerns.
+ *
+ * Handler contract:
+ * - Return normally → success (including idempotent "already done")
+ * - Throw exception → DBOS retries, then DLQ
  *
  * Each handler is independent — failures don't affect other handlers.
  */
@@ -987,63 +1026,42 @@ export class InventoryEventHandlers extends EventHandlers {
    * Handle productCreated: Initialize inventory record.
    *
    * Domain idempotency: INSERT ON CONFLICT DO NOTHING
+   * - Duplicate key → returns normally (idempotent success)
+   * - Connection error → throws → DBOS retries
    */
   @EventHandler("productCreated")
-  async handleProductCreated(
-    params: { event: ProductCreatedEvent }
-  ): Promise<EventHandlerResult<void>> {
-    try {
-      const { productId, storeId, sku } = params.event.payload;
+  async handleProductCreated(params: { event: ProductCreatedEvent }): Promise<void> {
+    const { productId, storeId, sku } = params.event.payload;
 
+    try {
       await this.kernel.runScript(InitializeInventoryScript, {
         productId,
         storeId,
         sku: sku ?? productId,
         initialQuantity: 0,
       });
-
-      return {};
     } catch (error) {
+      // Duplicate key = already initialized, idempotent success
       if (isDuplicateKeyError(error)) {
-        return {}; // Already exists - idempotent success
+        this.logger.debug(`Inventory already exists for product ${productId}`);
+        return;
       }
-
-      if (isConnectionError(error)) {
-        return {
-          error: { message: String(error), code: "CONNECTION_ERROR", retryable: true },
-        };
-      }
-
-      return {
-        error: { message: String(error), code: "INTERNAL_ERROR", retryable: false },
-      };
+      // All other errors → throw → DBOS retries
+      throw error;
     }
   }
 
   /**
    * Handle productDeleted: Remove inventory record.
+   *
+   * DELETE is naturally idempotent — deleting non-existent record is OK.
    */
   @EventHandler("productDeleted")
-  async handleProductDeleted(
-    params: { event: ProductDeletedEvent }
-  ): Promise<EventHandlerResult<void>> {
-    try {
-      const { productId, storeId } = params.event.payload;
+  async handleProductDeleted(params: { event: ProductDeletedEvent }): Promise<void> {
+    const { productId, storeId } = params.event.payload;
 
-      await this.kernel.runScript(DeleteInventoryScript, { productId, storeId });
-
-      return {};
-    } catch (error) {
-      if (isConnectionError(error)) {
-        return {
-          error: { message: String(error), code: "CONNECTION_ERROR", retryable: true },
-        };
-      }
-
-      return {
-        error: { message: String(error), code: "INTERNAL_ERROR", retryable: false },
-      };
-    }
+    // Any error → throw → DBOS retries
+    await this.kernel.runScript(DeleteInventoryScript, { productId, storeId });
   }
 
   /**
@@ -1052,40 +1070,17 @@ export class InventoryEventHandlers extends EventHandlers {
    * Custom retry: more attempts for this important sync.
    */
   @EventHandler("productUpdated", { retry: { maxAttempts: 5 } })
-  async handleProductUpdated(
-    params: { event: ProductUpdatedEvent }
-  ): Promise<EventHandlerResult<{ synced: boolean; updatedFields: string[] }>> {
-    try {
-      const { productId, changes } = params.event.payload;
+  async handleProductUpdated(params: { event: ProductUpdatedEvent }): Promise<void> {
+    const { productId, changes } = params.event.payload;
 
-      const updatedFields = await this.kernel.runScript(
-        SyncInventoryMetadataScript,
-        { productId, changes }
-      );
-
-      return { result: { synced: true, updatedFields } };
-    } catch (error) {
-      if (isConnectionError(error)) {
-        return {
-          error: { message: String(error), code: "CONNECTION_ERROR", retryable: true },
-        };
-      }
-
-      return {
-        error: { message: String(error), code: "INTERNAL_ERROR", retryable: false },
-      };
-    }
+    // Any error → throw → DBOS retries (up to 5 attempts)
+    await this.kernel.runScript(SyncInventoryMetadataScript, { productId, changes });
   }
 }
 
 function isDuplicateKeyError(error: unknown): boolean {
   return String(error).includes("duplicate key") ||
          String(error).includes("unique constraint");
-}
-
-function isConnectionError(error: unknown): boolean {
-  return String(error).includes("ECONNREFUSED") ||
-         String(error).includes("connection timeout");
 }
 ```
 
@@ -1637,10 +1632,15 @@ type EventLogEvent =
 │  ─────────────────────────────────────────────────                          │
 │  Method: Unique constraints, upserts, conditional updates                   │
 │                                                                             │
+│  Handler contract:                                                          │
+│  - Return normally → success (including "already done")                     │
+│  - Throw exception → DBOS retries according to policy                       │
+│  - After retries exhausted → DLQ                                            │
+│                                                                             │
 │  Examples:                                                                  │
-│  - INSERT INTO inventory (product_id, ...) ON CONFLICT DO NOTHING           │
-│  - UPDATE inventory SET qty = qty + 1 WHERE version = expected_version      │
-│  - DELETE FROM inventory WHERE product_id = ? (naturally idempotent)        │
+│  - INSERT ON CONFLICT DO NOTHING → catch duplicate, return normally         │
+│  - UPDATE ... WHERE version = expected → return normally if 0 rows          │
+│  - DELETE WHERE id = ? → naturally idempotent, always succeeds              │
 │                                                                             │
 │  Guarantees: Business invariants even with duplicate handler calls          │
 │                                                                             │
@@ -1674,7 +1674,7 @@ type EventLogEvent =
 | Durability | DBOS workflow guarantees delivery |
 | Service Discovery | Services from `config.yml` via `getConfig().services` |
 | Fan-out | All services invoked in parallel, non-handlers skipped |
-| Handler Contract | `(params: { event }) => Promise<void>` |
+| Handler Contract | `(params: { event }) => Promise<void>` — return = success, throw = retry |
 | Handler Registration | `@EventHandler("eventName", { retry })` → `broker.register(eventName, handler, metadata)` |
 | Retry Policy | Per-handler via `@EventHandler` options, used in `DBOS.runStep()` |
 | Event Store | `events` service — `domain_events` table with Drizzle ORM |
