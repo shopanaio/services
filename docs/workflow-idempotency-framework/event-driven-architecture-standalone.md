@@ -969,7 +969,7 @@ export class EventEmitter {
    *
    * DETERMINISM: All event fields are deterministic on workflow replay:
    * - eventId: derived from tenantId + dispatchWorkflowId
-   * - timestamp: captured in persistEvent step (real wall-clock, but checkpointed!)
+   * - timestamp: captured in persistEventStep (real wall-clock, but checkpointed!)
    * - correlationId: derived from parentWorkflowId (not random!)
    *
    * @example
@@ -984,6 +984,10 @@ export class EventEmitter {
    *       payload: { productId: product.id, storeId: input.storeId, name: input.name },
    *       context: { tenantId: ctx.organizationId, userId: ctx.userId },
    *       source: "listing",
+   *       // UI/Timeline fields (REQUIRED)
+   *       subject: { type: "product", id: product.id },
+   *       related: [{ type: "store", id: input.storeId }],
+   *       actor: { type: "user", id: ctx.userId },
    *     },
    *     "product:" + product.id  // emitKey
    *   );
@@ -999,6 +1003,12 @@ export class EventEmitter {
       payload: TPayload;
       source: string;
       context: Omit<EventContext, "correlationId"> & { correlationId?: string };
+      /** REQUIRED: Primary subject for timeline grouping */
+      subject: { type: string; id: string };
+      /** Related entities (optional) */
+      related?: Array<{ type: string; id: string }>;
+      /** Who triggered this event (optional, defaults to service) */
+      actor?: { type: "user" | "service" | "system"; id?: string };
     },
     emitKey: string
   ): Promise<{ workflowId: string; eventId: string }> {
@@ -1029,12 +1039,12 @@ export class EventEmitter {
       ?? makeDeterministicCorrelationId(parentWorkflowId);
 
     // Build event object
-    // NOTE: timestamp is NOT set here — it will be captured in persistEvent step
+    // NOTE: timestamp is NOT set here — it will be captured in persistEventStep
     // (real wall-clock time, checkpointed by DBOS for replay safety)
     const event: DomainEvent<TType, TPayload> = {
       eventId,
       eventType: input.eventType,
-      timestamp: "",  // Will be set in persistEvent step with real time
+      timestamp: "",  // Will be set in persistEventStep with real time
       source: input.source,
       payload: input.payload,
       emitKey,
@@ -1043,6 +1053,10 @@ export class EventEmitter {
         ...input.context,
         correlationId,
       },
+      // UI/Timeline fields (REQUIRED for valid event)
+      subject: input.subject,
+      related: input.related ?? [],
+      actor: input.actor ?? { type: "service", id: input.source },
     };
 
     // Start dispatch workflow
@@ -1065,6 +1079,12 @@ export class EventEmitter {
       payload: TPayload;
       source: string;
       context: Omit<EventContext, "correlationId"> & { correlationId?: string };
+      /** REQUIRED: Primary subject for timeline grouping */
+      subject: { type: string; id: string };
+      /** Related entities (optional) */
+      related?: Array<{ type: string; id: string }>;
+      /** Who triggered this event (optional, defaults to service) */
+      actor?: { type: "user" | "service" | "system"; id?: string };
     },
     emitKey: string
   ): Promise<EventDispatchResult> {
@@ -1093,11 +1113,11 @@ export class EventEmitter {
     const correlationId = input.context.correlationId
       ?? makeDeterministicCorrelationId(parentWorkflowId);
 
-    // NOTE: timestamp will be set in persistEvent step with real time
+    // NOTE: timestamp will be set in persistEventStep with real time
     const event: DomainEvent<TType, TPayload> = {
       eventId,
       eventType: input.eventType,
-      timestamp: "",  // Will be set in persistEvent step
+      timestamp: "",  // Will be set in persistEventStep
       source: input.source,
       payload: input.payload,
       emitKey,
@@ -1106,6 +1126,10 @@ export class EventEmitter {
         ...input.context,
         correlationId,
       },
+      // UI/Timeline fields (REQUIRED for valid event)
+      subject: input.subject,
+      related: input.related ?? [],
+      actor: input.actor ?? { type: "service", id: input.source },
     };
 
     const handle = await DBOS
