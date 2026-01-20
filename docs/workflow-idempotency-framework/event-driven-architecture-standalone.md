@@ -598,6 +598,9 @@ export type EventHandler<TEvent> = (params: { event: TEvent }) => Promise<EventH
 │                                                                             │
 │  HOW WRAPPER WORKS (inside EventDispatchWorkflow.tryInvokeHandler):        │
 │                                                                             │
+│  DETERMINISM: Handler list + retryPolicy come from checkpointed            │
+│  getAvailableHandlers() step. On replay, same handlers with same config.   │
+│                                                                             │
 │  1. Call handler via broker → get EventHandlerResponse                     │
 │  2. If { ok: true } → return success marker                                │
 │  3. If { ok: false, retryable: false } → return failure marker (no throw)  │
@@ -1168,18 +1171,24 @@ export interface EventDispatchResult {
 
 export interface HandlerInvocationResult {
   service: string;
-  status: "success" | "skipped" | "failed";
+  status: "success" | "failed";
   error?: string;
   durationMs: number;
 }
 
 /**
- * Internal type for step return value.
- * Allows distinguishing success vs non-retryable failure without throwing.
+ * Handler info captured at checkpoint time.
+ * Includes retry policy to ensure consistent behavior on replay.
  */
-type StepReturn =
-  | { kind: "ok" }
-  | { kind: "nonRetryableFailure"; error: { message: string; code?: string } };
+interface HandlerInfo {
+  serviceName: string;
+  action: string;
+  retryPolicy: {
+    maxAttempts: number;
+    intervalSeconds: number;
+    backoffRate: number;
+  };
+}
 
 /**
  * Main event dispatch workflow.
@@ -1207,29 +1216,27 @@ export class EventDispatchWorkflow {
     // Enrich event with real timestamp for handlers
     const eventWithTimestamp: DomainEvent = { ...event, timestamp };
 
-    // Step 2: Get all service names from config
-    const serviceNames = await this.getServiceNames();
+    // Step 2: Get handlers that exist for this event type (checkpointed!)
+    // This ensures determinism on replay — same handler list every time
+    const handlers = await this.getAvailableHandlers(event.eventType);
 
     // Step 3: Try to invoke handler on each service in parallel
     // NOTE: handlers receive eventWithTimestamp (has real time!)
-    const resultPromises = serviceNames.map((serviceName) =>
-      this.tryInvokeHandler(eventWithTimestamp, serviceName)
+    const resultPromises = handlers.map((handler) =>
+      this.tryInvokeHandler(eventWithTimestamp, handler)
     );
 
     const results = await Promise.all(resultPromises);
 
-    // Filter out skipped services (those that don't handle this event)
-    const notifiedResults = results.filter((r) => r.status !== "skipped");
-
     // Step 4: Update event status to completed
-    await this.updateEventStatus(event.eventId, notifiedResults);
+    await this.updateEventStatus(event.eventId, results);
 
     return {
       eventId: event.eventId,
       eventType: event.eventType,
       status: "completed",
-      servicesNotified: notifiedResults.length,
-      results: notifiedResults,
+      servicesNotified: results.length,
+      results,
     };
   }
 
@@ -1263,19 +1270,50 @@ export class EventDispatchWorkflow {
   }
 
   /**
-   * Get service names from config.
+   * Get available handlers for this event type.
    *
    * DETERMINISM: This is a @DBOS.step(), so the result is checkpointed.
-   * On workflow replay, DBOS returns the checkpointed service list.
+   * On workflow replay, DBOS returns the same handler list — even if
+   * broker registration changed since then.
+   *
+   * Also captures retry policy at checkpoint time, ensuring consistent
+   * retry behavior on replay.
    */
   @DBOS.step()
-  private async getServiceNames(): Promise<string[]> {
+  private async getAvailableHandlers(eventType: string): Promise<HandlerInfo[]> {
     const config = getConfig();
-    return Object.keys(config.services);
+    const serviceNames = Object.keys(config.services);
+    const handlers: HandlerInfo[] = [];
+
+    for (const serviceName of serviceNames) {
+      const action = `${serviceName}.${eventType}`;
+
+      // Check if this service has a handler for this event type
+      if (this.broker.hasAction(action)) {
+        // Capture retry policy at checkpoint time
+        const metadata = this.broker.getActionMetadata(action);
+        const retryPolicy = metadata?.retryPolicy ?? {
+          maxAttempts: 3,
+          intervalSeconds: 1,
+          backoffRate: 2,
+        };
+
+        handlers.push({
+          serviceName,
+          action,
+          retryPolicy,
+        });
+      }
+    }
+
+    return handlers;
   }
 
   /**
    * Try to invoke event handler on a service.
+   *
+   * DETERMINISM: Handler info (including retryPolicy) comes from checkpointed
+   * getAvailableHandlers() step — ensures identical behavior on replay.
    *
    * Wrapper logic:
    * - Handler returns { ok: true } → success
@@ -1287,26 +1325,9 @@ export class EventDispatchWorkflow {
    */
   private async tryInvokeHandler(
     event: DomainEvent,
-    serviceName: string
+    handler: HandlerInfo
   ): Promise<HandlerInvocationResult> {
-    const action = `${serviceName}.${event.eventType}`;
-
-    // Check if action exists (not a step — just metadata lookup)
-    if (!this.broker.hasAction(action)) {
-      return {
-        service: serviceName,
-        status: "skipped",
-        durationMs: 0,
-      };
-    }
-
-    // Get retry policy from metadata (if registered via @EventHandler)
-    const metadata = this.broker.getActionMetadata(action);
-    const retryPolicy = metadata?.retryPolicy ?? {
-      maxAttempts: 3,
-      intervalSeconds: 1,
-      backoffRate: 2,
-    };
+    const { serviceName, action, retryPolicy } = handler;
 
     /**
      * Step result includes durationMs so it's checkpointed.
@@ -2958,14 +2979,13 @@ type EventLogEvent =
 │     │             - Stores event in domain_events table                     │
 │     │             - Returns { timestamp } (checkpointed!)                   │
 │     │                                                                       │
-│     ├──[Step 2]─► getServiceNames()                                         │
-│     │             - Gets all services from config.yml                       │
-│     │             - Returns: [apps, checkout, inventory, orders, ...]       │
+│     ├──[Step 2]─► getAvailableHandlers(eventType) ──► CHECKPOINTED!         │
+│     │             - Checks broker.hasAction() for each service              │
+│     │             - Captures retryPolicy at checkpoint time                 │
+│     │             - Returns: [{ serviceName, action, retryPolicy }, ...]    │
+│     │             - On replay: returns SAME list (deterministic!)           │
 │     │                                                                       │
-│     ├──[Step 3]─► tryInvokeHandler() — ALL SERVICES IN PARALLEL             │
-│     │             │                                                         │
-│     │             ├─► apps.productCreated ──────────────────► SKIPPED       │
-│     │             │   - Action not registered                               │
+│     ├──[Step 3]─► tryInvokeHandler() — ONLY REGISTERED HANDLERS             │
 │     │             │                                                         │
 │     │             ├─► inventory.productCreated ─────────────► OK            │
 │     │             │   - INSERT ON CONFLICT DO NOTHING                       │
@@ -2983,8 +3003,8 @@ type EventLogEvent =
 │     └──[Complete]─► Return EventDispatchResult                              │
 │                     { status: "completed", servicesNotified: 3 }            │
 │                                                                             │
-│  Note: Services without handler are skipped. Failed handlers go to DLQ.    │
-│        Event persistence and DLQ managed by `events` service.              │
+│  Note: Only services with registered handlers are invoked (deterministic). │
+│        Failed handlers go to DLQ. Event persistence managed by `events`.   │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
