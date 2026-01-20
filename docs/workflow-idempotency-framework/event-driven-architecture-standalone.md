@@ -138,69 +138,73 @@ export type ShopanaEvent =
 export type EventType = ShopanaEvent["eventType"];
 ```
 
-### 1.2 Event Handler Registration
+### 1.2 Event Handler Decorator
 
 ```typescript
-// packages/events/src/registry.ts
+// packages/shared-kernel/src/decorators/EventHandler.ts
 
-import type { DomainEvent, EventType } from "./types.js";
+import "reflect-metadata";
 
 /**
- * Metadata about registered event handler.
+ * Metadata key for storing event handler info on methods
  */
-export interface EventHandlerRegistration {
+export const EVENT_HANDLER_METADATA_KEY = Symbol("broker:eventHandler");
+
+/**
+ * Interface for event handler metadata stored on methods
+ */
+export interface EventHandlerMetadata {
   /** Event type this handler responds to */
-  eventType: EventType;
+  eventType: string;
 
-  /** Service that owns this handler */
-  service: string;
-
-  /** Action name to call (e.g., "handleProductCreated") */
-  action: string;
-
-  /** Whether failure of this handler should fail the whole event dispatch */
+  /** Whether failure should fail the whole event dispatch */
   critical: boolean;
 }
 
 /**
- * Service-level registry of event handlers.
- * Used by EventDispatchWorkflow to discover who to call.
+ * Method decorator that marks a method as an event handler.
+ * Used with BrokerActions base class for automatic registration.
+ *
+ * The method will be registered both as:
+ * 1. A broker action (so EventDispatchWorkflow can call it)
+ * 2. An event handler in the global registry (so it's discoverable)
+ *
+ * @param eventType - Event type to handle (e.g., "product.created")
+ * @param options - Handler options
+ *
+ * @example
+ * class InventoryBrokerActions extends BrokerActions {
+ *   @EventHandler("product.created", { critical: true })
+ *   async handleProductCreated(params: { event: ProductCreatedEvent }) {
+ *     // ...
+ *   }
+ * }
  */
-export class EventHandlerRegistry {
-  private handlers = new Map<EventType, EventHandlerRegistration[]>();
+export function EventHandler(
+  eventType: string,
+  options: { critical?: boolean } = {}
+): MethodDecorator {
+  return function (
+    target: object,
+    propertyKey: string | symbol,
+    descriptor: PropertyDescriptor
+  ): PropertyDescriptor {
+    const metadata: EventHandlerMetadata = {
+      eventType,
+      critical: options.critical ?? false,
+    };
 
-  register(registration: EventHandlerRegistration): void {
-    const existing = this.handlers.get(registration.eventType) ?? [];
+    Reflect.defineMetadata(EVENT_HANDLER_METADATA_KEY, metadata, target, propertyKey);
 
-    // Prevent duplicates
-    const isDuplicate = existing.some(
-      (h) => h.service === registration.service && h.action === registration.action
-    );
-
-    if (!isDuplicate) {
-      existing.push(registration);
-      this.handlers.set(registration.eventType, existing);
-    }
-  }
-
-  getHandlers(eventType: EventType): EventHandlerRegistration[] {
-    return this.handlers.get(eventType) ?? [];
-  }
-
-  getAllEventTypes(): EventType[] {
-    return Array.from(this.handlers.keys());
-  }
+    return descriptor;
+  };
 }
-
-export const eventRegistry = new EventHandlerRegistry();
 ```
 
-### 1.3 Event Handler Types
+### 1.3 Event Handler Result Type
 
 ```typescript
-// packages/events/src/handler-types.ts
-
-import type { DomainEvent } from "./types.js";
+// packages/events/src/types.ts (continued)
 
 /**
  * Result of an event handler invocation.
@@ -217,14 +221,142 @@ export interface EventHandlerResult<T = void> {
     retryable: boolean;
   };
 }
+```
+
+### 1.4 EventHandlers Base Class
+
+```typescript
+// packages/shared-kernel/src/broker/EventHandlers.ts
+
+import { Logger, OnModuleInit } from "@nestjs/common";
+import { ServiceBroker } from "./ServiceBroker.js";
+import {
+  EVENT_HANDLER_METADATA_KEY,
+  type EventHandlerMetadata,
+} from "../decorators/EventHandler.js";
+import "reflect-metadata";
 
 /**
- * Event handler function signature.
+ * Base class for services that handle domain events.
+ * Separate from BrokerActions to keep concerns clean:
+ * - BrokerActions: request-response actions (@Action)
+ * - EventHandlers: event-driven handlers (@EventHandler)
+ *
+ * @example
+ * @Injectable()
+ * class InventoryEventHandlers extends EventHandlers {
+ *   constructor(@InjectBroker("inventory") broker: ServiceBroker) {
+ *     super(broker);
+ *   }
+ *
+ *   @EventHandler("product.created", { critical: true })
+ *   async handleProductCreated(params: { event: ProductCreatedEvent }) {
+ *     // ...
+ *   }
+ * }
  */
-export type EventHandler<TEvent extends DomainEvent, TResult = void> = (
-  event: TEvent
-) => Promise<EventHandlerResult<TResult>>;
+export abstract class EventHandlers implements OnModuleInit {
+  protected readonly logger: Logger;
+
+  constructor(protected readonly broker: ServiceBroker) {
+    this.logger = new Logger(this.constructor.name);
+  }
+
+  onModuleInit(): void {
+    this.registerEventHandlers();
+  }
+
+  /**
+   * Scans for @EventHandler decorated methods and registers them.
+   *
+   * Each handler is registered as:
+   * 1. A broker action (so EventDispatchWorkflow can call it via broker.call)
+   * 2. An event handler in bootstrap registry (for discovery)
+   */
+  private registerEventHandlers(): void {
+    const prototype = Object.getPrototypeOf(this);
+    const methodNames = this.getMethodNames(prototype);
+    const handlers: Array<{ methodName: string; metadata: EventHandlerMetadata }> = [];
+
+    for (const methodName of methodNames) {
+      const metadata = Reflect.getMetadata(
+        EVENT_HANDLER_METADATA_KEY,
+        prototype,
+        methodName
+      ) as EventHandlerMetadata | undefined;
+
+      if (metadata) {
+        handlers.push({ methodName, metadata });
+
+        // Register as broker action (transport for EventDispatchWorkflow)
+        const method = (this as Record<string, unknown>)[methodName] as (
+          params: unknown
+        ) => Promise<unknown>;
+
+        this.broker.register(methodName, method.bind(this));
+      }
+    }
+
+    // Register with bootstrap service for discovery
+    if (handlers.length > 0) {
+      this.registerWithBootstrap(handlers);
+    }
+  }
+
+  /**
+   * Registers event handlers with the bootstrap service's global registry.
+   */
+  private async registerWithBootstrap(
+    handlers: Array<{ methodName: string; metadata: EventHandlerMetadata }>
+  ): Promise<void> {
+    const serviceName = this.broker.getServiceName();
+
+    for (const { methodName, metadata } of handlers) {
+      try {
+        await this.broker.call("bootstrap.registerEventHandler", {
+          service: serviceName,
+          action: methodName,
+          eventType: metadata.eventType,
+          critical: metadata.critical,
+        });
+
+        this.logger.debug(
+          `Registered event handler: ${metadata.eventType} -> ${serviceName}.${methodName}`
+        );
+      } catch (error) {
+        this.logger.error(
+          `Failed to register event handler ${methodName}: ${error}`
+        );
+      }
+    }
+  }
+
+  private getMethodNames(prototype: object): string[] {
+    const methods: string[] = [];
+    let currentProto = prototype;
+
+    while (currentProto && currentProto !== Object.prototype) {
+      const names = Object.getOwnPropertyNames(currentProto).filter((name) => {
+        if (name === "constructor") return false;
+        const descriptor = Object.getOwnPropertyDescriptor(currentProto, name);
+        return descriptor && typeof descriptor.value === "function";
+      });
+
+      methods.push(...names);
+      currentProto = Object.getPrototypeOf(currentProto);
+    }
+
+    return [...new Set(methods)];
+  }
+}
 ```
+
+**Разделение ответственности:**
+
+| Класс | Декоратор | Назначение |
+|-------|-----------|------------|
+| `BrokerActions` | `@Action` | Request-response actions |
+| `EventHandlers` | `@EventHandler` | Event-driven handlers |
 
 ---
 
@@ -708,30 +840,93 @@ export const RetryPolicies = {
 
 ## Part 4: Service-Side Event Handlers
 
-Event handlers are simple async functions that return `EventHandlerResult`.
+Event handlers живут в отдельном классе `EventHandlers`, не в `BrokerActions`.
 
-### 4.1 Example Handlers
+### 4.1 Broker Actions (request-response)
 
 ```typescript
-// services/inventory/src/handlers/productEventHandlers.ts
+// services/inventory/src/InventoryBrokerActions.ts
 
-import type { ProductCreatedEvent, ProductDeletedEvent, ProductUpdatedEvent } from "@shopana/events";
-import type { EventHandlerResult } from "@shopana/events";
-import { InitializeInventoryScript, DeleteInventoryScript, SyncInventoryMetadataScript } from "../scripts/index.js";
+import { Injectable } from "@nestjs/common";
+import {
+  BrokerActions,
+  InjectBroker,
+  ServiceBroker,
+  Action,
+} from "@shopana/shared-kernel";
+import { Kernel } from "./kernel/Kernel.js";
 
-export class ProductEventHandlers {
-  constructor(private readonly kernel: Kernel) {}
+/**
+ * Request-response actions only.
+ * Event handlers are in InventoryEventHandlers.
+ */
+@Injectable()
+export class InventoryBrokerActions extends BrokerActions {
+  constructor(@InjectBroker("inventory") broker: ServiceBroker) {
+    super(broker);
+  }
+
+  private get kernel(): Kernel {
+    return Kernel.getInstance();
+  }
+
+  @Action("getOffers")
+  async getOffers(params: GetOffersParams): Promise<GetOffersResult> {
+    return this.kernel.runScript(GetOffersScript, params);
+  }
+
+  @Action("setStock")
+  async setStock(params: SetStockParams): Promise<SetStockResult> {
+    return this.kernel.runScript(SetStockScript, params);
+  }
+}
+```
+
+### 4.2 Event Handlers (event-driven)
+
+```typescript
+// services/inventory/src/InventoryEventHandlers.ts
+
+import { Injectable } from "@nestjs/common";
+import {
+  EventHandlers,
+  EventHandler,
+  InjectBroker,
+  ServiceBroker,
+} from "@shopana/shared-kernel";
+import type {
+  ProductCreatedEvent,
+  ProductDeletedEvent,
+  ProductUpdatedEvent,
+  EventHandlerResult,
+} from "@shopana/events";
+import { Kernel } from "./kernel/Kernel.js";
+
+/**
+ * Event handlers for inventory service.
+ * Separate from BrokerActions for clean separation of concerns.
+ */
+@Injectable()
+export class InventoryEventHandlers extends EventHandlers {
+  constructor(@InjectBroker("inventory") broker: ServiceBroker) {
+    super(broker);
+  }
+
+  private get kernel(): Kernel {
+    return Kernel.getInstance();
+  }
 
   /**
    * Handle product.created: Initialize inventory record.
    *
    * Domain idempotency: INSERT ON CONFLICT DO NOTHING
    */
+  @EventHandler("product.created", { critical: true })
   async handleProductCreated(
-    event: ProductCreatedEvent
+    params: { event: ProductCreatedEvent }
   ): Promise<EventHandlerResult<void>> {
     try {
-      const { productId, storeId, sku } = event.payload;
+      const { productId, storeId, sku } = params.event.payload;
 
       await this.kernel.runScript(InitializeInventoryScript, {
         productId,
@@ -743,64 +938,43 @@ export class ProductEventHandlers {
       return {};
     } catch (error) {
       if (isDuplicateKeyError(error)) {
-        // Already exists - idempotent success
-        return {};
+        return {}; // Already exists - idempotent success
       }
 
       if (isConnectionError(error)) {
         return {
-          error: {
-            message: String(error),
-            code: "CONNECTION_ERROR",
-            retryable: true,
-          },
+          error: { message: String(error), code: "CONNECTION_ERROR", retryable: true },
         };
       }
 
       return {
-        error: {
-          message: String(error),
-          code: "INTERNAL_ERROR",
-          retryable: false,
-        },
+        error: { message: String(error), code: "INTERNAL_ERROR", retryable: false },
       };
     }
   }
 
   /**
    * Handle product.deleted: Remove inventory record.
-   *
-   * Domain idempotency: DELETE is naturally idempotent
    */
+  @EventHandler("product.deleted", { critical: false })
   async handleProductDeleted(
-    event: ProductDeletedEvent
+    params: { event: ProductDeletedEvent }
   ): Promise<EventHandlerResult<void>> {
     try {
-      const { productId, storeId } = event.payload;
+      const { productId, storeId } = params.event.payload;
 
-      await this.kernel.runScript(DeleteInventoryScript, {
-        productId,
-        storeId,
-      });
+      await this.kernel.runScript(DeleteInventoryScript, { productId, storeId });
 
       return {};
     } catch (error) {
       if (isConnectionError(error)) {
         return {
-          error: {
-            message: String(error),
-            code: "CONNECTION_ERROR",
-            retryable: true,
-          },
+          error: { message: String(error), code: "CONNECTION_ERROR", retryable: true },
         };
       }
 
       return {
-        error: {
-          message: String(error),
-          code: "INTERNAL_ERROR",
-          retryable: false,
-        },
+        error: { message: String(error), code: "INTERNAL_ERROR", retryable: false },
       };
     }
   }
@@ -808,35 +982,28 @@ export class ProductEventHandlers {
   /**
    * Handle product.updated: Sync inventory metadata.
    */
+  @EventHandler("product.updated", { critical: true })
   async handleProductUpdated(
-    event: ProductUpdatedEvent
+    params: { event: ProductUpdatedEvent }
   ): Promise<EventHandlerResult<{ synced: boolean; updatedFields: string[] }>> {
     try {
-      const { productId, changes } = event.payload;
+      const { productId, changes } = params.event.payload;
 
-      const updatedFields = await this.kernel.runScript(SyncInventoryMetadataScript, {
-        productId,
-        changes,
-      });
+      const updatedFields = await this.kernel.runScript(
+        SyncInventoryMetadataScript,
+        { productId, changes }
+      );
 
       return { result: { synced: true, updatedFields } };
     } catch (error) {
       if (isConnectionError(error)) {
         return {
-          error: {
-            message: String(error),
-            code: "CONNECTION_ERROR",
-            retryable: true,
-          },
+          error: { message: String(error), code: "CONNECTION_ERROR", retryable: true },
         };
       }
 
       return {
-        error: {
-          message: String(error),
-          code: "INTERNAL_ERROR",
-          retryable: false,
-        },
+        error: { message: String(error), code: "INTERNAL_ERROR", retryable: false },
       };
     }
   }
@@ -853,32 +1020,31 @@ function isConnectionError(error: unknown): boolean {
 }
 ```
 
-### 4.2 Broker Actions Wrapper
+### 4.3 Module Registration
 
 ```typescript
-// services/inventory/src/InventoryBrokerActions.ts
+// services/inventory/src/inventory.module.ts
 
-import { Action, BrokerActions } from "@shopana/shared-kernel";
-import { ProductEventHandlers } from "./handlers/productEventHandlers.js";
+import { Module } from "@nestjs/common";
+import { InventoryBrokerActions } from "./InventoryBrokerActions.js";
+import { InventoryEventHandlers } from "./InventoryEventHandlers.js";
 
-export class InventoryBrokerActions extends BrokerActions {
-  private handlers = new ProductEventHandlers(this.kernel);
+@Module({
+  providers: [
+    InventoryBrokerActions,   // @Action methods
+    InventoryEventHandlers,   // @EventHandler methods
+  ],
+})
+export class InventoryModule {}
+```
 
-  @Action("handleProductCreated")
-  async handleProductCreated(params: { event: ProductCreatedEvent }) {
-    return this.handlers.handleProductCreated(params.event);
-  }
-
-  @Action("handleProductDeleted")
-  async handleProductDeleted(params: { event: ProductDeletedEvent }) {
-    return this.handlers.handleProductDeleted(params.event);
-  }
-
-  @Action("handleProductUpdated")
-  async handleProductUpdated(params: { event: ProductUpdatedEvent }) {
-    return this.handlers.handleProductUpdated(params.event);
-  }
-}
+**Структура файлов сервиса:**
+```
+services/inventory/src/
+├── InventoryBrokerActions.ts   # @Action — request-response
+├── InventoryEventHandlers.ts   # @EventHandler — event-driven
+├── inventory.module.ts
+└── kernel/
 ```
 
 ---
@@ -981,27 +1147,6 @@ export class BootstrapBrokerActions extends BrokerActions {
   @Action("getEventRegistry")
   async getEventRegistry(): Promise<{ registry: Record<string, any[]> }> {
     return { registry: globalEventRegistry.export() };
-  }
-}
-```
-
-### 5.3 Service Startup Registration
-
-```typescript
-// services/inventory/src/index.ts
-
-export function registerEventHandlers(broker: ServiceBroker): void {
-  const handlers = [
-    { eventType: "product.created", action: "handleProductCreated", critical: true },
-    { eventType: "product.deleted", action: "handleProductDeleted", critical: false },
-    { eventType: "product.updated", action: "handleProductUpdated", critical: true },
-  ];
-
-  for (const handler of handlers) {
-    broker.call("bootstrap.registerEventHandler", {
-      service: "inventory",
-      ...handler,
-    });
   }
 }
 ```
@@ -1479,8 +1624,8 @@ type EventLogEvent =
 | Event Emission | `EventEmitter.emit()` starts durable workflow |
 | Durability | DBOS workflow guarantees delivery |
 | Fan-out | Parallel batches (CONCURRENCY_LIMIT=5) |
-| Handler Contract | Simple `(event) => Promise<EventHandlerResult>` |
-| Handler Registration | Service startup registration to bootstrap |
+| Handler Contract | `(params: { event }) => Promise<EventHandlerResult>` |
+| Handler Registration | Automatic via `@EventHandler` decorator |
 | Critical Handlers | Stop after batch: failure skips remaining, event = "failed" |
 | Non-critical Handlers | Best-effort: failure logged, event = "completed_with_errors" |
 | Event Status | `completed` / `completed_with_errors` / `failed` |
@@ -1491,17 +1636,17 @@ type EventLogEvent =
 
 ### Key Design Decisions
 
-1. **Simple handlers** — No special framework, just async functions returning `EventHandlerResult`
+1. **Separate classes** — `BrokerActions` for `@Action`, `EventHandlers` for `@EventHandler`
 2. **DBOS workflow idempotency** — Key depends on `eventId`, same event = same workflow = once
 3. **Domain-level idempotency** — Handlers use DB constraints (`ON CONFLICT DO NOTHING`, etc.)
-4. **No Outbox** — Delivery is guaranteed only when emit is from DBOS workflow/step
+4. **No Outbox** — Delivery is guaranteed only when emit is from DBOS workflow code (not step!)
 5. **Parallel fan-out** — Handlers are invoked in parallel batches (CONCURRENCY_LIMIT=5)
 6. **Critical vs Non-critical** — Stop-on-failure for critical, best-effort for non-critical
 7. **Dead Letter Queue** — Permanent failures go to DLQ for retry after fix deployment
 
 ### Benefits
 
-1. **Simple Mental Model**: Event -> Workflow -> Handlers (plain functions)
+1. **Clean Separation**: `BrokerActions` vs `EventHandlers` — different concerns, different classes
 2. **Guaranteed Delivery**: DBOS workflow durability
 3. **Exactly-Once Semantics**: DBOS workflow ID + domain-level idempotency
 4. **No External Framework**: Just DBOS + standard DB patterns
