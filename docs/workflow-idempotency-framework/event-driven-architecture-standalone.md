@@ -159,7 +159,7 @@ export class BootstrapModule {}
  * Base interface for all domain events.
  */
 export interface DomainEvent<TType extends string = string, TPayload = unknown> {
-  /** Unique event ID (UUID) */
+  /** Unique event ID (deterministic, derived from dispatchWorkflowId) */
   eventId: string;
 
   /** Event type: "productCreated", "orderCompleted", etc. */
@@ -176,6 +176,21 @@ export interface DomainEvent<TType extends string = string, TPayload = unknown> 
 
   /** Context: tenant, user, correlation */
   context: EventContext;
+
+  /**
+   * REQUIRED: Unique emit key within parent workflow.
+   * Must be deterministic and derived from business context.
+   * Same emitKey = same dispatch workflow = idempotent.
+   *
+   * Examples:
+   * - "product:" + productId
+   * - "order:" + orderId + ":completed"
+   * - "lineItem:" + lineItemId
+   */
+  emitKey: string;
+
+  /** Parent workflow ID (for tracing) */
+  parentWorkflowId?: string;
 }
 
 export interface EventContext {
@@ -653,117 +668,192 @@ export abstract class EventHandlers implements OnModuleInit {
 
 ## Part 2: Event Emission (Source Service)
 
-### 2.1 Event Factory
+### 2.1 Idempotency Formulas
 
 ```typescript
-// packages/events/src/factory.ts
+// packages/events/src/idempotency.ts
 
 import crypto from "node:crypto";
-import type { DomainEvent, EventContext, EventType } from "./types.js";
+
+const sha256 = (s: string) => crypto.createHash("sha256").update(s).digest("hex");
 
 /**
- * Create a domain event with proper structure.
+ * Generate dispatch workflow ID.
+ * Deterministic: same parent + eventType + emitKey = same workflowId.
  *
- * @example
- * const event = createEvent("productCreated", {
- *   productId: "prod-123",
- *   storeId: "store-456",
- *   name: "Cool Product",
- * }, {
- *   tenantId: ctx.organizationId,
- *   userId: ctx.userId,
- *   correlationId: ctx.correlationId,
- * }, "listing");
+ * Format: {parentWorkflowId}:dispatch:{eventType}:{emitKeyHash}
  */
-export function createEvent<TType extends EventType, TPayload>(
-  eventType: TType,
-  payload: TPayload,
-  context: Omit<EventContext, "correlationId"> & { correlationId?: string },
-  source: string
-): DomainEvent<TType, TPayload> {
-  return {
-    eventId: crypto.randomUUID(),
-    eventType,
-    timestamp: new Date().toISOString(),
-    source,
-    payload,
-    context: {
-      ...context,
-      correlationId: context.correlationId ?? crypto.randomUUID(),
-    },
-  };
+export function makeDispatchWorkflowId(params: {
+  parentWorkflowId: string;
+  eventType: string;
+  emitKey: string;
+}): string {
+  const emitKeyHash = sha256(params.emitKey).slice(0, 16);
+  return `${params.parentWorkflowId}:dispatch:${params.eventType}:${emitKeyHash}`;
 }
 
 /**
- * Create deterministic event ID for idempotent event creation.
- * Use when the same business operation should produce the same event.
+ * Generate deterministic event ID.
+ * Same tenant + dispatchWorkflowId = same eventId.
  *
- * @example
- * // Same product creation attempt = same eventId
- * const eventId = deterministicEventId("productCreated", productId, storeId);
+ * This ensures:
+ * - Retry of same emit = same eventId (no duplicate in event store)
+ * - Different emits = different eventIds
  */
-export function deterministicEventId(...parts: string[]): string {
-  const input = parts.join(":");
-  return crypto.createHash("sha256").update(input).digest("hex").slice(0, 32);
+export function makeEventId(params: {
+  tenantId: string;
+  dispatchWorkflowId: string;
+}): string {
+  return sha256(`evt:v1:${params.tenantId}:${params.dispatchWorkflowId}`).slice(0, 32);
 }
 ```
 
-### 2.2 Event Emitter
+### 2.2 emitKey Rules
+
+**CRITICAL: `emitKey` is MANDATORY and must follow these rules:**
+
+| Rule | Description |
+|------|-------------|
+| **Never random** | `emitKey` must be deterministic, never use `randomUUID()` |
+| **Business-derived** | Must come from business context (productId, orderId, lineItemId, etc.) |
+| **One emit = one key** | Same business operation = same emitKey |
+| **Unique within workflow** | Different emits in same workflow = different emitKeys |
+
+**Good emitKey examples:**
+
+```typescript
+// Single entity events
+"product:" + productId                     // productCreated
+"order:" + orderId + ":completed"          // orderCompleted
+"lineItem:" + lineItemId                   // itemReserved
+
+// Multiple events of same type from one workflow
+"product:" + productId + ":change:price"   // productUpdated (price)
+"product:" + productId + ":change:name"    // productUpdated (name)
+"product:" + productId + ":change:sku"     // productUpdated (sku)
+
+// Content-based (for idempotent updates)
+"sku:" + sku + ":setStock:" + sha256(JSON.stringify(payload)).slice(0, 8)
+```
+
+**Bad emitKey examples:**
+
+```typescript
+// ❌ Random - breaks idempotency
+crypto.randomUUID()
+
+// ❌ Timestamp - different on retry
+Date.now().toString()
+
+// ❌ Too generic - collisions within workflow
+"productUpdated"
+```
+```
+
+### 2.3 Event Emitter
 
 ```typescript
 // packages/events/src/emitter.ts
 
 import { DBOS } from "@dbos-inc/dbos-sdk";
-import type { DomainEvent } from "./types.js";
+import crypto from "node:crypto";
+import type { DomainEvent, EventContext } from "./types.js";
+import { makeDispatchWorkflowId, makeEventId } from "./idempotency.js";
 import { EventDispatchWorkflow, type EventDispatchResult } from "./workflows/EventDispatchWorkflow.js";
 
 /**
  * Emit an event by starting its dispatch workflow.
  *
  * IMPORTANT: Cannot be called from inside a @DBOS.step() — workflows cannot
- * be started from steps. Call from workflow code directly or from HTTP handler.
+ * be started from steps. Call from workflow code directly.
  *
- * Two usage patterns:
- * 1. From workflow code (after a step completes) — durable, recommended
- * 2. From HTTP handler — not durable, use only for fire-and-forget
+ * CRITICAL: emitKey is MANDATORY. It must be deterministic and derived from
+ * business context. See "emitKey Rules" section for guidelines.
  */
 export class EventEmitter {
   /**
    * Emit an event. Starts EventDispatchWorkflow.
    *
-   * MUST be called from workflow code (not from step!) or HTTP handler.
+   * MUST be called from workflow code (not from step!).
+   *
+   * @param input - Event data (eventType, payload, context, source)
+   * @param emitKey - REQUIRED: Unique key within parent workflow. Must be deterministic.
    *
    * WorkflowID is derived from:
    * - Parent workflow ID (DBOS.workflowID)
    * - Event type
+   * - emitKey (hashed)
    *
-   * This ensures: same parent + same event type = same dispatch workflow = dispatch once.
+   * This ensures: same parent + same eventType + same emitKey = same dispatch workflow.
    *
    * @example
-   * // From workflow code (recommended):
    * @DBOS.workflow()
    * async createProduct(input: CreateProductInput) {
    *   const product = await this.saveProduct(input);  // @DBOS.step()
    *
-   *   // After step completes, emit event from workflow code
-   *   const event = createEvent("productCreated", { productId: product.id, ... }, ...);
-   *   await EventEmitter.emit(event);  // Starts child workflow
+   *   // emitKey is deterministic: "product:" + productId
+   *   await EventEmitter.emit(
+   *     {
+   *       eventType: "productCreated",
+   *       payload: { productId: product.id, storeId: input.storeId, name: input.name },
+   *       context: { tenantId: ctx.organizationId, userId: ctx.userId },
+   *       source: "listing",
+   *     },
+   *     "product:" + product.id  // emitKey
+   *   );
    *
    *   return product;
    * }
    *
-   * @returns Workflow handle for tracking
+   * @returns workflowId and eventId
    */
-  static async emit<TEvent extends DomainEvent>(event: TEvent): Promise<{ workflowId: string }> {
+  static async emit<TType extends string, TPayload>(
+    input: {
+      eventType: TType;
+      payload: TPayload;
+      source: string;
+      context: Omit<EventContext, "correlationId"> & { correlationId?: string };
+    },
+    emitKey: string
+  ): Promise<{ workflowId: string; eventId: string }> {
     const parentWorkflowId = DBOS.workflowID;
-    const workflowId = EventDispatchWorkflow.workflowID(parentWorkflowId, event.eventType);
+    if (!parentWorkflowId) {
+      throw new Error("EventEmitter.emit() must be called from workflow code (not from a step).");
+    }
 
-    // Start as child workflow (if called from workflow) or standalone workflow
+    // Build deterministic IDs
+    const workflowId = makeDispatchWorkflowId({
+      parentWorkflowId,
+      eventType: input.eventType,
+      emitKey,
+    });
+
+    const eventId = makeEventId({
+      tenantId: input.context.tenantId,
+      dispatchWorkflowId: workflowId,
+    });
+
+    // Build full event object
+    const event: DomainEvent<TType, TPayload> = {
+      eventId,
+      eventType: input.eventType,
+      timestamp: new Date().toISOString(),
+      source: input.source,
+      payload: input.payload,
+      emitKey,
+      parentWorkflowId,
+      context: {
+        ...input.context,
+        correlationId: input.context.correlationId ?? crypto.randomUUID(),
+      },
+    };
+
+    // Start dispatch workflow
     await DBOS
       .startWorkflow(EventDispatchWorkflow, { workflowID: workflowId })
       .dispatch(event);
 
-    return { workflowId };
+    return { workflowId, eventId };
   }
 
   /**
@@ -772,11 +862,44 @@ export class EventEmitter {
    *
    * MUST be called from workflow code (not from step!).
    */
-  static async emitAndWait<TEvent extends DomainEvent>(
-    event: TEvent
+  static async emitAndWait<TType extends string, TPayload>(
+    input: {
+      eventType: TType;
+      payload: TPayload;
+      source: string;
+      context: Omit<EventContext, "correlationId"> & { correlationId?: string };
+    },
+    emitKey: string
   ): Promise<EventDispatchResult> {
     const parentWorkflowId = DBOS.workflowID;
-    const workflowId = EventDispatchWorkflow.workflowID(parentWorkflowId, event.eventType);
+    if (!parentWorkflowId) {
+      throw new Error("EventEmitter.emitAndWait() must be called from workflow code.");
+    }
+
+    const workflowId = makeDispatchWorkflowId({
+      parentWorkflowId,
+      eventType: input.eventType,
+      emitKey,
+    });
+
+    const eventId = makeEventId({
+      tenantId: input.context.tenantId,
+      dispatchWorkflowId: workflowId,
+    });
+
+    const event: DomainEvent<TType, TPayload> = {
+      eventId,
+      eventType: input.eventType,
+      timestamp: new Date().toISOString(),
+      source: input.source,
+      payload: input.payload,
+      emitKey,
+      parentWorkflowId,
+      context: {
+        ...input.context,
+        correlationId: input.context.correlationId ?? crypto.randomUUID(),
+      },
+    };
 
     const handle = await DBOS
       .startWorkflow(EventDispatchWorkflow, { workflowID: workflowId })
@@ -829,23 +952,12 @@ export interface HandlerInvocationResult {
  * DBOS Workflow guarantees:
  * - Completion even if service restarts (durability)
  * - Idempotent execution (same workflowId = execute once)
+ *
+ * NOTE: Workflow ID is generated by EventEmitter using makeDispatchWorkflowId().
+ * Pattern: {parentWorkflowId}:dispatch:{eventType}:{emitKeyHash}
  */
 export class EventDispatchWorkflow {
   constructor(private readonly broker: ServiceBroker) {}
-
-  /**
-   * Deterministic workflow ID based on parent workflow and event type.
-   *
-   * Pattern: {parentWorkflowId}:dispatch:{eventType}
-   *
-   * This ensures:
-   * - Same parent workflow + same event type = same dispatch workflow
-   * - Dispatch is tied to parent, not to event data
-   * - If parent workflow replays, dispatch workflow is idempotent
-   */
-  static workflowID(parentWorkflowId: string, eventType: string): string {
-    return `${parentWorkflowId}:dispatch:${eventType}`;
-  }
 
   @DBOS.workflow()
   async dispatch(event: DomainEvent): Promise<EventDispatchResult> {
@@ -1305,6 +1417,9 @@ export const domainEvents = pgTable(
     userId: text("user_id"),
     correlationId: text("correlation_id").notNull(),
     causationId: text("causation_id"),
+    // New fields for emitKey-based idempotency
+    emitKey: text("emit_key").notNull(),
+    parentWorkflowId: text("parent_workflow_id"),
     status: text("status").notNull().default("pending"),
     dispatchStartedAt: timestamp("dispatch_started_at", { withTimezone: true }),
     dispatchCompletedAt: timestamp("dispatch_completed_at", { withTimezone: true }),
@@ -1317,6 +1432,7 @@ export const domainEvents = pgTable(
     index("idx_events_tenant").on(table.tenantId),
     index("idx_events_correlation").on(table.correlationId),
     index("idx_events_timestamp").on(table.timestamp),
+    index("idx_events_parent_workflow").on(table.parentWorkflowId, table.eventType),
   ]
 );
 
@@ -1343,6 +1459,10 @@ CREATE TABLE IF NOT EXISTS domain_events (
   correlation_id TEXT NOT NULL,
   causation_id TEXT,
 
+  -- emitKey-based idempotency fields
+  emit_key TEXT NOT NULL,
+  parent_workflow_id TEXT,
+
   status TEXT NOT NULL DEFAULT 'pending',
   dispatch_started_at TIMESTAMPTZ,
   dispatch_completed_at TIMESTAMPTZ,
@@ -1361,6 +1481,7 @@ CREATE INDEX idx_events_tenant ON domain_events(tenant_id);
 CREATE INDEX idx_events_correlation ON domain_events(correlation_id);
 CREATE INDEX idx_events_status ON domain_events(status) WHERE status != 'completed';
 CREATE INDEX idx_events_timestamp ON domain_events(timestamp);
+CREATE INDEX idx_events_parent_workflow ON domain_events(parent_workflow_id, event_type);
 ```
 
 ### 5.3 Event Store Service
@@ -1404,6 +1525,8 @@ export class EventsBrokerActions extends BrokerActions {
       userId: event.context.userId,
       correlationId: event.context.correlationId,
       causationId: event.context.causationId,
+      emitKey: event.emitKey,
+      parentWorkflowId: event.parentWorkflowId,
       status: "dispatching",
       dispatchStartedAt: new Date(),
     }).onConflictDoNothing();
@@ -1736,9 +1859,10 @@ type EventLogEvent =
 │     │  - Returns immediately to client                                      │
 │     │                                                                       │
 │     ▼                                                                       │
-│  3. EventEmitter.emit(ProductCreatedEvent)                                  │
+│  3. EventEmitter.emit({ eventType, payload, context, source }, emitKey)     │
+│     │  - emitKey = "product:" + productId (deterministic!)                  │
 │     │  - Starts EventDispatchWorkflow                                       │
-│     │  - Workflow ID: {parentWorkflowId}:dispatch:productCreated             │
+│     │  - Workflow ID: {parentWorkflowId}:dispatch:productCreated:{hash}     │
 │     │                                                                       │
 │     ▼                                                                       │
 │  4. EventDispatchWorkflow                                                   │
@@ -1811,8 +1935,16 @@ async createOrder(input: CreateOrderInput) {
   // DBOS guarantees: repeat call with same key returns same result
   const order = await this.saveOrder(input);
 
-  const event = createEvent("orderCreated", { orderId: order.id, ... }, ...);
-  await EventEmitter.emit(event);  // dispatch workflow ID = {parentWorkflowId}:dispatch:orderCreated
+  // emitKey = "order:" + orderId — deterministic!
+  await EventEmitter.emit(
+    {
+      eventType: "orderCreated",
+      payload: { orderId: order.id, storeId: input.storeId, items: input.items },
+      context: { tenantId: ctx.tenantId, userId: ctx.userId },
+      source: "orders",
+    },
+    "order:" + order.id  // emitKey
+  );
 
   return order;
 }
@@ -1845,11 +1977,17 @@ workflow:{sha256(workflowId + stepId + callId)}
 async createStore(input: CreateStoreInput) {
   const store = await this.saveStore(input);  // step
 
-  // Event dispatch is tied to parent workflow
-  // workflowId = store:create:org-123:my-store
-  // dispatch workflowId = store:create:org-123:my-store:dispatch:storeCreated
-  const event = createEvent("storeCreated", { storeId: store.id, ... }, ...);
-  await EventEmitter.emit(event);
+  // emitKey = "store:" + storeId — deterministic!
+  // dispatch workflowId = store:create:org-123:my-store:dispatch:storeCreated:{hash}
+  await EventEmitter.emit(
+    {
+      eventType: "storeCreated",
+      payload: { storeId: store.id, organizationId: input.orgId, name: input.storeName },
+      context: { tenantId: input.orgId },
+      source: "project",
+    },
+    "store:" + store.id  // emitKey
+  );
 
   return store;
 }
@@ -1896,8 +2034,17 @@ async setStock(payload: SetStockInput) {
   // Idempotent by content
   await this.updateStock(payload);
 
-  const event = createEvent("stockUpdated", payload, ...);
-  await EventEmitter.emit(event);
+  // emitKey includes payload hash for content-based idempotency
+  const payloadHash = sha256(JSON.stringify(payload)).slice(0, 8);
+  await EventEmitter.emit(
+    {
+      eventType: "stockUpdated",
+      payload,
+      context: { tenantId: ctx.tenantId },
+      source: "inventory",
+    },
+    `sku:${payload.sku}:setStock:${payloadHash}`  // emitKey
+  );
 }
 ```
 
@@ -1920,11 +2067,16 @@ async setStock(payload: SetStockInput) {
 │                                                                             │
 │  Layer 1: DBOS Workflow Idempotency (Dispatch Level)                        │
 │  ───────────────────────────────────────────────────                        │
-│  Key: {parentWorkflowId}:dispatch:{eventType}                               │
-│  Example: wf-create-product-123:dispatch:productCreated                     │
+│  Key: {parentWorkflowId}:dispatch:{eventType}:{emitKeyHash}                 │
+│  Example: wf-create-product-123:dispatch:productCreated:a1b2c3d4            │
 │                                                                             │
-│  Guarantees: Same parent + same event type = dispatch once                  │
-│  Note: Tied to parent workflow, not to event data                           │
+│  Components:                                                                │
+│  - parentWorkflowId: From DBOS.workflowID                                   │
+│  - eventType: "productCreated", "orderCompleted", etc.                      │
+│  - emitKeyHash: sha256(emitKey).slice(0, 16)                                │
+│                                                                             │
+│  Guarantees: Same parent + same eventType + same emitKey = dispatch once    │
+│  Note: emitKey allows multiple events of same type from one workflow        │
 │                                                                             │
 │  ═══════════════════════════════════════════════════════════════════════    │
 │                                                                             │
@@ -1949,8 +2101,9 @@ async setStock(payload: SetStockInput) {
 │  WHY TWO LAYERS?                                                            │
 │                                                                             │
 │  1. DBOS Workflow: Prevents duplicate dispatches                            │
-│     - Same parent workflow + event type = same dispatch workflow            │
+│     - Same parent + eventType + emitKey = same dispatch workflow            │
 │     - Handles: Parent workflow replays, service restarts                    │
+│     - emitKey enables multiple events of same type (e.g., 3 productUpdated) │
 │                                                                             │
 │  2. Domain: Business-level safety net                                       │
 │     - Handles: DBOS step retries (transient failures)                       │
@@ -1969,8 +2122,9 @@ async setStock(payload: SetStockInput) {
 
 | Aspect | Implementation |
 |--------|----------------|
-| Event Definition | Typed `DomainEvent<TType, TPayload>` with context |
-| Event Emission | `EventEmitter.emit()` — fire and forget |
+| Event Definition | Typed `DomainEvent<TType, TPayload>` with `emitKey` and context |
+| Event Emission | `EventEmitter.emit(input, emitKey)` — fire and forget, emitKey REQUIRED |
+| emitKey | Mandatory, deterministic, derived from business context (e.g., `"product:" + productId`) |
 | Durability | DBOS workflow guarantees delivery |
 | Service Discovery | Services from `config.yml` via `getConfig().services` |
 | Fan-out | All services invoked in parallel, non-handlers skipped |
@@ -1981,23 +2135,24 @@ async setStock(payload: SetStockInput) {
 | Dead Letter Queue | `events` service — failed handlers sent to `events.addToDLQ` |
 | Handler Independence | Each service processes independently, failures don't affect others |
 | Event Status | Always `completed` (dispatch done, regardless of failures) |
-| Idempotency | DBOS workflow + domain-level (ON CONFLICT, upserts) |
+| Idempotency | DBOS workflow (parent + eventType + emitKey) + domain-level (ON CONFLICT, upserts) |
 | Consistency | Eventual — system converges over time |
 
 ### Key Design Decisions
 
 1. **Pure event-driven** — Fire and forget, producer doesn't know/care about consumers
-2. **Config-based discovery** — Services from `config.yml`, no central registry
-3. **Convention over configuration** — `@EventHandler("productCreated")` → `{service}.productCreated`
-4. **Metadata in broker** — `ActionRegistry` stores handler + metadata (retry policy)
-5. **Per-handler retry** — Each handler can define own retry policy via decorator
-6. **Handler-controlled retryability** — Handler returns `{ ok: false, retryable: true/false }`, wrapper translates to DBOS behavior
-7. **Dead Letter Queue** — Failed handlers sent to DLQ; non-retryable immediately, retryable after exhausting attempts
-8. **Independent handlers** — Each handler succeeds or fails independently
-9. **Dedicated events service** — Event store, DLQ, and cleanup scheduling in separate `events` service
-10. **Separate classes** — `BrokerActions` for `@Action`, `EventHandlers` for `@EventHandler`
-11. **DBOS workflow idempotency** — Same parent workflow + event type = same dispatch workflow
-12. **Domain-level idempotency** — Handlers use DB constraints (`ON CONFLICT DO NOTHING`)
+2. **Mandatory emitKey** — Every emit MUST provide deterministic emitKey from business context
+3. **Config-based discovery** — Services from `config.yml`, no central registry
+4. **Convention over configuration** — `@EventHandler("productCreated")` → `{service}.productCreated`
+5. **Metadata in broker** — `ActionRegistry` stores handler + metadata (retry policy)
+6. **Per-handler retry** — Each handler can define own retry policy via decorator
+7. **Handler-controlled retryability** — Handler returns `{ ok: false, retryable: true/false }`, wrapper translates to DBOS behavior
+8. **Dead Letter Queue** — Failed handlers sent to DLQ; non-retryable immediately, retryable after exhausting attempts
+9. **Independent handlers** — Each handler succeeds or fails independently
+10. **Dedicated events service** — Event store, DLQ, and cleanup scheduling in separate `events` service
+11. **Separate classes** — `BrokerActions` for `@Action`, `EventHandlers` for `@EventHandler`
+12. **DBOS workflow idempotency** — Same parent + eventType + emitKey = same dispatch workflow
+13. **Domain-level idempotency** — Handlers use DB constraints (`ON CONFLICT DO NOTHING`)
 
 ### Benefits
 
@@ -2006,13 +2161,14 @@ async setStock(payload: SetStockInput) {
 3. **Resilience**: Handler failures don't cascade, system keeps working
 4. **Clean Separation**: `BrokerActions` vs `EventHandlers` — different concerns
 5. **Guaranteed Delivery**: DBOS workflow durability
-6. **Exactly-Once Semantics**: DBOS workflow ID + domain-level idempotency
-7. **Smart DLQ Routing**: Non-retryable errors go to DLQ immediately, no wasted retry attempts
-8. **Handler Autonomy**: Each handler decides if its errors are retryable or not
-9. **Dead Letter Queue**: Failed handlers stored for inspection and manual retry
-10. **No Central Registry**: Services discovered from existing `config.yml`
-11. **No Infrastructure Overhead**: No separate message queue
-12. **Dedicated Events Service**: Event store, DLQ, and scheduling isolated in `events` service with own migrations
+6. **Exactly-Once Semantics**: DBOS workflow ID (with emitKey) + domain-level idempotency
+7. **Multiple Events Per Type**: emitKey enables multiple events of same type from one workflow
+8. **Smart DLQ Routing**: Non-retryable errors go to DLQ immediately, no wasted retry attempts
+9. **Handler Autonomy**: Each handler decides if its errors are retryable or not
+10. **Dead Letter Queue**: Failed handlers stored for inspection and manual retry
+11. **No Central Registry**: Services discovered from existing `config.yml`
+12. **No Infrastructure Overhead**: No separate message queue
+13. **Dedicated Events Service**: Event store, DLQ, and scheduling isolated in `events` service with own migrations
 
 ### Trade-offs
 
