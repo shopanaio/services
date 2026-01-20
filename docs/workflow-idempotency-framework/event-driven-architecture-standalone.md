@@ -391,6 +391,13 @@ export class ActionRegistry {
   }
 
   /**
+   * Checks if an action is registered.
+   */
+  has(action: string): boolean {
+    return this.actions.has(action);
+  }
+
+  /**
    * Returns all registered actions for observability.
    */
   list(): string[] {
@@ -427,6 +434,14 @@ export class ServiceBroker {
     const qualifiedAction = this.assertFullyQualified(action);
     return this.registry.getMetadata(qualifiedAction);
   }
+
+  /**
+   * Checks if an action is registered.
+   */
+  hasAction(action: string): boolean {
+    const qualifiedAction = this.assertFullyQualified(action);
+    return this.registry.has(qualifiedAction);
+  }
 }
 ```
 
@@ -436,17 +451,31 @@ export class ServiceBroker {
 // packages/events/src/types.ts (continued)
 
 /**
- * Event handler contract:
+ * Handler response contract.
  *
- * - Return normally (void) → success
- * - Return normally for idempotent "already done" cases (duplicate key, etc.)
- * - Throw exception → DBOS retries according to retry policy
- * - After retries exhausted → EventDispatchWorkflow catches and sends to DLQ
- *
- * NO special result types needed. Just throw or return.
+ * Handler decides if error is retryable or not:
+ * - { ok: true } → success
+ * - { ok: false, retryable: true } → DBOS retries according to policy
+ * - { ok: false, retryable: false } → DLQ immediately (no retries)
  */
-export type EventHandler<TEvent> = (params: { event: TEvent }) => Promise<void>;
+export type EventHandlerResponse =
+  | { ok: true }
+  | { ok: false; error: { message: string; code?: string; retryable: boolean } };
+
+/**
+ * Event handler signature.
+ */
+export type EventHandler<TEvent> = (params: { event: TEvent }) => Promise<EventHandlerResponse>;
 ```
+
+**Правила для разработчиков:**
+
+| Ситуация | Что возвращать |
+|----------|----------------|
+| Успех | `{ ok: true }` |
+| Idempotent "already done" (duplicate key, etc.) | `{ ok: true }` |
+| Transient error (network, timeout, deadlock) | `{ ok: false, retryable: true }` |
+| Business/validation error | `{ ok: false, retryable: false }` |
 
 ### 1.6 Error Handling Pattern
 
@@ -455,35 +484,50 @@ export type EventHandler<TEvent> = (params: { event: TEvent }) => Promise<void>;
 │                         HANDLER ERROR FLOW                                  │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│  Handler execution:                                                         │
+│  Handler returns EventHandlerResponse:                                      │
 │                                                                             │
-│  ┌─────────────┐     ┌──────────────┐     ┌─────────────┐                  │
-│  │   Handler   │────►│ Return void  │────►│   SUCCESS   │                  │
-│  │  executes   │     └──────────────┘     └─────────────┘                  │
-│  │             │                                                            │
-│  │             │     ┌──────────────┐     ┌─────────────┐     ┌─────────┐  │
-│  │             │────►│ Throw error  │────►│ DBOS retry  │────►│   DLQ   │  │
-│  └─────────────┘     └──────────────┘     │ (N times)   │     └─────────┘  │
-│                                           └─────────────┘                  │
+│  ┌─────────────┐                                                            │
+│  │   Handler   │                                                            │
+│  │  executes   │                                                            │
+│  └──────┬──────┘                                                            │
+│         │                                                                   │
+│         ├──► { ok: true } ─────────────────────────────────► SUCCESS        │
+│         │                                                                   │
+│         ├──► { ok: false, retryable: true } ──► DBOS retries ──► DLQ       │
+│         │                                       (N attempts)                │
+│         │                                                                   │
+│         └──► { ok: false, retryable: false } ──► DLQ immediately           │
+│                                                  (1 attempt, no retries)    │
 │                                                                             │
-│  Idempotent cases (return normally, don't throw):                          │
-│  - Duplicate key error (record already exists)                             │
-│  - Version mismatch (already processed by another event)                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Return { ok: true }:                                                       │
+│  - Success                                                                  │
+│  - Idempotent "already done" (duplicate key, version mismatch)             │
 │  - Resource not found for DELETE (already deleted)                         │
 │                                                                             │
-│  Retryable cases (throw, DBOS will retry):                                 │
+│  Return { ok: false, retryable: true }:                                    │
 │  - Connection errors (ECONNREFUSED, timeout)                               │
 │  - Deadlock / serialization failure                                        │
 │  - Temporary unavailability                                                │
 │                                                                             │
-│  Non-retryable cases (throw, goes to DLQ after 1 attempt):                 │
+│  Return { ok: false, retryable: false }:                                   │
 │  - Validation errors                                                       │
 │  - Business rule violations                                                │
 │  - Data corruption                                                         │
+│  - Missing required data                                                   │
 │                                                                             │
-│  Note: DBOS doesn't distinguish retryable vs non-retryable errors.         │
-│  All errors are retried up to maxAttempts, then sent to DLQ.               │
-│  This is simple and predictable.                                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  HOW WRAPPER WORKS (inside EventDispatchWorkflow.tryInvokeHandler):        │
+│                                                                             │
+│  1. Call handler via broker → get EventHandlerResponse                     │
+│  2. If { ok: true } → return success marker                                │
+│  3. If { ok: false, retryable: false } → return failure marker (no throw)  │
+│  4. If { ok: false, retryable: true } → THROW → DBOS retries step          │
+│                                                                             │
+│  Key insight: DBOS only retries when step throws.                          │
+│  By returning a marker instead of throwing, we control retry behavior.     │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -855,9 +899,23 @@ export class EventDispatchWorkflow {
   }
 
   /**
+   * Internal type for step return value.
+   * Allows distinguishing success vs non-retryable failure without throwing.
+   */
+  private type StepReturn =
+    | { kind: "ok" }
+    | { kind: "nonRetryableFailure"; error: { message: string; code?: string } };
+
+  /**
    * Try to invoke event handler on a service.
-   * If service doesn't have a handler for this event, returns "skipped".
-   * Uses retry policy from action metadata if available.
+   *
+   * Wrapper logic:
+   * - Handler returns { ok: true } → success
+   * - Handler returns { ok: false, retryable: true } → throw → DBOS retries
+   * - Handler returns { ok: false, retryable: false } → return marker → DLQ immediately
+   *
+   * Key insight: DBOS only retries when step throws.
+   * By returning a marker instead of throwing, we skip retries for non-retryable errors.
    */
   private async tryInvokeHandler(
     event: DomainEvent,
@@ -866,10 +924,8 @@ export class EventDispatchWorkflow {
     const startTime = Date.now();
     const action = `${serviceName}.${event.eventType}`;
 
-    // Check if action exists and get its metadata
-    const metadata = this.broker.getActionMetadata(action);
-    if (!metadata) {
-      // Action not registered = service doesn't handle this event
+    // Check if action exists
+    if (!this.broker.hasAction(action)) {
       return {
         service: serviceName,
         status: "skipped",
@@ -877,16 +933,36 @@ export class EventDispatchWorkflow {
       };
     }
 
-    const retryPolicy = metadata.retryPolicy ?? {
+    // Get retry policy from metadata (if registered via @EventHandler)
+    const metadata = this.broker.getActionMetadata(action);
+    const retryPolicy = metadata?.retryPolicy ?? {
       maxAttempts: 3,
       intervalSeconds: 1,
       backoffRate: 2,
     };
 
+    let stepReturn: StepReturn;
+
     try {
-      // Use DBOS.runStep() with retry policy from metadata
-      await DBOS.runStep(
-        () => this.broker.call(action, { event }),
+      stepReturn = await DBOS.runStep<StepReturn>(
+        async () => {
+          const resp: EventHandlerResponse = await this.broker.call(action, { event });
+
+          if (resp.ok) {
+            return { kind: "ok" };
+          }
+
+          // Non-retryable: DON'T throw → DBOS won't retry
+          if (!resp.error.retryable) {
+            return {
+              kind: "nonRetryableFailure",
+              error: { message: resp.error.message, code: resp.error.code },
+            };
+          }
+
+          // Retryable: throw → DBOS retries this step
+          throw new Error(resp.error.message);
+        },
         {
           name: `handler:${action}:${event.eventId}`,
           retriesAllowed: true,
@@ -895,23 +971,44 @@ export class EventDispatchWorkflow {
           backoffRate: retryPolicy.backoffRate,
         }
       );
+    } catch (e) {
+      // DBOS exhausted retries for retryable error → DLQ
+      const errorMsg = e instanceof Error ? e.message : String(e);
 
-      return {
-        service: serviceName,
-        status: "success",
-        durationMs: Date.now() - startTime,
-      };
-    } catch (error) {
-      // Handler failed after all retries — send to DLQ
-      await this.sendToDLQ(event, serviceName, String(error), retryPolicy.maxAttempts);
+      await this.sendToDLQ(event, serviceName, errorMsg, undefined, retryPolicy.maxAttempts);
 
       return {
         service: serviceName,
         status: "failed",
-        error: String(error),
+        error: errorMsg,
         durationMs: Date.now() - startTime,
       };
     }
+
+    // Step completed without throw
+    if (stepReturn.kind === "nonRetryableFailure") {
+      // Non-retryable failure → DLQ immediately (1 attempt)
+      await this.sendToDLQ(
+        event,
+        serviceName,
+        stepReturn.error.message,
+        stepReturn.error.code,
+        1
+      );
+
+      return {
+        service: serviceName,
+        status: "failed",
+        error: stepReturn.error.message,
+        durationMs: Date.now() - startTime,
+      };
+    }
+
+    return {
+      service: serviceName,
+      status: "success",
+      durationMs: Date.now() - startTime,
+    };
   }
 
   /**
@@ -922,6 +1019,7 @@ export class EventDispatchWorkflow {
     event: DomainEvent,
     serviceName: string,
     error: string,
+    errorCode: string | undefined,
     attempts: number
   ): Promise<void> {
     await this.broker.call("events.addToDLQ", {
@@ -931,6 +1029,7 @@ export class EventDispatchWorkflow {
         action: event.eventType,
       },
       error,
+      errorCode,
       attempts,
     });
   }
@@ -999,6 +1098,7 @@ import type {
   ProductCreatedEvent,
   ProductDeletedEvent,
   ProductUpdatedEvent,
+  EventHandlerResponse,
 } from "@shopana/events";
 import { Kernel } from "./kernel/Kernel.js";
 
@@ -1006,9 +1106,10 @@ import { Kernel } from "./kernel/Kernel.js";
  * Event handlers for inventory service.
  * Separate from BrokerActions for clean separation of concerns.
  *
- * Handler contract:
- * - Return normally → success (including idempotent "already done")
- * - Throw exception → DBOS retries, then DLQ
+ * Handler contract (EventHandlerResponse):
+ * - { ok: true } → success (including idempotent "already done")
+ * - { ok: false, retryable: true } → DBOS retries according to policy
+ * - { ok: false, retryable: false } → DLQ immediately (no retries)
  *
  * Each handler is independent — failures don't affect other handlers.
  */
@@ -1026,11 +1127,12 @@ export class InventoryEventHandlers extends EventHandlers {
    * Handle productCreated: Initialize inventory record.
    *
    * Domain idempotency: INSERT ON CONFLICT DO NOTHING
-   * - Duplicate key → returns normally (idempotent success)
-   * - Connection error → throws → DBOS retries
+   * - Duplicate key → { ok: true } (idempotent success)
+   * - Transient error → { ok: false, retryable: true } → DBOS retries
+   * - Business error → { ok: false, retryable: false } → DLQ immediately
    */
   @EventHandler("productCreated")
-  async handleProductCreated(params: { event: ProductCreatedEvent }): Promise<void> {
+  async handleProductCreated(params: { event: ProductCreatedEvent }): Promise<EventHandlerResponse> {
     const { productId, storeId, sku } = params.event.payload;
 
     try {
@@ -1040,14 +1142,28 @@ export class InventoryEventHandlers extends EventHandlers {
         sku: sku ?? productId,
         initialQuantity: 0,
       });
+
+      return { ok: true };
     } catch (error) {
       // Duplicate key = already initialized, idempotent success
       if (isDuplicateKeyError(error)) {
         this.logger.debug(`Inventory already exists for product ${productId}`);
-        return;
+        return { ok: true };
       }
-      // All other errors → throw → DBOS retries
-      throw error;
+
+      // Transient errors → retry
+      if (isTransientError(error)) {
+        return {
+          ok: false,
+          error: { message: String(error), retryable: true, code: "TRANSIENT" },
+        };
+      }
+
+      // Business/validation errors → DLQ immediately
+      return {
+        ok: false,
+        error: { message: String(error), retryable: false, code: "BUSINESS" },
+      };
     }
   }
 
@@ -1057,11 +1173,25 @@ export class InventoryEventHandlers extends EventHandlers {
    * DELETE is naturally idempotent — deleting non-existent record is OK.
    */
   @EventHandler("productDeleted")
-  async handleProductDeleted(params: { event: ProductDeletedEvent }): Promise<void> {
+  async handleProductDeleted(params: { event: ProductDeletedEvent }): Promise<EventHandlerResponse> {
     const { productId, storeId } = params.event.payload;
 
-    // Any error → throw → DBOS retries
-    await this.kernel.runScript(DeleteInventoryScript, { productId, storeId });
+    try {
+      await this.kernel.runScript(DeleteInventoryScript, { productId, storeId });
+      return { ok: true };
+    } catch (error) {
+      if (isTransientError(error)) {
+        return {
+          ok: false,
+          error: { message: String(error), retryable: true, code: "TRANSIENT" },
+        };
+      }
+
+      return {
+        ok: false,
+        error: { message: String(error), retryable: false, code: "BUSINESS" },
+      };
+    }
   }
 
   /**
@@ -1070,17 +1200,42 @@ export class InventoryEventHandlers extends EventHandlers {
    * Custom retry: more attempts for this important sync.
    */
   @EventHandler("productUpdated", { retry: { maxAttempts: 5 } })
-  async handleProductUpdated(params: { event: ProductUpdatedEvent }): Promise<void> {
+  async handleProductUpdated(params: { event: ProductUpdatedEvent }): Promise<EventHandlerResponse> {
     const { productId, changes } = params.event.payload;
 
-    // Any error → throw → DBOS retries (up to 5 attempts)
-    await this.kernel.runScript(SyncInventoryMetadataScript, { productId, changes });
+    try {
+      await this.kernel.runScript(SyncInventoryMetadataScript, { productId, changes });
+      return { ok: true };
+    } catch (error) {
+      if (isTransientError(error)) {
+        return {
+          ok: false,
+          error: { message: String(error), retryable: true, code: "TRANSIENT" },
+        };
+      }
+
+      return {
+        ok: false,
+        error: { message: String(error), retryable: false, code: "BUSINESS" },
+      };
+    }
   }
 }
 
 function isDuplicateKeyError(error: unknown): boolean {
   return String(error).includes("duplicate key") ||
          String(error).includes("unique constraint");
+}
+
+function isTransientError(error: unknown): boolean {
+  const msg = String(error).toLowerCase();
+  return (
+    msg.includes("econnrefused") ||
+    msg.includes("timeout") ||
+    msg.includes("deadlock") ||
+    msg.includes("serialization failure") ||
+    msg.includes("connection reset")
+  );
 }
 ```
 
@@ -1632,10 +1787,10 @@ type EventLogEvent =
 │  ─────────────────────────────────────────────────                          │
 │  Method: Unique constraints, upserts, conditional updates                   │
 │                                                                             │
-│  Handler contract:                                                          │
-│  - Return normally → success (including "already done")                     │
-│  - Throw exception → DBOS retries according to policy                       │
-│  - After retries exhausted → DLQ                                            │
+│  Handler contract (EventHandlerResponse):                                   │
+│  - { ok: true } → success (including "already done")                        │
+│  - { ok: false, retryable: true } → DBOS retries according to policy        │
+│  - { ok: false, retryable: false } → DLQ immediately (no retries)           │
 │                                                                             │
 │  Examples:                                                                  │
 │  - INSERT ON CONFLICT DO NOTHING → catch duplicate, return normally         │
@@ -1674,7 +1829,7 @@ type EventLogEvent =
 | Durability | DBOS workflow guarantees delivery |
 | Service Discovery | Services from `config.yml` via `getConfig().services` |
 | Fan-out | All services invoked in parallel, non-handlers skipped |
-| Handler Contract | `(params: { event }) => Promise<void>` — return = success, throw = retry |
+| Handler Contract | `(params: { event }) => Promise<EventHandlerResponse>` — handler decides retryable vs non-retryable |
 | Handler Registration | `@EventHandler("eventName", { retry })` → `broker.register(eventName, handler, metadata)` |
 | Retry Policy | Per-handler via `@EventHandler` options, used in `DBOS.runStep()` |
 | Event Store | `events` service — `domain_events` table with Drizzle ORM |
@@ -1691,13 +1846,13 @@ type EventLogEvent =
 3. **Convention over configuration** — `@EventHandler("productCreated")` → `{service}.productCreated`
 4. **Metadata in broker** — `ActionRegistry` stores handler + metadata (retry policy)
 5. **Per-handler retry** — Each handler can define own retry policy via decorator
-6. **Dead Letter Queue** — Failed handlers (after retries) stored in `events` service for inspection
-7. **Independent handlers** — Each handler succeeds or fails independently
-8. **Dedicated events service** — Event store, DLQ, and cleanup scheduling in separate `events` service
-8. **Dedicated events service** — Event store, DLQ, and cleanup scheduling in separate `events` service
-9. **Separate classes** — `BrokerActions` for `@Action`, `EventHandlers` for `@EventHandler`
-10. **DBOS workflow idempotency** — Same eventId = same workflow = dispatch once
-11. **Domain-level idempotency** — Handlers use DB constraints (`ON CONFLICT DO NOTHING`)
+6. **Handler-controlled retryability** — Handler returns `{ ok: false, retryable: true/false }`, wrapper translates to DBOS behavior
+7. **Dead Letter Queue** — Failed handlers sent to DLQ; non-retryable immediately, retryable after exhausting attempts
+8. **Independent handlers** — Each handler succeeds or fails independently
+9. **Dedicated events service** — Event store, DLQ, and cleanup scheduling in separate `events` service
+10. **Separate classes** — `BrokerActions` for `@Action`, `EventHandlers` for `@EventHandler`
+11. **DBOS workflow idempotency** — Same eventId = same workflow = dispatch once
+12. **Domain-level idempotency** — Handlers use DB constraints (`ON CONFLICT DO NOTHING`)
 
 ### Benefits
 
@@ -1707,10 +1862,12 @@ type EventLogEvent =
 4. **Clean Separation**: `BrokerActions` vs `EventHandlers` — different concerns
 5. **Guaranteed Delivery**: DBOS workflow durability
 6. **Exactly-Once Semantics**: DBOS workflow ID + domain-level idempotency
-7. **Dead Letter Queue**: Failed handlers stored for inspection and manual retry
-8. **No Central Registry**: Services discovered from existing `config.yml`
-9. **No Infrastructure Overhead**: No separate message queue
-10. **Dedicated Events Service**: Event store, DLQ, and scheduling isolated in `events` service with own migrations
+7. **Smart DLQ Routing**: Non-retryable errors go to DLQ immediately, no wasted retry attempts
+8. **Handler Autonomy**: Each handler decides if its errors are retryable or not
+9. **Dead Letter Queue**: Failed handlers stored for inspection and manual retry
+10. **No Central Registry**: Services discovered from existing `config.yml`
+11. **No Infrastructure Overhead**: No separate message queue
+12. **Dedicated Events Service**: Event store, DLQ, and scheduling isolated in `events` service with own migrations
 
 ### Trade-offs
 
