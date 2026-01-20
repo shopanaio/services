@@ -1104,7 +1104,110 @@ export class EventStoreBrokerActions extends BrokerActions {
 
     return { added: true };
   }
+
+  /**
+   * Cleanup expired DLQ entries.
+   * Should be called periodically (e.g., daily cron job).
+   */
+  @Action("cleanupDLQ")
+  async cleanupDLQ(params: { batchSize?: number }): Promise<{ deleted: number }> {
+    const batchSize = params.batchSize ?? 1000;
+
+    const result = await this.db.execute(sql`
+      DELETE FROM dead_letter_queue
+      WHERE id IN (
+        SELECT id FROM dead_letter_queue
+        WHERE expires_at IS NOT NULL AND expires_at < NOW()
+        LIMIT ${batchSize}
+      )
+    `);
+
+    return { deleted: result.rowCount ?? 0 };
+  }
+
+  /**
+   * Get failed DLQ entries for inspection.
+   */
+  @Action("getDLQEntries")
+  async getDLQEntries(params: {
+    limit?: number;
+    eventType?: string;
+  }): Promise<{ entries: DLQEntry[] }> {
+    const limit = params.limit ?? 100;
+
+    let query = this.db
+      .select()
+      .from(deadLetterQueue)
+      .where(eq(deadLetterQueue.status, "failed"))
+      .orderBy(deadLetterQueue.failedAt)
+      .limit(limit);
+
+    if (params.eventType) {
+      query = query.where(eq(deadLetterQueue.eventType, params.eventType));
+    }
+
+    const entries = await query;
+    return { entries };
+  }
 }
+```
+
+---
+
+### 5.3 DLQ Cleanup Scheduler
+
+```typescript
+// services/bootstrap/src/DLQCleanupScheduler.ts
+
+import { Injectable } from "@nestjs/common";
+import { Cron, CronExpression } from "@nestjs/schedule";
+import { InjectBroker, ServiceBroker } from "@shopana/shared-kernel";
+
+/**
+ * Scheduled job to cleanup expired DLQ entries.
+ * Runs daily at 3 AM.
+ */
+@Injectable()
+export class DLQCleanupScheduler {
+  constructor(@InjectBroker("bootstrap") private readonly broker: ServiceBroker) {}
+
+  @Cron(CronExpression.EVERY_DAY_AT_3AM)
+  async cleanupExpiredEntries(): Promise<void> {
+    let totalDeleted = 0;
+    let deleted: number;
+
+    // Process in batches until no more expired entries
+    do {
+      const result = await this.broker.call("bootstrap.cleanupDLQ", {
+        batchSize: 1000,
+      });
+      deleted = result.deleted;
+      totalDeleted += deleted;
+    } while (deleted > 0);
+
+    if (totalDeleted > 0) {
+      console.log(`DLQ cleanup: deleted ${totalDeleted} expired entries`);
+    }
+  }
+}
+```
+
+```typescript
+// services/bootstrap/src/bootstrap.module.ts
+
+import { Module } from "@nestjs/common";
+import { ScheduleModule } from "@nestjs/schedule";
+import { EventStoreBrokerActions } from "./EventStoreBrokerActions.js";
+import { DLQCleanupScheduler } from "./DLQCleanupScheduler.js";
+
+@Module({
+  imports: [ScheduleModule.forRoot()],
+  providers: [
+    EventStoreBrokerActions,
+    DLQCleanupScheduler,
+  ],
+})
+export class BootstrapModule {}
 ```
 
 ---
