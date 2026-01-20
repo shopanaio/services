@@ -969,7 +969,7 @@ export class EventEmitter {
    *
    * DETERMINISM: All event fields are deterministic on workflow replay:
    * - eventId: derived from tenantId + dispatchWorkflowId
-   * - timestamp: derived from dispatchWorkflowId (not wall clock!)
+   * - timestamp: captured in persistEvent step (real wall-clock, but checkpointed!)
    * - correlationId: derived from parentWorkflowId (not random!)
    *
    * @example
@@ -1176,15 +1176,20 @@ export class EventDispatchWorkflow {
 
   @DBOS.workflow()
   async dispatch(event: DomainEvent): Promise<EventDispatchResult> {
-    // Step 1: Persist event to domain_events table
-    await this.persistEvent(event);
+    // Step 1: Persist event and capture REAL timestamp
+    // (step result is checkpointed → same timestamp on replay)
+    const { timestamp } = await this.persistEvent(event);
+
+    // Enrich event with real timestamp for handlers
+    const eventWithTimestamp: DomainEvent = { ...event, timestamp };
 
     // Step 2: Get all service names from config
     const serviceNames = await this.getServiceNames();
 
     // Step 3: Try to invoke handler on each service in parallel
+    // NOTE: handlers receive eventWithTimestamp (has real time!)
     const resultPromises = serviceNames.map((serviceName) =>
-      this.tryInvokeHandler(event, serviceName)
+      this.tryInvokeHandler(eventWithTimestamp, serviceName)
     );
 
     const results = await Promise.all(resultPromises);
@@ -1205,11 +1210,14 @@ export class EventDispatchWorkflow {
   }
 
   /**
-   * Persist event to domain_events table for audit trail.
+   * Persist event to domain_events table and capture real timestamp.
+   * Result is checkpointed by DBOS → deterministic on replay.
    */
   @DBOS.step()
-  private async persistEvent(event: DomainEvent): Promise<void> {
-    await this.broker.call("events.persistEvent", { event });
+  private async persistEvent(event: DomainEvent): Promise<{ timestamp: string }> {
+    // events.persistEvent returns { persisted: true, timestamp: "..." }
+    const result = await this.broker.call("events.persistEvent", { event });
+    return { timestamp: result.timestamp };
   }
 
   /**
@@ -1254,15 +1262,14 @@ export class EventDispatchWorkflow {
     event: DomainEvent,
     serviceName: string
   ): Promise<HandlerInvocationResult> {
-    const startTime = Date.now();
     const action = `${serviceName}.${event.eventType}`;
 
-    // Check if action exists
+    // Check if action exists (not a step — just metadata lookup)
     if (!this.broker.hasAction(action)) {
       return {
         service: serviceName,
         status: "skipped",
-        durationMs: Date.now() - startTime,
+        durationMs: 0,
       };
     }
 
@@ -1274,15 +1281,29 @@ export class EventDispatchWorkflow {
       backoffRate: 2,
     };
 
-    let stepReturn: StepReturn;
+    /**
+     * Step result includes durationMs so it's checkpointed.
+     * On replay, DBOS returns the saved result with correct timing.
+     */
+    type InvokeStepResult =
+      | { kind: "ok"; durationMs: number }
+      | { kind: "nonRetryableFailure"; error: { message: string; code?: string }; durationMs: number };
+
+    let stepResult: InvokeStepResult;
 
     try {
-      stepReturn = await DBOS.runStep<StepReturn>(
+      stepResult = await DBOS.runStep<InvokeStepResult>(
         async () => {
+          // ═══════════════════════════════════════════════════════════════
+          // Timing INSIDE the step → checkpointed by DBOS!
+          // ═══════════════════════════════════════════════════════════════
+          const startTime = Date.now();
+
           const resp: EventHandlerResponse = await this.broker.call(action, { event });
+          const durationMs = Date.now() - startTime;
 
           if (resp.ok) {
-            return { kind: "ok" };
+            return { kind: "ok", durationMs };
           }
 
           // Non-retryable: DON'T throw → DBOS won't retry
@@ -1290,6 +1311,7 @@ export class EventDispatchWorkflow {
             return {
               kind: "nonRetryableFailure",
               error: { message: resp.error.message, code: resp.error.code },
+              durationMs,
             };
           }
 
@@ -1314,33 +1336,33 @@ export class EventDispatchWorkflow {
         service: serviceName,
         status: "failed",
         error: errorMsg,
-        durationMs: Date.now() - startTime,
+        durationMs: 0,  // Unknown after retries exhausted
       };
     }
 
     // Step completed without throw
-    if (stepReturn.kind === "nonRetryableFailure") {
+    if (stepResult.kind === "nonRetryableFailure") {
       // Non-retryable failure → DLQ immediately (1 attempt)
       await this.sendToDLQ(
         event,
         serviceName,
-        stepReturn.error.message,
-        stepReturn.error.code,
+        stepResult.error.message,
+        stepResult.error.code,
         1
       );
 
       return {
         service: serviceName,
         status: "failed",
-        error: stepReturn.error.message,
-        durationMs: Date.now() - startTime,
+        error: stepResult.error.message,
+        durationMs: stepResult.durationMs,  // From checkpointed step result
       };
     }
 
     return {
       service: serviceName,
       status: "success",
-      durationMs: Date.now() - startTime,
+      durationMs: stepResult.durationMs,  // From checkpointed step result
     };
   }
 
