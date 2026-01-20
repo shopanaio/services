@@ -696,11 +696,12 @@ export class EventDispatchWorkflow {
     } catch (error) {
       // DBOS exhausted all retries (retryable error thrown maxAttempts times)
       const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorCode = error instanceof HandlerError ? error.code : undefined;
 
       await this.sendToDLQ(
         event,
         handler,
-        { message: errorMessage },
+        { message: errorMessage, code: errorCode },
         retryPolicy.maxAttempts
       );
 
@@ -764,7 +765,8 @@ export class EventDispatchWorkflow {
     if (response.error) {
       if (response.error.retryable) {
         // Retryable → throw so DBOS retries this step
-        throw new Error(response.error.message);
+        // Preserve error code for logging/debugging
+        throw new HandlerError(response.error.message, response.error.code);
       }
       // Non-retryable → return error, don't throw
       // Workflow will handle DLQ, DBOS won't retry
@@ -826,6 +828,20 @@ interface RetryPolicy {
   maxAttempts: number;
   intervalSeconds: number;
   backoffRate: number;
+}
+
+/**
+ * Custom error that preserves handler error code.
+ * Used for retryable errors thrown to trigger DBOS retry.
+ */
+class HandlerError extends Error {
+  constructor(
+    message: string,
+    public readonly code?: string
+  ) {
+    super(message);
+    this.name = "HandlerError";
+  }
 }
 ```
 
