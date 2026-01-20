@@ -1,28 +1,39 @@
-import { DBOS } from "@shopana/shared-kernel";
+import { Inject, Injectable, Logger } from "@nestjs/common";
+import {
+  BrokerWorkflows,
+  InjectBroker,
+  ServiceBroker,
+  WORKFLOW_REGISTRY,
+  WorkflowRegistry,
+  Workflow,
+  Step,
+} from "@shopana/shared-kernel";
 import { v7 as uuidv7 } from "uuid";
-import { BaseWorkflow } from "./BaseWorkflow.js";
+import { Kernel } from "./kernel/Kernel.js";
 import type {
   CurrencyCode,
   LocaleCode,
   StoreStatus,
-} from "../repositories/models/index.js";
+} from "./repositories/models/index.js";
 import { Roles, RolesMeta } from "@shopana/rbac";
 
 /** Convert @shopana/rbac Roles.store to RoleConfig[] format for iam.createRoles */
 function buildStoreRoles() {
-  return (Object.keys(Roles.store) as Array<keyof typeof Roles.store>).map((roleName) => {
-    const permissions = Roles.store[roleName];
-    const meta = RolesMeta.store[roleName];
-    return {
-      name: roleName,
-      displayName: meta.displayName,
-      description: meta.description,
-      permissions: permissions.map((p) => ({
-        resource: p.resource,
-        action: p.action,
-      })),
-    };
-  });
+  return (Object.keys(Roles.store) as Array<keyof typeof Roles.store>).map(
+    (roleName) => {
+      const permissions = Roles.store[roleName];
+      const meta = RolesMeta.store[roleName];
+      return {
+        name: roleName,
+        displayName: meta.displayName,
+        description: meta.description,
+        permissions: permissions.map((p) => ({
+          resource: p.resource,
+          action: p.action,
+        })),
+      };
+    },
+  );
 }
 
 export interface StoreCreateInput {
@@ -48,26 +59,39 @@ export interface StoreCreateOutput {
 }
 
 /**
- * Durable workflow for store creation.
- *
- * Steps:
- * 1. Generate store ID (UUIDv7)
- * 2. Create store record in database with organizationId
+ * Project broker workflows registered with @Workflow decorator.
+ * Each method decorated with @Workflow is automatically registered
+ * as a broker workflow when the module initializes.
  */
-export class StoreCreateWorkflow extends BaseWorkflow {
+@Injectable()
+export class ProjectBrokerWorkflows extends BrokerWorkflows {
+  constructor(
+    @InjectBroker("project") broker: ServiceBroker,
+    @Inject(WORKFLOW_REGISTRY) workflow: WorkflowRegistry,
+  ) {
+    super("projectWorkflows", {
+      broker,
+      workflow,
+      logger: new Logger(ProjectBrokerWorkflows.name),
+    });
+  }
+
+  private get kernel(): Kernel {
+    return Kernel.getInstance();
+  }
 
   /**
    * Generate globally unique workflowID from name.
    * Name must be unique across all stores.
    */
-  static workflowID(name: string): string {
+  static storeCreateWorkflowID(name: string): string {
     return `store:create:${name}`;
   }
 
   /**
-   * Main workflow - orchestrates store creation
+   * Workflow: storeCreate - orchestrates store creation
    */
-  @DBOS.workflow()
+  @Workflow("storeCreate")
   async run(input: StoreCreateInput): Promise<StoreCreateOutput> {
     const { organizationId, userId } = input;
 
@@ -93,7 +117,7 @@ export class StoreCreateWorkflow extends BaseWorkflow {
    * Step: Generate UUIDv7 for store ID
    * Must be a step for determinism - result is persisted and reused on recovery
    */
-  @DBOS.step()
+  @Step()
   async generateStoreId(): Promise<string> {
     return uuidv7();
   }
@@ -101,9 +125,13 @@ export class StoreCreateWorkflow extends BaseWorkflow {
   /**
    * Step: Create store in database (LOCAL - @Executable handles transaction)
    */
-  @DBOS.step()
-  async createStore(storeId: string, input: StoreCreateInput, organizationId: string) {
-    return this.repository.store.create({
+  @Step()
+  async createStore(
+    storeId: string,
+    input: StoreCreateInput,
+    organizationId: string,
+  ) {
+    return this.kernel.repository.store.create({
       id: storeId,
       organizationId,
       name: input.name,
@@ -120,14 +148,14 @@ export class StoreCreateWorkflow extends BaseWorkflow {
   /**
    * Step: Create roles for store domain
    */
-  @DBOS.step()
+  @Step()
   async createRoles(storeId: string, organizationId: string, userId: string) {
-    const result = await this.broker.call("iam.createRoles", {
+    const result = (await this.broker.call("iam.createRoles", {
       userId,
       organizationId,
       domain: `store:${storeId}`,
       roles: buildStoreRoles(),
-    }) as { success: boolean; error?: string };
+    })) as { success: boolean; error?: string };
 
     if (!result.success) {
       throw new Error(result.error || "Failed to create store roles");
@@ -137,14 +165,18 @@ export class StoreCreateWorkflow extends BaseWorkflow {
   /**
    * Step: Assign admin role to store creator
    */
-  @DBOS.step()
-  async assignAdminRole(storeId: string, organizationId: string, userId: string) {
-    const result = await this.broker.call("iam.assignRole", {
+  @Step()
+  async assignAdminRole(
+    storeId: string,
+    organizationId: string,
+    userId: string,
+  ) {
+    const result = (await this.broker.call("iam.assignRole", {
       userId,
       organizationId,
       domain: `store:${storeId}`,
       roleName: "admin",
-    }) as { success: boolean; error?: string };
+    })) as { success: boolean; error?: string };
 
     if (!result.success) {
       throw new Error(result.error || "Failed to assign admin role");
@@ -154,7 +186,7 @@ export class StoreCreateWorkflow extends BaseWorkflow {
   /**
    * Step: Create media asset group for this store
    */
-  @DBOS.step()
+  @Step()
   async createMediaAssetGroup(storeId: string) {
     await this.broker.call("media.createAssetGroup", {
       ownerType: "store",
