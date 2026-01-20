@@ -207,12 +207,35 @@ export function isRetryableError(error: unknown): boolean {
 }
 
 /**
- * Add jitter to prevent thundering herd on mass failures.
- * Returns interval with ±25% random variance.
+ * Deterministic hash for workflow-safe jitter.
+ * Uses simple string hash to get reproducible pseudo-random value.
  */
-export function addJitter(intervalMs: number): number {
+function deterministicHash(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  // Normalize to 0-1 range
+  return (hash >>> 0) / 0xFFFFFFFF;
+}
+
+/**
+ * Add deterministic jitter to prevent thundering herd.
+ * Returns interval with ±25% variance based on hash of context.
+ *
+ * IMPORTANT: Workflows must be deterministic - no Math.random()!
+ * Jitter is derived from sagaId + stepName + attempt for reproducibility.
+ *
+ * @param intervalMs - Base interval
+ * @param seed - Deterministic seed (sagaId:stepName:attempt)
+ */
+export function addJitter(intervalMs: number, seed: string): number {
   const jitter = intervalMs * 0.25;
-  return intervalMs + (Math.random() * 2 - 1) * jitter;
+  const hashValue = deterministicHash(seed);
+  // Map hash (0-1) to range (-1, 1)
+  return intervalMs + (hashValue * 2 - 1) * jitter;
 }
 
 /** Состояние выполнения саги */
@@ -740,11 +763,14 @@ export class SagaExecutor<TInput, TOutput> {
         }
 
         // Wait before retry (with jitter to prevent thundering herd)
-        const jitteredInterval = addJitter(interval);
+        // Jitter seed is deterministic: sagaId:stepName:attempt
+        const jitterSeed = `${ctx.sagaId}:${step.config.name}:${attempt}`;
+        const jitteredInterval = addJitter(interval, jitterSeed);
         this.logger.debug(
           `Step ${step.config.name} attempt ${attempt} failed, retrying in ${jitteredInterval}ms`,
         );
-        await this.sleep(jitteredInterval);
+        // DBOS.sleep() is durable - recorded for deterministic replay
+        await DBOS.sleep(jitteredInterval);
         interval *= policy.backoffRate;
       }
     }
@@ -791,11 +817,14 @@ export class SagaExecutor<TInput, TOutput> {
           throw error;
         }
 
-        const jitteredInterval = addJitter(interval);
+        // Jitter seed is deterministic: sagaId:compensation:stepName:attempt
+        const jitterSeed = `${ctx.sagaId}:comp:${stepName}:${attempt}`;
+        const jitteredInterval = addJitter(interval, jitterSeed);
         this.logger.warn(
           `Compensation ${methodName} attempt ${attempt} failed, retrying in ${jitteredInterval}ms`,
         );
-        await this.sleep(jitteredInterval);
+        // DBOS.sleep() is durable - recorded for deterministic replay
+        await DBOS.sleep(jitteredInterval);
         interval *= policy.backoffRate;
       }
     }
@@ -838,10 +867,6 @@ export class SagaExecutor<TInput, TOutput> {
         reject(new RetryableError(`Step ${stepName} timed out after ${ms}ms`));
       }, ms);
     });
-  }
-
-  private sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 ```
