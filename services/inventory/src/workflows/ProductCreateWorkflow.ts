@@ -1,4 +1,5 @@
 import { DBOS } from "@shopana/shared-kernel";
+import type { Media } from "@shopana/broker-types";
 import { BaseWorkflow } from "./BaseWorkflow.js";
 import { ProductCreateScript } from "../scripts/product/ProductCreateScript.js";
 import type {
@@ -54,14 +55,17 @@ export class ProductCreateWorkflow extends BaseWorkflow {
   async syncVariantBackRefs(variantMediaMap: VariantMediaEntry[]): Promise<void> {
     for (const entry of variantMediaMap) {
       try {
-        await this.broker.call("media.syncEntityFiles", {
-          entityRef: {
-            service: "inventory",
-            entityType: "variant",
-            entityId: entry.variantId,
+        await this.broker.call<Media.SyncEntityFilesResult, Media.SyncEntityFilesParams>(
+          "media.syncEntityFiles",
+          {
+            entityRef: {
+              service: "inventory",
+              entityType: "variant",
+              entityId: entry.variantId,
+            },
+            fileIds: entry.fileIds,
           },
-          fileIds: entry.fileIds,
-        });
+        );
 
         this.logger.info(
           { variantId: entry.variantId, fileCount: entry.fileIds.length },

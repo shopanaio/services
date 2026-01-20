@@ -6,6 +6,7 @@ import {
   Workflow,
   Step,
 } from "@shopana/shared-kernel";
+import type { Media } from "@shopana/broker-types";
 import { Kernel } from "../kernel/Kernel.js";
 
 export interface StoreDeleteInput {
@@ -78,10 +79,13 @@ export class StoreDeleteWorkflow extends BrokerWorkflows {
   @Step()
   async deleteMediaAssetGroup(storeId: string): Promise<void> {
     try {
-      await this.broker.call("media.deleteAssetGroup", {
-        ownerType: "store",
-        ownerId: storeId,
-      });
+      await this.broker.call<Media.DeleteAssetGroupResult, Media.DeleteAssetGroupParams>(
+        "media.deleteAssetGroup",
+        {
+          ownerType: "store",
+          ownerId: storeId,
+        },
+      );
       this.logger.debug({ storeId }, "Deleted media asset group for store");
     } catch (error) {
       // Log but don't fail the workflow - asset group deletion is best-effort
@@ -98,13 +102,16 @@ export class StoreDeleteWorkflow extends BrokerWorkflows {
   @Step()
   async notifyEntityDeleted(storeId: string): Promise<void> {
     try {
-      await this.broker.call("media.entityDeleted", {
-        entityRef: {
-          service: "project",
-          entityType: "store",
-          entityId: storeId,
+      await this.broker.call<Media.EntityDeletedResult, Media.EntityDeletedParams>(
+        "media.entityDeleted",
+        {
+          entityRef: {
+            service: "project",
+            entityType: "store",
+            entityId: storeId,
+          },
         },
-      });
+      );
       this.logger.debug({ storeId }, "Notified entity deletion for store");
     } catch (error) {
       this.logger.warn(

@@ -1,4 +1,5 @@
 import { DBOS } from "@shopana/shared-kernel";
+import type { Inventory } from "@shopana/broker-types";
 import { Error as DBOSErrors } from "@dbos-inc/dbos-sdk";
 import { BaseWorkflow } from "./BaseWorkflow.js";
 
@@ -30,11 +31,12 @@ export class FileDeleteCleanupWorkflow extends BaseWorkflow {
     backoffRate: 2,
   })
   async notifyInventory(fileId: string): Promise<void> {
-    const result = await this.broker.call("inventory.fileHardDeleted", {
-      fileId,
-    });
+    const result = await this.broker.call<Inventory.FileHardDeletedResult, Inventory.FileHardDeletedParams>(
+      "inventory.fileHardDeleted",
+      { fileId },
+    );
     this.logger.info(
-      { fileId, deletedCount: result?.deletedCount },
+      { fileId, deletedCount: result.deletedCount },
       "Inventory notified"
     );
   }

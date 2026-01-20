@@ -1,12 +1,9 @@
 import { DBOS } from "@shopana/shared-kernel";
+import type { Media, EntityRef } from "@shopana/broker-types";
 import { BaseWorkflow } from "./BaseWorkflow.js";
 
 export interface EntityDeletedNotifyInput {
-  entityRef: {
-    service: string;
-    entityType: string;
-    entityId: string;
-  };
+  entityRef: EntityRef;
 }
 
 export class EntityDeletedNotifyWorkflow extends BaseWorkflow {
@@ -16,12 +13,13 @@ export class EntityDeletedNotifyWorkflow extends BaseWorkflow {
   }
 
   @DBOS.step()
-  async notifyMedia(
-    entityRef: EntityDeletedNotifyInput["entityRef"]
-  ): Promise<void> {
-    const result = await this.broker.call("media.entityDeleted", { entityRef });
+  async notifyMedia(entityRef: EntityRef): Promise<void> {
+    const result = await this.broker.call<Media.EntityDeletedResult, Media.EntityDeletedParams>(
+      "media.entityDeleted",
+      { entityRef },
+    );
     this.logger.info(
-      { unlinkedCount: result?.unlinkedCount },
+      { unlinkedCount: result.unlinkedCount },
       "Entity deleted notification sent"
     );
   }

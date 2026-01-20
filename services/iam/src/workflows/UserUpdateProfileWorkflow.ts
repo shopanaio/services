@@ -6,6 +6,7 @@ import {
   Workflow,
   Step,
 } from "@shopana/shared-kernel";
+import type { Media } from "@shopana/broker-types";
 import { Kernel } from "../kernel/Kernel.js";
 import type {
   UserUpdateProfileParams,
@@ -75,7 +76,11 @@ export class UserUpdateProfileWorkflow extends BrokerWorkflows {
 
     if (nextAvatarId) {
       try {
-        await this.broker.call("media.fileLink", { fileId: nextAvatarId, entityRef, role });
+        await this.broker.call<Media.FileLinkResult, Media.FileLinkParams>("media.fileLink", {
+          fileId: nextAvatarId,
+          entityRef,
+          role,
+        });
       } catch (error) {
         this.logger.warn({ userId, fileId: nextAvatarId, error }, "Failed to link avatar");
       }
@@ -83,7 +88,11 @@ export class UserUpdateProfileWorkflow extends BrokerWorkflows {
 
     if (previousAvatarId) {
       try {
-        await this.broker.call("media.fileUnlink", { fileId: previousAvatarId, entityRef, role });
+        await this.broker.call<Media.FileUnlinkResult, Media.FileUnlinkParams>("media.fileUnlink", {
+          fileId: previousAvatarId,
+          entityRef,
+          role,
+        });
       } catch (error) {
         this.logger.warn({ userId, fileId: previousAvatarId, error }, "Failed to unlink avatar");
       }

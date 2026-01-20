@@ -6,6 +6,7 @@ import {
   Workflow,
   Step,
 } from "@shopana/shared-kernel";
+import type { Media, IAM } from "@shopana/broker-types";
 import { v7 as uuidv7 } from "uuid";
 import { Kernel } from "../kernel/Kernel.js";
 import type {
@@ -145,12 +146,15 @@ export class StoreCreateWorkflow extends BrokerWorkflows {
    */
   @Step()
   async createRoles(storeId: string, organizationId: string, userId: string) {
-    const result = (await this.broker.call("iam.createRoles", {
-      userId,
-      organizationId,
-      domain: `store:${storeId}`,
-      roles: buildStoreRoles(),
-    })) as { success: boolean; error?: string };
+    const result = await this.broker.call<IAM.CreateRolesResult, IAM.CreateRolesParams>(
+      "iam.createRoles",
+      {
+        userId,
+        organizationId,
+        domain: `store:${storeId}`,
+        roles: buildStoreRoles(),
+      },
+    );
 
     if (!result.success) {
       throw new Error(result.error || "Failed to create store roles");
@@ -166,12 +170,15 @@ export class StoreCreateWorkflow extends BrokerWorkflows {
     organizationId: string,
     userId: string
   ) {
-    const result = (await this.broker.call("iam.assignRole", {
-      userId,
-      organizationId,
-      domain: `store:${storeId}`,
-      roleName: "admin",
-    })) as { success: boolean; error?: string };
+    const result = await this.broker.call<IAM.AssignRoleResult, IAM.AssignRoleParams>(
+      "iam.assignRole",
+      {
+        userId,
+        organizationId,
+        domain: `store:${storeId}`,
+        roleName: "admin",
+      },
+    );
 
     if (!result.success) {
       throw new Error(result.error || "Failed to assign admin role");
@@ -183,9 +190,12 @@ export class StoreCreateWorkflow extends BrokerWorkflows {
    */
   @Step()
   async createMediaAssetGroup(storeId: string) {
-    await this.broker.call("media.createAssetGroup", {
-      ownerType: "store",
-      ownerId: storeId,
-    });
+    await this.broker.call<Media.CreateAssetGroupResult, Media.CreateAssetGroupParams>(
+      "media.createAssetGroup",
+      {
+        ownerType: "store",
+        ownerId: storeId,
+      },
+    );
   }
 }

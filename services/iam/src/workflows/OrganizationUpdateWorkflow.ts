@@ -6,6 +6,7 @@ import {
   Workflow,
   Step,
 } from "@shopana/shared-kernel";
+import type { Media } from "@shopana/broker-types";
 import { Kernel } from "../kernel/Kernel.js";
 import type {
   OrganizationUpdateParams,
@@ -74,7 +75,11 @@ export class OrganizationUpdateWorkflow extends BrokerWorkflows {
 
     if (nextLogoId) {
       try {
-        await this.broker.call("media.fileLink", { fileId: nextLogoId, entityRef, role });
+        await this.broker.call<Media.FileLinkResult, Media.FileLinkParams>("media.fileLink", {
+          fileId: nextLogoId,
+          entityRef,
+          role,
+        });
       } catch (error) {
         this.logger.warn({ organizationId, fileId: nextLogoId, error }, "Failed to link logo");
       }
@@ -82,7 +87,11 @@ export class OrganizationUpdateWorkflow extends BrokerWorkflows {
 
     if (previousLogoId) {
       try {
-        await this.broker.call("media.fileUnlink", { fileId: previousLogoId, entityRef, role });
+        await this.broker.call<Media.FileUnlinkResult, Media.FileUnlinkParams>("media.fileUnlink", {
+          fileId: previousLogoId,
+          entityRef,
+          role,
+        });
       } catch (error) {
         this.logger.warn({ organizationId, fileId: previousLogoId, error }, "Failed to unlink logo");
       }

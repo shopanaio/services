@@ -1,12 +1,9 @@
 import { DBOS } from "@shopana/shared-kernel";
+import type { Media, EntityRef } from "@shopana/broker-types";
 import { BaseWorkflow } from "./BaseWorkflow.js";
 
 export interface BackRefNotifyInput {
-  entityRef: {
-    service: string;
-    entityType: string;
-    entityId: string;
-  };
+  entityRef: EntityRef;
   fileIds: string[];
 }
 
@@ -21,17 +18,20 @@ export class BackRefNotifyWorkflow extends BaseWorkflow {
     const { entityRef, fileIds } = input;
     const uniqueFileIds = Array.from(new Set(fileIds));
 
-    const result = await this.broker.call("media.syncEntityFiles", {
-      entityRef,
-      fileIds: uniqueFileIds,
-    });
+    const result = await this.broker.call<Media.SyncEntityFilesResult, Media.SyncEntityFilesParams>(
+      "media.syncEntityFiles",
+      {
+        entityRef,
+        fileIds: uniqueFileIds,
+      },
+    );
 
     this.logger.info(
       {
         entityRef,
-        unlinkedCount: result?.unlinkedCount,
-        linkedCount: result?.linkedCount,
-        skippedCount: result?.skippedCount,
+        unlinkedCount: result.unlinkedCount,
+        linkedCount: result.linkedCount,
+        skippedCount: result.skippedCount,
       },
       "BackRef sync completed"
     );

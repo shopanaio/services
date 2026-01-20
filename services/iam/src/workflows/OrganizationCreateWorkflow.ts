@@ -6,6 +6,7 @@ import {
   Workflow,
   Step,
 } from "@shopana/shared-kernel";
+import type { Media } from "@shopana/broker-types";
 import { Kernel } from "../kernel/Kernel.js";
 import { OrganizationCreateScript } from "../scripts/organization/OrganizationCreateScript.js";
 import type {
@@ -14,18 +15,6 @@ import type {
 } from "../scripts/organization/dto/OrganizationCreateDto.js";
 
 export type { OrganizationCreateParams, OrganizationCreateResult };
-
-/** Params for media.createAssetGroup broker call */
-interface CreateAssetGroupParams {
-  ownerType: "organization" | "store";
-  ownerId: string;
-}
-
-/** Result from media.createAssetGroup broker call */
-interface CreateAssetGroupResult {
-  assetGroup: { id: string; ownerType: string; ownerId: string } | null;
-  userErrors: Array<{ field: string[]; message: string }>;
-}
 
 /**
  * Durable workflow for organization creation.
@@ -71,7 +60,7 @@ export class OrganizationCreateWorkflow extends BrokerWorkflows {
   @Step()
   async createMediaAssetGroup(organizationId: string): Promise<void> {
     try {
-      await this.broker.call<CreateAssetGroupResult, CreateAssetGroupParams>(
+      await this.broker.call<Media.CreateAssetGroupResult, Media.CreateAssetGroupParams>(
         "media.createAssetGroup",
         {
           ownerType: "organization",

@@ -6,6 +6,7 @@ import {
   Workflow,
   Step,
 } from "@shopana/shared-kernel";
+import type { Media } from "@shopana/broker-types";
 import { Kernel } from "../kernel/Kernel.js";
 import { OrganizationDeleteScript } from "../scripts/organization/OrganizationDeleteScript.js";
 import type {
@@ -59,10 +60,13 @@ export class OrganizationDeleteWorkflow extends BrokerWorkflows {
   @Step()
   async deleteMediaAssetGroup(organizationId: string): Promise<void> {
     try {
-      await this.broker.call("media.deleteAssetGroup", {
-        ownerType: "organization",
-        ownerId: organizationId,
-      });
+      await this.broker.call<Media.DeleteAssetGroupResult, Media.DeleteAssetGroupParams>(
+        "media.deleteAssetGroup",
+        {
+          ownerType: "organization",
+          ownerId: organizationId,
+        },
+      );
       this.logger.debug({ organizationId }, "Deleted media asset group for organization");
     } catch (error) {
       this.logger.warn({ organizationId, error }, "Failed to delete media asset group");
@@ -72,7 +76,7 @@ export class OrganizationDeleteWorkflow extends BrokerWorkflows {
   @Step()
   async unlinkBackRefs(organizationId: string): Promise<void> {
     try {
-      await this.broker.call("media.entityDeleted", {
+      await this.broker.call<Media.EntityDeletedResult, Media.EntityDeletedParams>("media.entityDeleted", {
         entityRef: {
           service: "iam",
           entityType: "organization",
