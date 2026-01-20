@@ -173,12 +173,14 @@ export interface EventHandlerMetadata {
  *
  * @example
  * class InventoryEventHandlers extends EventHandlers {
+ *   // Uses default retry policy (3 attempts, 1s interval, 2x backoff)
  *   @EventHandler("productCreated")
  *   async handleProductCreated(params: { event: ProductCreatedEvent }) {
  *     // ...
  *   }
  *
- *   @EventHandler("orderCompleted")
+ *   // Custom retry policy: 5 attempts with faster backoff
+ *   @EventHandler("orderCompleted", { retry: { maxAttempts: 5, intervalSeconds: 0.5 } })
  *   async handleOrderCompleted(params: { event: OrderCompletedEvent }) {
  *     // ...
  *   }
@@ -209,7 +211,116 @@ export function EventHandler(
 }
 ```
 
-### 1.3 Event Handler Result Type
+### 1.3 ActionRegistry with Metadata Support
+
+```typescript
+// packages/shared-kernel/src/broker/ActionRegistry.ts
+
+import { Injectable } from '@nestjs/common';
+
+export type ActionHandler<TParams = unknown, TResult = unknown> = (
+  params: TParams | undefined,
+) => Promise<TResult> | TResult;
+
+/**
+ * Metadata that can be attached to an action.
+ */
+export interface ActionMetadata {
+  /** Retry policy for DBOS workflows */
+  retryPolicy?: {
+    maxAttempts: number;
+    intervalSeconds: number;
+    backoffRate: number;
+  };
+}
+
+interface RegisteredAction {
+  handler: ActionHandler;
+  metadata?: ActionMetadata;
+}
+
+@Injectable()
+export class ActionRegistry {
+  private readonly actions = new Map<string, RegisteredAction>();
+
+  /**
+   * Registers a new action handler with optional metadata.
+   */
+  register(action: string, handler: ActionHandler, metadata?: ActionMetadata): void {
+    if (this.actions.has(action)) {
+      throw new Error(`Action "${action}" already registered`);
+    }
+    this.actions.set(action, { handler, metadata });
+  }
+
+  /**
+   * Removes the action during shutdown.
+   */
+  deregister(action: string): void {
+    this.actions.delete(action);
+  }
+
+  /**
+   * Resolves an action handler or throws if it does not exist.
+   */
+  resolve<TParams = unknown, TResult = unknown>(
+    action: string,
+  ): ActionHandler<TParams, TResult> {
+    const registered = this.actions.get(action);
+    if (!registered) {
+      throw new Error(`Action "${action}" not found`);
+    }
+    return registered.handler as ActionHandler<TParams, TResult>;
+  }
+
+  /**
+   * Returns metadata for an action, or undefined if not found.
+   */
+  getMetadata(action: string): ActionMetadata | undefined {
+    return this.actions.get(action)?.metadata;
+  }
+
+  /**
+   * Returns all registered actions for observability.
+   */
+  list(): string[] {
+    return Array.from(this.actions.keys());
+  }
+}
+```
+
+### 1.4 ServiceBroker with Metadata
+
+```typescript
+// packages/shared-kernel/src/broker/ServiceBroker.ts (additions)
+
+export class ServiceBroker {
+  // ... existing code ...
+
+  /**
+   * Registers a new action with optional metadata.
+   */
+  register<TParams = unknown, TResult = unknown>(
+    action: string,
+    handler: ActionHandler<TParams, TResult>,
+    metadata?: ActionMetadata,
+  ): void {
+    const qualifiedAction = this.qualifyAction(action);
+    this.registry.register(qualifiedAction, handler as ActionHandler, metadata);
+    this.localActions.add(qualifiedAction);
+  }
+
+  /**
+   * Returns metadata for an action.
+   */
+  getActionMetadata(action: string): ActionMetadata | undefined {
+    const qualifiedAction = this.assertFullyQualified(action);
+    return this.registry.getMetadata(qualifiedAction);
+  }
+}
+```
+
+### 1.5 Event Handler Result Type
 
 ```typescript
 // packages/events/src/types.ts (continued)
@@ -308,7 +419,10 @@ export abstract class EventHandlers implements OnModuleInit {
         // Bind the method to this instance
         const boundMethod = method.bind(this);
 
-        this.broker.register(metadata.eventType, boundMethod);
+        // Register with retry policy metadata
+        this.broker.register(metadata.eventType, boundMethod, {
+          retryPolicy: metadata.retryPolicy,
+        });
         registeredHandlers.push(metadata.eventType);
       }
     }
@@ -568,6 +682,7 @@ export class EventDispatchWorkflow {
   /**
    * Try to invoke event handler on a service.
    * If service doesn't have a handler for this event, returns "skipped".
+   * Uses retry policy from action metadata if available.
    */
   private async tryInvokeHandler(
     event: DomainEvent,
@@ -576,8 +691,35 @@ export class EventDispatchWorkflow {
     const startTime = Date.now();
     const action = `${serviceName}.${event.eventType}`;
 
+    // Check if action exists and get its metadata
+    const metadata = this.broker.getActionMetadata(action);
+    if (!metadata) {
+      // Action not registered = service doesn't handle this event
+      return {
+        service: serviceName,
+        status: "skipped",
+        durationMs: Date.now() - startTime,
+      };
+    }
+
     try {
-      await this.callHandler(event, action);
+      // Use DBOS.runStep() with retry policy from metadata
+      const retryPolicy = metadata.retryPolicy ?? {
+        maxAttempts: 3,
+        intervalSeconds: 1,
+        backoffRate: 2,
+      };
+
+      await DBOS.runStep(
+        () => this.broker.call(action, { event }),
+        {
+          name: `handler:${action}:${event.eventId}`,
+          retriesAllowed: true,
+          maxAttempts: retryPolicy.maxAttempts,
+          intervalSeconds: retryPolicy.intervalSeconds,
+          backoffRate: retryPolicy.backoffRate,
+        }
+      );
 
       return {
         service: serviceName,
@@ -585,30 +727,14 @@ export class EventDispatchWorkflow {
         durationMs: Date.now() - startTime,
       };
     } catch (error) {
-      const errorMessage = String(error);
-
-      // Action not registered = service doesn't handle this event
-      if (errorMessage.includes("not found") || errorMessage.includes("not registered")) {
-        return {
-          service: serviceName,
-          status: "skipped",
-          durationMs: Date.now() - startTime,
-        };
-      }
-
-      // Real error
+      // Handler failed after all retries
       return {
         service: serviceName,
         status: "failed",
-        error: errorMessage,
+        error: String(error),
         durationMs: Date.now() - startTime,
       };
     }
-  }
-
-  @DBOS.step()
-  private async callHandler(event: DomainEvent, action: string): Promise<void> {
-    await this.broker.call(action, { event });
   }
 }
 ```
@@ -1230,7 +1356,8 @@ type EventLogEvent =
 | Service Discovery | Services from `config.yml` via `getConfig().services` |
 | Fan-out | All services invoked in parallel, non-handlers skipped |
 | Handler Contract | `(params: { event }) => Promise<void>` |
-| Handler Registration | `@EventHandler("eventName")` → `broker.register(eventName, handler)` |
+| Handler Registration | `@EventHandler("eventName", { retry })` → `broker.register(eventName, handler, metadata)` |
+| Retry Policy | Per-handler via `@EventHandler` options, used in `DBOS.runStep()` |
 | Handler Independence | Each service processes independently, failures don't affect others |
 | Event Status | Always `completed` (dispatch done, regardless of failures) |
 | Idempotency | DBOS workflow + domain-level (ON CONFLICT, upserts) |
@@ -1241,11 +1368,12 @@ type EventLogEvent =
 1. **Pure event-driven** — Fire and forget, producer doesn't know/care about consumers
 2. **Config-based discovery** — Services from `config.yml`, no central registry
 3. **Convention over configuration** — `@EventHandler("productCreated")` → `{service}.productCreated`
-4. **Independent handlers** — Each handler succeeds or fails independently
-5. **Eventual consistency** — Accepted as normal
-6. **Separate classes** — `BrokerActions` for `@Action`, `EventHandlers` for `@EventHandler`
-7. **DBOS workflow idempotency** — Same eventId = same workflow = dispatch once
-8. **Domain-level idempotency** — Handlers use DB constraints (`ON CONFLICT DO NOTHING`)
+4. **Metadata in broker** — `ActionRegistry` stores handler + metadata (retry policy)
+5. **Per-handler retry** — Each handler can define own retry policy via decorator
+6. **Independent handlers** — Each handler succeeds or fails independently
+7. **Separate classes** — `BrokerActions` for `@Action`, `EventHandlers` for `@EventHandler`
+8. **DBOS workflow idempotency** — Same eventId = same workflow = dispatch once
+9. **Domain-level idempotency** — Handlers use DB constraints (`ON CONFLICT DO NOTHING`)
 
 ### Benefits
 
