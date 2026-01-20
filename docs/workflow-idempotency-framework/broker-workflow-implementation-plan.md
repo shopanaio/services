@@ -12,10 +12,11 @@
 
 ### Ключевые требования
 
-1. **BrokerWorkflow** — новый базовый класс по аналогии с `BrokerActions`
-2. **Декларативная регистрация** — workflows регистрируются автоматически через декораторы
-3. **DBOS под капотом** — декораторы `@Workflow`, `@Step` скрывают DBOS в shared-kernel
-4. **Обязательный idempotency key** — на входе требуется ключ идемпотентности
+1. **Удаление `@shopana/workflows`** — весь код переносится в `@shopana/shared-kernel`
+2. **BrokerWorkflows** — новый базовый класс по аналогии с `BrokerActions`
+3. **Декларативная регистрация** — workflows регистрируются автоматически через декораторы
+4. **DBOS под капотом** — декораторы `@Workflow`, `@Step` скрывают DBOS в shared-kernel
+5. **Обязательный idempotency key** — на входе требуется ключ идемпотентности
 
 ---
 
@@ -49,13 +50,16 @@
 │  BrokerActions                    │  BrokerWorkflows (NEW)       │
 │  ├─ @Action decorator             │  ├─ @Workflow decorator      │
 │  ├─ auto-registration             │  ├─ @Step decorator          │
-│  └─ broker.register()             │  ├─ auto-registration        │
-│                                   │  └─ broker.registerWorkflow()│
+│  └─ broker.register()             │  └─ auto-registration        │
+├─────────────────────────────────────────────────────────────────┤
+│  WorkflowRegistry                                                │
+│  ├─ register(name, descriptor)                                   │
+│  ├─ start(name, params, idempotencyCtx)                          │
+│  └─ run(name, params, idempotencyCtx)                            │
 ├─────────────────────────────────────────────────────────────────┤
 │                        ServiceBroker                             │
 │  ├─ register(action, handler)                                    │
 │  ├─ call(action, params)                                         │
-│  ├─ registerWorkflow(name, workflow)  [NEW]                      │
 │  ├─ runWorkflow(name, params, idempotencyCtx)  [NEW]             │
 │  └─ emit(event, payload)                                         │
 └─────────────────────────────────────────────────────────────────┘
@@ -65,66 +69,110 @@
 
 ## Implementation Tracker
 
+### Phase 0: Migrate `@shopana/workflows` → `@shopana/shared-kernel`
+
+| #   | Task                                          | Status     | Notes                                    |
+| --- | --------------------------------------------- | ---------- | ---------------------------------------- |
+| 0.1 | Add `@dbos-inc/dbos-sdk` to shared-kernel     | ⬜ Pending | `pnpm add @dbos-inc/dbos-sdk`            |
+| 0.2 | Add `canonicalize` to shared-kernel           | ⬜ Pending | `pnpm add canonicalize`                  |
+| 0.3 | Create `shared-kernel/src/workflow/` folder   | ⬜ Pending | New folder for workflow code             |
+| 0.4 | Move `WorkflowModule.ts`                      | ⬜ Pending | → `shared-kernel/src/workflow/`          |
+| 0.5 | Move `WorkflowRegistry.ts`                    | ⬜ Pending | → `shared-kernel/src/workflow/`          |
+| 0.6 | Move `types.ts`                               | ⬜ Pending | → `shared-kernel/src/workflow/types.ts`  |
+| 0.7 | Update `shared-kernel/src/index.ts` exports   | ⬜ Pending | Add DBOS, WorkflowRegistry, etc.         |
+| 0.8 | Delete `packages/workflows/` package          | ⬜ Pending | Remove entire folder                     |
+| 0.9 | Update imports in all services (37 files)     | ⬜ Pending | `@shopana/workflows` → `@shopana/shared-kernel` |
+| 0.10| Update `package.json` in services             | ⬜ Pending | Remove `@shopana/workflows` dependency   |
+
 ### Phase 1: Decorators (`@shopana/shared-kernel`)
 
 | #   | Task                                 | Status     | Notes                             |
 | --- | ------------------------------------ | ---------- | --------------------------------- |
-| 1.1 | Create `@Workflow` decorator         | ⬜ Pending | Re-export from DBOS with metadata |
-| 1.2 | Create `@Step` decorator             | ⬜ Pending | Re-export from DBOS with metadata |
+| 1.1 | Create `@Workflow` decorator         | ⬜ Pending | Wraps DBOS.workflow() with metadata |
+| 1.2 | Create `@Step` decorator             | ⬜ Pending | Wraps DBOS.step() with metadata   |
 | 1.3 | Create `WorkflowMetadata` interface  | ⬜ Pending | name, idempotencyStrategy         |
 | 1.4 | Create `StepMetadata` interface      | ⬜ Pending | name, retriesAllowed, etc.        |
 | 1.5 | Export decorators from shared-kernel | ⬜ Pending | Update index.ts                   |
 
-### Phase 2: Workflow Registry Updates (`@shopana/workflows`)
-
-| #   | Task                                 | Status     | Notes                             |
-| --- | ------------------------------------ | ---------- | --------------------------------- |
-| 2.1 | Add `WorkflowDescriptor` interface   | ⬜ Pending | Metadata for registered workflows |
-| 2.2 | Update `WorkflowRegistry.register()` | ⬜ Pending | Accept metadata                   |
-| 2.3 | Add `WorkflowRegistry.getMetadata()` | ⬜ Pending | Get workflow metadata             |
-| 2.4 | Add `WorkflowRegistry.start()`       | ⬜ Pending | Start with idempotency context    |
-| 2.5 | Export updated types                 | ⬜ Pending | Update index.ts                   |
-
-### Phase 3: BrokerWorkflows Base Class (`@shopana/shared-kernel`)
-
-| #   | Task                                | Status     | Notes                            |
-| --- | ----------------------------------- | ---------- | -------------------------------- |
-| 3.1 | Create `BrokerWorkflows` base class | ⬜ Pending | Similar to BrokerActions         |
-| 3.2 | Implement `onModuleInit()`          | ⬜ Pending | Auto-register workflows          |
-| 3.3 | Add workflow scanning logic         | ⬜ Pending | Find @Workflow decorated methods |
-| 3.4 | Export from shared-kernel           | ⬜ Pending | Update index.ts                  |
-
-### Phase 4: ServiceBroker Updates (`@shopana/shared-kernel`)
-
-| #   | Task                            | Status     | Notes                           |
-| --- | ------------------------------- | ---------- | ------------------------------- |
-| 4.1 | Add `registerWorkflow()` method | ⬜ Pending | Register workflow with metadata |
-| 4.2 | Add `runWorkflow()` method      | ⬜ Pending | Run workflow with idempotency   |
-| 4.3 | Add `hasWorkflow()` method      | ⬜ Pending | Check if workflow exists        |
-| 4.4 | Add idempotency key builder     | ⬜ Pending | Build key from context          |
-
-### Phase 5: Idempotency Context Types (`@shopana/shared-kernel`)
+### Phase 2: Idempotency Types (`@shopana/shared-kernel`)
 
 | #   | Task                                   | Status     | Notes                           |
 | --- | -------------------------------------- | ---------- | ------------------------------- |
-| 5.1 | Create `IdempotencyContext` union type | ⬜ Pending | Client, Workflow, Content, None |
-| 5.2 | Create `ClientIdempotencyContext`      | ⬜ Pending | External API calls              |
-| 5.3 | Create `WorkflowIdempotencyContext`    | ⬜ Pending | Internal workflow calls         |
-| 5.4 | Create `ContentIdempotencyContext`     | ⬜ Pending | Content-hash based              |
-| 5.5 | Create `buildIdempotencyKey()` utility | ⬜ Pending | Build final key from context    |
+| 2.1 | Create `IdempotencyContext` union type | ⬜ Pending | Client, Workflow, Content       |
+| 2.2 | Create `ClientIdempotencyContext`      | ⬜ Pending | External API calls              |
+| 2.3 | Create `WorkflowIdempotencyContext`    | ⬜ Pending | Internal workflow calls         |
+| 2.4 | Create `ContentIdempotencyContext`     | ⬜ Pending | Content-hash based              |
+| 2.5 | Create `buildIdempotencyKey()` utility | ⬜ Pending | Build final key from context    |
+| 2.6 | Create `hashContent()` utility         | ⬜ Pending | SHA256 of canonicalized JSON    |
 
-### Phase 6: Migration Example (Project Service)
+### Phase 3: Workflow Registry Updates (`@shopana/shared-kernel`)
+
+| #   | Task                                 | Status     | Notes                             |
+| --- | ------------------------------------ | ---------- | --------------------------------- |
+| 3.1 | Create `WorkflowDescriptor` interface| ⬜ Pending | instance, methodName, metadata    |
+| 3.2 | Rewrite `WorkflowRegistry.register()`| ⬜ Pending | Accept WorkflowDescriptor         |
+| 3.3 | Add `WorkflowRegistry.getDescriptor()` | ⬜ Pending | Get descriptor by name          |
+| 3.4 | Add `WorkflowRegistry.start()`       | ⬜ Pending | Start with idempotency context    |
+| 3.5 | Add `WorkflowRegistry.run()`         | ⬜ Pending | Start and await result            |
+
+### Phase 4: BrokerWorkflows Base Class (`@shopana/shared-kernel`)
+
+| #   | Task                                | Status     | Notes                            |
+| --- | ----------------------------------- | ---------- | -------------------------------- |
+| 4.1 | Create `BrokerWorkflows` base class | ⬜ Pending | Extends ConfiguredInstance       |
+| 4.2 | Implement `onModuleInit()`          | ⬜ Pending | Auto-register workflows          |
+| 4.3 | Implement `onModuleDestroy()`       | ⬜ Pending | Deregister workflows             |
+| 4.4 | Add workflow scanning logic         | ⬜ Pending | Find @Workflow decorated methods |
+| 4.5 | Export from shared-kernel           | ⬜ Pending | Update index.ts                  |
+
+### Phase 5: ServiceBroker Updates (`@shopana/shared-kernel`)
+
+| #   | Task                            | Status     | Notes                           |
+| --- | ------------------------------- | ---------- | ------------------------------- |
+| 5.1 | Add `WorkflowRegistry` to constructor | ⬜ Pending | Inject via DI                 |
+| 5.2 | Add `runWorkflow()` method      | ⬜ Pending | Run workflow with idempotency   |
+| 5.3 | Add `hasWorkflow()` method      | ⬜ Pending | Check if workflow exists        |
+| 5.4 | Make `qualifyAction()` public   | ⬜ Pending | Currently private, needed by BrokerWorkflows |
+
+### Phase 6: Migration (All Services)
 
 | #   | Task                                     | Status     | Notes                    |
 | --- | ---------------------------------------- | ---------- | ------------------------ |
-| 6.1 | Create `ProjectBrokerWorkflows` class    | ⬜ Pending | Example implementation   |
-| 6.2 | Migrate `StoreCreateWorkflow`            | ⬜ Pending | Use new decorators       |
-| 6.3 | Update module registration               | ⬜ Pending | Use BrokerWorkflows      |
-| 6.4 | Update resolver to use broker.runWorkflow() | ⬜ Pending | With idempotency context |
+| 6.1 | Migrate Project service workflows        | ⬜ Pending | StoreCreateWorkflow      |
+| 6.2 | Migrate IAM service workflows            | ⬜ Pending | OrganizationCreate/Delete |
+| 6.3 | Migrate Inventory service workflows      | ⬜ Pending | ProductCreate, BackRef, etc. |
+| 6.4 | Migrate Media service workflows          | ⬜ Pending | FileHardDelete, GC, etc. |
+| 6.5 | Update all resolvers                     | ⬜ Pending | Use broker.runWorkflow() |
+| 6.6 | Delete old workflow classes              | ⬜ Pending | Clean up after migration |
 
 ---
 
 ## Detailed Implementation
+
+### Phase 0: Migration `@shopana/workflows` → `@shopana/shared-kernel`
+
+#### Files to Move
+
+```
+packages/workflows/src/WorkflowModule.ts    → packages/shared-kernel/src/workflow/WorkflowModule.ts
+packages/workflows/src/WorkflowRegistry.ts  → packages/shared-kernel/src/workflow/WorkflowRegistry.ts
+packages/workflows/src/types.ts             → packages/shared-kernel/src/workflow/types.ts
+packages/workflows/src/index.ts             → (merge into shared-kernel/src/index.ts)
+```
+
+#### Import Updates (37 files)
+
+```bash
+# All occurrences of:
+import { ... } from "@shopana/workflows";
+
+# Change to:
+import { ... } from "@shopana/shared-kernel";
+```
+
+**Affected services**: project, iam, inventory, media, bootstrap
+
+---
 
 ### Phase 1: Decorators
 
@@ -262,21 +310,117 @@ export function Step(options?: StepMetadata): MethodDecorator {
 
 ---
 
-### Phase 2: Workflow Registry Updates
+### Phase 2: Idempotency Types
 
-#### 2.1-2.4 WorkflowRegistry Updates
+**File**: `packages/shared-kernel/src/workflow/idempotency.ts`
 
-**File**: `packages/workflows/src/WorkflowRegistry.ts`
+```typescript
+import { createHash } from "node:crypto";
+import canonicalize from "canonicalize";
+
+/**
+ * Client-provided idempotency key (External API).
+ * Used for requests from external clients via HTTP Idempotency-Key header.
+ */
+export interface ClientIdempotencyContext {
+  source: "client";
+  /** Client-provided idempotency key from HTTP header */
+  clientKey: string;
+  /** Tenant/organization ID */
+  tenantId: string;
+  /** API key ID used for the request */
+  apiKeyId: string;
+}
+
+/**
+ * Workflow-derived idempotency key (Service-Initiated).
+ * Used for background jobs, event handlers, cron tasks.
+ */
+export interface WorkflowIdempotencyContext {
+  source: "workflow";
+  /** Business ID of parent workflow */
+  workflowId: string;
+  /** Step name within workflow */
+  stepId: string;
+  /** Unique ID for fan-out operations */
+  callId?: string;
+}
+
+/**
+ * Content-derived idempotency key (Idempotent Updates).
+ * Used for UPDATE/SET operations where same data = same operation.
+ */
+export interface ContentIdempotencyContext {
+  source: "content";
+  /** Resource identifier (e.g., SKU, productId) */
+  resourceId: string;
+  /** Operation name */
+  operation: string;
+  /** SHA256 hash of canonicalized payload */
+  contentHash: string;
+}
+
+/**
+ * Union type for all idempotency contexts
+ */
+export type IdempotencyContext =
+  | ClientIdempotencyContext
+  | WorkflowIdempotencyContext
+  | ContentIdempotencyContext;
+
+/**
+ * Build deterministic idempotency key from context.
+ */
+export function buildIdempotencyKey(
+  workflowName: string,
+  ctx: IdempotencyContext,
+): string {
+  const hash = (input: string): string => {
+    return createHash("sha256").update(input).digest("hex").slice(0, 32);
+  };
+
+  switch (ctx.source) {
+    case "client": {
+      const input = `v1:client:${ctx.tenantId}:${ctx.apiKeyId}:${workflowName}:${ctx.clientKey}`;
+      return `client:${hash(input)}`;
+    }
+
+    case "workflow": {
+      const callId = ctx.callId ?? "";
+      const input = `v1:workflow:${ctx.workflowId}:${ctx.stepId}:${callId}:${workflowName}`;
+      return `workflow:${hash(input)}`;
+    }
+
+    case "content": {
+      const input = `v1:content:${ctx.resourceId}:${ctx.operation}:${ctx.contentHash}:${workflowName}`;
+      return `content:${hash(input)}`;
+    }
+  }
+}
+
+/**
+ * Helper to create content hash for ContentIdempotencyContext.
+ */
+export function hashContent(payload: unknown): string {
+  const canonical = canonicalize(payload);
+  if (!canonical) {
+    throw new Error("Failed to canonicalize payload");
+  }
+  return createHash("sha256").update(canonical).digest("hex");
+}
+```
+
+---
+
+### Phase 3: Workflow Registry Updates
+
+**File**: `packages/shared-kernel/src/workflow/WorkflowRegistry.ts`
 
 ```typescript
 import { Injectable, Logger } from "@nestjs/common";
 import { DBOS } from "@dbos-inc/dbos-sdk";
-import type {
-  WorkflowHandle,
-  DBOSWorkflowStatus,
-  IdempotencyContext,
-} from "./types.js";
-import { buildIdempotencyKey } from "./idempotency.js";
+import type { WorkflowHandle, DBOSWorkflowStatus } from "./types.js";
+import { buildIdempotencyKey, type IdempotencyContext } from "./idempotency.js";
 
 export interface WorkflowDescriptor {
   /** Workflow instance (ConfiguredInstance) */
@@ -328,14 +472,6 @@ export class WorkflowRegistry {
   }
 
   /**
-   * Get workflow instance by name (legacy support)
-   */
-  get<T>(name: string): T {
-    const descriptor = this.getDescriptor(name);
-    return descriptor.instance as T;
-  }
-
-  /**
    * Check if workflow is registered
    */
   has(qualifiedName: string): boolean {
@@ -351,12 +487,6 @@ export class WorkflowRegistry {
 
   /**
    * Start workflow with idempotency context.
-   * Builds deterministic workflowID from context.
-   *
-   * @param qualifiedName - Fully qualified workflow name (e.g., "project.storeCreate")
-   * @param params - Workflow input parameters
-   * @param idempotencyCtx - Idempotency context for deterministic ID
-   * @returns Workflow handle for monitoring
    */
   async start<TParams, TResult>(
     qualifiedName: string,
@@ -368,11 +498,6 @@ export class WorkflowRegistry {
 
     // Build deterministic workflow ID
     const workflowID = buildIdempotencyKey(qualifiedName, idempotencyCtx);
-
-    // Get the workflow method
-    const workflowMethod = (instance as Record<string, unknown>)[
-      methodName
-    ] as (params: TParams) => Promise<TResult>;
 
     // Start workflow using DBOS
     const handle = await DBOS.startWorkflow(instance, { workflowID })[
@@ -388,11 +513,6 @@ export class WorkflowRegistry {
 
   /**
    * Execute workflow and wait for result.
-   *
-   * @param qualifiedName - Fully qualified workflow name
-   * @param params - Workflow input parameters
-   * @param idempotencyCtx - Idempotency context
-   * @returns Workflow result
    */
   async run<TParams, TResult>(
     qualifiedName: string,
@@ -423,80 +543,78 @@ export class WorkflowRegistry {
 
 ---
 
-### Phase 3: BrokerWorkflows Base Class
+### Phase 4: BrokerWorkflows Base Class
 
 **File**: `packages/shared-kernel/src/broker/BrokerWorkflows.ts`
 
 ```typescript
 import { Logger, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
 import { ConfiguredInstance } from "@dbos-inc/dbos-sdk";
+import type { Kernel } from "../Kernel.js";
+import { WorkflowRegistry } from "../workflow/WorkflowRegistry.js";
 import { ServiceBroker } from "./ServiceBroker.js";
-import { WorkflowRegistry } from "@shopana/workflows";
 import {
   WORKFLOW_METADATA_KEY,
   type WorkflowMetadata,
 } from "../decorators/Workflow.js";
 import "reflect-metadata";
 
-export interface BrokerWorkflowServices {
-  broker: ServiceBroker;
-  workflowRegistry: WorkflowRegistry;
-}
-
 /**
  * Base class for services that register broker workflows.
- * Subclasses use @Workflow decorator on methods to automatically register them.
+ * Receives Kernel to access broker, repository, logger, etc.
  *
  * @example
  * @Injectable()
- * class ProjectWorkflows extends BrokerWorkflows {
- *   constructor(
- *     @InjectBroker("project") broker: ServiceBroker,
- *     @Inject(WORKFLOW_REGISTRY) workflowRegistry: WorkflowRegistry
- *   ) {
- *     super("projectWorkflows", { broker, workflowRegistry });
+ * class ProjectBrokerWorkflows extends BrokerWorkflows {
+ *   constructor(kernel: Kernel) {
+ *     super("projectWorkflows", kernel);
  *   }
  *
  *   @Workflow("storeCreate")
  *   async createStore(input: StoreCreateInput): Promise<StoreCreateOutput> {
- *     const storeId = await this.generateId();
+ *     const storeId = await this.generateStoreId();
  *     await this.createStoreRecord(storeId, input);
- *     return { storeId };
+ *     return { storeId, organizationId: input.organizationId };
  *   }
  *
  *   @Step()
- *   async generateId(): Promise<string> {
+ *   private async generateStoreId(): Promise<string> {
  *     return uuidv7();
  *   }
  *
  *   @Step({ retriesAllowed: true, maxAttempts: 3 })
- *   async createStoreRecord(storeId: string, input: StoreCreateInput): Promise<void> {
+ *   private async createStoreRecord(storeId: string, input: StoreCreateInput): Promise<void> {
  *     await this.repository.store.create({ id: storeId, ...input });
  *   }
  * }
- *
- * // Usage in resolver:
- * await broker.runWorkflow("project.storeCreate", input, {
- *   source: "client",
- *   clientKey: idempotencyKey,
- *   tenantId: ctx.organizationId,
- *   apiKeyId: ctx.apiKeyId,
- * });
  */
 export abstract class BrokerWorkflows
   extends ConfiguredInstance
   implements OnModuleInit, OnModuleDestroy
 {
   protected readonly logger: Logger;
-  protected readonly broker: ServiceBroker;
-  protected readonly workflowRegistry: WorkflowRegistry;
+  protected readonly kernel: Kernel;
   private readonly registeredWorkflows: string[] = [];
 
-  constructor(name: string, services: BrokerWorkflowServices) {
+  constructor(name: string, kernel: Kernel) {
     super(name);
-    this.broker = services.broker;
-    this.workflowRegistry = services.workflowRegistry;
+    this.kernel = kernel;
     this.logger = new Logger(this.constructor.name);
+  }
+
+  /** Access to service broker */
+  protected get broker(): ServiceBroker {
+    return this.kernel.broker;
+  }
+
+  /** Access to repositories */
+  protected get repository() {
+    return this.kernel.repository;
+  }
+
+  /** Access to workflow registry */
+  protected get workflowRegistry(): WorkflowRegistry {
+    return this.kernel.workflow;
   }
 
   /**
@@ -516,13 +634,6 @@ export abstract class BrokerWorkflows
       this.workflowRegistry.deregister(workflowName);
     }
     this.registeredWorkflows.length = 0;
-  }
-
-  /**
-   * Get broker for calling other services
-   */
-  protected getBroker(): ServiceBroker {
-    return this.broker;
   }
 
   /**
@@ -586,57 +697,50 @@ export abstract class BrokerWorkflows
 
 ---
 
-### Phase 4: ServiceBroker Updates
+### Phase 5: ServiceBroker Updates
 
-**File**: `packages/shared-kernel/src/broker/ServiceBroker.ts` (additions)
+**File**: `packages/shared-kernel/src/broker/ServiceBroker.ts` (modifications)
 
 ```typescript
-import type { IdempotencyContext, WorkflowHandle } from "./types.js";
-import { WorkflowRegistry } from "@shopana/workflows";
+import { Inject, Injectable, Logger, OnModuleDestroy, Optional } from '@nestjs/common';
+import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
+import { randomUUID } from 'node:crypto';
+import { ActionHandler, ActionRegistry } from './ActionRegistry.js';
+import { BROKER_AMQP } from './tokens.js';
+import { WorkflowRegistry, WORKFLOW_REGISTRY } from '../workflow/WorkflowRegistry.js';
+import type { IdempotencyContext } from '../workflow/idempotency.js';
 
+export interface ServiceBrokerOptions {
+  serviceName: string;
+}
+
+@Injectable()
 export class ServiceBroker implements OnModuleDestroy {
-  // ... existing code ...
+  private readonly logger = new Logger(ServiceBroker.name);
+  private readonly localActions = new Set<string>();
+  private inFlight = 0;
 
   constructor(
     private readonly registry: ActionRegistry,
-    private readonly workflowRegistry: WorkflowRegistry, // NEW
+    @Inject(WORKFLOW_REGISTRY)
+    private readonly workflowRegistry: WorkflowRegistry,
     @Optional()
     @Inject(BROKER_AMQP)
     private readonly amqp: AmqpConnection | null,
     private readonly options: ServiceBrokerOptions,
   ) {}
 
+  // ... existing register(), call(), emit(), broadcast() methods ...
+
   /**
    * Execute workflow and wait for result.
    *
-   * @param workflow - Fully qualified workflow name (e.g., "project.storeCreate")
-   * @param params - Workflow input parameters
-   * @param idempotencyCtx - Idempotency context (required)
-   * @returns Workflow result
-   *
    * @example
-   * // Client-provided idempotency key (external API)
    * const result = await broker.runWorkflow("project.storeCreate", input, {
    *   source: "client",
-   *   clientKey: "user-store-123",
+   *   clientKey: ctx.idempotencyKey,
    *   tenantId: ctx.organizationId,
    *   apiKeyId: ctx.apiKeyId,
-   * });
-   *
-   * // Workflow-derived key (internal)
-   * const result = await broker.runWorkflow("inventory.createRecord", input, {
-   *   source: "workflow",
-   *   workflowId: DBOS.workflowID,
-   *   stepId: "createInventory",
-   *   callId: productId,
-   * });
-   *
-   * // Content-derived key (idempotent updates)
-   * const result = await broker.runWorkflow("inventory.setStock", input, {
-   *   source: "content",
-   *   resourceId: sku,
-   *   operation: "setStock",
-   *   contentHash: sha256(canonicalJson(input)),
    * });
    */
   async runWorkflow<TResult = unknown, TParams = unknown>(
@@ -645,14 +749,6 @@ export class ServiceBroker implements OnModuleDestroy {
     idempotencyCtx: IdempotencyContext,
   ): Promise<TResult> {
     const qualifiedWorkflow = this.assertFullyQualified(workflow);
-
-    // Validate idempotency context
-    if (!idempotencyCtx || idempotencyCtx.source === "none") {
-      throw new Error(
-        `Idempotency context required for workflow "${qualifiedWorkflow}". ` +
-          `Use source: "client" | "workflow" | "content"`,
-      );
-    }
 
     const handle = await this.workflowRegistry.start<TParams, TResult>(
       qualifiedWorkflow,
@@ -671,151 +767,14 @@ export class ServiceBroker implements OnModuleDestroy {
   }
 
   /**
-   * Qualify action/workflow name with service prefix
+   * Qualify action/workflow name with service prefix.
+   * Made public for use by BrokerWorkflows.
    */
   qualifyAction(name: string): string {
-    return name.includes(".") ? name : `${this.options.serviceName}.${name}`;
+    return name.includes('.') ? name : `${this.options.serviceName}.${name}`;
   }
-}
-```
 
----
-
-### Phase 5: Idempotency Context Types
-
-**File**: `packages/shared-kernel/src/broker/types.ts`
-
-```typescript
-import { createHash } from "node:crypto";
-import canonicalize from "canonicalize";
-
-/**
- * Client-provided idempotency key (External API).
- * Used for requests from external clients via HTTP Idempotency-Key header.
- *
- * Scope: tenant + api_key + provided_key
- * TTL: 24 hours
- */
-export interface ClientIdempotencyContext {
-  source: "client";
-  /** Client-provided idempotency key from HTTP header */
-  clientKey: string;
-  /** Tenant/organization ID */
-  tenantId: string;
-  /** API key ID used for the request */
-  apiKeyId: string;
-}
-
-/**
- * Workflow-derived idempotency key (Service-Initiated).
- * Used for background jobs, event handlers, cron tasks.
- *
- * Scope: service + workflow
- * TTL: Depends on operation type
- */
-export interface WorkflowIdempotencyContext {
-  source: "workflow";
-  /** Business ID of parent workflow */
-  workflowId: string;
-  /** Step name within workflow */
-  stepId: string;
-  /** Unique ID for fan-out operations */
-  callId?: string;
-}
-
-/**
- * Content-derived idempotency key (Idempotent Updates).
- * Used for UPDATE/SET operations where same data = same operation.
- *
- * Scope: resource + action
- * TTL: 1 hour
- */
-export interface ContentIdempotencyContext {
-  source: "content";
-  /** Resource identifier (e.g., SKU, productId) */
-  resourceId: string;
-  /** Operation name */
-  operation: string;
-  /** SHA256 hash of canonicalized payload */
-  contentHash: string;
-}
-
-/**
- * Explicit no-idempotency (READ operations).
- * Use sparingly - prefer explicit idempotency.
- */
-export interface NoIdempotencyContext {
-  source: "none";
-}
-
-/**
- * Union type for all idempotency contexts
- */
-export type IdempotencyContext =
-  | ClientIdempotencyContext
-  | WorkflowIdempotencyContext
-  | ContentIdempotencyContext
-  | NoIdempotencyContext;
-
-/**
- * Build deterministic idempotency key from context.
- *
- * Key format:
- * - client:   `client:{sha256(tenantId:apiKeyId:workflowName:clientKey)}`
- * - workflow: `workflow:{sha256(workflowId:stepId:callId:workflowName)}`
- * - content:  `content:{sha256(resourceId:operation:contentHash:workflowName)}`
- *
- * @param workflowName - Fully qualified workflow name
- * @param ctx - Idempotency context
- * @returns Deterministic workflow ID
- */
-export function buildIdempotencyKey(
-  workflowName: string,
-  ctx: IdempotencyContext,
-): string {
-  const hash = (input: string): string => {
-    return createHash("sha256").update(input).digest("hex").slice(0, 32);
-  };
-
-  switch (ctx.source) {
-    case "client": {
-      const input = `v1:client:${ctx.tenantId}:${ctx.apiKeyId}:${workflowName}:${ctx.clientKey}`;
-      return `client:${hash(input)}`;
-    }
-
-    case "workflow": {
-      const callId = ctx.callId ?? "";
-      const input = `v1:workflow:${ctx.workflowId}:${ctx.stepId}:${callId}:${workflowName}`;
-      return `workflow:${hash(input)}`;
-    }
-
-    case "content": {
-      const input = `v1:content:${ctx.resourceId}:${ctx.operation}:${ctx.contentHash}:${workflowName}`;
-      return `content:${hash(input)}`;
-    }
-
-    case "none":
-      throw new Error("Cannot build idempotency key for source: none");
-
-    default:
-      throw new Error(
-        `Unknown idempotency source: ${(ctx as IdempotencyContext).source}`,
-      );
-  }
-}
-
-/**
- * Helper to create content hash for ContentIdempotencyContext.
- *
- * @param payload - Payload to hash
- * @returns SHA256 hash of canonicalized JSON
- */
-export function hashContent(payload: unknown): string {
-  const canonical = canonicalize(payload);
-  if (!canonical) {
-    throw new Error("Failed to canonicalize payload");
-  }
-  return createHash("sha256").update(canonical).digest("hex");
+  // ... existing private methods ...
 }
 ```
 
@@ -827,7 +786,7 @@ export function hashContent(payload: unknown): string {
 
 ```typescript
 // services/project/src/workflows/StoreCreateWorkflow.ts
-import { DBOS } from "@shopana/workflows";
+import { DBOS } from "@shopana/workflows";  // OLD IMPORT
 import { ConfiguredInstance } from "@dbos-inc/dbos-sdk";
 
 export class StoreCreateWorkflow extends ConfiguredInstance {
@@ -858,26 +817,17 @@ const handle = await DBOS.startWorkflow(workflow, { workflowID }).run(input);
 
 ```typescript
 // services/project/src/ProjectBrokerWorkflows.ts
-import { Injectable, Inject } from "@nestjs/common";
-import {
-  BrokerWorkflows,
-  Workflow,
-  Step,
-  InjectBroker,
-  ServiceBroker,
-} from "@shopana/shared-kernel";
-import { WORKFLOW_REGISTRY, WorkflowRegistry } from "@shopana/workflows";
+import { Injectable } from "@nestjs/common";
+import { BrokerWorkflows, Workflow, Step } from "@shopana/shared-kernel";
+import type { Kernel } from "./kernel/Kernel.js";
 
 @Injectable()
 export class ProjectBrokerWorkflows extends BrokerWorkflows {
-  constructor(
-    @InjectBroker("project") broker: ServiceBroker,
-    @Inject(WORKFLOW_REGISTRY) workflowRegistry: WorkflowRegistry,
-  ) {
-    super("projectWorkflows", { broker, workflowRegistry });
+  constructor(kernel: Kernel) {
+    super("projectWorkflows", kernel);
   }
 
-  @Workflow("storeCreate", { idempotencyStrategy: "client" })
+  @Workflow("storeCreate")
   async createStore(input: StoreCreateInput): Promise<StoreCreateOutput> {
     const storeId = await this.generateStoreId();
     await this.createStoreRecord(storeId, input);
@@ -916,7 +866,7 @@ export class ProjectBrokerWorkflows extends BrokerWorkflows {
 // Usage in resolver:
 const result = await this.broker.runWorkflow("project.storeCreate", input, {
   source: "client",
-  clientKey: ctx.idempotencyKey, // From HTTP header
+  clientKey: ctx.idempotencyKey,
   tenantId: ctx.organizationId,
   apiKeyId: ctx.apiKeyId,
 });
@@ -942,29 +892,43 @@ const result = await this.broker.runWorkflow("project.storeCreate", input, {
 ### New Files
 
 ```
-packages/shared-kernel/src/decorators/Workflow.ts
-packages/shared-kernel/src/decorators/Step.ts
-packages/shared-kernel/src/broker/BrokerWorkflows.ts
-packages/shared-kernel/src/broker/idempotency.ts
+packages/shared-kernel/src/workflow/                    # NEW FOLDER
+packages/shared-kernel/src/workflow/WorkflowModule.ts   # FROM @shopana/workflows
+packages/shared-kernel/src/workflow/WorkflowRegistry.ts # FROM @shopana/workflows (modified)
+packages/shared-kernel/src/workflow/types.ts            # FROM @shopana/workflows
+packages/shared-kernel/src/workflow/idempotency.ts      # NEW
+packages/shared-kernel/src/decorators/Workflow.ts       # NEW
+packages/shared-kernel/src/decorators/Step.ts           # NEW
+packages/shared-kernel/src/broker/BrokerWorkflows.ts    # NEW
 ```
 
 ### Modified Files
 
 ```
-packages/shared-kernel/src/broker/ServiceBroker.ts
-packages/shared-kernel/src/broker/types.ts
-packages/shared-kernel/src/index.ts
-packages/workflows/src/WorkflowRegistry.ts
-packages/workflows/src/types.ts
-packages/workflows/src/index.ts
+packages/shared-kernel/src/broker/ServiceBroker.ts      # Add runWorkflow(), qualifyAction() public
+packages/shared-kernel/src/broker/BrokerModule.ts       # Inject WorkflowRegistry
+packages/shared-kernel/src/decorators/index.ts          # Export Workflow, Step
+packages/shared-kernel/src/index.ts                     # Export all workflow-related
+packages/shared-kernel/package.json                     # Add @dbos-inc/dbos-sdk, canonicalize
 ```
 
-### Migration Files (Example)
+### Deleted
 
 ```
-services/project/src/ProjectBrokerWorkflows.ts (new)
-services/project/src/project.module.ts (update)
-services/project/src/resolvers/admin/StoreMutationResolver.ts (update)
+packages/workflows/                                     # ENTIRE PACKAGE DELETED
+```
+
+### Migration Files (All Services)
+
+```
+services/project/src/ProjectBrokerWorkflows.ts          # NEW
+services/iam/src/IamBrokerWorkflows.ts                  # NEW
+services/inventory/src/InventoryBrokerWorkflows.ts      # NEW
+services/media/src/MediaBrokerWorkflows.ts              # NEW
+services/*/src/workflows/*.ts                           # DELETE old workflow classes
+services/*/src/*.nest-service.ts                        # UPDATE workflow registration
+services/*/src/resolvers/**/*.ts                        # UPDATE to broker.runWorkflow()
+services/*/package.json                                 # REMOVE @shopana/workflows dep
 ```
 
 ---
@@ -973,9 +937,7 @@ services/project/src/resolvers/admin/StoreMutationResolver.ts (update)
 
 ```bash
 # In packages/shared-kernel
-pnpm add canonicalize
-
-# Types already available from @dbos-inc/dbos-sdk
+pnpm add @dbos-inc/dbos-sdk canonicalize
 ```
 
 ---
@@ -990,24 +952,18 @@ pnpm add canonicalize
 
 ### Migration Strategy
 
-1. Создать новые классы `*BrokerWorkflows` рядом с существующими
-2. Постепенно переносить workflows
-3. Обновлять resolvers для использования `broker.runWorkflow()`
-4. Удалить старые классы после полной миграции
-
-### Backward Compatibility
-
-- Существующий `WorkflowRegistry.get()` сохраняется
-- `DBOS.startWorkflow()` можно использовать напрямую
-- Новый API не ломает существующий код
+1. **Phase 0** — Перенести `@shopana/workflows` в `@shopana/shared-kernel`
+2. **Phase 1-5** — Добавить новую функциональность
+3. **Phase 6** — Мигрировать все сервисы на новый API
 
 ---
 
 ## Implementation Order
 
-1. **Phase 1** — Decorators (основа)
-2. **Phase 5** — Idempotency types (нужны для ServiceBroker)
-3. **Phase 2** — WorkflowRegistry updates
-4. **Phase 3** — BrokerWorkflows base class
-5. **Phase 4** — ServiceBroker updates
-6. **Phase 6** — Migration example (validation)
+1. **Phase 0** — Migrate @shopana/workflows → shared-kernel
+2. **Phase 1** — Decorators (@Workflow, @Step)
+3. **Phase 2** — Idempotency types
+4. **Phase 3** — WorkflowRegistry updates
+5. **Phase 4** — BrokerWorkflows base class
+6. **Phase 5** — ServiceBroker updates
+7. **Phase 6** — Migrate all services
