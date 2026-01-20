@@ -54,6 +54,13 @@ export interface StepResult<T = unknown> {
   error?: Error;
 }
 
+/** Retry policy (aligned with ActionMetadata from broker) */
+export interface RetryPolicy {
+  maxAttempts: number;
+  intervalSeconds: number;
+  backoffRate: number;
+}
+
 /** Конфигурация шага саги */
 export interface SagaStepConfig {
   /** Имя шага для логирования и идентификации */
@@ -66,12 +73,11 @@ export interface SagaStepConfig {
    * Например: name="createStore" → compensateCreateStore
    */
   compensate?: string;
-  /** Retry policy */
-  retry?: {
-    maxAttempts: number;
-    intervalSeconds: number;
-    backoffRate: number;
-  };
+  /**
+   * Retry policy for transient errors.
+   * Fatal errors skip retry and trigger immediate compensation.
+   */
+  retry?: RetryPolicy;
   /** Timeout в миллисекундах */
   timeout?: number;
 }
@@ -82,6 +88,74 @@ export interface SagaStepMetadata {
   /** Resolved compensation method name */
   compensateMethod: string;
   order: number;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Error Classification (same pattern as broker actions/events)
+// ─────────────────────────────────────────────────────────────────
+
+/**
+ * Base class for saga errors with retry classification.
+ */
+export abstract class SagaError extends Error {
+  abstract readonly retryable: boolean;
+}
+
+/**
+ * Transient error - can be retried (network issues, timeouts, service unavailable).
+ * SagaExecutor will retry according to step's retry policy.
+ */
+export class RetryableError extends SagaError {
+  readonly retryable = true;
+
+  constructor(message: string, public readonly cause?: Error) {
+    super(message);
+    this.name = "RetryableError";
+  }
+}
+
+/**
+ * Fatal error - cannot be retried (validation, business logic, not found).
+ * SagaExecutor will immediately trigger compensation.
+ */
+export class FatalError extends SagaError {
+  readonly retryable = false;
+
+  constructor(message: string, public readonly cause?: Error) {
+    super(message);
+    this.name = "FatalError";
+  }
+}
+
+/**
+ * Helper to classify unknown errors.
+ * By default, unknown errors are treated as retryable (safe default).
+ */
+export function isRetryableError(error: unknown): boolean {
+  if (error instanceof SagaError) {
+    return error.retryable;
+  }
+
+  // Network/connection errors are retryable
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+    const retryablePatterns = [
+      "econnrefused",
+      "econnreset",
+      "etimedout",
+      "socket hang up",
+      "network",
+      "timeout",
+      "unavailable",
+      "503",
+      "502",
+      "504",
+    ];
+    return retryablePatterns.some((p) => message.includes(p));
+  }
+
+  // Unknown errors - retry by default (safe)
+  return true;
 }
 
 /** Состояние выполнения саги */
@@ -284,6 +358,11 @@ import { DBOS } from "@dbos-inc/dbos-sdk";
 
 /**
  * Движок выполнения саги с автоматической компенсацией.
+ *
+ * Error handling strategy (aligned with broker pattern):
+ * - RetryableError → retry according to step's retry policy
+ * - FatalError → immediate compensation, no retry
+ * - Unknown errors → classify via isRetryableError(), default to retry
  */
 export class SagaExecutor<TInput, TOutput> {
   private readonly logger = new Logger(SagaExecutor.name);
@@ -298,10 +377,7 @@ export class SagaExecutor<TInput, TOutput> {
   /**
    * Выполняет сагу с автоматической компенсацией при ошибках.
    */
-  async execute(
-    sagaId: string,
-    input: TInput,
-  ): Promise<SagaResult<TOutput>> {
+  async execute(sagaId: string, input: TInput): Promise<SagaResult<TOutput>> {
     const ctx = new SagaContextManager<TInput>(sagaId, input);
     ctx.setStatus("running");
 
@@ -314,7 +390,7 @@ export class SagaExecutor<TInput, TOutput> {
         this.logger.debug(`Executing step: ${step.config.name}`);
 
         try {
-          const result = await this.executeStep(step, ctx);
+          const result = await this.executeStepWithRetry(step, ctx);
           ctx.recordSuccess(step.config.name, result);
         } catch (error) {
           ctx.recordFailure(step.config.name, error as Error);
@@ -342,7 +418,10 @@ export class SagaExecutor<TInput, TOutput> {
       };
 
     } catch (error) {
-      this.logger.error(`Saga failed at step ${ctx.getContext().failedStep}`, error);
+      this.logger.error(
+        `Saga failed at step ${ctx.getContext().failedStep}`,
+        error,
+      );
       ctx.setStatus("compensating");
 
       // Run compensations in reverse order
@@ -357,7 +436,8 @@ export class SagaExecutor<TInput, TOutput> {
 
         try {
           this.logger.debug(`Running compensation: ${compensateMethod}`);
-          await this.executeCompensation(compensateMethod, ctx);
+          // Compensations always retry aggressively
+          await this.executeCompensationWithRetry(compensateMethod, ctx);
           ctx.markCompensated(stepName);
         } catch (compError) {
           this.logger.error(`Compensation ${compensateMethod} failed`, compError);
@@ -374,6 +454,107 @@ export class SagaExecutor<TInput, TOutput> {
         compensationErrors,
       };
     }
+  }
+
+  /**
+   * Execute step with retry policy.
+   * FatalError → immediate throw (no retry)
+   * RetryableError → retry according to policy
+   */
+  private async executeStepWithRetry(
+    step: SagaStepDefinition,
+    ctx: SagaContextManager<TInput>,
+  ): Promise<unknown> {
+    const policy = step.config.retry ?? {
+      maxAttempts: 1,
+      intervalSeconds: 0,
+      backoffRate: 1,
+    };
+
+    let lastError: Error | undefined;
+    let interval = policy.intervalSeconds * 1000;
+
+    for (let attempt = 1; attempt <= policy.maxAttempts; attempt++) {
+      try {
+        return await this.executeStep(step, ctx);
+      } catch (error) {
+        lastError = error as Error;
+
+        // FatalError → no retry, immediate compensation
+        if (error instanceof FatalError) {
+          this.logger.debug(
+            `Step ${step.config.name} failed with FatalError, skipping retry`,
+          );
+          throw error;
+        }
+
+        // Check if error is retryable
+        if (!isRetryableError(error)) {
+          this.logger.debug(
+            `Step ${step.config.name} failed with non-retryable error`,
+          );
+          throw error;
+        }
+
+        // Last attempt - throw
+        if (attempt === policy.maxAttempts) {
+          this.logger.warn(
+            `Step ${step.config.name} failed after ${attempt} attempts`,
+          );
+          throw error;
+        }
+
+        // Wait before retry
+        this.logger.debug(
+          `Step ${step.config.name} attempt ${attempt} failed, retrying in ${interval}ms`,
+        );
+        await this.sleep(interval);
+        interval *= policy.backoffRate;
+      }
+    }
+
+    throw lastError;
+  }
+
+  /**
+   * Execute compensation with aggressive retry (compensations must succeed).
+   */
+  private async executeCompensationWithRetry(
+    methodName: string,
+    ctx: SagaContextManager<TInput>,
+  ): Promise<void> {
+    const policy: RetryPolicy = {
+      maxAttempts: 10,
+      intervalSeconds: 1,
+      backoffRate: 2,
+    };
+
+    let lastError: Error | undefined;
+    let interval = policy.intervalSeconds * 1000;
+
+    for (let attempt = 1; attempt <= policy.maxAttempts; attempt++) {
+      try {
+        await this.executeCompensation(methodName, ctx);
+        return;
+      } catch (error) {
+        lastError = error as Error;
+
+        if (attempt === policy.maxAttempts) {
+          this.logger.error(
+            `Compensation ${methodName} failed after ${attempt} attempts`,
+          );
+          throw error;
+        }
+
+        this.logger.warn(
+          `Compensation ${methodName} attempt ${attempt} failed, retrying`,
+        );
+        await this.sleep(interval);
+        interval *= policy.backoffRate;
+      }
+    }
+
+    throw lastError;
   }
 
   private async executeStep(
@@ -403,9 +584,13 @@ export class SagaExecutor<TInput, TOutput> {
   private timeout(ms: number, stepName: string): Promise<never> {
     return new Promise((_, reject) => {
       setTimeout(() => {
-        reject(new Error(`Step ${stepName} timed out after ${ms}ms`));
+        reject(new RetryableError(`Step ${stepName} timed out after ${ms}ms`));
       }, ms);
     });
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 ```
@@ -688,18 +873,25 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
     const input = ctx.getInput();
     const storeId = ctx.getStepResult<string>("generateId")!;
 
-    const result = await this.broker.call<IAM.CreateRolesResult>(
-      "iam.createRoles",
-      {
-        userId: input.userId,
-        organizationId: input.organizationId,
-        domain: `store:${storeId}`,
-        roles: buildStoreRoles(),
-      },
-    );
+    let result: IAM.CreateRolesResult;
+    try {
+      result = await this.broker.call<IAM.CreateRolesResult>(
+        "iam.createRoles",
+        {
+          userId: input.userId,
+          organizationId: input.organizationId,
+          domain: `store:${storeId}`,
+          roles: buildStoreRoles(),
+        },
+      );
+    } catch (error) {
+      // Network/service errors → retryable
+      throw new RetryableError("IAM service unavailable", error as Error);
+    }
 
     if (!result.success) {
-      throw new Error(result.error || "Failed to create store roles");
+      // Business error → fatal, no retry, immediate compensation
+      throw new FatalError(result.error || "Failed to create store roles");
     }
   }
 
@@ -859,11 +1051,88 @@ async storeCreate(
 packages/shared-kernel/src/saga/
 ├── index.ts                 # Public exports
 ├── types.ts                 # Типы и интерфейсы
+├── errors.ts                # RetryableError, FatalError, isRetryableError
 ├── decorators.ts            # @Saga, @SagaStep
 ├── SagaContext.ts           # SagaContextManager
 ├── SagaExecutor.ts          # Движок выполнения
 └── BrokerSaga.ts            # Базовый класс
 ```
+
+## Error Classification Pattern
+
+Паттерн классификации ошибок аналогичен broker actions/events:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        Step Execution                           │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │
+                            ▼
+                    ┌───────────────┐
+                    │  Error thrown │
+                    └───────┬───────┘
+                            │
+              ┌─────────────┴─────────────┐
+              │                           │
+              ▼                           ▼
+     ┌────────────────┐          ┌────────────────┐
+     │ RetryableError │          │  FatalError    │
+     │ (transient)    │          │  (business)    │
+     └───────┬────────┘          └───────┬────────┘
+             │                           │
+             ▼                           │
+     ┌────────────────┐                  │
+     │ Retry with     │                  │
+     │ backoff        │                  │
+     └───────┬────────┘                  │
+             │                           │
+             │ max attempts              │
+             │ exceeded                  │
+             │                           │
+             └───────────┬───────────────┘
+                         │
+                         ▼
+              ┌────────────────────┐
+              │ Run compensations  │
+              │ in reverse order   │
+              └────────────────────┘
+```
+
+### When to use each error type
+
+| Error Type | When to Use | Examples |
+|------------|-------------|----------|
+| `RetryableError` | Transient failures that may succeed on retry | Network timeout, service unavailable, 502/503/504 |
+| `FatalError` | Business/validation errors that won't change | Invalid input, resource not found, conflict |
+| Unknown errors | Classified via `isRetryableError()` | Default: retry (safe) |
+
+### Example usage in step
+
+```typescript
+@SagaStep({ name: "createRoles", retry: { maxAttempts: 3, ... } })
+async createRoles(ctx: SagaContextManager<Input>): Promise<void> {
+  let result: IAM.CreateRolesResult;
+
+  try {
+    result = await this.broker.call("iam.createRoles", params);
+  } catch (error) {
+    // Network error → retryable
+    throw new RetryableError("IAM service unavailable", error);
+  }
+
+  if (!result.success) {
+    // Business error → fatal, immediate compensation
+    throw new FatalError(result.error);
+  }
+}
+```
+
+### Compensation retry policy
+
+Compensations always use aggressive retry (10 attempts, exponential backoff) because:
+1. Compensations MUST succeed to maintain consistency
+2. If original step succeeded, compensation should eventually succeed
+3. Failed compensation leaves system in inconsistent state
 
 ## Roadmap / Future Enhancements
 
