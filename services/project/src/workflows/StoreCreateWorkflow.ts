@@ -9,12 +9,12 @@ import {
   Step,
 } from "@shopana/shared-kernel";
 import { v7 as uuidv7 } from "uuid";
-import { Kernel } from "./kernel/Kernel.js";
+import { Kernel } from "../kernel/Kernel.js";
 import type {
   CurrencyCode,
   LocaleCode,
   StoreStatus,
-} from "./repositories/models/index.js";
+} from "../repositories/models/index.js";
 import { Roles, RolesMeta } from "@shopana/rbac";
 
 /** Convert @shopana/rbac Roles.store to RoleConfig[] format for iam.createRoles */
@@ -32,7 +32,7 @@ function buildStoreRoles() {
           action: p.action,
         })),
       };
-    },
+    }
   );
 }
 
@@ -59,20 +59,25 @@ export interface StoreCreateOutput {
 }
 
 /**
- * Project broker workflows registered with @Workflow decorator.
- * Each method decorated with @Workflow is automatically registered
- * as a broker workflow when the module initializes.
+ * Durable workflow for store creation.
+ *
+ * Steps:
+ * 1. Generate store ID (UUIDv7)
+ * 2. Create store record in database with organizationId
+ * 3. Create store roles
+ * 4. Assign admin role to creator
+ * 5. Create media asset group
  */
 @Injectable()
-export class ProjectBrokerWorkflows extends BrokerWorkflows {
+export class StoreCreateWorkflow extends BrokerWorkflows {
   constructor(
     @InjectBroker("project") broker: ServiceBroker,
-    @Inject(WORKFLOW_REGISTRY) workflow: WorkflowRegistry,
+    @Inject(WORKFLOW_REGISTRY) workflow: WorkflowRegistry
   ) {
-    super("projectWorkflows", {
+    super("storeCreate", {
       broker,
       workflow,
-      logger: new Logger(ProjectBrokerWorkflows.name),
+      logger: new Logger(StoreCreateWorkflow.name),
     });
   }
 
@@ -84,12 +89,12 @@ export class ProjectBrokerWorkflows extends BrokerWorkflows {
    * Generate globally unique workflowID from name.
    * Name must be unique across all stores.
    */
-  static storeCreateWorkflowID(name: string): string {
+  static workflowID(name: string): string {
     return `store:create:${name}`;
   }
 
   /**
-   * Workflow: storeCreate - orchestrates store creation
+   * Main workflow - orchestrates store creation
    */
   @Workflow("storeCreate")
   async run(input: StoreCreateInput): Promise<StoreCreateOutput> {
@@ -115,7 +120,6 @@ export class ProjectBrokerWorkflows extends BrokerWorkflows {
 
   /**
    * Step: Generate UUIDv7 for store ID
-   * Must be a step for determinism - result is persisted and reused on recovery
    */
   @Step()
   async generateStoreId(): Promise<string> {
@@ -123,13 +127,13 @@ export class ProjectBrokerWorkflows extends BrokerWorkflows {
   }
 
   /**
-   * Step: Create store in database (LOCAL - @Executable handles transaction)
+   * Step: Create store in database
    */
   @Step()
   async createStore(
     storeId: string,
     input: StoreCreateInput,
-    organizationId: string,
+    organizationId: string
   ) {
     return this.kernel.repository.store.create({
       id: storeId,
@@ -169,7 +173,7 @@ export class ProjectBrokerWorkflows extends BrokerWorkflows {
   async assignAdminRole(
     storeId: string,
     organizationId: string,
-    userId: string,
+    userId: string
   ) {
     const result = (await this.broker.call("iam.assignRole", {
       userId,
