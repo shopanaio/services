@@ -1178,7 +1178,7 @@ export class EventDispatchWorkflow {
   async dispatch(event: DomainEvent): Promise<EventDispatchResult> {
     // Step 1: Persist event and capture REAL timestamp
     // (step result is checkpointed → same timestamp on replay)
-    const { timestamp } = await this.persistEvent(event);
+    const { timestamp } = await this.persistEventStep(event);
 
     // Enrich event with real timestamp for handlers
     const eventWithTimestamp: DomainEvent = { ...event, timestamp };
@@ -1210,12 +1210,15 @@ export class EventDispatchWorkflow {
   }
 
   /**
-   * Persist event to domain_events table and capture real timestamp.
-   * Result is checkpointed by DBOS → deterministic on replay.
+   * DBOS Step: Persist event and capture real timestamp.
+   *
+   * NOTE: This step is checkpointed by DBOS. On replay it won't run,
+   * so the underlying broker action (events.persistEvent) won't be called again.
+   * The returned timestamp is part of the checkpointed result.
    */
   @DBOS.step()
-  private async persistEvent(event: DomainEvent): Promise<{ timestamp: string }> {
-    // events.persistEvent returns { persisted: true, timestamp: "..." }
+  private async persistEventStep(event: DomainEvent): Promise<{ timestamp: string }> {
+    // Calls broker @Action "events.persistEvent" which returns { persisted, timestamp }
     const result = await this.broker.call("events.persistEvent", { event });
     return { timestamp: result.timestamp };
   }
@@ -2051,15 +2054,22 @@ export class EventsBrokerActions extends BrokerActions {
   /**
    * Persist event to domain_events table.
    *
-   * IMPORTANT: This is a @DBOS.step(), so `new Date()` here is checkpointed.
-   * On workflow replay, DBOS returns the saved timestamp, not a new one.
-   * This gives us REAL wall-clock time AND determinism.
+   * IMPORTANT:
+   * This method is a Broker @Action (RPC handler), NOT a DBOS step.
+   * It is deterministic in practice because it is called from a @DBOS.step()
+   * in EventDispatchWorkflow.persistEventStep(). That step's return value is
+   * checkpointed, so on replay the step won't re-run and this action won't
+   * be called again.
+   *
+   * The `new Date()` here captures REAL wall-clock time, which becomes part
+   * of the step's checkpointed return value.
    */
   @Action("persistEvent")
   async persistEvent(params: { event: DomainEvent }): Promise<{ persisted: boolean; timestamp: string }> {
     const { event } = params;
 
-    // Capture REAL timestamp (this runs inside a step → checkpointed)
+    // Capture REAL timestamp
+    // (this action is called from a checkpointed step, so on replay it won't run)
     const realTimestamp = new Date();
 
     // Format event for UI (computes title, message, uiData, etc.)
@@ -2920,14 +2930,15 @@ type EventLogEvent =
 │     ▼                                                                       │
 │  4. EventDispatchWorkflow                                                   │
 │     │                                                                       │
-│     ├──[Step 0]─► persistEvent() ─────────────► events.persistEvent         │
+│     ├──[Step 1]─► persistEventStep() ─────────► events.persistEvent         │
 │     │             - Stores event in domain_events table                     │
+│     │             - Returns { timestamp } (checkpointed!)                   │
 │     │                                                                       │
-│     ├──[Step 1]─► getServiceNames()                                         │
+│     ├──[Step 2]─► getServiceNames()                                         │
 │     │             - Gets all services from config.yml                       │
 │     │             - Returns: [apps, checkout, inventory, orders, ...]       │
 │     │                                                                       │
-│     ├──[Step 2]─► tryInvokeHandler() — ALL SERVICES IN PARALLEL             │
+│     ├──[Step 3]─► tryInvokeHandler() — ALL SERVICES IN PARALLEL             │
 │     │             │                                                         │
 │     │             ├─► apps.productCreated ──────────────────► SKIPPED       │
 │     │             │   - Action not registered                               │
@@ -2942,7 +2953,7 @@ type EventLogEvent =
 │     │                 │  - Retries exhausted                                │
 │     │                 └──► events.addToDLQ ─────────────────► DLQ           │
 │     │                                                                       │
-│     ├──[Step 3]─► updateEventStatus() ────────► events.updateEventStatus    │
+│     ├──[Step 4]─► updateEventStatus() ────────► events.updateEventStatus    │
 │     │             - Marks event as completed with handler results           │
 │     │                                                                       │
 │     └──[Complete]─► Return EventDispatchResult                              │
