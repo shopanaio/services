@@ -1,4 +1,4 @@
-import { DBOS } from "@shopana/workflows";
+import { DBOS } from "@shopana/shared-kernel";
 import { BaseScript } from "../../kernel/BaseScript.js";
 import type { File, FileDeletionState } from "../../repositories/models/index.js";
 import { FileHardDeleteWorkflow } from "../../workflows/FileHardDeleteWorkflow.js";
@@ -86,7 +86,9 @@ export class FileDeleteManyScript extends BaseScript<
   private async startHardDeleteWorkflow(fileId: string): Promise<boolean> {
     try {
       const workflow =
-        this.workflow.get<FileHardDeleteWorkflow>("fileHardDelete");
+        this.workflow.get<FileHardDeleteWorkflow>(
+          this.services.broker.qualifyAction("fileHardDelete")
+        );
       await DBOS.startWorkflow(workflow).run(fileId);
       return true;
     } catch (error) {

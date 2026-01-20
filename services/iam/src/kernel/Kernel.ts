@@ -1,6 +1,6 @@
 import { Kernel as BaseKernel, consoleLogger } from "@shopana/shared-kernel";
 import type { ServiceBroker, Logger, DatabaseClient } from "@shopana/shared-kernel";
-import type { WorkflowRegistry } from "@shopana/workflows";
+import type { WorkflowRegistry } from "@shopana/shared-kernel";
 import { createCache, type Cache } from "cache-manager";
 import { getServiceConfig, buildDbUrl } from "@shopana/shared-service-config";
 import type { IamKernelServices } from "./types.js";

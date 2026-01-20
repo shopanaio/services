@@ -1,4 +1,4 @@
-import { DBOS } from "@shopana/workflows";
+import { DBOS } from "@shopana/shared-kernel";
 import { v7 as uuidv7 } from "uuid";
 import { BaseWorkflow } from "./BaseWorkflow.js";
 import type {

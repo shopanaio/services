@@ -1,4 +1,4 @@
-import { DBOS } from "@shopana/workflows";
+import { DBOS } from "@shopana/shared-kernel";
 import { BaseWorkflow, type WorkflowServices } from "./BaseWorkflow.js";
 import { classifyError, MissingMetadataError } from "../utils/classifyError.js";
 import { S3Client } from "../infrastructure/S3Client.js";
@@ -113,7 +113,9 @@ export class FileHardDeleteWorkflow extends BaseWorkflow {
       }
 
       const cleanupWorkflow =
-        this.services.workflow.get<FileDeleteCleanupWorkflow>("fileDeleteCleanup");
+        this.services.workflow.get<FileDeleteCleanupWorkflow>(
+          this.broker.qualifyAction("fileDeleteCleanup")
+        );
       await DBOS.startWorkflow(cleanupWorkflow, {
         workflowID: FileDeleteCleanupWorkflow.workflowID(fileId),
       }).run(fileId);

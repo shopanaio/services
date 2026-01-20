@@ -1,7 +1,7 @@
 import { Kernel as BaseKernel, consoleLogger } from "@shopana/shared-kernel";
 import type { ServiceBroker, Logger, DatabaseClient } from "@shopana/shared-kernel";
 import { createCache, type Cache } from "cache-manager";
-import type { WorkflowRegistry } from "@shopana/workflows";
+import type { WorkflowRegistry } from "@shopana/shared-kernel";
 import type { MediaKernelServices } from "./types";
 import { Repository } from "../repositories/Repository.js";
 import { BaseScript } from "./BaseScript.js";

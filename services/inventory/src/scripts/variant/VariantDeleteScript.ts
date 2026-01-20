@@ -1,4 +1,4 @@
-import { DBOS } from "@shopana/workflows";
+import { DBOS } from "@shopana/shared-kernel";
 import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
 import { EntityDeletedNotifyWorkflow } from "../../workflows/EntityDeletedNotifyWorkflow.js";
 
@@ -37,8 +37,9 @@ export class VariantDeleteScript extends BaseScript<VariantDeleteParams, Variant
 
     if (permanent) {
       try {
-        const workflow =
-          this.workflow.get<EntityDeletedNotifyWorkflow>("entityDeletedNotify");
+        const workflow = this.workflow.get<EntityDeletedNotifyWorkflow>(
+          this.services.broker.qualifyAction("entityDeletedNotify")
+        );
         await DBOS.startWorkflow(workflow).run({
           entityRef: {
             service: "inventory",

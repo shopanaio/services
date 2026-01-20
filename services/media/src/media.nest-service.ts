@@ -6,7 +6,7 @@ import {
   ServiceBroker,
   type DatabaseClient,
 } from "@shopana/shared-kernel";
-import { DBOS, WORKFLOW_REGISTRY, WorkflowRegistry } from "@shopana/workflows";
+import { DBOS, WORKFLOW_REGISTRY, WorkflowRegistry } from "@shopana/shared-kernel";
 import type { FastifyInstance } from 'fastify';
 import { startServer } from './api/graphql-admin/server';
 import { Kernel } from './kernel/Kernel';
@@ -43,13 +43,22 @@ export class MediaNestService implements OnModuleInit, OnModuleDestroy {
       kernel: this.kernel,
       s3Client,
     });
-    this.workflow.register("fileHardDelete", hardDeleteWorkflow);
+    const hardDeleteWorkflowName = this.broker.qualifyAction("fileHardDelete");
+    this.workflow.register(hardDeleteWorkflowName, {
+      instance: hardDeleteWorkflow,
+      metadata: { name: "fileHardDelete" },
+    });
 
     const deleteCleanupWorkflow = new FileDeleteCleanupWorkflow(
       "fileDeleteCleanup",
       { kernel: this.kernel }
     );
-    this.workflow.register("fileDeleteCleanup", deleteCleanupWorkflow);
+    const deleteCleanupWorkflowName =
+      this.broker.qualifyAction("fileDeleteCleanup");
+    this.workflow.register(deleteCleanupWorkflowName, {
+      instance: deleteCleanupWorkflow,
+      metadata: { name: "fileDeleteCleanup" },
+    });
 
     const startHardDeleteWorkflow = async (fileId: string) => {
       await DBOS.startWorkflow(hardDeleteWorkflow).run(fileId);
@@ -59,7 +68,12 @@ export class MediaNestService implements OnModuleInit, OnModuleDestroy {
       "fileGarbageCollector",
       { kernel: this.kernel, startHardDeleteWorkflow }
     );
-    this.workflow.register("fileGarbageCollector", garbageCollectorWorkflow);
+    const garbageCollectorWorkflowName =
+      this.broker.qualifyAction("fileGarbageCollector");
+    this.workflow.register(garbageCollectorWorkflowName, {
+      instance: garbageCollectorWorkflow,
+      metadata: { name: "fileGarbageCollector" },
+    });
     this.logger.debug("Registered GC workflows");
 
     this.graphqlServer = await startServer({
@@ -72,9 +86,11 @@ export class MediaNestService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleDestroy() {
     if (this.workflow) {
-      this.workflow.deregister("fileHardDelete");
-      this.workflow.deregister("fileDeleteCleanup");
-      this.workflow.deregister("fileGarbageCollector");
+      this.workflow.deregister(this.broker.qualifyAction("fileHardDelete"));
+      this.workflow.deregister(this.broker.qualifyAction("fileDeleteCleanup"));
+      this.workflow.deregister(
+        this.broker.qualifyAction("fileGarbageCollector")
+      );
     }
 
     if (this.graphqlServer) {

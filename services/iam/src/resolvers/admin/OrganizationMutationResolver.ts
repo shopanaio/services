@@ -1,5 +1,5 @@
 import { ZodResolver } from "@shopana/type-resolver";
-import { DBOS } from "@shopana/workflows";
+import { DBOS } from "@shopana/shared-kernel";
 import {
   decodeGlobalIdByType,
   encodeGlobalIdByType,
@@ -49,7 +49,11 @@ export class OrganizationMutationResolver extends IAMType<
     const { input } = args;
 
     const workflow =
-      this.$ctx.kernel.workflow.get<OrganizationCreateWorkflow>("organizationCreate");
+      this.$ctx.kernel.workflow.get<OrganizationCreateWorkflow>(
+        this.$ctx.kernel.getServices().broker.qualifyAction(
+          "organizationCreate"
+        )
+      );
     const handle = await DBOS.startWorkflow(workflow).run(input);
     const result = await handle.getResult();
 
@@ -149,7 +153,11 @@ export class OrganizationMutationResolver extends IAMType<
     );
 
     const workflow =
-      this.$ctx.kernel.workflow.get<OrganizationDeleteWorkflow>("organizationDelete");
+      this.$ctx.kernel.workflow.get<OrganizationDeleteWorkflow>(
+        this.$ctx.kernel.getServices().broker.qualifyAction(
+          "organizationDelete"
+        )
+      );
     const handle = await DBOS.startWorkflow(workflow).run({ organizationId });
     const result = await handle.getResult();
 

@@ -1,4 +1,4 @@
-import { DBOS } from "@shopana/workflows";
+import { DBOS } from "@shopana/shared-kernel";
 import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
 import type { Variant } from "../../repositories/models/index.js";
 import { BackRefNotifyWorkflow } from "../../workflows/BackRefNotifyWorkflow.js";
@@ -61,8 +61,9 @@ export class VariantSetMediaScript extends BaseScript<VariantSetMediaParams, Var
     }
 
     try {
-      const workflow =
-        this.workflow.get<BackRefNotifyWorkflow>("backRefNotify");
+      const workflow = this.workflow.get<BackRefNotifyWorkflow>(
+        this.services.broker.qualifyAction("backRefNotify")
+      );
       await DBOS.startWorkflow(workflow).run({
         entityRef: {
           service: "inventory",

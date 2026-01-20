@@ -10,7 +10,7 @@ import { WarehouseResolver } from "./WarehouseResolver.js";
 import { OptionResolver } from "./OptionResolver.js";
 import { FeatureResolver } from "./FeatureResolver.js";
 import { StockResolver } from "./StockResolver.js";
-import { DBOS } from "@shopana/workflows";
+import { DBOS } from "@shopana/shared-kernel";
 import {
   ProductUpdateScript,
   ProductDeleteScript,
@@ -135,7 +135,9 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
 
     // Get workflow instance and run it
     const workflow =
-      this.$ctx.kernel.workflow.get<ProductCreateWorkflow>("productCreate");
+      this.$ctx.kernel.workflow.get<ProductCreateWorkflow>(
+        this.$ctx.kernel.getServices().broker.qualifyAction("productCreate")
+      );
     const handle = await DBOS.startWorkflow(workflow).run({
       title: input.title,
       handle: input.handle,

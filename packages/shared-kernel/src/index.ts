@@ -1,5 +1,6 @@
 export { Kernel } from "./Kernel";
 export { NestLogger } from "./NestLogger";
+export { DBOS } from "@dbos-inc/dbos-sdk";
 export {
   TransactionManager,
   type TransactionalDatabase,
@@ -12,6 +13,7 @@ export {
   type ServiceBrokerOptions,
 } from "./broker/ServiceBroker";
 export { BrokerActions } from "./broker/BrokerActions";
+export { BrokerWorkflows } from "./broker/BrokerWorkflows";
 export {
   BrokerCoreModule,
   type BrokerCoreModuleOptions,
@@ -24,6 +26,28 @@ export {
   InjectBroker,
   getBrokerToken,
 } from "./broker/tokens";
+export { WorkflowModule } from "./workflow/WorkflowModule";
+export { WorkflowRegistry } from "./workflow/WorkflowRegistry";
+export {
+  WORKFLOW_CONFIG,
+  WORKFLOW_REGISTRY,
+} from "./workflow/tokens";
+export type {
+  WorkflowHandle,
+  WorkflowStatusSimple,
+  WorkflowStartOptions,
+  WorkflowModuleConfig,
+  DBOSWorkflowHandle,
+  DBOSWorkflowStatus,
+} from "./workflow/types";
+export {
+  buildIdempotencyKey,
+  hashContent,
+  type IdempotencyContext,
+  type ClientIdempotencyContext,
+  type WorkflowIdempotencyContext,
+  type ContentIdempotencyContext,
+} from "./workflow/idempotency";
 export {
   type Logger,
   type BaseKernelServices,

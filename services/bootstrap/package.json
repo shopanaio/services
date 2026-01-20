@@ -21,7 +21,6 @@
     "@shopana/project-service": "0.0.1",
     "@shopana/shared-kernel": "1.0.0",
     "@shopana/shared-service-config": "0.0.1",
-    "@shopana/workflows": "1.0.0",
     "dotenv": "^16.4.5",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"

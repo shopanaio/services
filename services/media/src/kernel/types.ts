@@ -5,7 +5,7 @@ import type {
 } from "@shopana/shared-kernel";
 import type { Cache } from "cache-manager";
 import type { Repository } from "../repositories";
-import type { WorkflowRegistry } from "@shopana/workflows";
+import type { WorkflowRegistry } from "@shopana/shared-kernel";
 
 /**
  * Logger interface for the media service

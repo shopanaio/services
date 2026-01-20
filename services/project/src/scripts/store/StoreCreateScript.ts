@@ -55,7 +55,9 @@ export class StoreCreateScript extends BaseScript<
     }
 
     const workflow =
-      this.services.workflow.get<StoreCreateWorkflow>("storeCreate");
+      this.services.workflow.get<StoreCreateWorkflow>(
+        this.services.broker.qualifyAction("storeCreate")
+      );
 
     const result = await workflow.run({
       organizationId: params.organizationId,

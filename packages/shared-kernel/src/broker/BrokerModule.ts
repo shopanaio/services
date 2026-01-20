@@ -3,6 +3,8 @@ import type { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
 import { ActionRegistry } from './ActionRegistry';
 import { ServiceBroker, type ServiceBrokerOptions } from './ServiceBroker';
 import { BROKER_AMQP, SERVICE_BROKER, SERVICE_NAME, getBrokerToken } from './tokens';
+import { WORKFLOW_REGISTRY } from '../workflow/tokens';
+import type { WorkflowRegistry } from '../workflow/WorkflowRegistry';
 
 export interface BrokerFeatureOptions extends ServiceBrokerOptions {}
 
@@ -33,16 +35,26 @@ export class BrokerModule {
           provide: brokerToken,
           useFactory: (
             registry: ActionRegistry,
-            amqp: AmqpConnection | null
+            amqp: AmqpConnection | null,
+            workflowRegistry: WorkflowRegistry | null
           ) => {
             let broker = brokerInstances.get(serviceName);
             if (!broker) {
-              broker = new ServiceBroker(registry, amqp, { serviceName });
+              broker = new ServiceBroker(
+                registry,
+                amqp,
+                { serviceName },
+                workflowRegistry ?? null
+              );
               brokerInstances.set(serviceName, broker);
             }
             return broker;
           },
-          inject: [ActionRegistry, BROKER_AMQP],
+          inject: [
+            ActionRegistry,
+            BROKER_AMQP,
+            { token: WORKFLOW_REGISTRY, optional: true },
+          ],
         },
         {
           // Алиас для обратной совместимости (deprecated)

@@ -1,10 +1,16 @@
-import { DynamicModule, Global, Module, OnModuleInit, OnModuleDestroy, Inject, Logger } from '@nestjs/common';
-import { DBOS } from '@dbos-inc/dbos-sdk';
-import { WorkflowRegistry } from './WorkflowRegistry.js';
-import type { WorkflowModuleConfig } from './types.js';
-
-export const WORKFLOW_REGISTRY = Symbol('WORKFLOW_REGISTRY');
-export const WORKFLOW_CONFIG = Symbol('WORKFLOW_CONFIG');
+import {
+  DynamicModule,
+  Global,
+  Module,
+  OnModuleInit,
+  OnModuleDestroy,
+  Inject,
+  Logger,
+} from "@nestjs/common";
+import { DBOS } from "@dbos-inc/dbos-sdk";
+import { WorkflowRegistry } from "./WorkflowRegistry.js";
+import { WORKFLOW_CONFIG, WORKFLOW_REGISTRY } from "./tokens.js";
+import type { WorkflowModuleConfig } from "./types.js";
 
 /**
  * NestJS module for DBOS workflow integration.
@@ -18,7 +24,7 @@ export const WORKFLOW_CONFIG = Symbol('WORKFLOW_CONFIG');
  *   imports: [
  *     WorkflowModule.forRoot({
  *       databaseUrl: process.env.DBOS_DATABASE_URL,
- *       name: 'shopana',
+ *       name: "shopana",
  *     }),
  *   ],
  * })
@@ -51,23 +57,22 @@ export class WorkflowModule implements OnModuleInit, OnModuleDestroy {
     };
   }
 
-  async onModuleInit() {
-    this.logger.log('Initializing DBOS workflows...');
+  async onModuleInit(): Promise<void> {
+    this.logger.log("Initializing DBOS workflows...");
 
-    // Configure and launch DBOS
     DBOS.setConfig({
       databaseUrl: this.config.databaseUrl,
-      name: this.config.name ?? 'shopana',
-      sysDbName: this.config.schema ?? 'dbos',
+      name: this.config.name ?? "shopana",
+      sysDbName: this.config.schema ?? "dbos",
     });
 
     await DBOS.launch();
-    this.logger.log('DBOS workflows initialized');
+    this.logger.log("DBOS workflows initialized");
   }
 
-  async onModuleDestroy() {
-    this.logger.log('Shutting down DBOS workflows...');
+  async onModuleDestroy(): Promise<void> {
+    this.logger.log("Shutting down DBOS workflows...");
     await DBOS.shutdown();
-    this.logger.log('DBOS workflows shut down');
+    this.logger.log("DBOS workflows shut down");
   }
 }

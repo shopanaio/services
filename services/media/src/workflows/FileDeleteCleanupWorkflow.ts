@@ -1,4 +1,4 @@
-import { DBOS } from "@shopana/workflows";
+import { DBOS } from "@shopana/shared-kernel";
 import { Error as DBOSErrors } from "@dbos-inc/dbos-sdk";
 import { BaseWorkflow } from "./BaseWorkflow.js";
 

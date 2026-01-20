@@ -3,9 +3,9 @@ import {
   BrokerCoreModule,
   BrokerCoreModuleOptions,
   DatabaseModule,
+  WorkflowModule,
   type DatabaseModuleOptions,
 } from "@shopana/shared-kernel";
-import { WorkflowModule } from "@shopana/workflows";
 import { PaymentsModule } from "@shopana/payments-service";
 import { InventoryModule } from "@shopana/inventory-service";
 import { AppsModule } from "@shopana/apps-service";

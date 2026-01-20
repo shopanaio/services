@@ -23,7 +23,6 @@
     "@shopana/shared-graphql-guid": "*",
     "@shopana/shared-kernel": "*",
     "@shopana/shared-service-config": "*",
-    "@shopana/workflows": "*",
     "dataloader": "^2.2.3",
     "dotenv": "^16.4.5",
     "drizzle-orm": "^0.44.7",

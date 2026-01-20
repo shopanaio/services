@@ -12,7 +12,7 @@ import {
   type DatabaseClient,
 } from "@shopana/shared-kernel";
 import { getServiceConfig } from "@shopana/shared-service-config";
-import { WORKFLOW_REGISTRY, WorkflowRegistry } from "@shopana/workflows";
+import { WORKFLOW_REGISTRY, WorkflowRegistry } from "@shopana/shared-kernel";
 import type { FastifyInstance } from "fastify";
 import { Kernel } from "./kernel/Kernel.js";
 import { startServer } from "./api/graphql-admin/server.js";
@@ -35,11 +35,15 @@ export class ProjectNestService implements OnModuleInit, OnModuleDestroy {
   async onModuleInit() {
     this.kernel = await Kernel.create(this.broker, this.workflow, this.dbClient);
 
-    this.workflow.register(
-      "storeCreate",
-      new StoreCreateWorkflow("storeCreate", { kernel: this.kernel })
-    );
-    this.logger.debug("Registered workflow: storeCreate");
+    const storeCreateWorkflow = new StoreCreateWorkflow("storeCreate", {
+      kernel: this.kernel,
+    });
+    const storeCreateWorkflowName = this.broker.qualifyAction("storeCreate");
+    this.workflow.register(storeCreateWorkflowName, {
+      instance: storeCreateWorkflow,
+      metadata: { name: "storeCreate" },
+    });
+    this.logger.debug(`Registered workflow: ${storeCreateWorkflowName}`);
 
     this.graphqlServer = await startServer({
       port: service.ports?.admin_graphql ?? 0,
@@ -50,7 +54,7 @@ export class ProjectNestService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleDestroy() {
     if (this.workflow) {
-      this.workflow.deregister("storeCreate");
+      this.workflow.deregister(this.broker.qualifyAction("storeCreate"));
     }
 
     if (this.graphqlServer) {

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { DBOS } from '@shopana/workflows';
+import { DBOS } from "@shopana/shared-kernel";
 import { Kernel } from '../kernel/Kernel.js';
 import type { FileGarbageCollectorWorkflow } from '../workflows/index.js';
 
@@ -24,14 +24,20 @@ export class FileGarbageCollectorScheduler {
       return;
     }
 
-    const workflowRegistry = Kernel.getInstance().workflow;
+    const kernel = Kernel.getInstance();
+    const workflowRegistry = kernel.workflow;
+    const workflowName = kernel.getServices().broker.qualifyAction(
+      "fileGarbageCollector"
+    );
 
-    if (!workflowRegistry.has('fileGarbageCollector')) {
+    if (!workflowRegistry.has(workflowName)) {
       this.logger.warn('fileGarbageCollector workflow not registered, skipping run');
       return;
     }
 
-    const workflow = workflowRegistry.get<FileGarbageCollectorWorkflow>('fileGarbageCollector');
+    const workflow = workflowRegistry.get<FileGarbageCollectorWorkflow>(
+      workflowName
+    );
 
     this.logger.debug('Starting garbage collection run');
 

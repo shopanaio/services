@@ -3,6 +3,9 @@ import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
 import { randomUUID } from 'node:crypto';
 import { ActionHandler, ActionRegistry } from './ActionRegistry';
 import { BROKER_AMQP } from './tokens';
+import type { WorkflowRegistry } from '../workflow/WorkflowRegistry.js';
+import { WORKFLOW_REGISTRY } from '../workflow/tokens.js';
+import type { IdempotencyContext } from '../workflow/idempotency.js';
 
 export interface ServiceBrokerOptions {
   serviceName: string;
@@ -20,6 +23,9 @@ export class ServiceBroker implements OnModuleDestroy {
     @Inject(BROKER_AMQP)
     private readonly amqp: AmqpConnection | null,
     private readonly options: ServiceBrokerOptions,
+    @Optional()
+    @Inject(WORKFLOW_REGISTRY)
+    private readonly workflowRegistry: WorkflowRegistry | null = null,
   ) {}
 
   /**
@@ -88,6 +94,41 @@ export class ServiceBroker implements OnModuleDestroy {
   }
 
   /**
+   * Execute workflow and wait for result.
+   */
+  async runWorkflow<TResult = unknown, TParams = unknown>(
+    workflow: string,
+    params: TParams,
+    idempotencyCtx: IdempotencyContext,
+  ): Promise<TResult> {
+    if (!this.workflowRegistry) {
+      throw new Error(
+        'WorkflowRegistry not available. Import WorkflowModule.forRoot() in your app module.'
+      );
+    }
+
+    const qualifiedWorkflow = this.assertFullyQualified(workflow);
+    const handle = await this.workflowRegistry.start<TParams, TResult>(
+      qualifiedWorkflow,
+      params,
+      idempotencyCtx,
+    );
+    return handle.getResult();
+  }
+
+  /**
+   * Check if workflow is registered.
+   * Returns false if WorkflowModule is not imported.
+   */
+  hasWorkflow(workflow: string): boolean {
+    if (!this.workflowRegistry) {
+      return false;
+    }
+    const qualifiedWorkflow = this.assertFullyQualified(workflow);
+    return this.workflowRegistry.has(qualifiedWorkflow);
+  }
+
+  /**
    * Returns true when broker can communicate with RabbitMQ.
    */
   isHealthy(): boolean {
@@ -121,7 +162,10 @@ export class ServiceBroker implements OnModuleDestroy {
     this.localActions.clear();
   }
 
-  private qualifyAction(action: string): string {
+  /**
+   * Qualify action/workflow name with service prefix.
+   */
+  qualifyAction(action: string): string {
     return action.includes('.') ? action : `${this.options.serviceName}.${action}`;
   }
 

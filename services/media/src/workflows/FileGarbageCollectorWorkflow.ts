@@ -1,4 +1,4 @@
-import { DBOS } from "@shopana/workflows";
+import { DBOS } from "@shopana/shared-kernel";
 import pMap from "p-map";
 import { BaseWorkflow, type WorkflowServices } from "./BaseWorkflow.js";
 

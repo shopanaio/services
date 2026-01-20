@@ -14,7 +14,7 @@ import {
   ServiceBroker,
   type DatabaseClient,
 } from "@shopana/shared-kernel";
-import { WORKFLOW_REGISTRY, WorkflowRegistry } from "@shopana/workflows";
+import { WORKFLOW_REGISTRY, WorkflowRegistry } from "@shopana/shared-kernel";
 import {
   getServiceConfig,
   buildS3Config,
@@ -63,18 +63,33 @@ export class InventoryNestService implements OnModuleInit, OnModuleDestroy {
     const backRefNotifyWorkflow = new BackRefNotifyWorkflow("backRefNotify", {
       kernel: this.kernel,
     });
-    this.workflow.register("backRefNotify", backRefNotifyWorkflow);
+    const backRefNotifyWorkflowName =
+      this.broker.qualifyAction("backRefNotify");
+    this.workflow.register(backRefNotifyWorkflowName, {
+      instance: backRefNotifyWorkflow,
+      metadata: { name: "backRefNotify" },
+    });
 
     const entityDeletedNotifyWorkflow = new EntityDeletedNotifyWorkflow(
       "entityDeletedNotify",
       { kernel: this.kernel }
     );
-    this.workflow.register("entityDeletedNotify", entityDeletedNotifyWorkflow);
+    const entityDeletedNotifyWorkflowName =
+      this.broker.qualifyAction("entityDeletedNotify");
+    this.workflow.register(entityDeletedNotifyWorkflowName, {
+      instance: entityDeletedNotifyWorkflow,
+      metadata: { name: "entityDeletedNotify" },
+    });
 
     const productCreateWorkflow = new ProductCreateWorkflow("productCreate", {
       kernel: this.kernel,
     });
-    this.workflow.register("productCreate", productCreateWorkflow);
+    const productCreateWorkflowName =
+      this.broker.qualifyAction("productCreate");
+    this.workflow.register(productCreateWorkflowName, {
+      instance: productCreateWorkflow,
+      metadata: { name: "productCreate" },
+    });
 
     const storageConfig = service.s3 ? buildS3Config(service.s3) : null;
     this.storageGateway = new InventoryObjectStorage(
@@ -100,9 +115,11 @@ export class InventoryNestService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleDestroy() {
     if (this.workflow) {
-      this.workflow.deregister("backRefNotify");
-      this.workflow.deregister("entityDeletedNotify");
-      this.workflow.deregister("productCreate");
+      this.workflow.deregister(this.broker.qualifyAction("backRefNotify"));
+      this.workflow.deregister(
+        this.broker.qualifyAction("entityDeletedNotify")
+      );
+      this.workflow.deregister(this.broker.qualifyAction("productCreate"));
     }
 
     if (this.graphqlServer) {

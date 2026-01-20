@@ -1,5 +1,5 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
-import { DBOS } from "@shopana/workflows";
+import { DBOS } from "@shopana/shared-kernel";
 import { FileHardDeleteWorkflow } from "../../workflows/FileHardDeleteWorkflow.js";
 import type {
   FileDeleteParams,
@@ -60,7 +60,9 @@ export class FileDeleteScript extends BaseScript<
 
   private async startHardDeleteWorkflow(fileId: string): Promise<void> {
     const workflow =
-      this.workflow.get<FileHardDeleteWorkflow>("fileHardDelete");
+      this.workflow.get<FileHardDeleteWorkflow>(
+        this.services.broker.qualifyAction("fileHardDelete")
+      );
     await DBOS.startWorkflow(workflow).run(fileId);
   }
 

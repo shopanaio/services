@@ -3,7 +3,7 @@ import type {
   ScriptContext as BaseScriptContext,
   TransactionScript as BaseTransactionScript,
 } from "@shopana/shared-kernel";
-import type { WorkflowRegistry } from "@shopana/workflows";
+import type { WorkflowRegistry } from "@shopana/shared-kernel";
 import type { Cache } from "cache-manager";
 import type { Repository } from "../repositories/Repository.js";
 import type { AuthorizationCache, NameResolver } from "../cache/index.js";

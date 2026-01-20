@@ -24,7 +24,6 @@
     "@shopana/shared-kernel": "*",
     "@shopana/shared-references": "*",
     "@shopana/type-resolver": "*",
-    "@shopana/workflows": "*",
     "cache-manager": "^7.2.7",
     "dataloader": "^2.2.3",
     "dotenv": "^16.4.5",

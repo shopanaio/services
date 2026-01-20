@@ -1,4 +1,4 @@
-import { DBOS } from "@shopana/workflows";
+import { DBOS } from "@shopana/shared-kernel";
 import { BaseWorkflow } from "./BaseWorkflow.js";
 import { OrganizationDeleteScript } from "../scripts/organization/OrganizationDeleteScript.js";
 import type {
