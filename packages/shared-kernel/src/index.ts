@@ -13,7 +13,7 @@ export {
   type ServiceBrokerOptions,
 } from "./broker/ServiceBroker";
 export { BrokerActions } from "./broker/BrokerActions";
-export { BrokerWorkflows, type WorkflowServices } from "./broker/BrokerWorkflows";
+export { BrokerWorkflows } from "./broker/BrokerWorkflows";
 export {
   BrokerCoreModule,
   type BrokerCoreModuleOptions,

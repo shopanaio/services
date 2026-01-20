@@ -129,6 +129,19 @@ export class ServiceBroker implements OnModuleDestroy {
   }
 
   /**
+   * Returns the workflow registry instance.
+   * Throws if WorkflowModule is not imported.
+   */
+  getWorkflowRegistry(): WorkflowRegistry {
+    if (!this.workflowRegistry) {
+      throw new Error(
+        'WorkflowRegistry not available. Import WorkflowModule.forRoot() in your app module.'
+      );
+    }
+    return this.workflowRegistry;
+  }
+
+  /**
    * Returns true when broker can communicate with RabbitMQ.
    */
   isHealthy(): boolean {

@@ -1,10 +1,8 @@
-import { Inject, Injectable, Logger } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import {
   BrokerWorkflows,
   InjectBroker,
   ServiceBroker,
-  WORKFLOW_REGISTRY,
-  WorkflowRegistry,
   Workflow,
   Step,
 } from "@shopana/shared-kernel";
@@ -70,15 +68,8 @@ export interface StoreCreateOutput {
  */
 @Injectable()
 export class StoreCreateWorkflow extends BrokerWorkflows {
-  constructor(
-    @InjectBroker("project") broker: ServiceBroker,
-    @Inject(WORKFLOW_REGISTRY) workflow: WorkflowRegistry
-  ) {
-    super("storeCreate", {
-      broker,
-      workflow,
-      logger: new Logger(StoreCreateWorkflow.name),
-    });
+  constructor(@InjectBroker("project") broker: ServiceBroker) {
+    super(broker);
   }
 
   private get kernel(): Kernel {

@@ -9,20 +9,6 @@ import {
 import "reflect-metadata";
 
 /**
- * Services required by BrokerWorkflows.
- */
-export interface WorkflowServices {
-  /** Service broker for inter-service calls */
-  broker: ServiceBroker;
-  /** Workflow registry for registration */
-  workflow: WorkflowRegistry;
-  /** Optional repository access */
-  repository?: unknown;
-  /** Optional logger */
-  logger?: Logger;
-}
-
-/**
  * Base class for services that register broker workflows.
  * Extends ConfiguredInstance for DBOS decorator support (@Workflow, @Step).
  */
@@ -31,28 +17,23 @@ export abstract class BrokerWorkflows
   implements OnModuleInit, OnModuleDestroy
 {
   protected readonly logger: Logger;
-  protected readonly services: WorkflowServices;
+  private readonly _broker: ServiceBroker;
   private readonly registeredWorkflows: string[] = [];
 
-  constructor(name: string, services: WorkflowServices) {
-    super(name);
-    this.services = services;
-    this.logger = services.logger ?? new Logger(this.constructor.name);
+  constructor(broker: ServiceBroker) {
+    super(new.target.name);
+    this._broker = broker;
+    this.logger = new Logger(this.constructor.name);
   }
 
   /** Access to service broker */
   protected get broker(): ServiceBroker {
-    return this.services.broker;
+    return this._broker;
   }
 
   /** Access to workflow registry */
   protected get workflowRegistry(): WorkflowRegistry {
-    return this.services.workflow;
-  }
-
-  /** Access to repositories (type depends on service) */
-  protected get repository(): unknown {
-    return this.services.repository;
+    return this._broker.getWorkflowRegistry();
   }
 
   /**
