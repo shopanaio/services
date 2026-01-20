@@ -733,6 +733,12 @@ export class EventEmitter {
    *
    * MUST be called from workflow code (not from step!) or HTTP handler.
    *
+   * WorkflowID is derived from:
+   * - Parent workflow ID (DBOS.workflowID)
+   * - Event type
+   *
+   * This ensures: same parent + same event type = same dispatch workflow = dispatch once.
+   *
    * @example
    * // From workflow code (recommended):
    * @DBOS.workflow()
@@ -749,7 +755,8 @@ export class EventEmitter {
    * @returns Workflow handle for tracking
    */
   static async emit<TEvent extends DomainEvent>(event: TEvent): Promise<{ workflowId: string }> {
-    const workflowId = EventDispatchWorkflow.workflowID(event);
+    const parentWorkflowId = DBOS.workflowID;
+    const workflowId = EventDispatchWorkflow.workflowID(parentWorkflowId, event.eventType);
 
     // Start as child workflow (if called from workflow) or standalone workflow
     await DBOS
@@ -768,7 +775,8 @@ export class EventEmitter {
   static async emitAndWait<TEvent extends DomainEvent>(
     event: TEvent
   ): Promise<EventDispatchResult> {
-    const workflowId = EventDispatchWorkflow.workflowID(event);
+    const parentWorkflowId = DBOS.workflowID;
+    const workflowId = EventDispatchWorkflow.workflowID(parentWorkflowId, event.eventType);
 
     const handle = await DBOS
       .startWorkflow(EventDispatchWorkflow, { workflowID: workflowId })
@@ -826,11 +834,17 @@ export class EventDispatchWorkflow {
   constructor(private readonly broker: ServiceBroker) {}
 
   /**
-   * Deterministic workflow ID based on event.
-   * Same eventId = same workflow = dispatch once.
+   * Deterministic workflow ID based on parent workflow and event type.
+   *
+   * Pattern: {parentWorkflowId}:dispatch:{eventType}
+   *
+   * This ensures:
+   * - Same parent workflow + same event type = same dispatch workflow
+   * - Dispatch is tied to parent, not to event data
+   * - If parent workflow replays, dispatch workflow is idempotent
    */
-  static workflowID(event: DomainEvent): string {
-    return `event:dispatch:${event.eventType}:${event.eventId}`;
+  static workflowID(parentWorkflowId: string, eventType: string): string {
+    return `${parentWorkflowId}:dispatch:${eventType}`;
   }
 
   @DBOS.workflow()
@@ -1724,7 +1738,7 @@ type EventLogEvent =
 │     ▼                                                                       │
 │  3. EventEmitter.emit(ProductCreatedEvent)                                  │
 │     │  - Starts EventDispatchWorkflow                                       │
-│     │  - Workflow ID: event:dispatch:productCreated:{eventId}               │
+│     │  - Workflow ID: {parentWorkflowId}:dispatch:productCreated             │
 │     │                                                                       │
 │     ▼                                                                       │
 │  4. EventDispatchWorkflow                                                   │
@@ -1776,10 +1790,11 @@ type EventLogEvent =
 │                                                                             │
 │  Layer 1: DBOS Workflow Idempotency (Dispatch Level)                        │
 │  ───────────────────────────────────────────────────                        │
-│  Key: event:dispatch:{eventType}:{eventId}                                  │
-│  Example: event:dispatch:productCreated:evt-123-456                         │
+│  Key: {parentWorkflowId}:dispatch:{eventType}                               │
+│  Example: wf-create-product-123:dispatch:productCreated                     │
 │                                                                             │
-│  Guarantees: Same event = same workflow = dispatch once                     │
+│  Guarantees: Same parent + same event type = dispatch once                  │
+│  Note: Tied to parent workflow, not to event data                           │
 │                                                                             │
 │  ═══════════════════════════════════════════════════════════════════════    │
 │                                                                             │
@@ -1804,8 +1819,8 @@ type EventLogEvent =
 │  WHY TWO LAYERS?                                                            │
 │                                                                             │
 │  1. DBOS Workflow: Prevents duplicate dispatches                            │
-│     - Same eventId never starts two dispatch workflows                      │
-│     - Handles: API retries, workflow restarts                               │
+│     - Same parent workflow + event type = same dispatch workflow            │
+│     - Handles: Parent workflow replays, service restarts                    │
 │                                                                             │
 │  2. Domain: Business-level safety net                                       │
 │     - Handles: DBOS step retries (transient failures)                       │
@@ -1851,7 +1866,7 @@ type EventLogEvent =
 8. **Independent handlers** — Each handler succeeds or fails independently
 9. **Dedicated events service** — Event store, DLQ, and cleanup scheduling in separate `events` service
 10. **Separate classes** — `BrokerActions` for `@Action`, `EventHandlers` for `@EventHandler`
-11. **DBOS workflow idempotency** — Same eventId = same workflow = dispatch once
+11. **DBOS workflow idempotency** — Same parent workflow + event type = same dispatch workflow
 12. **Domain-level idempotency** — Handlers use DB constraints (`ON CONFLICT DO NOTHING`)
 
 ### Benefits
