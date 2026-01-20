@@ -43,6 +43,7 @@ export class StoreDeleteScript extends BaseScript<
       {
         storeId: params.id,
         organizationId: params.organizationId,
+        userId: this.context.user?.id,
       },
       {
         source: "content",

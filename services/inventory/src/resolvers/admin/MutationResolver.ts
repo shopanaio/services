@@ -161,6 +161,9 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
       variants: input.variants?.map((v) => ({
         handle: v.handle,
       })),
+      organizationId: this.$ctx.store.organizationId,
+      storeId: this.$ctx.store.id,
+      userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
     });
     const result = await handle.getResult();
 

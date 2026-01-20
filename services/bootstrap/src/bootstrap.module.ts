@@ -16,6 +16,7 @@ import { OrdersModule } from "@shopana/orders-service";
 import { PricingModule } from "@shopana/pricing-service";
 import { ProjectModule } from "@shopana/project-service";
 import { IamModule } from "@shopana/iam-service";
+import { EventsModule } from "@shopana/events-service";
 
 export interface BootstrapModuleOptions extends BrokerCoreModuleOptions {
   /** DBOS workflows configuration */
@@ -44,6 +45,7 @@ export class BootstrapModule {
       BrokerCoreModule.forRoot(options),
       PaymentsModule,
       InventoryModule,
+      EventsModule,
       AppsModule,
       MediaModule,
       CheckoutModule,

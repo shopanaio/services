@@ -107,6 +107,9 @@ export class StoreCreateWorkflow extends BrokerWorkflows {
     // Step 5: Create media asset group for this store
     await this.createMediaAssetGroup(storeId);
 
+    // Step 6: Emit storeCreated event
+    await this.emitStoreCreated(storeId, input);
+
     return { storeId, organizationId };
   }
 
@@ -197,5 +200,34 @@ export class StoreCreateWorkflow extends BrokerWorkflows {
         ownerId: storeId,
       },
     );
+  }
+
+  /**
+   * Step: Emit storeCreated event
+   */
+  @Step()
+  async emitStoreCreated(
+    storeId: string,
+    input: StoreCreateInput
+  ): Promise<void> {
+    await this.broker.call("events.emit", {
+      eventType: "storeCreated",
+      payload: {
+        storeId,
+        organizationId: input.organizationId,
+        name: input.name,
+      },
+      context: {
+        tenantId: input.organizationId,
+        userId: input.userId,
+      },
+      source: "project",
+      subject: { type: "store", id: storeId },
+      related: [{ type: "organization", id: input.organizationId }],
+      actor: input.userId
+        ? { type: "user", id: input.userId }
+        : { type: "service", id: "project" },
+      emitKey: `store:${storeId}`,
+    });
   }
 }

@@ -2,7 +2,7 @@ import { Logger, OnModuleInit } from "@nestjs/common";
 import { ServiceBroker } from "./ServiceBroker.js";
 import {
   ACTION_METADATA_KEY,
-  type ActionMetadata,
+  type ActionDecoratorMetadata,
 } from "../decorators/Action.js";
 import "reflect-metadata";
 
@@ -64,7 +64,7 @@ export abstract class BrokerActions implements OnModuleInit {
         ACTION_METADATA_KEY,
         prototype,
         methodName
-      ) as ActionMetadata | undefined;
+      ) as ActionDecoratorMetadata | undefined;
 
       if (metadata) {
         const method = (this as Record<string, unknown>)[methodName] as (

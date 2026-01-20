@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, Optional } from '@nestjs/common';
 import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
 import { randomUUID } from 'node:crypto';
-import { ActionHandler, ActionRegistry } from './ActionRegistry';
+import { ActionHandler, ActionRegistry, type ActionMetadata } from './ActionRegistry';
 import { BROKER_AMQP } from './tokens';
 import type { WorkflowRegistry } from '../workflow/WorkflowRegistry.js';
 import { WORKFLOW_REGISTRY } from '../workflow/tokens.js';
@@ -34,9 +34,10 @@ export class ServiceBroker implements OnModuleDestroy {
   register<TParams = unknown, TResult = unknown>(
     action: string,
     handler: ActionHandler<TParams, TResult>,
+    metadata?: ActionMetadata,
   ): void {
     const qualifiedAction = this.qualifyAction(action);
-    this.registry.register(qualifiedAction, handler as ActionHandler);
+    this.registry.register(qualifiedAction, handler as ActionHandler, metadata);
     this.localActions.add(qualifiedAction);
     this.logger.debug(`Registered action: ${qualifiedAction}`);
   }
@@ -57,6 +58,22 @@ export class ServiceBroker implements OnModuleDestroy {
     } finally {
       this.inFlight--;
     }
+  }
+
+  /**
+   * Returns metadata for a registered action.
+   */
+  getActionMetadata(action: string): ActionMetadata | undefined {
+    const qualifiedAction = this.assertFullyQualified(action);
+    return this.registry.getMetadata(qualifiedAction);
+  }
+
+  /**
+   * Returns true if an action is registered.
+   */
+  hasAction(action: string): boolean {
+    const qualifiedAction = this.assertFullyQualified(action);
+    return this.registry.has(qualifiedAction);
   }
 
   /**

@@ -42,6 +42,15 @@ export interface ProductCreateParams {
 
   /** Variants to create (only enabled ones from UI) */
   readonly variants?: ProductCreateVariantInput[];
+
+  /** Organization ID for event context */
+  readonly organizationId: string;
+
+  /** Optional user ID for actor context */
+  readonly userId?: string;
+
+  /** Store ID for event context */
+  readonly storeId: string;
 }
 
 export interface VariantMediaEntry {

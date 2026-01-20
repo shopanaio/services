@@ -20,6 +20,7 @@
     "@shopana/drizzle-query": "*",
     "@shopana/import-plugin-sdk": "*",
     "@shopana/inventory-plugin-shopana": "*",
+    "@shopana/events": "*",
     "@shopana/platform-api": "0.0.1",
     "@shopana/plugin-sdk": "*",
     "@shopana/shared-context": "*",

@@ -14,6 +14,8 @@ export interface StoreDeleteInput {
   storeId: string;
   /** Organization ID the store belongs to */
   organizationId: string;
+  /** User ID who initiated deletion (optional) */
+  userId?: string;
 }
 
 export interface StoreDeleteOutput {
@@ -61,6 +63,9 @@ export class StoreDeleteWorkflow extends BrokerWorkflows {
 
     // Step 3: Notify about entity deletion (unlink back-refs)
     await this.notifyEntityDeleted(storeId);
+
+    // Step 4: Emit storeDeleted event
+    await this.emitStoreDeleted(input);
 
     return { deletedStoreId: storeId, organizationId };
   }
@@ -119,5 +124,30 @@ export class StoreDeleteWorkflow extends BrokerWorkflows {
         "Failed to notify entity deletion for store"
       );
     }
+  }
+
+  /**
+   * Step: Emit storeDeleted event
+   */
+  @Step()
+  async emitStoreDeleted(input: StoreDeleteInput): Promise<void> {
+    await this.broker.call("events.emit", {
+      eventType: "storeDeleted",
+      payload: {
+        storeId: input.storeId,
+        organizationId: input.organizationId,
+      },
+      context: {
+        tenantId: input.organizationId,
+        userId: input.userId,
+      },
+      source: "project",
+      subject: { type: "store", id: input.storeId },
+      related: [{ type: "organization", id: input.organizationId }],
+      actor: input.userId
+        ? { type: "user", id: input.userId }
+        : { type: "service", id: "project" },
+      emitKey: `store:${input.storeId}`,
+    });
   }
 }

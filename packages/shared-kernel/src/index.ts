@@ -7,12 +7,17 @@ export {
   Transactional,
   ReadOnly,
 } from "./TransactionManager";
-export { ActionRegistry, type ActionHandler } from "./broker/ActionRegistry";
+export {
+  ActionRegistry,
+  type ActionHandler,
+  type ActionMetadata,
+} from "./broker/ActionRegistry";
 export {
   ServiceBroker,
   type ServiceBrokerOptions,
 } from "./broker/ServiceBroker";
 export { BrokerActions } from "./broker/BrokerActions";
+export { EventHandlers } from "./broker/EventHandlers";
 export { BrokerWorkflows } from "./broker/BrokerWorkflows";
 export {
   BrokerCoreModule,
@@ -65,6 +70,8 @@ export {
   AuthorizationError,
   Action,
   ACTION_METADATA_KEY,
+  EventHandler,
+  EVENT_HANDLER_METADATA_KEY,
   Workflow,
   WORKFLOW_METADATA_KEY,
   Step,
@@ -74,7 +81,8 @@ export {
   type AuthProvider,
   type AuthorizeParams,
   type AuthorizeOptions,
-  type ActionMetadata,
+  type ActionDecoratorMetadata,
+  type EventHandlerMetadata,
   type WorkflowMetadata,
   type StepMetadata,
 } from "./decorators";

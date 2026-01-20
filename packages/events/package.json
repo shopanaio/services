@@ -1,0 +1,20 @@
+{
+  "name": "@shopana/events",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "default": "./src/index.ts"
+    }
+  },
+  "dependencies": {
+    "canonicalize": "^2.0.0"
+  },
+  "devDependencies": {
+    "@shopana/build-tools": "0.0.1",
+    "@types/node": "^20.14.14",
+    "typescript": "^5.5.4"
+  }
+}

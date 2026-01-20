@@ -50,6 +50,21 @@ describe('ServiceBroker', () => {
     expect(registry.list()).toEqual([]);
   });
 
+  it('exposes action metadata and presence', () => {
+    const registry = new ActionRegistry();
+    const broker = createBroker({ registry });
+    const handler: ActionHandler = jest.fn();
+
+    broker.register('retryableAction', handler, {
+      retryPolicy: { maxAttempts: 4, intervalSeconds: 3, backoffRate: 2 },
+    });
+
+    expect(broker.hasAction('payments.retryableAction')).toBe(true);
+    expect(broker.getActionMetadata('payments.retryableAction')).toEqual({
+      retryPolicy: { maxAttempts: 4, intervalSeconds: 3, backoffRate: 2 },
+    });
+  });
+
   it('publishes events when RabbitMQ is available', async () => {
     const broker = createBroker();
     const amqp = {

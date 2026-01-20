@@ -10,8 +10,13 @@ export {
 export {
   Action,
   ACTION_METADATA_KEY,
-  type ActionMetadata,
+  type ActionDecoratorMetadata,
 } from "./Action.js";
+export {
+  EventHandler,
+  EVENT_HANDLER_METADATA_KEY,
+  type EventHandlerMetadata,
+} from "./EventHandler.js";
 export {
   Workflow,
   WORKFLOW_METADATA_KEY,
