@@ -525,7 +525,7 @@ export interface EventDispatchResult {
    *
    * Note: In pure event-driven, "completed" means dispatch is done.
    * Individual handler failures don't affect the event status.
-   * Failed handlers go to DLQ for independent retry.
+   * Failed handlers go to DLQ for inspection.
    */
   status: "completed";
 
@@ -1370,12 +1370,9 @@ CREATE TABLE IF NOT EXISTS dead_letter_queue (
   tenant_id TEXT,
   correlation_id TEXT,
 
-  status TEXT NOT NULL DEFAULT 'failed'
-    CHECK (status IN ('failed', 'retried', 'discarded')),
+  status TEXT NOT NULL DEFAULT 'failed',
 
   failed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  retried_at TIMESTAMPTZ,
-  discarded_at TIMESTAMPTZ,
   expires_at TIMESTAMPTZ,
 
   CONSTRAINT dlq_event_handler_unique
@@ -1432,6 +1429,9 @@ export class DeadLetterRepository {
     return result;
   }
 
+  /**
+   * Get failed entries for inspection/debugging.
+   */
   async getFailedEntries(limit: number = 100): Promise<DeadLetterEntry[]> {
     return this.db
       .select()
@@ -1441,34 +1441,9 @@ export class DeadLetterRepository {
       .limit(limit);
   }
 
-  async markRetried(id: string): Promise<boolean> {
-    const result = await this.db
-      .update(deadLetterQueue)
-      .set({ status: "retried", retriedAt: new Date() })
-      .where(and(
-        eq(deadLetterQueue.id, id),
-        eq(deadLetterQueue.status, "failed")
-      ));
-
-    return (result.rowCount ?? 0) > 0;
-  }
-
-  async discard(id: string, reason?: string): Promise<boolean> {
-    const result = await this.db
-      .update(deadLetterQueue)
-      .set({
-        status: "discarded",
-        discardedAt: new Date(),
-        error: reason ? `DISCARDED: ${reason}` : undefined,
-      })
-      .where(and(
-        eq(deadLetterQueue.id, id),
-        eq(deadLetterQueue.status, "failed")
-      ));
-
-    return (result.rowCount ?? 0) > 0;
-  }
-
+  /**
+   * Cleanup expired entries.
+   */
   async cleanup(batchSize: number = 1000): Promise<number> {
     const result = await this.db.execute(sql`
       DELETE FROM dead_letter_queue
@@ -1480,81 +1455,6 @@ export class DeadLetterRepository {
     `);
 
     return result.rowCount ?? 0;
-  }
-}
-```
-
-### 7.3 DLQ Retry Workflow
-
-```typescript
-// packages/events/src/dlq/retry.ts
-
-import { DBOS } from "@dbos-inc/dbos-sdk";
-
-export interface DLQRetryResult {
-  processed: number;
-  succeeded: number;
-  failed: number;
-}
-
-export class DLQRetryWorkflow {
-  constructor(
-    private readonly broker: ServiceBroker,
-    private readonly dlqRepo: DeadLetterRepository
-  ) {}
-
-  @DBOS.workflow()
-  async retryEntry(entryId: string): Promise<{ success: boolean; error?: string }> {
-    const entries = await this.dlqRepo.getFailedEntries(1);
-    const entry = entries.find((e) => e.id === entryId);
-
-    if (!entry) {
-      return { success: false, error: "Entry not found or already processed" };
-    }
-
-    const result = await this.invokeHandler(entry);
-
-    if (result.success) {
-      await this.dlqRepo.markRetried(entryId);
-    }
-
-    return result;
-  }
-
-  @DBOS.workflow()
-  async retryBatch(limit: number = 50): Promise<DLQRetryResult> {
-    const entries = await this.dlqRepo.getFailedEntries(limit);
-    let succeeded = 0;
-    let failed = 0;
-
-    for (const entry of entries) {
-      const result = await this.invokeHandler(entry);
-
-      if (result.success) {
-        await this.dlqRepo.markRetried(entry.id);
-        succeeded++;
-      } else {
-        failed++;
-      }
-    }
-
-    return { processed: entries.length, succeeded, failed };
-  }
-
-  @DBOS.step({ maxAttempts: 1 })
-  private async invokeHandler(entry: DeadLetterEntry): Promise<{ success: boolean; error?: string }> {
-    const event = entry.event as unknown as DomainEvent;
-
-    const response = await this.broker.call(
-      `${entry.handlerService}.${entry.handlerAction}`,
-      { event }
-    );
-
-    if (response.error) {
-      return { success: false, error: response.error.message };
-    }
-
-    return { success: true };
   }
 }
 ```
@@ -1585,7 +1485,6 @@ const EVENT_METRICS = {
 
   // DLQ
   "dlq.entries.added": "New entries added to DLQ",
-  "dlq.entries.retried": "Entries successfully retried",
   "dlq.entries.pending": "Pending entries (status=failed)",
 } as const;
 ```
@@ -1646,13 +1545,13 @@ type EventLogEvent =
 │     │             │   - Index product                                       │
 │     │             │                                                         │
 │     │             └─► pricing.handleProductCreated(event) ───► FAIL → DLQ   │
-│     │                 - (e.g. timeout) → retry → DLQ                        │
+│     │                 - (e.g. timeout after retries)                        │
 │     │                                                                       │
 │     └──[Complete]─► Return EventDispatchResult                              │
 │                     { status: "completed", succeeded: 2, failed: 1 }        │
 │                                                                             │
 │  Note: Event is "completed" even with failures.                             │
-│  pricing handler will be retried from DLQ later.                            │
+│  pricing handler failure is recorded in DLQ for inspection.                 │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -1697,13 +1596,10 @@ type EventLogEvent =
 │     - Handles: API retries, workflow restarts                               │
 │                                                                             │
 │  2. Domain: Business-level safety net                                       │
-│     - Handles: DLQ retries (same handler called again)                      │
+│     - Handles: DBOS step retries (transient failures)                       │
 │     - Handles: Business duplicates (same product created twice)             │
 │     - Handles: Edge cases, bugs, manual operations                          │
 │     - Provides: Data integrity guarantees                                   │
-│                                                                             │
-│  In pure event-driven, DLQ retries are expected — domain idempotency        │
-│  ensures handlers can be safely re-invoked.                                 │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -1725,7 +1621,7 @@ type EventLogEvent =
 | Handler Independence | Each handler processes independently, failures don't affect others |
 | Event Status | Always `completed` (dispatch done, regardless of handler failures) |
 | Retry | Per-handler retry policy (configurable via decorator) |
-| Dead Letter Queue | Failed handlers stored for independent retry |
+| Dead Letter Queue | Failed handlers stored for inspection |
 | Audit | `domain_events` + `dead_letter_queue` tables |
 | Idempotency | DBOS workflow + domain-level (ON CONFLICT, upserts) |
 | Consistency | Eventual — system converges over time |
@@ -1740,7 +1636,7 @@ type EventLogEvent =
 6. **Separate classes** — `BrokerActions` for `@Action`, `EventHandlers` for `@EventHandler`
 7. **DBOS workflow idempotency** — Same eventId = same workflow = dispatch once
 8. **Domain-level idempotency** — Handlers use DB constraints (`ON CONFLICT DO NOTHING`)
-9. **Dead Letter Queue** — Failed handlers go to DLQ for retry after fix
+9. **Dead Letter Queue** — Failed handlers stored for inspection/debugging
 
 ### Benefits
 
@@ -1759,4 +1655,3 @@ type EventLogEvent =
 1. **Eventual consistency** — Data may be temporarily inconsistent
 2. **No ordering guarantees** — Handlers may process in any order
 3. **No transactions across handlers** — Each handler is independent
-4. **DLQ management** — Need process for handling failed handlers
