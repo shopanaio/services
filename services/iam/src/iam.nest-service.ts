@@ -16,10 +16,6 @@ import { WORKFLOW_REGISTRY, WorkflowRegistry } from "@shopana/shared-kernel";
 import { Kernel } from "./kernel/Kernel.js";
 import { startServer } from "@src/api/graphql-admin/server.js";
 import { getServiceConfig } from "@shopana/shared-service-config";
-import {
-  OrganizationCreateWorkflow,
-  OrganizationDeleteWorkflow,
-} from "./workflows/index.js";
 
 const { service } = getServiceConfig("iam");
 
@@ -41,29 +37,6 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
     this.kernel = await Kernel.create(this.broker, this.workflow, this.dbClient);
     this.logger.debug("Kernel created");
 
-    // Register workflows
-    const organizationCreateWorkflow = new OrganizationCreateWorkflow(
-      "organizationCreate",
-      { kernel: this.kernel }
-    );
-    const organizationCreateWorkflowName =
-      this.broker.qualifyAction("organizationCreate");
-    this.workflow.register(organizationCreateWorkflowName, {
-      instance: organizationCreateWorkflow,
-      metadata: { name: "organizationCreate" },
-    });
-
-    const organizationDeleteWorkflow = new OrganizationDeleteWorkflow(
-      "organizationDelete",
-      { kernel: this.kernel }
-    );
-    const organizationDeleteWorkflowName =
-      this.broker.qualifyAction("organizationDelete");
-    this.workflow.register(organizationDeleteWorkflowName, {
-      instance: organizationDeleteWorkflow,
-      metadata: { name: "organizationDelete" },
-    });
-
     this.graphqlServer = await startServer({
       port: service.ports?.admin_graphql ?? 0,
     });
@@ -71,11 +44,6 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy() {
-    if (this.workflow) {
-      this.workflow.deregister(this.broker.qualifyAction("organizationCreate"));
-      this.workflow.deregister(this.broker.qualifyAction("organizationDelete"));
-    }
-
     if (this.graphqlServer) {
       await this.graphqlServer.close();
     }

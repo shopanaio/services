@@ -1,13 +1,15 @@
 import { ZodResolver } from "@shopana/type-resolver";
+import { hashContent } from "@shopana/shared-kernel";
 import {
   decodeGlobalIdByType,
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
 import { IAMType } from "./IAMType.js";
 import { UserResolver } from "./UserResolver.js";
-import { UserUpdateProfileScript } from "../../scripts/user/UserUpdateProfileScript.js";
 import { UserUpdateEmailScript } from "../../scripts/user/UserUpdateEmailScript.js";
 import { UserUpdatePasswordScript } from "../../scripts/user/UserUpdatePasswordScript.js";
+import type { UserUpdateProfileWorkflowInput } from "../../workflows/index.js";
+import type { UserUpdateProfileResult } from "../../scripts/user/dto/UserUpdateProfileDto.js";
 import type {
   UserUpdateProfileInput,
   UserUpdateEmailInput,
@@ -28,11 +30,13 @@ import {
 export class UserMutationResolver extends IAMType<Record<string, never>> {
   /**
    * Update user's profile (firstName, lastName, language, avatar).
+   * Uses UserUpdateProfileWorkflow to ensure avatar back-refs are synced after DB commit.
    */
   @ZodResolver(UserUpdateProfileInputSchema())
   async userUpdateProfile(args: { input: UserUpdateProfileInput }) {
     const { input } = args;
     const { currentUser, kernel } = this.$ctx;
+    const broker = kernel.getServices().broker;
 
     if (!currentUser?.id) {
       return {
@@ -66,36 +70,32 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
       }
     }
 
-    // Update profile via script (firstName, lastName, locale)
-    const result = await kernel.runScript(UserUpdateProfileScript, {
-      firstName: input.firstName ?? undefined,
-      lastName: input.lastName ?? undefined,
-      language: input.locale ?? undefined,
-      ...(input.avatarId !== undefined ? { image: nextAvatarId } : {}),
-    });
-
-    if (result.userErrors.length > 0) {
-      return {
-        user: result.userId ? new UserResolver(result.userId, this.$ctx) : null,
-        userErrors: result.userErrors.map((e) => ({
-          code: e.code,
-          message: e.message,
-          field: e.field ?? null,
-        })),
-      };
-    }
-
-    if (input.avatarId !== undefined) {
-      await this.syncAvatarBackRefs(
-        currentUser.id,
+    const result = await broker.runWorkflow<UserUpdateProfileResult, UserUpdateProfileWorkflowInput>(
+      "iam.userUpdateProfile",
+      {
+        userId: currentUser.id,
+        firstName: input.firstName ?? undefined,
+        lastName: input.lastName ?? undefined,
+        language: input.locale ?? undefined,
+        image: nextAvatarId,
         previousAvatarId,
-        nextAvatarId ?? null
-      );
-    }
+        nextAvatarId,
+      },
+      {
+        source: "content",
+        resourceId: currentUser.id,
+        operation: "userUpdateProfile",
+        contentHash: hashContent({ userId: currentUser.id }),
+      }
+    );
 
     return {
-      user: new UserResolver(currentUser.id, this.$ctx),
-      userErrors: [],
+      user: result.userId ? new UserResolver(result.userId, this.$ctx) : null,
+      userErrors: result.userErrors.map((e) => ({
+        code: e.code,
+        message: e.message,
+        field: e.field ?? null,
+      })),
     };
   }
 
@@ -297,63 +297,4 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
     };
   }
 
-  private async syncAvatarBackRefs(
-    userId: string,
-    previousAvatarId: string | null,
-    nextAvatarId: string | null
-  ): Promise<void> {
-    try {
-      if (previousAvatarId === nextAvatarId) {
-        return;
-      }
-
-      const broker = this.$ctx.kernel.getServices().broker;
-      const entityRef = { service: "iam", entityType: "user", entityId: userId };
-      const role = "avatar";
-      const tasks: Array<Promise<unknown>> = [];
-
-      if (nextAvatarId) {
-        tasks.push(
-          broker.call("media.fileLink", {
-            fileId: nextAvatarId,
-            entityRef,
-            role,
-          })
-        );
-      }
-
-      if (previousAvatarId) {
-        tasks.push(
-          broker.call("media.fileUnlink", {
-            fileId: previousAvatarId,
-            entityRef,
-            role,
-          })
-        );
-      }
-
-      if (tasks.length === 0) {
-        return;
-      }
-
-      const results = await Promise.allSettled(tasks);
-      const failures = results.filter((result) => result.status === "rejected");
-
-      if (failures.length > 0) {
-        this.$ctx.kernel.getServices().logger.warn(
-          {
-            userId,
-            failedCount: failures.length,
-            errors: failures.map((failure) => failure.reason),
-          },
-          "User avatar backrefs sync failed"
-        );
-      }
-    } catch (error) {
-      this.$ctx.kernel.getServices().logger.warn(
-        { userId, error },
-        "User avatar backrefs sync failed"
-      );
-    }
-  }
 }

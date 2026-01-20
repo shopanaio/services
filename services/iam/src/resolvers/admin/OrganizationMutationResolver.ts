@@ -1,5 +1,5 @@
 import { ZodResolver } from "@shopana/type-resolver";
-import { DBOS } from "@shopana/shared-kernel";
+import { hashContent } from "@shopana/shared-kernel";
 import {
   decodeGlobalIdByType,
   encodeGlobalIdByType,
@@ -8,12 +8,15 @@ import {
 import { IAMType } from "./IAMType.js";
 import { OrganizationResolver } from "./OrganizationResolver.js";
 import { MemberResolver } from "./MemberResolver.js";
-import { OrganizationUpdateScript } from "../../scripts/organization/OrganizationUpdateScript.js";
 import { OwnershipTransferScript } from "../../scripts/organization/OwnershipTransferScript.js";
-import {
-  OrganizationCreateWorkflow,
-  OrganizationDeleteWorkflow,
+import type {
+  OrganizationCreateParams,
+  OrganizationCreateResult,
+  OrganizationDeleteParams,
+  OrganizationDeleteResult,
+  OrganizationUpdateWorkflowInput,
 } from "../../workflows/index.js";
+import type { OrganizationUpdateResult } from "../../scripts/organization/dto/OrganizationUpdateDto.js";
 import { MemberInviteScript } from "../../scripts/organization/MemberInviteScript.js";
 import { MemberRemoveScript } from "../../scripts/organization/MemberRemoveScript.js";
 import { MemberRoleChangeScript } from "../../scripts/organization/MemberRoleChangeScript.js";
@@ -47,15 +50,18 @@ export class OrganizationMutationResolver extends IAMType<
   @ZodResolver(OrganizationCreateInputSchema())
   async organizationCreate(args: { input: OrganizationCreateInput }) {
     const { input } = args;
+    const broker = this.$ctx.kernel.getServices().broker;
 
-    const workflow =
-      this.$ctx.kernel.workflow.get<OrganizationCreateWorkflow>(
-        this.$ctx.kernel.getServices().broker.qualifyAction(
-          "organizationCreate"
-        )
-      );
-    const handle = await DBOS.startWorkflow(workflow).run(input);
-    const result = await handle.getResult();
+    const result = await broker.runWorkflow<OrganizationCreateResult, OrganizationCreateParams>(
+      "iam.organizationCreate",
+      input,
+      {
+        source: "content",
+        resourceId: input.name,
+        operation: "organizationCreate",
+        contentHash: hashContent({ name: input.name }),
+      }
+    );
 
     return {
       organization: result.organization
@@ -71,73 +77,63 @@ export class OrganizationMutationResolver extends IAMType<
 
   /**
    * Update organization (name, displayName, logo).
+   * Uses OrganizationUpdateWorkflow to ensure logo back-refs are synced after DB commit.
    */
   @ZodResolver(OrganizationUpdateInputSchema())
   async organizationUpdate(args: { input: OrganizationUpdateInput }) {
     const { input } = args;
     const { kernel } = this.$ctx;
+    const broker = kernel.getServices().broker;
     const organizationId = decodeGlobalIdByType(
       input.id,
       GlobalIdEntity.Organization
     );
 
-    // Update name/displayName via script
-    const result = await kernel.runScript(OrganizationUpdateScript, {
-      organizationId,
-      name: input.name ?? undefined,
-      displayName: input.displayName ?? undefined,
-    });
+    // Get previous logo ID for back-ref cleanup
+    const existingOrg = await kernel.repository.organization.findById(organizationId);
+    const previousLogoId = existingOrg?.logoId ?? null;
 
-    if (result.userErrors.length > 0) {
-      return {
-        organization: result.organization
-          ? new OrganizationResolver(result.organization.id, this.$ctx)
-          : null,
-        userErrors: result.userErrors.map((e) => ({
-          code: e.code ?? "UNKNOWN_ERROR",
-          message: e.message,
-          field: e.field,
-        })),
-      };
-    }
-
-    const previousLogoId = result.organization?.logoId ?? null;
-
-    // Handle logo update separately if provided
+    // Decode logo ID if provided
+    let nextLogoId: string | null | undefined;
     if (input.logoId !== undefined) {
-      let logoId: string | null = null;
       if (input.logoId) {
         try {
-          logoId = decodeGlobalIdByType(input.logoId, GlobalIdEntity.File);
+          nextLogoId = decodeGlobalIdByType(input.logoId, GlobalIdEntity.File);
         } catch {
-          logoId = input.logoId;
+          nextLogoId = input.logoId;
         }
+      } else {
+        nextLogoId = null;
       }
-
-      const updated = await kernel.repository.organization.updateLogo(
-        organizationId,
-        logoId
-      );
-
-      if (!updated) {
-        return {
-          organization: null,
-          userErrors: [
-            {
-              code: "UPDATE_FAILED",
-              message: "Failed to update logo",
-              field: ["logoId"],
-            },
-          ],
-        };
-      }
-
-      await this.syncLogoBackRefs(organizationId, previousLogoId, logoId);
     }
 
+    const result = await broker.runWorkflow<OrganizationUpdateResult, OrganizationUpdateWorkflowInput>(
+      "iam.organizationUpdate",
+      {
+        organizationId,
+        name: input.name ?? undefined,
+        displayName: input.displayName ?? undefined,
+        logoId: nextLogoId,
+        previousLogoId,
+        nextLogoId,
+      },
+      {
+        source: "content",
+        resourceId: organizationId,
+        operation: "organizationUpdate",
+        contentHash: hashContent({ organizationId }),
+      }
+    );
+
     return {
-      organization: new OrganizationResolver(organizationId, this.$ctx),
-      userErrors: [],
+      organization: result.organization
+        ? new OrganizationResolver(result.organization.id, this.$ctx)
+        : null,
+      userErrors: result.userErrors.map((e) => ({
+        code: e.code ?? "UNKNOWN_ERROR",
+        message: e.message,
+        field: e.field,
+      })),
     };
   }
 
@@ -151,15 +147,18 @@ export class OrganizationMutationResolver extends IAMType<
       args.id,
       GlobalIdEntity.Organization
     );
+    const broker = this.$ctx.kernel.getServices().broker;
 
-    const workflow =
-      this.$ctx.kernel.workflow.get<OrganizationDeleteWorkflow>(
-        this.$ctx.kernel.getServices().broker.qualifyAction(
-          "organizationDelete"
-        )
-      );
-    const handle = await DBOS.startWorkflow(workflow).run({ organizationId });
-    const result = await handle.getResult();
+    const result = await broker.runWorkflow<OrganizationDeleteResult, OrganizationDeleteParams>(
+      "iam.organizationDelete",
+      { organizationId },
+      {
+        source: "content",
+        resourceId: organizationId,
+        operation: "organizationDelete",
+        contentHash: hashContent({ organizationId }),
+      }
+    );
 
     return {
       deletedOrganizationId: result.deletedOrganizationId
@@ -341,67 +340,4 @@ export class OrganizationMutationResolver extends IAMType<
     };
   }
 
-  private async syncLogoBackRefs(
-    organizationId: string,
-    previousLogoId: string | null,
-    nextLogoId: string | null
-  ): Promise<void> {
-    try {
-      if (previousLogoId === nextLogoId) {
-        return;
-      }
-
-      const broker = this.$ctx.kernel.getServices().broker;
-      const entityRef = {
-        service: "iam",
-        entityType: "organization",
-        entityId: organizationId,
-      };
-      const role = "logo";
-      const tasks: Array<Promise<unknown>> = [];
-
-      if (nextLogoId) {
-        tasks.push(
-          broker.call("media.fileLink", {
-            fileId: nextLogoId,
-            entityRef,
-            role,
-          })
-        );
-      }
-
-      if (previousLogoId) {
-        tasks.push(
-          broker.call("media.fileUnlink", {
-            fileId: previousLogoId,
-            entityRef,
-            role,
-          })
-        );
-      }
-
-      if (tasks.length === 0) {
-        return;
-      }
-
-      const results = await Promise.allSettled(tasks);
-      const failures = results.filter((result) => result.status === "rejected");
-
-      if (failures.length > 0) {
-        this.$ctx.kernel.getServices().logger.warn(
-          {
-            organizationId,
-            failedCount: failures.length,
-            errors: failures.map((failure) => failure.reason),
-          },
-          "Organization logo backrefs sync failed"
-        );
-      }
-    } catch (error) {
-      this.$ctx.kernel.getServices().logger.warn(
-        { organizationId, error },
-        "Organization logo backrefs sync failed"
-      );
-    }
-  }
 }

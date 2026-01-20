@@ -1,83 +1,75 @@
-import { DBOS } from "@shopana/shared-kernel";
-import { BaseWorkflow } from "./BaseWorkflow.js";
+import { Injectable } from "@nestjs/common";
+import {
+  BrokerWorkflows,
+  InjectBroker,
+  ServiceBroker,
+  Workflow,
+  Step,
+} from "@shopana/shared-kernel";
+import { Kernel } from "../kernel/Kernel.js";
 import { OrganizationDeleteScript } from "../scripts/organization/OrganizationDeleteScript.js";
 import type {
   OrganizationDeleteParams,
   OrganizationDeleteResult,
 } from "../scripts/organization/dto/OrganizationDeleteDto.js";
 
+export type { OrganizationDeleteParams, OrganizationDeleteResult };
+
 /**
  * Durable workflow for organization deletion.
  *
- * Ensures that:
- * 1. Organization is deleted in DB (transactional)
- * 2. Media asset group is deleted ONLY after successful DB commit
- * 3. Back-refs are unlinked ONLY after successful DB commit
- *
- * This prevents orphan state if the organization deletion fails.
+ * Steps:
+ * 1. Delete organization from database
+ * 2. Delete media asset group
+ * 3. Unlink back-refs
  */
-export class OrganizationDeleteWorkflow extends BaseWorkflow {
-  /**
-   * Main workflow - orchestrates organization deletion
-   */
-  @DBOS.workflow()
+@Injectable()
+export class OrganizationDeleteWorkflow extends BrokerWorkflows {
+  constructor(@InjectBroker("iam") broker: ServiceBroker) {
+    super(broker);
+  }
+
+  private get kernel(): Kernel {
+    return Kernel.getInstance();
+  }
+
+  @Workflow("organizationDelete")
   async run(input: OrganizationDeleteParams): Promise<OrganizationDeleteResult> {
-    // Step 1: Delete organization in database (transactional)
+    // Step 1: Delete organization from database
     const result = await this.deleteOrganization(input);
 
-    // If there are user errors, return early (no cleanup needed)
     if (result.userErrors.length > 0 || !result.deletedOrganizationId) {
       return result;
     }
 
-    // Step 2: Delete media asset group (only after successful DB commit)
+    // Step 2: Delete media asset group
     await this.deleteMediaAssetGroup(result.deletedOrganizationId);
 
-    // Step 3: Unlink back-refs (only after successful DB commit)
+    // Step 3: Unlink back-refs
     await this.unlinkBackRefs(result.deletedOrganizationId);
 
     return result;
   }
 
-  /**
-   * Step: Delete organization in database
-   */
-  @DBOS.step()
-  async deleteOrganization(
-    input: OrganizationDeleteParams
-  ): Promise<OrganizationDeleteResult> {
+  @Step()
+  async deleteOrganization(input: OrganizationDeleteParams): Promise<OrganizationDeleteResult> {
     return this.kernel.runScript(OrganizationDeleteScript, input);
   }
 
-  /**
-   * Step: Delete media asset group for organization
-   * Called only after organization is successfully deleted and committed
-   */
-  @DBOS.step()
+  @Step()
   async deleteMediaAssetGroup(organizationId: string): Promise<void> {
     try {
       await this.broker.call("media.deleteAssetGroup", {
         ownerType: "organization",
         ownerId: organizationId,
       });
-
-      this.logger.info(
-        { organizationId },
-        "Deleted media asset group for organization"
-      );
+      this.logger.debug({ organizationId }, "Deleted media asset group for organization");
     } catch (error) {
-      this.logger.warn(
-        { organizationId, error },
-        "Failed to delete media asset group for organization"
-      );
+      this.logger.warn({ organizationId, error }, "Failed to delete media asset group");
     }
   }
 
-  /**
-   * Step: Unlink all back-refs for organization
-   * Called only after organization is successfully deleted and committed
-   */
-  @DBOS.step()
+  @Step()
   async unlinkBackRefs(organizationId: string): Promise<void> {
     try {
       await this.broker.call("media.entityDeleted", {
@@ -87,16 +79,9 @@ export class OrganizationDeleteWorkflow extends BaseWorkflow {
           entityId: organizationId,
         },
       });
-
-      this.logger.info(
-        { organizationId },
-        "Unlinked media back-refs for organization"
-      );
+      this.logger.debug({ organizationId }, "Unlinked media back-refs for organization");
     } catch (error) {
-      this.logger.warn(
-        { organizationId, error },
-        "Failed to unlink media back-refs for organization"
-      );
+      this.logger.warn({ organizationId, error }, "Failed to unlink media back-refs");
     }
   }
 }

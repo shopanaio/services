@@ -1,71 +1,76 @@
-import { DBOS } from "@shopana/shared-kernel";
-import { BaseWorkflow } from "./BaseWorkflow.js";
+import { Injectable } from "@nestjs/common";
+import {
+  BrokerWorkflows,
+  InjectBroker,
+  ServiceBroker,
+  Workflow,
+  Step,
+} from "@shopana/shared-kernel";
+import { Kernel } from "../kernel/Kernel.js";
 import { OrganizationCreateScript } from "../scripts/organization/OrganizationCreateScript.js";
 import type {
   OrganizationCreateParams,
   OrganizationCreateResult,
 } from "../scripts/organization/dto/OrganizationCreateDto.js";
 
+export type { OrganizationCreateParams, OrganizationCreateResult };
+
 /**
  * Durable workflow for organization creation.
  *
- * Ensures that:
- * 1. Organization is created in DB (transactional)
- * 2. Media asset group is created ONLY after successful DB commit
- *
- * This prevents orphan asset groups if the organization creation fails.
+ * Steps:
+ * 1. Create organization in database
+ * 2. Create media asset group
  */
-export class OrganizationCreateWorkflow extends BaseWorkflow {
-  /**
-   * Main workflow - orchestrates organization creation
-   */
-  @DBOS.workflow()
-  async run(input: OrganizationCreateParams): Promise<OrganizationCreateResult> {
-    // Step 1: Create organization in database (transactional)
+@Injectable()
+export class OrganizationCreateWorkflow extends BrokerWorkflows {
+  constructor(@InjectBroker("iam") broker: ServiceBroker) {
+    super(broker);
+  }
+
+  private get kernel(): Kernel {
+    return Kernel.getInstance();
+  }
+
+  @Workflow("organizationCreate")
+  async run(
+    input: OrganizationCreateParams,
+  ): Promise<OrganizationCreateResult> {
+    // Step 1: Create organization in database
     const result = await this.createOrganization(input);
 
-    // If there are user errors, return early (no media asset group needed)
     if (result.userErrors.length > 0 || !result.organization) {
       return result;
     }
 
-    // Step 2: Create media asset group (only after successful DB commit)
+    // Step 2: Create media asset group
     await this.createMediaAssetGroup(result.organization.id);
 
     return result;
   }
 
-  /**
-   * Step: Create organization in database
-   */
-  @DBOS.step()
+  @Step()
   async createOrganization(
-    input: OrganizationCreateParams
+    input: OrganizationCreateParams,
   ): Promise<OrganizationCreateResult> {
     return this.kernel.runScript(OrganizationCreateScript, input);
   }
 
-  /**
-   * Step: Create media asset group for organization
-   * Called only after organization is successfully created and committed
-   */
-  @DBOS.step()
+  @Step()
   async createMediaAssetGroup(organizationId: string): Promise<void> {
     try {
       await this.broker.call("media.createAssetGroup", {
         ownerType: "organization",
         ownerId: organizationId,
       });
-
-      this.logger.info(
+      this.logger.debug(
         { organizationId },
-        "Created media asset group for organization"
+        "Created media asset group for organization",
       );
     } catch (error) {
-      // Log but don't fail the workflow - asset group creation is best-effort
       this.logger.warn(
         { organizationId, error },
-        "Failed to create media asset group for organization"
+        "Failed to create media asset group",
       );
     }
   }
