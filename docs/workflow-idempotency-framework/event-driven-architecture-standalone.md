@@ -164,14 +164,12 @@ export interface EventHandlerMetadata {
 
 /**
  * Method decorator that marks a method as an event handler.
- * Used with BrokerActions base class for automatic registration.
+ * Used with EventHandlers base class for automatic registration.
  *
- * The method will be registered both as:
- * 1. A broker action (so EventDispatchWorkflow can call it)
- * 2. An event handler in the global registry (so it's discoverable)
+ * The method will be registered as a broker action with the event type as action name.
+ * EventDispatchWorkflow calls `broker.call("{serviceName}.{eventType}", { event })`.
  *
  * @param eventType - Event type to handle (e.g., "productCreated")
- * @param options - Handler options (retry policy)
  *
  * @example
  * class InventoryEventHandlers extends EventHandlers {
@@ -180,7 +178,7 @@ export interface EventHandlerMetadata {
  *     // ...
  *   }
  *
- *   @EventHandler("orderCompleted", { retry: { maxAttempts: 5, backoffRate: 2 } })
+ *   @EventHandler("orderCompleted")
  *   async handleOrderCompleted(params: { event: OrderCompletedEvent }) {
  *     // ...
  *   }
