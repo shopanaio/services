@@ -52,7 +52,7 @@ export interface DomainEvent<TType extends string = string, TPayload = unknown> 
   /** Unique event ID (UUID) */
   eventId: string;
 
-  /** Event type: "product.created", "order.completed", etc. */
+  /** Event type: "productCreated", "orderCompleted", etc. */
   eventType: TType;
 
   /** Event creation time (ISO 8601) */
@@ -87,26 +87,26 @@ export interface EventContext {
 // ═══════════════════════════════════════════════════════════════════
 
 // Product events
-export interface ProductCreatedEvent extends DomainEvent<"product.created", {
+export interface ProductCreatedEvent extends DomainEvent<"productCreated", {
   productId: string;
   storeId: string;
   name: string;
   sku?: string;
 }> {}
 
-export interface ProductDeletedEvent extends DomainEvent<"product.deleted", {
+export interface ProductDeletedEvent extends DomainEvent<"productDeleted", {
   productId: string;
   storeId: string;
 }> {}
 
-export interface ProductUpdatedEvent extends DomainEvent<"product.updated", {
+export interface ProductUpdatedEvent extends DomainEvent<"productUpdated", {
   productId: string;
   storeId: string;
   changes: Record<string, { old: unknown; new: unknown }>;
 }> {}
 
 // Order events
-export interface OrderCreatedEvent extends DomainEvent<"order.created", {
+export interface OrderCreatedEvent extends DomainEvent<"orderCreated", {
   orderId: string;
   storeId: string;
   customerId: string;
@@ -114,14 +114,14 @@ export interface OrderCreatedEvent extends DomainEvent<"order.created", {
   total: number;
 }> {}
 
-export interface OrderCompletedEvent extends DomainEvent<"order.completed", {
+export interface OrderCompletedEvent extends DomainEvent<"orderCompleted", {
   orderId: string;
   storeId: string;
   completedAt: string;
 }> {}
 
 // Store events
-export interface StoreCreatedEvent extends DomainEvent<"store.created", {
+export interface StoreCreatedEvent extends DomainEvent<"storeCreated", {
   storeId: string;
   organizationId: string;
   name: string;
@@ -170,17 +170,17 @@ export interface EventHandlerMetadata {
  * 1. A broker action (so EventDispatchWorkflow can call it)
  * 2. An event handler in the global registry (so it's discoverable)
  *
- * @param eventType - Event type to handle (e.g., "product.created")
+ * @param eventType - Event type to handle (e.g., "productCreated")
  * @param options - Handler options (retry policy)
  *
  * @example
  * class InventoryEventHandlers extends EventHandlers {
- *   @EventHandler("product.created")
+ *   @EventHandler("productCreated")
  *   async handleProductCreated(params: { event: ProductCreatedEvent }) {
  *     // ...
  *   }
  *
- *   @EventHandler("order.completed", { retry: { maxAttempts: 5, backoffRate: 2 } })
+ *   @EventHandler("orderCompleted", { retry: { maxAttempts: 5, backoffRate: 2 } })
  *   async handleOrderCompleted(params: { event: OrderCompletedEvent }) {
  *     // ...
  *   }
@@ -259,7 +259,7 @@ import "reflect-metadata";
  *     super(broker);
  *   }
  *
- *   @EventHandler("product.created", { critical: true })
+ *   @EventHandler("productCreated")
  *   async handleProductCreated(params: { event: ProductCreatedEvent }) {
  *     // ...
  *   }
@@ -272,21 +272,28 @@ export abstract class EventHandlers implements OnModuleInit {
     this.logger = new Logger(this.constructor.name);
   }
 
+  /**
+   * Returns the service broker instance.
+   */
+  getBroker(): ServiceBroker {
+    return this.broker;
+  }
+
+  /**
+   * Called by NestJS when the module initializes.
+   * Scans for @EventHandler decorated methods and registers them with the broker.
+   */
   onModuleInit(): void {
     this.registerEventHandlers();
   }
 
   /**
-   * Scans for @EventHandler decorated methods and registers them.
-   *
-   * Each handler is registered as:
-   * 1. A broker action (so EventDispatchWorkflow can call it via broker.call)
-   * 2. An event handler in bootstrap registry (for discovery)
+   * Scans the class instance for methods decorated with @EventHandler and registers them.
    */
   private registerEventHandlers(): void {
     const prototype = Object.getPrototypeOf(this);
     const methodNames = this.getMethodNames(prototype);
-    const handlers: Array<{ methodName: string; metadata: EventHandlerMetadata }> = [];
+    const registeredHandlers: string[] = [];
 
     for (const methodName of methodNames) {
       const metadata = Reflect.getMetadata(
@@ -296,48 +303,20 @@ export abstract class EventHandlers implements OnModuleInit {
       ) as EventHandlerMetadata | undefined;
 
       if (metadata) {
-        handlers.push({ methodName, metadata });
-
-        // Register as broker action (transport for EventDispatchWorkflow)
         const method = (this as Record<string, unknown>)[methodName] as (
           params: unknown
         ) => Promise<unknown>;
 
-        this.broker.register(methodName, method.bind(this));
+        // Bind the method to this instance
+        const boundMethod = method.bind(this);
+
+        this.broker.register(metadata.eventType, boundMethod);
+        registeredHandlers.push(metadata.eventType);
       }
     }
 
-    // Register with bootstrap service for discovery
-    if (handlers.length > 0) {
-      this.registerWithBootstrap(handlers);
-    }
-  }
-
-  /**
-   * Registers event handlers with the bootstrap service's global registry.
-   */
-  private async registerWithBootstrap(
-    handlers: Array<{ methodName: string; metadata: EventHandlerMetadata }>
-  ): Promise<void> {
-    const serviceName = this.broker.getServiceName();
-
-    for (const { methodName, metadata } of handlers) {
-      try {
-        await this.broker.call("bootstrap.registerEventHandler", {
-          service: serviceName,
-          action: methodName,
-          eventType: metadata.eventType,
-          retryPolicy: metadata.retryPolicy,
-        });
-
-        this.logger.debug(
-          `Registered event handler: ${metadata.eventType} -> ${serviceName}.${methodName}`
-        );
-      } catch (error) {
-        this.logger.error(
-          `Failed to register event handler ${methodName}: ${error}`
-        );
-      }
+    if (registeredHandlers.length > 0) {
+      this.logger.debug(`Registered event handlers: ${registeredHandlers.join(", ")}`);
     }
   }
 
@@ -384,7 +363,7 @@ import type { DomainEvent, EventContext, EventType } from "./types.js";
  * Create a domain event with proper structure.
  *
  * @example
- * const event = createEvent("product.created", {
+ * const event = createEvent("productCreated", {
  *   productId: "prod-123",
  *   storeId: "store-456",
  *   name: "Cool Product",
@@ -419,7 +398,7 @@ export function createEvent<TType extends EventType, TPayload>(
  *
  * @example
  * // Same product creation attempt = same eventId
- * const eventId = deterministicEventId("product.created", productId, storeId);
+ * const eventId = deterministicEventId("productCreated", productId, storeId);
  */
 export function deterministicEventId(...parts: string[]): string {
   const input = parts.join(":");
@@ -459,7 +438,7 @@ export class EventEmitter {
    *   const product = await this.saveProduct(input);  // @DBOS.step()
    *
    *   // After step completes, emit event from workflow code
-   *   const event = createEvent("product.created", { productId: product.id, ... }, ...);
+   *   const event = createEvent("productCreated", { productId: product.id, ... }, ...);
    *   await EventEmitter.emit(event);  // Starts child workflow
    *
    *   return product;
@@ -510,7 +489,7 @@ export class EventEmitter {
 import { DBOS } from "@dbos-inc/dbos-sdk";
 import type { DomainEvent } from "../types.js";
 import type { ServiceBroker } from "@shopana/shared-kernel";
-import type { EventHandlerResult } from "../handler-types.js";
+import { getConfig } from "@shopana/shared-service-config";
 
 /**
  * Result of event dispatch workflow.
@@ -518,27 +497,14 @@ import type { EventHandlerResult } from "../handler-types.js";
 export interface EventDispatchResult {
   eventId: string;
   eventType: string;
-
-  /**
-   * Final status:
-   * - "completed": all handlers finished (success or failure)
-   *
-   * Note: In pure event-driven, "completed" means dispatch is done.
-   * Individual handler failures don't affect the event status.
-   * Failed handlers go to DLQ for inspection.
-   */
   status: "completed";
-
-  handlersInvoked: number;
-  handlersSucceeded: number;
-  handlersFailed: number;
+  servicesNotified: number;
   results: HandlerInvocationResult[];
 }
 
 export interface HandlerInvocationResult {
   service: string;
-  action: string;
-  status: "success" | "failed";
+  status: "success" | "skipped" | "failed";
   error?: string;
   durationMs: number;
 }
@@ -546,7 +512,9 @@ export interface HandlerInvocationResult {
 /**
  * Main event dispatch workflow.
  *
- * Pure event-driven: fire and forget, each handler independent.
+ * Iterates over all services from config and tries to call
+ * {serviceName}.{eventType} for each. Services that don't handle
+ * this event type will return "action not found" and be skipped.
  *
  * DBOS Workflow guarantees:
  * - Completion even if service restarts (durability)
@@ -565,335 +533,86 @@ export class EventDispatchWorkflow {
 
   @DBOS.workflow()
   async dispatch(event: DomainEvent): Promise<EventDispatchResult> {
-    // Step 1: Persist event
-    await this.persistEvent(event);
+    // Step 1: Get all service names from config
+    const serviceNames = await this.getServiceNames();
 
-    // Step 2: Discover handlers
-    const handlers = await this.discoverHandlers(event.eventType);
-
-    if (handlers.length === 0) {
-      return {
-        eventId: event.eventId,
-        eventType: event.eventType,
-        status: "completed",
-        handlersInvoked: 0,
-        handlersSucceeded: 0,
-        handlersFailed: 0,
-        results: [],
-      };
-    }
-
-    // Step 3: Invoke ALL handlers in parallel (fire and forget)
-    // Each handler is independent — failures don't affect others
-    const resultPromises = handlers.map((handler) =>
-      this.invokeHandlerSafe(event, handler)
+    // Step 2: Try to invoke handler on each service in parallel
+    const resultPromises = serviceNames.map((serviceName) =>
+      this.tryInvokeHandler(event, serviceName)
     );
 
     const results = await Promise.all(resultPromises);
 
-    // Step 4: Update event status (always "completed" — dispatch is done)
-    const succeeded = results.filter((r) => r.status === "success").length;
-    const failed = results.filter((r) => r.status === "failed").length;
-
-    await this.updateEventStatus(event.eventId, results);
+    // Filter out skipped services (those that don't handle this event)
+    const notifiedResults = results.filter((r) => r.status !== "skipped");
 
     return {
       eventId: event.eventId,
       eventType: event.eventType,
       status: "completed",
-      handlersInvoked: results.length,
-      handlersSucceeded: succeeded,
-      handlersFailed: failed,
-      results,
+      servicesNotified: notifiedResults.length,
+      results: notifiedResults,
     };
   }
 
   /**
-   * Safe wrapper that never throws (for Promise.all).
-   * Each handler invocation is independent.
-   */
-  private async invokeHandlerSafe(
-    event: DomainEvent,
-    handler: HandlerInfo
-  ): Promise<HandlerInvocationResult> {
-    try {
-      return await this.invokeHandler(event, handler);
-    } catch (error) {
-      return {
-        service: handler.service,
-        action: handler.action,
-        status: "failed",
-        error: String(error),
-        durationMs: 0,
-      };
-    }
-  }
-
-  @DBOS.step()
-  private async persistEvent(event: DomainEvent): Promise<void> {
-    await this.broker.call("events.persistEvent", { event });
-  }
-
-  /**
-   * Discover handlers for event type.
+   * Get service names from config.
    *
    * DETERMINISM: This is a @DBOS.step(), so the result is checkpointed.
-   * On workflow replay, DBOS returns the checkpointed handler list,
-   * ensuring the same handlers are invoked even if registry changed.
+   * On workflow replay, DBOS returns the checkpointed service list.
    */
   @DBOS.step()
-  private async discoverHandlers(eventType: string): Promise<HandlerInfo[]> {
-    const response = await this.broker.call("bootstrap.getEventHandlers", {
-      eventType,
-    });
-
-    return response.handlers ?? [];
+  private async getServiceNames(): Promise<string[]> {
+    const config = getConfig();
+    return Object.keys(config.services);
   }
 
   /**
-   * Invoke handler using DBOS.runStep() with dynamic retry config.
-   *
-   * Key patterns:
-   * 1. One broker.call = one DBOS step (durable)
-   * 2. DBOS.runStep() allows runtime retry configuration
-   * 3. Retryable errors → throw → DBOS retries
-   * 4. Non-retryable errors → return error → no retry, workflow handles DLQ
-   * 5. retriesAllowed: true is REQUIRED for retries to work
-   *
-   * Error flow:
-   * - Retryable error thrown → DBOS retries up to maxAttempts
-   * - All retries exhausted → DBOS.runStep() throws → catch → DLQ
-   * - Non-retryable error returned → stepResult.error → DLQ
-   *
-   * DETERMINISM:
-   * - Step name is stable: `handler:{service}.{action}:{eventId}`
-   * - Handler list comes from discoverHandlers() step (checkpointed)
-   * - Retry policy is part of handler registration (stable per deployment)
-   * - If retry policy changes between deployments, already-running workflows
-   *   will continue with original policy (step results are checkpointed)
+   * Try to invoke event handler on a service.
+   * If service doesn't have a handler for this event, returns "skipped".
    */
-  private async invokeHandler(
+  private async tryInvokeHandler(
     event: DomainEvent,
-    handler: HandlerInfo
+    serviceName: string
   ): Promise<HandlerInvocationResult> {
     const startTime = Date.now();
-    const { retryPolicy } = handler;
-
-    let stepResult: EventHandlerResult<unknown>;
+    const action = `${serviceName}.${event.eventType}`;
 
     try {
-      // Use DBOS.runStep() for dynamic retry config
-      stepResult = await DBOS.runStep(
-        () => this.doCallHandler(event, handler),
-        {
-          name: `handler:${handler.service}.${handler.action}:${event.eventId}`,
-          retriesAllowed: true,  // REQUIRED for retries to work!
-          maxAttempts: retryPolicy.maxAttempts,
-          intervalSeconds: retryPolicy.intervalSeconds,
-          backoffRate: retryPolicy.backoffRate,
-        }
-      );
-    } catch (error) {
-      // DBOS exhausted all retries (retryable error thrown maxAttempts times)
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorCode = error instanceof HandlerError ? error.code : undefined;
-
-      await this.sendToDLQ(
-        event,
-        handler,
-        { message: errorMessage, code: errorCode },
-        retryPolicy.maxAttempts
-      );
+      await this.callHandler(event, action);
 
       return {
-        service: handler.service,
-        action: handler.action,
+        service: serviceName,
+        status: "success",
+        durationMs: Date.now() - startTime,
+      };
+    } catch (error) {
+      const errorMessage = String(error);
+
+      // Action not registered = service doesn't handle this event
+      if (errorMessage.includes("not found") || errorMessage.includes("not registered")) {
+        return {
+          service: serviceName,
+          status: "skipped",
+          durationMs: Date.now() - startTime,
+        };
+      }
+
+      // Real error
+      return {
+        service: serviceName,
         status: "failed",
         error: errorMessage,
         durationMs: Date.now() - startTime,
       };
     }
-
-    const durationMs = Date.now() - startTime;
-
-    // Step returned (didn't throw) — check if it's an error result
-    if (stepResult.error) {
-      // Non-retryable error was returned (not thrown) — send to DLQ
-      await this.sendToDLQ(
-        event,
-        handler,
-        { message: stepResult.error.message, code: stepResult.error.code },
-        1  // Only 1 attempt since it was non-retryable
-      );
-
-      return {
-        service: handler.service,
-        action: handler.action,
-        status: "failed",
-        error: stepResult.error.message,
-        durationMs,
-      };
-    }
-
-    return {
-      service: handler.service,
-      action: handler.action,
-      status: "success",
-      durationMs,
-    };
-  }
-
-  /**
-   * Actual handler invocation logic.
-   *
-   * IMPORTANT error handling pattern:
-   * - Retryable error → THROW → DBOS retries the step
-   * - Non-retryable error → RETURN { error } → No retry, workflow handles DLQ
-   * - Success → RETURN { result }
-   *
-   * This is NOT a @DBOS.step() — it's wrapped by DBOS.runStep() in invokeHandler.
-   */
-  private async doCallHandler(
-    event: DomainEvent,
-    handler: HandlerInfo
-  ): Promise<EventHandlerResult<unknown>> {
-    const response: EventHandlerResult<unknown> = await this.broker.call(
-      `${handler.service}.${handler.action}`,
-      { event }
-    );
-
-    if (response.error) {
-      if (response.error.retryable) {
-        // Retryable → throw so DBOS retries this step
-        // Preserve error code for logging/debugging
-        throw new HandlerError(response.error.message, response.error.code);
-      }
-      // Non-retryable → return error, don't throw
-      // Workflow will handle DLQ, DBOS won't retry
-      return response;
-    }
-
-    return response;
-  }
-
-  /**
-   * Send permanently failed handler to Dead Letter Queue.
-   */
-  @DBOS.step()
-  private async sendToDLQ(
-    event: DomainEvent,
-    handler: HandlerInfo,
-    error: { message: string; code?: string },
-    attempts: number
-  ): Promise<void> {
-    await this.broker.call("events.addToDLQ", {
-      event,
-      handler: {
-        service: handler.service,
-        action: handler.action,
-      },
-      error: error.message,
-      errorCode: error.code,
-      attempts,
-    });
-
-    this.logger.warn("Handler failed permanently, sent to DLQ", {
-      eventId: event.eventId,
-      eventType: event.eventType,
-      handler: `${handler.service}.${handler.action}`,
-      error: error.message,
-    });
   }
 
   @DBOS.step()
-  private async updateEventStatus(
-    eventId: string,
-    results: HandlerInvocationResult[]
-  ): Promise<void> {
-    await this.broker.call("events.updateEventStatus", {
-      eventId,
-      status: "completed",
-      handlerResults: results,
-    });
+  private async callHandler(event: DomainEvent, action: string): Promise<void> {
+    await this.broker.call(action, { event });
   }
 }
-
-interface HandlerInfo {
-  service: string;
-  action: string;
-  retryPolicy: RetryPolicy;
-}
-
-interface RetryPolicy {
-  maxAttempts: number;
-  intervalSeconds: number;
-  backoffRate: number;
-}
-
-/**
- * Custom error that preserves handler error code.
- * Used for retryable errors thrown to trigger DBOS retry.
- */
-class HandlerError extends Error {
-  constructor(
-    message: string,
-    public readonly code?: string
-  ) {
-    super(message);
-    this.name = "HandlerError";
-  }
-}
-```
-
-### 3.2 Retry Policies
-
-```typescript
-// packages/events/src/retry.ts
-
-export interface RetryPolicy {
-  maxAttempts: number;
-  intervalSeconds: number;
-  backoffRate: number;
-}
-
-/**
- * Default retry policy for event handlers.
- * Can be overridden per-handler via @EventHandler decorator.
- */
-export const DEFAULT_RETRY_POLICY: RetryPolicy = {
-  maxAttempts: 3,
-  intervalSeconds: 1,
-  backoffRate: 2,
-};
-
-/**
- * Preset policies for common scenarios.
- */
-export const RetryPolicies = {
-  /** Default: 3 attempts, 1s base delay, 2x backoff */
-  DEFAULT: DEFAULT_RETRY_POLICY,
-
-  /** Aggressive: 5 attempts, 0.5s base delay, 2x backoff */
-  AGGRESSIVE: {
-    maxAttempts: 5,
-    intervalSeconds: 0.5,
-    backoffRate: 2,
-  },
-
-  /** Lenient: 2 attempts, 2s base delay, 1.5x backoff */
-  LENIENT: {
-    maxAttempts: 2,
-    intervalSeconds: 2,
-    backoffRate: 1.5,
-  },
-
-  /** Single attempt, no retry */
-  NO_RETRY: {
-    maxAttempts: 1,
-    intervalSeconds: 0,
-    backoffRate: 1,
-  },
-} satisfies Record<string, RetryPolicy>;
 ```
 
 ---
@@ -979,11 +698,11 @@ export class InventoryEventHandlers extends EventHandlers {
   }
 
   /**
-   * Handle product.created: Initialize inventory record.
+   * Handle productCreated: Initialize inventory record.
    *
    * Domain idempotency: INSERT ON CONFLICT DO NOTHING
    */
-  @EventHandler("product.created")
+  @EventHandler("productCreated")
   async handleProductCreated(
     params: { event: ProductCreatedEvent }
   ): Promise<EventHandlerResult<void>> {
@@ -1016,9 +735,9 @@ export class InventoryEventHandlers extends EventHandlers {
   }
 
   /**
-   * Handle product.deleted: Remove inventory record.
+   * Handle productDeleted: Remove inventory record.
    */
-  @EventHandler("product.deleted")
+  @EventHandler("productDeleted")
   async handleProductDeleted(
     params: { event: ProductDeletedEvent }
   ): Promise<EventHandlerResult<void>> {
@@ -1042,11 +761,11 @@ export class InventoryEventHandlers extends EventHandlers {
   }
 
   /**
-   * Handle product.updated: Sync inventory metadata.
+   * Handle productUpdated: Sync inventory metadata.
    *
    * Custom retry: more attempts for this important sync.
    */
-  @EventHandler("product.updated", { retry: { maxAttempts: 5 } })
+  @EventHandler("productUpdated", { retry: { maxAttempts: 5 } })
   async handleProductUpdated(
     params: { event: ProductUpdatedEvent }
   ): Promise<EventHandlerResult<{ synced: boolean; updatedFields: string[] }>> {
@@ -1113,114 +832,9 @@ services/inventory/src/
 
 ---
 
-## Part 5: Event Handler Registration (Bootstrap)
+## Part 5: Event Persistence & Audit
 
-### 5.1 Global Registry
-
-```typescript
-// services/bootstrap/src/EventHandlerRegistry.ts
-
-import type { EventType, RetryPolicy } from "@shopana/events";
-
-interface RegisteredHandler {
-  service: string;
-  action: string;
-  eventType: EventType;
-  retryPolicy: RetryPolicy;
-  registeredAt: string;
-}
-
-/**
- * Central registry of all event handlers across services.
- *
- * Services register their handlers on startup.
- * EventDispatchWorkflow queries this to know who to call.
- */
-export class GlobalEventHandlerRegistry {
-  private handlers = new Map<EventType, RegisteredHandler[]>();
-
-  register(handler: Omit<RegisteredHandler, "registeredAt">): void {
-    const existing = this.handlers.get(handler.eventType as EventType) ?? [];
-
-    const isDuplicate = existing.some(
-      (h) => h.service === handler.service && h.action === handler.action
-    );
-
-    if (!isDuplicate) {
-      existing.push({
-        ...handler,
-        registeredAt: new Date().toISOString(),
-      });
-      this.handlers.set(handler.eventType as EventType, existing);
-    }
-  }
-
-  getHandlers(eventType: EventType): RegisteredHandler[] {
-    return this.handlers.get(eventType) ?? [];
-  }
-
-  getAllEventTypes(): EventType[] {
-    return Array.from(this.handlers.keys());
-  }
-
-  export(): Record<EventType, RegisteredHandler[]> {
-    return Object.fromEntries(this.handlers);
-  }
-}
-
-export const globalEventRegistry = new GlobalEventHandlerRegistry();
-```
-
-### 5.2 Bootstrap Service Actions
-
-```typescript
-// services/bootstrap/src/BootstrapBrokerActions.ts
-
-import { Action, BrokerActions } from "@shopana/shared-kernel";
-import type { RetryPolicy } from "@shopana/events";
-import { globalEventRegistry } from "./EventHandlerRegistry.js";
-
-export class BootstrapBrokerActions extends BrokerActions {
-
-  @Action("registerEventHandler")
-  async registerEventHandler(params: {
-    service: string;
-    action: string;
-    eventType: string;
-    retryPolicy: RetryPolicy;
-  }): Promise<{ registered: boolean }> {
-    globalEventRegistry.register(params);
-    return { registered: true };
-  }
-
-  @Action("getEventHandlers")
-  async getEventHandlers(params: {
-    eventType: string;
-  }): Promise<{
-    handlers: Array<{ service: string; action: string; retryPolicy: RetryPolicy }>;
-  }> {
-    const handlers = globalEventRegistry.getHandlers(params.eventType as any);
-    return {
-      handlers: handlers.map((h) => ({
-        service: h.service,
-        action: h.action,
-        retryPolicy: h.retryPolicy,
-      })),
-    };
-  }
-
-  @Action("getEventRegistry")
-  async getEventRegistry(): Promise<{ registry: Record<string, any[]> }> {
-    return { registry: globalEventRegistry.export() };
-  }
-}
-```
-
----
-
-## Part 6: Event Persistence & Audit
-
-### 6.1 Event Store Schema
+### 5.1 Event Store Schema
 
 ```sql
 CREATE TABLE IF NOT EXISTS domain_events (
@@ -1257,7 +871,7 @@ CREATE INDEX idx_events_status ON domain_events(status) WHERE status != 'complet
 CREATE INDEX idx_events_timestamp ON domain_events(timestamp);
 ```
 
-### 6.2 Event Store Service
+### 5.2 Event Store Service
 
 ```typescript
 // services/events/src/EventStoreBrokerActions.ts
@@ -1348,9 +962,9 @@ export class EventStoreBrokerActions extends BrokerActions {
 
 ---
 
-## Part 7: Dead Letter Queue (DLQ)
+## Part 6: Dead Letter Queue (DLQ)
 
-### 7.1 DLQ Schema
+### 6.1 DLQ Schema
 
 ```sql
 CREATE TABLE IF NOT EXISTS dead_letter_queue (
@@ -1385,7 +999,7 @@ CREATE INDEX idx_dlq_tenant ON dead_letter_queue(tenant_id, status);
 CREATE INDEX idx_dlq_expires ON dead_letter_queue(expires_at) WHERE expires_at IS NOT NULL;
 ```
 
-### 7.2 DLQ Repository
+### 6.2 DLQ Repository
 
 ```typescript
 // packages/events/src/dlq/repository.ts
@@ -1461,9 +1075,9 @@ export class DeadLetterRepository {
 
 ---
 
-## Part 8: Monitoring & Observability
+## Part 7: Monitoring & Observability
 
-### 8.1 Metrics
+### 7.1 Metrics
 
 ```typescript
 const EVENT_METRICS = {
@@ -1489,7 +1103,7 @@ const EVENT_METRICS = {
 } as const;
 ```
 
-### 8.2 Structured Logging
+### 7.2 Structured Logging
 
 ```typescript
 type EventLogEvent =
@@ -1504,7 +1118,7 @@ type EventLogEvent =
 
 ---
 
-## Part 9: Example Flow
+## Part 8: Example Flow
 
 ### Product Creation Event Flow
 
@@ -1519,46 +1133,46 @@ type EventLogEvent =
 │     ▼                                                                       │
 │  2. ProductService.createProduct()                                          │
 │     │  - Creates product in DB                                              │
-│     │  - Emits product.created event (fire & forget)                        │
+│     │  - Emits productCreated event (fire & forget)                          │
 │     │  - Returns immediately to client                                      │
 │     │                                                                       │
 │     ▼                                                                       │
 │  3. EventEmitter.emit(ProductCreatedEvent)                                  │
 │     │  - Starts EventDispatchWorkflow                                       │
-│     │  - Workflow ID: event:dispatch:product.created:{eventId}              │
+│     │  - Workflow ID: event:dispatch:productCreated:{eventId}                │
 │     │                                                                       │
 │     ▼                                                                       │
 │  4. EventDispatchWorkflow                                                   │
 │     │                                                                       │
-│     ├──[Step 1]─► persistEvent()                                            │
-│     │             - Saves to domain_events table                            │
+│     ├──[Step 1]─► getServiceNames()                                         │
+│     │             - Gets all services from config.yml                       │
+│     │             - Returns: [apps, checkout, inventory, orders, ...]       │
 │     │                                                                       │
-│     ├──[Step 2]─► discoverHandlers("product.created")                       │
-│     │             - Returns: [inventory, search, pricing]                   │
-│     │                                                                       │
-│     ├──[Step 3]─► invokeHandlers() — ALL IN PARALLEL                        │
+│     ├──[Step 2]─► tryInvokeHandler() — ALL SERVICES IN PARALLEL             │
 │     │             │                                                         │
-│     │             ├─► inventory.handleProductCreated(event) ──► OK          │
+│     │             ├─► apps.productCreated ──────────────────► SKIPPED       │
+│     │             │   - Action not registered                               │
+│     │             │                                                         │
+│     │             ├─► inventory.productCreated ─────────────► OK            │
 │     │             │   - INSERT ON CONFLICT DO NOTHING                       │
 │     │             │                                                         │
-│     │             ├─► search.handleProductCreated(event) ────► OK           │
+│     │             ├─► search.productCreated ────────────────► OK            │
 │     │             │   - Index product                                       │
 │     │             │                                                         │
-│     │             └─► pricing.handleProductCreated(event) ───► FAIL → DLQ   │
-│     │                 - (e.g. timeout after retries)                        │
+│     │             └─► pricing.productCreated ───────────────► FAILED        │
+│     │                 - (e.g. timeout)                                      │
 │     │                                                                       │
 │     └──[Complete]─► Return EventDispatchResult                              │
-│                     { status: "completed", succeeded: 2, failed: 1 }        │
+│                     { status: "completed", servicesNotified: 3 }            │
 │                                                                             │
-│  Note: Event is "completed" even with failures.                             │
-│  pricing handler failure is recorded in DLQ for inspection.                 │
+│  Note: Services without handler are skipped (not an error).                 │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Part 10: Idempotency Strategy
+## Part 9: Idempotency Strategy
 
 ### Two-Layer Approach
 
@@ -1570,7 +1184,7 @@ type EventLogEvent =
 │  Layer 1: DBOS Workflow Idempotency (Dispatch Level)                        │
 │  ───────────────────────────────────────────────────                        │
 │  Key: event:dispatch:{eventType}:{eventId}                                  │
-│  Example: event:dispatch:product.created:evt-123-456                        │
+│  Example: event:dispatch:productCreated:evt-123-456                         │
 │                                                                             │
 │  Guarantees: Same event = same workflow = dispatch once                     │
 │                                                                             │
@@ -1606,7 +1220,7 @@ type EventLogEvent =
 
 ---
 
-## Part 11: Summary
+## Part 10: Summary
 
 ### Architecture Overview
 
@@ -1615,28 +1229,25 @@ type EventLogEvent =
 | Event Definition | Typed `DomainEvent<TType, TPayload>` with context |
 | Event Emission | `EventEmitter.emit()` — fire and forget |
 | Durability | DBOS workflow guarantees delivery |
-| Fan-out | All handlers invoked in parallel |
-| Handler Contract | `(params: { event }) => Promise<EventHandlerResult>` |
-| Handler Registration | Automatic via `@EventHandler` decorator |
-| Handler Independence | Each handler processes independently, failures don't affect others |
-| Event Status | Always `completed` (dispatch done, regardless of handler failures) |
-| Retry | Per-handler retry policy (configurable via decorator) |
-| Dead Letter Queue | Failed handlers stored for inspection |
-| Audit | `domain_events` + `dead_letter_queue` tables |
+| Service Discovery | Services from `config.yml` via `getConfig().services` |
+| Fan-out | All services invoked in parallel, non-handlers skipped |
+| Handler Contract | `(params: { event }) => Promise<void>` |
+| Handler Registration | `@EventHandler("eventName")` → `broker.register(eventName, handler)` |
+| Handler Independence | Each service processes independently, failures don't affect others |
+| Event Status | Always `completed` (dispatch done, regardless of failures) |
 | Idempotency | DBOS workflow + domain-level (ON CONFLICT, upserts) |
 | Consistency | Eventual — system converges over time |
 
 ### Key Design Decisions
 
 1. **Pure event-driven** — Fire and forget, producer doesn't know/care about consumers
-2. **Independent handlers** — Each handler succeeds or fails independently
-3. **Eventual consistency** — Accepted as normal, DLQ handles failures
-4. **Per-handler retry** — Each handler has its own retry policy
-5. **No coordination** — No critical/non-critical, no stop-on-failure
+2. **Config-based discovery** — Services from `config.yml`, no central registry
+3. **Convention over configuration** — `@EventHandler("productCreated")` → `{service}.productCreated`
+4. **Independent handlers** — Each handler succeeds or fails independently
+5. **Eventual consistency** — Accepted as normal
 6. **Separate classes** — `BrokerActions` for `@Action`, `EventHandlers` for `@EventHandler`
 7. **DBOS workflow idempotency** — Same eventId = same workflow = dispatch once
 8. **Domain-level idempotency** — Handlers use DB constraints (`ON CONFLICT DO NOTHING`)
-9. **Dead Letter Queue** — Failed handlers stored for inspection/debugging
 
 ### Benefits
 
@@ -1646,12 +1257,11 @@ type EventLogEvent =
 4. **Clean Separation**: `BrokerActions` vs `EventHandlers` — different concerns
 5. **Guaranteed Delivery**: DBOS workflow durability
 6. **Exactly-Once Semantics**: DBOS workflow ID + domain-level idempotency
-7. **No External Framework**: Just DBOS + standard DB patterns
-8. **Full Audit Trail**: `domain_events` + `dead_letter_queue` tables
-9. **No Infrastructure Overhead**: No separate message queue
+7. **No Central Registry**: Services discovered from existing `config.yml`
+8. **No Infrastructure Overhead**: No separate message queue
 
 ### Trade-offs
 
 1. **Eventual consistency** — Data may be temporarily inconsistent
 2. **No ordering guarantees** — Handlers may process in any order
-3. **No transactions across handlers** — Each handler is independent
+3. **Broadcast overhead** — All services are called even if they don't handle the event
