@@ -702,14 +702,14 @@ export class EventDispatchWorkflow {
       };
     }
 
+    const retryPolicy = metadata.retryPolicy ?? {
+      maxAttempts: 3,
+      intervalSeconds: 1,
+      backoffRate: 2,
+    };
+
     try {
       // Use DBOS.runStep() with retry policy from metadata
-      const retryPolicy = metadata.retryPolicy ?? {
-        maxAttempts: 3,
-        intervalSeconds: 1,
-        backoffRate: 2,
-      };
-
       await DBOS.runStep(
         () => this.broker.call(action, { event }),
         {
@@ -727,7 +727,9 @@ export class EventDispatchWorkflow {
         durationMs: Date.now() - startTime,
       };
     } catch (error) {
-      // Handler failed after all retries
+      // Handler failed after all retries — send to DLQ
+      await this.sendToDLQ(event, serviceName, String(error), retryPolicy.maxAttempts);
+
       return {
         service: serviceName,
         status: "failed",
@@ -735,6 +737,27 @@ export class EventDispatchWorkflow {
         durationMs: Date.now() - startTime,
       };
     }
+  }
+
+  /**
+   * Send failed handler to Dead Letter Queue for later inspection/retry.
+   */
+  @DBOS.step()
+  private async sendToDLQ(
+    event: DomainEvent,
+    serviceName: string,
+    error: string,
+    attempts: number
+  ): Promise<void> {
+    await this.broker.call("bootstrap.addToDLQ", {
+      event,
+      handler: {
+        service: serviceName,
+        action: event.eventType,
+      },
+      error,
+      attempts,
+    });
   }
 }
 ```
@@ -998,7 +1021,7 @@ CREATE INDEX idx_events_timestamp ON domain_events(timestamp);
 ### 5.2 Event Store Service
 
 ```typescript
-// services/events/src/EventStoreBrokerActions.ts
+// services/bootstrap/src/EventStoreBrokerActions.ts
 
 import { Action, BrokerActions } from "@shopana/shared-kernel";
 import type { DomainEvent } from "@shopana/events";
@@ -1283,13 +1306,13 @@ type EventLogEvent =
 │     │             ├─► search.productCreated ────────────────► OK            │
 │     │             │   - Index product                                       │
 │     │             │                                                         │
-│     │             └─► pricing.productCreated ───────────────► FAILED        │
-│     │                 - (e.g. timeout)                                      │
+│     │             └─► pricing.productCreated ───────────────► FAILED → DLQ  │
+│     │                 - Retries exhausted → sendToDLQ()                     │
 │     │                                                                       │
 │     └──[Complete]─► Return EventDispatchResult                              │
 │                     { status: "completed", servicesNotified: 3 }            │
 │                                                                             │
-│  Note: Services without handler are skipped (not an error).                 │
+│  Note: Services without handler are skipped. Failed handlers go to DLQ.    │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -1358,6 +1381,7 @@ type EventLogEvent =
 | Handler Contract | `(params: { event }) => Promise<void>` |
 | Handler Registration | `@EventHandler("eventName", { retry })` → `broker.register(eventName, handler, metadata)` |
 | Retry Policy | Per-handler via `@EventHandler` options, used in `DBOS.runStep()` |
+| Dead Letter Queue | Failed handlers (after retries) sent to `bootstrap.addToDLQ` |
 | Handler Independence | Each service processes independently, failures don't affect others |
 | Event Status | Always `completed` (dispatch done, regardless of failures) |
 | Idempotency | DBOS workflow + domain-level (ON CONFLICT, upserts) |
@@ -1370,10 +1394,11 @@ type EventLogEvent =
 3. **Convention over configuration** — `@EventHandler("productCreated")` → `{service}.productCreated`
 4. **Metadata in broker** — `ActionRegistry` stores handler + metadata (retry policy)
 5. **Per-handler retry** — Each handler can define own retry policy via decorator
-6. **Independent handlers** — Each handler succeeds or fails independently
-7. **Separate classes** — `BrokerActions` for `@Action`, `EventHandlers` for `@EventHandler`
-8. **DBOS workflow idempotency** — Same eventId = same workflow = dispatch once
-9. **Domain-level idempotency** — Handlers use DB constraints (`ON CONFLICT DO NOTHING`)
+6. **Dead Letter Queue** — Failed handlers (after retries) stored in bootstrap for inspection
+7. **Independent handlers** — Each handler succeeds or fails independently
+8. **Separate classes** — `BrokerActions` for `@Action`, `EventHandlers` for `@EventHandler`
+9. **DBOS workflow idempotency** — Same eventId = same workflow = dispatch once
+10. **Domain-level idempotency** — Handlers use DB constraints (`ON CONFLICT DO NOTHING`)
 
 ### Benefits
 
@@ -1383,8 +1408,9 @@ type EventLogEvent =
 4. **Clean Separation**: `BrokerActions` vs `EventHandlers` — different concerns
 5. **Guaranteed Delivery**: DBOS workflow durability
 6. **Exactly-Once Semantics**: DBOS workflow ID + domain-level idempotency
-7. **No Central Registry**: Services discovered from existing `config.yml`
-8. **No Infrastructure Overhead**: No separate message queue
+7. **Dead Letter Queue**: Failed handlers stored for inspection and manual retry
+8. **No Central Registry**: Services discovered from existing `config.yml`
+9. **No Infrastructure Overhead**: No separate message queue
 
 ### Trade-offs
 
