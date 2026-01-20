@@ -2,11 +2,10 @@
 
 **Author**: Generated from event-driven-architecture-plan.md
 **Date**: 2026-01-20
-**Purpose**: Event-driven architecture WITHOUT the idempotency framework dependency
 
 ## Overview
 
-Simplified event-driven architecture built directly on DBOS durability primitives. No external idempotency framework required.
+Event-driven architecture built directly on DBOS durability primitives.
 
 **Key idea**: Events are dispatched through durable DBOS workflows. Each handler is a simple async function called via the service broker. Idempotency is handled at two levels:
 1. **DBOS Workflow level** — same `workflowId` = execute once
