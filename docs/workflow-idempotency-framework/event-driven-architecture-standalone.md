@@ -645,10 +645,13 @@ export class EventDispatchWorkflow {
 
   @DBOS.workflow()
   async dispatch(event: DomainEvent): Promise<EventDispatchResult> {
-    // Step 1: Get all service names from config
+    // Step 1: Persist event to domain_events table
+    await this.persistEvent(event);
+
+    // Step 2: Get all service names from config
     const serviceNames = await this.getServiceNames();
 
-    // Step 2: Try to invoke handler on each service in parallel
+    // Step 3: Try to invoke handler on each service in parallel
     const resultPromises = serviceNames.map((serviceName) =>
       this.tryInvokeHandler(event, serviceName)
     );
@@ -658,6 +661,9 @@ export class EventDispatchWorkflow {
     // Filter out skipped services (those that don't handle this event)
     const notifiedResults = results.filter((r) => r.status !== "skipped");
 
+    // Step 4: Update event status to completed
+    await this.updateEventStatus(event.eventId, notifiedResults);
+
     return {
       eventId: event.eventId,
       eventType: event.eventType,
@@ -665,6 +671,29 @@ export class EventDispatchWorkflow {
       servicesNotified: notifiedResults.length,
       results: notifiedResults,
     };
+  }
+
+  /**
+   * Persist event to domain_events table for audit trail.
+   */
+  @DBOS.step()
+  private async persistEvent(event: DomainEvent): Promise<void> {
+    await this.broker.call("bootstrap.persistEvent", { event });
+  }
+
+  /**
+   * Update event status after all handlers processed.
+   */
+  @DBOS.step()
+  private async updateEventStatus(
+    eventId: string,
+    results: HandlerInvocationResult[]
+  ): Promise<void> {
+    await this.broker.call("bootstrap.updateEventStatus", {
+      eventId,
+      status: "completed",
+      handlerResults: results,
+    });
   }
 
   /**
