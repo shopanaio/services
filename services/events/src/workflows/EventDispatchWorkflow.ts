@@ -9,6 +9,37 @@ import type {
 import { getConfig } from "@shopana/shared-service-config";
 import { BaseWorkflow, type WorkflowServices } from "../kernel/BaseWorkflow.js";
 
+const DEFAULT_HANDLER_TIMEOUT_MS = 30_000; // 30 seconds
+
+class HandlerTimeoutError extends Error {
+  constructor(action: string, timeoutMs: number) {
+    super(`Handler "${action}" timed out after ${timeoutMs}ms`);
+    this.name = "HandlerTimeoutError";
+  }
+}
+
+function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  action: string
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new HandlerTimeoutError(action, timeoutMs));
+    }, timeoutMs);
+
+    promise
+      .then((result) => {
+        clearTimeout(timer);
+        resolve(result);
+      })
+      .catch((error) => {
+        clearTimeout(timer);
+        reject(error);
+      });
+  });
+}
+
 export class EventDispatchWorkflow extends BaseWorkflow {
   constructor(name: string, services: WorkflowServices) {
     super(name, services);
@@ -72,12 +103,18 @@ export class EventDispatchWorkflow extends BaseWorkflow {
     handler: HandlerInfo
   ): Promise<HandlerInvocationResult> {
     const { serviceName, action, retryPolicy } = handler;
+    const timeoutMs = retryPolicy.timeoutMs ?? DEFAULT_HANDLER_TIMEOUT_MS;
 
     type StepResult =
       | { kind: "ok"; durationMs: number }
       | {
           kind: "nonRetryableFailure";
           error: { message: string; code?: string };
+          durationMs: number;
+        }
+      | {
+          kind: "timeout";
+          error: { message: string; code: string };
           durationMs: number;
         };
 
@@ -87,24 +124,42 @@ export class EventDispatchWorkflow extends BaseWorkflow {
       stepResult = await DBOS.runStep<StepResult>(
         async () => {
           const startTime = Date.now();
-          const resp: EventHandlerResponse = await this.broker.call(action, {
-            event,
-          });
-          const durationMs = Date.now() - startTime;
 
-          if (resp.ok) {
-            return { kind: "ok", durationMs };
+          try {
+            const resp: EventHandlerResponse = await withTimeout(
+              this.broker.call(action, { event }),
+              timeoutMs,
+              action
+            );
+            const durationMs = Date.now() - startTime;
+
+            if (resp.ok) {
+              return { kind: "ok", durationMs };
+            }
+
+            if (!resp.error.retryable) {
+              return {
+                kind: "nonRetryableFailure",
+                error: { message: resp.error.message, code: resp.error.code },
+                durationMs,
+              };
+            }
+
+            throw new Error(resp.error.message);
+          } catch (error) {
+            const durationMs = Date.now() - startTime;
+
+            // Timeout is non-retryable - send to DLQ immediately
+            if (error instanceof HandlerTimeoutError) {
+              return {
+                kind: "timeout",
+                error: { message: error.message, code: "HANDLER_TIMEOUT" },
+                durationMs,
+              };
+            }
+
+            throw error;
           }
-
-          if (!resp.error.retryable) {
-            return {
-              kind: "nonRetryableFailure",
-              error: { message: resp.error.message, code: resp.error.code },
-              durationMs,
-            };
-          }
-
-          throw new Error(resp.error.message);
         },
         {
           name: `handler:${action}:${event.eventId}`,
@@ -124,6 +179,22 @@ export class EventDispatchWorkflow extends BaseWorkflow {
         retryPolicy.maxAttempts
       );
       return { service: serviceName, status: "failed", error: errorMsg, durationMs: 0 };
+    }
+
+    if (stepResult.kind === "timeout") {
+      await this.sendToDLQ(
+        event,
+        handler,
+        stepResult.error.message,
+        stepResult.error.code,
+        1 // Only 1 attempt - timeout is non-retryable
+      );
+      return {
+        service: serviceName,
+        status: "failed",
+        error: stepResult.error.message,
+        durationMs: stepResult.durationMs,
+      };
     }
 
     if (stepResult.kind === "nonRetryableFailure") {

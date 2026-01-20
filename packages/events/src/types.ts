@@ -30,6 +30,7 @@ export interface HandlerInfo {
     maxAttempts: number;
     intervalSeconds: number;
     backoffRate: number;
+    timeoutMs?: number;
   };
 }
 
