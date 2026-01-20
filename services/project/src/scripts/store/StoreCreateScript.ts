@@ -3,6 +3,7 @@ import {
   ZodSchema,
   ValidationError,
   AuthorizationError,
+  hashContent,
 } from "@shopana/shared-kernel";
 import { BaseScript } from "../../kernel/BaseScript.js";
 import {
@@ -10,7 +11,7 @@ import {
   type StoreCreateParams,
   type StoreCreateResult,
 } from "./dto/index.js";
-import type { StoreCreateWorkflow } from "../../workflows/index.js";
+import type { StoreCreateOutput } from "../../workflows/index.js";
 
 export class StoreCreateScript extends BaseScript<
   StoreCreateParams,
@@ -23,7 +24,7 @@ export class StoreCreateScript extends BaseScript<
   })
   @ZodSchema(storeCreateInputSchema)
   protected async execute(
-    params: StoreCreateParams
+    params: StoreCreateParams,
   ): Promise<StoreCreateResult> {
     // Check for existing name before running workflow
     const existingStore = await this.repository.store.findByName(params.name);
@@ -54,23 +55,27 @@ export class StoreCreateScript extends BaseScript<
       };
     }
 
-    const workflow =
-      this.services.workflow.get<StoreCreateWorkflow>(
-        this.services.broker.qualifyAction("storeCreate")
-      );
-
-    const result = await workflow.run({
-      organizationId: params.organizationId,
-      name: params.name,
-      displayName: params.displayName,
-      locales: params.locales,
-      currencies: params.currencies,
-      defaultCurrency: params.defaultCurrency,
-      status: params.status,
-      timezone: params.timezone,
-      email: params.email ?? undefined,
-      userId,
-    });
+    const result = await this.broker.runWorkflow<StoreCreateOutput>(
+      "project.storeCreate",
+      {
+        organizationId: params.organizationId,
+        name: params.name,
+        displayName: params.displayName,
+        locales: params.locales,
+        currencies: params.currencies,
+        defaultCurrency: params.defaultCurrency,
+        status: params.status,
+        timezone: params.timezone,
+        email: params.email ?? undefined,
+        userId,
+      },
+      {
+        source: "content",
+        resourceId: params.organizationId,
+        operation: "storeCreate",
+        contentHash: hashContent({ name: params.name }),
+      },
+    );
 
     const store = await this.repository.store.findById(result.storeId);
 
