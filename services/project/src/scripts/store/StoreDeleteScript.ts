@@ -1,6 +1,11 @@
-import { Policy, AuthorizationError } from "@shopana/shared-kernel";
+import {
+  Policy,
+  AuthorizationError,
+  hashContent,
+} from "@shopana/shared-kernel";
 import { BaseScript } from "../../kernel/BaseScript.js";
 import type { StoreDeleteParams, StoreDeleteResult } from "./dto/index.js";
+import type { StoreDeleteOutput } from "../../workflows/index.js";
 
 export class StoreDeleteScript extends BaseScript<
   StoreDeleteParams,
@@ -33,16 +38,22 @@ export class StoreDeleteScript extends BaseScript<
       };
     }
 
-    // Delete media asset group (cascades to all files)
-    await this.services.broker.call("media.deleteAssetGroup", {
-      ownerType: "store",
-      ownerId: params.id,
-    });
-
-    await this.repository.store.delete(params.id);
+    const result = await this.broker.runWorkflow<StoreDeleteOutput>(
+      "project.storeDelete",
+      {
+        storeId: params.id,
+        organizationId: params.organizationId,
+      },
+      {
+        source: "content",
+        resourceId: params.id,
+        operation: "storeDelete",
+        contentHash: hashContent({ storeId: params.id }),
+      }
+    );
 
     return {
-      deletedStoreId: params.id,
+      deletedStoreId: result.deletedStoreId,
       userErrors: [],
     };
   }
