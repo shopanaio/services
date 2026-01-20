@@ -802,32 +802,79 @@ export class InventoryModule {}
 
 ### Phase 5: Event Emission Integration
 
+#### Context Pattern
+
+**Context передаётся как часть input** (аналогично StoreCreateWorkflow):
+
+```typescript
+// Resolver передаёт context из $ctx:
+await DBOS.startWorkflow(workflow).run({
+  title: input.title,
+  handle: input.handle,
+  // ... business fields ...
+  organizationId: this.$ctx.organizationId,  // ← из resolver $ctx
+  userId: this.$ctx.userId,
+});
+```
+
 #### Example: ProductCreateWorkflow
 
-**Current location**: `services/listing/src/workflows/` or `services/inventory/src/workflows/`
+**Location**: `services/inventory/src/workflows/ProductCreateWorkflow.ts`
 
-**Update pattern**:
+**Input type update**:
+```typescript
+export interface ProductCreateParams {
+  readonly title: string;
+  readonly handle: string;
+  // ... existing fields ...
+
+  // Context for event emission (passed from resolver)
+  readonly organizationId: string;
+  readonly userId?: string;
+  readonly storeId: string;
+}
+```
+
+**Workflow with event emission**:
 ```typescript
 @DBOS.workflow()
-async createProduct(input: CreateProductInput) {
+async run(input: ProductCreateParams): Promise<ProductCreateResult> {
   // Step 1: Save product
-  const product = await this.saveProduct(input);
+  const result = await this.createProduct(input);
+
+  if (result.userErrors.length > 0 || !result.product) {
+    return result;
+  }
 
   // Step 2: Emit event (fire and forget)
   await EventEmitter.emit(
     {
       eventType: "productCreated",
-      payload: { productId: product.id, storeId: input.storeId, name: input.name },
-      context: { tenantId: ctx.organizationId, userId: ctx.userId },
-      source: "listing",
-      subject: { type: "product", id: product.id },
+      payload: {
+        productId: result.product.id,
+        storeId: input.storeId,
+        name: input.title,
+      },
+      context: {
+        tenantId: input.organizationId,  // ← из input
+        userId: input.userId,
+      },
+      source: "inventory",
+      subject: { type: "product", id: result.product.id },
       related: [{ type: "store", id: input.storeId }],
-      actor: { type: "user", id: ctx.userId },
+      actor: input.userId
+        ? { type: "user", id: input.userId }
+        : { type: "service", id: "inventory" },
     },
-    "product:" + product.id  // emitKey — deterministic!
+    "product:" + result.product.id  // emitKey — deterministic!
   );
 
-  return product;
+  // Step 3: Sync back-refs (existing logic)
+  if (result.variantMediaMap?.length) {
+    await this.syncVariantBackRefs(result.variantMediaMap);
+  }
+
+  return result;
 }
 ```
 

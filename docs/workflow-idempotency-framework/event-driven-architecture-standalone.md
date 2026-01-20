@@ -976,21 +976,32 @@ export class EventEmitter {
    * - correlationId: derived from parentWorkflowId (not random!)
    *
    * @example
+   * // Note: Context (organizationId, userId) is passed as part of workflow input
+   * // from the resolver, similar to StoreCreateWorkflow pattern.
+   *
+   * interface ProductCreateInput {
+   *   title: string;
+   *   storeId: string;
+   *   organizationId: string;  // ← from resolver $ctx
+   *   userId?: string;         // ← from resolver $ctx
+   * }
+   *
    * @DBOS.workflow()
-   * async createProduct(input: CreateProductInput) {
+   * async createProduct(input: ProductCreateInput) {
    *   const product = await this.saveProduct(input);  // @DBOS.step()
    *
    *   // emitKey is deterministic: "product:" + productId
    *   await EventEmitter.emit(
    *     {
    *       eventType: "productCreated",
-   *       payload: { productId: product.id, storeId: input.storeId, name: input.name },
-   *       context: { tenantId: ctx.organizationId, userId: ctx.userId },
-   *       source: "listing",
-   *       // UI/Timeline fields (REQUIRED)
+   *       payload: { productId: product.id, storeId: input.storeId, name: input.title },
+   *       context: { tenantId: input.organizationId, userId: input.userId },  // ← from input
+   *       source: "inventory",
    *       subject: { type: "product", id: product.id },
    *       related: [{ type: "store", id: input.storeId }],
-   *       actor: { type: "user", id: ctx.userId },
+   *       actor: input.userId
+   *         ? { type: "user", id: input.userId }
+   *         : { type: "service", id: "inventory" },
    *     },
    *     "product:" + product.id  // emitKey
    *   );
@@ -2409,7 +2420,14 @@ client:{sha256(tenantId:apiKeyId:operation:clientKey)}
 ```typescript
 // HTTP Header: Idempotency-Key: "user-order-123"
 
-// In HTTP handler / controller:
+// Input includes context from resolver/controller:
+interface CreateOrderInput {
+  storeId: string;
+  items: OrderItem[];
+  organizationId: string;  // ← from request context
+  userId?: string;
+}
+
 @DBOS.workflow()
 async createOrder(input: CreateOrderInput) {
   // workflowId automatically = client:{hash}
@@ -2421,8 +2439,9 @@ async createOrder(input: CreateOrderInput) {
     {
       eventType: "orderCreated",
       payload: { orderId: order.id, storeId: input.storeId, items: input.items },
-      context: { tenantId: ctx.tenantId, userId: ctx.userId },
+      context: { tenantId: input.organizationId, userId: input.userId },  // ← from input
       source: "orders",
+      subject: { type: "order", id: order.id },
     },
     "order:" + order.id  // emitKey
   );
@@ -2505,26 +2524,33 @@ content:{sha256(resourceId:operation:payloadHash)}
 
 **Example:**
 ```typescript
-// setStock({ sku: "ABC", quantity: 100 })
+// setStock({ sku: "ABC", quantity: 100, organizationId: "org-123" })
 // Repeat call with same data = same key
+
+interface SetStockInput {
+  sku: string;
+  quantity: number;
+  organizationId: string;  // ← from request context
+}
 
 @DBOS.workflow({
   workflowID: `content:${sha256(`${sku}:setStock:${canonicalJson(payload)}`)}`
 })
-async setStock(payload: SetStockInput) {
+async setStock(input: SetStockInput) {
   // Idempotent by content
-  await this.updateStock(payload);
+  await this.updateStock(input);
 
   // emitKey includes payload hash for content-based idempotency
-  const payloadHash = sha256(canonicalJson(payload)).slice(0, 8);
+  const payloadHash = sha256(canonicalJson(input)).slice(0, 8);
   await EventEmitter.emit(
     {
       eventType: "stockUpdated",
-      payload,
-      context: { tenantId: ctx.tenantId },
+      payload: { sku: input.sku, quantity: input.quantity },
+      context: { tenantId: input.organizationId },  // ← from input
       source: "inventory",
+      subject: { type: "sku", id: input.sku },
     },
-    `sku:${payload.sku}:setStock:${payloadHash}`  // emitKey
+    `sku:${input.sku}:setStock:${payloadHash}`  // emitKey
   );
 }
 ```
