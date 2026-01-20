@@ -210,8 +210,7 @@ export class StoreCreateWorkflow extends BrokerWorkflows {
     storeId: string,
     input: StoreCreateInput
   ): Promise<void> {
-    await this.broker.call("events.emit", {
-      eventType: "storeCreated",
+    await this.broker.emit("storeCreated", {
       payload: {
         storeId,
         organizationId: input.organizationId,

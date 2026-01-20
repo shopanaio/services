@@ -20,14 +20,6 @@ async function bootstrap() {
   logger.log(`Environment: ${config.global.environment}`);
   logger.log(`Services to load: ${services.join(', ')}`);
 
-  // RabbitMQ is optional - read from environment variable
-  const rabbitmqUrl = process.env.RABBITMQ_URL;
-  if (rabbitmqUrl) {
-    logger.log(`RabbitMQ: ${rabbitmqUrl}`);
-  } else {
-    logger.warn('RabbitMQ: disabled (RABBITMQ_URL not set)');
-  }
-
   // Get database config from first service that has it
   const dbConfig = Object.values(config.services).find((s) => s.db)?.db;
   if (!dbConfig) {
@@ -36,8 +28,6 @@ async function bootstrap() {
 
   // Build bootstrap options
   const bootstrapOptions: BootstrapModuleOptions = {
-    rabbitmqUrl,
-    prefetch: 20,
     database: {
       db: dbConfig,
       pool: { max: 30 },
@@ -50,7 +40,6 @@ async function bootstrap() {
     bootstrapOptions.workflows = {
       databaseUrl: workflowsDbUrl,
       name: config.workflows?.app_name ?? 'shopana',
-      schema: config.workflows?.schema ?? 'dbos',
     };
     logger.log('DBOS Workflows: enabled');
   } else {

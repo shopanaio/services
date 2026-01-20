@@ -12,7 +12,6 @@ export interface ServiceBrokerOptions {
  * Parameters for emitting domain events via the events service.
  */
 export interface EmitParams {
-  eventType: string;
   payload: unknown;
   source: string;
   context: {
@@ -93,13 +92,26 @@ export class ServiceBroker implements OnModuleDestroy {
    * Emits a domain event via the events service.
    * This is a convenience method that calls broker.call("events.emit", params).
    *
+   * @param eventType - The type of event to emit (e.g., 'productCreated')
    * @param params - Event emission parameters
    * @returns Promise with workflowId and eventId
+   *
+   * @example
+   * await broker.emit('productCreated', {
+   *   payload: { productId: '123' },
+   *   source: 'inventory',
+   *   context: { tenantId: 'org-1' },
+   *   subject: { type: 'product', id: '123' },
+   *   emitKey: 'product:123',
+   * });
    */
-  async emit(params: EmitParams): Promise<{ workflowId: string; eventId: string }> {
-    return this.call<{ workflowId: string; eventId: string }, EmitParams>(
+  async emit(
+    eventType: string,
+    params: EmitParams,
+  ): Promise<{ workflowId: string; eventId: string }> {
+    return this.call<{ workflowId: string; eventId: string }, EmitParams & { eventType: string }>(
       'events.emit',
-      params,
+      { eventType, ...params },
     );
   }
 

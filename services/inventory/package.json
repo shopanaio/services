@@ -38,7 +38,6 @@
     "pino": "^9.3.2",
     "pino-pretty": "^11.2.2",
     "postgres": "^3.4.7",
-    "rabbitmq-client": "^4.6.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {

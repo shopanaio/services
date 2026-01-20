@@ -71,10 +71,10 @@ describe('ServiceBroker', () => {
 
     // Register a mock events.emit action
     const mockEmitResult = { workflowId: 'wf-123', eventId: 'evt-456' };
-    registry.register('events.emit', jest.fn().mockResolvedValue(mockEmitResult));
+    const mockHandler = jest.fn().mockResolvedValue(mockEmitResult);
+    registry.register('events.emit', mockHandler);
 
-    const result = await broker.emit({
-      eventType: 'order.created',
+    const result = await broker.emit('order.created', {
       payload: { id: '1' },
       source: 'payments',
       context: { tenantId: 'tenant-1' },
@@ -83,6 +83,14 @@ describe('ServiceBroker', () => {
     });
 
     expect(result).toEqual(mockEmitResult);
+    expect(mockHandler).toHaveBeenCalledWith({
+      eventType: 'order.created',
+      payload: { id: '1' },
+      source: 'payments',
+      context: { tenantId: 'tenant-1' },
+      subject: { type: 'order', id: '1' },
+      emitKey: 'order:1',
+    });
   });
 
   it('isHealthy returns true', () => {

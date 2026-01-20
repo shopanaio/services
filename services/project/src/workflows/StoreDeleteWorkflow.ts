@@ -131,8 +131,7 @@ export class StoreDeleteWorkflow extends BrokerWorkflows {
    */
   @Step()
   async emitStoreDeleted(input: StoreDeleteInput): Promise<void> {
-    await this.broker.call("events.emit", {
-      eventType: "storeDeleted",
+    await this.broker.emit("storeDeleted", {
       payload: {
         storeId: input.storeId,
         organizationId: input.organizationId,

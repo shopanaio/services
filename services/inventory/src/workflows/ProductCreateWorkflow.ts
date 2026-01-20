@@ -54,8 +54,7 @@ export class ProductCreateWorkflow extends BaseWorkflow {
     product: NonNullable<ProductCreateResult["product"]>,
     input: ProductCreateParams
   ): Promise<void> {
-    await this.broker.call("events.emit", {
-      eventType: "productCreated",
+    await this.broker.emit("productCreated", {
       payload: {
         productId: product.id,
         storeId: input.storeId,

@@ -1,4 +1,3 @@
-import { RabbitSubscribe } from "@golevelup/nestjs-rabbitmq";
 import {
   Inject,
   Injectable,
@@ -6,8 +5,6 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from "@nestjs/common";
-import type { InventoryUpdateTask } from "@shopana/import-plugin-sdk";
-import { assertInventoryUpdateTask } from "@shopana/import-plugin-sdk";
 import {
   DATABASE_CLIENT,
   InjectBroker,
@@ -24,22 +21,12 @@ import { startServer } from "./api/graphql-admin/server";
 import { Kernel } from "./kernel/Kernel";
 
 const { service } = getServiceConfig("inventory");
-import type {
-  ProductUpdatedEvent,
-  StockChangedEvent,
-} from "./inventory.events";
-import { processInventoryUpdate } from "./processInventoryUpdate";
 import { InventoryObjectStorage } from "./storage";
 import {
   BackRefNotifyWorkflow,
   EntityDeletedNotifyWorkflow,
   ProductCreateWorkflow,
 } from "./workflows/index.js";
-
-export interface EmitTestEventParams {
-  eventType: "product.updated" | "stock.changed";
-  payload: ProductUpdatedEvent | StockChangedEvent;
-}
 
 @Injectable()
 export class InventoryNestService implements OnModuleInit, OnModuleDestroy {
@@ -131,18 +118,5 @@ export class InventoryNestService implements OnModuleInit, OnModuleDestroy {
     }
 
     this.logger.log("Inventory service stopped");
-  }
-
-  @RabbitSubscribe({
-    exchange: "shopana.events",
-    routingKey: "inventory.update.request",
-    queue: "inventory.update.request",
-  })
-  async handleInventoryUpdate(payload: InventoryUpdateTask) {
-    assertInventoryUpdateTask(payload);
-    await processInventoryUpdate(
-      { logger: this.logger, storageGateway: this.storageGateway },
-      payload
-    );
   }
 }
