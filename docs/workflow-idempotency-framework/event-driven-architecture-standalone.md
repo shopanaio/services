@@ -1781,6 +1781,136 @@ type EventLogEvent =
 
 ## Part 9: Idempotency Strategy
 
+### Parent Workflow Idempotency Keys
+
+Three strategies for creating idempotency keys (Stripe-inspired approach):
+
+#### 1. Client-Provided Keys (External API)
+
+**When to use:** Requests from external clients via API.
+
+**Source:** HTTP header `Idempotency-Key`
+
+**Key format:**
+```
+client:{sha256(tenantId:apiKeyId:operation:clientKey)}
+```
+
+**Scope:** `tenant + api_key + provided_key`
+
+**TTL:** 24 hours
+
+**Example:**
+```typescript
+// HTTP Header: Idempotency-Key: "user-order-123"
+
+// In HTTP handler / controller:
+@DBOS.workflow()
+async createOrder(input: CreateOrderInput) {
+  // workflowId automatically = client:{hash}
+  // DBOS guarantees: repeat call with same key returns same result
+  const order = await this.saveOrder(input);
+
+  const event = createEvent("orderCreated", { orderId: order.id, ... }, ...);
+  await EventEmitter.emit(event);  // dispatch workflow ID = {parentWorkflowId}:dispatch:orderCreated
+
+  return order;
+}
+```
+
+#### 2. Workflow-Derived Keys (Service-Initiated)
+
+**When to use:** Background jobs, event handlers, cron tasks, internal workflow operations.
+
+**Source:** Workflow context (DBOS)
+
+**Components:**
+| Field | Description | Example |
+|-------|-------------|---------|
+| `workflowId` | Business ID of workflow | `store:create:org-123:my-store` |
+| `stepId` | Step name within workflow | `createRoles` |
+| `callId` | Unique ID for fan-out | `store-456` |
+
+**Final key format:**
+```
+workflow:{sha256(workflowId + stepId + callId)}
+```
+
+> **Important:** `stepId` and `callId` are NOT part of `workflowId`. They are added separately to ensure key uniqueness at the specific call level within a workflow.
+
+**Example:**
+```typescript
+// Background job for store creation
+@DBOS.workflow({ workflowID: `store:create:${input.orgId}:${input.storeName}` })
+async createStore(input: CreateStoreInput) {
+  const store = await this.saveStore(input);  // step
+
+  // Event dispatch is tied to parent workflow
+  // workflowId = store:create:org-123:my-store
+  // dispatch workflowId = store:create:org-123:my-store:dispatch:storeCreated
+  const event = createEvent("storeCreated", { storeId: store.id, ... }, ...);
+  await EventEmitter.emit(event);
+
+  return store;
+}
+```
+
+**Deterministic workflowId patterns for business operations:**
+```typescript
+// Product creation — unique within store + SKU
+workflowId = `product:create:${storeId}:${sku}`;
+
+// Order processing — unique by orderId
+workflowId = `order:process:${orderId}`;
+
+// Event handling — unique by eventId
+workflowId = `event:handle:${eventId}:${handlerName}`;
+```
+
+#### 3. Content-Derived Keys (Idempotent Updates)
+
+**When to use:** UPDATE/SET operations where same data = same operation.
+
+**Source:** Hash of request content
+
+**Key format:**
+```
+content:{sha256(resourceId:operation:payloadHash)}
+```
+
+**Scope:** `resource + action`
+
+**TTL:** 1 hour (short)
+
+**Note:** Different payload automatically creates different key.
+
+**Example:**
+```typescript
+// setStock({ sku: "ABC", quantity: 100 })
+// Repeat call with same data = same key
+
+@DBOS.workflow({
+  workflowID: `content:${sha256(`${sku}:setStock:${canonicalJson(payload)}`)}`
+})
+async setStock(payload: SetStockInput) {
+  // Idempotent by content
+  await this.updateStock(payload);
+
+  const event = createEvent("stockUpdated", payload, ...);
+  await EventEmitter.emit(event);
+}
+```
+
+#### Strategy Comparison
+
+| Strategy | Source | Scope | TTL | Use Case |
+|----------|--------|-------|-----|----------|
+| **Client** | HTTP Header | tenant + api_key | 24h | External API |
+| **Workflow** | Business ID | service + workflow | Operation-dependent | Background jobs, events |
+| **Content** | Payload hash | resource + action | 1h | Idempotent updates |
+
+---
+
 ### Two-Layer Approach
 
 ```
