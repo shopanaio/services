@@ -17,23 +17,16 @@ export abstract class BrokerWorkflows
   implements OnModuleInit, OnModuleDestroy
 {
   protected readonly logger: Logger;
-  private readonly _broker: ServiceBroker;
   private readonly registeredWorkflows: string[] = [];
 
-  constructor(broker: ServiceBroker) {
+  constructor(protected readonly broker: ServiceBroker) {
     super(new.target.name);
-    this._broker = broker;
     this.logger = new Logger(this.constructor.name);
-  }
-
-  /** Access to service broker */
-  protected get broker(): ServiceBroker {
-    return this._broker;
   }
 
   /** Access to workflow registry */
   protected get workflowRegistry(): WorkflowRegistry {
-    return this._broker.getWorkflowRegistry();
+    return this.broker.getWorkflowRegistry();
   }
 
   /**
