@@ -674,8 +674,26 @@ export abstract class EventHandlers implements OnModuleInit {
 // packages/events/src/idempotency.ts
 
 import crypto from "node:crypto";
+import canonicalize from "canonicalize";  // npm: canonicalize (RFC 8785 JCS)
 
 const sha256 = (s: string) => crypto.createHash("sha256").update(s).digest("hex");
+
+/**
+ * Create canonical JSON string for deterministic hashing.
+ * Uses RFC 8785 JSON Canonicalization Scheme (JCS).
+ *
+ * IMPORTANT: Never use plain JSON.stringify() for hashing —
+ * key order is not guaranteed and same payload can produce different hashes.
+ *
+ * @see https://www.rfc-editor.org/rfc/rfc8785
+ */
+export function canonicalJson(value: unknown): string {
+  const result = canonicalize(value);
+  if (result === undefined) {
+    throw new Error("Cannot canonicalize value: contains unsupported types");
+  }
+  return result;
+}
 
 /**
  * Generate dispatch workflow ID.
@@ -740,7 +758,7 @@ export function makeEventId(params: {
 "product:" + productId + ":change:sku"     // productUpdated (sku)
 
 // Content-based (for idempotent updates)
-"sku:" + sku + ":setStock:" + sha256(JSON.stringify(payload)).slice(0, 8)
+"sku:" + sku + ":setStock:" + sha256(canonicalJson(payload)).slice(0, 8)
 ```
 
 **Bad emitKey examples:**
@@ -791,7 +809,7 @@ await EventEmitter.emit(
 Or include payload hash in emitKey for content-addressed events:
 
 ```typescript
-const payloadHash = sha256(JSON.stringify(payload)).slice(0, 8);
+const payloadHash = sha256(canonicalJson(payload)).slice(0, 8);
 await EventEmitter.emit(
   { eventType: "stockUpdated", payload, ... },
   `sku:${sku}:setStock:${payloadHash}`  // payload change → different emitKey
@@ -2119,7 +2137,7 @@ async setStock(payload: SetStockInput) {
   await this.updateStock(payload);
 
   // emitKey includes payload hash for content-based idempotency
-  const payloadHash = sha256(JSON.stringify(payload)).slice(0, 8);
+  const payloadHash = sha256(canonicalJson(payload)).slice(0, 8);
   await EventEmitter.emit(
     {
       eventType: "stockUpdated",
