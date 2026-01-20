@@ -83,6 +83,8 @@
 | 0.8 | Delete `packages/workflows/` package          | ⬜ Pending | Remove entire folder                     |
 | 0.9 | Update imports in all services (37 files)     | ⬜ Pending | `@shopana/workflows` → `@shopana/shared-kernel` |
 | 0.10| Update `package.json` in services             | ⬜ Pending | Remove `@shopana/workflows` dependency   |
+| 0.11| Create `WORKFLOW_REGISTRY` symbol             | ⬜ Pending | In `shared-kernel/src/workflow/tokens.ts`|
+| 0.12| Preserve `WorkflowModule.forRoot()` API       | ⬜ Pending | Keep DBOS lifecycle management           |
 
 ### Phase 1: Decorators (`@shopana/shared-kernel`)
 
@@ -171,6 +173,133 @@ import { ... } from "@shopana/shared-kernel";
 ```
 
 **Affected services**: project, iam, inventory, media, bootstrap
+
+#### 0.11-0.12 DBOS Lifecycle Management
+
+The current `WorkflowModule` manages DBOS lifecycle (launch/shutdown). This MUST be preserved.
+
+**File**: `packages/shared-kernel/src/workflow/tokens.ts`
+
+```typescript
+/**
+ * Symbol for dependency injection of WorkflowRegistry.
+ */
+export const WORKFLOW_REGISTRY = Symbol("WORKFLOW_REGISTRY");
+
+/**
+ * Symbol for dependency injection of WorkflowModule config.
+ */
+export const WORKFLOW_CONFIG = Symbol("WORKFLOW_CONFIG");
+```
+
+**File**: `packages/shared-kernel/src/workflow/WorkflowModule.ts`
+
+```typescript
+import {
+  DynamicModule,
+  Global,
+  Logger,
+  Module,
+  OnModuleDestroy,
+  OnModuleInit,
+  Inject,
+} from "@nestjs/common";
+import { DBOS } from "@dbos-inc/dbos-sdk";
+import { WorkflowRegistry } from "./WorkflowRegistry.js";
+import { WORKFLOW_CONFIG, WORKFLOW_REGISTRY } from "./tokens.js";
+
+export interface WorkflowModuleConfig {
+  /** PostgreSQL connection URL for DBOS */
+  databaseUrl: string;
+  /** Application name for DBOS */
+  name: string;
+  /** Optional: Database schema for DBOS system tables (default: 'dbos') */
+  schema?: string;
+}
+
+/**
+ * Global NestJS module that:
+ * 1. Configures DBOS with database connection
+ * 2. Manages DBOS lifecycle (launch/shutdown)
+ * 3. Provides WorkflowRegistry for DI
+ *
+ * @example
+ * @Module({
+ *   imports: [
+ *     WorkflowModule.forRoot({
+ *       databaseUrl: process.env.DBOS_DATABASE_URL!,
+ *       name: 'shopana',
+ *     }),
+ *   ],
+ * })
+ * export class AppModule {}
+ */
+@Global()
+@Module({})
+export class WorkflowModule implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(WorkflowModule.name);
+
+  constructor(
+    @Inject(WORKFLOW_CONFIG)
+    private readonly config: WorkflowModuleConfig
+  ) {}
+
+  static forRoot(config: WorkflowModuleConfig): DynamicModule {
+    return {
+      module: WorkflowModule,
+      providers: [
+        {
+          provide: WORKFLOW_CONFIG,
+          useValue: config,
+        },
+        {
+          provide: WORKFLOW_REGISTRY,
+          useClass: WorkflowRegistry,
+        },
+      ],
+      exports: [WORKFLOW_REGISTRY],
+    };
+  }
+
+  async onModuleInit(): Promise<void> {
+    this.logger.log("Configuring DBOS...");
+
+    DBOS.setConfig({
+      databaseUrl: this.config.databaseUrl,
+      applicationName: this.config.name,
+      systemSchema: this.config.schema ?? "dbos",
+    });
+
+    await DBOS.launch();
+    this.logger.log("DBOS launched");
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    this.logger.log("Shutting down DBOS...");
+    await DBOS.shutdown();
+    this.logger.log("DBOS shutdown complete");
+  }
+}
+```
+
+**Usage in services** (unchanged from current implementation):
+
+```typescript
+// services/project/src/project.nest-module.ts
+import { Module } from "@nestjs/common";
+import { WorkflowModule } from "@shopana/shared-kernel";
+
+@Module({
+  imports: [
+    WorkflowModule.forRoot({
+      databaseUrl: process.env.DBOS_DATABASE_URL!,
+      name: "shopana",
+    }),
+    // ... other imports
+  ],
+})
+export class ProjectModule {}
+```
 
 ---
 
@@ -419,20 +548,28 @@ export function hashContent(payload: unknown): string {
 ```typescript
 import { Injectable, Logger } from "@nestjs/common";
 import { DBOS } from "@dbos-inc/dbos-sdk";
-import type { WorkflowHandle, DBOSWorkflowStatus } from "./types.js";
+import type { WorkflowHandle } from "./types.js";
 import { buildIdempotencyKey, type IdempotencyContext } from "./idempotency.js";
 
+/**
+ * Descriptor for a registered workflow.
+ * Contains the workflow instance and metadata for execution.
+ */
 export interface WorkflowDescriptor {
-  /** Workflow instance (ConfiguredInstance) */
+  /** Workflow instance (extends ConfiguredInstance) */
   instance: unknown;
-  /** Method name to call */
-  methodName: string;
-  /** Workflow metadata */
+  /** Workflow metadata from @Workflow decorator */
   metadata: {
     name: string;
     idempotencyStrategy?: "client" | "workflow" | "content";
   };
 }
+
+/**
+ * Symbol for dependency injection of WorkflowRegistry.
+ * Used by WorkflowModule.forRoot() and ServiceBroker.
+ */
+export const WORKFLOW_REGISTRY = Symbol("WORKFLOW_REGISTRY");
 
 @Injectable()
 export class WorkflowRegistry {
@@ -441,7 +578,7 @@ export class WorkflowRegistry {
 
   /**
    * Register workflow with metadata.
-   * Called automatically by BrokerWorkflows.
+   * Called automatically by BrokerWorkflows during onModuleInit.
    */
   register(qualifiedName: string, descriptor: WorkflowDescriptor): void {
     if (this.workflows.has(qualifiedName)) {
@@ -452,14 +589,15 @@ export class WorkflowRegistry {
   }
 
   /**
-   * Deregister workflow (for graceful shutdown)
+   * Deregister workflow (for graceful shutdown).
    */
   deregister(qualifiedName: string): void {
     this.workflows.delete(qualifiedName);
   }
 
   /**
-   * Get workflow descriptor by qualified name
+   * Get workflow descriptor by qualified name.
+   * Throws if workflow not found.
    */
   getDescriptor(qualifiedName: string): WorkflowDescriptor {
     const descriptor = this.workflows.get(qualifiedName);
@@ -472,14 +610,28 @@ export class WorkflowRegistry {
   }
 
   /**
-   * Check if workflow is registered
+   * Get workflow instance by name (legacy API, for backward compatibility).
+   * @deprecated Use getDescriptor() for new code.
+   */
+  get<T>(name: string): T {
+    const descriptor = this.workflows.get(name);
+    if (!descriptor) {
+      throw new Error(
+        `Workflow "${name}" not found. Available: ${this.list().join(", ")}`,
+      );
+    }
+    return descriptor.instance as T;
+  }
+
+  /**
+   * Check if workflow is registered.
    */
   has(qualifiedName: string): boolean {
     return this.workflows.has(qualifiedName);
   }
 
   /**
-   * Get list of registered workflows
+   * Get list of registered workflow names.
    */
   list(): string[] {
     return Array.from(this.workflows.keys());
@@ -487,6 +639,11 @@ export class WorkflowRegistry {
 
   /**
    * Start workflow with idempotency context.
+   * Returns a handle to track workflow status and get result.
+   *
+   * IMPORTANT: All workflows use a standard `run(params)` entry point method.
+   * The @Workflow decorator wraps the method with DBOS.workflow() which
+   * expects this convention.
    */
   async start<TParams, TResult>(
     qualifiedName: string,
@@ -494,15 +651,19 @@ export class WorkflowRegistry {
     idempotencyCtx: IdempotencyContext,
   ): Promise<WorkflowHandle<TResult>> {
     const descriptor = this.getDescriptor(qualifiedName);
-    const { instance, methodName } = descriptor;
+    const { instance } = descriptor;
 
-    // Build deterministic workflow ID
+    // Build deterministic workflow ID from idempotency context
     const workflowID = buildIdempotencyKey(qualifiedName, idempotencyCtx);
 
-    // Start workflow using DBOS
-    const handle = await DBOS.startWorkflow(instance, { workflowID })[
-      methodName
-    ](params);
+    // Start workflow using DBOS with the standard `run` method convention.
+    // This matches the current pattern: DBOS.startWorkflow(workflow).run(params)
+    // Cast instance to have a run method that returns a DBOS handle.
+    const workflowInstance = instance as {
+      run: (params: TParams) => Promise<TResult>;
+    };
+
+    const handle = await DBOS.startWorkflow(workflowInstance, { workflowID }).run(params);
 
     return {
       workflowId: workflowID,
@@ -513,6 +674,7 @@ export class WorkflowRegistry {
 
   /**
    * Execute workflow and wait for result.
+   * Convenience method that starts workflow and awaits completion.
    */
   async run<TParams, TResult>(
     qualifiedName: string,
@@ -528,7 +690,8 @@ export class WorkflowRegistry {
   }
 
   /**
-   * Get handle to existing workflow by ID
+   * Get handle to existing workflow by ID.
+   * Used to check status or get result of previously started workflow.
    */
   retrieve<TResult>(workflowId: string): WorkflowHandle<TResult> {
     const handle = DBOS.retrieveWorkflow<TResult>(workflowId);
@@ -545,12 +708,17 @@ export class WorkflowRegistry {
 
 ### Phase 4: BrokerWorkflows Base Class
 
+> **Key Difference from BrokerActions:**
+> - `BrokerActions` does NOT extend `ConfiguredInstance` — it's a plain NestJS class
+> - `BrokerWorkflows` MUST extend `ConfiguredInstance` for DBOS decorator support
+> - Both implement `OnModuleInit` for auto-registration
+> - `BrokerWorkflows` also implements `OnModuleDestroy` for cleanup
+
 **File**: `packages/shared-kernel/src/broker/BrokerWorkflows.ts`
 
 ```typescript
 import { Logger, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
 import { ConfiguredInstance } from "@dbos-inc/dbos-sdk";
-import type { Kernel } from "../Kernel.js";
 import { WorkflowRegistry } from "../workflow/WorkflowRegistry.js";
 import { ServiceBroker } from "./ServiceBroker.js";
 import {
@@ -560,18 +728,52 @@ import {
 import "reflect-metadata";
 
 /**
+ * Services required by BrokerWorkflows.
+ * Matches the pattern used in current BaseWorkflow implementations.
+ *
+ * Each service defines its own Kernel that provides these services,
+ * so BrokerWorkflows accepts a generic interface rather than concrete Kernel type.
+ */
+export interface WorkflowServices {
+  /** Service broker for inter-service calls */
+  broker: ServiceBroker;
+  /** Workflow registry for registration */
+  workflow: WorkflowRegistry;
+  /** Optional repository access */
+  repository?: unknown;
+  /** Optional logger */
+  logger?: Logger;
+}
+
+/**
  * Base class for services that register broker workflows.
- * Receives Kernel to access broker, repository, logger, etc.
+ * Extends ConfiguredInstance for DBOS decorator support (@Workflow, @Step).
+ *
+ * Unlike BrokerActions (which is a plain NestJS class), BrokerWorkflows
+ * MUST extend ConfiguredInstance because DBOS decorators require it.
  *
  * @example
+ * // In service-specific Kernel (e.g., services/project/src/kernel/Kernel.ts):
+ * export class Kernel extends BaseKernel<ProjectKernelServices> {
+ *   public workflow!: WorkflowRegistry;
+ *   public repository!: Repository;
+ *   // ... Kernel provides services that satisfy WorkflowServices interface
+ * }
+ *
+ * // In BrokerWorkflows implementation:
  * @Injectable()
  * class ProjectBrokerWorkflows extends BrokerWorkflows {
  *   constructor(kernel: Kernel) {
- *     super("projectWorkflows", kernel);
+ *     super("projectWorkflows", {
+ *       broker: kernel.getServices().broker,
+ *       workflow: kernel.workflow,
+ *       repository: kernel.repository,
+ *     });
  *   }
  *
+ *   // Entry point MUST be named `run` for DBOS convention
  *   @Workflow("storeCreate")
- *   async createStore(input: StoreCreateInput): Promise<StoreCreateOutput> {
+ *   async run(input: StoreCreateInput): Promise<StoreCreateOutput> {
  *     const storeId = await this.generateStoreId();
  *     await this.createStoreRecord(storeId, input);
  *     return { storeId, organizationId: input.organizationId };
@@ -584,7 +786,9 @@ import "reflect-metadata";
  *
  *   @Step({ retriesAllowed: true, maxAttempts: 3 })
  *   private async createStoreRecord(storeId: string, input: StoreCreateInput): Promise<void> {
- *     await this.repository.store.create({ id: storeId, ...input });
+ *     // Cast repository to service-specific type for type safety
+ *     const repo = this.services.repository as Repository;
+ *     await repo.store.create({ id: storeId, ...input });
  *   }
  * }
  */
@@ -593,28 +797,28 @@ export abstract class BrokerWorkflows
   implements OnModuleInit, OnModuleDestroy
 {
   protected readonly logger: Logger;
-  protected readonly kernel: Kernel;
+  protected readonly services: WorkflowServices;
   private readonly registeredWorkflows: string[] = [];
 
-  constructor(name: string, kernel: Kernel) {
+  constructor(name: string, services: WorkflowServices) {
     super(name);
-    this.kernel = kernel;
-    this.logger = new Logger(this.constructor.name);
+    this.services = services;
+    this.logger = services.logger ?? new Logger(this.constructor.name);
   }
 
   /** Access to service broker */
   protected get broker(): ServiceBroker {
-    return this.kernel.broker;
-  }
-
-  /** Access to repositories */
-  protected get repository() {
-    return this.kernel.repository;
+    return this.services.broker;
   }
 
   /** Access to workflow registry */
   protected get workflowRegistry(): WorkflowRegistry {
-    return this.kernel.workflow;
+    return this.services.workflow;
+  }
+
+  /** Access to repositories (type depends on service) */
+  protected get repository(): unknown {
+    return this.services.repository;
   }
 
   /**
@@ -627,7 +831,10 @@ export abstract class BrokerWorkflows
 
   /**
    * Called by NestJS when the module is destroyed.
-   * Deregisters all workflows.
+   * Deregisters all workflows for graceful shutdown.
+   *
+   * NOTE: BrokerActions does NOT implement OnModuleDestroy.
+   * Workflows need explicit cleanup because DBOS tracks them.
    */
   onModuleDestroy(): void {
     for (const workflowName of this.registeredWorkflows) {
@@ -657,7 +864,6 @@ export abstract class BrokerWorkflows
         // Register with workflow registry
         this.workflowRegistry.register(qualifiedName, {
           instance: this,
-          methodName,
           metadata,
         });
 
@@ -699,6 +905,10 @@ export abstract class BrokerWorkflows
 
 ### Phase 5: ServiceBroker Updates
 
+> **Note on WorkflowRegistry Injection:**
+> WorkflowRegistry is injected as `@Optional()` to avoid circular dependency issues.
+> If workflows are not used in a service, the registry will be null.
+
 **File**: `packages/shared-kernel/src/broker/ServiceBroker.ts` (modifications)
 
 ```typescript
@@ -722,12 +932,14 @@ export class ServiceBroker implements OnModuleDestroy {
 
   constructor(
     private readonly registry: ActionRegistry,
-    @Inject(WORKFLOW_REGISTRY)
-    private readonly workflowRegistry: WorkflowRegistry,
     @Optional()
     @Inject(BROKER_AMQP)
     private readonly amqp: AmqpConnection | null,
     private readonly options: ServiceBrokerOptions,
+    // WorkflowRegistry is optional - injected only when WorkflowModule is imported
+    @Optional()
+    @Inject(WORKFLOW_REGISTRY)
+    private readonly workflowRegistry: WorkflowRegistry | null = null,
   ) {}
 
   // ... existing register(), call(), emit(), broadcast() methods ...
@@ -742,12 +954,20 @@ export class ServiceBroker implements OnModuleDestroy {
    *   tenantId: ctx.organizationId,
    *   apiKeyId: ctx.apiKeyId,
    * });
+   *
+   * @throws Error if WorkflowModule is not imported (workflowRegistry is null)
    */
   async runWorkflow<TResult = unknown, TParams = unknown>(
     workflow: string,
     params: TParams,
     idempotencyCtx: IdempotencyContext,
   ): Promise<TResult> {
+    if (!this.workflowRegistry) {
+      throw new Error(
+        'WorkflowRegistry not available. Import WorkflowModule.forRoot() in your app module.'
+      );
+    }
+
     const qualifiedWorkflow = this.assertFullyQualified(workflow);
 
     const handle = await this.workflowRegistry.start<TParams, TResult>(
@@ -759,9 +979,13 @@ export class ServiceBroker implements OnModuleDestroy {
   }
 
   /**
-   * Check if workflow is registered
+   * Check if workflow is registered.
+   * Returns false if WorkflowModule is not imported.
    */
   hasWorkflow(workflow: string): boolean {
+    if (!this.workflowRegistry) {
+      return false;
+    }
     const qualifiedWorkflow = this.assertFullyQualified(workflow);
     return this.workflowRegistry.has(qualifiedWorkflow);
   }
@@ -769,12 +993,16 @@ export class ServiceBroker implements OnModuleDestroy {
   /**
    * Qualify action/workflow name with service prefix.
    * Made public for use by BrokerWorkflows.
+   *
+   * @example
+   * broker.qualifyAction("storeCreate") // → "project.storeCreate"
+   * broker.qualifyAction("iam.createUser") // → "iam.createUser" (unchanged)
    */
   qualifyAction(name: string): string {
     return name.includes('.') ? name : `${this.options.serviceName}.${name}`;
   }
 
-  // ... existing private methods ...
+  // ... existing private methods (assertFullyQualified remains private) ...
 }
 ```
 
@@ -820,15 +1048,28 @@ const handle = await DBOS.startWorkflow(workflow, { workflowID }).run(input);
 import { Injectable } from "@nestjs/common";
 import { BrokerWorkflows, Workflow, Step } from "@shopana/shared-kernel";
 import type { Kernel } from "./kernel/Kernel.js";
+import type { Repository } from "./repositories/Repository.js";
 
 @Injectable()
 export class ProjectBrokerWorkflows extends BrokerWorkflows {
+  // Type-safe repository access
+  protected declare readonly repository: Repository;
+
   constructor(kernel: Kernel) {
-    super("projectWorkflows", kernel);
+    // Pass services interface, matching current BaseWorkflow pattern
+    super("projectWorkflows", {
+      broker: kernel.getServices().broker,
+      workflow: kernel.workflow,
+      repository: kernel.repository,
+    });
   }
 
+  /**
+   * Main workflow entry point - MUST be named `run` for DBOS convention.
+   * This matches the existing pattern: DBOS.startWorkflow(workflow).run(params)
+   */
   @Workflow("storeCreate")
-  async createStore(input: StoreCreateInput): Promise<StoreCreateOutput> {
+  async run(input: StoreCreateInput): Promise<StoreCreateOutput> {
     const storeId = await this.generateStoreId();
     await this.createStoreRecord(storeId, input);
     await this.createRoles(storeId, input.organizationId, input.userId);
@@ -863,6 +1104,12 @@ export class ProjectBrokerWorkflows extends BrokerWorkflows {
   }
 }
 
+// Registration in NestService (onModuleInit):
+this.workflow.register(
+  "storeCreate",
+  new ProjectBrokerWorkflows(this.kernel)
+);
+
 // Usage in resolver:
 const result = await this.broker.runWorkflow("project.storeCreate", input, {
   source: "client",
@@ -893,9 +1140,10 @@ const result = await this.broker.runWorkflow("project.storeCreate", input, {
 
 ```
 packages/shared-kernel/src/workflow/                    # NEW FOLDER
-packages/shared-kernel/src/workflow/WorkflowModule.ts   # FROM @shopana/workflows
+packages/shared-kernel/src/workflow/WorkflowModule.ts   # FROM @shopana/workflows (modified)
 packages/shared-kernel/src/workflow/WorkflowRegistry.ts # FROM @shopana/workflows (modified)
 packages/shared-kernel/src/workflow/types.ts            # FROM @shopana/workflows
+packages/shared-kernel/src/workflow/tokens.ts           # NEW (WORKFLOW_REGISTRY, WORKFLOW_CONFIG symbols)
 packages/shared-kernel/src/workflow/idempotency.ts      # NEW
 packages/shared-kernel/src/decorators/Workflow.ts       # NEW
 packages/shared-kernel/src/decorators/Step.ts           # NEW
@@ -905,10 +1153,10 @@ packages/shared-kernel/src/broker/BrokerWorkflows.ts    # NEW
 ### Modified Files
 
 ```
-packages/shared-kernel/src/broker/ServiceBroker.ts      # Add runWorkflow(), qualifyAction() public
-packages/shared-kernel/src/broker/BrokerModule.ts       # Inject WorkflowRegistry
+packages/shared-kernel/src/broker/ServiceBroker.ts      # Add runWorkflow(), hasWorkflow(), qualifyAction() public
+packages/shared-kernel/src/broker/BrokerModule.ts       # Import WorkflowModule, inject WORKFLOW_REGISTRY (optional)
 packages/shared-kernel/src/decorators/index.ts          # Export Workflow, Step
-packages/shared-kernel/src/index.ts                     # Export all workflow-related
+packages/shared-kernel/src/index.ts                     # Export all workflow-related (DBOS, WorkflowRegistry, etc.)
 packages/shared-kernel/package.json                     # Add @dbos-inc/dbos-sdk, canonicalize
 ```
 
@@ -921,15 +1169,20 @@ packages/workflows/                                     # ENTIRE PACKAGE DELETED
 ### Migration Files (All Services)
 
 ```
-services/project/src/ProjectBrokerWorkflows.ts          # NEW
-services/iam/src/IamBrokerWorkflows.ts                  # NEW
-services/inventory/src/InventoryBrokerWorkflows.ts      # NEW
-services/media/src/MediaBrokerWorkflows.ts              # NEW
-services/*/src/workflows/*.ts                           # DELETE old workflow classes
+services/project/src/ProjectBrokerWorkflows.ts          # NEW (or keep existing workflow classes)
+services/iam/src/IamBrokerWorkflows.ts                  # NEW (or keep existing workflow classes)
+services/inventory/src/InventoryBrokerWorkflows.ts      # NEW (or keep existing workflow classes)
+services/media/src/MediaBrokerWorkflows.ts              # NEW (or keep existing workflow classes)
+services/*/src/workflows/BaseWorkflow.ts                # UPDATE to extend BrokerWorkflows OR keep as-is
+services/*/src/workflows/*.ts                           # UPDATE imports OR DELETE if consolidated
 services/*/src/*.nest-service.ts                        # UPDATE workflow registration
 services/*/src/resolvers/**/*.ts                        # UPDATE to broker.runWorkflow()
 services/*/package.json                                 # REMOVE @shopana/workflows dep
 ```
+
+> **Migration Strategy Note:**
+> Existing workflow classes (StoreCreateWorkflow, OrganizationCreateWorkflow, etc.) can be kept
+> as-is with only import changes. The new BrokerWorkflows pattern is optional for new workflows.
 
 ---
 
@@ -943,6 +1196,29 @@ pnpm add @dbos-inc/dbos-sdk canonicalize
 ---
 
 ## Critical Notes
+
+### Workflow Method Convention
+
+**IMPORTANT:** All workflows MUST have a `run(params)` method as entry point.
+
+This is required because:
+1. Current codebase uses `DBOS.startWorkflow(workflow).run(params)` pattern
+2. `WorkflowRegistry.start()` calls `.run(params)` on the workflow instance
+3. DBOS expects consistent method naming for workflow invocation
+
+```typescript
+// ✅ CORRECT - entry point is `run`
+@Workflow("storeCreate")
+async run(input: StoreCreateInput): Promise<StoreCreateOutput> {
+  // workflow steps...
+}
+
+// ❌ WRONG - arbitrary method name
+@Workflow("storeCreate")
+async createStore(input: StoreCreateInput): Promise<StoreCreateOutput> {
+  // This won't be called by WorkflowRegistry.start()!
+}
+```
 
 ### Idempotency Key Rules
 
