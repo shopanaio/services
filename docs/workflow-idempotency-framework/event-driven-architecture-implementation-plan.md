@@ -8,16 +8,16 @@
 
 ## Implementation Tracker
 
-### Phase 1: Core Infrastructure (`@shopana/events` package)
+### Phase 1: Types & Utilities (`@shopana/events` package)
 | # | Task | Status | Notes |
 |---|------|--------|-------|
 | 1.1 | Create `packages/events/` package structure | ⬜ Pending | package.json, tsconfig, exports |
 | 1.2 | Implement `types.ts` — DomainEvent, EventContext, EventHandlerResponse | ⬜ Pending | Core type definitions |
 | 1.3 | Implement `idempotency.ts` — makeDispatchWorkflowId, makeEventId, etc. | ⬜ Pending | Add `canonicalize` dependency |
-| 1.4 | Implement `EventEmitter` class | ⬜ Pending | emit(), emitAndWait() |
-| 1.5 | Implement `EventDispatchWorkflow` | ⬜ Pending | DBOS workflow for dispatch |
-| 1.6 | Add concrete event types (ProductCreated, OrderCreated, etc.) | ⬜ Pending | Type-safe event definitions |
-| 1.7 | Export all from package index | ⬜ Pending | Clean public API |
+| 1.4 | Add concrete event types (ProductCreated, OrderCreated, etc.) | ⬜ Pending | Type-safe event definitions |
+| 1.5 | Export all from package index | ⬜ Pending | Clean public API |
+
+> **Note**: This package contains ONLY types and utility functions. No runtime dependencies on Kernel, DBOS, or ServiceBroker.
 
 ### Phase 2: Shared Kernel Updates
 | # | Task | Status | Notes |
@@ -36,16 +36,22 @@
 | # | Task | Status | Notes |
 |---|------|--------|-------|
 | 3.1 | Create `services/events/` directory structure | ⬜ Pending | package.json, drizzle.config |
-| 3.2 | Implement Drizzle schema: `domain_events` table | ⬜ Pending | With UI/timeline fields |
-| 3.3 | Implement Drizzle schema: `dead_letter_queue` table | ⬜ Pending | Reference-only, no payload |
-| 3.4 | Generate initial SQL migration | ⬜ Pending | `pnpm db:generate` |
-| 3.5 | Implement `EventsBrokerActions` — persistence actions | ⬜ Pending | persistEvent, updateEventStatus |
-| 3.6 | Implement DLQ actions in EventsBrokerActions | ⬜ Pending | addToDLQ, getDLQEntries, cleanupDLQ |
-| 3.7 | Implement retention actions | ⬜ Pending | cleanupDomainEvents |
-| 3.8 | Implement `CleanupScheduler` | ⬜ Pending | Daily cron jobs |
-| 3.9 | Create `EventsNestService` | ⬜ Pending | Register EventDispatchWorkflow |
-| 3.10 | Create `EventsModule` | ⬜ Pending | Wire up all providers |
-| 3.11 | Add events service to bootstrap | ⬜ Pending | Update bootstrap.module.ts |
+| 3.2 | Implement `kernel/Kernel.ts` — Events service Kernel singleton | ⬜ Pending | Like project/iam Kernel pattern |
+| 3.3 | Implement Drizzle schema: `domain_events` table | ⬜ Pending | With UI/timeline fields |
+| 3.4 | Implement Drizzle schema: `dead_letter_queue` table | ⬜ Pending | Reference-only, no payload |
+| 3.5 | Generate initial SQL migration | ⬜ Pending | `pnpm db:generate` |
+| 3.6 | Implement `EventsBrokerActions` — persistence actions | ⬜ Pending | persistEvent, updateEventStatus |
+| 3.7 | Implement `EventsBrokerActions` — emit action | ⬜ Pending | `events.emit` broker action |
+| 3.8 | Implement `EventsBrokerActions` — emitAndWait action | ⬜ Pending | `events.emitAndWait` broker action |
+| 3.9 | Implement DLQ actions in EventsBrokerActions | ⬜ Pending | addToDLQ, getDLQEntries, cleanupDLQ |
+| 3.10 | Implement retention actions | ⬜ Pending | cleanupDomainEvents |
+| 3.11 | Implement `EventDispatchWorkflow` | ⬜ Pending | DBOS workflow for dispatch |
+| 3.12 | Implement `CleanupScheduler` | ⬜ Pending | Daily cron jobs |
+| 3.13 | Create `EventsNestService` | ⬜ Pending | Register workflow, init Kernel |
+| 3.14 | Create `EventsModule` | ⬜ Pending | Wire up all providers |
+| 3.15 | Add events service to bootstrap | ⬜ Pending | Update bootstrap.module.ts |
+
+> **Note**: EventEmitter is now a broker action (`events.emit`), not a static class. Other services call via `broker.call("events.emit", {...})`.
 
 ### Phase 4: Service Integration — Inventory (Example)
 | # | Task | Status | Notes |
@@ -86,7 +92,7 @@
 
 ## Detailed Implementation Steps
 
-### Phase 1: Core Infrastructure (`@shopana/events` package)
+### Phase 1: Types & Utilities (`@shopana/events` package)
 
 #### 1.1 Create Package Structure
 
@@ -99,10 +105,7 @@ packages/events/
 ├── src/
 │   ├── index.ts
 │   ├── types.ts
-│   ├── idempotency.ts
-│   ├── emitter.ts
-│   └── workflows/
-│       └── EventDispatchWorkflow.ts
+│   └── idempotency.ts
 ```
 
 **package.json**:
@@ -119,9 +122,6 @@ packages/events/
     }
   },
   "dependencies": {
-    "@dbos-inc/dbos-sdk": "^2.0.0",
-    "@shopana/shared-kernel": "*",
-    "@shopana/shared-service-config": "*",
     "canonicalize": "^2.0.0"
   },
   "devDependencies": {
@@ -135,13 +135,11 @@ packages/events/
 **Key files to create**:
 - `src/types.ts` — DomainEvent, EventContext, EventHandlerResponse interfaces
 - `src/idempotency.ts` — ID generation functions with canonicalize
-- `src/emitter.ts` — EventEmitter class with emit() and emitAndWait()
-- `src/workflows/EventDispatchWorkflow.ts` — DBOS workflow for dispatch
 
-**Dependencies to check**:
-- `canonicalize` — RFC 8785 JSON Canonicalization (add to package.json)
-- `@dbos-inc/dbos-sdk` — Already used in project
-- `@shopana/shared-kernel` — ServiceBroker dependency
+**Dependencies**:
+- `canonicalize` — RFC 8785 JSON Canonicalization (only runtime dependency)
+
+> **Important**: This package has NO dependencies on @dbos-inc/dbos-sdk, @shopana/shared-kernel, or any service code. It's a pure types/utilities package.
 
 ---
 
@@ -234,292 +232,6 @@ export interface HandlerInvocationResult {
 - Use `canonicalize` package (NOT JSON.stringify)
 - Include version prefix (v1) in hash inputs
 - Hash output: 32 chars (128 bits)
-
----
-
-#### 1.4-1.5 Implement EventEmitter and EventDispatchWorkflow
-
-**EventEmitter**:
-
-```typescript
-// packages/events/src/emitter.ts
-
-import { DBOS } from "@dbos-inc/dbos-sdk";
-import { Kernel } from "@shopana/shared-kernel";  // For workflow registry access
-import type { DomainEvent, EventContext } from "./types.js";
-import {
-  makeDispatchWorkflowId,
-  makeEventId,
-  makeDeterministicCorrelationId,
-} from "./idempotency.js";
-import { EventDispatchWorkflow } from "./workflows/EventDispatchWorkflow.js";
-
-export class EventEmitter {
-  /**
-   * Emit an event (fire and forget).
-   * MUST be called from workflow code (not from a step!).
-   *
-   * @param input - Event data (all fields except eventId, timestamp, emitKey)
-   * @param emitKey - REQUIRED: Deterministic key derived from business context
-   */
-  static async emit<TType extends string, TPayload>(
-    input: {
-      eventType: TType;
-      payload: TPayload;
-      source: string;
-      context: Omit<EventContext, "correlationId"> & { correlationId?: string };
-      subject: { type: string; id: string };
-      related?: Array<{ type: string; id: string }>;
-      actor?: { type: "user" | "service" | "system"; id?: string };
-    },
-    emitKey: string  // Separate argument — explicit and required!
-  ): Promise<{ workflowId: string; eventId: string }> {
-    // Validate emitKey
-    if (!emitKey || emitKey.trim().length === 0) {
-      throw new Error("emitKey is required and must be non-empty");
-    }
-
-    const parentWorkflowId = DBOS.workflowID;
-    if (!parentWorkflowId) {
-      throw new Error("EventEmitter.emit() must be called from workflow code");
-    }
-
-    // Build deterministic IDs
-    const workflowId = makeDispatchWorkflowId({
-      parentWorkflowId,
-      eventType: input.eventType,
-      emitKey,
-    });
-
-    const eventId = makeEventId({
-      tenantId: input.context.tenantId,
-      dispatchWorkflowId: workflowId,
-    });
-
-    const correlationId = input.context.correlationId
-      ?? makeDeterministicCorrelationId(parentWorkflowId);
-
-    // Build event (timestamp will be set in persistEventStep)
-    const event: DomainEvent<TType, TPayload> = {
-      eventId,
-      eventType: input.eventType,
-      timestamp: "",  // Set in persistEventStep with real time
-      source: input.source,
-      payload: input.payload,
-      emitKey,
-      parentWorkflowId,
-      context: { ...input.context, correlationId },
-      subject: input.subject,
-      related: input.related ?? [],
-      actor: input.actor ?? { type: "service", id: input.source },
-    };
-
-    // Get registered workflow instance from Kernel
-    const workflowRegistry = Kernel.getInstance().workflow;
-    const dispatchWorkflow = workflowRegistry.get<EventDispatchWorkflow>("eventDispatch");
-
-    // Start dispatch workflow (fire and forget)
-    await DBOS
-      .startWorkflow(dispatchWorkflow, { workflowID: workflowId })
-      .dispatch(event);
-
-    return { workflowId, eventId };
-  }
-
-  /**
-   * Emit event and wait for all handlers to complete.
-   * Same signature as emit(), returns EventDispatchResult.
-   */
-  static async emitAndWait<TType extends string, TPayload>(
-    input: { /* same as emit */ },
-    emitKey: string
-  ): Promise<EventDispatchResult> {
-    // Same as emit() but:
-    // const handle = await DBOS.startWorkflow(dispatchWorkflow, { workflowID }).dispatch(event);
-    // return handle.getResult();
-  }
-}
-```
-
-**EventDispatchWorkflow**:
-- `dispatch(event)` workflow method
-- Step 1: `persistEventStep()` — calls events.persistEvent
-- Step 2: `getAvailableHandlers()` — checkpointed handler list with retry policies
-- Step 3: `tryInvokeHandler()` — parallel invocation with retry/DLQ logic
-- Step 4: `updateEventStatus()` — mark completed
-
-**ServiceBroker injection** (через существующий Kernel паттерн):
-
-Workflows в проекте используют `ConfiguredInstance` + `Kernel` singleton:
-
-```typescript
-// packages/events/src/workflows/EventDispatchWorkflow.ts
-
-import { ConfiguredInstance, DBOS } from "@dbos-inc/dbos-sdk";
-import type { DomainEvent } from "../types.js";
-import type { ServiceBroker } from "@shopana/shared-kernel";
-import { getConfig } from "@shopana/shared-service-config";
-
-interface EventDispatchWorkflowServices {
-  broker: ServiceBroker;
-}
-
-export class EventDispatchWorkflow extends ConfiguredInstance {
-  private readonly broker: ServiceBroker;
-
-  constructor(name: string, services: EventDispatchWorkflowServices) {
-    super(name);
-    this.broker = services.broker;
-  }
-
-  @DBOS.workflow()
-  async dispatch(event: DomainEvent): Promise<EventDispatchResult> {
-    // this.broker доступен через constructor injection
-  }
-}
-```
-
-**Регистрация в events service**:
-
-```typescript
-// services/events/src/events.nest-service.ts
-
-@Injectable()
-export class EventsNestService implements OnModuleInit, OnModuleDestroy {
-  constructor(
-    @InjectBroker("events") private readonly broker: ServiceBroker,
-    @Inject(WORKFLOW_REGISTRY) private readonly workflow: WorkflowRegistry,
-  ) {}
-
-  async onModuleInit() {
-    // Регистрируем workflow с broker dependency
-    const dispatchWorkflow = new EventDispatchWorkflow("eventDispatch", {
-      broker: this.broker,
-    });
-    this.workflow.register("eventDispatch", dispatchWorkflow);
-  }
-
-  async onModuleDestroy() {
-    this.workflow.deregister("eventDispatch");
-  }
-}
-```
-
-**Запуск из EventEmitter**:
-
-```typescript
-// EventEmitter.emit() получает workflow из registry
-const registry = Kernel.getInstance().workflow;
-const workflow = registry.get<EventDispatchWorkflow>("eventDispatch");
-
-await DBOS.startWorkflow(workflow, { workflowID }).dispatch(event);
-```
-
-**getAvailableHandlers() — handler discovery**:
-
-```typescript
-/**
- * DETERMINISM: This is a @DBOS.step(), result is checkpointed.
- * On replay, same handler list returned even if registrations changed.
- */
-@DBOS.step()
-private async getAvailableHandlers(eventType: string): Promise<HandlerInfo[]> {
-  const config = getConfig();  // From @shopana/shared-service-config
-  const serviceNames = Object.keys(config.services);
-  const handlers: HandlerInfo[] = [];
-
-  for (const serviceName of serviceNames) {
-    const action = `${serviceName}.${eventType}`;
-
-    // Check if this service has a handler for this event type
-    if (this.broker.hasAction(action)) {
-      const metadata = this.broker.getActionMetadata(action);
-      const retryPolicy = metadata?.retryPolicy ?? {
-        maxAttempts: 3,
-        intervalSeconds: 1,
-        backoffRate: 2,
-      };
-
-      handlers.push({ serviceName, action, retryPolicy });
-    }
-  }
-
-  return handlers;
-}
-```
-
-**tryInvokeHandler() — DBOS.runStep() с retry**:
-
-```typescript
-/**
- * Key insight: DBOS only retries when step THROWS.
- * - Return marker for non-retryable → no retry
- * - Throw for retryable → DBOS retries according to policy
- */
-private async tryInvokeHandler(
-  event: DomainEvent,
-  handler: HandlerInfo
-): Promise<HandlerInvocationResult> {
-  const { serviceName, action, retryPolicy } = handler;
-
-  type InvokeStepResult =
-    | { kind: "ok"; durationMs: number }
-    | { kind: "nonRetryableFailure"; error: { message: string; code?: string }; durationMs: number };
-
-  let stepResult: InvokeStepResult;
-
-  try {
-    stepResult = await DBOS.runStep<InvokeStepResult>(
-      async () => {
-        const startTime = Date.now();
-        const resp: EventHandlerResponse = await this.broker.call(action, { event });
-        const durationMs = Date.now() - startTime;
-
-        if (resp.ok) {
-          return { kind: "ok", durationMs };
-        }
-
-        // Non-retryable: DON'T throw → DBOS won't retry
-        if (!resp.error.retryable) {
-          return {
-            kind: "nonRetryableFailure",
-            error: { message: resp.error.message, code: resp.error.code },
-            durationMs,
-          };
-        }
-
-        // Retryable: throw → DBOS retries this step
-        throw new Error(resp.error.message);
-      },
-      {
-        name: `handler:${action}:${event.eventId}`,
-        retriesAllowed: true,
-        maxAttempts: retryPolicy.maxAttempts,
-        intervalSeconds: retryPolicy.intervalSeconds,
-        backoffRate: retryPolicy.backoffRate,
-      }
-    );
-  } catch (e) {
-    // DBOS exhausted retries → DLQ
-    const errorMsg = e instanceof Error ? e.message : String(e);
-    await this.sendToDLQ(event, serviceName, errorMsg, undefined, retryPolicy.maxAttempts);
-    return { service: serviceName, status: "failed", error: errorMsg, durationMs: 0 };
-  }
-
-  if (stepResult.kind === "nonRetryableFailure") {
-    // Non-retryable → DLQ immediately (1 attempt)
-    await this.sendToDLQ(event, serviceName, stepResult.error.message, stepResult.error.code, 1);
-    return {
-      service: serviceName,
-      status: "failed",
-      error: stepResult.error.message,
-      durationMs: stepResult.durationMs,
-    };
-  }
-
-  return { service: serviceName, status: "success", durationMs: stepResult.durationMs };
-}
-```
 
 ---
 
@@ -668,6 +380,12 @@ services/events/
 │   ├── events.nest-service.ts
 │   ├── EventsBrokerActions.ts
 │   ├── CleanupScheduler.ts
+│   ├── kernel/
+│   │   ├── Kernel.ts
+│   │   ├── types.ts
+│   │   └── BaseWorkflow.ts
+│   ├── workflows/
+│   │   └── EventDispatchWorkflow.ts
 │   └── repositories/
 │       └── models/
 │           ├── index.ts
@@ -677,7 +395,78 @@ services/events/
 
 ---
 
-#### 3.2-3.3 Drizzle Schemas
+#### 3.2 Events Kernel (Singleton Pattern)
+
+**File**: `services/events/src/kernel/Kernel.ts`
+
+Following the same pattern as project/iam services:
+
+```typescript
+import { Kernel as BaseKernel, consoleLogger } from "@shopana/shared-kernel";
+import type { ServiceBroker, Logger, DatabaseClient } from "@shopana/shared-kernel";
+import type { WorkflowRegistry } from "@shopana/workflows";
+import type { EventsKernelServices } from "./types.js";
+import { Repository } from "../repositories/Repository.js";
+import { createDatabase, type Database } from "../infrastructure/db/database.js";
+
+export class Kernel extends BaseKernel<EventsKernelServices> {
+  private static instance: Kernel | null = null;
+
+  public repository!: Repository;
+  public workflow!: WorkflowRegistry;
+  public db!: Database;
+
+  private constructor(
+    broker: ServiceBroker,
+    logger: Logger,
+    repository: Repository,
+    workflow: WorkflowRegistry,
+    db: Database
+  ) {
+    super(broker, logger, { repository, workflow });
+    this.repository = repository;
+    this.workflow = workflow;
+    this.db = db;
+  }
+
+  static async create(
+    broker: ServiceBroker,
+    workflow: WorkflowRegistry,
+    dbClient: DatabaseClient
+  ): Promise<Kernel> {
+    if (this.instance) {
+      return this.instance;
+    }
+
+    console.log("[Events] Using shared database pool...");
+    const db = createDatabase(dbClient);
+    const repository = await Repository.create({ db });
+
+    this.instance = new Kernel(broker, consoleLogger, repository, workflow, db);
+    console.log("[Events] Kernel initialized");
+    return this.instance;
+  }
+
+  static getInstance(): Kernel {
+    if (!this.instance) {
+      throw new Error("Kernel not initialized. Call Kernel.create() first.");
+    }
+    return this.instance;
+  }
+
+  static isInitialized(): boolean {
+    return this.instance !== null;
+  }
+
+  async close(): Promise<void> {
+    Kernel.instance = null;
+  }
+}
+```
+
+---
+
+#### 3.3-3.4 Drizzle Schemas
 
 **domain_events table** — Key fields:
 - `event_id` (PK)
@@ -702,23 +491,368 @@ services/events/
 
 ---
 
-#### 3.5-3.7 EventsBrokerActions
+#### 3.6-3.10 EventsBrokerActions
 
-**Persistence actions**:
-- `persistEvent({ event })` — Insert to domain_events with `ON CONFLICT DO NOTHING`
-- `updateEventStatus({ eventId, status, handlerResults })` — Mark completed
+**File**: `services/events/src/EventsBrokerActions.ts`
 
-**DLQ actions**:
-- `addToDLQ({ eventId, eventType, handler, error, attempts })` — Insert/update DLQ entry
-- `getDLQEntries({ limit, eventType })` — Query failed entries
-- `cleanupDLQ({ batchSize })` — Delete expired entries
+```typescript
+import { Injectable } from "@nestjs/common";
+import { DBOS } from "@dbos-inc/dbos-sdk";
+import {
+  BrokerActions,
+  Action,
+  InjectBroker,
+  ServiceBroker,
+} from "@shopana/shared-kernel";
+import type {
+  DomainEvent,
+  EventContext,
+  EventDispatchResult,
+} from "@shopana/events";
+import {
+  makeDispatchWorkflowId,
+  makeEventId,
+  makeDeterministicCorrelationId,
+} from "@shopana/events";
+import { Kernel } from "./kernel/Kernel.js";
+import { EventDispatchWorkflow } from "./workflows/EventDispatchWorkflow.js";
 
-**Retention**:
-- `cleanupDomainEvents({ retentionDays, batchSize })` — Delete old events
+export interface EmitParams {
+  eventType: string;
+  payload: unknown;
+  source: string;
+  context: Omit<EventContext, "correlationId"> & { correlationId?: string };
+  subject: { type: string; id: string };
+  related?: Array<{ type: string; id: string }>;
+  actor?: { type: "user" | "service" | "system"; id?: string };
+  emitKey: string;
+}
+
+@Injectable()
+export class EventsBrokerActions extends BrokerActions {
+  constructor(@InjectBroker("events") broker: ServiceBroker) {
+    super(broker);
+  }
+
+  /**
+   * Emit event (fire and forget).
+   * Called from other services via: broker.call("events.emit", {...})
+   */
+  @Action("emit")
+  async emit(params: EmitParams): Promise<{ workflowId: string; eventId: string }> {
+    const { emitKey, ...input } = params;
+
+    // Validate emitKey
+    if (!emitKey || emitKey.trim().length === 0) {
+      throw new Error("emitKey is required and must be non-empty");
+    }
+
+    const parentWorkflowId = DBOS.workflowID;
+    if (!parentWorkflowId) {
+      throw new Error("events.emit must be called from workflow code");
+    }
+
+    // Build deterministic IDs
+    const workflowId = makeDispatchWorkflowId({
+      parentWorkflowId,
+      eventType: input.eventType,
+      emitKey,
+    });
+
+    const eventId = makeEventId({
+      tenantId: input.context.tenantId,
+      dispatchWorkflowId: workflowId,
+    });
+
+    const correlationId = input.context.correlationId
+      ?? makeDeterministicCorrelationId(parentWorkflowId);
+
+    // Build event
+    const event: DomainEvent = {
+      eventId,
+      eventType: input.eventType,
+      timestamp: "",  // Set in persistEventStep
+      source: input.source,
+      payload: input.payload,
+      emitKey,
+      parentWorkflowId,
+      context: { ...input.context, correlationId },
+      subject: input.subject,
+      related: input.related ?? [],
+      actor: input.actor ?? { type: "service", id: input.source },
+    };
+
+    // Get workflow from Kernel singleton
+    const workflow = Kernel.getInstance().workflow;
+    const dispatchWorkflow = workflow.get<EventDispatchWorkflow>("eventDispatch");
+
+    // Start dispatch workflow (fire and forget)
+    await DBOS
+      .startWorkflow(dispatchWorkflow, { workflowID: workflowId })
+      .dispatch(event);
+
+    return { workflowId, eventId };
+  }
+
+  /**
+   * Emit event and wait for completion.
+   * Called via: broker.call("events.emitAndWait", {...})
+   */
+  @Action("emitAndWait")
+  async emitAndWait(params: EmitParams): Promise<EventDispatchResult> {
+    // Same setup as emit()...
+    // But wait for result:
+    // const handle = await DBOS.startWorkflow(...).dispatch(event);
+    // return handle.getResult();
+  }
+
+  /**
+   * Persist event to database.
+   * Called internally by EventDispatchWorkflow.
+   */
+  @Action("persistEvent")
+  async persistEvent(params: { event: DomainEvent }): Promise<{ eventId: string; timestamp: string }> {
+    // INSERT with ON CONFLICT DO NOTHING
+    // Returns actual timestamp
+  }
+
+  /**
+   * Update event status after dispatch completes.
+   */
+  @Action("updateEventStatus")
+  async updateEventStatus(params: {
+    eventId: string;
+    status: "completed";
+    handlerResults: unknown[];
+  }): Promise<void> {
+    // UPDATE domain_events SET status = 'completed'
+  }
+
+  /**
+   * Add failed handler to DLQ.
+   */
+  @Action("addToDLQ")
+  async addToDLQ(params: {
+    eventId: string;
+    eventType: string;
+    handlerService: string;
+    handlerAction: string;
+    error: string;
+    errorCode?: string;
+    attempts: number;
+  }): Promise<void> {
+    // INSERT to dead_letter_queue
+  }
+
+  /**
+   * Get DLQ entries for retry or inspection.
+   */
+  @Action("getDLQEntries")
+  async getDLQEntries(params: { limit?: number; eventType?: string }): Promise<unknown[]> {
+    // SELECT from dead_letter_queue
+  }
+
+  /**
+   * Cleanup expired DLQ entries.
+   */
+  @Action("cleanupDLQ")
+  async cleanupDLQ(params: { batchSize?: number }): Promise<{ deleted: number }> {
+    // DELETE WHERE expires_at < NOW()
+  }
+
+  /**
+   * Cleanup old domain events.
+   */
+  @Action("cleanupDomainEvents")
+  async cleanupDomainEvents(params: {
+    retentionDays?: number;
+    batchSize?: number;
+  }): Promise<{ deleted: number }> {
+    // DELETE WHERE timestamp < NOW() - retention
+  }
+}
+```
 
 ---
 
-#### 3.8 CleanupScheduler
+#### 3.11 EventDispatchWorkflow
+
+**File**: `services/events/src/workflows/EventDispatchWorkflow.ts`
+
+```typescript
+import { ConfiguredInstance, DBOS } from "@dbos-inc/dbos-sdk";
+import type { DomainEvent, EventDispatchResult, HandlerInfo, EventHandlerResponse } from "@shopana/events";
+import { getConfig } from "@shopana/shared-service-config";
+import type { Kernel } from "../kernel/Kernel.js";
+
+interface WorkflowServices {
+  kernel: Kernel;
+}
+
+export class EventDispatchWorkflow extends ConfiguredInstance {
+  private readonly kernel: Kernel;
+
+  constructor(name: string, services: WorkflowServices) {
+    super(name);
+    this.kernel = services.kernel;
+  }
+
+  private get broker() {
+    return this.kernel.getServices().broker;
+  }
+
+  @DBOS.workflow()
+  async dispatch(event: DomainEvent): Promise<EventDispatchResult> {
+    // Step 1: Persist event
+    const { timestamp } = await this.persistEvent(event);
+    event.timestamp = timestamp;
+
+    // Step 2: Get available handlers (checkpointed)
+    const handlers = await this.getAvailableHandlers(event.eventType);
+
+    // Step 3: Invoke handlers in parallel
+    const results = await Promise.all(
+      handlers.map(handler => this.tryInvokeHandler(event, handler))
+    );
+
+    // Step 4: Update event status
+    await this.updateEventStatus(event.eventId, results);
+
+    return {
+      eventId: event.eventId,
+      eventType: event.eventType,
+      status: "completed",
+      servicesNotified: handlers.length,
+      results,
+    };
+  }
+
+  @DBOS.step()
+  private async persistEvent(event: DomainEvent): Promise<{ timestamp: string }> {
+    return this.broker.call("events.persistEvent", { event });
+  }
+
+  /**
+   * DETERMINISM: Result is checkpointed.
+   * On replay, same handler list returned even if registrations changed.
+   */
+  @DBOS.step()
+  private async getAvailableHandlers(eventType: string): Promise<HandlerInfo[]> {
+    const config = getConfig();
+    const serviceNames = Object.keys(config.services);
+    const handlers: HandlerInfo[] = [];
+
+    for (const serviceName of serviceNames) {
+      const action = `${serviceName}.${eventType}`;
+
+      if (this.broker.hasAction(action)) {
+        const metadata = this.broker.getActionMetadata(action);
+        const retryPolicy = metadata?.retryPolicy ?? {
+          maxAttempts: 3,
+          intervalSeconds: 1,
+          backoffRate: 2,
+        };
+
+        handlers.push({ serviceName, action, retryPolicy });
+      }
+    }
+
+    return handlers;
+  }
+
+  private async tryInvokeHandler(
+    event: DomainEvent,
+    handler: HandlerInfo
+  ): Promise<{ service: string; status: "success" | "failed"; error?: string; durationMs: number }> {
+    const { serviceName, action, retryPolicy } = handler;
+
+    type StepResult =
+      | { kind: "ok"; durationMs: number }
+      | { kind: "nonRetryableFailure"; error: { message: string; code?: string }; durationMs: number };
+
+    let stepResult: StepResult;
+
+    try {
+      stepResult = await DBOS.runStep<StepResult>(
+        async () => {
+          const startTime = Date.now();
+          const resp: EventHandlerResponse = await this.broker.call(action, { event });
+          const durationMs = Date.now() - startTime;
+
+          if (resp.ok) {
+            return { kind: "ok", durationMs };
+          }
+
+          if (!resp.error.retryable) {
+            return {
+              kind: "nonRetryableFailure",
+              error: { message: resp.error.message, code: resp.error.code },
+              durationMs,
+            };
+          }
+
+          throw new Error(resp.error.message);
+        },
+        {
+          name: `handler:${action}:${event.eventId}`,
+          retriesAllowed: true,
+          maxAttempts: retryPolicy.maxAttempts,
+          intervalSeconds: retryPolicy.intervalSeconds,
+          backoffRate: retryPolicy.backoffRate,
+        }
+      );
+    } catch (e) {
+      const errorMsg = e instanceof Error ? e.message : String(e);
+      await this.sendToDLQ(event, handler, errorMsg, undefined, retryPolicy.maxAttempts);
+      return { service: serviceName, status: "failed", error: errorMsg, durationMs: 0 };
+    }
+
+    if (stepResult.kind === "nonRetryableFailure") {
+      await this.sendToDLQ(event, handler, stepResult.error.message, stepResult.error.code, 1);
+      return {
+        service: serviceName,
+        status: "failed",
+        error: stepResult.error.message,
+        durationMs: stepResult.durationMs,
+      };
+    }
+
+    return { service: serviceName, status: "success", durationMs: stepResult.durationMs };
+  }
+
+  @DBOS.step()
+  private async sendToDLQ(
+    event: DomainEvent,
+    handler: HandlerInfo,
+    error: string,
+    errorCode: string | undefined,
+    attempts: number
+  ): Promise<void> {
+    await this.broker.call("events.addToDLQ", {
+      eventId: event.eventId,
+      eventType: event.eventType,
+      handlerService: handler.serviceName,
+      handlerAction: handler.action,
+      error,
+      errorCode,
+      attempts,
+    });
+  }
+
+  @DBOS.step()
+  private async updateEventStatus(eventId: string, results: unknown[]): Promise<void> {
+    await this.broker.call("events.updateEventStatus", {
+      eventId,
+      status: "completed",
+      handlerResults: results,
+    });
+  }
+}
+```
+
+---
+
+#### 3.12 CleanupScheduler
 
 **Cron jobs**:
 - `@Cron(EVERY_DAY_AT_3AM)` — cleanupExpiredDLQEntries
@@ -728,7 +862,66 @@ services/events/
 
 ---
 
-#### 3.9-3.11 EventsNestService, EventsModule & Bootstrap Integration
+#### 3.13-3.15 EventsNestService, EventsModule & Bootstrap Integration
+
+**File**: `services/events/src/events.nest-service.ts`
+
+```typescript
+import {
+  Inject,
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from "@nestjs/common";
+import {
+  DATABASE_CLIENT,
+  InjectBroker,
+  ServiceBroker,
+  type DatabaseClient,
+} from "@shopana/shared-kernel";
+import { WORKFLOW_REGISTRY, WorkflowRegistry } from "@shopana/workflows";
+import { Kernel } from "./kernel/Kernel.js";
+import { EventDispatchWorkflow } from "./workflows/EventDispatchWorkflow.js";
+
+@Injectable()
+export class EventsNestService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(EventsNestService.name);
+  private kernel!: Kernel;
+
+  constructor(
+    @InjectBroker("events") private readonly broker: ServiceBroker,
+    @Inject(WORKFLOW_REGISTRY) private readonly workflow: WorkflowRegistry,
+    @Inject(DATABASE_CLIENT) private readonly dbClient: DatabaseClient
+  ) {}
+
+  async onModuleInit() {
+    // Initialize Kernel singleton
+    this.kernel = await Kernel.create(this.broker, this.workflow, this.dbClient);
+
+    // Register EventDispatchWorkflow
+    const dispatchWorkflow = new EventDispatchWorkflow("eventDispatch", {
+      kernel: this.kernel,
+    });
+    this.workflow.register("eventDispatch", dispatchWorkflow);
+    this.logger.debug("Registered workflow: eventDispatch");
+
+    this.logger.log("Events service started");
+  }
+
+  async onModuleDestroy() {
+    if (this.workflow) {
+      this.workflow.deregister("eventDispatch");
+    }
+
+    if (this.kernel) {
+      await this.kernel.close();
+    }
+
+    this.logger.log("Events service stopped");
+  }
+}
+```
 
 **Update bootstrap.module.ts**:
 ```typescript
@@ -846,28 +1039,8 @@ async run(input: ProductCreateParams): Promise<ProductCreateResult> {
     return result;
   }
 
-  // Step 2: Emit event (fire and forget)
-  await EventEmitter.emit(
-    {
-      eventType: "productCreated",
-      payload: {
-        productId: result.product.id,
-        storeId: input.storeId,
-        name: input.title,
-      },
-      context: {
-        tenantId: input.organizationId,  // ← из input
-        userId: input.userId,
-      },
-      source: "inventory",
-      subject: { type: "product", id: result.product.id },
-      related: [{ type: "store", id: input.storeId }],
-      actor: input.userId
-        ? { type: "user", id: input.userId }
-        : { type: "service", id: "inventory" },
-    },
-    "product:" + result.product.id  // emitKey — deterministic!
-  );
+  // Step 2: Emit event via broker.call (fire and forget)
+  await this.emitProductCreated(result.product, input);
 
   // Step 3: Sync back-refs (existing logic)
   if (result.variantMediaMap?.length) {
@@ -876,7 +1049,32 @@ async run(input: ProductCreateParams): Promise<ProductCreateResult> {
 
   return result;
 }
+
+@DBOS.step()
+async emitProductCreated(product: Product, input: ProductCreateParams): Promise<void> {
+  await this.broker.call("events.emit", {
+    eventType: "productCreated",
+    payload: {
+      productId: product.id,
+      storeId: input.storeId,
+      name: input.title,
+    },
+    context: {
+      tenantId: input.organizationId,
+      userId: input.userId,
+    },
+    source: "inventory",
+    subject: { type: "product", id: product.id },
+    related: [{ type: "store", id: input.storeId }],
+    actor: input.userId
+      ? { type: "user", id: input.userId }
+      : { type: "service", id: "inventory" },
+    emitKey: `product:${product.id}`,  // ← deterministic!
+  });
+}
 ```
+
+> **Note**: Event emission is done via `broker.call("events.emit", {...})`, NOT via static EventEmitter class. This keeps the events service as the single source of truth for event dispatch.
 
 ---
 
@@ -895,36 +1093,41 @@ async run(input: ProductCreateParams): Promise<ProductCreateResult> {
 
 ## Files to Create (Summary)
 
-### New Packages
+### New Package: `@shopana/events` (Types & Utilities Only)
 - `packages/events/package.json`
 - `packages/events/tsconfig.json`
 - `packages/events/src/index.ts`
 - `packages/events/src/types.ts`
 - `packages/events/src/idempotency.ts`
-- `packages/events/src/emitter.ts`
-- `packages/events/src/workflows/EventDispatchWorkflow.ts`
 
-### New Service
+### New Service: `services/events`
 - `services/events/package.json`
 - `services/events/drizzle.config.ts`
+- `services/events/src/main.ts`
 - `services/events/src/events.module.ts`
 - `services/events/src/events.nest-service.ts`
 - `services/events/src/EventsBrokerActions.ts`
 - `services/events/src/CleanupScheduler.ts`
+- `services/events/src/kernel/Kernel.ts`
+- `services/events/src/kernel/types.ts`
+- `services/events/src/kernel/BaseWorkflow.ts`
+- `services/events/src/workflows/EventDispatchWorkflow.ts`
+- `services/events/src/repositories/Repository.ts`
 - `services/events/src/repositories/models/index.ts`
 - `services/events/src/repositories/models/domainEvents.ts`
 - `services/events/src/repositories/models/deadLetterQueue.ts`
+- `services/events/src/infrastructure/db/database.ts`
 
 ### Modified Files
-- `packages/shared-kernel/src/broker/ActionRegistry.ts`
-- `packages/shared-kernel/src/broker/ServiceBroker.ts`
-- `packages/shared-kernel/src/broker/EventHandlers.ts` (new)
-- `packages/shared-kernel/src/decorators/EventHandler.ts` (new)
-- `packages/shared-kernel/src/index.ts`
-- `services/bootstrap/package.json`
-- `services/bootstrap/src/bootstrap.module.ts`
-- `services/inventory/src/InventoryEventHandlers.ts` (new)
-- `services/inventory/src/inventory.module.ts`
+- `packages/shared-kernel/src/broker/ActionRegistry.ts` — add `has()`, `getMetadata()`, metadata storage
+- `packages/shared-kernel/src/broker/ServiceBroker.ts` — add `hasAction()`, `getActionMetadata()`
+- `packages/shared-kernel/src/broker/EventHandlers.ts` (new) — base class for event handlers
+- `packages/shared-kernel/src/decorators/EventHandler.ts` (new) — decorator for event handlers
+- `packages/shared-kernel/src/index.ts` — export new APIs
+- `services/bootstrap/package.json` — add events service dependency
+- `services/bootstrap/src/bootstrap.module.ts` — import EventsModule
+- `services/inventory/src/InventoryEventHandlers.ts` (new) — event handlers
+- `services/inventory/src/inventory.module.ts` — register handlers
 
 ---
 
@@ -948,23 +1151,35 @@ async run(input: ProductCreateParams): Promise<ProductCreateResult> {
 ## Dependencies to Add
 
 ```bash
-# In packages/events
+# In packages/events (types & utilities only)
 pnpm add canonicalize
 
-# In services/events
-pnpm add @nestjs/schedule
+# In services/events (full runtime)
+pnpm add @nestjs/schedule @shopana/events
 ```
 
-### Required Package Dependencies
+### Package Dependencies
 
-**packages/events/package.json** должен включать:
+**packages/events/package.json** (minimal — types & utilities only):
+```json
+{
+  "dependencies": {
+    "canonicalize": "^2.0.0"
+  }
+}
+```
+
+**services/events/package.json** (full runtime):
 ```json
 {
   "dependencies": {
     "@dbos-inc/dbos-sdk": "^2.0.0",
+    "@shopana/events": "*",
     "@shopana/shared-kernel": "*",
     "@shopana/shared-service-config": "*",
-    "canonicalize": "^2.0.0"
+    "@shopana/workflows": "*",
+    "@nestjs/schedule": "^4.0.0",
+    "drizzle-orm": "^0.45.1"
   }
 }
 ```
@@ -974,7 +1189,7 @@ pnpm add @nestjs/schedule
 - Used in `getAvailableHandlers()` to iterate over `config.services`
 
 ```typescript
-// Usage in EventDispatchWorkflow
+// Usage in EventDispatchWorkflow (services/events)
 import { getConfig } from "@shopana/shared-service-config";
 
 const config = getConfig();
