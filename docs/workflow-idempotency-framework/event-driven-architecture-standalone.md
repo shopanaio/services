@@ -29,11 +29,12 @@ Simplified event-driven architecture built directly on DBOS durability primitive
 
 ### Key Principles
 
-1. **No Outbox** — workflow guarantees delivery only if emit is executed from a DBOS workflow/step after a durable DB transaction
-2. **Parallel fan-out** — handlers are invoked in parallel (batches of CONCURRENCY_LIMIT)
-3. **Simple handlers** — plain async functions, no special decorators
-4. **Critical vs Non-critical** — stop-on-failure for critical (batch level), best-effort for non-critical
-5. **Domain-level idempotency** — handlers use DB constraints for exactly-once semantics
+1. **Fire and forget** — producer emits event and moves on, doesn't know/care about consumers
+2. **Independent consumers** — each handler processes independently, no coordination
+3. **Parallel fan-out** — all handlers invoked in parallel
+4. **Per-handler retry** — each handler has its own retry policy, failures don't affect others
+5. **Eventual consistency** — system converges to consistent state over time
+6. **Domain-level idempotency** — handlers use DB constraints for exactly-once semantics
 
 ---
 
@@ -157,8 +158,8 @@ export interface EventHandlerMetadata {
   /** Event type this handler responds to */
   eventType: string;
 
-  /** Whether failure should fail the whole event dispatch */
-  critical: boolean;
+  /** Retry policy for this handler */
+  retryPolicy: RetryPolicy;
 }
 
 /**
@@ -170,19 +171,24 @@ export interface EventHandlerMetadata {
  * 2. An event handler in the global registry (so it's discoverable)
  *
  * @param eventType - Event type to handle (e.g., "product.created")
- * @param options - Handler options
+ * @param options - Handler options (retry policy)
  *
  * @example
- * class InventoryBrokerActions extends BrokerActions {
- *   @EventHandler("product.created", { critical: true })
+ * class InventoryEventHandlers extends EventHandlers {
+ *   @EventHandler("product.created")
  *   async handleProductCreated(params: { event: ProductCreatedEvent }) {
+ *     // ...
+ *   }
+ *
+ *   @EventHandler("order.completed", { retry: { maxAttempts: 5, backoffRate: 2 } })
+ *   async handleOrderCompleted(params: { event: OrderCompletedEvent }) {
  *     // ...
  *   }
  * }
  */
 export function EventHandler(
   eventType: string,
-  options: { critical?: boolean } = {}
+  options: { retry?: Partial<RetryPolicy> } = {}
 ): MethodDecorator {
   return function (
     target: object,
@@ -191,7 +197,11 @@ export function EventHandler(
   ): PropertyDescriptor {
     const metadata: EventHandlerMetadata = {
       eventType,
-      critical: options.critical ?? false,
+      retryPolicy: {
+        maxAttempts: options.retry?.maxAttempts ?? 3,
+        intervalSeconds: options.retry?.intervalSeconds ?? 1,
+        backoffRate: options.retry?.backoffRate ?? 2,
+      },
     };
 
     Reflect.defineMetadata(EVENT_HANDLER_METADATA_KEY, metadata, target, propertyKey);
@@ -317,7 +327,7 @@ export abstract class EventHandlers implements OnModuleInit {
           service: serviceName,
           action: methodName,
           eventType: metadata.eventType,
-          critical: metadata.critical,
+          retryPolicy: metadata.retryPolicy,
         });
 
         this.logger.debug(
@@ -355,8 +365,8 @@ export abstract class EventHandlers implements OnModuleInit {
 
 | Класс | Декоратор | Назначение |
 |-------|-----------|------------|
-| `BrokerActions` | `@Action` | Request-response actions |
-| `EventHandlers` | `@EventHandler` | Event-driven handlers |
+| `BrokerActions` | `@Action` | Request-response (sync) |
+| `EventHandlers` | `@EventHandler` | Event-driven (fire & forget) |
 
 ---
 
@@ -511,11 +521,13 @@ export interface EventDispatchResult {
 
   /**
    * Final status:
-   * - "completed": all handlers succeeded
-   * - "completed_with_errors": critical handlers OK, some non-critical failed
-   * - "failed": at least one critical handler failed
+   * - "completed": all handlers finished (success or failure)
+   *
+   * Note: In pure event-driven, "completed" means dispatch is done.
+   * Individual handler failures don't affect the event status.
+   * Failed handlers go to DLQ for independent retry.
    */
-  status: "completed" | "completed_with_errors" | "failed";
+  status: "completed";
 
   handlersInvoked: number;
   handlersSucceeded: number;
@@ -526,7 +538,6 @@ export interface EventDispatchResult {
 export interface HandlerInvocationResult {
   service: string;
   action: string;
-  critical: boolean;
   status: "success" | "failed";
   error?: string;
   durationMs: number;
@@ -535,9 +546,10 @@ export interface HandlerInvocationResult {
 /**
  * Main event dispatch workflow.
  *
+ * Pure event-driven: fire and forget, each handler independent.
+ *
  * DBOS Workflow guarantees:
  * - Completion even if service restarts (durability)
- * - Automatic retry on transient failures
  * - Idempotent execution (same workflowId = execute once)
  */
 export class EventDispatchWorkflow {
@@ -550,9 +562,6 @@ export class EventDispatchWorkflow {
   static workflowID(event: DomainEvent): string {
     return `event:dispatch:${event.eventType}:${event.eventId}`;
   }
-
-  /** Max concurrent handler invocations per batch */
-  private static readonly CONCURRENCY_LIMIT = 5;
 
   @DBOS.workflow()
   async dispatch(event: DomainEvent): Promise<EventDispatchResult> {
@@ -574,68 +583,24 @@ export class EventDispatchWorkflow {
       };
     }
 
-    // Step 3: Sort handlers (critical first, then by service/action for determinism)
-    const sortedHandlers = handlers
-      .slice()
-      .sort((a, b) => {
-        if (a.critical !== b.critical) {
-          return a.critical ? -1 : 1;
-        }
-        const serviceCmp = a.service.localeCompare(b.service);
-        if (serviceCmp !== 0) {
-          return serviceCmp;
-        }
-        return a.action.localeCompare(b.action);
-      });
-
-    const criticalHandlers = sortedHandlers.filter((h) => h.critical);
-    const nonCriticalHandlers = sortedHandlers.filter((h) => !h.critical);
-
-    const results: HandlerInvocationResult[] = [];
-
-    // 3a: Critical handlers — parallel batches, stop on failure
-    const criticalResults = await this.invokeHandlersBatch(
-      event,
-      criticalHandlers,
-      { stopOnBatchFailure: true }
+    // Step 3: Invoke ALL handlers in parallel (fire and forget)
+    // Each handler is independent — failures don't affect others
+    const resultPromises = handlers.map((handler) =>
+      this.invokeHandlerSafe(event, handler)
     );
-    results.push(...criticalResults);
 
-    const criticalFailed = criticalResults.some((r) => r.status === "failed");
+    const results = await Promise.all(resultPromises);
 
-    // 3b: Non-critical handlers — parallel batches, best-effort (only if critical succeeded)
-    if (!criticalFailed && nonCriticalHandlers.length > 0) {
-      const nonCriticalResults = await this.invokeHandlersBatch(
-        event,
-        nonCriticalHandlers,
-        { stopOnBatchFailure: false }
-      );
-      results.push(...nonCriticalResults);
-    }
-
-    // Step 4: Determine final status
+    // Step 4: Update event status (always "completed" — dispatch is done)
     const succeeded = results.filter((r) => r.status === "success").length;
     const failed = results.filter((r) => r.status === "failed").length;
-    const nonCriticalFailed = results.filter(
-      (r) => r.status === "failed" && !r.critical
-    ).length;
 
-    let status: EventDispatchResult["status"];
-    if (criticalFailed) {
-      status = "failed";
-    } else if (nonCriticalFailed > 0) {
-      status = "completed_with_errors";
-    } else {
-      status = "completed";
-    }
-
-    // Step 5: Update event status
-    await this.updateEventStatus(event.eventId, status, results);
+    await this.updateEventStatus(event.eventId, results);
 
     return {
       eventId: event.eventId,
       eventType: event.eventType,
-      status,
+      status: "completed",
       handlersInvoked: results.length,
       handlersSucceeded: succeeded,
       handlersFailed: failed,
@@ -644,39 +609,8 @@ export class EventDispatchWorkflow {
   }
 
   /**
-   * Invoke handlers in parallel batches.
-   */
-  private async invokeHandlersBatch(
-    event: DomainEvent,
-    handlers: HandlerInfo[],
-    options: { stopOnBatchFailure: boolean }
-  ): Promise<HandlerInvocationResult[]> {
-    const results: HandlerInvocationResult[] = [];
-    const limit = Math.max(1, EventDispatchWorkflow.CONCURRENCY_LIMIT);
-
-    for (let i = 0; i < handlers.length; i += limit) {
-      const batch = handlers.slice(i, i + limit);
-
-      const batchPromises = batch.map((handler) =>
-        this.invokeHandlerSafe(event, handler)
-      );
-
-      const batchResults = await Promise.all(batchPromises);
-      results.push(...batchResults);
-
-      if (options.stopOnBatchFailure) {
-        const failed = batchResults.some((r) => r.status === "failed");
-        if (failed) {
-          break;
-        }
-      }
-    }
-
-    return results;
-  }
-
-  /**
    * Safe wrapper that never throws (for Promise.all).
+   * Each handler invocation is independent.
    */
   private async invokeHandlerSafe(
     event: DomainEvent,
@@ -688,7 +622,6 @@ export class EventDispatchWorkflow {
       return {
         service: handler.service,
         action: handler.action,
-        critical: handler.critical,
         status: "failed",
         error: String(error),
         durationMs: 0,
@@ -701,6 +634,13 @@ export class EventDispatchWorkflow {
     await this.broker.call("events.persistEvent", { event });
   }
 
+  /**
+   * Discover handlers for event type.
+   *
+   * DETERMINISM: This is a @DBOS.step(), so the result is checkpointed.
+   * On workflow replay, DBOS returns the checkpointed handler list,
+   * ensuring the same handlers are invoked even if registry changed.
+   */
   @DBOS.step()
   private async discoverHandlers(eventType: string): Promise<HandlerInfo[]> {
     const response = await this.broker.call("bootstrap.getEventHandlers", {
@@ -711,75 +651,85 @@ export class EventDispatchWorkflow {
   }
 
   /**
-   * Invoke critical handler with aggressive retry.
+   * Invoke handler using DBOS.runStep() with dynamic retry config.
+   *
+   * Key patterns:
+   * 1. One broker.call = one DBOS step (durable)
+   * 2. DBOS.runStep() allows runtime retry configuration
+   * 3. Retryable errors → throw → DBOS retries
+   * 4. Non-retryable errors → return error → no retry, workflow handles DLQ
+   * 5. retriesAllowed: true is REQUIRED for retries to work
+   *
+   * Error flow:
+   * - Retryable error thrown → DBOS retries up to maxAttempts
+   * - All retries exhausted → DBOS.runStep() throws → catch → DLQ
+   * - Non-retryable error returned → stepResult.error → DLQ
+   *
+   * DETERMINISM:
+   * - Step name is stable: `handler:{service}.{action}:{eventId}`
+   * - Handler list comes from discoverHandlers() step (checkpointed)
+   * - Retry policy is part of handler registration (stable per deployment)
+   * - If retry policy changes between deployments, already-running workflows
+   *   will continue with original policy (step results are checkpointed)
    */
-  @DBOS.step({
-    maxAttempts: 5,
-    intervalSeconds: 0.5,
-    backoffRate: 2,
-  })
-  private async invokeCriticalHandler(
-    event: DomainEvent,
-    handler: HandlerInfo
-  ): Promise<HandlerInvocationResult> {
-    return this.invokeHandlerInner(event, handler, 5);
-  }
-
-  /**
-   * Invoke non-critical handler with lenient retry.
-   */
-  @DBOS.step({
-    maxAttempts: 2,
-    intervalSeconds: 2,
-    backoffRate: 1.5,
-  })
-  private async invokeBestEffortHandler(
-    event: DomainEvent,
-    handler: HandlerInfo
-  ): Promise<HandlerInvocationResult> {
-    return this.invokeHandlerInner(event, handler, 2);
-  }
-
   private async invokeHandler(
     event: DomainEvent,
     handler: HandlerInfo
   ): Promise<HandlerInvocationResult> {
-    if (handler.critical) {
-      return this.invokeCriticalHandler(event, handler);
-    }
-    return this.invokeBestEffortHandler(event, handler);
-  }
-
-  private async invokeHandlerInner(
-    event: DomainEvent,
-    handler: HandlerInfo,
-    attempts: number
-  ): Promise<HandlerInvocationResult> {
     const startTime = Date.now();
+    const { retryPolicy } = handler;
 
-    // Call handler action
-    const response: EventHandlerResult<unknown> = await this.broker.call(
-      `${handler.service}.${handler.action}`,
-      { event }
-    );
+    let stepResult: EventHandlerResult<unknown>;
 
-    const durationMs = Date.now() - startTime;
+    try {
+      // Use DBOS.runStep() for dynamic retry config
+      stepResult = await DBOS.runStep(
+        () => this.doCallHandler(event, handler),
+        {
+          name: `handler:${handler.service}.${handler.action}:${event.eventId}`,
+          retriesAllowed: true,  // REQUIRED for retries to work!
+          maxAttempts: retryPolicy.maxAttempts,
+          intervalSeconds: retryPolicy.intervalSeconds,
+          backoffRate: retryPolicy.backoffRate,
+        }
+      );
+    } catch (error) {
+      // DBOS exhausted all retries (retryable error thrown maxAttempts times)
+      const errorMessage = error instanceof Error ? error.message : String(error);
 
-    if (response.error) {
-      // Retryable error -> throw so DBOS retries the step
-      if (response.error.retryable) {
-        throw new Error(`TRANSIENT: ${response.error.message}`);
-      }
-
-      // Non-retryable error -> permanent failure -> send to DLQ
-      await this.sendToDLQ(event, handler, response.error, attempts);
+      await this.sendToDLQ(
+        event,
+        handler,
+        { message: errorMessage },
+        retryPolicy.maxAttempts
+      );
 
       return {
         service: handler.service,
         action: handler.action,
-        critical: handler.critical,
         status: "failed",
-        error: response.error.message,
+        error: errorMessage,
+        durationMs: Date.now() - startTime,
+      };
+    }
+
+    const durationMs = Date.now() - startTime;
+
+    // Step returned (didn't throw) — check if it's an error result
+    if (stepResult.error) {
+      // Non-retryable error was returned (not thrown) — send to DLQ
+      await this.sendToDLQ(
+        event,
+        handler,
+        { message: stepResult.error.message, code: stepResult.error.code },
+        1  // Only 1 attempt since it was non-retryable
+      );
+
+      return {
+        service: handler.service,
+        action: handler.action,
+        status: "failed",
+        error: stepResult.error.message,
         durationMs,
       };
     }
@@ -787,10 +737,41 @@ export class EventDispatchWorkflow {
     return {
       service: handler.service,
       action: handler.action,
-      critical: handler.critical,
       status: "success",
       durationMs,
     };
+  }
+
+  /**
+   * Actual handler invocation logic.
+   *
+   * IMPORTANT error handling pattern:
+   * - Retryable error → THROW → DBOS retries the step
+   * - Non-retryable error → RETURN { error } → No retry, workflow handles DLQ
+   * - Success → RETURN { result }
+   *
+   * This is NOT a @DBOS.step() — it's wrapped by DBOS.runStep() in invokeHandler.
+   */
+  private async doCallHandler(
+    event: DomainEvent,
+    handler: HandlerInfo
+  ): Promise<EventHandlerResult<unknown>> {
+    const response: EventHandlerResult<unknown> = await this.broker.call(
+      `${handler.service}.${handler.action}`,
+      { event }
+    );
+
+    if (response.error) {
+      if (response.error.retryable) {
+        // Retryable → throw so DBOS retries this step
+        throw new Error(response.error.message);
+      }
+      // Non-retryable → return error, don't throw
+      // Workflow will handle DLQ, DBOS won't retry
+      return response;
+    }
+
+    return response;
   }
 
   /**
@@ -808,7 +789,6 @@ export class EventDispatchWorkflow {
       handler: {
         service: handler.service,
         action: handler.action,
-        critical: handler.critical,
       },
       error: error.message,
       errorCode: error.code,
@@ -826,12 +806,11 @@ export class EventDispatchWorkflow {
   @DBOS.step()
   private async updateEventStatus(
     eventId: string,
-    status: EventDispatchResult["status"],
     results: HandlerInvocationResult[]
   ): Promise<void> {
     await this.broker.call("events.updateEventStatus", {
       eventId,
-      status,
+      status: "completed",
       handlerResults: results,
     });
   }
@@ -840,7 +819,13 @@ export class EventDispatchWorkflow {
 interface HandlerInfo {
   service: string;
   action: string;
-  critical: boolean;
+  retryPolicy: RetryPolicy;
+}
+
+interface RetryPolicy {
+  maxAttempts: number;
+  intervalSeconds: number;
+  backoffRate: number;
 }
 ```
 
@@ -855,16 +840,42 @@ export interface RetryPolicy {
   backoffRate: number;
 }
 
+/**
+ * Default retry policy for event handlers.
+ * Can be overridden per-handler via @EventHandler decorator.
+ */
+export const DEFAULT_RETRY_POLICY: RetryPolicy = {
+  maxAttempts: 3,
+  intervalSeconds: 1,
+  backoffRate: 2,
+};
+
+/**
+ * Preset policies for common scenarios.
+ */
 export const RetryPolicies = {
-  CRITICAL: {
+  /** Default: 3 attempts, 1s base delay, 2x backoff */
+  DEFAULT: DEFAULT_RETRY_POLICY,
+
+  /** Aggressive: 5 attempts, 0.5s base delay, 2x backoff */
+  AGGRESSIVE: {
     maxAttempts: 5,
     intervalSeconds: 0.5,
     backoffRate: 2,
   },
-  BEST_EFFORT: {
+
+  /** Lenient: 2 attempts, 2s base delay, 1.5x backoff */
+  LENIENT: {
     maxAttempts: 2,
     intervalSeconds: 2,
     backoffRate: 1.5,
+  },
+
+  /** Single attempt, no retry */
+  NO_RETRY: {
+    maxAttempts: 1,
+    intervalSeconds: 0,
+    backoffRate: 1,
   },
 } satisfies Record<string, RetryPolicy>;
 ```
@@ -938,6 +949,8 @@ import { Kernel } from "./kernel/Kernel.js";
 /**
  * Event handlers for inventory service.
  * Separate from BrokerActions for clean separation of concerns.
+ *
+ * Each handler is independent — failures don't affect other handlers.
  */
 @Injectable()
 export class InventoryEventHandlers extends EventHandlers {
@@ -954,7 +967,7 @@ export class InventoryEventHandlers extends EventHandlers {
    *
    * Domain idempotency: INSERT ON CONFLICT DO NOTHING
    */
-  @EventHandler("product.created", { critical: true })
+  @EventHandler("product.created")
   async handleProductCreated(
     params: { event: ProductCreatedEvent }
   ): Promise<EventHandlerResult<void>> {
@@ -989,7 +1002,7 @@ export class InventoryEventHandlers extends EventHandlers {
   /**
    * Handle product.deleted: Remove inventory record.
    */
-  @EventHandler("product.deleted", { critical: false })
+  @EventHandler("product.deleted")
   async handleProductDeleted(
     params: { event: ProductDeletedEvent }
   ): Promise<EventHandlerResult<void>> {
@@ -1014,8 +1027,10 @@ export class InventoryEventHandlers extends EventHandlers {
 
   /**
    * Handle product.updated: Sync inventory metadata.
+   *
+   * Custom retry: more attempts for this important sync.
    */
-  @EventHandler("product.updated", { critical: true })
+  @EventHandler("product.updated", { retry: { maxAttempts: 5 } })
   async handleProductUpdated(
     params: { event: ProductUpdatedEvent }
   ): Promise<EventHandlerResult<{ synced: boolean; updatedFields: string[] }>> {
@@ -1089,13 +1104,13 @@ services/inventory/src/
 ```typescript
 // services/bootstrap/src/EventHandlerRegistry.ts
 
-import type { EventType } from "@shopana/events";
+import type { EventType, RetryPolicy } from "@shopana/events";
 
 interface RegisteredHandler {
   service: string;
   action: string;
   eventType: EventType;
-  critical: boolean;
+  retryPolicy: RetryPolicy;
   registeredAt: string;
 }
 
@@ -1146,6 +1161,7 @@ export const globalEventRegistry = new GlobalEventHandlerRegistry();
 // services/bootstrap/src/BootstrapBrokerActions.ts
 
 import { Action, BrokerActions } from "@shopana/shared-kernel";
+import type { RetryPolicy } from "@shopana/events";
 import { globalEventRegistry } from "./EventHandlerRegistry.js";
 
 export class BootstrapBrokerActions extends BrokerActions {
@@ -1155,7 +1171,7 @@ export class BootstrapBrokerActions extends BrokerActions {
     service: string;
     action: string;
     eventType: string;
-    critical: boolean;
+    retryPolicy: RetryPolicy;
   }): Promise<{ registered: boolean }> {
     globalEventRegistry.register(params);
     return { registered: true };
@@ -1165,14 +1181,14 @@ export class BootstrapBrokerActions extends BrokerActions {
   async getEventHandlers(params: {
     eventType: string;
   }): Promise<{
-    handlers: Array<{ service: string; action: string; critical: boolean }>;
+    handlers: Array<{ service: string; action: string; retryPolicy: RetryPolicy }>;
   }> {
     const handlers = globalEventRegistry.getHandlers(params.eventType as any);
     return {
       handlers: handlers.map((h) => ({
         service: h.service,
         action: h.action,
-        critical: h.critical,
+        retryPolicy: h.retryPolicy,
       })),
     };
   }
@@ -1215,7 +1231,7 @@ CREATE TABLE IF NOT EXISTS domain_events (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
   CONSTRAINT domain_events_status_chk
-    CHECK (status IN ('pending', 'dispatching', 'completed', 'completed_with_errors', 'failed'))
+    CHECK (status IN ('pending', 'dispatching', 'completed'))
 );
 
 CREATE INDEX idx_events_type ON domain_events(event_type);
@@ -1259,12 +1275,12 @@ export class EventStoreBrokerActions extends BrokerActions {
   @Action("updateEventStatus")
   async updateEventStatus(params: {
     eventId: string;
-    status: "completed" | "completed_with_errors" | "failed";
+    status: "completed";
     handlerResults: HandlerInvocationResult[];
   }): Promise<{ updated: boolean }> {
     await this.db.update(domainEvents)
       .set({
-        status: params.status,
+        status: "completed",
         dispatchCompletedAt: new Date(),
         handlerResults: params.handlerResults,
         updatedAt: new Date(),
@@ -1280,7 +1296,7 @@ export class EventStoreBrokerActions extends BrokerActions {
   @Action("addToDLQ")
   async addToDLQ(params: {
     event: DomainEvent;
-    handler: { service: string; action: string; critical: boolean };
+    handler: { service: string; action: string };
     error: string;
     errorCode?: string;
     attempts: number;
@@ -1291,7 +1307,6 @@ export class EventStoreBrokerActions extends BrokerActions {
       event: params.event as unknown as Record<string, unknown>,
       handlerService: params.handler.service,
       handlerAction: params.handler.action,
-      handlerCritical: params.handler.critical,
       error: params.error,
       errorCode: params.errorCode,
       attempts: params.attempts,
@@ -1331,7 +1346,6 @@ CREATE TABLE IF NOT EXISTS dead_letter_queue (
 
   handler_service TEXT NOT NULL,
   handler_action TEXT NOT NULL,
-  handler_critical BOOLEAN NOT NULL DEFAULT FALSE,
 
   error TEXT NOT NULL,
   error_code TEXT,
@@ -1365,7 +1379,7 @@ CREATE INDEX idx_dlq_expires ON dead_letter_queue(expires_at) WHERE expires_at I
 
 export interface FailedHandlerInfo {
   event: DomainEvent;
-  handler: { service: string; action: string; critical: boolean };
+  handler: { service: string; action: string };
   error: string;
   errorCode?: string;
   attempts: number;
@@ -1381,7 +1395,6 @@ export class DeadLetterRepository {
       event: info.event as unknown as Record<string, unknown>,
       handlerService: info.handler.service,
       handlerAction: info.handler.action,
-      handlerCritical: info.handler.critical,
       error: info.error,
       errorCode: info.errorCode,
       attempts: info.attempts,
@@ -1544,17 +1557,15 @@ const EVENT_METRICS = {
 
   // Dispatch workflow
   "events.dispatch.started": "Dispatch workflows started",
-  "events.dispatch.completed": "Completed (all handlers OK)",
-  "events.dispatch.completed_with_errors": "Completed with non-critical failures",
-  "events.dispatch.failed": "Failed (critical handler failed)",
+  "events.dispatch.completed": "Dispatch workflows completed",
   "events.dispatch.duration_ms": "Dispatch workflow duration",
 
   // Handler invocation
   "events.handler.invoked": "Handler invocations",
   "events.handler.succeeded": "Handler successes",
-  "events.handler.failed.critical": "Critical handler failures",
-  "events.handler.failed.non_critical": "Non-critical failures",
+  "events.handler.failed": "Handler failures (sent to DLQ)",
   "events.handler.duration_ms": "Handler execution duration",
+  "events.handler.retries": "Handler retry attempts",
 
   // DLQ
   "dlq.entries.added": "New entries added to DLQ",
@@ -1570,8 +1581,9 @@ type EventLogEvent =
   | { event: "EVENT_EMITTED"; eventId: string; eventType: string; source: string }
   | { event: "DISPATCH_STARTED"; eventId: string; eventType: string; handlers: number }
   | { event: "HANDLER_INVOKED"; eventId: string; service: string; action: string }
+  | { event: "HANDLER_RETRY"; eventId: string; service: string; action: string; attempt: number }
   | { event: "HANDLER_SUCCEEDED"; eventId: string; service: string; action: string; durationMs: number }
-  | { event: "HANDLER_FAILED"; eventId: string; service: string; action: string; error: string }
+  | { event: "HANDLER_FAILED"; eventId: string; service: string; action: string; error: string; sentToDLQ: boolean }
   | { event: "DISPATCH_COMPLETED"; eventId: string; eventType: string; succeeded: number; failed: number };
 ```
 
@@ -1584,6 +1596,7 @@ type EventLogEvent =
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                        PRODUCT CREATION EVENT FLOW                          │
+│                         (Pure Event-Driven / Fire & Forget)                 │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  1. API Request: createProduct                                              │
@@ -1591,7 +1604,8 @@ type EventLogEvent =
 │     ▼                                                                       │
 │  2. ProductService.createProduct()                                          │
 │     │  - Creates product in DB                                              │
-│     │  - Emits product.created event                                        │
+│     │  - Emits product.created event (fire & forget)                        │
+│     │  - Returns immediately to client                                      │
 │     │                                                                       │
 │     ▼                                                                       │
 │  3. EventEmitter.emit(ProductCreatedEvent)                                  │
@@ -1603,34 +1617,26 @@ type EventLogEvent =
 │     │                                                                       │
 │     ├──[Step 1]─► persistEvent()                                            │
 │     │             - Saves to domain_events table                            │
-│     │             - ON CONFLICT DO NOTHING (idempotent)                     │
 │     │                                                                       │
 │     ├──[Step 2]─► discoverHandlers("product.created")                       │
 │     │             - Returns: [inventory, search, pricing]                   │
 │     │                                                                       │
-│     ├──[Step 3]─► invokeHandler(event, inventory)                           │
+│     ├──[Step 3]─► invokeHandlers() — ALL IN PARALLEL                        │
 │     │             │                                                         │
-│     │             ▼                                                         │
-│     │             inventory.handleProductCreated(event)                     │
-│     │             - INSERT inventory ON CONFLICT DO NOTHING                 │
-│     │             - Returns { }                                             │
-│     │                                                                       │
-│     ├──[Step 4]─► invokeHandler(event, search)                              │
+│     │             ├─► inventory.handleProductCreated(event) ──► OK          │
+│     │             │   - INSERT ON CONFLICT DO NOTHING                       │
 │     │             │                                                         │
-│     │             ▼                                                         │
-│     │             search.handleProductCreated(event)                        │
-│     │             - Indexes product for search                              │
-│     │             - Returns { }                                             │
-│     │                                                                       │
-│     ├──[Step 5]─► invokeHandler(event, pricing)                             │
+│     │             ├─► search.handleProductCreated(event) ────► OK           │
+│     │             │   - Index product                                       │
 │     │             │                                                         │
-│     │             ▼                                                         │
-│     │             pricing.handleProductCreated(event)                       │
-│     │             - INSERT price ON CONFLICT DO NOTHING                     │
-│     │             - Returns { }                                             │
+│     │             └─► pricing.handleProductCreated(event) ───► FAIL → DLQ   │
+│     │                 - (e.g. timeout) → retry → DLQ                        │
 │     │                                                                       │
 │     └──[Complete]─► Return EventDispatchResult                              │
-│                     { handlersInvoked: 3, handlersSucceeded: 3 }            │
+│                     { status: "completed", succeeded: 2, failed: 1 }        │
+│                                                                             │
+│  Note: Event is "completed" even with failures.                             │
+│  pricing handler will be retried from DLQ later.                            │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -1646,16 +1652,16 @@ type EventLogEvent =
 │                      IDEMPOTENCY STRATEGY                                   │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│  Layer 1: DBOS Workflow Idempotency                                         │
-│  ─────────────────────────────────────                                      │
+│  Layer 1: DBOS Workflow Idempotency (Dispatch Level)                        │
+│  ───────────────────────────────────────────────────                        │
 │  Key: event:dispatch:{eventType}:{eventId}                                  │
 │  Example: event:dispatch:product.created:evt-123-456                        │
 │                                                                             │
-│  Guarantees: Same event = same workflow = executes once                     │
+│  Guarantees: Same event = same workflow = dispatch once                     │
 │                                                                             │
 │  ═══════════════════════════════════════════════════════════════════════    │
 │                                                                             │
-│  Layer 2: Domain-Level Idempotency (Application)                            │
+│  Layer 2: Domain-Level Idempotency (Handler Level)                          │
 │  ─────────────────────────────────────────────────                          │
 │  Method: Unique constraints, upserts, conditional updates                   │
 │                                                                             │
@@ -1670,15 +1676,18 @@ type EventLogEvent =
 │                                                                             │
 │  WHY TWO LAYERS?                                                            │
 │                                                                             │
-│  1. DBOS Workflow: Prevents duplicate workflow executions                   │
-│     - Same eventId never starts two workflows                               │
-│     - Handles: API retries, message redelivery                              │
+│  1. DBOS Workflow: Prevents duplicate dispatches                            │
+│     - Same eventId never starts two dispatch workflows                      │
+│     - Handles: API retries, workflow restarts                               │
 │                                                                             │
 │  2. Domain: Business-level safety net                                       │
-│     - Handles: Workflow restart after crash (same step may re-run)          │
+│     - Handles: DLQ retries (same handler called again)                      │
 │     - Handles: Business duplicates (same product created twice)             │
 │     - Handles: Edge cases, bugs, manual operations                          │
 │     - Provides: Data integrity guarantees                                   │
+│                                                                             │
+│  In pure event-driven, DLQ retries are expected — domain idempotency        │
+│  ensures handlers can be safely re-invoked.                                 │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -1692,36 +1701,46 @@ type EventLogEvent =
 | Aspect | Implementation |
 |--------|----------------|
 | Event Definition | Typed `DomainEvent<TType, TPayload>` with context |
-| Event Emission | `EventEmitter.emit()` starts durable workflow |
+| Event Emission | `EventEmitter.emit()` — fire and forget |
 | Durability | DBOS workflow guarantees delivery |
-| Fan-out | Parallel batches (CONCURRENCY_LIMIT=5) |
+| Fan-out | All handlers invoked in parallel |
 | Handler Contract | `(params: { event }) => Promise<EventHandlerResult>` |
 | Handler Registration | Automatic via `@EventHandler` decorator |
-| Critical Handlers | Stop after batch: failure skips remaining, event = "failed" |
-| Non-critical Handlers | Best-effort: failure logged, event = "completed_with_errors" |
-| Event Status | `completed` / `completed_with_errors` / `failed` |
-| Retry | DBOS step retry policies (transient errors only) |
-| Dead Letter Queue | Permanently failed handlers stored for retry/inspection |
+| Handler Independence | Each handler processes independently, failures don't affect others |
+| Event Status | Always `completed` (dispatch done, regardless of handler failures) |
+| Retry | Per-handler retry policy (configurable via decorator) |
+| Dead Letter Queue | Failed handlers stored for independent retry |
 | Audit | `domain_events` + `dead_letter_queue` tables |
 | Idempotency | DBOS workflow + domain-level (ON CONFLICT, upserts) |
+| Consistency | Eventual — system converges over time |
 
 ### Key Design Decisions
 
-1. **Separate classes** — `BrokerActions` for `@Action`, `EventHandlers` for `@EventHandler`
-2. **DBOS workflow idempotency** — Key depends on `eventId`, same event = same workflow = once
-3. **Domain-level idempotency** — Handlers use DB constraints (`ON CONFLICT DO NOTHING`, etc.)
-4. **No Outbox** — Delivery is guaranteed only when emit is from DBOS workflow code (not step!)
-5. **Parallel fan-out** — Handlers are invoked in parallel batches (CONCURRENCY_LIMIT=5)
-6. **Critical vs Non-critical** — Stop-on-failure for critical, best-effort for non-critical
-7. **Dead Letter Queue** — Permanent failures go to DLQ for retry after fix deployment
+1. **Pure event-driven** — Fire and forget, producer doesn't know/care about consumers
+2. **Independent handlers** — Each handler succeeds or fails independently
+3. **Eventual consistency** — Accepted as normal, DLQ handles failures
+4. **Per-handler retry** — Each handler has its own retry policy
+5. **No coordination** — No critical/non-critical, no stop-on-failure
+6. **Separate classes** — `BrokerActions` for `@Action`, `EventHandlers` for `@EventHandler`
+7. **DBOS workflow idempotency** — Same eventId = same workflow = dispatch once
+8. **Domain-level idempotency** — Handlers use DB constraints (`ON CONFLICT DO NOTHING`)
+9. **Dead Letter Queue** — Failed handlers go to DLQ for retry after fix
 
 ### Benefits
 
-1. **Clean Separation**: `BrokerActions` vs `EventHandlers` — different concerns, different classes
-2. **Guaranteed Delivery**: DBOS workflow durability
-3. **Exactly-Once Semantics**: DBOS workflow ID + domain-level idempotency
-4. **No External Framework**: Just DBOS + standard DB patterns
-5. **Parallel Execution**: Batched concurrent handler invocation
-6. **Granular Failure Handling**: Critical vs non-critical handlers
-7. **Full Audit Trail**: `domain_events` + `dead_letter_queue` tables
-8. **No Infrastructure Overhead**: No separate message queue or idempotency service
+1. **Simplicity**: Pure event-driven model, easy to understand
+2. **Loose Coupling**: Producers and consumers are completely independent
+3. **Resilience**: Handler failures don't cascade, system keeps working
+4. **Clean Separation**: `BrokerActions` vs `EventHandlers` — different concerns
+5. **Guaranteed Delivery**: DBOS workflow durability
+6. **Exactly-Once Semantics**: DBOS workflow ID + domain-level idempotency
+7. **No External Framework**: Just DBOS + standard DB patterns
+8. **Full Audit Trail**: `domain_events` + `dead_letter_queue` tables
+9. **No Infrastructure Overhead**: No separate message queue
+
+### Trade-offs
+
+1. **Eventual consistency** — Data may be temporarily inconsistent
+2. **No ordering guarantees** — Handlers may process in any order
+3. **No transactions across handlers** — Each handler is independent
+4. **DLQ management** — Need process for handling failed handlers
