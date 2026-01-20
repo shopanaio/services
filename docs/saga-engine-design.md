@@ -78,8 +78,12 @@ export interface SagaStepConfig {
    * Fatal errors skip retry and trigger immediate compensation.
    */
   retry?: RetryPolicy;
-  /** Timeout в миллисекундах */
-  timeout?: number;
+  /**
+   * Timeout hint в миллисекундах.
+   * Passed to ctx.brokerCall() for external call timeout.
+   * NOT enforced at workflow level (would break determinism).
+   */
+  timeoutHint?: number;
 }
 
 /** Метаданные шага с компенсацией */
@@ -469,20 +473,25 @@ export class SagaContextManager<TInput = unknown> {
    *   params
    * );
    *
-   * // With additional context (e.g., from GraphQL request)
+   * // With timeout and additional context
    * const result = await ctx.brokerCall<IAM.CreateRolesResult>(
    *   "createRoles",
    *   "iam.createRoles",
    *   params,
-   *   { tenantId: ctx.getInput().organizationId }
+   *   { timeout: 5000, tenantId: ctx.getInput().organizationId }
    * );
    */
   async brokerCall<TResult, TParams = unknown>(
     stepName: string,
     action: string,
     params: TParams,
-    idempotencyCtx?: Partial<IdempotencyContext>,
+    options?: {
+      /** Timeout for broker call in milliseconds */
+      timeout?: number;
+    } & Partial<IdempotencyContext>,
   ): Promise<TResult> {
+    const { timeout, ...idempotencyCtx } = options ?? {};
+
     // Merge saga idempotency with provided context
     const fullCtx: IdempotencyContext = {
       source: "workflow",
@@ -490,7 +499,9 @@ export class SagaContextManager<TInput = unknown> {
       stepId: stepName,
       ...idempotencyCtx,
     };
-    return this.broker.call<TResult, TParams>(action, params, fullCtx);
+
+    // Timeout is handled by broker.call (not workflow)
+    return this.broker.call<TResult, TParams>(action, params, fullCtx, { timeout });
   }
 
   /** Получить текущий контекст (deep immutable snapshot) */
@@ -832,19 +843,16 @@ export class SagaExecutor<TInput, TOutput> {
     throw lastError;
   }
 
+  /**
+   * Execute step method.
+   * Timeout is NOT enforced here (would break workflow determinism).
+   * Use ctx.brokerCall() with timeout for external calls.
+   */
   private async executeStep(
     step: SagaStepDefinition,
     ctx: SagaContextManager<TInput>,
   ): Promise<unknown> {
     const method = (this.sagaInstance as any)[step.method];
-
-    if (step.config.timeout) {
-      return Promise.race([
-        method.call(this.sagaInstance, ctx),
-        this.timeout(step.config.timeout, step.config.name),
-      ]);
-    }
-
     return method.call(this.sagaInstance, ctx);
   }
 
@@ -859,14 +867,6 @@ export class SagaExecutor<TInput, TOutput> {
   ): Promise<void> {
     const method = (this.sagaInstance as any)[methodName];
     await method.call(this.sagaInstance, ctx, stepResult);
-  }
-
-  private timeout(ms: number, stepName: string): Promise<never> {
-    return new Promise((_, reject) => {
-      setTimeout(() => {
-        reject(new RetryableError(`Step ${stepName} timed out after ${ms}ms`));
-      }, ms);
-    });
   }
 }
 ```
@@ -1206,14 +1206,16 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
   @SagaStep({
     name: "createMediaAssetGroup",
     critical: false, // Continue even if media service is down
-    timeout: 5000,
   })
   async createMediaAssetGroup(ctx: SagaContextManager<StoreCreateInput>): Promise<void> {
     const storeId = ctx.getStepResult<string>("generateId")!;
 
-    await this.broker.call<Media.CreateAssetGroupResult>(
+    // Timeout is passed to broker.call, not enforced at workflow level
+    await ctx.brokerCall<Media.CreateAssetGroupResult>(
+      "createMediaAssetGroup",
       "media.createAssetGroup",
       { ownerType: "store", ownerId: storeId },
+      { timeout: 5000 },
     );
   }
 
@@ -1499,10 +1501,24 @@ const result = await ctx.call("createRoles", (idempotencyKey) =>
 const idempotencyKey = ctx.getIdempotencyKey("createRoles"); // sagaId:createRoles
 ```
 
-### Why idempotency matters for timeouts
+### Timeout handling
 
-Timeout via `Promise.race` doesn't cancel the actual operation. The step may complete
-after timeout and create resources. With idempotency:
+**Timeouts are NOT enforced at workflow level** - `Promise.race` with `setTimeout` would break determinism.
+
+Instead, timeout is passed to `broker.call()` which handles it at transport level:
+
+```typescript
+// ✅ Correct: timeout at broker level (deterministic workflow)
+await ctx.brokerCall("createMedia", "media.create", params, { timeout: 5000 });
+
+// ❌ Wrong: Promise.race with setTimeout (non-deterministic)
+await Promise.race([
+  step(),
+  new Promise((_, reject) => setTimeout(() => reject(...), 5000))
+]);
+```
+
+With idempotency, timeout + retry is safe:
 - Retry with same key → returns cached result (no duplicate)
 - "Already exists" responses should be treated as success, not fatal
 
