@@ -164,7 +164,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
       ProductCreateResult,
       ProductCreateParams
     >(
-      "productCreate",
+      "inventory.productCreate",
       sagaInput,
       {
         source: "workflow",

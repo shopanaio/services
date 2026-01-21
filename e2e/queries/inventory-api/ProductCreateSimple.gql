@@ -1,4 +1,4 @@
-mutation ProductCreate($input: ProductCreateInput!) {
+mutation ProductCreateSimple($input: ProductCreateInput!) {
   inventoryMutation {
     productCreate(input: $input) {
       product {
@@ -6,11 +6,6 @@ mutation ProductCreate($input: ProductCreateInput!) {
         title
         handle
         isPublished
-        description {
-          html
-          text
-          json
-        }
         options {
           id
           name
