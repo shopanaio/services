@@ -118,8 +118,13 @@ export class InventoryQueryResolver extends InventoryType<Record<string, never>>
 
   /**
    * Get a single warehouse by ID.
+   * Returns null if warehouse doesn't exist.
    */
-  warehouse(args: { id: string }) {
+  async warehouse(args: { id: string }) {
+    const warehouse = await this.$ctx.loaders.warehouse.load(args.id);
+    if (!warehouse) {
+      return null;
+    }
     return new WarehouseResolver(args.id, this.$ctx);
   }
 
