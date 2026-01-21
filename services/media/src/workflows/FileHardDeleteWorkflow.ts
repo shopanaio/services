@@ -38,12 +38,20 @@ export class FileHardDeleteWorkflow extends BrokerWorkflows {
     const fileDeletionStateRepo = this.repository.fileDeletionState;
     const s3ObjectRepo = this.repository.s3Object;
     const bucketRepo = this.repository.bucket;
+    const assetGroupRepo = this.repository.assetGroup;
 
     // Get file and its deletion state
     const file = await fileRepo.findAnyById(fileId);
     if (!file) {
       this.logger.debug(`File ${fileId} not found, skipping`);
       return { deleted: false, skipped: "file_not_found" };
+    }
+
+    // Get asset group for event context (must be done before file deletion)
+    const assetGroup = await assetGroupRepo.findById(file.assetGroupId);
+    if (!assetGroup) {
+      this.logger.debug(`Asset group ${file.assetGroupId} not found, skipping`);
+      return { deleted: false, skipped: "asset_group_not_found" };
     }
 
     const deletionState = await fileDeletionStateRepo.findByFileId(fileId);
@@ -124,7 +132,11 @@ export class FileHardDeleteWorkflow extends BrokerWorkflows {
         this.logger.log(`hardDelete skipped: file ${fileId} already deleted`);
       }
 
-      await this.startCleanupWorkflow(fileId);
+      await this.startCleanupWorkflow({
+        fileId,
+        ownerId: assetGroup.ownerId,
+        ownerType: assetGroup.ownerType,
+      });
 
       return { deleted: true };
     } catch (error: unknown) {
@@ -147,13 +159,13 @@ export class FileHardDeleteWorkflow extends BrokerWorkflows {
   }
 
   @WorkflowStep({ retriesAllowed: false })
-  private async startCleanupWorkflow(fileId: string): Promise<void> {
+  private async startCleanupWorkflow(input: FileDeleteCleanupInput): Promise<void> {
     await this.broker.runWorkflow(
       "media.fileDeleteCleanup",
-      fileId,
+      input,
       {
         source: "workflow",
-        workflowId: FileHardDeleteWorkflow.workflowID(fileId),
+        workflowId: FileHardDeleteWorkflow.workflowID(input.fileId),
         stepId: "startCleanup",
       }
     );
@@ -165,4 +177,4 @@ export class FileHardDeleteWorkflow extends BrokerWorkflows {
 }
 
 // Import at the end to avoid circular dependency
-import { FileDeleteCleanupWorkflow } from "./FileDeleteCleanupWorkflow.js";
+import { FileDeleteCleanupWorkflow, type FileDeleteCleanupInput } from "./FileDeleteCleanupWorkflow.js";

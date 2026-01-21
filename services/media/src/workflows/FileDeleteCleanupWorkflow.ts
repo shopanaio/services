@@ -7,7 +7,14 @@ import {
   ServiceBroker,
 } from "@shopana/shared-kernel";
 import { Error as DBOSErrors } from "@dbos-inc/dbos-sdk";
-import type { Inventory } from "@shopana/broker-types";
+
+export interface FileDeleteCleanupInput {
+  fileId: string;
+  /** Owner ID from the asset group (organization/store/user) */
+  ownerId: string;
+  /** Owner type from the asset group */
+  ownerType: string;
+}
 
 export interface FileDeleteCleanupOutput {
   success: boolean;
@@ -23,18 +30,18 @@ export class FileDeleteCleanupWorkflow extends BrokerWorkflows {
   /**
    * Deterministic workflow ID for deduplication.
    */
-  static workflowID(fileId: string): string {
-    return `file:cleanup:${fileId}`;
+  static workflowID(input: FileDeleteCleanupInput): string {
+    return `file:cleanup:${input.fileId}`;
   }
 
   @Workflow("fileDeleteCleanup")
-  async run(fileId: string): Promise<FileDeleteCleanupOutput> {
+  async run(input: FileDeleteCleanupInput): Promise<FileDeleteCleanupOutput> {
     try {
-      await this.notifyInventory(fileId);
+      await this.emitFileHardDeleted(input);
       return { success: true };
     } catch (error) {
       if (error instanceof DBOSErrors.DBOSMaxStepRetriesError) {
-        await this.markNeedsAttention(fileId, error);
+        await this.markNeedsAttention(input.fileId, error);
         return { success: false, needsAttention: true };
       }
       throw error;
@@ -44,15 +51,20 @@ export class FileDeleteCleanupWorkflow extends BrokerWorkflows {
   @WorkflowStep({
     retry: { maxAttempts: 10, intervalSeconds: 60, backoffRate: 2 },
   })
-  private async notifyInventory(fileId: string): Promise<void> {
-    const result = await this.broker.call<Inventory.FileHardDeletedResult, Inventory.FileHardDeletedParams>(
-      "inventory.fileHardDeleted",
-      { fileId },
-    );
-    this.logger.log(
-      { fileId, deletedCount: result.deletedCount },
-      "Inventory notified"
-    );
+  private async emitFileHardDeleted(input: FileDeleteCleanupInput): Promise<void> {
+    const { fileId, ownerId, ownerType } = input;
+
+    await this.broker.emit("fileHardDeleted", {
+      payload: { fileId },
+      context: {
+        tenantId: ownerId,
+      },
+      subject: { type: "file", id: fileId },
+      actor: { type: "service" },
+      emitKey: `file:hardDeleted:${fileId}`,
+    });
+
+    this.logger.log({ fileId, ownerType, ownerId }, "FileHardDeleted event emitted");
   }
 
   @WorkflowStep()

@@ -130,6 +130,14 @@ export interface StoreDeletedEvent
     }
   > {}
 
+export interface FileHardDeletedEvent
+  extends DomainEvent<
+    "fileHardDeleted",
+    {
+      fileId: string;
+    }
+  > {}
+
 export type ShopanaEvent =
   | ProductCreatedEvent
   | ProductDeletedEvent
@@ -137,6 +145,7 @@ export type ShopanaEvent =
   | OrderCreatedEvent
   | OrderCompletedEvent
   | StoreCreatedEvent
-  | StoreDeletedEvent;
+  | StoreDeletedEvent
+  | FileHardDeletedEvent;
 
 export type EventType = ShopanaEvent["eventType"];
