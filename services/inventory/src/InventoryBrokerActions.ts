@@ -11,11 +11,6 @@ import {
   type GetOffersParams,
   type GetOffersResult,
 } from "./scripts/GetOffersScript.js";
-import {
-  FileHardDeletedScript,
-  type FileHardDeletedParams,
-  type FileHardDeletedResult,
-} from "./scripts/media/FileHardDeletedScript.js";
 
 /**
  * Inventory broker actions registered with @Action decorator.
@@ -38,15 +33,5 @@ export class InventoryBrokerActions extends BrokerActions {
   @Action("getOffers")
   async getOffers(params: GetOffersParams): Promise<GetOffersResult> {
     return this.kernel.runScript(GetOffersScript, params);
-  }
-
-  /**
-   * Action: fileHardDeleted - cleanup variant media for a hard-deleted file
-   */
-  @Action("fileHardDeleted")
-  async fileHardDeleted(
-    params: FileHardDeletedParams
-  ): Promise<FileHardDeletedResult> {
-    return this.kernel.runScript(FileHardDeletedScript, params);
   }
 }
