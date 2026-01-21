@@ -81,8 +81,6 @@ export function SagaStep(config: SagaStepConfig = {}): MethodDecorator {
         try {
           stepResult = await DBOS.runStep<InternalStepResult<unknown>>(
             async () => {
-              ctx.recordAttempt(methodName);
-
               try {
                 const result = await withTimeout(
                   originalMethod.apply(this, args),
@@ -117,7 +115,6 @@ export function SagaStep(config: SagaStepConfig = {}): MethodDecorator {
 
           if (!isCritical) {
             logger.warn(`Non-critical step ${stepName} failed, continuing saga`);
-            ctx.recordWarning(stepName, lastError.message);
             return undefined;
           }
 
@@ -133,7 +130,6 @@ export function SagaStep(config: SagaStepConfig = {}): MethodDecorator {
 
           if (!isCritical) {
             logger.warn(`Non-critical step ${stepName} failed, continuing saga`);
-            ctx.recordWarning(stepName, failureError.message);
             return undefined;
           }
 
@@ -175,7 +171,7 @@ export function Saga(
           throw new Error("Saga must be executed within a DBOS workflow context");
         }
         const ctx = new SagaExecutionContext(sagaId);
-        const compensationErrors: Error[] = [];
+        let compensationFailed = false;
 
         const compensationRetryPolicy =
           config?.compensationRetryPolicy ?? DEFAULT_COMPENSATION_RETRY;
@@ -188,7 +184,6 @@ export function Saga(
                 step,
                 method,
                 error: err.message,
-                compAttempts: context.compAttempts,
               },
               "Compensation exhausted - manual intervention required",
             );
@@ -203,13 +198,7 @@ export function Saga(
             success: true,
             status: "completed" as SagaStatus,
             data: result,
-            attempts: ctx.getAttempts(),
-            compAttempts: {},
-            succeededSteps: ctx.getSucceededSteps(),
-            compensatedSteps: [],
             compensated: false,
-            compensationErrors: [],
-            warnings: ctx.getWarnings(),
           };
         } catch (error) {
           const stepError = error instanceof StepExecutionError ? error : null;
@@ -249,10 +238,8 @@ export function Saga(
                 this,
                 step,
                 compensateMethodName,
-                ctx,
                 compensationRetryPolicy,
               );
-              ctx.markCompensated(step.method);
               logger.debug(`Compensated: ${step.method}`);
             } catch (compError) {
               await onCompensationExhausted(
@@ -262,16 +249,13 @@ export function Saga(
                 {
                   sagaId: ctx.sagaId,
                   args: step.args,
-                  compAttempts: ctx.getCompAttemptCount(step.method),
                 },
               );
-              compensationErrors.push(compError as Error);
+              compensationFailed = true;
             }
           }
 
-          const status: SagaStatus =
-            compensationErrors.length > 0 ? "failed" : "compensated";
-
+          const status: SagaStatus = compensationFailed ? "failed" : "compensated";
           const originalError = stepError?.cause ?? (error as Error);
 
           return {
@@ -279,13 +263,7 @@ export function Saga(
             status,
             error: toOperationError(originalError),
             failedStep: ctx.getFailedStep(),
-            attempts: ctx.getAttempts(),
-            compAttempts: ctx.getCompAttempts(),
-            succeededSteps: ctx.getSucceededSteps(),
-            compensatedSteps: ctx.getCompensatedSteps(),
-            compensated: compensationErrors.length === 0,
-            compensationErrors: compensationErrors.map(toOperationError),
-            warnings: ctx.getWarnings(),
+            compensated: !compensationFailed,
           };
         }
       };
@@ -307,12 +285,10 @@ async function executeCompensationWithRetry(
   instance: Record<string, (...args: unknown[]) => Promise<unknown>>,
   step: ExecutedStep,
   methodName: string,
-  ctx: SagaExecutionContext,
   policy: RetryPolicy,
 ): Promise<void> {
   await DBOS.runStep(
     async () => {
-      ctx.recordCompAttempt(step.method);
       await instance[methodName](...step.args);
     },
     {

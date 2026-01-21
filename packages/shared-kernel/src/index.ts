@@ -139,7 +139,6 @@ export type {
   // Unified contracts
   OperationError,
   OperationResult,
-  WorkflowResult,
   RetryPolicy,
   // Saga-specific
   SagaResult,
@@ -153,3 +152,6 @@ export type {
   // Backward compatibility
   ErrorInfo,
 } from "./saga/index";
+
+// Export WorkflowResult from workflow/types directly
+export type { WorkflowResult, WorkflowStatus } from "./workflow/types";

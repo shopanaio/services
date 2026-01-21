@@ -15,45 +15,17 @@ import {
 } from "../types";
 
 describe("SagaExecutionContext", () => {
-  it("tracks executed steps", () => {
+  it("tracks executed steps for compensation", () => {
     const ctx = new SagaExecutionContext("saga-123");
 
     ctx.recordStep("createStore", "createStore", ["id-1", { name: "test" }], {});
     ctx.recordStep("createRoles", "createRoles", ["id-1"], {});
 
-    expect(ctx.getSucceededSteps()).toEqual(["createStore", "createRoles"]);
-    expect(ctx.getStepsToCompensate()).toHaveLength(2);
-    expect(ctx.getStepsToCompensate()[0].method).toBe("createRoles");
-  });
-
-  it("tracks attempts", () => {
-    const ctx = new SagaExecutionContext("saga-123");
-
-    ctx.recordAttempt("step1");
-    ctx.recordAttempt("step1");
-    ctx.recordAttempt("step2");
-
-    expect(ctx.getAttempts()).toEqual({ step1: 2, step2: 1 });
-  });
-
-  it("tracks compensation attempts", () => {
-    const ctx = new SagaExecutionContext("saga-123");
-
-    ctx.recordCompAttempt("step1");
-    ctx.recordCompAttempt("step1");
-
-    expect(ctx.getCompAttemptCount("step1")).toBe(2);
-    expect(ctx.getCompAttempts()).toEqual({ step1: 2 });
-  });
-
-  it("tracks warnings", () => {
-    const ctx = new SagaExecutionContext("saga-123");
-
-    ctx.recordWarning("step1", "Service unavailable");
-
-    expect(ctx.getWarnings()).toEqual([
-      { step: "step1", message: "Service unavailable" },
-    ]);
+    const stepsToCompensate = ctx.getStepsToCompensate();
+    expect(stepsToCompensate).toHaveLength(2);
+    // Reverse order for compensation
+    expect(stepsToCompensate[0].method).toBe("createRoles");
+    expect(stepsToCompensate[1].method).toBe("createStore");
   });
 
   it("tracks failed step", () => {
@@ -62,6 +34,17 @@ describe("SagaExecutionContext", () => {
     ctx.recordFailure("step2");
 
     expect(ctx.getFailedStep()).toBe("step2");
+  });
+
+  it("stores step args for compensation", () => {
+    const ctx = new SagaExecutionContext("saga-123");
+    const args = ["id-1", { name: "test" }];
+
+    ctx.recordStep("createStore", "createStore", args, { compensate: "deleteStore" });
+
+    const steps = ctx.getStepsToCompensate();
+    expect(steps[0].args).toEqual(args);
+    expect(steps[0].config.compensate).toBe("deleteStore");
   });
 });
 
@@ -198,6 +181,14 @@ describe("toErrorInfo", () => {
     expect(info.name).toBe("FatalError");
     expect(info.message).toBe("Test error");
     expect(info.code).toBe("TEST_CODE");
+  });
+
+  it("includes retryable flag", () => {
+    const retryable = new RetryableError("network");
+    const fatal = new FatalError("validation");
+
+    expect(toErrorInfo(retryable).retryable).toBe(true);
+    expect(toErrorInfo(fatal).retryable).toBe(false);
   });
 
   it("omits stack in production", () => {

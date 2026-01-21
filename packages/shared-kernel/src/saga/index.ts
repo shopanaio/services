@@ -26,7 +26,6 @@ export type {
   // Base contracts (from workflow/types)
   OperationError,
   OperationResult,
-  WorkflowResult,
   RetryPolicy,
   // Saga-specific
   SagaResult,

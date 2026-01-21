@@ -6,13 +6,12 @@
 import {
   type OperationError,
   type OperationResult,
-  type WorkflowResult,
   type RetryPolicy,
   toOperationError,
 } from "../workflow/types.js";
 
 // Re-export base types for convenience
-export type { OperationError, OperationResult, WorkflowResult, RetryPolicy };
+export type { OperationError, OperationResult, RetryPolicy };
 export { toOperationError };
 
 // ============================================================================
@@ -50,20 +49,14 @@ export type SagaStatus =
   | "failed";
 
 /**
- * Saga result extends WorkflowResult with compensation tracking.
+ * Saga result - simplified.
  */
-export interface SagaResult<TOutput = unknown> extends Omit<WorkflowResult<TOutput>, "status"> {
+export interface SagaResult<TOutput = unknown> extends OperationResult<TOutput> {
   status: SagaStatus;
-  /** Attempt count per compensation (for metrics/debugging) */
-  compAttempts: Record<string, number>;
-  /** Steps that succeeded */
-  succeededSteps: string[];
-  /** Steps that were successfully compensated */
-  compensatedSteps: string[];
+  /** Step where the failure occurred */
+  failedStep?: string;
   /** Whether all compensations succeeded */
   compensated: boolean;
-  /** Compensation errors (serializable) */
-  compensationErrors: OperationError[];
 }
 
 // ============================================================================
@@ -133,8 +126,6 @@ export type OnCompensationExhausted = (
   context: {
     sagaId: string;
     args: unknown[];
-    /** Number of compensation attempts */
-    compAttempts: number;
   },
 ) => void | Promise<void>;
 
