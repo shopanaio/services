@@ -14,13 +14,13 @@ import type { ServiceBroker } from "../broker/ServiceBroker.js";
  * - Automatic service name resolution from broker
  *
  * @example
- * class OrderSaga extends BrokerSaga<OrderInput, SagaResult<OrderOutput>> {
+ * class OrderSaga extends BrokerSaga<OrderInput, OrderOutput> {
  *   constructor(broker: ServiceBroker) {
  *     super(broker);
  *   }
  *
  *   @Saga("createOrder")
- *   async run(input: OrderInput): Promise<SagaResult<OrderOutput>> {
+ *   async run(input: OrderInput): Promise<OrderOutput> {
  *     const reservation = await this.reserveInventory(input);
  *     const payment = await this.processPayment(input, reservation);
  *     return { orderId: payment.orderId };

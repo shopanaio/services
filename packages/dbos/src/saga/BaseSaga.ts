@@ -7,7 +7,6 @@ import { Logger, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
 import { ConfiguredInstance } from "@dbos-inc/dbos-sdk";
 import "reflect-metadata";
 import { SAGA_DEFINITION_KEY } from "./decorators.js";
-import type { SagaResult } from "../core/types.js";
 import type { WorkflowRegistrar, WorkflowDescriptor } from "../workflow/BaseWorkflow.js";
 
 /**
@@ -25,7 +24,7 @@ import type { WorkflowRegistrar, WorkflowDescriptor } from "../workflow/BaseWork
  *   }
  *
  *   @Saga("createOrder")
- *   async run(input: OrderInput): Promise<SagaResult<OrderResult>> {
+ *   async run(input: OrderInput): Promise<OrderResult> {
  *     const reservation = await this.reserveInventory(input);
  *     const payment = await this.processPayment(input, reservation);
  *     return { orderId: payment.orderId };
@@ -66,7 +65,7 @@ export abstract class BaseSaga<TInput, TOutput>
   }
 
   /** Saga entry point - must be decorated with @Saga("name") */
-  abstract run(input: TInput): Promise<SagaResult<TOutput>>;
+  abstract run(input: TInput): Promise<TOutput>;
 
   onModuleInit(): void {
     this.registerSaga();

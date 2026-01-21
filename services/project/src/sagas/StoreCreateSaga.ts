@@ -155,7 +155,7 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
     );
   }
 
-  @SagaStep({ critical: false })
+  @SagaStep()
   private async createMediaAssetGroup(id: string): Promise<void> {
     const result = await this.broker.call<
       Media.CreateAssetGroupResult,
@@ -171,7 +171,7 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
     }
   }
 
-  @SagaStep({ critical: false })
+  @SagaStep()
   private async emitStoreCreated(id: string, input: StoreCreateInput): Promise<void> {
     await this.broker.emit("storeCreated", {
       payload: {
