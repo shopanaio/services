@@ -84,8 +84,15 @@ export interface SagaStepConfig {
   /**
    * Retry policy for transient errors.
    * Fatal errors skip retry and trigger immediate compensation.
+   * DBOS handles retry automatically - throw error to retry, return to stop.
    */
   retry?: RetryPolicy;
+  /**
+   * Step execution timeout in milliseconds.
+   * If exceeded, step fails with StepTimeoutError (non-retryable).
+   * Default: 30000 (30 seconds)
+   */
+  timeoutMs?: number;
 }
 
 /** Метаданные шага с компенсацией */
@@ -190,6 +197,51 @@ export class StepExecutionError extends Error {
     super(`Step "${stepName}" failed: ${cause.message}`, { cause });
     this.name = "StepExecutionError";
   }
+}
+
+/**
+ * Step timeout error - non-retryable.
+ * Thrown when step execution exceeds configured timeoutMs.
+ */
+export class StepTimeoutError extends FatalError {
+  constructor(stepName: string, timeoutMs: number) {
+    super(`Step "${stepName}" timed out after ${timeoutMs}ms`);
+    this.name = "StepTimeoutError";
+    this.code = "STEP_TIMEOUT";
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Timeout Helper
+// ─────────────────────────────────────────────────────────────────
+
+/** Default step execution timeout */
+export const DEFAULT_STEP_TIMEOUT_MS = 30_000; // 30 seconds
+
+/**
+ * Wraps a promise with timeout.
+ * Throws StepTimeoutError if timeout exceeded.
+ */
+export function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  stepName: string,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new StepTimeoutError(stepName, timeoutMs));
+    }, timeoutMs);
+
+    promise
+      .then((result) => {
+        clearTimeout(timer);
+        resolve(result);
+      })
+      .catch((error) => {
+        clearTimeout(timer);
+        reject(error);
+      });
+  });
 }
 
 /**
@@ -468,10 +520,11 @@ import {
   SagaStepConfig,
   SagaStepMetadata,
   SagaExecutorConfig,
-  RetryPolicy,
   StepExecutionError,
+  StepTimeoutError,
   isRetryableError,
-  addJitter,
+  withTimeout,
+  DEFAULT_STEP_TIMEOUT_MS,
   DEFAULT_COMPENSATION_RETRY,
 } from "./types.js";
 
@@ -488,15 +541,23 @@ function capitalize(str: string): string {
  * @SagaStep() — маркирует метод как durable шаг саги.
  *
  * При вызове:
- * 1. Выполняет метод (с retry при transient errors)
- * 2. Записывает { method, args, result, config } в контекст
- * 3. При ошибке в саге — вызывается compensate{MethodName}(...args)
+ * 1. Выполняет метод с timeout
+ * 2. DBOS handles retry automatically (throw = retry, return = stop)
+ * 3. Записывает { method, args, config } в контекст
+ * 4. При ошибке в саге — вызывается compensate{MethodName}(...args)
  *
  * Configuration options:
  * - name: Step name for logging (default: method name)
  * - critical: If false, error doesn't stop saga (default: true)
  * - compensate: Override compensation method name
- * - retry: Retry policy for transient errors
+ * - retry: Retry policy for transient errors (DBOS handles automatically)
+ * - timeoutMs: Step execution timeout (default: 30000ms)
+ *
+ * Error handling pattern (like EventDispatchWorkflow):
+ * - return result → success, no retry
+ * - throw FatalError → fail immediately, trigger compensation
+ * - throw RetryableError → DBOS retries according to policy
+ * - throw StepTimeoutError → fail immediately (timeout is non-retryable)
  *
  * @example
  * @SagaStep({ critical: true })
@@ -506,14 +567,14 @@ function capitalize(str: string): string {
  *
  * @SagaStep({
  *   retry: { maxAttempts: 3, intervalSeconds: 1, backoffRate: 2 },
+ *   timeoutMs: 10_000,
  * })
  * private async createRoles(id: string, input: Input): Promise<void> {
- *   await this.broker.call("iam.createRoles", { domain: `store:${id}` });
- * }
- *
- * // Compensation receives same args
- * async compensateCreateStore(id: string): Promise<void> {
- *   await this.kernel.repository.store.delete(id);
+ *   const resp = await this.broker.call("iam.createRoles", { domain: `store:${id}` });
+ *   if (!resp.ok) {
+ *     if (!resp.error.retryable) throw new FatalError(resp.error.message);
+ *     throw new RetryableError(resp.error.message); // DBOS will retry
+ *   }
  * }
  */
 export function SagaStep(config: SagaStepConfig = {}): MethodDecorator {
@@ -522,6 +583,8 @@ export function SagaStep(config: SagaStepConfig = {}): MethodDecorator {
     const methodName = propertyKey as string;
     const stepName = config.name ?? methodName;
     const compensateMethod = config.compensate ?? `compensate${capitalize(methodName)}`;
+    const timeoutMs = config.timeoutMs ?? DEFAULT_STEP_TIMEOUT_MS;
+    const isCritical = config.critical !== false; // default: true
 
     // Store metadata for BrokerSaga to collect
     const existingSteps: SagaStepMetadata[] = Reflect.getMetadata(SAGA_STEP_KEY, target) || [];
@@ -532,77 +595,91 @@ export function SagaStep(config: SagaStepConfig = {}): MethodDecorator {
     };
     Reflect.defineMetadata(SAGA_STEP_KEY, [...existingSteps, metadata], target);
 
+    // Retry policy for DBOS (default: no retry)
+    const retryPolicy = config.retry ?? { maxAttempts: 1, intervalSeconds: 0, backoffRate: 1 };
+
     (descriptor as any).value = async function(...args: unknown[]) {
       const ctx = getSagaContext();
-      const policy = config.retry ?? { maxAttempts: 1, intervalSeconds: 0, backoffRate: 1 };
-      const isCritical = config.critical !== false; // default: true
 
-      let lastError: Error | undefined;
-      let interval = policy.intervalSeconds * 1000;
+      // Result type for DBOS step - allows control over retry
+      type StepResult<T> =
+        | { kind: "ok"; data: T }
+        | { kind: "nonRetryableFailure"; error: Error }
+        | { kind: "timeout"; error: StepTimeoutError };
 
-      for (let attempt = 1; attempt <= policy.maxAttempts; attempt++) {
-        ctx.recordAttempt(methodName);
+      let stepResult: StepResult<unknown>;
 
-        try {
-          // Выполняем шаг
-          const result = await originalMethod.apply(this, args);
+      try {
+        stepResult = await DBOS.runStep<StepResult<unknown>>(
+          async () => {
+            ctx.recordAttempt(methodName);
 
-          // Записываем успешный шаг (args для компенсации, result не храним)
-          ctx.recordStep(methodName, stepName, args, { ...config, name: stepName });
+            try {
+              // Execute with timeout
+              const result = await withTimeout(
+                originalMethod.apply(this, args),
+                timeoutMs,
+                stepName,
+              );
 
-          return result;
-        } catch (error) {
-          lastError = error as Error;
+              return { kind: "ok", data: result };
+            } catch (error) {
+              // Timeout is non-retryable
+              if (error instanceof StepTimeoutError) {
+                return { kind: "timeout", error };
+              }
 
-          // FatalError or unknown → no retry
-          if (!isRetryableError(error)) {
-            logger.debug(`Step ${stepName} failed with non-retryable error, no retry`);
+              // FatalError or unknown → non-retryable
+              if (!isRetryableError(error)) {
+                return { kind: "nonRetryableFailure", error: error as Error };
+              }
 
-            // Non-critical step: log warning, don't throw
-            if (!isCritical) {
-              logger.warn(`Non-critical step ${stepName} failed, continuing saga`, error);
-              ctx.recordWarning(stepName, lastError.message);
-              return undefined; // Saga continues
+              // RetryableError → throw so DBOS retries
+              throw error;
             }
+          },
+          {
+            name: `step:${stepName}:${ctx.sagaId}`,
+            retriesAllowed: retryPolicy.maxAttempts > 1,
+            maxAttempts: retryPolicy.maxAttempts,
+            intervalSeconds: retryPolicy.intervalSeconds,
+            backoffRate: retryPolicy.backoffRate,
+          },
+        );
+      } catch (error) {
+        // All retries exhausted (RetryableError)
+        const lastError = error as Error;
+        logger.warn(`Step ${stepName} failed after retries exhausted`);
 
-            // Wrap in StepExecutionError for observability
-            throw new StepExecutionError(stepName, methodName, lastError);
-          }
-
-          // Last attempt
-          if (attempt === policy.maxAttempts) {
-            logger.warn(`Step ${stepName} failed after ${attempt} attempts`);
-
-            // Non-critical step: log warning, don't throw
-            if (!isCritical) {
-              logger.warn(`Non-critical step ${stepName} exhausted retries, continuing saga`);
-              ctx.recordWarning(stepName, lastError.message);
-              return undefined; // Saga continues
-            }
-
-            // Wrap in StepExecutionError for observability
-            throw new StepExecutionError(stepName, methodName, lastError);
-          }
-
-          // Wait before retry with deterministic jitter
-          const jitterSeed = `${ctx.sagaId}:${stepName}:${attempt}`;
-          const jitteredInterval = addJitter(interval, jitterSeed);
-          logger.debug(`Step ${stepName} attempt ${attempt} failed, retrying in ${jitteredInterval}ms`);
-
-          // DBOS.sleep() is durable - recorded for deterministic replay
-          await DBOS.sleep(jitteredInterval);
-          interval *= policy.backoffRate;
+        if (!isCritical) {
+          logger.warn(`Non-critical step ${stepName} failed, continuing saga`);
+          ctx.recordWarning(stepName, lastError.message);
+          return undefined;
         }
+
+        throw new StepExecutionError(stepName, methodName, lastError);
       }
 
-      throw lastError;
+      // Handle non-retryable failures
+      if (stepResult.kind === "timeout" || stepResult.kind === "nonRetryableFailure") {
+        const failureError = stepResult.error;
+        logger.debug(`Step ${stepName} failed with non-retryable error`);
+
+        if (!isCritical) {
+          logger.warn(`Non-critical step ${stepName} failed, continuing saga`);
+          ctx.recordWarning(stepName, failureError.message);
+          return undefined;
+        }
+
+        throw new StepExecutionError(stepName, methodName, failureError);
+      }
+
+      // Success - record step for compensation
+      ctx.recordStep(methodName, stepName, args, { ...config, name: stepName });
+      return stepResult.data;
     };
 
-    // DBOS.step for durability - NO RETRIES here (handled above)
-    return DBOS.step({
-      retriesAllowed: false,
-      maxAttempts: 1,
-    })(target, propertyKey as string, descriptor);
+    return descriptor;
   };
 }
 
@@ -1008,24 +1085,24 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
 
   @SagaStep({
     retry: { maxAttempts: 3, intervalSeconds: 1, backoffRate: 2 },
+    timeoutMs: 10_000, // 10 second timeout
   })
   private async createRoles(id: string, input: StoreCreateInput): Promise<void> {
-    let result: IAM.CreateRolesResult;
+    // Pattern: return = success/fatal, throw RetryableError = DBOS retries
+    const result = await this.broker.call<IAM.CreateRolesResult>(
+      "iam.createRoles",
+      { domain: `store:${id}` },
+    );
 
-    try {
-      result = await this.broker.call<IAM.CreateRolesResult>(
-        "iam.createRoles",
-        { domain: `store:${id}` },
-      );
-    } catch (error) {
-      // Network error → retryable
-      throw new RetryableError("IAM service unavailable", error as Error);
+    if (result.ok) return; // Success
+
+    if (!result.error.retryable) {
+      // Business error → fatal, no retry, immediate compensation
+      throw new FatalError(result.error.message || "Failed to create roles");
     }
 
-    if (!result.success) {
-      // Business error → fatal, no retry
-      throw new FatalError(result.error || "Failed to create roles");
-    }
+    // Transient error → throw so DBOS retries automatically
+    throw new RetryableError(result.error.message, result.error);
   }
 
   @SagaStep({
@@ -1157,9 +1234,11 @@ export {
   RetryableError,
   FatalError,
   StepExecutionError,
+  StepTimeoutError,
   isRetryableError,
   toErrorInfo,
   addJitter,
+  DEFAULT_STEP_TIMEOUT_MS,
 } from "./types.js";
 ```
 
@@ -1184,7 +1263,8 @@ export {
 | `name` | `string` | method name | Step name for logging and identification |
 | `critical` | `boolean` | `true` | If `false`, error doesn't stop saga (logged as warning) |
 | `compensate` | `string \| false` | `compensate{MethodName}` | Compensation method name, or `false` to disable |
-| `retry` | `RetryPolicy` | `{ maxAttempts: 1 }` | Retry policy for transient errors |
+| `retry` | `RetryPolicy` | `{ maxAttempts: 1 }` | Retry policy for transient errors (DBOS handles automatically) |
+| `timeoutMs` | `number` | `30000` | Step execution timeout in milliseconds |
 
 ### Поведение опций
 
@@ -1255,22 +1335,37 @@ private async sendWelcomeEmail(...) { }
 | `false` | Skip | Fire-and-forget (email, analytics, audit) |
 
 #### `retry`
-Retry policy применяется только к `RetryableError`:
+DBOS handles retry automatically. Pattern (like EventDispatchWorkflow):
+- `return result` → success, no retry
+- `throw FatalError` → fail immediately, trigger compensation
+- `throw RetryableError` → DBOS retries according to policy
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │ @SagaStep({ retry: { maxAttempts: 3, intervalSeconds: 1, backoffRate: 2 } })
 │
-│ Attempt 1 ──▶ RetryableError ──▶ sleep(1s + jitter)
-│ Attempt 2 ──▶ RetryableError ──▶ sleep(2s + jitter)
-│ Attempt 3 ──▶ RetryableError ──▶ FAIL → compensation
+│ Attempt 1 ──▶ throw RetryableError ──▶ DBOS waits 1s
+│ Attempt 2 ──▶ throw RetryableError ──▶ DBOS waits 2s
+│ Attempt 3 ──▶ throw RetryableError ──▶ FAIL → compensation
 │
-│ Attempt 1 ──▶ FatalError ──▶ FAIL → compensation (no retry!)
-│ Attempt 1 ──▶ Success ──▶ continue
+│ Attempt 1 ──▶ return { kind: "nonRetryableFailure" } ──▶ FAIL → compensation (no retry!)
+│ Attempt 1 ──▶ return { kind: "ok" } ──▶ continue
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-Jitter добавляется детерминистично (±25%) для предотвращения thundering herd.
+#### `timeoutMs`
+Step execution timeout. If exceeded, step fails with `StepTimeoutError` (non-retryable).
+
+```typescript
+@SagaStep({
+  timeoutMs: 10_000,  // 10 seconds
+  retry: { maxAttempts: 3, intervalSeconds: 1, backoffRate: 2 },
+})
+private async callExternalService(): Promise<void> {
+  // If this takes > 10s, StepTimeoutError is thrown (no retry)
+  await this.broker.call("external.slowOperation", {});
+}
+```
 
 ### RetryPolicy
 
@@ -1401,27 +1496,27 @@ DLQ entries можно мониторить через `events.getDLQEntries` и
 ### Example usage in step
 
 ```typescript
-// Step with retry policy for transient errors
+// Step with retry policy and timeout (pattern from EventDispatchWorkflow)
 @SagaStep({
   retry: { maxAttempts: 3, intervalSeconds: 1, backoffRate: 2 },
+  timeoutMs: 10_000, // 10 second timeout
 })
 private async createRoles(id: string, input: Input): Promise<void> {
-  let result: IAM.CreateRolesResult;
+  // DBOS handles retry: throw = retry, return = stop
+  const result = await this.broker.call<IAM.CreateRolesResult>(
+    "iam.createRoles",
+    { domain: `store:${id}` },
+  );
 
-  try {
-    result = await this.broker.call<IAM.CreateRolesResult>(
-      "iam.createRoles",
-      { domain: `store:${id}` },
-    );
-  } catch (error) {
-    // Network error → retryable (will retry up to 3 times)
-    throw new RetryableError("IAM service unavailable", error);
-  }
+  if (result.ok) return; // Success - no retry
 
-  if (!result.success) {
+  if (!result.error.retryable) {
     // Business error → fatal, immediate compensation (no retry)
-    throw new FatalError(result.error, undefined, "ROLE_CREATE_FAILED");
+    throw new FatalError(result.error.message, undefined, "ROLE_CREATE_FAILED");
   }
+
+  // Transient error → throw so DBOS retries automatically
+  throw new RetryableError(result.error.message);
 }
 
 async compensateCreateRoles(id: string): Promise<void> {
@@ -1429,7 +1524,7 @@ async compensateCreateRoles(id: string): Promise<void> {
 }
 
 // Non-critical step - continues saga on failure
-@SagaStep({ critical: false })
+@SagaStep({ critical: false, timeoutMs: 5_000 })
 private async sendNotification(id: string): Promise<void> {
   await this.broker.call("notifications.send", { storeId: id });
 }
