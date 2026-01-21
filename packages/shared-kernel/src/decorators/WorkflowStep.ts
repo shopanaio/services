@@ -7,7 +7,7 @@ import {
   isRetryableError,
   withTimeout,
   DEFAULT_STEP_TIMEOUT_MS,
-} from "../saga/types.js";
+} from "../workflow/types.js";
 
 export const WORKFLOW_STEP_METADATA_KEY = Symbol("broker:workflowStep");
 

@@ -127,19 +127,24 @@ export class EventDispatchWorkflow extends BrokerWorkflows {
             );
             const durationMs = Date.now() - startTime;
 
-            if (resp.ok) {
+            // Support both new (success) and legacy (ok) response formats
+            const isSuccess = "success" in resp ? resp.success : resp.ok;
+
+            if (isSuccess) {
               return { kind: "ok", durationMs };
             }
 
-            if (!resp.error.retryable) {
+            // Error case - both formats have error field
+            const error = resp.error;
+            if (!error.retryable) {
               return {
                 kind: "nonRetryableFailure",
-                error: { message: resp.error.message, code: resp.error.code },
+                error: { message: error.message, code: error.code },
                 durationMs,
               };
             }
 
-            throw new Error(resp.error.message);
+            throw new Error(error.message);
           } catch (error) {
             const durationMs = Date.now() - startTime;
 

@@ -18,7 +18,18 @@ export interface EventContext {
   causationId?: string;
 }
 
-export type EventHandlerResponse =
+/**
+ * Response from an event handler.
+ * Uses unified OperationResult pattern with retryable error classification.
+ */
+export type EventHandlerResponse<T = void> =
+  | { success: true; data?: T }
+  | { success: false; error: { message: string; code?: string; retryable: boolean } };
+
+/**
+ * @deprecated Use EventHandlerResponse with success/error pattern
+ */
+export type LegacyEventHandlerResponse =
   | { ok: true }
   | { ok: false; error: { message: string; code?: string; retryable: boolean } };
 

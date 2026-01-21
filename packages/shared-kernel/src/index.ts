@@ -120,25 +120,36 @@ export {
   getSagaContext,
   DEFAULT_COMPENSATION_RETRY,
   DEFAULT_STEP_TIMEOUT_MS,
+  // Error classes (unified)
   SagaError,
+  OperationException,
   RetryableError,
   FatalError,
   StepExecutionError,
   StepTimeoutError,
+  // Helpers
   isRetryableError,
-  toErrorInfo,
+  toOperationError,
   withTimeout,
+  // Backward compatibility
+  toErrorInfo,
 } from "./saga/index";
 
 export type {
+  // Unified contracts
+  OperationError,
+  OperationResult,
+  WorkflowResult,
+  RetryPolicy,
+  // Saga-specific
   SagaResult,
   SagaStatus,
   StepResult,
-  RetryPolicy,
-  ErrorInfo,
   ExecutedStep,
   SagaStepConfig,
   SagaStepMetadata,
   SagaExecutorConfig,
   OnCompensationExhausted,
+  // Backward compatibility
+  ErrorInfo,
 } from "./saga/index";

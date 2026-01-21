@@ -3,37 +3,44 @@
  * @description Types, interfaces, and error classes for the saga engine
  */
 
+import {
+  type OperationError,
+  type OperationResult,
+  type WorkflowResult,
+  type RetryPolicy,
+  toOperationError,
+} from "../workflow/types.js";
+
+// Re-export base types for convenience
+export type { OperationError, OperationResult, WorkflowResult, RetryPolicy };
+export { toOperationError };
+
+// ============================================================================
+// BACKWARD COMPATIBILITY
+// ============================================================================
+
+/**
+ * @deprecated Use OperationError instead
+ */
+export type ErrorInfo = OperationError;
+
+/**
+ * @deprecated Use toOperationError instead
+ */
+export const toErrorInfo = toOperationError;
+
 // ============================================================================
 // RESULT TYPES
 // ============================================================================
-
-/** Serializable error info (for API responses/logging) */
-export interface ErrorInfo {
-  name: string;
-  message: string;
-  code?: string;
-  stack?: string;
-}
-
-/** Convert Error to serializable shape */
-export function toErrorInfo(error: Error): ErrorInfo {
-  return {
-    name: error.name,
-    message: error.message,
-    code: (error as { code?: string }).code,
-    stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
-  };
-}
 
 /** Result of a saga step (fully serializable) */
 export interface StepResult<T = unknown> {
   success: boolean;
   data?: T;
-  /** Serializable error info (not Error object) */
-  error?: ErrorInfo;
+  error?: OperationError;
 }
 
-/** Saga execution status */
+/** Saga execution status (extends WorkflowStatus with compensation states) */
 export type SagaStatus =
   | "pending"
   | "running"
@@ -42,17 +49,11 @@ export type SagaStatus =
   | "compensated"
   | "failed";
 
-/** Saga result (fully serializable) */
-export interface SagaResult<TOutput = unknown> {
-  success: boolean;
+/**
+ * Saga result extends WorkflowResult with compensation tracking.
+ */
+export interface SagaResult<TOutput = unknown> extends Omit<WorkflowResult<TOutput>, "status"> {
   status: SagaStatus;
-  data?: TOutput;
-  /** Error info (serializable) */
-  error?: ErrorInfo;
-  /** Step where the failure occurred */
-  failedStep?: string;
-  /** Attempt count per step execution (for metrics/debugging) */
-  attempts: Record<string, number>;
   /** Attempt count per compensation (for metrics/debugging) */
   compAttempts: Record<string, number>;
   /** Steps that succeeded */
@@ -62,21 +63,12 @@ export interface SagaResult<TOutput = unknown> {
   /** Whether all compensations succeeded */
   compensated: boolean;
   /** Compensation errors (serializable) */
-  compensationErrors: ErrorInfo[];
-  /** Warnings from non-critical steps */
-  warnings: Array<{ step: string; message: string }>;
+  compensationErrors: OperationError[];
 }
 
 // ============================================================================
 // RETRY POLICY
 // ============================================================================
-
-/** Retry policy (aligned with ActionMetadata from broker) */
-export interface RetryPolicy {
-  maxAttempts: number;
-  intervalSeconds: number;
-  backoffRate: number;
-}
 
 /** Default compensation retry policy */
 export const DEFAULT_COMPENSATION_RETRY: RetryPolicy = {
@@ -161,141 +153,21 @@ export interface SagaExecutorConfig {
 }
 
 // ============================================================================
-// ERROR CLASSIFICATION
+// RE-EXPORT ERROR CLASSES AND HELPERS FROM WORKFLOW/TYPES
 // ============================================================================
 
-/**
- * Base class for saga errors with retry classification.
- */
-export abstract class SagaError extends Error {
-  abstract readonly retryable: boolean;
-  /** Optional error code for API responses */
-  code?: string;
-}
+export {
+  OperationException,
+  RetryableError,
+  FatalError,
+  StepExecutionError,
+  StepTimeoutError,
+  isRetryableError,
+  withTimeout,
+  DEFAULT_STEP_TIMEOUT_MS,
+} from "../workflow/types.js";
 
 /**
- * Transient error - can be retried (network issues, timeouts, service unavailable).
+ * @deprecated Use OperationException instead
  */
-export class RetryableError extends SagaError {
-  readonly retryable = true;
-
-  constructor(message: string, cause?: Error) {
-    super(message, cause ? { cause } : undefined);
-    this.name = "RetryableError";
-    this.code = "RETRYABLE_ERROR";
-  }
-}
-
-/**
- * Fatal error - cannot be retried (validation, business logic, not found).
- */
-export class FatalError extends SagaError {
-  readonly retryable = false;
-
-  constructor(message: string, cause?: Error, code?: string) {
-    super(message, cause ? { cause } : undefined);
-    this.name = "FatalError";
-    this.code = code ?? "FATAL_ERROR";
-  }
-}
-
-/**
- * Step execution error wrapper.
- * Preserves step context for observability (failedStep tracking).
- *
- * NOT a SagaError - classification is done on the cause.
- */
-export class StepExecutionError extends Error {
-  constructor(
-    public readonly stepName: string,
-    public readonly methodName: string,
-    public readonly cause: Error,
-  ) {
-    super(`Step "${stepName}" failed: ${cause.message}`, { cause });
-    this.name = "StepExecutionError";
-  }
-}
-
-/**
- * Step timeout error - non-retryable.
- */
-export class StepTimeoutError extends FatalError {
-  constructor(stepName: string, timeoutMs: number) {
-    super(`Step "${stepName}" timed out after ${timeoutMs}ms`);
-    this.name = "StepTimeoutError";
-    this.code = "STEP_TIMEOUT";
-  }
-}
-
-// ============================================================================
-// ERROR CLASSIFICATION HELPER
-// ============================================================================
-
-/**
- * Helper to classify unknown errors.
- * Unknown errors are treated as non-retryable by default.
- */
-export function isRetryableError(error: unknown): boolean {
-  if (error instanceof SagaError) {
-    return error.retryable;
-  }
-
-  if (error instanceof Error) {
-    const message = error.message.toLowerCase();
-    const name = error.name.toLowerCase();
-
-    const retryablePatterns = [
-      "econnrefused",
-      "econnreset",
-      "etimedout",
-      "enotfound",
-      "socket hang up",
-      "network",
-      "timeout",
-      "unavailable",
-      "service_unavailable",
-      "503",
-      "502",
-      "504",
-    ];
-
-    if (retryablePatterns.some((p) => message.includes(p) || name.includes(p))) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-// ============================================================================
-// TIMEOUT HELPER
-// ============================================================================
-
-/** Default step execution timeout */
-export const DEFAULT_STEP_TIMEOUT_MS = 30_000;
-
-/**
- * Wraps a promise with timeout.
- * Throws StepTimeoutError if timeout exceeded.
- */
-export function withTimeout<T>(
-  promise: Promise<T>,
-  timeoutMs: number,
-  stepName: string,
-): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(new StepTimeoutError(stepName, timeoutMs));
-    }, timeoutMs);
-
-    promise
-      .then((result) => {
-        clearTimeout(timer);
-        resolve(result);
-      })
-      .catch((error) => {
-        clearTimeout(timer);
-        reject(error);
-      });
-  });
-}
+export { OperationException as SagaError } from "../workflow/types.js";

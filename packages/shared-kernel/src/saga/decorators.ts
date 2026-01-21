@@ -23,7 +23,7 @@ import {
   StepTimeoutError,
   isRetryableError,
   withTimeout,
-  toErrorInfo,
+  toOperationError,
   DEFAULT_STEP_TIMEOUT_MS,
   DEFAULT_COMPENSATION_RETRY,
 } from "./types.js";
@@ -277,14 +277,14 @@ export function Saga(
           return {
             success: false,
             status,
-            error: toErrorInfo(originalError),
+            error: toOperationError(originalError),
             failedStep: ctx.getFailedStep(),
             attempts: ctx.getAttempts(),
             compAttempts: ctx.getCompAttempts(),
             succeededSteps: ctx.getSucceededSteps(),
             compensatedSteps: ctx.getCompensatedSteps(),
             compensated: compensationErrors.length === 0,
-            compensationErrors: compensationErrors.map(toErrorInfo),
+            compensationErrors: compensationErrors.map(toOperationError),
             warnings: ctx.getWarnings(),
           };
         }

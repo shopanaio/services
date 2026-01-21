@@ -21,19 +21,26 @@ export {
   getSagaContext,
 } from "./SagaExecutionContext.js";
 
-// Types
+// Types - unified contracts
 export type {
+  // Base contracts (from workflow/types)
+  OperationError,
+  OperationResult,
+  WorkflowResult,
+  RetryPolicy,
+  // Saga-specific
   SagaResult,
   SagaStatus,
   StepResult,
-  RetryPolicy,
-  ErrorInfo,
   ExecutedStep,
   SagaStepConfig,
   SagaStepMetadata,
   SagaExecutorConfig,
   OnCompensationExhausted,
 } from "./types.js";
+
+// Backward compatibility alias
+export type { ErrorInfo } from "./types.js";
 
 // Constants
 export {
@@ -44,11 +51,15 @@ export {
 // Errors and helpers
 export {
   SagaError,
+  OperationException,
   RetryableError,
   FatalError,
   StepExecutionError,
   StepTimeoutError,
   isRetryableError,
-  toErrorInfo,
+  toOperationError,
   withTimeout,
 } from "./types.js";
+
+// Backward compatibility
+export { toErrorInfo } from "./types.js";
