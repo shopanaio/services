@@ -60,14 +60,14 @@ export class OrganizationUpdateSaga extends BrokerSaga<
     return result;
   }
 
-  @SagaStep({ critical: true, compensate: false })
+  @SagaStep()
   private async updateOrganization(
     input: OrganizationUpdateParams,
   ): Promise<OrganizationUpdateResult> {
     return this.kernel.runScript(OrganizationUpdateScript, input);
   }
 
-  @SagaStep({ critical: false, compensate: false })
+  @SagaStep({ critical: false })
   private async syncLogoBackRefs(
     organizationId: string,
     previousLogoId: string | null,

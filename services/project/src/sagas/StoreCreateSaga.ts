@@ -91,7 +91,7 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
     return uuidv7();
   }
 
-  @SagaStep({ critical: true })
+  @SagaStep()
   private async createStore(id: string, input: StoreCreateInput): Promise<void> {
     await this.kernel.repository.store.create({
       id,
@@ -108,7 +108,6 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
   }
 
   @SagaStep({
-    compensate: false,
     retry: { maxAttempts: 3, intervalSeconds: 1, backoffRate: 2 },
     timeoutMs: 10_000,
   })
@@ -133,7 +132,6 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
   }
 
   @SagaStep({
-    compensate: false,
     retry: { maxAttempts: 3, intervalSeconds: 1, backoffRate: 2 },
     timeoutMs: 10_000,
   })
@@ -173,7 +171,7 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
     }
   }
 
-  @SagaStep({ critical: false, compensate: false })
+  @SagaStep({ critical: false })
   private async emitStoreCreated(id: string, input: StoreCreateInput): Promise<void> {
     await this.broker.emit("storeCreated", {
       payload: {

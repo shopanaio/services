@@ -61,14 +61,14 @@ export class UserUpdateProfileSaga extends BrokerSaga<
     return result;
   }
 
-  @SagaStep({ critical: true, compensate: false })
+  @SagaStep()
   private async updateUserProfile(
     input: UserUpdateProfileParams,
   ): Promise<UserUpdateProfileResult> {
     return this.kernel.runScript(UserUpdateProfileScript, input);
   }
 
-  @SagaStep({ critical: false, compensate: false })
+  @SagaStep({ critical: false })
   private async syncAvatarBackRefs(
     userId: string,
     previousAvatarId: string | null,

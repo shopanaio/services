@@ -51,7 +51,7 @@ export class OrganizationCreateSaga extends BrokerSaga<
     return result;
   }
 
-  @SagaStep({ critical: true })
+  @SagaStep()
   private async createOrganization(
     input: OrganizationCreateParams,
   ): Promise<OrganizationCreateResult> {

@@ -52,10 +52,6 @@ export function SagaStep(config: SagaStepConfig = {}): MethodDecorator {
     const methodName =
       typeof propertyKey === "symbol" ? propertyKey.toString() : propertyKey;
     const stepName = config.name ?? methodName;
-    const compensateMethod =
-      config.compensate === false
-        ? ""
-        : config.compensate ?? `compensate${capitalize(methodName)}`;
     const timeoutMs = config.timeoutMs ?? DEFAULT_STEP_TIMEOUT_MS;
     const isCritical = config.critical !== false;
 
@@ -63,7 +59,6 @@ export function SagaStep(config: SagaStepConfig = {}): MethodDecorator {
       Reflect.getMetadata(SAGA_STEP_KEY, target) || [];
     const metadata: SagaStepMetadata = {
       stepConfig: { ...config, name: stepName },
-      compensateMethod,
       methodName,
     };
     Reflect.defineMetadata(SAGA_STEP_KEY, [...existingSteps, metadata], target);

@@ -58,12 +58,12 @@ export class StoreDeleteSaga extends BrokerSaga<StoreDeleteInput, StoreDeleteOut
     return { deletedStoreId: storeId, organizationId };
   }
 
-  @SagaStep({ critical: true, compensate: false })
+  @SagaStep()
   private async deleteStore(storeId: string): Promise<void> {
     await this.kernel.repository.store.delete(storeId);
   }
 
-  @SagaStep({ critical: false, compensate: false })
+  @SagaStep({ critical: false })
   private async deleteMediaAssetGroup(storeId: string): Promise<void> {
     try {
       await this.broker.call<Media.DeleteAssetGroupResult, Media.DeleteAssetGroupParams>(
@@ -76,7 +76,7 @@ export class StoreDeleteSaga extends BrokerSaga<StoreDeleteInput, StoreDeleteOut
     }
   }
 
-  @SagaStep({ critical: false, compensate: false })
+  @SagaStep({ critical: false })
   private async notifyEntityDeleted(storeId: string): Promise<void> {
     try {
       await this.broker.call<Media.EntityDeletedResult, Media.EntityDeletedParams>(
@@ -95,7 +95,7 @@ export class StoreDeleteSaga extends BrokerSaga<StoreDeleteInput, StoreDeleteOut
     }
   }
 
-  @SagaStep({ critical: false, compensate: false })
+  @SagaStep({ critical: false })
   private async emitStoreDeleted(input: StoreDeleteInput): Promise<void> {
     await this.broker.emit("storeDeleted", {
       payload: {
