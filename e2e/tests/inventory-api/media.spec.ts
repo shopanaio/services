@@ -1,11 +1,9 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
 
-// Test image URLs
-const TEST_IMAGE_1 =
-  'https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/PNG_transparency_demonstration_1.png/280px-PNG_transparency_demonstration_1.png';
-const TEST_IMAGE_2 =
-  'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Good_Food_Display_-_NCI_Visuals_Online.jpg/320px-Good_Food_Display_-_NCI_Visuals_Online.jpg';
+// Test image URLs (using picsum.photos for reliability)
+const TEST_IMAGE_1 = 'https://picsum.photos/seed/test1/200/200';
+const TEST_IMAGE_2 = 'https://picsum.photos/seed/test2/200/200';
 
 test.describe('Variant Media API', () => {
   test.beforeEach(async ({ api }) => {
@@ -16,8 +14,9 @@ test.describe('Variant Media API', () => {
    * Helper to create a product and get the default variant ID
    */
   async function createProductWithVariant(api: any, title = 'Media Test Product') {
-    const { data } = await api.admin.mutation('inventory-api/ProductCreate', {
-      variables: { input: { title } },
+    const handle = title.toLowerCase().replace(/\s+/g, '-');
+    const { data } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
+      variables: { input: { title, handle } },
     });
 
     const product = data.inventoryMutation.productCreate.product;

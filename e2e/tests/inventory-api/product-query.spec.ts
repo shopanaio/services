@@ -8,7 +8,9 @@ test.describe('Product Query API', () => {
 
   test('should find product by id', async ({ api }) => {
     // Create a product first
-    const { data: createData } = await api.admin.mutation('inventory-api/ProductCreate', {});
+    const { data: createData } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
+      variables: { input: { title: 'Query Test Product', handle: 'query-test-product' } },
+    });
     const createdProduct = createData.inventoryMutation.productCreate.product;
     expect(createdProduct).toBeTruthy();
 
@@ -40,9 +42,15 @@ test.describe('Product Query API', () => {
 
   test('should list products with pagination', async ({ api }) => {
     // Create multiple products
-    const { data: createData1 } = await api.admin.mutation('inventory-api/ProductCreate', {});
-    const { data: createData2 } = await api.admin.mutation('inventory-api/ProductCreate', {});
-    const { data: createData3 } = await api.admin.mutation('inventory-api/ProductCreate', {});
+    const { data: createData1 } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
+      variables: { input: { title: 'Pagination Product 1', handle: 'pagination-product-1' } },
+    });
+    const { data: createData2 } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
+      variables: { input: { title: 'Pagination Product 2', handle: 'pagination-product-2' } },
+    });
+    const { data: createData3 } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
+      variables: { input: { title: 'Pagination Product 3', handle: 'pagination-product-3' } },
+    });
 
     expect(createData1.inventoryMutation.productCreate.product).toBeTruthy();
     expect(createData2.inventoryMutation.productCreate.product).toBeTruthy();
@@ -70,7 +78,9 @@ test.describe('Product Query API', () => {
 
   test('should include variants in product query', async ({ api }) => {
     // Create a product (which creates a default variant)
-    const { data: createData } = await api.admin.mutation('inventory-api/ProductCreate', {});
+    const { data: createData } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
+      variables: { input: { title: 'Variants Test Product', handle: 'variants-test-product' } },
+    });
     const createdProduct = createData.inventoryMutation.productCreate.product;
 
     // Query the product with variants

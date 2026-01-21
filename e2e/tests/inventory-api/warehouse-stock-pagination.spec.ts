@@ -47,10 +47,11 @@ async function prepareWarehouseStocks(api: ApiFixtures['api']): Promise<PrepareR
     { quantity: 100 },
   ];
 
-  for (const item of stockData) {
+  for (let i = 0; i < stockData.length; i++) {
+    const item = stockData[i];
     // Create product (which creates default variant)
-    const { data: productData } = await api.admin.mutation('inventory-api/ProductCreate', {
-      variables: {},
+    const { data: productData } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
+      variables: { input: { title: `Stock Product ${prefix}-${i}`, handle: `stock-product-${prefix}-${i}` } },
     });
 
     const product = inv(productData).inventoryMutation.productCreate.product;

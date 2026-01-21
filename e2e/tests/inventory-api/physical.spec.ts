@@ -10,8 +10,9 @@ test.describe('Physical Attributes API (Dimensions & Weight)', () => {
    * Helper to create a product and get the default variant ID
    */
   async function createProductWithVariant(api: any, title: string) {
-    const { data } = await api.admin.mutation('inventory-api/ProductCreate', {
-      variables: { input: { title } },
+    const handle = title.toLowerCase().replace(/\s+/g, '-');
+    const { data } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
+      variables: { input: { title, handle } },
     });
 
     const product = data.inventoryMutation.productCreate.product;
