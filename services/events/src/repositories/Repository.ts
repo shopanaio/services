@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, lt, sql } from "drizzle-orm";
 import { TransactionManager } from "@shopana/shared-kernel";
 import type { DomainEvent, HandlerInvocationResult } from "@shopana/events";
 import type { Database } from "../infrastructure/db/database.js";
@@ -118,36 +118,37 @@ export class Repository {
   }
 
   async cleanupExpiredDLQ(batchSize: number): Promise<number> {
-    const result = await this.connection.execute<{ count: number }>(sql`
-      WITH deleted AS (
-        DELETE FROM dead_letter_queue
-        WHERE id IN (
-          SELECT id FROM dead_letter_queue
-          WHERE expires_at IS NOT NULL AND expires_at < NOW()
-          LIMIT ${batchSize}
+    const expiredIds = this.connection
+      .select({ id: deadLetterQueue.id })
+      .from(deadLetterQueue)
+      .where(
+        and(
+          isNotNull(deadLetterQueue.expiresAt),
+          lt(deadLetterQueue.expiresAt, sql`NOW()`)
         )
-        RETURNING 1
       )
-      SELECT COUNT(*)::int AS count FROM deleted
-    `);
+      .limit(batchSize);
 
-    return result[0]?.count ?? 0;
+    const deleted = await this.connection
+      .delete(deadLetterQueue)
+      .where(inArray(deadLetterQueue.id, expiredIds))
+      .returning({ id: deadLetterQueue.id });
+
+    return deleted.length;
   }
 
   async cleanupOldDomainEvents(cutoffDate: Date, batchSize: number): Promise<number> {
-    const result = await this.connection.execute<{ count: number }>(sql`
-      WITH deleted AS (
-        DELETE FROM domain_events
-        WHERE event_id IN (
-          SELECT event_id FROM domain_events
-          WHERE timestamp < ${cutoffDate}
-          LIMIT ${batchSize}
-        )
-        RETURNING 1
-      )
-      SELECT COUNT(*)::int AS count FROM deleted
-    `);
+    const oldEventIds = this.connection
+      .select({ eventId: domainEvents.eventId })
+      .from(domainEvents)
+      .where(lt(domainEvents.timestamp, cutoffDate))
+      .limit(batchSize);
 
-    return result[0]?.count ?? 0;
+    const deleted = await this.connection
+      .delete(domainEvents)
+      .where(inArray(domainEvents.eventId, oldEventIds))
+      .returning({ eventId: domainEvents.eventId });
+
+    return deleted.length;
   }
 }
