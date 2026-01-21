@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { TransactionManager } from "@shopana/shared-kernel";
 import type { DomainEvent, HandlerInvocationResult } from "@shopana/events";
 import type { Database } from "../infrastructure/db/database.js";
@@ -115,5 +115,39 @@ export class Repository {
           status: "failed",
         },
       });
+  }
+
+  async cleanupExpiredDLQ(batchSize: number): Promise<number> {
+    const result = await this.connection.execute<{ count: number }>(sql`
+      WITH deleted AS (
+        DELETE FROM dead_letter_queue
+        WHERE id IN (
+          SELECT id FROM dead_letter_queue
+          WHERE expires_at IS NOT NULL AND expires_at < NOW()
+          LIMIT ${batchSize}
+        )
+        RETURNING 1
+      )
+      SELECT COUNT(*)::int AS count FROM deleted
+    `);
+
+    return result[0]?.count ?? 0;
+  }
+
+  async cleanupOldDomainEvents(cutoffDate: Date, batchSize: number): Promise<number> {
+    const result = await this.connection.execute<{ count: number }>(sql`
+      WITH deleted AS (
+        DELETE FROM domain_events
+        WHERE event_id IN (
+          SELECT event_id FROM domain_events
+          WHERE timestamp < ${cutoffDate}
+          LIMIT ${batchSize}
+        )
+        RETURNING 1
+      )
+      SELECT COUNT(*)::int AS count FROM deleted
+    `);
+
+    return result[0]?.count ?? 0;
   }
 }

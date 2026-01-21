@@ -17,11 +17,6 @@ import {
   makeDispatchWorkflowId,
   makeEventId,
 } from "@shopana/events";
-import { and, eq, sql } from "drizzle-orm";
-import {
-  deadLetterQueue,
-  type DLQEntry,
-} from "./repositories/models/deadLetterQueue.js";
 import { Kernel } from "./kernel/Kernel.js";
 import type { EventDispatchWorkflow } from "./workflows/EventDispatchWorkflow.js";
 
@@ -45,8 +40,8 @@ export class EventsBrokerActions extends BrokerActions {
     return Kernel.getInstance();
   }
 
-  private get db() {
-    return this.kernel.db;
+  private get repository() {
+    return this.kernel.repository;
   }
 
   @Action("emit")
@@ -75,46 +70,11 @@ export class EventsBrokerActions extends BrokerActions {
     return handle.getResult();
   }
 
-  @Action("getDLQEntries")
-  async getDLQEntries(params: {
-    limit?: number;
-    eventType?: string;
-  }): Promise<{ entries: DLQEntry[] }> {
-    const limit = params.limit ?? 100;
-
-    const conditions = [eq(deadLetterQueue.status, "failed")];
-    if (params.eventType) {
-      conditions.push(eq(deadLetterQueue.eventType, params.eventType));
-    }
-
-    const entries = await this.db
-      .select()
-      .from(deadLetterQueue)
-      .where(and(...conditions))
-      .orderBy(deadLetterQueue.failedAt)
-      .limit(limit);
-
-    return { entries };
-  }
-
   @Action("cleanupDLQ")
   async cleanupDLQ(params: { batchSize?: number }): Promise<{ deleted: number }> {
     const batchSize = params.batchSize ?? 1000;
-
-    const result = await this.db.execute<{ count: number }>(sql`
-      WITH deleted AS (
-        DELETE FROM dead_letter_queue
-        WHERE id IN (
-          SELECT id FROM dead_letter_queue
-          WHERE expires_at IS NOT NULL AND expires_at < NOW()
-          LIMIT ${batchSize}
-        )
-        RETURNING 1
-      )
-      SELECT COUNT(*)::int AS count FROM deleted
-    `);
-
-    return { deleted: result[0]?.count ?? 0 };
+    const deleted = await this.repository.cleanupExpiredDLQ(batchSize);
+    return { deleted };
   }
 
   @Action("cleanupDomainEvents")
@@ -124,24 +84,9 @@ export class EventsBrokerActions extends BrokerActions {
   }): Promise<{ deleted: number }> {
     const retentionDays = params.retentionDays ?? 90;
     const batchSize = params.batchSize ?? 5000;
-    const cutoffDate = new Date(
-      Date.now() - retentionDays * 24 * 60 * 60 * 1000
-    );
-
-    const result = await this.db.execute<{ count: number }>(sql`
-      WITH deleted AS (
-        DELETE FROM domain_events
-        WHERE event_id IN (
-          SELECT event_id FROM domain_events
-          WHERE timestamp < ${cutoffDate}
-          LIMIT ${batchSize}
-        )
-        RETURNING 1
-      )
-      SELECT COUNT(*)::int AS count FROM deleted
-    `);
-
-    return { deleted: result[0]?.count ?? 0 };
+    const cutoffDate = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
+    const deleted = await this.repository.cleanupOldDomainEvents(cutoffDate, batchSize);
+    return { deleted };
   }
 
   private buildEvent(params: EmitParams): { event: DomainEvent; workflowId: string } {
