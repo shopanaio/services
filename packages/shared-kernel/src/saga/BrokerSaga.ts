@@ -1,9 +1,9 @@
 /**
- * @file BrokerSaga
+ * @file BrokerSaga Base Class
  * @description Saga base class with broker integration
  */
 
-import { BaseSaga, type SagaResult } from "@shopana/dbos";
+import { BaseSaga } from "@shopana/dbos";
 import type { ServiceBroker } from "../broker/ServiceBroker.js";
 
 /**
@@ -13,27 +13,23 @@ import type { ServiceBroker } from "../broker/ServiceBroker.js";
  * - Access to ServiceBroker for inter-service calls
  * - Automatic service name resolution from broker
  *
- * Use this class when your saga needs to call other services via broker.
- * For sagas that don't need broker integration, use BaseSaga directly.
- *
  * @example
- * class OrderSaga extends BrokerSaga<OrderInput, OrderResult> {
+ * class OrderSaga extends BrokerSaga<OrderInput, SagaResult<OrderOutput>> {
  *   constructor(broker: ServiceBroker) {
  *     super(broker);
  *   }
  *
- *   @Saga('createOrder')
- *   async run(input: OrderInput): Promise<SagaResult<OrderResult>> {
+ *   @Saga("createOrder")
+ *   async run(input: OrderInput): Promise<SagaResult<OrderOutput>> {
  *     const reservation = await this.reserveInventory(input);
- *
- *     // Call another service via broker
- *     const payment = await this.broker.call('payments.charge', {
- *       amount: input.amount,
- *       reservationId: reservation.id,
- *     });
- *
+ *     const payment = await this.processPayment(input, reservation);
  *     return { orderId: payment.orderId };
  *   }
+ *
+ *   @SagaStep()
+ *   private async reserveInventory(input: OrderInput) { ... }
+ *
+ *   private async compensateReserveInventory(input: OrderInput) { ... }
  * }
  */
 export abstract class BrokerSaga<TInput, TOutput> extends BaseSaga<TInput, TOutput> {
@@ -43,7 +39,4 @@ export abstract class BrokerSaga<TInput, TOutput> extends BaseSaga<TInput, TOutp
       broker["options"].serviceName,
     );
   }
-
-  /** Saga entry point - must be decorated with @Saga("name") */
-  abstract run(input: TInput): Promise<SagaResult<TOutput>>;
 }

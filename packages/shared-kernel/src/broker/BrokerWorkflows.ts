@@ -13,9 +13,6 @@ import type { ServiceBroker } from "./ServiceBroker.js";
  * - Access to ServiceBroker for inter-service calls
  * - Automatic service name resolution from broker
  *
- * Use this class when your workflow needs to call other services via broker.
- * For workflows that don't need broker integration, use BaseWorkflow directly.
- *
  * @example
  * class FileCleanupWorkflow extends BrokerWorkflows<string, CleanupResult> {
  *   constructor(broker: ServiceBroker) {
@@ -24,7 +21,6 @@ import type { ServiceBroker } from "./ServiceBroker.js";
  *
  *   @Workflow("fileCleanup")
  *   async run(fileId: string): Promise<CleanupResult> {
- *     // Can call other services via broker
  *     await this.broker.call('notifications.send', { ... });
  *     return { cleaned: true };
  *   }
