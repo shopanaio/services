@@ -166,7 +166,11 @@ export function Saga(
   name: string,
   config?: SagaExecutorConfig,
 ): MethodDecorator {
-  return function (target, propertyKey, descriptor) {
+  return function (
+    target: object,
+    propertyKey: string | symbol,
+    descriptor: PropertyDescriptor,
+  ): PropertyDescriptor {
     const originalMethod = descriptor.value as Function;
 
     Reflect.defineMetadata(SAGA_DEFINITION_KEY, { name }, target.constructor);
@@ -174,6 +178,9 @@ export function Saga(
     (descriptor as { value: (input: unknown) => Promise<SagaResult> }).value =
       async function (input: unknown): Promise<SagaResult> {
         const sagaId = DBOS.workflowID;
+        if (!sagaId) {
+          throw new Error("Saga must be executed within a DBOS workflow context");
+        }
         const ctx = new SagaExecutionContext(sagaId);
         const compensationErrors: Error[] = [];
 
@@ -290,6 +297,8 @@ export function Saga(
         }
       };
 
+    const key =
+      typeof propertyKey === "symbol" ? propertyKey.toString() : propertyKey;
     return DBOS.workflow()(target, key, descriptor);
   };
 }

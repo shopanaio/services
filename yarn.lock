@@ -1476,6 +1476,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@dbos-inc/dbos-sdk@npm:^4.7.9":
+  version: 4.7.9
+  resolution: "@dbos-inc/dbos-sdk@npm:4.7.9"
+  dependencies:
+    commander: "npm:12.0.0"
+    pg: "npm:8.11.3"
+    serialize-error: "npm:8.1.0"
+    superjson: "npm:^1.13.3"
+    ws: "npm:^8.18.1"
+    yaml: "npm:2.4.1"
+  bin:
+    dbos: dist/src/cli/cli.js
+    dbos-sdk: dist/src/cli/cli.js
+  checksum: 10/8712f78d8c9bedd9bd0e2b96bc442ebc8059b76de66d0f746c4e49eb43fbe18b3d7172df4420f434786eb1fb26aef33aad0fd8005854f5d148b1c0387af3d867
+  languageName: node
+  linkType: hard
+
 "@dinero.js/calculator-bigint@npm:^2.0.0-alpha.2":
   version: 2.0.0-alpha.2
   resolution: "@dinero.js/calculator-bigint@npm:2.0.0-alpha.2"
@@ -2112,35 +2129,6 @@ __metadata:
     path-to-regexp: "npm:^6.3.0"
     reusify: "npm:^1.0.4"
   checksum: 10/b03e12a62e099443a41e59d1d826b3a7c98d2b68788535a7dd743008c7ed9edcd076fa2999a947786effc40a669325ba52d7095ca9776ab2501c1be3add5ad0a
-  languageName: node
-  linkType: hard
-
-"@golevelup/nestjs-discovery@npm:^4.0.3":
-  version: 4.0.3
-  resolution: "@golevelup/nestjs-discovery@npm:4.0.3"
-  dependencies:
-    lodash: "npm:^4.17.21"
-  peerDependencies:
-    "@nestjs/common": ^10.x || ^11.0.0
-    "@nestjs/core": ^10.x || ^11.0.0
-  checksum: 10/5d25b5e6c1e9ac4e1d3f1dcc8e01da4bed019690011cc420e05ea02d414db9bda4413a28ccb60393073c1f9912ae10c42be7fbb3b38d10b8bb65a846e77f6d88
-  languageName: node
-  linkType: hard
-
-"@golevelup/nestjs-rabbitmq@npm:^5.7.0":
-  version: 5.7.0
-  resolution: "@golevelup/nestjs-rabbitmq@npm:5.7.0"
-  dependencies:
-    "@golevelup/nestjs-discovery": "npm:^4.0.3"
-    amqp-connection-manager: "npm:^4.1.14"
-    amqplib: "npm:^0.10.5"
-    lodash: "npm:^4.17.21"
-  peerDependencies:
-    "@nestjs/common": ^10.x || ^11.0.0
-    "@nestjs/core": ^10.x || ^11.0.0
-    reflect-metadata: ^0.2.2
-    rxjs: ^7.x
-  checksum: 10/51066a7cd9b43379133e8be7b90e6afed1f3f8d93f382f9b151a28cbfc9272e341d0750db130267f701e9820f8d2c6c8405f19248f3c92ceca26a552ca29f93b
   languageName: node
   linkType: hard
 
@@ -6249,7 +6237,6 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@shopana/bootstrap-service@workspace:services/bootstrap"
   dependencies:
-    "@golevelup/nestjs-rabbitmq": "npm:^5.5.0"
     "@nestjs/common": "npm:^10.0.0"
     "@nestjs/core": "npm:^10.0.0"
     "@nestjs/platform-fastify": "npm:^10.0.0"
@@ -6257,6 +6244,7 @@ __metadata:
     "@shopana/build-tools": "npm:0.0.1"
     "@shopana/checkout-service": "npm:0.0.1"
     "@shopana/delivery-service": "npm:0.0.1"
+    "@shopana/events-service": "npm:0.0.1"
     "@shopana/iam-service": "npm:0.0.1"
     "@shopana/inventory-service": "npm:0.0.1"
     "@shopana/media-service": "npm:0.0.1"
@@ -6272,6 +6260,14 @@ __metadata:
     rxjs: "npm:^7.8.2"
     tsx: "npm:^4.19.2"
     typescript: "npm:^5.5.4"
+  languageName: unknown
+  linkType: soft
+
+"@shopana/broker-types@workspace:packages/broker-types":
+  version: 0.0.0-use.local
+  resolution: "@shopana/broker-types@workspace:packages/broker-types"
+  dependencies:
+    typescript: "npm:^5.4.5"
   languageName: unknown
   linkType: soft
 
@@ -6424,6 +6420,36 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@shopana/events-service@npm:0.0.1, @shopana/events-service@workspace:services/events":
+  version: 0.0.0-use.local
+  resolution: "@shopana/events-service@workspace:services/events"
+  dependencies:
+    "@dbos-inc/dbos-sdk": "npm:^2.0.0"
+    "@nestjs/schedule": "npm:^4.1.0"
+    "@shopana/build-tools": "npm:0.0.1"
+    "@shopana/events": "npm:*"
+    "@shopana/shared-kernel": "npm:*"
+    "@shopana/shared-service-config": "npm:*"
+    "@types/node": "npm:^20.14.14"
+    drizzle-kit: "npm:^0.31.7"
+    drizzle-orm: "npm:^0.44.7"
+    postgres: "npm:^3.4.7"
+    tsx: "npm:^4.16.2"
+    typescript: "npm:^5.5.4"
+  languageName: unknown
+  linkType: soft
+
+"@shopana/events@npm:*, @shopana/events@workspace:packages/events":
+  version: 0.0.0-use.local
+  resolution: "@shopana/events@workspace:packages/events"
+  dependencies:
+    "@shopana/build-tools": "npm:0.0.1"
+    "@types/node": "npm:^20.14.14"
+    canonicalize: "npm:^2.0.0"
+    typescript: "npm:^5.5.4"
+  languageName: unknown
+  linkType: soft
+
 "@shopana/federation@workspace:infra/federation":
   version: 0.0.0-use.local
   resolution: "@shopana/federation@workspace:infra/federation"
@@ -6535,6 +6561,7 @@ __metadata:
     "@graphql-codegen/typescript-resolvers": "npm:^4.0.9"
     "@shopana/build-tools": "npm:0.0.1"
     "@shopana/drizzle-query": "npm:*"
+    "@shopana/events": "npm:*"
     "@shopana/import-plugin-sdk": "npm:*"
     "@shopana/inventory-plugin-shopana": "npm:*"
     "@shopana/platform-api": "npm:0.0.1"
@@ -6557,7 +6584,6 @@ __metadata:
     pino: "npm:^9.3.2"
     pino-pretty: "npm:^11.2.2"
     postgres: "npm:^3.4.7"
-    rabbitmq-client: "npm:^4.6.0"
     tsx: "npm:^4.16.2"
     typescript: "npm:^5.5.4"
     zod: "npm:^3.23.8"
@@ -6597,7 +6623,6 @@ __metadata:
     pino: "npm:^9.3.2"
     pino-pretty: "npm:^11.2.2"
     postgres: "npm:^3.4.7"
-    rabbitmq-client: "npm:^4.6.0"
     tsx: "npm:^4.16.2"
     typescript: "npm:^5.5.4"
     zod: "npm:^3.23.8"
@@ -6838,8 +6863,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@shopana/shared-kernel@workspace:packages/shared-kernel"
   dependencies:
-    "@dbos-inc/dbos-sdk": "npm:^2.0.0"
-    "@golevelup/nestjs-rabbitmq": "npm:^4.0.0"
+    "@dbos-inc/dbos-sdk": "npm:^4.7.9"
     "@nestjs/common": "npm:^10.0.0"
     "@nestjs/core": "npm:^10.0.0"
     "@shopana/rbac": "npm:*"
@@ -8701,27 +8725,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"amqp-connection-manager@npm:^4.1.14":
-  version: 4.1.15
-  resolution: "amqp-connection-manager@npm:4.1.15"
-  dependencies:
-    promise-breaker: "npm:^6.0.0"
-  peerDependencies:
-    amqplib: "*"
-  checksum: 10/4c84884156cbdc10a07884996f9789eb4a658117c06336e4806660d43e66b330b009d8cd08719eb95bb0543454846d9ccbde13af8b596a7f9cb2854881fdda50
-  languageName: node
-  linkType: hard
-
-"amqplib@npm:^0.10.9":
-  version: 0.10.9
-  resolution: "amqplib@npm:0.10.9"
-  dependencies:
-    buffer-more-ints: "npm:~1.0.0"
-    url-parse: "npm:~1.5.10"
-  checksum: 10/99f8cb123cd92903b314e2c829cee080c1d86e702c827624ff7dca4422af23d57301b193441796c0f52ad3544f177484cfe18be25f5d039f80ec7322eedcea5b
-  languageName: node
-  linkType: hard
-
 "ansi-escapes@npm:^4.2.1, ansi-escapes@npm:^4.3.0, ansi-escapes@npm:^4.3.2":
   version: 4.3.2
   resolution: "ansi-escapes@npm:4.3.2"
@@ -9339,13 +9342,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"buffer-more-ints@npm:~1.0.0":
-  version: 1.0.0
-  resolution: "buffer-more-ints@npm:1.0.0"
-  checksum: 10/603a7f35793426c8efd733eb716c2c3bf3e2f5bab95ca13ba31546d89ead3636586479c5a0d8438dd015115361a3b09b1b37ddabc170b6d42bc6c6dc2554dc61
-  languageName: node
-  linkType: hard
-
 "buffer-writer@npm:2.0.0":
   version: 2.0.0
   resolution: "buffer-writer@npm:2.0.0"
@@ -9554,6 +9550,15 @@ __metadata:
   version: 1.0.8
   resolution: "canonicalize@npm:1.0.8"
   checksum: 10/4087d6de4a2412b9d36f9cbc0825336d97fa61021365d53869b30d3476a348425f193d019e18a21c97ebd042ac9f98f93f6059f14b4105b741c69b4b940bd91a
+  languageName: node
+  linkType: hard
+
+"canonicalize@npm:^2.0.0":
+  version: 2.1.0
+  resolution: "canonicalize@npm:2.1.0"
+  bin:
+    canonicalize: bin/canonicalize.js
+  checksum: 10/6ab9b9c2b84e6a210e1d55f9f1194d69c1b955512f38cc53b0529c654807f469e21b5099750c76e2b8464650d829c01234c923526450fac263a1d89cf2bb61df
   languageName: node
   linkType: hard
 
@@ -16345,13 +16350,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"promise-breaker@npm:^6.0.0":
-  version: 6.0.0
-  resolution: "promise-breaker@npm:6.0.0"
-  checksum: 10/6f7ad5e55d3f434dc1e02907c3294dc4a44f9962d9af9de186095c75c8f76d11feeb927e96ec9e177fcc9209690defb5c64eeac4767e7c3dd4f120e9d14fb0c8
-  languageName: node
-  linkType: hard
-
 "promise-retry@npm:^2.0.1":
   version: 2.0.1
   resolution: "promise-retry@npm:2.0.1"
@@ -16472,13 +16470,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"querystringify@npm:^2.1.1":
-  version: 2.2.0
-  resolution: "querystringify@npm:2.2.0"
-  checksum: 10/46ab16f252fd892fc29d6af60966d338cdfeea68a231e9457631ffd22d67cec1e00141e0a5236a2eb16c0d7d74175d9ec1d6f963660c6f2b1c2fc85b194c5680
-  languageName: node
-  linkType: hard
-
 "queue-lit@npm:^1.5.1":
   version: 1.5.2
   resolution: "queue-lit@npm:1.5.2"
@@ -16513,13 +16504,6 @@ __metadata:
   version: 5.1.1
   resolution: "quick-lru@npm:5.1.1"
   checksum: 10/a516faa25574be7947969883e6068dbe4aa19e8ef8e8e0fd96cddd6d36485e9106d85c0041a27153286b0770b381328f4072aa40d3b18a19f5f7d2b78b94b5ed
-  languageName: node
-  linkType: hard
-
-"rabbitmq-client@npm:^4.6.0":
-  version: 4.6.0
-  resolution: "rabbitmq-client@npm:4.6.0"
-  checksum: 10/83b0453e8271de68fb469672361a6c54da26e15c4712e3693ff76879f7db50d3c0e0e0a9221836b75f0b809b475f7afb6702d4aa6c43525b3c921a774bacec69
   languageName: node
   linkType: hard
 
@@ -16751,13 +16735,6 @@ __metadata:
     module-details-from-path: "npm:^1.0.3"
     resolve: "npm:^1.22.8"
   checksum: 10/d8f137d72eec1c53987647d19cd3bd2c64d5417bcd06b9ac8f7a14e83924c1e7636e327df7d96066a2b446b41f50d0bc1856a521388d5e90ba5c3b18dd5ab4e8
-  languageName: node
-  linkType: hard
-
-"requires-port@npm:^1.0.0":
-  version: 1.0.0
-  resolution: "requires-port@npm:1.0.0"
-  checksum: 10/878880ee78ccdce372784f62f52a272048e2d0827c29ae31e7f99da18b62a2b9463ea03a75f277352f4697c100183debb0532371ad515a2d49d4bfe596dd4c20
   languageName: node
   linkType: hard
 
@@ -17900,6 +17877,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"superjson@npm:^1.13.3":
+  version: 1.13.3
+  resolution: "superjson@npm:1.13.3"
+  dependencies:
+    copy-anything: "npm:^3.0.2"
+  checksum: 10/71a186c513a9821e58264c0563cd1b3cf07d3b5ba53a09cc5c1a604d8ffeacac976a6ba1b5d5b3c71b6ab5a1941dfba5a15e3f106ad3ef22fe8d5eee3e2be052
+  languageName: node
+  linkType: hard
+
 "superjson@npm:^2.2.2":
   version: 2.2.2
   resolution: "superjson@npm:2.2.2"
@@ -18991,16 +18977,6 @@ __metadata:
   dependencies:
     punycode: "npm:^2.1.0"
   checksum: 10/b271ca7e3d46b7160222e3afa3e531505161c9a4e097febae9664e4b59912f4cbe94861361a4175edac3a03fee99d91e44b6a58c17a634bc5a664b19fc76fbcb
-  languageName: node
-  linkType: hard
-
-"url-parse@npm:~1.5.10":
-  version: 1.5.10
-  resolution: "url-parse@npm:1.5.10"
-  dependencies:
-    querystringify: "npm:^2.1.1"
-    requires-port: "npm:^1.0.0"
-  checksum: 10/c9e96bc8c5b34e9f05ddfeffc12f6aadecbb0d971b3cc26015b58d5b44676a99f50d5aeb1e5c9e61fa4d49961ae3ab1ae997369ed44da51b2f5ac010d188e6ad
   languageName: node
   linkType: hard
 
