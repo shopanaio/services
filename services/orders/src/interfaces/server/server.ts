@@ -1,4 +1,5 @@
 import { ApolloServer } from "@apollo/server";
+import { ApolloServerPluginInlineTraceDisabled } from "@apollo/server/plugin/disabled";
 import { buildSubgraphSchema } from "@apollo/subgraph";
 import fastifyApollo, {
   fastifyApolloDrainPlugin,
@@ -92,7 +93,7 @@ export async function startServer(broker: ServiceBroker) {
   const adminApollo = new ApolloServer<GraphQLContext>({
     introspection: true,
     schema: buildSubgraphSchema(adminModules),
-    plugins: [fastifyApolloDrainPlugin(adminApp)],
+    plugins: [fastifyApolloDrainPlugin(adminApp), ApolloServerPluginInlineTraceDisabled()],
   });
 
   await adminApollo.start();
@@ -138,7 +139,7 @@ export async function startServer(broker: ServiceBroker) {
   const storefrontApollo = new ApolloServer<GraphQLContext>({
     introspection: true,
     schema: buildSubgraphSchema(storefrontModules),
-    plugins: [fastifyApolloDrainPlugin(storefrontApp)],
+    plugins: [fastifyApolloDrainPlugin(storefrontApp), ApolloServerPluginInlineTraceDisabled()],
   });
 
   await storefrontApollo.start();

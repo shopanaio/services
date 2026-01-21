@@ -10,7 +10,6 @@ import {
   OnModuleInit,
   OnModuleDestroy,
   Inject,
-  Logger,
 } from "@nestjs/common";
 import { DBOS } from "@dbos-inc/dbos-sdk";
 import { WorkflowRegistry } from "../registry/WorkflowRegistry.js";
@@ -39,8 +38,6 @@ import type { WorkflowModuleConfig } from "../core/types.js";
 @Global()
 @Module({})
 export class WorkflowModule implements OnModuleInit, OnModuleDestroy {
-  private readonly logger = new Logger(WorkflowModule.name);
-
   constructor(
     @Inject(WORKFLOW_CONFIG) private readonly config: WorkflowModuleConfig,
   ) {}
@@ -68,21 +65,23 @@ export class WorkflowModule implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit(): Promise<void> {
-    this.logger.log("Initializing DBOS workflows...");
-
     DBOS.setConfig({
       systemDatabaseUrl: this.config.databaseUrl,
       name: this.config.name ?? "shopana",
       systemDatabaseSchemaName: this.config.schema ?? "dbos",
     });
 
-    await DBOS.launch();
-    this.logger.log("DBOS workflows initialized");
+    // Suppress DBOS console output
+    const originalLog = console.log;
+    console.log = () => {};
+    try {
+      await DBOS.launch();
+    } finally {
+      console.log = originalLog;
+    }
   }
 
   async onModuleDestroy(): Promise<void> {
-    this.logger.log("Shutting down DBOS workflows...");
     await DBOS.shutdown();
-    this.logger.log("DBOS workflows shut down");
   }
 }

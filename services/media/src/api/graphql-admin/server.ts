@@ -1,4 +1,5 @@
 import { ApolloServer } from "@apollo/server";
+import { ApolloServerPluginInlineTraceDisabled } from "@apollo/server/plugin/disabled";
 import { buildSubgraphSchema } from "@apollo/subgraph";
 import fastifyApollo, {
   fastifyApolloDrainPlugin,
@@ -48,9 +49,6 @@ export async function startServer(serverConfig: ServerConfig) {
   // Ensure bucket record exists in database (for default/system bucket)
   if (kernel) {
     const bucketName = getBucketName();
-    console.log(
-      `[Media] Checking bucket record '${bucketName}' in database...`
-    );
     try {
       const existingBucket = await kernel.repository.bucket.findByBucketName(
         bucketName
@@ -65,13 +63,6 @@ export async function startServer(serverConfig: ServerConfig) {
           status: "active",
           endpointUrl: storageConfig?.endpoint ?? "",
         });
-        console.log(
-          `[Media] Bucket record '${bucketName}' created in database`
-        );
-      } else {
-        console.log(
-          `[Media] Bucket record '${bucketName}' already exists in database`
-        );
       }
     } catch (error) {
       console.error(`[Media] Failed to ensure bucket record exists:`, error);
@@ -129,7 +120,7 @@ export async function startServer(serverConfig: ServerConfig) {
     introspection: true,
     // @ts-expect-error - buildSubgraphSchema expects ServiceContext but we pass ServiceContextOptions
     schema: buildSubgraphSchema(modules),
-    plugins: [fastifyApolloDrainPlugin(app)],
+    plugins: [fastifyApolloDrainPlugin(app), ApolloServerPluginInlineTraceDisabled()],
   });
 
   await apollo.start();

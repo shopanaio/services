@@ -1,4 +1,5 @@
 import { ApolloServer } from "@apollo/server";
+import { ApolloServerPluginInlineTraceDisabled } from "@apollo/server/plugin/disabled";
 import { buildSubgraphSchema } from "@apollo/subgraph";
 import fastifyApollo, {
   fastifyApolloDrainPlugin,
@@ -67,7 +68,7 @@ export async function startServer(broker: ServiceBroker) {
   const apollo = new ApolloServer<GraphQLContext>({
     introspection: true,
     schema: buildSubgraphSchema(modules),
-    plugins: [fastifyApolloDrainPlugin(app)],
+    plugins: [fastifyApolloDrainPlugin(app), ApolloServerPluginInlineTraceDisabled()],
   });
 
   await apollo.start();
