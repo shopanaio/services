@@ -109,11 +109,6 @@ export function Workflow(
  * // Fire-and-forget (no retries)
  * @WorkflowStep({ retriesAllowed: false })
  * private async startCleanupWorkflow(fileId: string): Promise<void> { ... }
- *
- * @example
- * // Non-critical step (failure doesn't stop workflow)
- * @WorkflowStep({ critical: false })
- * private async sendNotification(): Promise<void> { ... }
  */
 export function WorkflowStep(options?: WorkflowStepMetadata): MethodDecorator {
   return function (

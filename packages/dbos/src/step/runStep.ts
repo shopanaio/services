@@ -24,12 +24,16 @@ export interface StepOptions {
   name?: string;
   /** Step execution timeout in milliseconds (default: 30000) */
   timeoutMs?: number;
-  /** If false, failure does not stop the workflow (default: true) */
-  critical?: boolean;
   /** Retry policy for transient errors */
   retry?: RetryPolicy;
   /** Whether retries are allowed (overrides retry.maxAttempts > 1 check) */
   retriesAllowed?: boolean;
+}
+
+/** Internal step options (includes critical flag for saga use) */
+export interface InternalStepOptions extends StepOptions {
+  /** If false, failure does not stop the workflow (default: true). Used internally by sagas. */
+  critical?: boolean;
 }
 
 /** Internal step result for DBOS serialization */
@@ -49,7 +53,7 @@ type InternalStepResult<T> =
  */
 export async function runStep<T>(
   fn: () => Promise<T>,
-  options: StepOptions & { methodName: string },
+  options: InternalStepOptions & { methodName: string },
   context: { workflowId: string },
 ): Promise<T | undefined> {
   const stepName = options.name ?? options.methodName;
