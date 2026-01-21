@@ -42,11 +42,7 @@ export class Kernel extends BaseKernel<InventoryKernelServices> {
       return this.instance;
     }
 
-    console.log("[Inventory] Using shared database pool...");
     const db = createDatabase(dbClient);
-
-    // Create repository with database
-    console.log("[Inventory] Initializing repository...");
     const repository = await Repository.create({ db });
 
     const cache = createCache({
@@ -61,7 +57,6 @@ export class Kernel extends BaseKernel<InventoryKernelServices> {
       cache,
       db
     );
-    console.log("[Inventory] Kernel initialized");
     return this.instance;
   }
 

@@ -42,11 +42,7 @@ export class Kernel extends BaseKernel<MediaKernelServices> {
       return this.instance;
     }
 
-    console.log("[Media] Using shared database pool...");
     const db = createDatabase(dbClient);
-
-    // Create repository with database
-    console.log("[Media] Initializing repository...");
     const repository = await Repository.create({ db });
 
     const cache = createCache({
@@ -61,7 +57,6 @@ export class Kernel extends BaseKernel<MediaKernelServices> {
       cache,
       db
     );
-    console.log("[Media] Kernel initialized");
     return this.instance;
   }
 

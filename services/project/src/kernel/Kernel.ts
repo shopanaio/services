@@ -46,9 +46,7 @@ export class Kernel extends BaseKernel<ProjectKernelServices> {
       return this.instance;
     }
 
-    console.log("[PROJECT] Using shared database pool...");
     const db = createDatabase(dbClient);
-
     const repository = await Repository.create({ db });
 
     const cache = createCache({
@@ -58,7 +56,6 @@ export class Kernel extends BaseKernel<ProjectKernelServices> {
     const nameResolver = new NameResolver();
 
     this.instance = new Kernel(broker, consoleLogger, repository, workflow, cache, nameResolver);
-    console.log("[PROJECT] Kernel initialized");
     return this.instance;
   }
 

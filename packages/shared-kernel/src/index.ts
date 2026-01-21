@@ -1,5 +1,6 @@
 export { Kernel } from "./Kernel";
 export { NestLogger } from "./NestLogger";
+export { BootstrapLogger } from "./BootstrapLogger";
 
 // Re-export DBOS from @shopana/dbos
 export { DBOS, ConfiguredInstance } from "@shopana/dbos";

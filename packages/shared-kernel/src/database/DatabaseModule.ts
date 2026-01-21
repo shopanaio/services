@@ -3,9 +3,9 @@ import {
   Global,
   Inject,
   Injectable,
+  Logger,
   Module,
   OnApplicationShutdown,
-  Logger,
 } from "@nestjs/common";
 import postgres, { type Sql } from "postgres";
 import type { DbConfig } from "@shopana/shared-service-config";
@@ -49,8 +49,6 @@ class DatabaseLifecycle implements OnApplicationShutdown {
 @Module({})
 export class DatabaseModule {
   static forRoot(options: DatabaseModuleOptions): DynamicModule {
-    const logger = new Logger("DatabaseModule");
-
     // Build connection string from config (without schema for shared pool)
     const connectionString = buildDbUrl({ ...options.db, schema: null });
 
@@ -71,10 +69,6 @@ export class DatabaseModule {
       },
       onnotice: () => {},
     });
-
-    logger.log(
-      `Database pool initialized (max: ${options.pool?.max ?? 20} connections)`
-    );
 
     return {
       module: DatabaseModule,

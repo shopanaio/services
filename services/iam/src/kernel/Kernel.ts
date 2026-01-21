@@ -61,15 +61,8 @@ export class Kernel extends BaseKernel<IamKernelServices> {
     }
     const databaseUrl = buildDbUrl(service.db);
 
-    console.log("[IAM] Using shared database pool...");
     const db = createDatabase(dbClient);
-
-    // Initialize Better Auth
-    console.log("[IAM] Initializing Better Auth...");
     const auth = createAuth();
-
-    // Create repository with database, auth, and casbin
-    console.log("[IAM] Initializing Casbin authorization...");
     const repository = await Repository.create({ db, auth, databaseUrl });
 
     const cache = createCache({
@@ -90,7 +83,6 @@ export class Kernel extends BaseKernel<IamKernelServices> {
       db,
       auth
     );
-    console.log("[IAM] Kernel initialized with Better Auth and Casbin");
     return this.instance;
   }
 
