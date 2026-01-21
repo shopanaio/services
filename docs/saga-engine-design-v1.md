@@ -100,8 +100,34 @@ export type OnCompensationExhausted = (
   stepName: string,
   methodName: string,
   error: Error,
-  args: unknown[],
+  context: {
+    sagaId: string;
+    args: unknown[];
+    attempts: number;
+  },
 ) => void | Promise<void>;
+
+/** Saga executor configuration */
+export interface SagaExecutorConfig {
+  /**
+   * Called when compensation retries are exhausted.
+   * Use for DLQ, alerting, manual intervention flags.
+   * Default: logs error.
+   */
+  onCompensationExhausted?: OnCompensationExhausted;
+  /**
+   * Compensation retry policy override.
+   * Default: { maxAttempts: 10, intervalSeconds: 1, backoffRate: 2 }
+   */
+  compensationRetryPolicy?: RetryPolicy;
+}
+
+/** Default compensation retry policy */
+export const DEFAULT_COMPENSATION_RETRY: RetryPolicy = {
+  maxAttempts: 10,
+  intervalSeconds: 1,
+  backoffRate: 2,
+};
 
 // ─────────────────────────────────────────────────────────────────
 // Error Classification (same pattern as broker actions/events)
@@ -403,7 +429,15 @@ import "reflect-metadata";
 import { DBOS } from "@dbos-inc/dbos-sdk";
 import { Logger } from "@nestjs/common";
 import { SagaExecutionContext, sagaContextStorage, getSagaContext } from "./SagaExecutionContext.js";
-import { SagaStepConfig, SagaStepMetadata, isRetryableError, addJitter } from "./types.js";
+import {
+  SagaStepConfig,
+  SagaStepMetadata,
+  SagaExecutorConfig,
+  RetryPolicy,
+  isRetryableError,
+  addJitter,
+  DEFAULT_COMPENSATION_RETRY,
+} from "./types.js";
 
 export const SAGA_DEFINITION_KEY = Symbol("saga:definition");
 export const SAGA_STEP_KEY = Symbol("saga:step");
@@ -534,31 +568,31 @@ export function SagaStep(config: SagaStepConfig = {}): MethodDecorator {
   };
 }
 
-/** Default compensation retry policy */
-const DEFAULT_COMPENSATION_RETRY: RetryPolicy = {
-  maxAttempts: 10,
-  intervalSeconds: 1,
-  backoffRate: 2,
-};
-
 /**
- * @Saga("name") — маркирует метод run() как точку входа саги.
+ * @Saga("name", config?) — маркирует метод run() как точку входа саги.
  *
  * При ошибке автоматически запускает компенсации в обратном порядке.
  * Компенсация вызывается с теми же аргументами что и оригинальный шаг.
  *
  * Non-critical steps (critical: false) log warnings but don't trigger compensation.
  *
+ * @param name - Unique saga name for registration
+ * @param config - Optional executor configuration (DLQ hook, retry policy override)
+ *
  * @example
  * @Saga("storeCreate")
- * async run(input: Input): Promise<Output> {
- *   const storeId = await this.generateId();
- *   await this.createStore(storeId, input);
- *   await this.createRoles(storeId, input);
- *   return { storeId, organizationId: input.organizationId };
- * }
+ * async run(input: Input): Promise<Output> { ... }
+ *
+ * @example
+ * @Saga("storeCreate", {
+ *   onCompensationExhausted: async (step, method, error, ctx) => {
+ *     await this.broker.call("events.addToDLQ", { ... });
+ *   },
+ *   compensationRetryPolicy: { maxAttempts: 20, intervalSeconds: 2, backoffRate: 1.5 },
+ * })
+ * async run(input: Input): Promise<Output> { ... }
  */
-export function Saga(name: string): MethodDecorator {
+export function Saga(name: string, config?: SagaExecutorConfig): MethodDecorator {
   return function(target, propertyKey, descriptor) {
     const originalMethod = descriptor.value as Function;
 
@@ -569,6 +603,15 @@ export function Saga(name: string): MethodDecorator {
       const sagaId = DBOS.workflowID;
       const ctx = new SagaExecutionContext(sagaId);
       const compensationErrors: Error[] = [];
+
+      // Resolve config with defaults
+      const compensationRetryPolicy = config?.compensationRetryPolicy ?? DEFAULT_COMPENSATION_RETRY;
+      const onCompensationExhausted = config?.onCompensationExhausted ?? ((step, method, err, context) => {
+        logger.error(
+          { sagaId: context.sagaId, step, method, error: err.message, attempts: context.attempts },
+          "Compensation exhausted - manual intervention required",
+        );
+      });
 
       try {
         // Execute saga within AsyncLocalStorage context
@@ -611,18 +654,23 @@ export function Saga(name: string): MethodDecorator {
           }
 
           try {
-            // Run compensation with aggressive retry
+            // Run compensation with retry policy (configurable)
             await executeCompensationWithRetry(
               this,
               step,
               compensateMethod,
               ctx,
-              DEFAULT_COMPENSATION_RETRY,
+              compensationRetryPolicy,
             );
             ctx.markCompensated(step.method);
             logger.debug(`Compensated: ${step.method}`);
           } catch (compError) {
-            logger.error(`Compensation ${compensateMethod} exhausted`, compError);
+            // Compensation exhausted - call extension hook
+            await onCompensationExhausted(step.method, compensateMethod, compError as Error, {
+              sagaId: ctx.sagaId,
+              args: step.args,
+              attempts: ctx.getAttemptCount(step.method),
+            });
             compensationErrors.push(compError as Error);
           }
         }
@@ -1030,8 +1078,12 @@ export type {
   ExecutedStep,
   SagaStepConfig,
   SagaStepMetadata,
+  SagaExecutorConfig,
   OnCompensationExhausted,
 } from "./types.js";
+
+// Constants
+export { DEFAULT_COMPENSATION_RETRY } from "./types.js";
 
 // Errors
 export {
@@ -1042,6 +1094,20 @@ export {
   toErrorInfo,
   addJitter,
 } from "./types.js";
+```
+
+## SagaExecutorConfig Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `onCompensationExhausted` | `OnCompensationExhausted` | logs error | Called when compensation retries exhausted (DLQ hook) |
+| `compensationRetryPolicy` | `RetryPolicy` | `{ maxAttempts: 10, ... }` | Override compensation retry policy |
+
+```typescript
+@Saga("storeCreate", {
+  onCompensationExhausted: async (step, method, error, ctx) => { /* DLQ */ },
+  compensationRetryPolicy: { maxAttempts: 20, intervalSeconds: 2, backoffRate: 1.5 },
+})
 ```
 
 ## SagaStepConfig Options
@@ -1153,6 +1219,51 @@ const DEFAULT_COMPENSATION_RETRY = {
 1. Компенсации **должны** успешно завершиться для консистентности
 2. Если оригинальный шаг успешен, компенсация должна eventually succeed
 3. Неуспешная компенсация оставляет систему в inconsistent state
+
+### Extension Point: onCompensationExhausted
+
+Когда все retry компенсации исчерпаны, вызывается `onCompensationExhausted` hook:
+
+```typescript
+@Saga("storeCreate", {
+  // DLQ integration
+  onCompensationExhausted: async (stepName, methodName, error, context) => {
+    // Записать в Dead Letter Queue через существующий broker action
+    await this.broker.call("events.addToDLQ", {
+      eventId: `saga:${context.sagaId}:compensation:${stepName}`,
+      eventType: "saga.compensation.failed",
+      tenantId: this.tenantId,
+      correlationId: context.sagaId,
+      handler: {
+        service: "saga",
+        action: methodName,
+      },
+      payload: { args: context.args },
+      error: error.message,
+      errorCode: (error as any).code,
+      attempts: context.attempts,
+    });
+
+    // Optional: alerting
+    this.logger.error(
+      { sagaId: context.sagaId, step: stepName, method: methodName },
+      "Saga compensation exhausted - added to DLQ",
+    );
+  },
+
+  // Optional: override retry policy for this saga
+  compensationRetryPolicy: {
+    maxAttempts: 15,      // More attempts for critical saga
+    intervalSeconds: 2,
+    backoffRate: 1.5,
+  },
+})
+async run(input: StoreCreateInput): Promise<StoreCreateOutput> {
+  // ...
+}
+```
+
+DLQ entries можно мониторить через `events.getDLQEntries` и очищать через `events.cleanupDLQ`.
 
 ## Error Classification Pattern
 
