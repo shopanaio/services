@@ -152,22 +152,22 @@ describe("isRetryableError", () => {
 
 describe("withTimeout", () => {
   it("resolves if promise completes in time", async () => {
-    const result = await withTimeout(Promise.resolve("ok"), 1000, "testStep");
+    const result = await withTimeout(() => Promise.resolve("ok"), 1000, "testStep");
     expect(result).toBe("ok");
   });
 
   it("rejects with StepTimeoutError if timeout exceeded", async () => {
-    const slowPromise = new Promise((resolve) => setTimeout(resolve, 100));
+    const slowPromiseFactory = () => new Promise((resolve) => setTimeout(resolve, 100));
 
-    await expect(withTimeout(slowPromise, 10, "slowStep")).rejects.toThrow(
+    await expect(withTimeout(slowPromiseFactory, 10, "slowStep")).rejects.toThrow(
       StepTimeoutError,
     );
   });
 
   it("propagates original error", async () => {
-    const failingPromise = Promise.reject(new Error("Original error"));
+    const failingPromiseFactory = () => Promise.reject(new Error("Original error"));
 
-    await expect(withTimeout(failingPromise, 1000, "testStep")).rejects.toThrow(
+    await expect(withTimeout(failingPromiseFactory, 1000, "testStep")).rejects.toThrow(
       "Original error",
     );
   });
