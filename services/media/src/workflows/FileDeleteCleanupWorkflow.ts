@@ -42,9 +42,7 @@ export class FileDeleteCleanupWorkflow extends BrokerWorkflows {
   }
 
   @WorkflowStep({
-    maxAttempts: 10,
-    intervalSeconds: 60,
-    backoffRate: 2,
+    retry: { maxAttempts: 10, intervalSeconds: 60, backoffRate: 2 },
   })
   private async notifyInventory(fileId: string): Promise<void> {
     const result = await this.broker.call<Inventory.FileHardDeletedResult, Inventory.FileHardDeletedParams>(

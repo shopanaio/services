@@ -6,31 +6,31 @@ import {
   Action,
   ZodSchema,
 } from "@shopana/shared-kernel";
-import { Kernel } from "./kernel/Kernel.js";
-import { AssetGroupCreateScript } from "./scripts/assetGroup/AssetGroupCreateScript.js";
-import { AssetGroupDeleteScript } from "./scripts/assetGroup/AssetGroupDeleteScript.js";
-import { AssetGroupGetScript } from "./scripts/assetGroup/AssetGroupGetScript.js";
+import { Kernel } from "../kernel/Kernel.js";
+import { AssetGroupCreateScript } from "../scripts/assetGroup/AssetGroupCreateScript.js";
+import { AssetGroupDeleteScript } from "../scripts/assetGroup/AssetGroupDeleteScript.js";
+import { AssetGroupGetScript } from "../scripts/assetGroup/AssetGroupGetScript.js";
 import {
   assetGroupCreateSchema,
   type AssetGroupCreateParams,
   type AssetGroupCreateResult,
-} from "./scripts/assetGroup/dto/AssetGroupCreateDto.js";
+} from "../scripts/assetGroup/dto/AssetGroupCreateDto.js";
 import {
   assetGroupDeleteSchema,
   type AssetGroupDeleteParams,
   type AssetGroupDeleteResult,
-} from "./scripts/assetGroup/dto/AssetGroupDeleteDto.js";
+} from "../scripts/assetGroup/dto/AssetGroupDeleteDto.js";
 import {
   assetGroupGetSchema,
   type AssetGroupGetParams,
   type AssetGroupGetResult,
-} from "./scripts/assetGroup/dto/AssetGroupGetDto.js";
-import { FileLinkScript } from "./scripts/backRef/FileLinkScript.js";
-import { FileUnlinkScript } from "./scripts/backRef/FileUnlinkScript.js";
-import { FileLinkManyScript } from "./scripts/backRef/FileLinkManyScript.js";
-import { FileUnlinkManyScript } from "./scripts/backRef/FileUnlinkManyScript.js";
-import { EntityDeletedScript } from "./scripts/backRef/EntityDeletedScript.js";
-import { SyncEntityFilesScript } from "./scripts/backRef/SyncEntityFilesScript.js";
+} from "../scripts/assetGroup/dto/AssetGroupGetDto.js";
+import { FileLinkScript } from "../scripts/backRef/FileLinkScript.js";
+import { FileUnlinkScript } from "../scripts/backRef/FileUnlinkScript.js";
+import { FileLinkManyScript } from "../scripts/backRef/FileLinkManyScript.js";
+import { FileUnlinkManyScript } from "../scripts/backRef/FileUnlinkManyScript.js";
+import { EntityDeletedScript } from "../scripts/backRef/EntityDeletedScript.js";
+import { SyncEntityFilesScript } from "../scripts/backRef/SyncEntityFilesScript.js";
 import {
   fileLinkSchema,
   fileUnlinkSchema,
@@ -50,7 +50,7 @@ import {
   type EntityDeletedResult,
   type SyncEntityFilesParams,
   type SyncEntityFilesResult,
-} from "./scripts/backRef/dto/index.js";
+} from "../scripts/backRef/dto/index.js";
 
 /**
  * Media broker actions registered with @Action decorator.
@@ -73,7 +73,7 @@ export class MediaBrokerActions extends BrokerActions {
   @Action("createAssetGroup")
   @ZodSchema(assetGroupCreateSchema)
   async createAssetGroup(
-    params: AssetGroupCreateParams
+    params: AssetGroupCreateParams,
   ): Promise<AssetGroupCreateResult> {
     return this.kernel.runScript(AssetGroupCreateScript, params);
   }
@@ -84,7 +84,7 @@ export class MediaBrokerActions extends BrokerActions {
   @Action("deleteAssetGroup")
   @ZodSchema(assetGroupDeleteSchema)
   async deleteAssetGroup(
-    params: AssetGroupDeleteParams
+    params: AssetGroupDeleteParams,
   ): Promise<AssetGroupDeleteResult> {
     return this.kernel.runScript(AssetGroupDeleteScript, params);
   }
@@ -95,7 +95,7 @@ export class MediaBrokerActions extends BrokerActions {
   @Action("getAssetGroup")
   @ZodSchema(assetGroupGetSchema)
   async getAssetGroup(
-    params: AssetGroupGetParams
+    params: AssetGroupGetParams,
   ): Promise<AssetGroupGetResult> {
     return this.kernel.runScript(AssetGroupGetScript, params);
   }
@@ -123,9 +123,7 @@ export class MediaBrokerActions extends BrokerActions {
    */
   @Action("fileLinkMany")
   @ZodSchema(fileLinkManySchema)
-  async fileLinkMany(
-    params: FileLinkManyParams
-  ): Promise<FileLinkManyResult> {
+  async fileLinkMany(params: FileLinkManyParams): Promise<FileLinkManyResult> {
     return this.kernel.runScript(FileLinkManyScript, params);
   }
 
@@ -135,7 +133,7 @@ export class MediaBrokerActions extends BrokerActions {
   @Action("fileUnlinkMany")
   @ZodSchema(fileUnlinkManySchema)
   async fileUnlinkMany(
-    params: FileUnlinkManyParams
+    params: FileUnlinkManyParams,
   ): Promise<FileUnlinkManyResult> {
     return this.kernel.runScript(FileUnlinkManyScript, params);
   }
@@ -146,7 +144,7 @@ export class MediaBrokerActions extends BrokerActions {
   @Action("entityDeleted")
   @ZodSchema(entityDeletedSchema)
   async entityDeleted(
-    params: EntityDeletedParams
+    params: EntityDeletedParams,
   ): Promise<EntityDeletedResult> {
     return this.kernel.runScript(EntityDeletedScript, params);
   }
@@ -158,7 +156,7 @@ export class MediaBrokerActions extends BrokerActions {
   @Action("syncEntityFiles")
   @ZodSchema(syncEntityFilesSchema)
   async syncEntityFiles(
-    params: SyncEntityFilesParams
+    params: SyncEntityFilesParams,
   ): Promise<SyncEntityFilesResult> {
     return this.kernel.runScript(SyncEntityFilesScript, params);
   }
