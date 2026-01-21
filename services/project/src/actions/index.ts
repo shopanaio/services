@@ -5,7 +5,7 @@ import {
   ServiceBroker,
   Action,
 } from "@shopana/shared-kernel";
-import { Kernel } from "./kernel/Kernel.js";
+import { Kernel } from "../kernel/Kernel.js";
 import {
   GetCurrentStoreScript,
   type GetCurrentStoreParams,
@@ -13,7 +13,7 @@ import {
   GetStoreByIdScript,
   type GetStoreByIdParams,
   type GetStoreByIdResult,
-} from "./scripts/index.js";
+} from "../scripts/index.js";
 
 /**
  * Project broker actions registered with @Action decorator.
