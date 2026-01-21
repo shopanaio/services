@@ -220,12 +220,10 @@ export class StoreCreateWorkflow extends BrokerWorkflows {
         tenantId: input.organizationId,
         userId: input.userId,
       },
-      source: "project",
       subject: { type: "store", id: storeId },
-      related: [{ type: "organization", id: input.organizationId }],
       actor: input.userId
         ? { type: "user", id: input.userId }
-        : { type: "service", id: "project" },
+        : undefined,
       emitKey: `store:${storeId}`,
     });
   }

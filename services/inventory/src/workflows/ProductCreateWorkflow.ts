@@ -64,12 +64,10 @@ export class ProductCreateWorkflow extends BaseWorkflow {
         tenantId: input.organizationId,
         userId: input.userId,
       },
-      source: "inventory",
       subject: { type: "product", id: product.id },
-      related: [{ type: "store", id: input.storeId }],
       actor: input.userId
         ? { type: "user", id: input.userId }
-        : { type: "service", id: "inventory" },
+        : undefined,
       emitKey: `product:${product.id}`,
     });
   }

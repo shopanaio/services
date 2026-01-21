@@ -33,7 +33,6 @@ interface EmitParams<TType extends string = string, TPayload = unknown> {
   source: string;
   context: Omit<EventContext, "correlationId"> & { correlationId?: string };
   subject: { type: string; id: string };
-  related?: Array<{ type: string; id: string }>;
   actor?: { type: "user" | "service" | "system"; id?: string };
   emitKey: string;
 }
@@ -100,7 +99,6 @@ export class EventsBrokerActions extends BrokerActions {
         dispatchStartedAt: realTimestamp,
         subjectType: event.subject.type,
         subjectId: event.subject.id,
-        related: event.related ?? [],
         actorType: event.actor?.type ?? "service",
         actorId: event.actor?.id,
         payloadHash: computePayloadHash(event.payload),
@@ -272,7 +270,6 @@ export class EventsBrokerActions extends BrokerActions {
         correlationId,
       },
       subject: params.subject,
-      related: params.related ?? [],
       actor: params.actor ?? { type: "service", id: params.source },
     };
 

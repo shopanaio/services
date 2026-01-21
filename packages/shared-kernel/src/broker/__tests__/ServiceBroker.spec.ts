@@ -65,7 +65,7 @@ describe('ServiceBroker', () => {
     });
   });
 
-  it('emit() calls events.emit action', async () => {
+  it('emit() calls events.emit action with auto-injected source', async () => {
     const registry = new ActionRegistry();
     const broker = createBroker({ registry });
 
@@ -76,17 +76,17 @@ describe('ServiceBroker', () => {
 
     const result = await broker.emit('order.created', {
       payload: { id: '1' },
-      source: 'payments',
       context: { tenantId: 'tenant-1' },
       subject: { type: 'order', id: '1' },
       emitKey: 'order:1',
     });
 
     expect(result).toEqual(mockEmitResult);
+    // source is auto-injected from serviceName ('payments')
     expect(mockHandler).toHaveBeenCalledWith({
       eventType: 'order.created',
-      payload: { id: '1' },
       source: 'payments',
+      payload: { id: '1' },
       context: { tenantId: 'tenant-1' },
       subject: { type: 'order', id: '1' },
       emitKey: 'order:1',

@@ -107,3 +107,38 @@ export {
   type DatabaseModuleOptions,
   type DatabaseClient,
 } from "./database";
+
+// Saga Engine
+export {
+  Saga,
+  SagaStep,
+  SAGA_STEP_KEY,
+  SAGA_DEFINITION_KEY,
+  BrokerSaga,
+  SagaExecutionContext,
+  sagaContextStorage,
+  getSagaContext,
+  DEFAULT_COMPENSATION_RETRY,
+  DEFAULT_STEP_TIMEOUT_MS,
+  SagaError,
+  RetryableError,
+  FatalError,
+  StepExecutionError,
+  StepTimeoutError,
+  isRetryableError,
+  toErrorInfo,
+  withTimeout,
+} from "./saga/index";
+
+export type {
+  SagaResult,
+  SagaStatus,
+  StepResult,
+  RetryPolicy,
+  ErrorInfo,
+  ExecutedStep,
+  SagaStepConfig,
+  SagaStepMetadata,
+  SagaExecutorConfig,
+  OnCompensationExhausted,
+} from "./saga/index";

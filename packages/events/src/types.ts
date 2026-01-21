@@ -8,7 +8,6 @@ export interface DomainEvent<TType extends string = string, TPayload = unknown> 
   parentWorkflowId?: string;
   context: EventContext;
   subject: { type: string; id: string };
-  related?: Array<{ type: string; id: string }>;
   actor?: { type: "user" | "service" | "system"; id?: string };
 }
 

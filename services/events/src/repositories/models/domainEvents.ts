@@ -19,10 +19,6 @@ export const domainEvents = pgTable(
     handlerResults: jsonb("handler_results"),
     subjectType: text("subject_type").notNull(),
     subjectId: text("subject_id").notNull(),
-    related: jsonb("related")
-      .$type<Array<{ type: string; id: string }>>()
-      .notNull()
-      .default([]),
     actorType: text("actor_type").notNull().default("service"),
     actorId: text("actor_id"),
     payloadHash: text("payload_hash"),

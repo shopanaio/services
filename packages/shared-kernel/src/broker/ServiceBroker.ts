@@ -3,6 +3,7 @@ import { ActionHandler, ActionRegistry, type ActionMetadata } from './ActionRegi
 import type { WorkflowRegistry } from '../workflow/WorkflowRegistry.js';
 import { WORKFLOW_REGISTRY } from '../workflow/tokens.js';
 import type { IdempotencyContext } from '../workflow/idempotency.js';
+import type { SagaResult } from '../saga/types.js';
 
 export interface ServiceBrokerOptions {
   serviceName: string;
@@ -10,10 +11,10 @@ export interface ServiceBrokerOptions {
 
 /**
  * Parameters for emitting domain events via the events service.
+ * Note: `source` is automatically set from the service name.
  */
 export interface EmitParams {
   payload: unknown;
-  source: string;
   context: {
     tenantId: string;
     userId?: string;
@@ -21,7 +22,6 @@ export interface EmitParams {
     causationId?: string;
   };
   subject: { type: string; id: string };
-  related?: Array<{ type: string; id: string }>;
   actor?: { type: 'user' | 'service' | 'system'; id?: string };
   emitKey: string;
 }
@@ -91,6 +91,7 @@ export class ServiceBroker implements OnModuleDestroy {
   /**
    * Emits a domain event via the events service.
    * This is a convenience method that calls broker.call("events.emit", params).
+   * The `source` field is automatically set from the service name.
    *
    * @param eventType - The type of event to emit (e.g., 'productCreated')
    * @param params - Event emission parameters
@@ -99,7 +100,6 @@ export class ServiceBroker implements OnModuleDestroy {
    * @example
    * await broker.emit('productCreated', {
    *   payload: { productId: '123' },
-   *   source: 'inventory',
    *   context: { tenantId: 'org-1' },
    *   subject: { type: 'product', id: '123' },
    *   emitKey: 'product:123',
@@ -109,10 +109,14 @@ export class ServiceBroker implements OnModuleDestroy {
     eventType: string,
     params: EmitParams,
   ): Promise<{ workflowId: string; eventId: string }> {
-    return this.call<{ workflowId: string; eventId: string }, EmitParams & { eventType: string }>(
-      'events.emit',
-      { eventType, ...params },
-    );
+    return this.call<
+      { workflowId: string; eventId: string },
+      EmitParams & { eventType: string; source: string }
+    >('events.emit', {
+      eventType,
+      source: this.options.serviceName,
+      ...params,
+    });
   }
 
   /**
@@ -136,6 +140,22 @@ export class ServiceBroker implements OnModuleDestroy {
       idempotencyCtx,
     );
     return handle.getResult();
+  }
+
+  /**
+   * Execute saga and wait for result.
+   * Sagas are workflows with automatic compensation on failure.
+   */
+  async runSaga<TResult = unknown, TParams = unknown>(
+    sagaName: string,
+    params: TParams,
+    idempotencyCtx: IdempotencyContext,
+  ): Promise<SagaResult<TResult>> {
+    return this.runWorkflow<SagaResult<TResult>, TParams>(
+      sagaName,
+      params,
+      idempotencyCtx,
+    );
   }
 
   /**
