@@ -99,7 +99,14 @@ export {
 // STEP EXECUTION
 // ============================================================================
 
-export { runStep, type StepOptions } from "./step/index.js";
+export {
+  runStep,
+  type StepOptions,
+  // Step context for abort signal
+  getSignal,
+  stepContextStorage,
+  type StepExecutionContext,
+} from "./step/index.js";
 
 // ============================================================================
 // WORKFLOW

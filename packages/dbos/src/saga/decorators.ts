@@ -77,7 +77,7 @@ export function SagaStep(config: SagaStepConfig = {}): MethodDecorator {
 
         try {
           const result = await runStep(
-            () => originalMethod.apply(this, args),
+            (_signal) => originalMethod.apply(this, args),
             { ...config, name: stepName, methodName, critical: hasCompensation },
             { workflowId: ctx.sagaId },
           );

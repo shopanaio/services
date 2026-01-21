@@ -143,26 +143,38 @@ export class StepTimeoutError extends FatalError {
 export const DEFAULT_STEP_TIMEOUT_MS = 30_000;
 
 /**
- * Wraps a promise with timeout.
+ * Wraps a promise factory with timeout and cancellation support.
+ * The factory receives an AbortSignal that will be aborted on timeout.
  * Throws StepTimeoutError if timeout exceeded.
+ *
+ * @param promiseFactory - Factory function that receives AbortSignal and returns a promise
+ * @param timeoutMs - Timeout in milliseconds
+ * @param stepName - Step name for error messages
  */
 export function withTimeout<T>(
-  promise: Promise<T>,
+  promiseFactory: (signal: AbortSignal) => Promise<T>,
   timeoutMs: number,
   stepName: string,
 ): Promise<T> {
+  const controller = new AbortController();
+
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
+      controller.abort();
       reject(new StepTimeoutError(stepName, timeoutMs));
     }, timeoutMs);
 
-    promise
+    promiseFactory(controller.signal)
       .then((result) => {
         clearTimeout(timer);
         resolve(result);
       })
       .catch((error) => {
         clearTimeout(timer);
+        // Ignore abort errors caused by our timeout
+        if (controller.signal.aborted && error?.name === "AbortError") {
+          return; // Already rejected with StepTimeoutError
+        }
         reject(error);
       });
   });

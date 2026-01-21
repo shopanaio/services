@@ -15,6 +15,7 @@ import {
   withTimeout,
   DEFAULT_STEP_TIMEOUT_MS,
 } from "../core/errors.js";
+import { stepContextStorage } from "./StepExecutionContext.js";
 
 const logger = new Logger("WorkflowStep");
 
@@ -45,14 +46,14 @@ type InternalStepResult<T> =
 /**
  * Execute a step with DBOS durability, timeout, and retry handling.
  *
- * @param fn - The step function to execute
+ * @param fn - The step function to execute. Receives an AbortSignal for cancellation on timeout.
  * @param options - Step configuration
  * @param context - Execution context (workflowId for step naming)
  * @returns Step result or undefined if non-critical step failed
  * @throws Error if critical step fails
  */
 export async function runStep<T>(
-  fn: () => Promise<T>,
+  fn: (signal: AbortSignal) => Promise<T>,
   options: InternalStepOptions & { methodName: string },
   context: { workflowId: string },
 ): Promise<T | undefined> {
@@ -74,7 +75,11 @@ export async function runStep<T>(
     stepResult = await DBOS.runStep<InternalStepResult<T>>(
       async () => {
         try {
-          const result = await withTimeout(fn(), timeoutMs, stepName);
+          const result = await withTimeout(
+            (signal) => stepContextStorage.run({ signal }, () => fn(signal)),
+            timeoutMs,
+            stepName,
+          );
           return { kind: "ok", data: result };
         } catch (error) {
           if (error instanceof StepTimeoutError) {

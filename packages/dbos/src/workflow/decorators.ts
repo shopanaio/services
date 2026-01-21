@@ -134,7 +134,7 @@ export function WorkflowStep(options?: WorkflowStepMetadata): MethodDecorator {
         const workflowId = DBOS.workflowID ?? "unknown";
 
         return runStep(
-          () => originalMethod.apply(this, args),
+          (_signal) => originalMethod.apply(this, args),
           { ...options, methodName },
           { workflowId },
         );
