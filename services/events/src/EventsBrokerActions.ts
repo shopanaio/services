@@ -10,7 +10,6 @@ import type {
   DomainEvent,
   EventContext,
   EventDispatchResult,
-  HandlerInvocationResult,
 } from "@shopana/events";
 import {
   makeDeterministicCorrelationId,
@@ -18,12 +17,10 @@ import {
   makeEventId,
 } from "@shopana/events";
 import { eq, sql } from "drizzle-orm";
-import { domainEvents } from "./repositories/models/domainEvents.js";
 import {
   deadLetterQueue,
   type DLQEntry,
 } from "./repositories/models/deadLetterQueue.js";
-import { computePayloadHash } from "./utils/hash.js";
 import { Kernel } from "./kernel/Kernel.js";
 import type { EventDispatchWorkflow } from "./workflows/EventDispatchWorkflow.js";
 
@@ -73,102 +70,6 @@ export class EventsBrokerActions extends BrokerActions {
     }).dispatch(event);
 
     return handle.getResult();
-  }
-
-  @Action("persistEvent")
-  async persistEvent(params: {
-    event: DomainEvent;
-  }): Promise<{ persisted: boolean; timestamp: string }> {
-    const { event } = params;
-    const realTimestamp = new Date();
-
-    await this.db
-      .insert(domainEvents)
-      .values({
-        eventId: event.eventId,
-        eventType: event.eventType,
-        source: event.source,
-        timestamp: realTimestamp,
-        tenantId: event.context.tenantId,
-        userId: event.context.userId,
-        correlationId: event.context.correlationId,
-        causationId: event.context.causationId,
-        emitKey: event.emitKey,
-        parentWorkflowId: event.parentWorkflowId,
-        status: "dispatching",
-        dispatchStartedAt: realTimestamp,
-        subjectType: event.subject.type,
-        subjectId: event.subject.id,
-        actorType: event.actor?.type ?? "service",
-        actorId: event.actor?.id,
-        payloadHash: computePayloadHash(event.payload),
-      })
-      .onConflictDoNothing();
-
-    return { persisted: true, timestamp: realTimestamp.toISOString() };
-  }
-
-  @Action("updateEventStatus")
-  async updateEventStatus(params: {
-    eventId: string;
-    status: "completed";
-    handlerResults: HandlerInvocationResult[];
-  }): Promise<{ updated: boolean }> {
-    await this.db
-      .update(domainEvents)
-      .set({
-        status: "completed",
-        dispatchCompletedAt: new Date(),
-        handlerResults: params.handlerResults,
-        updatedAt: new Date(),
-      })
-      .where(eq(domainEvents.eventId, params.eventId));
-
-    return { updated: true };
-  }
-
-  @Action("addToDLQ")
-  async addToDLQ(params: {
-    eventId: string;
-    eventType: string;
-    tenantId: string;
-    correlationId?: string;
-    handler: { service: string; action: string };
-    error: string;
-    errorCode?: string;
-    attempts: number;
-  }): Promise<{ added: boolean }> {
-    await this.db
-      .insert(deadLetterQueue)
-      .values({
-        eventId: params.eventId,
-        eventType: params.eventType,
-        handlerService: params.handler.service,
-        handlerAction: params.handler.action,
-        error: params.error,
-        errorCode: params.errorCode,
-        attempts: params.attempts,
-        tenantId: params.tenantId,
-        correlationId: params.correlationId,
-        status: "failed",
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      })
-      .onConflictDoUpdate({
-        target: [
-          deadLetterQueue.eventId,
-          deadLetterQueue.handlerService,
-          deadLetterQueue.handlerAction,
-        ],
-        set: {
-          error: params.error,
-          errorCode: params.errorCode,
-          attempts: params.attempts,
-          failedAt: new Date(),
-          status: "failed",
-        },
-      });
-
-    return { added: true };
   }
 
   @Action("getDLQEntries")

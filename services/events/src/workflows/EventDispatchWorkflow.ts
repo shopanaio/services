@@ -1,4 +1,4 @@
-import { DBOS } from "@shopana/shared-kernel";
+import { DBOS, withTimeout, StepTimeoutError } from "@shopana/shared-kernel";
 import type {
   DomainEvent,
   EventDispatchResult,
@@ -10,35 +10,6 @@ import { getConfig } from "@shopana/shared-service-config";
 import { BaseWorkflow, type WorkflowServices } from "../kernel/BaseWorkflow.js";
 
 const DEFAULT_HANDLER_TIMEOUT_MS = 30_000; // 30 seconds
-
-class HandlerTimeoutError extends Error {
-  constructor(action: string, timeoutMs: number) {
-    super(`Handler "${action}" timed out after ${timeoutMs}ms`);
-    this.name = "HandlerTimeoutError";
-  }
-}
-
-function withTimeout<T>(
-  promise: Promise<T>,
-  timeoutMs: number,
-  action: string
-): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(new HandlerTimeoutError(action, timeoutMs));
-    }, timeoutMs);
-
-    promise
-      .then((result) => {
-        clearTimeout(timer);
-        resolve(result);
-      })
-      .catch((error) => {
-        clearTimeout(timer);
-        reject(error);
-      });
-  });
-}
 
 export class EventDispatchWorkflow extends BaseWorkflow {
   constructor(name: string, services: WorkflowServices) {
@@ -71,7 +42,7 @@ export class EventDispatchWorkflow extends BaseWorkflow {
   private async persistEvent(
     event: DomainEvent
   ): Promise<{ timestamp: string }> {
-    return this.broker.call("events.persistEvent", { event });
+    return this.repository.persistEvent(event);
   }
 
   @DBOS.step()
@@ -150,7 +121,7 @@ export class EventDispatchWorkflow extends BaseWorkflow {
             const durationMs = Date.now() - startTime;
 
             // Timeout is non-retryable - send to DLQ immediately
-            if (error instanceof HandlerTimeoutError) {
+            if (error instanceof StepTimeoutError) {
               return {
                 kind: "timeout",
                 error: { message: error.message, code: "HANDLER_TIMEOUT" },
@@ -228,7 +199,7 @@ export class EventDispatchWorkflow extends BaseWorkflow {
     errorCode: string | undefined,
     attempts: number
   ): Promise<void> {
-    await this.broker.call("events.addToDLQ", {
+    await this.repository.addToDLQ({
       eventId: event.eventId,
       eventType: event.eventType,
       tenantId: event.context.tenantId,
@@ -245,10 +216,6 @@ export class EventDispatchWorkflow extends BaseWorkflow {
     eventId: string,
     results: HandlerInvocationResult[]
   ): Promise<void> {
-    await this.broker.call("events.updateEventStatus", {
-      eventId,
-      status: "completed",
-      handlerResults: results,
-    });
+    await this.repository.updateEventStatus(eventId, results);
   }
 }
