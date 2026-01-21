@@ -152,7 +152,7 @@ export class WarehouseRepository extends BaseRepository {
   // ============ Query ============
 
   async getConnection(args: WarehouseRelayInput): Promise<WarehouseConnectionResult> {
-    const { where, order, ...paginationArgs } = args;
+    const { where, orderBy, ...paginationArgs } = args;
 
     // Merge user-provided where with projectId filter
     const mergedWhere: WarehouseRelayInput["where"] = {
@@ -165,7 +165,7 @@ export class WarehouseRepository extends BaseRepository {
     const executeInput: WarehouseRelayInput = {
       ...paginationArgs,
       where: mergedWhere,
-      order: order ?? [{ field: "createdAt", order: "desc" }],
+      orderBy: orderBy ?? [{ field: "createdAt", direction: "desc" }],
     };
 
     const [result, totalCount] = await Promise.all([
