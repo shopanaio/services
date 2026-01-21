@@ -46,26 +46,8 @@ async function bootstrap() {
   );
 
   // Enable shutdown hooks for graceful shutdown
+  // NestJS will automatically handle SIGTERM and SIGINT
   app.enableShutdownHooks();
-
-  // Handle shutdown signals
-  const shutdown = async (signal: string) => {
-    logger.log(`Shutting down (${signal})...`);
-    try {
-      await app.close();
-      process.exit(0);
-    } catch (error) {
-      logger.error('Shutdown error:', error);
-      process.exit(1);
-    }
-  };
-
-  process.on('SIGTERM', () => shutdown('SIGTERM'));
-  process.on('SIGINT', () => shutdown('SIGINT'));
-  process.on('uncaughtException', (error) => {
-    logger.error('Uncaught exception:', error);
-    shutdown('uncaughtException');
-  });
 
   // Success message
   logger.log(`✓ Ready (${services.length} services)`);
