@@ -17,14 +17,14 @@ export const product = inventorySchema.table(
     projectId: uuid("project_id").notNull(),
     id: uuid("id").primaryKey(),
     handle: varchar("handle", { length: 255 }),
-    publishedAt: timestamp("published_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true })
+    publishedAt: timestamp("published_at", { withTimezone: true, mode: "string" }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
-    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
   },
   (table) => [
     check(
@@ -56,13 +56,13 @@ export const variant = inventorySchema.table(
     sku: varchar("sku", { length: 64 }),
     externalSystem: varchar("external_system", { length: 32 }),
     externalId: text("external_id"),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
-    createdAt: timestamp("created_at", { withTimezone: true })
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
-    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
   },
   (table) => [
     check(

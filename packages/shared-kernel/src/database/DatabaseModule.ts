@@ -58,15 +58,6 @@ export class DatabaseModule {
       idle_timeout: options.pool?.idle_timeout ?? 20,
       connect_timeout: options.pool?.connect_timeout ?? 30,
       max_lifetime: options.pool?.max_lifetime ?? 60 * 30,
-      types: {
-        date: {
-          to: 1184,
-          from: [1114, 1184],
-          serialize: (x: Date | string) =>
-            x instanceof Date ? x.toISOString() : x,
-          parse: (x: string) => x,
-        },
-      },
       onnotice: () => {},
     });
 

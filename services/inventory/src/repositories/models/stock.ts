@@ -23,10 +23,10 @@ export const warehouses = inventorySchema.table(
     code: varchar("code", { length: 32 }).notNull(),
     name: text("name").notNull(),
     isDefault: boolean("is_default").notNull().default(false),
-    createdAt: timestamp("created_at", { withTimezone: true })
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
   },
@@ -51,10 +51,10 @@ export const warehouseStock = inventorySchema.table(
     quantityOnHand: integer("quantity_on_hand").notNull().default(0),
     reservedQty: integer("reserved_qty").notNull().default(0),
     unavailableQty: integer("unavailable_qty").notNull().default(0),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
-    createdAt: timestamp("created_at", { withTimezone: true })
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
   },
