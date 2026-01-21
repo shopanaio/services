@@ -67,7 +67,7 @@ export class OrganizationUpdateSaga extends BrokerSaga<
     return this.kernel.runScript(OrganizationUpdateScript, input);
   }
 
-  @SagaStep({ critical: false })
+  @SagaStep()
   private async syncLogoBackRefs(
     organizationId: string,
     previousLogoId: string | null,

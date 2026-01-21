@@ -62,7 +62,7 @@ export class OrganizationDeleteSaga extends BrokerSaga<
     return this.kernel.runScript(OrganizationDeleteScript, input);
   }
 
-  @SagaStep({ critical: false })
+  @SagaStep()
   private async deleteMediaAssetGroup(organizationId: string): Promise<void> {
     try {
       await this.broker.call<Media.DeleteAssetGroupResult, Media.DeleteAssetGroupParams>(
@@ -75,7 +75,7 @@ export class OrganizationDeleteSaga extends BrokerSaga<
     }
   }
 
-  @SagaStep({ critical: false })
+  @SagaStep()
   private async unlinkBackRefs(organizationId: string): Promise<void> {
     try {
       await this.broker.call<Media.EntityDeletedResult, Media.EntityDeletedParams>(

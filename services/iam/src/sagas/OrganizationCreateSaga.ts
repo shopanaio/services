@@ -58,7 +58,7 @@ export class OrganizationCreateSaga extends BrokerSaga<
     return this.kernel.runScript(OrganizationCreateScript, input);
   }
 
-  @SagaStep({ critical: false })
+  @SagaStep()
   private async createMediaAssetGroup(organizationId: string): Promise<void> {
     const result = await this.broker.call<
       Media.CreateAssetGroupResult,

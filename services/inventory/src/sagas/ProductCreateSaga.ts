@@ -61,7 +61,7 @@ export class ProductCreateSaga extends BrokerSaga<ProductCreateParams, ProductCr
     return this.kernel.runScript(ProductCreateScript, input);
   }
 
-  @SagaStep({ critical: false })
+  @SagaStep()
   private async emitProductCreated(
     product: NonNullable<ProductCreateResult["product"]>,
     input: ProductCreateParams
@@ -84,7 +84,7 @@ export class ProductCreateSaga extends BrokerSaga<ProductCreateParams, ProductCr
     });
   }
 
-  @SagaStep({ critical: false })
+  @SagaStep()
   private async syncVariantBackRefs(variantMediaMap: VariantMediaEntry[]): Promise<void> {
     for (const entry of variantMediaMap) {
       try {

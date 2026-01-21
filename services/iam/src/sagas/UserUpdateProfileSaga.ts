@@ -68,7 +68,7 @@ export class UserUpdateProfileSaga extends BrokerSaga<
     return this.kernel.runScript(UserUpdateProfileScript, input);
   }
 
-  @SagaStep({ critical: false })
+  @SagaStep()
   private async syncAvatarBackRefs(
     userId: string,
     previousAvatarId: string | null,
