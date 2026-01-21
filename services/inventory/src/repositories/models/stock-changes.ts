@@ -72,7 +72,7 @@ export const stockChanges = inventorySchema.table(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    createdBy: uuid("created_by"),
+    createdBy: text("created_by"),
     applyStatus: stockApplyStatusEnum("apply_status")
       .notNull()
       .default("APPLIED"),

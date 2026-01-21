@@ -1,0 +1,1 @@
+ALTER TABLE "inventory"."stock_changes" ALTER COLUMN "created_by" SET DATA TYPE text;

@@ -1,5 +1,5 @@
 import { and, eq, inArray, count, sql } from "drizzle-orm";
-import { randomUUID } from "crypto";
+import { v7 as uuidv7 } from "uuid";
 import {
   createQuery,
   createRelayQuery,
@@ -7,11 +7,18 @@ import {
   type InferRelayInput,
 } from "@shopana/drizzle-query";
 import { BaseRepository } from "../BaseRepository.js";
-import { warehouseStock, type WarehouseStock, type NewWarehouseStock } from "../models";
+import {
+  warehouseStock,
+  type WarehouseStock,
+  type NewWarehouseStock,
+} from "../models";
 
 export const stockRelayQuery = createRelayQuery(
-  createQuery(warehouseStock).include(["id", "warehouseId", "variantId"]).maxLimit(100).defaultLimit(20),
-  { name: "stock", tieBreaker: "id" }
+  createQuery(warehouseStock)
+    .include(["id", "warehouseId", "variantId"])
+    .maxLimit(100)
+    .defaultLimit(20),
+  { name: "stock", tieBreaker: "id" },
 );
 
 export type StockRelayInput = InferRelayInput<typeof stockRelayQuery>;
@@ -61,7 +68,7 @@ export class StockRepository extends BaseRepository {
   async upsert(
     variantId: string,
     warehouseId: string,
-    quantity: number
+    quantity: number,
   ): Promise<WarehouseStock> {
     const now = new Date();
 
@@ -69,7 +76,7 @@ export class StockRepository extends BaseRepository {
       .insert(warehouseStock)
       .values({
         projectId: this.storeId,
-        id: randomUUID(),
+        id: uuidv7(),
         variantId,
         warehouseId,
         quantityOnHand: quantity,
@@ -77,7 +84,11 @@ export class StockRepository extends BaseRepository {
         updatedAt: now,
       } satisfies NewWarehouseStock)
       .onConflictDoUpdate({
-        target: [warehouseStock.projectId, warehouseStock.warehouseId, warehouseStock.variantId],
+        target: [
+          warehouseStock.projectId,
+          warehouseStock.warehouseId,
+          warehouseStock.variantId,
+        ],
         set: {
           quantityOnHand: quantity,
           updatedAt: now,
@@ -93,7 +104,7 @@ export class StockRepository extends BaseRepository {
    */
   async findByVariantWarehouse(
     variantId: string,
-    warehouseId: string
+    warehouseId: string,
   ): Promise<WarehouseStock | null> {
     const result = await this.connection
       .select()
@@ -102,8 +113,8 @@ export class StockRepository extends BaseRepository {
         and(
           eq(warehouseStock.projectId, this.storeId),
           eq(warehouseStock.variantId, variantId),
-          eq(warehouseStock.warehouseId, warehouseId)
-        )
+          eq(warehouseStock.warehouseId, warehouseId),
+        ),
       )
       .limit(1);
 
@@ -114,7 +125,7 @@ export class StockRepository extends BaseRepository {
    * Apply a stock change with idempotency and constraints.
    */
   async applyStockChange(
-    input: ApplyStockChangeInput
+    input: ApplyStockChangeInput,
   ): Promise<ApplyStockChangeResult> {
     const deltaReserved = input.deltaReserved ?? 0;
     const deltaUnavailable = input.deltaUnavailable ?? 0;
@@ -151,11 +162,11 @@ export class StockRepository extends BaseRepository {
       ),
       up AS (
         INSERT INTO inventory.warehouse_stock (
-          project_id, warehouse_id, variant_id,
+          id, project_id, warehouse_id, variant_id,
           quantity_on_hand, reserved_qty, unavailable_qty
         )
         SELECT
-          ${this.storeId}, ${input.warehouseId}, ${input.variantId},
+          ${uuidv7()}, ${this.storeId}, ${input.warehouseId}, ${input.variantId},
           ${input.deltaOnHand}, ${deltaReserved}, ${deltaUnavailable}
         FROM ins
         WHERE
@@ -196,9 +207,9 @@ export class StockRepository extends BaseRepository {
           apply_status = 'REJECTED'
         FROM ins
         LEFT JOIN inventory.warehouse_stock ws
-          ON ws.project_id = sc.project_id
-         AND ws.warehouse_id = sc.warehouse_id
-         AND ws.variant_id = sc.variant_id
+          ON ws.project_id = ${this.storeId}
+         AND ws.warehouse_id = ${input.warehouseId}
+         AND ws.variant_id = ${input.variantId}
         WHERE sc.id = ins.id
           AND NOT EXISTS (SELECT 1 FROM fix)
         RETURNING sc.*
@@ -238,8 +249,8 @@ export class StockRepository extends BaseRepository {
       .where(
         and(
           eq(warehouseStock.projectId, this.storeId),
-          eq(warehouseStock.variantId, variantId)
-        )
+          eq(warehouseStock.variantId, variantId),
+        ),
       );
   }
 
@@ -247,7 +258,9 @@ export class StockRepository extends BaseRepository {
    * Batch get stock for multiple variants
    * Returns a Map where key is variantId and value is array of WarehouseStock
    */
-  async getByVariantsBatch(variantIds: string[]): Promise<Map<string, WarehouseStock[]>> {
+  async getByVariantsBatch(
+    variantIds: string[],
+  ): Promise<Map<string, WarehouseStock[]>> {
     if (variantIds.length === 0) {
       return new Map();
     }
@@ -258,8 +271,8 @@ export class StockRepository extends BaseRepository {
       .where(
         and(
           eq(warehouseStock.projectId, this.storeId),
-          inArray(warehouseStock.variantId, variantIds)
-        )
+          inArray(warehouseStock.variantId, variantIds),
+        ),
       );
 
     const result = new Map<string, WarehouseStock[]>();
@@ -288,8 +301,8 @@ export class StockRepository extends BaseRepository {
       .where(
         and(
           eq(warehouseStock.projectId, this.storeId),
-          eq(warehouseStock.variantId, variantId)
-        )
+          eq(warehouseStock.variantId, variantId),
+        ),
       )
       .returning({ id: warehouseStock.id });
 
@@ -306,8 +319,8 @@ export class StockRepository extends BaseRepository {
         and(
           eq(warehouseStock.projectId, this.storeId),
           eq(warehouseStock.variantId, variantId),
-          eq(warehouseStock.warehouseId, warehouseId)
-        )
+          eq(warehouseStock.warehouseId, warehouseId),
+        ),
       )
       .returning({ id: warehouseStock.id });
 
@@ -324,8 +337,8 @@ export class StockRepository extends BaseRepository {
       .where(
         and(
           eq(warehouseStock.projectId, this.storeId),
-          eq(warehouseStock.id, id)
-        )
+          eq(warehouseStock.id, id),
+        ),
       )
       .limit(1);
 
@@ -356,10 +369,7 @@ export class StockRepository extends BaseRepository {
     const { where, orderBy, ...paginationArgs } = args;
 
     const mergedWhere: StockRelayInput["where"] = {
-      _and: [
-        { projectId: { _eq: this.storeId } },
-        ...(where ? [where] : []),
-      ],
+      _and: [{ projectId: { _eq: this.storeId } }, ...(where ? [where] : [])],
     };
 
     const executeInput: StockRelayInput = {
@@ -375,7 +385,7 @@ export class StockRepository extends BaseRepository {
       (condition): condition is { warehouseId: { _eq: string } } =>
         typeof condition === "object" &&
         condition !== null &&
-        "warehouseId" in condition
+        "warehouseId" in condition,
     );
     const warehouseId = warehouseIdFilter?.warehouseId?._eq;
 
@@ -408,8 +418,8 @@ export class StockRepository extends BaseRepository {
       .where(
         and(
           eq(warehouseStock.projectId, this.storeId),
-          inArray(warehouseStock.id, [...stockIds])
-        )
+          inArray(warehouseStock.id, [...stockIds]),
+        ),
       );
   }
 }

@@ -98,10 +98,14 @@ export class VariantSetStockScript extends BaseScript<VariantSetStockParams, Var
     return { stock, userErrors: [] };
   }
 
-  protected handleError(_error: unknown): VariantSetStockResult {
+  protected handleError(error: unknown): VariantSetStockResult {
+    const msg = error instanceof Error ? error.message : String(error);
+    const cause = error instanceof Error && "cause" in error ? String(error.cause) : "";
+    const stack = error instanceof Error ? error.stack : "";
+    this.logger.error({ error, msg, cause, stack }, "VariantSetStockScript failed");
     return {
       stock: undefined,
-      userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR" }],
+      userErrors: [{ message: `Internal error: ${msg} | cause: ${cause}`, code: "INTERNAL_ERROR" }],
     };
   }
 }
