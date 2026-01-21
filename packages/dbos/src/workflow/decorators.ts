@@ -11,8 +11,8 @@ import { runStep, type StepOptions } from "../step/runStep.js";
 // METADATA KEYS
 // ============================================================================
 
-export const WORKFLOW_METADATA_KEY = Symbol("dbos:workflow");
-export const WORKFLOW_STEP_METADATA_KEY = Symbol("dbos:workflowStep");
+export const WORKFLOW_METADATA_KEY = Symbol("dbos:workflow:definition");
+export const WORKFLOW_STEP_METADATA_KEY = Symbol("dbos:workflow:step");
 
 // ============================================================================
 // TYPES
@@ -78,7 +78,8 @@ export function Workflow(
     );
 
     // DBOS.workflow expects string, but MethodDecorator provides string | symbol
-    const key = typeof propertyKey === "symbol" ? propertyKey.toString() : propertyKey;
+    const key =
+      typeof propertyKey === "symbol" ? propertyKey.toString() : propertyKey;
     return DBOS.workflow()(target, key, descriptor);
   };
 }
@@ -125,7 +126,12 @@ export function WorkflowStep(options?: WorkflowStepMetadata): MethodDecorator {
       typeof propertyKey === "symbol" ? propertyKey.toString() : propertyKey;
 
     if (options) {
-      Reflect.defineMetadata(WORKFLOW_STEP_METADATA_KEY, options, target, propertyKey);
+      Reflect.defineMetadata(
+        WORKFLOW_STEP_METADATA_KEY,
+        options,
+        target,
+        propertyKey,
+      );
     }
 
     (descriptor as { value: (...args: unknown[]) => Promise<unknown> }).value =
