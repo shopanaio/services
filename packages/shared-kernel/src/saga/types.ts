@@ -78,17 +78,6 @@ export const DEFAULT_COMPENSATION_RETRY: RetryPolicy = {
 export interface SagaStepConfig {
   /** Step name for logging/identification (default: method name) */
   name?: string;
-  /** If false, failure does not stop the saga (default: true) */
-  critical?: boolean;
-  /**
-   * Compensation method name or false to disable.
-   * - undefined: auto-detect compensate${PascalCase(methodName)} method
-   * - string: use custom compensation method name
-   * - false: explicitly disable compensation
-   *
-   * @default Auto-detects if compensate${PascalCase(methodName)} exists
-   */
-  compensate?: string | false;
   /** Retry policy for transient errors */
   retry?: RetryPolicy;
   /** Step execution timeout in milliseconds (default: 30000) */

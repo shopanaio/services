@@ -20,13 +20,10 @@ import {
   type RetryPolicy,
   type ExecutedStep,
   StepExecutionError,
-  StepTimeoutError,
-  isRetryableError,
-  withTimeout,
-  toOperationError,
-  DEFAULT_STEP_TIMEOUT_MS,
   DEFAULT_COMPENSATION_RETRY,
+  toOperationError,
 } from "./types.js";
+import { runStep } from "../workflow/runStep.js";
 
 export const SAGA_DEFINITION_KEY = Symbol("saga:definition");
 export const SAGA_STEP_KEY = Symbol("saga:step");
@@ -43,6 +40,10 @@ function capitalize(str: string): string {
 
 /**
  * @SagaStep() marks a method as a durable saga step.
+ *
+ * Compensation is automatic via naming convention: `compensate${PascalCase(methodName)}`
+ * Steps with a compensation method are critical (throw on failure).
+ * Steps without compensation are non-critical (return undefined on failure).
  */
 export function SagaStep(config: SagaStepConfig = {}): MethodDecorator {
   return function (target, propertyKey, descriptor) {
@@ -50,8 +51,10 @@ export function SagaStep(config: SagaStepConfig = {}): MethodDecorator {
     const methodName =
       typeof propertyKey === "symbol" ? propertyKey.toString() : propertyKey;
     const stepName = config.name ?? methodName;
-    const timeoutMs = config.timeoutMs ?? DEFAULT_STEP_TIMEOUT_MS;
-    const isCritical = config.critical !== false;
+
+    const compensateMethodName = `compensate${capitalize(methodName)}`;
+    const hasCompensation =
+      typeof (target as Record<string, unknown>)[compensateMethodName] === "function";
 
     const existingSteps: SagaStepMetadata[] =
       Reflect.getMetadata(SAGA_STEP_KEY, target) || [];
@@ -61,83 +64,25 @@ export function SagaStep(config: SagaStepConfig = {}): MethodDecorator {
     };
     Reflect.defineMetadata(SAGA_STEP_KEY, [...existingSteps, metadata], target);
 
-    const retryPolicy = config.retry ?? {
-      maxAttempts: 1,
-      intervalSeconds: 0,
-      backoffRate: 1,
-    };
-
     (descriptor as { value: (...args: unknown[]) => Promise<unknown> }).value =
       async function (...args: unknown[]) {
         const ctx = getSagaContext();
 
-        type InternalStepResult<T> =
-          | { kind: "ok"; data: T }
-          | { kind: "nonRetryableFailure"; error: Error }
-          | { kind: "timeout"; error: StepTimeoutError };
-
-        let stepResult: InternalStepResult<unknown>;
-
         try {
-          stepResult = await DBOS.runStep<InternalStepResult<unknown>>(
-            async () => {
-              try {
-                const result = await withTimeout(
-                  originalMethod.apply(this, args),
-                  timeoutMs,
-                  stepName,
-                );
-
-                return { kind: "ok", data: result };
-              } catch (error) {
-                if (error instanceof StepTimeoutError) {
-                  return { kind: "timeout", error };
-                }
-
-                if (!isRetryableError(error)) {
-                  return { kind: "nonRetryableFailure", error: error as Error };
-                }
-
-                throw error;
-              }
-            },
-            {
-              name: `step:${stepName}:${ctx.sagaId}`,
-              retriesAllowed: retryPolicy.maxAttempts > 1,
-              maxAttempts: retryPolicy.maxAttempts,
-              intervalSeconds: retryPolicy.intervalSeconds,
-              backoffRate: retryPolicy.backoffRate,
-            },
+          const result = await runStep(
+            () => originalMethod.apply(this, args),
+            { ...config, name: stepName, methodName, critical: hasCompensation },
+            { workflowId: ctx.sagaId },
           );
+
+          if (hasCompensation) {
+            ctx.recordStep(methodName, stepName, args, { ...config, name: stepName });
+          }
+
+          return result;
         } catch (error) {
-          const lastError = error as Error;
-          logger.warn(`Step ${stepName} failed after retries exhausted`);
-
-          if (!isCritical) {
-            logger.warn(`Non-critical step ${stepName} failed, continuing saga`);
-            return undefined;
-          }
-
-          throw new StepExecutionError(stepName, methodName, lastError);
+          throw new StepExecutionError(stepName, methodName, error as Error);
         }
-
-        if (
-          stepResult.kind === "timeout" ||
-          stepResult.kind === "nonRetryableFailure"
-        ) {
-          const failureError = stepResult.error;
-          logger.debug(`Step ${stepName} failed with non-retryable error`);
-
-          if (!isCritical) {
-            logger.warn(`Non-critical step ${stepName} failed, continuing saga`);
-            return undefined;
-          }
-
-          throw new StepExecutionError(stepName, methodName, failureError);
-        }
-
-        ctx.recordStep(methodName, stepName, args, { ...config, name: stepName });
-        return stepResult.data;
       };
 
     return descriptor;
@@ -214,17 +159,7 @@ export function Saga(
           const stepsToCompensate = ctx.getStepsToCompensate();
 
           for (const step of stepsToCompensate) {
-            if (step.config.compensate === false) {
-              logger.debug(
-                `Compensation disabled for step: ${step.method}, skipping`,
-              );
-              continue;
-            }
-
-            const compensateMethodName =
-              typeof step.config.compensate === "string"
-                ? step.config.compensate
-                : `compensate${capitalize(step.method)}`;
+            const compensateMethodName = `compensate${capitalize(step.method)}`;
 
             if (typeof (this as Record<string, unknown>)[compensateMethodName] !== "function") {
               logger.debug(

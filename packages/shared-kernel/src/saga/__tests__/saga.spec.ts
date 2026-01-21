@@ -40,11 +40,13 @@ describe("SagaExecutionContext", () => {
     const ctx = new SagaExecutionContext("saga-123");
     const args = ["id-1", { name: "test" }];
 
-    ctx.recordStep("createStore", "createStore", args, { compensate: "deleteStore" });
+    ctx.recordStep("createStore", "Create Store", args, {});
 
     const steps = ctx.getStepsToCompensate();
+    expect(steps[0].method).toBe("createStore");
+    expect(steps[0].stepName).toBe("Create Store");
     expect(steps[0].args).toEqual(args);
-    expect(steps[0].config.compensate).toBe("deleteStore");
+    expect(steps[0].config).toEqual({});
   });
 });
 
