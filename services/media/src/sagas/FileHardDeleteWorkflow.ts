@@ -1,8 +1,8 @@
 import { Inject, Injectable } from "@nestjs/common";
 import {
-  BrokerSaga,
-  Saga,
-  SagaStep,
+  BrokerWorkflows,
+  Workflow,
+  WorkflowStep,
   InjectBroker,
   ServiceBroker,
 } from "@shopana/shared-kernel";
@@ -16,7 +16,7 @@ export interface FileHardDeleteOutput {
 }
 
 @Injectable()
-export class FileHardDeleteSaga extends BrokerSaga<string, FileHardDeleteOutput> {
+export class FileHardDeleteWorkflow extends BrokerWorkflows {
   constructor(
     @InjectBroker("media") broker: ServiceBroker,
     @Inject(S3_CLIENT) private readonly s3Client: S3Client
@@ -32,7 +32,7 @@ export class FileHardDeleteSaga extends BrokerSaga<string, FileHardDeleteOutput>
     return this.kernel.getServices().repository;
   }
 
-  @Saga("fileHardDelete")
+  @Workflow("fileHardDelete")
   async run(fileId: string): Promise<FileHardDeleteOutput> {
     const fileRepo = this.repository.file;
     const fileDeletionStateRepo = this.repository.fileDeletionState;
@@ -124,7 +124,7 @@ export class FileHardDeleteSaga extends BrokerSaga<string, FileHardDeleteOutput>
         this.logger.log(`hardDelete skipped: file ${fileId} already deleted`);
       }
 
-      await this.startCleanupSaga(fileId);
+      await this.startCleanupWorkflow(fileId);
 
       return { deleted: true };
     } catch (error: unknown) {
@@ -141,19 +141,19 @@ export class FileHardDeleteSaga extends BrokerSaga<string, FileHardDeleteOutput>
     }
   }
 
-  @SagaStep()
+  @WorkflowStep()
   private async deleteFromS3(bucket: string, key: string): Promise<void> {
     await this.s3Client.deleteObject({ bucket, key });
   }
 
-  @SagaStep({ critical: false })
-  private async startCleanupSaga(fileId: string): Promise<void> {
-    await this.broker.runSaga(
-      "fileDeleteCleanup",
+  @WorkflowStep({ retriesAllowed: false })
+  private async startCleanupWorkflow(fileId: string): Promise<void> {
+    await this.broker.runWorkflow(
+      "media.fileDeleteCleanup",
       fileId,
       {
         source: "workflow",
-        workflowId: FileHardDeleteSaga.workflowID(fileId),
+        workflowId: FileHardDeleteWorkflow.workflowID(fileId),
         stepId: "startCleanup",
       }
     );
@@ -163,3 +163,6 @@ export class FileHardDeleteSaga extends BrokerSaga<string, FileHardDeleteOutput>
     return `file:hardDelete:${fileId}`;
   }
 }
+
+// Import at the end to avoid circular dependency
+import { FileDeleteCleanupWorkflow } from "./FileDeleteCleanupWorkflow.js";

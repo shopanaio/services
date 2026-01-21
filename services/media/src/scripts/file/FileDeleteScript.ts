@@ -47,7 +47,7 @@ export class FileDeleteScript extends BaseScript<
     }
 
     if (params.permanent) {
-      await this.startHardDeleteSaga(params.id);
+      await this.startHardDeleteWorkflow(params.id);
     }
 
     return {
@@ -56,9 +56,9 @@ export class FileDeleteScript extends BaseScript<
     };
   }
 
-  private async startHardDeleteSaga(fileId: string): Promise<void> {
-    await this.services.broker.runSaga(
-      "fileHardDelete",
+  private async startHardDeleteWorkflow(fileId: string): Promise<void> {
+    await this.services.broker.runWorkflow(
+      "media.fileHardDelete",
       fileId,
       {
         source: "workflow",

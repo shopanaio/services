@@ -5,9 +5,9 @@ import { MediaBrokerActions } from './MediaBrokerActions';
 import { MediaNestService } from './media.nest-service';
 import { FileGarbageCollectorScheduler } from './scheduled/FileGarbageCollectorScheduler';
 import {
-  FileGarbageCollectorSaga,
-  FileHardDeleteSaga,
-  FileDeleteCleanupSaga,
+  FileGarbageCollectorWorkflow,
+  FileHardDeleteWorkflow,
+  FileDeleteCleanupWorkflow,
 } from './sagas/index.js';
 import { S3Client, S3_CLIENT } from './infrastructure/S3Client.js';
 
@@ -20,9 +20,9 @@ import { S3Client, S3_CLIENT } from './infrastructure/S3Client.js';
     MediaBrokerActions,
     MediaNestService,
     FileGarbageCollectorScheduler,
-    FileGarbageCollectorSaga,
-    FileHardDeleteSaga,
-    FileDeleteCleanupSaga,
+    FileGarbageCollectorWorkflow,
+    FileHardDeleteWorkflow,
+    FileDeleteCleanupWorkflow,
     {
       provide: S3_CLIENT,
       useFactory: () => new S3Client(),

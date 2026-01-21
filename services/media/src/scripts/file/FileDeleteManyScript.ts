@@ -60,10 +60,10 @@ export class FileDeleteManyScript extends BaseScript<
       .map(([id]) => id);
     acceptedIds.push(...alreadySoftDeleted);
 
-    // Start hard delete sagas if permanent
+    // Start hard delete workflows if permanent
     if (permanent) {
       for (const id of filesMap.keys()) {
-        const started = await this.startHardDeleteSaga(id);
+        const started = await this.startHardDeleteWorkflow(id);
         if (started) {
           startedHardDeleteIds.push(id);
         }
@@ -81,10 +81,10 @@ export class FileDeleteManyScript extends BaseScript<
     };
   }
 
-  private async startHardDeleteSaga(fileId: string): Promise<boolean> {
+  private async startHardDeleteWorkflow(fileId: string): Promise<boolean> {
     try {
-      await this.services.broker.runSaga(
-        "fileHardDelete",
+      await this.services.broker.runWorkflow(
+        "media.fileHardDelete",
         fileId,
         {
           source: "workflow",
@@ -94,7 +94,7 @@ export class FileDeleteManyScript extends BaseScript<
       );
       return true;
     } catch (error) {
-      this.logger.error({ fileId, error }, "Failed to start hard delete saga");
+      this.logger.error({ fileId, error }, "Failed to start hard delete workflow");
       return false;
     }
   }

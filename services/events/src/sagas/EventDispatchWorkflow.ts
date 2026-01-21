@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import {
   BrokerWorkflows,
   Workflow,
-  Step,
+  WorkflowStep,
   InjectBroker,
   ServiceBroker,
   withTimeout,
@@ -57,14 +57,14 @@ export class EventDispatchWorkflow extends BrokerWorkflows {
     };
   }
 
-  @Step()
+  @WorkflowStep()
   private async persistEvent(
     event: DomainEvent
   ): Promise<{ timestamp: string }> {
     return this.repository.persistEvent(event);
   }
 
-  @Step()
+  @WorkflowStep()
   private async getAvailableHandlers(eventType: string): Promise<HandlerInfo[]> {
     const config = getConfig();
     const serviceNames = Object.keys(config.services ?? {});
@@ -214,7 +214,7 @@ export class EventDispatchWorkflow extends BrokerWorkflows {
     };
   }
 
-  @Step()
+  @WorkflowStep()
   private async sendToDLQ(
     event: DomainEvent,
     handler: HandlerInfo,
@@ -234,7 +234,7 @@ export class EventDispatchWorkflow extends BrokerWorkflows {
     });
   }
 
-  @Step()
+  @WorkflowStep()
   private async updateEventStatus(
     eventId: string,
     results: HandlerInvocationResult[]

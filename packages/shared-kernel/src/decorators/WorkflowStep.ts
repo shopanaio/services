@@ -1,9 +1,9 @@
 import "reflect-metadata";
 import { DBOS, type StepConfig } from "@dbos-inc/dbos-sdk";
 
-export const STEP_METADATA_KEY = Symbol("broker:step");
+export const WORKFLOW_STEP_METADATA_KEY = Symbol("broker:workflowStep");
 
-export interface StepMetadata {
+export interface WorkflowStepMetadata {
   /** Step name for logging/debugging */
   name?: string;
   /** Whether retries are allowed */
@@ -22,14 +22,14 @@ export interface StepMetadata {
  *
  * @param options - Step configuration
  */
-export function Step(options?: StepMetadata): MethodDecorator {
+export function WorkflowStep(options?: WorkflowStepMetadata): MethodDecorator {
   return function (
     target: object,
     propertyKey: string | symbol,
     descriptor: PropertyDescriptor,
   ): PropertyDescriptor {
     if (options) {
-      Reflect.defineMetadata(STEP_METADATA_KEY, options, target, propertyKey);
+      Reflect.defineMetadata(WORKFLOW_STEP_METADATA_KEY, options, target, propertyKey);
     }
 
     const stepConfig: StepConfig = {};

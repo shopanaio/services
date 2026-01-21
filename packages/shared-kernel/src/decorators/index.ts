@@ -22,4 +22,4 @@ export {
   WORKFLOW_METADATA_KEY,
   type WorkflowMetadata,
 } from "./Workflow.js";
-export { Step, STEP_METADATA_KEY, type StepMetadata } from "./Step.js";
+export { WorkflowStep, WORKFLOW_STEP_METADATA_KEY, type WorkflowStepMetadata } from "./WorkflowStep.js";

@@ -1,13 +1,13 @@
 import { Injectable } from "@nestjs/common";
 import {
-  BrokerSaga,
-  Saga,
-  SagaStep,
+  BrokerWorkflows,
+  Workflow,
+  WorkflowStep,
   InjectBroker,
   ServiceBroker,
 } from "@shopana/shared-kernel";
-import type { Inventory } from "@shopana/broker-types";
 import { Error as DBOSErrors } from "@dbos-inc/dbos-sdk";
+import type { Inventory } from "@shopana/broker-types";
 
 export interface FileDeleteCleanupOutput {
   success: boolean;
@@ -15,7 +15,7 @@ export interface FileDeleteCleanupOutput {
 }
 
 @Injectable()
-export class FileDeleteCleanupSaga extends BrokerSaga<string, FileDeleteCleanupOutput> {
+export class FileDeleteCleanupWorkflow extends BrokerWorkflows {
   constructor(@InjectBroker("media") broker: ServiceBroker) {
     super(broker);
   }
@@ -27,7 +27,7 @@ export class FileDeleteCleanupSaga extends BrokerSaga<string, FileDeleteCleanupO
     return `file:cleanup:${fileId}`;
   }
 
-  @Saga("fileDeleteCleanup")
+  @Workflow("fileDeleteCleanup")
   async run(fileId: string): Promise<FileDeleteCleanupOutput> {
     try {
       await this.notifyInventory(fileId);
@@ -41,8 +41,10 @@ export class FileDeleteCleanupSaga extends BrokerSaga<string, FileDeleteCleanupO
     }
   }
 
-  @SagaStep({
-    retry: { maxAttempts: 10, intervalSeconds: 60, backoffRate: 2 },
+  @WorkflowStep({
+    maxAttempts: 10,
+    intervalSeconds: 60,
+    backoffRate: 2,
   })
   private async notifyInventory(fileId: string): Promise<void> {
     const result = await this.broker.call<Inventory.FileHardDeletedResult, Inventory.FileHardDeletedParams>(
@@ -55,7 +57,7 @@ export class FileDeleteCleanupSaga extends BrokerSaga<string, FileDeleteCleanupO
     );
   }
 
-  @SagaStep()
+  @WorkflowStep()
   private async markNeedsAttention(fileId: string, error: Error): Promise<void> {
     this.logger.error(
       { fileId, error: error.message },

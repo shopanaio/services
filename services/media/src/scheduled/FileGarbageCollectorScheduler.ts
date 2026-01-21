@@ -29,8 +29,8 @@ export class FileGarbageCollectorScheduler {
     this.logger.debug('Starting garbage collection run');
 
     try {
-      const result = await this.broker.runSaga<FileGarbageCollectorOutput, void>(
-        "fileGarbageCollector",
+      const result = await this.broker.runWorkflow<FileGarbageCollectorOutput, void>(
+        "media.fileGarbageCollector",
         undefined,
         {
           source: "workflow",
@@ -39,15 +39,11 @@ export class FileGarbageCollectorScheduler {
         }
       );
 
-      if (result.success) {
-        this.logger.debug(
-          `Garbage collection completed: ${result.data?.stuckReset} stuck reset, ${result.data?.batchesProcessed} batches processed`
-        );
-      } else {
-        this.logger.warn('Garbage collection completed with errors', result.error);
-      }
+      this.logger.debug(
+        `Garbage collection completed: ${result.stuckReset} stuck reset, ${result.batchesProcessed} batches processed`
+      );
     } catch (error) {
-      this.logger.error('Failed to run garbage collection saga', error);
+      this.logger.error('Failed to run garbage collection workflow', error);
     }
   }
 }

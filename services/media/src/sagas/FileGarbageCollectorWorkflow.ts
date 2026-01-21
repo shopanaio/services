@@ -1,13 +1,14 @@
 import { Injectable } from "@nestjs/common";
 import {
-  BrokerSaga,
-  Saga,
-  SagaStep,
+  BrokerWorkflows,
+  Workflow,
+  WorkflowStep,
   InjectBroker,
   ServiceBroker,
 } from "@shopana/shared-kernel";
 import pMap from "p-map";
 import { Kernel } from "../kernel/Kernel.js";
+import { FileHardDeleteWorkflow } from "./FileHardDeleteWorkflow.js";
 
 const STUCK_TIMEOUT_HOURS = 6;
 const ERROR_COOLDOWN_HOURS = 6;
@@ -31,7 +32,7 @@ export interface FileGarbageCollectorOutput {
 }
 
 @Injectable()
-export class FileGarbageCollectorSaga extends BrokerSaga<void, FileGarbageCollectorOutput> {
+export class FileGarbageCollectorWorkflow extends BrokerWorkflows {
   constructor(@InjectBroker("media") broker: ServiceBroker) {
     super(broker);
   }
@@ -44,7 +45,7 @@ export class FileGarbageCollectorSaga extends BrokerSaga<void, FileGarbageCollec
     return this.kernel.getServices().repository;
   }
 
-  @Saga("fileGarbageCollector")
+  @Workflow("fileGarbageCollector")
   async run(): Promise<FileGarbageCollectorOutput> {
     const fileDeletionStateRepo = this.repository.fileDeletionState;
 
@@ -83,10 +84,10 @@ export class FileGarbageCollectorSaga extends BrokerSaga<void, FileGarbageCollec
         batch,
         async (deletionState) => {
           try {
-            await this.startHardDeleteSaga(deletionState.fileId);
+            await this.startHardDeleteWorkflow(deletionState.fileId);
           } catch (error) {
             this.logger.error(
-              `Failed to start hard delete saga for fileId=${deletionState.fileId}: ${error}`
+              `Failed to start hard delete workflow for fileId=${deletionState.fileId}: ${error}`
             );
           }
         },
@@ -105,10 +106,10 @@ export class FileGarbageCollectorSaga extends BrokerSaga<void, FileGarbageCollec
     return { stuckReset: totalStuck, batchesProcessed };
   }
 
-  @SagaStep({ critical: false })
-  private async startHardDeleteSaga(fileId: string): Promise<void> {
-    await this.broker.runSaga(
-      "fileHardDelete",
+  @WorkflowStep({ retriesAllowed: false })
+  private async startHardDeleteWorkflow(fileId: string): Promise<void> {
+    await this.broker.runWorkflow(
+      "media.fileHardDelete",
       fileId,
       {
         source: "workflow",

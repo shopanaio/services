@@ -1,12 +1,12 @@
 export {
-  FileHardDeleteSaga,
+  FileHardDeleteWorkflow,
   type FileHardDeleteOutput,
-} from "./FileHardDeleteSaga.js";
+} from "./FileHardDeleteWorkflow.js";
 export {
-  FileGarbageCollectorSaga,
+  FileGarbageCollectorWorkflow,
   type FileGarbageCollectorOutput,
-} from "./FileGarbageCollectorSaga.js";
+} from "./FileGarbageCollectorWorkflow.js";
 export {
-  FileDeleteCleanupSaga,
+  FileDeleteCleanupWorkflow,
   type FileDeleteCleanupOutput,
-} from "./FileDeleteCleanupSaga.js";
+} from "./FileDeleteCleanupWorkflow.js";

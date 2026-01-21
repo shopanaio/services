@@ -74,8 +74,8 @@ export {
   EVENT_HANDLER_METADATA_KEY,
   Workflow,
   WORKFLOW_METADATA_KEY,
-  Step,
-  STEP_METADATA_KEY,
+  WorkflowStep,
+  WORKFLOW_STEP_METADATA_KEY,
   type UserError,
   type Authorizable,
   type AuthProvider,
@@ -84,7 +84,7 @@ export {
   type ActionDecoratorMetadata,
   type EventHandlerMetadata,
   type WorkflowMetadata,
-  type StepMetadata,
+  type WorkflowStepMetadata,
 } from "./decorators";
 
 // Resource discovery types
