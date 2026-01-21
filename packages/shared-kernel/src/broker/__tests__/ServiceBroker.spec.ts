@@ -71,7 +71,7 @@ describe('ServiceBroker', () => {
 
     // Register a mock events.emit action
     const mockEmitResult = { workflowId: 'wf-123', eventId: 'evt-456' };
-    const mockHandler = jest.fn().mockResolvedValue(mockEmitResult);
+    const mockHandler = jest.fn(async () => mockEmitResult);
     registry.register('events.emit', mockHandler);
 
     const result = await broker.emit('order.created', {
