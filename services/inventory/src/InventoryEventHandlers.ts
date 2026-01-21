@@ -33,7 +33,7 @@ export class InventoryEventHandlers extends EventHandlers {
       { eventId: params.event.eventId, productId: params.event.payload.productId },
       "Received productCreated event"
     );
-    return { ok: true };
+    return { success: true };
   }
 
   @EventHandler("productDeleted")
@@ -44,7 +44,7 @@ export class InventoryEventHandlers extends EventHandlers {
       { eventId: params.event.eventId, productId: params.event.payload.productId },
       "Received productDeleted event"
     );
-    return { ok: true };
+    return { success: true };
   }
 
   @EventHandler("productUpdated", { retry: { maxAttempts: 5 } })
@@ -55,7 +55,7 @@ export class InventoryEventHandlers extends EventHandlers {
       { eventId: params.event.eventId, productId: params.event.payload.productId },
       "Received productUpdated event"
     );
-    return { ok: true };
+    return { success: true };
   }
 
   @EventHandler("fileHardDeleted", { retry: { maxAttempts: 10 } })
@@ -71,11 +71,11 @@ export class InventoryEventHandlers extends EventHandlers {
 
     try {
       const result = await this.kernel.runScript(FileHardDeletedScript, { fileId });
-      this.logger.info(
+      this.logger.log(
         { fileId, deletedCount: result.deletedCount },
         "Cleaned up variant_media for hard-deleted file"
       );
-      return { success: true, data: result };
+      return { success: true };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.error({ fileId, error: message }, "Failed to clean up variant_media");

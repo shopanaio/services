@@ -177,4 +177,4 @@ export class FileHardDeleteWorkflow extends BrokerWorkflows {
 }
 
 // Import at the end to avoid circular dependency
-import { FileDeleteCleanupWorkflow, type FileDeleteCleanupInput } from "./FileDeleteCleanupWorkflow.js";
+import { type FileDeleteCleanupInput } from "./FileDeleteCleanupWorkflow.js";
