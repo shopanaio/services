@@ -54,6 +54,17 @@ export interface StoreCreateOutput {
   organizationId: string;
 }
 
+/**
+ * Saga for store creation with compensation support.
+ *
+ * Steps:
+ * 1. Generate store ID (UUIDv7)
+ * 2. Create store record in database
+ * 3. Create store roles
+ * 4. Assign admin role to creator
+ * 5. Create media asset group (non-critical)
+ * 6. Emit storeCreated event (non-critical)
+ */
 @Injectable()
 export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOutput> {
   constructor(@InjectBroker("project") broker: ServiceBroker) {
@@ -64,12 +75,14 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
     return Kernel.getInstance();
   }
 
-  @Saga("storeCreateSaga")
+  @Saga("storeCreate")
   async run(input: StoreCreateInput): Promise<StoreCreateOutput> {
     const storeId = await this.generateId();
     await this.createStore(storeId, input);
     await this.createRoles(storeId, input);
-    await this.createMediaAssetGroup(storeId); // non-critical
+    await this.assignAdminRole(storeId, input);
+    await this.createMediaAssetGroup(storeId);
+    await this.emitStoreCreated(storeId, input);
     return { storeId, organizationId: input.organizationId };
   }
 
@@ -120,8 +133,31 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
   }
 
   @SagaStep({
-    critical: false,
+    compensate: false,
+    retry: { maxAttempts: 3, intervalSeconds: 1, backoffRate: 2 },
+    timeoutMs: 10_000,
   })
+  private async assignAdminRole(id: string, input: StoreCreateInput): Promise<void> {
+    const result = await this.broker.call<IAM.AssignRoleResult, IAM.AssignRoleParams>(
+      "iam.assignRole",
+      {
+        userId: input.userId,
+        organizationId: input.organizationId,
+        domain: `store:${id}`,
+        roleName: "admin",
+      },
+    );
+
+    if (result.success) return;
+
+    throw new FatalError(
+      result.error ?? "Failed to assign admin role",
+      undefined,
+      "ROLE_ASSIGN_FAILED",
+    );
+  }
+
+  @SagaStep({ critical: false })
   private async createMediaAssetGroup(id: string): Promise<void> {
     const result = await this.broker.call<
       Media.CreateAssetGroupResult,
@@ -135,6 +171,24 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
       const message = result.userErrors[0]?.message ?? "Media asset group failed";
       throw new Error(message);
     }
+  }
+
+  @SagaStep({ critical: false, compensate: false })
+  private async emitStoreCreated(id: string, input: StoreCreateInput): Promise<void> {
+    await this.broker.emit("storeCreated", {
+      payload: {
+        storeId: id,
+        organizationId: input.organizationId,
+        name: input.name,
+      },
+      context: {
+        tenantId: input.organizationId,
+        userId: input.userId,
+      },
+      subject: { type: "store", id },
+      actor: input.userId ? { type: "user", id: input.userId } : undefined,
+      emitKey: `store:${id}`,
+    });
   }
 
   async compensateCreateStore(id: string): Promise<void> {

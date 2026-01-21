@@ -8,8 +8,10 @@ import { IAMType } from "./IAMType.js";
 import { UserResolver } from "./UserResolver.js";
 import { UserUpdateEmailScript } from "../../scripts/user/UserUpdateEmailScript.js";
 import { UserUpdatePasswordScript } from "../../scripts/user/UserUpdatePasswordScript.js";
-import type { UserUpdateProfileWorkflowInput } from "../../workflows/index.js";
-import type { UserUpdateProfileResult } from "../../scripts/user/dto/UserUpdateProfileDto.js";
+import type {
+  UserUpdateProfileSagaInput,
+  UserUpdateProfileResult,
+} from "../../sagas/index.js";
 import type {
   UserUpdateProfileInput,
   UserUpdateEmailInput,
@@ -70,7 +72,7 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
       }
     }
 
-    const result = await broker.runWorkflow<UserUpdateProfileResult, UserUpdateProfileWorkflowInput>(
+    const result = await broker.runWorkflow<UserUpdateProfileResult, UserUpdateProfileSagaInput>(
       "iam.userUpdateProfile",
       {
         userId: currentUser.id,

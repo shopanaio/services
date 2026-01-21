@@ -1,6 +1,6 @@
 import { DBOS } from "@shopana/shared-kernel";
 import type { Media } from "@shopana/broker-types";
-import { BaseWorkflow } from "./BaseWorkflow.js";
+import { BaseSaga } from "./BaseSaga.js";
 import { ProductCreateScript } from "../scripts/product/ProductCreateScript.js";
 import type {
   ProductCreateParams,
@@ -9,7 +9,7 @@ import type {
 } from "../scripts/product/dto/index.js";
 
 /**
- * Durable workflow for product creation.
+ * Saga for product creation.
  *
  * Ensures that:
  * 1. Product is created in DB (transactional)
@@ -17,9 +17,9 @@ import type {
  *
  * This prevents orphan back-refs if the product creation transaction fails.
  */
-export class ProductCreateWorkflow extends BaseWorkflow {
+export class ProductCreateSaga extends BaseSaga {
   /**
-   * Main workflow - orchestrates product creation
+   * Main saga - orchestrates product creation
    */
   @DBOS.workflow()
   async run(input: ProductCreateParams): Promise<ProductCreateResult> {
@@ -97,7 +97,7 @@ export class ProductCreateWorkflow extends BaseWorkflow {
           "Synced variant media back-refs"
         );
       } catch (error) {
-        // Log but don't fail the workflow - back-refs are best-effort
+        // Log but don't fail the saga - back-refs are best-effort
         this.logger.warn(
           { variantId: entry.variantId, error },
           "Failed to sync variant media back-refs"

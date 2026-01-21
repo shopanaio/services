@@ -1,14 +1,14 @@
 import { DBOS } from "@shopana/shared-kernel";
-import { BaseWorkflow, type WorkflowServices } from "./BaseWorkflow.js";
+import { BaseSaga, type SagaServices } from "./BaseSaga.js";
 import { classifyError, MissingMetadataError } from "../utils/classifyError.js";
 import { S3Client } from "../infrastructure/S3Client.js";
-import { FileDeleteCleanupWorkflow } from "./FileDeleteCleanupWorkflow.js";
+import { FileDeleteCleanupSaga } from "./FileDeleteCleanupSaga.js";
 
-interface Dependencies extends WorkflowServices {
+interface Dependencies extends SagaServices {
   s3Client: S3Client;
 }
 
-export class FileHardDeleteWorkflow extends BaseWorkflow {
+export class FileHardDeleteSaga extends BaseSaga {
   private readonly s3Client: S3Client;
 
   constructor(name: string, deps: Dependencies) {
@@ -112,12 +112,12 @@ export class FileHardDeleteWorkflow extends BaseWorkflow {
         logger.info(`hardDelete skipped: file ${fileId} already deleted`);
       }
 
-      const cleanupWorkflow =
-        this.services.workflow.get<FileDeleteCleanupWorkflow>(
+      const cleanupSaga =
+        this.services.workflow.get<FileDeleteCleanupSaga>(
           this.broker.qualifyAction("fileDeleteCleanup")
         );
-      await DBOS.startWorkflow(cleanupWorkflow, {
-        workflowID: FileDeleteCleanupWorkflow.workflowID(fileId),
+      await DBOS.startWorkflow(cleanupSaga, {
+        workflowID: FileDeleteCleanupSaga.workflowID(fileId),
       }).run(fileId);
     } catch (error: unknown) {
       // Rollback: DELETING -> SOFT_DELETED with error

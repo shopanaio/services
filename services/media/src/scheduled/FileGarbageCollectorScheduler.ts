@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { DBOS } from "@shopana/shared-kernel";
 import { Kernel } from '../kernel/Kernel.js';
-import type { FileGarbageCollectorWorkflow } from '../workflows/index.js';
+import type { FileGarbageCollectorSaga } from '../sagas/index.js';
 
 /**
  * Scheduled service for file garbage collection.
@@ -11,7 +11,7 @@ import type { FileGarbageCollectorWorkflow } from '../workflows/index.js';
  * 1. Reset stuck files in DELETING state (>6 hours) back to SOFT_DELETED
  * 2. Hard delete files that have been soft-deleted for >30 days
  *
- * Workflows are registered by MediaNestService during startup.
+ * Sagas are registered by MediaNestService during startup.
  */
 @Injectable()
 export class FileGarbageCollectorScheduler {
@@ -26,26 +26,24 @@ export class FileGarbageCollectorScheduler {
 
     const kernel = Kernel.getInstance();
     const workflowRegistry = kernel.workflow;
-    const workflowName = kernel.getServices().broker.qualifyAction(
+    const sagaName = kernel.getServices().broker.qualifyAction(
       "fileGarbageCollector"
     );
 
-    if (!workflowRegistry.has(workflowName)) {
-      this.logger.warn('fileGarbageCollector workflow not registered, skipping run');
+    if (!workflowRegistry.has(sagaName)) {
+      this.logger.warn('fileGarbageCollector saga not registered, skipping run');
       return;
     }
 
-    const workflow = workflowRegistry.get<FileGarbageCollectorWorkflow>(
-      workflowName
-    );
+    const saga = workflowRegistry.get<FileGarbageCollectorSaga>(sagaName);
 
     this.logger.debug('Starting garbage collection run');
 
     try {
-      await DBOS.startWorkflow(workflow).run();
+      await DBOS.startWorkflow(saga).run();
       this.logger.debug('Garbage collection run completed');
     } catch (error) {
-      this.logger.error('Failed to run garbage collection workflow', error);
+      this.logger.error('Failed to run garbage collection saga', error);
     }
   }
 }

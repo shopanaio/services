@@ -1,11 +1,11 @@
 export {
-  StoreCreateWorkflow,
+  StoreCreateSaga,
   type StoreCreateInput,
   type StoreCreateOutput,
-} from './StoreCreateWorkflow.js';
+} from "./StoreCreateSaga.js";
 
 export {
-  StoreDeleteWorkflow,
+  StoreDeleteSaga,
   type StoreDeleteInput,
   type StoreDeleteOutput,
-} from './StoreDeleteWorkflow.js';
+} from "./StoreDeleteSaga.js";

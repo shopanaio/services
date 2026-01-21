@@ -7,12 +7,12 @@ import type {
   HandlerInvocationResult,
 } from "@shopana/events";
 import { getConfig } from "@shopana/shared-service-config";
-import { BaseWorkflow, type WorkflowServices } from "../kernel/BaseWorkflow.js";
+import { BaseSaga, type SagaServices } from "./BaseSaga.js";
 
 const DEFAULT_HANDLER_TIMEOUT_MS = 30_000; // 30 seconds
 
-export class EventDispatchWorkflow extends BaseWorkflow {
-  constructor(name: string, services: WorkflowServices) {
+export class EventDispatchSaga extends BaseSaga {
+  constructor(name: string, services: SagaServices) {
     super(name, services);
   }
 

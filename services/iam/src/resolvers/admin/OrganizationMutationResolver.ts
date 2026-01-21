@@ -14,8 +14,8 @@ import type {
   OrganizationCreateResult,
   OrganizationDeleteParams,
   OrganizationDeleteResult,
-  OrganizationUpdateWorkflowInput,
-} from "../../workflows/index.js";
+  OrganizationUpdateSagaInput,
+} from "../../sagas/index.js";
 import type { OrganizationUpdateResult } from "../../scripts/organization/dto/OrganizationUpdateDto.js";
 import { MemberInviteScript } from "../../scripts/organization/MemberInviteScript.js";
 import { MemberRemoveScript } from "../../scripts/organization/MemberRemoveScript.js";
@@ -107,7 +107,7 @@ export class OrganizationMutationResolver extends IAMType<
       }
     }
 
-    const result = await broker.runWorkflow<OrganizationUpdateResult, OrganizationUpdateWorkflowInput>(
+    const result = await broker.runWorkflow<OrganizationUpdateResult, OrganizationUpdateSagaInput>(
       "iam.organizationUpdate",
       {
         organizationId,

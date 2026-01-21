@@ -1,10 +1,10 @@
 import { Injectable } from "@nestjs/common";
 import {
-  BrokerWorkflows,
+  BrokerSaga,
+  Saga,
+  SagaStep,
   InjectBroker,
   ServiceBroker,
-  Workflow,
-  Step,
 } from "@shopana/shared-kernel";
 import type { Media } from "@shopana/broker-types";
 import { Kernel } from "../kernel/Kernel.js";
@@ -17,7 +17,7 @@ import type {
 export type { OrganizationDeleteParams, OrganizationDeleteResult };
 
 /**
- * Durable workflow for organization deletion.
+ * Saga for organization deletion.
  *
  * Steps:
  * 1. Delete organization from database
@@ -25,7 +25,10 @@ export type { OrganizationDeleteParams, OrganizationDeleteResult };
  * 3. Unlink back-refs
  */
 @Injectable()
-export class OrganizationDeleteWorkflow extends BrokerWorkflows {
+export class OrganizationDeleteSaga extends BrokerSaga<
+  OrganizationDeleteParams,
+  OrganizationDeleteResult
+> {
   constructor(@InjectBroker("iam") broker: ServiceBroker) {
     super(broker);
   }
@@ -34,7 +37,7 @@ export class OrganizationDeleteWorkflow extends BrokerWorkflows {
     return Kernel.getInstance();
   }
 
-  @Workflow("organizationDelete")
+  @Saga("organizationDelete")
   async run(input: OrganizationDeleteParams): Promise<OrganizationDeleteResult> {
     // Step 1: Delete organization from database
     const result = await this.deleteOrganization(input);
@@ -52,20 +55,19 @@ export class OrganizationDeleteWorkflow extends BrokerWorkflows {
     return result;
   }
 
-  @Step()
-  async deleteOrganization(input: OrganizationDeleteParams): Promise<OrganizationDeleteResult> {
+  @SagaStep({ critical: true, compensate: false })
+  private async deleteOrganization(
+    input: OrganizationDeleteParams,
+  ): Promise<OrganizationDeleteResult> {
     return this.kernel.runScript(OrganizationDeleteScript, input);
   }
 
-  @Step()
-  async deleteMediaAssetGroup(organizationId: string): Promise<void> {
+  @SagaStep({ critical: false, compensate: false })
+  private async deleteMediaAssetGroup(organizationId: string): Promise<void> {
     try {
       await this.broker.call<Media.DeleteAssetGroupResult, Media.DeleteAssetGroupParams>(
         "media.deleteAssetGroup",
-        {
-          ownerType: "organization",
-          ownerId: organizationId,
-        },
+        { ownerType: "organization", ownerId: organizationId },
       );
       this.logger.debug({ organizationId }, "Deleted media asset group for organization");
     } catch (error) {
@@ -73,16 +75,19 @@ export class OrganizationDeleteWorkflow extends BrokerWorkflows {
     }
   }
 
-  @Step()
-  async unlinkBackRefs(organizationId: string): Promise<void> {
+  @SagaStep({ critical: false, compensate: false })
+  private async unlinkBackRefs(organizationId: string): Promise<void> {
     try {
-      await this.broker.call<Media.EntityDeletedResult, Media.EntityDeletedParams>("media.entityDeleted", {
-        entityRef: {
-          service: "iam",
-          entityType: "organization",
-          entityId: organizationId,
+      await this.broker.call<Media.EntityDeletedResult, Media.EntityDeletedParams>(
+        "media.entityDeleted",
+        {
+          entityRef: {
+            service: "iam",
+            entityType: "organization",
+            entityId: organizationId,
+          },
         },
-      });
+      );
       this.logger.debug({ organizationId }, "Unlinked media back-refs for organization");
     } catch (error) {
       this.logger.warn({ organizationId, error }, "Failed to unlink media back-refs");

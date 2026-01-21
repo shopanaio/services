@@ -5,7 +5,7 @@ import {
 } from "@shopana/shared-kernel";
 import { BaseScript } from "../../kernel/BaseScript.js";
 import type { StoreDeleteParams, StoreDeleteResult } from "./dto/index.js";
-import type { StoreDeleteOutput } from "../../workflows/index.js";
+import type { StoreDeleteOutput } from "../../sagas/index.js";
 
 export class StoreDeleteScript extends BaseScript<
   StoreDeleteParams,

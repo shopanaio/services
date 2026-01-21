@@ -1,10 +1,10 @@
 import { Injectable } from "@nestjs/common";
 import {
-  BrokerWorkflows,
+  BrokerSaga,
+  Saga,
+  SagaStep,
   InjectBroker,
   ServiceBroker,
-  Workflow,
-  Step,
 } from "@shopana/shared-kernel";
 import type { Media } from "@shopana/broker-types";
 import { Kernel } from "../kernel/Kernel.js";
@@ -14,20 +14,25 @@ import type {
 } from "../scripts/organization/dto/OrganizationUpdateDto.js";
 import { OrganizationUpdateScript } from "../scripts/organization/OrganizationUpdateScript.js";
 
-export interface OrganizationUpdateWorkflowInput extends OrganizationUpdateParams {
+export interface OrganizationUpdateSagaInput extends OrganizationUpdateParams {
   previousLogoId?: string | null;
   nextLogoId?: string | null;
 }
 
+export type { OrganizationUpdateResult };
+
 /**
- * Durable workflow for organization update.
+ * Saga for organization update.
  *
  * Steps:
  * 1. Update organization in database
  * 2. Sync logo back-refs (link new, unlink old)
  */
 @Injectable()
-export class OrganizationUpdateWorkflow extends BrokerWorkflows {
+export class OrganizationUpdateSaga extends BrokerSaga<
+  OrganizationUpdateSagaInput,
+  OrganizationUpdateResult
+> {
   constructor(@InjectBroker("iam") broker: ServiceBroker) {
     super(broker);
   }
@@ -36,8 +41,8 @@ export class OrganizationUpdateWorkflow extends BrokerWorkflows {
     return Kernel.getInstance();
   }
 
-  @Workflow("organizationUpdate")
-  async run(input: OrganizationUpdateWorkflowInput): Promise<OrganizationUpdateResult> {
+  @Saga("organizationUpdate")
+  async run(input: OrganizationUpdateSagaInput): Promise<OrganizationUpdateResult> {
     const { previousLogoId, nextLogoId, ...updateParams } = input;
 
     // Step 1: Update organization in database
@@ -55,16 +60,18 @@ export class OrganizationUpdateWorkflow extends BrokerWorkflows {
     return result;
   }
 
-  @Step()
-  async updateOrganization(input: OrganizationUpdateParams): Promise<OrganizationUpdateResult> {
+  @SagaStep({ critical: true, compensate: false })
+  private async updateOrganization(
+    input: OrganizationUpdateParams,
+  ): Promise<OrganizationUpdateResult> {
     return this.kernel.runScript(OrganizationUpdateScript, input);
   }
 
-  @Step()
-  async syncLogoBackRefs(
+  @SagaStep({ critical: false, compensate: false })
+  private async syncLogoBackRefs(
     organizationId: string,
     previousLogoId: string | null,
-    nextLogoId: string | null
+    nextLogoId: string | null,
   ): Promise<void> {
     const entityRef = {
       service: "iam",
@@ -75,11 +82,10 @@ export class OrganizationUpdateWorkflow extends BrokerWorkflows {
 
     if (nextLogoId) {
       try {
-        await this.broker.call<Media.FileLinkResult, Media.FileLinkParams>("media.fileLink", {
-          fileId: nextLogoId,
-          entityRef,
-          role,
-        });
+        await this.broker.call<Media.FileLinkResult, Media.FileLinkParams>(
+          "media.fileLink",
+          { fileId: nextLogoId, entityRef, role },
+        );
       } catch (error) {
         this.logger.warn({ organizationId, fileId: nextLogoId, error }, "Failed to link logo");
       }
@@ -87,11 +93,10 @@ export class OrganizationUpdateWorkflow extends BrokerWorkflows {
 
     if (previousLogoId) {
       try {
-        await this.broker.call<Media.FileUnlinkResult, Media.FileUnlinkParams>("media.fileUnlink", {
-          fileId: previousLogoId,
-          entityRef,
-          role,
-        });
+        await this.broker.call<Media.FileUnlinkResult, Media.FileUnlinkParams>(
+          "media.fileUnlink",
+          { fileId: previousLogoId, entityRef, role },
+        );
       } catch (error) {
         this.logger.warn({ organizationId, fileId: previousLogoId, error }, "Failed to unlink logo");
       }

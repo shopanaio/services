@@ -1,7 +1,7 @@
 import { DBOS } from "@shopana/shared-kernel";
 import { BaseScript } from "../../kernel/BaseScript.js";
 import type { File, FileDeletionState } from "../../repositories/models/index.js";
-import { FileHardDeleteWorkflow } from "../../workflows/FileHardDeleteWorkflow.js";
+import { FileHardDeleteSaga } from "../../sagas/index.js";
 import type {
   FileDeleteManyParams,
   FileDeleteManyResult,
@@ -62,10 +62,10 @@ export class FileDeleteManyScript extends BaseScript<
       .map(([id]) => id);
     acceptedIds.push(...alreadySoftDeleted);
 
-    // Start hard delete workflows if permanent
+    // Start hard delete sagas if permanent
     if (permanent) {
       for (const id of filesMap.keys()) {
-        const started = await this.startHardDeleteWorkflow(id);
+        const started = await this.startHardDeleteSaga(id);
         if (started) {
           startedHardDeleteIds.push(id);
         }
@@ -83,19 +83,15 @@ export class FileDeleteManyScript extends BaseScript<
     };
   }
 
-  private async startHardDeleteWorkflow(fileId: string): Promise<boolean> {
+  private async startHardDeleteSaga(fileId: string): Promise<boolean> {
     try {
-      const workflow =
-        this.workflow.get<FileHardDeleteWorkflow>(
-          this.services.broker.qualifyAction("fileHardDelete")
-        );
-      await DBOS.startWorkflow(workflow).run(fileId);
+      const saga = this.workflow.get<FileHardDeleteSaga>(
+        this.services.broker.qualifyAction("fileHardDelete")
+      );
+      await DBOS.startWorkflow(saga).run(fileId);
       return true;
     } catch (error) {
-      this.logger.error(
-        { fileId, error },
-        "Failed to start hard delete workflow"
-      );
+      this.logger.error({ fileId, error }, "Failed to start hard delete saga");
       return false;
     }
   }

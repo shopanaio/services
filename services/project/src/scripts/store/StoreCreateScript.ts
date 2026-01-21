@@ -11,7 +11,7 @@ import {
   type StoreCreateParams,
   type StoreCreateResult,
 } from "./dto/index.js";
-import type { StoreCreateOutput } from "../../workflows/index.js";
+import type { StoreCreateOutput } from "../../sagas/index.js";
 
 export class StoreCreateScript extends BaseScript<
   StoreCreateParams,

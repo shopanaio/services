@@ -1,6 +1,6 @@
 import { DBOS } from "@shopana/shared-kernel";
 import pMap from "p-map";
-import { BaseWorkflow, type WorkflowServices } from "./BaseWorkflow.js";
+import { BaseSaga, type SagaServices } from "./BaseSaga.js";
 
 const STUCK_TIMEOUT_HOURS = 6;
 const ERROR_COOLDOWN_HOURS = 6;
@@ -18,16 +18,16 @@ function daysAgo(days: number): Date {
   return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 }
 
-interface Dependencies extends WorkflowServices {
-  startHardDeleteWorkflow: (fileId: string) => Promise<void>;
+interface Dependencies extends SagaServices {
+  startHardDeleteSaga: (fileId: string) => Promise<void>;
 }
 
-export class FileGarbageCollectorWorkflow extends BaseWorkflow {
-  private readonly startHardDeleteWorkflow: (fileId: string) => Promise<void>;
+export class FileGarbageCollectorSaga extends BaseSaga {
+  private readonly startHardDeleteSaga: (fileId: string) => Promise<void>;
 
   constructor(name: string, deps: Dependencies) {
     super(name, { kernel: deps.kernel });
-    this.startHardDeleteWorkflow = deps.startHardDeleteWorkflow;
+    this.startHardDeleteSaga = deps.startHardDeleteSaga;
   }
 
   @DBOS.workflow()
@@ -70,10 +70,10 @@ export class FileGarbageCollectorWorkflow extends BaseWorkflow {
         batch,
         async (deletionState) => {
           try {
-            await this.startHardDeleteWorkflow(deletionState.fileId);
+            await this.startHardDeleteSaga(deletionState.fileId);
           } catch (error) {
             logger.error(
-              `Failed to start hard delete workflow for fileId=${deletionState.fileId}: ${error}`
+              `Failed to start hard delete saga for fileId=${deletionState.fileId}: ${error}`
             );
           }
         },

@@ -124,7 +124,7 @@ export class OrganizationCreateScript extends BaseScript<
       domain,
     });
 
-    // Note: Media asset group is created by OrganizationCreateWorkflow
+    // Note: Media asset group is created by OrganizationCreateSaga
     // after this transaction commits successfully
 
     return {

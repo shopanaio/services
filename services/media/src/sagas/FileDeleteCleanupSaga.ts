@@ -1,9 +1,9 @@
 import { DBOS } from "@shopana/shared-kernel";
 import type { Inventory } from "@shopana/broker-types";
 import { Error as DBOSErrors } from "@dbos-inc/dbos-sdk";
-import { BaseWorkflow } from "./BaseWorkflow.js";
+import { BaseSaga } from "./BaseSaga.js";
 
-export class FileDeleteCleanupWorkflow extends BaseWorkflow {
+export class FileDeleteCleanupSaga extends BaseSaga {
   /**
    * Deterministic workflow ID for deduplication.
    */

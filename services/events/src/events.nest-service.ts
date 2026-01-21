@@ -13,7 +13,7 @@ import {
 } from "@shopana/shared-kernel";
 import { WORKFLOW_REGISTRY, WorkflowRegistry } from "@shopana/shared-kernel";
 import { Kernel } from "./kernel/Kernel.js";
-import { EventDispatchWorkflow } from "./workflows/EventDispatchWorkflow.js";
+import { EventDispatchSaga } from "./sagas/index.js";
 
 @Injectable()
 export class EventsNestService implements OnModuleInit, OnModuleDestroy {
@@ -29,16 +29,16 @@ export class EventsNestService implements OnModuleInit, OnModuleDestroy {
   async onModuleInit() {
     this.kernel = await Kernel.create(this.broker, this.workflow, this.dbClient);
 
-    const dispatchWorkflow = new EventDispatchWorkflow("eventDispatch", {
+    const dispatchSaga = new EventDispatchSaga("eventDispatch", {
       kernel: this.kernel,
     });
-    const workflowName = this.broker.qualifyAction("eventDispatch");
-    this.workflow.register(workflowName, {
-      instance: dispatchWorkflow,
+    const sagaName = this.broker.qualifyAction("eventDispatch");
+    this.workflow.register(sagaName, {
+      instance: dispatchSaga,
       metadata: { name: "eventDispatch" },
     });
 
-    this.logger.debug("Registered workflow: eventDispatch");
+    this.logger.debug("Registered saga: eventDispatch");
     this.logger.log("Events service started");
   }
 

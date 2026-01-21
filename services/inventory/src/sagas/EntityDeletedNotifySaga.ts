@@ -1,12 +1,12 @@
 import { DBOS } from "@shopana/shared-kernel";
 import type { Media, EntityRef } from "@shopana/broker-types";
-import { BaseWorkflow } from "./BaseWorkflow.js";
+import { BaseSaga } from "./BaseSaga.js";
 
 export interface EntityDeletedNotifyInput {
   entityRef: EntityRef;
 }
 
-export class EntityDeletedNotifyWorkflow extends BaseWorkflow {
+export class EntityDeletedNotifySaga extends BaseSaga {
   @DBOS.workflow()
   async run(input: EntityDeletedNotifyInput): Promise<void> {
     await this.notifyMedia(input.entityRef);

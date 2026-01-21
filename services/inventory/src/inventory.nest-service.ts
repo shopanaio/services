@@ -23,10 +23,10 @@ import { Kernel } from "./kernel/Kernel";
 const { service } = getServiceConfig("inventory");
 import { InventoryObjectStorage } from "./storage";
 import {
-  BackRefNotifyWorkflow,
-  EntityDeletedNotifyWorkflow,
-  ProductCreateWorkflow,
-} from "./workflows/index.js";
+  BackRefNotifySaga,
+  EntityDeletedNotifySaga,
+  ProductCreateSaga,
+} from "./sagas/index.js";
 
 @Injectable()
 export class InventoryNestService implements OnModuleInit, OnModuleDestroy {
@@ -47,34 +47,32 @@ export class InventoryNestService implements OnModuleInit, OnModuleDestroy {
     this.kernel = await Kernel.create(this.broker, this.workflow, this.dbClient);
     this.logger.debug("Kernel created");
 
-    const backRefNotifyWorkflow = new BackRefNotifyWorkflow("backRefNotify", {
+    const backRefNotifySaga = new BackRefNotifySaga("backRefNotify", {
       kernel: this.kernel,
     });
-    const backRefNotifyWorkflowName =
-      this.broker.qualifyAction("backRefNotify");
-    this.workflow.register(backRefNotifyWorkflowName, {
-      instance: backRefNotifyWorkflow,
+    const backRefNotifySagaName = this.broker.qualifyAction("backRefNotify");
+    this.workflow.register(backRefNotifySagaName, {
+      instance: backRefNotifySaga,
       metadata: { name: "backRefNotify" },
     });
 
-    const entityDeletedNotifyWorkflow = new EntityDeletedNotifyWorkflow(
+    const entityDeletedNotifySaga = new EntityDeletedNotifySaga(
       "entityDeletedNotify",
       { kernel: this.kernel }
     );
-    const entityDeletedNotifyWorkflowName =
+    const entityDeletedNotifySagaName =
       this.broker.qualifyAction("entityDeletedNotify");
-    this.workflow.register(entityDeletedNotifyWorkflowName, {
-      instance: entityDeletedNotifyWorkflow,
+    this.workflow.register(entityDeletedNotifySagaName, {
+      instance: entityDeletedNotifySaga,
       metadata: { name: "entityDeletedNotify" },
     });
 
-    const productCreateWorkflow = new ProductCreateWorkflow("productCreate", {
+    const productCreateSaga = new ProductCreateSaga("productCreate", {
       kernel: this.kernel,
     });
-    const productCreateWorkflowName =
-      this.broker.qualifyAction("productCreate");
-    this.workflow.register(productCreateWorkflowName, {
-      instance: productCreateWorkflow,
+    const productCreateSagaName = this.broker.qualifyAction("productCreate");
+    this.workflow.register(productCreateSagaName, {
+      instance: productCreateSaga,
       metadata: { name: "productCreate" },
     });
 

@@ -1,13 +1,13 @@
 import { DBOS } from "@shopana/shared-kernel";
 import type { Media, EntityRef } from "@shopana/broker-types";
-import { BaseWorkflow } from "./BaseWorkflow.js";
+import { BaseSaga } from "./BaseSaga.js";
 
 export interface BackRefNotifyInput {
   entityRef: EntityRef;
   fileIds: string[];
 }
 
-export class BackRefNotifyWorkflow extends BaseWorkflow {
+export class BackRefNotifySaga extends BaseSaga {
   @DBOS.workflow()
   async run(input: BackRefNotifyInput): Promise<void> {
     await this.syncFiles(input);

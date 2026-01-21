@@ -11,10 +11,10 @@ import type { FastifyInstance } from 'fastify';
 import { startServer } from './api/graphql-admin/server';
 import { Kernel } from './kernel/Kernel';
 import {
-  FileGarbageCollectorWorkflow,
-  FileHardDeleteWorkflow,
-  FileDeleteCleanupWorkflow,
-} from "./workflows/index.js";
+  FileGarbageCollectorSaga,
+  FileHardDeleteSaga,
+  FileDeleteCleanupSaga,
+} from "./sagas/index.js";
 import { S3Client } from "./infrastructure/S3Client.js";
 
 const { service } = getServiceConfig("media");
@@ -37,44 +37,44 @@ export class MediaNestService implements OnModuleInit, OnModuleDestroy {
     this.kernel = await Kernel.create(this.broker, this.workflow, this.dbClient);
     this.logger.debug("Kernel created");
 
-    // Register garbage collection workflows
+    // Register garbage collection sagas
     const s3Client = new S3Client();
-    const hardDeleteWorkflow = new FileHardDeleteWorkflow("fileHardDelete", {
+    const hardDeleteSaga = new FileHardDeleteSaga("fileHardDelete", {
       kernel: this.kernel,
       s3Client,
     });
-    const hardDeleteWorkflowName = this.broker.qualifyAction("fileHardDelete");
-    this.workflow.register(hardDeleteWorkflowName, {
-      instance: hardDeleteWorkflow,
+    const hardDeleteSagaName = this.broker.qualifyAction("fileHardDelete");
+    this.workflow.register(hardDeleteSagaName, {
+      instance: hardDeleteSaga,
       metadata: { name: "fileHardDelete" },
     });
 
-    const deleteCleanupWorkflow = new FileDeleteCleanupWorkflow(
+    const deleteCleanupSaga = new FileDeleteCleanupSaga(
       "fileDeleteCleanup",
       { kernel: this.kernel }
     );
-    const deleteCleanupWorkflowName =
+    const deleteCleanupSagaName =
       this.broker.qualifyAction("fileDeleteCleanup");
-    this.workflow.register(deleteCleanupWorkflowName, {
-      instance: deleteCleanupWorkflow,
+    this.workflow.register(deleteCleanupSagaName, {
+      instance: deleteCleanupSaga,
       metadata: { name: "fileDeleteCleanup" },
     });
 
-    const startHardDeleteWorkflow = async (fileId: string) => {
-      await DBOS.startWorkflow(hardDeleteWorkflow).run(fileId);
+    const startHardDeleteSaga = async (fileId: string) => {
+      await DBOS.startWorkflow(hardDeleteSaga).run(fileId);
     };
 
-    const garbageCollectorWorkflow = new FileGarbageCollectorWorkflow(
+    const garbageCollectorSaga = new FileGarbageCollectorSaga(
       "fileGarbageCollector",
-      { kernel: this.kernel, startHardDeleteWorkflow }
+      { kernel: this.kernel, startHardDeleteSaga }
     );
-    const garbageCollectorWorkflowName =
+    const garbageCollectorSagaName =
       this.broker.qualifyAction("fileGarbageCollector");
-    this.workflow.register(garbageCollectorWorkflowName, {
-      instance: garbageCollectorWorkflow,
+    this.workflow.register(garbageCollectorSagaName, {
+      instance: garbageCollectorSaga,
       metadata: { name: "fileGarbageCollector" },
     });
-    this.logger.debug("Registered GC workflows");
+    this.logger.debug("Registered GC sagas");
 
     this.graphqlServer = await startServer({
       port: service.ports?.admin_graphql ?? 0,
