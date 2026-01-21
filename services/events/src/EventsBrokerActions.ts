@@ -6,6 +6,7 @@ import {
   InjectBroker,
   ServiceBroker,
 } from "@shopana/shared-kernel";
+import { ConfiguredInstance } from "@dbos-inc/dbos-sdk";
 import type {
   DomainEvent,
   EventContext,
@@ -16,7 +17,7 @@ import {
   makeDispatchWorkflowId,
   makeEventId,
 } from "@shopana/events";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import {
   deadLetterQueue,
   type DLQEntry,
@@ -53,7 +54,8 @@ export class EventsBrokerActions extends BrokerActions {
     const { event, workflowId } = this.buildEvent(params);
 
     const dispatchWorkflow = this.getDispatchWorkflow();
-    await DBOS.startWorkflow(dispatchWorkflow, { workflowID: workflowId }).dispatch(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (DBOS.startWorkflow(dispatchWorkflow, { workflowID: workflowId }) as any).run(
       event
     );
 
@@ -65,9 +67,10 @@ export class EventsBrokerActions extends BrokerActions {
     const { event, workflowId } = this.buildEvent(params);
 
     const dispatchWorkflow = this.getDispatchWorkflow();
-    const handle = await DBOS.startWorkflow(dispatchWorkflow, {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handle = await (DBOS.startWorkflow(dispatchWorkflow, {
       workflowID: workflowId,
-    }).dispatch(event);
+    }) as any).run(event);
 
     return handle.getResult();
   }
@@ -79,18 +82,18 @@ export class EventsBrokerActions extends BrokerActions {
   }): Promise<{ entries: DLQEntry[] }> {
     const limit = params.limit ?? 100;
 
-    let query = this.db
+    const conditions = [eq(deadLetterQueue.status, "failed")];
+    if (params.eventType) {
+      conditions.push(eq(deadLetterQueue.eventType, params.eventType));
+    }
+
+    const entries = await this.db
       .select()
       .from(deadLetterQueue)
-      .where(eq(deadLetterQueue.status, "failed"))
+      .where(and(...conditions))
       .orderBy(deadLetterQueue.failedAt)
       .limit(limit);
 
-    if (params.eventType) {
-      query = query.where(eq(deadLetterQueue.eventType, params.eventType));
-    }
-
-    const entries = await query;
     return { entries };
   }
 
@@ -98,16 +101,20 @@ export class EventsBrokerActions extends BrokerActions {
   async cleanupDLQ(params: { batchSize?: number }): Promise<{ deleted: number }> {
     const batchSize = params.batchSize ?? 1000;
 
-    const result = await this.db.execute(sql`
-      DELETE FROM dead_letter_queue
-      WHERE id IN (
-        SELECT id FROM dead_letter_queue
-        WHERE expires_at IS NOT NULL AND expires_at < NOW()
-        LIMIT ${batchSize}
+    const result = await this.db.execute<{ count: number }>(sql`
+      WITH deleted AS (
+        DELETE FROM dead_letter_queue
+        WHERE id IN (
+          SELECT id FROM dead_letter_queue
+          WHERE expires_at IS NOT NULL AND expires_at < NOW()
+          LIMIT ${batchSize}
+        )
+        RETURNING 1
       )
+      SELECT COUNT(*)::int AS count FROM deleted
     `);
 
-    return { deleted: result.rowCount ?? 0 };
+    return { deleted: result[0]?.count ?? 0 };
   }
 
   @Action("cleanupDomainEvents")
@@ -121,16 +128,20 @@ export class EventsBrokerActions extends BrokerActions {
       Date.now() - retentionDays * 24 * 60 * 60 * 1000
     );
 
-    const result = await this.db.execute(sql`
-      DELETE FROM domain_events
-      WHERE event_id IN (
-        SELECT event_id FROM domain_events
-        WHERE timestamp < ${cutoffDate}
-        LIMIT ${batchSize}
+    const result = await this.db.execute<{ count: number }>(sql`
+      WITH deleted AS (
+        DELETE FROM domain_events
+        WHERE event_id IN (
+          SELECT event_id FROM domain_events
+          WHERE timestamp < ${cutoffDate}
+          LIMIT ${batchSize}
+        )
+        RETURNING 1
       )
+      SELECT COUNT(*)::int AS count FROM deleted
     `);
 
-    return { deleted: result.rowCount ?? 0 };
+    return { deleted: result[0]?.count ?? 0 };
   }
 
   private buildEvent(params: EmitParams): { event: DomainEvent; workflowId: string } {
@@ -177,7 +188,9 @@ export class EventsBrokerActions extends BrokerActions {
     return { event, workflowId };
   }
 
-  private getDispatchWorkflow(): EventDispatchWorkflow {
+  private getDispatchWorkflow(): ConfiguredInstance & {
+    run: (event: DomainEvent) => Promise<EventDispatchResult>;
+  } {
     const workflowName = this.broker.qualifyAction("eventDispatch");
     const registry = this.kernel.workflow;
 
@@ -185,6 +198,8 @@ export class EventsBrokerActions extends BrokerActions {
       throw new Error("eventDispatch workflow not registered");
     }
 
-    return registry.get<EventDispatchWorkflow>(workflowName);
+    return registry.get<EventDispatchWorkflow>(workflowName) as ConfiguredInstance & {
+      run: (event: DomainEvent) => Promise<EventDispatchResult>;
+    };
   }
 }

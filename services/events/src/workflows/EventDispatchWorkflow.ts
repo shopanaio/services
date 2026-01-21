@@ -17,7 +17,7 @@ export class EventDispatchWorkflow extends BaseWorkflow {
   }
 
   @DBOS.workflow()
-  async dispatch(event: DomainEvent): Promise<EventDispatchResult> {
+  async run(event: DomainEvent): Promise<EventDispatchResult> {
     const { timestamp } = await this.persistEvent(event);
     event.timestamp = timestamp;
 
