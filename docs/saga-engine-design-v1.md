@@ -753,6 +753,11 @@ export function Saga(name: string, config?: SagaExecutorConfig): MethodDecorator
 /**
  * Execute compensation with aggressive retry.
  * Compensations MUST succeed - they get more attempts and always retry.
+ *
+ * IMPORTANT: Each compensation attempt is wrapped in DBOS.step() for:
+ * 1. Durability — survives process crashes
+ * 2. Idempotency — replay skips already-completed compensations
+ * 3. Exactly-once — DBOS guarantees no duplicate side effects on replay
  */
 async function executeCompensationWithRetry(
   instance: any,
@@ -769,7 +774,12 @@ async function executeCompensationWithRetry(
     ctx.recordCompAttempt(step.method);
 
     try {
-      await instance[methodName](...step.args);
+      // Wrap compensation in DBOS.runStep for idempotency on replay
+      // Step name is deterministic: "compensate:{method}:{attempt}"
+      await DBOS.runStep(
+        async () => instance[methodName](...step.args),
+        { name: `compensate:${step.method}:${attempt}` },
+      );
       return;
     } catch (error) {
       lastError = error as Error;
