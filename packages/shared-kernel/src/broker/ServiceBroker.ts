@@ -1,9 +1,11 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, Optional } from '@nestjs/common';
 import { ActionHandler, ActionRegistry, type ActionMetadata } from './ActionRegistry';
-import type { WorkflowRegistry } from '../workflow/WorkflowRegistry.js';
-import { WORKFLOW_REGISTRY } from '../workflow/tokens.js';
-import type { IdempotencyContext } from '../workflow/idempotency.js';
-import type { SagaResult } from '../saga/types.js';
+import {
+  WORKFLOW_REGISTRY,
+  type WorkflowRegistry,
+  type IdempotencyContext,
+  type SagaResult,
+} from '@shopana/dbos';
 
 export interface ServiceBrokerOptions {
   serviceName: string;

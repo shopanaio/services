@@ -1,21 +1,13 @@
+/**
+ * @file Workflow Registry
+ * @description Central registry for workflow instances with DBOS execution
+ */
+
 import { Injectable, Logger } from "@nestjs/common";
 import { DBOS, ConfiguredInstance } from "@dbos-inc/dbos-sdk";
-import type { WorkflowHandle } from "./types.js";
-import { buildIdempotencyKey, type IdempotencyContext } from "./idempotency.js";
-
-/**
- * Descriptor for a registered workflow.
- * Contains the workflow instance and metadata for execution.
- */
-export interface WorkflowDescriptor {
-  /** Workflow instance (extends ConfiguredInstance) */
-  instance: unknown;
-  /** Workflow metadata from @Workflow decorator */
-  metadata: {
-    name: string;
-    idempotencyStrategy?: "client" | "workflow" | "content";
-  };
-}
+import type { WorkflowHandle } from "../core/types.js";
+import type { WorkflowDescriptor, WorkflowRegistrar } from "../workflow/BaseWorkflow.js";
+import { buildIdempotencyKey, type IdempotencyContext } from "../idempotency/index.js";
 
 const isWorkflowDescriptor = (value: unknown): value is WorkflowDescriptor => {
   if (!value || typeof value !== "object") {
@@ -25,13 +17,13 @@ const isWorkflowDescriptor = (value: unknown): value is WorkflowDescriptor => {
 };
 
 @Injectable()
-export class WorkflowRegistry {
+export class WorkflowRegistry implements WorkflowRegistrar {
   private readonly logger = new Logger(WorkflowRegistry.name);
   private readonly workflows = new Map<string, WorkflowDescriptor>();
 
   /**
    * Register workflow with metadata.
-   * Called automatically by BrokerWorkflows during onModuleInit.
+   * Called automatically by BaseWorkflow/BaseSaga during onModuleInit.
    */
   register(qualifiedName: string, descriptor: WorkflowDescriptor): void;
   /**
@@ -121,7 +113,7 @@ export class WorkflowRegistry {
     const workflowID = buildIdempotencyKey(qualifiedName, idempotencyCtx);
 
     // Cast to ConfiguredInstance with run method for DBOS.startWorkflow().
-    // All BrokerWorkflows extend ConfiguredInstance and have a `run` method.
+    // All BaseWorkflow/BaseSaga extend ConfiguredInstance and have a `run` method.
     const workflowInstance = descriptor.instance as ConfiguredInstance & {
       run: (params: TParams) => Promise<TResult>;
     };

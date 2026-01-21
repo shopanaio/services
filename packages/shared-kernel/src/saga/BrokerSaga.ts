@@ -1,68 +1,49 @@
 /**
- * @file BrokerSaga Base Class
- * @description Base class for sagas with broker integration
+ * @file BrokerSaga
+ * @description Saga base class with broker integration
  */
 
-import { Logger, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
-import { ConfiguredInstance } from "@dbos-inc/dbos-sdk";
+import { BaseSaga, type SagaResult } from "@shopana/dbos";
 import type { ServiceBroker } from "../broker/ServiceBroker.js";
-import type { WorkflowRegistry } from "../workflow/WorkflowRegistry.js";
-import { SAGA_DEFINITION_KEY } from "./decorators.js";
-import "reflect-metadata";
 
 /**
- * Base class for sagas with broker integration.
+ * Saga base class with broker integration.
+ *
+ * Extends BaseSaga from @shopana/dbos and adds:
+ * - Access to ServiceBroker for inter-service calls
+ * - Automatic service name resolution from broker
+ *
+ * Use this class when your saga needs to call other services via broker.
+ * For sagas that don't need broker integration, use BaseSaga directly.
+ *
+ * @example
+ * class OrderSaga extends BrokerSaga<OrderInput, OrderResult> {
+ *   constructor(broker: ServiceBroker) {
+ *     super(broker);
+ *   }
+ *
+ *   @Saga('createOrder')
+ *   async run(input: OrderInput): Promise<SagaResult<OrderResult>> {
+ *     const reservation = await this.reserveInventory(input);
+ *
+ *     // Call another service via broker
+ *     const payment = await this.broker.call('payments.charge', {
+ *       amount: input.amount,
+ *       reservationId: reservation.id,
+ *     });
+ *
+ *     return { orderId: payment.orderId };
+ *   }
+ * }
  */
-export abstract class BrokerSaga<TInput, TOutput>
-  extends ConfiguredInstance
-  implements OnModuleInit, OnModuleDestroy
-{
-  protected readonly logger: Logger;
-
+export abstract class BrokerSaga<TInput, TOutput> extends BaseSaga<TInput, TOutput> {
   constructor(public readonly broker: ServiceBroker) {
-    super(new.target.name);
-    this.logger = new Logger(this.constructor.name);
-  }
-
-  /** Access to workflow registry */
-  protected get workflowRegistry(): WorkflowRegistry {
-    return this.broker.getWorkflowRegistry();
+    super(
+      broker.getWorkflowRegistry(),
+      broker["options"].serviceName,
+    );
   }
 
   /** Saga entry point - must be decorated with @Saga("name") */
-  abstract run(input: TInput): Promise<TOutput>;
-
-  onModuleInit(): void {
-    this.registerSaga();
-  }
-
-  onModuleDestroy(): void {
-    this.deregisterSaga();
-  }
-
-  private registerSaga(): void {
-    const sagaMeta = Reflect.getMetadata(SAGA_DEFINITION_KEY, this.constructor);
-    if (!sagaMeta) {
-      throw new Error(
-        `@Saga decorator missing on ${this.constructor.name}.run()`,
-      );
-    }
-
-    const qualifiedName = this.broker.qualifyAction(sagaMeta.name);
-
-    this.workflowRegistry.register(qualifiedName, {
-      instance: this,
-      metadata: { name: sagaMeta.name },
-    });
-
-    this.logger.debug(`Registered saga: ${qualifiedName}`);
-  }
-
-  private deregisterSaga(): void {
-    const sagaMeta = Reflect.getMetadata(SAGA_DEFINITION_KEY, this.constructor);
-    if (sagaMeta) {
-      const qualifiedName = this.broker.qualifyAction(sagaMeta.name);
-      this.workflowRegistry.deregister(qualifiedName);
-    }
-  }
+  abstract run(input: TInput): Promise<SagaResult<TOutput>>;
 }

@@ -19,14 +19,21 @@ import {
   type SagaStatus,
   type RetryPolicy,
   type ExecutedStep,
-  StepExecutionError,
   DEFAULT_COMPENSATION_RETRY,
-  toOperationError,
-} from "./types.js";
-import { runStep } from "../workflow/runStep.js";
+} from "../core/types.js";
+import { StepExecutionError, toOperationError } from "../core/errors.js";
+import { runStep } from "../step/runStep.js";
 
-export const SAGA_DEFINITION_KEY = Symbol("saga:definition");
-export const SAGA_STEP_KEY = Symbol("saga:step");
+// ============================================================================
+// METADATA KEYS
+// ============================================================================
+
+export const SAGA_DEFINITION_KEY = Symbol("dbos:saga:definition");
+export const SAGA_STEP_KEY = Symbol("dbos:saga:step");
+
+// ============================================================================
+// HELPERS
+// ============================================================================
 
 const logger = new Logger("SagaEngine");
 

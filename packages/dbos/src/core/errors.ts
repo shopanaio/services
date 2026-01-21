@@ -1,106 +1,13 @@
-import type {
-  WorkflowHandle as DBOSWorkflowHandle,
-  WorkflowStatus as DBOSWorkflowStatus,
-} from "@dbos-inc/dbos-sdk";
-
-// Re-export DBOS types
-export type { DBOSWorkflowHandle, DBOSWorkflowStatus };
-
-// ============================================================================
-// UNIFIED OPERATION CONTRACTS
-// ============================================================================
-
 /**
- * Unified error type for all operations.
- * Includes `retryable` flag for retry management.
+ * @file Error Classes
+ * @description Error classes with retry classification for workflows and sagas
  */
-export interface OperationError {
-  message: string;
-  code?: string;
-  /** Whether the error is transient and operation can be retried */
-  retryable: boolean;
-  /** Original error name (e.g., "TypeError", "ValidationError") */
-  name?: string;
-  /** Stack trace (only in development) */
-  stack?: string;
-}
 
-/**
- * Base result type for any operation (actions, handlers, workflows).
- */
-export interface OperationResult<T = unknown> {
-  success: boolean;
-  data?: T;
-  error?: OperationError;
-}
-
-/**
- * Workflow execution status.
- */
-export type WorkflowStatus =
-  | "pending"
-  | "running"
-  | "completed"
-  | "failed";
-
-/**
- * Extended result for workflows with step tracking.
- */
-export interface WorkflowResult<T = unknown> extends OperationResult<T> {
-  status: WorkflowStatus;
-  /** Step where the failure occurred */
-  failedStep?: string;
-  /** Attempt count per step execution (for metrics/debugging) */
-  attempts: Record<string, number>;
-  /** Warnings from non-critical steps */
-  warnings: Array<{ step: string; message: string }>;
-}
-
-// ============================================================================
-// RETRY POLICY
-// ============================================================================
-
-/**
- * Retry policy configuration.
- */
-export interface RetryPolicy {
-  maxAttempts: number;
-  intervalSeconds: number;
-  backoffRate: number;
-}
-
-/** Default retry policy (no retries) */
-export const DEFAULT_RETRY_POLICY: RetryPolicy = {
-  maxAttempts: 1,
-  intervalSeconds: 0,
-  backoffRate: 1,
-};
+import type { OperationError } from "./types.js";
 
 // ============================================================================
 // ERROR HELPERS
 // ============================================================================
-
-/**
- * Convert any error to OperationError.
- * Unknown errors are marked as non-retryable by default.
- */
-export function toOperationError(error: unknown): OperationError {
-  if (error instanceof Error) {
-    const isRetryable = isRetryableError(error);
-    return {
-      message: error.message,
-      code: (error as { code?: string }).code,
-      retryable: isRetryable,
-      name: error.name,
-      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
-    };
-  }
-
-  return {
-    message: String(error),
-    retryable: false,
-  };
-}
 
 /**
  * Check if an error is retryable (transient).
@@ -141,6 +48,28 @@ export function isRetryableError(error: unknown): boolean {
   }
 
   return false;
+}
+
+/**
+ * Convert any error to OperationError.
+ * Unknown errors are marked as non-retryable by default.
+ */
+export function toOperationError(error: unknown): OperationError {
+  if (error instanceof Error) {
+    const retryable = isRetryableError(error);
+    return {
+      message: error.message,
+      code: (error as { code?: string }).code,
+      retryable,
+      name: error.name,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+    };
+  }
+
+  return {
+    message: String(error),
+    retryable: false,
+  };
 }
 
 // ============================================================================
@@ -237,44 +166,4 @@ export function withTimeout<T>(
         reject(error);
       });
   });
-}
-
-/**
- * Simplified workflow status for external consumers
- */
-export type WorkflowStatusSimple =
-  | "PENDING"
-  | "SUCCESS"
-  | "ERROR"
-  | "RETRIES_EXCEEDED"
-  | "CANCELLED"
-  | "UNKNOWN";
-
-/**
- * Simplified handle for monitoring workflows
- */
-export interface WorkflowHandle<TResult> {
-  workflowId: string;
-  getResult(): Promise<TResult>;
-  getStatus(): Promise<DBOSWorkflowStatus | null>;
-}
-
-/**
- * Options for starting a workflow
- */
-export interface WorkflowStartOptions {
-  /** Custom workflow ID for idempotency */
-  workflowId?: string;
-}
-
-/**
- * Configuration for DBOS workflow module
- */
-export interface WorkflowModuleConfig {
-  /** PostgreSQL connection string for DBOS system tables */
-  databaseUrl: string;
-  /** Application name for DBOS (used in system tables) */
-  name?: string;
-  /** PostgreSQL schema for DBOS system tables (default: "dbos") */
-  schema?: string;
 }

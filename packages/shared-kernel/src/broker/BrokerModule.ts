@@ -2,8 +2,7 @@ import { DynamicModule, Module } from '@nestjs/common';
 import { ActionRegistry } from './ActionRegistry';
 import { ServiceBroker, type ServiceBrokerOptions } from './ServiceBroker';
 import { SERVICE_BROKER, SERVICE_NAME, getBrokerToken } from './tokens';
-import { WORKFLOW_REGISTRY } from '../workflow/tokens';
-import type { WorkflowRegistry } from '../workflow/WorkflowRegistry';
+import { WORKFLOW_REGISTRY, type WorkflowRegistry } from '@shopana/dbos';
 
 export interface BrokerFeatureOptions extends ServiceBrokerOptions {}
 

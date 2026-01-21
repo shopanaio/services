@@ -1,6 +1,9 @@
 export { Kernel } from "./Kernel";
 export { NestLogger } from "./NestLogger";
-export { DBOS } from "@dbos-inc/dbos-sdk";
+
+// Re-export DBOS from @shopana/dbos
+export { DBOS, ConfiguredInstance } from "@shopana/dbos";
+
 export {
   TransactionManager,
   type TransactionalDatabase,
@@ -31,12 +34,16 @@ export {
   InjectBroker,
   getBrokerToken,
 } from "./broker/tokens";
-export { WorkflowModule } from "./workflow/WorkflowModule";
-export { WorkflowRegistry } from "./workflow/WorkflowRegistry";
+
+// Workflow module - re-export from @shopana/dbos
 export {
+  WorkflowModule,
+  WorkflowRegistry,
   WORKFLOW_CONFIG,
   WORKFLOW_REGISTRY,
-} from "./workflow/tokens";
+} from "@shopana/dbos";
+
+// Workflow types from @shopana/dbos
 export type {
   WorkflowHandle,
   WorkflowStatusSimple,
@@ -44,7 +51,11 @@ export type {
   WorkflowModuleConfig,
   DBOSWorkflowHandle,
   DBOSWorkflowStatus,
-} from "./workflow/types";
+  WorkflowResult,
+  WorkflowStatus,
+} from "@shopana/dbos";
+
+// Idempotency from @shopana/dbos
 export {
   buildIdempotencyKey,
   hashContent,
@@ -52,7 +63,9 @@ export {
   type ClientIdempotencyContext,
   type WorkflowIdempotencyContext,
   type ContentIdempotencyContext,
-} from "./workflow/idempotency";
+} from "@shopana/dbos";
+
+// Kernel types
 export {
   type Logger,
   type BaseKernelServices,
@@ -63,6 +76,8 @@ export {
   KernelError,
   consoleLogger,
 } from "./types";
+
+// Decorators - broker-specific decorators stay here
 export {
   ZodSchema,
   ValidationError,
@@ -72,10 +87,6 @@ export {
   ACTION_METADATA_KEY,
   EventHandler,
   EVENT_HANDLER_METADATA_KEY,
-  Workflow,
-  WORKFLOW_METADATA_KEY,
-  WorkflowStep,
-  WORKFLOW_STEP_METADATA_KEY,
   type UserError,
   type Authorizable,
   type AuthProvider,
@@ -83,9 +94,21 @@ export {
   type AuthorizeOptions,
   type ActionDecoratorMetadata,
   type EventHandlerMetadata,
+} from "./decorators";
+
+// Workflow decorators and base class from @shopana/dbos
+export {
+  Workflow,
+  WorkflowStep,
+  WORKFLOW_METADATA_KEY,
+  WORKFLOW_STEP_METADATA_KEY,
   type WorkflowMetadata,
   type WorkflowStepMetadata,
-} from "./decorators";
+  // Base class (broker-independent)
+  BaseWorkflow,
+  type WorkflowDescriptor,
+  type WorkflowRegistrar,
+} from "@shopana/dbos";
 
 // Resource discovery types
 export {
@@ -108,12 +131,13 @@ export {
   type DatabaseClient,
 } from "./database";
 
-// Saga Engine
+// Saga Engine - re-export from @shopana/dbos + BrokerSaga
 export {
   Saga,
   SagaStep,
   SAGA_STEP_KEY,
   SAGA_DEFINITION_KEY,
+  BaseSaga,
   BrokerSaga,
   SagaExecutionContext,
   sagaContextStorage,
@@ -152,6 +176,3 @@ export type {
   // Backward compatibility
   ErrorInfo,
 } from "./saga/index";
-
-// Export WorkflowResult from workflow/types directly
-export type { WorkflowResult, WorkflowStatus } from "./workflow/types";

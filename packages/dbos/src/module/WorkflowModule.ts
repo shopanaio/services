@@ -1,3 +1,8 @@
+/**
+ * @file Workflow Module
+ * @description NestJS module for DBOS workflow integration
+ */
+
 import {
   DynamicModule,
   Global,
@@ -8,9 +13,9 @@ import {
   Logger,
 } from "@nestjs/common";
 import { DBOS } from "@dbos-inc/dbos-sdk";
-import { WorkflowRegistry } from "./WorkflowRegistry.js";
-import { WORKFLOW_CONFIG, WORKFLOW_REGISTRY } from "./tokens.js";
-import type { WorkflowModuleConfig } from "./types.js";
+import { WorkflowRegistry } from "../registry/WorkflowRegistry.js";
+import { WORKFLOW_CONFIG, WORKFLOW_REGISTRY } from "../registry/tokens.js";
+import type { WorkflowModuleConfig } from "../core/types.js";
 
 /**
  * NestJS module for DBOS workflow integration.
@@ -52,8 +57,13 @@ export class WorkflowModule implements OnModuleInit, OnModuleDestroy {
           provide: WORKFLOW_REGISTRY,
           useClass: WorkflowRegistry,
         },
+        {
+          // Also provide WorkflowRegistry directly for constructor injection
+          provide: WorkflowRegistry,
+          useExisting: WORKFLOW_REGISTRY,
+        },
       ],
-      exports: [WORKFLOW_REGISTRY],
+      exports: [WORKFLOW_REGISTRY, WorkflowRegistry],
     };
   }
 

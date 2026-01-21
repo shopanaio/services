@@ -17,9 +17,14 @@ export {
   EVENT_HANDLER_METADATA_KEY,
   type EventHandlerMetadata,
 } from "./EventHandler.js";
+
+// Workflow decorators are now exported from @shopana/dbos
+// Re-export here for backward compatibility with local imports
 export {
   Workflow,
+  WorkflowStep,
   WORKFLOW_METADATA_KEY,
+  WORKFLOW_STEP_METADATA_KEY,
   type WorkflowMetadata,
-} from "./Workflow.js";
-export { WorkflowStep, WORKFLOW_STEP_METADATA_KEY, type WorkflowStepMetadata } from "./WorkflowStep.js";
+  type WorkflowStepMetadata,
+} from "@shopana/dbos";

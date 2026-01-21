@@ -1,8 +1,8 @@
 {
-  "name": "@shopana/shared-kernel",
+  "name": "@shopana/dbos",
   "version": "1.0.0",
   "type": "module",
-  "description": "Microkernel architecture with Transaction Script pattern for Shopana microservices",
+  "description": "Durable workflow and saga framework built on DBOS SDK",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -13,13 +13,16 @@
     }
   },
   "scripts": {
+    "build": "tsc",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch"
   },
   "keywords": [
-    "kernel",
-    "microkernel",
-    "transaction-script"
+    "dbos",
+    "workflow",
+    "saga",
+    "durable",
+    "orchestration"
   ],
   "author": "",
   "license": "ISC",
@@ -33,14 +36,10 @@
   "dependencies": {
     "@dbos-inc/dbos-sdk": "^4.7.9",
     "@nestjs/common": "^10.0.0",
-    "@nestjs/core": "^10.0.0",
-    "@shopana/dbos": "*",
-    "@shopana/rbac": "*",
     "canonicalize": "^1.0.8",
-    "drizzle-orm": "^0.45.1",
-    "postgres": "^3.4.7",
-    "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1",
-    "zod": "^3.23.8"
+    "reflect-metadata": "^0.2.2"
+  },
+  "peerDependencies": {
+    "@nestjs/core": "^10.0.0"
   }
 }

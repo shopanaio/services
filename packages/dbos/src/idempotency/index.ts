@@ -1,5 +1,17 @@
+/**
+ * @file Idempotency Utilities
+ * @description Deterministic workflow ID generation for idempotent execution
+ */
+
 import { createHash } from "node:crypto";
-import canonicalize from "canonicalize";
+import canonicalizeModule from "canonicalize";
+
+// canonicalize exports a default function, but TypeScript sees the module wrapper
+const canonicalize = canonicalizeModule.default ?? canonicalizeModule;
+
+// ============================================================================
+// IDEMPOTENCY CONTEXT TYPES
+// ============================================================================
 
 /**
  * Client-provided idempotency key (External API).
@@ -51,8 +63,27 @@ export type IdempotencyContext =
   | WorkflowIdempotencyContext
   | ContentIdempotencyContext;
 
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+/**
+ * Helper to create content hash for ContentIdempotencyContext.
+ */
+export function hashContent(payload: unknown): string {
+  const canonical = canonicalize(payload);
+  if (!canonical) {
+    throw new Error("Failed to canonicalize payload");
+  }
+  return createHash("sha256").update(canonical).digest("hex");
+}
+
 /**
  * Build deterministic idempotency key from context.
+ *
+ * Format: `{prefix}:{sha256_hash}`
+ *
+ * The hash input is versioned and includes all context fields for collision resistance.
  */
 export function buildIdempotencyKey(
   workflowName: string,
@@ -79,15 +110,4 @@ export function buildIdempotencyKey(
       return `content:${hash(input)}`;
     }
   }
-}
-
-/**
- * Helper to create content hash for ContentIdempotencyContext.
- */
-export function hashContent(payload: unknown): string {
-  const canonical = canonicalize(payload);
-  if (!canonical) {
-    throw new Error("Failed to canonicalize payload");
-  }
-  return createHash("sha256").update(canonical).digest("hex");
 }

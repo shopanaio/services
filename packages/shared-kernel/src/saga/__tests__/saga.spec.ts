@@ -3,8 +3,6 @@ import {
   SagaExecutionContext,
   sagaContextStorage,
   getSagaContext,
-} from "../SagaExecutionContext";
-import {
   RetryableError,
   FatalError,
   StepExecutionError,
@@ -12,7 +10,7 @@ import {
   isRetryableError,
   withTimeout,
   toErrorInfo,
-} from "../types";
+} from "../index";
 
 describe("SagaExecutionContext", () => {
   it("tracks executed steps for compensation", () => {

@@ -1,18 +1,20 @@
 /**
- * @file Shared Step Execution Logic
- * @description Common step execution used by WorkflowStep and SagaStep decorators
+ * @file Step Execution Logic
+ * @description Durable step execution with timeout, retry, and error handling
  */
 
 import { DBOS } from "@dbos-inc/dbos-sdk";
 import { Logger } from "@nestjs/common";
 import {
   type RetryPolicy,
+  DEFAULT_RETRY_POLICY,
+} from "../core/types.js";
+import {
   StepTimeoutError,
   isRetryableError,
   withTimeout,
   DEFAULT_STEP_TIMEOUT_MS,
-  DEFAULT_RETRY_POLICY,
-} from "./types.js";
+} from "../core/errors.js";
 
 const logger = new Logger("WorkflowStep");
 

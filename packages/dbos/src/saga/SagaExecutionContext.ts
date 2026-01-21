@@ -4,7 +4,7 @@
  */
 
 import { AsyncLocalStorage } from "node:async_hooks";
-import type { SagaStepConfig, ExecutedStep } from "./types.js";
+import type { SagaStepConfig, ExecutedStep } from "../core/types.js";
 
 /**
  * Saga execution context.

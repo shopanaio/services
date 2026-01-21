@@ -1,29 +1,39 @@
 /**
- * @file Saga Engine Public API
- * @description Exports for the Saga Engine module
+ * @file Saga Module Exports
+ * @description Re-exports from @shopana/dbos + broker integration
  */
 
-// Decorators
+// Re-export everything from @shopana/dbos saga module
 export {
+  // Decorators
   Saga,
   SagaStep,
-  SAGA_STEP_KEY,
   SAGA_DEFINITION_KEY,
-} from "./decorators.js";
-
-// Base class
-export { BrokerSaga } from "./BrokerSaga.js";
-
-// Context (advanced usage)
-export {
+  SAGA_STEP_KEY,
+  // Context
   SagaExecutionContext,
   sagaContextStorage,
   getSagaContext,
-} from "./SagaExecutionContext.js";
+  // Base class (broker-independent)
+  BaseSaga,
+  // Error classes
+  OperationException,
+  RetryableError,
+  FatalError,
+  StepExecutionError,
+  StepTimeoutError,
+  // Helpers
+  isRetryableError,
+  toOperationError,
+  withTimeout,
+  // Constants
+  DEFAULT_COMPENSATION_RETRY,
+  DEFAULT_STEP_TIMEOUT_MS,
+} from "@shopana/dbos";
 
-// Types - unified contracts
+// Types
 export type {
-  // Base contracts (from workflow/types)
+  // Base contracts
   OperationError,
   OperationResult,
   RetryPolicy,
@@ -36,29 +46,20 @@ export type {
   SagaStepMetadata,
   SagaExecutorConfig,
   OnCompensationExhausted,
-} from "./types.js";
+} from "@shopana/dbos";
 
-// Backward compatibility alias
-export type { ErrorInfo } from "./types.js";
+// Broker-specific saga class
+export { BrokerSaga } from "./BrokerSaga.js";
 
-// Constants
-export {
-  DEFAULT_COMPENSATION_RETRY,
-  DEFAULT_STEP_TIMEOUT_MS,
-} from "./types.js";
+// ============================================================================
+// BACKWARD COMPATIBILITY ALIASES
+// ============================================================================
 
-// Errors and helpers
-export {
-  SagaError,
-  OperationException,
-  RetryableError,
-  FatalError,
-  StepExecutionError,
-  StepTimeoutError,
-  isRetryableError,
-  toOperationError,
-  withTimeout,
-} from "./types.js";
+/** @deprecated Use OperationError instead */
+export type { OperationError as ErrorInfo } from "@shopana/dbos";
 
-// Backward compatibility
-export { toErrorInfo } from "./types.js";
+/** @deprecated Use toOperationError instead */
+export { toOperationError as toErrorInfo } from "@shopana/dbos";
+
+/** @deprecated Use OperationException instead */
+export { OperationException as SagaError } from "@shopana/dbos";
