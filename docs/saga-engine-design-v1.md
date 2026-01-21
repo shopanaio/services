@@ -177,14 +177,17 @@ export class FatalError extends SagaError {
 /**
  * Step execution error wrapper.
  * Preserves step context for observability (failedStep tracking).
+ *
+ * NOT a SagaError — doesn't participate in retry classification.
+ * Classification is done on `cause` if needed.
  */
-export class StepExecutionError extends SagaError {
+export class StepExecutionError extends Error {
   constructor(
     public readonly stepName: string,
     public readonly methodName: string,
     public readonly cause: Error,
   ) {
-    super(`Step "${stepName}" failed: ${cause.message}`);
+    super(`Step "${stepName}" failed: ${cause.message}`, { cause });
     this.name = "StepExecutionError";
   }
 }
@@ -292,7 +295,10 @@ export function toErrorInfo(error: Error): ErrorInfo {
 
 /** Выполненный шаг (для компенсации) */
 export interface ExecutedStep {
+  /** Canonical identifier (method name) */
   method: string;
+  /** Display name (config.name or method) — for logs/UI */
+  stepName: string;
   /** Аргументы с которыми был вызван шаг (передаются в компенсацию) */
   args: unknown[];
   /** Step config for compensation method lookup */
@@ -391,8 +397,8 @@ export class SagaExecutionContext {
   }
 
   /** Записать успешно выполненный шаг */
-  recordStep(method: string, args: unknown[], config: SagaStepConfig): void {
-    this.executedSteps.push({ method, args, config });
+  recordStep(method: string, stepName: string, args: unknown[], config: SagaStepConfig): void {
+    this.executedSteps.push({ method, stepName, args, config });
   }
 
   /** Записать ошибку шага */
@@ -542,7 +548,7 @@ export function SagaStep(config: SagaStepConfig = {}): MethodDecorator {
           const result = await originalMethod.apply(this, args);
 
           // Записываем успешный шаг (args для компенсации, result не храним)
-          ctx.recordStep(methodName, args, { ...config, name: stepName });
+          ctx.recordStep(methodName, stepName, args, { ...config, name: stepName });
 
           return result;
         } catch (error) {
@@ -640,7 +646,7 @@ export function Saga(name: string, config?: SagaExecutorConfig): MethodDecorator
       const compensationRetryPolicy = config?.compensationRetryPolicy ?? DEFAULT_COMPENSATION_RETRY;
       const onCompensationExhausted = config?.onCompensationExhausted ?? ((step, method, err, context) => {
         logger.error(
-          { sagaId: context.sagaId, step, method, error: err.message, attempts: context.attempts },
+          { sagaId: context.sagaId, step, method, error: err.message, compAttempts: context.compAttempts },
           "Compensation exhausted - manual intervention required",
         );
       });
@@ -665,12 +671,14 @@ export function Saga(name: string, config?: SagaExecutorConfig): MethodDecorator
         };
 
       } catch (error) {
-        // Extract failedStep from StepExecutionError
+        // Extract step info from StepExecutionError
+        // methodName = canonical key, stepName = display name
         const stepError = error instanceof StepExecutionError ? error : null;
-        const failedStep = stepError?.stepName ?? "unknown";
-        ctx.recordFailure(failedStep);
+        const failedMethod = stepError?.methodName ?? "unknown";
+        const failedStepName = stepError?.stepName ?? "unknown";
+        ctx.recordFailure(failedMethod);
 
-        logger.error(`Saga ${name} failed at step ${failedStep}, starting compensation`, error);
+        logger.error(`Saga ${name} failed at step ${failedStepName}, starting compensation`, error);
 
         // ═══════════════════════════════════════════════════════
         // COMPENSATION PHASE (with retry)
