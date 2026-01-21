@@ -129,114 +129,108 @@ export class StockRepository extends BaseRepository {
   ): Promise<ApplyStockChangeResult> {
     const deltaReserved = input.deltaReserved ?? 0;
     const deltaUnavailable = input.deltaUnavailable ?? 0;
-    const result = await this.connection.execute<{
-      status: StockChangeStatus | null;
-      id: string | null;
-    }>(sql`
-      WITH ins AS (
-        INSERT INTO inventory.stock_changes (
-          project_id, warehouse_id, variant_id,
-          delta_on_hand, delta_reserved, delta_unavailable,
-          movement_type, reason, transfer_direction,
-          source_system, source_event_id, correlation_id, note, created_by,
-          on_hand_after, reserved_after, unavailable_after
-        )
-        SELECT
-          ${this.storeId}, ${input.warehouseId}, ${input.variantId},
-          ${input.deltaOnHand}, ${deltaReserved}, ${deltaUnavailable},
-          ${input.movementType}, ${input.reason ?? null}, ${input.transferDirection ?? null},
-          ${input.sourceSystem}, ${input.sourceEventId}, ${input.correlationId ?? null}, ${input.note ?? null}, ${input.createdBy ?? null},
-          0, 0, 0
-        ON CONFLICT (project_id, source_system, source_event_id, warehouse_id, variant_id)
-        DO NOTHING
-        RETURNING id
-      ),
-      existing AS (
-        SELECT id
-        FROM inventory.stock_changes
+
+    return await this.connection.transaction(async (tx) => {
+      // 1. Check for duplicate (idempotency)
+      const existing = await tx.execute<{ id: string }>(sql`
+        SELECT id FROM inventory.stock_changes
         WHERE project_id = ${this.storeId}
           AND source_system = ${input.sourceSystem}
           AND source_event_id = ${input.sourceEventId}
           AND warehouse_id = ${input.warehouseId}
           AND variant_id = ${input.variantId}
-      ),
-      up AS (
-        INSERT INTO inventory.warehouse_stock (
-          id, project_id, warehouse_id, variant_id,
-          quantity_on_hand, reserved_qty, unavailable_qty
-        )
-        SELECT
-          ${uuidv7()}, ${this.storeId}, ${input.warehouseId}, ${input.variantId},
-          ${input.deltaOnHand}, ${deltaReserved}, ${deltaUnavailable}
-        FROM ins
-        WHERE
-          ${input.deltaOnHand} >= 0
-          AND ${deltaReserved} >= 0
-          AND ${deltaUnavailable} >= 0
-          AND ${deltaUnavailable} <= ${input.deltaOnHand}
-        ON CONFLICT (project_id, warehouse_id, variant_id) DO UPDATE SET
-          quantity_on_hand = inventory.warehouse_stock.quantity_on_hand + ${input.deltaOnHand},
-          reserved_qty = inventory.warehouse_stock.reserved_qty + ${deltaReserved},
-          unavailable_qty = inventory.warehouse_stock.unavailable_qty + ${deltaUnavailable},
-          updated_at = NOW()
-        WHERE
-          EXISTS (SELECT 1 FROM ins)
-          AND (inventory.warehouse_stock.quantity_on_hand + ${input.deltaOnHand}) >= 0
-          AND (inventory.warehouse_stock.reserved_qty + ${deltaReserved}) >= 0
-          AND (inventory.warehouse_stock.unavailable_qty + ${deltaUnavailable}) >= 0
-          AND (inventory.warehouse_stock.unavailable_qty + ${deltaUnavailable})
-              <= (inventory.warehouse_stock.quantity_on_hand + ${input.deltaOnHand})
-        RETURNING quantity_on_hand, reserved_qty, unavailable_qty
-      ),
-      fix AS (
-        UPDATE inventory.stock_changes sc
-        SET
-          on_hand_after = up.quantity_on_hand,
-          reserved_after = up.reserved_qty,
-          unavailable_after = up.unavailable_qty
-        FROM ins, up
-        WHERE sc.id = ins.id
-        RETURNING sc.*
-      ),
-      reject AS (
-        UPDATE inventory.stock_changes sc
-        SET
-          on_hand_after = COALESCE(ws.quantity_on_hand, 0),
-          reserved_after = COALESCE(ws.reserved_qty, 0),
-          unavailable_after = COALESCE(ws.unavailable_qty, 0),
-          apply_status = 'REJECTED'
-        FROM ins
-        LEFT JOIN inventory.warehouse_stock ws
-          ON ws.project_id = ${this.storeId}
-         AND ws.warehouse_id = ${input.warehouseId}
-         AND ws.variant_id = ${input.variantId}
-        WHERE sc.id = ins.id
-          AND NOT EXISTS (SELECT 1 FROM fix)
-        RETURNING sc.*
-      ),
-      result AS (
-        SELECT 'APPLIED' as status, id FROM fix
-        UNION ALL
-        SELECT 'REJECTED' as status, id FROM reject
-        UNION ALL
-        SELECT 'DUPLICATE' as status, id
-        FROM existing
-        WHERE NOT EXISTS (SELECT 1 FROM fix)
-          AND NOT EXISTS (SELECT 1 FROM reject)
-      )
-      SELECT
-        r.status as status,
-        sc.id as id
-      FROM (SELECT 1) x
-      LEFT JOIN result r ON true
-      LEFT JOIN inventory.stock_changes sc ON sc.id = r.id
-    `);
+      `);
 
-    const row = result[0];
-    return {
-      status: row?.status ?? "REJECTED",
-      changeId: row?.id ?? null,
-    };
+      if (existing.length > 0) {
+        return { status: "DUPLICATE" as const, changeId: existing[0].id };
+      }
+
+      // 2. Get current stock with lock
+      const currentStock = await tx.execute<{
+        quantity_on_hand: number;
+        reserved_qty: number;
+        unavailable_qty: number;
+      }>(sql`
+        SELECT quantity_on_hand, reserved_qty, unavailable_qty
+        FROM inventory.warehouse_stock
+        WHERE project_id = ${this.storeId}
+          AND warehouse_id = ${input.warehouseId}
+          AND variant_id = ${input.variantId}
+        FOR UPDATE
+      `);
+
+      const current = currentStock[0] ?? {
+        quantity_on_hand: 0,
+        reserved_qty: 0,
+        unavailable_qty: 0,
+      };
+
+      // 3. Calculate new values
+      const newOnHand = current.quantity_on_hand + input.deltaOnHand;
+      const newReserved = current.reserved_qty + deltaReserved;
+      const newUnavailable = current.unavailable_qty + deltaUnavailable;
+
+      // 4. Check constraints
+      const constraintsValid =
+        newOnHand >= 0 &&
+        newReserved >= 0 &&
+        newUnavailable >= 0 &&
+        newUnavailable <= newOnHand;
+
+      // 5. Insert stock change record
+      const changeId = uuidv7();
+      await tx.execute(sql`
+        INSERT INTO inventory.stock_changes (
+          id, project_id, warehouse_id, variant_id,
+          delta_on_hand, delta_reserved, delta_unavailable,
+          movement_type, reason, transfer_direction,
+          source_system, source_event_id, correlation_id, note, created_by,
+          on_hand_after, reserved_after, unavailable_after,
+          apply_status
+        ) VALUES (
+          ${changeId}, ${this.storeId}, ${input.warehouseId}, ${input.variantId},
+          ${input.deltaOnHand}, ${deltaReserved}, ${deltaUnavailable},
+          ${input.movementType}, ${input.reason ?? null}, ${input.transferDirection ?? null},
+          ${input.sourceSystem}, ${input.sourceEventId}, ${input.correlationId ?? null},
+          ${input.note ?? null}, ${input.createdBy ?? null},
+          ${constraintsValid ? newOnHand : current.quantity_on_hand},
+          ${constraintsValid ? newReserved : current.reserved_qty},
+          ${constraintsValid ? newUnavailable : current.unavailable_qty},
+          ${constraintsValid ? "APPLIED" : "REJECTED"}
+        )
+      `);
+
+      // 6. Update stock if constraints are valid
+      if (constraintsValid) {
+        if (currentStock.length === 0) {
+          // Insert new stock record
+          await tx.execute(sql`
+            INSERT INTO inventory.warehouse_stock (
+              id, project_id, warehouse_id, variant_id,
+              quantity_on_hand, reserved_qty, unavailable_qty
+            ) VALUES (
+              ${uuidv7()}, ${this.storeId}, ${input.warehouseId}, ${input.variantId},
+              ${newOnHand}, ${newReserved}, ${newUnavailable}
+            )
+          `);
+        } else {
+          // Update existing stock
+          await tx.execute(sql`
+            UPDATE inventory.warehouse_stock SET
+              quantity_on_hand = ${newOnHand},
+              reserved_qty = ${newReserved},
+              unavailable_qty = ${newUnavailable},
+              updated_at = NOW()
+            WHERE project_id = ${this.storeId}
+              AND warehouse_id = ${input.warehouseId}
+              AND variant_id = ${input.variantId}
+          `);
+        }
+        return { status: "APPLIED" as const, changeId };
+      }
+
+      return { status: "REJECTED" as const, changeId };
+    });
   }
 
   /**
