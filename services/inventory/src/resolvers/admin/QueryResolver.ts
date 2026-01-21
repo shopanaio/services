@@ -62,8 +62,13 @@ export class InventoryQueryResolver extends InventoryType<Record<string, never>>
 
   /**
    * Get a single product by ID.
+   * Returns null if product doesn't exist.
    */
-  product(args: { id: string }) {
+  async product(args: { id: string }) {
+    const product = await this.$ctx.loaders.product.load(args.id);
+    if (!product) {
+      return null;
+    }
     return new ProductResolver(args.id, this.$ctx);
   }
 

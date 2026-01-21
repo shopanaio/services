@@ -37,7 +37,7 @@ export class CostRepository extends BaseRepository {
   async closeCurrent(variantId: string, currency: Currency): Promise<void> {
     await this.connection
       .update(productVariantCostHistory)
-      .set({ effectiveTo: new Date() })
+      .set({ effectiveTo: new Date().toISOString() })
       .where(
         and(
           eq(productVariantCostHistory.projectId, this.storeId),
@@ -60,7 +60,7 @@ export class CostRepository extends BaseRepository {
     }
   ): Promise<ProductVariantCostHistory> {
     const id = randomUUID();
-    const now = new Date();
+    const now = new Date().toISOString();
 
     const newCost: NewProductVariantCostHistory = {
       projectId: this.storeId,

@@ -33,7 +33,7 @@ export class ProductResolver extends InventoryType<string, Product | null> {
   async isPublished() {
     const publishedAt = await this.$get("publishedAt");
     if (!publishedAt) return false;
-    return publishedAt <= new Date();
+    return new Date(publishedAt) <= new Date();
   }
 
   async createdAt() {

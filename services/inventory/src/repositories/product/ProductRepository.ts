@@ -75,14 +75,14 @@ export class ProductRepository extends BaseRepository {
     return result[0] ?? null;
   }
 
-  async create(data: { publishedAt?: Date | null } = {}): Promise<Product> {
+  async create(data: { publishedAt?: Date | string | null } = {}): Promise<Product> {
     const id = randomUUID();
-    const now = new Date();
+    const now = new Date().toISOString();
 
     const newProduct: NewProduct = {
       projectId: this.storeId,
       id,
-      publishedAt: data.publishedAt ?? null,
+      publishedAt: data.publishedAt instanceof Date ? data.publishedAt.toISOString() : data.publishedAt ?? null,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
@@ -99,7 +99,7 @@ export class ProductRepository extends BaseRepository {
   async touch(id: string): Promise<void> {
     await this.connection
       .update(product)
-      .set({ updatedAt: new Date() })
+      .set({ updatedAt: new Date().toISOString() })
       .where(
         and(
           eq(product.projectId, this.storeId),
@@ -110,14 +110,14 @@ export class ProductRepository extends BaseRepository {
 
   async update(
     id: string,
-    data: { handle?: string | null; publishedAt?: Date | null }
+    data: { handle?: string | null; publishedAt?: Date | string | null }
   ): Promise<Product | null> {
     const updateData: Partial<NewProduct> = {
-      updatedAt: new Date(),
+      updatedAt: new Date().toISOString(),
     };
 
     if (data.handle !== undefined) updateData.handle = data.handle;
-    if (data.publishedAt !== undefined) updateData.publishedAt = data.publishedAt;
+    if (data.publishedAt !== undefined) updateData.publishedAt = data.publishedAt instanceof Date ? data.publishedAt.toISOString() : data.publishedAt;
 
     const result = await this.connection
       .update(product)
@@ -134,9 +134,10 @@ export class ProductRepository extends BaseRepository {
   }
 
   async softDelete(id: string): Promise<boolean> {
+    const now = new Date().toISOString();
     const result = await this.connection
       .update(product)
-      .set({ deletedAt: new Date(), updatedAt: new Date() })
+      .set({ deletedAt: now, updatedAt: now })
       .where(
         and(
           eq(product.projectId, this.storeId),
@@ -164,7 +165,7 @@ export class ProductRepository extends BaseRepository {
   }
 
   async publish(id: string): Promise<Product | null> {
-    const now = new Date();
+    const now = new Date().toISOString();
     const result = await this.connection
       .update(product)
       .set({ publishedAt: now, updatedAt: now })
@@ -183,7 +184,7 @@ export class ProductRepository extends BaseRepository {
   async unpublish(id: string): Promise<Product | null> {
     const result = await this.connection
       .update(product)
-      .set({ publishedAt: null, updatedAt: new Date() })
+      .set({ publishedAt: null, updatedAt: new Date().toISOString() })
       .where(
         and(
           eq(product.projectId, this.storeId),

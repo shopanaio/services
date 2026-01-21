@@ -32,8 +32,8 @@ export const reservations = inventorySchema.table(
     orderId: varchar("order_id", { length: 255 }).notNull(),
     quantity: integer("quantity").notNull(),
     status: reservationStatusEnum("status").notNull().default("ACTIVE"),
-    reservedAt: timestamp("reserved_at", { withTimezone: true }).defaultNow(),
-    releasedAt: timestamp("released_at", { withTimezone: true }),
+    reservedAt: timestamp("reserved_at", { withTimezone: true, mode: "string" }).defaultNow(),
+    releasedAt: timestamp("released_at", { withTimezone: true, mode: "string" }),
   },
   (table) => [
     check("reservations_quantity_check", sql`${table.quantity} > 0`),

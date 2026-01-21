@@ -69,7 +69,7 @@ export const stockChanges = inventorySchema.table(
     sourceEventId: varchar("source_event_id", { length: 128 }).notNull(),
     correlationId: uuid("correlation_id"),
     note: text("note"),
-    createdAt: timestamp("created_at", { withTimezone: true })
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
     createdBy: text("created_by"),

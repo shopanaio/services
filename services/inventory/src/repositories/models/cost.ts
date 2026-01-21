@@ -21,11 +21,11 @@ export const productVariantCostHistory = inventorySchema.table(
       .references(() => variant.id, { onDelete: "cascade" }),
     currency: currencyEnum("currency").notNull(),
     unitCostMinor: bigint("unit_cost_minor", { mode: "number" }).notNull(),
-    effectiveFrom: timestamp("effective_from", { withTimezone: true })
+    effectiveFrom: timestamp("effective_from", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
-    effectiveTo: timestamp("effective_to", { withTimezone: true }),
-    recordedAt: timestamp("recorded_at", { withTimezone: true })
+    effectiveTo: timestamp("effective_to", { withTimezone: true, mode: "string" }),
+    recordedAt: timestamp("recorded_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
   },

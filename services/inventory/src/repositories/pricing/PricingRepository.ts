@@ -90,7 +90,7 @@ export class PricingRepository extends BaseRepository {
   async closeCurrent(variantId: string, currency: Currency): Promise<void> {
     await this.connection
       .update(itemPricing)
-      .set({ effectiveTo: new Date() })
+      .set({ effectiveTo: new Date().toISOString() })
       .where(
         and(
           eq(itemPricing.projectId, this.storeId),
@@ -111,7 +111,7 @@ export class PricingRepository extends BaseRepository {
     }
   ): Promise<ItemPricing> {
     const id = uuidv7();
-    const now = new Date();
+    const now = new Date().toISOString();
 
     const newPricing: NewItemPricing = {
       projectId: this.storeId,
@@ -142,9 +142,10 @@ export class PricingRepository extends BaseRepository {
       compareAtMinor?: number | null;
     }
   ): Promise<ItemPricing> {
+    const now = new Date().toISOString();
     await this.connection
       .update(itemPricing)
-      .set({ effectiveTo: new Date() })
+      .set({ effectiveTo: now })
       .where(
         and(
           eq(itemPricing.projectId, this.storeId),
@@ -155,7 +156,6 @@ export class PricingRepository extends BaseRepository {
       );
 
     const id = uuidv7();
-    const now = new Date();
     const result = await this.connection
       .insert(itemPricing)
       .values({

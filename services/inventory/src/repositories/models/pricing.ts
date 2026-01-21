@@ -23,11 +23,11 @@ export const itemPricing = inventorySchema.table(
     currency: currencyEnum("currency").notNull(),
     amountMinor: bigint("amount_minor", { mode: "number" }).notNull(),
     compareAtMinor: bigint("compare_at_minor", { mode: "number" }),
-    effectiveFrom: timestamp("effective_from", { withTimezone: true })
+    effectiveFrom: timestamp("effective_from", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
-    effectiveTo: timestamp("effective_to", { withTimezone: true }),
-    recordedAt: timestamp("recorded_at", { withTimezone: true })
+    effectiveTo: timestamp("effective_to", { withTimezone: true, mode: "string" }),
+    recordedAt: timestamp("recorded_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
   },

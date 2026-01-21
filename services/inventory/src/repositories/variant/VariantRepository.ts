@@ -140,7 +140,7 @@ export class VariantRepository extends BaseRepository {
     }
   ): Promise<Variant> {
     const id = randomUUID();
-    const now = new Date();
+    const now = new Date().toISOString();
 
     const newVariant: NewVariant = {
       projectId: this.storeId,
@@ -173,7 +173,7 @@ export class VariantRepository extends BaseRepository {
     }
   ): Promise<Variant | null> {
     const updateData: Partial<NewVariant> = {
-      updatedAt: new Date(),
+      updatedAt: new Date().toISOString(),
     };
 
     if (data.sku !== undefined) updateData.sku = data.sku;
@@ -191,9 +191,10 @@ export class VariantRepository extends BaseRepository {
   }
 
   async softDelete(id: string): Promise<boolean> {
+    const now = new Date().toISOString();
     const result = await this.connection
       .update(variant)
-      .set({ deletedAt: new Date(), updatedAt: new Date() })
+      .set({ deletedAt: now, updatedAt: now })
       .where(
         and(
           eq(variant.projectId, this.storeId),

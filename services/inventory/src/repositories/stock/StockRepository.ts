@@ -73,7 +73,7 @@ export class StockRepository extends BaseRepository {
     warehouseId: string,
     quantity: number,
   ): Promise<WarehouseStock> {
-    const now = new Date();
+    const now = new Date().toISOString();
 
     const result = await this.connection
       .insert(warehouseStock)
@@ -217,7 +217,7 @@ export class StockRepository extends BaseRepository {
 
     // 6. Update stock if constraints are valid
     if (constraintsValid) {
-      const now = new Date();
+      const now = new Date().toISOString();
       if (currentStock.length === 0) {
         // Insert new stock record
         await this.connection.insert(warehouseStock).values({

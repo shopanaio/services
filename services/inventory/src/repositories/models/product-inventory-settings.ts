@@ -23,8 +23,8 @@ export const productInventorySettings = inventorySchema.table(
     backorderEnabled: boolean("backorder_enabled").notNull().default(false),
     backorderMaxDays: integer("backorder_max_days"),
     backorderMaxQty: integer("backorder_max_qty"),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).defaultNow(),
   },
   (table) => [
     primaryKey({ columns: [table.projectId, table.productId] }),
