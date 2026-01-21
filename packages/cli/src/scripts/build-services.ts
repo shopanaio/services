@@ -88,10 +88,14 @@ export function discoverServices(): string[] {
   return services;
 }
 
+interface BuildOptions {
+  quiet?: boolean;
+}
+
 /**
  * Copy assets based on config
  */
-async function copyAssets(servicePath: string, assets?: AssetConfig[]) {
+async function copyAssets(servicePath: string, assets?: AssetConfig[], quiet?: boolean) {
   if (!assets || assets.length === 0) return;
 
   for (const asset of assets) {
@@ -103,7 +107,7 @@ async function copyAssets(servicePath: string, assets?: AssetConfig[]) {
       nodir: true,
     });
 
-    if (files.length === 0) {
+    if (files.length === 0 && !quiet) {
       console.log(`    ⚠️  No files match: ${asset.include}`);
       continue;
     }
@@ -120,19 +124,24 @@ async function copyAssets(servicePath: string, assets?: AssetConfig[]) {
       copyFileSync(file, destPath);
     }
 
-    console.log(`    📄 Copied ${files.length} files → ${asset.outDir}`);
+    if (!quiet) {
+      console.log(`    📄 Copied ${files.length} files → ${asset.outDir}`);
+    }
   }
 }
 
 /**
  * Build a single service
  */
-export async function buildService(serviceName: string): Promise<BuildResult> {
+export async function buildService(serviceName: string, options?: BuildOptions): Promise<BuildResult> {
   const servicesDir = getServicesDir();
   const servicePath = join(servicesDir, serviceName);
   const startTime = Date.now();
+  const quiet = options?.quiet;
 
-  console.log(`\n📦 Building ${serviceName}...`);
+  if (!quiet) {
+    console.log(`\n📦 Building ${serviceName}...`);
+  }
 
   // Clean dist folder before build
   const distPath = join(servicePath, "dist");
@@ -164,12 +173,16 @@ export async function buildService(serviceName: string): Promise<BuildResult> {
       logLevel: "warning",
     });
 
-    console.log(`  ✅ Built ${outFile}`);
+    if (!quiet) {
+      console.log(`  ✅ Built ${outFile}`);
+    }
 
-    await copyAssets(servicePath, config.assets);
+    await copyAssets(servicePath, config.assets, quiet);
 
     const duration = Date.now() - startTime;
-    console.log(`  ⏱️  ${duration}ms`);
+    if (!quiet) {
+      console.log(`  ⏱️  ${duration}ms`);
+    }
 
     return { name: serviceName, success: true, duration };
   } catch (error: any) {
@@ -183,15 +196,16 @@ export async function buildService(serviceName: string): Promise<BuildResult> {
  */
 export async function buildServices(
   services: string[],
-  parallel: boolean = false
+  parallel: boolean = false,
+  options?: BuildOptions
 ): Promise<BuildResult[]> {
   if (parallel) {
-    return Promise.all(services.map(buildService));
+    return Promise.all(services.map(s => buildService(s, options)));
   }
 
   const results: BuildResult[] = [];
   for (const service of services) {
-    results.push(await buildService(service));
+    results.push(await buildService(service, options));
   }
   return results;
 }
