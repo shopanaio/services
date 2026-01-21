@@ -60,12 +60,48 @@ export interface StepResult<T = unknown> {
   error?: ErrorInfo;
 }
 
-/** Retry policy */
+/** Retry policy (aligned with ActionMetadata from broker) */
 export interface RetryPolicy {
   maxAttempts: number;
   intervalSeconds: number;
   backoffRate: number;
 }
+
+/** Конфигурация шага саги */
+export interface SagaStepConfig {
+  /** Имя шага для логирования и идентификации (опционально, default = method name) */
+  name?: string;
+  /** Критичность шага - если false, ошибка не останавливает сагу */
+  critical?: boolean;
+  /**
+   * Override compensation method name.
+   * По умолчанию: compensate + PascalCase(methodName)
+   * Например: createStore → compensateCreateStore
+   */
+  compensate?: string;
+  /**
+   * Retry policy for transient errors.
+   * Fatal errors skip retry and trigger immediate compensation.
+   */
+  retry?: RetryPolicy;
+}
+
+/** Метаданные шага с компенсацией */
+export interface SagaStepMetadata {
+  stepConfig: SagaStepConfig;
+  /** Resolved compensation method name */
+  compensateMethod: string;
+  /** Имя метода */
+  methodName: string;
+}
+
+/** Compensation exhaustion handler (for DLQ/alerting extension point) */
+export type OnCompensationExhausted = (
+  stepName: string,
+  methodName: string,
+  error: Error,
+  args: unknown[],
+) => void | Promise<void>;
 
 // ─────────────────────────────────────────────────────────────────
 // Error Classification (same pattern as broker actions/events)
@@ -215,6 +251,10 @@ export interface ExecutedStep {
   method: string;
   args: unknown[];
   result: unknown;
+  /** Step config for retry/compensation handling */
+  config: SagaStepConfig;
+  /** Количество попыток выполнения */
+  attempts: number;
 }
 
 /** Результат выполнения саги (fully serializable) */
@@ -224,6 +264,10 @@ export interface SagaResult<TOutput = unknown> {
   data?: TOutput;
   /** Error info (serializable) */
   error?: ErrorInfo;
+  /** Шаг, на котором произошла ошибка */
+  failedStep?: string;
+  /** Attempt count per step (for metrics/debugging) */
+  attempts: Record<string, number>;
   /** Steps that succeeded */
   succeededSteps: string[];
   /** Steps that were successfully compensated */
@@ -232,6 +276,8 @@ export interface SagaResult<TOutput = unknown> {
   compensated: boolean;
   /** Compensation errors (serializable) */
   compensationErrors: ErrorInfo[];
+  /** Warnings от non-critical шагов */
+  warnings: Array<{ step: string; message: string }>;
 }
 ```
 
@@ -247,6 +293,8 @@ export interface ExecutedStep {
   method: string;
   args: unknown[];
   result: unknown;
+  config: SagaStepConfig;
+  attempts: number;
 }
 
 /**
@@ -257,19 +305,69 @@ export class SagaExecutionContext {
   readonly sagaId: string;
   private executedSteps: ExecutedStep[] = [];
   private compensatedSteps: string[] = [];
+  private attempts: Record<string, number> = {};
+  private warnings: Array<{ step: string; message: string }> = [];
+  private failedStep?: string;
 
   constructor(sagaId: string) {
     this.sagaId = sagaId;
   }
 
+  /** Record step attempt (called before each execution, including retries) */
+  recordAttempt(method: string): number {
+    this.attempts[method] = (this.attempts[method] ?? 0) + 1;
+    return this.attempts[method];
+  }
+
+  /** Get current attempt count for step */
+  getAttemptCount(method: string): number {
+    return this.attempts[method] ?? 0;
+  }
+
+  /** Get all attempts */
+  getAttempts(): Record<string, number> {
+    return { ...this.attempts };
+  }
+
   /** Записать успешно выполненный шаг */
-  recordStep(method: string, args: unknown[], result: unknown): void {
-    this.executedSteps.push({ method, args, result });
+  recordStep(method: string, args: unknown[], result: unknown, config: SagaStepConfig): void {
+    this.executedSteps.push({
+      method,
+      args,
+      result,
+      config,
+      attempts: this.attempts[method] ?? 1,
+    });
+  }
+
+  /** Записать ошибку шага */
+  recordFailure(method: string): void {
+    this.failedStep = method;
+  }
+
+  /** Записать warning от non-critical шага */
+  recordWarning(step: string, message: string): void {
+    this.warnings.push({ step, message });
+  }
+
+  /** Получить warnings */
+  getWarnings(): Array<{ step: string; message: string }> {
+    return [...this.warnings];
+  }
+
+  /** Получить failed step */
+  getFailedStep(): string | undefined {
+    return this.failedStep;
   }
 
   /** Получить шаги для компенсации (в обратном порядке) */
   getStepsToCompensate(): ExecutedStep[] {
     return [...this.executedSteps].reverse();
+  }
+
+  /** Получить успешные шаги */
+  getSucceededSteps(): string[] {
+    return this.executedSteps.map((s) => s.method);
   }
 
   /** Отметить шаг как скомпенсированный */
@@ -305,8 +403,10 @@ import "reflect-metadata";
 import { DBOS } from "@dbos-inc/dbos-sdk";
 import { Logger } from "@nestjs/common";
 import { SagaExecutionContext, sagaContextStorage, getSagaContext } from "./SagaExecutionContext.js";
+import { SagaStepConfig, SagaStepMetadata, isRetryableError, addJitter } from "./types.js";
 
 export const SAGA_DEFINITION_KEY = Symbol("saga:definition");
+export const SAGA_STEP_KEY = Symbol("saga:step");
 
 const logger = new Logger("SagaEngine");
 
@@ -318,14 +418,27 @@ function capitalize(str: string): string {
  * @SagaStep() — маркирует метод как durable шаг саги.
  *
  * При вызове:
- * 1. Выполняет метод
- * 2. Записывает { method, args, result } в контекст
+ * 1. Выполняет метод (с retry при transient errors)
+ * 2. Записывает { method, args, result, config } в контекст
  * 3. При ошибке в саге — вызывается compensate{MethodName}(...args)
  *
+ * Configuration options:
+ * - name: Step name for logging (default: method name)
+ * - critical: If false, error doesn't stop saga (default: true)
+ * - compensate: Override compensation method name
+ * - retry: Retry policy for transient errors
+ *
  * @example
- * @SagaStep()
+ * @SagaStep({ critical: true })
  * private async createStore(id: string, input: Input): Promise<void> {
  *   await this.kernel.repository.store.create({ id, ...input });
+ * }
+ *
+ * @SagaStep({
+ *   retry: { maxAttempts: 3, intervalSeconds: 1, backoffRate: 2 },
+ * })
+ * private async createRoles(id: string, input: Input): Promise<void> {
+ *   await this.broker.call("iam.createRoles", { domain: `store:${id}` });
  * }
  *
  * // Compensation receives same args
@@ -333,24 +446,87 @@ function capitalize(str: string): string {
  *   await this.kernel.repository.store.delete(id);
  * }
  */
-export function SagaStep(): MethodDecorator {
+export function SagaStep(config: SagaStepConfig = {}): MethodDecorator {
   return function(target, propertyKey, descriptor) {
     const originalMethod = descriptor.value as Function;
     const methodName = propertyKey as string;
+    const stepName = config.name ?? methodName;
+    const compensateMethod = config.compensate ?? `compensate${capitalize(methodName)}`;
+
+    // Store metadata for BrokerSaga to collect
+    const existingSteps: SagaStepMetadata[] = Reflect.getMetadata(SAGA_STEP_KEY, target) || [];
+    const metadata: SagaStepMetadata = {
+      stepConfig: { ...config, name: stepName },
+      compensateMethod,
+      methodName,
+    };
+    Reflect.defineMetadata(SAGA_STEP_KEY, [...existingSteps, metadata], target);
 
     (descriptor as any).value = async function(...args: unknown[]) {
       const ctx = getSagaContext();
+      const policy = config.retry ?? { maxAttempts: 1, intervalSeconds: 0, backoffRate: 1 };
+      const isCritical = config.critical !== false; // default: true
 
-      // Выполняем шаг
-      const result = await originalMethod.apply(this, args);
+      let lastError: Error | undefined;
+      let interval = policy.intervalSeconds * 1000;
 
-      // Записываем успешный шаг
-      ctx.recordStep(methodName, args, result);
+      for (let attempt = 1; attempt <= policy.maxAttempts; attempt++) {
+        ctx.recordAttempt(methodName);
 
-      return result;
+        try {
+          // Выполняем шаг
+          const result = await originalMethod.apply(this, args);
+
+          // Записываем успешный шаг
+          ctx.recordStep(methodName, args, result, { ...config, name: stepName });
+
+          return result;
+        } catch (error) {
+          lastError = error as Error;
+
+          // FatalError or unknown → no retry
+          if (!isRetryableError(error)) {
+            logger.debug(`Step ${stepName} failed with non-retryable error, no retry`);
+
+            // Non-critical step: log warning, don't throw
+            if (!isCritical) {
+              logger.warn(`Non-critical step ${stepName} failed, continuing saga`, error);
+              ctx.recordWarning(stepName, (error as Error).message);
+              return undefined; // Saga continues
+            }
+
+            throw error;
+          }
+
+          // Last attempt
+          if (attempt === policy.maxAttempts) {
+            logger.warn(`Step ${stepName} failed after ${attempt} attempts`);
+
+            // Non-critical step: log warning, don't throw
+            if (!isCritical) {
+              logger.warn(`Non-critical step ${stepName} exhausted retries, continuing saga`);
+              ctx.recordWarning(stepName, (error as Error).message);
+              return undefined; // Saga continues
+            }
+
+            throw error;
+          }
+
+          // Wait before retry with deterministic jitter
+          const jitterSeed = `${ctx.sagaId}:${stepName}:${attempt}`;
+          const jitteredInterval = addJitter(interval, jitterSeed);
+          logger.debug(`Step ${stepName} attempt ${attempt} failed, retrying in ${jitteredInterval}ms`);
+
+          // DBOS.sleep() is durable - recorded for deterministic replay
+          await DBOS.sleep(jitteredInterval);
+          interval *= policy.backoffRate;
+        }
+      }
+
+      throw lastError;
     };
 
-    // DBOS.step for durability
+    // DBOS.step for durability - NO RETRIES here (handled above)
     return DBOS.step({
       retriesAllowed: false,
       maxAttempts: 1,
@@ -358,11 +534,20 @@ export function SagaStep(): MethodDecorator {
   };
 }
 
+/** Default compensation retry policy */
+const DEFAULT_COMPENSATION_RETRY: RetryPolicy = {
+  maxAttempts: 10,
+  intervalSeconds: 1,
+  backoffRate: 2,
+};
+
 /**
  * @Saga("name") — маркирует метод run() как точку входа саги.
  *
  * При ошибке автоматически запускает компенсации в обратном порядке.
  * Компенсация вызывается с теми же аргументами что и оригинальный шаг.
+ *
+ * Non-critical steps (critical: false) log warnings but don't trigger compensation.
  *
  * @example
  * @Saga("storeCreate")
@@ -395,24 +580,29 @@ export function Saga(name: string): MethodDecorator {
           success: true,
           status: "completed" as SagaStatus,
           data: result,
-          attempts: {},
-          succeededSteps: ctx.getStepsToCompensate().map(s => s.method).reverse(),
+          attempts: ctx.getAttempts(),
+          succeededSteps: ctx.getSucceededSteps(),
           compensatedSteps: [],
           compensated: false,
           compensationErrors: [],
-          warnings: [],
+          warnings: ctx.getWarnings(),
         };
 
       } catch (error) {
-        logger.error(`Saga ${name} failed, starting compensation`, error);
+        ctx.recordFailure((error as any).step ?? "unknown");
+        logger.error(`Saga ${name} failed at step ${ctx.getFailedStep()}, starting compensation`, error);
 
         // ═══════════════════════════════════════════════════════
-        // COMPENSATION PHASE
+        // COMPENSATION PHASE (with retry)
         // ═══════════════════════════════════════════════════════
         const stepsToCompensate = ctx.getStepsToCompensate();
 
         for (const step of stepsToCompensate) {
-          const compensateMethod = `compensate${capitalize(step.method)}`;
+          // Note: Non-critical steps that FAILED are not in stepsToCompensate
+          // (they returned undefined without calling recordStep)
+          // Non-critical steps that SUCCEEDED are here and should be compensated
+
+          const compensateMethod = step.config.compensate ?? `compensate${capitalize(step.method)}`;
 
           // Check if compensation method exists
           if (typeof (this as any)[compensateMethod] !== "function") {
@@ -421,12 +611,18 @@ export function Saga(name: string): MethodDecorator {
           }
 
           try {
-            // Вызываем компенсацию с теми же аргументами
-            await (this as any)[compensateMethod](...step.args);
+            // Run compensation with aggressive retry
+            await executeCompensationWithRetry(
+              this,
+              step,
+              compensateMethod,
+              ctx,
+              DEFAULT_COMPENSATION_RETRY,
+            );
             ctx.markCompensated(step.method);
             logger.debug(`Compensated: ${step.method}`);
           } catch (compError) {
-            logger.error(`Compensation ${compensateMethod} failed`, compError);
+            logger.error(`Compensation ${compensateMethod} exhausted`, compError);
             compensationErrors.push(compError as Error);
           }
         }
@@ -437,12 +633,13 @@ export function Saga(name: string): MethodDecorator {
           success: false,
           status,
           error: toErrorInfo(error as Error),
-          attempts: {},
-          succeededSteps: stepsToCompensate.map(s => s.method).reverse(),
+          failedStep: ctx.getFailedStep(),
+          attempts: ctx.getAttempts(),
+          succeededSteps: ctx.getSucceededSteps(),
           compensatedSteps: ctx.getCompensatedSteps(),
           compensated: compensationErrors.length === 0,
           compensationErrors: compensationErrors.map(toErrorInfo),
-          warnings: [],
+          warnings: ctx.getWarnings(),
         };
       }
     };
@@ -450,6 +647,46 @@ export function Saga(name: string): MethodDecorator {
     // DBOS.workflow for durability
     return DBOS.workflow()(target, propertyKey as string, descriptor);
   };
+}
+
+/**
+ * Execute compensation with aggressive retry.
+ * Compensations MUST succeed - they get more attempts and always retry.
+ */
+async function executeCompensationWithRetry(
+  instance: any,
+  step: ExecutedStep,
+  methodName: string,
+  ctx: SagaExecutionContext,
+  policy: RetryPolicy,
+): Promise<void> {
+  let lastError: Error | undefined;
+  let interval = policy.intervalSeconds * 1000;
+
+  for (let attempt = 1; attempt <= policy.maxAttempts; attempt++) {
+    try {
+      await instance[methodName](...step.args);
+      return;
+    } catch (error) {
+      lastError = error as Error;
+
+      if (attempt === policy.maxAttempts) {
+        logger.error(`Compensation ${methodName} failed after ${attempt} attempts`);
+        throw error;
+      }
+
+      // Jitter seed is deterministic
+      const jitterSeed = `${ctx.sagaId}:comp:${step.method}:${attempt}`;
+      const jitteredInterval = addJitter(interval, jitterSeed);
+      logger.warn(`Compensation ${methodName} attempt ${attempt} failed, retrying in ${jitteredInterval}ms`);
+
+      // DBOS.sleep() is durable
+      await DBOS.sleep(jitteredInterval);
+      interval *= policy.backoffRate;
+    }
+  }
+
+  throw lastError;
 }
 ```
 
@@ -627,11 +864,13 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
     const storeId = await this.generateId();
     await this.createStore(storeId, input);
     await this.createRoles(storeId, input);
+    await this.createMediaAssetGroup(storeId); // non-critical, won't stop saga
     return { storeId, organizationId: input.organizationId };
   }
 
   // ═══════════════════════════════════════════════════════════════
   // STEPS — durable, автоматически трекаются
+  // Config options: name, critical, compensate, retry
   // ═══════════════════════════════════════════════════════════════
 
   @SagaStep()
@@ -640,7 +879,7 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
   }
   // No compensateGenerateId — pure function, no side effects
 
-  @SagaStep()
+  @SagaStep({ critical: true })
   private async createStore(id: string, input: StoreCreateInput): Promise<void> {
     await this.kernel.repository.store.create({
       id,
@@ -653,22 +892,66 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
     });
   }
 
-  @SagaStep()
+  @SagaStep({
+    retry: { maxAttempts: 3, intervalSeconds: 1, backoffRate: 2 },
+  })
   private async createRoles(id: string, input: StoreCreateInput): Promise<void> {
-    await this.broker.call("iam.createRoles", { domain: `store:${id}` });
+    let result: IAM.CreateRolesResult;
+
+    try {
+      result = await this.broker.call<IAM.CreateRolesResult>(
+        "iam.createRoles",
+        { domain: `store:${id}` },
+      );
+    } catch (error) {
+      // Network error → retryable
+      throw new RetryableError("IAM service unavailable", error as Error);
+    }
+
+    if (!result.success) {
+      // Business error → fatal, no retry
+      throw new FatalError(result.error || "Failed to create roles");
+    }
+  }
+
+  @SagaStep({
+    critical: false, // Continue even if media service is down
+  })
+  private async createMediaAssetGroup(id: string): Promise<void> {
+    await this.broker.call("media.createAssetGroup", {
+      ownerType: "store",
+      ownerId: id,
+    });
   }
 
   // ═══════════════════════════════════════════════════════════════
   // COMPENSATIONS — convention: compensate{PascalCase(methodName)}
   // Called with the SAME arguments as the original step
+  // Override via config.compensate: "customMethodName"
   // ═══════════════════════════════════════════════════════════════
 
   async compensateCreateStore(id: string): Promise<void> {
     await this.kernel.repository.store.delete(id);
+    this.logger.info({ storeId: id }, "Compensated: deleted store");
   }
 
   async compensateCreateRoles(id: string): Promise<void> {
     await this.broker.call("iam.deleteRoles", { domain: `store:${id}` });
+    this.logger.info({ storeId: id }, "Compensated: deleted roles");
+  }
+
+  async compensateCreateMediaAssetGroup(id: string): Promise<void> {
+    // Non-critical step, but we still try to clean up
+    try {
+      await this.broker.call("media.deleteAssetGroup", {
+        ownerType: "store",
+        ownerId: id,
+      });
+      this.logger.info({ storeId: id }, "Compensated: deleted media asset group");
+    } catch (error) {
+      // Non-critical, just log
+      this.logger.warn({ storeId: id, error }, "Failed to compensate media asset group");
+    }
   }
 }
 ```
@@ -725,7 +1008,7 @@ packages/shared-kernel/src/saga/
 
 ```typescript
 // Decorators
-export { Saga, SagaStep } from "./decorators.js";
+export { Saga, SagaStep, SAGA_STEP_KEY, SAGA_DEFINITION_KEY } from "./decorators.js";
 
 // Base class
 export { BrokerSaga } from "./BrokerSaga.js";
@@ -739,13 +1022,15 @@ export {
 
 // Types
 export type {
-  SagaContext,
   SagaResult,
   SagaStatus,
   StepResult,
   RetryPolicy,
   ErrorInfo,
   ExecutedStep,
+  SagaStepConfig,
+  SagaStepMetadata,
+  OnCompensationExhausted,
 } from "./types.js";
 
 // Errors
@@ -758,6 +1043,116 @@ export {
   addJitter,
 } from "./types.js";
 ```
+
+## SagaStepConfig Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `name` | `string` | method name | Step name for logging and identification |
+| `critical` | `boolean` | `true` | If `false`, error doesn't stop saga (logged as warning) |
+| `compensate` | `string` | `compensate{MethodName}` | Override compensation method name |
+| `retry` | `RetryPolicy` | `{ maxAttempts: 1 }` | Retry policy for transient errors |
+
+### Поведение опций
+
+#### `name`
+Используется для:
+- Логирования (`Step ${name} failed...`)
+- Идентификации в `SagaResult.failedStep`
+- Ключ в `SagaResult.attempts`
+- Seed для deterministic jitter (`${sagaId}:${name}:${attempt}`)
+
+```typescript
+@SagaStep({ name: "createStoreRecord" })  // Явное имя
+private async createStore(...) { }
+
+@SagaStep()  // Имя = "createStore" (из имени метода)
+private async createStore(...) { }
+```
+
+#### `critical`
+Определяет поведение при ошибке шага:
+
+| critical | При ошибке | Компенсация | Результат саги |
+|----------|------------|-------------|----------------|
+| `true` (default) | Saga stops | Triggered | `success: false` |
+| `false` | Warning logged, saga continues | Skipped | `success: true` + warning |
+
+```typescript
+// Critical step - ошибка останавливает сагу
+@SagaStep({ critical: true })
+private async createStore(...) { }
+
+// Non-critical - сага продолжится, ошибка в warnings
+@SagaStep({ critical: false })
+private async sendWelcomeEmail(...) { }
+```
+
+Non-critical шаги полезны для:
+- Уведомлений (email, push)
+- Аналитики/метрик
+- Кеширования
+- Вторичных сервисов
+
+#### `compensate`
+Override имени метода компенсации:
+
+```typescript
+// Convention: compensateCreateStore
+@SagaStep()
+private async createStore(...) { }
+async compensateCreateStore(...) { }
+
+// Custom: rollbackStore
+@SagaStep({ compensate: "rollbackStore" })
+private async createStore(...) { }
+async rollbackStore(...) { }
+```
+
+#### `retry`
+Retry policy применяется только к `RetryableError`:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ @SagaStep({ retry: { maxAttempts: 3, intervalSeconds: 1, backoffRate: 2 } })
+│
+│ Attempt 1 ──▶ RetryableError ──▶ sleep(1s + jitter)
+│ Attempt 2 ──▶ RetryableError ──▶ sleep(2s + jitter)
+│ Attempt 3 ──▶ RetryableError ──▶ FAIL → compensation
+│
+│ Attempt 1 ──▶ FatalError ──▶ FAIL → compensation (no retry!)
+│ Attempt 1 ──▶ Success ──▶ continue
+└─────────────────────────────────────────────────────────────────┘
+```
+
+Jitter добавляется детерминистично (±25%) для предотвращения thundering herd.
+
+### RetryPolicy
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `maxAttempts` | `number` | 1 | Maximum number of execution attempts |
+| `intervalSeconds` | `number` | 0 | Initial interval between retries |
+| `backoffRate` | `number` | 1 | Multiplier for interval on each retry |
+
+Example: `{ maxAttempts: 3, intervalSeconds: 1, backoffRate: 2 }` → retries at ~1s, ~2s, ~4s (with jitter)
+
+### Compensation Retry Policy
+
+Компенсации всегда используют aggressive retry (не настраивается через step config):
+
+```typescript
+const DEFAULT_COMPENSATION_RETRY = {
+  maxAttempts: 10,
+  intervalSeconds: 1,
+  backoffRate: 2,
+};
+```
+
+Почему aggressive retry для компенсаций:
+1. Компенсации **должны** успешно завершиться для консистентности
+2. Если оригинальный шаг успешен, компенсация должна eventually succeed
+3. Неуспешная компенсация оставляет систему в inconsistent state
 
 ## Error Classification Pattern
 
@@ -816,7 +1211,10 @@ export {
 ### Example usage in step
 
 ```typescript
-@SagaStep()
+// Step with retry policy for transient errors
+@SagaStep({
+  retry: { maxAttempts: 3, intervalSeconds: 1, backoffRate: 2 },
+})
 private async createRoles(id: string, input: Input): Promise<void> {
   let result: IAM.CreateRolesResult;
 
@@ -826,12 +1224,12 @@ private async createRoles(id: string, input: Input): Promise<void> {
       { domain: `store:${id}` },
     );
   } catch (error) {
-    // Network error → retryable
+    // Network error → retryable (will retry up to 3 times)
     throw new RetryableError("IAM service unavailable", error);
   }
 
   if (!result.success) {
-    // Business error → fatal, immediate compensation
+    // Business error → fatal, immediate compensation (no retry)
     throw new FatalError(result.error, undefined, "ROLE_CREATE_FAILED");
   }
 }
@@ -839,6 +1237,13 @@ private async createRoles(id: string, input: Input): Promise<void> {
 async compensateCreateRoles(id: string): Promise<void> {
   await this.broker.call("iam.deleteRoles", { domain: `store:${id}` });
 }
+
+// Non-critical step - continues saga on failure
+@SagaStep({ critical: false })
+private async sendNotification(id: string): Promise<void> {
+  await this.broker.call("notifications.send", { storeId: id });
+}
+// No compensation needed - step is non-critical
 ```
 
 ### Compensation retry policy
