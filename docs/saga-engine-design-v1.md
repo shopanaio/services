@@ -76,11 +76,11 @@ export interface SagaStepConfig {
   /** Критичность шага - если false, ошибка не останавливает сагу */
   critical?: boolean;
   /**
-   * Override compensation method name.
-   * По умолчанию: compensate + PascalCase(methodName)
-   * Например: createStore → compensateCreateStore
+   * Compensation method name or false to disable.
+   * - undefined/string: compensate + PascalCase(methodName) or custom name
+   * - false: no compensation (fire-and-forget, useful for notifications/analytics)
    */
-  compensate?: string;
+  compensate?: string | false;
   /**
    * Retry policy for transient errors.
    * Fatal errors skip retry and trigger immediate compensation.
@@ -105,7 +105,8 @@ export type OnCompensationExhausted = (
   context: {
     sagaId: string;
     args: unknown[];
-    attempts: number;
+    /** Number of compensation attempts (not step execution attempts) */
+    compAttempts: number;
   },
 ) => void | Promise<void>;
 
@@ -170,6 +171,21 @@ export class FatalError extends SagaError {
     super(message, cause ? { cause } : undefined);
     this.name = "FatalError";
     this.code = code ?? "FATAL_ERROR";
+  }
+}
+
+/**
+ * Step execution error wrapper.
+ * Preserves step context for observability (failedStep tracking).
+ */
+export class StepExecutionError extends SagaError {
+  constructor(
+    public readonly stepName: string,
+    public readonly methodName: string,
+    public readonly cause: Error,
+  ) {
+    super(`Step "${stepName}" failed: ${cause.message}`);
+    this.name = "StepExecutionError";
   }
 }
 
@@ -292,8 +308,10 @@ export interface SagaResult<TOutput = unknown> {
   error?: ErrorInfo;
   /** Шаг, на котором произошла ошибка */
   failedStep?: string;
-  /** Attempt count per step (for metrics/debugging) */
+  /** Attempt count per step execution (for metrics/debugging) */
   attempts: Record<string, number>;
+  /** Attempt count per compensation (for metrics/debugging) */
+  compAttempts: Record<string, number>;
   /** Steps that succeeded */
   succeededSteps: string[];
   /** Steps that were successfully compensated */
@@ -313,13 +331,9 @@ export interface SagaResult<TOutput = unknown> {
 
 ```typescript
 import { AsyncLocalStorage } from "node:async_hooks";
+import { SagaStepConfig, ExecutedStep } from "./types.js";
 
-/** Выполненный шаг (для компенсации) */
-export interface ExecutedStep {
-  method: string;
-  args: unknown[];
-  config: SagaStepConfig;
-}
+// Note: ExecutedStep imported from types.ts (single source of truth)
 
 /**
  * Контекст выполнения саги.
@@ -333,6 +347,7 @@ export class SagaExecutionContext {
   private executedSteps: ExecutedStep[] = [];
   private compensatedSteps: string[] = [];
   private attempts: Record<string, number> = {};
+  private compAttempts: Record<string, number> = {};
   private warnings: Array<{ step: string; message: string }> = [];
   private failedStep?: string;
 
@@ -340,20 +355,39 @@ export class SagaExecutionContext {
     this.sagaId = sagaId;
   }
 
+  // ═══════════════════════════════════════════════════════════════
+  // Step execution tracking
+  // ═══════════════════════════════════════════════════════════════
+
   /** Record step attempt (called before each execution, including retries) */
   recordAttempt(method: string): number {
     this.attempts[method] = (this.attempts[method] ?? 0) + 1;
     return this.attempts[method];
   }
 
-  /** Get current attempt count for step */
-  getAttemptCount(method: string): number {
-    return this.attempts[method] ?? 0;
-  }
-
-  /** Get all attempts */
+  /** Get all step execution attempts */
   getAttempts(): Record<string, number> {
     return { ...this.attempts };
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // Compensation tracking
+  // ═══════════════════════════════════════════════════════════════
+
+  /** Record compensation attempt */
+  recordCompAttempt(method: string): number {
+    this.compAttempts[method] = (this.compAttempts[method] ?? 0) + 1;
+    return this.compAttempts[method];
+  }
+
+  /** Get compensation attempt count for step */
+  getCompAttemptCount(method: string): number {
+    return this.compAttempts[method] ?? 0;
+  }
+
+  /** Get all compensation attempts */
+  getCompAttempts(): Record<string, number> {
+    return { ...this.compAttempts };
   }
 
   /** Записать успешно выполненный шаг */
@@ -429,6 +463,7 @@ import {
   SagaStepMetadata,
   SagaExecutorConfig,
   RetryPolicy,
+  StepExecutionError,
   isRetryableError,
   addJitter,
   DEFAULT_COMPENSATION_RETRY,
@@ -520,11 +555,12 @@ export function SagaStep(config: SagaStepConfig = {}): MethodDecorator {
             // Non-critical step: log warning, don't throw
             if (!isCritical) {
               logger.warn(`Non-critical step ${stepName} failed, continuing saga`, error);
-              ctx.recordWarning(stepName, (error as Error).message);
+              ctx.recordWarning(stepName, lastError.message);
               return undefined; // Saga continues
             }
 
-            throw error;
+            // Wrap in StepExecutionError for observability
+            throw new StepExecutionError(stepName, methodName, lastError);
           }
 
           // Last attempt
@@ -534,11 +570,12 @@ export function SagaStep(config: SagaStepConfig = {}): MethodDecorator {
             // Non-critical step: log warning, don't throw
             if (!isCritical) {
               logger.warn(`Non-critical step ${stepName} exhausted retries, continuing saga`);
-              ctx.recordWarning(stepName, (error as Error).message);
+              ctx.recordWarning(stepName, lastError.message);
               return undefined; // Saga continues
             }
 
-            throw error;
+            // Wrap in StepExecutionError for observability
+            throw new StepExecutionError(stepName, methodName, lastError);
           }
 
           // Wait before retry with deterministic jitter
@@ -619,6 +656,7 @@ export function Saga(name: string, config?: SagaExecutorConfig): MethodDecorator
           status: "completed" as SagaStatus,
           data: result,
           attempts: ctx.getAttempts(),
+          compAttempts: {},
           succeededSteps: ctx.getSucceededSteps(),
           compensatedSteps: [],
           compensated: false,
@@ -627,8 +665,12 @@ export function Saga(name: string, config?: SagaExecutorConfig): MethodDecorator
         };
 
       } catch (error) {
-        ctx.recordFailure((error as any).step ?? "unknown");
-        logger.error(`Saga ${name} failed at step ${ctx.getFailedStep()}, starting compensation`, error);
+        // Extract failedStep from StepExecutionError
+        const stepError = error instanceof StepExecutionError ? error : null;
+        const failedStep = stepError?.stepName ?? "unknown";
+        ctx.recordFailure(failedStep);
+
+        logger.error(`Saga ${name} failed at step ${failedStep}, starting compensation`, error);
 
         // ═══════════════════════════════════════════════════════
         // COMPENSATION PHASE (with retry)
@@ -636,15 +678,19 @@ export function Saga(name: string, config?: SagaExecutorConfig): MethodDecorator
         const stepsToCompensate = ctx.getStepsToCompensate();
 
         for (const step of stepsToCompensate) {
-          // Note: Non-critical steps that FAILED are not in stepsToCompensate
-          // (they returned undefined without calling recordStep)
-          // Non-critical steps that SUCCEEDED are here and should be compensated
+          // Skip if compensation explicitly disabled
+          if (step.config.compensate === false) {
+            logger.debug(`Compensation disabled for step: ${step.method}, skipping`);
+            continue;
+          }
 
-          const compensateMethod = step.config.compensate ?? `compensate${capitalize(step.method)}`;
+          const compensateMethod = typeof step.config.compensate === "string"
+            ? step.config.compensate
+            : `compensate${capitalize(step.method)}`;
 
           // Check if compensation method exists
           if (typeof (this as any)[compensateMethod] !== "function") {
-            logger.debug(`No compensation for step: ${step.method}, skipping`);
+            logger.debug(`No compensation method "${compensateMethod}" for step: ${step.method}, skipping`);
             continue;
           }
 
@@ -664,7 +710,7 @@ export function Saga(name: string, config?: SagaExecutorConfig): MethodDecorator
             await onCompensationExhausted(step.method, compensateMethod, compError as Error, {
               sagaId: ctx.sagaId,
               args: step.args,
-              attempts: ctx.getAttemptCount(step.method),
+              compAttempts: ctx.getCompAttemptCount(step.method),
             });
             compensationErrors.push(compError as Error);
           }
@@ -672,12 +718,16 @@ export function Saga(name: string, config?: SagaExecutorConfig): MethodDecorator
 
         const status: SagaStatus = compensationErrors.length > 0 ? "failed" : "compensated";
 
+        // Extract original error from StepExecutionError wrapper
+        const originalError = stepError?.cause ?? error as Error;
+
         return {
           success: false,
           status,
-          error: toErrorInfo(error as Error),
+          error: toErrorInfo(originalError),
           failedStep: ctx.getFailedStep(),
           attempts: ctx.getAttempts(),
+          compAttempts: ctx.getCompAttempts(),
           succeededSteps: ctx.getSucceededSteps(),
           compensatedSteps: ctx.getCompensatedSteps(),
           compensated: compensationErrors.length === 0,
@@ -707,6 +757,9 @@ async function executeCompensationWithRetry(
   let interval = policy.intervalSeconds * 1000;
 
   for (let attempt = 1; attempt <= policy.maxAttempts; attempt++) {
+    // Track compensation attempts separately from step execution attempts
+    ctx.recordCompAttempt(step.method);
+
     try {
       await instance[methodName](...step.args);
       return;
@@ -1085,6 +1138,7 @@ export {
   SagaError,
   RetryableError,
   FatalError,
+  StepExecutionError,
   isRetryableError,
   toErrorInfo,
   addJitter,
@@ -1111,7 +1165,7 @@ export {
 |--------|------|---------|-------------|
 | `name` | `string` | method name | Step name for logging and identification |
 | `critical` | `boolean` | `true` | If `false`, error doesn't stop saga (logged as warning) |
-| `compensate` | `string` | `compensate{MethodName}` | Override compensation method name |
+| `compensate` | `string \| false` | `compensate{MethodName}` | Compensation method name, or `false` to disable |
 | `retry` | `RetryPolicy` | `{ maxAttempts: 1 }` | Retry policy for transient errors |
 
 ### Поведение опций
@@ -1156,7 +1210,7 @@ Non-critical шаги полезны для:
 - Вторичных сервисов
 
 #### `compensate`
-Override имени метода компенсации:
+Override имени метода компенсации или отключение:
 
 ```typescript
 // Convention: compensateCreateStore
@@ -1168,7 +1222,19 @@ async compensateCreateStore(...) { }
 @SagaStep({ compensate: "rollbackStore" })
 private async createStore(...) { }
 async rollbackStore(...) { }
+
+// Disable compensation (fire-and-forget)
+// Useful for: notifications, analytics, audit logs
+@SagaStep({ compensate: false })
+private async sendWelcomeEmail(...) { }
+// No compensation method needed
 ```
+
+| compensate | При откате | Use case |
+|------------|-----------|----------|
+| undefined | `compensate{Method}()` | Default, требует метод компенсации |
+| `"customName"` | `customName()` | Custom naming |
+| `false` | Skip | Fire-and-forget (email, analytics, audit) |
 
 #### `retry`
 Retry policy применяется только к `RetryableError`:
