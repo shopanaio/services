@@ -1,6 +1,6 @@
 # Workflows / Sagas / Events Architecture
 
-> **Document Version:** 2.0.0
+> **Document Version:** 2.1.0
 > **Last Updated:** 2026-01-21
 > **Status:** Active
 > **Maintainers:** Platform Team
@@ -38,6 +38,7 @@ The framework provides:
 - **Durability**: Workflows survive process crashes and restarts via DBOS deterministic replay
 - **Idempotency**: Duplicate requests produce identical results without side effects
 - **Compensation**: Sagas automatically rollback on failure via convention-based compensation
+- **Cancellation**: Steps support AbortSignal for timeout-based cancellation of I/O operations
 - **Event-Driven Architecture**: Decoupled services communicate through domain events
 - **Observability**: Built-in correlation IDs, handler results tracking, and DLQ for failures
 
@@ -106,6 +107,7 @@ Durable layer on top of DBOS providing:
 | `IdempotencyContext` | Idempotency key derivation |
 | `RetryableError` / `FatalError` | Error classification for retry logic |
 | `BaseWorkflow` / `BaseSaga` | Abstract base classes with auto-registration |
+| `getSignal()` | Get AbortSignal for step cancellation on timeout |
 
 ### 2.2 @shopana/shared-kernel (`packages/shared-kernel`)
 
@@ -267,6 +269,25 @@ Types and utilities only (no runtime dependencies):
 **Consequences:**
 - Workflow replay yields the same `timestamp`
 - Events have accurate creation time
+
+### ADR-010: Step Cancellation via AbortSignal
+
+**Decision:** Each step execution provides an `AbortSignal` accessible via `getSignal()`.
+
+**Rationale:**
+- Prevent resource leaks when step times out (HTTP requests, DB queries continue running)
+- Allow graceful cancellation of long-running I/O operations
+- Standard Web API pattern (`AbortController`/`AbortSignal`)
+
+**Implementation:**
+- `withTimeout()` wraps step execution with `AbortController`
+- Signal is stored in `AsyncLocalStorage` during step execution
+- `getSignal()` retrieves signal from context (throws if called outside step)
+
+**Consequences:**
+- External I/O operations can be cancelled on timeout
+- Step code must explicitly use `getSignal()` and pass to I/O calls
+- Compensation methods do NOT have cancellation (must complete)
 
 ---
 
@@ -546,11 +567,26 @@ function WorkflowStep(options?: StepOptions): MethodDecorator;
 
 | Scenario | Behavior |
 |----------|----------|
-| Timeout exceeded | `StepTimeoutError` (non-retryable) |
+| Timeout exceeded | `StepTimeoutError` (non-retryable), AbortSignal aborted |
 | `RetryableError` thrown | DBOS retry per policy |
 | `FatalError` thrown | Immediate failure, no retry |
 | `error.retryable = true` | DBOS retry per policy |
 | `error.retryable = false` | Immediate failure, no retry |
+
+#### Step Cancellation
+
+```typescript
+import { getSignal } from '@shopana/dbos';
+
+// Get AbortSignal for current step (throws if called outside step)
+function getSignal(): AbortSignal;
+```
+
+**Usage:**
+- Call `getSignal()` inside step methods to get the current AbortSignal
+- Pass signal to I/O operations that support cancellation (`fetch`, `axios`, etc.)
+- Signal is aborted automatically when step timeout is exceeded
+- Throws error if called outside of step execution context
 
 ### 5.3 Sagas (`packages/dbos`)
 
@@ -1218,6 +1254,67 @@ export class OrderResolver {
 }
 ```
 
+### 9.5 Step Cancellation with AbortSignal
+
+```typescript
+import { getSignal, WorkflowStep, FatalError } from '@shopana/dbos';
+
+@Injectable()
+export class ExternalApiWorkflow extends BrokerWorkflows<ApiInput, ApiResult> {
+
+  @Workflow("callExternalApi")
+  async run(input: ApiInput): Promise<ApiResult> {
+    const data = await this.fetchFromExternalApi(input.url);
+    const processed = await this.processData(data);
+    return { result: processed };
+  }
+
+  @WorkflowStep({ timeoutMs: 10_000 })
+  private async fetchFromExternalApi(url: string): Promise<ExternalData> {
+    const signal = getSignal();
+
+    // fetch will be aborted if step times out
+    const response = await fetch(url, {
+      signal,
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!response.ok) {
+      throw new FatalError(`API error: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  @WorkflowStep({ timeoutMs: 5_000 })
+  private async processData(data: ExternalData): Promise<ProcessedData> {
+    const signal = getSignal();
+
+    // For long-running loops, check signal periodically
+    const results: ProcessedItem[] = [];
+
+    for (const item of data.items) {
+      // Throw if aborted
+      signal.throwIfAborted();
+
+      const processed = await this.transformItem(item);
+      results.push(processed);
+    }
+
+    return { items: results };
+  }
+}
+```
+
+**Key patterns:**
+
+| Pattern | Use Case | Example |
+|---------|----------|---------|
+| Pass to fetch/axios | HTTP requests | `fetch(url, { signal })` |
+| Pass to DB client | Database queries | `db.query(sql, { signal })` |
+| Check in loops | Long iterations | `signal.throwIfAborted()` |
+| Listen to event | Custom cleanup | `signal.addEventListener('abort', cleanup)` |
+
 ---
 
 ## 10) Error Handling
@@ -1383,6 +1480,8 @@ export class MyWorkflow extends BrokerWorkflows<Input, Output> {
 | **Action** | Synchronous RPC-style operation registered with broker |
 | **Event** | Asynchronous domain event dispatched to handlers |
 | **Handler** | Action that processes domain events |
+| **AbortSignal** | Web API for signaling cancellation to async operations |
+| **getSignal()** | Function to retrieve current step's AbortSignal for cancellation |
 
 ---
 
@@ -1429,3 +1528,4 @@ export class MyWorkflow extends BrokerWorkflows<Input, Output> {
 - [ ] Use `FatalError` for non-retryable business errors
 - [ ] Use `RetryableError` for transient errors
 - [ ] Configure appropriate retry policies for inter-service calls
+- [ ] Use `getSignal()` in steps with external I/O for proper timeout cancellation
