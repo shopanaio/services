@@ -6,6 +6,7 @@ import {
   type PageInfo,
   type InferRelayInput,
 } from "@shopana/drizzle-query";
+import { Transactional } from "@shopana/shared-kernel";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   warehouseStock,
@@ -126,133 +127,132 @@ export class StockRepository extends BaseRepository {
   /**
    * Apply a stock change with idempotency and constraints.
    */
+  @Transactional()
   async applyStockChange(
     input: ApplyStockChangeInput,
   ): Promise<ApplyStockChangeResult> {
     const deltaReserved = input.deltaReserved ?? 0;
     const deltaUnavailable = input.deltaUnavailable ?? 0;
 
-    return await this.connection.transaction(async (tx) => {
-      // 1. Check for duplicate (idempotency)
-      const [existing] = await tx
-        .select({ id: stockChanges.id })
-        .from(stockChanges)
-        .where(
-          and(
-            eq(stockChanges.projectId, this.storeId),
-            eq(stockChanges.sourceSystem, input.sourceSystem),
-            eq(stockChanges.sourceEventId, input.sourceEventId),
-            eq(stockChanges.warehouseId, input.warehouseId),
-            eq(stockChanges.variantId, input.variantId),
-          ),
-        )
-        .limit(1);
+    // 1. Check for duplicate (idempotency)
+    const [existing] = await this.connection
+      .select({ id: stockChanges.id })
+      .from(stockChanges)
+      .where(
+        and(
+          eq(stockChanges.projectId, this.storeId),
+          eq(stockChanges.sourceSystem, input.sourceSystem),
+          eq(stockChanges.sourceEventId, input.sourceEventId),
+          eq(stockChanges.warehouseId, input.warehouseId),
+          eq(stockChanges.variantId, input.variantId),
+        ),
+      )
+      .limit(1);
 
-      if (existing) {
-        return { status: "DUPLICATE" as const, changeId: existing.id };
-      }
+    if (existing) {
+      return { status: "DUPLICATE", changeId: existing.id };
+    }
 
-      // 2. Get current stock with row lock
-      const currentStock = await tx
-        .select({
-          quantityOnHand: warehouseStock.quantityOnHand,
-          reservedQty: warehouseStock.reservedQty,
-          unavailableQty: warehouseStock.unavailableQty,
-        })
-        .from(warehouseStock)
-        .where(
-          and(
-            eq(warehouseStock.projectId, this.storeId),
-            eq(warehouseStock.warehouseId, input.warehouseId),
-            eq(warehouseStock.variantId, input.variantId),
-          ),
-        )
-        .limit(1)
-        .for("update");
+    // 2. Get current stock with row lock
+    const currentStock = await this.connection
+      .select({
+        quantityOnHand: warehouseStock.quantityOnHand,
+        reservedQty: warehouseStock.reservedQty,
+        unavailableQty: warehouseStock.unavailableQty,
+      })
+      .from(warehouseStock)
+      .where(
+        and(
+          eq(warehouseStock.projectId, this.storeId),
+          eq(warehouseStock.warehouseId, input.warehouseId),
+          eq(warehouseStock.variantId, input.variantId),
+        ),
+      )
+      .limit(1)
+      .for("update");
 
-      const current = currentStock[0] ?? {
-        quantityOnHand: 0,
-        reservedQty: 0,
-        unavailableQty: 0,
-      };
+    const current = currentStock[0] ?? {
+      quantityOnHand: 0,
+      reservedQty: 0,
+      unavailableQty: 0,
+    };
 
-      // 3. Calculate new values
-      const newOnHand = current.quantityOnHand + input.deltaOnHand;
-      const newReserved = current.reservedQty + deltaReserved;
-      const newUnavailable = current.unavailableQty + deltaUnavailable;
+    // 3. Calculate new values
+    const newOnHand = current.quantityOnHand + input.deltaOnHand;
+    const newReserved = current.reservedQty + deltaReserved;
+    const newUnavailable = current.unavailableQty + deltaUnavailable;
 
-      // 4. Check constraints
-      const constraintsValid =
-        newOnHand >= 0 &&
-        newReserved >= 0 &&
-        newUnavailable >= 0 &&
-        newUnavailable <= newOnHand;
+    // 4. Check constraints
+    const constraintsValid =
+      newOnHand >= 0 &&
+      newReserved >= 0 &&
+      newUnavailable >= 0 &&
+      newUnavailable <= newOnHand;
 
-      // 5. Insert stock change record
-      const changeId = uuidv7();
-      await tx.insert(stockChanges).values({
-        id: changeId,
-        projectId: this.storeId,
-        warehouseId: input.warehouseId,
-        variantId: input.variantId,
-        deltaOnHand: input.deltaOnHand,
-        deltaReserved: deltaReserved,
-        deltaUnavailable: deltaUnavailable,
-        movementType: input.movementType,
-        reason: input.reason,
-        transferDirection: input.transferDirection,
-        sourceSystem: input.sourceSystem,
-        sourceEventId: input.sourceEventId,
-        correlationId: input.correlationId,
-        note: input.note,
-        createdBy: input.createdBy,
-        onHandAfter: constraintsValid ? newOnHand : current.quantityOnHand,
-        reservedAfter: constraintsValid ? newReserved : current.reservedQty,
-        unavailableAfter: constraintsValid
-          ? newUnavailable
-          : current.unavailableQty,
-        applyStatus: constraintsValid ? "APPLIED" : "REJECTED",
-      } satisfies NewStockChange);
+    // 5. Insert stock change record
+    const changeId = uuidv7();
+    await this.connection.insert(stockChanges).values({
+      id: changeId,
+      projectId: this.storeId,
+      warehouseId: input.warehouseId,
+      variantId: input.variantId,
+      deltaOnHand: input.deltaOnHand,
+      deltaReserved: deltaReserved,
+      deltaUnavailable: deltaUnavailable,
+      movementType: input.movementType,
+      reason: input.reason,
+      transferDirection: input.transferDirection,
+      sourceSystem: input.sourceSystem,
+      sourceEventId: input.sourceEventId,
+      correlationId: input.correlationId,
+      note: input.note,
+      createdBy: input.createdBy,
+      onHandAfter: constraintsValid ? newOnHand : current.quantityOnHand,
+      reservedAfter: constraintsValid ? newReserved : current.reservedQty,
+      unavailableAfter: constraintsValid
+        ? newUnavailable
+        : current.unavailableQty,
+      applyStatus: constraintsValid ? "APPLIED" : "REJECTED",
+    } satisfies NewStockChange);
 
-      // 6. Update stock if constraints are valid
-      if (constraintsValid) {
-        const now = new Date();
-        if (currentStock.length === 0) {
-          // Insert new stock record
-          await tx.insert(warehouseStock).values({
-            id: uuidv7(),
-            projectId: this.storeId,
-            warehouseId: input.warehouseId,
-            variantId: input.variantId,
+    // 6. Update stock if constraints are valid
+    if (constraintsValid) {
+      const now = new Date();
+      if (currentStock.length === 0) {
+        // Insert new stock record
+        await this.connection.insert(warehouseStock).values({
+          id: uuidv7(),
+          projectId: this.storeId,
+          warehouseId: input.warehouseId,
+          variantId: input.variantId,
+          quantityOnHand: newOnHand,
+          reservedQty: newReserved,
+          unavailableQty: newUnavailable,
+          createdAt: now,
+          updatedAt: now,
+        } satisfies NewWarehouseStock);
+      } else {
+        // Update existing stock
+        await this.connection
+          .update(warehouseStock)
+          .set({
             quantityOnHand: newOnHand,
             reservedQty: newReserved,
             unavailableQty: newUnavailable,
-            createdAt: now,
             updatedAt: now,
-          } satisfies NewWarehouseStock);
-        } else {
-          // Update existing stock
-          await tx
-            .update(warehouseStock)
-            .set({
-              quantityOnHand: newOnHand,
-              reservedQty: newReserved,
-              unavailableQty: newUnavailable,
-              updatedAt: now,
-            })
-            .where(
-              and(
-                eq(warehouseStock.projectId, this.storeId),
-                eq(warehouseStock.warehouseId, input.warehouseId),
-                eq(warehouseStock.variantId, input.variantId),
-              ),
-            );
-        }
-        return { status: "APPLIED" as const, changeId };
+          })
+          .where(
+            and(
+              eq(warehouseStock.projectId, this.storeId),
+              eq(warehouseStock.warehouseId, input.warehouseId),
+              eq(warehouseStock.variantId, input.variantId),
+            ),
+          );
       }
+      return { status: "APPLIED", changeId };
+    }
 
-      return { status: "REJECTED" as const, changeId };
-    });
+    return { status: "REJECTED", changeId };
   }
 
   /**
