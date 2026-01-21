@@ -1,6 +1,13 @@
-import { DBOS } from "@shopana/shared-kernel";
+import { Injectable } from "@nestjs/common";
+import {
+  BrokerSaga,
+  Saga,
+  SagaStep,
+  InjectBroker,
+  ServiceBroker,
+} from "@shopana/shared-kernel";
 import pMap from "p-map";
-import { BaseSaga, type SagaServices } from "./BaseSaga.js";
+import { Kernel } from "../kernel/Kernel.js";
 
 const STUCK_TIMEOUT_HOURS = 6;
 const ERROR_COOLDOWN_HOURS = 6;
@@ -18,21 +25,27 @@ function daysAgo(days: number): Date {
   return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 }
 
-interface Dependencies extends SagaServices {
-  startHardDeleteSaga: (fileId: string) => Promise<void>;
+export interface FileGarbageCollectorOutput {
+  stuckReset: number;
+  batchesProcessed: number;
 }
 
-export class FileGarbageCollectorSaga extends BaseSaga {
-  private readonly startHardDeleteSaga: (fileId: string) => Promise<void>;
-
-  constructor(name: string, deps: Dependencies) {
-    super(name, { kernel: deps.kernel });
-    this.startHardDeleteSaga = deps.startHardDeleteSaga;
+@Injectable()
+export class FileGarbageCollectorSaga extends BrokerSaga<void, FileGarbageCollectorOutput> {
+  constructor(@InjectBroker("media") broker: ServiceBroker) {
+    super(broker);
   }
 
-  @DBOS.workflow()
-  async run(): Promise<void> {
-    const logger = DBOS.logger;
+  private get kernel(): Kernel {
+    return Kernel.getInstance();
+  }
+
+  private get repository() {
+    return this.kernel.getServices().repository;
+  }
+
+  @Saga("fileGarbageCollector")
+  async run(): Promise<FileGarbageCollectorOutput> {
     const fileDeletionStateRepo = this.repository.fileDeletionState;
 
     // Phase 1: Reset stuck DELETING -> SOFT_DELETED (with error marking)
@@ -48,7 +61,7 @@ export class FileGarbageCollectorSaga extends BaseSaga {
       }
     }
     if (totalStuck > 0) {
-      logger.warn(
+      this.logger.warn(
         `Reset ${totalStuck} stuck DELETING files (marked as RETRYABLE)`
       );
     }
@@ -72,7 +85,7 @@ export class FileGarbageCollectorSaga extends BaseSaga {
           try {
             await this.startHardDeleteSaga(deletionState.fileId);
           } catch (error) {
-            logger.error(
+            this.logger.error(
               `Failed to start hard delete saga for fileId=${deletionState.fileId}: ${error}`
             );
           }
@@ -84,9 +97,24 @@ export class FileGarbageCollectorSaga extends BaseSaga {
     }
 
     if (batchesProcessed === MAX_GC_BATCHES) {
-      logger.info(
+      this.logger.log(
         `GC hit max batches limit (${MAX_GC_BATCHES}), will continue next run`
       );
     }
+
+    return { stuckReset: totalStuck, batchesProcessed };
+  }
+
+  @SagaStep({ critical: false })
+  private async startHardDeleteSaga(fileId: string): Promise<void> {
+    await this.broker.runSaga(
+      "fileHardDelete",
+      fileId,
+      {
+        source: "workflow",
+        workflowId: `gc:${Date.now()}`,
+        stepId: `hardDelete:${fileId}`,
+      }
+    );
   }
 }

@@ -1,4 +1,14 @@
-import { DBOS, withTimeout, StepTimeoutError } from "@shopana/shared-kernel";
+import { Injectable } from "@nestjs/common";
+import {
+  BrokerWorkflows,
+  Workflow,
+  Step,
+  InjectBroker,
+  ServiceBroker,
+  withTimeout,
+  StepTimeoutError,
+  DBOS,
+} from "@shopana/shared-kernel";
 import type {
   DomainEvent,
   EventDispatchResult,
@@ -7,16 +17,25 @@ import type {
   HandlerInvocationResult,
 } from "@shopana/events";
 import { getConfig } from "@shopana/shared-service-config";
-import { BaseSaga, type SagaServices } from "./BaseSaga.js";
+import { Kernel } from "../kernel/Kernel.js";
 
 const DEFAULT_HANDLER_TIMEOUT_MS = 30_000; // 30 seconds
 
-export class EventDispatchSaga extends BaseSaga {
-  constructor(name: string, services: SagaServices) {
-    super(name, services);
+@Injectable()
+export class EventDispatchWorkflow extends BrokerWorkflows {
+  constructor(@InjectBroker("events") broker: ServiceBroker) {
+    super(broker);
   }
 
-  @DBOS.workflow()
+  private get kernel(): Kernel {
+    return Kernel.getInstance();
+  }
+
+  private get repository() {
+    return this.kernel.repository;
+  }
+
+  @Workflow("eventDispatch")
   async run(event: DomainEvent): Promise<EventDispatchResult> {
     const { timestamp } = await this.persistEvent(event);
     event.timestamp = timestamp;
@@ -38,14 +57,14 @@ export class EventDispatchSaga extends BaseSaga {
     };
   }
 
-  @DBOS.step()
+  @Step()
   private async persistEvent(
     event: DomainEvent
   ): Promise<{ timestamp: string }> {
     return this.repository.persistEvent(event);
   }
 
-  @DBOS.step()
+  @Step()
   private async getAvailableHandlers(eventType: string): Promise<HandlerInfo[]> {
     const config = getConfig();
     const serviceNames = Object.keys(config.services ?? {});
@@ -69,6 +88,10 @@ export class EventDispatchSaga extends BaseSaga {
     return handlers;
   }
 
+  /**
+   * Try to invoke a handler with retry logic.
+   * This uses DBOS.runStep directly for fine-grained retry control.
+   */
   private async tryInvokeHandler(
     event: DomainEvent,
     handler: HandlerInfo
@@ -191,7 +214,7 @@ export class EventDispatchSaga extends BaseSaga {
     };
   }
 
-  @DBOS.step()
+  @Step()
   private async sendToDLQ(
     event: DomainEvent,
     handler: HandlerInfo,
@@ -211,7 +234,7 @@ export class EventDispatchSaga extends BaseSaga {
     });
   }
 
-  @DBOS.step()
+  @Step()
   private async updateEventStatus(
     eventId: string,
     results: HandlerInvocationResult[]

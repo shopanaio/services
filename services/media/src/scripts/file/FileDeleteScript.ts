@@ -1,6 +1,4 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
-import { DBOS } from "@shopana/shared-kernel";
-import { FileHardDeleteSaga } from "../../sagas/index.js";
 import type {
   FileDeleteParams,
   FileDeleteResult,
@@ -59,10 +57,15 @@ export class FileDeleteScript extends BaseScript<
   }
 
   private async startHardDeleteSaga(fileId: string): Promise<void> {
-    const saga = this.workflow.get<FileHardDeleteSaga>(
-      this.services.broker.qualifyAction("fileHardDelete")
+    await this.services.broker.runSaga(
+      "fileHardDelete",
+      fileId,
+      {
+        source: "workflow",
+        workflowId: `fileDelete:${fileId}`,
+        stepId: "startHardDelete",
+      }
     );
-    await DBOS.startWorkflow(saga).run(fileId);
   }
 
   protected handleError(_error: unknown): FileDeleteResult {

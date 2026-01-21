@@ -1,24 +1,39 @@
-import { DBOS } from "@shopana/shared-kernel";
-import { BaseSaga, type SagaServices } from "./BaseSaga.js";
+import { Inject, Injectable } from "@nestjs/common";
+import {
+  BrokerSaga,
+  Saga,
+  SagaStep,
+  InjectBroker,
+  ServiceBroker,
+} from "@shopana/shared-kernel";
+import { Kernel } from "../kernel/Kernel.js";
 import { classifyError, MissingMetadataError } from "../utils/classifyError.js";
-import { S3Client } from "../infrastructure/S3Client.js";
-import { FileDeleteCleanupSaga } from "./FileDeleteCleanupSaga.js";
+import { S3Client, S3_CLIENT } from "../infrastructure/S3Client.js";
 
-interface Dependencies extends SagaServices {
-  s3Client: S3Client;
+export interface FileHardDeleteOutput {
+  deleted: boolean;
+  skipped?: string;
 }
 
-export class FileHardDeleteSaga extends BaseSaga {
-  private readonly s3Client: S3Client;
-
-  constructor(name: string, deps: Dependencies) {
-    super(name, { kernel: deps.kernel });
-    this.s3Client = deps.s3Client;
+@Injectable()
+export class FileHardDeleteSaga extends BrokerSaga<string, FileHardDeleteOutput> {
+  constructor(
+    @InjectBroker("media") broker: ServiceBroker,
+    @Inject(S3_CLIENT) private readonly s3Client: S3Client
+  ) {
+    super(broker);
   }
 
-  @DBOS.workflow()
-  async run(fileId: string): Promise<void> {
-    const logger = DBOS.logger;
+  private get kernel(): Kernel {
+    return Kernel.getInstance();
+  }
+
+  private get repository() {
+    return this.kernel.getServices().repository;
+  }
+
+  @Saga("fileHardDelete")
+  async run(fileId: string): Promise<FileHardDeleteOutput> {
     const fileRepo = this.repository.file;
     const fileDeletionStateRepo = this.repository.fileDeletionState;
     const s3ObjectRepo = this.repository.s3Object;
@@ -27,35 +42,35 @@ export class FileHardDeleteSaga extends BaseSaga {
     // Get file and its deletion state
     const file = await fileRepo.findAnyById(fileId);
     if (!file) {
-      logger.debug(`File ${fileId} not found, skipping`);
-      return;
+      this.logger.debug(`File ${fileId} not found, skipping`);
+      return { deleted: false, skipped: "file_not_found" };
     }
 
     const deletionState = await fileDeletionStateRepo.findByFileId(fileId);
     if (!deletionState) {
-      logger.debug(`File ${fileId} has no deletion state, skipping`);
-      return;
+      this.logger.debug(`File ${fileId} has no deletion state, skipping`);
+      return { deleted: false, skipped: "no_deletion_state" };
     }
 
     if (deletionState.deletionState !== "SOFT_DELETED") {
-      logger.debug(
+      this.logger.debug(
         `File ${fileId} not in SOFT_DELETED (state=${deletionState.deletionState}), skipping`
       );
-      return;
+      return { deleted: false, skipped: `wrong_state:${deletionState.deletionState}` };
     }
     if (deletionState.deletionErrorCode === "FATAL") {
-      logger.debug(
+      this.logger.debug(
         `File ${fileId} has FATAL error, admin must clear first via fileClearError`
       );
-      return;
+      return { deleted: false, skipped: "fatal_error" };
     }
 
     // Lock: transition SOFT_DELETED -> DELETING
     const lockResult =
       await fileDeletionStateRepo.markDeletingReturningStartedAt(fileId);
     if (!lockResult) {
-      logger.debug(`markDeleting skipped: file ${fileId} not in SOFT_DELETED`);
-      return;
+      this.logger.debug(`markDeleting skipped: file ${fileId} not in SOFT_DELETED`);
+      return { deleted: false, skipped: "lock_failed" };
     }
 
     const { startedAt } = lockResult;
@@ -92,33 +107,26 @@ export class FileHardDeleteSaga extends BaseSaga {
           : currentState.deletionState !== "DELETING"
             ? `state_changed:${currentState.deletionState}`
             : "startedAt_mismatch";
-        logger.info(
+        this.logger.log(
           `Lock lost before S3 delete, aborting safely: fileId=${fileId}, reason=${reason}`
         );
-        return;
+        return { deleted: false, skipped: `lock_lost:${reason}` };
       }
 
       // Delete from S3
       if (bucketName && objectKey) {
-        await this.s3Client.deleteObject({
-          bucket: bucketName,
-          key: objectKey,
-        });
+        await this.deleteFromS3(bucketName, objectKey);
       }
 
       // Hard delete file row (cascades to file_deletion_states via FK)
       const deleted = await fileRepo.hardDelete(fileId);
       if (!deleted) {
-        logger.info(`hardDelete skipped: file ${fileId} already deleted`);
+        this.logger.log(`hardDelete skipped: file ${fileId} already deleted`);
       }
 
-      const cleanupSaga =
-        this.services.workflow.get<FileDeleteCleanupSaga>(
-          this.broker.qualifyAction("fileDeleteCleanup")
-        );
-      await DBOS.startWorkflow(cleanupSaga, {
-        workflowID: FileDeleteCleanupSaga.workflowID(fileId),
-      }).run(fileId);
+      await this.startCleanupSaga(fileId);
+
+      return { deleted: true };
     } catch (error: unknown) {
       // Rollback: DELETING -> SOFT_DELETED with error
       const errorCode = classifyError(error);
@@ -131,5 +139,27 @@ export class FileHardDeleteSaga extends BaseSaga {
       );
       throw error;
     }
+  }
+
+  @SagaStep()
+  private async deleteFromS3(bucket: string, key: string): Promise<void> {
+    await this.s3Client.deleteObject({ bucket, key });
+  }
+
+  @SagaStep({ critical: false })
+  private async startCleanupSaga(fileId: string): Promise<void> {
+    await this.broker.runSaga(
+      "fileDeleteCleanup",
+      fileId,
+      {
+        source: "workflow",
+        workflowId: FileHardDeleteSaga.workflowID(fileId),
+        stepId: "startCleanup",
+      }
+    );
+  }
+
+  static workflowID(fileId: string): string {
+    return `file:hardDelete:${fileId}`;
   }
 }

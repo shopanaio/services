@@ -1,12 +1,21 @@
-import { DBOS } from "@shopana/shared-kernel";
+import { Injectable } from "@nestjs/common";
+import {
+  BrokerSaga,
+  Saga,
+  SagaStep,
+  InjectBroker,
+  ServiceBroker,
+} from "@shopana/shared-kernel";
 import type { Media } from "@shopana/broker-types";
-import { BaseSaga } from "./BaseSaga.js";
+import { Kernel } from "../kernel/Kernel.js";
 import { ProductCreateScript } from "../scripts/product/ProductCreateScript.js";
 import type {
   ProductCreateParams,
   ProductCreateResult,
   VariantMediaEntry,
 } from "../scripts/product/dto/index.js";
+
+export type { ProductCreateParams, ProductCreateResult };
 
 /**
  * Saga for product creation.
@@ -17,11 +26,17 @@ import type {
  *
  * This prevents orphan back-refs if the product creation transaction fails.
  */
-export class ProductCreateSaga extends BaseSaga {
-  /**
-   * Main saga - orchestrates product creation
-   */
-  @DBOS.workflow()
+@Injectable()
+export class ProductCreateSaga extends BrokerSaga<ProductCreateParams, ProductCreateResult> {
+  constructor(@InjectBroker("inventory") broker: ServiceBroker) {
+    super(broker);
+  }
+
+  private get kernel(): Kernel {
+    return Kernel.getInstance();
+  }
+
+  @Saga("productCreate")
   async run(input: ProductCreateParams): Promise<ProductCreateResult> {
     // Step 1: Create product in database (transactional)
     const result = await this.createProduct(input);
@@ -41,16 +56,13 @@ export class ProductCreateSaga extends BaseSaga {
     return result;
   }
 
-  /**
-   * Step: Create product in database
-   */
-  @DBOS.step()
-  async createProduct(input: ProductCreateParams): Promise<ProductCreateResult> {
+  @SagaStep()
+  private async createProduct(input: ProductCreateParams): Promise<ProductCreateResult> {
     return this.kernel.runScript(ProductCreateScript, input);
   }
 
-  @DBOS.step()
-  async emitProductCreated(
+  @SagaStep({ critical: false })
+  private async emitProductCreated(
     product: NonNullable<ProductCreateResult["product"]>,
     input: ProductCreateParams
   ): Promise<void> {
@@ -72,12 +84,8 @@ export class ProductCreateSaga extends BaseSaga {
     });
   }
 
-  /**
-   * Step: Sync back-refs for variant media
-   * Called only after product is successfully created and committed
-   */
-  @DBOS.step()
-  async syncVariantBackRefs(variantMediaMap: VariantMediaEntry[]): Promise<void> {
+  @SagaStep({ critical: false })
+  private async syncVariantBackRefs(variantMediaMap: VariantMediaEntry[]): Promise<void> {
     for (const entry of variantMediaMap) {
       try {
         await this.broker.call<Media.SyncEntityFilesResult, Media.SyncEntityFilesParams>(
@@ -92,7 +100,7 @@ export class ProductCreateSaga extends BaseSaga {
           },
         );
 
-        this.logger.info(
+        this.logger.log(
           { variantId: entry.variantId, fileCount: entry.fileIds.length },
           "Synced variant media back-refs"
         );

@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { DBOS } from "@shopana/shared-kernel";
+import { InjectBroker, ServiceBroker } from "@shopana/shared-kernel";
 import { Kernel } from '../kernel/Kernel.js';
-import type { FileGarbageCollectorSaga } from '../sagas/index.js';
+import type { FileGarbageCollectorOutput } from '../sagas/index.js';
 
 /**
  * Scheduled service for file garbage collection.
@@ -10,12 +10,14 @@ import type { FileGarbageCollectorSaga } from '../sagas/index.js';
  * Runs hourly to:
  * 1. Reset stuck files in DELETING state (>6 hours) back to SOFT_DELETED
  * 2. Hard delete files that have been soft-deleted for >30 days
- *
- * Sagas are registered by MediaNestService during startup.
  */
 @Injectable()
 export class FileGarbageCollectorScheduler {
   private readonly logger = new Logger(FileGarbageCollectorScheduler.name);
+
+  constructor(
+    @InjectBroker('media') private readonly broker: ServiceBroker
+  ) {}
 
   @Cron(CronExpression.EVERY_HOUR)
   async handleGarbageCollection(): Promise<void> {
@@ -24,24 +26,26 @@ export class FileGarbageCollectorScheduler {
       return;
     }
 
-    const kernel = Kernel.getInstance();
-    const workflowRegistry = kernel.workflow;
-    const sagaName = kernel.getServices().broker.qualifyAction(
-      "fileGarbageCollector"
-    );
-
-    if (!workflowRegistry.has(sagaName)) {
-      this.logger.warn('fileGarbageCollector saga not registered, skipping run');
-      return;
-    }
-
-    const saga = workflowRegistry.get<FileGarbageCollectorSaga>(sagaName);
-
     this.logger.debug('Starting garbage collection run');
 
     try {
-      await DBOS.startWorkflow(saga).run();
-      this.logger.debug('Garbage collection run completed');
+      const result = await this.broker.runSaga<FileGarbageCollectorOutput, void>(
+        "fileGarbageCollector",
+        undefined,
+        {
+          source: "workflow",
+          workflowId: `gc:scheduled:${Date.now()}`,
+          stepId: "run",
+        }
+      );
+
+      if (result.success) {
+        this.logger.debug(
+          `Garbage collection completed: ${result.data?.stuckReset} stuck reset, ${result.data?.batchesProcessed} batches processed`
+        );
+      } else {
+        this.logger.warn('Garbage collection completed with errors', result.error);
+      }
     } catch (error) {
       this.logger.error('Failed to run garbage collection saga', error);
     }

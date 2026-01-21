@@ -1,7 +1,6 @@
-import { DBOS } from "@shopana/shared-kernel";
 import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
 import type { Variant } from "../../repositories/models/index.js";
-import { BackRefNotifyWorkflow } from "../../workflows/BackRefNotifyWorkflow.js";
+import type { BackRefNotifyInput } from "../../sagas/index.js";
 
 export interface VariantSetMediaParams {
   readonly variantId: string;
@@ -61,23 +60,28 @@ export class VariantSetMediaScript extends BaseScript<VariantSetMediaParams, Var
     }
 
     try {
-      const workflow = this.workflow.get<BackRefNotifyWorkflow>(
-        this.services.broker.qualifyAction("backRefNotify")
-      );
-      await DBOS.startWorkflow(workflow).run({
-        entityRef: {
-          service: "inventory",
-          entityType: "variant",
-          entityId: variantId,
+      await this.services.broker.runSaga<unknown, BackRefNotifyInput>(
+        "backRefNotify",
+        {
+          entityRef: {
+            service: "inventory",
+            entityType: "variant",
+            entityId: variantId,
+          },
+          fileIds: uniqueNextFileIds,
         },
-        fileIds: uniqueNextFileIds,
-      });
+        {
+          source: "workflow",
+          workflowId: `variantSetMedia:${variantId}`,
+          stepId: "notifyBackRefs",
+        }
+      );
     } catch (error) {
-      // Log at error level for workflow start failures (not transient)
+      // Log at error level for saga start failures (not transient)
       // These indicate configuration or code issues, not network problems
       this.logger.error(
         { variantId, error, fileCount: uniqueNextFileIds.length },
-        "Failed to start backref sync workflow"
+        "Failed to start backref sync saga"
       );
       // Note: We don't rethrow because backref sync is best-effort.
       // The variant media update already succeeded in the database.

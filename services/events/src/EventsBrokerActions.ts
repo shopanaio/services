@@ -6,7 +6,6 @@ import {
   InjectBroker,
   ServiceBroker,
 } from "@shopana/shared-kernel";
-import { ConfiguredInstance } from "@dbos-inc/dbos-sdk";
 import type {
   DomainEvent,
   EventContext,
@@ -18,7 +17,6 @@ import {
   makeEventId,
 } from "@shopana/events";
 import { Kernel } from "./kernel/Kernel.js";
-import type { EventDispatchWorkflow } from "./workflows/EventDispatchWorkflow.js";
 
 interface EmitParams<TType extends string = string, TPayload = unknown> {
   eventType: TType;
@@ -48,10 +46,10 @@ export class EventsBrokerActions extends BrokerActions {
   async emit(params: EmitParams): Promise<{ workflowId: string; eventId: string }> {
     const { event, workflowId } = this.buildEvent(params);
 
-    const dispatchWorkflow = this.getDispatchWorkflow();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (DBOS.startWorkflow(dispatchWorkflow, { workflowID: workflowId }) as any).run(
-      event
+    await this.broker.runWorkflow<EventDispatchResult, DomainEvent>(
+      "eventDispatch",
+      event,
+      { source: "workflow", workflowId, stepId: "emit" }
     );
 
     return { workflowId, eventId: event.eventId };
@@ -61,13 +59,11 @@ export class EventsBrokerActions extends BrokerActions {
   async emitAndWait(params: EmitParams): Promise<EventDispatchResult> {
     const { event, workflowId } = this.buildEvent(params);
 
-    const dispatchWorkflow = this.getDispatchWorkflow();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const handle = await (DBOS.startWorkflow(dispatchWorkflow, {
-      workflowID: workflowId,
-    }) as any).run(event);
-
-    return handle.getResult();
+    return this.broker.runWorkflow<EventDispatchResult, DomainEvent>(
+      "eventDispatch",
+      event,
+      { source: "workflow", workflowId, stepId: "emitAndWait" }
+    );
   }
 
   @Action("cleanupDLQ")
@@ -131,20 +127,5 @@ export class EventsBrokerActions extends BrokerActions {
     };
 
     return { event, workflowId };
-  }
-
-  private getDispatchWorkflow(): ConfiguredInstance & {
-    run: (event: DomainEvent) => Promise<EventDispatchResult>;
-  } {
-    const workflowName = this.broker.qualifyAction("eventDispatch");
-    const registry = this.kernel.workflow;
-
-    if (!registry.has(workflowName)) {
-      throw new Error("eventDispatch workflow not registered");
-    }
-
-    return registry.get<EventDispatchWorkflow>(workflowName) as ConfiguredInstance & {
-      run: (event: DomainEvent) => Promise<EventDispatchResult>;
-    };
   }
 }

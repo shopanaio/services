@@ -10,14 +10,13 @@ import { WarehouseResolver } from "./WarehouseResolver.js";
 import { OptionResolver } from "./OptionResolver.js";
 import { FeatureResolver } from "./FeatureResolver.js";
 import { StockResolver } from "./StockResolver.js";
-import { DBOS } from "@shopana/shared-kernel";
 import {
   ProductUpdateScript,
   ProductDeleteScript,
   ProductPublishScript,
   ProductUnpublishScript,
 } from "../../scripts/product/index.js";
-import { ProductCreateWorkflow } from "../../workflows/index.js";
+import type { ProductCreateParams, ProductCreateResult } from "../../sagas/index.js";
 import {
   VariantCreateScript,
   VariantDeleteScript,
@@ -122,7 +121,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
 
   /**
    * Create a new product with all its data in one request.
-   * Uses ProductCreateWorkflow to ensure back-refs are synced only after DB commit.
+   * Uses ProductCreateSaga to ensure back-refs are synced only after DB commit.
    */
   @ZodResolver(ProductCreateInputSchema())
   async productCreate(args: { input: ProductCreateInput }) {
@@ -133,12 +132,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
       decodeGlobalIdByType(fileId, GlobalIdEntity.File)
     );
 
-    // Get workflow instance and run it
-    const workflow =
-      this.$ctx.kernel.workflow.get<ProductCreateWorkflow>(
-        this.$ctx.kernel.getServices().broker.qualifyAction("productCreate")
-      );
-    const handle = await DBOS.startWorkflow(workflow).run({
+    const sagaInput: ProductCreateParams = {
       title: input.title,
       handle: input.handle,
       description: input.description
@@ -164,8 +158,22 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
       organizationId: this.$ctx.store.organizationId,
       storeId: this.$ctx.store.id,
       userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
-    });
-    const result = await handle.getResult();
+    };
+
+    const sagaResult = await this.$ctx.kernel.getServices().broker.runSaga<
+      ProductCreateResult,
+      ProductCreateParams
+    >(
+      "productCreate",
+      sagaInput,
+      {
+        source: "workflow",
+        workflowId: `productCreate:${Date.now()}`,
+        stepId: "create",
+      }
+    );
+
+    const result = sagaResult.data!;
 
     return {
       product: result.product

@@ -1,6 +1,8 @@
 import type { Client as MinioClient } from "minio";
 import { getS3Client } from "./s3/index.js";
 
+export const S3_CLIENT = Symbol("S3_CLIENT");
+
 export interface DeleteObjectParams {
   bucket: string;
   key: string;

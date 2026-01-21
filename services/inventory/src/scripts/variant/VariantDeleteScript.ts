@@ -1,6 +1,5 @@
-import { DBOS } from "@shopana/shared-kernel";
 import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
-import { EntityDeletedNotifyWorkflow } from "../../workflows/EntityDeletedNotifyWorkflow.js";
+import type { EntityDeletedNotifyInput } from "../../sagas/index.js";
 
 export interface VariantDeleteParams {
   readonly id: string;
@@ -37,16 +36,21 @@ export class VariantDeleteScript extends BaseScript<VariantDeleteParams, Variant
 
     if (permanent) {
       try {
-        const workflow = this.workflow.get<EntityDeletedNotifyWorkflow>(
-          this.services.broker.qualifyAction("entityDeletedNotify")
-        );
-        await DBOS.startWorkflow(workflow).run({
-          entityRef: {
-            service: "inventory",
-            entityType: "variant",
-            entityId: id,
+        await this.services.broker.runSaga<unknown, EntityDeletedNotifyInput>(
+          "entityDeletedNotify",
+          {
+            entityRef: {
+              service: "inventory",
+              entityType: "variant",
+              entityId: id,
+            },
           },
-        });
+          {
+            source: "workflow",
+            workflowId: `variantDelete:${id}`,
+            stepId: "notifyEntityDeleted",
+          }
+        );
       } catch (error) {
         this.logger.warn(
           { variantId: id, error },

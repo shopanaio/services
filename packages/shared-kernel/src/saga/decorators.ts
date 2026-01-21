@@ -47,8 +47,6 @@ function capitalize(str: string): string {
 export function SagaStep(config: SagaStepConfig = {}): MethodDecorator {
   return function (target, propertyKey, descriptor) {
     const originalMethod = descriptor.value as Function;
-    const key =
-      typeof propertyKey === "symbol" ? propertyKey.toString() : propertyKey;
     const methodName =
       typeof propertyKey === "symbol" ? propertyKey.toString() : propertyKey;
     const stepName = config.name ?? methodName;

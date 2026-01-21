@@ -1,4 +1,15 @@
-export { BaseSaga, type SagaServices } from "./BaseSaga.js";
-export { EntityDeletedNotifySaga, type EntityDeletedNotifyInput } from "./EntityDeletedNotifySaga.js";
-export { BackRefNotifySaga, type BackRefNotifyInput } from "./BackRefNotifySaga.js";
-export { ProductCreateSaga } from "./ProductCreateSaga.js";
+export {
+  EntityDeletedNotifySaga,
+  type EntityDeletedNotifyInput,
+  type EntityDeletedNotifyOutput,
+} from "./EntityDeletedNotifySaga.js";
+export {
+  BackRefNotifySaga,
+  type BackRefNotifyInput,
+  type BackRefNotifyOutput,
+} from "./BackRefNotifySaga.js";
+export {
+  ProductCreateSaga,
+  type ProductCreateParams,
+  type ProductCreateResult,
+} from "./ProductCreateSaga.js";

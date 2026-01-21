@@ -1,20 +1,37 @@
-import { DBOS } from "@shopana/shared-kernel";
+import { Injectable } from "@nestjs/common";
+import {
+  BrokerSaga,
+  Saga,
+  SagaStep,
+  InjectBroker,
+  ServiceBroker,
+} from "@shopana/shared-kernel";
 import type { Media, EntityRef } from "@shopana/broker-types";
-import { BaseSaga } from "./BaseSaga.js";
 
 export interface BackRefNotifyInput {
   entityRef: EntityRef;
   fileIds: string[];
 }
 
-export class BackRefNotifySaga extends BaseSaga {
-  @DBOS.workflow()
-  async run(input: BackRefNotifyInput): Promise<void> {
-    await this.syncFiles(input);
+export interface BackRefNotifyOutput {
+  unlinkedCount: number;
+  linkedCount: number;
+  skippedCount: number;
+}
+
+@Injectable()
+export class BackRefNotifySaga extends BrokerSaga<BackRefNotifyInput, BackRefNotifyOutput> {
+  constructor(@InjectBroker("inventory") broker: ServiceBroker) {
+    super(broker);
   }
 
-  @DBOS.step()
-  async syncFiles(input: BackRefNotifyInput): Promise<void> {
+  @Saga("backRefNotify")
+  async run(input: BackRefNotifyInput): Promise<BackRefNotifyOutput> {
+    return this.syncFiles(input);
+  }
+
+  @SagaStep()
+  private async syncFiles(input: BackRefNotifyInput): Promise<BackRefNotifyOutput> {
     const { entityRef, fileIds } = input;
     const uniqueFileIds = Array.from(new Set(fileIds));
 
@@ -26,7 +43,7 @@ export class BackRefNotifySaga extends BaseSaga {
       },
     );
 
-    this.logger.info(
+    this.logger.log(
       {
         entityRef,
         unlinkedCount: result.unlinkedCount,
@@ -35,5 +52,11 @@ export class BackRefNotifySaga extends BaseSaga {
       },
       "BackRef sync completed"
     );
+
+    return {
+      unlinkedCount: result.unlinkedCount,
+      linkedCount: result.linkedCount,
+      skippedCount: result.skippedCount,
+    };
   }
 }

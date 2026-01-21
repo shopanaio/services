@@ -22,11 +22,6 @@ import { Kernel } from "./kernel/Kernel";
 
 const { service } = getServiceConfig("inventory");
 import { InventoryObjectStorage } from "./storage";
-import {
-  BackRefNotifySaga,
-  EntityDeletedNotifySaga,
-  ProductCreateSaga,
-} from "./sagas/index.js";
 
 @Injectable()
 export class InventoryNestService implements OnModuleInit, OnModuleDestroy {
@@ -46,35 +41,6 @@ export class InventoryNestService implements OnModuleInit, OnModuleDestroy {
 
     this.kernel = await Kernel.create(this.broker, this.workflow, this.dbClient);
     this.logger.debug("Kernel created");
-
-    const backRefNotifySaga = new BackRefNotifySaga("backRefNotify", {
-      kernel: this.kernel,
-    });
-    const backRefNotifySagaName = this.broker.qualifyAction("backRefNotify");
-    this.workflow.register(backRefNotifySagaName, {
-      instance: backRefNotifySaga,
-      metadata: { name: "backRefNotify" },
-    });
-
-    const entityDeletedNotifySaga = new EntityDeletedNotifySaga(
-      "entityDeletedNotify",
-      { kernel: this.kernel }
-    );
-    const entityDeletedNotifySagaName =
-      this.broker.qualifyAction("entityDeletedNotify");
-    this.workflow.register(entityDeletedNotifySagaName, {
-      instance: entityDeletedNotifySaga,
-      metadata: { name: "entityDeletedNotify" },
-    });
-
-    const productCreateSaga = new ProductCreateSaga("productCreate", {
-      kernel: this.kernel,
-    });
-    const productCreateSagaName = this.broker.qualifyAction("productCreate");
-    this.workflow.register(productCreateSagaName, {
-      instance: productCreateSaga,
-      metadata: { name: "productCreate" },
-    });
 
     const storageConfig = service.s3 ? buildS3Config(service.s3) : null;
     this.storageGateway = new InventoryObjectStorage(
@@ -99,14 +65,6 @@ export class InventoryNestService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy() {
-    if (this.workflow) {
-      this.workflow.deregister(this.broker.qualifyAction("backRefNotify"));
-      this.workflow.deregister(
-        this.broker.qualifyAction("entityDeletedNotify")
-      );
-      this.workflow.deregister(this.broker.qualifyAction("productCreate"));
-    }
-
     if (this.graphqlServer) {
       await this.graphqlServer.close();
     }

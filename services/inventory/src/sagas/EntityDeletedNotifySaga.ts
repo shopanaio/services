@@ -1,26 +1,45 @@
-import { DBOS } from "@shopana/shared-kernel";
+import { Injectable } from "@nestjs/common";
+import {
+  BrokerSaga,
+  Saga,
+  SagaStep,
+  InjectBroker,
+  ServiceBroker,
+} from "@shopana/shared-kernel";
 import type { Media, EntityRef } from "@shopana/broker-types";
-import { BaseSaga } from "./BaseSaga.js";
 
 export interface EntityDeletedNotifyInput {
   entityRef: EntityRef;
 }
 
-export class EntityDeletedNotifySaga extends BaseSaga {
-  @DBOS.workflow()
-  async run(input: EntityDeletedNotifyInput): Promise<void> {
-    await this.notifyMedia(input.entityRef);
+export interface EntityDeletedNotifyOutput {
+  unlinkedCount: number;
+}
+
+@Injectable()
+export class EntityDeletedNotifySaga extends BrokerSaga<
+  EntityDeletedNotifyInput,
+  EntityDeletedNotifyOutput
+> {
+  constructor(@InjectBroker("inventory") broker: ServiceBroker) {
+    super(broker);
   }
 
-  @DBOS.step()
-  async notifyMedia(entityRef: EntityRef): Promise<void> {
+  @Saga("entityDeletedNotify")
+  async run(input: EntityDeletedNotifyInput): Promise<EntityDeletedNotifyOutput> {
+    return this.notifyMedia(input.entityRef);
+  }
+
+  @SagaStep()
+  private async notifyMedia(entityRef: EntityRef): Promise<EntityDeletedNotifyOutput> {
     const result = await this.broker.call<Media.EntityDeletedResult, Media.EntityDeletedParams>(
       "media.entityDeleted",
       { entityRef },
     );
-    this.logger.info(
+    this.logger.log(
       { unlinkedCount: result.unlinkedCount },
       "Entity deleted notification sent"
     );
+    return { unlinkedCount: result.unlinkedCount };
   }
 }
