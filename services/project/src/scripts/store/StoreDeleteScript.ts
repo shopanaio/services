@@ -38,7 +38,7 @@ export class StoreDeleteScript extends BaseScript<
       };
     }
 
-    const result = await this.broker.runWorkflow<StoreDeleteOutput>(
+    const result = await this.broker.runSaga<StoreDeleteOutput>(
       "project.storeDelete",
       {
         storeId: params.id,
@@ -53,8 +53,21 @@ export class StoreDeleteScript extends BaseScript<
       }
     );
 
+    if (!result.success || !result.data) {
+      return {
+        deletedStoreId: undefined,
+        userErrors: [
+          {
+            message: result.error?.message ?? "Failed to delete store",
+            code: "DELETE_FAILED",
+            field: null,
+          },
+        ],
+      };
+    }
+
     return {
-      deletedStoreId: result.deletedStoreId,
+      deletedStoreId: result.data.deletedStoreId,
       userErrors: [],
     };
   }

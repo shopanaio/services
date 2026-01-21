@@ -55,7 +55,7 @@ export class StoreCreateScript extends BaseScript<
       };
     }
 
-    const result = await this.broker.runWorkflow<StoreCreateOutput>(
+    const result = await this.broker.runSaga<StoreCreateOutput>(
       "project.storeCreate",
       {
         organizationId: params.organizationId,
@@ -77,7 +77,21 @@ export class StoreCreateScript extends BaseScript<
       },
     );
 
-    const store = await this.repository.store.findById(result.storeId);
+    const storeId = result.data?.storeId;
+    if (!storeId) {
+      return {
+        store: null,
+        userErrors: [
+          {
+            code: "STORE_CREATE_FAILED",
+            message: result.error?.message ?? "Failed to create store",
+            field: null,
+          },
+        ],
+      };
+    }
+
+    const store = await this.repository.store.findById(storeId);
 
     return {
       store,

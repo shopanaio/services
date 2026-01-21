@@ -50,9 +50,27 @@ export class OrganizationMutationResolver extends IAMType<
   @ZodResolver(OrganizationCreateInputSchema())
   async organizationCreate(args: { input: OrganizationCreateInput }) {
     const { input } = args;
-    const broker = this.$ctx.kernel.getServices().broker;
+    const { kernel } = this.$ctx;
+    const broker = kernel.getServices().broker;
 
-    const result = await broker.runWorkflow<OrganizationCreateResult, OrganizationCreateParams>(
+    // Pre-flight check: ensure name is not already taken
+    // This is necessary because content-based idempotency would return cached success
+    // for duplicate name attempts
+    const existing = await kernel.repository.organization.findByName(input.name);
+    if (existing) {
+      return {
+        organization: null,
+        userErrors: [
+          {
+            code: "DUPLICATE_VALUE",
+            message: "An organization with this name already exists",
+            field: ["name"],
+          },
+        ],
+      };
+    }
+
+    const result = await broker.runSaga<OrganizationCreateResult, OrganizationCreateParams>(
       "iam.organizationCreate",
       input,
       {
@@ -63,11 +81,12 @@ export class OrganizationMutationResolver extends IAMType<
       }
     );
 
+    const data = result.data;
     return {
-      organization: result.organization
-        ? new OrganizationResolver(result.organization.id, this.$ctx)
+      organization: data?.organization
+        ? new OrganizationResolver(data.organization.id, this.$ctx)
         : null,
-      userErrors: result.userErrors.map((e) => ({
+      userErrors: (data?.userErrors ?? []).map((e) => ({
         code: e.code ?? "UNKNOWN_ERROR",
         message: e.message,
         field: e.field,
@@ -107,7 +126,7 @@ export class OrganizationMutationResolver extends IAMType<
       }
     }
 
-    const result = await broker.runWorkflow<OrganizationUpdateResult, OrganizationUpdateSagaInput>(
+    const result = await broker.runSaga<OrganizationUpdateResult, OrganizationUpdateSagaInput>(
       "iam.organizationUpdate",
       {
         organizationId,
@@ -125,11 +144,12 @@ export class OrganizationMutationResolver extends IAMType<
       }
     );
 
+    const data = result.data;
     return {
-      organization: result.organization
-        ? new OrganizationResolver(result.organization.id, this.$ctx)
+      organization: data?.organization
+        ? new OrganizationResolver(data.organization.id, this.$ctx)
         : null,
-      userErrors: result.userErrors.map((e) => ({
+      userErrors: (data?.userErrors ?? []).map((e) => ({
         code: e.code ?? "UNKNOWN_ERROR",
         message: e.message,
         field: e.field,
@@ -149,7 +169,7 @@ export class OrganizationMutationResolver extends IAMType<
     );
     const broker = this.$ctx.kernel.getServices().broker;
 
-    const result = await broker.runWorkflow<OrganizationDeleteResult, OrganizationDeleteParams>(
+    const result = await broker.runSaga<OrganizationDeleteResult, OrganizationDeleteParams>(
       "iam.organizationDelete",
       { organizationId },
       {
@@ -160,14 +180,15 @@ export class OrganizationMutationResolver extends IAMType<
       }
     );
 
+    const data = result.data;
     return {
-      deletedOrganizationId: result.deletedOrganizationId
+      deletedOrganizationId: data?.deletedOrganizationId
         ? encodeGlobalIdByType(
-            result.deletedOrganizationId,
+            data.deletedOrganizationId,
             GlobalIdEntity.Organization
           )
         : null,
-      userErrors: result.userErrors.map((e) => ({
+      userErrors: (data?.userErrors ?? []).map((e) => ({
         code: e.code ?? "UNKNOWN_ERROR",
         message: e.message,
         field: e.field,

@@ -72,7 +72,7 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
       }
     }
 
-    const result = await broker.runWorkflow<UserUpdateProfileResult, UserUpdateProfileSagaInput>(
+    const result = await broker.runSaga<UserUpdateProfileResult, UserUpdateProfileSagaInput>(
       "iam.userUpdateProfile",
       {
         userId: currentUser.id,
@@ -91,9 +91,10 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
       }
     );
 
+    const data = result.data;
     return {
-      user: result.userId ? new UserResolver(result.userId, this.$ctx) : null,
-      userErrors: result.userErrors.map((e) => ({
+      user: data?.userId ? new UserResolver(data.userId, this.$ctx) : null,
+      userErrors: (data?.userErrors ?? []).map((e) => ({
         code: e.code,
         message: e.message,
         field: e.field ?? null,
