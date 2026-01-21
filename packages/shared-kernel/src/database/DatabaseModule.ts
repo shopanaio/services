@@ -59,12 +59,14 @@ export class DatabaseModule {
       connect_timeout: options.pool?.connect_timeout ?? 30,
       max_lifetime: options.pool?.max_lifetime ?? 60 * 30,
       types: {
+        // Return timestamps as strings instead of Date objects
+        // postgres.js handles Date serialization automatically
         date: {
           to: 1184,
-          from: [1114, 1184],
-          serialize: (x: Date | string) =>
-            x instanceof Date ? x.toISOString() : x,
-          parse: (x: string) => x,
+          from: [1082, 1114, 1184], // date, timestamp, timestamptz
+          serialize: (x: unknown) =>
+            x instanceof Date ? x.toISOString() : String(x),
+          parse: (x: string) => x, // Return as string, not Date
         },
       },
       onnotice: () => {},
