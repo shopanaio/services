@@ -1,4 +1,4 @@
-import { and, eq, inArray, count, sql } from "drizzle-orm";
+import { and, eq, inArray, count } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
 import {
   createQuery,
@@ -9,8 +9,10 @@ import {
 import { BaseRepository } from "../BaseRepository.js";
 import {
   warehouseStock,
+  stockChanges,
   type WarehouseStock,
   type NewWarehouseStock,
+  type NewStockChange,
 } from "../models";
 
 export const stockRelayQuery = createRelayQuery(
@@ -132,43 +134,52 @@ export class StockRepository extends BaseRepository {
 
     return await this.connection.transaction(async (tx) => {
       // 1. Check for duplicate (idempotency)
-      const existing = await tx.execute<{ id: string }>(sql`
-        SELECT id FROM inventory.stock_changes
-        WHERE project_id = ${this.storeId}
-          AND source_system = ${input.sourceSystem}
-          AND source_event_id = ${input.sourceEventId}
-          AND warehouse_id = ${input.warehouseId}
-          AND variant_id = ${input.variantId}
-      `);
+      const [existing] = await tx
+        .select({ id: stockChanges.id })
+        .from(stockChanges)
+        .where(
+          and(
+            eq(stockChanges.projectId, this.storeId),
+            eq(stockChanges.sourceSystem, input.sourceSystem),
+            eq(stockChanges.sourceEventId, input.sourceEventId),
+            eq(stockChanges.warehouseId, input.warehouseId),
+            eq(stockChanges.variantId, input.variantId),
+          ),
+        )
+        .limit(1);
 
-      if (existing.length > 0) {
-        return { status: "DUPLICATE" as const, changeId: existing[0].id };
+      if (existing) {
+        return { status: "DUPLICATE" as const, changeId: existing.id };
       }
 
-      // 2. Get current stock with lock
-      const currentStock = await tx.execute<{
-        quantity_on_hand: number;
-        reserved_qty: number;
-        unavailable_qty: number;
-      }>(sql`
-        SELECT quantity_on_hand, reserved_qty, unavailable_qty
-        FROM inventory.warehouse_stock
-        WHERE project_id = ${this.storeId}
-          AND warehouse_id = ${input.warehouseId}
-          AND variant_id = ${input.variantId}
-        FOR UPDATE
-      `);
+      // 2. Get current stock with row lock
+      const currentStock = await tx
+        .select({
+          quantityOnHand: warehouseStock.quantityOnHand,
+          reservedQty: warehouseStock.reservedQty,
+          unavailableQty: warehouseStock.unavailableQty,
+        })
+        .from(warehouseStock)
+        .where(
+          and(
+            eq(warehouseStock.projectId, this.storeId),
+            eq(warehouseStock.warehouseId, input.warehouseId),
+            eq(warehouseStock.variantId, input.variantId),
+          ),
+        )
+        .limit(1)
+        .for("update");
 
       const current = currentStock[0] ?? {
-        quantity_on_hand: 0,
-        reserved_qty: 0,
-        unavailable_qty: 0,
+        quantityOnHand: 0,
+        reservedQty: 0,
+        unavailableQty: 0,
       };
 
       // 3. Calculate new values
-      const newOnHand = current.quantity_on_hand + input.deltaOnHand;
-      const newReserved = current.reserved_qty + deltaReserved;
-      const newUnavailable = current.unavailable_qty + deltaUnavailable;
+      const newOnHand = current.quantityOnHand + input.deltaOnHand;
+      const newReserved = current.reservedQty + deltaReserved;
+      const newUnavailable = current.unavailableQty + deltaUnavailable;
 
       // 4. Check constraints
       const constraintsValid =
@@ -179,52 +190,63 @@ export class StockRepository extends BaseRepository {
 
       // 5. Insert stock change record
       const changeId = uuidv7();
-      await tx.execute(sql`
-        INSERT INTO inventory.stock_changes (
-          id, project_id, warehouse_id, variant_id,
-          delta_on_hand, delta_reserved, delta_unavailable,
-          movement_type, reason, transfer_direction,
-          source_system, source_event_id, correlation_id, note, created_by,
-          on_hand_after, reserved_after, unavailable_after,
-          apply_status
-        ) VALUES (
-          ${changeId}, ${this.storeId}, ${input.warehouseId}, ${input.variantId},
-          ${input.deltaOnHand}, ${deltaReserved}, ${deltaUnavailable},
-          ${input.movementType}, ${input.reason ?? null}, ${input.transferDirection ?? null},
-          ${input.sourceSystem}, ${input.sourceEventId}, ${input.correlationId ?? null},
-          ${input.note ?? null}, ${input.createdBy ?? null},
-          ${constraintsValid ? newOnHand : current.quantity_on_hand},
-          ${constraintsValid ? newReserved : current.reserved_qty},
-          ${constraintsValid ? newUnavailable : current.unavailable_qty},
-          ${constraintsValid ? "APPLIED" : "REJECTED"}
-        )
-      `);
+      await tx.insert(stockChanges).values({
+        id: changeId,
+        projectId: this.storeId,
+        warehouseId: input.warehouseId,
+        variantId: input.variantId,
+        deltaOnHand: input.deltaOnHand,
+        deltaReserved: deltaReserved,
+        deltaUnavailable: deltaUnavailable,
+        movementType: input.movementType,
+        reason: input.reason,
+        transferDirection: input.transferDirection,
+        sourceSystem: input.sourceSystem,
+        sourceEventId: input.sourceEventId,
+        correlationId: input.correlationId,
+        note: input.note,
+        createdBy: input.createdBy,
+        onHandAfter: constraintsValid ? newOnHand : current.quantityOnHand,
+        reservedAfter: constraintsValid ? newReserved : current.reservedQty,
+        unavailableAfter: constraintsValid
+          ? newUnavailable
+          : current.unavailableQty,
+        applyStatus: constraintsValid ? "APPLIED" : "REJECTED",
+      } satisfies NewStockChange);
 
       // 6. Update stock if constraints are valid
       if (constraintsValid) {
+        const now = new Date();
         if (currentStock.length === 0) {
           // Insert new stock record
-          await tx.execute(sql`
-            INSERT INTO inventory.warehouse_stock (
-              id, project_id, warehouse_id, variant_id,
-              quantity_on_hand, reserved_qty, unavailable_qty
-            ) VALUES (
-              ${uuidv7()}, ${this.storeId}, ${input.warehouseId}, ${input.variantId},
-              ${newOnHand}, ${newReserved}, ${newUnavailable}
-            )
-          `);
+          await tx.insert(warehouseStock).values({
+            id: uuidv7(),
+            projectId: this.storeId,
+            warehouseId: input.warehouseId,
+            variantId: input.variantId,
+            quantityOnHand: newOnHand,
+            reservedQty: newReserved,
+            unavailableQty: newUnavailable,
+            createdAt: now,
+            updatedAt: now,
+          } satisfies NewWarehouseStock);
         } else {
           // Update existing stock
-          await tx.execute(sql`
-            UPDATE inventory.warehouse_stock SET
-              quantity_on_hand = ${newOnHand},
-              reserved_qty = ${newReserved},
-              unavailable_qty = ${newUnavailable},
-              updated_at = NOW()
-            WHERE project_id = ${this.storeId}
-              AND warehouse_id = ${input.warehouseId}
-              AND variant_id = ${input.variantId}
-          `);
+          await tx
+            .update(warehouseStock)
+            .set({
+              quantityOnHand: newOnHand,
+              reservedQty: newReserved,
+              unavailableQty: newUnavailable,
+              updatedAt: now,
+            })
+            .where(
+              and(
+                eq(warehouseStock.projectId, this.storeId),
+                eq(warehouseStock.warehouseId, input.warehouseId),
+                eq(warehouseStock.variantId, input.variantId),
+              ),
+            );
         }
         return { status: "APPLIED" as const, changeId };
       }
