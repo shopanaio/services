@@ -37,7 +37,7 @@ import { useColumnLayout } from "./hooks/use-column-layout";
 // Styles
 // ============================================================================
 
-const useStyles = createStyles(({ token }) => ({
+const useStyles = createStyles(({ token, isDarkMode }) => ({
   container: {
     width: "100%",
     display: "flex",
@@ -55,6 +55,26 @@ const useStyles = createStyles(({ token }) => ({
     },
     "& .react-flow__node:focus": {
       outline: "none",
+    },
+    // Dark theme for Controls panel
+    "& .react-flow__controls": {
+      background: token.colorBgContainer,
+      borderColor: token.colorBorder,
+      boxShadow: token.boxShadowSecondary,
+    },
+    "& .react-flow__controls-button": {
+      background: token.colorBgContainer,
+      borderColor: token.colorBorder,
+      fill: token.colorText,
+      "&:hover": {
+        background: token.colorBgTextHover,
+      },
+    },
+    // Dark theme for edge labels
+    "& .react-flow__edgelabel-renderer": {
+      "& .ant-tag": {
+        background: isDarkMode ? token.colorBgElevated : undefined,
+      },
     },
   },
   controls: {

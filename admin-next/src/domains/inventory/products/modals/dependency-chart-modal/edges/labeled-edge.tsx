@@ -10,7 +10,7 @@ import { createStyles } from "antd-style";
 // Styles
 // ============================================================================
 
-const useStyles = createStyles(() => ({
+const useStyles = createStyles(({ token }) => ({
   labelContainer: {
     position: "absolute",
     pointerEvents: "all",
@@ -21,7 +21,6 @@ const useStyles = createStyles(() => ({
     fontSize: 10,
     lineHeight: 1.4,
     padding: "2px 6px",
-    borderStyle: "dashed",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
@@ -56,7 +55,7 @@ const LabeledEdgeComponent = ({
     targetPosition,
   });
 
-  const strokeColor = (style?.stroke as string) ?? "#1890ff";
+  const strokeColor = style?.stroke as string;
 
   // Get all labels for this target (grouped)
   const labels = (data as { labels?: string[] } | undefined)?.labels ?? [];
