@@ -216,11 +216,6 @@ export const RuleInspector = ({
     onRuleChange({ ...rule, enabled });
   };
 
-  const handlePriorityChange = (priority: number | null) => {
-    if (!rule || priority === null) return;
-    onRuleChange({ ...rule, priority });
-  };
-
   // Condition handlers
   const handleAddCondition = () => {
     if (!rule) return;
@@ -348,15 +343,6 @@ export const RuleInspector = ({
               />
               <Typography.Text>Enabled</Typography.Text>
             </Space>
-          </div>
-          <div className={styles.field}>
-            <Typography.Text className={styles.fieldLabel}>Priority</Typography.Text>
-            <InputNumber
-              value={rule.priority}
-              onChange={handlePriorityChange}
-              min={0}
-              style={{ width: "100%" }}
-            />
           </div>
         </div>
 

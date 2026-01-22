@@ -7,7 +7,6 @@ import {
   Table,
   Button,
   Input,
-  InputNumber,
   Switch,
   Popconfirm,
   Space,
@@ -463,15 +462,6 @@ export const DependencyRulesTable = ({
     [rules, onRulesChange]
   );
 
-  const handlePriorityChange = useCallback(
-    (id: string, priority: number) => {
-      onRulesChange(
-        rules.map((r) => (r.id === id ? { ...r, priority } : r))
-      );
-    },
-    [rules, onRulesChange]
-  );
-
   // ========================================
   // Dropdown menu for actions
   // ========================================
@@ -566,38 +556,6 @@ export const DependencyRulesTable = ({
             onChange={(checked) => handleToggleEnabled(record.id, checked)}
           />
         ),
-      },
-      {
-        title: "Prio",
-        dataIndex: "priority",
-        key: "priority",
-        width: 70,
-        sorter: (a, b) => b.priority - a.priority,
-        render: (_, record) => {
-          if (editingRuleId === record.id && editingRule) {
-            return (
-              <InputNumber
-                value={editingRule.priority}
-                onChange={(value) =>
-                  setEditingRule({ ...editingRule, priority: value ?? 0 })
-                }
-                min={0}
-                size="small"
-                style={{ width: 60 }}
-              />
-            );
-          }
-          return (
-            <InputNumber
-              value={record.priority}
-              onChange={(value) => handlePriorityChange(record.id, value ?? 0)}
-              min={0}
-              size="small"
-              variant="borderless"
-              style={{ width: 60 }}
-            />
-          );
-        },
       },
       {
         title: "Name",
@@ -710,7 +668,6 @@ export const DependencyRulesTable = ({
       styles,
       groups,
       handleToggleEnabled,
-      handlePriorityChange,
       handleEditRuleName,
       handleSaveRule,
       handleCancelEdit,
