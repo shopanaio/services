@@ -1,0 +1,36 @@
+query WidgetInventory($productId: ID!) {
+  widgetQuery {
+    inventory(productId: $productId) {
+      quantities {
+        availableForSale
+        onHand
+        reserved
+        unavailable
+      }
+      availableChange7d
+      skuStatus {
+        total
+        lowStock {
+          count
+          averageDays
+        }
+        outOfStock {
+          count
+          averageDays
+        }
+        backorder {
+          count
+          averageDays
+        }
+      }
+      backorder {
+        quantity
+        etaAvgDays
+      }
+      alertThreshold {
+        method
+        minimumStock
+      }
+    }
+  }
+}

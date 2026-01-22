@@ -19,6 +19,8 @@ export type GraphQLFileName =
   | 'inventory-api/VariantSetPricing'
   | 'inventory-api/VariantSetStock'
   | 'inventory-api/VariantSetWeight'
+  | 'inventory-api/WidgetInventory'
+  | 'inventory-api/WidgetPricing'
   | 'inventory-api/WarehouseCreate'
   | 'inventory-api/WarehouseDelete'
   | 'inventory-api/WarehouseFindMany'
