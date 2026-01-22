@@ -48,8 +48,6 @@ const useStyles = createStyles(({ token }) => ({
     display: "flex",
     gap: 16,
     flexDirection: "column",
-    paddingBlock: 16,
-    paddingInline: 16,
     flex: 1,
     minHeight: 0,
     width: "100%",

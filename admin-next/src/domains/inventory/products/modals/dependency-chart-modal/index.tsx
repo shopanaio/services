@@ -42,6 +42,8 @@ const useStyles = createStyles(({ token, isDarkMode }) => ({
     width: "100%",
     display: "flex",
     height: "calc(100vh - 120px)",
+    padding: token.padding,
+    boxSizing: "border-box",
   },
   chartArea: {
     flex: 1,
@@ -83,28 +85,6 @@ const useStyles = createStyles(({ token, isDarkMode }) => ({
     left: 10,
     display: "flex",
     gap: 8,
-  },
-  legend: {
-    position: "absolute",
-    bottom: 10,
-    left: 10,
-    background: token.colorBgContainer,
-    padding: "8px 12px",
-    borderRadius: token.borderRadius,
-    boxShadow: token.boxShadowTertiary,
-    display: "flex",
-    gap: 16,
-    fontSize: 11,
-  },
-  legendItem: {
-    display: "flex",
-    alignItems: "center",
-    gap: 6,
-  },
-  legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: "50%",
   },
 }));
 
@@ -240,7 +220,6 @@ const DependencyChartInner = ({
       }
     >
       <div className={styles.container}>
-        {/* Chart Area */}
         <div className={styles.chartArea}>
           <ReactFlow
             nodes={nodes}
@@ -264,24 +243,6 @@ const DependencyChartInner = ({
             <Button size="small" icon={<AimOutlined />} onClick={handleFitView}>
               Fit View
             </Button>
-          </div>
-
-          {/* Legend */}
-          <div className={styles.legend}>
-            <div className={styles.legendItem}>
-              <div
-                className={styles.legendDot}
-                style={{ background: "#1890ff" }}
-              />
-              <span>Items</span>
-            </div>
-            <div className={styles.legendItem}>
-              <div
-                className={styles.legendDot}
-                style={{ background: "#faad14" }}
-              />
-              <span>Rules</span>
-            </div>
           </div>
         </div>
 

@@ -362,6 +362,7 @@ export const useDerivedGraph = ({
             condition,
             label: formatConditionLabel(condition.conditionType, condition.value),
             labels: allLabels,
+            tagColor: rule.enabled ? "blue" : "default",
           },
         });
       });
@@ -411,6 +412,7 @@ export const useDerivedGraph = ({
               action.qtyValue
             ),
             labels: allLabels,
+            tagColor: rule.enabled ? "green" : "default",
           },
         });
       });

@@ -10,7 +10,7 @@ import { createStyles } from "antd-style";
 // Styles
 // ============================================================================
 
-const useStyles = createStyles(({ token }) => ({
+const useStyles = createStyles(() => ({
   labelContainer: {
     position: "absolute",
     pointerEvents: "all",
@@ -55,10 +55,10 @@ const LabeledEdgeComponent = ({
     targetPosition,
   });
 
-  const strokeColor = style?.stroke as string;
-
-  // Get all labels for this target (grouped)
-  const labels = (data as { labels?: string[] } | undefined)?.labels ?? [];
+  // Get all labels and tag color for this edge
+  const edgeData = data as { labels?: string[]; tagColor?: string } | undefined;
+  const labels = edgeData?.labels ?? [];
+  const tagColor = edgeData?.tagColor ?? "default";
 
   return (
     <>
@@ -72,7 +72,7 @@ const LabeledEdgeComponent = ({
               top: labelY,
             }}
           >
-            <Tag className={styles.tag} color={strokeColor} variant="outlined">
+            <Tag className={styles.tag} color={tagColor} variant="outlined">
               {labels.map((label, index) => (
                 <span key={index}>{label}</span>
               ))}
