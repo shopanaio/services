@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 
 import type { IComponentGroup, IDependencyRule } from "../../../types";
-import type { ConditionEdgeData, ActionEdgeData } from "../types";
 import {
   DependencyConditionType,
   DependencyActionType,
@@ -259,33 +258,71 @@ export const useDerivedGraph = ({
       });
     });
 
-    // 6. Collect all edge info first, then aggregate labels by target
-    interface EdgeLabel {
-      label: string;
-      color: string;
-    }
+    // 6. First pass: collect labels by groups
+    // Conditions: group by SOURCE item
+    // Actions: group by TARGET item
+    const conditionSourceLabelsMap = new Map<string, string[]>();
+    const actionTargetLabelsMap = new Map<string, string[]>();
 
-    // Map: targetNodeId -> array of labels with colors
-    const targetLabelsMap = new Map<string, EdgeLabel[]>();
-    // Map: targetNodeId -> primary edge id (first edge to this target)
-    const primaryEdgeMap = new Map<string, string>();
+    rules.forEach((rule) => {
+      // Collect condition labels by SOURCE
+      rule.conditions.forEach((condition) => {
+        if (condition.targetType === DependencyTargetType.BUNDLE) return;
+        if (!condition.targetId) return;
 
-    // Temporary storage for edges before aggregation
-    interface TempEdge {
-      id: string;
-      source: string;
-      target: string;
-      animated: boolean;
-      color: string;
-      label: string;
-      data: Record<string, unknown>;
-    }
-    const tempEdges: TempEdge[] = [];
+        let sourceNodeId: string;
+        if (condition.targetType === DependencyTargetType.ITEM) {
+          sourceNodeId = duplicatedItemIds.has(condition.targetId)
+            ? `item:${condition.targetId}:source`
+            : `item:${condition.targetId}`;
+        } else {
+          sourceNodeId = duplicatedGroupIds.has(condition.targetId)
+            ? `group:${condition.targetId}:source`
+            : `group:${condition.targetId}`;
+        }
 
+        const label = formatConditionLabel(condition.conditionType, condition.value);
+        if (!conditionSourceLabelsMap.has(sourceNodeId)) {
+          conditionSourceLabelsMap.set(sourceNodeId, []);
+        }
+        conditionSourceLabelsMap.get(sourceNodeId)!.push(label);
+      });
+
+      // Collect action labels by TARGET
+      rule.actions.forEach((action) => {
+        let targetNodeId: string;
+        if (action.targetType === DependencyTargetType.BUNDLE) {
+          targetNodeId = "bundle:main";
+        } else if (action.targetType === DependencyTargetType.ITEM) {
+          if (!action.targetId) return;
+          targetNodeId = duplicatedItemIds.has(action.targetId)
+            ? `item:${action.targetId}:target`
+            : `item:${action.targetId}`;
+        } else {
+          if (!action.targetId) return;
+          targetNodeId = duplicatedGroupIds.has(action.targetId)
+            ? `group:${action.targetId}:target`
+            : `group:${action.targetId}`;
+        }
+
+        const label = formatActionLabel(
+          action.actionType,
+          action.priceType,
+          action.priceValue,
+          action.qtyValue
+        );
+        if (!actionTargetLabelsMap.has(targetNodeId)) {
+          actionTargetLabelsMap.set(targetNodeId, []);
+        }
+        actionTargetLabelsMap.get(targetNodeId)!.push(label);
+      });
+    });
+
+    // 7. Create edges with grouped labels
     rules.forEach((rule) => {
       const ruleNodeId = `rule:${rule.id}`;
 
-      // Create edges from condition sources to rule
+      // Condition edges: grouped by SOURCE item
       rule.conditions.forEach((condition) => {
         if (condition.targetType === DependencyTargetType.BUNDLE) return;
         if (!condition.targetId) return;
@@ -303,28 +340,28 @@ export const useDerivedGraph = ({
 
         if (!nodeIds.has(sourceNodeId)) return;
 
-        const color = rule.enabled ? "#1890ff" : "#d9d9d9";
-        const label = formatConditionLabel(condition.conditionType, condition.value);
+        // All condition labels from this source item
+        const allLabels = conditionSourceLabelsMap.get(sourceNodeId) ?? [];
 
-        tempEdges.push({
+        edges.push({
           id: `cond:${condition.id}`,
           source: sourceNodeId,
           target: ruleNodeId,
+          type: "labeled",
           animated: rule.enabled,
-          color,
-          label,
-          data: { condition, label },
+          style: {
+            stroke: rule.enabled ? "#1890ff" : "#d9d9d9",
+            strokeWidth: 2,
+          },
+          data: {
+            condition,
+            label: formatConditionLabel(condition.conditionType, condition.value),
+            labels: allLabels,
+          },
         });
-
-        // Aggregate by target (ruleNodeId for conditions)
-        if (!targetLabelsMap.has(ruleNodeId)) {
-          targetLabelsMap.set(ruleNodeId, []);
-          primaryEdgeMap.set(ruleNodeId, `cond:${condition.id}`);
-        }
-        targetLabelsMap.get(ruleNodeId)!.push({ label, color });
       });
 
-      // Create edges from rule to action targets
+      // Action edges: grouped by TARGET item
       rule.actions.forEach((action) => {
         let targetNodeId: string;
         if (action.targetType === DependencyTargetType.BUNDLE) {
@@ -343,55 +380,30 @@ export const useDerivedGraph = ({
 
         if (!nodeIds.has(targetNodeId)) return;
 
-        const color = rule.enabled ? "#52c41a" : "#d9d9d9";
-        const label = formatActionLabel(
-          action.actionType,
-          action.priceType,
-          action.priceValue,
-          action.qtyValue
-        );
+        // All action labels going to this target item
+        const allLabels = actionTargetLabelsMap.get(targetNodeId) ?? [];
 
-        tempEdges.push({
+        edges.push({
           id: `action:${action.id}`,
           source: ruleNodeId,
           target: targetNodeId,
+          type: "labeled",
           animated: rule.enabled,
-          color,
-          label,
-          data: { action, label },
+          style: {
+            stroke: rule.enabled ? "#52c41a" : "#d9d9d9",
+            strokeWidth: 2,
+          },
+          data: {
+            action,
+            label: formatActionLabel(
+              action.actionType,
+              action.priceType,
+              action.priceValue,
+              action.qtyValue
+            ),
+            labels: allLabels,
+          },
         });
-
-        // Aggregate by target (targetNodeId for actions)
-        if (!targetLabelsMap.has(targetNodeId)) {
-          targetLabelsMap.set(targetNodeId, []);
-          primaryEdgeMap.set(targetNodeId, `action:${action.id}`);
-        }
-        targetLabelsMap.get(targetNodeId)!.push({ label, color });
-      });
-    });
-
-    // 7. Create final edges with aggregated labels
-    tempEdges.forEach((tempEdge) => {
-      const isPrimaryForTarget = primaryEdgeMap.get(tempEdge.target) === tempEdge.id;
-      const allLabels = isPrimaryForTarget
-        ? targetLabelsMap.get(tempEdge.target) ?? []
-        : [];
-
-      edges.push({
-        id: tempEdge.id,
-        source: tempEdge.source,
-        target: tempEdge.target,
-        type: "labeled",
-        animated: tempEdge.animated,
-        style: {
-          stroke: tempEdge.color,
-          strokeWidth: 2,
-        },
-        data: {
-          ...tempEdge.data,
-          // Only primary edge shows aggregated labels
-          labels: allLabels,
-        } as ConditionEdgeData | ActionEdgeData,
       });
     });
 

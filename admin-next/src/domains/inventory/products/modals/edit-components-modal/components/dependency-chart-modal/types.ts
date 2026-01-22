@@ -61,24 +61,19 @@ export type ChartNode = ItemNode | GroupNode | RuleNode | BundleNode | DefaultNo
 // Edge Data Types (with index signature for React Flow compatibility)
 // ============================================================================
 
-export interface EdgeLabel {
-  label: string;
-  color: string;
-}
-
 export interface ConditionEdgeData {
   condition: IDependencyCondition;
   label: string;
-  /** Aggregated labels for edges pointing to the same target */
-  labels?: EdgeLabel[];
+  /** All labels for edges pointing to the same target */
+  labels?: string[];
   [key: string]: unknown;
 }
 
 export interface ActionEdgeData {
   action: IDependencyAction;
   label: string;
-  /** Aggregated labels for edges pointing to the same target */
-  labels?: EdgeLabel[];
+  /** All labels for edges pointing to the same target */
+  labels?: string[];
   [key: string]: unknown;
 }
 

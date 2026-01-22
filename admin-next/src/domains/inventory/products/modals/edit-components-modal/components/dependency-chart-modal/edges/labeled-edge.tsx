@@ -34,15 +34,6 @@ const useStyles = createStyles(() => ({
 }));
 
 // ============================================================================
-// Types
-// ============================================================================
-
-interface EdgeLabel {
-  label: string;
-  color: string;
-}
-
-// ============================================================================
 // Component
 // ============================================================================
 
@@ -69,26 +60,10 @@ const LabeledEdgeComponent = ({
     targetPosition,
   });
 
-  // Get labels array from data (aggregated labels for primary edge)
-  const labels = (data as { labels?: EdgeLabel[] } | undefined)?.labels ?? [];
+  const strokeColor = (style?.stroke as string) ?? "#1890ff";
 
-  // Get the primary color (first label's color or stroke color)
-  const primaryColor = labels[0]?.color ?? (style?.stroke as string) ?? "#1890ff";
-
-  // If no labels, don't render tag (non-primary edge)
-  if (labels.length === 0) {
-    return (
-      <BaseEdge
-        id={id}
-        path={edgePath}
-        markerEnd={markerEnd}
-        style={{
-          ...style,
-          strokeDasharray: "6,4",
-        }}
-      />
-    );
-  }
+  // Get all labels for this target (grouped)
+  const labels = (data as { labels?: string[] } | undefined)?.labels ?? [];
 
   return (
     <>
@@ -101,21 +76,23 @@ const LabeledEdgeComponent = ({
           strokeDasharray: "6,4",
         }}
       />
-      <EdgeLabelRenderer>
-        <div
-          className={styles.labelContainer}
-          style={{
-            left: labelX,
-            top: labelY,
-          }}
-        >
-          <Tag className={styles.tag} color={primaryColor} bordered>
-            {labels.map((labelItem, index) => (
-              <span key={index}>{labelItem.label}</span>
-            ))}
-          </Tag>
-        </div>
-      </EdgeLabelRenderer>
+      {labels.length > 0 && (
+        <EdgeLabelRenderer>
+          <div
+            className={styles.labelContainer}
+            style={{
+              left: labelX,
+              top: labelY,
+            }}
+          >
+            <Tag className={styles.tag} color={strokeColor} bordered>
+              {labels.map((label, index) => (
+                <span key={index}>{label}</span>
+              ))}
+            </Tag>
+          </div>
+        </EdgeLabelRenderer>
+      )}
     </>
   );
 };
