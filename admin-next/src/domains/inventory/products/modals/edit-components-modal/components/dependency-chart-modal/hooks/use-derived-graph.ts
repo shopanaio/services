@@ -348,7 +348,7 @@ export const useDerivedGraph = ({
           source: sourceNodeId,
           target: ruleNodeId,
           type: "labeled",
-          animated: rule.enabled,
+          animated: false,
           style: {
             stroke: rule.enabled ? "#1890ff" : "#d9d9d9",
             strokeWidth: 2,
@@ -388,7 +388,7 @@ export const useDerivedGraph = ({
           source: ruleNodeId,
           target: targetNodeId,
           type: "labeled",
-          animated: rule.enabled,
+          animated: false,
           style: {
             stroke: rule.enabled ? "#52c41a" : "#d9d9d9",
             strokeWidth: 2,
