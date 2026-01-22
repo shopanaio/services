@@ -55,6 +55,7 @@ export async function startServer(serverConfig: ServerConfig) {
   }
 
   const app = fastify({
+    disableRequestLogging: true,
     logger: isDevelopment(global)
       ? {
           level: global.log_level ?? "info",
@@ -95,7 +96,11 @@ export async function startServer(serverConfig: ServerConfig) {
   const apollo = new ApolloServer<ServiceContext>({
     introspection: true,
     schema: buildSubgraphSchema(modules),
-    plugins: [fastifyApolloDrainPlugin(app), timingPlugin, ApolloServerPluginInlineTraceDisabled()],
+    plugins: [
+      fastifyApolloDrainPlugin(app),
+      timingPlugin,
+      ApolloServerPluginInlineTraceDisabled(),
+    ],
     formatError: (formattedError, error) => {
       // Handle ForbiddenError from context middleware
       const originalError =
@@ -177,7 +182,7 @@ export async function startServer(serverConfig: ServerConfig) {
   });
 
   app.log.info(
-    `project GraphQL Admin API ready at http://localhost:${serverConfig.port}/graphql`
+    `project GraphQL Admin API ready at http://localhost:${serverConfig.port}/graphql`,
   );
 
   return app;

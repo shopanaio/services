@@ -40,6 +40,7 @@ export async function startServer(serverConfig: ServerConfig) {
   }
 
   const app = fastify({
+    disableRequestLogging: process.env.NODE_ENV === "test",
     logger: isDevelopment(global)
       ? {
           level: global.log_level ?? "info",
@@ -91,8 +92,12 @@ export async function startServer(serverConfig: ServerConfig) {
   // Create Apollo Server
   const apollo = new ApolloServer<ServiceContext>({
     introspection: true,
+    // @ts-expect-error
     schema: buildSubgraphSchema(modules),
-    plugins: [fastifyApolloDrainPlugin(app), ApolloServerPluginInlineTraceDisabled()],
+    plugins: [
+      fastifyApolloDrainPlugin(app),
+      ApolloServerPluginInlineTraceDisabled(),
+    ],
   });
 
   await apollo.start();
@@ -158,7 +163,7 @@ export async function startServer(serverConfig: ServerConfig) {
   });
 
   app.log.info(
-    `inventory GraphQL Admin API ready at http://localhost:${serverConfig.port}/graphql`
+    `inventory GraphQL Admin API ready at http://localhost:${serverConfig.port}/graphql`,
   );
 
   return app;

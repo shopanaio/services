@@ -11,7 +11,10 @@ import { fileURLToPath } from "url";
 import { gql } from "graphql-tag";
 
 import type { ServiceBroker } from "@shopana/shared-kernel";
-import { getServiceConfig, isDevelopment } from "@shopana/shared-service-config";
+import {
+  getServiceConfig,
+  isDevelopment,
+} from "@shopana/shared-service-config";
 import { createResolvers } from "./resolvers";
 import type { GraphQLContext } from "@src/kernel/types";
 import type { Kernel } from "@src/kernel/Kernel";
@@ -25,6 +28,7 @@ const { service, global } = getServiceConfig("apps");
  */
 export async function startServer(broker: ServiceBroker, kernel: Kernel) {
   const app = fastify({
+    disableRequestLogging: true,
     logger: isDevelopment(global)
       ? {
           level: global.log_level ?? "info",
@@ -34,7 +38,7 @@ export async function startServer(broker: ServiceBroker, kernel: Kernel) {
               colorize: true,
               translateTime: "SYS:HH:MM:ss.l",
               ignore: "pid,hostname,reqId,responseTime",
-              messageFormat: '[APPS] {msg}',
+              messageFormat: "[APPS] {msg}",
               levelFirst: true,
             },
           },
@@ -66,7 +70,10 @@ export async function startServer(broker: ServiceBroker, kernel: Kernel) {
   const apollo = new ApolloServer<GraphQLContext>({
     introspection: true,
     schema: buildSubgraphSchema(modules),
-    plugins: [fastifyApolloDrainPlugin(app), ApolloServerPluginInlineTraceDisabled()],
+    plugins: [
+      fastifyApolloDrainPlugin(app),
+      ApolloServerPluginInlineTraceDisabled(),
+    ],
   });
 
   await apollo.start();
@@ -80,7 +87,10 @@ export async function startServer(broker: ServiceBroker, kernel: Kernel) {
     const grpcConfig = {
       getGrpcHost: () => global.platform_grpc_host,
     };
-    await graphqlInstance.addHook("preHandler", buildCoreContextMiddleware(grpcConfig));
+    await graphqlInstance.addHook(
+      "preHandler",
+      buildCoreContextMiddleware(grpcConfig),
+    );
 
     // GraphQL endpoint with simplified context
     await graphqlInstance.register(fastifyApollo(apollo), {
@@ -127,12 +137,8 @@ export async function startServer(broker: ServiceBroker, kernel: Kernel) {
     host: "0.0.0.0",
   });
 
-  app.log.info(
-    `apps ready at http://localhost:${port}${graphqlPath}`
-  );
-  app.log.info(
-    `Health check available at http://localhost:${port}/`
-  );
+  app.log.info(`apps ready at http://localhost:${port}${graphqlPath}`);
+  app.log.info(`Health check available at http://localhost:${port}/`);
 
   return app;
 }

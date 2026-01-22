@@ -52,6 +52,7 @@ export async function startServer(serverConfig: ServerConfig) {
   }
 
   const app = fastify({
+    disableRequestLogging: true,
     logger: isDevelopment(global)
       ? {
           level: global.log_level ?? "info",
@@ -95,7 +96,11 @@ export async function startServer(serverConfig: ServerConfig) {
   const apollo = new ApolloServer<ServiceContext>({
     introspection: true,
     schema: buildSubgraphSchema(modules),
-    plugins: [fastifyApolloDrainPlugin(app), timingPlugin, ApolloServerPluginInlineTraceDisabled()],
+    plugins: [
+      fastifyApolloDrainPlugin(app),
+      timingPlugin,
+      ApolloServerPluginInlineTraceDisabled(),
+    ],
   });
 
   await apollo.start();
@@ -116,8 +121,8 @@ export async function startServer(serverConfig: ServerConfig) {
           (typeof forwardedFor === "string"
             ? forwardedFor.split(",")[0].trim()
             : Array.isArray(forwardedFor)
-            ? forwardedFor[0]
-            : realIp) || request.ip;
+              ? forwardedFor[0]
+              : realIp) || request.ip;
 
         const ctx: ServiceContext = {
           requestId: request.id as string,
@@ -163,7 +168,7 @@ export async function startServer(serverConfig: ServerConfig) {
   });
 
   app.log.info(
-    `iam GraphQL Admin API ready at http://localhost:${serverConfig.port}/graphql`
+    `iam GraphQL Admin API ready at http://localhost:${serverConfig.port}/graphql`,
   );
 
   return app;
