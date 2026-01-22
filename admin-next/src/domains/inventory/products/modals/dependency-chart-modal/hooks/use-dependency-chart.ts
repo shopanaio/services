@@ -1,5 +1,5 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
-import { useNodesState, useEdgesState, useReactFlow } from "@xyflow/react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
+import { useReactFlow, useNodesState, useEdgesState } from "@xyflow/react";
 import type { Node, Edge } from "@xyflow/react";
 
 import type { IDependencyRule, IComponentGroup } from "../../edit-components-modal/types";
@@ -33,31 +33,43 @@ export const useDependencyChart = ({
   });
 
   // Apply column layout
-  const layoutedNodes = useColumnLayout({
+  const layoutNodes = useColumnLayout({
     nodes: derivedNodes,
     edges: derivedEdges,
   });
 
-  // React Flow state
-  const [nodes, setNodes, onNodesChange] = useNodesState(layoutedNodes as Node[]);
+  // React Flow's internal state - handles dragging efficiently
+  const [nodes, setNodes, onNodesChange] = useNodesState(layoutNodes as Node[]);
   const [edges, setEdges, onEdgesChange] = useEdgesState(derivedEdges as Edge[]);
 
-  // Update nodes/edges when draft rules change, preserving existing positions
+  // Track previous layout to detect structural changes
+  const prevLayoutRef = useRef<string>("");
+
+  // Sync derived data with React Flow state when structure changes
   useEffect(() => {
-    setNodes((currentNodes) => {
-      const currentPositions = new Map(
-        currentNodes.map((n) => [n.id, n.position])
-      );
-      return layoutedNodes.map((node) => {
-        const existingPosition = currentPositions.get(node.id);
-        if (existingPosition) {
-          return { ...node, position: existingPosition } as Node;
-        }
-        return node as Node;
+    const currentLayout = layoutNodes.map((n) => `${n.id}:${n.type}`).join(",");
+    const edgeLayout = derivedEdges.map((e) => e.id).join(",");
+    const layoutKey = `${currentLayout}|${edgeLayout}`;
+
+    if (prevLayoutRef.current !== layoutKey) {
+      prevLayoutRef.current = layoutKey;
+
+      // Merge new layout with existing positions
+      setNodes((currentNodes) => {
+        const positionMap = new Map(currentNodes.map((n) => [n.id, n.position]));
+
+        return layoutNodes.map((node) => {
+          const existingPos = positionMap.get(node.id);
+          return {
+            ...node,
+            position: existingPos ?? node.position,
+          } as Node;
+        });
       });
-    });
-    setEdges(derivedEdges as Edge[]);
-  }, [layoutedNodes, derivedEdges, setNodes, setEdges]);
+
+      setEdges(derivedEdges as Edge[]);
+    }
+  }, [layoutNodes, derivedEdges, setNodes, setEdges]);
 
   // Handlers
   const handleNodeClick = useCallback(
@@ -87,13 +99,10 @@ export const useDependencyChart = ({
   );
 
   return {
-    // State
     nodes,
     edges,
     draftRules,
     selectedRule,
-
-    // Handlers
     onNodesChange,
     onEdgesChange,
     handleNodeClick,
