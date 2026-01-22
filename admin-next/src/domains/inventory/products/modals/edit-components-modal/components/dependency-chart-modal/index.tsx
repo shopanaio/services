@@ -18,7 +18,7 @@ import {
   useReactFlow,
   ReactFlowProvider,
 } from "@xyflow/react";
-import type { Node, Edge } from "@xyflow/react";
+import type { Node, Edge, Connection } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
 import {
@@ -27,7 +27,23 @@ import {
   ModalHeader,
 } from "@/layouts/modals";
 import type { IDependencyChartModalPayload } from "../../../../modals";
-import type { IDependencyRule, IComponentGroup } from "../../types";
+import type {
+  IDependencyRule,
+  IDependencyCondition,
+  IDependencyAction,
+  IComponentGroup,
+} from "../../types";
+import {
+  DependencyConditionType,
+  DependencyActionType,
+  DependencyTargetType,
+} from "../../types";
+import {
+  ITEM_HANDLES,
+  GROUP_HANDLES,
+  RULE_HANDLES,
+  BUNDLE_HANDLES,
+} from "./types";
 
 import { ItemNode, GroupNode, RuleNode, BundleNode } from "./nodes";
 import { RuleInspector } from "./sidebar/rule-inspector";
@@ -92,6 +108,69 @@ const nodeTypes = {
   rule: RuleNode,
   bundle: BundleNode,
 } as const;
+
+// ============================================================================
+// Handle to Type Mapping
+// ============================================================================
+
+const handleToConditionType = (
+  handle: string
+): DependencyConditionType | null => {
+  switch (handle) {
+    case ITEM_HANDLES.COND_SELECTED:
+      return DependencyConditionType.IS_SELECTED;
+    case ITEM_HANDLES.COND_NOT_SELECTED:
+      return DependencyConditionType.IS_NOT_SELECTED;
+    case ITEM_HANDLES.COND_QTY:
+      return DependencyConditionType.QTY_GTE;
+    case GROUP_HANDLES.COND_VALID:
+      return DependencyConditionType.GROUP_VALID;
+    case GROUP_HANDLES.COND_INVALID:
+      return DependencyConditionType.GROUP_INVALID;
+    case GROUP_HANDLES.COND_COUNT_UNIQUE:
+      return DependencyConditionType.GROUP_UNIQUE_GTE;
+    case GROUP_HANDLES.COND_COUNT_TOTAL:
+      return DependencyConditionType.GROUP_TOTAL_QTY_GTE;
+    default:
+      return null;
+  }
+};
+
+const handleToActionType = (handle: string): DependencyActionType | null => {
+  switch (handle) {
+    case ITEM_HANDLES.ACT_AVAILABILITY:
+    case GROUP_HANDLES.ACT_AVAILABILITY:
+      return DependencyActionType.DISABLE;
+    case ITEM_HANDLES.ACT_VISIBILITY:
+    case GROUP_HANDLES.ACT_VISIBILITY:
+      return DependencyActionType.HIDE;
+    case ITEM_HANDLES.ACT_PRICE:
+    case BUNDLE_HANDLES.ACT_PRICE:
+      return DependencyActionType.ADJUST_PRICE;
+    case ITEM_HANDLES.ACT_QTY:
+      return DependencyActionType.SET_QTY;
+    default:
+      return null;
+  }
+};
+
+const parseNodeId = (nodeId: string): { type: string; id: string } => {
+  const [type, ...rest] = nodeId.split(":");
+  return { type, id: rest.join(":") };
+};
+
+const getTargetType = (nodeType: string): DependencyTargetType => {
+  switch (nodeType) {
+    case "item":
+      return DependencyTargetType.ITEM;
+    case "group":
+      return DependencyTargetType.GROUP;
+    case "bundle":
+      return DependencyTargetType.BUNDLE;
+    default:
+      return DependencyTargetType.ITEM;
+  }
+};
 
 // ============================================================================
 // Inner Component (needs ReactFlowProvider context)
@@ -166,6 +245,161 @@ const DependencyChartInner = ({
     );
   }, []);
 
+  // Update a specific rule by ID
+  const updateDraftRule = useCallback(
+    (ruleId: string, updater: (rule: IDependencyRule) => IDependencyRule) => {
+      setDraftRules((prev) =>
+        prev.map((r) => (r.id === ruleId ? updater(r) : r))
+      );
+    },
+    []
+  );
+
+  // Create a new rule and return its ID
+  const createNewRule = useCallback((): string => {
+    const maxPriority = Math.max(0, ...draftRules.map((r) => r.priority));
+    const newRule: IDependencyRule = {
+      id: `rule-${Date.now()}`,
+      name: "New Rule",
+      enabled: true,
+      priority: maxPriority + 100,
+      conditions: [],
+      actions: [],
+    };
+    setDraftRules((prev) => [...prev, newRule]);
+    return newRule.id;
+  }, [draftRules]);
+
+  // Handle edge connections from drag-and-drop
+  const handleConnect = useCallback(
+    (connection: Connection) => {
+      if (!connection.source || !connection.target) return;
+
+      const source = parseNodeId(connection.source);
+      const target = parseNodeId(connection.target);
+      const sourceHandle = connection.sourceHandle;
+      const targetHandle = connection.targetHandle;
+
+      // Case 1: Item/Group → Rule (add condition)
+      if (
+        (source.type === "item" || source.type === "group") &&
+        target.type === "rule" &&
+        sourceHandle?.startsWith("cond:")
+      ) {
+        const conditionType = handleToConditionType(sourceHandle);
+        if (!conditionType) return;
+
+        const newCondition: IDependencyCondition = {
+          id: `cond-${Date.now()}`,
+          conditionType,
+          targetType: getTargetType(source.type),
+          targetId: source.id,
+          // Add default value for quantity-based conditions
+          value: [
+            DependencyConditionType.QTY_GTE,
+            DependencyConditionType.QTY_LTE,
+            DependencyConditionType.QTY_EQ,
+            DependencyConditionType.GROUP_UNIQUE_GTE,
+            DependencyConditionType.GROUP_TOTAL_QTY_GTE,
+          ].includes(conditionType)
+            ? 1
+            : undefined,
+        };
+
+        updateDraftRule(target.id, (rule) => ({
+          ...rule,
+          conditions: [...rule.conditions, newCondition],
+        }));
+
+        // Select the rule to show it in the inspector
+        setSelectedRuleId(target.id);
+      }
+
+      // Case 2: Rule → Item/Group/Bundle (add action)
+      if (
+        source.type === "rule" &&
+        (target.type === "item" ||
+          target.type === "group" ||
+          target.type === "bundle") &&
+        targetHandle?.startsWith("act:")
+      ) {
+        const actionType = handleToActionType(targetHandle);
+        if (!actionType) return;
+
+        const newAction: IDependencyAction = {
+          id: `act-${Date.now()}`,
+          actionType,
+          targetType: getTargetType(target.type),
+          targetId: target.type === "bundle" ? undefined : target.id,
+          // Add default values for specific action types
+          qtyValue: actionType === DependencyActionType.SET_QTY ? 1 : undefined,
+        };
+
+        updateDraftRule(source.id, (rule) => ({
+          ...rule,
+          actions: [...rule.actions, newAction],
+        }));
+
+        // Select the rule to show it in the inspector
+        setSelectedRuleId(source.id);
+      }
+
+      // Case 3: Item/Group → Item/Group/Bundle (create new rule with condition + action)
+      if (
+        (source.type === "item" || source.type === "group") &&
+        (target.type === "item" ||
+          target.type === "group" ||
+          target.type === "bundle") &&
+        sourceHandle?.startsWith("cond:") &&
+        targetHandle?.startsWith("act:")
+      ) {
+        const conditionType = handleToConditionType(sourceHandle);
+        const actionType = handleToActionType(targetHandle);
+        if (!conditionType || !actionType) return;
+
+        const maxPriority = Math.max(0, ...draftRules.map((r) => r.priority));
+        const newRuleId = `rule-${Date.now()}`;
+
+        const newCondition: IDependencyCondition = {
+          id: `cond-${Date.now()}`,
+          conditionType,
+          targetType: getTargetType(source.type),
+          targetId: source.id,
+          value: [
+            DependencyConditionType.QTY_GTE,
+            DependencyConditionType.QTY_LTE,
+            DependencyConditionType.QTY_EQ,
+            DependencyConditionType.GROUP_UNIQUE_GTE,
+            DependencyConditionType.GROUP_TOTAL_QTY_GTE,
+          ].includes(conditionType)
+            ? 1
+            : undefined,
+        };
+
+        const newAction: IDependencyAction = {
+          id: `act-${Date.now() + 1}`,
+          actionType,
+          targetType: getTargetType(target.type),
+          targetId: target.type === "bundle" ? undefined : target.id,
+          qtyValue: actionType === DependencyActionType.SET_QTY ? 1 : undefined,
+        };
+
+        const newRule: IDependencyRule = {
+          id: newRuleId,
+          name: "New Rule",
+          enabled: true,
+          priority: maxPriority + 100,
+          conditions: [newCondition],
+          actions: [newAction],
+        };
+
+        setDraftRules((prev) => [...prev, newRule]);
+        setSelectedRuleId(newRuleId);
+      }
+    },
+    [draftRules, updateDraftRule]
+  );
+
   const handleCloseInspector = useCallback(() => {
     setSelectedRuleId(null);
   }, []);
@@ -208,12 +442,14 @@ const DependencyChartInner = ({
             edges={edges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
+            onConnect={handleConnect}
             onNodeClick={handleNodeClick}
             onPaneClick={handlePaneClick}
             nodeTypes={nodeTypes}
             fitView
             className={styles.reactFlow}
             proOptions={{ hideAttribution: true }}
+            connectionLineStyle={{ stroke: "#faad14", strokeWidth: 2 }}
           >
             <Background />
             <Controls position="top-right" />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { createStyles } from "antd-style";
 import {
   Typography,
@@ -28,8 +28,26 @@ import {
   PartitionOutlined,
   WarningOutlined,
   StopOutlined,
+  HolderOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import type { DragEndEvent } from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 import type {
   IDependencyRule,
@@ -91,7 +109,66 @@ const useStyles = createStyles(({ token }) => ({
   disabledRow: {
     opacity: 0.5,
   },
+  dragHandle: {
+    cursor: "grab",
+    color: token.colorTextSecondary,
+    "&:hover": {
+      color: token.colorText,
+    },
+    "&:active": {
+      cursor: "grabbing",
+    },
+  },
+  draggingRow: {
+    background: token.colorBgContainer,
+    boxShadow: token.boxShadow,
+    zIndex: 1000,
+  },
 }));
+
+// ============================================================================
+// Sortable Row Component
+// ============================================================================
+
+interface SortableRowProps extends React.HTMLAttributes<HTMLTableRowElement> {
+  "data-row-key": string;
+}
+
+const SortableRow = ({ "data-row-key": id, ...props }: SortableRowProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    ...(isDragging ? { position: "relative", zIndex: 9999 } : {}),
+  };
+
+  return (
+    <tr
+      ref={setNodeRef}
+      style={style}
+      {...props}
+      {...attributes}
+    >
+      {/* Inject listeners into the first cell (drag handle) via context */}
+      {React.Children.map(props.children, (child, index) => {
+        if (index === 0 && React.isValidElement(child)) {
+          return React.cloneElement(child as React.ReactElement<any>, {
+            ...listeners,
+          });
+        }
+        return child;
+      })}
+    </tr>
+  );
+};
 
 // ============================================================================
 // Types
@@ -425,10 +502,58 @@ export const DependencyRulesTable = ({
   );
 
   // ========================================
+  // Drag and Drop
+  // ========================================
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+
+      if (over && active.id !== over.id) {
+        const oldIndex = rules.findIndex((r) => r.id === active.id);
+        const newIndex = rules.findIndex((r) => r.id === over.id);
+
+        if (oldIndex !== -1 && newIndex !== -1) {
+          // Reorder rules and recalculate priorities
+          const newRules = arrayMove([...rules], oldIndex, newIndex);
+
+          // Update priorities based on new position (higher position = higher priority)
+          const maxPriority = Math.max(...newRules.map((r) => r.priority), 0);
+          const updatedRules = newRules.map((rule, index) => ({
+            ...rule,
+            priority: maxPriority - index * 10,
+          }));
+
+          onRulesChange(updatedRules);
+        }
+      }
+    },
+    [rules, onRulesChange]
+  );
+
+  // ========================================
   // Table Columns
   // ========================================
   const columns: ColumnsType<IDependencyRule> = useMemo(
     () => [
+      {
+        title: "",
+        key: "drag",
+        width: 32,
+        render: () => (
+          <HolderOutlined className={styles.dragHandle} />
+        ),
+      },
       {
         title: "On",
         dataIndex: "enabled",
@@ -634,16 +759,32 @@ export const DependencyRulesTable = ({
       </div>
 
       {dataSource.length > 0 ? (
-        <Table
-          dataSource={dataSource}
-          columns={columns}
-          rowKey="id"
-          pagination={false}
-          size="small"
-          rowClassName={(record) =>
-            !record.enabled ? styles.disabledRow : ""
-          }
-        />
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={dataSource.map((r) => r.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <Table
+              dataSource={dataSource}
+              columns={columns}
+              rowKey="id"
+              pagination={false}
+              size="small"
+              rowClassName={(record) =>
+                !record.enabled ? styles.disabledRow : ""
+              }
+              components={{
+                body: {
+                  row: SortableRow,
+                },
+              }}
+            />
+          </SortableContext>
+        </DndContext>
       ) : (
         <Empty
           className={styles.emptyState}
