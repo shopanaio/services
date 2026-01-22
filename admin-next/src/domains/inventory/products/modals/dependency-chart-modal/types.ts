@@ -5,7 +5,7 @@ import type {
   IDependencyAction,
   IComponentGroup,
   ComponentItem,
-} from "../../types";
+} from "../edit-components-modal/types";
 
 // ============================================================================
 // Node Data Types (with index signature for React Flow compatibility)

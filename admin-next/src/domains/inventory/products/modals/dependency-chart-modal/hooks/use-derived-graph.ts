@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-import type { IComponentGroup, IDependencyRule } from "../../../types";
+import type { IComponentGroup, IDependencyRule } from "../../edit-components-modal/types";
 import {
   DependencyConditionType,
   DependencyActionType,
@@ -8,7 +8,7 @@ import {
   CONDITION_TYPE_LABELS,
   ACTION_TYPE_LABELS,
   PRICE_RULE_OPTIONS,
-} from "../../../types";
+} from "../../edit-components-modal/types";
 import { MarkerType } from "@xyflow/react";
 import type { ChartNode, ChartEdge, ItemNodeData, RuleNodeData, BundleNodeData } from "../types";
 

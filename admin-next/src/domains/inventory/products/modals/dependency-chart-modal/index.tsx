@@ -21,8 +21,8 @@ import {
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
-import type { IDependencyChartModalPayload } from "../../../../modals";
-import type { IDependencyRule, IComponentGroup } from "../../types";
+import type { IDependencyChartModalPayload } from "../../modals";
+import type { IDependencyRule, IComponentGroup } from "../edit-components-modal/types";
 
 import { ItemNode, RuleNode, BundleNode } from "./nodes";
 import { LabeledEdge } from "./edges";

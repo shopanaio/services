@@ -1,11 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import {
-  BaseEdge,
-  EdgeLabelRenderer,
-  getBezierPath,
-} from "@xyflow/react";
+import { BaseEdge, EdgeLabelRenderer, getBezierPath } from "@xyflow/react";
 import type { EdgeProps } from "@xyflow/react";
 import { Tag } from "antd";
 import { createStyles } from "antd-style";
@@ -67,12 +63,7 @@ const LabeledEdgeComponent = ({
 
   return (
     <>
-      <BaseEdge
-        id={id}
-        path={edgePath}
-        markerEnd={markerEnd}
-        style={style}
-      />
+      <BaseEdge id={id} path={edgePath} markerEnd={markerEnd} style={style} />
       {labels.length > 0 && (
         <EdgeLabelRenderer>
           <div
@@ -82,7 +73,7 @@ const LabeledEdgeComponent = ({
               top: labelY,
             }}
           >
-            <Tag className={styles.tag} color={strokeColor} bordered>
+            <Tag className={styles.tag} color={strokeColor} variant="outlined">
               {labels.map((label, index) => (
                 <span key={index}>{label}</span>
               ))}

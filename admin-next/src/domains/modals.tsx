@@ -247,7 +247,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'dependency-chart',
       component: dynamic(() =>
-        import('@/domains/inventory/products/modals/edit-components-modal/components/dependency-chart-modal').then(
+        import('@/domains/inventory/products/modals/dependency-chart-modal').then(
           (m) => m.DependencyChartModal
         )
       ),

@@ -25,7 +25,7 @@ import type {
   IDependencyCondition,
   IDependencyAction,
   IComponentGroup,
-} from "../../../types";
+} from "../../edit-components-modal/types";
 import {
   DependencyConditionType,
   DependencyActionType,
@@ -37,7 +37,7 @@ import {
   ACTION_TYPES_BY_TARGET,
   PRICE_RULE_OPTIONS,
   ComponentPriceType,
-} from "../../../types";
+} from "../../edit-components-modal/types";
 
 // ============================================================================
 // Styles
