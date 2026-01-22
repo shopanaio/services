@@ -10,7 +10,7 @@ import {
   ACTION_TYPE_LABELS,
   PRICE_RULE_OPTIONS,
 } from "../../../types";
-import type { ChartNode, ChartEdge, ItemNodeData, GroupNodeData, RuleNodeData, BundleNodeData } from "../types";
+import type { ChartNode, ChartEdge, ItemNodeData, GroupNodeData, RuleNodeData } from "../types";
 
 // ============================================================================
 // Helper Functions
@@ -113,16 +113,6 @@ export const useDerivedGraph = ({
       nodes.push(groupNode);
     });
 
-    // 3. Create bundle node
-    const bundleId = "bundle:main";
-    nodeIds.add(bundleId);
-    const bundleNode: ChartNode = {
-      id: bundleId,
-      type: "bundle",
-      data: { label: "Bundle" } as BundleNodeData,
-      position: { x: 0, y: 0 },
-    };
-    nodes.push(bundleNode);
 
     // 4. Create rule nodes and edges
     rules.forEach((rule) => {
@@ -142,10 +132,10 @@ export const useDerivedGraph = ({
 
       // Create edges from condition sources to rule
       rule.conditions.forEach((condition) => {
-        const sourceNodeId =
-          condition.targetType === DependencyTargetType.BUNDLE
-            ? bundleId
-            : `${condition.targetType.toLowerCase()}:${condition.targetId}`;
+        // Skip bundle conditions (not visualized)
+        if (condition.targetType === DependencyTargetType.BUNDLE) return;
+
+        const sourceNodeId = `${condition.targetType.toLowerCase()}:${condition.targetId}`;
 
         // Skip if source node doesn't exist
         if (!nodeIds.has(sourceNodeId)) return;
@@ -174,12 +164,11 @@ export const useDerivedGraph = ({
 
       // Create edges from rule to action targets
       rule.actions.forEach((action) => {
-        const targetNodeId =
-          action.targetType === DependencyTargetType.BUNDLE
-            ? bundleId
-            : action.targetId
-            ? `${action.targetType.toLowerCase()}:${action.targetId}`
-            : bundleId;
+        // Skip bundle actions (not visualized as node)
+        if (action.targetType === DependencyTargetType.BUNDLE) return;
+        if (!action.targetId) return;
+
+        const targetNodeId = `${action.targetType.toLowerCase()}:${action.targetId}`;
 
         // Skip if target node doesn't exist
         if (!nodeIds.has(targetNodeId)) return;
@@ -217,8 +206,13 @@ export const useDerivedGraph = ({
       });
     });
 
-    // FINAL SAFETY: Filter out any edges where source === target
-    const safeEdges = edges.filter((edge) => edge.source !== edge.target);
+    // FINAL SAFETY: Filter out self-references and any group edges
+    const safeEdges = edges.filter((edge) => {
+      if (edge.source === edge.target) return false;
+      if (edge.source.startsWith("group:")) return false;
+      if (edge.target.startsWith("group:")) return false;
+      return true;
+    });
 
     return { nodes, edges: safeEdges };
   }, [groups, rules, selectedRuleId]);

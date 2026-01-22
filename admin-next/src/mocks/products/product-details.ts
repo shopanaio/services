@@ -11,8 +11,8 @@ import {
   ThresholdType,
 } from "@/domains/inventory/products/components/product-details-card/inventory-widget.types";
 import { CurrencyCode, OptionDisplayType, type ApiVariant, type ApiPageInfo } from "@/graphql/types";
-import type { IComponentGroup, PricingRuleTemplate, ITieredDiscount } from "@/domains/inventory/products/modals/edit-components-modal/types";
-import { ComponentItemType, ComponentPriceType } from "@/domains/inventory/products/modals/edit-components-modal/types";
+import type { IComponentGroup, PricingRuleTemplate, ITieredDiscount, IDependencyRule } from "@/domains/inventory/products/modals/edit-components-modal/types";
+import { ComponentItemType, ComponentPriceType, DependencyConditionType, DependencyActionType, DependencyTargetType } from "@/domains/inventory/products/modals/edit-components-modal/types";
 
 const getMockInventoryWidget = (): ProductInventoryWidget => ({
   quantities: {
@@ -293,6 +293,81 @@ const mockTieredDiscounts: ITieredDiscount[] = [
   { id: "tier-3", minItems: 10, discountPercent: 15 },
 ];
 
+// Mock Dependency Rules
+const mockDependencyRules: IDependencyRule[] = [
+  {
+    id: "rule-1",
+    name: "Premium case disables screen protector",
+    enabled: true,
+    priority: 200,
+    conditions: [
+      {
+        id: "cond-1-1",
+        conditionType: DependencyConditionType.IS_SELECTED,
+        targetType: DependencyTargetType.ITEM,
+        targetId: "item-1",
+      },
+    ],
+    actions: [
+      {
+        id: "act-1-1",
+        actionType: DependencyActionType.DISABLE,
+        targetType: DependencyTargetType.ITEM,
+        targetId: "item-3",
+        label: "Premium case has built-in screen protection",
+      },
+    ],
+  },
+  {
+    id: "rule-2",
+    name: "Charger shows extended warranty",
+    enabled: true,
+    priority: 150,
+    conditions: [
+      {
+        id: "cond-2-1",
+        conditionType: DependencyConditionType.IS_SELECTED,
+        targetType: DependencyTargetType.ITEM,
+        targetId: "item-2",
+      },
+    ],
+    actions: [
+      {
+        id: "act-2-1",
+        actionType: DependencyActionType.SHOW,
+        targetType: DependencyTargetType.ITEM,
+        targetId: "item-5",
+        label: "Shows extended warranty option",
+      },
+    ],
+  },
+  {
+    id: "rule-3",
+    name: "Screen protector free with charger",
+    enabled: true,
+    priority: 100,
+    conditions: [
+      {
+        id: "cond-3-1",
+        conditionType: DependencyConditionType.IS_SELECTED,
+        targetType: DependencyTargetType.ITEM,
+        targetId: "item-2",
+      },
+    ],
+    actions: [
+      {
+        id: "act-3-1",
+        actionType: DependencyActionType.ADJUST_PRICE,
+        targetType: DependencyTargetType.ITEM,
+        targetId: "item-3",
+        priceType: ComponentPriceType.FREE,
+        priceValue: null,
+        label: "Free screen protector with charger",
+      },
+    ],
+  },
+];
+
 export const productDetailsMockData: IProductDetailsMockData = {
   categories: {
     primary: mockCategories[0],
@@ -305,6 +380,7 @@ export const productDetailsMockData: IProductDetailsMockData = {
   components: mockComponentGroups,
   pricingTemplates: mockPricingTemplates,
   tieredDiscounts: mockTieredDiscounts,
+  dependencyRules: mockDependencyRules,
   inventory: getMockInventoryWidget(),
 };
 

@@ -140,7 +140,7 @@ export const MOCK_DEPENDENCY_RULES: IDependencyRule[] = [
   },
   {
     id: "rule-2",
-    name: "Charger + Extended Warranty combo",
+    name: "Charger shows extended warranty",
     enabled: true,
     priority: 150,
     conditions: [
@@ -150,48 +150,39 @@ export const MOCK_DEPENDENCY_RULES: IDependencyRule[] = [
         targetType: DependencyTargetType.ITEM,
         targetId: "item-2", // Pro Charger 65W
       },
-      {
-        id: "cond-2-2",
-        conditionType: DependencyConditionType.IS_SELECTED,
-        targetType: DependencyTargetType.ITEM,
-        targetId: "item-5", // 2 Year Extended Warranty
-      },
     ],
     actions: [
       {
         id: "act-2-1",
-        actionType: DependencyActionType.ADJUST_PRICE,
-        targetType: DependencyTargetType.BUNDLE,
-        priceType: ComponentPriceType.DISCOUNT_PERCENT,
-        priceValue: 15,
-        exclusiveKey: "bundleDiscount",
-        applyTo: "COMPONENTS_SUBTOTAL",
-        label: "Charger + Extended Warranty: 15% off",
+        actionType: DependencyActionType.SHOW,
+        targetType: DependencyTargetType.ITEM,
+        targetId: "item-5", // 2 Year Extended Warranty
+        label: "Shows extended warranty option",
       },
     ],
   },
   {
     id: "rule-3",
-    name: "3+ accessories discount",
+    name: "Screen protector free with charger",
     enabled: true,
     priority: 100,
     conditions: [
       {
         id: "cond-3-1",
-        conditionType: DependencyConditionType.GROUP_UNIQUE_GTE,
-        targetType: DependencyTargetType.GROUP,
-        targetId: "grp-1", // Accessories
-        value: 3,
+        conditionType: DependencyConditionType.IS_SELECTED,
+        targetType: DependencyTargetType.ITEM,
+        targetId: "item-2", // Pro Charger 65W
       },
     ],
     actions: [
       {
         id: "act-3-1",
         actionType: DependencyActionType.ADJUST_PRICE,
-        targetType: DependencyTargetType.BUNDLE,
-        priceType: ComponentPriceType.DISCOUNT_PERCENT,
-        priceValue: 10,
-        label: "Full accessories bundle: 10% off",
+        targetType: DependencyTargetType.ITEM,
+        targetId: "item-3", // Screen Protector
+        priceType: ComponentPriceType.FREE,
+        priceValue: null,
+        label: "Free screen protector with charger",
       },
     ],
   },

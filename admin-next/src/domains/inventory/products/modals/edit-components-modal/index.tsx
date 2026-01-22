@@ -34,7 +34,6 @@ import {
   SettingsTab,
 } from "./components";
 import { Paper } from "@/ui-kit/paper";
-import { MOCK_DEPENDENCY_RULES, MOCK_GROUPS } from "./mock-data";
 
 // ============================================================================
 // Styles
@@ -79,7 +78,9 @@ const GroupsTab = ({
   pricingTemplates,
 }: IGroupsTabProps) => {
   const { styles } = useStyles();
-  const [expandedIds, setExpandedIds] = useState<string[]>([groups[0]?.id]);
+  const [expandedIds, setExpandedIds] = useState<string[]>(
+    groups[0]?.id ? [groups[0].id] : []
+  );
 
   const handleToggle = useCallback((groupId: string) => {
     setExpandedIds((prev) =>
@@ -221,7 +222,7 @@ export const EditComponentsModal = () => {
   // State
   const [activeTab, setActiveTab] = useState<EditComponentsTabKey>("groups");
   const [groups, setGroups] = useState<IComponentGroup[]>(
-    modalPayload?.groups ?? MOCK_GROUPS
+    modalPayload?.groups ?? []
   );
   const [pricingTemplates, setPricingTemplates] = useState<
     PricingRuleTemplate[]
@@ -230,7 +231,7 @@ export const EditComponentsModal = () => {
     modalPayload?.tieredDiscounts ?? []
   );
   const [dependencyRules, setDependencyRules] = useState<IDependencyRule[]>(
-    modalPayload?.dependencyRules ?? MOCK_DEPENDENCY_RULES
+    modalPayload?.dependencyRules ?? []
   );
   const [bundleSettings, setBundleSettings] = useState<IBundleSettings>(
     modalPayload?.bundleSettings ?? DEFAULT_BUNDLE_SETTINGS

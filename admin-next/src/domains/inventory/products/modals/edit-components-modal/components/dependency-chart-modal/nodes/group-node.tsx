@@ -1,7 +1,6 @@
 "use client";
 
 import { memo } from "react";
-import { Handle, Position } from "@xyflow/react";
 import type { NodeProps, Node } from "@xyflow/react";
 import { createStyles } from "antd-style";
 import { Typography, Tag } from "antd";
@@ -24,9 +23,6 @@ const useStyles = createStyles(({ token }) => ({
     flexDirection: "column",
     gap: 6,
     boxShadow: token.boxShadowTertiary,
-    "&:hover": {
-      borderColor: token.colorPrimary,
-    },
   },
   header: {
     display: "flex",
@@ -54,12 +50,6 @@ const useStyles = createStyles(({ token }) => ({
     fontSize: 10,
     margin: 0,
   },
-  handle: {
-    width: 8,
-    height: 8,
-    background: token.colorPrimary,
-    border: "none",
-  },
 }));
 
 // ============================================================================
@@ -80,14 +70,6 @@ const GroupNodeComponent = ({ data }: GroupNodeProps) => {
 
   return (
     <div className={styles.node}>
-      {/* Single target handle on left */}
-      <Handle
-        type="target"
-        position={Position.Left}
-        className={styles.handle}
-      />
-
-      {/* Content */}
       <div className={styles.header}>
         <FolderOutlined className={styles.icon} />
         <Typography.Text className={styles.title}>{group.title}</Typography.Text>
@@ -107,13 +89,6 @@ const GroupNodeComponent = ({ data }: GroupNodeProps) => {
           </Tag>
         )}
       </div>
-
-      {/* Single source handle on right */}
-      <Handle
-        type="source"
-        position={Position.Right}
-        className={styles.handle}
-      />
     </div>
   );
 };

@@ -55,6 +55,7 @@ export const ProductDetailsCard = ({
     components: mockData.components,
     pricingTemplates: mockData.pricingTemplates,
     tieredDiscounts: mockData.tieredDiscounts,
+    dependencyRules: mockData.dependencyRules,
   });
 
   const handleEdit = (section: string) => onEditSection?.(section);

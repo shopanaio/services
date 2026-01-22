@@ -6,16 +6,15 @@ import type { ChartNode, ItemNodeData } from "../types";
 // ============================================================================
 
 const COLUMN_X = {
-  left: 50,      // Items & Groups
-  center: 500,   // Rules
-  right: 900,    // Bundle
+  items: 50,     // Items
+  groups: 300,   // Groups
+  rules: 600,    // Rules
 };
 
 const NODE_HEIGHT = {
   item: 60,
   group: 90,
   rule: 80,
-  bundle: 80,
 };
 
 const NODE_GAP = 20;
@@ -34,12 +33,11 @@ export const useColumnLayout = ({ nodes }: UseColumnLayoutOptions): ChartNode[] 
     const itemNodes = nodes.filter((n) => n.type === "item");
     const groupNodes = nodes.filter((n) => n.type === "group");
     const ruleNodes = nodes.filter((n) => n.type === "rule");
-    const bundleNodes = nodes.filter((n) => n.type === "bundle");
 
     const positionedNodes: ChartNode[] = [];
 
     // ========================================
-    // 1. Position items grouped by their group, with group card below
+    // 1. Position items and groups side by side
     // ========================================
     const itemsByGroup = new Map<string, ChartNode[]>();
     itemNodes.forEach((node) => {
@@ -56,21 +54,28 @@ export const useColumnLayout = ({ nodes }: UseColumnLayoutOptions): ChartNode[] 
       const groupId = groupNode.id.replace("group:", "");
       const groupItems = itemsByGroup.get(groupId) || [];
 
+      const groupStartY = currentY;
+
       // Position items of this group
       groupItems.forEach((itemNode) => {
         positionedNodes.push({
           ...itemNode,
-          position: { x: COLUMN_X.left, y: currentY },
+          position: { x: COLUMN_X.items, y: currentY },
         });
         currentY += NODE_HEIGHT.item + NODE_GAP;
       });
 
-      // Position the group node below its items
+      // Calculate group center Y (middle of its items)
+      const groupItemsHeight = groupItems.length * (NODE_HEIGHT.item + NODE_GAP) - NODE_GAP;
+      const groupCenterY = groupStartY + (groupItemsHeight - NODE_HEIGHT.group) / 2;
+
+      // Position the group node to the right, vertically centered with its items
       positionedNodes.push({
         ...groupNode,
-        position: { x: COLUMN_X.left, y: currentY },
+        position: { x: COLUMN_X.groups, y: Math.max(groupStartY, groupCenterY) },
       });
-      currentY += NODE_HEIGHT.group + GROUP_GAP;
+
+      currentY += GROUP_GAP;
     });
 
     const totalLeftHeight = currentY;
@@ -90,20 +95,9 @@ export const useColumnLayout = ({ nodes }: UseColumnLayoutOptions): ChartNode[] 
       positionedNodes.push({
         ...node,
         position: {
-          x: COLUMN_X.center,
+          x: COLUMN_X.rules,
           y: ruleStartY + index * ruleSpacing
         },
-      });
-    });
-
-    // ========================================
-    // 3. Position bundle centered vertically on the right
-    // ========================================
-    const bundleCenterY = Math.max(0, (totalLeftHeight - NODE_HEIGHT.bundle) / 2);
-    bundleNodes.forEach((node) => {
-      positionedNodes.push({
-        ...node,
-        position: { x: COLUMN_X.right, y: bundleCenterY },
       });
     });
 
