@@ -12,17 +12,10 @@ import { EditorGlobalStyles } from "./editor-global-styles";
 
 const useStyles = createStyles(({ token }) => ({
   wrapper: {
-    border: `1px solid ${token.colorBorderSecondary}`,
     borderRadius: token.borderRadius,
-    padding: "4px 16px 4px 32px",
+    padding: "16px",
     transition: `border-color ${token.motionDurationMid}, box-shadow ${token.motionDurationMid}`,
     backgroundColor: token.colorBgContainer,
-    "&:hover": {
-      borderColor: token.colorPrimaryHover,
-    },
-    "&:focus-within": {
-      borderColor: token.colorPrimary,
-    },
   },
 }));
 
@@ -54,7 +47,7 @@ const EditorCore = memo(function EditorCore({
       const data = await api.saver.save();
       onChange(data.blocks?.length ? data : null);
     },
-    [onChange]
+    [onChange],
   );
 
   useEffect(() => {

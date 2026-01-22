@@ -13,11 +13,9 @@ import { AIButton } from "@/ui-kit/ai-button";
 import { Paper } from "@/ui-kit/paper";
 import type { IProductEditDescriptionModalPayload } from "../../modals";
 import { useProductAIWriterModal } from "../../modals";
-import { useStyles } from "./edit-description-modal.styles";
 import type { IEditDescriptionForm } from "./types";
 
 export const EditDescriptionModal = () => {
-  const { styles } = useStyles();
   const { payload, pop } = useModalStackContext();
   const typedPayload = payload as IProductEditDescriptionModalPayload;
   const { push: openAIWriterModal } = useProductAIWriterModal();
@@ -33,7 +31,10 @@ export const EditDescriptionModal = () => {
     if (!typedPayload.product) return;
     openAIWriterModal({
       product: typedPayload.product,
-      onApply: (values: { description?: RenderedContent; excerpt?: RenderedContent }) => {
+      onApply: (values: {
+        description?: RenderedContent;
+        excerpt?: RenderedContent;
+      }) => {
         if (values.description?.json) {
           setValue("description", values.description.json);
         }
@@ -76,7 +77,7 @@ export const EditDescriptionModal = () => {
         />
       }
     >
-      <Paper className={styles.tabsContainer}>
+      <Paper>
         <form>
           <Tabs
             type="card"

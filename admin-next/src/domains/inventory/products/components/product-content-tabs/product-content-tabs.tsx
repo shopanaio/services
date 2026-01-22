@@ -17,8 +17,6 @@ import {
 
 const useStyles = createStyles(({ token }) => ({
   tabsSection: {
-    padding: "8px 12px 12px",
-    borderRadius: 8,
     minHeight: 120,
   },
   contentText: {
