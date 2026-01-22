@@ -5,7 +5,7 @@ import { Handle, Position } from "@xyflow/react";
 import type { NodeProps, Node } from "@xyflow/react";
 import { createStyles } from "antd-style";
 import { Typography, Avatar, Tag } from "antd";
-import { AppstoreOutlined } from "@ant-design/icons";
+import { AppstoreOutlined, FolderOutlined } from "@ant-design/icons";
 
 import type { ItemNodeData } from "../types";
 
@@ -64,58 +64,43 @@ type ItemNodeProps = NodeProps<Node<ItemNodeData, "item">>;
 
 const ItemNodeComponent = ({ data }: ItemNodeProps) => {
   const { styles } = useStyles();
-  const { item, groupTitle, position: nodePosition } = data as ItemNodeData;
+  const { item, groupTitle, position: nodePosition, isGroup } = data as ItemNodeData;
 
-  const title =
-    item.title ??
-    item.assignedProduct?.title ??
-    item.assignedVariant?.title ??
-    "Unnamed Item";
+  const title = item.title ?? (item as any).assignedProduct?.title ?? (item as any).assignedVariant?.title ?? "Unnamed";
 
-  const imageUrl =
-    item.featuredImage?.url ??
-    (item.assignedProduct as any)?.featuredImage?.url ??
-    (item.assignedVariant?.product as any)?.featuredImage?.url;
+  const imageUrl = !isGroup
+    ? ((item as any).featuredImage?.url ??
+      (item as any).assignedProduct?.featuredImage?.url ??
+      (item as any).assignedVariant?.product?.featuredImage?.url)
+    : undefined;
 
-  // Source items: bottom handle only (to rule)
-  // Target items: top handle only (from rule)
-  // Both: both handles (default if not set)
-  const pos = nodePosition ?? "both";
-  const showTopHandle = pos === "target" || pos === "both";
-  const showBottomHandle = pos === "source" || pos === "both";
+  // Source: bottom handle only (to rule)
+  // Target: top handle only (from rule)
+  const showTopHandle = !nodePosition || nodePosition === "target";
+  const showBottomHandle = !nodePosition || nodePosition === "source";
 
   return (
     <div className={styles.node}>
-      {/* Target handle on top (for action edges from rule) */}
       {showTopHandle && (
-        <Handle
-          type="target"
-          position={Position.Top}
-          className={styles.handle}
-        />
+        <Handle type="target" position={Position.Top} className={styles.handle} />
       )}
 
-      {/* Content */}
       <Avatar
         size={32}
         src={imageUrl}
-        icon={<AppstoreOutlined />}
+        icon={isGroup ? <FolderOutlined /> : <AppstoreOutlined />}
         className={styles.avatar}
+        style={isGroup ? { backgroundColor: "#1890ff" } : undefined}
       />
       <div className={styles.content}>
         <Typography.Text className={styles.title}>{title}</Typography.Text>
-        <Tag className={styles.groupTag} color="default">
+        <Tag className={styles.groupTag} color={isGroup ? "blue" : "default"}>
           {groupTitle}
         </Tag>
       </div>
 
-      {/* Source handle on bottom (for condition edges to rule) */}
       {showBottomHandle && (
-        <Handle
-          type="source"
-          position={Position.Bottom}
-          className={styles.handle}
-        />
+        <Handle type="source" position={Position.Bottom} className={styles.handle} />
       )}
     </div>
   );

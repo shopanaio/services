@@ -10,7 +10,7 @@ import {
   ACTION_TYPE_LABELS,
   PRICE_RULE_OPTIONS,
 } from "../../../types";
-import type { ChartNode, ChartEdge, ItemNodeData, RuleNodeData } from "../types";
+import type { ChartNode, ChartEdge, ItemNodeData, RuleNodeData, BundleNodeData } from "../types";
 
 // ============================================================================
 // Helper Functions
@@ -79,36 +79,176 @@ export const useDerivedGraph = ({
   return useMemo(() => {
     const nodes: ChartNode[] = [];
     const edges: ChartEdge[] = [];
-    const nodeIds = new Set<string>();
 
-    // 1. Create item nodes from groups
-    groups.forEach((group) => {
-      group.items.forEach((item) => {
-        const nodeId = `item:${item.id}`;
-        nodeIds.add(nodeId);
-        const itemNode: ChartNode = {
-          id: nodeId,
-          type: "item",
-          data: {
-            item,
-            groupId: group.id,
-            groupTitle: group.title,
-          } as ItemNodeData,
-          position: { x: 0, y: 0 },
-        };
-        nodes.push(itemNode);
+    // 1. First pass: collect which items/groups are used as sources (conditions) and targets (actions)
+    const sourceItemIds = new Set<string>();
+    const targetItemIds = new Set<string>();
+    const sourceGroupIds = new Set<string>();
+    const targetGroupIds = new Set<string>();
+    let hasBundleTarget = false;
+
+    rules.forEach((rule) => {
+      rule.conditions.forEach((condition) => {
+        if (condition.targetType === DependencyTargetType.ITEM && condition.targetId) {
+          sourceItemIds.add(condition.targetId);
+        }
+        if (condition.targetType === DependencyTargetType.GROUP && condition.targetId) {
+          sourceGroupIds.add(condition.targetId);
+        }
+      });
+      rule.actions.forEach((action) => {
+        if (action.targetType === DependencyTargetType.ITEM && action.targetId) {
+          targetItemIds.add(action.targetId);
+        }
+        if (action.targetType === DependencyTargetType.GROUP && action.targetId) {
+          targetGroupIds.add(action.targetId);
+        }
+        if (action.targetType === DependencyTargetType.BUNDLE) {
+          hasBundleTarget = true;
+        }
       });
     });
 
-    // Group nodes removed - group title is shown in item badges
+    // Items/groups that appear in both need to be duplicated
+    const duplicatedItemIds = new Set<string>();
+    sourceItemIds.forEach((id) => {
+      if (targetItemIds.has(id)) {
+        duplicatedItemIds.add(id);
+      }
+    });
 
+    const duplicatedGroupIds = new Set<string>();
+    sourceGroupIds.forEach((id) => {
+      if (targetGroupIds.has(id)) {
+        duplicatedGroupIds.add(id);
+      }
+    });
+
+    // 2. Create item nodes - duplicate items that are both source and target
+    const nodeIds = new Set<string>();
+
+    groups.forEach((group) => {
+      group.items.forEach((item) => {
+        const isDuplicated = duplicatedItemIds.has(item.id);
+        const isSource = sourceItemIds.has(item.id);
+        const isTarget = targetItemIds.has(item.id);
+
+        // Skip items not used in any rule
+        if (!isSource && !isTarget) return;
+
+        if (isDuplicated) {
+          // Create separate source and target nodes
+          const sourceNodeId = `item:${item.id}:source`;
+          nodeIds.add(sourceNodeId);
+          nodes.push({
+            id: sourceNodeId,
+            type: "item",
+            data: {
+              item,
+              groupId: group.id,
+              groupTitle: group.title,
+            } as ItemNodeData,
+            position: { x: 0, y: 0 },
+          });
+
+          const targetNodeId = `item:${item.id}:target`;
+          nodeIds.add(targetNodeId);
+          nodes.push({
+            id: targetNodeId,
+            type: "item",
+            data: {
+              item,
+              groupId: group.id,
+              groupTitle: group.title,
+            } as ItemNodeData,
+            position: { x: 0, y: 0 },
+          });
+        } else {
+          // Single node
+          const nodeId = `item:${item.id}`;
+          nodeIds.add(nodeId);
+          nodes.push({
+            id: nodeId,
+            type: "item",
+            data: {
+              item,
+              groupId: group.id,
+              groupTitle: group.title,
+            } as ItemNodeData,
+            position: { x: 0, y: 0 },
+          });
+        }
+      });
+    });
+
+    // 3. Create group nodes as "item" type - duplicate groups that are both source and target
+    groups.forEach((group) => {
+      const isDuplicated = duplicatedGroupIds.has(group.id);
+      const isSource = sourceGroupIds.has(group.id);
+      const isTarget = targetGroupIds.has(group.id);
+
+      // Skip groups not used in any rule
+      if (!isSource && !isTarget) return;
+
+      const groupNodeData = {
+        item: { id: group.id, title: group.title },
+        groupId: group.id,
+        groupTitle: `${group.items.length} items`,
+        isGroup: true,
+      };
+
+      if (isDuplicated) {
+        // Create separate source and target nodes
+        const sourceNodeId = `group:${group.id}:source`;
+        nodeIds.add(sourceNodeId);
+        nodes.push({
+          id: sourceNodeId,
+          type: "item",
+          data: groupNodeData as unknown as ItemNodeData,
+          position: { x: 0, y: 0 },
+        });
+
+        const targetNodeId = `group:${group.id}:target`;
+        nodeIds.add(targetNodeId);
+        nodes.push({
+          id: targetNodeId,
+          type: "item",
+          data: groupNodeData as unknown as ItemNodeData,
+          position: { x: 0, y: 0 },
+        });
+      } else {
+        // Single node
+        const nodeId = `group:${group.id}`;
+        nodeIds.add(nodeId);
+        nodes.push({
+          id: nodeId,
+          type: "item",
+          data: groupNodeData as unknown as ItemNodeData,
+          position: { x: 0, y: 0 },
+        });
+      }
+    });
+
+    // 4. Create bundle node if needed
+    if (hasBundleTarget) {
+      const bundleNodeId = "bundle:main";
+      nodeIds.add(bundleNodeId);
+      nodes.push({
+        id: bundleNodeId,
+        type: "bundle",
+        data: {
+          label: "Bundle",
+        } as BundleNodeData,
+        position: { x: 0, y: 0 },
+      });
+    }
 
     // 4. Create rule nodes and edges
     rules.forEach((rule) => {
       const ruleNodeId = `rule:${rule.id}`;
       nodeIds.add(ruleNodeId);
 
-      const ruleNode: ChartNode = {
+      nodes.push({
         id: ruleNodeId,
         type: "rule",
         data: {
@@ -116,22 +256,29 @@ export const useDerivedGraph = ({
           isSelected: rule.id === selectedRuleId,
         } as RuleNodeData,
         position: { x: 0, y: 0 },
-      };
-      nodes.push(ruleNode);
+      });
 
       // Create edges from condition sources to rule
       rule.conditions.forEach((condition) => {
-        // Skip bundle conditions (not visualized)
         if (condition.targetType === DependencyTargetType.BUNDLE) return;
+        if (!condition.targetId) return;
 
-        const sourceNodeId = `${condition.targetType.toLowerCase()}:${condition.targetId}`;
+        // Determine the correct source node ID
+        let sourceNodeId: string;
+        if (condition.targetType === DependencyTargetType.ITEM) {
+          sourceNodeId = duplicatedItemIds.has(condition.targetId)
+            ? `item:${condition.targetId}:source`
+            : `item:${condition.targetId}`;
+        } else {
+          // GROUP
+          sourceNodeId = duplicatedGroupIds.has(condition.targetId)
+            ? `group:${condition.targetId}:source`
+            : `group:${condition.targetId}`;
+        }
 
-        // Skip if source node doesn't exist
         if (!nodeIds.has(sourceNodeId)) return;
-        // Skip self-reference (should never happen, but safety check)
-        if (sourceNodeId === ruleNodeId) return;
 
-        const edge: ChartEdge = {
+        edges.push({
           id: `cond:${condition.id}`,
           source: sourceNodeId,
           target: ruleNodeId,
@@ -147,24 +294,31 @@ export const useDerivedGraph = ({
             condition,
             label: formatConditionLabel(condition.conditionType, condition.value),
           },
-        };
-        edges.push(edge);
+        });
       });
 
       // Create edges from rule to action targets
       rule.actions.forEach((action) => {
-        // Skip bundle actions (not visualized as node)
-        if (action.targetType === DependencyTargetType.BUNDLE) return;
-        if (!action.targetId) return;
+        // Determine the correct target node ID
+        let targetNodeId: string;
+        if (action.targetType === DependencyTargetType.BUNDLE) {
+          targetNodeId = "bundle:main";
+        } else if (action.targetType === DependencyTargetType.ITEM) {
+          if (!action.targetId) return;
+          targetNodeId = duplicatedItemIds.has(action.targetId)
+            ? `item:${action.targetId}:target`
+            : `item:${action.targetId}`;
+        } else {
+          // GROUP
+          if (!action.targetId) return;
+          targetNodeId = duplicatedGroupIds.has(action.targetId)
+            ? `group:${action.targetId}:target`
+            : `group:${action.targetId}`;
+        }
 
-        const targetNodeId = `${action.targetType.toLowerCase()}:${action.targetId}`;
-
-        // Skip if target node doesn't exist
         if (!nodeIds.has(targetNodeId)) return;
-        // Skip self-reference (should never happen, but safety check)
-        if (targetNodeId === ruleNodeId) return;
 
-        const edge: ChartEdge = {
+        edges.push({
           id: `action:${action.id}`,
           source: ruleNodeId,
           target: targetNodeId,
@@ -190,15 +344,11 @@ export const useDerivedGraph = ({
               action.qtyValue
             ),
           },
-        };
-        edges.push(edge);
+        });
       });
     });
 
-    // Filter out self-references
-    const safeEdges = edges.filter((edge) => edge.source !== edge.target);
-
-    return { nodes, edges: safeEdges };
+    return { nodes, edges };
   }, [groups, rules, selectedRuleId]);
 };
 

@@ -12,16 +12,20 @@ import type {
 // ============================================================================
 
 export interface ItemNodeData {
-  item: ComponentItem;
+  item: ComponentItem | { id: string; title: string; isGroup?: boolean };
   groupId: string;
   groupTitle: string;
-  /** Item position in layout: source (top), target (bottom), or both. Set by layout hook. */
-  position?: "source" | "target" | "both";
+  /** Item position in layout: source (top) or target (bottom). Set by layout hook. */
+  position?: "source" | "target";
+  /** True if this node represents a group, not an item */
+  isGroup?: boolean;
   [key: string]: unknown;
 }
 
 export interface GroupNodeData {
   group: IComponentGroup;
+  /** Group position in layout: source (top) or target (bottom). Set by layout hook. */
+  position?: "source" | "target";
   [key: string]: unknown;
 }
 

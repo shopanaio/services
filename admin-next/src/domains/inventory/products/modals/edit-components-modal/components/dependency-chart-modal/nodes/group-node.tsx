@@ -1,6 +1,7 @@
 "use client";
 
 import { memo } from "react";
+import { Handle, Position } from "@xyflow/react";
 import type { NodeProps, Node } from "@xyflow/react";
 import { createStyles } from "antd-style";
 import { Typography, Tag } from "antd";
@@ -15,40 +16,45 @@ import type { GroupNodeData } from "../types";
 const useStyles = createStyles(({ token }) => ({
   node: {
     background: token.colorBgContainer,
-    border: `2px solid ${token.colorPrimaryBorder}`,
+    border: `1px solid ${token.colorPrimaryBorder}`,
     borderRadius: token.borderRadiusLG,
-    padding: 12,
+    padding: 8,
     minWidth: 200,
-    display: "flex",
-    flexDirection: "column",
-    gap: 6,
-    boxShadow: token.boxShadowTertiary,
-  },
-  header: {
     display: "flex",
     alignItems: "center",
     gap: 8,
+    boxShadow: token.boxShadowTertiary,
+    "&:hover": {
+      borderColor: token.colorPrimary,
+    },
   },
   icon: {
     color: token.colorPrimary,
-    fontSize: 16,
+    fontSize: 24,
+    flexShrink: 0,
+  },
+  content: {
+    flex: 1,
+    minWidth: 0,
+    overflow: "hidden",
   },
   title: {
-    fontSize: 13,
-    fontWeight: 600,
-    flex: 1,
+    fontSize: 12,
+    fontWeight: 500,
+    lineHeight: 1.3,
+    whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  },
-  info: {
-    display: "flex",
-    gap: 6,
-    flexWrap: "wrap",
   },
   tag: {
     fontSize: 10,
-    margin: 0,
+    marginTop: 2,
+  },
+  handle: {
+    width: 8,
+    height: 8,
+    background: token.colorPrimary,
+    border: "none",
   },
 }));
 
@@ -60,35 +66,43 @@ type GroupNodeProps = NodeProps<Node<GroupNodeData, "group">>;
 
 const GroupNodeComponent = ({ data }: GroupNodeProps) => {
   const { styles } = useStyles();
-  const { group } = data as GroupNodeData;
+  const { group, position: nodePosition } = data as GroupNodeData;
 
   const itemCount = group.items.length;
-  const minMax =
-    group.minSelection || group.maxSelection
-      ? `${group.minSelection ?? 0}-${group.maxSelection ?? "∞"}`
-      : null;
+
+  // Source groups: bottom handle only (to rule)
+  // Target groups: top handle only (from rule)
+  const showTopHandle = !nodePosition || nodePosition === "target";
+  const showBottomHandle = !nodePosition || nodePosition === "source";
 
   return (
     <div className={styles.node}>
-      <div className={styles.header}>
-        <FolderOutlined className={styles.icon} />
+      {/* Target handle on top */}
+      {showTopHandle && (
+        <Handle
+          type="target"
+          position={Position.Top}
+          className={styles.handle}
+        />
+      )}
+
+      {/* Content */}
+      <FolderOutlined className={styles.icon} />
+      <div className={styles.content}>
         <Typography.Text className={styles.title}>{group.title}</Typography.Text>
-      </div>
-      <div className={styles.info}>
         <Tag className={styles.tag} color="blue">
           {itemCount} items
         </Tag>
-        {group.isRequired && (
-          <Tag className={styles.tag} color="red">
-            Required
-          </Tag>
-        )}
-        {minMax && (
-          <Tag className={styles.tag} color="default">
-            {minMax}
-          </Tag>
-        )}
       </div>
+
+      {/* Source handle on bottom */}
+      {showBottomHandle && (
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          className={styles.handle}
+        />
+      )}
     </div>
   );
 };

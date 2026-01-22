@@ -55,10 +55,10 @@ const BundleNodeComponent = ({ data }: BundleNodeProps) => {
 
   return (
     <div className={styles.node}>
-      {/* Single target handle on left */}
+      {/* Target handle on top (receives edges from rules) */}
       <Handle
         type="target"
-        position={Position.Left}
+        position={Position.Top}
         className={styles.handle}
       />
 
