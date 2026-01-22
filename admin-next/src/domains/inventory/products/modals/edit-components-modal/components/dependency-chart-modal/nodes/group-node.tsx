@@ -8,7 +8,6 @@ import { Typography, Tag } from "antd";
 import { FolderOutlined } from "@ant-design/icons";
 
 import type { GroupNodeData } from "../types";
-import { GROUP_HANDLES } from "../types";
 
 // ============================================================================
 // Styles
@@ -17,13 +16,13 @@ import { GROUP_HANDLES } from "../types";
 const useStyles = createStyles(({ token }) => ({
   node: {
     background: token.colorBgContainer,
-    border: `1px solid ${token.colorPrimaryBorder}`,
+    border: `2px solid ${token.colorPrimaryBorder}`,
     borderRadius: token.borderRadiusLG,
-    padding: 10,
-    minWidth: 180,
+    padding: 12,
+    minWidth: 200,
     display: "flex",
     flexDirection: "column",
-    gap: 4,
+    gap: 6,
     boxShadow: token.boxShadowTertiary,
     "&:hover": {
       borderColor: token.colorPrimary,
@@ -32,14 +31,14 @@ const useStyles = createStyles(({ token }) => ({
   header: {
     display: "flex",
     alignItems: "center",
-    gap: 6,
+    gap: 8,
   },
   icon: {
     color: token.colorPrimary,
-    fontSize: 14,
+    fontSize: 16,
   },
   title: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: 600,
     flex: 1,
     overflow: "hidden",
@@ -48,7 +47,7 @@ const useStyles = createStyles(({ token }) => ({
   },
   info: {
     display: "flex",
-    gap: 4,
+    gap: 6,
     flexWrap: "wrap",
   },
   tag: {
@@ -56,16 +55,10 @@ const useStyles = createStyles(({ token }) => ({
     margin: 0,
   },
   handle: {
-    width: 10,
-    height: 10,
+    width: 8,
+    height: 8,
     background: token.colorPrimary,
-    border: `2px solid ${token.colorBgContainer}`,
-  },
-  handleLeft: {
-    left: -5,
-  },
-  handleRight: {
-    right: -5,
+    border: "none",
   },
 }));
 
@@ -87,20 +80,11 @@ const GroupNodeComponent = ({ data }: GroupNodeProps) => {
 
   return (
     <div className={styles.node}>
-      {/* Left handles (for incoming actions) */}
+      {/* Single target handle on left */}
       <Handle
         type="target"
         position={Position.Left}
-        id={GROUP_HANDLES.ACT_AVAILABILITY}
-        className={`${styles.handle} ${styles.handleLeft}`}
-        style={{ top: "35%" }}
-      />
-      <Handle
-        type="target"
-        position={Position.Left}
-        id={GROUP_HANDLES.ACT_VISIBILITY}
-        className={`${styles.handle} ${styles.handleLeft}`}
-        style={{ top: "65%" }}
+        className={styles.handle}
       />
 
       {/* Content */}
@@ -124,34 +108,11 @@ const GroupNodeComponent = ({ data }: GroupNodeProps) => {
         )}
       </div>
 
-      {/* Right handles (for outgoing conditions) */}
+      {/* Single source handle on right */}
       <Handle
         type="source"
         position={Position.Right}
-        id={GROUP_HANDLES.COND_VALID}
-        className={`${styles.handle} ${styles.handleRight}`}
-        style={{ top: "25%" }}
-      />
-      <Handle
-        type="source"
-        position={Position.Right}
-        id={GROUP_HANDLES.COND_INVALID}
-        className={`${styles.handle} ${styles.handleRight}`}
-        style={{ top: "45%" }}
-      />
-      <Handle
-        type="source"
-        position={Position.Right}
-        id={GROUP_HANDLES.COND_COUNT_UNIQUE}
-        className={`${styles.handle} ${styles.handleRight}`}
-        style={{ top: "65%" }}
-      />
-      <Handle
-        type="source"
-        position={Position.Right}
-        id={GROUP_HANDLES.COND_COUNT_TOTAL}
-        className={`${styles.handle} ${styles.handleRight}`}
-        style={{ top: "85%" }}
+        className={styles.handle}
       />
     </div>
   );

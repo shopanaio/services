@@ -8,7 +8,6 @@ import { Typography, Avatar, Tag } from "antd";
 import { AppstoreOutlined } from "@ant-design/icons";
 
 import type { ItemNodeData } from "../types";
-import { ITEM_HANDLES } from "../types";
 
 // ============================================================================
 // Styles
@@ -20,7 +19,7 @@ const useStyles = createStyles(({ token }) => ({
     border: `1px solid ${token.colorBorderSecondary}`,
     borderRadius: token.borderRadiusLG,
     padding: 8,
-    minWidth: 180,
+    minWidth: 200,
     display: "flex",
     alignItems: "center",
     gap: 8,
@@ -50,16 +49,10 @@ const useStyles = createStyles(({ token }) => ({
     marginTop: 2,
   },
   handle: {
-    width: 10,
-    height: 10,
+    width: 8,
+    height: 8,
     background: token.colorPrimary,
-    border: `2px solid ${token.colorBgContainer}`,
-  },
-  handleLeft: {
-    left: -5,
-  },
-  handleRight: {
-    right: -5,
+    border: "none",
   },
 }));
 
@@ -86,27 +79,11 @@ const ItemNodeComponent = ({ data }: ItemNodeProps) => {
 
   return (
     <div className={styles.node}>
-      {/* Left handles (for incoming actions) */}
+      {/* Single target handle on left */}
       <Handle
         type="target"
         position={Position.Left}
-        id={ITEM_HANDLES.ACT_AVAILABILITY}
-        className={`${styles.handle} ${styles.handleLeft}`}
-        style={{ top: "30%" }}
-      />
-      <Handle
-        type="target"
-        position={Position.Left}
-        id={ITEM_HANDLES.ACT_VISIBILITY}
-        className={`${styles.handle} ${styles.handleLeft}`}
-        style={{ top: "50%" }}
-      />
-      <Handle
-        type="target"
-        position={Position.Left}
-        id={ITEM_HANDLES.ACT_PRICE}
-        className={`${styles.handle} ${styles.handleLeft}`}
-        style={{ top: "70%" }}
+        className={styles.handle}
       />
 
       {/* Content */}
@@ -123,27 +100,11 @@ const ItemNodeComponent = ({ data }: ItemNodeProps) => {
         </Tag>
       </div>
 
-      {/* Right handles (for outgoing conditions) */}
+      {/* Single source handle on right */}
       <Handle
         type="source"
         position={Position.Right}
-        id={ITEM_HANDLES.COND_SELECTED}
-        className={`${styles.handle} ${styles.handleRight}`}
-        style={{ top: "30%" }}
-      />
-      <Handle
-        type="source"
-        position={Position.Right}
-        id={ITEM_HANDLES.COND_NOT_SELECTED}
-        className={`${styles.handle} ${styles.handleRight}`}
-        style={{ top: "50%" }}
-      />
-      <Handle
-        type="source"
-        position={Position.Right}
-        id={ITEM_HANDLES.COND_QTY}
-        className={`${styles.handle} ${styles.handleRight}`}
-        style={{ top: "70%" }}
+        className={styles.handle}
       />
     </div>
   );

@@ -8,7 +8,6 @@ import { Typography, Tag, Badge } from "antd";
 import { ThunderboltOutlined } from "@ant-design/icons";
 
 import type { RuleNodeData } from "../types";
-import { RULE_HANDLES } from "../types";
 
 // ============================================================================
 // Styles
@@ -19,11 +18,11 @@ const useStyles = createStyles(({ token }) => ({
     background: token.colorBgContainer,
     border: `2px solid ${token.colorWarningBorder}`,
     borderRadius: token.borderRadiusLG,
-    padding: 10,
-    minWidth: 160,
+    padding: 12,
+    minWidth: 180,
     display: "flex",
     flexDirection: "column",
-    gap: 6,
+    gap: 8,
     boxShadow: token.boxShadowTertiary,
     transition: "all 0.2s ease",
     cursor: "pointer",
@@ -43,14 +42,14 @@ const useStyles = createStyles(({ token }) => ({
   header: {
     display: "flex",
     alignItems: "center",
-    gap: 6,
+    gap: 8,
   },
   icon: {
     color: token.colorWarning,
-    fontSize: 14,
+    fontSize: 16,
   },
   title: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: 600,
     flex: 1,
     overflow: "hidden",
@@ -59,7 +58,7 @@ const useStyles = createStyles(({ token }) => ({
   },
   info: {
     display: "flex",
-    gap: 4,
+    gap: 6,
     alignItems: "center",
   },
   priorityTag: {
@@ -68,19 +67,13 @@ const useStyles = createStyles(({ token }) => ({
     margin: 0,
   },
   conditionCount: {
-    fontSize: 10,
+    fontSize: 11,
   },
   handle: {
-    width: 12,
-    height: 12,
+    width: 8,
+    height: 8,
     background: token.colorWarning,
-    border: `2px solid ${token.colorBgContainer}`,
-  },
-  handleLeft: {
-    left: -6,
-  },
-  handleRight: {
-    right: -6,
+    border: "none",
   },
 }));
 
@@ -105,13 +98,11 @@ const RuleNodeComponent = ({ data }: RuleNodeProps) => {
         !rule.enabled && styles.nodeDisabled
       )}
     >
-      {/* Left handle (for incoming conditions) */}
+      {/* Single target handle on left */}
       <Handle
         type="target"
         position={Position.Left}
-        id={RULE_HANDLES.INPUT}
-        className={`${styles.handle} ${styles.handleLeft}`}
-        style={{ top: "50%" }}
+        className={styles.handle}
       />
 
       {/* Content */}
@@ -133,13 +124,11 @@ const RuleNodeComponent = ({ data }: RuleNodeProps) => {
         )}
       </div>
 
-      {/* Right handle (for outgoing actions) */}
+      {/* Single source handle on right */}
       <Handle
         type="source"
         position={Position.Right}
-        id={RULE_HANDLES.OUTPUT}
-        className={`${styles.handle} ${styles.handleRight}`}
-        style={{ top: "50%" }}
+        className={styles.handle}
       />
     </div>
   );

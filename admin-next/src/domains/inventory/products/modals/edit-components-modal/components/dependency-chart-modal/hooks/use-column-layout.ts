@@ -1,26 +1,25 @@
 import { useMemo } from "react";
-import type { ChartNode } from "../types";
+import type { ChartNode, ItemNodeData } from "../types";
 
 // ============================================================================
 // Constants
 // ============================================================================
 
 const COLUMN_X = {
-  items: 50,
-  groups: 50,
-  rules: 400,
-  bundle: 750,
+  left: 50,      // Items & Groups
+  center: 500,   // Rules
+  right: 900,    // Bundle
 };
 
 const NODE_HEIGHT = {
   item: 60,
-  group: 80,
-  rule: 70,
-  bundle: 60,
+  group: 90,
+  rule: 80,
+  bundle: 80,
 };
 
 const NODE_GAP = 20;
-const SECTION_GAP = 40;
+const GROUP_GAP = 50;
 
 // ============================================================================
 // Hook
@@ -32,7 +31,6 @@ interface UseColumnLayoutOptions {
 
 export const useColumnLayout = ({ nodes }: UseColumnLayoutOptions): ChartNode[] => {
   return useMemo(() => {
-    // Separate nodes by type
     const itemNodes = nodes.filter((n) => n.type === "item");
     const groupNodes = nodes.filter((n) => n.type === "group");
     const ruleNodes = nodes.filter((n) => n.type === "rule");
@@ -40,43 +38,72 @@ export const useColumnLayout = ({ nodes }: UseColumnLayoutOptions): ChartNode[] 
 
     const positionedNodes: ChartNode[] = [];
 
-    // Position items in left column
-    let itemY = 0;
+    // ========================================
+    // 1. Position items grouped by their group, with group card below
+    // ========================================
+    const itemsByGroup = new Map<string, ChartNode[]>();
     itemNodes.forEach((node) => {
-      positionedNodes.push({
-        ...node,
-        position: { x: COLUMN_X.items, y: itemY },
-      });
-      itemY += NODE_HEIGHT.item + NODE_GAP;
+      const groupId = (node.data as ItemNodeData).groupId;
+      if (!itemsByGroup.has(groupId)) {
+        itemsByGroup.set(groupId, []);
+      }
+      itemsByGroup.get(groupId)!.push(node);
     });
 
-    // Position groups below items
-    let groupY = itemY + SECTION_GAP;
-    groupNodes.forEach((node) => {
-      positionedNodes.push({
-        ...node,
-        position: { x: COLUMN_X.groups, y: groupY },
+    let currentY = 0;
+
+    groupNodes.forEach((groupNode) => {
+      const groupId = groupNode.id.replace("group:", "");
+      const groupItems = itemsByGroup.get(groupId) || [];
+
+      // Position items of this group
+      groupItems.forEach((itemNode) => {
+        positionedNodes.push({
+          ...itemNode,
+          position: { x: COLUMN_X.left, y: currentY },
+        });
+        currentY += NODE_HEIGHT.item + NODE_GAP;
       });
-      groupY += NODE_HEIGHT.group + NODE_GAP;
+
+      // Position the group node below its items
+      positionedNodes.push({
+        ...groupNode,
+        position: { x: COLUMN_X.left, y: currentY },
+      });
+      currentY += NODE_HEIGHT.group + GROUP_GAP;
     });
 
-    // Position rules in center column
-    let ruleY = 0;
-    ruleNodes.forEach((node) => {
+    const totalLeftHeight = currentY;
+
+    // ========================================
+    // 2. Position rules in center column, spread evenly
+    // ========================================
+    const ruleCount = ruleNodes.length;
+    const ruleSpacing = ruleCount > 1
+      ? Math.min((totalLeftHeight - NODE_HEIGHT.rule) / (ruleCount - 1), NODE_HEIGHT.rule + NODE_GAP * 2)
+      : 0;
+    const ruleStartY = ruleCount > 1
+      ? Math.max(0, (totalLeftHeight - (ruleCount - 1) * ruleSpacing - NODE_HEIGHT.rule) / 2)
+      : Math.max(0, (totalLeftHeight - NODE_HEIGHT.rule) / 2);
+
+    ruleNodes.forEach((node, index) => {
       positionedNodes.push({
         ...node,
-        position: { x: COLUMN_X.rules, y: ruleY },
+        position: {
+          x: COLUMN_X.center,
+          y: ruleStartY + index * ruleSpacing
+        },
       });
-      ruleY += NODE_HEIGHT.rule + NODE_GAP;
     });
 
-    // Position bundle in right column (centered vertically)
-    const totalLeftHeight = Math.max(groupY, itemY);
+    // ========================================
+    // 3. Position bundle centered vertically on the right
+    // ========================================
     const bundleCenterY = Math.max(0, (totalLeftHeight - NODE_HEIGHT.bundle) / 2);
-    bundleNodes.forEach((node, index) => {
+    bundleNodes.forEach((node) => {
       positionedNodes.push({
         ...node,
-        position: { x: COLUMN_X.bundle, y: bundleCenterY + index * (NODE_HEIGHT.bundle + NODE_GAP) },
+        position: { x: COLUMN_X.right, y: bundleCenterY },
       });
     });
 

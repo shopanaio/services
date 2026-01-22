@@ -1,6 +1,5 @@
 /**
  * Mock data for testing the Bundle Dependencies Editor
- * This file contains sample groups, items, and dependency rules for development
  */
 
 import type {
@@ -24,150 +23,87 @@ import {
 export const MOCK_GROUPS: IComponentGroup[] = [
   {
     id: "grp-1",
-    title: "Main Course",
+    title: "Accessories",
     sortIndex: 0,
     isRequired: true,
-    isMultiple: false,
+    isMultiple: true,
     minSelection: 1,
-    maxSelection: 1,
+    maxSelection: 5,
     items: [
       {
         id: "item-1",
         itemType: ComponentItemType.PRODUCT,
         sortIndex: 0,
-        title: "Classic Burger",
+        title: "Premium Case",
         featuredImage: null,
         pricingRule: { priceType: ComponentPriceType.BASE, priceValue: null },
         assignedProduct: {
-          id: "prod-burger",
-          title: "Classic Burger",
-          featuredImage: { id: "img-1", url: "https://placehold.co/100x100?text=Burger" },
+          id: "prod-1",
+          title: "Premium Case",
+          featuredImage: { id: "img-1", url: "https://placehold.co/100x100?text=Case" },
         } as any,
       },
       {
         id: "item-2",
         itemType: ComponentItemType.PRODUCT,
         sortIndex: 1,
-        title: "Premium Steak",
+        title: "Pro Charger 65W",
         featuredImage: null,
         pricingRule: { priceType: ComponentPriceType.MARKUP_FIXED, priceValue: 500 },
         assignedProduct: {
-          id: "prod-steak",
-          title: "Premium Steak",
-          featuredImage: { id: "img-2", url: "https://placehold.co/100x100?text=Steak" },
+          id: "prod-2",
+          title: "Pro Charger 65W",
+          featuredImage: { id: "img-2", url: "https://placehold.co/100x100?text=Charger" },
         } as any,
       },
       {
         id: "item-3",
         itemType: ComponentItemType.PRODUCT,
         sortIndex: 2,
-        title: "Veggie Wrap",
+        title: "Screen Protector",
         featuredImage: null,
         pricingRule: { priceType: ComponentPriceType.DISCOUNT_PERCENT, priceValue: 10 },
         assignedProduct: {
-          id: "prod-wrap",
-          title: "Veggie Wrap",
-          featuredImage: { id: "img-3", url: "https://placehold.co/100x100?text=Wrap" },
+          id: "prod-3",
+          title: "Screen Protector",
+          featuredImage: { id: "img-3", url: "https://placehold.co/100x100?text=Screen" },
         } as any,
       },
     ],
   },
   {
     id: "grp-2",
-    title: "Sides",
+    title: "Warranty",
     sortIndex: 1,
     isRequired: false,
-    isMultiple: true,
+    isMultiple: false,
     minSelection: 0,
-    maxSelection: 3,
+    maxSelection: 1,
     items: [
       {
         id: "item-4",
         itemType: ComponentItemType.PRODUCT,
         sortIndex: 0,
-        title: "French Fries",
+        title: "1 Year Standard Warranty (included)",
         featuredImage: null,
-        pricingRule: { priceType: ComponentPriceType.FIXED, priceValue: 299 },
+        pricingRule: { priceType: ComponentPriceType.INCLUDED, priceValue: null },
         assignedProduct: {
-          id: "prod-fries",
-          title: "French Fries",
-          featuredImage: { id: "img-4", url: "https://placehold.co/100x100?text=Fries" },
+          id: "prod-4",
+          title: "1 Year Standard Warranty",
+          featuredImage: { id: "img-4", url: "https://placehold.co/100x100?text=1Y" },
         } as any,
       },
       {
         id: "item-5",
         itemType: ComponentItemType.PRODUCT,
         sortIndex: 1,
-        title: "Onion Rings",
+        title: "2 Year Extended Warranty",
         featuredImage: null,
-        pricingRule: { priceType: ComponentPriceType.FIXED, priceValue: 349 },
+        pricingRule: { priceType: ComponentPriceType.FIXED, priceValue: 4999 },
         assignedProduct: {
-          id: "prod-rings",
-          title: "Onion Rings",
-          featuredImage: { id: "img-5", url: "https://placehold.co/100x100?text=Rings" },
-        } as any,
-      },
-      {
-        id: "item-6",
-        itemType: ComponentItemType.PRODUCT,
-        sortIndex: 2,
-        title: "Coleslaw",
-        featuredImage: null,
-        pricingRule: { priceType: ComponentPriceType.FIXED, priceValue: 199 },
-        assignedProduct: {
-          id: "prod-coleslaw",
-          title: "Coleslaw",
-          featuredImage: { id: "img-6", url: "https://placehold.co/100x100?text=Slaw" },
-        } as any,
-      },
-    ],
-  },
-  {
-    id: "grp-3",
-    title: "Drinks",
-    sortIndex: 2,
-    isRequired: false,
-    isMultiple: true,
-    minSelection: 0,
-    maxSelection: null,
-    items: [
-      {
-        id: "item-7",
-        itemType: ComponentItemType.PRODUCT,
-        sortIndex: 0,
-        title: "Cola",
-        featuredImage: null,
-        pricingRule: { priceType: ComponentPriceType.FIXED, priceValue: 199 },
-        assignedProduct: {
-          id: "prod-cola",
-          title: "Cola",
-          featuredImage: { id: "img-7", url: "https://placehold.co/100x100?text=Cola" },
-        } as any,
-      },
-      {
-        id: "item-8",
-        itemType: ComponentItemType.PRODUCT,
-        sortIndex: 1,
-        title: "Lemonade",
-        featuredImage: null,
-        pricingRule: { priceType: ComponentPriceType.FIXED, priceValue: 249 },
-        assignedProduct: {
-          id: "prod-lemonade",
-          title: "Lemonade",
-          featuredImage: { id: "img-8", url: "https://placehold.co/100x100?text=Lemon" },
-        } as any,
-      },
-      {
-        id: "item-9",
-        itemType: ComponentItemType.PRODUCT,
-        sortIndex: 2,
-        title: "Premium Wine",
-        featuredImage: null,
-        pricingRule: { priceType: ComponentPriceType.FIXED, priceValue: 899 },
-        assignedProduct: {
-          id: "prod-wine",
-          title: "Premium Wine",
-          featuredImage: { id: "img-9", url: "https://placehold.co/100x100?text=Wine" },
+          id: "prod-5",
+          title: "2 Year Extended Warranty",
+          featuredImage: { id: "img-5", url: "https://placehold.co/100x100?text=2Y" },
         } as any,
       },
     ],
@@ -181,7 +117,7 @@ export const MOCK_GROUPS: IComponentGroup[] = [
 export const MOCK_DEPENDENCY_RULES: IDependencyRule[] = [
   {
     id: "rule-1",
-    name: "Premium locks basics",
+    name: "Premium case disables screen protector",
     enabled: true,
     priority: 200,
     conditions: [
@@ -189,7 +125,7 @@ export const MOCK_DEPENDENCY_RULES: IDependencyRule[] = [
         id: "cond-1-1",
         conditionType: DependencyConditionType.IS_SELECTED,
         targetType: DependencyTargetType.ITEM,
-        targetId: "item-2", // Premium Steak
+        targetId: "item-1", // Premium Case
       },
     ],
     actions: [
@@ -197,21 +133,14 @@ export const MOCK_DEPENDENCY_RULES: IDependencyRule[] = [
         id: "act-1-1",
         actionType: DependencyActionType.DISABLE,
         targetType: DependencyTargetType.ITEM,
-        targetId: "item-1", // Classic Burger
-        label: "Not available with Premium Steak",
-      },
-      {
-        id: "act-1-2",
-        actionType: DependencyActionType.DISABLE,
-        targetType: DependencyTargetType.ITEM,
-        targetId: "item-3", // Veggie Wrap
-        label: "Not available with Premium Steak",
+        targetId: "item-3", // Screen Protector
+        label: "Premium case has built-in screen protection",
       },
     ],
   },
   {
     id: "rule-2",
-    name: "Steak + Wine combo",
+    name: "Charger + Extended Warranty combo",
     enabled: true,
     priority: 150,
     conditions: [
@@ -219,13 +148,13 @@ export const MOCK_DEPENDENCY_RULES: IDependencyRule[] = [
         id: "cond-2-1",
         conditionType: DependencyConditionType.IS_SELECTED,
         targetType: DependencyTargetType.ITEM,
-        targetId: "item-2", // Premium Steak
+        targetId: "item-2", // Pro Charger 65W
       },
       {
         id: "cond-2-2",
         conditionType: DependencyConditionType.IS_SELECTED,
         targetType: DependencyTargetType.ITEM,
-        targetId: "item-9", // Premium Wine
+        targetId: "item-5", // 2 Year Extended Warranty
       },
     ],
     actions: [
@@ -237,13 +166,13 @@ export const MOCK_DEPENDENCY_RULES: IDependencyRule[] = [
         priceValue: 15,
         exclusiveKey: "bundleDiscount",
         applyTo: "COMPONENTS_SUBTOTAL",
-        label: "Steak & Wine combo: 15% off",
+        label: "Charger + Extended Warranty: 15% off",
       },
     ],
   },
   {
     id: "rule-3",
-    name: "3+ sides discount",
+    name: "3+ accessories discount",
     enabled: true,
     priority: 100,
     conditions: [
@@ -251,7 +180,7 @@ export const MOCK_DEPENDENCY_RULES: IDependencyRule[] = [
         id: "cond-3-1",
         conditionType: DependencyConditionType.GROUP_UNIQUE_GTE,
         targetType: DependencyTargetType.GROUP,
-        targetId: "grp-2", // Sides
+        targetId: "grp-1", // Accessories
         value: 3,
       },
     ],
@@ -259,25 +188,24 @@ export const MOCK_DEPENDENCY_RULES: IDependencyRule[] = [
       {
         id: "act-3-1",
         actionType: DependencyActionType.ADJUST_PRICE,
-        targetType: DependencyTargetType.GROUP,
-        targetId: "grp-2",
+        targetType: DependencyTargetType.BUNDLE,
         priceType: ComponentPriceType.DISCOUNT_PERCENT,
-        priceValue: 20,
-        label: "All sides: 20% off",
+        priceValue: 10,
+        label: "Full accessories bundle: 10% off",
       },
     ],
   },
   {
     id: "rule-4",
-    name: "Veggie meal (disabled)",
-    enabled: false,
+    name: "Extended warranty hides standard",
+    enabled: true,
     priority: 50,
     conditions: [
       {
         id: "cond-4-1",
         conditionType: DependencyConditionType.IS_SELECTED,
         targetType: DependencyTargetType.ITEM,
-        targetId: "item-3", // Veggie Wrap
+        targetId: "item-5", // 2 Year Extended Warranty
       },
     ],
     actions: [
@@ -285,7 +213,8 @@ export const MOCK_DEPENDENCY_RULES: IDependencyRule[] = [
         id: "act-4-1",
         actionType: DependencyActionType.HIDE,
         targetType: DependencyTargetType.ITEM,
-        targetId: "item-2", // Hide Premium Steak
+        targetId: "item-4", // 1 Year Standard Warranty
+        label: "Extended warranty replaces standard",
       },
     ],
   },
@@ -339,7 +268,7 @@ export const MOCK_TIERED_DISCOUNTS: ITieredDiscount[] = [
 ];
 
 // ============================================================================
-// Combined Mock Payload for EditComponentsModal
+// Combined Mock Payload
 // ============================================================================
 
 export const MOCK_EDIT_COMPONENTS_PAYLOAD = {

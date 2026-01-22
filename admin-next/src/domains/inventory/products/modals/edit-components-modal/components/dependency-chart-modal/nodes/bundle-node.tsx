@@ -8,7 +8,6 @@ import { Typography } from "antd";
 import { GiftOutlined } from "@ant-design/icons";
 
 import type { BundleNodeData } from "../types";
-import { BUNDLE_HANDLES } from "../types";
 
 // ============================================================================
 // Styles
@@ -19,31 +18,28 @@ const useStyles = createStyles(({ token }) => ({
     background: `linear-gradient(135deg, ${token.colorPrimaryBg} 0%, ${token.colorBgContainer} 100%)`,
     border: `2px solid ${token.colorPrimaryBorder}`,
     borderRadius: token.borderRadiusLG,
-    padding: 12,
-    minWidth: 120,
+    padding: 16,
+    minWidth: 100,
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    gap: 4,
+    gap: 6,
     boxShadow: token.boxShadow,
   },
   icon: {
     color: token.colorPrimary,
-    fontSize: 24,
+    fontSize: 28,
   },
   label: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: 600,
     color: token.colorPrimary,
   },
   handle: {
-    width: 12,
-    height: 12,
+    width: 8,
+    height: 8,
     background: token.colorSuccess,
-    border: `2px solid ${token.colorBgContainer}`,
-  },
-  handleLeft: {
-    left: -6,
+    border: "none",
   },
 }));
 
@@ -59,13 +55,11 @@ const BundleNodeComponent = ({ data }: BundleNodeProps) => {
 
   return (
     <div className={styles.node}>
-      {/* Left handle (for incoming actions) */}
+      {/* Single target handle on left */}
       <Handle
         type="target"
         position={Position.Left}
-        id={BUNDLE_HANDLES.ACT_PRICE}
-        className={`${styles.handle} ${styles.handleLeft}`}
-        style={{ top: "50%" }}
+        className={styles.handle}
       />
 
       {/* Content */}
