@@ -30,8 +30,12 @@ import {
   ComponentPriceType,
   type PricingRuleTemplate,
   type ITieredDiscount,
+  type IDependencyRule,
+  type IComponentGroup,
   PRICE_RULE_OPTIONS,
 } from "../types";
+import { DependencyRulesTable } from "./dependency-rules-table";
+import { useDependencyChartModal } from "../../../modals";
 
 // ============================================================================
 // Styles
@@ -82,6 +86,9 @@ interface IPricingRulesTabProps {
   onPricingTemplatesChange: (templates: PricingRuleTemplate[]) => void;
   tieredDiscounts: ITieredDiscount[];
   onTieredDiscountsChange: (discounts: ITieredDiscount[]) => void;
+  dependencyRules: IDependencyRule[];
+  onDependencyRulesChange: (rules: IDependencyRule[]) => void;
+  groups: IComponentGroup[];
 }
 
 interface IEditingTemplate extends PricingRuleTemplate {
@@ -110,8 +117,39 @@ export const PricingRulesTab = ({
   onPricingTemplatesChange,
   tieredDiscounts,
   onTieredDiscountsChange,
+  dependencyRules,
+  onDependencyRulesChange,
+  groups,
 }: IPricingRulesTabProps) => {
   const { styles } = useStyles();
+  const { push: openChartModal } = useDependencyChartModal();
+
+  // ========================================
+  // Chart Modal Handlers
+  // ========================================
+  const handleOpenChart = useCallback(() => {
+    openChartModal({
+      groups,
+      rules: dependencyRules,
+      onSave: (updatedRules: IDependencyRule[]) => {
+        onDependencyRulesChange(updatedRules);
+      },
+    });
+  }, [groups, dependencyRules, onDependencyRulesChange, openChartModal]);
+
+  const handleEditRuleInChart = useCallback(
+    (ruleId: string) => {
+      openChartModal({
+        groups,
+        rules: dependencyRules,
+        selectedRuleId: ruleId,
+        onSave: (updatedRules: IDependencyRule[]) => {
+          onDependencyRulesChange(updatedRules);
+        },
+      });
+    },
+    [groups, dependencyRules, onDependencyRulesChange, openChartModal]
+  );
 
   // ========================================
   // Pricing Templates State
@@ -600,6 +638,19 @@ export const PricingRulesTab = ({
               image={Empty.PRESENTED_IMAGE_SIMPLE}
             />
           )}
+        </div>
+      </Paper>
+
+      {/* Dependency Rules */}
+      <Paper>
+        <div className={styles.section}>
+          <DependencyRulesTable
+            rules={dependencyRules}
+            onRulesChange={onDependencyRulesChange}
+            groups={groups}
+            onOpenChart={handleOpenChart}
+            onEditRule={handleEditRuleInChart}
+          />
         </div>
       </Paper>
     </div>

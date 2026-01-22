@@ -5,3 +5,5 @@ export { VariantSettingsModal } from "./variant-settings-modal";
 export { PricingRulesTab } from "./pricing-rules-tab";
 export { PreviewTab } from "./preview-tab";
 export { SettingsTab } from "./settings-tab";
+export { DependencyRulesTable } from "./dependency-rules-table";
+export { DependencyChartModal } from "./dependency-chart-modal";

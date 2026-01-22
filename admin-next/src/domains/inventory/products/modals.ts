@@ -29,6 +29,7 @@ export const PRODUCT_EDIT_CATEGORIES_MODAL_TYPE = 'product-edit-categories';
 export const PRODUCT_EDIT_TAGS_MODAL_TYPE = 'product-edit-tags';
 export const PRODUCT_EDIT_COMPONENTS_MODAL_TYPE = 'product-edit-components';
 export const COMPONENT_VARIANT_SETTINGS_MODAL_TYPE = 'component-variant-settings';
+export const DEPENDENCY_CHART_MODAL_TYPE = 'dependency-chart';
 export const BULK_EDITOR_MODAL_TYPE = 'bulk-editor';
 
 // ============================================================================
@@ -309,6 +310,13 @@ export interface IEditComponentsModalPayload extends IModalStackPayload {
   tieredDiscounts?: import("./modals/edit-components-modal/types").ITieredDiscount[];
 }
 
+export interface IDependencyChartModalPayload extends IModalStackPayload {
+  groups: import("./modals/edit-components-modal/types").IComponentGroup[];
+  rules: import("./modals/edit-components-modal/types").IDependencyRule[];
+  selectedRuleId?: string;
+  onSave?: (rules: import("./modals/edit-components-modal/types").IDependencyRule[]) => void;
+}
+
 export interface IBulkEditorModalPayload extends IModalStackPayload {
   productIds: string[];
 }
@@ -375,6 +383,7 @@ declare module '@/layouts/modals' {
     [PRODUCT_EDIT_TAGS_MODAL_TYPE]: IEditTagsModalPayload;
     [PRODUCT_EDIT_COMPONENTS_MODAL_TYPE]: IEditComponentsModalPayload;
     [COMPONENT_VARIANT_SETTINGS_MODAL_TYPE]: IComponentVariantSettingsModalPayload;
+    [DEPENDENCY_CHART_MODAL_TYPE]: IDependencyChartModalPayload;
     [BULK_EDITOR_MODAL_TYPE]: IBulkEditorModalPayload;
   }
 }
@@ -603,6 +612,22 @@ export const useEditComponentsModal = createModalStackHook(PRODUCT_EDIT_COMPONEN
  * ```
  */
 export const useComponentVariantSettingsModal = createModalStackHook(COMPONENT_VARIANT_SETTINGS_MODAL_TYPE);
+
+/**
+ * Hook to open dependency chart modal
+ *
+ * @example
+ * ```tsx
+ * const { push } = useDependencyChartModal();
+ * push({
+ *   groups: [...],
+ *   rules: [...],
+ *   selectedRuleId: 'rule-1',
+ *   onSave: (rules) => console.log(rules)
+ * });
+ * ```
+ */
+export const useDependencyChartModal = createModalStackHook(DEPENDENCY_CHART_MODAL_TYPE);
 
 /**
  * Hook to open bulk editor modal

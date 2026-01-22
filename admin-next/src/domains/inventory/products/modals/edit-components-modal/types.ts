@@ -234,3 +234,145 @@ export const STOCK_STATUS_LABELS: Record<StockStatus, string> = {
   lowStock: "Low Stock",
   outOfStock: "Out of Stock",
 };
+
+// ============================================================================
+// Dependency Rules
+// ============================================================================
+
+/**
+ * Condition types (STATE-BASED, not events!)
+ *
+ * Key insight: These are predicates evaluated against current state,
+ * not events that "fire". This avoids "why didn't rule trigger on modal open" bugs.
+ */
+export enum DependencyConditionType {
+  /** Item is currently selected */
+  IS_SELECTED = "IS_SELECTED",
+  /** Item is currently NOT selected */
+  IS_NOT_SELECTED = "IS_NOT_SELECTED",
+  /** Item quantity >= value */
+  QTY_GTE = "QTY_GTE",
+  /** Item quantity <= value */
+  QTY_LTE = "QTY_LTE",
+  /** Item quantity == value */
+  QTY_EQ = "QTY_EQ",
+  /** Group meets min/max constraints */
+  GROUP_VALID = "GROUP_VALID",
+  /** Group does NOT meet min/max constraints */
+  GROUP_INVALID = "GROUP_INVALID",
+  /** Unique selected items in group >= value (e.g. 3 different items) */
+  GROUP_UNIQUE_GTE = "GROUP_UNIQUE_GTE",
+  /** Total quantity in group >= value (e.g. 5 total pieces) */
+  GROUP_TOTAL_QTY_GTE = "GROUP_TOTAL_QTY_GTE",
+}
+
+/**
+ * Action types for THEN clause
+ */
+export enum DependencyActionType {
+  // Visibility
+  SHOW = "SHOW",
+  HIDE = "HIDE",
+  // Availability
+  ENABLE = "ENABLE",
+  DISABLE = "DISABLE",
+  // Quantity
+  SET_QTY = "SET_QTY",
+  // Pricing
+  OVERRIDE_PRICE = "OVERRIDE_PRICE", // replaces base price entirely
+  ADJUST_PRICE = "ADJUST_PRICE", // modifies base price
+}
+
+/**
+ * Target type for conditions and actions
+ */
+export enum DependencyTargetType {
+  ITEM = "ITEM",
+  GROUP = "GROUP",
+  BUNDLE = "BUNDLE",
+}
+
+/**
+ * Single condition in WHEN clause
+ *
+ * All conditions in a rule are AND-ed together.
+ */
+export interface IDependencyCondition {
+  id: string;
+  conditionType: DependencyConditionType;
+  targetType: DependencyTargetType;
+  targetId: string; // item or group ID
+  value?: number; // for QTY_*, GROUP_COUNT_GTE
+}
+
+/**
+ * Single action in THEN clause
+ */
+export interface IDependencyAction {
+  id: string;
+  actionType: DependencyActionType;
+  targetType: DependencyTargetType;
+  targetId?: string; // Optional for BUNDLE (implicit "this bundle")
+
+  // For SET_QTY
+  qtyValue?: number;
+
+  // For OVERRIDE_PRICE / ADJUST_PRICE
+  priceType?: ComponentPriceType;
+  priceValue?: number | null;
+
+  // Price conflict resolution
+  exclusiveKey?: string; // e.g. "bundleDiscount" - only highest priority wins in same key
+  applyTo?: "ITEM" | "COMPONENTS_SUBTOTAL"; // where discount applies (default: ITEM)
+
+  // UX
+  label?: string; // reason shown in UI ("Not compatible with Premium")
+}
+
+/**
+ * Full dependency rule
+ */
+export interface IDependencyRule {
+  id: string;
+  name: string;
+  enabled: boolean;
+  priority: number; // higher = wins conflicts
+
+  // WHEN clause (all conditions must match - AND logic)
+  conditions: IDependencyCondition[];
+
+  // THEN clause (all actions execute if conditions pass)
+  actions: IDependencyAction[];
+}
+
+// ============================================================================
+// Dependency Rule Helper Types & Constants
+// ============================================================================
+
+export const CONDITION_TYPE_LABELS: Record<DependencyConditionType, string> = {
+  [DependencyConditionType.IS_SELECTED]: "is selected",
+  [DependencyConditionType.IS_NOT_SELECTED]: "is not selected",
+  [DependencyConditionType.QTY_GTE]: "quantity >=",
+  [DependencyConditionType.QTY_LTE]: "quantity <=",
+  [DependencyConditionType.QTY_EQ]: "quantity =",
+  [DependencyConditionType.GROUP_VALID]: "is valid",
+  [DependencyConditionType.GROUP_INVALID]: "is invalid",
+  [DependencyConditionType.GROUP_UNIQUE_GTE]: "unique items >=",
+  [DependencyConditionType.GROUP_TOTAL_QTY_GTE]: "total quantity >=",
+};
+
+export const ACTION_TYPE_LABELS: Record<DependencyActionType, string> = {
+  [DependencyActionType.SHOW]: "show",
+  [DependencyActionType.HIDE]: "hide",
+  [DependencyActionType.ENABLE]: "enable",
+  [DependencyActionType.DISABLE]: "disable",
+  [DependencyActionType.SET_QTY]: "set quantity",
+  [DependencyActionType.OVERRIDE_PRICE]: "override price",
+  [DependencyActionType.ADJUST_PRICE]: "adjust price",
+};
+
+export const TARGET_TYPE_LABELS: Record<DependencyTargetType, string> = {
+  [DependencyTargetType.ITEM]: "Item",
+  [DependencyTargetType.GROUP]: "Group",
+  [DependencyTargetType.BUNDLE]: "Bundle",
+};

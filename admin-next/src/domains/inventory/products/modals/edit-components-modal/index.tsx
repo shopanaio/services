@@ -24,6 +24,7 @@ import type {
   PricingRuleTemplate,
   ITieredDiscount,
   IBundleSettings,
+  IDependencyRule,
 } from "./types";
 import { ComponentItemType } from "./types";
 import {
@@ -190,6 +191,7 @@ interface IEditComponentsModalPayload {
   groups?: IComponentGroup[];
   pricingTemplates?: PricingRuleTemplate[];
   tieredDiscounts?: ITieredDiscount[];
+  dependencyRules?: IDependencyRule[];
   bundleSettings?: IBundleSettings;
   onSave?: (data: unknown) => void;
 }
@@ -225,6 +227,9 @@ export const EditComponentsModal = () => {
   >(modalPayload?.pricingTemplates ?? []);
   const [tieredDiscounts, setTieredDiscounts] = useState<ITieredDiscount[]>(
     modalPayload?.tieredDiscounts ?? []
+  );
+  const [dependencyRules, setDependencyRules] = useState<IDependencyRule[]>(
+    modalPayload?.dependencyRules ?? []
   );
   const [bundleSettings, setBundleSettings] = useState<IBundleSettings>(
     modalPayload?.bundleSettings ?? DEFAULT_BUNDLE_SETTINGS
@@ -538,6 +543,7 @@ export const EditComponentsModal = () => {
       groups,
       pricingTemplates,
       tieredDiscounts,
+      dependencyRules,
       bundleSettings,
     };
 
@@ -548,6 +554,7 @@ export const EditComponentsModal = () => {
     groups,
     pricingTemplates,
     tieredDiscounts,
+    dependencyRules,
     bundleSettings,
     modalPayload,
     pop,
@@ -595,6 +602,12 @@ export const EditComponentsModal = () => {
               setTieredDiscounts(discounts);
               setDirty(true);
             }}
+            dependencyRules={dependencyRules}
+            onDependencyRulesChange={(rules) => {
+              setDependencyRules(rules);
+              setDirty(true);
+            }}
+            groups={groups}
           />
         ),
       },
@@ -680,6 +693,7 @@ export const EditComponentsModal = () => {
       handleShowAsProduct,
       pricingTemplates,
       tieredDiscounts,
+      dependencyRules,
       bundleSettings,
       setDirty,
     ]
