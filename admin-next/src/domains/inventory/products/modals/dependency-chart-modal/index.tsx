@@ -22,7 +22,10 @@ import {
   ModalHeader,
 } from "@/layouts/modals";
 import type { IDependencyChartModalPayload } from "../../modals";
-import type { IDependencyRule, IComponentGroup } from "../edit-components-modal/types";
+import type {
+  IDependencyRule,
+  IComponentGroup,
+} from "../edit-components-modal/types";
 
 import { ItemNode, RuleNode, BundleNode } from "./nodes";
 import { LabeledEdge } from "./edges";
@@ -39,7 +42,6 @@ const useStyles = createStyles(({ token }) => ({
     width: "100%",
     display: "flex",
     height: "calc(100vh - 120px)",
-    minHeight: 500,
   },
   chartArea: {
     flex: 1,
@@ -125,7 +127,7 @@ const DependencyChartInner = ({
   // Draft state - changes don't affect parent until Save
   const [draftRules, setDraftRules] = useState<IDependencyRule[]>(initialRules);
   const [selectedRuleId, setSelectedRuleId] = useState<string | null>(
-    initialSelectedRuleId ?? null
+    initialSelectedRuleId ?? null,
   );
 
   // Derive graph from draft rules
@@ -136,17 +138,24 @@ const DependencyChartInner = ({
   });
 
   // Apply column layout
-  const layoutedNodes = useColumnLayout({ nodes: derivedNodes, edges: derivedEdges });
+  const layoutedNodes = useColumnLayout({
+    nodes: derivedNodes,
+    edges: derivedEdges,
+  });
 
   // React Flow state
-  const [nodes, setNodes, onNodesChange] = useNodesState(layoutedNodes as Node[]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(derivedEdges as Edge[]);
+  const [nodes, setNodes, onNodesChange] = useNodesState(
+    layoutedNodes as Node[],
+  );
+  const [edges, setEdges, onEdgesChange] = useEdgesState(
+    derivedEdges as Edge[],
+  );
 
   // Update nodes/edges when draft rules change, preserving existing positions
   useMemo(() => {
     setNodes((currentNodes) => {
       const currentPositions = new Map(
-        currentNodes.map((n) => [n.id, n.position])
+        currentNodes.map((n) => [n.id, n.position]),
       );
       return layoutedNodes.map((node) => {
         const existingPosition = currentPositions.get(node.id);
@@ -170,12 +179,12 @@ const DependencyChartInner = ({
         setSelectedRuleId(ruleId);
       }
     },
-    []
+    [],
   );
 
   const handleRuleChange = useCallback((updatedRule: IDependencyRule) => {
     setDraftRules((prev) =>
-      prev.map((r) => (r.id === updatedRule.id ? updatedRule : r))
+      prev.map((r) => (r.id === updatedRule.id ? updatedRule : r)),
     );
   }, []);
 
@@ -190,7 +199,7 @@ const DependencyChartInner = ({
   // Get selected rule
   const selectedRule = useMemo(
     () => draftRules.find((r) => r.id === selectedRuleId) ?? null,
-    [draftRules, selectedRuleId]
+    [draftRules, selectedRuleId],
   );
 
   return (
@@ -240,11 +249,17 @@ const DependencyChartInner = ({
           {/* Legend */}
           <div className={styles.legend}>
             <div className={styles.legendItem}>
-              <div className={styles.legendDot} style={{ background: "#1890ff" }} />
+              <div
+                className={styles.legendDot}
+                style={{ background: "#1890ff" }}
+              />
               <span>Items</span>
             </div>
             <div className={styles.legendItem}>
-              <div className={styles.legendDot} style={{ background: "#faad14" }} />
+              <div
+                className={styles.legendDot}
+                style={{ background: "#faad14" }}
+              />
               <span>Rules</span>
             </div>
           </div>

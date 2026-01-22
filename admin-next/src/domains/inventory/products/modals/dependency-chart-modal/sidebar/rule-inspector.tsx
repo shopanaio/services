@@ -38,6 +38,7 @@ import {
   PRICE_RULE_OPTIONS,
   ComponentPriceType,
 } from "../../edit-components-modal/types";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 
 // ============================================================================
 // Styles
@@ -47,31 +48,11 @@ const useStyles = createStyles(({ token }) => ({
   container: {
     width: 320,
     height: "100%",
-    borderLeft: `1px solid ${token.colorBorderSecondary}`,
-    background: token.colorBgContainer,
-    display: "flex",
-    flexDirection: "column",
-    overflow: "hidden",
-    transition: "width 0.2s ease",
   },
   containerCollapsed: {
-    width: 40,
+    width: 56,
   },
-  header: {
-    padding: "12px 16px",
-    borderBottom: `1px solid ${token.colorBorderSecondary}`,
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  headerCollapsed: {
-    padding: 8,
-    justifyContent: "center",
-    borderBottom: "none",
-  },
-  headerTitle: {
-    fontWeight: 600,
-  },
+
   collapsedContent: {
     flex: 1,
     display: "flex",
@@ -90,7 +71,6 @@ const useStyles = createStyles(({ token }) => ({
   },
   content: {
     flex: 1,
-    padding: 16,
     overflowY: "auto",
   },
   section: {
@@ -166,7 +146,7 @@ interface IRuleInspectorProps {
 
 const getTargetOptions = (
   targetType: DependencyTargetType,
-  groups: IComponentGroup[]
+  groups: IComponentGroup[],
 ): { value: string; label: string }[] => {
   if (targetType === DependencyTargetType.ITEM) {
     return groups.flatMap((g) =>
@@ -177,7 +157,7 @@ const getTargetOptions = (
           item.assignedProduct?.title ??
           item.assignedVariant?.title ??
           item.id,
-      }))
+      })),
     );
   }
   if (targetType === DependencyTargetType.GROUP) {
@@ -215,8 +195,14 @@ const getActionTypeOptions = (targetType: DependencyTargetType) => {
  * Target type options for conditions (exclude BUNDLE as it can't be a condition source)
  */
 const CONDITION_TARGET_TYPE_OPTIONS = [
-  { value: DependencyTargetType.ITEM, label: TARGET_TYPE_LABELS[DependencyTargetType.ITEM] },
-  { value: DependencyTargetType.GROUP, label: TARGET_TYPE_LABELS[DependencyTargetType.GROUP] },
+  {
+    value: DependencyTargetType.ITEM,
+    label: TARGET_TYPE_LABELS[DependencyTargetType.ITEM],
+  },
+  {
+    value: DependencyTargetType.GROUP,
+    label: TARGET_TYPE_LABELS[DependencyTargetType.GROUP],
+  },
 ];
 
 /**
@@ -226,7 +212,7 @@ const ACTION_TARGET_TYPE_OPTIONS = Object.entries(TARGET_TYPE_LABELS).map(
   ([value, label]) => ({
     value,
     label,
-  })
+  }),
 );
 
 const PRICE_TYPE_OPTIONS = PRICE_RULE_OPTIONS.map((opt) => ({
@@ -278,13 +264,13 @@ export const RuleInspector = ({
 
   const handleUpdateCondition = (
     conditionId: string,
-    updates: Partial<IDependencyCondition>
+    updates: Partial<IDependencyCondition>,
   ) => {
     if (!rule) return;
     onRuleChange({
       ...rule,
       conditions: rule.conditions.map((c) =>
-        c.id === conditionId ? { ...c, ...updates } : c
+        c.id === conditionId ? { ...c, ...updates } : c,
       ),
     });
   };
@@ -315,13 +301,13 @@ export const RuleInspector = ({
 
   const handleUpdateAction = (
     actionId: string,
-    updates: Partial<IDependencyAction>
+    updates: Partial<IDependencyAction>,
   ) => {
     if (!rule) return;
     onRuleChange({
       ...rule,
       actions: rule.actions.map((a) =>
-        a.id === actionId ? { ...a, ...updates } : a
+        a.id === actionId ? { ...a, ...updates } : a,
       ),
     });
   };
@@ -341,67 +327,72 @@ export const RuleInspector = ({
   // Collapsed view
   if (collapsed) {
     return (
-      <div className={cx(styles.container, styles.containerCollapsed)}>
-        <div className={cx(styles.header, styles.headerCollapsed)}>
-          <Button
-            type="text"
-            size="small"
-            icon={<LeftOutlined />}
-            onClick={() => setCollapsed(false)}
-          />
-        </div>
+      <Paper className={cx(styles.container, styles.containerCollapsed)}>
+        <PaperHeader
+          bordered={false}
+          extra={
+            <Button
+              type="text"
+              size="small"
+              icon={<LeftOutlined />}
+              onClick={() => setCollapsed(false)}
+            />
+          }
+        />
         <div className={styles.collapsedContent}>
           <span className={styles.verticalText}>Rule Inspector</span>
         </div>
-      </div>
+      </Paper>
     );
   }
 
   if (!rule) {
     return (
-      <div className={styles.container}>
-        <div className={styles.header}>
-          <Typography.Text className={styles.headerTitle}>
-            Rule Inspector
-          </Typography.Text>
-          <Button
-            type="text"
-            size="small"
-            icon={<RightOutlined />}
-            onClick={() => setCollapsed(true)}
-          />
-        </div>
+      <Paper className={styles.container}>
+        <PaperHeader
+          title="Rule Inspector"
+          actions={
+            <Button
+              type="text"
+              size="small"
+              icon={<RightOutlined />}
+              onClick={() => setCollapsed(true)}
+            />
+          }
+        />
         <div className={styles.content}>
           <Empty
             description="Select a rule to edit"
             image={Empty.PRESENTED_IMAGE_SIMPLE}
           />
         </div>
-      </div>
+      </Paper>
     );
   }
 
   return (
-    <div className={styles.container}>
+    <Paper className={styles.container}>
       {/* Header */}
-      <div className={styles.header}>
-        <Typography.Text className={styles.headerTitle}>
-          Rule Inspector
-        </Typography.Text>
-        <Button
-          type="text"
-          size="small"
-          icon={<RightOutlined />}
-          onClick={() => setCollapsed(true)}
-        />
-      </div>
+      <PaperHeader
+        title="Rule Inspector"
+        actions={
+          <Button
+            type="text"
+            size="small"
+            icon={<RightOutlined />}
+            onClick={() => setCollapsed(true)}
+          />
+        }
+      />
 
       {/* Content */}
       <div className={styles.content}>
         {/* Basic Info */}
         <div className={styles.section}>
           <div className={styles.field}>
-            <Typography.Text className={styles.fieldLabel}>Name</Typography.Text>
+            <Typography.Text className={styles.fieldLabel}>
+              Name
+            </Typography.Text>
             <Input
               value={rule.name}
               onChange={(e) => handleNameChange(e.target.value)}
@@ -448,8 +439,13 @@ export const RuleInspector = ({
                     value={condition.targetType}
                     onChange={(value) => {
                       // Reset condition type to first valid type for new target
-                      const validTypes = CONDITION_TYPES_BY_TARGET[value as DependencyTargetType];
-                      const newConditionType = validTypes.includes(condition.conditionType)
+                      const validTypes =
+                        CONDITION_TYPES_BY_TARGET[
+                          value as DependencyTargetType
+                        ];
+                      const newConditionType = validTypes.includes(
+                        condition.conditionType,
+                      )
                         ? condition.conditionType
                         : validTypes[0];
                       handleUpdateCondition(condition.id, {
@@ -457,8 +453,8 @@ export const RuleInspector = ({
                         conditionType: newConditionType,
                         targetId:
                           value === DependencyTargetType.ITEM
-                            ? groups[0]?.items[0]?.id ?? ""
-                            : groups[0]?.id ?? "",
+                            ? (groups[0]?.items[0]?.id ?? "")
+                            : (groups[0]?.id ?? ""),
                       });
                     }}
                     options={CONDITION_TARGET_TYPE_OPTIONS}
@@ -489,7 +485,9 @@ export const RuleInspector = ({
                   <Select
                     value={condition.conditionType}
                     onChange={(value) =>
-                      handleUpdateCondition(condition.id, { conditionType: value })
+                      handleUpdateCondition(condition.id, {
+                        conditionType: value,
+                      })
                     }
                     options={getConditionTypeOptions(condition.targetType)}
                     size="small"
@@ -505,7 +503,9 @@ export const RuleInspector = ({
                     <InputNumber
                       value={condition.value}
                       onChange={(value) =>
-                        handleUpdateCondition(condition.id, { value: value ?? 0 })
+                        handleUpdateCondition(condition.id, {
+                          value: value ?? 0,
+                        })
                       }
                       min={0}
                       size="small"
@@ -546,8 +546,11 @@ export const RuleInspector = ({
                     value={action.targetType}
                     onChange={(value) => {
                       // Reset action type to first valid type for new target
-                      const validTypes = ACTION_TYPES_BY_TARGET[value as DependencyTargetType];
-                      const newActionType = validTypes.includes(action.actionType)
+                      const validTypes =
+                        ACTION_TYPES_BY_TARGET[value as DependencyTargetType];
+                      const newActionType = validTypes.includes(
+                        action.actionType,
+                      )
                         ? action.actionType
                         : validTypes[0];
                       handleUpdateAction(action.id, {
@@ -557,8 +560,8 @@ export const RuleInspector = ({
                           value === DependencyTargetType.BUNDLE
                             ? undefined
                             : value === DependencyTargetType.ITEM
-                            ? groups[0]?.items[0]?.id ?? ""
-                            : groups[0]?.id ?? "",
+                              ? (groups[0]?.items[0]?.id ?? "")
+                              : (groups[0]?.id ?? ""),
                       });
                     }}
                     options={ACTION_TARGET_TYPE_OPTIONS}
@@ -615,7 +618,7 @@ export const RuleInspector = ({
                     />
                     {action.priceType &&
                       PRICE_RULE_OPTIONS.find(
-                        (o) => o.value === action.priceType
+                        (o) => o.value === action.priceType,
                       )?.requiresValue && (
                         <InputNumber
                           value={action.priceValue ?? undefined}
@@ -627,7 +630,7 @@ export const RuleInspector = ({
                           style={{ width: 80 }}
                           addonAfter={
                             PRICE_RULE_OPTIONS.find(
-                              (o) => o.value === action.priceType
+                              (o) => o.value === action.priceType,
                             )?.valueSuffix
                           }
                         />
@@ -652,13 +655,12 @@ export const RuleInspector = ({
                     />
                   </div>
                 )}
-
               </div>
             ))
           )}
         </div>
       </div>
-    </div>
+    </Paper>
   );
 };
 
