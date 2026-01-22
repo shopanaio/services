@@ -31,7 +31,7 @@ interface UseColumnLayoutOptions {
 export const useColumnLayout = ({ nodes }: UseColumnLayoutOptions): ChartNode[] => {
   return useMemo(() => {
     const itemNodes = nodes.filter((n) => n.type === "item");
-    const groupNodes = nodes.filter((n) => n.type === "group");
+    const groupNodes = nodes.filter((n) => n.type === "group" || n.type === "default");
     const ruleNodes = nodes.filter((n) => n.type === "rule");
 
     const positionedNodes: ChartNode[] = [];

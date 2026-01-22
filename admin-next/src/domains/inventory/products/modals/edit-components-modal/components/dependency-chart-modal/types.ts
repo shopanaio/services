@@ -23,6 +23,11 @@ export interface GroupNodeData {
   [key: string]: unknown;
 }
 
+export interface DefaultNodeData {
+  label: string;
+  [key: string]: unknown;
+}
+
 export interface RuleNodeData {
   rule: IDependencyRule;
   isSelected: boolean;
@@ -42,8 +47,9 @@ export type ItemNode = Node<ItemNodeData, "item">;
 export type GroupNode = Node<GroupNodeData, "group">;
 export type RuleNode = Node<RuleNodeData, "rule">;
 export type BundleNode = Node<BundleNodeData, "bundle">;
+export type DefaultNode = Node<DefaultNodeData, "default">;
 
-export type ChartNode = ItemNode | GroupNode | RuleNode | BundleNode;
+export type ChartNode = ItemNode | GroupNode | RuleNode | BundleNode | DefaultNode;
 
 // ============================================================================
 // Edge Data Types (with index signature for React Flow compatibility)

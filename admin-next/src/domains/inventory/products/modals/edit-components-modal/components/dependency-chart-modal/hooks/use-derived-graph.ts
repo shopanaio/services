@@ -10,7 +10,7 @@ import {
   ACTION_TYPE_LABELS,
   PRICE_RULE_OPTIONS,
 } from "../../../types";
-import type { ChartNode, ChartEdge, ItemNodeData, GroupNodeData, RuleNodeData } from "../types";
+import type { ChartNode, ChartEdge, ItemNodeData, RuleNodeData } from "../types";
 
 // ============================================================================
 // Helper Functions
@@ -100,14 +100,14 @@ export const useDerivedGraph = ({
       });
     });
 
-    // 2. Create group nodes
+    // 2. Create group nodes (using default React Flow type)
     groups.forEach((group) => {
       const nodeId = `group:${group.id}`;
       nodeIds.add(nodeId);
       const groupNode: ChartNode = {
         id: nodeId,
-        type: "group",
-        data: { group } as GroupNodeData,
+        type: "default",
+        data: { label: group.title },
         position: { x: 0, y: 0 },
       };
       nodes.push(groupNode);
