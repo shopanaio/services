@@ -376,3 +376,54 @@ export const TARGET_TYPE_LABELS: Record<DependencyTargetType, string> = {
   [DependencyTargetType.GROUP]: "Group",
   [DependencyTargetType.BUNDLE]: "Bundle",
 };
+
+/**
+ * Valid condition types for each target type
+ * - ITEM: selection state and quantity conditions
+ * - GROUP: group-specific validation conditions
+ * - BUNDLE: not used as condition source (conditions are about components, not the bundle itself)
+ */
+export const CONDITION_TYPES_BY_TARGET: Record<DependencyTargetType, DependencyConditionType[]> = {
+  [DependencyTargetType.ITEM]: [
+    DependencyConditionType.IS_SELECTED,
+    DependencyConditionType.IS_NOT_SELECTED,
+    DependencyConditionType.QTY_GTE,
+    DependencyConditionType.QTY_LTE,
+    DependencyConditionType.QTY_EQ,
+  ],
+  [DependencyTargetType.GROUP]: [
+    DependencyConditionType.GROUP_VALID,
+    DependencyConditionType.GROUP_INVALID,
+    DependencyConditionType.GROUP_UNIQUE_GTE,
+    DependencyConditionType.GROUP_TOTAL_QTY_GTE,
+  ],
+  [DependencyTargetType.BUNDLE]: [], // Bundle is not used as condition source
+};
+
+/**
+ * Valid action types for each target type
+ * - ITEM: all actions (visibility, availability, quantity, pricing)
+ * - GROUP: visibility and availability only (no quantity or pricing)
+ * - BUNDLE: pricing only (can't hide/disable/set qty on the bundle itself)
+ */
+export const ACTION_TYPES_BY_TARGET: Record<DependencyTargetType, DependencyActionType[]> = {
+  [DependencyTargetType.ITEM]: [
+    DependencyActionType.SHOW,
+    DependencyActionType.HIDE,
+    DependencyActionType.ENABLE,
+    DependencyActionType.DISABLE,
+    DependencyActionType.SET_QTY,
+    DependencyActionType.OVERRIDE_PRICE,
+    DependencyActionType.ADJUST_PRICE,
+  ],
+  [DependencyTargetType.GROUP]: [
+    DependencyActionType.SHOW,
+    DependencyActionType.HIDE,
+    DependencyActionType.ENABLE,
+    DependencyActionType.DISABLE,
+  ],
+  [DependencyTargetType.BUNDLE]: [
+    DependencyActionType.OVERRIDE_PRICE,
+    DependencyActionType.ADJUST_PRICE,
+  ],
+};

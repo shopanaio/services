@@ -34,6 +34,8 @@ import {
   CONDITION_TYPE_LABELS,
   ACTION_TYPE_LABELS,
   TARGET_TYPE_LABELS,
+  CONDITION_TYPES_BY_TARGET,
+  ACTION_TYPES_BY_TARGET,
   PRICE_RULE_OPTIONS,
   ComponentPriceType,
 } from "../../../types";
@@ -164,21 +166,40 @@ const getTargetOptions = (
   return [];
 };
 
-const CONDITION_TYPE_OPTIONS = Object.entries(CONDITION_TYPE_LABELS).map(
-  ([value, label]) => ({
-    value,
-    label,
-  })
-);
+/**
+ * Get condition type options filtered by target type
+ */
+const getConditionTypeOptions = (targetType: DependencyTargetType) => {
+  const validTypes = CONDITION_TYPES_BY_TARGET[targetType];
+  return validTypes.map((type) => ({
+    value: type,
+    label: CONDITION_TYPE_LABELS[type],
+  }));
+};
 
-const ACTION_TYPE_OPTIONS = Object.entries(ACTION_TYPE_LABELS).map(
-  ([value, label]) => ({
-    value,
-    label,
-  })
-);
+/**
+ * Get action type options filtered by target type
+ */
+const getActionTypeOptions = (targetType: DependencyTargetType) => {
+  const validTypes = ACTION_TYPES_BY_TARGET[targetType];
+  return validTypes.map((type) => ({
+    value: type,
+    label: ACTION_TYPE_LABELS[type],
+  }));
+};
 
-const TARGET_TYPE_OPTIONS = Object.entries(TARGET_TYPE_LABELS).map(
+/**
+ * Target type options for conditions (exclude BUNDLE as it can't be a condition source)
+ */
+const CONDITION_TARGET_TYPE_OPTIONS = [
+  { value: DependencyTargetType.ITEM, label: TARGET_TYPE_LABELS[DependencyTargetType.ITEM] },
+  { value: DependencyTargetType.GROUP, label: TARGET_TYPE_LABELS[DependencyTargetType.GROUP] },
+];
+
+/**
+ * Target type options for actions (all targets are valid)
+ */
+const ACTION_TARGET_TYPE_OPTIONS = Object.entries(TARGET_TYPE_LABELS).map(
   ([value, label]) => ({
     value,
     label,
@@ -372,32 +393,36 @@ export const RuleInspector = ({
                 <div className={styles.conditionRow}>
                   <Select
                     value={condition.targetType}
-                    onChange={(value) =>
+                    onChange={(value) => {
+                      // Reset condition type to first valid type for new target
+                      const validTypes = CONDITION_TYPES_BY_TARGET[value as DependencyTargetType];
+                      const newConditionType = validTypes.includes(condition.conditionType)
+                        ? condition.conditionType
+                        : validTypes[0];
                       handleUpdateCondition(condition.id, {
                         targetType: value,
+                        conditionType: newConditionType,
                         targetId:
-                          value === DependencyTargetType.BUNDLE
-                            ? "bundle"
-                            : groups[0]?.items[0]?.id ?? "",
-                      })
-                    }
-                    options={TARGET_TYPE_OPTIONS}
+                          value === DependencyTargetType.ITEM
+                            ? groups[0]?.items[0]?.id ?? ""
+                            : groups[0]?.id ?? "",
+                      });
+                    }}
+                    options={CONDITION_TARGET_TYPE_OPTIONS}
                     size="small"
                     style={{ width: 80 }}
                   />
-                  {condition.targetType !== DependencyTargetType.BUNDLE && (
-                    <Select
-                      value={condition.targetId}
-                      onChange={(value) =>
-                        handleUpdateCondition(condition.id, { targetId: value })
-                      }
-                      options={getTargetOptions(condition.targetType, groups)}
-                      size="small"
-                      style={{ flex: 1 }}
-                      showSearch
-                      optionFilterProp="label"
-                    />
-                  )}
+                  <Select
+                    value={condition.targetId}
+                    onChange={(value) =>
+                      handleUpdateCondition(condition.id, { targetId: value })
+                    }
+                    options={getTargetOptions(condition.targetType, groups)}
+                    size="small"
+                    style={{ flex: 1 }}
+                    showSearch
+                    optionFilterProp="label"
+                  />
                   <Button
                     type="text"
                     size="small"
@@ -413,7 +438,7 @@ export const RuleInspector = ({
                     onChange={(value) =>
                       handleUpdateCondition(condition.id, { conditionType: value })
                     }
-                    options={CONDITION_TYPE_OPTIONS}
+                    options={getConditionTypeOptions(condition.targetType)}
                     size="small"
                     style={{ flex: 1 }}
                   />
@@ -465,36 +490,25 @@ export const RuleInspector = ({
               <div key={action.id} className={styles.actionItem}>
                 <div className={styles.conditionRow}>
                   <Select
-                    value={action.actionType}
-                    onChange={(value) =>
-                      handleUpdateAction(action.id, { actionType: value })
-                    }
-                    options={ACTION_TYPE_OPTIONS}
-                    size="small"
-                    style={{ flex: 1 }}
-                  />
-                  <Button
-                    type="text"
-                    size="small"
-                    danger
-                    icon={<DeleteOutlined />}
-                    onClick={() => handleDeleteAction(action.id)}
-                    className={styles.deleteButton}
-                  />
-                </div>
-                <div className={styles.conditionRow}>
-                  <Select
                     value={action.targetType}
-                    onChange={(value) =>
+                    onChange={(value) => {
+                      // Reset action type to first valid type for new target
+                      const validTypes = ACTION_TYPES_BY_TARGET[value as DependencyTargetType];
+                      const newActionType = validTypes.includes(action.actionType)
+                        ? action.actionType
+                        : validTypes[0];
                       handleUpdateAction(action.id, {
                         targetType: value,
+                        actionType: newActionType,
                         targetId:
                           value === DependencyTargetType.BUNDLE
                             ? undefined
-                            : groups[0]?.items[0]?.id ?? "",
-                      })
-                    }
-                    options={TARGET_TYPE_OPTIONS}
+                            : value === DependencyTargetType.ITEM
+                            ? groups[0]?.items[0]?.id ?? ""
+                            : groups[0]?.id ?? "",
+                      });
+                    }}
+                    options={ACTION_TARGET_TYPE_OPTIONS}
                     size="small"
                     style={{ width: 80 }}
                   />
@@ -511,6 +525,25 @@ export const RuleInspector = ({
                       optionFilterProp="label"
                     />
                   )}
+                  <Button
+                    type="text"
+                    size="small"
+                    danger
+                    icon={<DeleteOutlined />}
+                    onClick={() => handleDeleteAction(action.id)}
+                    className={styles.deleteButton}
+                  />
+                </div>
+                <div className={styles.conditionRow}>
+                  <Select
+                    value={action.actionType}
+                    onChange={(value) =>
+                      handleUpdateAction(action.id, { actionType: value })
+                    }
+                    options={getActionTypeOptions(action.targetType)}
+                    size="small"
+                    style={{ flex: 1 }}
+                  />
                 </div>
 
                 {/* Price-specific fields */}
