@@ -40,7 +40,7 @@ export async function startServer(serverConfig: ServerConfig) {
   }
 
   const app = fastify({
-    disableRequestLogging: process.env.NODE_ENV === "test",
+    disableRequestLogging: true,
     logger: isDevelopment(global)
       ? {
           level: global.log_level ?? "info",

@@ -50,9 +50,8 @@ export async function startServer(serverConfig: ServerConfig) {
   if (kernel) {
     const bucketName = getBucketName();
     try {
-      const existingBucket = await kernel.repository.bucket.findByBucketName(
-        bucketName
-      );
+      const existingBucket =
+        await kernel.repository.bucket.findByBucketName(bucketName);
       if (!existingBucket) {
         // Create a system-level bucket record
         // Using a fixed UUID for the system project
@@ -70,6 +69,7 @@ export async function startServer(serverConfig: ServerConfig) {
   }
 
   const app = fastify({
+    disableRequestLogging: true,
     logger: isDevelopment(global)
       ? {
           level: global.log_level ?? "info",
@@ -120,7 +120,10 @@ export async function startServer(serverConfig: ServerConfig) {
     introspection: true,
     // @ts-expect-error - buildSubgraphSchema expects ServiceContext but we pass ServiceContextOptions
     schema: buildSubgraphSchema(modules),
-    plugins: [fastifyApolloDrainPlugin(app), ApolloServerPluginInlineTraceDisabled()],
+    plugins: [
+      fastifyApolloDrainPlugin(app),
+      ApolloServerPluginInlineTraceDisabled(),
+    ],
   });
 
   await apollo.start();
@@ -204,7 +207,7 @@ export async function startServer(serverConfig: ServerConfig) {
   });
 
   app.log.info(
-    `Media GraphQL Admin API ready at http://localhost:${serverConfig.port}/graphql`
+    `Media GraphQL Admin API ready at http://localhost:${serverConfig.port}/graphql`,
   );
 
   return app;
