@@ -1,0 +1,125 @@
+"use client";
+
+import { memo } from "react";
+import {
+  BaseEdge,
+  EdgeLabelRenderer,
+  getSmoothStepPath,
+} from "@xyflow/react";
+import type { EdgeProps } from "@xyflow/react";
+import { Tag } from "antd";
+import { createStyles } from "antd-style";
+
+// ============================================================================
+// Styles
+// ============================================================================
+
+const useStyles = createStyles(() => ({
+  labelContainer: {
+    position: "absolute",
+    pointerEvents: "all",
+    transform: "translate(-50%, -50%)",
+  },
+  tag: {
+    margin: 0,
+    fontSize: 10,
+    lineHeight: 1.4,
+    padding: "2px 6px",
+    borderStyle: "dashed",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 1,
+  },
+}));
+
+// ============================================================================
+// Types
+// ============================================================================
+
+interface EdgeLabel {
+  label: string;
+  color: string;
+}
+
+// ============================================================================
+// Component
+// ============================================================================
+
+const LabeledEdgeComponent = ({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  style,
+  data,
+  markerEnd,
+}: EdgeProps) => {
+  const { styles } = useStyles();
+
+  const [edgePath, labelX, labelY] = getSmoothStepPath({
+    sourceX,
+    sourceY,
+    sourcePosition,
+    targetX,
+    targetY,
+    targetPosition,
+  });
+
+  // Get labels array from data (aggregated labels for primary edge)
+  const labels = (data as { labels?: EdgeLabel[] } | undefined)?.labels ?? [];
+
+  // Get the primary color (first label's color or stroke color)
+  const primaryColor = labels[0]?.color ?? (style?.stroke as string) ?? "#1890ff";
+
+  // If no labels, don't render tag (non-primary edge)
+  if (labels.length === 0) {
+    return (
+      <BaseEdge
+        id={id}
+        path={edgePath}
+        markerEnd={markerEnd}
+        style={{
+          ...style,
+          strokeDasharray: "6,4",
+        }}
+      />
+    );
+  }
+
+  return (
+    <>
+      <BaseEdge
+        id={id}
+        path={edgePath}
+        markerEnd={markerEnd}
+        style={{
+          ...style,
+          strokeDasharray: "6,4",
+        }}
+      />
+      <EdgeLabelRenderer>
+        <div
+          className={styles.labelContainer}
+          style={{
+            left: labelX,
+            top: labelY,
+          }}
+        >
+          <Tag className={styles.tag} color={primaryColor} bordered>
+            {labels.map((labelItem, index) => (
+              <span key={index}>{labelItem.label}</span>
+            ))}
+          </Tag>
+        </div>
+      </EdgeLabelRenderer>
+    </>
+  );
+};
+
+export const LabeledEdge = memo(LabeledEdgeComponent);
+
+export default LabeledEdge;

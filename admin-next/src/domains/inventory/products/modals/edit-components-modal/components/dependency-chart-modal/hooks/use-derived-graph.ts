@@ -1,7 +1,7 @@
 import { useMemo } from "react";
-import type { Edge } from "@xyflow/react";
 
 import type { IComponentGroup, IDependencyRule } from "../../../types";
+import type { ConditionEdgeData, ActionEdgeData } from "../types";
 import {
   DependencyConditionType,
   DependencyActionType,
@@ -243,7 +243,7 @@ export const useDerivedGraph = ({
       });
     }
 
-    // 4. Create rule nodes and edges
+    // 5. Create rule nodes
     rules.forEach((rule) => {
       const ruleNodeId = `rule:${rule.id}`;
       nodeIds.add(ruleNodeId);
@@ -257,20 +257,45 @@ export const useDerivedGraph = ({
         } as RuleNodeData,
         position: { x: 0, y: 0 },
       });
+    });
+
+    // 6. Collect all edge info first, then aggregate labels by target
+    interface EdgeLabel {
+      label: string;
+      color: string;
+    }
+
+    // Map: targetNodeId -> array of labels with colors
+    const targetLabelsMap = new Map<string, EdgeLabel[]>();
+    // Map: targetNodeId -> primary edge id (first edge to this target)
+    const primaryEdgeMap = new Map<string, string>();
+
+    // Temporary storage for edges before aggregation
+    interface TempEdge {
+      id: string;
+      source: string;
+      target: string;
+      animated: boolean;
+      color: string;
+      label: string;
+      data: Record<string, unknown>;
+    }
+    const tempEdges: TempEdge[] = [];
+
+    rules.forEach((rule) => {
+      const ruleNodeId = `rule:${rule.id}`;
 
       // Create edges from condition sources to rule
       rule.conditions.forEach((condition) => {
         if (condition.targetType === DependencyTargetType.BUNDLE) return;
         if (!condition.targetId) return;
 
-        // Determine the correct source node ID
         let sourceNodeId: string;
         if (condition.targetType === DependencyTargetType.ITEM) {
           sourceNodeId = duplicatedItemIds.has(condition.targetId)
             ? `item:${condition.targetId}:source`
             : `item:${condition.targetId}`;
         } else {
-          // GROUP
           sourceNodeId = duplicatedGroupIds.has(condition.targetId)
             ? `group:${condition.targetId}:source`
             : `group:${condition.targetId}`;
@@ -278,28 +303,29 @@ export const useDerivedGraph = ({
 
         if (!nodeIds.has(sourceNodeId)) return;
 
-        edges.push({
+        const color = rule.enabled ? "#1890ff" : "#d9d9d9";
+        const label = formatConditionLabel(condition.conditionType, condition.value);
+
+        tempEdges.push({
           id: `cond:${condition.id}`,
           source: sourceNodeId,
           target: ruleNodeId,
-          label: formatConditionLabel(condition.conditionType, condition.value),
-          type: "smoothstep",
           animated: rule.enabled,
-          style: {
-            stroke: rule.enabled ? "#1890ff" : "#d9d9d9",
-            strokeWidth: 2,
-            strokeDasharray: rule.enabled ? undefined : "5,5",
-          },
-          data: {
-            condition,
-            label: formatConditionLabel(condition.conditionType, condition.value),
-          },
+          color,
+          label,
+          data: { condition, label },
         });
+
+        // Aggregate by target (ruleNodeId for conditions)
+        if (!targetLabelsMap.has(ruleNodeId)) {
+          targetLabelsMap.set(ruleNodeId, []);
+          primaryEdgeMap.set(ruleNodeId, `cond:${condition.id}`);
+        }
+        targetLabelsMap.get(ruleNodeId)!.push({ label, color });
       });
 
       // Create edges from rule to action targets
       rule.actions.forEach((action) => {
-        // Determine the correct target node ID
         let targetNodeId: string;
         if (action.targetType === DependencyTargetType.BUNDLE) {
           targetNodeId = "bundle:main";
@@ -309,7 +335,6 @@ export const useDerivedGraph = ({
             ? `item:${action.targetId}:target`
             : `item:${action.targetId}`;
         } else {
-          // GROUP
           if (!action.targetId) return;
           targetNodeId = duplicatedGroupIds.has(action.targetId)
             ? `group:${action.targetId}:target`
@@ -318,33 +343,55 @@ export const useDerivedGraph = ({
 
         if (!nodeIds.has(targetNodeId)) return;
 
-        edges.push({
+        const color = rule.enabled ? "#52c41a" : "#d9d9d9";
+        const label = formatActionLabel(
+          action.actionType,
+          action.priceType,
+          action.priceValue,
+          action.qtyValue
+        );
+
+        tempEdges.push({
           id: `action:${action.id}`,
           source: ruleNodeId,
           target: targetNodeId,
-          label: formatActionLabel(
-            action.actionType,
-            action.priceType,
-            action.priceValue,
-            action.qtyValue
-          ),
-          type: "smoothstep",
           animated: rule.enabled,
-          style: {
-            stroke: rule.enabled ? "#52c41a" : "#d9d9d9",
-            strokeWidth: 2,
-            strokeDasharray: rule.enabled ? undefined : "5,5",
-          },
-          data: {
-            action,
-            label: formatActionLabel(
-              action.actionType,
-              action.priceType,
-              action.priceValue,
-              action.qtyValue
-            ),
-          },
+          color,
+          label,
+          data: { action, label },
         });
+
+        // Aggregate by target (targetNodeId for actions)
+        if (!targetLabelsMap.has(targetNodeId)) {
+          targetLabelsMap.set(targetNodeId, []);
+          primaryEdgeMap.set(targetNodeId, `action:${action.id}`);
+        }
+        targetLabelsMap.get(targetNodeId)!.push({ label, color });
+      });
+    });
+
+    // 7. Create final edges with aggregated labels
+    tempEdges.forEach((tempEdge) => {
+      const isPrimaryForTarget = primaryEdgeMap.get(tempEdge.target) === tempEdge.id;
+      const allLabels = isPrimaryForTarget
+        ? targetLabelsMap.get(tempEdge.target) ?? []
+        : [];
+
+      edges.push({
+        id: tempEdge.id,
+        source: tempEdge.source,
+        target: tempEdge.target,
+        type: "labeled",
+        animated: tempEdge.animated,
+        style: {
+          stroke: tempEdge.color,
+          strokeWidth: 2,
+        },
+        data: {
+          ...tempEdge.data,
+          // Only primary edge shows aggregated labels
+          labels: allLabels,
+        } as ConditionEdgeData | ActionEdgeData,
       });
     });
 

@@ -600,15 +600,6 @@ export const RuleInspector = ({
                   </div>
                 )}
 
-                {/* Label field */}
-                <Input
-                  value={action.label ?? ""}
-                  onChange={(e) =>
-                    handleUpdateAction(action.id, { label: e.target.value })
-                  }
-                  placeholder="Optional label (shown in UI)"
-                  size="small"
-                />
               </div>
             ))
           )}

@@ -25,6 +25,7 @@ import type { IDependencyChartModalPayload } from "../../../../modals";
 import type { IDependencyRule, IComponentGroup } from "../../types";
 
 import { ItemNode, RuleNode, BundleNode } from "./nodes";
+import { LabeledEdge } from "./edges";
 import { RuleInspector } from "./sidebar/rule-inspector";
 import { useDerivedGraph } from "./hooks/use-derived-graph";
 import { useColumnLayout } from "./hooks/use-column-layout";
@@ -86,6 +87,10 @@ const nodeTypes = {
   item: ItemNode,
   rule: RuleNode,
   bundle: BundleNode,
+} as const;
+
+const edgeTypes = {
+  labeled: LabeledEdge,
 } as const;
 
 // ============================================================================
@@ -201,6 +206,7 @@ const DependencyChartInner = ({
             onEdgesChange={onEdgesChange}
             onNodeClick={handleNodeClick}
             nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
             fitView
             className={styles.reactFlow}
             proOptions={{ hideAttribution: true }}
