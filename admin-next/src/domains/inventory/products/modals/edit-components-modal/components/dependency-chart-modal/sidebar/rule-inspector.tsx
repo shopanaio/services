@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useState } from "react";
 import { createStyles } from "antd-style";
 import {
   Typography,
@@ -12,13 +12,12 @@ import {
   Space,
   Divider,
   Empty,
-  Tag,
-  Popconfirm,
 } from "antd";
 import {
   PlusOutlined,
   DeleteOutlined,
-  CloseOutlined,
+  LeftOutlined,
+  RightOutlined,
 } from "@ant-design/icons";
 
 import type {
@@ -53,6 +52,10 @@ const useStyles = createStyles(({ token }) => ({
     display: "flex",
     flexDirection: "column",
     overflow: "hidden",
+    transition: "width 0.2s ease",
+  },
+  containerCollapsed: {
+    width: 40,
   },
   header: {
     padding: "12px 16px",
@@ -61,8 +64,29 @@ const useStyles = createStyles(({ token }) => ({
     justifyContent: "space-between",
     alignItems: "center",
   },
+  headerCollapsed: {
+    padding: 8,
+    justifyContent: "center",
+    borderBottom: "none",
+  },
   headerTitle: {
     fontWeight: 600,
+  },
+  collapsedContent: {
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    paddingTop: 12,
+  },
+  verticalText: {
+    writingMode: "vertical-rl",
+    textOrientation: "mixed",
+    transform: "rotate(180deg)",
+    fontSize: 12,
+    fontWeight: 600,
+    color: token.colorTextSecondary,
+    letterSpacing: "1px",
   },
   content: {
     flex: 1,
@@ -134,7 +158,6 @@ interface IRuleInspectorProps {
   rule: IDependencyRule | null;
   groups: IComponentGroup[];
   onRuleChange: (rule: IDependencyRule) => void;
-  onClose: () => void;
 }
 
 // ============================================================================
@@ -219,9 +242,9 @@ export const RuleInspector = ({
   rule,
   groups,
   onRuleChange,
-  onClose,
 }: IRuleInspectorProps) => {
-  const { styles } = useStyles();
+  const { styles, cx } = useStyles();
+  const [collapsed, setCollapsed] = useState(false);
 
   // ========================================
   // Handlers
@@ -315,6 +338,25 @@ export const RuleInspector = ({
   // Render
   // ========================================
 
+  // Collapsed view
+  if (collapsed) {
+    return (
+      <div className={cx(styles.container, styles.containerCollapsed)}>
+        <div className={cx(styles.header, styles.headerCollapsed)}>
+          <Button
+            type="text"
+            size="small"
+            icon={<LeftOutlined />}
+            onClick={() => setCollapsed(false)}
+          />
+        </div>
+        <div className={styles.collapsedContent}>
+          <span className={styles.verticalText}>Rule Inspector</span>
+        </div>
+      </div>
+    );
+  }
+
   if (!rule) {
     return (
       <div className={styles.container}>
@@ -322,6 +364,12 @@ export const RuleInspector = ({
           <Typography.Text className={styles.headerTitle}>
             Rule Inspector
           </Typography.Text>
+          <Button
+            type="text"
+            size="small"
+            icon={<RightOutlined />}
+            onClick={() => setCollapsed(true)}
+          />
         </div>
         <div className={styles.content}>
           <Empty
@@ -340,7 +388,12 @@ export const RuleInspector = ({
         <Typography.Text className={styles.headerTitle}>
           Rule Inspector
         </Typography.Text>
-        <Button type="text" size="small" icon={<CloseOutlined />} onClick={onClose} />
+        <Button
+          type="text"
+          size="small"
+          icon={<RightOutlined />}
+          onClick={() => setCollapsed(true)}
+        />
       </div>
 
       {/* Content */}

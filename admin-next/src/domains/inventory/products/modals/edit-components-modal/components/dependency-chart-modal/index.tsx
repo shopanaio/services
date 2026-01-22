@@ -179,10 +179,6 @@ const DependencyChartInner = ({
     );
   }, []);
 
-  const handleCloseInspector = useCallback(() => {
-    setSelectedRuleId(null);
-  }, []);
-
   const handleSave = useCallback(() => {
     onSave?.(draftRules);
   }, [draftRules, onSave]);
@@ -259,7 +255,6 @@ const DependencyChartInner = ({
           rule={selectedRule}
           groups={groups}
           onRuleChange={handleRuleChange}
-          onClose={handleCloseInspector}
         />
       </div>
     </ModalLayout>
