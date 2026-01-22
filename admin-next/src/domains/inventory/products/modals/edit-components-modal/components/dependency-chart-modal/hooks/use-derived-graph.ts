@@ -100,18 +100,7 @@ export const useDerivedGraph = ({
       });
     });
 
-    // 2. Create group nodes (using default React Flow type)
-    groups.forEach((group) => {
-      const nodeId = `group:${group.id}`;
-      nodeIds.add(nodeId);
-      const groupNode: ChartNode = {
-        id: nodeId,
-        type: "default",
-        data: { label: group.title },
-        position: { x: 0, y: 0 },
-      };
-      nodes.push(groupNode);
-    });
+    // Group nodes removed - group title is shown in item badges
 
 
     // 4. Create rule nodes and edges
@@ -206,13 +195,8 @@ export const useDerivedGraph = ({
       });
     });
 
-    // FINAL SAFETY: Filter out self-references and any group edges
-    const safeEdges = edges.filter((edge) => {
-      if (edge.source === edge.target) return false;
-      if (edge.source.startsWith("group:")) return false;
-      if (edge.target.startsWith("group:")) return false;
-      return true;
-    });
+    // Filter out self-references
+    const safeEdges = edges.filter((edge) => edge.source !== edge.target);
 
     return { nodes, edges: safeEdges };
   }, [groups, rules, selectedRuleId]);

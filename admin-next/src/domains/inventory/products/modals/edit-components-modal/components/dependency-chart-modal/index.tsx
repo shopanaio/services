@@ -25,7 +25,7 @@ import {
 import type { IDependencyChartModalPayload } from "../../../../modals";
 import type { IDependencyRule, IComponentGroup } from "../../types";
 
-import { ItemNode, GroupNode, RuleNode, BundleNode } from "./nodes";
+import { ItemNode, RuleNode, BundleNode } from "./nodes";
 import { RuleInspector } from "./sidebar/rule-inspector";
 import { useDerivedGraph } from "./hooks/use-derived-graph";
 import { useColumnLayout } from "./hooks/use-column-layout";
@@ -85,7 +85,6 @@ const useStyles = createStyles(({ token }) => ({
 
 const nodeTypes = {
   item: ItemNode,
-  group: GroupNode,
   rule: RuleNode,
   bundle: BundleNode,
 } as const;
@@ -126,7 +125,7 @@ const DependencyChartInner = ({
   });
 
   // Apply column layout
-  const layoutedNodes = useColumnLayout({ nodes: derivedNodes });
+  const layoutedNodes = useColumnLayout({ nodes: derivedNodes, edges: derivedEdges });
 
   // React Flow state
   const [nodes, setNodes, onNodesChange] = useNodesState(layoutedNodes as Node[]);
@@ -215,7 +214,6 @@ const DependencyChartInner = ({
               nodeColor={(node) => {
                 if (node.type === "rule") return "#faad14";
                 if (node.type === "item") return "#1890ff";
-                if (node.type === "group") return "#52c41a";
                 if (node.type === "bundle") return "#722ed1";
                 return "#d9d9d9";
               }}
@@ -236,16 +234,8 @@ const DependencyChartInner = ({
               <span>Items</span>
             </div>
             <div className={styles.legendItem}>
-              <div className={styles.legendDot} style={{ background: "#52c41a" }} />
-              <span>Groups</span>
-            </div>
-            <div className={styles.legendItem}>
               <div className={styles.legendDot} style={{ background: "#faad14" }} />
               <span>Rules</span>
-            </div>
-            <div className={styles.legendItem}>
-              <div className={styles.legendDot} style={{ background: "#722ed1" }} />
-              <span>Bundle</span>
             </div>
           </div>
         </div>

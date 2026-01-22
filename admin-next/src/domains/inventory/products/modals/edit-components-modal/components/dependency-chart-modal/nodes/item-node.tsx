@@ -64,7 +64,7 @@ type ItemNodeProps = NodeProps<Node<ItemNodeData, "item">>;
 
 const ItemNodeComponent = ({ data }: ItemNodeProps) => {
   const { styles } = useStyles();
-  const { item, groupTitle } = data as ItemNodeData;
+  const { item, groupTitle, position: nodePosition } = data as ItemNodeData;
 
   const title =
     item.title ??
@@ -77,14 +77,23 @@ const ItemNodeComponent = ({ data }: ItemNodeProps) => {
     (item.assignedProduct as any)?.featuredImage?.url ??
     (item.assignedVariant?.product as any)?.featuredImage?.url;
 
+  // Source items: bottom handle only (to rule)
+  // Target items: top handle only (from rule)
+  // Both: both handles (default if not set)
+  const pos = nodePosition ?? "both";
+  const showTopHandle = pos === "target" || pos === "both";
+  const showBottomHandle = pos === "source" || pos === "both";
+
   return (
     <div className={styles.node}>
-      {/* Single target handle on left */}
-      <Handle
-        type="target"
-        position={Position.Left}
-        className={styles.handle}
-      />
+      {/* Target handle on top (for action edges from rule) */}
+      {showTopHandle && (
+        <Handle
+          type="target"
+          position={Position.Top}
+          className={styles.handle}
+        />
+      )}
 
       {/* Content */}
       <Avatar
@@ -100,12 +109,14 @@ const ItemNodeComponent = ({ data }: ItemNodeProps) => {
         </Tag>
       </div>
 
-      {/* Single source handle on right */}
-      <Handle
-        type="source"
-        position={Position.Right}
-        className={styles.handle}
-      />
+      {/* Source handle on bottom (for condition edges to rule) */}
+      {showBottomHandle && (
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          className={styles.handle}
+        />
+      )}
     </div>
   );
 };

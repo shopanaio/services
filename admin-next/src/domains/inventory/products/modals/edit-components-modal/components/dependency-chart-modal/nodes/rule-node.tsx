@@ -98,10 +98,10 @@ const RuleNodeComponent = ({ data }: RuleNodeProps) => {
         !rule.enabled && styles.nodeDisabled
       )}
     >
-      {/* Single target handle on left */}
+      {/* Target handle on top (from source items) */}
       <Handle
         type="target"
-        position={Position.Left}
+        position={Position.Top}
         className={styles.handle}
       />
 
@@ -124,10 +124,10 @@ const RuleNodeComponent = ({ data }: RuleNodeProps) => {
         )}
       </div>
 
-      {/* Single source handle on right */}
+      {/* Source handle on bottom (to target items) */}
       <Handle
         type="source"
-        position={Position.Right}
+        position={Position.Bottom}
         className={styles.handle}
       />
     </div>

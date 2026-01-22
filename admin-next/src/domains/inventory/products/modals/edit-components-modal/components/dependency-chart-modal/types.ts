@@ -15,6 +15,8 @@ export interface ItemNodeData {
   item: ComponentItem;
   groupId: string;
   groupTitle: string;
+  /** Item position in layout: source (top), target (bottom), or both. Set by layout hook. */
+  position?: "source" | "target" | "both";
   [key: string]: unknown;
 }
 
