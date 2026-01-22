@@ -1,9 +1,14 @@
 import { InventoryType } from "./InventoryType.js";
 import type { ProductInventoryWidgetData } from "../../repositories/inventory-widget/InventoryWidgetRepository.js";
+import { PricingWidgetResolver, type PricingWidgetInput } from "./PricingWidgetResolver.js";
 
 export class WidgetQueryResolver extends InventoryType<Record<string, never>> {
   inventory(args: { productId: string }) {
     return new InventoryWidgetResolver(args.productId, this.$ctx);
+  }
+
+  pricing(args: { input: PricingWidgetInput }) {
+    return new PricingWidgetResolver(args.input, this.$ctx);
   }
 }
 

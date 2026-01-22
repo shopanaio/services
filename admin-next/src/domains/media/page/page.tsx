@@ -21,12 +21,21 @@ import {
   type PanelConfig,
   type ActionConfig,
 } from "@/ui-kit/floating-panel-stack";
-import { usePageConfig, createStartsWithTransformer, useAgGridTheme, useAgGridRowSelection } from "@/hooks";
+import {
+  usePageConfig,
+  createStartsWithTransformer,
+  useAgGridTheme,
+  useAgGridRowSelection,
+} from "@/hooks";
 import { filterSchema } from "./filter-schema";
 import { useFiles, useDeleteFiles, FileOrderField } from "../hooks";
 import { useUploadMediaModal } from "../modals";
 import { MediaPreview, useMediaPreview } from "../components/media-preview";
-import type { ApiFile, ApiFileWhereInput, ApiFileOrderByInput } from "@/graphql/types";
+import type {
+  ApiFile,
+  ApiFileWhereInput,
+  ApiFileOrderByInput,
+} from "@/graphql/types";
 import { FileProvider } from "@/graphql/types";
 
 ModuleRegistry.registerModules([
@@ -231,13 +240,7 @@ export default function MediaPage() {
     },
   });
 
-  const {
-    files,
-    totalCount,
-    pageInfo,
-    loading,
-    refetch,
-  } = useFiles({
+  const { files, totalCount, pageInfo, loading, refetch } = useFiles({
     first,
     last,
     after,
@@ -274,9 +277,10 @@ export default function MediaPage() {
   const [activeSelectionCount, setActiveSelectionCount] = useState(0);
 
   // Row selection with checkbox isolation
-  const { rowSelection, selectionColumnDef, onCellClicked } = useAgGridRowSelection<ApiFile>({
-    onRowAction: (data) => mediaPreview.openById(data.id),
-  });
+  const { rowSelection, selectionColumnDef, onCellClicked } =
+    useAgGridRowSelection<ApiFile>({
+      onRowAction: (data) => mediaPreview.openById(data.id),
+    });
 
   // Handle selection changes
   const handleSelectionChanged = useCallback(
@@ -286,7 +290,7 @@ export default function MediaPage() {
       setSelectedIds(ids);
       setActiveSelectionCount(selectedRows.filter((r) => !r.deletedAt).length);
     },
-    []
+    [],
   );
 
   // Deselect all rows
@@ -350,7 +354,7 @@ export default function MediaPage() {
         sortable: false,
       },
     ],
-    []
+    [],
   );
 
   const defaultColDef = useMemo<ColDef>(
@@ -360,7 +364,7 @@ export default function MediaPage() {
       comparator: () => 0,
       cellStyle: { display: "flex", alignItems: "center" },
     }),
-    []
+    [],
   );
 
   const handleUpload = useCallback(() => {
@@ -388,7 +392,7 @@ export default function MediaPage() {
         onClick: handleDeleteSelected,
       },
     ],
-    [activeSelectionCount, handleDeleteSelected, deleteLoading]
+    [activeSelectionCount, handleDeleteSelected, deleteLoading],
   );
 
   // Build floating panels
@@ -414,18 +418,12 @@ export default function MediaPage() {
       title="Media"
       count={totalCount}
       actions={
-        <Button
-          type="primary"
-          icon={<CloudUploadOutlined />}
-          onClick={handleUpload}
-        >
+        <Button icon={<CloudUploadOutlined />} onClick={handleUpload}>
           Upload
         </Button>
       }
     >
-      <DataLayout.Toolbar
-        left={<FilterWidget {...filterWidgetProps} />}
-      />
+      <DataLayout.Toolbar left={<FilterWidget {...filterWidgetProps} />} />
 
       <div
         style={{

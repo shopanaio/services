@@ -22,7 +22,12 @@ import {
   type PanelConfig,
   type ActionConfig,
 } from "@/ui-kit/floating-panel-stack";
-import { useGridState, useGridSort, useAgGridTheme, useAgGridRowSelection } from "@/hooks";
+import {
+  useGridState,
+  useGridSort,
+  useAgGridTheme,
+  useAgGridRowSelection,
+} from "@/hooks";
 import { filterSchema } from "./filter-schema";
 import { useProducts } from "../hooks";
 import type { IProductListItem } from "@/mocks/products/products-list";
@@ -37,7 +42,7 @@ ModuleRegistry.registerModules([
 
 // Cell Renderers
 const ProductCellRenderer = (
-  props: CustomCellRendererProps<IProductListItem>
+  props: CustomCellRendererProps<IProductListItem>,
 ) => {
   const { data } = props;
   if (!data) return null;
@@ -57,7 +62,7 @@ const ProductCellRenderer = (
 };
 
 const StatusCellRenderer = (
-  props: CustomCellRendererProps<IProductListItem>
+  props: CustomCellRendererProps<IProductListItem>,
 ) => {
   const { value } = props;
   const config: Record<string, { color: string; label: string }> = {
@@ -69,7 +74,7 @@ const StatusCellRenderer = (
 };
 
 const InventoryCellRenderer = (
-  props: CustomCellRendererProps<IProductListItem>
+  props: CustomCellRendererProps<IProductListItem>,
 ) => {
   const { value } = props;
   if (value === 0) {
@@ -105,9 +110,10 @@ export default function ProductsPage() {
   });
 
   // Row selection with checkbox isolation
-  const { rowSelection, selectionColumnDef, onCellClicked } = useAgGridRowSelection<IProductListItem>({
-    onRowAction: () => push("product", { level: 1 }),
-  });
+  const { rowSelection, selectionColumnDef, onCellClicked } =
+    useAgGridRowSelection<IProductListItem>({
+      onRowAction: () => push("product", { level: 1 }),
+    });
 
   // Handle selection changes
   const handleSelectionChanged = useCallback(
@@ -115,7 +121,7 @@ export default function ProductsPage() {
       const selectedRows = event.api.getSelectedRows();
       setSelectedCount(selectedRows.length);
     },
-    []
+    [],
   );
 
   // Deselect all
@@ -130,7 +136,7 @@ export default function ProductsPage() {
     // Map product IDs to bulk editor format (prod-1, prod-2, etc.)
     // For demo purposes, we use the first 12 products from bulk editor mock
     const bulkEditorIds = selectedRows.map(
-      (_, index) => `prod-${(index % 12) + 1}`
+      (_, index) => `prod-${(index % 12) + 1}`,
     );
     setSelectedProducts(bulkEditorIds);
     push("bulk-editor", { productIds: bulkEditorIds });
@@ -140,7 +146,10 @@ export default function ProductsPage() {
   const handleDeleteSelected = useCallback(() => {
     const selectedRows = gridRef.current?.api.getSelectedRows() || [];
     // TODO: Implement delete mutation
-    console.log("Delete products:", selectedRows.map((r) => r.id));
+    console.log(
+      "Delete products:",
+      selectedRows.map((r) => r.id),
+    );
     deselectAll();
   }, [deselectAll]);
 
@@ -161,7 +170,7 @@ export default function ProductsPage() {
         onClick: handleDeleteSelected,
       },
     ],
-    [handleBulkEdit, handleDeleteSelected]
+    [handleBulkEdit, handleDeleteSelected],
   );
 
   // Build floating panels
@@ -213,7 +222,7 @@ export default function ProductsPage() {
         resizable: false,
       },
     ],
-    []
+    [],
   );
 
   const defaultColDef = useMemo<ColDef>(
@@ -224,7 +233,7 @@ export default function ProductsPage() {
       comparator: () => 0,
       cellStyle: { display: "flex", alignItems: "center" },
     }),
-    []
+    [],
   );
 
   const handleCreate = useCallback(() => {
@@ -237,7 +246,7 @@ export default function ProductsPage() {
       title="Products"
       count={products.length}
       actions={
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+        <Button icon={<PlusOutlined />} onClick={handleCreate}>
           Create
         </Button>
       }

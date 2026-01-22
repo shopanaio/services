@@ -67,10 +67,6 @@ type InventoryQuery {
     before: String
   ): VariantConnection!
 
-  """
-  Get pricing widget data for a variant.
-  """
-  pricingWidget(input: PricingWidgetInput!): PricingWidgetPayload!
 
   """
   Get a warehouse by ID
@@ -101,6 +97,10 @@ Widget query namespace for dashboard widgets.
 """
 type WidgetQuery {
   inventory(productId: ID!): ProductInventoryWidget
+  """
+  Get pricing widget data for a variant.
+  """
+  pricing(input: PricingWidgetInput!): PricingWidgetPayload!
 }
 
 type InventoryMutation {
