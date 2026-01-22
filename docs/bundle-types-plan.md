@@ -29,20 +29,90 @@ Dependency rule capabilities:
 
 **Что это:** Набор с фиксированным составом. Мерчант выбирает товары, покупатель берёт "как есть".
 
-**Примеры:** "Starter Kit", "Gift Set", "Camera Bundle (body + lens + bag)"
+#### Пример A: "Camera Starter Kit" — $899 (вместо $1150 по отдельности)
 
-**Маппинг на текущую модель:**
+```typescript
+{
+  bundleType: "FIXED",
+  title: "Camera Starter Kit",
+  price: 89900, // $899 — мерчант ставит вручную
+  groups: [
+    {
+      title: "Состав набора",
+      minSelection: 3,
+      maxSelection: 3,
+      items: [
+        { assignedProduct: "Canon EOS R50",     priceType: "INCLUDED" }, // $799
+        { assignedProduct: "SanDisk 64GB SD",   priceType: "INCLUDED" }, // $29
+        { assignedProduct: "Camera Bag Lowepro", priceType: "INCLUDED" }, // $89
+      ]
+    }
+  ],
+  dependencyRules: [] // не нужны
+}
+```
 
+Storefront: покупатель видит карточку "Camera Starter Kit — $899", список содержимого, кнопку Add to Cart. Никаких выборов.
+
+#### Пример B: "Skincare Gift Set" — компоненты со скидкой 25%
+
+```typescript
+{
+  bundleType: "FIXED",
+  title: "Skincare Gift Set",
+  // price = сумма скидочных цен (считается автоматически)
+  groups: [
+    {
+      title: "Уход за лицом",
+      minSelection: 2,
+      maxSelection: 2,
+      items: [
+        { assignedProduct: "Cleanser 200ml",  priceType: "DISCOUNT_PERCENT", priceValue: 25 }, // $30 → $22.50
+        { assignedProduct: "Moisturizer 50ml", priceType: "DISCOUNT_PERCENT", priceValue: 25 }, // $45 → $33.75
+      ]
+    },
+    {
+      title: "Бонус",
+      minSelection: 1,
+      maxSelection: 1,
+      items: [
+        { assignedProduct: "Travel Pouch", priceType: "FREE" }, // $0
+      ]
+    }
+  ]
+}
 ```
-Bundle Product
-├── Group: "Состав набора"
-│   ├── minSelection: 3 (все обязательны, = кол-ву items)
-│   ├── maxSelection: 3 (ровно столько же)
-│   └── Items:
-│       ├── Item A (priceType: INCLUDED)
-│       ├── Item B (priceType: INCLUDED)
-│       └── Item C (priceType: INCLUDED)
+
+#### Пример C: "Gaming PC Bundle" — с вариантами (покупатель выбирает RAM)
+
+```typescript
+{
+  bundleType: "FIXED",
+  title: "Gaming PC Bundle",
+  groups: [
+    {
+      title: "Основа",
+      minSelection: 2,
+      maxSelection: 2,
+      items: [
+        { assignedProduct: "RTX 4070 GPU",  priceType: "INCLUDED" },
+        { assignedProduct: "750W PSU",      priceType: "INCLUDED" },
+      ]
+    },
+    {
+      title: "Оперативная память",  // покупатель выбирает вариант
+      minSelection: 1,
+      maxSelection: 1,
+      items: [
+        { assignedVariant: "32GB DDR5-5600", priceType: "INCLUDED" },
+        { assignedVariant: "64GB DDR5-5600", priceType: "MARKUP_FIXED", priceValue: 8000 }, // +$80
+      ]
+    }
+  ]
+}
 ```
+
+Здесь `minSelection: 1, maxSelection: 1` в группе RAM — покупатель обязан выбрать один вариант. Это fixed bundle с одним configurable slot.
 
 **Что нужно добавить:**
 
@@ -50,24 +120,23 @@ Bundle Product
    ```typescript
    enum BundleType {
      FIXED = "FIXED",
-     // ... other types
+     MULTIPACK = "MULTIPACK",
+     MIX_AND_MATCH = "MIX_AND_MATCH",
    }
    ```
 
-2. Поле `bundleType` на уровне продукта/бандла — определяет UI и validation logic.
+2. Поле `bundleType` на уровне продукта — определяет UI и validation logic.
 
 3. При `bundleType: FIXED`:
-   - Все группы `minSelection = maxSelection = items.length`
-   - Все items авто-выбраны, UI не показывает selection controls
-   - Покупатель видит только список "что входит" + единую цену
+   - Все группы `minSelection = maxSelection = items.length` (или 1 для "выбери вариант")
+   - Items без выбора авто-выбраны, UI не показывает selection controls
    - Storefront рендерит как карточку с содержимым, без интерактива
 
 **Pricing strategies:**
-- `INCLUDED` — цена каждого компонента "входит" в общую цену бандла (мерчант ставит цену бандла вручную)
-- `FIXED` per item — фиксированная цена компонента (сумма = цена бандла)
-- `DISCOUNT_PERCENT` — "каждый со скидкой 20%", итог = сумма скидочных цен
-
-**Dependency rules:** Обычно не нужны для fixed bundle. Возможное исключение — conditional pricing ("если берут kit → override цену bundle").
+- `INCLUDED` — цена компонента "входит" в общую цену (мерчант ставит цену бандла вручную)
+- `DISCOUNT_PERCENT` — "каждый со скидкой X%", итог = сумма скидочных цен
+- `FREE` — бонусный item бесплатно
+- `MARKUP_FIXED` — upgrade за доплату (как в примере C с RAM)
 
 ---
 
@@ -75,23 +144,83 @@ Bundle Product
 
 **Что это:** Несколько штук одного товара. Частный случай Fixed Bundle.
 
-**Примеры:** "3-pack socks", "6-pack beer", "Case of 12"
+#### Пример A: "3-Pack Black Socks" — фиксированный вариант, скидка за объём
 
-**Маппинг на текущую модель:**
-
+```typescript
+{
+  bundleType: "MULTIPACK",
+  title: "3-Pack Black Socks",
+  groups: [
+    {
+      title: "Товар",
+      minSelection: 1,
+      maxSelection: 1,
+      items: [
+        {
+          assignedVariant: "Black Cotton Sock, Size M",
+          priceType: "DISCOUNT_PERCENT",
+          priceValue: 20,        // -20% на каждую пару
+          defaultQuantity: 3,    // 3 штуки
+          quantityLocked: true,  // нельзя менять
+        }
+      ]
+    }
+  ]
+}
+// Цена: $12/pair × 3 × 0.8 = $28.80 (вместо $36)
 ```
-Bundle Product
-├── Group: "Товар"
-│   ├── minSelection: 1
-│   ├── maxSelection: 1
-│   └── Items:
-│       └── Item A (priceType: DISCOUNT_PERCENT, priceValue: 15)
-│           └── quantity: 3 (НОВОЕ ПОЛЕ)
+
+#### Пример B: "6-Pack Craft Beer" — выбор варианта (IPA / Lager / Stout)
+
+```typescript
+{
+  bundleType: "MULTIPACK",
+  title: "6-Pack Craft Beer",
+  groups: [
+    {
+      title: "Выберите сорт",
+      minSelection: 1,
+      maxSelection: 1,  // только один сорт
+      items: [
+        { assignedVariant: "Hazy IPA",   priceType: "FIXED", priceValue: 1200, defaultQuantity: 6, quantityLocked: true },
+        { assignedVariant: "Dark Lager", priceType: "FIXED", priceValue: 1100, defaultQuantity: 6, quantityLocked: true },
+        { assignedVariant: "Oat Stout",  priceType: "FIXED", priceValue: 1300, defaultQuantity: 6, quantityLocked: true },
+      ]
+    }
+  ]
+}
+// Покупатель выбирает сорт, получает 6 бутылок
+```
+
+#### Пример C: "Case of 12 — Mixed" (переход к mix-and-match)
+
+```typescript
+{
+  bundleType: "MULTIPACK",  // или MIX_AND_MATCH — граница размыта
+  title: "Build Your Own 12-Pack",
+  groups: [
+    {
+      title: "Выберите напитки",
+      selectionMode: "PICK_QUANTITIES",  // можно несколько штук каждого
+      minSelection: 1,                   // хотя бы 1 вид
+      maxSelection: null,                // любое кол-во видов
+      minTotalQuantity: 12,              // ровно 12 штук всего
+      maxTotalQuantity: 12,
+      items: [
+        { assignedVariant: "Hazy IPA",   priceType: "FIXED", priceValue: 200, minQuantity: 0, maxQuantity: 12 },
+        { assignedVariant: "Dark Lager", priceType: "FIXED", priceValue: 190, minQuantity: 0, maxQuantity: 12 },
+        { assignedVariant: "Pale Ale",   priceType: "FIXED", priceValue: 210, minQuantity: 0, maxQuantity: 12 },
+        { assignedVariant: "Oat Stout",  priceType: "FIXED", priceValue: 220, minQuantity: 0, maxQuantity: 12 },
+      ]
+    }
+  ]
+}
+// "Собери свою дюжину" — по $2-2.20 за бутылку (вместо $3 по одной)
 ```
 
 **Что нужно добавить:**
 
-1. `defaultQuantity` поле на `ComponentItem`:
+1. `defaultQuantity` и `quantityLocked` на `ComponentItem`:
    ```typescript
    interface ComponentItem {
      // ...existing
@@ -101,17 +230,11 @@ Bundle Product
    ```
 
 2. При `bundleType: MULTIPACK`:
-   - Одна группа, один item с `defaultQuantity > 1`
+   - Одна группа, item(s) с `defaultQuantity > 1`
    - `quantityLocked: true` — покупатель берёт ровно N штук
-   - UI показывает "3-pack" badge, единую цену
+   - UI: "3-pack" badge, цена за pack, savings vs single purchase
 
-3. Variant selection для multipack:
-   - Вариант 1: все одинаковые (lock variant)
-   - Вариант 2: "3 любых варианта" → это уже mix-and-match
-
-**Pricing:** Обычно `DISCOUNT_PERCENT` или `FIXED` (cheaper per unit than buying individually).
-
-**Inventory:** При покупке multipack списывается `N` единиц стока товара A.
+**Inventory:** При покупке multipack списывается `N` единиц стока.
 
 ---
 
@@ -119,27 +242,194 @@ Bundle Product
 
 **Что это:** Покупатель сам выбирает из разрешённого списка по правилам.
 
-**Примеры:** "Собери коробку конфет (выбери 6)", "Build your own salad bowl", "Pick any 3 toppings"
+#### Пример A: "Собери коробку конфет" — flat rate, pick exactly 6
 
-**Маппинг на текущую модель:**
-
+```typescript
+{
+  bundleType: "MIX_AND_MATCH",
+  title: "Build Your Chocolate Box",
+  price: 2400, // $24 фиксированная цена за коробку
+  displayStyle: "flat",
+  groups: [
+    {
+      title: "Выберите 6 конфет",
+      selectionMode: "PICK_QUANTITIES",
+      minSelection: 1,           // хотя бы 1 вид
+      maxSelection: null,        // любое кол-во видов
+      minTotalQuantity: 6,       // ровно 6 штук
+      maxTotalQuantity: 6,
+      items: [
+        { assignedProduct: "Dark Truffle",     priceType: "INCLUDED", minQuantity: 0, maxQuantity: 6 },
+        { assignedProduct: "Milk Caramel",     priceType: "INCLUDED", minQuantity: 0, maxQuantity: 6 },
+        { assignedProduct: "White Raspberry",  priceType: "INCLUDED", minQuantity: 0, maxQuantity: 6 },
+        { assignedProduct: "Hazelnut Praline", priceType: "INCLUDED", minQuantity: 0, maxQuantity: 6 },
+        { assignedProduct: "Espresso Crunch",  priceType: "INCLUDED", minQuantity: 0, maxQuantity: 6 },
+        { assignedProduct: "Sea Salt Dark",    priceType: "INCLUDED", minQuantity: 0, maxQuantity: 6 },
+        { assignedProduct: "Matcha Green Tea", priceType: "INCLUDED", minQuantity: 0, maxQuantity: 6 },
+        { assignedProduct: "Pistachio Rose",   priceType: "INCLUDED", minQuantity: 0, maxQuantity: 6 },
+      ]
+    }
+  ]
+}
+// Покупатель: 3× Dark Truffle + 2× Matcha + 1× Pistachio = $24
 ```
-Bundle Product
-├── Group: "Выберите конфеты"
-│   ├── minSelection: 6        (обязательная, min >= 1)
-│   ├── maxSelection: 6        (или null для "до 6")
-│   └── Items:
-│       ├── Candy A (priceType: INCLUDED)
-│       ├── Candy B (priceType: INCLUDED)
-│       ├── Candy C (priceType: INCLUDED)
-│       └── ... (10 вариантов)
-│
-├── Group: "Добавить упаковку" (опционально)
-│   ├── minSelection: 0        (опциональная, min = 0)
-│   ├── maxSelection: 1        (single select)
-│   └── Items:
-│       ├── Gift wrap (priceType: FIXED, priceValue: 5.00)
-│       └── Premium box (priceType: FIXED, priceValue: 12.00)
+
+#### Пример B: "Build Your Salad" — multi-group wizard с dependency rules
+
+```typescript
+{
+  bundleType: "MIX_AND_MATCH",
+  title: "Build Your Own Salad Bowl",
+  displayStyle: "wizard",  // пошаговый UI
+  groups: [
+    {
+      id: "base",
+      title: "1. Выберите основу",
+      selectionMode: "PICK_ITEMS",
+      minSelection: 1,
+      maxSelection: 1,           // ровно одна основа
+      items: [
+        { assignedProduct: "Mixed Greens",  priceType: "INCLUDED" },
+        { assignedProduct: "Quinoa Bowl",   priceType: "INCLUDED" },
+        { assignedProduct: "Rice Noodles",  priceType: "INCLUDED" },
+      ]
+    },
+    {
+      id: "protein",
+      title: "2. Добавьте белок",
+      selectionMode: "PICK_ITEMS",
+      minSelection: 1,
+      maxSelection: 2,           // 1-2 белка
+      items: [
+        { assignedProduct: "Grilled Chicken", priceType: "INCLUDED" },
+        { assignedProduct: "Smoked Salmon",   priceType: "MARKUP_FIXED", priceValue: 300 }, // +$3
+        { assignedProduct: "Crispy Tofu",     priceType: "INCLUDED" },
+        { assignedProduct: "Shrimp",          priceType: "MARKUP_FIXED", priceValue: 400 }, // +$4
+      ]
+    },
+    {
+      id: "toppings",
+      title: "3. Топинги (до 5)",
+      selectionMode: "PICK_ITEMS",
+      minSelection: 0,
+      maxSelection: 5,
+      items: [
+        { assignedProduct: "Avocado",      priceType: "MARKUP_FIXED", priceValue: 200 }, // +$2
+        { assignedProduct: "Cherry Tomato", priceType: "INCLUDED" },
+        { assignedProduct: "Feta Cheese",  priceType: "INCLUDED" },
+        { assignedProduct: "Corn",         priceType: "INCLUDED" },
+        { assignedProduct: "Olives",       priceType: "INCLUDED" },
+        { assignedProduct: "Egg",          priceType: "MARKUP_FIXED", priceValue: 100 }, // +$1
+        { assignedProduct: "Croutons",     priceType: "INCLUDED" },
+        { assignedProduct: "Seeds Mix",    priceType: "INCLUDED" },
+      ]
+    },
+    {
+      id: "dressing",
+      title: "4. Соус",
+      selectionMode: "PICK_ITEMS",
+      minSelection: 1,
+      maxSelection: 1,
+      items: [
+        { assignedProduct: "Caesar",     priceType: "INCLUDED" },
+        { assignedProduct: "Balsamic",   priceType: "INCLUDED" },
+        { assignedProduct: "Sesame Soy", priceType: "INCLUDED" },
+        { assignedProduct: "Ranch",      priceType: "INCLUDED" },
+      ]
+    },
+    {
+      id: "extras",
+      title: "5. Экстра (опционально)",
+      selectionMode: "PICK_ITEMS",
+      minSelection: 0,           // опционально
+      maxSelection: 3,
+      items: [
+        { assignedProduct: "Extra Protein",   priceType: "FIXED", priceValue: 400 },  // $4
+        { assignedProduct: "Side of Bread",   priceType: "FIXED", priceValue: 200 },  // $2
+        { assignedProduct: "Soup of the Day", priceType: "FIXED", priceValue: 500 },  // $5
+      ]
+    }
+  ],
+  dependencyRules: [
+    {
+      name: "Premium base unlocks premium toppings",
+      conditions: [{ conditionType: "IS_SELECTED", targetType: "ITEM", targetId: "quinoa_bowl" }],
+      actions: [{ actionType: "SHOW", targetType: "ITEM", targetId: "truffle_oil" }]
+    },
+    {
+      name: "5 toppings = free dressing upgrade",
+      conditions: [{ conditionType: "GROUP_UNIQUE_GTE", targetType: "GROUP", targetId: "toppings", value: 5 }],
+      actions: [{ actionType: "ADJUST_PRICE", targetType: "BUNDLE", priceType: "DISCOUNT_FIXED", priceValue: 100 }]
+    }
+  ]
+}
+// Base $12 + Salmon(+$3) + Avocado(+$2) + 4 included toppings + Caesar = $17
+```
+
+#### Пример C: "Custom Gift Box" — pick items + tiered pricing
+
+```typescript
+{
+  bundleType: "MIX_AND_MATCH",
+  title: "Custom Gift Box",
+  displayStyle: "accordion",
+  groups: [
+    {
+      id: "items",
+      title: "Выберите от 3 до 8 товаров",
+      selectionMode: "PICK_ITEMS",
+      minSelection: 3,
+      maxSelection: 8,
+      items: [
+        { assignedProduct: "Scented Candle",   priceType: "FIXED", priceValue: 1500 },
+        { assignedProduct: "Bath Bomb Set",    priceType: "FIXED", priceValue: 1200 },
+        { assignedProduct: "Silk Eye Mask",    priceType: "FIXED", priceValue: 2000 },
+        { assignedProduct: "Hand Cream",       priceType: "FIXED", priceValue: 900 },
+        { assignedProduct: "Tea Sampler",      priceType: "FIXED", priceValue: 1800 },
+        { assignedProduct: "Chocolate Truffles", priceType: "FIXED", priceValue: 1400 },
+        { assignedProduct: "Journal Notebook", priceType: "FIXED", priceValue: 1600 },
+        { assignedProduct: "Aromatherapy Oil", priceType: "FIXED", priceValue: 2200 },
+      ]
+    },
+    {
+      id: "wrapping",
+      title: "Упаковка",
+      selectionMode: "PICK_ITEMS",
+      minSelection: 1,
+      maxSelection: 1,
+      items: [
+        { assignedProduct: "Standard Box",   priceType: "FREE" },
+        { assignedProduct: "Premium Gift Wrap", priceType: "FIXED", priceValue: 500 },
+        { assignedProduct: "Luxury Wooden Box", priceType: "FIXED", priceValue: 1500 },
+      ]
+    }
+  ],
+  dependencyRules: [
+    {
+      name: "5+ items: 10% off",
+      priority: 1,
+      conditions: [{ conditionType: "GROUP_UNIQUE_GTE", targetType: "GROUP", targetId: "items", value: 5 }],
+      actions: [{ actionType: "ADJUST_PRICE", targetType: "BUNDLE", priceType: "DISCOUNT_PERCENT", priceValue: 10 }]
+    },
+    {
+      name: "7+ items: 15% off",
+      priority: 2,
+      conditions: [{ conditionType: "GROUP_UNIQUE_GTE", targetType: "GROUP", targetId: "items", value: 7 }],
+      actions: [{ actionType: "ADJUST_PRICE", targetType: "BUNDLE", priceType: "DISCOUNT_PERCENT", priceValue: 15 }]
+    },
+    {
+      name: "6+ items unlocks luxury box",
+      conditions: [{ conditionType: "GROUP_UNIQUE_GTE", targetType: "GROUP", targetId: "items", value: 6 }],
+      actions: [{ actionType: "SHOW", targetType: "ITEM", targetId: "luxury_wooden_box" }]
+    },
+    {
+      name: "Unlock wrapping after items selected",
+      conditions: [{ conditionType: "GROUP_UNIQUE_GTE", targetType: "GROUP", targetId: "items", value: 3 }],
+      actions: [{ actionType: "ENABLE", targetType: "GROUP", targetId: "wrapping" }]
+    }
+  ]
+}
+// 5 items × ~$15 avg = $75 → -10% = $67.50 + Premium Wrap($5) = $72.50
 ```
 
 **Что нужно добавить:**
@@ -147,19 +437,17 @@ Bundle Product
 1. `selectionMode` на группу:
    ```typescript
    enum SelectionMode {
-     PICK_ITEMS = "PICK_ITEMS",           // выбери какие (текущий)
-     PICK_QUANTITIES = "PICK_QUANTITIES", // выбери сколько каждого
+     PICK_ITEMS = "PICK_ITEMS",           // выбери какие (toggle on/off)
+     PICK_QUANTITIES = "PICK_QUANTITIES", // выбери сколько каждого (+/- stepper)
    }
    ```
-   - `PICK_ITEMS`: выбрал/не выбрал (maxSelection определяет сколько можно)
-   - `PICK_QUANTITIES`: можно несколько штук одного item (нужен min/max per item)
 
-2. Per-item quantity constraints:
+2. Per-item quantity constraints (для PICK_QUANTITIES):
    ```typescript
    interface ComponentItem {
      // ...existing
-     minQuantity: number;    // min per item (default 0)
-     maxQuantity: number | null; // max per item (null = unlimited within group max)
+     minQuantity: number;        // min per item (default 0)
+     maxQuantity: number | null; // max per item (null = unlimited)
    }
    ```
 
@@ -167,486 +455,34 @@ Bundle Product
    ```typescript
    interface IComponentGroup {
      // ...existing
-     minTotalQuantity: number | null; // сумма qty всех выбранных items >= N
-     maxTotalQuantity: number | null; // сумма qty всех выбранных items <= N
+     minTotalQuantity: number | null; // сумма qty >= N
+     maxTotalQuantity: number | null; // сумма qty <= N
    }
    ```
-   Пример: "выбери любые конфеты, всего 10 штук" — `minTotalQuantity: 10, maxTotalQuantity: 10`
+   `minSelection/maxSelection` — сколько ВИДОВ выбрать.
+   `minTotalQuantity/maxTotalQuantity` — сколько ШТУК в сумме.
 
 4. Dependency rules для cross-group logic:
-   ```
-   Rule: "Заполни коробку полностью"
-   WHEN: GROUP_TOTAL_QTY_GTE(group_candies, 6)
-   THEN: ENABLE(group_packaging)   ← открыть выбор упаковки только после
-   ```
-
-**Display styles:** wizard (пошагово), accordion, tabs — уже есть в `BundleDisplaySettings`.
-
-**Pricing strategies:**
-- Flat rate: все INCLUDED, бандл имеет фиксированную цену
-- Per-item: каждый item имеет свою цену (BASE / FIXED)
-- Tiered: dependency rule с GROUP_TOTAL_QTY_GTE → ADJUST_PRICE на BUNDLE
-
----
-
-## Уровень 2: Cart-Level Bundles (бандл = правило в корзине)
-
-Эти типы НЕ создают отдельный продукт. Они работают как условия/скидки на уровне cart. Требуют новой подсистемы.
-
----
-
-### 4. Discount Bundle (Bundle as Promotion)
-
-**Что это:** Купи A+B → получи скидку. Нет "нового продукта", скидка применяется к существующим line items.
-
-**Примеры:** "Купи шампунь + кондиционер = -15%", "Laptop + Case + Mouse = -$50"
-
-**Новая модель (расширение pricing/promotions):**
-
-```typescript
-interface DiscountBundle {
-  id: string;
-  name: string;
-  type: "DISCOUNT_BUNDLE";
-  enabled: boolean;
-  priority: number;
-
-  // Что должно быть в корзине
-  conditions: DiscountBundleCondition[];
-  conditionLogic: "ALL" | "ANY";  // все условия или любое
-
-  // Что происходит
-  discount: DiscountDefinition;
-
-  // Ограничения
-  usageLimit: number | null;
-  customerLimit: number | null;
-  startDate: Date | null;
-  endDate: Date | null;
-  combinesWith: CombinesWithConfig;
-}
-
-interface DiscountBundleCondition {
-  id: string;
-  type: "PRODUCT" | "VARIANT" | "COLLECTION" | "TAG";
-  targetId: string;
-  minQuantity: number;        // default 1
-}
-
-interface DiscountDefinition {
-  type: "PERCENT" | "FIXED_AMOUNT" | "FIXED_PRICE";
-  value: number;
-  applyTo: "EACH_ITEM" | "BUNDLE_TOTAL" | "CHEAPEST" | "MOST_EXPENSIVE";
-}
-```
-
-**Что нужно реализовать:**
-
-1. **Сервис promotions/discounts** — новый или расширение pricing service:
-   - CRUD для discount bundles
-   - Evaluation engine: проверяет cart lines → матчит условия → применяет скидку
-
-2. **Cart middleware** (в checkout service):
-   - При каждом изменении корзины: eval все active discount bundles
-   - Применить скидки, показать "bundle savings" в UI
-   - Conflict resolution: priority-based, combinesWith rules
-
-3. **Storefront UI:**
-   - Badge "Bundle & Save" на PDP
-   - "Add remaining items" suggestion в корзине
-   - Breakdown скидки в cart summary
-
-4. **Admin UI:**
-   - Новый раздел: Promotions → Discount Bundles
-   - Визуальный конфигуратор: выбрать продукты + задать скидку
-   - Analytics: сколько раз сработал, revenue impact
-
----
-
-### 5. BXGY / BOGO (Buy X Get Y)
-
-**Что это:** Купи X — получи Y бесплатно или со скидкой.
-
-**Примеры:** "Купи 2 футболки — 3-я бесплатно", "Купи телефон — чехол за 1$"
-
-**Модель (расширение DiscountBundle):**
-
-```typescript
-interface BXGYPromotion {
-  id: string;
-  name: string;
-  type: "BXGY";
-  enabled: boolean;
-
-  // "Buy" часть
-  buyConditions: {
-    type: "PRODUCT" | "COLLECTION" | "ANY";
-    targetIds: string[];     // конкретные продукты / коллекции
-    quantity: number;        // сколько купить
-  }[];
-
-  // "Get" часть
-  getRewards: {
-    type: "PRODUCT" | "COLLECTION" | "SAME";  // SAME = тот же что купил
-    targetIds: string[];
-    quantity: number;        // сколько получить
-    discount: {
-      type: "FREE" | "PERCENT" | "FIXED_PRICE";
-      value: number;         // 100 для FREE, или конкретный %/сумма
-    };
-    maxUsesPerOrder: number | null;
-  }[];
-
-  // Сколько раз можно применить за один заказ
-  applicationLimit: number | null; // null = unlimited
-  stackable: boolean;              // 6 = 2x BOGO?
-}
-```
-
-**Что нужно реализовать:**
-
-1. **Engine в checkout/pricing:**
-   - Match buy conditions в cart
-   - Auto-add или suggest "get" items
-   - Calculate discounted price для "get" items
-   - Handle stacking: купил 6 → применить BOGO 3 раза?
-
-2. **Cart behavior (2 стратегии):**
-   - **Auto-add:** система сама добавляет free item в корзину (как special line)
-   - **Suggest:** показать "Вы можете добавить Y бесплатно" → покупатель кликает
-
-3. **Inventory implications:**
-   - Free items тоже списывают stock
-   - Нужен отдельный tracking "promotional units given"
-
-4. **Admin UI:**
-   - Visual builder: "Buy [product picker] × [qty] → Get [product picker] × [qty] @ [discount]"
-   - Preview: как это выглядит в корзине
-
----
-
-### 6. Volume / Quantity Breaks
-
-**Что это:** Прогрессивные скидки по количеству.
-
-**Примеры:** "3+ шт = -10%", "5+ = -20%", "10+ = -30%"
-
-**Модель:**
-
-```typescript
-interface VolumeDiscount {
-  id: string;
-  name: string;
-  type: "VOLUME_BREAKS";
-  enabled: boolean;
-
-  // К чему применяется
-  target: {
-    type: "PRODUCT" | "VARIANT" | "COLLECTION" | "TAG" | "ALL";
-    targetIds: string[];
-  };
-
-  // Пороги
-  tiers: VolumeTier[];
-
-  // Как считать quantity
-  quantitySource: "LINE_QUANTITY" | "CART_TOTAL_OF_TARGET";
-  // LINE = qty конкретной строки, CART_TOTAL = сумма qty всех matching lines
-
-  // Display
-  showOnPDP: boolean;       // показывать таблицу скидок на PDP
-  showInCart: boolean;       // показывать "add N more for better price"
-}
-
-interface VolumeTier {
-  minQuantity: number;
-  discount: {
-    type: "PERCENT" | "FIXED_AMOUNT" | "FIXED_UNIT_PRICE";
-    value: number;
-  };
-  label?: string;           // "Best value!", "Most popular"
-}
-```
-
-**Что нужно реализовать:**
-
-1. **Pricing engine extension:**
-   - При расчёте цены line item: check volume tiers
-   - Найти applicable tier (max matching minQuantity)
-   - Применить discount к unit price
-
-2. **PDP widget:**
-   - Таблица quantity breaks: "Buy 3+ save 10%, Buy 5+ save 20%"
-   - Highlight current tier, show "buy N more" nudge
-
-3. **Cart calculation:**
-   - Recalculate при изменении qty
-   - Show savings vs regular price
-   - "Add 2 more for 20% off!" nudge
-
-4. **Совместимость с product bundles:**
-   - Volume discount может применяться К бандлу (купи 3 kit → скидка)
-   - Или к items ВНУТРИ mix-and-match (dependency rule QTY_GTE → ADJUST_PRICE уже есть!)
-
-**Частично уже поддерживается** через dependency rules:
-```
-Rule: "Volume 3+"
-WHEN: QTY_GTE(item_A, 3)
-THEN: ADJUST_PRICE(BUNDLE, DISCOUNT_PERCENT, 10)
-
-Rule: "Volume 5+"  (priority higher)
-WHEN: QTY_GTE(item_A, 5)
-THEN: ADJUST_PRICE(BUNDLE, DISCOUNT_PERCENT, 20)
-```
-Но это работает только внутри бандла. Для standalone products нужна отдельная подсистема.
-
----
-
-### 7. Free Gift / Add-ons
-
-**Что это:** Подарок или доп. опции при достижении условия.
-
-**Примеры:** "Добавь ещё 1 товар → получи подарок", "При заказе от $100 → бесплатная доставка + подарок"
-
-**Модель:**
-
-```typescript
-interface GiftPromotion {
-  id: string;
-  name: string;
-  type: "FREE_GIFT" | "ADDON_UNLOCK";
-  enabled: boolean;
-
-  // Условие
-  trigger: GiftTrigger;
-
-  // Что даём
-  rewards: GiftReward[];
-
-  // Поведение
-  autoAdd: boolean;          // auto-add или suggest
-  removableByCustomer: boolean;
-  showProgressBar: boolean;  // "Ещё $20 до подарка!"
-}
-
-interface GiftTrigger {
-  type: "CART_SUBTOTAL_GTE"     // сумма корзины >= X
-       | "CART_ITEMS_COUNT_GTE" // кол-во позиций >= N
-       | "CART_TOTAL_QTY_GTE"   // общее qty >= N
-       | "SPECIFIC_PRODUCT"     // конкретный товар в корзине
-       | "COLLECTION_COUNT_GTE"; // N товаров из коллекции
-  value: number;
-  targetIds?: string[];          // для SPECIFIC_PRODUCT / COLLECTION
-}
-
-interface GiftReward {
-  type: "FREE_PRODUCT" | "DISCOUNTED_PRODUCT" | "ADDON_GROUP";
-  productId?: string;          // для FREE/DISCOUNTED
-  collectionId?: string;       // для ADDON_GROUP (выбери из...)
-  maxQuantity: number;
-  discount?: {
-    type: "FREE" | "PERCENT" | "FIXED_PRICE";
-    value: number;
-  };
-}
-```
-
-**Что нужно реализовать:**
-
-1. **Cart evaluation engine:**
-   - Watch cart changes → eval triggers
-   - Add/remove gift lines при threshold crossing
-   - Progress tracking: "You're $15 away from a free gift!"
-
-2. **Gift line item type:**
-   - Special cart line: `lineType: "GIFT"` или `"PROMOTIONAL_ADDON"`
-   - Visual distinction в UI (badge, color)
-   - Cannot be purchased standalone at this price
-
-3. **Addon unlock UX:**
-   - When trigger met → show addon selector overlay/drawer
-   - "Congrats! Pick your free gift:" + product grid
-
-4. **Edge cases:**
-   - Customer removes item → drops below threshold → remove gift
-   - Gift goes out of stock → show alternative or remove
-   - Multiple gift promotions stack?
-
-**Пересечение с product bundles:**
-Внутри mix-and-match можно использовать dependency rules:
-```
-Rule: "Unlock bonus group"
-WHEN: GROUP_TOTAL_QTY_GTE(group_main, 5)
-THEN: SHOW(group_bonus)
-```
-Это уже работает в текущей системе для in-bundle add-ons.
-
----
-
-### 8. Dynamic Bundle (Cart Transform)
-
-**Что это:** Система автоматически группирует cart lines в "виртуальный бандл" для отображения/расчёта.
-
-**Примеры:**
-- Покупатель добавил A, B, C по отдельности → система показывает "Bundle: A+B+C, save $10"
-- "Frequently bought together" → при добавлении всех → auto-discount
-
-**Модель:**
-
-```typescript
-interface DynamicBundleRule {
-  id: string;
-  name: string;
-  type: "DYNAMIC_BUNDLE";
-  enabled: boolean;
-
-  // Какие line items группировать
-  matchRules: DynamicMatchRule[];
-  matchMode: "ALL_REQUIRED" | "ANY_N_OF";  // все обязательны или N из M
-  minMatchCount?: number;                   // для ANY_N_OF
-
-  // Как трансформировать
-  transform: {
-    displayAsBundle: boolean;     // визуально объединить в cart
-    bundleTitle: string;          // "Your custom bundle"
-    bundleImage?: string;
-    collapseLines: boolean;       // свернуть children или показать flat
-  };
-
-  // Pricing
-  discount: DiscountDefinition;
-
-  // Откуда берётся рекомендация
-  source: "MANUAL" | "AI_RECOMMENDATION" | "FREQUENTLY_BOUGHT_TOGETHER";
-}
-
-interface DynamicMatchRule {
-  type: "PRODUCT" | "VARIANT" | "COLLECTION" | "TAG";
-  targetId: string;
-  minQuantity: number;
-}
-```
-
-**Что нужно реализовать:**
-
-1. **Cart Transform middleware:**
-   - After cart update: scan lines → match dynamic bundle rules
-   - Group matching lines under virtual parent
-   - Calculate bundle discount
-   - Return transformed cart structure for display
-
-2. **Cart line grouping:**
-   ```typescript
-   // Before transform:
-   CartLine { product: A, qty: 1, price: $30 }
-   CartLine { product: B, qty: 1, price: $20 }
-   CartLine { product: C, qty: 1, price: $15 }
-
-   // After transform:
-   CartLine {
-     title: "Bundle: A+B+C",
-     price: $55 (was $65, save $10),
-     children: [A, B, C],
-     discountApplied: true
-   }
-   ```
-
-3. **"Frequently Bought Together" integration:**
-   - ML/analytics: определить пары/тройки товаров
-   - PDP widget: "Frequently bought together" с чекбоксами
-   - One-click "Add all" → dynamic bundle applies в корзине
-
-4. **Partial match UX:**
-   - "Add product C to complete your bundle and save $10!"
-   - Progress indicator: "2/3 items added"
-
-5. **Conflict resolution:**
-   - Один line может матчить несколько dynamic bundles
-   - Priority + "best deal for customer" logic
-
----
-
-## Архитектура: Где что живёт
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                    ADMIN UI (admin-next)                  │
-├─────────────────────────────────────────────────────────┤
-│  Product Bundles:          │  Promotions:                │
-│  ├── Fixed Bundle config   │  ├── Discount Bundles       │
-│  ├── Multipack config      │  ├── BXGY / BOGO            │
-│  ├── Mix-and-Match config  │  ├── Volume Breaks          │
-│  └── Dependency Chart      │  ├── Free Gifts             │
-│                            │  └── Dynamic Bundles        │
-└─────────────┬──────────────┴──────────────┬─────────────┘
-              │                              │
-              ▼                              ▼
-┌─────────────────────┐      ┌─────────────────────────────┐
-│  INVENTORY SERVICE   │      │  PRICING / PROMOTIONS SVC   │
-│  (product bundles)   │      │  (cart-level bundles)        │
-├─────────────────────┤      ├─────────────────────────────┤
-│  • Bundle CRUD       │      │  • Discount bundle CRUD     │
-│  • Component Groups  │      │  • BXGY rules               │
-│  • Dependency Rules  │      │  • Volume tiers             │
-│  • Stock management  │      │  • Gift promotions          │
-│  • Variant handling  │      │  • Dynamic bundle rules     │
-└─────────┬───────────┘      └──────────────┬──────────────┘
-          │                                   │
-          ▼                                   ▼
-┌─────────────────────────────────────────────────────────┐
-│                   CHECKOUT SERVICE                        │
-├─────────────────────────────────────────────────────────┤
-│  Cart Middleware Pipeline:                               │
-│  1. Resolve product bundles → expand to child lines     │
-│  2. Evaluate discount bundles → apply cart discounts    │
-│  3. Evaluate BXGY → add/discount reward lines          │
-│  4. Evaluate volume breaks → adjust unit prices        │
-│  5. Evaluate gifts → add promotional lines             │
-│  6. Apply dynamic transforms → group lines             │
-│  7. Final price calculation                             │
-└─────────────────────────────────────────────────────────┘
-```
+   - Unlock groups пошагово (wizard-like behavior)
+   - Tiered pricing через GROUP_UNIQUE_GTE → ADJUST_PRICE
+   - Conditional items: show premium options при определённых условиях
 
 ---
 
 ## Приоритеты реализации
 
-### Phase 1: Product Bundles (расширение текущего)
 - [ ] Добавить `BundleType` enum (FIXED, MULTIPACK, MIX_AND_MATCH)
 - [ ] Добавить `defaultQuantity`, `quantityLocked` на ComponentItem
-- [ ] Добавить `selectionMode`, `minTotalQuantity`, `maxTotalQuantity` на IComponentGroup (minSelection/maxSelection уже есть)
+- [ ] Добавить `selectionMode`, `minTotalQuantity`, `maxTotalQuantity` на IComponentGroup
 - [ ] Добавить `minQuantity`, `maxQuantity` per item
 - [ ] Storefront UI для каждого типа
 - [ ] Checkout: expand bundle → child lines с pricing
-
-### Phase 2: Volume Breaks + Discount Bundles
-- [ ] Новая модель `VolumeDiscount` в pricing service
-- [ ] Новая модель `DiscountBundle` в pricing service
-- [ ] Cart middleware: evaluate + apply
-- [ ] PDP widgets: tier table, "bundle & save" badge
-- [ ] Cart UI: savings breakdown, nudges
-
-### Phase 3: BXGY + Free Gifts
-- [ ] Новая модель `BXGYPromotion`
-- [ ] Новая модель `GiftPromotion`
-- [ ] Cart engine: match + auto-add/suggest
-- [ ] Gift line type + UI
-- [ ] Progress bar ("$15 away from free gift")
-
-### Phase 4: Dynamic Bundles
-- [ ] Новая модель `DynamicBundleRule`
-- [ ] Cart transform middleware
-- [ ] "Frequently bought together" widget
-- [ ] Partial match nudges
-- [ ] Cart line grouping UI
 
 ---
 
 ## Расширения текущих типов
 
 ```typescript
-// === Additions to existing types ===
-
 enum BundleType {
   FIXED = "FIXED",
   MULTIPACK = "MULTIPACK",
@@ -674,12 +510,8 @@ interface IComponentGroup {
   minTotalQuantity: number | null;
   maxTotalQuantity: number | null;
 }
-
-// Cart line additions
-interface CartLine {
-  // ...existing fields
-  lineType: "REGULAR" | "BUNDLE_PARENT" | "BUNDLE_CHILD" | "GIFT" | "BXGY_REWARD";
-  promotionId?: string;
-  bundleId?: string;
-}
 ```
+
+---
+
+See also: [Cart-Level Promotions Plan](./cart-promotions-plan.md) — Discount Bundles, BXGY, Volume Breaks, Free Gifts, Dynamic Bundles.
