@@ -51,18 +51,12 @@ type BundleNodeProps = NodeProps<Node<BundleNodeData, "bundle">>;
 
 const BundleNodeComponent = ({ data }: BundleNodeProps) => {
   const { styles } = useStyles();
-  const { label } = data as BundleNodeData;
+  const { label } = data;
 
   return (
     <div className={styles.node}>
-      {/* Target handle on top (receives edges from rules) */}
-      <Handle
-        type="target"
-        position={Position.Top}
-        className={styles.handle}
-      />
+      <Handle type="target" position={Position.Top} className={styles.handle} />
 
-      {/* Content */}
       <GiftOutlined className={styles.icon} />
       <Typography.Text className={styles.label}>{label}</Typography.Text>
     </div>
@@ -70,4 +64,3 @@ const BundleNodeComponent = ({ data }: BundleNodeProps) => {
 };
 
 export const BundleNode = memo(BundleNodeComponent);
-export default BundleNode;

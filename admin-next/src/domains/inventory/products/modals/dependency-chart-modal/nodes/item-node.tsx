@@ -28,6 +28,9 @@ const useStyles = createStyles(({ token }) => ({
   avatar: {
     flexShrink: 0,
   },
+  avatarGroup: {
+    backgroundColor: token.colorPrimary,
+  },
   content: {
     flex: 1,
     minWidth: 0,
@@ -69,32 +72,62 @@ const useStyles = createStyles(({ token }) => ({
 }));
 
 // ============================================================================
+// Helpers
+// ============================================================================
+
+interface ItemWithProduct {
+  title?: string | null;
+  assignedProduct?: {
+    title?: string | null;
+    featuredImage?: { url?: string | null } | null;
+  } | null;
+  assignedVariant?: {
+    title?: string | null;
+    featuredImage?: { url?: string | null } | null;
+    product?: {
+      title?: string | null;
+      featuredImage?: { url?: string | null } | null;
+    } | null;
+  } | null;
+  featuredImage?: { url?: string | null } | null;
+}
+
+const getProductTitle = (item: ItemWithProduct): string => {
+  return (
+    item.title ??
+    item.assignedProduct?.title ??
+    item.assignedVariant?.product?.title ??
+    "Unnamed"
+  );
+};
+
+const getVariantTitle = (item: ItemWithProduct): string | undefined => {
+  return item.assignedVariant?.title ?? undefined;
+};
+
+const getImageUrl = (item: ItemWithProduct): string | undefined => {
+  return (
+    item.featuredImage?.url ??
+    item.assignedProduct?.featuredImage?.url ??
+    item.assignedVariant?.featuredImage?.url ??
+    item.assignedVariant?.product?.featuredImage?.url ??
+    undefined
+  );
+};
+
+// ============================================================================
 // Component
 // ============================================================================
 
 type ItemNodeProps = NodeProps<Node<ItemNodeData, "item">>;
 
 const ItemNodeComponent = ({ data }: ItemNodeProps) => {
-  const { styles } = useStyles();
-  const { item, groupTitle, position: nodePosition, isGroup } = data as ItemNodeData;
+  const { styles, cx } = useStyles();
+  const { item, groupTitle, position: nodePosition, isGroup } = data;
 
-  // Get product title
-  const productTitle =
-    item.title ??
-    (item as any).assignedProduct?.title ??
-    (item as any).assignedVariant?.product?.title ??
-    "Unnamed";
-
-  // Get variant title (only if assignedVariant exists)
-  const variantTitle = (item as any).assignedVariant?.title as string | undefined;
-
-  // Get featured image
-  const imageUrl = !isGroup
-    ? ((item as any).featuredImage?.url ??
-        (item as any).assignedProduct?.featuredImage?.url ??
-        (item as any).assignedVariant?.featuredImage?.url ??
-        (item as any).assignedVariant?.product?.featuredImage?.url)
-    : undefined;
+  const productTitle = getProductTitle(item as ItemWithProduct);
+  const variantTitle = !isGroup ? getVariantTitle(item as ItemWithProduct) : undefined;
+  const imageUrl = !isGroup ? getImageUrl(item as ItemWithProduct) : undefined;
 
   // Source: bottom handle only (to rule)
   // Target: top handle only (from rule)
@@ -111,8 +144,7 @@ const ItemNodeComponent = ({ data }: ItemNodeProps) => {
         size={40}
         src={imageUrl}
         icon={isGroup ? <FolderOutlined /> : <PictureOutlined />}
-        className={styles.avatar}
-        style={isGroup ? { backgroundColor: "#1890ff" } : undefined}
+        className={cx(styles.avatar, isGroup && styles.avatarGroup)}
       />
       <div className={styles.content}>
         <Typography.Text className={styles.groupTitle}>{groupTitle}</Typography.Text>
@@ -130,4 +162,3 @@ const ItemNodeComponent = ({ data }: ItemNodeProps) => {
 };
 
 export const ItemNode = memo(ItemNodeComponent);
-export default ItemNode;

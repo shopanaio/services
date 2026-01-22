@@ -1,4 +1,6 @@
 import { useMemo } from "react";
+import { useTheme } from "antd-style";
+import { MarkerType } from "@xyflow/react";
 
 import type { IComponentGroup, IDependencyRule } from "../../edit-components-modal/types";
 import {
@@ -9,8 +11,13 @@ import {
   ACTION_TYPE_LABELS,
   PRICE_RULE_OPTIONS,
 } from "../../edit-components-modal/types";
-import { MarkerType } from "@xyflow/react";
-import type { ChartNode, ChartEdge, ItemNodeData, RuleNodeData, BundleNodeData } from "../types";
+import type {
+  ChartNode,
+  ChartEdge,
+  ItemNodeData,
+  RuleNodeData,
+  BundleNodeData,
+} from "../types";
 
 // ============================================================================
 // Helper Functions
@@ -76,9 +83,16 @@ export const useDerivedGraph = ({
   rules,
   selectedRuleId,
 }: UseDerivedGraphOptions): UseDerivedGraphResult => {
+  const theme = useTheme();
+
   return useMemo(() => {
     const nodes: ChartNode[] = [];
     const edges: ChartEdge[] = [];
+
+    // Edge colors from theme
+    const conditionColor = theme.colorPrimary;
+    const actionColor = theme.colorSuccess;
+    const disabledColor = theme.colorBorder;
 
     // 1. First pass: collect which items/groups are used as sources (conditions) and targets (actions)
     const sourceItemIds = new Set<string>();
@@ -260,8 +274,6 @@ export const useDerivedGraph = ({
     });
 
     // 6. First pass: collect labels by groups
-    // Conditions: group by SOURCE item
-    // Actions: group by TARGET item
     const conditionSourceLabelsMap = new Map<string, string[]>();
     const actionTargetLabelsMap = new Map<string, string[]>();
 
@@ -283,10 +295,9 @@ export const useDerivedGraph = ({
         }
 
         const label = formatConditionLabel(condition.conditionType, condition.value);
-        if (!conditionSourceLabelsMap.has(sourceNodeId)) {
-          conditionSourceLabelsMap.set(sourceNodeId, []);
-        }
-        conditionSourceLabelsMap.get(sourceNodeId)!.push(label);
+        const labels = conditionSourceLabelsMap.get(sourceNodeId) ?? [];
+        labels.push(label);
+        conditionSourceLabelsMap.set(sourceNodeId, labels);
       });
 
       // Collect action labels by TARGET
@@ -312,16 +323,17 @@ export const useDerivedGraph = ({
           action.priceValue,
           action.qtyValue
         );
-        if (!actionTargetLabelsMap.has(targetNodeId)) {
-          actionTargetLabelsMap.set(targetNodeId, []);
-        }
-        actionTargetLabelsMap.get(targetNodeId)!.push(label);
+        const labels = actionTargetLabelsMap.get(targetNodeId) ?? [];
+        labels.push(label);
+        actionTargetLabelsMap.set(targetNodeId, labels);
       });
     });
 
     // 7. Create edges with grouped labels
     rules.forEach((rule) => {
       const ruleNodeId = `rule:${rule.id}`;
+      const edgeColor = rule.enabled ? conditionColor : disabledColor;
+      const actionEdgeColor = rule.enabled ? actionColor : disabledColor;
 
       // Condition edges: grouped by SOURCE item
       rule.conditions.forEach((condition) => {
@@ -341,7 +353,6 @@ export const useDerivedGraph = ({
 
         if (!nodeIds.has(sourceNodeId)) return;
 
-        // All condition labels from this source item
         const allLabels = conditionSourceLabelsMap.get(sourceNodeId) ?? [];
 
         edges.push({
@@ -351,12 +362,12 @@ export const useDerivedGraph = ({
           type: "labeled",
           animated: false,
           style: {
-            stroke: rule.enabled ? "#1890ff" : "#d9d9d9",
+            stroke: edgeColor,
             strokeWidth: 1,
           },
           markerEnd: {
             type: MarkerType.ArrowClosed,
-            color: rule.enabled ? "#1890ff" : "#d9d9d9",
+            color: edgeColor,
           },
           data: {
             condition,
@@ -386,7 +397,6 @@ export const useDerivedGraph = ({
 
         if (!nodeIds.has(targetNodeId)) return;
 
-        // All action labels going to this target item
         const allLabels = actionTargetLabelsMap.get(targetNodeId) ?? [];
 
         edges.push({
@@ -396,12 +406,12 @@ export const useDerivedGraph = ({
           type: "labeled",
           animated: false,
           style: {
-            stroke: rule.enabled ? "#52c41a" : "#d9d9d9",
+            stroke: actionEdgeColor,
             strokeWidth: 1,
           },
           markerEnd: {
             type: MarkerType.ArrowClosed,
-            color: rule.enabled ? "#52c41a" : "#d9d9d9",
+            color: actionEdgeColor,
           },
           data: {
             action,
@@ -419,7 +429,5 @@ export const useDerivedGraph = ({
     });
 
     return { nodes, edges };
-  }, [groups, rules, selectedRuleId]);
+  }, [groups, rules, selectedRuleId, theme]);
 };
-
-export default useDerivedGraph;

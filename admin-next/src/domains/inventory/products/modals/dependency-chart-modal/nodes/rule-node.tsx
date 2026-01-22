@@ -78,7 +78,7 @@ type RuleNodeProps = NodeProps<Node<RuleNodeData, "rule">>;
 
 const RuleNodeComponent = ({ data }: RuleNodeProps) => {
   const { styles, cx } = useStyles();
-  const { rule, isSelected } = data as RuleNodeData;
+  const { rule, isSelected } = data;
 
   const conditionCount = rule.conditions.length;
   const actionCount = rule.actions.length;
@@ -91,14 +91,8 @@ const RuleNodeComponent = ({ data }: RuleNodeProps) => {
         !rule.enabled && styles.nodeDisabled
       )}
     >
-      {/* Target handle on top (from source items) */}
-      <Handle
-        type="target"
-        position={Position.Top}
-        className={styles.handle}
-      />
+      <Handle type="target" position={Position.Top} className={styles.handle} />
 
-      {/* Content */}
       <div className={styles.header}>
         <ThunderboltOutlined className={styles.icon} />
         <Typography.Text className={styles.title}>
@@ -109,20 +103,12 @@ const RuleNodeComponent = ({ data }: RuleNodeProps) => {
         <Typography.Text type="secondary" className={styles.conditionCount}>
           {conditionCount} when → {actionCount} then
         </Typography.Text>
-        {!rule.enabled && (
-          <Badge status="default" text="" />
-        )}
+        {!rule.enabled && <Badge status="default" text="" />}
       </div>
 
-      {/* Source handle on bottom (to target items) */}
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        className={styles.handle}
-      />
+      <Handle type="source" position={Position.Bottom} className={styles.handle} />
     </div>
   );
 };
 
 export const RuleNode = memo(RuleNodeComponent);
-export default RuleNode;

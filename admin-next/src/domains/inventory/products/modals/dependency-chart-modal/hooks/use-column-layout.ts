@@ -6,9 +6,9 @@ import type { ChartNode, ChartEdge, ItemNodeData } from "../types";
 // ============================================================================
 
 const ROW_Y = {
-  sources: 0,     // Source items (condition triggers)
-  rules: 200,     // Rules in the middle
-  targets: 400,   // Target items (action receivers)
+  sources: 0,
+  rules: 200,
+  targets: 400,
 };
 
 const NODE_WIDTH = {
@@ -29,21 +29,26 @@ interface UseColumnLayoutOptions {
 
 export const useColumnLayout = ({ nodes, edges }: UseColumnLayoutOptions): ChartNode[] => {
   return useMemo(() => {
-    // item type includes both items and groups now
     const itemNodes = nodes.filter((n) => n.type === "item");
     const ruleNodes = nodes.filter((n) => n.type === "rule");
     const bundleNodes = nodes.filter((n) => n.type === "bundle");
 
-    // Determine which nodes are sources (have edges going TO rules)
-    // and which are targets (have edges coming FROM rules)
+    // Determine which nodes are sources and which are targets
     const sourceNodeIds = new Set<string>();
     const targetNodeIds = new Set<string>();
 
     edges.forEach((edge) => {
-      if (edge.target.startsWith("rule:") && (edge.source.startsWith("item:") || edge.source.startsWith("group:"))) {
+      const isSourceToRule =
+        edge.target.startsWith("rule:") &&
+        (edge.source.startsWith("item:") || edge.source.startsWith("group:"));
+      const isRuleToTarget =
+        edge.source.startsWith("rule:") &&
+        (edge.target.startsWith("item:") || edge.target.startsWith("group:"));
+
+      if (isSourceToRule) {
         sourceNodeIds.add(edge.source);
       }
-      if (edge.source.startsWith("rule:") && (edge.target.startsWith("item:") || edge.target.startsWith("group:"))) {
+      if (isRuleToTarget) {
         targetNodeIds.add(edge.target);
       }
     });
@@ -61,15 +66,16 @@ export const useColumnLayout = ({ nodes, edges }: UseColumnLayoutOptions): Chart
     });
 
     // Sort by groupId for better organization
-    const sortByGroupId = (items: ChartNode[]) => {
+    const sortByGroupId = (items: ChartNode[]): ChartNode[] => {
       const byGroup = new Map<string, ChartNode[]>();
+
       items.forEach((node) => {
         const groupId = (node.data as ItemNodeData).groupId;
-        if (!byGroup.has(groupId)) {
-          byGroup.set(groupId, []);
-        }
-        byGroup.get(groupId)!.push(node);
+        const groupNodes = byGroup.get(groupId) ?? [];
+        groupNodes.push(node);
+        byGroup.set(groupId, groupNodes);
       });
+
       const result: ChartNode[] = [];
       byGroup.forEach((groupItems) => {
         result.push(...groupItems);
@@ -82,9 +88,7 @@ export const useColumnLayout = ({ nodes, edges }: UseColumnLayoutOptions): Chart
 
     const positionedNodes: ChartNode[] = [];
 
-    // ========================================
     // 1. Position source items/groups at the top
-    // ========================================
     const sourceRowWidth = allSourceNodes.length * (NODE_WIDTH.item + NODE_GAP) - NODE_GAP;
     const sourceStartX = -sourceRowWidth / 2 + NODE_WIDTH.item / 2;
 
@@ -102,9 +106,7 @@ export const useColumnLayout = ({ nodes, edges }: UseColumnLayoutOptions): Chart
       } as ChartNode);
     });
 
-    // ========================================
     // 2. Position rules in the middle
-    // ========================================
     const rulesRowWidth = ruleNodes.length * (NODE_WIDTH.rule + NODE_GAP) - NODE_GAP;
     const rulesStartX = -rulesRowWidth / 2 + NODE_WIDTH.rule / 2;
 
@@ -118,12 +120,12 @@ export const useColumnLayout = ({ nodes, edges }: UseColumnLayoutOptions): Chart
       });
     });
 
-    // ========================================
     // 3. Position target items/groups and bundle at the bottom
-    // ========================================
     const bundleWidth = 120;
-    const targetRowWidth = allTargetNodes.length * (NODE_WIDTH.item + NODE_GAP)
-      + bundleNodes.length * (bundleWidth + NODE_GAP) - NODE_GAP;
+    const targetRowWidth =
+      allTargetNodes.length * (NODE_WIDTH.item + NODE_GAP) +
+      bundleNodes.length * (bundleWidth + NODE_GAP) -
+      NODE_GAP;
     const targetStartX = -targetRowWidth / 2 + NODE_WIDTH.item / 2;
 
     allTargetNodes.forEach((node, index) => {
@@ -142,9 +144,13 @@ export const useColumnLayout = ({ nodes, edges }: UseColumnLayoutOptions): Chart
 
     // Position bundle nodes after target items/groups
     bundleNodes.forEach((node, index) => {
-      const bundleX = allTargetNodes.length > 0
-        ? targetStartX + allTargetNodes.length * (NODE_WIDTH.item + NODE_GAP) + index * (bundleWidth + NODE_GAP)
-        : index * (bundleWidth + NODE_GAP) - (bundleNodes.length * (bundleWidth + NODE_GAP) - NODE_GAP) / 2;
+      const bundleX =
+        allTargetNodes.length > 0
+          ? targetStartX +
+            allTargetNodes.length * (NODE_WIDTH.item + NODE_GAP) +
+            index * (bundleWidth + NODE_GAP)
+          : index * (bundleWidth + NODE_GAP) -
+            (bundleNodes.length * (bundleWidth + NODE_GAP) - NODE_GAP) / 2;
 
       positionedNodes.push({
         ...node,
@@ -158,5 +164,3 @@ export const useColumnLayout = ({ nodes, edges }: UseColumnLayoutOptions): Chart
     return positionedNodes;
   }, [nodes, edges]);
 };
-
-export default useColumnLayout;

@@ -29,6 +29,15 @@ const useStyles = createStyles(() => ({
 }));
 
 // ============================================================================
+// Types
+// ============================================================================
+
+interface LabeledEdgeData {
+  labels?: string[];
+  tagColor?: string;
+}
+
+// ============================================================================
 // Component
 // ============================================================================
 
@@ -55,8 +64,7 @@ const LabeledEdgeComponent = ({
     targetPosition,
   });
 
-  // Get all labels and tag color for this edge
-  const edgeData = data as { labels?: string[]; tagColor?: string } | undefined;
+  const edgeData = data as LabeledEdgeData | undefined;
   const labels = edgeData?.labels ?? [];
   const tagColor = edgeData?.tagColor ?? "default";
 
@@ -85,5 +93,3 @@ const LabeledEdgeComponent = ({
 };
 
 export const LabeledEdge = memo(LabeledEdgeComponent);
-
-export default LabeledEdge;

@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import { createStyles } from "antd-style";
 import {
   Typography,
   Input,
@@ -20,115 +18,27 @@ import {
   RightOutlined,
 } from "@ant-design/icons";
 
-import type {
-  IDependencyRule,
-  IDependencyCondition,
-  IDependencyAction,
-  IComponentGroup,
-} from "../../edit-components-modal/types";
+import type { IDependencyRule, IComponentGroup } from "../../edit-components-modal/types";
 import {
   DependencyConditionType,
   DependencyActionType,
   DependencyTargetType,
-  CONDITION_TYPE_LABELS,
-  ACTION_TYPE_LABELS,
-  TARGET_TYPE_LABELS,
   CONDITION_TYPES_BY_TARGET,
   ACTION_TYPES_BY_TARGET,
   PRICE_RULE_OPTIONS,
-  ComponentPriceType,
 } from "../../edit-components-modal/types";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 
-// ============================================================================
-// Styles
-// ============================================================================
-
-const useStyles = createStyles(({ token }) => ({
-  container: {
-    width: 320,
-    height: "100%",
-  },
-  containerCollapsed: {
-    width: 56,
-  },
-
-  collapsedContent: {
-    flex: 1,
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    paddingTop: 12,
-  },
-  verticalText: {
-    writingMode: "vertical-rl",
-    textOrientation: "mixed",
-    transform: "rotate(180deg)",
-    fontSize: 12,
-    fontWeight: 600,
-    color: token.colorTextSecondary,
-    letterSpacing: "1px",
-  },
-  content: {
-    flex: 1,
-    overflowY: "auto",
-  },
-  section: {
-    marginBottom: 20,
-  },
-  sectionHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  sectionTitle: {
-    fontSize: 12,
-    fontWeight: 600,
-    color: token.colorTextSecondary,
-    textTransform: "uppercase",
-    letterSpacing: "0.5px",
-  },
-  field: {
-    marginBottom: 12,
-  },
-  fieldLabel: {
-    fontSize: 12,
-    color: token.colorTextSecondary,
-    marginBottom: 4,
-    display: "block",
-  },
-  conditionItem: {
-    padding: 8,
-    background: token.colorBgLayout,
-    borderRadius: token.borderRadius,
-    marginBottom: 8,
-    display: "flex",
-    flexDirection: "column",
-    gap: 6,
-  },
-  conditionRow: {
-    display: "flex",
-    gap: 6,
-    alignItems: "center",
-  },
-  actionItem: {
-    padding: 8,
-    background: token.colorBgLayout,
-    borderRadius: token.borderRadius,
-    marginBottom: 8,
-    display: "flex",
-    flexDirection: "column",
-    gap: 6,
-  },
-  deleteButton: {
-    flexShrink: 0,
-  },
-  emptyConditions: {
-    padding: "16px 0",
-    textAlign: "center",
-  },
-}));
+import { useStyles } from "./rule-inspector.styles";
+import {
+  useRuleInspector,
+  getTargetOptions,
+  getConditionTypeOptions,
+  getActionTypeOptions,
+  CONDITION_TARGET_TYPE_OPTIONS,
+  ACTION_TARGET_TYPE_OPTIONS,
+  PRICE_TYPE_OPTIONS,
+} from "./use-rule-inspector";
 
 // ============================================================================
 // Types
@@ -141,188 +51,24 @@ interface IRuleInspectorProps {
 }
 
 // ============================================================================
-// Helper Functions
-// ============================================================================
-
-const getTargetOptions = (
-  targetType: DependencyTargetType,
-  groups: IComponentGroup[],
-): { value: string; label: string }[] => {
-  if (targetType === DependencyTargetType.ITEM) {
-    return groups.flatMap((g) =>
-      g.items.map((item) => ({
-        value: item.id,
-        label:
-          item.title ??
-          item.assignedProduct?.title ??
-          item.assignedVariant?.title ??
-          item.id,
-      })),
-    );
-  }
-  if (targetType === DependencyTargetType.GROUP) {
-    return groups.map((g) => ({
-      value: g.id,
-      label: g.title,
-    }));
-  }
-  return [];
-};
-
-/**
- * Get condition type options filtered by target type
- */
-const getConditionTypeOptions = (targetType: DependencyTargetType) => {
-  const validTypes = CONDITION_TYPES_BY_TARGET[targetType];
-  return validTypes.map((type) => ({
-    value: type,
-    label: CONDITION_TYPE_LABELS[type],
-  }));
-};
-
-/**
- * Get action type options filtered by target type
- */
-const getActionTypeOptions = (targetType: DependencyTargetType) => {
-  const validTypes = ACTION_TYPES_BY_TARGET[targetType];
-  return validTypes.map((type) => ({
-    value: type,
-    label: ACTION_TYPE_LABELS[type],
-  }));
-};
-
-/**
- * Target type options for conditions (exclude BUNDLE as it can't be a condition source)
- */
-const CONDITION_TARGET_TYPE_OPTIONS = [
-  {
-    value: DependencyTargetType.ITEM,
-    label: TARGET_TYPE_LABELS[DependencyTargetType.ITEM],
-  },
-  {
-    value: DependencyTargetType.GROUP,
-    label: TARGET_TYPE_LABELS[DependencyTargetType.GROUP],
-  },
-];
-
-/**
- * Target type options for actions (all targets are valid)
- */
-const ACTION_TARGET_TYPE_OPTIONS = Object.entries(TARGET_TYPE_LABELS).map(
-  ([value, label]) => ({
-    value,
-    label,
-  }),
-);
-
-const PRICE_TYPE_OPTIONS = PRICE_RULE_OPTIONS.map((opt) => ({
-  value: opt.value,
-  label: opt.label,
-}));
-
-// ============================================================================
 // Component
 // ============================================================================
 
-export const RuleInspector = ({
-  rule,
-  groups,
-  onRuleChange,
-}: IRuleInspectorProps) => {
+export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProps) => {
   const { styles, cx } = useStyles();
-  const [collapsed, setCollapsed] = useState(false);
 
-  // ========================================
-  // Handlers
-  // ========================================
-
-  const handleNameChange = (name: string) => {
-    if (!rule) return;
-    onRuleChange({ ...rule, name });
-  };
-
-  const handleEnabledChange = (enabled: boolean) => {
-    if (!rule) return;
-    onRuleChange({ ...rule, enabled });
-  };
-
-  // Condition handlers
-  const handleAddCondition = () => {
-    if (!rule) return;
-    const firstItem = groups[0]?.items[0];
-    const newCondition: IDependencyCondition = {
-      id: `cond-${Date.now()}`,
-      conditionType: DependencyConditionType.IS_SELECTED,
-      targetType: DependencyTargetType.ITEM,
-      targetId: firstItem?.id ?? "",
-    };
-    onRuleChange({
-      ...rule,
-      conditions: [...rule.conditions, newCondition],
-    });
-  };
-
-  const handleUpdateCondition = (
-    conditionId: string,
-    updates: Partial<IDependencyCondition>,
-  ) => {
-    if (!rule) return;
-    onRuleChange({
-      ...rule,
-      conditions: rule.conditions.map((c) =>
-        c.id === conditionId ? { ...c, ...updates } : c,
-      ),
-    });
-  };
-
-  const handleDeleteCondition = (conditionId: string) => {
-    if (!rule) return;
-    onRuleChange({
-      ...rule,
-      conditions: rule.conditions.filter((c) => c.id !== conditionId),
-    });
-  };
-
-  // Action handlers
-  const handleAddAction = () => {
-    if (!rule) return;
-    const firstItem = groups[0]?.items[0];
-    const newAction: IDependencyAction = {
-      id: `act-${Date.now()}`,
-      actionType: DependencyActionType.DISABLE,
-      targetType: DependencyTargetType.ITEM,
-      targetId: firstItem?.id ?? "",
-    };
-    onRuleChange({
-      ...rule,
-      actions: [...rule.actions, newAction],
-    });
-  };
-
-  const handleUpdateAction = (
-    actionId: string,
-    updates: Partial<IDependencyAction>,
-  ) => {
-    if (!rule) return;
-    onRuleChange({
-      ...rule,
-      actions: rule.actions.map((a) =>
-        a.id === actionId ? { ...a, ...updates } : a,
-      ),
-    });
-  };
-
-  const handleDeleteAction = (actionId: string) => {
-    if (!rule) return;
-    onRuleChange({
-      ...rule,
-      actions: rule.actions.filter((a) => a.id !== actionId),
-    });
-  };
-
-  // ========================================
-  // Render
-  // ========================================
+  const {
+    collapsed,
+    toggleCollapsed,
+    handleNameChange,
+    handleEnabledChange,
+    handleAddCondition,
+    handleUpdateCondition,
+    handleDeleteCondition,
+    handleAddAction,
+    handleUpdateAction,
+    handleDeleteAction,
+  } = useRuleInspector({ rule, groups, onRuleChange });
 
   // Collapsed view
   if (collapsed) {
@@ -335,7 +81,7 @@ export const RuleInspector = ({
               type="text"
               size="small"
               icon={<LeftOutlined />}
-              onClick={() => setCollapsed(false)}
+              onClick={toggleCollapsed}
             />
           }
         />
@@ -346,6 +92,7 @@ export const RuleInspector = ({
     );
   }
 
+  // Empty state
   if (!rule) {
     return (
       <Paper className={styles.container}>
@@ -356,7 +103,7 @@ export const RuleInspector = ({
               type="text"
               size="small"
               icon={<RightOutlined />}
-              onClick={() => setCollapsed(true)}
+              onClick={toggleCollapsed}
             />
           }
         />
@@ -372,7 +119,6 @@ export const RuleInspector = ({
 
   return (
     <Paper className={styles.container}>
-      {/* Header */}
       <PaperHeader
         title="Rule Inspector"
         actions={
@@ -380,19 +126,16 @@ export const RuleInspector = ({
             type="text"
             size="small"
             icon={<RightOutlined />}
-            onClick={() => setCollapsed(true)}
+            onClick={toggleCollapsed}
           />
         }
       />
 
-      {/* Content */}
       <div className={styles.content}>
         {/* Basic Info */}
         <div className={styles.section}>
           <div className={styles.field}>
-            <Typography.Text className={styles.fieldLabel}>
-              Name
-            </Typography.Text>
+            <Typography.Text className={styles.fieldLabel}>Name</Typography.Text>
             <Input
               value={rule.name}
               onChange={(e) => handleNameChange(e.target.value)}
@@ -438,14 +181,9 @@ export const RuleInspector = ({
                   <Select
                     value={condition.targetType}
                     onChange={(value) => {
-                      // Reset condition type to first valid type for new target
                       const validTypes =
-                        CONDITION_TYPES_BY_TARGET[
-                          value as DependencyTargetType
-                        ];
-                      const newConditionType = validTypes.includes(
-                        condition.conditionType,
-                      )
+                        CONDITION_TYPES_BY_TARGET[value as DependencyTargetType];
+                      const newConditionType = validTypes.includes(condition.conditionType)
                         ? condition.conditionType
                         : validTypes[0];
                       handleUpdateCondition(condition.id, {
@@ -485,9 +223,7 @@ export const RuleInspector = ({
                   <Select
                     value={condition.conditionType}
                     onChange={(value) =>
-                      handleUpdateCondition(condition.id, {
-                        conditionType: value,
-                      })
+                      handleUpdateCondition(condition.id, { conditionType: value })
                     }
                     options={getConditionTypeOptions(condition.targetType)}
                     size="small"
@@ -503,9 +239,7 @@ export const RuleInspector = ({
                     <InputNumber
                       value={condition.value}
                       onChange={(value) =>
-                        handleUpdateCondition(condition.id, {
-                          value: value ?? 0,
-                        })
+                        handleUpdateCondition(condition.id, { value: value ?? 0 })
                       }
                       min={0}
                       size="small"
@@ -545,12 +279,9 @@ export const RuleInspector = ({
                   <Select
                     value={action.targetType}
                     onChange={(value) => {
-                      // Reset action type to first valid type for new target
                       const validTypes =
                         ACTION_TYPES_BY_TARGET[value as DependencyTargetType];
-                      const newActionType = validTypes.includes(
-                        action.actionType,
-                      )
+                      const newActionType = validTypes.includes(action.actionType)
                         ? action.actionType
                         : validTypes[0];
                       handleUpdateAction(action.id, {
@@ -617,9 +348,8 @@ export const RuleInspector = ({
                       placeholder="Price type"
                     />
                     {action.priceType &&
-                      PRICE_RULE_OPTIONS.find(
-                        (o) => o.value === action.priceType,
-                      )?.requiresValue && (
+                      PRICE_RULE_OPTIONS.find((o) => o.value === action.priceType)
+                        ?.requiresValue && (
                         <InputNumber
                           value={action.priceValue ?? undefined}
                           onChange={(value) =>
@@ -629,9 +359,8 @@ export const RuleInspector = ({
                           size="small"
                           style={{ width: 80 }}
                           addonAfter={
-                            PRICE_RULE_OPTIONS.find(
-                              (o) => o.value === action.priceType,
-                            )?.valueSuffix
+                            PRICE_RULE_OPTIONS.find((o) => o.value === action.priceType)
+                              ?.valueSuffix
                           }
                         />
                       )}
@@ -663,5 +392,3 @@ export const RuleInspector = ({
     </Paper>
   );
 };
-
-export default RuleInspector;
