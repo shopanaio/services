@@ -240,6 +240,12 @@ export const pricingRuleTemplate = inventorySchema.table(
           table.priceValue.gte(0).and(table.priceValue.lte(100))
         )
     ),
+    // Fixed amount types must be > 0
+    check(
+      "pricing_rule_template_fixed_positive",
+      table.priceType.notIn(["FIXED", "MARKUP_FIXED", "DISCOUNT_FIXED"])
+        .or(table.priceValue.gt(0))
+    ),
   ]
 );
 
@@ -350,6 +356,13 @@ export const componentItem = inventorySchema.table(
         .or(
           table.priceValue.gte(0).and(table.priceValue.lte(100))
         )
+    ),
+    // Fixed amount types must be > 0
+    check(
+      "component_item_fixed_positive",
+      table.priceType.isNull()
+        .or(table.priceType.notIn(["FIXED", "MARKUP_FIXED", "DISCOUNT_FIXED"]))
+        .or(table.priceValue.gt(0))
     ),
     // Quantity must be >= 1
     check(
@@ -752,7 +765,7 @@ type TieredDiscount implements Node @key(fields: "id") {
 Input for pricing rule (inline or template reference).
 """
 input ComponentPricingRuleInput {
-  """Use existing template ID (mutually exclusive with priceType)."""
+  """Use existing template ID (mutually exclusive with priceType/priceValue)."""
   templateId: ID
 
   """Price type (required if not using template)."""
@@ -1150,7 +1163,7 @@ PricingRuleTemplate (shared across project)
 | priceType | priceValue |
 |-----------|------------|
 | `BASE`, `FREE`, `INCLUDED` | **must be NULL** |
-| `FIXED`, `MARKUP_FIXED`, `DISCOUNT_FIXED` | **required, any positive value** |
+| `FIXED`, `MARKUP_FIXED`, `DISCOUNT_FIXED` | **required, > 0** |
 | `MARKUP_PERCENT`, `DISCOUNT_PERCENT` | **required, range 0-100** |
 
 ```typescript
@@ -1160,6 +1173,7 @@ function validatePricingRule(priceType: ComponentPriceType, priceValue: Decimal 
 
   const noValueTypes = ["BASE", "FREE", "INCLUDED"];
   const valueRequiredTypes = ["FIXED", "MARKUP_FIXED", "DISCOUNT_FIXED", "MARKUP_PERCENT", "DISCOUNT_PERCENT"];
+  const fixedTypes = ["FIXED", "MARKUP_FIXED", "DISCOUNT_FIXED"];
   const percentTypes = ["MARKUP_PERCENT", "DISCOUNT_PERCENT"];
 
   if (noValueTypes.includes(priceType) && priceValue !== null) {
@@ -1168,6 +1182,10 @@ function validatePricingRule(priceType: ComponentPriceType, priceValue: Decimal 
 
   if (valueRequiredTypes.includes(priceType) && priceValue === null) {
     errors.push({ field: "priceValue", message: `priceValue is required for ${priceType}` });
+  }
+
+  if (fixedTypes.includes(priceType) && priceValue !== null && priceValue <= 0) {
+    errors.push({ field: "priceValue", message: "Fixed amount priceValue must be > 0" });
   }
 
   if (percentTypes.includes(priceType) && priceValue !== null) {
@@ -1434,6 +1452,7 @@ input PackageUpdateInput {
 
 type PackageUpdatePayload {
   packageSettings: PackageSettings
+  idMappings: [IdMapping!]!
   userErrors: [GenericUserError!]!
 }
 ```
@@ -1553,11 +1572,12 @@ function validatePricingRuleInput(input: ComponentPricingRuleInput): UserError[]
 
   const hasTemplate = input.templateId !== null && input.templateId !== undefined;
   const hasInline = input.priceType !== null && input.priceType !== undefined;
+  const hasInlineValue = input.priceValue !== null && input.priceValue !== undefined;
 
-  if (hasTemplate && hasInline) {
+  if (hasTemplate && (hasInline || hasInlineValue)) {
     errors.push({
       field: "pricingRule",
-      message: "Cannot specify both templateId and priceType. Choose one."
+      message: "Cannot specify templateId together with inline priceType/priceValue."
     });
   }
 
@@ -1566,6 +1586,16 @@ function validatePricingRuleInput(input: ComponentPricingRuleInput): UserError[]
       field: "pricingRule",
       message: "Must specify either templateId or priceType."
     });
+  }
+
+  if (hasInline && !hasTemplate && input.priceType !== null && input.priceType !== undefined) {
+    const requiresValue = !["BASE", "FREE", "INCLUDED"].includes(input.priceType);
+    if (requiresValue && !hasInlineValue) {
+      errors.push({
+        field: "pricingRule.priceValue",
+        message: `priceValue is required for ${input.priceType}`
+      });
+    }
   }
 
   return errors;
@@ -1610,7 +1640,7 @@ groups: async (packageSettings) => {
 tieredDiscounts: async (packageSettings) => {
   return db.query.packageTieredDiscount.findMany({
     where: eq(packageTieredDiscount.packageSettingsId, packageSettings.id),
-    orderBy: asc(packageTieredDiscount.minItems) // Explicit sort by minItems
+    orderBy: asc(packageTieredDiscount.minCount) // Explicit sort by minCount
   });
 }
 
