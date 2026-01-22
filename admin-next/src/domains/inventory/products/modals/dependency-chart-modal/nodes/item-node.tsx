@@ -4,8 +4,8 @@ import { memo } from "react";
 import { Handle, Position } from "@xyflow/react";
 import type { NodeProps, Node } from "@xyflow/react";
 import { createStyles } from "antd-style";
-import { Typography, Avatar, Tag } from "antd";
-import { AppstoreOutlined, FolderOutlined } from "@ant-design/icons";
+import { Typography, Avatar } from "antd";
+import { PictureOutlined, FolderOutlined } from "@ant-design/icons";
 
 import type { ItemNodeData } from "../types";
 
@@ -32,6 +32,17 @@ const useStyles = createStyles(({ token }) => ({
     flex: 1,
     minWidth: 0,
     overflow: "hidden",
+    display: "flex",
+    flexDirection: "column",
+    gap: 2,
+  },
+  groupTitle: {
+    fontSize: token.fontSizeSM,
+    color: token.colorTextSecondary,
+    lineHeight: 1.2,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
   },
   title: {
     fontSize: 12,
@@ -41,9 +52,13 @@ const useStyles = createStyles(({ token }) => ({
     overflow: "hidden",
     textOverflow: "ellipsis",
   },
-  groupTag: {
-    fontSize: 10,
-    marginTop: 2,
+  variantTitle: {
+    fontSize: token.fontSizeSM,
+    color: token.colorPrimary,
+    lineHeight: 1.2,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
   },
   handle: {
     width: 8,
@@ -63,12 +78,22 @@ const ItemNodeComponent = ({ data }: ItemNodeProps) => {
   const { styles } = useStyles();
   const { item, groupTitle, position: nodePosition, isGroup } = data as ItemNodeData;
 
-  const title = item.title ?? (item as any).assignedProduct?.title ?? (item as any).assignedVariant?.title ?? "Unnamed";
+  // Get product title
+  const productTitle =
+    item.title ??
+    (item as any).assignedProduct?.title ??
+    (item as any).assignedVariant?.product?.title ??
+    "Unnamed";
 
+  // Get variant title (only if assignedVariant exists)
+  const variantTitle = (item as any).assignedVariant?.title as string | undefined;
+
+  // Get featured image
   const imageUrl = !isGroup
     ? ((item as any).featuredImage?.url ??
-      (item as any).assignedProduct?.featuredImage?.url ??
-      (item as any).assignedVariant?.product?.featuredImage?.url)
+        (item as any).assignedProduct?.featuredImage?.url ??
+        (item as any).assignedVariant?.featuredImage?.url ??
+        (item as any).assignedVariant?.product?.featuredImage?.url)
     : undefined;
 
   // Source: bottom handle only (to rule)
@@ -83,17 +108,18 @@ const ItemNodeComponent = ({ data }: ItemNodeProps) => {
       )}
 
       <Avatar
-        size={32}
+        size={40}
         src={imageUrl}
-        icon={isGroup ? <FolderOutlined /> : <AppstoreOutlined />}
+        icon={isGroup ? <FolderOutlined /> : <PictureOutlined />}
         className={styles.avatar}
         style={isGroup ? { backgroundColor: "#1890ff" } : undefined}
       />
       <div className={styles.content}>
-        <Typography.Text className={styles.title}>{title}</Typography.Text>
-        <Tag className={styles.groupTag} color={isGroup ? "blue" : "default"}>
-          {groupTitle}
-        </Tag>
+        <Typography.Text className={styles.groupTitle}>{groupTitle}</Typography.Text>
+        <Typography.Text className={styles.title}>{productTitle}</Typography.Text>
+        {variantTitle && (
+          <Typography.Text className={styles.variantTitle}>{variantTitle}</Typography.Text>
+        )}
       </div>
 
       {showBottomHandle && (
