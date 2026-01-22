@@ -31,8 +31,7 @@ const useStyles = createStyles(({ token }) => ({
     },
   },
   nodeSelected: {
-    borderColor: token.colorPrimary,
-    boxShadow: `0 0 0 2px ${token.colorPrimaryBg}`,
+    boxShadow: token.boxShadow,
   },
   nodeDisabled: {
     opacity: 0.5,

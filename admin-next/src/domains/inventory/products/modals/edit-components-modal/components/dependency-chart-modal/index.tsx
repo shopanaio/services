@@ -47,6 +47,13 @@ const useStyles = createStyles(({ token }) => ({
   },
   reactFlow: {
     background: token.colorBgLayout,
+    "& .react-flow__node.selected": {
+      outline: "none",
+      boxShadow: "none",
+    },
+    "& .react-flow__node:focus": {
+      outline: "none",
+    },
   },
   controls: {
     position: "absolute",

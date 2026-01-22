@@ -97,8 +97,6 @@ export const ITEM_HANDLES = {
 
 export const GROUP_HANDLES = {
   // Output handles
-  COND_VALID: "cond:valid",
-  COND_INVALID: "cond:invalid",
   COND_COUNT_UNIQUE: "cond:countUnique",
   COND_COUNT_TOTAL: "cond:countTotal",
   // Input handles

@@ -256,10 +256,6 @@ export enum DependencyConditionType {
   QTY_LTE = "QTY_LTE",
   /** Item quantity == value */
   QTY_EQ = "QTY_EQ",
-  /** Group meets min/max constraints */
-  GROUP_VALID = "GROUP_VALID",
-  /** Group does NOT meet min/max constraints */
-  GROUP_INVALID = "GROUP_INVALID",
   /** Unique selected items in group >= value (e.g. 3 different items) */
   GROUP_UNIQUE_GTE = "GROUP_UNIQUE_GTE",
   /** Total quantity in group >= value (e.g. 5 total pieces) */
@@ -355,8 +351,6 @@ export const CONDITION_TYPE_LABELS: Record<DependencyConditionType, string> = {
   [DependencyConditionType.QTY_GTE]: "quantity >=",
   [DependencyConditionType.QTY_LTE]: "quantity <=",
   [DependencyConditionType.QTY_EQ]: "quantity =",
-  [DependencyConditionType.GROUP_VALID]: "is valid",
-  [DependencyConditionType.GROUP_INVALID]: "is invalid",
   [DependencyConditionType.GROUP_UNIQUE_GTE]: "unique items >=",
   [DependencyConditionType.GROUP_TOTAL_QTY_GTE]: "total quantity >=",
 };
@@ -392,8 +386,6 @@ export const CONDITION_TYPES_BY_TARGET: Record<DependencyTargetType, DependencyC
     DependencyConditionType.QTY_EQ,
   ],
   [DependencyTargetType.GROUP]: [
-    DependencyConditionType.GROUP_VALID,
-    DependencyConditionType.GROUP_INVALID,
     DependencyConditionType.GROUP_UNIQUE_GTE,
     DependencyConditionType.GROUP_TOTAL_QTY_GTE,
   ],
