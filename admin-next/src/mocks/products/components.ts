@@ -183,12 +183,6 @@ export interface IPricingRuleTemplate {
   priceValue: number | null;
 }
 
-export interface ITieredDiscount {
-  id: string;
-  minItems: number;
-  discountPercent: number;
-}
-
 // ============================================================================
 // Mock Products for ProductPicker
 // ============================================================================
@@ -577,16 +571,6 @@ export const mockPricingTemplates: IPricingRuleTemplate[] = [
     priceType: ComponentPriceType.FREE,
     priceValue: null,
   },
-];
-
-// ============================================================================
-// Mock Tiered Discounts
-// ============================================================================
-
-export const mockTieredDiscounts: ITieredDiscount[] = [
-  { id: "tier-1", minItems: 2, discountPercent: 5 },
-  { id: "tier-2", minItems: 4, discountPercent: 10 },
-  { id: "tier-3", minItems: 6, discountPercent: 15 },
 ];
 
 // ============================================================================

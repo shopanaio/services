@@ -132,11 +132,6 @@ export interface PricingRuleTemplate {
   priceValue: number | null;
 }
 
-export interface ITieredDiscount {
-  id: string;
-  minItems: number;
-  discountPercent: number;
-}
 
 // ============================================================================
 // Bundle Settings

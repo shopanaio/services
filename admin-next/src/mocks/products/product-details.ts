@@ -11,7 +11,7 @@ import {
   ThresholdType,
 } from "@/domains/inventory/products/components/product-details-card/inventory-widget.types";
 import { CurrencyCode, OptionDisplayType, type ApiVariant, type ApiPageInfo } from "@/graphql/types";
-import type { IComponentGroup, PricingRuleTemplate, ITieredDiscount, IDependencyRule } from "@/domains/inventory/products/modals/edit-components-modal/types";
+import type { IComponentGroup, PricingRuleTemplate, IDependencyRule } from "@/domains/inventory/products/modals/edit-components-modal/types";
 import { ComponentItemType, ComponentPriceType, DependencyConditionType, DependencyActionType, DependencyTargetType } from "@/domains/inventory/products/modals/edit-components-modal/types";
 
 const getMockInventoryWidget = (): ProductInventoryWidget => ({
@@ -286,13 +286,6 @@ const mockPricingTemplates: PricingRuleTemplate[] = [
   },
 ];
 
-// Mock Tiered Discounts
-const mockTieredDiscounts: ITieredDiscount[] = [
-  { id: "tier-1", minItems: 3, discountPercent: 5 },
-  { id: "tier-2", minItems: 5, discountPercent: 10 },
-  { id: "tier-3", minItems: 10, discountPercent: 15 },
-];
-
 // Mock Dependency Rules
 const mockDependencyRules: IDependencyRule[] = [
   {
@@ -379,7 +372,6 @@ export const productDetailsMockData: IProductDetailsMockData = {
   options: MOCK_OPTION_GROUPS,
   components: mockComponentGroups,
   pricingTemplates: mockPricingTemplates,
-  tieredDiscounts: mockTieredDiscounts,
   dependencyRules: mockDependencyRules,
   inventory: getMockInventoryWidget(),
 };

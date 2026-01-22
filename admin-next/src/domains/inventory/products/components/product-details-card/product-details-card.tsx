@@ -54,7 +54,6 @@ export const ProductDetailsCard = ({
   const modals = useProductModals(product, {
     components: mockData.components,
     pricingTemplates: mockData.pricingTemplates,
-    tieredDiscounts: mockData.tieredDiscounts,
     dependencyRules: mockData.dependencyRules,
   });
 

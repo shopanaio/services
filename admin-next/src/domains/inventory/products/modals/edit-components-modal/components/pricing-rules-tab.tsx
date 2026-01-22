@@ -29,7 +29,6 @@ import { Paper } from "@/ui-kit/paper";
 import {
   ComponentPriceType,
   type PricingRuleTemplate,
-  type ITieredDiscount,
   type IDependencyRule,
   type IComponentGroup,
   PRICE_RULE_OPTIONS,
@@ -84,18 +83,12 @@ const useStyles = createStyles(({ token }) => ({
 interface IPricingRulesTabProps {
   pricingTemplates: PricingRuleTemplate[];
   onPricingTemplatesChange: (templates: PricingRuleTemplate[]) => void;
-  tieredDiscounts: ITieredDiscount[];
-  onTieredDiscountsChange: (discounts: ITieredDiscount[]) => void;
   dependencyRules: IDependencyRule[];
   onDependencyRulesChange: (rules: IDependencyRule[]) => void;
   groups: IComponentGroup[];
 }
 
 interface IEditingTemplate extends PricingRuleTemplate {
-  isNew?: boolean;
-}
-
-interface IEditingDiscount extends ITieredDiscount {
   isNew?: boolean;
 }
 
@@ -115,8 +108,6 @@ const PRICE_TYPE_SELECT_OPTIONS = PRICE_RULE_OPTIONS.map((opt) => ({
 export const PricingRulesTab = ({
   pricingTemplates,
   onPricingTemplatesChange,
-  tieredDiscounts,
-  onTieredDiscountsChange,
   dependencyRules,
   onDependencyRulesChange,
   groups,
@@ -139,17 +130,14 @@ export const PricingRulesTab = ({
 
   const handleEditRuleInChart = useCallback(
     (ruleId: string) => {
-      // Find the specific rule
       const rule = dependencyRules.find((r) => r.id === ruleId);
       if (!rule) return;
 
-      // Pass all groups so user can select any item/group in conditions/actions
       openChartModal({
         groups,
-        rules: [rule], // Only pass the single rule being edited
+        rules: [rule],
         selectedRuleId: ruleId,
         onSave: (updatedRules: IDependencyRule[]) => {
-          // Merge the updated rule back into the full list
           const updatedRule = updatedRules[0];
           if (updatedRule) {
             onDependencyRulesChange(
@@ -212,62 +200,6 @@ export const PricingRulesTab = ({
       onPricingTemplatesChange(pricingTemplates.filter((t) => t.id !== id));
     },
     [pricingTemplates, onPricingTemplatesChange]
-  );
-
-  // ========================================
-  // Tiered Discounts State
-  // ========================================
-  const [editingDiscountId, setEditingDiscountId] = useState<string | null>(null);
-  const [editingDiscount, setEditingDiscount] = useState<IEditingDiscount | null>(null);
-
-  const handleAddDiscount = useCallback(() => {
-    const maxMinItems = Math.max(0, ...tieredDiscounts.map((d) => d.minItems));
-    const newDiscount: IEditingDiscount = {
-      id: `tier-${Date.now()}`,
-      minItems: maxMinItems + 2,
-      discountPercent: 5,
-      isNew: true,
-    };
-    setEditingDiscountId(newDiscount.id);
-    setEditingDiscount(newDiscount);
-  }, [tieredDiscounts]);
-
-  const handleEditDiscount = useCallback((discount: ITieredDiscount) => {
-    setEditingDiscountId(discount.id);
-    setEditingDiscount({ ...discount });
-  }, []);
-
-  const handleSaveDiscount = useCallback(() => {
-    if (!editingDiscount) return;
-
-    const { isNew, ...discountData } = editingDiscount;
-
-    if (isNew) {
-      const newDiscounts = [...tieredDiscounts, discountData].sort(
-        (a, b) => a.minItems - b.minItems
-      );
-      onTieredDiscountsChange(newDiscounts);
-    } else {
-      const updatedDiscounts = tieredDiscounts
-        .map((d) => (d.id === discountData.id ? discountData : d))
-        .sort((a, b) => a.minItems - b.minItems);
-      onTieredDiscountsChange(updatedDiscounts);
-    }
-
-    setEditingDiscountId(null);
-    setEditingDiscount(null);
-  }, [editingDiscount, tieredDiscounts, onTieredDiscountsChange]);
-
-  const handleCancelDiscountEdit = useCallback(() => {
-    setEditingDiscountId(null);
-    setEditingDiscount(null);
-  }, []);
-
-  const handleDeleteDiscount = useCallback(
-    (id: string) => {
-      onTieredDiscountsChange(tieredDiscounts.filter((d) => d.id !== id));
-    },
-    [tieredDiscounts, onTieredDiscountsChange]
   );
 
   // ========================================
@@ -348,7 +280,7 @@ export const PricingRulesTab = ({
                   setEditingTemplate({ ...editingTemplate, priceValue: value })
                 }
                 min={0}
-                addonAfter={option?.valueSuffix}
+                suffix={option?.valueSuffix}
                 style={{ width: "100%" }}
               />
             );
@@ -424,135 +356,6 @@ export const PricingRulesTab = ({
   );
 
   // ========================================
-  // Tiered Discounts Table Columns
-  // ========================================
-  const discountColumns: ColumnsType<ITieredDiscount> = useMemo(
-    () => [
-      {
-        title: "Min Items",
-        dataIndex: "minItems",
-        key: "minItems",
-        width: 150,
-        render: (_, record) => {
-          if (editingDiscountId === record.id && editingDiscount) {
-            return (
-              <InputNumber
-                value={editingDiscount.minItems}
-                onChange={(value) =>
-                  setEditingDiscount({ ...editingDiscount, minItems: value ?? 2 })
-                }
-                min={2}
-                style={{ width: "100%" }}
-                autoFocus
-              />
-            );
-          }
-          return (
-            <Typography.Text>
-              {record.minItems}+ items
-            </Typography.Text>
-          );
-        },
-      },
-      {
-        title: "Discount",
-        dataIndex: "discountPercent",
-        key: "discountPercent",
-        width: 150,
-        render: (_, record) => {
-          if (editingDiscountId === record.id && editingDiscount) {
-            return (
-              <InputNumber
-                value={editingDiscount.discountPercent}
-                onChange={(value) =>
-                  setEditingDiscount({
-                    ...editingDiscount,
-                    discountPercent: value ?? 5,
-                  })
-                }
-                min={1}
-                max={100}
-                addonAfter="%"
-                style={{ width: "100%" }}
-              />
-            );
-          }
-          return (
-            <Tag color="green" className={styles.priceTag}>
-              -{record.discountPercent}%
-            </Tag>
-          );
-        },
-      },
-      {
-        title: "Description",
-        key: "description",
-        render: (_, record) => {
-          return (
-            <Typography.Text type="secondary">
-              When customer selects {record.minItems} or more components, apply{" "}
-              {record.discountPercent}% discount on total components price
-            </Typography.Text>
-          );
-        },
-      },
-      {
-        title: "",
-        key: "actions",
-        width: 80,
-        render: (_, record) => {
-          if (editingDiscountId === record.id) {
-            return (
-              <Space className={styles.tableActions}>
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<SaveOutlined />}
-                  onClick={handleSaveDiscount}
-                />
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<CloseOutlined />}
-                  onClick={handleCancelDiscountEdit}
-                />
-              </Space>
-            );
-          }
-          return (
-            <Space className={styles.tableActions}>
-              <Button
-                type="text"
-                size="small"
-                icon={<EditOutlined />}
-                onClick={() => handleEditDiscount(record)}
-              />
-              <Popconfirm
-                title="Delete tier?"
-                description="This action cannot be undone."
-                onConfirm={() => handleDeleteDiscount(record.id)}
-                okText="Delete"
-                cancelText="Cancel"
-              >
-                <Button type="text" size="small" danger icon={<DeleteOutlined />} />
-              </Popconfirm>
-            </Space>
-          );
-        },
-      },
-    ],
-    [
-      editingDiscountId,
-      editingDiscount,
-      styles,
-      handleSaveDiscount,
-      handleCancelDiscountEdit,
-      handleEditDiscount,
-      handleDeleteDiscount,
-    ]
-  );
-
-  // ========================================
   // Template data with editing row
   // ========================================
   const templateDataSource = useMemo(() => {
@@ -561,18 +364,6 @@ export const PricingRulesTab = ({
     }
     return pricingTemplates;
   }, [pricingTemplates, editingTemplate]);
-
-  // ========================================
-  // Discount data with editing row
-  // ========================================
-  const discountDataSource = useMemo(() => {
-    if (editingDiscount?.isNew) {
-      return [...tieredDiscounts, editingDiscount].sort(
-        (a, b) => a.minItems - b.minItems
-      );
-    }
-    return tieredDiscounts;
-  }, [tieredDiscounts, editingDiscount]);
 
   return (
     <div className={styles.container}>
@@ -608,44 +399,6 @@ export const PricingRulesTab = ({
             <Empty
               className={styles.emptyState}
               description="No pricing templates configured"
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-            />
-          )}
-        </div>
-      </Paper>
-
-      {/* Tiered Discounts */}
-      <Paper>
-        <div className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <div className={styles.sectionTitle}>
-              <Typography.Text strong>Tiered Discounts</Typography.Text>
-              <Tooltip title="Automatic discounts based on the number of selected components">
-                <InfoCircleOutlined style={{ color: "var(--ant-color-text-secondary)" }} />
-              </Tooltip>
-            </div>
-            <Button
-              icon={<PlusOutlined />}
-              onClick={handleAddDiscount}
-              disabled={editingDiscountId !== null}
-              size="small"
-            >
-              Add Tier
-            </Button>
-          </div>
-
-          {discountDataSource.length > 0 ? (
-            <Table
-              dataSource={discountDataSource}
-              columns={discountColumns}
-              rowKey="id"
-              pagination={false}
-              size="small"
-            />
-          ) : (
-            <Empty
-              className={styles.emptyState}
-              description="No tiered discounts configured"
               image={Empty.PRESENTED_IMAGE_SIMPLE}
             />
           )}

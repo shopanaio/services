@@ -22,7 +22,6 @@ import type {
   IComponentGroup,
   ComponentItem,
   PricingRuleTemplate,
-  ITieredDiscount,
   IBundleSettings,
   IDependencyRule,
 } from "./types";
@@ -192,7 +191,6 @@ const GroupsTab = ({
 interface IEditComponentsModalPayload {
   groups?: IComponentGroup[];
   pricingTemplates?: PricingRuleTemplate[];
-  tieredDiscounts?: ITieredDiscount[];
   dependencyRules?: IDependencyRule[];
   bundleSettings?: IBundleSettings;
   onSave?: (data: unknown) => void;
@@ -227,9 +225,6 @@ export const EditComponentsModal = () => {
   const [pricingTemplates, setPricingTemplates] = useState<
     PricingRuleTemplate[]
   >(modalPayload?.pricingTemplates ?? []);
-  const [tieredDiscounts, setTieredDiscounts] = useState<ITieredDiscount[]>(
-    modalPayload?.tieredDiscounts ?? []
-  );
   const [dependencyRules, setDependencyRules] = useState<IDependencyRule[]>(
     modalPayload?.dependencyRules ?? []
   );
@@ -544,7 +539,6 @@ export const EditComponentsModal = () => {
     const saveData = {
       groups,
       pricingTemplates,
-      tieredDiscounts,
       dependencyRules,
       bundleSettings,
     };
@@ -555,7 +549,6 @@ export const EditComponentsModal = () => {
   }, [
     groups,
     pricingTemplates,
-    tieredDiscounts,
     dependencyRules,
     bundleSettings,
     modalPayload,
@@ -597,11 +590,6 @@ export const EditComponentsModal = () => {
             pricingTemplates={pricingTemplates}
             onPricingTemplatesChange={(templates) => {
               setPricingTemplates(templates);
-              setDirty(true);
-            }}
-            tieredDiscounts={tieredDiscounts}
-            onTieredDiscountsChange={(discounts) => {
-              setTieredDiscounts(discounts);
               setDirty(true);
             }}
             dependencyRules={dependencyRules}
@@ -694,7 +682,6 @@ export const EditComponentsModal = () => {
       handleIncludeVariants,
       handleShowAsProduct,
       pricingTemplates,
-      tieredDiscounts,
       dependencyRules,
       bundleSettings,
       setDirty,

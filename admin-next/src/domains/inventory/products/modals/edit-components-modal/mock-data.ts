@@ -6,7 +6,6 @@ import type {
   IComponentGroup,
   IDependencyRule,
   PricingRuleTemplate,
-  ITieredDiscount,
 } from "./types";
 import {
   ComponentItemType,
@@ -237,34 +236,11 @@ export const MOCK_PRICING_TEMPLATES: PricingRuleTemplate[] = [
 ];
 
 // ============================================================================
-// Mock Tiered Discounts
-// ============================================================================
-
-export const MOCK_TIERED_DISCOUNTS: ITieredDiscount[] = [
-  {
-    id: "tier-1",
-    minItems: 3,
-    discountPercent: 5,
-  },
-  {
-    id: "tier-2",
-    minItems: 5,
-    discountPercent: 10,
-  },
-  {
-    id: "tier-3",
-    minItems: 8,
-    discountPercent: 15,
-  },
-];
-
-// ============================================================================
 // Combined Mock Payload
 // ============================================================================
 
 export const MOCK_EDIT_COMPONENTS_PAYLOAD = {
   groups: MOCK_GROUPS,
   pricingTemplates: MOCK_PRICING_TEMPLATES,
-  tieredDiscounts: MOCK_TIERED_DISCOUNTS,
   dependencyRules: MOCK_DEPENDENCY_RULES,
 };
