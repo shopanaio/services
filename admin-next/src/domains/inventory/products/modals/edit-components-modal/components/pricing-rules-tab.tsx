@@ -143,44 +143,9 @@ export const PricingRulesTab = ({
       const rule = dependencyRules.find((r) => r.id === ruleId);
       if (!rule) return;
 
-      // Collect all item and group IDs referenced in this rule
-      const referencedItemIds = new Set<string>();
-      const referencedGroupIds = new Set<string>();
-
-      rule.conditions.forEach((cond) => {
-        if (cond.targetType === "ITEM" && cond.targetId) {
-          referencedItemIds.add(cond.targetId);
-        } else if (cond.targetType === "GROUP" && cond.targetId) {
-          referencedGroupIds.add(cond.targetId);
-        }
-      });
-
-      rule.actions.forEach((action) => {
-        if (action.targetType === "ITEM" && action.targetId) {
-          referencedItemIds.add(action.targetId);
-        } else if (action.targetType === "GROUP" && action.targetId) {
-          referencedGroupIds.add(action.targetId);
-        }
-      });
-
-      // Filter groups to only include those with referenced items or referenced groups
-      const filteredGroups = groups
-        .map((group) => {
-          // If the group itself is referenced, include it fully
-          if (referencedGroupIds.has(group.id)) {
-            return group;
-          }
-          // Otherwise, filter items to only include referenced ones
-          const filteredItems = group.items.filter((item) =>
-            referencedItemIds.has(item.id)
-          );
-          if (filteredItems.length === 0) return null;
-          return { ...group, items: filteredItems };
-        })
-        .filter((g): g is IComponentGroup => g !== null);
-
+      // Pass all groups so user can select any item/group in conditions/actions
       openChartModal({
-        groups: filteredGroups,
+        groups,
         rules: [rule], // Only pass the single rule being edited
         selectedRuleId: ruleId,
         onSave: (updatedRules: IDependencyRule[]) => {

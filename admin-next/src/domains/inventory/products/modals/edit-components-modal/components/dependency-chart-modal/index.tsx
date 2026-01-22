@@ -8,7 +8,6 @@ import {
   ReactFlow,
   Background,
   Controls,
-  MiniMap,
   useNodesState,
   useEdgesState,
   useReactFlow,
@@ -209,15 +208,6 @@ const DependencyChartInner = ({
           >
             <Background />
             <Controls position="top-right" />
-            <MiniMap
-              position="bottom-right"
-              nodeColor={(node) => {
-                if (node.type === "rule") return "#faad14";
-                if (node.type === "item") return "#1890ff";
-                if (node.type === "bundle") return "#722ed1";
-                return "#d9d9d9";
-              }}
-            />
           </ReactFlow>
 
           {/* Custom controls overlay */}
