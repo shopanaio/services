@@ -24,9 +24,6 @@ const useStyles = createStyles(({ token }) => ({
     alignItems: "center",
     gap: 8,
     boxShadow: token.boxShadowTertiary,
-    "&:hover": {
-      borderColor: token.colorPrimary,
-    },
   },
   avatar: {
     flexShrink: 0,

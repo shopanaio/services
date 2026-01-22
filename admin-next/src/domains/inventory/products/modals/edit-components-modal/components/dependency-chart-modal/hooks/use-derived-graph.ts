@@ -9,6 +9,7 @@ import {
   ACTION_TYPE_LABELS,
   PRICE_RULE_OPTIONS,
 } from "../../../types";
+import { MarkerType } from "@xyflow/react";
 import type { ChartNode, ChartEdge, ItemNodeData, RuleNodeData, BundleNodeData } from "../types";
 
 // ============================================================================
@@ -351,7 +352,11 @@ export const useDerivedGraph = ({
           animated: false,
           style: {
             stroke: rule.enabled ? "#1890ff" : "#d9d9d9",
-            strokeWidth: 2,
+            strokeWidth: 1,
+          },
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            color: rule.enabled ? "#1890ff" : "#d9d9d9",
           },
           data: {
             condition,
@@ -391,7 +396,11 @@ export const useDerivedGraph = ({
           animated: false,
           style: {
             stroke: rule.enabled ? "#52c41a" : "#d9d9d9",
-            strokeWidth: 2,
+            strokeWidth: 1,
+          },
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            color: rule.enabled ? "#52c41a" : "#d9d9d9",
           },
           data: {
             action,

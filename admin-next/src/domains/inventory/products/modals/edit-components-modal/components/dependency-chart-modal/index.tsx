@@ -135,9 +135,20 @@ const DependencyChartInner = ({
   const [nodes, setNodes, onNodesChange] = useNodesState(layoutedNodes as Node[]);
   const [edges, setEdges, onEdgesChange] = useEdgesState(derivedEdges as Edge[]);
 
-  // Update nodes/edges when draft rules change
+  // Update nodes/edges when draft rules change, preserving existing positions
   useMemo(() => {
-    setNodes(layoutedNodes as Node[]);
+    setNodes((currentNodes) => {
+      const currentPositions = new Map(
+        currentNodes.map((n) => [n.id, n.position])
+      );
+      return layoutedNodes.map((node) => {
+        const existingPosition = currentPositions.get(node.id);
+        if (existingPosition) {
+          return { ...node, position: existingPosition } as Node;
+        }
+        return node as Node;
+      });
+    });
     setEdges(derivedEdges as Edge[]);
   }, [layoutedNodes, derivedEdges, setNodes, setEdges]);
 

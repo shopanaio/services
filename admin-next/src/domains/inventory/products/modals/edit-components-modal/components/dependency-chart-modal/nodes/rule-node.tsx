@@ -16,7 +16,7 @@ import type { RuleNodeData } from "../types";
 const useStyles = createStyles(({ token }) => ({
   node: {
     background: token.colorBgContainer,
-    border: `2px solid ${token.colorWarningBorder}`,
+    border: `2px solid ${token.colorWarning}`,
     borderRadius: token.borderRadiusLG,
     padding: 12,
     minWidth: 180,
@@ -24,10 +24,9 @@ const useStyles = createStyles(({ token }) => ({
     flexDirection: "column",
     gap: 8,
     boxShadow: token.boxShadowTertiary,
-    transition: "all 0.2s ease",
+    transition: "box-shadow 0.2s ease",
     cursor: "pointer",
     "&:hover": {
-      borderColor: token.colorWarning,
       boxShadow: token.boxShadow,
     },
   },
