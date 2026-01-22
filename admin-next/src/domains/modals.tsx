@@ -243,6 +243,15 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
+    // Dependency Chart modal
+    {
+      type: 'dependency-chart',
+      component: dynamic(() =>
+        import('@/domains/inventory/products/modals/edit-components-modal/components/dependency-chart-modal').then(
+          (m) => m.DependencyChartModal
+        )
+      ),
+    },
     // Bulk Editor modal
     {
       type: 'bulk-editor',

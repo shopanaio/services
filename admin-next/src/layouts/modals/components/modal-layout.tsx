@@ -52,6 +52,7 @@ const useStyles = createStyles(({ token }) => ({
     paddingInline: 16,
     flex: 1,
     minHeight: 0,
+    width: "100%",
   },
 }));
 

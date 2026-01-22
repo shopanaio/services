@@ -2,12 +2,8 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { createStyles } from "antd-style";
-import { Button, Flex, Typography } from "antd";
-import {
-  AimOutlined,
-  CloseOutlined,
-  SaveOutlined,
-} from "@ant-design/icons";
+import { Button } from "antd";
+import { AimOutlined, SaveOutlined } from "@ant-design/icons";
 import {
   ReactFlow,
   Background,
@@ -41,7 +37,6 @@ import {
 import {
   ITEM_HANDLES,
   GROUP_HANDLES,
-  RULE_HANDLES,
   BUNDLE_HANDLES,
 } from "./types";
 
@@ -56,6 +51,7 @@ import { useColumnLayout } from "./hooks/use-column-layout";
 
 const useStyles = createStyles(({ token }) => ({
   container: {
+    width: "100%",
     display: "flex",
     height: "calc(100vh - 120px)",
     minHeight: 500,
@@ -255,21 +251,6 @@ const DependencyChartInner = ({
     []
   );
 
-  // Create a new rule and return its ID
-  const createNewRule = useCallback((): string => {
-    const maxPriority = Math.max(0, ...draftRules.map((r) => r.priority));
-    const newRule: IDependencyRule = {
-      id: `rule-${Date.now()}`,
-      name: "New Rule",
-      enabled: true,
-      priority: maxPriority + 100,
-      conditions: [],
-      actions: [],
-    };
-    setDraftRules((prev) => [...prev, newRule]);
-    return newRule.id;
-  }, [draftRules]);
-
   // Handle edge connections from drag-and-drop
   const handleConnect = useCallback(
     (connection: Connection) => {
@@ -421,6 +402,7 @@ const DependencyChartInner = ({
   return (
     <ModalLayout
       name="dependency-chart"
+      fullWidth
       header={
         <ModalHeader
           name="dependency-chart"

@@ -34,6 +34,7 @@ import {
   SettingsTab,
 } from "./components";
 import { Paper } from "@/ui-kit/paper";
+import { MOCK_DEPENDENCY_RULES, MOCK_GROUPS } from "./mock-data";
 
 // ============================================================================
 // Styles
@@ -220,7 +221,7 @@ export const EditComponentsModal = () => {
   // State
   const [activeTab, setActiveTab] = useState<EditComponentsTabKey>("groups");
   const [groups, setGroups] = useState<IComponentGroup[]>(
-    modalPayload?.groups ?? []
+    modalPayload?.groups ?? MOCK_GROUPS
   );
   const [pricingTemplates, setPricingTemplates] = useState<
     PricingRuleTemplate[]
@@ -229,7 +230,7 @@ export const EditComponentsModal = () => {
     modalPayload?.tieredDiscounts ?? []
   );
   const [dependencyRules, setDependencyRules] = useState<IDependencyRule[]>(
-    modalPayload?.dependencyRules ?? []
+    modalPayload?.dependencyRules ?? MOCK_DEPENDENCY_RULES
   );
   const [bundleSettings, setBundleSettings] = useState<IBundleSettings>(
     modalPayload?.bundleSettings ?? DEFAULT_BUNDLE_SETTINGS
