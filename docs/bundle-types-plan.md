@@ -19,9 +19,39 @@ Dependency rule capabilities:
 
 ---
 
-## Уровень 1: Product Bundles (бандл = новый продукт)
+## Философия: Data-Driven Behavior
 
-Эти типы создают отдельный продукт-бандл с children. Полностью покрываются текущей моделью component groups + dependency rules.
+`bundleType` — это **UI-пресет** (editor mode/template), а НЕ жёсткая бизнес-категория.
+
+**Поведение определяется данными:**
+
+| Что определяет | Откуда берётся |
+|----------------|----------------|
+| Что можно выбрать | `minSelection`, `maxSelection`, `selectionMode` на группах |
+| Сколько штук | `defaultQuantity`, `quantityLocked`, `minQuantity`, `maxQuantity` на items |
+| Сколько штук суммарно | `minTotalQuantity`, `maxTotalQuantity` на группе |
+| Как считаем цену | `priceType`/`priceValue` на items + bundle price mode |
+| Анлоки/скрытия | dependency rules |
+| Как отображать | `displayStyle` в bundle settings |
+
+**`bundleType` лишь:**
+- Выставляет дефолтные настройки при создании
+- Адаптирует UI редактора (показывает/скрывает элементы)
+- Подсказывает валидации (hints, не hard blocks)
+- Используется для аналитики и фильтрации
+
+**Почему не жёсткая категория:**
+- "Fixed kit" + 1 configurable slot (PC bundle с выбором RAM) — это FIXED, но с выбором
+- "Multipack 12-pack mixed" — это MULTIPACK, но по сути mix-and-match по количествам
+- "Build-a-box flat rate" vs "Build-a-box line pricing" — один тип, разный pricing
+
+Движок не проверяет `bundleType` — он работает с constraints напрямую.
+
+---
+
+## Product Bundles
+
+Все типы создают отдельный продукт-бандл с children. Полностью покрываются текущей моделью component groups + dependency rules.
 
 ---
 
@@ -114,23 +144,13 @@ Storefront: покупатель видит карточку "Camera Starter Kit
 
 Здесь `minSelection: 1, maxSelection: 1` в группе RAM — покупатель обязан выбрать один вариант. Это fixed bundle с одним configurable slot.
 
-**Что нужно добавить:**
+**Пресет FIXED в редакторе:**
 
-1. `BundleType` enum:
-   ```typescript
-   enum BundleType {
-     FIXED = "FIXED",
-     MULTIPACK = "MULTIPACK",
-     MIX_AND_MATCH = "MIX_AND_MATCH",
-   }
-   ```
-
-2. Поле `bundleType` на уровне продукта — определяет UI и validation logic.
-
-3. При `bundleType: FIXED`:
-   - Все группы `minSelection = maxSelection = items.length` (или 1 для "выбери вариант")
-   - Items без выбора авто-выбраны, UI не показывает selection controls
-   - Storefront рендерит как карточку с содержимым, без интерактива
+При выборе "Fixed Bundle" в UI:
+- Создаёт 1 группу "Состав набора", `minSelection = maxSelection = items.length`
+- Скрывает selection controls на storefront (items авто-выбраны)
+- Показывает hint если группа позволяет выбор ("configurable slot detected")
+- НО не запрещает добавить группу с `maxSelection: 1` (configurable slot, как RAM в примере C)
 
 **Pricing strategies:**
 - `INCLUDED` — цена компонента "входит" в общую цену (мерчант ставит цену бандла вручную)
@@ -218,23 +238,19 @@ Storefront: покупатель видит карточку "Camera Starter Kit
 // "Собери свою дюжину" — по $2-2.20 за бутылку (вместо $3 по одной)
 ```
 
-**Что нужно добавить:**
+**Пресет MULTIPACK в редакторе:**
 
-1. `defaultQuantity` и `quantityLocked` на `ComponentItem`:
-   ```typescript
-   interface ComponentItem {
-     // ...existing
-     defaultQuantity: number;  // default 1, for multipack = N
-     quantityLocked: boolean;  // true = покупатель не может менять qty
-   }
-   ```
+При выборе "Multipack" в UI:
+- Создаёт 1 группу, 1 item
+- Выставляет `defaultQuantity = N`, `quantityLocked = true`
+- Показывает "pack badge" UI, цена за pack, savings vs single
+- НО не запрещает добавить больше items или включить `PICK_QUANTITIES` (→ mixed pack, как пример C)
 
-2. При `bundleType: MULTIPACK`:
-   - Одна группа, item(s) с `defaultQuantity > 1`
-   - `quantityLocked: true` — покупатель берёт ровно N штук
-   - UI: "3-pack" badge, цена за pack, savings vs single purchase
+**Когда данные "ведут себя как multipack":**
+- `quantityLocked: true` && `defaultQuantity > 1` → storefront показывает pack UI
+- Не важно какой `bundleType` стоит — поведение определяется constraints
 
-**Inventory:** При покупке multipack списывается `N` единиц стока.
+**Inventory:** При покупке списывается `defaultQuantity` единиц стока.
 
 ---
 
@@ -432,50 +448,37 @@ Storefront: покупатель видит карточку "Camera Starter Kit
 // 5 items × ~$15 avg = $75 → -10% = $67.50 + Premium Wrap($5) = $72.50
 ```
 
-**Что нужно добавить:**
+**Пресет MIX_AND_MATCH в редакторе:**
 
-1. `selectionMode` на группу:
-   ```typescript
-   enum SelectionMode {
-     PICK_ITEMS = "PICK_ITEMS",           // выбери какие (toggle on/off)
-     PICK_QUANTITIES = "PICK_QUANTITIES", // выбери сколько каждого (+/- stepper)
-   }
-   ```
+При выборе "Mix-and-Match" в UI:
+- Показывает `selectionMode` toggle (PICK_ITEMS vs PICK_QUANTITIES)
+- Включает `totalQuantity` constraints UI
+- Предлагает wizard/accordion/tabs display style
+- Показывает dependency rules chart
 
-2. Per-item quantity constraints (для PICK_QUANTITIES):
-   ```typescript
-   interface ComponentItem {
-     // ...existing
-     minQuantity: number;        // min per item (default 0)
-     maxQuantity: number | null; // max per item (null = unlimited)
-   }
-   ```
+**Когда данные "ведут себя как mix-and-match":**
+- `selectionMode: PICK_QUANTITIES` || `maxSelection > 1` || `minTotalQuantity != null`
+- Не важно какой `bundleType` стоит
 
-3. `totalQuantity` constraint на группу (отличается от selection count):
-   ```typescript
-   interface IComponentGroup {
-     // ...existing
-     minTotalQuantity: number | null; // сумма qty >= N
-     maxTotalQuantity: number | null; // сумма qty <= N
-   }
-   ```
-   `minSelection/maxSelection` — сколько ВИДОВ выбрать.
-   `minTotalQuantity/maxTotalQuantity` — сколько ШТУК в сумме.
+**Разница `minSelection` vs `minTotalQuantity`:**
+- `minSelection/maxSelection` — сколько ВИДОВ выбрать (unique items toggled on)
+- `minTotalQuantity/maxTotalQuantity` — сколько ШТУК в сумме (across all items)
+- Пример: "выбери 3 вида конфет, всего 12 штук" → `minSelection: 3, minTotalQuantity: 12`
 
-4. Dependency rules для cross-group logic:
-   - Unlock groups пошагово (wizard-like behavior)
-   - Tiered pricing через GROUP_UNIQUE_GTE → ADJUST_PRICE
-   - Conditional items: show premium options при определённых условиях
+**Dependency rules для cross-group logic:**
+- Unlock groups пошагово (wizard-like)
+- Tiered pricing через GROUP_UNIQUE_GTE → ADJUST_PRICE
+- Conditional items: show premium options при условиях
 
 ---
 
 ## Приоритеты реализации
 
-- [ ] Добавить `BundleType` enum (FIXED, MULTIPACK, MIX_AND_MATCH)
 - [ ] Добавить `defaultQuantity`, `quantityLocked` на ComponentItem
 - [ ] Добавить `selectionMode`, `minTotalQuantity`, `maxTotalQuantity` на IComponentGroup
 - [ ] Добавить `minQuantity`, `maxQuantity` per item
-- [ ] Storefront UI для каждого типа
+- [ ] Добавить `bundleType` как UI preset (editor mode, не влияет на движок)
+- [ ] Storefront: рендер на основе constraints (не bundleType)
 - [ ] Checkout: expand bundle → child lines с pricing
 
 ---
@@ -483,6 +486,9 @@ Storefront: покупатель видит карточку "Camera Starter Kit
 ## Расширения текущих типов
 
 ```typescript
+// === bundleType — UI preset, не бизнес-логика ===
+// Используется для: дефолты при создании, UI editor mode, аналитика
+// НЕ используется в: pricing engine, checkout, storefront rendering logic
 enum BundleType {
   FIXED = "FIXED",
   MULTIPACK = "MULTIPACK",
@@ -490,8 +496,8 @@ enum BundleType {
 }
 
 enum SelectionMode {
-  PICK_ITEMS = "PICK_ITEMS",
-  PICK_QUANTITIES = "PICK_QUANTITIES",
+  PICK_ITEMS = "PICK_ITEMS",           // toggle on/off, count = unique items selected
+  PICK_QUANTITIES = "PICK_QUANTITIES", // +/- stepper per item, count = sum of quantities
 }
 
 // ComponentItem additions
@@ -499,17 +505,23 @@ interface ComponentItem {
   // ...existing fields
   defaultQuantity: number;       // default 1
   quantityLocked: boolean;       // default false
-  minQuantity: number;           // default 0
-  maxQuantity: number | null;    // default null
+  minQuantity: number;           // default 0 (per-item min in PICK_QUANTITIES mode)
+  maxQuantity: number | null;    // default null (per-item max)
 }
 
 // IComponentGroup additions
 interface IComponentGroup {
   // ...existing fields (minSelection, maxSelection already exist)
-  selectionMode: SelectionMode;
-  minTotalQuantity: number | null;
-  maxTotalQuantity: number | null;
+  selectionMode: SelectionMode;        // default PICK_ITEMS
+  minTotalQuantity: number | null;     // sum of all item quantities >= N
+  maxTotalQuantity: number | null;     // sum of all item quantities <= N
 }
+
+// Storefront определяет режим отображения по constraints:
+// - all groups have min=max=items.length && no selection UI → render as "fixed kit"
+// - quantityLocked && defaultQuantity > 1 → render as "X-pack"
+// - selectionMode=PICK_QUANTITIES || maxSelection > 1 → render as "build-a-box"
+// bundleType может быть hint, но constraints — источник правды
 ```
 
 ---
