@@ -6,6 +6,7 @@ import type { IProduct } from "./types";
 import type { ITag } from "@/domains/inventory/products/modals";
 import type { IAttributeRow } from "@/domains/inventory/products/modals/edit-attributes-modal/types";
 import type { IComponentGroup, PricingRuleTemplate, IDependencyRule } from "@/domains/inventory/products/modals/edit-components-modal/types";
+import type { IReviewsData } from "@/domains/inventory/products/components/product-details-card";
 import { EntityStatus, WeightUnit, DimensionUnit, type ICategory, type ITag as IProductTag } from "./types";
 import { mockCategories } from "./categories";
 import { mockTags } from "./tags";
@@ -163,6 +164,7 @@ export interface IBundleDetailsMockData {
   };
   tags: ITag[];
   attributes: IAttributeRow[];
+  reviews: IReviewsData;
   components: IComponentGroup[];
   pricingTemplates: PricingRuleTemplate[];
   dependencyRules: IDependencyRule[];
@@ -175,6 +177,17 @@ export const bundleDetailsMockData: IBundleDetailsMockData = {
   },
   tags: mockTags.slice(0, 3) as ITag[],
   attributes: createAttributesMockData(),
+  reviews: {
+    rating: 4.5,
+    reviewsCount: 47,
+    breakdown: [
+      { stars: 5, count: 28, percent: 60 },
+      { stars: 4, count: 12, percent: 25 },
+      { stars: 3, count: 5, percent: 11 },
+      { stars: 2, count: 1, percent: 2 },
+      { stars: 1, count: 1, percent: 2 },
+    ],
+  },
   components: productDetailsMockData.components,
   pricingTemplates: productDetailsMockData.pricingTemplates,
   dependencyRules: productDetailsMockData.dependencyRules,

@@ -11,6 +11,7 @@ import {
   MediaSection,
   CategoriesSection,
   TagsSection,
+  ReviewsSection,
 } from "@/domains/inventory/products/components/product-details-card/sections";
 import {
   GroupsSection,
@@ -148,6 +149,10 @@ export const BundleDetailsCard = ({
     openEditAttributesModal({ productId: product.id });
   }, [product.id, openEditAttributesModal]);
 
+  const handleEditReviews = useCallback(() => {
+    console.log("Edit reviews");
+  }, []);
+
   const handleEditSeo = useCallback(() => {
     openEditSeoModal({
       productId: product.id,
@@ -181,6 +186,12 @@ export const BundleDetailsCard = ({
       {/* MEDIA */}
       <MediaSection gallery={product.gallery} onEdit={handleEditMedia} />
 
+      {/* CATEGORIES */}
+      <CategoriesSection
+        primaryCategory={mockData.categories.primary}
+        categories={mockData.categories.list}
+      />
+
       {/* COMPONENT GROUPS */}
       <GroupsSection groups={groups} onEdit={handleEditGroups} />
 
@@ -199,10 +210,12 @@ export const BundleDetailsCard = ({
       {/* BUNDLE SETTINGS */}
       <SettingsSection settings={bundleSettings} onEdit={handleEditSettings} />
 
-      {/* CATEGORIES */}
-      <CategoriesSection
-        primaryCategory={mockData.categories.primary}
-        categories={mockData.categories.list}
+      {/* REVIEWS */}
+      <ReviewsSection
+        rating={mockData.reviews.rating}
+        reviewsCount={mockData.reviews.reviewsCount}
+        breakdown={mockData.reviews.breakdown}
+        onEdit={handleEditReviews}
       />
 
       {/* ATTRIBUTES */}
