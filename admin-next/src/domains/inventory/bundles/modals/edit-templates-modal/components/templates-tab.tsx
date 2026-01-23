@@ -27,7 +27,7 @@ import type { ColumnsType } from "antd/es/table";
 
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import {
-  ComponentPriceType,
+  BundlePriceType,
   type PricingRuleTemplate,
   PRICE_RULE_OPTIONS,
 } from "@/domains/inventory/products/modals/edit-components-modal/types";
@@ -99,7 +99,7 @@ export const TemplatesTab = ({
     const newTemplate: IEditingTemplate = {
       id: `tpl-${Date.now()}`,
       name: "",
-      priceType: ComponentPriceType.DISCOUNT_PERCENT,
+      priceType: BundlePriceType.DISCOUNT_PERCENT,
       priceValue: 10,
       isNew: true,
     };
@@ -183,9 +183,9 @@ export const TemplatesTab = ({
                     ...editingTemplate,
                     priceType: value,
                     priceValue:
-                      value === ComponentPriceType.FREE ||
-                      value === ComponentPriceType.INCLUDED ||
-                      value === ComponentPriceType.BASE
+                      value === BundlePriceType.FREE ||
+                      value === BundlePriceType.INCLUDED ||
+                      value === BundlePriceType.BASE
                         ? null
                         : editingTemplate.priceValue ?? 10,
                   })
@@ -309,7 +309,7 @@ export const TemplatesTab = ({
       <PaperHeader
         title="Pricing Rule Templates"
         extra={
-          <Tooltip title="Create reusable pricing rules that can be applied to components">
+          <Tooltip title="Create reusable pricing rules that can be applied to bundle items">
             <InfoCircleOutlined style={{ color: "var(--ant-color-text-secondary)" }} />
           </Tooltip>
         }

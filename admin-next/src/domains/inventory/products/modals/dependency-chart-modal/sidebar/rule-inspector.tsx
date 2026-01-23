@@ -18,7 +18,7 @@ import {
   RightOutlined,
 } from "@ant-design/icons";
 
-import type { IDependencyRule, IComponentGroup } from "../../edit-components-modal/types";
+import type { IDependencyRule, IBundleGroup } from "../../edit-components-modal/types";
 import {
   DependencyConditionType,
   DependencyActionType,
@@ -46,7 +46,7 @@ import {
 
 interface IRuleInspectorProps {
   rule: IDependencyRule | null;
-  groups: IComponentGroup[];
+  groups: IBundleGroup[];
   onRuleChange: (rule: IDependencyRule) => void;
 }
 

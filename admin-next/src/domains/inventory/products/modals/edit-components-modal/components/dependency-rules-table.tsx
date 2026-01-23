@@ -52,7 +52,7 @@ import type {
   IDependencyRule,
   IDependencyCondition,
   IDependencyAction,
-  IComponentGroup,
+  IBundleGroup,
 } from "../types";
 import {
   DependencyActionType,
@@ -160,7 +160,7 @@ const SortableRow = ({ "data-row-key": id, ...props }: SortableRowProps) => {
 interface IDependencyRulesTableProps {
   rules: IDependencyRule[];
   onRulesChange: (rules: IDependencyRule[]) => void;
-  groups: IComponentGroup[];
+  groups: IBundleGroup[];
   onOpenChart: () => void;
   onEditRule?: (ruleId: string) => void;
 }
@@ -181,7 +181,7 @@ interface RuleStatus {
 
 const getItemName = (
   itemId: string,
-  groups: IComponentGroup[]
+  groups: IBundleGroup[]
 ): string | null => {
   for (const group of groups) {
     const item = group.items.find((i) => i.id === itemId);
@@ -194,7 +194,7 @@ const getItemName = (
 
 const getGroupName = (
   groupId: string,
-  groups: IComponentGroup[]
+  groups: IBundleGroup[]
 ): string | null => {
   const group = groups.find((g) => g.id === groupId);
   return group?.title ?? null;
@@ -203,7 +203,7 @@ const getGroupName = (
 const getTargetName = (
   targetType: DependencyTargetType,
   targetId: string | undefined,
-  groups: IComponentGroup[]
+  groups: IBundleGroup[]
 ): string => {
   if (targetType === DependencyTargetType.BUNDLE) {
     return "Bundle";
@@ -221,7 +221,7 @@ const getTargetName = (
 
 const formatCondition = (
   condition: IDependencyCondition,
-  groups: IComponentGroup[]
+  groups: IBundleGroup[]
 ): string => {
   const targetName = getTargetName(
     condition.targetType,
@@ -238,7 +238,7 @@ const formatCondition = (
 
 const formatAction = (
   action: IDependencyAction,
-  groups: IComponentGroup[]
+  groups: IBundleGroup[]
 ): string => {
   const targetName = getTargetName(action.targetType, action.targetId, groups);
   const actionLabel = ACTION_TYPE_LABELS[action.actionType];
@@ -265,7 +265,7 @@ const formatAction = (
 
 const formatRuleSummary = (
   rule: IDependencyRule,
-  groups: IComponentGroup[]
+  groups: IBundleGroup[]
 ): string => {
   const whenPart = rule.conditions
     .map((c) => formatCondition(c, groups))
@@ -284,7 +284,7 @@ const formatRuleSummary = (
 
 const getRuleStatus = (
   rule: IDependencyRule,
-  groups: IComponentGroup[]
+  groups: IBundleGroup[]
 ): RuleStatus => {
   if (rule.conditions.length === 0) {
     return {
@@ -672,7 +672,7 @@ export const DependencyRulesTable = ({
       <PaperHeader
         title="Dependency Rules"
         extra={
-          <Tooltip title="Define conditional rules for component behavior">
+          <Tooltip title="Define conditional rules for bundle item behavior">
             <Tag color="blue">{rules.length}</Tag>
           </Tooltip>
         }

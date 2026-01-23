@@ -5,7 +5,7 @@
 import type { IProduct } from "./types";
 import type { ITag } from "@/domains/inventory/products/modals";
 import type { IAttributeRow } from "@/domains/inventory/products/modals/edit-attributes-modal/types";
-import type { IComponentGroup, PricingRuleTemplate, IDependencyRule } from "@/domains/inventory/products/modals/edit-components-modal/types";
+import type { IBundleGroup, PricingRuleTemplate, IDependencyRule } from "@/domains/inventory/products/modals/edit-components-modal/types";
 import type { IReviewsData } from "@/domains/inventory/products/components/product-details-card";
 import { EntityStatus, WeightUnit, DimensionUnit, type ICategory, type ITag as IProductTag } from "./types";
 import { mockCategories } from "./categories";
@@ -165,7 +165,7 @@ export interface IBundleDetailsMockData {
   tags: ITag[];
   attributes: IAttributeRow[];
   reviews: IReviewsData;
-  components: IComponentGroup[];
+  bundleItems: IBundleGroup[];
   pricingTemplates: PricingRuleTemplate[];
   dependencyRules: IDependencyRule[];
 }
@@ -188,7 +188,7 @@ export const bundleDetailsMockData: IBundleDetailsMockData = {
       { stars: 1, count: 1, percent: 2 },
     ],
   },
-  components: productDetailsMockData.components,
+  bundleItems: productDetailsMockData.bundleItems,
   pricingTemplates: productDetailsMockData.pricingTemplates,
   dependencyRules: productDetailsMockData.dependencyRules,
 };

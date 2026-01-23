@@ -10,14 +10,14 @@ import {
   useEditVariantsModal,
   useEditCategoriesModal,
   useEditTagsModal,
-  useEditComponentsModal,
+  useEditBundleItemsModal,
   type IEditSeoModalPayload,
 } from "../../../modals";
 import type { IProduct, IMediaFile } from "@/mocks/products/types";
-import type { IComponentGroup, PricingRuleTemplate, IDependencyRule } from "../../../modals/edit-components-modal/types";
+import type { IBundleGroup, PricingRuleTemplate, IDependencyRule } from "../../../modals/edit-components-modal/types";
 
 interface IUseProductModalsOptions {
-  components?: IComponentGroup[];
+  bundleItems?: IBundleGroup[];
   pricingTemplates?: PricingRuleTemplate[];
   dependencyRules?: IDependencyRule[];
 }
@@ -31,7 +31,7 @@ export const useProductModals = (product: IProduct, options: IUseProductModalsOp
   const { push: openEditVariantsModal } = useEditVariantsModal();
   const { push: openEditCategoriesModal } = useEditCategoriesModal();
   const { push: openEditTagsModal } = useEditTagsModal();
-  const { push: openEditComponentsModal } = useEditComponentsModal();
+  const { push: openEditBundleItemsModal } = useEditBundleItemsModal();
 
   const handleOpenProductModal = useCallback(() => {
     openProductModal({ entityId: product.id });
@@ -82,14 +82,14 @@ export const useProductModals = (product: IProduct, options: IUseProductModalsOp
     openEditAttributesModal({ productId: product.id });
   }, [product.id, openEditAttributesModal]);
 
-  const handleEditComponents = useCallback(() => {
-    openEditComponentsModal({
+  const handleEditBundleItems = useCallback(() => {
+    openEditBundleItemsModal({
       productId: product.id,
-      groups: options.components,
+      groups: options.bundleItems,
       pricingTemplates: options.pricingTemplates,
       dependencyRules: options.dependencyRules,
     });
-  }, [product.id, options.components, options.pricingTemplates, options.dependencyRules, openEditComponentsModal]);
+  }, [product.id, options.bundleItems, options.pricingTemplates, options.dependencyRules, openEditBundleItemsModal]);
 
   const handleEditSeo = useCallback(() => {
     openEditSeoModal({
@@ -175,7 +175,7 @@ export const useProductModals = (product: IProduct, options: IUseProductModalsOp
     editTags: handleEditTags,
     editOptions: handleEditOptions,
     editAttributes: handleEditAttributes,
-    editComponents: handleEditComponents,
+    editBundleItems: handleEditBundleItems,
     editSeo: handleEditSeo,
     editVariants: handleEditVariants,
   };

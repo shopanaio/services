@@ -6,7 +6,7 @@ import { DependencyRulesTable } from "./dependency-rules-table";
 import { useDependencyChartModal } from "@/domains/inventory/products/modals";
 import type {
   IDependencyRule,
-  IComponentGroup,
+  IBundleGroup,
 } from "../types";
 
 // ============================================================================
@@ -16,7 +16,7 @@ import type {
 interface IDependencyRulesTabProps {
   dependencyRules: IDependencyRule[];
   onDependencyRulesChange: (rules: IDependencyRule[]) => void;
-  groups: IComponentGroup[];
+  groups: IBundleGroup[];
 }
 
 // ============================================================================

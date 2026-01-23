@@ -5,9 +5,9 @@ import type { IMediaFile } from "./types";
 // ============================================================================
 
 /**
- * Component item type - determines how the item is displayed
+ * Bundle item type - determines how the item is displayed
  */
-export enum ComponentItemType {
+export enum BundleItemType {
   /** Simple product without variants */
   SIMPLE_PRODUCT = "SIMPLE_PRODUCT",
   /** Specific variant of a product */
@@ -17,9 +17,9 @@ export enum ComponentItemType {
 }
 
 /**
- * Price rule types for component items
+ * Price rule types for bundle items
  */
-export enum ComponentPriceType {
+export enum BundlePriceType {
   /** No changes, use base product price */
   BASE = "BASE",
   /** Override with fixed price */
@@ -87,7 +87,7 @@ export interface IIncludedVariant {
   /** Sort index for independent ordering in table */
   sortIndex: number;
   /** Pricing configuration (can override parent) */
-  priceType: ComponentPriceType;
+  priceType: BundlePriceType;
   priceValue: number | null;
   /** Template ID if using a pricing template */
   templateId?: string;
@@ -97,12 +97,12 @@ export interface IIncludedVariant {
 }
 
 // ============================================================================
-// Component Item
+// Bundle Item
 // ============================================================================
 
-export interface IComponentItem {
+export interface IBundleItem {
   id: string;
-  itemType: ComponentItemType;
+  itemType: BundleItemType;
 
   /** Product ID (for all types) */
   productId: string;
@@ -128,7 +128,7 @@ export interface IComponentItem {
   sortIndex: number;
 
   /** Pricing configuration */
-  priceType: ComponentPriceType;
+  priceType: BundlePriceType;
   priceValue: number | null;
   /** Template ID if using a pricing template */
   templateId?: string;
@@ -150,10 +150,10 @@ export interface IComponentItem {
 }
 
 // ============================================================================
-// Component Group
+// Bundle Group
 // ============================================================================
 
-export interface IComponentGroup {
+export interface IBundleGroup {
   id: string;
   title: string;
   slug: string;
@@ -169,7 +169,7 @@ export interface IComponentGroup {
   defaultItemIds: string[];
 
   /** Items in this group */
-  items: IComponentItem[];
+  items: IBundleItem[];
 }
 
 // ============================================================================
@@ -179,7 +179,7 @@ export interface IComponentGroup {
 export interface IPricingRuleTemplate {
   id: string;
   name: string;
-  priceType: ComponentPriceType;
+  priceType: BundlePriceType;
   priceValue: number | null;
 }
 
@@ -377,10 +377,10 @@ export const mockGiftWrapProducts: IPickerProduct[] = [
 ];
 
 // ============================================================================
-// Mock Component Groups
+// Mock Bundle Groups
 // ============================================================================
 
-export const mockGroups: IComponentGroup[] = [
+export const mockGroups: IBundleGroup[] = [
   {
     id: "grp-1",
     title: "Accessories",
@@ -394,9 +394,9 @@ export const mockGroups: IComponentGroup[] = [
     items: [
       {
         id: "item-1",
-        itemType: ComponentItemType.PRODUCT_WITH_VARIANTS,
+        itemType: BundleItemType.PRODUCT_WITH_VARIANTS,
         productId: "prod-1",
-        priceType: ComponentPriceType.MARKUP_PERCENT,
+        priceType: BundlePriceType.MARKUP_PERCENT,
         priceValue: 10,
         basePrice: 2500,
         basePriceMax: 4500,
@@ -407,13 +407,13 @@ export const mockGroups: IComponentGroup[] = [
         totalStock: 234,
         availableVariantIds: ["var-1", "var-2", "var-3", "var-4"],
         autoHideOutOfStock: true,
-      } as IComponentItem & { autoHideOutOfStock: boolean },
+      } as IBundleItem & { autoHideOutOfStock: boolean },
       {
         id: "item-2",
-        itemType: ComponentItemType.SINGLE_VARIANT,
+        itemType: BundleItemType.SINGLE_VARIANT,
         productId: "prod-1",
         variantId: "var-5",
-        priceType: ComponentPriceType.FIXED,
+        priceType: BundlePriceType.FIXED,
         priceValue: 3990,
         basePrice: 4500,
         finalPrice: 3990,
@@ -423,9 +423,9 @@ export const mockGroups: IComponentGroup[] = [
       },
       {
         id: "item-3",
-        itemType: ComponentItemType.SIMPLE_PRODUCT,
+        itemType: BundleItemType.SIMPLE_PRODUCT,
         productId: "prod-2",
-        priceType: ComponentPriceType.DISCOUNT_PERCENT,
+        priceType: BundlePriceType.DISCOUNT_PERCENT,
         priceValue: 10,
         basePrice: 3200,
         finalPrice: 2880,
@@ -434,9 +434,9 @@ export const mockGroups: IComponentGroup[] = [
       },
       {
         id: "item-4",
-        itemType: ComponentItemType.SIMPLE_PRODUCT,
+        itemType: BundleItemType.SIMPLE_PRODUCT,
         productId: "prod-3",
-        priceType: ComponentPriceType.FREE,
+        priceType: BundlePriceType.FREE,
         priceValue: null,
         basePrice: 1200,
         finalPrice: 0,
@@ -445,9 +445,9 @@ export const mockGroups: IComponentGroup[] = [
       },
       {
         id: "item-5",
-        itemType: ComponentItemType.SIMPLE_PRODUCT,
+        itemType: BundleItemType.SIMPLE_PRODUCT,
         productId: "prod-4",
-        priceType: ComponentPriceType.BASE,
+        priceType: BundlePriceType.BASE,
         priceValue: null,
         basePrice: 990,
         finalPrice: 990,
@@ -469,9 +469,9 @@ export const mockGroups: IComponentGroup[] = [
     items: [
       {
         id: "item-6",
-        itemType: ComponentItemType.SIMPLE_PRODUCT,
+        itemType: BundleItemType.SIMPLE_PRODUCT,
         productId: "war-1",
-        priceType: ComponentPriceType.INCLUDED,
+        priceType: BundlePriceType.INCLUDED,
         priceValue: null,
         basePrice: 0,
         finalPrice: 0,
@@ -481,9 +481,9 @@ export const mockGroups: IComponentGroup[] = [
       },
       {
         id: "item-7",
-        itemType: ComponentItemType.SIMPLE_PRODUCT,
+        itemType: BundleItemType.SIMPLE_PRODUCT,
         productId: "war-2",
-        priceType: ComponentPriceType.FIXED,
+        priceType: BundlePriceType.FIXED,
         priceValue: 12990,
         basePrice: 12990,
         finalPrice: 12990,
@@ -493,9 +493,9 @@ export const mockGroups: IComponentGroup[] = [
       },
       {
         id: "item-8",
-        itemType: ComponentItemType.SIMPLE_PRODUCT,
+        itemType: BundleItemType.SIMPLE_PRODUCT,
         productId: "war-3",
-        priceType: ComponentPriceType.FIXED,
+        priceType: BundlePriceType.FIXED,
         priceValue: 24990,
         basePrice: 24990,
         finalPrice: 24990,
@@ -518,9 +518,9 @@ export const mockGroups: IComponentGroup[] = [
     items: [
       {
         id: "item-9",
-        itemType: ComponentItemType.SIMPLE_PRODUCT,
+        itemType: BundleItemType.SIMPLE_PRODUCT,
         productId: "gift-1",
-        priceType: ComponentPriceType.FREE,
+        priceType: BundlePriceType.FREE,
         priceValue: null,
         basePrice: 299,
         finalPrice: 0,
@@ -529,9 +529,9 @@ export const mockGroups: IComponentGroup[] = [
       },
       {
         id: "item-10",
-        itemType: ComponentItemType.SIMPLE_PRODUCT,
+        itemType: BundleItemType.SIMPLE_PRODUCT,
         productId: "gift-2",
-        priceType: ComponentPriceType.FREE,
+        priceType: BundlePriceType.FREE,
         priceValue: null,
         basePrice: 599,
         finalPrice: 0,
@@ -550,25 +550,25 @@ export const mockPricingTemplates: IPricingRuleTemplate[] = [
   {
     id: "tpl-1",
     name: "Bundle Discount",
-    priceType: ComponentPriceType.DISCOUNT_PERCENT,
+    priceType: BundlePriceType.DISCOUNT_PERCENT,
     priceValue: 15,
   },
   {
     id: "tpl-2",
     name: "Accessories Markup",
-    priceType: ComponentPriceType.MARKUP_PERCENT,
+    priceType: BundlePriceType.MARKUP_PERCENT,
     priceValue: 10,
   },
   {
     id: "tpl-3",
     name: "Fixed Warranty",
-    priceType: ComponentPriceType.FIXED,
+    priceType: BundlePriceType.FIXED,
     priceValue: 4990,
   },
   {
     id: "tpl-4",
     name: "Free Gift",
-    priceType: ComponentPriceType.FREE,
+    priceType: BundlePriceType.FREE,
     priceValue: null,
   },
 ];
@@ -622,24 +622,24 @@ export const formatPrice = (amount: number): string => {
 
 export const calculateFinalPrice = (
   basePrice: number,
-  priceType: ComponentPriceType,
+  priceType: BundlePriceType,
   priceValue: number | null
 ): number => {
   switch (priceType) {
-    case ComponentPriceType.BASE:
+    case BundlePriceType.BASE:
       return basePrice;
-    case ComponentPriceType.FIXED:
+    case BundlePriceType.FIXED:
       return priceValue ?? basePrice;
-    case ComponentPriceType.MARKUP_PERCENT:
+    case BundlePriceType.MARKUP_PERCENT:
       return Math.round(basePrice * (1 + (priceValue ?? 0) / 100));
-    case ComponentPriceType.DISCOUNT_PERCENT:
+    case BundlePriceType.DISCOUNT_PERCENT:
       return Math.round(basePrice * (1 - (priceValue ?? 0) / 100));
-    case ComponentPriceType.MARKUP_FIXED:
+    case BundlePriceType.MARKUP_FIXED:
       return basePrice + (priceValue ?? 0);
-    case ComponentPriceType.DISCOUNT_FIXED:
+    case BundlePriceType.DISCOUNT_FIXED:
       return Math.max(0, basePrice - (priceValue ?? 0));
-    case ComponentPriceType.FREE:
-    case ComponentPriceType.INCLUDED:
+    case BundlePriceType.FREE:
+    case BundlePriceType.INCLUDED:
       return 0;
     default:
       return basePrice;

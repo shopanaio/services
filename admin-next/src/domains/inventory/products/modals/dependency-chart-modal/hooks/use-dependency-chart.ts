@@ -2,12 +2,12 @@ import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { useReactFlow, useNodesState, useEdgesState } from "@xyflow/react";
 import type { Node, Edge } from "@xyflow/react";
 
-import type { IDependencyRule, IComponentGroup } from "../../edit-components-modal/types";
+import type { IDependencyRule, IBundleGroup } from "../../edit-components-modal/types";
 import { useDerivedGraph } from "./use-derived-graph";
 import { useColumnLayout } from "./use-column-layout";
 
 interface UseDependencyChartOptions {
-  groups: IComponentGroup[];
+  groups: IBundleGroup[];
   initialRules: IDependencyRule[];
   initialSelectedRuleId?: string;
 }

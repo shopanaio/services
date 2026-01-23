@@ -1,7 +1,7 @@
 import { createModalStackHook } from "@/layouts/modals";
 import type { IModalStackPayload } from "@/layouts/modals";
 import type {
-  IComponentGroup,
+  IBundleGroup,
   PricingRuleTemplate,
   IBundleSettings,
 } from "@/domains/inventory/products/modals/edit-components-modal/types";
@@ -16,9 +16,9 @@ export interface IBundleModalPayload extends IModalStackPayload {
 }
 
 export interface IBundleEditGroupsModalPayload extends IModalStackPayload {
-  groups: IComponentGroup[];
+  groups: IBundleGroup[];
   pricingTemplates: PricingRuleTemplate[];
-  onSave?: (groups: IComponentGroup[]) => void;
+  onSave?: (groups: IBundleGroup[]) => void;
 }
 
 export interface IBundleEditTemplatesModalPayload extends IModalStackPayload {

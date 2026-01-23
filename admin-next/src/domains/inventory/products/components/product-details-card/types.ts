@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { ICategory } from "@/mocks/products/types";
 import type { ITag } from "../../modals";
-import type { IComponentGroup, PricingRuleTemplate, IDependencyRule } from "../../modals/edit-components-modal/types";
+import type { IBundleGroup, PricingRuleTemplate, IDependencyRule } from "../../modals/edit-components-modal/types";
 import type { IAttributeRow } from "../../modals/edit-attributes-modal/types";
 import type { ProductInventoryWidget } from "./inventory-widget.types";
 import type {
@@ -66,7 +66,7 @@ export interface IProductDetailsMockData {
   reviews: IReviewsData;
   attributes: IAttributeRow[];
   options: ApiProductOption[];
-  components: IComponentGroup[];
+  bundleItems: IBundleGroup[];
   pricingTemplates: PricingRuleTemplate[];
   dependencyRules: IDependencyRule[];
   inventory: ProductInventoryWidget;

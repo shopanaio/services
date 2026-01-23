@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useTheme } from "antd-style";
 import { MarkerType } from "@xyflow/react";
 
-import type { IComponentGroup, IDependencyRule } from "../../edit-components-modal/types";
+import type { IBundleGroup, IDependencyRule } from "../../edit-components-modal/types";
 import {
   DependencyConditionType,
   DependencyActionType,
@@ -68,7 +68,7 @@ const formatActionLabel = (
 // ============================================================================
 
 interface UseDerivedGraphOptions {
-  groups: IComponentGroup[];
+  groups: IBundleGroup[];
   rules: IDependencyRule[];
   selectedRuleId: string | null;
 }

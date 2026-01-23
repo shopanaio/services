@@ -11,8 +11,8 @@ import {
   ThresholdType,
 } from "@/domains/inventory/products/components/product-details-card/inventory-widget.types";
 import { CurrencyCode, OptionDisplayType, type ApiVariant, type ApiPageInfo } from "@/graphql/types";
-import type { IComponentGroup, PricingRuleTemplate, IDependencyRule } from "@/domains/inventory/products/modals/edit-components-modal/types";
-import { ComponentItemType, ComponentPriceType, DependencyConditionType, DependencyActionType, DependencyTargetType } from "@/domains/inventory/products/modals/edit-components-modal/types";
+import type { IBundleGroup, PricingRuleTemplate, IDependencyRule } from "@/domains/inventory/products/modals/edit-components-modal/types";
+import { BundleItemType, BundlePriceType, DependencyConditionType, DependencyActionType, DependencyTargetType } from "@/domains/inventory/products/modals/edit-components-modal/types";
 
 const getMockInventoryWidget = (): ProductInventoryWidget => ({
   quantities: {
@@ -46,8 +46,8 @@ const defaultReviewsData = {
   ],
 };
 
-// Helper to create mock variant for component products
-const createComponentVariant = (
+// Helper to create mock variant for bundle products
+const createBundleVariant = (
   id: string,
   title: string,
   sku: string,
@@ -94,16 +94,16 @@ const premiumCaseProductRef = { id: "prod-1", title: "Premium Case" };
 
 // Mock variants for Premium Case product
 const premiumCaseVariants: ApiVariant[] = [
-  createComponentVariant("case-var-1", "Black", "CASE-BLK", 199000, premiumCaseProductRef, [{ optionId: "color", optionValueId: "black" }]),
-  createComponentVariant("case-var-2", "White", "CASE-WHT", 199000, premiumCaseProductRef, [{ optionId: "color", optionValueId: "white" }]),
-  createComponentVariant("case-var-3", "Navy", "CASE-NVY", 219000, premiumCaseProductRef, [{ optionId: "color", optionValueId: "navy" }]),
-  createComponentVariant("case-var-4", "Red", "CASE-RED", 219000, premiumCaseProductRef, [{ optionId: "color", optionValueId: "red" }]),
-  createComponentVariant("case-var-5", "Green", "CASE-GRN", 239000, premiumCaseProductRef, [{ optionId: "color", optionValueId: "green" }]),
-  createComponentVariant("case-var-6", "Gold", "CASE-GLD", 299000, premiumCaseProductRef, [{ optionId: "color", optionValueId: "gold" }]),
+  createBundleVariant("case-var-1", "Black", "CASE-BLK", 199000, premiumCaseProductRef, [{ optionId: "color", optionValueId: "black" }]),
+  createBundleVariant("case-var-2", "White", "CASE-WHT", 199000, premiumCaseProductRef, [{ optionId: "color", optionValueId: "white" }]),
+  createBundleVariant("case-var-3", "Navy", "CASE-NVY", 219000, premiumCaseProductRef, [{ optionId: "color", optionValueId: "navy" }]),
+  createBundleVariant("case-var-4", "Red", "CASE-RED", 219000, premiumCaseProductRef, [{ optionId: "color", optionValueId: "red" }]),
+  createBundleVariant("case-var-5", "Green", "CASE-GRN", 239000, premiumCaseProductRef, [{ optionId: "color", optionValueId: "green" }]),
+  createBundleVariant("case-var-6", "Gold", "CASE-GLD", 299000, premiumCaseProductRef, [{ optionId: "color", optionValueId: "gold" }]),
 ];
 
-// Mock component groups with new structure
-const mockComponentGroups: IComponentGroup[] = [
+// Mock bundle groups with new structure
+const mockBundleGroups: IBundleGroup[] = [
   {
     id: "grp-1",
     title: "Accessories",
@@ -115,7 +115,7 @@ const mockComponentGroups: IComponentGroup[] = [
     items: [
       {
         id: "item-1",
-        itemType: ComponentItemType.PRODUCT,
+        itemType: BundleItemType.PRODUCT,
         assignedProduct: {
           __typename: "Product",
           id: "prod-1",
@@ -151,7 +151,7 @@ const mockComponentGroups: IComponentGroup[] = [
         },
         sortIndex: 0,
         pricingRule: {
-          priceType: ComponentPriceType.MARKUP_PERCENT,
+          priceType: BundlePriceType.MARKUP_PERCENT,
           priceValue: 10,
         },
         title: null,
@@ -159,7 +159,7 @@ const mockComponentGroups: IComponentGroup[] = [
       },
       {
         id: "item-2",
-        itemType: ComponentItemType.PRODUCT,
+        itemType: BundleItemType.PRODUCT,
         assignedProduct: {
           __typename: "Product",
           id: "prod-2",
@@ -174,7 +174,7 @@ const mockComponentGroups: IComponentGroup[] = [
         },
         sortIndex: 1,
         pricingRule: {
-          priceType: ComponentPriceType.DISCOUNT_PERCENT,
+          priceType: BundlePriceType.DISCOUNT_PERCENT,
           priceValue: 10,
         },
         title: null,
@@ -182,7 +182,7 @@ const mockComponentGroups: IComponentGroup[] = [
       },
       {
         id: "item-3",
-        itemType: ComponentItemType.PRODUCT,
+        itemType: BundleItemType.PRODUCT,
         assignedProduct: {
           __typename: "Product",
           id: "prod-3",
@@ -197,7 +197,7 @@ const mockComponentGroups: IComponentGroup[] = [
         },
         sortIndex: 2,
         pricingRule: {
-          priceType: ComponentPriceType.FREE,
+          priceType: BundlePriceType.FREE,
           priceValue: null,
         },
         title: null,
@@ -216,7 +216,7 @@ const mockComponentGroups: IComponentGroup[] = [
     items: [
       {
         id: "item-4",
-        itemType: ComponentItemType.PRODUCT,
+        itemType: BundleItemType.PRODUCT,
         assignedProduct: {
           __typename: "Product",
           id: "war-1",
@@ -231,7 +231,7 @@ const mockComponentGroups: IComponentGroup[] = [
         },
         sortIndex: 0,
         pricingRule: {
-          priceType: ComponentPriceType.INCLUDED,
+          priceType: BundlePriceType.INCLUDED,
           priceValue: null,
         },
         title: "1 Year Standard Warranty (included)",
@@ -239,7 +239,7 @@ const mockComponentGroups: IComponentGroup[] = [
       },
       {
         id: "item-5",
-        itemType: ComponentItemType.PRODUCT,
+        itemType: BundleItemType.PRODUCT,
         assignedProduct: {
           __typename: "Product",
           id: "war-2",
@@ -254,7 +254,7 @@ const mockComponentGroups: IComponentGroup[] = [
         },
         sortIndex: 1,
         pricingRule: {
-          priceType: ComponentPriceType.FIXED,
+          priceType: BundlePriceType.FIXED,
           priceValue: 12990,
         },
         title: null,
@@ -269,19 +269,19 @@ const mockPricingTemplates: PricingRuleTemplate[] = [
   {
     id: "tpl-1",
     name: "Bundle Discount",
-    priceType: ComponentPriceType.DISCOUNT_PERCENT,
+    priceType: BundlePriceType.DISCOUNT_PERCENT,
     priceValue: 15,
   },
   {
     id: "tpl-2",
     name: "Premium Markup",
-    priceType: ComponentPriceType.MARKUP_PERCENT,
+    priceType: BundlePriceType.MARKUP_PERCENT,
     priceValue: 20,
   },
   {
     id: "tpl-3",
     name: "Free Accessory",
-    priceType: ComponentPriceType.FREE,
+    priceType: BundlePriceType.FREE,
     priceValue: null,
   },
 ];
@@ -351,7 +351,7 @@ const mockDependencyRules: IDependencyRule[] = [
         actionType: DependencyActionType.ADJUST_PRICE,
         targetType: DependencyTargetType.ITEM,
         targetId: "item-3",
-        priceType: ComponentPriceType.FREE,
+        priceType: BundlePriceType.FREE,
         priceValue: null,
       },
     ],
@@ -367,7 +367,7 @@ export const productDetailsMockData: IProductDetailsMockData = {
   reviews: defaultReviewsData,
   attributes: createAttributesMockData(),
   options: MOCK_OPTION_GROUPS,
-  components: mockComponentGroups,
+  bundleItems: mockBundleGroups,
   pricingTemplates: mockPricingTemplates,
   dependencyRules: mockDependencyRules,
   inventory: getMockInventoryWidget(),

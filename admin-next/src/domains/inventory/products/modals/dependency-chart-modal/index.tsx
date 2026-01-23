@@ -17,7 +17,7 @@ import {
   ModalHeader,
 } from "@/layouts/modals";
 import type { IDependencyChartModalPayload } from "../../modals";
-import type { IDependencyRule, IComponentGroup } from "../edit-components-modal/types";
+import type { IDependencyRule, IBundleGroup } from "../edit-components-modal/types";
 
 import { ItemNode, RuleNode, BundleNode } from "./nodes";
 import { LabeledEdge } from "./edges";
@@ -44,7 +44,7 @@ const edgeTypes = {
 // ============================================================================
 
 interface IDependencyChartInnerProps {
-  groups: IComponentGroup[];
+  groups: IBundleGroup[];
   initialRules: IDependencyRule[];
   selectedRuleId?: string;
   onSave?: (rules: IDependencyRule[]) => void;

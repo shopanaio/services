@@ -10,10 +10,10 @@ import { createStyles } from "antd-style";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "@/domains/inventory/products/components/edit-action";
 import type {
-  IComponentGroup,
-  ComponentItem,
+  IBundleGroup,
+  BundleItem,
 } from "@/domains/inventory/products/modals/edit-components-modal/types";
-import { ComponentItemType } from "@/domains/inventory/products/modals/edit-components-modal/types";
+import { BundleItemType } from "@/domains/inventory/products/modals/edit-components-modal/types";
 
 // ============================================================================
 // Styles
@@ -101,7 +101,7 @@ const useStyles = createStyles(({ token }) => ({
 // ============================================================================
 
 interface IGroupsSectionProps {
-  groups: IComponentGroup[];
+  groups: IBundleGroup[];
   onEdit: () => void;
 }
 
@@ -109,19 +109,19 @@ interface IGroupsSectionProps {
 // Helpers
 // ============================================================================
 
-const getItemImageUrl = (item: ComponentItem): string | null => {
+const getItemImageUrl = (item: BundleItem): string | null => {
   if (item.featuredImage?.url) {
     return item.featuredImage.url;
   }
-  if (item.itemType === ComponentItemType.VARIANT && item.assignedVariant) {
+  if (item.itemType === BundleItemType.VARIANT && item.assignedVariant) {
     return item.assignedVariant.media?.[0]?.file?.url ?? null;
   }
   return null;
 };
 
-const getItemName = (item: ComponentItem): string => {
+const getItemName = (item: BundleItem): string => {
   if (item.title) return item.title;
-  if (item.itemType === ComponentItemType.VARIANT && item.assignedVariant) {
+  if (item.itemType === BundleItemType.VARIANT && item.assignedVariant) {
     return item.assignedVariant.title ?? "Variant";
   }
   if (item.assignedProduct) {
@@ -130,7 +130,7 @@ const getItemName = (item: ComponentItem): string => {
   return "Item";
 };
 
-const getSelectionLabel = (group: IComponentGroup): string => {
+const getSelectionLabel = (group: IBundleGroup): string => {
   if (!group.isMultiple) {
     return "Select 1";
   }

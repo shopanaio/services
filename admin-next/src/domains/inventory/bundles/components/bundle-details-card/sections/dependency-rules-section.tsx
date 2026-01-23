@@ -8,7 +8,7 @@ import type {
   IDependencyRule,
   IDependencyCondition,
   IDependencyAction,
-  IComponentGroup,
+  IBundleGroup,
 } from "@/domains/inventory/products/modals/edit-components-modal/types";
 import {
   DependencyTargetType,
@@ -145,7 +145,7 @@ const useStyles = createStyles(({ token }) => ({
 const resolveTargetName = (
   targetType: DependencyTargetType,
   targetId: string | undefined,
-  groups: IComponentGroup[],
+  groups: IBundleGroup[],
 ): string | null => {
   if (!targetId) return null;
   if (targetType === DependencyTargetType.GROUP) {
@@ -184,7 +184,7 @@ const formatAction = (action: IDependencyAction): string => {
 
 interface IDependencyRulesSectionProps {
   dependencyRules: IDependencyRule[];
-  groups: IComponentGroup[];
+  groups: IBundleGroup[];
   onOpenChart: () => void;
   onAddRule: () => void;
   onEditRule: (ruleId: string) => void;

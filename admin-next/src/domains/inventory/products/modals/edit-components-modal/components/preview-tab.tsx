@@ -5,8 +5,8 @@ import { createStyles } from "antd-style";
 import { Typography, Radio, Checkbox, Tag, Image } from "antd";
 import { ShoppingOutlined } from "@ant-design/icons";
 
-import type { DisplayStyle, IComponentGroup, ComponentItem } from "../types";
-import { ComponentItemType, ComponentPriceType } from "../types";
+import type { DisplayStyle, IBundleGroup, BundleItem } from "../types";
+import { BundleItemType, BundlePriceType } from "../types";
 
 // Format price helper
 const formatPrice = (price: number): string => {
@@ -21,7 +21,7 @@ const formatPrice = (price: number): string => {
 // ============================================================================
 
 interface IPreviewTabProps {
-  groups: IComponentGroup[];
+  groups: IBundleGroup[];
   displayStyle: DisplayStyle;
   showImages: boolean;
   showSku: boolean;
@@ -241,11 +241,11 @@ const useStyles = createStyles(({ token }) => ({
 // ============================================================================
 
 // Helper to check if pricingRule is a template
-const isTemplate = (rule: ComponentItem["pricingRule"]): boolean => {
+const isTemplate = (rule: BundleItem["pricingRule"]): boolean => {
   return "id" in rule && "name" in rule;
 };
 
-const getPriceType = (item: ComponentItem): ComponentPriceType => {
+const getPriceType = (item: BundleItem): BundlePriceType => {
   return isTemplate(item.pricingRule)
     ? item.pricingRule.priceType
     : item.pricingRule.priceType;
@@ -255,20 +255,20 @@ const getPriceType = (item: ComponentItem): ComponentPriceType => {
 // Helper Functions
 // ============================================================================
 
-const getItemTitle = (item: ComponentItem): string => {
+const getItemTitle = (item: BundleItem): string => {
   if (item.title) return item.title;
 
-  if (item.itemType === ComponentItemType.VARIANT && item.assignedVariant) {
+  if (item.itemType === BundleItemType.VARIANT && item.assignedVariant) {
     return item.assignedVariant.title ?? "Unknown Variant";
   }
 
   return item.assignedProduct?.title ?? "Unknown Product";
 };
 
-const getItemImage = (item: ComponentItem): string | null => {
+const getItemImage = (item: BundleItem): string | null => {
   if (item.featuredImage?.url) return item.featuredImage.url;
 
-  if (item.itemType === ComponentItemType.VARIANT && item.assignedVariant) {
+  if (item.itemType === BundleItemType.VARIANT && item.assignedVariant) {
     const variantMedia = item.assignedVariant.media?.[0]?.file?.url;
     if (variantMedia) return variantMedia;
     // ApiProduct doesn't have media directly
@@ -279,16 +279,16 @@ const getItemImage = (item: ComponentItem): string | null => {
   return null;
 };
 
-const getItemSku = (item: ComponentItem): string => {
-  if (item.itemType === ComponentItemType.VARIANT && item.assignedVariant) {
+const getItemSku = (item: BundleItem): string => {
+  if (item.itemType === BundleItemType.VARIANT && item.assignedVariant) {
     return item.assignedVariant.sku ?? "";
   }
   // ApiProduct doesn't have sku directly
   return "";
 };
 
-const getItemBasePrice = (item: ComponentItem): number => {
-  if (item.itemType === ComponentItemType.VARIANT && item.assignedVariant) {
+const getItemBasePrice = (item: BundleItem): number => {
+  if (item.itemType === BundleItemType.VARIANT && item.assignedVariant) {
     // ApiVariant.price is ApiVariantPrice object with amountMinor in cents
     const amountMinor = item.assignedVariant.price?.amountMinor;
     return typeof amountMinor === "bigint"
@@ -302,7 +302,7 @@ const getItemBasePrice = (item: ComponentItem): number => {
 };
 
 const formatPriceDisplay = (
-  item: ComponentItem,
+  item: BundleItem,
   showComparePrice: boolean
 ): {
   price: string;
@@ -311,8 +311,8 @@ const formatPriceDisplay = (
   isIncluded: boolean;
 } => {
   const priceType = getPriceType(item);
-  const isFree = priceType === ComponentPriceType.FREE;
-  const isIncluded = priceType === ComponentPriceType.INCLUDED;
+  const isFree = priceType === BundlePriceType.FREE;
+  const isIncluded = priceType === BundlePriceType.INCLUDED;
 
   if (isFree) {
     return { price: "Free", isFree: true, isIncluded: false };
@@ -330,19 +330,19 @@ const formatPriceDisplay = (
 
   let finalPrice = basePrice;
   switch (priceType) {
-    case ComponentPriceType.FIXED:
+    case BundlePriceType.FIXED:
       finalPrice = priceValue ?? 0;
       break;
-    case ComponentPriceType.MARKUP_PERCENT:
+    case BundlePriceType.MARKUP_PERCENT:
       finalPrice = basePrice * (1 + (priceValue ?? 0) / 100);
       break;
-    case ComponentPriceType.DISCOUNT_PERCENT:
+    case BundlePriceType.DISCOUNT_PERCENT:
       finalPrice = basePrice * (1 - (priceValue ?? 0) / 100);
       break;
-    case ComponentPriceType.MARKUP_FIXED:
+    case BundlePriceType.MARKUP_FIXED:
       finalPrice = basePrice + (priceValue ?? 0);
       break;
-    case ComponentPriceType.DISCOUNT_FIXED:
+    case BundlePriceType.DISCOUNT_FIXED:
       finalPrice = basePrice - (priceValue ?? 0);
       break;
     default:
@@ -363,7 +363,7 @@ const formatPriceDisplay = (
 // ============================================================================
 
 interface IStorefrontItemProps {
-  item: ComponentItem;
+  item: BundleItem;
   isSelected: boolean;
   isMultiple: boolean;
   onSelect: () => void;
@@ -442,7 +442,7 @@ const StorefrontItem = ({
         <div className={styles.itemTitle}>{title}</div>
         <div className={styles.itemMeta}>
           {showSku && sku && <span>{sku}</span>}
-          {showStock && item.itemType === ComponentItemType.VARIANT && (
+          {showStock && item.itemType === BundleItemType.VARIANT && (
             <Tag color="green" style={{ margin: 0 }}>
               In stock
             </Tag>
@@ -474,7 +474,7 @@ const StorefrontItem = ({
 // ============================================================================
 
 interface IStorefrontGroupProps {
-  group: IComponentGroup;
+  group: IBundleGroup;
   selectedItemIds: string[];
   onSelectionChange: (itemIds: string[]) => void;
   showImages: boolean;
@@ -599,7 +599,7 @@ const StorefrontGroup = ({
 // ============================================================================
 
 interface IPriceSummaryProps {
-  groups: IComponentGroup[];
+  groups: IBundleGroup[];
   selectedItems: ISelectedItems;
 }
 
@@ -628,23 +628,23 @@ const PriceSummary = ({ groups, selectedItems }: IPriceSummaryProps) => {
 
         let finalPrice = basePrice;
         switch (priceType) {
-          case ComponentPriceType.FIXED:
+          case BundlePriceType.FIXED:
             finalPrice = priceValue ?? 0;
             break;
-          case ComponentPriceType.MARKUP_PERCENT:
+          case BundlePriceType.MARKUP_PERCENT:
             finalPrice = basePrice * (1 + (priceValue ?? 0) / 100);
             break;
-          case ComponentPriceType.DISCOUNT_PERCENT:
+          case BundlePriceType.DISCOUNT_PERCENT:
             finalPrice = basePrice * (1 - (priceValue ?? 0) / 100);
             break;
-          case ComponentPriceType.MARKUP_FIXED:
+          case BundlePriceType.MARKUP_FIXED:
             finalPrice = basePrice + (priceValue ?? 0);
             break;
-          case ComponentPriceType.DISCOUNT_FIXED:
+          case BundlePriceType.DISCOUNT_FIXED:
             finalPrice = basePrice - (priceValue ?? 0);
             break;
-          case ComponentPriceType.FREE:
-          case ComponentPriceType.INCLUDED:
+          case BundlePriceType.FREE:
+          case BundlePriceType.INCLUDED:
             finalPrice = 0;
             break;
           default:
@@ -659,7 +659,7 @@ const PriceSummary = ({ groups, selectedItems }: IPriceSummaryProps) => {
 
         if (finalPrice > 0) {
           lines.push({ label: title, amount: finalPrice });
-        } else if (priceType === ComponentPriceType.FREE) {
+        } else if (priceType === BundlePriceType.FREE) {
           lines.push({ label: `${title} (Free)`, amount: 0 });
         }
       });
@@ -699,7 +699,7 @@ const PriceSummary = ({ groups, selectedItems }: IPriceSummaryProps) => {
       )}
 
       <div className={cx(styles.summaryRow, styles.summaryRowTotal)}>
-        <span>Components Total</span>
+        <span>Bundle Items Total</span>
         <span className={styles.summaryValue}>
           {formatPrice(summary.subtotal)}
         </span>
@@ -751,7 +751,7 @@ export const PreviewTab = ({
               Configure Your Bundle
             </Typography.Title>
             <Typography.Text type="secondary">
-              Select the components you want to include
+              Select the bundle items you want to include
             </Typography.Text>
           </div>
 

@@ -306,10 +306,10 @@ export const useOptionsStyles = createStyles(({ token }) => ({
 }));
 
 // ============================================================================
-// Components Section Styles
+// Bundle Items Section Styles
 // ============================================================================
 
-export const useComponentsStyles = createStyles(({ token }) => ({
+export const useBundleItemsStyles = createStyles(({ token }) => ({
   groupCard: {
     flex: 1,
     minWidth: 180,

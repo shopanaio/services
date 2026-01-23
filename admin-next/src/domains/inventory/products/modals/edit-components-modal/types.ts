@@ -5,9 +5,9 @@ import type { ApiFile, ApiProduct, ApiVariant } from "@/graphql/types";
 // ============================================================================
 
 /**
- * Component item type - determines how the item is displayed
+ * Bundle item type - determines how the item is displayed
  */
-export enum ComponentItemType {
+export enum BundleItemType {
   /** Simple product without variants */
   PRODUCT = "PRODUCT",
   /** Specific variant of a product */
@@ -15,9 +15,9 @@ export enum ComponentItemType {
 }
 
 /**
- * Price rule types for component items
+ * Price rule types for bundle items
  */
-export enum ComponentPriceType {
+export enum BundlePriceType {
   /** No changes, use base product price */
   BASE = "BASE",
   /** Override with fixed price */
@@ -47,20 +47,20 @@ export type DisplayStyle = "accordion" | "tabs" | "flat" | "wizard";
 export type OutOfStockBehavior = "hide" | "disable" | "backorder";
 
 /**
- * Stock status for component items
+ * Stock status for bundle items
  */
 export type StockStatus = "inStock" | "lowStock" | "outOfStock";
 
 // ============================================================================
-// Component Item
+// Bundle Item
 // ============================================================================
 
-export interface ComponentItem {
+export interface BundleItem {
   /** Unique identifier for this item */
   id: string;
 
-  /** Component item type - determines how the item is displayed */
-  itemType: ComponentItemType;
+  /** Bundle item type - determines how the item is displayed */
+  itemType: BundleItemType;
 
   /** Sort index for display order */
   sortIndex: number;
@@ -85,17 +85,17 @@ export interface ComponentItem {
     | PricingRuleTemplate
     | {
         /** Pricing configuration - applies to all variants */
-        priceType: ComponentPriceType;
+        priceType: BundlePriceType;
         priceValue: number | null;
         /** Template if using a pricing template */
       };
 }
 
 // ============================================================================
-// Component Group
+// Bundle Group
 // ============================================================================
 
-export interface IComponentGroup {
+export interface IBundleGroup {
   /** Unique identifier for this group */
   id: string;
 
@@ -118,7 +118,7 @@ export interface IComponentGroup {
   maxSelection: number | null;
 
   /** Items in this group */
-  items: ComponentItem[];
+  items: BundleItem[];
 }
 
 // ============================================================================
@@ -128,7 +128,7 @@ export interface IComponentGroup {
 export interface PricingRuleTemplate {
   id: string;
   name: string;
-  priceType: ComponentPriceType;
+  priceType: BundlePriceType;
   priceValue: number | null;
 }
 
@@ -160,7 +160,7 @@ export interface IBundleSettings
 // Tab Types
 // ============================================================================
 
-export type EditComponentsTabKey =
+export type EditBundleItemsTabKey =
   | "groups"
   | "pricing"
   | "preview"
@@ -171,57 +171,57 @@ export type EditComponentsTabKey =
 // ============================================================================
 
 export interface PriceRuleOption {
-  value: ComponentPriceType;
+  value: BundlePriceType;
   label: string;
   requiresValue?: boolean;
   valueSuffix?: string;
 }
 
 export const PRICE_RULE_OPTIONS: PriceRuleOption[] = [
-  { value: ComponentPriceType.BASE, label: "No change" },
+  { value: BundlePriceType.BASE, label: "No change" },
   {
-    value: ComponentPriceType.FIXED,
+    value: BundlePriceType.FIXED,
     label: "Fixed price",
     requiresValue: true,
     valueSuffix: "$",
   },
   {
-    value: ComponentPriceType.MARKUP_PERCENT,
+    value: BundlePriceType.MARKUP_PERCENT,
     label: "Markup %",
     requiresValue: true,
     valueSuffix: "%",
   },
   {
-    value: ComponentPriceType.DISCOUNT_PERCENT,
+    value: BundlePriceType.DISCOUNT_PERCENT,
     label: "Discount %",
     requiresValue: true,
     valueSuffix: "%",
   },
   {
-    value: ComponentPriceType.MARKUP_FIXED,
+    value: BundlePriceType.MARKUP_FIXED,
     label: "Markup $",
     requiresValue: true,
     valueSuffix: "$",
   },
   {
-    value: ComponentPriceType.DISCOUNT_FIXED,
+    value: BundlePriceType.DISCOUNT_FIXED,
     label: "Discount $",
     requiresValue: true,
     valueSuffix: "$",
   },
   {
-    value: ComponentPriceType.FREE,
+    value: BundlePriceType.FREE,
     label: "Free",
   },
   {
-    value: ComponentPriceType.INCLUDED,
+    value: BundlePriceType.INCLUDED,
     label: "Included in bundle",
   },
 ];
 
-export const ITEM_TYPE_LABELS: Record<ComponentItemType, string> = {
-  [ComponentItemType.PRODUCT]: "Product",
-  [ComponentItemType.VARIANT]: "Variant",
+export const ITEM_TYPE_LABELS: Record<BundleItemType, string> = {
+  [BundleItemType.PRODUCT]: "Product",
+  [BundleItemType.VARIANT]: "Variant",
 };
 
 export const STOCK_STATUS_LABELS: Record<StockStatus, string> = {
@@ -309,12 +309,12 @@ export interface IDependencyAction {
   qtyValue?: number;
 
   // For OVERRIDE_PRICE / ADJUST_PRICE
-  priceType?: ComponentPriceType;
+  priceType?: BundlePriceType;
   priceValue?: number | null;
 
   // Price conflict resolution
   exclusiveKey?: string; // e.g. "bundleDiscount" - only highest priority wins in same key
-  applyTo?: "ITEM" | "COMPONENTS_SUBTOTAL"; // where discount applies (default: ITEM)
+  applyTo?: "ITEM" | "BUNDLE_ITEMS_SUBTOTAL"; // where discount applies (default: ITEM)
 
 }
 

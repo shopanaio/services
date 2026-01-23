@@ -225,18 +225,18 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
-    // Edit Components modal (bundle configurator)
+    // Edit Bundle Items modal (bundle configurator)
     {
-      type: 'product-edit-components',
+      type: 'product-edit-bundle-items',
       component: dynamic(() =>
         import('@/domains/inventory/products/modals/edit-components-modal').then(
-          (m) => m.EditComponentsModal
+          (m) => m.EditBundleItemsModal
         )
       ),
     },
-    // Component Variant Settings modal
+    // Bundle Item Variant Settings modal
     {
-      type: 'component-variant-settings',
+      type: 'bundle-item-variant-settings',
       component: dynamic(() =>
         import('@/domains/inventory/products/modals/variant-settings-modal').then(
           (m) => m.VariantSettingsModal

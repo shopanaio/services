@@ -10,14 +10,14 @@ import {
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
-import { useComponentVariantSettingsModal } from "@/domains/inventory/products/modals";
+import { useBundleItemVariantSettingsModal } from "@/domains/inventory/products/modals";
 import { GroupCard } from "@/domains/inventory/products/modals/edit-components-modal/components";
 import type {
-  IComponentGroup,
-  ComponentItem,
+  IBundleGroup,
+  BundleItem,
   PricingRuleTemplate,
 } from "@/domains/inventory/products/modals/edit-components-modal/types";
-import { ComponentItemType } from "@/domains/inventory/products/modals/edit-components-modal/types";
+import { BundleItemType } from "@/domains/inventory/products/modals/edit-components-modal/types";
 
 // ============================================================================
 // Styles
@@ -36,9 +36,9 @@ const useStyles = createStyles(() => ({
 // ============================================================================
 
 export interface IEditGroupsModalPayload {
-  groups: IComponentGroup[];
+  groups: IBundleGroup[];
   pricingTemplates: PricingRuleTemplate[];
-  onSave?: (groups: IComponentGroup[]) => void;
+  onSave?: (groups: IBundleGroup[]) => void;
 }
 
 // ============================================================================
@@ -48,11 +48,11 @@ export interface IEditGroupsModalPayload {
 export const EditGroupsModal = () => {
   const { styles } = useStyles();
   const { pop, setDirty, payload } = useModalStackContext();
-  const { push: openVariantSettingsModal } = useComponentVariantSettingsModal();
+  const { push: openVariantSettingsModal } = useBundleItemVariantSettingsModal();
 
   const modalPayload = payload as unknown as IEditGroupsModalPayload | undefined;
 
-  const [groups, setGroups] = useState<IComponentGroup[]>(
+  const [groups, setGroups] = useState<IBundleGroup[]>(
     modalPayload?.groups ?? []
   );
   const pricingTemplates = modalPayload?.pricingTemplates ?? [];
@@ -61,7 +61,7 @@ export const EditGroupsModal = () => {
     groups[0]?.id ? [groups[0].id] : []
   );
   const [expandedProducts, setExpandedProducts] = useState<
-    Map<string, ComponentItem>
+    Map<string, BundleItem>
   >(new Map());
 
   // ========================================
@@ -77,7 +77,7 @@ export const EditGroupsModal = () => {
   }, []);
 
   const handleAddGroup = useCallback(() => {
-    const newGroup: IComponentGroup = {
+    const newGroup: IBundleGroup = {
       id: `grp-${Date.now()}`,
       title: "New Group",
       sortIndex: groups.length,
@@ -93,7 +93,7 @@ export const EditGroupsModal = () => {
   }, [groups.length, setDirty]);
 
   const handleGroupChange = useCallback(
-    (updatedGroup: IComponentGroup) => {
+    (updatedGroup: IBundleGroup) => {
       setGroups((prev) =>
         prev.map((g) => (g.id === updatedGroup.id ? updatedGroup : g))
       );
@@ -116,7 +116,7 @@ export const EditGroupsModal = () => {
         const groupToDuplicate = prev.find((g) => g.id === groupId);
         if (!groupToDuplicate) return prev;
 
-        const newGroup: IComponentGroup = {
+        const newGroup: IBundleGroup = {
           ...groupToDuplicate,
           id: `grp-${Date.now()}`,
           title: `${groupToDuplicate.title} (copy)`,
@@ -139,8 +139,8 @@ export const EditGroupsModal = () => {
   // ========================================
 
   const handleEditVariants = useCallback(
-    (item: ComponentItem, groupId: string) => {
-      if (item.itemType !== ComponentItemType.PRODUCT || !item.assignedProduct) return;
+    (item: BundleItem, groupId: string) => {
+      if (item.itemType !== BundleItemType.PRODUCT || !item.assignedProduct) return;
 
       const assignedProduct = item.assignedProduct;
       const variantsFromConnection =
@@ -201,8 +201,8 @@ export const EditGroupsModal = () => {
   );
 
   const handleIncludeVariants = useCallback(
-    (item: ComponentItem, groupId: string) => {
-      if (item.itemType !== ComponentItemType.PRODUCT || !item.assignedProduct) return;
+    (item: BundleItem, groupId: string) => {
+      if (item.itemType !== BundleItemType.PRODUCT || !item.assignedProduct) return;
 
       const assignedProduct = item.assignedProduct;
       const variantsFromConnection =
@@ -211,10 +211,10 @@ export const EditGroupsModal = () => {
 
       setExpandedProducts((prev) => new Map(prev).set(assignedProduct.id, item));
 
-      const variantItems: ComponentItem[] = variantsFromConnection.map(
+      const variantItems: BundleItem[] = variantsFromConnection.map(
         (variant, index) => ({
           id: `item-${Date.now()}-${index}`,
-          itemType: ComponentItemType.VARIANT,
+          itemType: BundleItemType.VARIANT,
           assignedVariant: variant,
           sortIndex: item.sortIndex + index + 1,
           pricingRule: item.pricingRule,
@@ -238,8 +238,8 @@ export const EditGroupsModal = () => {
   );
 
   const handleShowAsProduct = useCallback(
-    (item: ComponentItem, groupId: string) => {
-      if (item.itemType !== ComponentItemType.VARIANT || !item.assignedVariant) return;
+    (item: BundleItem, groupId: string) => {
+      if (item.itemType !== BundleItemType.VARIANT || !item.assignedVariant) return;
 
       const productId = item.assignedVariant.product?.id;
       if (!productId) return;
@@ -258,7 +258,7 @@ export const EditGroupsModal = () => {
           if (g.id !== groupId) return g;
           const firstVariantIndex = g.items.findIndex(
             (i) =>
-              i.itemType === ComponentItemType.VARIANT &&
+              i.itemType === BundleItemType.VARIANT &&
               i.assignedVariant?.product?.id === productId
           );
           if (firstVariantIndex === -1) return g;
@@ -266,7 +266,7 @@ export const EditGroupsModal = () => {
           const newItems = g.items.filter(
             (i) =>
               !(
-                i.itemType === ComponentItemType.VARIANT &&
+                i.itemType === BundleItemType.VARIANT &&
                 i.assignedVariant?.product?.id === productId
               )
           );
@@ -294,7 +294,7 @@ export const EditGroupsModal = () => {
       header={
         <ModalHeader
           name="edit-bundle-groups"
-          title="Edit Component Groups"
+          title="Edit Bundle Items"
           onClose={pop}
           submitButtonProps={{
             children: "Save",
@@ -305,7 +305,7 @@ export const EditGroupsModal = () => {
     >
       <Paper>
         <PaperHeader
-          title="COMPONENT GROUPS"
+          title="Bundle Items"
           actions={
             <Button size="small" icon={<PlusOutlined />} onClick={handleAddGroup}>
               Add

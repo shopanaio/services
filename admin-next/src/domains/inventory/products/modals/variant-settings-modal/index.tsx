@@ -20,7 +20,7 @@ import {
 } from "@/layouts/modals";
 import { useAgGridTheme } from "@/hooks";
 
-import type { IComponentVariantSettingsModalPayload } from "@/domains/inventory/products/modals";
+import type { IBundleItemVariantSettingsModalPayload } from "@/domains/inventory/products/modals";
 
 // Format price helper
 const formatPrice = (price: number): string => {
@@ -200,7 +200,7 @@ export const VariantSettingsModal = () => {
   const { pop, payload } = useModalStackContext();
   const gridRef = useRef<AgGridReact<IVariantRow>>(null);
 
-  const modalPayload = payload as IComponentVariantSettingsModalPayload | undefined;
+  const modalPayload = payload as IBundleItemVariantSettingsModalPayload | undefined;
 
   // Extract data from payload
   const {
@@ -441,10 +441,10 @@ export const VariantSettingsModal = () => {
 
   return (
     <ModalLayout
-      name="component-variant-settings"
+      name="bundle-item-variant-settings"
       header={
         <ModalHeader
-          name="component-variant-settings"
+          name="bundle-item-variant-settings"
           title={`Variant Settings: ${productTitle}`}
           onClose={pop}
           submitButtonProps={{
@@ -535,7 +535,7 @@ export const VariantSettingsModal = () => {
             <Typography.Text strong>Show as variants</Typography.Text>
             <br />
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              Display each variant as a separate row in the components table
+              Display each variant as a separate row in the bundle items table
             </Typography.Text>
           </div>
           <Switch

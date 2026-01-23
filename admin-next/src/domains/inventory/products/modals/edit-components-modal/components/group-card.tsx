@@ -21,14 +21,14 @@ import {
 } from "@/shared/components/entity-picker-modal";
 
 import type {
-  ComponentItem,
-  IComponentGroup,
+  BundleItem,
+  IBundleGroup,
   PricingRuleTemplate,
 } from "../types";
-import { ComponentItemType, ComponentPriceType } from "../types";
+import { BundleItemType, BundlePriceType } from "../types";
 import type { ApiProduct } from "@/graphql/types";
 import { GroupSettings } from "./group-settings";
-import { ComponentsTable } from "./components-table";
+import { BundleItemsTable } from "./components-table";
 
 // ============================================================================
 // Styles
@@ -74,15 +74,15 @@ const useStyles = createStyles(({ token }) => ({
 // ============================================================================
 
 interface IGroupCardProps {
-  group: IComponentGroup;
+  group: IBundleGroup;
   isExpanded: boolean;
   onToggle: () => void;
-  onChange: (group: IComponentGroup) => void;
+  onChange: (group: IBundleGroup) => void;
   onDelete: () => void;
   onDuplicate: () => void;
-  onEditVariants?: (item: ComponentItem) => void;
-  onIncludeVariants?: (item: ComponentItem) => void;
-  onShowAsProduct?: (item: ComponentItem) => void;
+  onEditVariants?: (item: BundleItem) => void;
+  onIncludeVariants?: (item: BundleItem) => void;
+  onShowAsProduct?: (item: BundleItem) => void;
   pricingTemplates: PricingRuleTemplate[];
 }
 
@@ -108,24 +108,24 @@ export const GroupCard = ({
   const existingProductIds = useMemo(
     () =>
       group.items
-        .filter((item) => item.itemType === ComponentItemType.PRODUCT)
+        .filter((item) => item.itemType === BundleItemType.PRODUCT)
         .map((item) => item.assignedProduct?.id)
         .filter(Boolean) as string[],
     [group.items]
   );
 
-  // Transform selected products to component items
+  // Transform selected products to bundle items
   const handleProductsSelected = useCallback(
     (products: IPickableEntity[]) => {
-      const newItems: ComponentItem[] = products.map((product, index) => ({
+      const newItems: BundleItem[] = products.map((product, index) => ({
         id: `item-${Date.now()}-${index}`,
-        itemType: ComponentItemType.PRODUCT,
+        itemType: BundleItemType.PRODUCT,
         assignedProduct: product as ApiProduct,
         sortIndex: group.items.length + index,
         title: null,
         featuredImage: null,
         pricingRule: {
-          priceType: ComponentPriceType.BASE,
+          priceType: BundlePriceType.BASE,
           priceValue: null,
         },
       }));
@@ -155,14 +155,14 @@ export const GroupCard = ({
 
   // Handlers
   const handleSettingsChange = useCallback(
-    (updates: Partial<IComponentGroup>) => {
+    (updates: Partial<IBundleGroup>) => {
       onChange({ ...group, ...updates });
     },
     [group, onChange]
   );
 
   const handleItemsChange = useCallback(
-    (items: ComponentItem[]) => {
+    (items: BundleItem[]) => {
       onChange({ ...group, items });
     },
     [group, onChange]
@@ -240,7 +240,7 @@ export const GroupCard = ({
               </Button>
             </Empty>
           ) : (
-            <ComponentsTable
+            <BundleItemsTable
               items={group.items}
               onItemsChange={handleItemsChange}
               onEditVariants={onEditVariants}

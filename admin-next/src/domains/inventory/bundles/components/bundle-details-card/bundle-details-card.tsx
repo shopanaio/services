@@ -30,7 +30,7 @@ import {
 import type { IProduct, IMediaFile } from "@/mocks/products/types";
 import type { IBundleDetailsMockData } from "@/mocks/products/bundle-details";
 import type {
-  IComponentGroup,
+  IBundleGroup,
   IDependencyRule,
 } from "@/domains/inventory/products/modals/edit-components-modal/types";
 
@@ -58,7 +58,7 @@ export const BundleDetailsCard = ({
   const { push: openDependencyChartModal } = useDependencyChartModal();
 
   // State
-  const [groups, setGroups] = useState<IComponentGroup[]>(mockData.components);
+  const [groups, setGroups] = useState<IBundleGroup[]>(mockData.bundleItems);
   const [dependencyRules, setDependencyRules] = useState<IDependencyRule[]>(
     mockData.dependencyRules
   );
@@ -70,7 +70,7 @@ export const BundleDetailsCard = ({
   const handleEditGroups = useCallback(() => {
     openEditGroupsModal({
       groups,
-      onSave: (updatedGroups: IComponentGroup[]) => {
+      onSave: (updatedGroups: IBundleGroup[]) => {
         setGroups(updatedGroups);
       },
     });

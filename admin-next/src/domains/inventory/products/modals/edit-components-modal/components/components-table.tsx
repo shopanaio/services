@@ -23,10 +23,10 @@ import {
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 
-import type { ComponentItem, PricingRuleTemplate } from "../types";
+import type { BundleItem, PricingRuleTemplate } from "../types";
 import {
-  ComponentItemType,
-  ComponentPriceType,
+  BundleItemType,
+  BundlePriceType,
   PRICE_RULE_OPTIONS,
 } from "../types";
 import type { ApiProduct, ApiVariant, ApiFile } from "@/graphql/types";
@@ -124,19 +124,19 @@ const useStyles = createStyles(({ token }) => ({
 // Types
 // ============================================================================
 
-interface IComponentsTableProps {
-  items: ComponentItem[];
-  onItemsChange: (items: ComponentItem[]) => void;
-  onEditVariants?: (item: ComponentItem) => void;
-  onIncludeVariants?: (item: ComponentItem) => void;
-  onShowAsProduct?: (item: ComponentItem) => void;
+interface IBundleItemsTableProps {
+  items: BundleItem[];
+  onItemsChange: (items: BundleItem[]) => void;
+  onEditVariants?: (item: BundleItem) => void;
+  onIncludeVariants?: (item: BundleItem) => void;
+  onShowAsProduct?: (item: BundleItem) => void;
   pricingTemplates: PricingRuleTemplate[];
 }
 
 // Row type - either product or variant
 interface ITableRow {
   id: string;
-  itemType: ComponentItemType;
+  itemType: BundleItemType;
 
   // For PRODUCT
   assignedProduct?: ApiProduct;
@@ -148,7 +148,7 @@ interface ITableRow {
   // Pricing
   pricingRule:
     | {
-        priceType: ComponentPriceType;
+        priceType: BundlePriceType;
         priceValue: number | null;
       }
     | PricingRuleTemplate;
@@ -166,7 +166,7 @@ interface ITableRow {
 
 // Helper to determine if pricingRule is a template
 const isTemplate = (
-  rule: ComponentItem["pricingRule"]
+  rule: BundleItem["pricingRule"]
 ): rule is PricingRuleTemplate => {
   return "id" in rule && "name" in rule;
 };
@@ -189,7 +189,7 @@ const ProductCellRenderer = (params: IProductCellRendererParams) => {
   const data = params.data;
   if (!data) return null;
 
-  if (data.itemType === ComponentItemType.VARIANT) {
+  if (data.itemType === BundleItemType.VARIANT) {
     // For variant: show variant title (and optionally product title if available)
     const variant = data.assignedVariant;
     const productTitle = variant?.product?.title;
@@ -240,7 +240,7 @@ interface IPriceRuleCellRendererProps extends ICellRendererParams<ITableRow> {
   pricingTemplates: PricingRuleTemplate[];
   onPriceRuleChange: (
     itemId: string,
-    pricingRule: ComponentItem["pricingRule"]
+    pricingRule: BundleItem["pricingRule"]
   ) => void;
 }
 
@@ -292,7 +292,7 @@ const PriceRuleCellRenderer = ({
       }
     } else {
       // Custom rule selected - save inline object
-      const priceType = value as ComponentPriceType;
+      const priceType = value as BundlePriceType;
       const rule = PRICE_RULE_OPTIONS.find((r) => r.value === priceType);
 
       // Preserve priceValue if previous rule had same type
@@ -326,10 +326,10 @@ const PriceRuleCellRenderer = ({
 interface IActionsCellRendererProps extends ICellRendererParams<ITableRow> {
   onDelete: (itemId: string) => void;
   onDuplicate: (itemId: string) => void;
-  onEditVariants?: (item: ComponentItem) => void;
-  onIncludeVariants?: (item: ComponentItem) => void;
-  onShowAsProduct?: (item: ComponentItem) => void;
-  items: ComponentItem[];
+  onEditVariants?: (item: BundleItem) => void;
+  onIncludeVariants?: (item: BundleItem) => void;
+  onShowAsProduct?: (item: BundleItem) => void;
+  items: BundleItem[];
 }
 
 const ActionsCellRenderer = ({
@@ -344,7 +344,7 @@ const ActionsCellRenderer = ({
   if (!data) return null;
 
   // For VARIANT
-  if (data.itemType === ComponentItemType.VARIANT) {
+  if (data.itemType === BundleItemType.VARIANT) {
     const fullItem = items.find((item) => item.id === data.id);
     const menuItems: MenuProps["items"] = [
       ...(fullItem && onShowAsProduct
@@ -429,14 +429,14 @@ const ActionsCellRenderer = ({
 // Main Component
 // ============================================================================
 
-export const ComponentsTable = ({
+export const BundleItemsTable = ({
   items,
   onItemsChange,
   onEditVariants,
   onIncludeVariants,
   onShowAsProduct,
   pricingTemplates,
-}: IComponentsTableProps) => {
+}: IBundleItemsTableProps) => {
   const { styles } = useStyles();
   const agGridTheme = useAgGridTheme();
   const gridRef = useRef<AgGridReact<ITableRow>>(null);
@@ -468,7 +468,7 @@ export const ComponentsTable = ({
 
   // Handle price rule change
   const handlePriceRuleChange = useCallback(
-    (itemId: string, pricingRule: ComponentItem["pricingRule"]) => {
+    (itemId: string, pricingRule: BundleItem["pricingRule"]) => {
       const newItems = items.map((item) => {
         if (item.id !== itemId) return item;
         return { ...item, pricingRule };
@@ -520,7 +520,7 @@ export const ComponentsTable = ({
       const itemToDuplicate = items.find((item) => item.id === itemId);
       if (!itemToDuplicate) return;
 
-      const newItem: ComponentItem = {
+      const newItem: BundleItem = {
         ...itemToDuplicate,
         id: `item-${Date.now()}`,
         sortIndex: items.length,
@@ -585,7 +585,7 @@ export const ComponentsTable = ({
 
   // Row class for variants
   const getRowClass = useCallback((params: { data: ITableRow | undefined }) => {
-    if (params.data?.itemType === ComponentItemType.VARIANT)
+    if (params.data?.itemType === BundleItemType.VARIANT)
       return "row-variant";
     return "";
   }, []);
@@ -721,7 +721,7 @@ export const ComponentsTable = ({
           rowDragText={(params) => {
             const data = params.rowNode?.data;
             if (!data) return "";
-            if (data.itemType === ComponentItemType.VARIANT) {
+            if (data.itemType === BundleItemType.VARIANT) {
               return data.assignedVariant?.title || "";
             }
             return data.title || data.assignedProduct?.title || "";
@@ -735,4 +735,4 @@ export const ComponentsTable = ({
   );
 };
 
-export default ComponentsTable;
+export default BundleItemsTable;

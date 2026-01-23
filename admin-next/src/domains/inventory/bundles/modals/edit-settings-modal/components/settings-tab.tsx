@@ -171,7 +171,7 @@ export const SettingsTab = ({
         <PaperHeader
           title="Display Settings"
           extra={
-            <Tooltip title="Configure how components are displayed on the storefront">
+            <Tooltip title="Configure how bundle items are displayed on the storefront">
               <InfoCircleOutlined style={{ color: "var(--ant-color-text-secondary)" }} />
             </Tooltip>
           }
@@ -257,7 +257,7 @@ export const SettingsTab = ({
             <Checkbox checked={inheritStock} onChange={(e) => onInheritStockChange(e.target.checked)}>
               Inherit stock tracking from source products
               <div className={styles.checkboxDescription}>
-                Component availability will sync automatically with product inventory
+                Bundle item availability will sync automatically with product inventory
               </div>
             </Checkbox>
           </div>

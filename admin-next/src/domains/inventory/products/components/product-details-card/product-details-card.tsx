@@ -14,7 +14,7 @@ import {
   ReviewsSection,
   OptionsSection,
   ShippingSection,
-  ComponentsSection,
+  BundleItemsSection,
   InventorySection,
   VariantsTableSection,
 } from "./sections";
@@ -52,7 +52,7 @@ export const ProductDetailsCard = ({
   onVariantsPageChange,
 }: IProductDetailsCardProps) => {
   const modals = useProductModals(product, {
-    components: mockData.components,
+    bundleItems: mockData.bundleItems,
     pricingTemplates: mockData.pricingTemplates,
     dependencyRules: mockData.dependencyRules,
   });
@@ -138,9 +138,9 @@ export const ProductDetailsCard = ({
       )}
 
       {/* GROUPS/COMPONENTS */}
-      <ComponentsSection
-        groups={mockData.components}
-        onEdit={modals.editComponents}
+      <BundleItemsSection
+        groups={mockData.bundleItems}
+        onEdit={modals.editBundleItems}
       />
 
       <TagsSection tags={mockData.tags} />

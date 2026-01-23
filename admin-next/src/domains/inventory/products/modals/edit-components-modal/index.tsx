@@ -15,17 +15,17 @@ import {
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
-import { useComponentVariantSettingsModal } from "../../modals";
+import { useBundleItemVariantSettingsModal } from "../../modals";
 
 import type {
-  EditComponentsTabKey,
-  IComponentGroup,
-  ComponentItem,
+  EditBundleItemsTabKey,
+  IBundleGroup,
+  BundleItem,
   PricingRuleTemplate,
   IBundleSettings,
   IDependencyRule,
 } from "./types";
-import { ComponentItemType } from "./types";
+import { BundleItemType } from "./types";
 import {
   GroupCard,
   PreviewTab,
@@ -61,11 +61,11 @@ const useStyles = createStyles(() => ({
 // ============================================================================
 
 interface IGroupsTabProps {
-  groups: IComponentGroup[];
-  onGroupsChange: (groups: IComponentGroup[]) => void;
-  onEditVariants?: (item: ComponentItem, groupId: string) => void;
-  onIncludeVariants?: (item: ComponentItem, groupId: string) => void;
-  onShowAsProduct?: (item: ComponentItem, groupId: string) => void;
+  groups: IBundleGroup[];
+  onGroupsChange: (groups: IBundleGroup[]) => void;
+  onEditVariants?: (item: BundleItem, groupId: string) => void;
+  onIncludeVariants?: (item: BundleItem, groupId: string) => void;
+  onShowAsProduct?: (item: BundleItem, groupId: string) => void;
   pricingTemplates: PricingRuleTemplate[];
 }
 
@@ -91,7 +91,7 @@ const GroupsTab = ({
   }, []);
 
   const handleAddGroup = useCallback(() => {
-    const newGroup: IComponentGroup = {
+    const newGroup: IBundleGroup = {
       id: `grp-${Date.now()}`,
       title: "New Group",
       sortIndex: groups.length,
@@ -108,7 +108,7 @@ const GroupsTab = ({
   }, [groups, onGroupsChange]);
 
   const handleGroupChange = useCallback(
-    (updatedGroup: IComponentGroup) => {
+    (updatedGroup: IBundleGroup) => {
       onGroupsChange(
         groups.map((g) => (g.id === updatedGroup.id ? updatedGroup : g))
       );
@@ -128,7 +128,7 @@ const GroupsTab = ({
       const groupToDuplicate = groups.find((g) => g.id === groupId);
       if (!groupToDuplicate) return;
 
-      const newGroup: IComponentGroup = {
+      const newGroup: IBundleGroup = {
         ...groupToDuplicate,
         id: `grp-${Date.now()}`,
         title: `${groupToDuplicate.title} (copy)`,
@@ -147,7 +147,7 @@ const GroupsTab = ({
   return (
     <div className={styles.container}>
       <div className={styles.groupsHeader}>
-        <Typography.Text strong>COMPONENT GROUPS</Typography.Text>
+        <Typography.Text strong>BUNDLE ITEMS</Typography.Text>
         <Button size="small" icon={<PlusOutlined />} onClick={handleAddGroup}>
           Add
         </Button>
@@ -189,8 +189,8 @@ const GroupsTab = ({
 // ============================================================================
 
 // Payload interface for modal
-interface IEditComponentsModalPayload {
-  groups?: IComponentGroup[];
+interface IEditBundleItemsModalPayload {
+  groups?: IBundleGroup[];
   pricingTemplates?: PricingRuleTemplate[];
   dependencyRules?: IDependencyRule[];
   bundleSettings?: IBundleSettings;
@@ -209,18 +209,18 @@ const DEFAULT_BUNDLE_SETTINGS: IBundleSettings = {
   validationMessage: null,
 };
 
-export const EditComponentsModal = () => {
+export const EditBundleItemsModal = () => {
   const { styles } = useStyles();
   const { pop, setDirty, payload } = useModalStackContext();
-  const { push: openVariantSettingsModal } = useComponentVariantSettingsModal();
+  const { push: openVariantSettingsModal } = useBundleItemVariantSettingsModal();
 
   const modalPayload = payload as unknown as
-    | IEditComponentsModalPayload
+    | IEditBundleItemsModalPayload
     | undefined;
 
   // State
-  const [activeTab, setActiveTab] = useState<EditComponentsTabKey>("groups");
-  const [groups, setGroups] = useState<IComponentGroup[]>(
+  const [activeTab, setActiveTab] = useState<EditBundleItemsTabKey>("groups");
+  const [groups, setGroups] = useState<IBundleGroup[]>(
     modalPayload?.groups ?? []
   );
   const [pricingTemplates, setPricingTemplates] = useState<
@@ -234,12 +234,12 @@ export const EditComponentsModal = () => {
   );
   // Store expanded products (products converted to variants) for restoration
   const [expandedProducts, setExpandedProducts] = useState<
-    Map<string, ComponentItem>
+    Map<string, BundleItem>
   >(new Map());
 
   // Handlers
   const handleGroupsChange = useCallback(
-    (newGroups: IComponentGroup[]) => {
+    (newGroups: IBundleGroup[]) => {
       // Check if any expanded products need to be restored (all variants removed)
       const productsToRestore: Array<{
         productId: string;
@@ -252,7 +252,7 @@ export const EditComponentsModal = () => {
         for (const group of newGroups) {
           const hasVariantsOfProduct = group.items.some(
             (item) =>
-              item.itemType === ComponentItemType.VARIANT &&
+              item.itemType === BundleItemType.VARIANT &&
               item.assignedVariant?.product?.id === productId
           );
 
@@ -261,7 +261,7 @@ export const EditComponentsModal = () => {
             const currentGroup = groups.find((g) => g.id === group.id);
             const hadVariants = currentGroup?.items.some(
               (item) =>
-                item.itemType === ComponentItemType.VARIANT &&
+                item.itemType === BundleItemType.VARIANT &&
                 item.assignedVariant?.product?.id === productId
             );
 
@@ -270,7 +270,7 @@ export const EditComponentsModal = () => {
               const firstVariantIndex =
                 currentGroup?.items.findIndex(
                   (item) =>
-                    item.itemType === ComponentItemType.VARIANT &&
+                    item.itemType === BundleItemType.VARIANT &&
                     item.assignedVariant?.product?.id === productId
                 ) ?? 0;
               productsToRestore.push({
@@ -328,11 +328,11 @@ export const EditComponentsModal = () => {
     [setDirty, expandedProducts, groups]
   );
 
-  // Handler for editing variant selection for a product component
+  // Handler for editing variant selection for a bundle item
   const handleEditVariants = useCallback(
-    (item: ComponentItem, groupId: string) => {
+    (item: BundleItem, groupId: string) => {
       if (
-        item.itemType !== ComponentItemType.PRODUCT ||
+        item.itemType !== BundleItemType.PRODUCT ||
         !item.assignedProduct
       ) {
         return;
@@ -417,9 +417,9 @@ export const EditComponentsModal = () => {
 
   // Handler for including variants as separate items (Show as variants)
   const handleIncludeVariants = useCallback(
-    (item: ComponentItem, groupId: string) => {
+    (item: BundleItem, groupId: string) => {
       if (
-        item.itemType !== ComponentItemType.PRODUCT ||
+        item.itemType !== BundleItemType.PRODUCT ||
         !item.assignedProduct
       ) {
         return;
@@ -438,10 +438,10 @@ export const EditComponentsModal = () => {
       setExpandedProducts((prev) => new Map(prev).set(product.id, item));
 
       // Create variant items from product variants
-      const variantItems: ComponentItem[] = variantsFromConnection.map(
+      const variantItems: BundleItem[] = variantsFromConnection.map(
         (variant, index) => ({
           id: `item-${Date.now()}-${index}`,
-          itemType: ComponentItemType.VARIANT,
+          itemType: BundleItemType.VARIANT,
           assignedVariant: variant,
           sortIndex: item.sortIndex + index + 1,
           pricingRule: item.pricingRule,
@@ -474,9 +474,9 @@ export const EditComponentsModal = () => {
 
   // Handler for showing variants as product (restore product from variants)
   const handleShowAsProduct = useCallback(
-    (item: ComponentItem, groupId: string) => {
+    (item: BundleItem, groupId: string) => {
       if (
-        item.itemType !== ComponentItemType.VARIANT ||
+        item.itemType !== BundleItemType.VARIANT ||
         !item.assignedVariant
       ) {
         return;
@@ -504,7 +504,7 @@ export const EditComponentsModal = () => {
           // Find the first variant of this product
           const firstVariantIndex = g.items.findIndex(
             (i) =>
-              i.itemType === ComponentItemType.VARIANT &&
+              i.itemType === BundleItemType.VARIANT &&
               i.assignedVariant?.product?.id === productId
           );
           if (firstVariantIndex === -1) return g;
@@ -513,7 +513,7 @@ export const EditComponentsModal = () => {
           const newItems = g.items.filter(
             (i) =>
               !(
-                i.itemType === ComponentItemType.VARIANT &&
+                i.itemType === BundleItemType.VARIANT &&
                 i.assignedVariant?.product?.id === productId
               )
           );
@@ -695,11 +695,11 @@ export const EditComponentsModal = () => {
 
   return (
     <ModalLayout
-      name="edit-components"
+      name="edit-bundle-items"
       header={
         <ModalHeader
-          name="edit-components"
-          title="Edit Product Components"
+          name="edit-bundle-items"
+          title="Edit Bundle Items"
           onClose={pop}
           submitButtonProps={{
             children: "Save",
@@ -712,7 +712,7 @@ export const EditComponentsModal = () => {
         <Tabs
           type="card"
           activeKey={activeTab}
-          onChange={(key) => setActiveTab(key as EditComponentsTabKey)}
+          onChange={(key) => setActiveTab(key as EditBundleItemsTabKey)}
           items={tabItems}
           className={styles.tabsWrapper}
         />
@@ -721,4 +721,4 @@ export const EditComponentsModal = () => {
   );
 };
 
-export default EditComponentsModal;
+export default EditBundleItemsModal;

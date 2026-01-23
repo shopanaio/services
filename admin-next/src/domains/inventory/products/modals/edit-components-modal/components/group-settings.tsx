@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 import { createStyles } from "antd-style";
 import { Input, InputNumber, Checkbox, Flex } from "antd";
-import type { IComponentGroup } from "../types";
+import type { IBundleGroup } from "../types";
 
 // ============================================================================
 // Styles
@@ -36,8 +36,8 @@ const useStyles = createStyles(({ token }) => ({
 // ============================================================================
 
 interface IGroupSettingsProps {
-  group: IComponentGroup;
-  onChange: (updates: Partial<IComponentGroup>) => void;
+  group: IBundleGroup;
+  onChange: (updates: Partial<IBundleGroup>) => void;
 }
 
 // ============================================================================

@@ -4,7 +4,7 @@ import type {
   IDependencyRule,
   IDependencyCondition,
   IDependencyAction,
-  IComponentGroup,
+  IBundleGroup,
 } from "../../edit-components-modal/types";
 import {
   DependencyConditionType,
@@ -28,7 +28,7 @@ const generateId = (prefix: string): string => {
 
 export const getTargetOptions = (
   targetType: DependencyTargetType,
-  groups: IComponentGroup[]
+  groups: IBundleGroup[]
 ): { value: string; label: string }[] => {
   if (targetType === DependencyTargetType.ITEM) {
     return groups.flatMap((g) =>
@@ -96,7 +96,7 @@ export const PRICE_TYPE_OPTIONS = PRICE_RULE_OPTIONS.map((opt) => ({
 
 interface UseRuleInspectorOptions {
   rule: IDependencyRule | null;
-  groups: IComponentGroup[];
+  groups: IBundleGroup[];
   onRuleChange: (rule: IDependencyRule) => void;
 }
 

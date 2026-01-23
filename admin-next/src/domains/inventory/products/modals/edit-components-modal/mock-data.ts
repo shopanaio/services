@@ -3,13 +3,13 @@
  */
 
 import type {
-  IComponentGroup,
+  IBundleGroup,
   IDependencyRule,
   PricingRuleTemplate,
 } from "./types";
 import {
-  ComponentItemType,
-  ComponentPriceType,
+  BundleItemType,
+  BundlePriceType,
   DependencyConditionType,
   DependencyActionType,
   DependencyTargetType,
@@ -19,7 +19,7 @@ import {
 // Mock Groups & Items
 // ============================================================================
 
-export const MOCK_GROUPS: IComponentGroup[] = [
+export const MOCK_GROUPS: IBundleGroup[] = [
   {
     id: "grp-1",
     title: "Accessories",
@@ -31,11 +31,11 @@ export const MOCK_GROUPS: IComponentGroup[] = [
     items: [
       {
         id: "item-1",
-        itemType: ComponentItemType.PRODUCT,
+        itemType: BundleItemType.PRODUCT,
         sortIndex: 0,
         title: "Premium Case",
         featuredImage: null,
-        pricingRule: { priceType: ComponentPriceType.BASE, priceValue: null },
+        pricingRule: { priceType: BundlePriceType.BASE, priceValue: null },
         assignedProduct: {
           id: "prod-1",
           title: "Premium Case",
@@ -44,11 +44,11 @@ export const MOCK_GROUPS: IComponentGroup[] = [
       },
       {
         id: "item-2",
-        itemType: ComponentItemType.PRODUCT,
+        itemType: BundleItemType.PRODUCT,
         sortIndex: 1,
         title: "Pro Charger 65W",
         featuredImage: null,
-        pricingRule: { priceType: ComponentPriceType.MARKUP_FIXED, priceValue: 500 },
+        pricingRule: { priceType: BundlePriceType.MARKUP_FIXED, priceValue: 500 },
         assignedProduct: {
           id: "prod-2",
           title: "Pro Charger 65W",
@@ -57,11 +57,11 @@ export const MOCK_GROUPS: IComponentGroup[] = [
       },
       {
         id: "item-3",
-        itemType: ComponentItemType.PRODUCT,
+        itemType: BundleItemType.PRODUCT,
         sortIndex: 2,
         title: "Screen Protector",
         featuredImage: null,
-        pricingRule: { priceType: ComponentPriceType.DISCOUNT_PERCENT, priceValue: 10 },
+        pricingRule: { priceType: BundlePriceType.DISCOUNT_PERCENT, priceValue: 10 },
         assignedProduct: {
           id: "prod-3",
           title: "Screen Protector",
@@ -81,11 +81,11 @@ export const MOCK_GROUPS: IComponentGroup[] = [
     items: [
       {
         id: "item-4",
-        itemType: ComponentItemType.PRODUCT,
+        itemType: BundleItemType.PRODUCT,
         sortIndex: 0,
         title: "1 Year Standard Warranty (included)",
         featuredImage: null,
-        pricingRule: { priceType: ComponentPriceType.INCLUDED, priceValue: null },
+        pricingRule: { priceType: BundlePriceType.INCLUDED, priceValue: null },
         assignedProduct: {
           id: "prod-4",
           title: "1 Year Standard Warranty",
@@ -94,11 +94,11 @@ export const MOCK_GROUPS: IComponentGroup[] = [
       },
       {
         id: "item-5",
-        itemType: ComponentItemType.PRODUCT,
+        itemType: BundleItemType.PRODUCT,
         sortIndex: 1,
         title: "2 Year Extended Warranty",
         featuredImage: null,
-        pricingRule: { priceType: ComponentPriceType.FIXED, priceValue: 4999 },
+        pricingRule: { priceType: BundlePriceType.FIXED, priceValue: 4999 },
         assignedProduct: {
           id: "prod-5",
           title: "2 Year Extended Warranty",
@@ -177,7 +177,7 @@ export const MOCK_DEPENDENCY_RULES: IDependencyRule[] = [
         actionType: DependencyActionType.ADJUST_PRICE,
         targetType: DependencyTargetType.ITEM,
         targetId: "item-3", // Screen Protector
-        priceType: ComponentPriceType.FREE,
+        priceType: BundlePriceType.FREE,
         priceValue: null,
       },
     ],
@@ -214,19 +214,19 @@ export const MOCK_PRICING_TEMPLATES: PricingRuleTemplate[] = [
   {
     id: "tpl-1",
     name: "10% Discount",
-    priceType: ComponentPriceType.DISCOUNT_PERCENT,
+    priceType: BundlePriceType.DISCOUNT_PERCENT,
     priceValue: 10,
   },
   {
     id: "tpl-2",
     name: "Free Item",
-    priceType: ComponentPriceType.FREE,
+    priceType: BundlePriceType.FREE,
     priceValue: null,
   },
   {
     id: "tpl-3",
     name: "Premium Markup",
-    priceType: ComponentPriceType.MARKUP_FIXED,
+    priceType: BundlePriceType.MARKUP_FIXED,
     priceValue: 500,
   },
 ];
@@ -235,7 +235,7 @@ export const MOCK_PRICING_TEMPLATES: PricingRuleTemplate[] = [
 // Combined Mock Payload
 // ============================================================================
 
-export const MOCK_EDIT_COMPONENTS_PAYLOAD = {
+export const MOCK_EDIT_BUNDLE_ITEMS_PAYLOAD = {
   groups: MOCK_GROUPS,
   pricingTemplates: MOCK_PRICING_TEMPLATES,
   dependencyRules: MOCK_DEPENDENCY_RULES,

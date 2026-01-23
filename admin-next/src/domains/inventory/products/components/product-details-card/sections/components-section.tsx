@@ -4,22 +4,22 @@ import { Typography, Flex, Avatar } from "antd";
 import { PictureOutlined } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "../../edit-action";
-import { useComponentsStyles } from "../product-details-card.styles";
-import type { IComponentGroup, ComponentItem } from "../../../modals/edit-components-modal/types";
-import { ComponentItemType } from "../../../modals/edit-components-modal/types";
+import { useBundleItemsStyles } from "../product-details-card.styles";
+import type { IBundleGroup, BundleItem } from "../../../modals/edit-components-modal/types";
+import { BundleItemType } from "../../../modals/edit-components-modal/types";
 
-interface IComponentsSectionProps {
-  groups: IComponentGroup[];
+interface IBundleItemsSectionProps {
+  groups: IBundleGroup[];
   onEdit: () => void;
 }
 
-// Helper to get image from component item
-const getItemImageUrl = (item: ComponentItem): string | null => {
+// Helper to get image from bundle item
+const getItemImageUrl = (item: BundleItem): string | null => {
   if (item.featuredImage?.url) {
     return item.featuredImage.url;
   }
 
-  if (item.itemType === ComponentItemType.VARIANT && item.assignedVariant) {
+  if (item.itemType === BundleItemType.VARIANT && item.assignedVariant) {
     return item.assignedVariant.media?.[0]?.file?.url ?? null;
   }
 
@@ -27,11 +27,11 @@ const getItemImageUrl = (item: ComponentItem): string | null => {
   return null;
 };
 
-export const ComponentsSection = ({
+export const BundleItemsSection = ({
   groups,
   onEdit,
-}: IComponentsSectionProps) => {
-  const { styles } = useComponentsStyles();
+}: IBundleItemsSectionProps) => {
+  const { styles } = useBundleItemsStyles();
 
   if (!groups || groups.length === 0) {
     return null;
@@ -40,8 +40,8 @@ export const ComponentsSection = ({
   return (
     <Paper>
       <PaperHeader
-        title="Components"
-        actions={<EditAction onEdit={onEdit} label="Edit components" />}
+        title="Bundle Items"
+        actions={<EditAction onEdit={onEdit} label="Edit bundle items" />}
       />
       <Flex gap={8} wrap="wrap">
         {groups.map((group) => {

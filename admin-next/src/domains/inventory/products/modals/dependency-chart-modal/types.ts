@@ -3,7 +3,7 @@ import type {
   IDependencyRule,
   IDependencyCondition,
   IDependencyAction,
-  ComponentItem,
+  BundleItem,
 } from "../edit-components-modal/types";
 
 // ============================================================================
@@ -11,7 +11,7 @@ import type {
 // ============================================================================
 
 export interface ItemNodeData {
-  item: ComponentItem | { id: string; title: string; isGroup?: boolean };
+  item: BundleItem | { id: string; title: string; isGroup?: boolean };
   groupId: string;
   groupTitle: string;
   /** Item position in layout: source (top) or target (bottom). Set by layout hook. */

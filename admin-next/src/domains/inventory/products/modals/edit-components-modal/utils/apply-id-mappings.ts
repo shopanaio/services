@@ -1,4 +1,4 @@
-import type { IDependencyRule, IComponentGroup, ComponentItem } from "../types";
+import type { IDependencyRule, IBundleGroup, BundleItem } from "../types";
 
 /**
  * Apply ID mappings to dependency rules after server save.
@@ -41,16 +41,16 @@ export const applyIdMappingsToDependencyRules = (
 };
 
 /**
- * Apply ID mappings to component groups after server save.
+ * Apply ID mappings to bundle groups after server save.
  *
- * @param groups - Array of component groups to update
+ * @param groups - Array of bundle groups to update
  * @param idMappings - Map of temp IDs to real server IDs
  * @returns Updated groups with mapped IDs
  */
 export const applyIdMappingsToGroups = (
-  groups: IComponentGroup[],
+  groups: IBundleGroup[],
   idMappings: Map<string, string>
-): IComponentGroup[] => {
+): IBundleGroup[] => {
   if (idMappings.size === 0) {
     return groups;
   }
@@ -119,11 +119,11 @@ export const extractTempIdsFromRules = (
 /**
  * Extract all temp IDs from groups that need to be mapped.
  *
- * @param groups - Array of component groups
+ * @param groups - Array of bundle groups
  * @returns Set of temp IDs found in groups
  */
 export const extractTempIdsFromGroups = (
-  groups: IComponentGroup[]
+  groups: IBundleGroup[]
 ): Set<string> => {
   const tempIds = new Set<string>();
 
@@ -146,12 +146,12 @@ export const extractTempIdsFromGroups = (
  * Validate that all rule references point to existing items/groups.
  *
  * @param rules - Array of dependency rules to validate
- * @param groups - Array of component groups to check against
+ * @param groups - Array of bundle groups to check against
  * @returns Object with valid rules and array of validation errors
  */
 export const validateRuleReferences = (
   rules: IDependencyRule[],
-  groups: IComponentGroup[]
+  groups: IBundleGroup[]
 ): {
   validRules: IDependencyRule[];
   errors: Array<{ ruleId: string; ruleName: string; message: string }>;
