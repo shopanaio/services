@@ -6,6 +6,7 @@ import {
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
+import { Paper } from "@/ui-kit/paper";
 import { SettingsTab } from "@/domains/inventory/products/modals/edit-components-modal/components";
 import type {
   IBundleSettings,
@@ -78,22 +79,24 @@ export const EditSettingsModal = () => {
         />
       }
     >
-      <SettingsTab
-        displayStyle={settings.displayStyle}
-        onDisplayStyleChange={(style: DisplayStyle) => updateSetting("displayStyle", style)}
-        showImages={settings.showImages}
-        onShowImagesChange={(value: boolean) => updateSetting("showImages", value)}
-        showSku={settings.showSku}
-        onShowSkuChange={(value: boolean) => updateSetting("showSku", value)}
-        showStock={settings.showStock}
-        onShowStockChange={(value: boolean) => updateSetting("showStock", value)}
-        showComparePrice={settings.showComparePrice}
-        onShowComparePriceChange={(value: boolean) => updateSetting("showComparePrice", value)}
-        outOfStockBehavior={settings.outOfStockBehavior}
-        onOutOfStockBehaviorChange={(value: OutOfStockBehavior) => updateSetting("outOfStockBehavior", value)}
-        inheritStock={settings.inheritStock}
-        onInheritStockChange={(value: boolean) => updateSetting("inheritStock", value)}
-      />
+      <Paper>
+        <SettingsTab
+          displayStyle={settings.displayStyle}
+          onDisplayStyleChange={(style: DisplayStyle) => updateSetting("displayStyle", style)}
+          showImages={settings.showImages}
+          onShowImagesChange={(value: boolean) => updateSetting("showImages", value)}
+          showSku={settings.showSku}
+          onShowSkuChange={(value: boolean) => updateSetting("showSku", value)}
+          showStock={settings.showStock}
+          onShowStockChange={(value: boolean) => updateSetting("showStock", value)}
+          showComparePrice={settings.showComparePrice}
+          onShowComparePriceChange={(value: boolean) => updateSetting("showComparePrice", value)}
+          outOfStockBehavior={settings.outOfStockBehavior}
+          onOutOfStockBehaviorChange={(value: OutOfStockBehavior) => updateSetting("outOfStockBehavior", value)}
+          inheritStock={settings.inheritStock}
+          onInheritStockChange={(value: boolean) => updateSetting("inheritStock", value)}
+        />
+      </Paper>
     </ModalLayout>
   );
 };

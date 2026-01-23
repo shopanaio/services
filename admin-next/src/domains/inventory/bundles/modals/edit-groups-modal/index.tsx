@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import { createStyles } from "antd-style";
 import { Typography, Button } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
+import { Paper } from "@/ui-kit/paper";
 import {
   useModalStackContext,
   ModalLayout,
@@ -308,30 +309,32 @@ export const EditGroupsModal = () => {
         />
       }
     >
-      <div className={styles.container}>
-        <div className={styles.groupsHeader}>
-          <Typography.Text strong>COMPONENT GROUPS</Typography.Text>
-          <Button size="small" icon={<PlusOutlined />} onClick={handleAddGroup}>
-            Add
-          </Button>
-        </div>
+      <Paper>
+        <div className={styles.container}>
+          <div className={styles.groupsHeader}>
+            <Typography.Text strong>COMPONENT GROUPS</Typography.Text>
+            <Button size="small" icon={<PlusOutlined />} onClick={handleAddGroup}>
+              Add
+            </Button>
+          </div>
 
-        {groups.map((group) => (
-          <GroupCard
-            key={group.id}
-            group={group}
-            isExpanded={expandedIds.includes(group.id)}
-            onToggle={() => handleToggle(group.id)}
-            onChange={handleGroupChange}
-            onDelete={() => handleDeleteGroup(group.id)}
-            onDuplicate={() => handleDuplicateGroup(group.id)}
-            onEditVariants={(item) => handleEditVariants(item, group.id)}
-            onIncludeVariants={(item) => handleIncludeVariants(item, group.id)}
-            onShowAsProduct={(item) => handleShowAsProduct(item, group.id)}
-            pricingTemplates={pricingTemplates}
-          />
-        ))}
-      </div>
+          {groups.map((group) => (
+            <GroupCard
+              key={group.id}
+              group={group}
+              isExpanded={expandedIds.includes(group.id)}
+              onToggle={() => handleToggle(group.id)}
+              onChange={handleGroupChange}
+              onDelete={() => handleDeleteGroup(group.id)}
+              onDuplicate={() => handleDuplicateGroup(group.id)}
+              onEditVariants={(item) => handleEditVariants(item, group.id)}
+              onIncludeVariants={(item) => handleIncludeVariants(item, group.id)}
+              onShowAsProduct={(item) => handleShowAsProduct(item, group.id)}
+              pricingTemplates={pricingTemplates}
+            />
+          ))}
+        </div>
+      </Paper>
     </ModalLayout>
   );
 };
