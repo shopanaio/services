@@ -238,7 +238,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'component-variant-settings',
       component: dynamic(() =>
-        import('@/domains/inventory/products/modals/edit-components-modal/components/variant-settings-modal').then(
+        import('@/domains/inventory/products/modals/variant-settings-modal').then(
           (m) => m.VariantSettingsModal
         )
       ),
