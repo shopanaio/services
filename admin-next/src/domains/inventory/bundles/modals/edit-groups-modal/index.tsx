@@ -2,9 +2,9 @@
 
 import { useState, useCallback } from "react";
 import { createStyles } from "antd-style";
-import { Typography, Button } from "antd";
+import { Button } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
-import { Paper } from "@/ui-kit/paper";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 import {
   useModalStackContext,
   ModalLayout,
@@ -28,12 +28,6 @@ const useStyles = createStyles(() => ({
     display: "flex",
     flexDirection: "column",
     gap: 16,
-  },
-  groupsHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
   },
 }));
 
@@ -310,14 +304,15 @@ export const EditGroupsModal = () => {
       }
     >
       <Paper>
-        <div className={styles.container}>
-          <div className={styles.groupsHeader}>
-            <Typography.Text strong>COMPONENT GROUPS</Typography.Text>
+        <PaperHeader
+          title="COMPONENT GROUPS"
+          actions={
             <Button size="small" icon={<PlusOutlined />} onClick={handleAddGroup}>
               Add
             </Button>
-          </div>
-
+          }
+        />
+        <div className={styles.container}>
           {groups.map((group) => (
             <GroupCard
               key={group.id}

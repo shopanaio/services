@@ -25,7 +25,7 @@ import {
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 
-import { Paper } from "@/ui-kit/paper";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 import {
   ComponentPriceType,
   type PricingRuleTemplate,
@@ -50,16 +50,6 @@ const useStyles = createStyles(({ token }) => ({
     display: "flex",
     flexDirection: "column",
     gap: 12,
-  },
-  sectionHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  sectionTitle: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
   },
   tableActions: {
     display: "flex",
@@ -369,14 +359,14 @@ export const PricingRulesTab = ({
     <div className={styles.container}>
       {/* Pricing Rule Templates */}
       <Paper>
-        <div className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <div className={styles.sectionTitle}>
-              <Typography.Text strong>Pricing Rule Templates</Typography.Text>
-              <Tooltip title="Create reusable pricing rules that can be applied to components">
-                <InfoCircleOutlined style={{ color: "var(--ant-color-text-secondary)" }} />
-              </Tooltip>
-            </div>
+        <PaperHeader
+          title="Pricing Rule Templates"
+          extra={
+            <Tooltip title="Create reusable pricing rules that can be applied to components">
+              <InfoCircleOutlined style={{ color: "var(--ant-color-text-secondary)" }} />
+            </Tooltip>
+          }
+          actions={
             <Button
               icon={<PlusOutlined />}
               onClick={handleAddTemplate}
@@ -385,8 +375,9 @@ export const PricingRulesTab = ({
             >
               Add Template
             </Button>
-          </div>
-
+          }
+        />
+        <div className={styles.section}>
           {templateDataSource.length > 0 ? (
             <Table
               dataSource={templateDataSource}

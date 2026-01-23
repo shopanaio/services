@@ -11,7 +11,7 @@ import {
 } from "antd";
 import { InfoCircleOutlined } from "@ant-design/icons";
 
-import { Paper } from "@/ui-kit/paper";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type { DisplayStyle, OutOfStockBehavior } from "../types";
 
 // ============================================================================
@@ -28,12 +28,6 @@ const useStyles = createStyles(({ token }) => ({
     display: "flex",
     flexDirection: "column",
     gap: 16,
-  },
-  sectionTitle: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 4,
   },
   settingsGroup: {
     display: "flex",
@@ -174,14 +168,15 @@ export const SettingsTab = ({
     <div className={styles.container}>
       {/* Display Settings */}
       <Paper>
-        <div className={styles.section}>
-          <div className={styles.sectionTitle}>
-            <Typography.Text strong>Display Settings</Typography.Text>
+        <PaperHeader
+          title="Display Settings"
+          extra={
             <Tooltip title="Configure how components are displayed on the storefront">
               <InfoCircleOutlined style={{ color: "var(--ant-color-text-secondary)" }} />
             </Tooltip>
-          </div>
-
+          }
+        />
+        <div className={styles.section}>
           <div className={styles.settingsGroup}>
             {/* Display Style Select */}
             <div className={styles.selectRow}>
@@ -223,14 +218,15 @@ export const SettingsTab = ({
 
       {/* Stock & Availability */}
       <Paper>
-        <div className={styles.section}>
-          <div className={styles.sectionTitle}>
-            <Typography.Text strong>Stock & Availability</Typography.Text>
+        <PaperHeader
+          title="Stock & Availability"
+          extra={
             <Tooltip title="Configure how out-of-stock items are handled">
               <InfoCircleOutlined style={{ color: "var(--ant-color-text-secondary)" }} />
             </Tooltip>
-          </div>
-
+          }
+        />
+        <div className={styles.section}>
           <Typography.Text type="secondary" style={{ marginBottom: 8 }}>
             Out of stock behavior
           </Typography.Text>

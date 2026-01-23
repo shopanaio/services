@@ -6,7 +6,6 @@ import {
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
-import { Paper } from "@/ui-kit/paper";
 import { PricingRulesTab } from "@/domains/inventory/products/modals/edit-components-modal/components";
 import type {
   PricingRuleTemplate,
@@ -81,15 +80,13 @@ export const EditPricingModal = () => {
         />
       }
     >
-      <Paper>
-        <PricingRulesTab
-          pricingTemplates={pricingTemplates}
-          onPricingTemplatesChange={handlePricingTemplatesChange}
-          dependencyRules={dependencyRules}
-          onDependencyRulesChange={handleDependencyRulesChange}
-          groups={groups}
-        />
-      </Paper>
+      <PricingRulesTab
+        pricingTemplates={pricingTemplates}
+        onPricingTemplatesChange={handlePricingTemplatesChange}
+        dependencyRules={dependencyRules}
+        onDependencyRulesChange={handleDependencyRulesChange}
+        groups={groups}
+      />
     </ModalLayout>
   );
 };
