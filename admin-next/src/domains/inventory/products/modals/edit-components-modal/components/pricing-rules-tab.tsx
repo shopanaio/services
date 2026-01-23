@@ -398,15 +398,13 @@ export const PricingRulesTab = ({
 
       {/* Dependency Rules */}
       <Paper>
-        <div className={styles.section}>
-          <DependencyRulesTable
-            rules={dependencyRules}
-            onRulesChange={onDependencyRulesChange}
-            groups={groups}
-            onOpenChart={handleOpenChart}
-            onEditRule={handleEditRuleInChart}
-          />
-        </div>
+        <DependencyRulesTable
+          rules={dependencyRules}
+          onRulesChange={onDependencyRulesChange}
+          groups={groups}
+          onOpenChart={handleOpenChart}
+          onEditRule={handleEditRuleInChart}
+        />
       </Paper>
     </div>
   );

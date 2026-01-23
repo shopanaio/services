@@ -47,6 +47,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { PaperHeader } from "@/ui-kit/paper";
 
 import type {
   IDependencyRule,
@@ -68,21 +69,6 @@ import {
 // ============================================================================
 
 const useStyles = createStyles(({ token }) => ({
-  sectionHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-  },
-  headerButtons: {
-    display: "flex",
-    gap: 8,
-  },
   tableActions: {
     display: "flex",
     gap: 4,
@@ -689,31 +675,33 @@ export const DependencyRulesTable = ({
 
   return (
     <div>
-      <div className={styles.sectionHeader}>
-        <div className={styles.sectionTitle}>
-          <Typography.Text strong>Dependency Rules</Typography.Text>
+      <PaperHeader
+        title="Dependency Rules"
+        extra={
           <Tooltip title="Define conditional rules for component behavior">
             <Tag color="blue">{rules.length}</Tag>
           </Tooltip>
-        </div>
-        <div className={styles.headerButtons}>
-          <Button
-            icon={<PartitionOutlined />}
-            onClick={onOpenChart}
-            size="small"
-          >
-            Open Chart
-          </Button>
-          <Button
-            icon={<PlusOutlined />}
-            onClick={handleAddRule}
-            disabled={editingRuleId !== null}
-            size="small"
-          >
-            Add Rule
-          </Button>
-        </div>
-      </div>
+        }
+        actions={
+          <Space>
+            <Button
+              icon={<PartitionOutlined />}
+              onClick={onOpenChart}
+              size="small"
+            >
+              Open Chart
+            </Button>
+            <Button
+              icon={<PlusOutlined />}
+              onClick={handleAddRule}
+              disabled={editingRuleId !== null}
+              size="small"
+            >
+              Add Rule
+            </Button>
+          </Space>
+        }
+      />
 
       {dataSource.length > 0 ? (
         <DndContext
