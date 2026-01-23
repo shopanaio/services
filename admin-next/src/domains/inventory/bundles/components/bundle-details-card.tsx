@@ -78,8 +78,10 @@ export const BundleDetailsCard = ({
     openEditComponentsModal({
       productId: product.id,
       groups: mockData.components,
+      pricingTemplates: mockData.pricingTemplates,
+      dependencyRules: mockData.dependencyRules,
     });
-  }, [product.id, mockData.components, openEditComponentsModal]);
+  }, [product.id, mockData.components, mockData.pricingTemplates, mockData.dependencyRules, openEditComponentsModal]);
 
   return (
     <Flex vertical gap={12} style={{ width: "100%" }}>

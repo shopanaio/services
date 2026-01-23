@@ -5,12 +5,12 @@
 import type { IProduct } from "./types";
 import type { ITag } from "@/domains/inventory/products/modals";
 import type { IAttributeRow } from "@/domains/inventory/products/modals/edit-attributes-modal/types";
-import { ComponentItemType, ComponentPriceType } from "@/domains/inventory/products/modals/edit-components-modal/types";
-import type { IComponentGroup } from "@/domains/inventory/products/modals/edit-components-modal/types";
+import type { IComponentGroup, PricingRuleTemplate, IDependencyRule } from "@/domains/inventory/products/modals/edit-components-modal/types";
 import { EntityStatus, WeightUnit, DimensionUnit, type ICategory, type ITag as IProductTag } from "./types";
 import { mockCategories } from "./categories";
 import { mockTags } from "./tags";
 import { createMockData as createAttributesMockData } from "./attributes";
+import { productDetailsMockData } from "./product-details";
 import type { ApiFile, ApiDescription, FileProvider } from "@/graphql/types";
 
 const generateId = (): string => Math.random().toString(36).substring(2, 11);
@@ -156,180 +156,6 @@ export const mockBundleProduct: IProduct = {
   containerId: "bnd-detail-1",
 };
 
-const mockBundleComponentGroups: IComponentGroup[] = [
-  {
-    id: "bnd-grp-1",
-    title: "Camera Body",
-    sortIndex: 0,
-    isRequired: true,
-    isMultiple: false,
-    minSelection: 1,
-    maxSelection: 1,
-    items: [
-      {
-        id: "bnd-item-1",
-        itemType: ComponentItemType.PRODUCT,
-        assignedProduct: {
-          __typename: "Product",
-          id: "prod-cam-body",
-          title: "DSLR Camera Body 24.2MP",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          isPublished: true,
-          options: [],
-          features: [],
-          variants: { __typename: "VariantConnection", edges: [], pageInfo: { __typename: "PageInfo", hasNextPage: false, hasPreviousPage: false, startCursor: null, endCursor: null }, totalCount: 0 },
-          variantsCount: 0,
-        },
-        sortIndex: 0,
-        pricingRule: {
-          priceType: ComponentPriceType.INCLUDED,
-          priceValue: null,
-        },
-        title: null,
-        featuredImage: null,
-      },
-    ],
-  },
-  {
-    id: "bnd-grp-2",
-    title: "Lenses",
-    sortIndex: 1,
-    isRequired: true,
-    isMultiple: true,
-    minSelection: 1,
-    maxSelection: 3,
-    items: [
-      {
-        id: "bnd-item-2",
-        itemType: ComponentItemType.PRODUCT,
-        assignedProduct: {
-          __typename: "Product",
-          id: "prod-lens-18-55",
-          title: "18-55mm Kit Lens",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          isPublished: true,
-          options: [],
-          features: [],
-          variants: { __typename: "VariantConnection", edges: [], pageInfo: { __typename: "PageInfo", hasNextPage: false, hasPreviousPage: false, startCursor: null, endCursor: null }, totalCount: 0 },
-          variantsCount: 0,
-        },
-        sortIndex: 0,
-        pricingRule: {
-          priceType: ComponentPriceType.INCLUDED,
-          priceValue: null,
-        },
-        title: null,
-        featuredImage: null,
-      },
-      {
-        id: "bnd-item-3",
-        itemType: ComponentItemType.PRODUCT,
-        assignedProduct: {
-          __typename: "Product",
-          id: "prod-lens-55-200",
-          title: "55-200mm Telephoto Lens",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          isPublished: true,
-          options: [],
-          features: [],
-          variants: { __typename: "VariantConnection", edges: [], pageInfo: { __typename: "PageInfo", hasNextPage: false, hasPreviousPage: false, startCursor: null, endCursor: null }, totalCount: 0 },
-          variantsCount: 0,
-        },
-        sortIndex: 1,
-        pricingRule: {
-          priceType: ComponentPriceType.INCLUDED,
-          priceValue: null,
-        },
-        title: null,
-        featuredImage: null,
-      },
-    ],
-  },
-  {
-    id: "bnd-grp-3",
-    title: "Accessories",
-    sortIndex: 2,
-    isRequired: false,
-    isMultiple: true,
-    minSelection: 0,
-    maxSelection: 5,
-    items: [
-      {
-        id: "bnd-item-4",
-        itemType: ComponentItemType.PRODUCT,
-        assignedProduct: {
-          __typename: "Product",
-          id: "prod-bag",
-          title: "Camera Bag",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          isPublished: true,
-          options: [],
-          features: [],
-          variants: { __typename: "VariantConnection", edges: [], pageInfo: { __typename: "PageInfo", hasNextPage: false, hasPreviousPage: false, startCursor: null, endCursor: null }, totalCount: 0 },
-          variantsCount: 0,
-        },
-        sortIndex: 0,
-        pricingRule: {
-          priceType: ComponentPriceType.DISCOUNT_PERCENT,
-          priceValue: 20,
-        },
-        title: null,
-        featuredImage: null,
-      },
-      {
-        id: "bnd-item-5",
-        itemType: ComponentItemType.PRODUCT,
-        assignedProduct: {
-          __typename: "Product",
-          id: "prod-sd-card",
-          title: "32GB SD Card",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          isPublished: true,
-          options: [],
-          features: [],
-          variants: { __typename: "VariantConnection", edges: [], pageInfo: { __typename: "PageInfo", hasNextPage: false, hasPreviousPage: false, startCursor: null, endCursor: null }, totalCount: 0 },
-          variantsCount: 0,
-        },
-        sortIndex: 1,
-        pricingRule: {
-          priceType: ComponentPriceType.FREE,
-          priceValue: null,
-        },
-        title: null,
-        featuredImage: null,
-      },
-      {
-        id: "bnd-item-6",
-        itemType: ComponentItemType.PRODUCT,
-        assignedProduct: {
-          __typename: "Product",
-          id: "prod-cleaning",
-          title: "Cleaning Kit",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          isPublished: true,
-          options: [],
-          features: [],
-          variants: { __typename: "VariantConnection", edges: [], pageInfo: { __typename: "PageInfo", hasNextPage: false, hasPreviousPage: false, startCursor: null, endCursor: null }, totalCount: 0 },
-          variantsCount: 0,
-        },
-        sortIndex: 2,
-        pricingRule: {
-          priceType: ComponentPriceType.FREE,
-          priceValue: null,
-        },
-        title: null,
-        featuredImage: null,
-      },
-    ],
-  },
-];
-
 export interface IBundleDetailsMockData {
   categories: {
     primary: ICategory | null;
@@ -338,6 +164,8 @@ export interface IBundleDetailsMockData {
   tags: ITag[];
   attributes: IAttributeRow[];
   components: IComponentGroup[];
+  pricingTemplates: PricingRuleTemplate[];
+  dependencyRules: IDependencyRule[];
 }
 
 export const bundleDetailsMockData: IBundleDetailsMockData = {
@@ -347,5 +175,7 @@ export const bundleDetailsMockData: IBundleDetailsMockData = {
   },
   tags: mockTags.slice(0, 3) as ITag[],
   attributes: createAttributesMockData(),
-  components: mockBundleComponentGroups,
+  components: productDetailsMockData.components,
+  pricingTemplates: productDetailsMockData.pricingTemplates,
+  dependencyRules: productDetailsMockData.dependencyRules,
 };
