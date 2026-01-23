@@ -316,8 +316,6 @@ export interface IDependencyAction {
   exclusiveKey?: string; // e.g. "bundleDiscount" - only highest priority wins in same key
   applyTo?: "ITEM" | "COMPONENTS_SUBTOTAL"; // where discount applies (default: ITEM)
 
-  // UX
-  label?: string; // reason shown in UI ("Not compatible with Premium")
 }
 
 /**

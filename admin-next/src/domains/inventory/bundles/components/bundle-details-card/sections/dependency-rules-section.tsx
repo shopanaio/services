@@ -103,12 +103,6 @@ const useStyles = createStyles(({ token }) => ({
     padding: "2px 0",
     fontSize: 12,
   },
-  actionLabel: {
-    fontSize: 11,
-    color: token.colorTextTertiary,
-    fontStyle: "italic" as const,
-    paddingLeft: 16,
-  },
   targetTag: {
     "&&": {
       fontSize: 10,
@@ -231,20 +225,13 @@ export const DependencyRulesSection = ({
                     <div className={styles.flowBlock}>
                       <div className={styles.flowLabel}>Then</div>
                       {rule.actions.map((action) => (
-                        <div key={action.id}>
-                          <div className={styles.actionRow}>
-                            <Tag className={styles.targetTag} color="default">
-                              {TARGET_TYPE_LABELS[action.targetType]}
-                            </Tag>
-                            <Typography.Text style={{ fontSize: 12 }}>
-                              {formatAction(action)}
-                            </Typography.Text>
-                          </div>
-                          {action.label && (
-                            <div className={styles.actionLabel}>
-                              {action.label}
-                            </div>
-                          )}
+                        <div key={action.id} className={styles.actionRow}>
+                          <Tag className={styles.targetTag} color="default">
+                            {TARGET_TYPE_LABELS[action.targetType]}
+                          </Tag>
+                          <Typography.Text style={{ fontSize: 12 }}>
+                            {formatAction(action)}
+                          </Typography.Text>
                         </div>
                       ))}
                     </div>

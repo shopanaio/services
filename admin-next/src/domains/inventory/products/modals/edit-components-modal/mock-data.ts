@@ -133,7 +133,6 @@ export const MOCK_DEPENDENCY_RULES: IDependencyRule[] = [
         actionType: DependencyActionType.DISABLE,
         targetType: DependencyTargetType.ITEM,
         targetId: "item-3", // Screen Protector
-        label: "Premium case has built-in screen protection",
       },
     ],
   },
@@ -156,7 +155,6 @@ export const MOCK_DEPENDENCY_RULES: IDependencyRule[] = [
         actionType: DependencyActionType.SHOW,
         targetType: DependencyTargetType.ITEM,
         targetId: "item-5", // 2 Year Extended Warranty
-        label: "Shows extended warranty option",
       },
     ],
   },
@@ -181,7 +179,6 @@ export const MOCK_DEPENDENCY_RULES: IDependencyRule[] = [
         targetId: "item-3", // Screen Protector
         priceType: ComponentPriceType.FREE,
         priceValue: null,
-        label: "Free screen protector with charger",
       },
     ],
   },
@@ -204,7 +201,6 @@ export const MOCK_DEPENDENCY_RULES: IDependencyRule[] = [
         actionType: DependencyActionType.HIDE,
         targetType: DependencyTargetType.ITEM,
         targetId: "item-4", // 1 Year Standard Warranty
-        label: "Extended warranty replaces standard",
       },
     ],
   },
