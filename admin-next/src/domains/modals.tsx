@@ -300,6 +300,33 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
+    // Bundle Edit Groups modal
+    {
+      type: 'bundle-edit-groups',
+      component: dynamic(() =>
+        import('@/domains/inventory/bundles/modals/edit-groups-modal').then(
+          (m) => m.EditGroupsModal
+        )
+      ),
+    },
+    // Bundle Edit Pricing modal
+    {
+      type: 'bundle-edit-pricing',
+      component: dynamic(() =>
+        import('@/domains/inventory/bundles/modals/edit-pricing-modal').then(
+          (m) => m.EditPricingModal
+        )
+      ),
+    },
+    // Bundle Edit Settings modal
+    {
+      type: 'bundle-edit-settings',
+      component: dynamic(() =>
+        import('@/domains/inventory/bundles/modals/edit-settings-modal').then(
+          (m) => m.EditSettingsModal
+        )
+      ),
+    },
     // ========================================
     // Media modals
     // ========================================

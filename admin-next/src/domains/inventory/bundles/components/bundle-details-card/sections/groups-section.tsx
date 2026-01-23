@@ -1,35 +1,49 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { Typography, Flex, Avatar } from "antd";
+import { PictureOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
-import { Typography, Button } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
-
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import {
-  GroupCard,
-} from "@/domains/inventory/products/modals/edit-components-modal/components";
+import { EditAction } from "@/domains/inventory/products/components/edit-action";
 import type {
   IComponentGroup,
   ComponentItem,
-  PricingRuleTemplate,
 } from "@/domains/inventory/products/modals/edit-components-modal/types";
+import { ComponentItemType } from "@/domains/inventory/products/modals/edit-components-modal/types";
 
 // ============================================================================
 // Styles
 // ============================================================================
 
-const useStyles = createStyles(() => ({
-  container: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 16,
+const useStyles = createStyles(({ token }) => ({
+  groupCard: {
+    flex: 1,
+    minWidth: 180,
+    padding: 12,
+    background: token.colorBgContainer,
+    borderRadius: 8,
+    border: `1px solid ${token.colorBorderSecondary}`,
   },
-  groupsHeader: {
+  groupTitle: {
+    fontSize: 13,
+  },
+  groupItemsCount: {
+    fontSize: 11,
+  },
+  avatarRow: {
+    margin: "12px 0",
+    minHeight: 40,
     display: "flex",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+  },
+  avatarPlaceholder: {
+    "&&": {
+      background: token.colorFillSecondary,
+      color: token.colorTextQuaternary,
+    },
+  },
+  groupMeta: {
+    fontSize: token.fontSizeSM,
   },
 }));
 
@@ -39,12 +53,22 @@ const useStyles = createStyles(() => ({
 
 interface IGroupsSectionProps {
   groups: IComponentGroup[];
-  onGroupsChange: (groups: IComponentGroup[]) => void;
-  onEditVariants?: (item: ComponentItem, groupId: string) => void;
-  onIncludeVariants?: (item: ComponentItem, groupId: string) => void;
-  onShowAsProduct?: (item: ComponentItem, groupId: string) => void;
-  pricingTemplates: PricingRuleTemplate[];
+  onEdit: () => void;
 }
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+const getItemImageUrl = (item: ComponentItem): string | null => {
+  if (item.featuredImage?.url) {
+    return item.featuredImage.url;
+  }
+  if (item.itemType === ComponentItemType.VARIANT && item.assignedVariant) {
+    return item.assignedVariant.media?.[0]?.file?.url ?? null;
+  }
+  return null;
+};
 
 // ============================================================================
 // Component
@@ -52,116 +76,70 @@ interface IGroupsSectionProps {
 
 export const GroupsSection = ({
   groups,
-  onGroupsChange,
-  onEditVariants,
-  onIncludeVariants,
-  onShowAsProduct,
-  pricingTemplates,
+  onEdit,
 }: IGroupsSectionProps) => {
   const { styles } = useStyles();
-  const [expandedIds, setExpandedIds] = useState<string[]>(
-    groups[0]?.id ? [groups[0].id] : []
-  );
 
-  const handleToggle = useCallback((groupId: string) => {
-    setExpandedIds((prev) =>
-      prev.includes(groupId)
-        ? prev.filter((id) => id !== groupId)
-        : [...prev, groupId]
-    );
-  }, []);
-
-  const handleAddGroup = useCallback(() => {
-    const newGroup: IComponentGroup = {
-      id: `grp-${Date.now()}`,
-      title: "New Group",
-      sortIndex: groups.length,
-      isRequired: false,
-      isMultiple: false,
-      minSelection: null,
-      maxSelection: null,
-      items: [],
-    };
-    onGroupsChange([...groups, newGroup]);
-    setExpandedIds((prev) => [...prev, newGroup.id]);
-  }, [groups, onGroupsChange]);
-
-  const handleGroupChange = useCallback(
-    (updatedGroup: IComponentGroup) => {
-      onGroupsChange(
-        groups.map((g) => (g.id === updatedGroup.id ? updatedGroup : g))
-      );
-    },
-    [groups, onGroupsChange]
-  );
-
-  const handleDeleteGroup = useCallback(
-    (groupId: string) => {
-      onGroupsChange(groups.filter((g) => g.id !== groupId));
-    },
-    [groups, onGroupsChange]
-  );
-
-  const handleDuplicateGroup = useCallback(
-    (groupId: string) => {
-      const groupToDuplicate = groups.find((g) => g.id === groupId);
-      if (!groupToDuplicate) return;
-
-      const newGroup: IComponentGroup = {
-        ...groupToDuplicate,
-        id: `grp-${Date.now()}`,
-        title: `${groupToDuplicate.title} (copy)`,
-        sortIndex: groups.length,
-        items: groupToDuplicate.items.map((item) => ({
-          ...item,
-          id: `item-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        })),
-      };
-      onGroupsChange([...groups, newGroup]);
-      setExpandedIds((prev) => [...prev, newGroup.id]);
-    },
-    [groups, onGroupsChange]
-  );
+  if (!groups || groups.length === 0) {
+    return null;
+  }
 
   return (
     <Paper>
-      <PaperHeader title="Component Groups" />
-      <div className={styles.container}>
-        <div className={styles.groupsHeader}>
-          <Typography.Text strong>COMPONENT GROUPS</Typography.Text>
-          <Button size="small" icon={<PlusOutlined />} onClick={handleAddGroup}>
-            Add
-          </Button>
-        </div>
+      <PaperHeader
+        title="Component Groups"
+        actions={<EditAction onEdit={onEdit} label="Edit groups" />}
+      />
+      <Flex gap={8} wrap="wrap">
+        {groups.map((group) => {
+          const itemImages = group.items?.map((item) => getItemImageUrl(item));
 
-        {groups.map((group) => (
-          <GroupCard
-            key={group.id}
-            group={group}
-            isExpanded={expandedIds.includes(group.id)}
-            onToggle={() => handleToggle(group.id)}
-            onChange={handleGroupChange}
-            onDelete={() => handleDeleteGroup(group.id)}
-            onDuplicate={() => handleDuplicateGroup(group.id)}
-            onEditVariants={
-              onEditVariants
-                ? (item) => onEditVariants(item, group.id)
-                : undefined
-            }
-            onIncludeVariants={
-              onIncludeVariants
-                ? (item) => onIncludeVariants(item, group.id)
-                : undefined
-            }
-            onShowAsProduct={
-              onShowAsProduct
-                ? (item) => onShowAsProduct(item, group.id)
-                : undefined
-            }
-            pricingTemplates={pricingTemplates}
-          />
-        ))}
-      </div>
+          return (
+            <div key={group.id} className={styles.groupCard}>
+              <Flex justify="space-between" align="center">
+                <Typography.Text strong className={styles.groupTitle}>
+                  {group.title}
+                </Typography.Text>
+                <Typography.Text
+                  type="secondary"
+                  className={styles.groupItemsCount}
+                >
+                  {group.items?.length || 0} items
+                </Typography.Text>
+              </Flex>
+              <div className={styles.avatarRow}>
+                <Avatar.Group
+                  max={{ count: 5, popover: { trigger: "hover" } }}
+                  size={40}
+                  shape="square"
+                >
+                  {itemImages?.map((img, idx) =>
+                    img ? (
+                      <Avatar key={idx} src={img} />
+                    ) : (
+                      <Avatar
+                        key={idx}
+                        icon={<PictureOutlined />}
+                        className={styles.avatarPlaceholder}
+                      />
+                    ),
+                  )}
+                </Avatar.Group>
+              </div>
+              <Typography.Text type="secondary" className={styles.groupMeta}>
+                {[
+                  group.isMultiple && "Multiple",
+                  group.isRequired && "Required",
+                  group.minSelection && group.minSelection > 0 && `Min: ${group.minSelection}`,
+                  group.maxSelection && `Max: ${group.maxSelection}`,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </Typography.Text>
+            </div>
+          );
+        })}
+      </Flex>
     </Paper>
   );
 };
