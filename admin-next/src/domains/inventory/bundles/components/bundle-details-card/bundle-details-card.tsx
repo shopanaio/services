@@ -14,7 +14,8 @@ import {
 } from "@/domains/inventory/products/components/product-details-card/sections";
 import {
   GroupsSection,
-  PricingSection,
+  TemplatesSection,
+  DependencyRulesSection,
   SettingsSection,
 } from "./sections";
 import {
@@ -25,7 +26,8 @@ import {
 } from "@/domains/inventory/products/modals";
 import {
   useEditBundleGroupsModal,
-  useEditBundlePricingModal,
+  useEditBundleTemplatesModal,
+  useEditBundleDependencyRulesModal,
   useEditBundleSettingsModal,
 } from "@/domains/inventory/bundles/modals";
 import type { IProduct, IMediaFile } from "@/mocks/products/types";
@@ -73,7 +75,8 @@ export const BundleDetailsCard = ({
   const { push: openEditAttributesModal } = useEditAttributesModal();
   const { push: openEditSeoModal } = useEditSeoModal();
   const { push: openEditGroupsModal } = useEditBundleGroupsModal();
-  const { push: openEditPricingModal } = useEditBundlePricingModal();
+  const { push: openEditTemplatesModal } = useEditBundleTemplatesModal();
+  const { push: openEditDependencyRulesModal } = useEditBundleDependencyRulesModal();
   const { push: openEditSettingsModal } = useEditBundleSettingsModal();
 
   // State
@@ -102,20 +105,24 @@ export const BundleDetailsCard = ({
     });
   }, [groups, pricingTemplates, openEditGroupsModal]);
 
-  const handleEditPricing = useCallback(() => {
-    openEditPricingModal({
+  const handleEditTemplates = useCallback(() => {
+    openEditTemplatesModal({
       pricingTemplates,
+      onSave: (data: { pricingTemplates: PricingRuleTemplate[] }) => {
+        setPricingTemplates(data.pricingTemplates);
+      },
+    });
+  }, [pricingTemplates, openEditTemplatesModal]);
+
+  const handleEditDependencyRules = useCallback(() => {
+    openEditDependencyRulesModal({
       dependencyRules,
       groups,
-      onSave: (data: {
-        pricingTemplates: PricingRuleTemplate[];
-        dependencyRules: IDependencyRule[];
-      }) => {
-        setPricingTemplates(data.pricingTemplates);
+      onSave: (data: { dependencyRules: IDependencyRule[] }) => {
         setDependencyRules(data.dependencyRules);
       },
     });
-  }, [pricingTemplates, dependencyRules, groups, openEditPricingModal]);
+  }, [dependencyRules, groups, openEditDependencyRulesModal]);
 
   const handleEditSettings = useCallback(() => {
     openEditSettingsModal({
@@ -177,11 +184,16 @@ export const BundleDetailsCard = ({
       {/* COMPONENT GROUPS */}
       <GroupsSection groups={groups} onEdit={handleEditGroups} />
 
-      {/* PRICING & DEPENDENCY RULES */}
-      <PricingSection
+      {/* PRICING TEMPLATES */}
+      <TemplatesSection
         pricingTemplates={pricingTemplates}
+        onEdit={handleEditTemplates}
+      />
+
+      {/* DEPENDENCY RULES */}
+      <DependencyRulesSection
         dependencyRules={dependencyRules}
-        onEdit={handleEditPricing}
+        onEdit={handleEditDependencyRules}
       />
 
       {/* BUNDLE SETTINGS */}

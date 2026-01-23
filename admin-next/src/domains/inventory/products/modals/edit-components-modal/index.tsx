@@ -30,7 +30,8 @@ import {
   GroupCard,
   PreviewTab,
 } from "./components";
-import { PricingRulesTab } from "@/domains/inventory/bundles/modals/edit-pricing-modal/components";
+import { TemplatesTab } from "@/domains/inventory/bundles/modals/edit-templates-modal/components";
+import { DependencyRulesTab } from "@/domains/inventory/bundles/modals/edit-dependency-rules-modal/components";
 import { SettingsTab } from "@/domains/inventory/bundles/modals/edit-settings-modal/components";
 import { Paper } from "@/ui-kit/paper";
 
@@ -586,19 +587,23 @@ export const EditComponentsModal = () => {
           </Flex>
         ),
         children: (
-          <PricingRulesTab
-            pricingTemplates={pricingTemplates}
-            onPricingTemplatesChange={(templates) => {
-              setPricingTemplates(templates);
-              setDirty(true);
-            }}
-            dependencyRules={dependencyRules}
-            onDependencyRulesChange={(rules) => {
-              setDependencyRules(rules);
-              setDirty(true);
-            }}
-            groups={groups}
-          />
+          <Flex vertical gap={24}>
+            <TemplatesTab
+              pricingTemplates={pricingTemplates}
+              onPricingTemplatesChange={(templates) => {
+                setPricingTemplates(templates);
+                setDirty(true);
+              }}
+            />
+            <DependencyRulesTab
+              dependencyRules={dependencyRules}
+              onDependencyRulesChange={(rules) => {
+                setDependencyRules(rules);
+                setDirty(true);
+              }}
+              groups={groups}
+            />
+          </Flex>
         ),
       },
       {

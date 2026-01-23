@@ -309,12 +309,21 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
-    // Bundle Edit Pricing modal
+    // Bundle Edit Templates modal
     {
-      type: 'bundle-edit-pricing',
+      type: 'bundle-edit-templates',
       component: dynamic(() =>
-        import('@/domains/inventory/bundles/modals/edit-pricing-modal').then(
-          (m) => m.EditPricingModal
+        import('@/domains/inventory/bundles/modals/edit-templates-modal').then(
+          (m) => m.EditTemplatesModal
+        )
+      ),
+    },
+    // Bundle Edit Dependency Rules modal
+    {
+      type: 'bundle-edit-dependency-rules',
+      component: dynamic(() =>
+        import('@/domains/inventory/bundles/modals/edit-dependency-rules-modal').then(
+          (m) => m.EditDependencyRulesModal
         )
       ),
     },

@@ -6,9 +6,8 @@ import {
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
-import { PricingRulesTab } from "./components";
+import { DependencyRulesTab } from "./components";
 import type {
-  PricingRuleTemplate,
   IDependencyRule,
   IComponentGroup,
 } from "@/domains/inventory/products/modals/edit-components-modal/types";
@@ -17,40 +16,25 @@ import type {
 // Payload
 // ============================================================================
 
-export interface IEditPricingModalPayload {
-  pricingTemplates: PricingRuleTemplate[];
+export interface IEditDependencyRulesModalPayload {
   dependencyRules: IDependencyRule[];
   groups: IComponentGroup[];
-  onSave?: (data: {
-    pricingTemplates: PricingRuleTemplate[];
-    dependencyRules: IDependencyRule[];
-  }) => void;
+  onSave?: (data: { dependencyRules: IDependencyRule[] }) => void;
 }
 
 // ============================================================================
 // Component
 // ============================================================================
 
-export const EditPricingModal = () => {
+export const EditDependencyRulesModal = () => {
   const { pop, setDirty, payload } = useModalStackContext();
 
-  const modalPayload = payload as unknown as IEditPricingModalPayload | undefined;
+  const modalPayload = payload as unknown as IEditDependencyRulesModalPayload | undefined;
 
-  const [pricingTemplates, setPricingTemplates] = useState<PricingRuleTemplate[]>(
-    modalPayload?.pricingTemplates ?? []
-  );
   const [dependencyRules, setDependencyRules] = useState<IDependencyRule[]>(
     modalPayload?.dependencyRules ?? []
   );
   const groups = modalPayload?.groups ?? [];
-
-  const handlePricingTemplatesChange = useCallback(
-    (templates: PricingRuleTemplate[]) => {
-      setPricingTemplates(templates);
-      setDirty(true);
-    },
-    [setDirty]
-  );
 
   const handleDependencyRulesChange = useCallback(
     (rules: IDependencyRule[]) => {
@@ -61,17 +45,17 @@ export const EditPricingModal = () => {
   );
 
   const handleSave = useCallback(() => {
-    modalPayload?.onSave?.({ pricingTemplates, dependencyRules });
+    modalPayload?.onSave?.({ dependencyRules });
     pop();
-  }, [pricingTemplates, dependencyRules, modalPayload, pop]);
+  }, [dependencyRules, modalPayload, pop]);
 
   return (
     <ModalLayout
-      name="edit-bundle-pricing"
+      name="edit-bundle-dependency-rules"
       header={
         <ModalHeader
-          name="edit-bundle-pricing"
-          title="Edit Pricing & Rules"
+          name="edit-bundle-dependency-rules"
+          title="Edit Dependency Rules"
           onClose={pop}
           submitButtonProps={{
             children: "Save",
@@ -80,9 +64,7 @@ export const EditPricingModal = () => {
         />
       }
     >
-      <PricingRulesTab
-        pricingTemplates={pricingTemplates}
-        onPricingTemplatesChange={handlePricingTemplatesChange}
+      <DependencyRulesTab
         dependencyRules={dependencyRules}
         onDependencyRulesChange={handleDependencyRulesChange}
         groups={groups}
@@ -91,4 +73,4 @@ export const EditPricingModal = () => {
   );
 };
 
-export default EditPricingModal;
+export default EditDependencyRulesModal;

@@ -29,23 +29,14 @@ import { Paper, PaperHeader } from "@/ui-kit/paper";
 import {
   ComponentPriceType,
   type PricingRuleTemplate,
-  type IDependencyRule,
-  type IComponentGroup,
   PRICE_RULE_OPTIONS,
 } from "@/domains/inventory/products/modals/edit-components-modal/types";
-import { DependencyRulesTable } from "./dependency-rules-table";
-import { useDependencyChartModal } from "@/domains/inventory/products/modals";
 
 // ============================================================================
 // Styles
 // ============================================================================
 
 const useStyles = createStyles(() => ({
-  container: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 24,
-  },
   section: {
     display: "flex",
     flexDirection: "column",
@@ -70,12 +61,9 @@ const useStyles = createStyles(() => ({
 // Types
 // ============================================================================
 
-interface IPricingRulesTabProps {
+interface ITemplatesTabProps {
   pricingTemplates: PricingRuleTemplate[];
   onPricingTemplatesChange: (templates: PricingRuleTemplate[]) => void;
-  dependencyRules: IDependencyRule[];
-  onDependencyRulesChange: (rules: IDependencyRule[]) => void;
-  groups: IComponentGroup[];
 }
 
 interface IEditingTemplate extends PricingRuleTemplate {
@@ -95,50 +83,11 @@ const PRICE_TYPE_SELECT_OPTIONS = PRICE_RULE_OPTIONS.map((opt) => ({
 // Component
 // ============================================================================
 
-export const PricingRulesTab = ({
+export const TemplatesTab = ({
   pricingTemplates,
   onPricingTemplatesChange,
-  dependencyRules,
-  onDependencyRulesChange,
-  groups,
-}: IPricingRulesTabProps) => {
+}: ITemplatesTabProps) => {
   const { styles } = useStyles();
-  const { push: openChartModal } = useDependencyChartModal();
-
-  // ========================================
-  // Chart Modal Handlers
-  // ========================================
-  const handleOpenChart = useCallback(() => {
-    openChartModal({
-      groups,
-      rules: dependencyRules,
-      onSave: (updatedRules: IDependencyRule[]) => {
-        onDependencyRulesChange(updatedRules);
-      },
-    });
-  }, [groups, dependencyRules, onDependencyRulesChange, openChartModal]);
-
-  const handleEditRuleInChart = useCallback(
-    (ruleId: string) => {
-      const rule = dependencyRules.find((r) => r.id === ruleId);
-      if (!rule) return;
-
-      openChartModal({
-        groups,
-        rules: [rule],
-        selectedRuleId: ruleId,
-        onSave: (updatedRules: IDependencyRule[]) => {
-          const updatedRule = updatedRules[0];
-          if (updatedRule) {
-            onDependencyRulesChange(
-              dependencyRules.map((r) => (r.id === updatedRule.id ? updatedRule : r))
-            );
-          }
-        },
-      });
-    },
-    [groups, dependencyRules, onDependencyRulesChange, openChartModal]
-  );
 
   // ========================================
   // Pricing Templates State
@@ -356,58 +305,44 @@ export const PricingRulesTab = ({
   }, [pricingTemplates, editingTemplate]);
 
   return (
-    <div className={styles.container}>
-      {/* Pricing Rule Templates */}
-      <Paper>
-        <PaperHeader
-          title="Pricing Rule Templates"
-          extra={
-            <Tooltip title="Create reusable pricing rules that can be applied to components">
-              <InfoCircleOutlined style={{ color: "var(--ant-color-text-secondary)" }} />
-            </Tooltip>
-          }
-          actions={
-            <Button
-              icon={<PlusOutlined />}
-              onClick={handleAddTemplate}
-              disabled={editingTemplateId !== null}
-              size="small"
-            >
-              Add Template
-            </Button>
-          }
-        />
-        <div className={styles.section}>
-          {templateDataSource.length > 0 ? (
-            <Table
-              dataSource={templateDataSource}
-              columns={templateColumns}
-              rowKey="id"
-              pagination={false}
-              size="small"
-            />
-          ) : (
-            <Empty
-              className={styles.emptyState}
-              description="No pricing templates configured"
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-            />
-          )}
-        </div>
-      </Paper>
-
-      {/* Dependency Rules */}
-      <Paper>
-        <DependencyRulesTable
-          rules={dependencyRules}
-          onRulesChange={onDependencyRulesChange}
-          groups={groups}
-          onOpenChart={handleOpenChart}
-          onEditRule={handleEditRuleInChart}
-        />
-      </Paper>
-    </div>
+    <Paper>
+      <PaperHeader
+        title="Pricing Rule Templates"
+        extra={
+          <Tooltip title="Create reusable pricing rules that can be applied to components">
+            <InfoCircleOutlined style={{ color: "var(--ant-color-text-secondary)" }} />
+          </Tooltip>
+        }
+        actions={
+          <Button
+            icon={<PlusOutlined />}
+            onClick={handleAddTemplate}
+            disabled={editingTemplateId !== null}
+            size="small"
+          >
+            Add Template
+          </Button>
+        }
+      />
+      <div className={styles.section}>
+        {templateDataSource.length > 0 ? (
+          <Table
+            dataSource={templateDataSource}
+            columns={templateColumns}
+            rowKey="id"
+            pagination={false}
+            size="small"
+          />
+        ) : (
+          <Empty
+            className={styles.emptyState}
+            description="No pricing templates configured"
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+          />
+        )}
+      </div>
+    </Paper>
   );
 };
 
-export default PricingRulesTab;
+export default TemplatesTab;
