@@ -6,7 +6,7 @@ import {
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
-import { SettingsTab } from "@/domains/inventory/products/modals/edit-components-modal/components";
+import { SettingsTab } from "./components";
 import type {
   IBundleSettings,
   DisplayStyle,

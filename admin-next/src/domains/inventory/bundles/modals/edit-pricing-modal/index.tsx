@@ -6,7 +6,7 @@ import {
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
-import { PricingRulesTab } from "@/domains/inventory/products/modals/edit-components-modal/components";
+import { PricingRulesTab } from "./components";
 import type {
   PricingRuleTemplate,
   IDependencyRule,

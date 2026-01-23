@@ -28,10 +28,10 @@ import type {
 import { ComponentItemType } from "./types";
 import {
   GroupCard,
-  PricingRulesTab,
   PreviewTab,
-  SettingsTab,
 } from "./components";
+import { PricingRulesTab } from "@/domains/inventory/bundles/modals/edit-pricing-modal/components";
+import { SettingsTab } from "@/domains/inventory/bundles/modals/edit-settings-modal/components";
 import { Paper } from "@/ui-kit/paper";
 
 // ============================================================================

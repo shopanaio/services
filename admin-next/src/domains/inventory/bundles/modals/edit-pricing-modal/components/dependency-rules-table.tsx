@@ -8,7 +8,6 @@ import {
   Button,
   Input,
   Switch,
-  Popconfirm,
   Space,
   Tooltip,
   Empty,
@@ -54,15 +53,14 @@ import type {
   IDependencyCondition,
   IDependencyAction,
   IComponentGroup,
-} from "../types";
+} from "@/domains/inventory/products/modals/edit-components-modal/types";
 import {
-  DependencyConditionType,
   DependencyActionType,
   DependencyTargetType,
   CONDITION_TYPE_LABELS,
   ACTION_TYPE_LABELS,
   PRICE_RULE_OPTIONS,
-} from "../types";
+} from "@/domains/inventory/products/modals/edit-components-modal/types";
 
 // ============================================================================
 // Styles
@@ -145,7 +143,7 @@ const SortableRow = ({ "data-row-key": id, ...props }: SortableRowProps) => {
       {/* Inject listeners into the first cell (drag handle) via context */}
       {React.Children.map(props.children, (child, index) => {
         if (index === 0 && React.isValidElement(child)) {
-          return React.cloneElement(child as React.ReactElement<any>, {
+          return React.cloneElement(child as React.ReactElement<Record<string, unknown>>, {
             ...listeners,
           });
         }
@@ -278,10 +276,10 @@ const formatRuleSummary = (
     .join(", ");
 
   if (!whenPart && !thenPart) return "No conditions or actions";
-  if (!whenPart) return `→ ${thenPart}`;
-  if (!thenPart) return `${whenPart} → ?`;
+  if (!whenPart) return `-> ${thenPart}`;
+  if (!thenPart) return `${whenPart} -> ?`;
 
-  return `${whenPart} → ${thenPart}`;
+  return `${whenPart} -> ${thenPart}`;
 };
 
 const getRuleStatus = (
@@ -358,7 +356,7 @@ export const DependencyRulesTable = ({
   onOpenChart,
   onEditRule,
 }: IDependencyRulesTableProps) => {
-  const { styles, cx } = useStyles();
+  const { styles } = useStyles();
 
   // ========================================
   // Editing State
@@ -575,7 +573,7 @@ export const DependencyRulesTable = ({
         },
       },
       {
-        title: "WHEN → THEN",
+        title: "WHEN -> THEN",
         key: "summary",
         ellipsis: true,
         render: (_, record) => (

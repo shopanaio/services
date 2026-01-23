@@ -32,15 +32,15 @@ import {
   type IDependencyRule,
   type IComponentGroup,
   PRICE_RULE_OPTIONS,
-} from "../types";
+} from "@/domains/inventory/products/modals/edit-components-modal/types";
 import { DependencyRulesTable } from "./dependency-rules-table";
-import { useDependencyChartModal } from "../../../modals";
+import { useDependencyChartModal } from "@/domains/inventory/products/modals";
 
 // ============================================================================
 // Styles
 // ============================================================================
 
-const useStyles = createStyles(({ token }) => ({
+const useStyles = createStyles(() => ({
   container: {
     display: "flex",
     flexDirection: "column",

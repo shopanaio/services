@@ -12,7 +12,7 @@ import {
 import { InfoCircleOutlined } from "@ant-design/icons";
 
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import type { DisplayStyle, OutOfStockBehavior } from "../types";
+import type { DisplayStyle, OutOfStockBehavior } from "@/domains/inventory/products/modals/edit-components-modal/types";
 
 // ============================================================================
 // Styles
