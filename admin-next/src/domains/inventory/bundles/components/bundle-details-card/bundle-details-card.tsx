@@ -15,9 +15,7 @@ import {
 } from "@/domains/inventory/products/components/product-details-card/sections";
 import {
   GroupsSection,
-  TemplatesSection,
   DependencyRulesSection,
-  SettingsSection,
 } from "./sections";
 import {
   useEditMediaModal,
@@ -28,32 +26,13 @@ import {
 } from "@/domains/inventory/products/modals";
 import {
   useEditBundleGroupsModal,
-  useEditBundleTemplatesModal,
-  useEditBundleSettingsModal,
 } from "@/domains/inventory/bundles/modals";
 import type { IProduct, IMediaFile } from "@/mocks/products/types";
 import type { IBundleDetailsMockData } from "@/mocks/products/bundle-details";
 import type {
   IComponentGroup,
-  PricingRuleTemplate,
   IDependencyRule,
-  IBundleSettings,
 } from "@/domains/inventory/products/modals/edit-components-modal/types";
-
-// ============================================================================
-// Default Settings
-// ============================================================================
-
-const DEFAULT_BUNDLE_SETTINGS: IBundleSettings = {
-  displayStyle: "accordion",
-  showImages: true,
-  showSku: true,
-  showStock: true,
-  showComparePrice: false,
-  outOfStockBehavior: "disable",
-  inheritStock: true,
-  validationMessage: null,
-};
 
 // ============================================================================
 // Props
@@ -76,20 +55,12 @@ export const BundleDetailsCard = ({
   const { push: openEditAttributesModal } = useEditAttributesModal();
   const { push: openEditSeoModal } = useEditSeoModal();
   const { push: openEditGroupsModal } = useEditBundleGroupsModal();
-  const { push: openEditTemplatesModal } = useEditBundleTemplatesModal();
   const { push: openDependencyChartModal } = useDependencyChartModal();
-  const { push: openEditSettingsModal } = useEditBundleSettingsModal();
 
   // State
   const [groups, setGroups] = useState<IComponentGroup[]>(mockData.components);
-  const [pricingTemplates, setPricingTemplates] = useState<PricingRuleTemplate[]>(
-    mockData.pricingTemplates
-  );
   const [dependencyRules, setDependencyRules] = useState<IDependencyRule[]>(
     mockData.dependencyRules
-  );
-  const [bundleSettings, setBundleSettings] = useState<IBundleSettings>(
-    DEFAULT_BUNDLE_SETTINGS
   );
 
   // ========================================
@@ -99,21 +70,11 @@ export const BundleDetailsCard = ({
   const handleEditGroups = useCallback(() => {
     openEditGroupsModal({
       groups,
-      pricingTemplates,
       onSave: (updatedGroups: IComponentGroup[]) => {
         setGroups(updatedGroups);
       },
     });
-  }, [groups, pricingTemplates, openEditGroupsModal]);
-
-  const handleEditTemplates = useCallback(() => {
-    openEditTemplatesModal({
-      pricingTemplates,
-      onSave: (data: { pricingTemplates: PricingRuleTemplate[] }) => {
-        setPricingTemplates(data.pricingTemplates);
-      },
-    });
-  }, [pricingTemplates, openEditTemplatesModal]);
+  }, [groups, openEditGroupsModal]);
 
   const handleOpenChart = useCallback(() => {
     openDependencyChartModal({
@@ -165,15 +126,6 @@ export const BundleDetailsCard = ({
     },
     [groups, dependencyRules, openDependencyChartModal]
   );
-
-  const handleEditSettings = useCallback(() => {
-    openEditSettingsModal({
-      settings: bundleSettings,
-      onSave: (updatedSettings: IBundleSettings) => {
-        setBundleSettings(updatedSettings);
-      },
-    });
-  }, [bundleSettings, openEditSettingsModal]);
 
   const handleEditMedia = useCallback(() => {
     openEditMediaModal({
@@ -233,14 +185,8 @@ export const BundleDetailsCard = ({
         categories={mockData.categories.list}
       />
 
-      {/* COMPONENT GROUPS */}
+      {/* BUNDLE ITEMS */}
       <GroupsSection groups={groups} onEdit={handleEditGroups} />
-
-      {/* PRICING TEMPLATES */}
-      <TemplatesSection
-        pricingTemplates={pricingTemplates}
-        onEdit={handleEditTemplates}
-      />
 
       {/* DEPENDENCY RULES */}
       <DependencyRulesSection
@@ -250,9 +196,6 @@ export const BundleDetailsCard = ({
         onAddRule={handleAddRule}
         onEditRule={handleEditRule}
       />
-
-      {/* BUNDLE SETTINGS */}
-      <SettingsSection settings={bundleSettings} onEdit={handleEditSettings} />
 
       {/* REVIEWS */}
       <ReviewsSection

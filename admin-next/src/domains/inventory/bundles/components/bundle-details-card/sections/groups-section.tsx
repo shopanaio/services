@@ -159,8 +159,8 @@ export const GroupsSection = ({
   return (
     <Paper>
       <PaperHeader
-        title="Component Groups"
-        actions={<EditAction onEdit={onEdit} label="Edit groups" />}
+        title="Bundle Items"
+        actions={<EditAction onEdit={onEdit} label="Edit bundle items" />}
       />
       <div className={styles.lanes}>
         {groups.map((group) => (
