@@ -3,14 +3,12 @@ import type { IModalStackPayload } from "@/layouts/modals";
 import type {
   IComponentGroup,
   PricingRuleTemplate,
-  IDependencyRule,
   IBundleSettings,
 } from "@/domains/inventory/products/modals/edit-components-modal/types";
 
 export const BUNDLE_MODAL_TYPE = "bundle";
 export const BUNDLE_EDIT_GROUPS_MODAL_TYPE = "bundle-edit-groups";
 export const BUNDLE_EDIT_TEMPLATES_MODAL_TYPE = "bundle-edit-templates";
-export const BUNDLE_EDIT_DEPENDENCY_RULES_MODAL_TYPE = "bundle-edit-dependency-rules";
 export const BUNDLE_EDIT_SETTINGS_MODAL_TYPE = "bundle-edit-settings";
 
 export interface IBundleModalPayload extends IModalStackPayload {
@@ -28,12 +26,6 @@ export interface IBundleEditTemplatesModalPayload extends IModalStackPayload {
   onSave?: (data: { pricingTemplates: PricingRuleTemplate[] }) => void;
 }
 
-export interface IBundleEditDependencyRulesModalPayload extends IModalStackPayload {
-  dependencyRules: IDependencyRule[];
-  groups: IComponentGroup[];
-  onSave?: (data: { dependencyRules: IDependencyRule[] }) => void;
-}
-
 export interface IBundleEditSettingsModalPayload extends IModalStackPayload {
   settings: IBundleSettings;
   onSave?: (settings: IBundleSettings) => void;
@@ -44,7 +36,6 @@ declare module "@/layouts/modals" {
     [BUNDLE_MODAL_TYPE]: IBundleModalPayload;
     [BUNDLE_EDIT_GROUPS_MODAL_TYPE]: IBundleEditGroupsModalPayload;
     [BUNDLE_EDIT_TEMPLATES_MODAL_TYPE]: IBundleEditTemplatesModalPayload;
-    [BUNDLE_EDIT_DEPENDENCY_RULES_MODAL_TYPE]: IBundleEditDependencyRulesModalPayload;
     [BUNDLE_EDIT_SETTINGS_MODAL_TYPE]: IBundleEditSettingsModalPayload;
   }
 }
@@ -52,5 +43,4 @@ declare module "@/layouts/modals" {
 export const useBundleModal = createModalStackHook(BUNDLE_MODAL_TYPE);
 export const useEditBundleGroupsModal = createModalStackHook(BUNDLE_EDIT_GROUPS_MODAL_TYPE);
 export const useEditBundleTemplatesModal = createModalStackHook(BUNDLE_EDIT_TEMPLATES_MODAL_TYPE);
-export const useEditBundleDependencyRulesModal = createModalStackHook(BUNDLE_EDIT_DEPENDENCY_RULES_MODAL_TYPE);
 export const useEditBundleSettingsModal = createModalStackHook(BUNDLE_EDIT_SETTINGS_MODAL_TYPE);

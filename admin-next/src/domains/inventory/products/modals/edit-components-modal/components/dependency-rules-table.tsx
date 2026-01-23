@@ -53,14 +53,14 @@ import type {
   IDependencyCondition,
   IDependencyAction,
   IComponentGroup,
-} from "@/domains/inventory/products/modals/edit-components-modal/types";
+} from "../types";
 import {
   DependencyActionType,
   DependencyTargetType,
   CONDITION_TYPE_LABELS,
   ACTION_TYPE_LABELS,
   PRICE_RULE_OPTIONS,
-} from "@/domains/inventory/products/modals/edit-components-modal/types";
+} from "../types";
 
 // ============================================================================
 // Styles
@@ -286,7 +286,6 @@ const getRuleStatus = (
   rule: IDependencyRule,
   groups: IComponentGroup[]
 ): RuleStatus => {
-  // Error: rule is broken
   if (rule.conditions.length === 0) {
     return {
       type: "error",
@@ -302,7 +301,6 @@ const getRuleStatus = (
     };
   }
 
-  // Warning: potential issues
   const allItemIds = groups.flatMap((g) => g.items.map((i) => i.id));
   const allGroupIds = groups.map((g) => g.id);
 
@@ -498,10 +496,8 @@ export const DependencyRulesTable = ({
         const newIndex = rules.findIndex((r) => r.id === over.id);
 
         if (oldIndex !== -1 && newIndex !== -1) {
-          // Reorder rules and recalculate priorities
           const newRules = arrayMove([...rules], oldIndex, newIndex);
 
-          // Update priorities based on new position (higher position = higher priority)
           const maxPriority = Math.max(...newRules.map((r) => r.priority), 0);
           const updatedRules = newRules.map((rule, index) => ({
             ...rule,

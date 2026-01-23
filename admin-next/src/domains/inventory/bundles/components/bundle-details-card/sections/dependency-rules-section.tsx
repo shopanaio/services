@@ -1,9 +1,9 @@
 "use client";
 
-import { Typography, Empty, Tag } from "antd";
+import { Typography, Empty, Tag, Button, Space } from "antd";
+import { PartitionOutlined, PlusOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import { EditAction } from "@/domains/inventory/products/components/edit-action";
 import type {
   IDependencyRule,
   IDependencyCondition,
@@ -33,6 +33,11 @@ const useStyles = createStyles(({ token }) => ({
     background: token.colorBgContainer,
     overflow: "hidden",
     position: "relative" as const,
+    cursor: "pointer",
+    transition: "border-color 0.2s",
+    "&:hover": {
+      borderColor: token.colorPrimary,
+    },
   },
   ruleStripe: {
     position: "absolute" as const,
@@ -180,7 +185,9 @@ const formatAction = (action: IDependencyAction): string => {
 interface IDependencyRulesSectionProps {
   dependencyRules: IDependencyRule[];
   groups: IComponentGroup[];
-  onEdit: () => void;
+  onOpenChart: () => void;
+  onAddRule: () => void;
+  onEditRule: (ruleId: string) => void;
 }
 
 // ============================================================================
@@ -190,7 +197,9 @@ interface IDependencyRulesSectionProps {
 export const DependencyRulesSection = ({
   dependencyRules,
   groups,
-  onEdit,
+  onOpenChart,
+  onAddRule,
+  onEditRule,
 }: IDependencyRulesSectionProps) => {
   const { styles, cx } = useStyles();
 
@@ -201,7 +210,25 @@ export const DependencyRulesSection = ({
     <Paper>
       <PaperHeader
         title="Dependency Rules"
-        actions={<EditAction onEdit={onEdit} label="Edit rules" />}
+        actions={
+          <Space>
+            <Button
+              icon={<PartitionOutlined />}
+              onClick={onOpenChart}
+              size="small"
+              disabled={dependencyRules.length === 0}
+            >
+              Open Chart
+            </Button>
+            <Button
+              icon={<PlusOutlined />}
+              onClick={onAddRule}
+              size="small"
+            >
+              Add Rule
+            </Button>
+          </Space>
+        }
       />
       {dependencyRules.length === 0 ? (
         <Empty
@@ -215,7 +242,7 @@ export const DependencyRulesSection = ({
           </div>
           <div className={styles.rules}>
             {dependencyRules.map((rule) => (
-              <div key={rule.id} className={styles.ruleCard}>
+              <div key={rule.id} className={styles.ruleCard} onClick={() => onEditRule(rule.id)}>
                 <div
                   className={cx(
                     styles.ruleStripe,

@@ -61,6 +61,7 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
     collapsed,
     toggleCollapsed,
     handleNameChange,
+    handlePriorityChange,
     handleEnabledChange,
     handleAddCondition,
     handleUpdateCondition,
@@ -142,15 +143,27 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
               placeholder="Rule name"
             />
           </div>
-          <div className={styles.field}>
-            <Space>
-              <Switch
-                checked={rule.enabled}
-                onChange={handleEnabledChange}
-                size="small"
+          <div style={{ display: "flex", gap: 12, alignItems: "flex-end" }}>
+            <div className={styles.field} style={{ flex: 1, marginBottom: 0 }}>
+              <Typography.Text className={styles.fieldLabel}>Priority</Typography.Text>
+              <InputNumber
+                value={rule.priority}
+                onChange={handlePriorityChange}
+                min={0}
+                max={199}
+                style={{ width: 70 }}
               />
-              <Typography.Text>Enabled</Typography.Text>
-            </Space>
+            </div>
+            <div style={{ paddingBottom: 4 }}>
+              <Space>
+                <Switch
+                  checked={rule.enabled}
+                  onChange={handleEnabledChange}
+                  size="small"
+                />
+                <Typography.Text>Enabled</Typography.Text>
+              </Space>
+            </div>
           </div>
         </div>
 

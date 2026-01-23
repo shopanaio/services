@@ -115,6 +115,14 @@ export const useRuleInspector = ({
     [rule, onRuleChange]
   );
 
+  const handlePriorityChange = useCallback(
+    (priority: number | null) => {
+      if (!rule) return;
+      onRuleChange({ ...rule, priority: priority ?? 0 });
+    },
+    [rule, onRuleChange]
+  );
+
   const handleEnabledChange = useCallback(
     (enabled: boolean) => {
       if (!rule) return;
@@ -211,6 +219,7 @@ export const useRuleInspector = ({
     collapsed,
     toggleCollapsed,
     handleNameChange,
+    handlePriorityChange,
     handleEnabledChange,
     handleAddCondition,
     handleUpdateCondition,

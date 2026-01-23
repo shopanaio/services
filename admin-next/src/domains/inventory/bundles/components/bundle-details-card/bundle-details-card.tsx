@@ -23,12 +23,12 @@ import {
   useEditMediaModal,
   useEditAttributesModal,
   useEditSeoModal,
+  useDependencyChartModal,
   type IEditSeoModalPayload,
 } from "@/domains/inventory/products/modals";
 import {
   useEditBundleGroupsModal,
   useEditBundleTemplatesModal,
-  useEditBundleDependencyRulesModal,
   useEditBundleSettingsModal,
 } from "@/domains/inventory/bundles/modals";
 import type { IProduct, IMediaFile } from "@/mocks/products/types";
@@ -77,7 +77,7 @@ export const BundleDetailsCard = ({
   const { push: openEditSeoModal } = useEditSeoModal();
   const { push: openEditGroupsModal } = useEditBundleGroupsModal();
   const { push: openEditTemplatesModal } = useEditBundleTemplatesModal();
-  const { push: openEditDependencyRulesModal } = useEditBundleDependencyRulesModal();
+  const { push: openDependencyChartModal } = useDependencyChartModal();
   const { push: openEditSettingsModal } = useEditBundleSettingsModal();
 
   // State
@@ -115,15 +115,56 @@ export const BundleDetailsCard = ({
     });
   }, [pricingTemplates, openEditTemplatesModal]);
 
-  const handleEditDependencyRules = useCallback(() => {
-    openEditDependencyRulesModal({
-      dependencyRules,
+  const handleOpenChart = useCallback(() => {
+    openDependencyChartModal({
       groups,
-      onSave: (data: { dependencyRules: IDependencyRule[] }) => {
-        setDependencyRules(data.dependencyRules);
+      rules: dependencyRules,
+      onSave: (updatedRules: IDependencyRule[]) => {
+        setDependencyRules(updatedRules);
       },
     });
-  }, [dependencyRules, groups, openEditDependencyRulesModal]);
+  }, [groups, dependencyRules, openDependencyChartModal]);
+
+  const handleAddRule = useCallback(() => {
+    const maxPriority = Math.max(0, ...dependencyRules.map((r) => r.priority));
+    const newRule: IDependencyRule = {
+      id: `rule-${Date.now()}`,
+      name: "",
+      enabled: true,
+      priority: maxPriority + 100,
+      conditions: [],
+      actions: [],
+    };
+    openDependencyChartModal({
+      groups,
+      rules: [newRule],
+      selectedRuleId: newRule.id,
+      onSave: (updatedRules: IDependencyRule[]) => {
+        setDependencyRules([...dependencyRules, ...updatedRules]);
+      },
+    });
+  }, [groups, dependencyRules, openDependencyChartModal]);
+
+  const handleEditRule = useCallback(
+    (ruleId: string) => {
+      const rule = dependencyRules.find((r) => r.id === ruleId);
+      if (!rule) return;
+      openDependencyChartModal({
+        groups,
+        rules: [rule],
+        selectedRuleId: ruleId,
+        onSave: (updatedRules: IDependencyRule[]) => {
+          const updatedRule = updatedRules[0];
+          if (updatedRule) {
+            setDependencyRules(
+              dependencyRules.map((r) => (r.id === updatedRule.id ? updatedRule : r))
+            );
+          }
+        },
+      });
+    },
+    [groups, dependencyRules, openDependencyChartModal]
+  );
 
   const handleEditSettings = useCallback(() => {
     openEditSettingsModal({
@@ -205,7 +246,9 @@ export const BundleDetailsCard = ({
       <DependencyRulesSection
         dependencyRules={dependencyRules}
         groups={groups}
-        onEdit={handleEditDependencyRules}
+        onOpenChart={handleOpenChart}
+        onAddRule={handleAddRule}
+        onEditRule={handleEditRule}
       />
 
       {/* BUNDLE SETTINGS */}

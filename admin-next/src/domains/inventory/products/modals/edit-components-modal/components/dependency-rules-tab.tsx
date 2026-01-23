@@ -7,7 +7,7 @@ import { useDependencyChartModal } from "@/domains/inventory/products/modals";
 import type {
   IDependencyRule,
   IComponentGroup,
-} from "@/domains/inventory/products/modals/edit-components-modal/types";
+} from "../types";
 
 // ============================================================================
 // Types
@@ -30,9 +30,6 @@ export const DependencyRulesTab = ({
 }: IDependencyRulesTabProps) => {
   const { push: openChartModal } = useDependencyChartModal();
 
-  // ========================================
-  // Chart Modal Handlers
-  // ========================================
   const handleOpenChart = useCallback(() => {
     openChartModal({
       groups,

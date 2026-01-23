@@ -4,7 +4,7 @@ import { memo } from "react";
 import { Handle, Position } from "@xyflow/react";
 import type { NodeProps, Node } from "@xyflow/react";
 import { createStyles } from "antd-style";
-import { Typography, Badge } from "antd";
+import { Typography, Badge, Tag } from "antd";
 import { ThunderboltOutlined } from "@ant-design/icons";
 
 import type { RuleNodeData } from "../types";
@@ -62,6 +62,15 @@ const useStyles = createStyles(({ token }) => ({
   conditionCount: {
     fontSize: 11,
   },
+  priorityTag: {
+    "&&": {
+      fontSize: 10,
+      lineHeight: "16px",
+      padding: "0 4px",
+      margin: 0,
+      fontFamily: "monospace",
+    },
+  },
   handle: {
     width: 8,
     height: 8,
@@ -100,6 +109,7 @@ const RuleNodeComponent = ({ data }: RuleNodeProps) => {
         </Typography.Text>
       </div>
       <div className={styles.info}>
+        <Tag color="orange" className={styles.priorityTag}>#{rule.priority}</Tag>
         <Typography.Text type="secondary" className={styles.conditionCount}>
           {conditionCount} when → {actionCount} then
         </Typography.Text>

@@ -31,7 +31,7 @@ import {
   PreviewTab,
 } from "./components";
 import { TemplatesTab } from "@/domains/inventory/bundles/modals/edit-templates-modal/components";
-import { DependencyRulesTab } from "@/domains/inventory/bundles/modals/edit-dependency-rules-modal/components";
+import { DependencyRulesTab } from "./components/dependency-rules-tab";
 import { SettingsTab } from "@/domains/inventory/bundles/modals/edit-settings-modal/components";
 import { Paper } from "@/ui-kit/paper";
 

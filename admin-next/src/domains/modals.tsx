@@ -318,15 +318,6 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
-    // Bundle Edit Dependency Rules modal
-    {
-      type: 'bundle-edit-dependency-rules',
-      component: dynamic(() =>
-        import('@/domains/inventory/bundles/modals/edit-dependency-rules-modal').then(
-          (m) => m.EditDependencyRulesModal
-        )
-      ),
-    },
     // Bundle Edit Settings modal
     {
       type: 'bundle-edit-settings',
