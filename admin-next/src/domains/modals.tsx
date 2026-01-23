@@ -289,6 +289,18 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       ),
     },
     // ========================================
+    // Bundle modals
+    // ========================================
+    // Bundle modal
+    {
+      type: 'bundle',
+      component: dynamic(() =>
+        import('@/domains/inventory/bundles/modals/bundle-modal').then(
+          (m) => m.BundleModal
+        )
+      ),
+    },
+    // ========================================
     // Media modals
     // ========================================
     // Upload Media modal
