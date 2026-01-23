@@ -204,6 +204,7 @@ export const BundleDetailsCard = ({
       {/* DEPENDENCY RULES */}
       <DependencyRulesSection
         dependencyRules={dependencyRules}
+        groups={groups}
         onEdit={handleEditDependencyRules}
       />
 

@@ -8,8 +8,10 @@ import type {
   IDependencyRule,
   IDependencyCondition,
   IDependencyAction,
+  IComponentGroup,
 } from "@/domains/inventory/products/modals/edit-components-modal/types";
 import {
+  DependencyTargetType,
   CONDITION_TYPE_LABELS,
   ACTION_TYPE_LABELS,
   TARGET_TYPE_LABELS,
@@ -110,6 +112,10 @@ const useStyles = createStyles(({ token }) => ({
       padding: "0 4px",
     },
   },
+  targetName: {
+    fontSize: 12,
+    fontWeight: 500,
+  },
   disabledBadge: {
     "&&": {
       fontSize: 10,
@@ -131,6 +137,29 @@ const useStyles = createStyles(({ token }) => ({
 // Helpers
 // ============================================================================
 
+const resolveTargetName = (
+  targetType: DependencyTargetType,
+  targetId: string | undefined,
+  groups: IComponentGroup[],
+): string | null => {
+  if (!targetId) return null;
+  if (targetType === DependencyTargetType.GROUP) {
+    return groups.find((g) => g.id === targetId)?.title ?? null;
+  }
+  if (targetType === DependencyTargetType.ITEM) {
+    for (const group of groups) {
+      const item = group.items?.find((i) => i.id === targetId);
+      if (item) {
+        return item.title
+          ?? item.assignedProduct?.title
+          ?? item.assignedVariant?.title
+          ?? null;
+      }
+    }
+  }
+  return null;
+};
+
 const formatCondition = (cond: IDependencyCondition): string => {
   const label = CONDITION_TYPE_LABELS[cond.conditionType] ?? cond.conditionType;
   if (cond.value != null) return `${label} ${cond.value}`;
@@ -150,6 +179,7 @@ const formatAction = (action: IDependencyAction): string => {
 
 interface IDependencyRulesSectionProps {
   dependencyRules: IDependencyRule[];
+  groups: IComponentGroup[];
   onEdit: () => void;
 }
 
@@ -159,6 +189,7 @@ interface IDependencyRulesSectionProps {
 
 export const DependencyRulesSection = ({
   dependencyRules,
+  groups,
   onEdit,
 }: IDependencyRulesSectionProps) => {
   const { styles, cx } = useStyles();
@@ -210,30 +241,46 @@ export const DependencyRulesSection = ({
                   <div className={styles.ruleBody}>
                     <div className={styles.flowBlock}>
                       <div className={styles.flowLabel}>When</div>
-                      {rule.conditions.map((cond) => (
-                        <div key={cond.id} className={styles.conditionRow}>
-                          <Tag className={styles.targetTag} color="default">
-                            {TARGET_TYPE_LABELS[cond.targetType]}
-                          </Tag>
-                          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                            {formatCondition(cond)}
-                          </Typography.Text>
-                        </div>
-                      ))}
+                      {rule.conditions.map((cond) => {
+                        const name = resolveTargetName(cond.targetType, cond.targetId, groups);
+                        return (
+                          <div key={cond.id} className={styles.conditionRow}>
+                            <Tag className={styles.targetTag} color="default">
+                              {TARGET_TYPE_LABELS[cond.targetType]}
+                            </Tag>
+                            {name && (
+                              <Typography.Text className={styles.targetName}>
+                                {name}
+                              </Typography.Text>
+                            )}
+                            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                              {formatCondition(cond)}
+                            </Typography.Text>
+                          </div>
+                        );
+                      })}
                     </div>
                     <div className={styles.flowArrow}>→</div>
                     <div className={styles.flowBlock}>
                       <div className={styles.flowLabel}>Then</div>
-                      {rule.actions.map((action) => (
-                        <div key={action.id} className={styles.actionRow}>
-                          <Tag className={styles.targetTag} color="default">
-                            {TARGET_TYPE_LABELS[action.targetType]}
-                          </Tag>
-                          <Typography.Text style={{ fontSize: 12 }}>
-                            {formatAction(action)}
-                          </Typography.Text>
-                        </div>
-                      ))}
+                      {rule.actions.map((action) => {
+                        const name = resolveTargetName(action.targetType, action.targetId, groups);
+                        return (
+                          <div key={action.id} className={styles.actionRow}>
+                            <Tag className={styles.targetTag} color="default">
+                              {TARGET_TYPE_LABELS[action.targetType]}
+                            </Tag>
+                            {name && (
+                              <Typography.Text className={styles.targetName}>
+                                {name}
+                              </Typography.Text>
+                            )}
+                            <Typography.Text style={{ fontSize: 12 }}>
+                              {formatAction(action)}
+                            </Typography.Text>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 ) : (
