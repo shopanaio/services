@@ -1,7 +1,11 @@
 "use client";
 
 import { Typography, Flex, Avatar } from "antd";
-import { PictureOutlined } from "@ant-design/icons";
+import {
+  PictureOutlined,
+  CheckSquareOutlined,
+  CheckCircleOutlined,
+} from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "@/domains/inventory/products/components/edit-action";
@@ -16,34 +20,79 @@ import { ComponentItemType } from "@/domains/inventory/products/modals/edit-comp
 // ============================================================================
 
 const useStyles = createStyles(({ token }) => ({
-  groupCard: {
+  lanes: {
+    display: "flex",
+    gap: 10,
+    overflowX: "auto",
+  },
+  lane: {
     flex: 1,
     minWidth: 180,
-    padding: 12,
-    background: token.colorBgContainer,
+    maxWidth: 260,
+    display: "flex",
+    flexDirection: "column" as const,
     borderRadius: 8,
     border: `1px solid ${token.colorBorderSecondary}`,
+    background: token.colorBgContainer,
+    overflow: "hidden",
   },
-  groupTitle: {
+  laneRequired: {
+    borderLeftWidth: 3,
+    borderLeftColor: token.colorSuccess,
+  },
+  laneHeader: {
+    padding: "10px 12px 8px",
+    borderBottom: `1px solid ${token.colorBorderSecondary}`,
+  },
+  laneTitle: {
     fontSize: 13,
+    fontWeight: 600,
   },
-  groupItemsCount: {
+  laneMeta: {
     fontSize: 11,
+    color: token.colorTextTertiary,
+    marginTop: 2,
   },
-  avatarRow: {
-    margin: "12px 0",
-    minHeight: 40,
+  laneBody: {
+    flex: 1,
+    padding: "6px 8px",
+    maxHeight: 200,
+    overflowY: "auto" as const,
+  },
+  itemRow: {
     display: "flex",
     alignItems: "center",
+    gap: 8,
+    padding: "4px 4px",
+    borderRadius: 4,
+    "&:hover": {
+      background: token.colorFillQuaternary,
+    },
+  },
+  itemName: {
+    flex: 1,
+    fontSize: 12,
+    whiteSpace: "nowrap" as const,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
+  itemIcon: {
+    fontSize: 12,
+    color: token.colorTextQuaternary,
+    flexShrink: 0,
   },
   avatarPlaceholder: {
     "&&": {
       background: token.colorFillSecondary,
       color: token.colorTextQuaternary,
+      fontSize: 10,
     },
   },
-  groupMeta: {
-    fontSize: token.fontSizeSM,
+  laneFooter: {
+    padding: "6px 12px",
+    borderTop: `1px solid ${token.colorBorderSecondary}`,
+    fontSize: 11,
+    color: token.colorTextTertiary,
   },
 }));
 
@@ -70,6 +119,29 @@ const getItemImageUrl = (item: ComponentItem): string | null => {
   return null;
 };
 
+const getItemName = (item: ComponentItem): string => {
+  if (item.title) return item.title;
+  if (item.itemType === ComponentItemType.VARIANT && item.assignedVariant) {
+    return item.assignedVariant.title ?? "Variant";
+  }
+  if (item.assignedProduct) {
+    return item.assignedProduct.title ?? "Product";
+  }
+  return "Item";
+};
+
+const getSelectionLabel = (group: IComponentGroup): string => {
+  if (!group.isMultiple) {
+    return "Select 1";
+  }
+  const min = group.minSelection;
+  const max = group.maxSelection;
+  if (min && max) return `Select ${min}–${max}`;
+  if (min) return `Min ${min}`;
+  if (max) return `Up to ${max}`;
+  return "Any amount";
+};
+
 // ============================================================================
 // Component
 // ============================================================================
@@ -78,7 +150,7 @@ export const GroupsSection = ({
   groups,
   onEdit,
 }: IGroupsSectionProps) => {
-  const { styles } = useStyles();
+  const { styles, cx } = useStyles();
 
   if (!groups || groups.length === 0) {
     return null;
@@ -90,56 +162,57 @@ export const GroupsSection = ({
         title="Component Groups"
         actions={<EditAction onEdit={onEdit} label="Edit groups" />}
       />
-      <Flex gap={8} wrap="wrap">
-        {groups.map((group) => {
-          const itemImages = group.items?.map((item) => getItemImageUrl(item));
-
-          return (
-            <div key={group.id} className={styles.groupCard}>
+      <div className={styles.lanes}>
+        {groups.map((group) => (
+          <div
+            key={group.id}
+            className={cx(styles.lane, group.isRequired && styles.laneRequired)}
+          >
+            <div className={styles.laneHeader}>
               <Flex justify="space-between" align="center">
-                <Typography.Text strong className={styles.groupTitle}>
+                <Typography.Text className={styles.laneTitle}>
                   {group.title}
                 </Typography.Text>
-                <Typography.Text
-                  type="secondary"
-                  className={styles.groupItemsCount}
-                >
-                  {group.items?.length || 0} items
-                </Typography.Text>
               </Flex>
-              <div className={styles.avatarRow}>
-                <Avatar.Group
-                  max={{ count: 5, popover: { trigger: "hover" } }}
-                  size={40}
-                  shape="square"
-                >
-                  {itemImages?.map((img, idx) =>
-                    img ? (
-                      <Avatar key={idx} src={img} />
-                    ) : (
-                      <Avatar
-                        key={idx}
-                        icon={<PictureOutlined />}
-                        className={styles.avatarPlaceholder}
-                      />
-                    ),
-                  )}
-                </Avatar.Group>
-              </div>
-              <Typography.Text type="secondary" className={styles.groupMeta}>
+              <div className={styles.laneMeta}>
                 {[
-                  group.isMultiple && "Multiple",
-                  group.isRequired && "Required",
-                  group.minSelection && group.minSelection > 0 && `Min: ${group.minSelection}`,
-                  group.maxSelection && `Max: ${group.maxSelection}`,
+                  group.isRequired ? "REQUIRED" : "OPTIONAL",
+                  group.isMultiple ? "MULTIPLE" : "SINGLE",
                 ]
-                  .filter(Boolean)
                   .join(" · ")}
-              </Typography.Text>
+              </div>
+              <div className={styles.laneMeta}>
+                {getSelectionLabel(group)}
+              </div>
             </div>
-          );
-        })}
-      </Flex>
+            <div className={styles.laneBody}>
+              {group.items?.map((item) => {
+                const imgUrl = getItemImageUrl(item);
+                return (
+                  <div key={item.id} className={styles.itemRow}>
+                    <Avatar
+                      size={22}
+                      shape="square"
+                      src={imgUrl}
+                      icon={!imgUrl ? <PictureOutlined /> : undefined}
+                      className={!imgUrl ? styles.avatarPlaceholder : undefined}
+                    />
+                    <span className={styles.itemName}>{getItemName(item)}</span>
+                    {group.isMultiple ? (
+                      <CheckSquareOutlined className={styles.itemIcon} />
+                    ) : (
+                      <CheckCircleOutlined className={styles.itemIcon} />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div className={styles.laneFooter}>
+              {group.items?.length || 0} items
+            </div>
+          </div>
+        ))}
+      </div>
     </Paper>
   );
 };
