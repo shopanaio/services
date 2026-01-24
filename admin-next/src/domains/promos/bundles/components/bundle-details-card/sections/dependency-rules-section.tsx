@@ -30,9 +30,14 @@ const useStyles = createStyles(({ token }) => ({
     gap: 10,
   },
   ruleCard: {
-    borderLeft: `2px solid ${token.colorPrimary}`,
-    paddingLeft: 12,
+    border: `1px solid ${token.colorBorderSecondary}`,
+    borderRadius: token.borderRadiusLG,
+    padding: "8px 12px",
     cursor: "pointer",
+    transition: "border-color 0.2s",
+    "&:hover": {
+      borderColor: token.colorBorder,
+    },
   },
   ruleHeader: {
     display: "flex",
@@ -79,14 +84,7 @@ const useStyles = createStyles(({ token }) => ({
     userSelect: "none" as const,
     pointerEvents: "none",
   },
-  conditionRow: {
-    display: "flex",
-    alignItems: "baseline",
-    gap: 4,
-    padding: "2px 0",
-    fontSize: 12,
-  },
-  actionRow: {
+  flowRow: {
     display: "flex",
     alignItems: "baseline",
     gap: 4,
@@ -120,6 +118,50 @@ const useStyles = createStyles(({ token }) => ({
     marginBottom: 8,
   },
 }));
+
+// ============================================================================
+// FlowBlock
+// ============================================================================
+
+interface IFlowBlockItem {
+  key: string;
+  targetType: string;
+  name: string | null;
+  description: string;
+}
+
+const FlowBlock = ({
+  label,
+  items,
+  styles,
+}: {
+  label: string;
+  items: IFlowBlockItem[];
+  styles: ReturnType<typeof useStyles>["styles"];
+}) => (
+  <div className={styles.flowBlock}>
+    <div className={styles.flowLabel}>{label}</div>
+    {items.map((item) => (
+      <div key={item.key} className={styles.flowRow}>
+        <Tag
+          variant="outlined"
+          className={styles.targetTag}
+          color={TARGET_TYPE_COLORS[item.targetType]}
+        >
+          {CHART_NODE_ICONS[item.targetType]}
+        </Tag>
+        {item.name && (
+          <Typography.Text className={styles.targetName}>
+            {item.name}
+          </Typography.Text>
+        )}
+        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+          {item.description}
+        </Typography.Text>
+      </div>
+    ))}
+  </div>
+);
 
 // ============================================================================
 // Props
@@ -218,39 +260,22 @@ export const DependencyRulesSection = ({
 
                 {rule.enabled ? (
                   <div className={styles.ruleBody}>
-                    <div className={styles.flowBlock}>
-                      <div className={styles.flowLabel}>When</div>
-                      {rule.conditionGroups
+                    <FlowBlock
+                      label="When"
+                      styles={styles}
+                      items={rule.conditionGroups
                         .flatMap((g) => g.conditions)
-                        .map((cond) => {
-                          const name = resolveTargetName(
+                        .map((cond) => ({
+                          key: cond.id,
+                          targetType: cond.targetType,
+                          name: resolveTargetName(
                             cond.targetType,
                             cond.targetId,
                             groups,
-                          );
-                          return (
-                            <div key={cond.id} className={styles.conditionRow}>
-                              <Tag
-                                className={styles.targetTag}
-                                color={TARGET_TYPE_COLORS[cond.targetType]}
-                              >
-                                {CHART_NODE_ICONS[cond.targetType]}
-                              </Tag>
-                              {name && (
-                                <Typography.Text className={styles.targetName}>
-                                  {name}
-                                </Typography.Text>
-                              )}
-                              <Typography.Text
-                                type="secondary"
-                                style={{ fontSize: 12 }}
-                              >
-                                {formatCondition(cond)}
-                              </Typography.Text>
-                            </div>
-                          );
-                        })}
-                    </div>
+                          ),
+                          description: formatCondition(cond),
+                        }))}
+                    />
                     <div className={styles.flowArrow}>
                       <Button
                         size="small"
@@ -260,34 +285,20 @@ export const DependencyRulesSection = ({
                         }
                       />
                     </div>
-                    <div className={styles.flowBlock}>
-                      <div className={styles.flowLabel}>Then</div>
-                      {rule.actions.map((action) => {
-                        const name = resolveTargetName(
+                    <FlowBlock
+                      label="Then"
+                      styles={styles}
+                      items={rule.actions.map((action) => ({
+                        key: action.id,
+                        targetType: action.targetType,
+                        name: resolveTargetName(
                           action.targetType,
                           action.targetId,
                           groups,
-                        );
-                        return (
-                          <div key={action.id} className={styles.actionRow}>
-                            <Tag
-                              className={styles.targetTag}
-                              color={TARGET_TYPE_COLORS[action.targetType]}
-                            >
-                              {CHART_NODE_ICONS[action.targetType]}
-                            </Tag>
-                            {name && (
-                              <Typography.Text className={styles.targetName}>
-                                {name}
-                              </Typography.Text>
-                            )}
-                            <Typography.Text style={{ fontSize: 12 }}>
-                              {formatAction(action)}
-                            </Typography.Text>
-                          </div>
-                        );
-                      })}
-                    </div>
+                        ),
+                        description: formatAction(action),
+                      }))}
+                    />
                   </div>
                 ) : (
                   <div className={styles.compactBody}>
