@@ -12,8 +12,8 @@ import { EditAction } from "@/domains/inventory/products/components/edit-action"
 import type {
   IBundleGroup,
   BundleItem,
-} from "@/domains/inventory/products/modals/edit-components-modal/types";
-import { BundleItemType } from "@/domains/inventory/products/modals/edit-components-modal/types";
+} from "@/domains/inventory/bundles/types";
+import { BundleItemType } from "@/domains/inventory/bundles/types";
 
 // ============================================================================
 // Styles

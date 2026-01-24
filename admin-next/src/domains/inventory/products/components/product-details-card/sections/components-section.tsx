@@ -5,12 +5,12 @@ import { PictureOutlined } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "../../edit-action";
 import { useBundleItemsStyles } from "../product-details-card.styles";
-import type { IBundleGroup, BundleItem } from "../../../modals/edit-components-modal/types";
-import { BundleItemType } from "../../../modals/edit-components-modal/types";
+import type { IBundleGroup, BundleItem } from "@/domains/inventory/bundles/types";
+import { BundleItemType } from "@/domains/inventory/bundles/types";
 
 interface IBundleItemsSectionProps {
   groups: IBundleGroup[];
-  onEdit: () => void;
+  onEdit?: () => void;
 }
 
 // Helper to get image from bundle item
@@ -41,7 +41,7 @@ export const BundleItemsSection = ({
     <Paper>
       <PaperHeader
         title="Bundle Items"
-        actions={<EditAction onEdit={onEdit} label="Edit bundle items" />}
+        actions={onEdit && <EditAction onEdit={onEdit} label="Edit bundle items" />}
       />
       <Flex gap={8} wrap="wrap">
         {groups.map((group) => {

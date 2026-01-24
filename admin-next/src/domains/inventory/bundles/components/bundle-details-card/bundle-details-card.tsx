@@ -32,7 +32,7 @@ import type { IBundleDetailsMockData } from "@/mocks/products/bundle-details";
 import type {
   IBundleGroup,
   IDependencyRule,
-} from "@/domains/inventory/products/modals/edit-components-modal/types";
+} from "@/domains/inventory/bundles/types";
 
 // ============================================================================
 // Props

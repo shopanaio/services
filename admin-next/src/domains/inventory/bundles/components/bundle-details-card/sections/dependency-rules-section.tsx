@@ -9,13 +9,13 @@ import type {
   IDependencyCondition,
   IDependencyAction,
   IBundleGroup,
-} from "@/domains/inventory/products/modals/edit-components-modal/types";
+} from "@/domains/inventory/bundles/types";
 import {
   DependencyTargetType,
   CONDITION_TYPE_LABELS,
   ACTION_TYPE_LABELS,
   TARGET_TYPE_LABELS,
-} from "@/domains/inventory/products/modals/edit-components-modal/types";
+} from "@/domains/inventory/bundles/types";
 
 // ============================================================================
 // Styles

@@ -10,19 +10,11 @@ import {
   useEditVariantsModal,
   useEditCategoriesModal,
   useEditTagsModal,
-  useEditBundleItemsModal,
   type IEditSeoModalPayload,
 } from "../../../modals";
 import type { IProduct, IMediaFile } from "@/mocks/products/types";
-import type { IBundleGroup, PricingRuleTemplate, IDependencyRule } from "../../../modals/edit-components-modal/types";
 
-interface IUseProductModalsOptions {
-  bundleItems?: IBundleGroup[];
-  pricingTemplates?: PricingRuleTemplate[];
-  dependencyRules?: IDependencyRule[];
-}
-
-export const useProductModals = (product: IProduct, options: IUseProductModalsOptions = {}) => {
+export const useProductModals = (product: IProduct) => {
   const { push: openProductModal } = useProductModal();
   const { push: openEditMediaModal } = useEditMediaModal();
   const { push: openEditOptionsModal } = useEditOptionsModal();
@@ -31,7 +23,6 @@ export const useProductModals = (product: IProduct, options: IUseProductModalsOp
   const { push: openEditVariantsModal } = useEditVariantsModal();
   const { push: openEditCategoriesModal } = useEditCategoriesModal();
   const { push: openEditTagsModal } = useEditTagsModal();
-  const { push: openEditBundleItemsModal } = useEditBundleItemsModal();
 
   const handleOpenProductModal = useCallback(() => {
     openProductModal({ entityId: product.id });
@@ -81,15 +72,6 @@ export const useProductModals = (product: IProduct, options: IUseProductModalsOp
   const handleEditAttributes = useCallback(() => {
     openEditAttributesModal({ productId: product.id });
   }, [product.id, openEditAttributesModal]);
-
-  const handleEditBundleItems = useCallback(() => {
-    openEditBundleItemsModal({
-      productId: product.id,
-      groups: options.bundleItems,
-      pricingTemplates: options.pricingTemplates,
-      dependencyRules: options.dependencyRules,
-    });
-  }, [product.id, options.bundleItems, options.pricingTemplates, options.dependencyRules, openEditBundleItemsModal]);
 
   const handleEditSeo = useCallback(() => {
     openEditSeoModal({
@@ -175,7 +157,6 @@ export const useProductModals = (product: IProduct, options: IUseProductModalsOp
     editTags: handleEditTags,
     editOptions: handleEditOptions,
     editAttributes: handleEditAttributes,
-    editBundleItems: handleEditBundleItems,
     editSeo: handleEditSeo,
     editVariants: handleEditVariants,
   };

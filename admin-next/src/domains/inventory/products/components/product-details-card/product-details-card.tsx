@@ -51,11 +51,7 @@ export const ProductDetailsCard = ({
   onEditSection,
   onVariantsPageChange,
 }: IProductDetailsCardProps) => {
-  const modals = useProductModals(product, {
-    bundleItems: mockData.bundleItems,
-    pricingTemplates: mockData.pricingTemplates,
-    dependencyRules: mockData.dependencyRules,
-  });
+  const modals = useProductModals(product);
 
   const handleEdit = (section: string) => onEditSection?.(section);
 
@@ -140,7 +136,6 @@ export const ProductDetailsCard = ({
       {/* GROUPS/COMPONENTS */}
       <BundleItemsSection
         groups={mockData.bundleItems}
-        onEdit={modals.editBundleItems}
       />
 
       <TagsSection tags={mockData.tags} />

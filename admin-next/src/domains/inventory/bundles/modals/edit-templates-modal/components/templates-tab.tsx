@@ -30,7 +30,7 @@ import {
   BundlePriceType,
   type PricingRuleTemplate,
   PRICE_RULE_OPTIONS,
-} from "@/domains/inventory/products/modals/edit-components-modal/types";
+} from "@/domains/inventory/bundles/types";
 
 // ============================================================================
 // Styles

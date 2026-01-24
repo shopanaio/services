@@ -18,7 +18,7 @@ import {
   RightOutlined,
 } from "@ant-design/icons";
 
-import type { IDependencyRule, IBundleGroup } from "../../edit-components-modal/types";
+import type { IDependencyRule, IBundleGroup } from "@/domains/inventory/bundles/types";
 import {
   DependencyConditionType,
   DependencyActionType,
@@ -26,7 +26,7 @@ import {
   CONDITION_TYPES_BY_TARGET,
   ACTION_TYPES_BY_TARGET,
   PRICE_RULE_OPTIONS,
-} from "../../edit-components-modal/types";
+} from "@/domains/inventory/bundles/types";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 
 import { useStyles } from "./rule-inspector.styles";

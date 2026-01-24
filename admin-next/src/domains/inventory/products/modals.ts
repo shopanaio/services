@@ -27,7 +27,6 @@ export const PRODUCT_EDIT_VARIANT_SHIPPING_MODAL_TYPE = 'product-edit-variant-sh
 export const PRODUCT_EDIT_VARIANTS_MODAL_TYPE = 'product-edit-variants';
 export const PRODUCT_EDIT_CATEGORIES_MODAL_TYPE = 'product-edit-categories';
 export const PRODUCT_EDIT_TAGS_MODAL_TYPE = 'product-edit-tags';
-export const PRODUCT_EDIT_BUNDLE_ITEMS_MODAL_TYPE = 'product-edit-bundle-items';
 export const BUNDLE_ITEM_VARIANT_SETTINGS_MODAL_TYPE = 'bundle-item-variant-settings';
 export const DEPENDENCY_CHART_MODAL_TYPE = 'dependency-chart';
 export const BULK_EDITOR_MODAL_TYPE = 'bulk-editor';
@@ -303,17 +302,11 @@ export interface IEditTagsModalPayload extends IModalStackPayload {
   onCreateTag?: (title: string) => Promise<ITag>;
 }
 
-export interface IEditBundleItemsModalPayload extends IModalStackPayload {
-  productId?: string;
-  groups?: import("./modals/edit-components-modal/types").IBundleGroup[];
-  pricingTemplates?: import("./modals/edit-components-modal/types").PricingRuleTemplate[];
-}
-
 export interface IDependencyChartModalPayload extends IModalStackPayload {
-  groups: import("./modals/edit-components-modal/types").IBundleGroup[];
-  rules: import("./modals/edit-components-modal/types").IDependencyRule[];
+  groups: import("@/domains/inventory/bundles/types").IBundleGroup[];
+  rules: import("@/domains/inventory/bundles/types").IDependencyRule[];
   selectedRuleId?: string;
-  onSave?: (rules: import("./modals/edit-components-modal/types").IDependencyRule[]) => void;
+  onSave?: (rules: import("@/domains/inventory/bundles/types").IDependencyRule[]) => void;
 }
 
 export interface IBulkEditorModalPayload extends IModalStackPayload {
@@ -380,7 +373,6 @@ declare module '@/layouts/modals' {
     [PRODUCT_EDIT_VARIANTS_MODAL_TYPE]: IEditVariantsModalPayload;
     [PRODUCT_EDIT_CATEGORIES_MODAL_TYPE]: IEditCategoriesModalPayload;
     [PRODUCT_EDIT_TAGS_MODAL_TYPE]: IEditTagsModalPayload;
-    [PRODUCT_EDIT_BUNDLE_ITEMS_MODAL_TYPE]: IEditBundleItemsModalPayload;
     [BUNDLE_ITEM_VARIANT_SETTINGS_MODAL_TYPE]: IBundleItemVariantSettingsModalPayload;
     [DEPENDENCY_CHART_MODAL_TYPE]: IDependencyChartModalPayload;
     [BULK_EDITOR_MODAL_TYPE]: IBulkEditorModalPayload;
@@ -582,17 +574,6 @@ export const useEditCategoriesModal = createModalStackHook(PRODUCT_EDIT_CATEGORI
  * ```
  */
 export const useEditTagsModal = createModalStackHook(PRODUCT_EDIT_TAGS_MODAL_TYPE);
-
-/**
- * Hook to open edit bundle items modal (bundle configurator)
- *
- * @example
- * ```tsx
- * const { push } = useEditBundleItemsModal();
- * push({ productId: 'prod-123' });
- * ```
- */
-export const useEditBundleItemsModal = createModalStackHook(PRODUCT_EDIT_BUNDLE_ITEMS_MODAL_TYPE);
 
 /**
  * Hook to open bundle item variant settings modal

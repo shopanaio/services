@@ -9,7 +9,7 @@ import {
 import { TemplatesTab } from "./components";
 import type {
   PricingRuleTemplate,
-} from "@/domains/inventory/products/modals/edit-components-modal/types";
+} from "@/domains/inventory/bundles/types";
 
 // ============================================================================
 // Payload

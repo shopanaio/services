@@ -225,15 +225,6 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
-    // Edit Bundle Items modal (bundle configurator)
-    {
-      type: 'product-edit-bundle-items',
-      component: dynamic(() =>
-        import('@/domains/inventory/products/modals/edit-components-modal').then(
-          (m) => m.EditBundleItemsModal
-        )
-      ),
-    },
     // Bundle Item Variant Settings modal
     {
       type: 'bundle-item-variant-settings',

@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useTheme } from "antd-style";
 import { MarkerType } from "@xyflow/react";
 
-import type { IBundleGroup, IDependencyRule } from "../../edit-components-modal/types";
+import type { IBundleGroup, IDependencyRule } from "@/domains/inventory/bundles/types";
 import {
   DependencyConditionType,
   DependencyActionType,
@@ -10,7 +10,7 @@ import {
   CONDITION_TYPE_LABELS,
   ACTION_TYPE_LABELS,
   PRICE_RULE_OPTIONS,
-} from "../../edit-components-modal/types";
+} from "@/domains/inventory/bundles/types";
 import type {
   ChartNode,
   ChartEdge,

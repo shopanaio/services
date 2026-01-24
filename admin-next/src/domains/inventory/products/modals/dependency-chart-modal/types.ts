@@ -4,7 +4,7 @@ import type {
   IDependencyCondition,
   IDependencyAction,
   BundleItem,
-} from "../edit-components-modal/types";
+} from "@/domains/inventory/bundles/types";
 
 // ============================================================================
 // Node Data Types (with index signature for React Flow compatibility)

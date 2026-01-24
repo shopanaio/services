@@ -24,8 +24,8 @@ import type {
   BundleItem,
   IBundleGroup,
   PricingRuleTemplate,
-} from "../types";
-import { BundleItemType, BundlePriceType } from "../types";
+} from "../../types";
+import { BundleItemType, BundlePriceType } from "../../types";
 import type { ApiProduct } from "@/graphql/types";
 import { GroupSettings } from "./group-settings";
 import { BundleItemsTable } from "./components-table";

@@ -5,7 +5,7 @@ import type {
   IDependencyCondition,
   IDependencyAction,
   IBundleGroup,
-} from "../../edit-components-modal/types";
+} from "@/domains/inventory/bundles/types";
 import {
   DependencyConditionType,
   DependencyActionType,
@@ -16,7 +16,7 @@ import {
   CONDITION_TYPES_BY_TARGET,
   ACTION_TYPES_BY_TARGET,
   PRICE_RULE_OPTIONS,
-} from "../../edit-components-modal/types";
+} from "@/domains/inventory/bundles/types";
 
 // ============================================================================
 // Helper Functions

@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 import { createStyles } from "antd-style";
 import { Input, InputNumber, Checkbox, Flex } from "antd";
-import type { IBundleGroup } from "../types";
+import type { IBundleGroup } from "../../types";
 
 // ============================================================================
 // Styles

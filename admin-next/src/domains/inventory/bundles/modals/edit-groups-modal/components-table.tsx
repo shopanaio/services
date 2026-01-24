@@ -23,12 +23,12 @@ import {
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 
-import type { BundleItem, PricingRuleTemplate } from "../types";
+import type { BundleItem, PricingRuleTemplate } from "../../types";
 import {
   BundleItemType,
   BundlePriceType,
   PRICE_RULE_OPTIONS,
-} from "../types";
+} from "../../types";
 import type { ApiProduct, ApiVariant, ApiFile } from "@/graphql/types";
 import { useAgGridTheme } from "@/hooks";
 

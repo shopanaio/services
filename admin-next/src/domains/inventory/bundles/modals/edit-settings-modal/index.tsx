@@ -11,7 +11,7 @@ import type {
   IBundleSettings,
   DisplayStyle,
   OutOfStockBehavior,
-} from "@/domains/inventory/products/modals/edit-components-modal/types";
+} from "@/domains/inventory/bundles/types";
 
 // ============================================================================
 // Payload

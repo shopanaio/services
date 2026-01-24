@@ -11,13 +11,13 @@ import {
   ModalHeader,
 } from "@/layouts/modals";
 import { useBundleItemVariantSettingsModal } from "@/domains/inventory/products/modals";
-import { GroupCard } from "@/domains/inventory/products/modals/edit-components-modal/components";
+import { GroupCard } from "./group-card";
 import type {
   IBundleGroup,
   BundleItem,
   PricingRuleTemplate,
-} from "@/domains/inventory/products/modals/edit-components-modal/types";
-import { BundleItemType } from "@/domains/inventory/products/modals/edit-components-modal/types";
+} from "../../types";
+import { BundleItemType } from "../../types";
 
 // ============================================================================
 // Styles
