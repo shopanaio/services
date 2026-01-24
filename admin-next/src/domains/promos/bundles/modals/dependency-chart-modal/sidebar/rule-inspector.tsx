@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useRef, type ReactNode } from "react";
 import {
   Typography,
   Input,
@@ -19,6 +20,15 @@ import {
   DeleteOutlined,
   LeftOutlined,
   RightOutlined,
+  CheckSquareOutlined,
+  NumberOutlined,
+  InboxOutlined,
+  AppstoreOutlined,
+  OrderedListOutlined,
+  DollarOutlined,
+  ContainerOutlined,
+  EyeOutlined,
+  PoweroffOutlined,
 } from "@ant-design/icons";
 
 import type { IDependencyRule, IBundleGroup } from "@/domains/promos/bundles/types";
@@ -29,6 +39,7 @@ import {
 } from "@/domains/promos/bundles/types";
 import {
   ConditionCategory,
+  ConditionSubject,
   ComparisonOperator,
   ActionCategory,
   CONDITION_SUBJECT_META,
@@ -42,7 +53,7 @@ import {
   ACTION_CATEGORY_LABELS,
   ACTION_META,
 } from "@/domains/promos/bundles/dependency-rules";
-import type { IDependencyCondition, ConditionSubject } from "@/domains/promos/bundles/dependency-rules";
+import type { IDependencyCondition } from "@/domains/promos/bundles/dependency-rules";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 
 import { useStyles } from "./rule-inspector.styles";
@@ -97,15 +108,48 @@ const getOperatorLabel = (op: string): string => {
   return STATE_CHECK_OPERATOR_META[op as keyof typeof STATE_CHECK_OPERATOR_META]?.label ?? op;
 };
 
-/** Build 2-level menu items for condition subject→operator */
-const buildConditionMenu = (
+/** Icon maps for first-level menu items */
+const SUBJECT_ICONS: Record<string, ReactNode> = {
+  [ConditionSubject.ITEM_SELECTED]: <CheckSquareOutlined />,
+  [ConditionSubject.ITEM_QTY]: <NumberOutlined />,
+  [ConditionSubject.ITEM_STOCK]: <InboxOutlined />,
+  [ConditionSubject.GROUP_UNIQUE_COUNT]: <AppstoreOutlined />,
+  [ConditionSubject.GROUP_TOTAL_QTY]: <OrderedListOutlined />,
+  [ConditionSubject.GROUP_SUBTOTAL]: <DollarOutlined />,
+  [ConditionSubject.GROUP_CONTAINS]: <ContainerOutlined />,
+  [ConditionSubject.BUNDLE_SUBTOTAL]: <DollarOutlined />,
+};
+
+const CATEGORY_ICONS: Record<string, ReactNode> = {
+  [ActionCategory.VISIBILITY]: <EyeOutlined />,
+  [ActionCategory.STATE]: <PoweroffOutlined />,
+  [ActionCategory.QUANTITY]: <NumberOutlined />,
+  [ActionCategory.SELECTION]: <CheckSquareOutlined />,
+  [ActionCategory.PRICE]: <DollarOutlined />,
+};
+
+/** Menu level structure for NavigableDropdown */
+interface IMenuLevel {
+  key: string;
+  label: string;
+  icon?: ReactNode;
+  children: Array<{
+    key: string;
+    label: string;
+    onClick: () => void;
+  }>;
+}
+
+/** Build 2-level structure for condition subject→operator */
+const buildConditionLevels = (
   targetType: DependencyTargetType,
   onSelect: (subject: ConditionSubject, operator: string) => void,
-): MenuProps["items"] => {
+): IMenuLevel[] => {
   const subjects = SUBJECTS_BY_TARGET[targetType];
   return subjects.map((subject) => ({
     key: subject,
     label: CONDITION_SUBJECT_LABELS[subject],
+    icon: SUBJECT_ICONS[subject],
     children: OPERATORS_BY_SUBJECT[subject].map((op) => ({
       key: `${subject}:${op}`,
       label: getOperatorLabel(op),
@@ -114,21 +158,99 @@ const buildConditionMenu = (
   }));
 };
 
-/** Build 2-level menu items for action category→type */
-const buildActionMenu = (
+/** Build 2-level structure for action category→type */
+const buildActionLevels = (
   targetType: DependencyTargetType,
   onSelect: (actionType: DependencyActionType) => void,
-): MenuProps["items"] => {
+): IMenuLevel[] => {
   const categories = CATEGORIES_BY_TARGET[targetType];
   return categories.map((cat) => ({
     key: cat,
     label: ACTION_CATEGORY_LABELS[cat],
+    icon: CATEGORY_ICONS[cat],
     children: ACTIONS_BY_CATEGORY[cat].map((actionType) => ({
       key: `${cat}:${actionType}`,
       label: ACTION_META[actionType].label,
       onClick: () => onSelect(actionType),
     })),
   }));
+};
+
+/** Dropdown that navigates between levels instead of using submenus */
+const NavigableDropdown = ({
+  levels,
+  children,
+}: {
+  levels: IMenuLevel[];
+  children: ReactNode;
+}) => {
+  const [open, setOpen] = useState(false);
+  const [activeParent, setActiveParent] = useState<string | null>(null);
+  const navigatingRef = useRef(false);
+
+  const handleMenuClick: MenuProps["onClick"] = (info) => {
+    if (info.key === "__back") {
+      navigatingRef.current = true;
+      setActiveParent(null);
+      return;
+    }
+
+    if (!activeParent) {
+      // Navigating into a sublevel — don't close
+      navigatingRef.current = true;
+      setActiveParent(info.key);
+    } else {
+      // Selecting a leaf item — fire callback and close
+      const parent = levels.find((l) => l.key === activeParent);
+      const child = parent?.children.find((c) => c.key === info.key);
+      if (child) child.onClick();
+      setOpen(false);
+      setActiveParent(null);
+    }
+  };
+
+  const menuItems: MenuProps["items"] = activeParent
+    ? [
+        {
+          key: "__back",
+          icon: <LeftOutlined />,
+          label: levels.find((l) => l.key === activeParent)?.label,
+          style: { fontWeight: 500 },
+        },
+        { type: "divider" as const, key: "__divider" },
+        ...(levels.find((l) => l.key === activeParent)?.children ?? []).map((child) => ({
+          key: child.key,
+          label: child.label,
+        })),
+      ]
+    : levels.map((level) => ({
+        key: level.key,
+        icon: level.icon,
+        label: (
+          <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span>{level.label}</span>
+            <RightOutlined style={{ fontSize: 10, color: "rgba(0,0,0,0.25)" }} />
+          </span>
+        ),
+      }));
+
+  return (
+    <Dropdown
+      menu={{ items: menuItems, onClick: handleMenuClick }}
+      trigger={["click"]}
+      open={open}
+      onOpenChange={(v) => {
+        if (navigatingRef.current) {
+          navigatingRef.current = false;
+          return;
+        }
+        setOpen(v);
+        if (!v) setActiveParent(null);
+      }}
+    >
+      {children}
+    </Dropdown>
+  );
 };
 
 // ============================================================================
@@ -325,23 +447,20 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                   />
                 </div>
 
-                {/* Row 2: Operator chip (dropdown with sub-menu) + optional value */}
+                {/* Row 2: Operator chip (navigable dropdown) + optional value */}
                 <div className={styles.conditionRow}>
-                  <Dropdown
-                    menu={{
-                      items: buildConditionMenu(
-                        condition.targetType,
-                        (subject, operator) => {
-                          const subjectMeta = CONDITION_SUBJECT_META[subject];
-                          handleUpdateCondition(condition.id, {
-                            subject,
-                            operator,
-                            category: subjectMeta.category,
-                          } as Partial<IDependencyCondition>);
-                        },
-                      ),
-                    }}
-                    trigger={["click"]}
+                  <NavigableDropdown
+                    levels={buildConditionLevels(
+                      condition.targetType,
+                      (subject, operator) => {
+                        const subjectMeta = CONDITION_SUBJECT_META[subject];
+                        handleUpdateCondition(condition.id, {
+                          subject,
+                          operator,
+                          category: subjectMeta.category,
+                        } as Partial<IDependencyCondition>);
+                      },
+                    )}
                   >
                     <div className={styles.operatorChip}>
                       <span className={styles.chipSubject}>
@@ -354,7 +473,7 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                         {getOperatorLabel(condition.operator)}
                       </Tag>
                     </div>
-                  </Dropdown>
+                  </NavigableDropdown>
                   {conditionNeedsValue(condition) && (
                     <InputNumber
                       value={condition.category === ConditionCategory.NUMERIC ? condition.value : undefined}
@@ -454,16 +573,13 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                   />
                 </div>
 
-                {/* Row 2: Action chip (dropdown with sub-menu) */}
+                {/* Row 2: Action chip (navigable dropdown) */}
                 <div className={styles.conditionRow}>
-                  <Dropdown
-                    menu={{
-                      items: buildActionMenu(
-                        action.targetType,
-                        (actionType) => handleUpdateAction(action.id, { actionType }),
-                      ),
-                    }}
-                    trigger={["click"]}
+                  <NavigableDropdown
+                    levels={buildActionLevels(
+                      action.targetType,
+                      (actionType) => handleUpdateAction(action.id, { actionType }),
+                    )}
                   >
                     <div className={styles.operatorChip}>
                       <span className={styles.chipSubject}>
@@ -473,7 +589,7 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                         {ACTION_META[action.actionType].label}
                       </Tag>
                     </div>
-                  </Dropdown>
+                  </NavigableDropdown>
                 </div>
 
                 {/* Price-specific fields */}
