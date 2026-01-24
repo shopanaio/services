@@ -1,6 +1,7 @@
 import {
   DependencyActionType,
   DependencyTargetType,
+  ActionCategory,
   ComparisonOperator,
   StateCheckOperator,
   LogicOperator,
@@ -21,6 +22,14 @@ export const ACTION_TYPE_LABELS: Record<DependencyActionType, string> = {
   [DependencyActionType.SET_REQUIRED]: "set required",
   [DependencyActionType.OVERRIDE_PRICE]: "override price",
   [DependencyActionType.ADJUST_PRICE]: "adjust price",
+};
+
+export const ACTION_CATEGORY_LABELS: Record<ActionCategory, string> = {
+  [ActionCategory.VISIBILITY]: "Visibility",
+  [ActionCategory.STATE]: "State",
+  [ActionCategory.QUANTITY]: "Quantity",
+  [ActionCategory.SELECTION]: "Selection",
+  [ActionCategory.PRICE]: "Price",
 };
 
 export const TARGET_TYPE_LABELS: Record<DependencyTargetType, string> = {

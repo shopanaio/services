@@ -23,6 +23,8 @@ export {
   getSubjectOptions,
   getOperatorOptions,
   getActionTypeOptions,
+  getActionCategoryOptions,
+  getActionTypeOptionsByCategory,
   CONDITION_TARGET_TYPE_OPTIONS,
   ACTION_TARGET_TYPE_OPTIONS,
 } from "@/domains/promos/bundles/dependency-rules";

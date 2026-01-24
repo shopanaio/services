@@ -1,4 +1,4 @@
-import { DependencyActionType, DependencyTargetType } from "./enums";
+import { DependencyActionType, DependencyTargetType, ActionCategory } from "./enums";
 import type { ActionMetadata } from "./types";
 
 // ============================================================================
@@ -48,7 +48,55 @@ export const ACTION_META: Record<DependencyActionType, ActionMetadata> = {
 };
 
 // ============================================================================
-// Valid Actions per Target Type
+// Actions by Category
+// ============================================================================
+
+export const ACTIONS_BY_CATEGORY: Record<ActionCategory, DependencyActionType[]> = {
+  [ActionCategory.VISIBILITY]: [
+    DependencyActionType.SHOW,
+    DependencyActionType.HIDE,
+  ],
+  [ActionCategory.STATE]: [
+    DependencyActionType.ENABLE,
+    DependencyActionType.DISABLE,
+  ],
+  [ActionCategory.QUANTITY]: [
+    DependencyActionType.SET_QTY,
+    DependencyActionType.SET_QTY_LIMITS,
+  ],
+  [ActionCategory.SELECTION]: [
+    DependencyActionType.SET_REQUIRED,
+  ],
+  [ActionCategory.PRICE]: [
+    DependencyActionType.OVERRIDE_PRICE,
+    DependencyActionType.ADJUST_PRICE,
+  ],
+};
+
+// ============================================================================
+// Valid Categories per Target Type
+// ============================================================================
+
+export const CATEGORIES_BY_TARGET: Record<DependencyTargetType, ActionCategory[]> = {
+  [DependencyTargetType.ITEM]: [
+    ActionCategory.VISIBILITY,
+    ActionCategory.STATE,
+    ActionCategory.QUANTITY,
+    ActionCategory.PRICE,
+  ],
+  [DependencyTargetType.GROUP]: [
+    ActionCategory.VISIBILITY,
+    ActionCategory.STATE,
+    ActionCategory.SELECTION,
+    ActionCategory.PRICE,
+  ],
+  [DependencyTargetType.BUNDLE]: [
+    ActionCategory.PRICE,
+  ],
+};
+
+// ============================================================================
+// Valid Actions per Target Type (flat convenience map)
 // ============================================================================
 
 export const ACTIONS_BY_TARGET: Record<DependencyTargetType, DependencyActionType[]> = {

@@ -69,6 +69,18 @@ export enum DependencyTargetType {
 }
 
 // ============================================================================
+// Action Category (groups related action types)
+// ============================================================================
+
+export enum ActionCategory {
+  VISIBILITY = "VISIBILITY",
+  STATE = "STATE",
+  QUANTITY = "QUANTITY",
+  SELECTION = "SELECTION",
+  PRICE = "PRICE",
+}
+
+// ============================================================================
 // Action Types
 // ============================================================================
 

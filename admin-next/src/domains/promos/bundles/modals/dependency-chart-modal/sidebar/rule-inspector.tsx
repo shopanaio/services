@@ -27,8 +27,11 @@ import {
 import {
   ConditionCategory,
   ComparisonOperator,
+  ActionCategory,
   CONDITION_SUBJECT_META,
   COMPARISON_OPERATOR_META,
+  ACTIONS_BY_CATEGORY,
+  CATEGORIES_BY_TARGET,
 } from "@/domains/promos/bundles/dependency-rules";
 import type { IDependencyCondition } from "@/domains/promos/bundles/dependency-rules";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
@@ -39,7 +42,8 @@ import {
   getTargetOptions,
   getSubjectOptions,
   getOperatorOptions,
-  getActionTypeOptions,
+  getActionCategoryOptions,
+  getActionTypeOptionsByCategory,
   CONDITION_TARGET_TYPE_OPTIONS,
   ACTION_TARGET_TYPE_OPTIONS,
   PRICE_TYPE_OPTIONS,
@@ -70,6 +74,14 @@ const conditionNeedsValue = (condition: IDependencyCondition): boolean => {
 const conditionNeedsSecondValue = (condition: IDependencyCondition): boolean => {
   if (condition.category !== ConditionCategory.NUMERIC) return false;
   return condition.operator === ComparisonOperator.BETWEEN;
+};
+
+/** Derive ActionCategory from an action type (reverse lookup) */
+const getCategoryForAction = (actionType: DependencyActionType): ActionCategory => {
+  for (const [cat, actions] of Object.entries(ACTIONS_BY_CATEGORY)) {
+    if ((actions as DependencyActionType[]).includes(actionType)) return cat as ActionCategory;
+  }
+  return ActionCategory.VISIBILITY;
 };
 
 // ============================================================================
@@ -350,15 +362,15 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
           ) : (
             rule.actions.map((action) => (
               <div key={action.id} className={styles.actionItem}>
+                {/* Row 1: Target type + target select */}
                 <div className={styles.conditionRow}>
                   <Select
                     value={action.targetType}
                     onChange={(value) => {
-                      const validActions = getActionTypeOptions(value as DependencyTargetType);
-                      const currentValid = validActions.find((a) => a.value === action.actionType);
-                      const newActionType = currentValid
-                        ? action.actionType
-                        : validActions[0]?.value;
+                      const categories = CATEGORIES_BY_TARGET[value as DependencyTargetType];
+                      const firstCategory = categories[0];
+                      const actionsInCategory = ACTIONS_BY_CATEGORY[firstCategory];
+                      const newActionType = actionsInCategory[0];
                       handleUpdateAction(action.id, {
                         targetType: value,
                         actionType: newActionType,
@@ -396,13 +408,25 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                     className={styles.deleteButton}
                   />
                 </div>
+
+                {/* Row 2: Action category + action type */}
                 <div className={styles.conditionRow}>
+                  <Select
+                    value={getCategoryForAction(action.actionType)}
+                    onChange={(value) => {
+                      const actionsInCategory = ACTIONS_BY_CATEGORY[value as ActionCategory];
+                      handleUpdateAction(action.id, { actionType: actionsInCategory[0] });
+                    }}
+                    options={getActionCategoryOptions(action.targetType)}
+                    size="small"
+                    style={{ flex: 1 }}
+                  />
                   <Select
                     value={action.actionType}
                     onChange={(value) =>
                       handleUpdateAction(action.id, { actionType: value })
                     }
-                    options={getActionTypeOptions(action.targetType)}
+                    options={getActionTypeOptionsByCategory(getCategoryForAction(action.actionType))}
                     size="small"
                     style={{ flex: 1 }}
                   />

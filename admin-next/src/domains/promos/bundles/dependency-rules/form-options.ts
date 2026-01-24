@@ -1,6 +1,7 @@
 import {
   DependencyTargetType,
   DependencyActionType,
+  ActionCategory,
   ConditionSubject,
   ComparisonOperator,
   StateCheckOperator,
@@ -16,7 +17,8 @@ import {
   LOGIC_OPERATOR_LABELS,
 } from "./constants";
 import { SUBJECTS_BY_TARGET, OPERATORS_BY_SUBJECT } from "./operators";
-import { ACTIONS_BY_TARGET, ACTION_META } from "./actions";
+import { ACTIONS_BY_TARGET, ACTIONS_BY_CATEGORY, CATEGORIES_BY_TARGET, ACTION_META } from "./actions";
+import { ACTION_CATEGORY_LABELS } from "./constants";
 import { PRICE_RULE_OPTIONS } from "../types";
 
 // ============================================================================
@@ -101,6 +103,28 @@ export const getActionTypeOptions = (
   targetType: DependencyTargetType,
 ): SelectOption<DependencyActionType>[] => {
   const actions = ACTIONS_BY_TARGET[targetType];
+  return actions.map((a) => ({ value: a, label: ACTION_META[a].label }));
+};
+
+// ============================================================================
+// Action Category Options (by target type)
+// ============================================================================
+
+export const getActionCategoryOptions = (
+  targetType: DependencyTargetType,
+): SelectOption<ActionCategory>[] => {
+  const categories = CATEGORIES_BY_TARGET[targetType];
+  return categories.map((c) => ({ value: c, label: ACTION_CATEGORY_LABELS[c] }));
+};
+
+// ============================================================================
+// Action Type Options (by category)
+// ============================================================================
+
+export const getActionTypeOptionsByCategory = (
+  category: ActionCategory,
+): SelectOption<DependencyActionType>[] => {
+  const actions = ACTIONS_BY_CATEGORY[category];
   return actions.map((a) => ({ value: a, label: ACTION_META[a].label }));
 };
 
