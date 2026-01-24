@@ -98,12 +98,44 @@ const getCategoryForAction = (actionType: DependencyActionType): ActionCategory 
   return ActionCategory.VISIBILITY;
 };
 
-/** Get display label for any operator */
+/** Get display label for any operator (symbol for comparison, label for state) */
 const getOperatorLabel = (op: string): string => {
   if (op in ComparisonOperator) {
     return COMPARISON_OPERATOR_META[op as ComparisonOperator]?.symbol ?? op;
   }
   return STATE_CHECK_OPERATOR_META[op as keyof typeof STATE_CHECK_OPERATOR_META]?.label ?? op;
+};
+
+/** Short subject names for chip display */
+const SUBJECT_SHORT: Partial<Record<ConditionSubject, string>> = {
+  [ConditionSubject.ITEM_QTY]: "qty",
+  [ConditionSubject.GROUP_UNIQUE_COUNT]: "unique count",
+  [ConditionSubject.GROUP_TOTAL_QTY]: "total qty",
+  [ConditionSubject.GROUP_SUBTOTAL]: "subtotal",
+  [ConditionSubject.BUNDLE_SUBTOTAL]: "subtotal",
+};
+
+/** Grammatically correct verb phrases for comparison operators */
+const OPERATOR_PHRASE: Record<ComparisonOperator, string> = {
+  [ComparisonOperator.GT]: "is greater than",
+  [ComparisonOperator.GTE]: "is at least",
+  [ComparisonOperator.EQ]: "equals",
+  [ComparisonOperator.LTE]: "is at most",
+  [ComparisonOperator.LT]: "is less than",
+  [ComparisonOperator.BETWEEN]: "is between",
+  [ComparisonOperator.IN_LIST]: "is in",
+};
+
+/** Build a grammatically correct chip label for a condition */
+const getConditionChipLabel = (subject: ConditionSubject, operator: string): string => {
+  // State checks — the operator label is already a phrase
+  if (!(operator in ComparisonOperator)) {
+    return STATE_CHECK_OPERATOR_META[operator as keyof typeof STATE_CHECK_OPERATOR_META]?.label ?? operator;
+  }
+  // Numeric — short subject + verb phrase
+  const subjectShort = SUBJECT_SHORT[subject] ?? subject;
+  const phrase = OPERATOR_PHRASE[operator as ComparisonOperator] ?? operator;
+  return `${subjectShort} ${phrase}`;
 };
 
 /** Icon maps for first-level menu items */
@@ -431,15 +463,7 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                     )}
                   >
                     <div className={styles.operatorChip}>
-                      <span className={styles.chipSubject}>
-                        {CONDITION_SUBJECT_LABELS[condition.subject]}
-                      </span>
-                      <Tag
-                        className={styles.chipOperator}
-                        color={condition.category === ConditionCategory.NUMERIC ? "blue" : "green"}
-                      >
-                        {getOperatorLabel(condition.operator)}
-                      </Tag>
+                      {getConditionChipLabel(condition.subject, condition.operator)}
                     </div>
                   </NavigableDropdown>
                   {conditionNeedsValue(condition) && (
