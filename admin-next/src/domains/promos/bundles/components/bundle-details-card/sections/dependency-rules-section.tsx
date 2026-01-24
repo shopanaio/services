@@ -39,19 +39,6 @@ const useStyles = createStyles(({ token }) => ({
       borderColor: token.colorPrimary,
     },
   },
-  ruleStripe: {
-    position: "absolute" as const,
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 3,
-  },
-  ruleStripeActive: {
-    background: token.colorPrimary,
-  },
-  ruleStripeDisabled: {
-    background: token.colorTextQuaternary,
-  },
   ruleHeader: {
     display: "flex",
     alignItems: "center",
@@ -59,11 +46,11 @@ const useStyles = createStyles(({ token }) => ({
     padding: "8px 12px 6px 16px",
   },
   ruleName: {
-    fontSize: 13,
+    fontSize: token.fontSize,
     fontWeight: 600,
   },
   rulePriority: {
-    fontSize: 11,
+    fontSize: token.fontSizeSM,
     color: token.colorTextTertiary,
     fontFamily: "monospace",
   },
@@ -201,7 +188,7 @@ export const DependencyRulesSection = ({
   onAddRule,
   onEditRule,
 }: IDependencyRulesSectionProps) => {
-  const { styles, cx } = useStyles();
+  const { styles } = useStyles();
 
   const activeCount = dependencyRules.filter((r) => r.enabled).length;
   const disabledCount = dependencyRules.length - activeCount;
@@ -250,12 +237,6 @@ export const DependencyRulesSection = ({
           <div className={styles.rules}>
             {dependencyRules.map((rule) => (
               <div key={rule.id} className={styles.ruleCard} onClick={() => onEditRule(rule.id)}>
-                <div
-                  className={cx(
-                    styles.ruleStripe,
-                    rule.enabled ? styles.ruleStripeActive : styles.ruleStripeDisabled,
-                  )}
-                />
                 <div className={styles.ruleHeader}>
                   <Typography.Text
                     className={styles.ruleName}

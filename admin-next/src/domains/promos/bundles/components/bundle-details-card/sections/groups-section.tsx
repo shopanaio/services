@@ -35,21 +35,17 @@ const useStyles = createStyles(({ token }) => ({
     background: token.colorBgContainer,
     overflow: "hidden",
   },
-  laneRequired: {
-    borderLeftWidth: 3,
-    borderLeftColor: token.colorSuccess,
-  },
   laneHeader: {
     padding: "10px 12px 8px",
     borderBottom: `1px solid ${token.colorBorderSecondary}`,
   },
   laneTitle: {
-    fontSize: 13,
+    fontSize: token.fontSize,
     fontWeight: 600,
   },
   badgeIndicator: {
     outline: `2px solid ${token.colorPrimary}`,
-    fontSize: 10,
+    fontSize: token.fontSizeSM,
   },
   laneTags: {
     display: "flex",
@@ -87,7 +83,6 @@ const useStyles = createStyles(({ token }) => ({
     minWidth: 0,
   },
   itemName: {
-    fontSize: 12,
     whiteSpace: "nowrap" as const,
     overflow: "hidden",
     textOverflow: "ellipsis",
@@ -231,7 +226,7 @@ export const GroupsSection = ({
   bundleType,
   onEdit,
 }: IGroupsSectionProps) => {
-  const { styles, cx } = useStyles();
+  const { styles } = useStyles();
 
   if (!groups || groups.length === 0) {
     return null;
@@ -254,7 +249,7 @@ export const GroupsSection = ({
         {groups.map((group) => (
           <div
             key={group.id}
-            className={cx(styles.lane, group.isRequired && styles.laneRequired)}
+            className={styles.lane}
           >
             <div className={styles.laneHeader}>
               <Typography.Text className={styles.laneTitle}>
