@@ -180,63 +180,38 @@ const buildActionLevels = (
 const NavigableDropdown = ({
   levels,
   children,
+  styles: s,
 }: {
   levels: IMenuLevel[];
   children: ReactNode;
+  styles: Record<string, string>;
 }) => {
   const [open, setOpen] = useState(false);
   const [activeParent, setActiveParent] = useState<string | null>(null);
   const navigatingRef = useRef(false);
 
-  const handleMenuClick: MenuProps["onClick"] = (info) => {
-    if (info.key === "__back") {
-      navigatingRef.current = true;
-      setActiveParent(null);
-      return;
-    }
+  const activeLevel = levels.find((l) => l.key === activeParent);
 
-    if (!activeParent) {
-      // Navigating into a sublevel — don't close
-      navigatingRef.current = true;
-      setActiveParent(info.key);
-    } else {
-      // Selecting a leaf item — fire callback and close
-      const parent = levels.find((l) => l.key === activeParent);
-      const child = parent?.children.find((c) => c.key === info.key);
-      if (child) child.onClick();
-      setOpen(false);
-      setActiveParent(null);
-    }
+  const handleMenuClick: MenuProps["onClick"] = (info) => {
+    // Navigating into a sublevel — don't close
+    navigatingRef.current = true;
+    setActiveParent(info.key);
   };
 
-  const menuItems: MenuProps["items"] = activeParent
-    ? [
-        {
-          key: "__back",
-          icon: <LeftOutlined />,
-          label: levels.find((l) => l.key === activeParent)?.label,
-          style: { fontWeight: 500 },
-        },
-        { type: "divider" as const, key: "__divider" },
-        ...(levels.find((l) => l.key === activeParent)?.children ?? []).map((child) => ({
-          key: child.key,
-          label: child.label,
-        })),
-      ]
-    : levels.map((level) => ({
-        key: level.key,
-        icon: level.icon,
-        label: (
-          <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span>{level.label}</span>
-            <RightOutlined style={{ fontSize: 10, color: "rgba(0,0,0,0.25)" }} />
-          </span>
-        ),
-      }));
+  const topLevelItems: MenuProps["items"] = levels.map((level) => ({
+    key: level.key,
+    icon: level.icon,
+    label: (
+      <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span>{level.label}</span>
+        <RightOutlined style={{ fontSize: 10, color: "rgba(0,0,0,0.25)" }} />
+      </span>
+    ),
+  }));
 
   return (
     <Dropdown
-      menu={{ items: menuItems, onClick: handleMenuClick }}
+      menu={{ items: activeParent ? [] : topLevelItems, onClick: handleMenuClick }}
       trigger={["click"]}
       open={open}
       onOpenChange={(v) => {
@@ -247,6 +222,39 @@ const NavigableDropdown = ({
         setOpen(v);
         if (!v) setActiveParent(null);
       }}
+      dropdownRender={(menu) =>
+        activeParent && activeLevel ? (
+          <div className={s.navDropdownPanel}>
+            <div
+              className={s.navDropdownBack}
+              onClick={() => {
+                navigatingRef.current = true;
+                setActiveParent(null);
+              }}
+            >
+              <LeftOutlined style={{ fontSize: 10 }} />
+              <span>{activeLevel.label}</span>
+            </div>
+            <div className={s.navDropdownGrid}>
+              {activeLevel.children.map((child) => (
+                <Tag
+                  key={child.key}
+                  className={s.navDropdownTag}
+                  onClick={() => {
+                    child.onClick();
+                    setOpen(false);
+                    setActiveParent(null);
+                  }}
+                >
+                  {child.label}
+                </Tag>
+              ))}
+            </div>
+          </div>
+        ) : (
+          menu
+        )
+      }
     >
       {children}
     </Dropdown>
@@ -450,6 +458,7 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                 {/* Row 2: Operator chip (navigable dropdown) + optional value */}
                 <div className={styles.conditionRow}>
                   <NavigableDropdown
+                    styles={styles}
                     levels={buildConditionLevels(
                       condition.targetType,
                       (subject, operator) => {
@@ -576,6 +585,7 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                 {/* Row 2: Action chip (navigable dropdown) */}
                 <div className={styles.conditionRow}>
                   <NavigableDropdown
+                    styles={styles}
                     levels={buildActionLevels(
                       action.targetType,
                       (actionType) => handleUpdateAction(action.id, { actionType }),
