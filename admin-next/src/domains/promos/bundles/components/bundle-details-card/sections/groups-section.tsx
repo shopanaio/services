@@ -1,7 +1,13 @@
 "use client";
 
-import { Typography, Avatar, Tag, Badge } from "antd";
-import { PictureOutlined } from "@ant-design/icons";
+import { Typography, Avatar, Tag } from "antd";
+import {
+  PictureOutlined,
+  LockOutlined,
+  UnlockOutlined,
+  CheckCircleOutlined,
+  CheckSquareOutlined,
+} from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "@/domains/inventory/products/components/edit-action";
@@ -42,13 +48,19 @@ const useStyles = createStyles(({ token }) => ({
     padding: "10px 12px 8px",
     borderBottom: `1px solid ${token.colorBorderSecondary}`,
   },
+  laneInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
   laneTitle: {
     fontSize: token.fontSize,
     fontWeight: 600,
+    display: "block",
   },
-  badgeIndicator: {
-    outline: `2px solid ${token.colorPrimary}`,
-    fontSize: token.fontSizeSM,
+  laneCount: {
+    fontSize: 10,
+    display: "block",
+    marginTop: -2,
   },
   laneTags: {
     display: "flex",
@@ -254,21 +266,19 @@ export const GroupsSection = ({
             className={styles.lane}
           >
             <div className={styles.laneHeader}>
-              <Typography.Text className={styles.laneTitle}>
-                {group.title}{" "}
-                <Badge
-                  offset={[2, -2]}
-                  count={group.items?.length || 0}
-                  size="small"
-                  color="blue"
-                  classNames={{ indicator: styles.badgeIndicator }}
-                />
-              </Typography.Text>
+              <div className={styles.laneInfo}>
+                <Typography.Text className={styles.laneTitle}>
+                  {group.title}
+                </Typography.Text>
+                <Typography.Text type="secondary" className={styles.laneCount}>
+                  {group.items?.length || 0} items
+                </Typography.Text>
+              </div>
               <div className={styles.laneTags}>
-                <Tag className={styles.laneTag}>
+                <Tag className={styles.laneTag} icon={group.isRequired ? <LockOutlined /> : <UnlockOutlined />}>
                   {group.isRequired ? "Required" : "Optional"}
                 </Tag>
-                <Tag className={styles.laneTag}>
+                <Tag className={styles.laneTag} icon={group.isMultiple ? <CheckSquareOutlined /> : <CheckCircleOutlined />}>
                   {group.isMultiple ? "Multiple" : "Single"}
                 </Tag>
                 <Tag className={styles.laneTag}>{getSelectionLabel(group)}</Tag>
