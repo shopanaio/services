@@ -90,14 +90,6 @@ const conditionNeedsSecondValue = (condition: IDependencyCondition): boolean => 
   return condition.operator === ComparisonOperator.BETWEEN;
 };
 
-/** Derive ActionCategory from an action type (reverse lookup) */
-const getCategoryForAction = (actionType: DependencyActionType): ActionCategory => {
-  for (const [cat, actions] of Object.entries(ACTIONS_BY_CATEGORY)) {
-    if ((actions as DependencyActionType[]).includes(actionType)) return cat as ActionCategory;
-  }
-  return ActionCategory.VISIBILITY;
-};
-
 /** Get display label for any operator (symbol for comparison, label for state) */
 const getOperatorLabel = (op: string): string => {
   if (op in ComparisonOperator) {
@@ -136,6 +128,19 @@ const getConditionChipLabel = (subject: ConditionSubject, operator: string): str
   const subjectShort = SUBJECT_SHORT[subject] ?? subject;
   const phrase = OPERATOR_PHRASE[operator as ComparisonOperator] ?? operator;
   return `${subjectShort} ${phrase}`;
+};
+
+/** Grammatically correct phrases for action chip display */
+const ACTION_PHRASE: Record<DependencyActionType, string> = {
+  [DependencyActionType.SHOW]: "is shown",
+  [DependencyActionType.HIDE]: "is hidden",
+  [DependencyActionType.ENABLE]: "is enabled",
+  [DependencyActionType.DISABLE]: "is disabled",
+  [DependencyActionType.SET_QTY]: "quantity is",
+  [DependencyActionType.SET_QTY_LIMITS]: "quantity limits",
+  [DependencyActionType.SET_REQUIRED]: "is required",
+  [DependencyActionType.OVERRIDE_PRICE]: "price override",
+  [DependencyActionType.ADJUST_PRICE]: "price adjust",
 };
 
 /** Icon maps for first-level menu items */
@@ -564,12 +569,7 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                     )}
                   >
                     <div className={styles.operatorChip}>
-                      <span className={styles.chipSubject}>
-                        {ACTION_CATEGORY_LABELS[getCategoryForAction(action.actionType)]}
-                      </span>
-                      <Tag className={styles.chipOperator} color="orange">
-                        {ACTION_META[action.actionType].label}
-                      </Tag>
+                      {ACTION_PHRASE[action.actionType]}
                     </div>
                   </NavigableDropdown>
                 </div>
