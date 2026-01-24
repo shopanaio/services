@@ -27,6 +27,8 @@ import {
   ContainerOutlined,
   EyeOutlined,
   PoweroffOutlined,
+  TagOutlined,
+  GiftOutlined,
 } from "@ant-design/icons";
 
 import type { IDependencyRule, IBundleGroup } from "@/domains/promos/bundles/types";
@@ -58,9 +60,6 @@ import { NavigableDropdown, type IMenuLevel } from "@/ui-kit/navigable-dropdown"
 import { useStyles } from "./rule-inspector.styles";
 import {
   useRuleInspector,
-  getTargetOptions,
-  CONDITION_TARGET_TYPE_OPTIONS,
-  ACTION_TARGET_TYPE_OPTIONS,
   PRICE_TYPE_OPTIONS,
 } from "./use-rule-inspector";
 
@@ -126,6 +125,74 @@ const CATEGORY_ICONS: Record<string, ReactNode> = {
   [ActionCategory.SELECTION]: <CheckSquareOutlined />,
   [ActionCategory.PRICE]: <DollarOutlined />,
 };
+
+/** Target type display config */
+const TARGET_TYPE_ICONS: Record<DependencyTargetType, ReactNode> = {
+  [DependencyTargetType.ITEM]: <TagOutlined />,
+  [DependencyTargetType.GROUP]: <AppstoreOutlined />,
+  [DependencyTargetType.BUNDLE]: <GiftOutlined />,
+};
+
+const TARGET_TYPE_COLORS: Record<DependencyTargetType, string> = {
+  [DependencyTargetType.ITEM]: "blue",
+  [DependencyTargetType.GROUP]: "purple",
+  [DependencyTargetType.BUNDLE]: "gold",
+};
+
+/** Get display label for a target */
+const getTargetLabel = (
+  targetType: DependencyTargetType,
+  targetId: string | undefined,
+  groups: IBundleGroup[],
+): string => {
+  if (targetType === DependencyTargetType.BUNDLE) return "Bundle";
+  if (targetType === DependencyTargetType.GROUP) {
+    const group = groups.find((g) => g.id === targetId);
+    return group?.title ?? targetId ?? "—";
+  }
+  for (const g of groups) {
+    const item = g.items.find((i) => i.id === targetId);
+    if (item) return item.title ?? item.assignedProduct?.title ?? item.id;
+  }
+  return targetId ?? "—";
+};
+
+/** Build target selection levels: Item → items list, Group → groups list, Bundle → leaf */
+const buildTargetLevels = (
+  groups: IBundleGroup[],
+  onSelect: (targetType: DependencyTargetType, targetId: string) => void,
+): IMenuLevel[] => [
+  {
+    key: DependencyTargetType.ITEM,
+    label: "Item",
+    icon: <TagOutlined />,
+    childrenLayout: "list",
+    children: groups.flatMap((g) =>
+      g.items.map((item) => ({
+        key: item.id,
+        label: item.title ?? item.assignedProduct?.title ?? item.id,
+        onClick: () => onSelect(DependencyTargetType.ITEM, item.id),
+      })),
+    ),
+  },
+  {
+    key: DependencyTargetType.GROUP,
+    label: "Group",
+    icon: <AppstoreOutlined />,
+    childrenLayout: "list",
+    children: groups.map((g) => ({
+      key: g.id,
+      label: g.title,
+      onClick: () => onSelect(DependencyTargetType.GROUP, g.id),
+    })),
+  },
+  {
+    key: DependencyTargetType.BUNDLE,
+    label: "Bundle",
+    icon: <GiftOutlined />,
+    onClick: () => onSelect(DependencyTargetType.BUNDLE, ""),
+  },
+];
 
 /** Build 2-level structure for condition subject→operator */
 const buildConditionLevels = (
@@ -308,46 +375,36 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
           ) : (
             allConditions.map((condition) => (
               <div key={condition.id} className={styles.conditionItem}>
-                {/* Row 1: Target type + target select */}
+                {/* Row 1: Target chip (navigable dropdown) */}
                 <div className={styles.conditionRow}>
-                  <Select
-                    value={condition.targetType}
-                    onChange={(value) => {
-                      const subjects = SUBJECTS_BY_TARGET[value as DependencyTargetType];
+                  <NavigableDropdown
+                    levels={buildTargetLevels(groups, (targetType, targetId) => {
+                      const subjects = SUBJECTS_BY_TARGET[targetType];
                       const firstSubject = subjects[0];
                       const operators = firstSubject ? OPERATORS_BY_SUBJECT[firstSubject] : [];
                       const firstOperator = operators[0];
                       const subjectMeta = firstSubject ? CONDITION_SUBJECT_META[firstSubject] : null;
                       handleUpdateCondition(condition.id, {
-                        targetType: value,
+                        targetType,
+                        targetId,
                         subject: firstSubject,
                         operator: firstOperator,
                         category: subjectMeta?.category ?? ConditionCategory.STATE_CHECK,
-                        targetId:
-                          value === DependencyTargetType.BUNDLE
-                            ? ""
-                            : value === DependencyTargetType.ITEM
-                              ? (groups[0]?.items[0]?.id ?? "")
-                              : (groups[0]?.id ?? ""),
                       } as Partial<IDependencyCondition>);
-                    }}
-                    options={CONDITION_TARGET_TYPE_OPTIONS}
-                    size="small"
-                    style={{ width: 80 }}
-                  />
-                  {condition.targetType !== DependencyTargetType.BUNDLE && (
-                    <Select
-                      value={condition.targetId}
-                      onChange={(value) =>
-                        handleUpdateCondition(condition.id, { targetId: value })
-                      }
-                      options={getTargetOptions(condition.targetType, groups)}
-                      size="small"
-                      style={{ flex: 1 }}
-                      showSearch
-                      optionFilterProp="label"
-                    />
-                  )}
+                    })}
+                  >
+                    <div className={styles.operatorChip}>
+                      <Tag
+                        className={styles.chipOperator}
+                        color={TARGET_TYPE_COLORS[condition.targetType]}
+                      >
+                        {TARGET_TYPE_ICONS[condition.targetType]}
+                      </Tag>
+                      <span className={styles.chipSubject}>
+                        {getTargetLabel(condition.targetType, condition.targetId, groups)}
+                      </span>
+                    </div>
+                  </NavigableDropdown>
                   <Button
                     type="text"
                     size="small"
@@ -437,43 +494,33 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
           ) : (
             rule.actions.map((action) => (
               <div key={action.id} className={styles.actionItem}>
-                {/* Row 1: Target type + target select */}
+                {/* Row 1: Target chip (navigable dropdown) */}
                 <div className={styles.conditionRow}>
-                  <Select
-                    value={action.targetType}
-                    onChange={(value) => {
-                      const categories = CATEGORIES_BY_TARGET[value as DependencyTargetType];
+                  <NavigableDropdown
+                    levels={buildTargetLevels(groups, (targetType, targetId) => {
+                      const categories = CATEGORIES_BY_TARGET[targetType];
                       const firstCategory = categories[0];
                       const actionsInCategory = ACTIONS_BY_CATEGORY[firstCategory];
                       const newActionType = actionsInCategory[0];
                       handleUpdateAction(action.id, {
-                        targetType: value,
+                        targetType,
                         actionType: newActionType,
-                        targetId:
-                          value === DependencyTargetType.BUNDLE
-                            ? undefined
-                            : value === DependencyTargetType.ITEM
-                              ? (groups[0]?.items[0]?.id ?? "")
-                              : (groups[0]?.id ?? ""),
+                        targetId: targetType === DependencyTargetType.BUNDLE ? undefined : targetId,
                       });
-                    }}
-                    options={ACTION_TARGET_TYPE_OPTIONS}
-                    size="small"
-                    style={{ width: 80 }}
-                  />
-                  {action.targetType !== DependencyTargetType.BUNDLE && (
-                    <Select
-                      value={action.targetId}
-                      onChange={(value) =>
-                        handleUpdateAction(action.id, { targetId: value })
-                      }
-                      options={getTargetOptions(action.targetType, groups)}
-                      size="small"
-                      style={{ flex: 1 }}
-                      showSearch
-                      optionFilterProp="label"
-                    />
-                  )}
+                    })}
+                  >
+                    <div className={styles.operatorChip}>
+                      <Tag
+                        className={styles.chipOperator}
+                        color={TARGET_TYPE_COLORS[action.targetType]}
+                      >
+                        {TARGET_TYPE_ICONS[action.targetType]}
+                      </Tag>
+                      <span className={styles.chipSubject}>
+                        {getTargetLabel(action.targetType, action.targetId, groups)}
+                      </span>
+                    </div>
+                  </NavigableDropdown>
                   <Button
                     type="text"
                     size="small"

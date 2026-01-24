@@ -35,4 +35,22 @@ export const useStyles = createStyles(({ token }) => ({
       userSelect: "none" as const,
     },
   },
+  list: {
+    padding: "4px 0",
+    maxHeight: 240,
+    overflowY: "auto" as const,
+  },
+  listItem: {
+    padding: "5px 12px",
+    fontSize: 13,
+    cursor: "pointer",
+    borderRadius: token.borderRadiusSM,
+    margin: "0 4px",
+    whiteSpace: "nowrap" as const,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    "&:hover": {
+      background: token.colorBgTextHover,
+    },
+  },
 }));

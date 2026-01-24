@@ -15,7 +15,11 @@ export interface IMenuLevel {
   key: string;
   label: string;
   icon?: ReactNode;
-  children: Array<{
+  /** If provided without children, acts as a leaf item */
+  onClick?: () => void;
+  /** How to render children: "tags" (grid of tags) or "list" (standard menu). Default: "tags" */
+  childrenLayout?: "tags" | "list";
+  children?: Array<{
     key: string;
     label: string;
     onClick: () => void;
@@ -40,20 +44,31 @@ export const NavigableDropdown = ({ levels, children }: INavigableDropdownProps)
   const activeLevel = levels.find((l) => l.key === activeParent);
 
   const handleMenuClick: MenuProps["onClick"] = (info) => {
-    navigatingRef.current = true;
-    setActiveParent(info.key);
+    const level = levels.find((l) => l.key === info.key);
+    if (level?.children?.length) {
+      // Has children — navigate to sublevel
+      navigatingRef.current = true;
+      setActiveParent(info.key);
+    } else if (level?.onClick) {
+      // Leaf item — fire and close
+      level.onClick();
+      setOpen(false);
+    }
   };
 
-  const topLevelItems: MenuProps["items"] = levels.map((level) => ({
-    key: level.key,
-    icon: level.icon,
-    label: (
-      <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span>{level.label}</span>
-        <RightOutlined style={{ fontSize: 10, color: "rgba(0,0,0,0.25)" }} />
-      </span>
-    ),
-  }));
+  const topLevelItems: MenuProps["items"] = levels.map((level) => {
+    const hasChildren = level.children && level.children.length > 0;
+    return {
+      key: level.key,
+      icon: level.icon,
+      label: (
+        <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span>{level.label}</span>
+          {hasChildren && <RightOutlined style={{ fontSize: 10, color: "rgba(0,0,0,0.25)" }} />}
+        </span>
+      ),
+    };
+  });
 
   return (
     <Dropdown
@@ -69,7 +84,7 @@ export const NavigableDropdown = ({ levels, children }: INavigableDropdownProps)
         if (!v) setActiveParent(null);
       }}
       dropdownRender={(menu) =>
-        activeParent && activeLevel ? (
+        activeParent && activeLevel && activeLevel.children?.length ? (
           <div className={styles.panel}>
             <div
               className={styles.back}
@@ -81,22 +96,40 @@ export const NavigableDropdown = ({ levels, children }: INavigableDropdownProps)
               <LeftOutlined style={{ fontSize: 10 }} />
               <span>{activeLevel.label}</span>
             </div>
-            <div className={styles.grid}>
-              {activeLevel.children.map((child) => (
-                <Tag
-                  key={child.key}
-                  variant="outlined"
-                  className={styles.tag}
-                  onClick={() => {
-                    child.onClick();
-                    setOpen(false);
-                    setActiveParent(null);
-                  }}
-                >
-                  {child.label}
-                </Tag>
-              ))}
-            </div>
+            {activeLevel.childrenLayout === "list" ? (
+              <div className={styles.list}>
+                {(activeLevel.children ?? []).map((child) => (
+                  <div
+                    key={child.key}
+                    className={styles.listItem}
+                    onClick={() => {
+                      child.onClick();
+                      setOpen(false);
+                      setActiveParent(null);
+                    }}
+                  >
+                    {child.label}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className={styles.grid}>
+                {(activeLevel.children ?? []).map((child) => (
+                  <Tag
+                    key={child.key}
+                    variant="outlined"
+                    className={styles.tag}
+                    onClick={() => {
+                      child.onClick();
+                      setOpen(false);
+                      setActiveParent(null);
+                    }}
+                  >
+                    {child.label}
+                  </Tag>
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           menu
