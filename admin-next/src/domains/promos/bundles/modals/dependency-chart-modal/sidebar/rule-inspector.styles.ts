@@ -54,9 +54,8 @@ export const useStyles = createStyles(({ token }) => ({
     display: "block",
   },
   conditionItem: {
-    padding: 8,
-    background: token.colorBgLayout,
-    borderRadius: token.borderRadius,
+    borderLeft: `2px solid ${token.colorPrimary}`,
+    paddingLeft: 8,
     marginBottom: 8,
     display: "flex",
     flexDirection: "column",
@@ -68,9 +67,8 @@ export const useStyles = createStyles(({ token }) => ({
     alignItems: "center",
   },
   actionItem: {
-    padding: 8,
-    background: token.colorBgLayout,
-    borderRadius: token.borderRadius,
+    borderLeft: `2px solid ${token.colorPrimary}`,
+    paddingLeft: 8,
     marginBottom: 8,
     display: "flex",
     flexDirection: "column",

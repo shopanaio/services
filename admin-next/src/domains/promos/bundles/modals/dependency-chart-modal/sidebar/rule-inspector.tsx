@@ -442,7 +442,6 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                   <Button
                     type="text"
                     size="small"
-                    danger
                     icon={<DeleteOutlined />}
                     onClick={() => handleDeleteCondition(condition.id)}
                     className={styles.deleteButton}
@@ -547,7 +546,7 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                   </NavigableDropdown>
                   <Button
                     type="text"
-                    danger
+                    size="small"
                     icon={<DeleteOutlined />}
                     onClick={() => handleDeleteAction(action.id)}
                     className={styles.deleteButton}
