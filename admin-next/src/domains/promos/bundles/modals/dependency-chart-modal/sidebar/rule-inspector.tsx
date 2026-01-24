@@ -29,6 +29,8 @@ import {
   PoweroffOutlined,
   TagOutlined,
   GiftOutlined,
+  ThunderboltOutlined,
+  FolderOutlined,
 } from "@ant-design/icons";
 
 import type { IDependencyRule, IBundleGroup } from "@/domains/promos/bundles/types";
@@ -162,12 +164,13 @@ const CATEGORY_ICONS: Record<string, ReactNode> = {
   [ActionCategory.PRICE]: <DollarOutlined />,
 };
 
-/** Target type display config */
-const TARGET_TYPE_ICONS: Record<DependencyTargetType, ReactNode> = {
+/** Icons matching the chart node visuals */
+const CHART_NODE_ICONS = {
+  rule: <ThunderboltOutlined />,
   [DependencyTargetType.ITEM]: <TagOutlined />,
-  [DependencyTargetType.GROUP]: <AppstoreOutlined />,
+  [DependencyTargetType.GROUP]: <FolderOutlined />,
   [DependencyTargetType.BUNDLE]: <GiftOutlined />,
-};
+} as const;
 
 const TARGET_TYPE_COLORS: Record<DependencyTargetType, string> = {
   [DependencyTargetType.ITEM]: "blue",
@@ -213,7 +216,7 @@ const buildTargetLevels = (
   {
     key: DependencyTargetType.GROUP,
     label: "Group",
-    icon: <AppstoreOutlined />,
+    icon: <FolderOutlined />,
     children: groups.map((g) => ({
       key: g.id,
       label: g.title,
@@ -317,7 +320,7 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
     return (
       <Paper className={styles.container}>
         <PaperHeader
-          title="Rule Inspector"
+          title={<>{CHART_NODE_ICONS.rule} Rule Inspector</>}
           actions={
             <Button
               type="text"
@@ -340,7 +343,7 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
   return (
     <Paper className={styles.container}>
       <PaperHeader
-        title="Rule Inspector"
+        title={<>{CHART_NODE_ICONS.rule} Rule Inspector</>}
         actions={
           <Button
             type="text"
@@ -432,7 +435,7 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                         className={styles.chipOperator}
                         color={TARGET_TYPE_COLORS[condition.targetType]}
                       >
-                        {TARGET_TYPE_ICONS[condition.targetType]}
+                        {CHART_NODE_ICONS[condition.targetType]}
                       </Tag>
                       <span className={styles.chipSubject}>
                         {getTargetLabel(condition.targetType, condition.targetId, groups)}
@@ -441,7 +444,6 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                   </NavigableDropdown>
                   <Button
                     type="text"
-                    size="small"
                     icon={<DeleteOutlined />}
                     onClick={() => handleDeleteCondition(condition.id)}
                     className={styles.deleteButton}
@@ -537,7 +539,7 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                         className={styles.chipOperator}
                         color={TARGET_TYPE_COLORS[action.targetType]}
                       >
-                        {TARGET_TYPE_ICONS[action.targetType]}
+                        {CHART_NODE_ICONS[action.targetType]}
                       </Tag>
                       <span className={styles.chipSubject}>
                         {getTargetLabel(action.targetType, action.targetId, groups)}
@@ -546,7 +548,6 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                   </NavigableDropdown>
                   <Button
                     type="text"
-                    size="small"
                     icon={<DeleteOutlined />}
                     onClick={() => handleDeleteAction(action.id)}
                     className={styles.deleteButton}
