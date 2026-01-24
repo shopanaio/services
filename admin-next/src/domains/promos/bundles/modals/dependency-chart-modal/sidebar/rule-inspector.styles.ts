@@ -2,7 +2,7 @@ import { createStyles } from "antd-style";
 
 export const useStyles = createStyles(({ token }) => ({
   container: {
-    width: 320,
+    width: 400,
     height: "100%",
   },
   containerCollapsed: {
@@ -89,24 +89,27 @@ export const useStyles = createStyles(({ token }) => ({
       alignItems: "center",
       justifyContent: "flex-start",
       gap: 6,
-      fontSize: 12,
       flex: 1,
       minWidth: 0,
+      paddingLeft: 8,
     },
   },
   chipSubject: {
     color: token.colorTextSecondary,
-    fontSize: 11,
     flexShrink: 0,
   },
   chipOperator: {
     "&&": {
-      fontSize: 11,
-      lineHeight: "18px",
-      padding: "0 5px",
-      borderRadius: 3,
+      width: 24,
+      height: 24,
+      fontSize: 14,
+      lineHeight: "24px",
+      padding: 0,
       margin: 0,
-      marginLeft: -8,
+      marginLeft: -4,
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
     },
   },
   chipValue: {

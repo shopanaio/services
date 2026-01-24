@@ -29,7 +29,6 @@ export const useStyles = createStyles(({ token }) => ({
   },
   listItem: {
     padding: "5px 12px",
-    fontSize: 13,
     cursor: "pointer",
     borderRadius: token.borderRadiusSM,
     margin: "0 4px",

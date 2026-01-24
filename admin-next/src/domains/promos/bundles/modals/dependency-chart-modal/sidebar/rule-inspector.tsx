@@ -475,8 +475,7 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                         handleUpdateCondition(condition.id, { value: value ?? 0 })
                       }
                       min={0}
-                      size="small"
-                      style={{ width: 56 }}
+                      style={{ width: 72 }}
                     />
                   )}
                   {conditionNeedsSecondValue(condition) && (
@@ -486,8 +485,7 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                         handleUpdateCondition(condition.id, { valueTo: value ?? 0 })
                       }
                       min={0}
-                      size="small"
-                      style={{ width: 56 }}
+                      style={{ width: 72 }}
                       placeholder="to"
                     />
                   )}
@@ -549,7 +547,6 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                   </NavigableDropdown>
                   <Button
                     type="text"
-                    size="small"
                     danger
                     icon={<DeleteOutlined />}
                     onClick={() => handleDeleteAction(action.id)}
