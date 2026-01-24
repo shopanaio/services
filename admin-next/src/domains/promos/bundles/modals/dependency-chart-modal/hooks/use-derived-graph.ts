@@ -2,15 +2,13 @@ import { useMemo } from "react";
 import { useTheme } from "antd-style";
 import { MarkerType } from "@xyflow/react";
 
-import type { IBundleGroup, IDependencyRule } from "@/domains/promos/bundles/types";
+import type { IBundleGroup } from "@/domains/promos/bundles/types";
+import type { IDependencyRule } from "@/domains/promos/bundles/dependency-rules";
 import {
-  DependencyConditionType,
-  DependencyActionType,
   DependencyTargetType,
-  CONDITION_TYPE_LABELS,
-  ACTION_TYPE_LABELS,
-  PRICE_RULE_OPTIONS,
-} from "@/domains/promos/bundles/types";
+  formatConditionLabel,
+  formatActionLabel,
+} from "@/domains/promos/bundles/dependency-rules";
 import type {
   ChartNode,
   ChartEdge,
@@ -18,50 +16,6 @@ import type {
   RuleNodeData,
   BundleNodeData,
 } from "../types";
-
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-const formatConditionLabel = (
-  conditionType: DependencyConditionType,
-  value?: number
-): string => {
-  const label = CONDITION_TYPE_LABELS[conditionType];
-  if (value !== undefined) {
-    return `${label} ${value}`;
-  }
-  return label;
-};
-
-const formatActionLabel = (
-  actionType: DependencyActionType,
-  priceType?: string,
-  priceValue?: number | null,
-  qtyValue?: number
-): string => {
-  const label = ACTION_TYPE_LABELS[actionType];
-
-  if (actionType === DependencyActionType.SET_QTY && qtyValue !== undefined) {
-    return `${label} ${qtyValue}`;
-  }
-
-  if (
-    (actionType === DependencyActionType.OVERRIDE_PRICE ||
-      actionType === DependencyActionType.ADJUST_PRICE) &&
-    priceType
-  ) {
-    const priceOption = PRICE_RULE_OPTIONS.find((o) => o.value === priceType);
-    const priceName = priceOption?.label ?? priceType;
-    const value =
-      priceValue !== null && priceValue !== undefined
-        ? `${priceValue}${priceOption?.valueSuffix ?? ""}`
-        : "";
-    return `${label}: ${priceName} ${value}`.trim();
-  }
-
-  return label;
-};
 
 // ============================================================================
 // Hook

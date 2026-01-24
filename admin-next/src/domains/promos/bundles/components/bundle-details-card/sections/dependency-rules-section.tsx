@@ -4,18 +4,15 @@ import { Typography, Empty, Tag, Dropdown, Button } from "antd";
 import { PartitionOutlined, PlusOutlined, MoreOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import type {
-  IDependencyRule,
-  IDependencyCondition,
-  IDependencyAction,
-  IBundleGroup,
-} from "@/domains/promos/bundles/types";
+import type { IBundleGroup } from "@/domains/promos/bundles/types";
+import type { IDependencyRule } from "@/domains/promos/bundles/dependency-rules";
 import {
   DependencyTargetType,
-  CONDITION_TYPE_LABELS,
-  ACTION_TYPE_LABELS,
   TARGET_TYPE_LABELS,
-} from "@/domains/promos/bundles/types";
+  resolveTargetName,
+  formatCondition,
+  formatAction,
+} from "@/domains/promos/bundles/dependency-rules";
 
 // ============================================================================
 // Styles
@@ -124,46 +121,6 @@ const useStyles = createStyles(({ token }) => ({
     marginBottom: 8,
   },
 }));
-
-// ============================================================================
-// Helpers
-// ============================================================================
-
-const resolveTargetName = (
-  targetType: DependencyTargetType,
-  targetId: string | undefined,
-  groups: IBundleGroup[],
-): string | null => {
-  if (!targetId) return null;
-  if (targetType === DependencyTargetType.GROUP) {
-    return groups.find((g) => g.id === targetId)?.title ?? null;
-  }
-  if (targetType === DependencyTargetType.ITEM) {
-    for (const group of groups) {
-      const item = group.items?.find((i) => i.id === targetId);
-      if (item) {
-        return item.title
-          ?? item.assignedProduct?.title
-          ?? item.assignedVariant?.title
-          ?? null;
-      }
-    }
-  }
-  return null;
-};
-
-const formatCondition = (cond: IDependencyCondition): string => {
-  const label = CONDITION_TYPE_LABELS[cond.conditionType] ?? cond.conditionType;
-  if (cond.value != null) return `${label} ${cond.value}`;
-  return label;
-};
-
-const formatAction = (action: IDependencyAction): string => {
-  const label = ACTION_TYPE_LABELS[action.actionType] ?? action.actionType;
-  if (action.qtyValue != null) return `${label}: ${action.qtyValue}`;
-  if (action.priceValue != null) return `${label}: ${action.priceValue}`;
-  return label;
-};
 
 // ============================================================================
 // Props

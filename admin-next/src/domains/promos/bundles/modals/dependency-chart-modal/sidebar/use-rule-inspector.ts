@@ -1,22 +1,31 @@
 import { useState, useCallback } from "react";
 
+import type { IBundleGroup } from "@/domains/promos/bundles/types";
 import type {
   IDependencyRule,
   IDependencyCondition,
   IDependencyAction,
-  IBundleGroup,
-} from "@/domains/promos/bundles/types";
+} from "@/domains/promos/bundles/dependency-rules";
 import {
   DependencyConditionType,
   DependencyActionType,
   DependencyTargetType,
-  CONDITION_TYPE_LABELS,
-  ACTION_TYPE_LABELS,
-  TARGET_TYPE_LABELS,
-  CONDITION_TYPES_BY_TARGET,
-  ACTION_TYPES_BY_TARGET,
-  PRICE_RULE_OPTIONS,
-} from "@/domains/promos/bundles/types";
+} from "@/domains/promos/bundles/dependency-rules";
+
+import { PRICE_RULE_OPTIONS } from "@/domains/promos/bundles/types";
+
+export {
+  getTargetOptions,
+  getConditionTypeOptions,
+  getActionTypeOptions,
+  CONDITION_TARGET_TYPE_OPTIONS,
+  ACTION_TARGET_TYPE_OPTIONS,
+} from "@/domains/promos/bundles/dependency-rules";
+
+export const PRICE_TYPE_OPTIONS = PRICE_RULE_OPTIONS.map((opt) => ({
+  value: opt.value,
+  label: opt.label,
+}));
 
 // ============================================================================
 // Helper Functions
@@ -25,70 +34,6 @@ import {
 const generateId = (prefix: string): string => {
   return `${prefix}-${crypto.randomUUID().slice(0, 8)}`;
 };
-
-export const getTargetOptions = (
-  targetType: DependencyTargetType,
-  groups: IBundleGroup[]
-): { value: string; label: string }[] => {
-  if (targetType === DependencyTargetType.ITEM) {
-    return groups.flatMap((g) =>
-      g.items.map((item) => ({
-        value: item.id,
-        label:
-          item.title ??
-          item.assignedProduct?.title ??
-          item.assignedVariant?.title ??
-          item.id,
-      }))
-    );
-  }
-  if (targetType === DependencyTargetType.GROUP) {
-    return groups.map((g) => ({
-      value: g.id,
-      label: g.title,
-    }));
-  }
-  return [];
-};
-
-export const getConditionTypeOptions = (targetType: DependencyTargetType) => {
-  const validTypes = CONDITION_TYPES_BY_TARGET[targetType];
-  return validTypes.map((type) => ({
-    value: type,
-    label: CONDITION_TYPE_LABELS[type],
-  }));
-};
-
-export const getActionTypeOptions = (targetType: DependencyTargetType) => {
-  const validTypes = ACTION_TYPES_BY_TARGET[targetType];
-  return validTypes.map((type) => ({
-    value: type,
-    label: ACTION_TYPE_LABELS[type],
-  }));
-};
-
-export const CONDITION_TARGET_TYPE_OPTIONS = [
-  {
-    value: DependencyTargetType.ITEM,
-    label: TARGET_TYPE_LABELS[DependencyTargetType.ITEM],
-  },
-  {
-    value: DependencyTargetType.GROUP,
-    label: TARGET_TYPE_LABELS[DependencyTargetType.GROUP],
-  },
-];
-
-export const ACTION_TARGET_TYPE_OPTIONS = Object.entries(TARGET_TYPE_LABELS).map(
-  ([value, label]) => ({
-    value,
-    label,
-  })
-);
-
-export const PRICE_TYPE_OPTIONS = PRICE_RULE_OPTIONS.map((opt) => ({
-  value: opt.value,
-  label: opt.label,
-}));
 
 // ============================================================================
 // Hook

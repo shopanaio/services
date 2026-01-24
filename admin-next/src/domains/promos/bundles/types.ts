@@ -237,184 +237,22 @@ export const STOCK_STATUS_LABELS: Record<StockStatus, string> = {
 };
 
 // ============================================================================
-// Dependency Rules
+// Dependency Rules (re-exported from dedicated module)
 // ============================================================================
 
-/**
- * Condition types (STATE-BASED, not events!)
- *
- * Key insight: These are predicates evaluated against current state,
- * not events that "fire". This avoids "why didn't rule trigger on modal open" bugs.
- */
-export enum DependencyConditionType {
-  /** Item is currently selected */
-  IS_SELECTED = "IS_SELECTED",
-  /** Item is currently NOT selected */
-  IS_NOT_SELECTED = "IS_NOT_SELECTED",
-  /** Item quantity >= value */
-  QTY_GTE = "QTY_GTE",
-  /** Item quantity <= value */
-  QTY_LTE = "QTY_LTE",
-  /** Item quantity == value */
-  QTY_EQ = "QTY_EQ",
-  /** Unique selected items in group >= value (e.g. 3 different items) */
-  GROUP_UNIQUE_GTE = "GROUP_UNIQUE_GTE",
-  /** Total quantity in group >= value (e.g. 5 total pieces) */
-  GROUP_TOTAL_QTY_GTE = "GROUP_TOTAL_QTY_GTE",
-}
+export {
+  DependencyConditionType,
+  DependencyActionType,
+  DependencyTargetType,
+  CONDITION_TYPE_LABELS,
+  ACTION_TYPE_LABELS,
+  TARGET_TYPE_LABELS,
+  CONDITION_TYPES_BY_TARGET,
+  ACTIONS_BY_TARGET as ACTION_TYPES_BY_TARGET,
+} from "./dependency-rules";
 
-/**
- * Action types for THEN clause
- */
-export enum DependencyActionType {
-  // Visibility
-  SHOW = "SHOW",
-  HIDE = "HIDE",
-  // Availability
-  ENABLE = "ENABLE",
-  DISABLE = "DISABLE",
-  // Quantity
-  SET_QTY = "SET_QTY",
-  // Pricing
-  OVERRIDE_PRICE = "OVERRIDE_PRICE", // replaces base price entirely
-  ADJUST_PRICE = "ADJUST_PRICE", // modifies base price
-}
-
-/**
- * Target type for conditions and actions
- */
-export enum DependencyTargetType {
-  ITEM = "ITEM",
-  GROUP = "GROUP",
-  BUNDLE = "BUNDLE",
-}
-
-/**
- * Single condition in WHEN clause
- *
- * All conditions in a rule are AND-ed together.
- */
-export interface IDependencyCondition {
-  id: string;
-  conditionType: DependencyConditionType;
-  targetType: DependencyTargetType;
-  targetId: string; // item or group ID
-  value?: number; // for QTY_*, GROUP_COUNT_GTE
-}
-
-/**
- * Single action in THEN clause
- */
-export interface IDependencyAction {
-  id: string;
-  actionType: DependencyActionType;
-  targetType: DependencyTargetType;
-  targetId?: string; // Optional for BUNDLE (implicit "this bundle")
-
-  // For SET_QTY
-  qtyValue?: number;
-
-  // For OVERRIDE_PRICE / ADJUST_PRICE
-  priceType?: BundlePriceType;
-  priceValue?: number | null;
-
-  // Price conflict resolution
-  exclusiveKey?: string; // e.g. "bundleDiscount" - only highest priority wins in same key
-  applyTo?: "ITEM" | "BUNDLE_ITEMS_SUBTOTAL"; // where discount applies (default: ITEM)
-
-}
-
-/**
- * Full dependency rule
- */
-export interface IDependencyRule {
-  id: string;
-  name: string;
-  enabled: boolean;
-  priority: number; // higher = wins conflicts
-
-  // WHEN clause (all conditions must match - AND logic)
-  conditions: IDependencyCondition[];
-
-  // THEN clause (all actions execute if conditions pass)
-  actions: IDependencyAction[];
-}
-
-// ============================================================================
-// Dependency Rule Helper Types & Constants
-// ============================================================================
-
-export const CONDITION_TYPE_LABELS: Record<DependencyConditionType, string> = {
-  [DependencyConditionType.IS_SELECTED]: "is selected",
-  [DependencyConditionType.IS_NOT_SELECTED]: "is not selected",
-  [DependencyConditionType.QTY_GTE]: "quantity >=",
-  [DependencyConditionType.QTY_LTE]: "quantity <=",
-  [DependencyConditionType.QTY_EQ]: "quantity =",
-  [DependencyConditionType.GROUP_UNIQUE_GTE]: "unique items >=",
-  [DependencyConditionType.GROUP_TOTAL_QTY_GTE]: "total quantity >=",
-};
-
-export const ACTION_TYPE_LABELS: Record<DependencyActionType, string> = {
-  [DependencyActionType.SHOW]: "show",
-  [DependencyActionType.HIDE]: "hide",
-  [DependencyActionType.ENABLE]: "enable",
-  [DependencyActionType.DISABLE]: "disable",
-  [DependencyActionType.SET_QTY]: "set quantity",
-  [DependencyActionType.OVERRIDE_PRICE]: "override price",
-  [DependencyActionType.ADJUST_PRICE]: "adjust price",
-};
-
-export const TARGET_TYPE_LABELS: Record<DependencyTargetType, string> = {
-  [DependencyTargetType.ITEM]: "Item",
-  [DependencyTargetType.GROUP]: "Group",
-  [DependencyTargetType.BUNDLE]: "Bundle",
-};
-
-/**
- * Valid condition types for each target type
- * - ITEM: selection state and quantity conditions
- * - GROUP: group-specific validation conditions
- * - BUNDLE: not used as condition source (conditions are about components, not the bundle itself)
- */
-export const CONDITION_TYPES_BY_TARGET: Record<DependencyTargetType, DependencyConditionType[]> = {
-  [DependencyTargetType.ITEM]: [
-    DependencyConditionType.IS_SELECTED,
-    DependencyConditionType.IS_NOT_SELECTED,
-    DependencyConditionType.QTY_GTE,
-    DependencyConditionType.QTY_LTE,
-    DependencyConditionType.QTY_EQ,
-  ],
-  [DependencyTargetType.GROUP]: [
-    DependencyConditionType.GROUP_UNIQUE_GTE,
-    DependencyConditionType.GROUP_TOTAL_QTY_GTE,
-  ],
-  [DependencyTargetType.BUNDLE]: [], // Bundle is not used as condition source
-};
-
-/**
- * Valid action types for each target type
- * - ITEM: all actions (visibility, availability, quantity, pricing)
- * - GROUP: visibility and availability only (no quantity or pricing)
- * - BUNDLE: pricing only (can't hide/disable/set qty on the bundle itself)
- */
-export const ACTION_TYPES_BY_TARGET: Record<DependencyTargetType, DependencyActionType[]> = {
-  [DependencyTargetType.ITEM]: [
-    DependencyActionType.SHOW,
-    DependencyActionType.HIDE,
-    DependencyActionType.ENABLE,
-    DependencyActionType.DISABLE,
-    DependencyActionType.SET_QTY,
-    DependencyActionType.OVERRIDE_PRICE,
-    DependencyActionType.ADJUST_PRICE,
-  ],
-  [DependencyTargetType.GROUP]: [
-    DependencyActionType.SHOW,
-    DependencyActionType.HIDE,
-    DependencyActionType.ENABLE,
-    DependencyActionType.DISABLE,
-  ],
-  [DependencyTargetType.BUNDLE]: [
-    DependencyActionType.OVERRIDE_PRICE,
-    DependencyActionType.ADJUST_PRICE,
-  ],
-};
+export type {
+  IDependencyCondition,
+  IDependencyAction,
+  IDependencyRule,
+} from "./dependency-rules";
