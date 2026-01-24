@@ -112,3 +112,13 @@ export const ACTION_PHRASE: Record<DependencyActionType, string> = {
   [DependencyActionType.OVERRIDE_PRICE]: "price override",
   [DependencyActionType.ADJUST_PRICE]: "price adjust",
 };
+
+// ============================================================================
+// Target Type Colors
+// ============================================================================
+
+export const TARGET_TYPE_COLORS: Record<DependencyTargetType, string> = {
+  [DependencyTargetType.ITEM]: "blue",
+  [DependencyTargetType.GROUP]: "purple",
+  [DependencyTargetType.BUNDLE]: "gold",
+};

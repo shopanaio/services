@@ -27,10 +27,6 @@ import {
   ContainerOutlined,
   EyeOutlined,
   PoweroffOutlined,
-  TagOutlined,
-  GiftOutlined,
-  ThunderboltOutlined,
-  FolderOutlined,
 } from "@ant-design/icons";
 
 import type { IDependencyRule, IBundleGroup } from "@/domains/promos/bundles/types";
@@ -53,6 +49,8 @@ import {
   CATEGORIES_BY_TARGET,
   ACTION_CATEGORY_LABELS,
   ACTION_PHRASE,
+  TARGET_TYPE_COLORS,
+  CHART_NODE_ICONS,
   getOperatorLabel,
   getConditionChipLabel,
 } from "@/domains/promos/bundles/dependency-rules";
@@ -114,19 +112,6 @@ const CATEGORY_ICONS: Record<string, ReactNode> = {
   [ActionCategory.PRICE]: <DollarOutlined />,
 };
 
-/** Icons matching the chart node visuals */
-const CHART_NODE_ICONS = {
-  rule: <ThunderboltOutlined />,
-  [DependencyTargetType.ITEM]: <TagOutlined />,
-  [DependencyTargetType.GROUP]: <FolderOutlined />,
-  [DependencyTargetType.BUNDLE]: <GiftOutlined />,
-} as const;
-
-const TARGET_TYPE_COLORS: Record<DependencyTargetType, string> = {
-  [DependencyTargetType.ITEM]: "blue",
-  [DependencyTargetType.GROUP]: "purple",
-  [DependencyTargetType.BUNDLE]: "gold",
-};
 
 /** Get display label for a target */
 const getTargetLabel = (
@@ -154,7 +139,7 @@ const buildTargetLevels = (
   {
     key: DependencyTargetType.ITEM,
     label: "Item",
-    icon: <TagOutlined />,
+    icon: CHART_NODE_ICONS[DependencyTargetType.ITEM],
     children: groups.flatMap((g) =>
       g.items.map((item) => ({
         key: item.id,
@@ -166,7 +151,7 @@ const buildTargetLevels = (
   {
     key: DependencyTargetType.GROUP,
     label: "Group",
-    icon: <FolderOutlined />,
+    icon: CHART_NODE_ICONS[DependencyTargetType.GROUP],
     children: groups.map((g) => ({
       key: g.id,
       label: g.title,
@@ -176,7 +161,7 @@ const buildTargetLevels = (
   {
     key: DependencyTargetType.BUNDLE,
     label: "Bundle",
-    icon: <GiftOutlined />,
+    icon: CHART_NODE_ICONS[DependencyTargetType.BUNDLE],
     onClick: () => onSelect(DependencyTargetType.BUNDLE, ""),
   },
 ];

@@ -50,7 +50,11 @@ export {
   SUBJECT_SHORT,
   OPERATOR_PHRASE,
   ACTION_PHRASE,
+  TARGET_TYPE_COLORS,
 } from "./constants";
+
+// Icons
+export { CHART_NODE_ICONS } from "./icons";
 
 // Helpers
 export {

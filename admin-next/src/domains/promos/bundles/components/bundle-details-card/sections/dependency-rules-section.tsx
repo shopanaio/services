@@ -1,37 +1,23 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { Typography, Empty, Tag, Dropdown, Button } from "antd";
 import {
   PartitionOutlined,
   PlusOutlined,
   MoreOutlined,
-  TagOutlined,
-  FolderOutlined,
-  GiftOutlined,
+  RightOutlined,
 } from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type { IBundleGroup } from "@/domains/promos/bundles/types";
 import type { IDependencyRule } from "@/domains/promos/bundles/dependency-rules";
 import {
-  DependencyTargetType,
   resolveTargetName,
   formatCondition,
   formatAction,
+  TARGET_TYPE_COLORS,
+  CHART_NODE_ICONS,
 } from "@/domains/promos/bundles/dependency-rules";
-
-const TARGET_TYPE_ICONS: Record<DependencyTargetType, ReactNode> = {
-  [DependencyTargetType.ITEM]: <TagOutlined />,
-  [DependencyTargetType.GROUP]: <FolderOutlined />,
-  [DependencyTargetType.BUNDLE]: <GiftOutlined />,
-};
-
-const TARGET_TYPE_COLORS: Record<DependencyTargetType, string> = {
-  [DependencyTargetType.ITEM]: "blue",
-  [DependencyTargetType.GROUP]: "purple",
-  [DependencyTargetType.BUNDLE]: "gold",
-};
 
 // ============================================================================
 // Styles
@@ -44,22 +30,15 @@ const useStyles = createStyles(({ token }) => ({
     gap: 10,
   },
   ruleCard: {
-    borderRadius: 8,
-    border: `1px solid ${token.colorBorderSecondary}`,
-    background: token.colorBgContainer,
-    overflow: "hidden",
-    position: "relative" as const,
+    borderLeft: `2px solid ${token.colorPrimary}`,
+    paddingLeft: 12,
     cursor: "pointer",
-    transition: "border-color 0.2s",
-    "&:hover": {
-      borderColor: token.colorPrimary,
-    },
   },
   ruleHeader: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: "8px 12px 6px 16px",
+    padding: "4px 0 4px 0",
   },
   ruleName: {
     fontSize: token.fontSize,
@@ -74,12 +53,13 @@ const useStyles = createStyles(({ token }) => ({
     display: "flex",
     alignItems: "stretch",
     gap: 0,
-    padding: "0 12px 10px 16px",
+    paddingBottom: 4,
   },
   flowBlock: {
     flex: 1,
-    borderLeft: `2px solid ${token.colorPrimary}`,
-    paddingLeft: 8,
+    padding: "8px 10px",
+    borderRadius: 6,
+    background: token.colorFillQuaternary,
   },
   flowLabel: {
     fontSize: 10,
@@ -97,6 +77,7 @@ const useStyles = createStyles(({ token }) => ({
     color: token.colorTextQuaternary,
     fontSize: 16,
     userSelect: "none" as const,
+    pointerEvents: "none",
   },
   conditionRow: {
     display: "flex",
@@ -129,7 +110,7 @@ const useStyles = createStyles(({ token }) => ({
     },
   },
   compactBody: {
-    padding: "0 12px 8px 16px",
+    paddingBottom: 4,
     fontSize: 12,
     color: token.colorTextSecondary,
   },
@@ -163,7 +144,7 @@ export const DependencyRulesSection = ({
   onAddRule,
   onEditRule,
 }: IDependencyRulesSectionProps) => {
-  const { styles } = useStyles();
+  const { styles, theme } = useStyles();
 
   const activeCount = dependencyRules.filter((r) => r.enabled).length;
   const disabledCount = dependencyRules.length - activeCount;
@@ -207,11 +188,16 @@ export const DependencyRulesSection = ({
       ) : (
         <>
           <div className={styles.subtitle}>
-            {activeCount} active{disabledCount > 0 && ` · ${disabledCount} disabled`}
+            {activeCount} active
+            {disabledCount > 0 && ` · ${disabledCount} disabled`}
           </div>
           <div className={styles.rules}>
             {dependencyRules.map((rule) => (
-              <div key={rule.id} className={styles.ruleCard} onClick={() => onEditRule(rule.id)}>
+              <div
+                key={rule.id}
+                className={styles.ruleCard}
+                onClick={() => onEditRule(rule.id)}
+              >
                 <div className={styles.ruleHeader}>
                   <Typography.Text
                     className={styles.ruleName}
@@ -219,7 +205,10 @@ export const DependencyRulesSection = ({
                   >
                     {rule.name}
                     {!rule.enabled && (
-                      <Tag className={styles.disabledBadge} style={{ marginLeft: 8 }}>
+                      <Tag
+                        className={styles.disabledBadge}
+                        style={{ marginLeft: 8 }}
+                      >
                         DISABLED
                       </Tag>
                     )}
@@ -231,34 +220,61 @@ export const DependencyRulesSection = ({
                   <div className={styles.ruleBody}>
                     <div className={styles.flowBlock}>
                       <div className={styles.flowLabel}>When</div>
-                      {rule.conditionGroups.flatMap((g) => g.conditions).map((cond) => {
-                        const name = resolveTargetName(cond.targetType, cond.targetId, groups);
-                        return (
-                          <div key={cond.id} className={styles.conditionRow}>
-                            <Tag className={styles.targetTag} color={TARGET_TYPE_COLORS[cond.targetType]}>
-                              {TARGET_TYPE_ICONS[cond.targetType]}
-                            </Tag>
-                            {name && (
-                              <Typography.Text className={styles.targetName}>
-                                {name}
+                      {rule.conditionGroups
+                        .flatMap((g) => g.conditions)
+                        .map((cond) => {
+                          const name = resolveTargetName(
+                            cond.targetType,
+                            cond.targetId,
+                            groups,
+                          );
+                          return (
+                            <div key={cond.id} className={styles.conditionRow}>
+                              <Tag
+                                className={styles.targetTag}
+                                color={TARGET_TYPE_COLORS[cond.targetType]}
+                              >
+                                {CHART_NODE_ICONS[cond.targetType]}
+                              </Tag>
+                              {name && (
+                                <Typography.Text className={styles.targetName}>
+                                  {name}
+                                </Typography.Text>
+                              )}
+                              <Typography.Text
+                                type="secondary"
+                                style={{ fontSize: 12 }}
+                              >
+                                {formatCondition(cond)}
                               </Typography.Text>
-                            )}
-                            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                              {formatCondition(cond)}
-                            </Typography.Text>
-                          </div>
-                        );
-                      })}
+                            </div>
+                          );
+                        })}
                     </div>
-                    <div className={styles.flowArrow}>→</div>
+                    <div className={styles.flowArrow}>
+                      <Button
+                        size="small"
+                        type="text"
+                        icon={
+                          <RightOutlined style={{ color: theme.colorIcon }} />
+                        }
+                      />
+                    </div>
                     <div className={styles.flowBlock}>
                       <div className={styles.flowLabel}>Then</div>
                       {rule.actions.map((action) => {
-                        const name = resolveTargetName(action.targetType, action.targetId, groups);
+                        const name = resolveTargetName(
+                          action.targetType,
+                          action.targetId,
+                          groups,
+                        );
                         return (
                           <div key={action.id} className={styles.actionRow}>
-                            <Tag className={styles.targetTag} color={TARGET_TYPE_COLORS[action.targetType]}>
-                              {TARGET_TYPE_ICONS[action.targetType]}
+                            <Tag
+                              className={styles.targetTag}
+                              color={TARGET_TYPE_COLORS[action.targetType]}
+                            >
+                              {CHART_NODE_ICONS[action.targetType]}
                             </Tag>
                             {name && (
                               <Typography.Text className={styles.targetName}>
@@ -275,7 +291,11 @@ export const DependencyRulesSection = ({
                   </div>
                 ) : (
                   <div className={styles.compactBody}>
-                    {rule.conditionGroups.reduce((sum, g) => sum + g.conditions.length, 0)} conditions → {rule.actions.length} actions
+                    {rule.conditionGroups.reduce(
+                      (sum, g) => sum + g.conditions.length,
+                      0,
+                    )}{" "}
+                    conditions → {rule.actions.length} actions
                   </div>
                 )}
               </div>
