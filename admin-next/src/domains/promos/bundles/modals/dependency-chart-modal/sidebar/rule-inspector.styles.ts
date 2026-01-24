@@ -84,22 +84,14 @@ export const useStyles = createStyles(({ token }) => ({
     textAlign: "center",
   },
   operatorChip: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 6,
-    padding: "3px 8px 3px 10px",
-    background: token.colorBgContainer,
-    border: `1px solid ${token.colorBorderSecondary}`,
-    borderRadius: token.borderRadiusSM,
-    cursor: "pointer",
-    fontSize: 12,
-    lineHeight: "20px",
-    transition: "border-color 0.2s, background 0.2s",
-    flex: 1,
-    minWidth: 0,
-    "&:hover": {
-      borderColor: token.colorPrimary,
-      background: token.colorPrimaryBg,
+    "&&": {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "flex-start",
+      gap: 6,
+      fontSize: 12,
+      flex: 1,
+      minWidth: 0,
     },
   },
   chipSubject: {
@@ -114,6 +106,7 @@ export const useStyles = createStyles(({ token }) => ({
       padding: "0 5px",
       borderRadius: 3,
       margin: 0,
+      marginLeft: -8,
     },
   },
   chipValue: {

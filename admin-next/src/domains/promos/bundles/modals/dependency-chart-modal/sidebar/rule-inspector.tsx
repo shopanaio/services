@@ -427,7 +427,7 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                       } as Partial<IDependencyCondition>);
                     })}
                   >
-                    <div className={styles.operatorChip}>
+                    <Button className={styles.operatorChip}>
                       <Tag
                         className={styles.chipOperator}
                         color={TARGET_TYPE_COLORS[condition.targetType]}
@@ -437,7 +437,7 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                       <span className={styles.chipSubject}>
                         {getTargetLabel(condition.targetType, condition.targetId, groups)}
                       </span>
-                    </div>
+                    </Button>
                   </NavigableDropdown>
                   <Button
                     type="text"
@@ -464,9 +464,9 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                       },
                     )}
                   >
-                    <div className={styles.operatorChip}>
+                    <Button className={styles.operatorChip}>
                       {getConditionChipLabel(condition.subject, condition.operator)}
-                    </div>
+                    </Button>
                   </NavigableDropdown>
                   {conditionNeedsValue(condition) && (
                     <InputNumber
@@ -535,7 +535,7 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                       });
                     })}
                   >
-                    <div className={styles.operatorChip}>
+                    <Button className={styles.operatorChip}>
                       <Tag
                         className={styles.chipOperator}
                         color={TARGET_TYPE_COLORS[action.targetType]}
@@ -545,7 +545,7 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                       <span className={styles.chipSubject}>
                         {getTargetLabel(action.targetType, action.targetId, groups)}
                       </span>
-                    </div>
+                    </Button>
                   </NavigableDropdown>
                   <Button
                     type="text"
@@ -565,9 +565,9 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                       (actionType) => handleUpdateAction(action.id, { actionType }),
                     )}
                   >
-                    <div className={styles.operatorChip}>
+                    <Button className={styles.operatorChip}>
                       {ACTION_PHRASE[action.actionType]}
-                    </div>
+                    </Button>
                   </NavigableDropdown>
                 </div>
 
