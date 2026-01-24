@@ -1,10 +1,10 @@
 import type { Node, Edge } from "@xyflow/react";
+import type { BundleItem } from "@/domains/promos/bundles/types";
 import type {
   IDependencyRule,
   IDependencyCondition,
   IDependencyAction,
-  BundleItem,
-} from "@/domains/promos/bundles/types";
+} from "@/domains/promos/bundles/dependency-rules";
 
 // ============================================================================
 // Node Data Types (with index signature for React Flow compatibility)

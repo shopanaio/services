@@ -29,6 +29,8 @@ export enum LogicOperator {
 export enum StateCheckOperator {
   IS_SELECTED = "IS_SELECTED",
   IS_NOT_SELECTED = "IS_NOT_SELECTED",
+  IS_OUT_OF_STOCK = "IS_OUT_OF_STOCK",
+  IS_IN_STOCK = "IS_IN_STOCK",
   CONTAINS = "CONTAINS",
 }
 
@@ -48,9 +50,12 @@ export enum ConditionCategory {
 export enum ConditionSubject {
   ITEM_SELECTED = "ITEM_SELECTED",
   ITEM_QTY = "ITEM_QTY",
+  ITEM_STOCK = "ITEM_STOCK",
   GROUP_UNIQUE_COUNT = "GROUP_UNIQUE_COUNT",
   GROUP_TOTAL_QTY = "GROUP_TOTAL_QTY",
+  GROUP_SUBTOTAL = "GROUP_SUBTOTAL",
   GROUP_CONTAINS = "GROUP_CONTAINS",
+  BUNDLE_SUBTOTAL = "BUNDLE_SUBTOTAL",
 }
 
 // ============================================================================
@@ -73,20 +78,9 @@ export enum DependencyActionType {
   ENABLE = "ENABLE",
   DISABLE = "DISABLE",
   SET_QTY = "SET_QTY",
+  SET_QTY_LIMITS = "SET_QTY_LIMITS",
+  SET_REQUIRED = "SET_REQUIRED",
   OVERRIDE_PRICE = "OVERRIDE_PRICE",
   ADJUST_PRICE = "ADJUST_PRICE",
 }
 
-// ============================================================================
-// Condition Types (legacy - preserved for backward compat)
-// ============================================================================
-
-export enum DependencyConditionType {
-  IS_SELECTED = "IS_SELECTED",
-  IS_NOT_SELECTED = "IS_NOT_SELECTED",
-  QTY_GTE = "QTY_GTE",
-  QTY_LTE = "QTY_LTE",
-  QTY_EQ = "QTY_EQ",
-  GROUP_UNIQUE_GTE = "GROUP_UNIQUE_GTE",
-  GROUP_TOTAL_QTY_GTE = "GROUP_TOTAL_QTY_GTE",
-}

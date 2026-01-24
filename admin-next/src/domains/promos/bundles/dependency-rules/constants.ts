@@ -1,5 +1,4 @@
 import {
-  DependencyConditionType,
   DependencyActionType,
   DependencyTargetType,
   ComparisonOperator,
@@ -9,18 +8,8 @@ import {
 } from "./enums";
 
 // ============================================================================
-// Legacy Label Maps
+// Label Maps
 // ============================================================================
-
-export const CONDITION_TYPE_LABELS: Record<DependencyConditionType, string> = {
-  [DependencyConditionType.IS_SELECTED]: "is selected",
-  [DependencyConditionType.IS_NOT_SELECTED]: "is not selected",
-  [DependencyConditionType.QTY_GTE]: "quantity >=",
-  [DependencyConditionType.QTY_LTE]: "quantity <=",
-  [DependencyConditionType.QTY_EQ]: "quantity =",
-  [DependencyConditionType.GROUP_UNIQUE_GTE]: "unique items >=",
-  [DependencyConditionType.GROUP_TOTAL_QTY_GTE]: "total quantity >=",
-};
 
 export const ACTION_TYPE_LABELS: Record<DependencyActionType, string> = {
   [DependencyActionType.SHOW]: "show",
@@ -28,6 +17,8 @@ export const ACTION_TYPE_LABELS: Record<DependencyActionType, string> = {
   [DependencyActionType.ENABLE]: "enable",
   [DependencyActionType.DISABLE]: "disable",
   [DependencyActionType.SET_QTY]: "set quantity",
+  [DependencyActionType.SET_QTY_LIMITS]: "set quantity limits",
+  [DependencyActionType.SET_REQUIRED]: "set required",
   [DependencyActionType.OVERRIDE_PRICE]: "override price",
   [DependencyActionType.ADJUST_PRICE]: "adjust price",
 };
@@ -56,6 +47,8 @@ export const COMPARISON_OPERATOR_LABELS: Record<ComparisonOperator, string> = {
 export const STATE_CHECK_LABELS: Record<StateCheckOperator, string> = {
   [StateCheckOperator.IS_SELECTED]: "is selected",
   [StateCheckOperator.IS_NOT_SELECTED]: "is not selected",
+  [StateCheckOperator.IS_OUT_OF_STOCK]: "is out of stock",
+  [StateCheckOperator.IS_IN_STOCK]: "is in stock",
   [StateCheckOperator.CONTAINS]: "contains",
 };
 
@@ -67,7 +60,10 @@ export const LOGIC_OPERATOR_LABELS: Record<LogicOperator, string> = {
 export const CONDITION_SUBJECT_LABELS: Record<ConditionSubject, string> = {
   [ConditionSubject.ITEM_SELECTED]: "selection",
   [ConditionSubject.ITEM_QTY]: "quantity",
+  [ConditionSubject.ITEM_STOCK]: "stock",
   [ConditionSubject.GROUP_UNIQUE_COUNT]: "unique items",
   [ConditionSubject.GROUP_TOTAL_QTY]: "total quantity",
+  [ConditionSubject.GROUP_SUBTOTAL]: "subtotal",
   [ConditionSubject.GROUP_CONTAINS]: "contains",
+  [ConditionSubject.BUNDLE_SUBTOTAL]: "bundle subtotal",
 };

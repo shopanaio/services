@@ -1,75 +1,57 @@
 import {
-  DependencyConditionType,
-  ConditionSubject,
-  ComparisonOperator,
-  StateCheckOperator,
-  DependencyTargetType,
   ConditionCategory,
+  ConditionSubject,
 } from "./enums";
 
 // ============================================================================
-// Legacy Condition Type -> New System Mapping
+// Condition Subject Metadata
 // ============================================================================
 
-export interface LegacyConditionMapping {
+export interface ConditionSubjectMetadata {
   category: ConditionCategory;
-  subject: ConditionSubject;
-  operator: ComparisonOperator | StateCheckOperator;
+  label: string;
+  description: string;
 }
 
-export const LEGACY_CONDITION_MAP: Record<DependencyConditionType, LegacyConditionMapping> = {
-  [DependencyConditionType.IS_SELECTED]: {
+export const CONDITION_SUBJECT_META: Record<ConditionSubject, ConditionSubjectMetadata> = {
+  [ConditionSubject.ITEM_SELECTED]: {
     category: ConditionCategory.STATE_CHECK,
-    subject: ConditionSubject.ITEM_SELECTED,
-    operator: StateCheckOperator.IS_SELECTED,
+    label: "selection",
+    description: "Whether the item is selected",
   },
-  [DependencyConditionType.IS_NOT_SELECTED]: {
+  [ConditionSubject.ITEM_QTY]: {
+    category: ConditionCategory.NUMERIC,
+    label: "quantity",
+    description: "Item quantity",
+  },
+  [ConditionSubject.ITEM_STOCK]: {
     category: ConditionCategory.STATE_CHECK,
-    subject: ConditionSubject.ITEM_SELECTED,
-    operator: StateCheckOperator.IS_NOT_SELECTED,
+    label: "stock",
+    description: "Item stock availability",
   },
-  [DependencyConditionType.QTY_GTE]: {
+  [ConditionSubject.GROUP_UNIQUE_COUNT]: {
     category: ConditionCategory.NUMERIC,
-    subject: ConditionSubject.ITEM_QTY,
-    operator: ComparisonOperator.GTE,
+    label: "unique items",
+    description: "Number of unique items selected in group",
   },
-  [DependencyConditionType.QTY_LTE]: {
+  [ConditionSubject.GROUP_TOTAL_QTY]: {
     category: ConditionCategory.NUMERIC,
-    subject: ConditionSubject.ITEM_QTY,
-    operator: ComparisonOperator.LTE,
+    label: "total quantity",
+    description: "Sum of quantities across all items in group",
   },
-  [DependencyConditionType.QTY_EQ]: {
+  [ConditionSubject.GROUP_SUBTOTAL]: {
     category: ConditionCategory.NUMERIC,
-    subject: ConditionSubject.ITEM_QTY,
-    operator: ComparisonOperator.EQ,
+    label: "subtotal",
+    description: "Sum of prices across selected items in group",
   },
-  [DependencyConditionType.GROUP_UNIQUE_GTE]: {
+  [ConditionSubject.GROUP_CONTAINS]: {
+    category: ConditionCategory.STATE_CHECK,
+    label: "contains",
+    description: "Whether group contains a specific item",
+  },
+  [ConditionSubject.BUNDLE_SUBTOTAL]: {
     category: ConditionCategory.NUMERIC,
-    subject: ConditionSubject.GROUP_UNIQUE_COUNT,
-    operator: ComparisonOperator.GTE,
+    label: "bundle subtotal",
+    description: "Total bundle price",
   },
-  [DependencyConditionType.GROUP_TOTAL_QTY_GTE]: {
-    category: ConditionCategory.NUMERIC,
-    subject: ConditionSubject.GROUP_TOTAL_QTY,
-    operator: ComparisonOperator.GTE,
-  },
-};
-
-// ============================================================================
-// Valid Condition Types by Target (legacy compat)
-// ============================================================================
-
-export const CONDITION_TYPES_BY_TARGET: Record<DependencyTargetType, DependencyConditionType[]> = {
-  [DependencyTargetType.ITEM]: [
-    DependencyConditionType.IS_SELECTED,
-    DependencyConditionType.IS_NOT_SELECTED,
-    DependencyConditionType.QTY_GTE,
-    DependencyConditionType.QTY_LTE,
-    DependencyConditionType.QTY_EQ,
-  ],
-  [DependencyTargetType.GROUP]: [
-    DependencyConditionType.GROUP_UNIQUE_GTE,
-    DependencyConditionType.GROUP_TOTAL_QTY_GTE,
-  ],
-  [DependencyTargetType.BUNDLE]: [],
 };

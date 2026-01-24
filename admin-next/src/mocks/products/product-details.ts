@@ -12,7 +12,8 @@ import {
 } from "@/domains/inventory/products/components/product-details-card/inventory-widget.types";
 import { CurrencyCode, OptionDisplayType, type ApiVariant, type ApiPageInfo } from "@/graphql/types";
 import type { IBundleGroup, PricingRuleTemplate, IDependencyRule } from "@/domains/promos/bundles/types";
-import { BundleItemType, BundlePriceType, DependencyConditionType, DependencyActionType, DependencyTargetType } from "@/domains/promos/bundles/types";
+import { BundleItemType, BundlePriceType, DependencyActionType, DependencyTargetType } from "@/domains/promos/bundles/types";
+import { ConditionCategory, ConditionSubject, StateCheckOperator, LogicOperator } from "@/domains/promos/bundles/dependency-rules";
 
 const getMockInventoryWidget = (): ProductInventoryWidget => ({
   quantities: {
@@ -303,12 +304,21 @@ const mockDependencyRules: IDependencyRule[] = [
     name: "Premium case disables screen protector",
     enabled: true,
     priority: 200,
-    conditions: [
+    logicOperator: LogicOperator.AND,
+    conditionGroups: [
       {
-        id: "cond-1-1",
-        conditionType: DependencyConditionType.IS_SELECTED,
-        targetType: DependencyTargetType.ITEM,
-        targetId: "item-1",
+        id: "grp-1-1",
+        logicOperator: LogicOperator.AND,
+        conditions: [
+          {
+            id: "cond-1-1",
+            category: ConditionCategory.STATE_CHECK,
+            subject: ConditionSubject.ITEM_SELECTED,
+            operator: StateCheckOperator.IS_SELECTED,
+            targetType: DependencyTargetType.ITEM,
+            targetId: "item-1",
+          },
+        ],
       },
     ],
     actions: [
@@ -325,12 +335,21 @@ const mockDependencyRules: IDependencyRule[] = [
     name: "Charger shows extended warranty",
     enabled: true,
     priority: 150,
-    conditions: [
+    logicOperator: LogicOperator.AND,
+    conditionGroups: [
       {
-        id: "cond-2-1",
-        conditionType: DependencyConditionType.IS_SELECTED,
-        targetType: DependencyTargetType.ITEM,
-        targetId: "item-2",
+        id: "grp-2-1",
+        logicOperator: LogicOperator.AND,
+        conditions: [
+          {
+            id: "cond-2-1",
+            category: ConditionCategory.STATE_CHECK,
+            subject: ConditionSubject.ITEM_SELECTED,
+            operator: StateCheckOperator.IS_SELECTED,
+            targetType: DependencyTargetType.ITEM,
+            targetId: "item-2",
+          },
+        ],
       },
     ],
     actions: [
@@ -347,12 +366,21 @@ const mockDependencyRules: IDependencyRule[] = [
     name: "Screen protector free with charger",
     enabled: true,
     priority: 100,
-    conditions: [
+    logicOperator: LogicOperator.AND,
+    conditionGroups: [
       {
-        id: "cond-3-1",
-        conditionType: DependencyConditionType.IS_SELECTED,
-        targetType: DependencyTargetType.ITEM,
-        targetId: "item-2",
+        id: "grp-3-1",
+        logicOperator: LogicOperator.AND,
+        conditions: [
+          {
+            id: "cond-3-1",
+            category: ConditionCategory.STATE_CHECK,
+            subject: ConditionSubject.ITEM_SELECTED,
+            operator: StateCheckOperator.IS_SELECTED,
+            targetType: DependencyTargetType.ITEM,
+            targetId: "item-2",
+          },
+        ],
       },
     ],
     actions: [

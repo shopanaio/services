@@ -27,6 +27,14 @@ export const ACTION_META: Record<DependencyActionType, ActionMetadata> = {
     requiresQtyValue: true,
     description: "Set item quantity to a specific value",
   },
+  [DependencyActionType.SET_QTY_LIMITS]: {
+    label: "set quantity limits",
+    description: "Override min/max quantity for an item",
+  },
+  [DependencyActionType.SET_REQUIRED]: {
+    label: "set required",
+    description: "Make a group required or optional",
+  },
   [DependencyActionType.OVERRIDE_PRICE]: {
     label: "override price",
     requiresPriceType: true,
@@ -50,6 +58,7 @@ export const ACTIONS_BY_TARGET: Record<DependencyTargetType, DependencyActionTyp
     DependencyActionType.ENABLE,
     DependencyActionType.DISABLE,
     DependencyActionType.SET_QTY,
+    DependencyActionType.SET_QTY_LIMITS,
     DependencyActionType.OVERRIDE_PRICE,
     DependencyActionType.ADJUST_PRICE,
   ],
@@ -58,6 +67,7 @@ export const ACTIONS_BY_TARGET: Record<DependencyTargetType, DependencyActionTyp
     DependencyActionType.HIDE,
     DependencyActionType.ENABLE,
     DependencyActionType.DISABLE,
+    DependencyActionType.SET_REQUIRED,
   ],
   [DependencyTargetType.BUNDLE]: [
     DependencyActionType.OVERRIDE_PRICE,

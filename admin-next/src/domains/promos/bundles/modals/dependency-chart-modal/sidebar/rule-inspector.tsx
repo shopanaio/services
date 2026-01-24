@@ -20,20 +20,25 @@ import {
 
 import type { IDependencyRule, IBundleGroup } from "@/domains/promos/bundles/types";
 import {
-  DependencyConditionType,
   DependencyActionType,
   DependencyTargetType,
-  CONDITION_TYPES_BY_TARGET,
-  ACTION_TYPES_BY_TARGET,
   PRICE_RULE_OPTIONS,
 } from "@/domains/promos/bundles/types";
+import {
+  ConditionCategory,
+  ComparisonOperator,
+  CONDITION_SUBJECT_META,
+  COMPARISON_OPERATOR_META,
+} from "@/domains/promos/bundles/dependency-rules";
+import type { IDependencyCondition } from "@/domains/promos/bundles/dependency-rules";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 
 import { useStyles } from "./rule-inspector.styles";
 import {
   useRuleInspector,
   getTargetOptions,
-  getConditionTypeOptions,
+  getSubjectOptions,
+  getOperatorOptions,
   getActionTypeOptions,
   CONDITION_TARGET_TYPE_OPTIONS,
   ACTION_TARGET_TYPE_OPTIONS,
@@ -49,6 +54,23 @@ interface IRuleInspectorProps {
   groups: IBundleGroup[];
   onRuleChange: (rule: IDependencyRule) => void;
 }
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+/** Check if a condition needs a value input */
+const conditionNeedsValue = (condition: IDependencyCondition): boolean => {
+  if (condition.category !== ConditionCategory.NUMERIC) return false;
+  const meta = COMPARISON_OPERATOR_META[condition.operator];
+  return meta?.requiresValue ?? false;
+};
+
+/** Check if a condition needs a second value input (BETWEEN) */
+const conditionNeedsSecondValue = (condition: IDependencyCondition): boolean => {
+  if (condition.category !== ConditionCategory.NUMERIC) return false;
+  return condition.operator === ComparisonOperator.BETWEEN;
+};
 
 // ============================================================================
 // Component
@@ -70,6 +92,10 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
     handleUpdateAction,
     handleDeleteAction,
   } = useRuleInspector({ rule, groups, onRuleChange });
+
+  // Get all conditions from all groups (flattened for display)
+  const allConditions: IDependencyCondition[] =
+    rule?.conditionGroups.flatMap((g) => g.conditions) ?? [];
 
   // Collapsed view
   if (collapsed) {
@@ -183,46 +209,53 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
             />
           </div>
 
-          {rule.conditions.length === 0 ? (
+          {allConditions.length === 0 ? (
             <div className={styles.emptyConditions}>
               <Typography.Text type="secondary">No conditions</Typography.Text>
             </div>
           ) : (
-            rule.conditions.map((condition) => (
+            allConditions.map((condition) => (
               <div key={condition.id} className={styles.conditionItem}>
+                {/* Row 1: Target type + target select */}
                 <div className={styles.conditionRow}>
                   <Select
                     value={condition.targetType}
                     onChange={(value) => {
-                      const validTypes =
-                        CONDITION_TYPES_BY_TARGET[value as DependencyTargetType];
-                      const newConditionType = validTypes.includes(condition.conditionType)
-                        ? condition.conditionType
-                        : validTypes[0];
+                      const subjects = getSubjectOptions(value as DependencyTargetType);
+                      const firstSubject = subjects[0]?.value;
+                      const operators = firstSubject ? getOperatorOptions(firstSubject) : [];
+                      const firstOperator = operators[0]?.value;
+                      const subjectMeta = firstSubject ? CONDITION_SUBJECT_META[firstSubject] : null;
                       handleUpdateCondition(condition.id, {
                         targetType: value,
-                        conditionType: newConditionType,
+                        subject: firstSubject,
+                        operator: firstOperator,
+                        category: subjectMeta?.category ?? ConditionCategory.STATE_CHECK,
                         targetId:
-                          value === DependencyTargetType.ITEM
-                            ? (groups[0]?.items[0]?.id ?? "")
-                            : (groups[0]?.id ?? ""),
-                      });
+                          value === DependencyTargetType.BUNDLE
+                            ? ""
+                            : value === DependencyTargetType.ITEM
+                              ? (groups[0]?.items[0]?.id ?? "")
+                              : (groups[0]?.id ?? ""),
+                      } as Partial<IDependencyCondition>);
                     }}
                     options={CONDITION_TARGET_TYPE_OPTIONS}
                     size="small"
                     style={{ width: 80 }}
                   />
-                  <Select
-                    value={condition.targetId}
-                    onChange={(value) =>
-                      handleUpdateCondition(condition.id, { targetId: value })
-                    }
-                    options={getTargetOptions(condition.targetType, groups)}
-                    size="small"
-                    style={{ flex: 1 }}
-                    showSearch
-                    optionFilterProp="label"
-                  />
+                  {condition.targetType !== DependencyTargetType.BUNDLE && (
+                    <Select
+                      value={condition.targetId}
+                      onChange={(value) =>
+                        handleUpdateCondition(condition.id, { targetId: value })
+                      }
+                      options={getTargetOptions(condition.targetType, groups)}
+                      size="small"
+                      style={{ flex: 1 }}
+                      showSearch
+                      optionFilterProp="label"
+                    />
+                  )}
                   <Button
                     type="text"
                     size="small"
@@ -232,34 +265,63 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                     className={styles.deleteButton}
                   />
                 </div>
+
+                {/* Row 2: Subject + Operator */}
                 <div className={styles.conditionRow}>
                   <Select
-                    value={condition.conditionType}
-                    onChange={(value) =>
-                      handleUpdateCondition(condition.id, { conditionType: value })
-                    }
-                    options={getConditionTypeOptions(condition.targetType)}
+                    value={condition.subject}
+                    onChange={(value) => {
+                      const operators = getOperatorOptions(value);
+                      const firstOperator = operators[0]?.value;
+                      const subjectMeta = CONDITION_SUBJECT_META[value];
+                      handleUpdateCondition(condition.id, {
+                        subject: value,
+                        operator: firstOperator,
+                        category: subjectMeta.category,
+                      } as Partial<IDependencyCondition>);
+                    }}
+                    options={getSubjectOptions(condition.targetType)}
                     size="small"
                     style={{ flex: 1 }}
                   />
-                  {[
-                    DependencyConditionType.QTY_GTE,
-                    DependencyConditionType.QTY_LTE,
-                    DependencyConditionType.QTY_EQ,
-                    DependencyConditionType.GROUP_UNIQUE_GTE,
-                    DependencyConditionType.GROUP_TOTAL_QTY_GTE,
-                  ].includes(condition.conditionType) && (
+                  <Select
+                    value={condition.operator}
+                    onChange={(value) =>
+                      handleUpdateCondition(condition.id, { operator: value } as Partial<IDependencyCondition>)
+                    }
+                    options={getOperatorOptions(condition.subject)}
+                    size="small"
+                    style={{ flex: 1 }}
+                  />
+                </div>
+
+                {/* Row 3: Value (for numeric conditions) */}
+                {conditionNeedsValue(condition) && (
+                  <div className={styles.conditionRow}>
                     <InputNumber
-                      value={condition.value}
+                      value={condition.category === ConditionCategory.NUMERIC ? condition.value : undefined}
                       onChange={(value) =>
                         handleUpdateCondition(condition.id, { value: value ?? 0 })
                       }
                       min={0}
                       size="small"
-                      style={{ width: 60 }}
+                      style={{ flex: 1 }}
+                      placeholder="Value"
                     />
-                  )}
-                </div>
+                    {conditionNeedsSecondValue(condition) && (
+                      <InputNumber
+                        value={condition.category === ConditionCategory.NUMERIC ? condition.valueTo : undefined}
+                        onChange={(value) =>
+                          handleUpdateCondition(condition.id, { valueTo: value ?? 0 })
+                        }
+                        min={0}
+                        size="small"
+                        style={{ flex: 1 }}
+                        placeholder="To"
+                      />
+                    )}
+                  </div>
+                )}
               </div>
             ))
           )}
@@ -292,11 +354,11 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                   <Select
                     value={action.targetType}
                     onChange={(value) => {
-                      const validTypes =
-                        ACTION_TYPES_BY_TARGET[value as DependencyTargetType];
-                      const newActionType = validTypes.includes(action.actionType)
+                      const validActions = getActionTypeOptions(value as DependencyTargetType);
+                      const currentValid = validActions.find((a) => a.value === action.actionType);
+                      const newActionType = currentValid
                         ? action.actionType
-                        : validTypes[0];
+                        : validActions[0]?.value;
                       handleUpdateAction(action.id, {
                         targetType: value,
                         actionType: newActionType,
@@ -394,6 +456,48 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                       min={0}
                       size="small"
                       style={{ flex: 1 }}
+                    />
+                  </div>
+                )}
+
+                {/* Quantity limits fields */}
+                {action.actionType === DependencyActionType.SET_QTY_LIMITS && (
+                  <div className={styles.conditionRow}>
+                    <InputNumber
+                      value={action.minQtyValue ?? undefined}
+                      onChange={(value) =>
+                        handleUpdateAction(action.id, { minQtyValue: value })
+                      }
+                      min={0}
+                      size="small"
+                      style={{ flex: 1 }}
+                      placeholder="Min"
+                    />
+                    <InputNumber
+                      value={action.maxQtyValue ?? undefined}
+                      onChange={(value) =>
+                        handleUpdateAction(action.id, { maxQtyValue: value })
+                      }
+                      min={0}
+                      size="small"
+                      style={{ flex: 1 }}
+                      placeholder="Max"
+                    />
+                  </div>
+                )}
+
+                {/* Required field */}
+                {action.actionType === DependencyActionType.SET_REQUIRED && (
+                  <div className={styles.conditionRow}>
+                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                      Required:
+                    </Typography.Text>
+                    <Switch
+                      checked={action.requiredValue ?? false}
+                      onChange={(checked) =>
+                        handleUpdateAction(action.id, { requiredValue: checked })
+                      }
+                      size="small"
                     />
                   </div>
                 )}

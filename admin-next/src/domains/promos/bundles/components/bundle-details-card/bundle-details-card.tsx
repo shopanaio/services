@@ -33,6 +33,7 @@ import type {
   IBundleGroup,
   IDependencyRule,
 } from "@/domains/promos/bundles/types";
+import { LogicOperator } from "@/domains/promos/bundles/dependency-rules";
 
 // ============================================================================
 // Props
@@ -93,7 +94,8 @@ export const BundleDetailsCard = ({
       name: "",
       enabled: true,
       priority: maxPriority + 100,
-      conditions: [],
+      logicOperator: LogicOperator.AND,
+      conditionGroups: [],
       actions: [],
     };
     openDependencyChartModal({

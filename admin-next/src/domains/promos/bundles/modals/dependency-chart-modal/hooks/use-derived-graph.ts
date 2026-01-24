@@ -6,9 +6,10 @@ import type { IBundleGroup } from "@/domains/promos/bundles/types";
 import type { IDependencyRule } from "@/domains/promos/bundles/dependency-rules";
 import {
   DependencyTargetType,
-  formatConditionLabel,
-  formatActionLabel,
+  formatCondition,
+  formatAction,
 } from "@/domains/promos/bundles/dependency-rules";
+import type { IDependencyCondition } from "@/domains/promos/bundles/dependency-rules";
 import type {
   ChartNode,
   ChartEdge,
@@ -48,20 +49,28 @@ export const useDerivedGraph = ({
     const actionColor = theme.colorSuccess;
     const disabledColor = theme.colorBorder;
 
+    // Helper: flatten all conditions from a rule's condition groups
+    const getAllConditions = (rule: IDependencyRule): IDependencyCondition[] =>
+      rule.conditionGroups.flatMap((g) => g.conditions);
+
     // 1. First pass: collect which items/groups are used as sources (conditions) and targets (actions)
     const sourceItemIds = new Set<string>();
     const targetItemIds = new Set<string>();
     const sourceGroupIds = new Set<string>();
     const targetGroupIds = new Set<string>();
+    let hasBundleSource = false;
     let hasBundleTarget = false;
 
     rules.forEach((rule) => {
-      rule.conditions.forEach((condition) => {
+      getAllConditions(rule).forEach((condition) => {
         if (condition.targetType === DependencyTargetType.ITEM && condition.targetId) {
           sourceItemIds.add(condition.targetId);
         }
         if (condition.targetType === DependencyTargetType.GROUP && condition.targetId) {
           sourceGroupIds.add(condition.targetId);
+        }
+        if (condition.targetType === DependencyTargetType.BUNDLE) {
+          hasBundleSource = true;
         }
       });
       rule.actions.forEach((action) => {
@@ -198,7 +207,7 @@ export const useDerivedGraph = ({
     });
 
     // 4. Create bundle node if needed
-    if (hasBundleTarget) {
+    if (hasBundleSource || hasBundleTarget) {
       const bundleNodeId = "bundle:main";
       nodeIds.add(bundleNodeId);
       nodes.push({
@@ -233,8 +242,7 @@ export const useDerivedGraph = ({
 
     rules.forEach((rule) => {
       // Collect condition labels by SOURCE
-      rule.conditions.forEach((condition) => {
-        if (condition.targetType === DependencyTargetType.BUNDLE) return;
+      getAllConditions(rule).forEach((condition) => {
         if (!condition.targetId) return;
 
         let sourceNodeId: string;
@@ -242,13 +250,15 @@ export const useDerivedGraph = ({
           sourceNodeId = duplicatedItemIds.has(condition.targetId)
             ? `item:${condition.targetId}:source`
             : `item:${condition.targetId}`;
-        } else {
+        } else if (condition.targetType === DependencyTargetType.GROUP) {
           sourceNodeId = duplicatedGroupIds.has(condition.targetId)
             ? `group:${condition.targetId}:source`
             : `group:${condition.targetId}`;
+        } else {
+          sourceNodeId = "bundle:main";
         }
 
-        const label = formatConditionLabel(condition.conditionType, condition.value);
+        const label = formatCondition(condition);
         const labels = conditionSourceLabelsMap.get(sourceNodeId) ?? [];
         labels.push(label);
         conditionSourceLabelsMap.set(sourceNodeId, labels);
@@ -271,12 +281,7 @@ export const useDerivedGraph = ({
             : `group:${action.targetId}`;
         }
 
-        const label = formatActionLabel(
-          action.actionType,
-          action.priceType,
-          action.priceValue,
-          action.qtyValue
-        );
+        const label = formatAction(action);
         const labels = actionTargetLabelsMap.get(targetNodeId) ?? [];
         labels.push(label);
         actionTargetLabelsMap.set(targetNodeId, labels);
@@ -290,8 +295,7 @@ export const useDerivedGraph = ({
       const actionEdgeColor = rule.enabled ? actionColor : disabledColor;
 
       // Condition edges: grouped by SOURCE item
-      rule.conditions.forEach((condition) => {
-        if (condition.targetType === DependencyTargetType.BUNDLE) return;
+      getAllConditions(rule).forEach((condition) => {
         if (!condition.targetId) return;
 
         let sourceNodeId: string;
@@ -299,10 +303,12 @@ export const useDerivedGraph = ({
           sourceNodeId = duplicatedItemIds.has(condition.targetId)
             ? `item:${condition.targetId}:source`
             : `item:${condition.targetId}`;
-        } else {
+        } else if (condition.targetType === DependencyTargetType.GROUP) {
           sourceNodeId = duplicatedGroupIds.has(condition.targetId)
             ? `group:${condition.targetId}:source`
             : `group:${condition.targetId}`;
+        } else {
+          sourceNodeId = "bundle:main";
         }
 
         if (!nodeIds.has(sourceNodeId)) return;
@@ -325,7 +331,7 @@ export const useDerivedGraph = ({
           },
           data: {
             condition,
-            label: formatConditionLabel(condition.conditionType, condition.value),
+            label: formatCondition(condition),
             labels: allLabels,
             tagColor: rule.enabled ? "blue" : "default",
           },
@@ -369,12 +375,7 @@ export const useDerivedGraph = ({
           },
           data: {
             action,
-            label: formatActionLabel(
-              action.actionType,
-              action.priceType,
-              action.priceValue,
-              action.qtyValue
-            ),
+            label: formatAction(action),
             labels: allLabels,
             tagColor: rule.enabled ? "green" : "default",
           },

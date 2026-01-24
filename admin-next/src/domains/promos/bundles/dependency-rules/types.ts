@@ -6,12 +6,11 @@ import type {
   ConditionSubject,
   DependencyTargetType,
   DependencyActionType,
-  DependencyConditionType,
 } from "./enums";
 import type { BundlePriceType } from "../types";
 
 // ============================================================================
-// V2 Conditions (expanded operator system)
+// Conditions
 // ============================================================================
 
 export interface IStateCheckCondition {
@@ -39,7 +38,7 @@ export interface INumericCondition {
   valueList?: number[];
 }
 
-export type IDependencyConditionV2 = IStateCheckCondition | INumericCondition;
+export type IDependencyCondition = IStateCheckCondition | INumericCondition;
 
 // ============================================================================
 // Condition Group (AND/OR logic)
@@ -48,7 +47,7 @@ export type IDependencyConditionV2 = IStateCheckCondition | INumericCondition;
 export interface IConditionGroup {
   id: string;
   logicOperator: LogicOperator;
-  conditions: IDependencyConditionV2[];
+  conditions: IDependencyCondition[];
 }
 
 // ============================================================================
@@ -60,7 +59,18 @@ export interface IDependencyAction {
   actionType: DependencyActionType;
   targetType: DependencyTargetType;
   targetId?: string;
+
+  // For SET_QTY
   qtyValue?: number;
+
+  // For SET_QTY_LIMITS
+  minQtyValue?: number | null;
+  maxQtyValue?: number | null;
+
+  // For SET_REQUIRED
+  requiredValue?: boolean;
+
+  // For OVERRIDE_PRICE / ADJUST_PRICE
   priceType?: BundlePriceType;
   priceValue?: number | null;
   exclusiveKey?: string;
@@ -68,37 +78,16 @@ export interface IDependencyAction {
 }
 
 // ============================================================================
-// Rule V2 (with AND/OR support)
+// Rule
 // ============================================================================
-
-export interface IDependencyRuleV2 {
-  id: string;
-  name: string;
-  enabled: boolean;
-  priority: number;
-  logicOperator: LogicOperator;
-  conditionGroups: IConditionGroup[];
-  actions: IDependencyAction[];
-}
-
-// ============================================================================
-// Legacy Types (preserved for backward compat)
-// ============================================================================
-
-export interface IDependencyCondition {
-  id: string;
-  conditionType: DependencyConditionType;
-  targetType: DependencyTargetType;
-  targetId: string;
-  value?: number;
-}
 
 export interface IDependencyRule {
   id: string;
   name: string;
   enabled: boolean;
   priority: number;
-  conditions: IDependencyCondition[];
+  logicOperator: LogicOperator;
+  conditionGroups: IConditionGroup[];
   actions: IDependencyAction[];
 }
 

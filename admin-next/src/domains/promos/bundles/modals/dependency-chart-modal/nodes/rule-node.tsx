@@ -89,7 +89,7 @@ const RuleNodeComponent = ({ data }: RuleNodeProps) => {
   const { styles, cx } = useStyles();
   const { rule, isSelected } = data;
 
-  const conditionCount = rule.conditions.length;
+  const conditionCount = rule.conditionGroups.reduce((sum, g) => sum + g.conditions.length, 0);
   const actionCount = rule.actions.length;
 
   return (

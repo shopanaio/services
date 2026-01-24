@@ -7,7 +7,6 @@ import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type { IBundleGroup } from "@/domains/promos/bundles/types";
 import type { IDependencyRule } from "@/domains/promos/bundles/dependency-rules";
 import {
-  DependencyTargetType,
   TARGET_TYPE_LABELS,
   resolveTargetName,
   formatCondition,
@@ -213,7 +212,7 @@ export const DependencyRulesSection = ({
                   <div className={styles.ruleBody}>
                     <div className={styles.flowBlock}>
                       <div className={styles.flowLabel}>When</div>
-                      {rule.conditions.map((cond) => {
+                      {rule.conditionGroups.flatMap((g) => g.conditions).map((cond) => {
                         const name = resolveTargetName(cond.targetType, cond.targetId, groups);
                         return (
                           <div key={cond.id} className={styles.conditionRow}>
@@ -257,7 +256,7 @@ export const DependencyRulesSection = ({
                   </div>
                 ) : (
                   <div className={styles.compactBody}>
-                    {rule.conditions.length} conditions → {rule.actions.length} actions
+                    {rule.conditionGroups.reduce((sum, g) => sum + g.conditions.length, 0)} conditions → {rule.actions.length} actions
                   </div>
                 )}
               </div>

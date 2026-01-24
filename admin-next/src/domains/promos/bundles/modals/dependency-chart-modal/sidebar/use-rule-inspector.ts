@@ -5,18 +5,23 @@ import type {
   IDependencyRule,
   IDependencyCondition,
   IDependencyAction,
+  IConditionGroup,
 } from "@/domains/promos/bundles/dependency-rules";
 import {
-  DependencyConditionType,
   DependencyActionType,
   DependencyTargetType,
+  ConditionSubject,
+  ConditionCategory,
+  StateCheckOperator,
+  LogicOperator,
 } from "@/domains/promos/bundles/dependency-rules";
 
 import { PRICE_RULE_OPTIONS } from "@/domains/promos/bundles/types";
 
 export {
   getTargetOptions,
-  getConditionTypeOptions,
+  getSubjectOptions,
+  getOperatorOptions,
   getActionTypeOptions,
   CONDITION_TARGET_TYPE_OPTIONS,
   ACTION_TARGET_TYPE_OPTIONS,
@@ -33,6 +38,30 @@ export const PRICE_TYPE_OPTIONS = PRICE_RULE_OPTIONS.map((opt) => ({
 
 const generateId = (prefix: string): string => {
   return `${prefix}-${crypto.randomUUID().slice(0, 8)}`;
+};
+
+/** Get the first condition group (or a default one) */
+const getDefaultGroup = (rule: IDependencyRule): IConditionGroup => {
+  if (rule.conditionGroups.length > 0) {
+    return rule.conditionGroups[0];
+  }
+  return { id: generateId("grp"), logicOperator: LogicOperator.AND, conditions: [] };
+};
+
+/** Update conditions in the first group, creating the group if needed */
+const updateFirstGroupConditions = (
+  rule: IDependencyRule,
+  updater: (conditions: IDependencyCondition[]) => IDependencyCondition[],
+): IDependencyRule => {
+  const group = getDefaultGroup(rule);
+  const updatedGroup: IConditionGroup = {
+    ...group,
+    conditions: updater(group.conditions),
+  };
+  const groups = rule.conditionGroups.length > 0
+    ? [updatedGroup, ...rule.conditionGroups.slice(1)]
+    : [updatedGroup];
+  return { ...rule, conditionGroups: groups };
 };
 
 // ============================================================================
@@ -82,25 +111,25 @@ export const useRuleInspector = ({
     const firstItem = groups[0]?.items[0];
     const newCondition: IDependencyCondition = {
       id: generateId("cond"),
-      conditionType: DependencyConditionType.IS_SELECTED,
+      category: ConditionCategory.STATE_CHECK,
+      subject: ConditionSubject.ITEM_SELECTED,
+      operator: StateCheckOperator.IS_SELECTED,
       targetType: DependencyTargetType.ITEM,
       targetId: firstItem?.id ?? "",
     };
-    onRuleChange({
-      ...rule,
-      conditions: [...rule.conditions, newCondition],
-    });
+    onRuleChange(updateFirstGroupConditions(rule, (conds) => [...conds, newCondition]));
   }, [rule, groups, onRuleChange]);
 
   const handleUpdateCondition = useCallback(
     (conditionId: string, updates: Partial<IDependencyCondition>) => {
       if (!rule) return;
-      onRuleChange({
-        ...rule,
-        conditions: rule.conditions.map((c) =>
-          c.id === conditionId ? { ...c, ...updates } : c
-        ),
-      });
+      onRuleChange(
+        updateFirstGroupConditions(rule, (conds) =>
+          conds.map((c) =>
+            c.id === conditionId ? ({ ...c, ...updates } as IDependencyCondition) : c
+          )
+        )
+      );
     },
     [rule, onRuleChange]
   );
@@ -108,10 +137,11 @@ export const useRuleInspector = ({
   const handleDeleteCondition = useCallback(
     (conditionId: string) => {
       if (!rule) return;
-      onRuleChange({
-        ...rule,
-        conditions: rule.conditions.filter((c) => c.id !== conditionId),
-      });
+      onRuleChange(
+        updateFirstGroupConditions(rule, (conds) =>
+          conds.filter((c) => c.id !== conditionId)
+        )
+      );
     },
     [rule, onRuleChange]
   );

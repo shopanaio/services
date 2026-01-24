@@ -1,7 +1,6 @@
 import {
   DependencyTargetType,
   DependencyActionType,
-  DependencyConditionType,
   ConditionSubject,
   ComparisonOperator,
   StateCheckOperator,
@@ -15,11 +14,9 @@ import {
   COMPARISON_OPERATOR_LABELS,
   STATE_CHECK_LABELS,
   LOGIC_OPERATOR_LABELS,
-  CONDITION_TYPE_LABELS,
 } from "./constants";
 import { SUBJECTS_BY_TARGET, OPERATORS_BY_SUBJECT } from "./operators";
 import { ACTIONS_BY_TARGET, ACTION_META } from "./actions";
-import { CONDITION_TYPES_BY_TARGET } from "./conditions";
 import { PRICE_RULE_OPTIONS } from "../types";
 
 // ============================================================================
@@ -49,16 +46,17 @@ export const getTargetOptions = (
 };
 
 // ============================================================================
-// Condition Target Type Options (Item & Group only)
+// Condition Target Type Options
 // ============================================================================
 
 export const CONDITION_TARGET_TYPE_OPTIONS: SelectOption<DependencyTargetType>[] = [
   { value: DependencyTargetType.ITEM, label: TARGET_TYPE_LABELS[DependencyTargetType.ITEM] },
   { value: DependencyTargetType.GROUP, label: TARGET_TYPE_LABELS[DependencyTargetType.GROUP] },
+  { value: DependencyTargetType.BUNDLE, label: TARGET_TYPE_LABELS[DependencyTargetType.BUNDLE] },
 ];
 
 // ============================================================================
-// Action Target Type Options (all three)
+// Action Target Type Options
 // ============================================================================
 
 export const ACTION_TARGET_TYPE_OPTIONS: SelectOption<DependencyTargetType>[] = [
@@ -104,17 +102,6 @@ export const getActionTypeOptions = (
 ): SelectOption<DependencyActionType>[] => {
   const actions = ACTIONS_BY_TARGET[targetType];
   return actions.map((a) => ({ value: a, label: ACTION_META[a].label }));
-};
-
-// ============================================================================
-// Legacy Condition Type Options (by target type)
-// ============================================================================
-
-export const getConditionTypeOptions = (
-  targetType: DependencyTargetType,
-): SelectOption<DependencyConditionType>[] => {
-  const validTypes = CONDITION_TYPES_BY_TARGET[targetType];
-  return validTypes.map((type) => ({ value: type, label: CONDITION_TYPE_LABELS[type] }));
 };
 
 // ============================================================================

@@ -241,14 +241,11 @@ export const STOCK_STATUS_LABELS: Record<StockStatus, string> = {
 // ============================================================================
 
 export {
-  DependencyConditionType,
   DependencyActionType,
   DependencyTargetType,
-  CONDITION_TYPE_LABELS,
   ACTION_TYPE_LABELS,
   TARGET_TYPE_LABELS,
-  CONDITION_TYPES_BY_TARGET,
-  ACTIONS_BY_TARGET as ACTION_TYPES_BY_TARGET,
+  ACTIONS_BY_TARGET,
 } from "./dependency-rules";
 
 export type {
