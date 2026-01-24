@@ -12,6 +12,7 @@ import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type { IBundleGroup } from "@/domains/promos/bundles/types";
 import type { IDependencyRule } from "@/domains/promos/bundles/dependency-rules";
 import {
+  DependencyTargetType,
   resolveTargetName,
   formatCondition,
   formatAction,
@@ -125,7 +126,7 @@ const useStyles = createStyles(({ token }) => ({
 
 interface IFlowBlockItem {
   key: string;
-  targetType: string;
+  targetType: DependencyTargetType;
   name: string | null;
   description: string;
 }
@@ -144,7 +145,6 @@ const FlowBlock = ({
     {items.map((item) => (
       <div key={item.key} className={styles.flowRow}>
         <Tag
-          variant="outlined"
           className={styles.targetTag}
           color={TARGET_TYPE_COLORS[item.targetType]}
         >

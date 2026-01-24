@@ -41,7 +41,7 @@ export const GroupsSection = ({
       />
       <div className={styles.lanes}>
         {groups.map((group) => (
-          <GroupLane key={group.id} group={group} />
+          <GroupLane key={group.id} group={group} onClick={onEdit} />
         ))}
       </div>
     </Paper>

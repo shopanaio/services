@@ -13,6 +13,11 @@ export const useStyles = createStyles(({ token }) => ({
     border: `1px solid ${token.colorBorderSecondary}`,
     background: token.colorBgContainer,
     overflow: "hidden",
+    cursor: "pointer",
+    transition: "border-color 0.2s",
+    "&:hover": {
+      borderColor: token.colorBorder,
+    },
   },
   laneHeader: {
     display: "flex",
@@ -60,10 +65,6 @@ export const useStyles = createStyles(({ token }) => ({
     alignItems: "center",
     gap: 8,
     padding: "4px 4px",
-    borderRadius: 4,
-    "&:hover": {
-      background: token.colorFillQuaternary,
-    },
   },
   itemInfo: {
     flex: 1,

@@ -14,13 +14,14 @@ import { BundleItemRow } from "./bundle-item-row";
 
 interface IGroupLaneProps {
   group: IBundleGroup;
+  onClick?: () => void;
 }
 
-export const GroupLane = ({ group }: IGroupLaneProps) => {
+export const GroupLane = ({ group, onClick }: IGroupLaneProps) => {
   const { styles } = useStyles();
 
   return (
-    <div className={styles.lane}>
+    <div className={styles.lane} onClick={onClick}>
       <div className={styles.laneHeader}>
         <div className={styles.laneInfo}>
           <Typography.Text className={styles.laneTitle}>
