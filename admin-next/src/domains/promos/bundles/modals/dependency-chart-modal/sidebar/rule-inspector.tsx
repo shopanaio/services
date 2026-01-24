@@ -239,6 +239,7 @@ const NavigableDropdown = ({
               {activeLevel.children.map((child) => (
                 <Tag
                   key={child.key}
+                  variant="outlined"
                   className={s.navDropdownTag}
                   onClick={() => {
                     child.onClick();
