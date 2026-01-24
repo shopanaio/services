@@ -7,8 +7,8 @@ import {
   ConditionSubject,
   ComparisonOperator,
 } from "./enums";
-import { ACTION_TYPE_LABELS, CONDITION_SUBJECT_LABELS, SUBJECT_SHORT, OPERATOR_PHRASE } from "./constants";
-import { COMPARISON_OPERATOR_META, STATE_CHECK_OPERATOR_META } from "./operators";
+import { ACTION_PHRASE, SUBJECT_SHORT, OPERATOR_PHRASE } from "./constants";
+import { STATE_CHECK_OPERATOR_META } from "./operators";
 import { PRICE_RULE_OPTIONS } from "../types";
 
 // ============================================================================
@@ -43,21 +43,20 @@ export const resolveTargetName = (
 // ============================================================================
 
 export const formatCondition = (cond: IDependencyCondition): string => {
-  const subjectLabel = CONDITION_SUBJECT_LABELS[cond.subject];
-
   if (cond.category === ConditionCategory.STATE_CHECK) {
-    const meta = STATE_CHECK_OPERATOR_META[cond.operator];
-    return `${subjectLabel} ${meta.label}`;
+    return STATE_CHECK_OPERATOR_META[cond.operator]?.label ?? cond.operator;
   }
 
-  const meta = COMPARISON_OPERATOR_META[cond.operator];
+  const subjectShort = SUBJECT_SHORT[cond.subject] ?? cond.subject;
+  const phrase = OPERATOR_PHRASE[cond.operator as ComparisonOperator] ?? cond.operator;
+
   if (cond.operator === ComparisonOperator.BETWEEN && cond.valueTo != null) {
-    return `${subjectLabel} ${meta.label} ${cond.value} and ${cond.valueTo}`;
+    return `${subjectShort} ${phrase} ${cond.value} and ${cond.valueTo}`;
   }
   if (cond.operator === ComparisonOperator.IN_LIST && cond.valueList?.length) {
-    return `${subjectLabel} ${meta.label} [${cond.valueList.join(", ")}]`;
+    return `${subjectShort} ${phrase} [${cond.valueList.join(", ")}]`;
   }
-  return `${subjectLabel} ${meta.symbol} ${cond.value}`;
+  return `${subjectShort} ${phrase} ${cond.value}`;
 };
 
 // ============================================================================
@@ -65,21 +64,21 @@ export const formatCondition = (cond: IDependencyCondition): string => {
 // ============================================================================
 
 export const formatAction = (action: IDependencyAction): string => {
-  const label = ACTION_TYPE_LABELS[action.actionType] ?? action.actionType;
+  const phrase = ACTION_PHRASE[action.actionType] ?? action.actionType;
 
   if (action.actionType === DependencyActionType.SET_QTY && action.qtyValue != null) {
-    return `${label}: ${action.qtyValue}`;
+    return `${phrase} ${action.qtyValue}`;
   }
 
   if (action.actionType === DependencyActionType.SET_QTY_LIMITS) {
     const parts: string[] = [];
     if (action.minQtyValue != null) parts.push(`min: ${action.minQtyValue}`);
     if (action.maxQtyValue != null) parts.push(`max: ${action.maxQtyValue}`);
-    return `${label}: ${parts.join(", ") || "reset"}`;
+    return `${phrase} ${parts.join(", ") || "reset"}`;
   }
 
   if (action.actionType === DependencyActionType.SET_REQUIRED) {
-    return `${label}: ${action.requiredValue ? "yes" : "no"}`;
+    return `${phrase}: ${action.requiredValue ? "yes" : "no"}`;
   }
 
   if (
@@ -93,10 +92,10 @@ export const formatAction = (action: IDependencyAction): string => {
       action.priceValue !== null && action.priceValue !== undefined
         ? `${action.priceValue}${priceOption?.valueSuffix ?? ""}`
         : "";
-    return `${label}: ${priceName} ${value}`.trim();
+    return `${phrase}: ${priceName} ${value}`.trim();
   }
 
-  return label;
+  return phrase;
 };
 
 // ============================================================================

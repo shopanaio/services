@@ -1,17 +1,37 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Typography, Empty, Tag, Dropdown, Button } from "antd";
-import { PartitionOutlined, PlusOutlined, MoreOutlined } from "@ant-design/icons";
+import {
+  PartitionOutlined,
+  PlusOutlined,
+  MoreOutlined,
+  TagOutlined,
+  FolderOutlined,
+  GiftOutlined,
+} from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type { IBundleGroup } from "@/domains/promos/bundles/types";
 import type { IDependencyRule } from "@/domains/promos/bundles/dependency-rules";
 import {
-  TARGET_TYPE_LABELS,
+  DependencyTargetType,
   resolveTargetName,
   formatCondition,
   formatAction,
 } from "@/domains/promos/bundles/dependency-rules";
+
+const TARGET_TYPE_ICONS: Record<DependencyTargetType, ReactNode> = {
+  [DependencyTargetType.ITEM]: <TagOutlined />,
+  [DependencyTargetType.GROUP]: <FolderOutlined />,
+  [DependencyTargetType.BUNDLE]: <GiftOutlined />,
+};
+
+const TARGET_TYPE_COLORS: Record<DependencyTargetType, string> = {
+  [DependencyTargetType.ITEM]: "blue",
+  [DependencyTargetType.GROUP]: "purple",
+  [DependencyTargetType.BUNDLE]: "gold",
+};
 
 // ============================================================================
 // Styles
@@ -58,9 +78,8 @@ const useStyles = createStyles(({ token }) => ({
   },
   flowBlock: {
     flex: 1,
-    padding: "8px 10px",
-    borderRadius: 6,
-    background: token.colorFillQuaternary,
+    borderLeft: `2px solid ${token.colorPrimary}`,
+    paddingLeft: 8,
   },
   flowLabel: {
     fontSize: 10,
@@ -216,8 +235,8 @@ export const DependencyRulesSection = ({
                         const name = resolveTargetName(cond.targetType, cond.targetId, groups);
                         return (
                           <div key={cond.id} className={styles.conditionRow}>
-                            <Tag className={styles.targetTag} color="default">
-                              {TARGET_TYPE_LABELS[cond.targetType]}
+                            <Tag className={styles.targetTag} color={TARGET_TYPE_COLORS[cond.targetType]}>
+                              {TARGET_TYPE_ICONS[cond.targetType]}
                             </Tag>
                             {name && (
                               <Typography.Text className={styles.targetName}>
@@ -238,8 +257,8 @@ export const DependencyRulesSection = ({
                         const name = resolveTargetName(action.targetType, action.targetId, groups);
                         return (
                           <div key={action.id} className={styles.actionRow}>
-                            <Tag className={styles.targetTag} color="default">
-                              {TARGET_TYPE_LABELS[action.targetType]}
+                            <Tag className={styles.targetTag} color={TARGET_TYPE_COLORS[action.targetType]}>
+                              {TARGET_TYPE_ICONS[action.targetType]}
                             </Tag>
                             {name && (
                               <Typography.Text className={styles.targetName}>
