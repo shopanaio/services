@@ -220,15 +220,11 @@ const getItemQtyLabel = (item: BundleItem): string | null => {
 };
 
 const getSelectionLabel = (group: IBundleGroup): string => {
-  if (!group.isMultiple) {
-    return "Select 1";
-  }
-  const min = group.minSelection;
+  if (!group.isMultiple) return "[1]";
+  const min = group.minSelection ?? 0;
   const max = group.maxSelection;
-  if (min && max) return `Select ${min}–${max}`;
-  if (min) return `Min ${min}`;
-  if (max) return `Up to ${max}`;
-  return "Any amount";
+  if (max) return `[${min}..${max}]`;
+  return `[${min}..∞]`;
 };
 
 // ============================================================================
@@ -279,9 +275,8 @@ export const GroupsSection = ({
                   {group.isRequired ? "Required" : "Optional"}
                 </Tag>
                 <Tag className={styles.laneTag} icon={group.isMultiple ? <CheckSquareOutlined /> : <CheckCircleOutlined />}>
-                  {group.isMultiple ? "Multiple" : "Single"}
+                  {group.isMultiple ? `Multiple ${getSelectionLabel(group)}` : "Single"}
                 </Tag>
-                <Tag className={styles.laneTag}>{getSelectionLabel(group)}</Tag>
               </div>
             </div>
             <div className={styles.laneBody}>
