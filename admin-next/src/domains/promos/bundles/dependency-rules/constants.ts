@@ -75,3 +75,40 @@ export const CONDITION_SUBJECT_LABELS: Record<ConditionSubject, string> = {
   [ConditionSubject.GROUP_CONTAINS]: "contains",
   [ConditionSubject.BUNDLE_SUBTOTAL]: "bundle subtotal",
 };
+
+// ============================================================================
+// Chip Display Phrases
+// ============================================================================
+
+/** Short subject names for chip display */
+export const SUBJECT_SHORT: Partial<Record<ConditionSubject, string>> = {
+  [ConditionSubject.ITEM_QTY]: "quantity",
+  [ConditionSubject.GROUP_UNIQUE_COUNT]: "unique count",
+  [ConditionSubject.GROUP_TOTAL_QTY]: "total quantity",
+  [ConditionSubject.GROUP_SUBTOTAL]: "subtotal",
+  [ConditionSubject.BUNDLE_SUBTOTAL]: "subtotal",
+};
+
+/** Grammatically correct verb phrases for comparison operators */
+export const OPERATOR_PHRASE: Record<ComparisonOperator, string> = {
+  [ComparisonOperator.GT]: "is greater than",
+  [ComparisonOperator.GTE]: "is at least",
+  [ComparisonOperator.EQ]: "equals",
+  [ComparisonOperator.LTE]: "is at most",
+  [ComparisonOperator.LT]: "is less than",
+  [ComparisonOperator.BETWEEN]: "is between",
+  [ComparisonOperator.IN_LIST]: "is in",
+};
+
+/** Grammatically correct phrases for action chip display */
+export const ACTION_PHRASE: Record<DependencyActionType, string> = {
+  [DependencyActionType.SHOW]: "is shown",
+  [DependencyActionType.HIDE]: "is hidden",
+  [DependencyActionType.ENABLE]: "is enabled",
+  [DependencyActionType.DISABLE]: "is disabled",
+  [DependencyActionType.SET_QTY]: "quantity is",
+  [DependencyActionType.SET_QTY_LIMITS]: "quantity limits",
+  [DependencyActionType.SET_REQUIRED]: "is required",
+  [DependencyActionType.OVERRIDE_PRICE]: "price override",
+  [DependencyActionType.ADJUST_PRICE]: "price adjust",
+};

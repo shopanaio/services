@@ -47,12 +47,14 @@ import {
   CONDITION_SUBJECT_META,
   CONDITION_SUBJECT_LABELS,
   COMPARISON_OPERATOR_META,
-  STATE_CHECK_OPERATOR_META,
   SUBJECTS_BY_TARGET,
   OPERATORS_BY_SUBJECT,
   ACTIONS_BY_CATEGORY,
   CATEGORIES_BY_TARGET,
   ACTION_CATEGORY_LABELS,
+  ACTION_PHRASE,
+  getOperatorLabel,
+  getConditionChipLabel,
 } from "@/domains/promos/bundles/dependency-rules";
 import type { IDependencyCondition } from "@/domains/promos/bundles/dependency-rules";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
@@ -91,58 +93,6 @@ const conditionNeedsSecondValue = (condition: IDependencyCondition): boolean => 
   return condition.operator === ComparisonOperator.BETWEEN;
 };
 
-/** Get display label for any operator (symbol for comparison, label for state) */
-const getOperatorLabel = (op: string): string => {
-  if (op in ComparisonOperator) {
-    return OPERATOR_PHRASE[op as ComparisonOperator] ?? op;
-  }
-  return STATE_CHECK_OPERATOR_META[op as keyof typeof STATE_CHECK_OPERATOR_META]?.label ?? op;
-};
-
-/** Short subject names for chip display */
-const SUBJECT_SHORT: Partial<Record<ConditionSubject, string>> = {
-  [ConditionSubject.ITEM_QTY]: "quantity",
-  [ConditionSubject.GROUP_UNIQUE_COUNT]: "unique count",
-  [ConditionSubject.GROUP_TOTAL_QTY]: "total quantity",
-  [ConditionSubject.GROUP_SUBTOTAL]: "subtotal",
-  [ConditionSubject.BUNDLE_SUBTOTAL]: "subtotal",
-};
-
-/** Grammatically correct verb phrases for comparison operators */
-const OPERATOR_PHRASE: Record<ComparisonOperator, string> = {
-  [ComparisonOperator.GT]: "is greater than",
-  [ComparisonOperator.GTE]: "is at least",
-  [ComparisonOperator.EQ]: "equals",
-  [ComparisonOperator.LTE]: "is at most",
-  [ComparisonOperator.LT]: "is less than",
-  [ComparisonOperator.BETWEEN]: "is between",
-  [ComparisonOperator.IN_LIST]: "is in",
-};
-
-/** Build a grammatically correct chip label for a condition */
-const getConditionChipLabel = (subject: ConditionSubject, operator: string): string => {
-  // State checks — the operator label is already a phrase
-  if (!(operator in ComparisonOperator)) {
-    return STATE_CHECK_OPERATOR_META[operator as keyof typeof STATE_CHECK_OPERATOR_META]?.label ?? operator;
-  }
-  // Numeric — short subject + verb phrase
-  const subjectShort = SUBJECT_SHORT[subject] ?? subject;
-  const phrase = OPERATOR_PHRASE[operator as ComparisonOperator] ?? operator;
-  return `${subjectShort} ${phrase}`;
-};
-
-/** Grammatically correct phrases for action chip display */
-const ACTION_PHRASE: Record<DependencyActionType, string> = {
-  [DependencyActionType.SHOW]: "is shown",
-  [DependencyActionType.HIDE]: "is hidden",
-  [DependencyActionType.ENABLE]: "is enabled",
-  [DependencyActionType.DISABLE]: "is disabled",
-  [DependencyActionType.SET_QTY]: "quantity is",
-  [DependencyActionType.SET_QTY_LIMITS]: "quantity limits",
-  [DependencyActionType.SET_REQUIRED]: "is required",
-  [DependencyActionType.OVERRIDE_PRICE]: "price override",
-  [DependencyActionType.ADJUST_PRICE]: "price adjust",
-};
 
 /** Icon maps for first-level menu items */
 const SUBJECT_ICONS: Record<string, ReactNode> = {
