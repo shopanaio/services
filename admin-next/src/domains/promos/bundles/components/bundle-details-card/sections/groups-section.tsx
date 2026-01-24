@@ -1,6 +1,6 @@
 "use client";
 
-import { Typography, Avatar, Tag } from "antd";
+import { Typography, Avatar, Tag, Badge } from "antd";
 import { PictureOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
@@ -78,12 +78,21 @@ const useStyles = createStyles(({ token }) => ({
       background: token.colorFillQuaternary,
     },
   },
-  itemName: {
+  itemInfo: {
     flex: 1,
+    minWidth: 0,
+  },
+  itemName: {
     fontSize: 12,
     whiteSpace: "nowrap" as const,
     overflow: "hidden",
     textOverflow: "ellipsis",
+    display: "block",
+  },
+  itemQty: {
+    fontSize: 10,
+    display: "block",
+    marginTop: -4,
   },
   avatarPlaceholder: {
     "&&": {
@@ -101,12 +110,6 @@ const useStyles = createStyles(({ token }) => ({
       borderRadius: 3,
       flexShrink: 0,
     },
-  },
-  laneFooter: {
-    padding: "6px 12px",
-    borderTop: `1px solid ${token.colorBorderSecondary}`,
-    fontSize: 11,
-    color: token.colorTextTertiary,
   },
 }));
 
@@ -151,7 +154,9 @@ const getItemName = (item: BundleItem): string => {
   return "Item";
 };
 
-const isTemplate = (rule: BundleItem["pricingRule"]): rule is PricingRuleTemplate => {
+const isTemplate = (
+  rule: BundleItem["pricingRule"],
+): rule is PricingRuleTemplate => {
   return "id" in rule && "name" in rule;
 };
 
@@ -249,7 +254,18 @@ export const GroupsSection = ({
           >
             <div className={styles.laneHeader}>
               <Typography.Text className={styles.laneTitle}>
-                {group.title}
+                {group.title}{" "}
+                <Badge
+                  count={group.items?.length || 0}
+                  size="small"
+                  color="blue"
+                  styles={{
+                    indicator: {
+                      outline: '1px solid blue',
+                      fontSize: 10,
+                    },
+                  }}
+                />
               </Typography.Text>
               <div className={styles.laneTags}>
                 <Tag className={styles.laneTag}>
@@ -258,9 +274,7 @@ export const GroupsSection = ({
                 <Tag className={styles.laneTag}>
                   {group.isMultiple ? "Multiple" : "Single"}
                 </Tag>
-                <Tag className={styles.laneTag}>
-                  {getSelectionLabel(group)}
-                </Tag>
+                <Tag className={styles.laneTag}>{getSelectionLabel(group)}</Tag>
               </div>
             </div>
             <div className={styles.laneBody}>
@@ -273,16 +287,25 @@ export const GroupsSection = ({
                 return (
                   <div key={item.id} className={styles.itemRow}>
                     <Avatar
-                      size={22}
+                      size={40}
                       shape="square"
                       src={imgUrl}
                       icon={!imgUrl ? <PictureOutlined /> : undefined}
                       className={!imgUrl ? styles.avatarPlaceholder : undefined}
                     />
-                    <span className={styles.itemName}>{getItemName(item)}</span>
-                    {qtyLabel && (
-                      <Tag className={styles.itemTag}>{qtyLabel}</Tag>
-                    )}
+                    <div className={styles.itemInfo}>
+                      <span className={styles.itemName}>
+                        {getItemName(item)}
+                      </span>
+                      {qtyLabel && (
+                        <Typography.Text
+                          type="secondary"
+                          className={styles.itemQty}
+                        >
+                          {qtyLabel}
+                        </Typography.Text>
+                      )}
+                    </div>
                     {priceLabel && (
                       <Tag
                         color={getPriceRuleColor(item.pricingRule!.priceType)}
@@ -294,9 +317,6 @@ export const GroupsSection = ({
                   </div>
                 );
               })}
-            </div>
-            <div className={styles.laneFooter}>
-              {group.items?.length || 0} items
             </div>
           </div>
         ))}

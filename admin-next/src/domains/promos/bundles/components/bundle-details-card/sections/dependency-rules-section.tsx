@@ -1,7 +1,7 @@
 "use client";
 
-import { Typography, Empty, Tag, Button, Space } from "antd";
-import { PartitionOutlined, PlusOutlined } from "@ant-design/icons";
+import { Typography, Empty, Tag, Dropdown, Button } from "antd";
+import { PartitionOutlined, PlusOutlined, MoreOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type {
@@ -211,23 +211,30 @@ export const DependencyRulesSection = ({
       <PaperHeader
         title="Pricing Rules"
         actions={
-          <Space>
-            <Button
-              icon={<PartitionOutlined />}
-              onClick={onOpenChart}
-              size="small"
-              disabled={dependencyRules.length === 0}
-            >
-              Open Chart
-            </Button>
-            <Button
-              icon={<PlusOutlined />}
-              onClick={onAddRule}
-              size="small"
-            >
-              Add Rule
-            </Button>
-          </Space>
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  key: "add",
+                  icon: <PlusOutlined />,
+                  label: "Add Rule",
+                },
+                {
+                  key: "chart",
+                  icon: <PartitionOutlined />,
+                  label: "Open Chart",
+                  disabled: dependencyRules.length === 0,
+                },
+              ],
+              onClick: ({ key }) => {
+                if (key === "add") onAddRule();
+                if (key === "chart") onOpenChart();
+              },
+            }}
+            trigger={["click"]}
+          >
+            <Button size="small" icon={<MoreOutlined />} />
+          </Dropdown>
         }
       />
       {dependencyRules.length === 0 ? (
