@@ -11,8 +11,8 @@ import {
   ThresholdType,
 } from "@/domains/inventory/products/components/product-details-card/inventory-widget.types";
 import { CurrencyCode, OptionDisplayType, type ApiVariant, type ApiPageInfo } from "@/graphql/types";
-import type { IBundleGroup, PricingRuleTemplate, IDependencyRule } from "@/domains/inventory/bundles/types";
-import { BundleItemType, BundlePriceType, DependencyConditionType, DependencyActionType, DependencyTargetType } from "@/domains/inventory/bundles/types";
+import type { IBundleGroup, PricingRuleTemplate, IDependencyRule } from "@/domains/promos/bundles/types";
+import { BundleItemType, BundlePriceType, DependencyConditionType, DependencyActionType, DependencyTargetType } from "@/domains/promos/bundles/types";
 
 const getMockInventoryWidget = (): ProductInventoryWidget => ({
   quantities: {

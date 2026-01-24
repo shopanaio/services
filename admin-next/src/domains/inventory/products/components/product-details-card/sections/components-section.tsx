@@ -5,8 +5,8 @@ import { PictureOutlined } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "../../edit-action";
 import { useBundleItemsStyles } from "../product-details-card.styles";
-import type { IBundleGroup, BundleItem } from "@/domains/inventory/bundles/types";
-import { BundleItemType } from "@/domains/inventory/bundles/types";
+import type { IBundleGroup, BundleItem } from "@/domains/promos/bundles/types";
+import { BundleItemType } from "@/domains/promos/bundles/types";
 
 interface IBundleItemsSectionProps {
   groups: IBundleGroup[];

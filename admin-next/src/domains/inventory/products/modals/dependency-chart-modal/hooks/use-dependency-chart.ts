@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { useReactFlow, useNodesState, useEdgesState } from "@xyflow/react";
 import type { Node, Edge } from "@xyflow/react";
 
-import type { IDependencyRule, IBundleGroup } from "@/domains/inventory/bundles/types";
+import type { IDependencyRule, IBundleGroup } from "@/domains/promos/bundles/types";
 import { useDerivedGraph } from "./use-derived-graph";
 import { useColumnLayout } from "./use-column-layout";
 

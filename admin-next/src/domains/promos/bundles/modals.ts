@@ -4,7 +4,7 @@ import type {
   IBundleGroup,
   PricingRuleTemplate,
   IBundleSettings,
-} from "@/domains/inventory/bundles/types";
+} from "@/domains/promos/bundles/types";
 
 export const BUNDLE_MODAL_TYPE = "bundle";
 export const BUNDLE_EDIT_GROUPS_MODAL_TYPE = "bundle-edit-groups";

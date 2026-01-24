@@ -11,7 +11,7 @@ import type {
   IBundleSettings,
   DisplayStyle,
   OutOfStockBehavior,
-} from "@/domains/inventory/bundles/types";
+} from "@/domains/promos/bundles/types";
 
 // ============================================================================
 // Payload

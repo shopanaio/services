@@ -5,7 +5,7 @@ import type {
   IDependencyCondition,
   IDependencyAction,
   IBundleGroup,
-} from "@/domains/inventory/bundles/types";
+} from "@/domains/promos/bundles/types";
 import {
   DependencyConditionType,
   DependencyActionType,
@@ -16,7 +16,7 @@ import {
   CONDITION_TYPES_BY_TARGET,
   ACTION_TYPES_BY_TARGET,
   PRICE_RULE_OPTIONS,
-} from "@/domains/inventory/bundles/types";
+} from "@/domains/promos/bundles/types";
 
 // ============================================================================
 // Helper Functions

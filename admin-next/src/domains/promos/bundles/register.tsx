@@ -3,18 +3,18 @@ import dynamic from "next/dynamic";
 
 registerModule({
   key: "bundles",
-  domain: "store",
+  domain: "promos",
   sidebar: {
     label: "Bundles",
     icon: null,
-    order: 2,
+    order: 1,
   },
   items: [
     {
       key: "bundles-list",
       path: "/:orgName/:storeName/bundles",
       component: dynamic(
-        () => import("@/domains/inventory/bundles/page/page"),
+        () => import("@/domains/promos/bundles/page/page"),
       ),
     },
   ],

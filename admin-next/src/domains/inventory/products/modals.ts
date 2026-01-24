@@ -303,10 +303,10 @@ export interface IEditTagsModalPayload extends IModalStackPayload {
 }
 
 export interface IDependencyChartModalPayload extends IModalStackPayload {
-  groups: import("@/domains/inventory/bundles/types").IBundleGroup[];
-  rules: import("@/domains/inventory/bundles/types").IDependencyRule[];
+  groups: import("@/domains/promos/bundles/types").IBundleGroup[];
+  rules: import("@/domains/promos/bundles/types").IDependencyRule[];
   selectedRuleId?: string;
-  onSave?: (rules: import("@/domains/inventory/bundles/types").IDependencyRule[]) => void;
+  onSave?: (rules: import("@/domains/promos/bundles/types").IDependencyRule[]) => void;
 }
 
 export interface IBulkEditorModalPayload extends IModalStackPayload {

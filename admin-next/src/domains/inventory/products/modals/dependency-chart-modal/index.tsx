@@ -17,7 +17,7 @@ import {
   ModalHeader,
 } from "@/layouts/modals";
 import type { IDependencyChartModalPayload } from "../../modals";
-import type { IDependencyRule, IBundleGroup } from "@/domains/inventory/bundles/types";
+import type { IDependencyRule, IBundleGroup } from "@/domains/promos/bundles/types";
 
 import { ItemNode, RuleNode, BundleNode } from "./nodes";
 import { LabeledEdge } from "./edges";

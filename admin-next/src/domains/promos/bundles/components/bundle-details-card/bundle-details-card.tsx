@@ -26,13 +26,13 @@ import {
 } from "@/domains/inventory/products/modals";
 import {
   useEditBundleGroupsModal,
-} from "@/domains/inventory/bundles/modals";
+} from "@/domains/promos/bundles/modals";
 import type { IProduct, IMediaFile } from "@/mocks/products/types";
 import type { IBundleDetailsMockData } from "@/mocks/products/bundle-details";
 import type {
   IBundleGroup,
   IDependencyRule,
-} from "@/domains/inventory/bundles/types";
+} from "@/domains/promos/bundles/types";
 
 // ============================================================================
 // Props

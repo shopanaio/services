@@ -286,7 +286,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'bundle',
       component: dynamic(() =>
-        import('@/domains/inventory/bundles/modals/bundle-modal').then(
+        import('@/domains/promos/bundles/modals/bundle-modal').then(
           (m) => m.BundleModal
         )
       ),
@@ -295,7 +295,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'bundle-edit-groups',
       component: dynamic(() =>
-        import('@/domains/inventory/bundles/modals/edit-groups-modal').then(
+        import('@/domains/promos/bundles/modals/edit-groups-modal').then(
           (m) => m.EditGroupsModal
         )
       ),
@@ -304,7 +304,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'bundle-edit-templates',
       component: dynamic(() =>
-        import('@/domains/inventory/bundles/modals/edit-templates-modal').then(
+        import('@/domains/promos/bundles/modals/edit-templates-modal').then(
           (m) => m.EditTemplatesModal
         )
       ),
@@ -313,7 +313,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'bundle-edit-settings',
       component: dynamic(() =>
-        import('@/domains/inventory/bundles/modals/edit-settings-modal').then(
+        import('@/domains/promos/bundles/modals/edit-settings-modal').then(
           (m) => m.EditSettingsModal
         )
       ),
