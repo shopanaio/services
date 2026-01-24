@@ -47,6 +47,10 @@ const useStyles = createStyles(({ token }) => ({
     fontSize: 13,
     fontWeight: 600,
   },
+  badgeIndicator: {
+    outline: `2px solid ${token.colorPrimary}`,
+    fontSize: 10,
+  },
   laneTags: {
     display: "flex",
     flexWrap: "wrap" as const,
@@ -256,15 +260,11 @@ export const GroupsSection = ({
               <Typography.Text className={styles.laneTitle}>
                 {group.title}{" "}
                 <Badge
+                  offset={[2, -2]}
                   count={group.items?.length || 0}
                   size="small"
                   color="blue"
-                  styles={{
-                    indicator: {
-                      outline: '1px solid blue',
-                      fontSize: 10,
-                    },
-                  }}
+                  classNames={{ indicator: styles.badgeIndicator }}
                 />
               </Typography.Text>
               <div className={styles.laneTags}>
