@@ -1,6 +1,6 @@
 "use client";
 
-import { Typography, Flex, Avatar } from "antd";
+import { Typography, Flex, Avatar, Tag } from "antd";
 import {
   PictureOutlined,
   CheckSquareOutlined,
@@ -12,8 +12,13 @@ import { EditAction } from "@/domains/inventory/products/components/edit-action"
 import type {
   IBundleGroup,
   BundleItem,
+  PricingRuleTemplate,
 } from "@/domains/promos/bundles/types";
-import { BundleItemType } from "@/domains/promos/bundles/types";
+import {
+  BundleItemType,
+  BundlePriceType,
+  PRICE_RULE_OPTIONS,
+} from "@/domains/promos/bundles/types";
 
 // ============================================================================
 // Styles
@@ -21,14 +26,11 @@ import { BundleItemType } from "@/domains/promos/bundles/types";
 
 const useStyles = createStyles(({ token }) => ({
   lanes: {
-    display: "flex",
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
     gap: 10,
-    overflowX: "auto",
   },
   lane: {
-    flex: 1,
-    minWidth: 180,
-    maxWidth: 260,
     display: "flex",
     flexDirection: "column" as const,
     borderRadius: 8,
@@ -88,6 +90,16 @@ const useStyles = createStyles(({ token }) => ({
       fontSize: 10,
     },
   },
+  priceTag: {
+    "&&": {
+      fontSize: 10,
+      lineHeight: "16px",
+      padding: "0 4px",
+      margin: 0,
+      borderRadius: 3,
+      flexShrink: 0,
+    },
+  },
   laneFooter: {
     padding: "6px 12px",
     borderTop: `1px solid ${token.colorBorderSecondary}`,
@@ -128,6 +140,46 @@ const getItemName = (item: BundleItem): string => {
     return item.assignedProduct.title ?? "Product";
   }
   return "Item";
+};
+
+const isTemplate = (rule: BundleItem["pricingRule"]): rule is PricingRuleTemplate => {
+  return "id" in rule && "name" in rule;
+};
+
+const getPriceRuleLabel = (rule: BundleItem["pricingRule"]): string | null => {
+  if (!rule) return null;
+  const { priceType, priceValue } = rule;
+  if (priceType === BundlePriceType.BASE) return null;
+
+  if (isTemplate(rule) && rule.name) return rule.name;
+
+  const option = PRICE_RULE_OPTIONS.find((o) => o.value === priceType);
+  if (!option) return null;
+
+  if (option.requiresValue && priceValue != null) {
+    return option.valueSuffix === "%"
+      ? `${option.label} ${priceValue}%`
+      : `${option.label} $${priceValue}`;
+  }
+  return option.label;
+};
+
+const getPriceRuleColor = (priceType: BundlePriceType): string => {
+  switch (priceType) {
+    case BundlePriceType.DISCOUNT_PERCENT:
+    case BundlePriceType.DISCOUNT_FIXED:
+    case BundlePriceType.FREE:
+      return "green";
+    case BundlePriceType.MARKUP_PERCENT:
+    case BundlePriceType.MARKUP_FIXED:
+      return "orange";
+    case BundlePriceType.FIXED:
+      return "blue";
+    case BundlePriceType.INCLUDED:
+      return "purple";
+    default:
+      return "default";
+  }
 };
 
 const getSelectionLabel = (group: IBundleGroup): string => {
@@ -188,6 +240,9 @@ export const GroupsSection = ({
             <div className={styles.laneBody}>
               {group.items?.map((item) => {
                 const imgUrl = getItemImageUrl(item);
+                const priceLabel = item.pricingRule
+                  ? getPriceRuleLabel(item.pricingRule)
+                  : null;
                 return (
                   <div key={item.id} className={styles.itemRow}>
                     <Avatar
@@ -198,6 +253,14 @@ export const GroupsSection = ({
                       className={!imgUrl ? styles.avatarPlaceholder : undefined}
                     />
                     <span className={styles.itemName}>{getItemName(item)}</span>
+                    {priceLabel && (
+                      <Tag
+                        color={getPriceRuleColor(item.pricingRule!.priceType)}
+                        className={styles.priceTag}
+                      >
+                        {priceLabel}
+                      </Tag>
+                    )}
                     {group.isMultiple ? (
                       <CheckSquareOutlined className={styles.itemIcon} />
                     ) : (
