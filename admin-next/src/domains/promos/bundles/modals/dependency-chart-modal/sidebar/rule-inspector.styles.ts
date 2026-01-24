@@ -5,6 +5,11 @@ export const useStyles = createStyles(({ token }) => ({
     width: 400,
     height: "100%",
   },
+  titleIcon: {
+    color: "orange",
+    fontSize: 16,
+    marginRight: -4,
+  },
   containerCollapsed: {
     width: 56,
   },

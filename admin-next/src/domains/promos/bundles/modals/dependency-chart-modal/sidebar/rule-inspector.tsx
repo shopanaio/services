@@ -27,9 +27,13 @@ import {
   ContainerOutlined,
   EyeOutlined,
   PoweroffOutlined,
+  ThunderboltOutlined,
 } from "@ant-design/icons";
 
-import type { IDependencyRule, IBundleGroup } from "@/domains/promos/bundles/types";
+import type {
+  IDependencyRule,
+  IBundleGroup,
+} from "@/domains/promos/bundles/types";
 import {
   DependencyActionType,
   DependencyTargetType,
@@ -56,13 +60,13 @@ import {
 } from "@/domains/promos/bundles/dependency-rules";
 import type { IDependencyCondition } from "@/domains/promos/bundles/dependency-rules";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import { NavigableDropdown, type IMenuLevel } from "@/ui-kit/navigable-dropdown";
+import {
+  NavigableDropdown,
+  type IMenuLevel,
+} from "@/ui-kit/navigable-dropdown";
 
 import { useStyles } from "./rule-inspector.styles";
-import {
-  useRuleInspector,
-  PRICE_TYPE_OPTIONS,
-} from "./use-rule-inspector";
+import { useRuleInspector, PRICE_TYPE_OPTIONS } from "./use-rule-inspector";
 
 // ============================================================================
 // Types
@@ -86,11 +90,12 @@ const conditionNeedsValue = (condition: IDependencyCondition): boolean => {
 };
 
 /** Check if a condition needs a second value input (BETWEEN) */
-const conditionNeedsSecondValue = (condition: IDependencyCondition): boolean => {
+const conditionNeedsSecondValue = (
+  condition: IDependencyCondition,
+): boolean => {
   if (condition.category !== ConditionCategory.NUMERIC) return false;
   return condition.operator === ComparisonOperator.BETWEEN;
 };
-
 
 /** Icon maps for first-level menu items */
 const SUBJECT_ICONS: Record<string, ReactNode> = {
@@ -111,7 +116,6 @@ const CATEGORY_ICONS: Record<string, ReactNode> = {
   [ActionCategory.SELECTION]: <CheckSquareOutlined />,
   [ActionCategory.PRICE]: <DollarOutlined />,
 };
-
 
 /** Get display label for a target */
 const getTargetLabel = (
@@ -202,12 +206,15 @@ const buildActionLevels = (
   }));
 };
 
-
 // ============================================================================
 // Component
 // ============================================================================
 
-export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProps) => {
+export const RuleInspector = ({
+  rule,
+  groups,
+  onRuleChange,
+}: IRuleInspectorProps) => {
   const { styles, cx } = useStyles();
 
   const {
@@ -255,7 +262,8 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
     return (
       <Paper className={styles.container}>
         <PaperHeader
-          title={<>{CHART_NODE_ICONS.rule} Rule Inspector</>}
+          icon={CHART_NODE_ICONS.rule}
+          title="Rule Inspector"
           actions={
             <Button
               type="text"
@@ -278,7 +286,8 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
   return (
     <Paper className={styles.container}>
       <PaperHeader
-        title={<>{CHART_NODE_ICONS.rule} Rule Inspector</>}
+        icon={<ThunderboltOutlined className={styles.titleIcon} />}
+        title="Rule Inspector"
         actions={
           <Button
             type="text"
@@ -293,7 +302,9 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
         {/* Basic Info */}
         <div className={styles.section}>
           <div className={styles.field}>
-            <Typography.Text className={styles.fieldLabel}>Name</Typography.Text>
+            <Typography.Text className={styles.fieldLabel}>
+              Name
+            </Typography.Text>
             <Input
               value={rule.name}
               onChange={(e) => handleNameChange(e.target.value)}
@@ -302,7 +313,9 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
           </div>
           <div style={{ display: "flex", gap: 12, alignItems: "flex-end" }}>
             <div className={styles.field} style={{ flex: 1, marginBottom: 0 }}>
-              <Typography.Text className={styles.fieldLabel}>Priority</Typography.Text>
+              <Typography.Text className={styles.fieldLabel}>
+                Priority
+              </Typography.Text>
               <InputNumber
                 value={rule.priority}
                 onChange={handlePriorityChange}
@@ -350,20 +363,29 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                 {/* Row 1: Target chip (navigable dropdown) */}
                 <div className={styles.conditionRow}>
                   <NavigableDropdown
-                    levels={buildTargetLevels(groups, (targetType, targetId) => {
-                      const subjects = SUBJECTS_BY_TARGET[targetType];
-                      const firstSubject = subjects[0];
-                      const operators = firstSubject ? OPERATORS_BY_SUBJECT[firstSubject] : [];
-                      const firstOperator = operators[0];
-                      const subjectMeta = firstSubject ? CONDITION_SUBJECT_META[firstSubject] : null;
-                      handleUpdateCondition(condition.id, {
-                        targetType,
-                        targetId,
-                        subject: firstSubject,
-                        operator: firstOperator,
-                        category: subjectMeta?.category ?? ConditionCategory.STATE_CHECK,
-                      } as Partial<IDependencyCondition>);
-                    })}
+                    levels={buildTargetLevels(
+                      groups,
+                      (targetType, targetId) => {
+                        const subjects = SUBJECTS_BY_TARGET[targetType];
+                        const firstSubject = subjects[0];
+                        const operators = firstSubject
+                          ? OPERATORS_BY_SUBJECT[firstSubject]
+                          : [];
+                        const firstOperator = operators[0];
+                        const subjectMeta = firstSubject
+                          ? CONDITION_SUBJECT_META[firstSubject]
+                          : null;
+                        handleUpdateCondition(condition.id, {
+                          targetType,
+                          targetId,
+                          subject: firstSubject,
+                          operator: firstOperator,
+                          category:
+                            subjectMeta?.category ??
+                            ConditionCategory.STATE_CHECK,
+                        } as Partial<IDependencyCondition>);
+                      },
+                    )}
                   >
                     <Button className={styles.operatorChip}>
                       <Tag
@@ -373,7 +395,11 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                         {CHART_NODE_ICONS[condition.targetType]}
                       </Tag>
                       <span className={styles.chipSubject}>
-                        {getTargetLabel(condition.targetType, condition.targetId, groups)}
+                        {getTargetLabel(
+                          condition.targetType,
+                          condition.targetId,
+                          groups,
+                        )}
                       </span>
                     </Button>
                   </NavigableDropdown>
@@ -401,14 +427,23 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                     )}
                   >
                     <Button className={styles.operatorChip}>
-                      {getConditionChipLabel(condition.subject, condition.operator)}
+                      {getConditionChipLabel(
+                        condition.subject,
+                        condition.operator,
+                      )}
                     </Button>
                   </NavigableDropdown>
                   {conditionNeedsValue(condition) && (
                     <InputNumber
-                      value={condition.category === ConditionCategory.NUMERIC ? condition.value : undefined}
+                      value={
+                        condition.category === ConditionCategory.NUMERIC
+                          ? condition.value
+                          : undefined
+                      }
                       onChange={(value) =>
-                        handleUpdateCondition(condition.id, { value: value ?? 0 })
+                        handleUpdateCondition(condition.id, {
+                          value: value ?? 0,
+                        })
                       }
                       min={0}
                       style={{ width: 72 }}
@@ -416,9 +451,15 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                   )}
                   {conditionNeedsSecondValue(condition) && (
                     <InputNumber
-                      value={condition.category === ConditionCategory.NUMERIC ? condition.valueTo : undefined}
+                      value={
+                        condition.category === ConditionCategory.NUMERIC
+                          ? condition.valueTo
+                          : undefined
+                      }
                       onChange={(value) =>
-                        handleUpdateCondition(condition.id, { valueTo: value ?? 0 })
+                        handleUpdateCondition(condition.id, {
+                          valueTo: value ?? 0,
+                        })
                       }
                       min={0}
                       style={{ width: 72 }}
@@ -457,17 +498,24 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                 {/* Row 1: Target chip (navigable dropdown) */}
                 <div className={styles.conditionRow}>
                   <NavigableDropdown
-                    levels={buildTargetLevels(groups, (targetType, targetId) => {
-                      const categories = CATEGORIES_BY_TARGET[targetType];
-                      const firstCategory = categories[0];
-                      const actionsInCategory = ACTIONS_BY_CATEGORY[firstCategory];
-                      const newActionType = actionsInCategory[0];
-                      handleUpdateAction(action.id, {
-                        targetType,
-                        actionType: newActionType,
-                        targetId: targetType === DependencyTargetType.BUNDLE ? undefined : targetId,
-                      });
-                    })}
+                    levels={buildTargetLevels(
+                      groups,
+                      (targetType, targetId) => {
+                        const categories = CATEGORIES_BY_TARGET[targetType];
+                        const firstCategory = categories[0];
+                        const actionsInCategory =
+                          ACTIONS_BY_CATEGORY[firstCategory];
+                        const newActionType = actionsInCategory[0];
+                        handleUpdateAction(action.id, {
+                          targetType,
+                          actionType: newActionType,
+                          targetId:
+                            targetType === DependencyTargetType.BUNDLE
+                              ? undefined
+                              : targetId,
+                        });
+                      },
+                    )}
                   >
                     <Button className={styles.operatorChip}>
                       <Tag
@@ -477,7 +525,11 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                         {CHART_NODE_ICONS[action.targetType]}
                       </Tag>
                       <span className={styles.chipSubject}>
-                        {getTargetLabel(action.targetType, action.targetId, groups)}
+                        {getTargetLabel(
+                          action.targetType,
+                          action.targetId,
+                          groups,
+                        )}
                       </span>
                     </Button>
                   </NavigableDropdown>
@@ -492,9 +544,8 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                 {/* Row 2: Action chip (navigable dropdown) */}
                 <div className={styles.conditionRow}>
                   <NavigableDropdown
-                    levels={buildActionLevels(
-                      action.targetType,
-                      (actionType) => handleUpdateAction(action.id, { actionType }),
+                    levels={buildActionLevels(action.targetType, (actionType) =>
+                      handleUpdateAction(action.id, { actionType }),
                     )}
                   >
                     <Button className={styles.operatorChip}>
@@ -518,8 +569,9 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                       placeholder="Price type"
                     />
                     {action.priceType &&
-                      PRICE_RULE_OPTIONS.find((o) => o.value === action.priceType)
-                        ?.requiresValue && (
+                      PRICE_RULE_OPTIONS.find(
+                        (o) => o.value === action.priceType,
+                      )?.requiresValue && (
                         <InputNumber
                           value={action.priceValue ?? undefined}
                           onChange={(value) =>
@@ -529,8 +581,9 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                           size="small"
                           style={{ width: 80 }}
                           addonAfter={
-                            PRICE_RULE_OPTIONS.find((o) => o.value === action.priceType)
-                              ?.valueSuffix
+                            PRICE_RULE_OPTIONS.find(
+                              (o) => o.value === action.priceType,
+                            )?.valueSuffix
                           }
                         />
                       )}
@@ -590,7 +643,9 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                     <Switch
                       checked={action.requiredValue ?? false}
                       onChange={(checked) =>
-                        handleUpdateAction(action.id, { requiredValue: checked })
+                        handleUpdateAction(action.id, {
+                          requiredValue: checked,
+                        })
                       }
                       size="small"
                     />

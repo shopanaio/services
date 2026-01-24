@@ -27,9 +27,12 @@ interface IPaperHeaderProps {
   bordered?: boolean;
   /** Custom class name */
   className?: string;
+  /**Icon */
+  icon: ReactNode;
 }
 
 export const PaperHeader = ({
+  icon,
   title,
   extra,
   actions,
@@ -42,9 +45,12 @@ export const PaperHeader = ({
     if (!title) return null;
     if (typeof title === "string") {
       return (
-        <Typography.Text strong className={styles.title}>
-          {title}
-        </Typography.Text>
+        <>
+          {icon}
+          <Typography.Text strong className={styles.title}>
+            {title}
+          </Typography.Text>
+        </>
       );
     }
     return title;
