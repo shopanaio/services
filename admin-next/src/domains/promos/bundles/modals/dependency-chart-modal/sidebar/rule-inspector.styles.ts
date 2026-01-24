@@ -122,38 +122,4 @@ export const useStyles = createStyles(({ token }) => ({
     color: token.colorText,
     fontFamily: "monospace",
   },
-  navDropdownPanel: {
-    background: token.colorBgElevated,
-    borderRadius: token.borderRadiusLG,
-    boxShadow: token.boxShadowSecondary,
-    padding: 4,
-    minWidth: 140,
-  },
-  navDropdownBack: {
-    display: "flex",
-    alignItems: "center",
-    gap: 6,
-    padding: "5px 12px",
-    fontSize: 13,
-    fontWeight: 500,
-    cursor: "pointer",
-    borderRadius: token.borderRadiusSM,
-    color: token.colorText,
-    "&:hover": {
-      background: token.colorBgTextHover,
-    },
-  },
-  navDropdownGrid: {
-    display: "flex",
-    flexWrap: "wrap" as const,
-    gap: 6,
-    padding: "8px 8px 4px",
-  },
-  navDropdownTag: {
-    "&&": {
-      margin: 0,
-      cursor: "pointer",
-      userSelect: "none" as const,
-    },
-  },
 }));
