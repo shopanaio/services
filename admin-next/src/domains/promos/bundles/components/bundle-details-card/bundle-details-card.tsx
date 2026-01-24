@@ -186,7 +186,7 @@ export const BundleDetailsCard = ({
       />
 
       {/* BUNDLE ITEMS */}
-      <GroupsSection groups={groups} onEdit={handleEditGroups} />
+      <GroupsSection groups={groups} bundleType={mockData.bundleType} onEdit={handleEditGroups} />
 
       {/* DEPENDENCY RULES */}
       <DependencyRulesSection

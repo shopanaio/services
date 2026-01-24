@@ -80,6 +80,12 @@ export interface BundleItem {
   /** Assigned variant (VARIANT only). Variant has product field for product reference. */
   assignedVariant?: ApiVariant;
 
+  /** Minimum quantity for this item (null = 1) */
+  minQty: number | null;
+
+  /** Maximum quantity for this item (null = no limit) */
+  maxQty: number | null;
+
   /** Pricing rule for this variant (overrides product pricing) */
   pricingRule:
     | PricingRuleTemplate

@@ -1,11 +1,7 @@
 "use client";
 
-import { Typography, Flex, Avatar, Tag } from "antd";
-import {
-  PictureOutlined,
-  CheckSquareOutlined,
-  CheckCircleOutlined,
-} from "@ant-design/icons";
+import { Typography, Avatar, Tag } from "antd";
+import { PictureOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "@/domains/inventory/products/components/edit-action";
@@ -19,6 +15,7 @@ import {
   BundlePriceType,
   PRICE_RULE_OPTIONS,
 } from "@/domains/promos/bundles/types";
+import type { BundleType } from "@/mocks/products/bundles-list";
 
 // ============================================================================
 // Styles
@@ -50,10 +47,20 @@ const useStyles = createStyles(({ token }) => ({
     fontSize: 13,
     fontWeight: 600,
   },
-  laneMeta: {
-    fontSize: 11,
-    color: token.colorTextTertiary,
-    marginTop: 2,
+  laneTags: {
+    display: "flex",
+    flexWrap: "wrap" as const,
+    gap: 4,
+    marginTop: 6,
+  },
+  laneTag: {
+    "&&": {
+      fontSize: 10,
+      lineHeight: "16px",
+      padding: "0 4px",
+      margin: 0,
+      borderRadius: 3,
+    },
   },
   laneBody: {
     flex: 1,
@@ -78,11 +85,6 @@ const useStyles = createStyles(({ token }) => ({
     overflow: "hidden",
     textOverflow: "ellipsis",
   },
-  itemIcon: {
-    fontSize: 12,
-    color: token.colorTextQuaternary,
-    flexShrink: 0,
-  },
   avatarPlaceholder: {
     "&&": {
       background: token.colorFillSecondary,
@@ -90,7 +92,7 @@ const useStyles = createStyles(({ token }) => ({
       fontSize: 10,
     },
   },
-  priceTag: {
+  itemTag: {
     "&&": {
       fontSize: 10,
       lineHeight: "16px",
@@ -114,8 +116,15 @@ const useStyles = createStyles(({ token }) => ({
 
 interface IGroupsSectionProps {
   groups: IBundleGroup[];
+  bundleType?: BundleType | null;
   onEdit: () => void;
 }
+
+const BUNDLE_TYPE_CONFIG: Record<string, { color: string; label: string }> = {
+  FIXED: { color: "blue", label: "Fixed Kit" },
+  MULTIPACK: { color: "cyan", label: "Multipack" },
+  MIX_AND_MATCH: { color: "purple", label: "Mix & Match" },
+};
 
 // ============================================================================
 // Helpers
@@ -182,6 +191,16 @@ const getPriceRuleColor = (priceType: BundlePriceType): string => {
   }
 };
 
+const getItemQtyLabel = (item: BundleItem): string | null => {
+  const min = item.minQty;
+  const max = item.maxQty;
+  if (!min && !max) return null;
+  if (min && max) return min === max ? `Qty: ${min}` : `Qty: ${min}–${max}`;
+  if (min) return `Min: ${min}`;
+  if (max) return `Max: ${max}`;
+  return null;
+};
+
 const getSelectionLabel = (group: IBundleGroup): string => {
   if (!group.isMultiple) {
     return "Select 1";
@@ -200,6 +219,7 @@ const getSelectionLabel = (group: IBundleGroup): string => {
 
 export const GroupsSection = ({
   groups,
+  bundleType,
   onEdit,
 }: IGroupsSectionProps) => {
   const { styles, cx } = useStyles();
@@ -211,7 +231,14 @@ export const GroupsSection = ({
   return (
     <Paper>
       <PaperHeader
-        title="Bundle Items"
+        title="Bundle"
+        extra={
+          bundleType && BUNDLE_TYPE_CONFIG[bundleType] ? (
+            <Tag color={BUNDLE_TYPE_CONFIG[bundleType].color}>
+              {BUNDLE_TYPE_CONFIG[bundleType].label}
+            </Tag>
+          ) : undefined
+        }
         actions={<EditAction onEdit={onEdit} label="Edit bundle items" />}
       />
       <div className={styles.lanes}>
@@ -221,20 +248,19 @@ export const GroupsSection = ({
             className={cx(styles.lane, group.isRequired && styles.laneRequired)}
           >
             <div className={styles.laneHeader}>
-              <Flex justify="space-between" align="center">
-                <Typography.Text className={styles.laneTitle}>
-                  {group.title}
-                </Typography.Text>
-              </Flex>
-              <div className={styles.laneMeta}>
-                {[
-                  group.isRequired ? "REQUIRED" : "OPTIONAL",
-                  group.isMultiple ? "MULTIPLE" : "SINGLE",
-                ]
-                  .join(" · ")}
-              </div>
-              <div className={styles.laneMeta}>
-                {getSelectionLabel(group)}
+              <Typography.Text className={styles.laneTitle}>
+                {group.title}
+              </Typography.Text>
+              <div className={styles.laneTags}>
+                <Tag className={styles.laneTag}>
+                  {group.isRequired ? "Required" : "Optional"}
+                </Tag>
+                <Tag className={styles.laneTag}>
+                  {group.isMultiple ? "Multiple" : "Single"}
+                </Tag>
+                <Tag className={styles.laneTag}>
+                  {getSelectionLabel(group)}
+                </Tag>
               </div>
             </div>
             <div className={styles.laneBody}>
@@ -243,6 +269,7 @@ export const GroupsSection = ({
                 const priceLabel = item.pricingRule
                   ? getPriceRuleLabel(item.pricingRule)
                   : null;
+                const qtyLabel = getItemQtyLabel(item);
                 return (
                   <div key={item.id} className={styles.itemRow}>
                     <Avatar
@@ -253,18 +280,16 @@ export const GroupsSection = ({
                       className={!imgUrl ? styles.avatarPlaceholder : undefined}
                     />
                     <span className={styles.itemName}>{getItemName(item)}</span>
+                    {qtyLabel && (
+                      <Tag className={styles.itemTag}>{qtyLabel}</Tag>
+                    )}
                     {priceLabel && (
                       <Tag
                         color={getPriceRuleColor(item.pricingRule!.priceType)}
-                        className={styles.priceTag}
+                        className={styles.itemTag}
                       >
                         {priceLabel}
                       </Tag>
-                    )}
-                    {group.isMultiple ? (
-                      <CheckSquareOutlined className={styles.itemIcon} />
-                    ) : (
-                      <CheckCircleOutlined className={styles.itemIcon} />
                     )}
                   </div>
                 );

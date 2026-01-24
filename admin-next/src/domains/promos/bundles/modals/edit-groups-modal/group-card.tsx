@@ -124,6 +124,8 @@ export const GroupCard = ({
         sortIndex: group.items.length + index,
         title: null,
         featuredImage: null,
+        minQty: null,
+        maxQty: null,
         pricingRule: {
           priceType: BundlePriceType.BASE,
           priceValue: null,

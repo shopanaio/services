@@ -150,6 +150,8 @@ const mockBundleGroups: IBundleGroup[] = [
           variantsCount: 6,
         },
         sortIndex: 0,
+        minQty: 1,
+        maxQty: 3,
         pricingRule: {
           priceType: BundlePriceType.MARKUP_PERCENT,
           priceValue: 10,
@@ -173,6 +175,8 @@ const mockBundleGroups: IBundleGroup[] = [
           variantsCount: 0,
         },
         sortIndex: 1,
+        minQty: null,
+        maxQty: 2,
         pricingRule: {
           priceType: BundlePriceType.DISCOUNT_PERCENT,
           priceValue: 10,
@@ -196,6 +200,8 @@ const mockBundleGroups: IBundleGroup[] = [
           variantsCount: 0,
         },
         sortIndex: 2,
+        minQty: null,
+        maxQty: null,
         pricingRule: {
           priceType: BundlePriceType.FREE,
           priceValue: null,
@@ -230,6 +236,8 @@ const mockBundleGroups: IBundleGroup[] = [
           variantsCount: 0,
         },
         sortIndex: 0,
+        minQty: null,
+        maxQty: 1,
         pricingRule: {
           priceType: BundlePriceType.INCLUDED,
           priceValue: null,
@@ -253,6 +261,8 @@ const mockBundleGroups: IBundleGroup[] = [
           variantsCount: 0,
         },
         sortIndex: 1,
+        minQty: null,
+        maxQty: 1,
         pricingRule: {
           priceType: BundlePriceType.FIXED,
           priceValue: 12990,

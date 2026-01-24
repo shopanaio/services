@@ -209,7 +209,7 @@ export const DependencyRulesSection = ({
   return (
     <Paper>
       <PaperHeader
-        title="Dependency Rules"
+        title="Pricing Rules"
         actions={
           <Space>
             <Button

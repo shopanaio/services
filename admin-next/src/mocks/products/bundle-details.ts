@@ -6,6 +6,7 @@ import type { IProduct } from "./types";
 import type { ITag } from "@/domains/inventory/products/modals";
 import type { IAttributeRow } from "@/domains/inventory/products/modals/edit-attributes-modal/types";
 import type { IBundleGroup, PricingRuleTemplate, IDependencyRule } from "@/domains/promos/bundles/types";
+import type { BundleType } from "@/mocks/products/bundles-list";
 import type { IReviewsData } from "@/domains/inventory/products/components/product-details-card";
 import { EntityStatus, WeightUnit, DimensionUnit, type ICategory, type ITag as IProductTag } from "./types";
 import { mockCategories } from "./categories";
@@ -158,6 +159,7 @@ export const mockBundleProduct: IProduct = {
 };
 
 export interface IBundleDetailsMockData {
+  bundleType: BundleType | null;
   categories: {
     primary: ICategory | null;
     list: ICategory[];
@@ -171,6 +173,7 @@ export interface IBundleDetailsMockData {
 }
 
 export const bundleDetailsMockData: IBundleDetailsMockData = {
+  bundleType: "MIX_AND_MATCH",
   categories: {
     primary: mockCategories[0],
     list: mockCategories.slice(1, 3),

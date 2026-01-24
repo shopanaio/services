@@ -217,6 +217,8 @@ export const EditGroupsModal = () => {
           itemType: BundleItemType.VARIANT,
           assignedVariant: variant,
           sortIndex: item.sortIndex + index + 1,
+          minQty: item.minQty,
+          maxQty: item.maxQty,
           pricingRule: item.pricingRule,
           title: item.title,
           featuredImage: item.featuredImage,
