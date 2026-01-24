@@ -11,15 +11,15 @@ Multipack / Pack Size (Same-SKU pack)
 Build-Your-Own (BYOB / Mix & Match)
 Пользователь выбирает товары из пула, чтобы собрать набор (Pick N / Spend X).
 
+Set Price (N for X)
+Фикс "N за X" (3 за 999) — вариант BYOB с фиксированной общей ценой.
+
 # Cart-level (промо-правило на корзину)
 
 Активируется автоматически на основе состояния корзины (что положили, сколько, на какую сумму).
 
 Quantity Breaks (Volume / Tiered pricing)
 Скидка/цена по ступеням количества: 1 / 2 / 3+.
-
-Set Price (N for X)
-Фикс "N за X" (3 за 999), независимо от цены отдельных позиций.
 
 Buy X Get Y (BXGY / BOGO)
 Купи X — получи Y (free / % off / fixed off).
