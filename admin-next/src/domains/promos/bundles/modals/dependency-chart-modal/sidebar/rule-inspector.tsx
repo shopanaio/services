@@ -10,7 +10,10 @@ import {
   Space,
   Divider,
   Empty,
+  Dropdown,
+  Tag,
 } from "antd";
+import type { MenuProps } from "antd";
 import {
   PlusOutlined,
   DeleteOutlined,
@@ -29,21 +32,23 @@ import {
   ComparisonOperator,
   ActionCategory,
   CONDITION_SUBJECT_META,
+  CONDITION_SUBJECT_LABELS,
   COMPARISON_OPERATOR_META,
+  STATE_CHECK_OPERATOR_META,
+  SUBJECTS_BY_TARGET,
+  OPERATORS_BY_SUBJECT,
   ACTIONS_BY_CATEGORY,
   CATEGORIES_BY_TARGET,
+  ACTION_CATEGORY_LABELS,
+  ACTION_META,
 } from "@/domains/promos/bundles/dependency-rules";
-import type { IDependencyCondition } from "@/domains/promos/bundles/dependency-rules";
+import type { IDependencyCondition, ConditionSubject } from "@/domains/promos/bundles/dependency-rules";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 
 import { useStyles } from "./rule-inspector.styles";
 import {
   useRuleInspector,
   getTargetOptions,
-  getSubjectOptions,
-  getOperatorOptions,
-  getActionCategoryOptions,
-  getActionTypeOptionsByCategory,
   CONDITION_TARGET_TYPE_OPTIONS,
   ACTION_TARGET_TYPE_OPTIONS,
   PRICE_TYPE_OPTIONS,
@@ -82,6 +87,48 @@ const getCategoryForAction = (actionType: DependencyActionType): ActionCategory 
     if ((actions as DependencyActionType[]).includes(actionType)) return cat as ActionCategory;
   }
   return ActionCategory.VISIBILITY;
+};
+
+/** Get display label for any operator */
+const getOperatorLabel = (op: string): string => {
+  if (op in ComparisonOperator) {
+    return COMPARISON_OPERATOR_META[op as ComparisonOperator]?.symbol ?? op;
+  }
+  return STATE_CHECK_OPERATOR_META[op as keyof typeof STATE_CHECK_OPERATOR_META]?.label ?? op;
+};
+
+/** Build 2-level menu items for condition subject→operator */
+const buildConditionMenu = (
+  targetType: DependencyTargetType,
+  onSelect: (subject: ConditionSubject, operator: string) => void,
+): MenuProps["items"] => {
+  const subjects = SUBJECTS_BY_TARGET[targetType];
+  return subjects.map((subject) => ({
+    key: subject,
+    label: CONDITION_SUBJECT_LABELS[subject],
+    children: OPERATORS_BY_SUBJECT[subject].map((op) => ({
+      key: `${subject}:${op}`,
+      label: getOperatorLabel(op),
+      onClick: () => onSelect(subject, op),
+    })),
+  }));
+};
+
+/** Build 2-level menu items for action category→type */
+const buildActionMenu = (
+  targetType: DependencyTargetType,
+  onSelect: (actionType: DependencyActionType) => void,
+): MenuProps["items"] => {
+  const categories = CATEGORIES_BY_TARGET[targetType];
+  return categories.map((cat) => ({
+    key: cat,
+    label: ACTION_CATEGORY_LABELS[cat],
+    children: ACTIONS_BY_CATEGORY[cat].map((actionType) => ({
+      key: `${cat}:${actionType}`,
+      label: ACTION_META[actionType].label,
+      onClick: () => onSelect(actionType),
+    })),
+  }));
 };
 
 // ============================================================================
@@ -233,10 +280,10 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                   <Select
                     value={condition.targetType}
                     onChange={(value) => {
-                      const subjects = getSubjectOptions(value as DependencyTargetType);
-                      const firstSubject = subjects[0]?.value;
-                      const operators = firstSubject ? getOperatorOptions(firstSubject) : [];
-                      const firstOperator = operators[0]?.value;
+                      const subjects = SUBJECTS_BY_TARGET[value as DependencyTargetType];
+                      const firstSubject = subjects[0];
+                      const operators = firstSubject ? OPERATORS_BY_SUBJECT[firstSubject] : [];
+                      const firstOperator = operators[0];
                       const subjectMeta = firstSubject ? CONDITION_SUBJECT_META[firstSubject] : null;
                       handleUpdateCondition(condition.id, {
                         targetType: value,
@@ -278,38 +325,37 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                   />
                 </div>
 
-                {/* Row 2: Subject + Operator */}
+                {/* Row 2: Operator chip (dropdown with sub-menu) + optional value */}
                 <div className={styles.conditionRow}>
-                  <Select
-                    value={condition.subject}
-                    onChange={(value) => {
-                      const operators = getOperatorOptions(value);
-                      const firstOperator = operators[0]?.value;
-                      const subjectMeta = CONDITION_SUBJECT_META[value];
-                      handleUpdateCondition(condition.id, {
-                        subject: value,
-                        operator: firstOperator,
-                        category: subjectMeta.category,
-                      } as Partial<IDependencyCondition>);
+                  <Dropdown
+                    menu={{
+                      items: buildConditionMenu(
+                        condition.targetType,
+                        (subject, operator) => {
+                          const subjectMeta = CONDITION_SUBJECT_META[subject];
+                          handleUpdateCondition(condition.id, {
+                            subject,
+                            operator,
+                            category: subjectMeta.category,
+                          } as Partial<IDependencyCondition>);
+                        },
+                      ),
                     }}
-                    options={getSubjectOptions(condition.targetType)}
-                    size="small"
-                    style={{ flex: 1 }}
-                  />
-                  <Select
-                    value={condition.operator}
-                    onChange={(value) =>
-                      handleUpdateCondition(condition.id, { operator: value } as Partial<IDependencyCondition>)
-                    }
-                    options={getOperatorOptions(condition.subject)}
-                    size="small"
-                    style={{ flex: 1 }}
-                  />
-                </div>
-
-                {/* Row 3: Value (for numeric conditions) */}
-                {conditionNeedsValue(condition) && (
-                  <div className={styles.conditionRow}>
+                    trigger={["click"]}
+                  >
+                    <div className={styles.operatorChip}>
+                      <span className={styles.chipSubject}>
+                        {CONDITION_SUBJECT_LABELS[condition.subject]}
+                      </span>
+                      <Tag
+                        className={styles.chipOperator}
+                        color={condition.category === ConditionCategory.NUMERIC ? "blue" : "green"}
+                      >
+                        {getOperatorLabel(condition.operator)}
+                      </Tag>
+                    </div>
+                  </Dropdown>
+                  {conditionNeedsValue(condition) && (
                     <InputNumber
                       value={condition.category === ConditionCategory.NUMERIC ? condition.value : undefined}
                       onChange={(value) =>
@@ -317,23 +363,22 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                       }
                       min={0}
                       size="small"
-                      style={{ flex: 1 }}
-                      placeholder="Value"
+                      style={{ width: 56 }}
                     />
-                    {conditionNeedsSecondValue(condition) && (
-                      <InputNumber
-                        value={condition.category === ConditionCategory.NUMERIC ? condition.valueTo : undefined}
-                        onChange={(value) =>
-                          handleUpdateCondition(condition.id, { valueTo: value ?? 0 })
-                        }
-                        min={0}
-                        size="small"
-                        style={{ flex: 1 }}
-                        placeholder="To"
-                      />
-                    )}
-                  </div>
-                )}
+                  )}
+                  {conditionNeedsSecondValue(condition) && (
+                    <InputNumber
+                      value={condition.category === ConditionCategory.NUMERIC ? condition.valueTo : undefined}
+                      onChange={(value) =>
+                        handleUpdateCondition(condition.id, { valueTo: value ?? 0 })
+                      }
+                      min={0}
+                      size="small"
+                      style={{ width: 56 }}
+                      placeholder="to"
+                    />
+                  )}
+                </div>
               </div>
             ))
           )}
@@ -409,27 +454,26 @@ export const RuleInspector = ({ rule, groups, onRuleChange }: IRuleInspectorProp
                   />
                 </div>
 
-                {/* Row 2: Action category + action type */}
+                {/* Row 2: Action chip (dropdown with sub-menu) */}
                 <div className={styles.conditionRow}>
-                  <Select
-                    value={getCategoryForAction(action.actionType)}
-                    onChange={(value) => {
-                      const actionsInCategory = ACTIONS_BY_CATEGORY[value as ActionCategory];
-                      handleUpdateAction(action.id, { actionType: actionsInCategory[0] });
+                  <Dropdown
+                    menu={{
+                      items: buildActionMenu(
+                        action.targetType,
+                        (actionType) => handleUpdateAction(action.id, { actionType }),
+                      ),
                     }}
-                    options={getActionCategoryOptions(action.targetType)}
-                    size="small"
-                    style={{ flex: 1 }}
-                  />
-                  <Select
-                    value={action.actionType}
-                    onChange={(value) =>
-                      handleUpdateAction(action.id, { actionType: value })
-                    }
-                    options={getActionTypeOptionsByCategory(getCategoryForAction(action.actionType))}
-                    size="small"
-                    style={{ flex: 1 }}
-                  />
+                    trigger={["click"]}
+                  >
+                    <div className={styles.operatorChip}>
+                      <span className={styles.chipSubject}>
+                        {ACTION_CATEGORY_LABELS[getCategoryForAction(action.actionType)]}
+                      </span>
+                      <Tag className={styles.chipOperator} color="orange">
+                        {ACTION_META[action.actionType].label}
+                      </Tag>
+                    </div>
+                  </Dropdown>
                 </div>
 
                 {/* Price-specific fields */}
