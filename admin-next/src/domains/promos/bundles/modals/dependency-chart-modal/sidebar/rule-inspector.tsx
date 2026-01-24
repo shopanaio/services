@@ -12,6 +12,7 @@ import {
   Divider,
   Empty,
   Tag,
+  Tooltip,
 } from "antd";
 import {
   PlusOutlined,
@@ -28,6 +29,7 @@ import {
   EyeOutlined,
   PoweroffOutlined,
   ThunderboltOutlined,
+  InfoCircleOutlined,
 } from "@ant-design/icons";
 
 import type {
@@ -343,7 +345,10 @@ export const RuleInspector = ({
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
             <Typography.Text className={styles.sectionTitle}>
-              WHEN (Conditions)
+              WHEN{" "}
+              <Tooltip title="Conditions that must be met for this rule to trigger. For example: an item is selected, or a group has a certain quantity.">
+                <InfoCircleOutlined style={{ fontSize: 12, opacity: 0.45 }} />
+              </Tooltip>
             </Typography.Text>
             <Button
               type="text"
@@ -404,7 +409,6 @@ export const RuleInspector = ({
                     </Button>
                   </NavigableDropdown>
                   <Button
-                    type="text"
                     icon={<DeleteOutlined />}
                     onClick={() => handleDeleteCondition(condition.id)}
                     className={styles.deleteButton}
@@ -478,7 +482,10 @@ export const RuleInspector = ({
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
             <Typography.Text className={styles.sectionTitle}>
-              THEN (Actions)
+              THEN{" "}
+              <Tooltip title="Actions that will be applied when all conditions above are met. For example: show or hide an item, set a price, or change quantity limits.">
+                <InfoCircleOutlined style={{ fontSize: 12, opacity: 0.45 }} />
+              </Tooltip>
             </Typography.Text>
             <Button
               type="text"
@@ -534,7 +541,6 @@ export const RuleInspector = ({
                     </Button>
                   </NavigableDropdown>
                   <Button
-                    type="text"
                     icon={<DeleteOutlined />}
                     onClick={() => handleDeleteAction(action.id)}
                     className={styles.deleteButton}

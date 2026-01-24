@@ -4,7 +4,7 @@ export const useStyles = createStyles(({ token, isDarkMode }) => ({
   container: {
     width: "100%",
     display: "flex",
-    height: "calc(100vh - 120px)",
+    height: "calc(100vh)",
     padding: token.padding,
     boxSizing: "border-box",
   },
