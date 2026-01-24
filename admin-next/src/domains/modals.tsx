@@ -229,7 +229,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'bundle-item-variant-settings',
       component: dynamic(() =>
-        import('@/domains/inventory/products/modals/variant-settings-modal').then(
+        import('@/domains/promos/bundles/modals/variant-settings-modal').then(
           (m) => m.VariantSettingsModal
         )
       ),
@@ -238,7 +238,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'dependency-chart',
       component: dynamic(() =>
-        import('@/domains/inventory/products/modals/dependency-chart-modal').then(
+        import('@/domains/promos/bundles/modals/dependency-chart-modal').then(
           (m) => m.DependencyChartModal
         )
       ),

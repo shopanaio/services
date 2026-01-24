@@ -20,7 +20,7 @@ import {
 } from "@/layouts/modals";
 import { useAgGridTheme } from "@/hooks";
 
-import type { IBundleItemVariantSettingsModalPayload } from "@/domains/inventory/products/modals";
+import type { IBundleItemVariantSettingsModalPayload } from "@/domains/promos/bundles/modals";
 
 // Format price helper
 const formatPrice = (price: number): string => {

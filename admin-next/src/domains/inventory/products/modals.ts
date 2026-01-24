@@ -27,8 +27,6 @@ export const PRODUCT_EDIT_VARIANT_SHIPPING_MODAL_TYPE = 'product-edit-variant-sh
 export const PRODUCT_EDIT_VARIANTS_MODAL_TYPE = 'product-edit-variants';
 export const PRODUCT_EDIT_CATEGORIES_MODAL_TYPE = 'product-edit-categories';
 export const PRODUCT_EDIT_TAGS_MODAL_TYPE = 'product-edit-tags';
-export const BUNDLE_ITEM_VARIANT_SETTINGS_MODAL_TYPE = 'bundle-item-variant-settings';
-export const DEPENDENCY_CHART_MODAL_TYPE = 'dependency-chart';
 export const BULK_EDITOR_MODAL_TYPE = 'bulk-editor';
 
 // ============================================================================
@@ -302,54 +300,11 @@ export interface IEditTagsModalPayload extends IModalStackPayload {
   onCreateTag?: (title: string) => Promise<ITag>;
 }
 
-export interface IDependencyChartModalPayload extends IModalStackPayload {
-  groups: import("@/domains/promos/bundles/types").IBundleGroup[];
-  rules: import("@/domains/promos/bundles/types").IDependencyRule[];
-  selectedRuleId?: string;
-  onSave?: (rules: import("@/domains/promos/bundles/types").IDependencyRule[]) => void;
-}
 
 export interface IBulkEditorModalPayload extends IModalStackPayload {
   productIds: string[];
 }
 
-export interface IBundleItemVariantSettingsModalPayload extends IModalStackPayload {
-  /** The bundle item being edited */
-  itemId: string;
-  productId: string;
-  productTitle: string;
-  /** Current available variant IDs (null = all) */
-  availableVariantIds: string[] | null;
-  /** Price rule from group */
-  priceType: "BASE" | "FIXED" | "MARKUP_PERCENT" | "DISCOUNT_PERCENT" | "MARKUP_FIXED" | "DISCOUNT_FIXED" | "FREE" | "INCLUDED";
-  priceValue: number | null;
-  /** All variants of the product */
-  variants: Array<{
-    id: string;
-    title: string;
-    sku: string;
-    price: number;
-    stock: number;
-    options?: Array<{
-      optionId: string;
-      optionName: string;
-      value: string;
-    }>;
-  }>;
-  /** Product options for filtering */
-  options?: Array<{
-    id: string;
-    name: string;
-    values: string[];
-  }>;
-  /** Whether variants are already shown in table */
-  showAsVariants?: boolean;
-  /** Callback when saved */
-  onSave?: (data: {
-    availableVariantIds: string[] | null;
-    showAsVariants: boolean;
-  }) => void;
-}
 
 // ============================================================================
 // Module Augmentation for Type Safety
@@ -373,8 +328,6 @@ declare module '@/layouts/modals' {
     [PRODUCT_EDIT_VARIANTS_MODAL_TYPE]: IEditVariantsModalPayload;
     [PRODUCT_EDIT_CATEGORIES_MODAL_TYPE]: IEditCategoriesModalPayload;
     [PRODUCT_EDIT_TAGS_MODAL_TYPE]: IEditTagsModalPayload;
-    [BUNDLE_ITEM_VARIANT_SETTINGS_MODAL_TYPE]: IBundleItemVariantSettingsModalPayload;
-    [DEPENDENCY_CHART_MODAL_TYPE]: IDependencyChartModalPayload;
     [BULK_EDITOR_MODAL_TYPE]: IBulkEditorModalPayload;
   }
 }
@@ -575,39 +528,6 @@ export const useEditCategoriesModal = createModalStackHook(PRODUCT_EDIT_CATEGORI
  */
 export const useEditTagsModal = createModalStackHook(PRODUCT_EDIT_TAGS_MODAL_TYPE);
 
-/**
- * Hook to open bundle item variant settings modal
- *
- * @example
- * ```tsx
- * const { push } = useBundleItemVariantSettingsModal();
- * push({
- *   itemId: 'item-1',
- *   productId: 'prod-1',
- *   productTitle: 'Premium Case',
- *   availableVariantIds: ['var-1', 'var-2'],
- *   variants: [...],
- *   onSave: (data) => console.log(data)
- * });
- * ```
- */
-export const useBundleItemVariantSettingsModal = createModalStackHook(BUNDLE_ITEM_VARIANT_SETTINGS_MODAL_TYPE);
-
-/**
- * Hook to open dependency chart modal
- *
- * @example
- * ```tsx
- * const { push } = useDependencyChartModal();
- * push({
- *   groups: [...],
- *   rules: [...],
- *   selectedRuleId: 'rule-1',
- *   onSave: (rules) => console.log(rules)
- * });
- * ```
- */
-export const useDependencyChartModal = createModalStackHook(DEPENDENCY_CHART_MODAL_TYPE);
 
 /**
  * Hook to open bulk editor modal

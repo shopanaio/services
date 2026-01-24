@@ -10,7 +10,7 @@ import {
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
-import { useBundleItemVariantSettingsModal } from "@/domains/inventory/products/modals";
+import { useBundleItemVariantSettingsModal } from "@/domains/promos/bundles/modals";
 import { GroupCard } from "./group-card";
 import type {
   IBundleGroup,

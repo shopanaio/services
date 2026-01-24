@@ -21,11 +21,11 @@ import {
   useEditMediaModal,
   useEditAttributesModal,
   useEditSeoModal,
-  useDependencyChartModal,
   type IEditSeoModalPayload,
 } from "@/domains/inventory/products/modals";
 import {
   useEditBundleGroupsModal,
+  useDependencyChartModal,
 } from "@/domains/promos/bundles/modals";
 import type { IProduct, IMediaFile } from "@/mocks/products/types";
 import type { IBundleDetailsMockData } from "@/mocks/products/bundle-details";
