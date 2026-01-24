@@ -51,7 +51,6 @@ import {
   ACTIONS_BY_CATEGORY,
   CATEGORIES_BY_TARGET,
   ACTION_CATEGORY_LABELS,
-  ACTION_META,
 } from "@/domains/promos/bundles/dependency-rules";
 import type { IDependencyCondition } from "@/domains/promos/bundles/dependency-rules";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
@@ -93,16 +92,16 @@ const conditionNeedsSecondValue = (condition: IDependencyCondition): boolean => 
 /** Get display label for any operator (symbol for comparison, label for state) */
 const getOperatorLabel = (op: string): string => {
   if (op in ComparisonOperator) {
-    return COMPARISON_OPERATOR_META[op as ComparisonOperator]?.symbol ?? op;
+    return OPERATOR_PHRASE[op as ComparisonOperator] ?? op;
   }
   return STATE_CHECK_OPERATOR_META[op as keyof typeof STATE_CHECK_OPERATOR_META]?.label ?? op;
 };
 
 /** Short subject names for chip display */
 const SUBJECT_SHORT: Partial<Record<ConditionSubject, string>> = {
-  [ConditionSubject.ITEM_QTY]: "qty",
+  [ConditionSubject.ITEM_QTY]: "quantity",
   [ConditionSubject.GROUP_UNIQUE_COUNT]: "unique count",
-  [ConditionSubject.GROUP_TOTAL_QTY]: "total qty",
+  [ConditionSubject.GROUP_TOTAL_QTY]: "total quantity",
   [ConditionSubject.GROUP_SUBTOTAL]: "subtotal",
   [ConditionSubject.BUNDLE_SUBTOTAL]: "subtotal",
 };
@@ -203,7 +202,6 @@ const buildTargetLevels = (
     key: DependencyTargetType.ITEM,
     label: "Item",
     icon: <TagOutlined />,
-    childrenLayout: "list",
     children: groups.flatMap((g) =>
       g.items.map((item) => ({
         key: item.id,
@@ -216,7 +214,6 @@ const buildTargetLevels = (
     key: DependencyTargetType.GROUP,
     label: "Group",
     icon: <AppstoreOutlined />,
-    childrenLayout: "list",
     children: groups.map((g) => ({
       key: g.id,
       label: g.title,
@@ -261,7 +258,7 @@ const buildActionLevels = (
     icon: CATEGORY_ICONS[cat],
     children: ACTIONS_BY_CATEGORY[cat].map((actionType) => ({
       key: `${cat}:${actionType}`,
-      label: ACTION_META[actionType].label,
+      label: ACTION_PHRASE[actionType],
       onClick: () => onSelect(actionType),
     })),
   }));

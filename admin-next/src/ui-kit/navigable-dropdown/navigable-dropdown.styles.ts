@@ -22,19 +22,6 @@ export const useStyles = createStyles(({ token }) => ({
       background: token.colorBgTextHover,
     },
   },
-  grid: {
-    display: "flex",
-    flexWrap: "wrap" as const,
-    gap: 6,
-    padding: "8px 8px 4px",
-  },
-  tag: {
-    "&&": {
-      margin: 0,
-      cursor: "pointer",
-      userSelect: "none" as const,
-    },
-  },
   list: {
     padding: "4px 0",
     maxHeight: 240,

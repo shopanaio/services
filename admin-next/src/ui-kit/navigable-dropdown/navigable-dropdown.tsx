@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, type ReactNode } from "react";
-import { Dropdown, Tag } from "antd";
+import { Dropdown } from "antd";
 import type { MenuProps } from "antd";
 import { LeftOutlined, RightOutlined } from "@ant-design/icons";
 
@@ -17,8 +17,6 @@ export interface IMenuLevel {
   icon?: ReactNode;
   /** If provided without children, acts as a leaf item */
   onClick?: () => void;
-  /** How to render children: "tags" (grid of tags) or "list" (standard menu). Default: "tags" */
-  childrenLayout?: "tags" | "list";
   children?: Array<{
     key: string;
     label: string;
@@ -96,40 +94,21 @@ export const NavigableDropdown = ({ levels, children }: INavigableDropdownProps)
               <LeftOutlined style={{ fontSize: 10 }} />
               <span>{activeLevel.label}</span>
             </div>
-            {activeLevel.childrenLayout === "list" ? (
-              <div className={styles.list}>
-                {(activeLevel.children ?? []).map((child) => (
-                  <div
-                    key={child.key}
-                    className={styles.listItem}
-                    onClick={() => {
-                      child.onClick();
-                      setOpen(false);
-                      setActiveParent(null);
-                    }}
-                  >
-                    {child.label}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className={styles.grid}>
-                {(activeLevel.children ?? []).map((child) => (
-                  <Tag
-                    key={child.key}
-                    variant="outlined"
-                    className={styles.tag}
-                    onClick={() => {
-                      child.onClick();
-                      setOpen(false);
-                      setActiveParent(null);
-                    }}
-                  >
-                    {child.label}
-                  </Tag>
-                ))}
-              </div>
-            )}
+            <div className={styles.list}>
+              {(activeLevel.children ?? []).map((child) => (
+                <div
+                  key={child.key}
+                  className={styles.listItem}
+                  onClick={() => {
+                    child.onClick();
+                    setOpen(false);
+                    setActiveParent(null);
+                  }}
+                >
+                  {child.label}
+                </div>
+              ))}
+            </div>
           </div>
         ) : (
           menu
