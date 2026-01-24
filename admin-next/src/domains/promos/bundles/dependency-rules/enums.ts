@@ -3,12 +3,11 @@
 // ============================================================================
 
 export enum ComparisonOperator {
-  GTE = "GTE",
-  LTE = "LTE",
-  EQ = "EQ",
   GT = "GT",
+  GTE = "GTE",
+  EQ = "EQ",
+  LTE = "LTE",
   LT = "LT",
-  NEQ = "NEQ",
   BETWEEN = "BETWEEN",
   IN_LIST = "IN_LIST",
 }

@@ -43,12 +43,11 @@ export const TARGET_TYPE_LABELS: Record<DependencyTargetType, string> = {
 // ============================================================================
 
 export const COMPARISON_OPERATOR_LABELS: Record<ComparisonOperator, string> = {
-  [ComparisonOperator.GTE]: ">=",
-  [ComparisonOperator.LTE]: "<=",
-  [ComparisonOperator.EQ]: "=",
   [ComparisonOperator.GT]: ">",
+  [ComparisonOperator.GTE]: ">=",
+  [ComparisonOperator.EQ]: "=",
+  [ComparisonOperator.LTE]: "<=",
   [ComparisonOperator.LT]: "<",
-  [ComparisonOperator.NEQ]: "!=",
   [ComparisonOperator.BETWEEN]: "between",
   [ComparisonOperator.IN_LIST]: "in",
 };
