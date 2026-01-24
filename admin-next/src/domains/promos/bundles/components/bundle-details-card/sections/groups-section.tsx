@@ -24,7 +24,7 @@ import type { BundleType } from "@/mocks/products/bundles-list";
 const useStyles = createStyles(({ token }) => ({
   lanes: {
     display: "grid",
-    gridTemplateColumns: "1fr 1fr",
+    gridTemplateColumns: "1fr",
     gap: 10,
   },
   lane: {
@@ -36,6 +36,9 @@ const useStyles = createStyles(({ token }) => ({
     overflow: "hidden",
   },
   laneHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
     padding: "10px 12px 8px",
     borderBottom: `1px solid ${token.colorBorderSecondary}`,
   },
@@ -51,7 +54,6 @@ const useStyles = createStyles(({ token }) => ({
     display: "flex",
     flexWrap: "wrap" as const,
     gap: 4,
-    marginTop: 6,
   },
   laneTag: {
     "&&": {
