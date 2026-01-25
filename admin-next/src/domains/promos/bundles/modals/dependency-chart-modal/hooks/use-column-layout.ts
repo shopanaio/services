@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import ELK from "elkjs/lib/elk.bundled.js";
-import type { ChartNode, ChartEdge, ItemNodeData } from "../types";
+import type { ChartNode, ChartEdge, ItemNodeData, RuleSortMode } from "../types";
 import { NODE_DIMENSIONS } from "../constants";
 
 const elk = new ELK();
@@ -17,15 +17,46 @@ const ELK_OPTIONS = {
 };
 
 // ============================================================================
+// Utils
+// ============================================================================
+
+/**
+ * Reorders rule nodes by their input order (priority order).
+ * Takes the Y positions ELK assigned and reassigns them to maintain priority ordering.
+ */
+const reorderRuleNodesByPriority = (
+  nodes: ChartNode[],
+  nodePositions: Map<string, { x: number; y: number }>
+): void => {
+  const ruleNodeIds = nodes.filter((n) => n.type === "rule").map((n) => n.id);
+
+  if (ruleNodeIds.length <= 1) return;
+
+  // Get the Y positions that ELK assigned to rule nodes (sorted top to bottom)
+  const ruleYPositions = ruleNodeIds
+    .map((id) => nodePositions.get(id)?.y ?? 0)
+    .sort((a, b) => a - b);
+
+  // Reassign Y positions based on input order (which is priority order)
+  ruleNodeIds.forEach((id, index) => {
+    const pos = nodePositions.get(id);
+    if (pos) {
+      pos.y = ruleYPositions[index];
+    }
+  });
+};
+
+// ============================================================================
 // Hook
 // ============================================================================
 
 interface UseColumnLayoutOptions {
   nodes: ChartNode[];
   edges: ChartEdge[];
+  sortMode: RuleSortMode;
 }
 
-export const useColumnLayout = ({ nodes, edges }: UseColumnLayoutOptions): ChartNode[] => {
+export const useColumnLayout = ({ nodes, edges, sortMode }: UseColumnLayoutOptions): ChartNode[] => {
   const [positionedNodes, setLayoutedNodes] = useState<ChartNode[]>([]);
 
   useEffect(() => {
@@ -78,13 +109,20 @@ export const useColumnLayout = ({ nodes, edges }: UseColumnLayoutOptions): Chart
     elk
       .layout(elkGraph)
       .then((layoutResult) => {
-        const positionedNodes = nodes.map((node) => {
-          const elkNode = layoutResult.children?.find((n) => n.id === node.id);
+        // First pass: get all positions from ELK
+        const nodePositions = new Map<string, { x: number; y: number }>();
+        layoutResult.children?.forEach((elkNode) => {
+          nodePositions.set(elkNode.id, { x: elkNode.x ?? 0, y: elkNode.y ?? 0 });
+        });
 
-          const position = {
-            x: elkNode?.x ?? 0,
-            y: elkNode?.y ?? 0,
-          };
+        // Reorder rule nodes by priority (skip for auto mode - let ELK decide)
+        if (sortMode !== "auto") {
+          reorderRuleNodesByPriority(nodes, nodePositions);
+        }
+
+        // Build final positioned nodes
+        const positionedNodes = nodes.map((node) => {
+          const position = nodePositions.get(node.id) ?? { x: 0, y: 0 };
 
           // Determine if this is a source or target node for the ItemNode component
           const isSource = sourceNodeIds.has(node.id);
@@ -114,7 +152,7 @@ export const useColumnLayout = ({ nodes, edges }: UseColumnLayoutOptions): Chart
         console.error("ELK layout error:", error);
         setLayoutedNodes(nodes);
       });
-  }, [nodes, edges]);
+  }, [nodes, edges, sortMode]);
 
   return positionedNodes;
 };

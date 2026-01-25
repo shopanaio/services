@@ -9,7 +9,8 @@ import {
   ReloadOutlined,
   DownOutlined,
   PlusOutlined,
-  CheckOutlined,
+  SortAscendingOutlined,
+  SortDescendingOutlined,
 } from "@ant-design/icons";
 import {
   ReactFlow,
@@ -35,6 +36,7 @@ import { LabeledEdge } from "./edges";
 import { NodeInspector } from "./sidebar/node-inspector";
 import { useDependencyChart } from "./hooks";
 import { useStyles } from "./dependency-chart-modal.styles";
+import type { RuleSortMode } from "./types";
 
 // ============================================================================
 // Node & Edge Types
@@ -76,6 +78,7 @@ const DependencyChartInner = ({
     edges,
     draftRules,
     visibleRuleIds,
+    ruleSortMode,
     selectedNode,
     onNodesChange,
     onEdgesChange,
@@ -85,6 +88,7 @@ const DependencyChartInner = ({
     handleAddRule,
     handleFitView,
     handleResetLayout,
+    setRuleSortMode,
   } = useDependencyChart({
     groups,
     initialRules,
@@ -127,6 +131,22 @@ const DependencyChartInner = ({
 
     return items;
   }, [draftRules]);
+
+  const sortMenuItems: MenuProps["items"] = useMemo(
+    () => [
+      { key: "desc", label: "Priority ↓", icon: <SortDescendingOutlined /> },
+      { key: "asc", label: "Priority ↑", icon: <SortAscendingOutlined /> },
+      { key: "auto", label: "Auto" },
+    ],
+    []
+  );
+
+  const handleSortMenuClick = useCallback(
+    (info: { key: string }) => {
+      setRuleSortMode(info.key as RuleSortMode);
+    },
+    [setRuleSortMode]
+  );
 
   const handleSave = useCallback(() => {
     onSave?.(draftRules);
@@ -199,6 +219,30 @@ const DependencyChartInner = ({
                   showZero
                   color="blue"
                 />
+                <DownOutlined style={{ fontSize: 10 }} />
+              </Button>
+            </Dropdown>
+            <Dropdown
+              menu={{
+                selectable: true,
+                items: sortMenuItems,
+                onClick: handleSortMenuClick,
+                selectedKeys: [ruleSortMode],
+              }}
+              trigger={["click"]}
+              placement="bottomLeft"
+            >
+              <Button
+                size="small"
+                icon={
+                  ruleSortMode === "desc" ? (
+                    <SortDescendingOutlined />
+                  ) : ruleSortMode === "asc" ? (
+                    <SortAscendingOutlined />
+                  ) : null
+                }
+              >
+                Sort
                 <DownOutlined style={{ fontSize: 10 }} />
               </Button>
             </Dropdown>

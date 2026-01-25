@@ -5,7 +5,7 @@ import { v4 as uuid } from "uuid";
 
 import type { IDependencyRule, IBundleGroup } from "@/domains/promos/bundles/types";
 import { LogicOperator } from "@/domains/promos/bundles/dependency-rules";
-import type { SelectedNode, ItemNodeData, BundleNodeData } from "../types";
+import type { SelectedNode, ItemNodeData, BundleNodeData, RuleSortMode } from "../types";
 import { useDerivedGraph } from "./use-derived-graph";
 import { useColumnLayout } from "./use-column-layout";
 
@@ -28,6 +28,7 @@ export const useDependencyChart = ({
     initialSelectedRuleId ?? null
   );
   const [selectedNode, setSelectedNode] = useState<SelectedNode>(null);
+  const [ruleSortMode, setRuleSortMode] = useState<RuleSortMode>("desc");
 
   // Visible rules state - controls which rules are shown on the graph
   // If a specific rule is selected, show only that one initially
@@ -80,12 +81,14 @@ export const useDependencyChart = ({
     groups,
     rules: visibleRules,
     selectedRuleId,
+    sortMode: ruleSortMode,
   });
 
   // Apply column layout
   const layoutNodes = useColumnLayout({
     nodes: derivedNodes,
     edges: derivedEdges,
+    sortMode: ruleSortMode,
   });
 
   // React Flow's internal state - handles dragging efficiently
@@ -197,6 +200,7 @@ export const useDependencyChart = ({
     edges,
     draftRules,
     visibleRuleIds,
+    ruleSortMode,
     selectedRule,
     selectedNode: currentSelectedNode,
     onNodesChange,
@@ -207,5 +211,6 @@ export const useDependencyChart = ({
     handleAddRule,
     handleFitView,
     handleResetLayout,
+    setRuleSortMode,
   };
 };

@@ -16,6 +16,7 @@ import type {
   ItemNodeData,
   RuleNodeData,
   BundleNodeData,
+  RuleSortMode,
 } from "../types";
 
 // ============================================================================
@@ -26,6 +27,7 @@ interface UseDerivedGraphOptions {
   groups: IBundleGroup[];
   rules: IDependencyRule[];
   selectedRuleId: string | null;
+  sortMode: RuleSortMode;
 }
 
 interface UseDerivedGraphResult {
@@ -37,6 +39,7 @@ export const useDerivedGraph = ({
   groups,
   rules,
   selectedRuleId,
+  sortMode,
 }: UseDerivedGraphOptions): UseDerivedGraphResult => {
   const theme = useTheme();
 
@@ -220,8 +223,14 @@ export const useDerivedGraph = ({
       });
     }
 
-    // 5. Create rule nodes
-    rules.forEach((rule) => {
+    // 5. Create rule nodes (sorted by priority based on sortMode)
+    const sortedRules =
+      sortMode === "auto"
+        ? rules
+        : [...rules].sort((a, b) =>
+            sortMode === "desc" ? b.priority - a.priority : a.priority - b.priority
+          );
+    sortedRules.forEach((rule) => {
       const ruleNodeId = `rule:${rule.id}`;
       nodeIds.add(ruleNodeId);
 
@@ -256,7 +265,7 @@ export const useDerivedGraph = ({
     const conditionEdgeGroups = new Map<string, ConditionEdgeGroup>();
     const actionEdgeGroups = new Map<string, ActionEdgeGroup>();
 
-    rules.forEach((rule) => {
+    sortedRules.forEach((rule) => {
       const ruleNodeId = `rule:${rule.id}`;
 
       // Group conditions by (sourceNodeId -> ruleNodeId)
@@ -386,5 +395,5 @@ export const useDerivedGraph = ({
     });
 
     return { nodes, edges };
-  }, [groups, rules, selectedRuleId, theme]);
+  }, [groups, rules, selectedRuleId, sortMode, theme]);
 };
