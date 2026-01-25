@@ -310,6 +310,24 @@ export const useOptionsStyles = createStyles(({ token }) => ({
 // ============================================================================
 
 export const useBundlesSectionStyles = createStyles(({ token }) => ({
+  wrapper: {
+    position: "relative",
+    padding: 3,
+    borderRadius: token.borderRadiusLG + 3,
+    background: "linear-gradient(135deg, #c4b5fd 0%, #e9d5ff 20%, #f5d0fe 40%, #fbcfe8 60%, #fecdd3 80%, #c4b5fd 100%)",
+    backgroundSize: "300% 300%",
+    animation: "gradientShift 6s ease infinite",
+    "@keyframes gradientShift": {
+      "0%": { backgroundPosition: "0% 50%" },
+      "50%": { backgroundPosition: "100% 50%" },
+      "100%": { backgroundPosition: "0% 50%" },
+    },
+  },
+  inner: {
+    background: token.colorBgContainer,
+    borderRadius: token.borderRadiusLG,
+    padding: token.padding,
+  },
   bundlesGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(2, 1fr)",
@@ -319,6 +337,7 @@ export const useBundlesSectionStyles = createStyles(({ token }) => ({
     padding: token.paddingSM,
     borderRadius: token.borderRadius,
     border: `1px solid ${token.colorBorderSecondary}`,
+    cursor: "pointer",
     transition: "border-color 0.2s",
     "&:hover": {
       borderColor: token.colorBorder,
