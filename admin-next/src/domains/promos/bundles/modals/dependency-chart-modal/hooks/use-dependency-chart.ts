@@ -92,6 +92,11 @@ export const useDependencyChart = ({
     fitView({ padding: 0.2 });
   }, [fitView]);
 
+  const handleResetLayout = useCallback(() => {
+    setNodes(layoutNodes as Node[]);
+    setTimeout(() => fitView({ padding: 0.2 }), 50);
+  }, [layoutNodes, setNodes, fitView]);
+
   // Get selected rule
   const selectedRule = useMemo(
     () => draftRules.find((r) => r.id === selectedRuleId) ?? null,
@@ -108,5 +113,6 @@ export const useDependencyChart = ({
     handleNodeClick,
     handleRuleChange,
     handleFitView,
+    handleResetLayout,
   };
 };

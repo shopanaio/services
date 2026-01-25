@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { Button } from "antd";
-import { AimOutlined, SaveOutlined } from "@ant-design/icons";
+import { AimOutlined, SaveOutlined, ReloadOutlined } from "@ant-design/icons";
 import {
   ReactFlow,
   Background,
@@ -70,6 +70,7 @@ const DependencyChartInner = ({
     handleNodeClick,
     handleRuleChange,
     handleFitView,
+    handleResetLayout,
   } = useDependencyChart({
     groups,
     initialRules,
@@ -117,6 +118,9 @@ const DependencyChartInner = ({
           </ReactFlow>
 
           <div className={styles.controls}>
+            <Button size="small" icon={<ReloadOutlined />} onClick={handleResetLayout}>
+              Reset Layout
+            </Button>
             <Button size="small" icon={<AimOutlined />} onClick={handleFitView}>
               Fit View
             </Button>
