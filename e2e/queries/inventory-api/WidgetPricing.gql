@@ -15,6 +15,7 @@ query WidgetPricing($input: PricingWidgetInput!) {
       }
       history {
         edges {
+          cursor
           node {
             id
             currency
