@@ -12,8 +12,11 @@ const ELK_OPTIONS = {
   "elk.layered.spacing.nodeNodeBetweenLayers": "80",
   "elk.spacing.edgeEdge": "20",
   "elk.padding": "[top=30,left=30,bottom=30,right=30]",
-  "elk.layered.crossingMinimization.strategy": "LAYER_SWEEP",
   "elk.layered.nodePlacement.strategy": "BRANDES_KOEPF",
+  // Preserve input order of nodes (reduces layout jumps)
+  "elk.layered.considerModelOrder.strategy": "NODES_AND_EDGES",
+  // Fixed seed for deterministic results
+  "elk.randomSeed": "1",
 };
 
 // ============================================================================
@@ -86,11 +89,21 @@ export const useColumnLayout = ({ nodes, edges, sortMode }: UseColumnLayoutOptio
       }
     });
 
+    // Sort nodes deterministically for stable layout
+    // Order: items/groups (sorted by id) → rules (sorted by id) → hubs (sorted by id)
+    const sortedNodes = [...nodes].sort((a, b) => {
+      const typeOrder: Record<string, number> = { item: 0, bundle: 1, rule: 2, hub: 3 };
+      const aType = typeOrder[a.type ?? "item"] ?? 0;
+      const bType = typeOrder[b.type ?? "item"] ?? 0;
+      if (aType !== bType) return aType - bType;
+      return a.id.localeCompare(b.id);
+    });
+
     // Build ELK graph structure
     const elkGraph = {
       id: "root",
       layoutOptions: ELK_OPTIONS,
-      children: nodes.map((node) => {
+      children: sortedNodes.map((node) => {
         // For hub nodes, adjust height based on number of labels
         const baseDimensions = NODE_DIMENSIONS[node.type as keyof typeof NODE_DIMENSIONS] ?? {
           width: 200,

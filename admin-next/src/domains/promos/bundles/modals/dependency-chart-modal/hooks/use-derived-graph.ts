@@ -373,10 +373,9 @@ export const useDerivedGraph = ({
     // ========================================================================
     // Create condition hub nodes and edges
     // ========================================================================
-    let hubIndex = 0;
-
-    conditionHubs.forEach((hubData) => {
-      const hubId = `hub:cond:${hubIndex++}`;
+    conditionHubs.forEach((hubData, hubKey) => {
+      // Use label-based ID for stability (encode to avoid special chars)
+      const hubId = `hub:cond:${encodeURIComponent(hubKey)}`;
 
       nodes.push({
         id: hubId,
@@ -423,8 +422,9 @@ export const useDerivedGraph = ({
     // ========================================================================
     // Create action hub nodes and edges
     // ========================================================================
-    actionHubs.forEach((hubData) => {
-      const hubId = `hub:action:${hubIndex++}`;
+    actionHubs.forEach((hubData, hubKey) => {
+      // Use label-based ID for stability (encode to avoid special chars)
+      const hubId = `hub:action:${encodeURIComponent(hubKey)}`;
 
       nodes.push({
         id: hubId,
