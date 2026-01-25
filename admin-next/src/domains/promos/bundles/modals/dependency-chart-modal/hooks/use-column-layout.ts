@@ -63,23 +63,25 @@ export const useColumnLayout = ({ nodes, edges, sortMode }: UseColumnLayoutOptio
     if (nodes.length === 0) return;
 
     // Build lookup maps for determining node positions
+    // With hubs: item → condition hub → rule → action hub → item
     const sourceNodeIds = new Set<string>();
     const targetNodeIds = new Set<string>();
 
     edges.forEach((edge) => {
-      const isSourceToRule =
-        edge.target.startsWith("rule:") &&
-        (edge.source.startsWith("item:") || edge.source.startsWith("group:"));
-      const isRuleToTarget =
-        edge.source.startsWith("rule:") &&
-        (edge.target.startsWith("item:") ||
-          edge.target.startsWith("group:") ||
-          edge.target.startsWith("bundle:"));
+      // Source items connect to condition hubs
+      const isSourceToConditionHub =
+        edge.target.startsWith("hub:cond:") &&
+        (edge.source.startsWith("item:") || edge.source.startsWith("group:") || edge.source.startsWith("bundle:"));
 
-      if (isSourceToRule) {
+      // Target items receive from action hubs
+      const isActionHubToTarget =
+        edge.source.startsWith("hub:action:") &&
+        (edge.target.startsWith("item:") || edge.target.startsWith("group:") || edge.target.startsWith("bundle:"));
+
+      if (isSourceToConditionHub) {
         sourceNodeIds.add(edge.source);
       }
-      if (isRuleToTarget) {
+      if (isActionHubToTarget) {
         targetNodeIds.add(edge.target);
       }
     });

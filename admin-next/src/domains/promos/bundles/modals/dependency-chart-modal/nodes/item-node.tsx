@@ -142,10 +142,10 @@ const ItemNodeComponent = ({ data, selected }: ItemNodeProps) => {
   const variantTitle = !isGroup ? getVariantTitle(item as ItemWithProduct) : undefined;
   const imageUrl = !isGroup ? getImageUrl(item as ItemWithProduct) : undefined;
 
-  // Source: right handle only (to rule)
-  // Target: left handle only (from rule)
-  const showLeftHandle = !nodePosition || nodePosition === "target";
-  const showRightHandle = !nodePosition || nodePosition === "source";
+  // Source: right handle only (to hub)
+  // Target: left handle only (from hub)
+  const showLeftHandle = nodePosition === "target";
+  const showRightHandle = nodePosition === "source";
 
   return (
     <div className={cx(styles.node, selected && styles.nodeSelected, isDimmed && styles.nodeDimmed)}>
