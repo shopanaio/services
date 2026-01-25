@@ -29,7 +29,7 @@ export const BundlesSection = ({ bundles }: IBundlesSectionProps) => {
     <div className={styles.wrapper}>
       <div className={styles.inner}>
         <PaperHeader
-          title="Included in Bundles"
+          title="Bundles"
           icon={
             <Avatar
               size="small"
