@@ -128,26 +128,37 @@ const DependencyChartInner = ({
   const highlightedNodes = useMemo(() => {
     if (!selectedNodeId) return nodes;
 
-    return nodes.map((node) => ({
-      ...node,
-      data: {
-        ...node.data,
-        isDimmed: !highlightedNodeIds.has(node.id),
-      },
-    }));
+    return nodes.map((node) => {
+      const isHighlighted = highlightedNodeIds.has(node.id);
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          isDimmed: !isHighlighted,
+          isHighlighted,
+        },
+      };
+    });
   }, [nodes, selectedNodeId, highlightedNodeIds]);
 
   // Apply dimming to edges
   const highlightedEdges = useMemo(() => {
     if (!selectedNodeId) return edges;
 
-    return edges.map((edge) => ({
-      ...edge,
-      style: {
-        ...edge.style,
-        opacity: !highlightedEdgeIds.has(edge.id) ? 0.3 : 1,
-      },
-    }));
+    return edges.map((edge) => {
+      const isHighlighted = highlightedEdgeIds.has(edge.id);
+      return {
+        ...edge,
+        style: {
+          ...edge.style,
+          stroke: isHighlighted ? edge.style?.stroke : "#d9d9d9",
+          opacity: isHighlighted ? 1 : 0.5,
+        },
+        markerEnd: isHighlighted
+          ? edge.markerEnd
+          : { type: "arrowclosed" as const, color: "#d9d9d9" },
+      };
+    });
   }, [edges, selectedNodeId, highlightedEdgeIds]);
 
   const visibleCount = visibleRuleIds.size;

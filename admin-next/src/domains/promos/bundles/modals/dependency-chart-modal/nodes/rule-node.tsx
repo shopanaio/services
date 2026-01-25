@@ -40,6 +40,9 @@ const useStyles = createStyles(({ token }) => ({
     opacity: 0.5,
     borderColor: token.colorBorder,
   },
+  nodeHighlighted: {
+    boxShadow: token.boxShadowSecondary,
+  },
   nodeDimmed: {
     opacity: 0.5,
     filter: "grayscale(30%)",
@@ -94,7 +97,7 @@ type RuleNodeProps = NodeProps<Node<RuleNodeData, "rule">>;
 
 const RuleNodeComponent = ({ data, selected }: RuleNodeProps) => {
   const { styles, cx } = useStyles();
-  const { rule, isDimmed } = data;
+  const { rule, isDimmed, isHighlighted } = data;
 
   const conditionCount = rule.conditionGroups.reduce(
     (sum, g) => sum + g.conditions.length,
@@ -107,6 +110,7 @@ const RuleNodeComponent = ({ data, selected }: RuleNodeProps) => {
       className={cx(
         styles.node,
         selected && styles.nodeSelected,
+        isHighlighted && styles.nodeHighlighted,
         !rule.enabled && styles.nodeDisabled,
         isDimmed && styles.nodeDimmed,
       )}

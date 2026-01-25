@@ -47,9 +47,14 @@ const useStyles = createStyles(({ token }) => ({
   nodeSelected: {
     boxShadow: token.boxShadowTertiary,
   },
+  nodeHighlighted: {
+    boxShadow: token.boxShadowTertiary,
+  },
   nodeDimmed: {
-    opacity: 0.4,
-    filter: "grayscale(50%)",
+    opacity: 0.5,
+    filter: "grayscale(100%)",
+    borderColor: token.colorBorder,
+    background: token.colorBgContainerDisabled,
   },
   label: {
     fontSize: 10,
@@ -88,6 +93,12 @@ const useStyles = createStyles(({ token }) => ({
   handleDisabled: {
     background: token.colorBorder,
   },
+  handleDimmed: {
+    background: token.colorBorder,
+  },
+  labelDimmed: {
+    color: token.colorTextDisabled,
+  },
 }));
 
 // ============================================================================
@@ -98,7 +109,7 @@ type HubNodeProps = NodeProps<Node<HubNodeData, "hub">>;
 
 const HubNodeComponent = ({ data, selected }: HubNodeProps) => {
   const { styles, cx } = useStyles();
-  const { hubType, labels, isEnabled = true, isDimmed } = data;
+  const { hubType, labels, isEnabled = true, isDimmed, isHighlighted } = data;
 
   const isCondition = hubType === "condition";
   // Show only first label for compact view
@@ -111,6 +122,7 @@ const HubNodeComponent = ({ data, selected }: HubNodeProps) => {
         isCondition ? styles.nodeCondition : styles.nodeAction,
         !isEnabled && styles.nodeDisabled,
         selected && styles.nodeSelected,
+        isHighlighted && styles.nodeHighlighted,
         isDimmed && styles.nodeDimmed
       )}
     >
@@ -120,7 +132,8 @@ const HubNodeComponent = ({ data, selected }: HubNodeProps) => {
         className={cx(
           styles.handle,
           isCondition ? styles.handleCondition : styles.handleAction,
-          !isEnabled && styles.handleDisabled
+          !isEnabled && styles.handleDisabled,
+          isDimmed && styles.handleDimmed
         )}
       />
 
@@ -128,7 +141,8 @@ const HubNodeComponent = ({ data, selected }: HubNodeProps) => {
         className={cx(
           styles.label,
           isCondition ? styles.labelCondition : styles.labelAction,
-          !isEnabled && styles.labelDisabled
+          !isEnabled && styles.labelDisabled,
+          isDimmed && styles.labelDimmed
         )}
       >
         {displayLabel}
@@ -140,7 +154,8 @@ const HubNodeComponent = ({ data, selected }: HubNodeProps) => {
         className={cx(
           styles.handle,
           isCondition ? styles.handleCondition : styles.handleAction,
-          !isEnabled && styles.handleDisabled
+          !isEnabled && styles.handleDisabled,
+          isDimmed && styles.handleDimmed
         )}
       />
     </div>

@@ -24,6 +24,8 @@ export interface ItemNodeData {
   isSelected?: boolean;
   /** True if this node should be dimmed (not in selected path) */
   isDimmed?: boolean;
+  /** True if this node is highlighted (in selected path) */
+  isHighlighted?: boolean;
   [key: string]: unknown;
 }
 
@@ -66,6 +68,8 @@ export interface RuleNodeData {
   isSelected: boolean;
   /** True if this node should be dimmed (not in selected path) */
   isDimmed?: boolean;
+  /** True if this node is highlighted (in selected path) */
+  isHighlighted?: boolean;
   [key: string]: unknown;
 }
 
@@ -74,6 +78,8 @@ export interface BundleNodeData {
   isSelected?: boolean;
   /** True if this node should be dimmed (not in selected path) */
   isDimmed?: boolean;
+  /** True if this node is highlighted (in selected path) */
+  isHighlighted?: boolean;
   [key: string]: unknown;
 }
 
@@ -96,6 +102,8 @@ export interface HubNodeData {
   isSelected?: boolean;
   /** True if this node should be dimmed (not in selected path) */
   isDimmed?: boolean;
+  /** True if this node is highlighted (in selected path) */
+  isHighlighted?: boolean;
   [key: string]: unknown;
 }
 

@@ -34,6 +34,9 @@ const useStyles = createStyles(({ token }) => ({
     borderColor: token.colorPrimary,
     boxShadow: token.boxShadowSecondary,
   },
+  nodeHighlighted: {
+    boxShadow: token.boxShadowSecondary,
+  },
   nodeDimmed: {
     opacity: 0.5,
     filter: "grayscale(30%)",
@@ -136,7 +139,7 @@ type ItemNodeProps = NodeProps<Node<ItemNodeData, "item">>;
 
 const ItemNodeComponent = ({ data, selected }: ItemNodeProps) => {
   const { styles, cx } = useStyles();
-  const { item, groupTitle, position: nodePosition, isGroup, isDimmed } = data;
+  const { item, groupTitle, position: nodePosition, isGroup, isDimmed, isHighlighted } = data;
 
   const productTitle = getProductTitle(item as ItemWithProduct);
   const variantTitle = !isGroup ? getVariantTitle(item as ItemWithProduct) : undefined;
@@ -148,7 +151,7 @@ const ItemNodeComponent = ({ data, selected }: ItemNodeProps) => {
   const showRightHandle = nodePosition === "source";
 
   return (
-    <div className={cx(styles.node, selected && styles.nodeSelected, isDimmed && styles.nodeDimmed)}>
+    <div className={cx(styles.node, selected && styles.nodeSelected, isHighlighted && styles.nodeHighlighted, isDimmed && styles.nodeDimmed)}>
       {showLeftHandle && (
         <Handle type="target" position={Position.Left} className={styles.handle} />
       )}
