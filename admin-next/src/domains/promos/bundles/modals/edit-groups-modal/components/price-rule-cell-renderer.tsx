@@ -1,5 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Dropdown } from "antd";
+import { DownOutlined } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import type { ICellRendererParams } from "ag-grid-community";
 import type { ITableRow } from "../types";
@@ -29,6 +30,7 @@ export const PriceRuleCellRenderer = ({
   onPriceRuleChange,
 }: IPriceRuleCellRendererParams) => {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLDivElement>(null);
 
   const menuItems = useMemo<MenuProps["items"]>(() => {
     const items: MenuProps["items"] = [];
@@ -100,19 +102,24 @@ export const PriceRuleCellRenderer = ({
       onOpenChange={(visible) => {
         if (!visible) setOpen(false);
       }}
-      overlayStyle={{ width: 150 }}
+      dropdownRender={(menu) => (
+        <div style={{ width: triggerRef.current?.offsetWidth }}>{menu}</div>
+      )}
     >
       <div
+        ref={triggerRef}
         onDoubleClick={() => setOpen(true)}
         style={{
           width: "100%",
           height: "100%",
           display: "flex",
           alignItems: "center",
+          justifyContent: "space-between",
           padding: "0 11px",
         }}
       >
-        {displayLabel}
+        <span>{displayLabel}</span>
+        <DownOutlined style={{ fontSize: 10, color: "rgba(0, 0, 0, 0.25)" }} />
       </div>
     </Dropdown>
   );
