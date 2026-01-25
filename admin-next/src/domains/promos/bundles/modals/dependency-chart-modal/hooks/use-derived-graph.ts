@@ -236,75 +236,40 @@ export const useDerivedGraph = ({
       });
     });
 
-    // 6. First pass: collect labels by groups
-    const conditionSourceLabelsMap = new Map<string, string[]>();
-    const actionTargetLabelsMap = new Map<string, string[]>();
+    // 6. Create edges - deduplicated by (source, target) pair with combined labels
+    // Map key: "sourceNodeId->targetNodeId", value: { labels, conditions/actions, rule info }
+    interface ConditionEdgeGroup {
+      sourceNodeId: string;
+      ruleNodeId: string;
+      labels: string[];
+      firstCondition: IDependencyCondition;
+      rule: IDependencyRule;
+    }
+    interface ActionEdgeGroup {
+      ruleNodeId: string;
+      targetNodeId: string;
+      labels: string[];
+      firstAction: typeof rules[0]["actions"][0];
+      rule: IDependencyRule;
+    }
 
-    rules.forEach((rule) => {
-      // Collect condition labels by SOURCE
-      getAllConditions(rule).forEach((condition) => {
-        if (!condition.targetId) return;
+    const conditionEdgeGroups = new Map<string, ConditionEdgeGroup>();
+    const actionEdgeGroups = new Map<string, ActionEdgeGroup>();
 
-        let sourceNodeId: string;
-        if (condition.targetType === DependencyTargetType.ITEM) {
-          sourceNodeId = duplicatedItemIds.has(condition.targetId)
-            ? `item:${condition.targetId}:source`
-            : `item:${condition.targetId}`;
-        } else if (condition.targetType === DependencyTargetType.GROUP) {
-          sourceNodeId = duplicatedGroupIds.has(condition.targetId)
-            ? `group:${condition.targetId}:source`
-            : `group:${condition.targetId}`;
-        } else {
-          sourceNodeId = "bundle:main";
-        }
-
-        const label = formatCondition(condition);
-        const labels = conditionSourceLabelsMap.get(sourceNodeId) ?? [];
-        labels.push(label);
-        conditionSourceLabelsMap.set(sourceNodeId, labels);
-      });
-
-      // Collect action labels by TARGET
-      rule.actions.forEach((action) => {
-        let targetNodeId: string;
-        if (action.targetType === DependencyTargetType.BUNDLE) {
-          targetNodeId = "bundle:main";
-        } else if (action.targetType === DependencyTargetType.ITEM) {
-          if (!action.targetId) return;
-          targetNodeId = duplicatedItemIds.has(action.targetId)
-            ? `item:${action.targetId}:target`
-            : `item:${action.targetId}`;
-        } else {
-          if (!action.targetId) return;
-          targetNodeId = duplicatedGroupIds.has(action.targetId)
-            ? `group:${action.targetId}:target`
-            : `group:${action.targetId}`;
-        }
-
-        const label = formatAction(action);
-        const labels = actionTargetLabelsMap.get(targetNodeId) ?? [];
-        labels.push(label);
-        actionTargetLabelsMap.set(targetNodeId, labels);
-      });
-    });
-
-    // 7. Create edges with grouped labels
     rules.forEach((rule) => {
       const ruleNodeId = `rule:${rule.id}`;
-      const edgeColor = rule.enabled ? conditionColor : disabledColor;
-      const actionEdgeColor = rule.enabled ? actionColor : disabledColor;
 
-      // Condition edges: grouped by SOURCE item
+      // Group conditions by (sourceNodeId -> ruleNodeId)
       getAllConditions(rule).forEach((condition) => {
-        if (!condition.targetId) return;
+        if (!condition.targetId && condition.targetType !== DependencyTargetType.BUNDLE) return;
 
         let sourceNodeId: string;
         if (condition.targetType === DependencyTargetType.ITEM) {
-          sourceNodeId = duplicatedItemIds.has(condition.targetId)
+          sourceNodeId = duplicatedItemIds.has(condition.targetId!)
             ? `item:${condition.targetId}:source`
             : `item:${condition.targetId}`;
         } else if (condition.targetType === DependencyTargetType.GROUP) {
-          sourceNodeId = duplicatedGroupIds.has(condition.targetId)
+          sourceNodeId = duplicatedGroupIds.has(condition.targetId!)
             ? `group:${condition.targetId}:source`
             : `group:${condition.targetId}`;
         } else {
@@ -313,32 +278,24 @@ export const useDerivedGraph = ({
 
         if (!nodeIds.has(sourceNodeId)) return;
 
-        const allLabels = conditionSourceLabelsMap.get(sourceNodeId) ?? [];
+        const edgeKey = `${sourceNodeId}->${ruleNodeId}`;
+        const label = formatCondition(condition);
 
-        edges.push({
-          id: `cond:${condition.id}`,
-          source: sourceNodeId,
-          target: ruleNodeId,
-          type: "labeled",
-          animated: false,
-          style: {
-            stroke: edgeColor,
-            strokeWidth: 1,
-          },
-          markerEnd: {
-            type: MarkerType.ArrowClosed,
-            color: edgeColor,
-          },
-          data: {
-            condition,
-            label: formatCondition(condition),
-            labels: allLabels,
-            tagColor: rule.enabled ? "blue" : "default",
-          },
-        });
+        const existing = conditionEdgeGroups.get(edgeKey);
+        if (existing) {
+          existing.labels.push(label);
+        } else {
+          conditionEdgeGroups.set(edgeKey, {
+            sourceNodeId,
+            ruleNodeId,
+            labels: [label],
+            firstCondition: condition,
+            rule,
+          });
+        }
       });
 
-      // Action edges: grouped by TARGET item
+      // Group actions by (ruleNodeId -> targetNodeId)
       rule.actions.forEach((action) => {
         let targetNodeId: string;
         if (action.targetType === DependencyTargetType.BUNDLE) {
@@ -357,29 +314,74 @@ export const useDerivedGraph = ({
 
         if (!nodeIds.has(targetNodeId)) return;
 
-        const allLabels = actionTargetLabelsMap.get(targetNodeId) ?? [];
+        const edgeKey = `${ruleNodeId}->${targetNodeId}`;
+        const label = formatAction(action);
 
-        edges.push({
-          id: `action:${action.id}`,
-          source: ruleNodeId,
-          target: targetNodeId,
-          type: "labeled",
-          animated: false,
-          style: {
-            stroke: actionEdgeColor,
-            strokeWidth: 1,
-          },
-          markerEnd: {
-            type: MarkerType.ArrowClosed,
-            color: actionEdgeColor,
-          },
-          data: {
-            action,
-            label: formatAction(action),
-            labels: allLabels,
-            tagColor: rule.enabled ? "green" : "default",
-          },
-        });
+        const existing = actionEdgeGroups.get(edgeKey);
+        if (existing) {
+          existing.labels.push(label);
+        } else {
+          actionEdgeGroups.set(edgeKey, {
+            ruleNodeId,
+            targetNodeId,
+            labels: [label],
+            firstAction: action,
+            rule,
+          });
+        }
+      });
+    });
+
+    // 7. Create deduplicated edges
+    conditionEdgeGroups.forEach((group, edgeKey) => {
+      const edgeColor = group.rule.enabled ? conditionColor : disabledColor;
+
+      edges.push({
+        id: `cond:${edgeKey}`,
+        source: group.sourceNodeId,
+        target: group.ruleNodeId,
+        type: "labeled",
+        animated: false,
+        style: {
+          stroke: edgeColor,
+          strokeWidth: 1,
+        },
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          color: edgeColor,
+        },
+        data: {
+          condition: group.firstCondition,
+          label: group.labels[0],
+          labels: group.labels,
+          tagColor: group.rule.enabled ? "blue" : "default",
+        },
+      });
+    });
+
+    actionEdgeGroups.forEach((group, edgeKey) => {
+      const actionEdgeColor = group.rule.enabled ? actionColor : disabledColor;
+
+      edges.push({
+        id: `action:${edgeKey}`,
+        source: group.ruleNodeId,
+        target: group.targetNodeId,
+        type: "labeled",
+        animated: false,
+        style: {
+          stroke: actionEdgeColor,
+          strokeWidth: 1,
+        },
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          color: actionEdgeColor,
+        },
+        data: {
+          action: group.firstAction,
+          label: group.labels[0],
+          labels: group.labels,
+          tagColor: group.rule.enabled ? "green" : "default",
+        },
       });
     });
 

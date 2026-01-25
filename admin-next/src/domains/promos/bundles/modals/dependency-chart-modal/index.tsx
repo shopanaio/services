@@ -3,7 +3,14 @@
 import { useCallback, useMemo } from "react";
 import { Button, Dropdown, Badge } from "antd";
 import type { MenuProps } from "antd";
-import { AimOutlined, SaveOutlined, ReloadOutlined, DownOutlined, PlusOutlined, CheckOutlined } from "@ant-design/icons";
+import {
+  AimOutlined,
+  SaveOutlined,
+  ReloadOutlined,
+  DownOutlined,
+  PlusOutlined,
+  CheckOutlined,
+} from "@ant-design/icons";
 import {
   ReactFlow,
   Background,
@@ -18,7 +25,10 @@ import {
   ModalHeader,
 } from "@/layouts/modals";
 import type { IDependencyChartModalPayload } from "../../modals";
-import type { IDependencyRule, IBundleGroup } from "@/domains/promos/bundles/types";
+import type {
+  IDependencyRule,
+  IBundleGroup,
+} from "@/domains/promos/bundles/types";
 
 import { ItemNode, RuleNode, BundleNode } from "./nodes";
 import { LabeledEdge } from "./edges";
@@ -92,7 +102,7 @@ const DependencyChartInner = ({
         handleToggleRuleVisibility(info.key);
       }
     },
-    [handleAddRule, handleToggleRuleVisibility]
+    [handleAddRule, handleToggleRuleVisibility],
   );
 
   const rulesMenuItems: MenuProps["items"] = useMemo(() => {
@@ -108,21 +118,15 @@ const DependencyChartInner = ({
       items.push({ type: "divider" });
 
       draftRules.forEach((rule) => {
-        const isVisible = visibleRuleIds.has(rule.id);
         items.push({
           key: rule.id,
-          icon: isVisible ? <CheckOutlined style={{ color: "var(--ant-color-primary)" }} /> : null,
-          label: (
-            <span style={{ opacity: isVisible ? 1 : 0.6 }}>
-              {rule.name || `Rule ${rule.id.slice(0, 6)}`}
-            </span>
-          ),
+          label: rule.name || `Rule ${rule.id.slice(0, 6)}`,
         });
       });
     }
 
     return items;
-  }, [draftRules, visibleRuleIds]);
+  }, [draftRules]);
 
   const handleSave = useCallback(() => {
     onSave?.(draftRules);
@@ -165,23 +169,39 @@ const DependencyChartInner = ({
           </ReactFlow>
 
           <div className={styles.controls}>
+            <Button size="small" icon={<AimOutlined />} onClick={handleFitView}>
+              Fit View
+            </Button>
+            <Button
+              size="small"
+              icon={<ReloadOutlined />}
+              onClick={handleResetLayout}
+            >
+              Reset
+            </Button>
             <Dropdown
-              menu={{ items: rulesMenuItems, onClick: handleRulesMenuClick }}
+              menu={{
+                selectable: true,
+                items: rulesMenuItems,
+                onClick: handleRulesMenuClick,
+                selectedKeys: draftRules
+                  .filter((it) => visibleRuleIds.has(it.id))
+                  .map((it) => it.id),
+              }}
               trigger={["click"]}
               placement="bottomLeft"
             >
               <Button size="small">
-                <Badge count={visibleCount} size="small" showZero color="blue" />
-                <span style={{ marginLeft: 4 }}>Rules ({totalCount})</span>
-                <DownOutlined style={{ fontSize: 10, marginLeft: 4 }} />
+                <span style={{ marginLeft: 4 }}>Rules</span>
+                <Badge
+                  count={visibleCount}
+                  size="small"
+                  showZero
+                  color="blue"
+                />
+                <DownOutlined style={{ fontSize: 10 }} />
               </Button>
             </Dropdown>
-            <Button size="small" icon={<ReloadOutlined />} onClick={handleResetLayout}>
-              Reset Layout
-            </Button>
-            <Button size="small" icon={<AimOutlined />} onClick={handleFitView}>
-              Fit View
-            </Button>
           </div>
         </div>
 
@@ -211,7 +231,7 @@ export const DependencyChartModal = () => {
       modalPayload?.onSave?.(rules);
       pop();
     },
-    [modalPayload, pop]
+    [modalPayload, pop],
   );
 
   if (!modalPayload) {
