@@ -3,13 +3,9 @@
 // ============================================================================
 
 export enum ComparisonOperator {
-  GT = "GT",
   GTE = "GTE",
   EQ = "EQ",
   LTE = "LTE",
-  LT = "LT",
-  BETWEEN = "BETWEEN",
-  IN_LIST = "IN_LIST",
 }
 
 // ============================================================================
@@ -28,9 +24,6 @@ export enum LogicOperator {
 export enum StateCheckOperator {
   IS_SELECTED = "IS_SELECTED",
   IS_NOT_SELECTED = "IS_NOT_SELECTED",
-  IS_OUT_OF_STOCK = "IS_OUT_OF_STOCK",
-  IS_IN_STOCK = "IS_IN_STOCK",
-  CONTAINS = "CONTAINS",
 }
 
 // ============================================================================
@@ -48,13 +41,7 @@ export enum ConditionCategory {
 
 export enum ConditionSubject {
   ITEM_SELECTED = "ITEM_SELECTED",
-  ITEM_QTY = "ITEM_QTY",
-  ITEM_STOCK = "ITEM_STOCK",
-  GROUP_UNIQUE_COUNT = "GROUP_UNIQUE_COUNT",
   GROUP_TOTAL_QTY = "GROUP_TOTAL_QTY",
-  GROUP_SUBTOTAL = "GROUP_SUBTOTAL",
-  GROUP_CONTAINS = "GROUP_CONTAINS",
-  BUNDLE_SUBTOTAL = "BUNDLE_SUBTOTAL",
 }
 
 // ============================================================================
@@ -73,8 +60,6 @@ export enum DependencyTargetType {
 
 export enum ActionCategory {
   VISIBILITY = "VISIBILITY",
-  STATE = "STATE",
-  QUANTITY = "QUANTITY",
   SELECTION = "SELECTION",
   PRICE = "PRICE",
 }
@@ -86,12 +71,7 @@ export enum ActionCategory {
 export enum DependencyActionType {
   SHOW = "SHOW",
   HIDE = "HIDE",
-  ENABLE = "ENABLE",
-  DISABLE = "DISABLE",
-  SET_QTY = "SET_QTY",
-  SET_QTY_LIMITS = "SET_QTY_LIMITS",
   SET_REQUIRED = "SET_REQUIRED",
-  OVERRIDE_PRICE = "OVERRIDE_PRICE",
   ADJUST_PRICE = "ADJUST_PRICE",
 }
 

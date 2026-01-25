@@ -20,8 +20,6 @@ export interface IStateCheckCondition {
   operator: StateCheckOperator;
   targetType: DependencyTargetType;
   targetId: string;
-  /** For CONTAINS: the item/variant ID to check for */
-  containsId?: string;
 }
 
 export interface INumericCondition {
@@ -32,10 +30,6 @@ export interface INumericCondition {
   targetType: DependencyTargetType;
   targetId: string;
   value: number;
-  /** Second value for BETWEEN operator */
-  valueTo?: number;
-  /** List of values for IN_LIST operator */
-  valueList?: number[];
 }
 
 export type IDependencyCondition = IStateCheckCondition | INumericCondition;
@@ -60,21 +54,12 @@ export interface IDependencyAction {
   targetType: DependencyTargetType;
   targetId?: string;
 
-  // For SET_QTY
-  qtyValue?: number;
-
-  // For SET_QTY_LIMITS
-  minQtyValue?: number | null;
-  maxQtyValue?: number | null;
-
   // For SET_REQUIRED
   requiredValue?: boolean;
 
-  // For OVERRIDE_PRICE / ADJUST_PRICE
+  // For ADJUST_PRICE
   priceType?: BundlePriceType;
   priceValue?: number | null;
-  exclusiveKey?: string;
-  applyTo?: "ITEM" | "BUNDLE_ITEMS_SUBTOTAL";
 }
 
 // ============================================================================
@@ -105,13 +90,10 @@ export interface OperatorMetadata {
   label: string;
   symbol: string;
   requiresValue: boolean;
-  requiresSecondValue?: boolean;
-  requiresValueList?: boolean;
 }
 
 export interface ActionMetadata {
   label: string;
   description: string;
-  requiresQtyValue?: boolean;
   requiresPriceType?: boolean;
 }

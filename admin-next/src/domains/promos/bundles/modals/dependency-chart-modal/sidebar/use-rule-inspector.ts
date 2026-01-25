@@ -154,7 +154,7 @@ export const useRuleInspector = ({
     const firstItem = groups[0]?.items[0];
     const newAction: IDependencyAction = {
       id: generateId("act"),
-      actionType: DependencyActionType.DISABLE,
+      actionType: DependencyActionType.HIDE,
       targetType: DependencyTargetType.ITEM,
       targetId: firstItem?.id ?? "",
     };

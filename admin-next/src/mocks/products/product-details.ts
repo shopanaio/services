@@ -324,7 +324,7 @@ const mockDependencyRules: IDependencyRule[] = [
     actions: [
       {
         id: "act-1-1",
-        actionType: DependencyActionType.DISABLE,
+        actionType: DependencyActionType.HIDE,
         targetType: DependencyTargetType.ITEM,
         targetId: "item-3",
       },

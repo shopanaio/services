@@ -11,6 +11,7 @@ import { ACTION_PHRASE, SUBJECT_SHORT, OPERATOR_PHRASE } from "./constants";
 import { STATE_CHECK_OPERATOR_META } from "./operators";
 import { PRICE_RULE_OPTIONS } from "../types";
 
+
 // ============================================================================
 // Target Resolution
 // ============================================================================
@@ -49,13 +50,6 @@ export const formatCondition = (cond: IDependencyCondition): string => {
 
   const subjectShort = SUBJECT_SHORT[cond.subject] ?? cond.subject;
   const phrase = OPERATOR_PHRASE[cond.operator as ComparisonOperator] ?? cond.operator;
-
-  if (cond.operator === ComparisonOperator.BETWEEN && cond.valueTo != null) {
-    return `${subjectShort} ${phrase} ${cond.value} and ${cond.valueTo}`;
-  }
-  if (cond.operator === ComparisonOperator.IN_LIST && cond.valueList?.length) {
-    return `${subjectShort} ${phrase} [${cond.valueList.join(", ")}]`;
-  }
   return `${subjectShort} ${phrase} ${cond.value}`;
 };
 
@@ -66,26 +60,11 @@ export const formatCondition = (cond: IDependencyCondition): string => {
 export const formatAction = (action: IDependencyAction): string => {
   const phrase = ACTION_PHRASE[action.actionType] ?? action.actionType;
 
-  if (action.actionType === DependencyActionType.SET_QTY && action.qtyValue != null) {
-    return `${phrase} ${action.qtyValue}`;
-  }
-
-  if (action.actionType === DependencyActionType.SET_QTY_LIMITS) {
-    const parts: string[] = [];
-    if (action.minQtyValue != null) parts.push(`min: ${action.minQtyValue}`);
-    if (action.maxQtyValue != null) parts.push(`max: ${action.maxQtyValue}`);
-    return `${phrase} ${parts.join(", ") || "reset"}`;
-  }
-
   if (action.actionType === DependencyActionType.SET_REQUIRED) {
     return `${phrase}: ${action.requiredValue ? "yes" : "no"}`;
   }
 
-  if (
-    (action.actionType === DependencyActionType.OVERRIDE_PRICE ||
-      action.actionType === DependencyActionType.ADJUST_PRICE) &&
-    action.priceType
-  ) {
+  if (action.actionType === DependencyActionType.ADJUST_PRICE && action.priceType) {
     const priceOption = PRICE_RULE_OPTIONS.find((o) => o.value === action.priceType);
     const priceName = priceOption?.label ?? action.priceType;
     const value =

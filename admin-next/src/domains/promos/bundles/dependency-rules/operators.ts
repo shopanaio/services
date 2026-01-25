@@ -11,13 +11,9 @@ import type { OperatorMetadata } from "./types";
 // ============================================================================
 
 export const COMPARISON_OPERATOR_META: Record<ComparisonOperator, OperatorMetadata> = {
-  [ComparisonOperator.GT]: { label: "greater than", symbol: ">", requiresValue: true },
-  [ComparisonOperator.GTE]: { label: "greater than or equal", symbol: ">=", requiresValue: true },
+  [ComparisonOperator.GTE]: { label: "at least", symbol: ">=", requiresValue: true },
   [ComparisonOperator.EQ]: { label: "equals", symbol: "=", requiresValue: true },
-  [ComparisonOperator.LTE]: { label: "less than or equal", symbol: "<=", requiresValue: true },
-  [ComparisonOperator.LT]: { label: "less than", symbol: "<", requiresValue: true },
-  [ComparisonOperator.BETWEEN]: { label: "between", symbol: "between", requiresValue: true, requiresSecondValue: true },
-  [ComparisonOperator.IN_LIST]: { label: "in list", symbol: "in", requiresValue: false, requiresValueList: true },
+  [ComparisonOperator.LTE]: { label: "at most", symbol: "<=", requiresValue: true },
 };
 
 // ============================================================================
@@ -27,9 +23,6 @@ export const COMPARISON_OPERATOR_META: Record<ComparisonOperator, OperatorMetada
 export const STATE_CHECK_OPERATOR_META: Record<StateCheckOperator, OperatorMetadata> = {
   [StateCheckOperator.IS_SELECTED]: { label: "is selected", symbol: "=1", requiresValue: false },
   [StateCheckOperator.IS_NOT_SELECTED]: { label: "is not selected", symbol: "=0", requiresValue: false },
-  [StateCheckOperator.IS_OUT_OF_STOCK]: { label: "is out of stock", symbol: "oos", requiresValue: false },
-  [StateCheckOperator.IS_IN_STOCK]: { label: "is in stock", symbol: "instock", requiresValue: false },
-  [StateCheckOperator.CONTAINS]: { label: "contains", symbol: "has", requiresValue: false },
 };
 
 // ============================================================================
@@ -41,52 +34,10 @@ export const OPERATORS_BY_SUBJECT: Record<ConditionSubject, (ComparisonOperator 
     StateCheckOperator.IS_SELECTED,
     StateCheckOperator.IS_NOT_SELECTED,
   ],
-  [ConditionSubject.ITEM_QTY]: [
-    ComparisonOperator.GT,
-    ComparisonOperator.GTE,
-    ComparisonOperator.EQ,
-    ComparisonOperator.LTE,
-    ComparisonOperator.LT,
-    ComparisonOperator.BETWEEN,
-  ],
-  [ConditionSubject.ITEM_STOCK]: [
-    StateCheckOperator.IS_OUT_OF_STOCK,
-    StateCheckOperator.IS_IN_STOCK,
-  ],
-  [ConditionSubject.GROUP_UNIQUE_COUNT]: [
-    ComparisonOperator.GT,
-    ComparisonOperator.GTE,
-    ComparisonOperator.EQ,
-    ComparisonOperator.LTE,
-    ComparisonOperator.LT,
-    ComparisonOperator.BETWEEN,
-  ],
   [ConditionSubject.GROUP_TOTAL_QTY]: [
-    ComparisonOperator.GT,
     ComparisonOperator.GTE,
     ComparisonOperator.EQ,
     ComparisonOperator.LTE,
-    ComparisonOperator.LT,
-    ComparisonOperator.BETWEEN,
-  ],
-  [ConditionSubject.GROUP_SUBTOTAL]: [
-    ComparisonOperator.GT,
-    ComparisonOperator.GTE,
-    ComparisonOperator.EQ,
-    ComparisonOperator.LTE,
-    ComparisonOperator.LT,
-    ComparisonOperator.BETWEEN,
-  ],
-  [ConditionSubject.GROUP_CONTAINS]: [
-    StateCheckOperator.CONTAINS,
-  ],
-  [ConditionSubject.BUNDLE_SUBTOTAL]: [
-    ComparisonOperator.GT,
-    ComparisonOperator.GTE,
-    ComparisonOperator.EQ,
-    ComparisonOperator.LTE,
-    ComparisonOperator.LT,
-    ComparisonOperator.BETWEEN,
   ],
 };
 
@@ -97,16 +48,9 @@ export const OPERATORS_BY_SUBJECT: Record<ConditionSubject, (ComparisonOperator 
 export const SUBJECTS_BY_TARGET: Record<DependencyTargetType, ConditionSubject[]> = {
   [DependencyTargetType.ITEM]: [
     ConditionSubject.ITEM_SELECTED,
-    ConditionSubject.ITEM_QTY,
-    ConditionSubject.ITEM_STOCK,
   ],
   [DependencyTargetType.GROUP]: [
-    ConditionSubject.GROUP_UNIQUE_COUNT,
     ConditionSubject.GROUP_TOTAL_QTY,
-    ConditionSubject.GROUP_SUBTOTAL,
-    ConditionSubject.GROUP_CONTAINS,
   ],
-  [DependencyTargetType.BUNDLE]: [
-    ConditionSubject.BUNDLE_SUBTOTAL,
-  ],
+  [DependencyTargetType.BUNDLE]: [],
 };

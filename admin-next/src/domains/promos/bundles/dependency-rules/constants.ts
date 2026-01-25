@@ -15,19 +15,12 @@ import {
 export const ACTION_TYPE_LABELS: Record<DependencyActionType, string> = {
   [DependencyActionType.SHOW]: "show",
   [DependencyActionType.HIDE]: "hide",
-  [DependencyActionType.ENABLE]: "enable",
-  [DependencyActionType.DISABLE]: "disable",
-  [DependencyActionType.SET_QTY]: "set quantity",
-  [DependencyActionType.SET_QTY_LIMITS]: "set quantity limits",
   [DependencyActionType.SET_REQUIRED]: "set required",
-  [DependencyActionType.OVERRIDE_PRICE]: "override price",
   [DependencyActionType.ADJUST_PRICE]: "adjust price",
 };
 
 export const ACTION_CATEGORY_LABELS: Record<ActionCategory, string> = {
   [ActionCategory.VISIBILITY]: "Visibility",
-  [ActionCategory.STATE]: "State",
-  [ActionCategory.QUANTITY]: "Quantity",
   [ActionCategory.SELECTION]: "Selection",
   [ActionCategory.PRICE]: "Price",
 };
@@ -43,21 +36,14 @@ export const TARGET_TYPE_LABELS: Record<DependencyTargetType, string> = {
 // ============================================================================
 
 export const COMPARISON_OPERATOR_LABELS: Record<ComparisonOperator, string> = {
-  [ComparisonOperator.GT]: ">",
   [ComparisonOperator.GTE]: ">=",
   [ComparisonOperator.EQ]: "=",
   [ComparisonOperator.LTE]: "<=",
-  [ComparisonOperator.LT]: "<",
-  [ComparisonOperator.BETWEEN]: "between",
-  [ComparisonOperator.IN_LIST]: "in",
 };
 
 export const STATE_CHECK_LABELS: Record<StateCheckOperator, string> = {
   [StateCheckOperator.IS_SELECTED]: "is selected",
   [StateCheckOperator.IS_NOT_SELECTED]: "is not selected",
-  [StateCheckOperator.IS_OUT_OF_STOCK]: "is out of stock",
-  [StateCheckOperator.IS_IN_STOCK]: "is in stock",
-  [StateCheckOperator.CONTAINS]: "contains",
 };
 
 export const LOGIC_OPERATOR_LABELS: Record<LogicOperator, string> = {
@@ -67,13 +53,7 @@ export const LOGIC_OPERATOR_LABELS: Record<LogicOperator, string> = {
 
 export const CONDITION_SUBJECT_LABELS: Record<ConditionSubject, string> = {
   [ConditionSubject.ITEM_SELECTED]: "selection",
-  [ConditionSubject.ITEM_QTY]: "quantity",
-  [ConditionSubject.ITEM_STOCK]: "stock",
-  [ConditionSubject.GROUP_UNIQUE_COUNT]: "unique items",
   [ConditionSubject.GROUP_TOTAL_QTY]: "total quantity",
-  [ConditionSubject.GROUP_SUBTOTAL]: "subtotal",
-  [ConditionSubject.GROUP_CONTAINS]: "contains",
-  [ConditionSubject.BUNDLE_SUBTOTAL]: "bundle subtotal",
 };
 
 // ============================================================================
@@ -82,34 +62,21 @@ export const CONDITION_SUBJECT_LABELS: Record<ConditionSubject, string> = {
 
 /** Short subject names for chip display */
 export const SUBJECT_SHORT: Partial<Record<ConditionSubject, string>> = {
-  [ConditionSubject.ITEM_QTY]: "quantity",
-  [ConditionSubject.GROUP_UNIQUE_COUNT]: "unique count",
   [ConditionSubject.GROUP_TOTAL_QTY]: "total quantity",
-  [ConditionSubject.GROUP_SUBTOTAL]: "subtotal",
-  [ConditionSubject.BUNDLE_SUBTOTAL]: "subtotal",
 };
 
 /** Grammatically correct verb phrases for comparison operators */
 export const OPERATOR_PHRASE: Record<ComparisonOperator, string> = {
-  [ComparisonOperator.GT]: "is greater than",
   [ComparisonOperator.GTE]: "is at least",
   [ComparisonOperator.EQ]: "equals",
   [ComparisonOperator.LTE]: "is at most",
-  [ComparisonOperator.LT]: "is less than",
-  [ComparisonOperator.BETWEEN]: "is between",
-  [ComparisonOperator.IN_LIST]: "is in",
 };
 
 /** Grammatically correct phrases for action chip display */
 export const ACTION_PHRASE: Record<DependencyActionType, string> = {
   [DependencyActionType.SHOW]: "is shown",
   [DependencyActionType.HIDE]: "is hidden",
-  [DependencyActionType.ENABLE]: "is enabled",
-  [DependencyActionType.DISABLE]: "is disabled",
-  [DependencyActionType.SET_QTY]: "quantity is",
-  [DependencyActionType.SET_QTY_LIMITS]: "quantity limits",
   [DependencyActionType.SET_REQUIRED]: "is required",
-  [DependencyActionType.OVERRIDE_PRICE]: "price override",
   [DependencyActionType.ADJUST_PRICE]: "price adjust",
 };
 

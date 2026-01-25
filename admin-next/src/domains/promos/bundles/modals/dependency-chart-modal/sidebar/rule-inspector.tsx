@@ -20,14 +20,9 @@ import {
   LeftOutlined,
   RightOutlined,
   CheckSquareOutlined,
-  NumberOutlined,
-  InboxOutlined,
-  AppstoreOutlined,
   OrderedListOutlined,
   DollarOutlined,
-  ContainerOutlined,
   EyeOutlined,
-  PoweroffOutlined,
   ThunderboltOutlined,
   InfoCircleOutlined,
 } from "@ant-design/icons";
@@ -44,7 +39,6 @@ import {
 import {
   ConditionCategory,
   ConditionSubject,
-  ComparisonOperator,
   ActionCategory,
   CONDITION_SUBJECT_META,
   CONDITION_SUBJECT_LABELS,
@@ -91,30 +85,15 @@ const conditionNeedsValue = (condition: IDependencyCondition): boolean => {
   return meta?.requiresValue ?? false;
 };
 
-/** Check if a condition needs a second value input (BETWEEN) */
-const conditionNeedsSecondValue = (
-  condition: IDependencyCondition,
-): boolean => {
-  if (condition.category !== ConditionCategory.NUMERIC) return false;
-  return condition.operator === ComparisonOperator.BETWEEN;
-};
 
 /** Icon maps for first-level menu items */
 const SUBJECT_ICONS: Record<string, ReactNode> = {
   [ConditionSubject.ITEM_SELECTED]: <CheckSquareOutlined />,
-  [ConditionSubject.ITEM_QTY]: <NumberOutlined />,
-  [ConditionSubject.ITEM_STOCK]: <InboxOutlined />,
-  [ConditionSubject.GROUP_UNIQUE_COUNT]: <AppstoreOutlined />,
   [ConditionSubject.GROUP_TOTAL_QTY]: <OrderedListOutlined />,
-  [ConditionSubject.GROUP_SUBTOTAL]: <DollarOutlined />,
-  [ConditionSubject.GROUP_CONTAINS]: <ContainerOutlined />,
-  [ConditionSubject.BUNDLE_SUBTOTAL]: <DollarOutlined />,
 };
 
 const CATEGORY_ICONS: Record<string, ReactNode> = {
   [ActionCategory.VISIBILITY]: <EyeOutlined />,
-  [ActionCategory.STATE]: <PoweroffOutlined />,
-  [ActionCategory.QUANTITY]: <NumberOutlined />,
   [ActionCategory.SELECTION]: <CheckSquareOutlined />,
   [ActionCategory.PRICE]: <DollarOutlined />,
 };
@@ -453,23 +432,6 @@ export const RuleInspector = ({
                       style={{ width: 72 }}
                     />
                   )}
-                  {conditionNeedsSecondValue(condition) && (
-                    <InputNumber
-                      value={
-                        condition.category === ConditionCategory.NUMERIC
-                          ? condition.valueTo
-                          : undefined
-                      }
-                      onChange={(value) =>
-                        handleUpdateCondition(condition.id, {
-                          valueTo: value ?? 0,
-                        })
-                      }
-                      min={0}
-                      style={{ width: 72 }}
-                      placeholder="to"
-                    />
-                  )}
                 </div>
               </div>
             ))
@@ -561,8 +523,7 @@ export const RuleInspector = ({
                 </div>
 
                 {/* Price-specific fields */}
-                {(action.actionType === DependencyActionType.OVERRIDE_PRICE ||
-                  action.actionType === DependencyActionType.ADJUST_PRICE) && (
+                {action.actionType === DependencyActionType.ADJUST_PRICE && (
                   <div className={styles.conditionRow}>
                     <Select
                       value={action.priceType}
@@ -593,50 +554,6 @@ export const RuleInspector = ({
                           }
                         />
                       )}
-                  </div>
-                )}
-
-                {/* Quantity field */}
-                {action.actionType === DependencyActionType.SET_QTY && (
-                  <div className={styles.conditionRow}>
-                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                      Quantity:
-                    </Typography.Text>
-                    <InputNumber
-                      value={action.qtyValue}
-                      onChange={(value) =>
-                        handleUpdateAction(action.id, { qtyValue: value ?? 0 })
-                      }
-                      min={0}
-                      size="small"
-                      style={{ flex: 1 }}
-                    />
-                  </div>
-                )}
-
-                {/* Quantity limits fields */}
-                {action.actionType === DependencyActionType.SET_QTY_LIMITS && (
-                  <div className={styles.conditionRow}>
-                    <InputNumber
-                      value={action.minQtyValue ?? undefined}
-                      onChange={(value) =>
-                        handleUpdateAction(action.id, { minQtyValue: value })
-                      }
-                      min={0}
-                      size="small"
-                      style={{ flex: 1 }}
-                      placeholder="Min"
-                    />
-                    <InputNumber
-                      value={action.maxQtyValue ?? undefined}
-                      onChange={(value) =>
-                        handleUpdateAction(action.id, { maxQtyValue: value })
-                      }
-                      min={0}
-                      size="small"
-                      style={{ flex: 1 }}
-                      placeholder="Max"
-                    />
                   </div>
                 )}
 
