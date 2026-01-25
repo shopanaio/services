@@ -20,7 +20,7 @@ export const useStyles = createStyles(({ token }) => ({
     "& .row-group": {
       fontWeight: 600,
     },
-    "& .row-attribute": {
+    "& .row-child": {
       background: `${token.colorBgContainer} !important`,
     },
     // Transparent resize handles (visible on hover), full height

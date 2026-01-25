@@ -28,3 +28,10 @@ export type {
   SortFieldMapping,
   FilterTransformer,
 } from "./use-page-config";
+
+export { useTreeTableDragDrop } from "./use-tree-table-drag-drop";
+export type {
+  ITreeTableRow,
+  IUseTreeTableDragDropOptions,
+  IUseTreeTableDragDropResult,
+} from "./use-tree-table-drag-drop";

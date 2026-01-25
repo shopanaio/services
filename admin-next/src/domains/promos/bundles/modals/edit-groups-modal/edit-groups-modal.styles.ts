@@ -35,7 +35,7 @@ export const useStyles = createStyles(({ token }) => ({
       fontWeight: 600,
       background: `${token.colorBgLayout} !important`,
     },
-    "& .row-item": {
+    "& .row-child": {
       background: `${token.colorBgContainer} !important`,
     },
     // Transparent resize handles (visible on hover), full height
