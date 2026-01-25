@@ -38,12 +38,8 @@ export const useDependencyChart = ({
     return new Set(initialRules.map((r) => r.id));
   });
 
-  // Track when we need to force layout reset
-  const forceLayoutResetRef = useRef(false);
-
   // Handlers for rule visibility (defined early for use in useDerivedGraph)
   const handleToggleRuleVisibility = useCallback((ruleId: string) => {
-    forceLayoutResetRef.current = true;
     setVisibleRuleIds((prev) => {
       const next = new Set(prev);
       if (next.has(ruleId)) {
@@ -56,7 +52,6 @@ export const useDependencyChart = ({
   }, []);
 
   const handleAddRule = useCallback(() => {
-    forceLayoutResetRef.current = true;
     const newRuleId = uuid();
     const newRule: IDependencyRule = {
       id: newRuleId,
@@ -97,44 +92,24 @@ export const useDependencyChart = ({
   const [nodes, setNodes, onNodesChange] = useNodesState(layoutNodes as Node[]);
   const [edges, setEdges, onEdgesChange] = useEdgesState(derivedEdges as Edge[]);
 
-  // Track previous layout to detect structural changes
-  const prevLayoutRef = useRef<string>("");
+  // Track previous layout key
+  const prevLayoutKeyRef = useRef<string>("");
 
-  // Sync derived data with React Flow state when structure changes
+  // Sync layout when ELK finishes calculating
   useEffect(() => {
-    const currentLayout = layoutNodes.map((n) => `${n.id}:${n.type}`).join(",");
-    const edgeLayout = derivedEdges.map((e) => e.id).join(",");
-    const layoutKey = `${currentLayout}|${edgeLayout}`;
+    if (layoutNodes.length === 0) return;
 
-    const shouldForceReset = forceLayoutResetRef.current;
-    if (shouldForceReset) {
-      forceLayoutResetRef.current = false;
-    }
+    // Create a key based on node IDs and positions to detect real changes
+    const layoutKey = layoutNodes
+      .map((n) => `${n.id}:${n.position.x}:${n.position.y}`)
+      .join("|");
 
-    if (prevLayoutRef.current !== layoutKey || shouldForceReset) {
-      prevLayoutRef.current = layoutKey;
+    if (prevLayoutKeyRef.current === layoutKey) return;
+    prevLayoutKeyRef.current = layoutKey;
 
-      if (shouldForceReset) {
-        // Force complete layout reset - use new positions from ELK
-        setNodes(layoutNodes as Node[]);
-        setTimeout(() => fitView({ padding: 0.2 }), 50);
-      } else {
-        // Merge new layout with existing positions (for drag operations)
-        setNodes((currentNodes) => {
-          const positionMap = new Map(currentNodes.map((n) => [n.id, n.position]));
-
-          return layoutNodes.map((node) => {
-            const existingPos = positionMap.get(node.id);
-            return {
-              ...node,
-              position: existingPos ?? node.position,
-            } as Node;
-          });
-        });
-      }
-
-      setEdges(derivedEdges as Edge[]);
-    }
+    setNodes(layoutNodes as Node[]);
+    setEdges(derivedEdges as Edge[]);
+    requestAnimationFrame(() => fitView({ padding: 0.2 }));
   }, [layoutNodes, derivedEdges, setNodes, setEdges, fitView]);
 
   // Handlers
