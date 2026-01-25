@@ -306,37 +306,64 @@ export const useOptionsStyles = createStyles(({ token }) => ({
 }));
 
 // ============================================================================
-// Bundle Items Section Styles
+// Bundles Section Styles (bundles containing this product)
 // ============================================================================
 
-export const useBundleItemsStyles = createStyles(({ token }) => ({
-  groupCard: {
-    flex: 1,
-    minWidth: 180,
-    padding: 12,
-    background: token.colorBgContainer,
-    borderRadius: 8,
+export const useBundlesSectionStyles = createStyles(({ token }) => ({
+  bundlesGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(2, 1fr)",
+    gap: 12,
+  },
+  bundleCard: {
+    padding: 14,
+    background: token.colorBgLayout,
+    borderRadius: 10,
     border: `1px solid ${token.colorBorderSecondary}`,
-  },
-  groupTitle: {
-    fontSize: 13,
-  },
-  groupItemsCount: {
-    fontSize: 11,
-  },
-  avatarRow: {
-    margin: "12px 0",
-    minHeight: 40,
-    display: "flex",
-    alignItems: "center",
-  },
-  avatarPlaceholder: {
-    "&&": {
-      background: token.colorFillSecondary,
-      color: token.colorTextQuaternary,
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+    "&:hover": {
+      borderColor: token.colorPrimaryBorder,
+      background: token.colorBgContainer,
+      boxShadow: token.boxShadowTertiary,
+    },
+    "&:focus-visible": {
+      outline: `2px solid ${token.colorPrimary}`,
+      outlineOffset: 2,
     },
   },
-  groupMeta: {
-    fontSize: token.fontSizeSM,
+  bundleAvatar: {
+    flexShrink: 0,
+    borderRadius: 8,
+    background: token.colorBgContainerDisabled,
+    "& .ant-avatar-string": {
+      fontSize: 18,
+    },
+  },
+  bundleName: {
+    fontSize: 13,
+    fontWeight: 600,
+    lineHeight: 1.3,
+  },
+  bundleArrow: {
+    fontSize: 10,
+    color: token.colorTextTertiary,
+    flexShrink: 0,
+  },
+  bundleTypeTag: {
+    margin: 0,
+    fontSize: 11,
+    lineHeight: "18px",
+    padding: "0 6px",
+    "& .anticon": {
+      fontSize: 10,
+      marginRight: 3,
+    },
+  },
+  bundleStatusTag: {
+    margin: 0,
+    fontSize: 11,
+    lineHeight: "18px",
+    padding: "0 6px",
   },
 }));

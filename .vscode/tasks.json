@@ -196,7 +196,7 @@
     {
       "label": "Run Admin Next",
       "type": "shell",
-      "command": "source ~/.nvm/nvm.sh && nvm use 22 && yarn dev",
+      "command": "source ~/.nvm/nvm.sh && nvm use 22 && yarn && yarn dev",
       "options": {
         "cwd": "${workspaceFolder}/admin-next",
         "shell": {

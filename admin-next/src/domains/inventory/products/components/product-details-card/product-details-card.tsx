@@ -14,7 +14,7 @@ import {
   ReviewsSection,
   OptionsSection,
   ShippingSection,
-  BundleItemsSection,
+  BundlesSection,
   InventorySection,
   VariantsTableSection,
 } from "./sections";
@@ -133,10 +133,8 @@ export const ProductDetailsCard = ({
         />
       )}
 
-      {/* GROUPS/COMPONENTS */}
-      <BundleItemsSection
-        groups={mockData.bundleItems}
-      />
+      {/* BUNDLES CONTAINING THIS PRODUCT */}
+      <BundlesSection bundles={mockData.includedInBundles} />
 
       <TagsSection tags={mockData.tags} />
 

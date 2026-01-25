@@ -1,6 +1,7 @@
 import { mockCategories } from "./categories";
 import { mockTags } from "./tags";
 import { MOCK_OPTION_GROUPS } from "./options";
+import { mockBundlesList } from "./bundles-list";
 import { createMockData as createAttributesMockData } from "./attributes";
 import type {
   IProductDetailsMockData,
@@ -10,9 +11,9 @@ import {
   type ProductInventoryWidget,
   ThresholdType,
 } from "@/domains/inventory/products/components/product-details-card/inventory-widget.types";
-import { CurrencyCode, OptionDisplayType, type ApiVariant, type ApiPageInfo } from "@/graphql/types";
-import type { IBundleGroup, PricingRuleTemplate, IDependencyRule } from "@/domains/promos/bundles/types";
-import { BundleItemType, BundlePriceType, DependencyActionType, DependencyTargetType } from "@/domains/promos/bundles/types";
+import { CurrencyCode, type ApiVariant, type ApiPageInfo } from "@/graphql/types";
+import type { PricingRuleTemplate, IDependencyRule } from "@/domains/promos/bundles/types";
+import { BundlePriceType, DependencyActionType, DependencyTargetType } from "@/domains/promos/bundles/types";
 import { ConditionCategory, ConditionSubject, StateCheckOperator, LogicOperator, ComparisonOperator } from "@/domains/promos/bundles/dependency-rules";
 
 const getMockInventoryWidget = (): ProductInventoryWidget => ({
@@ -46,221 +47,6 @@ const defaultReviewsData = {
     { stars: 1, count: 3, percent: 2 },
   ],
 };
-
-// Helper to create mock variant for bundle products
-const createBundleVariant = (
-  id: string,
-  title: string,
-  sku: string,
-  price: number,
-  productRef: { id: string; title: string },
-  options: { optionId: string; optionValueId: string }[] = [],
-  isDefault: boolean = false
-): ApiVariant => ({
-  __typename: "Variant",
-  id,
-  title,
-  sku,
-  handle: id,
-  isDefault,
-  inStock: true,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-  selectedOptions: options,
-  price: {
-    __typename: "VariantPrice",
-    id: `price-${id}`,
-    amountMinor: price,
-    compareAtMinor: null,
-    currency: CurrencyCode.Rub,
-    effectiveFrom: new Date().toISOString(),
-    isCurrent: true,
-    recordedAt: new Date().toISOString(),
-  },
-  cost: null,
-  costHistory: { __typename: "VariantCostConnection", edges: [], pageInfo: { __typename: "PageInfo", hasNextPage: false, hasPreviousPage: false, startCursor: null, endCursor: null }, totalCount: 0 },
-  priceHistory: { __typename: "VariantPriceConnection", edges: [], pageInfo: { __typename: "PageInfo", hasNextPage: false, hasPreviousPage: false, startCursor: null, endCursor: null }, totalCount: 0 },
-  weight: null,
-  dimensions: null,
-  media: [],
-  stock: [],
-  product: {
-    __typename: "Product",
-    id: productRef.id,
-    title: productRef.title,
-  } as ApiVariant["product"],
-});
-
-// Product reference for Premium Case
-const premiumCaseProductRef = { id: "prod-1", title: "Premium Case" };
-
-// Mock variants for Premium Case product (default only)
-const premiumCaseVariants: ApiVariant[] = [
-  createBundleVariant("case-var-1", "Black", "CASE-BLK", 199000, premiumCaseProductRef, [{ optionId: "color", optionValueId: "black" }], true),
-];
-
-// Mock bundle groups with new structure
-const mockBundleGroups: IBundleGroup[] = [
-  {
-    id: "grp-1",
-    title: "Accessories",
-    sortIndex: 0,
-    minSelection: 1,
-    maxSelection: 5,
-    items: [
-      {
-        id: "item-1",
-        itemType: BundleItemType.PRODUCT,
-        assignedProduct: {
-          __typename: "Product",
-          id: "prod-1",
-          title: "Premium Case",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          isPublished: true,
-          options: [
-            {
-              __typename: "ProductOption",
-              id: "color",
-              name: "Color",
-              slug: "color",
-              displayType: OptionDisplayType.Swatch,
-              values: [
-                { __typename: "ProductOptionValue", id: "black", name: "Black", slug: "black" },
-              ],
-            },
-          ],
-          features: [],
-          variants: {
-            __typename: "VariantConnection",
-            edges: premiumCaseVariants.map((v) => ({ __typename: "VariantEdge" as const, cursor: v.id, node: v })),
-            pageInfo: { __typename: "PageInfo", hasNextPage: false, hasPreviousPage: false, startCursor: null, endCursor: null },
-            totalCount: 1,
-          },
-          variantsCount: 1,
-        },
-        sortIndex: 0,
-        minQty: 1,
-        maxQty: 3,
-        pricingRule: {
-          priceType: BundlePriceType.BASE,
-          priceValue: null,
-        },
-        title: null,
-        featuredImage: null,
-      },
-      {
-        id: "item-2",
-        itemType: BundleItemType.PRODUCT,
-        assignedProduct: {
-          __typename: "Product",
-          id: "prod-2",
-          title: "Pro Charger 65W",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          isPublished: true,
-          options: [],
-          features: [],
-          variants: { __typename: "VariantConnection", edges: [], pageInfo: { __typename: "PageInfo", hasNextPage: false, hasPreviousPage: false, startCursor: null, endCursor: null }, totalCount: 0 },
-          variantsCount: 0,
-        },
-        sortIndex: 1,
-        minQty: null,
-        maxQty: 2,
-        pricingRule: {
-          priceType: BundlePriceType.DISCOUNT_PERCENT,
-          priceValue: 10,
-        },
-        title: null,
-        featuredImage: null,
-      },
-      {
-        id: "item-3",
-        itemType: BundleItemType.PRODUCT,
-        assignedProduct: {
-          __typename: "Product",
-          id: "prod-3",
-          title: "Screen Protector",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          isPublished: true,
-          options: [],
-          features: [],
-          variants: { __typename: "VariantConnection", edges: [], pageInfo: { __typename: "PageInfo", hasNextPage: false, hasPreviousPage: false, startCursor: null, endCursor: null }, totalCount: 0 },
-          variantsCount: 0,
-        },
-        sortIndex: 2,
-        minQty: null,
-        maxQty: null,
-        pricingRule: {
-          priceType: BundlePriceType.FREE,
-          priceValue: null,
-        },
-        title: null,
-        featuredImage: null,
-      },
-    ],
-  },
-  {
-    id: "grp-2",
-    title: "Warranty",
-    sortIndex: 1,
-    minSelection: null,
-    maxSelection: 1,
-    items: [
-      {
-        id: "item-4",
-        itemType: BundleItemType.PRODUCT,
-        assignedProduct: {
-          __typename: "Product",
-          id: "war-1",
-          title: "1 Year Standard Warranty",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          isPublished: true,
-          options: [],
-          features: [],
-          variants: { __typename: "VariantConnection", edges: [], pageInfo: { __typename: "PageInfo", hasNextPage: false, hasPreviousPage: false, startCursor: null, endCursor: null }, totalCount: 0 },
-          variantsCount: 0,
-        },
-        sortIndex: 0,
-        minQty: null,
-        maxQty: 1,
-        pricingRule: {
-          priceType: BundlePriceType.FREE,
-          priceValue: null,
-        },
-        title: "1 Year Standard Warranty (included)",
-        featuredImage: null,
-      },
-      {
-        id: "item-5",
-        itemType: BundleItemType.PRODUCT,
-        assignedProduct: {
-          __typename: "Product",
-          id: "war-2",
-          title: "2 Year Extended Warranty",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          isPublished: true,
-          options: [],
-          features: [],
-          variants: { __typename: "VariantConnection", edges: [], pageInfo: { __typename: "PageInfo", hasNextPage: false, hasPreviousPage: false, startCursor: null, endCursor: null }, totalCount: 0 },
-          variantsCount: 0,
-        },
-        sortIndex: 1,
-        minQty: null,
-        maxQty: 1,
-        pricingRule: {
-          priceType: BundlePriceType.FIXED,
-          priceValue: 12990,
-        },
-        title: null,
-        featuredImage: null,
-      },
-    ],
-  },
-];
 
 // Mock Pricing Templates
 const mockPricingTemplates: PricingRuleTemplate[] = [
@@ -745,10 +531,10 @@ export const productDetailsMockData: IProductDetailsMockData = {
   reviews: defaultReviewsData,
   attributes: createAttributesMockData(),
   options: MOCK_OPTION_GROUPS,
-  bundleItems: mockBundleGroups,
   pricingTemplates: mockPricingTemplates,
   dependencyRules: mockDependencyRules,
   inventory: getMockInventoryWidget(),
+  includedInBundles: mockBundlesList.slice(0, 4),
 };
 
 // ============================================================================
