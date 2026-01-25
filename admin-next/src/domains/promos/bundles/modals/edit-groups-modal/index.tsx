@@ -20,6 +20,7 @@ import {
 } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useAgGridTheme, useTreeTableDragDrop } from "@/hooks";
+import { useBundleItemVariantSettingsModal } from "@/domains/promos/bundles/modals";
 
 // Entity Picker Modal
 import "@/shared/components/entity-picker-modal/register";
@@ -163,6 +164,7 @@ export const EditGroupsModal = () => {
   const { styles } = useStyles();
   const agGridTheme = useAgGridTheme();
   const { pop, setDirty, payload } = useModalStackContext();
+  const { push: openVariantSettingsModal } = useBundleItemVariantSettingsModal();
 
   const modalPayload = payload as unknown as IEditGroupsModalPayload | undefined;
   const pricingTemplates = modalPayload?.pricingTemplates ?? [];
@@ -170,9 +172,13 @@ export const EditGroupsModal = () => {
   // Track which group we're adding items to
   const [addingToGroupId, setAddingToGroupId] = useState<string | null>(null);
 
+  // Track products that were expanded to show variants (for "show as product" reversal)
+  const [expandedProducts, setExpandedProducts] = useState<Map<string, ITableRow>>(new Map());
+
   // Use shared drag-drop hook
   const {
     allRows,
+    setAllRows,
     visibleRows,
     expandedIds,
     handleToggleExpand,
@@ -307,6 +313,176 @@ export const EditGroupsModal = () => {
     [updateRow]
   );
 
+  // ========================================
+  // Variant Handlers
+  // ========================================
+
+  const handleEditVariants = useCallback(
+    (row: ITableRow) => {
+      if (row.itemType !== "PRODUCT" || !row.assignedProduct) return;
+
+      const assignedProduct = row.assignedProduct;
+      const variantsFromConnection =
+        assignedProduct.variants?.edges?.map((e) => e.node) ?? [];
+
+      const priceType = row.pricingRule && "id" in row.pricingRule
+        ? "BASE"
+        : row.pricingRule?.priceType ?? "BASE";
+      const priceValue = row.pricingRule && "id" in row.pricingRule
+        ? null
+        : row.pricingRule?.priceValue ?? null;
+
+      openVariantSettingsModal({
+        itemId: row.id,
+        productId: assignedProduct.id,
+        productTitle: row.title ?? assignedProduct.title,
+        availableVariantIds: row.excludeAssignedProductVariants ?? null,
+        priceType: priceType as any,
+        priceValue,
+        variants: variantsFromConnection.map((v) => ({
+          id: v.id,
+          title: v.title ?? v.sku ?? v.id,
+          sku: v.sku ?? "",
+          price:
+            typeof v.price?.amountMinor === "bigint"
+              ? Number(v.price.amountMinor)
+              : typeof v.price?.amountMinor === "number"
+              ? v.price.amountMinor
+              : 0,
+          stock: v.stock?.[0]?.quantityOnHand ?? 0,
+          options: v.selectedOptions?.map((o) => ({
+            optionId: o.optionId,
+            value: o.optionValueId,
+          })),
+        })),
+        options: assignedProduct.options?.map((o) => ({
+          id: o.id,
+          name: o.name,
+          values: o.values?.map((v) => v.name) ?? [],
+        })),
+        showAsVariants: false,
+        onSave: (data: { availableVariantIds: string[] | null; showAsVariants: boolean }) => {
+          updateRow(row.id, {
+            excludeAssignedProductVariants: data.availableVariantIds
+          } as Partial<ITableRow>);
+        },
+      });
+    },
+    [openVariantSettingsModal, updateRow]
+  );
+
+  const handleIncludeVariants = useCallback(
+    (row: ITableRow) => {
+      if (row.itemType !== "PRODUCT" || !row.assignedProduct) return;
+
+      const assignedProduct = row.assignedProduct;
+      const variantsFromConnection =
+        assignedProduct.variants?.edges?.map((e) => e.node) ?? [];
+      if (variantsFromConnection.length === 0) return;
+
+      // Save the original product row for "show as product" reversal
+      setExpandedProducts((prev) => new Map(prev).set(assignedProduct.id, row));
+
+      // Replace the product row with variant rows
+      setAllRows((prev) => {
+        const productIndex = prev.findIndex((r) => r.id === row.id);
+        if (productIndex === -1) return prev;
+
+        const variantRows: ITableRow[] = variantsFromConnection.map(
+          (variant, index) => ({
+            id: `item-${Date.now()}-${index}`,
+            type: "item" as const,
+            name: variant.title ?? variant.sku ?? "Unknown Variant",
+            parentId: row.parentId,
+            sortIndex: row.sortIndex + index,
+            level: 1,
+            itemType: "VARIANT" as const,
+            assignedVariant: variant,
+            minQty: row.minQty,
+            maxQty: row.maxQty,
+            pricingRule: row.pricingRule,
+            title: row.title,
+            featuredImage: row.featuredImage,
+          })
+        );
+
+        // Remove the product row and insert variant rows
+        const newRows = [...prev];
+        newRows.splice(productIndex, 1, ...variantRows);
+
+        // Reindex sortIndex for items in this group
+        return newRows.map((r, idx) => {
+          if (r.parentId === row.parentId && r.type === "item") {
+            const itemsInGroup = newRows.filter(
+              (x) => x.parentId === row.parentId && x.type === "item"
+            );
+            const itemIndex = itemsInGroup.findIndex((x) => x.id === r.id);
+            return { ...r, sortIndex: itemIndex };
+          }
+          return r;
+        });
+      });
+    },
+    [setAllRows]
+  );
+
+  const handleShowAsProduct = useCallback(
+    (row: ITableRow) => {
+      if (row.itemType !== "VARIANT" || !row.assignedVariant) return;
+
+      const productId = row.assignedVariant.product?.id;
+      if (!productId) return;
+
+      const storedProduct = expandedProducts.get(productId);
+      if (!storedProduct) return;
+
+      // Remove from expandedProducts map
+      setExpandedProducts((prev) => {
+        const newMap = new Map(prev);
+        newMap.delete(productId);
+        return newMap;
+      });
+
+      // Replace all variant rows with the original product row
+      setAllRows((prev) => {
+        const firstVariantIndex = prev.findIndex(
+          (r) =>
+            r.itemType === "VARIANT" &&
+            r.assignedVariant?.product?.id === productId
+        );
+        if (firstVariantIndex === -1) return prev;
+
+        // Remove all variants of this product
+        const newRows = prev.filter(
+          (r) =>
+            !(
+              r.itemType === "VARIANT" &&
+              r.assignedVariant?.product?.id === productId
+            )
+        );
+
+        // Insert the original product row
+        newRows.splice(firstVariantIndex, 0, {
+          ...storedProduct,
+          sortIndex: firstVariantIndex,
+        });
+
+        // Reindex sortIndex for items in this group
+        return newRows.map((r) => {
+          if (r.parentId === storedProduct.parentId && r.type === "item") {
+            const itemsInGroup = newRows.filter(
+              (x) => x.parentId === storedProduct.parentId && x.type === "item"
+            );
+            const itemIndex = itemsInGroup.findIndex((x) => x.id === r.id);
+            return { ...r, sortIndex: itemIndex };
+          }
+          return r;
+        });
+      });
+    },
+    [expandedProducts, setAllRows]
+  );
+
   const handleCellValueChanged = useCallback(
     (event: CellValueChangedEvent<ITableRow>) => {
       const { data, colDef, newValue } = event;
@@ -396,6 +572,9 @@ export const EditGroupsModal = () => {
           onAddItem: handleAddItem,
           onDuplicateGroup: handleDuplicateGroup,
           onDuplicateItem: handleDuplicateItem,
+          onEditVariants: handleEditVariants,
+          onIncludeVariants: handleIncludeVariants,
+          onShowAsProduct: handleShowAsProduct,
         },
         sortable: false,
         filter: false,
@@ -411,6 +590,9 @@ export const EditGroupsModal = () => {
       handleAddItem,
       handleDuplicateGroup,
       handleDuplicateItem,
+      handleEditVariants,
+      handleIncludeVariants,
+      handleShowAsProduct,
     ]
   );
 
