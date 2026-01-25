@@ -286,11 +286,12 @@ export const useDerivedGraph = ({
 
     // ========================================================================
     // GLOBAL condition hubs: key = label only (one hub per unique condition)
-    // Multiple sources and rules share the same hub if condition is the same
+    // Track which (sourceItem, rule) pairs exist for proper highlighting
     // ========================================================================
     interface ConditionHubData {
       label: string;
-      sourceNodeIds: Set<string>;
+      // Map: sourceNodeId → Set of ruleIds that use this source with this condition
+      sourceToRules: Map<string, Set<string>>;
       ruleIds: Set<string>;
       isEnabled: boolean;
     }
@@ -304,17 +305,22 @@ export const useDerivedGraph = ({
         if (!sourceNodeId || !nodeIds.has(sourceNodeId)) return;
 
         const label = formatCondition(condition);
-        const hubKey = label; // Key is just the label — one hub per unique condition
+        const hubKey = label;
 
         const existing = conditionHubs.get(hubKey);
         if (existing) {
-          existing.sourceNodeIds.add(sourceNodeId);
+          if (!existing.sourceToRules.has(sourceNodeId)) {
+            existing.sourceToRules.set(sourceNodeId, new Set());
+          }
+          existing.sourceToRules.get(sourceNodeId)!.add(rule.id);
           existing.ruleIds.add(rule.id);
           if (rule.enabled) existing.isEnabled = true;
         } else {
+          const sourceToRules = new Map<string, Set<string>>();
+          sourceToRules.set(sourceNodeId, new Set([rule.id]));
           conditionHubs.set(hubKey, {
             label,
-            sourceNodeIds: new Set([sourceNodeId]),
+            sourceToRules,
             ruleIds: new Set([rule.id]),
             isEnabled: rule.enabled,
           });
@@ -324,11 +330,12 @@ export const useDerivedGraph = ({
 
     // ========================================================================
     // GLOBAL action hubs: key = label only (one hub per unique action)
-    // Multiple targets and rules share the same hub if action is the same
+    // Track which (rule, targetItem) pairs exist for proper highlighting
     // ========================================================================
     interface ActionHubData {
       label: string;
-      targetNodeIds: Set<string>;
+      // Map: targetNodeId → Set of ruleIds that target this item with this action
+      targetToRules: Map<string, Set<string>>;
       ruleIds: Set<string>;
       isEnabled: boolean;
     }
@@ -340,17 +347,22 @@ export const useDerivedGraph = ({
         if (!targetNodeId || !nodeIds.has(targetNodeId)) return;
 
         const label = formatAction(action);
-        const hubKey = label; // Key is just the label — one hub per unique action
+        const hubKey = label;
 
         const existing = actionHubs.get(hubKey);
         if (existing) {
-          existing.targetNodeIds.add(targetNodeId);
+          if (!existing.targetToRules.has(targetNodeId)) {
+            existing.targetToRules.set(targetNodeId, new Set());
+          }
+          existing.targetToRules.get(targetNodeId)!.add(rule.id);
           existing.ruleIds.add(rule.id);
           if (rule.enabled) existing.isEnabled = true;
         } else {
+          const targetToRules = new Map<string, Set<string>>();
+          targetToRules.set(targetNodeId, new Set([rule.id]));
           actionHubs.set(hubKey, {
             label,
-            targetNodeIds: new Set([targetNodeId]),
+            targetToRules,
             ruleIds: new Set([rule.id]),
             isEnabled: rule.enabled,
           });
@@ -363,7 +375,7 @@ export const useDerivedGraph = ({
     // ========================================================================
     let hubIndex = 0;
 
-    conditionHubs.forEach((hubData, hubKey) => {
+    conditionHubs.forEach((hubData) => {
       const hubId = `hub:cond:${hubIndex++}`;
 
       nodes.push({
@@ -378,8 +390,8 @@ export const useDerivedGraph = ({
         position: { x: 0, y: 0 },
       });
 
-      // Edges: all sources → hub (condition color)
-      hubData.sourceNodeIds.forEach((sourceNodeId) => {
+      // Edges: source → hub (with ruleIds metadata for highlighting)
+      hubData.sourceToRules.forEach((ruleIdsForSource, sourceNodeId) => {
         edges.push({
           id: `e:${sourceNodeId}->${hubId}`,
           source: sourceNodeId,
@@ -388,10 +400,11 @@ export const useDerivedGraph = ({
           animated: false,
           style: { strokeWidth: 1, stroke: conditionColor },
           markerEnd: { type: MarkerType.ArrowClosed, color: conditionColor },
+          data: { ruleIds: [...ruleIdsForSource] },
         });
       });
 
-      // Edges: hub → all rules (condition color)
+      // Edges: hub → rule
       hubData.ruleIds.forEach((ruleId) => {
         const ruleNodeId = `rule:${ruleId}`;
         edges.push({
@@ -402,6 +415,7 @@ export const useDerivedGraph = ({
           animated: false,
           style: { strokeWidth: 1, stroke: conditionColor },
           markerEnd: { type: MarkerType.ArrowClosed, color: conditionColor },
+          data: { ruleIds: [ruleId] },
         });
       });
     });
@@ -424,7 +438,7 @@ export const useDerivedGraph = ({
         position: { x: 0, y: 0 },
       });
 
-      // Edges: all rules → hub (action color)
+      // Edges: rule → hub
       hubData.ruleIds.forEach((ruleId) => {
         const ruleNodeId = `rule:${ruleId}`;
         edges.push({
@@ -435,11 +449,12 @@ export const useDerivedGraph = ({
           animated: false,
           style: { strokeWidth: 1, stroke: actionColor },
           markerEnd: { type: MarkerType.ArrowClosed, color: actionColor },
+          data: { ruleIds: [ruleId] },
         });
       });
 
-      // Edges: hub → all targets (action color)
-      hubData.targetNodeIds.forEach((targetNodeId) => {
+      // Edges: hub → target (with ruleIds metadata for highlighting)
+      hubData.targetToRules.forEach((ruleIdsForTarget, targetNodeId) => {
         edges.push({
           id: `e:${hubId}->${targetNodeId}`,
           source: hubId,
@@ -448,6 +463,7 @@ export const useDerivedGraph = ({
           animated: false,
           style: { strokeWidth: 1, stroke: actionColor },
           markerEnd: { type: MarkerType.ArrowClosed, color: actionColor },
+          data: { ruleIds: [...ruleIdsForTarget] },
         });
       });
     });

@@ -1,10 +1,6 @@
 import type { Node, Edge } from "@xyflow/react";
 import type { BundleItem, IBundleGroup } from "@/domains/promos/bundles/types";
-import type {
-  IDependencyRule,
-  IDependencyCondition,
-  IDependencyAction,
-} from "@/domains/promos/bundles/dependency-rules";
+import type { IDependencyRule } from "@/domains/promos/bundles/dependency-rules";
 
 // ============================================================================
 // Sort Mode
@@ -118,22 +114,10 @@ export type ChartNode = ItemNode | RuleNode | BundleNode | HubNode;
 // Edge Data Types (with index signature for React Flow compatibility)
 // ============================================================================
 
-export interface ConditionEdgeData {
-  condition: IDependencyCondition;
-  label: string;
-  /** All labels for edges pointing to the same target */
-  labels?: string[];
-  tagColor?: string;
+export interface ChartEdgeData {
+  /** Rule IDs this edge belongs to (for path highlighting) */
+  ruleIds?: string[];
   [key: string]: unknown;
 }
 
-export interface ActionEdgeData {
-  action: IDependencyAction;
-  label: string;
-  /** All labels for edges pointing to the same target */
-  labels?: string[];
-  tagColor?: string;
-  [key: string]: unknown;
-}
-
-export type ChartEdge = Edge<ConditionEdgeData | ActionEdgeData>;
+export type ChartEdge = Edge<ChartEdgeData>;
