@@ -10,6 +10,8 @@ export type GraphQLFileName =
   | 'iam-api/Organizations'
   | 'iam-api/OwnershipTransfer'
   | 'inventory-api/ProductCreate'
+  | 'inventory-api/ProductCreateSimple'
+  | 'inventory-api/ProductFeaturesSync'
   | 'inventory-api/ProductFindMany'
   | 'inventory-api/ProductFindOne'
   | 'inventory-api/VariantCreate'

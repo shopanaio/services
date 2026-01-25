@@ -1,0 +1,47 @@
+mutation ProductFeaturesSync($input: ProductFeaturesSyncInput!) {
+  inventoryMutation {
+    productFeaturesSync(input: $input) {
+      product {
+        id
+        title
+        features {
+          id
+          index
+          isGroup
+          name
+          parent {
+            id
+          }
+          children {
+            id
+            name
+          }
+          values {
+            id
+            index
+            name
+          }
+        }
+      }
+      features {
+        id
+        index
+        isGroup
+        name
+        parent {
+          id
+        }
+        values {
+          id
+          index
+          name
+        }
+      }
+      userErrors {
+        message
+        field
+        code
+      }
+    }
+  }
+}
