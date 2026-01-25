@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { Select } from "antd";
+import { DownOutlined } from "@ant-design/icons";
 import type { ICellRendererParams } from "ag-grid-community";
 import type { ITableRow } from "../types";
 import type { PricingRuleTemplate, BundleItem } from "../../../types";
@@ -27,6 +29,8 @@ export const PriceRuleCellRenderer = ({
   pricingTemplates,
   onPriceRuleChange,
 }: IPriceRuleCellRendererParams) => {
+  const [open, setOpen] = useState(false);
+
   if (!data || data.type === "group") return null;
 
   const { pricingRule } = data;
@@ -82,27 +86,42 @@ export const PriceRuleCellRenderer = ({
         priceValue: rule?.requiresValue ? prevValue ?? 0 : null,
       });
     }
+    setOpen(false);
+  };
+
+  const handleArrowClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setOpen((prev) => !prev);
   };
 
   return (
     <Select
+      open={open}
+      onOpenChange={(visible) => {
+        if (!visible) setOpen(false);
+      }}
+      suffixIcon={
+        <DownOutlined
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={handleArrowClick}
+        />
+      }
       value={currentValue}
       onChange={handleChange}
       options={options}
       size="small"
       style={{ width: "100%" }}
       popupMatchSelectWidth={false}
+      variant="borderless"
     />
   );
 };
 
 // Price Value Cell Renderer
-export interface IPriceValueCellRendererParams
-  extends ICellRendererParams<ITableRow> {}
-
 export const PriceValueCellRenderer = ({
   data,
-}: IPriceValueCellRendererParams) => {
+}: ICellRendererParams<ITableRow>) => {
   if (!data || data.type === "group") return null;
 
   const rule = data.pricingRule;
