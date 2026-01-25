@@ -577,8 +577,8 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
         {
           headerName: "Visible",
           field: "visible",
-          minWidth: 100,
-          width: 100,
+          minWidth: 120,
+          width: 120,
           suppressDoubleClickEdit: true,
           cellStyle: { padding: 0 },
           cellRenderer: (params: ICellRendererParams<ITableRow>) => (
@@ -594,8 +594,8 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
         {
           headerName: "Selected",
           field: "selected",
-          minWidth: 100,
-          width: 100,
+          minWidth: 120,
+          width: 120,
           suppressDoubleClickEdit: true,
           cellStyle: { padding: 0 },
           cellRenderer: (params: ICellRendererParams<ITableRow>) => (
@@ -611,8 +611,8 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
         {
           headerName: "Min Qty",
           field: "minSelection",
-          minWidth: 100,
-          width: 100,
+          minWidth: 120,
+          width: 120,
           editable: true,
           valueGetter: (params) => {
             if (!params.data) return null;
@@ -639,8 +639,8 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
         {
           headerName: "Max Qty",
           field: "maxSelection",
-          minWidth: 100,
-          width: 100,
+          minWidth: 120,
+          width: 120,
           editable: true,
           valueGetter: (params) => {
             if (!params.data) return null;
@@ -667,8 +667,8 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
         {
           headerName: "Pricing Rule",
           field: "pricingRule",
-          minWidth: 150,
-          width: 150,
+          minWidth: 200,
+          width: 200,
           suppressDoubleClickEdit: true,
           cellStyle: { padding: 0 },
           cellRenderer: (params: ICellRendererParams<ITableRow>) => (
@@ -682,8 +682,8 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
         {
           headerName: "Pricing Value",
           field: "pricingRule",
-          minWidth: 100,
-          width: 100,
+          minWidth: 120,
+          width: 120,
           resizable: false,
           editable: (params) => {
             if (params.data?.type !== "item") return false;

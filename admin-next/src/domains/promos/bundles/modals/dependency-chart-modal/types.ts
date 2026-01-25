@@ -1,5 +1,5 @@
 import type { Node, Edge } from "@xyflow/react";
-import type { BundleItem } from "@/domains/promos/bundles/types";
+import type { BundleItem, IBundleGroup } from "@/domains/promos/bundles/types";
 import type {
   IDependencyRule,
   IDependencyCondition,
@@ -20,6 +20,40 @@ export interface ItemNodeData {
   isGroup?: boolean;
   [key: string]: unknown;
 }
+
+// ============================================================================
+// Selected Node Types
+// ============================================================================
+
+export type SelectedNodeType = "rule" | "item" | "group" | "bundle" | null;
+
+export interface SelectedRuleNode {
+  type: "rule";
+  rule: IDependencyRule;
+}
+
+export interface SelectedItemNode {
+  type: "item";
+  item: BundleItem;
+  group: IBundleGroup;
+}
+
+export interface SelectedGroupNode {
+  type: "group";
+  group: IBundleGroup;
+}
+
+export interface SelectedBundleNode {
+  type: "bundle";
+  label: string;
+}
+
+export type SelectedNode =
+  | SelectedRuleNode
+  | SelectedItemNode
+  | SelectedGroupNode
+  | SelectedBundleNode
+  | null;
 
 export interface RuleNodeData {
   rule: IDependencyRule;

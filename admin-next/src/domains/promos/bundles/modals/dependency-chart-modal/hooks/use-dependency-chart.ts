@@ -2,7 +2,8 @@ import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { useReactFlow, useNodesState, useEdgesState } from "@xyflow/react";
 import type { Node, Edge } from "@xyflow/react";
 
-import type { IDependencyRule, IBundleGroup } from "@/domains/promos/bundles/types";
+import type { IDependencyRule, IBundleGroup, BundleItem } from "@/domains/promos/bundles/types";
+import type { SelectedNode, ItemNodeData, BundleNodeData } from "../types";
 import { useDerivedGraph } from "./use-derived-graph";
 import { useColumnLayout } from "./use-column-layout";
 
@@ -24,6 +25,7 @@ export const useDependencyChart = ({
   const [selectedRuleId, setSelectedRuleId] = useState<string | null>(
     initialSelectedRuleId ?? null
   );
+  const [selectedNode, setSelectedNode] = useState<SelectedNode>(null);
 
   // Derive graph from draft rules
   const { nodes: derivedNodes, edges: derivedEdges } = useDerivedGraph({
@@ -73,13 +75,39 @@ export const useDependencyChart = ({
 
   // Handlers
   const handleNodeClick = useCallback(
-    (_event: React.MouseEvent, node: { id: string; type?: string }) => {
+    (_event: React.MouseEvent, node: Node) => {
       if (node.type === "rule") {
         const ruleId = node.id.replace("rule:", "");
         setSelectedRuleId(ruleId);
+        const rule = draftRules.find((r) => r.id === ruleId);
+        if (rule) {
+          setSelectedNode({ type: "rule", rule });
+        }
+      } else if (node.type === "item") {
+        const data = node.data as ItemNodeData;
+        setSelectedRuleId(null);
+
+        if (data.isGroup) {
+          // This is a group node
+          const group = groups.find((g) => g.id === data.groupId);
+          if (group) {
+            setSelectedNode({ type: "group", group });
+          }
+        } else {
+          // This is an item node
+          const group = groups.find((g) => g.id === data.groupId);
+          const item = group?.items.find((i) => i.id === data.item.id);
+          if (group && item) {
+            setSelectedNode({ type: "item", item, group });
+          }
+        }
+      } else if (node.type === "bundle") {
+        const data = node.data as BundleNodeData;
+        setSelectedRuleId(null);
+        setSelectedNode({ type: "bundle", label: data.label });
       }
     },
-    []
+    [draftRules, groups]
   );
 
   const handleRuleChange = useCallback((updatedRule: IDependencyRule) => {
@@ -103,11 +131,20 @@ export const useDependencyChart = ({
     [draftRules, selectedRuleId]
   );
 
+  // Keep selectedNode in sync when rule data changes
+  const currentSelectedNode = useMemo((): SelectedNode => {
+    if (selectedNode?.type === "rule" && selectedRule) {
+      return { type: "rule", rule: selectedRule };
+    }
+    return selectedNode;
+  }, [selectedNode, selectedRule]);
+
   return {
     nodes,
     edges,
     draftRules,
     selectedRule,
+    selectedNode: currentSelectedNode,
     onNodesChange,
     onEdgesChange,
     handleNodeClick,

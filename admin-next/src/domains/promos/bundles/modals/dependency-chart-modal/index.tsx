@@ -21,7 +21,7 @@ import type { IDependencyRule, IBundleGroup } from "@/domains/promos/bundles/typ
 
 import { ItemNode, RuleNode, BundleNode } from "./nodes";
 import { LabeledEdge } from "./edges";
-import { RuleInspector } from "./sidebar/rule-inspector";
+import { NodeInspector } from "./sidebar/node-inspector";
 import { useDependencyChart } from "./hooks";
 import { useStyles } from "./dependency-chart-modal.styles";
 
@@ -64,7 +64,7 @@ const DependencyChartInner = ({
     nodes,
     edges,
     draftRules,
-    selectedRule,
+    selectedNode,
     onNodesChange,
     onEdgesChange,
     handleNodeClick,
@@ -127,8 +127,8 @@ const DependencyChartInner = ({
           </div>
         </div>
 
-        <RuleInspector
-          rule={selectedRule}
+        <NodeInspector
+          selectedNode={selectedNode}
           groups={groups}
           onRuleChange={handleRuleChange}
         />
