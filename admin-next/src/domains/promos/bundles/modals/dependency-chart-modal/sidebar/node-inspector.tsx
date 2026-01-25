@@ -5,9 +5,10 @@ import {
   Typography,
   Button,
   Empty,
-  Descriptions,
   Avatar,
   Tag,
+  Flex,
+  Divider,
 } from "antd";
 import {
   LeftOutlined,
@@ -15,6 +16,13 @@ import {
   FolderOutlined,
   PictureOutlined,
   GiftOutlined,
+  EyeOutlined,
+  EyeInvisibleOutlined,
+  CheckCircleOutlined,
+  MinusCircleOutlined,
+  NumberOutlined,
+  DollarOutlined,
+  AppstoreOutlined,
 } from "@ant-design/icons";
 
 import type { IBundleGroup, BundleItem } from "@/domains/promos/bundles/types";
@@ -25,10 +33,11 @@ import {
 } from "@/domains/promos/bundles/types";
 import { CHART_NODE_ICONS } from "@/domains/promos/bundles/dependency-rules";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
+import { KPITile } from "@/ui-kit/kpi-tile";
 
 import type { SelectedNode } from "../types";
 import { RuleInspector } from "./rule-inspector";
-import { useStyles } from "./rule-inspector.styles";
+import { useStyles } from "./node-inspector.styles";
 
 // ============================================================================
 // Types
@@ -45,13 +54,8 @@ interface INodeInspectorProps {
 // ============================================================================
 
 const getItemImageUrl = (item: BundleItem): string | undefined => {
-  return (
-    item.featuredImage?.url ??
-    item.assignedProduct?.featuredImage?.url ??
-    item.assignedVariant?.featuredImage?.url ??
-    item.assignedVariant?.product?.featuredImage?.url ??
-    undefined
-  );
+  // BundleItem has its own featuredImage field
+  return item.featuredImage?.url ?? undefined;
 };
 
 const getItemTitle = (item: BundleItem): string => {
@@ -68,7 +72,7 @@ const getVariantTitle = (item: BundleItem): string | undefined => {
 };
 
 const getPriceRuleLabel = (item: BundleItem): string => {
-  if (!item.pricingRule) return "No pricing rule";
+  if (!item.pricingRule) return "No rule";
   if ("name" in item.pricingRule) {
     return item.pricingRule.name;
   }
@@ -77,9 +81,20 @@ const getPriceRuleLabel = (item: BundleItem): string => {
   );
   if (!option) return "Unknown";
   if (option.requiresValue && item.pricingRule.priceValue !== null) {
-    return `${option.label}: ${item.pricingRule.priceValue}${option.valueSuffix ?? ""}`;
+    return `${item.pricingRule.priceValue}${option.valueSuffix ?? ""}`;
   }
   return option.label;
+};
+
+const getPriceRuleType = (item: BundleItem): string => {
+  if (!item.pricingRule) return "None";
+  if ("name" in item.pricingRule) {
+    return "Template";
+  }
+  const option = PRICE_RULE_OPTIONS.find(
+    (o) => o.value === item.pricingRule.priceType
+  );
+  return option?.label ?? "Unknown";
 };
 
 // ============================================================================
@@ -97,55 +112,90 @@ const ItemInspectorContent = ({ item, group }: IItemInspectorContentProps) => {
   const title = getItemTitle(item);
   const variantTitle = getVariantTitle(item);
 
+  const isVisible = item.visible !== "no";
+  const isPreSelected = item.selected === "yes";
+
   return (
     <div className={styles.content}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+      {/* Header with image and title */}
+      <div className={styles.header}>
         <Avatar
-          size={56}
+          size={64}
           src={imageUrl}
           icon={<PictureOutlined />}
+          className={styles.avatar}
         />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <Typography.Text style={{ fontSize: 11, color: "#888", display: "block" }}>
+        <div className={styles.headerInfo}>
+          <Typography.Text type="secondary" className={styles.groupLabel}>
             {group.title}
           </Typography.Text>
-          <Typography.Text strong style={{ fontSize: 14 }}>
+          <Typography.Text strong className={styles.title}>
             {title}
           </Typography.Text>
           {variantTitle && (
-            <Typography.Text style={{ fontSize: 12, color: "#1890ff", display: "block" }}>
+            <Tag color="blue" className={styles.variantTag}>
               {variantTitle}
-            </Typography.Text>
+            </Tag>
           )}
         </div>
       </div>
 
-      <Descriptions column={1} size="small" bordered>
-        <Descriptions.Item label="ID">
-          <Typography.Text copyable code style={{ fontSize: 11 }}>
-            {item.id}
-          </Typography.Text>
-        </Descriptions.Item>
-        <Descriptions.Item label="Type">
-          <Tag>{ITEM_TYPE_LABELS[item.itemType]}</Tag>
-        </Descriptions.Item>
-        <Descriptions.Item label="Quantity">
-          {item.minQty ?? 1} - {item.maxQty ?? "unlimited"}
-        </Descriptions.Item>
-        <Descriptions.Item label="Pricing Rule">
-          {getPriceRuleLabel(item)}
-        </Descriptions.Item>
-        <Descriptions.Item label="Visible">
-          <Tag color={item.visible === "no" ? "default" : "green"}>
-            {item.visible === "no" ? "No" : "Yes"}
-          </Tag>
-        </Descriptions.Item>
-        <Descriptions.Item label="Pre-selected">
-          <Tag color={item.selected === "yes" ? "blue" : "default"}>
-            {item.selected === "yes" ? "Yes" : "No"}
-          </Tag>
-        </Descriptions.Item>
-      </Descriptions>
+      {/* Status badges */}
+      <Flex gap={8} className={styles.statusRow}>
+        <Tag
+          icon={isVisible ? <EyeOutlined /> : <EyeInvisibleOutlined />}
+          color={isVisible ? "success" : "default"}
+        >
+          {isVisible ? "Visible" : "Hidden"}
+        </Tag>
+        <Tag
+          icon={isPreSelected ? <CheckCircleOutlined /> : <MinusCircleOutlined />}
+          color={isPreSelected ? "blue" : "default"}
+        >
+          {isPreSelected ? "Pre-selected" : "Not selected"}
+        </Tag>
+        <Tag>{ITEM_TYPE_LABELS[item.itemType]}</Tag>
+      </Flex>
+
+      <Divider className={styles.divider} />
+
+      {/* Stats grid */}
+      <div className={styles.statsGrid}>
+        <div className={styles.statItem}>
+          <NumberOutlined className={styles.statIcon} />
+          <div className={styles.statContent}>
+            <Typography.Text type="secondary" className={styles.statLabel}>
+              Quantity
+            </Typography.Text>
+            <Typography.Text strong>
+              {item.minQty ?? 1} — {item.maxQty ?? "∞"}
+            </Typography.Text>
+          </div>
+        </div>
+        <div className={styles.statItem}>
+          <DollarOutlined className={styles.statIcon} />
+          <div className={styles.statContent}>
+            <Typography.Text type="secondary" className={styles.statLabel}>
+              {getPriceRuleType(item)}
+            </Typography.Text>
+            <Typography.Text strong>
+              {getPriceRuleLabel(item)}
+            </Typography.Text>
+          </div>
+        </div>
+      </div>
+
+      <Divider className={styles.divider} />
+
+      {/* ID */}
+      <div className={styles.idSection}>
+        <Typography.Text type="secondary" className={styles.idLabel}>
+          Item ID
+        </Typography.Text>
+        <Typography.Text copyable code className={styles.idValue}>
+          {item.id}
+        </Typography.Text>
+      </div>
     </div>
   );
 };
@@ -163,41 +213,76 @@ const GroupInspectorContent = ({ group }: IGroupInspectorContentProps) => {
 
   return (
     <div className={styles.content}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+      {/* Header */}
+      <div className={styles.header}>
         <Avatar
-          size={56}
+          size={64}
           icon={<FolderOutlined />}
-          style={{ backgroundColor: "#1890ff" }}
+          className={styles.avatarGroup}
         />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <Typography.Text strong style={{ fontSize: 14 }}>
+        <div className={styles.headerInfo}>
+          <Typography.Text strong className={styles.title}>
             {group.title}
           </Typography.Text>
-          <Typography.Text style={{ fontSize: 12, color: "#888", display: "block" }}>
-            {group.items.length} item(s)
+          <Typography.Text type="secondary">
+            Bundle Group
           </Typography.Text>
         </div>
       </div>
 
-      <Descriptions column={1} size="small" bordered>
-        <Descriptions.Item label="ID">
-          <Typography.Text copyable code style={{ fontSize: 11 }}>
-            {group.id}
-          </Typography.Text>
-        </Descriptions.Item>
-        <Descriptions.Item label="Selection Range">
-          {group.minSelection ?? 0} - {group.maxSelection ?? "unlimited"}
-        </Descriptions.Item>
-        <Descriptions.Item label="Items">
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            {group.items.map((item) => (
-              <Typography.Text key={item.id} style={{ fontSize: 12 }}>
+      <Divider className={styles.divider} />
+
+      {/* KPI Tiles */}
+      <Flex gap={8} wrap="wrap">
+        <KPITile
+          label="Items"
+          value={group.items.length}
+          icon={<AppstoreOutlined />}
+          variant="info"
+        />
+        <KPITile
+          label="Selection"
+          value={`${group.minSelection ?? 0} - ${group.maxSelection ?? "∞"}`}
+          secondary="min - max"
+          icon={<CheckCircleOutlined />}
+          variant="purple"
+        />
+      </Flex>
+
+      <Divider className={styles.divider} />
+
+      {/* Items list */}
+      <div className={styles.itemsList}>
+        <Typography.Text type="secondary" className={styles.itemsLabel}>
+          Items in group
+        </Typography.Text>
+        <div className={styles.itemsGrid}>
+          {group.items.map((item) => (
+            <div key={item.id} className={styles.itemChip}>
+              <Avatar
+                size={24}
+                src={getItemImageUrl(item)}
+                icon={<PictureOutlined />}
+              />
+              <Typography.Text ellipsis className={styles.itemChipText}>
                 {getItemTitle(item)}
               </Typography.Text>
-            ))}
-          </div>
-        </Descriptions.Item>
-      </Descriptions>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <Divider className={styles.divider} />
+
+      {/* ID */}
+      <div className={styles.idSection}>
+        <Typography.Text type="secondary" className={styles.idLabel}>
+          Group ID
+        </Typography.Text>
+        <Typography.Text copyable code className={styles.idValue}>
+          {group.id}
+        </Typography.Text>
+      </div>
     </div>
   );
 };
@@ -208,30 +293,54 @@ const GroupInspectorContent = ({ group }: IGroupInspectorContentProps) => {
 
 interface IBundleInspectorContentProps {
   label: string;
+  groups: IBundleGroup[];
 }
 
-const BundleInspectorContent = ({ label }: IBundleInspectorContentProps) => {
+const BundleInspectorContent = ({ label, groups }: IBundleInspectorContentProps) => {
   const { styles } = useStyles();
+  const totalItems = groups.reduce((sum, g) => sum + g.items.length, 0);
 
   return (
     <div className={styles.content}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+      {/* Header */}
+      <div className={styles.header}>
         <Avatar
-          size={56}
+          size={64}
           icon={<GiftOutlined />}
-          style={{ backgroundColor: "#52c41a" }}
+          className={styles.avatarBundle}
         />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <Typography.Text strong style={{ fontSize: 14 }}>
+        <div className={styles.headerInfo}>
+          <Typography.Text strong className={styles.title}>
             {label}
           </Typography.Text>
-          <Typography.Text style={{ fontSize: 12, color: "#888", display: "block" }}>
-            Bundle root node
+          <Typography.Text type="secondary">
+            Bundle Root
           </Typography.Text>
         </div>
       </div>
 
-      <Typography.Paragraph type="secondary" style={{ fontSize: 12 }}>
+      <Divider className={styles.divider} />
+
+      {/* KPI Tiles */}
+      <Flex gap={8} wrap="wrap">
+        <KPITile
+          label="Groups"
+          value={groups.length}
+          icon={<FolderOutlined />}
+          variant="info"
+        />
+        <KPITile
+          label="Total Items"
+          value={totalItems}
+          icon={<AppstoreOutlined />}
+          variant="success"
+        />
+      </Flex>
+
+      <Divider className={styles.divider} />
+
+      {/* Description */}
+      <Typography.Paragraph type="secondary" className={styles.description}>
         This is the bundle root node. It represents the entire bundle configuration
         and is the target for bundle-level actions in dependency rules.
       </Typography.Paragraph>
@@ -260,6 +369,7 @@ export const NodeInspector = ({
     return (
       <Paper className={cx(styles.container, styles.containerCollapsed)}>
         <PaperHeader
+          icon={null}
           bordered={false}
           extra={
             <Button
@@ -309,6 +419,7 @@ export const NodeInspector = ({
     return (
       <Paper className={styles.container}>
         <PaperHeader
+          icon={null}
           title="Inspector"
           actions={
             <Button
@@ -351,7 +462,7 @@ export const NodeInspector = ({
         <GroupInspectorContent group={selectedNode.group} />
       )}
       {selectedNode.type === "bundle" && (
-        <BundleInspectorContent label={selectedNode.label} />
+        <BundleInspectorContent label={selectedNode.label} groups={groups} />
       )}
     </Paper>
   );
