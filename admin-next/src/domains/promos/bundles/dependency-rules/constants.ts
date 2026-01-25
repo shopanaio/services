@@ -64,7 +64,7 @@ export const CONDITION_SUBJECT_LABELS: Record<ConditionSubject, string> = {
 /** Short subject names for chip display */
 export const SUBJECT_SHORT: Partial<Record<ConditionSubject, string>> = {
   [ConditionSubject.ITEM_QTY]: "quantity",
-  [ConditionSubject.GROUP_TOTAL_QTY]: "total quantity",
+  [ConditionSubject.GROUP_TOTAL_QTY]: "quantity",
 };
 
 /** Grammatically correct verb phrases for comparison operators */

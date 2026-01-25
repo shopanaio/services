@@ -69,12 +69,12 @@ export const formatAction = (action: IDependencyAction): string => {
 
   if (action.actionType === DependencyActionType.ADJUST_PRICE && action.priceType) {
     const priceOption = PRICE_RULE_OPTIONS.find((o) => o.value === action.priceType);
-    const priceName = priceOption?.label ?? action.priceType;
     const value =
       action.priceValue !== null && action.priceValue !== undefined
         ? `${action.priceValue}${priceOption?.valueSuffix ?? ""}`
         : "";
-    return `${phrase}: ${priceName} ${value}`.trim();
+    // Compact format for hub nodes: "Discount 10%" or "Free"
+    return value ? `Discount ${value}` : (priceOption?.label ?? action.priceType);
   }
 
   return phrase;
