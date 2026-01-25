@@ -22,18 +22,12 @@ export enum BundlePriceType {
   BASE = "BASE",
   /** Override with fixed price */
   FIXED = "FIXED",
-  /** Add percentage markup to base */
-  MARKUP_PERCENT = "MARKUP_PERCENT",
   /** Subtract percentage from base */
   DISCOUNT_PERCENT = "DISCOUNT_PERCENT",
-  /** Add fixed amount to base */
-  MARKUP_FIXED = "MARKUP_FIXED",
   /** Subtract fixed amount from base */
   DISCOUNT_FIXED = "DISCOUNT_FIXED",
   /** 100% discount, free in bundle */
   FREE = "FREE",
-  /** Price included in bundle base */
-  INCLUDED = "INCLUDED",
 }
 
 /**
@@ -192,22 +186,10 @@ export const PRICE_RULE_OPTIONS: PriceRuleOption[] = [
     valueSuffix: "$",
   },
   {
-    value: BundlePriceType.MARKUP_PERCENT,
-    label: "Markup %",
-    requiresValue: true,
-    valueSuffix: "%",
-  },
-  {
     value: BundlePriceType.DISCOUNT_PERCENT,
     label: "Discount %",
     requiresValue: true,
     valueSuffix: "%",
-  },
-  {
-    value: BundlePriceType.MARKUP_FIXED,
-    label: "Markup $",
-    requiresValue: true,
-    valueSuffix: "$",
   },
   {
     value: BundlePriceType.DISCOUNT_FIXED,
@@ -218,10 +200,6 @@ export const PRICE_RULE_OPTIONS: PriceRuleOption[] = [
   {
     value: BundlePriceType.FREE,
     label: "Free",
-  },
-  {
-    value: BundlePriceType.INCLUDED,
-    label: "Included in bundle",
   },
 ];
 

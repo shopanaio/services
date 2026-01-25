@@ -62,13 +62,8 @@ export const getPriceRuleColor = (priceType: BundlePriceType): string => {
     case BundlePriceType.DISCOUNT_FIXED:
     case BundlePriceType.FREE:
       return "green";
-    case BundlePriceType.MARKUP_PERCENT:
-    case BundlePriceType.MARKUP_FIXED:
-      return "orange";
     case BundlePriceType.FIXED:
       return "blue";
-    case BundlePriceType.INCLUDED:
-      return "purple";
     default:
       return "default";
   }

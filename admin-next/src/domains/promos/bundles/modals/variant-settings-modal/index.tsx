@@ -36,7 +36,7 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 // Types
 // ============================================================================
 
-type PriceType = "BASE" | "FIXED" | "MARKUP_PERCENT" | "DISCOUNT_PERCENT" | "MARKUP_FIXED" | "DISCOUNT_FIXED" | "FREE" | "INCLUDED";
+type PriceType = "BASE" | "FIXED" | "DISCOUNT_PERCENT" | "DISCOUNT_FIXED" | "FREE";
 
 interface IVariantRow {
   id: string;
@@ -63,17 +63,11 @@ const calculateFinalPrice = (
       return basePrice;
     case "FIXED":
       return priceValue ?? 0;
-    case "MARKUP_PERCENT":
-      return basePrice * (1 + (priceValue ?? 0) / 100);
     case "DISCOUNT_PERCENT":
       return basePrice * (1 - (priceValue ?? 0) / 100);
-    case "MARKUP_FIXED":
-      return basePrice + (priceValue ?? 0);
     case "DISCOUNT_FIXED":
       return basePrice - (priceValue ?? 0);
     case "FREE":
-      return 0;
-    case "INCLUDED":
       return 0;
     default:
       return basePrice;
@@ -86,18 +80,12 @@ const formatPriceRule = (priceType: PriceType, priceValue: number | null): strin
       return "No change";
     case "FIXED":
       return `Fixed: ${formatPrice(priceValue ?? 0)}`;
-    case "MARKUP_PERCENT":
-      return `+${priceValue ?? 0}%`;
     case "DISCOUNT_PERCENT":
       return `-${priceValue ?? 0}%`;
-    case "MARKUP_FIXED":
-      return `+${formatPrice(priceValue ?? 0)}`;
     case "DISCOUNT_FIXED":
       return `-${formatPrice(priceValue ?? 0)}`;
     case "FREE":
       return "Free";
-    case "INCLUDED":
-      return "Included";
     default:
       return "—";
   }

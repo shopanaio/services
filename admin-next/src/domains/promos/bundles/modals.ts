@@ -46,7 +46,7 @@ export interface IBundleItemVariantSettingsModalPayload extends IModalStackPaylo
   productId: string;
   productTitle: string;
   availableVariantIds: string[] | null;
-  priceType: "BASE" | "FIXED" | "MARKUP_PERCENT" | "DISCOUNT_PERCENT" | "MARKUP_FIXED" | "DISCOUNT_FIXED" | "FREE" | "INCLUDED";
+  priceType: "BASE" | "FIXED" | "DISCOUNT_PERCENT" | "DISCOUNT_FIXED" | "FREE";
   priceValue: number | null;
   variants: Array<{
     id: string;

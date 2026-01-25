@@ -184,7 +184,6 @@ export const TemplatesTab = ({
                     priceType: value,
                     priceValue:
                       value === BundlePriceType.FREE ||
-                      value === BundlePriceType.INCLUDED ||
                       value === BundlePriceType.BASE
                         ? null
                         : editingTemplate.priceValue ?? 10,
