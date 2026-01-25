@@ -1,4 +1,4 @@
-import type { ColDef } from "ag-grid-community";
+import type { ColDef, RowDragEnterEvent, RowDragEndEvent } from "ag-grid-community";
 
 // Generic row interface - requires at least an id
 export interface IEditorRowBase {
@@ -33,4 +33,12 @@ export interface IEditorGridProps<T extends IEditorRowBase> {
 
   // Optional custom styles class
   className?: string;
+
+  // Row drag-drop support
+  rowDragManaged?: boolean;
+  onRowDragEnter?: (event: RowDragEnterEvent<T>) => void;
+  onRowDragEnd?: (event: RowDragEndEvent<T>) => void;
+
+  // Layout
+  domLayout?: "normal" | "autoHeight" | "print";
 }

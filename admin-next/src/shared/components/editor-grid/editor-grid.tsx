@@ -8,6 +8,8 @@ import type {
   ColDef,
   GetRowIdParams,
   RowClassParams,
+  RowDragEnterEvent,
+  RowDragEndEvent,
 } from "ag-grid-community";
 import {
   CellSelectionProvider,
@@ -218,6 +220,12 @@ interface EditorGridInnerProps<T extends IEditorRowBase> {
     originalValue: unknown,
     newValue: unknown
   ) => void;
+  // Row drag-drop
+  rowDragManaged?: boolean;
+  onRowDragEnter?: (event: RowDragEnterEvent<T>) => void;
+  onRowDragEnd?: (event: RowDragEndEvent<T>) => void;
+  // Layout
+  domLayout?: "normal" | "autoHeight" | "print";
 }
 
 function EditorGridInnerComponent<T extends IEditorRowBase>({
@@ -229,6 +237,10 @@ function EditorGridInnerComponent<T extends IEditorRowBase>({
   headerHeight,
   getRowClass: getRowClassProp,
   onSetFieldValue,
+  rowDragManaged,
+  onRowDragEnter,
+  onRowDragEnd,
+  domLayout,
 }: EditorGridInnerProps<T>) {
   const { styles } = useStyles();
   const agGridTheme = useAgGridTheme();
@@ -297,8 +309,13 @@ function EditorGridInnerComponent<T extends IEditorRowBase>({
         onCellEditRequest={handleCellEditRequest}
         suppressHeaderFocus
         suppressRowHoverHighlight
-        animateRows={false}
+        animateRows={rowDragManaged ? true : false}
         suppressColumnVirtualisation
+        suppressMovableColumns
+        rowDragManaged={rowDragManaged}
+        onRowDragEnter={onRowDragEnter}
+        onRowDragEnd={onRowDragEnd}
+        domLayout={domLayout}
         defaultColDef={{
           resizable: true,
           sortable: false,
@@ -322,6 +339,10 @@ export function EditorGrid<T extends IEditorRowBase>({
   headerHeight = 44,
   getRowClass,
   onSetFieldValue,
+  rowDragManaged,
+  onRowDragEnter,
+  onRowDragEnd,
+  domLayout,
 }: IEditorGridProps<T>) {
   const gridRef = useRef<AgGridReact<T>>(null);
 
@@ -370,6 +391,10 @@ export function EditorGrid<T extends IEditorRowBase>({
         headerHeight={headerHeight}
         getRowClass={getRowClass}
         onSetFieldValue={onSetFieldValue}
+        rowDragManaged={rowDragManaged}
+        onRowDragEnter={onRowDragEnter}
+        onRowDragEnd={onRowDragEnd}
+        domLayout={domLayout}
       />
     </CellSelectionProvider>
   );

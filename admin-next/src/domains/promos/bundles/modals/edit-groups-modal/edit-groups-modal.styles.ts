@@ -1,10 +1,37 @@
 import { createStyles } from "antd-style";
 
 export const useStyles = createStyles(({ token }) => ({
-  container: {
+  body: {
+    padding: "0 !important",
     display: "flex",
     flexDirection: "column",
-    gap: 16,
+    "& > div": {
+      flex: 1,
+      display: "flex",
+      flexDirection: "column",
+      padding: "0 !important",
+      gap: "0 !important",
+      maxWidth: "none !important",
+      width: "100%",
+    },
+  },
+  content: {
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    overflow: "hidden",
+    width: "100%",
+  },
+  gridContainer: {
+    flex: 1,
+    overflow: "hidden",
+    minHeight: 0,
+    width: "100%",
+  },
+  headerExtra: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
   },
   gridWrapper: {
     width: "100%",
