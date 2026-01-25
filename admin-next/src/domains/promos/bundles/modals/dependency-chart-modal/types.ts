@@ -81,6 +81,28 @@ export interface BundleNodeData {
   [key: string]: unknown;
 }
 
+export type HubType = "condition" | "action";
+
+export interface HubNodeData {
+  /** Type of hub: condition (before rule) or action (after rule) */
+  hubType: HubType;
+  /** Labels to display (e.g., "qty >= 2", "disable") */
+  labels: string[];
+  /** The rule this hub belongs to */
+  ruleId: string;
+  /** Rule priority for display */
+  rulePriority?: number;
+  /** Rule name for display */
+  ruleName?: string;
+  /** Whether the associated rule is enabled */
+  isEnabled?: boolean;
+  /** True if this node is selected */
+  isSelected?: boolean;
+  /** True if this node should be dimmed (not in selected path) */
+  isDimmed?: boolean;
+  [key: string]: unknown;
+}
+
 // ============================================================================
 // Node Types
 // ============================================================================
@@ -88,8 +110,9 @@ export interface BundleNodeData {
 export type ItemNode = Node<ItemNodeData, "item">;
 export type RuleNode = Node<RuleNodeData, "rule">;
 export type BundleNode = Node<BundleNodeData, "bundle">;
+export type HubNode = Node<HubNodeData, "hub">;
 
-export type ChartNode = ItemNode | RuleNode | BundleNode;
+export type ChartNode = ItemNode | RuleNode | BundleNode | HubNode;
 
 // ============================================================================
 // Edge Data Types (with index signature for React Flow compatibility)

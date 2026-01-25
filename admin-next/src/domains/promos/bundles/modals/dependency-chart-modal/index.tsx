@@ -32,7 +32,7 @@ import type {
   IBundleGroup,
 } from "@/domains/promos/bundles/types";
 
-import { ItemNode, RuleNode, BundleNode } from "./nodes";
+import { ItemNode, RuleNode, BundleNode, HubNode } from "./nodes";
 import { LabeledEdge } from "./edges";
 import { NodeInspector } from "./sidebar/node-inspector";
 import { useDependencyChart } from "./hooks";
@@ -51,6 +51,7 @@ const nodeTypes = {
   item: ItemNode,
   rule: RuleNode,
   bundle: BundleNode,
+  hub: HubNode,
 } as const;
 
 const edgeTypes = {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import ELK from "elkjs/lib/elk.bundled.js";
-import type { ChartNode, ChartEdge, ItemNodeData, RuleSortMode } from "../types";
+import type { ChartNode, ChartEdge, ItemNodeData, HubNodeData, RuleSortMode } from "../types";
 import { NODE_DIMENSIONS } from "../constants";
 
 const elk = new ELK();
@@ -8,10 +8,10 @@ const elk = new ELK();
 const ELK_OPTIONS = {
   "elk.algorithm": "layered",
   "elk.direction": "RIGHT",
-  "elk.spacing.nodeNode": "60",
-  "elk.layered.spacing.nodeNodeBetweenLayers": "150",
-  "elk.spacing.edgeEdge": "30",
-  "elk.padding": "[top=40,left=40,bottom=40,right=40]",
+  "elk.spacing.nodeNode": "40",
+  "elk.layered.spacing.nodeNodeBetweenLayers": "80",
+  "elk.spacing.edgeEdge": "20",
+  "elk.padding": "[top=30,left=30,bottom=30,right=30]",
   "elk.layered.crossingMinimization.strategy": "LAYER_SWEEP",
   "elk.layered.nodePlacement.strategy": "BRANDES_KOEPF",
 };
@@ -89,14 +89,26 @@ export const useColumnLayout = ({ nodes, edges, sortMode }: UseColumnLayoutOptio
       id: "root",
       layoutOptions: ELK_OPTIONS,
       children: nodes.map((node) => {
-        const dimensions = NODE_DIMENSIONS[node.type as keyof typeof NODE_DIMENSIONS] ?? {
+        // For hub nodes, adjust height based on number of labels
+        const baseDimensions = NODE_DIMENSIONS[node.type as keyof typeof NODE_DIMENSIONS] ?? {
           width: 200,
           height: 60,
         };
+
+        let width = baseDimensions.width;
+        let height = baseDimensions.height;
+
+        if (node.type === "hub") {
+          const hubData = node.data as HubNodeData;
+          const labelCount = Math.min(hubData.labels?.length ?? 1, 2);
+          const extraHeight = labelCount > 1 ? (labelCount - 1) * 16 : 0;
+          height = height + extraHeight;
+        }
+
         return {
           id: node.id,
-          width: dimensions.width,
-          height: dimensions.height,
+          width,
+          height,
         };
       }),
       edges: edges.map((edge, index) => ({

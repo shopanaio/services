@@ -16,6 +16,7 @@ import type {
   ItemNodeData,
   RuleNodeData,
   BundleNodeData,
+  HubNodeData,
   RuleSortMode,
 } from "../types";
 
@@ -47,10 +48,9 @@ export const useDerivedGraph = ({
     const nodes: ChartNode[] = [];
     const edges: ChartEdge[] = [];
 
-    // Edge colors from theme
+    // Edge colors
     const conditionColor = theme.colorPrimary;
     const actionColor = theme.colorSuccess;
-    const disabledColor = theme.colorBorder;
 
     // Helper: flatten all conditions from a rule's condition groups
     const getAllConditions = (rule: IDependencyRule): IDependencyCondition[] =>
@@ -245,152 +245,210 @@ export const useDerivedGraph = ({
       });
     });
 
-    // 6. Create edges - deduplicated by (source, target) pair with combined labels
-    // Map key: "sourceNodeId->targetNodeId", value: { labels, conditions/actions, rule info }
-    interface ConditionEdgeGroup {
-      sourceNodeId: string;
-      ruleNodeId: string;
-      labels: string[];
-      firstCondition: IDependencyCondition;
-      rule: IDependencyRule;
-    }
-    interface ActionEdgeGroup {
-      ruleNodeId: string;
-      targetNodeId: string;
-      labels: string[];
-      firstAction: typeof rules[0]["actions"][0];
-      rule: IDependencyRule;
-    }
+    // 6. Create hub nodes and edges with GLOBAL bundling
+    // Strategy: Create one hub per unique (sourceNodeId + labels) for conditions
+    // and one hub per unique (targetNodeId + labels) for actions.
+    // Multiple rules can share the same hub.
 
-    const conditionEdgeGroups = new Map<string, ConditionEdgeGroup>();
-    const actionEdgeGroups = new Map<string, ActionEdgeGroup>();
+    // Helper to get source node ID for a condition
+    const getConditionSourceNodeId = (condition: IDependencyCondition): string | null => {
+      if (!condition.targetId && condition.targetType !== DependencyTargetType.BUNDLE) return null;
+
+      if (condition.targetType === DependencyTargetType.ITEM) {
+        return duplicatedItemIds.has(condition.targetId!)
+          ? `item:${condition.targetId}:source`
+          : `item:${condition.targetId}`;
+      } else if (condition.targetType === DependencyTargetType.GROUP) {
+        return duplicatedGroupIds.has(condition.targetId!)
+          ? `group:${condition.targetId}:source`
+          : `group:${condition.targetId}`;
+      } else {
+        return "bundle:main";
+      }
+    };
+
+    // Helper to get target node ID for an action
+    const getActionTargetNodeId = (action: typeof rules[0]["actions"][0]): string | null => {
+      if (action.targetType === DependencyTargetType.BUNDLE) {
+        return "bundle:main";
+      } else if (action.targetType === DependencyTargetType.ITEM) {
+        if (!action.targetId) return null;
+        return duplicatedItemIds.has(action.targetId)
+          ? `item:${action.targetId}:target`
+          : `item:${action.targetId}`;
+      } else {
+        if (!action.targetId) return null;
+        return duplicatedGroupIds.has(action.targetId)
+          ? `group:${action.targetId}:target`
+          : `group:${action.targetId}`;
+      }
+    };
+
+    // ========================================================================
+    // GLOBAL condition hubs: key = label only (one hub per unique condition)
+    // Multiple sources and rules share the same hub if condition is the same
+    // ========================================================================
+    interface ConditionHubData {
+      label: string;
+      sourceNodeIds: Set<string>;
+      ruleIds: Set<string>;
+      isEnabled: boolean;
+    }
+    const conditionHubs = new Map<string, ConditionHubData>();
 
     sortedRules.forEach((rule) => {
-      const ruleNodeId = `rule:${rule.id}`;
+      const conditions = getAllConditions(rule);
 
-      // Group conditions by (sourceNodeId -> ruleNodeId)
-      getAllConditions(rule).forEach((condition) => {
-        if (!condition.targetId && condition.targetType !== DependencyTargetType.BUNDLE) return;
+      conditions.forEach((condition) => {
+        const sourceNodeId = getConditionSourceNodeId(condition);
+        if (!sourceNodeId || !nodeIds.has(sourceNodeId)) return;
 
-        let sourceNodeId: string;
-        if (condition.targetType === DependencyTargetType.ITEM) {
-          sourceNodeId = duplicatedItemIds.has(condition.targetId!)
-            ? `item:${condition.targetId}:source`
-            : `item:${condition.targetId}`;
-        } else if (condition.targetType === DependencyTargetType.GROUP) {
-          sourceNodeId = duplicatedGroupIds.has(condition.targetId!)
-            ? `group:${condition.targetId}:source`
-            : `group:${condition.targetId}`;
-        } else {
-          sourceNodeId = "bundle:main";
-        }
-
-        if (!nodeIds.has(sourceNodeId)) return;
-
-        const edgeKey = `${sourceNodeId}->${ruleNodeId}`;
         const label = formatCondition(condition);
+        const hubKey = label; // Key is just the label — one hub per unique condition
 
-        const existing = conditionEdgeGroups.get(edgeKey);
+        const existing = conditionHubs.get(hubKey);
         if (existing) {
-          existing.labels.push(label);
+          existing.sourceNodeIds.add(sourceNodeId);
+          existing.ruleIds.add(rule.id);
+          if (rule.enabled) existing.isEnabled = true;
         } else {
-          conditionEdgeGroups.set(edgeKey, {
-            sourceNodeId,
-            ruleNodeId,
-            labels: [label],
-            firstCondition: condition,
-            rule,
+          conditionHubs.set(hubKey, {
+            label,
+            sourceNodeIds: new Set([sourceNodeId]),
+            ruleIds: new Set([rule.id]),
+            isEnabled: rule.enabled,
           });
         }
       });
+    });
 
-      // Group actions by (ruleNodeId -> targetNodeId)
+    // ========================================================================
+    // GLOBAL action hubs: key = label only (one hub per unique action)
+    // Multiple targets and rules share the same hub if action is the same
+    // ========================================================================
+    interface ActionHubData {
+      label: string;
+      targetNodeIds: Set<string>;
+      ruleIds: Set<string>;
+      isEnabled: boolean;
+    }
+    const actionHubs = new Map<string, ActionHubData>();
+
+    sortedRules.forEach((rule) => {
       rule.actions.forEach((action) => {
-        let targetNodeId: string;
-        if (action.targetType === DependencyTargetType.BUNDLE) {
-          targetNodeId = "bundle:main";
-        } else if (action.targetType === DependencyTargetType.ITEM) {
-          if (!action.targetId) return;
-          targetNodeId = duplicatedItemIds.has(action.targetId)
-            ? `item:${action.targetId}:target`
-            : `item:${action.targetId}`;
-        } else {
-          if (!action.targetId) return;
-          targetNodeId = duplicatedGroupIds.has(action.targetId)
-            ? `group:${action.targetId}:target`
-            : `group:${action.targetId}`;
-        }
+        const targetNodeId = getActionTargetNodeId(action);
+        if (!targetNodeId || !nodeIds.has(targetNodeId)) return;
 
-        if (!nodeIds.has(targetNodeId)) return;
-
-        const edgeKey = `${ruleNodeId}->${targetNodeId}`;
         const label = formatAction(action);
+        const hubKey = label; // Key is just the label — one hub per unique action
 
-        const existing = actionEdgeGroups.get(edgeKey);
+        const existing = actionHubs.get(hubKey);
         if (existing) {
-          existing.labels.push(label);
+          existing.targetNodeIds.add(targetNodeId);
+          existing.ruleIds.add(rule.id);
+          if (rule.enabled) existing.isEnabled = true;
         } else {
-          actionEdgeGroups.set(edgeKey, {
-            ruleNodeId,
-            targetNodeId,
-            labels: [label],
-            firstAction: action,
-            rule,
+          actionHubs.set(hubKey, {
+            label,
+            targetNodeIds: new Set([targetNodeId]),
+            ruleIds: new Set([rule.id]),
+            isEnabled: rule.enabled,
           });
         }
       });
     });
 
-    // 7. Create deduplicated edges
-    conditionEdgeGroups.forEach((group, edgeKey) => {
-      const edgeColor = group.rule.enabled ? conditionColor : disabledColor;
+    // ========================================================================
+    // Create condition hub nodes and edges
+    // ========================================================================
+    let hubIndex = 0;
 
-      edges.push({
-        id: `cond:${edgeKey}`,
-        source: group.sourceNodeId,
-        target: group.ruleNodeId,
-        type: "labeled",
-        animated: false,
-        style: {
-          stroke: edgeColor,
-          strokeWidth: 1,
-        },
-        markerEnd: {
-          type: MarkerType.ArrowClosed,
-          color: edgeColor,
-        },
+    conditionHubs.forEach((hubData, hubKey) => {
+      const hubId = `hub:cond:${hubIndex++}`;
+
+      nodes.push({
+        id: hubId,
+        type: "hub",
         data: {
-          condition: group.firstCondition,
-          label: group.labels[0],
-          labels: group.labels,
-          tagColor: group.rule.enabled ? "blue" : "default",
-        },
+          hubType: "condition",
+          labels: [hubData.label],
+          ruleId: [...hubData.ruleIds][0],
+          isEnabled: hubData.isEnabled,
+        } as HubNodeData,
+        position: { x: 0, y: 0 },
+      });
+
+      // Edges: all sources → hub (condition color)
+      hubData.sourceNodeIds.forEach((sourceNodeId) => {
+        edges.push({
+          id: `e:${sourceNodeId}->${hubId}`,
+          source: sourceNodeId,
+          target: hubId,
+          type: "labeled",
+          animated: false,
+          style: { strokeWidth: 1, stroke: conditionColor },
+          markerEnd: { type: MarkerType.ArrowClosed, color: conditionColor },
+        });
+      });
+
+      // Edges: hub → all rules (condition color)
+      hubData.ruleIds.forEach((ruleId) => {
+        const ruleNodeId = `rule:${ruleId}`;
+        edges.push({
+          id: `e:${hubId}->${ruleNodeId}`,
+          source: hubId,
+          target: ruleNodeId,
+          type: "labeled",
+          animated: false,
+          style: { strokeWidth: 1, stroke: conditionColor },
+          markerEnd: { type: MarkerType.ArrowClosed, color: conditionColor },
+        });
       });
     });
 
-    actionEdgeGroups.forEach((group, edgeKey) => {
-      const actionEdgeColor = group.rule.enabled ? actionColor : disabledColor;
+    // ========================================================================
+    // Create action hub nodes and edges
+    // ========================================================================
+    actionHubs.forEach((hubData) => {
+      const hubId = `hub:action:${hubIndex++}`;
 
-      edges.push({
-        id: `action:${edgeKey}`,
-        source: group.ruleNodeId,
-        target: group.targetNodeId,
-        type: "labeled",
-        animated: false,
-        style: {
-          stroke: actionEdgeColor,
-          strokeWidth: 1,
-        },
-        markerEnd: {
-          type: MarkerType.ArrowClosed,
-          color: actionEdgeColor,
-        },
+      nodes.push({
+        id: hubId,
+        type: "hub",
         data: {
-          action: group.firstAction,
-          label: group.labels[0],
-          labels: group.labels,
-          tagColor: group.rule.enabled ? "green" : "default",
-        },
+          hubType: "action",
+          labels: [hubData.label],
+          ruleId: [...hubData.ruleIds][0],
+          isEnabled: hubData.isEnabled,
+        } as HubNodeData,
+        position: { x: 0, y: 0 },
+      });
+
+      // Edges: all rules → hub (action color)
+      hubData.ruleIds.forEach((ruleId) => {
+        const ruleNodeId = `rule:${ruleId}`;
+        edges.push({
+          id: `e:${ruleNodeId}->${hubId}`,
+          source: ruleNodeId,
+          target: hubId,
+          type: "labeled",
+          animated: false,
+          style: { strokeWidth: 1, stroke: actionColor },
+          markerEnd: { type: MarkerType.ArrowClosed, color: actionColor },
+        });
+      });
+
+      // Edges: hub → all targets (action color)
+      hubData.targetNodeIds.forEach((targetNodeId) => {
+        edges.push({
+          id: `e:${hubId}->${targetNodeId}`,
+          source: hubId,
+          target: targetNodeId,
+          type: "labeled",
+          animated: false,
+          style: { strokeWidth: 1, stroke: actionColor },
+          markerEnd: { type: MarkerType.ArrowClosed, color: actionColor },
+        });
       });
     });
 
