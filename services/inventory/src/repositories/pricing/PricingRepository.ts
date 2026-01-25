@@ -76,10 +76,10 @@ export interface GetPriceStatisticsInput {
 export class PricingRepository extends BaseRepository {
   private buildOverlapWhere(from: Date, to: Date) {
     return {
-      effectiveFrom: { _lte: to },
+      effectiveFrom: { _lte: to.toISOString() },
       _or: [
-        { effectiveTo: { _isNull: true } },
-        { effectiveTo: { _gte: from } },
+        { effectiveTo: { _is: null } },
+        { effectiveTo: { _gte: from.toISOString() } },
       ],
     };
   }
@@ -264,6 +264,9 @@ export class PricingRepository extends BaseRepository {
   async getPriceStatistics(
     input: GetPriceStatisticsInput
   ): Promise<PriceHistoryStatistics | null> {
+    const fromIso = input.from.toISOString();
+    const toIso = input.to.toISOString();
+
     const result = await this.connection
       .select({
         minPriceMinor: sql<number>`MIN(${itemPricing.amountMinor})`,
@@ -276,8 +279,8 @@ export class PricingRepository extends BaseRepository {
           eq(itemPricing.projectId, this.storeId),
           eq(itemPricing.variantId, input.variantId),
           eq(itemPricing.currency, input.currency),
-          lte(itemPricing.effectiveFrom, input.to),
-          or(isNull(itemPricing.effectiveTo), gte(itemPricing.effectiveTo, input.from))
+          lte(itemPricing.effectiveFrom, toIso),
+          or(isNull(itemPricing.effectiveTo), gte(itemPricing.effectiveTo, fromIso))
         )
       );
 
@@ -286,7 +289,9 @@ export class PricingRepository extends BaseRepository {
     }
 
     return {
-      ...result[0],
+      minPriceMinor: Number(result[0].minPriceMinor),
+      maxPriceMinor: Number(result[0].maxPriceMinor),
+      avgPriceMinor: Number(result[0].avgPriceMinor),
       currency: input.currency,
     };
   }

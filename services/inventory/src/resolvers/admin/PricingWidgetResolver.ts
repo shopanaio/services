@@ -5,17 +5,24 @@ import type { CurrencyCode, VariantCost } from "./interfaces/index.js";
 export interface PricingWidgetInput {
   variantId: string;
   currency: CurrencyCode;
-  from?: Date;
-  to?: Date;
+  from?: string | Date;
+  to?: string | Date;
   first?: number;
   after?: string;
 }
 
 export class PricingWidgetResolver extends InventoryType<PricingWidgetInput> {
+  private toDate(value: string | Date | undefined, defaultValue: Date): Date {
+    if (!value) return defaultValue;
+    return value instanceof Date ? value : new Date(value);
+  }
+
   private getDateRange() {
-    const to = this.$props.to ?? new Date();
-    const from =
-      this.$props.from ?? new Date(to.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const to = this.toDate(this.$props.to, new Date());
+    const from = this.toDate(
+      this.$props.from,
+      new Date(to.getTime() - 30 * 24 * 60 * 60 * 1000)
+    );
     return { from, to };
   }
 
@@ -54,32 +61,24 @@ export class PricingWidgetResolver extends InventoryType<PricingWidgetInput> {
     const { from, to } = this.getDateRange();
     const first = this.$props.first ?? 50;
 
-    const prices = await services.repository.pricing.getPriceHistory({
+    const result = await services.repository.pricing.getPriceHistory({
       variantId: this.$props.variantId,
       currency: this.$props.currency,
       from,
       to,
-      limit: first + 1,
+      first,
       after: this.$props.after,
     });
 
-    const hasNextPage = prices.length > first;
-    const resultPrices = hasNextPage ? prices.slice(0, first) : prices;
-
-    const edges = resultPrices.map((price) => ({
-      node: new VariantPriceResolver(price.id, this.$ctx),
-      cursor: Buffer.from(price.id).toString("base64"),
+    const edges = result.edges.map((edge) => ({
+      node: new VariantPriceResolver(edge.node.id, this.$ctx),
+      cursor: edge.cursor,
     }));
 
     return {
       edges,
-      pageInfo: {
-        hasNextPage,
-        hasPreviousPage: !!this.$props.after,
-        startCursor: edges[0]?.cursor ?? null,
-        endCursor: edges[edges.length - 1]?.cursor ?? null,
-      },
-      totalCount: resultPrices.length,
+      pageInfo: result.pageInfo,
+      totalCount: result.totalCount ?? edges.length,
     };
   }
 
