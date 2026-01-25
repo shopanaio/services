@@ -4,6 +4,10 @@ import { useCallback, useMemo, useState, forwardRef, useImperativeHandle } from 
 import { createStyles } from "antd-style";
 import { ColDef, ICellRendererParams } from "ag-grid-community";
 import { EditorGrid } from "@/shared/components/editor-grid";
+import {
+  DropdownCellRenderer,
+  YES_NO_OPTIONS,
+} from "@/shared/components/editor-grid/cells";
 import { useTreeTableDragDrop } from "@/hooks";
 import { useBundleItemVariantSettingsModal } from "@/domains/promos/bundles/modals";
 
@@ -111,6 +115,7 @@ const groupsToRows = (groups: IBundleGroup[]): ITableRow[] => {
         minQty: item.minQty,
         maxQty: item.maxQty,
         pricingRule: item.pricingRule,
+        visible: item.visible ?? "yes",
       });
     }
   }
@@ -145,6 +150,7 @@ export const rowsToGroups = (rows: ITableRow[]): IBundleGroup[] => {
         priceType: BundlePriceType.BASE,
         priceValue: null,
       },
+      visible: itemRow.visible ?? "yes",
     }));
 
     groups.push({
@@ -252,6 +258,7 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
               priceType: BundlePriceType.BASE,
               priceValue: null,
             },
+            visible: "yes",
           };
           addChild(newRow);
         });
@@ -325,6 +332,13 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
     const handlePriceRuleChange = useCallback(
       (itemId: string, pricingRule: BundleItem["pricingRule"]) => {
         updateRow(itemId, { pricingRule } as Partial<ITableRow>);
+      },
+      [updateRow]
+    );
+
+    const handleVisibleChange = useCallback(
+      (itemId: string, visible: string) => {
+        updateRow(itemId, { visible: visible as "yes" | "no" } as Partial<ITableRow>);
       },
       [updateRow]
     );
@@ -424,6 +438,7 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
               pricingRule: row.pricingRule,
               title: row.title,
               featuredImage: row.featuredImage,
+              visible: row.visible ?? "yes",
             })
           );
 
@@ -639,6 +654,22 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
           cellEditorParams: { min: 0, precision: 0 },
         },
         {
+          headerName: "Visible",
+          field: "visible",
+          width: 90,
+          suppressDoubleClickEdit: true,
+          cellStyle: { padding: 0 },
+          cellRenderer: (params: ICellRendererParams<ITableRow>) => (
+            <DropdownCellRenderer
+              {...params}
+              options={YES_NO_OPTIONS}
+              onChange={handleVisibleChange}
+              valueField="visible"
+              shouldRender={(data) => data?.type === "item"}
+            />
+          ),
+        },
+        {
           headerName: "",
           width: 60,
           pinned: "right",
@@ -662,6 +693,7 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
         allRows,
         pricingTemplates,
         handlePriceRuleChange,
+        handleVisibleChange,
         updateRow,
         deleteRow,
         handleAddItem,

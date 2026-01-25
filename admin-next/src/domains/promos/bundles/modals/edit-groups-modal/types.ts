@@ -36,4 +36,7 @@ export interface ITableRow {
     priceType: BundlePriceType;
     priceValue: number | null;
   };
+
+  // Visible field
+  visible?: "yes" | "no";
 }

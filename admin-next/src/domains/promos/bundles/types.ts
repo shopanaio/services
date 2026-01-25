@@ -89,6 +89,9 @@ export interface BundleItem {
         priceValue: number | null;
         /** Template if using a pricing template */
       };
+
+  /** Whether this item is visible on the storefront (default: yes) */
+  visible?: "yes" | "no";
 }
 
 // ============================================================================
