@@ -491,6 +491,205 @@ test.describe('Product Features Sync API', () => {
       expect(newNested.parent?.id).toBe(newGroup.id);
     });
 
+    test('should handle complex reorder with group changes and modifications', async ({ api }) => {
+      const product = await createProduct(api, 'Product Complex Reorder');
+
+      // Initial structure:
+      // [0] Group A (Technical)
+      //   [0,0] Weight (100g, 200g)
+      //   [0,1] Dimensions (10x10, 20x20)
+      // [1] Group B (Materials)
+      //   [1,0] Fabric (Cotton, Silk)
+      // [2] Brand (standalone: Nike, Adidas)
+      const createResult = await syncFeatures(api, product.id, [
+        { index: [0], isGroup: true, name: 'Technical' },
+        {
+          index: [0, 0],
+          isGroup: false,
+          name: 'Weight',
+          values: [
+            { index: 0, name: '100g' },
+            { index: 1, name: '200g' },
+          ],
+        },
+        {
+          index: [0, 1],
+          isGroup: false,
+          name: 'Dimensions',
+          values: [
+            { index: 0, name: '10x10' },
+            { index: 1, name: '20x20' },
+          ],
+        },
+        { index: [1], isGroup: true, name: 'Materials' },
+        {
+          index: [1, 0],
+          isGroup: false,
+          name: 'Fabric',
+          values: [
+            { index: 0, name: 'Cotton' },
+            { index: 1, name: 'Silk' },
+          ],
+        },
+        {
+          index: [2],
+          isGroup: false,
+          name: 'Brand',
+          values: [
+            { index: 0, name: 'Nike' },
+            { index: 1, name: 'Adidas' },
+          ],
+        },
+      ]);
+
+      expect(createResult.userErrors).toHaveLength(0);
+      expect(createResult.features).toHaveLength(6);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const groupA = createResult.features.find((f: any) => f.name === 'Technical');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const groupB = createResult.features.find((f: any) => f.name === 'Materials');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const weight = createResult.features.find((f: any) => f.name === 'Weight');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const dimensions = createResult.features.find((f: any) => f.name === 'Dimensions');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const fabric = createResult.features.find((f: any) => f.name === 'Fabric');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const brand = createResult.features.find((f: any) => f.name === 'Brand');
+
+      expect(groupA).toBeTruthy();
+      expect(groupB).toBeTruthy();
+      expect(weight).toBeTruthy();
+      expect(dimensions).toBeTruthy();
+      expect(fabric).toBeTruthy();
+      expect(brand).toBeTruthy();
+
+      // Complex transformation:
+      // 1. Swap groups: Materials [0], Technical [1]
+      // 2. Move Weight from Technical to Materials
+      // 3. Move Fabric from Materials to Technical
+      // 4. Rename "Technical" to "Specifications"
+      // 5. Add "300g" to Weight, remove "100g"
+      // 6. Add new "Color" to Materials
+      // 7. Delete Dimensions
+      // 8. Move Brand inside Materials
+      //
+      // New structure:
+      // [0] Materials
+      //   [0,0] Weight (200g, 300g)
+      //   [0,1] Brand (Nike, Adidas, Puma)
+      //   [0,2] Color (Red, Blue) - NEW
+      // [1] Specifications (renamed)
+      //   [1,0] Fabric (Cotton, Silk, Wool)
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const weight200gValue = weight.values.find((v: any) => v.name === '200g');
+
+      const updateResult = await syncFeatures(api, product.id, [
+        { id: groupB.id, index: [0], isGroup: true, name: 'Materials' },
+        {
+          id: weight.id,
+          index: [0, 0],
+          isGroup: false,
+          name: 'Weight',
+          values: [
+            { id: weight200gValue.id, index: 0, name: '200g' },
+            { index: 1, name: '300g' },
+          ],
+        },
+        {
+          id: brand.id,
+          index: [0, 1],
+          isGroup: false,
+          name: 'Brand',
+          values: [
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            { id: brand.values.find((v: any) => v.name === 'Nike').id, index: 0, name: 'Nike' },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            { id: brand.values.find((v: any) => v.name === 'Adidas').id, index: 1, name: 'Adidas' },
+            { index: 2, name: 'Puma' },
+          ],
+        },
+        {
+          index: [0, 2],
+          isGroup: false,
+          name: 'Color',
+          values: [
+            { index: 0, name: 'Red' },
+            { index: 1, name: 'Blue' },
+          ],
+        },
+        { id: groupA.id, index: [1], isGroup: true, name: 'Specifications' },
+        {
+          id: fabric.id,
+          index: [1, 0],
+          isGroup: false,
+          name: 'Fabric',
+          values: [
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            { id: fabric.values.find((v: any) => v.name === 'Cotton').id, index: 0, name: 'Cotton' },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            { id: fabric.values.find((v: any) => v.name === 'Silk').id, index: 1, name: 'Silk' },
+            { index: 2, name: 'Wool' },
+          ],
+        },
+      ]);
+
+      expect(updateResult.userErrors).toHaveLength(0);
+      expect(updateResult.features).toHaveLength(6);
+
+      // Verify Materials is now [0]
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const updatedGroupB = updateResult.features.find((f: any) => f.name === 'Materials');
+      expect(updatedGroupB.id).toBe(groupB.id);
+      expect(updatedGroupB.index).toEqual([0]);
+
+      // Verify Specifications (renamed) is [1]
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const updatedGroupA = updateResult.features.find((f: any) => f.name === 'Specifications');
+      expect(updatedGroupA.id).toBe(groupA.id);
+      expect(updatedGroupA.index).toEqual([1]);
+
+      // Verify Weight moved to Materials [0,0]
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const updatedWeight = updateResult.features.find((f: any) => f.name === 'Weight');
+      expect(updatedWeight.id).toBe(weight.id);
+      expect(updatedWeight.index).toEqual([0, 0]);
+      expect(updatedWeight.parent?.id).toBe(groupB.id);
+      expect(updatedWeight.values).toHaveLength(2);
+      expect(updatedWeight.values[0].name).toBe('200g');
+      expect(updatedWeight.values[1].name).toBe('300g');
+
+      // Verify Brand moved inside Materials [0,1]
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const updatedBrand = updateResult.features.find((f: any) => f.name === 'Brand');
+      expect(updatedBrand.id).toBe(brand.id);
+      expect(updatedBrand.index).toEqual([0, 1]);
+      expect(updatedBrand.parent?.id).toBe(groupB.id);
+      expect(updatedBrand.values).toHaveLength(3);
+
+      // Verify Color is new at [0,2]
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const color = updateResult.features.find((f: any) => f.name === 'Color');
+      expect(color).toBeTruthy();
+      expect(color.index).toEqual([0, 2]);
+      expect(color.parent?.id).toBe(groupB.id);
+
+      // Verify Fabric moved to Specifications [1,0]
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const updatedFabric = updateResult.features.find((f: any) => f.name === 'Fabric');
+      expect(updatedFabric.id).toBe(fabric.id);
+      expect(updatedFabric.index).toEqual([1, 0]);
+      expect(updatedFabric.parent?.id).toBe(groupA.id);
+      expect(updatedFabric.values).toHaveLength(3);
+
+      // Verify Dimensions deleted
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const deletedDimensions = updateResult.features.find((f: any) => f.name === 'Dimensions');
+      expect(deletedDimensions).toBeUndefined();
+    });
+
     test('should preserve feature IDs when updating', async ({ api }) => {
       const product = await createProduct(api, 'Product Preserve IDs');
 
