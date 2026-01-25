@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { BaseEdge, getBezierPath } from "@xyflow/react";
+import { BaseEdge } from "@xyflow/react";
 import type { EdgeProps } from "@xyflow/react";
 
 // ============================================================================
@@ -14,20 +14,15 @@ const SimpleEdgeComponent = ({
   sourceY,
   targetX,
   targetY,
-  sourcePosition,
-  targetPosition,
   style,
   markerEnd,
 }: EdgeProps) => {
-  const [edgePath] = getBezierPath({
-    sourceX,
-    sourceY,
-    sourcePosition,
-    targetX,
-    targetY,
-    targetPosition,
-    curvature: 0.4,
-  });
+  // Custom bezier path with strong curvature near the ends
+  const dx = targetX - sourceX;
+  const controlOffset = Math.min(Math.abs(dx) * 0.8, 100);
+
+  // Control points: extend horizontally from source/target, creating a smooth S-curve
+  const edgePath = `M ${sourceX} ${sourceY} C ${sourceX + controlOffset} ${sourceY}, ${targetX - controlOffset} ${targetY}, ${targetX} ${targetY}`;
 
   return (
     <BaseEdge id={id} path={edgePath} markerEnd={markerEnd} style={style} />
