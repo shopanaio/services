@@ -20,8 +20,6 @@ export interface ITableRow {
   level: number; // 0 = group, 1 = item
 
   // Group-specific fields
-  isRequired?: boolean;
-  isMultiple?: boolean;
   minSelection?: number | null;
   maxSelection?: number | null;
 

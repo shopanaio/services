@@ -79,10 +79,12 @@ export const getItemQtyLabel = (item: BundleItem): string | null => {
   return null;
 };
 
-export const getSelectionLabel = (group: IBundleGroup): string => {
-  if (!group.isMultiple) return "[1]";
-  const min = group.minSelection ?? 0;
+export const getSelectionLabel = (group: IBundleGroup): string | null => {
+  const min = group.minSelection;
   const max = group.maxSelection;
-  if (max) return `[${min}..${max}]`;
-  return `[${min}..∞]`;
+  if (min == null && max == null) return null;
+  if (min != null && max != null) return min === max ? `[${min}]` : `[${min}–${max}]`;
+  if (min != null) return `[${min}+]`;
+  if (max != null) return `[1–${max}]`;
+  return null;
 };

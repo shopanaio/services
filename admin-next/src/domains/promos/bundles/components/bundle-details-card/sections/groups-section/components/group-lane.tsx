@@ -20,6 +20,11 @@ interface IGroupLaneProps {
 export const GroupLane = ({ group, onClick }: IGroupLaneProps) => {
   const { styles } = useStyles();
 
+  // Derive isRequired/isMultiple from min/max
+  const isRequired = group.minSelection != null && group.minSelection > 0;
+  const isMultiple = group.maxSelection == null || group.maxSelection > 1;
+  const selectionLabel = getSelectionLabel(group);
+
   return (
     <div className={styles.lane} onClick={onClick}>
       <div className={styles.laneHeader}>
@@ -34,22 +39,16 @@ export const GroupLane = ({ group, onClick }: IGroupLaneProps) => {
         <div className={styles.laneTags}>
           <Tag
             className={styles.laneTag}
-            icon={group.isRequired ? <LockOutlined /> : <UnlockOutlined />}
+            icon={isRequired ? <LockOutlined /> : <UnlockOutlined />}
           >
-            {group.isRequired ? "Required" : "Optional"}
+            {isRequired ? "Required" : "Optional"}
           </Tag>
           <Tag
             className={styles.laneTag}
-            icon={
-              group.isMultiple ? (
-                <CheckSquareOutlined />
-              ) : (
-                <CheckCircleOutlined />
-              )
-            }
+            icon={isMultiple ? <CheckSquareOutlined /> : <CheckCircleOutlined />}
           >
-            {group.isMultiple
-              ? `Multiple ${getSelectionLabel(group)}`
+            {isMultiple
+              ? `Multiple ${selectionLabel ?? ""}`
               : "Single"}
           </Tag>
         </div>

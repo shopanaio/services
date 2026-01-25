@@ -84,8 +84,6 @@ const groupsToRows = (groups: IBundleGroup[]): ITableRow[] => {
       parentId: null,
       sortIndex: group.sortIndex,
       level: 0,
-      isRequired: group.isRequired,
-      isMultiple: group.isMultiple,
       minSelection: group.minSelection,
       maxSelection: group.maxSelection,
     });
@@ -145,8 +143,6 @@ const rowsToGroups = (rows: ITableRow[]): IBundleGroup[] => {
       id: groupRow.id,
       title: groupRow.name,
       sortIndex: groupRow.sortIndex,
-      isRequired: groupRow.isRequired ?? false,
-      isMultiple: groupRow.isMultiple ?? false,
       minSelection: groupRow.minSelection ?? null,
       maxSelection: groupRow.maxSelection ?? null,
       items,
@@ -281,8 +277,6 @@ export const EditGroupsModal = () => {
       parentId: null,
       sortIndex: maxRootSortIndex + 1,
       level: 0,
-      isRequired: false,
-      isMultiple: false,
       minSelection: null,
       maxSelection: null,
     };
@@ -518,7 +512,7 @@ export const EditGroupsModal = () => {
         field: "name",
         headerName: "Name",
         flex: 2,
-        minWidth: 300,
+        minWidth: 250,
         editable: (params) => params.data?.type === "group",
         resizable: true,
         rowDrag: true,
@@ -530,9 +524,55 @@ export const EditGroupsModal = () => {
         },
       },
       {
+        headerName: "Min",
+        width: 70,
+        editable: true,
+        valueGetter: (params) => {
+          if (!params.data) return null;
+          return params.data.type === "group"
+            ? params.data.minSelection
+            : params.data.minQty;
+        },
+        valueSetter: (params) => {
+          if (!params.data) return false;
+          const value = params.newValue === "" ? null : Number(params.newValue);
+          if (params.data.type === "group") {
+            updateRow(params.data.id, { minSelection: value } as Partial<ITableRow>);
+          } else {
+            updateRow(params.data.id, { minQty: value } as Partial<ITableRow>);
+          }
+          return true;
+        },
+        cellEditor: "agNumberCellEditor",
+        cellEditorParams: { min: 0, precision: 0 },
+      },
+      {
+        headerName: "Max",
+        width: 70,
+        editable: true,
+        valueGetter: (params) => {
+          if (!params.data) return null;
+          return params.data.type === "group"
+            ? params.data.maxSelection
+            : params.data.maxQty;
+        },
+        valueSetter: (params) => {
+          if (!params.data) return false;
+          const value = params.newValue === "" ? null : Number(params.newValue);
+          if (params.data.type === "group") {
+            updateRow(params.data.id, { maxSelection: value } as Partial<ITableRow>);
+          } else {
+            updateRow(params.data.id, { maxQty: value } as Partial<ITableRow>);
+          }
+          return true;
+        },
+        cellEditor: "agNumberCellEditor",
+        cellEditorParams: { min: 0, precision: 0 },
+      },
+      {
         headerName: "Price Rule",
         field: "pricingRule",
-        width: 180,
+        width: 150,
         cellRenderer: (params: ICellRendererParams<ITableRow>) => (
           <PriceRuleCellRenderer
             {...params}
@@ -544,7 +584,7 @@ export const EditGroupsModal = () => {
       {
         headerName: "Value",
         field: "pricingRule",
-        width: 100,
+        width: 80,
         editable: (params) => {
           if (params.data?.type !== "item") return false;
           const rule = params.data?.pricingRule;
@@ -586,6 +626,7 @@ export const EditGroupsModal = () => {
       allRows,
       pricingTemplates,
       handlePriceRuleChange,
+      updateRow,
       deleteRow,
       handleAddItem,
       handleDuplicateGroup,

@@ -105,12 +105,6 @@ export interface IBundleGroup {
   /** Sort index for display order */
   sortIndex: number;
 
-  /** Whether this group is required to be selected */
-  isRequired: boolean;
-
-  /** Whether this group allows multiple items to be selected */
-  isMultiple: boolean;
-
   /** Minimum number of items to select (null = no limit) */
   minSelection: number | null;
 

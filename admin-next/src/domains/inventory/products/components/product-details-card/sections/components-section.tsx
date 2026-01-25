@@ -81,13 +81,11 @@ export const BundleItemsSection = ({
               </div>
               <Typography.Text type="secondary" className={styles.groupMeta}>
                 {[
-                  group.isMultiple && "Multiple",
-                  group.isRequired && "Required",
-                  group.minSelection && group.minSelection > 0 && `Min: ${group.minSelection}`,
-                  group.maxSelection && `Max: ${group.maxSelection}`,
+                  group.minSelection != null && group.minSelection > 0 && `Min: ${group.minSelection}`,
+                  group.maxSelection != null && `Max: ${group.maxSelection}`,
                 ]
                   .filter(Boolean)
-                  .join(" · ")}
+                  .join(" · ") || "No limits"}
               </Typography.Text>
             </div>
           );

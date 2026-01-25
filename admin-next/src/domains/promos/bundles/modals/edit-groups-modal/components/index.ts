@@ -5,4 +5,4 @@ export { ActionsCellRenderer } from "./actions-cell-renderer";
 export type { IActionsCellRendererParams } from "./actions-cell-renderer";
 
 export { PriceRuleCellRenderer, PriceValueCellRenderer } from "./price-rule-cell-renderer";
-export type { IPriceRuleCellRendererParams, IPriceValueCellRendererParams } from "./price-rule-cell-renderer";
+export type { IPriceRuleCellRendererParams } from "./price-rule-cell-renderer";

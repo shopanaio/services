@@ -109,8 +109,6 @@ const mockBundleGroups: IBundleGroup[] = [
     id: "grp-1",
     title: "Accessories",
     sortIndex: 0,
-    isRequired: true,
-    isMultiple: true,
     minSelection: 1,
     maxSelection: 5,
     items: [
@@ -216,8 +214,6 @@ const mockBundleGroups: IBundleGroup[] = [
     id: "grp-2",
     title: "Warranty",
     sortIndex: 1,
-    isRequired: false,
-    isMultiple: false,
     minSelection: null,
     maxSelection: 1,
     items: [
