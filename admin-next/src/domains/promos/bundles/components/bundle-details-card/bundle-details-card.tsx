@@ -100,29 +100,22 @@ export const BundleDetailsCard = ({
     };
     openDependencyChartModal({
       groups,
-      rules: [newRule],
+      rules: [...dependencyRules, newRule],
       selectedRuleId: newRule.id,
       onSave: (updatedRules: IDependencyRule[]) => {
-        setDependencyRules([...dependencyRules, ...updatedRules]);
+        setDependencyRules(updatedRules);
       },
     });
   }, [groups, dependencyRules, openDependencyChartModal]);
 
   const handleEditRule = useCallback(
     (ruleId: string) => {
-      const rule = dependencyRules.find((r) => r.id === ruleId);
-      if (!rule) return;
       openDependencyChartModal({
         groups,
-        rules: [rule],
+        rules: dependencyRules,
         selectedRuleId: ruleId,
         onSave: (updatedRules: IDependencyRule[]) => {
-          const updatedRule = updatedRules[0];
-          if (updatedRule) {
-            setDependencyRules(
-              dependencyRules.map((r) => (r.id === updatedRule.id ? updatedRule : r))
-            );
-          }
+          setDependencyRules(updatedRules);
         },
       });
     },

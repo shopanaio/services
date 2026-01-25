@@ -30,12 +30,20 @@ export const useDependencyChart = ({
   const [selectedNode, setSelectedNode] = useState<SelectedNode>(null);
 
   // Visible rules state - controls which rules are shown on the graph
-  const [visibleRuleIds, setVisibleRuleIds] = useState<Set<string>>(
-    () => new Set(initialRules.map((r) => r.id))
-  );
+  // If a specific rule is selected, show only that one initially
+  const [visibleRuleIds, setVisibleRuleIds] = useState<Set<string>>(() => {
+    if (initialSelectedRuleId) {
+      return new Set([initialSelectedRuleId]);
+    }
+    return new Set(initialRules.map((r) => r.id));
+  });
+
+  // Track when we need to force layout reset
+  const forceLayoutResetRef = useRef(false);
 
   // Handlers for rule visibility (defined early for use in useDerivedGraph)
   const handleToggleRuleVisibility = useCallback((ruleId: string) => {
+    forceLayoutResetRef.current = true;
     setVisibleRuleIds((prev) => {
       const next = new Set(prev);
       if (next.has(ruleId)) {
@@ -48,6 +56,7 @@ export const useDependencyChart = ({
   }, []);
 
   const handleAddRule = useCallback(() => {
+    forceLayoutResetRef.current = true;
     const newRuleId = uuid();
     const newRule: IDependencyRule = {
       id: newRuleId,
@@ -97,25 +106,36 @@ export const useDependencyChart = ({
     const edgeLayout = derivedEdges.map((e) => e.id).join(",");
     const layoutKey = `${currentLayout}|${edgeLayout}`;
 
-    if (prevLayoutRef.current !== layoutKey) {
+    const shouldForceReset = forceLayoutResetRef.current;
+    if (shouldForceReset) {
+      forceLayoutResetRef.current = false;
+    }
+
+    if (prevLayoutRef.current !== layoutKey || shouldForceReset) {
       prevLayoutRef.current = layoutKey;
 
-      // Merge new layout with existing positions
-      setNodes((currentNodes) => {
-        const positionMap = new Map(currentNodes.map((n) => [n.id, n.position]));
+      if (shouldForceReset) {
+        // Force complete layout reset - use new positions from ELK
+        setNodes(layoutNodes as Node[]);
+        setTimeout(() => fitView({ padding: 0.2 }), 50);
+      } else {
+        // Merge new layout with existing positions (for drag operations)
+        setNodes((currentNodes) => {
+          const positionMap = new Map(currentNodes.map((n) => [n.id, n.position]));
 
-        return layoutNodes.map((node) => {
-          const existingPos = positionMap.get(node.id);
-          return {
-            ...node,
-            position: existingPos ?? node.position,
-          } as Node;
+          return layoutNodes.map((node) => {
+            const existingPos = positionMap.get(node.id);
+            return {
+              ...node,
+              position: existingPos ?? node.position,
+            } as Node;
+          });
         });
-      });
+      }
 
       setEdges(derivedEdges as Edge[]);
     }
-  }, [layoutNodes, derivedEdges, setNodes, setEdges]);
+  }, [layoutNodes, derivedEdges, setNodes, setEdges, fitView]);
 
   // Handlers
   const handleNodeClick = useCallback(
