@@ -27,15 +27,15 @@ const useStyles = createStyles(({ token }) => ({
     gap: 8,
     transition: "all 0.2s ease",
     "&:hover": {
-      boxShadow: token.boxShadowSecondary,
+      boxShadow: token.boxShadowTertiary,
     },
   },
   nodeSelected: {
     borderColor: token.colorPrimary,
-    boxShadow: token.boxShadowSecondary,
+    boxShadow: token.boxShadowTertiary,
   },
   nodeHighlighted: {
-    boxShadow: token.boxShadowSecondary,
+    boxShadow: token.boxShadowTertiary,
   },
   nodeDimmed: {
     opacity: 0.5,

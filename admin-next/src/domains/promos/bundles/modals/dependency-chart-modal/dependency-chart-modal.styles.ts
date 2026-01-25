@@ -24,7 +24,7 @@ export const useStyles = createStyles(({ token, isDarkMode }) => ({
     "& .react-flow__controls": {
       background: token.colorBgContainer,
       borderColor: token.colorBorder,
-      boxShadow: token.boxShadowSecondary,
+      boxShadow: token.boxShadowTertiary,
     },
     "& .react-flow__controls-button": {
       background: token.colorBgContainer,

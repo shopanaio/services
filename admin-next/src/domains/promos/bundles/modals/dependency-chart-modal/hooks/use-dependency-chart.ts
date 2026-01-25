@@ -113,8 +113,7 @@ export const useDependencyChart = ({
 
     setNodes(layoutNodes as Node[]);
     setEdges(derivedEdges as Edge[]);
-    requestAnimationFrame(() => fitView({ padding: 0.2 }));
-  }, [layoutNodes, derivedEdges, setNodes, setEdges, fitView]);
+  }, [layoutNodes, derivedEdges, setNodes, setEdges]);
 
   // Sync edges when labels change (e.g., rule edits in inspector)
   useEffect(() => {

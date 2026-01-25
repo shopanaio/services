@@ -29,19 +29,19 @@ const useStyles = createStyles(({ token }) => ({
     cursor: "pointer",
     gap: 8,
     "&:hover": {
-      boxShadow: token.boxShadowSecondary,
+      boxShadow: token.boxShadowTertiary,
     },
   },
   nodeSelected: {
     border: `2px solid ${token.colorPrimary}`,
-    boxShadow: token.boxShadowSecondary,
+    boxShadow: token.boxShadowTertiary,
   },
   nodeDisabled: {
     opacity: 0.5,
     borderColor: token.colorBorder,
   },
   nodeHighlighted: {
-    boxShadow: token.boxShadowSecondary,
+    boxShadow: token.boxShadowTertiary,
   },
   nodeDimmed: {
     opacity: 0.5,
