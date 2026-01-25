@@ -8,6 +8,7 @@ import { Typography, Badge, Tag } from "antd";
 import { ThunderboltOutlined } from "@ant-design/icons";
 
 import type { RuleNodeData } from "../types";
+import { NODE_DIMENSIONS } from "../constants";
 
 // ============================================================================
 // Styles
@@ -18,14 +19,16 @@ const useStyles = createStyles(({ token }) => ({
     background: token.colorBgContainer,
     border: `2px solid ${token.colorWarning}`,
     borderRadius: token.borderRadiusLG,
-    padding: 12,
-    minWidth: 180,
+    padding: `${token.paddingSM}px ${token.paddingSM}px`,
+    width: NODE_DIMENSIONS.rule.width,
+    boxSizing: "border-box",
     display: "flex",
     flexDirection: "column",
-    gap: 8,
+    justifyContent: "center",
     boxShadow: token.boxShadowTertiary,
     transition: "box-shadow 0.2s ease",
     cursor: "pointer",
+    gap: 8,
     "&:hover": {
       boxShadow: token.boxShadow,
     },
@@ -89,7 +92,10 @@ const RuleNodeComponent = ({ data }: RuleNodeProps) => {
   const { styles, cx } = useStyles();
   const { rule, isSelected } = data;
 
-  const conditionCount = rule.conditionGroups.reduce((sum, g) => sum + g.conditions.length, 0);
+  const conditionCount = rule.conditionGroups.reduce(
+    (sum, g) => sum + g.conditions.length,
+    0,
+  );
   const actionCount = rule.actions.length;
 
   return (
@@ -97,7 +103,7 @@ const RuleNodeComponent = ({ data }: RuleNodeProps) => {
       className={cx(
         styles.node,
         isSelected && styles.nodeSelected,
-        !rule.enabled && styles.nodeDisabled
+        !rule.enabled && styles.nodeDisabled,
       )}
     >
       <Handle type="target" position={Position.Top} className={styles.handle} />
@@ -109,14 +115,20 @@ const RuleNodeComponent = ({ data }: RuleNodeProps) => {
         </Typography.Text>
       </div>
       <div className={styles.info}>
-        <Tag color="orange" className={styles.priorityTag}>#{rule.priority}</Tag>
+        <Tag color="orange" className={styles.priorityTag}>
+          #{rule.priority}
+        </Tag>
         <Typography.Text type="secondary" className={styles.conditionCount}>
           {conditionCount} when → {actionCount} then
         </Typography.Text>
         {!rule.enabled && <Badge status="default" text="" />}
       </div>
 
-      <Handle type="source" position={Position.Bottom} className={styles.handle} />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className={styles.handle}
+      />
     </div>
   );
 };

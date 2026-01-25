@@ -8,6 +8,7 @@ import { Typography } from "antd";
 import { GiftOutlined } from "@ant-design/icons";
 
 import type { BundleNodeData } from "../types";
+import { NODE_DIMENSIONS } from "../constants";
 
 // ============================================================================
 // Styles
@@ -18,11 +19,14 @@ const useStyles = createStyles(({ token }) => ({
     background: `linear-gradient(135deg, ${token.colorPrimaryBg} 0%, ${token.colorBgContainer} 100%)`,
     border: `2px solid ${token.colorPrimaryBorder}`,
     borderRadius: token.borderRadiusLG,
-    padding: 16,
-    minWidth: 100,
+    padding: token.padding,
+    width: NODE_DIMENSIONS.bundle.width,
+    height: NODE_DIMENSIONS.bundle.height,
+    boxSizing: "border-box",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
+    justifyContent: "center",
     gap: 6,
     boxShadow: token.boxShadow,
   },

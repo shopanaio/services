@@ -1,16 +1,7 @@
 import { useState, useEffect } from "react";
 import ELK from "elkjs/lib/elk.bundled.js";
 import type { ChartNode, ChartEdge, ItemNodeData } from "../types";
-
-// ============================================================================
-// Constants
-// ============================================================================
-
-const NODE_DIMENSIONS = {
-  item: { width: 220, height: 90 },
-  rule: { width: 200, height: 70 },
-  bundle: { width: 120, height: 50 },
-};
+import { NODE_DIMENSIONS } from "../constants";
 
 const elk = new ELK();
 
@@ -35,7 +26,7 @@ interface UseColumnLayoutOptions {
 }
 
 export const useColumnLayout = ({ nodes, edges }: UseColumnLayoutOptions): ChartNode[] => {
-  const [layoutedNodes, setLayoutedNodes] = useState<ChartNode[]>([]);
+  const [positionedNodes, setLayoutedNodes] = useState<ChartNode[]>([]);
 
   useEffect(() => {
     if (nodes.length === 0) return;
@@ -86,9 +77,9 @@ export const useColumnLayout = ({ nodes, edges }: UseColumnLayoutOptions): Chart
 
     elk
       .layout(elkGraph)
-      .then((layoutedGraph) => {
+      .then((layoutResult) => {
         const positionedNodes = nodes.map((node) => {
-          const elkNode = layoutedGraph.children?.find((n) => n.id === node.id);
+          const elkNode = layoutResult.children?.find((n) => n.id === node.id);
 
           const position = {
             x: elkNode?.x ?? 0,
@@ -125,5 +116,5 @@ export const useColumnLayout = ({ nodes, edges }: UseColumnLayoutOptions): Chart
       });
   }, [nodes, edges]);
 
-  return layoutedNodes;
+  return positionedNodes;
 };

@@ -8,6 +8,7 @@ import { Typography, Avatar } from "antd";
 import { PictureOutlined, FolderOutlined } from "@ant-design/icons";
 
 import type { ItemNodeData } from "../types";
+import { NODE_DIMENSIONS } from "../constants";
 
 // ============================================================================
 // Styles
@@ -18,8 +19,9 @@ const useStyles = createStyles(({ token }) => ({
     background: token.colorBgContainer,
     border: `1px solid ${token.colorBorderSecondary}`,
     borderRadius: token.borderRadiusLG,
-    padding: 8,
-    minWidth: 200,
+    padding: `${token.paddingSM}px ${token.paddingSM}px`,
+    width: NODE_DIMENSIONS.item.width,
+    boxSizing: "border-box",
     display: "flex",
     alignItems: "center",
     gap: 8,
