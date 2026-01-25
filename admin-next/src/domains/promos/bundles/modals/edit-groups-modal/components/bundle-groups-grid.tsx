@@ -639,6 +639,7 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
         {
           headerName: "",
           width: 60,
+          pinned: "right",
           cellRenderer: ActionsCellRenderer,
           cellRendererParams: {
             onDelete: deleteRow,
