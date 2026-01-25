@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { BaseEdge, EdgeLabelRenderer, getBezierPath } from "@xyflow/react";
+import { BaseEdge, EdgeLabelRenderer, getSmoothStepPath } from "@xyflow/react";
 import type { EdgeProps } from "@xyflow/react";
 import { Tag } from "antd";
 import { createStyles } from "antd-style";
@@ -55,13 +55,14 @@ const LabeledEdgeComponent = ({
 }: EdgeProps) => {
   const { styles } = useStyles();
 
-  const [edgePath, labelX, labelY] = getBezierPath({
+  const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX,
     sourceY,
     sourcePosition,
     targetX,
     targetY,
     targetPosition,
+    borderRadius: 16,
   });
 
   const edgeData = data as LabeledEdgeData | undefined;
