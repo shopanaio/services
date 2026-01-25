@@ -17,7 +17,7 @@ import { NODE_DIMENSIONS } from "../constants";
 const useStyles = createStyles(({ token }) => ({
   node: {
     background: token.colorBgContainer,
-    border: `1px solid ${token.colorBorderSecondary}`,
+    border: `2px solid ${token.colorBorder}`,
     borderRadius: token.borderRadiusLG,
     padding: `${token.paddingSM}px ${token.paddingSM}px`,
     width: NODE_DIMENSIONS.item.width,
@@ -25,7 +25,14 @@ const useStyles = createStyles(({ token }) => ({
     display: "flex",
     alignItems: "center",
     gap: 8,
-    boxShadow: token.boxShadowTertiary,
+    transition: "all 0.2s ease",
+    "&:hover": {
+      boxShadow: token.boxShadowSecondary,
+    },
+  },
+  nodeSelected: {
+    borderColor: token.colorPrimary,
+    boxShadow: token.boxShadowSecondary,
   },
   avatar: {
     flexShrink: 0,
@@ -123,7 +130,7 @@ const getImageUrl = (item: ItemWithProduct): string | undefined => {
 
 type ItemNodeProps = NodeProps<Node<ItemNodeData, "item">>;
 
-const ItemNodeComponent = ({ data }: ItemNodeProps) => {
+const ItemNodeComponent = ({ data, selected }: ItemNodeProps) => {
   const { styles, cx } = useStyles();
   const { item, groupTitle, position: nodePosition, isGroup } = data;
 
@@ -137,7 +144,7 @@ const ItemNodeComponent = ({ data }: ItemNodeProps) => {
   const showRightHandle = !nodePosition || nodePosition === "source";
 
   return (
-    <div className={styles.node}>
+    <div className={cx(styles.node, selected && styles.nodeSelected)}>
       {showLeftHandle && (
         <Handle type="target" position={Position.Left} className={styles.handle} />
       )}

@@ -18,6 +18,8 @@ export interface ItemNodeData {
   position?: "source" | "target";
   /** True if this node represents a group, not an item */
   isGroup?: boolean;
+  /** True if this node is selected */
+  isSelected?: boolean;
   [key: string]: unknown;
 }
 
@@ -63,6 +65,7 @@ export interface RuleNodeData {
 
 export interface BundleNodeData {
   label: string;
+  isSelected?: boolean;
   [key: string]: unknown;
 }
 

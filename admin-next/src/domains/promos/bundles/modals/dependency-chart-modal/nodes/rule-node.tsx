@@ -25,16 +25,16 @@ const useStyles = createStyles(({ token }) => ({
     display: "flex",
     flexDirection: "column",
     justifyContent: "center",
-    boxShadow: token.boxShadowTertiary,
-    transition: "box-shadow 0.2s ease",
+    transition: "all 0.2s ease",
     cursor: "pointer",
     gap: 8,
     "&:hover": {
-      boxShadow: token.boxShadow,
+      boxShadow: token.boxShadowSecondary,
     },
   },
   nodeSelected: {
-    boxShadow: token.boxShadow,
+    border: `2px solid ${token.colorPrimary}`,
+    boxShadow: token.boxShadowSecondary,
   },
   nodeDisabled: {
     opacity: 0.5,
@@ -88,9 +88,9 @@ const useStyles = createStyles(({ token }) => ({
 
 type RuleNodeProps = NodeProps<Node<RuleNodeData, "rule">>;
 
-const RuleNodeComponent = ({ data }: RuleNodeProps) => {
+const RuleNodeComponent = ({ data, selected }: RuleNodeProps) => {
   const { styles, cx } = useStyles();
-  const { rule, isSelected } = data;
+  const { rule } = data;
 
   const conditionCount = rule.conditionGroups.reduce(
     (sum, g) => sum + g.conditions.length,
@@ -102,7 +102,7 @@ const RuleNodeComponent = ({ data }: RuleNodeProps) => {
     <div
       className={cx(
         styles.node,
-        isSelected && styles.nodeSelected,
+        selected && styles.nodeSelected,
         !rule.enabled && styles.nodeDisabled,
       )}
     >

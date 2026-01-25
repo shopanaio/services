@@ -28,7 +28,14 @@ const useStyles = createStyles(({ token }) => ({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    boxShadow: token.boxShadow,
+    transition: "all 0.2s ease",
+    "&:hover": {
+      boxShadow: token.boxShadowSecondary,
+    },
+  },
+  nodeSelected: {
+    border: `2px solid ${token.colorPrimary}`,
+    boxShadow: token.boxShadowSecondary,
   },
   icon: {
     color: token.colorPrimary,
@@ -53,12 +60,12 @@ const useStyles = createStyles(({ token }) => ({
 
 type BundleNodeProps = NodeProps<Node<BundleNodeData, "bundle">>;
 
-const BundleNodeComponent = ({ data }: BundleNodeProps) => {
-  const { styles } = useStyles();
+const BundleNodeComponent = ({ data, selected }: BundleNodeProps) => {
+  const { styles, cx } = useStyles();
   const { label } = data;
 
   return (
-    <div className={styles.node}>
+    <div className={cx(styles.node, selected && styles.nodeSelected)}>
       <Handle type="target" position={Position.Left} className={styles.handle} />
 
       <GiftOutlined className={styles.icon} />
