@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { Select } from "antd";
-import { DownOutlined } from "@ant-design/icons";
+import { useState, useMemo } from "react";
+import { Dropdown } from "antd";
+import type { MenuProps } from "antd";
 import type { ICellRendererParams } from "ag-grid-community";
 import type { ITableRow } from "../types";
 import type { PricingRuleTemplate, BundleItem } from "../../../types";
@@ -8,19 +8,18 @@ import { BundlePriceType, PRICE_RULE_OPTIONS } from "../../../types";
 
 // Helper to determine if pricingRule is a template
 const isTemplate = (
-  rule: BundleItem["pricingRule"] | undefined
+  rule: BundleItem["pricingRule"] | undefined,
 ): rule is PricingRuleTemplate => {
   return !!rule && "id" in rule && "name" in rule;
 };
 
 const TEMPLATE_PREFIX = "tpl:";
 
-export interface IPriceRuleCellRendererParams
-  extends ICellRendererParams<ITableRow> {
+export interface IPriceRuleCellRendererParams extends ICellRendererParams<ITableRow> {
   pricingTemplates: PricingRuleTemplate[];
   onPriceRuleChange: (
     itemId: string,
-    pricingRule: BundleItem["pricingRule"]
+    pricingRule: BundleItem["pricingRule"],
   ) => void;
 }
 
@@ -31,90 +30,91 @@ export const PriceRuleCellRenderer = ({
 }: IPriceRuleCellRendererParams) => {
   const [open, setOpen] = useState(false);
 
+  const menuItems = useMemo<MenuProps["items"]>(() => {
+    const items: MenuProps["items"] = [];
+
+    if (pricingTemplates.length > 0) {
+      items.push({
+        key: "templates",
+        type: "group",
+        label: "Templates",
+        children: pricingTemplates.map((tpl) => ({
+          key: `${TEMPLATE_PREFIX}${tpl.id}`,
+          label: tpl.name,
+        })),
+      });
+    }
+
+    items.push({
+      key: "custom",
+      type: "group",
+      label: "Custom",
+      children: PRICE_RULE_OPTIONS.map((opt) => ({
+        key: opt.value,
+        label: opt.label,
+      })),
+    });
+
+    return items;
+  }, [pricingTemplates]);
+
   if (!data || data.type === "group") return null;
 
   const { pricingRule } = data;
   if (!pricingRule) return null;
 
-  // Determine current value for Select
-  const currentValue = isTemplate(pricingRule)
-    ? `${TEMPLATE_PREFIX}${pricingRule.id}` // template
-    : pricingRule.priceType; // custom rule
+  // Determine display label
+  const displayLabel = isTemplate(pricingRule)
+    ? pricingRule.name
+    : (PRICE_RULE_OPTIONS.find((opt) => opt.value === pricingRule.priceType)
+        ?.label ?? pricingRule.priceType);
 
-  // Options: Templates + Custom rules
-  const options = [
-    ...(pricingTemplates.length > 0
-      ? [
-          {
-            label: "Templates",
-            options: pricingTemplates.map((tpl) => ({
-              label: tpl.name,
-              value: `${TEMPLATE_PREFIX}${tpl.id}`,
-            })),
-          },
-        ]
-      : []),
-    {
-      label: "Custom",
-      options: PRICE_RULE_OPTIONS.map((opt) => ({
-        label: opt.label,
-        value: opt.value,
-      })),
-    },
-  ];
-
-  const handleChange = (value: string) => {
-    if (value.startsWith(TEMPLATE_PREFIX)) {
-      // Template selected - save the whole template object
-      const templateId = value.replace(TEMPLATE_PREFIX, "");
+  const handleMenuClick: MenuProps["onClick"] = ({ key }) => {
+    if (key.startsWith(TEMPLATE_PREFIX)) {
+      const templateId = key.replace(TEMPLATE_PREFIX, "");
       const template = pricingTemplates.find((t) => t.id === templateId);
       if (template) {
         onPriceRuleChange(data.id, template);
       }
     } else {
-      // Custom rule selected - save inline object
-      const priceType = value as BundlePriceType;
+      const priceType = key as BundlePriceType;
       const rule = PRICE_RULE_OPTIONS.find((r) => r.value === priceType);
 
-      // Preserve priceValue if previous rule had same type
       const prevValue = isTemplate(pricingRule)
         ? pricingRule.priceValue
         : pricingRule.priceValue;
 
       onPriceRuleChange(data.id, {
         priceType,
-        priceValue: rule?.requiresValue ? prevValue ?? 0 : null,
+        priceValue: rule?.requiresValue ? (prevValue ?? 0) : null,
       });
     }
     setOpen(false);
   };
 
-  const handleArrowClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    setOpen((prev) => !prev);
-  };
-
   return (
-    <Select
+    <Dropdown
+      menu={{ items: menuItems, onClick: handleMenuClick }}
+      trigger={["contextMenu"]}
       open={open}
       onOpenChange={(visible) => {
         if (!visible) setOpen(false);
       }}
-      suffixIcon={
-        <DownOutlined
-          onMouseDown={(e) => e.stopPropagation()}
-          onClick={handleArrowClick}
-        />
-      }
-      value={currentValue}
-      onChange={handleChange}
-      options={options}
-      size="small"
-      style={{ width: "100%" }}
-      popupMatchSelectWidth={false}
-      variant="borderless"
-    />
+      overlayStyle={{ width: 150 }}
+    >
+      <div
+        onDoubleClick={() => setOpen(true)}
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
+          padding: "0 11px",
+        }}
+      >
+        {displayLabel}
+      </div>
+    </Dropdown>
   );
 };
 

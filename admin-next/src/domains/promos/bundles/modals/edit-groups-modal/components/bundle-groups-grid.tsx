@@ -606,6 +606,8 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
           headerName: "Price Rule",
           field: "pricingRule",
           width: 150,
+          suppressDoubleClickEdit: true,
+          cellStyle: { padding: 0 },
           cellRenderer: (params: ICellRendererParams<ITableRow>) => (
             <PriceRuleCellRenderer
               {...params}
