@@ -236,4 +236,176 @@ test.describe('Pricing Widget API', () => {
     expect(pageThreeHistory.edges[0].node.amountMinor).toBe(10000);
     assertHistoryNode(pageThreeHistory.edges[0].node);
   });
+
+  test('should return empty pricing widget when no prices set', async ({ api }) => {
+    const { variantId } = await createProductWithVariant(api);
+
+    if (!variantId) {
+      test.skip();
+      return;
+    }
+
+    const { data } = await api.admin.query('inventory-api/WidgetPricing', {
+      variables: {
+        input: {
+          variantId,
+          currency: 'UAH',
+        },
+      },
+    });
+
+    const widget = data.widgetQuery.pricing;
+    expect(widget).toBeTruthy();
+    expect(widget.currentPrice).toBeNull();
+    expect(widget.currentCostPrice).toBeNull();
+    expect(widget.history.edges).toHaveLength(0);
+    expect(widget.history.totalCount).toBe(0);
+    expect(widget.history.pageInfo.hasNextPage).toBe(false);
+    expect(widget.history.pageInfo.hasPreviousPage).toBe(false);
+    expect(widget.statistics.currency).toBe('UAH');
+    expect(widget.statistics.minPriceMinor).toBe(0);
+    expect(widget.statistics.maxPriceMinor).toBe(0);
+    expect(widget.statistics.avgPriceMinor).toBe(0);
+  });
+
+  test('should track price history with correct effectiveTo timestamps and multi-currency support', async ({
+    api,
+  }) => {
+    const { variantId } = await createProductWithVariant(api);
+
+    if (!variantId) {
+      test.skip();
+      return;
+    }
+
+    // Set initial UAH price
+    await api.admin.mutation('inventory-api/VariantSetPricing', {
+      variables: {
+        input: { variantId, currency: 'UAH', amountMinor: '10000' },
+      },
+    });
+
+    // Set USD price (different currency - should not affect UAH history)
+    await api.admin.mutation('inventory-api/VariantSetPricing', {
+      variables: {
+        input: { variantId, currency: 'USD', amountMinor: '500' },
+      },
+    });
+
+    // Update UAH price - should close previous UAH price
+    await api.admin.mutation('inventory-api/VariantSetPricing', {
+      variables: {
+        input: { variantId, currency: 'UAH', amountMinor: '12000', compareAtMinor: '15000' },
+      },
+    });
+
+    // Set UAH cost
+    await api.admin.mutation('inventory-api/VariantSetCost', {
+      variables: {
+        input: { variantId, currency: 'UAH', unitCostMinor: '4000' },
+      },
+    });
+
+    // Update UAH price again
+    await api.admin.mutation('inventory-api/VariantSetPricing', {
+      variables: {
+        input: { variantId, currency: 'UAH', amountMinor: '11000' },
+      },
+    });
+
+    // Update USD price
+    await api.admin.mutation('inventory-api/VariantSetPricing', {
+      variables: {
+        input: { variantId, currency: 'USD', amountMinor: '450', compareAtMinor: '600' },
+      },
+    });
+
+    // Final UAH price with compare-at
+    await api.admin.mutation('inventory-api/VariantSetPricing', {
+      variables: {
+        input: { variantId, currency: 'UAH', amountMinor: '9500', compareAtMinor: '12000' },
+      },
+    });
+
+    // Query UAH pricing widget
+    const { data: uahData } = await api.admin.query('inventory-api/WidgetPricing', {
+      variables: {
+        input: { variantId, currency: 'UAH' },
+      },
+    });
+
+    const uahWidget = uahData.widgetQuery.pricing;
+
+    // Current price should be the latest UAH price
+    expect(uahWidget.currentPrice?.amountMinor).toBe(9500);
+    expect(uahWidget.currentPrice?.compareAtMinor).toBe(12000);
+    expect(uahWidget.currentCostPrice?.unitCostMinor).toBe(4000);
+
+    // UAH history should have 4 entries (10000 -> 12000 -> 11000 -> 9500)
+    expect(uahWidget.history.edges).toHaveLength(4);
+
+    const uahHistory = uahWidget.history.edges.map((e) => e.node);
+
+    // History should be sorted by effectiveFrom DESC (newest first)
+    expect(uahHistory[0].amountMinor).toBe(9500);
+    expect(uahHistory[1].amountMinor).toBe(11000);
+    expect(uahHistory[2].amountMinor).toBe(12000);
+    expect(uahHistory[3].amountMinor).toBe(10000);
+
+    // Only the current price should have effectiveTo = null
+    expect(uahHistory[0].isCurrent).toBe(true);
+    expect(uahHistory[0].effectiveTo).toBeNull();
+
+    // All previous prices should have effectiveTo set
+    expect(uahHistory[1].isCurrent).toBe(false);
+    expect(uahHistory[1].effectiveTo).not.toBeNull();
+    expect(uahHistory[2].isCurrent).toBe(false);
+    expect(uahHistory[2].effectiveTo).not.toBeNull();
+    expect(uahHistory[3].isCurrent).toBe(false);
+    expect(uahHistory[3].effectiveTo).not.toBeNull();
+
+    // Verify effectiveTo timestamps are chronologically ordered
+    const effectiveToTimestamps = uahHistory
+      .slice(1)
+      .map((h) => new Date(h.effectiveTo!).getTime());
+    for (let i = 0; i < effectiveToTimestamps.length - 1; i++) {
+      expect(effectiveToTimestamps[i]).toBeGreaterThanOrEqual(effectiveToTimestamps[i + 1]);
+    }
+
+    // Statistics should reflect all UAH prices
+    expect(uahWidget.statistics.currency).toBe('UAH');
+    expect(uahWidget.statistics.minPriceMinor).toBe(9500);
+    expect(uahWidget.statistics.maxPriceMinor).toBe(12000);
+    // avg = (10000 + 12000 + 11000 + 9500) / 4 = 10625
+    expect(uahWidget.statistics.avgPriceMinor).toBe(10625);
+
+    // Query USD pricing widget - should be independent
+    const { data: usdData } = await api.admin.query('inventory-api/WidgetPricing', {
+      variables: {
+        input: { variantId, currency: 'USD' },
+      },
+    });
+
+    const usdWidget = usdData.widgetQuery.pricing;
+
+    // USD should have its own independent history
+    expect(usdWidget.currentPrice?.amountMinor).toBe(450);
+    expect(usdWidget.currentPrice?.compareAtMinor).toBe(600);
+    expect(usdWidget.currentCostPrice).toBeNull(); // No USD cost was set
+
+    // USD history should have 2 entries
+    expect(usdWidget.history.edges).toHaveLength(2);
+
+    const usdHistory = usdWidget.history.edges.map((e) => e.node);
+    expect(usdHistory[0].amountMinor).toBe(450);
+    expect(usdHistory[0].isCurrent).toBe(true);
+    expect(usdHistory[1].amountMinor).toBe(500);
+    expect(usdHistory[1].isCurrent).toBe(false);
+
+    // USD statistics
+    expect(usdWidget.statistics.currency).toBe('USD');
+    expect(usdWidget.statistics.minPriceMinor).toBe(450);
+    expect(usdWidget.statistics.maxPriceMinor).toBe(500);
+    expect(usdWidget.statistics.avgPriceMinor).toBe(475);
+  });
 });
