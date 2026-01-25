@@ -40,6 +40,10 @@ const useStyles = createStyles(({ token }) => ({
     opacity: 0.5,
     borderColor: token.colorBorder,
   },
+  nodeDimmed: {
+    opacity: 0.5,
+    filter: "grayscale(30%)",
+  },
   header: {
     display: "flex",
     alignItems: "center",
@@ -90,7 +94,7 @@ type RuleNodeProps = NodeProps<Node<RuleNodeData, "rule">>;
 
 const RuleNodeComponent = ({ data, selected }: RuleNodeProps) => {
   const { styles, cx } = useStyles();
-  const { rule } = data;
+  const { rule, isDimmed } = data;
 
   const conditionCount = rule.conditionGroups.reduce(
     (sum, g) => sum + g.conditions.length,
@@ -104,6 +108,7 @@ const RuleNodeComponent = ({ data, selected }: RuleNodeProps) => {
         styles.node,
         selected && styles.nodeSelected,
         !rule.enabled && styles.nodeDisabled,
+        isDimmed && styles.nodeDimmed,
       )}
     >
       <Handle type="target" position={Position.Left} className={styles.handle} />

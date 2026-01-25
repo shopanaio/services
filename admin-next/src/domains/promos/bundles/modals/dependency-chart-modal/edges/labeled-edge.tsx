@@ -78,6 +78,8 @@ const LabeledEdgeComponent = ({
             style={{
               left: labelX,
               top: labelY,
+              opacity: style?.opacity ?? 1,
+              transition: "opacity 0.2s ease",
             }}
           >
             <Tag className={styles.tag} color={tagColor} variant="outlined">

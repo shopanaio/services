@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useEffect } from "react";
 import { Button, Dropdown, Badge } from "antd";
 import type { MenuProps } from "antd";
 import {
@@ -18,6 +18,7 @@ import {
   Controls,
   ReactFlowProvider,
 } from "@xyflow/react";
+import type { Node } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
 import {
@@ -37,6 +38,10 @@ import { NodeInspector } from "./sidebar/node-inspector";
 import { useDependencyChart } from "./hooks";
 import { useStyles } from "./dependency-chart-modal.styles";
 import type { RuleSortMode } from "./types";
+import {
+  PathHighlightProvider,
+  usePathHighlightContext,
+} from "./contexts/path-highlight-context";
 
 // ============================================================================
 // Node & Edge Types
@@ -72,6 +77,8 @@ const DependencyChartInner = ({
   onCancel,
 }: IDependencyChartInnerProps) => {
   const { styles } = useStyles();
+  const { setSelectedNodeId, setEdges: setContextEdges, selectedNodeId, highlightedNodeIds, highlightedEdgeIds } =
+    usePathHighlightContext();
 
   const {
     nodes,
@@ -82,7 +89,8 @@ const DependencyChartInner = ({
     selectedNode,
     onNodesChange,
     onEdgesChange,
-    handleNodeClick,
+    handleNodeClick: baseHandleNodeClick,
+    handlePaneClick: baseHandlePaneClick,
     handleRuleChange,
     handleToggleRuleVisibility,
     handleAddRule,
@@ -95,8 +103,53 @@ const DependencyChartInner = ({
     initialSelectedRuleId,
   });
 
+  // Sync edges to path highlight context
+  useEffect(() => {
+    setContextEdges(edges);
+  }, [edges, setContextEdges]);
+
+  // Wrap node click to also set path highlight
+  const handleNodeClick = useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      setSelectedNodeId(node.id);
+      baseHandleNodeClick(event, node);
+    },
+    [setSelectedNodeId, baseHandleNodeClick]
+  );
+
+  // Wrap pane click to clear path highlight
+  const handlePaneClick = useCallback(() => {
+    setSelectedNodeId(null);
+    baseHandlePaneClick();
+  }, [setSelectedNodeId, baseHandlePaneClick]);
+
+  // Apply dimming to nodes
+  const highlightedNodes = useMemo(() => {
+    if (!selectedNodeId) return nodes;
+
+    return nodes.map((node) => ({
+      ...node,
+      data: {
+        ...node.data,
+        isDimmed: !highlightedNodeIds.has(node.id),
+      },
+    }));
+  }, [nodes, selectedNodeId, highlightedNodeIds]);
+
+  // Apply dimming to edges
+  const highlightedEdges = useMemo(() => {
+    if (!selectedNodeId) return edges;
+
+    return edges.map((edge) => ({
+      ...edge,
+      style: {
+        ...edge.style,
+        opacity: !highlightedEdgeIds.has(edge.id) ? 0.3 : 1,
+      },
+    }));
+  }, [edges, selectedNodeId, highlightedEdgeIds]);
+
   const visibleCount = visibleRuleIds.size;
-  const totalCount = draftRules.length;
 
   const handleRulesMenuClick = useCallback(
     (info: { key: string }) => {
@@ -172,11 +225,12 @@ const DependencyChartInner = ({
       <div className={styles.container}>
         <div className={styles.chartArea}>
           <ReactFlow
-            nodes={nodes}
-            edges={edges}
+            nodes={highlightedNodes}
+            edges={highlightedEdges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onNodeClick={handleNodeClick}
+            onPaneClick={handlePaneClick}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             fitView
@@ -284,13 +338,15 @@ export const DependencyChartModal = () => {
 
   return (
     <ReactFlowProvider>
-      <DependencyChartInner
-        groups={modalPayload.groups}
-        initialRules={modalPayload.rules}
-        selectedRuleId={modalPayload.selectedRuleId}
-        onSave={handleSave}
-        onCancel={pop}
-      />
+      <PathHighlightProvider>
+        <DependencyChartInner
+          groups={modalPayload.groups}
+          initialRules={modalPayload.rules}
+          selectedRuleId={modalPayload.selectedRuleId}
+          onSave={handleSave}
+          onCancel={pop}
+        />
+      </PathHighlightProvider>
     </ReactFlowProvider>
   );
 };

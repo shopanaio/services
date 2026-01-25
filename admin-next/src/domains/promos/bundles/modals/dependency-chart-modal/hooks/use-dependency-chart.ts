@@ -95,15 +95,15 @@ export const useDependencyChart = ({
   const [nodes, setNodes, onNodesChange] = useNodesState(layoutNodes as Node[]);
   const [edges, setEdges, onEdgesChange] = useEdgesState(derivedEdges as Edge[]);
 
-  // Track previous keys to detect changes
+  // Track previous keys to detect layout changes (not highlighting)
   const prevLayoutKeyRef = useRef<string>("");
   const prevEdgesKeyRef = useRef<string>("");
 
-  // Sync layout when nodes change positions
+  // Sync layout when nodes change positions (structure changes)
   useEffect(() => {
     if (layoutNodes.length === 0) return;
 
-    // Create a key based on node IDs and positions to detect real changes
+    // Create a key based on node IDs and positions only
     const layoutKey = layoutNodes
       .map((n) => `${n.id}:${n.position.x}:${n.position.y}`)
       .join("|");
@@ -116,9 +116,8 @@ export const useDependencyChart = ({
     requestAnimationFrame(() => fitView({ padding: 0.2 }));
   }, [layoutNodes, derivedEdges, setNodes, setEdges, fitView]);
 
-  // Sync edges when they change (e.g., rule edits in inspector)
+  // Sync edges when labels change (e.g., rule edits in inspector)
   useEffect(() => {
-    // Create a key based on edge IDs and their labels
     const edgesKey = derivedEdges
       .map((e) => `${e.id}:${(e.data as { labels?: string[] })?.labels?.join(",") ?? ""}`)
       .join("|");
@@ -166,6 +165,12 @@ export const useDependencyChart = ({
     [draftRules, groups]
   );
 
+  // Handler to clear selection (click on empty canvas)
+  const handlePaneClick = useCallback(() => {
+    setSelectedRuleId(null);
+    setSelectedNode(null);
+  }, []);
+
   const handleRuleChange = useCallback((updatedRule: IDependencyRule) => {
     setDraftRules((prev) =>
       prev.map((r) => (r.id === updatedRule.id ? updatedRule : r))
@@ -177,6 +182,8 @@ export const useDependencyChart = ({
   }, [fitView]);
 
   const handleResetLayout = useCallback(() => {
+    setSelectedRuleId(null);
+    setSelectedNode(null);
     setNodes(layoutNodes as Node[]);
     setTimeout(() => fitView({ padding: 0.2 }), 50);
   }, [layoutNodes, setNodes, fitView]);
@@ -198,6 +205,7 @@ export const useDependencyChart = ({
   return {
     nodes,
     edges,
+    derivedEdges, // for path highlight context
     draftRules,
     visibleRuleIds,
     ruleSortMode,
@@ -206,6 +214,7 @@ export const useDependencyChart = ({
     onNodesChange,
     onEdgesChange,
     handleNodeClick,
+    handlePaneClick,
     handleRuleChange,
     handleToggleRuleVisibility,
     handleAddRule,

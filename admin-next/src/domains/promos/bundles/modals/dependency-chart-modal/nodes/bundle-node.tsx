@@ -37,6 +37,10 @@ const useStyles = createStyles(({ token }) => ({
     border: `2px solid ${token.colorPrimary}`,
     boxShadow: token.boxShadowSecondary,
   },
+  nodeDimmed: {
+    opacity: 0.5,
+    filter: "grayscale(30%)",
+  },
   icon: {
     color: token.colorPrimary,
     fontSize: 28,
@@ -62,10 +66,10 @@ type BundleNodeProps = NodeProps<Node<BundleNodeData, "bundle">>;
 
 const BundleNodeComponent = ({ data, selected }: BundleNodeProps) => {
   const { styles, cx } = useStyles();
-  const { label } = data;
+  const { label, isDimmed } = data;
 
   return (
-    <div className={cx(styles.node, selected && styles.nodeSelected)}>
+    <div className={cx(styles.node, selected && styles.nodeSelected, isDimmed && styles.nodeDimmed)}>
       <Handle type="target" position={Position.Left} className={styles.handle} />
 
       <GiftOutlined className={styles.icon} />

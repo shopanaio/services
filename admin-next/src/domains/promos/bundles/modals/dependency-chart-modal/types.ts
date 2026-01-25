@@ -26,6 +26,8 @@ export interface ItemNodeData {
   isGroup?: boolean;
   /** True if this node is selected */
   isSelected?: boolean;
+  /** True if this node should be dimmed (not in selected path) */
+  isDimmed?: boolean;
   [key: string]: unknown;
 }
 
@@ -66,12 +68,16 @@ export type SelectedNode =
 export interface RuleNodeData {
   rule: IDependencyRule;
   isSelected: boolean;
+  /** True if this node should be dimmed (not in selected path) */
+  isDimmed?: boolean;
   [key: string]: unknown;
 }
 
 export interface BundleNodeData {
   label: string;
   isSelected?: boolean;
+  /** True if this node should be dimmed (not in selected path) */
+  isDimmed?: boolean;
   [key: string]: unknown;
 }
 
