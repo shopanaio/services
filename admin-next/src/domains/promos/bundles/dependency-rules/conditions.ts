@@ -19,6 +19,11 @@ export const CONDITION_SUBJECT_META: Record<ConditionSubject, ConditionSubjectMe
     label: "selection",
     description: "Whether the item is selected",
   },
+  [ConditionSubject.ITEM_QTY]: {
+    category: ConditionCategory.NUMERIC,
+    label: "quantity",
+    description: "Item quantity",
+  },
   [ConditionSubject.GROUP_TOTAL_QTY]: {
     category: ConditionCategory.NUMERIC,
     label: "total quantity",

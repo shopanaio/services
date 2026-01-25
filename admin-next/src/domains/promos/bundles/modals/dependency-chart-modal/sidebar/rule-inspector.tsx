@@ -20,6 +20,7 @@ import {
   LeftOutlined,
   RightOutlined,
   CheckSquareOutlined,
+  NumberOutlined,
   OrderedListOutlined,
   DollarOutlined,
   EyeOutlined,
@@ -89,6 +90,7 @@ const conditionNeedsValue = (condition: IDependencyCondition): boolean => {
 /** Icon maps for first-level menu items */
 const SUBJECT_ICONS: Record<string, ReactNode> = {
   [ConditionSubject.ITEM_SELECTED]: <CheckSquareOutlined />,
+  [ConditionSubject.ITEM_QTY]: <NumberOutlined />,
   [ConditionSubject.GROUP_TOTAL_QTY]: <OrderedListOutlined />,
 };
 

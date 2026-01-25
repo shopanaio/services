@@ -53,6 +53,7 @@ export const LOGIC_OPERATOR_LABELS: Record<LogicOperator, string> = {
 
 export const CONDITION_SUBJECT_LABELS: Record<ConditionSubject, string> = {
   [ConditionSubject.ITEM_SELECTED]: "selection",
+  [ConditionSubject.ITEM_QTY]: "quantity",
   [ConditionSubject.GROUP_TOTAL_QTY]: "total quantity",
 };
 
@@ -62,6 +63,7 @@ export const CONDITION_SUBJECT_LABELS: Record<ConditionSubject, string> = {
 
 /** Short subject names for chip display */
 export const SUBJECT_SHORT: Partial<Record<ConditionSubject, string>> = {
+  [ConditionSubject.ITEM_QTY]: "quantity",
   [ConditionSubject.GROUP_TOTAL_QTY]: "total quantity",
 };
 

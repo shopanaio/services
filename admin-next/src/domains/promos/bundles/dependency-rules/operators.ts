@@ -34,6 +34,11 @@ export const OPERATORS_BY_SUBJECT: Record<ConditionSubject, (ComparisonOperator 
     StateCheckOperator.IS_SELECTED,
     StateCheckOperator.IS_NOT_SELECTED,
   ],
+  [ConditionSubject.ITEM_QTY]: [
+    ComparisonOperator.GTE,
+    ComparisonOperator.EQ,
+    ComparisonOperator.LTE,
+  ],
   [ConditionSubject.GROUP_TOTAL_QTY]: [
     ComparisonOperator.GTE,
     ComparisonOperator.EQ,
@@ -48,6 +53,7 @@ export const OPERATORS_BY_SUBJECT: Record<ConditionSubject, (ComparisonOperator 
 export const SUBJECTS_BY_TARGET: Record<DependencyTargetType, ConditionSubject[]> = {
   [DependencyTargetType.ITEM]: [
     ConditionSubject.ITEM_SELECTED,
+    ConditionSubject.ITEM_QTY,
   ],
   [DependencyTargetType.GROUP]: [
     ConditionSubject.GROUP_TOTAL_QTY,

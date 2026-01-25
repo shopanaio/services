@@ -41,6 +41,7 @@ export enum ConditionCategory {
 
 export enum ConditionSubject {
   ITEM_SELECTED = "ITEM_SELECTED",
+  ITEM_QTY = "ITEM_QTY",
   GROUP_TOTAL_QTY = "GROUP_TOTAL_QTY",
 }
 
