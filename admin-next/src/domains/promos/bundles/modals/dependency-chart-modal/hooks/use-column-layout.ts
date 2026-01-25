@@ -7,10 +7,10 @@ const elk = new ELK();
 
 const ELK_OPTIONS = {
   "elk.algorithm": "layered",
-  "elk.direction": "DOWN",
-  "elk.spacing.nodeNode": "50",
-  "elk.layered.spacing.nodeNodeBetweenLayers": "100",
-  "elk.spacing.edgeEdge": "20",
+  "elk.direction": "RIGHT",
+  "elk.spacing.nodeNode": "60",
+  "elk.layered.spacing.nodeNodeBetweenLayers": "150",
+  "elk.spacing.edgeEdge": "30",
   "elk.padding": "[top=40,left=40,bottom=40,right=40]",
   "elk.layered.crossingMinimization.strategy": "LAYER_SWEEP",
   "elk.layered.nodePlacement.strategy": "BRANDES_KOEPF",

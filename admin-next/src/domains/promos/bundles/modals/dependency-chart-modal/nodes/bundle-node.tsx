@@ -59,7 +59,7 @@ const BundleNodeComponent = ({ data }: BundleNodeProps) => {
 
   return (
     <div className={styles.node}>
-      <Handle type="target" position={Position.Top} className={styles.handle} />
+      <Handle type="target" position={Position.Left} className={styles.handle} />
 
       <GiftOutlined className={styles.icon} />
       <Typography.Text className={styles.label}>{label}</Typography.Text>

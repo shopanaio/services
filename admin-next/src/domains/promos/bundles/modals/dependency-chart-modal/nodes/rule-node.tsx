@@ -106,7 +106,7 @@ const RuleNodeComponent = ({ data }: RuleNodeProps) => {
         !rule.enabled && styles.nodeDisabled,
       )}
     >
-      <Handle type="target" position={Position.Top} className={styles.handle} />
+      <Handle type="target" position={Position.Left} className={styles.handle} />
 
       <div className={styles.header}>
         <ThunderboltOutlined className={styles.icon} />
@@ -126,7 +126,7 @@ const RuleNodeComponent = ({ data }: RuleNodeProps) => {
 
       <Handle
         type="source"
-        position={Position.Bottom}
+        position={Position.Right}
         className={styles.handle}
       />
     </div>

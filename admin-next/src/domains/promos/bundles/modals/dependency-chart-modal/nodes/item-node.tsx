@@ -131,15 +131,15 @@ const ItemNodeComponent = ({ data }: ItemNodeProps) => {
   const variantTitle = !isGroup ? getVariantTitle(item as ItemWithProduct) : undefined;
   const imageUrl = !isGroup ? getImageUrl(item as ItemWithProduct) : undefined;
 
-  // Source: bottom handle only (to rule)
-  // Target: top handle only (from rule)
-  const showTopHandle = !nodePosition || nodePosition === "target";
-  const showBottomHandle = !nodePosition || nodePosition === "source";
+  // Source: right handle only (to rule)
+  // Target: left handle only (from rule)
+  const showLeftHandle = !nodePosition || nodePosition === "target";
+  const showRightHandle = !nodePosition || nodePosition === "source";
 
   return (
     <div className={styles.node}>
-      {showTopHandle && (
-        <Handle type="target" position={Position.Top} className={styles.handle} />
+      {showLeftHandle && (
+        <Handle type="target" position={Position.Left} className={styles.handle} />
       )}
 
       <Avatar
@@ -156,8 +156,8 @@ const ItemNodeComponent = ({ data }: ItemNodeProps) => {
         )}
       </div>
 
-      {showBottomHandle && (
-        <Handle type="source" position={Position.Bottom} className={styles.handle} />
+      {showRightHandle && (
+        <Handle type="source" position={Position.Right} className={styles.handle} />
       )}
     </div>
   );
