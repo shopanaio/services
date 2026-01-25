@@ -19,21 +19,22 @@ import {
   EyeOutlined,
   EyeInvisibleOutlined,
   CheckCircleOutlined,
+  CheckSquareOutlined,
   MinusCircleOutlined,
   NumberOutlined,
   DollarOutlined,
   AppstoreOutlined,
+  LockOutlined,
+  UnlockOutlined,
 } from "@ant-design/icons";
 
 import type { IBundleGroup, BundleItem } from "@/domains/promos/bundles/types";
 import {
   PRICE_RULE_OPTIONS,
-  ITEM_TYPE_LABELS,
   DependencyTargetType,
 } from "@/domains/promos/bundles/types";
 import { CHART_NODE_ICONS } from "@/domains/promos/bundles/dependency-rules";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import { KPITile } from "@/ui-kit/kpi-tile";
 import { CopyableChip } from "@/ui-kit/copyable-chip";
 
 import type { SelectedNode } from "../types";
@@ -98,6 +99,16 @@ const getPriceRuleType = (item: BundleItem): string => {
   return option?.label ?? "Unknown";
 };
 
+const getSelectionLabel = (group: IBundleGroup): string | null => {
+  const min = group.minSelection;
+  const max = group.maxSelection;
+  if (min == null && max == null) return null;
+  if (min != null && max != null) return min === max ? `[${min}]` : `[${min}–${max}]`;
+  if (min != null) return `[${min}+]`;
+  if (max != null) return `[1–${max}]`;
+  return null;
+};
+
 // ============================================================================
 // Item Inspector Content
 // ============================================================================
@@ -124,7 +135,8 @@ const ItemInspectorContent = ({ item, group }: IItemInspectorContentProps) => {
           size={64}
           src={imageUrl}
           icon={<PictureOutlined />}
-          className={styles.avatar}
+          shape="square"
+          className={styles.avatarItem}
         />
         <div className={styles.headerInfo}>
           <Typography.Text type="secondary" className={styles.groupLabel}>
@@ -133,12 +145,12 @@ const ItemInspectorContent = ({ item, group }: IItemInspectorContentProps) => {
           <Typography.Text strong className={styles.title}>
             {title}
           </Typography.Text>
-          <CopyableChip label="ID" value={item.id} mono />
           {variantTitle && (
-            <Tag color="blue" className={styles.variantTag}>
+            <Typography.Text type="secondary" className={styles.variantTitle}>
               {variantTitle}
-            </Tag>
+            </Typography.Text>
           )}
+          <CopyableChip label="ID" value={item.id} mono />
         </div>
       </div>
 
@@ -156,7 +168,6 @@ const ItemInspectorContent = ({ item, group }: IItemInspectorContentProps) => {
         >
           {isPreSelected ? "Pre-selected" : "Not selected"}
         </Tag>
-        <Tag>{ITEM_TYPE_LABELS[item.itemType]}</Tag>
       </Flex>
 
       <Divider className={styles.divider} />
@@ -201,6 +212,10 @@ interface IGroupInspectorContentProps {
 const GroupInspectorContent = ({ group }: IGroupInspectorContentProps) => {
   const { styles } = useStyles();
 
+  const isRequired = group.minSelection != null && group.minSelection > 0;
+  const isMultiple = group.maxSelection == null || group.maxSelection > 1;
+  const selectionLabel = getSelectionLabel(group);
+
   return (
     <div className={styles.content}>
       {/* Header */}
@@ -218,23 +233,14 @@ const GroupInspectorContent = ({ group }: IGroupInspectorContentProps) => {
         </div>
       </div>
 
-      <Divider className={styles.divider} />
-
-      {/* KPI Tiles */}
-      <Flex gap={8} wrap="wrap">
-        <KPITile
-          label="Items"
-          value={group.items.length}
-          icon={<AppstoreOutlined />}
-          variant="info"
-        />
-        <KPITile
-          label="Selection"
-          value={`${group.minSelection ?? 0} - ${group.maxSelection ?? "∞"}`}
-          secondary="min - max"
-          icon={<CheckCircleOutlined />}
-          variant="purple"
-        />
+      {/* Status tags */}
+      <Flex gap={8} className={styles.statusRow}>
+        <Tag icon={isRequired ? <LockOutlined /> : <UnlockOutlined />}>
+          {isRequired ? "Required" : "Optional"}
+        </Tag>
+        <Tag icon={isMultiple ? <CheckSquareOutlined /> : <CheckCircleOutlined />}>
+          {isMultiple ? `Multiple ${selectionLabel ?? ""}` : "Single"}
+        </Tag>
       </Flex>
 
       <Divider className={styles.divider} />
@@ -248,7 +254,7 @@ const GroupInspectorContent = ({ group }: IGroupInspectorContentProps) => {
           {group.items.map((item) => (
             <div key={item.id} className={styles.itemChip}>
               <Avatar
-                size={24}
+                size={32}
                 src={getItemImageUrl(item)}
                 icon={<PictureOutlined />}
               />
@@ -295,22 +301,14 @@ const BundleInspectorContent = ({ label, groups }: IBundleInspectorContentProps)
         </div>
       </div>
 
-      <Divider className={styles.divider} />
-
-      {/* KPI Tiles */}
-      <Flex gap={8} wrap="wrap">
-        <KPITile
-          label="Groups"
-          value={groups.length}
-          icon={<FolderOutlined />}
-          variant="info"
-        />
-        <KPITile
-          label="Total Items"
-          value={totalItems}
-          icon={<AppstoreOutlined />}
-          variant="success"
-        />
+      {/* Stats tags */}
+      <Flex gap={8} className={styles.statusRow}>
+        <Tag icon={<FolderOutlined />}>
+          {groups.length} groups
+        </Tag>
+        <Tag icon={<AppstoreOutlined />}>
+          {totalItems} items
+        </Tag>
       </Flex>
 
       <Divider className={styles.divider} />

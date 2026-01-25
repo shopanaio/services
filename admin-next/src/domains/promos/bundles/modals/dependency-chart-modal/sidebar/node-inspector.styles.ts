@@ -29,7 +29,6 @@ export const useStyles = createStyles(({ token }) => ({
   content: {
     flex: 1,
     overflowY: "auto",
-    padding: token.padding,
   },
   // Header section
   header: {
@@ -42,10 +41,15 @@ export const useStyles = createStyles(({ token }) => ({
     flexShrink: 0,
     borderRadius: token.borderRadiusLG,
   },
+  avatarItem: {
+    flexShrink: 0,
+    borderRadius: token.borderRadiusLG,
+  },
   avatarGroup: {
     flexShrink: 0,
     borderRadius: token.borderRadiusLG,
-    backgroundColor: token.colorPrimary,
+    backgroundColor: token.colorPrimaryBg,
+    color: token.colorPrimary,
   },
   avatarBundle: {
     flexShrink: 0,
@@ -69,9 +73,9 @@ export const useStyles = createStyles(({ token }) => ({
     lineHeight: 1.3,
     wordBreak: "break-word",
   },
-  variantTag: {
-    marginTop: 4,
-    width: "fit-content",
+  variantTitle: {
+    fontSize: 13,
+    lineHeight: 1.2,
   },
   // Status row
   statusRow: {
@@ -115,9 +119,6 @@ export const useStyles = createStyles(({ token }) => ({
     display: "flex",
     alignItems: "center",
     gap: 8,
-    padding: "6px 10px",
-    background: token.colorBgContainerDisabled,
-    borderRadius: token.borderRadiusSM,
   },
   itemChipText: {
     fontSize: 12,
