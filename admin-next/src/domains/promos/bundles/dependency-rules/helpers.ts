@@ -50,6 +50,9 @@ export const formatCondition = (cond: IDependencyCondition): string => {
 
   const subjectShort = SUBJECT_SHORT[cond.subject] ?? cond.subject;
   const phrase = OPERATOR_PHRASE[cond.operator as ComparisonOperator] ?? cond.operator;
+  if (cond.value === undefined || cond.value === null) {
+    return `${subjectShort} ${phrase}`;
+  }
   return `${subjectShort} ${phrase} ${cond.value}`;
 };
 
