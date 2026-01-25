@@ -316,54 +316,28 @@ export const useBundlesSectionStyles = createStyles(({ token }) => ({
     gap: 12,
   },
   bundleCard: {
-    padding: 14,
-    background: token.colorBgLayout,
-    borderRadius: 10,
+    padding: token.paddingSM,
+    borderRadius: token.borderRadius,
     border: `1px solid ${token.colorBorderSecondary}`,
-    cursor: "pointer",
-    transition: "all 0.2s ease",
+    transition: "border-color 0.2s",
     "&:hover": {
-      borderColor: token.colorPrimaryBorder,
-      background: token.colorBgContainer,
-      boxShadow: token.boxShadowTertiary,
-    },
-    "&:focus-visible": {
-      outline: `2px solid ${token.colorPrimary}`,
-      outlineOffset: 2,
+      borderColor: token.colorBorder,
     },
   },
   bundleAvatar: {
     flexShrink: 0,
-    borderRadius: 8,
+    borderRadius: 6,
     background: token.colorBgContainerDisabled,
-    "& .ant-avatar-string": {
-      fontSize: 18,
-    },
   },
   bundleName: {
     fontSize: 13,
-    fontWeight: 600,
-    lineHeight: 1.3,
-  },
-  bundleArrow: {
-    fontSize: 10,
-    color: token.colorTextTertiary,
-    flexShrink: 0,
   },
   bundleTypeTag: {
     margin: 0,
     fontSize: 11,
-    lineHeight: "18px",
-    padding: "0 6px",
-    "& .anticon": {
-      fontSize: 10,
-      marginRight: 3,
-    },
   },
   bundleStatusTag: {
     margin: 0,
     fontSize: 11,
-    lineHeight: "18px",
-    padding: "0 6px",
   },
 }));

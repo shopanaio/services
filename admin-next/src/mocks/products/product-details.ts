@@ -12,8 +12,8 @@ import {
   ThresholdType,
 } from "@/domains/inventory/products/components/product-details-card/inventory-widget.types";
 import { CurrencyCode, type ApiVariant, type ApiPageInfo } from "@/graphql/types";
-import type { PricingRuleTemplate, IDependencyRule } from "@/domains/promos/bundles/types";
-import { BundlePriceType, DependencyActionType, DependencyTargetType } from "@/domains/promos/bundles/types";
+import type { IBundleGroup, PricingRuleTemplate, IDependencyRule } from "@/domains/promos/bundles/types";
+import { BundleItemType, BundlePriceType, DependencyActionType, DependencyTargetType } from "@/domains/promos/bundles/types";
 import { ConditionCategory, ConditionSubject, StateCheckOperator, LogicOperator, ComparisonOperator } from "@/domains/promos/bundles/dependency-rules";
 
 const getMockInventoryWidget = (): ProductInventoryWidget => ({
@@ -47,6 +47,78 @@ const defaultReviewsData = {
     { stars: 1, count: 3, percent: 2 },
   ],
 };
+
+// Mock Bundle Groups (used by bundle-details.ts)
+const mockBundleGroups: IBundleGroup[] = [
+  {
+    id: "grp-1",
+    title: "Accessories",
+    sortIndex: 0,
+    minSelection: 1,
+    maxSelection: 5,
+    items: [
+      {
+        id: "item-1",
+        itemType: BundleItemType.PRODUCT,
+        sortIndex: 0,
+        minQty: 1,
+        maxQty: 3,
+        pricingRule: { priceType: BundlePriceType.BASE, priceValue: null },
+        title: "Premium Case",
+        featuredImage: null,
+      },
+      {
+        id: "item-2",
+        itemType: BundleItemType.PRODUCT,
+        sortIndex: 1,
+        minQty: null,
+        maxQty: 2,
+        pricingRule: { priceType: BundlePriceType.DISCOUNT_PERCENT, priceValue: 10 },
+        title: "Pro Charger 65W",
+        featuredImage: null,
+      },
+      {
+        id: "item-3",
+        itemType: BundleItemType.PRODUCT,
+        sortIndex: 2,
+        minQty: null,
+        maxQty: null,
+        pricingRule: { priceType: BundlePriceType.FREE, priceValue: null },
+        title: "Screen Protector",
+        featuredImage: null,
+      },
+    ],
+  },
+  {
+    id: "grp-2",
+    title: "Warranty",
+    sortIndex: 1,
+    minSelection: null,
+    maxSelection: 1,
+    items: [
+      {
+        id: "item-4",
+        itemType: BundleItemType.PRODUCT,
+        sortIndex: 0,
+        minQty: null,
+        maxQty: 1,
+        pricingRule: { priceType: BundlePriceType.FREE, priceValue: null },
+        title: "1 Year Standard Warranty (included)",
+        featuredImage: null,
+      },
+      {
+        id: "item-5",
+        itemType: BundleItemType.PRODUCT,
+        sortIndex: 1,
+        minQty: null,
+        maxQty: 1,
+        pricingRule: { priceType: BundlePriceType.FIXED, priceValue: 12990 },
+        title: "2 Year Extended Warranty",
+        featuredImage: null,
+      },
+    ],
+  },
+];
 
 // Mock Pricing Templates
 const mockPricingTemplates: PricingRuleTemplate[] = [
@@ -531,6 +603,7 @@ export const productDetailsMockData: IProductDetailsMockData = {
   reviews: defaultReviewsData,
   attributes: createAttributesMockData(),
   options: MOCK_OPTION_GROUPS,
+  bundleItems: mockBundleGroups,
   pricingTemplates: mockPricingTemplates,
   dependencyRules: mockDependencyRules,
   inventory: getMockInventoryWidget(),
