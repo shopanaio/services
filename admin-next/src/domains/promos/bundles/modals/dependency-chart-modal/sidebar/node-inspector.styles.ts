@@ -34,7 +34,7 @@ export const useStyles = createStyles(({ token }) => ({
   // Header section
   header: {
     display: "flex",
-    alignItems: "flex-start",
+    alignItems: "center",
     gap: 12,
     marginBottom: 12,
   },
@@ -57,6 +57,7 @@ export const useStyles = createStyles(({ token }) => ({
     minWidth: 0,
     display: "flex",
     flexDirection: "column",
+    alignItems: "flex-start",
     gap: 2,
   },
   groupLabel: {

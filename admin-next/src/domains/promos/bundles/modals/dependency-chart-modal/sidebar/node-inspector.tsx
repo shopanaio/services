@@ -34,6 +34,7 @@ import {
 import { CHART_NODE_ICONS } from "@/domains/promos/bundles/dependency-rules";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { KPITile } from "@/ui-kit/kpi-tile";
+import { CopyableChip } from "@/ui-kit/copyable-chip";
 
 import type { SelectedNode } from "../types";
 import { RuleInspector } from "./rule-inspector";
@@ -132,6 +133,7 @@ const ItemInspectorContent = ({ item, group }: IItemInspectorContentProps) => {
           <Typography.Text strong className={styles.title}>
             {title}
           </Typography.Text>
+          <CopyableChip label="ID" value={item.id} mono />
           {variantTitle && (
             <Tag color="blue" className={styles.variantTag}>
               {variantTitle}
@@ -184,18 +186,6 @@ const ItemInspectorContent = ({ item, group }: IItemInspectorContentProps) => {
           </div>
         </div>
       </div>
-
-      <Divider className={styles.divider} />
-
-      {/* ID */}
-      <div className={styles.idSection}>
-        <Typography.Text type="secondary" className={styles.idLabel}>
-          Item ID
-        </Typography.Text>
-        <Typography.Text copyable code className={styles.idValue}>
-          {item.id}
-        </Typography.Text>
-      </div>
     </div>
   );
 };
@@ -224,9 +214,7 @@ const GroupInspectorContent = ({ group }: IGroupInspectorContentProps) => {
           <Typography.Text strong className={styles.title}>
             {group.title}
           </Typography.Text>
-          <Typography.Text type="secondary">
-            Bundle Group
-          </Typography.Text>
+          <CopyableChip label="ID" value={group.id} mono />
         </div>
       </div>
 
@@ -270,18 +258,6 @@ const GroupInspectorContent = ({ group }: IGroupInspectorContentProps) => {
             </div>
           ))}
         </div>
-      </div>
-
-      <Divider className={styles.divider} />
-
-      {/* ID */}
-      <div className={styles.idSection}>
-        <Typography.Text type="secondary" className={styles.idLabel}>
-          Group ID
-        </Typography.Text>
-        <Typography.Text copyable code className={styles.idValue}>
-          {group.id}
-        </Typography.Text>
       </div>
     </div>
   );
