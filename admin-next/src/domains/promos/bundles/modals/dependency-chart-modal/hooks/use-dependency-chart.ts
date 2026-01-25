@@ -92,10 +92,11 @@ export const useDependencyChart = ({
   const [nodes, setNodes, onNodesChange] = useNodesState(layoutNodes as Node[]);
   const [edges, setEdges, onEdgesChange] = useEdgesState(derivedEdges as Edge[]);
 
-  // Track previous layout key
+  // Track previous keys to detect changes
   const prevLayoutKeyRef = useRef<string>("");
+  const prevEdgesKeyRef = useRef<string>("");
 
-  // Sync layout when ELK finishes calculating
+  // Sync layout when nodes change positions
   useEffect(() => {
     if (layoutNodes.length === 0) return;
 
@@ -111,6 +112,19 @@ export const useDependencyChart = ({
     setEdges(derivedEdges as Edge[]);
     requestAnimationFrame(() => fitView({ padding: 0.2 }));
   }, [layoutNodes, derivedEdges, setNodes, setEdges, fitView]);
+
+  // Sync edges when they change (e.g., rule edits in inspector)
+  useEffect(() => {
+    // Create a key based on edge IDs and their labels
+    const edgesKey = derivedEdges
+      .map((e) => `${e.id}:${(e.data as { labels?: string[] })?.labels?.join(",") ?? ""}`)
+      .join("|");
+
+    if (prevEdgesKeyRef.current === edgesKey) return;
+    prevEdgesKeyRef.current = edgesKey;
+
+    setEdges(derivedEdges as Edge[]);
+  }, [derivedEdges, setEdges]);
 
   // Handlers
   const handleNodeClick = useCallback(
