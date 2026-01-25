@@ -116,6 +116,7 @@ const groupsToRows = (groups: IBundleGroup[]): ITableRow[] => {
         maxQty: item.maxQty,
         pricingRule: item.pricingRule,
         visible: item.visible ?? "yes",
+        selected: item.selected ?? "no",
       });
     }
   }
@@ -151,6 +152,7 @@ export const rowsToGroups = (rows: ITableRow[]): IBundleGroup[] => {
         priceValue: null,
       },
       visible: itemRow.visible ?? "yes",
+      selected: itemRow.selected ?? "no",
     }));
 
     groups.push({
@@ -259,6 +261,7 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
               priceValue: null,
             },
             visible: "yes",
+            selected: "no",
           };
           addChild(newRow);
         });
@@ -339,6 +342,13 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
     const handleVisibleChange = useCallback(
       (itemId: string, visible: string) => {
         updateRow(itemId, { visible: visible as "yes" | "no" } as Partial<ITableRow>);
+      },
+      [updateRow]
+    );
+
+    const handleSelectedChange = useCallback(
+      (itemId: string, selected: string) => {
+        updateRow(itemId, { selected: selected as "yes" | "no" } as Partial<ITableRow>);
       },
       [updateRow]
     );
@@ -439,6 +449,7 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
               title: row.title,
               featuredImage: row.featuredImage,
               visible: row.visible ?? "yes",
+              selected: row.selected ?? "no",
             })
           );
 
@@ -564,9 +575,44 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
           },
         },
         {
-          headerName: "Min",
+          headerName: "Visible",
+          field: "visible",
+          minWidth: 100,
+          width: 100,
+          suppressDoubleClickEdit: true,
+          cellStyle: { padding: 0 },
+          cellRenderer: (params: ICellRendererParams<ITableRow>) => (
+            <DropdownCellRenderer
+              {...params}
+              options={YES_NO_OPTIONS}
+              onChange={handleVisibleChange}
+              valueField="visible"
+              shouldRender={(data) => data?.type === "item"}
+            />
+          ),
+        },
+        {
+          headerName: "Selected",
+          field: "selected",
+          minWidth: 100,
+          width: 100,
+          suppressDoubleClickEdit: true,
+          cellStyle: { padding: 0 },
+          cellRenderer: (params: ICellRendererParams<ITableRow>) => (
+            <DropdownCellRenderer
+              {...params}
+              options={YES_NO_OPTIONS}
+              onChange={handleSelectedChange}
+              valueField="selected"
+              shouldRender={(data) => data?.type === "item"}
+            />
+          ),
+        },
+        {
+          headerName: "Min Qty",
           field: "minSelection",
-          width: 70,
+          minWidth: 100,
+          width: 100,
           editable: true,
           valueGetter: (params) => {
             if (!params.data) return null;
@@ -591,9 +637,10 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
           cellEditorParams: { min: 0, precision: 0 },
         },
         {
-          headerName: "Max",
+          headerName: "Max Qty",
           field: "maxSelection",
-          width: 70,
+          minWidth: 100,
+          width: 100,
           editable: true,
           valueGetter: (params) => {
             if (!params.data) return null;
@@ -618,8 +665,9 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
           cellEditorParams: { min: 0, precision: 0 },
         },
         {
-          headerName: "Price Rule",
+          headerName: "Pricing Rule",
           field: "pricingRule",
+          minWidth: 150,
           width: 150,
           suppressDoubleClickEdit: true,
           cellStyle: { padding: 0 },
@@ -632,9 +680,11 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
           ),
         },
         {
-          headerName: "Value",
+          headerName: "Pricing Value",
           field: "pricingRule",
-          width: 80,
+          minWidth: 100,
+          width: 100,
+          resizable: false,
           editable: (params) => {
             if (params.data?.type !== "item") return false;
             const rule = params.data?.pricingRule;
@@ -654,22 +704,6 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
           cellEditorParams: { min: 0, precision: 0 },
         },
         {
-          headerName: "Visible",
-          field: "visible",
-          width: 90,
-          suppressDoubleClickEdit: true,
-          cellStyle: { padding: 0 },
-          cellRenderer: (params: ICellRendererParams<ITableRow>) => (
-            <DropdownCellRenderer
-              {...params}
-              options={YES_NO_OPTIONS}
-              onChange={handleVisibleChange}
-              valueField="visible"
-              shouldRender={(data) => data?.type === "item"}
-            />
-          ),
-        },
-        {
           headerName: "",
           width: 60,
           pinned: "right",
@@ -685,6 +719,7 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
           },
           sortable: false,
           filter: false,
+          resizable: false,
         },
       ],
       [
@@ -694,6 +729,7 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
         pricingTemplates,
         handlePriceRuleChange,
         handleVisibleChange,
+        handleSelectedChange,
         updateRow,
         deleteRow,
         handleAddItem,

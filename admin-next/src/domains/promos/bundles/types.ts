@@ -92,6 +92,9 @@ export interface BundleItem {
 
   /** Whether this item is visible on the storefront (default: yes) */
   visible?: "yes" | "no";
+
+  /** Whether this item is pre-selected by default (default: no) */
+  selected?: "yes" | "no";
 }
 
 // ============================================================================

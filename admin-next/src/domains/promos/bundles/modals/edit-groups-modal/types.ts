@@ -39,4 +39,7 @@ export interface ITableRow {
 
   // Visible field
   visible?: "yes" | "no";
+
+  // Selected field (pre-selected by default)
+  selected?: "yes" | "no";
 }
