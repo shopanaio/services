@@ -1,13 +1,15 @@
 import { randomUUID } from 'node:crypto';
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
+import type { ApiFixtures } from '@fixtures/api/api';
+import type { ApiVariantPrice } from '@codegen/admin-gql';
 
 test.describe('Pricing Widget API', () => {
   test.beforeEach(async ({ api }) => {
     await api.session.setupUserAndStore();
   });
 
-  async function createProductWithVariant(api: any, title = 'Widget Pricing Product') {
+  async function createProductWithVariant(api: ApiFixtures['api'], title = 'Widget Pricing Product') {
     const handle = `${title.toLowerCase().replace(/\s+/g, '-')}-${randomUUID().slice(0, 8)}`;
     const { data } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
       variables: { input: { title, handle } },
@@ -20,7 +22,7 @@ test.describe('Pricing Widget API', () => {
     return { product, variantId };
   }
 
-  const assertHistoryNode = (node: any) => {
+  const assertHistoryNode = (node: ApiVariantPrice) => {
     expect(node.id).toBeTruthy();
     expect(node.currency).toBe('UAH');
     expect(typeof node.amountMinor).toBe('number');
@@ -367,7 +369,8 @@ test.describe('Pricing Widget API', () => {
     // Verify effectiveTo timestamps are chronologically ordered
     const effectiveToTimestamps = uahHistory
       .slice(1)
-      .map((h) => new Date(h.effectiveTo!).getTime());
+      .filter((h): h is ApiVariantPrice & { effectiveTo: string } => h.effectiveTo !== null)
+      .map((h) => new Date(h.effectiveTo).getTime());
     for (let i = 0; i < effectiveToTimestamps.length - 1; i++) {
       expect(effectiveToTimestamps[i]).toBeGreaterThanOrEqual(effectiveToTimestamps[i + 1]);
     }

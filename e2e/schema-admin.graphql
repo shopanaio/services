@@ -2055,9 +2055,6 @@ type InventoryQuery {
   """Get variants with Relay-style pagination"""
   variants(first: Int, after: String, last: Int, before: String): VariantConnection!
 
-  """Get pricing widget data for a variant."""
-  pricingWidget(input: PricingWidgetInput!): PricingWidgetPayload!
-
   """Get a warehouse by ID"""
   warehouse(id: ID!): Warehouse
 
@@ -2079,6 +2076,9 @@ type InventoryQuery {
 """Widget query namespace for dashboard widgets."""
 type WidgetQuery {
   inventory(productId: ID!): ProductInventoryWidget
+
+  """Get pricing widget data for a variant."""
+  pricing(input: PricingWidgetInput!): PricingWidgetPayload!
 }
 
 type InventoryMutation {

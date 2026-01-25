@@ -687,8 +687,6 @@ export type InventoryQuery = {
   node: Maybe<Node>;
   /** Get multiple nodes by their global IDs */
   nodes: Array<Maybe<Node>>;
-  /** Get pricing widget data for a variant. */
-  pricingWidget: PricingWidgetPayload;
   /** Get a product by ID */
   product: Maybe<Product>;
   /** Get products with Relay-style pagination */
@@ -711,11 +709,6 @@ export type InventoryQueryNodeArgs = {
 
 export type InventoryQueryNodesArgs = {
   ids: Array<Scalars['ID']['input']>;
-};
-
-
-export type InventoryQueryPricingWidgetArgs = {
-  input: PricingWidgetInput;
 };
 
 
@@ -2427,12 +2420,20 @@ export enum WeightUnit {
 export type WidgetQuery = {
   __typename?: 'WidgetQuery';
   inventory: Maybe<ProductInventoryWidget>;
+  /** Get pricing widget data for a variant. */
+  pricing: PricingWidgetPayload;
 };
 
 
 /** Widget query namespace for dashboard widgets. */
 export type WidgetQueryInventoryArgs = {
   productId: Scalars['ID']['input'];
+};
+
+
+/** Widget query namespace for dashboard widgets. */
+export type WidgetQueryPricingArgs = {
+  input: PricingWidgetInput;
 };
 
 export type WithIndex<TObject> = TObject & Record<string, any>;
@@ -2894,7 +2895,6 @@ export type InventoryQuantitiesResolvers<ContextType = ServiceContext, ParentTyp
 export type InventoryQueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['InventoryQuery'] = ResolversParentTypes['InventoryQuery']> = ResolversObject<{
   node?: Resolver<Maybe<ResolversTypes['Node']>, ParentType, ContextType, RequireFields<InventoryQueryNodeArgs, 'id'>>;
   nodes?: Resolver<Array<Maybe<ResolversTypes['Node']>>, ParentType, ContextType, RequireFields<InventoryQueryNodesArgs, 'ids'>>;
-  pricingWidget?: Resolver<ResolversTypes['PricingWidgetPayload'], ParentType, ContextType, RequireFields<InventoryQueryPricingWidgetArgs, 'input'>>;
   product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType, RequireFields<InventoryQueryProductArgs, 'id'>>;
   products?: Resolver<ResolversTypes['ProductConnection'], ParentType, ContextType, Partial<InventoryQueryProductsArgs>>;
   variant?: Resolver<Maybe<ResolversTypes['Variant']>, ParentType, ContextType, RequireFields<InventoryQueryVariantArgs, 'id'>>;
@@ -3384,6 +3384,7 @@ export type WarehouseUpdatePayloadResolvers<ContextType = ServiceContext, Parent
 
 export type WidgetQueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['WidgetQuery'] = ResolversParentTypes['WidgetQuery']> = ResolversObject<{
   inventory?: Resolver<Maybe<ResolversTypes['ProductInventoryWidget']>, ParentType, ContextType, RequireFields<WidgetQueryInventoryArgs, 'productId'>>;
+  pricing?: Resolver<ResolversTypes['PricingWidgetPayload'], ParentType, ContextType, RequireFields<WidgetQueryPricingArgs, 'input'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 

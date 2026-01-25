@@ -1808,8 +1808,6 @@ export type ApiInventoryQuery = {
   node?: Maybe<ApiNode>;
   /** Get multiple nodes by their global IDs */
   nodes: Array<Maybe<ApiNode>>;
-  /** Get pricing widget data for a variant. */
-  pricingWidget: ApiPricingWidgetPayload;
   /** Get a product by ID */
   product?: Maybe<ApiProduct>;
   /** Get products with Relay-style pagination */
@@ -1832,11 +1830,6 @@ export type ApiInventoryQueryNodeArgs = {
 
 export type ApiInventoryQueryNodesArgs = {
   ids: Array<Scalars['ID']['input']>;
-};
-
-
-export type ApiInventoryQueryPricingWidgetArgs = {
-  input: ApiPricingWidgetInput;
 };
 
 
@@ -4989,12 +4982,20 @@ export enum WeightUnit {
 export type ApiWidgetQuery = {
   __typename?: 'WidgetQuery';
   inventory?: Maybe<ApiProductInventoryWidget>;
+  /** Get pricing widget data for a variant. */
+  pricing: ApiPricingWidgetPayload;
 };
 
 
 /** Widget query namespace for dashboard widgets. */
 export type ApiWidgetQueryInventoryArgs = {
   productId: Scalars['ID']['input'];
+};
+
+
+/** Widget query namespace for dashboard widgets. */
+export type ApiWidgetQueryPricingArgs = {
+  input: ApiPricingWidgetInput;
 };
 
 export enum Join__Graph {
