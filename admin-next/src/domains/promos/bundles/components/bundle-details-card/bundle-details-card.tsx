@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import { Flex } from "antd";
 import { ProductInfoHeader } from "@/domains/inventory/products/components/product-info-header";
 import { ProductContentTabs } from "@/domains/inventory/products/components/product-content-tabs";
+import { PricingBlock } from "@/domains/inventory/products/components/pricing";
 import { SeoBlock } from "@/domains/inventory/products/components/seo";
 import { AttributesSection } from "@/domains/inventory/products/components/attributes-section";
 import { EditAction } from "@/domains/inventory/products/components/edit-action";
@@ -34,6 +35,16 @@ import type {
   IDependencyRule,
 } from "@/domains/promos/bundles/types";
 import { LogicOperator } from "@/domains/promos/bundles/dependency-rules";
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+const formatPrice = (price: number) =>
+  new Intl.NumberFormat("ru-RU", {
+    style: "currency",
+    currency: "RUB",
+  }).format(price / 100);
 
 // ============================================================================
 // Props
@@ -170,6 +181,9 @@ export const BundleDetailsCard = ({
 
       {/* CONTENT TABS */}
       <ProductContentTabs product={product} />
+
+      {/* PRICING */}
+      <PricingBlock productId={product.id} formatPrice={formatPrice} />
 
       {/* MEDIA */}
       <MediaSection gallery={product.gallery} onEdit={handleEditMedia} />

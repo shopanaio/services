@@ -54,14 +54,15 @@ const createBundleVariant = (
   sku: string,
   price: number,
   productRef: { id: string; title: string },
-  options: { optionId: string; optionValueId: string }[] = []
+  options: { optionId: string; optionValueId: string }[] = [],
+  isDefault: boolean = false
 ): ApiVariant => ({
   __typename: "Variant",
   id,
   title,
   sku,
   handle: id,
-  isDefault: false,
+  isDefault,
   inStock: true,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
@@ -93,14 +94,9 @@ const createBundleVariant = (
 // Product reference for Premium Case
 const premiumCaseProductRef = { id: "prod-1", title: "Premium Case" };
 
-// Mock variants for Premium Case product
+// Mock variants for Premium Case product (default only)
 const premiumCaseVariants: ApiVariant[] = [
-  createBundleVariant("case-var-1", "Black", "CASE-BLK", 199000, premiumCaseProductRef, [{ optionId: "color", optionValueId: "black" }]),
-  createBundleVariant("case-var-2", "White", "CASE-WHT", 199000, premiumCaseProductRef, [{ optionId: "color", optionValueId: "white" }]),
-  createBundleVariant("case-var-3", "Navy", "CASE-NVY", 219000, premiumCaseProductRef, [{ optionId: "color", optionValueId: "navy" }]),
-  createBundleVariant("case-var-4", "Red", "CASE-RED", 219000, premiumCaseProductRef, [{ optionId: "color", optionValueId: "red" }]),
-  createBundleVariant("case-var-5", "Green", "CASE-GRN", 239000, premiumCaseProductRef, [{ optionId: "color", optionValueId: "green" }]),
-  createBundleVariant("case-var-6", "Gold", "CASE-GLD", 299000, premiumCaseProductRef, [{ optionId: "color", optionValueId: "gold" }]),
+  createBundleVariant("case-var-1", "Black", "CASE-BLK", 199000, premiumCaseProductRef, [{ optionId: "color", optionValueId: "black" }], true),
 ];
 
 // Mock bundle groups with new structure
@@ -131,11 +127,6 @@ const mockBundleGroups: IBundleGroup[] = [
               displayType: OptionDisplayType.Swatch,
               values: [
                 { __typename: "ProductOptionValue", id: "black", name: "Black", slug: "black" },
-                { __typename: "ProductOptionValue", id: "white", name: "White", slug: "white" },
-                { __typename: "ProductOptionValue", id: "navy", name: "Navy", slug: "navy" },
-                { __typename: "ProductOptionValue", id: "red", name: "Red", slug: "red" },
-                { __typename: "ProductOptionValue", id: "green", name: "Green", slug: "green" },
-                { __typename: "ProductOptionValue", id: "gold", name: "Gold", slug: "gold" },
               ],
             },
           ],
@@ -144,9 +135,9 @@ const mockBundleGroups: IBundleGroup[] = [
             __typename: "VariantConnection",
             edges: premiumCaseVariants.map((v) => ({ __typename: "VariantEdge" as const, cursor: v.id, node: v })),
             pageInfo: { __typename: "PageInfo", hasNextPage: false, hasPreviousPage: false, startCursor: null, endCursor: null },
-            totalCount: 6,
+            totalCount: 1,
           },
-          variantsCount: 6,
+          variantsCount: 1,
         },
         sortIndex: 0,
         minQty: 1,
