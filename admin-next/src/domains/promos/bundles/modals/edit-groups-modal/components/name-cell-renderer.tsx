@@ -1,14 +1,14 @@
 import {
   FolderOutlined,
   FolderOpenOutlined,
-  ShoppingOutlined,
   RightOutlined,
   DownOutlined,
 } from "@ant-design/icons";
+import { Avatar } from "antd";
 import type { ICellRendererParams } from "ag-grid-community";
 import { useStyles } from "../edit-groups-modal.styles";
 import type { ITableRow } from "../types";
-import type { ApiVariant } from "@/graphql/types";
+import type { ApiProduct, ApiVariant } from "@/graphql/types";
 
 export interface INameCellRendererParams
   extends ICellRendererParams<ITableRow> {
@@ -17,10 +17,20 @@ export interface INameCellRendererParams
   allRows: ITableRow[];
 }
 
-// Helper to get image URL from variant or product
+// Helper to get image URL from variant
 const getVariantImageUrl = (variant?: ApiVariant): string | null => {
   if (!variant) return null;
   const mediaItem = variant.media?.[0];
+  return mediaItem?.file?.url ?? null;
+};
+
+// Helper to get image URL from product
+const getProductImageUrl = (product?: ApiProduct): string | null => {
+  if (!product) return null;
+  // Try featured image first
+  if (product.featuredImage?.url) return product.featuredImage.url;
+  // Fallback to first media item
+  const mediaItem = product.media?.edges?.[0]?.node;
   return mediaItem?.file?.url ?? null;
 };
 
@@ -79,11 +89,7 @@ export const NameCellRenderer = (params: INameCellRendererParams) => {
       <div className={styles.nameCell}>
         <span className={styles.indent} style={{ width: indent }} />
         <span className={styles.expandIconPlaceholder} />
-        <img
-          src={imageUrl || "/placeholder.png"}
-          className={styles.productImage}
-          alt=""
-        />
+        <Avatar src={imageUrl} shape="square" size={28} />
         <div className={styles.productInfo}>
           {productTitle ? (
             <>
@@ -101,12 +107,13 @@ export const NameCellRenderer = (params: INameCellRendererParams) => {
   // Product item
   const product = data.assignedProduct;
   const title = data.title || product?.title || "Unknown Product";
+  const imageUrl = getProductImageUrl(product);
 
   return (
     <div className={styles.nameCell}>
       <span className={styles.indent} style={{ width: indent }} />
       <span className={styles.expandIconPlaceholder} />
-      <ShoppingOutlined className={styles.itemIcon} />
+      <Avatar src={imageUrl} shape="square" size={28} />
       <span className={styles.productTitle}>{title}</span>
     </div>
   );
