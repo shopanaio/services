@@ -1,8 +1,10 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { useReactFlow, useNodesState, useEdgesState } from "@xyflow/react";
 import type { Node, Edge } from "@xyflow/react";
+import { v4 as uuid } from "uuid";
 
-import type { IDependencyRule, IBundleGroup, BundleItem } from "@/domains/promos/bundles/types";
+import type { IDependencyRule, IBundleGroup } from "@/domains/promos/bundles/types";
+import { LogicOperator } from "@/domains/promos/bundles/dependency-rules";
 import type { SelectedNode, ItemNodeData, BundleNodeData } from "../types";
 import { useDerivedGraph } from "./use-derived-graph";
 import { useColumnLayout } from "./use-column-layout";
@@ -27,10 +29,52 @@ export const useDependencyChart = ({
   );
   const [selectedNode, setSelectedNode] = useState<SelectedNode>(null);
 
-  // Derive graph from draft rules
+  // Visible rules state - controls which rules are shown on the graph
+  const [visibleRuleIds, setVisibleRuleIds] = useState<Set<string>>(
+    () => new Set(initialRules.map((r) => r.id))
+  );
+
+  // Handlers for rule visibility (defined early for use in useDerivedGraph)
+  const handleToggleRuleVisibility = useCallback((ruleId: string) => {
+    setVisibleRuleIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(ruleId)) {
+        next.delete(ruleId);
+      } else {
+        next.add(ruleId);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleAddRule = useCallback(() => {
+    const newRuleId = uuid();
+    const newRule: IDependencyRule = {
+      id: newRuleId,
+      name: `Rule ${draftRules.length + 1}`,
+      enabled: true,
+      priority: draftRules.length,
+      logicOperator: LogicOperator.AND,
+      conditionGroups: [],
+      actions: [],
+    };
+
+    setDraftRules((prev) => [...prev, newRule]);
+    setVisibleRuleIds((prev) => new Set([...prev, newRuleId]));
+    setSelectedRuleId(newRuleId);
+    setSelectedNode({ type: "rule", rule: newRule });
+  }, [draftRules.length]);
+
+  // Filter rules based on visibility
+  const visibleRules = useMemo(
+    () => draftRules.filter((r) => visibleRuleIds.has(r.id)),
+    [draftRules, visibleRuleIds]
+  );
+
+  // Derive graph from visible rules
   const { nodes: derivedNodes, edges: derivedEdges } = useDerivedGraph({
     groups,
-    rules: draftRules,
+    rules: visibleRules,
     selectedRuleId,
   });
 
@@ -143,12 +187,15 @@ export const useDependencyChart = ({
     nodes,
     edges,
     draftRules,
+    visibleRuleIds,
     selectedRule,
     selectedNode: currentSelectedNode,
     onNodesChange,
     onEdgesChange,
     handleNodeClick,
     handleRuleChange,
+    handleToggleRuleVisibility,
+    handleAddRule,
     handleFitView,
     handleResetLayout,
   };

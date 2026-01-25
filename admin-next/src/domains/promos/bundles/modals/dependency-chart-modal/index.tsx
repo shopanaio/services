@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback } from "react";
-import { Button } from "antd";
-import { AimOutlined, SaveOutlined, ReloadOutlined } from "@ant-design/icons";
+import { useCallback, useMemo } from "react";
+import { Button, Dropdown, Badge } from "antd";
+import type { MenuProps } from "antd";
+import { AimOutlined, SaveOutlined, ReloadOutlined, DownOutlined, PlusOutlined, CheckOutlined } from "@ant-design/icons";
 import {
   ReactFlow,
   Background,
@@ -64,11 +65,14 @@ const DependencyChartInner = ({
     nodes,
     edges,
     draftRules,
+    visibleRuleIds,
     selectedNode,
     onNodesChange,
     onEdgesChange,
     handleNodeClick,
     handleRuleChange,
+    handleToggleRuleVisibility,
+    handleAddRule,
     handleFitView,
     handleResetLayout,
   } = useDependencyChart({
@@ -76,6 +80,49 @@ const DependencyChartInner = ({
     initialRules,
     initialSelectedRuleId,
   });
+
+  const visibleCount = visibleRuleIds.size;
+  const totalCount = draftRules.length;
+
+  const handleRulesMenuClick = useCallback(
+    (info: { key: string }) => {
+      if (info.key === "add-rule") {
+        handleAddRule();
+      } else {
+        handleToggleRuleVisibility(info.key);
+      }
+    },
+    [handleAddRule, handleToggleRuleVisibility]
+  );
+
+  const rulesMenuItems: MenuProps["items"] = useMemo(() => {
+    const items: MenuProps["items"] = [
+      {
+        key: "add-rule",
+        icon: <PlusOutlined />,
+        label: "Add Rule",
+      },
+    ];
+
+    if (draftRules.length > 0) {
+      items.push({ type: "divider" });
+
+      draftRules.forEach((rule) => {
+        const isVisible = visibleRuleIds.has(rule.id);
+        items.push({
+          key: rule.id,
+          icon: isVisible ? <CheckOutlined style={{ color: "var(--ant-color-primary)" }} /> : null,
+          label: (
+            <span style={{ opacity: isVisible ? 1 : 0.6 }}>
+              {rule.name || `Rule ${rule.id.slice(0, 6)}`}
+            </span>
+          ),
+        });
+      });
+    }
+
+    return items;
+  }, [draftRules, visibleRuleIds]);
 
   const handleSave = useCallback(() => {
     onSave?.(draftRules);
@@ -118,6 +165,17 @@ const DependencyChartInner = ({
           </ReactFlow>
 
           <div className={styles.controls}>
+            <Dropdown
+              menu={{ items: rulesMenuItems, onClick: handleRulesMenuClick }}
+              trigger={["click"]}
+              placement="bottomLeft"
+            >
+              <Button size="small">
+                <Badge count={visibleCount} size="small" showZero color="blue" />
+                <span style={{ marginLeft: 4 }}>Rules ({totalCount})</span>
+                <DownOutlined style={{ fontSize: 10, marginLeft: 4 }} />
+              </Button>
+            </Dropdown>
             <Button size="small" icon={<ReloadOutlined />} onClick={handleResetLayout}>
               Reset Layout
             </Button>
