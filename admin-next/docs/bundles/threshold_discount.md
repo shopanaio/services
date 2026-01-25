@@ -21,33 +21,6 @@
   - Конкретным товарам (multi-picker)
   - Конкретной группе (group picker)
 
-### Генерируемые правила (dependency-rules)
-
-```
-Порог по сумме:
-  condition: BUNDLE_SUBTOTAL GTE(X)
-  // или для группы:
-  condition: GROUP_SUBTOTAL(group) GTE(X)
-
-Порог по количеству:
-  condition: GROUP_TOTAL_QTY(group) GTE(N)
-  // или по уникальным:
-  condition: GROUP_UNIQUE_COUNT(group) GTE(N)
-
-Скидка:
-  action: ADJUST_PRICE на BUNDLE (priceType: PERCENT, priceValue: -N%)
-  // или на конкретный item/group:
-  action: ADJUST_PRICE на ITEM(targetItem) (priceType: FIXED_AMOUNT, priceValue: -X)
-  // или override:
-  action: OVERRIDE_PRICE на BUNDLE (priceType: FIXED, priceValue: Y)
-
-Stepped thresholds (несколько уровней):
-  Rule 1 (priority: 1): BUNDLE_SUBTOTAL GTE(1000) → -5%
-  Rule 2 (priority: 2): BUNDLE_SUBTOTAL GTE(2000) → -10%
-  Rule 3 (priority: 3): BUNDLE_SUBTOTAL GTE(5000) → -15%
-  // exclusiveKey одинаковый — применяется только один
-```
-
 ### Wireframe
 
 ```

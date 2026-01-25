@@ -16,30 +16,6 @@
   - Значение скидки (number input, если не "бесплатно")
 - **Лимит** — max повторений акции (number input или ∞)
 
-### Генерируемые правила (dependency-rules)
-
-```
-Показать Y когда X выбран:
-  condition: ITEM_SELECTED(X) IS_SELECTED
-  // или для количественного триггера:
-  condition: ITEM_QTY(X) GTE(triggerQty)
-  action: SHOW на ITEM(Y)
-  action: ENABLE на ITEM(Y)
-
-Ценообразование Y:
-  condition: ITEM_SELECTED(X) IS_SELECTED
-  action: OVERRIDE_PRICE на ITEM(Y) (priceType: FIXED, priceValue: 0)
-  // или
-  action: ADJUST_PRICE на ITEM(Y) (priceType: PERCENT, priceValue: -50)
-
-Лимит количества Y:
-  action: SET_QTY_LIMITS на ITEM(Y) (min: 0, max: rewardQty)
-
-Скрыть Y когда X не выбран:
-  condition: ITEM_SELECTED(X) IS_NOT_SELECTED
-  action: HIDE на ITEM(Y)
-```
-
 ### Wireframe
 
 ```

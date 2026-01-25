@@ -13,19 +13,6 @@
   - Скидка за единицу (% или фикс)
   - Цена за единицу в паке (number input)
 
-### Генерируемые правила (dependency-rules)
-
-```
-action: SET_QTY(N)                — фикс количество = размер пака
-action: SET_QTY_LIMITS(min: N, max: N)  — нельзя менять
-action: DISABLE                   — нельзя убрать из набора
-
-Ценообразование:
-  action: OVERRIDE_PRICE на ITEM (priceType: FIXED, priceValue: packPrice / N)
-  // или
-  action: ADJUST_PRICE на ITEM (priceType: PERCENT, priceValue: -X%)
-```
-
 ### Wireframe
 
 ```

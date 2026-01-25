@@ -11,22 +11,6 @@
 - **Пул товаров** — multi-picker (из каких товаров можно выбирать)
 - **Группировка** (опционально) — разделение пула на категории
 
-### Генерируемые правила (dependency-rules)
-
-```
-Constraint:
-  action: SET_QTY_LIMITS на GROUP (min: N, max: N)
-  action: SET_REQUIRED(true) на GROUP
-
-Валидация:
-  condition: GROUP_TOTAL_QTY(pool) LT N
-  action: DISABLE на BUNDLE
-
-Ценообразование:
-  condition: GROUP_TOTAL_QTY(pool) EQ N
-  action: OVERRIDE_PRICE на BUNDLE (priceType: FIXED, priceValue: X)
-```
-
 ### Wireframe
 
 ```

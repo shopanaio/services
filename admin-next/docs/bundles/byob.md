@@ -19,31 +19,6 @@
   - Скидка на набор (% или фикс)
   - Фиксированная цена набора
 
-### Генерируемые правила (dependency-rules)
-
-```
-Для каждой группы (Pick N):
-  condition: GROUP_TOTAL_QTY(group) GTE minPicks
-  condition: GROUP_TOTAL_QTY(group) LTE maxPicks
-  action: SET_QTY_LIMITS(min: minPicks, max: maxPicks) на GROUP
-  action: SET_REQUIRED(true) — если группа обязательная
-
-Для каждой группы (Spend X):
-  condition: GROUP_SUBTOTAL(group) GTE minSpend
-  condition: GROUP_SUBTOTAL(group) LTE maxSpend
-  action: SET_REQUIRED(true) — если группа обязательная
-
-Ценообразование:
-  condition: все группы удовлетворены (AND)
-  action: ADJUST_PRICE на BUNDLE (priceType: PERCENT, priceValue: -N%)
-  // или
-  action: OVERRIDE_PRICE на BUNDLE (priceType: FIXED, priceValue: X)
-
-Валидация (DISABLE кнопки "добавить в корзину"):
-  condition: GROUP_TOTAL_QTY < minPicks (любая группа)
-  action: DISABLE на BUNDLE
-```
-
 ### Wireframe
 
 ```

@@ -14,24 +14,6 @@
   - Значение (скидка/цена) — number input
 - **Применение** — radio: К каждой единице | К единицам сверх порога
 
-### Генерируемые правила (dependency-rules)
-
-```
-Для каждого тира (priority = tier index):
-
-Tier 1: qty 1-4 → обычная цена (нет правила)
-
-Tier 2: qty 5-9 → -10%
-  condition: ITEM_QTY(item) BETWEEN(5, 9)
-  action: ADJUST_PRICE на ITEM (priceType: PERCENT, priceValue: -10)
-  priority: 2
-
-Tier 3: qty 10+ → -20%
-  condition: ITEM_QTY(item) GTE(10)
-  action: ADJUST_PRICE на ITEM (priceType: PERCENT, priceValue: -20)
-  priority: 3
-```
-
 ### Wireframe
 
 ```

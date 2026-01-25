@@ -15,22 +15,6 @@
   - Фиксированная цена бандла (number input)
   - Скидка от суммы товаров (% или фикс)
 
-### Генерируемые правила (dependency-rules)
-
-```
-Для каждой группы:
-  action: SET_REQUIRED(true)
-
-Для каждого item:
-  action: SET_QTY(N)          — фикс количество
-  action: DISABLE             — нельзя менять выбор
-
-Ценообразование:
-  action: OVERRIDE_PRICE на BUNDLE (priceType: FIXED, priceValue: X)
-  // или
-  action: ADJUST_PRICE на BUNDLE (priceType: PERCENT, priceValue: -N%)
-```
-
 ### Wireframe
 
 ```

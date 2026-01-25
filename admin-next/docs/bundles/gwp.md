@@ -17,31 +17,6 @@
   - Цена подарка — radio: Бесплатно | Символическая цена (number input)
 - **Лимит** — max подарков на заказ (number input, default 1)
 
-### Генерируемые правила (dependency-rules)
-
-```
-Начальное состояние (подарок скрыт):
-  action: HIDE на ITEM(gift)  — default state
-
-Показать подарок по условию:
-  // Вариант: по товару
-  condition: ITEM_SELECTED(triggerItem) IS_SELECTED
-  // Вариант: по количеству
-  condition: GROUP_TOTAL_QTY(triggerGroup) GTE(N)
-  // Вариант: по сумме
-  condition: BUNDLE_SUBTOTAL GTE(X)
-
-  action: SHOW на ITEM(gift)
-  action: ENABLE на ITEM(gift)
-  action: OVERRIDE_PRICE на ITEM(gift) (priceType: FIXED, priceValue: 0)
-  action: SET_QTY_LIMITS на ITEM(gift) (min: 0, max: giftLimit)
-
-Скрыть подарок когда условие не выполнено:
-  // Инверсия условия
-  condition: BUNDLE_SUBTOTAL LT(X)
-  action: HIDE на ITEM(gift)
-```
-
 ### Wireframe
 
 ```
