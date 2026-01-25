@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import dagre from "@dagrejs/dagre";
+import { useState, useEffect } from "react";
+import ELK from "elkjs/lib/elk.bundled.js";
 import type { ChartNode, ChartEdge, ItemNodeData } from "../types";
 
 // ============================================================================
@@ -12,13 +12,17 @@ const NODE_DIMENSIONS = {
   bundle: { width: 120, height: 50 },
 };
 
-const GRAPH_CONFIG = {
-  rankdir: "TB" as const, // Top to Bottom
-  nodesep: 50, // Horizontal spacing between nodes
-  ranksep: 100, // Vertical spacing between ranks (layers)
-  edgesep: 20, // Spacing between edges
-  marginx: 40,
-  marginy: 40,
+const elk = new ELK();
+
+const ELK_OPTIONS = {
+  "elk.algorithm": "layered",
+  "elk.direction": "DOWN",
+  "elk.spacing.nodeNode": "50",
+  "elk.layered.spacing.nodeNodeBetweenLayers": "100",
+  "elk.spacing.edgeEdge": "20",
+  "elk.padding": "[top=40,left=40,bottom=40,right=40]",
+  "elk.layered.crossingMinimization.strategy": "LAYER_SWEEP",
+  "elk.layered.nodePlacement.strategy": "BRANDES_KOEPF",
 };
 
 // ============================================================================
@@ -31,30 +35,10 @@ interface UseColumnLayoutOptions {
 }
 
 export const useColumnLayout = ({ nodes, edges }: UseColumnLayoutOptions): ChartNode[] => {
-  return useMemo(() => {
-    if (nodes.length === 0) return [];
+  const [layoutedNodes, setLayoutedNodes] = useState<ChartNode[]>([]);
 
-    // Create a new dagre graph
-    const g = new dagre.graphlib.Graph();
-    g.setDefaultEdgeLabel(() => ({}));
-    g.setGraph(GRAPH_CONFIG);
-
-    // Add nodes with their dimensions
-    nodes.forEach((node) => {
-      const dimensions = NODE_DIMENSIONS[node.type as keyof typeof NODE_DIMENSIONS] ?? {
-        width: 200,
-        height: 60,
-      };
-      g.setNode(node.id, { ...dimensions });
-    });
-
-    // Add edges for dagre to calculate optimal positions
-    edges.forEach((edge) => {
-      g.setEdge(edge.source, edge.target);
-    });
-
-    // Run the dagre layout algorithm
-    dagre.layout(g);
+  useEffect(() => {
+    if (nodes.length === 0) return;
 
     // Build lookup maps for determining node positions
     const sourceNodeIds = new Set<string>();
@@ -78,40 +62,68 @@ export const useColumnLayout = ({ nodes, edges }: UseColumnLayoutOptions): Chart
       }
     });
 
-    // Apply calculated positions to nodes
-    return nodes.map((node) => {
-      const nodeWithPosition = g.node(node.id) as { x: number; y: number };
-      const dimensions = NODE_DIMENSIONS[node.type as keyof typeof NODE_DIMENSIONS] ?? {
-        width: 200,
-        height: 60,
-      };
-
-      // Determine if this is a source or target node for the ItemNode component
-      const isSource = sourceNodeIds.has(node.id);
-      const isTarget = targetNodeIds.has(node.id);
-
-      // Center the node around the dagre-calculated position
-      const position = {
-        x: nodeWithPosition.x - dimensions.width / 2,
-        y: nodeWithPosition.y - dimensions.height / 2,
-      };
-
-      // For item nodes, add the position property to data
-      if (node.type === "item") {
+    // Build ELK graph structure
+    const elkGraph = {
+      id: "root",
+      layoutOptions: ELK_OPTIONS,
+      children: nodes.map((node) => {
+        const dimensions = NODE_DIMENSIONS[node.type as keyof typeof NODE_DIMENSIONS] ?? {
+          width: 200,
+          height: 60,
+        };
         return {
-          ...node,
-          data: {
-            ...node.data,
-            position: isSource ? "source" : isTarget ? "target" : undefined,
-          } as ItemNodeData,
-          position,
-        } as ChartNode;
-      }
+          id: node.id,
+          width: dimensions.width,
+          height: dimensions.height,
+        };
+      }),
+      edges: edges.map((edge, index) => ({
+        id: `e${index}`,
+        sources: [edge.source],
+        targets: [edge.target],
+      })),
+    };
 
-      return {
-        ...node,
-        position,
-      };
-    });
+    elk
+      .layout(elkGraph)
+      .then((layoutedGraph) => {
+        const positionedNodes = nodes.map((node) => {
+          const elkNode = layoutedGraph.children?.find((n) => n.id === node.id);
+
+          const position = {
+            x: elkNode?.x ?? 0,
+            y: elkNode?.y ?? 0,
+          };
+
+          // Determine if this is a source or target node for the ItemNode component
+          const isSource = sourceNodeIds.has(node.id);
+          const isTarget = targetNodeIds.has(node.id);
+
+          // For item nodes, add the position property to data
+          if (node.type === "item") {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                position: isSource ? "source" : isTarget ? "target" : undefined,
+              } as ItemNodeData,
+              position,
+            } as ChartNode;
+          }
+
+          return {
+            ...node,
+            position,
+          };
+        });
+
+        setLayoutedNodes(positionedNodes);
+      })
+      .catch((error) => {
+        console.error("ELK layout error:", error);
+        setLayoutedNodes(nodes);
+      });
   }, [nodes, edges]);
+
+  return layoutedNodes;
 };
