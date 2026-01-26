@@ -126,7 +126,7 @@ export default function CategoriesPage() {
   const { rowSelection, selectionColumnDef, onCellClicked } =
     useAgGridRowSelection<ICategoryListItem>({
       onRowAction: () => {
-        console.log("Open category detail");
+        push("category", { level: 1 });
       },
     });
 

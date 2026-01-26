@@ -252,6 +252,21 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
+    // ========================================
+    // Category modals
+    // ========================================
+    // Category modal
+    {
+      type: 'category',
+      component: dynamic(() =>
+        import('@/domains/inventory/categories/modals/category-modal').then(
+          (m) => m.CategoryModal
+        )
+      ),
+    },
+    // ========================================
+    // Picker modals
+    // ========================================
     // Category Picker modal
     {
       type: 'category-picker',
