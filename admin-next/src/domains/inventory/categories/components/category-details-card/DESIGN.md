@@ -113,10 +113,21 @@ type CategorySection =
 ┌─────────────────────────────────────────────────────────────┐
 │  CategoryInfoHeader                                         │
 │  ┌───────────────────────────────────────────────────────┐  │
-│  │  [Featured Image]   Title             Status Badge    │  │
-│  │                     /electronics/audio                │  │
-│  │                     Description excerpt...            │  │
-│  │                     Created: Jan 12  ·  Updated: Jan 25│  │
+│  │  [ACTIVE ●]  Jan 25 by Admin    [🔗][👁][↗] [⋯]     │  │
+│  │                                                       │  │
+│  │  Audio Equipment                                      │  │
+│  │  [/ electronics/audio]  [ID 3f8a…]                    │  │
+│  │  ─────────────────────────────────                    │  │
+│  │  Browse our collection of premium audio equipment...  │  │
+│  └───────────────────────────────────────────────────────┘  │
+├─────────────────────────────────────────────────────────────┤
+│  CategoryContentTabs                                        │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │  [Description] [Excerpt]           [✨ AI]  [⋯]      │  │
+│  │                                                       │  │
+│  │  Browse our extensive collection of premium audio     │  │
+│  │  equipment. From professional-grade headphones to...  │  │
+│  │  ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒ gradient fade ▒▒▒▒▒▒▒▒  │  │
 │  └───────────────────────────────────────────────────────┘  │
 ├─────────────────────────────────────────────────────────────┤
 │  HierarchySection                                           │
@@ -199,59 +210,126 @@ type CategorySection =
 
 ### 1. CategoryInfoHeader
 
-Отдельный компонент `category-info-header/`, по аналогии с `product-info-header/`.
+Отдельный компонент `category-info-header/`, структура как `product-info-header/`.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
 │  Paper                                                                   │
 │                                                                          │
 │  ┌─ PaperHeader ──────────────────────────────────────────────────────┐  │
-│  │  [ACTIVE ●]  Jan 25 by Admin            [🔗] [👁] [↗]  [⋯ More]  │  │
+│  │                                                                    │  │
+│  │  title:                                     actions:               │  │
+│  │  ┌─ Flex align="center" gap={8} ─────┐      ┌─ Flex gap={8} ───┐  │  │
+│  │  │ [ACTIVE ●] Tag color="success"    │      │ [🔗] [👁] [↗]   │  │  │
+│  │  │                                   │      │ btn  btn  popover│  │  │
+│  │  │ "Jan 25 by "                      │      │                  │  │  │
+│  │  │ [Admin] ← Popover(UserCard)       │      │ [⋯] Dropdown     │  │  │
+│  │  └───────────────────────────────────┘      └──────────────────┘  │  │
+│  │                                                                    │  │
 │  └────────────────────────────────────────────────────────────────────┘  │
 │                                                                          │
-│  Audio Equipment                                                         │  ← Typography.Title level={3}, ellipsis 2 rows
-│  [/ electronics/audio]  [ID 3f8a…]                                       │  ← CopyableChip × 2 (slug + id)
-│                                                                          │
-│  ─────────────────── Divider ───────────────────                         │
-│                                                                          │
-│  ┌─ PeriodSwitch ─────────────────────────────────────────────────────┐  │
-│  │  [7d]  [30d]  [90d]  [All]            ☐ Compare to previous       │  │
+│  ┌─ Flex vertical gap={8} ────────────────────────────────────────────┐  │
+│  │                                                                    │  │
+│  │  Typography.Title level={3} ellipsis={{ rows: 2 }}                 │  │
+│  │  "Audio Equipment"                                                 │  │
+│  │                                                                    │  │
+│  │  ┌─ Flex align="center" gap={12} ─────────────────────────────┐    │  │
+│  │  │ CopyableChip label="/" value="electronics/audio"           │    │  │
+│  │  │ CopyableChip label="ID" value="3f8a…" mono                │    │  │
+│  │  └────────────────────────────────────────────────────────────┘    │  │
+│  │                                                                    │  │
 │  └────────────────────────────────────────────────────────────────────┘  │
 │                                                                          │
-│  ┌─ KPI Tiles (Flex gap={12}) ────────────────────────────────────────┐  │
-│  │  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐      │  │
-│  │  │ Views      │ │ Products   │ │ Subcategor.│ │ Revenue    │      │  │
-│  │  │ 2,847      │ │ 128        │ │ 4          │ │ ₴ 156,000  │      │  │
-│  │  │ +8% ▲      │ │            │ │            │ │ +12% ▲     │      │  │
-│  │  └────────────┘ └────────────┘ └────────────┘ └────────────┘      │  │
+│  ──────────────────────── Divider ────────────────────────────            │
+│                                                                          │
+│  ┌─ Description ──────────────────────────────────────────────────────┐  │
+│  │  Typography.Paragraph type="secondary" ellipsis={{ rows: 2 }}      │  │
+│  │  "Browse our collection of premium audio equipment including..."    │  │
+│  └────────────────────────────────────────────────────────────────────┘  │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+**PaperHeader title** — `Flex align="center" gap={8}`:
+- `Tag` color-coded status: ACTIVE → `success` + `CheckOutlined`, DRAFT → `warning` + `EditOutlined`, ARCHIVED → `default` + `InboxOutlined`
+- `Typography.Text` type="secondary" fontSize 12 — дата + "by" + `Popover` с `UserPopoverContent`
+
+**PaperHeader actions** — `Flex align="center" gap={12}`:
+- `Button` text `LinkOutlined` — copy admin URL to clipboard
+- `Button` text `EyeOutlined` — open storefront URL in new tab
+- `Popover` trigger="click" с `SharePopoverContent` — share storefront link
+- `Dropdown` с `Button` size="small" `MoreOutlined`:
+
+```
+  ┌──────────────────┐
+  │ Edit title       │  ← onClick → openEditTitleModal
+  │ ──────────────── │
+  │ Duplicate        │
+  │ Export           │
+  │ ──────────────── │
+  │ Archive          │  ← danger: true
+  └──────────────────┘
+```
+
+**Title section:**
+- `Typography.Title` level={3}, `ellipsis={{ rows: 2, tooltip }}`, `margin: 0`
+- `CopyableChip` label="/" value={slug} — slug
+- `CopyableChip` label="ID" value={id} displayValue={id.slice(0,8)} mono
+
+---
+
+### 2. CategoryContentTabs
+
+Один к одному копия `product-content-tabs/product-content-tabs.tsx`.
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│  Paper  minHeight: 120                                                   │
+│                                                                          │
+│  ┌─ Tabs type="card" size="middle" ───────────────────────────────────┐  │
+│  │                                                                    │  │
+│  │  ┌────────────┐ ┌────────────┐           tabBarExtraContent:       │  │
+│  │  │Description │ │  Excerpt   │           [✨ AI]  [⋯]              │  │
+│  │  │  (active)  │ │            │           AIButton  Dropdown:       │  │
+│  │  └────────────┘ └────────────┘             [Edit content]          │  │
+│  │                                                                    │  │
+│  │  ┌─ Tab: Description ──────────────────────────────────────────┐   │  │
+│  │  │                                                             │   │  │
+│  │  │  renderedContent: dangerouslySetInnerHTML                   │   │  │
+│  │  │  fontSize 13, lineHeight 1.6                                │   │  │
+│  │  │  minHeight 80, maxHeight 120, overflow hidden               │   │  │
+│  │  │                                                             │   │  │
+│  │  │  Browse our extensive collection of premium audio           │   │  │
+│  │  │  equipment. From professional-grade headphones to           │   │  │
+│  │  │  portable speakers, we offer top brands at...               │   │  │
+│  │  │  ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒ ← gradient fade          │   │  │
+│  │  └─────────────────────────────────────────────────────────────┘   │  │
+│  │                                                                    │  │
 │  └────────────────────────────────────────────────────────────────────┘  │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Top bar** — `PaperHeader`:
-- `title` = `StatusTag` + дата + автор (Popover)
-- `actions` = `[🔗 Copy link]` `[👁 View storefront]` `[↗ Share]` + `Dropdown` "More" (Edit title, Duplicate, Export, --- , Archive)
+**Tabs:**
+- `Description` — `description.html` через `dangerouslySetInnerHTML`, max 120px с gradient fade (`::after`)
+- `Excerpt` — `excerpt` как `<p>`, тот же стиль
 
-**Title section:**
-- `Typography.Title` level={3}, `ellipsis={{ rows: 2 }}`
-- `CopyableChip` × 2: slug (`/ electronics/audio`) и ID (`3f8a…`)
+**tabBarExtraContent:**
+- `AIButton` → `openAIWriterModal({ product, onApply })` — генерация контента через AI
+- `Dropdown` → `[Edit content]` → `openEditDescriptionModal({ description, excerpt, product, onSave })`
 
-**KPI panel:**
-- `PeriodSwitch` сверху (7d / 30d / 90d / All + checkbox Compare)
-- 4× `KPITile` в `Flex gap={12}`: Views, Products, Subcategories, Revenue
-- Тренд показан только при `compareEnabled`
+**Empty state** (per tab):
 
-**Status config:**
+```
+  ⚠ No description added  [Add now]    ← WarningOutlined + Text secondary 12px + Button type="link"
+```
 
-| Status   | Color   | Icon             |
-| -------- | ------- | ---------------- |
-| ACTIVE   | success | `CheckOutlined`  |
-| DRAFT    | warning | `EditOutlined`   |
-| ARCHIVED | error   | `InboxOutlined`  |
+**Rendered content styles:**
+- `p` margin: 0 0 8px, `h3` fontSize 14, `ul/ol` paddingLeft 20
+- Gradient fade: `::after` height 40px, `linear-gradient(transparent, colorBgContainer)`
 
 ---
 
-### 2. HierarchySection
+### 3. HierarchySection
 
 Уникальная секция категории. Локальный стейт не нужен — данные из props.
 
@@ -317,7 +395,7 @@ type CategorySection =
 
 ---
 
-### 3. MediaSection
+### 4. MediaSection
 
 Один к одному копия `product-details-card/sections/media-section.tsx`.
 
@@ -359,7 +437,7 @@ type CategorySection =
 
 ---
 
-### 4. ProductsSection
+### 5. ProductsSection
 
 По паттерну `variants-table-section.tsx` — кастомная `<table>`, не Ant Table.
 
@@ -443,7 +521,7 @@ Stock: High → Low
 
 ---
 
-### 5. TagsSection
+### 6. TagsSection
 
 Один к одному копия `product-details-card/sections/tags-section.tsx`.
 
@@ -484,7 +562,7 @@ Stock: High → Low
 
 ---
 
-### 6. SeoBlock
+### 7. SeoBlock
 
 Реюзается `product-details-card/../seo/seo-block.tsx` + `seo-preview.tsx`.
 
