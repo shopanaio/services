@@ -36,14 +36,10 @@
 | `created_by` | text, not null | user/apiKey |
 | `idempotency_key` | text, not null | клиентский ключ |
 | `content_hash` | text, not null | SHA-256 от canonicalize(input) |
-| `parent_workflow_id` | text, not null | для трассировки |
+| `parent_workflow_id` | text | nullable — записывается после `broker.runWorkflow()` возвращает workflowId |
 | `total_products` | int, not null | |
-| `done_products` | int, default 0 | |
-| `succeeded_products` | int, default 0 | |
-| `partial_failed_products` | int, default 0 | |
-| `failed_products` | int, default 0 | |
-| `cancelled_products` | int, default 0 | |
-| `superseded_products` | int, default 0 | |
+
+> **Counters (done/succeeded/failed/...)** не хранятся в jobs — вычисляются из items на лету через `COUNT(*) ... GROUP BY status`. Это единый источник правды, нет рассинхрона между job и items.
 
 **Ограничения/индексы:**
 - `UNIQUE (tenant_id, idempotency_key)`
@@ -62,6 +58,8 @@
 | `item_index` | int, not null | порядковый номер в батче |
 | `status` | enum, not null | `PENDING\|RUNNING\|SUCCEEDED\|PARTIAL_FAILED\|FAILED\|CANCELLED\|SUPERSEDED` |
 | `cancel_requested` | boolean, default false | |
+| `cancel_reason` | text | `USER` \| `SUPERSEDED` \| `SYSTEM` \| null. Причина отмены — для диагностики |
+| `superseded_by_job_id` | uuid | FK → jobs.id. Какой job перебил этот item (null если не superseded) |
 | `fence_token` | text, not null | ключ "право писать" для этого productId |
 | `started_at` | timestamp | |
 | `finished_at` | timestamp | |
@@ -170,6 +168,7 @@ type ProductBulkEditJob {
   startedAt: DateTime
   finishedAt: DateTime
 
+  """Все counters вычисляются из items (COUNT GROUP BY status). Не хранятся в jobs."""
   totalProducts: Int!
   doneProducts: Int!
   succeededProducts: Int!
@@ -196,6 +195,17 @@ type ProductBulkEditJobItem {
   errors: [BulkEditUserError!]!
   startedAt: DateTime
   finishedAt: DateTime
+
+  """Причина отмены: USER (ручная), SUPERSEDED (перебит другим job), SYSTEM."""
+  cancelReason: BulkEditCancelReason
+  """ID job, который перебил этот item (только при SUPERSEDED)."""
+  supersededByJobId: ID
+}
+
+enum BulkEditCancelReason {
+  USER
+  SUPERSEDED
+  SYSTEM
 }
 
 enum BulkEditItemStatus {
@@ -256,16 +266,16 @@ type BulkEditUserError {
 
 ### 3.2 Создание job + fence + отмена пересечений (1 транзакция)
 
-В одной транзакции БД:
+В одной транзакции БД (items отсортированы по `productId` для предотвращения дедлоков):
 
 1. `INSERT inventory_bulk_edit_jobs(...)` — `status=QUEUED`, `total_products=N`
-2. Для каждого item в input:
+2. Для каждого item (в порядке `productId`):
    - Сгенерить `newFenceToken = uuid()`
    - **UPSERT** в `inventory_product_bulk_fence (tenant_id, product_id)`:
      - `fence_token = newFenceToken, job_id = newJobId, updated_at = now()`
    - Пометить "старые активные items" для этого `product_id`:
      - Найти строки в `inventory_bulk_edit_items` где `tenant_id = ... AND product_id = ... AND status IN (PENDING, RUNNING)`
-     - Для них: `cancel_requested = true`, `status = SUPERSEDED`
+     - Для них: `cancel_requested = true`, `status = SUPERSEDED`, `cancel_reason = 'SUPERSEDED'`, `superseded_by_job_id = newJobId`
 3. `INSERT inventory_bulk_edit_items(job_id, product_id, fence_token, status=PENDING, total_ops=calcOps(item), item_index=idx, payload=itemPayload, ...)`
 
 После транзакции:
@@ -343,9 +353,14 @@ async productBulkEditStart(args: { input: ProductBulkEditInput }) {
     });
 
   // Запуск workflow (только jobId, без payload)
-  await this.$ctx.kernel
+  const { workflowId } = await this.$ctx.kernel
     .getServices()
     .broker.runWorkflow("inventory.productBulkEdit", { jobId });
+
+  // Записать workflowId для трассировки (best-effort, job уже создан)
+  await this.$ctx.kernel
+    .getRepository(BulkEditJobRepository)
+    .update(jobId, { parentWorkflowId: workflowId });
 
   return { jobId, userErrors: [] };
 }
@@ -364,12 +379,14 @@ async productBulkEditStart(args: { input: ProductBulkEditInput }) {
 1. `loadJobAndItems(jobId)` — берём список items из БД
 2. Поставить job `status = RUNNING`, `started_at = now()`
 3. `fanOut` по items с concurrency limit (10):
+   - **Перед каждым chunk:** проверить `job.status` — если `CANCELLED`, прекратить запуск новых child и сразу перейти к finalize
    - `runWorkflow("inventory.productEdit", { jobId, productId })` (минимальный DTO)
    - `callId = productId` (DBOS идемпотентность)
    - `allSettled` — ошибка одного не блокирует остальные
-4. `finalizeJob(jobId)` — пересчитать counters из items, поставить `COMPLETED` / `FAILED` / `CANCELLED`:
-   - `COMPLETED` — даже если есть ошибки на item уровне
-   - `FAILED` — только если parent упал инфраструктурно
+4. `finalizeJob(jobId)` (в 1 транзакции):
+   - Все оставшиеся PENDING items → `CANCELLED` (reason `USER` если job отменён, `SYSTEM` если parent упал)
+   - Job status → `CANCELLED` (если отменён) или `COMPLETED` (даже если есть ошибки на item уровне)
+   - Counters не пишем — вычисляются из items на query
 
 ```typescript
 @Injectable()
@@ -424,6 +441,10 @@ export class ProductBulkEditWorkflow extends BrokerWorkflows<
     items: { productId: string }[]
   ) {
     for (let i = 0; i < items.length; i += ProductBulkEditWorkflow.CONCURRENCY_LIMIT) {
+      // Перед каждым chunk: проверить не отменён ли job
+      const cancelled = await this.stepIsJobCancelled(jobId);
+      if (cancelled) break;
+
       const chunk = items.slice(i, i + ProductBulkEditWorkflow.CONCURRENCY_LIMIT);
 
       const promises = chunk.map((item) =>
@@ -444,6 +465,14 @@ export class ProductBulkEditWorkflow extends BrokerWorkflows<
   }
 
   @WorkflowStep()
+  private async stepIsJobCancelled(jobId: string): Promise<boolean> {
+    const job = await this.kernel
+      .getRepository(BulkEditJobRepository)
+      .findById(jobId);
+    return job?.status === "CANCELLED";
+  }
+
+  @WorkflowStep()
   private async stepFinalizeJob(jobId: string) {
     return this.kernel
       .getService(BulkEditService)
@@ -456,31 +485,60 @@ export class ProductBulkEditWorkflow extends BrokerWorkflows<
 
 **Файл:** `services/inventory/src/workflows/ProductEditWorkflow.ts`
 
-В начале:
+### Принцип: 1 операция = 1 атомарный workflow step
 
-1. `loadItem(jobId, productId)` → payload операций, `fence_token`, `cancel_requested`
-2. Если `status` уже terminal → вернуть (идемпотентность на уровне БД)
-3. Поставить item `RUNNING`, `started_at`
+Каждая операция — **один `@WorkflowStep()`**, который внутри себя:
+1. Проверяет abort (fence + cancel) — одним запросом
+2. Если abort → записывает abort в БД, возвращает `{ aborted: true, ... }`
+3. Вызывает скрипт
+4. В той же транзакции обновляет `applied_ops` / `current_operation` / `errors` в `inventory_bulk_edit_items`
+5. Возвращает `StepResult`
 
-**Перед каждым step:**
+**Зачем:** шаг становится идемпотентным и консистентным для DBOS retry. Нет окна между "скрипт применил" и "прогресс записан" — это одна транзакция.
 
-- **Cancel check:** если `cancel_requested` → завершить item `CANCELLED` / `SUPERSEDED` и выйти
-- **Fence check (обязателен):**
-  - Прочитать `inventory_product_bulk_fence` по `(tenant_id, product_id)`
-  - Если `fence_token != item.fence_token` → завершить item `SUPERSEDED` и выйти
-  - Это главный механизм "новые отменяют старые только для пересечений"
+### Типы
 
-После каждого step:
+```typescript
+type AbortReason = {
+  reason: "SUPERSEDED" | "USER" | "SYSTEM";
+  supersededByJobId?: string;
+};
 
-- `applied_ops += 1`, `current_operation = next`
-- При userErrors: сохраняем в `errors` и продолжаем
+interface StepResult {
+  applied: boolean;
+  errors: BulkEditError[];
+  abortReason?: AbortReason;
+}
 
-В конце:
+interface ItemContext {
+  jobId: string;
+  tenantId: string;
+  productId: string;
+  fenceToken: string;
+}
+```
 
-- `SUCCEEDED` если ошибок нет
-- `PARTIAL_FAILED` если ошибки есть и `applied_ops > 0`
-- `FAILED` если ошибки есть и `applied_ops == 0`
-- `finished_at = now()`
+### Поток выполнения
+
+1. `stepLoadItem(jobId, productId)` → `ItemContext` + payload
+2. Если terminal status → return
+3. `stepMarkRunning(jobId, productId)`
+4. Для каждой операции в payload → `stepApply*(ctx, params)` → `StepResult`
+5. Если `StepResult.abortReason` → прекратить, перейти к finalize
+6. `stepEmitProductUpdated` (если `appliedOps > 0`)
+7. `stepFinalizeItem` — единая точка, всегда с текущим прогрессом
+
+**Exception safety:**
+- Весь блок операций обёрнут в `try/catch`
+- **Transient** → rethrow для DBOS retry (item остаётся RUNNING)
+- **Non-transient** → `stepFinalizeItem` с `FAILED` + `WORKFLOW_EXCEPTION` + текущий прогресс
+
+**Финальный статус:**
+- `abortReason == null` + ошибок нет → `SUCCEEDED`
+- `abortReason == null` + ошибки + `applied_ops > 0` → `PARTIAL_FAILED`
+- `abortReason == null` + ошибки + `applied_ops == 0` → `FAILED`
+- `abortReason.reason == "SUPERSEDED"` → `SUPERSEDED` (с текущими `appliedOps`/`errors`)
+- `abortReason.reason == "USER"` → `CANCELLED` (с текущими `appliedOps`/`errors`)
 
 ```typescript
 @Injectable()
@@ -500,198 +558,272 @@ export class ProductEditWorkflow extends BrokerWorkflows<
   async run(input: { jobId: string; productId: string }): Promise<void> {
     const { jobId, productId } = input;
 
-    // 1. Загрузить item из БД
+    // 1. Загрузить item
     const item = await this.stepLoadItem(jobId, productId);
     if (!item || isTerminalStatus(item.status)) return;
 
+    const ctx: ItemContext = {
+      jobId,
+      tenantId: item.tenantId,
+      productId,
+      fenceToken: item.fenceToken,
+    };
     const payload = item.payload as ProductEditPayload;
-    const errors: BulkEditError[] = [];
+    const allErrors: BulkEditError[] = [];
     let appliedOps = 0;
     let productUpdateFailed = false;
+    let abortReason: AbortReason | null = null;
 
-    // 2. Поставить item RUNNING
-    await this.stepUpdateItemStatus(jobId, productId, "RUNNING");
+    // 2. RUNNING
+    await this.stepMarkRunning(ctx);
 
-    // ─── Операции с продуктом ──────────────────────────
+    try {
+      // ─── Операции с продуктом ──────────────────────────
 
-    if (payload.productUpdate) {
-      if (await this.shouldAbort(jobId, productId, item.fenceToken)) return;
-
-      const result = await this.stepProductUpdate(payload.productUpdate);
-      if (result.userErrors.length > 0) {
-        errors.push(...tagErrors(result.userErrors, productId, "productUpdate"));
-        productUpdateFailed = true;
-      } else {
-        appliedOps++;
+      if (payload.productUpdate) {
+        const r = await this.stepApplyProductUpdate(ctx, payload.productUpdate);
+        abortReason = r.abortReason ?? null;
+        if (r.applied) appliedOps++;
+        if (r.errors.length) { allErrors.push(...r.errors); productUpdateFailed = true; }
       }
-      await this.stepUpdateProgress(jobId, productId, appliedOps, "productUpdate");
-    }
 
-    if (payload.productPublish && !productUpdateFailed) {
-      if (await this.shouldAbort(jobId, productId, item.fenceToken)) return;
-
-      const result = await this.stepProductPublish({ id: productId });
-      if (result.userErrors.length > 0) {
-        errors.push(...tagErrors(result.userErrors, productId, "productPublish"));
-      } else {
-        appliedOps++;
+      if (!abortReason && payload.productPublish && !productUpdateFailed) {
+        const r = await this.stepApplyProductPublish(ctx);
+        abortReason = r.abortReason ?? null;
+        if (r.applied) appliedOps++;
+        allErrors.push(...r.errors);
       }
-      await this.stepUpdateProgress(jobId, productId, appliedOps, "productPublish");
-    }
 
-    if (payload.productUnpublish && !productUpdateFailed) {
-      if (await this.shouldAbort(jobId, productId, item.fenceToken)) return;
-
-      const result = await this.stepProductUnpublish({ id: productId });
-      if (result.userErrors.length > 0) {
-        errors.push(...tagErrors(result.userErrors, productId, "productUnpublish"));
-      } else {
-        appliedOps++;
+      if (!abortReason && payload.productUnpublish && !productUpdateFailed) {
+        const r = await this.stepApplyProductUnpublish(ctx);
+        abortReason = r.abortReason ?? null;
+        if (r.applied) appliedOps++;
+        allErrors.push(...r.errors);
       }
-      await this.stepUpdateProgress(jobId, productId, appliedOps, "productUnpublish");
-    }
 
-    // ─── Операции с вариантами (независимы, продолжаем после ошибок) ──
+      // ─── Операции с вариантами ──────────────────────────
 
-    for (const [i, params] of (payload.variantSetSku ?? []).entries()) {
-      if (await this.shouldAbort(jobId, productId, item.fenceToken)) return;
-      const result = await this.stepVariantSetSku(params);
-      if (result.userErrors.length > 0) {
-        errors.push(...tagErrors(result.userErrors, productId, "variantSetSku", params.variantId, i));
-      } else {
-        appliedOps++;
+      const variantOps: Array<{ key: string; params: any[]; stepFn: Function }> = [
+        { key: "variantSetSku",        params: payload.variantSetSku ?? [],        stepFn: this.stepApplyVariantSetSku },
+        { key: "variantSetPricing",    params: payload.variantSetPricing ?? [],    stepFn: this.stepApplyVariantSetPricing },
+        { key: "variantSetCost",       params: payload.variantSetCost ?? [],       stepFn: this.stepApplyVariantSetCost },
+        { key: "variantSetStock",      params: payload.variantSetStock ?? [],      stepFn: this.stepApplyVariantSetStock },
+        { key: "variantSetDimensions", params: payload.variantSetDimensions ?? [], stepFn: this.stepApplyVariantSetDimensions },
+        { key: "variantSetWeight",     params: payload.variantSetWeight ?? [],     stepFn: this.stepApplyVariantSetWeight },
+      ];
+
+      for (const { key, params, stepFn } of variantOps) {
+        for (const [i, p] of params.entries()) {
+          if (abortReason) break;
+          const r: StepResult = await stepFn.call(this, ctx, p, key, i);
+          abortReason = r.abortReason ?? null;
+          if (r.applied) appliedOps++;
+          allErrors.push(...r.errors);
+        }
+        if (abortReason) break;
       }
-    }
 
-    for (const [i, params] of (payload.variantSetPricing ?? []).entries()) {
-      if (await this.shouldAbort(jobId, productId, item.fenceToken)) return;
-      const result = await this.stepVariantSetPricing(params);
-      if (result.userErrors.length > 0) {
-        errors.push(...tagErrors(result.userErrors, productId, "variantSetPricing", params.variantId, i));
-      } else {
-        appliedOps++;
+      // ─── Событие (best-effort) ──
+      if (appliedOps > 0) {
+        await this.stepEmitProductUpdated(productId);
       }
-    }
 
-    for (const [i, params] of (payload.variantSetCost ?? []).entries()) {
-      if (await this.shouldAbort(jobId, productId, item.fenceToken)) return;
-      const result = await this.stepVariantSetCost(params);
-      if (result.userErrors.length > 0) {
-        errors.push(...tagErrors(result.userErrors, productId, "variantSetCost", params.variantId, i));
-      } else {
-        appliedOps++;
+      // ─── Финализация ──
+      const finalStatus = resolveFinalStatus(abortReason, appliedOps, allErrors);
+      await this.stepFinalizeItem(ctx, finalStatus, appliedOps, allErrors,
+        abortReason ? {
+          cancelReason: abortReason.reason,
+          supersededByJobId: abortReason.supersededByJobId,
+        } : undefined);
+
+    } catch (err) {
+      if (isTransientError(err)) {
+        throw err; // DBOS retry
       }
+      allErrors.push({
+        message: err instanceof Error ? err.message : "Unexpected error",
+        code: "WORKFLOW_EXCEPTION",
+        productId,
+        operation: "workflow",
+      });
+      await this.stepFinalizeItem(ctx, "FAILED", appliedOps, allErrors,
+        { cancelReason: "SYSTEM" });
     }
-
-    for (const [i, params] of (payload.variantSetStock ?? []).entries()) {
-      if (await this.shouldAbort(jobId, productId, item.fenceToken)) return;
-      const result = await this.stepVariantSetStock(params);
-      if (result.userErrors.length > 0) {
-        errors.push(...tagErrors(result.userErrors, productId, "variantSetStock", params.variantId, i));
-      } else {
-        appliedOps++;
-      }
-    }
-
-    for (const [i, params] of (payload.variantSetDimensions ?? []).entries()) {
-      if (await this.shouldAbort(jobId, productId, item.fenceToken)) return;
-      const result = await this.stepVariantSetDimensions(params);
-      if (result.userErrors.length > 0) {
-        errors.push(...tagErrors(result.userErrors, productId, "variantSetDimensions", params.variantId, i));
-      } else {
-        appliedOps++;
-      }
-    }
-
-    for (const [i, params] of (payload.variantSetWeight ?? []).entries()) {
-      if (await this.shouldAbort(jobId, productId, item.fenceToken)) return;
-      const result = await this.stepVariantSetWeight(params);
-      if (result.userErrors.length > 0) {
-        errors.push(...tagErrors(result.userErrors, productId, "variantSetWeight", params.variantId, i));
-      } else {
-        appliedOps++;
-      }
-    }
-
-    // ─── Событие (best-effort) ──
-    if (appliedOps > 0) {
-      await this.stepEmitProductUpdated(productId);
-    }
-
-    // ─── Финальный статус item ──
-    const finalStatus = errors.length === 0
-      ? "SUCCEEDED"
-      : appliedOps > 0
-        ? "PARTIAL_FAILED"
-        : "FAILED";
-
-    await this.stepFinalizeItem(jobId, productId, finalStatus, appliedOps, errors);
   }
 
-  // ─── Fence/Cancel check ──────────────────────────────
+  // ═══════════════════════════════════════════════════════════════
+  //  Атомарные operation steps: abort check + script + progress
+  //  Каждый — 1 @WorkflowStep, 1 транзакция, идемпотентен на retry
+  // ═══════════════════════════════════════════════════════════════
 
   @WorkflowStep()
-  private async shouldAbort(
-    jobId: string,
+  private async stepApplyProductUpdate(
+    ctx: ItemContext,
+    params: ProductUpdateParams
+  ): Promise<StepResult> {
+    return this.applyOperation(ctx, "productUpdate", () =>
+      this.kernel.runScript(ProductUpdateScript, params)
+    );
+  }
+
+  @WorkflowStep()
+  private async stepApplyProductPublish(ctx: ItemContext): Promise<StepResult> {
+    return this.applyOperation(ctx, "productPublish", () =>
+      this.kernel.runScript(ProductPublishScript, { id: ctx.productId })
+    );
+  }
+
+  @WorkflowStep()
+  private async stepApplyProductUnpublish(ctx: ItemContext): Promise<StepResult> {
+    return this.applyOperation(ctx, "productUnpublish", () =>
+      this.kernel.runScript(ProductUnpublishScript, { id: ctx.productId })
+    );
+  }
+
+  @WorkflowStep()
+  private async stepApplyVariantSetSku(
+    ctx: ItemContext, params: VariantSetSkuParams, _key: string, _i: number
+  ): Promise<StepResult> {
+    return this.applyOperation(ctx, "variantSetSku", () =>
+      this.kernel.runScript(VariantSetSkuScript, params),
+      params.variantId
+    );
+  }
+
+  @WorkflowStep()
+  private async stepApplyVariantSetPricing(
+    ctx: ItemContext, params: VariantSetPricingParams, _key: string, _i: number
+  ): Promise<StepResult> {
+    return this.applyOperation(ctx, "variantSetPricing", () =>
+      this.kernel.runScript(VariantSetPricingScript, params),
+      params.variantId
+    );
+  }
+
+  @WorkflowStep()
+  private async stepApplyVariantSetCost(
+    ctx: ItemContext, params: VariantSetCostParams, _key: string, _i: number
+  ): Promise<StepResult> {
+    return this.applyOperation(ctx, "variantSetCost", () =>
+      this.kernel.runScript(VariantSetCostScript, params),
+      params.variantId
+    );
+  }
+
+  @WorkflowStep()
+  private async stepApplyVariantSetStock(
+    ctx: ItemContext, params: VariantSetStockParams, _key: string, _i: number
+  ): Promise<StepResult> {
+    return this.applyOperation(ctx, "variantSetStock", () =>
+      this.kernel.runScript(VariantSetStockScript, params),
+      params.variantId
+    );
+  }
+
+  @WorkflowStep()
+  private async stepApplyVariantSetDimensions(
+    ctx: ItemContext, params: VariantSetDimensionsParams, _key: string, _i: number
+  ): Promise<StepResult> {
+    return this.applyOperation(ctx, "variantSetDimensions", () =>
+      this.kernel.runScript(VariantSetDimensionsScript, params),
+      params.variantId
+    );
+  }
+
+  @WorkflowStep()
+  private async stepApplyVariantSetWeight(
+    ctx: ItemContext, params: VariantSetWeightParams, _key: string, _i: number
+  ): Promise<StepResult> {
+    return this.applyOperation(ctx, "variantSetWeight", () =>
+      this.kernel.runScript(VariantSetWeightScript, params),
+      params.variantId
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //  Общий шаблон: abort check → script → update progress (1 tx)
+  // ═══════════════════════════════════════════════════════════════
+
+  /**
+   * Единый шаблон для всех operation steps.
+   * Внутри одной транзакции:
+   *   1. Проверить fence + cancel (abort check)
+   *   2. Если abort → записать abort в item, вернуть { aborted }
+   *   3. Выполнить скрипт
+   *   4. Обновить applied_ops / current_operation / errors в item
+   */
+  @Transactional()
+  private async applyOperation(
+    ctx: ItemContext,
+    operation: string,
+    runScript: () => Promise<{ userErrors: UserError[] }>,
+    variantId?: string
+  ): Promise<StepResult> {
+    const { jobId, tenantId, productId, fenceToken } = ctx;
+
+    // 1. Abort check (fence + cancel в одном запросе)
+    const abortReason = await this.checkAbort(tenantId, productId, fenceToken, jobId);
+    if (abortReason) {
+      // Записать abort-прогресс в item (не финализируем — caller сделает)
+      await this.kernel
+        .getRepository(BulkEditItemRepository)
+        .updateProgress(jobId, productId, undefined, operation);
+      return { applied: false, errors: [], abortReason };
+    }
+
+    // 2. Выполнить скрипт
+    const result = await runScript();
+
+    // 3. Обновить прогресс в item (в той же транзакции)
+    const applied = result.userErrors.length === 0;
+    await this.kernel
+      .getRepository(BulkEditItemRepository)
+      .incrementAppliedOps(jobId, productId, applied, operation, result.userErrors);
+
+    // 4. Вернуть результат
+    const errors: BulkEditError[] = result.userErrors.length > 0
+      ? tagErrors(result.userErrors, productId, operation, variantId)
+      : [];
+
+    return { applied, errors };
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //  Abort check (не @WorkflowStep — вызывается внутри applyOperation)
+  //  1 запрос с JOIN: items + fence → AbortReason | undefined
+  // ═══════════════════════════════════════════════════════════════
+
+  private async checkAbort(
+    tenantId: string,
     productId: string,
-    expectedFenceToken: string
-  ): Promise<boolean> {
-    const item = await this.kernel
+    expectedFenceToken: string,
+    jobId: string
+  ): Promise<AbortReason | undefined> {
+    const state = await this.kernel
       .getRepository(BulkEditItemRepository)
-      .findByJobAndProduct(jobId, productId);
+      .getAbortState(tenantId, jobId, productId);
 
-    if (item?.cancelRequested) {
-      await this.stepFinalizeItem(jobId, productId, "CANCELLED", 0, []);
-      return true;
+    // state = { cancelRequested, cancelReason, fenceToken, fenceJobId }
+    // 1 SELECT ... LEFT JOIN inventory_product_bulk_fence
+
+    if (!state) return undefined;
+
+    // Fence mismatch → SUPERSEDED
+    if (state.fenceToken !== expectedFenceToken) {
+      return { reason: "SUPERSEDED", supersededByJobId: state.fenceJobId };
     }
 
-    const fence = await this.kernel
-      .getRepository(BulkFenceRepository)
-      .findByProduct(item!.tenantId, productId);
-
-    if (fence?.fenceToken !== expectedFenceToken) {
-      await this.stepFinalizeItem(jobId, productId, "SUPERSEDED", 0, []);
-      return true;
+    // Cancel requested → USER/SYSTEM
+    if (state.cancelRequested) {
+      return { reason: (state.cancelReason as AbortReason["reason"]) ?? "USER" };
     }
 
-    return false;
+    return undefined;
   }
 
-  // ─── Progress/Status updates ──────────────────────────
-
-  @WorkflowStep()
-  private async stepUpdateItemStatus(jobId: string, productId: string, status: string) {
-    return this.kernel
-      .getRepository(BulkEditItemRepository)
-      .updateStatus(jobId, productId, status, { startedAt: new Date() });
-  }
-
-  @WorkflowStep()
-  private async stepUpdateProgress(
-    jobId: string,
-    productId: string,
-    appliedOps: number,
-    currentOperation: string
-  ) {
-    return this.kernel
-      .getRepository(BulkEditItemRepository)
-      .updateProgress(jobId, productId, appliedOps, currentOperation);
-  }
-
-  @WorkflowStep()
-  private async stepFinalizeItem(
-    jobId: string,
-    productId: string,
-    status: string,
-    appliedOps: number,
-    errors: BulkEditError[]
-  ) {
-    return this.kernel
-      .getRepository(BulkEditItemRepository)
-      .finalize(jobId, productId, status, appliedOps, errors);
-  }
-
-  // ─── Workflow Steps: каждый вызывает существующий скрипт ──────
+  // ═══════════════════════════════════════════════════════════════
+  //  Load / Mark / Finalize / Emit
+  // ═══════════════════════════════════════════════════════════════
 
   @WorkflowStep()
   private stepLoadItem(jobId: string, productId: string) {
@@ -701,48 +833,23 @@ export class ProductEditWorkflow extends BrokerWorkflows<
   }
 
   @WorkflowStep()
-  private stepProductUpdate(params: ProductUpdateParams) {
-    return this.kernel.runScript(ProductUpdateScript, params);
+  private async stepMarkRunning(ctx: ItemContext) {
+    return this.kernel
+      .getRepository(BulkEditItemRepository)
+      .updateStatus(ctx.jobId, ctx.productId, "RUNNING", { startedAt: new Date() });
   }
 
   @WorkflowStep()
-  private stepProductPublish(params: { id: string }) {
-    return this.kernel.runScript(ProductPublishScript, params);
-  }
-
-  @WorkflowStep()
-  private stepProductUnpublish(params: { id: string }) {
-    return this.kernel.runScript(ProductUnpublishScript, params);
-  }
-
-  @WorkflowStep()
-  private stepVariantSetSku(params: VariantSetSkuParams) {
-    return this.kernel.runScript(VariantSetSkuScript, params);
-  }
-
-  @WorkflowStep()
-  private stepVariantSetPricing(params: VariantSetPricingParams) {
-    return this.kernel.runScript(VariantSetPricingScript, params);
-  }
-
-  @WorkflowStep()
-  private stepVariantSetCost(params: VariantSetCostParams) {
-    return this.kernel.runScript(VariantSetCostScript, params);
-  }
-
-  @WorkflowStep()
-  private stepVariantSetStock(params: VariantSetStockParams) {
-    return this.kernel.runScript(VariantSetStockScript, params);
-  }
-
-  @WorkflowStep()
-  private stepVariantSetDimensions(params: VariantSetDimensionsParams) {
-    return this.kernel.runScript(VariantSetDimensionsScript, params);
-  }
-
-  @WorkflowStep()
-  private stepVariantSetWeight(params: VariantSetWeightParams) {
-    return this.kernel.runScript(VariantSetWeightScript, params);
+  private async stepFinalizeItem(
+    ctx: ItemContext,
+    status: string,
+    appliedOps: number,
+    errors: BulkEditError[],
+    cancelMeta?: { cancelReason?: string; supersededByJobId?: string }
+  ) {
+    return this.kernel
+      .getRepository(BulkEditItemRepository)
+      .finalize(ctx.jobId, ctx.productId, status, appliedOps, errors, cancelMeta);
   }
 
   @WorkflowStep()
@@ -757,6 +864,20 @@ export class ProductEditWorkflow extends BrokerWorkflows<
       this.logger.warn({ productId }, "Failed to emit productUpdated event");
     }
   }
+}
+
+// ─── Утилита ──
+
+function resolveFinalStatus(
+  abortReason: AbortReason | null,
+  appliedOps: number,
+  errors: BulkEditError[]
+): string {
+  if (abortReason) {
+    return abortReason.reason === "SUPERSEDED" ? "SUPERSEDED" : "CANCELLED";
+  }
+  if (errors.length === 0) return "SUCCEEDED";
+  return appliedOps > 0 ? "PARTIAL_FAILED" : "FAILED";
 }
 ```
 
@@ -793,14 +914,14 @@ Child workflow загружает payload из item и исполняет шаг
 `productBulkEditCancel(jobId)`:
 
 1. Обновить job status → `CANCELLED`
-2. Для всех items со статусом `PENDING`: `status = CANCELLED`, `cancel_requested = true`
-3. Для items со статусом `RUNNING`: `cancel_requested = true` (child сам дойдёт и завершится)
+2. Для всех items со статусом `PENDING`: `status = CANCELLED`, `cancel_requested = true`, `cancel_reason = 'USER'`
+3. Для items со статусом `RUNNING`: `cancel_requested = true`, `cancel_reason = 'USER'` (child сам дойдёт и завершится)
 
 ### 6.2 Cancel выбранных продуктов
 
 `productBulkEditCancelItems(jobId, productIds)`:
 
-1. Для выбранных items: `cancel_requested = true`
+1. Для выбранных items: `cancel_requested = true`, `cancel_reason = 'USER'`
 2. Если item ещё `PENDING` → можно сразу `CANCELLED`
 3. Если `RUNNING` → child проверит `cancel_requested` перед следующим шагом
 
@@ -819,6 +940,11 @@ Child workflow загружает payload из item и исполняет шаг
 export class BulkEditService {
   /**
    * Создаёт job + items + fences + supersede пересечений в 1 транзакции.
+   *
+   * ВАЖНО: items обрабатываются в детерминированном порядке (sort by productId)
+   * для предотвращения дедлоков при одновременных bulk-запросах.
+   * Два concurrent createJobWithFences с пересекающимися productIds будут
+   * захватывать row-level locks в одинаковом порядке → нет circular wait.
    */
   @Transactional()
   async createJobWithFences(params: {
@@ -841,11 +967,17 @@ export class BulkEditService {
       totalProducts: params.items.length,
     });
 
-    // 2. Для каждого item: fence + supersede + insert item
-    for (const [idx, item] of params.items.entries()) {
+    // 2. Сортируем items по productId — детерминированный порядок блокировок
+    //    (itemIndex сохраняет оригинальный порядок из input)
+    const sorted = params.items
+      .map((item, idx) => ({ item, idx }))
+      .sort((a, b) => a.item.productId.localeCompare(b.item.productId));
+
+    // 3. Для каждого item (в порядке productId): fence + supersede + insert
+    for (const { item, idx } of sorted) {
       const fenceToken = uuid();
 
-      // UPSERT fence
+      // UPSERT fence (row-level lock на inventory_product_bulk_fence)
       await this.fenceRepo.upsert({
         tenantId: params.tenantId,
         productId: item.productId,
@@ -856,10 +988,11 @@ export class BulkEditService {
       // Supersede old active items for this productId
       await this.itemRepo.supersedeActiveItems(
         params.tenantId,
-        item.productId
+        item.productId,
+        { cancelReason: "SUPERSEDED", supersededByJobId: jobId }
       );
 
-      // INSERT item
+      // INSERT item (itemIndex = оригинальный порядок из input)
       const { productId, ...operations } = item;
       await this.itemRepo.create({
         jobId,
@@ -877,20 +1010,31 @@ export class BulkEditService {
   }
 
   /**
-   * Финализация job: пересчитать counters из items.
+   * Финализация job:
+   * 1. Все оставшиеся PENDING items → CANCELLED (с причиной)
+   * 2. Job status → CANCELLED или COMPLETED
+   * Counters не пишем — вычисляются из items на query.
    */
+  @Transactional()
   async finalizeJob(jobId: string): Promise<void> {
-    const counters = await this.itemRepo.countByStatus(jobId);
+    // 1. Определить причину: job был отменён или завершился штатно?
+    const job = await this.jobRepo.findById(jobId);
+
+    // 2. Все оставшиеся PENDING → CANCELLED
+    //    (если job отменили — USER, если parent упал — SYSTEM)
+    const cancelReason = job?.status === "CANCELLED" ? "USER" : "SYSTEM";
+
+    await this.itemRepo.cancelAllPending(jobId, {
+      cancelReason,
+      cancelRequested: true,
+    });
+
+    // 3. Job terminal status
+    const finalStatus = job?.status === "CANCELLED" ? "CANCELLED" : "COMPLETED";
 
     await this.jobRepo.update(jobId, {
-      status: "COMPLETED",
+      status: finalStatus,
       finishedAt: new Date(),
-      doneProducts: counters.total,
-      succeededProducts: counters.succeeded,
-      partialFailedProducts: counters.partialFailed,
-      failedProducts: counters.failed,
-      cancelledProducts: counters.cancelled,
-      supersededProducts: counters.superseded,
     });
   }
 }
@@ -904,15 +1048,49 @@ export class BulkEditService {
 - `services/inventory/src/repositories/BulkEditItemRepository.ts`
 - `services/inventory/src/repositories/BulkFenceRepository.ts`
 
+#### `BulkEditItemRepository.getAbortState` — ключевой метод для abort check
+
+1 запрос вместо 2. JOIN items + fence, атомарный snapshot:
+
+```sql
+SELECT
+  i.cancel_requested,
+  i.cancel_reason,
+  f.fence_token,
+  f.job_id AS fence_job_id
+FROM inventory_bulk_edit_items i
+LEFT JOIN inventory_product_bulk_fence f
+  ON f.tenant_id = i.tenant_id AND f.product_id = i.product_id
+WHERE i.tenant_id = $1
+  AND i.job_id = $2
+  AND i.product_id = $3
+```
+
+```typescript
+interface AbortState {
+  cancelRequested: boolean;
+  cancelReason: string | null;
+  fenceToken: string;
+  fenceJobId: string;
+}
+
+async getAbortState(
+  tenantId: string,
+  jobId: string,
+  productId: string
+): Promise<AbortState | null>;
+```
+
 ---
 
 ## 8) Важные backend-детали
 
 1. **Canonicalize input** для contentHash — стабильная сортировка ключей (json-canonicalize или аналог).
-2. **Job status** лучше вычислять из items при финализации, чтобы не ловить рассинхрон.
+2. **Job counters** вычисляются из items (`COUNT(*) ... GROUP BY status`) на каждый query. Не хранятся в jobs — нет рассинхрона, нет race conditions при обновлении счётчиков.
 3. **Terminal statuses** item: `SUCCEEDED | PARTIAL_FAILED | FAILED | CANCELLED | SUPERSEDED`.
 4. В child workflow обязательно проверять fence **перед каждым script step**, иначе возможны "полушаги" старого job после старта нового.
 5. Concurrency limit = 10. Parent timeout убрать жёсткий 2 мин — пусть зависит от количества items.
+6. **Deadlock prevention:** `createJobWithFences` обрабатывает items отсортированными по `productId` (детерминированный порядок блокировок). Два concurrent bulk-запроса с пересекающимися productIds захватывают row-level locks на `inventory_product_bulk_fence` в одинаковом порядке → нет circular wait → нет дедлоков.
 
 ---
 
@@ -941,7 +1119,8 @@ Client: polling productBulkEditJob(jobId) / productBulkEditJobItems(jobId)
 │     ├─ runWorkflow("productEdit", { jobId, productId_1 }) │
 │     └─ runWorkflow("productEdit", { jobId, productId_2 }) │
 │         callId = productId (DBOS idempotency)             │
-│  4. finalizeJob(jobId) — пересчёт counters                │
+│  4. finalizeJob(jobId):                                    │
+│     PENDING items → CANCELLED + job terminal status        │
 └────────────────────────────────────────────────────────────┘
          │                    │                   │
          ▼                    ▼                   ▼
@@ -981,14 +1160,14 @@ Client: polling productBulkEditJob(jobId) / productBulkEditJobItems(jobId)
 | `services/inventory/drizzle/XXXX_product_bulk_fence.sql` | CREATE | Таблица `inventory_product_bulk_fence` |
 | **Drizzle Schema** | | |
 | `services/inventory/src/db/schema/bulkEditJobs.ts` | CREATE | Drizzle schema для jobs |
-| `services/inventory/src/db/schema/bulkEditItems.ts` | CREATE | Drizzle schema для items |
+| `services/inventory/src/db/schema/bulkEditItems.ts` | CREATE | Drizzle schema для items (вкл. cancel_reason, superseded_by_job_id) |
 | `services/inventory/src/db/schema/productBulkFence.ts` | CREATE | Drizzle schema для fence |
 | **Repositories** | | |
 | `services/inventory/src/repositories/BulkEditJobRepository.ts` | CREATE | CRUD + findByIdempotencyKey |
-| `services/inventory/src/repositories/BulkEditItemRepository.ts` | CREATE | CRUD + supersedeActiveItems + countByStatus |
+| `services/inventory/src/repositories/BulkEditItemRepository.ts` | CREATE | CRUD + supersedeActiveItems + getAbortState (1 JOIN) + incrementAppliedOps + cancelAllPending + countByStatus |
 | `services/inventory/src/repositories/BulkFenceRepository.ts` | CREATE | upsert + findByProduct |
 | **Service** | | |
-| `services/inventory/src/services/BulkEditService.ts` | CREATE | createJobWithFences + finalizeJob |
+| `services/inventory/src/services/BulkEditService.ts` | CREATE | createJobWithFences + finalizeJob (PENDING→CANCELLED + job status) |
 | **GraphQL Schema** | | |
 | `services/inventory/src/api/graphql-admin/schema/bulk.graphql` | CREATE | Input/payload/job/item типы + enums |
 | `services/inventory/src/api/graphql-admin/schema/base.graphql` | EDIT | Добавить мутации + query в InventoryMutation/InventoryQuery |
@@ -1032,12 +1211,18 @@ Client: polling productBulkEditJob(jobId) / productBulkEditJobItems(jobId)
 - Частичная ошибка → `PARTIAL_FAILED`
 - Все успешно → `SUCCEEDED` + emit event
 - Все провалены → `FAILED`, event не эмитится
+- Abort после 3 применённых шагов → `SUPERSEDED`/`CANCELLED` с `appliedOps=3` и накопленными errors
+- Non-transient exception → `FAILED` с `WORKFLOW_EXCEPTION`, текущий прогресс сохранён
+- Transient exception → rethrow (DBOS retry), item остаётся RUNNING
 
 ### 11.3 Unit: ProductBulkEditWorkflow
 
 - 3 продукта, все успешны → job `COMPLETED`
 - 15 продуктов → concurrency limit = 10
-- finalizeJob корректно пересчитывает counters
+- Job cancelled между chunks → новые child не запускаются, finalizeJob переводит оставшиеся PENDING → CANCELLED (reason USER)
+- finalizeJob: PENDING items → CANCELLED, job → COMPLETED/CANCELLED
+- finalizeJob при штатном завершении (не cancel) + оставшиеся PENDING (parent crash) → PENDING → CANCELLED (reason SYSTEM)
+- Query resolver: counters вычисляются из items (COUNT GROUP BY status)
 
 ### 11.4 Validation
 
