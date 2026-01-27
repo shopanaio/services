@@ -20,7 +20,7 @@
 
 ## Ключевые принципы
 
-### 1. Клиентская идемпотентность
+### 1. Клиентская идемпотентность + защита от повторного использования ключа
 
 Клиент **обязан** передать заголовок `X-Idempotency-Key`. Resolver передаёт его в `broker.runWorkflow` с `source: "client"`:
 
@@ -28,12 +28,18 @@
 broker.runWorkflow("inventory.productBulkEdit", input, {
   source: "client",
   clientKey: ctx.idempotencyKey,   // из X-Idempotency-Key
+  contentHash: hashInput(input),   // SHA-256 от сериализованного input
   tenantId: ctx.store.id,
   apiKeyId: ctx.apiKeyId ?? ctx.user.id,
 });
 ```
 
-Дочерние workflow получают идемпотентность через `workflow` контекст (parentWorkflowId + callId=productId).
+**Защита от "тот же ключ — другой payload":**
+- На входе вычисляем `contentHash = SHA-256(JSON.stringify(canonicalize(input)))`.
+- Если ключ уже встречался с **другим** хешем — возвращаем ошибку `IDEMPOTENCY_KEY_REUSE_WITH_DIFFERENT_INPUT`.
+- Если ключ + хеш совпадают — возвращаем кешированный результат (at-most-once).
+
+Дочерние workflow получают идемпотентность через `workflow` контекст (parentWorkflowId + callId=productId). Уникальность `productId` в `items` гарантируется валидацией (см. Фаза 1.4).
 
 ### 2. Переиспользование существующих input типов
 
@@ -61,11 +67,11 @@ broker.runWorkflow("inventory.productBulkEdit", input, {
 ┌──────────────────────────────────────────────────────────────┐
 │  ProductBulkEditWorkflow  (@Workflow)                         │
 │                                                              │
-│  fanOut():                                                   │
+│  fanOut():  (пачками по 10, concurrency limit)               │
 │    ├─ runWorkflow("inventory.productEdit", item[0])          │
 │    ├─ runWorkflow("inventory.productEdit", item[1])          │
 │    └─ runWorkflow("inventory.productEdit", item[2])          │
-│         (параллельно, callId=productId)                      │
+│         (callId=productId, allSettled)                       │
 │                                                              │
 │  aggregate(): сбор результатов                               │
 └──────────────────────────────────────────────────────────────┘
@@ -74,13 +80,13 @@ broker.runWorkflow("inventory.productBulkEdit", input, {
 │  ProductEditWorkflow  (@Workflow)                             │
 │                                                              │
 │  Step 1: ProductUpdateScript(input.productUpdate)            │
-│  Step 2: ProductPublishScript(input.productPublish)          │
+│  Step 2: ProductPublishScript (SKIP если Step 1 упал)        │
 │  Step 3: VariantSetSkuScript(input.variantSetSku[0])         │
 │  Step 4: VariantSetSkuScript(input.variantSetSku[1])         │
 │  Step 5: VariantSetPricingScript(input.variantSetPricing[0]) │
 │  ...каждый скрипт — отдельный @WorkflowStep()                │
 │                                                              │
-│  Last:   broker.emit("productUpdated") (best-effort)         │
+│  Last:   broker.emit("productUpdated") (если appliedCount>0) │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -174,7 +180,7 @@ input ProductBulkEditItemInput {
 Результат операции массового редактирования.
 """
 type ProductBulkEditPayload {
-  """Продукты, для которых хотя бы одна операция прошла успешно."""
+  """Продукты, для которых ВСЕ запрошенные операции прошли без ошибок."""
   products: [Product!]!
 
   """
@@ -188,7 +194,10 @@ type BulkEditUserError {
   """Человекочитаемое сообщение об ошибке."""
   message: String!
 
-  """Путь к полю с ошибкой."""
+  """
+  Путь к полю в input — для подсветки ячеек в UI.
+  Формат: ["items", "3", "variantSetPricing", "0", "amountMinor"]
+  """
   field: [String!]
 
   """Машиночитаемый код ошибки."""
@@ -214,6 +223,43 @@ type BulkEditUserError {
 ```graphql
   # Массовые операции
   productBulkEdit(input: ProductBulkEditInput!): ProductBulkEditPayload!
+```
+
+### 1.4 Валидация батча (обвязочная, не бизнес-логика)
+
+Resolver/Zod-схема **до запуска workflow** проверяет:
+
+| Правило | Ошибка |
+|---------|--------|
+| `items.length >= 1 && items.length <= 100` | `BATCH_LIMIT_EXCEEDED` |
+| `productId` уникальны в `items` | `DUPLICATE_PRODUCT_ID` |
+| Запрет `productPublish: true` и `productUnpublish: true` одновременно | `CONFLICTING_PUBLISH_STATE` |
+| Item содержит хотя бы одну операцию (не всё `null/undefined`) | `EMPTY_ITEM` |
+
+```typescript
+// services/inventory/src/resolvers/admin/validation/productBulkEditSchema.ts
+export const productBulkEditSchema = z.object({
+  items: z.array(productBulkEditItemSchema).min(1).max(100)
+    .refine(
+      (items) => new Set(items.map(i => i.productId)).size === items.length,
+      { message: "Duplicate productId in items", params: { code: "DUPLICATE_PRODUCT_ID" } }
+    ),
+});
+
+const productBulkEditItemSchema = z.object({
+  productId: z.string().uuid(),
+  // ...все поля опциональны...
+}).refine(
+  (item) => {
+    // Хотя бы одна операция присутствует
+    const { productId, ...ops } = item;
+    return Object.values(ops).some(v => v != null);
+  },
+  { message: "Item has no operations", params: { code: "EMPTY_ITEM" } }
+).refine(
+  (item) => !(item.productPublish && item.productUnpublish),
+  { message: "Cannot publish and unpublish simultaneously", params: { code: "CONFLICTING_PUBLISH_STATE" } }
+);
 ```
 
 ---
@@ -261,6 +307,7 @@ export interface BulkEditError extends UserError {
 
 export interface ProductEditWorkflowResult {
   productId: string;
+  /** true = все запрошенные операции прошли без ошибок */
   success: boolean;
   userErrors: BulkEditError[];
 }
@@ -315,6 +362,8 @@ export class ProductEditWorkflow extends BrokerWorkflows<
   async run(input: ProductEditWorkflowParams): Promise<ProductEditWorkflowResult> {
     const errors: BulkEditError[] = [];
     const { productId } = input;
+    let hasApplied = false;
+    let productUpdateFailed = false;
 
     // ─── Операции с продуктом ──────────────────────────
 
@@ -322,70 +371,105 @@ export class ProductEditWorkflow extends BrokerWorkflows<
       const result = await this.stepProductUpdate(input.productUpdate);
       if (result.userErrors.length > 0) {
         errors.push(...this.tagErrors(result.userErrors, productId, "productUpdate"));
+        productUpdateFailed = true;
+      } else {
+        hasApplied = true;
       }
     }
 
-    if (input.productPublish) {
+    // Зависимость: publish/unpublish пропускаем если productUpdate упал
+    // (publish может требовать валидный title/translation)
+    if (input.productPublish && !productUpdateFailed) {
       const result = await this.stepProductPublish({ id: productId });
       if (result.userErrors.length > 0) {
         errors.push(...this.tagErrors(result.userErrors, productId, "productPublish"));
+      } else {
+        hasApplied = true;
       }
+    } else if (input.productPublish && productUpdateFailed) {
+      errors.push({
+        message: "Skipped: productUpdate failed",
+        code: "SKIPPED_DUE_TO_DEPENDENCY",
+        productId,
+        operation: "productPublish",
+      });
     }
 
-    if (input.productUnpublish) {
+    if (input.productUnpublish && !productUpdateFailed) {
       const result = await this.stepProductUnpublish({ id: productId });
       if (result.userErrors.length > 0) {
         errors.push(...this.tagErrors(result.userErrors, productId, "productUnpublish"));
+      } else {
+        hasApplied = true;
       }
+    } else if (input.productUnpublish && productUpdateFailed) {
+      errors.push({
+        message: "Skipped: productUpdate failed",
+        code: "SKIPPED_DUE_TO_DEPENDENCY",
+        productId,
+        operation: "productUnpublish",
+      });
     }
 
-    // ─── Операции с вариантами ─────────────────────────
+    // ─── Операции с вариантами (независимы, продолжаем после ошибок) ──
 
-    for (const params of input.variantSetSku ?? []) {
+    for (const [i, params] of (input.variantSetSku ?? []).entries()) {
       const result = await this.stepVariantSetSku(params);
       if (result.userErrors.length > 0) {
-        errors.push(...this.tagErrors(result.userErrors, productId, "variantSetSku", params.variantId));
+        errors.push(...this.tagErrors(result.userErrors, productId, "variantSetSku", params.variantId, i));
+      } else {
+        hasApplied = true;
       }
     }
 
-    for (const params of input.variantSetPricing ?? []) {
+    for (const [i, params] of (input.variantSetPricing ?? []).entries()) {
       const result = await this.stepVariantSetPricing(params);
       if (result.userErrors.length > 0) {
-        errors.push(...this.tagErrors(result.userErrors, productId, "variantSetPricing", params.variantId));
+        errors.push(...this.tagErrors(result.userErrors, productId, "variantSetPricing", params.variantId, i));
+      } else {
+        hasApplied = true;
       }
     }
 
-    for (const params of input.variantSetCost ?? []) {
+    for (const [i, params] of (input.variantSetCost ?? []).entries()) {
       const result = await this.stepVariantSetCost(params);
       if (result.userErrors.length > 0) {
-        errors.push(...this.tagErrors(result.userErrors, productId, "variantSetCost", params.variantId));
+        errors.push(...this.tagErrors(result.userErrors, productId, "variantSetCost", params.variantId, i));
+      } else {
+        hasApplied = true;
       }
     }
 
-    for (const params of input.variantSetStock ?? []) {
+    for (const [i, params] of (input.variantSetStock ?? []).entries()) {
       const result = await this.stepVariantSetStock(params);
       if (result.userErrors.length > 0) {
-        errors.push(...this.tagErrors(result.userErrors, productId, "variantSetStock", params.variantId));
+        errors.push(...this.tagErrors(result.userErrors, productId, "variantSetStock", params.variantId, i));
+      } else {
+        hasApplied = true;
       }
     }
 
-    for (const params of input.variantSetDimensions ?? []) {
+    for (const [i, params] of (input.variantSetDimensions ?? []).entries()) {
       const result = await this.stepVariantSetDimensions(params);
       if (result.userErrors.length > 0) {
-        errors.push(...this.tagErrors(result.userErrors, productId, "variantSetDimensions", params.variantId));
+        errors.push(...this.tagErrors(result.userErrors, productId, "variantSetDimensions", params.variantId, i));
+      } else {
+        hasApplied = true;
       }
     }
 
-    for (const params of input.variantSetWeight ?? []) {
+    for (const [i, params] of (input.variantSetWeight ?? []).entries()) {
       const result = await this.stepVariantSetWeight(params);
       if (result.userErrors.length > 0) {
-        errors.push(...this.tagErrors(result.userErrors, productId, "variantSetWeight", params.variantId));
+        errors.push(...this.tagErrors(result.userErrors, productId, "variantSetWeight", params.variantId, i));
+      } else {
+        hasApplied = true;
       }
     }
 
-    // ─── Событие (best-effort) ────────────────────────
+    // ─── Событие (best-effort): эмитим если хотя бы одна операция применилась ──
 
-    if (errors.length === 0) {
+    if (hasApplied) {
       await this.stepEmitProductUpdated(productId);
     }
 
@@ -456,15 +540,27 @@ export class ProductEditWorkflow extends BrokerWorkflows<
     }
   }
 
-  // ─── Утилита: добавляет productId/variantId/operation к ошибкам ──
+  // ─── Утилита: добавляет productId/variantId/operation/field к ошибкам ──
 
   private tagErrors(
     errors: UserError[],
     productId: string,
     operation: string,
-    variantId?: string
+    variantId?: string,
+    /** индекс в массиве (для variantSet* операций) */
+    arrayIndex?: number,
   ): BulkEditError[] {
-    return errors.map((e) => ({ ...e, productId, variantId, operation }));
+    return errors.map((e) => ({
+      ...e,
+      productId,
+      variantId,
+      operation,
+      // field в формате ["items", "<idx>", "<operation>", "<arrayIdx>", "<fieldName>"]
+      // — для подсветки ячеек в UI
+      field: e.field
+        ? [operation, ...(arrayIndex != null ? [String(arrayIndex)] : []), ...e.field]
+        : undefined,
+    }));
   }
 }
 ```
@@ -534,40 +630,53 @@ export class ProductBulkEditWorkflow extends BrokerWorkflows<
     return this.aggregate(results);
   }
 
+  private static readonly CONCURRENCY_LIMIT = 10;
+
   @WorkflowStep({ timeoutMs: 120_000 }) // 2 мин на весь батч
   private async fanOut(
     items: ProductEditWorkflowParams[]
   ): Promise<ProductEditWorkflowResult[]> {
-    const promises = items.map((item) =>
-      this.broker.runWorkflow<ProductEditWorkflowResult, ProductEditWorkflowParams>(
-        "inventory.productEdit",
-        item,
-        {
-          source: "workflow",
-          workflowId: DBOS.workflowID,
-          stepId: "productEdit",
-          callId: item.productId,
+    const results: ProductEditWorkflowResult[] = [];
+
+    // Запуск пачками по CONCURRENCY_LIMIT, чтобы не убить пул коннектов
+    for (let i = 0; i < items.length; i += ProductBulkEditWorkflow.CONCURRENCY_LIMIT) {
+      const chunk = items.slice(i, i + ProductBulkEditWorkflow.CONCURRENCY_LIMIT);
+
+      const promises = chunk.map((item) =>
+        this.broker.runWorkflow<ProductEditWorkflowResult, ProductEditWorkflowParams>(
+          "inventory.productEdit",
+          item,
+          {
+            source: "workflow",
+            workflowId: DBOS.workflowID,
+            stepId: "productEdit",
+            callId: item.productId,
+          }
+        )
+      );
+
+      const settled = await Promise.allSettled(promises);
+
+      for (let j = 0; j < settled.length; j++) {
+        const result = settled[j];
+        if (result.status === "fulfilled") {
+          results.push(result.value);
+        } else {
+          results.push({
+            productId: chunk[j].productId,
+            success: false,
+            userErrors: [{
+              message: result.reason?.message ?? "Unexpected error",
+              code: "WORKFLOW_ERROR",
+              productId: chunk[j].productId,
+              operation: "workflow",
+            }],
+          });
         }
-      )
-    );
-
-    const settled = await Promise.allSettled(promises);
-
-    return settled.map((result, index) => {
-      if (result.status === "fulfilled") {
-        return result.value;
       }
-      return {
-        productId: items[index].productId,
-        success: false,
-        userErrors: [{
-          message: result.reason?.message ?? "Unexpected error",
-          code: "WORKFLOW_ERROR",
-          productId: items[index].productId,
-          operation: "workflow",
-        }],
-      };
-    });
+    }
+
+    return results;
   }
 
   @WorkflowStep()
@@ -765,25 +874,39 @@ export { ProductBulkEditWorkflow } from "./ProductBulkEditWorkflow.js";
 - Один продукт: только `productUpdate` → вызван `ProductUpdateScript`
 - Один продукт: SKU + pricing → вызваны `VariantSetSkuScript`, `VariantSetPricingScript`
 - Ошибка в `productUpdate` → ошибка с `operation: "productUpdate"`
-- Ошибка в одном варианте → ошибка с `variantId` и `operation`
-- Все операции успешны → `emitProductUpdated` вызван
-- Частичная ошибка → событие НЕ эмитится
+- Ошибка в `productUpdate` + `productPublish: true` → publish пропущен с `SKIPPED_DUE_TO_DEPENDENCY`
+- Ошибка в одном варианте → ошибка с `variantId`, `operation` и `field` path
+- Все операции успешны → `emitProductUpdated` вызван, `success: true`
+- Частичная ошибка (часть операций ок, часть нет) → событие эмитится (`hasApplied`), `success: false`
+- Все операции провалены → событие НЕ эмитится
 
 ### 6.2 Тесты родительского Workflow (ProductBulkEditWorkflow)
 
 - 3 продукта, все успешны → 3 productId в результате, 0 ошибок
 - 3 продукта, 1 падает → 2 productId, 1 ошибка (остальные не затронуты)
+- 15 продуктов → запуск пачками по 10 (concurrency limit)
 - Идемпотентность: одинаковый `X-Idempotency-Key` дважды → тот же результат
+- Тот же ключ + другой payload → ошибка `IDEMPOTENCY_KEY_REUSE_WITH_DIFFERENT_INPUT`
 - Без `X-Idempotency-Key` → ошибка `IDEMPOTENCY_KEY_REQUIRED`
 
-### 6.3 E2E тесты
+### 6.3 Тесты валидации батча
+
+- Дубликат `productId` → `DUPLICATE_PRODUCT_ID`
+- `productPublish: true` + `productUnpublish: true` → `CONFLICTING_PUBLISH_STATE`
+- Пустой item (нет ни одной операции) → `EMPTY_ITEM`
+- 101 item → `BATCH_LIMIT_EXCEEDED`
+- 0 items → ошибка `min(1)`
+
+### 6.4 E2E тесты
 
 **Файл:** `e2e/tests/inventory-api/product-bulk-edit.spec.ts`
 
 - Создать 3 продукта → массовое редактирование → проверить через query
 - Массовое редактирование с невалидным productId → 2 успешно, 1 ошибка
 - Retry с тем же idempotency key → идентичный результат
+- Тот же idempotency key + другой input → ошибка `IDEMPOTENCY_KEY_REUSE_WITH_DIFFERENT_INPUT`
 - Различные комбинации операций (только SKU, только цены, всё вместе)
+- Частичный успех: productUpdate failed + варианты ok → проверить field path в ошибках
 
 ---
 
@@ -854,18 +977,20 @@ MutationResolver
 | `admin-next/.../bulk-editor-modal/bulk-editor-modal.tsx` | EDIT | Замена заглушки + генерация idempotency key |
 | `e2e/tests/inventory-api/product-bulk-edit.spec.ts` | CREATE | E2E тесты |
 
-**Не нужно создавать:** Никаких новых скриптов, DTO скриптов, Zod-схем для бизнес-логики — всё переиспользуется из существующих мутаций.
+| `services/inventory/src/resolvers/admin/validation/productBulkEditSchema.ts` | CREATE | Zod-валидация батча (обвязочная) |
+
+**Не нужно создавать:** Никаких новых скриптов, DTO скриптов, Zod-схем для бизнес-логики — всё переиспользуется из существующих мутаций. Единственная новая Zod-схема — обвязочная валидация батча (уникальность productId, лимиты, конфликты).
 
 ---
 
-## Открытые вопросы
+## Решения по ранее открытым вопросам
 
-1. **Warehouse ID для stock**: `VariantSetStockInput` требует `warehouseId`. Bulk editor не показывает выбор склада. Использовать склад по умолчанию? Или не редактировать запасы в v1?
+1. **Warehouse ID для stock**: `VariantSetStockInput` требует `warehouseId` — это обязательное поле в существующем input. Фронтенд должен передать `warehouseId` в каждом `VariantSetStockInput`. Bulk editor подставляет склад по умолчанию проекта на уровне `buildBulkEditInput()`.
 
-2. **Currency для pricing/cost**: `VariantSetPricingInput` и `VariantSetCostInput` требуют `currency: CurrencyCode!`. Фронтенд не показывает выбор валюты. Использовать валюту проекта по умолчанию?
+2. **Currency для pricing/cost**: `VariantSetPricingInput` и `VariantSetCostInput` требуют `currency: CurrencyCode!` — аналогично, фронтенд подставляет валюту проекта в `buildBulkEditInput()`. Required-поля остаются required (переиспользование без изменений).
 
-3. **Barcode**: Существующие мутации не имеют `VariantSetBarcodeInput`. Нужно либо создать новую мутацию `variantSetBarcode`, либо добавить barcode в `VariantSetSkuInput`, либо отложить.
+3. **Barcode**: Не поддерживается в v1. Нет существующего скрипта/мутации. Если фронтенд попытается отправить — поле просто не будет в input (нет такого поля в `ProductBulkEditItemInput`).
 
-4. **Параллельность шагов в дочернем workflow**: Сейчас шаги последовательны. Можно ли группировать независимые операции (SKU + pricing) параллельно внутри одного продукта?
+4. **Параллельность шагов в дочернем workflow**: Шаги последовательны. Не параллелим — профит минимальный, а шаги могут конкурировать за одни строки/инварианты.
 
-5. **Лимит**: Ограничение 100 продуктов за запрос. Достаточно ли для UI?
+5. **Лимит**: 100 продуктов за запрос. Достаточно для UI. Concurrency limit = 10 параллельных дочерних workflow. При превышении — ошибка `BATCH_LIMIT_EXCEEDED`.
