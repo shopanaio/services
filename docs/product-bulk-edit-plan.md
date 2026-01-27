@@ -1,240 +1,285 @@
-# productBulkEdit Mutation — План реализации
+# productBulkEdit — Backend Plan
 
 ## Обзор
 
-Реализовать мутацию `productBulkEdit`, которая принимает несколько продуктов с их вариантами и применяет все изменения через **родительский workflow**, который разветвляется на **дочерние workflow по каждому продукту**. Каждый дочерний workflow последовательно вызывает **существующие скрипты отдельных мутаций** как workflow-шаги.
+Асинхронная система массового редактирования продуктов. Строго backend: схемы БД, GraphQL API, workflow, сервисные функции. Без UI, без подписок, без фронта.
 
-**Текущее состояние:**
-- Фронтенд (bulk-editor-modal) использует заглушку `setTimeout` вместо реального API-вызова
-- Бэкенд имеет ~14 отдельных гранулярных мутаций (productUpdate, variantSetSku, variantSetPricing и т.д.)
-- Не существует bulk/batch мутации для продуктов+вариантов
+**Архитектура:**
+- Клиент вызывает `productBulkEditStart` → получает `jobId`
+- Система создаёт job + items + fences в одной транзакции
+- Parent workflow читает items из БД, запускает child workflow по каждому продукту
+- Child workflow проверяет fence/cancel перед каждым шагом
+- Клиент поллит статус через `productBulkEditJob` / `productBulkEditJobItems`
 
-**Цель:**
-- Единая GraphQL мутация `productBulkEdit` → родительский workflow → N дочерних workflow
-- Каждый продукт обновляется независимо (свой workflow, своя граница ошибок)
-- Ошибка одного продукта не блокирует остальные
-- **Переиспользование** существующих input типов и скриптов (нет дублирования логики)
-- **Идемпотентность через клиентский ключ** (`X-Idempotency-Key` заголовок)
-
----
-
-## Ключевые принципы
-
-### 1. Клиентская идемпотентность + защита от повторного использования ключа
-
-Клиент **обязан** передать заголовок `X-Idempotency-Key`. Resolver передаёт его в `broker.runWorkflow` с `source: "client"`:
-
-```typescript
-broker.runWorkflow("inventory.productBulkEdit", input, {
-  source: "client",
-  clientKey: ctx.idempotencyKey,   // из X-Idempotency-Key
-  contentHash: hashInput(input),   // SHA-256 от сериализованного input
-  tenantId: ctx.store.id,
-  apiKeyId: ctx.apiKeyId ?? ctx.user.id,
-});
-```
-
-**Защита от "тот же ключ — другой payload":**
-- На входе вычисляем `contentHash = SHA-256(JSON.stringify(canonicalize(input)))`.
-- Если ключ уже встречался с **другим** хешем — возвращаем ошибку `IDEMPOTENCY_KEY_REUSE_WITH_DIFFERENT_INPUT`.
-- Если ключ + хеш совпадают — возвращаем кешированный результат (at-most-once).
-
-Дочерние workflow получают идемпотентность через `workflow` контекст (parentWorkflowId + callId=productId). Уникальность `productId` в `items` гарантируется валидацией (см. Фаза 1.4).
-
-### 2. Переиспользование существующих input типов
-
-GraphQL input каждого элемента **композирует** существующие input типы мутаций. Никаких новых кастомных полей — фронтенд формирует ровно те же инпуты, что и для одиночных мутаций.
-
-### 3. Workflow-шаги = вызовы существующих скриптов
-
-Дочерний workflow вызывает те же самые скрипты, которые используют одиночные мутации: `ProductUpdateScript`, `VariantSetSkuScript`, `VariantSetPricingScript` и т.д. Каждый вызов — отдельный `@WorkflowStep()`, каждый скрипт работает в своей транзакции.
+**Ключевые принципы:**
+- Workflow работает **по jobId**, а не по "большому input" (маленький payload в DBOS, восстановление/ретраи, единый источник истины = БД)
+- Fence-токены для защиты от гонок: новый job на тот же productId автоматически supersede'ит старый
+- Идемпотентность через `X-Idempotency-Key` + `content_hash` на уровне job
+- Переиспользование существующих скриптов (ProductUpdateScript, VariantSetSkuScript и т.д.)
 
 ---
 
-## Архитектура: Родительский + дочерние Workflow
+## 1) Схема БД
 
-```
-Фронтенд: handleSave() + X-Idempotency-Key: "bulk-edit-<uuid>"
-         ↓
-GraphQL: productBulkEdit(input)
-         ↓
-MutationResolver
-         ↓
-broker.runWorkflow("inventory.productBulkEdit", input, {
-  source: "client", clientKey: "bulk-edit-<uuid>"
-})
-         ↓
-┌──────────────────────────────────────────────────────────────┐
-│  ProductBulkEditWorkflow  (@Workflow)                         │
-│                                                              │
-│  fanOut():  (пачками по 10, concurrency limit)               │
-│    ├─ runWorkflow("inventory.productEdit", item[0])          │
-│    ├─ runWorkflow("inventory.productEdit", item[1])          │
-│    └─ runWorkflow("inventory.productEdit", item[2])          │
-│         (callId=productId, allSettled)                       │
-│                                                              │
-│  aggregate(): сбор результатов                               │
-└──────────────────────────────────────────────────────────────┘
-         ↓ (каждый дочерний)
-┌──────────────────────────────────────────────────────────────┐
-│  ProductEditWorkflow  (@Workflow)                             │
-│                                                              │
-│  Step 1: ProductUpdateScript(input.productUpdate)            │
-│  Step 2: ProductPublishScript (SKIP если Step 1 упал)        │
-│  Step 3: VariantSetSkuScript(input.variantSetSku[0])         │
-│  Step 4: VariantSetSkuScript(input.variantSetSku[1])         │
-│  Step 5: VariantSetPricingScript(input.variantSetPricing[0]) │
-│  ...каждый скрипт — отдельный @WorkflowStep()                │
-│                                                              │
-│  Last:   broker.emit("productUpdated") (если appliedCount>0) │
-└──────────────────────────────────────────────────────────────┘
-```
+### 1.1 `inventory_bulk_edit_jobs`
 
-### Почему такой дизайн
+Хранит один запуск bulk.
 
-| Задача | Решение |
-|--------|---------|
-| **Переиспользование**: не дублировать бизнес-логику | Дочерний workflow вызывает те же скрипты, что и одиночные мутации |
-| **Изоляция**: ошибка одного продукта ≠ падение всех | Каждый дочерний workflow независим |
-| **Идемпотентность**: безопасные повторы | Клиент шлёт `X-Idempotency-Key`, DBOS гарантирует at-most-once |
-| **Наблюдаемость**: видно какой именно шаг упал | Каждый скрипт — отдельный WorkflowStep с именем и логами |
-| **Расширяемость**: добавить новую операцию = добавить шаг | Новый скрипт → новый WorkflowStep, не меняя существующее |
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `id` | uuid, PK | |
+| `tenant_id` | text, not null | store id |
+| `status` | enum, not null | `QUEUED\|RUNNING\|COMPLETED\|FAILED\|CANCELLED` |
+| `created_at` | timestamp, not null | |
+| `started_at` | timestamp | |
+| `finished_at` | timestamp | |
+| `created_by` | text, not null | user/apiKey |
+| `idempotency_key` | text, not null | клиентский ключ |
+| `content_hash` | text, not null | SHA-256 от canonicalize(input) |
+| `parent_workflow_id` | text, not null | для трассировки |
+| `total_products` | int, not null | |
+| `done_products` | int, default 0 | |
+| `succeeded_products` | int, default 0 | |
+| `partial_failed_products` | int, default 0 | |
+| `failed_products` | int, default 0 | |
+| `cancelled_products` | int, default 0 | |
+| `superseded_products` | int, default 0 | |
 
-### Атомарность
+**Ограничения/индексы:**
+- `UNIQUE (tenant_id, idempotency_key)`
+- индекс `(tenant_id, created_at DESC)`
+- индекс `(tenant_id, status)`
 
-Каждый **скрипт** атомарен (своя `@Transactional()`). Продукт в целом — не атомарен: если `VariantSetSku` прошёл, а `VariantSetPricing` упал, SKU уже обновлён. Это осознанный trade-off:
+### 1.2 `inventory_bulk_edit_items`
 
-- Каждая операция атомарна сама по себе
-- Workflow отслеживает какие шаги прошли, какие нет
-- При retry DBOS не повторяет уже выполненные шаги
-- Клиент получает детальный отчёт: какие операции успешны, какие нет
+Одна запись на продукт в рамках job.
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `job_id` | uuid, FK → jobs.id | |
+| `tenant_id` | text, not null | |
+| `product_id` | text, not null | |
+| `item_index` | int, not null | порядковый номер в батче |
+| `status` | enum, not null | `PENDING\|RUNNING\|SUCCEEDED\|PARTIAL_FAILED\|FAILED\|CANCELLED\|SUPERSEDED` |
+| `cancel_requested` | boolean, default false | |
+| `fence_token` | text, not null | ключ "право писать" для этого productId |
+| `started_at` | timestamp | |
+| `finished_at` | timestamp | |
+| `total_ops` | int, not null | количество операций для item |
+| `applied_ops` | int, default 0 | |
+| `current_operation` | text | опционально, для прогресса |
+| `errors` | jsonb | массив BulkEditUserError |
+| `payload` | jsonb, not null | нормализованные params операций (Вариант A) |
+| `child_workflow_id` | text | опционально |
+
+**Ограничения/индексы:**
+- `PRIMARY KEY (job_id, product_id)`
+- индекс `(tenant_id, product_id, status)`
+- индекс `(tenant_id, job_id, status)`
+
+### 1.3 `inventory_product_bulk_fence`
+
+Глобальное "последнее намерение" на продукт — для отмены пересечений и защиты от гонок.
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `tenant_id` | text, not null | |
+| `product_id` | text, not null | |
+| `fence_token` | text, not null | |
+| `job_id` | uuid, not null | кто владеет текущим fence |
+| `updated_at` | timestamp, not null | |
+
+**Ограничения/индексы:**
+- `PRIMARY KEY (tenant_id, product_id)`
+- индекс `(tenant_id, job_id)` (опционально)
 
 ---
 
-## Фаза 1: GraphQL Схема
+## 2) GraphQL API
 
-### 1.1 Input типы (переиспользование существующих)
+### 2.1 Мутация запуска (async)
+
+```graphql
+"""
+Запуск асинхронного массового редактирования продуктов.
+Возвращает jobId для отслеживания прогресса.
+Клиент ОБЯЗАН передать заголовок X-Idempotency-Key.
+"""
+productBulkEditStart(input: ProductBulkEditInput!): ProductBulkEditJobPayload!
+```
+
+```graphql
+type ProductBulkEditJobPayload {
+  """ID созданного job (null при ошибке валидации)."""
+  jobId: ID
+  """Ошибки валидации/идемпотентности запуска."""
+  userErrors: [BulkEditUserError!]!
+}
+```
+
+### 2.2 Input типы (переиспользование существующих)
 
 **Файл:** `services/inventory/src/api/graphql-admin/schema/bulk.graphql` (новый файл)
 
 ```graphql
-"""
-Массовое редактирование нескольких продуктов и их вариантов.
-Каждый продукт обновляется независимо — ошибка одного не влияет на остальные.
-
-Клиент ОБЯЗАН передать заголовок X-Idempotency-Key для обеспечения идемпотентности.
-"""
 input ProductBulkEditInput {
   """Список правок продуктов (макс. 100)."""
   items: [ProductBulkEditItemInput!]!
 }
 
-"""
-Операции редактирования для одного продукта.
-Каждое поле — опциональный массив/объект существующих input типов.
-Отсутствующие поля = операция не выполняется.
-"""
 input ProductBulkEditItemInput {
-  """ID продукта (для группировки и валидации)."""
   productId: ID!
 
   # ─── Операции с продуктом ──────────────────────────────
-  """Обновление полей продукта (title, description, excerpt, seo)."""
   productUpdate: ProductUpdateInput
-
-  """Публикация продукта."""
   productPublish: Boolean
-
-  """Снятие с публикации."""
   productUnpublish: Boolean
 
   # ─── Операции с вариантами ─────────────────────────────
-  """Установка SKU для вариантов."""
   variantSetSku: [VariantSetSkuInput!]
-
-  """Установка цен для вариантов."""
   variantSetPricing: [VariantSetPricingInput!]
-
-  """Установка себестоимости для вариантов."""
   variantSetCost: [VariantSetCostInput!]
-
-  """Установка остатков для вариантов."""
   variantSetStock: [VariantSetStockInput!]
-
-  """Установка габаритов для вариантов."""
   variantSetDimensions: [VariantSetDimensionsInput!]
-
-  """Установка веса для вариантов."""
   variantSetWeight: [VariantSetWeightInput!]
 }
 ```
 
-**Ключевой момент**: `ProductUpdateInput`, `VariantSetSkuInput`, `VariantSetPricingInput` и т.д. — это **те же самые типы**, что уже определены в `product.graphql`, `variant.graphql`, `pricing.graphql`, `stock.graphql`, `physical.graphql`. Нулевое дублирование.
+**Ключевой момент**: `ProductUpdateInput`, `VariantSetSkuInput` и т.д. — **те же самые типы**, что уже определены в существующих `.graphql` файлах. Нулевое дублирование.
 
-> `productPublish` / `productUnpublish` — булевы флаги вместо `ProductPublishInput` / `ProductUnpublishInput`, потому что эти input'ы содержат только `id: ID!`, а `productId` уже есть на уровне item.
-
-### 1.2 Payload тип
+### 2.3 Query статуса (polling)
 
 ```graphql
-"""
-Результат операции массового редактирования.
-"""
-type ProductBulkEditPayload {
-  """Продукты, для которых ВСЕ запрошенные операции прошли без ошибок."""
-  products: [Product!]!
+"""Получить статус job."""
+productBulkEditJob(jobId: ID!): ProductBulkEditJob
 
-  """
-  Ошибки по каждой операции. Каждая ошибка содержит productId/variantId,
-  чтобы фронтенд мог привязать ошибки к конкретным строкам.
-  """
-  userErrors: [BulkEditUserError!]!
+"""Получить items job с пагинацией и фильтрацией по статусу."""
+productBulkEditJobItems(
+  jobId: ID!
+  after: String
+  first: Int
+  statusFilter: [BulkEditItemStatus!]
+): ProductBulkEditJobItemsConnection!
+```
+
+```graphql
+type ProductBulkEditJob {
+  id: ID!
+  status: BulkEditJobStatus!
+  createdAt: DateTime!
+  startedAt: DateTime
+  finishedAt: DateTime
+
+  totalProducts: Int!
+  doneProducts: Int!
+  succeededProducts: Int!
+  partialFailedProducts: Int!
+  failedProducts: Int!
+  cancelledProducts: Int!
+  supersededProducts: Int!
 }
 
+enum BulkEditJobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+type ProductBulkEditJobItem {
+  productId: ID!
+  status: BulkEditItemStatus!
+  totalOps: Int!
+  appliedOps: Int!
+  currentOperation: String
+  errors: [BulkEditUserError!]!
+  startedAt: DateTime
+  finishedAt: DateTime
+}
+
+enum BulkEditItemStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  PARTIAL_FAILED
+  FAILED
+  CANCELLED
+  SUPERSEDED
+}
+
+type ProductBulkEditJobItemsConnection {
+  edges: [ProductBulkEditJobItemEdge!]!
+  pageInfo: PageInfo!
+}
+
+type ProductBulkEditJobItemEdge {
+  cursor: String!
+  node: ProductBulkEditJobItem!
+}
+```
+
+### 2.4 Cancel мутации
+
+```graphql
+"""Отменить job целиком."""
+productBulkEditCancel(jobId: ID!): ProductBulkEditJobPayload!
+
+"""Отменить выбранные продукты в job."""
+productBulkEditCancelItems(jobId: ID!, productIds: [ID!]!): ProductBulkEditJobPayload!
+```
+
+### 2.5 BulkEditUserError (без изменений)
+
+```graphql
 type BulkEditUserError {
-  """Человекочитаемое сообщение об ошибке."""
   message: String!
-
-  """
-  Путь к полю в input — для подсветки ячеек в UI.
-  Формат: ["items", "3", "variantSetPricing", "0", "amountMinor"]
-  """
   field: [String!]
-
-  """Машиночитаемый код ошибки."""
   code: String
-
-  """ID продукта, к которому относится ошибка."""
   productId: ID
-
-  """ID варианта, если применимо."""
   variantId: ID
-
-  """Название операции, которая упала (productUpdate, variantSetSku, ...)."""
   operation: String
 }
 ```
 
-### 1.3 Регистрация в InventoryMutation
+---
 
-**Файл:** `services/inventory/src/api/graphql-admin/schema/base.graphql`
+## 3) Resolver запуска — `productBulkEditStart`
 
-Добавить в `type InventoryMutation`:
+### 3.1 Идемпотентность
 
-```graphql
-  # Массовые операции
-  productBulkEdit(input: ProductBulkEditInput!): ProductBulkEditPayload!
-```
+1. Требовать `X-Idempotency-Key`
+2. Вычислить `contentHash = sha256(canonicalize(input))`
+3. Проверить `inventory_bulk_edit_jobs` по `(tenant_id, idempotency_key)`:
+   - Найдено и `content_hash != incoming` → ошибка `IDEMPOTENCY_KEY_REUSE_WITH_DIFFERENT_INPUT`
+   - Найдено и совпадает → вернуть существующий `jobId` (at-most-once)
 
-### 1.4 Валидация батча (обвязочная, не бизнес-логика)
+### 3.2 Создание job + fence + отмена пересечений (1 транзакция)
 
-Resolver/Zod-схема **до запуска workflow** проверяет:
+В одной транзакции БД:
+
+1. `INSERT inventory_bulk_edit_jobs(...)` — `status=QUEUED`, `total_products=N`
+2. Для каждого item в input:
+   - Сгенерить `newFenceToken = uuid()`
+   - **UPSERT** в `inventory_product_bulk_fence (tenant_id, product_id)`:
+     - `fence_token = newFenceToken, job_id = newJobId, updated_at = now()`
+   - Пометить "старые активные items" для этого `product_id`:
+     - Найти строки в `inventory_bulk_edit_items` где `tenant_id = ... AND product_id = ... AND status IN (PENDING, RUNNING)`
+     - Для них: `cancel_requested = true`, `status = SUPERSEDED`
+3. `INSERT inventory_bulk_edit_items(job_id, product_id, fence_token, status=PENDING, total_ops=calcOps(item), item_index=idx, payload=itemPayload, ...)`
+
+После транзакции:
+
+4. `broker.runWorkflow("inventory.productBulkEdit", { jobId })` — **без передачи всего input**
+
+### 3.3 Валидация батча (до транзакции)
 
 | Правило | Ошибка |
 |---------|--------|
 | `items.length >= 1 && items.length <= 100` | `BATCH_LIMIT_EXCEEDED` |
 | `productId` уникальны в `items` | `DUPLICATE_PRODUCT_ID` |
 | Запрет `productPublish: true` и `productUnpublish: true` одновременно | `CONFLICTING_PUBLISH_STATE` |
-| Item содержит хотя бы одну операцию (не всё `null/undefined`) | `EMPTY_ITEM` |
+| Item содержит хотя бы одну операцию | `EMPTY_ITEM` |
 
 ```typescript
 // services/inventory/src/resolvers/admin/validation/productBulkEditSchema.ts
@@ -245,110 +290,203 @@ export const productBulkEditSchema = z.object({
       { message: "Duplicate productId in items", params: { code: "DUPLICATE_PRODUCT_ID" } }
     ),
 });
+```
 
-const productBulkEditItemSchema = z.object({
-  productId: z.string().uuid(),
-  // ...все поля опциональны...
-}).refine(
-  (item) => {
-    // Хотя бы одна операция присутствует
-    const { productId, ...ops } = item;
-    return Object.values(ops).some(v => v != null);
-  },
-  { message: "Item has no operations", params: { code: "EMPTY_ITEM" } }
-).refine(
-  (item) => !(item.productPublish && item.productUnpublish),
-  { message: "Cannot publish and unpublish simultaneously", params: { code: "CONFLICTING_PUBLISH_STATE" } }
-);
+### 3.4 Resolver
+
+**Файл:** `services/inventory/src/resolvers/admin/MutationResolver.ts`
+
+```typescript
+@ZodResolver(productBulkEditSchema)
+async productBulkEditStart(args: { input: ProductBulkEditInput }) {
+  const idempotencyKey = this.$ctx.idempotencyKey;
+  if (!idempotencyKey) {
+    return {
+      jobId: null,
+      userErrors: [{
+        message: "X-Idempotency-Key header is required for bulk operations",
+        code: "IDEMPOTENCY_KEY_REQUIRED",
+      }],
+    };
+  }
+
+  const contentHash = sha256(canonicalize(args.input));
+
+  // Идемпотентность: проверка existing job
+  const existingJob = await this.$ctx.kernel
+    .getRepository(BulkEditJobRepository)
+    .findByIdempotencyKey(this.$ctx.store.id, idempotencyKey);
+
+  if (existingJob) {
+    if (existingJob.contentHash !== contentHash) {
+      return {
+        jobId: null,
+        userErrors: [{
+          message: "Idempotency key already used with different input",
+          code: "IDEMPOTENCY_KEY_REUSE_WITH_DIFFERENT_INPUT",
+        }],
+      };
+    }
+    // Тот же ключ + тот же input → вернуть существующий jobId
+    return { jobId: existingJob.id, userErrors: [] };
+  }
+
+  // Создание job + items + fences в 1 транзакции
+  const jobId = await this.$ctx.kernel
+    .getService(BulkEditService)
+    .createJobWithFences({
+      tenantId: this.$ctx.store.id,
+      createdBy: this.$ctx.user?.id ?? "system",
+      idempotencyKey,
+      contentHash,
+      items: args.input.items,
+    });
+
+  // Запуск workflow (только jobId, без payload)
+  await this.$ctx.kernel
+    .getServices()
+    .broker.runWorkflow("inventory.productBulkEdit", { jobId });
+
+  return { jobId, userErrors: [] };
+}
 ```
 
 ---
 
-## Фаза 2: Дочерний Workflow — `ProductEditWorkflow`
+## 4) Workflow архитектура
 
-Обрабатывает один продукт. Каждый шаг — вызов существующего скрипта.
+### 4.1 Parent workflow: `ProductBulkEditWorkflow({ jobId })`
 
-### 2.1 DTO
+**Файл:** `services/inventory/src/workflows/ProductBulkEditWorkflow.ts`
 
-**Файл:** `services/inventory/src/workflows/dto/ProductEditWorkflowDto.ts`
+Шаги:
+
+1. `loadJobAndItems(jobId)` — берём список items из БД
+2. Поставить job `status = RUNNING`, `started_at = now()`
+3. `fanOut` по items с concurrency limit (10):
+   - `runWorkflow("inventory.productEdit", { jobId, productId })` (минимальный DTO)
+   - `callId = productId` (DBOS идемпотентность)
+   - `allSettled` — ошибка одного не блокирует остальные
+4. `finalizeJob(jobId)` — пересчитать counters из items, поставить `COMPLETED` / `FAILED` / `CANCELLED`:
+   - `COMPLETED` — даже если есть ошибки на item уровне
+   - `FAILED` — только если parent упал инфраструктурно
 
 ```typescript
-import type { UserError } from "../../kernel/BaseScript.js";
-import type { ProductUpdateParams } from "../../scripts/product/dto/index.js";
-import type { VariantSetSkuParams } from "../../scripts/variant/VariantSetSkuScript.js";
-import type { VariantSetPricingParams } from "../../scripts/variant/VariantSetPricingScript.js";
-import type { VariantSetCostParams } from "../../scripts/variant/VariantSetCostScript.js";
-import type { VariantSetStockParams } from "../../scripts/variant/VariantSetStockScript.js";
-import type { VariantSetDimensionsParams } from "../../scripts/variant/VariantSetDimensionsScript.js";
-import type { VariantSetWeightParams } from "../../scripts/variant/VariantSetWeightScript.js";
+@Injectable()
+export class ProductBulkEditWorkflow extends BrokerWorkflows<
+  { jobId: string },
+  void
+> {
+  constructor(@InjectBroker("inventory") broker: ServiceBroker) {
+    super(broker);
+  }
 
-export interface ProductEditWorkflowParams {
-  productId: string;
+  private get kernel(): Kernel {
+    return Kernel.getInstance();
+  }
 
-  // Операции с продуктом (переиспользуем существующие params)
-  productUpdate?: ProductUpdateParams;
-  productPublish?: boolean;
-  productUnpublish?: boolean;
+  @Workflow("productBulkEdit")
+  async run(input: { jobId: string }): Promise<void> {
+    const { jobId } = input;
 
-  // Операции с вариантами (массивы существующих params)
-  variantSetSku?: VariantSetSkuParams[];
-  variantSetPricing?: VariantSetPricingParams[];
-  variantSetCost?: VariantSetCostParams[];
-  variantSetStock?: VariantSetStockParams[];
-  variantSetDimensions?: VariantSetDimensionsParams[];
-  variantSetWeight?: VariantSetWeightParams[];
-}
+    // 1. Загрузить items из БД
+    const items = await this.stepLoadItems(jobId);
 
-export interface BulkEditError extends UserError {
-  productId?: string;
-  variantId?: string;
-  operation?: string;
-}
+    // 2. Поставить job RUNNING
+    await this.stepMarkJobRunning(jobId);
 
-export interface ProductEditWorkflowResult {
-  productId: string;
-  /** true = все запрошенные операции прошли без ошибок */
-  success: boolean;
-  userErrors: BulkEditError[];
+    // 3. Fan-out по items
+    await this.stepFanOut(jobId, items);
+
+    // 4. Финализировать job (пересчитать counters)
+    await this.stepFinalizeJob(jobId);
+  }
+
+  private static readonly CONCURRENCY_LIMIT = 10;
+
+  @WorkflowStep()
+  private async stepLoadItems(jobId: string) {
+    return this.kernel
+      .getRepository(BulkEditItemRepository)
+      .findByJobId(jobId);
+  }
+
+  @WorkflowStep()
+  private async stepMarkJobRunning(jobId: string) {
+    return this.kernel
+      .getRepository(BulkEditJobRepository)
+      .updateStatus(jobId, "RUNNING", { startedAt: new Date() });
+  }
+
+  @WorkflowStep()
+  private async stepFanOut(
+    jobId: string,
+    items: { productId: string }[]
+  ) {
+    for (let i = 0; i < items.length; i += ProductBulkEditWorkflow.CONCURRENCY_LIMIT) {
+      const chunk = items.slice(i, i + ProductBulkEditWorkflow.CONCURRENCY_LIMIT);
+
+      const promises = chunk.map((item) =>
+        this.broker.runWorkflow(
+          "inventory.productEdit",
+          { jobId, productId: item.productId },
+          {
+            source: "workflow",
+            workflowId: DBOS.workflowID,
+            stepId: "productEdit",
+            callId: item.productId,
+          }
+        )
+      );
+
+      await Promise.allSettled(promises);
+    }
+  }
+
+  @WorkflowStep()
+  private async stepFinalizeJob(jobId: string) {
+    return this.kernel
+      .getService(BulkEditService)
+      .finalizeJob(jobId);
+  }
 }
 ```
 
-### 2.2 Дочерний Workflow
+### 4.2 Child workflow: `ProductEditWorkflow({ jobId, productId })`
 
 **Файл:** `services/inventory/src/workflows/ProductEditWorkflow.ts`
 
+В начале:
+
+1. `loadItem(jobId, productId)` → payload операций, `fence_token`, `cancel_requested`
+2. Если `status` уже terminal → вернуть (идемпотентность на уровне БД)
+3. Поставить item `RUNNING`, `started_at`
+
+**Перед каждым step:**
+
+- **Cancel check:** если `cancel_requested` → завершить item `CANCELLED` / `SUPERSEDED` и выйти
+- **Fence check (обязателен):**
+  - Прочитать `inventory_product_bulk_fence` по `(tenant_id, product_id)`
+  - Если `fence_token != item.fence_token` → завершить item `SUPERSEDED` и выйти
+  - Это главный механизм "новые отменяют старые только для пересечений"
+
+После каждого step:
+
+- `applied_ops += 1`, `current_operation = next`
+- При userErrors: сохраняем в `errors` и продолжаем
+
+В конце:
+
+- `SUCCEEDED` если ошибок нет
+- `PARTIAL_FAILED` если ошибки есть и `applied_ops > 0`
+- `FAILED` если ошибки есть и `applied_ops == 0`
+- `finished_at = now()`
+
 ```typescript
-import { Injectable } from "@nestjs/common";
-import {
-  BrokerWorkflows,
-  Workflow,
-  WorkflowStep,
-  InjectBroker,
-  ServiceBroker,
-} from "@shopana/shared-kernel";
-import { Kernel } from "../kernel/Kernel.js";
-
-// Существующие скрипты — без изменений
-import { ProductUpdateScript } from "../scripts/product/ProductUpdateScript.js";
-import { ProductPublishScript } from "../scripts/product/ProductPublishScript.js";
-import { ProductUnpublishScript } from "../scripts/product/ProductUnpublishScript.js";
-import { VariantSetSkuScript } from "../scripts/variant/VariantSetSkuScript.js";
-import { VariantSetPricingScript } from "../scripts/variant/VariantSetPricingScript.js";
-import { VariantSetCostScript } from "../scripts/variant/VariantSetCostScript.js";
-import { VariantSetStockScript } from "../scripts/variant/VariantSetStockScript.js";
-import { VariantSetDimensionsScript } from "../scripts/variant/VariantSetDimensionsScript.js";
-import { VariantSetWeightScript } from "../scripts/variant/VariantSetWeightScript.js";
-
-import type {
-  ProductEditWorkflowParams,
-  ProductEditWorkflowResult,
-  BulkEditError,
-} from "./dto/ProductEditWorkflowDto.js";
-
 @Injectable()
 export class ProductEditWorkflow extends BrokerWorkflows<
-  ProductEditWorkflowParams,
-  ProductEditWorkflowResult
+  { jobId: string; productId: string },
+  void
 > {
   constructor(@InjectBroker("inventory") broker: ServiceBroker) {
     super(broker);
@@ -359,128 +497,208 @@ export class ProductEditWorkflow extends BrokerWorkflows<
   }
 
   @Workflow("productEdit")
-  async run(input: ProductEditWorkflowParams): Promise<ProductEditWorkflowResult> {
+  async run(input: { jobId: string; productId: string }): Promise<void> {
+    const { jobId, productId } = input;
+
+    // 1. Загрузить item из БД
+    const item = await this.stepLoadItem(jobId, productId);
+    if (!item || isTerminalStatus(item.status)) return;
+
+    const payload = item.payload as ProductEditPayload;
     const errors: BulkEditError[] = [];
-    const { productId } = input;
-    let hasApplied = false;
+    let appliedOps = 0;
     let productUpdateFailed = false;
+
+    // 2. Поставить item RUNNING
+    await this.stepUpdateItemStatus(jobId, productId, "RUNNING");
 
     // ─── Операции с продуктом ──────────────────────────
 
-    if (input.productUpdate) {
-      const result = await this.stepProductUpdate(input.productUpdate);
+    if (payload.productUpdate) {
+      if (await this.shouldAbort(jobId, productId, item.fenceToken)) return;
+
+      const result = await this.stepProductUpdate(payload.productUpdate);
       if (result.userErrors.length > 0) {
-        errors.push(...this.tagErrors(result.userErrors, productId, "productUpdate"));
+        errors.push(...tagErrors(result.userErrors, productId, "productUpdate"));
         productUpdateFailed = true;
       } else {
-        hasApplied = true;
+        appliedOps++;
       }
+      await this.stepUpdateProgress(jobId, productId, appliedOps, "productUpdate");
     }
 
-    // Зависимость: publish/unpublish пропускаем если productUpdate упал
-    // (publish может требовать валидный title/translation)
-    if (input.productPublish && !productUpdateFailed) {
+    if (payload.productPublish && !productUpdateFailed) {
+      if (await this.shouldAbort(jobId, productId, item.fenceToken)) return;
+
       const result = await this.stepProductPublish({ id: productId });
       if (result.userErrors.length > 0) {
-        errors.push(...this.tagErrors(result.userErrors, productId, "productPublish"));
+        errors.push(...tagErrors(result.userErrors, productId, "productPublish"));
       } else {
-        hasApplied = true;
+        appliedOps++;
       }
-    } else if (input.productPublish && productUpdateFailed) {
-      errors.push({
-        message: "Skipped: productUpdate failed",
-        code: "SKIPPED_DUE_TO_DEPENDENCY",
-        productId,
-        operation: "productPublish",
-      });
+      await this.stepUpdateProgress(jobId, productId, appliedOps, "productPublish");
     }
 
-    if (input.productUnpublish && !productUpdateFailed) {
+    if (payload.productUnpublish && !productUpdateFailed) {
+      if (await this.shouldAbort(jobId, productId, item.fenceToken)) return;
+
       const result = await this.stepProductUnpublish({ id: productId });
       if (result.userErrors.length > 0) {
-        errors.push(...this.tagErrors(result.userErrors, productId, "productUnpublish"));
+        errors.push(...tagErrors(result.userErrors, productId, "productUnpublish"));
       } else {
-        hasApplied = true;
+        appliedOps++;
       }
-    } else if (input.productUnpublish && productUpdateFailed) {
-      errors.push({
-        message: "Skipped: productUpdate failed",
-        code: "SKIPPED_DUE_TO_DEPENDENCY",
-        productId,
-        operation: "productUnpublish",
-      });
+      await this.stepUpdateProgress(jobId, productId, appliedOps, "productUnpublish");
     }
 
     // ─── Операции с вариантами (независимы, продолжаем после ошибок) ──
 
-    for (const [i, params] of (input.variantSetSku ?? []).entries()) {
+    for (const [i, params] of (payload.variantSetSku ?? []).entries()) {
+      if (await this.shouldAbort(jobId, productId, item.fenceToken)) return;
       const result = await this.stepVariantSetSku(params);
       if (result.userErrors.length > 0) {
-        errors.push(...this.tagErrors(result.userErrors, productId, "variantSetSku", params.variantId, i));
+        errors.push(...tagErrors(result.userErrors, productId, "variantSetSku", params.variantId, i));
       } else {
-        hasApplied = true;
+        appliedOps++;
       }
     }
 
-    for (const [i, params] of (input.variantSetPricing ?? []).entries()) {
+    for (const [i, params] of (payload.variantSetPricing ?? []).entries()) {
+      if (await this.shouldAbort(jobId, productId, item.fenceToken)) return;
       const result = await this.stepVariantSetPricing(params);
       if (result.userErrors.length > 0) {
-        errors.push(...this.tagErrors(result.userErrors, productId, "variantSetPricing", params.variantId, i));
+        errors.push(...tagErrors(result.userErrors, productId, "variantSetPricing", params.variantId, i));
       } else {
-        hasApplied = true;
+        appliedOps++;
       }
     }
 
-    for (const [i, params] of (input.variantSetCost ?? []).entries()) {
+    for (const [i, params] of (payload.variantSetCost ?? []).entries()) {
+      if (await this.shouldAbort(jobId, productId, item.fenceToken)) return;
       const result = await this.stepVariantSetCost(params);
       if (result.userErrors.length > 0) {
-        errors.push(...this.tagErrors(result.userErrors, productId, "variantSetCost", params.variantId, i));
+        errors.push(...tagErrors(result.userErrors, productId, "variantSetCost", params.variantId, i));
       } else {
-        hasApplied = true;
+        appliedOps++;
       }
     }
 
-    for (const [i, params] of (input.variantSetStock ?? []).entries()) {
+    for (const [i, params] of (payload.variantSetStock ?? []).entries()) {
+      if (await this.shouldAbort(jobId, productId, item.fenceToken)) return;
       const result = await this.stepVariantSetStock(params);
       if (result.userErrors.length > 0) {
-        errors.push(...this.tagErrors(result.userErrors, productId, "variantSetStock", params.variantId, i));
+        errors.push(...tagErrors(result.userErrors, productId, "variantSetStock", params.variantId, i));
       } else {
-        hasApplied = true;
+        appliedOps++;
       }
     }
 
-    for (const [i, params] of (input.variantSetDimensions ?? []).entries()) {
+    for (const [i, params] of (payload.variantSetDimensions ?? []).entries()) {
+      if (await this.shouldAbort(jobId, productId, item.fenceToken)) return;
       const result = await this.stepVariantSetDimensions(params);
       if (result.userErrors.length > 0) {
-        errors.push(...this.tagErrors(result.userErrors, productId, "variantSetDimensions", params.variantId, i));
+        errors.push(...tagErrors(result.userErrors, productId, "variantSetDimensions", params.variantId, i));
       } else {
-        hasApplied = true;
+        appliedOps++;
       }
     }
 
-    for (const [i, params] of (input.variantSetWeight ?? []).entries()) {
+    for (const [i, params] of (payload.variantSetWeight ?? []).entries()) {
+      if (await this.shouldAbort(jobId, productId, item.fenceToken)) return;
       const result = await this.stepVariantSetWeight(params);
       if (result.userErrors.length > 0) {
-        errors.push(...this.tagErrors(result.userErrors, productId, "variantSetWeight", params.variantId, i));
+        errors.push(...tagErrors(result.userErrors, productId, "variantSetWeight", params.variantId, i));
       } else {
-        hasApplied = true;
+        appliedOps++;
       }
     }
 
-    // ─── Событие (best-effort): эмитим если хотя бы одна операция применилась ──
-
-    if (hasApplied) {
+    // ─── Событие (best-effort) ──
+    if (appliedOps > 0) {
       await this.stepEmitProductUpdated(productId);
     }
 
-    return {
-      productId,
-      success: errors.length === 0,
-      userErrors: errors,
-    };
+    // ─── Финальный статус item ──
+    const finalStatus = errors.length === 0
+      ? "SUCCEEDED"
+      : appliedOps > 0
+        ? "PARTIAL_FAILED"
+        : "FAILED";
+
+    await this.stepFinalizeItem(jobId, productId, finalStatus, appliedOps, errors);
+  }
+
+  // ─── Fence/Cancel check ──────────────────────────────
+
+  @WorkflowStep()
+  private async shouldAbort(
+    jobId: string,
+    productId: string,
+    expectedFenceToken: string
+  ): Promise<boolean> {
+    const item = await this.kernel
+      .getRepository(BulkEditItemRepository)
+      .findByJobAndProduct(jobId, productId);
+
+    if (item?.cancelRequested) {
+      await this.stepFinalizeItem(jobId, productId, "CANCELLED", 0, []);
+      return true;
+    }
+
+    const fence = await this.kernel
+      .getRepository(BulkFenceRepository)
+      .findByProduct(item!.tenantId, productId);
+
+    if (fence?.fenceToken !== expectedFenceToken) {
+      await this.stepFinalizeItem(jobId, productId, "SUPERSEDED", 0, []);
+      return true;
+    }
+
+    return false;
+  }
+
+  // ─── Progress/Status updates ──────────────────────────
+
+  @WorkflowStep()
+  private async stepUpdateItemStatus(jobId: string, productId: string, status: string) {
+    return this.kernel
+      .getRepository(BulkEditItemRepository)
+      .updateStatus(jobId, productId, status, { startedAt: new Date() });
+  }
+
+  @WorkflowStep()
+  private async stepUpdateProgress(
+    jobId: string,
+    productId: string,
+    appliedOps: number,
+    currentOperation: string
+  ) {
+    return this.kernel
+      .getRepository(BulkEditItemRepository)
+      .updateProgress(jobId, productId, appliedOps, currentOperation);
+  }
+
+  @WorkflowStep()
+  private async stepFinalizeItem(
+    jobId: string,
+    productId: string,
+    status: string,
+    appliedOps: number,
+    errors: BulkEditError[]
+  ) {
+    return this.kernel
+      .getRepository(BulkEditItemRepository)
+      .finalize(jobId, productId, status, appliedOps, errors);
   }
 
   // ─── Workflow Steps: каждый вызывает существующий скрипт ──────
+
+  @WorkflowStep()
+  private stepLoadItem(jobId: string, productId: string) {
+    return this.kernel
+      .getRepository(BulkEditItemRepository)
+      .findByJobAndProduct(jobId, productId);
+  }
 
   @WorkflowStep()
   private stepProductUpdate(params: ProductUpdateParams) {
@@ -539,458 +757,304 @@ export class ProductEditWorkflow extends BrokerWorkflows<
       this.logger.warn({ productId }, "Failed to emit productUpdated event");
     }
   }
-
-  // ─── Утилита: добавляет productId/variantId/operation/field к ошибкам ──
-
-  private tagErrors(
-    errors: UserError[],
-    productId: string,
-    operation: string,
-    variantId?: string,
-    /** индекс в массиве (для variantSet* операций) */
-    arrayIndex?: number,
-  ): BulkEditError[] {
-    return errors.map((e) => ({
-      ...e,
-      productId,
-      variantId,
-      operation,
-      // field в формате ["items", "<idx>", "<operation>", "<arrayIdx>", "<fieldName>"]
-      // — для подсветки ячеек в UI
-      field: e.field
-        ? [operation, ...(arrayIndex != null ? [String(arrayIndex)] : []), ...e.field]
-        : undefined,
-    }));
-  }
 }
 ```
 
 ---
 
-## Фаза 3: Родительский Workflow — `ProductBulkEditWorkflow`
+## 5) Хранение payload операций
 
-Оркестрирует fan-out в дочерние workflow и агрегирует результаты.
+**Вариант A (выбран):** `payload jsonb` в `inventory_bulk_edit_items`.
 
-### 3.1 DTO
-
-**Файл:** `services/inventory/src/workflows/dto/ProductBulkEditWorkflowDto.ts`
+Поле `payload` содержит нормализованные params операций (аналог `ProductEditWorkflowParams` без технических полей):
 
 ```typescript
-import type {
-  ProductEditWorkflowParams,
-  ProductEditWorkflowResult,
-  BulkEditError,
-} from "./ProductEditWorkflowDto.js";
-
-export interface ProductBulkEditWorkflowParams {
-  items: ProductEditWorkflowParams[];
-}
-
-export interface ProductBulkEditWorkflowResult {
-  productIds: string[];         // успешно обновлённые
-  userErrors: BulkEditError[];  // ошибки по всем продуктам
+interface ProductEditPayload {
+  productUpdate?: ProductUpdateParams;
+  productPublish?: boolean;
+  productUnpublish?: boolean;
+  variantSetSku?: VariantSetSkuParams[];
+  variantSetPricing?: VariantSetPricingParams[];
+  variantSetCost?: VariantSetCostParams[];
+  variantSetStock?: VariantSetStockParams[];
+  variantSetDimensions?: VariantSetDimensionsParams[];
+  variantSetWeight?: VariantSetWeightParams[];
 }
 ```
 
-### 3.2 Родительский Workflow
+Child workflow загружает payload из item и исполняет шаги.
 
-**Файл:** `services/inventory/src/workflows/ProductBulkEditWorkflow.ts`
+---
+
+## 6) Cancel операции
+
+### 6.1 Cancel job целиком
+
+`productBulkEditCancel(jobId)`:
+
+1. Обновить job status → `CANCELLED`
+2. Для всех items со статусом `PENDING`: `status = CANCELLED`, `cancel_requested = true`
+3. Для items со статусом `RUNNING`: `cancel_requested = true` (child сам дойдёт и завершится)
+
+### 6.2 Cancel выбранных продуктов
+
+`productBulkEditCancelItems(jobId, productIds)`:
+
+1. Для выбранных items: `cancel_requested = true`
+2. Если item ещё `PENDING` → можно сразу `CANCELLED`
+3. Если `RUNNING` → child проверит `cancel_requested` перед следующим шагом
+
+**Замечание:** fence при cancel **не меняем**. Fence меняется только новым bulk для этого productId.
+
+---
+
+## 7) Сервисный слой
+
+### 7.1 `BulkEditService`
+
+**Файл:** `services/inventory/src/services/BulkEditService.ts`
 
 ```typescript
-import { Injectable } from "@nestjs/common";
-import {
-  BrokerWorkflows,
-  Workflow,
-  WorkflowStep,
-  InjectBroker,
-  ServiceBroker,
-  DBOS,
-} from "@shopana/shared-kernel";
-import type {
-  ProductBulkEditWorkflowParams,
-  ProductBulkEditWorkflowResult,
-} from "./dto/ProductBulkEditWorkflowDto.js";
-import type {
-  ProductEditWorkflowParams,
-  ProductEditWorkflowResult,
-} from "./dto/ProductEditWorkflowDto.js";
-
 @Injectable()
-export class ProductBulkEditWorkflow extends BrokerWorkflows<
-  ProductBulkEditWorkflowParams,
-  ProductBulkEditWorkflowResult
-> {
-  constructor(@InjectBroker("inventory") broker: ServiceBroker) {
-    super(broker);
-  }
+export class BulkEditService {
+  /**
+   * Создаёт job + items + fences + supersede пересечений в 1 транзакции.
+   */
+  @Transactional()
+  async createJobWithFences(params: {
+    tenantId: string;
+    createdBy: string;
+    idempotencyKey: string;
+    contentHash: string;
+    items: ProductBulkEditItemInput[];
+  }): Promise<string> {
+    const jobId = uuid();
 
-  @Workflow("productBulkEdit")
-  async run(input: ProductBulkEditWorkflowParams): Promise<ProductBulkEditWorkflowResult> {
-    const results = await this.fanOut(input.items);
-    return this.aggregate(results);
-  }
+    // 1. INSERT job
+    await this.jobRepo.create({
+      id: jobId,
+      tenantId: params.tenantId,
+      status: "QUEUED",
+      createdBy: params.createdBy,
+      idempotencyKey: params.idempotencyKey,
+      contentHash: params.contentHash,
+      totalProducts: params.items.length,
+    });
 
-  private static readonly CONCURRENCY_LIMIT = 10;
+    // 2. Для каждого item: fence + supersede + insert item
+    for (const [idx, item] of params.items.entries()) {
+      const fenceToken = uuid();
 
-  @WorkflowStep({ timeoutMs: 120_000 }) // 2 мин на весь батч
-  private async fanOut(
-    items: ProductEditWorkflowParams[]
-  ): Promise<ProductEditWorkflowResult[]> {
-    const results: ProductEditWorkflowResult[] = [];
+      // UPSERT fence
+      await this.fenceRepo.upsert({
+        tenantId: params.tenantId,
+        productId: item.productId,
+        fenceToken,
+        jobId,
+      });
 
-    // Запуск пачками по CONCURRENCY_LIMIT, чтобы не убить пул коннектов
-    for (let i = 0; i < items.length; i += ProductBulkEditWorkflow.CONCURRENCY_LIMIT) {
-      const chunk = items.slice(i, i + ProductBulkEditWorkflow.CONCURRENCY_LIMIT);
-
-      const promises = chunk.map((item) =>
-        this.broker.runWorkflow<ProductEditWorkflowResult, ProductEditWorkflowParams>(
-          "inventory.productEdit",
-          item,
-          {
-            source: "workflow",
-            workflowId: DBOS.workflowID,
-            stepId: "productEdit",
-            callId: item.productId,
-          }
-        )
+      // Supersede old active items for this productId
+      await this.itemRepo.supersedeActiveItems(
+        params.tenantId,
+        item.productId
       );
 
-      const settled = await Promise.allSettled(promises);
-
-      for (let j = 0; j < settled.length; j++) {
-        const result = settled[j];
-        if (result.status === "fulfilled") {
-          results.push(result.value);
-        } else {
-          results.push({
-            productId: chunk[j].productId,
-            success: false,
-            userErrors: [{
-              message: result.reason?.message ?? "Unexpected error",
-              code: "WORKFLOW_ERROR",
-              productId: chunk[j].productId,
-              operation: "workflow",
-            }],
-          });
-        }
-      }
+      // INSERT item
+      const { productId, ...operations } = item;
+      await this.itemRepo.create({
+        jobId,
+        tenantId: params.tenantId,
+        productId: item.productId,
+        itemIndex: idx,
+        status: "PENDING",
+        fenceToken,
+        totalOps: countOperations(operations),
+        payload: operations,
+      });
     }
 
-    return results;
+    return jobId;
   }
 
-  @WorkflowStep()
-  private aggregate(
-    results: ProductEditWorkflowResult[]
-  ): ProductBulkEditWorkflowResult {
-    const productIds: string[] = [];
-    const userErrors: ProductBulkEditWorkflowResult["userErrors"] = [];
+  /**
+   * Финализация job: пересчитать counters из items.
+   */
+  async finalizeJob(jobId: string): Promise<void> {
+    const counters = await this.itemRepo.countByStatus(jobId);
 
-    for (const result of results) {
-      if (result.success) {
-        productIds.push(result.productId);
-      }
-      userErrors.push(...result.userErrors);
-    }
-
-    return { productIds, userErrors };
-  }
-}
-```
-
-### 3.3 Resolver (клиентская идемпотентность)
-
-**Файл:** `services/inventory/src/resolvers/admin/MutationResolver.ts`
-
-```typescript
-@ZodResolver(ProductBulkEditInputSchema)
-async productBulkEdit(args: { input: ProductBulkEditInput }) {
-  // Клиент ОБЯЗАН передать X-Idempotency-Key
-  const idempotencyKey = this.$ctx.idempotencyKey;
-  if (!idempotencyKey) {
-    return {
-      products: [],
-      userErrors: [{
-        message: "X-Idempotency-Key header is required for bulk operations",
-        code: "IDEMPOTENCY_KEY_REQUIRED",
-      }],
-    };
-  }
-
-  const result = await this.$ctx.kernel
-    .getServices()
-    .broker.runWorkflow<ProductBulkEditWorkflowResult, ProductBulkEditWorkflowParams>(
-      "inventory.productBulkEdit",
-      { items: args.input.items },
-      {
-        source: "client",
-        clientKey: idempotencyKey,
-        tenantId: this.$ctx.store.id,
-        apiKeyId: this.$ctx.user?.id ?? "system",
-      }
-    );
-
-  return {
-    products: result.productIds.map(
-      (id) => new ProductResolver(id, this.$ctx)
-    ),
-    userErrors: result.userErrors,
-  };
-}
-```
-
-**Идемпотентность**: клиент передаёт `X-Idempotency-Key: "bulk-edit-<uuid>"`. DBOS гарантирует at-most-once: повторный запрос с тем же ключом возвращает кешированный результат. Фронтенд генерирует UUID при открытии Save-диалога.
-
----
-
-## Фаза 4: Интеграция с фронтендом
-
-### 4.1 GraphQL операция
-
-**Файл:** `admin-next/src/domains/inventory/products/modals/bulk-editor-modal/graphql/product-bulk-edit.graphql`
-
-```graphql
-mutation ProductBulkEdit($input: ProductBulkEditInput!) {
-  inventoryMutation {
-    productBulkEdit(input: $input) {
-      products {
-        id
-        title
-      }
-      userErrors {
-        message
-        field
-        code
-        productId
-        variantId
-        operation
-      }
-    }
+    await this.jobRepo.update(jobId, {
+      status: "COMPLETED",
+      finishedAt: new Date(),
+      doneProducts: counters.total,
+      succeededProducts: counters.succeeded,
+      partialFailedProducts: counters.partialFailed,
+      failedProducts: counters.failed,
+      cancelledProducts: counters.cancelled,
+      supersededProducts: counters.superseded,
+    });
   }
 }
 ```
 
-### 4.2 Трансформация правок из стора в input мутации
+### 7.2 Repositories
 
-**Файл:** `admin-next/src/domains/inventory/products/modals/bulk-editor-modal/utils/build-mutation-input.ts`
+**Новые файлы:**
 
-Трансформация Zustand `edits: Record<string, IRowEdits>` в `ProductBulkEditInput`. Каждое изменённое поле маппится в соответствующий существующий input:
-
-```typescript
-export function buildBulkEditInput(
-  rows: IBulkEditorRow[],
-  edits: Record<string, IRowEdits>
-): ProductBulkEditInput {
-  // 1. Группируем отредактированные строки по productId
-  // 2. Для каждого продукта:
-  //    - productTitle/description/excerpt → ProductUpdateInput
-  //    - productStatus → productPublish: true или productUnpublish: true
-  //    - sku → VariantSetSkuInput
-  //    - price/compareAtPrice → VariantSetPricingInput
-  //    - costPrice → VariantSetCostInput
-  //    - onHand/unavailable → VariantSetStockInput
-  //    - weight → VariantSetWeightInput
-  //    - length/width/height → VariantSetDimensionsInput
-}
-```
-
-**Маппинг полей → существующие input типы:**
-
-| Поле на фронтенде | Существующий Input | Поле в input |
-|-------------------|-------------------|--------------|
-| `productTitle` | `ProductUpdateInput` | `title` |
-| `productDescription` | `ProductUpdateInput` | `description` |
-| `productExcerpt` | `ProductUpdateInput` | `excerpt` |
-| `productStatus` = "published" | `productPublish: true` | — |
-| `productStatus` = "draft" | `productUnpublish: true` | — |
-| `sku` | `VariantSetSkuInput` | `sku` |
-| `price`, `compareAtPrice` | `VariantSetPricingInput` | `amountMinor`, `compareAtMinor` |
-| `costPrice` | `VariantSetCostInput` | `unitCostMinor` |
-| `onHand`, `unavailable` | `VariantSetStockInput` | `quantity` |
-| `weight` | `VariantSetWeightInput` | `weight.value` (граммы) |
-| `length`, `width`, `height` | `VariantSetDimensionsInput` | `dimensions.*` (мм) |
-
-### 4.3 Замена заглушки в handleSave
-
-**Файл:** `admin-next/src/domains/inventory/products/modals/bulk-editor-modal/bulk-editor-modal.tsx`
-
-Заменить:
-```typescript
-// Simulate API call
-await new Promise((resolve) => setTimeout(resolve, 1000));
-```
-
-На:
-```typescript
-const idempotencyKey = `bulk-edit-${crypto.randomUUID()}`;
-const input = buildBulkEditInput(rows, edits);
-const result = await executeMutation(
-  ProductBulkEditDocument,
-  { input },
-  { headers: { "X-Idempotency-Key": idempotencyKey } }
-);
-
-if (result.userErrors.length > 0) {
-  // Маппим ошибки на строки по productId/variantId/operation
-  onSaveError();
-  return;
-}
-```
-
-### 4.4 Отображение ошибок
-
-- Парсим `userErrors[].productId` / `variantId` + `operation` для маппинга ошибок на строки грида
-- Показываем inline-индикаторы ошибок на затронутых ячейках
-- Тост с итогом: "3 продукта обновлено, 1 с ошибкой"
+- `services/inventory/src/repositories/BulkEditJobRepository.ts`
+- `services/inventory/src/repositories/BulkEditItemRepository.ts`
+- `services/inventory/src/repositories/BulkFenceRepository.ts`
 
 ---
 
-## Фаза 5: Регистрация и подключение
+## 8) Важные backend-детали
 
-### 5.1 Регистрация Workflow в модуле
-
-**Файл:** `services/inventory/src/workflows/index.ts`
-
-```typescript
-export { ProductEditWorkflow } from "./ProductEditWorkflow.js";
-export { ProductBulkEditWorkflow } from "./ProductBulkEditWorkflow.js";
-```
-
-Добавить оба в providers NestJS модуля для авто-регистрации в DBOS.
-
-### 5.2 Кодогенерация и сборка
-
-1. `shopana codegen --service inventory` — генерация TS типов из новой GraphQL схемы
-2. `shopana codegen` для admin-next — генерация типов мутации
-3. `shopana build --service inventory` — проверка компиляции
-4. `shopana schema build` — пересборка федеративного суперграфа
+1. **Canonicalize input** для contentHash — стабильная сортировка ключей (json-canonicalize или аналог).
+2. **Job status** лучше вычислять из items при финализации, чтобы не ловить рассинхрон.
+3. **Terminal statuses** item: `SUCCEEDED | PARTIAL_FAILED | FAILED | CANCELLED | SUPERSEDED`.
+4. В child workflow обязательно проверять fence **перед каждым script step**, иначе возможны "полушаги" старого job после старта нового.
+5. Concurrency limit = 10. Parent timeout убрать жёсткий 2 мин — пусть зависит от количества items.
 
 ---
 
-## Фаза 6: Тестирование
-
-### 6.1 Тесты дочернего Workflow (ProductEditWorkflow)
-
-- Один продукт: только `productUpdate` → вызван `ProductUpdateScript`
-- Один продукт: SKU + pricing → вызваны `VariantSetSkuScript`, `VariantSetPricingScript`
-- Ошибка в `productUpdate` → ошибка с `operation: "productUpdate"`
-- Ошибка в `productUpdate` + `productPublish: true` → publish пропущен с `SKIPPED_DUE_TO_DEPENDENCY`
-- Ошибка в одном варианте → ошибка с `variantId`, `operation` и `field` path
-- Все операции успешны → `emitProductUpdated` вызван, `success: true`
-- Частичная ошибка (часть операций ок, часть нет) → событие эмитится (`hasApplied`), `success: false`
-- Все операции провалены → событие НЕ эмитится
-
-### 6.2 Тесты родительского Workflow (ProductBulkEditWorkflow)
-
-- 3 продукта, все успешны → 3 productId в результате, 0 ошибок
-- 3 продукта, 1 падает → 2 productId, 1 ошибка (остальные не затронуты)
-- 15 продуктов → запуск пачками по 10 (concurrency limit)
-- Идемпотентность: одинаковый `X-Idempotency-Key` дважды → тот же результат
-- Тот же ключ + другой payload → ошибка `IDEMPOTENCY_KEY_REUSE_WITH_DIFFERENT_INPUT`
-- Без `X-Idempotency-Key` → ошибка `IDEMPOTENCY_KEY_REQUIRED`
-
-### 6.3 Тесты валидации батча
-
-- Дубликат `productId` → `DUPLICATE_PRODUCT_ID`
-- `productPublish: true` + `productUnpublish: true` → `CONFLICTING_PUBLISH_STATE`
-- Пустой item (нет ни одной операции) → `EMPTY_ITEM`
-- 101 item → `BATCH_LIMIT_EXCEEDED`
-- 0 items → ошибка `min(1)`
-
-### 6.4 E2E тесты
-
-**Файл:** `e2e/tests/inventory-api/product-bulk-edit.spec.ts`
-
-- Создать 3 продукта → массовое редактирование → проверить через query
-- Массовое редактирование с невалидным productId → 2 успешно, 1 ошибка
-- Retry с тем же idempotency key → идентичный результат
-- Тот же idempotency key + другой input → ошибка `IDEMPOTENCY_KEY_REUSE_WITH_DIFFERENT_INPUT`
-- Различные комбинации операций (только SKU, только цены, всё вместе)
-- Частичный успех: productUpdate failed + варианты ok → проверить field path в ошибках
-
----
-
-## Диаграмма потока выполнения
+## 9) Диаграмма потока
 
 ```
-Фронтенд: handleSave()
-    │
-    ├─ idempotencyKey = "bulk-edit-<uuid>"
-    ├─ input = buildBulkEditInput(rows, edits)
-    │          ┌─ item[0].productUpdate = ProductUpdateInput
-    │          ├─ item[0].variantSetSku = [VariantSetSkuInput, ...]
-    │          ├─ item[0].variantSetPricing = [VariantSetPricingInput, ...]
-    │          └─ item[1].productPublish = true
+Client: productBulkEditStart(input)  +  X-Idempotency-Key
     │
     ▼
-GraphQL: productBulkEdit(input)  +  X-Idempotency-Key
+Resolver
+    │  1. Валидация + идемпотентность
+    │  2. Транзакция: job + items + fences + supersede
+    │  3. broker.runWorkflow({ jobId })
+    │
+    ▼  возвращает jobId
+    │
+Client: polling productBulkEditJob(jobId) / productBulkEditJobItems(jobId)
     │
     ▼
-MutationResolver
-    │  idempotency: source="client", clientKey="bulk-edit-<uuid>"
-    ▼
-┌── ProductBulkEditWorkflow ────────────────────────────┐
-│                                                        │
-│  fanOut():                                             │
-│    ├─ runWorkflow("productEdit", item[0])              │
-│    └─ runWorkflow("productEdit", item[1])              │
-│         callId = productId (DBOS идемпотентность)      │
-│                                                        │
-│  aggregate(): собрать productIds + userErrors           │
-└────────────────────────────────────────────────────────┘
-         │                    │
-         ▼                    ▼
-┌─ ProductEditWorkflow ──┐  ┌─ ProductEditWorkflow ──┐
-│                        │  │                        │
-│ step: ProductUpdate    │  │ step: ProductPublish   │
-│   → ProductUpdateScript│  │   → ProductPublishScript│
-│                        │  │                        │
-│ step: VariantSetSku[0] │  │ (нет других операций)  │
-│   → VariantSetSkuScript│  │                        │
-│                        │  │ step: emit event       │
-│ step: VariantSetSku[1] │  └────────────────────────┘
-│   → VariantSetSkuScript│
-│                        │
-│ step: SetPricing[0]    │
-│   → SetPricingScript   │
-│                        │
-│ step: emit event       │
-└────────────────────────┘
+┌── ProductBulkEditWorkflow({ jobId }) ─────────────────────┐
+│                                                            │
+│  1. loadItems(jobId) — из БД                              │
+│  2. job.status = RUNNING                                  │
+│  3. fanOut (concurrency=10):                              │
+│     ├─ runWorkflow("productEdit", { jobId, productId_0 }) │
+│     ├─ runWorkflow("productEdit", { jobId, productId_1 }) │
+│     └─ runWorkflow("productEdit", { jobId, productId_2 }) │
+│         callId = productId (DBOS idempotency)             │
+│  4. finalizeJob(jobId) — пересчёт counters                │
+└────────────────────────────────────────────────────────────┘
+         │                    │                   │
+         ▼                    ▼                   ▼
+┌─ ProductEditWorkflow ──┐  ┌─── ... ───┐  ┌─── ... ───┐
+│ { jobId, productId }   │  │            │  │            │
+│                        │  │            │  │            │
+│ 1. loadItem → payload  │  │            │  │            │
+│    + fenceToken        │  │            │  │            │
+│                        │  │            │  │            │
+│ 2. item.status=RUNNING │  │            │  │            │
+│                        │  │            │  │            │
+│ ── before each step: ──│  │            │  │            │
+│ │ cancel_requested?    │  │            │  │            │
+│ │ fence_token match?   │  │            │  │            │
+│ ── if abort → SUPERSED │  │            │  │            │
+│                        │  │            │  │            │
+│ step: ProductUpdate    │  │            │  │            │
+│ step: VariantSetSku[0] │  │            │  │            │
+│ step: SetPricing[0]    │  │            │  │            │
+│ ...                    │  │            │  │            │
+│                        │  │            │  │            │
+│ finalize item:         │  │            │  │            │
+│  SUCCEEDED / PARTIAL / │  │            │  │            │
+│  FAILED / CANCELLED    │  │            │  │            │
+└────────────────────────┘  └────────────┘  └────────────┘
 ```
 
 ---
 
-## Сводка файлов
+## 10) Сводка файлов
 
 | Файл | Действие | Описание |
 |------|----------|----------|
-| `services/inventory/src/api/graphql-admin/schema/bulk.graphql` | CREATE | GraphQL input/payload типы (композиция существующих) |
-| `services/inventory/src/api/graphql-admin/schema/base.graphql` | EDIT | Добавить `productBulkEdit` в InventoryMutation |
-| `services/inventory/src/workflows/dto/ProductEditWorkflowDto.ts` | CREATE | DTO дочернего workflow (композиция существующих params) |
-| `services/inventory/src/workflows/dto/ProductBulkEditWorkflowDto.ts` | CREATE | DTO родительского workflow |
-| `services/inventory/src/workflows/ProductEditWorkflow.ts` | CREATE | Дочерний workflow: шаги = вызовы существующих скриптов |
-| `services/inventory/src/workflows/ProductBulkEditWorkflow.ts` | CREATE | Родительский workflow (fan-out) |
-| `services/inventory/src/workflows/index.ts` | EDIT | Экспорт + регистрация workflow |
-| `services/inventory/src/resolvers/admin/MutationResolver.ts` | EDIT | Добавить resolver с клиентской идемпотентностью |
-| `admin-next/.../bulk-editor-modal/graphql/product-bulk-edit.graphql` | CREATE | GraphQL документ мутации |
-| `admin-next/.../bulk-editor-modal/utils/build-mutation-input.ts` | CREATE | Трансформер правок → существующие input типы |
-| `admin-next/.../bulk-editor-modal/bulk-editor-modal.tsx` | EDIT | Замена заглушки + генерация idempotency key |
+| **Миграции** | | |
+| `services/inventory/drizzle/XXXX_bulk_edit_jobs.sql` | CREATE | Таблица `inventory_bulk_edit_jobs` |
+| `services/inventory/drizzle/XXXX_bulk_edit_items.sql` | CREATE | Таблица `inventory_bulk_edit_items` |
+| `services/inventory/drizzle/XXXX_product_bulk_fence.sql` | CREATE | Таблица `inventory_product_bulk_fence` |
+| **Drizzle Schema** | | |
+| `services/inventory/src/db/schema/bulkEditJobs.ts` | CREATE | Drizzle schema для jobs |
+| `services/inventory/src/db/schema/bulkEditItems.ts` | CREATE | Drizzle schema для items |
+| `services/inventory/src/db/schema/productBulkFence.ts` | CREATE | Drizzle schema для fence |
+| **Repositories** | | |
+| `services/inventory/src/repositories/BulkEditJobRepository.ts` | CREATE | CRUD + findByIdempotencyKey |
+| `services/inventory/src/repositories/BulkEditItemRepository.ts` | CREATE | CRUD + supersedeActiveItems + countByStatus |
+| `services/inventory/src/repositories/BulkFenceRepository.ts` | CREATE | upsert + findByProduct |
+| **Service** | | |
+| `services/inventory/src/services/BulkEditService.ts` | CREATE | createJobWithFences + finalizeJob |
+| **GraphQL Schema** | | |
+| `services/inventory/src/api/graphql-admin/schema/bulk.graphql` | CREATE | Input/payload/job/item типы + enums |
+| `services/inventory/src/api/graphql-admin/schema/base.graphql` | EDIT | Добавить мутации + query в InventoryMutation/InventoryQuery |
+| **Workflows** | | |
+| `services/inventory/src/workflows/ProductBulkEditWorkflow.ts` | CREATE | Parent workflow (fan-out по jobId) |
+| `services/inventory/src/workflows/ProductEditWorkflow.ts` | CREATE | Child workflow (fence/cancel + script steps) |
+| `services/inventory/src/workflows/index.ts` | EDIT | Экспорт + регистрация workflows |
+| **DTOs** | | |
+| `services/inventory/src/workflows/dto/ProductEditWorkflowDto.ts` | CREATE | `{ jobId, productId }` + `ProductEditPayload` + `BulkEditError` |
+| `services/inventory/src/workflows/dto/ProductBulkEditWorkflowDto.ts` | CREATE | `{ jobId }` |
+| **Resolver** | | |
+| `services/inventory/src/resolvers/admin/MutationResolver.ts` | EDIT | productBulkEditStart, productBulkEditCancel, productBulkEditCancelItems |
+| `services/inventory/src/resolvers/admin/QueryResolver.ts` | EDIT | productBulkEditJob, productBulkEditJobItems |
+| **Validation** | | |
+| `services/inventory/src/resolvers/admin/validation/productBulkEditSchema.ts` | CREATE | Zod-валидация батча |
+| **Utils** | | |
+| `services/inventory/src/utils/canonicalize.ts` | CREATE | Стабильная сериализация для contentHash |
+| **E2E Tests** | | |
 | `e2e/tests/inventory-api/product-bulk-edit.spec.ts` | CREATE | E2E тесты |
 
-| `services/inventory/src/resolvers/admin/validation/productBulkEditSchema.ts` | CREATE | Zod-валидация батча (обвязочная) |
-
-**Не нужно создавать:** Никаких новых скриптов, DTO скриптов, Zod-схем для бизнес-логики — всё переиспользуется из существующих мутаций. Единственная новая Zod-схема — обвязочная валидация батча (уникальность productId, лимиты, конфликты).
+**Не нужно создавать:** Никаких новых скриптов, DTO скриптов, Zod-схем для бизнес-логики — всё переиспользуется из существующих мутаций. Единственная новая Zod-схема — обвязочная валидация батча.
 
 ---
 
-## Решения по ранее открытым вопросам
+## 11) Тестирование
 
-1. **Warehouse ID для stock**: `VariantSetStockInput` требует `warehouseId` — это обязательное поле в существующем input. Фронтенд должен передать `warehouseId` в каждом `VariantSetStockInput`. Bulk editor подставляет склад по умолчанию проекта на уровне `buildBulkEditInput()`.
+### 11.1 Unit: BulkEditService
 
-2. **Currency для pricing/cost**: `VariantSetPricingInput` и `VariantSetCostInput` требуют `currency: CurrencyCode!` — аналогично, фронтенд подставляет валюту проекта в `buildBulkEditInput()`. Required-поля остаются required (переиспользование без изменений).
+- `createJobWithFences` — создаёт job + items + fences в 1 транзакции
+- При пересечении productId — supersede старых active items
+- При повторном вызове с тем же idempotencyKey + contentHash → вернуть существующий jobId
+- При повторном вызове с тем же idempotencyKey + другой contentHash → ошибка
 
-3. **Barcode**: Не поддерживается в v1. Нет существующего скрипта/мутации. Если фронтенд попытается отправить — поле просто не будет в input (нет такого поля в `ProductBulkEditItemInput`).
+### 11.2 Unit: ProductEditWorkflow
 
-4. **Параллельность шагов в дочернем workflow**: Шаги последовательны. Не параллелим — профит минимальный, а шаги могут конкурировать за одни строки/инварианты.
+- Один продукт: только `productUpdate` → вызван `ProductUpdateScript`
+- Cancel requested → item завершён как `CANCELLED`
+- Fence mismatch → item завершён как `SUPERSEDED`
+- Fence check перед каждым step (не только в начале)
+- Ошибка в `productUpdate` → publish пропущен
+- Частичная ошибка → `PARTIAL_FAILED`
+- Все успешно → `SUCCEEDED` + emit event
+- Все провалены → `FAILED`, event не эмитится
 
-5. **Лимит**: 100 продуктов за запрос. Достаточно для UI. Concurrency limit = 10 параллельных дочерних workflow. При превышении — ошибка `BATCH_LIMIT_EXCEEDED`.
+### 11.3 Unit: ProductBulkEditWorkflow
+
+- 3 продукта, все успешны → job `COMPLETED`
+- 15 продуктов → concurrency limit = 10
+- finalizeJob корректно пересчитывает counters
+
+### 11.4 Validation
+
+- Дубликат `productId` → `DUPLICATE_PRODUCT_ID`
+- `productPublish + productUnpublish` → `CONFLICTING_PUBLISH_STATE`
+- Пустой item → `EMPTY_ITEM`
+- 101 item → `BATCH_LIMIT_EXCEEDED`
+- Без `X-Idempotency-Key` → `IDEMPOTENCY_KEY_REQUIRED`
+
+### 11.5 E2E
+
+**Файл:** `e2e/tests/inventory-api/product-bulk-edit.spec.ts`
+
+- Start job → poll до COMPLETED → проверить products через query
+- Start с невалидным productId → проверить items с FAILED
+- Retry с тем же idempotency key → тот же jobId
+- Тот же idempotency key + другой input → ошибка
+- Cancel job → проверить items CANCELLED
+- Два job на пересекающиеся productIds → старые items SUPERSEDED
+- Fence check: запустить job, затем другой job на тот же product → первый item SUPERSEDED
