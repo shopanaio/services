@@ -1,0 +1,18 @@
+mutation ProductBulkUpdate($input: ProductBulkUpdateInput!) {
+  inventoryMutation {
+    productBulkUpdate(input: $input) {
+      job {
+        id
+        status
+        progress {
+          total
+          pending
+        }
+      }
+      userErrors {
+        message
+        code
+      }
+    }
+  }
+}

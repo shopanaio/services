@@ -1,0 +1,14 @@
+mutation ProductBulkUpdateCancelItems($jobId: ID!, $productIds: [ID!]!) {
+  inventoryMutation {
+    productBulkUpdateCancelItems(jobId: $jobId, productIds: $productIds) {
+      job {
+        id
+        status
+      }
+      userErrors {
+        message
+        code
+      }
+    }
+  }
+}
