@@ -12,6 +12,9 @@ import { WarehouseRepository } from "./warehouse/WarehouseRepository.js";
 import { TranslationRepository } from "./translation/TranslationRepository.js";
 import { MediaRepository } from "./media/MediaRepository.js";
 import { InventoryWidgetRepository } from "./inventory-widget/InventoryWidgetRepository.js";
+import { BulkEditJobRepository } from "./BulkEditJobRepository.js";
+import { BulkEditItemRepository } from "./BulkEditItemRepository.js";
+import { BulkFenceRepository } from "./BulkFenceRepository.js";
 
 export interface RepositoryConfig {
   db: Database;
@@ -33,6 +36,9 @@ export class Repository {
   public readonly translation: TranslationRepository;
   public readonly media: MediaRepository;
   public readonly inventoryWidget: InventoryWidgetRepository;
+  public readonly bulkEditJob: BulkEditJobRepository;
+  public readonly bulkEditItem: BulkEditItemRepository;
+  public readonly bulkFence: BulkFenceRepository;
   public readonly txManager: TransactionManager<Database>;
 
   private constructor(
@@ -48,6 +54,9 @@ export class Repository {
     translation: TranslationRepository,
     media: MediaRepository,
     inventoryWidget: InventoryWidgetRepository,
+    bulkEditJob: BulkEditJobRepository,
+    bulkEditItem: BulkEditItemRepository,
+    bulkFence: BulkFenceRepository,
     txManager: TransactionManager<Database>
   ) {
     this.product = product;
@@ -62,6 +71,9 @@ export class Repository {
     this.translation = translation;
     this.media = media;
     this.inventoryWidget = inventoryWidget;
+    this.bulkEditJob = bulkEditJob;
+    this.bulkEditItem = bulkEditItem;
+    this.bulkFence = bulkFence;
     this.txManager = txManager;
   }
 
@@ -87,6 +99,9 @@ export class Repository {
     const translation = new TranslationRepository(db, txManager);
     const media = new MediaRepository(db, txManager);
     const inventoryWidget = new InventoryWidgetRepository(db, txManager);
+    const bulkEditJob = new BulkEditJobRepository(db, txManager);
+    const bulkEditItem = new BulkEditItemRepository(db, txManager);
+    const bulkFence = new BulkFenceRepository(db, txManager);
 
     return new Repository(
       product,
@@ -101,6 +116,9 @@ export class Repository {
       translation,
       media,
       inventoryWidget,
+      bulkEditJob,
+      bulkEditItem,
+      bulkFence,
       txManager
     );
   }

@@ -10,6 +10,7 @@ import { WarehouseResolver } from "./WarehouseResolver.js";
 import { OptionResolver } from "./OptionResolver.js";
 import { FeatureResolver } from "./FeatureResolver.js";
 import { StockResolver } from "./StockResolver.js";
+import { ProductBulkUpdateJobResolver } from "./ProductBulkUpdateJobResolver.js";
 import {
   ProductUpdateScript,
   ProductDeleteScript,
@@ -44,6 +45,7 @@ import {
   FeatureDeleteScript,
   FeaturesSyncScript,
 } from "../../scripts/feature/index.js";
+import type { FlatOperation } from "../../workflows/dto/BulkEditWorkflowDto.js";
 import type {
   ProductCreateInput,
   ProductUpdateInput,
@@ -96,6 +98,23 @@ import {
   ProductFeatureDeleteInputSchema,
   ProductFeaturesSyncInputSchema,
 } from "./generated/schemas.js";
+import { ProductBulkUpdateInputSchema } from "./validation/productBulkEditSchema.js";
+
+type ProductStatusUpdateInput = {
+  productId: string;
+  action: "PUBLISH" | "UNPUBLISH";
+};
+
+type ProductBulkUpdateInput = {
+  productUpdate?: ProductUpdateInput[];
+  productStatusUpdate?: ProductStatusUpdateInput[];
+  variantSetSku?: VariantSetSkuInput[];
+  variantSetPricing?: VariantSetPricingInput[];
+  variantSetCost?: VariantSetCostInput[];
+  variantSetStock?: VariantSetStockInput[];
+  variantSetDimensions?: VariantSetDimensionsInput[];
+  variantSetWeight?: VariantSetWeightInput[];
+};
 
 /**
  * Root Mutation resolver.
@@ -775,4 +794,117 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
       userErrors: result.userErrors,
     };
   }
+
+  // ---- Bulk Update Mutations ----
+
+  @ZodResolver(ProductBulkUpdateInputSchema())
+  async productBulkUpdate(args: { input: ProductBulkUpdateInput }) {
+    const { input } = args;
+
+    const variantIds = collectVariantIds(input);
+    const variants = await this.$ctx.kernel.repository.variant.getByIds(
+      variantIds
+    );
+    const variantToProduct = new Map(variants.map((v) => [v.id, v.productId]));
+
+    const operations = flattenBulkInput(input, variantToProduct);
+
+    const idempotencyKey = this.$ctx.requestId;
+
+    const result = (await this.$ctx.kernel
+      .getServices()
+      .broker.runWorkflow(
+        "inventory.productBulkEdit",
+        { operations },
+        {
+          source: "workflow",
+          workflowId: `productBulkEdit:${idempotencyKey}`,
+          stepId: "start",
+        }
+      )) as { jobId: string };
+
+    return {
+      job: result.jobId
+        ? new ProductBulkUpdateJobResolver(result.jobId, this.$ctx)
+        : null,
+      userErrors: [],
+    };
+  }
+
+}
+
+// ─── Helpers ──────────────────────────────────────────────────
+
+const OP_INDEX: Record<string, number> = {
+  productUpdate: 0,
+  productStatusUpdate: 1,
+  variantSetSku: 2,
+  variantSetPricing: 3,
+  variantSetCost: 4,
+  variantSetStock: 5,
+  variantSetDimensions: 6,
+  variantSetWeight: 7,
+};
+
+function collectVariantIds(input: ProductBulkUpdateInput): string[] {
+  const ids: string[] = [];
+  for (const v of input.variantSetSku ?? []) ids.push(v.variantId);
+  for (const v of input.variantSetPricing ?? []) ids.push(v.variantId);
+  for (const v of input.variantSetCost ?? []) ids.push(v.variantId);
+  for (const v of input.variantSetStock ?? []) ids.push(v.variantId);
+  for (const v of input.variantSetDimensions ?? []) ids.push(v.variantId);
+  for (const v of input.variantSetWeight ?? []) ids.push(v.variantId);
+  return [...new Set(ids)];
+}
+
+function flattenBulkInput(
+  input: ProductBulkUpdateInput,
+  variantToProduct: Map<string, string>
+): FlatOperation[] {
+  const ops: FlatOperation[] = [];
+
+  for (const pu of input.productUpdate ?? []) {
+    ops.push({
+      productId: pu.id,
+      variantId: null,
+      opType: "productUpdate",
+      opIndex: OP_INDEX.productUpdate,
+      params: pu,
+    });
+  }
+
+  for (const ps of input.productStatusUpdate ?? []) {
+    ops.push({
+      productId: ps.productId,
+      variantId: null,
+      opType: "productStatusUpdate",
+      opIndex: OP_INDEX.productStatusUpdate,
+      params: { productId: ps.productId, action: ps.action },
+    });
+  }
+
+  const variantArrays = [
+    { key: "variantSetSku", items: input.variantSetSku },
+    { key: "variantSetPricing", items: input.variantSetPricing },
+    { key: "variantSetCost", items: input.variantSetCost },
+    { key: "variantSetStock", items: input.variantSetStock },
+    { key: "variantSetDimensions", items: input.variantSetDimensions },
+    { key: "variantSetWeight", items: input.variantSetWeight },
+  ];
+
+  for (const { key, items } of variantArrays) {
+    for (const vi of items ?? []) {
+      const productId = variantToProduct.get(vi.variantId);
+      if (!productId) continue;
+      ops.push({
+        productId,
+        variantId: vi.variantId,
+        opType: key,
+        opIndex: OP_INDEX[key],
+        params: vi,
+      });
+    }
+  }
+
+  return ops;
 }

@@ -1,0 +1,248 @@
+# ════════════════════════════════════════════════════════════
+#  Enums
+# ════════════════════════════════════════════════════════════
+
+enum BulkUpdateJobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  CANCELLED
+}
+
+enum BulkUpdateItemStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+  SUPERSEDED
+}
+
+enum BulkUpdateOpType {
+  PRODUCT_UPDATE
+  PRODUCT_STATUS_UPDATE
+  VARIANT_SET_SKU
+  VARIANT_SET_PRICING
+  VARIANT_SET_COST
+  VARIANT_SET_STOCK
+  VARIANT_SET_DIMENSIONS
+  VARIANT_SET_WEIGHT
+}
+
+enum ProductStatusAction {
+  PUBLISH
+  UNPUBLISH
+}
+
+enum BulkUpdateCancelReason {
+  USER
+  SUPERSEDED
+  SYSTEM
+}
+
+# ════════════════════════════════════════════════════════════
+#  Input Types
+# ════════════════════════════════════════════════════════════
+
+"""
+Bulk update input. Max 500 operations total.
+Each array = one operation type. No grouping by product needed.
+"""
+input ProductBulkUpdateInput {
+  """Update product fields. Reuses ProductUpdateInput (id = productId)."""
+  productUpdate: [ProductUpdateInput!]
+
+  """Change product publish status."""
+  productStatusUpdate: [ProductStatusUpdateInput!]
+
+  """Set variant SKU. Reuses VariantSetSkuInput."""
+  variantSetSku: [VariantSetSkuInput!]
+
+  """Set variant pricing. Reuses VariantSetPricingInput."""
+  variantSetPricing: [VariantSetPricingInput!]
+
+  """Set variant cost. Reuses VariantSetCostInput."""
+  variantSetCost: [VariantSetCostInput!]
+
+  """Set variant stock. Reuses VariantSetStockInput."""
+  variantSetStock: [VariantSetStockInput!]
+
+  """Set variant dimensions. Reuses VariantSetDimensionsInput."""
+  variantSetDimensions: [VariantSetDimensionsInput!]
+
+  """Set variant weight. Reuses VariantSetWeightInput."""
+  variantSetWeight: [VariantSetWeightInput!]
+}
+
+"""
+Product status change (publish/unpublish).
+Only new input type for bulk (2 fields).
+"""
+input ProductStatusUpdateInput {
+  """Product ID."""
+  productId: ID!
+
+  """Action: PUBLISH or UNPUBLISH."""
+  action: ProductStatusAction!
+}
+
+# ════════════════════════════════════════════════════════════
+#  Payload Types
+# ════════════════════════════════════════════════════════════
+
+"""
+Result of bulk update start/cancel.
+"""
+type ProductBulkUpdatePayload {
+  """Created or updated job (null on validation error)."""
+  job: ProductBulkUpdateJob
+
+  """Validation/execution errors."""
+  userErrors: [BulkUpdateUserError!]!
+}
+
+# ════════════════════════════════════════════════════════════
+#  Job & Progress Types
+# ════════════════════════════════════════════════════════════
+
+"""
+Bulk update job with progress.
+"""
+type ProductBulkUpdateJob {
+  """Job ID."""
+  id: ID!
+
+  """Current status."""
+  status: BulkUpdateJobStatus!
+
+  """When created."""
+  createdAt: DateTime!
+
+  """When started running."""
+  startedAt: DateTime
+
+  """When finished."""
+  finishedAt: DateTime
+
+  """Total products in batch."""
+  totalProducts: Int!
+
+  """Progress computed from items."""
+  progress: BulkUpdateJobProgress!
+
+  """Items with pagination and filtering."""
+  items(
+    first: Int
+    after: String
+    statusFilter: [BulkUpdateItemStatus!]
+  ): BulkUpdateItemConnection!
+}
+
+"""
+Job progress. All counters computed from items.
+"""
+type BulkUpdateJobProgress {
+  """Total operations."""
+  total: Int!
+
+  """Done (succeeded + failed + cancelled + superseded)."""
+  done: Int!
+
+  """Successfully applied."""
+  succeeded: Int!
+
+  """Failed."""
+  failed: Int!
+
+  """Cancelled."""
+  cancelled: Int!
+
+  """Superseded by another job."""
+  superseded: Int!
+
+  """Currently running."""
+  running: Int!
+
+  """Pending execution."""
+  pending: Int!
+}
+
+# ════════════════════════════════════════════════════════════
+#  Item Types
+# ════════════════════════════════════════════════════════════
+
+"""
+Single operation in bulk update job.
+"""
+type BulkUpdateItem {
+  """Item ID."""
+  id: ID!
+
+  """Product ID."""
+  productId: ID!
+
+  """Variant ID (null for product-level operations)."""
+  variantId: ID
+
+  """Operation type."""
+  opType: BulkUpdateOpType!
+
+  """Order within product."""
+  opIndex: Int!
+
+  """Current status."""
+  status: BulkUpdateItemStatus!
+
+  """When started."""
+  startedAt: DateTime
+
+  """When finished."""
+  finishedAt: DateTime
+
+  """Execution errors."""
+  errors: [BulkUpdateUserError!]!
+
+  """Cancel reason (only for CANCELLED/SUPERSEDED)."""
+  cancelReason: BulkUpdateCancelReason
+
+  """Job that superseded this item."""
+  supersededByJobId: ID
+}
+
+type BulkUpdateItemConnection {
+  edges: [BulkUpdateItemEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type BulkUpdateItemEdge {
+  cursor: String!
+  node: BulkUpdateItem!
+}
+
+# ════════════════════════════════════════════════════════════
+#  Error Type
+# ════════════════════════════════════════════════════════════
+
+"""
+Bulk update error with operation context.
+"""
+type BulkUpdateUserError implements UserError {
+  """Error message."""
+  message: String!
+
+  """Input field path."""
+  field: [String!]
+
+  """Error code."""
+  code: String
+
+  """Product ID."""
+  productId: ID
+
+  """Variant ID."""
+  variantId: ID
+
+  """Operation that failed."""
+  operation: String
+}

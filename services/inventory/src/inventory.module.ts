@@ -8,6 +8,7 @@ import {
   EntityDeletedNotifySaga,
   ProductCreateSaga,
 } from './sagas/index.js';
+import { workflows } from './workflows/index.js';
 
 @Module({
   imports: [BrokerModule.forFeature({ serviceName: 'inventory' })],
@@ -18,6 +19,7 @@ import {
     BackRefNotifySaga,
     EntityDeletedNotifySaga,
     ProductCreateSaga,
+    ...workflows,
   ],
 })
 export class InventoryModule {}

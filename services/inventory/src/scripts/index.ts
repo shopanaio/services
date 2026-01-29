@@ -18,3 +18,6 @@ export * from './warehouse/index.js';
 
 // Media scripts
 export * from './media/index.js';
+
+// Bulk edit scripts
+export * from './bulk-edit/index.js';

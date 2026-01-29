@@ -13,6 +13,8 @@ export { WarehouseResolver } from "./WarehouseResolver.js";
 export { OptionResolver } from "./OptionResolver.js";
 export { FeatureResolver } from "./FeatureResolver.js";
 export { StockResolver } from "./StockResolver.js";
+export { BulkUpdateItemResolver } from "./BulkUpdateItemResolver.js";
+export { ProductBulkUpdateJobResolver } from "./ProductBulkUpdateJobResolver.js";
 export { OptionValueResolver } from "./OptionValueResolver.js";
 export { FeatureValueResolver } from "./FeatureValueResolver.js";
 export { VariantPriceResolver } from "./VariantPriceResolver.js";

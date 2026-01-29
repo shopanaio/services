@@ -67,6 +67,11 @@ type InventoryQuery {
     before: String
   ): VariantConnection!
 
+  """
+  Get bulk update job by ID.
+  """
+  productBulkUpdateJob(jobId: ID!): ProductBulkUpdateJob
+
 
   """
   Get a warehouse by ID
@@ -157,4 +162,12 @@ type InventoryMutation {
 
   # Media mutations
   variantSetMedia(input: VariantSetMediaInput!): VariantSetMediaPayload!
+
+  # Bulk update mutations
+  """
+  Start async bulk update.
+  Requires X-Idempotency-Key header.
+  """
+  productBulkUpdate(input: ProductBulkUpdateInput!): ProductBulkUpdatePayload!
+
 }

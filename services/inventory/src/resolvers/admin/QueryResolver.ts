@@ -12,6 +12,7 @@ import {
 } from "./WarehouseConnectionResolver.js";
 import { VariantResolver } from "./VariantResolver.js";
 import { WidgetQueryResolver } from "./InventoryWidgetResolver.js";
+import { ProductBulkUpdateJobResolver } from "./ProductBulkUpdateJobResolver.js";
 import type { VariantRelayInput } from "../../repositories/variant/VariantRepository.js";
 
 /**
@@ -137,6 +138,17 @@ export class InventoryQueryResolver extends InventoryType<Record<string, never>>
    */
   warehouses(args: WarehouseConnectionResolverInput) {
     return new WarehouseConnectionResolver(args, this.$ctx);
+  }
+
+  /**
+   * Get a bulk update job by ID.
+   */
+  async productBulkUpdateJob(args: { jobId: string }) {
+    const job = await this.$ctx.kernel.repository.bulkEditJob.findById(
+      args.jobId
+    );
+    if (!job) return null;
+    return new ProductBulkUpdateJobResolver(job.id, this.$ctx);
   }
 
 }
