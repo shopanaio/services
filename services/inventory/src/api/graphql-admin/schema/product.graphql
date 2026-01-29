@@ -249,37 +249,22 @@ type ProductDeletePayload {
 }
 
 """
-Input for publishing a product.
+Input for setting product status (publish or unpublish).
+Reused in bulk operations.
 """
-input ProductPublishInput {
-  """The ID of the product to publish."""
-  id: ID!
+input ProductSetStatusInput {
+  """Product ID."""
+  productId: ID!
+
+  """Action: PUBLISH or UNPUBLISH."""
+  action: ProductStatusAction!
 }
 
 """
-Payload for product publish.
+Payload for product set status.
 """
-type ProductPublishPayload {
-  """The published product."""
-  product: Product
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-"""
-Input for unpublishing a product.
-"""
-input ProductUnpublishInput {
-  """The ID of the product to unpublish."""
-  id: ID!
-}
-
-"""
-Payload for product unpublish.
-"""
-type ProductUnpublishPayload {
-  """The unpublished product."""
+type ProductSetStatusPayload {
+  """The updated product."""
   product: Product
 
   """List of errors that occurred during the mutation."""

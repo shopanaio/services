@@ -28,14 +28,9 @@ export type {
   ProductDeleteResult,
 } from "./ProductDeleteDto.js";
 
-// Product Publish DTOs
+// Product Set Status DTOs
 export type {
-  ProductPublishParams,
-  ProductPublishResult,
-} from "./ProductPublishDto.js";
-
-// Product Unpublish DTOs
-export type {
-  ProductUnpublishParams,
-  ProductUnpublishResult,
-} from "./ProductUnpublishDto.js";
+  ProductStatusAction,
+  ProductSetStatusParams,
+  ProductSetStatusResult,
+} from "./ProductSetStatusDto.js";

@@ -5,5 +5,4 @@ export * from "./dto/index.js";
 export { ProductCreateScript } from "./ProductCreateScript.js";
 export { ProductUpdateScript } from "./ProductUpdateScript.js";
 export { ProductDeleteScript } from "./ProductDeleteScript.js";
-export { ProductPublishScript } from "./ProductPublishScript.js";
-export { ProductUnpublishScript } from "./ProductUnpublishScript.js";
+export { ProductSetStatusScript } from "./ProductSetStatusScript.js";

@@ -35,6 +35,117 @@ export type BooleanFilter = {
   _neq?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
+export enum BulkUpdateCancelReason {
+  Superseded = 'SUPERSEDED',
+  System = 'SYSTEM',
+  User = 'USER'
+}
+
+/** Single operation in bulk update job. */
+export type BulkUpdateItem = {
+  __typename?: 'BulkUpdateItem';
+  /** Cancel reason (only for CANCELLED/SUPERSEDED). */
+  cancelReason: Maybe<BulkUpdateCancelReason>;
+  /** Execution errors. */
+  errors: Array<BulkUpdateUserError>;
+  /** When finished. */
+  finishedAt: Maybe<Scalars['DateTime']['output']>;
+  /** Item ID. */
+  id: Scalars['ID']['output'];
+  /** Order within product. */
+  opIndex: Scalars['Int']['output'];
+  /** Operation type. */
+  opType: BulkUpdateOpType;
+  /** Product ID. */
+  productId: Scalars['ID']['output'];
+  /** When started. */
+  startedAt: Maybe<Scalars['DateTime']['output']>;
+  /** Current status. */
+  status: BulkUpdateItemStatus;
+  /** Job that superseded this item. */
+  supersededByJobId: Maybe<Scalars['ID']['output']>;
+  /** Variant ID (null for product-level operations). */
+  variantId: Maybe<Scalars['ID']['output']>;
+};
+
+export type BulkUpdateItemConnection = {
+  __typename?: 'BulkUpdateItemConnection';
+  edges: Array<BulkUpdateItemEdge>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type BulkUpdateItemEdge = {
+  __typename?: 'BulkUpdateItemEdge';
+  cursor: Scalars['String']['output'];
+  node: BulkUpdateItem;
+};
+
+export enum BulkUpdateItemStatus {
+  Cancelled = 'CANCELLED',
+  Failed = 'FAILED',
+  Pending = 'PENDING',
+  Running = 'RUNNING',
+  Succeeded = 'SUCCEEDED',
+  Superseded = 'SUPERSEDED'
+}
+
+/** Job progress. All counters computed from items. */
+export type BulkUpdateJobProgress = {
+  __typename?: 'BulkUpdateJobProgress';
+  /** Cancelled. */
+  cancelled: Scalars['Int']['output'];
+  /** Done (succeeded + failed + cancelled + superseded). */
+  done: Scalars['Int']['output'];
+  /** Failed. */
+  failed: Scalars['Int']['output'];
+  /** Pending execution. */
+  pending: Scalars['Int']['output'];
+  /** Currently running. */
+  running: Scalars['Int']['output'];
+  /** Successfully applied. */
+  succeeded: Scalars['Int']['output'];
+  /** Superseded by another job. */
+  superseded: Scalars['Int']['output'];
+  /** Total operations. */
+  total: Scalars['Int']['output'];
+};
+
+export enum BulkUpdateJobStatus {
+  Cancelled = 'CANCELLED',
+  Completed = 'COMPLETED',
+  Queued = 'QUEUED',
+  Running = 'RUNNING'
+}
+
+export enum BulkUpdateOpType {
+  ProductSetStatus = 'PRODUCT_SET_STATUS',
+  ProductUpdate = 'PRODUCT_UPDATE',
+  VariantSetCost = 'VARIANT_SET_COST',
+  VariantSetDimensions = 'VARIANT_SET_DIMENSIONS',
+  VariantSetPricing = 'VARIANT_SET_PRICING',
+  VariantSetSku = 'VARIANT_SET_SKU',
+  VariantSetStock = 'VARIANT_SET_STOCK',
+  VariantSetWeight = 'VARIANT_SET_WEIGHT'
+}
+
+/** Bulk update error with operation context. */
+export type BulkUpdateUserError = UserError & {
+  __typename?: 'BulkUpdateUserError';
+  /** Error code. */
+  code: Maybe<Scalars['String']['output']>;
+  /** Input field path. */
+  field: Maybe<Array<Scalars['String']['output']>>;
+  /** Error message. */
+  message: Scalars['String']['output'];
+  /** Operation that failed. */
+  operation: Maybe<Scalars['String']['output']>;
+  /** Product ID. */
+  productId: Maybe<Scalars['ID']['output']>;
+  /** Variant ID. */
+  variantId: Maybe<Scalars['ID']['output']>;
+};
+
 /** Currency codes according to ISO 4217 */
 export enum CurrencyCode {
   /** UAE Dirham (United Arab Emirates) - 2 decimals */
@@ -527,6 +638,11 @@ export type InventoryBackorder = {
 
 export type InventoryMutation = {
   __typename?: 'InventoryMutation';
+  /**
+   * Start async bulk update.
+   * Requires X-Idempotency-Key header.
+   */
+  productBulkUpdate: ProductBulkUpdatePayload;
   productCreate: ProductCreatePayload;
   productDelete: ProductDeletePayload;
   productFeatureCreate: ProductFeatureCreatePayload;
@@ -536,8 +652,7 @@ export type InventoryMutation = {
   productOptionCreate: ProductOptionCreatePayload;
   productOptionDelete: ProductOptionDeletePayload;
   productOptionUpdate: ProductOptionUpdatePayload;
-  productPublish: ProductPublishPayload;
-  productUnpublish: ProductUnpublishPayload;
+  productSetStatus: ProductSetStatusPayload;
   productUpdate: ProductUpdatePayload;
   variantCreate: VariantCreatePayload;
   variantDelete: VariantDeletePayload;
@@ -551,6 +666,11 @@ export type InventoryMutation = {
   warehouseCreate: WarehouseCreatePayload;
   warehouseDelete: WarehouseDeletePayload;
   warehouseUpdate: WarehouseUpdatePayload;
+};
+
+
+export type InventoryMutationProductBulkUpdateArgs = {
+  input: ProductBulkUpdateInput;
 };
 
 
@@ -599,13 +719,8 @@ export type InventoryMutationProductOptionUpdateArgs = {
 };
 
 
-export type InventoryMutationProductPublishArgs = {
-  input: ProductPublishInput;
-};
-
-
-export type InventoryMutationProductUnpublishArgs = {
-  input: ProductUnpublishInput;
+export type InventoryMutationProductSetStatusArgs = {
+  input: ProductSetStatusInput;
 };
 
 
@@ -689,6 +804,8 @@ export type InventoryQuery = {
   nodes: Array<Maybe<Node>>;
   /** Get a product by ID */
   product: Maybe<Product>;
+  /** Get bulk update job by ID. */
+  productBulkUpdateJob: Maybe<ProductBulkUpdateJob>;
   /** Get products with Relay-style pagination */
   products: ProductConnection;
   /** Get a variant by ID */
@@ -714,6 +831,11 @@ export type InventoryQueryNodesArgs = {
 
 export type InventoryQueryProductArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+export type InventoryQueryProductBulkUpdateJobArgs = {
+  jobId: Scalars['ID']['input'];
 };
 
 
@@ -1138,6 +1260,67 @@ export type ProductVariantsArgs = {
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+/**
+ * Bulk update input. Max 500 operations total.
+ * Each array = one operation type. No grouping by product needed.
+ */
+export type ProductBulkUpdateInput = {
+  /** Change product publish status. Reuses ProductSetStatusInput. */
+  productSetStatus?: InputMaybe<Array<ProductSetStatusInput>>;
+  /** Update product fields. Reuses ProductUpdateInput (id = productId). */
+  productUpdate?: InputMaybe<Array<ProductUpdateInput>>;
+  /** Set variant cost. Reuses VariantSetCostInput. */
+  variantSetCost?: InputMaybe<Array<VariantSetCostInput>>;
+  /** Set variant dimensions. Reuses VariantSetDimensionsInput. */
+  variantSetDimensions?: InputMaybe<Array<VariantSetDimensionsInput>>;
+  /** Set variant pricing. Reuses VariantSetPricingInput. */
+  variantSetPricing?: InputMaybe<Array<VariantSetPricingInput>>;
+  /** Set variant SKU. Reuses VariantSetSkuInput. */
+  variantSetSku?: InputMaybe<Array<VariantSetSkuInput>>;
+  /** Set variant stock. Reuses VariantSetStockInput. */
+  variantSetStock?: InputMaybe<Array<VariantSetStockInput>>;
+  /** Set variant weight. Reuses VariantSetWeightInput. */
+  variantSetWeight?: InputMaybe<Array<VariantSetWeightInput>>;
+};
+
+/** Bulk update job with progress. */
+export type ProductBulkUpdateJob = {
+  __typename?: 'ProductBulkUpdateJob';
+  /** When created. */
+  createdAt: Scalars['DateTime']['output'];
+  /** When finished. */
+  finishedAt: Maybe<Scalars['DateTime']['output']>;
+  /** Job ID. */
+  id: Scalars['ID']['output'];
+  /** Items with pagination and filtering. */
+  items: BulkUpdateItemConnection;
+  /** Progress computed from items. */
+  progress: BulkUpdateJobProgress;
+  /** When started running. */
+  startedAt: Maybe<Scalars['DateTime']['output']>;
+  /** Current status. */
+  status: BulkUpdateJobStatus;
+  /** Total products in batch. */
+  totalProducts: Scalars['Int']['output'];
+};
+
+
+/** Bulk update job with progress. */
+export type ProductBulkUpdateJobItemsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  statusFilter?: InputMaybe<Array<BulkUpdateItemStatus>>;
+};
+
+/** Result of bulk update start/cancel. */
+export type ProductBulkUpdatePayload = {
+  __typename?: 'ProductBulkUpdatePayload';
+  /** Created or updated job (null on validation error). */
+  job: Maybe<ProductBulkUpdateJob>;
+  /** Validation/execution errors. */
+  userErrors: Array<BulkUpdateUserError>;
 };
 
 /** A connection to a list of Product items. */
@@ -1569,21 +1752,6 @@ export type ProductOptionValuesInput = {
   update?: InputMaybe<Array<ProductOptionValueUpdateInput>>;
 };
 
-/** Input for publishing a product. */
-export type ProductPublishInput = {
-  /** The ID of the product to publish. */
-  id: Scalars['ID']['input'];
-};
-
-/** Payload for product publish. */
-export type ProductPublishPayload = {
-  __typename?: 'ProductPublishPayload';
-  /** The published product. */
-  product: Maybe<Product>;
-  /** List of errors that occurred during the mutation. */
-  userErrors: Array<GenericUserError>;
-};
-
 /** SEO and Open Graph metadata for a product. */
 export type ProductSeo = {
   __typename?: 'ProductSeo';
@@ -1613,20 +1781,30 @@ export type ProductSeoInput = {
   seoTitle?: InputMaybe<Scalars['String']['input']>;
 };
 
-/** Input for unpublishing a product. */
-export type ProductUnpublishInput = {
-  /** The ID of the product to unpublish. */
-  id: Scalars['ID']['input'];
+/**
+ * Input for setting product status (publish or unpublish).
+ * Reused in bulk operations.
+ */
+export type ProductSetStatusInput = {
+  /** Action: PUBLISH or UNPUBLISH. */
+  action: ProductStatusAction;
+  /** Product ID. */
+  productId: Scalars['ID']['input'];
 };
 
-/** Payload for product unpublish. */
-export type ProductUnpublishPayload = {
-  __typename?: 'ProductUnpublishPayload';
-  /** The unpublished product. */
+/** Payload for product set status. */
+export type ProductSetStatusPayload = {
+  __typename?: 'ProductSetStatusPayload';
+  /** The updated product. */
   product: Maybe<Product>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
 };
+
+export enum ProductStatusAction {
+  Publish = 'PUBLISH',
+  Unpublish = 'UNPUBLISH'
+}
 
 /** Input for updating a product. */
 export type ProductUpdateInput = {
@@ -2519,7 +2697,7 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
   Node: ( Product ) | ( ProductFeature ) | ( ProductFeatureValue ) | ( ProductOption ) | ( ProductOptionSwatch ) | ( ProductOptionValue ) | ( Variant ) | ( VariantCost ) | ( VariantPrice ) | ( Warehouse ) | ( WarehouseStock );
-  UserError: ( GenericUserError );
+  UserError: ( BulkUpdateUserError ) | ( GenericUserError );
 }>;
 
 /** Mapping between all available schema types and the resolvers types */
@@ -2527,18 +2705,27 @@ export type ResolversTypes = ResolversObject<{
   BigInt: ResolverTypeWrapper<Scalars['BigInt']['output']>;
   BooleanFilter: BooleanFilter;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
+  BulkUpdateCancelReason: BulkUpdateCancelReason;
+  BulkUpdateItem: ResolverTypeWrapper<BulkUpdateItem>;
+  ID: ResolverTypeWrapper<Scalars['ID']['output']>;
+  Int: ResolverTypeWrapper<Scalars['Int']['output']>;
+  BulkUpdateItemConnection: ResolverTypeWrapper<BulkUpdateItemConnection>;
+  BulkUpdateItemEdge: ResolverTypeWrapper<BulkUpdateItemEdge>;
+  String: ResolverTypeWrapper<Scalars['String']['output']>;
+  BulkUpdateItemStatus: BulkUpdateItemStatus;
+  BulkUpdateJobProgress: ResolverTypeWrapper<BulkUpdateJobProgress>;
+  BulkUpdateJobStatus: BulkUpdateJobStatus;
+  BulkUpdateOpType: BulkUpdateOpType;
+  BulkUpdateUserError: ResolverTypeWrapper<BulkUpdateUserError>;
   CurrencyCode: CurrencyCode;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
   DateTimeFilter: DateTimeFilter;
   Description: ResolverTypeWrapper<Description>;
-  String: ResolverTypeWrapper<Scalars['String']['output']>;
   DescriptionInput: DescriptionInput;
   DimensionUnit: DimensionUnit;
   DimensionsInput: DimensionsInput;
-  Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   Email: ResolverTypeWrapper<Scalars['Email']['output']>;
   File: ResolverTypeWrapper<File>;
-  ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   FloatFilter: FloatFilter;
   Float: ResolverTypeWrapper<Scalars['Float']['output']>;
   GenericUserError: ResolverTypeWrapper<GenericUserError>;
@@ -2559,6 +2746,9 @@ export type ResolversTypes = ResolversObject<{
   PricingWidgetInput: PricingWidgetInput;
   PricingWidgetPayload: ResolverTypeWrapper<PricingWidgetPayload>;
   Product: ResolverTypeWrapper<Product>;
+  ProductBulkUpdateInput: ProductBulkUpdateInput;
+  ProductBulkUpdateJob: ResolverTypeWrapper<ProductBulkUpdateJob>;
+  ProductBulkUpdatePayload: ResolverTypeWrapper<ProductBulkUpdatePayload>;
   ProductConnection: ResolverTypeWrapper<ProductConnection>;
   ProductCreateInput: ProductCreateInput;
   ProductCreateOptionInput: ProductCreateOptionInput;
@@ -2598,12 +2788,11 @@ export type ResolversTypes = ResolversObject<{
   ProductOptionValueCreateInput: ProductOptionValueCreateInput;
   ProductOptionValueUpdateInput: ProductOptionValueUpdateInput;
   ProductOptionValuesInput: ProductOptionValuesInput;
-  ProductPublishInput: ProductPublishInput;
-  ProductPublishPayload: ResolverTypeWrapper<ProductPublishPayload>;
   ProductSeo: ResolverTypeWrapper<ProductSeo>;
   ProductSeoInput: ProductSeoInput;
-  ProductUnpublishInput: ProductUnpublishInput;
-  ProductUnpublishPayload: ResolverTypeWrapper<ProductUnpublishPayload>;
+  ProductSetStatusInput: ProductSetStatusInput;
+  ProductSetStatusPayload: ResolverTypeWrapper<ProductSetStatusPayload>;
+  ProductStatusAction: ProductStatusAction;
   ProductUpdateInput: ProductUpdateInput;
   ProductUpdatePayload: ResolverTypeWrapper<ProductUpdatePayload>;
   Query: ResolverTypeWrapper<{}>;
@@ -2677,16 +2866,21 @@ export type ResolversParentTypes = ResolversObject<{
   BigInt: Scalars['BigInt']['output'];
   BooleanFilter: BooleanFilter;
   Boolean: Scalars['Boolean']['output'];
+  BulkUpdateItem: BulkUpdateItem;
+  ID: Scalars['ID']['output'];
+  Int: Scalars['Int']['output'];
+  BulkUpdateItemConnection: BulkUpdateItemConnection;
+  BulkUpdateItemEdge: BulkUpdateItemEdge;
+  String: Scalars['String']['output'];
+  BulkUpdateJobProgress: BulkUpdateJobProgress;
+  BulkUpdateUserError: BulkUpdateUserError;
   DateTime: Scalars['DateTime']['output'];
   DateTimeFilter: DateTimeFilter;
   Description: Description;
-  String: Scalars['String']['output'];
   DescriptionInput: DescriptionInput;
   DimensionsInput: DimensionsInput;
-  Int: Scalars['Int']['output'];
   Email: Scalars['Email']['output'];
   File: File;
-  ID: Scalars['ID']['output'];
   FloatFilter: FloatFilter;
   Float: Scalars['Float']['output'];
   GenericUserError: GenericUserError;
@@ -2705,6 +2899,9 @@ export type ResolversParentTypes = ResolversObject<{
   PricingWidgetInput: PricingWidgetInput;
   PricingWidgetPayload: PricingWidgetPayload;
   Product: Product;
+  ProductBulkUpdateInput: ProductBulkUpdateInput;
+  ProductBulkUpdateJob: ProductBulkUpdateJob;
+  ProductBulkUpdatePayload: ProductBulkUpdatePayload;
   ProductConnection: ProductConnection;
   ProductCreateInput: ProductCreateInput;
   ProductCreateOptionInput: ProductCreateOptionInput;
@@ -2744,12 +2941,10 @@ export type ResolversParentTypes = ResolversObject<{
   ProductOptionValueCreateInput: ProductOptionValueCreateInput;
   ProductOptionValueUpdateInput: ProductOptionValueUpdateInput;
   ProductOptionValuesInput: ProductOptionValuesInput;
-  ProductPublishInput: ProductPublishInput;
-  ProductPublishPayload: ProductPublishPayload;
   ProductSeo: ProductSeo;
   ProductSeoInput: ProductSeoInput;
-  ProductUnpublishInput: ProductUnpublishInput;
-  ProductUnpublishPayload: ProductUnpublishPayload;
+  ProductSetStatusInput: ProductSetStatusInput;
+  ProductSetStatusPayload: ProductSetStatusPayload;
   ProductUpdateInput: ProductUpdateInput;
   ProductUpdatePayload: ProductUpdatePayload;
   Query: {};
@@ -2816,6 +3011,56 @@ export interface BigIntScalarConfig extends GraphQLScalarTypeConfig<ResolversTyp
   name: 'BigInt';
 }
 
+export type BulkUpdateItemResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BulkUpdateItem'] = ResolversParentTypes['BulkUpdateItem']> = ResolversObject<{
+  cancelReason?: Resolver<Maybe<ResolversTypes['BulkUpdateCancelReason']>, ParentType, ContextType>;
+  errors?: Resolver<Array<ResolversTypes['BulkUpdateUserError']>, ParentType, ContextType>;
+  finishedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  opIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  opType?: Resolver<ResolversTypes['BulkUpdateOpType'], ParentType, ContextType>;
+  productId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  startedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  status?: Resolver<ResolversTypes['BulkUpdateItemStatus'], ParentType, ContextType>;
+  supersededByJobId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  variantId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type BulkUpdateItemConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BulkUpdateItemConnection'] = ResolversParentTypes['BulkUpdateItemConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['BulkUpdateItemEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type BulkUpdateItemEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BulkUpdateItemEdge'] = ResolversParentTypes['BulkUpdateItemEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['BulkUpdateItem'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type BulkUpdateJobProgressResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BulkUpdateJobProgress'] = ResolversParentTypes['BulkUpdateJobProgress']> = ResolversObject<{
+  cancelled?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  done?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  failed?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  pending?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  running?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  succeeded?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  superseded?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  total?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type BulkUpdateUserErrorResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BulkUpdateUserError'] = ResolversParentTypes['BulkUpdateUserError']> = ResolversObject<{
+  code?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  field?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
+  message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  operation?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  productId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  variantId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export interface DateTimeScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['DateTime'], any> {
   name: 'DateTime';
 }
@@ -2857,6 +3102,7 @@ export type InventoryBackorderResolvers<ContextType = ServiceContext, ParentType
 }>;
 
 export type InventoryMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['InventoryMutation'] = ResolversParentTypes['InventoryMutation']> = ResolversObject<{
+  productBulkUpdate?: Resolver<ResolversTypes['ProductBulkUpdatePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductBulkUpdateArgs, 'input'>>;
   productCreate?: Resolver<ResolversTypes['ProductCreatePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductCreateArgs, 'input'>>;
   productDelete?: Resolver<ResolversTypes['ProductDeletePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductDeleteArgs, 'input'>>;
   productFeatureCreate?: Resolver<ResolversTypes['ProductFeatureCreatePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductFeatureCreateArgs, 'input'>>;
@@ -2866,8 +3112,7 @@ export type InventoryMutationResolvers<ContextType = ServiceContext, ParentType 
   productOptionCreate?: Resolver<ResolversTypes['ProductOptionCreatePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductOptionCreateArgs, 'input'>>;
   productOptionDelete?: Resolver<ResolversTypes['ProductOptionDeletePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductOptionDeleteArgs, 'input'>>;
   productOptionUpdate?: Resolver<ResolversTypes['ProductOptionUpdatePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductOptionUpdateArgs, 'input'>>;
-  productPublish?: Resolver<ResolversTypes['ProductPublishPayload'], ParentType, ContextType, RequireFields<InventoryMutationProductPublishArgs, 'input'>>;
-  productUnpublish?: Resolver<ResolversTypes['ProductUnpublishPayload'], ParentType, ContextType, RequireFields<InventoryMutationProductUnpublishArgs, 'input'>>;
+  productSetStatus?: Resolver<ResolversTypes['ProductSetStatusPayload'], ParentType, ContextType, RequireFields<InventoryMutationProductSetStatusArgs, 'input'>>;
   productUpdate?: Resolver<ResolversTypes['ProductUpdatePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductUpdateArgs, 'input'>>;
   variantCreate?: Resolver<ResolversTypes['VariantCreatePayload'], ParentType, ContextType, RequireFields<InventoryMutationVariantCreateArgs, 'input'>>;
   variantDelete?: Resolver<ResolversTypes['VariantDeletePayload'], ParentType, ContextType, RequireFields<InventoryMutationVariantDeleteArgs, 'input'>>;
@@ -2896,6 +3141,7 @@ export type InventoryQueryResolvers<ContextType = ServiceContext, ParentType ext
   node?: Resolver<Maybe<ResolversTypes['Node']>, ParentType, ContextType, RequireFields<InventoryQueryNodeArgs, 'id'>>;
   nodes?: Resolver<Array<Maybe<ResolversTypes['Node']>>, ParentType, ContextType, RequireFields<InventoryQueryNodesArgs, 'ids'>>;
   product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType, RequireFields<InventoryQueryProductArgs, 'id'>>;
+  productBulkUpdateJob?: Resolver<Maybe<ResolversTypes['ProductBulkUpdateJob']>, ParentType, ContextType, RequireFields<InventoryQueryProductBulkUpdateJobArgs, 'jobId'>>;
   products?: Resolver<ResolversTypes['ProductConnection'], ParentType, ContextType, Partial<InventoryQueryProductsArgs>>;
   variant?: Resolver<Maybe<ResolversTypes['Variant']>, ParentType, ContextType, RequireFields<InventoryQueryVariantArgs, 'id'>>;
   variants?: Resolver<ResolversTypes['VariantConnection'], ParentType, ContextType, Partial<InventoryQueryVariantsArgs>>;
@@ -2958,6 +3204,24 @@ export type ProductResolvers<ContextType = ServiceContext, ParentType extends Re
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   variants?: Resolver<ResolversTypes['VariantConnection'], ParentType, ContextType, Partial<ProductVariantsArgs>>;
   variantsCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ProductBulkUpdateJobResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductBulkUpdateJob'] = ResolversParentTypes['ProductBulkUpdateJob']> = ResolversObject<{
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  finishedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  items?: Resolver<ResolversTypes['BulkUpdateItemConnection'], ParentType, ContextType, Partial<ProductBulkUpdateJobItemsArgs>>;
+  progress?: Resolver<ResolversTypes['BulkUpdateJobProgress'], ParentType, ContextType>;
+  startedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  status?: Resolver<ResolversTypes['BulkUpdateJobStatus'], ParentType, ContextType>;
+  totalProducts?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ProductBulkUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductBulkUpdatePayload'] = ResolversParentTypes['ProductBulkUpdatePayload']> = ResolversObject<{
+  job?: Resolver<Maybe<ResolversTypes['ProductBulkUpdateJob']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['BulkUpdateUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -3094,12 +3358,6 @@ export type ProductOptionValueResolvers<ContextType = ServiceContext, ParentType
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type ProductPublishPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductPublishPayload'] = ResolversParentTypes['ProductPublishPayload']> = ResolversObject<{
-  product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
 export type ProductSeoResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductSeo'] = ResolversParentTypes['ProductSeo']> = ResolversObject<{
   ogDescription?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   ogImage?: Resolver<Maybe<ResolversTypes['File']>, ParentType, ContextType>;
@@ -3109,7 +3367,7 @@ export type ProductSeoResolvers<ContextType = ServiceContext, ParentType extends
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type ProductUnpublishPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductUnpublishPayload'] = ResolversParentTypes['ProductUnpublishPayload']> = ResolversObject<{
+export type ProductSetStatusPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductSetStatusPayload'] = ResolversParentTypes['ProductSetStatusPayload']> = ResolversObject<{
   product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -3139,7 +3397,7 @@ export type SkuStatusMetricResolvers<ContextType = ServiceContext, ParentType ex
 }>;
 
 export type UserErrorResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['UserError'] = ResolversParentTypes['UserError']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'GenericUserError', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'BulkUpdateUserError' | 'GenericUserError', ParentType, ContextType>;
   code?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   field?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -3390,6 +3648,11 @@ export type WidgetQueryResolvers<ContextType = ServiceContext, ParentType extend
 
 export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   BigInt?: GraphQLScalarType;
+  BulkUpdateItem?: BulkUpdateItemResolvers<ContextType>;
+  BulkUpdateItemConnection?: BulkUpdateItemConnectionResolvers<ContextType>;
+  BulkUpdateItemEdge?: BulkUpdateItemEdgeResolvers<ContextType>;
+  BulkUpdateJobProgress?: BulkUpdateJobProgressResolvers<ContextType>;
+  BulkUpdateUserError?: BulkUpdateUserErrorResolvers<ContextType>;
   DateTime?: GraphQLScalarType;
   Description?: DescriptionResolvers<ContextType>;
   Email?: GraphQLScalarType;
@@ -3407,6 +3670,8 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   PageInfo?: PageInfoResolvers<ContextType>;
   PricingWidgetPayload?: PricingWidgetPayloadResolvers<ContextType>;
   Product?: ProductResolvers<ContextType>;
+  ProductBulkUpdateJob?: ProductBulkUpdateJobResolvers<ContextType>;
+  ProductBulkUpdatePayload?: ProductBulkUpdatePayloadResolvers<ContextType>;
   ProductConnection?: ProductConnectionResolvers<ContextType>;
   ProductCreatePayload?: ProductCreatePayloadResolvers<ContextType>;
   ProductDeletePayload?: ProductDeletePayloadResolvers<ContextType>;
@@ -3424,9 +3689,8 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   ProductOptionSwatch?: ProductOptionSwatchResolvers<ContextType>;
   ProductOptionUpdatePayload?: ProductOptionUpdatePayloadResolvers<ContextType>;
   ProductOptionValue?: ProductOptionValueResolvers<ContextType>;
-  ProductPublishPayload?: ProductPublishPayloadResolvers<ContextType>;
   ProductSeo?: ProductSeoResolvers<ContextType>;
-  ProductUnpublishPayload?: ProductUnpublishPayloadResolvers<ContextType>;
+  ProductSetStatusPayload?: ProductSetStatusPayloadResolvers<ContextType>;
   ProductUpdatePayload?: ProductUpdatePayloadResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   SelectedOption?: SelectedOptionResolvers<ContextType>;

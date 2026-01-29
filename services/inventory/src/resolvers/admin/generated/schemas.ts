@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BooleanFilter, CurrencyCode, DateTimeFilter, DescriptionInput, DimensionUnit, DimensionsInput, FloatFilter, IdFilter, IntFilter, LocaleCode, OptionDisplayType, PricingWidgetInput, ProductCreateInput, ProductCreateOptionInput, ProductCreateOptionValueInput, ProductCreateVariantInput, ProductDeleteInput, ProductFeatureCreateInput, ProductFeatureDeleteInput, ProductFeatureInput, ProductFeatureSyncItemInput, ProductFeatureUpdateInput, ProductFeatureValueCreateInput, ProductFeatureValueSyncInput, ProductFeatureValueUpdateInput, ProductFeatureValuesInput, ProductFeaturesSyncInput, ProductOptionCreateInput, ProductOptionDeleteInput, ProductOptionSwatchInput, ProductOptionUpdateInput, ProductOptionValueCreateInput, ProductOptionValueUpdateInput, ProductOptionValuesInput, ProductPublishInput, ProductSeoInput, ProductUnpublishInput, ProductUpdateInput, SelectedOptionInput, SortDirection, StringFilter, SwatchType, ThresholdMethod, VariantCreateInput, VariantDeleteInput, VariantInput, VariantSetCostInput, VariantSetDimensionsInput, VariantSetMediaInput, VariantSetPricingInput, VariantSetSkuInput, VariantSetStockInput, VariantSetWeightInput, WarehouseConnectionInput, WarehouseCreateInput, WarehouseDeleteInput, WarehouseOrderByInput, WarehouseOrderField, WarehouseStockConnectionInput, WarehouseStockOrderByInput, WarehouseStockOrderField, WarehouseStockWhereInput, WarehouseUpdateInput, WarehouseWhereInput, WeightInput, WeightUnit } from './types.js'
+import { BooleanFilter, BulkUpdateCancelReason, BulkUpdateItemStatus, BulkUpdateJobStatus, BulkUpdateOpType, CurrencyCode, DateTimeFilter, DescriptionInput, DimensionUnit, DimensionsInput, FloatFilter, IdFilter, IntFilter, LocaleCode, OptionDisplayType, PricingWidgetInput, ProductBulkUpdateInput, ProductCreateInput, ProductCreateOptionInput, ProductCreateOptionValueInput, ProductCreateVariantInput, ProductDeleteInput, ProductFeatureCreateInput, ProductFeatureDeleteInput, ProductFeatureInput, ProductFeatureSyncItemInput, ProductFeatureUpdateInput, ProductFeatureValueCreateInput, ProductFeatureValueSyncInput, ProductFeatureValueUpdateInput, ProductFeatureValuesInput, ProductFeaturesSyncInput, ProductOptionCreateInput, ProductOptionDeleteInput, ProductOptionSwatchInput, ProductOptionUpdateInput, ProductOptionValueCreateInput, ProductOptionValueUpdateInput, ProductOptionValuesInput, ProductSeoInput, ProductSetStatusInput, ProductStatusAction, ProductUpdateInput, SelectedOptionInput, SortDirection, StringFilter, SwatchType, ThresholdMethod, VariantCreateInput, VariantDeleteInput, VariantInput, VariantSetCostInput, VariantSetDimensionsInput, VariantSetMediaInput, VariantSetPricingInput, VariantSetSkuInput, VariantSetStockInput, VariantSetWeightInput, WarehouseConnectionInput, WarehouseCreateInput, WarehouseDeleteInput, WarehouseOrderByInput, WarehouseOrderField, WarehouseStockConnectionInput, WarehouseStockOrderByInput, WarehouseStockOrderField, WarehouseStockWhereInput, WarehouseUpdateInput, WarehouseWhereInput, WeightInput, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -11,6 +11,14 @@ export const isDefinedNonNullAny = (v: any): v is definedNonNullAny => v !== und
 
 export const definedNonNullAnySchema = z.any().refine((v) => isDefinedNonNullAny(v));
 
+export const BulkUpdateCancelReasonSchema = z.nativeEnum(BulkUpdateCancelReason);
+
+export const BulkUpdateItemStatusSchema = z.nativeEnum(BulkUpdateItemStatus);
+
+export const BulkUpdateJobStatusSchema = z.nativeEnum(BulkUpdateJobStatus);
+
+export const BulkUpdateOpTypeSchema = z.nativeEnum(BulkUpdateOpType);
+
 export const CurrencyCodeSchema = z.nativeEnum(CurrencyCode);
 
 export const DimensionUnitSchema = z.nativeEnum(DimensionUnit);
@@ -18,6 +26,8 @@ export const DimensionUnitSchema = z.nativeEnum(DimensionUnit);
 export const LocaleCodeSchema = z.nativeEnum(LocaleCode);
 
 export const OptionDisplayTypeSchema = z.nativeEnum(OptionDisplayType);
+
+export const ProductStatusActionSchema = z.nativeEnum(ProductStatusAction);
 
 export const SortDirectionSchema = z.nativeEnum(SortDirection);
 
@@ -123,6 +133,19 @@ export function PricingWidgetInputSchema(): z.ZodObject<Properties<PricingWidget
     from: z.string().nullish(),
     to: z.string().nullish(),
     variantId: z.string()
+  })
+}
+
+export function ProductBulkUpdateInputSchema(): z.ZodObject<Properties<ProductBulkUpdateInput>> {
+  return z.object({
+    productSetStatus: z.array(z.lazy(() => ProductSetStatusInputSchema())).nullish(),
+    productUpdate: z.array(z.lazy(() => ProductUpdateInputSchema())).nullish(),
+    variantSetCost: z.array(z.lazy(() => VariantSetCostInputSchema())).nullish(),
+    variantSetDimensions: z.array(z.lazy(() => VariantSetDimensionsInputSchema())).nullish(),
+    variantSetPricing: z.array(z.lazy(() => VariantSetPricingInputSchema())).nullish(),
+    variantSetSku: z.array(z.lazy(() => VariantSetSkuInputSchema())).nullish(),
+    variantSetStock: z.array(z.lazy(() => VariantSetStockInputSchema())).nullish(),
+    variantSetWeight: z.array(z.lazy(() => VariantSetWeightInputSchema())).nullish()
   })
 }
 
@@ -303,12 +326,6 @@ export function ProductOptionValuesInputSchema(): z.ZodObject<Properties<Product
   })
 }
 
-export function ProductPublishInputSchema(): z.ZodObject<Properties<ProductPublishInput>> {
-  return z.object({
-    id: z.string()
-  })
-}
-
 export function ProductSeoInputSchema(): z.ZodObject<Properties<ProductSeoInput>> {
   return z.object({
     ogDescription: z.string().nullish(),
@@ -319,9 +336,10 @@ export function ProductSeoInputSchema(): z.ZodObject<Properties<ProductSeoInput>
   })
 }
 
-export function ProductUnpublishInputSchema(): z.ZodObject<Properties<ProductUnpublishInput>> {
+export function ProductSetStatusInputSchema(): z.ZodObject<Properties<ProductSetStatusInput>> {
   return z.object({
-    id: z.string()
+    action: ProductStatusActionSchema,
+    productId: z.string()
   })
 }
 

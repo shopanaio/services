@@ -14,8 +14,7 @@ import { ProductBulkUpdateJobResolver } from "./ProductBulkUpdateJobResolver.js"
 import {
   ProductUpdateScript,
   ProductDeleteScript,
-  ProductPublishScript,
-  ProductUnpublishScript,
+  ProductSetStatusScript,
 } from "../../scripts/product/index.js";
 import type { ProductCreateParams, ProductCreateResult } from "../../sagas/index.js";
 import {
@@ -50,8 +49,7 @@ import type {
   ProductCreateInput,
   ProductUpdateInput,
   ProductDeleteInput,
-  ProductPublishInput,
-  ProductUnpublishInput,
+  ProductSetStatusInput,
   VariantCreateInput,
   VariantDeleteInput,
   VariantSetSkuInput,
@@ -76,8 +74,7 @@ import {
   ProductCreateInputSchema,
   ProductUpdateInputSchema,
   ProductDeleteInputSchema,
-  ProductPublishInputSchema,
-  ProductUnpublishInputSchema,
+  ProductSetStatusInputSchema,
   VariantCreateInputSchema,
   VariantDeleteInputSchema,
   VariantSetSkuInputSchema,
@@ -100,14 +97,9 @@ import {
 } from "./generated/schemas.js";
 import { ProductBulkUpdateInputSchema } from "./validation/productBulkEditSchema.js";
 
-type ProductStatusUpdateInput = {
-  productId: string;
-  action: "PUBLISH" | "UNPUBLISH";
-};
-
 type ProductBulkUpdateInput = {
   productUpdate?: ProductUpdateInput[];
-  productStatusUpdate?: ProductStatusUpdateInput[];
+  productSetStatus?: ProductSetStatusInput[];
   variantSetSku?: VariantSetSkuInput[];
   variantSetPricing?: VariantSetPricingInput[];
   variantSetCost?: VariantSetCostInput[];
@@ -259,33 +251,15 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   }
 
   /**
-   * Publish a product.
+   * Set product status (publish or unpublish).
    */
-  @ZodResolver(ProductPublishInputSchema())
-  async productPublish(args: { input: ProductPublishInput }) {
+  @ZodResolver(ProductSetStatusInputSchema())
+  async productSetStatus(args: { input: ProductSetStatusInput }) {
     const { input } = args;
 
-    const result = await this.$ctx.kernel.runScript(ProductPublishScript, {
-      id: input.id,
-    });
-
-    return {
-      product: result.product
-        ? new ProductResolver(result.product.id, this.$ctx)
-        : null,
-      userErrors: result.userErrors,
-    };
-  }
-
-  /**
-   * Unpublish a product.
-   */
-  @ZodResolver(ProductUnpublishInputSchema())
-  async productUnpublish(args: { input: ProductUnpublishInput }) {
-    const { input } = args;
-
-    const result = await this.$ctx.kernel.runScript(ProductUnpublishScript, {
-      id: input.id,
+    const result = await this.$ctx.kernel.runScript(ProductSetStatusScript, {
+      productId: input.productId,
+      action: input.action,
     });
 
     return {
@@ -837,7 +811,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
 
 const OP_INDEX: Record<string, number> = {
   productUpdate: 0,
-  productStatusUpdate: 1,
+  productSetStatus: 1,
   variantSetSku: 2,
   variantSetPricing: 3,
   variantSetCost: 4,
@@ -873,12 +847,12 @@ function flattenBulkInput(
     });
   }
 
-  for (const ps of input.productStatusUpdate ?? []) {
+  for (const ps of input.productSetStatus ?? []) {
     ops.push({
       productId: ps.productId,
       variantId: null,
-      opType: "productStatusUpdate",
-      opIndex: OP_INDEX.productStatusUpdate,
+      opType: "productSetStatus",
+      opIndex: OP_INDEX.productSetStatus,
       params: { productId: ps.productId, action: ps.action },
     });
   }

@@ -113,8 +113,7 @@ type InventoryMutation {
   productCreate(input: ProductCreateInput!): ProductCreatePayload!
   productUpdate(input: ProductUpdateInput!): ProductUpdatePayload!
   productDelete(input: ProductDeleteInput!): ProductDeletePayload!
-  productPublish(input: ProductPublishInput!): ProductPublishPayload!
-  productUnpublish(input: ProductUnpublishInput!): ProductUnpublishPayload!
+  productSetStatus(input: ProductSetStatusInput!): ProductSetStatusPayload!
 
   # Variant mutations
   variantCreate(input: VariantCreateInput!): VariantCreatePayload!

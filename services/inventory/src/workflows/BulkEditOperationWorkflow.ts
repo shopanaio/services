@@ -15,8 +15,7 @@ import type {
 import type { BulkEditItem } from "../repositories/models/index.js";
 
 import { ProductUpdateScript } from "../scripts/product/ProductUpdateScript.js";
-import { ProductPublishScript } from "../scripts/product/ProductPublishScript.js";
-import { ProductUnpublishScript } from "../scripts/product/ProductUnpublishScript.js";
+import { ProductSetStatusScript } from "../scripts/product/ProductSetStatusScript.js";
 import { VariantSetSkuScript } from "../scripts/variant/VariantSetSkuScript.js";
 import { VariantSetPricingScript } from "../scripts/variant/VariantSetPricingScript.js";
 import { VariantSetCostScript } from "../scripts/variant/VariantSetCostScript.js";
@@ -68,18 +67,10 @@ export class BulkEditOperationWorkflow extends BrokerWorkflows {
           break;
         }
 
-        case "productStatusUpdate": {
-          const p = params as { productId: string; action: "PUBLISH" | "UNPUBLISH" };
-          if (p.action === "PUBLISH") {
-            const result = await this.kernel.runScript(ProductPublishScript, { id: p.productId });
-            if (result.userErrors.length > 0) {
-              errors.push(...result.userErrors.map(toError));
-            }
-          } else {
-            const result = await this.kernel.runScript(ProductUnpublishScript, { id: p.productId });
-            if (result.userErrors.length > 0) {
-              errors.push(...result.userErrors.map(toError));
-            }
+        case "productSetStatus": {
+          const result = await this.kernel.runScript(ProductSetStatusScript, params as any);
+          if (result.userErrors.length > 0) {
+            errors.push(...result.userErrors.map(toError));
           }
           break;
         }

@@ -20,7 +20,7 @@ enum BulkUpdateItemStatus {
 
 enum BulkUpdateOpType {
   PRODUCT_UPDATE
-  PRODUCT_STATUS_UPDATE
+  PRODUCT_SET_STATUS
   VARIANT_SET_SKU
   VARIANT_SET_PRICING
   VARIANT_SET_COST
@@ -52,8 +52,8 @@ input ProductBulkUpdateInput {
   """Update product fields. Reuses ProductUpdateInput (id = productId)."""
   productUpdate: [ProductUpdateInput!]
 
-  """Change product publish status."""
-  productStatusUpdate: [ProductStatusUpdateInput!]
+  """Change product publish status. Reuses ProductSetStatusInput."""
+  productSetStatus: [ProductSetStatusInput!]
 
   """Set variant SKU. Reuses VariantSetSkuInput."""
   variantSetSku: [VariantSetSkuInput!]
@@ -72,18 +72,6 @@ input ProductBulkUpdateInput {
 
   """Set variant weight. Reuses VariantSetWeightInput."""
   variantSetWeight: [VariantSetWeightInput!]
-}
-
-"""
-Product status change (publish/unpublish).
-Only new input type for bulk (2 fields).
-"""
-input ProductStatusUpdateInput {
-  """Product ID."""
-  productId: ID!
-
-  """Action: PUBLISH or UNPUBLISH."""
-  action: ProductStatusAction!
 }
 
 # ════════════════════════════════════════════════════════════

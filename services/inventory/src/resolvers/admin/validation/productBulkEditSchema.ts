@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   ProductUpdateInputSchema,
+  ProductSetStatusInputSchema,
   VariantSetSkuInputSchema,
   VariantSetPricingInputSchema,
   VariantSetCostInputSchema,
@@ -9,16 +10,11 @@ import {
   VariantSetWeightInputSchema,
 } from "../generated/schemas.js";
 
-const productStatusUpdateSchema = z.object({
-  productId: z.string().min(1),
-  action: z.enum(["PUBLISH", "UNPUBLISH"]),
-});
-
 export const ProductBulkUpdateInputSchema = () =>
   z
     .object({
       productUpdate: z.array(ProductUpdateInputSchema()).optional(),
-      productStatusUpdate: z.array(productStatusUpdateSchema).optional(),
+      productSetStatus: z.array(ProductSetStatusInputSchema()).optional(),
       variantSetSku: z.array(VariantSetSkuInputSchema()).optional(),
       variantSetPricing: z.array(VariantSetPricingInputSchema()).optional(),
       variantSetCost: z.array(VariantSetCostInputSchema()).optional(),

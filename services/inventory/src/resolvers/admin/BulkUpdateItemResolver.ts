@@ -3,7 +3,7 @@ import { InventoryType } from "./InventoryType.js";
 
 const OP_TYPE_MAP: Record<string, string> = {
   productUpdate: "PRODUCT_UPDATE",
-  productStatusUpdate: "PRODUCT_STATUS_UPDATE",
+  productSetStatus: "PRODUCT_SET_STATUS",
   variantSetSku: "VARIANT_SET_SKU",
   variantSetPricing: "VARIANT_SET_PRICING",
   variantSetCost: "VARIANT_SET_COST",
