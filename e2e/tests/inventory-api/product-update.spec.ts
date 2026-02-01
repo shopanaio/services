@@ -1127,15 +1127,270 @@ test.describe('ProductUpdate API', () => {
   });
 
   // ============================================
+  // PRODUCT-LEVEL MEDIA UPDATES
+  // ============================================
+
+  test.describe.skip('Product-Level Media Updates', () => {
+    /**
+     * Helper to create a test file using external URL provider (no actual upload needed)
+     */
+    async function createTestFile(api: Api, name: string): Promise<string> {
+      const externalId = `test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const { data } = await api.admin.mutation('media-api/FileCreateExternal', {
+        variables: {
+          input: {
+            provider: 'URL',
+            externalId,
+            url: `https://picsum.photos/seed/${externalId}/200/200`,
+            originalName: name,
+          },
+        },
+      });
+
+      const file = data.mediaMutation.fileCreateExternal.file;
+      if (!file) {
+        throw new Error('Failed to create external file');
+      }
+
+      return file.id;
+    }
+
+    test('should add product-level media', async ({ api }) => {
+      const { productId, revision } = await createProduct(api, 'Product Media Test');
+
+      // Create test files
+      const fileId1 = await createTestFile(api, 'product-image-1.png');
+      const fileId2 = await createTestFile(api, 'product-image-2.png');
+
+      const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
+        variables: {
+          productId,
+          expectedRevision: revision,
+          operations: {
+            media: {
+              fileIds: [fileId1, fileId2],
+            },
+          },
+        },
+      });
+
+      const result = data.inventoryMutation.productUpdate;
+
+      expect(result.userErrors).toHaveLength(0);
+      expect(result.product.media).toHaveLength(2);
+
+      const mediaFileIds = result.product.media.map((m: { file: { id: string } }) => m.file.id);
+      expect(mediaFileIds).toContain(extractUuidFromGlobalId(fileId1));
+      expect(mediaFileIds).toContain(extractUuidFromGlobalId(fileId2));
+
+      // Check operation result
+      const productOp = result.operationResults.find(
+        (op: { type: string }) => op.type === 'PRODUCT_UPDATE'
+      );
+      expect(productOp).toBeTruthy();
+      expect(productOp.applied).toBe(true);
+    });
+
+    test('should clear product-level media when setting empty array', async ({ api }) => {
+      const { productId, revision } = await createProduct(api, 'Clear Product Media');
+
+      // First add media
+      const fileId = await createTestFile(api, 'temp-product-image.png');
+
+      const { data: addData } = await api.admin.mutation('inventory-api/ProductUpdate', {
+        variables: {
+          productId,
+          expectedRevision: revision,
+          operations: {
+            media: { fileIds: [fileId] },
+          },
+        },
+      });
+
+      const newRevision = addData.inventoryMutation.productUpdate.product.revision;
+      expect(addData.inventoryMutation.productUpdate.product.media).toHaveLength(1);
+
+      // Then clear media
+      const { data: clearData } = await api.admin.mutation('inventory-api/ProductUpdate', {
+        variables: {
+          productId,
+          expectedRevision: newRevision,
+          operations: {
+            media: { fileIds: [] },
+          },
+        },
+      });
+
+      expect(clearData.inventoryMutation.productUpdate.userErrors).toHaveLength(0);
+      expect(clearData.inventoryMutation.productUpdate.product.media).toHaveLength(0);
+    });
+
+    test('should reorder product-level media', async ({ api }) => {
+      const { productId, revision } = await createProduct(api, 'Reorder Product Media');
+
+      const fileId1 = await createTestFile(api, 'order-product-1.png');
+      const fileId2 = await createTestFile(api, 'order-product-2.png');
+      const fileId3 = await createTestFile(api, 'order-product-3.png');
+
+      // Set media in order [1, 2, 3]
+      const { data: firstData } = await api.admin.mutation('inventory-api/ProductUpdate', {
+        variables: {
+          productId,
+          expectedRevision: revision,
+          operations: {
+            media: { fileIds: [fileId1, fileId2, fileId3] },
+          },
+        },
+      });
+
+      const newRevision = firstData.inventoryMutation.productUpdate.product.revision;
+
+      // Reorder to [3, 1, 2]
+      const { data: reorderData } = await api.admin.mutation('inventory-api/ProductUpdate', {
+        variables: {
+          productId,
+          expectedRevision: newRevision,
+          operations: {
+            media: { fileIds: [fileId3, fileId1, fileId2] },
+          },
+        },
+      });
+
+      expect(reorderData.inventoryMutation.productUpdate.userErrors).toHaveLength(0);
+
+      const media = reorderData.inventoryMutation.productUpdate.product.media;
+      expect(media).toHaveLength(3);
+
+      // Verify order by sortIndex
+      const sorted = [...media].sort(
+        (a: { sortIndex: number }, b: { sortIndex: number }) => a.sortIndex - b.sortIndex
+      );
+      expect(sorted[0].file.id).toBe(extractUuidFromGlobalId(fileId3));
+      expect(sorted[1].file.id).toBe(extractUuidFromGlobalId(fileId1));
+      expect(sorted[2].file.id).toBe(extractUuidFromGlobalId(fileId2));
+    });
+
+    test('should update product media and variant media simultaneously', async ({ api }) => {
+      const { productId, variantId, revision } = await createProduct(api, 'Combined Media Product');
+
+      const productFileId = await createTestFile(api, 'product-main.png');
+      const variantFileId = await createTestFile(api, 'variant-main.png');
+
+      const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
+        variables: {
+          productId,
+          expectedRevision: revision,
+          operations: {
+            media: { fileIds: [productFileId] },
+            variants: [
+              {
+                variantId,
+                media: { fileIds: [variantFileId] },
+              },
+            ],
+          },
+        },
+      });
+
+      const result = data.inventoryMutation.productUpdate;
+
+      expect(result.userErrors).toHaveLength(0);
+
+      // Check product media
+      expect(result.product.media).toHaveLength(1);
+      expect(result.product.media[0].file.id).toBe(extractUuidFromGlobalId(productFileId));
+
+      // Check variant media
+      const variant = result.product.variants.edges[0].node;
+      expect(variant.media).toHaveLength(1);
+      expect(variant.media[0].file.id).toBe(extractUuidFromGlobalId(variantFileId));
+    });
+
+    test('should handle idempotent product media update', async ({ api }) => {
+      const { productId, revision } = await createProduct(api, 'Idempotent Product Media');
+
+      const fileId = await createTestFile(api, 'idempotent-product.png');
+
+      // First update
+      const { data: firstData } = await api.admin.mutation('inventory-api/ProductUpdate', {
+        variables: {
+          productId,
+          expectedRevision: revision,
+          operations: {
+            media: { fileIds: [fileId] },
+          },
+        },
+      });
+
+      const newRevision = firstData.inventoryMutation.productUpdate.product.revision;
+
+      // Second update with same media
+      const { data: secondData } = await api.admin.mutation('inventory-api/ProductUpdate', {
+        variables: {
+          productId,
+          expectedRevision: newRevision,
+          operations: {
+            media: { fileIds: [fileId] },
+          },
+        },
+      });
+
+      expect(secondData.inventoryMutation.productUpdate.userErrors).toHaveLength(0);
+      expect(secondData.inventoryMutation.productUpdate.product.media).toHaveLength(1);
+    });
+  });
+
+  // ============================================
   // VARIANT OPTIONS UPDATES
   // ============================================
 
   test.describe('Variant Options Updates', () => {
     test('should update variant options', async ({ api }) => {
-      const { productId, variants, product, revision } = await createProductWithOptions(
-        api,
-        'Options Update Product'
-      );
+      // Create product with only 2 variants (leaving blue-l available)
+      const handle = `product-options-update-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const { data: createData } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
+        variables: {
+          input: {
+            title: 'Options Update Product',
+            handle,
+            options: [
+              {
+                name: 'Color',
+                slug: 'color',
+                values: [
+                  { name: 'Red', slug: 'red' },
+                  { name: 'Blue', slug: 'blue' },
+                ],
+              },
+              {
+                name: 'Size',
+                slug: 'size',
+                values: [
+                  { name: 'Small', slug: 's' },
+                  { name: 'Large', slug: 'l' },
+                ],
+              },
+            ],
+            variants: [
+              { handle: 'red-s' },
+              { handle: 'red-l' },
+              // blue-l is intentionally not created
+            ],
+          },
+        },
+      });
+
+      const product = createData.inventoryMutation.productCreate.product;
+      if (!product) {
+        throw new Error('Failed to create product');
+      }
+      const productId = product.id;
+      const revision = product.revision;
+      const variantEdges = product.variants?.edges ?? [];
+      const variants = variantEdges.map((e: { node: { id: string; handle: string } }) => ({
+        id: e.node.id,
+        handle: e.node.handle,
+      }));
 
       // Get product options
       const options = product.options;
@@ -1162,7 +1417,7 @@ test.describe('ProductUpdate API', () => {
         throw new Error('red-s variant not found');
       }
 
-      // Update red-s to blue-l
+      // Update red-s to blue-l (which doesn't exist yet)
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
@@ -1338,15 +1593,15 @@ test.describe('ProductUpdate API', () => {
       expect(variantOp.errors[0].code).toBe('DUPLICATE_OPTION');
     });
 
-    test('should clear variant options when setting empty array', async ({ api }) => {
+    test('should error when clearing options on non-default variant', async ({ api }) => {
       const { productId, variants, revision } = await createProductWithOptions(
         api,
         'Clear Options Product'
       );
 
-      const variant = variants[0];
+      const variant = variants[0]; // Non-default variant
 
-      // Clear all options
+      // Try to clear all options on a non-default variant
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
@@ -1362,18 +1617,291 @@ test.describe('ProductUpdate API', () => {
             ],
           },
         },
+        throwOnError: false,
       });
 
       const result = data.inventoryMutation.productUpdate;
 
+      // Should have an error - non-default variants must have options
+      const variantOp = result.operationResults.find(
+        (op: { type: string }) => op.type === 'VARIANT_UPDATE'
+      );
+      if (!variantOp) {
+        throw new Error('VARIANT_UPDATE operation not found');
+      }
+      expect(variantOp.applied).toBe(false);
+      expect(variantOp.errors[0].code).toBe('INVALID_OPTIONS');
+    });
+
+    test('should error when updating variant options to match another existing variant (cross-variant conflict)', async ({
+      api,
+    }) => {
+      // Create product with all 4 variant combinations (red-s, red-l, blue-s, blue-l)
+      const { productId, variants, product, revision } = await createProductWithOptions(
+        api,
+        'Cross-Variant Conflict Product'
+      );
+
+      const colorOption = product.options.find((o: { slug: string }) => o.slug === 'color');
+      const sizeOption = product.options.find((o: { slug: string }) => o.slug === 'size');
+
+      if (!colorOption || !sizeOption) {
+        throw new Error('Options not found');
+      }
+
+      // Get option values
+      const redValue = colorOption.values.find((v: { slug: string }) => v.slug === 'red');
+      const blueValue = colorOption.values.find((v: { slug: string }) => v.slug === 'blue');
+      const smallValue = sizeOption.values.find((v: { slug: string }) => v.slug === 's');
+      const largeValue = sizeOption.values.find((v: { slug: string }) => v.slug === 'l');
+
+      if (!redValue || !blueValue || !smallValue || !largeValue) {
+        throw new Error('Option values not found');
+      }
+
+      // Find red-s and blue-l variants
+      const redSVariant = variants.find((v: { handle: string }) => v.handle === 'red-s');
+      const blueLVariant = variants.find((v: { handle: string }) => v.handle === 'blue-l');
+
+      if (!redSVariant || !blueLVariant) {
+        throw new Error('Variants not found');
+      }
+
+      // Try to update red-s to have blue-l's option combination (which already exists)
+      const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
+        variables: {
+          productId,
+          expectedRevision: revision,
+          operations: {
+            variants: [
+              {
+                variantId: redSVariant.id,
+                options: {
+                  set: [
+                    { optionId: colorOption.id, optionValueId: blueValue.id },
+                    { optionId: sizeOption.id, optionValueId: largeValue.id },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+        throwOnError: false,
+      });
+
+      const result = data.inventoryMutation.productUpdate;
+
+      // Should fail with duplicate option combination error
+      const variantOp = result.operationResults.find(
+        (op: { type: string }) => op.type === 'VARIANT_UPDATE'
+      );
+      expect(variantOp).toBeTruthy();
+      expect(variantOp.applied).toBe(false);
+      expect(variantOp.errors.length).toBeGreaterThan(0);
+      expect(variantOp.errors[0].code).toBe('DUPLICATE_OPTIONS');
+    });
+
+    test('should error when two variants in same request end up with same option combination', async ({
+      api,
+    }) => {
+      // Create product with 2 variants that have different options
+      const handle = `cross-conflict-batch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const { data: createData } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
+        variables: {
+          input: {
+            title: 'Batch Cross-Variant Conflict',
+            handle,
+            options: [
+              {
+                name: 'Color',
+                slug: 'color',
+                values: [
+                  { name: 'Red', slug: 'red' },
+                  { name: 'Blue', slug: 'blue' },
+                ],
+              },
+            ],
+            variants: [{ handle: 'red' }, { handle: 'blue' }],
+          },
+        },
+      });
+
+      const createdProduct = createData.inventoryMutation.productCreate.product;
+      if (!createdProduct) {
+        throw new Error('Failed to create product');
+      }
+
+      const productId = createdProduct.id;
+      const revision = createdProduct.revision;
+      const variantEdges = createdProduct.variants?.edges ?? [];
+      const createdVariants = variantEdges.map((e: { node: { id: string; handle: string } }) => ({
+        id: e.node.id,
+        handle: e.node.handle,
+      }));
+
+      const colorOption = createdProduct.options.find((o: { slug: string }) => o.slug === 'color');
+      if (!colorOption) {
+        throw new Error('Color option not found');
+      }
+
+      const redValue = colorOption.values.find((v: { slug: string }) => v.slug === 'red');
+      if (!redValue) {
+        throw new Error('Red value not found');
+      }
+
+      const redVariant = createdVariants.find((v: { handle: string }) => v.handle === 'red');
+      const blueVariant = createdVariants.find((v: { handle: string }) => v.handle === 'blue');
+
+      if (!redVariant || !blueVariant) {
+        throw new Error('Variants not found');
+      }
+
+      // Try to update both variants to have the same "red" option in a single request
+      const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
+        variables: {
+          productId,
+          expectedRevision: revision,
+          operations: {
+            variants: [
+              {
+                variantId: redVariant.id,
+                options: {
+                  set: [{ optionId: colorOption.id, optionValueId: redValue.id }],
+                },
+              },
+              {
+                variantId: blueVariant.id,
+                options: {
+                  set: [{ optionId: colorOption.id, optionValueId: redValue.id }], // Same as red!
+                },
+              },
+            ],
+          },
+        },
+        throwOnError: false,
+      });
+
+      const result = data.inventoryMutation.productUpdate;
+
+      // At least one variant operation should fail
+      const variantOps = result.operationResults.filter(
+        (op: { type: string }) => op.type === 'VARIANT_UPDATE'
+      );
+      const failedOp = variantOps.find((op: { applied: boolean }) => !op.applied);
+      if (!failedOp) {
+        throw new Error('Expected a failed variant operation');
+      }
+      expect(failedOp.errors[0].code).toBe('DUPLICATE_OPTIONS');
+    });
+
+    test('should allow swapping option combinations between two variants in same request', async ({
+      api,
+    }) => {
+      // Create product with 2 variants
+      const handle = `swap-options-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const { data: createData } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
+        variables: {
+          input: {
+            title: 'Swap Options Product',
+            handle,
+            options: [
+              {
+                name: 'Color',
+                slug: 'color',
+                values: [
+                  { name: 'Red', slug: 'red' },
+                  { name: 'Blue', slug: 'blue' },
+                ],
+              },
+            ],
+            variants: [{ handle: 'red' }, { handle: 'blue' }],
+          },
+        },
+      });
+
+      const createdProduct = createData.inventoryMutation.productCreate.product;
+      if (!createdProduct) {
+        throw new Error('Failed to create product');
+      }
+
+      const productId = createdProduct.id;
+      const revision = createdProduct.revision;
+      const variantEdges = createdProduct.variants?.edges ?? [];
+      const createdVariants = variantEdges.map((e: { node: { id: string; handle: string } }) => ({
+        id: e.node.id,
+        handle: e.node.handle,
+      }));
+
+      const colorOption = createdProduct.options.find((o: { slug: string }) => o.slug === 'color');
+      if (!colorOption) {
+        throw new Error('Color option not found');
+      }
+
+      const redValue = colorOption.values.find((v: { slug: string }) => v.slug === 'red');
+      const blueValue = colorOption.values.find((v: { slug: string }) => v.slug === 'blue');
+
+      if (!redValue || !blueValue) {
+        throw new Error('Color values not found');
+      }
+
+      const redVariant = createdVariants.find((v: { handle: string }) => v.handle === 'red');
+      const blueVariant = createdVariants.find((v: { handle: string }) => v.handle === 'blue');
+
+      if (!redVariant || !blueVariant) {
+        throw new Error('Variants not found');
+      }
+
+      // Swap: red variant becomes blue, blue variant becomes red
+      const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
+        variables: {
+          productId,
+          expectedRevision: revision,
+          operations: {
+            variants: [
+              {
+                variantId: redVariant.id,
+                options: {
+                  set: [{ optionId: colorOption.id, optionValueId: blueValue.id }],
+                },
+              },
+              {
+                variantId: blueVariant.id,
+                options: {
+                  set: [{ optionId: colorOption.id, optionValueId: redValue.id }],
+                },
+              },
+            ],
+          },
+        },
+      });
+
+      const result = data.inventoryMutation.productUpdate;
+
+      // Both operations should succeed (swapping is allowed)
       expect(result.userErrors).toHaveLength(0);
 
-      const updatedVariant = result.product.variants.edges.find(
-        (e: { node: { id: string } }) => e.node.id === variant.id
+      const variantOps = result.operationResults.filter(
+        (op: { type: string }) => op.type === 'VARIANT_UPDATE'
+      );
+      expect(variantOps).toHaveLength(2);
+      expect(variantOps.every((op: { applied: boolean }) => op.applied)).toBe(true);
+
+      // Verify the swap happened
+      expect(result.product).toBeTruthy();
+      const updatedVariants = result.product.variants.edges;
+      const formerRedVariant = updatedVariants.find(
+        (e: { node: { id: string } }) => e.node.id === redVariant.id
+      )?.node;
+      const formerBlueVariant = updatedVariants.find(
+        (e: { node: { id: string } }) => e.node.id === blueVariant.id
       )?.node;
 
-      expect(updatedVariant.selectedOptions).toHaveLength(0);
-      expect(updatedVariant.handle).toBe(''); // Handle should be empty without options
+      if (!formerRedVariant || !formerBlueVariant) {
+        throw new Error('Updated variants not found');
+      }
+
+      expect(formerRedVariant.selectedOptions[0].optionValueId).toBe(blueValue.id);
+      expect(formerBlueVariant.selectedOptions[0].optionValueId).toBe(redValue.id);
     });
   });
 

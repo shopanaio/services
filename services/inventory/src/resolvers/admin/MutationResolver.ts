@@ -70,6 +70,7 @@ import type {
   ProductFeatureUpdateInput,
   ProductFeatureDeleteInput,
   ProductFeaturesSyncInput,
+  InventoryMutationProductUpdateArgs,
 } from "./generated/types.js";
 import {
   ProductCreateInputSchema,
@@ -224,53 +225,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
    * Unified product update with optimistic locking.
    * Supports product and variant updates in a single request.
    */
-  async productUpdate(args: {
-    productId: string;
-    expectedRevision?: number | null;
-    operations?: {
-      handle?: string | null;
-      title?: string | null;
-      content?: {
-        description?: { text: string; html: string; json: unknown } | null;
-        excerpt?: string | null;
-      } | null;
-      seo?: {
-        seoTitle?: string | null;
-        seoDescription?: string | null;
-        ogTitle?: string | null;
-        ogDescription?: string | null;
-        ogImageId?: string | null;
-      } | null;
-      status?: "DRAFT" | "PUBLISHED" | null;
-      media?: { fileIds: string[] } | null;
-      variants?: Array<{
-        variantId: string;
-        pricing?: {
-          currency: string;
-          amountMinor: string | number;
-          compareAtMinor?: string | number | null;
-        } | null;
-        inventory?: {
-          warehouseId: string;
-          onHand: number;
-          unavailable?: number | null;
-          sku?: string | null;
-          weight?: number | null;
-          unitCostMinor?: string | number | null;
-          costCurrency?: string | null;
-        } | null;
-        dimensions?: {
-          width: number;
-          height: number;
-          length: number;
-        } | null;
-        media?: { fileIds: string[] } | null;
-        options?: {
-          set: Array<{ optionId: string; optionValueId: string }>;
-        } | null;
-      }> | null;
-    } | null;
-  }) {
+  async productUpdate(args: InventoryMutationProductUpdateArgs) {
     const { productId, expectedRevision, operations } = args;
     const variants = operations?.variants;
 

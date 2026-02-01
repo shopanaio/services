@@ -1,4 +1,5 @@
 import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
+import { isUniqueViolation } from "../../kernel/types.js";
 import type { Variant } from "../../repositories/models/index.js";
 import {
   type ScriptResult,
@@ -51,9 +52,18 @@ export class VariantUpdateOptionsScript extends BaseScript<
 
     // Handle empty links (clear all options)
     if (links.length === 0) {
+      // Non-default variants must have options
+      if (!existingVariant.isDefault) {
+        return singleError(
+          "Non-default variant must have at least one option value",
+          "INVALID_OPTIONS",
+          ["links"]
+        );
+      }
+
       await this.repository.option.clearVariantLinks(variantId);
 
-      // Set empty handle for variant without options
+      // Set empty handle for default variant without options
       if (existingVariant.handle !== "") {
         await this.repository.variant.update(variantId, { handle: "" });
       }
@@ -161,16 +171,32 @@ export class VariantUpdateOptionsScript extends BaseScript<
       projectId
     );
 
+    // Non-default variants must have a non-empty handle
+    if (!existingVariant.isDefault && newHandle === "") {
+      // Rollback link changes
+      await this.repository.option.clearVariantLinks(variantId);
+      for (const link of currentLinks) {
+        if (link.optionValueId) {
+          await this.repository.option.linkVariant(
+            variantId,
+            link.optionId,
+            link.optionValueId
+          );
+        }
+      }
+      return singleError(
+        "Non-default variant must have at least one option value",
+        "INVALID_OPTIONS",
+        ["links"]
+      );
+    }
+
     // Update handle if changed
     if (newHandle !== existingVariant.handle) {
       try {
         await this.repository.variant.update(variantId, { handle: newHandle });
       } catch (error) {
-        // Handle unique constraint violation
-        if (
-          error instanceof Error &&
-          error.message.includes("variant_product_id_handle_key")
-        ) {
+        if (isUniqueViolation(error, "variant_product_id_handle_key")) {
           // Rollback link changes by restoring previous links
           await this.repository.option.clearVariantLinks(variantId);
           for (const link of currentLinks) {

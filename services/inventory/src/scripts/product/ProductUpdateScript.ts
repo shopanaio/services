@@ -1,4 +1,5 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
+import { isUniqueViolation } from "../../kernel/types.js";
 import type { ProductUpdateParams, ProductUpdateResult } from "./dto/index.js";
 import type { ProductIdentityChanges } from "../types/index.js";
 import { singleError } from "../types/index.js";
@@ -53,11 +54,7 @@ export class ProductUpdateScript extends BaseScript<ProductUpdateParams, Product
         await this.repository.product.update(id, { handle });
         changes.handle = handle;
       } catch (error) {
-        // Handle unique constraint violation
-        if (
-          error instanceof Error &&
-          error.message.includes("product_project_id_handle_key")
-        ) {
+        if (isUniqueViolation(error, "product_project_id_handle_key")) {
           return singleError(
             "Product with this handle already exists",
             "DUPLICATE_HANDLE",

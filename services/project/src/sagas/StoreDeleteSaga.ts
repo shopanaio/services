@@ -6,6 +6,7 @@ import {
   InjectBroker,
   ServiceBroker,
 } from "@shopana/shared-kernel";
+import { DBOS } from "@dbos-inc/dbos-sdk";
 import type { Media } from "@shopana/broker-types";
 import { Kernel } from "../kernel/Kernel.js";
 
@@ -97,18 +98,29 @@ export class StoreDeleteSaga extends BrokerSaga<StoreDeleteInput, StoreDeleteOut
 
   @SagaStep()
   private async emitStoreDeleted(input: StoreDeleteInput): Promise<void> {
-    await this.broker.emit("storeDeleted", {
-      payload: {
-        storeId: input.storeId,
-        organizationId: input.organizationId,
+    await this.broker.runWorkflow(
+      "events.emit",
+      {
+        eventType: "storeDeleted",
+        payload: {
+          storeId: input.storeId,
+          organizationId: input.organizationId,
+        },
+        source: "project",
+        context: {
+          tenantId: input.organizationId,
+          userId: input.userId,
+        },
+        subject: { type: "store", id: input.storeId },
+        actor: input.userId ? { type: "user", id: input.userId } : undefined,
+        emitKey: `store:${input.storeId}`,
       },
-      context: {
-        tenantId: input.organizationId,
-        userId: input.userId,
+      {
+        source: "workflow",
+        workflowId: DBOS.workflowID!,
+        stepId: "emitStoreDeleted",
+        callId: input.storeId,
       },
-      subject: { type: "store", id: input.storeId },
-      actor: input.userId ? { type: "user", id: input.userId } : undefined,
-      emitKey: `store:${input.storeId}`,
-    });
+    );
   }
 }

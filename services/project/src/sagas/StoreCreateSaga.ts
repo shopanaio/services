@@ -7,6 +7,7 @@ import {
   ServiceBroker,
   FatalError,
 } from "@shopana/shared-kernel";
+import { DBOS } from "@dbos-inc/dbos-sdk";
 import type { IAM, Media } from "@shopana/broker-types";
 import { v7 as uuidv7 } from "uuid";
 import { Roles, RolesMeta } from "@shopana/rbac";
@@ -173,20 +174,31 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
 
   @SagaStep()
   private async emitStoreCreated(id: string, input: StoreCreateInput): Promise<void> {
-    await this.broker.emit("storeCreated", {
-      payload: {
-        storeId: id,
-        organizationId: input.organizationId,
-        name: input.name,
+    await this.broker.runWorkflow(
+      "events.emit",
+      {
+        eventType: "storeCreated",
+        payload: {
+          storeId: id,
+          organizationId: input.organizationId,
+          name: input.name,
+        },
+        source: "project",
+        context: {
+          tenantId: input.organizationId,
+          userId: input.userId,
+        },
+        subject: { type: "store", id },
+        actor: input.userId ? { type: "user", id: input.userId } : undefined,
+        emitKey: `store:${id}`,
       },
-      context: {
-        tenantId: input.organizationId,
-        userId: input.userId,
+      {
+        source: "workflow",
+        workflowId: DBOS.workflowID!,
+        stepId: "emitStoreCreated",
+        callId: id,
       },
-      subject: { type: "store", id },
-      actor: input.userId ? { type: "user", id: input.userId } : undefined,
-      emitKey: `store:${id}`,
-    });
+    );
   }
 
   async compensateCreateStore(id: string): Promise<void> {

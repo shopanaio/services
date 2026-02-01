@@ -1,0 +1,47 @@
+query ProductBulkUpdateJob($jobId: ID!) {
+  inventoryQuery {
+    productBulkUpdateJob(jobId: $jobId) {
+      id
+      status
+      createdAt
+      startedAt
+      finishedAt
+      totalProducts
+      progress {
+        total
+        done
+        succeeded
+        failed
+        cancelled
+        superseded
+        running
+        pending
+      }
+      items(first: 100) {
+        edges {
+          node {
+            id
+            productId
+            variantId
+            opType
+            opIndex
+            status
+            startedAt
+            finishedAt
+            errors {
+              message
+              code
+              field
+              productId
+              variantId
+              operation
+            }
+            cancelReason
+            supersededByJobId
+          }
+        }
+        totalCount
+      }
+    }
+  }
+}

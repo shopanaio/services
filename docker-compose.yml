@@ -66,22 +66,20 @@ services:
   # ============================================
   # Bootstrap (Development)
   # ============================================
-  bootstrap:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    container_name: shopana-bootstrap
-    restart: unless-stopped
-    volumes:
-      - .:/app
-      - shopana-node-modules:/app/node_modules
-    ports:
-      - "3000:3000"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      - NODE_ENV=development
+  # bootstrap:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.dev
+  #   container_name: shopana-bootstrap
+  #   restart: unless-stopped
+  #   volumes:
+  #     - .:/app
+  #     - shopana-node-modules:/app/node_modules
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   environment:
+  #     - NODE_ENV=development
 
 volumes:
   shopana-node-modules:

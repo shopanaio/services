@@ -6,7 +6,7 @@ import {
   InjectBroker,
   ServiceBroker,
 } from "@shopana/shared-kernel";
-import { Error as DBOSErrors } from "@dbos-inc/dbos-sdk";
+import { DBOS, Error as DBOSErrors } from "@dbos-inc/dbos-sdk";
 
 export interface FileDeleteCleanupInput {
   fileId: string;
@@ -54,15 +54,26 @@ export class FileDeleteCleanupWorkflow extends BrokerWorkflows {
   private async emitFileHardDeleted(input: FileDeleteCleanupInput): Promise<void> {
     const { fileId, ownerId, ownerType } = input;
 
-    await this.broker.emit("fileHardDeleted", {
-      payload: { fileId },
-      context: {
-        tenantId: ownerId,
+    await this.broker.runWorkflow(
+      "events.emit",
+      {
+        eventType: "fileHardDeleted",
+        payload: { fileId },
+        source: "media",
+        context: {
+          tenantId: ownerId,
+        },
+        subject: { type: "file", id: fileId },
+        actor: { type: "service" },
+        emitKey: `file:hardDeleted:${fileId}`,
       },
-      subject: { type: "file", id: fileId },
-      actor: { type: "service" },
-      emitKey: `file:hardDeleted:${fileId}`,
-    });
+      {
+        source: "workflow",
+        workflowId: DBOS.workflowID!,
+        stepId: "emitFileHardDeleted",
+        callId: fileId,
+      },
+    );
 
     this.logger.log({ fileId, ownerType, ownerId }, "FileHardDeleted event emitted");
   }

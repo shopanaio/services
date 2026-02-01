@@ -34,7 +34,10 @@ import { VariantUpdatePricingScript } from "../scripts/variant/VariantUpdatePric
 import { VariantUpdateInventoryScript } from "../scripts/variant/VariantUpdateInventoryScript.js";
 import { VariantUpdateDimensionsScript } from "../scripts/variant/VariantUpdateDimensionsScript.js";
 import { VariantUpdateMediaScript } from "../scripts/variant/VariantUpdateMediaScript.js";
-import { VariantUpdateOptionsScript } from "../scripts/variant/VariantUpdateOptionsScript.js";
+import {
+  VariantBatchUpdateOptionsScript,
+  type VariantOptionsUpdate,
+} from "../scripts/variant/VariantBatchUpdateOptionsScript.js";
 
 /**
  * ProductUpdateWorkflow handles atomic product updates with:
@@ -85,17 +88,61 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     }
     const { revision } = acquired;
 
-    // 2. Run operations, collect changes
+    // 2. Collect option updates for batch processing
+    const optionUpdates: Array<{
+      index: number;
+      variantId: string;
+      options: VariantOptionsUpdate;
+    }> = [];
+
+    // 3. Run operations, collect changes (options handled separately)
     const scriptCtx = this.toScriptContext(input.context);
-    for (const op of input.operations) {
-      const result =
-        op.type === "productUpdate"
-          ? await this.stepProductUpdate(op.params, changes, scriptCtx)
-          : await this.stepVariantUpdate(op.params, changes, scriptCtx);
-      results.push(result);
+    for (let i = 0; i < input.operations.length; i++) {
+      const op = input.operations[i];
+      if (op.type === "productUpdate") {
+        const result = await this.stepProductUpdate(op.params, changes, scriptCtx);
+        results.push(result);
+      } else {
+        // Collect option updates for batch processing
+        if (op.params.options) {
+          optionUpdates.push({
+            index: i,
+            variantId: op.params.variantId,
+            options: {
+              variantId: op.params.variantId,
+              links: op.params.options.set,
+            },
+          });
+        }
+        // Process other variant fields (options handled in batch below)
+        const result = await this.stepVariantUpdate(op.params, changes, scriptCtx);
+        results.push(result);
+      }
     }
 
-    // 3. Emit event with partial snapshot + new revision
+    // 4. Process all option updates in a single batch (enables swapping)
+    if (optionUpdates.length > 0) {
+      const batchResults = await this.stepBatchUpdateOptions(
+        input.productId,
+        optionUpdates.map((u) => u.options),
+        changes,
+        scriptCtx,
+      );
+
+      // Merge batch results into corresponding operation results
+      for (let i = 0; i < optionUpdates.length; i++) {
+        const { index, variantId } = optionUpdates[i];
+        const batchResult = batchResults.find((r) => r.variantId === variantId);
+        if (batchResult) {
+          if (!batchResult.applied) {
+            results[index].applied = false;
+            results[index].errors.push(...batchResult.errors);
+          }
+        }
+      }
+    }
+
+    // 5. Emit event with partial snapshot + new revision
     const hasChanges =
       changes.product !== undefined || changes.variants !== undefined;
     if (hasChanges) {
@@ -237,8 +284,8 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
   }
 
   /**
-   * Execute variant-level updates.
-   * Runs appropriate scripts based on provided parameters.
+   * Execute variant-level updates (excluding options).
+   * Options are always processed in batch via stepBatchUpdateOptions.
    */
   @WorkflowStep()
   private async stepVariantUpdate(
@@ -247,8 +294,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     ctx: RunScriptContext,
   ): Promise<OperationResult> {
     const errors: UserError[] = [];
-    const { variantId, pricing, inventory, dimensions, media, options } =
-      params;
+    const { variantId, pricing, inventory, dimensions, media } = params;
 
     // Helper to merge variant changes
     const mergeVariantChanges = (c: Partial<VariantChanges>) => {
@@ -292,20 +338,56 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       if (r.changes) mergeVariantChanges({ media: r.changes });
     }
 
-    if (options) {
-      const r = await this.kernel.runScript(VariantUpdateOptionsScript, {
-        variantId,
-        links: options.set,
-      }, ctx);
-      errors.push(...r.userErrors);
-      if (r.changes) mergeVariantChanges({ options: r.changes });
-    }
-
     return {
       type: "variantUpdate",
       applied: errors.length === 0,
       errors,
     };
+  }
+
+  /**
+   * Batch update variant options.
+   * Processes all option updates in a single step to allow swapping.
+   */
+  @WorkflowStep()
+  private async stepBatchUpdateOptions(
+    productId: string,
+    updates: VariantOptionsUpdate[],
+    changes: ProductChanges,
+    ctx: RunScriptContext,
+  ): Promise<Array<{ variantId: string; applied: boolean; errors: UserError[] }>> {
+    const r = await this.kernel.runScript(VariantBatchUpdateOptionsScript, {
+      productId,
+      updates,
+    }, ctx);
+
+    if (r.userErrors.length > 0) {
+      // Script-level error
+      return updates.map((u) => ({
+        variantId: u.variantId,
+        applied: false,
+        errors: r.userErrors,
+      }));
+    }
+
+    const results = r.result ?? [];
+
+    // Merge changes for successful updates
+    for (const result of results) {
+      if (result.applied && result.changes) {
+        changes.variants = changes.variants ?? {};
+        changes.variants[result.variantId] = {
+          ...changes.variants[result.variantId],
+          options: result.changes,
+        };
+      }
+    }
+
+    return results.map((result) => ({
+      variantId: result.variantId,
+      applied: result.applied,
+      errors: result.errors,
+    }));
   }
 
   /**
