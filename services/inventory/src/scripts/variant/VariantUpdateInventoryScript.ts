@@ -9,7 +9,7 @@ import {
 } from "../types/ScriptResult.js";
 import type { InventoryChanges } from "../types/ProductChanges.js";
 
-export interface VariantSetInventoryParams {
+export interface VariantUpdateInventoryParams {
   readonly variantId: string;
   readonly warehouseId: string;
   readonly onHand: number;
@@ -25,21 +25,21 @@ export interface VariantSetInventoryParams {
   readonly costCurrency?: string | null;
 }
 
-export type VariantSetInventoryResult = ScriptResult<
+export type VariantUpdateInventoryResult = ScriptResult<
   WarehouseStock,
   InventoryChanges
 >;
 
 /**
- * Script for setting variant inventory (stock, SKU, weight, and unit cost).
+ * Script for updating variant inventory (stock, SKU, weight, and unit cost).
  */
-export class VariantSetInventoryScript extends BaseScript<
-  VariantSetInventoryParams,
-  VariantSetInventoryResult
+export class VariantUpdateInventoryScript extends BaseScript<
+  VariantUpdateInventoryParams,
+  VariantUpdateInventoryResult
 > {
   protected async execute(
-    params: VariantSetInventoryParams
-  ): Promise<VariantSetInventoryResult> {
+    params: VariantUpdateInventoryParams
+  ): Promise<VariantUpdateInventoryResult> {
     const { variantId, warehouseId, onHand, unavailable = 0, sku, weight, unitCostMinor, costCurrency } = params;
 
     // Validate quantities
@@ -228,20 +228,20 @@ export class VariantSetInventoryScript extends BaseScript<
 
     this.logger.info(
       { variantId, warehouseId, onHand, unavailable, sku, weight, unitCostMinor, costCurrency },
-      "Variant inventory set successfully"
+      "Variant inventory updated successfully"
     );
 
     return successResult(stock!, changes);
   }
 
-  protected handleError(error: unknown): VariantSetInventoryResult {
+  protected handleError(error: unknown): VariantUpdateInventoryResult {
     const msg = error instanceof Error ? error.message : String(error);
     const cause =
       error instanceof Error && "cause" in error ? String(error.cause) : "";
     const stack = error instanceof Error ? error.stack : "";
     this.logger.error(
       { error, msg, cause, stack },
-      "VariantSetInventoryScript failed"
+      "VariantUpdateInventoryScript failed"
     );
     return {
       result: null,

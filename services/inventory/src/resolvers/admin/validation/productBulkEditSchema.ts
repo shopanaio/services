@@ -1,20 +1,20 @@
 import { z } from "zod";
 import {
   ProductUpdateInputSchema,
-  ProductSetStatusInputSchema,
-  VariantSetPricingInputSchema,
-  VariantSetDimensionsInputSchema,
-  VariantSetInventoryInputSchema,
+  ProductUpdateStatusInputSchema,
+  VariantUpdatePricingInputSchema,
+  VariantUpdateDimensionsInputSchema,
+  VariantUpdateInventoryInputSchema,
 } from "../generated/schemas.js";
 
 export const ProductBulkUpdateInputSchema = () =>
   z
     .object({
       productUpdate: z.array(ProductUpdateInputSchema()).optional(),
-      productSetStatus: z.array(ProductSetStatusInputSchema()).optional(),
-      variantSetPricing: z.array(VariantSetPricingInputSchema()).optional(),
-      variantSetDimensions: z.array(VariantSetDimensionsInputSchema()).optional(),
-      variantSetInventory: z.array(VariantSetInventoryInputSchema()).optional(),
+      productUpdateStatus: z.array(ProductUpdateStatusInputSchema()).optional(),
+      variantUpdatePricing: z.array(VariantUpdatePricingInputSchema()).optional(),
+      variantUpdateDimensions: z.array(VariantUpdateDimensionsInputSchema()).optional(),
+      variantUpdateInventory: z.array(VariantUpdateInventoryInputSchema()).optional(),
     })
     .refine((input) => countTotalOps(input) >= 1, {
       message: "At least one operation required",

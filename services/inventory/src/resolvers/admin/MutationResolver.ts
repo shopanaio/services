@@ -14,7 +14,7 @@ import { ProductBulkUpdateJobResolver } from "./ProductBulkUpdateJobResolver.js"
 import {
   ProductUpdateScript,
   ProductDeleteScript,
-  ProductSetStatusScript,
+  ProductUpdateStatusScript,
 } from "../../scripts/product/index.js";
 import { ProductUpdateWorkflow } from "../../workflows/ProductUpdateWorkflow.js";
 import type {
@@ -26,11 +26,11 @@ import type { ProductCreateParams, ProductCreateResult } from "../../sagas/index
 import {
   VariantCreateScript,
   VariantDeleteScript,
-  VariantSetMediaScript,
-  VariantSetPricingScript,
-  VariantSetDimensionsScript,
-  VariantSetInventoryScript,
-  VariantSetOptionsScript,
+  VariantUpdateMediaScript,
+  VariantUpdatePricingScript,
+  VariantUpdateDimensionsScript,
+  VariantUpdateInventoryScript,
+  VariantUpdateOptionsScript,
 } from "../../scripts/variant/index.js";
 import {
   WarehouseCreateScript,
@@ -53,14 +53,14 @@ import type {
   ProductCreateInput,
   ProductUpdateInput,
   ProductDeleteInput,
-  ProductSetStatusInput,
+  ProductUpdateStatusInput,
   VariantCreateInput,
   VariantDeleteInput,
-  VariantSetPricingInput,
-  VariantSetMediaInput,
-  VariantSetDimensionsInput,
-  VariantSetInventoryInput,
-  VariantSetOptionsInput,
+  VariantUpdatePricingInput,
+  VariantUpdateMediaInput,
+  VariantUpdateDimensionsInput,
+  VariantUpdateInventoryInput,
+  VariantUpdateOptionsInput,
   WarehouseCreateInput,
   WarehouseUpdateInput,
   WarehouseDeleteInput,
@@ -76,14 +76,14 @@ import {
   ProductCreateInputSchema,
   ProductUpdateInputSchema,
   ProductDeleteInputSchema,
-  ProductSetStatusInputSchema,
+  ProductUpdateStatusInputSchema,
   VariantCreateInputSchema,
   VariantDeleteInputSchema,
-  VariantSetPricingInputSchema,
-  VariantSetMediaInputSchema,
-  VariantSetDimensionsInputSchema,
-  VariantSetInventoryInputSchema,
-  VariantSetOptionsInputSchema,
+  VariantUpdatePricingInputSchema,
+  VariantUpdateMediaInputSchema,
+  VariantUpdateDimensionsInputSchema,
+  VariantUpdateInventoryInputSchema,
+  VariantUpdateOptionsInputSchema,
   WarehouseCreateInputSchema,
   WarehouseUpdateInputSchema,
   WarehouseDeleteInputSchema,
@@ -99,10 +99,10 @@ import { ProductBulkUpdateInputSchema } from "./validation/productBulkEditSchema
 
 type ProductBulkUpdateInput = {
   productUpdate?: ProductUpdateInput[];
-  productSetStatus?: ProductSetStatusInput[];
-  variantSetPricing?: VariantSetPricingInput[];
-  variantSetDimensions?: VariantSetDimensionsInput[];
-  variantSetInventory?: VariantSetInventoryInput[];
+  productUpdateStatus?: ProductUpdateStatusInput[];
+  variantUpdatePricing?: VariantUpdatePricingInput[];
+  variantUpdateDimensions?: VariantUpdateDimensionsInput[];
+  variantUpdateInventory?: VariantUpdateInventoryInput[];
 };
 
 /**
@@ -248,20 +248,21 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   }
 
   /**
-   * Set product status (publish or unpublish).
+   * Update product status (publish or unpublish).
    */
-  @ZodResolver(ProductSetStatusInputSchema())
-  async productSetStatus(args: { input: ProductSetStatusInput }) {
+  @ZodResolver(ProductUpdateStatusInputSchema())
+  async productUpdateStatus(args: { input: ProductUpdateStatusInput }) {
     const { input } = args;
 
-    const result = await this.$ctx.kernel.runScript(ProductSetStatusScript, {
-      productId: input.productId,
-      action: input.action,
+    const status = input.action === "PUBLISH" ? "published" : "draft";
+    const result = await this.$ctx.kernel.runScript(ProductUpdateStatusScript, {
+      id: input.productId,
+      status,
     });
 
     return {
-      product: result.product
-        ? new ProductResolver(result.product.id, this.$ctx)
+      product: result.result
+        ? new ProductResolver(result.result.id, this.$ctx)
         : null,
       userErrors: result.userErrors,
     };
@@ -499,11 +500,11 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   /**
    * Set variant pricing.
    */
-  @ZodResolver(VariantSetPricingInputSchema())
-  async variantSetPricing(args: { input: VariantSetPricingInput }) {
+  @ZodResolver(VariantUpdatePricingInputSchema())
+  async variantUpdatePricing(args: { input: VariantUpdatePricingInput }) {
     const { input } = args;
 
-    const result = await this.$ctx.kernel.runScript(VariantSetPricingScript, {
+    const result = await this.$ctx.kernel.runScript(VariantUpdatePricingScript, {
       variantId: input.variantId,
       currency: input.currency,
       amountMinor: Number(input.amountMinor),
@@ -523,11 +524,11 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   /**
    * Set variant dimensions.
    */
-  @ZodResolver(VariantSetDimensionsInputSchema())
-  async variantSetDimensions(args: { input: VariantSetDimensionsInput }) {
+  @ZodResolver(VariantUpdateDimensionsInputSchema())
+  async variantUpdateDimensions(args: { input: VariantUpdateDimensionsInput }) {
     const { input } = args;
 
-    const result = await this.$ctx.kernel.runScript(VariantSetDimensionsScript, {
+    const result = await this.$ctx.kernel.runScript(VariantUpdateDimensionsScript, {
       variantId: input.variantId,
       width: input.width,
       height: input.height,
@@ -545,11 +546,11 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   /**
    * Set variant inventory (stock, SKU, weight, and unit cost).
    */
-  @ZodResolver(VariantSetInventoryInputSchema())
-  async variantSetInventory(args: { input: VariantSetInventoryInput }) {
+  @ZodResolver(VariantUpdateInventoryInputSchema())
+  async variantUpdateInventory(args: { input: VariantUpdateInventoryInput }) {
     const { input } = args;
 
-    const result = await this.$ctx.kernel.runScript(VariantSetInventoryScript, {
+    const result = await this.$ctx.kernel.runScript(VariantUpdateInventoryScript, {
       variantId: input.variantId,
       warehouseId: input.warehouseId,
       onHand: input.onHand,
@@ -574,11 +575,11 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   /**
    * Set variant options (option value links).
    */
-  @ZodResolver(VariantSetOptionsInputSchema())
-  async variantSetOptions(args: { input: VariantSetOptionsInput }) {
+  @ZodResolver(VariantUpdateOptionsInputSchema())
+  async variantUpdateOptions(args: { input: VariantUpdateOptionsInput }) {
     const { input } = args;
 
-    const result = await this.$ctx.kernel.runScript(VariantSetOptionsScript, {
+    const result = await this.$ctx.kernel.runScript(VariantUpdateOptionsScript, {
       variantId: input.variantId,
       links: input.links.map((link) => ({
         optionId: link.optionId,
@@ -597,8 +598,8 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   /**
    * Set variant media.
    */
-  @ZodResolver(VariantSetMediaInputSchema())
-  async variantSetMedia(args: { input: VariantSetMediaInput }) {
+  @ZodResolver(VariantUpdateMediaInputSchema())
+  async variantUpdateMedia(args: { input: VariantUpdateMediaInput }) {
     const { input } = args;
 
     // Decode Global IDs to UUIDs
@@ -606,7 +607,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
       decodeGlobalIdByType(fileId, GlobalIdEntity.File)
     );
 
-    const result = await this.$ctx.kernel.runScript(VariantSetMediaScript, {
+    const result = await this.$ctx.kernel.runScript(VariantUpdateMediaScript, {
       variantId: input.variantId,
       fileIds,
     });
@@ -954,17 +955,17 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
 
 const OP_INDEX: Record<string, number> = {
   productUpdate: 0,
-  productSetStatus: 1,
-  variantSetPricing: 2,
-  variantSetDimensions: 3,
-  variantSetInventory: 4,
+  productUpdateStatus: 1,
+  variantUpdatePricing: 2,
+  variantUpdateDimensions: 3,
+  variantUpdateInventory: 4,
 };
 
 function collectVariantIds(input: ProductBulkUpdateInput): string[] {
   const ids: string[] = [];
-  for (const v of input.variantSetPricing ?? []) ids.push(v.variantId);
-  for (const v of input.variantSetDimensions ?? []) ids.push(v.variantId);
-  for (const v of input.variantSetInventory ?? []) ids.push(v.variantId);
+  for (const v of input.variantUpdatePricing ?? []) ids.push(v.variantId);
+  for (const v of input.variantUpdateDimensions ?? []) ids.push(v.variantId);
+  for (const v of input.variantUpdateInventory ?? []) ids.push(v.variantId);
   return [...new Set(ids)];
 }
 
@@ -984,20 +985,20 @@ function flattenBulkInput(
     });
   }
 
-  for (const ps of input.productSetStatus ?? []) {
+  for (const ps of input.productUpdateStatus ?? []) {
     ops.push({
       productId: ps.productId,
       variantId: null,
-      opType: "productSetStatus",
-      opIndex: OP_INDEX.productSetStatus,
+      opType: "productUpdateStatus",
+      opIndex: OP_INDEX.productUpdateStatus,
       params: { productId: ps.productId, action: ps.action },
     });
   }
 
   const variantArrays = [
-    { key: "variantSetPricing", items: input.variantSetPricing },
-    { key: "variantSetDimensions", items: input.variantSetDimensions },
-    { key: "variantSetInventory", items: input.variantSetInventory },
+    { key: "variantUpdatePricing", items: input.variantUpdatePricing },
+    { key: "variantUpdateDimensions", items: input.variantUpdateDimensions },
+    { key: "variantUpdateInventory", items: input.variantUpdateInventory },
   ];
 
   for (const { key, items } of variantArrays) {

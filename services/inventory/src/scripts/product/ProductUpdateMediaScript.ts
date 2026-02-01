@@ -1,16 +1,16 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
-import type { ProductSetMediaParams, ProductSetMediaResult } from "./dto/ProductSetMediaDto.js";
+import type { ProductUpdateMediaParams, ProductUpdateMediaResult } from "./dto/ProductUpdateMediaDto.js";
 import type { MediaChanges } from "../types/index.js";
 import type { BackRefNotifyInput } from "../../sagas/index.js";
 import { singleError } from "../types/index.js";
 
 /**
- * ProductSetMediaScript handles product media by setting it on the default variant.
+ * ProductUpdateMediaScript handles product media by updating it on the default variant.
  * In Shopana, product media is stored on variants, so product-level media
  * is attached to the default variant.
  */
-export class ProductSetMediaScript extends BaseScript<ProductSetMediaParams, ProductSetMediaResult> {
-  protected async execute(params: ProductSetMediaParams): Promise<ProductSetMediaResult> {
+export class ProductUpdateMediaScript extends BaseScript<ProductUpdateMediaParams, ProductUpdateMediaResult> {
+  protected async execute(params: ProductUpdateMediaParams): Promise<ProductUpdateMediaResult> {
     const { id, fileIds } = params;
 
     // 1. Check if product exists
@@ -74,7 +74,7 @@ export class ProductSetMediaScript extends BaseScript<ProductSetMediaParams, Pro
     };
   }
 
-  protected handleError(_error: unknown): ProductSetMediaResult {
+  protected handleError(_error: unknown): ProductUpdateMediaResult {
     return {
       result: null,
       changes: null,
@@ -100,7 +100,7 @@ export class ProductSetMediaScript extends BaseScript<ProductSetMediaParams, Pro
         },
         {
           source: "workflow",
-          workflowId: `productSetMedia:${variantId}`,
+          workflowId: `productUpdateMedia:${variantId}`,
           stepId: "notifyBackRefs",
         }
       );

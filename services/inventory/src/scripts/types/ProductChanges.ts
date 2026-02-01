@@ -57,7 +57,7 @@ export interface MediaChanges {
 export interface VariantChanges {
   pricing?: PricingChanges;
   inventory?: InventoryChanges;
-  physical?: PhysicalChanges;
+  dimensions?: DimensionsChanges;
   media?: MediaChanges;
   options?: OptionLinkChanges[];
 }

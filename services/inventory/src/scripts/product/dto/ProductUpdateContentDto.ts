@@ -3,12 +3,12 @@ import type { ScriptResult, ContentChanges } from "../../types/index.js";
 import type { DescriptionInput } from "./shared.js";
 
 /**
- * Parameters for setting product content (description/excerpt).
+ * Parameters for updating product content (description/excerpt).
  */
-export interface ProductSetContentParams {
+export interface ProductUpdateContentParams {
   readonly id: string;
   readonly description?: DescriptionInput;
   readonly excerpt?: string;
 }
 
-export type ProductSetContentResult = ScriptResult<Product, ContentChanges>;
+export type ProductUpdateContentResult = ScriptResult<Product, ContentChanges>;

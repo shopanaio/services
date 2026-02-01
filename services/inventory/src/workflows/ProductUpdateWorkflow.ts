@@ -24,15 +24,15 @@ import type {
 import type { UserError } from "../scripts/types/ScriptResult.js";
 
 import { ProductUpdateScript } from "../scripts/product/ProductUpdateScript.js";
-import { ProductSetContentScript } from "../scripts/product/ProductSetContentScript.js";
-import { ProductSetSeoScript } from "../scripts/product/ProductSetSeoScript.js";
-import { ProductSetStatusScript } from "../scripts/product/ProductSetStatusScript.js";
-import { ProductSetMediaScript } from "../scripts/product/ProductSetMediaScript.js";
-import { VariantSetPricingScript } from "../scripts/variant/VariantSetPricingScript.js";
-import { VariantSetInventoryScript } from "../scripts/variant/VariantSetInventoryScript.js";
-import { VariantSetDimensionsScript } from "../scripts/variant/VariantSetDimensionsScript.js";
-import { VariantSetMediaScript } from "../scripts/variant/VariantSetMediaScript.js";
-import { VariantSetOptionsScript } from "../scripts/variant/VariantSetOptionsScript.js";
+import { ProductUpdateContentScript } from "../scripts/product/ProductUpdateContentScript.js";
+import { ProductUpdateSeoScript } from "../scripts/product/ProductUpdateSeoScript.js";
+import { ProductUpdateStatusScript } from "../scripts/product/ProductUpdateStatusScript.js";
+import { ProductUpdateMediaScript } from "../scripts/product/ProductUpdateMediaScript.js";
+import { VariantUpdatePricingScript } from "../scripts/variant/VariantUpdatePricingScript.js";
+import { VariantUpdateInventoryScript } from "../scripts/variant/VariantUpdateInventoryScript.js";
+import { VariantUpdateDimensionsScript } from "../scripts/variant/VariantUpdateDimensionsScript.js";
+import { VariantUpdateMediaScript } from "../scripts/variant/VariantUpdateMediaScript.js";
+import { VariantUpdateOptionsScript } from "../scripts/variant/VariantUpdateOptionsScript.js";
 
 /**
  * ProductUpdateWorkflow handles atomic product updates with:
@@ -160,7 +160,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
 
     // Content fields (description, excerpt)
     if (content) {
-      const r = await this.kernel.runScript(ProductSetContentScript, {
+      const r = await this.kernel.runScript(ProductUpdateContentScript, {
         id,
         description: content.description,
         excerpt: content.excerpt,
@@ -173,7 +173,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
 
     // SEO fields
     if (seo) {
-      const r = await this.kernel.runScript(ProductSetSeoScript, {
+      const r = await this.kernel.runScript(ProductUpdateSeoScript, {
         id,
         title: seo.title,
         description: seo.description,
@@ -186,7 +186,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
 
     // Status change
     if (status) {
-      const r = await this.kernel.runScript(ProductSetStatusScript, {
+      const r = await this.kernel.runScript(ProductUpdateStatusScript, {
         id,
         status,
       });
@@ -198,7 +198,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
 
     // Media
     if (media) {
-      const r = await this.kernel.runScript(ProductSetMediaScript, {
+      const r = await this.kernel.runScript(ProductUpdateMediaScript, {
         id,
         fileIds: media.fileIds,
       });
@@ -234,7 +234,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     };
 
     if (pricing) {
-      const r = await this.kernel.runScript(VariantSetPricingScript, {
+      const r = await this.kernel.runScript(VariantUpdatePricingScript, {
         variantId,
         currency: pricing.currency,
         amountMinor: pricing.amountMinor,
@@ -245,7 +245,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     }
 
     if (inventory) {
-      const r = await this.kernel.runScript(VariantSetInventoryScript, {
+      const r = await this.kernel.runScript(VariantUpdateInventoryScript, {
         variantId,
         warehouseId: inventory.warehouseId,
         onHand: inventory.onHand,
@@ -260,7 +260,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     }
 
     if (dimensions) {
-      const r = await this.kernel.runScript(VariantSetDimensionsScript, {
+      const r = await this.kernel.runScript(VariantUpdateDimensionsScript, {
         variantId,
         width: dimensions.width,
         height: dimensions.height,
@@ -269,7 +269,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       errors.push(...r.userErrors);
       if (r.changes) {
         mergeVariantChanges({
-          physical: {
+          dimensions: {
             width: r.changes.width,
             height: r.changes.height,
             length: r.changes.length,
@@ -279,7 +279,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     }
 
     if (media) {
-      const r = await this.kernel.runScript(VariantSetMediaScript, {
+      const r = await this.kernel.runScript(VariantUpdateMediaScript, {
         variantId,
         fileIds: media.fileIds,
       });
@@ -288,7 +288,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     }
 
     if (options) {
-      const r = await this.kernel.runScript(VariantSetOptionsScript, {
+      const r = await this.kernel.runScript(VariantUpdateOptionsScript, {
         variantId,
         links: options.set,
       });

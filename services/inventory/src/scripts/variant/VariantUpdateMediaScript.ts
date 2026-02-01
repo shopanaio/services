@@ -9,20 +9,20 @@ import {
 } from "../types/ScriptResult.js";
 import type { MediaChanges } from "../types/ProductChanges.js";
 
-export interface VariantSetMediaParams {
+export interface VariantUpdateMediaParams {
   readonly variantId: string;
   readonly fileIds: string[];
 }
 
-export type VariantSetMediaResult = ScriptResult<Variant, MediaChanges>;
+export type VariantUpdateMediaResult = ScriptResult<Variant, MediaChanges>;
 
-export class VariantSetMediaScript extends BaseScript<
-  VariantSetMediaParams,
-  VariantSetMediaResult
+export class VariantUpdateMediaScript extends BaseScript<
+  VariantUpdateMediaParams,
+  VariantUpdateMediaResult
 > {
   protected async execute(
-    params: VariantSetMediaParams
-  ): Promise<VariantSetMediaResult> {
+    params: VariantUpdateMediaParams
+  ): Promise<VariantUpdateMediaResult> {
     const { variantId, fileIds } = params;
 
     const variant = await this.repository.variant.findById(variantId);
@@ -52,7 +52,7 @@ export class VariantSetMediaScript extends BaseScript<
 
     this.logger.info(
       { variantId, fileCount: fileIds.length },
-      "Variant media set successfully"
+      "Variant media updated successfully"
     );
 
     const changes: MediaChanges = {
@@ -62,7 +62,7 @@ export class VariantSetMediaScript extends BaseScript<
     return successResult(variant, changes);
   }
 
-  protected handleError(_error: unknown): VariantSetMediaResult {
+  protected handleError(_error: unknown): VariantUpdateMediaResult {
     return {
       result: null,
       changes: null,
@@ -90,7 +90,7 @@ export class VariantSetMediaScript extends BaseScript<
         },
         {
           source: "workflow",
-          workflowId: `variantSetMedia:${variantId}`,
+          workflowId: `variantUpdateMedia:${variantId}`,
           stepId: "notifyBackRefs",
         }
       );

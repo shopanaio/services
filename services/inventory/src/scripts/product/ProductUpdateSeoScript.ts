@@ -1,13 +1,13 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
-import type { ProductSetSeoParams, ProductSetSeoResult } from "./dto/ProductSetSeoDto.js";
+import type { ProductUpdateSeoParams, ProductUpdateSeoResult } from "./dto/ProductUpdateSeoDto.js";
 import type { SeoChanges } from "../types/index.js";
 import { singleError } from "../types/index.js";
 
 /**
- * ProductSetSeoScript handles product SEO metadata: title and description.
+ * ProductUpdateSeoScript handles product SEO metadata: title and description.
  */
-export class ProductSetSeoScript extends BaseScript<ProductSetSeoParams, ProductSetSeoResult> {
-  protected async execute(params: ProductSetSeoParams): Promise<ProductSetSeoResult> {
+export class ProductUpdateSeoScript extends BaseScript<ProductUpdateSeoParams, ProductUpdateSeoResult> {
+  protected async execute(params: ProductUpdateSeoParams): Promise<ProductUpdateSeoResult> {
     const { id, title, description } = params;
 
     // 1. Check if product exists
@@ -71,7 +71,7 @@ export class ProductSetSeoScript extends BaseScript<ProductSetSeoParams, Product
     };
   }
 
-  protected handleError(_error: unknown): ProductSetSeoResult {
+  protected handleError(_error: unknown): ProductUpdateSeoResult {
     return {
       result: null,
       changes: null,

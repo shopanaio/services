@@ -156,9 +156,9 @@ input PricingWidgetInput {
 # ---- Variant Pricing Mutations ----
 
 """
-Input for setting a price on a variant.
+Input for updating a price on a variant.
 """
-input VariantSetPricingInput {
+input VariantUpdatePricingInput {
   """The ID of the variant."""
   variantId: ID!
 
@@ -173,9 +173,9 @@ input VariantSetPricingInput {
 }
 
 """
-Payload for variant pricing set.
+Payload for variant pricing update.
 """
-type VariantSetPricingPayload {
+type VariantUpdatePricingPayload {
   """The updated variant."""
   variant: Variant
 

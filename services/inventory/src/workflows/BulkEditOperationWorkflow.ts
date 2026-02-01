@@ -15,10 +15,10 @@ import type {
 import type { BulkEditItem } from "../repositories/models/index.js";
 
 import { ProductUpdateScript } from "../scripts/product/ProductUpdateScript.js";
-import { ProductSetStatusScript } from "../scripts/product/ProductSetStatusScript.js";
-import { VariantSetPricingScript } from "../scripts/variant/VariantSetPricingScript.js";
-import { VariantSetDimensionsScript } from "../scripts/variant/VariantSetDimensionsScript.js";
-import { VariantSetInventoryScript } from "../scripts/variant/VariantSetInventoryScript.js";
+import { ProductUpdateStatusScript } from "../scripts/product/ProductUpdateStatusScript.js";
+import { VariantUpdatePricingScript } from "../scripts/variant/VariantUpdatePricingScript.js";
+import { VariantUpdateDimensionsScript } from "../scripts/variant/VariantUpdateDimensionsScript.js";
+import { VariantUpdateInventoryScript } from "../scripts/variant/VariantUpdateInventoryScript.js";
 
 @Injectable()
 export class BulkEditOperationWorkflow extends BrokerWorkflows {
@@ -64,32 +64,32 @@ export class BulkEditOperationWorkflow extends BrokerWorkflows {
           break;
         }
 
-        case "productSetStatus": {
-          const result = await this.kernel.runScript(ProductSetStatusScript, params as any);
+        case "productUpdateStatus": {
+          const result = await this.kernel.runScript(ProductUpdateStatusScript, params as any);
           if (result.userErrors.length > 0) {
             errors.push(...result.userErrors.map(toError));
           }
           break;
         }
 
-        case "variantSetPricing": {
-          const result = await this.kernel.runScript(VariantSetPricingScript, params as any);
+        case "variantUpdatePricing": {
+          const result = await this.kernel.runScript(VariantUpdatePricingScript, params as any);
           if (result.userErrors.length > 0) {
             errors.push(...result.userErrors.map(toError));
           }
           break;
         }
 
-        case "variantSetDimensions": {
-          const result = await this.kernel.runScript(VariantSetDimensionsScript, params as any);
+        case "variantUpdateDimensions": {
+          const result = await this.kernel.runScript(VariantUpdateDimensionsScript, params as any);
           if (result.userErrors.length > 0) {
             errors.push(...result.userErrors.map(toError));
           }
           break;
         }
 
-        case "variantSetInventory": {
-          const result = await this.kernel.runScript(VariantSetInventoryScript, params as any);
+        case "variantUpdateInventory": {
+          const result = await this.kernel.runScript(VariantUpdateInventoryScript, params as any);
           if (result.userErrors.length > 0) {
             errors.push(...result.userErrors.map(toError));
           }

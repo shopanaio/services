@@ -1,13 +1,13 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
-import type { ProductSetContentParams, ProductSetContentResult } from "./dto/ProductSetContentDto.js";
+import type { ProductUpdateContentParams, ProductUpdateContentResult } from "./dto/ProductUpdateContentDto.js";
 import type { ContentChanges } from "../types/index.js";
 import { singleError } from "../types/index.js";
 
 /**
- * ProductSetContentScript handles product content: description and excerpt.
+ * ProductUpdateContentScript handles product content: description and excerpt.
  */
-export class ProductSetContentScript extends BaseScript<ProductSetContentParams, ProductSetContentResult> {
-  protected async execute(params: ProductSetContentParams): Promise<ProductSetContentResult> {
+export class ProductUpdateContentScript extends BaseScript<ProductUpdateContentParams, ProductUpdateContentResult> {
+  protected async execute(params: ProductUpdateContentParams): Promise<ProductUpdateContentResult> {
     const { id, description, excerpt } = params;
 
     // 1. Check if product exists
@@ -71,7 +71,7 @@ export class ProductSetContentScript extends BaseScript<ProductSetContentParams,
     };
   }
 
-  protected handleError(_error: unknown): ProductSetContentResult {
+  protected handleError(_error: unknown): ProductUpdateContentResult {
     return {
       result: null,
       changes: null,

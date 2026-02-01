@@ -113,7 +113,7 @@ type InventoryMutation {
   productCreate(input: ProductCreateInput!): ProductCreatePayload!
   productUpdate(input: ProductUpdateInput!): ProductUpdatePayload!
   productDelete(input: ProductDeleteInput!): ProductDeletePayload!
-  productSetStatus(input: ProductSetStatusInput!): ProductSetStatusPayload!
+  productUpdateStatus(input: ProductUpdateStatusInput!): ProductUpdateStatusPayload!
 
   """
   Unified product update with optimistic locking.
@@ -132,11 +132,11 @@ type InventoryMutation {
   variantCreate(input: VariantCreateInput!): VariantCreatePayload!
   variantDelete(input: VariantDeleteInput!): VariantDeletePayload!
 
-  # Variant mutations
-  variantSetPricing(input: VariantSetPricingInput!): VariantSetPricingPayload!
-  variantSetDimensions(input: VariantSetDimensionsInput!): VariantSetDimensionsPayload!
-  variantSetInventory(input: VariantSetInventoryInput!): VariantSetInventoryPayload!
-  variantSetOptions(input: VariantSetOptionsInput!): VariantSetOptionsPayload!
+  # Variant update mutations
+  variantUpdatePricing(input: VariantUpdatePricingInput!): VariantUpdatePricingPayload!
+  variantUpdateDimensions(input: VariantUpdateDimensionsInput!): VariantUpdateDimensionsPayload!
+  variantUpdateInventory(input: VariantUpdateInventoryInput!): VariantUpdateInventoryPayload!
+  variantUpdateOptions(input: VariantUpdateOptionsInput!): VariantUpdateOptionsPayload!
 
   # Option mutations (creates/deletes variants automatically)
   productOptionCreate(
@@ -169,7 +169,7 @@ type InventoryMutation {
   warehouseDelete(input: WarehouseDeleteInput!): WarehouseDeletePayload!
 
   # Media mutations
-  variantSetMedia(input: VariantSetMediaInput!): VariantSetMediaPayload!
+  variantUpdateMedia(input: VariantUpdateMediaInput!): VariantUpdateMediaPayload!
 
   # Bulk update mutations
   """

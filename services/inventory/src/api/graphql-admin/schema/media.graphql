@@ -23,9 +23,9 @@ type VariantMediaItem {
 # ---- Media Mutation Inputs ----
 
 """
-Input for setting variant media (replaces all existing media).
+Input for updating variant media (replaces all existing media).
 """
-input VariantSetMediaInput {
+input VariantUpdateMediaInput {
   """
   The variant ID.
   """
@@ -38,9 +38,9 @@ input VariantSetMediaInput {
 }
 
 """
-Payload for variant set media.
+Payload for variant update media.
 """
-type VariantSetMediaPayload {
+type VariantUpdateMediaPayload {
   """
   The updated variant.
   """

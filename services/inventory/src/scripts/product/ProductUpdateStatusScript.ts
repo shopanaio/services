@@ -1,12 +1,12 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
-import type { ProductSetStatusParams, ProductSetStatusResult } from "./dto/index.js";
+import type { ProductUpdateStatusParams, ProductUpdateStatusResult } from "./dto/index.js";
 import { singleError } from "../types/index.js";
 
 /**
- * ProductSetStatusScript handles product publish/unpublish status.
+ * ProductUpdateStatusScript handles product publish/unpublish status.
  */
-export class ProductSetStatusScript extends BaseScript<ProductSetStatusParams, ProductSetStatusResult> {
-  protected async execute(params: ProductSetStatusParams): Promise<ProductSetStatusResult> {
+export class ProductUpdateStatusScript extends BaseScript<ProductUpdateStatusParams, ProductUpdateStatusResult> {
+  protected async execute(params: ProductUpdateStatusParams): Promise<ProductUpdateStatusResult> {
     const { id, status } = params;
 
     // 1. Check if product exists
@@ -50,7 +50,7 @@ export class ProductSetStatusScript extends BaseScript<ProductSetStatusParams, P
     };
   }
 
-  protected handleError(_error: unknown): ProductSetStatusResult {
+  protected handleError(_error: unknown): ProductUpdateStatusResult {
     return {
       result: null,
       changes: null,

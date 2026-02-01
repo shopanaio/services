@@ -12,25 +12,25 @@ type Currency = "UAH" | "USD" | "EUR";
 
 const VALID_CURRENCIES: Currency[] = ["UAH", "USD", "EUR"];
 
-export interface VariantSetPricingParams {
+export interface VariantUpdatePricingParams {
   readonly variantId: string;
   readonly currency: string;
   readonly amountMinor: number;
   readonly compareAtMinor?: number | null;
 }
 
-export type VariantSetPricingResult = ScriptResult<ItemPricing, PricingChanges>;
+export type VariantUpdatePricingResult = ScriptResult<ItemPricing, PricingChanges>;
 
 /**
- * Script for setting variant pricing (price and compare-at).
+ * Script for updating variant pricing (price and compare-at).
  */
-export class VariantSetPricingScript extends BaseScript<
-  VariantSetPricingParams,
-  VariantSetPricingResult
+export class VariantUpdatePricingScript extends BaseScript<
+  VariantUpdatePricingParams,
+  VariantUpdatePricingResult
 > {
   protected async execute(
-    params: VariantSetPricingParams
-  ): Promise<VariantSetPricingResult> {
+    params: VariantUpdatePricingParams
+  ): Promise<VariantUpdatePricingResult> {
     const { variantId, currency, amountMinor, compareAtMinor } = params;
 
     // Validate currency
@@ -108,13 +108,13 @@ export class VariantSetPricingScript extends BaseScript<
 
     this.logger.info(
       { variantId, currency, amountMinor },
-      "Variant pricing set successfully"
+      "Variant pricing updated successfully"
     );
 
     return successResult(price, changes);
   }
 
-  protected handleError(_error: unknown): VariantSetPricingResult {
+  protected handleError(_error: unknown): VariantUpdatePricingResult {
     return {
       result: null,
       changes: null,

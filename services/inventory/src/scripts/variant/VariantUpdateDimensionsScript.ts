@@ -8,25 +8,25 @@ import {
 } from "../types/ScriptResult.js";
 import type { DimensionsChanges } from "../types/ProductChanges.js";
 
-export interface VariantSetDimensionsParams {
+export interface VariantUpdateDimensionsParams {
   readonly variantId: string;
   readonly width: number; // mm
   readonly height: number; // mm
   readonly length: number; // mm
 }
 
-export type VariantSetDimensionsResult = ScriptResult<Variant, DimensionsChanges>;
+export type VariantUpdateDimensionsResult = ScriptResult<Variant, DimensionsChanges>;
 
 /**
- * Script for setting variant dimensions.
+ * Script for updating variant dimensions.
  */
-export class VariantSetDimensionsScript extends BaseScript<
-  VariantSetDimensionsParams,
-  VariantSetDimensionsResult
+export class VariantUpdateDimensionsScript extends BaseScript<
+  VariantUpdateDimensionsParams,
+  VariantUpdateDimensionsResult
 > {
   protected async execute(
-    params: VariantSetDimensionsParams
-  ): Promise<VariantSetDimensionsResult> {
+    params: VariantUpdateDimensionsParams
+  ): Promise<VariantUpdateDimensionsResult> {
     const { variantId, width, height, length } = params;
 
     // Validate variant exists
@@ -84,13 +84,13 @@ export class VariantSetDimensionsScript extends BaseScript<
 
     this.logger.info(
       { variantId, width, height, length },
-      "Variant dimensions set successfully"
+      "Variant dimensions updated successfully"
     );
 
     return successResult(existingVariant, changes);
   }
 
-  protected handleError(_error: unknown): VariantSetDimensionsResult {
+  protected handleError(_error: unknown): VariantUpdateDimensionsResult {
     return {
       result: null,
       changes: null,

@@ -13,12 +13,12 @@ export interface ProductSeoInput {
 }
 
 /**
- * Parameters for setting product SEO metadata.
+ * Parameters for updating product SEO metadata.
  */
-export interface ProductSetSeoParams {
+export interface ProductUpdateSeoParams {
   readonly id: string;
   readonly title?: string | null;
   readonly description?: string | null;
 }
 
-export type ProductSetSeoResult = ScriptResult<Product, SeoChanges>;
+export type ProductUpdateSeoResult = ScriptResult<Product, SeoChanges>;

@@ -27,28 +27,28 @@ export type {
   ProductDeleteResult,
 } from "./ProductDeleteDto.js";
 
-// Product Set Status DTOs
+// Product Update Status DTOs
 export type {
   ProductStatus,
-  ProductSetStatusParams,
-  ProductSetStatusResult,
-} from "./ProductSetStatusDto.js";
+  ProductUpdateStatusParams,
+  ProductUpdateStatusResult,
+} from "./ProductUpdateStatusDto.js";
 
-// Product Set Content DTOs
+// Product Update Content DTOs
 export type {
-  ProductSetContentParams,
-  ProductSetContentResult,
-} from "./ProductSetContentDto.js";
+  ProductUpdateContentParams,
+  ProductUpdateContentResult,
+} from "./ProductUpdateContentDto.js";
 
-// Product Set SEO DTOs
+// Product Update SEO DTOs
 export type {
   ProductSeoInput,
-  ProductSetSeoParams,
-  ProductSetSeoResult,
-} from "./ProductSetSeoDto.js";
+  ProductUpdateSeoParams,
+  ProductUpdateSeoResult,
+} from "./ProductUpdateSeoDto.js";
 
-// Product Set Media DTOs
+// Product Update Media DTOs
 export type {
-  ProductSetMediaParams,
-  ProductSetMediaResult,
-} from "./ProductSetMediaDto.js";
+  ProductUpdateMediaParams,
+  ProductUpdateMediaResult,
+} from "./ProductUpdateMediaDto.js";

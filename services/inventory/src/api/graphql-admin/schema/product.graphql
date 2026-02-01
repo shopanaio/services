@@ -252,10 +252,10 @@ type ProductDeletePayload {
 }
 
 """
-Input for setting product status (publish or unpublish).
+Input for updating product status (publish or unpublish).
 Reused in bulk operations.
 """
-input ProductSetStatusInput {
+input ProductUpdateStatusInput {
   """Product ID."""
   productId: ID!
 
@@ -264,9 +264,9 @@ input ProductSetStatusInput {
 }
 
 """
-Payload for product set status.
+Payload for product update status.
 """
-type ProductSetStatusPayload {
+type ProductUpdateStatusPayload {
   """The updated product."""
   product: Product
 

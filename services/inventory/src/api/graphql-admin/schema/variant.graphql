@@ -154,9 +154,9 @@ type VariantCreatePayload {
 # ---- Variant Physical Mutations ----
 
 """
-Input for setting variant dimensions.
+Input for updating variant dimensions.
 """
-input VariantSetDimensionsInput {
+input VariantUpdateDimensionsInput {
   """The ID of the variant."""
   variantId: ID!
 
@@ -171,9 +171,9 @@ input VariantSetDimensionsInput {
 }
 
 """
-Payload for variant dimensions set.
+Payload for variant dimensions update.
 """
-type VariantSetDimensionsPayload {
+type VariantUpdateDimensionsPayload {
   """The updated variant."""
   variant: Variant
 
@@ -182,9 +182,9 @@ type VariantSetDimensionsPayload {
 }
 
 """
-Input for setting variant inventory (stock, SKU, weight, and unit cost).
+Input for updating variant inventory (stock, SKU, weight, and unit cost).
 """
-input VariantSetInventoryInput {
+input VariantUpdateInventoryInput {
   """The ID of the variant."""
   variantId: ID!
 
@@ -211,9 +211,9 @@ input VariantSetInventoryInput {
 }
 
 """
-Payload for variant inventory set.
+Payload for variant inventory update.
 """
-type VariantSetInventoryPayload {
+type VariantUpdateInventoryPayload {
   """The updated stock record."""
   stock: WarehouseStock
 
@@ -236,9 +236,9 @@ input VariantOptionLinkInput {
 }
 
 """
-Input for setting variant options (option value links).
+Input for updating variant options (option value links).
 """
-input VariantSetOptionsInput {
+input VariantUpdateOptionsInput {
   """The ID of the variant."""
   variantId: ID!
 
@@ -247,9 +247,9 @@ input VariantSetOptionsInput {
 }
 
 """
-Payload for variant options set.
+Payload for variant options update.
 """
-type VariantSetOptionsPayload {
+type VariantUpdateOptionsPayload {
   """The updated variant."""
   variant: Variant
 

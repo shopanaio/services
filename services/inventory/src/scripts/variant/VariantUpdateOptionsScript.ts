@@ -15,15 +15,15 @@ export interface VariantOptionLink {
   readonly optionValueId: string;
 }
 
-export interface VariantSetOptionsParams {
+export interface VariantUpdateOptionsParams {
   readonly variantId: string;
   readonly links: VariantOptionLink[];
 }
 
-export type VariantSetOptionsResult = ScriptResult<Variant, OptionLinkChanges[]>;
+export type VariantUpdateOptionsResult = ScriptResult<Variant, OptionLinkChanges[]>;
 
 /**
- * Script for setting variant option value links.
+ * Script for updating variant option value links.
  *
  * Key behaviors:
  * - Validates that all options and values belong to the product
@@ -31,13 +31,13 @@ export type VariantSetOptionsResult = ScriptResult<Variant, OptionLinkChanges[]>
  * - Rebuilds the variant handle from option value slugs
  * - Handles unique constraint on (productId, handle)
  */
-export class VariantSetOptionsScript extends BaseScript<
-  VariantSetOptionsParams,
-  VariantSetOptionsResult
+export class VariantUpdateOptionsScript extends BaseScript<
+  VariantUpdateOptionsParams,
+  VariantUpdateOptionsResult
 > {
   protected async execute(
-    params: VariantSetOptionsParams
-  ): Promise<VariantSetOptionsResult> {
+    params: VariantUpdateOptionsParams
+  ): Promise<VariantUpdateOptionsResult> {
     const { variantId, links } = params;
 
     // Validate variant exists
@@ -201,15 +201,15 @@ export class VariantSetOptionsScript extends BaseScript<
 
     this.logger.info(
       { variantId, linkCount: links.length, newHandle },
-      "Variant options set successfully"
+      "Variant options updated successfully"
     );
 
     return successResult(existingVariant, changes);
   }
 
-  protected handleError(error: unknown): VariantSetOptionsResult {
+  protected handleError(error: unknown): VariantUpdateOptionsResult {
     const msg = error instanceof Error ? error.message : String(error);
-    this.logger.error({ error, msg }, "VariantSetOptionsScript failed");
+    this.logger.error({ error, msg }, "VariantUpdateOptionsScript failed");
     return {
       result: null,
       changes: null,
