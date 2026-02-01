@@ -59,7 +59,27 @@ mutation ProductUpdate(
                 height
                 length
               }
+              media {
+                file {
+                  id
+                }
+                sortIndex
+              }
+              selectedOptions {
+                optionId
+                optionValueId
+              }
             }
+          }
+        }
+        options {
+          id
+          slug
+          name
+          values {
+            id
+            slug
+            name
           }
         }
       }
