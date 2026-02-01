@@ -40,6 +40,7 @@ import {
   OptionCreateScript,
   OptionDeleteScript,
   OptionUpdateScript,
+  OptionsSyncScript,
 } from "../../scripts/option/index.js";
 import {
   FeatureCreateScript,
@@ -66,6 +67,7 @@ import type {
   ProductOptionCreateInput,
   ProductOptionUpdateInput,
   ProductOptionDeleteInput,
+  ProductOptionsSyncInput,
   ProductFeatureCreateInput,
   ProductFeatureUpdateInput,
   ProductFeatureDeleteInput,
@@ -89,6 +91,7 @@ import {
   ProductOptionCreateInputSchema,
   ProductOptionUpdateInputSchema,
   ProductOptionDeleteInputSchema,
+  ProductOptionsSyncInputSchema,
   ProductFeatureCreateInputSchema,
   ProductFeatureUpdateInputSchema,
   ProductFeatureDeleteInputSchema,
@@ -712,6 +715,51 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
 
     return {
       deletedOptionId: result.deletedOptionId ?? null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  /**
+   * Sync all product options in a single transaction.
+   * Options not in the input list will be deleted.
+   */
+  @ZodResolver(ProductOptionsSyncInputSchema())
+  async productOptionsSync(args: { input: ProductOptionsSyncInput }) {
+    const { input } = args;
+
+    const result = await this.$ctx.kernel.runScript(OptionsSyncScript, {
+      productId: input.productId,
+      options: input.options.map((option) => ({
+        id: option.id ?? undefined,
+        index: option.index,
+        slug: option.slug,
+        name: option.name,
+        displayType: option.displayType,
+        values: option.values.map((value) => ({
+          id: value.id ?? undefined,
+          index: value.index,
+          slug: value.slug,
+          name: value.name,
+          swatch: value.swatch
+            ? {
+                swatchType: value.swatch.swatchType,
+                colorOne: value.swatch.colorOne ?? undefined,
+                colorTwo: value.swatch.colorTwo ?? undefined,
+                fileId: value.swatch.fileId ?? undefined,
+                metadata: value.swatch.metadata,
+              }
+            : value.swatch,
+        })),
+      })),
+    });
+
+    return {
+      product: result.product
+        ? new ProductResolver(result.product.id, this.$ctx)
+        : null,
+      options: result.options.map(
+        (option) => new OptionResolver(option.id, this.$ctx)
+      ),
       userErrors: result.userErrors,
     };
   }

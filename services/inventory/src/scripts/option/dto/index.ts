@@ -22,3 +22,10 @@ export type {
   OptionDeleteParams,
   OptionDeleteResult,
 } from "./OptionDeleteDto.js";
+
+export type {
+  OptionSyncParams,
+  OptionSyncResult,
+  OptionSyncItemInput,
+  OptionValueSyncInput,
+} from "./OptionSyncDto.js";

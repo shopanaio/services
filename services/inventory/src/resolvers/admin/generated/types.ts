@@ -647,6 +647,12 @@ export type InventoryMutation = {
   productOptionDelete: ProductOptionDeletePayload;
   productOptionUpdate: ProductOptionUpdatePayload;
   /**
+   * Sync all product options. This is a complete replace operation.
+   * Options not in the input list will be deleted.
+   * Does NOT affect variants - only option definitions are synced.
+   */
+  productOptionsSync: ProductOptionsSyncPayload;
+  /**
    * Unified product update with optimistic locking.
    * Supports product and variant updates in a single request.
    */
@@ -712,6 +718,11 @@ export type InventoryMutationProductOptionDeleteArgs = {
 
 export type InventoryMutationProductOptionUpdateArgs = {
   input: ProductOptionUpdateInput;
+};
+
+
+export type InventoryMutationProductOptionsSyncArgs = {
+  input: ProductOptionsSyncInput;
 };
 
 
@@ -1699,6 +1710,22 @@ export type ProductOptionSwatchInput = {
   swatchType: SwatchType;
 };
 
+/** Input for syncing a single option. */
+export type ProductOptionSyncItemInput = {
+  /** The display type for UI rendering. */
+  displayType: OptionDisplayType;
+  /** Existing option ID (null = create new). */
+  id?: InputMaybe<Scalars['ID']['input']>;
+  /** Position in the options list (0, 1, 2...). */
+  index: Scalars['Int']['input'];
+  /** Display name. */
+  name: Scalars['String']['input'];
+  /** The URL-friendly slug for the option. */
+  slug: Scalars['String']['input'];
+  /** The values for this option. */
+  values: Array<ProductOptionValueSyncInput>;
+};
+
 /** Input for updating an option. */
 export type ProductOptionUpdateInput = {
   /** The new display type. */
@@ -1747,6 +1774,20 @@ export type ProductOptionValueCreateInput = {
   swatch?: InputMaybe<ProductOptionSwatchInput>;
 };
 
+/** Input for syncing a single option value. */
+export type ProductOptionValueSyncInput = {
+  /** Existing value ID (null = create new). */
+  id?: InputMaybe<Scalars['ID']['input']>;
+  /** Position within the option (0, 1, 2...). */
+  index: Scalars['Int']['input'];
+  /** Display name. */
+  name: Scalars['String']['input'];
+  /** The URL-friendly slug for the value. */
+  slug: Scalars['String']['input'];
+  /** The swatch for this value (null to remove). */
+  swatch?: InputMaybe<ProductOptionSwatchInput>;
+};
+
 /** Input for updating an existing option value. */
 export type ProductOptionValueUpdateInput = {
   /** The ID of the value to update. */
@@ -1767,6 +1808,25 @@ export type ProductOptionValuesInput = {
   delete?: InputMaybe<Array<Scalars['ID']['input']>>;
   /** Values to update. */
   update?: InputMaybe<Array<ProductOptionValueUpdateInput>>;
+};
+
+/** Input for syncing all product options. */
+export type ProductOptionsSyncInput = {
+  /** Complete list of options (replaces existing). */
+  options: Array<ProductOptionSyncItemInput>;
+  /** The product to sync options for. */
+  productId: Scalars['ID']['input'];
+};
+
+/** Payload for options sync mutation. */
+export type ProductOptionsSyncPayload = {
+  __typename?: 'ProductOptionsSyncPayload';
+  /** All synced options with final IDs. */
+  options: Array<ProductOption>;
+  /** The product with updated options. */
+  product: Maybe<Product>;
+  /** List of errors that occurred. */
+  userErrors: Array<GenericUserError>;
 };
 
 /** SEO and Open Graph metadata for a product. */
@@ -2865,12 +2925,16 @@ export type ResolversTypes = ResolversObject<{
   ProductOptionDeletePayload: ResolverTypeWrapper<ProductOptionDeletePayload>;
   ProductOptionSwatch: ResolverTypeWrapper<ProductOptionSwatch>;
   ProductOptionSwatchInput: ProductOptionSwatchInput;
+  ProductOptionSyncItemInput: ProductOptionSyncItemInput;
   ProductOptionUpdateInput: ProductOptionUpdateInput;
   ProductOptionUpdatePayload: ResolverTypeWrapper<ProductOptionUpdatePayload>;
   ProductOptionValue: ResolverTypeWrapper<ProductOptionValue>;
   ProductOptionValueCreateInput: ProductOptionValueCreateInput;
+  ProductOptionValueSyncInput: ProductOptionValueSyncInput;
   ProductOptionValueUpdateInput: ProductOptionValueUpdateInput;
   ProductOptionValuesInput: ProductOptionValuesInput;
+  ProductOptionsSyncInput: ProductOptionsSyncInput;
+  ProductOptionsSyncPayload: ResolverTypeWrapper<ProductOptionsSyncPayload>;
   ProductSeo: ResolverTypeWrapper<ProductSeo>;
   ProductSeoInput: ProductSeoInput;
   ProductStatus: ProductStatus;
@@ -3026,12 +3090,16 @@ export type ResolversParentTypes = ResolversObject<{
   ProductOptionDeletePayload: ProductOptionDeletePayload;
   ProductOptionSwatch: ProductOptionSwatch;
   ProductOptionSwatchInput: ProductOptionSwatchInput;
+  ProductOptionSyncItemInput: ProductOptionSyncItemInput;
   ProductOptionUpdateInput: ProductOptionUpdateInput;
   ProductOptionUpdatePayload: ProductOptionUpdatePayload;
   ProductOptionValue: ProductOptionValue;
   ProductOptionValueCreateInput: ProductOptionValueCreateInput;
+  ProductOptionValueSyncInput: ProductOptionValueSyncInput;
   ProductOptionValueUpdateInput: ProductOptionValueUpdateInput;
   ProductOptionValuesInput: ProductOptionValuesInput;
+  ProductOptionsSyncInput: ProductOptionsSyncInput;
+  ProductOptionsSyncPayload: ProductOptionsSyncPayload;
   ProductSeo: ProductSeo;
   ProductSeoInput: ProductSeoInput;
   ProductUpdateInput: ProductUpdateInput;
@@ -3206,6 +3274,7 @@ export type InventoryMutationResolvers<ContextType = ServiceContext, ParentType 
   productOptionCreate?: Resolver<ResolversTypes['ProductOptionCreatePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductOptionCreateArgs, 'input'>>;
   productOptionDelete?: Resolver<ResolversTypes['ProductOptionDeletePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductOptionDeleteArgs, 'input'>>;
   productOptionUpdate?: Resolver<ResolversTypes['ProductOptionUpdatePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductOptionUpdateArgs, 'input'>>;
+  productOptionsSync?: Resolver<ResolversTypes['ProductOptionsSyncPayload'], ParentType, ContextType, RequireFields<InventoryMutationProductOptionsSyncArgs, 'input'>>;
   productUpdate?: Resolver<ResolversTypes['ProductUpdatePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductUpdateArgs, 'productId'>>;
   productUpdateStatus?: Resolver<ResolversTypes['ProductUpdateStatusPayload'], ParentType, ContextType, RequireFields<InventoryMutationProductUpdateStatusArgs, 'input'>>;
   variantCreate?: Resolver<ResolversTypes['VariantCreatePayload'], ParentType, ContextType, RequireFields<InventoryMutationVariantCreateArgs, 'input'>>;
@@ -3455,6 +3524,13 @@ export type ProductOptionValueResolvers<ContextType = ServiceContext, ParentType
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   slug?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   swatch?: Resolver<Maybe<ResolversTypes['ProductOptionSwatch']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ProductOptionsSyncPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductOptionsSyncPayload'] = ResolversParentTypes['ProductOptionsSyncPayload']> = ResolversObject<{
+  options?: Resolver<Array<ResolversTypes['ProductOption']>, ParentType, ContextType>;
+  product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -3779,6 +3855,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   ProductOptionSwatch?: ProductOptionSwatchResolvers<ContextType>;
   ProductOptionUpdatePayload?: ProductOptionUpdatePayloadResolvers<ContextType>;
   ProductOptionValue?: ProductOptionValueResolvers<ContextType>;
+  ProductOptionsSyncPayload?: ProductOptionsSyncPayloadResolvers<ContextType>;
   ProductSeo?: ProductSeoResolvers<ContextType>;
   ProductUpdatePayload?: ProductUpdatePayloadResolvers<ContextType>;
   ProductUpdateStatusPayload?: ProductUpdateStatusPayloadResolvers<ContextType>;

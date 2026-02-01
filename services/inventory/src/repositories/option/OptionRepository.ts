@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, notInArray } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { BaseRepository } from "../BaseRepository.js";
 import {
@@ -144,6 +144,93 @@ export class OptionRepository extends BaseRepository {
       .returning({ id: productOption.id });
 
     return result.length > 0;
+  }
+
+  // ============ Sync Methods ============
+
+  async findByIds(productId: string, ids: string[]): Promise<ProductOption[]> {
+    if (ids.length === 0) return [];
+    return this.connection
+      .select()
+      .from(productOption)
+      .where(
+        and(
+          eq(productOption.projectId, this.storeId),
+          eq(productOption.productId, productId),
+          inArray(productOption.id, ids)
+        )
+      );
+  }
+
+  async deleteExcept(productId: string, keepIds: string[]): Promise<void> {
+    if (keepIds.length === 0) {
+      await this.connection
+        .delete(productOption)
+        .where(
+          and(
+            eq(productOption.projectId, this.storeId),
+            eq(productOption.productId, productId)
+          )
+        );
+    } else {
+      await this.connection
+        .delete(productOption)
+        .where(
+          and(
+            eq(productOption.projectId, this.storeId),
+            eq(productOption.productId, productId),
+            notInArray(productOption.id, keepIds)
+          )
+        );
+    }
+  }
+
+  async findValueIdsByOptionIds(optionIds: string[]): Promise<Map<string, string[]>> {
+    if (optionIds.length === 0) return new Map();
+
+    const rows = await this.connection
+      .select({
+        id: productOptionValue.id,
+        optionId: productOptionValue.optionId,
+      })
+      .from(productOptionValue)
+      .where(
+        and(
+          eq(productOptionValue.projectId, this.storeId),
+          inArray(productOptionValue.optionId, optionIds)
+        )
+      );
+
+    const map = new Map<string, string[]>();
+    for (const row of rows) {
+      const list = map.get(row.optionId) ?? [];
+      list.push(row.id);
+      map.set(row.optionId, list);
+    }
+    return map;
+  }
+
+  async deleteValuesExcept(optionId: string, keepIds: string[]): Promise<void> {
+    if (keepIds.length === 0) {
+      await this.connection
+        .delete(productOptionValue)
+        .where(
+          and(
+            eq(productOptionValue.projectId, this.storeId),
+            eq(productOptionValue.optionId, optionId)
+          )
+        );
+    } else {
+      await this.connection
+        .delete(productOptionValue)
+        .where(
+          and(
+            eq(productOptionValue.projectId, this.storeId),
+            eq(productOptionValue.optionId, optionId),
+            notInArray(productOptionValue.id, keepIds)
+          )
+        );
+    }
   }
 
   // ============ Option Values ============

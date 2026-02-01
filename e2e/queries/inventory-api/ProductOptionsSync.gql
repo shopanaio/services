@@ -1,0 +1,57 @@
+mutation ProductOptionsSync($input: ProductOptionsSyncInput!) {
+  inventoryMutation {
+    productOptionsSync(input: $input) {
+      product {
+        id
+        title
+        options {
+          id
+          name
+          slug
+          displayType
+          values {
+            id
+            name
+            slug
+            swatch {
+              id
+              swatchType
+              colorOne
+              colorTwo
+              file {
+                id
+                url
+              }
+            }
+          }
+        }
+      }
+      options {
+        id
+        name
+        slug
+        displayType
+        values {
+          id
+          name
+          slug
+          swatch {
+            id
+            swatchType
+            colorOne
+            colorTwo
+            file {
+              id
+              url
+            }
+          }
+        }
+      }
+      userErrors {
+        message
+        field
+        code
+      }
+    }
+  }
+}

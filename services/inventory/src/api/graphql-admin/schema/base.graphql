@@ -147,6 +147,14 @@ type InventoryMutation {
   productOptionDelete(
     input: ProductOptionDeleteInput!
   ): ProductOptionDeletePayload!
+  """
+  Sync all product options. This is a complete replace operation.
+  Options not in the input list will be deleted.
+  Does NOT affect variants - only option definitions are synced.
+  """
+  productOptionsSync(
+    input: ProductOptionsSyncInput!
+  ): ProductOptionsSyncPayload!
 
   # Feature mutations
   productFeatureCreate(

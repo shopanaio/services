@@ -15,6 +15,7 @@ export type GraphQLFileName =
   | 'inventory-api/ProductBulkUpdateJob'
   | 'inventory-api/ProductUpdate'
   | 'inventory-api/ProductFeaturesSync'
+  | 'inventory-api/ProductOptionsSync'
   | 'inventory-api/ProductFindMany'
   | 'inventory-api/ProductFindOne'
   | 'inventory-api/VariantCreate'

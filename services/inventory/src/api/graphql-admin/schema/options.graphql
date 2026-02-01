@@ -258,3 +258,73 @@ type ProductOptionDeletePayload {
   userErrors: [GenericUserError!]!
 }
 
+# ---- Options Sync Mutation ----
+
+"""
+Input for syncing a single option value.
+"""
+input ProductOptionValueSyncInput {
+  """Existing value ID (null = create new)."""
+  id: ID
+
+  """Position within the option (0, 1, 2...)."""
+  index: Int!
+
+  """The URL-friendly slug for the value."""
+  slug: String!
+
+  """Display name."""
+  name: String!
+
+  """The swatch for this value (null to remove)."""
+  swatch: ProductOptionSwatchInput
+}
+
+"""
+Input for syncing a single option.
+"""
+input ProductOptionSyncItemInput {
+  """Existing option ID (null = create new)."""
+  id: ID
+
+  """Position in the options list (0, 1, 2...)."""
+  index: Int!
+
+  """The URL-friendly slug for the option."""
+  slug: String!
+
+  """Display name."""
+  name: String!
+
+  """The display type for UI rendering."""
+  displayType: OptionDisplayType!
+
+  """The values for this option."""
+  values: [ProductOptionValueSyncInput!]!
+}
+
+"""
+Input for syncing all product options.
+"""
+input ProductOptionsSyncInput {
+  """The product to sync options for."""
+  productId: ID!
+
+  """Complete list of options (replaces existing)."""
+  options: [ProductOptionSyncItemInput!]!
+}
+
+"""
+Payload for options sync mutation.
+"""
+type ProductOptionsSyncPayload {
+  """The product with updated options."""
+  product: Product
+
+  """All synced options with final IDs."""
+  options: [ProductOption!]!
+
+  """List of errors that occurred."""
+  userErrors: [GenericUserError!]!
+}
+
