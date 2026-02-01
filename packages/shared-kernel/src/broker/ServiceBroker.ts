@@ -11,23 +11,6 @@ export interface ServiceBrokerOptions {
   serviceName: string;
 }
 
-/**
- * Parameters for emitting domain events via the events service.
- * Note: `source` is automatically set from the service name.
- */
-export interface EmitParams {
-  payload: unknown;
-  context: {
-    tenantId: string;
-    userId?: string;
-    correlationId?: string;
-    causationId?: string;
-  };
-  subject: { type: string; id: string };
-  actor?: { type: 'user' | 'service' | 'system'; id?: string };
-  emitKey: string;
-}
-
 @Injectable()
 export class ServiceBroker implements OnModuleDestroy {
   private readonly logger = new Logger(ServiceBroker.name);
@@ -88,37 +71,6 @@ export class ServiceBroker implements OnModuleDestroy {
   hasAction(action: string): boolean {
     const qualifiedAction = this.assertFullyQualified(action);
     return this.registry.has(qualifiedAction);
-  }
-
-  /**
-   * Emits a domain event via the events service.
-   * This is a convenience method that calls broker.call("events.emit", params).
-   * The `source` field is automatically set from the service name.
-   *
-   * @param eventType - The type of event to emit (e.g., 'productCreated')
-   * @param params - Event emission parameters
-   * @returns Promise with workflowId and eventId
-   *
-   * @example
-   * await broker.emit('productCreated', {
-   *   payload: { productId: '123' },
-   *   context: { tenantId: 'org-1' },
-   *   subject: { type: 'product', id: '123' },
-   *   emitKey: 'product:123',
-   * });
-   */
-  async emit(
-    eventType: string,
-    params: EmitParams,
-  ): Promise<{ workflowId: string; eventId: string }> {
-    return this.call<
-      { workflowId: string; eventId: string },
-      EmitParams & { eventType: string; source: string }
-    >('events.emit', {
-      eventType,
-      source: this.options.serviceName,
-      ...params,
-    });
   }
 
   /**

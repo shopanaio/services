@@ -5,6 +5,7 @@ import {
   WorkflowStep,
   InjectBroker,
   ServiceBroker,
+  DBOS,
 } from "@shopana/shared-kernel";
 import { and, eq, sql } from "drizzle-orm";
 import { Kernel } from "../kernel/Kernel.js";
@@ -16,11 +17,7 @@ import type {
   VariantUpdateParams,
   OperationResult,
 } from "./dto/ProductUpdateWorkflowDto.js";
-import type {
-  ProductChanges,
-  ProductFieldChanges,
-  VariantChanges,
-} from "../scripts/types/ProductChanges.js";
+import type { ProductChanges, VariantChanges } from "../scripts/types/ProductChanges.js";
 import type { UserError } from "../scripts/types/ScriptResult.js";
 
 import { ProductUpdateScript } from "../scripts/product/ProductUpdateScript.js";
@@ -160,11 +157,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
 
     // Content fields (description, excerpt)
     if (content) {
-      const r = await this.kernel.runScript(ProductUpdateContentScript, {
-        id,
-        description: content.description,
-        excerpt: content.excerpt,
-      });
+      const r = await this.kernel.runScript(ProductUpdateContentScript, { id, ...content });
       errors.push(...r.userErrors);
       if (r.changes) {
         changes.product = { ...changes.product, content: r.changes };
@@ -173,11 +166,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
 
     // SEO fields
     if (seo) {
-      const r = await this.kernel.runScript(ProductUpdateSeoScript, {
-        id,
-        title: seo.title,
-        description: seo.description,
-      });
+      const r = await this.kernel.runScript(ProductUpdateSeoScript, { id, ...seo });
       errors.push(...r.userErrors);
       if (r.changes) {
         changes.product = { ...changes.product, seo: r.changes };
@@ -234,64 +223,31 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     };
 
     if (pricing) {
-      const r = await this.kernel.runScript(VariantUpdatePricingScript, {
-        variantId,
-        currency: pricing.currency,
-        amountMinor: pricing.amountMinor,
-        compareAtMinor: pricing.compareAtMinor,
-      });
+      const r = await this.kernel.runScript(VariantUpdatePricingScript, { variantId, ...pricing });
       errors.push(...r.userErrors);
       if (r.changes) mergeVariantChanges({ pricing: r.changes });
     }
 
     if (inventory) {
-      const r = await this.kernel.runScript(VariantUpdateInventoryScript, {
-        variantId,
-        warehouseId: inventory.warehouseId,
-        onHand: inventory.onHand,
-        unavailable: inventory.unavailable,
-        sku: inventory.sku,
-        weight: inventory.weight,
-        unitCostMinor: inventory.unitCostMinor,
-        costCurrency: inventory.costCurrency,
-      });
+      const r = await this.kernel.runScript(VariantUpdateInventoryScript, { variantId, ...inventory });
       errors.push(...r.userErrors);
       if (r.changes) mergeVariantChanges({ inventory: r.changes });
     }
 
     if (dimensions) {
-      const r = await this.kernel.runScript(VariantUpdateDimensionsScript, {
-        variantId,
-        width: dimensions.width,
-        height: dimensions.height,
-        length: dimensions.length,
-      });
+      const r = await this.kernel.runScript(VariantUpdateDimensionsScript, { variantId, ...dimensions });
       errors.push(...r.userErrors);
-      if (r.changes) {
-        mergeVariantChanges({
-          dimensions: {
-            width: r.changes.width,
-            height: r.changes.height,
-            length: r.changes.length,
-          },
-        });
-      }
+      if (r.changes) mergeVariantChanges({ dimensions: r.changes });
     }
 
     if (media) {
-      const r = await this.kernel.runScript(VariantUpdateMediaScript, {
-        variantId,
-        fileIds: media.fileIds,
-      });
+      const r = await this.kernel.runScript(VariantUpdateMediaScript, { variantId, ...media });
       errors.push(...r.userErrors);
       if (r.changes) mergeVariantChanges({ media: r.changes });
     }
 
     if (options) {
-      const r = await this.kernel.runScript(VariantUpdateOptionsScript, {
-        variantId,
-        links: options.set,
-      });
+      const r = await this.kernel.runScript(VariantUpdateOptionsScript, { variantId, links: options.set });
       errors.push(...r.userErrors);
       if (r.changes) mergeVariantChanges({ options: r.changes });
     }
@@ -312,23 +268,34 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     changes: ProductChanges,
     revision: number
   ): Promise<void> {
-    await this.broker.emit("productUpdated", {
-      payload: {
-        productId: input.productId,
-        storeId: input.context.storeId,
-        revision,
-        product: changes.product,
-        variants: changes.variants,
+    await this.broker.runWorkflow(
+      "events.emit",
+      {
+        eventType: "productUpdated",
+        payload: {
+          productId: input.productId,
+          storeId: input.context.storeId,
+          revision,
+          product: changes.product,
+          variants: changes.variants,
+        },
+        source: "inventory",
+        context: {
+          tenantId: input.context.organizationId,
+          userId: input.context.userId,
+        },
+        subject: { type: "product", id: input.productId },
+        actor: input.context.userId
+          ? { type: "user", id: input.context.userId }
+          : undefined,
+        emitKey: `product:${input.productId}`,
       },
-      context: {
-        tenantId: input.context.organizationId,
-        userId: input.context.userId,
-      },
-      subject: { type: "product", id: input.productId },
-      actor: input.context.userId
-        ? { type: "user", id: input.context.userId }
-        : undefined,
-      emitKey: `product:${input.productId}`,
-    });
+      {
+        source: "workflow",
+        workflowId: DBOS.workflowID!,
+        stepId: "emitProductUpdated",
+        callId: input.productId,
+      }
+    );
   }
 }

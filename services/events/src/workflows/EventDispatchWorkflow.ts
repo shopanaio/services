@@ -11,15 +11,31 @@ import {
 } from "@shopana/shared-kernel";
 import type {
   DomainEvent,
+  EventContext,
   EventDispatchResult,
   HandlerInfo,
   EventHandlerResponse,
   HandlerInvocationResult,
 } from "@shopana/events";
+import {
+  makeDeterministicCorrelationId,
+  makeDispatchWorkflowId,
+  makeEventId,
+} from "@shopana/events";
 import { getConfig } from "@shopana/shared-service-config";
 import { Kernel } from "../kernel/Kernel.js";
 
 const DEFAULT_HANDLER_TIMEOUT_MS = 30_000; // 30 seconds
+
+export interface EmitParams<TType extends string = string, TPayload = unknown> {
+  eventType: TType;
+  payload: TPayload;
+  source: string;
+  context: Omit<EventContext, "correlationId"> & { correlationId?: string };
+  subject: { type: string; id: string };
+  actor?: { type: "user" | "service" | "system"; id?: string };
+  emitKey: string;
+}
 
 @Injectable()
 export class EventDispatchWorkflow extends BrokerWorkflows {
@@ -35,18 +51,19 @@ export class EventDispatchWorkflow extends BrokerWorkflows {
     return this.kernel.repository;
   }
 
-  @Workflow("eventDispatch")
-  async run(event: DomainEvent): Promise<EventDispatchResult> {
-    const { timestamp } = await this.persistEvent(event);
+  @Workflow("emit")
+  async run(params: EmitParams): Promise<EventDispatchResult> {
+    const { event } = this.buildEvent(params);
+    const { timestamp } = await this.stepPersistEvent(event);
     event.timestamp = timestamp;
 
-    const handlers = await this.getAvailableHandlers(event.eventType);
+    const handlers = await this.stepGetAvailableHandlers(event.eventType);
 
     const results = await Promise.all(
       handlers.map((handler) => this.tryInvokeHandler(event, handler))
     );
 
-    await this.updateEventStatus(event.eventId, results);
+    await this.stepUpdateEventStatus(event.eventId, results);
 
     return {
       eventId: event.eventId,
@@ -58,14 +75,14 @@ export class EventDispatchWorkflow extends BrokerWorkflows {
   }
 
   @WorkflowStep()
-  private async persistEvent(
+  private async stepPersistEvent(
     event: DomainEvent
   ): Promise<{ timestamp: string }> {
     return this.repository.persistEvent(event);
   }
 
   @WorkflowStep()
-  private async getAvailableHandlers(eventType: string): Promise<HandlerInfo[]> {
+  private async stepGetAvailableHandlers(eventType: string): Promise<HandlerInfo[]> {
     const config = getConfig();
     const serviceNames = Object.keys(config.services ?? {});
     const handlers: HandlerInfo[] = [];
@@ -167,7 +184,7 @@ export class EventDispatchWorkflow extends BrokerWorkflows {
       );
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      await this.sendToDLQ(
+      await this.stepSendToDLQ(
         event,
         handler,
         errorMsg,
@@ -178,7 +195,7 @@ export class EventDispatchWorkflow extends BrokerWorkflows {
     }
 
     if (stepResult.kind === "timeout") {
-      await this.sendToDLQ(
+      await this.stepSendToDLQ(
         event,
         handler,
         stepResult.error.message,
@@ -194,7 +211,7 @@ export class EventDispatchWorkflow extends BrokerWorkflows {
     }
 
     if (stepResult.kind === "nonRetryableFailure") {
-      await this.sendToDLQ(
+      await this.stepSendToDLQ(
         event,
         handler,
         stepResult.error.message,
@@ -217,7 +234,7 @@ export class EventDispatchWorkflow extends BrokerWorkflows {
   }
 
   @WorkflowStep()
-  private async sendToDLQ(
+  private async stepSendToDLQ(
     event: DomainEvent,
     handler: HandlerInfo,
     error: string,
@@ -237,10 +254,54 @@ export class EventDispatchWorkflow extends BrokerWorkflows {
   }
 
   @WorkflowStep()
-  private async updateEventStatus(
+  private async stepUpdateEventStatus(
     eventId: string,
     results: HandlerInvocationResult[]
   ): Promise<void> {
     await this.repository.updateEventStatus(eventId, results);
+  }
+
+  private buildEvent(params: EmitParams): { event: DomainEvent; workflowId: string } {
+    if (!params.emitKey || params.emitKey.trim().length === 0) {
+      throw new Error("emitKey is required and must be non-empty");
+    }
+
+    const parentWorkflowId = DBOS.workflowID;
+    if (!parentWorkflowId) {
+      throw new Error("events.emit must be called from workflow code");
+    }
+
+    const workflowId = makeDispatchWorkflowId({
+      parentWorkflowId,
+      eventType: params.eventType,
+      emitKey: params.emitKey,
+    });
+
+    const eventId = makeEventId({
+      tenantId: params.context.tenantId,
+      dispatchWorkflowId: workflowId,
+    });
+
+    const correlationId =
+      params.context.correlationId ??
+      makeDeterministicCorrelationId(parentWorkflowId);
+
+    const event: DomainEvent = {
+      eventId,
+      eventType: params.eventType,
+      timestamp: "",
+      source: params.source,
+      payload: params.payload,
+      emitKey: params.emitKey,
+      parentWorkflowId,
+      context: {
+        ...params.context,
+        correlationId,
+      },
+      subject: params.subject,
+      actor: params.actor ?? { type: "service", id: params.source },
+    };
+
+    return { event, workflowId };
   }
 }

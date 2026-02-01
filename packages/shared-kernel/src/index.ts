@@ -19,7 +19,6 @@ export {
 export {
   ServiceBroker,
   type ServiceBrokerOptions,
-  type EmitParams,
 } from "./broker/ServiceBroker";
 export { BrokerActions } from "./broker/BrokerActions";
 export { EventHandlers } from "./broker/EventHandlers";

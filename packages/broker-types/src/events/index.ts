@@ -1,8 +1,7 @@
 /**
  * Broker event types - organized by service
  *
- * Events are published via broker.emit() or broker.broadcast()
- * and consumed by event handlers.
+ * Events are returned from workflows and emitted via runWorkflow.
  */
 
 import type { EntityRef } from "../shared.js";

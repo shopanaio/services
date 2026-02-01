@@ -65,34 +65,6 @@ describe('ServiceBroker', () => {
     });
   });
 
-  it('emit() calls events.emit action with auto-injected source', async () => {
-    const registry = new ActionRegistry();
-    const broker = createBroker({ registry });
-
-    // Register a mock events.emit action
-    const mockEmitResult = { workflowId: 'wf-123', eventId: 'evt-456' };
-    const mockHandler = jest.fn(async () => mockEmitResult);
-    registry.register('events.emit', mockHandler);
-
-    const result = await broker.emit('order.created', {
-      payload: { id: '1' },
-      context: { tenantId: 'tenant-1' },
-      subject: { type: 'order', id: '1' },
-      emitKey: 'order:1',
-    });
-
-    expect(result).toEqual(mockEmitResult);
-    // source is auto-injected from serviceName ('payments')
-    expect(mockHandler).toHaveBeenCalledWith({
-      eventType: 'order.created',
-      source: 'payments',
-      payload: { id: '1' },
-      context: { tenantId: 'tenant-1' },
-      subject: { type: 'order', id: '1' },
-      emitKey: 'order:1',
-    });
-  });
-
   it('isHealthy returns true', () => {
     const broker = createBroker();
     expect(broker.isHealthy()).toBe(true);
