@@ -1,0 +1,82 @@
+mutation ProductUpdate(
+  $productId: ID!
+  $expectedRevision: Int
+  $operations: ProductUpdateInput
+) {
+  inventoryMutation {
+    productUpdate(
+      productId: $productId
+      expectedRevision: $expectedRevision
+      operations: $operations
+    ) {
+      product {
+        id
+        handle
+        title
+        revision
+        isPublished
+        publishedAt
+        updatedAt
+        description {
+          text
+          html
+          json
+        }
+        excerpt
+        seo {
+          seoTitle
+          seoDescription
+        }
+        variants(first: 20) {
+          edges {
+            node {
+              id
+              handle
+              isDefault
+              sku
+              price {
+                currency
+                amountMinor
+                compareAtMinor
+              }
+              stock {
+                id
+                quantityOnHand
+                warehouse {
+                  id
+                  code
+                }
+              }
+              weight {
+                value
+              }
+              cost {
+                currency
+                unitCostMinor
+              }
+              dimensions {
+                width
+                height
+                length
+              }
+            }
+          }
+        }
+      }
+      operationResults {
+        type
+        applied
+        errors {
+          message
+          code
+          field
+        }
+      }
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}

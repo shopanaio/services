@@ -60,7 +60,7 @@ export class EventDispatchWorkflow extends BrokerWorkflows {
     const handlers = await this.stepGetAvailableHandlers(event.eventType);
 
     const results = await Promise.all(
-      handlers.map((handler) => this.tryInvokeHandler(event, handler))
+      handlers.map((handler) => this.tryInvokeHandler(event, handler)),
     );
 
     await this.stepUpdateEventStatus(event.eventId, results);
@@ -76,13 +76,15 @@ export class EventDispatchWorkflow extends BrokerWorkflows {
 
   @WorkflowStep()
   private async stepPersistEvent(
-    event: DomainEvent
+    event: DomainEvent,
   ): Promise<{ timestamp: string }> {
     return this.repository.persistEvent(event);
   }
 
   @WorkflowStep()
-  private async stepGetAvailableHandlers(eventType: string): Promise<HandlerInfo[]> {
+  private async stepGetAvailableHandlers(
+    eventType: string,
+  ): Promise<HandlerInfo[]> {
     const config = getConfig();
     const serviceNames = Object.keys(config.services ?? {});
     const handlers: HandlerInfo[] = [];
@@ -111,7 +113,7 @@ export class EventDispatchWorkflow extends BrokerWorkflows {
    */
   private async tryInvokeHandler(
     event: DomainEvent,
-    handler: HandlerInfo
+    handler: HandlerInfo,
   ): Promise<HandlerInvocationResult> {
     const { serviceName, action, retryPolicy } = handler;
     const timeoutMs = retryPolicy.timeoutMs ?? DEFAULT_HANDLER_TIMEOUT_MS;
@@ -138,9 +140,9 @@ export class EventDispatchWorkflow extends BrokerWorkflows {
 
           try {
             const resp: EventHandlerResponse = await withTimeout(
-              this.broker.call(action, { event }),
+              () => this.broker.call(action, { event }),
               timeoutMs,
-              action
+              action,
             );
             const durationMs = Date.now() - startTime;
 
@@ -180,7 +182,7 @@ export class EventDispatchWorkflow extends BrokerWorkflows {
           maxAttempts: retryPolicy.maxAttempts,
           intervalSeconds: retryPolicy.intervalSeconds,
           backoffRate: retryPolicy.backoffRate,
-        }
+        },
       );
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
@@ -189,9 +191,14 @@ export class EventDispatchWorkflow extends BrokerWorkflows {
         handler,
         errorMsg,
         undefined,
-        retryPolicy.maxAttempts
+        retryPolicy.maxAttempts,
       );
-      return { service: serviceName, status: "failed", error: errorMsg, durationMs: 0 };
+      return {
+        service: serviceName,
+        status: "failed",
+        error: errorMsg,
+        durationMs: 0,
+      };
     }
 
     if (stepResult.kind === "timeout") {
@@ -200,7 +207,7 @@ export class EventDispatchWorkflow extends BrokerWorkflows {
         handler,
         stepResult.error.message,
         stepResult.error.code,
-        1 // Only 1 attempt - timeout is non-retryable
+        1, // Only 1 attempt - timeout is non-retryable
       );
       return {
         service: serviceName,
@@ -216,7 +223,7 @@ export class EventDispatchWorkflow extends BrokerWorkflows {
         handler,
         stepResult.error.message,
         stepResult.error.code,
-        1
+        1,
       );
       return {
         service: serviceName,
@@ -239,7 +246,7 @@ export class EventDispatchWorkflow extends BrokerWorkflows {
     handler: HandlerInfo,
     error: string,
     errorCode: string | undefined,
-    attempts: number
+    attempts: number,
   ): Promise<void> {
     await this.repository.addToDLQ({
       eventId: event.eventId,
@@ -256,12 +263,15 @@ export class EventDispatchWorkflow extends BrokerWorkflows {
   @WorkflowStep()
   private async stepUpdateEventStatus(
     eventId: string,
-    results: HandlerInvocationResult[]
+    results: HandlerInvocationResult[],
   ): Promise<void> {
     await this.repository.updateEventStatus(eventId, results);
   }
 
-  private buildEvent(params: EmitParams): { event: DomainEvent; workflowId: string } {
+  private buildEvent(params: EmitParams): {
+    event: DomainEvent;
+    workflowId: string;
+  } {
     if (!params.emitKey || params.emitKey.trim().length === 0) {
       throw new Error("emitKey is required and must be non-empty");
     }

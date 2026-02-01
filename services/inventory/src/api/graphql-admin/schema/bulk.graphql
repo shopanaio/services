@@ -20,10 +20,13 @@ enum BulkUpdateItemStatus {
 
 enum BulkUpdateOpType {
   PRODUCT_UPDATE
-  PRODUCT_UPDATE_STATUS
-  VARIANT_UPDATE_PRICING
-  VARIANT_UPDATE_DIMENSIONS
-  VARIANT_UPDATE_INVENTORY
+  VARIANT_UPDATE
+}
+
+enum BulkUpdateCancelReason {
+  USER
+  SUPERSEDED
+  SYSTEM
 }
 
 enum ProductStatusAction {
@@ -36,35 +39,31 @@ enum ProductStatus {
   PUBLISHED
 }
 
-enum BulkUpdateCancelReason {
-  USER
-  SUPERSEDED
-  SYSTEM
-}
-
 # ════════════════════════════════════════════════════════════
 #  Input Types
 # ════════════════════════════════════════════════════════════
 
 """
-Bulk update input. Max 500 operations total.
-Each array = one operation type. No grouping by product needed.
+Bulk update input - same structure as productUpdate but for multiple products.
+Max 100 products, 500 operations total.
 """
 input ProductBulkUpdateInput {
-  """Update product fields. Reuses ProductUpdateInput (id = productId)."""
-  productUpdate: [ProductUpdateInput!]
+  """List of products to update with their operations."""
+  products: [ProductBulkUpdateItem!]!
+}
 
-  """Change product publish status. Reuses ProductUpdateStatusInput."""
-  productUpdateStatus: [ProductUpdateStatusInput!]
+"""
+A single product's update within a bulk request.
+"""
+input ProductBulkUpdateItem {
+  """The product ID to update."""
+  productId: ID!
 
-  """Update variant pricing. Reuses VariantUpdatePricingInput."""
-  variantUpdatePricing: [VariantUpdatePricingInput!]
+  """Expected revision for optimistic locking. If provided, fails if product was modified."""
+  expectedRevision: Int
 
-  """Update variant dimensions. Reuses VariantUpdateDimensionsInput."""
-  variantUpdateDimensions: [VariantUpdateDimensionsInput!]
-
-  """Update variant inventory (includes weight). Reuses VariantUpdateInventoryInput."""
-  variantUpdateInventory: [VariantUpdateInventoryInput!]
+  """Product-level operations."""
+  operations: ProductUpdateInput
 }
 
 # ════════════════════════════════════════════════════════════

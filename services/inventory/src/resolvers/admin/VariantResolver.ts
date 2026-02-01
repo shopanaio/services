@@ -6,12 +6,12 @@ import type {
   VariantMediaItem,
   VariantPrice,
   VariantWeight,
-  WarehouseStock,
 } from "./interfaces/index.js";
 import type { Variant } from "../../repositories/models/index.js";
 import type { PricingCursorInput } from "../../repositories/pricing/PricingRepository.js";
 import { InventoryType } from "./InventoryType.js";
 import { VariantPriceResolver } from "./VariantPriceResolver.js";
+import { StockResolver } from "./StockResolver.js";
 
 /**
  * Variant resolver - resolves Variant domain interface.
@@ -173,16 +173,9 @@ export class VariantResolver extends InventoryType<string, Variant | null> {
     };
   }
 
-  async stock(): Promise<WarehouseStock[]> {
+  async stock(): Promise<StockResolver[]> {
     const stocks = await this.$ctx.loaders.variantStock.load(this.$props);
-    return stocks.map((s) => ({
-      id: s.id,
-      warehouseId: s.warehouseId,
-      variantId: s.variantId,
-      quantityOnHand: s.quantityOnHand,
-      createdAt: s.createdAt,
-      updatedAt: s.updatedAt,
-    }));
+    return stocks.map((s) => new StockResolver(s.id, this.$ctx));
   }
 
   async inStock(): Promise<boolean> {

@@ -67,7 +67,7 @@ async function prepareWarehouseStocks(api: ApiFixtures['api']): Promise<PrepareR
         input: {
           variantId,
           warehouseId: warehouse.id,
-          quantity: item.quantity,
+          onHand: item.quantity,
         },
       },
     });

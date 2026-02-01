@@ -22,6 +22,17 @@ test.describe('Physical Attributes API (Dimensions & Weight)', () => {
     return { product, variantId };
   }
 
+  /**
+   * Helper to create a warehouse
+   */
+  async function createWarehouse(api: any, code: string, name: string, isDefault = false) {
+    const { data } = await api.admin.mutation('inventory-api/WarehouseCreate', {
+      variables: { input: { code, name, isDefault } },
+    });
+
+    return data.inventoryMutation.warehouseCreate.warehouse;
+  }
+
   test.describe('Variant Dimensions', () => {
     test('should set variant dimensions', async ({ api }) => {
       const { product, variantId } = await createProductWithVariant(api, 'Dimensions Test Product');
@@ -37,16 +48,14 @@ test.describe('Physical Attributes API (Dimensions & Weight)', () => {
         variables: {
           input: {
             variantId,
-            dimensions: {
-              width: 100, // 100mm
-              length: 200, // 200mm
-              height: 50, // 50mm
-            },
+            width: 100, // 100mm
+            length: 200, // 200mm
+            height: 50, // 50mm
           },
         },
       });
 
-      const result = data.inventoryMutation.variantSetDimensions;
+      const result = data.inventoryMutation.variantUpdateDimensions;
       expect(result.userErrors).toHaveLength(0);
       expect(result.variant).toBeTruthy();
       expect(result.variant?.dimensions?.width).toBe(100);
@@ -67,7 +76,9 @@ test.describe('Physical Attributes API (Dimensions & Weight)', () => {
         variables: {
           input: {
             variantId,
-            dimensions: { width: 100, length: 100, height: 100 },
+            width: 100,
+            length: 100,
+            height: 100,
           },
         },
       });
@@ -77,12 +88,14 @@ test.describe('Physical Attributes API (Dimensions & Weight)', () => {
         variables: {
           input: {
             variantId,
-            dimensions: { width: 150, length: 250, height: 75 },
+            width: 150,
+            length: 250,
+            height: 75,
           },
         },
       });
 
-      const result = data.inventoryMutation.variantSetDimensions;
+      const result = data.inventoryMutation.variantUpdateDimensions;
       expect(result.userErrors).toHaveLength(0);
       expect(result.variant?.dimensions?.width).toBe(150);
       expect(result.variant?.dimensions?.length).toBe(250);
@@ -94,13 +107,15 @@ test.describe('Physical Attributes API (Dimensions & Weight)', () => {
         variables: {
           input: {
             variantId: 'invalid-variant-id',
-            dimensions: { width: 100, length: 100, height: 100 },
+            width: 100,
+            length: 100,
+            height: 100,
           },
         },
         throwOnError: false,
       });
 
-      const result = data.inventoryMutation.variantSetDimensions;
+      const result = data.inventoryMutation.variantUpdateDimensions;
       expect(result.variant).toBeNull();
       expect(result.userErrors.length).toBeGreaterThan(0);
     });
@@ -117,18 +132,21 @@ test.describe('Physical Attributes API (Dimensions & Weight)', () => {
         return;
       }
 
+      // Create warehouse (required for variantUpdateInventory)
+      const warehouse = await createWarehouse(api, 'WH-WEIGHT-1', 'Weight Test Warehouse');
+
       const { data } = await api.admin.mutation('inventory-api/VariantSetWeight', {
         variables: {
           input: {
             variantId,
-            weight: {
-              value: 500, // 500 grams
-            },
+            warehouseId: warehouse.id,
+            onHand: 0, // Required field
+            weight: 500, // 500 grams
           },
         },
       });
 
-      const result = data.inventoryMutation.variantSetWeight;
+      const result = data.inventoryMutation.variantUpdateInventory;
       expect(result.userErrors).toHaveLength(0);
       expect(result.variant).toBeTruthy();
       expect(result.variant?.weight?.value).toBe(500);
@@ -142,12 +160,17 @@ test.describe('Physical Attributes API (Dimensions & Weight)', () => {
         return;
       }
 
+      // Create warehouse
+      const warehouse = await createWarehouse(api, 'WH-WEIGHT-2', 'Weight Update Warehouse');
+
       // Set initial weight
       await api.admin.mutation('inventory-api/VariantSetWeight', {
         variables: {
           input: {
             variantId,
-            weight: { value: 500 },
+            warehouseId: warehouse.id,
+            onHand: 0,
+            weight: 500,
           },
         },
       });
@@ -157,28 +180,35 @@ test.describe('Physical Attributes API (Dimensions & Weight)', () => {
         variables: {
           input: {
             variantId,
-            weight: { value: 1000 }, // 1kg
+            warehouseId: warehouse.id,
+            onHand: 0,
+            weight: 1000, // 1kg
           },
         },
       });
 
-      const result = data.inventoryMutation.variantSetWeight;
+      const result = data.inventoryMutation.variantUpdateInventory;
       expect(result.userErrors).toHaveLength(0);
       expect(result.variant?.weight?.value).toBe(1000);
     });
 
     test('should return error for invalid variant ID', async ({ api }) => {
+      // Create warehouse
+      const warehouse = await createWarehouse(api, 'WH-WEIGHT-3', 'Weight Error Warehouse');
+
       const { data } = await api.admin.mutation('inventory-api/VariantSetWeight', {
         variables: {
           input: {
             variantId: 'invalid-variant-id',
-            weight: { value: 500 },
+            warehouseId: warehouse.id,
+            onHand: 0,
+            weight: 500,
           },
         },
         throwOnError: false,
       });
 
-      const result = data.inventoryMutation.variantSetWeight;
+      const result = data.inventoryMutation.variantUpdateInventory;
       expect(result.variant).toBeNull();
       expect(result.userErrors.length).toBeGreaterThan(0);
     });
@@ -193,30 +223,37 @@ test.describe('Physical Attributes API (Dimensions & Weight)', () => {
         return;
       }
 
+      // Create warehouse for weight
+      const warehouse = await createWarehouse(api, 'WH-COMBINED', 'Combined Test Warehouse');
+
       // Set dimensions
       const { data: dimData } = await api.admin.mutation('inventory-api/VariantSetDimensions', {
         variables: {
           input: {
             variantId,
-            dimensions: { width: 300, length: 400, height: 200 },
+            width: 300,
+            length: 400,
+            height: 200,
           },
         },
       });
 
-      expect(dimData.inventoryMutation.variantSetDimensions.userErrors).toHaveLength(0);
+      expect(dimData.inventoryMutation.variantUpdateDimensions.userErrors).toHaveLength(0);
 
       // Set weight
       const { data: weightData } = await api.admin.mutation('inventory-api/VariantSetWeight', {
         variables: {
           input: {
             variantId,
-            weight: { value: 2500 }, // 2.5kg
+            warehouseId: warehouse.id,
+            onHand: 0,
+            weight: 2500, // 2.5kg
           },
         },
       });
 
-      expect(weightData.inventoryMutation.variantSetWeight.userErrors).toHaveLength(0);
-      expect(weightData.inventoryMutation.variantSetWeight.variant?.weight?.value).toBe(2500);
+      expect(weightData.inventoryMutation.variantUpdateInventory.userErrors).toHaveLength(0);
+      expect(weightData.inventoryMutation.variantUpdateInventory.variant?.weight?.value).toBe(2500);
     });
   });
 });

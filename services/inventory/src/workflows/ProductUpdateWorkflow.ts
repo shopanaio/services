@@ -17,7 +17,10 @@ import type {
   VariantUpdateParams,
   OperationResult,
 } from "./dto/ProductUpdateWorkflowDto.js";
-import type { ProductChanges, VariantChanges } from "../scripts/types/ProductChanges.js";
+import type {
+  ProductChanges,
+  VariantChanges,
+} from "../scripts/types/ProductChanges.js";
 import type { UserError } from "../scripts/types/ScriptResult.js";
 
 import { ProductUpdateScript } from "../scripts/product/ProductUpdateScript.js";
@@ -48,14 +51,16 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
   }
 
   @Workflow("productUpdate")
-  async run(input: ProductUpdateWorkflowInput): Promise<ProductUpdateWorkflowResult> {
+  async run(
+    input: ProductUpdateWorkflowInput,
+  ): Promise<ProductUpdateWorkflowResult> {
     const results: OperationResult[] = [];
     const changes: ProductChanges = { productId: input.productId };
 
     // 1. Acquire revision (atomic compare-and-swap)
     const acquired = await this.stepAcquireRevision(
       input.productId,
-      input.expectedRevision
+      input.expectedRevision,
     );
     if ("error" in acquired) {
       return {
@@ -76,9 +81,10 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     }
 
     // 3. Emit event with partial snapshot + new revision
-    const hasChanges = changes.product !== undefined || changes.variants !== undefined;
+    const hasChanges =
+      changes.product !== undefined || changes.variants !== undefined;
     if (hasChanges) {
-      await this.stepEmitEvent(input, changes, revision);
+      await this.workflowEmitEvent(input, changes, revision);
     }
 
     return {
@@ -95,7 +101,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
   @WorkflowStep()
   private async stepAcquireRevision(
     productId: string,
-    expectedRevision?: number
+    expectedRevision?: number,
   ): Promise<{ revision: number } | { error: UserError }> {
     const db = this.kernel.db;
 
@@ -141,14 +147,18 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
   @WorkflowStep()
   private async stepProductUpdate(
     params: ProductUpdateParams,
-    changes: ProductChanges
+    changes: ProductChanges,
   ): Promise<OperationResult> {
     const errors: UserError[] = [];
     const { id, handle, title, content, seo, status, media } = params;
 
     // Identity fields (handle, title)
     if (handle !== undefined || title !== undefined) {
-      const r = await this.kernel.runScript(ProductUpdateScript, { id, handle, title });
+      const r = await this.kernel.runScript(ProductUpdateScript, {
+        id,
+        handle,
+        title,
+      });
       errors.push(...r.userErrors);
       if (r.changes) {
         changes.product = { ...changes.product, ...r.changes };
@@ -157,7 +167,10 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
 
     // Content fields (description, excerpt)
     if (content) {
-      const r = await this.kernel.runScript(ProductUpdateContentScript, { id, ...content });
+      const r = await this.kernel.runScript(ProductUpdateContentScript, {
+        id,
+        ...content,
+      });
       errors.push(...r.userErrors);
       if (r.changes) {
         changes.product = { ...changes.product, content: r.changes };
@@ -166,7 +179,10 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
 
     // SEO fields
     if (seo) {
-      const r = await this.kernel.runScript(ProductUpdateSeoScript, { id, ...seo });
+      const r = await this.kernel.runScript(ProductUpdateSeoScript, {
+        id,
+        ...seo,
+      });
       errors.push(...r.userErrors);
       if (r.changes) {
         changes.product = { ...changes.product, seo: r.changes };
@@ -211,10 +227,11 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
   @WorkflowStep()
   private async stepVariantUpdate(
     params: VariantUpdateParams,
-    changes: ProductChanges
+    changes: ProductChanges,
   ): Promise<OperationResult> {
     const errors: UserError[] = [];
-    const { variantId, pricing, inventory, dimensions, media, options } = params;
+    const { variantId, pricing, inventory, dimensions, media, options } =
+      params;
 
     // Helper to merge variant changes
     const mergeVariantChanges = (c: Partial<VariantChanges>) => {
@@ -223,31 +240,46 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     };
 
     if (pricing) {
-      const r = await this.kernel.runScript(VariantUpdatePricingScript, { variantId, ...pricing });
+      const r = await this.kernel.runScript(VariantUpdatePricingScript, {
+        variantId,
+        ...pricing,
+      });
       errors.push(...r.userErrors);
       if (r.changes) mergeVariantChanges({ pricing: r.changes });
     }
 
     if (inventory) {
-      const r = await this.kernel.runScript(VariantUpdateInventoryScript, { variantId, ...inventory });
+      const r = await this.kernel.runScript(VariantUpdateInventoryScript, {
+        variantId,
+        ...inventory,
+      });
       errors.push(...r.userErrors);
       if (r.changes) mergeVariantChanges({ inventory: r.changes });
     }
 
     if (dimensions) {
-      const r = await this.kernel.runScript(VariantUpdateDimensionsScript, { variantId, ...dimensions });
+      const r = await this.kernel.runScript(VariantUpdateDimensionsScript, {
+        variantId,
+        ...dimensions,
+      });
       errors.push(...r.userErrors);
       if (r.changes) mergeVariantChanges({ dimensions: r.changes });
     }
 
     if (media) {
-      const r = await this.kernel.runScript(VariantUpdateMediaScript, { variantId, ...media });
+      const r = await this.kernel.runScript(VariantUpdateMediaScript, {
+        variantId,
+        ...media,
+      });
       errors.push(...r.userErrors);
       if (r.changes) mergeVariantChanges({ media: r.changes });
     }
 
     if (options) {
-      const r = await this.kernel.runScript(VariantUpdateOptionsScript, { variantId, links: options.set });
+      const r = await this.kernel.runScript(VariantUpdateOptionsScript, {
+        variantId,
+        links: options.set,
+      });
       errors.push(...r.userErrors);
       if (r.changes) mergeVariantChanges({ options: r.changes });
     }
@@ -262,11 +294,10 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
   /**
    * Emit productUpdated event with partial snapshot.
    */
-  @WorkflowStep()
-  private async stepEmitEvent(
+  private async workflowEmitEvent(
     input: ProductUpdateWorkflowInput,
     changes: ProductChanges,
-    revision: number
+    revision: number,
   ): Promise<void> {
     await this.broker.runWorkflow(
       "events.emit",
@@ -295,7 +326,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
         workflowId: DBOS.workflowID!,
         stepId: "emitProductUpdated",
         callId: input.productId,
-      }
+      },
     );
   }
 }

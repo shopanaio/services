@@ -276,6 +276,111 @@ export type ApiBucketCreatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+export enum BulkUpdateCancelReason {
+  Superseded = 'SUPERSEDED',
+  System = 'SYSTEM',
+  User = 'USER'
+}
+
+/** Single operation in bulk update job. */
+export type ApiBulkUpdateItem = {
+  __typename?: 'BulkUpdateItem';
+  /** Cancel reason (only for CANCELLED/SUPERSEDED). */
+  cancelReason?: Maybe<BulkUpdateCancelReason>;
+  /** Execution errors. */
+  errors: Array<ApiBulkUpdateUserError>;
+  /** When finished. */
+  finishedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Item ID. */
+  id: Scalars['ID']['output'];
+  /** Order within product. */
+  opIndex: Scalars['Int']['output'];
+  /** Operation type. */
+  opType: BulkUpdateOpType;
+  /** Product ID. */
+  productId: Scalars['ID']['output'];
+  /** When started. */
+  startedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Current status. */
+  status: BulkUpdateItemStatus;
+  /** Job that superseded this item. */
+  supersededByJobId?: Maybe<Scalars['ID']['output']>;
+  /** Variant ID (null for product-level operations). */
+  variantId?: Maybe<Scalars['ID']['output']>;
+};
+
+export type ApiBulkUpdateItemConnection = {
+  __typename?: 'BulkUpdateItemConnection';
+  edges: Array<ApiBulkUpdateItemEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiBulkUpdateItemEdge = {
+  __typename?: 'BulkUpdateItemEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiBulkUpdateItem;
+};
+
+export enum BulkUpdateItemStatus {
+  Cancelled = 'CANCELLED',
+  Failed = 'FAILED',
+  Pending = 'PENDING',
+  Running = 'RUNNING',
+  Succeeded = 'SUCCEEDED',
+  Superseded = 'SUPERSEDED'
+}
+
+/** Job progress. All counters computed from items. */
+export type ApiBulkUpdateJobProgress = {
+  __typename?: 'BulkUpdateJobProgress';
+  /** Cancelled. */
+  cancelled: Scalars['Int']['output'];
+  /** Done (succeeded + failed + cancelled + superseded). */
+  done: Scalars['Int']['output'];
+  /** Failed. */
+  failed: Scalars['Int']['output'];
+  /** Pending execution. */
+  pending: Scalars['Int']['output'];
+  /** Currently running. */
+  running: Scalars['Int']['output'];
+  /** Successfully applied. */
+  succeeded: Scalars['Int']['output'];
+  /** Superseded by another job. */
+  superseded: Scalars['Int']['output'];
+  /** Total operations. */
+  total: Scalars['Int']['output'];
+};
+
+export enum BulkUpdateJobStatus {
+  Cancelled = 'CANCELLED',
+  Completed = 'COMPLETED',
+  Queued = 'QUEUED',
+  Running = 'RUNNING'
+}
+
+export enum BulkUpdateOpType {
+  ProductUpdate = 'PRODUCT_UPDATE',
+  VariantUpdate = 'VARIANT_UPDATE'
+}
+
+/** Bulk update error with operation context. */
+export type ApiBulkUpdateUserError = ApiUserError & {
+  __typename?: 'BulkUpdateUserError';
+  /** Error code. */
+  code?: Maybe<Scalars['String']['output']>;
+  /** Input field path. */
+  field?: Maybe<Array<Scalars['String']['output']>>;
+  /** Error message. */
+  message: Scalars['String']['output'];
+  /** Operation that failed. */
+  operation?: Maybe<Scalars['String']['output']>;
+  /** Product ID. */
+  productId?: Maybe<Scalars['ID']['output']>;
+  /** Variant ID. */
+  variantId?: Maybe<Scalars['ID']['output']>;
+};
+
 export type ApiCollectionMeta = {
   __typename?: 'CollectionMeta';
   count: Scalars['Int']['output'];
@@ -1648,6 +1753,11 @@ export type ApiInventoryBackorder = {
 
 export type ApiInventoryMutation = {
   __typename?: 'InventoryMutation';
+  /**
+   * Start async bulk update.
+   * Requires X-Idempotency-Key header.
+   */
+  productBulkUpdate: ApiProductBulkUpdatePayload;
   productCreate: ApiProductCreatePayload;
   productDelete: ApiProductDeletePayload;
   productFeatureCreate: ApiProductFeatureCreatePayload;
@@ -1657,21 +1767,27 @@ export type ApiInventoryMutation = {
   productOptionCreate: ApiProductOptionCreatePayload;
   productOptionDelete: ApiProductOptionDeletePayload;
   productOptionUpdate: ApiProductOptionUpdatePayload;
-  productPublish: ApiProductPublishPayload;
-  productUnpublish: ApiProductUnpublishPayload;
+  /**
+   * Unified product update with optimistic locking.
+   * Supports product and variant updates in a single request.
+   */
   productUpdate: ApiProductUpdatePayload;
+  productUpdateStatus: ApiProductUpdateStatusPayload;
   variantCreate: ApiVariantCreatePayload;
   variantDelete: ApiVariantDeletePayload;
-  variantSetCost: ApiVariantSetCostPayload;
-  variantSetDimensions: ApiVariantSetDimensionsPayload;
-  variantSetMedia: ApiVariantSetMediaPayload;
-  variantSetPricing: ApiVariantSetPricingPayload;
-  variantSetSku: ApiVariantSetSkuPayload;
-  variantSetStock: ApiVariantSetStockPayload;
-  variantSetWeight: ApiVariantSetWeightPayload;
+  variantUpdateDimensions: ApiVariantUpdateDimensionsPayload;
+  variantUpdateInventory: ApiVariantUpdateInventoryPayload;
+  variantUpdateMedia: ApiVariantUpdateMediaPayload;
+  variantUpdateOptions: ApiVariantUpdateOptionsPayload;
+  variantUpdatePricing: ApiVariantUpdatePricingPayload;
   warehouseCreate: ApiWarehouseCreatePayload;
   warehouseDelete: ApiWarehouseDeletePayload;
   warehouseUpdate: ApiWarehouseUpdatePayload;
+};
+
+
+export type ApiInventoryMutationProductBulkUpdateArgs = {
+  input: ApiProductBulkUpdateInput;
 };
 
 
@@ -1720,18 +1836,15 @@ export type ApiInventoryMutationProductOptionUpdateArgs = {
 };
 
 
-export type ApiInventoryMutationProductPublishArgs = {
-  input: ApiProductPublishInput;
-};
-
-
-export type ApiInventoryMutationProductUnpublishArgs = {
-  input: ApiProductUnpublishInput;
-};
-
-
 export type ApiInventoryMutationProductUpdateArgs = {
-  input: ApiProductUpdateInput;
+  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
+  operations?: InputMaybe<ApiProductUpdateInput>;
+  productId: Scalars['ID']['input'];
+};
+
+
+export type ApiInventoryMutationProductUpdateStatusArgs = {
+  input: ApiProductUpdateStatusInput;
 };
 
 
@@ -1745,38 +1858,28 @@ export type ApiInventoryMutationVariantDeleteArgs = {
 };
 
 
-export type ApiInventoryMutationVariantSetCostArgs = {
-  input: ApiVariantSetCostInput;
+export type ApiInventoryMutationVariantUpdateDimensionsArgs = {
+  input: ApiVariantUpdateDimensionsInput;
 };
 
 
-export type ApiInventoryMutationVariantSetDimensionsArgs = {
-  input: ApiVariantSetDimensionsInput;
+export type ApiInventoryMutationVariantUpdateInventoryArgs = {
+  input: ApiVariantUpdateInventoryInput;
 };
 
 
-export type ApiInventoryMutationVariantSetMediaArgs = {
-  input: ApiVariantSetMediaInput;
+export type ApiInventoryMutationVariantUpdateMediaArgs = {
+  input: ApiVariantUpdateMediaInput;
 };
 
 
-export type ApiInventoryMutationVariantSetPricingArgs = {
-  input: ApiVariantSetPricingInput;
+export type ApiInventoryMutationVariantUpdateOptionsArgs = {
+  input: ApiVariantUpdateOptionsInput;
 };
 
 
-export type ApiInventoryMutationVariantSetSkuArgs = {
-  input: ApiVariantSetSkuInput;
-};
-
-
-export type ApiInventoryMutationVariantSetStockArgs = {
-  input: ApiVariantSetStockInput;
-};
-
-
-export type ApiInventoryMutationVariantSetWeightArgs = {
-  input: ApiVariantSetWeightInput;
+export type ApiInventoryMutationVariantUpdatePricingArgs = {
+  input: ApiVariantUpdatePricingInput;
 };
 
 
@@ -1810,6 +1913,8 @@ export type ApiInventoryQuery = {
   nodes: Array<Maybe<ApiNode>>;
   /** Get a product by ID */
   product?: Maybe<ApiProduct>;
+  /** Get bulk update job by ID. */
+  productBulkUpdateJob?: Maybe<ApiProductBulkUpdateJob>;
   /** Get products with Relay-style pagination */
   products: ApiProductConnection;
   /** Get a variant by ID */
@@ -1835,6 +1940,11 @@ export type ApiInventoryQueryNodesArgs = {
 
 export type ApiInventoryQueryProductArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+export type ApiInventoryQueryProductBulkUpdateJobArgs = {
+  jobId: Scalars['ID']['input'];
 };
 
 
@@ -2478,6 +2588,23 @@ export type ApiNode = {
   id: Scalars['ID']['output'];
 };
 
+/** Result of a single operation in the unified update. */
+export type ApiOperationResult = {
+  __typename?: 'OperationResult';
+  /** Whether the operation was applied successfully. */
+  applied: Scalars['Boolean']['output'];
+  /** Errors that occurred during this operation. */
+  errors: Array<ApiGenericUserError>;
+  /** The type of operation. */
+  type: OperationType;
+};
+
+/** Type of operation in the unified update. */
+export enum OperationType {
+  ProductUpdate = 'PRODUCT_UPDATE',
+  VariantUpdate = 'VARIANT_UPDATE'
+}
+
 /** Display type for product options in the UI. */
 export enum OptionDisplayType {
   Buttons = 'BUTTONS',
@@ -2985,6 +3112,8 @@ export type ApiProduct = ApiNode & {
   options: Array<ApiProductOption>;
   /** The date and time when the product was published, or null if unpublished. */
   publishedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Optimistic locking revision number. Incremented on each update. */
+  revision: Scalars['Int']['output'];
   /** SEO and Open Graph metadata. */
   seo?: Maybe<ApiProductSeo>;
   /** Product title. */
@@ -3006,6 +3135,63 @@ export type ApiProductVariantsArgs = {
   last?: InputMaybe<Scalars['Int']['input']>;
 };
 
+/**
+ * Bulk update input - same structure as productUpdate but for multiple products.
+ * Max 100 products, 500 operations total.
+ */
+export type ApiProductBulkUpdateInput = {
+  /** List of products to update with their operations. */
+  products: Array<ApiProductBulkUpdateItem>;
+};
+
+/** A single product's update within a bulk request. */
+export type ApiProductBulkUpdateItem = {
+  /** Expected revision for optimistic locking. If provided, fails if product was modified. */
+  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
+  /** Product-level operations. */
+  operations?: InputMaybe<ApiProductUpdateInput>;
+  /** The product ID to update. */
+  productId: Scalars['ID']['input'];
+};
+
+/** Bulk update job with progress. */
+export type ApiProductBulkUpdateJob = {
+  __typename?: 'ProductBulkUpdateJob';
+  /** When created. */
+  createdAt: Scalars['DateTime']['output'];
+  /** When finished. */
+  finishedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Job ID. */
+  id: Scalars['ID']['output'];
+  /** Items with pagination and filtering. */
+  items: ApiBulkUpdateItemConnection;
+  /** Progress computed from items. */
+  progress: ApiBulkUpdateJobProgress;
+  /** When started running. */
+  startedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Current status. */
+  status: BulkUpdateJobStatus;
+  /** Total products in batch. */
+  totalProducts: Scalars['Int']['output'];
+};
+
+
+/** Bulk update job with progress. */
+export type ApiProductBulkUpdateJobItemsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  statusFilter?: InputMaybe<Array<BulkUpdateItemStatus>>;
+};
+
+/** Result of bulk update start/cancel. */
+export type ApiProductBulkUpdatePayload = {
+  __typename?: 'ProductBulkUpdatePayload';
+  /** Created or updated job (null on validation error). */
+  job?: Maybe<ApiProductBulkUpdateJob>;
+  /** Validation/execution errors. */
+  userErrors: Array<ApiBulkUpdateUserError>;
+};
+
 /** A connection to a list of Product items. */
 export type ApiProductConnection = {
   __typename?: 'ProductConnection';
@@ -3015,6 +3201,14 @@ export type ApiProductConnection = {
   pageInfo: ApiPageInfo;
   /** The total number of products. */
   totalCount: Scalars['Int']['output'];
+};
+
+/** Input for product content (description, excerpt). */
+export type ApiProductContentInput = {
+  /** Product description in multiple formats. */
+  description?: InputMaybe<ApiDescriptionInput>;
+  /** Short excerpt. */
+  excerpt?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** Input for creating a product with all its data in one request. */
@@ -3277,6 +3471,12 @@ export type ApiProductInventoryWidget = {
   skuStatus: ApiInventorySkuStatus;
 };
 
+/** Input for product media. */
+export type ApiProductMediaInput = {
+  /** File IDs for product media. */
+  fileIds: Array<Scalars['ID']['input']>;
+};
+
 /** A product option defines a configurable aspect of a product, such as Size or Color. */
 export type ApiProductOption = ApiNode & {
   __typename?: 'ProductOption';
@@ -3435,21 +3635,6 @@ export type ApiProductOptionValuesInput = {
   update?: InputMaybe<Array<ApiProductOptionValueUpdateInput>>;
 };
 
-/** Input for publishing a product. */
-export type ApiProductPublishInput = {
-  /** The ID of the product to publish. */
-  id: Scalars['ID']['input'];
-};
-
-/** Payload for product publish. */
-export type ApiProductPublishPayload = {
-  __typename?: 'ProductPublishPayload';
-  /** The published product. */
-  product?: Maybe<ApiProduct>;
-  /** List of errors that occurred during the mutation. */
-  userErrors: Array<ApiGenericUserError>;
-};
-
 /** SEO and Open Graph metadata for a product. */
 export type ApiProductSeo = {
   __typename?: 'ProductSeo';
@@ -3479,40 +3664,59 @@ export type ApiProductSeoInput = {
   seoTitle?: InputMaybe<Scalars['String']['input']>;
 };
 
-/** Input for unpublishing a product. */
-export type ApiProductUnpublishInput = {
-  /** The ID of the product to unpublish. */
-  id: Scalars['ID']['input'];
+export enum ProductStatus {
+  Draft = 'DRAFT',
+  Published = 'PUBLISHED'
+}
+
+export enum ProductStatusAction {
+  Publish = 'PUBLISH',
+  Unpublish = 'UNPUBLISH'
+}
+
+/** Input for product-level fields in the unified update. */
+export type ApiProductUpdateInput = {
+  /** Product content (description, excerpt). */
+  content?: InputMaybe<ApiProductContentInput>;
+  /** The URL-friendly handle for the product. */
+  handle?: InputMaybe<Scalars['String']['input']>;
+  /** Product media. */
+  media?: InputMaybe<ApiProductMediaInput>;
+  /** SEO and Open Graph metadata. */
+  seo?: InputMaybe<ApiProductSeoInput>;
+  /** Product status: DRAFT or PUBLISHED. */
+  status?: InputMaybe<ProductStatus>;
+  /** Product title. */
+  title?: InputMaybe<Scalars['String']['input']>;
+  /** Variant updates. */
+  variants?: InputMaybe<Array<ApiVariantUpdateInput>>;
 };
 
-/** Payload for product unpublish. */
-export type ApiProductUnpublishPayload = {
-  __typename?: 'ProductUnpublishPayload';
-  /** The unpublished product. */
+/** Payload for the unified product update mutation. */
+export type ApiProductUpdatePayload = {
+  __typename?: 'ProductUpdatePayload';
+  /** Results of each operation. */
+  operationResults: Array<ApiOperationResult>;
+  /** The updated product with new revision. */
   product?: Maybe<ApiProduct>;
-  /** List of errors that occurred during the mutation. */
+  /** All errors from all operations. */
   userErrors: Array<ApiGenericUserError>;
 };
 
-/** Input for updating a product. */
-export type ApiProductUpdateInput = {
-  /** Product description. */
-  description?: InputMaybe<ApiDescriptionInput>;
-  /** Short excerpt. */
-  excerpt?: InputMaybe<Scalars['String']['input']>;
-  /** The URL-friendly handle for the product. */
-  handle?: InputMaybe<Scalars['String']['input']>;
-  /** The product ID. */
-  id: Scalars['ID']['input'];
-  /** SEO and Open Graph metadata. */
-  seo?: InputMaybe<ApiProductSeoInput>;
-  /** Product title. */
-  title?: InputMaybe<Scalars['String']['input']>;
+/**
+ * Input for updating product status (publish or unpublish).
+ * Reused in bulk operations.
+ */
+export type ApiProductUpdateStatusInput = {
+  /** Action: PUBLISH or UNPUBLISH. */
+  action: ProductStatusAction;
+  /** Product ID. */
+  productId: Scalars['ID']['input'];
 };
 
-/** Payload for product update. */
-export type ApiProductUpdatePayload = {
-  __typename?: 'ProductUpdatePayload';
+/** Payload for product update status. */
+export type ApiProductUpdateStatusPayload = {
+  __typename?: 'ProductUpdateStatusPayload';
   /** The updated product. */
   product?: Maybe<ApiProduct>;
   /** List of errors that occurred during the mutation. */
@@ -4460,6 +4664,16 @@ export type ApiVariantDimensions = {
   width: Scalars['Int']['output'];
 };
 
+/** Input for variant dimensions in the unified update. */
+export type ApiVariantDimensionsOpInput = {
+  /** Height in millimeters. */
+  height: Scalars['Int']['input'];
+  /** Length in millimeters. */
+  length: Scalars['Int']['input'];
+  /** Width in millimeters. */
+  width: Scalars['Int']['input'];
+};
+
 /** An edge in a Variant connection. */
 export type ApiVariantEdge = {
   __typename?: 'VariantEdge';
@@ -4487,6 +4701,24 @@ export type ApiVariantInput = {
   weight?: InputMaybe<ApiWeightInput>;
 };
 
+/** Input for variant inventory in the unified update. */
+export type ApiVariantInventoryOpInput = {
+  /** Currency code for unit cost. */
+  costCurrency?: InputMaybe<CurrencyCode>;
+  /** Quantity on hand. */
+  onHand: Scalars['Int']['input'];
+  /** SKU code. */
+  sku?: InputMaybe<Scalars['String']['input']>;
+  /** Unavailable quantity (reserved, damaged, etc.). */
+  unavailable?: InputMaybe<Scalars['Int']['input']>;
+  /** Unit cost in minor units (cents). */
+  unitCostMinor?: InputMaybe<Scalars['BigInt']['input']>;
+  /** The warehouse ID. */
+  warehouseId: Scalars['ID']['input'];
+  /** Weight in grams. */
+  weight?: InputMaybe<Scalars['Int']['input']>;
+};
+
 /** Media attached to a variant with sort order. */
 export type ApiVariantMediaItem = {
   __typename?: 'VariantMediaItem';
@@ -4494,6 +4726,26 @@ export type ApiVariantMediaItem = {
   file: ApiFile;
   /** Sort order index (lower = first). */
   sortIndex: Scalars['Int']['output'];
+};
+
+/** Input for variant media in the unified update. */
+export type ApiVariantMediaOpInput = {
+  /** File IDs for variant media. */
+  fileIds: Array<Scalars['ID']['input']>;
+};
+
+/** Input for linking a variant to an option value. */
+export type ApiVariantOptionLinkInput = {
+  /** The option ID. */
+  optionId: Scalars['ID']['input'];
+  /** The option value ID. */
+  optionValueId: Scalars['ID']['input'];
+};
+
+/** Input for variant options in the unified update. */
+export type ApiVariantOptionsOpInput = {
+  /** Option value links to set (replaces existing). */
+  set: Array<ApiVariantOptionLinkInput>;
 };
 
 /** Represents a price for a variant. */
@@ -4550,61 +4802,120 @@ export type ApiVariantPriceHistoryStatistics = {
   minPriceMinor: Scalars['BigInt']['output'];
 };
 
-/** Input for setting a cost on a variant. */
-export type ApiVariantSetCostInput = {
+/** Input for variant pricing in the unified update. */
+export type ApiVariantPricingOpInput = {
+  /** The price amount in minor units. */
+  amountMinor: Scalars['BigInt']['input'];
+  /** The compare-at price in minor units (optional). */
+  compareAtMinor?: InputMaybe<Scalars['BigInt']['input']>;
   /** The currency code. */
   currency: CurrencyCode;
-  /** The unit cost in minor units. */
-  unitCostMinor: Scalars['BigInt']['input'];
-  /** The ID of the variant. */
-  variantId: Scalars['ID']['input'];
 };
 
-/** Payload for variant cost set. */
-export type ApiVariantSetCostPayload = {
-  __typename?: 'VariantSetCostPayload';
+/** Input for updating variant dimensions. */
+export type ApiVariantUpdateDimensionsInput = {
+  /** Height in millimeters. */
+  height: Scalars['Int']['input'];
+  /** Length in millimeters. */
+  length: Scalars['Int']['input'];
+  /** The ID of the variant. */
+  variantId: Scalars['ID']['input'];
+  /** Width in millimeters. */
+  width: Scalars['Int']['input'];
+};
+
+/** Payload for variant dimensions update. */
+export type ApiVariantUpdateDimensionsPayload = {
+  __typename?: 'VariantUpdateDimensionsPayload';
   /** List of errors that occurred during the mutation. */
   userErrors: Array<ApiGenericUserError>;
   /** The updated variant. */
   variant?: Maybe<ApiVariant>;
 };
 
-/** Input for setting variant dimensions. */
-export type ApiVariantSetDimensionsInput = {
-  /** The dimensions to set. */
-  dimensions: ApiDimensionsInput;
-  /** The ID of the variant. */
+/** Input for a single variant update. */
+export type ApiVariantUpdateInput = {
+  /** Variant dimensions. */
+  dimensions?: InputMaybe<ApiVariantDimensionsOpInput>;
+  /** Variant inventory (stock, SKU, weight, cost). */
+  inventory?: InputMaybe<ApiVariantInventoryOpInput>;
+  /** Variant media. */
+  media?: InputMaybe<ApiVariantMediaOpInput>;
+  /** Variant options. */
+  options?: InputMaybe<ApiVariantOptionsOpInput>;
+  /** Variant pricing. */
+  pricing?: InputMaybe<ApiVariantPricingOpInput>;
+  /** The variant ID. */
   variantId: Scalars['ID']['input'];
 };
 
-/** Payload for variant dimensions set. */
-export type ApiVariantSetDimensionsPayload = {
-  __typename?: 'VariantSetDimensionsPayload';
+/** Input for updating variant inventory (stock, SKU, weight, and unit cost). */
+export type ApiVariantUpdateInventoryInput = {
+  /** Currency code for unit cost. */
+  costCurrency?: InputMaybe<CurrencyCode>;
+  /** Quantity on hand. */
+  onHand: Scalars['Int']['input'];
+  /** SKU code. */
+  sku?: InputMaybe<Scalars['String']['input']>;
+  /** Unavailable quantity (reserved, damaged, etc.). */
+  unavailable?: InputMaybe<Scalars['Int']['input']>;
+  /** Unit cost in minor units (cents). Requires currency field. */
+  unitCostMinor?: InputMaybe<Scalars['BigInt']['input']>;
+  /** The ID of the variant. */
+  variantId: Scalars['ID']['input'];
+  /** The warehouse ID. */
+  warehouseId: Scalars['ID']['input'];
+  /** Weight in grams. */
+  weight?: InputMaybe<Scalars['Int']['input']>;
+};
+
+/** Payload for variant inventory update. */
+export type ApiVariantUpdateInventoryPayload = {
+  __typename?: 'VariantUpdateInventoryPayload';
+  /** The updated stock record. */
+  stock?: Maybe<ApiWarehouseStock>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<ApiGenericUserError>;
   /** The updated variant. */
   variant?: Maybe<ApiVariant>;
 };
 
-/** Input for setting variant media (replaces all existing media). */
-export type ApiVariantSetMediaInput = {
+/** Input for updating variant media (replaces all existing media). */
+export type ApiVariantUpdateMediaInput = {
   /** File IDs in desired order (first = primary). Empty array clears all media. */
   fileIds: Array<Scalars['ID']['input']>;
   /** The variant ID. */
   variantId: Scalars['ID']['input'];
 };
 
-/** Payload for variant set media. */
-export type ApiVariantSetMediaPayload = {
-  __typename?: 'VariantSetMediaPayload';
+/** Payload for variant update media. */
+export type ApiVariantUpdateMediaPayload = {
+  __typename?: 'VariantUpdateMediaPayload';
   /** List of errors that occurred during the mutation. */
   userErrors: Array<ApiGenericUserError>;
   /** The updated variant. */
   variant?: Maybe<ApiVariant>;
 };
 
-/** Input for setting a price on a variant. */
-export type ApiVariantSetPricingInput = {
+/** Input for updating variant options (option value links). */
+export type ApiVariantUpdateOptionsInput = {
+  /** The option value links to set (replaces existing links). */
+  links: Array<ApiVariantOptionLinkInput>;
+  /** The ID of the variant. */
+  variantId: Scalars['ID']['input'];
+};
+
+/** Payload for variant options update. */
+export type ApiVariantUpdateOptionsPayload = {
+  __typename?: 'VariantUpdateOptionsPayload';
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<ApiGenericUserError>;
+  /** The updated variant. */
+  variant?: Maybe<ApiVariant>;
+};
+
+/** Input for updating a price on a variant. */
+export type ApiVariantUpdatePricingInput = {
   /** The price amount in minor units. */
   amountMinor: Scalars['BigInt']['input'];
   /** The compare-at price in minor units (optional). */
@@ -4615,64 +4926,9 @@ export type ApiVariantSetPricingInput = {
   variantId: Scalars['ID']['input'];
 };
 
-/** Payload for variant pricing set. */
-export type ApiVariantSetPricingPayload = {
-  __typename?: 'VariantSetPricingPayload';
-  /** List of errors that occurred during the mutation. */
-  userErrors: Array<ApiGenericUserError>;
-  /** The updated variant. */
-  variant?: Maybe<ApiVariant>;
-};
-
-/** Input for setting variant SKU. */
-export type ApiVariantSetSkuInput = {
-  /** The new SKU value. */
-  sku: Scalars['String']['input'];
-  /** The ID of the variant. */
-  variantId: Scalars['ID']['input'];
-};
-
-/** Payload for variant SKU set. */
-export type ApiVariantSetSkuPayload = {
-  __typename?: 'VariantSetSkuPayload';
-  /** List of errors that occurred during the mutation. */
-  userErrors: Array<ApiGenericUserError>;
-  /** The updated variant. */
-  variant?: Maybe<ApiVariant>;
-};
-
-/** Input for setting stock on a variant. */
-export type ApiVariantSetStockInput = {
-  /** The quantity to set. */
-  quantity: Scalars['Int']['input'];
-  /** The ID of the variant. */
-  variantId: Scalars['ID']['input'];
-  /** The warehouse ID. */
-  warehouseId: Scalars['ID']['input'];
-};
-
-/** Payload for variant stock set. */
-export type ApiVariantSetStockPayload = {
-  __typename?: 'VariantSetStockPayload';
-  /** The updated stock record. */
-  stock?: Maybe<ApiWarehouseStock>;
-  /** List of errors that occurred during the mutation. */
-  userErrors: Array<ApiGenericUserError>;
-  /** The updated variant. */
-  variant?: Maybe<ApiVariant>;
-};
-
-/** Input for setting variant weight. */
-export type ApiVariantSetWeightInput = {
-  /** The ID of the variant. */
-  variantId: Scalars['ID']['input'];
-  /** The weight to set. */
-  weight: ApiWeightInput;
-};
-
-/** Payload for variant weight set. */
-export type ApiVariantSetWeightPayload = {
-  __typename?: 'VariantSetWeightPayload';
+/** Payload for variant pricing update. */
+export type ApiVariantUpdatePricingPayload = {
+  __typename?: 'VariantUpdatePricingPayload';
   /** List of errors that occurred during the mutation. */
   userErrors: Array<ApiGenericUserError>;
   /** The updated variant. */

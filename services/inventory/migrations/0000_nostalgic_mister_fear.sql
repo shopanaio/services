@@ -8,6 +8,9 @@ CREATE TYPE "inventory"."stock_movement_reason" AS ENUM('DAMAGE', 'INVENTORY_COU
 CREATE TYPE "inventory"."stock_movement_type" AS ENUM('SEED', 'RECEIVE', 'SELL', 'RETURN', 'ADJUST', 'RESERVE', 'RELEASE', 'TRANSFER');--> statement-breakpoint
 CREATE TYPE "inventory"."stock_transfer_direction" AS ENUM('IN', 'OUT');--> statement-breakpoint
 CREATE TYPE "inventory"."reservation_status" AS ENUM('ACTIVE', 'RELEASED', 'FULFILLED');--> statement-breakpoint
+CREATE TYPE "inventory"."bulk_edit_job_status" AS ENUM('QUEUED', 'RUNNING', 'COMPLETED', 'CANCELLED');--> statement-breakpoint
+CREATE TYPE "inventory"."bulk_edit_cancel_reason" AS ENUM('USER', 'SUPERSEDED', 'SYSTEM');--> statement-breakpoint
+CREATE TYPE "inventory"."bulk_edit_item_status" AS ENUM('PENDING', 'RUNNING', 'SUCCEEDED', 'FAILED', 'CANCELLED', 'SUPERSEDED');--> statement-breakpoint
 CREATE TABLE "inventory"."product" (
 	"project_id" uuid NOT NULL,
 	"id" uuid PRIMARY KEY NOT NULL,
@@ -16,6 +19,7 @@ CREATE TABLE "inventory"."product" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"deleted_at" timestamp with time zone,
+	"revision" integer DEFAULT 0 NOT NULL,
 	CONSTRAINT "product_published_requires_handle" CHECK (published_at IS NULL OR handle IS NOT NULL)
 );
 --> statement-breakpoint
@@ -187,7 +191,7 @@ CREATE TABLE "inventory"."stock_changes" (
 	"correlation_id" uuid,
 	"note" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"created_by" uuid,
+	"created_by" text,
 	"apply_status" "inventory"."stock_apply_status" DEFAULT 'APPLIED' NOT NULL,
 	CONSTRAINT "stock_changes_delta_check" CHECK ("inventory"."stock_changes"."movement_type" = 'SEED' OR "inventory"."stock_changes"."delta_on_hand" <> 0 OR "inventory"."stock_changes"."delta_reserved" <> 0 OR "inventory"."stock_changes"."delta_unavailable" <> 0),
 	CONSTRAINT "stock_changes_on_hand_after_check" CHECK ("inventory"."stock_changes"."on_hand_after" >= 0),
@@ -324,6 +328,44 @@ CREATE TABLE "inventory"."product_seo" (
 	CONSTRAINT "product_seo_product_id_locale_pk" PRIMARY KEY("product_id","locale")
 );
 --> statement-breakpoint
+CREATE TABLE "inventory"."bulk_edit_job" (
+	"id" uuid PRIMARY KEY NOT NULL,
+	"project_id" uuid NOT NULL,
+	"status" "inventory"."bulk_edit_job_status" DEFAULT 'QUEUED' NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"started_at" timestamp with time zone,
+	"finished_at" timestamp with time zone
+);
+--> statement-breakpoint
+CREATE TABLE "inventory"."bulk_edit_item" (
+	"id" uuid PRIMARY KEY NOT NULL,
+	"job_id" uuid NOT NULL,
+	"project_id" uuid NOT NULL,
+	"product_id" uuid NOT NULL,
+	"variant_id" uuid,
+	"op_type" text NOT NULL,
+	"op_index" integer NOT NULL,
+	"chunk_index" integer NOT NULL,
+	"params" jsonb NOT NULL,
+	"status" "inventory"."bulk_edit_item_status" DEFAULT 'PENDING' NOT NULL,
+	"fence_token" text NOT NULL,
+	"cancel_requested" boolean DEFAULT false NOT NULL,
+	"cancel_reason" "inventory"."bulk_edit_cancel_reason",
+	"superseded_by_job_id" uuid,
+	"errors" jsonb,
+	"started_at" timestamp with time zone,
+	"finished_at" timestamp with time zone
+);
+--> statement-breakpoint
+CREATE TABLE "inventory"."product_bulk_fence" (
+	"project_id" uuid NOT NULL,
+	"product_id" uuid NOT NULL,
+	"fence_token" text NOT NULL,
+	"job_id" uuid NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "product_bulk_fence_project_id_product_id_pk" PRIMARY KEY("project_id","product_id")
+);
+--> statement-breakpoint
 ALTER TABLE "inventory"."variant" ADD CONSTRAINT "variant_product_id_product_id_fk" FOREIGN KEY ("product_id") REFERENCES "inventory"."product"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "inventory"."item_pricing" ADD CONSTRAINT "item_pricing_variant_id_variant_id_fk" FOREIGN KEY ("variant_id") REFERENCES "inventory"."variant"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "inventory"."product_variant_cost_history" ADD CONSTRAINT "product_variant_cost_history_variant_id_variant_id_fk" FOREIGN KEY ("variant_id") REFERENCES "inventory"."variant"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -356,11 +398,14 @@ ALTER TABLE "inventory"."product_translation" ADD CONSTRAINT "product_translatio
 ALTER TABLE "inventory"."variant_translation" ADD CONSTRAINT "variant_translation_variant_id_variant_id_fk" FOREIGN KEY ("variant_id") REFERENCES "inventory"."variant"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "inventory"."warehouse_translation" ADD CONSTRAINT "warehouse_translation_warehouse_id_warehouses_id_fk" FOREIGN KEY ("warehouse_id") REFERENCES "inventory"."warehouses"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "inventory"."product_seo" ADD CONSTRAINT "product_seo_product_id_product_id_fk" FOREIGN KEY ("product_id") REFERENCES "inventory"."product"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "inventory"."bulk_edit_item" ADD CONSTRAINT "bulk_edit_item_job_id_bulk_edit_job_id_fk" FOREIGN KEY ("job_id") REFERENCES "inventory"."bulk_edit_job"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "inventory"."product_bulk_fence" ADD CONSTRAINT "product_bulk_fence_job_id_bulk_edit_job_id_fk" FOREIGN KEY ("job_id") REFERENCES "inventory"."bulk_edit_job"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "product_project_id_handle_key" ON "inventory"."product" USING btree ("project_id","handle") WHERE deleted_at IS NULL AND handle IS NOT NULL;--> statement-breakpoint
 CREATE INDEX "idx_product_project_id" ON "inventory"."product" USING btree ("project_id");--> statement-breakpoint
 CREATE INDEX "idx_product_created_at" ON "inventory"."product" USING btree ("created_at");--> statement-breakpoint
 CREATE INDEX "idx_product_updated_at" ON "inventory"."product" USING btree ("updated_at");--> statement-breakpoint
 CREATE INDEX "idx_product_deleted_at" ON "inventory"."product" USING btree ("deleted_at") WHERE deleted_at IS NOT NULL;--> statement-breakpoint
+CREATE INDEX "idx_product_revision" ON "inventory"."product" USING btree ("id","revision");--> statement-breakpoint
 CREATE UNIQUE INDEX "variant_product_id_default_key" ON "inventory"."variant" USING btree ("product_id") WHERE is_default = true AND deleted_at IS NULL;--> statement-breakpoint
 CREATE UNIQUE INDEX "variant_product_id_handle_key" ON "inventory"."variant" USING btree ("product_id","handle") WHERE deleted_at IS NULL;--> statement-breakpoint
 CREATE UNIQUE INDEX "variant_project_id_sku_key" ON "inventory"."variant" USING btree ("project_id","sku") WHERE deleted_at IS NULL AND sku IS NOT NULL;--> statement-breakpoint
@@ -418,5 +463,10 @@ CREATE INDEX "idx_variant_translation_project" ON "inventory"."variant_translati
 CREATE INDEX "idx_warehouse_translation_project" ON "inventory"."warehouse_translation" USING btree ("project_id");--> statement-breakpoint
 CREATE INDEX "idx_product_seo_project" ON "inventory"."product_seo" USING btree ("project_id");--> statement-breakpoint
 CREATE INDEX "idx_product_seo_project_locale" ON "inventory"."product_seo" USING btree ("project_id","locale");--> statement-breakpoint
+CREATE INDEX "bulk_edit_job_project_created_idx" ON "inventory"."bulk_edit_job" USING btree ("project_id","created_at");--> statement-breakpoint
+CREATE INDEX "bulk_edit_job_project_status_idx" ON "inventory"."bulk_edit_job" USING btree ("project_id","status");--> statement-breakpoint
+CREATE INDEX "bulk_edit_item_project_product_status_idx" ON "inventory"."bulk_edit_item" USING btree ("project_id","product_id","status");--> statement-breakpoint
+CREATE INDEX "bulk_edit_item_job_chunk_op_idx" ON "inventory"."bulk_edit_item" USING btree ("job_id","chunk_index","op_index");--> statement-breakpoint
+CREATE INDEX "bulk_edit_item_job_status_idx" ON "inventory"."bulk_edit_item" USING btree ("job_id","status");--> statement-breakpoint
 CREATE VIEW "inventory"."variant_prices_current" AS (select "id", "project_id", "variant_id", "currency", "amount_minor", "compare_at_minor", "effective_from", "effective_to", "recorded_at" from "inventory"."item_pricing" where "inventory"."item_pricing"."effective_to" IS NULL);--> statement-breakpoint
 CREATE VIEW "inventory"."variant_costs_current" AS (select "id", "project_id", "variant_id", "currency", "unit_cost_minor", "effective_from", "effective_to", "recorded_at" from "inventory"."product_variant_cost_history" where "inventory"."product_variant_cost_history"."effective_to" IS NULL);

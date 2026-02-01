@@ -63,12 +63,20 @@ test.describe('Pricing Widget API', () => {
       },
     });
 
+    // Create warehouse for cost
+    const { data: whData } = await api.admin.mutation('inventory-api/WarehouseCreate', {
+      variables: { input: { code: `WH-COST-${randomUUID().slice(0, 8)}`, name: 'Cost Warehouse' } },
+    });
+    const warehouse = whData.inventoryMutation.warehouseCreate.warehouse;
+
     await api.admin.mutation('inventory-api/VariantSetCost', {
       variables: {
         input: {
           variantId,
-          currency: 'UAH',
+          warehouseId: warehouse.id,
+          onHand: 0,
           unitCostMinor: '5000',
+          costCurrency: 'UAH',
         },
       },
     });
@@ -167,12 +175,20 @@ test.describe('Pricing Widget API', () => {
       },
     });
 
+    // Create warehouse for cost
+    const { data: whData2 } = await api.admin.mutation('inventory-api/WarehouseCreate', {
+      variables: { input: { code: `WH-COST2-${randomUUID().slice(0, 8)}`, name: 'Cost Warehouse 2' } },
+    });
+    const warehouse2 = whData2.inventoryMutation.warehouseCreate.warehouse;
+
     await api.admin.mutation('inventory-api/VariantSetCost', {
       variables: {
         input: {
           variantId,
-          currency: 'UAH',
+          warehouseId: warehouse2.id,
+          onHand: 0,
           unitCostMinor: '6000',
+          costCurrency: 'UAH',
         },
       },
     });
@@ -301,10 +317,22 @@ test.describe('Pricing Widget API', () => {
       },
     });
 
+    // Create warehouse for cost
+    const { data: whData3 } = await api.admin.mutation('inventory-api/WarehouseCreate', {
+      variables: { input: { code: `WH-COST3-${randomUUID().slice(0, 8)}`, name: 'Cost Warehouse 3' } },
+    });
+    const warehouse3 = whData3.inventoryMutation.warehouseCreate.warehouse;
+
     // Set UAH cost
     await api.admin.mutation('inventory-api/VariantSetCost', {
       variables: {
-        input: { variantId, currency: 'UAH', unitCostMinor: '4000' },
+        input: {
+          variantId,
+          warehouseId: warehouse3.id,
+          onHand: 0,
+          unitCostMinor: '4000',
+          costCurrency: 'UAH',
+        },
       },
     });
 

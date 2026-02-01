@@ -58,7 +58,7 @@ test.describe('Inventory Widget API', () => {
         input: {
           variantId,
           warehouseId: warehouse.id,
-          quantity: 5,
+          onHand: 5,
         },
       },
     });
@@ -115,7 +115,7 @@ test.describe('Inventory Widget API', () => {
         input: {
           variantId,
           warehouseId: warehouse.id,
-          quantity: 0,
+          onHand: 0,
         },
       },
     });

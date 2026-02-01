@@ -11,14 +11,21 @@ import { Kernel } from "../kernel/Kernel.js";
 import type {
   ProductBulkEditInput,
   ProductBulkEditResult,
-  FlatOperation,
+  ProductBulkUpdateItem,
   BulkEditError,
 } from "./dto/BulkEditWorkflowDto.js";
 import type { BulkEditItem } from "../repositories/models/index.js";
+import type { ProductUpdateWorkflowResult } from "./dto/ProductUpdateWorkflowDto.js";
 import {
   BulkEditCreateJobScript,
   BulkEditFinalizeJobScript,
 } from "../scripts/bulk-edit/index.js";
+
+interface ProductGroup {
+  productId: string;
+  expectedRevision?: number;
+  items: BulkEditItem[];
+}
 
 @Injectable()
 export class ProductBulkEditWorkflow extends BrokerWorkflows {
@@ -32,91 +39,134 @@ export class ProductBulkEditWorkflow extends BrokerWorkflows {
 
   @Workflow("productBulkEdit")
   async run(input: ProductBulkEditInput): Promise<ProductBulkEditResult> {
-    const { operations } = input;
+    const { products, context } = input;
 
-    // 1. Create job (atomic, idempotent via DBOS)
-    const { jobId, chunks } = await this.stepCreateJob(operations);
+    // 1. Create job with items grouped by product
+    const { jobId, productGroups } = await this.stepCreateJob(products);
 
-    // 2. Try QUEUED → RUNNING (guarded)
+    // 2. Try QUEUED → RUNNING
     const started = await this.stepTryMarkJobRunning(jobId);
     if (!started) {
       await this.stepFinalizeJob(jobId);
       return { jobId };
     }
 
-    // 3. Execute chunks
-    await this.executeChunks(jobId, chunks);
-    await this.stepFinalizeJob(jobId);
-
-    return { jobId };
-  }
-
-  private async executeChunks(jobId: string, chunks: BulkEditItem[][]): Promise<void> {
-    for (const chunk of chunks) {
+    // 3. Execute each product group
+    for (const group of productGroups) {
       const cancelled = await this.stepIsJobCancelled(jobId);
       if (cancelled) break;
 
-      await Promise.allSettled(chunk.map((item) => this.executeItem(item)));
+      await this.executeProductGroup(group, context);
     }
+
+    await this.stepFinalizeJob(jobId);
+    return { jobId };
   }
 
-  private async executeItem(item: BulkEditItem): Promise<void> {
-    // 1. Try PENDING → RUNNING (guarded)
-    const started = await this.stepTryMarkItemRunning(item.id);
-    if (!started) return;
+  private async executeProductGroup(
+    group: ProductGroup,
+    context: ProductBulkEditInput["context"]
+  ): Promise<void> {
+    const { productId, expectedRevision, items } = group;
 
-    // 2. Run child workflow
-    try {
-      const result = await this.runOperationWorkflow(item);
-
-      // 3. Record result (guarded — won't overwrite SUPERSEDED)
-      if (result.errors.length > 0) {
-        await this.stepTryMarkItemFailed(item.id, result.errors);
-      } else {
-        await this.stepTryMarkItemSucceeded(item.id);
-      }
-    } catch (error) {
-      await this.stepTryMarkItemFailed(item.id, [
-        {
-          message: error instanceof Error ? error.message : "Unknown error",
-          code: "WORKFLOW_ERROR",
-        },
-      ]);
-    }
-  }
-
-  private async runOperationWorkflow(
-    item: BulkEditItem
-  ): Promise<{ errors: BulkEditError[] }> {
-    const result = await this.broker.runWorkflow(
-      "inventory.bulkEditOperation",
-      { itemId: item.id },
-      {
-        source: "workflow",
-        workflowId: DBOS.workflowID!,
-        stepId: item.opType,
-        callId: item.id,
-      }
+    // 1. Mark all items as RUNNING
+    await Promise.all(
+      items.map((item) => this.stepTryMarkItemRunning(item.id))
     );
 
-    return result as { errors: BulkEditError[] };
+    // 2. Build operations from items
+    const operations = items.map((item) => item.params as any);
+
+    // 3. Call ProductUpdateWorkflow
+    try {
+      const result = (await this.broker.runWorkflow(
+        "inventory.productUpdate",
+        {
+          productId,
+          expectedRevision,
+          operations,
+          context,
+        },
+        {
+          source: "workflow",
+          workflowId: DBOS.workflowID!,
+          stepId: "productUpdate",
+          callId: productId,
+        }
+      )) as ProductUpdateWorkflowResult;
+
+      // 4. Map results back to items
+      await this.mapResultsToItems(items, result);
+    } catch (error) {
+      // Mark all items as failed
+      const errorObj: BulkEditError = {
+        message: error instanceof Error ? error.message : "Unknown error",
+        code: "WORKFLOW_ERROR",
+      };
+      await Promise.all(
+        items.map((item) => this.stepTryMarkItemFailed(item.id, [errorObj]))
+      );
+    }
+  }
+
+  private async mapResultsToItems(
+    items: BulkEditItem[],
+    result: ProductUpdateWorkflowResult
+  ): Promise<void> {
+    // If workflow-level error (e.g., revision conflict)
+    if (result.product === null && result.userErrors.length > 0) {
+      const errors: BulkEditError[] = result.userErrors.map((e) => ({
+        message: e.message,
+        code: e.code ?? "UNKNOWN",
+        field: e.field,
+      }));
+      await Promise.all(
+        items.map((item) => this.stepTryMarkItemFailed(item.id, errors))
+      );
+      return;
+    }
+
+    // Map operation results to items by index
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const opResult = result.operationResults[i];
+
+      if (!opResult) {
+        await this.stepTryMarkItemSucceeded(item.id);
+        continue;
+      }
+
+      if (opResult.applied) {
+        await this.stepTryMarkItemSucceeded(item.id);
+      } else {
+        const errors: BulkEditError[] = opResult.errors.map((e) => ({
+          message: e.message,
+          code: e.code ?? "UNKNOWN",
+          field: e.field,
+        }));
+        await this.stepTryMarkItemFailed(item.id, errors);
+      }
+    }
   }
 
   @WorkflowStep()
   private async stepCreateJob(
-    operations: FlatOperation[]
-  ): Promise<{ jobId: string; chunks: BulkEditItem[][] }> {
+    products: ProductBulkUpdateItem[]
+  ): Promise<{ jobId: string; productGroups: ProductGroup[] }> {
     const result = await this.kernel.runScript(BulkEditCreateJobScript, {
-      operations,
+      products,
     });
 
     if (result.userErrors.length > 0 || !result.jobId || !result.items) {
       throw new Error(result.userErrors[0]?.message ?? "Failed to create job");
     }
 
+    // Group items by productId
+    const productGroups = groupItemsByProduct(result.items, products);
+
     return {
       jobId: result.jobId,
-      chunks: groupByChunkIndex(result.items),
+      productGroups,
     };
   }
 
@@ -157,14 +207,39 @@ export class ProductBulkEditWorkflow extends BrokerWorkflows {
   }
 }
 
-function groupByChunkIndex(items: BulkEditItem[]): BulkEditItem[][] {
-  const map = new Map<number, BulkEditItem[]>();
+function groupItemsByProduct(
+  items: BulkEditItem[],
+  originalProducts: ProductBulkUpdateItem[]
+): ProductGroup[] {
+  // Create lookup for expectedRevision by productId
+  const revisionLookup = new Map(
+    originalProducts.map((p) => [p.productId, p.expectedRevision])
+  );
+
+  // Group items by productId
+  const groupMap = new Map<string, BulkEditItem[]>();
   for (const item of items) {
-    const list = map.get(item.chunkIndex) ?? [];
-    list.push(item);
-    map.set(item.chunkIndex, list);
+    const existing = groupMap.get(item.productId) ?? [];
+    existing.push(item);
+    groupMap.set(item.productId, existing);
   }
-  return Array.from(map.entries())
-    .sort(([a], [b]) => a - b)
-    .map(([, chunkItems]) => chunkItems);
+
+  // Convert to ProductGroup array, sorted by chunkIndex
+  const groups: ProductGroup[] = [];
+  for (const [productId, groupItems] of groupMap) {
+    // Sort items by opIndex within group
+    groupItems.sort((a, b) => a.opIndex - b.opIndex);
+    groups.push({
+      productId,
+      expectedRevision: revisionLookup.get(productId),
+      items: groupItems,
+    });
+  }
+
+  // Sort groups by first item's chunkIndex
+  groups.sort(
+    (a, b) => (a.items[0]?.chunkIndex ?? 0) - (b.items[0]?.chunkIndex ?? 0)
+  );
+
+  return groups;
 }

@@ -12,15 +12,14 @@ import { FeatureResolver } from "./FeatureResolver.js";
 import { StockResolver } from "./StockResolver.js";
 import { ProductBulkUpdateJobResolver } from "./ProductBulkUpdateJobResolver.js";
 import {
-  ProductUpdateScript,
   ProductDeleteScript,
   ProductUpdateStatusScript,
 } from "../../scripts/product/index.js";
-import { ProductUpdateWorkflow } from "../../workflows/ProductUpdateWorkflow.js";
 import type {
   ProductUpdateWorkflowInput,
-  ProductUpdateOperation,
   ProductUpdateWorkflowResult,
+  ProductUpdateOperation,
+  WorkflowContext,
 } from "../../workflows/dto/ProductUpdateWorkflowDto.js";
 import type { ProductCreateParams, ProductCreateResult } from "../../sagas/index.js";
 import {
@@ -48,10 +47,10 @@ import {
   FeatureDeleteScript,
   FeaturesSyncScript,
 } from "../../scripts/feature/index.js";
-import type { FlatOperation } from "../../workflows/dto/BulkEditWorkflowDto.js";
+import type { ProductBulkUpdateItem } from "../../workflows/dto/BulkEditWorkflowDto.js";
 import type {
   ProductCreateInput,
-  ProductUpdateInput,
+  ProductBulkUpdateInput,
   ProductDeleteInput,
   ProductUpdateStatusInput,
   VariantCreateInput,
@@ -74,7 +73,6 @@ import type {
 } from "./generated/types.js";
 import {
   ProductCreateInputSchema,
-  ProductUpdateInputSchema,
   ProductDeleteInputSchema,
   ProductUpdateStatusInputSchema,
   VariantCreateInputSchema,
@@ -96,14 +94,6 @@ import {
   ProductFeaturesSyncInputSchema,
 } from "./generated/schemas.js";
 import { ProductBulkUpdateInputSchema } from "./validation/productBulkEditSchema.js";
-
-type ProductBulkUpdateInput = {
-  productUpdate?: ProductUpdateInput[];
-  productUpdateStatus?: ProductUpdateStatusInput[];
-  variantUpdatePricing?: VariantUpdatePricingInput[];
-  variantUpdateDimensions?: VariantUpdateDimensionsInput[];
-  variantUpdateInventory?: VariantUpdateInventoryInput[];
-};
 
 /**
  * Root Mutation resolver.
@@ -192,45 +182,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   }
 
   /**
-   * Update an existing product.
-   */
-  @ZodResolver(ProductUpdateInputSchema())
-  async productUpdate(args: { input: ProductUpdateInput }) {
-    const { input } = args;
-
-    const result = await this.$ctx.kernel.runScript(ProductUpdateScript, {
-      id: input.id,
-      handle: input.handle ?? undefined,
-      title: input.title ?? undefined,
-      description: input.description
-        ? {
-            text: input.description.text,
-            html: input.description.html,
-            json: input.description.json as Record<string, unknown>,
-          }
-        : undefined,
-      excerpt: input.excerpt ?? undefined,
-      seo: input.seo
-        ? {
-            seoTitle: input.seo.seoTitle ?? undefined,
-            seoDescription: input.seo.seoDescription ?? undefined,
-            ogTitle: input.seo.ogTitle ?? undefined,
-            ogDescription: input.seo.ogDescription ?? undefined,
-            ogImageId: input.seo.ogImageId ?? undefined,
-          }
-        : undefined,
-    });
-
-    return {
-      product: result.product
-        ? new ProductResolver(result.product.id, this.$ctx)
-        : null,
-      userErrors: result.userErrors,
-    };
-  }
-
-  /**
-   * Delete a product.
+   * Delete a operations.
    */
   @ZodResolver(ProductDeleteInputSchema())
   async productDelete(args: { input: ProductDeleteInput }) {
@@ -270,31 +222,28 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
 
   /**
    * Unified product update with optimistic locking.
-   * Supports multiple operations (product and variant updates) in a single request.
+   * Supports product and variant updates in a single request.
    */
-  async productWorkflowUpdate(args: {
+  async productUpdate(args: {
     productId: string;
     expectedRevision?: number | null;
-    operations: Array<{
-      productUpdate?: {
-        id: string;
-        handle?: string | null;
-        title?: string | null;
-        content?: {
-          description?: { text: string; html: string; json: unknown } | null;
-          excerpt?: string | null;
-        } | null;
-        seo?: {
-          seoTitle?: string | null;
-          seoDescription?: string | null;
-          ogTitle?: string | null;
-          ogDescription?: string | null;
-          ogImageId?: string | null;
-        } | null;
-        status?: "DRAFT" | "PUBLISHED" | null;
-        media?: { fileIds: string[] } | null;
+    operations?: {
+      handle?: string | null;
+      title?: string | null;
+      content?: {
+        description?: { text: string; html: string; json: unknown } | null;
+        excerpt?: string | null;
       } | null;
-      variantUpdate?: {
+      seo?: {
+        seoTitle?: string | null;
+        seoDescription?: string | null;
+        ogTitle?: string | null;
+        ogDescription?: string | null;
+        ogImageId?: string | null;
+      } | null;
+      status?: "DRAFT" | "PUBLISHED" | null;
+      media?: { fileIds: string[] } | null;
+      variants?: Array<{
         variantId: string;
         pricing?: {
           currency: string;
@@ -319,59 +268,58 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
         options?: {
           set: Array<{ optionId: string; optionValueId: string }>;
         } | null;
-      } | null;
-    }>;
+      }> | null;
+    } | null;
   }) {
     const { productId, expectedRevision, operations } = args;
+    const variants = operations?.variants;
 
-    // Map GraphQL operations to workflow operations
+    // Map GraphQL input to workflow operations
     const workflowOps: ProductUpdateOperation[] = [];
 
-    for (const op of operations) {
-      if (op.productUpdate) {
-        const pu = op.productUpdate;
-        workflowOps.push({
-          type: "productUpdate",
-          params: {
-            id: pu.id,
-            handle: pu.handle ?? undefined,
-            title: pu.title ?? undefined,
-            content: pu.content
-              ? {
-                  description: pu.content.description
-                    ? {
-                        text: pu.content.description.text,
-                        html: pu.content.description.html,
-                        json: pu.content.description.json as Record<string, unknown>,
-                      }
-                    : undefined,
-                  excerpt: pu.content.excerpt ?? undefined,
-                }
-              : undefined,
-            seo: pu.seo
-              ? {
-                  title: pu.seo.seoTitle ?? undefined,
-                  description: pu.seo.seoDescription ?? undefined,
-                }
-              : undefined,
-            status: pu.status
-              ? pu.status === "PUBLISHED"
-                ? "published"
-                : "draft"
-              : undefined,
-            media: pu.media
-              ? {
-                  fileIds: pu.media.fileIds.map((id) =>
-                    decodeGlobalIdByType(id, GlobalIdEntity.File)
-                  ),
-                }
-              : undefined,
-          },
-        });
-      }
+    if (operations) {
+      workflowOps.push({
+        type: "productUpdate",
+        params: {
+          id: productId,
+          handle: operations.handle ?? undefined,
+          title: operations.title ?? undefined,
+          content: operations.content
+            ? {
+                description: operations.content.description
+                  ? {
+                      text: operations.content.description.text,
+                      html: operations.content.description.html,
+                      json: operations.content.description.json as Record<string, unknown>,
+                    }
+                  : undefined,
+                excerpt: operations.content.excerpt ?? undefined,
+              }
+            : undefined,
+          seo: operations.seo
+            ? {
+                title: operations.seo.seoTitle ?? undefined,
+                description: operations.seo.seoDescription ?? undefined,
+              }
+            : undefined,
+          status: operations.status
+            ? operations.status === "PUBLISHED"
+              ? "published"
+              : "draft"
+            : undefined,
+          media: operations.media
+            ? {
+                fileIds: operations.media.fileIds.map((id) =>
+                  decodeGlobalIdByType(id, GlobalIdEntity.File)
+                ),
+              }
+            : undefined,
+        },
+      });
+    }
 
-      if (op.variantUpdate) {
-        const vu = op.variantUpdate;
+    if (variants) {
+      for (const vu of variants) {
         workflowOps.push({
           type: "variantUpdate",
           params: {
@@ -412,9 +360,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
                   ),
                 }
               : undefined,
-            options: vu.options
-              ? { set: vu.options.set }
-              : undefined,
+            options: vu.options ? { set: vu.options.set } : undefined,
           },
         });
       }
@@ -429,14 +375,23 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
         projectId: this.$ctx.store.id,
         storeId: this.$ctx.store.id,
         userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
-        locale: this.$ctx.locale,
+        locale: this.$ctx.locale ?? "uk",
       },
     };
 
-    const workflow = new ProductUpdateWorkflow(
-      this.$ctx.kernel.getServices().broker
-    );
-    const result = await workflow.run(workflowInput);
+    const idempotencyKey = this.$ctx.requestId;
+
+    const result = (await this.$ctx.kernel
+      .getServices()
+      .broker.runWorkflow(
+        "inventory.productUpdate",
+        workflowInput,
+        {
+          source: "workflow",
+          workflowId: `productUpdate:${productId}:${idempotencyKey}`,
+          stepId: "start",
+        }
+      )) as ProductUpdateWorkflowResult;
 
     return {
       product: result.product
@@ -881,7 +836,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   }
 
   /**
-   * Sync all product features for a product.
+   * Sync all product features for a operations.
    */
   @ZodResolver(ProductFeaturesSyncInputSchema())
   async productFeaturesSync(args: { input: ProductFeaturesSyncInput }) {
@@ -919,13 +874,21 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   async productBulkUpdate(args: { input: ProductBulkUpdateInput }) {
     const { input } = args;
 
-    const variantIds = collectVariantIds(input);
-    const variants = await this.$ctx.kernel.repository.variant.getByIds(
-      variantIds
-    );
-    const variantToProduct = new Map(variants.map((v) => [v.id, v.productId]));
+    // Build context
+    const context: WorkflowContext = {
+      organizationId: this.$ctx.store.organizationId,
+      projectId: this.$ctx.store.id,
+      storeId: this.$ctx.store.id,
+      userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
+      locale: this.$ctx.locale ?? "uk",
+    };
 
-    const operations = flattenBulkInput(input, variantToProduct);
+    // Map products with transformed operations
+    const products: ProductBulkUpdateItem[] = input.products.map((item) => ({
+      productId: item.productId,
+      expectedRevision: item.expectedRevision ?? undefined,
+      operations: mapOperationsForBulk(item.productId, item.operations),
+    }));
 
     const idempotencyKey = this.$ctx.requestId;
 
@@ -933,7 +896,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
       .getServices()
       .broker.runWorkflow(
         "inventory.productBulkEdit",
-        { operations },
+        { products, context },
         {
           source: "workflow",
           workflowId: `productBulkEdit:${idempotencyKey}`,
@@ -948,72 +911,105 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
       userErrors: [],
     };
   }
-
 }
 
 // ─── Helpers ──────────────────────────────────────────────────
 
-const OP_INDEX: Record<string, number> = {
-  productUpdate: 0,
-  productUpdateStatus: 1,
-  variantUpdatePricing: 2,
-  variantUpdateDimensions: 3,
-  variantUpdateInventory: 4,
-};
+function mapOperationsForBulk(
+  productId: string,
+  operations: ProductBulkUpdateInput["products"][0]["operations"]
+): ProductUpdateOperation[] {
+  const result: ProductUpdateOperation[] = [];
+  const variants = operations?.variants;
 
-function collectVariantIds(input: ProductBulkUpdateInput): string[] {
-  const ids: string[] = [];
-  for (const v of input.variantUpdatePricing ?? []) ids.push(v.variantId);
-  for (const v of input.variantUpdateDimensions ?? []) ids.push(v.variantId);
-  for (const v of input.variantUpdateInventory ?? []) ids.push(v.variantId);
-  return [...new Set(ids)];
-}
-
-function flattenBulkInput(
-  input: ProductBulkUpdateInput,
-  variantToProduct: Map<string, string>
-): FlatOperation[] {
-  const ops: FlatOperation[] = [];
-
-  for (const pu of input.productUpdate ?? []) {
-    ops.push({
-      productId: pu.id,
-      variantId: null,
-      opType: "productUpdate",
-      opIndex: OP_INDEX.productUpdate,
-      params: pu,
+  if (operations) {
+    result.push({
+      type: "productUpdate",
+      params: {
+        id: productId,
+        handle: operations.handle ?? undefined,
+        title: operations.title ?? undefined,
+        content: operations.content
+          ? {
+              description: operations.content.description
+                ? {
+                    text: operations.content.description.text,
+                    html: operations.content.description.html,
+                    json: operations.content.description.json as Record<string, unknown>,
+                  }
+                : undefined,
+              excerpt: operations.content.excerpt ?? undefined,
+            }
+          : undefined,
+        seo: operations.seo
+          ? {
+              title: operations.seo.seoTitle ?? undefined,
+              description: operations.seo.seoDescription ?? undefined,
+            }
+          : undefined,
+        status: operations.status
+          ? operations.status === "PUBLISHED"
+            ? "published"
+            : "draft"
+          : undefined,
+        media: operations.media
+          ? {
+              fileIds: operations.media.fileIds.map((id) =>
+                decodeGlobalIdByType(id, GlobalIdEntity.File)
+              ),
+            }
+          : undefined,
+      },
     });
   }
 
-  for (const ps of input.productUpdateStatus ?? []) {
-    ops.push({
-      productId: ps.productId,
-      variantId: null,
-      opType: "productUpdateStatus",
-      opIndex: OP_INDEX.productUpdateStatus,
-      params: { productId: ps.productId, action: ps.action },
-    });
-  }
-
-  const variantArrays = [
-    { key: "variantUpdatePricing", items: input.variantUpdatePricing },
-    { key: "variantUpdateDimensions", items: input.variantUpdateDimensions },
-    { key: "variantUpdateInventory", items: input.variantUpdateInventory },
-  ];
-
-  for (const { key, items } of variantArrays) {
-    for (const vi of items ?? []) {
-      const productId = variantToProduct.get(vi.variantId);
-      if (!productId) continue;
-      ops.push({
-        productId,
-        variantId: vi.variantId,
-        opType: key,
-        opIndex: OP_INDEX[key],
-        params: vi,
+  if (variants) {
+    for (const vu of variants) {
+      result.push({
+        type: "variantUpdate",
+        params: {
+          variantId: vu.variantId,
+          pricing: vu.pricing
+            ? {
+                currency: vu.pricing.currency,
+                amountMinor: Number(vu.pricing.amountMinor),
+                compareAtMinor: vu.pricing.compareAtMinor
+                  ? Number(vu.pricing.compareAtMinor)
+                  : undefined,
+              }
+            : undefined,
+          inventory: vu.inventory
+            ? {
+                warehouseId: vu.inventory.warehouseId,
+                onHand: vu.inventory.onHand,
+                unavailable: vu.inventory.unavailable ?? undefined,
+                sku: vu.inventory.sku ?? undefined,
+                weight: vu.inventory.weight ?? undefined,
+                unitCostMinor: vu.inventory.unitCostMinor
+                  ? Number(vu.inventory.unitCostMinor)
+                  : undefined,
+                costCurrency: vu.inventory.costCurrency ?? undefined,
+              }
+            : undefined,
+          dimensions: vu.dimensions
+            ? {
+                width: vu.dimensions.width,
+                height: vu.dimensions.height,
+                length: vu.dimensions.length,
+              }
+            : undefined,
+          media: vu.media
+            ? {
+                fileIds: vu.media.fileIds.map((id) =>
+                  decodeGlobalIdByType(id, GlobalIdEntity.File)
+                ),
+              }
+            : undefined,
+          options: vu.options ? { set: vu.options.set } : undefined,
+        },
       });
     }
   }
 
-  return ops;
+  return result;
 }

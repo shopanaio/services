@@ -6,6 +6,7 @@ mutation ProductCreateSimple($input: ProductCreateInput!) {
         title
         handle
         isPublished
+        revision
         options {
           id
           name

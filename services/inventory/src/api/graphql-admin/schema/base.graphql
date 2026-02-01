@@ -111,22 +111,21 @@ type WidgetQuery {
 type InventoryMutation {
   # Product mutations
   productCreate(input: ProductCreateInput!): ProductCreatePayload!
-  productUpdate(input: ProductUpdateInput!): ProductUpdatePayload!
   productDelete(input: ProductDeleteInput!): ProductDeletePayload!
   productUpdateStatus(input: ProductUpdateStatusInput!): ProductUpdateStatusPayload!
 
   """
   Unified product update with optimistic locking.
-  Supports multiple operations (product and variant updates) in a single request.
+  Supports product and variant updates in a single request.
   """
-  productWorkflowUpdate(
+  productUpdate(
     """The product ID to update."""
     productId: ID!
     """Expected revision for optimistic locking. If provided, fails if product was modified."""
     expectedRevision: Int
-    """List of operations to perform."""
-    operations: [ProductUpdateOperationInput!]!
-  ): ProductWorkflowUpdatePayload!
+    """Product-level operations."""
+    operations: ProductUpdateInput
+  ): ProductUpdatePayload!
 
   # Variant mutations
   variantCreate(input: VariantCreateInput!): VariantCreatePayload!

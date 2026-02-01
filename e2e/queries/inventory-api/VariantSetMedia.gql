@@ -1,6 +1,6 @@
-mutation VariantSetMedia($input: VariantSetMediaInput!) {
+mutation VariantSetMedia($input: VariantUpdateMediaInput!) {
   inventoryMutation {
-    variantSetMedia(input: $input) {
+    variantUpdateMedia(input: $input) {
       variant {
         id
         sku

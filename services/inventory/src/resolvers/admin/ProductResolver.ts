@@ -68,7 +68,7 @@ export class ProductResolver extends InventoryType<string, Product | null> {
     return {
       text: translation.descriptionText ?? "",
       html: translation.descriptionHtml ?? "",
-      json: translation.descriptionJson,
+      json: translation.descriptionJson ?? {},
     };
   }
 

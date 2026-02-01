@@ -126,40 +126,6 @@ input ProductFeatureInput {
 }
 
 """
-Input for updating a product.
-"""
-input ProductUpdateInput {
-  """The product ID."""
-  id: ID!
-
-  """The URL-friendly handle for the product."""
-  handle: String
-
-  """Product title."""
-  title: String
-
-  """Product description."""
-  description: DescriptionInput
-
-  """Short excerpt."""
-  excerpt: String
-
-  """SEO and Open Graph metadata."""
-  seo: ProductSeoInput
-}
-
-"""
-Payload for product update.
-"""
-type ProductUpdatePayload {
-  """The updated product."""
-  product: Product
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-"""
 Input for creating an option value during product creation.
 """
 input ProductCreateOptionValueInput {
@@ -296,12 +262,9 @@ input ProductMediaInput {
 }
 
 """
-Input for a product-level operation in the unified update.
+Input for product-level fields in the unified update.
 """
-input ProductUpdateOpInput {
-  """The product ID."""
-  id: ID!
-
+input ProductUpdateInput {
   """The URL-friendly handle for the product."""
   handle: String
 
@@ -319,6 +282,9 @@ input ProductUpdateOpInput {
 
   """Product media."""
   media: ProductMediaInput
+
+  """Variant updates."""
+  variants: [VariantUpdateInput!]
 }
 
 """
@@ -392,9 +358,9 @@ input VariantOptionsOpInput {
 }
 
 """
-Input for a variant-level operation in the unified update.
+Input for a single variant update.
 """
-input VariantUpdateOpInput {
+input VariantUpdateInput {
   """The variant ID."""
   variantId: ID!
 
@@ -412,18 +378,6 @@ input VariantUpdateOpInput {
 
   """Variant options."""
   options: VariantOptionsOpInput
-}
-
-"""
-Input for a single operation in the unified product update.
-Exactly one of productUpdate or variantUpdate must be provided.
-"""
-input ProductUpdateOperationInput {
-  """Product-level update operation."""
-  productUpdate: ProductUpdateOpInput
-
-  """Variant-level update operation."""
-  variantUpdate: VariantUpdateOpInput
 }
 
 """
@@ -451,7 +405,7 @@ type OperationResult {
 """
 Payload for the unified product update mutation.
 """
-type ProductWorkflowUpdatePayload {
+type ProductUpdatePayload {
   """The updated product with new revision."""
   product: Product
 

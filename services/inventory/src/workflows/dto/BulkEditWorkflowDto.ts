@@ -1,19 +1,21 @@
+import type { ProductUpdateOperation, WorkflowContext } from "./ProductUpdateWorkflowDto.js";
+
 /**
- * Input for root workflow — receives flat operations from resolver
+ * Input for refactored bulk edit workflow.
+ * Uses same operation format as ProductUpdateWorkflow.
  */
 export interface ProductBulkEditInput {
-  operations: FlatOperation[];
+  products: ProductBulkUpdateItem[];
+  context: WorkflowContext;
 }
 
 /**
- * Flat operation — one row in bulk_edit_items
+ * A single product's update within bulk request.
  */
-export interface FlatOperation {
+export interface ProductBulkUpdateItem {
   productId: string;
-  variantId: string | null;
-  opType: string;
-  opIndex: number;
-  params: unknown;
+  expectedRevision?: number;
+  operations: ProductUpdateOperation[];
 }
 
 /**
@@ -24,16 +26,10 @@ export interface ProductBulkEditResult {
 }
 
 /**
- * Input for child workflow — only itemId, everything else from DB
+ * Result from executing a single product group.
  */
-export interface OperationWorkflowInput {
-  itemId: string;
-}
-
-/**
- * Result of child workflow — success/errors
- */
-export interface OperationResult {
+export interface ProductGroupResult {
+  productId: string;
   applied: boolean;
   errors: BulkEditError[];
 }

@@ -79,6 +79,7 @@ export async function startServer(serverConfig: ServerConfig) {
     "seo.graphql",
     "variant.graphql",
     "product.graphql",
+    "bulk.graphql",
     // Generated schemas
     "__generated__/base-filters.graphql",
     "__generated__/filters.graphql",

@@ -54,12 +54,12 @@ test.describe('Stock API', () => {
           input: {
             variantId,
             warehouseId: warehouse.id,
-            quantity: 100,
+            onHand: 100,
           },
         },
       });
 
-      const result = data.inventoryMutation.variantSetStock;
+      const result = data.inventoryMutation.variantUpdateInventory;
       expect(result.userErrors).toHaveLength(0);
       expect(result.stock).toBeTruthy();
       expect(result.stock?.quantityOnHand).toBe(100);
@@ -83,7 +83,7 @@ test.describe('Stock API', () => {
           input: {
             variantId,
             warehouseId: warehouse.id,
-            quantity: 50,
+            onHand: 50,
           },
         },
       });
@@ -94,12 +94,12 @@ test.describe('Stock API', () => {
           input: {
             variantId,
             warehouseId: warehouse.id,
-            quantity: 75,
+            onHand: 75,
           },
         },
       });
 
-      const result = data.inventoryMutation.variantSetStock;
+      const result = data.inventoryMutation.variantUpdateInventory;
       expect(result.userErrors).toHaveLength(0);
       expect(result.stock?.quantityOnHand).toBe(75);
     });
@@ -122,12 +122,12 @@ test.describe('Stock API', () => {
           input: {
             variantId,
             warehouseId: warehouse.id,
-            quantity: 0,
+            onHand: 0,
           },
         },
       });
 
-      const result = data.inventoryMutation.variantSetStock;
+      const result = data.inventoryMutation.variantUpdateInventory;
       expect(result.userErrors).toHaveLength(0);
       expect(result.stock?.quantityOnHand).toBe(0);
     });
@@ -141,12 +141,12 @@ test.describe('Stock API', () => {
           input: {
             variantId: '00000000-0000-0000-0000-000000000000',
             warehouseId: warehouse.id,
-            quantity: 10,
+            onHand: 10,
           },
         },
       });
 
-      const result = data.inventoryMutation.variantSetStock;
+      const result = data.inventoryMutation.variantUpdateInventory;
       expect(result.userErrors).toHaveLength(1);
       expect(result.userErrors[0].code).toBe('NOT_FOUND');
       expect(result.stock).toBeNull();
@@ -166,12 +166,12 @@ test.describe('Stock API', () => {
           input: {
             variantId,
             warehouseId: '00000000-0000-0000-0000-000000000000',
-            quantity: 10,
+            onHand: 10,
           },
         },
       });
 
-      const result = data.inventoryMutation.variantSetStock;
+      const result = data.inventoryMutation.variantUpdateInventory;
       expect(result.userErrors).toHaveLength(1);
       expect(result.userErrors[0].code).toBe('NOT_FOUND');
       expect(result.stock).toBeNull();
@@ -194,12 +194,12 @@ test.describe('Stock API', () => {
           input: {
             variantId,
             warehouseId: warehouse.id,
-            quantity: -10,
+            onHand: -10,
           },
         },
       });
 
-      const result = data.inventoryMutation.variantSetStock;
+      const result = data.inventoryMutation.variantUpdateInventory;
       expect(result.userErrors).toHaveLength(1);
       expect(result.userErrors[0].code).toBe('INVALID_QUANTITY');
       expect(result.stock).toBeNull();
@@ -224,13 +224,13 @@ test.describe('Stock API', () => {
           input: {
             variantId,
             warehouseId: warehouse1.id,
-            quantity: 100,
+            onHand: 100,
           },
         },
       });
 
-      expect(data1.inventoryMutation.variantSetStock.userErrors).toHaveLength(0);
-      expect(data1.inventoryMutation.variantSetStock.stock?.quantityOnHand).toBe(100);
+      expect(data1.inventoryMutation.variantUpdateInventory.userErrors).toHaveLength(0);
+      expect(data1.inventoryMutation.variantUpdateInventory.stock?.quantityOnHand).toBe(100);
 
       // Set stock in second warehouse
       const { data: data2 } = await api.admin.mutation('inventory-api/VariantSetStock', {
@@ -238,13 +238,13 @@ test.describe('Stock API', () => {
           input: {
             variantId,
             warehouseId: warehouse2.id,
-            quantity: 50,
+            onHand: 50,
           },
         },
       });
 
-      expect(data2.inventoryMutation.variantSetStock.userErrors).toHaveLength(0);
-      expect(data2.inventoryMutation.variantSetStock.stock?.quantityOnHand).toBe(50);
+      expect(data2.inventoryMutation.variantUpdateInventory.userErrors).toHaveLength(0);
+      expect(data2.inventoryMutation.variantUpdateInventory.stock?.quantityOnHand).toBe(50);
     });
   });
 });

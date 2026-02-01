@@ -26,7 +26,7 @@ test.describe('Variant Media API', () => {
     return { product, variantId };
   }
 
-  test.describe('variantSetMedia', () => {
+  test.describe('variantUpdateMedia', () => {
     test('should set variant media with single file', async ({ api }) => {
       // Create product with variant
       const { product, variantId } = await createProductWithVariant(api);
@@ -51,7 +51,7 @@ test.describe('Variant Media API', () => {
         },
       });
 
-      const result = data.inventoryMutation.variantSetMedia;
+      const result = data.inventoryMutation.variantUpdateMedia;
       expect(result.userErrors).toHaveLength(0);
       expect(result.variant).toBeTruthy();
       expect(result.variant?.id).toBe(variantId);
@@ -83,7 +83,7 @@ test.describe('Variant Media API', () => {
         },
       });
 
-      const result = data.inventoryMutation.variantSetMedia;
+      const result = data.inventoryMutation.variantUpdateMedia;
       expect(result.userErrors).toHaveLength(0);
       expect(result.variant).toBeTruthy();
     });
@@ -119,7 +119,7 @@ test.describe('Variant Media API', () => {
         },
       });
 
-      const result = data.inventoryMutation.variantSetMedia;
+      const result = data.inventoryMutation.variantUpdateMedia;
       expect(result.userErrors).toHaveLength(0);
       expect(result.variant).toBeTruthy();
     });
@@ -157,7 +157,7 @@ test.describe('Variant Media API', () => {
         },
       });
 
-      const result = data.inventoryMutation.variantSetMedia;
+      const result = data.inventoryMutation.variantUpdateMedia;
       expect(result.userErrors).toHaveLength(0);
       expect(result.variant).toBeTruthy();
     });
@@ -175,7 +175,7 @@ test.describe('Variant Media API', () => {
         },
       });
 
-      const result = data.inventoryMutation.variantSetMedia;
+      const result = data.inventoryMutation.variantUpdateMedia;
       expect(result.userErrors).toHaveLength(1);
       expect(result.userErrors[0].code).toBe('NOT_FOUND');
       expect(result.variant).toBeNull();
@@ -204,7 +204,7 @@ test.describe('Variant Media API', () => {
         },
       });
 
-      const result = data.inventoryMutation.variantSetMedia;
+      const result = data.inventoryMutation.variantUpdateMedia;
       expect(result.userErrors).toHaveLength(0);
       expect(result.variant).toBeTruthy();
     });

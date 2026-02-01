@@ -2055,6 +2055,9 @@ type InventoryQuery {
   """Get variants with Relay-style pagination"""
   variants(first: Int, after: String, last: Int, before: String): VariantConnection!
 
+  """Get bulk update job by ID."""
+  productBulkUpdateJob(jobId: ID!): ProductBulkUpdateJob
+
   """Get a warehouse by ID"""
   warehouse(id: ID!): Warehouse
 
@@ -2083,17 +2086,31 @@ type WidgetQuery {
 
 type InventoryMutation {
   productCreate(input: ProductCreateInput!): ProductCreatePayload!
-  productUpdate(input: ProductUpdateInput!): ProductUpdatePayload!
   productDelete(input: ProductDeleteInput!): ProductDeletePayload!
-  productPublish(input: ProductPublishInput!): ProductPublishPayload!
-  productUnpublish(input: ProductUnpublishInput!): ProductUnpublishPayload!
+  productUpdateStatus(input: ProductUpdateStatusInput!): ProductUpdateStatusPayload!
+
+  """
+  Unified product update with optimistic locking.
+  Supports product and variant updates in a single request.
+  """
+  productUpdate(
+    """The product ID to update."""
+    productId: ID!
+
+    """
+    Expected revision for optimistic locking. If provided, fails if product was modified.
+    """
+    expectedRevision: Int
+
+    """Product-level operations."""
+    operations: ProductUpdateInput
+  ): ProductUpdatePayload!
   variantCreate(input: VariantCreateInput!): VariantCreatePayload!
   variantDelete(input: VariantDeleteInput!): VariantDeletePayload!
-  variantSetSku(input: VariantSetSkuInput!): VariantSetSkuPayload!
-  variantSetDimensions(input: VariantSetDimensionsInput!): VariantSetDimensionsPayload!
-  variantSetWeight(input: VariantSetWeightInput!): VariantSetWeightPayload!
-  variantSetPricing(input: VariantSetPricingInput!): VariantSetPricingPayload!
-  variantSetCost(input: VariantSetCostInput!): VariantSetCostPayload!
+  variantUpdatePricing(input: VariantUpdatePricingInput!): VariantUpdatePricingPayload!
+  variantUpdateDimensions(input: VariantUpdateDimensionsInput!): VariantUpdateDimensionsPayload!
+  variantUpdateInventory(input: VariantUpdateInventoryInput!): VariantUpdateInventoryPayload!
+  variantUpdateOptions(input: VariantUpdateOptionsInput!): VariantUpdateOptionsPayload!
   productOptionCreate(input: ProductOptionCreateInput!): ProductOptionCreatePayload!
   productOptionUpdate(input: ProductOptionUpdateInput!): ProductOptionUpdatePayload!
   productOptionDelete(input: ProductOptionDeleteInput!): ProductOptionDeletePayload!
@@ -2104,8 +2121,144 @@ type InventoryMutation {
   warehouseCreate(input: WarehouseCreateInput!): WarehouseCreatePayload!
   warehouseUpdate(input: WarehouseUpdateInput!): WarehouseUpdatePayload!
   warehouseDelete(input: WarehouseDeleteInput!): WarehouseDeletePayload!
-  variantSetStock(input: VariantSetStockInput!): VariantSetStockPayload!
-  variantSetMedia(input: VariantSetMediaInput!): VariantSetMediaPayload!
+  variantUpdateMedia(input: VariantUpdateMediaInput!): VariantUpdateMediaPayload!
+
+  """
+  Start async bulk update.
+  Requires X-Idempotency-Key header.
+  """
+  productBulkUpdate(input: ProductBulkUpdateInput!): ProductBulkUpdatePayload!
+}
+
+"""Result of bulk update start/cancel."""
+type ProductBulkUpdatePayload {
+  """Created or updated job (null on validation error)."""
+  job: ProductBulkUpdateJob
+
+  """Validation/execution errors."""
+  userErrors: [BulkUpdateUserError!]!
+}
+
+"""Bulk update job with progress."""
+type ProductBulkUpdateJob {
+  """Job ID."""
+  id: ID!
+
+  """Current status."""
+  status: BulkUpdateJobStatus!
+
+  """When created."""
+  createdAt: DateTime!
+
+  """When started running."""
+  startedAt: DateTime
+
+  """When finished."""
+  finishedAt: DateTime
+
+  """Total products in batch."""
+  totalProducts: Int!
+
+  """Progress computed from items."""
+  progress: BulkUpdateJobProgress!
+
+  """Items with pagination and filtering."""
+  items(first: Int, after: String, statusFilter: [BulkUpdateItemStatus!]): BulkUpdateItemConnection!
+}
+
+"""Job progress. All counters computed from items."""
+type BulkUpdateJobProgress {
+  """Total operations."""
+  total: Int!
+
+  """Done (succeeded + failed + cancelled + superseded)."""
+  done: Int!
+
+  """Successfully applied."""
+  succeeded: Int!
+
+  """Failed."""
+  failed: Int!
+
+  """Cancelled."""
+  cancelled: Int!
+
+  """Superseded by another job."""
+  superseded: Int!
+
+  """Currently running."""
+  running: Int!
+
+  """Pending execution."""
+  pending: Int!
+}
+
+"""Single operation in bulk update job."""
+type BulkUpdateItem {
+  """Item ID."""
+  id: ID!
+
+  """Product ID."""
+  productId: ID!
+
+  """Variant ID (null for product-level operations)."""
+  variantId: ID
+
+  """Operation type."""
+  opType: BulkUpdateOpType!
+
+  """Order within product."""
+  opIndex: Int!
+
+  """Current status."""
+  status: BulkUpdateItemStatus!
+
+  """When started."""
+  startedAt: DateTime
+
+  """When finished."""
+  finishedAt: DateTime
+
+  """Execution errors."""
+  errors: [BulkUpdateUserError!]!
+
+  """Cancel reason (only for CANCELLED/SUPERSEDED)."""
+  cancelReason: BulkUpdateCancelReason
+
+  """Job that superseded this item."""
+  supersededByJobId: ID
+}
+
+type BulkUpdateItemConnection {
+  edges: [BulkUpdateItemEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type BulkUpdateItemEdge {
+  cursor: String!
+  node: BulkUpdateItem!
+}
+
+"""Bulk update error with operation context."""
+type BulkUpdateUserError implements UserError {
+  """Error message."""
+  message: String!
+
+  """Input field path."""
+  field: [String!]
+
+  """Error code."""
+  code: String
+
+  """Product ID."""
+  productId: ID
+
+  """Variant ID."""
+  variantId: ID
+
+  """Operation that failed."""
+  operation: String
 }
 
 """A product feature represents either a group or an attribute."""
@@ -2237,8 +2390,8 @@ type VariantMediaItem {
   sortIndex: Int!
 }
 
-"""Payload for variant set media."""
-type VariantSetMediaPayload {
+"""Payload for variant update media."""
+type VariantUpdateMediaPayload {
   """The updated variant."""
   variant: Variant
 
@@ -2492,17 +2645,8 @@ type PricingWidgetPayload {
   statistics: VariantPriceHistoryStatistics!
 }
 
-"""Payload for variant pricing set."""
-type VariantSetPricingPayload {
-  """The updated variant."""
-  variant: Variant
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-"""Payload for variant cost set."""
-type VariantSetCostPayload {
+"""Payload for variant pricing update."""
+type VariantUpdatePricingPayload {
   """The updated variant."""
   variant: Variant
 
@@ -2546,6 +2690,9 @@ type Product implements Node {
 
   """The date and time when the product was deleted (soft delete)."""
   deletedAt: DateTime
+
+  """Optimistic locking revision number. Incremented on each update."""
+  revision: Int!
 
   """The variants of this product."""
   variants(first: Int, after: String, last: Int, before: String): VariantConnection!
@@ -2593,15 +2740,6 @@ type ProductEdge {
   cursor: String!
 }
 
-"""Payload for product update."""
-type ProductUpdatePayload {
-  """The updated product."""
-  product: Product
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
 """Payload for product creation."""
 type ProductCreatePayload {
   """The created product."""
@@ -2620,21 +2758,36 @@ type ProductDeletePayload {
   userErrors: [GenericUserError!]!
 }
 
-"""Payload for product publish."""
-type ProductPublishPayload {
-  """The published product."""
+"""Payload for product update status."""
+type ProductUpdateStatusPayload {
+  """The updated product."""
   product: Product
 
   """List of errors that occurred during the mutation."""
   userErrors: [GenericUserError!]!
 }
 
-"""Payload for product unpublish."""
-type ProductUnpublishPayload {
-  """The unpublished product."""
+"""Result of a single operation in the unified update."""
+type OperationResult {
+  """The type of operation."""
+  type: OperationType!
+
+  """Whether the operation was applied successfully."""
+  applied: Boolean!
+
+  """Errors that occurred during this operation."""
+  errors: [GenericUserError!]!
+}
+
+"""Payload for the unified product update mutation."""
+type ProductUpdatePayload {
+  """The updated product with new revision."""
   product: Product
 
-  """List of errors that occurred during the mutation."""
+  """Results of each operation."""
+  operationResults: [OperationResult!]!
+
+  """All errors from all operations."""
   userErrors: [GenericUserError!]!
 }
 
@@ -2784,18 +2937,6 @@ type WarehouseDeletePayload {
   userErrors: [GenericUserError!]!
 }
 
-"""Payload for variant stock set."""
-type VariantSetStockPayload {
-  """The updated stock record."""
-  stock: WarehouseStock
-
-  """The updated variant."""
-  variant: Variant
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
 """
 A variant represents a specific version of a product, such as a size or color.
 """
@@ -2894,8 +3035,8 @@ type VariantCreatePayload {
   userErrors: [GenericUserError!]!
 }
 
-"""Payload for variant SKU set."""
-type VariantSetSkuPayload {
+"""Payload for variant dimensions update."""
+type VariantUpdateDimensionsPayload {
   """The updated variant."""
   variant: Variant
 
@@ -2903,8 +3044,11 @@ type VariantSetSkuPayload {
   userErrors: [GenericUserError!]!
 }
 
-"""Payload for variant dimensions set."""
-type VariantSetDimensionsPayload {
+"""Payload for variant inventory update."""
+type VariantUpdateInventoryPayload {
+  """The updated stock record."""
+  stock: WarehouseStock
+
   """The updated variant."""
   variant: Variant
 
@@ -2912,8 +3056,8 @@ type VariantSetDimensionsPayload {
   userErrors: [GenericUserError!]!
 }
 
-"""Payload for variant weight set."""
-type VariantSetWeightPayload {
+"""Payload for variant options update."""
+type VariantUpdateOptionsPayload {
   """The updated variant."""
   variant: Variant
 
@@ -2975,6 +3119,43 @@ enum WarehouseStockOrderField {
   createdAt
 }
 
+enum BulkUpdateJobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  CANCELLED
+}
+
+enum BulkUpdateItemStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+  SUPERSEDED
+}
+
+enum BulkUpdateOpType {
+  PRODUCT_UPDATE
+  VARIANT_UPDATE
+}
+
+enum BulkUpdateCancelReason {
+  USER
+  SUPERSEDED
+  SYSTEM
+}
+
+enum ProductStatusAction {
+  PUBLISH
+  UNPUBLISH
+}
+
+enum ProductStatus {
+  DRAFT
+  PUBLISHED
+}
+
 enum ThresholdMethod {
   SAFETY_STOCK
   REORDER_POINT
@@ -2992,6 +3173,12 @@ enum SwatchType {
   COLOR
   GRADIENT
   IMAGE
+}
+
+"""Type of operation in the unified update."""
+enum OperationType {
+  PRODUCT_UPDATE
+  VARIANT_UPDATE
 }
 
 """Filter operators for Int fields"""
@@ -3201,6 +3388,29 @@ input WarehouseStockConnectionInput {
   orderBy: [WarehouseStockOrderByInput!]
 }
 
+"""
+Bulk update input - same structure as productUpdate but for multiple products.
+Max 100 products, 500 operations total.
+"""
+input ProductBulkUpdateInput {
+  """List of products to update with their operations."""
+  products: [ProductBulkUpdateItem!]!
+}
+
+"""A single product's update within a bulk request."""
+input ProductBulkUpdateItem {
+  """The product ID to update."""
+  productId: ID!
+
+  """
+  Expected revision for optimistic locking. If provided, fails if product was modified.
+  """
+  expectedRevision: Int
+
+  """Product-level operations."""
+  operations: ProductUpdateInput
+}
+
 """Sync all product features in a single transaction."""
 input ProductFeaturesSyncInput {
   """The ID of the product."""
@@ -3306,8 +3516,8 @@ input ProductFeatureDeleteInput {
   id: ID!
 }
 
-"""Input for setting variant media (replaces all existing media)."""
-input VariantSetMediaInput {
+"""Input for updating variant media (replaces all existing media)."""
+input VariantUpdateMediaInput {
   """The variant ID."""
   variantId: ID!
 
@@ -3464,8 +3674,8 @@ input PricingWidgetInput {
   after: String
 }
 
-"""Input for setting a price on a variant."""
-input VariantSetPricingInput {
+"""Input for updating a price on a variant."""
+input VariantUpdatePricingInput {
   """The ID of the variant."""
   variantId: ID!
 
@@ -3477,18 +3687,6 @@ input VariantSetPricingInput {
 
   """The compare-at price in minor units (optional)."""
   compareAtMinor: BigInt
-}
-
-"""Input for setting a cost on a variant."""
-input VariantSetCostInput {
-  """The ID of the variant."""
-  variantId: ID!
-
-  """The currency code."""
-  currency: CurrencyCode!
-
-  """The unit cost in minor units."""
-  unitCostMinor: BigInt!
 }
 
 """Input for product description (all fields required)."""
@@ -3513,27 +3711,6 @@ input ProductFeatureInput {
 
   """The values for this feature."""
   values: [ProductFeatureValueCreateInput!]!
-}
-
-"""Input for updating a product."""
-input ProductUpdateInput {
-  """The product ID."""
-  id: ID!
-
-  """The URL-friendly handle for the product."""
-  handle: String
-
-  """Product title."""
-  title: String
-
-  """Product description."""
-  description: DescriptionInput
-
-  """Short excerpt."""
-  excerpt: String
-
-  """SEO and Open Graph metadata."""
-  seo: ProductSeoInput
 }
 
 """Input for creating an option value during product creation."""
@@ -3598,16 +3775,136 @@ input ProductDeleteInput {
   permanent: Boolean
 }
 
-"""Input for publishing a product."""
-input ProductPublishInput {
-  """The ID of the product to publish."""
-  id: ID!
+"""
+Input for updating product status (publish or unpublish).
+Reused in bulk operations.
+"""
+input ProductUpdateStatusInput {
+  """Product ID."""
+  productId: ID!
+
+  """Action: PUBLISH or UNPUBLISH."""
+  action: ProductStatusAction!
 }
 
-"""Input for unpublishing a product."""
-input ProductUnpublishInput {
-  """The ID of the product to unpublish."""
-  id: ID!
+"""Input for product content (description, excerpt)."""
+input ProductContentInput {
+  """Product description in multiple formats."""
+  description: DescriptionInput
+
+  """Short excerpt."""
+  excerpt: String
+}
+
+"""Input for product media."""
+input ProductMediaInput {
+  """File IDs for product media."""
+  fileIds: [ID!]!
+}
+
+"""Input for product-level fields in the unified update."""
+input ProductUpdateInput {
+  """The URL-friendly handle for the product."""
+  handle: String
+
+  """Product title."""
+  title: String
+
+  """Product content (description, excerpt)."""
+  content: ProductContentInput
+
+  """SEO and Open Graph metadata."""
+  seo: ProductSeoInput
+
+  """Product status: DRAFT or PUBLISHED."""
+  status: ProductStatus
+
+  """Product media."""
+  media: ProductMediaInput
+
+  """Variant updates."""
+  variants: [VariantUpdateInput!]
+}
+
+"""Input for variant pricing in the unified update."""
+input VariantPricingOpInput {
+  """The currency code."""
+  currency: CurrencyCode!
+
+  """The price amount in minor units."""
+  amountMinor: BigInt!
+
+  """The compare-at price in minor units (optional)."""
+  compareAtMinor: BigInt
+}
+
+"""Input for variant inventory in the unified update."""
+input VariantInventoryOpInput {
+  """The warehouse ID."""
+  warehouseId: ID!
+
+  """Quantity on hand."""
+  onHand: Int!
+
+  """Unavailable quantity (reserved, damaged, etc.)."""
+  unavailable: Int
+
+  """SKU code."""
+  sku: String
+
+  """Weight in grams."""
+  weight: Int
+
+  """Unit cost in minor units (cents)."""
+  unitCostMinor: BigInt
+
+  """Currency code for unit cost."""
+  costCurrency: CurrencyCode
+}
+
+"""Input for variant dimensions in the unified update."""
+input VariantDimensionsOpInput {
+  """Width in millimeters."""
+  width: Int!
+
+  """Height in millimeters."""
+  height: Int!
+
+  """Length in millimeters."""
+  length: Int!
+}
+
+"""Input for variant media in the unified update."""
+input VariantMediaOpInput {
+  """File IDs for variant media."""
+  fileIds: [ID!]!
+}
+
+"""Input for variant options in the unified update."""
+input VariantOptionsOpInput {
+  """Option value links to set (replaces existing)."""
+  set: [VariantOptionLinkInput!]!
+}
+
+"""Input for a single variant update."""
+input VariantUpdateInput {
+  """The variant ID."""
+  variantId: ID!
+
+  """Variant pricing."""
+  pricing: VariantPricingOpInput
+
+  """Variant inventory (stock, SKU, weight, cost)."""
+  inventory: VariantInventoryOpInput
+
+  """Variant dimensions."""
+  dimensions: VariantDimensionsOpInput
+
+  """Variant media."""
+  media: VariantMediaOpInput
+
+  """Variant options."""
+  options: VariantOptionsOpInput
 }
 
 """Input for updating product SEO data."""
@@ -3661,18 +3958,6 @@ input WarehouseDeleteInput {
   id: ID!
 }
 
-"""Input for setting stock on a variant."""
-input VariantSetStockInput {
-  """The ID of the variant."""
-  variantId: ID!
-
-  """The warehouse ID."""
-  warehouseId: ID!
-
-  """The quantity to set."""
-  quantity: Int!
-}
-
 """Input for creating a variant."""
 input VariantInput {
   """Variant title."""
@@ -3706,31 +3991,66 @@ input VariantCreateInput {
   variant: VariantInput!
 }
 
-"""Input for setting variant SKU."""
-input VariantSetSkuInput {
+"""Input for updating variant dimensions."""
+input VariantUpdateDimensionsInput {
   """The ID of the variant."""
   variantId: ID!
 
-  """The new SKU value."""
-  sku: String!
+  """Width in millimeters."""
+  width: Int!
+
+  """Height in millimeters."""
+  height: Int!
+
+  """Length in millimeters."""
+  length: Int!
 }
 
-"""Input for setting variant dimensions."""
-input VariantSetDimensionsInput {
+"""
+Input for updating variant inventory (stock, SKU, weight, and unit cost).
+"""
+input VariantUpdateInventoryInput {
   """The ID of the variant."""
   variantId: ID!
 
-  """The dimensions to set."""
-  dimensions: DimensionsInput!
+  """The warehouse ID."""
+  warehouseId: ID!
+
+  """Quantity on hand."""
+  onHand: Int!
+
+  """Unavailable quantity (reserved, damaged, etc.)."""
+  unavailable: Int
+
+  """SKU code."""
+  sku: String
+
+  """Weight in grams."""
+  weight: Int
+
+  """Unit cost in minor units (cents). Requires currency field."""
+  unitCostMinor: BigInt
+
+  """Currency code for unit cost."""
+  costCurrency: CurrencyCode
 }
 
-"""Input for setting variant weight."""
-input VariantSetWeightInput {
+"""Input for linking a variant to an option value."""
+input VariantOptionLinkInput {
+  """The option ID."""
+  optionId: ID!
+
+  """The option value ID."""
+  optionValueId: ID!
+}
+
+"""Input for updating variant options (option value links)."""
+input VariantUpdateOptionsInput {
   """The ID of the variant."""
   variantId: ID!
 
-  """The weight to set."""
-  weight: WeightInput!
+  """The option value links to set (replaces existing links)."""
+  links: [VariantOptionLinkInput!]!
 }
 
 """Input for deleting a variant."""

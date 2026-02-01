@@ -31,7 +31,14 @@ test.describe('Product Bulk Edit API', () => {
     const { data } = await api.admin.mutation('inventory-api/ProductBulkUpdate', {
       variables: {
         input: {
-          productUpdate: [{ id: productId, title: 'Bulk Updated Title' }],
+          products: [
+            {
+              productId,
+              operations: {
+                title: 'Bulk Updated Title',
+              },
+            },
+          ],
         },
       },
     });
@@ -44,41 +51,12 @@ test.describe('Product Bulk Edit API', () => {
     expect(result.job?.id).toBeTruthy();
   });
 
-  test('should cancel bulk edit job', async ({ api }) => {
-    const productId = await createProduct(api, 'Bulk Edit Cancel Product');
-
-    const { data: createData } = await api.admin.mutation(
-      'inventory-api/ProductBulkUpdate',
-      {
-        variables: {
-          input: {
-            productUpdate: [{ id: productId, title: 'Cancel Bulk Update' }],
-          },
-        },
-      }
-    );
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Types not generated yet
-    const createResult = (createData as any).inventoryMutation.productBulkUpdate;
-    const jobId = createResult.job?.id;
-    expect(jobId).toBeTruthy();
-
-    const { data: cancelData } = await api.admin.mutation(
-      'inventory-api/ProductBulkUpdateCancel',
-      {
-        variables: { jobId },
-      }
-    );
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Types not generated yet
-    const cancelResult = (cancelData as any).inventoryMutation.productBulkUpdateCancel;
-    expect(cancelResult.job).toBeTruthy();
-  });
-
   test('should reject empty input', async ({ api }) => {
     const { data } = await api.admin.mutation('inventory-api/ProductBulkUpdate', {
       variables: {
-        input: {},
+        input: {
+          products: [],
+        },
       },
       throwOnError: false,
     });
@@ -88,17 +66,19 @@ test.describe('Product Bulk Edit API', () => {
     expect(result.userErrors.length).toBeGreaterThan(0);
   });
 
-  test('should reject >500 operations', async ({ api }) => {
+  test('should reject >100 products in batch', async ({ api }) => {
     const productId = await createProduct(api, 'Bulk Edit Limit Product');
-    const updates = Array.from({ length: 501 }, (_, index) => ({
-      id: productId,
-      title: `Bulk Update ${index}`,
+    const products = Array.from({ length: 101 }, () => ({
+      productId,
+      operations: {
+        title: 'Bulk Update',
+      },
     }));
 
     const { data } = await api.admin.mutation('inventory-api/ProductBulkUpdate', {
       variables: {
         input: {
-          productUpdate: updates,
+          products,
         },
       },
       throwOnError: false,
@@ -107,5 +87,38 @@ test.describe('Product Bulk Edit API', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Types not generated yet
     const result = (data as any).inventoryMutation.productBulkUpdate;
     expect(result.userErrors.length).toBeGreaterThan(0);
+  });
+
+  test('should update multiple products in single batch', async ({ api }) => {
+    const productId1 = await createProduct(api, 'Bulk Product 1');
+    const productId2 = await createProduct(api, 'Bulk Product 2');
+
+    const { data } = await api.admin.mutation('inventory-api/ProductBulkUpdate', {
+      variables: {
+        input: {
+          products: [
+            {
+              productId: productId1,
+              operations: {
+                title: 'Updated Product 1',
+              },
+            },
+            {
+              productId: productId2,
+              operations: {
+                title: 'Updated Product 2',
+              },
+            },
+          ],
+        },
+      },
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Types not generated yet
+    const result = (data as any).inventoryMutation.productBulkUpdate;
+
+    expect(result.userErrors).toHaveLength(0);
+    expect(result.job).toBeTruthy();
+    expect(result.job?.id).toBeTruthy();
   });
 });
