@@ -2,10 +2,12 @@ import { Kernel as BaseKernel, consoleLogger } from "@shopana/shared-kernel";
 import type { ServiceBroker, Logger, DatabaseClient } from "@shopana/shared-kernel";
 import type { WorkflowRegistry } from "@shopana/shared-kernel";
 import { createCache, type Cache } from "cache-manager";
-import type { InventoryKernelServices } from "./types";
+import type { InventoryKernelServices, RunScriptContext } from "./types.js";
 import { Repository } from "../repositories/Repository.js";
 import { BaseScript } from "./BaseScript.js";
 import { createDatabase, type Database } from "../infrastructure/db/database.js";
+import { runWithContext, getContextSafe, ServiceContext } from "../context/index.js";
+import { Loader } from "../loaders/Loader.js";
 
 /**
  * Extended kernel for inventory microservice (singleton)
@@ -80,16 +82,54 @@ export class Kernel extends BaseKernel<InventoryKernelServices> {
   /**
    * Execute a class-based script.
    * Use @Transactional() decorator on execute() method for transaction support.
+   *
+   * @param ScriptClass - Script class to instantiate and run
+   * @param params - Parameters for the script
+   * @param context - Optional context for workflow calls (when AsyncLocalStorage is not available)
    */
   async runScript<TParams, TResult>(
     ScriptClass: new (services: InventoryKernelServices) => BaseScript<TParams, TResult>,
-    params: TParams
+    params: TParams,
+    context?: RunScriptContext
   ): Promise<TResult> {
     const script = new ScriptClass(this.services);
+
+    // If context is provided and AsyncLocalStorage is empty, wrap in context
+    if (context && !getContextSafe()) {
+      const serviceContext = this.buildServiceContext(context);
+      return runWithContext(serviceContext, () => script.run(params));
+    }
+
     return script.run(params);
+  }
+
+  /**
+   * Build minimal ServiceContext from RunScriptContext.
+   * Used when running scripts from workflows where AsyncLocalStorage is not available.
+   */
+  private buildServiceContext(ctx: RunScriptContext): ServiceContext {
+    return new ServiceContext({
+      requestId: `workflow-${Date.now()}`,
+      kernel: this,
+      loaders: new Loader(this.repository),
+      locale: ctx.locale,
+      store: {
+        id: ctx.storeId,
+        name: ctx.storeId,
+        displayName: ctx.storeId,
+        organizationId: ctx.organizationId,
+        timezone: "UTC",
+        email: null,
+        defaultLocale: ctx.locale ?? "uk",
+        defaultCurrency: "UAH",
+      },
+      user: ctx.userId
+        ? { id: ctx.userId, name: "workflow-user" }
+        : undefined,
+    });
   }
 }
 
-export type { InventoryKernelServices, ScriptContext, TransactionScript } from "./types";
-export { KernelError } from "./types";
+export type { InventoryKernelServices, ScriptContext, TransactionScript, RunScriptContext } from "./types.js";
+export { KernelError } from "./types.js";
 export { BaseScript, type UserError } from "./BaseScript.js";

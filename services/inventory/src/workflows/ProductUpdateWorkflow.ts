@@ -9,6 +9,7 @@ import {
 } from "@shopana/shared-kernel";
 import { and, eq, sql } from "drizzle-orm";
 import { Kernel } from "../kernel/Kernel.js";
+import type { RunScriptContext } from "../kernel/types.js";
 import { product } from "../repositories/models/index.js";
 import type {
   ProductUpdateWorkflowInput,
@@ -16,6 +17,7 @@ import type {
   ProductUpdateParams,
   VariantUpdateParams,
   OperationResult,
+  WorkflowContext,
 } from "./dto/ProductUpdateWorkflowDto.js";
 import type {
   ProductChanges,
@@ -50,6 +52,18 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     return Kernel.getInstance();
   }
 
+  /**
+   * Convert WorkflowContext to RunScriptContext for kernel.runScript()
+   */
+  private toScriptContext(ctx: WorkflowContext): RunScriptContext {
+    return {
+      storeId: ctx.storeId,
+      organizationId: ctx.organizationId,
+      locale: ctx.locale,
+      userId: ctx.userId,
+    };
+  }
+
   @Workflow("productUpdate")
   async run(
     input: ProductUpdateWorkflowInput,
@@ -72,11 +86,12 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     const { revision } = acquired;
 
     // 2. Run operations, collect changes
+    const scriptCtx = this.toScriptContext(input.context);
     for (const op of input.operations) {
       const result =
         op.type === "productUpdate"
-          ? await this.stepProductUpdate(op.params, changes)
-          : await this.stepVariantUpdate(op.params, changes);
+          ? await this.stepProductUpdate(op.params, changes, scriptCtx)
+          : await this.stepVariantUpdate(op.params, changes, scriptCtx);
       results.push(result);
     }
 
@@ -148,6 +163,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
   private async stepProductUpdate(
     params: ProductUpdateParams,
     changes: ProductChanges,
+    ctx: RunScriptContext,
   ): Promise<OperationResult> {
     const errors: UserError[] = [];
     const { id, handle, title, content, seo, status, media } = params;
@@ -158,7 +174,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
         id,
         handle,
         title,
-      });
+      }, ctx);
       errors.push(...r.userErrors);
       if (r.changes) {
         changes.product = { ...changes.product, ...r.changes };
@@ -170,7 +186,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       const r = await this.kernel.runScript(ProductUpdateContentScript, {
         id,
         ...content,
-      });
+      }, ctx);
       errors.push(...r.userErrors);
       if (r.changes) {
         changes.product = { ...changes.product, content: r.changes };
@@ -182,7 +198,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       const r = await this.kernel.runScript(ProductUpdateSeoScript, {
         id,
         ...seo,
-      });
+      }, ctx);
       errors.push(...r.userErrors);
       if (r.changes) {
         changes.product = { ...changes.product, seo: r.changes };
@@ -194,7 +210,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       const r = await this.kernel.runScript(ProductUpdateStatusScript, {
         id,
         status,
-      });
+      }, ctx);
       errors.push(...r.userErrors);
       if (r.changes) {
         changes.product = { ...changes.product, status: r.changes.status };
@@ -206,7 +222,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       const r = await this.kernel.runScript(ProductUpdateMediaScript, {
         id,
         fileIds: media.fileIds,
-      });
+      }, ctx);
       errors.push(...r.userErrors);
       if (r.changes) {
         changes.product = { ...changes.product, media: r.changes };
@@ -228,6 +244,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
   private async stepVariantUpdate(
     params: VariantUpdateParams,
     changes: ProductChanges,
+    ctx: RunScriptContext,
   ): Promise<OperationResult> {
     const errors: UserError[] = [];
     const { variantId, pricing, inventory, dimensions, media, options } =
@@ -243,7 +260,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       const r = await this.kernel.runScript(VariantUpdatePricingScript, {
         variantId,
         ...pricing,
-      });
+      }, ctx);
       errors.push(...r.userErrors);
       if (r.changes) mergeVariantChanges({ pricing: r.changes });
     }
@@ -252,7 +269,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       const r = await this.kernel.runScript(VariantUpdateInventoryScript, {
         variantId,
         ...inventory,
-      });
+      }, ctx);
       errors.push(...r.userErrors);
       if (r.changes) mergeVariantChanges({ inventory: r.changes });
     }
@@ -261,7 +278,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       const r = await this.kernel.runScript(VariantUpdateDimensionsScript, {
         variantId,
         ...dimensions,
-      });
+      }, ctx);
       errors.push(...r.userErrors);
       if (r.changes) mergeVariantChanges({ dimensions: r.changes });
     }
@@ -270,7 +287,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       const r = await this.kernel.runScript(VariantUpdateMediaScript, {
         variantId,
         ...media,
-      });
+      }, ctx);
       errors.push(...r.userErrors);
       if (r.changes) mergeVariantChanges({ media: r.changes });
     }
@@ -279,7 +296,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       const r = await this.kernel.runScript(VariantUpdateOptionsScript, {
         variantId,
         links: options.set,
-      });
+      }, ctx);
       errors.push(...r.userErrors);
       if (r.changes) mergeVariantChanges({ options: r.changes });
     }

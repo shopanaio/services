@@ -5,6 +5,21 @@ import { expect } from '@playwright/test';
 type Api = ApiFixtures['api'];
 
 /**
+ * Helper to extract raw UUID from a Global ID (base64 encoded gid://shopana/{Type}/{UUID})
+ */
+function extractUuidFromGlobalId(globalId: string): string {
+  try {
+    const decoded = Buffer.from(globalId, 'base64').toString('utf-8');
+    // Format: gid://shopana/{Type}/{UUID}
+    const parts = decoded.split('/');
+    return parts[parts.length - 1];
+  } catch {
+    // If not a valid base64/global ID, return as-is (might already be a UUID)
+    return globalId;
+  }
+}
+
+/**
  * Helper to create a product with default variant
  */
 async function createProduct(api: Api, title: string, handle?: string) {
@@ -988,8 +1003,9 @@ test.describe('ProductUpdate API', () => {
 
       const updatedVariant = result.product.variants.edges[0].node;
       expect(updatedVariant.media).toHaveLength(2);
-      expect(updatedVariant.media.map((m: { file: { id: string } }) => m.file.id)).toContain(fileId1);
-      expect(updatedVariant.media.map((m: { file: { id: string } }) => m.file.id)).toContain(fileId2);
+      const mediaFileIds = updatedVariant.media.map((m: { file: { id: string } }) => m.file.id);
+      expect(mediaFileIds).toContain(extractUuidFromGlobalId(fileId1));
+      expect(mediaFileIds).toContain(extractUuidFromGlobalId(fileId2));
 
       // Check operation result
       const variantOp = result.operationResults.find(
@@ -1105,8 +1121,8 @@ test.describe('ProductUpdate API', () => {
       const sorted = [...media].sort(
         (a: { sortIndex: number }, b: { sortIndex: number }) => a.sortIndex - b.sortIndex
       );
-      expect(sorted[0].file.id).toBe(fileId2);
-      expect(sorted[1].file.id).toBe(fileId1);
+      expect(sorted[0].file.id).toBe(extractUuidFromGlobalId(fileId2));
+      expect(sorted[1].file.id).toBe(extractUuidFromGlobalId(fileId1));
     });
   });
 

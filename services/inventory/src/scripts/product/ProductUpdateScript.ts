@@ -49,8 +49,23 @@ export class ProductUpdateScript extends BaseScript<ProductUpdateParams, Product
 
     // 3. Update handle if provided and different
     if (handle !== undefined && handle !== existingProduct.handle) {
-      await this.repository.product.update(id, { handle });
-      changes.handle = handle;
+      try {
+        await this.repository.product.update(id, { handle });
+        changes.handle = handle;
+      } catch (error) {
+        // Handle unique constraint violation
+        if (
+          error instanceof Error &&
+          error.message.includes("product_project_id_handle_key")
+        ) {
+          return singleError(
+            "Product with this handle already exists",
+            "DUPLICATE_HANDLE",
+            ["handle"]
+          );
+        }
+        throw error;
+      }
     }
 
     // 4. Touch product if anything changed

@@ -47,7 +47,7 @@ export class VariantUpdateOptionsScript extends BaseScript<
     }
 
     const productId = existingVariant.productId;
-    const projectId = this.context.storeId;
+    const projectId = this.getProjectId();
 
     // Handle empty links (clear all options)
     if (links.length === 0) {

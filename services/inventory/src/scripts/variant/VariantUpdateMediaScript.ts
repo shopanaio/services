@@ -33,14 +33,11 @@ export class VariantUpdateMediaScript extends BaseScript<
     const existingMedia = await this.repository.media.getVariantMedia(variantId);
     const previousFileIds = existingMedia.map((media) => media.fileId);
 
-    // Check if anything actually changed
+    // Check if anything actually changed (including order)
     const uniqueNextFileIds = Array.from(new Set(fileIds));
-    const previousSet = new Set(previousFileIds);
-    const nextSet = new Set(uniqueNextFileIds);
     const hasChanges =
       previousFileIds.length !== uniqueNextFileIds.length ||
-      previousFileIds.some((fileId) => !nextSet.has(fileId)) ||
-      uniqueNextFileIds.some((fileId) => !previousSet.has(fileId));
+      previousFileIds.some((fileId, index) => fileId !== uniqueNextFileIds[index]);
 
     if (!hasChanges) {
       this.logger.debug({ variantId }, "No media changes detected");

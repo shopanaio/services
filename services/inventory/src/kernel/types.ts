@@ -32,6 +32,21 @@ export interface InventoryKernelServices extends BaseKernelServices {
 export type ScriptContext = BaseScriptContext;
 
 /**
+ * Minimal context for running scripts from workflows.
+ * Contains only the data scripts actually need.
+ */
+export interface RunScriptContext {
+  /** Store/project ID */
+  storeId: string;
+  /** Organization ID */
+  organizationId: string;
+  /** Locale for translations */
+  locale?: string;
+  /** User ID if authenticated */
+  userId?: string;
+}
+
+/**
  * Transaction script for inventory service
  */
 export type TransactionScript<

@@ -183,10 +183,10 @@ export class VariantResolver extends InventoryType<string, Variant | null> {
     return stocks.some((s) => s.quantityOnHand > 0);
   }
 
-  async media(): Promise<VariantMediaItem[]> {
+  async media(): Promise<Array<{ file: { __typename: "File"; id: string }; sortIndex: number }>> {
     const mediaItems = await this.$ctx.loaders.variantMedia.load(this.$props);
     return mediaItems.map((m) => ({
-      fileId: m.fileId,
+      file: { __typename: "File" as const, id: m.fileId },
       sortIndex: m.sortIndex,
     }));
   }
