@@ -1,13 +1,11 @@
 import type { Product } from "../../../repositories/models/index.js";
-import type { ProductResultBase } from "./shared.js";
+import type { ScriptResult, StatusChanges } from "../../types/index.js";
 
-export type ProductStatusAction = "PUBLISH" | "UNPUBLISH";
+export type ProductStatus = "published" | "draft";
 
 export interface ProductSetStatusParams {
-  readonly productId: string;
-  readonly action: ProductStatusAction;
+  readonly id: string;
+  readonly status: ProductStatus;
 }
 
-export interface ProductSetStatusResult extends ProductResultBase {
-  product?: Product;
-}
+export type ProductSetStatusResult = ScriptResult<Product, StatusChanges>;

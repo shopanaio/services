@@ -121,12 +121,9 @@ export enum BulkUpdateJobStatus {
 export enum BulkUpdateOpType {
   ProductSetStatus = 'PRODUCT_SET_STATUS',
   ProductUpdate = 'PRODUCT_UPDATE',
-  VariantSetCost = 'VARIANT_SET_COST',
   VariantSetDimensions = 'VARIANT_SET_DIMENSIONS',
-  VariantSetPricing = 'VARIANT_SET_PRICING',
-  VariantSetSku = 'VARIANT_SET_SKU',
-  VariantSetStock = 'VARIANT_SET_STOCK',
-  VariantSetWeight = 'VARIANT_SET_WEIGHT'
+  VariantSetInventory = 'VARIANT_SET_INVENTORY',
+  VariantSetPricing = 'VARIANT_SET_PRICING'
 }
 
 /** Bulk update error with operation context. */
@@ -654,15 +651,18 @@ export type InventoryMutation = {
   productOptionUpdate: ProductOptionUpdatePayload;
   productSetStatus: ProductSetStatusPayload;
   productUpdate: ProductUpdatePayload;
+  /**
+   * Unified product update with optimistic locking.
+   * Supports multiple operations (product and variant updates) in a single request.
+   */
+  productWorkflowUpdate: ProductWorkflowUpdatePayload;
   variantCreate: VariantCreatePayload;
   variantDelete: VariantDeletePayload;
-  variantSetCost: VariantSetCostPayload;
   variantSetDimensions: VariantSetDimensionsPayload;
+  variantSetInventory: VariantSetInventoryPayload;
   variantSetMedia: VariantSetMediaPayload;
+  variantSetOptions: VariantSetOptionsPayload;
   variantSetPricing: VariantSetPricingPayload;
-  variantSetSku: VariantSetSkuPayload;
-  variantSetStock: VariantSetStockPayload;
-  variantSetWeight: VariantSetWeightPayload;
   warehouseCreate: WarehouseCreatePayload;
   warehouseDelete: WarehouseDeletePayload;
   warehouseUpdate: WarehouseUpdatePayload;
@@ -729,6 +729,13 @@ export type InventoryMutationProductUpdateArgs = {
 };
 
 
+export type InventoryMutationProductWorkflowUpdateArgs = {
+  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
+  operations: Array<ProductUpdateOperationInput>;
+  productId: Scalars['ID']['input'];
+};
+
+
 export type InventoryMutationVariantCreateArgs = {
   input: VariantCreateInput;
 };
@@ -739,13 +746,13 @@ export type InventoryMutationVariantDeleteArgs = {
 };
 
 
-export type InventoryMutationVariantSetCostArgs = {
-  input: VariantSetCostInput;
+export type InventoryMutationVariantSetDimensionsArgs = {
+  input: VariantSetDimensionsInput;
 };
 
 
-export type InventoryMutationVariantSetDimensionsArgs = {
-  input: VariantSetDimensionsInput;
+export type InventoryMutationVariantSetInventoryArgs = {
+  input: VariantSetInventoryInput;
 };
 
 
@@ -754,23 +761,13 @@ export type InventoryMutationVariantSetMediaArgs = {
 };
 
 
+export type InventoryMutationVariantSetOptionsArgs = {
+  input: VariantSetOptionsInput;
+};
+
+
 export type InventoryMutationVariantSetPricingArgs = {
   input: VariantSetPricingInput;
-};
-
-
-export type InventoryMutationVariantSetSkuArgs = {
-  input: VariantSetSkuInput;
-};
-
-
-export type InventoryMutationVariantSetStockArgs = {
-  input: VariantSetStockInput;
-};
-
-
-export type InventoryMutationVariantSetWeightArgs = {
-  input: VariantSetWeightInput;
 };
 
 
@@ -1169,6 +1166,23 @@ export type Node = {
   id: Scalars['ID']['output'];
 };
 
+/** Result of a single operation in the unified update. */
+export type OperationResult = {
+  __typename?: 'OperationResult';
+  /** Whether the operation was applied successfully. */
+  applied: Scalars['Boolean']['output'];
+  /** Errors that occurred during this operation. */
+  errors: Array<GenericUserError>;
+  /** The type of operation. */
+  type: OperationType;
+};
+
+/** Type of operation in the unified update. */
+export enum OperationType {
+  ProductUpdate = 'PRODUCT_UPDATE',
+  VariantUpdate = 'VARIANT_UPDATE'
+}
+
 /** Display type for product options in the UI. */
 export enum OptionDisplayType {
   Buttons = 'BUTTONS',
@@ -1241,6 +1255,8 @@ export type Product = Node & {
   options: Array<ProductOption>;
   /** The date and time when the product was published, or null if unpublished. */
   publishedAt: Maybe<Scalars['DateTime']['output']>;
+  /** Optimistic locking revision number. Incremented on each update. */
+  revision: Scalars['Int']['output'];
   /** SEO and Open Graph metadata. */
   seo: Maybe<ProductSeo>;
   /** Product title. */
@@ -1271,18 +1287,12 @@ export type ProductBulkUpdateInput = {
   productSetStatus?: InputMaybe<Array<ProductSetStatusInput>>;
   /** Update product fields. Reuses ProductUpdateInput (id = productId). */
   productUpdate?: InputMaybe<Array<ProductUpdateInput>>;
-  /** Set variant cost. Reuses VariantSetCostInput. */
-  variantSetCost?: InputMaybe<Array<VariantSetCostInput>>;
   /** Set variant dimensions. Reuses VariantSetDimensionsInput. */
   variantSetDimensions?: InputMaybe<Array<VariantSetDimensionsInput>>;
+  /** Set variant inventory (includes weight). Reuses VariantSetInventoryInput. */
+  variantSetInventory?: InputMaybe<Array<VariantSetInventoryInput>>;
   /** Set variant pricing. Reuses VariantSetPricingInput. */
   variantSetPricing?: InputMaybe<Array<VariantSetPricingInput>>;
-  /** Set variant SKU. Reuses VariantSetSkuInput. */
-  variantSetSku?: InputMaybe<Array<VariantSetSkuInput>>;
-  /** Set variant stock. Reuses VariantSetStockInput. */
-  variantSetStock?: InputMaybe<Array<VariantSetStockInput>>;
-  /** Set variant weight. Reuses VariantSetWeightInput. */
-  variantSetWeight?: InputMaybe<Array<VariantSetWeightInput>>;
 };
 
 /** Bulk update job with progress. */
@@ -1332,6 +1342,14 @@ export type ProductConnection = {
   pageInfo: PageInfo;
   /** The total number of products. */
   totalCount: Scalars['Int']['output'];
+};
+
+/** Input for product content (description, excerpt). */
+export type ProductContentInput = {
+  /** Product description in multiple formats. */
+  description?: InputMaybe<DescriptionInput>;
+  /** Short excerpt. */
+  excerpt?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** Input for creating a product with all its data in one request. */
@@ -1594,6 +1612,12 @@ export type ProductInventoryWidget = {
   skuStatus: InventorySkuStatus;
 };
 
+/** Input for product media. */
+export type ProductMediaInput = {
+  /** File IDs for product media. */
+  fileIds: Array<Scalars['ID']['input']>;
+};
+
 /** A product option defines a configurable aspect of a product, such as Size or Color. */
 export type ProductOption = Node & {
   __typename?: 'ProductOption';
@@ -1801,6 +1825,11 @@ export type ProductSetStatusPayload = {
   userErrors: Array<GenericUserError>;
 };
 
+export enum ProductStatus {
+  Draft = 'DRAFT',
+  Published = 'PUBLISHED'
+}
+
 export enum ProductStatusAction {
   Publish = 'PUBLISH',
   Unpublish = 'UNPUBLISH'
@@ -1822,12 +1851,52 @@ export type ProductUpdateInput = {
   title?: InputMaybe<Scalars['String']['input']>;
 };
 
+/** Input for a product-level operation in the unified update. */
+export type ProductUpdateOpInput = {
+  /** Product content (description, excerpt). */
+  content?: InputMaybe<ProductContentInput>;
+  /** The URL-friendly handle for the product. */
+  handle?: InputMaybe<Scalars['String']['input']>;
+  /** The product ID. */
+  id: Scalars['ID']['input'];
+  /** Product media. */
+  media?: InputMaybe<ProductMediaInput>;
+  /** SEO and Open Graph metadata. */
+  seo?: InputMaybe<ProductSeoInput>;
+  /** Product status: DRAFT or PUBLISHED. */
+  status?: InputMaybe<ProductStatus>;
+  /** Product title. */
+  title?: InputMaybe<Scalars['String']['input']>;
+};
+
+/**
+ * Input for a single operation in the unified product update.
+ * Exactly one of productUpdate or variantUpdate must be provided.
+ */
+export type ProductUpdateOperationInput = {
+  /** Product-level update operation. */
+  productUpdate?: InputMaybe<ProductUpdateOpInput>;
+  /** Variant-level update operation. */
+  variantUpdate?: InputMaybe<VariantUpdateOpInput>;
+};
+
 /** Payload for product update. */
 export type ProductUpdatePayload = {
   __typename?: 'ProductUpdatePayload';
   /** The updated product. */
   product: Maybe<Product>;
   /** List of errors that occurred during the mutation. */
+  userErrors: Array<GenericUserError>;
+};
+
+/** Payload for the unified product update mutation. */
+export type ProductWorkflowUpdatePayload = {
+  __typename?: 'ProductWorkflowUpdatePayload';
+  /** Results of each operation. */
+  operationResults: Array<OperationResult>;
+  /** The updated product with new revision. */
+  product: Maybe<Product>;
+  /** All errors from all operations. */
   userErrors: Array<GenericUserError>;
 };
 
@@ -2082,6 +2151,16 @@ export type VariantDimensions = {
   width: Scalars['Int']['output'];
 };
 
+/** Input for variant dimensions in the unified update. */
+export type VariantDimensionsOpInput = {
+  /** Height in millimeters. */
+  height: Scalars['Int']['input'];
+  /** Length in millimeters. */
+  length: Scalars['Int']['input'];
+  /** Width in millimeters. */
+  width: Scalars['Int']['input'];
+};
+
 /** An edge in a Variant connection. */
 export type VariantEdge = {
   __typename?: 'VariantEdge';
@@ -2109,6 +2188,24 @@ export type VariantInput = {
   weight?: InputMaybe<WeightInput>;
 };
 
+/** Input for variant inventory in the unified update. */
+export type VariantInventoryOpInput = {
+  /** Currency code for unit cost. */
+  costCurrency?: InputMaybe<CurrencyCode>;
+  /** Quantity on hand. */
+  onHand: Scalars['Int']['input'];
+  /** SKU code. */
+  sku?: InputMaybe<Scalars['String']['input']>;
+  /** Unavailable quantity (reserved, damaged, etc.). */
+  unavailable?: InputMaybe<Scalars['Int']['input']>;
+  /** Unit cost in minor units (cents). */
+  unitCostMinor?: InputMaybe<Scalars['BigInt']['input']>;
+  /** The warehouse ID. */
+  warehouseId: Scalars['ID']['input'];
+  /** Weight in grams. */
+  weight?: InputMaybe<Scalars['Int']['input']>;
+};
+
 /** Media attached to a variant with sort order. */
 export type VariantMediaItem = {
   __typename?: 'VariantMediaItem';
@@ -2116,6 +2213,26 @@ export type VariantMediaItem = {
   file: File;
   /** Sort order index (lower = first). */
   sortIndex: Scalars['Int']['output'];
+};
+
+/** Input for variant media in the unified update. */
+export type VariantMediaOpInput = {
+  /** File IDs for variant media. */
+  fileIds: Array<Scalars['ID']['input']>;
+};
+
+/** Input for linking a variant to an option value. */
+export type VariantOptionLinkInput = {
+  /** The option ID. */
+  optionId: Scalars['ID']['input'];
+  /** The option value ID. */
+  optionValueId: Scalars['ID']['input'];
+};
+
+/** Input for variant options in the unified update. */
+export type VariantOptionsOpInput = {
+  /** Option value links to set (replaces existing). */
+  set: Array<VariantOptionLinkInput>;
 };
 
 /** Represents a price for a variant. */
@@ -2172,36 +2289,62 @@ export type VariantPriceHistoryStatistics = {
   minPriceMinor: Scalars['BigInt']['output'];
 };
 
-/** Input for setting a cost on a variant. */
-export type VariantSetCostInput = {
+/** Input for variant pricing in the unified update. */
+export type VariantPricingOpInput = {
+  /** The price amount in minor units. */
+  amountMinor: Scalars['BigInt']['input'];
+  /** The compare-at price in minor units (optional). */
+  compareAtMinor?: InputMaybe<Scalars['BigInt']['input']>;
   /** The currency code. */
   currency: CurrencyCode;
-  /** The unit cost in minor units. */
-  unitCostMinor: Scalars['BigInt']['input'];
-  /** The ID of the variant. */
-  variantId: Scalars['ID']['input'];
 };
 
-/** Payload for variant cost set. */
-export type VariantSetCostPayload = {
-  __typename?: 'VariantSetCostPayload';
+/** Input for setting variant dimensions. */
+export type VariantSetDimensionsInput = {
+  /** Height in millimeters. */
+  height: Scalars['Int']['input'];
+  /** Length in millimeters. */
+  length: Scalars['Int']['input'];
+  /** The ID of the variant. */
+  variantId: Scalars['ID']['input'];
+  /** Width in millimeters. */
+  width: Scalars['Int']['input'];
+};
+
+/** Payload for variant dimensions set. */
+export type VariantSetDimensionsPayload = {
+  __typename?: 'VariantSetDimensionsPayload';
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
   /** The updated variant. */
   variant: Maybe<Variant>;
 };
 
-/** Input for setting variant dimensions. */
-export type VariantSetDimensionsInput = {
-  /** The dimensions to set. */
-  dimensions: DimensionsInput;
+/** Input for setting variant inventory (stock, SKU, weight, and unit cost). */
+export type VariantSetInventoryInput = {
+  /** Currency code for unit cost. */
+  costCurrency?: InputMaybe<CurrencyCode>;
+  /** Quantity on hand. */
+  onHand: Scalars['Int']['input'];
+  /** SKU code. */
+  sku?: InputMaybe<Scalars['String']['input']>;
+  /** Unavailable quantity (reserved, damaged, etc.). */
+  unavailable?: InputMaybe<Scalars['Int']['input']>;
+  /** Unit cost in minor units (cents). Requires currency field. */
+  unitCostMinor?: InputMaybe<Scalars['BigInt']['input']>;
   /** The ID of the variant. */
   variantId: Scalars['ID']['input'];
+  /** The warehouse ID. */
+  warehouseId: Scalars['ID']['input'];
+  /** Weight in grams. */
+  weight?: InputMaybe<Scalars['Int']['input']>;
 };
 
-/** Payload for variant dimensions set. */
-export type VariantSetDimensionsPayload = {
-  __typename?: 'VariantSetDimensionsPayload';
+/** Payload for variant inventory set. */
+export type VariantSetInventoryPayload = {
+  __typename?: 'VariantSetInventoryPayload';
+  /** The updated stock record. */
+  stock: Maybe<WarehouseStock>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
   /** The updated variant. */
@@ -2219,6 +2362,23 @@ export type VariantSetMediaInput = {
 /** Payload for variant set media. */
 export type VariantSetMediaPayload = {
   __typename?: 'VariantSetMediaPayload';
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<GenericUserError>;
+  /** The updated variant. */
+  variant: Maybe<Variant>;
+};
+
+/** Input for setting variant options (option value links). */
+export type VariantSetOptionsInput = {
+  /** The option value links to set (replaces existing links). */
+  links: Array<VariantOptionLinkInput>;
+  /** The ID of the variant. */
+  variantId: Scalars['ID']['input'];
+};
+
+/** Payload for variant options set. */
+export type VariantSetOptionsPayload = {
+  __typename?: 'VariantSetOptionsPayload';
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
   /** The updated variant. */
@@ -2246,59 +2406,20 @@ export type VariantSetPricingPayload = {
   variant: Maybe<Variant>;
 };
 
-/** Input for setting variant SKU. */
-export type VariantSetSkuInput = {
-  /** The new SKU value. */
-  sku: Scalars['String']['input'];
-  /** The ID of the variant. */
+/** Input for a variant-level operation in the unified update. */
+export type VariantUpdateOpInput = {
+  /** Variant dimensions. */
+  dimensions?: InputMaybe<VariantDimensionsOpInput>;
+  /** Variant inventory (stock, SKU, weight, cost). */
+  inventory?: InputMaybe<VariantInventoryOpInput>;
+  /** Variant media. */
+  media?: InputMaybe<VariantMediaOpInput>;
+  /** Variant options. */
+  options?: InputMaybe<VariantOptionsOpInput>;
+  /** Variant pricing. */
+  pricing?: InputMaybe<VariantPricingOpInput>;
+  /** The variant ID. */
   variantId: Scalars['ID']['input'];
-};
-
-/** Payload for variant SKU set. */
-export type VariantSetSkuPayload = {
-  __typename?: 'VariantSetSkuPayload';
-  /** List of errors that occurred during the mutation. */
-  userErrors: Array<GenericUserError>;
-  /** The updated variant. */
-  variant: Maybe<Variant>;
-};
-
-/** Input for setting stock on a variant. */
-export type VariantSetStockInput = {
-  /** The quantity to set. */
-  quantity: Scalars['Int']['input'];
-  /** The ID of the variant. */
-  variantId: Scalars['ID']['input'];
-  /** The warehouse ID. */
-  warehouseId: Scalars['ID']['input'];
-};
-
-/** Payload for variant stock set. */
-export type VariantSetStockPayload = {
-  __typename?: 'VariantSetStockPayload';
-  /** The updated stock record. */
-  stock: Maybe<WarehouseStock>;
-  /** List of errors that occurred during the mutation. */
-  userErrors: Array<GenericUserError>;
-  /** The updated variant. */
-  variant: Maybe<Variant>;
-};
-
-/** Input for setting variant weight. */
-export type VariantSetWeightInput = {
-  /** The ID of the variant. */
-  variantId: Scalars['ID']['input'];
-  /** The weight to set. */
-  weight: WeightInput;
-};
-
-/** Payload for variant weight set. */
-export type VariantSetWeightPayload = {
-  __typename?: 'VariantSetWeightPayload';
-  /** List of errors that occurred during the mutation. */
-  userErrors: Array<GenericUserError>;
-  /** The updated variant. */
-  variant: Maybe<Variant>;
 };
 
 /** Physical weight of a variant (stored in grams). */
@@ -2741,6 +2862,8 @@ export type ResolversTypes = ResolversObject<{
   LocaleCode: LocaleCode;
   Mutation: ResolverTypeWrapper<{}>;
   Node: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['Node']>;
+  OperationResult: ResolverTypeWrapper<OperationResult>;
+  OperationType: OperationType;
   OptionDisplayType: OptionDisplayType;
   PageInfo: ResolverTypeWrapper<PageInfo>;
   PricingWidgetInput: PricingWidgetInput;
@@ -2750,6 +2873,7 @@ export type ResolversTypes = ResolversObject<{
   ProductBulkUpdateJob: ResolverTypeWrapper<ProductBulkUpdateJob>;
   ProductBulkUpdatePayload: ResolverTypeWrapper<ProductBulkUpdatePayload>;
   ProductConnection: ResolverTypeWrapper<ProductConnection>;
+  ProductContentInput: ProductContentInput;
   ProductCreateInput: ProductCreateInput;
   ProductCreateOptionInput: ProductCreateOptionInput;
   ProductCreateOptionValueInput: ProductCreateOptionValueInput;
@@ -2775,6 +2899,7 @@ export type ResolversTypes = ResolversObject<{
   ProductFeaturesSyncInput: ProductFeaturesSyncInput;
   ProductFeaturesSyncPayload: ResolverTypeWrapper<ProductFeaturesSyncPayload>;
   ProductInventoryWidget: ResolverTypeWrapper<ProductInventoryWidget>;
+  ProductMediaInput: ProductMediaInput;
   ProductOption: ResolverTypeWrapper<ProductOption>;
   ProductOptionCreateInput: ProductOptionCreateInput;
   ProductOptionCreatePayload: ResolverTypeWrapper<ProductOptionCreatePayload>;
@@ -2792,9 +2917,13 @@ export type ResolversTypes = ResolversObject<{
   ProductSeoInput: ProductSeoInput;
   ProductSetStatusInput: ProductSetStatusInput;
   ProductSetStatusPayload: ResolverTypeWrapper<ProductSetStatusPayload>;
+  ProductStatus: ProductStatus;
   ProductStatusAction: ProductStatusAction;
   ProductUpdateInput: ProductUpdateInput;
+  ProductUpdateOpInput: ProductUpdateOpInput;
+  ProductUpdateOperationInput: ProductUpdateOperationInput;
   ProductUpdatePayload: ResolverTypeWrapper<ProductUpdatePayload>;
+  ProductWorkflowUpdatePayload: ResolverTypeWrapper<ProductWorkflowUpdatePayload>;
   Query: ResolverTypeWrapper<{}>;
   SelectedOption: ResolverTypeWrapper<SelectedOption>;
   SelectedOptionInput: SelectedOptionInput;
@@ -2814,27 +2943,30 @@ export type ResolversTypes = ResolversObject<{
   VariantDeleteInput: VariantDeleteInput;
   VariantDeletePayload: ResolverTypeWrapper<VariantDeletePayload>;
   VariantDimensions: ResolverTypeWrapper<VariantDimensions>;
+  VariantDimensionsOpInput: VariantDimensionsOpInput;
   VariantEdge: ResolverTypeWrapper<VariantEdge>;
   VariantInput: VariantInput;
+  VariantInventoryOpInput: VariantInventoryOpInput;
   VariantMediaItem: ResolverTypeWrapper<VariantMediaItem>;
+  VariantMediaOpInput: VariantMediaOpInput;
+  VariantOptionLinkInput: VariantOptionLinkInput;
+  VariantOptionsOpInput: VariantOptionsOpInput;
   VariantPrice: ResolverTypeWrapper<VariantPrice>;
   VariantPriceConnection: ResolverTypeWrapper<VariantPriceConnection>;
   VariantPriceEdge: ResolverTypeWrapper<VariantPriceEdge>;
   VariantPriceHistoryStatistics: ResolverTypeWrapper<VariantPriceHistoryStatistics>;
-  VariantSetCostInput: VariantSetCostInput;
-  VariantSetCostPayload: ResolverTypeWrapper<VariantSetCostPayload>;
+  VariantPricingOpInput: VariantPricingOpInput;
   VariantSetDimensionsInput: VariantSetDimensionsInput;
   VariantSetDimensionsPayload: ResolverTypeWrapper<VariantSetDimensionsPayload>;
+  VariantSetInventoryInput: VariantSetInventoryInput;
+  VariantSetInventoryPayload: ResolverTypeWrapper<VariantSetInventoryPayload>;
   VariantSetMediaInput: VariantSetMediaInput;
   VariantSetMediaPayload: ResolverTypeWrapper<VariantSetMediaPayload>;
+  VariantSetOptionsInput: VariantSetOptionsInput;
+  VariantSetOptionsPayload: ResolverTypeWrapper<VariantSetOptionsPayload>;
   VariantSetPricingInput: VariantSetPricingInput;
   VariantSetPricingPayload: ResolverTypeWrapper<VariantSetPricingPayload>;
-  VariantSetSkuInput: VariantSetSkuInput;
-  VariantSetSkuPayload: ResolverTypeWrapper<VariantSetSkuPayload>;
-  VariantSetStockInput: VariantSetStockInput;
-  VariantSetStockPayload: ResolverTypeWrapper<VariantSetStockPayload>;
-  VariantSetWeightInput: VariantSetWeightInput;
-  VariantSetWeightPayload: ResolverTypeWrapper<VariantSetWeightPayload>;
+  VariantUpdateOpInput: VariantUpdateOpInput;
   VariantWeight: ResolverTypeWrapper<VariantWeight>;
   Warehouse: ResolverTypeWrapper<Warehouse>;
   WarehouseConnection: ResolverTypeWrapper<WarehouseConnection>;
@@ -2895,6 +3027,7 @@ export type ResolversParentTypes = ResolversObject<{
   JSON: Scalars['JSON']['output'];
   Mutation: {};
   Node: ResolversInterfaceTypes<ResolversParentTypes>['Node'];
+  OperationResult: OperationResult;
   PageInfo: PageInfo;
   PricingWidgetInput: PricingWidgetInput;
   PricingWidgetPayload: PricingWidgetPayload;
@@ -2903,6 +3036,7 @@ export type ResolversParentTypes = ResolversObject<{
   ProductBulkUpdateJob: ProductBulkUpdateJob;
   ProductBulkUpdatePayload: ProductBulkUpdatePayload;
   ProductConnection: ProductConnection;
+  ProductContentInput: ProductContentInput;
   ProductCreateInput: ProductCreateInput;
   ProductCreateOptionInput: ProductCreateOptionInput;
   ProductCreateOptionValueInput: ProductCreateOptionValueInput;
@@ -2928,6 +3062,7 @@ export type ResolversParentTypes = ResolversObject<{
   ProductFeaturesSyncInput: ProductFeaturesSyncInput;
   ProductFeaturesSyncPayload: ProductFeaturesSyncPayload;
   ProductInventoryWidget: ProductInventoryWidget;
+  ProductMediaInput: ProductMediaInput;
   ProductOption: ProductOption;
   ProductOptionCreateInput: ProductOptionCreateInput;
   ProductOptionCreatePayload: ProductOptionCreatePayload;
@@ -2946,7 +3081,10 @@ export type ResolversParentTypes = ResolversObject<{
   ProductSetStatusInput: ProductSetStatusInput;
   ProductSetStatusPayload: ProductSetStatusPayload;
   ProductUpdateInput: ProductUpdateInput;
+  ProductUpdateOpInput: ProductUpdateOpInput;
+  ProductUpdateOperationInput: ProductUpdateOperationInput;
   ProductUpdatePayload: ProductUpdatePayload;
+  ProductWorkflowUpdatePayload: ProductWorkflowUpdatePayload;
   Query: {};
   SelectedOption: SelectedOption;
   SelectedOptionInput: SelectedOptionInput;
@@ -2963,27 +3101,30 @@ export type ResolversParentTypes = ResolversObject<{
   VariantDeleteInput: VariantDeleteInput;
   VariantDeletePayload: VariantDeletePayload;
   VariantDimensions: VariantDimensions;
+  VariantDimensionsOpInput: VariantDimensionsOpInput;
   VariantEdge: VariantEdge;
   VariantInput: VariantInput;
+  VariantInventoryOpInput: VariantInventoryOpInput;
   VariantMediaItem: VariantMediaItem;
+  VariantMediaOpInput: VariantMediaOpInput;
+  VariantOptionLinkInput: VariantOptionLinkInput;
+  VariantOptionsOpInput: VariantOptionsOpInput;
   VariantPrice: VariantPrice;
   VariantPriceConnection: VariantPriceConnection;
   VariantPriceEdge: VariantPriceEdge;
   VariantPriceHistoryStatistics: VariantPriceHistoryStatistics;
-  VariantSetCostInput: VariantSetCostInput;
-  VariantSetCostPayload: VariantSetCostPayload;
+  VariantPricingOpInput: VariantPricingOpInput;
   VariantSetDimensionsInput: VariantSetDimensionsInput;
   VariantSetDimensionsPayload: VariantSetDimensionsPayload;
+  VariantSetInventoryInput: VariantSetInventoryInput;
+  VariantSetInventoryPayload: VariantSetInventoryPayload;
   VariantSetMediaInput: VariantSetMediaInput;
   VariantSetMediaPayload: VariantSetMediaPayload;
+  VariantSetOptionsInput: VariantSetOptionsInput;
+  VariantSetOptionsPayload: VariantSetOptionsPayload;
   VariantSetPricingInput: VariantSetPricingInput;
   VariantSetPricingPayload: VariantSetPricingPayload;
-  VariantSetSkuInput: VariantSetSkuInput;
-  VariantSetSkuPayload: VariantSetSkuPayload;
-  VariantSetStockInput: VariantSetStockInput;
-  VariantSetStockPayload: VariantSetStockPayload;
-  VariantSetWeightInput: VariantSetWeightInput;
-  VariantSetWeightPayload: VariantSetWeightPayload;
+  VariantUpdateOpInput: VariantUpdateOpInput;
   VariantWeight: VariantWeight;
   Warehouse: Warehouse;
   WarehouseConnection: WarehouseConnection;
@@ -3114,15 +3255,14 @@ export type InventoryMutationResolvers<ContextType = ServiceContext, ParentType 
   productOptionUpdate?: Resolver<ResolversTypes['ProductOptionUpdatePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductOptionUpdateArgs, 'input'>>;
   productSetStatus?: Resolver<ResolversTypes['ProductSetStatusPayload'], ParentType, ContextType, RequireFields<InventoryMutationProductSetStatusArgs, 'input'>>;
   productUpdate?: Resolver<ResolversTypes['ProductUpdatePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductUpdateArgs, 'input'>>;
+  productWorkflowUpdate?: Resolver<ResolversTypes['ProductWorkflowUpdatePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductWorkflowUpdateArgs, 'operations' | 'productId'>>;
   variantCreate?: Resolver<ResolversTypes['VariantCreatePayload'], ParentType, ContextType, RequireFields<InventoryMutationVariantCreateArgs, 'input'>>;
   variantDelete?: Resolver<ResolversTypes['VariantDeletePayload'], ParentType, ContextType, RequireFields<InventoryMutationVariantDeleteArgs, 'input'>>;
-  variantSetCost?: Resolver<ResolversTypes['VariantSetCostPayload'], ParentType, ContextType, RequireFields<InventoryMutationVariantSetCostArgs, 'input'>>;
   variantSetDimensions?: Resolver<ResolversTypes['VariantSetDimensionsPayload'], ParentType, ContextType, RequireFields<InventoryMutationVariantSetDimensionsArgs, 'input'>>;
+  variantSetInventory?: Resolver<ResolversTypes['VariantSetInventoryPayload'], ParentType, ContextType, RequireFields<InventoryMutationVariantSetInventoryArgs, 'input'>>;
   variantSetMedia?: Resolver<ResolversTypes['VariantSetMediaPayload'], ParentType, ContextType, RequireFields<InventoryMutationVariantSetMediaArgs, 'input'>>;
+  variantSetOptions?: Resolver<ResolversTypes['VariantSetOptionsPayload'], ParentType, ContextType, RequireFields<InventoryMutationVariantSetOptionsArgs, 'input'>>;
   variantSetPricing?: Resolver<ResolversTypes['VariantSetPricingPayload'], ParentType, ContextType, RequireFields<InventoryMutationVariantSetPricingArgs, 'input'>>;
-  variantSetSku?: Resolver<ResolversTypes['VariantSetSkuPayload'], ParentType, ContextType, RequireFields<InventoryMutationVariantSetSkuArgs, 'input'>>;
-  variantSetStock?: Resolver<ResolversTypes['VariantSetStockPayload'], ParentType, ContextType, RequireFields<InventoryMutationVariantSetStockArgs, 'input'>>;
-  variantSetWeight?: Resolver<ResolversTypes['VariantSetWeightPayload'], ParentType, ContextType, RequireFields<InventoryMutationVariantSetWeightArgs, 'input'>>;
   warehouseCreate?: Resolver<ResolversTypes['WarehouseCreatePayload'], ParentType, ContextType, RequireFields<InventoryMutationWarehouseCreateArgs, 'input'>>;
   warehouseDelete?: Resolver<ResolversTypes['WarehouseDeletePayload'], ParentType, ContextType, RequireFields<InventoryMutationWarehouseDeleteArgs, 'input'>>;
   warehouseUpdate?: Resolver<ResolversTypes['WarehouseUpdatePayload'], ParentType, ContextType, RequireFields<InventoryMutationWarehouseUpdateArgs, 'input'>>;
@@ -3171,6 +3311,13 @@ export type NodeResolvers<ContextType = ServiceContext, ParentType extends Resol
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
 }>;
 
+export type OperationResultResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['OperationResult'] = ResolversParentTypes['OperationResult']> = ResolversObject<{
+  applied?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  errors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  type?: Resolver<ResolversTypes['OperationType'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type PageInfoResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['PageInfo'] = ResolversParentTypes['PageInfo']> = ResolversObject<{
   endCursor?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   hasNextPage?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
@@ -3199,6 +3346,7 @@ export type ProductResolvers<ContextType = ServiceContext, ParentType extends Re
   isPublished?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   options?: Resolver<Array<ResolversTypes['ProductOption']>, ParentType, ContextType>;
   publishedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   seo?: Resolver<Maybe<ResolversTypes['ProductSeo']>, ParentType, ContextType>;
   title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
@@ -3379,6 +3527,13 @@ export type ProductUpdatePayloadResolvers<ContextType = ServiceContext, ParentTy
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type ProductWorkflowUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductWorkflowUpdatePayload'] = ResolversParentTypes['ProductWorkflowUpdatePayload']> = ResolversObject<{
+  operationResults?: Resolver<Array<ResolversTypes['OperationResult']>, ParentType, ContextType>;
+  product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type QueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = ResolversObject<{
   inventoryQuery?: Resolver<ResolversTypes['InventoryQuery'], ParentType, ContextType>;
   widgetQuery?: Resolver<ResolversTypes['WidgetQuery'], ParentType, ContextType>;
@@ -3525,13 +3680,14 @@ export type VariantPriceHistoryStatisticsResolvers<ContextType = ServiceContext,
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type VariantSetCostPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantSetCostPayload'] = ResolversParentTypes['VariantSetCostPayload']> = ResolversObject<{
+export type VariantSetDimensionsPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantSetDimensionsPayload'] = ResolversParentTypes['VariantSetDimensionsPayload']> = ResolversObject<{
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   variant?: Resolver<Maybe<ResolversTypes['Variant']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type VariantSetDimensionsPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantSetDimensionsPayload'] = ResolversParentTypes['VariantSetDimensionsPayload']> = ResolversObject<{
+export type VariantSetInventoryPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantSetInventoryPayload'] = ResolversParentTypes['VariantSetInventoryPayload']> = ResolversObject<{
+  stock?: Resolver<Maybe<ResolversTypes['WarehouseStock']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   variant?: Resolver<Maybe<ResolversTypes['Variant']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -3543,26 +3699,13 @@ export type VariantSetMediaPayloadResolvers<ContextType = ServiceContext, Parent
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type VariantSetOptionsPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantSetOptionsPayload'] = ResolversParentTypes['VariantSetOptionsPayload']> = ResolversObject<{
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  variant?: Resolver<Maybe<ResolversTypes['Variant']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type VariantSetPricingPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantSetPricingPayload'] = ResolversParentTypes['VariantSetPricingPayload']> = ResolversObject<{
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  variant?: Resolver<Maybe<ResolversTypes['Variant']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type VariantSetSkuPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantSetSkuPayload'] = ResolversParentTypes['VariantSetSkuPayload']> = ResolversObject<{
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  variant?: Resolver<Maybe<ResolversTypes['Variant']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type VariantSetStockPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantSetStockPayload'] = ResolversParentTypes['VariantSetStockPayload']> = ResolversObject<{
-  stock?: Resolver<Maybe<ResolversTypes['WarehouseStock']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  variant?: Resolver<Maybe<ResolversTypes['Variant']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type VariantSetWeightPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantSetWeightPayload'] = ResolversParentTypes['VariantSetWeightPayload']> = ResolversObject<{
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   variant?: Resolver<Maybe<ResolversTypes['Variant']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -3667,6 +3810,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   JSON?: GraphQLScalarType;
   Mutation?: MutationResolvers<ContextType>;
   Node?: NodeResolvers<ContextType>;
+  OperationResult?: OperationResultResolvers<ContextType>;
   PageInfo?: PageInfoResolvers<ContextType>;
   PricingWidgetPayload?: PricingWidgetPayloadResolvers<ContextType>;
   Product?: ProductResolvers<ContextType>;
@@ -3692,6 +3836,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   ProductSeo?: ProductSeoResolvers<ContextType>;
   ProductSetStatusPayload?: ProductSetStatusPayloadResolvers<ContextType>;
   ProductUpdatePayload?: ProductUpdatePayloadResolvers<ContextType>;
+  ProductWorkflowUpdatePayload?: ProductWorkflowUpdatePayloadResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   SelectedOption?: SelectedOptionResolvers<ContextType>;
   SkuStatusMetric?: SkuStatusMetricResolvers<ContextType>;
@@ -3710,13 +3855,11 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   VariantPriceConnection?: VariantPriceConnectionResolvers<ContextType>;
   VariantPriceEdge?: VariantPriceEdgeResolvers<ContextType>;
   VariantPriceHistoryStatistics?: VariantPriceHistoryStatisticsResolvers<ContextType>;
-  VariantSetCostPayload?: VariantSetCostPayloadResolvers<ContextType>;
   VariantSetDimensionsPayload?: VariantSetDimensionsPayloadResolvers<ContextType>;
+  VariantSetInventoryPayload?: VariantSetInventoryPayloadResolvers<ContextType>;
   VariantSetMediaPayload?: VariantSetMediaPayloadResolvers<ContextType>;
+  VariantSetOptionsPayload?: VariantSetOptionsPayloadResolvers<ContextType>;
   VariantSetPricingPayload?: VariantSetPricingPayloadResolvers<ContextType>;
-  VariantSetSkuPayload?: VariantSetSkuPayloadResolvers<ContextType>;
-  VariantSetStockPayload?: VariantSetStockPayloadResolvers<ContextType>;
-  VariantSetWeightPayload?: VariantSetWeightPayloadResolvers<ContextType>;
   VariantWeight?: VariantWeightResolvers<ContextType>;
   Warehouse?: WarehouseResolvers<ContextType>;
   WarehouseConnection?: WarehouseConnectionResolvers<ContextType>;

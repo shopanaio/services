@@ -53,6 +53,9 @@ type Product implements Node @key(fields: "id") {
   """The date and time when the product was deleted (soft delete)."""
   deletedAt: DateTime
 
+  """Optimistic locking revision number. Incremented on each update."""
+  revision: Int!
+
   """The variants of this product."""
   variants(
     first: Int
@@ -268,5 +271,193 @@ type ProductSetStatusPayload {
   product: Product
 
   """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+# ---- Unified ProductUpdate Workflow Types ----
+
+"""
+Input for product content (description, excerpt).
+"""
+input ProductContentInput {
+  """Product description in multiple formats."""
+  description: DescriptionInput
+
+  """Short excerpt."""
+  excerpt: String
+}
+
+"""
+Input for product media.
+"""
+input ProductMediaInput {
+  """File IDs for product media."""
+  fileIds: [ID!]!
+}
+
+"""
+Input for a product-level operation in the unified update.
+"""
+input ProductUpdateOpInput {
+  """The product ID."""
+  id: ID!
+
+  """The URL-friendly handle for the product."""
+  handle: String
+
+  """Product title."""
+  title: String
+
+  """Product content (description, excerpt)."""
+  content: ProductContentInput
+
+  """SEO and Open Graph metadata."""
+  seo: ProductSeoInput
+
+  """Product status: DRAFT or PUBLISHED."""
+  status: ProductStatus
+
+  """Product media."""
+  media: ProductMediaInput
+}
+
+"""
+Input for variant pricing in the unified update.
+"""
+input VariantPricingOpInput {
+  """The currency code."""
+  currency: CurrencyCode!
+
+  """The price amount in minor units."""
+  amountMinor: BigInt!
+
+  """The compare-at price in minor units (optional)."""
+  compareAtMinor: BigInt
+}
+
+"""
+Input for variant inventory in the unified update.
+"""
+input VariantInventoryOpInput {
+  """The warehouse ID."""
+  warehouseId: ID!
+
+  """Quantity on hand."""
+  onHand: Int!
+
+  """Unavailable quantity (reserved, damaged, etc.)."""
+  unavailable: Int
+
+  """SKU code."""
+  sku: String
+
+  """Weight in grams."""
+  weight: Int
+
+  """Unit cost in minor units (cents)."""
+  unitCostMinor: BigInt
+
+  """Currency code for unit cost."""
+  costCurrency: CurrencyCode
+}
+
+"""
+Input for variant dimensions in the unified update.
+"""
+input VariantDimensionsOpInput {
+  """Width in millimeters."""
+  width: Int!
+
+  """Height in millimeters."""
+  height: Int!
+
+  """Length in millimeters."""
+  length: Int!
+}
+
+"""
+Input for variant media in the unified update.
+"""
+input VariantMediaOpInput {
+  """File IDs for variant media."""
+  fileIds: [ID!]!
+}
+
+"""
+Input for variant options in the unified update.
+"""
+input VariantOptionsOpInput {
+  """Option value links to set (replaces existing)."""
+  set: [VariantOptionLinkInput!]!
+}
+
+"""
+Input for a variant-level operation in the unified update.
+"""
+input VariantUpdateOpInput {
+  """The variant ID."""
+  variantId: ID!
+
+  """Variant pricing."""
+  pricing: VariantPricingOpInput
+
+  """Variant inventory (stock, SKU, weight, cost)."""
+  inventory: VariantInventoryOpInput
+
+  """Variant dimensions."""
+  dimensions: VariantDimensionsOpInput
+
+  """Variant media."""
+  media: VariantMediaOpInput
+
+  """Variant options."""
+  options: VariantOptionsOpInput
+}
+
+"""
+Input for a single operation in the unified product update.
+Exactly one of productUpdate or variantUpdate must be provided.
+"""
+input ProductUpdateOperationInput {
+  """Product-level update operation."""
+  productUpdate: ProductUpdateOpInput
+
+  """Variant-level update operation."""
+  variantUpdate: VariantUpdateOpInput
+}
+
+"""
+Type of operation in the unified update.
+"""
+enum OperationType {
+  PRODUCT_UPDATE
+  VARIANT_UPDATE
+}
+
+"""
+Result of a single operation in the unified update.
+"""
+type OperationResult {
+  """The type of operation."""
+  type: OperationType!
+
+  """Whether the operation was applied successfully."""
+  applied: Boolean!
+
+  """Errors that occurred during this operation."""
+  errors: [GenericUserError!]!
+}
+
+"""
+Payload for the unified product update mutation.
+"""
+type ProductWorkflowUpdatePayload {
+  """The updated product with new revision."""
+  product: Product
+
+  """Results of each operation."""
+  operationResults: [OperationResult!]!
+
+  """All errors from all operations."""
   userErrors: [GenericUserError!]!
 }

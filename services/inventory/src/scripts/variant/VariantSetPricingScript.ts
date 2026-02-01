@@ -1,5 +1,12 @@
 import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
 import type { ItemPricing } from "../../repositories/models/index.js";
+import {
+  type ScriptResult,
+  successResult,
+  unchangedResult,
+  singleError,
+} from "../types/ScriptResult.js";
+import type { PricingChanges } from "../types/ProductChanges.js";
 
 type Currency = "UAH" | "USD" | "EUR";
 
@@ -12,58 +19,105 @@ export interface VariantSetPricingParams {
   readonly compareAtMinor?: number | null;
 }
 
-export interface VariantSetPricingResult {
-  price?: ItemPricing;
-  userErrors: UserError[];
-}
+export type VariantSetPricingResult = ScriptResult<ItemPricing, PricingChanges>;
 
-export class VariantSetPricingScript extends BaseScript<VariantSetPricingParams, VariantSetPricingResult> {
-  protected async execute(params: VariantSetPricingParams): Promise<VariantSetPricingResult> {
+/**
+ * Script for setting variant pricing (price and compare-at).
+ */
+export class VariantSetPricingScript extends BaseScript<
+  VariantSetPricingParams,
+  VariantSetPricingResult
+> {
+  protected async execute(
+    params: VariantSetPricingParams
+  ): Promise<VariantSetPricingResult> {
     const { variantId, currency, amountMinor, compareAtMinor } = params;
 
+    // Validate currency
     if (!VALID_CURRENCIES.includes(currency as Currency)) {
-      return {
-        price: undefined,
-        userErrors: [{ message: `Invalid currency: ${currency}. Must be one of: ${VALID_CURRENCIES.join(", ")}`, field: ["currency"], code: "INVALID_CURRENCY" }],
-      };
+      return singleError(
+        `Invalid currency: ${currency}. Must be one of: ${VALID_CURRENCIES.join(", ")}`,
+        "INVALID_CURRENCY",
+        ["currency"]
+      );
     }
 
+    // Validate variant exists
     const variantExists = await this.repository.variant.exists(variantId);
     if (!variantExists) {
-      return {
-        price: undefined,
-        userErrors: [{ message: "Variant not found", field: ["variantId"], code: "NOT_FOUND" }],
-      };
+      return singleError("Variant not found", "NOT_FOUND", ["variantId"]);
     }
 
+    // Validate amounts
     if (amountMinor < 0) {
-      return {
-        price: undefined,
-        userErrors: [{ message: "Price amount must be a non-negative value", field: ["amountMinor"], code: "INVALID_AMOUNT" }],
-      };
+      return singleError(
+        "Price amount must be a non-negative value",
+        "INVALID_AMOUNT",
+        ["amountMinor"]
+      );
     }
 
-    if (compareAtMinor !== undefined && compareAtMinor !== null && compareAtMinor < 0) {
-      return {
-        price: undefined,
-        userErrors: [{ message: "Compare at price must be a non-negative value", field: ["compareAtMinor"], code: "INVALID_COMPARE_AT" }],
-      };
+    if (
+      compareAtMinor !== undefined &&
+      compareAtMinor !== null &&
+      compareAtMinor < 0
+    ) {
+      return singleError(
+        "Compare at price must be a non-negative value",
+        "INVALID_COMPARE_AT",
+        ["compareAtMinor"]
+      );
     }
 
+    const typedCurrency = currency as Currency;
+
+    // Get current pricing to compare
+    const currentPricing = await this.repository.pricing.getCurrentPrice({
+      variantId,
+      currency: typedCurrency,
+    });
+
+    // Determine what changed
+    const priceChanged =
+      !currentPricing ||
+      currentPricing.amountMinor !== amountMinor ||
+      currentPricing.compareAtMinor !== (compareAtMinor ?? null);
+
+    // If nothing changed, return early
+    if (!priceChanged) {
+      this.logger.debug({ variantId }, "No pricing changes detected");
+      return unchangedResult(currentPricing!);
+    }
+
+    // Update price
     const price = await this.repository.pricing.setPrice(variantId, {
-      currency: currency as Currency,
+      currency: typedCurrency,
       amountMinor,
       compareAtMinor: compareAtMinor ?? null,
     });
 
-    this.logger.info({ variantId, currency, amountMinor }, "Variant pricing set successfully");
+    // Build changes object
+    const changes: PricingChanges = {
+      currency,
+      amount: amountMinor,
+    };
 
-    return { price, userErrors: [] };
+    if (compareAtMinor !== undefined) {
+      changes.compareAt = compareAtMinor;
+    }
+
+    this.logger.info(
+      { variantId, currency, amountMinor },
+      "Variant pricing set successfully"
+    );
+
+    return successResult(price, changes);
   }
 
   protected handleError(_error: unknown): VariantSetPricingResult {
     return {
-      price: undefined,
+      result: null,
+      changes: null,
       userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR" }],
     };
   }

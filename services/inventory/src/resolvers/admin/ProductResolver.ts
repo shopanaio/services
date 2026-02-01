@@ -48,6 +48,10 @@ export class ProductResolver extends InventoryType<string, Product | null> {
     return this.$get("deletedAt");
   }
 
+  async revision() {
+    return this.$get("revision");
+  }
+
   async title() {
     const translation = await this.$ctx.loaders.productTranslation.load(
       this.$props

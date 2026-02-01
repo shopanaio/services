@@ -183,29 +183,3 @@ type VariantSetPricingPayload {
   userErrors: [GenericUserError!]!
 }
 
-# ---- Variant Cost Mutations ----
-
-"""
-Input for setting a cost on a variant.
-"""
-input VariantSetCostInput {
-  """The ID of the variant."""
-  variantId: ID!
-
-  """The currency code."""
-  currency: CurrencyCode!
-
-  """The unit cost in minor units."""
-  unitCostMinor: BigInt!
-}
-
-"""
-Payload for variant cost set.
-"""
-type VariantSetCostPayload {
-  """The updated variant."""
-  variant: Variant
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}

@@ -16,12 +16,9 @@ import type { BulkEditItem } from "../repositories/models/index.js";
 
 import { ProductUpdateScript } from "../scripts/product/ProductUpdateScript.js";
 import { ProductSetStatusScript } from "../scripts/product/ProductSetStatusScript.js";
-import { VariantSetSkuScript } from "../scripts/variant/VariantSetSkuScript.js";
 import { VariantSetPricingScript } from "../scripts/variant/VariantSetPricingScript.js";
-import { VariantSetCostScript } from "../scripts/variant/VariantSetCostScript.js";
-import { VariantSetStockScript } from "../scripts/variant/VariantSetStockScript.js";
 import { VariantSetDimensionsScript } from "../scripts/variant/VariantSetDimensionsScript.js";
-import { VariantSetWeightScript } from "../scripts/variant/VariantSetWeightScript.js";
+import { VariantSetInventoryScript } from "../scripts/variant/VariantSetInventoryScript.js";
 
 @Injectable()
 export class BulkEditOperationWorkflow extends BrokerWorkflows {
@@ -75,32 +72,8 @@ export class BulkEditOperationWorkflow extends BrokerWorkflows {
           break;
         }
 
-        case "variantSetSku": {
-          const result = await this.kernel.runScript(VariantSetSkuScript, params as any);
-          if (result.userErrors.length > 0) {
-            errors.push(...result.userErrors.map(toError));
-          }
-          break;
-        }
-
         case "variantSetPricing": {
           const result = await this.kernel.runScript(VariantSetPricingScript, params as any);
-          if (result.userErrors.length > 0) {
-            errors.push(...result.userErrors.map(toError));
-          }
-          break;
-        }
-
-        case "variantSetCost": {
-          const result = await this.kernel.runScript(VariantSetCostScript, params as any);
-          if (result.userErrors.length > 0) {
-            errors.push(...result.userErrors.map(toError));
-          }
-          break;
-        }
-
-        case "variantSetStock": {
-          const result = await this.kernel.runScript(VariantSetStockScript, params as any);
           if (result.userErrors.length > 0) {
             errors.push(...result.userErrors.map(toError));
           }
@@ -115,8 +88,8 @@ export class BulkEditOperationWorkflow extends BrokerWorkflows {
           break;
         }
 
-        case "variantSetWeight": {
-          const result = await this.kernel.runScript(VariantSetWeightScript, params as any);
+        case "variantSetInventory": {
+          const result = await this.kernel.runScript(VariantSetInventoryScript, params as any);
           if (result.userErrors.length > 0) {
             errors.push(...result.userErrors.map(toError));
           }

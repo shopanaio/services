@@ -9,9 +9,9 @@
 | Аспект                    | Было                      | Станет                                                     |
 | ------------------------- | ------------------------- | ---------------------------------------------------------- |
 | Script return             | `{ entity, userErrors }`  | `{ result, changes, userErrors }`                          |
-| Variant pricing/cost      | 2 отдельных скрипта       | 1 unified `VariantSetPricingScript`                        |
-| Variant dimensions/weight | 2 отдельных скрипта       | 1 unified `VariantSetPhysicalScript`                       |
-| Variant stock             | `VariantSetStockScript`   | Переименовать в `VariantSetInventoryScript` + добавить sku |
+| Variant pricing           | `VariantSetPricingScript` | Только price (amount/compareAt), без cost                  |
+| Variant dimensions        | `VariantSetDimensionsScript` | Только dimensions (width/height/length)                 |
+| Variant stock/sku/weight/cost | Разные скрипты        | 1 unified `VariantSetInventoryScript` (stock+sku+weight+cost) |
 | Variant options           | Нет (только при создании) | Новый `VariantSetOptionsScript`                            |
 | Event emission            | Нет                       | Workflow эмитит `productUpdated` с partial snapshot        |
 | Concurrency               | Нет                       | Optimistic locking через revision                          |
@@ -139,7 +139,6 @@ export interface PricingChanges {
   currency: string;
   amount: number;
   compareAt?: number | null;
-  cost?: number | null;
 }
 
 export interface InventoryChanges {
@@ -147,6 +146,9 @@ export interface InventoryChanges {
   onHand: number;
   unavailable: number;
   sku?: string | null;
+  weight?: number | null;
+  unitCostMinor?: number | null;
+  costCurrency?: string | null;
 }
 
 export interface PhysicalChanges {
@@ -154,6 +156,12 @@ export interface PhysicalChanges {
   height?: number; // mm
   length?: number; // mm
   weight?: number; // grams
+}
+
+export interface DimensionsChanges {
+  width: number;
+  height: number;
+  length: number;
 }
 
 export interface OptionLinkChanges {
@@ -323,67 +331,64 @@ type ProductSetMediaResult = ScriptResult<Product, MediaChanges>;
 
 ---
 
-### 3.7 VariantSetPricingScript (UNIFIED)
+### 3.7 VariantSetPricingScript
 
 **Файл:** `services/inventory/src/scripts/variant/VariantSetPricingScript.ts`
 
-**Объединяет:** `VariantSetPricingScript` + `VariantSetCostScript`
+**Изменения:** Только price (amountMinor, compareAtMinor). Cost перенесён в VariantSetInventoryScript.
 
 | Аспект      | Было                      | Станет                                       |
 | ----------- | ------------------------- | -------------------------------------------- |
-| Input       | Отдельные скрипты         | Unified с `costMinor?`                       |
-| Return type | `VariantSetPricingResult` | `ScriptResult<VariantPrice, PricingChanges>` |
+| Input       | price только              | price только (без cost)                      |
+| Return type | `VariantSetPricingResult` | `ScriptResult<ItemPricing, PricingChanges>`  |
 
-**Новый интерфейс:**
+**Интерфейс:**
 
 ```typescript
 interface VariantSetPricingParams {
   variantId: string;
   currency: string;
   amountMinor: number;
-  compareAtMinor?: number;
-  costMinor?: number; // NEW: объединено из VariantSetCostScript
+  compareAtMinor?: number | null;
 }
 
 interface PricingChanges {
   currency: string;
   amount: number;
   compareAt?: number | null;
-  cost?: number | null;
 }
 
-type VariantSetPricingResult = ScriptResult<VariantPrice, PricingChanges>;
+type VariantSetPricingResult = ScriptResult<ItemPricing, PricingChanges>;
 ```
 
-**TODO:**
-
-- [ ] Объединить логику из `VariantSetCostScript`
-- [ ] Добавить `costMinor` в upsert
-- [ ] Deprecate `VariantSetCostScript`
+**Статус:** ✅ Готово
 
 ---
 
-### 3.8 VariantSetInventoryScript (RENAMED + EXTENDED)
+### 3.8 VariantSetInventoryScript (UNIFIED)
 
 **Файл:** `services/inventory/src/scripts/variant/VariantSetInventoryScript.ts`
 
-**Переименовать из:** `VariantSetStockScript`
+**Объединяет:** stock, sku, weight, и cost в один скрипт.
 
-| Аспект      | Было                    | Станет                                           |
-| ----------- | ----------------------- | ------------------------------------------------ |
-| Name        | `VariantSetStockScript` | `VariantSetInventoryScript`                      |
-| Input       | `quantity`              | `onHand`, `unavailable?`, `sku?`                 |
-| Return type | `VariantSetStockResult` | `ScriptResult<WarehouseStock, InventoryChanges>` |
+| Аспект      | Было                        | Станет                                           |
+| ----------- | --------------------------- | ------------------------------------------------ |
+| Name        | Разные скрипты              | `VariantSetInventoryScript`                      |
+| Input       | Разные параметры            | `onHand`, `unavailable?`, `sku?`, `weight?`, `unitCostMinor?`, `costCurrency?` |
+| Return type | Разные типы                 | `ScriptResult<WarehouseStock, InventoryChanges>` |
 
-**Новый интерфейс:**
+**Интерфейс:**
 
 ```typescript
 interface VariantSetInventoryParams {
   variantId: string;
   warehouseId: string;
   onHand: number;
-  unavailable?: number; // NEW
-  sku?: string; // NEW: перенесено из VariantSetSkuScript
+  unavailable?: number;
+  sku?: string | null;
+  weight?: number | null;        // в граммах
+  unitCostMinor?: number | null; // себестоимость в minor units
+  costCurrency?: string | null;  // валюта себестоимости
 }
 
 interface InventoryChanges {
@@ -391,54 +396,46 @@ interface InventoryChanges {
   onHand: number;
   unavailable: number;
   sku?: string | null;
+  weight?: number | null;
+  unitCostMinor?: number | null;
+  costCurrency?: string | null;
 }
 
 type VariantSetInventoryResult = ScriptResult<WarehouseStock, InventoryChanges>;
 ```
 
-**TODO:**
-
-- [ ] Переименовать файл и класс
-- [ ] Добавить `unavailable` поле
-- [ ] Интегрировать SKU логику из `VariantSetSkuScript`
-- [ ] Deprecate `VariantSetSkuScript`
-- [ ] Deprecate `VariantSetStockScript`
+**Статус:** ✅ Готово
 
 ---
 
-### 3.9 VariantSetPhysicalScript (NEW UNIFIED)
+### 3.9 VariantSetDimensionsScript
 
-**Файл:** `services/inventory/src/scripts/variant/VariantSetPhysicalScript.ts`
+**Файл:** `services/inventory/src/scripts/variant/VariantSetDimensionsScript.ts`
 
-**Объединяет:** `VariantSetDimensionsScript` + `VariantSetWeightScript`
+**Изменения:** Только dimensions (width, height, length). Weight перенесён в VariantSetInventoryScript.
 
-**Новый интерфейс:**
+**Интерфейс:**
 
 ```typescript
-interface VariantSetPhysicalParams {
+interface VariantSetDimensionsParams {
   variantId: string;
-  width?: number; // mm
-  height?: number; // mm
-  length?: number; // mm
-  weight?: number; // grams
+  width: number;  // mm
+  height: number; // mm
+  length: number; // mm
 }
 
-interface PhysicalChanges {
-  width?: number;
-  height?: number;
-  length?: number;
-  weight?: number;
+interface DimensionsChanges {
+  width: number;
+  height: number;
+  length: number;
 }
 
-type VariantSetPhysicalResult = ScriptResult<Variant, PhysicalChanges>;
+type VariantSetDimensionsResult = ScriptResult<VariantDimensions, DimensionsChanges>;
 ```
 
-**TODO:**
+**Примечание:** Weight обрабатывается в `VariantSetInventoryScript`, а не здесь.
 
-- [ ] Создать новый скрипт
-- [ ] Объединить логику dimensions + weight
-- [ ] Deprecate `VariantSetDimensionsScript`
-- [ ] Deprecate `VariantSetWeightScript`
+**Статус:** ✅ Готово
 
 ---
 
@@ -639,7 +636,7 @@ input VariantUpdateOpInput {
   variantId: ID!
   pricing: VariantPricingInput
   inventory: VariantInventoryInput
-  physical: VariantPhysicalInput
+  dimensions: VariantDimensionsInput
   media: VariantMediaInput
   options: VariantOptionsInput
 }
@@ -648,21 +645,22 @@ input VariantPricingInput {
   currency: CurrencyCode!
   amountMinor: BigInt!
   compareAtMinor: BigInt
-  costMinor: BigInt # NEW: unified
 }
 
 input VariantInventoryInput {
   warehouseId: ID!
   onHand: Int!
   unavailable: Int
-  sku: String # NEW: moved here
+  sku: String
+  weight: Int              # grams
+  unitCostMinor: BigInt    # cost in minor units
+  costCurrency: CurrencyCode # cost currency
 }
 
-input VariantPhysicalInput {
-  width: Int # mm
-  height: Int # mm
-  length: Int # mm
-  weight: Int # grams
+input VariantDimensionsInput {
+  width: Int!  # mm
+  height: Int! # mm
+  length: Int! # mm
 }
 
 input VariantMediaInput {
@@ -705,32 +703,24 @@ enum OperationType {
 }
 ```
 
-### 6.3 Deprecations
+### 6.3 Финальное API (без deprecations)
 
-Добавить `@deprecated` на старые мутации:
+Старые мутации (`variantSetSku`, `variantSetCost`, `variantSetStock`, `variantSetWeight`) удалены.
 
+Новое API:
 ```graphql
 type Mutation {
-  # Deprecated - use productUpdate instead
-  variantSetSku(input: VariantSetSkuInput!): VariantSetSkuPayload!
-    @deprecated(reason: "Use productUpdate with inventory.sku instead")
-
-  variantSetCost(input: VariantSetCostInput!): VariantSetCostPayload!
-    @deprecated(reason: "Use productUpdate with pricing.costMinor instead")
-
-  variantSetDimensions(
-    input: VariantSetDimensionsInput!
-  ): VariantSetDimensionsPayload!
-    @deprecated(reason: "Use productUpdate with physical instead")
-
-  variantSetWeight(input: VariantSetWeightInput!): VariantSetWeightPayload!
-    @deprecated(reason: "Use productUpdate with physical.weight instead")
-
-  variantSetStock(input: VariantSetStockInput!): VariantSetStockPayload!
-    @deprecated(reason: "Use productUpdate with inventory instead")
-
+  # Product mutations
+  productUpdate(input: ProductUpdateInput!): ProductUpdatePayload!
   productSetStatus(input: ProductSetStatusInput!): ProductSetStatusPayload!
-    @deprecated(reason: "Use productUpdate with status instead")
+  productSetMedia(input: ProductSetMediaInput!): ProductSetMediaPayload!
+
+  # Variant mutations
+  variantSetPricing(input: VariantSetPricingInput!): VariantSetPricingPayload!
+  variantSetDimensions(input: VariantSetDimensionsInput!): VariantSetDimensionsPayload!
+  variantSetInventory(input: VariantSetInventoryInput!): VariantSetInventoryPayload!
+  variantSetOptions(input: VariantSetOptionsInput!): VariantSetOptionsPayload!
+  variantSetMedia(input: VariantSetMediaInput!): VariantSetMediaPayload!
 }
 ```
 
@@ -770,14 +760,14 @@ async productUpdate(
 
 Обновить для использования новых unified скриптов:
 
-| Старый opType          | Новый скрипт                            |
-| ---------------------- | --------------------------------------- |
-| `variantSetSku`        | `VariantSetInventoryScript` (с sku)     |
-| `variantSetPricing`    | `VariantSetPricingScript` (unified)     |
-| `variantSetCost`       | `VariantSetPricingScript` (с costMinor) |
-| `variantSetStock`      | `VariantSetInventoryScript`             |
-| `variantSetDimensions` | `VariantSetPhysicalScript`              |
-| `variantSetWeight`     | `VariantSetPhysicalScript`              |
+| Старый opType          | Новый скрипт                                         |
+| ---------------------- | ---------------------------------------------------- |
+| `variantSetSku`        | `VariantSetInventoryScript` (с sku)                  |
+| `variantSetPricing`    | `VariantSetPricingScript` (price only)               |
+| `variantSetCost`       | `VariantSetInventoryScript` (с unitCostMinor)        |
+| `variantSetStock`      | `VariantSetInventoryScript` (с onHand/unavailable)   |
+| `variantSetWeight`     | `VariantSetInventoryScript` (с weight)               |
+| `variantSetDimensions` | `VariantSetDimensionsScript`                         |
 
 ### 8.2 Update BulkUpdateOpType Enum
 
@@ -843,9 +833,9 @@ if (params.slug && params.slug !== current.slug) {
 6. [ ] Create `ProductSetSeoScript` (new)
 7. [ ] Update `ProductSetStatusScript` (add changes return)
 8. [ ] Update `ProductSetMediaScript` (add changes return)
-9. [ ] Create `VariantSetPhysicalScript` (new unified)
-10. [ ] Update `VariantSetPricingScript` (add cost, changes)
-11. [ ] Create `VariantSetInventoryScript` (renamed + sku)
+9. [ ] Update `VariantSetDimensionsScript` (dimensions only, add changes)
+10. [ ] Update `VariantSetPricingScript` (price only, add changes)
+11. [ ] Create `VariantSetInventoryScript` (unified: stock + sku + weight + cost)
 12. [ ] Update `VariantSetMediaScript` (add changes return)
 13. [ ] Create `VariantSetOptionsScript` (new)
 
@@ -868,11 +858,11 @@ if (params.slug && params.slug !== current.slug) {
 22. [ ] Update `BulkEditOperationWorkflow`
 23. [ ] Update `OptionValueUpdateScript`
 
-### Stage 6: Cleanup (Breaking)
+### Stage 6: Cleanup (Complete ✅)
 
-24. [ ] Remove deprecated scripts
-25. [ ] Remove deprecated mutations
-26. [ ] Update clients
+24. [x] Remove deprecated scripts (VariantSetCost/Sku/Stock/Weight)
+25. [x] Remove deprecated mutations (variantSetCost/Sku/Stock/Weight)
+26. [ ] Update frontend clients
 
 ---
 
@@ -886,8 +876,8 @@ if (params.slug && params.slug !== current.slug) {
 | `src/scripts/types/ProductChanges.ts`               | Changes types             |
 | `src/scripts/product/ProductSetContentScript.ts`    | Content update (new)      |
 | `src/scripts/product/ProductSetSeoScript.ts`        | SEO update (new)          |
-| `src/scripts/variant/VariantSetPhysicalScript.ts`   | Unified dimensions+weight |
-| `src/scripts/variant/VariantSetInventoryScript.ts`  | Renamed stock+sku         |
+| `src/scripts/variant/VariantSetDimensionsScript.ts` | Dimensions only           |
+| `src/scripts/variant/VariantSetInventoryScript.ts`  | Unified stock+sku+weight+cost |
 | `src/scripts/variant/VariantSetOptionsScript.ts`    | Options update            |
 | `src/scripts/variant/helpers/buildVariantHandle.ts` | Handle builder            |
 | `src/workflows/ProductUpdateWorkflow.ts`            | Main workflow             |
@@ -901,7 +891,7 @@ if (params.slug && params.slug !== current.slug) {
 | `src/scripts/product/ProductUpdateScript.ts`     | Handle/title only, add changes return |
 | `src/scripts/product/ProductSetStatusScript.ts`  | Add changes, change action enum      |
 | `src/scripts/product/ProductSetMediaScript.ts`   | Add changes return                   |
-| `src/scripts/variant/VariantSetPricingScript.ts` | Add cost, changes return        |
+| `src/scripts/variant/VariantSetPricingScript.ts` | Add changes return (price only) |
 | `src/scripts/variant/VariantSetMediaScript.ts`   | Add changes return              |
 | `src/scripts/option/OptionValueUpdateScript.ts`  | Rebuild variant handles         |
 | `src/repositories/models/products.ts`            | Add revision column             |
@@ -912,15 +902,14 @@ if (params.slug && params.slug !== current.slug) {
 | `src/api/graphql-admin/schema/variant.graphql`   | Deprecations                    |
 | `packages/events/src/types.ts`                   | ProductUpdatedEvent             |
 
-### To Deprecate (Later Remove)
+### Removed (Cleanup Complete ✅)
 
-| File                                                | Reason                                |
-| --------------------------------------------------- | ------------------------------------- |
-| `src/scripts/variant/VariantSetCostScript.ts`       | Merged into VariantSetPricingScript   |
-| `src/scripts/variant/VariantSetSkuScript.ts`        | Merged into VariantSetInventoryScript |
-| `src/scripts/variant/VariantSetStockScript.ts`      | Renamed to VariantSetInventoryScript  |
-| `src/scripts/variant/VariantSetDimensionsScript.ts` | Merged into VariantSetPhysicalScript  |
-| `src/scripts/variant/VariantSetWeightScript.ts`     | Merged into VariantSetPhysicalScript  |
+| File                                            | Status                                |
+| ----------------------------------------------- | ------------------------------------- |
+| `src/scripts/variant/VariantSetCostScript.ts`   | ✅ Removed, merged into VariantSetInventoryScript |
+| `src/scripts/variant/VariantSetSkuScript.ts`    | ✅ Removed, merged into VariantSetInventoryScript |
+| `src/scripts/variant/VariantSetStockScript.ts`  | ✅ Removed, merged into VariantSetInventoryScript |
+| `src/scripts/variant/VariantSetWeightScript.ts` | ✅ Removed, merged into VariantSetInventoryScript |
 
 ---
 
@@ -928,71 +917,70 @@ if (params.slug && params.slug !== current.slug) {
 
 ### Stage 1: Foundation
 
-- [ ] 1.1 Create DB migration for `revision` column
-- [ ] 1.2 Create DB migration for `variant(product_id, handle)` unique constraint
-- [ ] 1.3 Update `products.ts` model (add revision)
-- [ ] 1.4 Update `variants.ts` model (add unique constraint)
-- [ ] 1.5 Create `src/scripts/types/ScriptResult.ts`
-- [ ] 1.6 Create `src/scripts/types/ProductChanges.ts`
-- [ ] 1.7 Create `buildVariantHandle` helper
+- [x] 1.1 Create DB migration for `revision` column
+- [x] 1.2 Create DB migration for `variant(product_id, handle)` unique constraint
+- [x] 1.3 Update `products.ts` model (add revision)
+- [x] 1.4 Update `variants.ts` model (add unique constraint)
+- [x] 1.5 Create `src/scripts/types/ScriptResult.ts`
+- [x] 1.6 Create `src/scripts/types/ProductChanges.ts`
+- [x] 1.7 Create `buildVariantHandle` helper
 
 ### Stage 2: Product Scripts
 
-- [ ] 2.1 Update `ProductUpdateScript` (handle/title only + changes)
-- [ ] 2.2 Create `ProductSetContentScript` (description/excerpt)
-- [ ] 2.3 Create `ProductSetSeoScript`
-- [ ] 2.4 Update `ProductSetStatusScript` (add changes)
-- [ ] 2.5 Update `ProductSetMediaScript` (add changes)
+- [x] 2.1 Update `ProductUpdateScript` (handle/title only + changes)
+- [x] 2.2 Create `ProductSetContentScript` (description/excerpt)
+- [x] 2.3 Create `ProductSetSeoScript`
+- [x] 2.4 Update `ProductSetStatusScript` (add changes)
+- [x] 2.5 Update `ProductSetMediaScript` (add changes)
 
 ### Stage 3: Variant Scripts
 
-- [ ] 3.1 Create `VariantSetPhysicalScript` (unified dimensions+weight)
-- [ ] 3.2 Update `VariantSetPricingScript` (add cost + changes)
-- [ ] 3.3 Create `VariantSetInventoryScript` (stock + sku)
-- [ ] 3.4 Update `VariantSetMediaScript` (add changes)
-- [ ] 3.5 Create `VariantSetOptionsScript`
+- [x] 3.1 Update `VariantSetDimensionsScript` (dimensions only, add changes)
+- [x] 3.2 Update `VariantSetPricingScript` (price only, add changes)
+- [x] 3.3 Create `VariantSetInventoryScript` (unified: stock + sku + weight + cost)
+- [x] 3.4 Update `VariantSetMediaScript` (add changes)
+- [x] 3.5 Create `VariantSetOptionsScript`
 
 ### Stage 4: Workflow & Events
 
-- [ ] 4.1 Create `ProductUpdateWorkflowDto.ts`
-- [ ] 4.2 Create `ProductUpdateWorkflow.ts`
-- [ ] 4.3 Add `ProductUpdatedEvent` to events package
+- [x] 4.1 Create `ProductUpdateWorkflowDto.ts`
+- [x] 4.2 Create `ProductUpdateWorkflow.ts`
+- [x] 4.3 Add `ProductUpdatedEvent` to events package
 
 ### Stage 5: GraphQL Schema
 
-- [ ] 5.1 Add `revision` field to Product type
-- [ ] 5.2 Add `ProductContentInput` type
-- [ ] 5.3 Add `ProductUpdateOpInput` type
-- [ ] 5.4 Add `VariantUpdateOpInput` type
-- [ ] 5.5 Add `VariantPricingInput` (with costMinor)
-- [ ] 5.6 Add `VariantInventoryInput` (with sku)
-- [ ] 5.7 Add `VariantPhysicalInput`
-- [ ] 5.8 Add `VariantOptionsInput`
-- [ ] 5.9 Add `productUpdate` mutation
-- [ ] 5.10 Add deprecation notices to old mutations
+- [x] 5.1 Add `revision` field to Product type
+- [x] 5.2 Add `ProductContentInput` type
+- [x] 5.3 Add `ProductUpdateOpInput` type
+- [x] 5.4 Add `VariantUpdateOpInput` type
+- [x] 5.5 Add `VariantPricingInput` (with costMinor)
+- [x] 5.6 Add `VariantInventoryInput` (with sku)
+- [x] 5.7 Add `VariantDimensionsInput`
+- [x] 5.8 Add `VariantOptionsInput`
+- [x] 5.9 Add `productWorkflowUpdate` mutation
+- [x] 5.10 ~~Add deprecation notices~~ Old mutations removed, new API finalized
 
 ### Stage 6: Integration
 
-- [ ] 6.1 Update `MutationResolver` (add productUpdate)
-- [ ] 6.2 Update `BulkEditOperationWorkflow` (use new scripts)
-- [ ] 6.3 Update `OptionValueUpdateScript` (rebuild handles on slug change)
+- [x] 6.1 Update `MutationResolver` (add new variant mutations)
+- [x] 6.2 Update `BulkEditOperationWorkflow` (use new scripts)
+- [x] 6.3 Update `OptionUpdateScript` (rebuild handles on slug change)
 
 ### Stage 7: Testing
 
 - [ ] 7.1 Unit tests for new scripts
 - [ ] 7.2 Unit tests for ProductUpdateWorkflow
-- [ ] 7.3 E2E tests for productUpdate mutation
-- [ ] 7.4 E2E tests for revision conflict handling
+- [x] 7.3 E2E tests for productWorkflowUpdate mutation
+- [x] 7.4 E2E tests for revision conflict handling
 
 ### Stage 8: Cleanup (Breaking)
 
-- [ ] 8.1 Remove `VariantSetCostScript`
-- [ ] 8.2 Remove `VariantSetSkuScript`
-- [ ] 8.3 Remove `VariantSetStockScript`
-- [ ] 8.4 Remove `VariantSetDimensionsScript`
-- [ ] 8.5 Remove `VariantSetWeightScript`
-- [ ] 8.6 Remove deprecated GraphQL mutations
-- [ ] 8.7 Update frontend clients
+- [x] 8.1 Remove `VariantSetCostScript`
+- [x] 8.2 Remove `VariantSetSkuScript`
+- [x] 8.3 Remove `VariantSetStockScript`
+- [x] 8.4 Remove `VariantSetWeightScript`
+- [x] 8.5 ~~Remove deprecated GraphQL mutations~~ Done (old mutations already removed)
+- [ ] 8.6 Update frontend clients
 
 ---
 
@@ -1000,12 +988,12 @@ if (params.slug && params.slug !== current.slug) {
 
 | Stage      | Status      | Progress |
 | ---------- | ----------- | -------- |
-| Foundation | Not Started | 0/7      |
-| Product    | Not Started | 0/5      |
-| Variant    | Not Started | 0/5      |
-| Workflow   | Not Started | 0/3      |
-| GraphQL    | Not Started | 0/10     |
-| Integration| Not Started | 0/3      |
-| Testing    | Not Started | 0/4      |
-| Cleanup    | Not Started | 0/7      |
-| **Total**  | **0%**      | **0/44** |
+| Foundation | Completed   | 7/7      |
+| Product    | Completed   | 5/5      |
+| Variant    | Completed   | 5/5      |
+| Workflow   | Completed   | 3/3      |
+| GraphQL    | Completed   | 10/10    |
+| Integration| Completed   | 3/3      |
+| Testing    | In Progress | 2/4      |
+| Cleanup    | In Progress | 5/6      |
+| **Total**  | **93%**     | **38/41** |

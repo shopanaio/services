@@ -16,17 +16,21 @@ import {
   ProductDeleteScript,
   ProductSetStatusScript,
 } from "../../scripts/product/index.js";
+import { ProductUpdateWorkflow } from "../../workflows/ProductUpdateWorkflow.js";
+import type {
+  ProductUpdateWorkflowInput,
+  ProductUpdateOperation,
+  ProductUpdateWorkflowResult,
+} from "../../workflows/dto/ProductUpdateWorkflowDto.js";
 import type { ProductCreateParams, ProductCreateResult } from "../../sagas/index.js";
 import {
   VariantCreateScript,
   VariantDeleteScript,
-  VariantSetCostScript,
-  VariantSetDimensionsScript,
   VariantSetMediaScript,
   VariantSetPricingScript,
-  VariantSetSkuScript,
-  VariantSetStockScript,
-  VariantSetWeightScript,
+  VariantSetDimensionsScript,
+  VariantSetInventoryScript,
+  VariantSetOptionsScript,
 } from "../../scripts/variant/index.js";
 import {
   WarehouseCreateScript,
@@ -52,13 +56,11 @@ import type {
   ProductSetStatusInput,
   VariantCreateInput,
   VariantDeleteInput,
-  VariantSetSkuInput,
-  VariantSetDimensionsInput,
-  VariantSetWeightInput,
   VariantSetPricingInput,
-  VariantSetCostInput,
-  VariantSetStockInput,
   VariantSetMediaInput,
+  VariantSetDimensionsInput,
+  VariantSetInventoryInput,
+  VariantSetOptionsInput,
   WarehouseCreateInput,
   WarehouseUpdateInput,
   WarehouseDeleteInput,
@@ -77,13 +79,11 @@ import {
   ProductSetStatusInputSchema,
   VariantCreateInputSchema,
   VariantDeleteInputSchema,
-  VariantSetSkuInputSchema,
-  VariantSetDimensionsInputSchema,
-  VariantSetWeightInputSchema,
   VariantSetPricingInputSchema,
-  VariantSetCostInputSchema,
-  VariantSetStockInputSchema,
   VariantSetMediaInputSchema,
+  VariantSetDimensionsInputSchema,
+  VariantSetInventoryInputSchema,
+  VariantSetOptionsInputSchema,
   WarehouseCreateInputSchema,
   WarehouseUpdateInputSchema,
   WarehouseDeleteInputSchema,
@@ -100,12 +100,9 @@ import { ProductBulkUpdateInputSchema } from "./validation/productBulkEditSchema
 type ProductBulkUpdateInput = {
   productUpdate?: ProductUpdateInput[];
   productSetStatus?: ProductSetStatusInput[];
-  variantSetSku?: VariantSetSkuInput[];
   variantSetPricing?: VariantSetPricingInput[];
-  variantSetCost?: VariantSetCostInput[];
-  variantSetStock?: VariantSetStockInput[];
   variantSetDimensions?: VariantSetDimensionsInput[];
-  variantSetWeight?: VariantSetWeightInput[];
+  variantSetInventory?: VariantSetInventoryInput[];
 };
 
 /**
@@ -270,6 +267,189 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
     };
   }
 
+  /**
+   * Unified product update with optimistic locking.
+   * Supports multiple operations (product and variant updates) in a single request.
+   */
+  async productWorkflowUpdate(args: {
+    productId: string;
+    expectedRevision?: number | null;
+    operations: Array<{
+      productUpdate?: {
+        id: string;
+        handle?: string | null;
+        title?: string | null;
+        content?: {
+          description?: { text: string; html: string; json: unknown } | null;
+          excerpt?: string | null;
+        } | null;
+        seo?: {
+          seoTitle?: string | null;
+          seoDescription?: string | null;
+          ogTitle?: string | null;
+          ogDescription?: string | null;
+          ogImageId?: string | null;
+        } | null;
+        status?: "DRAFT" | "PUBLISHED" | null;
+        media?: { fileIds: string[] } | null;
+      } | null;
+      variantUpdate?: {
+        variantId: string;
+        pricing?: {
+          currency: string;
+          amountMinor: string | number;
+          compareAtMinor?: string | number | null;
+        } | null;
+        inventory?: {
+          warehouseId: string;
+          onHand: number;
+          unavailable?: number | null;
+          sku?: string | null;
+          weight?: number | null;
+          unitCostMinor?: string | number | null;
+          costCurrency?: string | null;
+        } | null;
+        dimensions?: {
+          width: number;
+          height: number;
+          length: number;
+        } | null;
+        media?: { fileIds: string[] } | null;
+        options?: {
+          set: Array<{ optionId: string; optionValueId: string }>;
+        } | null;
+      } | null;
+    }>;
+  }) {
+    const { productId, expectedRevision, operations } = args;
+
+    // Map GraphQL operations to workflow operations
+    const workflowOps: ProductUpdateOperation[] = [];
+
+    for (const op of operations) {
+      if (op.productUpdate) {
+        const pu = op.productUpdate;
+        workflowOps.push({
+          type: "productUpdate",
+          params: {
+            id: pu.id,
+            handle: pu.handle ?? undefined,
+            title: pu.title ?? undefined,
+            content: pu.content
+              ? {
+                  description: pu.content.description
+                    ? {
+                        text: pu.content.description.text,
+                        html: pu.content.description.html,
+                        json: pu.content.description.json as Record<string, unknown>,
+                      }
+                    : undefined,
+                  excerpt: pu.content.excerpt ?? undefined,
+                }
+              : undefined,
+            seo: pu.seo
+              ? {
+                  title: pu.seo.seoTitle ?? undefined,
+                  description: pu.seo.seoDescription ?? undefined,
+                }
+              : undefined,
+            status: pu.status
+              ? pu.status === "PUBLISHED"
+                ? "published"
+                : "draft"
+              : undefined,
+            media: pu.media
+              ? {
+                  fileIds: pu.media.fileIds.map((id) =>
+                    decodeGlobalIdByType(id, GlobalIdEntity.File)
+                  ),
+                }
+              : undefined,
+          },
+        });
+      }
+
+      if (op.variantUpdate) {
+        const vu = op.variantUpdate;
+        workflowOps.push({
+          type: "variantUpdate",
+          params: {
+            variantId: vu.variantId,
+            pricing: vu.pricing
+              ? {
+                  currency: vu.pricing.currency,
+                  amountMinor: Number(vu.pricing.amountMinor),
+                  compareAtMinor: vu.pricing.compareAtMinor
+                    ? Number(vu.pricing.compareAtMinor)
+                    : undefined,
+                }
+              : undefined,
+            inventory: vu.inventory
+              ? {
+                  warehouseId: vu.inventory.warehouseId,
+                  onHand: vu.inventory.onHand,
+                  unavailable: vu.inventory.unavailable ?? undefined,
+                  sku: vu.inventory.sku ?? undefined,
+                  weight: vu.inventory.weight ?? undefined,
+                  unitCostMinor: vu.inventory.unitCostMinor
+                    ? Number(vu.inventory.unitCostMinor)
+                    : undefined,
+                  costCurrency: vu.inventory.costCurrency ?? undefined,
+                }
+              : undefined,
+            dimensions: vu.dimensions
+              ? {
+                  width: vu.dimensions.width,
+                  height: vu.dimensions.height,
+                  length: vu.dimensions.length,
+                }
+              : undefined,
+            media: vu.media
+              ? {
+                  fileIds: vu.media.fileIds.map((id) =>
+                    decodeGlobalIdByType(id, GlobalIdEntity.File)
+                  ),
+                }
+              : undefined,
+            options: vu.options
+              ? { set: vu.options.set }
+              : undefined,
+          },
+        });
+      }
+    }
+
+    const workflowInput: ProductUpdateWorkflowInput = {
+      productId,
+      expectedRevision: expectedRevision ?? undefined,
+      operations: workflowOps,
+      context: {
+        organizationId: this.$ctx.store.organizationId,
+        projectId: this.$ctx.store.id,
+        storeId: this.$ctx.store.id,
+        userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
+        locale: this.$ctx.locale,
+      },
+    };
+
+    const workflow = new ProductUpdateWorkflow(
+      this.$ctx.kernel.getServices().broker
+    );
+    const result = await workflow.run(workflowInput);
+
+    return {
+      product: result.product
+        ? new ProductResolver(result.product.id, this.$ctx)
+        : null,
+      operationResults: result.operationResults.map((r) => ({
+        type: r.type === "productUpdate" ? "PRODUCT_UPDATE" : "VARIANT_UPDATE",
+        applied: r.applied,
+        errors: r.errors,
+      })),
+      userErrors: result.userErrors,
+    };
+  }
+
   // ---- Variant Mutations ----
 
   /**
@@ -317,72 +497,6 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   }
 
   /**
-   * Set variant SKU.
-   */
-  @ZodResolver(VariantSetSkuInputSchema())
-  async variantSetSku(args: { input: VariantSetSkuInput }) {
-    const { input } = args;
-
-    const result = await this.$ctx.kernel.runScript(VariantSetSkuScript, {
-      variantId: input.variantId,
-      sku: input.sku,
-    });
-
-    return {
-      variant: result.variant
-        ? new VariantResolver(result.variant.id, this.$ctx)
-        : null,
-      userErrors: result.userErrors,
-    };
-  }
-
-  /**
-   * Set variant dimensions.
-   */
-  @ZodResolver(VariantSetDimensionsInputSchema())
-  async variantSetDimensions(args: { input: VariantSetDimensionsInput }) {
-    const { input } = args;
-
-    const result = await this.$ctx.kernel.runScript(VariantSetDimensionsScript, {
-      variantId: input.variantId,
-      dimensions: {
-        width: input.dimensions.width,
-        length: input.dimensions.length,
-        height: input.dimensions.height,
-      },
-    });
-
-    return {
-      variant: result.variant
-        ? new VariantResolver(result.variant.id, this.$ctx)
-        : null,
-      userErrors: result.userErrors,
-    };
-  }
-
-  /**
-   * Set variant weight.
-   */
-  @ZodResolver(VariantSetWeightInputSchema())
-  async variantSetWeight(args: { input: VariantSetWeightInput }) {
-    const { input } = args;
-
-    const result = await this.$ctx.kernel.runScript(VariantSetWeightScript, {
-      variantId: input.variantId,
-      weight: {
-        value: input.weight.value,
-      },
-    });
-
-    return {
-      variant: result.variant
-        ? new VariantResolver(result.variant.id, this.$ctx)
-        : null,
-      userErrors: result.userErrors,
-    };
-  }
-
-  /**
    * Set variant pricing.
    */
   @ZodResolver(VariantSetPricingInputSchema())
@@ -399,7 +513,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
     });
 
     return {
-      variant: result.price
+      variant: result.result
         ? new VariantResolver(input.variantId, this.$ctx)
         : null,
       userErrors: result.userErrors,
@@ -407,45 +521,74 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   }
 
   /**
-   * Set variant cost.
+   * Set variant dimensions.
    */
-  @ZodResolver(VariantSetCostInputSchema())
-  async variantSetCost(args: { input: VariantSetCostInput }) {
+  @ZodResolver(VariantSetDimensionsInputSchema())
+  async variantSetDimensions(args: { input: VariantSetDimensionsInput }) {
     const { input } = args;
 
-    const result = await this.$ctx.kernel.runScript(VariantSetCostScript, {
+    const result = await this.$ctx.kernel.runScript(VariantSetDimensionsScript, {
       variantId: input.variantId,
-      currency: input.currency,
-      unitCostMinor: Number(input.unitCostMinor),
+      width: input.width,
+      height: input.height,
+      length: input.length,
     });
 
     return {
-      variant: result.cost
-        ? new VariantResolver(input.variantId, this.$ctx)
+      variant: result.result
+        ? new VariantResolver(result.result.id, this.$ctx)
         : null,
       userErrors: result.userErrors,
     };
   }
 
   /**
-   * Set variant stock.
+   * Set variant inventory (stock, SKU, weight, and unit cost).
    */
-  @ZodResolver(VariantSetStockInputSchema())
-  async variantSetStock(args: { input: VariantSetStockInput }) {
+  @ZodResolver(VariantSetInventoryInputSchema())
+  async variantSetInventory(args: { input: VariantSetInventoryInput }) {
     const { input } = args;
 
-    const result = await this.$ctx.kernel.runScript(VariantSetStockScript, {
+    const result = await this.$ctx.kernel.runScript(VariantSetInventoryScript, {
       variantId: input.variantId,
       warehouseId: input.warehouseId,
-      quantity: input.quantity,
+      onHand: input.onHand,
+      unavailable: input.unavailable ?? undefined,
+      sku: input.sku ?? undefined,
+      weight: input.weight ?? undefined,
+      unitCostMinor: input.unitCostMinor ? Number(input.unitCostMinor) : undefined,
+      costCurrency: input.costCurrency ?? undefined,
     });
 
     return {
-      stock: result.stock
-        ? new StockResolver(result.stock.id, this.$ctx)
+      stock: result.result
+        ? new StockResolver(result.result.id, this.$ctx)
         : null,
-      variant: result.stock
+      variant: result.result
         ? new VariantResolver(input.variantId, this.$ctx)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  /**
+   * Set variant options (option value links).
+   */
+  @ZodResolver(VariantSetOptionsInputSchema())
+  async variantSetOptions(args: { input: VariantSetOptionsInput }) {
+    const { input } = args;
+
+    const result = await this.$ctx.kernel.runScript(VariantSetOptionsScript, {
+      variantId: input.variantId,
+      links: input.links.map((link) => ({
+        optionId: link.optionId,
+        optionValueId: link.optionValueId,
+      })),
+    });
+
+    return {
+      variant: result.result
+        ? new VariantResolver(result.result.id, this.$ctx)
         : null,
       userErrors: result.userErrors,
     };
@@ -469,8 +612,8 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
     });
 
     return {
-      variant: result.variant
-        ? new VariantResolver(result.variant.id, this.$ctx)
+      variant: result.result
+        ? new VariantResolver(result.result.id, this.$ctx)
         : null,
       userErrors: result.userErrors,
     };
@@ -812,22 +955,16 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
 const OP_INDEX: Record<string, number> = {
   productUpdate: 0,
   productSetStatus: 1,
-  variantSetSku: 2,
-  variantSetPricing: 3,
-  variantSetCost: 4,
-  variantSetStock: 5,
-  variantSetDimensions: 6,
-  variantSetWeight: 7,
+  variantSetPricing: 2,
+  variantSetDimensions: 3,
+  variantSetInventory: 4,
 };
 
 function collectVariantIds(input: ProductBulkUpdateInput): string[] {
   const ids: string[] = [];
-  for (const v of input.variantSetSku ?? []) ids.push(v.variantId);
   for (const v of input.variantSetPricing ?? []) ids.push(v.variantId);
-  for (const v of input.variantSetCost ?? []) ids.push(v.variantId);
-  for (const v of input.variantSetStock ?? []) ids.push(v.variantId);
   for (const v of input.variantSetDimensions ?? []) ids.push(v.variantId);
-  for (const v of input.variantSetWeight ?? []) ids.push(v.variantId);
+  for (const v of input.variantSetInventory ?? []) ids.push(v.variantId);
   return [...new Set(ids)];
 }
 
@@ -858,12 +995,9 @@ function flattenBulkInput(
   }
 
   const variantArrays = [
-    { key: "variantSetSku", items: input.variantSetSku },
     { key: "variantSetPricing", items: input.variantSetPricing },
-    { key: "variantSetCost", items: input.variantSetCost },
-    { key: "variantSetStock", items: input.variantSetStock },
     { key: "variantSetDimensions", items: input.variantSetDimensions },
-    { key: "variantSetWeight", items: input.variantSetWeight },
+    { key: "variantSetInventory", items: input.variantSetInventory },
   ];
 
   for (const { key, items } of variantArrays) {

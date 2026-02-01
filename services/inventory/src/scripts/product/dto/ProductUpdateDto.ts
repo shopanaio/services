@@ -1,23 +1,15 @@
 import type { Product } from "../../../repositories/models/index.js";
-import type { DescriptionInput, ProductResultBase } from "./shared.js";
+import type { ScriptResult, ProductIdentityChanges } from "../../types/index.js";
 
-export interface ProductSeoInput {
-  readonly seoTitle?: string | null;
-  readonly seoDescription?: string | null;
-  readonly ogTitle?: string | null;
-  readonly ogDescription?: string | null;
-  readonly ogImageId?: string | null;
-}
-
+/**
+ * ProductUpdate handles only identity fields: handle and title.
+ * For content (description/excerpt), use ProductSetContentScript.
+ * For SEO, use ProductSetSeoScript.
+ */
 export interface ProductUpdateParams {
   readonly id: string;
   readonly handle?: string;
   readonly title?: string;
-  readonly description?: DescriptionInput;
-  readonly excerpt?: string;
-  readonly seo?: ProductSeoInput;
 }
 
-export interface ProductUpdateResult extends ProductResultBase {
-  product?: Product;
-}
+export type ProductUpdateResult = ScriptResult<Product, ProductIdentityChanges>;

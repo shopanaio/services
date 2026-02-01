@@ -79,15 +79,48 @@ export interface ProductDeletedEvent
     }
   > {}
 
+/**
+ * Payload for productUpdated event.
+ * Uses partial snapshot pattern - only contains fields that changed.
+ */
+export interface ProductUpdatedPayload {
+  productId: string;
+  storeId: string;
+  /** New revision after update (for optimistic locking) */
+  revision: number;
+  /** Product-level changes (only modified fields) */
+  product?: ProductFieldChanges;
+  /** Variant-level changes (only modified variants) */
+  variants?: Record<string, VariantFieldChanges>;
+}
+
+export interface ProductFieldChanges {
+  handle?: string;
+  title?: string;
+  status?: "draft" | "published";
+  content?: { description?: string | null; excerpt?: string | null };
+  seo?: { title?: string | null; description?: string | null };
+  media?: { fileIds: string[] };
+}
+
+export interface VariantFieldChanges {
+  pricing?: { currency: string; amount: number; compareAt?: number | null };
+  inventory?: {
+    warehouseId: string;
+    onHand: number;
+    unavailable: number;
+    sku?: string | null;
+    weight?: number | null;
+    unitCostMinor?: number | null;
+    costCurrency?: string | null;
+  };
+  physical?: { width?: number; height?: number; length?: number; weight?: number };
+  media?: { fileIds: string[] };
+  options?: Array<{ optionId: string; valueId: string }>;
+}
+
 export interface ProductUpdatedEvent
-  extends DomainEvent<
-    "productUpdated",
-    {
-      productId: string;
-      storeId: string;
-      changes: Record<string, { old: unknown; new: unknown }>;
-    }
-  > {}
+  extends DomainEvent<"productUpdated", ProductUpdatedPayload> {}
 
 export interface OrderCreatedEvent
   extends DomainEvent<

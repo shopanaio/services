@@ -1,0 +1,334 @@
+import { Injectable } from "@nestjs/common";
+import {
+  BrokerWorkflows,
+  Workflow,
+  WorkflowStep,
+  InjectBroker,
+  ServiceBroker,
+} from "@shopana/shared-kernel";
+import { and, eq, sql } from "drizzle-orm";
+import { Kernel } from "../kernel/Kernel.js";
+import { product } from "../repositories/models/index.js";
+import type {
+  ProductUpdateWorkflowInput,
+  ProductUpdateWorkflowResult,
+  ProductUpdateParams,
+  VariantUpdateParams,
+  OperationResult,
+} from "./dto/ProductUpdateWorkflowDto.js";
+import type {
+  ProductChanges,
+  ProductFieldChanges,
+  VariantChanges,
+} from "../scripts/types/ProductChanges.js";
+import type { UserError } from "../scripts/types/ScriptResult.js";
+
+import { ProductUpdateScript } from "../scripts/product/ProductUpdateScript.js";
+import { ProductSetContentScript } from "../scripts/product/ProductSetContentScript.js";
+import { ProductSetSeoScript } from "../scripts/product/ProductSetSeoScript.js";
+import { ProductSetStatusScript } from "../scripts/product/ProductSetStatusScript.js";
+import { ProductSetMediaScript } from "../scripts/product/ProductSetMediaScript.js";
+import { VariantSetPricingScript } from "../scripts/variant/VariantSetPricingScript.js";
+import { VariantSetInventoryScript } from "../scripts/variant/VariantSetInventoryScript.js";
+import { VariantSetDimensionsScript } from "../scripts/variant/VariantSetDimensionsScript.js";
+import { VariantSetMediaScript } from "../scripts/variant/VariantSetMediaScript.js";
+import { VariantSetOptionsScript } from "../scripts/variant/VariantSetOptionsScript.js";
+
+/**
+ * ProductUpdateWorkflow handles atomic product updates with:
+ * - Optimistic locking via revision field
+ * - Partial failure support (each operation independent)
+ * - Event emission with partial snapshot of changes
+ */
+@Injectable()
+export class ProductUpdateWorkflow extends BrokerWorkflows {
+  constructor(@InjectBroker("inventory") broker: ServiceBroker) {
+    super(broker);
+  }
+
+  private get kernel(): Kernel {
+    return Kernel.getInstance();
+  }
+
+  @Workflow("productUpdate")
+  async run(input: ProductUpdateWorkflowInput): Promise<ProductUpdateWorkflowResult> {
+    const results: OperationResult[] = [];
+    const changes: ProductChanges = { productId: input.productId };
+
+    // 1. Acquire revision (atomic compare-and-swap)
+    const acquired = await this.stepAcquireRevision(
+      input.productId,
+      input.expectedRevision
+    );
+    if ("error" in acquired) {
+      return {
+        product: null,
+        operationResults: [],
+        userErrors: [acquired.error],
+      };
+    }
+    const { revision } = acquired;
+
+    // 2. Run operations, collect changes
+    for (const op of input.operations) {
+      const result =
+        op.type === "productUpdate"
+          ? await this.stepProductUpdate(op.params, changes)
+          : await this.stepVariantUpdate(op.params, changes);
+      results.push(result);
+    }
+
+    // 3. Emit event with partial snapshot + new revision
+    const hasChanges = changes.product !== undefined || changes.variants !== undefined;
+    if (hasChanges) {
+      await this.stepEmitEvent(input, changes, revision);
+    }
+
+    return {
+      product: { id: input.productId, revision },
+      operationResults: results,
+      userErrors: results.flatMap((r) => r.errors),
+    };
+  }
+
+  /**
+   * Atomic compare-and-swap for optimistic locking.
+   * Increments revision BEFORE any operations to prevent race conditions.
+   */
+  @WorkflowStep()
+  private async stepAcquireRevision(
+    productId: string,
+    expectedRevision?: number
+  ): Promise<{ revision: number } | { error: UserError }> {
+    const db = this.kernel.db;
+
+    // Build WHERE clause
+    const conditions = [eq(product.id, productId)];
+    if (expectedRevision !== undefined) {
+      conditions.push(eq(product.revision, expectedRevision));
+    }
+
+    // Atomic increment with compare-and-swap
+    const result = await db
+      .update(product)
+      .set({ revision: sql`${product.revision} + 1` })
+      .where(and(...conditions))
+      .returning({ revision: product.revision });
+
+    if (result.length === 0) {
+      // Check if product exists at all
+      const exists = await db
+        .select({ id: product.id })
+        .from(product)
+        .where(eq(product.id, productId))
+        .then((rows) => rows.length > 0);
+
+      return {
+        error: exists
+          ? {
+              message: "Product was modified by another user",
+              code: "REVISION_CONFLICT",
+              field: ["expectedRevision"],
+            }
+          : { message: "Product not found", code: "NOT_FOUND" },
+      };
+    }
+
+    return { revision: result[0].revision };
+  }
+
+  /**
+   * Execute product-level updates.
+   * Runs appropriate scripts based on provided parameters.
+   */
+  @WorkflowStep()
+  private async stepProductUpdate(
+    params: ProductUpdateParams,
+    changes: ProductChanges
+  ): Promise<OperationResult> {
+    const errors: UserError[] = [];
+    const { id, handle, title, content, seo, status, media } = params;
+
+    // Identity fields (handle, title)
+    if (handle !== undefined || title !== undefined) {
+      const r = await this.kernel.runScript(ProductUpdateScript, { id, handle, title });
+      errors.push(...r.userErrors);
+      if (r.changes) {
+        changes.product = { ...changes.product, ...r.changes };
+      }
+    }
+
+    // Content fields (description, excerpt)
+    if (content) {
+      const r = await this.kernel.runScript(ProductSetContentScript, {
+        id,
+        description: content.description,
+        excerpt: content.excerpt,
+      });
+      errors.push(...r.userErrors);
+      if (r.changes) {
+        changes.product = { ...changes.product, content: r.changes };
+      }
+    }
+
+    // SEO fields
+    if (seo) {
+      const r = await this.kernel.runScript(ProductSetSeoScript, {
+        id,
+        title: seo.title,
+        description: seo.description,
+      });
+      errors.push(...r.userErrors);
+      if (r.changes) {
+        changes.product = { ...changes.product, seo: r.changes };
+      }
+    }
+
+    // Status change
+    if (status) {
+      const r = await this.kernel.runScript(ProductSetStatusScript, {
+        id,
+        status,
+      });
+      errors.push(...r.userErrors);
+      if (r.changes) {
+        changes.product = { ...changes.product, status: r.changes.status };
+      }
+    }
+
+    // Media
+    if (media) {
+      const r = await this.kernel.runScript(ProductSetMediaScript, {
+        id,
+        fileIds: media.fileIds,
+      });
+      errors.push(...r.userErrors);
+      if (r.changes) {
+        changes.product = { ...changes.product, media: r.changes };
+      }
+    }
+
+    return {
+      type: "productUpdate",
+      applied: errors.length === 0,
+      errors,
+    };
+  }
+
+  /**
+   * Execute variant-level updates.
+   * Runs appropriate scripts based on provided parameters.
+   */
+  @WorkflowStep()
+  private async stepVariantUpdate(
+    params: VariantUpdateParams,
+    changes: ProductChanges
+  ): Promise<OperationResult> {
+    const errors: UserError[] = [];
+    const { variantId, pricing, inventory, dimensions, media, options } = params;
+
+    // Helper to merge variant changes
+    const mergeVariantChanges = (c: Partial<VariantChanges>) => {
+      changes.variants = changes.variants ?? {};
+      changes.variants[variantId] = { ...changes.variants[variantId], ...c };
+    };
+
+    if (pricing) {
+      const r = await this.kernel.runScript(VariantSetPricingScript, {
+        variantId,
+        currency: pricing.currency,
+        amountMinor: pricing.amountMinor,
+        compareAtMinor: pricing.compareAtMinor,
+      });
+      errors.push(...r.userErrors);
+      if (r.changes) mergeVariantChanges({ pricing: r.changes });
+    }
+
+    if (inventory) {
+      const r = await this.kernel.runScript(VariantSetInventoryScript, {
+        variantId,
+        warehouseId: inventory.warehouseId,
+        onHand: inventory.onHand,
+        unavailable: inventory.unavailable,
+        sku: inventory.sku,
+        weight: inventory.weight,
+        unitCostMinor: inventory.unitCostMinor,
+        costCurrency: inventory.costCurrency,
+      });
+      errors.push(...r.userErrors);
+      if (r.changes) mergeVariantChanges({ inventory: r.changes });
+    }
+
+    if (dimensions) {
+      const r = await this.kernel.runScript(VariantSetDimensionsScript, {
+        variantId,
+        width: dimensions.width,
+        height: dimensions.height,
+        length: dimensions.length,
+      });
+      errors.push(...r.userErrors);
+      if (r.changes) {
+        mergeVariantChanges({
+          physical: {
+            width: r.changes.width,
+            height: r.changes.height,
+            length: r.changes.length,
+          },
+        });
+      }
+    }
+
+    if (media) {
+      const r = await this.kernel.runScript(VariantSetMediaScript, {
+        variantId,
+        fileIds: media.fileIds,
+      });
+      errors.push(...r.userErrors);
+      if (r.changes) mergeVariantChanges({ media: r.changes });
+    }
+
+    if (options) {
+      const r = await this.kernel.runScript(VariantSetOptionsScript, {
+        variantId,
+        links: options.set,
+      });
+      errors.push(...r.userErrors);
+      if (r.changes) mergeVariantChanges({ options: r.changes });
+    }
+
+    return {
+      type: "variantUpdate",
+      applied: errors.length === 0,
+      errors,
+    };
+  }
+
+  /**
+   * Emit productUpdated event with partial snapshot.
+   */
+  @WorkflowStep()
+  private async stepEmitEvent(
+    input: ProductUpdateWorkflowInput,
+    changes: ProductChanges,
+    revision: number
+  ): Promise<void> {
+    await this.broker.emit("productUpdated", {
+      payload: {
+        productId: input.productId,
+        storeId: input.context.storeId,
+        revision,
+        product: changes.product,
+        variants: changes.variants,
+      },
+      context: {
+        tenantId: input.context.organizationId,
+        userId: input.context.userId,
+      },
+      subject: { type: "product", id: input.productId },
+      actor: input.context.userId
+        ? { type: "user", id: input.context.userId }
+        : undefined,
+      emitKey: `product:${input.productId}`,
+    });
+  }
+}

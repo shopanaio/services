@@ -151,27 +151,7 @@ type VariantCreatePayload {
   userErrors: [GenericUserError!]!
 }
 
-"""
-Input for setting variant SKU.
-"""
-input VariantSetSkuInput {
-  """The ID of the variant."""
-  variantId: ID!
-
-  """The new SKU value."""
-  sku: String!
-}
-
-"""
-Payload for variant SKU set.
-"""
-type VariantSetSkuPayload {
-  """The updated variant."""
-  variant: Variant
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
+# ---- Variant Physical Mutations ----
 
 """
 Input for setting variant dimensions.
@@ -180,8 +160,14 @@ input VariantSetDimensionsInput {
   """The ID of the variant."""
   variantId: ID!
 
-  """The dimensions to set."""
-  dimensions: DimensionsInput!
+  """Width in millimeters."""
+  width: Int!
+
+  """Height in millimeters."""
+  height: Int!
+
+  """Length in millimeters."""
+  length: Int!
 }
 
 """
@@ -196,26 +182,81 @@ type VariantSetDimensionsPayload {
 }
 
 """
-Input for setting variant weight.
+Input for setting variant inventory (stock, SKU, weight, and unit cost).
 """
-input VariantSetWeightInput {
+input VariantSetInventoryInput {
   """The ID of the variant."""
   variantId: ID!
 
-  """The weight to set."""
-  weight: WeightInput!
+  """The warehouse ID."""
+  warehouseId: ID!
+
+  """Quantity on hand."""
+  onHand: Int!
+
+  """Unavailable quantity (reserved, damaged, etc.)."""
+  unavailable: Int
+
+  """SKU code."""
+  sku: String
+
+  """Weight in grams."""
+  weight: Int
+
+  """Unit cost in minor units (cents). Requires currency field."""
+  unitCostMinor: BigInt
+
+  """Currency code for unit cost."""
+  costCurrency: CurrencyCode
 }
 
 """
-Payload for variant weight set.
+Payload for variant inventory set.
 """
-type VariantSetWeightPayload {
+type VariantSetInventoryPayload {
+  """The updated stock record."""
+  stock: WarehouseStock
+
   """The updated variant."""
   variant: Variant
 
   """List of errors that occurred during the mutation."""
   userErrors: [GenericUserError!]!
 }
+
+"""
+Input for linking a variant to an option value.
+"""
+input VariantOptionLinkInput {
+  """The option ID."""
+  optionId: ID!
+
+  """The option value ID."""
+  optionValueId: ID!
+}
+
+"""
+Input for setting variant options (option value links).
+"""
+input VariantSetOptionsInput {
+  """The ID of the variant."""
+  variantId: ID!
+
+  """The option value links to set (replaces existing links)."""
+  links: [VariantOptionLinkInput!]!
+}
+
+"""
+Payload for variant options set.
+"""
+type VariantSetOptionsPayload {
+  """The updated variant."""
+  variant: Variant
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
 
 """
 Input for deleting a variant.

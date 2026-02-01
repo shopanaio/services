@@ -1,77 +1,83 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
 import type { ProductUpdateParams, ProductUpdateResult } from "./dto/index.js";
+import type { ProductIdentityChanges } from "../types/index.js";
+import { singleError } from "../types/index.js";
 
+/**
+ * ProductUpdateScript handles product identity fields: handle and title.
+ *
+ * For content (description/excerpt), use ProductSetContentScript.
+ * For SEO, use ProductSetSeoScript.
+ * For media, use ProductSetMediaScript.
+ * For status, use ProductSetStatusScript.
+ */
 export class ProductUpdateScript extends BaseScript<ProductUpdateParams, ProductUpdateResult> {
   protected async execute(params: ProductUpdateParams): Promise<ProductUpdateResult> {
-    const { id, handle, title, description, excerpt, seo } = params;
+    const { id, handle, title } = params;
 
     // 1. Check if product exists
     const existingProduct = await this.repository.product.findById(id);
     if (!existingProduct) {
-      return {
-        product: undefined,
-        userErrors: [{ message: "Product not found", field: ["id"], code: "NOT_FOUND" }],
-      };
+      return singleError("Product not found", "NOT_FOUND", ["id"]);
     }
 
     const locale = this.getLocale();
     const projectId = this.getProjectId();
 
-    // 2. Update translation if any translation fields provided
-    const hasTranslationUpdate =
-      title !== undefined ||
-      description !== undefined ||
-      excerpt !== undefined;
+    // Track what actually changed
+    const changes: ProductIdentityChanges = {};
 
-    if (hasTranslationUpdate) {
+    // 2. Update title if provided and different
+    if (title !== undefined) {
       const existingTranslation = await this.repository.translation.getProductTranslation(id, locale);
+      const currentTitle = existingTranslation?.title ?? "";
 
-      await this.repository.translation.upsertProductTranslation({
-        projectId,
-        productId: id,
-        locale,
-        title: title ?? existingTranslation?.title ?? "",
-        descriptionText: description?.text ?? existingTranslation?.descriptionText ?? null,
-        descriptionHtml: description?.html ?? existingTranslation?.descriptionHtml ?? null,
-        descriptionJson: description?.json ?? existingTranslation?.descriptionJson ?? null,
-        excerpt: excerpt ?? existingTranslation?.excerpt ?? null,
-      });
+      if (title !== currentTitle) {
+        await this.repository.translation.upsertProductTranslation({
+          projectId,
+          productId: id,
+          locale,
+          title,
+          descriptionText: existingTranslation?.descriptionText ?? null,
+          descriptionHtml: existingTranslation?.descriptionHtml ?? null,
+          descriptionJson: existingTranslation?.descriptionJson ?? null,
+          excerpt: existingTranslation?.excerpt ?? null,
+        });
+        changes.title = title;
+      }
     }
 
-    // 3. Update SEO if provided
-    if (seo !== undefined) {
-      const existingSeo = await this.repository.translation.getProductSeo(id, locale);
-
-      await this.repository.translation.upsertProductSeo({
-        projectId,
-        productId: id,
-        locale,
-        seoTitle: seo.seoTitle ?? existingSeo?.seoTitle ?? null,
-        seoDescription: seo.seoDescription ?? existingSeo?.seoDescription ?? null,
-        ogTitle: seo.ogTitle ?? existingSeo?.ogTitle ?? null,
-        ogDescription: seo.ogDescription ?? existingSeo?.ogDescription ?? null,
-        ogImageId: seo.ogImageId ?? existingSeo?.ogImageId ?? null,
-      });
-    }
-
-    // 4. Update product handle or touch to update updatedAt
-    if (handle !== undefined) {
+    // 3. Update handle if provided and different
+    if (handle !== undefined && handle !== existingProduct.handle) {
       await this.repository.product.update(id, { handle });
-    } else {
+      changes.handle = handle;
+    }
+
+    // 4. Touch product if anything changed
+    const hasChanges = Object.keys(changes).length > 0;
+    if (hasChanges) {
       await this.repository.product.touch(id);
     }
 
     // 5. Fetch updated product
     const product = await this.repository.product.findById(id);
+    if (!product) {
+      return singleError("Product not found after update", "INTERNAL_ERROR");
+    }
 
-    this.logger.info({ productId: id }, "Product updated");
+    this.logger.info({ productId: id, changes }, "Product updated");
 
-    return { product: product ?? undefined, userErrors: [] };
+    return {
+      result: product,
+      changes: hasChanges ? changes : null,
+      userErrors: [],
+    };
   }
 
   protected handleError(_error: unknown): ProductUpdateResult {
     return {
-      product: undefined,
+      result: null,
+      changes: null,
       userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR" }],
     };
   }

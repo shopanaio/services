@@ -4,6 +4,7 @@ import {
   text,
   timestamp,
   boolean,
+  integer,
   index,
   uniqueIndex,
   check,
@@ -25,6 +26,7 @@ export const product = inventorySchema.table(
       .notNull()
       .defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
+    revision: integer("revision").notNull().default(0),
   },
   (table) => [
     check(
@@ -40,6 +42,7 @@ export const product = inventorySchema.table(
     index("idx_product_deleted_at")
       .on(table.deletedAt)
       .where(sql`deleted_at IS NOT NULL`),
+    index("idx_product_revision").on(table.id, table.revision),
   ]
 );
 

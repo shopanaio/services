@@ -1,63 +1,59 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
 import type { ProductSetStatusParams, ProductSetStatusResult } from "./dto/index.js";
+import { singleError } from "../types/index.js";
 
+/**
+ * ProductSetStatusScript handles product publish/unpublish status.
+ */
 export class ProductSetStatusScript extends BaseScript<ProductSetStatusParams, ProductSetStatusResult> {
   protected async execute(params: ProductSetStatusParams): Promise<ProductSetStatusResult> {
-    const { productId, action } = params;
+    const { id, status } = params;
 
     // 1. Check if product exists
-    const existingProduct = await this.repository.product.findById(productId);
+    const existingProduct = await this.repository.product.findById(id);
     if (!existingProduct) {
+      return singleError("Product not found", "NOT_FOUND", ["id"]);
+    }
+
+    // 2. Determine current status
+    const currentStatus = existingProduct.publishedAt !== null ? "published" : "draft";
+
+    // 3. Check if already in target state
+    if (status === currentStatus) {
       return {
-        product: undefined,
-        userErrors: [{ message: "Product not found", field: ["id"], code: "NOT_FOUND" }],
+        result: existingProduct,
+        changes: null,
+        userErrors: [],
       };
     }
 
-    // 2. Handle PUBLISH action
-    if (action === "PUBLISH") {
-      if (existingProduct.publishedAt !== null) {
-        return {
-          product: existingProduct,
-          userErrors: [{ message: "Product is already published", code: "ALREADY_PUBLISHED" }],
-        };
-      }
-
-      const product = await this.repository.product.publish(productId);
+    // 4. Apply status change
+    let product;
+    if (status === "published") {
+      product = await this.repository.product.publish(id);
       if (!product) {
-        return {
-          product: undefined,
-          userErrors: [{ message: "Failed to publish product", code: "PUBLISH_FAILED" }],
-        };
+        return singleError("Failed to publish product", "PUBLISH_FAILED");
       }
-
-      this.logger.info({ productId }, "Product published");
-      return { product, userErrors: [] };
+      this.logger.info({ productId: id }, "Product published");
+    } else {
+      product = await this.repository.product.unpublish(id);
+      if (!product) {
+        return singleError("Failed to unpublish product", "UNPUBLISH_FAILED");
+      }
+      this.logger.info({ productId: id }, "Product unpublished");
     }
 
-    // 3. Handle UNPUBLISH action
-    if (existingProduct.publishedAt === null) {
-      return {
-        product: existingProduct,
-        userErrors: [{ message: "Product is already unpublished", code: "ALREADY_UNPUBLISHED" }],
-      };
-    }
-
-    const product = await this.repository.product.unpublish(productId);
-    if (!product) {
-      return {
-        product: undefined,
-        userErrors: [{ message: "Failed to unpublish product", code: "UNPUBLISH_FAILED" }],
-      };
-    }
-
-    this.logger.info({ productId }, "Product unpublished");
-    return { product, userErrors: [] };
+    return {
+      result: product,
+      changes: { status },
+      userErrors: [],
+    };
   }
 
   protected handleError(_error: unknown): ProductSetStatusResult {
     return {
-      product: undefined,
+      result: null,
+      changes: null,
       userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR" }],
     };
   }

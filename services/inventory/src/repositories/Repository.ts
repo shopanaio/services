@@ -20,6 +20,9 @@ export interface RepositoryConfig {
   db: Database;
 }
 
+// Re-export Database type for scripts that need to access it
+export type { Database };
+
 /**
  * Repository aggregator for inventory service.
  */
@@ -40,6 +43,15 @@ export class Repository {
   public readonly bulkEditItem: BulkEditItemRepository;
   public readonly bulkFence: BulkFenceRepository;
   public readonly txManager: TransactionManager<Database>;
+  private readonly _db: Database;
+
+  /**
+   * Get the current database connection (transaction-aware).
+   * Use this for operations that need raw database access.
+   */
+  public get db(): Database {
+    return this.txManager.getConnection() as Database;
+  }
 
   private constructor(
     product: ProductRepository,

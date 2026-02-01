@@ -183,30 +183,3 @@ type WarehouseDeletePayload {
   userErrors: [GenericUserError!]!
 }
 
-"""
-Input for setting stock on a variant.
-"""
-input VariantSetStockInput {
-  """The ID of the variant."""
-  variantId: ID!
-
-  """The warehouse ID."""
-  warehouseId: ID!
-
-  """The quantity to set."""
-  quantity: Int!
-}
-
-"""
-Payload for variant stock set.
-"""
-type VariantSetStockPayload {
-  """The updated stock record."""
-  stock: WarehouseStock
-
-  """The updated variant."""
-  variant: Variant
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}

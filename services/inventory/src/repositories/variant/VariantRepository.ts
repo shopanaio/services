@@ -168,6 +168,7 @@ export class VariantRepository extends BaseRepository {
     id: string,
     data: {
       sku?: string | null;
+      handle?: string;
       externalSystem?: string | null;
       externalId?: string | null;
     }
@@ -177,6 +178,7 @@ export class VariantRepository extends BaseRepository {
     };
 
     if (data.sku !== undefined) updateData.sku = data.sku;
+    if (data.handle !== undefined) updateData.handle = data.handle;
     if (data.externalSystem !== undefined)
       updateData.externalSystem = data.externalSystem;
     if (data.externalId !== undefined) updateData.externalId = data.externalId;

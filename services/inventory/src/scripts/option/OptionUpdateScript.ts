@@ -1,5 +1,8 @@
 import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
 import type { OptionUpdateParams, OptionUpdateResult, OptionValuesInput, OptionSwatchInput } from "./dto/index.js";
+import { buildVariantHandlesBatch } from "../variant/helpers/buildVariantHandle.js";
+import { eq, and, inArray } from "drizzle-orm";
+import { productOptionVariantLink, variant } from "../../repositories/models/index.js";
 
 export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpdateResult> {
   protected async execute(params: OptionUpdateParams): Promise<OptionUpdateResult> {
@@ -71,6 +74,9 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
     optionId: string,
     values: OptionValuesInput
   ): Promise<UserError[]> {
+    // Track value IDs that had slug changes - we'll rebuild variant handles for these
+    const changedValueIds: string[] = [];
+
     // Delete values
     if (values.delete?.length) {
       for (const valueId of values.delete) {
@@ -92,8 +98,10 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
 
         const updateData: { slug?: string; swatchId?: string | null } = {};
 
-        if (valueUpdate.slug !== undefined) {
+        if (valueUpdate.slug !== undefined && valueUpdate.slug !== existingValue.slug) {
           updateData.slug = valueUpdate.slug;
+          // Track that this value's slug changed
+          changedValueIds.push(valueUpdate.id);
         }
 
         if (valueUpdate.swatch !== undefined) {
@@ -148,7 +156,61 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
       }
     }
 
+    // Rebuild variant handles if any option value slugs changed
+    if (changedValueIds.length > 0) {
+      await this.rebuildAffectedVariantHandles(changedValueIds);
+    }
+
     return [];
+  }
+
+  /**
+   * Rebuild handles for all variants that use any of the given option values.
+   * This is necessary when option value slugs change, as variant handles
+   * are composed from option value slugs.
+   */
+  private async rebuildAffectedVariantHandles(valueIds: string[]): Promise<void> {
+    const db = this.repository.db;
+    const projectId = this.getProjectId();
+
+    // Find all variant IDs that have any of these values linked
+    const affectedLinks = await db
+      .selectDistinct({
+        variantId: productOptionVariantLink.variantId,
+      })
+      .from(productOptionVariantLink)
+      .where(
+        and(
+          eq(productOptionVariantLink.projectId, projectId),
+          inArray(productOptionVariantLink.optionValueId, valueIds)
+        )
+      );
+
+    if (affectedLinks.length === 0) {
+      return;
+    }
+
+    const variantIdArray = affectedLinks.map((l) => l.variantId);
+
+    // Build new handles for all affected variants
+    const newHandles = await buildVariantHandlesBatch(
+      db,
+      variantIdArray,
+      projectId
+    );
+
+    // Update each variant with its new handle
+    for (const [variantId, newHandle] of newHandles) {
+      await db
+        .update(variant)
+        .set({ handle: newHandle })
+        .where(eq(variant.id, variantId));
+    }
+
+    this.logger.info(
+      { valueIds, affectedCount: variantIdArray.length },
+      "Rebuilt variant handles after option value slug change"
+    );
   }
 
   private async createSwatch(swatch: OptionSwatchInput): Promise<string> {

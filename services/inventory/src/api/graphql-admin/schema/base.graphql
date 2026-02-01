@@ -115,16 +115,28 @@ type InventoryMutation {
   productDelete(input: ProductDeleteInput!): ProductDeletePayload!
   productSetStatus(input: ProductSetStatusInput!): ProductSetStatusPayload!
 
+  """
+  Unified product update with optimistic locking.
+  Supports multiple operations (product and variant updates) in a single request.
+  """
+  productWorkflowUpdate(
+    """The product ID to update."""
+    productId: ID!
+    """Expected revision for optimistic locking. If provided, fails if product was modified."""
+    expectedRevision: Int
+    """List of operations to perform."""
+    operations: [ProductUpdateOperationInput!]!
+  ): ProductWorkflowUpdatePayload!
+
   # Variant mutations
   variantCreate(input: VariantCreateInput!): VariantCreatePayload!
   variantDelete(input: VariantDeleteInput!): VariantDeletePayload!
-  variantSetSku(input: VariantSetSkuInput!): VariantSetSkuPayload!
-  variantSetDimensions(
-    input: VariantSetDimensionsInput!
-  ): VariantSetDimensionsPayload!
-  variantSetWeight(input: VariantSetWeightInput!): VariantSetWeightPayload!
+
+  # Variant mutations
   variantSetPricing(input: VariantSetPricingInput!): VariantSetPricingPayload!
-  variantSetCost(input: VariantSetCostInput!): VariantSetCostPayload!
+  variantSetDimensions(input: VariantSetDimensionsInput!): VariantSetDimensionsPayload!
+  variantSetInventory(input: VariantSetInventoryInput!): VariantSetInventoryPayload!
+  variantSetOptions(input: VariantSetOptionsInput!): VariantSetOptionsPayload!
 
   # Option mutations (creates/deletes variants automatically)
   productOptionCreate(
@@ -155,9 +167,6 @@ type InventoryMutation {
   warehouseCreate(input: WarehouseCreateInput!): WarehouseCreatePayload!
   warehouseUpdate(input: WarehouseUpdateInput!): WarehouseUpdatePayload!
   warehouseDelete(input: WarehouseDeleteInput!): WarehouseDeletePayload!
-
-  # Stock mutations
-  variantSetStock(input: VariantSetStockInput!): VariantSetStockPayload!
 
   # Media mutations
   variantSetMedia(input: VariantSetMediaInput!): VariantSetMediaPayload!

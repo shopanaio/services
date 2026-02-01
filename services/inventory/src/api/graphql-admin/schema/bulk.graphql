@@ -21,17 +21,19 @@ enum BulkUpdateItemStatus {
 enum BulkUpdateOpType {
   PRODUCT_UPDATE
   PRODUCT_SET_STATUS
-  VARIANT_SET_SKU
   VARIANT_SET_PRICING
-  VARIANT_SET_COST
-  VARIANT_SET_STOCK
   VARIANT_SET_DIMENSIONS
-  VARIANT_SET_WEIGHT
+  VARIANT_SET_INVENTORY
 }
 
 enum ProductStatusAction {
   PUBLISH
   UNPUBLISH
+}
+
+enum ProductStatus {
+  DRAFT
+  PUBLISHED
 }
 
 enum BulkUpdateCancelReason {
@@ -55,23 +57,14 @@ input ProductBulkUpdateInput {
   """Change product publish status. Reuses ProductSetStatusInput."""
   productSetStatus: [ProductSetStatusInput!]
 
-  """Set variant SKU. Reuses VariantSetSkuInput."""
-  variantSetSku: [VariantSetSkuInput!]
-
   """Set variant pricing. Reuses VariantSetPricingInput."""
   variantSetPricing: [VariantSetPricingInput!]
-
-  """Set variant cost. Reuses VariantSetCostInput."""
-  variantSetCost: [VariantSetCostInput!]
-
-  """Set variant stock. Reuses VariantSetStockInput."""
-  variantSetStock: [VariantSetStockInput!]
 
   """Set variant dimensions. Reuses VariantSetDimensionsInput."""
   variantSetDimensions: [VariantSetDimensionsInput!]
 
-  """Set variant weight. Reuses VariantSetWeightInput."""
-  variantSetWeight: [VariantSetWeightInput!]
+  """Set variant inventory (includes weight). Reuses VariantSetInventoryInput."""
+  variantSetInventory: [VariantSetInventoryInput!]
 }
 
 # ════════════════════════════════════════════════════════════

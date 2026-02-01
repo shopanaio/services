@@ -1,53 +1,99 @@
-import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
+import { BaseScript } from "../../kernel/BaseScript.js";
 import type { Variant } from "../../repositories/models/index.js";
+import {
+  type ScriptResult,
+  successResult,
+  unchangedResult,
+  singleError,
+} from "../types/ScriptResult.js";
+import type { DimensionsChanges } from "../types/ProductChanges.js";
 
 export interface VariantSetDimensionsParams {
   readonly variantId: string;
-  readonly dimensions: {
-    readonly width: number;  // mm
-    readonly length: number; // mm
-    readonly height: number; // mm
-  };
+  readonly width: number; // mm
+  readonly height: number; // mm
+  readonly length: number; // mm
 }
 
-export interface VariantSetDimensionsResult {
-  variant?: Variant;
-  userErrors: UserError[];
-}
+export type VariantSetDimensionsResult = ScriptResult<Variant, DimensionsChanges>;
 
-export class VariantSetDimensionsScript extends BaseScript<VariantSetDimensionsParams, VariantSetDimensionsResult> {
-  protected async execute(params: VariantSetDimensionsParams): Promise<VariantSetDimensionsResult> {
-    const { variantId, dimensions } = params;
+/**
+ * Script for setting variant dimensions.
+ */
+export class VariantSetDimensionsScript extends BaseScript<
+  VariantSetDimensionsParams,
+  VariantSetDimensionsResult
+> {
+  protected async execute(
+    params: VariantSetDimensionsParams
+  ): Promise<VariantSetDimensionsResult> {
+    const { variantId, width, height, length } = params;
 
+    // Validate variant exists
     const existingVariant = await this.repository.variant.findById(variantId);
     if (!existingVariant) {
-      return {
-        variant: undefined,
-        userErrors: [{ message: "Variant not found", field: ["variantId"], code: "NOT_FOUND" }],
-      };
+      return singleError("Variant not found", "NOT_FOUND", ["variantId"]);
     }
 
-    if (dimensions.width <= 0 || dimensions.length <= 0 || dimensions.height <= 0) {
-      return {
-        variant: undefined,
-        userErrors: [{ message: "All dimensions must be positive values", field: ["dimensions"], code: "INVALID_DIMENSIONS" }],
-      };
+    // Validate dimensions
+    if (width <= 0) {
+      return singleError(
+        "Width must be a positive value",
+        "INVALID_DIMENSION",
+        ["width"]
+      );
+    }
+    if (height <= 0) {
+      return singleError(
+        "Height must be a positive value",
+        "INVALID_DIMENSION",
+        ["height"]
+      );
+    }
+    if (length <= 0) {
+      return singleError(
+        "Length must be a positive value",
+        "INVALID_DIMENSION",
+        ["length"]
+      );
     }
 
+    // Get current dimensions to compare
+    const currentDimensions =
+      await this.repository.variant.getDimensionsByVariantIds([variantId]);
+    const current = currentDimensions[0];
+
+    const dimensionsChanged =
+      width !== (current?.wMm ?? 0) ||
+      height !== (current?.hMm ?? 0) ||
+      length !== (current?.lMm ?? 0);
+
+    if (!dimensionsChanged) {
+      this.logger.debug({ variantId }, "No dimension changes detected");
+      return unchangedResult(existingVariant);
+    }
+
+    // Update dimensions
     await this.repository.physical.upsertDimensions(variantId, {
-      wMm: dimensions.width,
-      lMm: dimensions.length,
-      hMm: dimensions.height,
+      wMm: width,
+      lMm: length,
+      hMm: height,
     });
 
-    this.logger.info({ variantId }, "Variant dimensions set successfully");
+    const changes: DimensionsChanges = { width, height, length };
 
-    return { variant: existingVariant, userErrors: [] };
+    this.logger.info(
+      { variantId, width, height, length },
+      "Variant dimensions set successfully"
+    );
+
+    return successResult(existingVariant, changes);
   }
 
   protected handleError(_error: unknown): VariantSetDimensionsResult {
     return {
-      variant: undefined,
+      result: null,
+      changes: null,
       userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR" }],
     };
   }

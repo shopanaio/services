@@ -196,9 +196,9 @@ media?: { fileIds: string[] }
 Вложенные типы:
 
 ```typescript
-pricing?: { currency: string; amountMinor: number; compareAtMinor?: number; costMinor?: number }
-inventory?: { warehouseId: string; onHand: number; unavailable?: number; sku?: string }  // sku here
-physical?: { width?: number; height?: number; length?: number; weight?: number }     // mm, grams
+pricing?: { currency: string; amountMinor: number; compareAtMinor?: number }
+inventory?: { warehouseId: string; onHand: number; unavailable?: number; sku?: string; weight?: number; unitCostMinor?: number; costCurrency?: string }
+dimensions?: { width: number; height: number; length: number }  // mm
 media?: { fileIds: string[] }
 ```
 
@@ -333,7 +333,6 @@ interface PricingChanges {
   currency: string;
   amount: number;
   compareAt?: number | null;
-  cost?: number | null;
 }
 
 interface InventoryChanges {
@@ -341,6 +340,9 @@ interface InventoryChanges {
   onHand: number;
   unavailable: number;
   sku?: string | null;
+  weight?: number | null;
+  unitCostMinor?: number | null;
+  costCurrency?: string | null;
 }
 
 interface PhysicalChanges {
@@ -348,6 +350,12 @@ interface PhysicalChanges {
   height?: number;  // mm
   length?: number;  // mm
   weight?: number;  // grams
+}
+
+interface DimensionsChanges {
+  width: number;
+  height: number;
+  length: number;
 }
 
 interface OptionLinkChanges {
@@ -377,28 +385,29 @@ interface SeoChanges {
   description?: string | null;
 }
 
-// VariantSetPricingScript returns (price + cost unified)
+// VariantSetPricingScript returns (price only, without cost)
 interface PricingChanges {
   currency: string;
   amount: number;
   compareAt?: number | null;
-  cost?: number | null;
 }
 
-// VariantSetInventoryScript returns (includes sku)
+// VariantSetInventoryScript returns (includes sku, weight, and cost)
 interface InventoryChanges {
   warehouseId: string;
   onHand: number;
   unavailable: number;
   sku?: string | null;
+  weight?: number | null;
+  unitCostMinor?: number | null;
+  costCurrency?: string | null;
 }
 
-// VariantSetPhysicalScript returns (dimensions + weight unified)
-interface PhysicalChanges {
-  width?: number;   // mm
-  height?: number;  // mm
-  length?: number;  // mm
-  weight?: number;  // grams
+// VariantSetDimensionsScript returns (dimensions only)
+interface DimensionsChanges {
+  width: number;
+  height: number;
+  length: number;
 }
 ```
 
@@ -520,19 +529,20 @@ interface VariantUpdateParams {
     currency: string;
     amountMinor: number;
     compareAtMinor?: number;
-    costMinor?: number;
   };
   inventory?: {
     warehouseId: string;
     onHand: number;
     unavailable?: number;
     sku?: string;
+    weight?: number;           // grams
+    unitCostMinor?: number;    // cost in minor units
+    costCurrency?: string;     // cost currency
   };
-  physical?: {
-    width?: number;   // mm
-    height?: number;  // mm
-    length?: number;  // mm
-    weight?: number;  // grams
+  dimensions?: {
+    width: number;   // mm
+    height: number;  // mm
+    length: number;  // mm
   };
   media?: {
     fileIds: string[];
@@ -728,7 +738,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     changes: ProductChanges,
   ): Promise<OperationResult> {
     const errors: UserError[] = [];
-    const { variantId, pricing, inventory, physical, media, options } = params;
+    const { variantId, pricing, inventory, dimensions, media, options } = params;
 
     // Helper to merge variant changes
     const mergeVariantChanges = (c: Partial<VariantChanges>) => {
@@ -748,8 +758,8 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       if (r.changes) mergeVariantChanges({ inventory: r.changes });
     }
 
-    if (physical) {
-      const r = await this.kernel.runScript(VariantSetPhysicalScript, { variantId, ...physical });
+    if (dimensions) {
+      const r = await this.kernel.runScript(VariantSetDimensionsScript, { variantId, ...dimensions });
       errors.push(...r.userErrors);
       if (r.changes) mergeVariantChanges({ physical: r.changes });
     }
@@ -802,8 +812,8 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
 - `src/scripts/types/ProductChanges.ts` - Changes types
 - `src/scripts/product/ProductSetContentScript.ts` - description/excerpt update
 - `src/scripts/product/ProductSetSeoScript.ts` - SEO update
-- `src/scripts/variant/VariantSetPhysicalScript.ts` - unified dimensions+weight
-- `src/scripts/variant/VariantSetInventoryScript.ts` - stock+sku update
+- `src/scripts/variant/VariantSetDimensionsScript.ts` - dimensions only (existing, add changes)
+- `src/scripts/variant/VariantSetInventoryScript.ts` - unified stock+sku+weight+cost
 - `src/scripts/variant/VariantSetOptionsScript.ts` - collision-safe options update
 - `src/scripts/variant/helpers/buildVariantHandle.ts` - shared helper for handle generation
 
@@ -818,18 +828,18 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
 
 ### Scripts to Update (add changes return)
 
-| Script                      | Changes (new values)                        |
-| --------------------------- | ------------------------------------------- |
-| `ProductUpdateScript`       | { handle?, title? }                         |
-| `ProductSetContentScript`   | { description?, excerpt? }                  |
-| `ProductSetSeoScript`       | { title?, description? }                    |
-| `ProductSetStatusScript`    | { status }                                  |
-| `ProductSetMediaScript`     | { fileIds }                                 |
-| `VariantSetPricingScript`   | { currency, amount, compareAt?, cost? }     |
-| `VariantSetInventoryScript` | { warehouseId, onHand, unavailable, sku? }  |
-| `VariantSetPhysicalScript`  | { width?, height?, length?, weight? }       |
-| `VariantSetMediaScript`     | { fileIds }                                 |
-| `VariantSetOptionsScript`   | [{ optionId, valueId }]                     |
+| Script                      | Changes (new values)                                              |
+| --------------------------- | ----------------------------------------------------------------- |
+| `ProductUpdateScript`       | { handle?, title? }                                               |
+| `ProductSetContentScript`   | { description?, excerpt? }                                        |
+| `ProductSetSeoScript`       | { title?, description? }                                          |
+| `ProductSetStatusScript`    | { status }                                                        |
+| `ProductSetMediaScript`     | { fileIds }                                                       |
+| `VariantSetPricingScript`   | { currency, amount, compareAt? }                                  |
+| `VariantSetInventoryScript` | { warehouseId, onHand, unavailable, sku?, weight?, unitCostMinor?, costCurrency? } |
+| `VariantSetDimensionsScript`| { width, height, length }                                         |
+| `VariantSetMediaScript`     | { fileIds }                                                       |
+| `VariantSetOptionsScript`   | [{ optionId, valueId }]                                           |
 
 ---
 
@@ -845,12 +855,12 @@ interface ScriptResultWithChanges<T, C> {
   userErrors: UserError[];
 }
 
-// Пример: VariantSetPricingScript
+// Пример: VariantSetPricingScript (только price, без cost)
 interface VariantSetPricingParams {
   variantId: string;
   currency: string;
   amountMinor: number;
-  compareAtMinor?: number;
+  compareAtMinor?: number | null;
 }
 
 // Changes = новые значения (partial snapshot для ECST)
@@ -858,6 +868,28 @@ interface PricingChanges {
   currency: string;
   amount: number;
   compareAt?: number | null;
+}
+
+// Пример: VariantSetInventoryScript (unified: stock + sku + weight + cost)
+interface VariantSetInventoryParams {
+  variantId: string;
+  warehouseId: string;
+  onHand: number;
+  unavailable?: number;
+  sku?: string | null;
+  weight?: number | null;        // grams
+  unitCostMinor?: number | null;
+  costCurrency?: string | null;
+}
+
+interface InventoryChanges {
+  warehouseId: string;
+  onHand: number;
+  unavailable: number;
+  sku?: string | null;
+  weight?: number | null;
+  unitCostMinor?: number | null;
+  costCurrency?: string | null;
 }
 
 @Injectable()

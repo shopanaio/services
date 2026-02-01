@@ -19,7 +19,6 @@ export type {
 export type {
   ProductUpdateParams,
   ProductUpdateResult,
-  ProductSeoInput,
 } from "./ProductUpdateDto.js";
 
 // Product Delete DTOs
@@ -30,7 +29,26 @@ export type {
 
 // Product Set Status DTOs
 export type {
-  ProductStatusAction,
+  ProductStatus,
   ProductSetStatusParams,
   ProductSetStatusResult,
 } from "./ProductSetStatusDto.js";
+
+// Product Set Content DTOs
+export type {
+  ProductSetContentParams,
+  ProductSetContentResult,
+} from "./ProductSetContentDto.js";
+
+// Product Set SEO DTOs
+export type {
+  ProductSeoInput,
+  ProductSetSeoParams,
+  ProductSetSeoResult,
+} from "./ProductSetSeoDto.js";
+
+// Product Set Media DTOs
+export type {
+  ProductSetMediaParams,
+  ProductSetMediaResult,
+} from "./ProductSetMediaDto.js";
