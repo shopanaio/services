@@ -1,0 +1,185 @@
+# ---- Pricing Types ----
+
+"""
+Represents a price for a variant.
+"""
+type VariantPrice implements Node {
+  """The globally unique ID of the price record."""
+  id: ID!
+
+  """The currency code."""
+  currency: CurrencyCode!
+
+  """The price amount in minor units (cents, kopecks, etc.)."""
+  amountMinor: BigInt!
+
+  """The compare-at price in minor units (strikethrough price)."""
+  compareAtMinor: BigInt
+
+  """When this price became effective."""
+  effectiveFrom: DateTime!
+
+  """When this price stopped being effective (null if current)."""
+  effectiveTo: DateTime
+
+  """When this price record was created."""
+  recordedAt: DateTime!
+
+  """Whether this is the current active price."""
+  isCurrent: Boolean!
+}
+
+"""
+A connection to a list of VariantPrice items.
+"""
+type VariantPriceConnection {
+  """A list of edges."""
+  edges: [VariantPriceEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of price records."""
+  totalCount: Int!
+}
+
+"""
+An edge in a VariantPrice connection.
+"""
+type VariantPriceEdge {
+  """The item at the end of the edge."""
+  node: VariantPrice!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+
+"""
+Represents the cost of a variant.
+"""
+type VariantCost implements Node {
+  """The globally unique ID of the cost record."""
+  id: ID!
+
+  """The currency code."""
+  currency: CurrencyCode!
+
+  """The unit cost in minor units."""
+  unitCostMinor: BigInt!
+
+  """When this cost became effective."""
+  effectiveFrom: DateTime!
+
+  """When this cost stopped being effective (null if current)."""
+  effectiveTo: DateTime
+
+  """When this cost record was created."""
+  recordedAt: DateTime!
+
+  """Whether this is the current active cost."""
+  isCurrent: Boolean!
+}
+
+"""
+A connection to a list of VariantCost items.
+"""
+type VariantCostConnection {
+  """A list of edges."""
+  edges: [VariantCostEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of cost records."""
+  totalCount: Int!
+}
+
+"""
+An edge in a VariantCost connection.
+"""
+type VariantCostEdge {
+  """The item at the end of the edge."""
+  node: VariantCost!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+
+# ---- Pricing Widget Types ----
+
+"""
+Statistics for variant price history over a period.
+"""
+type VariantPriceHistoryStatistics {
+  """Minimum price over the period (minor units)."""
+  minPriceMinor: BigInt!
+  """Maximum price over the period (minor units)."""
+  maxPriceMinor: BigInt!
+  """Average price over the period (minor units)."""
+  avgPriceMinor: BigInt!
+  """Currency code."""
+  currency: CurrencyCode!
+}
+
+"""
+Pricing widget payload with current price, cost, history and statistics.
+"""
+type PricingWidgetPayload {
+  """Current active price."""
+  currentPrice: VariantPrice
+  """Current active cost."""
+  currentCostPrice: VariantCost
+  """Price history for the period."""
+  history: VariantPriceConnection!
+  """Computed statistics for the period."""
+  statistics: VariantPriceHistoryStatistics!
+}
+
+"""
+Input for pricing widget query.
+"""
+input PricingWidgetInput {
+  """The variant ID to get pricing data for."""
+  variantId: ID!
+  """Currency code to filter by."""
+  currency: CurrencyCode!
+  """Start of the period (optional, defaults to 30 days ago)."""
+  from: DateTime
+  """End of the period (optional, defaults to now)."""
+  to: DateTime
+  """Pagination: first N items."""
+  first: Int
+  """Pagination: cursor after."""
+  after: String
+}
+
+# ---- Variant Pricing Mutations ----
+
+"""
+Input for updating a price on a variant.
+"""
+input VariantUpdatePricingInput {
+  """The ID of the variant."""
+  variantId: ID!
+
+  """The currency code."""
+  currency: CurrencyCode!
+
+  """The price amount in minor units."""
+  amountMinor: BigInt!
+
+  """The compare-at price in minor units (optional)."""
+  compareAtMinor: BigInt
+}
+
+"""
+Payload for variant pricing update.
+"""
+type VariantUpdatePricingPayload {
+  """The updated variant."""
+  variant: Variant
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+

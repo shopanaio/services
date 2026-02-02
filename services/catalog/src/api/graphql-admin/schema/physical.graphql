@@ -1,0 +1,52 @@
+# ---- Physical Attribute Types ----
+#
+# All physical measurements are stored in base SI units:
+# - Dimensions: millimeters (mm)
+# - Weight: grams (g)
+#
+# Conversion to display units (cm, kg, inches, lbs, etc.) is handled
+# on the frontend using the project's configuration settings.
+
+"""
+Physical dimensions of a variant (stored in millimeters).
+"""
+type VariantDimensions {
+  """Width in millimeters."""
+  width: Int!
+
+  """Length in millimeters."""
+  length: Int!
+
+  """Height in millimeters."""
+  height: Int!
+}
+
+"""
+Physical weight of a variant (stored in grams).
+"""
+type VariantWeight {
+  """Weight in grams."""
+  value: Int!
+}
+
+"""
+Input for setting dimensions (in millimeters).
+"""
+input DimensionsInput {
+  """Width in millimeters."""
+  width: Int!
+
+  """Length in millimeters."""
+  length: Int!
+
+  """Height in millimeters."""
+  height: Int!
+}
+
+"""
+Input for setting weight (in grams).
+"""
+input WeightInput {
+  """Weight in grams."""
+  value: Int!
+}

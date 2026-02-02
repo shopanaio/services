@@ -1836,32 +1836,126 @@ type WarehouseStock implements Node {
 
 ## Фаза 7: План выполнения
 
-### Sprint 1: Подготовка (1-2 недели)
+> **ВАЖНО:** Catalog Service уже создан как полная копия Inventory Service.
+> Стратегия: удалить лишнее → переименовать → добавить новое.
 
-- [ ] Создать пустой Catalog сервис с базовой структурой
-- [ ] Настроить DB, Drizzle, GraphQL federation
-- [ ] Выделить shared packages (если нужно)
-- [ ] Написать миграции для Category и Tag
+### Sprint 1: Очистка Catalog Service (копия inventory уже есть)
 
-### Sprint 2: Миграция Product/Variant (2-3 недели)
+**Удалить из Catalog (inventory-related):**
+- [ ] Удалить `repositories/warehouse/`
+- [ ] Удалить `repositories/stock/`
+- [ ] Удалить `repositories/cost/`
+- [ ] Удалить `repositories/physical/`
+- [ ] Удалить `repositories/models/stock.ts`
+- [ ] Удалить `repositories/models/stock-changes.ts`
+- [ ] Удалить `repositories/models/cost.ts`
+- [ ] Удалить `repositories/models/physical.ts`
+- [ ] Удалить `resolvers/admin/WarehouseResolver.ts`
+- [ ] Удалить `resolvers/admin/StockResolver.ts`
+- [ ] Удалить `scripts/warehouse/`
+- [ ] Удалить `loaders/WarehouseLoader.ts`
 
-- [ ] Перенести Product сущность в Catalog
-- [ ] Перенести Variant сущность в Catalog
-- [ ] Перенести Options и Features в Catalog
-- [ ] Перенести Translations и SEO
-- [ ] Создать InventoryItem в Inventory
-- [ ] Настроить event handlers для синхронизации
+**Удалить из VariantResolver (переносится в Inventory):**
+- [ ] Удалить метод `sku()`
+- [ ] Удалить метод `dimensions()`
+- [ ] Удалить метод `weight()`
+- [ ] Удалить метод `cost()`
+- [ ] Удалить метод `costHistory()`
+- [ ] Удалить метод `stock()`
+- [ ] Удалить метод `inStock()`
 
-### Sprint 3: Category и Tag (1-2 недели)
+**Удалить GraphQL schema:**
+- [ ] Удалить `stock.graphql`
+- [ ] Удалить `physical.graphql` (или оставить types для federation)
 
-- [ ] Реализовать Category CRUD с иерархией
-- [ ] Реализовать Tag CRUD
-- [ ] Добавить связи Product ↔ Category ↔ Tag
-- [ ] Написать миграции данных (если есть legacy категории)
+### Sprint 2: Переименование в Catalog Service
 
-### Sprint 4: Рефакторинг Inventory (1-2 недели)
+**Переименовать:**
+- [ ] `InventoryType.ts` → `CatalogType.ts`
+- [ ] `InventoryContext.ts` → `CatalogContext.ts`
+- [ ] Namespace `inventoryQuery` → `catalogQuery`
+- [ ] Namespace `inventoryMutation` → `catalogMutation`
+- [ ] Package name в `package.json`
+- [ ] DB schema name (если используется)
 
-- [ ] Обновить WarehouseStock для работы с InventoryItem
-- [ ] Обновить StockChanges, Reservations, InboundSupply
-- [ ] Перенести физические характеристики на InventoryItem
-- [ ] Обновить все mutations и queries
+**Обновить imports во всех файлах:**
+- [ ] Заменить `InventoryType` на `CatalogType`
+- [ ] Заменить `InventoryContext` на `CatalogContext`
+
+### Sprint 3: Добавить новое в Catalog Service
+
+**Category:**
+- [ ] Создать `repositories/models/categories.ts`
+- [ ] Создать `repositories/category/CategoryRepository.ts`
+- [ ] Создать `resolvers/admin/CategoryResolver.ts`
+- [ ] Создать `scripts/category/` (CRUD + Move)
+- [ ] Создать `loaders/CategoryLoader.ts`
+- [ ] Добавить `category.graphql`
+- [ ] Добавить таблицу связи `product_category`
+
+**Tag:**
+- [ ] Создать `repositories/models/tags.ts`
+- [ ] Создать `repositories/tag/TagRepository.ts`
+- [ ] Создать `resolvers/admin/TagResolver.ts`
+- [ ] Создать `scripts/tag/` (CRUD)
+- [ ] Создать `loaders/TagLoader.ts`
+- [ ] Добавить `tag.graphql`
+- [ ] Добавить таблицу связи `product_tag`
+
+**Обновить Product:**
+- [ ] Добавить `categories()` в ProductResolver
+- [ ] Добавить `tags()` в ProductResolver
+- [ ] Добавить mutations для связей
+
+### Sprint 4: Очистка Inventory Service
+
+**Удалить из Inventory (catalog-related):**
+- [ ] Удалить `repositories/product/`
+- [ ] Удалить `repositories/variant/` (кроме связи с InventoryItem)
+- [ ] Удалить `repositories/option/`
+- [ ] Удалить `repositories/feature/`
+- [ ] Удалить `repositories/pricing/`
+- [ ] Удалить `repositories/translation/` (кроме warehouse translations)
+- [ ] Удалить `repositories/media/`
+- [ ] Удалить `repositories/models/products.ts`
+- [ ] Удалить `repositories/models/options.ts`
+- [ ] Удалить `repositories/models/features.ts`
+- [ ] Удалить `repositories/models/pricing.ts`
+- [ ] Удалить `repositories/models/translations.ts` (частично)
+- [ ] Удалить `repositories/models/seo.ts`
+- [ ] Удалить `repositories/models/media.ts`
+- [ ] Удалить `resolvers/admin/ProductResolver.ts`
+- [ ] Удалить `resolvers/admin/VariantResolver.ts` (заменить на VariantFederationResolver)
+- [ ] Удалить `resolvers/admin/OptionResolver.ts`
+- [ ] Удалить `resolvers/admin/FeatureResolver.ts`
+- [ ] Удалить `scripts/product/`
+- [ ] Удалить `scripts/variant/` (кроме inventory-related)
+- [ ] Удалить `scripts/option/`
+- [ ] Удалить `scripts/feature/`
+- [ ] Удалить `loaders/ProductLoader.ts`
+- [ ] Удалить `loaders/VariantLoader.ts` (заменить на InventoryItemLoader)
+- [ ] Удалить `loaders/OptionLoader.ts`
+- [ ] Удалить `loaders/FeatureLoader.ts`
+
+### Sprint 5: Добавить новое в Inventory Service
+
+**InventoryItem:**
+- [ ] Создать `repositories/models/inventory-item.ts`
+- [ ] Создать `repositories/inventory-item/InventoryItemRepository.ts`
+- [ ] Создать `resolvers/admin/InventoryItemResolver.ts`
+- [ ] Создать `resolvers/admin/VariantFederationResolver.ts`
+- [ ] Создать `loaders/InventoryItemLoader.ts`
+- [ ] Добавить `inventory-item.graphql`
+
+**Federation:**
+- [ ] Настроить `extend type Variant` в schema
+- [ ] Реализовать `__resolveReference` для Variant
+- [ ] Настроить Apollo Router / Gateway
+
+### Sprint 6: Интеграция и тестирование
+
+- [ ] Настроить event handlers (Catalog → Inventory)
+- [ ] Протестировать federation queries
+- [ ] Протестировать mutations в обоих сервисах
+- [ ] Миграция данных (если нужно)
+- [ ] E2E тесты

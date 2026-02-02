@@ -1,0 +1,146 @@
+# Auto-generated GraphQL types. Do not edit manually.
+# Generated at: 2025-12-11T21:29:55.742Z
+
+"""Filter operators for String fields"""
+input StringFilter {
+  """Equals"""
+  _eq: String
+  """Not equals"""
+  _neq: String
+  """In array"""
+  _in: [String!]
+  """Not in array"""
+  _notIn: [String!]
+  """Is null"""
+  _is: Boolean
+  """Is not null"""
+  _isNot: Boolean
+  """Contains substring (case-sensitive)"""
+  _contains: String
+  """Contains substring (case-insensitive)"""
+  _containsi: String
+  """Does not contain substring (case-sensitive)"""
+  _notContains: String
+  """Does not contain substring (case-insensitive)"""
+  _notContainsi: String
+  """Starts with (case-sensitive)"""
+  _startsWith: String
+  """Starts with (case-insensitive)"""
+  _startsWithi: String
+  """Ends with (case-sensitive)"""
+  _endsWith: String
+  """Ends with (case-insensitive)"""
+  _endsWithi: String
+}
+
+"""Filter operators for ID fields"""
+input IDFilter {
+  """Equals"""
+  _eq: ID
+  """Not equals"""
+  _neq: ID
+  """In array"""
+  _in: [ID!]
+  """Not in array"""
+  _notIn: [ID!]
+  """Is null"""
+  _is: Boolean
+  """Is not null"""
+  _isNot: Boolean
+}
+
+"""Filter operators for Int fields"""
+input IntFilter {
+  """Equals"""
+  _eq: Int
+  """Not equals"""
+  _neq: Int
+  """Greater than"""
+  _gt: Int
+  """Greater than or equal"""
+  _gte: Int
+  """Less than"""
+  _lt: Int
+  """Less than or equal"""
+  _lte: Int
+  """In array"""
+  _in: [Int!]
+  """Not in array"""
+  _notIn: [Int!]
+  """Is null"""
+  _is: Boolean
+  """Is not null"""
+  _isNot: Boolean
+  """Between range (inclusive)"""
+  _between: [Int!]
+}
+
+"""Filter operators for Float fields"""
+input FloatFilter {
+  """Equals"""
+  _eq: Float
+  """Not equals"""
+  _neq: Float
+  """Greater than"""
+  _gt: Float
+  """Greater than or equal"""
+  _gte: Float
+  """Less than"""
+  _lt: Float
+  """Less than or equal"""
+  _lte: Float
+  """In array"""
+  _in: [Float!]
+  """Not in array"""
+  _notIn: [Float!]
+  """Is null"""
+  _is: Boolean
+  """Is not null"""
+  _isNot: Boolean
+  """Between range (inclusive)"""
+  _between: [Float!]
+}
+
+"""Filter operators for Boolean fields"""
+input BooleanFilter {
+  """Equals"""
+  _eq: Boolean
+  """Not equals"""
+  _neq: Boolean
+  """Is null"""
+  _is: Boolean
+  """Is not null"""
+  _isNot: Boolean
+}
+
+"""Filter operators for DateTime fields"""
+input DateTimeFilter {
+  """Equals"""
+  _eq: DateTime
+  """Not equals"""
+  _neq: DateTime
+  """Greater than (after)"""
+  _gt: DateTime
+  """Greater than or equal (on or after)"""
+  _gte: DateTime
+  """Less than (before)"""
+  _lt: DateTime
+  """Less than or equal (on or before)"""
+  _lte: DateTime
+  """In array"""
+  _in: [DateTime!]
+  """Not in array"""
+  _notIn: [DateTime!]
+  """Is null"""
+  _is: Boolean
+  """Is not null"""
+  _isNot: Boolean
+  """Between range (inclusive)"""
+  _between: [DateTime!]
+}
+
+"""Sort direction"""
+enum SortDirection {
+  asc
+  desc
+}

@@ -1,0 +1,193 @@
+import { SubgraphReference } from "@shopana/type-resolver";
+import type {
+  SelectedOption,
+  VariantCost,
+  VariantDimensions,
+  VariantMediaItem,
+  VariantPrice,
+  VariantWeight,
+} from "./interfaces/index.js";
+import type { Variant } from "../../repositories/models/index.js";
+import type { PricingCursorInput } from "../../repositories/pricing/PricingRepository.js";
+import { InventoryType } from "./InventoryType.js";
+import { VariantPriceResolver } from "./VariantPriceResolver.js";
+import { StockResolver } from "./StockResolver.js";
+
+/**
+ * Variant resolver - resolves Variant domain interface.
+ * Decorated with @SubgraphReference for federation support.
+ */
+@SubgraphReference()
+export class VariantResolver extends InventoryType<string, Variant | null> {
+  async $preload() {
+    return this.$ctx.loaders.variant.load(this.$props);
+  }
+
+  id() {
+    return this.$props;
+  }
+
+  async productId() {
+    return this.$get("productId");
+  }
+
+  async isDefault() {
+    return (await this.$get("isDefault")) ?? false;
+  }
+
+  async handle() {
+    return (await this.$get("handle")) ?? "";
+  }
+
+  async sku() {
+    return this.$get("sku");
+  }
+
+  async externalSystem() {
+    return this.$get("externalSystem");
+  }
+
+  async externalId() {
+    return this.$get("externalId");
+  }
+
+  async createdAt() {
+    return this.$get("createdAt");
+  }
+
+  async updatedAt() {
+    return this.$get("updatedAt");
+  }
+
+  async deletedAt() {
+    return this.$get("deletedAt");
+  }
+
+  async title() {
+    const translation = await this.$ctx.loaders.variantTranslation.load(
+      this.$props
+    );
+    return translation?.title ?? null;
+  }
+
+  async price(): Promise<VariantPrice | null> {
+    const prices = await this.$ctx.loaders.variantPricing.load(this.$props);
+
+    // Filter by currency if specified
+    let filtered = prices;
+    if (this.$ctx.currency) {
+      filtered = prices.filter((p) => p.currency === this.$ctx.currency);
+    }
+
+    if (filtered.length === 0) return null;
+
+    // Get current active price
+    const current = filtered[0];
+    return {
+      id: current.id,
+      currency: current.currency as "UAH" | "USD" | "EUR",
+      amountMinor: current.amountMinor,
+      compareAtMinor: current.compareAtMinor,
+      effectiveFrom: current.effectiveFrom,
+      effectiveTo: current.effectiveTo,
+      recordedAt: current.recordedAt,
+      isCurrent: current.effectiveTo === null,
+    };
+  }
+
+  /**
+   * Returns price history for this variant
+   * @param args - Pagination arguments (first, last, after, before)
+   */
+  async priceHistory(args: PricingCursorInput) {
+    const services = this.$ctx.kernel.getServices();
+    const ids = await services.repository.pricing.getIdsByVariantId(
+      this.$props,
+      args
+    );
+    return ids.map((id: string) => new VariantPriceResolver(id, this.$ctx));
+  }
+
+  async cost(): Promise<VariantCost | null> {
+    const costs = await this.$ctx.loaders.variantCost.load(this.$props);
+
+    // Filter by currency if specified
+    let filtered = costs;
+    if (this.$ctx.currency) {
+      filtered = costs.filter((c) => c.currency === this.$ctx.currency);
+    }
+
+    if (filtered.length === 0) return null;
+
+    // Get current active cost
+    const current = filtered[0];
+    return {
+      id: current.id,
+      currency: current.currency as "UAH" | "USD" | "EUR",
+      unitCostMinor: current.unitCostMinor,
+      effectiveFrom: current.effectiveFrom,
+      effectiveTo: current.effectiveTo,
+      recordedAt: current.recordedAt,
+      isCurrent: current.effectiveTo === null,
+    };
+  }
+
+  /**
+   * Returns cost history IDs for this variant
+   * @param args - Pagination arguments (first, last, after, before)
+   */
+  async costHistory(_args?: PricingCursorInput): Promise<string[]> {
+    // TODO: implement cost history pagination
+    return [];
+  }
+
+  async selectedOptions(): Promise<SelectedOption[]> {
+    const links = await this.$ctx.loaders.variantSelectedOptions.load(
+      this.$props
+    );
+    return links
+      .filter((link) => link.optionValueId !== null)
+      .map((link) => ({
+        optionId: link.optionId,
+        optionValueId: link.optionValueId!,
+      }));
+  }
+
+  async dimensions(): Promise<VariantDimensions | null> {
+    const dims = await this.$ctx.loaders.variantDimensions.load(this.$props);
+    if (!dims) return null;
+
+    return {
+      width: dims.wMm,
+      length: dims.lMm,
+      height: dims.hMm,
+    };
+  }
+
+  async weight(): Promise<VariantWeight | null> {
+    const w = await this.$ctx.loaders.variantWeight.load(this.$props);
+    if (!w) return null;
+
+    return {
+      value: w.weightGr,
+    };
+  }
+
+  async stock(): Promise<StockResolver[]> {
+    const stocks = await this.$ctx.loaders.variantStock.load(this.$props);
+    return stocks.map((s) => new StockResolver(s.id, this.$ctx));
+  }
+
+  async inStock(): Promise<boolean> {
+    const stocks = await this.$ctx.loaders.variantStock.load(this.$props);
+    return stocks.some((s) => s.quantityOnHand > 0);
+  }
+
+  async media(): Promise<Array<{ file: { __typename: "File"; id: string }; sortIndex: number }>> {
+    const mediaItems = await this.$ctx.loaders.variantMedia.load(this.$props);
+    return mediaItems.map((m) => ({
+      file: { __typename: "File" as const, id: m.fileId },
+      sortIndex: m.sortIndex,
+    }));
+  }
+}
