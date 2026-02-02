@@ -1,5 +1,5 @@
 import type { BulkEditItem } from "../../repositories/models/index.js";
-import { InventoryType } from "./InventoryType.js";
+import { CatalogType } from "./CatalogType.js";
 
 const OP_TYPE_MAP: Record<string, string> = {
   productUpdate: "PRODUCT_UPDATE",
@@ -12,7 +12,7 @@ const OP_TYPE_MAP: Record<string, string> = {
   variantSetWeight: "VARIANT_SET_WEIGHT",
 };
 
-export class BulkUpdateItemResolver extends InventoryType<string, BulkEditItem | null> {
+export class BulkUpdateItemResolver extends CatalogType<string, BulkEditItem | null> {
   async $preload() {
     return this.$ctx.kernel.repository.bulkEditItem.findById(this.$props);
   }

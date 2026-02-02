@@ -10,7 +10,6 @@ import { inventorySchema } from "./schema";
 import { product, variant } from "./products";
 import { productOption, productOptionValue } from "./options";
 import { productFeature, productFeatureValue } from "./features";
-import { warehouses } from "./stock";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Product Translations
@@ -162,26 +161,8 @@ export const productFeatureValueTranslation = inventorySchema.table(
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Warehouse Translations
+// Warehouse Translations УДАЛЕНЫ (переносятся в Inventory Service)
 // ─────────────────────────────────────────────────────────────────────────────
-// Translates warehouse display names
-
-export const warehouseTranslation = inventorySchema.table(
-  "warehouse_translation",
-  {
-    projectId: uuid("project_id").notNull(),
-    warehouseId: uuid("warehouse_id")
-      .notNull()
-      .references(() => warehouses.id, { onDelete: "cascade" }),
-    locale: varchar("locale", { length: 8 }).notNull(),
-
-    name: text("name").notNull(),
-  },
-  (table) => [
-    primaryKey({ columns: [table.warehouseId, table.locale] }),
-    index("idx_warehouse_translation_project").on(table.projectId),
-  ]
-);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Type exports
@@ -212,6 +193,3 @@ export type ProductFeatureValueTranslation =
   typeof productFeatureValueTranslation.$inferSelect;
 export type NewProductFeatureValueTranslation =
   typeof productFeatureValueTranslation.$inferInsert;
-
-export type WarehouseTranslation = typeof warehouseTranslation.$inferSelect;
-export type NewWarehouseTranslation = typeof warehouseTranslation.$inferInsert;

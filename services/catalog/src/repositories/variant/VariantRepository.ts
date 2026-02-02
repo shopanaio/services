@@ -11,25 +11,17 @@ import { randomUUID } from "crypto";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
-  itemDimensions,
   itemPricing,
-  itemWeight,
   productOptionVariantLink,
-  productVariantCostHistory,
   variant,
   variantMedia,
   variantTranslation,
-  warehouseStock,
-  type ItemDimensions,
   type ItemPricing,
-  type ItemWeight,
   type NewVariant,
   type ProductOptionVariantLink,
-  type ProductVariantCostHistory,
   type Variant,
   type VariantMedia,
   type VariantTranslation,
-  type WarehouseStock,
 } from "../models/index.js";
 
 const variantQuery = createQuery(variant).maxLimit(100).defaultLimit(20);
@@ -408,34 +400,6 @@ export class VariantRepository extends BaseRepository {
       );
   }
 
-  async getDimensionsByVariantIds(
-    variantIds: readonly string[]
-  ): Promise<ItemDimensions[]> {
-    return this.connection
-      .select()
-      .from(itemDimensions)
-      .where(
-        and(
-          eq(itemDimensions.projectId, this.storeId),
-          inArray(itemDimensions.variantId, [...variantIds])
-        )
-      );
-  }
-
-  async getWeightsByVariantIds(
-    variantIds: readonly string[]
-  ): Promise<ItemWeight[]> {
-    return this.connection
-      .select()
-      .from(itemWeight)
-      .where(
-        and(
-          eq(itemWeight.projectId, this.storeId),
-          inArray(itemWeight.variantId, [...variantIds])
-        )
-      );
-  }
-
   async getMediaByVariantIds(
     variantIds: readonly string[]
   ): Promise<VariantMedia[]> {
@@ -446,20 +410,6 @@ export class VariantRepository extends BaseRepository {
         and(
           eq(variantMedia.projectId, this.storeId),
           inArray(variantMedia.variantId, [...variantIds])
-        )
-      );
-  }
-
-  async getStockByVariantIds(
-    variantIds: readonly string[]
-  ): Promise<WarehouseStock[]> {
-    return this.connection
-      .select()
-      .from(warehouseStock)
-      .where(
-        and(
-          eq(warehouseStock.projectId, this.storeId),
-          inArray(warehouseStock.variantId, [...variantIds])
         )
       );
   }
@@ -478,18 +428,4 @@ export class VariantRepository extends BaseRepository {
       );
   }
 
-  async getActiveCostsByVariantIds(
-    variantIds: readonly string[]
-  ): Promise<ProductVariantCostHistory[]> {
-    return this.connection
-      .select()
-      .from(productVariantCostHistory)
-      .where(
-        and(
-          eq(productVariantCostHistory.projectId, this.storeId),
-          inArray(productVariantCostHistory.variantId, [...variantIds]),
-          isNull(productVariantCostHistory.effectiveTo)
-        )
-      );
-  }
 }

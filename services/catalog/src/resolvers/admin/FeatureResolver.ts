@@ -1,12 +1,12 @@
 import type { ProductFeature } from "../../repositories/models/index.js";
-import { InventoryType } from "./InventoryType.js";
+import { CatalogType } from "./CatalogType.js";
 import { FeatureValueResolver } from "./FeatureValueResolver.js";
 
 /**
  * Feature view - resolves Feature domain interface
  * Accepts feature ID, loads data lazily via loaders
  */
-export class FeatureResolver extends InventoryType<string, ProductFeature | null> {
+export class FeatureResolver extends CatalogType<string, ProductFeature | null> {
   async $preload() {
     return this.$ctx.loaders.productFeature.load(this.$props);
   }

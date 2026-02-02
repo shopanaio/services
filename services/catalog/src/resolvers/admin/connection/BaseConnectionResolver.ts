@@ -1,5 +1,5 @@
 import { type PageInfo } from "@shopana/drizzle-query";
-import { InventoryType } from "../InventoryType.js";
+import { CatalogType } from "../CatalogType.js";
 
 // ============ Types ============
 
@@ -41,7 +41,7 @@ export interface ConnectionData {
  *   }
  * }
  */
-export abstract class BaseConnectionResolver<TArgs = unknown> extends InventoryType<
+export abstract class BaseConnectionResolver<TArgs = unknown> extends CatalogType<
   TArgs,
   ConnectionData
 > {

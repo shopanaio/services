@@ -140,6 +140,165 @@ export type BulkUpdateUserError = UserError & {
   variantId: Maybe<Scalars['ID']['output']>;
 };
 
+/** A category represents a hierarchical grouping of products. */
+export type Category = Node & {
+  __typename?: 'Category';
+  /** All ancestor categories from root to parent. */
+  ancestors: Array<Category>;
+  /** Direct child categories. */
+  children: Array<Category>;
+  /** The date and time when the category was created. */
+  createdAt: Scalars['DateTime']['output'];
+  /** The date and time when the category was deleted (soft delete). */
+  deletedAt: Maybe<Scalars['DateTime']['output']>;
+  /** The depth of this category in the hierarchy (0 for root). */
+  depth: Scalars['Int']['output'];
+  /** The category description. */
+  description: Maybe<Description>;
+  /** The URL-friendly handle for the category. */
+  handle: Scalars['String']['output'];
+  /** The globally unique ID of the category. */
+  id: Scalars['ID']['output'];
+  /** Whether the category is currently published. */
+  isPublished: Scalars['Boolean']['output'];
+  /** Media files associated with this category. */
+  media: Array<CategoryMediaItem>;
+  /** The display name of the category. */
+  name: Scalars['String']['output'];
+  /** The parent category, if any. */
+  parent: Maybe<Category>;
+  /** The materialized path for this category. */
+  path: Scalars['String']['output'];
+  /** Products in this category with pagination. */
+  products: ProductConnection;
+  /** The total number of products in this category. */
+  productsCount: Scalars['Int']['output'];
+  /** The date and time when the category was published, or null if unpublished. */
+  publishedAt: Maybe<Scalars['DateTime']['output']>;
+  /** The date and time when the category was last updated. */
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+
+/** A category represents a hierarchical grouping of products. */
+export type CategoryProductsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+/** A connection to a list of Category items. */
+export type CategoryConnection = {
+  __typename?: 'CategoryConnection';
+  /** A list of edges. */
+  edges: Array<CategoryEdge>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+  /** The total number of categories. */
+  totalCount: Scalars['Int']['output'];
+};
+
+/** Input for creating a category. */
+export type CategoryCreateInput = {
+  /** Optional description. */
+  description?: InputMaybe<DescriptionInput>;
+  /** The URL-friendly handle for the category. */
+  handle: Scalars['String']['input'];
+  /** File IDs for category media. */
+  mediaFileIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** The display name of the category. */
+  name: Scalars['String']['input'];
+  /** Optional parent category ID. */
+  parentId?: InputMaybe<Scalars['ID']['input']>;
+  /** Whether to publish immediately. */
+  publish?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+/** Payload for category creation. */
+export type CategoryCreatePayload = {
+  __typename?: 'CategoryCreatePayload';
+  /** The created category. */
+  category: Maybe<Category>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<GenericUserError>;
+};
+
+/** Input for deleting a category. */
+export type CategoryDeleteInput = {
+  /** The ID of the category to delete. */
+  id: Scalars['ID']['input'];
+  /** Whether to permanently delete (hard delete). */
+  permanent?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+/** Payload for category deletion. */
+export type CategoryDeletePayload = {
+  __typename?: 'CategoryDeletePayload';
+  /** The ID of the deleted category. */
+  deletedCategoryId: Maybe<Scalars['ID']['output']>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<GenericUserError>;
+};
+
+/** An edge in a Category connection. */
+export type CategoryEdge = {
+  __typename?: 'CategoryEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String']['output'];
+  /** The item at the end of the edge. */
+  node: Category;
+};
+
+/** A media item for a category. */
+export type CategoryMediaItem = {
+  __typename?: 'CategoryMediaItem';
+  /** The file reference. */
+  file: File;
+  /** The sort index for ordering. */
+  sortIndex: Scalars['Int']['output'];
+};
+
+/** Input for moving a category in the hierarchy. */
+export type CategoryMoveInput = {
+  /** The ID of the category to move. */
+  id: Scalars['ID']['input'];
+  /** The new parent category ID, or null for root. */
+  newParentId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+/** Payload for category move. */
+export type CategoryMovePayload = {
+  __typename?: 'CategoryMovePayload';
+  /** The moved category. */
+  category: Maybe<Category>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<GenericUserError>;
+};
+
+/** Input for updating a category. */
+export type CategoryUpdateInput = {
+  /** The category description. */
+  description?: InputMaybe<DescriptionInput>;
+  /** The URL-friendly handle for the category. */
+  handle?: InputMaybe<Scalars['String']['input']>;
+  /** The ID of the category to update. */
+  id: Scalars['ID']['input'];
+  /** File IDs for category media (replaces existing). */
+  mediaFileIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** The display name of the category. */
+  name?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Payload for category update. */
+export type CategoryUpdatePayload = {
+  __typename?: 'CategoryUpdatePayload';
+  /** The updated category. */
+  category: Maybe<Category>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<GenericUserError>;
+};
+
 /** Currency codes according to ISO 4217 */
 export enum CurrencyCode {
   /** UAE Dirham (United Arab Emirates) - 2 decimals */
@@ -527,16 +686,6 @@ export enum DimensionUnit {
   Mm = 'mm'
 }
 
-/** Input for setting dimensions (in millimeters). */
-export type DimensionsInput = {
-  /** Height in millimeters. */
-  height: Scalars['Int']['input'];
-  /** Length in millimeters. */
-  length: Scalars['Int']['input'];
-  /** Width in millimeters. */
-  width: Scalars['Int']['input'];
-};
-
 export type File = {
   __typename?: 'File';
   id: Scalars['ID']['output'];
@@ -618,20 +767,12 @@ export type IntFilter = {
   _notIn?: InputMaybe<Array<Scalars['Int']['input']>>;
 };
 
-export type InventoryAlertThreshold = {
-  __typename?: 'InventoryAlertThreshold';
-  method: ThresholdMethod;
-  minimumStock: Scalars['Int']['output'];
-};
-
-export type InventoryBackorder = {
-  __typename?: 'InventoryBackorder';
-  etaAvgDays: Maybe<Scalars['Float']['output']>;
-  quantity: Scalars['Int']['output'];
-};
-
 export type InventoryMutation = {
   __typename?: 'InventoryMutation';
+  categoryCreate: CategoryCreatePayload;
+  categoryDelete: CategoryDeletePayload;
+  categoryMove: CategoryMovePayload;
+  categoryUpdate: CategoryUpdatePayload;
   /**
    * Start async bulk update.
    * Requires X-Idempotency-Key header.
@@ -658,16 +799,34 @@ export type InventoryMutation = {
    */
   productUpdate: ProductUpdatePayload;
   productUpdateStatus: ProductUpdateStatusPayload;
+  tagCreate: TagCreatePayload;
+  tagDelete: TagDeletePayload;
+  tagUpdate: TagUpdatePayload;
   variantCreate: VariantCreatePayload;
   variantDelete: VariantDeletePayload;
-  variantUpdateDimensions: VariantUpdateDimensionsPayload;
-  variantUpdateInventory: VariantUpdateInventoryPayload;
   variantUpdateMedia: VariantUpdateMediaPayload;
   variantUpdateOptions: VariantUpdateOptionsPayload;
   variantUpdatePricing: VariantUpdatePricingPayload;
-  warehouseCreate: WarehouseCreatePayload;
-  warehouseDelete: WarehouseDeletePayload;
-  warehouseUpdate: WarehouseUpdatePayload;
+};
+
+
+export type InventoryMutationCategoryCreateArgs = {
+  input: CategoryCreateInput;
+};
+
+
+export type InventoryMutationCategoryDeleteArgs = {
+  input: CategoryDeleteInput;
+};
+
+
+export type InventoryMutationCategoryMoveArgs = {
+  input: CategoryMoveInput;
+};
+
+
+export type InventoryMutationCategoryUpdateArgs = {
+  input: CategoryUpdateInput;
 };
 
 
@@ -738,6 +897,21 @@ export type InventoryMutationProductUpdateStatusArgs = {
 };
 
 
+export type InventoryMutationTagCreateArgs = {
+  input: TagCreateInput;
+};
+
+
+export type InventoryMutationTagDeleteArgs = {
+  input: TagDeleteInput;
+};
+
+
+export type InventoryMutationTagUpdateArgs = {
+  input: TagUpdateInput;
+};
+
+
 export type InventoryMutationVariantCreateArgs = {
   input: VariantCreateInput;
 };
@@ -745,16 +919,6 @@ export type InventoryMutationVariantCreateArgs = {
 
 export type InventoryMutationVariantDeleteArgs = {
   input: VariantDeleteInput;
-};
-
-
-export type InventoryMutationVariantUpdateDimensionsArgs = {
-  input: VariantUpdateDimensionsInput;
-};
-
-
-export type InventoryMutationVariantUpdateInventoryArgs = {
-  input: VariantUpdateInventoryInput;
 };
 
 
@@ -772,31 +936,12 @@ export type InventoryMutationVariantUpdatePricingArgs = {
   input: VariantUpdatePricingInput;
 };
 
-
-export type InventoryMutationWarehouseCreateArgs = {
-  input: WarehouseCreateInput;
-};
-
-
-export type InventoryMutationWarehouseDeleteArgs = {
-  input: WarehouseDeleteInput;
-};
-
-
-export type InventoryMutationWarehouseUpdateArgs = {
-  input: WarehouseUpdateInput;
-};
-
-export type InventoryQuantities = {
-  __typename?: 'InventoryQuantities';
-  availableForSale: Scalars['Int']['output'];
-  onHand: Scalars['Int']['output'];
-  reserved: Scalars['Int']['output'];
-  unavailable: Scalars['Int']['output'];
-};
-
 export type InventoryQuery = {
   __typename?: 'InventoryQuery';
+  /** Get categories with Relay-style pagination */
+  categories: CategoryConnection;
+  /** Get a category by ID */
+  category: Maybe<Category>;
   /** Get a node by its global ID */
   node: Maybe<Node>;
   /** Get multiple nodes by their global IDs */
@@ -807,14 +952,27 @@ export type InventoryQuery = {
   productBulkUpdateJob: Maybe<ProductBulkUpdateJob>;
   /** Get products with Relay-style pagination */
   products: ProductConnection;
+  /** Get a tag by ID */
+  tag: Maybe<Tag>;
+  /** Get tags with Relay-style pagination */
+  tags: TagConnection;
   /** Get a variant by ID */
   variant: Maybe<Variant>;
   /** Get variants with Relay-style pagination */
   variants: VariantConnection;
-  /** Get a warehouse by ID */
-  warehouse: Maybe<Warehouse>;
-  /** Get all warehouses */
-  warehouses: WarehouseConnection;
+};
+
+
+export type InventoryQueryCategoriesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type InventoryQueryCategoryArgs = {
+  id: Scalars['ID']['input'];
 };
 
 
@@ -846,6 +1004,19 @@ export type InventoryQueryProductsArgs = {
 };
 
 
+export type InventoryQueryTagArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type InventoryQueryTagsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
 export type InventoryQueryVariantArgs = {
   id: Scalars['ID']['input'];
 };
@@ -856,29 +1027,6 @@ export type InventoryQueryVariantsArgs = {
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
-};
-
-
-export type InventoryQueryWarehouseArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type InventoryQueryWarehousesArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  orderBy?: InputMaybe<Array<WarehouseOrderByInput>>;
-  where?: InputMaybe<WarehouseWhereInput>;
-};
-
-export type InventorySkuStatus = {
-  __typename?: 'InventorySkuStatus';
-  backorder: SkuStatusMetric;
-  lowStock: SkuStatusMetric;
-  outOfStock: SkuStatusMetric;
-  total: Scalars['Int']['output'];
 };
 
 /** Language/Locale codes based on ISO 639-1 and BCP 47 */
@@ -1237,6 +1385,8 @@ export type PricingWidgetPayload = {
 /** A product represents an item that can be sold. */
 export type Product = Node & {
   __typename?: 'Product';
+  /** The categories this product belongs to. */
+  categories: Array<Category>;
   /** The date and time when the product was created. */
   createdAt: Scalars['DateTime']['output'];
   /** The date and time when the product was deleted (soft delete). */
@@ -1261,6 +1411,8 @@ export type Product = Node & {
   revision: Scalars['Int']['output'];
   /** SEO and Open Graph metadata. */
   seo: Maybe<ProductSeo>;
+  /** The tags associated with this product. */
+  tags: Array<Tag>;
   /** Product title. */
   title: Scalars['String']['output'];
   /** The date and time when the product was last updated. */
@@ -1607,15 +1759,6 @@ export type ProductFeaturesSyncPayload = {
   userErrors: Array<GenericUserError>;
 };
 
-export type ProductInventoryWidget = {
-  __typename?: 'ProductInventoryWidget';
-  alertThreshold: InventoryAlertThreshold;
-  availableChange7d: Scalars['Int']['output'];
-  backorder: InventoryBackorder;
-  quantities: InventoryQuantities;
-  skuStatus: InventorySkuStatus;
-};
-
 /** Input for product media. */
 export type ProductMediaInput = {
   /** File IDs for product media. */
@@ -1940,12 +2083,6 @@ export type SelectedOptionInput = {
   optionValueId: Scalars['ID']['input'];
 };
 
-export type SkuStatusMetric = {
-  __typename?: 'SkuStatusMetric';
-  averageDays: Maybe<Scalars['Float']['output']>;
-  count: Scalars['Int']['output'];
-};
-
 /** Sort direction */
 export enum SortDirection {
   Asc = 'asc',
@@ -1991,10 +2128,102 @@ export enum SwatchType {
   Image = 'IMAGE'
 }
 
-export enum ThresholdMethod {
-  ReorderPoint = 'REORDER_POINT',
-  SafetyStock = 'SAFETY_STOCK'
-}
+/** A tag represents a simple label for organizing and filtering products. */
+export type Tag = Node & {
+  __typename?: 'Tag';
+  /** The date and time when the tag was created. */
+  createdAt: Scalars['DateTime']['output'];
+  /** The URL-friendly handle for the tag. */
+  handle: Scalars['String']['output'];
+  /** The globally unique ID of the tag. */
+  id: Scalars['ID']['output'];
+  /** The display name of the tag. */
+  name: Scalars['String']['output'];
+  /** Products with this tag, with pagination. */
+  products: ProductConnection;
+  /** The total number of products with this tag. */
+  productsCount: Scalars['Int']['output'];
+};
+
+
+/** A tag represents a simple label for organizing and filtering products. */
+export type TagProductsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+/** A connection to a list of Tag items. */
+export type TagConnection = {
+  __typename?: 'TagConnection';
+  /** A list of edges. */
+  edges: Array<TagEdge>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+  /** The total number of tags. */
+  totalCount: Scalars['Int']['output'];
+};
+
+/** Input for creating a tag. */
+export type TagCreateInput = {
+  /** The URL-friendly handle for the tag. */
+  handle: Scalars['String']['input'];
+  /** The display name of the tag (optional, defaults to handle). */
+  name?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Payload for tag creation. */
+export type TagCreatePayload = {
+  __typename?: 'TagCreatePayload';
+  /** The created tag. */
+  tag: Maybe<Tag>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<GenericUserError>;
+};
+
+/** Input for deleting a tag. */
+export type TagDeleteInput = {
+  /** The ID of the tag to delete. */
+  id: Scalars['ID']['input'];
+};
+
+/** Payload for tag deletion. */
+export type TagDeletePayload = {
+  __typename?: 'TagDeletePayload';
+  /** The ID of the deleted tag. */
+  deletedTagId: Maybe<Scalars['ID']['output']>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<GenericUserError>;
+};
+
+/** An edge in a Tag connection. */
+export type TagEdge = {
+  __typename?: 'TagEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String']['output'];
+  /** The item at the end of the edge. */
+  node: Tag;
+};
+
+/** Input for updating a tag. */
+export type TagUpdateInput = {
+  /** The URL-friendly handle for the tag. */
+  handle?: InputMaybe<Scalars['String']['input']>;
+  /** The ID of the tag to update. */
+  id: Scalars['ID']['input'];
+  /** The display name of the tag. */
+  name?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Payload for tag update. */
+export type TagUpdatePayload = {
+  __typename?: 'TagUpdatePayload';
+  /** The updated tag. */
+  tag: Maybe<Tag>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<GenericUserError>;
+};
 
 /** A generic user error interface for mutation responses. */
 export type UserError = {
@@ -2006,19 +2235,17 @@ export type UserError = {
   message: Scalars['String']['output'];
 };
 
-/** A variant represents a specific version of a product, such as a size or color. */
+/**
+ * A variant represents a specific version of a product, such as a size or color.
+ * Catalog Service владеет этим типом.
+ * Inventory-поля (sku, dimensions, weight, cost, stock) добавляются через federation extend в Inventory Service.
+ */
 export type Variant = Node & {
   __typename?: 'Variant';
-  /** Current cost for this variant. */
-  cost: Maybe<VariantCost>;
-  /** Cost history for this variant. */
-  costHistory: VariantCostConnection;
   /** The date and time when the variant was created. */
   createdAt: Scalars['DateTime']['output'];
   /** The date and time when the variant was deleted (soft delete). */
   deletedAt: Maybe<Scalars['DateTime']['output']>;
-  /** Physical dimensions of this variant. */
-  dimensions: Maybe<VariantDimensions>;
   /** The external ID in the external system. */
   externalId: Maybe<Scalars['String']['output']>;
   /** The external system identifier for integration purposes. */
@@ -2027,8 +2254,6 @@ export type Variant = Node & {
   handle: Scalars['String']['output'];
   /** The globally unique ID of the variant. */
   id: Scalars['ID']['output'];
-  /** Whether the variant is in stock (has quantity > 0 in any warehouse). */
-  inStock: Scalars['Boolean']['output'];
   /** Whether this is the default variant for the product. */
   isDefault: Scalars['Boolean']['output'];
   /** Media attached to this variant (images, videos). */
@@ -2041,29 +2266,18 @@ export type Variant = Node & {
   product: Product;
   /** The selected option values for this variant. */
   selectedOptions: Array<SelectedOption>;
-  /** The SKU (Stock Keeping Unit) of the variant. */
-  sku: Maybe<Scalars['String']['output']>;
-  /** Stock levels for this variant across warehouses. */
-  stock: Array<WarehouseStock>;
   /** Variant title. */
   title: Maybe<Scalars['String']['output']>;
   /** The date and time when the variant was last updated. */
   updatedAt: Scalars['DateTime']['output'];
-  /** Physical weight of this variant. */
-  weight: Maybe<VariantWeight>;
 };
 
 
-/** A variant represents a specific version of a product, such as a size or color. */
-export type VariantCostHistoryArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-};
-
-
-/** A variant represents a specific version of a product, such as a size or color. */
+/**
+ * A variant represents a specific version of a product, such as a size or color.
+ * Catalog Service владеет этим типом.
+ * Inventory-поля (sku, dimensions, weight, cost, stock) добавляются через federation extend в Inventory Service.
+ */
 export type VariantPriceHistoryArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   before?: InputMaybe<Scalars['String']['input']>;
@@ -2157,17 +2371,6 @@ export type VariantDeletePayload = {
   userErrors: Array<GenericUserError>;
 };
 
-/** Physical dimensions of a variant (stored in millimeters). */
-export type VariantDimensions = {
-  __typename?: 'VariantDimensions';
-  /** Height in millimeters. */
-  height: Scalars['Int']['output'];
-  /** Length in millimeters. */
-  length: Scalars['Int']['output'];
-  /** Width in millimeters. */
-  width: Scalars['Int']['output'];
-};
-
 /** Input for variant dimensions in the unified update. */
 export type VariantDimensionsOpInput = {
   /** Height in millimeters. */
@@ -2189,20 +2392,14 @@ export type VariantEdge = {
 
 /** Input for creating a variant. */
 export type VariantInput = {
-  /** Physical dimensions. */
-  dimensions?: InputMaybe<DimensionsInput>;
   /** External ID in the external system. */
   externalId?: InputMaybe<Scalars['String']['input']>;
   /** External system identifier. */
   externalSystem?: InputMaybe<Scalars['String']['input']>;
   /** Selected option values for the variant (required). */
   options: Array<SelectedOptionInput>;
-  /** The SKU for the variant. */
-  sku?: InputMaybe<Scalars['String']['input']>;
   /** Variant title. */
   title?: InputMaybe<Scalars['String']['input']>;
-  /** Physical weight. */
-  weight?: InputMaybe<WeightInput>;
 };
 
 /** Input for variant inventory in the unified update. */
@@ -2316,27 +2513,6 @@ export type VariantPricingOpInput = {
   currency: CurrencyCode;
 };
 
-/** Input for updating variant dimensions. */
-export type VariantUpdateDimensionsInput = {
-  /** Height in millimeters. */
-  height: Scalars['Int']['input'];
-  /** Length in millimeters. */
-  length: Scalars['Int']['input'];
-  /** The ID of the variant. */
-  variantId: Scalars['ID']['input'];
-  /** Width in millimeters. */
-  width: Scalars['Int']['input'];
-};
-
-/** Payload for variant dimensions update. */
-export type VariantUpdateDimensionsPayload = {
-  __typename?: 'VariantUpdateDimensionsPayload';
-  /** List of errors that occurred during the mutation. */
-  userErrors: Array<GenericUserError>;
-  /** The updated variant. */
-  variant: Maybe<Variant>;
-};
-
 /** Input for a single variant update. */
 export type VariantUpdateInput = {
   /** Variant dimensions. */
@@ -2351,37 +2527,6 @@ export type VariantUpdateInput = {
   pricing?: InputMaybe<VariantPricingOpInput>;
   /** The variant ID. */
   variantId: Scalars['ID']['input'];
-};
-
-/** Input for updating variant inventory (stock, SKU, weight, and unit cost). */
-export type VariantUpdateInventoryInput = {
-  /** Currency code for unit cost. */
-  costCurrency?: InputMaybe<CurrencyCode>;
-  /** Quantity on hand. */
-  onHand: Scalars['Int']['input'];
-  /** SKU code. */
-  sku?: InputMaybe<Scalars['String']['input']>;
-  /** Unavailable quantity (reserved, damaged, etc.). */
-  unavailable?: InputMaybe<Scalars['Int']['input']>;
-  /** Unit cost in minor units (cents). Requires currency field. */
-  unitCostMinor?: InputMaybe<Scalars['BigInt']['input']>;
-  /** The ID of the variant. */
-  variantId: Scalars['ID']['input'];
-  /** The warehouse ID. */
-  warehouseId: Scalars['ID']['input'];
-  /** Weight in grams. */
-  weight?: InputMaybe<Scalars['Int']['input']>;
-};
-
-/** Payload for variant inventory update. */
-export type VariantUpdateInventoryPayload = {
-  __typename?: 'VariantUpdateInventoryPayload';
-  /** The updated stock record. */
-  stock: Maybe<WarehouseStock>;
-  /** List of errors that occurred during the mutation. */
-  userErrors: Array<GenericUserError>;
-  /** The updated variant. */
-  variant: Maybe<Variant>;
 };
 
 /** Input for updating variant media (replaces all existing media). */
@@ -2439,56 +2584,6 @@ export type VariantUpdatePricingPayload = {
   variant: Maybe<Variant>;
 };
 
-/** Physical weight of a variant (stored in grams). */
-export type VariantWeight = {
-  __typename?: 'VariantWeight';
-  /** Weight in grams. */
-  value: Scalars['Int']['output'];
-};
-
-/** A warehouse represents a physical location where inventory is stored. */
-export type Warehouse = Node & {
-  __typename?: 'Warehouse';
-  /** The unique code identifying this warehouse. */
-  code: Scalars['String']['output'];
-  /** The date and time when the warehouse was created. */
-  createdAt: Scalars['DateTime']['output'];
-  /** The globally unique ID of the warehouse. */
-  id: Scalars['ID']['output'];
-  /** Whether this is the default warehouse for the project. */
-  isDefault: Scalars['Boolean']['output'];
-  /** The display name of the warehouse. */
-  name: Scalars['String']['output'];
-  /** Stock levels for all variants in this warehouse. */
-  stock: WarehouseStockConnection;
-  /** The date and time when the warehouse was last updated. */
-  updatedAt: Scalars['DateTime']['output'];
-  /** Total number of variants stocked in this warehouse. */
-  variantsCount: Scalars['Int']['output'];
-};
-
-
-/** A warehouse represents a physical location where inventory is stored. */
-export type WarehouseStockArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  orderBy?: InputMaybe<Array<WarehouseStockOrderByInput>>;
-  where?: InputMaybe<WarehouseStockWhereInput>;
-};
-
-/** A connection to a list of Warehouse items. */
-export type WarehouseConnection = {
-  __typename?: 'WarehouseConnection';
-  /** A list of edges. */
-  edges: Array<WarehouseEdge>;
-  /** Information to aid in pagination. */
-  pageInfo: PageInfo;
-  /** The total number of warehouses. */
-  totalCount: Scalars['Int']['output'];
-};
-
 /** Relay-style pagination input for Warehouse */
 export type WarehouseConnectionInput = {
   /** Returns items after this cursor */
@@ -2503,49 +2598,6 @@ export type WarehouseConnectionInput = {
   orderBy?: InputMaybe<Array<WarehouseOrderByInput>>;
   /** Filter conditions */
   where?: InputMaybe<WarehouseWhereInput>;
-};
-
-/** Input for creating a warehouse. */
-export type WarehouseCreateInput = {
-  /** The unique code for the warehouse. */
-  code: Scalars['String']['input'];
-  /** Whether this should be the default warehouse. */
-  isDefault?: InputMaybe<Scalars['Boolean']['input']>;
-  /** The display name for the warehouse. */
-  name: Scalars['String']['input'];
-};
-
-/** Payload for warehouse creation. */
-export type WarehouseCreatePayload = {
-  __typename?: 'WarehouseCreatePayload';
-  /** List of errors that occurred during the mutation. */
-  userErrors: Array<GenericUserError>;
-  /** The created warehouse. */
-  warehouse: Maybe<Warehouse>;
-};
-
-/** Input for deleting a warehouse. */
-export type WarehouseDeleteInput = {
-  /** The ID of the warehouse to delete. */
-  id: Scalars['ID']['input'];
-};
-
-/** Payload for warehouse deletion. */
-export type WarehouseDeletePayload = {
-  __typename?: 'WarehouseDeletePayload';
-  /** The ID of the deleted warehouse. */
-  deletedWarehouseId: Maybe<Scalars['ID']['output']>;
-  /** List of errors that occurred during the mutation. */
-  userErrors: Array<GenericUserError>;
-};
-
-/** An edge in a Warehouse connection. */
-export type WarehouseEdge = {
-  __typename?: 'WarehouseEdge';
-  /** A cursor for use in pagination. */
-  cursor: Scalars['String']['output'];
-  /** The item at the end of the edge. */
-  node: Warehouse;
 };
 
 /** Ordering configuration for Warehouse */
@@ -2572,34 +2624,6 @@ export enum WarehouseOrderField {
   UpdatedAt = 'updatedAt'
 }
 
-/** Represents stock level for a variant in a specific warehouse. */
-export type WarehouseStock = Node & {
-  __typename?: 'WarehouseStock';
-  /** The date and time when the stock was created. */
-  createdAt: Scalars['DateTime']['output'];
-  /** The globally unique ID of the stock record. */
-  id: Scalars['ID']['output'];
-  /** The quantity currently on hand. */
-  quantityOnHand: Scalars['Int']['output'];
-  /** The date and time when the stock was last updated. */
-  updatedAt: Scalars['DateTime']['output'];
-  /** The variant this stock record is for. */
-  variant: Variant;
-  /** The warehouse where this stock is located. */
-  warehouse: Warehouse;
-};
-
-/** A connection to a list of WarehouseStock items. */
-export type WarehouseStockConnection = {
-  __typename?: 'WarehouseStockConnection';
-  /** A list of edges. */
-  edges: Array<WarehouseStockEdge>;
-  /** Information to aid in pagination. */
-  pageInfo: PageInfo;
-  /** The total number of stock records. */
-  totalCount: Scalars['Int']['output'];
-};
-
 /** Relay-style pagination input for WarehouseStock */
 export type WarehouseStockConnectionInput = {
   /** Returns items after this cursor */
@@ -2614,15 +2638,6 @@ export type WarehouseStockConnectionInput = {
   orderBy?: InputMaybe<Array<WarehouseStockOrderByInput>>;
   /** Filter conditions */
   where?: InputMaybe<WarehouseStockWhereInput>;
-};
-
-/** An edge in a WarehouseStock connection. */
-export type WarehouseStockEdge = {
-  __typename?: 'WarehouseStockEdge';
-  /** A cursor for use in pagination. */
-  cursor: Scalars['String']['output'];
-  /** The item at the end of the edge. */
-  node: WarehouseStock;
 };
 
 /** Ordering configuration for WarehouseStock */
@@ -2671,27 +2686,6 @@ export type WarehouseStockWhereInput = {
   warehouseId?: InputMaybe<IdFilter>;
 };
 
-/** Input for updating a warehouse. */
-export type WarehouseUpdateInput = {
-  /** The new code for the warehouse. */
-  code?: InputMaybe<Scalars['String']['input']>;
-  /** The ID of the warehouse to update. */
-  id: Scalars['ID']['input'];
-  /** Whether this should be the default warehouse. */
-  isDefault?: InputMaybe<Scalars['Boolean']['input']>;
-  /** The new name for the warehouse. */
-  name?: InputMaybe<Scalars['String']['input']>;
-};
-
-/** Payload for warehouse update. */
-export type WarehouseUpdatePayload = {
-  __typename?: 'WarehouseUpdatePayload';
-  /** List of errors that occurred during the mutation. */
-  userErrors: Array<GenericUserError>;
-  /** The updated warehouse. */
-  warehouse: Maybe<Warehouse>;
-};
-
 /** Filter conditions for Warehouse */
 export type WarehouseWhereInput = {
   /** Logical AND of multiple conditions */
@@ -2714,12 +2708,6 @@ export type WarehouseWhereInput = {
   updatedAt?: InputMaybe<DateTimeFilter>;
 };
 
-/** Input for setting weight (in grams). */
-export type WeightInput = {
-  /** Weight in grams. */
-  value: Scalars['Int']['input'];
-};
-
 /** Weight measurement units */
 export enum WeightUnit {
   /** Gram */
@@ -2735,15 +2723,8 @@ export enum WeightUnit {
 /** Widget query namespace for dashboard widgets. */
 export type WidgetQuery = {
   __typename?: 'WidgetQuery';
-  inventory: Maybe<ProductInventoryWidget>;
   /** Get pricing widget data for a variant. */
   pricing: PricingWidgetPayload;
-};
-
-
-/** Widget query namespace for dashboard widgets. */
-export type WidgetQueryInventoryArgs = {
-  productId: Scalars['ID']['input'];
 };
 
 
@@ -2834,7 +2815,7 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
-  Node: ( Product ) | ( ProductFeature ) | ( ProductFeatureValue ) | ( ProductOption ) | ( ProductOptionSwatch ) | ( ProductOptionValue ) | ( Variant ) | ( VariantCost ) | ( VariantPrice ) | ( Warehouse ) | ( WarehouseStock );
+  Node: ( Category ) | ( Product ) | ( ProductFeature ) | ( ProductFeatureValue ) | ( ProductOption ) | ( ProductOptionSwatch ) | ( ProductOptionValue ) | ( Tag ) | ( Variant ) | ( VariantCost ) | ( VariantPrice );
   UserError: ( BulkUpdateUserError ) | ( GenericUserError );
 }>;
 
@@ -2855,13 +2836,24 @@ export type ResolversTypes = ResolversObject<{
   BulkUpdateJobStatus: BulkUpdateJobStatus;
   BulkUpdateOpType: BulkUpdateOpType;
   BulkUpdateUserError: ResolverTypeWrapper<BulkUpdateUserError>;
+  Category: ResolverTypeWrapper<Category>;
+  CategoryConnection: ResolverTypeWrapper<CategoryConnection>;
+  CategoryCreateInput: CategoryCreateInput;
+  CategoryCreatePayload: ResolverTypeWrapper<CategoryCreatePayload>;
+  CategoryDeleteInput: CategoryDeleteInput;
+  CategoryDeletePayload: ResolverTypeWrapper<CategoryDeletePayload>;
+  CategoryEdge: ResolverTypeWrapper<CategoryEdge>;
+  CategoryMediaItem: ResolverTypeWrapper<CategoryMediaItem>;
+  CategoryMoveInput: CategoryMoveInput;
+  CategoryMovePayload: ResolverTypeWrapper<CategoryMovePayload>;
+  CategoryUpdateInput: CategoryUpdateInput;
+  CategoryUpdatePayload: ResolverTypeWrapper<CategoryUpdatePayload>;
   CurrencyCode: CurrencyCode;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
   DateTimeFilter: DateTimeFilter;
   Description: ResolverTypeWrapper<Description>;
   DescriptionInput: DescriptionInput;
   DimensionUnit: DimensionUnit;
-  DimensionsInput: DimensionsInput;
   Email: ResolverTypeWrapper<Scalars['Email']['output']>;
   File: ResolverTypeWrapper<File>;
   FloatFilter: FloatFilter;
@@ -2869,12 +2861,8 @@ export type ResolversTypes = ResolversObject<{
   GenericUserError: ResolverTypeWrapper<GenericUserError>;
   IDFilter: IdFilter;
   IntFilter: IntFilter;
-  InventoryAlertThreshold: ResolverTypeWrapper<InventoryAlertThreshold>;
-  InventoryBackorder: ResolverTypeWrapper<InventoryBackorder>;
   InventoryMutation: ResolverTypeWrapper<InventoryMutation>;
-  InventoryQuantities: ResolverTypeWrapper<InventoryQuantities>;
   InventoryQuery: ResolverTypeWrapper<Omit<InventoryQuery, 'node' | 'nodes'> & { node?: Maybe<ResolversTypes['Node']>, nodes: Array<Maybe<ResolversTypes['Node']>> }>;
-  InventorySkuStatus: ResolverTypeWrapper<InventorySkuStatus>;
   JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
   LocaleCode: LocaleCode;
   Mutation: ResolverTypeWrapper<{}>;
@@ -2916,7 +2904,6 @@ export type ResolversTypes = ResolversObject<{
   ProductFeatureValuesInput: ProductFeatureValuesInput;
   ProductFeaturesSyncInput: ProductFeaturesSyncInput;
   ProductFeaturesSyncPayload: ResolverTypeWrapper<ProductFeaturesSyncPayload>;
-  ProductInventoryWidget: ResolverTypeWrapper<ProductInventoryWidget>;
   ProductMediaInput: ProductMediaInput;
   ProductOption: ResolverTypeWrapper<ProductOption>;
   ProductOptionCreateInput: ProductOptionCreateInput;
@@ -2946,11 +2933,18 @@ export type ResolversTypes = ResolversObject<{
   Query: ResolverTypeWrapper<{}>;
   SelectedOption: ResolverTypeWrapper<SelectedOption>;
   SelectedOptionInput: SelectedOptionInput;
-  SkuStatusMetric: ResolverTypeWrapper<SkuStatusMetric>;
   SortDirection: SortDirection;
   StringFilter: StringFilter;
   SwatchType: SwatchType;
-  ThresholdMethod: ThresholdMethod;
+  Tag: ResolverTypeWrapper<Tag>;
+  TagConnection: ResolverTypeWrapper<TagConnection>;
+  TagCreateInput: TagCreateInput;
+  TagCreatePayload: ResolverTypeWrapper<TagCreatePayload>;
+  TagDeleteInput: TagDeleteInput;
+  TagDeletePayload: ResolverTypeWrapper<TagDeletePayload>;
+  TagEdge: ResolverTypeWrapper<TagEdge>;
+  TagUpdateInput: TagUpdateInput;
+  TagUpdatePayload: ResolverTypeWrapper<TagUpdatePayload>;
   UserError: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['UserError']>;
   Variant: ResolverTypeWrapper<Variant>;
   VariantConnection: ResolverTypeWrapper<VariantConnection>;
@@ -2961,7 +2955,6 @@ export type ResolversTypes = ResolversObject<{
   VariantCreatePayload: ResolverTypeWrapper<VariantCreatePayload>;
   VariantDeleteInput: VariantDeleteInput;
   VariantDeletePayload: ResolverTypeWrapper<VariantDeletePayload>;
-  VariantDimensions: ResolverTypeWrapper<VariantDimensions>;
   VariantDimensionsOpInput: VariantDimensionsOpInput;
   VariantEdge: ResolverTypeWrapper<VariantEdge>;
   VariantInput: VariantInput;
@@ -2975,39 +2968,21 @@ export type ResolversTypes = ResolversObject<{
   VariantPriceEdge: ResolverTypeWrapper<VariantPriceEdge>;
   VariantPriceHistoryStatistics: ResolverTypeWrapper<VariantPriceHistoryStatistics>;
   VariantPricingOpInput: VariantPricingOpInput;
-  VariantUpdateDimensionsInput: VariantUpdateDimensionsInput;
-  VariantUpdateDimensionsPayload: ResolverTypeWrapper<VariantUpdateDimensionsPayload>;
   VariantUpdateInput: VariantUpdateInput;
-  VariantUpdateInventoryInput: VariantUpdateInventoryInput;
-  VariantUpdateInventoryPayload: ResolverTypeWrapper<VariantUpdateInventoryPayload>;
   VariantUpdateMediaInput: VariantUpdateMediaInput;
   VariantUpdateMediaPayload: ResolverTypeWrapper<VariantUpdateMediaPayload>;
   VariantUpdateOptionsInput: VariantUpdateOptionsInput;
   VariantUpdateOptionsPayload: ResolverTypeWrapper<VariantUpdateOptionsPayload>;
   VariantUpdatePricingInput: VariantUpdatePricingInput;
   VariantUpdatePricingPayload: ResolverTypeWrapper<VariantUpdatePricingPayload>;
-  VariantWeight: ResolverTypeWrapper<VariantWeight>;
-  Warehouse: ResolverTypeWrapper<Warehouse>;
-  WarehouseConnection: ResolverTypeWrapper<WarehouseConnection>;
   WarehouseConnectionInput: WarehouseConnectionInput;
-  WarehouseCreateInput: WarehouseCreateInput;
-  WarehouseCreatePayload: ResolverTypeWrapper<WarehouseCreatePayload>;
-  WarehouseDeleteInput: WarehouseDeleteInput;
-  WarehouseDeletePayload: ResolverTypeWrapper<WarehouseDeletePayload>;
-  WarehouseEdge: ResolverTypeWrapper<WarehouseEdge>;
   WarehouseOrderByInput: WarehouseOrderByInput;
   WarehouseOrderField: WarehouseOrderField;
-  WarehouseStock: ResolverTypeWrapper<WarehouseStock>;
-  WarehouseStockConnection: ResolverTypeWrapper<WarehouseStockConnection>;
   WarehouseStockConnectionInput: WarehouseStockConnectionInput;
-  WarehouseStockEdge: ResolverTypeWrapper<WarehouseStockEdge>;
   WarehouseStockOrderByInput: WarehouseStockOrderByInput;
   WarehouseStockOrderField: WarehouseStockOrderField;
   WarehouseStockWhereInput: WarehouseStockWhereInput;
-  WarehouseUpdateInput: WarehouseUpdateInput;
-  WarehouseUpdatePayload: ResolverTypeWrapper<WarehouseUpdatePayload>;
   WarehouseWhereInput: WarehouseWhereInput;
-  WeightInput: WeightInput;
   WeightUnit: WeightUnit;
   WidgetQuery: ResolverTypeWrapper<WidgetQuery>;
 }>;
@@ -3025,11 +3000,22 @@ export type ResolversParentTypes = ResolversObject<{
   String: Scalars['String']['output'];
   BulkUpdateJobProgress: BulkUpdateJobProgress;
   BulkUpdateUserError: BulkUpdateUserError;
+  Category: Category;
+  CategoryConnection: CategoryConnection;
+  CategoryCreateInput: CategoryCreateInput;
+  CategoryCreatePayload: CategoryCreatePayload;
+  CategoryDeleteInput: CategoryDeleteInput;
+  CategoryDeletePayload: CategoryDeletePayload;
+  CategoryEdge: CategoryEdge;
+  CategoryMediaItem: CategoryMediaItem;
+  CategoryMoveInput: CategoryMoveInput;
+  CategoryMovePayload: CategoryMovePayload;
+  CategoryUpdateInput: CategoryUpdateInput;
+  CategoryUpdatePayload: CategoryUpdatePayload;
   DateTime: Scalars['DateTime']['output'];
   DateTimeFilter: DateTimeFilter;
   Description: Description;
   DescriptionInput: DescriptionInput;
-  DimensionsInput: DimensionsInput;
   Email: Scalars['Email']['output'];
   File: File;
   FloatFilter: FloatFilter;
@@ -3037,12 +3023,8 @@ export type ResolversParentTypes = ResolversObject<{
   GenericUserError: GenericUserError;
   IDFilter: IdFilter;
   IntFilter: IntFilter;
-  InventoryAlertThreshold: InventoryAlertThreshold;
-  InventoryBackorder: InventoryBackorder;
   InventoryMutation: InventoryMutation;
-  InventoryQuantities: InventoryQuantities;
   InventoryQuery: Omit<InventoryQuery, 'node' | 'nodes'> & { node?: Maybe<ResolversParentTypes['Node']>, nodes: Array<Maybe<ResolversParentTypes['Node']>> };
-  InventorySkuStatus: InventorySkuStatus;
   JSON: Scalars['JSON']['output'];
   Mutation: {};
   Node: ResolversInterfaceTypes<ResolversParentTypes>['Node'];
@@ -3081,7 +3063,6 @@ export type ResolversParentTypes = ResolversObject<{
   ProductFeatureValuesInput: ProductFeatureValuesInput;
   ProductFeaturesSyncInput: ProductFeaturesSyncInput;
   ProductFeaturesSyncPayload: ProductFeaturesSyncPayload;
-  ProductInventoryWidget: ProductInventoryWidget;
   ProductMediaInput: ProductMediaInput;
   ProductOption: ProductOption;
   ProductOptionCreateInput: ProductOptionCreateInput;
@@ -3109,8 +3090,16 @@ export type ResolversParentTypes = ResolversObject<{
   Query: {};
   SelectedOption: SelectedOption;
   SelectedOptionInput: SelectedOptionInput;
-  SkuStatusMetric: SkuStatusMetric;
   StringFilter: StringFilter;
+  Tag: Tag;
+  TagConnection: TagConnection;
+  TagCreateInput: TagCreateInput;
+  TagCreatePayload: TagCreatePayload;
+  TagDeleteInput: TagDeleteInput;
+  TagDeletePayload: TagDeletePayload;
+  TagEdge: TagEdge;
+  TagUpdateInput: TagUpdateInput;
+  TagUpdatePayload: TagUpdatePayload;
   UserError: ResolversInterfaceTypes<ResolversParentTypes>['UserError'];
   Variant: Variant;
   VariantConnection: VariantConnection;
@@ -3121,7 +3110,6 @@ export type ResolversParentTypes = ResolversObject<{
   VariantCreatePayload: VariantCreatePayload;
   VariantDeleteInput: VariantDeleteInput;
   VariantDeletePayload: VariantDeletePayload;
-  VariantDimensions: VariantDimensions;
   VariantDimensionsOpInput: VariantDimensionsOpInput;
   VariantEdge: VariantEdge;
   VariantInput: VariantInput;
@@ -3135,37 +3123,19 @@ export type ResolversParentTypes = ResolversObject<{
   VariantPriceEdge: VariantPriceEdge;
   VariantPriceHistoryStatistics: VariantPriceHistoryStatistics;
   VariantPricingOpInput: VariantPricingOpInput;
-  VariantUpdateDimensionsInput: VariantUpdateDimensionsInput;
-  VariantUpdateDimensionsPayload: VariantUpdateDimensionsPayload;
   VariantUpdateInput: VariantUpdateInput;
-  VariantUpdateInventoryInput: VariantUpdateInventoryInput;
-  VariantUpdateInventoryPayload: VariantUpdateInventoryPayload;
   VariantUpdateMediaInput: VariantUpdateMediaInput;
   VariantUpdateMediaPayload: VariantUpdateMediaPayload;
   VariantUpdateOptionsInput: VariantUpdateOptionsInput;
   VariantUpdateOptionsPayload: VariantUpdateOptionsPayload;
   VariantUpdatePricingInput: VariantUpdatePricingInput;
   VariantUpdatePricingPayload: VariantUpdatePricingPayload;
-  VariantWeight: VariantWeight;
-  Warehouse: Warehouse;
-  WarehouseConnection: WarehouseConnection;
   WarehouseConnectionInput: WarehouseConnectionInput;
-  WarehouseCreateInput: WarehouseCreateInput;
-  WarehouseCreatePayload: WarehouseCreatePayload;
-  WarehouseDeleteInput: WarehouseDeleteInput;
-  WarehouseDeletePayload: WarehouseDeletePayload;
-  WarehouseEdge: WarehouseEdge;
   WarehouseOrderByInput: WarehouseOrderByInput;
-  WarehouseStock: WarehouseStock;
-  WarehouseStockConnection: WarehouseStockConnection;
   WarehouseStockConnectionInput: WarehouseStockConnectionInput;
-  WarehouseStockEdge: WarehouseStockEdge;
   WarehouseStockOrderByInput: WarehouseStockOrderByInput;
   WarehouseStockWhereInput: WarehouseStockWhereInput;
-  WarehouseUpdateInput: WarehouseUpdateInput;
-  WarehouseUpdatePayload: WarehouseUpdatePayload;
   WarehouseWhereInput: WarehouseWhereInput;
-  WeightInput: WeightInput;
   WidgetQuery: WidgetQuery;
 }>;
 
@@ -3223,6 +3193,71 @@ export type BulkUpdateUserErrorResolvers<ContextType = ServiceContext, ParentTyp
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type CategoryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Category'] = ResolversParentTypes['Category']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Category']>, { __typename: 'Category' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  ancestors?: Resolver<Array<ResolversTypes['Category']>, ParentType, ContextType>;
+  children?: Resolver<Array<ResolversTypes['Category']>, ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  deletedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  depth?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  description?: Resolver<Maybe<ResolversTypes['Description']>, ParentType, ContextType>;
+  handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  isPublished?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  media?: Resolver<Array<ResolversTypes['CategoryMediaItem']>, ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  parent?: Resolver<Maybe<ResolversTypes['Category']>, ParentType, ContextType>;
+  path?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  products?: Resolver<ResolversTypes['ProductConnection'], ParentType, ContextType, Partial<CategoryProductsArgs>>;
+  productsCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  publishedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CategoryConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CategoryConnection'] = ResolversParentTypes['CategoryConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['CategoryEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CategoryCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CategoryCreatePayload'] = ResolversParentTypes['CategoryCreatePayload']> = ResolversObject<{
+  category?: Resolver<Maybe<ResolversTypes['Category']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CategoryDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CategoryDeletePayload'] = ResolversParentTypes['CategoryDeletePayload']> = ResolversObject<{
+  deletedCategoryId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CategoryEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CategoryEdge'] = ResolversParentTypes['CategoryEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['Category'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CategoryMediaItemResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CategoryMediaItem'] = ResolversParentTypes['CategoryMediaItem']> = ResolversObject<{
+  file?: Resolver<ResolversTypes['File'], ParentType, ContextType>;
+  sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CategoryMovePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CategoryMovePayload'] = ResolversParentTypes['CategoryMovePayload']> = ResolversObject<{
+  category?: Resolver<Maybe<ResolversTypes['Category']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CategoryUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CategoryUpdatePayload'] = ResolversParentTypes['CategoryUpdatePayload']> = ResolversObject<{
+  category?: Resolver<Maybe<ResolversTypes['Category']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export interface DateTimeScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['DateTime'], any> {
   name: 'DateTime';
 }
@@ -3251,19 +3286,11 @@ export type GenericUserErrorResolvers<ContextType = ServiceContext, ParentType e
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type InventoryAlertThresholdResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['InventoryAlertThreshold'] = ResolversParentTypes['InventoryAlertThreshold']> = ResolversObject<{
-  method?: Resolver<ResolversTypes['ThresholdMethod'], ParentType, ContextType>;
-  minimumStock?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type InventoryBackorderResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['InventoryBackorder'] = ResolversParentTypes['InventoryBackorder']> = ResolversObject<{
-  etaAvgDays?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
-  quantity?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
 export type InventoryMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['InventoryMutation'] = ResolversParentTypes['InventoryMutation']> = ResolversObject<{
+  categoryCreate?: Resolver<ResolversTypes['CategoryCreatePayload'], ParentType, ContextType, RequireFields<InventoryMutationCategoryCreateArgs, 'input'>>;
+  categoryDelete?: Resolver<ResolversTypes['CategoryDeletePayload'], ParentType, ContextType, RequireFields<InventoryMutationCategoryDeleteArgs, 'input'>>;
+  categoryMove?: Resolver<ResolversTypes['CategoryMovePayload'], ParentType, ContextType, RequireFields<InventoryMutationCategoryMoveArgs, 'input'>>;
+  categoryUpdate?: Resolver<ResolversTypes['CategoryUpdatePayload'], ParentType, ContextType, RequireFields<InventoryMutationCategoryUpdateArgs, 'input'>>;
   productBulkUpdate?: Resolver<ResolversTypes['ProductBulkUpdatePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductBulkUpdateArgs, 'input'>>;
   productCreate?: Resolver<ResolversTypes['ProductCreatePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductCreateArgs, 'input'>>;
   productDelete?: Resolver<ResolversTypes['ProductDeletePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductDeleteArgs, 'input'>>;
@@ -3277,45 +3304,29 @@ export type InventoryMutationResolvers<ContextType = ServiceContext, ParentType 
   productOptionsSync?: Resolver<ResolversTypes['ProductOptionsSyncPayload'], ParentType, ContextType, RequireFields<InventoryMutationProductOptionsSyncArgs, 'input'>>;
   productUpdate?: Resolver<ResolversTypes['ProductUpdatePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductUpdateArgs, 'productId'>>;
   productUpdateStatus?: Resolver<ResolversTypes['ProductUpdateStatusPayload'], ParentType, ContextType, RequireFields<InventoryMutationProductUpdateStatusArgs, 'input'>>;
+  tagCreate?: Resolver<ResolversTypes['TagCreatePayload'], ParentType, ContextType, RequireFields<InventoryMutationTagCreateArgs, 'input'>>;
+  tagDelete?: Resolver<ResolversTypes['TagDeletePayload'], ParentType, ContextType, RequireFields<InventoryMutationTagDeleteArgs, 'input'>>;
+  tagUpdate?: Resolver<ResolversTypes['TagUpdatePayload'], ParentType, ContextType, RequireFields<InventoryMutationTagUpdateArgs, 'input'>>;
   variantCreate?: Resolver<ResolversTypes['VariantCreatePayload'], ParentType, ContextType, RequireFields<InventoryMutationVariantCreateArgs, 'input'>>;
   variantDelete?: Resolver<ResolversTypes['VariantDeletePayload'], ParentType, ContextType, RequireFields<InventoryMutationVariantDeleteArgs, 'input'>>;
-  variantUpdateDimensions?: Resolver<ResolversTypes['VariantUpdateDimensionsPayload'], ParentType, ContextType, RequireFields<InventoryMutationVariantUpdateDimensionsArgs, 'input'>>;
-  variantUpdateInventory?: Resolver<ResolversTypes['VariantUpdateInventoryPayload'], ParentType, ContextType, RequireFields<InventoryMutationVariantUpdateInventoryArgs, 'input'>>;
   variantUpdateMedia?: Resolver<ResolversTypes['VariantUpdateMediaPayload'], ParentType, ContextType, RequireFields<InventoryMutationVariantUpdateMediaArgs, 'input'>>;
   variantUpdateOptions?: Resolver<ResolversTypes['VariantUpdateOptionsPayload'], ParentType, ContextType, RequireFields<InventoryMutationVariantUpdateOptionsArgs, 'input'>>;
   variantUpdatePricing?: Resolver<ResolversTypes['VariantUpdatePricingPayload'], ParentType, ContextType, RequireFields<InventoryMutationVariantUpdatePricingArgs, 'input'>>;
-  warehouseCreate?: Resolver<ResolversTypes['WarehouseCreatePayload'], ParentType, ContextType, RequireFields<InventoryMutationWarehouseCreateArgs, 'input'>>;
-  warehouseDelete?: Resolver<ResolversTypes['WarehouseDeletePayload'], ParentType, ContextType, RequireFields<InventoryMutationWarehouseDeleteArgs, 'input'>>;
-  warehouseUpdate?: Resolver<ResolversTypes['WarehouseUpdatePayload'], ParentType, ContextType, RequireFields<InventoryMutationWarehouseUpdateArgs, 'input'>>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type InventoryQuantitiesResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['InventoryQuantities'] = ResolversParentTypes['InventoryQuantities']> = ResolversObject<{
-  availableForSale?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  onHand?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  reserved?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  unavailable?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type InventoryQueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['InventoryQuery'] = ResolversParentTypes['InventoryQuery']> = ResolversObject<{
+  categories?: Resolver<ResolversTypes['CategoryConnection'], ParentType, ContextType, Partial<InventoryQueryCategoriesArgs>>;
+  category?: Resolver<Maybe<ResolversTypes['Category']>, ParentType, ContextType, RequireFields<InventoryQueryCategoryArgs, 'id'>>;
   node?: Resolver<Maybe<ResolversTypes['Node']>, ParentType, ContextType, RequireFields<InventoryQueryNodeArgs, 'id'>>;
   nodes?: Resolver<Array<Maybe<ResolversTypes['Node']>>, ParentType, ContextType, RequireFields<InventoryQueryNodesArgs, 'ids'>>;
   product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType, RequireFields<InventoryQueryProductArgs, 'id'>>;
   productBulkUpdateJob?: Resolver<Maybe<ResolversTypes['ProductBulkUpdateJob']>, ParentType, ContextType, RequireFields<InventoryQueryProductBulkUpdateJobArgs, 'jobId'>>;
   products?: Resolver<ResolversTypes['ProductConnection'], ParentType, ContextType, Partial<InventoryQueryProductsArgs>>;
+  tag?: Resolver<Maybe<ResolversTypes['Tag']>, ParentType, ContextType, RequireFields<InventoryQueryTagArgs, 'id'>>;
+  tags?: Resolver<ResolversTypes['TagConnection'], ParentType, ContextType, Partial<InventoryQueryTagsArgs>>;
   variant?: Resolver<Maybe<ResolversTypes['Variant']>, ParentType, ContextType, RequireFields<InventoryQueryVariantArgs, 'id'>>;
   variants?: Resolver<ResolversTypes['VariantConnection'], ParentType, ContextType, Partial<InventoryQueryVariantsArgs>>;
-  warehouse?: Resolver<Maybe<ResolversTypes['Warehouse']>, ParentType, ContextType, RequireFields<InventoryQueryWarehouseArgs, 'id'>>;
-  warehouses?: Resolver<ResolversTypes['WarehouseConnection'], ParentType, ContextType, Partial<InventoryQueryWarehousesArgs>>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type InventorySkuStatusResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['InventorySkuStatus'] = ResolversParentTypes['InventorySkuStatus']> = ResolversObject<{
-  backorder?: Resolver<ResolversTypes['SkuStatusMetric'], ParentType, ContextType>;
-  lowStock?: Resolver<ResolversTypes['SkuStatusMetric'], ParentType, ContextType>;
-  outOfStock?: Resolver<ResolversTypes['SkuStatusMetric'], ParentType, ContextType>;
-  total?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -3328,7 +3339,7 @@ export type MutationResolvers<ContextType = ServiceContext, ParentType extends R
 }>;
 
 export type NodeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Node'] = ResolversParentTypes['Node']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'Product' | 'ProductFeature' | 'ProductFeatureValue' | 'ProductOption' | 'ProductOptionSwatch' | 'ProductOptionValue' | 'Variant' | 'VariantCost' | 'VariantPrice' | 'Warehouse' | 'WarehouseStock', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'Category' | 'Product' | 'ProductFeature' | 'ProductFeatureValue' | 'ProductOption' | 'ProductOptionSwatch' | 'ProductOptionValue' | 'Tag' | 'Variant' | 'VariantCost' | 'VariantPrice', ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
 }>;
 
@@ -3357,6 +3368,7 @@ export type PricingWidgetPayloadResolvers<ContextType = ServiceContext, ParentTy
 
 export type ProductResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Product'] = ResolversParentTypes['Product']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Product']>, { __typename: 'Product' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  categories?: Resolver<Array<ResolversTypes['Category']>, ParentType, ContextType>;
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   deletedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['Description']>, ParentType, ContextType>;
@@ -3369,6 +3381,7 @@ export type ProductResolvers<ContextType = ServiceContext, ParentType extends Re
   publishedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   seo?: Resolver<Maybe<ResolversTypes['ProductSeo']>, ParentType, ContextType>;
+  tags?: Resolver<Array<ResolversTypes['Tag']>, ParentType, ContextType>;
   title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   variants?: Resolver<ResolversTypes['VariantConnection'], ParentType, ContextType, Partial<ProductVariantsArgs>>;
@@ -3467,15 +3480,6 @@ export type ProductFeaturesSyncPayloadResolvers<ContextType = ServiceContext, Pa
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type ProductInventoryWidgetResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductInventoryWidget'] = ResolversParentTypes['ProductInventoryWidget']> = ResolversObject<{
-  alertThreshold?: Resolver<ResolversTypes['InventoryAlertThreshold'], ParentType, ContextType>;
-  availableChange7d?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  backorder?: Resolver<ResolversTypes['InventoryBackorder'], ParentType, ContextType>;
-  quantities?: Resolver<ResolversTypes['InventoryQuantities'], ParentType, ContextType>;
-  skuStatus?: Resolver<ResolversTypes['InventorySkuStatus'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
 export type ProductOptionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductOption'] = ResolversParentTypes['ProductOption']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['ProductOption']>, { __typename: 'ProductOption' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   displayType?: Resolver<ResolversTypes['OptionDisplayType'], ParentType, ContextType>;
@@ -3567,9 +3571,45 @@ export type SelectedOptionResolvers<ContextType = ServiceContext, ParentType ext
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type SkuStatusMetricResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SkuStatusMetric'] = ResolversParentTypes['SkuStatusMetric']> = ResolversObject<{
-  averageDays?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
-  count?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+export type TagResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Tag'] = ResolversParentTypes['Tag']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Tag']>, { __typename: 'Tag' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  products?: Resolver<ResolversTypes['ProductConnection'], ParentType, ContextType, Partial<TagProductsArgs>>;
+  productsCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type TagConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['TagConnection'] = ResolversParentTypes['TagConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['TagEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type TagCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['TagCreatePayload'] = ResolversParentTypes['TagCreatePayload']> = ResolversObject<{
+  tag?: Resolver<Maybe<ResolversTypes['Tag']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type TagDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['TagDeletePayload'] = ResolversParentTypes['TagDeletePayload']> = ResolversObject<{
+  deletedTagId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type TagEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['TagEdge'] = ResolversParentTypes['TagEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['Tag'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type TagUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['TagUpdatePayload'] = ResolversParentTypes['TagUpdatePayload']> = ResolversObject<{
+  tag?: Resolver<Maybe<ResolversTypes['Tag']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -3582,27 +3622,20 @@ export type UserErrorResolvers<ContextType = ServiceContext, ParentType extends 
 
 export type VariantResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Variant'] = ResolversParentTypes['Variant']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Variant']>, { __typename: 'Variant' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
-  cost?: Resolver<Maybe<ResolversTypes['VariantCost']>, ParentType, ContextType>;
-  costHistory?: Resolver<ResolversTypes['VariantCostConnection'], ParentType, ContextType, Partial<VariantCostHistoryArgs>>;
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   deletedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
-  dimensions?: Resolver<Maybe<ResolversTypes['VariantDimensions']>, ParentType, ContextType>;
   externalId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   externalSystem?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  inStock?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   isDefault?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   media?: Resolver<Array<ResolversTypes['VariantMediaItem']>, ParentType, ContextType>;
   price?: Resolver<Maybe<ResolversTypes['VariantPrice']>, ParentType, ContextType>;
   priceHistory?: Resolver<ResolversTypes['VariantPriceConnection'], ParentType, ContextType, Partial<VariantPriceHistoryArgs>>;
   product?: Resolver<ResolversTypes['Product'], ParentType, ContextType>;
   selectedOptions?: Resolver<Array<ResolversTypes['SelectedOption']>, ParentType, ContextType>;
-  sku?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  stock?: Resolver<Array<ResolversTypes['WarehouseStock']>, ParentType, ContextType>;
   title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
-  weight?: Resolver<Maybe<ResolversTypes['VariantWeight']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -3647,13 +3680,6 @@ export type VariantDeletePayloadResolvers<ContextType = ServiceContext, ParentTy
   deletedVariantId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type VariantDimensionsResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantDimensions'] = ResolversParentTypes['VariantDimensions']> = ResolversObject<{
-  height?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  length?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  width?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -3702,19 +3728,6 @@ export type VariantPriceHistoryStatisticsResolvers<ContextType = ServiceContext,
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type VariantUpdateDimensionsPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantUpdateDimensionsPayload'] = ResolversParentTypes['VariantUpdateDimensionsPayload']> = ResolversObject<{
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  variant?: Resolver<Maybe<ResolversTypes['Variant']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type VariantUpdateInventoryPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantUpdateInventoryPayload'] = ResolversParentTypes['VariantUpdateInventoryPayload']> = ResolversObject<{
-  stock?: Resolver<Maybe<ResolversTypes['WarehouseStock']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  variant?: Resolver<Maybe<ResolversTypes['Variant']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
 export type VariantUpdateMediaPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantUpdateMediaPayload'] = ResolversParentTypes['VariantUpdateMediaPayload']> = ResolversObject<{
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   variant?: Resolver<Maybe<ResolversTypes['Variant']>, ParentType, ContextType>;
@@ -3733,80 +3746,7 @@ export type VariantUpdatePricingPayloadResolvers<ContextType = ServiceContext, P
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type VariantWeightResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantWeight'] = ResolversParentTypes['VariantWeight']> = ResolversObject<{
-  value?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type WarehouseResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Warehouse'] = ResolversParentTypes['Warehouse']> = ResolversObject<{
-  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Warehouse']>, { __typename: 'Warehouse' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
-  code?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
-  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  isDefault?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  stock?: Resolver<ResolversTypes['WarehouseStockConnection'], ParentType, ContextType, Partial<WarehouseStockArgs>>;
-  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
-  variantsCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type WarehouseConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['WarehouseConnection'] = ResolversParentTypes['WarehouseConnection']> = ResolversObject<{
-  edges?: Resolver<Array<ResolversTypes['WarehouseEdge']>, ParentType, ContextType>;
-  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
-  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type WarehouseCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['WarehouseCreatePayload'] = ResolversParentTypes['WarehouseCreatePayload']> = ResolversObject<{
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  warehouse?: Resolver<Maybe<ResolversTypes['Warehouse']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type WarehouseDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['WarehouseDeletePayload'] = ResolversParentTypes['WarehouseDeletePayload']> = ResolversObject<{
-  deletedWarehouseId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type WarehouseEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['WarehouseEdge'] = ResolversParentTypes['WarehouseEdge']> = ResolversObject<{
-  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  node?: Resolver<ResolversTypes['Warehouse'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type WarehouseStockResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['WarehouseStock'] = ResolversParentTypes['WarehouseStock']> = ResolversObject<{
-  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
-  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  quantityOnHand?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
-  variant?: Resolver<ResolversTypes['Variant'], ParentType, ContextType>;
-  warehouse?: Resolver<ResolversTypes['Warehouse'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type WarehouseStockConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['WarehouseStockConnection'] = ResolversParentTypes['WarehouseStockConnection']> = ResolversObject<{
-  edges?: Resolver<Array<ResolversTypes['WarehouseStockEdge']>, ParentType, ContextType>;
-  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
-  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type WarehouseStockEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['WarehouseStockEdge'] = ResolversParentTypes['WarehouseStockEdge']> = ResolversObject<{
-  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  node?: Resolver<ResolversTypes['WarehouseStock'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type WarehouseUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['WarehouseUpdatePayload'] = ResolversParentTypes['WarehouseUpdatePayload']> = ResolversObject<{
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  warehouse?: Resolver<Maybe<ResolversTypes['Warehouse']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
 export type WidgetQueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['WidgetQuery'] = ResolversParentTypes['WidgetQuery']> = ResolversObject<{
-  inventory?: Resolver<Maybe<ResolversTypes['ProductInventoryWidget']>, ParentType, ContextType, RequireFields<WidgetQueryInventoryArgs, 'productId'>>;
   pricing?: Resolver<ResolversTypes['PricingWidgetPayload'], ParentType, ContextType, RequireFields<WidgetQueryPricingArgs, 'input'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -3818,17 +3758,21 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   BulkUpdateItemEdge?: BulkUpdateItemEdgeResolvers<ContextType>;
   BulkUpdateJobProgress?: BulkUpdateJobProgressResolvers<ContextType>;
   BulkUpdateUserError?: BulkUpdateUserErrorResolvers<ContextType>;
+  Category?: CategoryResolvers<ContextType>;
+  CategoryConnection?: CategoryConnectionResolvers<ContextType>;
+  CategoryCreatePayload?: CategoryCreatePayloadResolvers<ContextType>;
+  CategoryDeletePayload?: CategoryDeletePayloadResolvers<ContextType>;
+  CategoryEdge?: CategoryEdgeResolvers<ContextType>;
+  CategoryMediaItem?: CategoryMediaItemResolvers<ContextType>;
+  CategoryMovePayload?: CategoryMovePayloadResolvers<ContextType>;
+  CategoryUpdatePayload?: CategoryUpdatePayloadResolvers<ContextType>;
   DateTime?: GraphQLScalarType;
   Description?: DescriptionResolvers<ContextType>;
   Email?: GraphQLScalarType;
   File?: FileResolvers<ContextType>;
   GenericUserError?: GenericUserErrorResolvers<ContextType>;
-  InventoryAlertThreshold?: InventoryAlertThresholdResolvers<ContextType>;
-  InventoryBackorder?: InventoryBackorderResolvers<ContextType>;
   InventoryMutation?: InventoryMutationResolvers<ContextType>;
-  InventoryQuantities?: InventoryQuantitiesResolvers<ContextType>;
   InventoryQuery?: InventoryQueryResolvers<ContextType>;
-  InventorySkuStatus?: InventorySkuStatusResolvers<ContextType>;
   JSON?: GraphQLScalarType;
   Mutation?: MutationResolvers<ContextType>;
   Node?: NodeResolvers<ContextType>;
@@ -3848,7 +3792,6 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   ProductFeatureUpdatePayload?: ProductFeatureUpdatePayloadResolvers<ContextType>;
   ProductFeatureValue?: ProductFeatureValueResolvers<ContextType>;
   ProductFeaturesSyncPayload?: ProductFeaturesSyncPayloadResolvers<ContextType>;
-  ProductInventoryWidget?: ProductInventoryWidgetResolvers<ContextType>;
   ProductOption?: ProductOptionResolvers<ContextType>;
   ProductOptionCreatePayload?: ProductOptionCreatePayloadResolvers<ContextType>;
   ProductOptionDeletePayload?: ProductOptionDeletePayloadResolvers<ContextType>;
@@ -3861,7 +3804,12 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   ProductUpdateStatusPayload?: ProductUpdateStatusPayloadResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   SelectedOption?: SelectedOptionResolvers<ContextType>;
-  SkuStatusMetric?: SkuStatusMetricResolvers<ContextType>;
+  Tag?: TagResolvers<ContextType>;
+  TagConnection?: TagConnectionResolvers<ContextType>;
+  TagCreatePayload?: TagCreatePayloadResolvers<ContextType>;
+  TagDeletePayload?: TagDeletePayloadResolvers<ContextType>;
+  TagEdge?: TagEdgeResolvers<ContextType>;
+  TagUpdatePayload?: TagUpdatePayloadResolvers<ContextType>;
   UserError?: UserErrorResolvers<ContextType>;
   Variant?: VariantResolvers<ContextType>;
   VariantConnection?: VariantConnectionResolvers<ContextType>;
@@ -3870,28 +3818,15 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   VariantCostEdge?: VariantCostEdgeResolvers<ContextType>;
   VariantCreatePayload?: VariantCreatePayloadResolvers<ContextType>;
   VariantDeletePayload?: VariantDeletePayloadResolvers<ContextType>;
-  VariantDimensions?: VariantDimensionsResolvers<ContextType>;
   VariantEdge?: VariantEdgeResolvers<ContextType>;
   VariantMediaItem?: VariantMediaItemResolvers<ContextType>;
   VariantPrice?: VariantPriceResolvers<ContextType>;
   VariantPriceConnection?: VariantPriceConnectionResolvers<ContextType>;
   VariantPriceEdge?: VariantPriceEdgeResolvers<ContextType>;
   VariantPriceHistoryStatistics?: VariantPriceHistoryStatisticsResolvers<ContextType>;
-  VariantUpdateDimensionsPayload?: VariantUpdateDimensionsPayloadResolvers<ContextType>;
-  VariantUpdateInventoryPayload?: VariantUpdateInventoryPayloadResolvers<ContextType>;
   VariantUpdateMediaPayload?: VariantUpdateMediaPayloadResolvers<ContextType>;
   VariantUpdateOptionsPayload?: VariantUpdateOptionsPayloadResolvers<ContextType>;
   VariantUpdatePricingPayload?: VariantUpdatePricingPayloadResolvers<ContextType>;
-  VariantWeight?: VariantWeightResolvers<ContextType>;
-  Warehouse?: WarehouseResolvers<ContextType>;
-  WarehouseConnection?: WarehouseConnectionResolvers<ContextType>;
-  WarehouseCreatePayload?: WarehouseCreatePayloadResolvers<ContextType>;
-  WarehouseDeletePayload?: WarehouseDeletePayloadResolvers<ContextType>;
-  WarehouseEdge?: WarehouseEdgeResolvers<ContextType>;
-  WarehouseStock?: WarehouseStockResolvers<ContextType>;
-  WarehouseStockConnection?: WarehouseStockConnectionResolvers<ContextType>;
-  WarehouseStockEdge?: WarehouseStockEdgeResolvers<ContextType>;
-  WarehouseUpdatePayload?: WarehouseUpdatePayloadResolvers<ContextType>;
   WidgetQuery?: WidgetQueryResolvers<ContextType>;
 }>;
 

@@ -2,10 +2,12 @@ import { SubgraphReference } from "@shopana/type-resolver";
 import type { Description } from "./interfaces/index.js";
 import type { Product } from "../../repositories/models/index.js";
 import type { VariantRelayInput } from "../../repositories/variant/VariantRepository.js";
-import { InventoryType } from "./InventoryType.js";
+import { CatalogType } from "./CatalogType.js";
+import { CategoryResolver } from "./CategoryResolver.js";
 import { FeatureResolver } from "./FeatureResolver.js";
 import { OptionResolver } from "./OptionResolver.js";
 import { ProductSeoResolver } from "./ProductSeoResolver.js";
+import { TagResolver } from "./TagResolver.js";
 import { VariantConnectionResolver } from "./VariantConnectionResolver.js";
 
 /**
@@ -13,7 +15,7 @@ import { VariantConnectionResolver } from "./VariantConnectionResolver.js";
  * Decorated with @SubgraphReference for federation support.
  */
 @SubgraphReference()
-export class ProductResolver extends InventoryType<string, Product | null> {
+export class ProductResolver extends CatalogType<string, Product | null> {
   async $preload() {
     return this.$ctx.loaders.product.load(this.$props);
   }
@@ -132,5 +134,21 @@ export class ProductResolver extends InventoryType<string, Product | null> {
   async variantsCount(): Promise<number> {
     const variantIds = await this.$ctx.loaders.variantIds.load(this.$props);
     return variantIds.length;
+  }
+
+  /**
+   * Returns categories for this product
+   */
+  async categories(): Promise<CategoryResolver[]> {
+    const ids = await this.$ctx.loaders.productCategoryIds.load(this.$props);
+    return ids.map((id) => new CategoryResolver(id, this.$ctx));
+  }
+
+  /**
+   * Returns tags for this product
+   */
+  async tags(): Promise<TagResolver[]> {
+    const ids = await this.$ctx.loaders.productTagIds.load(this.$props);
+    return ids.map((id) => new TagResolver(id, this.$ctx));
   }
 }

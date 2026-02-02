@@ -3,15 +3,16 @@ import type {
   Variant,
   VariantTranslation,
   ItemPricing,
-  ItemDimensions,
-  ItemWeight,
   VariantMedia,
-  WarehouseStock,
   ProductOptionVariantLink,
-  ProductVariantCostHistory,
 } from "../repositories/models/index.js";
 import type { Repository } from "../repositories/Repository.js";
 
+/**
+ * VariantLoader для Catalog Service.
+ * НЕ содержит inventory-related loaders (cost, dimensions, weight, stock).
+ * Эти данные загружаются в Inventory Service.
+ */
 export class VariantLoader {
   public readonly variant: DataLoader<string, Variant | null>;
   public readonly variantIds: DataLoader<string, string[]>;
@@ -19,11 +20,7 @@ export class VariantLoader {
   public readonly variantPricing: DataLoader<string, ItemPricing[]>;
   public readonly variantPriceById: DataLoader<string, ItemPricing | null>;
   public readonly variantPriceIds: DataLoader<string, string[]>;
-  public readonly variantCost: DataLoader<string, ProductVariantCostHistory[]>;
-  public readonly variantDimensions: DataLoader<string, ItemDimensions | null>;
-  public readonly variantWeight: DataLoader<string, ItemWeight | null>;
   public readonly variantMedia: DataLoader<string, VariantMedia[]>;
-  public readonly variantStock: DataLoader<string, WarehouseStock[]>;
   public readonly variantSelectedOptions: DataLoader<string, ProductOptionVariantLink[]>;
 
   constructor(repository: Repository) {
@@ -61,31 +58,11 @@ export class VariantLoader {
       );
     });
 
-    this.variantCost = new DataLoader<string, ProductVariantCostHistory[]>(async (variantIds) => {
-      const results = await repository.variant.getActiveCostsByVariantIds(variantIds);
-      return variantIds.map((id) => results.filter((c) => c.variantId === id));
-    });
-
-    this.variantDimensions = new DataLoader<string, ItemDimensions | null>(async (variantIds) => {
-      const results = await repository.variant.getDimensionsByVariantIds(variantIds);
-      return variantIds.map((id) => results.find((d) => d.variantId === id) ?? null);
-    });
-
-    this.variantWeight = new DataLoader<string, ItemWeight | null>(async (variantIds) => {
-      const results = await repository.variant.getWeightsByVariantIds(variantIds);
-      return variantIds.map((id) => results.find((w) => w.variantId === id) ?? null);
-    });
-
     this.variantMedia = new DataLoader<string, VariantMedia[]>(async (variantIds) => {
       const results = await repository.variant.getMediaByVariantIds(variantIds);
       return variantIds.map((id) =>
         results.filter((m) => m.variantId === id).sort((a, b) => a.sortIndex - b.sortIndex)
       );
-    });
-
-    this.variantStock = new DataLoader<string, WarehouseStock[]>(async (variantIds) => {
-      const results = await repository.variant.getStockByVariantIds(variantIds);
-      return variantIds.map((id) => results.filter((s) => s.variantId === id));
     });
 
     this.variantSelectedOptions = new DataLoader<string, ProductOptionVariantLink[]>(async (variantIds) => {

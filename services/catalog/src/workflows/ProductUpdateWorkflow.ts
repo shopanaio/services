@@ -31,8 +31,6 @@ import { ProductUpdateSeoScript } from "../scripts/product/ProductUpdateSeoScrip
 import { ProductUpdateStatusScript } from "../scripts/product/ProductUpdateStatusScript.js";
 import { ProductUpdateMediaScript } from "../scripts/product/ProductUpdateMediaScript.js";
 import { VariantUpdatePricingScript } from "../scripts/variant/VariantUpdatePricingScript.js";
-import { VariantUpdateInventoryScript } from "../scripts/variant/VariantUpdateInventoryScript.js";
-import { VariantUpdateDimensionsScript } from "../scripts/variant/VariantUpdateDimensionsScript.js";
 import { VariantUpdateMediaScript } from "../scripts/variant/VariantUpdateMediaScript.js";
 import {
   VariantBatchUpdateOptionsScript,
@@ -40,14 +38,17 @@ import {
 } from "../scripts/variant/VariantBatchUpdateOptionsScript.js";
 
 /**
- * ProductUpdateWorkflow handles atomic product updates with:
+ * ProductUpdateWorkflow для Catalog Service.
+ * Handles atomic product updates with:
  * - Optimistic locking via revision field
  * - Partial failure support (each operation independent)
  * - Event emission with partial snapshot of changes
+ *
+ * НЕ содержит inventory операций (inventory, dimensions) - они в Inventory Service.
  */
 @Injectable()
 export class ProductUpdateWorkflow extends BrokerWorkflows {
-  constructor(@InjectBroker("inventory") broker: ServiceBroker) {
+  constructor(@InjectBroker("catalog") broker: ServiceBroker) {
     super(broker);
   }
 
@@ -284,8 +285,9 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
   }
 
   /**
-   * Execute variant-level updates (excluding options).
+   * Execute variant-level updates (excluding options and inventory).
    * Options are always processed in batch via stepBatchUpdateOptions.
+   * Inventory operations are handled by Inventory Service.
    */
   @WorkflowStep()
   private async stepVariantUpdate(
@@ -294,7 +296,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     ctx: RunScriptContext,
   ): Promise<OperationResult> {
     const errors: UserError[] = [];
-    const { variantId, pricing, inventory, dimensions, media } = params;
+    const { variantId, pricing, media } = params;
 
     // Helper to merge variant changes
     const mergeVariantChanges = (c: Partial<VariantChanges>) => {
@@ -311,23 +313,11 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       if (r.changes) mergeVariantChanges({ pricing: r.changes });
     }
 
-    if (inventory) {
-      const r = await this.kernel.runScript(VariantUpdateInventoryScript, {
-        variantId,
-        ...inventory,
-      }, ctx);
-      errors.push(...r.userErrors);
-      if (r.changes) mergeVariantChanges({ inventory: r.changes });
-    }
-
-    if (dimensions) {
-      const r = await this.kernel.runScript(VariantUpdateDimensionsScript, {
-        variantId,
-        ...dimensions,
-      }, ctx);
-      errors.push(...r.userErrors);
-      if (r.changes) mergeVariantChanges({ dimensions: r.changes });
-    }
+    // ═══════════════════════════════════════════════════════════
+    // УДАЛЕНЫ из Catalog (переносятся в Inventory Service):
+    // - inventory (VariantUpdateInventoryScript)
+    // - dimensions (VariantUpdateDimensionsScript)
+    // ═══════════════════════════════════════════════════════════
 
     if (media) {
       const r = await this.kernel.runScript(VariantUpdateMediaScript, {
@@ -409,7 +399,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
           product: changes.product,
           variants: changes.variants,
         },
-        source: "inventory",
+        source: "catalog",
         context: {
           tenantId: input.context.organizationId,
           userId: input.context.userId,

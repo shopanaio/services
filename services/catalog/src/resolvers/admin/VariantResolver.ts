@@ -1,24 +1,21 @@
 import { SubgraphReference } from "@shopana/type-resolver";
 import type {
   SelectedOption,
-  VariantCost,
-  VariantDimensions,
   VariantMediaItem,
   VariantPrice,
-  VariantWeight,
 } from "./interfaces/index.js";
 import type { Variant } from "../../repositories/models/index.js";
 import type { PricingCursorInput } from "../../repositories/pricing/PricingRepository.js";
-import { InventoryType } from "./InventoryType.js";
+import { CatalogType } from "./CatalogType.js";
 import { VariantPriceResolver } from "./VariantPriceResolver.js";
-import { StockResolver } from "./StockResolver.js";
 
 /**
- * Variant resolver - resolves Variant domain interface.
- * Decorated with @SubgraphReference for federation support.
+ * Variant resolver в Catalog Service.
+ * НЕ содержит inventory-полей (sku, dimensions, weight, cost, stock).
+ * Эти поля резолвятся через federation extend в Inventory Service.
  */
 @SubgraphReference()
-export class VariantResolver extends InventoryType<string, Variant | null> {
+export class VariantResolver extends CatalogType<string, Variant | null> {
   async $preload() {
     return this.$ctx.loaders.variant.load(this.$props);
   }
@@ -39,10 +36,7 @@ export class VariantResolver extends InventoryType<string, Variant | null> {
     return (await this.$get("handle")) ?? "";
   }
 
-  async sku() {
-    return this.$get("sku");
-  }
-
+  // externalSystem и externalId остаются в Catalog - это идентификаторы товара
   async externalSystem() {
     return this.$get("externalSystem");
   }
@@ -69,6 +63,10 @@ export class VariantResolver extends InventoryType<string, Variant | null> {
     );
     return translation?.title ?? null;
   }
+
+  // ═══════════════════════════════════════════════════════════
+  // Pricing остается в Catalog
+  // ═══════════════════════════════════════════════════════════
 
   async price(): Promise<VariantPrice | null> {
     const prices = await this.$ctx.loaders.variantPricing.load(this.$props);
@@ -108,39 +106,6 @@ export class VariantResolver extends InventoryType<string, Variant | null> {
     return ids.map((id: string) => new VariantPriceResolver(id, this.$ctx));
   }
 
-  async cost(): Promise<VariantCost | null> {
-    const costs = await this.$ctx.loaders.variantCost.load(this.$props);
-
-    // Filter by currency if specified
-    let filtered = costs;
-    if (this.$ctx.currency) {
-      filtered = costs.filter((c) => c.currency === this.$ctx.currency);
-    }
-
-    if (filtered.length === 0) return null;
-
-    // Get current active cost
-    const current = filtered[0];
-    return {
-      id: current.id,
-      currency: current.currency as "UAH" | "USD" | "EUR",
-      unitCostMinor: current.unitCostMinor,
-      effectiveFrom: current.effectiveFrom,
-      effectiveTo: current.effectiveTo,
-      recordedAt: current.recordedAt,
-      isCurrent: current.effectiveTo === null,
-    };
-  }
-
-  /**
-   * Returns cost history IDs for this variant
-   * @param args - Pagination arguments (first, last, after, before)
-   */
-  async costHistory(_args?: PricingCursorInput): Promise<string[]> {
-    // TODO: implement cost history pagination
-    return [];
-  }
-
   async selectedOptions(): Promise<SelectedOption[]> {
     const links = await this.$ctx.loaders.variantSelectedOptions.load(
       this.$props
@@ -153,36 +118,6 @@ export class VariantResolver extends InventoryType<string, Variant | null> {
       }));
   }
 
-  async dimensions(): Promise<VariantDimensions | null> {
-    const dims = await this.$ctx.loaders.variantDimensions.load(this.$props);
-    if (!dims) return null;
-
-    return {
-      width: dims.wMm,
-      length: dims.lMm,
-      height: dims.hMm,
-    };
-  }
-
-  async weight(): Promise<VariantWeight | null> {
-    const w = await this.$ctx.loaders.variantWeight.load(this.$props);
-    if (!w) return null;
-
-    return {
-      value: w.weightGr,
-    };
-  }
-
-  async stock(): Promise<StockResolver[]> {
-    const stocks = await this.$ctx.loaders.variantStock.load(this.$props);
-    return stocks.map((s) => new StockResolver(s.id, this.$ctx));
-  }
-
-  async inStock(): Promise<boolean> {
-    const stocks = await this.$ctx.loaders.variantStock.load(this.$props);
-    return stocks.some((s) => s.quantityOnHand > 0);
-  }
-
   async media(): Promise<Array<{ file: { __typename: "File"; id: string }; sortIndex: number }>> {
     const mediaItems = await this.$ctx.loaders.variantMedia.load(this.$props);
     return mediaItems.map((m) => ({
@@ -190,4 +125,16 @@ export class VariantResolver extends InventoryType<string, Variant | null> {
       sortIndex: m.sortIndex,
     }));
   }
+
+  // ═══════════════════════════════════════════════════════════
+  // УДАЛЕНЫ из Catalog (переносятся в Inventory):
+  // - sku()
+  // - dimensions()
+  // - weight()
+  // - cost()
+  // - costHistory()
+  // - stock()
+  // - inStock()
+  // Эти поля будут резолвиться через federation extend
+  // ═══════════════════════════════════════════════════════════
 }

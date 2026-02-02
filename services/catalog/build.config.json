@@ -1,5 +1,5 @@
 {
-  "entryPoint": "src/inventory.module.ts",
+  "entryPoint": "src/catalog.module.ts",
   "migrations": { "path": "dist/migrations", "type": "drizzle" },
   "graphql": {
     "admin": [

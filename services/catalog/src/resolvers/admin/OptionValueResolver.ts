@@ -1,12 +1,12 @@
 import type { ProductOptionValue } from "../../repositories/models/index.js";
 import type { ProductOptionSwatch } from "./interfaces/index.js";
-import { InventoryType } from "./InventoryType.js";
+import { CatalogType } from "./CatalogType.js";
 
 /**
  * Option value view - resolves ProductOptionValue domain interface
  * Accepts option value ID, loads data lazily via loaders
  */
-export class OptionValueResolver extends InventoryType<
+export class OptionValueResolver extends CatalogType<
   string,
   ProductOptionValue | null
 > {

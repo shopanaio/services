@@ -4,27 +4,20 @@ export * from "./schema";
 // Products & Variants
 export * from "./products";
 
+// Categories
+export * from "./categories";
+
+// Tags
+export * from "./tags";
+
 // Pricing
 export * from "./pricing";
-
-// Cost
-export * from "./cost";
 
 // Options (color, size, etc.)
 export * from "./options";
 
 // Features
 export * from "./features";
-
-// Physical attributes (dimensions, weight)
-export * from "./physical";
-
-// Stock & Warehouses
-export * from "./stock";
-export * from "./stock-changes";
-export * from "./reservations";
-export * from "./product-inventory-settings";
-export * from "./inbound-supply";
 
 // Media links
 export * from "./media";

@@ -1,12 +1,12 @@
 import type { ItemPricing } from "../../repositories/models/index.js";
 import type { CurrencyCode } from "./interfaces/index.js";
-import { InventoryType } from "./InventoryType.js";
+import { CatalogType } from "./CatalogType.js";
 
 /**
  * VariantPrice view - resolves price record
  * Accepts price ID, loads data lazily via loaders
  */
-export class VariantPriceResolver extends InventoryType<
+export class VariantPriceResolver extends CatalogType<
   string,
   ItemPricing | null
 > {

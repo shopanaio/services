@@ -1,9 +1,9 @@
 import type { BulkEditJob } from "../../repositories/models/index.js";
 import type { BulkEditItemConnectionInput } from "../../repositories/BulkEditItemRepository.js";
-import { InventoryType } from "./InventoryType.js";
+import { CatalogType } from "./CatalogType.js";
 import { BulkUpdateItemResolver } from "./BulkUpdateItemResolver.js";
 
-export class ProductBulkUpdateJobResolver extends InventoryType<string, BulkEditJob | null> {
+export class ProductBulkUpdateJobResolver extends CatalogType<string, BulkEditJob | null> {
   async $preload() {
     return this.$ctx.kernel.repository.bulkEditJob.findById(this.$props);
   }

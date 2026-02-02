@@ -1,10 +1,11 @@
 import DataLoader from "dataloader";
 import type { Repository } from "../repositories/Repository.js";
+import { CategoryLoader } from "./CategoryLoader.js";
 import { FeatureLoader } from "./FeatureLoader.js";
 import { OptionLoader } from "./OptionLoader.js";
 import { ProductLoader } from "./ProductLoader.js";
+import { TagLoader } from "./TagLoader.js";
 import { VariantLoader } from "./VariantLoader.js";
-import { WarehouseLoader } from "./WarehouseLoader.js";
 
 export class Loader {
   // Product
@@ -17,19 +18,30 @@ export class Loader {
   public readonly productOption;
   public readonly productFeature;
 
-  // Variant
+  // Variant (без inventory полей - они в Inventory Service)
   public readonly variant;
   public readonly variantIds;
   public readonly variantTranslation;
   public readonly variantPricing;
   public readonly variantPriceById;
   public readonly variantPriceIds;
-  public readonly variantCost;
-  public readonly variantDimensions;
-  public readonly variantWeight;
   public readonly variantMedia;
-  public readonly variantStock;
   public readonly variantSelectedOptions;
+
+  // Category
+  public readonly category;
+  public readonly categoryTranslation;
+  public readonly categoryMedia;
+  public readonly categoryChildrenIds;
+  public readonly categoryAncestorIds;
+  public readonly categoryProductsCount;
+  public readonly productCategoryIds;
+
+  // Tag
+  public readonly tag;
+  public readonly tagTranslation;
+  public readonly tagProductsCount;
+  public readonly productTagIds;
 
   // Options
   public readonly optionTranslation;
@@ -44,18 +56,16 @@ export class Loader {
   public readonly featureValueTranslation;
   public readonly featureChildIds;
 
-  // Warehouse
-  public readonly warehouse;
-
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: DataLoader<any, any>;
 
   constructor(repository: Repository) {
     const productLoader = new ProductLoader(repository);
     const variantLoader = new VariantLoader(repository);
+    const categoryLoader = new CategoryLoader(repository);
+    const tagLoader = new TagLoader(repository);
     const optionLoader = new OptionLoader(repository);
     const featureLoader = new FeatureLoader(repository);
-    const warehouseLoader = new WarehouseLoader(repository);
 
     // Product
     this.product = productLoader.product;
@@ -67,19 +77,30 @@ export class Loader {
     this.productOption = productLoader.productOption;
     this.productFeature = productLoader.productFeature;
 
-    // Variant
+    // Variant (без inventory полей)
     this.variant = variantLoader.variant;
     this.variantIds = variantLoader.variantIds;
     this.variantTranslation = variantLoader.variantTranslation;
     this.variantPricing = variantLoader.variantPricing;
     this.variantPriceById = variantLoader.variantPriceById;
     this.variantPriceIds = variantLoader.variantPriceIds;
-    this.variantCost = variantLoader.variantCost;
-    this.variantDimensions = variantLoader.variantDimensions;
-    this.variantWeight = variantLoader.variantWeight;
     this.variantMedia = variantLoader.variantMedia;
-    this.variantStock = variantLoader.variantStock;
     this.variantSelectedOptions = variantLoader.variantSelectedOptions;
+
+    // Category
+    this.category = categoryLoader.category;
+    this.categoryTranslation = categoryLoader.categoryTranslation;
+    this.categoryMedia = categoryLoader.categoryMedia;
+    this.categoryChildrenIds = categoryLoader.categoryChildrenIds;
+    this.categoryAncestorIds = categoryLoader.categoryAncestorIds;
+    this.categoryProductsCount = categoryLoader.categoryProductsCount;
+    this.productCategoryIds = categoryLoader.productCategoryIds;
+
+    // Tag
+    this.tag = tagLoader.tag;
+    this.tagTranslation = tagLoader.tagTranslation;
+    this.tagProductsCount = tagLoader.tagProductsCount;
+    this.productTagIds = tagLoader.productTagIds;
 
     // Options
     this.optionTranslation = optionLoader.optionTranslation;
@@ -93,8 +114,5 @@ export class Loader {
     this.featureValue = featureLoader.featureValue;
     this.featureValueTranslation = featureLoader.featureValueTranslation;
     this.featureChildIds = featureLoader.featureChildIds;
-
-    // Warehouse
-    this.warehouse = warehouseLoader.warehouse;
   }
 }

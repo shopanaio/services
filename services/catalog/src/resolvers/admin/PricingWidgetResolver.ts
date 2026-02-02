@@ -1,4 +1,4 @@
-import { InventoryType } from "./InventoryType.js";
+import { CatalogType } from "./CatalogType.js";
 import { VariantPriceResolver } from "./VariantPriceResolver.js";
 import type { CurrencyCode, VariantCost } from "./interfaces/index.js";
 
@@ -11,7 +11,7 @@ export interface PricingWidgetInput {
   after?: string;
 }
 
-export class PricingWidgetResolver extends InventoryType<PricingWidgetInput> {
+export class PricingWidgetResolver extends CatalogType<PricingWidgetInput> {
   private toDate(value: string | Date | undefined, defaultValue: Date): Date {
     if (!value) return defaultValue;
     return value instanceof Date ? value : new Date(value);

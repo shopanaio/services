@@ -13,11 +13,14 @@ export * from './option/index.js';
 // Feature scripts
 export * from './feature/index.js';
 
-// Warehouse scripts
-export * from './warehouse/index.js';
-
 // Media scripts
 export * from './media/index.js';
 
 // Bulk edit scripts
 export * from './bulk-edit/index.js';
+
+// Category scripts
+export * from './category/index.js';
+
+// Tag scripts
+export * from './tag/index.js';

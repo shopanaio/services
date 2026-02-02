@@ -1,11 +1,11 @@
 import type { ProductFeatureValue } from "../../repositories/models/index.js";
-import { InventoryType } from "./InventoryType.js";
+import { CatalogType } from "./CatalogType.js";
 
 /**
  * Feature value view - resolves ProductFeatureValue domain interface
  * Accepts feature value ID, loads data lazily via loaders
  */
-export class FeatureValueResolver extends InventoryType<
+export class FeatureValueResolver extends CatalogType<
   string,
   ProductFeatureValue
 > {

@@ -2,6 +2,8 @@
 
 """
 A variant represents a specific version of a product, such as a size or color.
+Catalog Service владеет этим типом.
+Inventory-поля (sku, dimensions, weight, cost, stock) добавляются через federation extend в Inventory Service.
 """
 type Variant implements Node @key(fields: "id") {
   """The globally unique ID of the variant."""
@@ -15,9 +17,6 @@ type Variant implements Node @key(fields: "id") {
 
   """The URL-friendly handle for the variant (generated from options)."""
   handle: String!
-
-  """The SKU (Stock Keeping Unit) of the variant."""
-  sku: String
 
   """The external system identifier for integration purposes."""
   externalSystem: String
@@ -45,37 +44,26 @@ type Variant implements Node @key(fields: "id") {
     before: String
   ): VariantPriceConnection!
 
-  """Current cost for this variant."""
-  cost: VariantCost
-
-  """Cost history for this variant."""
-  costHistory(
-    first: Int
-    after: String
-    last: Int
-    before: String
-  ): VariantCostConnection!
-
   """The selected option values for this variant."""
   selectedOptions: [SelectedOption!]!
-
-  """Physical dimensions of this variant."""
-  dimensions: VariantDimensions
-
-  """Physical weight of this variant."""
-  weight: VariantWeight
-
-  """Stock levels for this variant across warehouses."""
-  stock: [WarehouseStock!]!
-
-  """Whether the variant is in stock (has quantity > 0 in any warehouse)."""
-  inStock: Boolean!
 
   """Variant title."""
   title: String
 
   """Media attached to this variant (images, videos)."""
   media: [VariantMediaItem!]!
+
+  # ═══════════════════════════════════════════════════════════
+  # Следующие поля УДАЛЕНЫ из Catalog (переносятся в Inventory):
+  # - sku: String
+  # - dimensions: VariantDimensions
+  # - weight: VariantWeight
+  # - cost: VariantCost
+  # - costHistory: VariantCostConnection!
+  # - stock: [WarehouseStock!]!
+  # - inStock: Boolean!
+  # Эти поля будут добавлены через federation extend в Inventory Service
+  # ═══════════════════════════════════════════════════════════
 }
 
 """
@@ -110,9 +98,6 @@ input VariantInput {
   """Variant title."""
   title: String
 
-  """The SKU for the variant."""
-  sku: String
-
   """External system identifier."""
   externalSystem: String
 
@@ -121,12 +106,6 @@ input VariantInput {
 
   """Selected option values for the variant (required)."""
   options: [SelectedOptionInput!]!
-
-  """Physical dimensions."""
-  dimensions: DimensionsInput
-
-  """Physical weight."""
-  weight: WeightInput
 }
 
 """
@@ -145,79 +124,6 @@ Payload for variant creation.
 """
 type VariantCreatePayload {
   """The created variant."""
-  variant: Variant
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-# ---- Variant Physical Mutations ----
-
-"""
-Input for updating variant dimensions.
-"""
-input VariantUpdateDimensionsInput {
-  """The ID of the variant."""
-  variantId: ID!
-
-  """Width in millimeters."""
-  width: Int!
-
-  """Height in millimeters."""
-  height: Int!
-
-  """Length in millimeters."""
-  length: Int!
-}
-
-"""
-Payload for variant dimensions update.
-"""
-type VariantUpdateDimensionsPayload {
-  """The updated variant."""
-  variant: Variant
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-"""
-Input for updating variant inventory (stock, SKU, weight, and unit cost).
-"""
-input VariantUpdateInventoryInput {
-  """The ID of the variant."""
-  variantId: ID!
-
-  """The warehouse ID."""
-  warehouseId: ID!
-
-  """Quantity on hand."""
-  onHand: Int!
-
-  """Unavailable quantity (reserved, damaged, etc.)."""
-  unavailable: Int
-
-  """SKU code."""
-  sku: String
-
-  """Weight in grams."""
-  weight: Int
-
-  """Unit cost in minor units (cents). Requires currency field."""
-  unitCostMinor: BigInt
-
-  """Currency code for unit cost."""
-  costCurrency: CurrencyCode
-}
-
-"""
-Payload for variant inventory update.
-"""
-type VariantUpdateInventoryPayload {
-  """The updated stock record."""
-  stock: WarehouseStock
-
-  """The updated variant."""
   variant: Variant
 
   """List of errors that occurred during the mutation."""
@@ -282,4 +188,3 @@ type VariantDeletePayload {
   """List of errors that occurred during the mutation."""
   userErrors: [GenericUserError!]!
 }
-

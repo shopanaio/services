@@ -3,18 +3,29 @@ import {
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
 import { ApolloMutation, ZodResolver } from "@shopana/type-resolver";
-import { InventoryType } from "./InventoryType.js";
+import { CatalogType } from "./CatalogType.js";
 import { ProductResolver } from "./ProductResolver.js";
 import { VariantResolver } from "./VariantResolver.js";
-import { WarehouseResolver } from "./WarehouseResolver.js";
 import { OptionResolver } from "./OptionResolver.js";
 import { FeatureResolver } from "./FeatureResolver.js";
-import { StockResolver } from "./StockResolver.js";
+import { CategoryResolver } from "./CategoryResolver.js";
+import { TagResolver } from "./TagResolver.js";
 import { ProductBulkUpdateJobResolver } from "./ProductBulkUpdateJobResolver.js";
 import {
   ProductDeleteScript,
   ProductUpdateStatusScript,
 } from "../../scripts/product/index.js";
+import {
+  CategoryCreateScript,
+  CategoryUpdateScript,
+  CategoryDeleteScript,
+  CategoryMoveScript,
+} from "../../scripts/category/index.js";
+import {
+  TagCreateScript,
+  TagUpdateScript,
+  TagDeleteScript,
+} from "../../scripts/tag/index.js";
 import type {
   ProductUpdateWorkflowInput,
   ProductUpdateWorkflowResult,
@@ -27,15 +38,8 @@ import {
   VariantDeleteScript,
   VariantUpdateMediaScript,
   VariantUpdatePricingScript,
-  VariantUpdateDimensionsScript,
-  VariantUpdateInventoryScript,
   VariantUpdateOptionsScript,
 } from "../../scripts/variant/index.js";
-import {
-  WarehouseCreateScript,
-  WarehouseDeleteScript,
-  WarehouseUpdateScript,
-} from "../../scripts/warehouse/index.js";
 import {
   OptionCreateScript,
   OptionDeleteScript,
@@ -58,12 +62,7 @@ import type {
   VariantDeleteInput,
   VariantUpdatePricingInput,
   VariantUpdateMediaInput,
-  VariantUpdateDimensionsInput,
-  VariantUpdateInventoryInput,
   VariantUpdateOptionsInput,
-  WarehouseCreateInput,
-  WarehouseUpdateInput,
-  WarehouseDeleteInput,
   ProductOptionCreateInput,
   ProductOptionUpdateInput,
   ProductOptionDeleteInput,
@@ -82,12 +81,7 @@ import {
   VariantDeleteInputSchema,
   VariantUpdatePricingInputSchema,
   VariantUpdateMediaInputSchema,
-  VariantUpdateDimensionsInputSchema,
-  VariantUpdateInventoryInputSchema,
   VariantUpdateOptionsInputSchema,
-  WarehouseCreateInputSchema,
-  WarehouseUpdateInputSchema,
-  WarehouseDeleteInputSchema,
   ProductOptionCreateInputSchema,
   ProductOptionUpdateInputSchema,
   ProductOptionDeleteInputSchema,
@@ -100,14 +94,14 @@ import {
 import { ProductBulkUpdateInputSchema } from "./validation/productBulkEditSchema.js";
 
 /**
- * Root Mutation resolver.
+ * Root Mutation resolver для Catalog Service.
  * Decorated with @ApolloMutation to create Apollo-compatible resolver proxy.
  */
 @ApolloMutation
-export class MutationResolver extends InventoryType<Record<string, never>> {
+export class MutationResolver extends CatalogType<Record<string, never>> {
   /**
-   * Entry point for inventory-related mutations.
-   * Returns namespace resolver that handles all inventory mutations.
+   * Entry point for catalog-related mutations.
+   * Returns namespace resolver that handles all catalog mutations.
    */
   inventoryMutation() {
     return new InventoryMutationResolver({}, this.$ctx);
@@ -115,10 +109,11 @@ export class MutationResolver extends InventoryType<Record<string, never>> {
 }
 
 /**
- * InventoryMutation namespace resolver.
- * Handles all inventory-related mutations.
+ * CatalogMutation namespace resolver.
+ * Handles all catalog-related mutations (products, variants, options, features).
+ * НЕ содержит inventory mutations (warehouse, stock, dimensions, cost).
  */
-export class InventoryMutationResolver extends InventoryType<Record<string, never>> {
+export class InventoryMutationResolver extends CatalogType<Record<string, never>> {
   // ---- Product Mutations ----
 
   /**
@@ -186,7 +181,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   }
 
   /**
-   * Delete a operations.
+   * Delete a product.
    */
   @ZodResolver(ProductDeleteInputSchema())
   async productDelete(args: { input: ProductDeleteInput }) {
@@ -227,6 +222,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   /**
    * Unified product update with optimistic locking.
    * Supports product and variant updates in a single request.
+   * НЕ поддерживает inventory операции (они в Inventory Service).
    */
   async productUpdate(args: InventoryMutationProductUpdateArgs) {
     const { productId, expectedRevision, operations } = args;
@@ -289,26 +285,6 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
                   compareAtMinor: vu.pricing.compareAtMinor
                     ? Number(vu.pricing.compareAtMinor)
                     : undefined,
-                }
-              : undefined,
-            inventory: vu.inventory
-              ? {
-                  warehouseId: vu.inventory.warehouseId,
-                  onHand: vu.inventory.onHand,
-                  unavailable: vu.inventory.unavailable ?? undefined,
-                  sku: vu.inventory.sku ?? undefined,
-                  weight: vu.inventory.weight ?? undefined,
-                  unitCostMinor: vu.inventory.unitCostMinor
-                    ? Number(vu.inventory.unitCostMinor)
-                    : undefined,
-                  costCurrency: vu.inventory.costCurrency ?? undefined,
-                }
-              : undefined,
-            dimensions: vu.dimensions
-              ? {
-                  width: vu.dimensions.width,
-                  height: vu.dimensions.height,
-                  length: vu.dimensions.length,
                 }
               : undefined,
             media: vu.media
@@ -379,7 +355,6 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
         optionId: opt.optionId,
         optionValueId: opt.optionValueId,
       })),
-      sku: input.variant.sku ?? undefined,
       externalSystem: input.variant.externalSystem ?? undefined,
       externalId: input.variant.externalId ?? undefined,
     });
@@ -435,57 +410,6 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   }
 
   /**
-   * Set variant dimensions.
-   */
-  @ZodResolver(VariantUpdateDimensionsInputSchema())
-  async variantUpdateDimensions(args: { input: VariantUpdateDimensionsInput }) {
-    const { input } = args;
-
-    const result = await this.$ctx.kernel.runScript(VariantUpdateDimensionsScript, {
-      variantId: input.variantId,
-      width: input.width,
-      height: input.height,
-      length: input.length,
-    });
-
-    return {
-      variant: result.result
-        ? new VariantResolver(result.result.id, this.$ctx)
-        : null,
-      userErrors: result.userErrors,
-    };
-  }
-
-  /**
-   * Set variant inventory (stock, SKU, weight, and unit cost).
-   */
-  @ZodResolver(VariantUpdateInventoryInputSchema())
-  async variantUpdateInventory(args: { input: VariantUpdateInventoryInput }) {
-    const { input } = args;
-
-    const result = await this.$ctx.kernel.runScript(VariantUpdateInventoryScript, {
-      variantId: input.variantId,
-      warehouseId: input.warehouseId,
-      onHand: input.onHand,
-      unavailable: input.unavailable ?? undefined,
-      sku: input.sku ?? undefined,
-      weight: input.weight ?? undefined,
-      unitCostMinor: input.unitCostMinor ? Number(input.unitCostMinor) : undefined,
-      costCurrency: input.costCurrency ?? undefined,
-    });
-
-    return {
-      stock: result.result
-        ? new StockResolver(result.result.id, this.$ctx)
-        : null,
-      variant: result.result
-        ? new VariantResolver(input.variantId, this.$ctx)
-        : null,
-      userErrors: result.userErrors,
-    };
-  }
-
-  /**
    * Set variant options (option value links).
    */
   @ZodResolver(VariantUpdateOptionsInputSchema())
@@ -533,67 +457,18 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
     };
   }
 
-  // ---- Warehouse Mutations ----
+  // ═══════════════════════════════════════════════════════════
+  // Warehouse Mutations УДАЛЕНЫ (переносятся в Inventory Service)
+  // - warehouseCreate
+  // - warehouseUpdate
+  // - warehouseDelete
+  // ═══════════════════════════════════════════════════════════
 
-  /**
-   * Create a new warehouse.
-   */
-  @ZodResolver(WarehouseCreateInputSchema())
-  async warehouseCreate(args: { input: WarehouseCreateInput }) {
-    const { input } = args;
-
-    const result = await this.$ctx.kernel.runScript(WarehouseCreateScript, {
-      code: input.code,
-      name: input.name,
-      isDefault: input.isDefault ?? undefined,
-    });
-
-    return {
-      warehouse: result.warehouse
-        ? new WarehouseResolver(result.warehouse.id, this.$ctx)
-        : null,
-      userErrors: result.userErrors,
-    };
-  }
-
-  /**
-   * Update an existing warehouse.
-   */
-  @ZodResolver(WarehouseUpdateInputSchema())
-  async warehouseUpdate(args: { input: WarehouseUpdateInput }) {
-    const { input } = args;
-
-    const result = await this.$ctx.kernel.runScript(WarehouseUpdateScript, {
-      id: input.id,
-      code: input.code ?? undefined,
-      name: input.name ?? undefined,
-      isDefault: input.isDefault ?? undefined,
-    });
-
-    return {
-      warehouse: result.warehouse
-        ? new WarehouseResolver(result.warehouse.id, this.$ctx)
-        : null,
-      userErrors: result.userErrors,
-    };
-  }
-
-  /**
-   * Delete a warehouse.
-   */
-  @ZodResolver(WarehouseDeleteInputSchema())
-  async warehouseDelete(args: { input: WarehouseDeleteInput }) {
-    const { input } = args;
-
-    const result = await this.$ctx.kernel.runScript(WarehouseDeleteScript, {
-      id: input.id,
-    });
-
-    return {
-      deletedWarehouseId: result.deletedWarehouseId ?? null,
-      userErrors: result.userErrors,
-    };
-  }
+  // ═══════════════════════════════════════════════════════════
+  // Variant Inventory Mutations УДАЛЕНЫ (переносятся в Inventory Service)
+  // - variantUpdateDimensions
+  // - variantUpdateInventory
+  // ═══════════════════════════════════════════════════════════
 
   // ---- Option Mutations ----
 
@@ -839,7 +714,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   }
 
   /**
-   * Sync all product features for a operations.
+   * Sync all product features for a product.
    */
   @ZodResolver(ProductFeaturesSyncInputSchema())
   async productFeaturesSync(args: { input: ProductFeaturesSyncInput }) {
@@ -867,6 +742,234 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
       features: result.features.map(
         (feature) => new FeatureResolver(feature.id, this.$ctx)
       ),
+      userErrors: result.userErrors,
+    };
+  }
+
+  // ---- Category Mutations ----
+
+  /**
+   * Create a new category.
+   */
+  async categoryCreate(args: {
+    input: {
+      handle: string;
+      name: string;
+      parentId?: string | null;
+      description?: {
+        text?: string | null;
+        html?: string | null;
+        json?: unknown | null;
+      } | null;
+      mediaFileIds?: string[] | null;
+      publish?: boolean | null;
+    };
+  }) {
+    const { input } = args;
+
+    // Decode Global IDs
+    const parentId = input.parentId
+      ? decodeGlobalIdByType(input.parentId, GlobalIdEntity.Category)
+      : undefined;
+    const mediaFileIds = input.mediaFileIds?.map((id) =>
+      decodeGlobalIdByType(id, GlobalIdEntity.File)
+    );
+
+    const result = await this.$ctx.kernel.runScript(CategoryCreateScript, {
+      handle: input.handle,
+      name: input.name,
+      parentId,
+      description: input.description
+        ? {
+            text: input.description.text ?? undefined,
+            html: input.description.html ?? undefined,
+            json: input.description.json as Record<string, unknown> | undefined,
+          }
+        : undefined,
+      mediaFileIds,
+      publish: input.publish ?? undefined,
+    });
+
+    return {
+      category: result.category
+        ? new CategoryResolver(result.category.id, this.$ctx)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  /**
+   * Update an existing category.
+   */
+  async categoryUpdate(args: {
+    input: {
+      id: string;
+      handle?: string | null;
+      name?: string | null;
+      description?: {
+        text?: string | null;
+        html?: string | null;
+        json?: unknown | null;
+      } | null;
+      mediaFileIds?: string[] | null;
+    };
+  }) {
+    const { input } = args;
+
+    const id = decodeGlobalIdByType(input.id, GlobalIdEntity.Category);
+    const mediaFileIds = input.mediaFileIds?.map((id) =>
+      decodeGlobalIdByType(id, GlobalIdEntity.File)
+    );
+
+    const result = await this.$ctx.kernel.runScript(CategoryUpdateScript, {
+      id,
+      handle: input.handle ?? undefined,
+      name: input.name ?? undefined,
+      description: input.description === null
+        ? null
+        : input.description
+        ? {
+            text: input.description.text ?? undefined,
+            html: input.description.html ?? undefined,
+            json: input.description.json as Record<string, unknown> | undefined,
+          }
+        : undefined,
+      mediaFileIds,
+    });
+
+    return {
+      category: result.category
+        ? new CategoryResolver(result.category.id, this.$ctx)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  /**
+   * Move a category to a new parent.
+   */
+  async categoryMove(args: {
+    input: {
+      id: string;
+      newParentId?: string | null;
+    };
+  }) {
+    const { input } = args;
+
+    const id = decodeGlobalIdByType(input.id, GlobalIdEntity.Category);
+    const newParentId = input.newParentId
+      ? decodeGlobalIdByType(input.newParentId, GlobalIdEntity.Category)
+      : null;
+
+    const result = await this.$ctx.kernel.runScript(CategoryMoveScript, {
+      id,
+      newParentId,
+    });
+
+    return {
+      category: result.category
+        ? new CategoryResolver(result.category.id, this.$ctx)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  /**
+   * Delete a category.
+   */
+  async categoryDelete(args: {
+    input: {
+      id: string;
+      permanent?: boolean | null;
+    };
+  }) {
+    const { input } = args;
+
+    const id = decodeGlobalIdByType(input.id, GlobalIdEntity.Category);
+
+    const result = await this.$ctx.kernel.runScript(CategoryDeleteScript, {
+      id,
+      permanent: input.permanent ?? undefined,
+    });
+
+    return {
+      deletedCategoryId: result.deletedCategoryId ?? null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  // ---- Tag Mutations ----
+
+  /**
+   * Create a new tag.
+   */
+  async tagCreate(args: {
+    input: {
+      handle: string;
+      name?: string | null;
+    };
+  }) {
+    const { input } = args;
+
+    const result = await this.$ctx.kernel.runScript(TagCreateScript, {
+      handle: input.handle,
+      name: input.name ?? undefined,
+    });
+
+    return {
+      tag: result.tag
+        ? new TagResolver(result.tag.id, this.$ctx)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  /**
+   * Update an existing tag.
+   */
+  async tagUpdate(args: {
+    input: {
+      id: string;
+      handle?: string | null;
+      name?: string | null;
+    };
+  }) {
+    const { input } = args;
+
+    const id = decodeGlobalIdByType(input.id, GlobalIdEntity.Tag);
+
+    const result = await this.$ctx.kernel.runScript(TagUpdateScript, {
+      id,
+      handle: input.handle ?? undefined,
+      name: input.name ?? undefined,
+    });
+
+    return {
+      tag: result.tag
+        ? new TagResolver(result.tag.id, this.$ctx)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  /**
+   * Delete a tag.
+   */
+  async tagDelete(args: {
+    input: {
+      id: string;
+    };
+  }) {
+    const { input } = args;
+
+    const id = decodeGlobalIdByType(input.id, GlobalIdEntity.Tag);
+
+    const result = await this.$ctx.kernel.runScript(TagDeleteScript, {
+      id,
+    });
+
+    return {
+      deletedTagId: result.deletedTagId ?? null,
       userErrors: result.userErrors,
     };
   }
@@ -979,26 +1082,6 @@ function mapOperationsForBulk(
                 compareAtMinor: vu.pricing.compareAtMinor
                   ? Number(vu.pricing.compareAtMinor)
                   : undefined,
-              }
-            : undefined,
-          inventory: vu.inventory
-            ? {
-                warehouseId: vu.inventory.warehouseId,
-                onHand: vu.inventory.onHand,
-                unavailable: vu.inventory.unavailable ?? undefined,
-                sku: vu.inventory.sku ?? undefined,
-                weight: vu.inventory.weight ?? undefined,
-                unitCostMinor: vu.inventory.unitCostMinor
-                  ? Number(vu.inventory.unitCostMinor)
-                  : undefined,
-                costCurrency: vu.inventory.costCurrency ?? undefined,
-              }
-            : undefined,
-          dimensions: vu.dimensions
-            ? {
-                width: vu.dimensions.width,
-                height: vu.dimensions.height,
-                length: vu.dimensions.length,
               }
             : undefined,
           media: vu.media

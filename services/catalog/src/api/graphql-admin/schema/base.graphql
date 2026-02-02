@@ -72,36 +72,41 @@ type InventoryQuery {
   """
   productBulkUpdateJob(jobId: ID!): ProductBulkUpdateJob
 
+  """
+  Get a category by ID
+  """
+  category(id: ID!): Category
 
   """
-  Get a warehouse by ID
+  Get categories with Relay-style pagination
   """
-  warehouse(id: ID!): Warehouse
-
-  """
-  Get all warehouses
-  """
-  warehouses(
+  categories(
     first: Int
     after: String
     last: Int
     before: String
-    """
-    Filter conditions
-    """
-    where: WarehouseWhereInput
-    """
-    Sort order
-    """
-    orderBy: [WarehouseOrderByInput!]
-  ): WarehouseConnection!
+  ): CategoryConnection!
+
+  """
+  Get a tag by ID
+  """
+  tag(id: ID!): Tag
+
+  """
+  Get tags with Relay-style pagination
+  """
+  tags(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): TagConnection!
 }
 
 """
 Widget query namespace for dashboard widgets.
 """
 type WidgetQuery {
-  inventory(productId: ID!): ProductInventoryWidget
   """
   Get pricing widget data for a variant.
   """
@@ -133,8 +138,6 @@ type InventoryMutation {
 
   # Variant update mutations
   variantUpdatePricing(input: VariantUpdatePricingInput!): VariantUpdatePricingPayload!
-  variantUpdateDimensions(input: VariantUpdateDimensionsInput!): VariantUpdateDimensionsPayload!
-  variantUpdateInventory(input: VariantUpdateInventoryInput!): VariantUpdateInventoryPayload!
   variantUpdateOptions(input: VariantUpdateOptionsInput!): VariantUpdateOptionsPayload!
 
   # Option mutations (creates/deletes variants automatically)
@@ -170,13 +173,19 @@ type InventoryMutation {
     input: ProductFeaturesSyncInput!
   ): ProductFeaturesSyncPayload!
 
-  # Warehouse mutations
-  warehouseCreate(input: WarehouseCreateInput!): WarehouseCreatePayload!
-  warehouseUpdate(input: WarehouseUpdateInput!): WarehouseUpdatePayload!
-  warehouseDelete(input: WarehouseDeleteInput!): WarehouseDeletePayload!
-
   # Media mutations
   variantUpdateMedia(input: VariantUpdateMediaInput!): VariantUpdateMediaPayload!
+
+  # Category mutations
+  categoryCreate(input: CategoryCreateInput!): CategoryCreatePayload!
+  categoryUpdate(input: CategoryUpdateInput!): CategoryUpdatePayload!
+  categoryMove(input: CategoryMoveInput!): CategoryMovePayload!
+  categoryDelete(input: CategoryDeleteInput!): CategoryDeletePayload!
+
+  # Tag mutations
+  tagCreate(input: TagCreateInput!): TagCreatePayload!
+  tagUpdate(input: TagUpdateInput!): TagUpdatePayload!
+  tagDelete(input: TagDeleteInput!): TagDeletePayload!
 
   # Bulk update mutations
   """
@@ -184,5 +193,4 @@ type InventoryMutation {
   Requires X-Idempotency-Key header.
   """
   productBulkUpdate(input: ProductBulkUpdateInput!): ProductBulkUpdatePayload!
-
 }

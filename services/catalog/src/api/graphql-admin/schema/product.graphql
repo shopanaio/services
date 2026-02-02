@@ -73,6 +73,12 @@ type Product implements Node @key(fields: "id") {
   """The total number of variants for this product."""
   variantsCount: Int!
 
+  """The categories this product belongs to."""
+  categories: [Category!]!
+
+  """The tags associated with this product."""
+  tags: [Tag!]!
+
   """Product title."""
   title: String!
 

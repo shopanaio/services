@@ -1,29 +1,34 @@
 import { ApolloQuery } from "@shopana/type-resolver";
-import { InventoryType } from "./InventoryType.js";
+import { CatalogType } from "./CatalogType.js";
 import { ProductResolver } from "./ProductResolver.js";
 import {
   ProductConnectionResolver,
   type ProductConnectionInput,
 } from "./ProductConnectionResolver.js";
-import { WarehouseResolver } from "./WarehouseResolver.js";
-import {
-  WarehouseConnectionResolver,
-  type WarehouseConnectionResolverInput,
-} from "./WarehouseConnectionResolver.js";
 import { VariantResolver } from "./VariantResolver.js";
-import { WidgetQueryResolver } from "./InventoryWidgetResolver.js";
+import { CategoryResolver } from "./CategoryResolver.js";
+import { TagResolver } from "./TagResolver.js";
+import {
+  CategoryConnectionResolver,
+  type CategoryConnectionInput,
+} from "./CategoryConnectionResolver.js";
+import {
+  TagConnectionResolver,
+  type TagConnectionInput,
+} from "./TagConnectionResolver.js";
 import { ProductBulkUpdateJobResolver } from "./ProductBulkUpdateJobResolver.js";
+import { PricingWidgetResolver } from "./PricingWidgetResolver.js";
 import type { VariantRelayInput } from "../../repositories/variant/VariantRepository.js";
 
 /**
- * Root Query resolver.
+ * Root Query resolver для Catalog Service.
  * Decorated with @ApolloQuery to create Apollo-compatible resolver proxy.
  */
 @ApolloQuery
-export class QueryResolver extends InventoryType<Record<string, never>> {
+export class QueryResolver extends CatalogType<Record<string, never>> {
   /**
-   * Entry point for inventory-related queries.
-   * Returns namespace resolver that handles all inventory queries.
+   * Entry point for catalog-related queries.
+   * Returns namespace resolver that handles all catalog queries.
    */
   inventoryQuery() {
     return new InventoryQueryResolver({}, this.$ctx);
@@ -38,10 +43,20 @@ export class QueryResolver extends InventoryType<Record<string, never>> {
 }
 
 /**
- * InventoryQuery namespace resolver.
- * Handles all inventory-related queries.
+ * Widget query resolver for pricing.
  */
-export class InventoryQueryResolver extends InventoryType<Record<string, never>> {
+export class WidgetQueryResolver extends CatalogType<Record<string, never>> {
+  pricing(args: { input: { productId: string } }) {
+    return new PricingWidgetResolver(args.input, this.$ctx);
+  }
+}
+
+/**
+ * CatalogQuery namespace resolver.
+ * Handles all catalog-related queries (products, variants).
+ * НЕ содержит inventory queries (warehouses, stock).
+ */
+export class InventoryQueryResolver extends CatalogType<Record<string, never>> {
   // ---- Node Queries (Relay) ----
 
   /**
@@ -119,25 +134,52 @@ export class InventoryQueryResolver extends InventoryType<Record<string, never>>
     };
   }
 
-  // ---- Warehouse Queries ----
+  // ═══════════════════════════════════════════════════════════
+  // Warehouse Queries УДАЛЕНЫ (переносятся в Inventory Service)
+  // - warehouse(id)
+  // - warehouses(...)
+  // ═══════════════════════════════════════════════════════════
+
+  // ---- Category Queries ----
 
   /**
-   * Get a single warehouse by ID.
-   * Returns null if warehouse doesn't exist.
+   * Get a single category by ID.
+   * Returns null if category doesn't exist.
    */
-  async warehouse(args: { id: string }) {
-    const warehouse = await this.$ctx.loaders.warehouse.load(args.id);
-    if (!warehouse) {
+  async category(args: { id: string }) {
+    const cat = await this.$ctx.loaders.category.load(args.id);
+    if (!cat) {
       return null;
     }
-    return new WarehouseResolver(args.id, this.$ctx);
+    return new CategoryResolver(args.id, this.$ctx);
   }
 
   /**
-   * Get a paginated list of warehouses.
+   * Get a paginated list of categories.
    */
-  warehouses(args: WarehouseConnectionResolverInput) {
-    return new WarehouseConnectionResolver(args, this.$ctx);
+  categories(args: CategoryConnectionInput) {
+    return new CategoryConnectionResolver(args, this.$ctx);
+  }
+
+  // ---- Tag Queries ----
+
+  /**
+   * Get a single tag by ID.
+   * Returns null if tag doesn't exist.
+   */
+  async tag(args: { id: string }) {
+    const t = await this.$ctx.loaders.tag.load(args.id);
+    if (!t) {
+      return null;
+    }
+    return new TagResolver(args.id, this.$ctx);
+  }
+
+  /**
+   * Get a paginated list of tags.
+   */
+  tags(args: TagConnectionInput) {
+    return new TagConnectionResolver(args, this.$ctx);
   }
 
   /**
@@ -150,5 +192,4 @@ export class InventoryQueryResolver extends InventoryType<Record<string, never>>
     if (!job) return null;
     return new ProductBulkUpdateJobResolver(job.id, this.$ctx);
   }
-
 }

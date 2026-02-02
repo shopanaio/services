@@ -1,0 +1,124 @@
+# ---- Tag Types ----
+
+"""
+A tag represents a simple label for organizing and filtering products.
+"""
+type Tag implements Node @key(fields: "id") {
+  """The globally unique ID of the tag."""
+  id: ID!
+
+  """The URL-friendly handle for the tag."""
+  handle: String!
+
+  """The date and time when the tag was created."""
+  createdAt: DateTime!
+
+  """The display name of the tag."""
+  name: String!
+
+  """Products with this tag, with pagination."""
+  products(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): ProductConnection!
+
+  """The total number of products with this tag."""
+  productsCount: Int!
+}
+
+"""
+A connection to a list of Tag items.
+"""
+type TagConnection {
+  """A list of edges."""
+  edges: [TagEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of tags."""
+  totalCount: Int!
+}
+
+"""
+An edge in a Tag connection.
+"""
+type TagEdge {
+  """The item at the end of the edge."""
+  node: Tag!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+
+# ---- Tag Inputs ----
+
+"""
+Input for creating a tag.
+"""
+input TagCreateInput {
+  """The URL-friendly handle for the tag."""
+  handle: String!
+
+  """The display name of the tag (optional, defaults to handle)."""
+  name: String
+}
+
+"""
+Input for updating a tag.
+"""
+input TagUpdateInput {
+  """The ID of the tag to update."""
+  id: ID!
+
+  """The URL-friendly handle for the tag."""
+  handle: String
+
+  """The display name of the tag."""
+  name: String
+}
+
+"""
+Input for deleting a tag.
+"""
+input TagDeleteInput {
+  """The ID of the tag to delete."""
+  id: ID!
+}
+
+# ---- Tag Payloads ----
+
+"""
+Payload for tag creation.
+"""
+type TagCreatePayload {
+  """The created tag."""
+  tag: Tag
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Payload for tag update.
+"""
+type TagUpdatePayload {
+  """The updated tag."""
+  tag: Tag
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Payload for tag deletion.
+"""
+type TagDeletePayload {
+  """The ID of the deleted tag."""
+  deletedTagId: ID
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}

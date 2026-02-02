@@ -1,5 +1,5 @@
 import type { ProductSeo as ProductSeoModel } from "../../repositories/models/index.js";
-import { InventoryType } from "./InventoryType.js";
+import { CatalogType } from "./CatalogType.js";
 
 /**
  * File reference for federation.
@@ -14,7 +14,7 @@ interface FileReference {
  * ProductSeo resolver - resolves ProductSeo domain interface.
  * Handles SEO and Open Graph metadata for products.
  */
-export class ProductSeoResolver extends InventoryType<ProductSeoModel, ProductSeoModel> {
+export class ProductSeoResolver extends CatalogType<ProductSeoModel, ProductSeoModel> {
   async $preload() {
     return this.$props;
   }

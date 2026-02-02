@@ -1,7 +1,7 @@
 {
-  "name": "@shopana/inventory-service",
+  "name": "@shopana/catalog-service",
   "version": "0.0.1",
-  "description": "Inventory microservice with microkernel + transaction script architecture",
+  "description": "Catalog microservice - products, variants, categories, tags, options, features",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
@@ -9,8 +9,8 @@
   },
   "exports": {
     ".": {
-      "import": "./dist/inventory.module.js",
-      "default": "./src/inventory.module.ts"
+      "import": "./dist/catalog.module.js",
+      "default": "./src/catalog.module.ts"
     }
   },
   "dependencies": {
@@ -20,7 +20,6 @@
     "@shopana/drizzle-query": "*",
     "@shopana/events": "*",
     "@shopana/import-plugin-sdk": "*",
-    "@shopana/inventory-plugin-shopana": "*",
     "@shopana/platform-api": "0.0.1",
     "@shopana/plugin-sdk": "*",
     "@shopana/shared-context": "*",
