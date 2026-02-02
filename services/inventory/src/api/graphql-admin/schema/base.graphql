@@ -22,6 +22,19 @@ extend type Query {
   widgetQuery: WidgetQuery!
 }
 
+"""
+Widget query namespace for dashboard widgets.
+Only inventory-related widgets remain in Inventory service.
+Pricing widget moved to Catalog service.
+"""
+type WidgetQuery {
+  """
+  Get inventory widget data for a product.
+  Returns aggregated inventory metrics across all variants.
+  """
+  inventory(productId: ID!): ProductInventoryWidget
+}
+
 extend type Mutation {
   inventoryMutation: InventoryMutation!
 }
@@ -36,42 +49,6 @@ type InventoryQuery {
   Get multiple nodes by their global IDs
   """
   nodes(ids: [ID!]!): [Node]!
-
-  """
-  Get a product by ID
-  """
-  product(id: ID!): Product
-
-  """
-  Get products with Relay-style pagination
-  """
-  products(
-    first: Int
-    after: String
-    last: Int
-    before: String
-  ): ProductConnection!
-
-  """
-  Get a variant by ID
-  """
-  variant(id: ID!): Variant
-
-  """
-  Get variants with Relay-style pagination
-  """
-  variants(
-    first: Int
-    after: String
-    last: Int
-    before: String
-  ): VariantConnection!
-
-  """
-  Get bulk update job by ID.
-  """
-  productBulkUpdateJob(jobId: ID!): ProductBulkUpdateJob
-
 
   """
   Get a warehouse by ID
@@ -95,94 +72,37 @@ type InventoryQuery {
     """
     orderBy: [WarehouseOrderByInput!]
   ): WarehouseConnection!
-}
 
-"""
-Widget query namespace for dashboard widgets.
-"""
-type WidgetQuery {
-  inventory(productId: ID!): ProductInventoryWidget
   """
-  Get pricing widget data for a variant.
+  Get an inventory item by ID
   """
-  pricing(input: PricingWidgetInput!): PricingWidgetPayload!
+  inventoryItem(id: ID!): InventoryItem
+
+  """
+  Get an inventory item by variant ID
+  """
+  inventoryItemByVariant(variantId: ID!): InventoryItem
+
+  """
+  Get inventory items with Relay-style pagination
+  """
+  inventoryItems(
+    first: Int
+    after: String
+    where: InventoryItemWhereInput
+  ): InventoryItemConnection!
 }
 
 type InventoryMutation {
-  # Product mutations
-  productCreate(input: ProductCreateInput!): ProductCreatePayload!
-  productDelete(input: ProductDeleteInput!): ProductDeletePayload!
-  productUpdateStatus(input: ProductUpdateStatusInput!): ProductUpdateStatusPayload!
-
+  # InventoryItem mutations (replaces variant inventory mutations)
   """
-  Unified product update with optimistic locking.
-  Supports product and variant updates in a single request.
+  Update inventory item: stock, SKU, weight, cost, dimensions.
+  Replaces variantUpdateInventory and variantUpdateDimensions.
   """
-  productUpdate(
-    """The product ID to update."""
-    productId: ID!
-    """Expected revision for optimistic locking. If provided, fails if product was modified."""
-    expectedRevision: Int
-    """Product-level operations."""
-    operations: ProductUpdateInput
-  ): ProductUpdatePayload!
-
-  # Variant mutations
-  variantCreate(input: VariantCreateInput!): VariantCreatePayload!
-  variantDelete(input: VariantDeleteInput!): VariantDeletePayload!
-
-  # Variant update mutations
-  variantUpdatePricing(input: VariantUpdatePricingInput!): VariantUpdatePricingPayload!
-  variantUpdateDimensions(input: VariantUpdateDimensionsInput!): VariantUpdateDimensionsPayload!
-  variantUpdateInventory(input: VariantUpdateInventoryInput!): VariantUpdateInventoryPayload!
-  variantUpdateOptions(input: VariantUpdateOptionsInput!): VariantUpdateOptionsPayload!
-
-  # Option mutations (creates/deletes variants automatically)
-  productOptionCreate(
-    input: ProductOptionCreateInput!
-  ): ProductOptionCreatePayload!
-  productOptionUpdate(
-    input: ProductOptionUpdateInput!
-  ): ProductOptionUpdatePayload!
-  productOptionDelete(
-    input: ProductOptionDeleteInput!
-  ): ProductOptionDeletePayload!
-  """
-  Sync all product options. This is a complete replace operation.
-  Options not in the input list will be deleted.
-  Does NOT affect variants - only option definitions are synced.
-  """
-  productOptionsSync(
-    input: ProductOptionsSyncInput!
-  ): ProductOptionsSyncPayload!
-
-  # Feature mutations
-  productFeatureCreate(
-    input: ProductFeatureCreateInput!
-  ): ProductFeatureCreatePayload!
-  productFeatureUpdate(
-    input: ProductFeatureUpdateInput!
-  ): ProductFeatureUpdatePayload!
-  productFeatureDelete(
-    input: ProductFeatureDeleteInput!
-  ): ProductFeatureDeletePayload!
-  productFeaturesSync(
-    input: ProductFeaturesSyncInput!
-  ): ProductFeaturesSyncPayload!
+  inventoryItemUpdate(input: InventoryItemUpdateInput!): InventoryItemUpdatePayload!
 
   # Warehouse mutations
   warehouseCreate(input: WarehouseCreateInput!): WarehouseCreatePayload!
   warehouseUpdate(input: WarehouseUpdateInput!): WarehouseUpdatePayload!
   warehouseDelete(input: WarehouseDeleteInput!): WarehouseDeletePayload!
-
-  # Media mutations
-  variantUpdateMedia(input: VariantUpdateMediaInput!): VariantUpdateMediaPayload!
-
-  # Bulk update mutations
-  """
-  Start async bulk update.
-  Requires X-Idempotency-Key header.
-  """
-  productBulkUpdate(input: ProductBulkUpdateInput!): ProductBulkUpdatePayload!
-
 }

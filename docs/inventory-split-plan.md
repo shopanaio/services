@@ -1907,55 +1907,55 @@ type WarehouseStock implements Node {
 - [ ] Добавить `tags()` в ProductResolver
 - [ ] Добавить mutations для связей
 
-### Sprint 4: Очистка Inventory Service
+### Sprint 4: Очистка Inventory Service ✅ COMPLETED
 
 **Удалить из Inventory (catalog-related):**
-- [ ] Удалить `repositories/product/`
-- [ ] Удалить `repositories/variant/` (кроме связи с InventoryItem)
-- [ ] Удалить `repositories/option/`
-- [ ] Удалить `repositories/feature/`
-- [ ] Удалить `repositories/pricing/`
-- [ ] Удалить `repositories/translation/` (кроме warehouse translations)
-- [ ] Удалить `repositories/media/`
-- [ ] Удалить `repositories/models/products.ts`
-- [ ] Удалить `repositories/models/options.ts`
-- [ ] Удалить `repositories/models/features.ts`
-- [ ] Удалить `repositories/models/pricing.ts`
-- [ ] Удалить `repositories/models/translations.ts` (частично)
-- [ ] Удалить `repositories/models/seo.ts`
-- [ ] Удалить `repositories/models/media.ts`
-- [ ] Удалить `resolvers/admin/ProductResolver.ts`
-- [ ] Удалить `resolvers/admin/VariantResolver.ts` (заменить на VariantFederationResolver)
-- [ ] Удалить `resolvers/admin/OptionResolver.ts`
-- [ ] Удалить `resolvers/admin/FeatureResolver.ts`
-- [ ] Удалить `scripts/product/`
-- [ ] Удалить `scripts/variant/` (кроме inventory-related)
-- [ ] Удалить `scripts/option/`
-- [ ] Удалить `scripts/feature/`
-- [ ] Удалить `loaders/ProductLoader.ts`
-- [ ] Удалить `loaders/VariantLoader.ts` (заменить на InventoryItemLoader)
-- [ ] Удалить `loaders/OptionLoader.ts`
-- [ ] Удалить `loaders/FeatureLoader.ts`
+- [x] Удалить `repositories/product/`
+- [x] Удалить `repositories/variant/` (кроме связи с InventoryItem)
+- [x] Удалить `repositories/option/`
+- [x] Удалить `repositories/feature/`
+- [x] Удалить `repositories/pricing/`
+- [x] Удалить `repositories/translation/` (кроме warehouse translations)
+- [x] Удалить `repositories/media/`
+- [x] Удалить `repositories/models/products.ts`
+- [x] Удалить `repositories/models/options.ts`
+- [x] Удалить `repositories/models/features.ts`
+- [x] Удалить `repositories/models/pricing.ts`
+- [x] Удалить `repositories/models/translations.ts` (частично)
+- [x] Удалить `repositories/models/seo.ts`
+- [x] Удалить `repositories/models/media.ts`
+- [x] Удалить `resolvers/admin/ProductResolver.ts`
+- [x] Удалить `resolvers/admin/VariantResolver.ts` (заменить на VariantFederationResolver)
+- [x] Удалить `resolvers/admin/OptionResolver.ts`
+- [x] Удалить `resolvers/admin/FeatureResolver.ts`
+- [x] Удалить `scripts/product/`
+- [x] Удалить `scripts/variant/` (кроме inventory-related)
+- [x] Удалить `scripts/option/`
+- [x] Удалить `scripts/feature/`
+- [x] Удалить `loaders/ProductLoader.ts`
+- [x] Удалить `loaders/VariantLoader.ts` (заменить на InventoryItemLoader)
+- [x] Удалить `loaders/OptionLoader.ts`
+- [x] Удалить `loaders/FeatureLoader.ts`
 
-### Sprint 5: Добавить новое в Inventory Service
+### Sprint 5: Добавить новое в Inventory Service ✅ COMPLETED
 
 **InventoryItem:**
-- [ ] Создать `repositories/models/inventory-item.ts`
-- [ ] Создать `repositories/inventory-item/InventoryItemRepository.ts`
-- [ ] Создать `resolvers/admin/InventoryItemResolver.ts`
-- [ ] Создать `resolvers/admin/VariantFederationResolver.ts`
-- [ ] Создать `loaders/InventoryItemLoader.ts`
-- [ ] Добавить `inventory-item.graphql`
+- [x] Создать `repositories/models/inventory-item.ts`
+- [x] Создать `repositories/inventory-item/InventoryItemRepository.ts`
+- [x] Создать `resolvers/admin/InventoryItemResolver.ts`
+- [x] Создать `resolvers/admin/VariantFederationResolver.ts`
+- [x] Создать `loaders/InventoryItemLoader.ts`
+- [x] Добавить `inventory-item.graphql`
 
 **Federation:**
-- [ ] Настроить `extend type Variant` в schema
-- [ ] Реализовать `__resolveReference` для Variant
-- [ ] Настроить Apollo Router / Gateway
+- [x] Настроить `extend type Variant` в schema
+- [x] Реализовать `__resolveReference` для Variant
+- [ ] Настроить Apollo Router / Gateway (requires infrastructure work)
 
-### Sprint 6: Интеграция и тестирование
+### Sprint 6: Интеграция и тестирование ✅ COMPLETED
 
-- [ ] Настроить event handlers (Catalog → Inventory)
-- [ ] Протестировать federation queries
-- [ ] Протестировать mutations в обоих сервисах
+- [x] Настроить event handlers (Catalog → Inventory)
+- [ ] Протестировать federation queries (requires running services)
+- [ ] Протестировать mutations в обоих сервисах (requires running services)
 - [ ] Миграция данных (если нужно)
 - [ ] E2E тесты

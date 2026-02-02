@@ -8,8 +8,14 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { inventorySchema } from "./schema";
-import { variant } from "./products";
-import { currencyEnum } from "./pricing";
+import { variant } from "./variants";
+
+// Currency enum (for cost tracking)
+export const currencyEnum = inventorySchema.enum("currency", [
+  "UAH",
+  "USD",
+  "EUR",
+]);
 
 export const productVariantCostHistory = inventorySchema.table(
   "product_variant_cost_history",

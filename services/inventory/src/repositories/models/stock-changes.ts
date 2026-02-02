@@ -11,7 +11,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { inventorySchema } from "./schema";
-import { variant } from "./products";
+import { variant } from "./variants";
 import { warehouses } from "./stock";
 
 export const stockMovementTypeEnum = inventorySchema.enum("stock_movement_type", [

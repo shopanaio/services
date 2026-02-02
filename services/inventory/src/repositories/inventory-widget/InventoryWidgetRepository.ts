@@ -64,6 +64,18 @@ const toNumberOrNull = (value: unknown): number | null => {
   return Number.isFinite(numberValue) ? numberValue : null;
 };
 
+/**
+ * Repository for inventory widget data aggregation.
+ *
+ * Provides aggregated inventory metrics for the product inventory widget:
+ * - Stock quantities (available, on-hand, reserved, unavailable)
+ * - 7-day availability change
+ * - SKU status metrics (low stock, out of stock, backorder)
+ * - Alert thresholds
+ *
+ * Note: Uses variant table as a reference for joining with inventory data.
+ * Variant is owned by Catalog service but referenced here for aggregation queries.
+ */
 export class InventoryWidgetRepository extends BaseRepository {
   async getWidget(productId: string): Promise<ProductInventoryWidgetData> {
     const alertThreshold = await this.getAlertThreshold(productId);

@@ -6,7 +6,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { inventorySchema } from "./schema";
-import { variant } from "./products";
+import { variant } from "./variants";
 
 export const dimensionUnitEnum = inventorySchema.enum("dimension_unit", [
   "mm",

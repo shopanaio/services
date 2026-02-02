@@ -1,20 +1,14 @@
 // Schema
 export * from "./schema";
 
-// Products & Variants
-export * from "./products";
+// Variants (reference-only for foreign keys)
+export * from "./variants";
 
-// Pricing
-export * from "./pricing";
+// InventoryItem (new - 1:1 with Variant)
+export * from "./inventory-item";
 
 // Cost
 export * from "./cost";
-
-// Options (color, size, etc.)
-export * from "./options";
-
-// Features
-export * from "./features";
 
 // Physical attributes (dimensions, weight)
 export * from "./physical";
@@ -26,16 +20,5 @@ export * from "./reservations";
 export * from "./product-inventory-settings";
 export * from "./inbound-supply";
 
-// Media links
-export * from "./media";
-
-// Translations (i18n)
+// Translations (i18n) - warehouse translations only
 export * from "./translations";
-
-// SEO (search engine & social media metadata)
-export * from "./seo";
-
-// Bulk edit
-export * from "./bulkEditJobs";
-export * from "./bulkEditItems";
-export * from "./productBulkFence";

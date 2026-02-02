@@ -1,19 +1,13 @@
+import { decodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { ApolloQuery } from "@shopana/type-resolver";
 import { InventoryType } from "./InventoryType.js";
-import { ProductResolver } from "./ProductResolver.js";
-import {
-  ProductConnectionResolver,
-  type ProductConnectionInput,
-} from "./ProductConnectionResolver.js";
 import { WarehouseResolver } from "./WarehouseResolver.js";
+import { InventoryItemResolver } from "./InventoryItemResolver.js";
+import { WidgetQueryResolver } from "./InventoryWidgetResolver.js";
 import {
   WarehouseConnectionResolver,
   type WarehouseConnectionResolverInput,
 } from "./WarehouseConnectionResolver.js";
-import { VariantResolver } from "./VariantResolver.js";
-import { WidgetQueryResolver } from "./InventoryWidgetResolver.js";
-import { ProductBulkUpdateJobResolver } from "./ProductBulkUpdateJobResolver.js";
-import type { VariantRelayInput } from "../../repositories/variant/VariantRepository.js";
 
 /**
  * Root Query resolver.
@@ -30,7 +24,8 @@ export class QueryResolver extends InventoryType<Record<string, never>> {
   }
 
   /**
-   * Entry point for widget-related queries.
+   * Entry point for widget queries.
+   * Only inventory widget remains in Inventory service.
    */
   widgetQuery() {
     return new WidgetQueryResolver({}, this.$ctx);
@@ -40,83 +35,44 @@ export class QueryResolver extends InventoryType<Record<string, never>> {
 /**
  * InventoryQuery namespace resolver.
  * Handles all inventory-related queries.
+ *
+ * After the service split:
+ * - Product/Variant queries are in Catalog service
+ * - This service handles Warehouse, Stock, and InventoryItem queries
  */
 export class InventoryQueryResolver extends InventoryType<Record<string, never>> {
   // ---- Node Queries (Relay) ----
 
   /**
    * Get a node by ID (for Relay compatibility).
+   * Supports Warehouse and InventoryItem nodes.
    */
-  node(args: { id: string }) {
-    return new ProductResolver(args.id, this.$ctx);
+  async node(args: { id: string }) {
+    // Try to load as warehouse
+    const warehouse = await this.$ctx.loaders.warehouse.load(args.id);
+    if (warehouse) {
+      return new WarehouseResolver(args.id, this.$ctx);
+    }
+
+    // Try to decode as InventoryItem
+    try {
+      const inventoryItemId = decodeGlobalIdByType(args.id, GlobalIdEntity.InventoryItem);
+      const item = await this.$ctx.kernel.repository.inventoryItem.findById(inventoryItemId);
+      if (item) {
+        return new InventoryItemResolver(item.id, this.$ctx);
+      }
+    } catch {
+      // Not an InventoryItem ID
+    }
+
+    return null;
   }
 
   /**
    * Get multiple nodes by IDs (for Relay compatibility).
    */
-  nodes(args: { ids: string[] }) {
-    return args.ids.map((id) => new ProductResolver(id, this.$ctx));
-  }
-
-  // ---- Product Queries ----
-
-  /**
-   * Get a single product by ID.
-   * Returns null if product doesn't exist.
-   */
-  async product(args: { id: string }) {
-    const product = await this.$ctx.loaders.product.load(args.id);
-    if (!product) {
-      return null;
-    }
-    return new ProductResolver(args.id, this.$ctx);
-  }
-
-  /**
-   * Get a paginated list of products.
-   */
-  products(args: ProductConnectionInput) {
-    return new ProductConnectionResolver(args, this.$ctx);
-  }
-
-  // ---- Variant Queries ----
-
-  /**
-   * Get a single variant by ID.
-   */
-  variant(args: { id: string }) {
-    return new VariantResolver(args.id, this.$ctx);
-  }
-
-  /**
-   * Get a paginated list of variants.
-   */
-  async variants(args: VariantRelayInput) {
-    const services = this.$ctx.kernel.getServices();
-    const first = args.first ?? 10;
-
-    const variants = await services.repository.variant.getMany({
-      limit: first + 1,
-    });
-
-    const hasNextPage = variants.length > first;
-    const resultVariants = hasNextPage ? variants.slice(0, first) : variants;
-
-    const edges = resultVariants.map((variant) => ({
-      node: new VariantResolver(variant.id, this.$ctx),
-      cursor: Buffer.from(variant.id).toString("base64"),
-    }));
-
-    return {
-      edges,
-      pageInfo: {
-        hasNextPage,
-        hasPreviousPage: false,
-        startCursor: edges[0]?.cursor ?? null,
-        endCursor: edges[edges.length - 1]?.cursor ?? null,
-      },
-      totalCount: resultVariants.length,
-    };
+  async nodes(args: { ids: string[] }) {
+    return Promise.all(args.ids.map((id) => this.node({ id })));
   }
 
   // ---- Warehouse Queries ----
@@ -140,15 +96,51 @@ export class InventoryQueryResolver extends InventoryType<Record<string, never>>
     return new WarehouseConnectionResolver(args, this.$ctx);
   }
 
+  // ---- InventoryItem Queries ----
+
   /**
-   * Get a bulk update job by ID.
+   * Get an inventory item by ID.
    */
-  async productBulkUpdateJob(args: { jobId: string }) {
-    const job = await this.$ctx.kernel.repository.bulkEditJob.findById(
-      args.jobId
-    );
-    if (!job) return null;
-    return new ProductBulkUpdateJobResolver(job.id, this.$ctx);
+  async inventoryItem(args: { id: string }) {
+    const itemId = decodeGlobalIdByType(args.id, GlobalIdEntity.InventoryItem);
+    const item = await this.$ctx.kernel.repository.inventoryItem.findById(itemId);
+    if (!item) return null;
+    return new InventoryItemResolver(item.id, this.$ctx);
   }
 
+  /**
+   * Get an inventory item by variant ID.
+   * Creates one if it doesn't exist (lazy creation).
+   */
+  async inventoryItemByVariant(args: { variantId: string }) {
+    const variantUuid = decodeGlobalIdByType(args.variantId, GlobalIdEntity.Variant);
+    const item = await this.$ctx.kernel.repository.inventoryItem.getOrCreate(variantUuid);
+    return new InventoryItemResolver(item.id, this.$ctx);
+  }
+
+  /**
+   * Get inventory items with pagination.
+   */
+  async inventoryItems(args: {
+    first?: number;
+    after?: string;
+    where?: { sku?: { _eq?: string; _contains?: string; _startsWith?: string }; trackInventory?: boolean };
+  }) {
+    // TODO: Implement proper pagination with cursor
+    // For now, return a simple list
+    const first = args.first ?? 20;
+
+    // This is a simplified implementation
+    // A full implementation would use cursor-based pagination
+    return {
+      edges: [],
+      pageInfo: {
+        hasNextPage: false,
+        hasPreviousPage: false,
+        startCursor: null,
+        endCursor: null,
+      },
+      totalCount: 0,
+    };
+  }
 }

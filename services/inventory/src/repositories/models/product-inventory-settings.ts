@@ -7,15 +7,19 @@ import {
   primaryKey,
 } from "drizzle-orm/pg-core";
 import { inventorySchema } from "./schema";
-import { product } from "./products";
 
+/**
+ * Product inventory settings.
+ *
+ * NOTE: productId references a product in the Catalog service.
+ * The foreign key constraint exists at the database level but is not
+ * managed by Drizzle ORM here since Product is owned by Catalog.
+ */
 export const productInventorySettings = inventorySchema.table(
   "product_inventory_settings",
   {
     projectId: uuid("project_id").notNull(),
-    productId: uuid("product_id")
-      .notNull()
-      .references(() => product.id, { onDelete: "cascade" }),
+    productId: uuid("product_id").notNull(), // References Catalog.product
     alertThresholdMethod: varchar("alert_threshold_method", { length: 20 })
       .notNull()
       .default("SAFETY_STOCK"),
