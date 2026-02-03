@@ -5,46 +5,14 @@
  */
 
 import type { TypeResult } from "@shopana/type-resolver";
-import type { ProductResolver } from "../ProductResolver.js";
-import type { ProductSeoResolver } from "../ProductSeoResolver.js";
-import type { VariantResolver } from "../VariantResolver.js";
 import type { WarehouseResolver } from "../WarehouseResolver.js";
-import type { OptionResolver } from "../OptionResolver.js";
-import type { OptionValueResolver } from "../OptionValueResolver.js";
-import type { FeatureResolver } from "../FeatureResolver.js";
-import type { FeatureValueResolver } from "../FeatureValueResolver.js";
-import type { VariantPriceResolver } from "../VariantPriceResolver.js";
 
 // ============================================================================
 // Derived types from Resolver classes (auto-generated from TypeResult)
 // ============================================================================
 
-/** Product type derived from ProductResolver */
-export type Product = TypeResult<typeof ProductResolver>;
-
-/** ProductSeo type derived from ProductSeoResolver */
-export type ProductSeo = TypeResult<typeof ProductSeoResolver>;
-
-/** Variant type derived from VariantResolver */
-export type Variant = TypeResult<typeof VariantResolver>;
-
 /** Warehouse type derived from WarehouseResolver */
 export type Warehouse = TypeResult<typeof WarehouseResolver>;
-
-/** Option type derived from OptionResolver */
-export type Option = TypeResult<typeof OptionResolver>;
-
-/** OptionValue type derived from OptionValueResolver */
-export type OptionValue = TypeResult<typeof OptionValueResolver>;
-
-/** Feature type derived from FeatureResolver */
-export type Feature = TypeResult<typeof FeatureResolver>;
-
-/** FeatureValue type derived from FeatureValueResolver */
-export type FeatureValue = TypeResult<typeof FeatureValueResolver>;
-
-/** VariantPrice type derived from VariantPriceResolver */
-export type VariantPriceHistory = TypeResult<typeof VariantPriceResolver>;
 
 // ============================================================================
 // Simple value types (manual interfaces - no resolvers for these)

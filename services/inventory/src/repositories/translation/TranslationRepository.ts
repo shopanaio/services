@@ -1,6 +1,6 @@
 import { eq, and } from "drizzle-orm";
 import type { TransactionManager } from "@shopana/shared-kernel";
-import type { Database } from "../infrastructure/db/database";
+import type { Database } from "../../infrastructure/db/database.js";
 import {
   warehouseTranslation,
   type WarehouseTranslation,

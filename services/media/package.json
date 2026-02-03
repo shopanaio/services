@@ -25,7 +25,7 @@
     "@shopana/shared-service-config": "*",
     "dataloader": "^2.2.3",
     "dotenv": "^16.4.5",
-    "drizzle-orm": "^0.44.7",
+    "drizzle-orm": "^0.45.1",
     "fastify": "^4.28.1",
     "file-type": "^21.1.1",
     "graphql": "^16.9.0",

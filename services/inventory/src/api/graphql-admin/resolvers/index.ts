@@ -1,8 +1,5 @@
 import { QueryResolver } from "../../../resolvers/admin/QueryResolver.js";
 import { MutationResolver } from "../../../resolvers/admin/MutationResolver.js";
-import { ProductResolver } from "../../../resolvers/admin/ProductResolver.js";
-import { VariantResolver } from "../../../resolvers/admin/VariantResolver.js";
-import { WarehouseResolver } from "../../../resolvers/admin/WarehouseResolver.js";
 import { typeResolvers } from "./types.js";
 
 /**

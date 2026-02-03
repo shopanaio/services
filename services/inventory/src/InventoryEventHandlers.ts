@@ -5,12 +5,26 @@ import {
   InjectBroker,
   ServiceBroker,
 } from "@shopana/shared-kernel";
-import type {
-  VariantCreatedEvent,
-  VariantDeletedEvent,
-  EventHandlerResponse,
-} from "@shopana/events";
+import type { EventHandlerResponse } from "@shopana/events";
 import { Kernel } from "./kernel/Kernel.js";
+
+// Event payload types (events come from Catalog service)
+interface VariantCreatedEvent {
+  eventId: string;
+  payload: {
+    variantId: string;
+    productId: string;
+    projectId: string;
+  };
+}
+
+interface VariantDeletedEvent {
+  eventId: string;
+  payload: {
+    variantId: string;
+    productId: string;
+  };
+}
 
 /**
  * Event handlers for Inventory service.
@@ -41,17 +55,15 @@ export class InventoryEventHandlers extends EventHandlers {
     const { variantId, productId, projectId } = params.event.payload;
 
     this.logger.debug(
-      { eventId: params.event.eventId, variantId, productId },
-      "Received variantCreated event"
+      `Received variantCreated event: eventId=${params.event.eventId}, variantId=${variantId}, productId=${productId}`
     );
 
     try {
       // Create InventoryItem for this variant
-      const item = await this.kernel.repository.inventoryItem.getOrCreate(variantId);
+      const item = await this.kernel.repository.inventoryItem.upsertByVariantId(variantId, {});
 
-      this.logger.info(
-        { variantId, inventoryItemId: item.id },
-        "Created InventoryItem for new variant"
+      this.logger.log(
+        `Created InventoryItem for new variant: variantId=${variantId}, inventoryItemId=${item.id}`
       );
 
       return { success: true };
@@ -79,8 +91,7 @@ export class InventoryEventHandlers extends EventHandlers {
     const { variantId, productId } = params.event.payload;
 
     this.logger.debug(
-      { eventId: params.event.eventId, variantId, productId },
-      "Received variantDeleted event"
+      `Received variantDeleted event: eventId=${params.event.eventId}, variantId=${variantId}, productId=${productId}`
     );
 
     // Note: InventoryItem and related data will be cascade-deleted
@@ -89,9 +100,8 @@ export class InventoryEventHandlers extends EventHandlers {
     // - Additional cleanup (e.g., external systems)
     // - Analytics updates
 
-    this.logger.info(
-      { variantId },
-      "Variant deleted - inventory data will be cascade deleted"
+    this.logger.log(
+      `Variant deleted - inventory data will be cascade deleted: variantId=${variantId}`
     );
 
     return { success: true };
@@ -118,8 +128,7 @@ export class InventoryEventHandlers extends EventHandlers {
       params.event.payload;
 
     this.logger.debug(
-      { eventId: params.event.eventId, variantId, warehouseId, previousLevel, newLevel },
-      "Received stockLevelChanged event"
+      `Received stockLevelChanged event: eventId=${params.event.eventId}, variantId=${variantId}, warehouseId=${warehouseId}, ${previousLevel} -> ${newLevel}`
     );
 
     // TODO: Implement low-stock alerts
