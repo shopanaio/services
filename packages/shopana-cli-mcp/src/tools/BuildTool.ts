@@ -18,6 +18,10 @@ const BuildToolSchema = z.object({
     .boolean()
     .optional()
     .describe('Build services in parallel for faster builds'),
+  skipTypeCheck: z
+    .boolean()
+    .optional()
+    .describe('Skip TypeScript type checking (not recommended, type checking is enabled by default)'),
   workingDir: z
     .string()
     .optional()
@@ -28,18 +32,21 @@ class BuildTool extends MCPTool<typeof BuildToolSchema> {
   name = 'shopana_build';
   description = `Build Shopana packages and services for production.
 
+TypeScript type checking is enabled by default and will fail the build if there are type errors.
+
 Examples:
 - Build everything: {}
 - Build packages only: { "packagesOnly": true }
 - Build specific services: { "services": ["checkout", "orders"] }
 - Build in parallel: { "parallel": true }
+- Skip type checking (not recommended): { "skipTypeCheck": true }
 
 Available services: apps, bootstrap, checkout, delivery, iam, inventory, listing, media, orders, payments, pricing, project, reviews, search`;
 
   schema = BuildToolSchema;
 
   async execute(input: z.infer<typeof BuildToolSchema>) {
-    const { services, packagesOnly, parallel, workingDir } = input;
+    const { services, packagesOnly, parallel, skipTypeCheck, workingDir } = input;
 
     let command = 'yarn shopana build';
 
@@ -51,6 +58,10 @@ Available services: apps, bootstrap, checkout, delivery, iam, inventory, listing
 
     if (parallel) {
       command += ' --parallel';
+    }
+
+    if (skipTypeCheck) {
+      command += ' --no-check';
     }
 
     try {
