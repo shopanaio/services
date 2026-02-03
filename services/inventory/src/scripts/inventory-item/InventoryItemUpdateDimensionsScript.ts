@@ -1,5 +1,5 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
-import type { Variant } from "../../repositories/models/index.js";
+import type { ItemDimensions } from "../../repositories/models/index.js";
 import {
   type ScriptResult,
   successResult,
@@ -15,7 +15,7 @@ export interface InventoryItemUpdateDimensionsParams {
   readonly length: number; // mm
 }
 
-export type InventoryItemUpdateDimensionsResult = ScriptResult<Variant, DimensionsChanges>;
+export type InventoryItemUpdateDimensionsResult = ScriptResult<ItemDimensions, DimensionsChanges>;
 
 /**
  * Script for updating inventory item dimensions.
@@ -28,12 +28,6 @@ export class InventoryItemUpdateDimensionsScript extends BaseScript<
     params: InventoryItemUpdateDimensionsParams
   ): Promise<InventoryItemUpdateDimensionsResult> {
     const { variantId, width, height, length } = params;
-
-    // Validate variant exists
-    const existingVariant = await this.repository.variant.findById(variantId);
-    if (!existingVariant) {
-      return singleError("Variant not found", "NOT_FOUND", ["variantId"]);
-    }
 
     // Validate dimensions
     if (width <= 0) {
@@ -60,7 +54,7 @@ export class InventoryItemUpdateDimensionsScript extends BaseScript<
 
     // Get current dimensions to compare
     const currentDimensions =
-      await this.repository.variant.getDimensionsByVariantIds([variantId]);
+      await this.repository.physical.getDimensionsByVariantIds([variantId]);
     const current = currentDimensions[0];
 
     const dimensionsChanged =
@@ -68,13 +62,13 @@ export class InventoryItemUpdateDimensionsScript extends BaseScript<
       height !== (current?.hMm ?? 0) ||
       length !== (current?.lMm ?? 0);
 
-    if (!dimensionsChanged) {
+    if (!dimensionsChanged && current) {
       this.logger.debug({ variantId }, "No dimension changes detected");
-      return unchangedResult(existingVariant);
+      return unchangedResult(current);
     }
 
     // Update dimensions
-    await this.repository.physical.upsertDimensions(variantId, {
+    const result = await this.repository.physical.upsertDimensions(variantId, {
       wMm: width,
       lMm: length,
       hMm: height,
@@ -87,7 +81,7 @@ export class InventoryItemUpdateDimensionsScript extends BaseScript<
       "Inventory item dimensions updated successfully"
     );
 
-    return successResult(existingVariant, changes);
+    return successResult(result, changes);
   }
 
   protected handleError(_error: unknown): InventoryItemUpdateDimensionsResult {

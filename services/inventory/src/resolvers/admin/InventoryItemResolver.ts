@@ -15,9 +15,13 @@ import { StockResolver } from "./StockResolver.js";
  * - Stock levels (via federation)
  */
 @SubgraphReference()
-export class InventoryItemResolver extends InventoryType<string, InventoryItem | null> {
-  async $preload() {
-    return this.$ctx.loaders.inventoryItem.load(this.$props);
+export class InventoryItemResolver extends InventoryType<string, InventoryItem> {
+  async $preload(): Promise<InventoryItem> {
+    const data = await this.$ctx.loaders.inventoryItem.load(this.$props);
+    if (!data) {
+      throw new Error(`InventoryItem not found: ${this.$props}`);
+    }
+    return data;
   }
 
   id() {
@@ -51,7 +55,7 @@ export class InventoryItemResolver extends InventoryType<string, InventoryItem |
     const variantId = await this.$get("variantId");
     const dims = await this.$ctx.kernel
       .getServices()
-      .repository.variant.getDimensionsByVariantIds([variantId]);
+      .repository.physical.getDimensionsByVariantIds([variantId]);
 
     const current = dims[0];
     if (!current) return null;
@@ -70,7 +74,7 @@ export class InventoryItemResolver extends InventoryType<string, InventoryItem |
     const variantId = await this.$get("variantId");
     const weights = await this.$ctx.kernel
       .getServices()
-      .repository.variant.getWeightsByVariantIds([variantId]);
+      .repository.physical.getWeightsByVariantIds([variantId]);
 
     const current = weights[0];
     if (!current) return null;
@@ -87,7 +91,7 @@ export class InventoryItemResolver extends InventoryType<string, InventoryItem |
     const variantId = await this.$get("variantId");
     const costs = await this.$ctx.kernel
       .getServices()
-      .repository.variant.getActiveCostsByVariantIds([variantId]);
+      .repository.cost.getActiveCostsByVariantIds([variantId]);
 
     if (costs.length === 0) return null;
 
@@ -117,7 +121,7 @@ export class InventoryItemResolver extends InventoryType<string, InventoryItem |
     const variantId = await this.$get("variantId");
     const stocks = await this.$ctx.kernel
       .getServices()
-      .repository.variant.getStockByVariantIds([variantId]);
+      .repository.stock.getByVariantId(variantId);
 
     return stocks.map((s) => new StockResolver(s.id, this.$ctx));
   }
@@ -129,7 +133,7 @@ export class InventoryItemResolver extends InventoryType<string, InventoryItem |
     const variantId = await this.$get("variantId");
     const stocks = await this.$ctx.kernel
       .getServices()
-      .repository.variant.getStockByVariantIds([variantId]);
+      .repository.stock.getByVariantId(variantId);
 
     return stocks.some((s) => s.quantityOnHand > 0);
   }

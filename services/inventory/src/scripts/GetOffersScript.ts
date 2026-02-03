@@ -1,5 +1,6 @@
-import { BaseScript, type UserError } from "../kernel/BaseScript.js";
+import { BaseScript } from "../kernel/BaseScript.js";
 import type { inventory as Inventory } from "@shopana/plugin-sdk";
+import type { Apps } from "@shopana/broker-types";
 
 export interface GetOffersParams extends Inventory.GetOffersInput {
   projectId: string;
@@ -15,16 +16,18 @@ export interface GetOffersResult {
 
 export class GetOffersScript extends BaseScript<GetOffersParams, GetOffersResult> {
   protected async execute(params: GetOffersParams): Promise<GetOffersResult> {
-    // Delegate to `apps.execute` for domain inventory
-    const { data, warnings } = await this.services.broker.call("apps.execute", {
-      domain: "inventory",
-      operation: "getOffers",
-      params,
-    });
+    const response = await this.services.broker.call<Apps.ExecuteResult, Apps.ExecuteParams>(
+      "apps.execute",
+      {
+        domain: "inventory",
+        operation: "getOffers",
+        params,
+      }
+    );
 
     return {
-      offers: data as Inventory.InventoryOffer[],
-      warnings,
+      offers: response.data as Inventory.InventoryOffer[],
+      warnings: response.warnings,
       fallbackSource: undefined,
     };
   }

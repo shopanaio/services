@@ -1,4 +1,4 @@
-import { encodeGlobalId, GlobalIdEntity } from "@shopana/shared-graphql-guid";
+import { encodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { WarehouseStock } from "../../repositories/models/index.js";
 import { InventoryType } from "./InventoryType.js";
 import { WarehouseResolver } from "./WarehouseResolver.js";
@@ -7,11 +7,15 @@ import { WarehouseResolver } from "./WarehouseResolver.js";
  * Stock view - resolves WarehouseStock domain interface
  * Accepts stock ID, loads data lazily via repository
  */
-export class StockResolver extends InventoryType<string, WarehouseStock | null> {
-  async $preload() {
-    return await this.$ctx.kernel
+export class StockResolver extends InventoryType<string, WarehouseStock> {
+  async $preload(): Promise<WarehouseStock> {
+    const data = await this.$ctx.kernel
       .getServices()
       .repository.stock.findById(this.$props);
+    if (!data) {
+      throw new Error(`Stock not found: ${this.$props}`);
+    }
+    return data;
   }
 
   id() {
@@ -43,7 +47,7 @@ export class StockResolver extends InventoryType<string, WarehouseStock | null> 
     // Gateway will route to Catalog service to resolve the full Variant
     return {
       __typename: "Variant" as const,
-      id: encodeGlobalId(GlobalIdEntity.Variant, variantId),
+      id: encodeGlobalIdByType(variantId, GlobalIdEntity.Variant),
     };
   }
 

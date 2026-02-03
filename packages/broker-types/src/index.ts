@@ -5,17 +5,15 @@
  *
  * Usage:
  * ```typescript
- * import { Media, IAM } from "@shopana/broker-types/actions";
- * import { MediaEvents } from "@shopana/broker-types/events";
+ * import type { Apps, Media, IAM } from "@shopana/broker-types";
  *
- * // Or import specific types
- * import type { FileLinkParams, FileLinkResult } from "@shopana/broker-types/actions";
- *
- * await broker.call<Media.FileLinkResult, Media.FileLinkParams>("media.fileLink", params);
+ * const result = await broker.call<Apps.ExecuteResult, Apps.ExecuteParams>(
+ *   "apps.execute",
+ *   { domain: "inventory", operation: "getOffers", params }
+ * );
  * ```
  */
 
-// Re-export everything for convenience
 export * from "./shared.js";
 export * from "./actions/index.js";
 export * from "./events/index.js";

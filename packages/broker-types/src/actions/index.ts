@@ -5,6 +5,14 @@
 // Shared types
 export type { EntityRef, UserError, AssetOwnerType } from "../shared.js";
 
+// Apps service actions
+export * as Apps from "./apps.js";
+export type {
+  ExecuteParams,
+  ExecuteWarning,
+  ExecuteResult,
+} from "./apps.js";
+
 // Media service actions
 export * as Media from "./media.js";
 export type {

@@ -21,7 +21,7 @@ import { StockResolver } from "./StockResolver.js";
  * - inventoryItem: The associated InventoryItem entity
  */
 @SubgraphReference()
-export class VariantFederationResolver extends InventoryType<string, null> {
+export class VariantFederationResolver extends InventoryType<string, Record<string, never>> {
   // Variant ID passed from federation
   id() {
     return this.$props;
@@ -51,7 +51,7 @@ export class VariantFederationResolver extends InventoryType<string, null> {
   async dimensions() {
     const dims = await this.$ctx.kernel
       .getServices()
-      .repository.variant.getDimensionsByVariantIds([this.$props]);
+      .repository.physical.getDimensionsByVariantIds([this.$props]);
 
     const current = dims[0];
     if (!current) return null;
@@ -69,7 +69,7 @@ export class VariantFederationResolver extends InventoryType<string, null> {
   async weight() {
     const weights = await this.$ctx.kernel
       .getServices()
-      .repository.variant.getWeightsByVariantIds([this.$props]);
+      .repository.physical.getWeightsByVariantIds([this.$props]);
 
     const current = weights[0];
     if (!current) return null;
@@ -85,7 +85,7 @@ export class VariantFederationResolver extends InventoryType<string, null> {
   async cost() {
     const costs = await this.$ctx.kernel
       .getServices()
-      .repository.variant.getActiveCostsByVariantIds([this.$props]);
+      .repository.cost.getActiveCostsByVariantIds([this.$props]);
 
     if (costs.length === 0) return null;
 
@@ -114,7 +114,7 @@ export class VariantFederationResolver extends InventoryType<string, null> {
   async stock() {
     const stocks = await this.$ctx.kernel
       .getServices()
-      .repository.variant.getStockByVariantIds([this.$props]);
+      .repository.stock.getByVariantId(this.$props);
 
     return stocks.map((s) => new StockResolver(s.id, this.$ctx));
   }
@@ -125,7 +125,7 @@ export class VariantFederationResolver extends InventoryType<string, null> {
   async inStock() {
     const stocks = await this.$ctx.kernel
       .getServices()
-      .repository.variant.getStockByVariantIds([this.$props]);
+      .repository.stock.getByVariantId(this.$props);
 
     return stocks.some((s) => s.quantityOnHand > 0);
   }

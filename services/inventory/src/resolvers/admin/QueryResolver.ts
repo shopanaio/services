@@ -113,7 +113,7 @@ export class InventoryQueryResolver extends InventoryType<Record<string, never>>
    */
   async inventoryItemByVariant(args: { variantId: string }) {
     const variantUuid = decodeGlobalIdByType(args.variantId, GlobalIdEntity.Variant);
-    const item = await this.$ctx.kernel.repository.inventoryItem.getOrCreate(variantUuid);
+    const item = await this.$ctx.kernel.repository.inventoryItem.upsertByVariantId(variantUuid, {});
     return new InventoryItemResolver(item.id, this.$ctx);
   }
 
