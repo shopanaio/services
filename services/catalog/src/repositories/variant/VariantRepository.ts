@@ -8,7 +8,7 @@ import {
   type PageInfo,
 } from "@shopana/drizzle-query";
 import { randomUUID } from "crypto";
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   itemPricing,
@@ -310,7 +310,7 @@ export class VariantRepository extends BaseRepository {
         nodeId: edge.node.id,
       })),
       pageInfo: result.pageInfo,
-      totalCount: result.totalCount,
+      totalCount: result.totalCount ?? 0,
     };
   }
 
@@ -411,7 +411,8 @@ export class VariantRepository extends BaseRepository {
           eq(variantMedia.projectId, this.storeId),
           inArray(variantMedia.variantId, [...variantIds])
         )
-      );
+      )
+      .orderBy(asc(variantMedia.sortIndex));
   }
 
   async getSelectedOptionsByVariantIds(

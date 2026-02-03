@@ -21,10 +21,7 @@ export class OptionLoader {
     this.optionValueIds = new DataLoader<string, string[]>(async (optionIds) => {
       const results = await repository.option.getValueIdsByOptionIds(optionIds);
       return optionIds.map((id) =>
-        results
-          .filter((v) => v.optionId === id)
-          .sort((a, b) => a.sortIndex - b.sortIndex)
-          .map((v) => v.id)
+        results.filter((v) => v.optionId === id).map((v) => v.id)
       );
     });
 

@@ -2,7 +2,6 @@ export { BulkEditCreateJobScript } from "./BulkEditCreateJobScript.js";
 export type {
   BulkEditCreateJobParams,
   BulkEditCreateJobResult,
-  FlatOperation,
 } from "./BulkEditCreateJobScript.js";
 
 export { BulkEditFinalizeJobScript } from "./BulkEditFinalizeJobScript.js";

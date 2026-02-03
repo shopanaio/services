@@ -43,9 +43,7 @@ export class CategoryLoader {
           categoryIds
         );
         return categoryIds.map((id) =>
-          results
-            .filter((m) => m.categoryId === id)
-            .sort((a, b) => a.sortIndex - b.sortIndex)
+          results.filter((m) => m.categoryId === id)
         );
       }
     );

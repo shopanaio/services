@@ -15,9 +15,13 @@ import { VariantPriceResolver } from "./VariantPriceResolver.js";
  * Эти поля резолвятся через federation extend в Inventory Service.
  */
 @SubgraphReference()
-export class VariantResolver extends CatalogType<string, Variant | null> {
+export class VariantResolver extends CatalogType<string, Variant> {
   async $preload() {
-    return this.$ctx.loaders.variant.load(this.$props);
+    const variant = await this.$ctx.loaders.variant.load(this.$props);
+    if (!variant) {
+      throw new Error(`Variant with ID ${this.$props} not found`);
+    }
+    return variant;
   }
 
   id() {

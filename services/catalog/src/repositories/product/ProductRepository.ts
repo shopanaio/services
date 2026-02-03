@@ -213,7 +213,7 @@ export class ProductRepository extends BaseRepository {
   }
 
   async getConnection(args: ProductRelayInput): Promise<ProductConnectionResult> {
-    const { where, order, ...paginationArgs } = args;
+    const { where, orderBy, ...paginationArgs } = args;
 
     // Merge user-provided where with projectId and deletedAt filters
     const mergedWhere: ProductRelayInput["where"] = {
@@ -227,9 +227,9 @@ export class ProductRepository extends BaseRepository {
     const executeInput: ProductRelayInput = {
       ...paginationArgs,
       where: mergedWhere,
-      order: order ?? [
-        { field: "createdAt", order: "desc" },
-        { field: "id", order: "desc" },
+      orderBy: orderBy ?? [
+        { field: "createdAt", direction: "desc" },
+        { field: "id", direction: "desc" },
       ],
     };
 
@@ -252,8 +252,8 @@ export class ProductRepository extends BaseRepository {
     return productQuery.execute(this.connection, {
       ...input,
       order: input?.order ?? [
-        { field: "createdAt", order: "desc" },
-        { field: "id", order: "desc" },
+        { field: "createdAt", direction: "desc" },
+        { field: "id", direction: "desc" },
       ],
       where: {
         ...input?.where,
@@ -336,12 +336,12 @@ export class ProductRepository extends BaseRepository {
 
   async getRootFeatureIdsByProductIds(
     productIds: readonly string[]
-  ): Promise<Array<{ id: string; productId: string; sortIndex: number }>> {
+  ): Promise<Array<{ id: string; productId: string; index: number[] }>> {
     return this.connection
       .select({
         id: productFeature.id,
         productId: productFeature.productId,
-        sortIndex: productFeature.sortIndex,
+        index: productFeature.index,
       })
       .from(productFeature)
       .where(
@@ -351,7 +351,7 @@ export class ProductRepository extends BaseRepository {
           isNull(productFeature.parentId)
         )
       )
-      .orderBy(productFeature.sortIndex);
+      .orderBy(productFeature.index);
   }
 
   async getOptionsByIds(optionIds: readonly string[]): Promise<ProductOption[]> {

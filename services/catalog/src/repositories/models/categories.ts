@@ -26,9 +26,7 @@ export const category = inventorySchema.table(
     id: uuid("id").primaryKey(),
 
     // Hierarchy
-    parentId: uuid("parent_id").references((): typeof category => category.id, {
-      onDelete: "cascade",
-    }),
+    parentId: uuid("parent_id"),
     path: text("path").notNull(), // Materialized path: "root.parent.child"
     depth: integer("depth").notNull().default(0),
 

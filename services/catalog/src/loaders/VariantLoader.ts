@@ -61,7 +61,7 @@ export class VariantLoader {
     this.variantMedia = new DataLoader<string, VariantMedia[]>(async (variantIds) => {
       const results = await repository.variant.getMediaByVariantIds(variantIds);
       return variantIds.map((id) =>
-        results.filter((m) => m.variantId === id).sort((a, b) => a.sortIndex - b.sortIndex)
+        results.filter((m) => m.variantId === id)
       );
     });
 

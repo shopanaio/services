@@ -12,9 +12,13 @@ const OP_TYPE_MAP: Record<string, string> = {
   variantSetWeight: "VARIANT_SET_WEIGHT",
 };
 
-export class BulkUpdateItemResolver extends CatalogType<string, BulkEditItem | null> {
+export class BulkUpdateItemResolver extends CatalogType<string, BulkEditItem> {
   async $preload() {
-    return this.$ctx.kernel.repository.bulkEditItem.findById(this.$props);
+    const item = await this.$ctx.kernel.repository.bulkEditItem.findById(this.$props);
+    if (!item) {
+      throw new Error(`BulkEditItem with ID ${this.$props} not found`);
+    }
+    return item;
   }
 
   id() {

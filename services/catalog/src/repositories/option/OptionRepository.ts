@@ -1,4 +1,4 @@
-import { and, eq, inArray, notInArray } from "drizzle-orm";
+import { and, asc, eq, inArray, notInArray } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { BaseRepository } from "../BaseRepository.js";
 import {
@@ -549,7 +549,8 @@ export class OptionRepository extends BaseRepository {
           eq(productOptionValue.projectId, this.storeId),
           inArray(productOptionValue.optionId, [...optionIds])
         )
-      );
+      )
+      .orderBy(asc(productOptionValue.sortIndex));
   }
 
   async getValuesByIds(valueIds: readonly string[]): Promise<ProductOptionValue[]> {

@@ -108,6 +108,8 @@ export enum GlobalIdEntity {
   Member = "Member",
   ApiKey = "ApiKey",
   Session = "Session",
+  Category = "Category",
+  Tag = "Tag",
 }
 
 /**

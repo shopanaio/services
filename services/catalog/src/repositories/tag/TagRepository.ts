@@ -139,7 +139,7 @@ export class TagRepository extends BaseRepository {
   }
 
   async getConnection(args: TagRelayInput): Promise<TagConnectionResult> {
-    const { where, order, ...paginationArgs } = args;
+    const { where, orderBy, ...paginationArgs } = args;
 
     const mergedWhere: TagRelayInput["where"] = {
       _and: [
@@ -151,9 +151,9 @@ export class TagRepository extends BaseRepository {
     const executeInput: TagRelayInput = {
       ...paginationArgs,
       where: mergedWhere,
-      order: order ?? [
-        { field: "createdAt", order: "desc" },
-        { field: "id", order: "desc" },
+      orderBy: orderBy ?? [
+        { field: "createdAt", direction: "desc" },
+        { field: "id", direction: "desc" },
       ],
     };
 
@@ -176,8 +176,8 @@ export class TagRepository extends BaseRepository {
     return tagQuery.execute(this.connection, {
       ...input,
       order: input?.order ?? [
-        { field: "createdAt", order: "desc" },
-        { field: "id", order: "desc" },
+        { field: "createdAt", direction: "desc" },
+        { field: "id", direction: "desc" },
       ],
       where: {
         ...input?.where,

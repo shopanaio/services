@@ -3,9 +3,13 @@ import type { BulkEditItemConnectionInput } from "../../repositories/BulkEditIte
 import { CatalogType } from "./CatalogType.js";
 import { BulkUpdateItemResolver } from "./BulkUpdateItemResolver.js";
 
-export class ProductBulkUpdateJobResolver extends CatalogType<string, BulkEditJob | null> {
+export class ProductBulkUpdateJobResolver extends CatalogType<string, BulkEditJob> {
   async $preload() {
-    return this.$ctx.kernel.repository.bulkEditJob.findById(this.$props);
+    const job = await this.$ctx.kernel.repository.bulkEditJob.findById(this.$props);
+    if (!job) {
+      throw new Error(`BulkEditJob with ID ${this.$props} not found`);
+    }
+    return job;
   }
 
   id() {

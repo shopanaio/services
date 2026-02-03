@@ -6,9 +6,13 @@ import { FeatureValueResolver } from "./FeatureValueResolver.js";
  * Feature view - resolves Feature domain interface
  * Accepts feature ID, loads data lazily via loaders
  */
-export class FeatureResolver extends CatalogType<string, ProductFeature | null> {
+export class FeatureResolver extends CatalogType<string, ProductFeature> {
   async $preload() {
-    return this.$ctx.loaders.productFeature.load(this.$props);
+    const feature = await this.$ctx.loaders.productFeature.load(this.$props);
+    if (!feature) {
+      throw new Error(`Feature with ID ${this.$props} not found`);
+    }
+    return feature;
   }
 
   id() {

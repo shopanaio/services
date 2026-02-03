@@ -54,10 +54,7 @@ export class ProductLoader {
           productIds
         );
         return productIds.map((id) =>
-          results
-            .filter((f) => f.productId === id)
-            .sort((a, b) => a.sortIndex - b.sortIndex)
-            .map((f) => f.id)
+          results.filter((f) => f.productId === id).map((f) => f.id)
         );
       }
     );

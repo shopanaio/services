@@ -38,7 +38,6 @@ export class Repository {
   public readonly bulkEditItem: BulkEditItemRepository;
   public readonly bulkFence: BulkFenceRepository;
   public readonly txManager: TransactionManager<Database>;
-  private readonly _db: Database;
 
   /**
    * Get the current database connection (transaction-aware).

@@ -16,9 +16,13 @@ interface ProductsArgs {
  * Decorated with @SubgraphReference for federation support.
  */
 @SubgraphReference()
-export class CategoryResolver extends CatalogType<string, Category | null> {
+export class CategoryResolver extends CatalogType<string, Category> {
   async $preload() {
-    return this.$ctx.loaders.category.load(this.$props);
+    const category = await this.$ctx.loaders.category.load(this.$props);
+    if (!category) {
+      throw new Error(`Category with ID ${this.$props} not found`);
+    }
+    return category;
   }
 
   id() {

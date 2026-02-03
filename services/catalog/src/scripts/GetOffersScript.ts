@@ -16,15 +16,15 @@ export interface GetOffersResult {
 export class GetOffersScript extends BaseScript<GetOffersParams, GetOffersResult> {
   protected async execute(params: GetOffersParams): Promise<GetOffersResult> {
     // Delegate to `apps.execute` for domain inventory
-    const { data, warnings } = await this.services.broker.call("apps.execute", {
+    const result = (await this.services.broker.call("apps.execute", {
       domain: "inventory",
       operation: "getOffers",
       params,
-    });
+    })) as { data: Inventory.InventoryOffer[]; warnings?: Array<{ code: string; message: string }> };
 
     return {
-      offers: data as Inventory.InventoryOffer[],
-      warnings,
+      offers: result.data,
+      warnings: result.warnings,
       fallbackSource: undefined,
     };
   }

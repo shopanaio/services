@@ -13,13 +13,16 @@ export const typeResolvers: Partial<Resolvers> = {
     __resolveType: (obj: unknown) => {
       const record = obj as Record<string, unknown>;
       if ("variants" in record) return "Product";
-      if ("productId" in record) return "Variant";
+      if ("productId" in record && "optionValueIds" in record) return "Variant";
       if ("displayType" in record) return "ProductOption";
       if ("swatchType" in record) return "ProductOptionSwatch";
-      if ("quantityOnHand" in record) return "WarehouseStock";
-      if ("code" in record) return "Warehouse";
       if ("amountMinor" in record) return "VariantPrice";
       if ("unitCostMinor" in record) return "VariantCost";
+      if ("isGroup" in record) return "ProductFeature";
+      if ("featureId" in record) return "ProductFeatureValue";
+      if ("handle" in record && "path" in record) return "Category";
+      if ("handle" in record && !("path" in record)) return "Tag";
+      if ("optionId" in record) return "ProductOptionValue";
       return null;
     },
   },

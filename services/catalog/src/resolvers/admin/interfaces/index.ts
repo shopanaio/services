@@ -8,7 +8,6 @@ import type { TypeResult } from "@shopana/type-resolver";
 import type { ProductResolver } from "../ProductResolver.js";
 import type { ProductSeoResolver } from "../ProductSeoResolver.js";
 import type { VariantResolver } from "../VariantResolver.js";
-import type { WarehouseResolver } from "../WarehouseResolver.js";
 import type { OptionResolver } from "../OptionResolver.js";
 import type { OptionValueResolver } from "../OptionValueResolver.js";
 import type { FeatureResolver } from "../FeatureResolver.js";
@@ -27,9 +26,6 @@ export type ProductSeo = TypeResult<typeof ProductSeoResolver>;
 
 /** Variant type derived from VariantResolver */
 export type Variant = TypeResult<typeof VariantResolver>;
-
-/** Warehouse type derived from WarehouseResolver */
-export type Warehouse = TypeResult<typeof WarehouseResolver>;
 
 /** Option type derived from OptionResolver */
 export type Option = TypeResult<typeof OptionResolver>;
@@ -81,12 +77,12 @@ export interface VariantPrice {
   amountMinor: number;
   /** The compare-at price in minor units (strikethrough price) */
   compareAtMinor: number | null;
-  /** When this price became effective */
-  effectiveFrom: Date;
+  /** When this price became effective (ISO 8601 string) */
+  effectiveFrom: string;
   /** When this price stopped being effective (null if current) */
-  effectiveTo: Date | null;
-  /** When this price record was created */
-  recordedAt: Date;
+  effectiveTo: string | null;
+  /** When this price record was created (ISO 8601 string) */
+  recordedAt: string;
   /** Whether this is the current active price */
   isCurrent: boolean;
 }
@@ -101,12 +97,12 @@ export interface VariantCost {
   currency: CurrencyCode;
   /** The unit cost in minor units */
   unitCostMinor: number;
-  /** When this cost became effective */
-  effectiveFrom: Date;
+  /** When this cost became effective (ISO 8601 string) */
+  effectiveFrom: string;
   /** When this cost stopped being effective (null if current) */
-  effectiveTo: Date | null;
-  /** When this cost record was created */
-  recordedAt: Date;
+  effectiveTo: string | null;
+  /** When this cost record was created (ISO 8601 string) */
+  recordedAt: string;
   /** Whether this is the current active cost */
   isCurrent: boolean;
 }

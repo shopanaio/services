@@ -7,9 +7,13 @@ import { OptionValueResolver } from "./OptionValueResolver.js";
  * Option view - resolves Option domain interface
  * Accepts option ID, loads data lazily via loaders
  */
-export class OptionResolver extends CatalogType<string, ProductOption | null> {
+export class OptionResolver extends CatalogType<string, ProductOption> {
   async $preload() {
-    return this.$ctx.loaders.productOption.load(this.$props);
+    const option = await this.$ctx.loaders.productOption.load(this.$props);
+    if (!option) {
+      throw new Error(`Option with ID ${this.$props} not found`);
+    }
+    return option;
   }
 
   id() {

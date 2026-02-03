@@ -8,10 +8,14 @@ import { CatalogType } from "./CatalogType.js";
  */
 export class VariantPriceResolver extends CatalogType<
   string,
-  ItemPricing | null
+  ItemPricing
 > {
   async $preload() {
-    return this.$ctx.loaders.variantPriceById.load(this.$props);
+    const price = await this.$ctx.loaders.variantPriceById.load(this.$props);
+    if (!price) {
+      throw new Error(`Price with ID ${this.$props} not found`);
+    }
+    return price;
   }
 
   id() {
@@ -31,15 +35,15 @@ export class VariantPriceResolver extends CatalogType<
     return this.$get("compareAtMinor");
   }
 
-  async effectiveFrom(): Promise<Date | null> {
+  async effectiveFrom(): Promise<string | null> {
     return this.$get("effectiveFrom");
   }
 
-  async effectiveTo(): Promise<Date | null> {
+  async effectiveTo(): Promise<string | null> {
     return this.$get("effectiveTo");
   }
 
-  async recordedAt(): Promise<Date | null> {
+  async recordedAt(): Promise<string | null> {
     return this.$get("recordedAt");
   }
 

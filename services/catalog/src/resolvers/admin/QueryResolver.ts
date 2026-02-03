@@ -46,8 +46,14 @@ export class QueryResolver extends CatalogType<Record<string, never>> {
  * Widget query resolver for pricing.
  */
 export class WidgetQueryResolver extends CatalogType<Record<string, never>> {
-  pricing(args: { input: { productId: string } }) {
-    return new PricingWidgetResolver(args.input, this.$ctx);
+  pricing(args: { input: { variantId: string; currency: string } }) {
+    return new PricingWidgetResolver(
+      {
+        variantId: args.input.variantId,
+        currency: args.input.currency as "UAH" | "USD" | "EUR",
+      },
+      this.$ctx
+    );
   }
 }
 

@@ -15,9 +15,13 @@ import { VariantConnectionResolver } from "./VariantConnectionResolver.js";
  * Decorated with @SubgraphReference for federation support.
  */
 @SubgraphReference()
-export class ProductResolver extends CatalogType<string, Product | null> {
+export class ProductResolver extends CatalogType<string, Product> {
   async $preload() {
-    return this.$ctx.loaders.product.load(this.$props);
+    const product = await this.$ctx.loaders.product.load(this.$props);
+    if (!product) {
+      throw new Error(`Product with ID ${this.$props} not found`);
+    }
+    return product;
   }
 
   id() {

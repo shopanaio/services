@@ -34,9 +34,7 @@ export class TagLoader {
 
     this.productTagIds = new DataLoader<string, string[]>(
       async (productIds) => {
-        const results = await repository.tag.getProductTagsByProductIds(
-          productIds
-        );
+        const results = await repository.tag.getProductTagLinks(productIds);
         return productIds.map((id) =>
           results.filter((pt) => pt.productId === id).map((pt) => pt.tagId)
         );

@@ -38,22 +38,13 @@ export class PricingWidgetResolver extends CatalogType<PricingWidgetInput> {
 
   async currentCostPrice(): Promise<VariantCost | null> {
     const services = this.$ctx.kernel.getServices();
-    const cost = await services.repository.cost.getCurrentCost({
+    const cost = await services.broker.call<VariantCost | null>("inventory.getVariantCost", {
+      projectId: this.$ctx.project,
       variantId: this.$props.variantId,
       currency: this.$props.currency,
     });
 
-    if (!cost) return null;
-
-    return {
-      id: cost.id,
-      currency: cost.currency as CurrencyCode,
-      unitCostMinor: cost.unitCostMinor,
-      effectiveFrom: cost.effectiveFrom,
-      effectiveTo: cost.effectiveTo,
-      recordedAt: cost.recordedAt,
-      isCurrent: cost.effectiveTo === null,
-    };
+    return cost;
   }
 
   async history() {

@@ -33,8 +33,6 @@ export class ProductCreateScript extends BaseScript<
       descriptionHtml: description?.html ?? null,
       descriptionJson: description?.json ?? null,
       excerpt: null,
-      seoTitle: null,
-      seoDescription: null,
     });
 
     let createdVariants: Variant[] = [];

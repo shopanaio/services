@@ -24,10 +24,7 @@ export class FeatureLoader {
     this.featureValueIds = new DataLoader<string, string[]>(async (featureIds) => {
       const results = await repository.feature.getValueIdsByFeatureIds(featureIds);
       return featureIds.map((id) =>
-        results
-          .filter((v) => v.featureId === id)
-          .sort((a, b) => a.sortIndex - b.sortIndex)
-          .map((v) => v.id)
+        results.filter((v) => v.featureId === id).map((v) => v.id)
       );
     });
 
@@ -46,20 +43,16 @@ export class FeatureLoader {
       const parentIds = [...new Set(keys.map((key) => key.parentId))];
       const results = await repository.feature.getChildIdsByParentIds(productIds, parentIds);
 
-      const byKey = new Map<string, Array<{ id: string; sortIndex: number }>>();
+      const byKey = new Map<string, string[]>();
       for (const child of results) {
         if (!child.parentId) continue;
         const key = `${child.productId}:${child.parentId}`;
         const existing = byKey.get(key) ?? [];
-        existing.push({ id: child.id, sortIndex: child.sortIndex });
+        existing.push(child.id);
         byKey.set(key, existing);
       }
 
-      return keys.map((key) => {
-        const items = byKey.get(`${key.productId}:${key.parentId}`) ?? [];
-        items.sort((a, b) => a.sortIndex - b.sortIndex);
-        return items.map((item) => item.id);
-      });
+      return keys.map((key) => byKey.get(`${key.productId}:${key.parentId}`) ?? []);
     });
   }
 }

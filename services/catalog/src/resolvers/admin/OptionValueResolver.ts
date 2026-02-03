@@ -8,10 +8,14 @@ import { CatalogType } from "./CatalogType.js";
  */
 export class OptionValueResolver extends CatalogType<
   string,
-  ProductOptionValue | null
+  ProductOptionValue
 > {
   async $preload() {
-    return this.$ctx.loaders.optionValue.load(this.$props);
+    const value = await this.$ctx.loaders.optionValue.load(this.$props);
+    if (!value) {
+      throw new Error(`OptionValue with ID ${this.$props} not found`);
+    }
+    return value;
   }
 
   id() {
