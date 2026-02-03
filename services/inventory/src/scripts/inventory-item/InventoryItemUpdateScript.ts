@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
+import { BaseScript } from "../../kernel/BaseScript.js";
 import type { WarehouseStock } from "../../repositories/models/index.js";
 import {
   type ScriptResult,
@@ -31,7 +31,7 @@ export type InventoryItemUpdateResult = ScriptResult<
 >;
 
 /**
- * Script for updating inventory item (stock, SKU, weight, and unit cost).
+ * Script for updating inventory item data (stock, SKU, weight, and unit cost).
  */
 export class InventoryItemUpdateScript extends BaseScript<
   InventoryItemUpdateParams,
@@ -86,10 +86,10 @@ export class InventoryItemUpdateScript extends BaseScript<
       }
     }
 
-    // Validate variant exists
-    const existingVariant = await this.repository.variant.findById(variantId);
-    if (!existingVariant) {
-      return singleError("Variant not found", "NOT_FOUND", ["variantId"]);
+    // Validate inventory item exists
+    const existingItem = await this.repository.inventoryItem.findByVariantId(variantId);
+    if (!existingItem) {
+      return singleError("Inventory item not found", "NOT_FOUND", ["variantId"]);
     }
 
     // Validate warehouse exists
@@ -101,8 +101,8 @@ export class InventoryItemUpdateScript extends BaseScript<
 
     // Check SKU uniqueness if provided
     if (sku !== undefined && sku !== null && sku !== "") {
-      const variantWithSku = await this.repository.variant.findBySku(sku);
-      if (variantWithSku && variantWithSku.id !== variantId) {
+      const itemWithSku = await this.repository.inventoryItem.findBySku(sku);
+      if (itemWithSku && itemWithSku.id !== existingItem.id) {
         return singleError(`SKU "${sku}" is already in use`, "SKU_ALREADY_EXISTS", [
           "sku",
         ]);
@@ -117,10 +117,10 @@ export class InventoryItemUpdateScript extends BaseScript<
 
     const currentOnHand = existingStock?.quantityOnHand ?? 0;
     const currentUnavailable = existingStock?.unavailableQty ?? 0;
-    const currentSku = existingVariant.sku;
+    const currentSku = existingItem.sku;
 
     // Get current weight to compare
-    const currentWeights = await this.repository.variant.getWeightsByVariantIds([variantId]);
+    const currentWeights = await this.repository.physical.getWeightsByVariantIds([variantId]);
     const currentWeight = currentWeights[0]?.weightGr ?? null;
 
     // Get current cost to compare (if currency provided)
@@ -188,7 +188,7 @@ export class InventoryItemUpdateScript extends BaseScript<
 
     // Update SKU if changed
     if (skuChanged) {
-      await this.repository.variant.update(variantId, { sku: sku ?? null });
+      await this.repository.inventoryItem.update(existingItem.id, { sku: sku ?? null });
     }
 
     // Update weight if changed

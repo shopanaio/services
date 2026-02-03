@@ -11,7 +11,6 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { inventorySchema } from "./schema";
-import { variant } from "./variants";
 import { warehouses } from "./stock";
 
 export const stockMovementTypeEnum = inventorySchema.enum("stock_movement_type", [
@@ -50,9 +49,7 @@ export const stockChanges = inventorySchema.table(
       .notNull()
       .generatedAlwaysAsIdentity(),
     projectId: uuid("project_id").notNull(),
-    variantId: uuid("variant_id")
-      .notNull()
-      .references(() => variant.id, { onDelete: "cascade" }),
+    variantId: uuid("variant_id").notNull(),
     warehouseId: uuid("warehouse_id")
       .notNull()
       .references(() => warehouses.id, { onDelete: "cascade" }),

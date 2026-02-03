@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, inArray } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { BaseRepository } from "../BaseRepository.js";
 import {
@@ -96,5 +96,25 @@ export class CostRepository extends BaseRepository {
 
     // Create new cost record
     return this.create(variantId, data);
+  }
+
+  /**
+   * Get active costs for multiple variants (batch loader)
+   */
+  async getActiveCostsByVariantIds(
+    variantIds: readonly string[]
+  ): Promise<ProductVariantCostHistory[]> {
+    if (variantIds.length === 0) return [];
+
+    return this.connection
+      .select()
+      .from(productVariantCostHistory)
+      .where(
+        and(
+          eq(productVariantCostHistory.projectId, this.storeId),
+          inArray(productVariantCostHistory.variantId, [...variantIds]),
+          isNull(productVariantCostHistory.effectiveTo)
+        )
+      );
   }
 }

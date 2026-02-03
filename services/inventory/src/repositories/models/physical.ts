@@ -6,7 +6,6 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { inventorySchema } from "./schema";
-import { variant } from "./variants";
 
 export const dimensionUnitEnum = inventorySchema.enum("dimension_unit", [
   "mm",
@@ -22,9 +21,7 @@ export const weightUnitEnum = inventorySchema.enum("weight_unit", ["g", "kg", "l
 export const itemDimensions = inventorySchema.table(
   "item_dimensions",
   {
-    variantId: uuid("variant_id")
-      .primaryKey()
-      .references(() => variant.id, { onDelete: "cascade" }),
+    variantId: uuid("variant_id").primaryKey(),
     projectId: uuid("project_id").notNull(),
     wMm: integer("w_mm").notNull(),
     lMm: integer("l_mm").notNull(),
@@ -44,9 +41,7 @@ export const itemDimensions = inventorySchema.table(
 export const itemWeight = inventorySchema.table(
   "item_weight",
   {
-    variantId: uuid("variant_id")
-      .primaryKey()
-      .references(() => variant.id, { onDelete: "cascade" }),
+    variantId: uuid("variant_id").primaryKey(),
     projectId: uuid("project_id").notNull(),
     weightGr: integer("weight_gr").notNull(),
     displayUnit: weightUnitEnum("display_unit").notNull().default("g"),

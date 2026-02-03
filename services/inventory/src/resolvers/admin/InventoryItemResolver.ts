@@ -1,128 +1,144 @@
-import { encodeGlobalId, GlobalIdEntity } from "@shopana/shared-graphql-guid";
-import { InventoryType, Cache } from "./InventoryType.js";
+import { SubgraphReference } from "@shopana/type-resolver";
+import type { InventoryItem } from "../../repositories/models/index.js";
+import { InventoryType } from "./InventoryType.js";
 import { StockResolver } from "./StockResolver.js";
-import type { InventoryItem, ItemDimensions, ItemWeight, ProductVariantCostHistory } from "../../repositories/models/index.js";
 
 /**
- * Resolver for InventoryItem type.
- * Handles inventory-specific data for variants.
+ * InventoryItemResolver - resolves InventoryItem GraphQL type.
+ *
+ * InventoryItem is a 1:1 entity with Catalog.Variant.
+ * Contains inventory-specific data:
+ * - SKU
+ * - Track inventory settings
+ * - Dimensions and weight (via federation)
+ * - Cost history (via federation)
+ * - Stock levels (via federation)
  */
-export class InventoryItemResolver extends InventoryType<string> {
-  @Cache()
-  private async loadItem(): Promise<InventoryItem | null> {
-    return this.$ctx.kernel.repository.inventoryItem.findById(this.$data);
+@SubgraphReference()
+export class InventoryItemResolver extends InventoryType<string, InventoryItem | null> {
+  async $preload() {
+    return this.$ctx.loaders.inventoryItem.load(this.$props);
   }
 
-  async id(): Promise<string | null> {
-    const item = await this.loadItem();
-    if (!item) return null;
-    return encodeGlobalId(GlobalIdEntity.InventoryItem, item.id);
+  id() {
+    return this.$props;
   }
 
-  async variantId(): Promise<string | null> {
-    const item = await this.loadItem();
-    if (!item) return null;
-    return encodeGlobalId(GlobalIdEntity.Variant, item.variantId);
+  /**
+   * Reference to Variant in Catalog Service (federation reference).
+   */
+  async variant() {
+    const variantId = await this.$get("variantId");
+    return { __typename: "Variant" as const, id: variantId };
   }
 
-  async sku(): Promise<string | null> {
-    const item = await this.loadItem();
-    return item?.sku ?? null;
+  async sku() {
+    return this.$get("sku");
   }
 
-  async trackInventory(): Promise<boolean> {
-    const item = await this.loadItem();
-    return item?.trackInventory ?? true;
+  async trackInventory() {
+    return (await this.$get("trackInventory")) ?? true;
   }
 
-  async continueSellingWhenOutOfStock(): Promise<boolean> {
-    const item = await this.loadItem();
-    return item?.continueSellingWhenOutOfStock ?? false;
+  async continueSellingWhenOutOfStock() {
+    return (await this.$get("continueSellingWhenOutOfStock")) ?? false;
   }
 
-  async dimensions(): Promise<{
-    widthMm: number;
-    heightMm: number;
-    lengthMm: number;
-    displayUnit: string;
-  } | null> {
-    const item = await this.loadItem();
-    if (!item) return null;
+  /**
+   * Dimensions from physical table.
+   */
+  async dimensions() {
+    const variantId = await this.$get("variantId");
+    const dims = await this.$ctx.kernel
+      .getServices()
+      .repository.variant.getDimensionsByVariantIds([variantId]);
 
-    const dims = await this.$ctx.kernel.repository.variant.getDimensionsByVariantIds([item.variantId]);
-    const dim = dims[0];
-    if (!dim) return null;
+    const current = dims[0];
+    if (!current) return null;
 
     return {
-      widthMm: dim.wMm,
-      heightMm: dim.hMm,
-      lengthMm: dim.lMm,
-      displayUnit: dim.displayUnit.toUpperCase(),
+      width: current.wMm,
+      length: current.lMm,
+      height: current.hMm,
     };
   }
 
-  async weight(): Promise<{
-    weightGrams: number;
-    displayUnit: string;
-  } | null> {
-    const item = await this.loadItem();
-    if (!item) return null;
+  /**
+   * Weight from physical table.
+   */
+  async weight() {
+    const variantId = await this.$get("variantId");
+    const weights = await this.$ctx.kernel
+      .getServices()
+      .repository.variant.getWeightsByVariantIds([variantId]);
 
-    const weights = await this.$ctx.kernel.repository.variant.getWeightsByVariantIds([item.variantId]);
-    const weight = weights[0];
-    if (!weight) return null;
+    const current = weights[0];
+    if (!current) return null;
 
     return {
-      weightGrams: weight.weightGr,
-      displayUnit: weight.displayUnit.toUpperCase(),
+      value: current.weightGr,
     };
   }
 
-  async stock(): Promise<StockResolver[]> {
-    const item = await this.loadItem();
-    if (!item) return [];
+  /**
+   * Current cost from cost history table.
+   */
+  async cost() {
+    const variantId = await this.$get("variantId");
+    const costs = await this.$ctx.kernel
+      .getServices()
+      .repository.variant.getActiveCostsByVariantIds([variantId]);
 
-    const stocks = await this.$ctx.kernel.repository.variant.getStockByVariantIds([item.variantId]);
+    if (costs.length === 0) return null;
+
+    // Filter by currency if specified in context
+    let filtered = costs;
+    if (this.$ctx.currency) {
+      filtered = costs.filter((c) => c.currency === this.$ctx.currency);
+    }
+    if (filtered.length === 0) return null;
+
+    const current = filtered[0];
+    return {
+      id: current.id,
+      currency: current.currency,
+      unitCostMinor: current.unitCostMinor,
+      effectiveFrom: current.effectiveFrom,
+      effectiveTo: current.effectiveTo,
+      recordedAt: current.recordedAt,
+      isCurrent: current.effectiveTo === null,
+    };
+  }
+
+  /**
+   * Stock levels across all warehouses.
+   */
+  async stock() {
+    const variantId = await this.$get("variantId");
+    const stocks = await this.$ctx.kernel
+      .getServices()
+      .repository.variant.getStockByVariantIds([variantId]);
+
     return stocks.map((s) => new StockResolver(s.id, this.$ctx));
   }
 
-  async totalAvailable(): Promise<number> {
-    const item = await this.loadItem();
-    if (!item) return 0;
+  /**
+   * Check if any stock is available.
+   */
+  async inStock() {
+    const variantId = await this.$get("variantId");
+    const stocks = await this.$ctx.kernel
+      .getServices()
+      .repository.variant.getStockByVariantIds([variantId]);
 
-    const stocks = await this.$ctx.kernel.repository.variant.getStockByVariantIds([item.variantId]);
-    return stocks.reduce((sum, s) => {
-      const available = s.quantityOnHand - s.reservedQty - s.unavailableQty;
-      return sum + Math.max(0, available);
-    }, 0);
+    return stocks.some((s) => s.quantityOnHand > 0);
   }
 
-  async unitCost(): Promise<{
-    currency: string;
-    amountMinor: number;
-    effectiveFrom: string;
-  } | null> {
-    const item = await this.loadItem();
-    if (!item) return null;
-
-    const costs = await this.$ctx.kernel.repository.variant.getActiveCostsByVariantIds([item.variantId]);
-    const cost = costs[0];
-    if (!cost) return null;
-
-    return {
-      currency: cost.currency,
-      amountMinor: cost.unitCostMinor,
-      effectiveFrom: cost.effectiveFrom,
-    };
+  async createdAt() {
+    return this.$get("createdAt");
   }
 
-  async createdAt(): Promise<string | null> {
-    const item = await this.loadItem();
-    return item?.createdAt ?? null;
-  }
-
-  async updatedAt(): Promise<string | null> {
-    const item = await this.loadItem();
-    return item?.updatedAt ?? null;
+  async updatedAt() {
+    return this.$get("updatedAt");
   }
 }

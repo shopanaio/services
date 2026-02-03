@@ -1,10 +1,10 @@
 // Schema
 export * from "./schema";
 
-// Variants (reference-only for foreign keys)
+// Variant (for widget aggregation by productId)
 export * from "./variants";
 
-// InventoryItem (new - 1:1 with Variant)
+// InventoryItem (1:1 with Catalog.Variant)
 export * from "./inventory-item";
 
 // Cost

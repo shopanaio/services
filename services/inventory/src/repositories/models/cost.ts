@@ -8,7 +8,6 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { inventorySchema } from "./schema";
-import { variant } from "./variants";
 
 // Currency enum (for cost tracking)
 export const currencyEnum = inventorySchema.enum("currency", [
@@ -22,9 +21,7 @@ export const productVariantCostHistory = inventorySchema.table(
   {
     projectId: uuid("project_id").notNull(),
     id: uuid("id").primaryKey(),
-    variantId: uuid("variant_id")
-      .notNull()
-      .references(() => variant.id, { onDelete: "cascade" }),
+    variantId: uuid("variant_id").notNull(),
     currency: currencyEnum("currency").notNull(),
     unitCostMinor: bigint("unit_cost_minor", { mode: "number" }).notNull(),
     effectiveFrom: timestamp("effective_from", { withTimezone: true, mode: "string" })

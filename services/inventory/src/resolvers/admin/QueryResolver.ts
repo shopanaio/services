@@ -25,7 +25,6 @@ export class QueryResolver extends InventoryType<Record<string, never>> {
 
   /**
    * Entry point for widget queries.
-   * Only inventory widget remains in Inventory service.
    */
   widgetQuery() {
     return new WidgetQueryResolver({}, this.$ctx);

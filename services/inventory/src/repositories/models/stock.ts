@@ -13,7 +13,6 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { inventorySchema } from "./schema";
-import { variant } from "./variants";
 
 export const warehouses = inventorySchema.table(
   "warehouses",
@@ -45,9 +44,7 @@ export const warehouseStock = inventorySchema.table(
     projectId: uuid("project_id").notNull(),
     id: uuid("id").primaryKey(),
     warehouseId: uuid("warehouse_id").notNull(),
-    variantId: uuid("variant_id")
-      .notNull()
-      .references(() => variant.id, { onDelete: "cascade" }),
+    variantId: uuid("variant_id").notNull(),
     quantityOnHand: integer("quantity_on_hand").notNull().default(0),
     reservedQty: integer("reserved_qty").notNull().default(0),
     unavailableQty: integer("unavailable_qty").notNull().default(0),

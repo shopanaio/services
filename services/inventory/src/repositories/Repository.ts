@@ -5,7 +5,6 @@ import { PhysicalRepository } from "./physical/PhysicalRepository.js";
 import { StockRepository } from "./stock/StockRepository.js";
 import { WarehouseRepository } from "./warehouse/WarehouseRepository.js";
 import { TranslationRepository } from "./translation/TranslationRepository.js";
-import { VariantRepository } from "./variant/VariantRepository.js";
 import { InventoryItemRepository } from "./inventory-item/InventoryItemRepository.js";
 import { InventoryWidgetRepository } from "./inventory-widget/InventoryWidgetRepository.js";
 
@@ -25,7 +24,6 @@ export type { Database };
  * - cost: Cost history
  * - physical: Dimensions and weight
  * - translation: Warehouse translations
- * - variant: Variant repository for legacy lookups (temporary)
  */
 export class Repository {
   public readonly inventoryItem: InventoryItemRepository;
@@ -35,9 +33,7 @@ export class Repository {
   public readonly stock: StockRepository;
   public readonly warehouse: WarehouseRepository;
   public readonly translation: TranslationRepository;
-  public readonly variant: VariantRepository;
   public readonly txManager: TransactionManager<Database>;
-  private readonly _db: Database;
 
   /**
    * Get the current database connection (transaction-aware).
@@ -55,7 +51,6 @@ export class Repository {
     stock: StockRepository,
     warehouse: WarehouseRepository,
     translation: TranslationRepository,
-    variant: VariantRepository,
     txManager: TransactionManager<Database>
   ) {
     this.inventoryItem = inventoryItem;
@@ -65,7 +60,6 @@ export class Repository {
     this.stock = stock;
     this.warehouse = warehouse;
     this.translation = translation;
-    this.variant = variant;
     this.txManager = txManager;
   }
 
@@ -86,7 +80,6 @@ export class Repository {
     const stock = new StockRepository(db, txManager);
     const warehouse = new WarehouseRepository(db, txManager);
     const translation = new TranslationRepository(db, txManager);
-    const variant = new VariantRepository(db, txManager);
 
     return new Repository(
       inventoryItem,
@@ -96,7 +89,6 @@ export class Repository {
       stock,
       warehouse,
       translation,
-      variant,
       txManager
     );
   }
