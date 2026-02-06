@@ -30,8 +30,8 @@ export class QueryResolver extends CatalogType<Record<string, never>> {
    * Entry point for catalog-related queries.
    * Returns namespace resolver that handles all catalog queries.
    */
-  inventoryQuery() {
-    return new InventoryQueryResolver({}, this.$ctx);
+  catalogQuery() {
+    return new CatalogQueryResolver({}, this.$ctx);
   }
 
   /**
@@ -62,7 +62,7 @@ export class WidgetQueryResolver extends CatalogType<Record<string, never>> {
  * Handles all catalog-related queries (products, variants).
  * НЕ содержит inventory queries (warehouses, stock).
  */
-export class InventoryQueryResolver extends CatalogType<Record<string, never>> {
+export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
   // ---- Node Queries (Relay) ----
 
   /**

@@ -2,8 +2,8 @@
 export { CatalogType, Cache } from "./CatalogType.js";
 
 // Root resolvers
-export { QueryResolver, InventoryQueryResolver } from "./QueryResolver.js";
-export { MutationResolver, InventoryMutationResolver } from "./MutationResolver.js";
+export { QueryResolver, CatalogQueryResolver } from "./QueryResolver.js";
+export { MutationResolver, CatalogMutationResolver } from "./MutationResolver.js";
 
 // Type resolvers
 export { ProductResolver } from "./ProductResolver.js";

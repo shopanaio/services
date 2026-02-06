@@ -19,7 +19,7 @@ scalar JSON
 
 extend type Query {
   inventoryQuery: InventoryQuery!
-  widgetQuery: WidgetQuery!
+  widgetQuery: WidgetQuery! @shareable
 }
 
 """

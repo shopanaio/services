@@ -71,7 +71,7 @@ import type {
   ProductFeatureUpdateInput,
   ProductFeatureDeleteInput,
   ProductFeaturesSyncInput,
-  InventoryMutationProductUpdateArgs,
+  CatalogMutationProductUpdateArgs,
 } from "./generated/types.js";
 import {
   ProductCreateInputSchema,
@@ -103,8 +103,8 @@ export class MutationResolver extends CatalogType<Record<string, never>> {
    * Entry point for catalog-related mutations.
    * Returns namespace resolver that handles all catalog mutations.
    */
-  inventoryMutation() {
-    return new InventoryMutationResolver({}, this.$ctx);
+  catalogMutation() {
+    return new CatalogMutationResolver({}, this.$ctx);
   }
 }
 
@@ -113,7 +113,7 @@ export class MutationResolver extends CatalogType<Record<string, never>> {
  * Handles all catalog-related mutations (products, variants, options, features).
  * НЕ содержит inventory mutations (warehouse, stock, dimensions, cost).
  */
-export class InventoryMutationResolver extends CatalogType<Record<string, never>> {
+export class CatalogMutationResolver extends CatalogType<Record<string, never>> {
   // ---- Product Mutations ----
 
   /**
@@ -224,7 +224,7 @@ export class InventoryMutationResolver extends CatalogType<Record<string, never>
    * Supports product and variant updates in a single request.
    * НЕ поддерживает inventory операции (они в Inventory Service).
    */
-  async productUpdate(args: InventoryMutationProductUpdateArgs) {
+  async productUpdate(args: CatalogMutationProductUpdateArgs) {
     const { productId, expectedRevision, operations } = args;
     const variants = operations?.variants;
 

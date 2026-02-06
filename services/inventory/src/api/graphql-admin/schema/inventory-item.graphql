@@ -55,27 +55,11 @@ type InventoryItemDimensions {
   displayUnit: DimensionUnit!
 }
 
-enum DimensionUnit {
-  MM
-  CM
-  M
-  IN
-  FT
-  YD
-}
-
 type InventoryItemWeight {
   """Weight in grams"""
   weightGrams: Int!
   """Display unit preference"""
   displayUnit: WeightUnit!
-}
-
-enum WeightUnit {
-  G
-  KG
-  LB
-  OZ
 }
 
 type InventoryItemCost {
@@ -91,9 +75,7 @@ type InventoryItemCost {
 # Federation - Extend Variant from Catalog
 # ─────────────────────────────────────────────────────────────────────────────
 
-"""
-Extends Variant type from Catalog service with inventory data.
-"""
+# Extends Variant type from Catalog service with inventory data.
 extend type Variant @key(fields: "id") {
   id: ID! @external
 
@@ -125,12 +107,6 @@ input InventoryItemWhereInput {
   sku: StringFilter
   """Filter by trackInventory"""
   trackInventory: Boolean
-}
-
-input StringFilter {
-  _eq: String
-  _contains: String
-  _startsWith: String
 }
 
 input InventoryItemUpdateInput {
@@ -188,11 +164,5 @@ type InventoryItemUpdatePayload {
   """Updated inventory item"""
   inventoryItem: InventoryItem
   """List of errors"""
-  userErrors: [UserError!]!
-}
-
-type UserError {
-  message: String!
-  code: String
-  field: [String!]
+  userErrors: [GenericUserError!]!
 }

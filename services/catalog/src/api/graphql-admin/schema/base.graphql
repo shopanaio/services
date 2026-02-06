@@ -18,15 +18,15 @@ scalar BigInt
 scalar JSON
 
 extend type Query {
-  inventoryQuery: InventoryQuery!
-  widgetQuery: WidgetQuery!
+  catalogQuery: CatalogQuery!
+  widgetQuery: WidgetQuery! @shareable
 }
 
 extend type Mutation {
-  inventoryMutation: InventoryMutation!
+  catalogMutation: CatalogMutation!
 }
 
-type InventoryQuery {
+type CatalogQuery {
   """
   Get a node by its global ID
   """
@@ -113,7 +113,7 @@ type WidgetQuery {
   pricing(input: PricingWidgetInput!): PricingWidgetPayload!
 }
 
-type InventoryMutation {
+type CatalogMutation {
   # Product mutations
   productCreate(input: ProductCreateInput!): ProductCreatePayload!
   productDelete(input: ProductDeleteInput!): ProductDeletePayload!
