@@ -34,7 +34,7 @@ test.describe('Pricing History Cursor Pagination', () => {
       variables: { input: { title: 'Pagination Test Product', handle } },
     });
 
-    const product = data.inventoryMutation.productCreate.product;
+    const product = data.catalogMutation.productCreate.product;
     const variantId = product?.variants?.edges[0]?.node?.id ?? null;
 
     return { product, variantId };
@@ -217,7 +217,9 @@ test.describe('Pricing History Cursor Pagination', () => {
       expect(page.edges.length).toBeGreaterThan(0);
 
       const cursor = page.edges[0].cursor;
-      const decoded = decodeCursor<{ seek: Array<{ field: string; direction: string; value: unknown }> }>(cursor);
+      const decoded = decodeCursor<{
+        seek: Array<{ field: string; direction: string; value: unknown }>;
+      }>(cursor);
 
       expect(decoded.seek).toBeDefined();
       expect(Array.isArray(decoded.seek)).toBe(true);

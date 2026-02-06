@@ -1,9 +1,11 @@
 mutation VariantCreate($input: VariantCreateInput!) {
-  inventoryMutation {
+  catalogMutation {
     variantCreate(input: $input) {
       variant {
         id
-        sku
+        inventoryItem {
+          sku
+        }
       }
       userErrors {
         message

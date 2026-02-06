@@ -9,13 +9,16 @@ test.describe('Pricing Widget API', () => {
     await api.session.setupUserAndStore();
   });
 
-  async function createProductWithVariant(api: ApiFixtures['api'], title = 'Widget Pricing Product') {
+  async function createProductWithVariant(
+    api: ApiFixtures['api'],
+    title = 'Widget Pricing Product',
+  ) {
     const handle = `${title.toLowerCase().replace(/\s+/g, '-')}-${randomUUID().slice(0, 8)}`;
     const { data } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
       variables: { input: { title, handle } },
     });
 
-    const product = data.inventoryMutation.productCreate.product;
+    const product = data.catalogMutation.productCreate.product;
     const variantEdges = product?.variants?.edges ?? [];
     const variantId = variantEdges[0]?.node?.id ?? null;
 
@@ -124,7 +127,9 @@ test.describe('Pricing Widget API', () => {
       ),
     ).toBe(true);
     expect(
-      historyNodes.every((node) => node.effectiveTo === null || typeof node.effectiveTo === 'string'),
+      historyNodes.every(
+        (node) => node.effectiveTo === null || typeof node.effectiveTo === 'string',
+      ),
     ).toBe(true);
     expect(currentHistory?.effectiveTo ?? null).toBeNull();
     expect(currentHistory?.amountMinor).toBe(15000);
@@ -177,7 +182,9 @@ test.describe('Pricing Widget API', () => {
 
     // Create warehouse for cost
     const { data: whData2 } = await api.admin.mutation('inventory-api/WarehouseCreate', {
-      variables: { input: { code: `WH-COST2-${randomUUID().slice(0, 8)}`, name: 'Cost Warehouse 2' } },
+      variables: {
+        input: { code: `WH-COST2-${randomUUID().slice(0, 8)}`, name: 'Cost Warehouse 2' },
+      },
     });
     const warehouse2 = whData2.inventoryMutation.warehouseCreate.warehouse;
 
@@ -319,7 +326,9 @@ test.describe('Pricing Widget API', () => {
 
     // Create warehouse for cost
     const { data: whData3 } = await api.admin.mutation('inventory-api/WarehouseCreate', {
-      variables: { input: { code: `WH-COST3-${randomUUID().slice(0, 8)}`, name: 'Cost Warehouse 3' } },
+      variables: {
+        input: { code: `WH-COST3-${randomUUID().slice(0, 8)}`, name: 'Cost Warehouse 3' },
+      },
     });
     const warehouse3 = whData3.inventoryMutation.warehouseCreate.warehouse;
 

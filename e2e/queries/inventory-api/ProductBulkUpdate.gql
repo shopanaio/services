@@ -1,5 +1,5 @@
 mutation ProductBulkUpdate($input: ProductBulkUpdateInput!) {
-  inventoryMutation {
+  catalogMutation {
     productBulkUpdate(input: $input) {
       job {
         id

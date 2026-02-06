@@ -23,7 +23,8 @@ function extractUuidFromGlobalId(globalId: string): string {
  * Helper to create a product with default variant
  */
 async function createProduct(api: Api, title: string, handle?: string) {
-  const productHandle = handle ?? `test-product-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const productHandle =
+    handle ?? `test-product-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const { data } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
     variables: {
       input: {
@@ -33,7 +34,7 @@ async function createProduct(api: Api, title: string, handle?: string) {
     },
   });
 
-  const product = data.inventoryMutation.productCreate.product;
+  const product = data.catalogMutation.productCreate.product;
   if (!product) {
     throw new Error('Failed to create product');
   }
@@ -87,7 +88,7 @@ async function createProductWithOptions(api: Api, title: string) {
     },
   });
 
-  const product = data.inventoryMutation.productCreate.product;
+  const product = data.catalogMutation.productCreate.product;
   if (!product) {
     throw new Error('Failed to create product with options');
   }
@@ -143,7 +144,7 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       expect(result.userErrors).toHaveLength(0);
       expect(result.product).toBeTruthy();
@@ -170,7 +171,7 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       expect(result.userErrors).toHaveLength(0);
       expect(result.product.handle).toBe(newHandle);
@@ -188,7 +189,11 @@ test.describe('ProductUpdate API', () => {
               description: {
                 text: 'This is the updated description',
                 html: '<p>This is the <strong>updated</strong> description</p>',
-                json: { blocks: [{ type: 'paragraph', data: { text: 'This is the updated description' } }] },
+                json: {
+                  blocks: [
+                    { type: 'paragraph', data: { text: 'This is the updated description' } },
+                  ],
+                },
               },
               excerpt: 'Short excerpt for the product',
             },
@@ -196,7 +201,7 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       expect(result.userErrors).toHaveLength(0);
       expect(result.product.description).toBeTruthy();
@@ -221,12 +226,14 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       expect(result.userErrors).toHaveLength(0);
       expect(result.product.seo).toBeTruthy();
       expect(result.product.seo.seoTitle).toBe('SEO Optimized Title');
-      expect(result.product.seo.seoDescription).toBe('This is an SEO-optimized description for search engines');
+      expect(result.product.seo.seoDescription).toBe(
+        'This is an SEO-optimized description for search engines',
+      );
     });
 
     test('should publish product (update status to PUBLISHED)', async ({ api }) => {
@@ -245,7 +252,7 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       expect(result.userErrors).toHaveLength(0);
       expect(result.product.isPublished).toBe(true);
@@ -264,7 +271,7 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const newRevision = publishData.inventoryMutation.productUpdate.product.revision;
+      const newRevision = publishData.catalogMutation.productUpdate.product.revision;
 
       // Then unpublish it
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
@@ -275,7 +282,7 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       expect(result.userErrors).toHaveLength(0);
       expect(result.product.isPublished).toBe(false);
@@ -302,7 +309,7 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       expect(result.userErrors).toHaveLength(0);
       expect(result.product.title).toBe('Updated Multi-field Product');
@@ -339,7 +346,7 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       expect(result.userErrors).toHaveLength(0);
 
@@ -351,7 +358,7 @@ test.describe('ProductUpdate API', () => {
 
       // Check operation results
       const variantOp = result.operationResults.find(
-        (op: { type: string }) => op.type === 'VARIANT_UPDATE'
+        (op: { type: string }) => op.type === 'VARIANT_UPDATE',
       );
       expect(variantOp).toBeTruthy();
       expect(variantOp.applied).toBe(true);
@@ -387,7 +394,7 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       expect(result.userErrors).toHaveLength(0);
 
@@ -398,7 +405,7 @@ test.describe('ProductUpdate API', () => {
 
       // Stock is an array - find the stock record for our warehouse
       const stockRecord = updatedVariant.stock.find(
-        (s: { warehouse: { code: string } }) => s.warehouse.code === warehouseCode
+        (s: { warehouse: { code: string } }) => s.warehouse.code === warehouseCode,
       );
       expect(stockRecord).toBeTruthy();
       expect(stockRecord.quantityOnHand).toBe(100);
@@ -409,7 +416,10 @@ test.describe('ProductUpdate API', () => {
     });
 
     test('should update variant dimensions', async ({ api }) => {
-      const { productId, variantId, revision } = await createProduct(api, 'Dimensions Test Product');
+      const { productId, variantId, revision } = await createProduct(
+        api,
+        'Dimensions Test Product',
+      );
 
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
@@ -430,7 +440,7 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       expect(result.userErrors).toHaveLength(0);
 
@@ -442,7 +452,10 @@ test.describe('ProductUpdate API', () => {
     });
 
     test('should update multiple variants at once', async ({ api }) => {
-      const { productId, variants, revision } = await createProductWithOptions(api, 'Multi-Variant Product');
+      const { productId, variants, revision } = await createProductWithOptions(
+        api,
+        'Multi-Variant Product',
+      );
 
       // Find variants by handle to avoid ordering issues
       const redSVariant = variants.find((v: { handle: string }) => v.handle === 'red-s');
@@ -476,13 +489,13 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       expect(result.userErrors).toHaveLength(0);
 
       // Should have operation results for each variant
       const variantOps = result.operationResults.filter(
-        (op: { type: string }) => op.type === 'VARIANT_UPDATE'
+        (op: { type: string }) => op.type === 'VARIANT_UPDATE',
       );
       expect(variantOps).toHaveLength(2);
       expect(variantOps.every((op: { applied: boolean }) => op.applied)).toBe(true);
@@ -490,10 +503,10 @@ test.describe('ProductUpdate API', () => {
       // Verify variants were updated
       const updatedVariants = result.product.variants.edges;
       const redS = updatedVariants.find(
-        (e: { node: { handle: string } }) => e.node.handle === 'red-s'
+        (e: { node: { handle: string } }) => e.node.handle === 'red-s',
       )?.node;
       const redL = updatedVariants.find(
-        (e: { node: { handle: string } }) => e.node.handle === 'red-l'
+        (e: { node: { handle: string } }) => e.node.handle === 'red-l',
       )?.node;
 
       expect(redS?.sku).toBe('RED-S-001');
@@ -503,7 +516,10 @@ test.describe('ProductUpdate API', () => {
     });
 
     test('should update product and variants in single request', async ({ api }) => {
-      const { productId, variantId, revision } = await createProduct(api, 'Combined Update Product');
+      const { productId, variantId, revision } = await createProduct(
+        api,
+        'Combined Update Product',
+      );
 
       const warehouseCode = `WH-COMBINED-${Date.now()}`;
       const warehouse = await createWarehouse(api, warehouseCode, 'Combined Test Warehouse');
@@ -529,7 +545,7 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       expect(result.userErrors).toHaveLength(0);
 
@@ -545,7 +561,7 @@ test.describe('ProductUpdate API', () => {
 
       // Find stock record for our warehouse
       const stockRecord = variant.stock.find(
-        (s: { warehouse: { code: string } }) => s.warehouse.code === warehouseCode
+        (s: { warehouse: { code: string } }) => s.warehouse.code === warehouseCode,
       );
       expect(stockRecord).toBeTruthy();
       expect(stockRecord.quantityOnHand).toBe(75);
@@ -555,10 +571,10 @@ test.describe('ProductUpdate API', () => {
       // Check operation results (should have both product and variant ops)
       expect(result.operationResults).toHaveLength(2);
       const productOp = result.operationResults.find(
-        (op: { type: string }) => op.type === 'PRODUCT_UPDATE'
+        (op: { type: string }) => op.type === 'PRODUCT_UPDATE',
       );
       const variantOp = result.operationResults.find(
-        (op: { type: string }) => op.type === 'VARIANT_UPDATE'
+        (op: { type: string }) => op.type === 'VARIANT_UPDATE',
       );
       expect(productOp?.applied).toBe(true);
       expect(variantOp?.applied).toBe(true);
@@ -581,11 +597,13 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      expect(data.inventoryMutation.productUpdate.userErrors).toHaveLength(0);
-      expect(data.inventoryMutation.productUpdate.product.revision).toBe(revision + 1);
+      expect(data.catalogMutation.productUpdate.userErrors).toHaveLength(0);
+      expect(data.catalogMutation.productUpdate.product.revision).toBe(revision + 1);
     });
 
-    test('should fail with REVISION_CONFLICT when expectedRevision does not match', async ({ api }) => {
+    test('should fail with REVISION_CONFLICT when expectedRevision does not match', async ({
+      api,
+    }) => {
       const { productId } = await createProduct(api, 'Revision Conflict Product');
 
       // Use wrong revision number
@@ -599,7 +617,7 @@ test.describe('ProductUpdate API', () => {
         throwOnError: false,
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
       expect(result.product).toBeNull();
       expect(result.userErrors.length).toBeGreaterThan(0);
       expect(result.userErrors[0].code).toBe('REVISION_CONFLICT');
@@ -616,8 +634,8 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      expect(data.inventoryMutation.productUpdate.userErrors).toHaveLength(0);
-      expect(data.inventoryMutation.productUpdate.product.title).toBe('Updated without locking');
+      expect(data.catalogMutation.productUpdate.userErrors).toHaveLength(0);
+      expect(data.catalogMutation.productUpdate.product.title).toBe('Updated without locking');
     });
 
     test('should handle concurrent updates correctly', async ({ api }) => {
@@ -632,7 +650,7 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      expect(firstUpdate.inventoryMutation.productUpdate.userErrors).toHaveLength(0);
+      expect(firstUpdate.catalogMutation.productUpdate.userErrors).toHaveLength(0);
 
       // Second update with old revision fails
       const { data: secondUpdate } = await api.admin.mutation('inventory-api/ProductUpdate', {
@@ -644,8 +662,10 @@ test.describe('ProductUpdate API', () => {
         throwOnError: false,
       });
 
-      expect(secondUpdate.inventoryMutation.productUpdate.userErrors.length).toBeGreaterThan(0);
-      expect(secondUpdate.inventoryMutation.productUpdate.userErrors[0].code).toBe('REVISION_CONFLICT');
+      expect(secondUpdate.catalogMutation.productUpdate.userErrors.length).toBeGreaterThan(0);
+      expect(secondUpdate.catalogMutation.productUpdate.userErrors[0].code).toBe(
+        'REVISION_CONFLICT',
+      );
     });
   });
 
@@ -665,7 +685,7 @@ test.describe('ProductUpdate API', () => {
         throwOnError: false,
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
       expect(result.product).toBeNull();
       expect(result.userErrors.length).toBeGreaterThan(0);
       expect(result.userErrors[0].code).toBe('NOT_FOUND');
@@ -691,14 +711,14 @@ test.describe('ProductUpdate API', () => {
         throwOnError: false,
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       // Product should still exist but variant update should fail
       expect(result.product).toBeTruthy();
 
       // Check variant operation failed
       const variantOp = result.operationResults.find(
-        (op: { type: string }) => op.type === 'VARIANT_UPDATE'
+        (op: { type: string }) => op.type === 'VARIANT_UPDATE',
       );
       expect(variantOp).toBeTruthy();
       expect(variantOp.applied).toBe(false);
@@ -729,18 +749,23 @@ test.describe('ProductUpdate API', () => {
         throwOnError: false,
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       // Check that variant operation failed
       const variantOp = result.operationResults.find(
-        (op: { type: string }) => op.type === 'VARIANT_UPDATE'
+        (op: { type: string }) => op.type === 'VARIANT_UPDATE',
       );
       expect(variantOp).toBeTruthy();
       expect(variantOp.applied).toBe(false);
     });
 
-    test('should handle partial failure (some operations succeed, others fail)', async ({ api }) => {
-      const { productId, variantId, revision } = await createProduct(api, 'Partial Failure Product');
+    test('should handle partial failure (some operations succeed, others fail)', async ({
+      api,
+    }) => {
+      const { productId, variantId, revision } = await createProduct(
+        api,
+        'Partial Failure Product',
+      );
       const fakeVariantId = '00000000-0000-0000-0000-000000000000';
 
       const warehouseCode = `WH-PARTIAL-${Date.now()}`;
@@ -767,7 +792,7 @@ test.describe('ProductUpdate API', () => {
         throwOnError: false,
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       // Product should be updated
       expect(result.product).toBeTruthy();
@@ -775,13 +800,13 @@ test.describe('ProductUpdate API', () => {
 
       // Check operation results
       const productOp = result.operationResults.find(
-        (op: { type: string }) => op.type === 'PRODUCT_UPDATE'
+        (op: { type: string }) => op.type === 'PRODUCT_UPDATE',
       );
       expect(productOp?.applied).toBe(true);
 
       // One variant should succeed, one should fail
       const variantOps = result.operationResults.filter(
-        (op: { type: string }) => op.type === 'VARIANT_UPDATE'
+        (op: { type: string }) => op.type === 'VARIANT_UPDATE',
       );
       expect(variantOps).toHaveLength(2);
 
@@ -808,7 +833,7 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       // Should succeed but with no changes (revision still incremented due to locking)
       expect(result.userErrors).toHaveLength(0);
@@ -829,7 +854,7 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       expect(result.userErrors).toHaveLength(0);
       expect(result.product.title).toBe(originalTitle);
@@ -854,8 +879,8 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      expect(uahUpdate.inventoryMutation.productUpdate.userErrors).toHaveLength(0);
-      const newRevision = uahUpdate.inventoryMutation.productUpdate.product.revision;
+      expect(uahUpdate.catalogMutation.productUpdate.userErrors).toHaveLength(0);
+      const newRevision = uahUpdate.catalogMutation.productUpdate.product.revision;
 
       // Then set USD price
       const { data: usdUpdate } = await api.admin.mutation('inventory-api/ProductUpdate', {
@@ -873,7 +898,7 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      expect(usdUpdate.inventoryMutation.productUpdate.userErrors).toHaveLength(0);
+      expect(usdUpdate.catalogMutation.productUpdate.userErrors).toHaveLength(0);
     });
 
     test('should increment revision on each update', async ({ api }) => {
@@ -887,7 +912,7 @@ test.describe('ProductUpdate API', () => {
           operations: { title: 'First' },
         },
       });
-      expect(first.inventoryMutation.productUpdate.product.revision).toBe(revision + 1);
+      expect(first.catalogMutation.productUpdate.product.revision).toBe(revision + 1);
 
       // Second update
       const { data: second } = await api.admin.mutation('inventory-api/ProductUpdate', {
@@ -897,7 +922,7 @@ test.describe('ProductUpdate API', () => {
           operations: { title: 'Second' },
         },
       });
-      expect(second.inventoryMutation.productUpdate.product.revision).toBe(revision + 2);
+      expect(second.catalogMutation.productUpdate.product.revision).toBe(revision + 2);
 
       // Third update
       const { data: third } = await api.admin.mutation('inventory-api/ProductUpdate', {
@@ -907,7 +932,7 @@ test.describe('ProductUpdate API', () => {
           operations: { title: 'Third' },
         },
       });
-      expect(third.inventoryMutation.productUpdate.product.revision).toBe(revision + 3);
+      expect(third.catalogMutation.productUpdate.product.revision).toBe(revision + 3);
     });
 
     test('should clear excerpt when set to empty string', async ({ api }) => {
@@ -924,8 +949,8 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      expect(setData.inventoryMutation.productUpdate.product.excerpt).toBe('Initial excerpt');
-      const newRevision = setData.inventoryMutation.productUpdate.product.revision;
+      expect(setData.catalogMutation.productUpdate.product.excerpt).toBe('Initial excerpt');
+      const newRevision = setData.catalogMutation.productUpdate.product.revision;
 
       // Then clear it by setting to empty string
       const { data: clearData } = await api.admin.mutation('inventory-api/ProductUpdate', {
@@ -938,9 +963,9 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      expect(clearData.inventoryMutation.productUpdate.userErrors).toHaveLength(0);
+      expect(clearData.catalogMutation.productUpdate.userErrors).toHaveLength(0);
       // Excerpt should be empty or null
-      expect(clearData.inventoryMutation.productUpdate.product.excerpt || '').toBe('');
+      expect(clearData.catalogMutation.productUpdate.product.excerpt || '').toBe('');
     });
   });
 
@@ -997,7 +1022,7 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       expect(result.userErrors).toHaveLength(0);
 
@@ -1009,7 +1034,7 @@ test.describe('ProductUpdate API', () => {
 
       // Check operation result
       const variantOp = result.operationResults.find(
-        (op: { type: string }) => op.type === 'VARIANT_UPDATE'
+        (op: { type: string }) => op.type === 'VARIANT_UPDATE',
       );
       expect(variantOp).toBeTruthy();
       expect(variantOp.applied).toBe(true);
@@ -1031,8 +1056,10 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const newRevision = addData.inventoryMutation.productUpdate.product.revision;
-      expect(addData.inventoryMutation.productUpdate.product.variants.edges[0].node.media).toHaveLength(1);
+      const newRevision = addData.catalogMutation.productUpdate.product.revision;
+      expect(
+        addData.catalogMutation.productUpdate.product.variants.edges[0].node.media,
+      ).toHaveLength(1);
 
       // Then clear media
       const { data: clearData } = await api.admin.mutation('inventory-api/ProductUpdate', {
@@ -1045,12 +1072,17 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      expect(clearData.inventoryMutation.productUpdate.userErrors).toHaveLength(0);
-      expect(clearData.inventoryMutation.productUpdate.product.variants.edges[0].node.media).toHaveLength(0);
+      expect(clearData.catalogMutation.productUpdate.userErrors).toHaveLength(0);
+      expect(
+        clearData.catalogMutation.productUpdate.product.variants.edges[0].node.media,
+      ).toHaveLength(0);
     });
 
     test('should handle media update with no changes (idempotent)', async ({ api }) => {
-      const { productId, variantId, revision } = await createProduct(api, 'Idempotent Media Product');
+      const { productId, variantId, revision } = await createProduct(
+        api,
+        'Idempotent Media Product',
+      );
 
       const fileId = await createTestFile(api, 'idempotent-image.png');
 
@@ -1065,7 +1097,7 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const newRevision = firstData.inventoryMutation.productUpdate.product.revision;
+      const newRevision = firstData.catalogMutation.productUpdate.product.revision;
 
       // Second update with same media
       const { data: secondData } = await api.admin.mutation('inventory-api/ProductUpdate', {
@@ -1078,8 +1110,10 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      expect(secondData.inventoryMutation.productUpdate.userErrors).toHaveLength(0);
-      expect(secondData.inventoryMutation.productUpdate.product.variants.edges[0].node.media).toHaveLength(1);
+      expect(secondData.catalogMutation.productUpdate.userErrors).toHaveLength(0);
+      expect(
+        secondData.catalogMutation.productUpdate.product.variants.edges[0].node.media,
+      ).toHaveLength(1);
     });
 
     test('should reorder variant media', async ({ api }) => {
@@ -1099,7 +1133,7 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const newRevision = firstData.inventoryMutation.productUpdate.product.revision;
+      const newRevision = firstData.catalogMutation.productUpdate.product.revision;
 
       // Reorder to [2, 1]
       const { data: reorderData } = await api.admin.mutation('inventory-api/ProductUpdate', {
@@ -1112,14 +1146,14 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      expect(reorderData.inventoryMutation.productUpdate.userErrors).toHaveLength(0);
+      expect(reorderData.catalogMutation.productUpdate.userErrors).toHaveLength(0);
 
-      const media = reorderData.inventoryMutation.productUpdate.product.variants.edges[0].node.media;
+      const media = reorderData.catalogMutation.productUpdate.product.variants.edges[0].node.media;
       expect(media).toHaveLength(2);
 
       // Verify order by sortIndex
       const sorted = [...media].sort(
-        (a: { sortIndex: number }, b: { sortIndex: number }) => a.sortIndex - b.sortIndex
+        (a: { sortIndex: number }, b: { sortIndex: number }) => a.sortIndex - b.sortIndex,
       );
       expect(sorted[0].file.id).toBe(extractUuidFromGlobalId(fileId2));
       expect(sorted[1].file.id).toBe(extractUuidFromGlobalId(fileId1));
@@ -1174,7 +1208,7 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       expect(result.userErrors).toHaveLength(0);
       expect(result.product.media).toHaveLength(2);
@@ -1185,7 +1219,7 @@ test.describe('ProductUpdate API', () => {
 
       // Check operation result
       const productOp = result.operationResults.find(
-        (op: { type: string }) => op.type === 'PRODUCT_UPDATE'
+        (op: { type: string }) => op.type === 'PRODUCT_UPDATE',
       );
       expect(productOp).toBeTruthy();
       expect(productOp.applied).toBe(true);
@@ -1207,8 +1241,8 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const newRevision = addData.inventoryMutation.productUpdate.product.revision;
-      expect(addData.inventoryMutation.productUpdate.product.media).toHaveLength(1);
+      const newRevision = addData.catalogMutation.productUpdate.product.revision;
+      expect(addData.catalogMutation.productUpdate.product.media).toHaveLength(1);
 
       // Then clear media
       const { data: clearData } = await api.admin.mutation('inventory-api/ProductUpdate', {
@@ -1221,8 +1255,8 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      expect(clearData.inventoryMutation.productUpdate.userErrors).toHaveLength(0);
-      expect(clearData.inventoryMutation.productUpdate.product.media).toHaveLength(0);
+      expect(clearData.catalogMutation.productUpdate.userErrors).toHaveLength(0);
+      expect(clearData.catalogMutation.productUpdate.product.media).toHaveLength(0);
     });
 
     test('should reorder product-level media', async ({ api }) => {
@@ -1243,7 +1277,7 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const newRevision = firstData.inventoryMutation.productUpdate.product.revision;
+      const newRevision = firstData.catalogMutation.productUpdate.product.revision;
 
       // Reorder to [3, 1, 2]
       const { data: reorderData } = await api.admin.mutation('inventory-api/ProductUpdate', {
@@ -1256,14 +1290,14 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      expect(reorderData.inventoryMutation.productUpdate.userErrors).toHaveLength(0);
+      expect(reorderData.catalogMutation.productUpdate.userErrors).toHaveLength(0);
 
-      const media = reorderData.inventoryMutation.productUpdate.product.media;
+      const media = reorderData.catalogMutation.productUpdate.product.media;
       expect(media).toHaveLength(3);
 
       // Verify order by sortIndex
       const sorted = [...media].sort(
-        (a: { sortIndex: number }, b: { sortIndex: number }) => a.sortIndex - b.sortIndex
+        (a: { sortIndex: number }, b: { sortIndex: number }) => a.sortIndex - b.sortIndex,
       );
       expect(sorted[0].file.id).toBe(extractUuidFromGlobalId(fileId3));
       expect(sorted[1].file.id).toBe(extractUuidFromGlobalId(fileId1));
@@ -1292,7 +1326,7 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       expect(result.userErrors).toHaveLength(0);
 
@@ -1322,7 +1356,7 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const newRevision = firstData.inventoryMutation.productUpdate.product.revision;
+      const newRevision = firstData.catalogMutation.productUpdate.product.revision;
 
       // Second update with same media
       const { data: secondData } = await api.admin.mutation('inventory-api/ProductUpdate', {
@@ -1335,8 +1369,8 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      expect(secondData.inventoryMutation.productUpdate.userErrors).toHaveLength(0);
-      expect(secondData.inventoryMutation.productUpdate.product.media).toHaveLength(1);
+      expect(secondData.catalogMutation.productUpdate.userErrors).toHaveLength(0);
+      expect(secondData.catalogMutation.productUpdate.product.media).toHaveLength(1);
     });
   });
 
@@ -1380,7 +1414,7 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const product = createData.inventoryMutation.productCreate.product;
+      const product = createData.catalogMutation.productCreate.product;
       if (!product) {
         throw new Error('Failed to create product');
       }
@@ -1438,13 +1472,13 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       expect(result.userErrors).toHaveLength(0);
 
       // Find the updated variant
       const updatedVariant = result.product.variants.edges.find(
-        (e: { node: { id: string } }) => e.node.id === redSVariant.id
+        (e: { node: { id: string } }) => e.node.id === redSVariant.id,
       )?.node;
 
       expect(updatedVariant).toBeTruthy();
@@ -1453,7 +1487,7 @@ test.describe('ProductUpdate API', () => {
 
       // Verify option values
       const selectedOptionIds = updatedVariant.selectedOptions.map(
-        (o: { optionValueId: string }) => o.optionValueId
+        (o: { optionValueId: string }) => o.optionValueId,
       );
       expect(selectedOptionIds).toContain(blueValue.id);
       expect(selectedOptionIds).toContain(largeValue.id);
@@ -1482,11 +1516,11 @@ test.describe('ProductUpdate API', () => {
         throwOnError: false,
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       // Variant operation should fail
       const variantOp = result.operationResults.find(
-        (op: { type: string }) => op.type === 'VARIANT_UPDATE'
+        (op: { type: string }) => op.type === 'VARIANT_UPDATE',
       );
       expect(variantOp).toBeTruthy();
       expect(variantOp.applied).toBe(false);
@@ -1497,7 +1531,7 @@ test.describe('ProductUpdate API', () => {
     test('should error on optionValueId not belonging to option', async ({ api }) => {
       const { productId, variants, product, revision } = await createProductWithOptions(
         api,
-        'Wrong Value Product'
+        'Wrong Value Product',
       );
 
       const colorOption = product.options.find((o: { slug: string }) => o.slug === 'color');
@@ -1531,10 +1565,10 @@ test.describe('ProductUpdate API', () => {
         throwOnError: false,
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       const variantOp = result.operationResults.find(
-        (op: { type: string }) => op.type === 'VARIANT_UPDATE'
+        (op: { type: string }) => op.type === 'VARIANT_UPDATE',
       );
       expect(variantOp).toBeTruthy();
       expect(variantOp.applied).toBe(false);
@@ -1544,7 +1578,7 @@ test.describe('ProductUpdate API', () => {
     test('should error on duplicate optionId in same request', async ({ api }) => {
       const { productId, variants, product, revision } = await createProductWithOptions(
         api,
-        'Duplicate Option Product'
+        'Duplicate Option Product',
       );
 
       const colorOption = product.options.find((o: { slug: string }) => o.slug === 'color');
@@ -1583,10 +1617,10 @@ test.describe('ProductUpdate API', () => {
         throwOnError: false,
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       const variantOp = result.operationResults.find(
-        (op: { type: string }) => op.type === 'VARIANT_UPDATE'
+        (op: { type: string }) => op.type === 'VARIANT_UPDATE',
       );
       expect(variantOp).toBeTruthy();
       expect(variantOp.applied).toBe(false);
@@ -1596,7 +1630,7 @@ test.describe('ProductUpdate API', () => {
     test('should error when clearing options on non-default variant', async ({ api }) => {
       const { productId, variants, revision } = await createProductWithOptions(
         api,
-        'Clear Options Product'
+        'Clear Options Product',
       );
 
       const variant = variants[0]; // Non-default variant
@@ -1620,11 +1654,11 @@ test.describe('ProductUpdate API', () => {
         throwOnError: false,
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       // Should have an error - non-default variants must have options
       const variantOp = result.operationResults.find(
-        (op: { type: string }) => op.type === 'VARIANT_UPDATE'
+        (op: { type: string }) => op.type === 'VARIANT_UPDATE',
       );
       if (!variantOp) {
         throw new Error('VARIANT_UPDATE operation not found');
@@ -1639,7 +1673,7 @@ test.describe('ProductUpdate API', () => {
       // Create product with all 4 variant combinations (red-s, red-l, blue-s, blue-l)
       const { productId, variants, product, revision } = await createProductWithOptions(
         api,
-        'Cross-Variant Conflict Product'
+        'Cross-Variant Conflict Product',
       );
 
       const colorOption = product.options.find((o: { slug: string }) => o.slug === 'color');
@@ -1689,11 +1723,11 @@ test.describe('ProductUpdate API', () => {
         throwOnError: false,
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       // Should fail with duplicate option combination error
       const variantOp = result.operationResults.find(
-        (op: { type: string }) => op.type === 'VARIANT_UPDATE'
+        (op: { type: string }) => op.type === 'VARIANT_UPDATE',
       );
       expect(variantOp).toBeTruthy();
       expect(variantOp.applied).toBe(false);
@@ -1726,7 +1760,7 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const createdProduct = createData.inventoryMutation.productCreate.product;
+      const createdProduct = createData.catalogMutation.productCreate.product;
       if (!createdProduct) {
         throw new Error('Failed to create product');
       }
@@ -1781,11 +1815,11 @@ test.describe('ProductUpdate API', () => {
         throwOnError: false,
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       // At least one variant operation should fail
       const variantOps = result.operationResults.filter(
-        (op: { type: string }) => op.type === 'VARIANT_UPDATE'
+        (op: { type: string }) => op.type === 'VARIANT_UPDATE',
       );
       const failedOp = variantOps.find((op: { applied: boolean }) => !op.applied);
       if (!failedOp) {
@@ -1819,7 +1853,7 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const createdProduct = createData.inventoryMutation.productCreate.product;
+      const createdProduct = createData.catalogMutation.productCreate.product;
       if (!createdProduct) {
         throw new Error('Failed to create product');
       }
@@ -1875,13 +1909,13 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       // Both operations should succeed (swapping is allowed)
       expect(result.userErrors).toHaveLength(0);
 
       const variantOps = result.operationResults.filter(
-        (op: { type: string }) => op.type === 'VARIANT_UPDATE'
+        (op: { type: string }) => op.type === 'VARIANT_UPDATE',
       );
       expect(variantOps).toHaveLength(2);
       expect(variantOps.every((op: { applied: boolean }) => op.applied)).toBe(true);
@@ -1890,10 +1924,10 @@ test.describe('ProductUpdate API', () => {
       expect(result.product).toBeTruthy();
       const updatedVariants = result.product.variants.edges;
       const formerRedVariant = updatedVariants.find(
-        (e: { node: { id: string } }) => e.node.id === redVariant.id
+        (e: { node: { id: string } }) => e.node.id === redVariant.id,
       )?.node;
       const formerBlueVariant = updatedVariants.find(
-        (e: { node: { id: string } }) => e.node.id === blueVariant.id
+        (e: { node: { id: string } }) => e.node.id === blueVariant.id,
       )?.node;
 
       if (!formerRedVariant || !formerBlueVariant) {
@@ -1925,12 +1959,12 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       expect(result.userErrors).toHaveLength(0);
       expect(result.product.updatedAt).toBeTruthy();
       expect(new Date(result.product.updatedAt).getTime()).toBeGreaterThan(
-        new Date(originalUpdatedAt).getTime()
+        new Date(originalUpdatedAt).getTime(),
       );
     });
 
@@ -1948,7 +1982,7 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       expect(result.userErrors).toHaveLength(0);
       expect(result.product.publishedAt).toBeTruthy();
@@ -1983,7 +2017,7 @@ test.describe('ProductUpdate API', () => {
         throwOnError: false,
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       // Should have user errors about duplicate handle
       expect(result.userErrors.length).toBeGreaterThan(0);
@@ -2003,7 +2037,7 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       // Should either succeed or return a validation error (depends on business rules)
       // At minimum, should not throw an unhandled exception
@@ -2024,7 +2058,7 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       expect(result.userErrors).toHaveLength(0);
       expect(result.product.handle).toBe(validHandle);
@@ -2051,7 +2085,7 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       expect(result.userErrors).toHaveLength(0);
       expect(result.product.variants.edges[0].node.price.amountMinor).toBe(0);
@@ -2081,18 +2115,21 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       expect(result.userErrors).toHaveLength(0);
 
       const stockRecord = result.product.variants.edges[0].node.stock.find(
-        (s: { warehouse: { code: string } }) => s.warehouse.code === warehouseCode
+        (s: { warehouse: { code: string } }) => s.warehouse.code === warehouseCode,
       );
       expect(stockRecord.quantityOnHand).toBe(0);
     });
 
     test('should handle zero dimensions', async ({ api }) => {
-      const { productId, variantId, revision } = await createProduct(api, 'Zero Dimensions Product');
+      const { productId, variantId, revision } = await createProduct(
+        api,
+        'Zero Dimensions Product',
+      );
 
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
@@ -2113,7 +2150,7 @@ test.describe('ProductUpdate API', () => {
         },
       });
 
-      const result = data.inventoryMutation.productUpdate;
+      const result = data.catalogMutation.productUpdate;
 
       // Should either succeed or return validation error
       expect(result).toBeTruthy();

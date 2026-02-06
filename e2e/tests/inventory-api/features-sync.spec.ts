@@ -16,20 +16,25 @@ test.describe('Product Features Sync API', () => {
       variables: { input: { title, handle } },
     });
 
-    return data.inventoryMutation.productCreate.product;
+    return data.catalogMutation.productCreate.product;
   }
 
   /**
    * Helper to sync features
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async function syncFeatures(api: any, productId: string, features: unknown[], throwOnError = true) {
+  async function syncFeatures(
+    api: any,
+    productId: string,
+    features: unknown[],
+    throwOnError = true,
+  ) {
     const { data } = await api.admin.mutation('inventory-api/ProductFeaturesSync', {
       variables: { input: { productId, features } },
       throwOnError,
     });
 
-    return data.inventoryMutation.productFeaturesSync;
+    return data.catalogMutation.productFeaturesSync;
   }
 
   test.describe('Create Features', () => {
@@ -393,7 +398,7 @@ test.describe('Product Features Sync API', () => {
         api,
         'gid://shopana/Product/00000000-0000-0000-0000-000000000000',
         [],
-        false
+        false,
       );
 
       expect(result.product).toBeNull();
@@ -416,7 +421,7 @@ test.describe('Product Features Sync API', () => {
             values: [{ index: 0, name: 'Should Not Exist' }],
           },
         ],
-        false
+        false,
       );
 
       expect(result.userErrors.length).toBeGreaterThan(0);
@@ -628,7 +633,11 @@ test.describe('Product Features Sync API', () => {
           name: 'Fabric',
           values: [
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            { id: fabric.values.find((v: any) => v.name === 'Cotton').id, index: 0, name: 'Cotton' },
+            {
+              id: fabric.values.find((v: any) => v.name === 'Cotton').id,
+              index: 0,
+              name: 'Cotton',
+            },
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             { id: fabric.values.find((v: any) => v.name === 'Silk').id, index: 1, name: 'Silk' },
             { index: 2, name: 'Wool' },

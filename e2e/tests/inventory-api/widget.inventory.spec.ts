@@ -13,19 +13,14 @@ test.describe('Inventory Widget API', () => {
       variables: { input: { title, handle } },
     });
 
-    const product = data.inventoryMutation.productCreate.product;
+    const product = data.catalogMutation.productCreate.product;
     const variantEdges = product?.variants?.edges ?? [];
     const variantId = variantEdges[0]?.node?.id ?? null;
 
     return { product, variantId };
   }
 
-  async function createWarehouse(
-    api: any,
-    codePrefix: string,
-    name: string,
-    isDefault = false,
-  ) {
+  async function createWarehouse(api: any, codePrefix: string, name: string, isDefault = false) {
     const code = `${codePrefix}-${randomUUID().slice(0, 8)}`;
     const { data } = await api.admin.mutation('inventory-api/WarehouseCreate', {
       variables: { input: { code, name, isDefault } },
@@ -42,11 +37,7 @@ test.describe('Inventory Widget API', () => {
       return;
     }
 
-    const warehouse = await createWarehouse(
-      api,
-      'WH-WIDGET-LS',
-      'Widget Low Stock Warehouse',
-    );
+    const warehouse = await createWarehouse(api, 'WH-WIDGET-LS', 'Widget Low Stock Warehouse');
 
     if (!warehouse?.id) {
       test.skip();
@@ -89,9 +80,7 @@ test.describe('Inventory Widget API', () => {
     expect(widget.alertThreshold.minimumStock).toBe(10);
   });
 
-  test('should return full inventory widget payload for out of stock', async ({
-    api,
-  }) => {
+  test('should return full inventory widget payload for out of stock', async ({ api }) => {
     const { product, variantId } = await createProductWithVariant(api);
 
     if (!product?.id || !variantId) {
@@ -99,11 +88,7 @@ test.describe('Inventory Widget API', () => {
       return;
     }
 
-    const warehouse = await createWarehouse(
-      api,
-      'WH-WIDGET-OOS',
-      'Widget Out of Stock Warehouse',
-    );
+    const warehouse = await createWarehouse(api, 'WH-WIDGET-OOS', 'Widget Out of Stock Warehouse');
 
     if (!warehouse?.id) {
       test.skip();

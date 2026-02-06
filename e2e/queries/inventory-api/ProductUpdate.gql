@@ -1,9 +1,5 @@
-mutation ProductUpdate(
-  $productId: ID!
-  $expectedRevision: Int
-  $operations: ProductUpdateInput
-) {
-  inventoryMutation {
+mutation ProductUpdate($productId: ID!, $expectedRevision: Int, $operations: ProductUpdateInput) {
+  catalogMutation {
     productUpdate(
       productId: $productId
       expectedRevision: $expectedRevision
@@ -33,31 +29,38 @@ mutation ProductUpdate(
               id
               handle
               isDefault
-              sku
               price {
                 currency
                 amountMinor
                 compareAtMinor
               }
-              stock {
+              inventoryItem {
                 id
-                quantityOnHand
-                warehouse {
+                sku
+                trackInventory
+                totalAvailable
+                stock {
                   id
-                  code
+                  quantityOnHand
+                  warehouse {
+                    id
+                    code
+                  }
                 }
-              }
-              weight {
-                value
-              }
-              cost {
-                currency
-                unitCostMinor
-              }
-              dimensions {
-                width
-                height
-                length
+                weight {
+                  weightGrams
+                  displayUnit
+                }
+                unitCost {
+                  currency
+                  amountMinor
+                }
+                dimensions {
+                  lengthMm
+                  widthMm
+                  heightMm
+                  displayUnit
+                }
               }
               media {
                 file {

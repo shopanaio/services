@@ -1,5 +1,5 @@
 mutation ProductFeaturesSync($input: ProductFeaturesSyncInput!) {
-  inventoryMutation {
+  catalogMutation {
     productFeaturesSync(input: $input) {
       product {
         id

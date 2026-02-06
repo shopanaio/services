@@ -19,7 +19,7 @@ test.describe('Variant Media API', () => {
       variables: { input: { title, handle } },
     });
 
-    const product = data.inventoryMutation.productCreate.product;
+    const product = data.catalogMutation.productCreate.product;
     const variantEdges = product?.variants?.edges ?? [];
     const variantId = variantEdges[0]?.node?.id ?? null;
 
@@ -51,7 +51,7 @@ test.describe('Variant Media API', () => {
         },
       });
 
-      const result = data.inventoryMutation.variantUpdateMedia;
+      const result = data.catalogMutation.variantUpdateMedia;
       expect(result.userErrors).toHaveLength(0);
       expect(result.variant).toBeTruthy();
       expect(result.variant?.id).toBe(variantId);
@@ -83,7 +83,7 @@ test.describe('Variant Media API', () => {
         },
       });
 
-      const result = data.inventoryMutation.variantUpdateMedia;
+      const result = data.catalogMutation.variantUpdateMedia;
       expect(result.userErrors).toHaveLength(0);
       expect(result.variant).toBeTruthy();
     });
@@ -119,7 +119,7 @@ test.describe('Variant Media API', () => {
         },
       });
 
-      const result = data.inventoryMutation.variantUpdateMedia;
+      const result = data.catalogMutation.variantUpdateMedia;
       expect(result.userErrors).toHaveLength(0);
       expect(result.variant).toBeTruthy();
     });
@@ -157,7 +157,7 @@ test.describe('Variant Media API', () => {
         },
       });
 
-      const result = data.inventoryMutation.variantUpdateMedia;
+      const result = data.catalogMutation.variantUpdateMedia;
       expect(result.userErrors).toHaveLength(0);
       expect(result.variant).toBeTruthy();
     });
@@ -175,7 +175,7 @@ test.describe('Variant Media API', () => {
         },
       });
 
-      const result = data.inventoryMutation.variantUpdateMedia;
+      const result = data.catalogMutation.variantUpdateMedia;
       expect(result.userErrors).toHaveLength(1);
       expect(result.userErrors[0].code).toBe('NOT_FOUND');
       expect(result.variant).toBeNull();
@@ -204,7 +204,7 @@ test.describe('Variant Media API', () => {
         },
       });
 
-      const result = data.inventoryMutation.variantUpdateMedia;
+      const result = data.catalogMutation.variantUpdateMedia;
       expect(result.userErrors).toHaveLength(0);
       expect(result.variant).toBeTruthy();
     });

@@ -16,7 +16,7 @@ test.describe('Product Options Sync API', () => {
       variables: { input: { title, handle } },
     });
 
-    return data.inventoryMutation.productCreate.product;
+    return data.catalogMutation.productCreate.product;
   }
 
   /**
@@ -29,7 +29,7 @@ test.describe('Product Options Sync API', () => {
       throwOnError,
     });
 
-    return data.inventoryMutation.productOptionsSync;
+    return data.catalogMutation.productOptionsSync;
   }
 
   test.describe('Create Options', () => {
@@ -487,7 +487,7 @@ test.describe('Product Options Sync API', () => {
         api,
         'gid://shopana/Product/00000000-0000-0000-0000-000000000000',
         [],
-        false
+        false,
       );
 
       expect(result.product).toBeNull();
@@ -517,7 +517,7 @@ test.describe('Product Options Sync API', () => {
             values: [{ index: 0, slug: 'm', name: 'M' }],
           },
         ],
-        false
+        false,
       );
 
       expect(result.userErrors.length).toBeGreaterThan(0);
@@ -546,7 +546,7 @@ test.describe('Product Options Sync API', () => {
             values: [{ index: 0, slug: 'red', name: 'Red' }],
           },
         ],
-        false
+        false,
       );
 
       expect(result.userErrors.length).toBeGreaterThan(0);
@@ -571,7 +571,7 @@ test.describe('Product Options Sync API', () => {
             ],
           },
         ],
-        false
+        false,
       );
 
       expect(result.userErrors.length).toBeGreaterThan(0);
@@ -593,7 +593,7 @@ test.describe('Product Options Sync API', () => {
             values: [], // No values
           },
         ],
-        false
+        false,
       );
 
       expect(result.userErrors.length).toBeGreaterThan(0);
@@ -616,7 +616,7 @@ test.describe('Product Options Sync API', () => {
             values: [{ index: 0, slug: 's', name: 'S' }],
           },
         ],
-        false
+        false,
       );
 
       expect(result.userErrors.length).toBeGreaterThan(0);
@@ -655,7 +655,7 @@ test.describe('Product Options Sync API', () => {
             ],
           },
         ],
-        false
+        false,
       );
 
       expect(result.userErrors.length).toBeGreaterThan(0);

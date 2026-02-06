@@ -16,7 +16,7 @@ test.describe('Product Create API', () => {
       variables: { input },
     });
 
-    const result = data.inventoryMutation.productCreate;
+    const result = data.catalogMutation.productCreate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.product).toBeTruthy();
@@ -40,7 +40,9 @@ test.describe('Product Create API', () => {
       description: {
         html: '<p>This is a <strong>test</strong> product description</p>',
         text: 'This is a test product description',
-        json: { blocks: [{ type: 'paragraph', data: { text: 'This is a test product description' } }] },
+        json: {
+          blocks: [{ type: 'paragraph', data: { text: 'This is a test product description' } }],
+        },
       },
     };
 
@@ -48,7 +50,7 @@ test.describe('Product Create API', () => {
       variables: { input },
     });
 
-    const result = data.inventoryMutation.productCreate;
+    const result = data.catalogMutation.productCreate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.product).toBeTruthy();
@@ -100,7 +102,7 @@ test.describe('Product Create API', () => {
       variables: { input },
     });
 
-    const result = data.inventoryMutation.productCreate;
+    const result = data.catalogMutation.productCreate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.product).toBeTruthy();
@@ -139,7 +141,9 @@ test.describe('Product Create API', () => {
     expect(variantHandles).toContain('blue-l');
 
     // First variant should be marked as default
-    const defaultVariants = variantEdges.filter((e: { node: { isDefault: boolean } }) => e.node.isDefault);
+    const defaultVariants = variantEdges.filter(
+      (e: { node: { isDefault: boolean } }) => e.node.isDefault,
+    );
     expect(defaultVariants).toHaveLength(1);
     expect(defaultVariants[0].node.handle).toBe('red-s');
   });
@@ -158,17 +162,14 @@ test.describe('Product Create API', () => {
           ],
         },
       ],
-      variants: [
-        { handle: 'cotton' },
-        { handle: 'polyester' },
-      ],
+      variants: [{ handle: 'cotton' }, { handle: 'polyester' }],
     };
 
     const { data } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
       variables: { input },
     });
 
-    const result = data.inventoryMutation.productCreate;
+    const result = data.catalogMutation.productCreate;
 
     expect(result.userErrors).toHaveLength(0);
 
@@ -202,17 +203,14 @@ test.describe('Product Create API', () => {
           ],
         },
       ],
-      variants: [
-        { handle: 'black' },
-        { handle: 'white' },
-      ],
+      variants: [{ handle: 'black' }, { handle: 'white' }],
     };
 
     const { data } = await api.admin.mutation('inventory-api/ProductCreate', {
       variables: { input },
     });
 
-    const result = data.inventoryMutation.productCreate;
+    const result = data.catalogMutation.productCreate;
 
     expect(result.userErrors).toHaveLength(0);
 

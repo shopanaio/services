@@ -11,7 +11,7 @@ test.describe('Product Query API', () => {
     const { data: createData } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
       variables: { input: { title: 'Query Test Product', handle: 'query-test-product' } },
     });
-    const createdProduct = createData.inventoryMutation.productCreate.product;
+    const createdProduct = createData.catalogMutation.productCreate.product;
     expect(createdProduct).toBeTruthy();
 
     // Query the product by ID
@@ -21,7 +21,7 @@ test.describe('Product Query API', () => {
       },
     });
 
-    const product = data.inventoryQuery.product;
+    const product = data.catalogQuery.product;
     expect(product).toBeTruthy();
     expect(product?.id).toBe(createdProduct?.id);
     expect(product?.isPublished).toBe(false);
@@ -37,7 +37,7 @@ test.describe('Product Query API', () => {
       },
     });
 
-    expect(data.inventoryQuery.product).toBeNull();
+    expect(data.catalogQuery.product).toBeNull();
   });
 
   test('should list products with pagination', async ({ api }) => {
@@ -52,9 +52,9 @@ test.describe('Product Query API', () => {
       variables: { input: { title: 'Pagination Product 3', handle: 'pagination-product-3' } },
     });
 
-    expect(createData1.inventoryMutation.productCreate.product).toBeTruthy();
-    expect(createData2.inventoryMutation.productCreate.product).toBeTruthy();
-    expect(createData3.inventoryMutation.productCreate.product).toBeTruthy();
+    expect(createData1.catalogMutation.productCreate.product).toBeTruthy();
+    expect(createData2.catalogMutation.productCreate.product).toBeTruthy();
+    expect(createData3.catalogMutation.productCreate.product).toBeTruthy();
 
     // Query products with pagination
     const { data } = await api.admin.query('inventory-api/ProductFindMany', {
@@ -63,7 +63,7 @@ test.describe('Product Query API', () => {
       },
     });
 
-    const products = data.inventoryQuery.products;
+    const products = data.catalogQuery.products;
     expect(products.edges.length).toBeGreaterThanOrEqual(3);
     expect(products.pageInfo).toBeTruthy();
     expect(products.totalCount).toBeGreaterThanOrEqual(3);
@@ -81,7 +81,7 @@ test.describe('Product Query API', () => {
     const { data: createData } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
       variables: { input: { title: 'Variants Test Product', handle: 'variants-test-product' } },
     });
-    const createdProduct = createData.inventoryMutation.productCreate.product;
+    const createdProduct = createData.catalogMutation.productCreate.product;
 
     // Query the product with variants
     const { data } = await api.admin.query('inventory-api/ProductFindOne', {
@@ -90,7 +90,7 @@ test.describe('Product Query API', () => {
       },
     });
 
-    const product = data.inventoryQuery.product;
+    const product = data.catalogQuery.product;
     expect(product).toBeTruthy();
     expect(product?.variants).toBeTruthy();
     expect(product?.variants?.edges?.length).toBeGreaterThanOrEqual(1);

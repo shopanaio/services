@@ -15,7 +15,7 @@ test.describe('Pricing & Cost API', () => {
       variables: { input: { title, handle } },
     });
 
-    const product = data.inventoryMutation.productCreate.product;
+    const product = data.catalogMutation.productCreate.product;
     const variantEdges = product?.variants?.edges ?? [];
     const variantId = variantEdges[0]?.node?.id ?? null;
 
@@ -54,7 +54,7 @@ test.describe('Pricing & Cost API', () => {
         },
       });
 
-      const result = data.inventoryMutation.variantUpdatePricing;
+      const result = data.catalogMutation.variantUpdatePricing;
       expect(result.userErrors).toHaveLength(0);
       expect(result.variant?.price).toBeTruthy();
       expect(result.variant?.price?.currency).toBe('UAH');
@@ -80,7 +80,7 @@ test.describe('Pricing & Cost API', () => {
         },
       });
 
-      const result = data.inventoryMutation.variantUpdatePricing;
+      const result = data.catalogMutation.variantUpdatePricing;
       expect(result.userErrors).toHaveLength(0);
       expect(result.variant?.price).toBeTruthy();
       expect(result.variant?.price?.amountMinor).toBe(8000);
@@ -117,7 +117,7 @@ test.describe('Pricing & Cost API', () => {
         },
       });
 
-      const result = data.inventoryMutation.variantUpdatePricing;
+      const result = data.catalogMutation.variantUpdatePricing;
       expect(result.userErrors).toHaveLength(0);
       expect(result.variant?.price?.amountMinor).toBe(15000);
     });
@@ -141,8 +141,8 @@ test.describe('Pricing & Cost API', () => {
         },
       });
 
-      expect(uahData.inventoryMutation.variantUpdatePricing.userErrors).toHaveLength(0);
-      expect(uahData.inventoryMutation.variantUpdatePricing.variant).toBeTruthy();
+      expect(uahData.catalogMutation.variantUpdatePricing.userErrors).toHaveLength(0);
+      expect(uahData.catalogMutation.variantUpdatePricing.variant).toBeTruthy();
 
       // Set USD price
       const { data: usdData } = await api.admin.mutation('inventory-api/VariantSetPricing', {
@@ -155,8 +155,8 @@ test.describe('Pricing & Cost API', () => {
         },
       });
 
-      expect(usdData.inventoryMutation.variantUpdatePricing.userErrors).toHaveLength(0);
-      expect(usdData.inventoryMutation.variantUpdatePricing.variant).toBeTruthy();
+      expect(usdData.catalogMutation.variantUpdatePricing.userErrors).toHaveLength(0);
+      expect(usdData.catalogMutation.variantUpdatePricing.variant).toBeTruthy();
     });
 
     test('should return error for invalid variant ID', async ({ api }) => {
@@ -289,7 +289,11 @@ test.describe('Pricing & Cost API', () => {
       }
 
       // Create warehouse for cost
-      const warehouse = await createWarehouse(api, 'WH-COMBINED-PC', 'Combined Pricing/Cost Warehouse');
+      const warehouse = await createWarehouse(
+        api,
+        'WH-COMBINED-PC',
+        'Combined Pricing/Cost Warehouse',
+      );
 
       // Set price
       const { data: priceData } = await api.admin.mutation('inventory-api/VariantSetPricing', {
@@ -302,7 +306,7 @@ test.describe('Pricing & Cost API', () => {
         },
       });
 
-      expect(priceData.inventoryMutation.variantUpdatePricing.userErrors).toHaveLength(0);
+      expect(priceData.catalogMutation.variantUpdatePricing.userErrors).toHaveLength(0);
 
       // Set cost
       const { data: costData } = await api.admin.mutation('inventory-api/VariantSetCost', {
@@ -320,8 +324,9 @@ test.describe('Pricing & Cost API', () => {
       expect(costData.inventoryMutation.variantUpdateInventory.userErrors).toHaveLength(0);
 
       // Verify margin: price (100) - cost (50) = 50 UAH margin
-      const price = priceData.inventoryMutation.variantUpdatePricing.variant?.price?.amountMinor ?? 0;
-      const cost = costData.inventoryMutation.variantUpdateInventory.variant?.cost?.unitCostMinor ?? 0;
+      const price = priceData.catalogMutation.variantUpdatePricing.variant?.price?.amountMinor ?? 0;
+      const cost =
+        costData.inventoryMutation.variantUpdateInventory.variant?.cost?.unitCostMinor ?? 0;
       expect(price - cost).toBe(5000); // 50.00 UAH margin
     });
   });

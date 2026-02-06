@@ -1,5 +1,7 @@
 type Query {
   appsQuery: AppsQuery!
+  catalogQuery: CatalogQuery!
+  widgetQuery: WidgetQuery!
 
   """User management queries."""
   userQuery: UserQuery!
@@ -7,7 +9,6 @@ type Query {
   """Organization queries namespace."""
   organizationQuery: OrganizationQuery!
   inventoryQuery: InventoryQuery!
-  widgetQuery: WidgetQuery!
   mediaQuery: MediaQuery!
   orderQuery: OrderQuery!
 
@@ -17,6 +18,7 @@ type Query {
 
 type Mutation {
   appsMutation: AppsMutation!
+  catalogMutation: CatalogMutation!
 
   """User management mutations."""
   userMutation: UserMutation!
@@ -1009,6 +1011,875 @@ scalar DateTime
 """Valid email address"""
 scalar Email
 
+scalar BigInt
+
+type _CatalogFiltersPlaceholder {
+  _empty: Boolean
+}
+
+type CatalogQuery {
+  """Get a node by its global ID"""
+  node(id: ID!): Node
+
+  """Get multiple nodes by their global IDs"""
+  nodes(ids: [ID!]!): [Node]!
+
+  """Get a product by ID"""
+  product(id: ID!): Product
+
+  """Get products with Relay-style pagination"""
+  products(first: Int, after: String, last: Int, before: String): ProductConnection!
+
+  """Get a variant by ID"""
+  variant(id: ID!): Variant
+
+  """Get variants with Relay-style pagination"""
+  variants(first: Int, after: String, last: Int, before: String): VariantConnection!
+
+  """Get bulk update job by ID."""
+  productBulkUpdateJob(jobId: ID!): ProductBulkUpdateJob
+
+  """Get a category by ID"""
+  category(id: ID!): Category
+
+  """Get categories with Relay-style pagination"""
+  categories(first: Int, after: String, last: Int, before: String): CategoryConnection!
+
+  """Get a tag by ID"""
+  tag(id: ID!): Tag
+
+  """Get tags with Relay-style pagination"""
+  tags(first: Int, after: String, last: Int, before: String): TagConnection!
+}
+
+"""Widget query namespace for dashboard widgets."""
+type WidgetQuery {
+  """Get pricing widget data for a variant."""
+  pricing(input: PricingWidgetInput!): PricingWidgetPayload!
+
+  """
+  Get inventory widget data for a product.
+  Returns aggregated inventory metrics across all variants.
+  """
+  inventory(productId: ID!): ProductInventoryWidget
+}
+
+type CatalogMutation {
+  productCreate(input: ProductCreateInput!): ProductCreatePayload!
+  productDelete(input: ProductDeleteInput!): ProductDeletePayload!
+  productUpdateStatus(input: ProductUpdateStatusInput!): ProductUpdateStatusPayload!
+
+  """
+  Unified product update with optimistic locking.
+  Supports product and variant updates in a single request.
+  """
+  productUpdate(
+    """The product ID to update."""
+    productId: ID!
+
+    """
+    Expected revision for optimistic locking. If provided, fails if product was modified.
+    """
+    expectedRevision: Int
+
+    """Product-level operations."""
+    operations: ProductUpdateInput
+  ): ProductUpdatePayload!
+  variantCreate(input: VariantCreateInput!): VariantCreatePayload!
+  variantDelete(input: VariantDeleteInput!): VariantDeletePayload!
+  variantUpdatePricing(input: VariantUpdatePricingInput!): VariantUpdatePricingPayload!
+  variantUpdateOptions(input: VariantUpdateOptionsInput!): VariantUpdateOptionsPayload!
+  productOptionCreate(input: ProductOptionCreateInput!): ProductOptionCreatePayload!
+  productOptionUpdate(input: ProductOptionUpdateInput!): ProductOptionUpdatePayload!
+  productOptionDelete(input: ProductOptionDeleteInput!): ProductOptionDeletePayload!
+
+  """
+  Sync all product options. This is a complete replace operation.
+  Options not in the input list will be deleted.
+  Does NOT affect variants - only option definitions are synced.
+  """
+  productOptionsSync(input: ProductOptionsSyncInput!): ProductOptionsSyncPayload!
+  productFeatureCreate(input: ProductFeatureCreateInput!): ProductFeatureCreatePayload!
+  productFeatureUpdate(input: ProductFeatureUpdateInput!): ProductFeatureUpdatePayload!
+  productFeatureDelete(input: ProductFeatureDeleteInput!): ProductFeatureDeletePayload!
+  productFeaturesSync(input: ProductFeaturesSyncInput!): ProductFeaturesSyncPayload!
+  variantUpdateMedia(input: VariantUpdateMediaInput!): VariantUpdateMediaPayload!
+  categoryCreate(input: CategoryCreateInput!): CategoryCreatePayload!
+  categoryUpdate(input: CategoryUpdateInput!): CategoryUpdatePayload!
+  categoryMove(input: CategoryMoveInput!): CategoryMovePayload!
+  categoryDelete(input: CategoryDeleteInput!): CategoryDeletePayload!
+  tagCreate(input: TagCreateInput!): TagCreatePayload!
+  tagUpdate(input: TagUpdateInput!): TagUpdatePayload!
+  tagDelete(input: TagDeleteInput!): TagDeletePayload!
+
+  """
+  Start async bulk update.
+  Requires X-Idempotency-Key header.
+  """
+  productBulkUpdate(input: ProductBulkUpdateInput!): ProductBulkUpdatePayload!
+}
+
+"""Result of bulk update start/cancel."""
+type ProductBulkUpdatePayload {
+  """Created or updated job (null on validation error)."""
+  job: ProductBulkUpdateJob
+
+  """Validation/execution errors."""
+  userErrors: [BulkUpdateUserError!]!
+}
+
+"""Bulk update job with progress."""
+type ProductBulkUpdateJob {
+  """Job ID."""
+  id: ID!
+
+  """Current status."""
+  status: BulkUpdateJobStatus!
+
+  """When created."""
+  createdAt: DateTime!
+
+  """When started running."""
+  startedAt: DateTime
+
+  """When finished."""
+  finishedAt: DateTime
+
+  """Total products in batch."""
+  totalProducts: Int!
+
+  """Progress computed from items."""
+  progress: BulkUpdateJobProgress!
+
+  """Items with pagination and filtering."""
+  items(first: Int, after: String, statusFilter: [BulkUpdateItemStatus!]): BulkUpdateItemConnection!
+}
+
+"""Job progress. All counters computed from items."""
+type BulkUpdateJobProgress {
+  """Total operations."""
+  total: Int!
+
+  """Done (succeeded + failed + cancelled + superseded)."""
+  done: Int!
+
+  """Successfully applied."""
+  succeeded: Int!
+
+  """Failed."""
+  failed: Int!
+
+  """Cancelled."""
+  cancelled: Int!
+
+  """Superseded by another job."""
+  superseded: Int!
+
+  """Currently running."""
+  running: Int!
+
+  """Pending execution."""
+  pending: Int!
+}
+
+"""Single operation in bulk update job."""
+type BulkUpdateItem {
+  """Item ID."""
+  id: ID!
+
+  """Product ID."""
+  productId: ID!
+
+  """Variant ID (null for product-level operations)."""
+  variantId: ID
+
+  """Operation type."""
+  opType: BulkUpdateOpType!
+
+  """Order within product."""
+  opIndex: Int!
+
+  """Current status."""
+  status: BulkUpdateItemStatus!
+
+  """When started."""
+  startedAt: DateTime
+
+  """When finished."""
+  finishedAt: DateTime
+
+  """Execution errors."""
+  errors: [BulkUpdateUserError!]!
+
+  """Cancel reason (only for CANCELLED/SUPERSEDED)."""
+  cancelReason: BulkUpdateCancelReason
+
+  """Job that superseded this item."""
+  supersededByJobId: ID
+}
+
+type BulkUpdateItemConnection {
+  edges: [BulkUpdateItemEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type BulkUpdateItemEdge {
+  cursor: String!
+  node: BulkUpdateItem!
+}
+
+"""Bulk update error with operation context."""
+type BulkUpdateUserError implements UserError {
+  """Error message."""
+  message: String!
+
+  """Input field path."""
+  field: [String!]
+
+  """Error code."""
+  code: String
+
+  """Product ID."""
+  productId: ID
+
+  """Variant ID."""
+  variantId: ID
+
+  """Operation that failed."""
+  operation: String
+}
+
+"""A category represents a hierarchical grouping of products."""
+type Category implements Node {
+  """The globally unique ID of the category."""
+  id: ID!
+
+  """The URL-friendly handle for the category."""
+  handle: String!
+
+  """
+  The date and time when the category was published, or null if unpublished.
+  """
+  publishedAt: DateTime
+
+  """Whether the category is currently published."""
+  isPublished: Boolean!
+
+  """The date and time when the category was created."""
+  createdAt: DateTime!
+
+  """The date and time when the category was last updated."""
+  updatedAt: DateTime!
+
+  """The date and time when the category was deleted (soft delete)."""
+  deletedAt: DateTime
+
+  """The depth of this category in the hierarchy (0 for root)."""
+  depth: Int!
+
+  """The materialized path for this category."""
+  path: String!
+
+  """The display name of the category."""
+  name: String!
+
+  """The category description."""
+  description: Description
+
+  """The parent category, if any."""
+  parent: Category
+
+  """Direct child categories."""
+  children: [Category!]!
+
+  """All ancestor categories from root to parent."""
+  ancestors: [Category!]!
+
+  """Media files associated with this category."""
+  media: [CategoryMediaItem!]!
+
+  """Products in this category with pagination."""
+  products(first: Int, after: String, last: Int, before: String): ProductConnection!
+
+  """The total number of products in this category."""
+  productsCount: Int!
+}
+
+"""A media item for a category."""
+type CategoryMediaItem {
+  """The file reference."""
+  file: File!
+
+  """The sort index for ordering."""
+  sortIndex: Int!
+}
+
+"""A connection to a list of Category items."""
+type CategoryConnection {
+  """A list of edges."""
+  edges: [CategoryEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of categories."""
+  totalCount: Int!
+}
+
+"""An edge in a Category connection."""
+type CategoryEdge {
+  """The item at the end of the edge."""
+  node: Category!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+
+"""Payload for category creation."""
+type CategoryCreatePayload {
+  """The created category."""
+  category: Category
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""Payload for category update."""
+type CategoryUpdatePayload {
+  """The updated category."""
+  category: Category
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""Payload for category move."""
+type CategoryMovePayload {
+  """The moved category."""
+  category: Category
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""Payload for category deletion."""
+type CategoryDeletePayload {
+  """The ID of the deleted category."""
+  deletedCategoryId: ID
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""A product feature represents either a group or an attribute."""
+type ProductFeature implements Node {
+  """The globally unique ID of the feature."""
+  id: ID!
+
+  """Tree position as array: [0] for root, [0, 1] for child of first group."""
+  index: [Int!]!
+
+  """Whether this feature is a group (container) or an attribute (leaf)."""
+  isGroup: Boolean!
+
+  """Display name (from translations)."""
+  name: String!
+
+  """Parent group, if this feature belongs to a group."""
+  parent: ProductFeature
+
+  """Child features. Returns empty array for attributes (isGroup = false)."""
+  children: [ProductFeature!]!
+
+  """Values. Returns empty array for groups (isGroup = true)."""
+  values: [ProductFeatureValue!]!
+}
+
+"""A value for a product feature."""
+type ProductFeatureValue implements Node {
+  """The globally unique ID of the feature value."""
+  id: ID!
+
+  """Position within the feature's values (0, 1, 2, ...)."""
+  index: Int!
+
+  """Display name (from translations)."""
+  name: String!
+}
+
+type ProductFeaturesSyncPayload {
+  """The updated product."""
+  product: Product
+
+  """List of all synced features with their final IDs."""
+  features: [ProductFeature!]!
+
+  """Any validation errors."""
+  userErrors: [GenericUserError!]!
+}
+
+"""Payload for feature create."""
+type ProductFeatureCreatePayload {
+  """The product with updated features."""
+  product: Product
+
+  """The created feature."""
+  feature: ProductFeature
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""Payload for feature update."""
+type ProductFeatureUpdatePayload {
+  """The product with updated features."""
+  product: Product
+
+  """The updated feature."""
+  feature: ProductFeature
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""Payload for feature delete."""
+type ProductFeatureDeletePayload {
+  """The product with updated features."""
+  product: Product
+
+  """The ID of the deleted feature."""
+  deletedFeatureId: ID
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""Media attached to a variant with sort order."""
+type VariantMediaItem {
+  """The file from the Media service."""
+  file: File!
+
+  """Sort order index (lower = first)."""
+  sortIndex: Int!
+}
+
+"""Payload for variant update media."""
+type VariantUpdateMediaPayload {
+  """The updated variant."""
+  variant: Variant
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""
+A product option defines a configurable aspect of a product, such as Size or Color.
+"""
+type ProductOption implements Node {
+  """The globally unique ID of the option."""
+  id: ID!
+
+  """The URL-friendly identifier for this option."""
+  slug: String!
+
+  """Display name."""
+  name: String!
+
+  """The display type for UI rendering."""
+  displayType: OptionDisplayType!
+
+  """The available values for this option."""
+  values: [ProductOptionValue!]!
+}
+
+"""
+A value for a product option, such as "Red" for Color or "Large" for Size.
+"""
+type ProductOptionValue implements Node {
+  """The globally unique ID of the option value."""
+  id: ID!
+
+  """The URL-friendly identifier for this value."""
+  slug: String!
+
+  """Display name."""
+  name: String!
+
+  """The visual swatch for this value (if applicable)."""
+  swatch: ProductOptionSwatch
+}
+
+"""A visual swatch for representing an option value."""
+type ProductOptionSwatch implements Node {
+  """The globally unique ID of the swatch."""
+  id: ID!
+
+  """The type of swatch."""
+  swatchType: SwatchType!
+
+  """The primary color (hex code or color name)."""
+  colorOne: String
+
+  """The secondary color for gradients."""
+  colorTwo: String
+
+  """The file for image-based swatches."""
+  file: File
+
+  """Additional metadata for the swatch."""
+  metadata: JSON
+}
+
+"""Represents a selected option for a variant."""
+type SelectedOption {
+  """The option ID."""
+  optionId: ID!
+
+  """The selected value ID."""
+  optionValueId: ID!
+}
+
+"""Payload for option create. Returns the product with new variants."""
+type ProductOptionCreatePayload {
+  """The product with updated options and variants."""
+  product: Product
+
+  """The created option."""
+  option: ProductOption
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""Payload for option update."""
+type ProductOptionUpdatePayload {
+  """The product with updated options and variants."""
+  product: Product
+
+  """The updated option."""
+  option: ProductOption
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""Payload for option delete."""
+type ProductOptionDeletePayload {
+  """The product with updated options and variants."""
+  product: Product
+
+  """The ID of the deleted option."""
+  deletedOptionId: ID
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""Payload for options sync mutation."""
+type ProductOptionsSyncPayload {
+  """The product with updated options."""
+  product: Product
+
+  """All synced options with final IDs."""
+  options: [ProductOption!]!
+
+  """List of errors that occurred."""
+  userErrors: [GenericUserError!]!
+}
+
+"""Represents a price for a variant."""
+type VariantPrice implements Node {
+  """The globally unique ID of the price record."""
+  id: ID!
+
+  """The currency code."""
+  currency: CurrencyCode!
+
+  """The price amount in minor units (cents, kopecks, etc.)."""
+  amountMinor: BigInt!
+
+  """The compare-at price in minor units (strikethrough price)."""
+  compareAtMinor: BigInt
+
+  """When this price became effective."""
+  effectiveFrom: DateTime!
+
+  """When this price stopped being effective (null if current)."""
+  effectiveTo: DateTime
+
+  """When this price record was created."""
+  recordedAt: DateTime!
+
+  """Whether this is the current active price."""
+  isCurrent: Boolean!
+}
+
+"""A connection to a list of VariantPrice items."""
+type VariantPriceConnection {
+  """A list of edges."""
+  edges: [VariantPriceEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of price records."""
+  totalCount: Int!
+}
+
+"""An edge in a VariantPrice connection."""
+type VariantPriceEdge {
+  """The item at the end of the edge."""
+  node: VariantPrice!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+
+"""Represents the cost of a variant."""
+type VariantCost implements Node {
+  """The globally unique ID of the cost record."""
+  id: ID!
+
+  """The currency code."""
+  currency: CurrencyCode!
+
+  """The unit cost in minor units."""
+  unitCostMinor: BigInt!
+
+  """When this cost became effective."""
+  effectiveFrom: DateTime!
+
+  """When this cost stopped being effective (null if current)."""
+  effectiveTo: DateTime
+
+  """When this cost record was created."""
+  recordedAt: DateTime!
+
+  """Whether this is the current active cost."""
+  isCurrent: Boolean!
+}
+
+"""A connection to a list of VariantCost items."""
+type VariantCostConnection {
+  """A list of edges."""
+  edges: [VariantCostEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of cost records."""
+  totalCount: Int!
+}
+
+"""An edge in a VariantCost connection."""
+type VariantCostEdge {
+  """The item at the end of the edge."""
+  node: VariantCost!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+
+"""Statistics for variant price history over a period."""
+type VariantPriceHistoryStatistics {
+  """Minimum price over the period (minor units)."""
+  minPriceMinor: BigInt!
+
+  """Maximum price over the period (minor units)."""
+  maxPriceMinor: BigInt!
+
+  """Average price over the period (minor units)."""
+  avgPriceMinor: BigInt!
+
+  """Currency code."""
+  currency: CurrencyCode!
+}
+
+"""
+Pricing widget payload with current price, cost, history and statistics.
+"""
+type PricingWidgetPayload {
+  """Current active price."""
+  currentPrice: VariantPrice
+
+  """Current active cost."""
+  currentCostPrice: VariantCost
+
+  """Price history for the period."""
+  history: VariantPriceConnection!
+
+  """Computed statistics for the period."""
+  statistics: VariantPriceHistoryStatistics!
+}
+
+"""Payload for variant pricing update."""
+type VariantUpdatePricingPayload {
+  """The updated variant."""
+  variant: Variant
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""Product description in multiple formats."""
+type Description {
+  """Plain text description."""
+  text: String!
+
+  """HTML description."""
+  html: String!
+
+  """EditorJS JSON description."""
+  json: JSON!
+}
+
+"""A product represents an item that can be sold."""
+type Product implements Node {
+  """The globally unique ID of the product."""
+  id: ID!
+
+  """The URL-friendly handle for the product."""
+  handle: String
+
+  """
+  The date and time when the product was published, or null if unpublished.
+  """
+  publishedAt: DateTime
+
+  """Whether the product is currently published."""
+  isPublished: Boolean!
+
+  """The date and time when the product was created."""
+  createdAt: DateTime!
+
+  """The date and time when the product was last updated."""
+  updatedAt: DateTime!
+
+  """The date and time when the product was deleted (soft delete)."""
+  deletedAt: DateTime
+
+  """Optimistic locking revision number. Incremented on each update."""
+  revision: Int!
+
+  """The variants of this product."""
+  variants(first: Int, after: String, last: Int, before: String): VariantConnection!
+
+  """The options available for this product."""
+  options: [ProductOption!]!
+
+  """The features of this product."""
+  features: [ProductFeature!]!
+
+  """The total number of variants for this product."""
+  variantsCount: Int!
+
+  """The categories this product belongs to."""
+  categories: [Category!]!
+
+  """The tags associated with this product."""
+  tags: [Tag!]!
+
+  """Product title."""
+  title: String!
+
+  """Product description."""
+  description: Description
+
+  """Short excerpt."""
+  excerpt: String
+
+  """SEO and Open Graph metadata."""
+  seo: ProductSeo
+}
+
+"""A connection to a list of Product items."""
+type ProductConnection {
+  """A list of edges."""
+  edges: [ProductEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of products."""
+  totalCount: Int!
+}
+
+"""An edge in a Product connection."""
+type ProductEdge {
+  """The item at the end of the edge."""
+  node: Product!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+
+"""Payload for product creation."""
+type ProductCreatePayload {
+  """The created product."""
+  product: Product
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""Payload for product deletion."""
+type ProductDeletePayload {
+  """The ID of the deleted product."""
+  deletedProductId: ID
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""Payload for product update status."""
+type ProductUpdateStatusPayload {
+  """The updated product."""
+  product: Product
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""Result of a single operation in the unified update."""
+type OperationResult {
+  """The type of operation."""
+  type: OperationType!
+
+  """Whether the operation was applied successfully."""
+  applied: Boolean!
+
+  """Errors that occurred during this operation."""
+  errors: [GenericUserError!]!
+}
+
+"""Payload for the unified product update mutation."""
+type ProductUpdatePayload {
+  """The updated product with new revision."""
+  product: Product
+
+  """Results of each operation."""
+  operationResults: [OperationResult!]!
+
+  """All errors from all operations."""
+  userErrors: [GenericUserError!]!
+}
+
+"""Information about pagination in a connection."""
+type PageInfo {
+  """When paginating forwards, are there more items?"""
+  hasNextPage: Boolean!
+
+  """When paginating backwards, are there more items?"""
+  hasPreviousPage: Boolean!
+
+  """When paginating backwards, the cursor to continue."""
+  startCursor: String
+
+  """When paginating forwards, the cursor to continue."""
+  endCursor: String
+}
+
 """A generic user error type for mutation responses."""
 type GenericUserError implements UserError {
   """Human-readable error message"""
@@ -1019,6 +1890,1221 @@ type GenericUserError implements UserError {
 
   """Machine-readable error code"""
   code: String
+}
+
+"""SEO and Open Graph metadata for a product."""
+type ProductSeo {
+  """SEO title for search engines (max 70 chars)."""
+  seoTitle: String
+
+  """SEO description for search engines (max 160 chars)."""
+  seoDescription: String
+
+  """Open Graph title for social media sharing (max 95 chars)."""
+  ogTitle: String
+
+  """Open Graph description for social media sharing."""
+  ogDescription: String
+
+  """Open Graph image for social media sharing."""
+  ogImage: File
+}
+
+"""A tag represents a simple label for organizing and filtering products."""
+type Tag implements Node {
+  """The globally unique ID of the tag."""
+  id: ID!
+
+  """The URL-friendly handle for the tag."""
+  handle: String!
+
+  """The date and time when the tag was created."""
+  createdAt: DateTime!
+
+  """The display name of the tag."""
+  name: String!
+
+  """Products with this tag, with pagination."""
+  products(first: Int, after: String, last: Int, before: String): ProductConnection!
+
+  """The total number of products with this tag."""
+  productsCount: Int!
+}
+
+"""A connection to a list of Tag items."""
+type TagConnection {
+  """A list of edges."""
+  edges: [TagEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of tags."""
+  totalCount: Int!
+}
+
+"""An edge in a Tag connection."""
+type TagEdge {
+  """The item at the end of the edge."""
+  node: Tag!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+
+"""Payload for tag creation."""
+type TagCreatePayload {
+  """The created tag."""
+  tag: Tag
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""Payload for tag update."""
+type TagUpdatePayload {
+  """The updated tag."""
+  tag: Tag
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""Payload for tag deletion."""
+type TagDeletePayload {
+  """The ID of the deleted tag."""
+  deletedTagId: ID
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""
+A variant represents a specific version of a product, such as a size or color.
+Catalog Service владеет этим типом.
+Inventory-поля (sku, dimensions, weight, cost, stock) добавляются через federation extend в Inventory Service.
+"""
+type Variant implements Node {
+  """The globally unique ID of the variant."""
+  id: ID!
+
+  """The product this variant belongs to."""
+  product: Product!
+
+  """Whether this is the default variant for the product."""
+  isDefault: Boolean!
+
+  """The URL-friendly handle for the variant (generated from options)."""
+  handle: String!
+
+  """The external system identifier for integration purposes."""
+  externalSystem: String
+
+  """The external ID in the external system."""
+  externalId: String
+
+  """The date and time when the variant was created."""
+  createdAt: DateTime!
+
+  """The date and time when the variant was last updated."""
+  updatedAt: DateTime!
+
+  """The date and time when the variant was deleted (soft delete)."""
+  deletedAt: DateTime
+
+  """Current price for this variant."""
+  price: VariantPrice
+
+  """Price history for this variant."""
+  priceHistory(first: Int, after: String, last: Int, before: String): VariantPriceConnection!
+
+  """The selected option values for this variant."""
+  selectedOptions: [SelectedOption!]!
+
+  """Variant title."""
+  title: String
+
+  """Media attached to this variant (images, videos)."""
+  media: [VariantMediaItem!]!
+
+  """Inventory item associated with this variant"""
+  inventoryItem: InventoryItem
+}
+
+"""A connection to a list of Variant items."""
+type VariantConnection {
+  """A list of edges."""
+  edges: [VariantEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of variants."""
+  totalCount: Int!
+}
+
+"""An edge in a Variant connection."""
+type VariantEdge {
+  """The item at the end of the edge."""
+  node: Variant!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+
+"""Payload for variant creation."""
+type VariantCreatePayload {
+  """The created variant."""
+  variant: Variant
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""Payload for variant options update."""
+type VariantUpdateOptionsPayload {
+  """The updated variant."""
+  variant: Variant
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""Payload for variant deletion."""
+type VariantDeletePayload {
+  """The ID of the deleted variant."""
+  deletedVariantId: ID
+
+  """The product the variant belonged to."""
+  product: Product
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""A file represents a stored media asset."""
+type File implements Node {
+  """The globally unique ID of the file."""
+  id: ID!
+
+  """Provider type (s3, youtube, vimeo, url, local)."""
+  provider: FileProvider!
+
+  """Public URL to access file."""
+  url: String!
+
+  """MIME type."""
+  mimeType: String
+
+  """File extension."""
+  ext: String
+
+  """Size in bytes (0 for external providers)."""
+  sizeBytes: BigInt!
+
+  """Original filename from upload."""
+  originalName: String
+
+  """Image/video dimensions (null if not applicable)."""
+  dimensions: MediaDimensions
+
+  """Duration in milliseconds (for video/audio)."""
+  durationMs: Int
+
+  """Alt text for accessibility."""
+  altText: String
+
+  """Source URL (for files uploaded from URL)."""
+  sourceUrl: String
+
+  """Whether the file has been processed."""
+  isProcessed: Boolean!
+
+  """Additional metadata."""
+  meta: JSON
+
+  """The date and time when the file was created."""
+  createdAt: DateTime!
+
+  """The date and time when the file was last updated."""
+  updatedAt: DateTime!
+
+  """The date and time when the file was deleted (soft delete)."""
+  deletedAt: DateTime
+
+  """Current deletion state (ACTIVE, SOFT_DELETED, DELETING)."""
+  deletionState: String!
+
+  """Deletion error code, if any."""
+  deletionErrorCode: String
+
+  """Last deletion error details."""
+  lastDeletionError: String
+
+  """The date and time when the last deletion error occurred."""
+  failedAt: DateTime
+
+  """S3-specific data (only for S3 provider)."""
+  s3Data: S3ObjectData
+
+  """External media data (for YouTube, Vimeo, etc)."""
+  externalData: ExternalMediaData
+
+  """Usage summary for this file."""
+  usage: FileUsageSummary!
+}
+
+"""A generic user error interface for mutation responses."""
+interface UserError {
+  """The error message."""
+  message: String!
+
+  """The path to the input field that caused the error."""
+  field: [String!]
+
+  """An error code for programmatic handling."""
+  code: String
+}
+
+"""
+The Node interface is implemented by all types that have a globally unique ID.
+"""
+interface Node {
+  """The globally unique ID of the object."""
+  id: ID!
+}
+
+"""Sort direction"""
+enum SortDirection {
+  asc
+  desc
+}
+
+enum BulkUpdateJobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  CANCELLED
+}
+
+enum BulkUpdateItemStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+  SUPERSEDED
+}
+
+enum BulkUpdateOpType {
+  PRODUCT_UPDATE
+  VARIANT_UPDATE
+}
+
+enum BulkUpdateCancelReason {
+  USER
+  SUPERSEDED
+  SYSTEM
+}
+
+enum ProductStatusAction {
+  PUBLISH
+  UNPUBLISH
+}
+
+enum ProductStatus {
+  DRAFT
+  PUBLISHED
+}
+
+"""Display type for product options in the UI."""
+enum OptionDisplayType {
+  DROPDOWN
+  SWATCH
+  BUTTONS
+}
+
+"""Type of visual swatch for option values."""
+enum SwatchType {
+  COLOR
+  GRADIENT
+  IMAGE
+}
+
+"""Type of operation in the unified update."""
+enum OperationType {
+  PRODUCT_UPDATE
+  VARIANT_UPDATE
+}
+
+"""Filter operators for String fields"""
+input StringFilter {
+  """Equals"""
+  _eq: String
+
+  """Not equals"""
+  _neq: String
+
+  """In array"""
+  _in: [String!]
+
+  """Not in array"""
+  _notIn: [String!]
+
+  """Is null"""
+  _is: Boolean
+
+  """Is not null"""
+  _isNot: Boolean
+
+  """Contains substring (case-sensitive)"""
+  _contains: String
+
+  """Contains substring (case-insensitive)"""
+  _containsi: String
+
+  """Starts with (case-sensitive)"""
+  _startsWith: String
+
+  """Starts with (case-insensitive)"""
+  _startsWithi: String
+}
+
+"""Filter operators for ID fields"""
+input IDFilter {
+  """Equals"""
+  _eq: ID
+
+  """Not equals"""
+  _neq: ID
+
+  """In array"""
+  _in: [ID!]
+
+  """Not in array"""
+  _notIn: [ID!]
+
+  """Is null"""
+  _is: Boolean
+
+  """Is not null"""
+  _isNot: Boolean
+}
+
+"""Filter operators for Int fields"""
+input IntFilter {
+  """Equals"""
+  _eq: Int
+
+  """Not equals"""
+  _neq: Int
+
+  """Greater than"""
+  _gt: Int
+
+  """Greater than or equal"""
+  _gte: Int
+
+  """Less than"""
+  _lt: Int
+
+  """Less than or equal"""
+  _lte: Int
+
+  """In array"""
+  _in: [Int!]
+
+  """Not in array"""
+  _notIn: [Int!]
+
+  """Is null"""
+  _is: Boolean
+
+  """Is not null"""
+  _isNot: Boolean
+
+  """Between range (inclusive)"""
+  _between: [Int!]
+}
+
+"""Filter operators for Float fields"""
+input FloatFilter {
+  """Equals"""
+  _eq: Float
+
+  """Not equals"""
+  _neq: Float
+
+  """Greater than"""
+  _gt: Float
+
+  """Greater than or equal"""
+  _gte: Float
+
+  """Less than"""
+  _lt: Float
+
+  """Less than or equal"""
+  _lte: Float
+
+  """In array"""
+  _in: [Float!]
+
+  """Not in array"""
+  _notIn: [Float!]
+
+  """Is null"""
+  _is: Boolean
+
+  """Is not null"""
+  _isNot: Boolean
+
+  """Between range (inclusive)"""
+  _between: [Float!]
+}
+
+"""Filter operators for Boolean fields"""
+input BooleanFilter {
+  """Equals"""
+  _eq: Boolean
+
+  """Not equals"""
+  _neq: Boolean
+
+  """Is null"""
+  _is: Boolean
+
+  """Is not null"""
+  _isNot: Boolean
+}
+
+"""Filter operators for DateTime fields"""
+input DateTimeFilter {
+  """Equals"""
+  _eq: DateTime
+
+  """Not equals"""
+  _neq: DateTime
+
+  """Greater than (after)"""
+  _gt: DateTime
+
+  """Greater than or equal (on or after)"""
+  _gte: DateTime
+
+  """Less than (before)"""
+  _lt: DateTime
+
+  """Less than or equal (on or before)"""
+  _lte: DateTime
+
+  """Is null"""
+  _is: Boolean
+
+  """Is not null"""
+  _isNot: Boolean
+}
+
+"""
+Bulk update input - same structure as productUpdate but for multiple products.
+Max 100 products, 500 operations total.
+"""
+input ProductBulkUpdateInput {
+  """List of products to update with their operations."""
+  products: [ProductBulkUpdateItem!]!
+}
+
+"""A single product's update within a bulk request."""
+input ProductBulkUpdateItem {
+  """The product ID to update."""
+  productId: ID!
+
+  """
+  Expected revision for optimistic locking. If provided, fails if product was modified.
+  """
+  expectedRevision: Int
+
+  """Product-level operations."""
+  operations: ProductUpdateInput
+}
+
+"""Input for creating a category."""
+input CategoryCreateInput {
+  """The URL-friendly handle for the category."""
+  handle: String!
+
+  """The display name of the category."""
+  name: String!
+
+  """Optional parent category ID."""
+  parentId: ID
+
+  """Optional description."""
+  description: DescriptionInput
+
+  """File IDs for category media."""
+  mediaFileIds: [ID!]
+
+  """Whether to publish immediately."""
+  publish: Boolean
+}
+
+"""Input for updating a category."""
+input CategoryUpdateInput {
+  """The ID of the category to update."""
+  id: ID!
+
+  """The URL-friendly handle for the category."""
+  handle: String
+
+  """The display name of the category."""
+  name: String
+
+  """The category description."""
+  description: DescriptionInput
+
+  """File IDs for category media (replaces existing)."""
+  mediaFileIds: [ID!]
+}
+
+"""Input for moving a category in the hierarchy."""
+input CategoryMoveInput {
+  """The ID of the category to move."""
+  id: ID!
+
+  """The new parent category ID, or null for root."""
+  newParentId: ID
+}
+
+"""Input for deleting a category."""
+input CategoryDeleteInput {
+  """The ID of the category to delete."""
+  id: ID!
+
+  """Whether to permanently delete (hard delete)."""
+  permanent: Boolean
+}
+
+"""Sync all product features in a single transaction."""
+input ProductFeaturesSyncInput {
+  """The ID of the product."""
+  productId: ID!
+
+  """Complete list of features (replaces all existing features)."""
+  features: [ProductFeatureSyncItemInput!]!
+}
+
+input ProductFeatureSyncItemInput {
+  """
+  Database ID. Null for new records.
+  - If provided: update existing feature
+  - If null/omitted: create new feature (backend generates ID)
+  Features in DB but not in this list will be DELETED.
+  """
+  id: ID
+
+  """
+  Tree position as integer array.
+  - [0], [1], [2] for root items
+  - [0, 0], [0, 1], [1, 0] for children
+  Parent is derived: parent of [0, 1] is [0].
+  Groups must have length 1 (root only).
+  """
+  index: [Int!]!
+
+  """Whether this is a group (true) or attribute (false)."""
+  isGroup: Boolean!
+
+  """Display name."""
+  name: String!
+
+  """Values for this feature (only when isGroup = false)."""
+  values: [ProductFeatureValueSyncInput!]
+}
+
+input ProductFeatureValueSyncInput {
+  """Database ID. Null for new records."""
+  id: ID
+
+  """Position within the feature's values (0, 1, 2, ...)."""
+  index: Int!
+
+  """Display name."""
+  name: String!
+}
+
+"""Input for creating a feature value."""
+input ProductFeatureValueCreateInput {
+  """Display name."""
+  name: String!
+}
+
+"""Input for creating a feature on a product."""
+input ProductFeatureCreateInput {
+  """The ID of the product."""
+  productId: ID!
+
+  """Display name."""
+  name: String!
+
+  """The values for this feature."""
+  values: [ProductFeatureValueCreateInput!]!
+}
+
+"""Input for updating an existing feature value."""
+input ProductFeatureValueUpdateInput {
+  """The ID of the value to update."""
+  id: ID!
+
+  """Display name."""
+  name: String
+}
+
+"""Input for nested value operations in feature update."""
+input ProductFeatureValuesInput {
+  """Values to create."""
+  create: [ProductFeatureValueCreateInput!]
+
+  """Values to update."""
+  update: [ProductFeatureValueUpdateInput!]
+
+  """IDs of values to delete."""
+  delete: [ID!]
+}
+
+"""Input for updating a feature."""
+input ProductFeatureUpdateInput {
+  """The ID of the feature to update."""
+  id: ID!
+
+  """Display name."""
+  name: String
+
+  """Nested value operations."""
+  values: ProductFeatureValuesInput
+}
+
+"""Input for deleting a feature from a product."""
+input ProductFeatureDeleteInput {
+  """The ID of the feature to delete."""
+  id: ID!
+}
+
+"""Input for updating variant media (replaces all existing media)."""
+input VariantUpdateMediaInput {
+  """The variant ID."""
+  variantId: ID!
+
+  """
+  File IDs in desired order (first = primary). Empty array clears all media.
+  """
+  fileIds: [ID!]!
+}
+
+"""Input for selecting an option value for a variant."""
+input SelectedOptionInput {
+  """The ID of the option."""
+  optionId: ID!
+
+  """The ID of the option value."""
+  optionValueId: ID!
+}
+
+"""Input for creating/updating a swatch."""
+input ProductOptionSwatchInput {
+  """The type of swatch."""
+  swatchType: SwatchType!
+
+  """The primary color (hex code or color name)."""
+  colorOne: String
+
+  """The secondary color for gradients."""
+  colorTwo: String
+
+  """The file ID for image-based swatches."""
+  fileId: ID
+
+  """Additional metadata."""
+  metadata: JSON
+}
+
+"""Input for creating an option value."""
+input ProductOptionValueCreateInput {
+  """The URL-friendly slug for the value."""
+  slug: String!
+
+  """Display name."""
+  name: String!
+
+  """The swatch for this value."""
+  swatch: ProductOptionSwatchInput
+}
+
+"""Input for creating an option on a product."""
+input ProductOptionCreateInput {
+  """The ID of the product (optional when creating with product)."""
+  productId: ID
+
+  """The URL-friendly slug for the option."""
+  slug: String!
+
+  """Display name."""
+  name: String!
+
+  """The display type for UI rendering."""
+  displayType: OptionDisplayType!
+
+  """The values for this option."""
+  values: [ProductOptionValueCreateInput!]!
+}
+
+"""Input for updating an existing option value."""
+input ProductOptionValueUpdateInput {
+  """The ID of the value to update."""
+  id: ID!
+
+  """The new slug for the value."""
+  slug: String
+
+  """Display name."""
+  name: String
+
+  """The swatch for this value."""
+  swatch: ProductOptionSwatchInput
+}
+
+"""Input for nested value operations in option update."""
+input ProductOptionValuesInput {
+  """Values to create."""
+  create: [ProductOptionValueCreateInput!]
+
+  """Values to update."""
+  update: [ProductOptionValueUpdateInput!]
+
+  """IDs of values to delete."""
+  delete: [ID!]
+}
+
+"""Input for updating an option."""
+input ProductOptionUpdateInput {
+  """The ID of the option to update."""
+  id: ID!
+
+  """The new slug for the option."""
+  slug: String
+
+  """Display name."""
+  name: String
+
+  """The new display type."""
+  displayType: OptionDisplayType
+
+  """Nested value operations."""
+  values: ProductOptionValuesInput
+}
+
+"""Input for deleting an option from a product."""
+input ProductOptionDeleteInput {
+  """The ID of the option to delete."""
+  id: ID!
+}
+
+"""Input for syncing a single option value."""
+input ProductOptionValueSyncInput {
+  """Existing value ID (null = create new)."""
+  id: ID
+
+  """Position within the option (0, 1, 2...)."""
+  index: Int!
+
+  """The URL-friendly slug for the value."""
+  slug: String!
+
+  """Display name."""
+  name: String!
+
+  """The swatch for this value (null to remove)."""
+  swatch: ProductOptionSwatchInput
+}
+
+"""Input for syncing a single option."""
+input ProductOptionSyncItemInput {
+  """Existing option ID (null = create new)."""
+  id: ID
+
+  """Position in the options list (0, 1, 2...)."""
+  index: Int!
+
+  """The URL-friendly slug for the option."""
+  slug: String!
+
+  """Display name."""
+  name: String!
+
+  """The display type for UI rendering."""
+  displayType: OptionDisplayType!
+
+  """The values for this option."""
+  values: [ProductOptionValueSyncInput!]!
+}
+
+"""Input for syncing all product options."""
+input ProductOptionsSyncInput {
+  """The product to sync options for."""
+  productId: ID!
+
+  """Complete list of options (replaces existing)."""
+  options: [ProductOptionSyncItemInput!]!
+}
+
+"""Input for pricing widget query."""
+input PricingWidgetInput {
+  """The variant ID to get pricing data for."""
+  variantId: ID!
+
+  """Currency code to filter by."""
+  currency: CurrencyCode!
+
+  """Start of the period (optional, defaults to 30 days ago)."""
+  from: DateTime
+
+  """End of the period (optional, defaults to now)."""
+  to: DateTime
+
+  """Pagination: first N items."""
+  first: Int
+
+  """Pagination: cursor after."""
+  after: String
+}
+
+"""Input for updating a price on a variant."""
+input VariantUpdatePricingInput {
+  """The ID of the variant."""
+  variantId: ID!
+
+  """The currency code."""
+  currency: CurrencyCode!
+
+  """The price amount in minor units."""
+  amountMinor: BigInt!
+
+  """The compare-at price in minor units (optional)."""
+  compareAtMinor: BigInt
+}
+
+"""Input for product description (all fields required)."""
+input DescriptionInput {
+  """Plain text description."""
+  text: String!
+
+  """HTML description."""
+  html: String!
+
+  """EditorJS JSON description."""
+  json: JSON!
+}
+
+"""Input for creating a feature during product creation."""
+input ProductFeatureInput {
+  """The URL-friendly slug for the feature."""
+  slug: String!
+
+  """Display name."""
+  name: String!
+
+  """The values for this feature."""
+  values: [ProductFeatureValueCreateInput!]!
+}
+
+"""Input for creating an option value during product creation."""
+input ProductCreateOptionValueInput {
+  """Display name for the value."""
+  name: String!
+
+  """URL-friendly slug for the value."""
+  slug: String!
+}
+
+"""Input for creating an option during product creation."""
+input ProductCreateOptionInput {
+  """Display name for the option."""
+  name: String!
+
+  """URL-friendly slug for the option."""
+  slug: String!
+
+  """How to display the option (default: DROPDOWN)."""
+  displayType: String
+
+  """The values for this option."""
+  values: [ProductCreateOptionValueInput!]!
+}
+
+"""Input for creating a variant during product creation."""
+input ProductCreateVariantInput {
+  """Handle built from option value slugs (e.g., "red-s")."""
+  handle: String!
+}
+
+"""Input for creating a product with all its data in one request."""
+input ProductCreateInput {
+  """Product title."""
+  title: String!
+
+  """URL-friendly handle for the product."""
+  handle: String!
+
+  """Product description."""
+  description: DescriptionInput
+
+  """
+  File IDs for product media (already uploaded via mediaMutation.fileUpload).
+  """
+  mediaFileIds: [ID!]
+
+  """Product options (e.g., Color, Size)."""
+  options: [ProductCreateOptionInput!]
+
+  """Variants to create (only enabled ones from UI)."""
+  variants: [ProductCreateVariantInput!]
+}
+
+"""Input for deleting a product."""
+input ProductDeleteInput {
+  """The ID of the product to delete."""
+  id: ID!
+
+  """Whether to permanently delete the product (hard delete)."""
+  permanent: Boolean
+}
+
+"""
+Input for updating product status (publish or unpublish).
+Reused in bulk operations.
+"""
+input ProductUpdateStatusInput {
+  """Product ID."""
+  productId: ID!
+
+  """Action: PUBLISH or UNPUBLISH."""
+  action: ProductStatusAction!
+}
+
+"""Input for product content (description, excerpt)."""
+input ProductContentInput {
+  """Product description in multiple formats."""
+  description: DescriptionInput
+
+  """Short excerpt."""
+  excerpt: String
+}
+
+"""Input for product media."""
+input ProductMediaInput {
+  """File IDs for product media."""
+  fileIds: [ID!]!
+}
+
+"""Input for product-level fields in the unified update."""
+input ProductUpdateInput {
+  """The URL-friendly handle for the product."""
+  handle: String
+
+  """Product title."""
+  title: String
+
+  """Product content (description, excerpt)."""
+  content: ProductContentInput
+
+  """SEO and Open Graph metadata."""
+  seo: ProductSeoInput
+
+  """Product status: DRAFT or PUBLISHED."""
+  status: ProductStatus
+
+  """Product media."""
+  media: ProductMediaInput
+
+  """Variant updates."""
+  variants: [VariantUpdateInput!]
+}
+
+"""Input for variant pricing in the unified update."""
+input VariantPricingOpInput {
+  """The currency code."""
+  currency: CurrencyCode!
+
+  """The price amount in minor units."""
+  amountMinor: BigInt!
+
+  """The compare-at price in minor units (optional)."""
+  compareAtMinor: BigInt
+}
+
+"""Input for variant inventory in the unified update."""
+input VariantInventoryOpInput {
+  """The warehouse ID."""
+  warehouseId: ID!
+
+  """Quantity on hand."""
+  onHand: Int!
+
+  """Unavailable quantity (reserved, damaged, etc.)."""
+  unavailable: Int
+
+  """SKU code."""
+  sku: String
+
+  """Weight in grams."""
+  weight: Int
+
+  """Unit cost in minor units (cents)."""
+  unitCostMinor: BigInt
+
+  """Currency code for unit cost."""
+  costCurrency: CurrencyCode
+}
+
+"""Input for variant dimensions in the unified update."""
+input VariantDimensionsOpInput {
+  """Width in millimeters."""
+  width: Int!
+
+  """Height in millimeters."""
+  height: Int!
+
+  """Length in millimeters."""
+  length: Int!
+}
+
+"""Input for variant media in the unified update."""
+input VariantMediaOpInput {
+  """File IDs for variant media."""
+  fileIds: [ID!]!
+}
+
+"""Input for variant options in the unified update."""
+input VariantOptionsOpInput {
+  """Option value links to set (replaces existing)."""
+  set: [VariantOptionLinkInput!]!
+}
+
+"""Input for a single variant update."""
+input VariantUpdateInput {
+  """The variant ID."""
+  variantId: ID!
+
+  """Variant pricing."""
+  pricing: VariantPricingOpInput
+
+  """Variant inventory (stock, SKU, weight, cost)."""
+  inventory: VariantInventoryOpInput
+
+  """Variant dimensions."""
+  dimensions: VariantDimensionsOpInput
+
+  """Variant media."""
+  media: VariantMediaOpInput
+
+  """Variant options."""
+  options: VariantOptionsOpInput
+}
+
+"""Input for updating product SEO data."""
+input ProductSeoInput {
+  """SEO title (max 70 chars)."""
+  seoTitle: String
+
+  """SEO description (max 160 chars)."""
+  seoDescription: String
+
+  """Open Graph title (max 95 chars)."""
+  ogTitle: String
+
+  """Open Graph description."""
+  ogDescription: String
+
+  """Open Graph image file ID."""
+  ogImageId: ID
+}
+
+"""Input for creating a tag."""
+input TagCreateInput {
+  """The URL-friendly handle for the tag."""
+  handle: String!
+
+  """The display name of the tag (optional, defaults to handle)."""
+  name: String
+}
+
+"""Input for updating a tag."""
+input TagUpdateInput {
+  """The ID of the tag to update."""
+  id: ID!
+
+  """The URL-friendly handle for the tag."""
+  handle: String
+
+  """The display name of the tag."""
+  name: String
+}
+
+"""Input for deleting a tag."""
+input TagDeleteInput {
+  """The ID of the tag to delete."""
+  id: ID!
+}
+
+"""Input for creating a variant."""
+input VariantInput {
+  """Variant title."""
+  title: String
+
+  """External system identifier."""
+  externalSystem: String
+
+  """External ID in the external system."""
+  externalId: String
+
+  """Selected option values for the variant (required)."""
+  options: [SelectedOptionInput!]!
+}
+
+"""Input for creating a variant with a product ID."""
+input VariantCreateInput {
+  """The ID of the product to add the variant to."""
+  productId: ID!
+
+  """The variant data."""
+  variant: VariantInput!
+}
+
+"""Input for linking a variant to an option value."""
+input VariantOptionLinkInput {
+  """The option ID."""
+  optionId: ID!
+
+  """The option value ID."""
+  optionValueId: ID!
+}
+
+"""Input for updating variant options (option value links)."""
+input VariantUpdateOptionsInput {
+  """The ID of the variant."""
+  variantId: ID!
+
+  """The option value links to set (replaces existing links)."""
+  links: [VariantOptionLinkInput!]!
+}
+
+"""Input for deleting a variant."""
+input VariantDeleteInput {
+  """The ID of the variant to delete."""
+  id: ID!
+
+  """Whether to permanently delete the variant (hard delete)."""
+  permanent: Boolean
 }
 
 """Authentication tokens."""
@@ -1308,21 +3394,6 @@ type OrganizationMutation {
   memberAccessRemove(input: MemberAccessRemoveInput!): MemberAccessRemovePayload!
 }
 
-"""Information about pagination in a connection."""
-type PageInfo {
-  """When paginating forwards, are there more items?"""
-  hasNextPage: Boolean!
-
-  """When paginating backwards, are there more items?"""
-  hasPreviousPage: Boolean!
-
-  """When paginating backwards, the cursor to continue."""
-  startCursor: String
-
-  """When paginating forwards, the cursor to continue."""
-  endCursor: String
-}
-
 """Role with permissions - universal, can be assigned at any level."""
 type Role {
   """Unique identifier."""
@@ -1560,98 +3631,6 @@ type UserUpdatePasswordPayload {
   userErrors: [GenericUserError!]!
 }
 
-"""A file represents a stored media asset."""
-type File implements Node {
-  """The globally unique ID of the file."""
-  id: ID!
-
-  """Provider type (s3, youtube, vimeo, url, local)."""
-  provider: FileProvider!
-
-  """Public URL to access file."""
-  url: String!
-
-  """MIME type."""
-  mimeType: String
-
-  """File extension."""
-  ext: String
-
-  """Size in bytes (0 for external providers)."""
-  sizeBytes: BigInt!
-
-  """Original filename from upload."""
-  originalName: String
-
-  """Image/video dimensions (null if not applicable)."""
-  dimensions: MediaDimensions
-
-  """Duration in milliseconds (for video/audio)."""
-  durationMs: Int
-
-  """Alt text for accessibility."""
-  altText: String
-
-  """Source URL (for files uploaded from URL)."""
-  sourceUrl: String
-
-  """Whether the file has been processed."""
-  isProcessed: Boolean!
-
-  """Additional metadata."""
-  meta: JSON
-
-  """The date and time when the file was created."""
-  createdAt: DateTime!
-
-  """The date and time when the file was last updated."""
-  updatedAt: DateTime!
-
-  """The date and time when the file was deleted (soft delete)."""
-  deletedAt: DateTime
-
-  """Current deletion state (ACTIVE, SOFT_DELETED, DELETING)."""
-  deletionState: String!
-
-  """Deletion error code, if any."""
-  deletionErrorCode: String
-
-  """Last deletion error details."""
-  lastDeletionError: String
-
-  """The date and time when the last deletion error occurred."""
-  failedAt: DateTime
-
-  """S3-specific data (only for S3 provider)."""
-  s3Data: S3ObjectData
-
-  """External media data (for YouTube, Vimeo, etc)."""
-  externalData: ExternalMediaData
-
-  """Usage summary for this file."""
-  usage: FileUsageSummary!
-}
-
-"""A generic user error interface for mutation responses."""
-interface UserError {
-  """The error message."""
-  message: String!
-
-  """The path to the input field that caused the error."""
-  field: [String!]
-
-  """An error code for programmatic handling."""
-  code: String
-}
-
-"""
-The Node interface is implemented by all types that have a globally unique ID.
-"""
-interface Node {
-  """The globally unique ID of the object."""
-  id: ID!
-}
-
 """Fields available for sorting Organization"""
 enum OrganizationOrderField {
   """Sort by name"""
@@ -1665,12 +3644,6 @@ enum OrganizationOrderField {
 
   """Sort by updatedAt"""
   updatedAt
-}
-
-"""Sort direction"""
-enum SortDirection {
-  asc
-  desc
 }
 
 """
@@ -1809,87 +3782,6 @@ input MemberRemoveInput {
 
   """User ID of the member to remove."""
   userId: ID!
-}
-
-"""Filter operators for String fields"""
-input StringFilter {
-  """Equals"""
-  _eq: String
-
-  """Not equals"""
-  _neq: String
-
-  """In array"""
-  _in: [String!]
-
-  """Not in array"""
-  _notIn: [String!]
-
-  """Is null"""
-  _is: Boolean
-
-  """Is not null"""
-  _isNot: Boolean
-
-  """Contains substring (case-sensitive)"""
-  _contains: String
-
-  """Contains substring (case-insensitive)"""
-  _containsi: String
-
-  """Starts with (case-sensitive)"""
-  _startsWith: String
-
-  """Starts with (case-insensitive)"""
-  _startsWithi: String
-}
-
-"""Filter operators for ID fields"""
-input IDFilter {
-  """Equals"""
-  _eq: ID
-
-  """Not equals"""
-  _neq: ID
-
-  """In array"""
-  _in: [ID!]
-
-  """Not in array"""
-  _notIn: [ID!]
-
-  """Is null"""
-  _is: Boolean
-
-  """Is not null"""
-  _isNot: Boolean
-}
-
-"""Filter operators for DateTime fields"""
-input DateTimeFilter {
-  """Equals"""
-  _eq: DateTime
-
-  """Not equals"""
-  _neq: DateTime
-
-  """Greater than (after)"""
-  _gt: DateTime
-
-  """Greater than or equal (on or after)"""
-  _gte: DateTime
-
-  """Less than (before)"""
-  _lt: DateTime
-
-  """Less than or equal (on or before)"""
-  _lte: DateTime
-
-  """Is null"""
-  _is: Boolean
-
-  """Is not null"""
-  _isNot: Boolean
 }
 
 """Input for creating a role."""
@@ -2034,29 +3926,12 @@ input UserUpdatePasswordInput {
   newPassword: String!
 }
 
-scalar BigInt
-
 type InventoryQuery {
   """Get a node by its global ID"""
   node(id: ID!): Node
 
   """Get multiple nodes by their global IDs"""
   nodes(ids: [ID!]!): [Node]!
-
-  """Get a product by ID"""
-  product(id: ID!): Product
-
-  """Get products with Relay-style pagination"""
-  products(first: Int, after: String, last: Int, before: String): ProductConnection!
-
-  """Get a variant by ID"""
-  variant(id: ID!): Variant
-
-  """Get variants with Relay-style pagination"""
-  variants(first: Int, after: String, last: Int, before: String): VariantConnection!
-
-  """Get bulk update job by ID."""
-  productBulkUpdateJob(jobId: ID!): ProductBulkUpdateJob
 
   """Get a warehouse by ID"""
   warehouse(id: ID!): Warehouse
@@ -2074,273 +3949,119 @@ type InventoryQuery {
     """Sort order"""
     orderBy: [WarehouseOrderByInput!]
   ): WarehouseConnection!
-}
 
-"""Widget query namespace for dashboard widgets."""
-type WidgetQuery {
-  inventory(productId: ID!): ProductInventoryWidget
+  """Get an inventory item by ID"""
+  inventoryItem(id: ID!): InventoryItem
 
-  """Get pricing widget data for a variant."""
-  pricing(input: PricingWidgetInput!): PricingWidgetPayload!
+  """Get an inventory item by variant ID"""
+  inventoryItemByVariant(variantId: ID!): InventoryItem
+
+  """Get inventory items with Relay-style pagination"""
+  inventoryItems(first: Int, after: String, where: InventoryItemWhereInput): InventoryItemConnection!
 }
 
 type InventoryMutation {
-  productCreate(input: ProductCreateInput!): ProductCreatePayload!
-  productDelete(input: ProductDeleteInput!): ProductDeletePayload!
-  productUpdateStatus(input: ProductUpdateStatusInput!): ProductUpdateStatusPayload!
-
   """
-  Unified product update with optimistic locking.
-  Supports product and variant updates in a single request.
+  Update inventory item: stock, SKU, weight, cost, dimensions.
+  Replaces variantUpdateInventory and variantUpdateDimensions.
   """
-  productUpdate(
-    """The product ID to update."""
-    productId: ID!
-
-    """
-    Expected revision for optimistic locking. If provided, fails if product was modified.
-    """
-    expectedRevision: Int
-
-    """Product-level operations."""
-    operations: ProductUpdateInput
-  ): ProductUpdatePayload!
-  variantCreate(input: VariantCreateInput!): VariantCreatePayload!
-  variantDelete(input: VariantDeleteInput!): VariantDeletePayload!
-  variantUpdatePricing(input: VariantUpdatePricingInput!): VariantUpdatePricingPayload!
-  variantUpdateDimensions(input: VariantUpdateDimensionsInput!): VariantUpdateDimensionsPayload!
-  variantUpdateInventory(input: VariantUpdateInventoryInput!): VariantUpdateInventoryPayload!
-  variantUpdateOptions(input: VariantUpdateOptionsInput!): VariantUpdateOptionsPayload!
-  productOptionCreate(input: ProductOptionCreateInput!): ProductOptionCreatePayload!
-  productOptionUpdate(input: ProductOptionUpdateInput!): ProductOptionUpdatePayload!
-  productOptionDelete(input: ProductOptionDeleteInput!): ProductOptionDeletePayload!
-  productFeatureCreate(input: ProductFeatureCreateInput!): ProductFeatureCreatePayload!
-  productFeatureUpdate(input: ProductFeatureUpdateInput!): ProductFeatureUpdatePayload!
-  productFeatureDelete(input: ProductFeatureDeleteInput!): ProductFeatureDeletePayload!
-  productFeaturesSync(input: ProductFeaturesSyncInput!): ProductFeaturesSyncPayload!
+  inventoryItemUpdate(input: InventoryItemUpdateInput!): InventoryItemUpdatePayload!
   warehouseCreate(input: WarehouseCreateInput!): WarehouseCreatePayload!
   warehouseUpdate(input: WarehouseUpdateInput!): WarehouseUpdatePayload!
   warehouseDelete(input: WarehouseDeleteInput!): WarehouseDeletePayload!
-  variantUpdateMedia(input: VariantUpdateMediaInput!): VariantUpdateMediaPayload!
-
-  """
-  Start async bulk update.
-  Requires X-Idempotency-Key header.
-  """
-  productBulkUpdate(input: ProductBulkUpdateInput!): ProductBulkUpdatePayload!
 }
 
-"""Result of bulk update start/cancel."""
-type ProductBulkUpdatePayload {
-  """Created or updated job (null on validation error)."""
-  job: ProductBulkUpdateJob
-
-  """Validation/execution errors."""
-  userErrors: [BulkUpdateUserError!]!
-}
-
-"""Bulk update job with progress."""
-type ProductBulkUpdateJob {
-  """Job ID."""
+"""
+InventoryItem represents the inventory-specific data for a variant.
+Each Variant in Catalog has a corresponding InventoryItem in Inventory service.
+"""
+type InventoryItem implements Node {
+  """Global ID (Relay)"""
   id: ID!
 
-  """Current status."""
-  status: BulkUpdateJobStatus!
+  """Reference to Catalog.Variant"""
+  variantId: ID!
 
-  """When created."""
+  """SKU code"""
+  sku: String
+
+  """Whether to track inventory for this item"""
+  trackInventory: Boolean!
+
+  """Whether to continue selling when out of stock"""
+  continueSellingWhenOutOfStock: Boolean!
+
+  """Physical dimensions (mm)"""
+  dimensions: InventoryItemDimensions
+
+  """Weight (grams)"""
+  weight: InventoryItemWeight
+
+  """Stock levels across warehouses"""
+  stock: [WarehouseStock!]!
+
+  """Total quantity available across all warehouses"""
+  totalAvailable: Int!
+
+  """Current unit cost"""
+  unitCost: InventoryItemCost
+
+  """When this item was created"""
   createdAt: DateTime!
 
-  """When started running."""
-  startedAt: DateTime
-
-  """When finished."""
-  finishedAt: DateTime
-
-  """Total products in batch."""
-  totalProducts: Int!
-
-  """Progress computed from items."""
-  progress: BulkUpdateJobProgress!
-
-  """Items with pagination and filtering."""
-  items(first: Int, after: String, statusFilter: [BulkUpdateItemStatus!]): BulkUpdateItemConnection!
+  """When this item was last updated"""
+  updatedAt: DateTime!
 }
 
-"""Job progress. All counters computed from items."""
-type BulkUpdateJobProgress {
-  """Total operations."""
-  total: Int!
+type InventoryItemDimensions {
+  """Width in millimeters"""
+  widthMm: Int!
 
-  """Done (succeeded + failed + cancelled + superseded)."""
-  done: Int!
+  """Height in millimeters"""
+  heightMm: Int!
 
-  """Successfully applied."""
-  succeeded: Int!
+  """Length in millimeters"""
+  lengthMm: Int!
 
-  """Failed."""
-  failed: Int!
-
-  """Cancelled."""
-  cancelled: Int!
-
-  """Superseded by another job."""
-  superseded: Int!
-
-  """Currently running."""
-  running: Int!
-
-  """Pending execution."""
-  pending: Int!
+  """Display unit preference"""
+  displayUnit: DimensionUnit!
 }
 
-"""Single operation in bulk update job."""
-type BulkUpdateItem {
-  """Item ID."""
-  id: ID!
+type InventoryItemWeight {
+  """Weight in grams"""
+  weightGrams: Int!
 
-  """Product ID."""
-  productId: ID!
-
-  """Variant ID (null for product-level operations)."""
-  variantId: ID
-
-  """Operation type."""
-  opType: BulkUpdateOpType!
-
-  """Order within product."""
-  opIndex: Int!
-
-  """Current status."""
-  status: BulkUpdateItemStatus!
-
-  """When started."""
-  startedAt: DateTime
-
-  """When finished."""
-  finishedAt: DateTime
-
-  """Execution errors."""
-  errors: [BulkUpdateUserError!]!
-
-  """Cancel reason (only for CANCELLED/SUPERSEDED)."""
-  cancelReason: BulkUpdateCancelReason
-
-  """Job that superseded this item."""
-  supersededByJobId: ID
+  """Display unit preference"""
+  displayUnit: WeightUnit!
 }
 
-type BulkUpdateItemConnection {
-  edges: [BulkUpdateItemEdge!]!
+type InventoryItemCost {
+  """Currency code"""
+  currency: String!
+
+  """Cost in minor units (cents)"""
+  amountMinor: BigInt!
+
+  """Effective from date"""
+  effectiveFrom: DateTime!
+}
+
+type InventoryItemConnection {
+  edges: [InventoryItemEdge!]!
   pageInfo: PageInfo!
   totalCount: Int!
 }
 
-type BulkUpdateItemEdge {
+type InventoryItemEdge {
+  node: InventoryItem!
   cursor: String!
-  node: BulkUpdateItem!
 }
 
-"""Bulk update error with operation context."""
-type BulkUpdateUserError implements UserError {
-  """Error message."""
-  message: String!
+type InventoryItemUpdatePayload {
+  """Updated inventory item"""
+  inventoryItem: InventoryItem
 
-  """Input field path."""
-  field: [String!]
-
-  """Error code."""
-  code: String
-
-  """Product ID."""
-  productId: ID
-
-  """Variant ID."""
-  variantId: ID
-
-  """Operation that failed."""
-  operation: String
-}
-
-"""A product feature represents either a group or an attribute."""
-type ProductFeature implements Node {
-  """The globally unique ID of the feature."""
-  id: ID!
-
-  """Tree position as array: [0] for root, [0, 1] for child of first group."""
-  index: [Int!]!
-
-  """Whether this feature is a group (container) or an attribute (leaf)."""
-  isGroup: Boolean!
-
-  """Display name (from translations)."""
-  name: String!
-
-  """Parent group, if this feature belongs to a group."""
-  parent: ProductFeature
-
-  """Child features. Returns empty array for attributes (isGroup = false)."""
-  children: [ProductFeature!]!
-
-  """Values. Returns empty array for groups (isGroup = true)."""
-  values: [ProductFeatureValue!]!
-}
-
-"""A value for a product feature."""
-type ProductFeatureValue implements Node {
-  """The globally unique ID of the feature value."""
-  id: ID!
-
-  """Position within the feature's values (0, 1, 2, ...)."""
-  index: Int!
-
-  """Display name (from translations)."""
-  name: String!
-}
-
-type ProductFeaturesSyncPayload {
-  """The updated product."""
-  product: Product
-
-  """List of all synced features with their final IDs."""
-  features: [ProductFeature!]!
-
-  """Any validation errors."""
-  userErrors: [GenericUserError!]!
-}
-
-"""Payload for feature create."""
-type ProductFeatureCreatePayload {
-  """The product with updated features."""
-  product: Product
-
-  """The created feature."""
-  feature: ProductFeature
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-"""Payload for feature update."""
-type ProductFeatureUpdatePayload {
-  """The product with updated features."""
-  product: Product
-
-  """The updated feature."""
-  feature: ProductFeature
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-"""Payload for feature delete."""
-type ProductFeatureDeletePayload {
-  """The product with updated features."""
-  product: Product
-
-  """The ID of the deleted feature."""
-  deletedFeatureId: ID
-
-  """List of errors that occurred during the mutation."""
+  """List of errors"""
   userErrors: [GenericUserError!]!
 }
 
@@ -2381,127 +4102,6 @@ type ProductInventoryWidget {
   alertThreshold: InventoryAlertThreshold!
 }
 
-"""Media attached to a variant with sort order."""
-type VariantMediaItem {
-  """The file from the Media service."""
-  file: File!
-
-  """Sort order index (lower = first)."""
-  sortIndex: Int!
-}
-
-"""Payload for variant update media."""
-type VariantUpdateMediaPayload {
-  """The updated variant."""
-  variant: Variant
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-"""
-A product option defines a configurable aspect of a product, such as Size or Color.
-"""
-type ProductOption implements Node {
-  """The globally unique ID of the option."""
-  id: ID!
-
-  """The URL-friendly identifier for this option."""
-  slug: String!
-
-  """Display name."""
-  name: String!
-
-  """The display type for UI rendering."""
-  displayType: OptionDisplayType!
-
-  """The available values for this option."""
-  values: [ProductOptionValue!]!
-}
-
-"""
-A value for a product option, such as "Red" for Color or "Large" for Size.
-"""
-type ProductOptionValue implements Node {
-  """The globally unique ID of the option value."""
-  id: ID!
-
-  """The URL-friendly identifier for this value."""
-  slug: String!
-
-  """Display name."""
-  name: String!
-
-  """The visual swatch for this value (if applicable)."""
-  swatch: ProductOptionSwatch
-}
-
-"""A visual swatch for representing an option value."""
-type ProductOptionSwatch implements Node {
-  """The globally unique ID of the swatch."""
-  id: ID!
-
-  """The type of swatch."""
-  swatchType: SwatchType!
-
-  """The primary color (hex code or color name)."""
-  colorOne: String
-
-  """The secondary color for gradients."""
-  colorTwo: String
-
-  """The file for image-based swatches."""
-  file: File
-
-  """Additional metadata for the swatch."""
-  metadata: JSON
-}
-
-"""Represents a selected option for a variant."""
-type SelectedOption {
-  """The option ID."""
-  optionId: ID!
-
-  """The selected value ID."""
-  optionValueId: ID!
-}
-
-"""Payload for option create. Returns the product with new variants."""
-type ProductOptionCreatePayload {
-  """The product with updated options and variants."""
-  product: Product
-
-  """The created option."""
-  option: ProductOption
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-"""Payload for option update."""
-type ProductOptionUpdatePayload {
-  """The product with updated options and variants."""
-  product: Product
-
-  """The updated option."""
-  option: ProductOption
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-"""Payload for option delete."""
-type ProductOptionDeletePayload {
-  """The product with updated options and variants."""
-  product: Product
-
-  """The ID of the deleted option."""
-  deletedOptionId: ID
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
 """Physical dimensions of a variant (stored in millimeters)."""
 type VariantDimensions {
   """Width in millimeters."""
@@ -2518,295 +4118,6 @@ type VariantDimensions {
 type VariantWeight {
   """Weight in grams."""
   value: Int!
-}
-
-"""Represents a price for a variant."""
-type VariantPrice implements Node {
-  """The globally unique ID of the price record."""
-  id: ID!
-
-  """The currency code."""
-  currency: CurrencyCode!
-
-  """The price amount in minor units (cents, kopecks, etc.)."""
-  amountMinor: BigInt!
-
-  """The compare-at price in minor units (strikethrough price)."""
-  compareAtMinor: BigInt
-
-  """When this price became effective."""
-  effectiveFrom: DateTime!
-
-  """When this price stopped being effective (null if current)."""
-  effectiveTo: DateTime
-
-  """When this price record was created."""
-  recordedAt: DateTime!
-
-  """Whether this is the current active price."""
-  isCurrent: Boolean!
-}
-
-"""A connection to a list of VariantPrice items."""
-type VariantPriceConnection {
-  """A list of edges."""
-  edges: [VariantPriceEdge!]!
-
-  """Information to aid in pagination."""
-  pageInfo: PageInfo!
-
-  """The total number of price records."""
-  totalCount: Int!
-}
-
-"""An edge in a VariantPrice connection."""
-type VariantPriceEdge {
-  """The item at the end of the edge."""
-  node: VariantPrice!
-
-  """A cursor for use in pagination."""
-  cursor: String!
-}
-
-"""Represents the cost of a variant."""
-type VariantCost implements Node {
-  """The globally unique ID of the cost record."""
-  id: ID!
-
-  """The currency code."""
-  currency: CurrencyCode!
-
-  """The unit cost in minor units."""
-  unitCostMinor: BigInt!
-
-  """When this cost became effective."""
-  effectiveFrom: DateTime!
-
-  """When this cost stopped being effective (null if current)."""
-  effectiveTo: DateTime
-
-  """When this cost record was created."""
-  recordedAt: DateTime!
-
-  """Whether this is the current active cost."""
-  isCurrent: Boolean!
-}
-
-"""A connection to a list of VariantCost items."""
-type VariantCostConnection {
-  """A list of edges."""
-  edges: [VariantCostEdge!]!
-
-  """Information to aid in pagination."""
-  pageInfo: PageInfo!
-
-  """The total number of cost records."""
-  totalCount: Int!
-}
-
-"""An edge in a VariantCost connection."""
-type VariantCostEdge {
-  """The item at the end of the edge."""
-  node: VariantCost!
-
-  """A cursor for use in pagination."""
-  cursor: String!
-}
-
-"""Statistics for variant price history over a period."""
-type VariantPriceHistoryStatistics {
-  """Minimum price over the period (minor units)."""
-  minPriceMinor: BigInt!
-
-  """Maximum price over the period (minor units)."""
-  maxPriceMinor: BigInt!
-
-  """Average price over the period (minor units)."""
-  avgPriceMinor: BigInt!
-
-  """Currency code."""
-  currency: CurrencyCode!
-}
-
-"""
-Pricing widget payload with current price, cost, history and statistics.
-"""
-type PricingWidgetPayload {
-  """Current active price."""
-  currentPrice: VariantPrice
-
-  """Current active cost."""
-  currentCostPrice: VariantCost
-
-  """Price history for the period."""
-  history: VariantPriceConnection!
-
-  """Computed statistics for the period."""
-  statistics: VariantPriceHistoryStatistics!
-}
-
-"""Payload for variant pricing update."""
-type VariantUpdatePricingPayload {
-  """The updated variant."""
-  variant: Variant
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-"""Product description in multiple formats."""
-type Description {
-  """Plain text description."""
-  text: String!
-
-  """HTML description."""
-  html: String!
-
-  """EditorJS JSON description."""
-  json: JSON!
-}
-
-"""A product represents an item that can be sold."""
-type Product implements Node {
-  """The globally unique ID of the product."""
-  id: ID!
-
-  """The URL-friendly handle for the product."""
-  handle: String
-
-  """
-  The date and time when the product was published, or null if unpublished.
-  """
-  publishedAt: DateTime
-
-  """Whether the product is currently published."""
-  isPublished: Boolean!
-
-  """The date and time when the product was created."""
-  createdAt: DateTime!
-
-  """The date and time when the product was last updated."""
-  updatedAt: DateTime!
-
-  """The date and time when the product was deleted (soft delete)."""
-  deletedAt: DateTime
-
-  """Optimistic locking revision number. Incremented on each update."""
-  revision: Int!
-
-  """The variants of this product."""
-  variants(first: Int, after: String, last: Int, before: String): VariantConnection!
-
-  """The options available for this product."""
-  options: [ProductOption!]!
-
-  """The features of this product."""
-  features: [ProductFeature!]!
-
-  """The total number of variants for this product."""
-  variantsCount: Int!
-
-  """Product title."""
-  title: String!
-
-  """Product description."""
-  description: Description
-
-  """Short excerpt."""
-  excerpt: String
-
-  """SEO and Open Graph metadata."""
-  seo: ProductSeo
-}
-
-"""A connection to a list of Product items."""
-type ProductConnection {
-  """A list of edges."""
-  edges: [ProductEdge!]!
-
-  """Information to aid in pagination."""
-  pageInfo: PageInfo!
-
-  """The total number of products."""
-  totalCount: Int!
-}
-
-"""An edge in a Product connection."""
-type ProductEdge {
-  """The item at the end of the edge."""
-  node: Product!
-
-  """A cursor for use in pagination."""
-  cursor: String!
-}
-
-"""Payload for product creation."""
-type ProductCreatePayload {
-  """The created product."""
-  product: Product
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-"""Payload for product deletion."""
-type ProductDeletePayload {
-  """The ID of the deleted product."""
-  deletedProductId: ID
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-"""Payload for product update status."""
-type ProductUpdateStatusPayload {
-  """The updated product."""
-  product: Product
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-"""Result of a single operation in the unified update."""
-type OperationResult {
-  """The type of operation."""
-  type: OperationType!
-
-  """Whether the operation was applied successfully."""
-  applied: Boolean!
-
-  """Errors that occurred during this operation."""
-  errors: [GenericUserError!]!
-}
-
-"""Payload for the unified product update mutation."""
-type ProductUpdatePayload {
-  """The updated product with new revision."""
-  product: Product
-
-  """Results of each operation."""
-  operationResults: [OperationResult!]!
-
-  """All errors from all operations."""
-  userErrors: [GenericUserError!]!
-}
-
-"""SEO and Open Graph metadata for a product."""
-type ProductSeo {
-  """SEO title for search engines (max 70 chars)."""
-  seoTitle: String
-
-  """SEO description for search engines (max 160 chars)."""
-  seoDescription: String
-
-  """Open Graph title for social media sharing (max 95 chars)."""
-  ogTitle: String
-
-  """Open Graph description for social media sharing."""
-  ogDescription: String
-
-  """Open Graph image for social media sharing."""
-  ogImage: File
 }
 
 """A warehouse represents a physical location where inventory is stored."""
@@ -2937,146 +4248,6 @@ type WarehouseDeletePayload {
   userErrors: [GenericUserError!]!
 }
 
-"""
-A variant represents a specific version of a product, such as a size or color.
-"""
-type Variant implements Node {
-  """The globally unique ID of the variant."""
-  id: ID!
-
-  """The product this variant belongs to."""
-  product: Product!
-
-  """Whether this is the default variant for the product."""
-  isDefault: Boolean!
-
-  """The URL-friendly handle for the variant (generated from options)."""
-  handle: String!
-
-  """The SKU (Stock Keeping Unit) of the variant."""
-  sku: String
-
-  """The external system identifier for integration purposes."""
-  externalSystem: String
-
-  """The external ID in the external system."""
-  externalId: String
-
-  """The date and time when the variant was created."""
-  createdAt: DateTime!
-
-  """The date and time when the variant was last updated."""
-  updatedAt: DateTime!
-
-  """The date and time when the variant was deleted (soft delete)."""
-  deletedAt: DateTime
-
-  """Current price for this variant."""
-  price: VariantPrice
-
-  """Price history for this variant."""
-  priceHistory(first: Int, after: String, last: Int, before: String): VariantPriceConnection!
-
-  """Current cost for this variant."""
-  cost: VariantCost
-
-  """Cost history for this variant."""
-  costHistory(first: Int, after: String, last: Int, before: String): VariantCostConnection!
-
-  """The selected option values for this variant."""
-  selectedOptions: [SelectedOption!]!
-
-  """Physical dimensions of this variant."""
-  dimensions: VariantDimensions
-
-  """Physical weight of this variant."""
-  weight: VariantWeight
-
-  """Stock levels for this variant across warehouses."""
-  stock: [WarehouseStock!]!
-
-  """Whether the variant is in stock (has quantity > 0 in any warehouse)."""
-  inStock: Boolean!
-
-  """Variant title."""
-  title: String
-
-  """Media attached to this variant (images, videos)."""
-  media: [VariantMediaItem!]!
-}
-
-"""A connection to a list of Variant items."""
-type VariantConnection {
-  """A list of edges."""
-  edges: [VariantEdge!]!
-
-  """Information to aid in pagination."""
-  pageInfo: PageInfo!
-
-  """The total number of variants."""
-  totalCount: Int!
-}
-
-"""An edge in a Variant connection."""
-type VariantEdge {
-  """The item at the end of the edge."""
-  node: Variant!
-
-  """A cursor for use in pagination."""
-  cursor: String!
-}
-
-"""Payload for variant creation."""
-type VariantCreatePayload {
-  """The created variant."""
-  variant: Variant
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-"""Payload for variant dimensions update."""
-type VariantUpdateDimensionsPayload {
-  """The updated variant."""
-  variant: Variant
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-"""Payload for variant inventory update."""
-type VariantUpdateInventoryPayload {
-  """The updated stock record."""
-  stock: WarehouseStock
-
-  """The updated variant."""
-  variant: Variant
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-"""Payload for variant options update."""
-type VariantUpdateOptionsPayload {
-  """The updated variant."""
-  variant: Variant
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-"""Payload for variant deletion."""
-type VariantDeletePayload {
-  """The ID of the deleted variant."""
-  deletedVariantId: ID
-
-  """The product the variant belonged to."""
-  product: Product
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
 """Fields available for sorting Warehouse"""
 enum WarehouseOrderField {
   """Sort by id"""
@@ -3119,153 +4290,9 @@ enum WarehouseStockOrderField {
   createdAt
 }
 
-enum BulkUpdateJobStatus {
-  QUEUED
-  RUNNING
-  COMPLETED
-  CANCELLED
-}
-
-enum BulkUpdateItemStatus {
-  PENDING
-  RUNNING
-  SUCCEEDED
-  FAILED
-  CANCELLED
-  SUPERSEDED
-}
-
-enum BulkUpdateOpType {
-  PRODUCT_UPDATE
-  VARIANT_UPDATE
-}
-
-enum BulkUpdateCancelReason {
-  USER
-  SUPERSEDED
-  SYSTEM
-}
-
-enum ProductStatusAction {
-  PUBLISH
-  UNPUBLISH
-}
-
-enum ProductStatus {
-  DRAFT
-  PUBLISHED
-}
-
 enum ThresholdMethod {
   SAFETY_STOCK
   REORDER_POINT
-}
-
-"""Display type for product options in the UI."""
-enum OptionDisplayType {
-  DROPDOWN
-  SWATCH
-  BUTTONS
-}
-
-"""Type of visual swatch for option values."""
-enum SwatchType {
-  COLOR
-  GRADIENT
-  IMAGE
-}
-
-"""Type of operation in the unified update."""
-enum OperationType {
-  PRODUCT_UPDATE
-  VARIANT_UPDATE
-}
-
-"""Filter operators for Int fields"""
-input IntFilter {
-  """Equals"""
-  _eq: Int
-
-  """Not equals"""
-  _neq: Int
-
-  """Greater than"""
-  _gt: Int
-
-  """Greater than or equal"""
-  _gte: Int
-
-  """Less than"""
-  _lt: Int
-
-  """Less than or equal"""
-  _lte: Int
-
-  """In array"""
-  _in: [Int!]
-
-  """Not in array"""
-  _notIn: [Int!]
-
-  """Is null"""
-  _is: Boolean
-
-  """Is not null"""
-  _isNot: Boolean
-
-  """Between range (inclusive)"""
-  _between: [Int!]
-}
-
-"""Filter operators for Float fields"""
-input FloatFilter {
-  """Equals"""
-  _eq: Float
-
-  """Not equals"""
-  _neq: Float
-
-  """Greater than"""
-  _gt: Float
-
-  """Greater than or equal"""
-  _gte: Float
-
-  """Less than"""
-  _lt: Float
-
-  """Less than or equal"""
-  _lte: Float
-
-  """In array"""
-  _in: [Float!]
-
-  """Not in array"""
-  _notIn: [Float!]
-
-  """Is null"""
-  _is: Boolean
-
-  """Is not null"""
-  _isNot: Boolean
-
-  """Between range (inclusive)"""
-  _between: [Float!]
-}
-
-"""Filter operators for Boolean fields"""
-input BooleanFilter {
-  """Equals"""
-  _eq: Boolean
-
-  """Not equals"""
-  _neq: Boolean
-
-  """Is null"""
-  _is: Boolean
-
-  """Is not null"""
-  _isNot: Boolean
 }
 
 """Filter conditions for Warehouse"""
@@ -3388,251 +4415,59 @@ input WarehouseStockConnectionInput {
   orderBy: [WarehouseStockOrderByInput!]
 }
 
-"""
-Bulk update input - same structure as productUpdate but for multiple products.
-Max 100 products, 500 operations total.
-"""
-input ProductBulkUpdateInput {
-  """List of products to update with their operations."""
-  products: [ProductBulkUpdateItem!]!
+input InventoryItemWhereInput {
+  """Filter by SKU"""
+  sku: StringFilter
+
+  """Filter by trackInventory"""
+  trackInventory: Boolean
 }
 
-"""A single product's update within a bulk request."""
-input ProductBulkUpdateItem {
-  """The product ID to update."""
-  productId: ID!
-
-  """
-  Expected revision for optimistic locking. If provided, fails if product was modified.
-  """
-  expectedRevision: Int
-
-  """Product-level operations."""
-  operations: ProductUpdateInput
-}
-
-"""Sync all product features in a single transaction."""
-input ProductFeaturesSyncInput {
-  """The ID of the product."""
-  productId: ID!
-
-  """Complete list of features (replaces all existing features)."""
-  features: [ProductFeatureSyncItemInput!]!
-}
-
-input ProductFeatureSyncItemInput {
-  """
-  Database ID. Null for new records.
-  - If provided: update existing feature
-  - If null/omitted: create new feature (backend generates ID)
-  Features in DB but not in this list will be DELETED.
-  """
-  id: ID
-
-  """
-  Tree position as integer array.
-  - [0], [1], [2] for root items
-  - [0, 0], [0, 1], [1, 0] for children
-  Parent is derived: parent of [0, 1] is [0].
-  Groups must have length 1 (root only).
-  """
-  index: [Int!]!
-
-  """Whether this is a group (true) or attribute (false)."""
-  isGroup: Boolean!
-
-  """Display name."""
-  name: String!
-
-  """Values for this feature (only when isGroup = false)."""
-  values: [ProductFeatureValueSyncInput!]
-}
-
-input ProductFeatureValueSyncInput {
-  """Database ID. Null for new records."""
-  id: ID
-
-  """Position within the feature's values (0, 1, 2, ...)."""
-  index: Int!
-
-  """Display name."""
-  name: String!
-}
-
-"""Input for creating a feature value."""
-input ProductFeatureValueCreateInput {
-  """Display name."""
-  name: String!
-}
-
-"""Input for creating a feature on a product."""
-input ProductFeatureCreateInput {
-  """The ID of the product."""
-  productId: ID!
-
-  """Display name."""
-  name: String!
-
-  """The values for this feature."""
-  values: [ProductFeatureValueCreateInput!]!
-}
-
-"""Input for updating an existing feature value."""
-input ProductFeatureValueUpdateInput {
-  """The ID of the value to update."""
+input InventoryItemUpdateInput {
+  """The inventory item ID to update"""
   id: ID!
 
-  """Display name."""
-  name: String
+  """New SKU value"""
+  sku: String
+
+  """Whether to track inventory"""
+  trackInventory: Boolean
+
+  """Whether to continue selling when out of stock"""
+  continueSellingWhenOutOfStock: Boolean
+
+  """Physical dimensions update"""
+  dimensions: InventoryItemDimensionsInput
+
+  """Weight update"""
+  weight: InventoryItemWeightInput
+
+  """Stock update for a specific warehouse"""
+  stock: InventoryItemStockInput
+
+  """Unit cost update"""
+  unitCost: InventoryItemCostInput
 }
 
-"""Input for nested value operations in feature update."""
-input ProductFeatureValuesInput {
-  """Values to create."""
-  create: [ProductFeatureValueCreateInput!]
-
-  """Values to update."""
-  update: [ProductFeatureValueUpdateInput!]
-
-  """IDs of values to delete."""
-  delete: [ID!]
+input InventoryItemDimensionsInput {
+  widthMm: Int!
+  heightMm: Int!
+  lengthMm: Int!
 }
 
-"""Input for updating a feature."""
-input ProductFeatureUpdateInput {
-  """The ID of the feature to update."""
-  id: ID!
-
-  """Display name."""
-  name: String
-
-  """Nested value operations."""
-  values: ProductFeatureValuesInput
+input InventoryItemWeightInput {
+  weightGrams: Int!
 }
 
-"""Input for deleting a feature from a product."""
-input ProductFeatureDeleteInput {
-  """The ID of the feature to delete."""
-  id: ID!
+input InventoryItemStockInput {
+  warehouseId: ID!
+  onHand: Int!
+  unavailable: Int
 }
 
-"""Input for updating variant media (replaces all existing media)."""
-input VariantUpdateMediaInput {
-  """The variant ID."""
-  variantId: ID!
-
-  """
-  File IDs in desired order (first = primary). Empty array clears all media.
-  """
-  fileIds: [ID!]!
-}
-
-"""Input for selecting an option value for a variant."""
-input SelectedOptionInput {
-  """The ID of the option."""
-  optionId: ID!
-
-  """The ID of the option value."""
-  optionValueId: ID!
-}
-
-"""Input for creating/updating a swatch."""
-input ProductOptionSwatchInput {
-  """The type of swatch."""
-  swatchType: SwatchType!
-
-  """The primary color (hex code or color name)."""
-  colorOne: String
-
-  """The secondary color for gradients."""
-  colorTwo: String
-
-  """The file ID for image-based swatches."""
-  fileId: ID
-
-  """Additional metadata."""
-  metadata: JSON
-}
-
-"""Input for creating an option value."""
-input ProductOptionValueCreateInput {
-  """The URL-friendly slug for the value."""
-  slug: String!
-
-  """Display name."""
-  name: String!
-
-  """The swatch for this value."""
-  swatch: ProductOptionSwatchInput
-}
-
-"""Input for creating an option on a product."""
-input ProductOptionCreateInput {
-  """The ID of the product (optional when creating with product)."""
-  productId: ID
-
-  """The URL-friendly slug for the option."""
-  slug: String!
-
-  """Display name."""
-  name: String!
-
-  """The display type for UI rendering."""
-  displayType: OptionDisplayType!
-
-  """The values for this option."""
-  values: [ProductOptionValueCreateInput!]!
-}
-
-"""Input for updating an existing option value."""
-input ProductOptionValueUpdateInput {
-  """The ID of the value to update."""
-  id: ID!
-
-  """The new slug for the value."""
-  slug: String
-
-  """Display name."""
-  name: String
-
-  """The swatch for this value."""
-  swatch: ProductOptionSwatchInput
-}
-
-"""Input for nested value operations in option update."""
-input ProductOptionValuesInput {
-  """Values to create."""
-  create: [ProductOptionValueCreateInput!]
-
-  """Values to update."""
-  update: [ProductOptionValueUpdateInput!]
-
-  """IDs of values to delete."""
-  delete: [ID!]
-}
-
-"""Input for updating an option."""
-input ProductOptionUpdateInput {
-  """The ID of the option to update."""
-  id: ID!
-
-  """The new slug for the option."""
-  slug: String
-
-  """Display name."""
-  name: String
-
-  """The new display type."""
-  displayType: OptionDisplayType
-
-  """Nested value operations."""
-  values: ProductOptionValuesInput
-}
-
-"""Input for deleting an option from a product."""
-input ProductOptionDeleteInput {
-  """The ID of the option to delete."""
-  id: ID!
+input InventoryItemCostInput {
+  currency: String!
+  amountMinor: BigInt!
 }
 
 """Input for setting dimensions (in millimeters)."""
@@ -3651,278 +4486,6 @@ input DimensionsInput {
 input WeightInput {
   """Weight in grams."""
   value: Int!
-}
-
-"""Input for pricing widget query."""
-input PricingWidgetInput {
-  """The variant ID to get pricing data for."""
-  variantId: ID!
-
-  """Currency code to filter by."""
-  currency: CurrencyCode!
-
-  """Start of the period (optional, defaults to 30 days ago)."""
-  from: DateTime
-
-  """End of the period (optional, defaults to now)."""
-  to: DateTime
-
-  """Pagination: first N items."""
-  first: Int
-
-  """Pagination: cursor after."""
-  after: String
-}
-
-"""Input for updating a price on a variant."""
-input VariantUpdatePricingInput {
-  """The ID of the variant."""
-  variantId: ID!
-
-  """The currency code."""
-  currency: CurrencyCode!
-
-  """The price amount in minor units."""
-  amountMinor: BigInt!
-
-  """The compare-at price in minor units (optional)."""
-  compareAtMinor: BigInt
-}
-
-"""Input for product description (all fields required)."""
-input DescriptionInput {
-  """Plain text description."""
-  text: String!
-
-  """HTML description."""
-  html: String!
-
-  """EditorJS JSON description."""
-  json: JSON!
-}
-
-"""Input for creating a feature during product creation."""
-input ProductFeatureInput {
-  """The URL-friendly slug for the feature."""
-  slug: String!
-
-  """Display name."""
-  name: String!
-
-  """The values for this feature."""
-  values: [ProductFeatureValueCreateInput!]!
-}
-
-"""Input for creating an option value during product creation."""
-input ProductCreateOptionValueInput {
-  """Display name for the value."""
-  name: String!
-
-  """URL-friendly slug for the value."""
-  slug: String!
-}
-
-"""Input for creating an option during product creation."""
-input ProductCreateOptionInput {
-  """Display name for the option."""
-  name: String!
-
-  """URL-friendly slug for the option."""
-  slug: String!
-
-  """How to display the option (default: DROPDOWN)."""
-  displayType: String
-
-  """The values for this option."""
-  values: [ProductCreateOptionValueInput!]!
-}
-
-"""Input for creating a variant during product creation."""
-input ProductCreateVariantInput {
-  """Handle built from option value slugs (e.g., "red-s")."""
-  handle: String!
-}
-
-"""Input for creating a product with all its data in one request."""
-input ProductCreateInput {
-  """Product title."""
-  title: String!
-
-  """URL-friendly handle for the product."""
-  handle: String!
-
-  """Product description."""
-  description: DescriptionInput
-
-  """
-  File IDs for product media (already uploaded via mediaMutation.fileUpload).
-  """
-  mediaFileIds: [ID!]
-
-  """Product options (e.g., Color, Size)."""
-  options: [ProductCreateOptionInput!]
-
-  """Variants to create (only enabled ones from UI)."""
-  variants: [ProductCreateVariantInput!]
-}
-
-"""Input for deleting a product."""
-input ProductDeleteInput {
-  """The ID of the product to delete."""
-  id: ID!
-
-  """Whether to permanently delete the product (hard delete)."""
-  permanent: Boolean
-}
-
-"""
-Input for updating product status (publish or unpublish).
-Reused in bulk operations.
-"""
-input ProductUpdateStatusInput {
-  """Product ID."""
-  productId: ID!
-
-  """Action: PUBLISH or UNPUBLISH."""
-  action: ProductStatusAction!
-}
-
-"""Input for product content (description, excerpt)."""
-input ProductContentInput {
-  """Product description in multiple formats."""
-  description: DescriptionInput
-
-  """Short excerpt."""
-  excerpt: String
-}
-
-"""Input for product media."""
-input ProductMediaInput {
-  """File IDs for product media."""
-  fileIds: [ID!]!
-}
-
-"""Input for product-level fields in the unified update."""
-input ProductUpdateInput {
-  """The URL-friendly handle for the product."""
-  handle: String
-
-  """Product title."""
-  title: String
-
-  """Product content (description, excerpt)."""
-  content: ProductContentInput
-
-  """SEO and Open Graph metadata."""
-  seo: ProductSeoInput
-
-  """Product status: DRAFT or PUBLISHED."""
-  status: ProductStatus
-
-  """Product media."""
-  media: ProductMediaInput
-
-  """Variant updates."""
-  variants: [VariantUpdateInput!]
-}
-
-"""Input for variant pricing in the unified update."""
-input VariantPricingOpInput {
-  """The currency code."""
-  currency: CurrencyCode!
-
-  """The price amount in minor units."""
-  amountMinor: BigInt!
-
-  """The compare-at price in minor units (optional)."""
-  compareAtMinor: BigInt
-}
-
-"""Input for variant inventory in the unified update."""
-input VariantInventoryOpInput {
-  """The warehouse ID."""
-  warehouseId: ID!
-
-  """Quantity on hand."""
-  onHand: Int!
-
-  """Unavailable quantity (reserved, damaged, etc.)."""
-  unavailable: Int
-
-  """SKU code."""
-  sku: String
-
-  """Weight in grams."""
-  weight: Int
-
-  """Unit cost in minor units (cents)."""
-  unitCostMinor: BigInt
-
-  """Currency code for unit cost."""
-  costCurrency: CurrencyCode
-}
-
-"""Input for variant dimensions in the unified update."""
-input VariantDimensionsOpInput {
-  """Width in millimeters."""
-  width: Int!
-
-  """Height in millimeters."""
-  height: Int!
-
-  """Length in millimeters."""
-  length: Int!
-}
-
-"""Input for variant media in the unified update."""
-input VariantMediaOpInput {
-  """File IDs for variant media."""
-  fileIds: [ID!]!
-}
-
-"""Input for variant options in the unified update."""
-input VariantOptionsOpInput {
-  """Option value links to set (replaces existing)."""
-  set: [VariantOptionLinkInput!]!
-}
-
-"""Input for a single variant update."""
-input VariantUpdateInput {
-  """The variant ID."""
-  variantId: ID!
-
-  """Variant pricing."""
-  pricing: VariantPricingOpInput
-
-  """Variant inventory (stock, SKU, weight, cost)."""
-  inventory: VariantInventoryOpInput
-
-  """Variant dimensions."""
-  dimensions: VariantDimensionsOpInput
-
-  """Variant media."""
-  media: VariantMediaOpInput
-
-  """Variant options."""
-  options: VariantOptionsOpInput
-}
-
-"""Input for updating product SEO data."""
-input ProductSeoInput {
-  """SEO title (max 70 chars)."""
-  seoTitle: String
-
-  """SEO description (max 160 chars)."""
-  seoDescription: String
-
-  """Open Graph title (max 95 chars)."""
-  ogTitle: String
-
-  """Open Graph description."""
-  ogDescription: String
-
-  """Open Graph image file ID."""
-  ogImageId: ID
 }
 
 """Input for creating a warehouse."""
@@ -3956,110 +4519,6 @@ input WarehouseUpdateInput {
 input WarehouseDeleteInput {
   """The ID of the warehouse to delete."""
   id: ID!
-}
-
-"""Input for creating a variant."""
-input VariantInput {
-  """Variant title."""
-  title: String
-
-  """The SKU for the variant."""
-  sku: String
-
-  """External system identifier."""
-  externalSystem: String
-
-  """External ID in the external system."""
-  externalId: String
-
-  """Selected option values for the variant (required)."""
-  options: [SelectedOptionInput!]!
-
-  """Physical dimensions."""
-  dimensions: DimensionsInput
-
-  """Physical weight."""
-  weight: WeightInput
-}
-
-"""Input for creating a variant with a product ID."""
-input VariantCreateInput {
-  """The ID of the product to add the variant to."""
-  productId: ID!
-
-  """The variant data."""
-  variant: VariantInput!
-}
-
-"""Input for updating variant dimensions."""
-input VariantUpdateDimensionsInput {
-  """The ID of the variant."""
-  variantId: ID!
-
-  """Width in millimeters."""
-  width: Int!
-
-  """Height in millimeters."""
-  height: Int!
-
-  """Length in millimeters."""
-  length: Int!
-}
-
-"""
-Input for updating variant inventory (stock, SKU, weight, and unit cost).
-"""
-input VariantUpdateInventoryInput {
-  """The ID of the variant."""
-  variantId: ID!
-
-  """The warehouse ID."""
-  warehouseId: ID!
-
-  """Quantity on hand."""
-  onHand: Int!
-
-  """Unavailable quantity (reserved, damaged, etc.)."""
-  unavailable: Int
-
-  """SKU code."""
-  sku: String
-
-  """Weight in grams."""
-  weight: Int
-
-  """Unit cost in minor units (cents). Requires currency field."""
-  unitCostMinor: BigInt
-
-  """Currency code for unit cost."""
-  costCurrency: CurrencyCode
-}
-
-"""Input for linking a variant to an option value."""
-input VariantOptionLinkInput {
-  """The option ID."""
-  optionId: ID!
-
-  """The option value ID."""
-  optionValueId: ID!
-}
-
-"""Input for updating variant options (option value links)."""
-input VariantUpdateOptionsInput {
-  """The ID of the variant."""
-  variantId: ID!
-
-  """The option value links to set (replaces existing links)."""
-  links: [VariantOptionLinkInput!]!
-}
-
-"""Input for deleting a variant."""
-input VariantDeleteInput {
-  """The ID of the variant to delete."""
-  id: ID!
-
-  """Whether to permanently delete the variant (hard delete)."""
-  permanent: Boolean
 }
 
 scalar Upload
@@ -4767,10 +5226,6 @@ type Customer {
 }
 
 type Label {
-  id: ID!
-}
-
-type Tag {
   id: ID!
 }
 

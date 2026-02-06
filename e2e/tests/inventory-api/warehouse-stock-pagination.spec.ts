@@ -5,7 +5,10 @@ import type {
   ApiInventoryMutation,
   ApiInventoryQuery,
 } from '@codegen/admin-gql';
-import { createConnectionPaginationTests, type Connection } from '@utils/connectionPaginationBuilder';
+import {
+  createConnectionPaginationTests,
+  type Connection,
+} from '@utils/connectionPaginationBuilder';
 
 // Helper to access inventory API data
 const inv = (data: unknown) =>
@@ -51,10 +54,12 @@ async function prepareWarehouseStocks(api: ApiFixtures['api']): Promise<PrepareR
     const item = stockData[i];
     // Create product (which creates default variant)
     const { data: productData } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
-      variables: { input: { title: `Stock Product ${prefix}-${i}`, handle: `stock-product-${prefix}-${i}` } },
+      variables: {
+        input: { title: `Stock Product ${prefix}-${i}`, handle: `stock-product-${prefix}-${i}` },
+      },
     });
 
-    const product = inv(productData).inventoryMutation.productCreate.product;
+    const product = inv(productData).catalogMutation.productCreate.product;
     const variantId = product?.variants?.edges?.[0]?.node?.id;
 
     if (!variantId) {

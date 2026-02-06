@@ -1,5 +1,5 @@
 mutation ProductCreate($input: ProductCreateInput!) {
-  inventoryMutation {
+  catalogMutation {
     productCreate(input: $input) {
       product {
         id
@@ -28,7 +28,9 @@ mutation ProductCreate($input: ProductCreateInput!) {
               id
               isDefault
               handle
-              sku
+              inventoryItem {
+                sku
+              }
             }
           }
         }

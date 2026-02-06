@@ -1,9 +1,11 @@
 mutation VariantSetMedia($input: VariantUpdateMediaInput!) {
-  inventoryMutation {
+  catalogMutation {
     variantUpdateMedia(input: $input) {
       variant {
         id
-        sku
+        inventoryItem {
+          sku
+        }
       }
       userErrors {
         message

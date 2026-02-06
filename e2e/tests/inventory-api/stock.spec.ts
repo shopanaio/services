@@ -15,7 +15,7 @@ test.describe('Stock API', () => {
       variables: { input: { title, handle } },
     });
 
-    const product = data.inventoryMutation.productCreate.product;
+    const product = data.catalogMutation.productCreate.product;
     const variantEdges = product?.variants?.edges ?? [];
     const variantId = variantEdges[0]?.node?.id ?? null;
 

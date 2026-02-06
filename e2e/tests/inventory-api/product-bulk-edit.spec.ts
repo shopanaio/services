@@ -39,7 +39,8 @@ interface JobResult {
  * Helper to create a product with default variant
  */
 async function createProduct(api: Api, title: string, handle?: string) {
-  const productHandle = handle ?? `bulk-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const productHandle =
+    handle ?? `bulk-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const { data } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
     variables: {
       input: {
@@ -49,7 +50,7 @@ async function createProduct(api: Api, title: string, handle?: string) {
     },
   });
 
-  const product = data.inventoryMutation.productCreate.product;
+  const product = data.catalogMutation.productCreate.product;
   if (!product) {
     throw new Error('Failed to create product');
   }
@@ -104,7 +105,7 @@ async function createProductWithOptions(api: Api, title: string) {
     },
   });
 
-  const product = data.inventoryMutation.productCreate.product;
+  const product = data.catalogMutation.productCreate.product;
   if (!product) {
     throw new Error('Failed to create product with options');
   }
@@ -150,7 +151,7 @@ async function waitForJobCompletion(
   api: Api,
   jobId: string,
   maxWaitMs = 30000,
-  pollIntervalMs = 500
+  pollIntervalMs = 500,
 ): Promise<JobResult> {
   const startTime = Date.now();
 
@@ -160,7 +161,7 @@ async function waitForJobCompletion(
     });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const job = (data as any).inventoryQuery.productBulkUpdateJob;
+    const job = (data as any).catalogQuery.productBulkUpdateJob;
     if (!job) {
       throw new Error(`Job ${jobId} not found`);
     }
@@ -187,7 +188,7 @@ async function fetchProduct(api: Api, productId: string) {
     variables: { id: productId },
   });
 
-  const product = data.inventoryQuery.product;
+  const product = data.catalogQuery.product;
   if (!product) {
     throw new Error(`Product ${productId} not found`);
   }
@@ -211,7 +212,7 @@ interface BulkUpdateResult {
  */
 async function submitBulkUpdateAndWait(
   api: Api,
-  products: BulkUpdateProduct[]
+  products: BulkUpdateProduct[],
 ): Promise<{ result: BulkUpdateResult; job: JobResult | null }> {
   const { data } = await api.admin.mutation('inventory-api/ProductBulkUpdate', {
     variables: {
@@ -220,7 +221,7 @@ async function submitBulkUpdateAndWait(
   });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result = (data as any).inventoryMutation.productBulkUpdate as BulkUpdateResult;
+  const result = (data as any).catalogMutation.productBulkUpdate as BulkUpdateResult;
 
   if (result.userErrors.length > 0) {
     return { result, job: null };
@@ -267,7 +268,7 @@ test.describe('Product Bulk Edit API', () => {
       });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = (data as any).inventoryMutation.productBulkUpdate;
+      const result = (data as any).catalogMutation.productBulkUpdate;
 
       expect(result.userErrors).toHaveLength(0);
       expect(result.job).toBeTruthy();
@@ -295,7 +296,7 @@ test.describe('Product Bulk Edit API', () => {
       });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = (data as any).inventoryMutation.productBulkUpdate;
+      const result = (data as any).catalogMutation.productBulkUpdate;
 
       expect(result.userErrors).toHaveLength(0);
       expect(result.job).toBeTruthy();
@@ -319,7 +320,7 @@ test.describe('Product Bulk Edit API', () => {
       });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = (data as any).inventoryMutation.productBulkUpdate;
+      const result = (data as any).catalogMutation.productBulkUpdate;
       expect(result.userErrors.length).toBeGreaterThan(0);
       expect(result.job).toBeNull();
     });
@@ -343,7 +344,7 @@ test.describe('Product Bulk Edit API', () => {
       });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = (data as any).inventoryMutation.productBulkUpdate;
+      const result = (data as any).catalogMutation.productBulkUpdate;
       expect(result.userErrors.length).toBeGreaterThan(0);
       expect(result.job).toBeNull();
     });
@@ -763,7 +764,7 @@ test.describe('Product Bulk Edit API', () => {
 
       // Verify error details
       const failedItem = job?.items.find(
-        (item) => item.productId === product2.productId && item.status === 'FAILED'
+        (item) => item.productId === product2.productId && item.status === 'FAILED',
       );
       expect(failedItem).toBeTruthy();
       expect(failedItem?.errors.some((e) => e.code === 'REVISION_CONFLICT')).toBe(true);
@@ -986,8 +987,8 @@ test.describe('Product Bulk Edit API', () => {
       const batchId = Date.now();
       const products = await Promise.all(
         Array.from({ length: 5 }, (_, i) =>
-          createProduct(api, `Progress Product ${i + 1}`, `progress-${batchId}-${i}`)
-        )
+          createProduct(api, `Progress Product ${i + 1}`, `progress-${batchId}-${i}`),
+        ),
       );
 
       const { job } = await submitBulkUpdateAndWait(
@@ -995,7 +996,7 @@ test.describe('Product Bulk Edit API', () => {
         products.map((p, idx) => ({
           productId: p.productId,
           operations: { title: `Progress Updated ${idx + 1}` },
-        }))
+        })),
       );
 
       expect(job).toBeTruthy();
@@ -1012,8 +1013,8 @@ test.describe('Product Bulk Edit API', () => {
       const batchId = Date.now();
       const validProducts = await Promise.all(
         Array.from({ length: 3 }, (_, i) =>
-          createProduct(api, `Mixed Progress Valid ${i + 1}`, `mixed-progress-${batchId}-${i}`)
-        )
+          createProduct(api, `Mixed Progress Valid ${i + 1}`, `mixed-progress-${batchId}-${i}`),
+        ),
       );
 
       const fakeProductIds = [
@@ -1209,8 +1210,8 @@ test.describe('Product Bulk Edit API', () => {
       const batchId = Date.now();
       const products = await Promise.all(
         Array.from({ length: 10 }, (_, i) =>
-          createProduct(api, `Batch 10 Product ${i + 1}`, `batch10-${batchId}-${i}`)
-        )
+          createProduct(api, `Batch 10 Product ${i + 1}`, `batch10-${batchId}-${i}`),
+        ),
       );
 
       const { job } = await submitBulkUpdateAndWait(
@@ -1218,7 +1219,7 @@ test.describe('Product Bulk Edit API', () => {
         products.map((p, idx) => ({
           productId: p.productId,
           operations: { title: `Batch 10 Updated ${idx + 1}` },
-        }))
+        })),
       );
 
       expect(job).toBeTruthy();
@@ -1237,8 +1238,8 @@ test.describe('Product Bulk Edit API', () => {
       const batchId = Date.now();
       const products = await Promise.all(
         Array.from({ length: 25 }, (_, i) =>
-          createProduct(api, `Batch 25 Product ${i + 1}`, `batch25-${batchId}-${i}`)
-        )
+          createProduct(api, `Batch 25 Product ${i + 1}`, `batch25-${batchId}-${i}`),
+        ),
       );
 
       const warehouseCode = `WH-BATCH25-${Date.now()}`;
@@ -1258,7 +1259,7 @@ test.describe('Product Bulk Edit API', () => {
               },
             ],
           },
-        }))
+        })),
       );
 
       expect(job).toBeTruthy();
@@ -1271,8 +1272,8 @@ test.describe('Product Bulk Edit API', () => {
       const batchId = Date.now();
       const products = await Promise.all(
         Array.from({ length: 100 }, (_, i) =>
-          createProduct(api, `Batch 100 Product ${i + 1}`, `batch100-${batchId}-${i}`)
-        )
+          createProduct(api, `Batch 100 Product ${i + 1}`, `batch100-${batchId}-${i}`),
+        ),
       );
 
       const { result, job } = await submitBulkUpdateAndWait(
@@ -1280,7 +1281,7 @@ test.describe('Product Bulk Edit API', () => {
         products.map((p, idx) => ({
           productId: p.productId,
           operations: { title: `Batch 100 Updated ${idx + 1}` },
-        }))
+        })),
       );
 
       expect(result.userErrors).toHaveLength(0);
