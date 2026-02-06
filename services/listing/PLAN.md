@@ -20,7 +20,7 @@ A **listing** is a named collection of products. Two types:
 
 **Smart listing** — products matched automatically by conditions:
 - "All Nike under 5000 UAH" → `feature_slugs contains brand:nike AND max_price < 5000`
-- "New arrivals" → `published_at > now() - 30 days`
+- "New arrivals" → `created_at > now() - 30 days`
 - "Shoes category" → `category_ids contains cat-shoes-uuid`
 - Conditions are evaluated against `product_search_index` at query time
 
@@ -53,7 +53,6 @@ product_search_index (
   option_slugs   text[] DEFAULT '{}',
   category_ids   uuid[] DEFAULT '{}',
   popularity_score float NOT NULL DEFAULT 0,
-  published_at   timestamptz,
   created_at     timestamptz NOT NULL DEFAULT now(),
   updated_at     timestamptz NOT NULL DEFAULT now()
 )
@@ -69,9 +68,9 @@ listing (
   project_id     uuid NOT NULL,
   handle         varchar(255),
   type           varchar(16) NOT NULL,  -- 'smart' | 'manual'
+  status         varchar(16) NOT NULL DEFAULT 'draft',  -- 'draft' | 'active'
   sort_by        varchar(32) NOT NULL DEFAULT 'popularity',
   sort_direction varchar(4) NOT NULL DEFAULT 'desc',
-  published_at   timestamptz,
   created_at     timestamptz NOT NULL DEFAULT now(),
   updated_at     timestamptz NOT NULL DEFAULT now(),
   deleted_at     timestamptz
@@ -96,7 +95,7 @@ listing_translation (
 listing_condition (
   id          uuid PRIMARY KEY,
   listing_id  uuid NOT NULL REFERENCES listing(id) ON DELETE CASCADE,
-  field       varchar(32) NOT NULL,   -- 'feature' | 'option' | 'tag' | 'category' | 'price' | 'stock' | 'published_at'
+  field       varchar(32) NOT NULL,   -- 'feature' | 'option' | 'tag' | 'category' | 'price' | 'stock'
   slug        varchar(128),           -- for feature/option: 'brand', 'color', etc.
   operator    varchar(16) NOT NULL,   -- 'equals' | 'contains' | 'not_contains' | 'gt' | 'lt' | 'between' | 'in' | 'not_in'
   value       jsonb NOT NULL,         -- ["nike","adidas"] or {"min":1000,"max":5000} or true
@@ -343,7 +342,7 @@ Flow for **manual listing**:
 | price | - | between | {min:1000,max:5000} | `min_price_minor >= 1000 AND max_price_minor <= 5000` |
 | price | - | gt | 1000 | `min_price_minor > 1000` |
 | stock | - | equals | true | `in_stock = true` |
-| published_at | - | gt | "2025-01-01" | `published_at > '2025-01-01'` |
+| created_at | - | gt | "2025-01-01" | `created_at > '2025-01-01'` |
 
 Multiple conditions are AND-joined.
 
