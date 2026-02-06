@@ -13,13 +13,13 @@ import {
 } from "../scripts/GetOffersScript.js";
 
 /**
- * Inventory broker actions registered with @Action decorator.
+ * Catalog broker actions registered with @Action decorator.
  * Each method decorated with @Action is automatically registered
  * as a broker action when the module initializes.
  */
 @Injectable()
-export class InventoryBrokerActions extends BrokerActions {
-  constructor(@InjectBroker("inventory") broker: ServiceBroker) {
+export class CatalogBrokerActions extends BrokerActions {
+  constructor(@InjectBroker("catalog") broker: ServiceBroker) {
     super(broker);
   }
 

@@ -21,7 +21,7 @@ export class EntityDeletedNotifySaga extends BrokerSaga<
   EntityDeletedNotifyInput,
   EntityDeletedNotifyOutput
 > {
-  constructor(@InjectBroker("inventory") broker: ServiceBroker) {
+  constructor(@InjectBroker("catalog") broker: ServiceBroker) {
     super(broker);
   }
 

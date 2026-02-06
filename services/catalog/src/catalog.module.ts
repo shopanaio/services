@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { BrokerModule } from '@shopana/shared-kernel';
-import { InventoryNestService } from './inventory.nest-service';
-import { InventoryBrokerActions } from './actions';
-import { InventoryEventHandlers } from './handlers';
+import { CatalogNestService } from './inventory.nest-service';
+import { CatalogBrokerActions } from './actions';
+import { CatalogEventHandlers } from './handlers';
 import {
   BackRefNotifySaga,
   EntityDeletedNotifySaga,
@@ -13,14 +13,14 @@ import { workflows } from './workflows/index.js';
 /**
  * Catalog Service Module.
  * Handles products, variants, categories, tags, options, features.
- * Note: Internal classes still use "Inventory" naming for compatibility.
+ * Renamed from Inventory to Catalog.
  */
 @Module({
   imports: [BrokerModule.forFeature({ serviceName: 'catalog' })],
   providers: [
-    InventoryBrokerActions,
-    InventoryNestService,
-    InventoryEventHandlers,
+    CatalogBrokerActions,
+    CatalogNestService,
+    CatalogEventHandlers,
     BackRefNotifySaga,
     EntityDeletedNotifySaga,
     ProductCreateSaga,

@@ -30,7 +30,7 @@ export type { ProductCreateParams, ProductCreateResult };
  */
 @Injectable()
 export class ProductCreateSaga extends BrokerSaga<ProductCreateParams, ProductCreateResult> {
-  constructor(@InjectBroker("inventory") broker: ServiceBroker) {
+  constructor(@InjectBroker("catalog") broker: ServiceBroker) {
     super(broker);
   }
 

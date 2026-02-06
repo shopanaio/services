@@ -10,7 +10,7 @@ export function startHealthServer(port: number): Promise<Server> {
       if (req.url === "/" || req.url === "/healthz") {
         const response = {
           status: "ok",
-          service: "inventory",
+          service: "catalog",
           timestamp: new Date().toISOString(),
           uptime: process.uptime(),
         };

@@ -15,7 +15,7 @@ import {
 } from "@shopana/shared-service-config";
 import { setContext, ServiceContext } from "../../context/index.js";
 
-const { global } = getServiceConfig("inventory");
+const { global } = getServiceConfig("catalog");
 import { Kernel } from "../../kernel/Kernel.js";
 import { Loader } from "../../loaders/Loader.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
@@ -36,7 +36,7 @@ export async function startServer(serverConfig: ServerConfig) {
   if (Kernel.isInitialized()) {
     kernel = Kernel.getInstance();
   } else {
-    console.warn("[Inventory] Kernel not initialized");
+    console.warn("[Catalog] Kernel not initialized");
   }
 
   const app = fastify({
@@ -50,7 +50,7 @@ export async function startServer(serverConfig: ServerConfig) {
               colorize: true,
               translateTime: "SYS:HH:MM:ss.l",
               ignore: "pid,hostname,reqId,responseTime",
-              messageFormat: "[Inventory] {msg}",
+              messageFormat: "[Catalog] {msg}",
               levelFirst: true,
             },
           },
@@ -144,7 +144,7 @@ export async function startServer(serverConfig: ServerConfig) {
   app.get("/", async (_request, reply) => {
     return reply.send({
       status: "ok",
-      service: "inventory",
+      service: "catalog",
       environment: global.environment,
     });
   });
@@ -152,7 +152,7 @@ export async function startServer(serverConfig: ServerConfig) {
   app.get("/healthz", async (_request, reply) => {
     return reply.send({
       status: "ok",
-      service: "inventory",
+      service: "catalog",
     });
   });
 
@@ -163,7 +163,7 @@ export async function startServer(serverConfig: ServerConfig) {
   });
 
   app.log.info(
-    `inventory GraphQL Admin API ready at http://localhost:${serverConfig.port}/graphql`,
+    `catalog GraphQL Admin API ready at http://localhost:${serverConfig.port}/graphql`,
   );
 
   return app;

@@ -29,7 +29,7 @@ interface ProductGroup {
 
 @Injectable()
 export class ProductBulkEditWorkflow extends BrokerWorkflows {
-  constructor(@InjectBroker("inventory") broker: ServiceBroker) {
+  constructor(@InjectBroker("catalog") broker: ServiceBroker) {
     super(broker);
   }
 

@@ -21,7 +21,7 @@ export interface BackRefNotifyOutput {
 
 @Injectable()
 export class BackRefNotifySaga extends BrokerSaga<BackRefNotifyInput, BackRefNotifyOutput> {
-  constructor(@InjectBroker("inventory") broker: ServiceBroker) {
+  constructor(@InjectBroker("catalog") broker: ServiceBroker) {
     super(broker);
   }
 

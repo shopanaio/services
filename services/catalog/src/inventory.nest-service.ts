@@ -20,24 +20,24 @@ import type { FastifyInstance } from "fastify";
 import { startServer } from "./api/graphql-admin/server";
 import { Kernel } from "./kernel/Kernel";
 
-const { service } = getServiceConfig("inventory");
+const { service } = getServiceConfig("catalog");
 import { InventoryObjectStorage } from "./storage";
 
 @Injectable()
-export class InventoryNestService implements OnModuleInit, OnModuleDestroy {
-  private readonly logger = new Logger(InventoryNestService.name);
+export class CatalogNestService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(CatalogNestService.name);
   private kernel!: Kernel;
   private storageGateway!: InventoryObjectStorage;
   private graphqlServer: FastifyInstance | null = null;
 
   constructor(
-    @InjectBroker("inventory") private readonly broker: ServiceBroker,
+    @InjectBroker("catalog") private readonly broker: ServiceBroker,
     @Inject(WORKFLOW_REGISTRY) private readonly workflow: WorkflowRegistry,
     @Inject(DATABASE_CLIENT) private readonly dbClient: DatabaseClient
   ) {}
 
   async onModuleInit() {
-    this.logger.debug("Inventory onModuleInit started");
+    this.logger.debug("Catalog onModuleInit started");
 
     this.kernel = await Kernel.create(this.broker, this.workflow, this.dbClient);
     this.logger.debug("Kernel created");
@@ -61,7 +61,7 @@ export class InventoryNestService implements OnModuleInit, OnModuleDestroy {
     });
     this.logger.debug("GraphQL server started");
 
-    this.logger.log("Inventory service started");
+    this.logger.log("Catalog service started");
   }
 
   async onModuleDestroy() {
@@ -73,6 +73,6 @@ export class InventoryNestService implements OnModuleInit, OnModuleDestroy {
       await this.kernel.close();
     }
 
-    this.logger.log("Inventory service stopped");
+    this.logger.log("Catalog service stopped");
   }
 }

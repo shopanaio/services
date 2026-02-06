@@ -16,8 +16,8 @@ import { Kernel } from "../kernel/Kernel.js";
 import { FileHardDeletedScript } from "../scripts/media/FileHardDeletedScript.js";
 
 @Injectable()
-export class InventoryEventHandlers extends EventHandlers {
-  constructor(@InjectBroker("inventory") broker: ServiceBroker) {
+export class CatalogEventHandlers extends EventHandlers {
+  constructor(@InjectBroker("catalog") broker: ServiceBroker) {
     super(broker);
   }
 
