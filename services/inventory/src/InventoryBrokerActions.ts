@@ -100,22 +100,23 @@ export class InventoryBrokerActions extends BrokerActions {
    */
   @Action("getVariantCost")
   async getVariantCost(params: GetVariantCostParams): Promise<VariantCost | null> {
-    const services = this.kernel.getServicesForProject(params.projectId);
-    const cost = await services.repository.cost.getCurrentCost({
-      variantId: params.variantId,
-      currency: params.currency,
+    return this.runWithStoreContext(params.projectId, async () => {
+      const cost = await this.kernel.repository.cost.getCurrentCost({
+        variantId: params.variantId,
+        currency: params.currency,
+      });
+
+      if (!cost) return null;
+
+      return {
+        id: cost.id,
+        currency: cost.currency as CurrencyCode,
+        unitCostMinor: cost.unitCostMinor,
+        effectiveFrom: new Date(cost.effectiveFrom),
+        effectiveTo: cost.effectiveTo ? new Date(cost.effectiveTo) : null,
+        recordedAt: new Date(cost.recordedAt),
+        isCurrent: cost.effectiveTo === null,
+      };
     });
-
-    if (!cost) return null;
-
-    return {
-      id: cost.id,
-      currency: cost.currency as CurrencyCode,
-      unitCostMinor: cost.unitCostMinor,
-      effectiveFrom: cost.effectiveFrom instanceof Date ? cost.effectiveFrom : new Date(cost.effectiveFrom),
-      effectiveTo: cost.effectiveTo ? (cost.effectiveTo instanceof Date ? cost.effectiveTo : new Date(cost.effectiveTo)) : null,
-      recordedAt: cost.recordedAt instanceof Date ? cost.recordedAt : new Date(cost.recordedAt),
-      isCurrent: cost.effectiveTo === null,
-    };
   }
 }

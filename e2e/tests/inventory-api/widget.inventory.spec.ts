@@ -10,14 +10,22 @@ test.describe('Inventory Widget API', () => {
   async function createProductWithVariant(api: any, title = 'Widget Inventory Product') {
     const handle = `${title.toLowerCase().replace(/\s+/g, '-')}-${randomUUID().slice(0, 8)}`;
     const { data } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
-      variables: { input: { title, handle } },
+      variables: {
+        input: {
+          title,
+          handle,
+          inventoryItem: { tracked: true },
+        },
+      },
     });
 
     const product = data.catalogMutation.productCreate.product;
     const variantEdges = product?.variants?.edges ?? [];
-    const variantId = variantEdges[0]?.node?.id ?? null;
+    const variant = variantEdges[0]?.node ?? null;
+    const variantId = variant?.id ?? null;
+    const inventoryItemId = variant?.inventoryItem?.id ?? null;
 
-    return { product, variantId };
+    return { product, variantId, inventoryItemId };
   }
 
   async function createWarehouse(api: any, codePrefix: string, name: string, isDefault = false) {
@@ -30,9 +38,9 @@ test.describe('Inventory Widget API', () => {
   }
 
   test('should return full inventory widget payload for low stock', async ({ api }) => {
-    const { product, variantId } = await createProductWithVariant(api);
+    const { product, inventoryItemId } = await createProductWithVariant(api);
 
-    if (!product?.id || !variantId) {
+    if (!product?.id || !inventoryItemId) {
       test.skip();
       return;
     }
@@ -47,9 +55,11 @@ test.describe('Inventory Widget API', () => {
     await api.admin.mutation('inventory-api/VariantSetStock', {
       variables: {
         input: {
-          variantId,
-          warehouseId: warehouse.id,
-          onHand: 5,
+          id: inventoryItemId,
+          stock: {
+            warehouseId: warehouse.id,
+            onHand: 5,
+          },
         },
       },
     });
@@ -81,9 +91,9 @@ test.describe('Inventory Widget API', () => {
   });
 
   test('should return full inventory widget payload for out of stock', async ({ api }) => {
-    const { product, variantId } = await createProductWithVariant(api);
+    const { product, inventoryItemId } = await createProductWithVariant(api);
 
-    if (!product?.id || !variantId) {
+    if (!product?.id || !inventoryItemId) {
       test.skip();
       return;
     }
@@ -98,9 +108,11 @@ test.describe('Inventory Widget API', () => {
     await api.admin.mutation('inventory-api/VariantSetStock', {
       variables: {
         input: {
-          variantId,
-          warehouseId: warehouse.id,
-          onHand: 0,
+          id: inventoryItemId,
+          stock: {
+            warehouseId: warehouse.id,
+            onHand: 0,
+          },
         },
       },
     });

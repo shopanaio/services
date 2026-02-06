@@ -1981,8 +1981,8 @@ type TagDeletePayload {
 
 """
 A variant represents a specific version of a product, such as a size or color.
-Catalog Service владеет этим типом.
-Inventory-поля (sku, dimensions, weight, cost, stock) добавляются через federation extend в Inventory Service.
+Catalog Service owns this type.
+Inventory fields (sku, dimensions, weight, cost, stock) are added via federation extend in Inventory Service.
 """
 type Variant implements Node {
   """The globally unique ID of the variant."""
@@ -2847,6 +2847,18 @@ input ProductCreateVariantInput {
   handle: String!
 }
 
+"""Inventory tracking settings for product creation."""
+input InventoryItemInput {
+  """Whether to track inventory for this product."""
+  tracked: Boolean!
+
+  """Stock Keeping Unit."""
+  sku: String
+
+  """Allow sales when stock is zero."""
+  continueSellingWhenOutOfStock: Boolean
+}
+
 """Input for creating a product with all its data in one request."""
 input ProductCreateInput {
   """Product title."""
@@ -2868,6 +2880,9 @@ input ProductCreateInput {
 
   """Variants to create (only enabled ones from UI)."""
   variants: [ProductCreateVariantInput!]
+
+  """Inventory tracking settings for the product."""
+  inventoryItem: InventoryItemInput
 }
 
 """Input for deleting a product."""

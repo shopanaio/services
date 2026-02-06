@@ -2250,6 +2250,16 @@ export type ApiInventoryItemEdge = {
   node: ApiInventoryItem;
 };
 
+/** Inventory tracking settings for product creation. */
+export type ApiInventoryItemInput = {
+  /** Allow sales when stock is zero. */
+  continueSellingWhenOutOfStock?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Stock Keeping Unit. */
+  sku?: InputMaybe<Scalars['String']['input']>;
+  /** Whether to track inventory for this product. */
+  tracked: Scalars['Boolean']['input'];
+};
+
 export type ApiInventoryItemStockInput = {
   onHand: Scalars['Int']['input'];
   unavailable?: InputMaybe<Scalars['Int']['input']>;
@@ -3641,6 +3651,8 @@ export type ApiProductCreateInput = {
   description?: InputMaybe<ApiDescriptionInput>;
   /** URL-friendly handle for the product. */
   handle: Scalars['String']['input'];
+  /** Inventory tracking settings for the product. */
+  inventoryItem?: InputMaybe<ApiInventoryItemInput>;
   /** File IDs for product media (already uploaded via mediaMutation.fileUpload). */
   mediaFileIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   /** Product options (e.g., Color, Size). */
@@ -5070,8 +5082,8 @@ export type ApiUserUpdateProfilePayload = {
 
 /**
  * A variant represents a specific version of a product, such as a size or color.
- * Catalog Service владеет этим типом.
- * Inventory-поля (sku, dimensions, weight, cost, stock) добавляются через federation extend в Inventory Service.
+ * Catalog Service owns this type.
+ * Inventory fields (sku, dimensions, weight, cost, stock) are added via federation extend in Inventory Service.
  */
 export type ApiVariant = ApiNode & {
   __typename?: 'Variant';
@@ -5110,8 +5122,8 @@ export type ApiVariant = ApiNode & {
 
 /**
  * A variant represents a specific version of a product, such as a size or color.
- * Catalog Service владеет этим типом.
- * Inventory-поля (sku, dimensions, weight, cost, stock) добавляются через federation extend в Inventory Service.
+ * Catalog Service owns this type.
+ * Inventory fields (sku, dimensions, weight, cost, stock) are added via federation extend in Inventory Service.
  */
 export type ApiVariantPriceHistoryArgs = {
   after?: InputMaybe<Scalars['String']['input']>;

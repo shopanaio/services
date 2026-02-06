@@ -15,14 +15,35 @@ test.describe('Pricing Widget API', () => {
   ) {
     const handle = `${title.toLowerCase().replace(/\s+/g, '-')}-${randomUUID().slice(0, 8)}`;
     const { data } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
-      variables: { input: { title, handle } },
+      variables: {
+        input: {
+          title,
+          handle,
+          inventoryItem: { tracked: true },
+        },
+      },
     });
 
     const product = data.catalogMutation.productCreate.product;
     const variantEdges = product?.variants?.edges ?? [];
-    const variantId = variantEdges[0]?.node?.id ?? null;
+    const variant = variantEdges[0]?.node ?? null;
+    const variantId = variant?.id ?? null;
+    const inventoryItemId = variant?.inventoryItem?.id ?? null;
 
-    return { product, variantId };
+    return { product, variantId, inventoryItemId };
+  }
+
+  async function createWarehouseAndGetId(
+    api: ApiFixtures['api'],
+    codePrefix: string,
+    name: string,
+  ) {
+    const { data: whData } = await api.admin.mutation('inventory-api/WarehouseCreate', {
+      variables: {
+        input: { code: `${codePrefix}-${randomUUID().slice(0, 8)}`, name },
+      },
+    });
+    return whData.inventoryMutation.warehouseCreate.warehouse;
   }
 
   const assertHistoryNode = (node: ApiVariantPrice) => {
@@ -37,9 +58,9 @@ test.describe('Pricing Widget API', () => {
   };
 
   test('should return full pricing widget payload', async ({ api }) => {
-    const { variantId } = await createProductWithVariant(api);
+    const { variantId, inventoryItemId } = await createProductWithVariant(api);
 
-    if (!variantId) {
+    if (!variantId || !inventoryItemId) {
       test.skip();
       return;
     }
@@ -66,20 +87,15 @@ test.describe('Pricing Widget API', () => {
       },
     });
 
-    // Create warehouse for cost
-    const { data: whData } = await api.admin.mutation('inventory-api/WarehouseCreate', {
-      variables: { input: { code: `WH-COST-${randomUUID().slice(0, 8)}`, name: 'Cost Warehouse' } },
-    });
-    const warehouse = whData.inventoryMutation.warehouseCreate.warehouse;
-
+    // Set cost via inventoryItemUpdate
     await api.admin.mutation('inventory-api/VariantSetCost', {
       variables: {
         input: {
-          variantId,
-          warehouseId: warehouse.id,
-          onHand: 0,
-          unitCostMinor: '5000',
-          costCurrency: 'UAH',
+          id: inventoryItemId,
+          unitCost: {
+            currency: 'UAH',
+            amountMinor: '5000',
+          },
         },
       },
     });
@@ -142,9 +158,9 @@ test.describe('Pricing Widget API', () => {
   });
 
   test('should paginate pricing history with date range', async ({ api }) => {
-    const { variantId } = await createProductWithVariant(api);
+    const { variantId, inventoryItemId } = await createProductWithVariant(api);
 
-    if (!variantId) {
+    if (!variantId || !inventoryItemId) {
       test.skip();
       return;
     }
@@ -180,22 +196,15 @@ test.describe('Pricing Widget API', () => {
       },
     });
 
-    // Create warehouse for cost
-    const { data: whData2 } = await api.admin.mutation('inventory-api/WarehouseCreate', {
-      variables: {
-        input: { code: `WH-COST2-${randomUUID().slice(0, 8)}`, name: 'Cost Warehouse 2' },
-      },
-    });
-    const warehouse2 = whData2.inventoryMutation.warehouseCreate.warehouse;
-
+    // Set cost via inventoryItemUpdate
     await api.admin.mutation('inventory-api/VariantSetCost', {
       variables: {
         input: {
-          variantId,
-          warehouseId: warehouse2.id,
-          onHand: 0,
-          unitCostMinor: '6000',
-          costCurrency: 'UAH',
+          id: inventoryItemId,
+          unitCost: {
+            currency: 'UAH',
+            amountMinor: '6000',
+          },
         },
       },
     });
@@ -296,9 +305,9 @@ test.describe('Pricing Widget API', () => {
   test('should track price history with correct effectiveTo timestamps and multi-currency support', async ({
     api,
   }) => {
-    const { variantId } = await createProductWithVariant(api);
+    const { variantId, inventoryItemId } = await createProductWithVariant(api);
 
-    if (!variantId) {
+    if (!variantId || !inventoryItemId) {
       test.skip();
       return;
     }
@@ -324,23 +333,15 @@ test.describe('Pricing Widget API', () => {
       },
     });
 
-    // Create warehouse for cost
-    const { data: whData3 } = await api.admin.mutation('inventory-api/WarehouseCreate', {
-      variables: {
-        input: { code: `WH-COST3-${randomUUID().slice(0, 8)}`, name: 'Cost Warehouse 3' },
-      },
-    });
-    const warehouse3 = whData3.inventoryMutation.warehouseCreate.warehouse;
-
-    // Set UAH cost
+    // Set UAH cost via inventoryItemUpdate
     await api.admin.mutation('inventory-api/VariantSetCost', {
       variables: {
         input: {
-          variantId,
-          warehouseId: warehouse3.id,
-          onHand: 0,
-          unitCostMinor: '4000',
-          costCurrency: 'UAH',
+          id: inventoryItemId,
+          unitCost: {
+            currency: 'UAH',
+            amountMinor: '4000',
+          },
         },
       },
     });

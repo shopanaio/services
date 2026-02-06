@@ -27,7 +27,9 @@ mutation ProductCreateSimple($input: ProductCreateInput!) {
               isDefault
               handle
               inventoryItem {
+                id
                 sku
+                trackInventory
               }
             }
           }

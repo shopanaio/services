@@ -4,7 +4,9 @@ mutation VariantCreate($input: VariantCreateInput!) {
       variant {
         id
         inventoryItem {
+          id
           sku
+          trackInventory
         }
       }
       userErrors {

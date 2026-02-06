@@ -7,19 +7,27 @@ test.describe('Stock API', () => {
   });
 
   /**
-   * Helper to create a product and get the default variant ID
+   * Helper to create a product and get the default variant ID + inventoryItem ID
    */
   async function createProductWithVariant(api: any, title = 'Stock Test Product') {
     const handle = title.toLowerCase().replace(/\s+/g, '-');
     const { data } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
-      variables: { input: { title, handle } },
+      variables: {
+        input: {
+          title,
+          handle,
+          inventoryItem: { tracked: true },
+        },
+      },
     });
 
     const product = data.catalogMutation.productCreate.product;
     const variantEdges = product?.variants?.edges ?? [];
-    const variantId = variantEdges[0]?.node?.id ?? null;
+    const variant = variantEdges[0]?.node ?? null;
+    const variantId = variant?.id ?? null;
+    const inventoryItemId = variant?.inventoryItem?.id ?? null;
 
-    return { product, variantId };
+    return { product, variantId, inventoryItemId };
   }
 
   /**
@@ -36,10 +44,10 @@ test.describe('Stock API', () => {
   test.describe('Variant Stock', () => {
     test('should set variant stock in warehouse', async ({ api }) => {
       // Create product with variant
-      const { product, variantId } = await createProductWithVariant(api);
+      const { product, inventoryItemId } = await createProductWithVariant(api);
       expect(product).toBeTruthy();
 
-      if (!variantId) {
+      if (!inventoryItemId) {
         test.skip();
         return;
       }
@@ -52,24 +60,31 @@ test.describe('Stock API', () => {
       const { data } = await api.admin.mutation('inventory-api/VariantSetStock', {
         variables: {
           input: {
-            variantId,
-            warehouseId: warehouse.id,
-            onHand: 100,
+            id: inventoryItemId,
+            stock: {
+              warehouseId: warehouse.id,
+              onHand: 100,
+            },
           },
         },
       });
 
-      const result = data.inventoryMutation.variantUpdateInventory;
+      const result = data.inventoryMutation.inventoryItemUpdate;
       expect(result.userErrors).toHaveLength(0);
-      expect(result.stock).toBeTruthy();
-      expect(result.stock?.quantityOnHand).toBe(100);
+      expect(result.inventoryItem).toBeTruthy();
+
+      const stockRecord = result.inventoryItem.stock.find(
+        (s: { warehouse: { id: string } }) => s.warehouse.id === warehouse.id,
+      );
+      expect(stockRecord).toBeTruthy();
+      expect(stockRecord.quantityOnHand).toBe(100);
     });
 
     test('should update stock quantity', async ({ api }) => {
       // Create product with variant
-      const { variantId } = await createProductWithVariant(api);
+      const { inventoryItemId } = await createProductWithVariant(api);
 
-      if (!variantId) {
+      if (!inventoryItemId) {
         test.skip();
         return;
       }
@@ -81,9 +96,11 @@ test.describe('Stock API', () => {
       await api.admin.mutation('inventory-api/VariantSetStock', {
         variables: {
           input: {
-            variantId,
-            warehouseId: warehouse.id,
-            onHand: 50,
+            id: inventoryItemId,
+            stock: {
+              warehouseId: warehouse.id,
+              onHand: 50,
+            },
           },
         },
       });
@@ -92,23 +109,30 @@ test.describe('Stock API', () => {
       const { data } = await api.admin.mutation('inventory-api/VariantSetStock', {
         variables: {
           input: {
-            variantId,
-            warehouseId: warehouse.id,
-            onHand: 75,
+            id: inventoryItemId,
+            stock: {
+              warehouseId: warehouse.id,
+              onHand: 75,
+            },
           },
         },
       });
 
-      const result = data.inventoryMutation.variantUpdateInventory;
+      const result = data.inventoryMutation.inventoryItemUpdate;
       expect(result.userErrors).toHaveLength(0);
-      expect(result.stock?.quantityOnHand).toBe(75);
+
+      const stockRecord = result.inventoryItem.stock.find(
+        (s: { warehouse: { id: string } }) => s.warehouse.id === warehouse.id,
+      );
+      expect(stockRecord).toBeTruthy();
+      expect(stockRecord.quantityOnHand).toBe(75);
     });
 
     test('should set zero stock', async ({ api }) => {
       // Create product with variant
-      const { variantId } = await createProductWithVariant(api);
+      const { inventoryItemId } = await createProductWithVariant(api);
 
-      if (!variantId) {
+      if (!inventoryItemId) {
         test.skip();
         return;
       }
@@ -120,43 +144,52 @@ test.describe('Stock API', () => {
       const { data } = await api.admin.mutation('inventory-api/VariantSetStock', {
         variables: {
           input: {
-            variantId,
-            warehouseId: warehouse.id,
-            onHand: 0,
+            id: inventoryItemId,
+            stock: {
+              warehouseId: warehouse.id,
+              onHand: 0,
+            },
           },
         },
       });
 
-      const result = data.inventoryMutation.variantUpdateInventory;
+      const result = data.inventoryMutation.inventoryItemUpdate;
       expect(result.userErrors).toHaveLength(0);
-      expect(result.stock?.quantityOnHand).toBe(0);
+
+      const stockRecord = result.inventoryItem.stock.find(
+        (s: { warehouse: { id: string } }) => s.warehouse.id === warehouse.id,
+      );
+      expect(stockRecord).toBeTruthy();
+      expect(stockRecord.quantityOnHand).toBe(0);
     });
 
-    test('should return error for invalid variant ID', async ({ api }) => {
+    test('should return error for invalid inventory item ID', async ({ api }) => {
       // Create warehouse first
       const warehouse = await createWarehouse(api, 'WH-004', 'Error Test Warehouse');
 
       const { data } = await api.admin.mutation('inventory-api/VariantSetStock', {
         variables: {
           input: {
-            variantId: '00000000-0000-0000-0000-000000000000',
-            warehouseId: warehouse.id,
-            onHand: 10,
+            id: '00000000-0000-0000-0000-000000000000',
+            stock: {
+              warehouseId: warehouse.id,
+              onHand: 10,
+            },
           },
         },
       });
 
-      const result = data.inventoryMutation.variantUpdateInventory;
+      const result = data.inventoryMutation.inventoryItemUpdate;
       expect(result.userErrors).toHaveLength(1);
       expect(result.userErrors[0].code).toBe('NOT_FOUND');
-      expect(result.stock).toBeNull();
+      expect(result.inventoryItem).toBeNull();
     });
 
     test('should return error for invalid warehouse ID', async ({ api }) => {
       // Create product with variant
-      const { variantId } = await createProductWithVariant(api);
+      const { inventoryItemId } = await createProductWithVariant(api);
 
-      if (!variantId) {
+      if (!inventoryItemId) {
         test.skip();
         return;
       }
@@ -164,24 +197,26 @@ test.describe('Stock API', () => {
       const { data } = await api.admin.mutation('inventory-api/VariantSetStock', {
         variables: {
           input: {
-            variantId,
-            warehouseId: '00000000-0000-0000-0000-000000000000',
-            onHand: 10,
+            id: inventoryItemId,
+            stock: {
+              warehouseId: '00000000-0000-0000-0000-000000000000',
+              onHand: 10,
+            },
           },
         },
       });
 
-      const result = data.inventoryMutation.variantUpdateInventory;
+      const result = data.inventoryMutation.inventoryItemUpdate;
       expect(result.userErrors).toHaveLength(1);
       expect(result.userErrors[0].code).toBe('NOT_FOUND');
-      expect(result.stock).toBeNull();
+      expect(result.inventoryItem).toBeNull();
     });
 
     test('should return error for negative quantity', async ({ api }) => {
       // Create product with variant
-      const { variantId } = await createProductWithVariant(api);
+      const { inventoryItemId } = await createProductWithVariant(api);
 
-      if (!variantId) {
+      if (!inventoryItemId) {
         test.skip();
         return;
       }
@@ -192,24 +227,26 @@ test.describe('Stock API', () => {
       const { data } = await api.admin.mutation('inventory-api/VariantSetStock', {
         variables: {
           input: {
-            variantId,
-            warehouseId: warehouse.id,
-            onHand: -10,
+            id: inventoryItemId,
+            stock: {
+              warehouseId: warehouse.id,
+              onHand: -10,
+            },
           },
         },
       });
 
-      const result = data.inventoryMutation.variantUpdateInventory;
+      const result = data.inventoryMutation.inventoryItemUpdate;
       expect(result.userErrors).toHaveLength(1);
       expect(result.userErrors[0].code).toBe('INVALID_QUANTITY');
-      expect(result.stock).toBeNull();
+      expect(result.inventoryItem).toBeNull();
     });
 
     test('should set stock in multiple warehouses', async ({ api }) => {
       // Create product with variant
-      const { variantId } = await createProductWithVariant(api);
+      const { inventoryItemId } = await createProductWithVariant(api);
 
-      if (!variantId) {
+      if (!inventoryItemId) {
         test.skip();
         return;
       }
@@ -222,29 +259,39 @@ test.describe('Stock API', () => {
       const { data: data1 } = await api.admin.mutation('inventory-api/VariantSetStock', {
         variables: {
           input: {
-            variantId,
-            warehouseId: warehouse1.id,
-            onHand: 100,
+            id: inventoryItemId,
+            stock: {
+              warehouseId: warehouse1.id,
+              onHand: 100,
+            },
           },
         },
       });
 
-      expect(data1.inventoryMutation.variantUpdateInventory.userErrors).toHaveLength(0);
-      expect(data1.inventoryMutation.variantUpdateInventory.stock?.quantityOnHand).toBe(100);
+      expect(data1.inventoryMutation.inventoryItemUpdate.userErrors).toHaveLength(0);
+      const stock1 = data1.inventoryMutation.inventoryItemUpdate.inventoryItem.stock.find(
+        (s: { warehouse: { id: string } }) => s.warehouse.id === warehouse1.id,
+      );
+      expect(stock1?.quantityOnHand).toBe(100);
 
       // Set stock in second warehouse
       const { data: data2 } = await api.admin.mutation('inventory-api/VariantSetStock', {
         variables: {
           input: {
-            variantId,
-            warehouseId: warehouse2.id,
-            onHand: 50,
+            id: inventoryItemId,
+            stock: {
+              warehouseId: warehouse2.id,
+              onHand: 50,
+            },
           },
         },
       });
 
-      expect(data2.inventoryMutation.variantUpdateInventory.userErrors).toHaveLength(0);
-      expect(data2.inventoryMutation.variantUpdateInventory.stock?.quantityOnHand).toBe(50);
+      expect(data2.inventoryMutation.inventoryItemUpdate.userErrors).toHaveLength(0);
+      const stock2 = data2.inventoryMutation.inventoryItemUpdate.inventoryItem.stock.find(
+        (s: { warehouse: { id: string } }) => s.warehouse.id === warehouse2.id,
+      );
+      expect(stock2?.quantityOnHand).toBe(50);
     });
   });
 });

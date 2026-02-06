@@ -1,12 +1,13 @@
-mutation VariantSetCost($input: VariantUpdateInventoryInput!) {
+mutation VariantSetCost($input: InventoryItemUpdateInput!) {
   inventoryMutation {
-    variantUpdateInventory(input: $input) {
-      variant {
+    inventoryItemUpdate(input: $input) {
+      inventoryItem {
         id
-        cost {
-          id
+        sku
+        trackInventory
+        unitCost {
           currency
-          unitCostMinor
+          amountMinor
           effectiveFrom
         }
       }

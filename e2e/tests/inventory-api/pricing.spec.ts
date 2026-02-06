@@ -7,19 +7,27 @@ test.describe('Pricing & Cost API', () => {
   });
 
   /**
-   * Helper to create a product and get the default variant ID
+   * Helper to create a product and get the default variant ID + inventoryItem ID
    */
   async function createProductWithVariant(api: any, title = 'Test Product') {
     const handle = title.toLowerCase().replace(/\s+/g, '-');
     const { data } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
-      variables: { input: { title, handle } },
+      variables: {
+        input: {
+          title,
+          handle,
+          inventoryItem: { tracked: true },
+        },
+      },
     });
 
     const product = data.catalogMutation.productCreate.product;
     const variantEdges = product?.variants?.edges ?? [];
-    const variantId = variantEdges[0]?.node?.id ?? null;
+    const variant = variantEdges[0]?.node ?? null;
+    const variantId = variant?.id ?? null;
+    const inventoryItemId = variant?.inventoryItem?.id ?? null;
 
-    return { product, variantId };
+    return { product, variantId, inventoryItemId };
   }
 
   /**
@@ -171,7 +179,7 @@ test.describe('Pricing & Cost API', () => {
         throwOnError: false,
       });
 
-      const result = data?.inventoryMutation?.variantUpdatePricing;
+      const result = data?.catalogMutation?.variantUpdatePricing;
       expect(result).toBeTruthy();
       expect(result.variant).toBeNull();
       expect(result.userErrors.length).toBeGreaterThan(0);
@@ -181,57 +189,51 @@ test.describe('Pricing & Cost API', () => {
 
   test.describe('Variant Cost', () => {
     test('should set variant cost in UAH', async ({ api }) => {
-      const { product, variantId } = await createProductWithVariant(api);
+      const { product, inventoryItemId } = await createProductWithVariant(api);
 
       expect(product).toBeTruthy();
 
-      if (!variantId) {
+      if (!inventoryItemId) {
         test.skip();
         return;
       }
-
-      // Create warehouse (required for variantUpdateInventory)
-      const warehouse = await createWarehouse(api, 'WH-COST-1', 'Cost Test Warehouse');
 
       const { data } = await api.admin.mutation('inventory-api/VariantSetCost', {
         variables: {
           input: {
-            variantId,
-            warehouseId: warehouse.id,
-            onHand: 0, // Required field
-            unitCostMinor: '5000', // 50.00 UAH cost
-            costCurrency: 'UAH',
+            id: inventoryItemId,
+            unitCost: {
+              currency: 'UAH',
+              amountMinor: '5000', // 50.00 UAH cost
+            },
           },
         },
       });
 
-      const result = data.inventoryMutation.variantUpdateInventory;
+      const result = data.inventoryMutation.inventoryItemUpdate;
       expect(result.userErrors).toHaveLength(0);
-      expect(result.variant?.cost).toBeTruthy();
-      expect(result.variant?.cost?.currency).toBe('UAH');
-      expect(result.variant?.cost?.unitCostMinor).toBe(5000);
+      expect(result.inventoryItem?.unitCost).toBeTruthy();
+      expect(result.inventoryItem?.unitCost?.currency).toBe('UAH');
+      expect(result.inventoryItem?.unitCost?.amountMinor).toBe(5000);
     });
 
     test('should update cost (temporal pattern)', async ({ api }) => {
-      const { variantId } = await createProductWithVariant(api);
+      const { inventoryItemId } = await createProductWithVariant(api);
 
-      if (!variantId) {
+      if (!inventoryItemId) {
         test.skip();
         return;
       }
-
-      // Create warehouse
-      const warehouse = await createWarehouse(api, 'WH-COST-2', 'Cost Update Warehouse');
 
       // Set initial cost
       await api.admin.mutation('inventory-api/VariantSetCost', {
         variables: {
           input: {
-            variantId,
-            warehouseId: warehouse.id,
-            onHand: 0,
-            unitCostMinor: '5000',
-            costCurrency: 'UAH',
+            id: inventoryItemId,
+            unitCost: {
+              currency: 'UAH',
+              amountMinor: '5000',
+            },
           },
         },
       });
@@ -240,40 +242,37 @@ test.describe('Pricing & Cost API', () => {
       const { data } = await api.admin.mutation('inventory-api/VariantSetCost', {
         variables: {
           input: {
-            variantId,
-            warehouseId: warehouse.id,
-            onHand: 0,
-            unitCostMinor: '6000', // new cost
-            costCurrency: 'UAH',
+            id: inventoryItemId,
+            unitCost: {
+              currency: 'UAH',
+              amountMinor: '6000', // new cost
+            },
           },
         },
       });
 
-      const result = data.inventoryMutation.variantUpdateInventory;
+      const result = data.inventoryMutation.inventoryItemUpdate;
       expect(result.userErrors).toHaveLength(0);
-      expect(result.variant?.cost?.unitCostMinor).toBe(6000);
+      expect(result.inventoryItem?.unitCost?.amountMinor).toBe(6000);
     });
 
-    test('should return error for invalid variant ID', async ({ api }) => {
-      // Create warehouse
-      const warehouse = await createWarehouse(api, 'WH-COST-3', 'Cost Error Warehouse');
-
+    test('should return error for invalid inventory item ID', async ({ api }) => {
       const { data } = await api.admin.mutation('inventory-api/VariantSetCost', {
         variables: {
           input: {
-            variantId: '00000000-0000-0000-0000-000000000000',
-            warehouseId: warehouse.id,
-            onHand: 0,
-            unitCostMinor: '5000',
-            costCurrency: 'UAH',
+            id: '00000000-0000-0000-0000-000000000000',
+            unitCost: {
+              currency: 'UAH',
+              amountMinor: '5000',
+            },
           },
         },
         throwOnError: false,
       });
 
-      const result = data?.inventoryMutation?.variantUpdateInventory;
+      const result = data?.inventoryMutation?.inventoryItemUpdate;
       expect(result).toBeTruthy();
-      expect(result.variant).toBeNull();
+      expect(result.inventoryItem).toBeNull();
       expect(result.userErrors.length).toBeGreaterThan(0);
       expect(result.userErrors[0].code).toBe('NOT_FOUND');
     });
@@ -281,19 +280,12 @@ test.describe('Pricing & Cost API', () => {
 
   test.describe('Combined Pricing & Cost', () => {
     test('should set both price and cost on same variant', async ({ api }) => {
-      const { variantId } = await createProductWithVariant(api);
+      const { variantId, inventoryItemId } = await createProductWithVariant(api);
 
-      if (!variantId) {
+      if (!variantId || !inventoryItemId) {
         test.skip();
         return;
       }
-
-      // Create warehouse for cost
-      const warehouse = await createWarehouse(
-        api,
-        'WH-COMBINED-PC',
-        'Combined Pricing/Cost Warehouse',
-      );
 
       // Set price
       const { data: priceData } = await api.admin.mutation('inventory-api/VariantSetPricing', {
@@ -312,21 +304,21 @@ test.describe('Pricing & Cost API', () => {
       const { data: costData } = await api.admin.mutation('inventory-api/VariantSetCost', {
         variables: {
           input: {
-            variantId,
-            warehouseId: warehouse.id,
-            onHand: 0,
-            unitCostMinor: '5000', // 50.00 UAH cost
-            costCurrency: 'UAH',
+            id: inventoryItemId,
+            unitCost: {
+              currency: 'UAH',
+              amountMinor: '5000', // 50.00 UAH cost
+            },
           },
         },
       });
 
-      expect(costData.inventoryMutation.variantUpdateInventory.userErrors).toHaveLength(0);
+      expect(costData.inventoryMutation.inventoryItemUpdate.userErrors).toHaveLength(0);
 
       // Verify margin: price (100) - cost (50) = 50 UAH margin
       const price = priceData.catalogMutation.variantUpdatePricing.variant?.price?.amountMinor ?? 0;
       const cost =
-        costData.inventoryMutation.variantUpdateInventory.variant?.cost?.unitCostMinor ?? 0;
+        costData.inventoryMutation.inventoryItemUpdate.inventoryItem?.unitCost?.amountMinor ?? 0;
       expect(price - cost).toBe(5000); // 50.00 UAH margin
     });
   });

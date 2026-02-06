@@ -1,22 +1,28 @@
-mutation VariantSetStock($input: VariantUpdateInventoryInput!) {
+mutation VariantSetStock($input: InventoryItemUpdateInput!) {
   inventoryMutation {
-    variantUpdateInventory(input: $input) {
-      stock {
-        id
-        quantityOnHand
-        createdAt
-        updatedAt
-      }
-      variant {
+    inventoryItemUpdate(input: $input) {
+      inventoryItem {
         id
         sku
-        weight {
-          value
-        }
-        cost {
+        trackInventory
+        totalAvailable
+        stock {
           id
+          quantityOnHand
+          createdAt
+          updatedAt
+          warehouse {
+            id
+            code
+          }
+        }
+        weight {
+          weightGrams
+          displayUnit
+        }
+        unitCost {
           currency
-          unitCostMinor
+          amountMinor
         }
       }
       userErrors {

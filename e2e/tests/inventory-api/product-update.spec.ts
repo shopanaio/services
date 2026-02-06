@@ -399,20 +399,21 @@ test.describe('ProductUpdate API', () => {
       expect(result.userErrors).toHaveLength(0);
 
       const updatedVariant = result.product.variants.edges[0].node;
-      expect(updatedVariant.sku).toBe('SKU-TEST-001');
-      expect(updatedVariant.weight).toBeTruthy();
-      expect(updatedVariant.weight.value).toBe(500);
+      expect(updatedVariant.inventoryItem).toBeTruthy();
+      expect(updatedVariant.inventoryItem.sku).toBe('SKU-TEST-001');
+      expect(updatedVariant.inventoryItem.weight).toBeTruthy();
+      expect(updatedVariant.inventoryItem.weight.weightGrams).toBe(500);
 
       // Stock is an array - find the stock record for our warehouse
-      const stockRecord = updatedVariant.stock.find(
+      const stockRecord = updatedVariant.inventoryItem.stock.find(
         (s: { warehouse: { code: string } }) => s.warehouse.code === warehouseCode,
       );
       expect(stockRecord).toBeTruthy();
       expect(stockRecord.quantityOnHand).toBe(100);
 
-      expect(updatedVariant.cost).toBeTruthy();
-      expect(updatedVariant.cost.unitCostMinor).toBe(5000);
-      expect(updatedVariant.cost.currency).toBe('UAH');
+      expect(updatedVariant.inventoryItem.unitCost).toBeTruthy();
+      expect(updatedVariant.inventoryItem.unitCost.amountMinor).toBe(5000);
+      expect(updatedVariant.inventoryItem.unitCost.currency).toBe('UAH');
     });
 
     test('should update variant dimensions', async ({ api }) => {
@@ -445,10 +446,11 @@ test.describe('ProductUpdate API', () => {
       expect(result.userErrors).toHaveLength(0);
 
       const updatedVariant = result.product.variants.edges[0].node;
-      expect(updatedVariant.dimensions).toBeTruthy();
-      expect(updatedVariant.dimensions.width).toBe(100);
-      expect(updatedVariant.dimensions.height).toBe(50);
-      expect(updatedVariant.dimensions.length).toBe(200);
+      expect(updatedVariant.inventoryItem).toBeTruthy();
+      expect(updatedVariant.inventoryItem.dimensions).toBeTruthy();
+      expect(updatedVariant.inventoryItem.dimensions.widthMm).toBe(100);
+      expect(updatedVariant.inventoryItem.dimensions.heightMm).toBe(50);
+      expect(updatedVariant.inventoryItem.dimensions.lengthMm).toBe(200);
     });
 
     test('should update multiple variants at once', async ({ api }) => {
@@ -509,9 +511,9 @@ test.describe('ProductUpdate API', () => {
         (e: { node: { handle: string } }) => e.node.handle === 'red-l',
       )?.node;
 
-      expect(redS?.sku).toBe('RED-S-001');
+      expect(redS?.inventoryItem?.sku).toBe('RED-S-001');
       expect(redS?.price?.amountMinor).toBe(10000);
-      expect(redL?.sku).toBe('RED-L-001');
+      expect(redL?.inventoryItem?.sku).toBe('RED-L-001');
       expect(redL?.price?.amountMinor).toBe(11000);
     });
 
@@ -556,17 +558,17 @@ test.describe('ProductUpdate API', () => {
 
       // Check variant fields
       const variant = result.product.variants.edges[0].node;
-      expect(variant.sku).toBe('COMBINED-001');
+      expect(variant.inventoryItem.sku).toBe('COMBINED-001');
       expect(variant.price.amountMinor).toBe(15000);
 
       // Find stock record for our warehouse
-      const stockRecord = variant.stock.find(
+      const stockRecord = variant.inventoryItem.stock.find(
         (s: { warehouse: { code: string } }) => s.warehouse.code === warehouseCode,
       );
       expect(stockRecord).toBeTruthy();
       expect(stockRecord.quantityOnHand).toBe(75);
 
-      expect(variant.dimensions.width).toBe(150);
+      expect(variant.inventoryItem.dimensions.widthMm).toBe(150);
 
       // Check operation results (should have both product and variant ops)
       expect(result.operationResults).toHaveLength(2);
@@ -819,7 +821,7 @@ test.describe('ProductUpdate API', () => {
 
       // Verify successful variant was actually updated
       const updatedVariant = result.product.variants.edges[0].node;
-      expect(updatedVariant.sku).toBe('PARTIAL-OK');
+      expect(updatedVariant.inventoryItem.sku).toBe('PARTIAL-OK');
     });
 
     test('should handle empty operations (no-op)', async ({ api }) => {
@@ -2119,7 +2121,7 @@ test.describe('ProductUpdate API', () => {
 
       expect(result.userErrors).toHaveLength(0);
 
-      const stockRecord = result.product.variants.edges[0].node.stock.find(
+      const stockRecord = result.product.variants.edges[0].node.inventoryItem.stock.find(
         (s: { warehouse: { code: string } }) => s.warehouse.code === warehouseCode,
       );
       expect(stockRecord.quantityOnHand).toBe(0);

@@ -228,4 +228,140 @@ test.describe('Product Create API', () => {
     const variantEdges = product.variants?.edges ?? [];
     expect(variantEdges).toHaveLength(2);
   });
+
+  test('should create product with tracked inventory item', async ({ api }) => {
+    const input = {
+      title: 'Tracked Inventory Product',
+      handle: 'tracked-inventory-product',
+      inventoryItem: {
+        tracked: true,
+        sku: 'SKU-TRACKED-001',
+      },
+    };
+
+    const { data } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
+      variables: { input },
+    });
+
+    const result = data.catalogMutation.productCreate;
+
+    expect(result.userErrors).toHaveLength(0);
+    expect(result.product).toBeTruthy();
+
+    const variantEdges = result.product.variants?.edges ?? [];
+    expect(variantEdges).toHaveLength(1);
+
+    const variant = variantEdges[0].node;
+    expect(variant.inventoryItem).toBeTruthy();
+    expect(variant.inventoryItem.trackInventory).toBe(true);
+    expect(variant.inventoryItem.sku).toBe('SKU-TRACKED-001');
+  });
+
+  test('should create product with untracked inventory (default)', async ({ api }) => {
+    const input = {
+      title: 'Untracked Product',
+      handle: 'untracked-product',
+    };
+
+    const { data } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
+      variables: { input },
+    });
+
+    const result = data.catalogMutation.productCreate;
+
+    expect(result.userErrors).toHaveLength(0);
+
+    const variantEdges = result.product.variants?.edges ?? [];
+    expect(variantEdges).toHaveLength(1);
+
+    const variant = variantEdges[0].node;
+    expect(variant.inventoryItem).toBeTruthy();
+    expect(variant.inventoryItem.trackInventory).toBe(false);
+  });
+
+  test('should create product with tracked: true and continueSellingWhenOutOfStock', async ({
+    api,
+  }) => {
+    const input = {
+      title: 'Continue Selling Product',
+      handle: 'continue-selling-product',
+      inventoryItem: {
+        tracked: true,
+        continueSellingWhenOutOfStock: true,
+      },
+    };
+
+    const { data } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
+      variables: { input },
+    });
+
+    const result = data.catalogMutation.productCreate;
+
+    expect(result.userErrors).toHaveLength(0);
+
+    const variantEdges = result.product.variants?.edges ?? [];
+    expect(variantEdges).toHaveLength(1);
+
+    const variant = variantEdges[0].node;
+    expect(variant.inventoryItem).toBeTruthy();
+    expect(variant.inventoryItem.trackInventory).toBe(true);
+  });
+
+  test('should reject sku when tracked is false', async ({ api }) => {
+    const input = {
+      title: 'Invalid Tracked Product',
+      handle: 'invalid-tracked-product',
+      inventoryItem: {
+        tracked: false,
+        sku: 'SHOULD-FAIL',
+      },
+    };
+
+    const { data } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
+      variables: { input },
+      throwOnError: false,
+    });
+
+    const result = data.catalogMutation.productCreate;
+
+    expect(result.userErrors.length).toBeGreaterThan(0);
+  });
+
+  test('should create product with tracked inventory and multiple variants', async ({ api }) => {
+    const input = {
+      title: 'Multi Variant Tracked Product',
+      handle: 'multi-variant-tracked',
+      inventoryItem: {
+        tracked: true,
+      },
+      options: [
+        {
+          name: 'Size',
+          slug: 'size',
+          values: [
+            { name: 'Small', slug: 's' },
+            { name: 'Large', slug: 'l' },
+          ],
+        },
+      ],
+      variants: [{ handle: 's' }, { handle: 'l' }],
+    };
+
+    const { data } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
+      variables: { input },
+    });
+
+    const result = data.catalogMutation.productCreate;
+
+    expect(result.userErrors).toHaveLength(0);
+
+    const variantEdges = result.product.variants?.edges ?? [];
+    expect(variantEdges).toHaveLength(2);
+
+    // All variants should have tracked inventory items
+    for (const edge of variantEdges) {
+      expect(edge.node.inventoryItem).toBeTruthy();
+      expect(edge.node.inventoryItem.trackInventory).toBe(true);
+    }
+  });
 });

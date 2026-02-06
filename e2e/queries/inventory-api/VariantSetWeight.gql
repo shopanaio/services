@@ -1,10 +1,11 @@
-mutation VariantSetWeight($input: VariantUpdateInventoryInput!) {
+mutation VariantSetWeight($input: InventoryItemUpdateInput!) {
   inventoryMutation {
-    variantUpdateInventory(input: $input) {
-      variant {
+    inventoryItemUpdate(input: $input) {
+      inventoryItem {
         id
         weight {
-          value
+          weightGrams
+          displayUnit
         }
       }
       userErrors {

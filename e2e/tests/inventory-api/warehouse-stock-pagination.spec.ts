@@ -52,27 +52,34 @@ async function prepareWarehouseStocks(api: ApiFixtures['api']): Promise<PrepareR
 
   for (let i = 0; i < stockData.length; i++) {
     const item = stockData[i];
-    // Create product (which creates default variant)
+    // Create product with tracked inventory (which creates default variant with inventoryItem)
     const { data: productData } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
       variables: {
-        input: { title: `Stock Product ${prefix}-${i}`, handle: `stock-product-${prefix}-${i}` },
+        input: {
+          title: `Stock Product ${prefix}-${i}`,
+          handle: `stock-product-${prefix}-${i}`,
+          inventoryItem: { tracked: true },
+        },
       },
     });
 
-    const product = inv(productData).catalogMutation.productCreate.product;
-    const variantId = product?.variants?.edges?.[0]?.node?.id;
+    const product = (productData as { catalogMutation: { productCreate: { product: any } } })
+      .catalogMutation.productCreate.product;
+    const inventoryItemId = product?.variants?.edges?.[0]?.node?.inventoryItem?.id;
 
-    if (!variantId) {
-      throw new Error('Failed to create product with variant');
+    if (!inventoryItemId) {
+      throw new Error('Failed to create product with inventory item');
     }
 
-    // Set stock for this variant
+    // Set stock for this inventory item via inventoryItemUpdate
     await api.admin.mutation('inventory-api/VariantSetStock', {
       variables: {
         input: {
-          variantId,
-          warehouseId: warehouse.id,
-          onHand: item.quantity,
+          id: inventoryItemId,
+          stock: {
+            warehouseId: warehouse.id,
+            onHand: item.quantity,
+          },
         },
       },
     });

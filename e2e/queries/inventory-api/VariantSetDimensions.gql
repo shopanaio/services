@@ -1,12 +1,13 @@
-mutation VariantSetDimensions($input: VariantUpdateDimensionsInput!) {
+mutation VariantSetDimensions($input: InventoryItemUpdateInput!) {
   inventoryMutation {
-    variantUpdateDimensions(input: $input) {
-      variant {
+    inventoryItemUpdate(input: $input) {
+      inventoryItem {
         id
         dimensions {
-          width
-          length
-          height
+          widthMm
+          heightMm
+          lengthMm
+          displayUnit
         }
       }
       userErrors {
