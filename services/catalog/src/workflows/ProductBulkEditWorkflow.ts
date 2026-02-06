@@ -80,7 +80,7 @@ export class ProductBulkEditWorkflow extends BrokerWorkflows {
     // 3. Call ProductUpdateWorkflow
     try {
       const result = (await this.broker.runWorkflow(
-        "inventory.productUpdate",
+        "catalog.productUpdate",
         {
           productId,
           expectedRevision,

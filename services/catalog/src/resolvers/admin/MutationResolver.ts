@@ -161,7 +161,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       ProductCreateResult,
       ProductCreateParams
     >(
-      "inventory.productCreate",
+      "catalog.productCreate",
       sagaInput,
       {
         source: "workflow",
@@ -318,7 +318,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     const result = (await this.$ctx.kernel
       .getServices()
       .broker.runWorkflow(
-        "inventory.productUpdate",
+        "catalog.productUpdate",
         workflowInput,
         {
           source: "workflow",
@@ -1001,7 +1001,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     const result = (await this.$ctx.kernel
       .getServices()
       .broker.runWorkflow(
-        "inventory.productBulkEdit",
+        "catalog.productBulkEdit",
         { products, context },
         {
           source: "workflow",

@@ -60,7 +60,9 @@ export class InventoryEventHandlers extends EventHandlers {
 
     try {
       // Create InventoryItem for this variant
-      const item = await this.kernel.repository.inventoryItem.upsertByVariantId(variantId, {});
+      const item = await this.kernel.repository.inventoryItem.upsertByVariantId(variantId, {
+        trackInventory: false,
+      });
 
       this.logger.log(
         `Created InventoryItem for new variant: variantId=${variantId}, inventoryItemId=${item.id}`
