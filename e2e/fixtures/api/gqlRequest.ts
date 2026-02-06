@@ -50,14 +50,14 @@ export class BaseGqlRequest<QueryType, MutationType> {
     const response = await this.request.post(this.graphqlUrl, {
       headers,
       data: {
-        query:q,
+        query: q,
         variables: props.variables,
       },
     });
 
     const json = await response.json();
     if (json.errors || json.data === null) {
-      // console.log(JSON.stringify(json, null, 2), "API Response");
+      // console.log(JSON.stringify(json, null, 2), 'API Response');
     }
     if (props.throwOnError !== false && json.errors) {
       throw json.errors;

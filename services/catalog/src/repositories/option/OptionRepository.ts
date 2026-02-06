@@ -565,6 +565,19 @@ export class OptionRepository extends BaseRepository {
       );
   }
 
+  async getSwatchesByIds(swatchIds: readonly string[]): Promise<ProductOptionSwatch[]> {
+    if (swatchIds.length === 0) return [];
+    return this.connection
+      .select()
+      .from(productOptionSwatch)
+      .where(
+        and(
+          eq(productOptionSwatch.projectId, this.storeId),
+          inArray(productOptionSwatch.id, [...swatchIds])
+        )
+      );
+  }
+
   async getValueTranslationsByValueIds(
     optionValueIds: readonly string[]
   ): Promise<ProductOptionValueTranslation[]> {

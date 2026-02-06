@@ -37,14 +37,18 @@ export class PricingWidgetResolver extends CatalogType<PricingWidgetInput> {
   }
 
   async currentCostPrice(): Promise<VariantCost | null> {
-    const services = this.$ctx.kernel.getServices();
-    const cost = await services.broker.call<VariantCost | null>("inventory.getVariantCost", {
-      projectId: this.$ctx.project,
-      variantId: this.$props.variantId,
-      currency: this.$props.currency,
-    });
+    try {
+      const services = this.$ctx.kernel.getServices();
+      const cost = await services.broker.call<VariantCost | null>("inventory.getVariantCost", {
+        projectId: this.$ctx.store.id,
+        variantId: this.$props.variantId,
+        currency: this.$props.currency,
+      });
 
-    return cost;
+      return cost;
+    } catch {
+      return null;
+    }
   }
 
   async history() {

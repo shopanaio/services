@@ -17,7 +17,7 @@ import {
   type TagConnectionInput,
 } from "./TagConnectionResolver.js";
 import { ProductBulkUpdateJobResolver } from "./ProductBulkUpdateJobResolver.js";
-import { PricingWidgetResolver } from "./PricingWidgetResolver.js";
+import { PricingWidgetResolver, type PricingWidgetInput } from "./PricingWidgetResolver.js";
 import type { VariantRelayInput } from "../../repositories/variant/VariantRepository.js";
 
 /**
@@ -46,11 +46,15 @@ export class QueryResolver extends CatalogType<Record<string, never>> {
  * Widget query resolver for pricing.
  */
 export class WidgetQueryResolver extends CatalogType<Record<string, never>> {
-  pricing(args: { input: { variantId: string; currency: string } }) {
+  pricing(args: { input: PricingWidgetInput }) {
     return new PricingWidgetResolver(
       {
         variantId: args.input.variantId,
         currency: args.input.currency as "UAH" | "USD" | "EUR",
+        from: args.input.from,
+        to: args.input.to,
+        first: args.input.first,
+        after: args.input.after,
       },
       this.$ctx
     );

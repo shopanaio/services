@@ -1,5 +1,4 @@
 import type { ProductOptionValue } from "../../repositories/models/index.js";
-import type { ProductOptionSwatch } from "./interfaces/index.js";
 import { CatalogType } from "./CatalogType.js";
 
 /**
@@ -34,8 +33,29 @@ export class OptionValueResolver extends CatalogType<
     return (await this.$get("slug")) ?? "";
   }
 
-  swatch(): ProductOptionSwatch | null {
-    // Swatch loader not implemented yet
-    return null;
+  async swatch(): Promise<{
+    id: string;
+    swatchType: string;
+    colorOne: string | null;
+    colorTwo: string | null;
+    file: { __typename: "File"; id: string } | null;
+    metadata: unknown;
+  } | null> {
+    const swatchId = await this.$get("swatchId");
+    if (!swatchId) return null;
+
+    const swatch = await this.$ctx.loaders.swatch.load(swatchId);
+    if (!swatch) return null;
+
+    return {
+      id: swatch.id,
+      swatchType: swatch.swatchType,
+      colorOne: swatch.colorOne,
+      colorTwo: swatch.colorTwo,
+      file: swatch.imageId
+        ? { __typename: "File" as const, id: swatch.imageId }
+        : null,
+      metadata: swatch.metadata,
+    };
   }
 }

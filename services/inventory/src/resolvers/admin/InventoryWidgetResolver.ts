@@ -1,4 +1,3 @@
-import { decodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { InventoryType } from "./InventoryType.js";
 import type { ProductInventoryWidgetData } from "../../repositories/inventory-widget/InventoryWidgetRepository.js";
 
@@ -15,8 +14,7 @@ export class WidgetQueryResolver extends InventoryType<Record<string, never>> {
    * Returns aggregated inventory metrics across all variants.
    */
   inventory(args: { productId: string }) {
-    const productId = decodeGlobalIdByType(args.productId, GlobalIdEntity.Product);
-    return new InventoryWidgetResolver(productId, this.$ctx);
+    return new InventoryWidgetResolver(args.productId, this.$ctx);
   }
 }
 

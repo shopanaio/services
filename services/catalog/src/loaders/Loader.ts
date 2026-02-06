@@ -48,6 +48,7 @@ export class Loader {
   public readonly optionValueIds;
   public readonly optionValue;
   public readonly optionValueTranslation;
+  public readonly swatch;
 
   // Features
   public readonly featureTranslation;
@@ -107,6 +108,7 @@ export class Loader {
     this.optionValueIds = optionLoader.optionValueIds;
     this.optionValue = optionLoader.optionValue;
     this.optionValueTranslation = optionLoader.optionValueTranslation;
+    this.swatch = optionLoader.swatch;
 
     // Features
     this.featureTranslation = featureLoader.featureTranslation;

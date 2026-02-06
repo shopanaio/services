@@ -3,6 +3,7 @@ import type {
   ProductOptionTranslation,
   ProductOptionValue,
   ProductOptionValueTranslation,
+  ProductOptionSwatch,
 } from "../repositories/models/index.js";
 import type { Repository } from "../repositories/Repository.js";
 
@@ -11,6 +12,7 @@ export class OptionLoader {
   public readonly optionValueIds: DataLoader<string, string[]>;
   public readonly optionValue: DataLoader<string, ProductOptionValue | null>;
   public readonly optionValueTranslation: DataLoader<string, ProductOptionValueTranslation | null>;
+  public readonly swatch: DataLoader<string, ProductOptionSwatch | null>;
 
   constructor(repository: Repository) {
     this.optionTranslation = new DataLoader<string, ProductOptionTranslation | null>(async (optionIds) => {
@@ -33,6 +35,11 @@ export class OptionLoader {
     this.optionValueTranslation = new DataLoader<string, ProductOptionValueTranslation | null>(async (optionValueIds) => {
       const results = await repository.option.getValueTranslationsByValueIds(optionValueIds);
       return optionValueIds.map((id) => results.find((t) => t.optionValueId === id) ?? null);
+    });
+
+    this.swatch = new DataLoader<string, ProductOptionSwatch | null>(async (swatchIds) => {
+      const results = await repository.option.getSwatchesByIds(swatchIds);
+      return swatchIds.map((id) => results.find((s) => s.id === id) ?? null);
     });
   }
 }

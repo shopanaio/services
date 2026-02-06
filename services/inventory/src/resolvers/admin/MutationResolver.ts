@@ -1,4 +1,3 @@
-import { decodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { ApolloMutation, ZodResolver } from "@shopana/type-resolver";
 import { randomUUID } from "crypto";
 import { InventoryType } from "./InventoryType.js";
@@ -79,8 +78,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
     const { input } = args;
     const userErrors: Array<{ message: string; code?: string; field?: string[] }> = [];
 
-    // Decode inventory item ID
-    const itemId = decodeGlobalIdByType(input.id, GlobalIdEntity.InventoryItem);
+    const itemId = input.id;
 
     // Find the inventory item
     const item = await this.$ctx.kernel.repository.inventoryItem.findById(itemId);
@@ -143,7 +141,15 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
 
     // Update stock if provided
     if (input.stock) {
-      const warehouseId = decodeGlobalIdByType(input.stock.warehouseId, GlobalIdEntity.Warehouse);
+      // Validate non-negative quantity
+      if (input.stock.onHand < 0) {
+        return {
+          inventoryItem: null,
+          userErrors: [{ message: "Quantity cannot be negative", code: "INVALID_QUANTITY", field: ["stock", "onHand"] }],
+        };
+      }
+
+      const warehouseId = input.stock.warehouseId;
 
       // Validate warehouse exists
       const warehouseExists = await this.$ctx.kernel.repository.warehouse.exists(warehouseId);
