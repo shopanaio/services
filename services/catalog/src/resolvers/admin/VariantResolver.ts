@@ -10,9 +10,9 @@ import { CatalogType } from "./CatalogType.js";
 import { VariantPriceResolver } from "./VariantPriceResolver.js";
 
 /**
- * Variant resolver в Catalog Service.
- * НЕ содержит inventory-полей (sku, dimensions, weight, cost, stock).
- * Эти поля резолвятся через federation extend в Inventory Service.
+ * Variant resolver for Catalog Service.
+ * Does NOT contain inventory fields (sku, dimensions, weight, cost, stock).
+ * Those fields are resolved via federation extend in Inventory Service.
  */
 @SubgraphReference()
 export class VariantResolver extends CatalogType<string, Variant> {
@@ -40,7 +40,7 @@ export class VariantResolver extends CatalogType<string, Variant> {
     return (await this.$get("handle")) ?? "";
   }
 
-  // externalSystem и externalId остаются в Catalog - это идентификаторы товара
+  // externalSystem and externalId stay in Catalog - these are product identifiers
   async externalSystem() {
     return this.$get("externalSystem");
   }
@@ -69,7 +69,7 @@ export class VariantResolver extends CatalogType<string, Variant> {
   }
 
   // ═══════════════════════════════════════════════════════════
-  // Pricing остается в Catalog
+  // Pricing stays in Catalog
   // ═══════════════════════════════════════════════════════════
 
   async price(): Promise<VariantPrice | null> {
@@ -131,7 +131,7 @@ export class VariantResolver extends CatalogType<string, Variant> {
   }
 
   // ═══════════════════════════════════════════════════════════
-  // УДАЛЕНЫ из Catalog (переносятся в Inventory):
+  // REMOVED from Catalog (moved to Inventory):
   // - sku()
   // - dimensions()
   // - weight()
@@ -139,6 +139,6 @@ export class VariantResolver extends CatalogType<string, Variant> {
   // - costHistory()
   // - stock()
   // - inStock()
-  // Эти поля будут резолвиться через federation extend
+  // These fields are resolved via federation extend
   // ═══════════════════════════════════════════════════════════
 }

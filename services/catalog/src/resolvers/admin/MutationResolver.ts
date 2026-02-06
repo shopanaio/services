@@ -94,7 +94,7 @@ import {
 import { ProductBulkUpdateInputSchema } from "./validation/productBulkEditSchema.js";
 
 /**
- * Root Mutation resolver для Catalog Service.
+ * Root Mutation resolver for Catalog Service.
  * Decorated with @ApolloMutation to create Apollo-compatible resolver proxy.
  */
 @ApolloMutation
@@ -111,7 +111,7 @@ export class MutationResolver extends CatalogType<Record<string, never>> {
 /**
  * CatalogMutation namespace resolver.
  * Handles all catalog-related mutations (products, variants, options, features).
- * НЕ содержит inventory mutations (warehouse, stock, dimensions, cost).
+ * Does NOT contain inventory mutations (warehouse, stock, dimensions, cost).
  */
 export class CatalogMutationResolver extends CatalogType<Record<string, never>> {
   // ---- Product Mutations ----
@@ -222,7 +222,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   /**
    * Unified product update with optimistic locking.
    * Supports product and variant updates in a single request.
-   * НЕ поддерживает inventory операции (они в Inventory Service).
+   * Does NOT support inventory operations (they live in Inventory Service).
    */
   async productUpdate(args: CatalogMutationProductUpdateArgs) {
     const { productId, expectedRevision, operations } = args;
@@ -458,14 +458,14 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   }
 
   // ═══════════════════════════════════════════════════════════
-  // Warehouse Mutations УДАЛЕНЫ (переносятся в Inventory Service)
+  // Warehouse Mutations REMOVED (moved to Inventory Service)
   // - warehouseCreate
   // - warehouseUpdate
   // - warehouseDelete
   // ═══════════════════════════════════════════════════════════
 
   // ═══════════════════════════════════════════════════════════
-  // Variant Inventory Mutations УДАЛЕНЫ (переносятся в Inventory Service)
+  // Variant Inventory Mutations REMOVED (moved to Inventory Service)
   // - variantUpdateDimensions
   // - variantUpdateInventory
   // ═══════════════════════════════════════════════════════════

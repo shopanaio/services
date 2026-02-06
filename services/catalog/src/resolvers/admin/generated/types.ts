@@ -140,6 +140,268 @@ export type BulkUpdateUserError = UserError & {
   variantId: Maybe<Scalars['ID']['output']>;
 };
 
+export type CatalogMutation = {
+  __typename?: 'CatalogMutation';
+  categoryCreate: CategoryCreatePayload;
+  categoryDelete: CategoryDeletePayload;
+  categoryMove: CategoryMovePayload;
+  categoryUpdate: CategoryUpdatePayload;
+  /**
+   * Start async bulk update.
+   * Requires X-Idempotency-Key header.
+   */
+  productBulkUpdate: ProductBulkUpdatePayload;
+  productCreate: ProductCreatePayload;
+  productDelete: ProductDeletePayload;
+  productFeatureCreate: ProductFeatureCreatePayload;
+  productFeatureDelete: ProductFeatureDeletePayload;
+  productFeatureUpdate: ProductFeatureUpdatePayload;
+  productFeaturesSync: ProductFeaturesSyncPayload;
+  productOptionCreate: ProductOptionCreatePayload;
+  productOptionDelete: ProductOptionDeletePayload;
+  productOptionUpdate: ProductOptionUpdatePayload;
+  /**
+   * Sync all product options. This is a complete replace operation.
+   * Options not in the input list will be deleted.
+   * Does NOT affect variants - only option definitions are synced.
+   */
+  productOptionsSync: ProductOptionsSyncPayload;
+  /**
+   * Unified product update with optimistic locking.
+   * Supports product and variant updates in a single request.
+   */
+  productUpdate: ProductUpdatePayload;
+  productUpdateStatus: ProductUpdateStatusPayload;
+  tagCreate: TagCreatePayload;
+  tagDelete: TagDeletePayload;
+  tagUpdate: TagUpdatePayload;
+  variantCreate: VariantCreatePayload;
+  variantDelete: VariantDeletePayload;
+  variantUpdateMedia: VariantUpdateMediaPayload;
+  variantUpdateOptions: VariantUpdateOptionsPayload;
+  variantUpdatePricing: VariantUpdatePricingPayload;
+};
+
+
+export type CatalogMutationCategoryCreateArgs = {
+  input: CategoryCreateInput;
+};
+
+
+export type CatalogMutationCategoryDeleteArgs = {
+  input: CategoryDeleteInput;
+};
+
+
+export type CatalogMutationCategoryMoveArgs = {
+  input: CategoryMoveInput;
+};
+
+
+export type CatalogMutationCategoryUpdateArgs = {
+  input: CategoryUpdateInput;
+};
+
+
+export type CatalogMutationProductBulkUpdateArgs = {
+  input: ProductBulkUpdateInput;
+};
+
+
+export type CatalogMutationProductCreateArgs = {
+  input: ProductCreateInput;
+};
+
+
+export type CatalogMutationProductDeleteArgs = {
+  input: ProductDeleteInput;
+};
+
+
+export type CatalogMutationProductFeatureCreateArgs = {
+  input: ProductFeatureCreateInput;
+};
+
+
+export type CatalogMutationProductFeatureDeleteArgs = {
+  input: ProductFeatureDeleteInput;
+};
+
+
+export type CatalogMutationProductFeatureUpdateArgs = {
+  input: ProductFeatureUpdateInput;
+};
+
+
+export type CatalogMutationProductFeaturesSyncArgs = {
+  input: ProductFeaturesSyncInput;
+};
+
+
+export type CatalogMutationProductOptionCreateArgs = {
+  input: ProductOptionCreateInput;
+};
+
+
+export type CatalogMutationProductOptionDeleteArgs = {
+  input: ProductOptionDeleteInput;
+};
+
+
+export type CatalogMutationProductOptionUpdateArgs = {
+  input: ProductOptionUpdateInput;
+};
+
+
+export type CatalogMutationProductOptionsSyncArgs = {
+  input: ProductOptionsSyncInput;
+};
+
+
+export type CatalogMutationProductUpdateArgs = {
+  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
+  operations?: InputMaybe<ProductUpdateInput>;
+  productId: Scalars['ID']['input'];
+};
+
+
+export type CatalogMutationProductUpdateStatusArgs = {
+  input: ProductUpdateStatusInput;
+};
+
+
+export type CatalogMutationTagCreateArgs = {
+  input: TagCreateInput;
+};
+
+
+export type CatalogMutationTagDeleteArgs = {
+  input: TagDeleteInput;
+};
+
+
+export type CatalogMutationTagUpdateArgs = {
+  input: TagUpdateInput;
+};
+
+
+export type CatalogMutationVariantCreateArgs = {
+  input: VariantCreateInput;
+};
+
+
+export type CatalogMutationVariantDeleteArgs = {
+  input: VariantDeleteInput;
+};
+
+
+export type CatalogMutationVariantUpdateMediaArgs = {
+  input: VariantUpdateMediaInput;
+};
+
+
+export type CatalogMutationVariantUpdateOptionsArgs = {
+  input: VariantUpdateOptionsInput;
+};
+
+
+export type CatalogMutationVariantUpdatePricingArgs = {
+  input: VariantUpdatePricingInput;
+};
+
+export type CatalogQuery = {
+  __typename?: 'CatalogQuery';
+  /** Get categories with Relay-style pagination */
+  categories: CategoryConnection;
+  /** Get a category by ID */
+  category: Maybe<Category>;
+  /** Get a node by its global ID */
+  node: Maybe<Node>;
+  /** Get multiple nodes by their global IDs */
+  nodes: Array<Maybe<Node>>;
+  /** Get a product by ID */
+  product: Maybe<Product>;
+  /** Get bulk update job by ID. */
+  productBulkUpdateJob: Maybe<ProductBulkUpdateJob>;
+  /** Get products with Relay-style pagination */
+  products: ProductConnection;
+  /** Get a tag by ID */
+  tag: Maybe<Tag>;
+  /** Get tags with Relay-style pagination */
+  tags: TagConnection;
+  /** Get a variant by ID */
+  variant: Maybe<Variant>;
+  /** Get variants with Relay-style pagination */
+  variants: VariantConnection;
+};
+
+
+export type CatalogQueryCategoriesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type CatalogQueryCategoryArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type CatalogQueryNodeArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type CatalogQueryNodesArgs = {
+  ids: Array<Scalars['ID']['input']>;
+};
+
+
+export type CatalogQueryProductArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type CatalogQueryProductBulkUpdateJobArgs = {
+  jobId: Scalars['ID']['input'];
+};
+
+
+export type CatalogQueryProductsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type CatalogQueryTagArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type CatalogQueryTagsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type CatalogQueryVariantArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type CatalogQueryVariantsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
 /** A category represents a hierarchical grouping of products. */
 export type Category = Node & {
   __typename?: 'Category';
@@ -767,268 +1029,6 @@ export type IntFilter = {
   _notIn?: InputMaybe<Array<Scalars['Int']['input']>>;
 };
 
-export type InventoryMutation = {
-  __typename?: 'InventoryMutation';
-  categoryCreate: CategoryCreatePayload;
-  categoryDelete: CategoryDeletePayload;
-  categoryMove: CategoryMovePayload;
-  categoryUpdate: CategoryUpdatePayload;
-  /**
-   * Start async bulk update.
-   * Requires X-Idempotency-Key header.
-   */
-  productBulkUpdate: ProductBulkUpdatePayload;
-  productCreate: ProductCreatePayload;
-  productDelete: ProductDeletePayload;
-  productFeatureCreate: ProductFeatureCreatePayload;
-  productFeatureDelete: ProductFeatureDeletePayload;
-  productFeatureUpdate: ProductFeatureUpdatePayload;
-  productFeaturesSync: ProductFeaturesSyncPayload;
-  productOptionCreate: ProductOptionCreatePayload;
-  productOptionDelete: ProductOptionDeletePayload;
-  productOptionUpdate: ProductOptionUpdatePayload;
-  /**
-   * Sync all product options. This is a complete replace operation.
-   * Options not in the input list will be deleted.
-   * Does NOT affect variants - only option definitions are synced.
-   */
-  productOptionsSync: ProductOptionsSyncPayload;
-  /**
-   * Unified product update with optimistic locking.
-   * Supports product and variant updates in a single request.
-   */
-  productUpdate: ProductUpdatePayload;
-  productUpdateStatus: ProductUpdateStatusPayload;
-  tagCreate: TagCreatePayload;
-  tagDelete: TagDeletePayload;
-  tagUpdate: TagUpdatePayload;
-  variantCreate: VariantCreatePayload;
-  variantDelete: VariantDeletePayload;
-  variantUpdateMedia: VariantUpdateMediaPayload;
-  variantUpdateOptions: VariantUpdateOptionsPayload;
-  variantUpdatePricing: VariantUpdatePricingPayload;
-};
-
-
-export type InventoryMutationCategoryCreateArgs = {
-  input: CategoryCreateInput;
-};
-
-
-export type InventoryMutationCategoryDeleteArgs = {
-  input: CategoryDeleteInput;
-};
-
-
-export type InventoryMutationCategoryMoveArgs = {
-  input: CategoryMoveInput;
-};
-
-
-export type InventoryMutationCategoryUpdateArgs = {
-  input: CategoryUpdateInput;
-};
-
-
-export type InventoryMutationProductBulkUpdateArgs = {
-  input: ProductBulkUpdateInput;
-};
-
-
-export type InventoryMutationProductCreateArgs = {
-  input: ProductCreateInput;
-};
-
-
-export type InventoryMutationProductDeleteArgs = {
-  input: ProductDeleteInput;
-};
-
-
-export type InventoryMutationProductFeatureCreateArgs = {
-  input: ProductFeatureCreateInput;
-};
-
-
-export type InventoryMutationProductFeatureDeleteArgs = {
-  input: ProductFeatureDeleteInput;
-};
-
-
-export type InventoryMutationProductFeatureUpdateArgs = {
-  input: ProductFeatureUpdateInput;
-};
-
-
-export type InventoryMutationProductFeaturesSyncArgs = {
-  input: ProductFeaturesSyncInput;
-};
-
-
-export type InventoryMutationProductOptionCreateArgs = {
-  input: ProductOptionCreateInput;
-};
-
-
-export type InventoryMutationProductOptionDeleteArgs = {
-  input: ProductOptionDeleteInput;
-};
-
-
-export type InventoryMutationProductOptionUpdateArgs = {
-  input: ProductOptionUpdateInput;
-};
-
-
-export type InventoryMutationProductOptionsSyncArgs = {
-  input: ProductOptionsSyncInput;
-};
-
-
-export type InventoryMutationProductUpdateArgs = {
-  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
-  operations?: InputMaybe<ProductUpdateInput>;
-  productId: Scalars['ID']['input'];
-};
-
-
-export type InventoryMutationProductUpdateStatusArgs = {
-  input: ProductUpdateStatusInput;
-};
-
-
-export type InventoryMutationTagCreateArgs = {
-  input: TagCreateInput;
-};
-
-
-export type InventoryMutationTagDeleteArgs = {
-  input: TagDeleteInput;
-};
-
-
-export type InventoryMutationTagUpdateArgs = {
-  input: TagUpdateInput;
-};
-
-
-export type InventoryMutationVariantCreateArgs = {
-  input: VariantCreateInput;
-};
-
-
-export type InventoryMutationVariantDeleteArgs = {
-  input: VariantDeleteInput;
-};
-
-
-export type InventoryMutationVariantUpdateMediaArgs = {
-  input: VariantUpdateMediaInput;
-};
-
-
-export type InventoryMutationVariantUpdateOptionsArgs = {
-  input: VariantUpdateOptionsInput;
-};
-
-
-export type InventoryMutationVariantUpdatePricingArgs = {
-  input: VariantUpdatePricingInput;
-};
-
-export type InventoryQuery = {
-  __typename?: 'InventoryQuery';
-  /** Get categories with Relay-style pagination */
-  categories: CategoryConnection;
-  /** Get a category by ID */
-  category: Maybe<Category>;
-  /** Get a node by its global ID */
-  node: Maybe<Node>;
-  /** Get multiple nodes by their global IDs */
-  nodes: Array<Maybe<Node>>;
-  /** Get a product by ID */
-  product: Maybe<Product>;
-  /** Get bulk update job by ID. */
-  productBulkUpdateJob: Maybe<ProductBulkUpdateJob>;
-  /** Get products with Relay-style pagination */
-  products: ProductConnection;
-  /** Get a tag by ID */
-  tag: Maybe<Tag>;
-  /** Get tags with Relay-style pagination */
-  tags: TagConnection;
-  /** Get a variant by ID */
-  variant: Maybe<Variant>;
-  /** Get variants with Relay-style pagination */
-  variants: VariantConnection;
-};
-
-
-export type InventoryQueryCategoriesArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-};
-
-
-export type InventoryQueryCategoryArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type InventoryQueryNodeArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type InventoryQueryNodesArgs = {
-  ids: Array<Scalars['ID']['input']>;
-};
-
-
-export type InventoryQueryProductArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type InventoryQueryProductBulkUpdateJobArgs = {
-  jobId: Scalars['ID']['input'];
-};
-
-
-export type InventoryQueryProductsArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-};
-
-
-export type InventoryQueryTagArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type InventoryQueryTagsArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-};
-
-
-export type InventoryQueryVariantArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type InventoryQueryVariantsArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-};
-
 /** Language/Locale codes based on ISO 639-1 and BCP 47 */
 export enum LocaleCode {
   /** Akan */
@@ -1307,7 +1307,7 @@ export enum LocaleCode {
 
 export type Mutation = {
   __typename?: 'Mutation';
-  inventoryMutation: InventoryMutation;
+  catalogMutation: CatalogMutation;
 };
 
 /** The Node interface is implemented by all types that have a globally unique ID. */
@@ -2062,7 +2062,7 @@ export type ProductUpdateStatusPayload = {
 
 export type Query = {
   __typename?: 'Query';
-  inventoryQuery: InventoryQuery;
+  catalogQuery: CatalogQuery;
   widgetQuery: WidgetQuery;
 };
 
@@ -2237,8 +2237,8 @@ export type UserError = {
 
 /**
  * A variant represents a specific version of a product, such as a size or color.
- * Catalog Service владеет этим типом.
- * Inventory-поля (sku, dimensions, weight, cost, stock) добавляются через federation extend в Inventory Service.
+ * Catalog Service owns this type.
+ * Inventory fields (sku, dimensions, weight, cost, stock) are added via federation extend in Inventory Service.
  */
 export type Variant = Node & {
   __typename?: 'Variant';
@@ -2275,8 +2275,8 @@ export type Variant = Node & {
 
 /**
  * A variant represents a specific version of a product, such as a size or color.
- * Catalog Service владеет этим типом.
- * Inventory-поля (sku, dimensions, weight, cost, stock) добавляются через federation extend в Inventory Service.
+ * Catalog Service owns this type.
+ * Inventory fields (sku, dimensions, weight, cost, stock) are added via federation extend in Inventory Service.
  */
 export type VariantPriceHistoryArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -2584,130 +2584,6 @@ export type VariantUpdatePricingPayload = {
   variant: Maybe<Variant>;
 };
 
-/** Relay-style pagination input for Warehouse */
-export type WarehouseConnectionInput = {
-  /** Returns items after this cursor */
-  after?: InputMaybe<Scalars['String']['input']>;
-  /** Returns items before this cursor */
-  before?: InputMaybe<Scalars['String']['input']>;
-  /** Returns the first n items */
-  first?: InputMaybe<Scalars['Int']['input']>;
-  /** Returns the last n items */
-  last?: InputMaybe<Scalars['Int']['input']>;
-  /** Sort order */
-  orderBy?: InputMaybe<Array<WarehouseOrderByInput>>;
-  /** Filter conditions */
-  where?: InputMaybe<WarehouseWhereInput>;
-};
-
-/** Ordering configuration for Warehouse */
-export type WarehouseOrderByInput = {
-  /** Sort direction */
-  direction: SortDirection;
-  /** Field to order by */
-  field: WarehouseOrderField;
-};
-
-/** Fields available for sorting Warehouse */
-export enum WarehouseOrderField {
-  /** Sort by code */
-  Code = 'code',
-  /** Sort by createdAt */
-  CreatedAt = 'createdAt',
-  /** Sort by id */
-  Id = 'id',
-  /** Sort by isDefault */
-  IsDefault = 'isDefault',
-  /** Sort by name */
-  Name = 'name',
-  /** Sort by updatedAt */
-  UpdatedAt = 'updatedAt'
-}
-
-/** Relay-style pagination input for WarehouseStock */
-export type WarehouseStockConnectionInput = {
-  /** Returns items after this cursor */
-  after?: InputMaybe<Scalars['String']['input']>;
-  /** Returns items before this cursor */
-  before?: InputMaybe<Scalars['String']['input']>;
-  /** Returns the first n items */
-  first?: InputMaybe<Scalars['Int']['input']>;
-  /** Returns the last n items */
-  last?: InputMaybe<Scalars['Int']['input']>;
-  /** Sort order */
-  orderBy?: InputMaybe<Array<WarehouseStockOrderByInput>>;
-  /** Filter conditions */
-  where?: InputMaybe<WarehouseStockWhereInput>;
-};
-
-/** Ordering configuration for WarehouseStock */
-export type WarehouseStockOrderByInput = {
-  /** Sort direction */
-  direction: SortDirection;
-  /** Field to order by */
-  field: WarehouseStockOrderField;
-};
-
-/** Fields available for sorting WarehouseStock */
-export enum WarehouseStockOrderField {
-  /** Sort by createdAt */
-  CreatedAt = 'createdAt',
-  /** Sort by id */
-  Id = 'id',
-  /** Sort by quantityOnHand */
-  QuantityOnHand = 'quantityOnHand',
-  /** Sort by updatedAt */
-  UpdatedAt = 'updatedAt',
-  /** Sort by variantId */
-  VariantId = 'variantId',
-  /** Sort by warehouseId */
-  WarehouseId = 'warehouseId'
-}
-
-/** Filter conditions for WarehouseStock */
-export type WarehouseStockWhereInput = {
-  /** Logical AND of multiple conditions */
-  _and?: InputMaybe<Array<WarehouseStockWhereInput>>;
-  /** Negate the condition */
-  _not?: InputMaybe<WarehouseStockWhereInput>;
-  /** Logical OR of multiple conditions */
-  _or?: InputMaybe<Array<WarehouseStockWhereInput>>;
-  /** Filter by createdAt */
-  createdAt?: InputMaybe<DateTimeFilter>;
-  /** Filter by id */
-  id?: InputMaybe<IdFilter>;
-  /** Filter by quantityOnHand */
-  quantityOnHand?: InputMaybe<IntFilter>;
-  /** Filter by updatedAt */
-  updatedAt?: InputMaybe<DateTimeFilter>;
-  /** Filter by variantId */
-  variantId?: InputMaybe<IdFilter>;
-  /** Filter by warehouseId */
-  warehouseId?: InputMaybe<IdFilter>;
-};
-
-/** Filter conditions for Warehouse */
-export type WarehouseWhereInput = {
-  /** Logical AND of multiple conditions */
-  _and?: InputMaybe<Array<WarehouseWhereInput>>;
-  /** Negate the condition */
-  _not?: InputMaybe<WarehouseWhereInput>;
-  /** Logical OR of multiple conditions */
-  _or?: InputMaybe<Array<WarehouseWhereInput>>;
-  /** Filter by code */
-  code?: InputMaybe<StringFilter>;
-  /** Filter by createdAt */
-  createdAt?: InputMaybe<DateTimeFilter>;
-  /** Filter by id */
-  id?: InputMaybe<IdFilter>;
-  /** Filter by isDefault */
-  isDefault?: InputMaybe<BooleanFilter>;
-  /** Filter by name */
-  name?: InputMaybe<StringFilter>;
-  /** Filter by updatedAt */
-  updatedAt?: InputMaybe<DateTimeFilter>;
-};
-
 /** Weight measurement units */
 export enum WeightUnit {
   /** Gram */
@@ -2731,6 +2607,11 @@ export type WidgetQuery = {
 /** Widget query namespace for dashboard widgets. */
 export type WidgetQueryPricingArgs = {
   input: PricingWidgetInput;
+};
+
+export type _CatalogFiltersPlaceholder = {
+  __typename?: '_CatalogFiltersPlaceholder';
+  _empty: Maybe<Scalars['Boolean']['output']>;
 };
 
 export type WithIndex<TObject> = TObject & Record<string, any>;
@@ -2836,6 +2717,8 @@ export type ResolversTypes = ResolversObject<{
   BulkUpdateJobStatus: BulkUpdateJobStatus;
   BulkUpdateOpType: BulkUpdateOpType;
   BulkUpdateUserError: ResolverTypeWrapper<BulkUpdateUserError>;
+  CatalogMutation: ResolverTypeWrapper<CatalogMutation>;
+  CatalogQuery: ResolverTypeWrapper<Omit<CatalogQuery, 'node' | 'nodes'> & { node?: Maybe<ResolversTypes['Node']>, nodes: Array<Maybe<ResolversTypes['Node']>> }>;
   Category: ResolverTypeWrapper<Category>;
   CategoryConnection: ResolverTypeWrapper<CategoryConnection>;
   CategoryCreateInput: CategoryCreateInput;
@@ -2861,8 +2744,6 @@ export type ResolversTypes = ResolversObject<{
   GenericUserError: ResolverTypeWrapper<GenericUserError>;
   IDFilter: IdFilter;
   IntFilter: IntFilter;
-  InventoryMutation: ResolverTypeWrapper<InventoryMutation>;
-  InventoryQuery: ResolverTypeWrapper<Omit<InventoryQuery, 'node' | 'nodes'> & { node?: Maybe<ResolversTypes['Node']>, nodes: Array<Maybe<ResolversTypes['Node']>> }>;
   JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
   LocaleCode: LocaleCode;
   Mutation: ResolverTypeWrapper<{}>;
@@ -2975,16 +2856,9 @@ export type ResolversTypes = ResolversObject<{
   VariantUpdateOptionsPayload: ResolverTypeWrapper<VariantUpdateOptionsPayload>;
   VariantUpdatePricingInput: VariantUpdatePricingInput;
   VariantUpdatePricingPayload: ResolverTypeWrapper<VariantUpdatePricingPayload>;
-  WarehouseConnectionInput: WarehouseConnectionInput;
-  WarehouseOrderByInput: WarehouseOrderByInput;
-  WarehouseOrderField: WarehouseOrderField;
-  WarehouseStockConnectionInput: WarehouseStockConnectionInput;
-  WarehouseStockOrderByInput: WarehouseStockOrderByInput;
-  WarehouseStockOrderField: WarehouseStockOrderField;
-  WarehouseStockWhereInput: WarehouseStockWhereInput;
-  WarehouseWhereInput: WarehouseWhereInput;
   WeightUnit: WeightUnit;
   WidgetQuery: ResolverTypeWrapper<WidgetQuery>;
+  _CatalogFiltersPlaceholder: ResolverTypeWrapper<_CatalogFiltersPlaceholder>;
 }>;
 
 /** Mapping between all available schema types and the resolvers parents */
@@ -3000,6 +2874,8 @@ export type ResolversParentTypes = ResolversObject<{
   String: Scalars['String']['output'];
   BulkUpdateJobProgress: BulkUpdateJobProgress;
   BulkUpdateUserError: BulkUpdateUserError;
+  CatalogMutation: CatalogMutation;
+  CatalogQuery: Omit<CatalogQuery, 'node' | 'nodes'> & { node?: Maybe<ResolversParentTypes['Node']>, nodes: Array<Maybe<ResolversParentTypes['Node']>> };
   Category: Category;
   CategoryConnection: CategoryConnection;
   CategoryCreateInput: CategoryCreateInput;
@@ -3023,8 +2899,6 @@ export type ResolversParentTypes = ResolversObject<{
   GenericUserError: GenericUserError;
   IDFilter: IdFilter;
   IntFilter: IntFilter;
-  InventoryMutation: InventoryMutation;
-  InventoryQuery: Omit<InventoryQuery, 'node' | 'nodes'> & { node?: Maybe<ResolversParentTypes['Node']>, nodes: Array<Maybe<ResolversParentTypes['Node']>> };
   JSON: Scalars['JSON']['output'];
   Mutation: {};
   Node: ResolversInterfaceTypes<ResolversParentTypes>['Node'];
@@ -3130,13 +3004,8 @@ export type ResolversParentTypes = ResolversObject<{
   VariantUpdateOptionsPayload: VariantUpdateOptionsPayload;
   VariantUpdatePricingInput: VariantUpdatePricingInput;
   VariantUpdatePricingPayload: VariantUpdatePricingPayload;
-  WarehouseConnectionInput: WarehouseConnectionInput;
-  WarehouseOrderByInput: WarehouseOrderByInput;
-  WarehouseStockConnectionInput: WarehouseStockConnectionInput;
-  WarehouseStockOrderByInput: WarehouseStockOrderByInput;
-  WarehouseStockWhereInput: WarehouseStockWhereInput;
-  WarehouseWhereInput: WarehouseWhereInput;
   WidgetQuery: WidgetQuery;
+  _CatalogFiltersPlaceholder: _CatalogFiltersPlaceholder;
 }>;
 
 export interface BigIntScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['BigInt'], any> {
@@ -3190,6 +3059,50 @@ export type BulkUpdateUserErrorResolvers<ContextType = ServiceContext, ParentTyp
   operation?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   productId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   variantId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CatalogMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CatalogMutation'] = ResolversParentTypes['CatalogMutation']> = ResolversObject<{
+  categoryCreate?: Resolver<ResolversTypes['CategoryCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationCategoryCreateArgs, 'input'>>;
+  categoryDelete?: Resolver<ResolversTypes['CategoryDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationCategoryDeleteArgs, 'input'>>;
+  categoryMove?: Resolver<ResolversTypes['CategoryMovePayload'], ParentType, ContextType, RequireFields<CatalogMutationCategoryMoveArgs, 'input'>>;
+  categoryUpdate?: Resolver<ResolversTypes['CategoryUpdatePayload'], ParentType, ContextType, RequireFields<CatalogMutationCategoryUpdateArgs, 'input'>>;
+  productBulkUpdate?: Resolver<ResolversTypes['ProductBulkUpdatePayload'], ParentType, ContextType, RequireFields<CatalogMutationProductBulkUpdateArgs, 'input'>>;
+  productCreate?: Resolver<ResolversTypes['ProductCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationProductCreateArgs, 'input'>>;
+  productDelete?: Resolver<ResolversTypes['ProductDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationProductDeleteArgs, 'input'>>;
+  productFeatureCreate?: Resolver<ResolversTypes['ProductFeatureCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationProductFeatureCreateArgs, 'input'>>;
+  productFeatureDelete?: Resolver<ResolversTypes['ProductFeatureDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationProductFeatureDeleteArgs, 'input'>>;
+  productFeatureUpdate?: Resolver<ResolversTypes['ProductFeatureUpdatePayload'], ParentType, ContextType, RequireFields<CatalogMutationProductFeatureUpdateArgs, 'input'>>;
+  productFeaturesSync?: Resolver<ResolversTypes['ProductFeaturesSyncPayload'], ParentType, ContextType, RequireFields<CatalogMutationProductFeaturesSyncArgs, 'input'>>;
+  productOptionCreate?: Resolver<ResolversTypes['ProductOptionCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationProductOptionCreateArgs, 'input'>>;
+  productOptionDelete?: Resolver<ResolversTypes['ProductOptionDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationProductOptionDeleteArgs, 'input'>>;
+  productOptionUpdate?: Resolver<ResolversTypes['ProductOptionUpdatePayload'], ParentType, ContextType, RequireFields<CatalogMutationProductOptionUpdateArgs, 'input'>>;
+  productOptionsSync?: Resolver<ResolversTypes['ProductOptionsSyncPayload'], ParentType, ContextType, RequireFields<CatalogMutationProductOptionsSyncArgs, 'input'>>;
+  productUpdate?: Resolver<ResolversTypes['ProductUpdatePayload'], ParentType, ContextType, RequireFields<CatalogMutationProductUpdateArgs, 'productId'>>;
+  productUpdateStatus?: Resolver<ResolversTypes['ProductUpdateStatusPayload'], ParentType, ContextType, RequireFields<CatalogMutationProductUpdateStatusArgs, 'input'>>;
+  tagCreate?: Resolver<ResolversTypes['TagCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationTagCreateArgs, 'input'>>;
+  tagDelete?: Resolver<ResolversTypes['TagDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationTagDeleteArgs, 'input'>>;
+  tagUpdate?: Resolver<ResolversTypes['TagUpdatePayload'], ParentType, ContextType, RequireFields<CatalogMutationTagUpdateArgs, 'input'>>;
+  variantCreate?: Resolver<ResolversTypes['VariantCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationVariantCreateArgs, 'input'>>;
+  variantDelete?: Resolver<ResolversTypes['VariantDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationVariantDeleteArgs, 'input'>>;
+  variantUpdateMedia?: Resolver<ResolversTypes['VariantUpdateMediaPayload'], ParentType, ContextType, RequireFields<CatalogMutationVariantUpdateMediaArgs, 'input'>>;
+  variantUpdateOptions?: Resolver<ResolversTypes['VariantUpdateOptionsPayload'], ParentType, ContextType, RequireFields<CatalogMutationVariantUpdateOptionsArgs, 'input'>>;
+  variantUpdatePricing?: Resolver<ResolversTypes['VariantUpdatePricingPayload'], ParentType, ContextType, RequireFields<CatalogMutationVariantUpdatePricingArgs, 'input'>>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CatalogQueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CatalogQuery'] = ResolversParentTypes['CatalogQuery']> = ResolversObject<{
+  categories?: Resolver<ResolversTypes['CategoryConnection'], ParentType, ContextType, Partial<CatalogQueryCategoriesArgs>>;
+  category?: Resolver<Maybe<ResolversTypes['Category']>, ParentType, ContextType, RequireFields<CatalogQueryCategoryArgs, 'id'>>;
+  node?: Resolver<Maybe<ResolversTypes['Node']>, ParentType, ContextType, RequireFields<CatalogQueryNodeArgs, 'id'>>;
+  nodes?: Resolver<Array<Maybe<ResolversTypes['Node']>>, ParentType, ContextType, RequireFields<CatalogQueryNodesArgs, 'ids'>>;
+  product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType, RequireFields<CatalogQueryProductArgs, 'id'>>;
+  productBulkUpdateJob?: Resolver<Maybe<ResolversTypes['ProductBulkUpdateJob']>, ParentType, ContextType, RequireFields<CatalogQueryProductBulkUpdateJobArgs, 'jobId'>>;
+  products?: Resolver<ResolversTypes['ProductConnection'], ParentType, ContextType, Partial<CatalogQueryProductsArgs>>;
+  tag?: Resolver<Maybe<ResolversTypes['Tag']>, ParentType, ContextType, RequireFields<CatalogQueryTagArgs, 'id'>>;
+  tags?: Resolver<ResolversTypes['TagConnection'], ParentType, ContextType, Partial<CatalogQueryTagsArgs>>;
+  variant?: Resolver<Maybe<ResolversTypes['Variant']>, ParentType, ContextType, RequireFields<CatalogQueryVariantArgs, 'id'>>;
+  variants?: Resolver<ResolversTypes['VariantConnection'], ParentType, ContextType, Partial<CatalogQueryVariantsArgs>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -3286,56 +3199,12 @@ export type GenericUserErrorResolvers<ContextType = ServiceContext, ParentType e
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type InventoryMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['InventoryMutation'] = ResolversParentTypes['InventoryMutation']> = ResolversObject<{
-  categoryCreate?: Resolver<ResolversTypes['CategoryCreatePayload'], ParentType, ContextType, RequireFields<InventoryMutationCategoryCreateArgs, 'input'>>;
-  categoryDelete?: Resolver<ResolversTypes['CategoryDeletePayload'], ParentType, ContextType, RequireFields<InventoryMutationCategoryDeleteArgs, 'input'>>;
-  categoryMove?: Resolver<ResolversTypes['CategoryMovePayload'], ParentType, ContextType, RequireFields<InventoryMutationCategoryMoveArgs, 'input'>>;
-  categoryUpdate?: Resolver<ResolversTypes['CategoryUpdatePayload'], ParentType, ContextType, RequireFields<InventoryMutationCategoryUpdateArgs, 'input'>>;
-  productBulkUpdate?: Resolver<ResolversTypes['ProductBulkUpdatePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductBulkUpdateArgs, 'input'>>;
-  productCreate?: Resolver<ResolversTypes['ProductCreatePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductCreateArgs, 'input'>>;
-  productDelete?: Resolver<ResolversTypes['ProductDeletePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductDeleteArgs, 'input'>>;
-  productFeatureCreate?: Resolver<ResolversTypes['ProductFeatureCreatePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductFeatureCreateArgs, 'input'>>;
-  productFeatureDelete?: Resolver<ResolversTypes['ProductFeatureDeletePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductFeatureDeleteArgs, 'input'>>;
-  productFeatureUpdate?: Resolver<ResolversTypes['ProductFeatureUpdatePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductFeatureUpdateArgs, 'input'>>;
-  productFeaturesSync?: Resolver<ResolversTypes['ProductFeaturesSyncPayload'], ParentType, ContextType, RequireFields<InventoryMutationProductFeaturesSyncArgs, 'input'>>;
-  productOptionCreate?: Resolver<ResolversTypes['ProductOptionCreatePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductOptionCreateArgs, 'input'>>;
-  productOptionDelete?: Resolver<ResolversTypes['ProductOptionDeletePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductOptionDeleteArgs, 'input'>>;
-  productOptionUpdate?: Resolver<ResolversTypes['ProductOptionUpdatePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductOptionUpdateArgs, 'input'>>;
-  productOptionsSync?: Resolver<ResolversTypes['ProductOptionsSyncPayload'], ParentType, ContextType, RequireFields<InventoryMutationProductOptionsSyncArgs, 'input'>>;
-  productUpdate?: Resolver<ResolversTypes['ProductUpdatePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductUpdateArgs, 'productId'>>;
-  productUpdateStatus?: Resolver<ResolversTypes['ProductUpdateStatusPayload'], ParentType, ContextType, RequireFields<InventoryMutationProductUpdateStatusArgs, 'input'>>;
-  tagCreate?: Resolver<ResolversTypes['TagCreatePayload'], ParentType, ContextType, RequireFields<InventoryMutationTagCreateArgs, 'input'>>;
-  tagDelete?: Resolver<ResolversTypes['TagDeletePayload'], ParentType, ContextType, RequireFields<InventoryMutationTagDeleteArgs, 'input'>>;
-  tagUpdate?: Resolver<ResolversTypes['TagUpdatePayload'], ParentType, ContextType, RequireFields<InventoryMutationTagUpdateArgs, 'input'>>;
-  variantCreate?: Resolver<ResolversTypes['VariantCreatePayload'], ParentType, ContextType, RequireFields<InventoryMutationVariantCreateArgs, 'input'>>;
-  variantDelete?: Resolver<ResolversTypes['VariantDeletePayload'], ParentType, ContextType, RequireFields<InventoryMutationVariantDeleteArgs, 'input'>>;
-  variantUpdateMedia?: Resolver<ResolversTypes['VariantUpdateMediaPayload'], ParentType, ContextType, RequireFields<InventoryMutationVariantUpdateMediaArgs, 'input'>>;
-  variantUpdateOptions?: Resolver<ResolversTypes['VariantUpdateOptionsPayload'], ParentType, ContextType, RequireFields<InventoryMutationVariantUpdateOptionsArgs, 'input'>>;
-  variantUpdatePricing?: Resolver<ResolversTypes['VariantUpdatePricingPayload'], ParentType, ContextType, RequireFields<InventoryMutationVariantUpdatePricingArgs, 'input'>>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type InventoryQueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['InventoryQuery'] = ResolversParentTypes['InventoryQuery']> = ResolversObject<{
-  categories?: Resolver<ResolversTypes['CategoryConnection'], ParentType, ContextType, Partial<InventoryQueryCategoriesArgs>>;
-  category?: Resolver<Maybe<ResolversTypes['Category']>, ParentType, ContextType, RequireFields<InventoryQueryCategoryArgs, 'id'>>;
-  node?: Resolver<Maybe<ResolversTypes['Node']>, ParentType, ContextType, RequireFields<InventoryQueryNodeArgs, 'id'>>;
-  nodes?: Resolver<Array<Maybe<ResolversTypes['Node']>>, ParentType, ContextType, RequireFields<InventoryQueryNodesArgs, 'ids'>>;
-  product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType, RequireFields<InventoryQueryProductArgs, 'id'>>;
-  productBulkUpdateJob?: Resolver<Maybe<ResolversTypes['ProductBulkUpdateJob']>, ParentType, ContextType, RequireFields<InventoryQueryProductBulkUpdateJobArgs, 'jobId'>>;
-  products?: Resolver<ResolversTypes['ProductConnection'], ParentType, ContextType, Partial<InventoryQueryProductsArgs>>;
-  tag?: Resolver<Maybe<ResolversTypes['Tag']>, ParentType, ContextType, RequireFields<InventoryQueryTagArgs, 'id'>>;
-  tags?: Resolver<ResolversTypes['TagConnection'], ParentType, ContextType, Partial<InventoryQueryTagsArgs>>;
-  variant?: Resolver<Maybe<ResolversTypes['Variant']>, ParentType, ContextType, RequireFields<InventoryQueryVariantArgs, 'id'>>;
-  variants?: Resolver<ResolversTypes['VariantConnection'], ParentType, ContextType, Partial<InventoryQueryVariantsArgs>>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
 export interface JsonScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['JSON'], any> {
   name: 'JSON';
 }
 
 export type MutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = ResolversObject<{
-  inventoryMutation?: Resolver<ResolversTypes['InventoryMutation'], ParentType, ContextType>;
+  catalogMutation?: Resolver<ResolversTypes['CatalogMutation'], ParentType, ContextType>;
 }>;
 
 export type NodeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Node'] = ResolversParentTypes['Node']> = ResolversObject<{
@@ -3561,7 +3430,7 @@ export type ProductUpdateStatusPayloadResolvers<ContextType = ServiceContext, Pa
 }>;
 
 export type QueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = ResolversObject<{
-  inventoryQuery?: Resolver<ResolversTypes['InventoryQuery'], ParentType, ContextType>;
+  catalogQuery?: Resolver<ResolversTypes['CatalogQuery'], ParentType, ContextType>;
   widgetQuery?: Resolver<ResolversTypes['WidgetQuery'], ParentType, ContextType>;
 }>;
 
@@ -3751,6 +3620,11 @@ export type WidgetQueryResolvers<ContextType = ServiceContext, ParentType extend
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type _CatalogFiltersPlaceholderResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['_CatalogFiltersPlaceholder'] = ResolversParentTypes['_CatalogFiltersPlaceholder']> = ResolversObject<{
+  _empty?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   BigInt?: GraphQLScalarType;
   BulkUpdateItem?: BulkUpdateItemResolvers<ContextType>;
@@ -3758,6 +3632,8 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   BulkUpdateItemEdge?: BulkUpdateItemEdgeResolvers<ContextType>;
   BulkUpdateJobProgress?: BulkUpdateJobProgressResolvers<ContextType>;
   BulkUpdateUserError?: BulkUpdateUserErrorResolvers<ContextType>;
+  CatalogMutation?: CatalogMutationResolvers<ContextType>;
+  CatalogQuery?: CatalogQueryResolvers<ContextType>;
   Category?: CategoryResolvers<ContextType>;
   CategoryConnection?: CategoryConnectionResolvers<ContextType>;
   CategoryCreatePayload?: CategoryCreatePayloadResolvers<ContextType>;
@@ -3771,8 +3647,6 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   Email?: GraphQLScalarType;
   File?: FileResolvers<ContextType>;
   GenericUserError?: GenericUserErrorResolvers<ContextType>;
-  InventoryMutation?: InventoryMutationResolvers<ContextType>;
-  InventoryQuery?: InventoryQueryResolvers<ContextType>;
   JSON?: GraphQLScalarType;
   Mutation?: MutationResolvers<ContextType>;
   Node?: NodeResolvers<ContextType>;
@@ -3828,5 +3702,6 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   VariantUpdateOptionsPayload?: VariantUpdateOptionsPayloadResolvers<ContextType>;
   VariantUpdatePricingPayload?: VariantUpdatePricingPayloadResolvers<ContextType>;
   WidgetQuery?: WidgetQueryResolvers<ContextType>;
+  _CatalogFiltersPlaceholder?: _CatalogFiltersPlaceholderResolvers<ContextType>;
 }>;
 

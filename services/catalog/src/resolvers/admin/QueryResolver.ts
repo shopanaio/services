@@ -21,7 +21,7 @@ import { PricingWidgetResolver } from "./PricingWidgetResolver.js";
 import type { VariantRelayInput } from "../../repositories/variant/VariantRepository.js";
 
 /**
- * Root Query resolver для Catalog Service.
+ * Root Query resolver for Catalog Service.
  * Decorated with @ApolloQuery to create Apollo-compatible resolver proxy.
  */
 @ApolloQuery
@@ -60,7 +60,7 @@ export class WidgetQueryResolver extends CatalogType<Record<string, never>> {
 /**
  * CatalogQuery namespace resolver.
  * Handles all catalog-related queries (products, variants).
- * НЕ содержит inventory queries (warehouses, stock).
+ * Does NOT contain inventory queries (warehouses, stock).
  */
 export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
   // ---- Node Queries (Relay) ----
@@ -141,7 +141,7 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
   }
 
   // ═══════════════════════════════════════════════════════════
-  // Warehouse Queries УДАЛЕНЫ (переносятся в Inventory Service)
+  // Warehouse Queries REMOVED (moved to Inventory Service)
   // - warehouse(id)
   // - warehouses(...)
   // ═══════════════════════════════════════════════════════════

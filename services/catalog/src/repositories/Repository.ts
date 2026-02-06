@@ -21,8 +21,8 @@ export interface RepositoryConfig {
 export type { Database };
 
 /**
- * Repository aggregator для Catalog Service.
- * Не содержит inventory-related repositories (cost, physical, stock, warehouse).
+ * Repository aggregator for Catalog Service.
+ * Does not contain inventory-related repositories (cost, physical, stock, warehouse).
  */
 export class Repository {
   public readonly product: ProductRepository;

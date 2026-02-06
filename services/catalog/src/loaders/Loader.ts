@@ -18,7 +18,7 @@ export class Loader {
   public readonly productOption;
   public readonly productFeature;
 
-  // Variant (без inventory полей - они в Inventory Service)
+  // Variant (without inventory fields - they live in Inventory Service)
   public readonly variant;
   public readonly variantIds;
   public readonly variantTranslation;
@@ -77,7 +77,7 @@ export class Loader {
     this.productOption = productLoader.productOption;
     this.productFeature = productLoader.productFeature;
 
-    // Variant (без inventory полей)
+    // Variant (without inventory fields)
     this.variant = variantLoader.variant;
     this.variantIds = variantLoader.variantIds;
     this.variantTranslation = variantLoader.variantTranslation;

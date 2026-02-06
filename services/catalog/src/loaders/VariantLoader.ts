@@ -9,9 +9,9 @@ import type {
 import type { Repository } from "../repositories/Repository.js";
 
 /**
- * VariantLoader для Catalog Service.
- * НЕ содержит inventory-related loaders (cost, dimensions, weight, stock).
- * Эти данные загружаются в Inventory Service.
+ * VariantLoader for Catalog Service.
+ * Does NOT contain inventory-related loaders (cost, dimensions, weight, stock).
+ * That data is loaded in Inventory Service.
  */
 export class VariantLoader {
   public readonly variant: DataLoader<string, Variant | null>;

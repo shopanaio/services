@@ -12,7 +12,7 @@ import { AuthProvider } from "../../kernel/Authorizable.js";
 export { Cache };
 
 /**
- * Base resolver class для Catalog Service.
+ * Base resolver class for Catalog Service.
  * Pre-configured ServiceContext, executor, and authorization support.
  *
  * Use @TypePolicy decorator to enable authorization check on load/loadMany.

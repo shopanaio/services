@@ -2,8 +2,8 @@
 
 """
 A variant represents a specific version of a product, such as a size or color.
-Catalog Service владеет этим типом.
-Inventory-поля (sku, dimensions, weight, cost, stock) добавляются через federation extend в Inventory Service.
+Catalog Service owns this type.
+Inventory fields (sku, dimensions, weight, cost, stock) are added via federation extend in Inventory Service.
 """
 type Variant implements Node @key(fields: "id") {
   """The globally unique ID of the variant."""
@@ -54,7 +54,7 @@ type Variant implements Node @key(fields: "id") {
   media: [VariantMediaItem!]!
 
   # ═══════════════════════════════════════════════════════════
-  # Следующие поля УДАЛЕНЫ из Catalog (переносятся в Inventory):
+  # The following fields have been REMOVED from Catalog (moved to Inventory):
   # - sku: String
   # - dimensions: VariantDimensions
   # - weight: VariantWeight
@@ -62,7 +62,7 @@ type Variant implements Node @key(fields: "id") {
   # - costHistory: VariantCostConnection!
   # - stock: [WarehouseStock!]!
   # - inStock: Boolean!
-  # Эти поля будут добавлены через federation extend в Inventory Service
+  # These fields are added via federation extend in Inventory Service
   # ═══════════════════════════════════════════════════════════
 }
 

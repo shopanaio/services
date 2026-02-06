@@ -38,13 +38,13 @@ import {
 } from "../scripts/variant/VariantBatchUpdateOptionsScript.js";
 
 /**
- * ProductUpdateWorkflow для Catalog Service.
+ * ProductUpdateWorkflow for Catalog Service.
  * Handles atomic product updates with:
  * - Optimistic locking via revision field
  * - Partial failure support (each operation independent)
  * - Event emission with partial snapshot of changes
  *
- * НЕ содержит inventory операций (inventory, dimensions) - они в Inventory Service.
+ * Does NOT contain inventory operations (inventory, dimensions) - they live in Inventory Service.
  */
 @Injectable()
 export class ProductUpdateWorkflow extends BrokerWorkflows {
@@ -314,7 +314,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     }
 
     // ═══════════════════════════════════════════════════════════
-    // УДАЛЕНЫ из Catalog (переносятся в Inventory Service):
+    // REMOVED from Catalog (moved to Inventory Service):
     // - inventory (VariantUpdateInventoryScript)
     // - dimensions (VariantUpdateDimensionsScript)
     // ═══════════════════════════════════════════════════════════

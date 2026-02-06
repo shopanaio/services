@@ -161,7 +161,7 @@ export const productFeatureValueTranslation = inventorySchema.table(
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Warehouse Translations УДАЛЕНЫ (переносятся в Inventory Service)
+// Warehouse Translations REMOVED (moved to Inventory Service)
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ─────────────────────────────────────────────────────────────────────────────
