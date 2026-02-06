@@ -1,8 +1,8 @@
 import { text, uuid, timestamp, primaryKey } from "drizzle-orm/pg-core";
-import { inventorySchema } from "./schema";
+import { catalogSchema } from "./schema";
 import { bulkEditJob } from "./bulkEditJobs";
 
-export const productBulkFence = inventorySchema.table(
+export const productBulkFence = catalogSchema.table(
   "product_bulk_fence",
   {
     projectId: uuid("project_id").notNull(),

@@ -9,9 +9,9 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { product } from "./products";
-import { inventorySchema } from "./schema";
+import { catalogSchema } from "./schema";
 
-export const productFeature = inventorySchema.table(
+export const productFeature = catalogSchema.table(
   "product_feature",
   {
     id: uuid("id").primaryKey(),
@@ -53,7 +53,7 @@ export const productFeature = inventorySchema.table(
   ]
 );
 
-export const productFeatureValue = inventorySchema.table(
+export const productFeatureValue = catalogSchema.table(
   "product_feature_value",
   {
     id: uuid("id").primaryKey(),

@@ -1,3 +1,3 @@
 import { pgSchema } from "drizzle-orm/pg-core";
 
-export const inventorySchema = pgSchema("inventory");
+export const catalogSchema = pgSchema("catalog");

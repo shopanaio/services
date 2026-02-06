@@ -7,10 +7,10 @@ import {
   index,
   unique,
 } from "drizzle-orm/pg-core";
-import { inventorySchema } from "./schema";
+import { catalogSchema } from "./schema";
 import { product, variant } from "./products";
 
-export const productOptionSwatch = inventorySchema.table(
+export const productOptionSwatch = catalogSchema.table(
   "product_option_swatch",
   {
     projectId: uuid("project_id").notNull(),
@@ -26,7 +26,7 @@ export const productOptionSwatch = inventorySchema.table(
   ]
 );
 
-export const productOption = inventorySchema.table(
+export const productOption = catalogSchema.table(
   "product_option",
   {
     id: uuid("id").primaryKey(),
@@ -43,7 +43,7 @@ export const productOption = inventorySchema.table(
   ]
 );
 
-export const productOptionValue = inventorySchema.table(
+export const productOptionValue = catalogSchema.table(
   "product_option_value",
   {
     id: uuid("id").primaryKey(),
@@ -66,7 +66,7 @@ export const productOptionValue = inventorySchema.table(
   ]
 );
 
-export const productOptionVariantLink = inventorySchema.table(
+export const productOptionVariantLink = catalogSchema.table(
   "product_option_variant_link",
   {
     projectId: uuid("project_id").notNull(),

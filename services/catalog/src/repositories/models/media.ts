@@ -4,7 +4,7 @@ import {
   primaryKey,
   index,
 } from "drizzle-orm/pg-core";
-import { inventorySchema } from "./schema";
+import { catalogSchema } from "./schema";
 import { variant } from "./products";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -13,7 +13,7 @@ import { variant } from "./products";
 // Links variants to media files (stored in separate Media service).
 // file_id references external Media service, no FK constraint.
 
-export const variantMedia = inventorySchema.table(
+export const variantMedia = catalogSchema.table(
   "variant_media",
   {
     projectId: uuid("project_id").notNull(),

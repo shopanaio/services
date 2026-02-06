@@ -7,10 +7,10 @@ import {
   boolean,
   index,
 } from "drizzle-orm/pg-core";
-import { inventorySchema } from "./schema";
+import { catalogSchema } from "./schema";
 import { bulkEditJob } from "./bulkEditJobs";
 
-export const bulkEditItemStatusEnum = inventorySchema.enum(
+export const bulkEditItemStatusEnum = catalogSchema.enum(
   "bulk_edit_item_status",
   [
     "PENDING",
@@ -22,12 +22,12 @@ export const bulkEditItemStatusEnum = inventorySchema.enum(
   ]
 );
 
-export const bulkEditCancelReasonEnum = inventorySchema.enum(
+export const bulkEditCancelReasonEnum = catalogSchema.enum(
   "bulk_edit_cancel_reason",
   ["USER", "SUPERSEDED", "SYSTEM"]
 );
 
-export const bulkEditItem = inventorySchema.table(
+export const bulkEditItem = catalogSchema.table(
   "bulk_edit_item",
   {
     id: uuid("id").primaryKey(),

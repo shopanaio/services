@@ -1,12 +1,12 @@
 import { uuid, timestamp, index } from "drizzle-orm/pg-core";
-import { inventorySchema } from "./schema";
+import { catalogSchema } from "./schema";
 
-export const bulkEditJobStatusEnum = inventorySchema.enum(
+export const bulkEditJobStatusEnum = catalogSchema.enum(
   "bulk_edit_job_status",
   ["QUEUED", "RUNNING", "COMPLETED", "CANCELLED"]
 );
 
-export const bulkEditJob = inventorySchema.table(
+export const bulkEditJob = catalogSchema.table(
   "bulk_edit_job",
   {
     id: uuid("id").primaryKey(),

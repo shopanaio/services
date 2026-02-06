@@ -6,7 +6,7 @@ import {
   primaryKey,
   index,
 } from "drizzle-orm/pg-core";
-import { inventorySchema } from "./schema";
+import { catalogSchema } from "./schema";
 import { product, variant } from "./products";
 import { productOption, productOptionValue } from "./options";
 import { productFeature, productFeatureValue } from "./features";
@@ -17,7 +17,7 @@ import { productFeature, productFeatureValue } from "./features";
 // Main product content: title, description, SEO fields
 // Each product can have translations in multiple locales (uk, en, ru, etc.)
 
-export const productTranslation = inventorySchema.table(
+export const productTranslation = catalogSchema.table(
   "product_translation",
   {
     projectId: uuid("project_id").notNull(),
@@ -53,7 +53,7 @@ export const productTranslation = inventorySchema.table(
 // Optional: only if variants have distinct names beyond option combinations
 // Example: "iPhone 15 Pro 256GB Space Black" vs auto-generated from options
 
-export const variantTranslation = inventorySchema.table(
+export const variantTranslation = catalogSchema.table(
   "variant_translation",
   {
     projectId: uuid("project_id").notNull(),
@@ -76,7 +76,7 @@ export const variantTranslation = inventorySchema.table(
 // Translates option names: "Color" → "Колір" / "Цвет"
 // slug remains invariant (used for filtering), name is displayed
 
-export const productOptionTranslation = inventorySchema.table(
+export const productOptionTranslation = catalogSchema.table(
   "product_option_translation",
   {
     projectId: uuid("project_id").notNull(),
@@ -99,7 +99,7 @@ export const productOptionTranslation = inventorySchema.table(
 // Translates option values: "Red" → "Червоний" / "Красный"
 // slug remains invariant for filtering (e.g., "red")
 
-export const productOptionValueTranslation = inventorySchema.table(
+export const productOptionValueTranslation = catalogSchema.table(
   "product_option_value_translation",
   {
     projectId: uuid("project_id").notNull(),
@@ -121,7 +121,7 @@ export const productOptionValueTranslation = inventorySchema.table(
 // ─────────────────────────────────────────────────────────────────────────────
 // Translates feature names: "Brand" → "Бренд", "Material" → "Матеріал"
 
-export const productFeatureTranslation = inventorySchema.table(
+export const productFeatureTranslation = catalogSchema.table(
   "product_feature_translation",
   {
     projectId: uuid("project_id").notNull(),
@@ -143,7 +143,7 @@ export const productFeatureTranslation = inventorySchema.table(
 // ─────────────────────────────────────────────────────────────────────────────
 // Translates feature values: "Leather" → "Шкіра" / "Кожа"
 
-export const productFeatureValueTranslation = inventorySchema.table(
+export const productFeatureValueTranslation = catalogSchema.table(
   "product_feature_value_translation",
   {
     projectId: uuid("project_id").notNull(),

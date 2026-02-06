@@ -5,7 +5,7 @@ import {
   primaryKey,
   index,
 } from "drizzle-orm/pg-core";
-import { inventorySchema } from "./schema";
+import { catalogSchema } from "./schema";
 import { product } from "./products";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -14,7 +14,7 @@ import { product } from "./products";
 // SEO and Open Graph metadata for products
 // Locale-specific: different SEO data for different markets/languages
 
-export const productSeo = inventorySchema.table(
+export const productSeo = catalogSchema.table(
   "product_seo",
   {
     projectId: uuid("project_id").notNull(),

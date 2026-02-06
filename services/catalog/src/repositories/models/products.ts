@@ -10,9 +10,9 @@ import {
   check,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import { inventorySchema } from "./schema";
+import { catalogSchema } from "./schema";
 
-export const product = inventorySchema.table(
+export const product = catalogSchema.table(
   "product",
   {
     projectId: uuid("project_id").notNull(),
@@ -46,7 +46,7 @@ export const product = inventorySchema.table(
   ]
 );
 
-export const variant = inventorySchema.table(
+export const variant = catalogSchema.table(
   "variant",
   {
     projectId: uuid("project_id").notNull(),

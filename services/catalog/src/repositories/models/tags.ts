@@ -7,7 +7,7 @@ import {
   uniqueIndex,
   primaryKey,
 } from "drizzle-orm/pg-core";
-import { inventorySchema } from "./schema";
+import { catalogSchema } from "./schema";
 import { product } from "./products";
 import { category } from "./categories";
 
@@ -16,7 +16,7 @@ import { category } from "./categories";
 // ─────────────────────────────────────────────────────────────────────────────
 // Simple tags for product filtering and organization
 
-export const tag = inventorySchema.table(
+export const tag = catalogSchema.table(
   "tag",
   {
     projectId: uuid("project_id").notNull(),
@@ -40,7 +40,7 @@ export const tag = inventorySchema.table(
 // Tag Translation
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const tagTranslation = inventorySchema.table(
+export const tagTranslation = catalogSchema.table(
   "tag_translation",
   {
     projectId: uuid("project_id").notNull(),
@@ -62,7 +62,7 @@ export const tagTranslation = inventorySchema.table(
 // Product Tag (Many-to-Many)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const productTag = inventorySchema.table(
+export const productTag = catalogSchema.table(
   "product_tag",
   {
     projectId: uuid("project_id").notNull(),
@@ -84,7 +84,7 @@ export const productTag = inventorySchema.table(
 // Category Tag (Many-to-Many, optional)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const categoryTag = inventorySchema.table(
+export const categoryTag = catalogSchema.table(
   "category_tag",
   {
     projectId: uuid("project_id").notNull(),

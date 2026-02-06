@@ -7,12 +7,12 @@ import {
   check,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import { inventorySchema } from "./schema";
+import { catalogSchema } from "./schema";
 import { variant } from "./products";
 
-export const currencyEnum = inventorySchema.enum("currency", ["UAH", "USD", "EUR"]);
+export const currencyEnum = catalogSchema.enum("currency", ["UAH", "USD", "EUR"]);
 
-export const itemPricing = inventorySchema.table(
+export const itemPricing = catalogSchema.table(
   "item_pricing",
   {
     projectId: uuid("project_id").notNull(),
@@ -60,7 +60,7 @@ export const itemPricing = inventorySchema.table(
 );
 
 // View: current prices (effective_to IS NULL)
-export const variantPricesCurrent = inventorySchema.view("variant_prices_current").as((qb) =>
+export const variantPricesCurrent = catalogSchema.view("variant_prices_current").as((qb) =>
   qb
     .select({
       id: itemPricing.id,

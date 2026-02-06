@@ -11,7 +11,7 @@ import {
   check,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import { inventorySchema } from "./schema";
+import { catalogSchema } from "./schema";
 import { product } from "./products";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -19,7 +19,7 @@ import { product } from "./products";
 // ─────────────────────────────────────────────────────────────────────────────
 // Hierarchical product categories with materialized path for fast queries
 
-export const category = inventorySchema.table(
+export const category = catalogSchema.table(
   "category",
   {
     projectId: uuid("project_id").notNull(),
@@ -67,7 +67,7 @@ export const category = inventorySchema.table(
 // ─────────────────────────────────────────────────────────────────────────────
 // Links categories to files in Media service
 
-export const categoryMedia = inventorySchema.table(
+export const categoryMedia = catalogSchema.table(
   "category_media",
   {
     projectId: uuid("project_id").notNull(),
@@ -87,7 +87,7 @@ export const categoryMedia = inventorySchema.table(
 // Category Translation
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const categoryTranslation = inventorySchema.table(
+export const categoryTranslation = catalogSchema.table(
   "category_translation",
   {
     projectId: uuid("project_id").notNull(),
@@ -116,7 +116,7 @@ export const categoryTranslation = inventorySchema.table(
 // Product Category (Many-to-Many)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const productCategory = inventorySchema.table(
+export const productCategory = catalogSchema.table(
   "product_category",
   {
     projectId: uuid("project_id").notNull(),
