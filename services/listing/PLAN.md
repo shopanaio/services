@@ -4,11 +4,11 @@
 
 Products and categories live in the **catalog** service. The **listing** service:
 1. Maintains a denormalized search index (`product_search_index`) synced via catalog events
-2. Provides **listings** — collections of products defined by rules (smart) or manually (manual)
-3. Supports pinning/excluding products and manual position overrides
-4. Manages filter UI configuration per listing
+2. Provides **listings** — product containers bound to categories with manual product management
+3. Supports excluding products and manual ordering via lexo_rank
+4. Provides faceted filtering over `product_search_index` at query time
 
-Categories are NOT in listing — they stay in catalog. A listing can reference categories as one of its conditions.
+A listing is NOT a named entity — it has no title, handle, or translations. Category metadata stays in catalog.
 
 **Scope (Phase 1):** No Typesense, no Metarank, no full-text search. PostgreSQL only.
 
@@ -16,21 +16,12 @@ Categories are NOT in listing — they stay in catalog. A listing can reference 
 
 ## Core Concept: Listing
 
-A **listing** is a named collection of products. Two types:
+A **listing** is a product container bound 1:1 to a category. Products are added/removed manually by admin and ordered via lexo_rank (drag & drop).
 
-**Smart listing** — products matched automatically by conditions:
-- "All Nike under 5000 UAH" → `feature_slugs contains brand:nike AND max_price < 5000`
-- "New arrivals" → `created_at > now() - 30 days`
-- "Shoes category" → `category_ids contains cat-shoes-uuid`
-- Conditions are evaluated against `product_search_index` at query time
-
-**Manual listing** — products added explicitly by admin:
-- "Summer sale picks" → specific product IDs with manual sort order
-
-Both types support:
-- **Excluding** — hide a product from listing even if it matches conditions
-- **Sort rules** — default sort order (popularity, price, newest, etc.)
-- **Manual reorder** — drag & drop via lexo_rank
+- Admin adds products to a listing explicitly
+- Products can be excluded (hidden from listing)
+- Default sort + manual reorder via drag & drop
+- Storefront queries apply faceted filters (price, features, options, tags, stock) against `product_search_index`
 
 ---
 
@@ -46,7 +37,7 @@ product_search_index (
   product_id     uuid PRIMARY KEY,
   min_price_minor bigint,
   max_price_minor bigint,
-  is_active      boolean NOT NULL DEFAULT false,  -- product published in catalog
+  is_active      boolean NOT NULL DEFAULT false,
   in_stock       boolean NOT NULL DEFAULT false,
   total_stock    int NOT NULL DEFAULT 0,
   tag_ids        uuid[] DEFAULT '{}',
@@ -61,50 +52,22 @@ product_search_index (
 
 Indexes: GIN on arrays, B-tree on price/stock/sorting.
 
-### 2. `listing` — collection definition
+### 2. `listing` — category product container
 
 ```sql
 listing (
   id             uuid PRIMARY KEY,
   project_id     uuid NOT NULL,
-  handle         varchar(255),
-  type           varchar(16) NOT NULL,  -- 'smart' | 'manual'
-  status         varchar(16) NOT NULL DEFAULT 'draft',  -- 'draft' | 'active'
-  sort_by        varchar(32) NOT NULL DEFAULT 'popularity',
-  sort_direction varchar(4) NOT NULL DEFAULT 'desc',
+  category_id    uuid NOT NULL,
+  sort_by        varchar(32) NOT NULL DEFAULT 'manual',
+  sort_direction varchar(4) NOT NULL DEFAULT 'asc',
   created_at     timestamptz NOT NULL DEFAULT now(),
   updated_at     timestamptz NOT NULL DEFAULT now(),
-  deleted_at     timestamptz
+  UNIQUE(project_id, category_id)
 )
 ```
 
-### 3. `listing_translation`
-
-```sql
-listing_translation (
-  listing_id  uuid NOT NULL REFERENCES listing(id) ON DELETE CASCADE,
-  locale      varchar(5) NOT NULL,
-  title       varchar(255) NOT NULL,
-  description text,
-  PRIMARY KEY (listing_id, locale)
-)
-```
-
-### 4. `listing_condition` — rules for smart listings
-
-```sql
-listing_condition (
-  id          uuid PRIMARY KEY,
-  listing_id  uuid NOT NULL REFERENCES listing(id) ON DELETE CASCADE,
-  field       varchar(32) NOT NULL,   -- 'feature' | 'option' | 'tag' | 'category' | 'price' | 'stock'
-  slug        varchar(128),           -- for feature/option: 'brand', 'color', etc.
-  operator    varchar(16) NOT NULL,   -- 'equals' | 'contains' | 'not_contains' | 'gt' | 'lt' | 'between' | 'in' | 'not_in'
-  value       jsonb NOT NULL,         -- ["nike","adidas"] or {"min":1000,"max":5000} or true
-  sort_order  int NOT NULL DEFAULT 0
-)
-```
-
-### 5. `listing_item` — products in a listing
+### 3. `listing_item` — products in a listing
 
 Uses `lexo_rank` (varchar, COLLATE "C") for ordering. Lexorank allows inserting between two items without rewriting other rows: rank between "aaa" and "aab" = "aaaN" (midpoint).
 
@@ -112,8 +75,8 @@ Uses `lexo_rank` (varchar, COLLATE "C") for ordering. Lexorank allows inserting 
 listing_item (
   listing_id      uuid NOT NULL REFERENCES listing(id) ON DELETE CASCADE,
   product_id      uuid NOT NULL,
-  lexo_rank       varchar(64) COLLATE "C",  -- lexorank for ordering (manual listings)
-  excluded        boolean NOT NULL DEFAULT false,  -- true = hidden from listing (smart listings)
+  lexo_rank       varchar(64) COLLATE "C" NOT NULL,
+  excluded        boolean NOT NULL DEFAULT false,
   created_at      timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (listing_id, product_id)
 )
@@ -123,64 +86,10 @@ CREATE INDEX idx_listing_item_rank ON listing_item (listing_id, lexo_rank)
 ```
 
 **Usage:**
-
-- **Manual listing**: all products added here with lexo_rank for order
-- **Smart listing**: only excluded products stored here (`excluded=true`)
+- All products added here with lexo_rank for order
+- `excluded=true` hides product from listing without removing it
 - **Reorder (drag & drop)**: new lexo_rank = midpoint(before, after), single row update, O(1)
 - **Rebalance**: when rank strings exceed 48 chars, reassign evenly spaced ranks (rare)
-
-### 6. `filter_group` + `filter_group_translation`
-
-```sql
-filter_group (
-  id          uuid PRIMARY KEY,
-  project_id  uuid NOT NULL,
-  listing_id  uuid REFERENCES listing(id) ON DELETE CASCADE,  -- NULL = project defaults
-  slug        varchar(64) NOT NULL,
-  sort_order  int NOT NULL DEFAULT 0,
-  is_collapsed boolean NOT NULL DEFAULT false,
-  is_visible  boolean NOT NULL DEFAULT true,
-  created_at  timestamptz NOT NULL DEFAULT now(),
-  updated_at  timestamptz NOT NULL DEFAULT now(),
-  UNIQUE(project_id, listing_id, slug)
-)
-```
-
-### 7. `filter_config` + `filter_config_translation`
-
-```sql
-filter_config (
-  id                uuid PRIMARY KEY,
-  project_id        uuid NOT NULL,
-  listing_id        uuid REFERENCES listing(id) ON DELETE CASCADE,  -- NULL = project defaults
-  filter_group_id   uuid REFERENCES filter_group(id) ON DELETE SET NULL,
-  filter_type       varchar(32) NOT NULL,   -- 'feature' | 'option' | 'tag' | 'category' | 'price' | 'stock'
-  filter_slug       varchar(128),
-  sort_order        int NOT NULL DEFAULT 0,
-  display_mode      varchar(32) NOT NULL DEFAULT 'checkbox',
-  is_collapsed      boolean NOT NULL DEFAULT false,
-  is_visible        boolean NOT NULL DEFAULT true,
-  is_searchable     boolean NOT NULL DEFAULT false,
-  max_visible_values int DEFAULT 10,
-  value_sort        varchar(32) NOT NULL DEFAULT 'count_desc',
-  created_at        timestamptz NOT NULL DEFAULT now(),
-  updated_at        timestamptz NOT NULL DEFAULT now(),
-  UNIQUE(project_id, listing_id, filter_type, filter_slug)
-)
-```
-
-### 8. `filter_value_sort`
-
-```sql
-filter_value_sort (
-  id              uuid PRIMARY KEY,
-  filter_config_id uuid NOT NULL REFERENCES filter_config(id) ON DELETE CASCADE,
-  value_slug      varchar(128) NOT NULL,
-  sort_order      int NOT NULL DEFAULT 0,
-  is_hidden       boolean NOT NULL DEFAULT false,
-  UNIQUE(filter_config_id, value_slug)
-)
-```
 
 ---
 
@@ -207,42 +116,27 @@ services/listing/
 │   │   ├── models/
 │   │   │   ├── schema.ts                # pgSchema("listing")
 │   │   │   ├── searchIndex.ts           # product_search_index
-│   │   │   ├── listing.ts              # listing, listing_translation, listing_condition, listing_item
-│   │   │   ├── filterConfig.ts          # filter_group, filter_config, filter_value_sort + translations
+│   │   │   ├── listing.ts              # listing, listing_item
 │   │   │   └── index.ts
 │   │   ├── BaseRepository.ts
 │   │   ├── Repository.ts
 │   │   ├── SearchIndexRepository.ts
 │   │   ├── ListingRepository.ts
-│   │   ├── ListingConditionRepository.ts
-│   │   ├── ListingItemRepository.ts
-│   │   └── FilterConfigRepository.ts
+│   │   └── ListingItemRepository.ts
 │   ├── scripts/
 │   │   ├── index/
 │   │   │   ├── SyncProductIndexScript.ts
 │   │   │   └── BulkSyncProductIndexScript.ts
-│   │   ├── listing/
-│   │   │   ├── ListingCreateScript.ts
-│   │   │   ├── ListingUpdateScript.ts
-│   │   │   ├── ListingDeleteScript.ts
-│   │   │   ├── QueryListingProductsScript.ts   # core: conditions → WHERE → products + facets
-│   │   │   ├── ExcludeProductScript.ts
-│   │   │   ├── AddManualProductsScript.ts
-│   │   │   ├── MoveProductScript.ts            # drag & drop reorder via lexo_rank
-│   │   │   └── RebalanceListingScript.ts       # rebalance lexo_ranks when too long
-│   │   └── filters/
-│   │       ├── CreateFilterGroupScript.ts
-│   │       ├── UpdateFilterConfigScript.ts
-│   │       └── DiscoverFiltersScript.ts
-│   ├── resolvers/
-│   │   └── admin/
-│   │       ├── ListingType.ts
-│   │       ├── QueryResolver.ts
-│   │       ├── MutationResolver.ts
-│   │       ├── ListingResolver.ts
-│   │       ├── ListingConditionResolver.ts
-│   │       ├── FilterGroupResolver.ts
-│   │       └── FilterConfigResolver.ts
+│   │   └── listing/
+│   │       ├── ListingCreateScript.ts
+│   │       ├── ListingDeleteScript.ts
+│   │       ├── QueryListingProductsScript.ts   # core: listing_item JOIN product_search_index + facets
+│   │       ├── AddProductsScript.ts
+│   │       ├── RemoveProductsScript.ts
+│   │       ├── ExcludeProductScript.ts
+│   │       ├── IncludeProductScript.ts
+│   │       ├── MoveProductScript.ts            # drag & drop reorder via lexo_rank
+│   │       └── RebalanceListingScript.ts       # rebalance lexo_ranks when too long
 │   ├── api/
 │   │   └── graphql-admin/
 │   │       ├── server.ts
@@ -252,13 +146,10 @@ services/listing/
 │   │       │   └── types.ts
 │   │       └── schema/
 │   │           ├── base.graphql
-│   │           ├── listing.graphql
-│   │           ├── filters.graphql
-│   │           └── relay.graphql
+│   │           └── listing.graphql
 │   ├── loaders/
 │   │   ├── index.ts
-│   │   ├── ListingLoader.ts
-│   │   └── FilterConfigLoader.ts
+│   │   └── ListingLoader.ts
 │   ├── ListingBrokerActions.ts
 │   └── ListingEventHandlers.ts
 ```
@@ -282,94 +173,68 @@ services/listing/
 
 ### 2. QueryListingProductsScript (Core)
 
-Input: listingId, additional filters, pagination
+Input: listingId, filters (facets from storefront UI), pagination, sort override
 
-Flow for **smart listing**:
-1. Load listing + conditions from DB
-2. Build WHERE clause from conditions against `product_search_index`
-3. Apply additional user filters (from storefront UI)
-4. Load excluded product IDs → add `NOT IN` clause
-5. Execute query → product IDs + total count
-6. Execute parallel facet count queries
-7. Return `{ products, facets, total }`
-
-Flow for **manual listing**:
-1. Load product IDs from `listing_item` ORDER BY `lexo_rank`
-2. JOIN with `product_search_index` for facet data
-3. Apply additional user filters
-4. Execute parallel facet count queries
-5. Return `{ products, facets, total }`
+Flow:
+1. Load listing from DB
+2. Load product IDs from `listing_item` WHERE `excluded = false`
+3. JOIN with `product_search_index` for facet data
+4. Apply user filters (price range, features, options, tags, stock)
+5. Apply sort (manual = lexo_rank, or price/popularity/newest from product_search_index)
+6. Execute query → product IDs + total count
+7. Execute parallel facet count queries (counts per feature value, option value, price range, etc.)
+8. Return `{ products, facets, total }`
 
 ### 3. Listing CRUD
 
-- **Create**: listing + conditions (smart) or listing + manual products (manual)
-- **Update**: modify conditions, sort settings, translations
-- **Pin/Exclude**: add/update `listing_product_override`
-- **Delete**: soft delete
+- **Create**: create listing for a category (auto-created when category is created, or on demand)
+- **Add/Remove products**: add/remove listing_item rows with lexo_rank
+- **Exclude/Include**: toggle `excluded` flag on listing_item
+- **Delete**: cascade deletes listing_items
 
 ### 4. GraphQL Schema (Admin)
 
 **Queries:**
-- `listingQuery.listing(id, handle)` → `Listing`
-- `listingQuery.listings(...)` → `ListingConnection` (relay pagination)
-- `listingQuery.listingProducts(listingId, filters, pagination)` → `ListingProductsResult`
-- `listingQuery.filterGroups(listingId)` → `[FilterGroup!]!`
-- `listingQuery.discoverFilters(listingId)` → `DiscoveredFilters`
+- `listingQuery.listing(id, categoryId)` → `Listing`
+- `listingQuery.listingProducts(listingId, filters, pagination, sort)` → `ListingProductsResult`
 
 **Mutations:**
-- `listingMutation.listingCreate / listingUpdate / listingDelete`
-- `listingMutation.listingAddCondition / listingRemoveCondition`
-- `listingMutation.listingExcludeProduct / listingIncludeProduct`
-- `listingMutation.listingAddManualProducts / listingRemoveManualProducts`
-- `listingMutation.listingMoveProduct(listingId, productId, afterProductId?, beforeProductId?)` — drag & drop reorder via lexo_rank
-- `listingMutation.createFilterGroup / updateFilterGroup / deleteFilterGroup`
-- `listingMutation.createFilterConfig / updateFilterConfig / deleteFilterConfig`
-- `listingMutation.setFilterValueOrder`
+- `listingMutation.listingCreate(categoryId)`
+- `listingMutation.listingDelete(id)`
+- `listingMutation.listingUpdateSort(id, sortBy, sortDirection)`
+- `listingMutation.addProducts(listingId, productIds)`
+- `listingMutation.removeProducts(listingId, productIds)`
+- `listingMutation.excludeProduct(listingId, productId)`
+- `listingMutation.includeProduct(listingId, productId)`
+- `listingMutation.moveProduct(listingId, productId, afterProductId?, beforeProductId?)` — drag & drop
 
 **Federation:**
 - `type Product @key(fields: "id", resolvable: false) { id: ID! }` — reference only
-
----
-
-## Condition → SQL Mapping
-
-| field | slug | operator | value | SQL |
-|-------|------|----------|-------|-----|
-| feature | brand | contains | ["nike","adidas"] | `feature_slugs && ARRAY['brand:nike','brand:adidas']` |
-| feature | brand | not_contains | ["puma"] | `NOT (feature_slugs && ARRAY['brand:puma'])` |
-| option | color | contains | ["red"] | `option_slugs && ARRAY['color:red']` |
-| tag | - | in | ["uuid1","uuid2"] | `tag_ids && ARRAY['uuid1','uuid2']::uuid[]` |
-| category | - | contains | ["cat-uuid"] | `category_ids && ARRAY['cat-uuid']::uuid[]` |
-| price | - | between | {min:1000,max:5000} | `min_price_minor >= 1000 AND max_price_minor <= 5000` |
-| price | - | gt | 1000 | `min_price_minor > 1000` |
-| stock | - | equals | true | `in_stock = true` |
-| created_at | - | gt | "2025-01-01" | `created_at > '2025-01-01'` |
-
-Multiple conditions are AND-joined.
+- `extend type Category @key(fields: "id") { id: ID!, listing: Listing }` — listing field on category
 
 ---
 
 ## Ordering Algorithm
 
-### Manual listing
-Products ordered by `lexo_rank` from `listing_product_override`. Simple `ORDER BY lexo_rank`.
+### Default (manual)
+Products ordered by `lexo_rank` from `listing_item`. Simple `ORDER BY lexo_rank`.
 
-### Smart listing
-Products come from `product_search_index` query sorted by `listing.sort_by` (popularity, price, newest, etc.). Excluded products filtered out via `NOT IN` from overrides.
+### Alternative sorts
+When `sort_by` is not `manual`, products come from `listing_item` JOIN `product_search_index`, sorted by the chosen field (price, popularity, newest). `lexo_rank` is ignored for display but preserved for when admin switches back to manual.
 
-### Reorder mutation (drag & drop) — manual listings only
+### Reorder mutation (drag & drop)
 ```
-moveProductInListing(listingId, productId, afterProductId?, beforeProductId?)
+moveProduct(listingId, productId, afterProductId?, beforeProductId?)
   → new lexo_rank = midpoint(after.lexo_rank, before.lexo_rank)
-  → UPDATE listing_product_override SET lexo_rank = newRank WHERE ...
+  → UPDATE listing_item SET lexo_rank = newRank WHERE ...
   → single row update, O(1)
 ```
 
 ### Rebalance (maintenance)
 When lexo_rank strings exceed 48 chars, rebalance all ranks in listing:
 ```
-rebalanceListingOrder(listingId)
-  → SELECT all overrides ORDER BY lexo_rank
+rebalanceListing(listingId)
+  → SELECT all items ORDER BY lexo_rank
   → reassign evenly spaced ranks
   → batch UPDATE
 ```
@@ -394,13 +259,13 @@ rebalanceListingOrder(listingId)
 `package.json`, `tsconfig.json`, `build.config.json`, `codegen.ts`, `drizzle.config.ts`, module, nest-service, kernel, context
 
 ### Step 2: DB schema (Drizzle models)
-All tables → generate migration
+`product_search_index`, `listing`, `listing_item` → generate migration
 
 ### Step 3: Repositories
-SearchIndexRepository, ListingRepository, ListingConditionRepository, ListingItemRepository, FilterConfigRepository, Repository aggregator
+SearchIndexRepository, ListingRepository, ListingItemRepository, Repository aggregator
 
 ### Step 4: Scripts
-SyncProductIndexScript, ListingCreateScript, ListingUpdateScript, ListingDeleteScript, QueryListingProductsScript, ExcludeProductScript, AddManualProductsScript, MoveProductScript, filter CRUD scripts
+SyncProductIndexScript, ListingCreateScript, ListingDeleteScript, QueryListingProductsScript, AddProductsScript, RemoveProductsScript, ExcludeProductScript, IncludeProductScript, MoveProductScript, RebalanceListingScript
 
 ### Step 5: Event Handlers + Broker Actions
 ListingEventHandlers, ListingBrokerActions, catalog.getProductForIndex in catalog service
