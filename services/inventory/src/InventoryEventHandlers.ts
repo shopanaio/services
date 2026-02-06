@@ -9,15 +9,6 @@ import type { EventHandlerResponse } from "@shopana/events";
 import { Kernel } from "./kernel/Kernel.js";
 
 // Event payload types (events come from Catalog service)
-interface VariantCreatedEvent {
-  eventId: string;
-  payload: {
-    variantId: string;
-    productId: string;
-    projectId: string;
-  };
-}
-
 interface VariantDeletedEvent {
   eventId: string;
   payload: {
@@ -30,9 +21,11 @@ interface VariantDeletedEvent {
  * Event handlers for Inventory service.
  *
  * After the Catalog/Inventory split:
- * - Listens for variant created/deleted events from Catalog
- * - Auto-creates InventoryItem when a Variant is created
+ * - Listens for variant deleted events from Catalog
  * - Cleans up InventoryItem data when a Variant is deleted
+ *
+ * Note: InventoryItem creation is now handled by ProductCreateSaga
+ * via the inventory.createItem broker action.
  */
 @Injectable()
 export class InventoryEventHandlers extends EventHandlers {
@@ -42,41 +35,6 @@ export class InventoryEventHandlers extends EventHandlers {
 
   private get kernel(): Kernel {
     return Kernel.getInstance();
-  }
-
-  /**
-   * Handle variant created event from Catalog service.
-   * Creates a corresponding InventoryItem for the new variant.
-   */
-  @EventHandler("variantCreated")
-  async handleVariantCreated(params: {
-    event: VariantCreatedEvent;
-  }): Promise<EventHandlerResponse> {
-    const { variantId, productId, projectId } = params.event.payload;
-
-    this.logger.debug(
-      `Received variantCreated event: eventId=${params.event.eventId}, variantId=${variantId}, productId=${productId}`
-    );
-
-    try {
-      // Create InventoryItem for this variant
-      const item = await this.kernel.repository.inventoryItem.upsertByVariantId(variantId, {
-        trackInventory: false,
-      });
-
-      this.logger.log(
-        `Created InventoryItem for new variant: variantId=${variantId}, inventoryItemId=${item.id}`
-      );
-
-      return { success: true };
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      this.logger.error(
-        { variantId, error: message },
-        "Failed to create InventoryItem"
-      );
-      return { success: false, error: { message, retryable: true } };
-    }
   }
 
   /**

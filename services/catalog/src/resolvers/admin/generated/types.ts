@@ -1029,6 +1029,16 @@ export type IntFilter = {
   _notIn?: InputMaybe<Array<Scalars['Int']['input']>>;
 };
 
+/** Inventory tracking settings for product creation. */
+export type InventoryItemInput = {
+  /** Allow sales when stock is zero. */
+  continueSellingWhenOutOfStock?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Stock Keeping Unit. */
+  sku?: InputMaybe<Scalars['String']['input']>;
+  /** Whether to track inventory for this product. */
+  tracked: Scalars['Boolean']['input'];
+};
+
 /** Language/Locale codes based on ISO 639-1 and BCP 47 */
 export enum LocaleCode {
   /** Akan */
@@ -1514,6 +1524,8 @@ export type ProductCreateInput = {
   description?: InputMaybe<DescriptionInput>;
   /** URL-friendly handle for the product. */
   handle: Scalars['String']['input'];
+  /** Inventory tracking settings for the product. */
+  inventoryItem?: InputMaybe<InventoryItemInput>;
   /** File IDs for product media (already uploaded via mediaMutation.fileUpload). */
   mediaFileIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   /** Product options (e.g., Color, Size). */
@@ -2744,6 +2756,7 @@ export type ResolversTypes = ResolversObject<{
   GenericUserError: ResolverTypeWrapper<GenericUserError>;
   IDFilter: IdFilter;
   IntFilter: IntFilter;
+  InventoryItemInput: InventoryItemInput;
   JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
   LocaleCode: LocaleCode;
   Mutation: ResolverTypeWrapper<{}>;
@@ -2899,6 +2912,7 @@ export type ResolversParentTypes = ResolversObject<{
   GenericUserError: GenericUserError;
   IDFilter: IdFilter;
   IntFilter: IntFilter;
+  InventoryItemInput: InventoryItemInput;
   JSON: Scalars['JSON']['output'];
   Mutation: {};
   Node: ResolversInterfaceTypes<ResolversParentTypes>['Node'];

@@ -36,3 +36,32 @@ export interface OfferItem {
 export interface GetOffersResult {
   offers: OfferItem[];
 }
+
+// ============================================================================
+// Create Item Action
+// ============================================================================
+
+export interface CreateItemParams {
+  storeId: string;
+  variantId: string;
+  trackInventory: boolean;
+  sku?: string | null;
+  continueSellingWhenOutOfStock?: boolean;
+}
+
+export interface CreateItemResult {
+  inventoryItemId: string;
+}
+
+// ============================================================================
+// Delete Item By Variant ID Action (for saga compensation)
+// ============================================================================
+
+export interface DeleteItemByVariantIdParams {
+  storeId: string;
+  variantId: string;
+}
+
+export interface DeleteItemByVariantIdResult {
+  success: boolean;
+}

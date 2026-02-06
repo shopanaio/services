@@ -27,6 +27,15 @@ export interface ProductCreateVariantInput {
 }
 
 /**
+ * Inventory tracking settings for product creation
+ */
+export interface InventoryItemCreateInput {
+  readonly tracked: boolean;
+  readonly sku?: string | null;
+  readonly continueSellingWhenOutOfStock?: boolean | null;
+}
+
+/**
  * Parameters for creating a product with all its data in one request
  */
 export interface ProductCreateParams {
@@ -42,6 +51,9 @@ export interface ProductCreateParams {
 
   /** Variants to create (only enabled ones from UI) */
   readonly variants?: ProductCreateVariantInput[];
+
+  /** Inventory tracking settings */
+  readonly inventoryItem?: InventoryItemCreateInput;
 
   /** Organization ID for event context */
   readonly organizationId: string;

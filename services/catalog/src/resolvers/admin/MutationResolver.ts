@@ -152,6 +152,13 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       variants: input.variants?.map((v) => ({
         handle: v.handle,
       })),
+      inventoryItem: input.inventoryItem
+        ? {
+            tracked: input.inventoryItem.tracked,
+            sku: input.inventoryItem.sku ?? undefined,
+            continueSellingWhenOutOfStock: input.inventoryItem.continueSellingWhenOutOfStock ?? undefined,
+          }
+        : undefined,
       organizationId: this.$ctx.store.organizationId,
       storeId: this.$ctx.store.id,
       userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,

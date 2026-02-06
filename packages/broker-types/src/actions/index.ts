@@ -69,4 +69,8 @@ export type {
   GetOffersParams,
   OfferItem,
   GetOffersResult,
+  CreateItemParams,
+  CreateItemResult,
+  DeleteItemByVariantIdParams,
+  DeleteItemByVariantIdResult,
 } from "./inventory.js";

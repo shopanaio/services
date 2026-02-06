@@ -5,7 +5,10 @@ import {
   ServiceBroker,
   Action,
 } from "@shopana/shared-kernel";
+import type { Inventory } from "@shopana/broker-types";
 import { Kernel } from "./kernel/Kernel.js";
+import { runWithContext, ServiceContext } from "./context/index.js";
+import { Loader } from "./loaders/Loader.js";
 import {
   GetOffersScript,
   type GetOffersParams,
@@ -34,12 +37,62 @@ export class InventoryBrokerActions extends BrokerActions {
     return Kernel.getInstance();
   }
 
+  private async runWithStoreContext<T>(storeId: string, fn: () => Promise<T>): Promise<T> {
+    const kernel = this.kernel;
+    const ctx = new ServiceContext({
+      requestId: `broker-action-${Date.now()}`,
+      kernel,
+      loaders: new Loader(kernel.repository),
+      store: {
+        id: storeId,
+        name: storeId,
+        displayName: storeId,
+        organizationId: storeId,
+        timezone: "UTC",
+        email: null,
+        defaultLocale: "uk",
+        defaultCurrency: "UAH",
+      },
+    });
+    return runWithContext(ctx, fn);
+  }
+
   /**
    * Action: getOffers - retrieves inventory offers through plugins
    */
   @Action("getOffers")
   async getOffers(params: GetOffersParams): Promise<GetOffersResult> {
     return this.kernel.runScript(GetOffersScript, params);
+  }
+
+  /**
+   * Action: createItem - creates an inventory item for a variant
+   */
+  @Action("createItem")
+  async createItem(params: Inventory.CreateItemParams): Promise<Inventory.CreateItemResult> {
+    return this.runWithStoreContext(params.storeId, async () => {
+      const item = await this.kernel.repository.inventoryItem.upsertByVariantId(params.variantId, {
+        trackInventory: params.trackInventory,
+        sku: params.sku ?? undefined,
+        continueSellingWhenOutOfStock: params.continueSellingWhenOutOfStock,
+      });
+
+      return { inventoryItemId: item.id };
+    });
+  }
+
+  /**
+   * Action: deleteItemByVariantId - deletes an inventory item by variant ID (saga compensation)
+   */
+  @Action("deleteItemByVariantId")
+  async deleteItemByVariantId(params: Inventory.DeleteItemByVariantIdParams): Promise<Inventory.DeleteItemByVariantIdResult> {
+    return this.runWithStoreContext(params.storeId, async () => {
+      const item = await this.kernel.repository.inventoryItem.findByVariantId(params.variantId);
+      if (item) {
+        await this.kernel.repository.inventoryItem.delete(item.id);
+      }
+      return { success: true };
+    });
   }
 
   /**

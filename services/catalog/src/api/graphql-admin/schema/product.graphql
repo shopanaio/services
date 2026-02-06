@@ -168,6 +168,20 @@ input ProductCreateVariantInput {
 }
 
 """
+Inventory tracking settings for product creation.
+"""
+input InventoryItemInput {
+  """Whether to track inventory for this product."""
+  tracked: Boolean!
+
+  """Stock Keeping Unit."""
+  sku: String
+
+  """Allow sales when stock is zero."""
+  continueSellingWhenOutOfStock: Boolean
+}
+
+"""
 Input for creating a product with all its data in one request.
 """
 input ProductCreateInput {
@@ -188,6 +202,9 @@ input ProductCreateInput {
 
   """Variants to create (only enabled ones from UI)."""
   variants: [ProductCreateVariantInput!]
+
+  """Inventory tracking settings for the product."""
+  inventoryItem: InventoryItemInput
 }
 
 """

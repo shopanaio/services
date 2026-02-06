@@ -12,6 +12,7 @@ export type {
   ProductCreateOptionInput,
   ProductCreateOptionValueInput,
   ProductCreateVariantInput,
+  InventoryItemCreateInput,
   VariantMediaEntry,
 } from "./ProductCreateDto.js";
 
