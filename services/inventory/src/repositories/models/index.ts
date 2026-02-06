@@ -1,9 +1,6 @@
 // Schema
 export * from "./schema";
 
-// Variant (for widget aggregation by productId)
-export * from "./variants";
-
 // InventoryItem (1:1 with Catalog.Variant)
 export * from "./inventory-item";
 

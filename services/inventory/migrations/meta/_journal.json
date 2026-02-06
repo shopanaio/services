@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1769958282943,
-      "tag": "0000_nostalgic_mister_fear",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1769961745454,
-      "tag": "0001_deferrable_feature_constraints",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1770422400000,
-      "tag": "0002_add_inventory_item",
+      "when": 1770398935254,
+      "tag": "0000_fancy_jimmy_woo",
       "breakpoints": true
     }
   ]

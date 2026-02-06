@@ -2,11 +2,11 @@ import { sql, eq, and, isNull, inArray, gte, sum } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   productInventorySettings,
-  variant,
   warehouseStock,
   stockChanges,
   inboundSupply,
 } from "../models/index.js";
+import { catalogVariant as variant } from "../models/catalog-refs.js";
 
 export type ThresholdMethod = "SAFETY_STOCK" | "REORDER_POINT";
 
