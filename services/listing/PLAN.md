@@ -46,6 +46,7 @@ product_search_index (
   product_id     uuid PRIMARY KEY,
   min_price_minor bigint,
   max_price_minor bigint,
+  is_active      boolean NOT NULL DEFAULT false,  -- product published in catalog
   in_stock       boolean NOT NULL DEFAULT false,
   total_stock    int NOT NULL DEFAULT 0,
   tag_ids        uuid[] DEFAULT '{}',
