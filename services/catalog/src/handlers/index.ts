@@ -12,8 +12,8 @@ import type {
   FileHardDeletedEvent,
   EventHandlerResponse,
 } from "@shopana/events";
-import { Kernel } from "./kernel/Kernel.js";
-import { FileHardDeletedScript } from "./scripts/media/FileHardDeletedScript.js";
+import { Kernel } from "../kernel/Kernel.js";
+import { FileHardDeletedScript } from "../scripts/media/FileHardDeletedScript.js";
 
 @Injectable()
 export class InventoryEventHandlers extends EventHandlers {

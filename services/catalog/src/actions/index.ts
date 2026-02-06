@@ -5,12 +5,12 @@ import {
   ServiceBroker,
   Action,
 } from "@shopana/shared-kernel";
-import { Kernel } from "./kernel/Kernel.js";
+import { Kernel } from "../kernel/Kernel.js";
 import {
   GetOffersScript,
   type GetOffersParams,
   type GetOffersResult,
-} from "./scripts/GetOffersScript.js";
+} from "../scripts/GetOffersScript.js";
 
 /**
  * Inventory broker actions registered with @Action decorator.

@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { BrokerModule } from '@shopana/shared-kernel';
 import { InventoryNestService } from './inventory.nest-service';
-import { InventoryBrokerActions } from './InventoryBrokerActions';
-import { InventoryEventHandlers } from './InventoryEventHandlers';
+import { InventoryBrokerActions } from './actions';
+import { InventoryEventHandlers } from './handlers';
 import {
   BackRefNotifySaga,
   EntityDeletedNotifySaga,

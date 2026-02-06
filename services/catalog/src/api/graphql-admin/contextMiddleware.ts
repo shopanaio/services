@@ -20,6 +20,6 @@ declare module "fastify" {
 export function buildAdminContextMiddleware() {
   const kernel = Kernel.getInstance();
   return buildMiddleware(kernel.getServices().broker, {
-    serviceName: "INVENTORY",
+    serviceName: "CATALOG",
   });
 }
