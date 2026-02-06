@@ -25,6 +25,7 @@ import type {
 } from "../scripts/types/ProductChanges.js";
 import type { UserError } from "../scripts/types/ScriptResult.js";
 
+import type { Inventory } from "@shopana/broker-types";
 import { ProductUpdateScript } from "../scripts/product/ProductUpdateScript.js";
 import { ProductUpdateContentScript } from "../scripts/product/ProductUpdateContentScript.js";
 import { ProductUpdateSeoScript } from "../scripts/product/ProductUpdateSeoScript.js";
@@ -313,11 +314,50 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       if (r.changes) mergeVariantChanges({ pricing: r.changes });
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // REMOVED from Catalog (moved to Inventory Service):
-    // - inventory (VariantUpdateInventoryScript)
-    // - dimensions (VariantUpdateDimensionsScript)
-    // ═══════════════════════════════════════════════════════════
+    // Inventory operations are delegated to the Inventory Service via broker
+    if (params.inventory) {
+      const r = await this.broker.call<Inventory.UpdateItemResult, Inventory.UpdateItemParams>(
+        "inventory.updateItem",
+        {
+          storeId: ctx.storeId,
+          variantId,
+          warehouseId: params.inventory.warehouseId,
+          onHand: params.inventory.onHand,
+          unavailable: params.inventory.unavailable,
+          sku: params.inventory.sku,
+          weight: params.inventory.weight,
+          unitCostMinor: params.inventory.unitCostMinor,
+          costCurrency: params.inventory.costCurrency,
+        },
+      );
+      if (!r.success) {
+        errors.push(...r.userErrors.map((e: { message: string; code: string; field?: string[] }) => ({
+          message: e.message,
+          code: e.code,
+          field: e.field,
+        })));
+      }
+    }
+
+    if (params.dimensions) {
+      const r = await this.broker.call<Inventory.UpdateItemDimensionsResult, Inventory.UpdateItemDimensionsParams>(
+        "inventory.updateItemDimensions",
+        {
+          storeId: ctx.storeId,
+          variantId,
+          width: params.dimensions.width,
+          height: params.dimensions.height,
+          length: params.dimensions.length,
+        },
+      );
+      if (!r.success) {
+        errors.push(...r.userErrors.map((e: { message: string; code: string; field?: string[] }) => ({
+          message: e.message,
+          code: e.code,
+          field: e.field,
+        })));
+      }
+    }
 
     if (media) {
       const r = await this.kernel.runScript(VariantUpdateMediaScript, {

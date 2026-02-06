@@ -294,6 +294,26 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
                     : undefined,
                 }
               : undefined,
+            inventory: vu.inventory
+              ? {
+                  warehouseId: vu.inventory.warehouseId,
+                  onHand: vu.inventory.onHand,
+                  unavailable: vu.inventory.unavailable ?? undefined,
+                  sku: vu.inventory.sku ?? undefined,
+                  weight: vu.inventory.weight ?? undefined,
+                  unitCostMinor: vu.inventory.unitCostMinor
+                    ? Number(vu.inventory.unitCostMinor)
+                    : undefined,
+                  costCurrency: vu.inventory.costCurrency ?? undefined,
+                }
+              : undefined,
+            dimensions: vu.dimensions
+              ? {
+                  width: vu.dimensions.width,
+                  height: vu.dimensions.height,
+                  length: vu.dimensions.length,
+                }
+              : undefined,
             media: vu.media
               ? {
                   fileIds: vu.media.fileIds.map((id) =>

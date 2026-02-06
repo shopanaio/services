@@ -15,6 +15,8 @@ import {
   type GetOffersResult,
 } from "./scripts/GetOffersScript.js";
 import type { VariantCost, CurrencyCode } from "./resolvers/admin/interfaces/index.js";
+import { InventoryItemUpdateScript } from "./scripts/inventory-item/InventoryItemUpdateScript.js";
+import { InventoryItemUpdateDimensionsScript } from "./scripts/inventory-item/InventoryItemUpdateDimensionsScript.js";
 
 export interface GetVariantCostParams {
   projectId: string;
@@ -116,6 +118,58 @@ export class InventoryBrokerActions extends BrokerActions {
         effectiveTo: cost.effectiveTo ? new Date(cost.effectiveTo) : null,
         recordedAt: new Date(cost.recordedAt),
         isCurrent: cost.effectiveTo === null,
+      };
+    });
+  }
+
+  /**
+   * Action: updateItem - updates inventory item (stock, SKU, weight, cost)
+   */
+  @Action("updateItem")
+  async updateItem(params: Inventory.UpdateItemParams): Promise<Inventory.UpdateItemResult> {
+    return this.runWithStoreContext(params.storeId, async () => {
+      const result = await this.kernel.runScript(InventoryItemUpdateScript, {
+        variantId: params.variantId,
+        warehouseId: params.warehouseId,
+        onHand: params.onHand,
+        unavailable: params.unavailable,
+        sku: params.sku,
+        weight: params.weight,
+        unitCostMinor: params.unitCostMinor != null ? Number(params.unitCostMinor) : undefined,
+        costCurrency: params.costCurrency,
+      });
+
+      return {
+        success: result.userErrors.length === 0,
+        userErrors: result.userErrors.map((e) => ({
+          message: e.message,
+          code: e.code ?? "UNKNOWN",
+          field: e.field,
+        })),
+      };
+    });
+  }
+
+  /**
+   * Action: updateItemDimensions - updates inventory item dimensions
+   */
+  @Action("updateItemDimensions")
+  async updateItemDimensions(params: Inventory.UpdateItemDimensionsParams): Promise<Inventory.UpdateItemDimensionsResult> {
+    return this.runWithStoreContext(params.storeId, async () => {
+      const result = await this.kernel.runScript(InventoryItemUpdateDimensionsScript, {
+        variantId: params.variantId,
+        width: params.width,
+        height: params.height,
+        length: params.length,
+      });
+
+      return {
+        success: result.userErrors.length === 0,
+        userErrors: result.userErrors.map((e) => ({
+          message: e.message,
+          code: e.code ?? "UNKNOWN",
+          field: e.field,
+        })),
       };
     });
   }

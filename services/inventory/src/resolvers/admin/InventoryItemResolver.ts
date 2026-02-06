@@ -61,9 +61,10 @@ export class InventoryItemResolver extends InventoryType<string, InventoryItem> 
     if (!current) return null;
 
     return {
-      width: current.wMm,
-      length: current.lMm,
-      height: current.hMm,
+      widthMm: current.wMm,
+      lengthMm: current.lMm,
+      heightMm: current.hMm,
+      displayUnit: "mm",
     };
   }
 
@@ -80,14 +81,15 @@ export class InventoryItemResolver extends InventoryType<string, InventoryItem> 
     if (!current) return null;
 
     return {
-      value: current.weightGr,
+      weightGrams: current.weightGr,
+      displayUnit: "g",
     };
   }
 
   /**
-   * Current cost from cost history table.
+   * Current unit cost from cost history table.
    */
-  async cost() {
+  async unitCost() {
     const variantId = await this.$get("variantId");
     const costs = await this.$ctx.kernel
       .getServices()
@@ -104,13 +106,9 @@ export class InventoryItemResolver extends InventoryType<string, InventoryItem> 
 
     const current = filtered[0];
     return {
-      id: current.id,
       currency: current.currency,
-      unitCostMinor: current.unitCostMinor,
+      amountMinor: current.unitCostMinor,
       effectiveFrom: current.effectiveFrom,
-      effectiveTo: current.effectiveTo,
-      recordedAt: current.recordedAt,
-      isCurrent: current.effectiveTo === null,
     };
   }
 
@@ -124,6 +122,22 @@ export class InventoryItemResolver extends InventoryType<string, InventoryItem> 
       .repository.stock.getByVariantId(variantId);
 
     return stocks.map((s) => new StockResolver(s.id, this.$ctx));
+  }
+
+  /**
+   * Total quantity available across all warehouses.
+   * Available = onHand - reserved - unavailable
+   */
+  async totalAvailable() {
+    const variantId = await this.$get("variantId");
+    const stocks = await this.$ctx.kernel
+      .getServices()
+      .repository.stock.getByVariantId(variantId);
+
+    return stocks.reduce(
+      (sum, s) => sum + (s.quantityOnHand - s.reservedQty - s.unavailableQty),
+      0,
+    );
   }
 
   /**

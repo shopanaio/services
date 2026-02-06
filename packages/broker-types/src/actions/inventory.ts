@@ -65,3 +65,41 @@ export interface DeleteItemByVariantIdParams {
 export interface DeleteItemByVariantIdResult {
   success: boolean;
 }
+
+// ============================================================================
+// Update Item Action (stock, SKU, weight, cost)
+// ============================================================================
+
+export interface UpdateItemParams {
+  storeId: string;
+  variantId: string;
+  warehouseId: string;
+  onHand: number;
+  unavailable?: number;
+  sku?: string | null;
+  weight?: number | null;
+  unitCostMinor?: number | null;
+  costCurrency?: string | null;
+}
+
+export interface UpdateItemResult {
+  success: boolean;
+  userErrors: Array<{ message: string; code: string; field?: string[] }>;
+}
+
+// ============================================================================
+// Update Item Dimensions Action
+// ============================================================================
+
+export interface UpdateItemDimensionsParams {
+  storeId: string;
+  variantId: string;
+  width: number;
+  height: number;
+  length: number;
+}
+
+export interface UpdateItemDimensionsResult {
+  success: boolean;
+  userErrors: Array<{ message: string; code: string; field?: string[] }>;
+}

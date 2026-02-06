@@ -57,9 +57,10 @@ export class VariantFederationResolver extends InventoryType<string, Record<stri
     if (!current) return null;
 
     return {
-      width: current.wMm,
-      length: current.lMm,
-      height: current.hMm,
+      widthMm: current.wMm,
+      lengthMm: current.lMm,
+      heightMm: current.hMm,
+      displayUnit: "mm",
     };
   }
 
@@ -75,14 +76,15 @@ export class VariantFederationResolver extends InventoryType<string, Record<stri
     if (!current) return null;
 
     return {
-      value: current.weightGr,
+      weightGrams: current.weightGr,
+      displayUnit: "g",
     };
   }
 
   /**
-   * Current cost from cost history table.
+   * Current unit cost from cost history table.
    */
-  async cost() {
+  async unitCost() {
     const costs = await this.$ctx.kernel
       .getServices()
       .repository.cost.getActiveCostsByVariantIds([this.$props]);
@@ -98,13 +100,9 @@ export class VariantFederationResolver extends InventoryType<string, Record<stri
 
     const current = filtered[0];
     return {
-      id: current.id,
       currency: current.currency,
-      unitCostMinor: current.unitCostMinor,
+      amountMinor: current.unitCostMinor,
       effectiveFrom: current.effectiveFrom,
-      effectiveTo: current.effectiveTo,
-      recordedAt: current.recordedAt,
-      isCurrent: current.effectiveTo === null,
     };
   }
 
