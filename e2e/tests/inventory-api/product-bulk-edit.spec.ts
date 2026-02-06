@@ -1208,11 +1208,12 @@ test.describe('Product Bulk Edit API', () => {
   test.describe('Larger Batch Operations', () => {
     test('should handle batch of 10 products', async ({ api }) => {
       const batchId = Date.now();
-      const products = await Promise.all(
-        Array.from({ length: 10 }, (_, i) =>
-          createProduct(api, `Batch 10 Product ${i + 1}`, `batch10-${batchId}-${i}`),
-        ),
-      );
+      const products = [];
+      for (let i = 0; i < 10; i++) {
+        products.push(
+          await createProduct(api, `Batch 10 Product ${i + 1}`, `batch10-${batchId}-${i}`),
+        );
+      }
 
       const { job } = await submitBulkUpdateAndWait(
         api,

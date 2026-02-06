@@ -5,7 +5,13 @@ import { BulkUpdateItemResolver } from "./BulkUpdateItemResolver.js";
 
 export class ProductBulkUpdateJobResolver extends CatalogType<string, BulkEditJob> {
   async $preload() {
-    const job = await this.$ctx.kernel.repository.bulkEditJob.findById(this.$props);
+    // The job may not be immediately visible if created in a concurrent transaction.
+    // Retry once after a short delay to handle connection pool timing issues.
+    let job = await this.$ctx.kernel.repository.bulkEditJob.findById(this.$props);
+    if (!job) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      job = await this.$ctx.kernel.repository.bulkEditJob.findById(this.$props);
+    }
     if (!job) {
       throw new Error(`BulkEditJob with ID ${this.$props} not found`);
     }
