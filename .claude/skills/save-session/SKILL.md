@@ -1,6 +1,6 @@
 ---
 name: save-session
-description: Save important session context — work done, mistakes, best practices — to .ai-sessions/
+description: Save important session context - work done, mistakes, best practices - to .ai-sessions/
 user-invocable: true
 ---
 
