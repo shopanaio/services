@@ -372,7 +372,7 @@ catalog.product_search_index (
   total_stock       int NOT NULL DEFAULT 0,
   tag_ids           uuid[] DEFAULT '{}',
   feature_ids       uuid[] DEFAULT '{}',  -- product_feature IDs (immutable; slug computed via slugify() on translation name at query time)
-  option_ids        uuid[] DEFAULT '{}',  -- stored as 'optionId:optionValueId' UUID pairs (slugs computed via slugify() at query time — see §3.3)
+  option_ids        uuid[] DEFAULT '{}',  -- option_value IDs (plain UUIDs)
   category_ids      uuid[] DEFAULT '{}',
   created_at        timestamptz NOT NULL DEFAULT now(),
   updated_at        timestamptz NOT NULL DEFAULT now()
@@ -390,15 +390,18 @@ Both the search index and facet config store **IDs**. Slug resolution is only ne
   SELECT feature_id FROM product_feature_translation
   WHERE locale = :locale AND slugify(name) = ANY(:slugs) AND project_id = :projectId
   ```
-- **Options:** caller passes `optionSlugs` as `key:value` strings → script splits into option slug + value slug, resolves both to IDs via `slugify(name)` on the respective translation tables, then builds `'optionId:optionValueId'` pairs for the array overlap query:
+- **Options:** caller passes `optionSlugs` as `key:value` strings → script splits into option slug + value slug, resolves both to IDs via `slugify(name)` on the respective translation tables, then uses the resolved option_value_id UUIDs for the array overlap query:
   ```sql
-  -- Resolve option slug → option_id
-  SELECT option_id FROM product_option_translation
-  WHERE locale = :locale AND product_id = :productId AND slugify(name) = :optionSlug;
-  
   -- Resolve option value slug → option_value_id  
-  SELECT option_value_id FROM product_option_value_translation
-  WHERE locale = :locale AND option_id = :optionId AND slugify(name) = :valueSlug;
+  SELECT pov.id AS option_value_id
+  FROM product_option_value pov
+  JOIN product_option_value_translation povt ON povt.option_value_id = pov.id
+  JOIN product_option po ON po.id = pov.option_id
+  JOIN product_option_translation pot ON pot.option_id = po.id AND pot.locale = :locale
+  WHERE povt.locale = :locale
+    AND slugify(pot.name) = :optionSlug
+    AND slugify(povt.name) = :valueSlug
+    AND po.project_id = :projectId;
   ```
 
 All lookups hit expression indexes (see §3.3) — same performance as a stored slug column. Label renames automatically update the computed slug — no sync needed. Results are cached per request.
@@ -494,15 +497,19 @@ FROM product_search_index psi
 WHERE psi.product_id IN (...)
 GROUP BY feature_id
 
--- Option facets: split 'optionId:optionValueId' pairs, group by option to produce per-option facets
-SELECT
-  split_part(kv, ':', 1)::uuid AS option_id,
-  split_part(kv, ':', 2)::uuid AS option_value_id,
-  COUNT(*) AS cnt
+-- Option facets: for each facet_config, find which option_value IDs appear in the product set
+-- facet_config.facet_keys already contains the option IDs for grouping
+-- 1. Pre-compute eligible option_value IDs per facet_config:
+SELECT pov.id FROM product_option_value pov
+WHERE pov.option_id = ANY(:facetKeys)  -- facet_keys from facet_config
+
+-- 2. Count occurrences in the product set:
+SELECT ov_id, COUNT(*) AS cnt
 FROM product_search_index psi,
-     unnest(psi.option_ids) AS kv
+     unnest(psi.option_ids) AS ov_id
 WHERE psi.product_id IN (...)
-GROUP BY option_id, option_value_id
+  AND ov_id = ANY(:eligibleValueIds)
+GROUP BY ov_id
 -- After aggregation, join translation tables to resolve labels and compute slugs via slugify(name) for display (see §3.3)
 
 -- In-stock count (simple COUNT WHERE in_stock = true)
@@ -517,14 +524,14 @@ The raw facet data is then intersected with the project's `facet_config` to dete
 - Value count limits (`max_values_visible`)
 - Labels from `facet_config_translation`
 
-**Multi-key filtering:** when a user selects a value from a merged facet, the facet_keys already contain option IDs, so no slug resolution is needed for the config side. The storefront passes option value IDs directly (resolved from slugs at the API boundary). For example, filtering by "red" on a facet with `facet_keys = [opt-id-1, opt-id-2]`:
-1. The facet config already knows the option IDs: `opt-id-1`, `opt-id-2`
-2. The selected value ID `val-id-A` is paired with each option ID
-3. Build filter:
+**Multi-key filtering:** when a user selects a value from a merged facet, the facet_keys contain option IDs. The storefront passes option value IDs directly (resolved from slugs at the API boundary). For example, filtering by "red" on a facet with `facet_keys = [opt-id-1, opt-id-2]`:
+1. The facet config knows the option IDs: `opt-id-1`, `opt-id-2`
+2. Look up all option_value IDs under those options that match the selected value (e.g., `val-id-A`)
+3. Build filter using plain UUIDs:
 ```sql
-(psi.option_ids && ARRAY['opt-id-1:val-id-A', 'opt-id-2:val-id-A']::text[])
+(psi.option_ids && ARRAY['val-id-A']::uuid[])
 ```
-Everything is ID-based end-to-end — no slug resolution needed at query time.
+Since `option_ids` stores option_value UUIDs directly, filtering is a simple array overlap — no composite key splitting needed.
 
 ---
 
