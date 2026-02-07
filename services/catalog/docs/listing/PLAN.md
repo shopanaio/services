@@ -290,7 +290,10 @@ catalog.facet_config (
   -- | 'and'        | Product has Cotton AND Polyester         | @> (contains)|
   --
   -- 'or' — standard for e-commerce (show cotton OR polyester items)
+  --        Facet isolation: drop entire facet filter, count per value independently.
   -- 'and' — for tags/multi-values (show items with BOTH "sale" AND "new-arrival" tags)
+  --        Facet isolation: per-value — drop only the tested value's boolean,
+  --        keep other selected values. See §5.3.1 Step 2 for details.
   --
   -- Ignored when selection_mode = 'single' (only one value, no logic needed).
   -- Between different facets — always AND: Material=Cotton AND Color=Red.
@@ -595,7 +598,9 @@ For a given product set (from category or collection).
 
 Two key concerns:
 
-1. **Facet isolation** — counts for each facet are computed **without** that facet's own filter applied (but with all other facet filters applied). This prevents selected values from hiding sibling values. Standard e-commerce pattern.
+1. **Facet isolation** — depends on `filter_logic`:
+   - **OR mode** (default): counts for each facet are computed **without** that facet's entire filter applied (but with all other facet filters). This lets the user see sibling values and switch between them. Standard e-commerce pattern.
+   - **AND mode**: counts are computed **per-value** — the tested value is removed from the AND set, but other selected values in the same facet remain. This shows "how many items match if I add/remove this specific value?"
 2. **Merged values** — when `facet_config_value.source_handles` contains multiple entries, their counts must be summed into a single display value.
 
 #### 5.3.1 Single-query approach with boolean filter columns
@@ -604,7 +609,15 @@ Instead of N+1 separate queries, compute boolean "passes filter" columns per fac
 
 **Step 1: Base CTE with per-facet boolean columns**
 
+The shape of boolean columns depends on the facet's `filter_logic`:
+
+- **OR facets** → one boolean per facet (`passes_color`). Isolation = drop the whole boolean.
+- **AND facets** → one boolean **per selected value** (`passes_tags_sale`, `passes_tags_new_arrival`). Isolation = drop only the value being counted, keep the rest.
+
 ```sql
+-- Example: user selected Color=[Red, Blue] (OR mode), Tags=[Sale, New-Arrival] (AND mode),
+-- price $10–$50, in_stock=true.
+
 WITH base AS (
   SELECT
     psi.product_id,
@@ -614,15 +627,19 @@ WITH base AS (
     psi.min_price_minor,
     psi.max_price_minor,
     psi.in_stock,
-    -- One boolean per active facet filter (generated dynamically by app):
-    -- TRUE = this product passes this specific facet's filter
+
+    -- OR-mode facet: one boolean for the whole facet.
+    -- Isolation = drop this entire boolean.
     (psi.option_slugs && ARRAY['color:red','color:blue']::text[])   AS passes_color,
-    (psi.feature_slugs @> ARRAY['material:cotton']::text[])          AS passes_material,
-    -- Price and in_stock get boolean columns too when user has applied those filters,
-    -- so they participate in facet isolation like any other facet:
+
+    -- AND-mode facet: one boolean PER selected value.
+    -- Isolation for value X = drop passes_tags_X, keep other passes_tags_*.
+    (psi.tag_handles @> ARRAY['sale']::text[])                       AS passes_tags_sale,
+    (psi.tag_handles @> ARRAY['new-arrival']::text[])                AS passes_tags_new_arrival,
+
+    -- Price and in_stock:
     (psi.max_price_minor >= :priceMin AND psi.min_price_minor <= :priceMax) AS passes_price,
     (psi.in_stock = true)                                            AS passes_in_stock
-    -- ... one column per active facet filter (including price/in_stock when filtered)
   FROM product_search_index psi
   JOIN product_category pc ON pc.product_id = psi.product_id
   WHERE pc.category_id = :categoryId
@@ -634,9 +651,6 @@ WITH base AS (
     -- To filter by cheapest variant only, use psi.min_price_minor for both bounds.)
     AND (:priceMin IS NULL OR psi.max_price_minor >= :priceMin)
     AND (:priceMax IS NULL OR psi.min_price_minor <= :priceMax)
-    -- Price and in_stock are also boolean columns for facet isolation (see below).
-    -- They appear in WHERE only when NOT configured as facets.
-    -- When configured as facets, they become passes_X booleans like other facets.
 )
 ```
 
@@ -644,26 +658,34 @@ WITH base AS (
 
 ```sql
 -- All facet value counts in one query, each facet excludes only its own filter.
--- Active filters: color, material. "passes_X" columns from Step 1.
+-- Active filters: Color=[Red,Blue] (OR), Tags=[Sale,New-Arrival] (AND).
+-- Boolean columns from Step 1: passes_color, passes_tags_sale, passes_tags_new_arrival,
+-- passes_price, passes_in_stock.
 
 -- UNION ALL of all three array types (option, feature, tag) into a single unnested stream:
 WITH unnested AS (
   -- Options
-  SELECT b.product_id, b.passes_color, b.passes_material, b.passes_price, b.passes_in_stock,
+  SELECT b.product_id,
+         b.passes_color, b.passes_tags_sale, b.passes_tags_new_arrival,
+         b.passes_price, b.passes_in_stock,
          sv.slug AS sv_slug, 'option' AS facet_type
   FROM base b, unnest(b.option_slugs) AS sv(slug)
   
   UNION ALL
   
   -- Features
-  SELECT b.product_id, b.passes_color, b.passes_material, b.passes_price, b.passes_in_stock,
+  SELECT b.product_id,
+         b.passes_color, b.passes_tags_sale, b.passes_tags_new_arrival,
+         b.passes_price, b.passes_in_stock,
          sv.slug AS sv_slug, 'feature' AS facet_type
   FROM base b, unnest(b.feature_slugs) AS sv(slug)
   
   UNION ALL
   
   -- Tags
-  SELECT b.product_id, b.passes_color, b.passes_material, b.passes_price, b.passes_in_stock,
+  SELECT b.product_id,
+         b.passes_color, b.passes_tags_sale, b.passes_tags_new_arrival,
+         b.passes_price, b.passes_in_stock,
          sv.slug AS sv_slug, 'tag' AS facet_type
   FROM base b, unnest(b.tag_handles) AS sv(slug)
 )
@@ -673,12 +695,32 @@ SELECT
   COALESCE(fcv.facet_config_id, fc.id) AS facet_config_id,
   fcv.id AS display_value_id,      -- NULL for unconfigured values
   u.sv_slug,                        -- raw slug (used as fallback grouping key when fcv.id IS NULL)
+
+  -- ── OR-mode facet (Color): drop entire passes_color ──
   COUNT(DISTINCT u.product_id)
-    FILTER (WHERE u.passes_material AND u.passes_price AND u.passes_in_stock) AS cnt_color_facet,
-    -- ^ color facet: require all filters EXCEPT color (isolation)
+    FILTER (WHERE u.passes_tags_sale AND u.passes_tags_new_arrival
+                  AND u.passes_price AND u.passes_in_stock)         AS cnt_color_facet,
+    -- ^ All filters EXCEPT color. User can see Red(45), Blue(30), Green(12).
+
+  -- ── AND-mode facet (Tags): drop only the tested value's boolean ──
+  -- Count for "Sale": drop passes_tags_sale, keep passes_tags_new_arrival.
+  -- Shows: "if I toggle Sale off, how many items still match New-Arrival + other filters?"
+  -- For an unselected value like "Clearance": keep ALL passes_tags_*, add Clearance check.
+  -- Shows: "if I add Clearance, how many items match Sale AND New-Arrival AND Clearance?"
   COUNT(DISTINCT u.product_id)
-    FILTER (WHERE u.passes_color AND u.passes_price AND u.passes_in_stock)    AS cnt_material_facet
-    -- ^ material facet: require all filters EXCEPT material (isolation)
+    FILTER (WHERE u.passes_color AND u.passes_tags_new_arrival
+                  AND u.passes_price AND u.passes_in_stock)         AS cnt_tags_excl_sale,
+    -- ^ Tags facet, counting "sale" value: drop passes_tags_sale only
+
+  COUNT(DISTINCT u.product_id)
+    FILTER (WHERE u.passes_color AND u.passes_tags_sale
+                  AND u.passes_price AND u.passes_in_stock)         AS cnt_tags_excl_new_arrival
+    -- ^ Tags facet, counting "new-arrival" value: drop passes_tags_new_arrival only
+
+  -- For unselected tag values (e.g., "clearance"), the count column keeps ALL
+  -- passes_tags_* booleans (sale AND new_arrival) — no isolation needed because
+  -- the value is not yet selected. The count answers "how many if I add this?"
+
 FROM unnested u
 -- Resolve facet_config for this slug's facet_type + source_handle:
 JOIN facet_config fc
@@ -698,7 +740,18 @@ LEFT JOIN facet_config_value fcv
 GROUP BY COALESCE(fcv.facet_config_id, fc.id), fcv.id, u.sv_slug
 ```
 
-The app generates the `FILTER (WHERE ...)` clause dynamically: for facet F, AND together all `passes_X` columns **except** `passes_F`. This includes `passes_price` and `passes_in_stock` when those filters are active.
+**Isolation rules (generated dynamically by app):**
+
+| filter_logic | Isolation strategy | FILTER clause for value V in facet F |
+|---|---|---|
+| **OR** | Drop entire facet | AND together all `passes_X` **except** `passes_F` |
+| **AND** | Drop only tested value | AND together all `passes_X` **except** `passes_F_V` (keep other `passes_F_*`) |
+
+For **AND-mode unselected values** (value not yet in the active filter): keep ALL `passes_F_*` booleans — no isolation needed. The count shows "how many items match current AND selection PLUS this new value?"
+
+For **AND-mode selected values**: drop only that value's boolean. The count shows "how many items still match if I remove this value?"
+
+The app generates one `COUNT(DISTINCT ...) FILTER (WHERE ...)` column per AND-mode selected value. For OR-mode facets, one column covers all values in that facet.
 
 **Unconfigured values:** When `fcv.id IS NULL` (no `facet_config_value` row), the app groups by raw `sv_slug` instead. The display label comes from source translation tables (option_value, feature_value, or tag). The value slug is derived from `sv_slug` (strip the prefix for option/feature, use directly for tag).
 
@@ -712,20 +765,24 @@ available. Total count uses all filters.
 ```sql
 SELECT
   -- Price range: exclude passes_price (isolation), keep all other filters
-  MIN(min_price_minor) FILTER (WHERE passes_color AND passes_material AND passes_in_stock) AS price_min,
-  MAX(max_price_minor) FILTER (WHERE passes_color AND passes_material AND passes_in_stock) AS price_max,
+  MIN(min_price_minor) FILTER (WHERE passes_color AND passes_tags_sale AND passes_tags_new_arrival AND passes_in_stock) AS price_min,
+  MAX(max_price_minor) FILTER (WHERE passes_color AND passes_tags_sale AND passes_tags_new_arrival AND passes_in_stock) AS price_max,
   -- In-stock count: exclude passes_in_stock (isolation), keep all other filters
-  COUNT(*)             FILTER (WHERE passes_color AND passes_material AND passes_price) AS in_stock_count,
+  COUNT(*)             FILTER (WHERE passes_color AND passes_tags_sale AND passes_tags_new_arrival AND passes_price) AS in_stock_count,
   -- Total count: all filters applied (no isolation — this is the result count)
-  COUNT(*)             FILTER (WHERE passes_color AND passes_material AND passes_price AND passes_in_stock) AS total_count
+  COUNT(*)             FILTER (WHERE passes_color AND passes_tags_sale AND passes_tags_new_arrival AND passes_price AND passes_in_stock) AS total_count
 FROM base
 ```
+
+Note: AND-mode facets contribute **all** their per-value booleans to other facets' FILTER clauses (no isolation for other facets — only within the AND facet itself).
 
 **Why this works:**
 - Single sequential scan of `product_search_index` (base CTE materialized once)
 - `FILTER (WHERE ...)` is a Postgres aggregate clause — no subqueries, no extra scans
-- Per-facet isolation is just omitting one boolean from the FILTER conjunction
+- OR-mode isolation: omit one boolean per facet from the FILTER conjunction
+- AND-mode isolation: omit one boolean per selected value — more COUNT columns, but same single scan
 - When no facet filters are active, all `passes_X` columns are absent and FILTER clauses are omitted — degenerates to plain `COUNT(*)`
+- Cost: OR facets add 1 boolean column + 1 COUNT column each; AND facets add N boolean columns + N COUNT columns (N = number of selected values). In practice N is small (users rarely AND more than 3–5 values)
 
 #### 5.3.2 Merged value deduplication
 
