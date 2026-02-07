@@ -497,20 +497,11 @@ FROM product_search_index psi
 WHERE psi.product_id IN (...)
 GROUP BY feature_id
 
--- Option facets: for each facet_config, find which option_value IDs appear in the product set
--- facet_config.facet_keys already contains the option IDs for grouping
--- 1. Pre-compute eligible option_value IDs per facet_config:
-SELECT pov.id FROM product_option_value pov
-WHERE pov.option_id = ANY(:facetKeys)  -- facet_keys from facet_config
-
--- 2. Count occurrences in the product set:
-SELECT ov_id, COUNT(*) AS cnt
-FROM product_search_index psi,
-     unnest(psi.option_ids) AS ov_id
+-- Option facets
+SELECT unnest(psi.option_ids) AS option_value_id, COUNT(*) AS cnt
+FROM product_search_index psi
 WHERE psi.product_id IN (...)
-  AND ov_id = ANY(:eligibleValueIds)
-GROUP BY ov_id
--- After aggregation, join translation tables to resolve labels and compute slugs via slugify(name) for display (see §3.3)
+GROUP BY option_value_id
 
 -- In-stock count (simple COUNT WHERE in_stock = true)
 ```
