@@ -1,362 +1,662 @@
-# Listing — Implementation Plan (inside Catalog Service)
+# Catalog: Categories, Collections & Facets — Implementation Plan
 
-## Context
+## Overview
 
-Listing functionality lives **inside the catalog service** — not as a separate microservice. Catalog already owns products, categories, variants, pricing, options, features, and tags. Listing adds two concerns on top of this data:
+Three distinct domain concepts, all inside the **catalog** service:
 
-1. **Product search index** — a denormalized table (`product_search_index`) that aggregates product facets (price, stock, tags, features, options, categories) for fast filtered queries. Synced via internal scripts when products change.
-2. **Listings** — product containers bound 1:1 to categories. Admin manually adds/removes/reorders products. Storefront queries apply faceted filters against the search index.
+| Concept | Role | Managed by |
+|---------|------|------------|
+| **Category** | Stable taxonomy, navigation skeleton, SEO pages | Content managers |
+| **Collection** | Merchandising product groupings (manual / rule-based / hybrid) | Merchandisers, marketers |
+| **Filter Set** | Facet display configuration (groups, order, UI types, labels) | Catalog admins |
 
-A listing has no title, handle, or translations — category metadata stays in `catalog.category`.
+Products are assigned to categories explicitly (by humans, bulk ops, or import).
+Collections assemble products by rules, manual picks, or both.
+Filters on a category/collection PLP are computed on-the-fly from products present, but **rendered** according to a Filter Set configuration.
 
-**Scope (Phase 1):** PostgreSQL only. No Typesense, no Metarank, no full-text search.
-
----
-
-## Core Concept
-
-A **listing** is a manual product container bound to a single category.
-
-- Admin adds/removes products explicitly
-- Products can be excluded (hidden without removing)
-- Manual ordering via `lexo_rank` (drag & drop)
-- Alternative sorts: price, popularity, newest (from `product_search_index`)
-- Storefront queries apply faceted filters (price, features, options, tags, stock)
+**Scope (Phase 1):** PostgreSQL only. No Typesense, no full-text search, no algorithmic collections.
 
 ---
 
-## Database Schema
+## 1. Categories — What Changes
 
-All tables live in the existing `catalog` PostgreSQL schema (`catalogSchema` in Drizzle).
+Categories already exist (`catalog.category`, `product_category`). This plan adds:
 
-### 1. `product_search_index` — denormalized facet index
+### 1.1 Category sort order for products
+
+Products inside a category need explicit ordering (merchandiser drag & drop). Currently `product_category` has `sortIndex` (integer). We replace this with `lexo_rank` for O(1) reorder:
 
 ```sql
-catalog.product_search_index (
-  project_id       uuid NOT NULL,
-  product_id       uuid PRIMARY KEY REFERENCES catalog.product(id) ON DELETE CASCADE,
-  status           varchar(16) NOT NULL DEFAULT 'draft',  -- 'draft' | 'active'
-  min_price_minor  bigint,
-  max_price_minor  bigint,
-  in_stock         boolean NOT NULL DEFAULT false,
-  total_stock      int NOT NULL DEFAULT 0,
-  tag_ids          uuid[] DEFAULT '{}',
-  feature_slugs    text[] DEFAULT '{}',
-  option_slugs     text[] DEFAULT '{}',
-  category_ids     uuid[] DEFAULT '{}',
-  created_at       timestamptz NOT NULL DEFAULT now(),
-  updated_at       timestamptz NOT NULL DEFAULT now()
+-- ALTER product_category:
+--   DROP sort_index
+--   ADD lexo_rank varchar(64) COLLATE "C" NOT NULL
+--   ADD INDEX idx_product_category_rank (category_id, lexo_rank)
+```
+
+**Why lexo_rank instead of sortIndex:** Integer sort requires rewriting O(N) rows on reorder. Lexo_rank inserts a midpoint string between two neighbors — single row update.
+
+To hide a product from a category — remove the `product_category` row. No `excluded` flag needed: categories are managed explicitly by humans.
+
+### 1.2 Category sort settings
+
+Add sort preference to category:
+
+```sql
+-- ALTER category:
+--   ADD default_sort varchar(32) NOT NULL DEFAULT 'manual'
+--   ADD default_sort_direction varchar(4) NOT NULL DEFAULT 'asc'
+```
+
+Values: `'manual'`, `'price'`, `'newest'`, `'name'`
+
+### 1.3 Category & Filter Sets
+
+A category does **not** store filter configuration and has no link to Filter Set. Filter Set is resolved entirely by external context (product type / channel / storefront template) — see section 3.
+
+---
+
+## 2. Collections
+
+A **collection** is a named product grouping for merchandising/marketing, independent of the category tree.
+
+### 2.1 Collection types
+
+| Type | How products are selected |
+|------|--------------------------|
+| **manual** | Admin explicitly adds products, orders via lexo_rank |
+| **rule** | System evaluates conditions against `product_search_index` |
+| **hybrid** | Rule-based base + manual pins, boosts, excludes |
+
+### 2.2 Database schema
+
+```sql
+catalog.collection (
+  id                uuid PRIMARY KEY,
+  project_id        uuid NOT NULL,
+  handle            varchar(255),
+  type              varchar(16) NOT NULL,  -- 'manual' | 'rule' | 'hybrid'
+  
+  -- Sort
+  default_sort      varchar(32) NOT NULL DEFAULT 'manual',
+  default_sort_dir  varchar(4) NOT NULL DEFAULT 'asc',
+  
+  -- Scheduling
+  active_from       timestamptz,
+  active_to         timestamptz,
+  
+  -- Limits
+  max_products      int,           -- NULL = unlimited
+  
+  -- Filter Set override (optional)
+  filter_set_id     uuid REFERENCES catalog.filter_set(id) ON DELETE SET NULL,
+  
+  -- Publication
+  published_at      timestamptz,
+  
+  -- Timestamps
+  created_at        timestamptz NOT NULL DEFAULT now(),
+  updated_at        timestamptz NOT NULL DEFAULT now(),
+  deleted_at        timestamptz,
+  
+  UNIQUE(project_id, handle) WHERE deleted_at IS NULL AND handle IS NOT NULL
 )
 ```
 
-**Indexes:**
-- GIN on `tag_ids`, `feature_slugs`, `option_slugs`, `category_ids`
-- B-tree on `min_price_minor`, `max_price_minor`
-- B-tree on `in_stock`, `total_stock`
-- B-tree on `status`
-- B-tree on `created_at` (for "newest" sort)
-
-**Notes:**
-- `status` mirrors product publish state: `'active'` when product has `publishedAt`, otherwise `'draft'`
-- Price range comes from `variant_prices_current` (min/max across all variants)
-- Stock data comes from inventory service via broker call
-- `feature_slugs` / `option_slugs` are denormalized slug arrays for fast GIN filtering
-- `category_ids` includes the product's direct categories
-
-### 2. `listing` — category product container
-
 ```sql
-catalog.listing (
-  id               uuid PRIMARY KEY,
-  project_id       uuid NOT NULL,
-  category_id      uuid NOT NULL REFERENCES catalog.category(id) ON DELETE CASCADE,
-  sort_by          varchar(32) NOT NULL DEFAULT 'manual',
-  sort_direction   varchar(4) NOT NULL DEFAULT 'asc',
-  created_at       timestamptz NOT NULL DEFAULT now(),
-  updated_at       timestamptz NOT NULL DEFAULT now(),
-  UNIQUE(project_id, category_id)
+catalog.collection_translation (
+  collection_id     uuid NOT NULL REFERENCES catalog.collection(id) ON DELETE CASCADE,
+  locale            varchar(8) NOT NULL,
+  project_id        uuid NOT NULL,
+  name              text NOT NULL,
+  description_text  text,
+  description_html  text,
+  description_json  text,
+  PRIMARY KEY (collection_id, locale)
 )
 ```
 
-**`sort_by` values:** `'manual'`, `'price'`, `'newest'`, `'name'`
-
-### 3. `listing_item` — products in a listing
+```sql
+catalog.collection_seo (
+  collection_id     uuid NOT NULL REFERENCES catalog.collection(id) ON DELETE CASCADE,
+  locale            varchar(8) NOT NULL,
+  project_id        uuid NOT NULL,
+  title             text,
+  description       text,
+  PRIMARY KEY (collection_id, locale)
+)
+```
 
 ```sql
-catalog.listing_item (
-  listing_id       uuid NOT NULL REFERENCES catalog.listing(id) ON DELETE CASCADE,
-  product_id       uuid NOT NULL REFERENCES catalog.product(id) ON DELETE CASCADE,
-  lexo_rank        varchar(64) COLLATE "C" NOT NULL,
-  excluded         boolean NOT NULL DEFAULT false,
-  created_at       timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (listing_id, product_id)
+catalog.collection_media (
+  collection_id     uuid NOT NULL REFERENCES catalog.collection(id) ON DELETE CASCADE,
+  file_id           uuid NOT NULL,
+  project_id        uuid NOT NULL,
+  sort_index        int NOT NULL DEFAULT 0,
+  PRIMARY KEY (collection_id, file_id)
+)
+```
+
+### 2.3 Manual collection items
+
+```sql
+catalog.collection_item (
+  collection_id     uuid NOT NULL REFERENCES catalog.collection(id) ON DELETE CASCADE,
+  product_id        uuid NOT NULL REFERENCES catalog.product(id) ON DELETE CASCADE,
+  lexo_rank         varchar(64) COLLATE "C" NOT NULL,
+  pinned            boolean NOT NULL DEFAULT false,  -- pinned items stay at position regardless of rule sort
+  excluded          boolean NOT NULL DEFAULT false,   -- excluded from collection output
+  created_at        timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (collection_id, product_id)
 )
 
-CREATE INDEX idx_listing_item_rank
-  ON catalog.listing_item (listing_id, lexo_rank)
+CREATE INDEX idx_collection_item_rank
+  ON catalog.collection_item (collection_id, lexo_rank)
   WHERE excluded = false;
 ```
 
-**Lexo-rank mechanics:**
-- Insert between two items: `newRank = midpoint(before.lexo_rank, after.lexo_rank)`
-- Single row UPDATE, O(1)
-- Rebalance when rank strings exceed 48 chars (reassign evenly spaced ranks)
+**For manual collections:** all products are in `collection_item` with lexo_rank.
+**For hybrid collections:** `collection_item` holds pinned/excluded overrides on top of rule results.
+**For rule collections:** `collection_item` can hold excludes only (no manual adds).
+
+### 2.4 Collection rules
+
+```sql
+catalog.collection_rule (
+  id                uuid PRIMARY KEY,
+  collection_id     uuid NOT NULL REFERENCES catalog.collection(id) ON DELETE CASCADE,
+  project_id        uuid NOT NULL,
+  field             varchar(64) NOT NULL,   -- 'tag', 'price', 'option', 'feature', 'in_stock', 'category', 'created_at'
+  operator          varchar(16) NOT NULL,   -- 'eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'in', 'nin', 'contains', 'between'
+  value             jsonb NOT NULL,          -- scalar or array depending on operator
+  sort_index        int NOT NULL DEFAULT 0,
+  
+  -- Rules within a collection are AND-ed by default
+  -- Future: rule_group for OR groups
+)
+
+CREATE INDEX idx_collection_rule_collection ON catalog.collection_rule(collection_id);
+```
+
+**Examples:**
+```json
+{ "field": "tag", "operator": "in", "value": ["sale", "new-arrival"] }
+{ "field": "price", "operator": "between", "value": [1000, 5000] }
+{ "field": "in_stock", "operator": "eq", "value": true }
+{ "field": "feature", "operator": "contains", "value": "cotton" }
+{ "field": "category", "operator": "in", "value": ["<category-id-1>", "<category-id-2>"] }
+```
+
+Rules are evaluated against `product_search_index`.
 
 ---
 
-## What Changes in Catalog Service
+## 3. Filter Sets (Facet Configuration)
+
+### 3.1 Core idea
+
+A Filter Set defines **how** facets are displayed, not **what** data exists. The available facet values are always computed on-the-fly from products in the current category/collection. The Filter Set controls:
+
+- Which facets to show and in what order
+- Grouping (e.g., "Main filters", "Material & Care")
+- UI type per facet (multi-select checkboxes, single-select, range slider, boolean toggle, color swatches)
+- Label overrides and value sort order
+- Display rules (min distinct values to show, hide empty, collapse threshold)
+
+### 3.2 Database schema
+
+```sql
+catalog.filter_set (
+  id                uuid PRIMARY KEY,
+  project_id        uuid NOT NULL,
+  handle            varchar(255) NOT NULL,
+  is_default        boolean NOT NULL DEFAULT false,  -- project-wide default
+  created_at        timestamptz NOT NULL DEFAULT now(),
+  updated_at        timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(project_id, handle),
+  -- Only one default per project:
+  UNIQUE(project_id) WHERE is_default = true
+)
+
+catalog.filter_set_translation (
+  filter_set_id     uuid NOT NULL REFERENCES catalog.filter_set(id) ON DELETE CASCADE,
+  locale            varchar(8) NOT NULL,
+  project_id        uuid NOT NULL,
+  name              text NOT NULL,
+  PRIMARY KEY (filter_set_id, locale)
+)
+```
+
+```sql
+catalog.filter_set_group (
+  id                uuid PRIMARY KEY,
+  filter_set_id     uuid NOT NULL REFERENCES catalog.filter_set(id) ON DELETE CASCADE,
+  project_id        uuid NOT NULL,
+  sort_index        int NOT NULL DEFAULT 0,
+  collapsed         boolean NOT NULL DEFAULT false   -- render collapsed by default
+)
+
+catalog.filter_set_group_translation (
+  group_id          uuid NOT NULL REFERENCES catalog.filter_set_group(id) ON DELETE CASCADE,
+  locale            varchar(8) NOT NULL,
+  project_id        uuid NOT NULL,
+  name              text NOT NULL,
+  PRIMARY KEY (group_id, locale)
+)
+```
+
+```sql
+catalog.filter_set_facet (
+  id                uuid PRIMARY KEY,
+  filter_set_id     uuid NOT NULL REFERENCES catalog.filter_set(id) ON DELETE CASCADE,
+  group_id          uuid REFERENCES catalog.filter_set_group(id) ON DELETE SET NULL,
+  project_id        uuid NOT NULL,
+  
+  -- What product attribute this maps to
+  facet_type        varchar(32) NOT NULL,  -- 'price', 'tag', 'feature', 'option', 'in_stock'
+  facet_key         varchar(255),           -- slug/identifier within type (e.g., feature slug, option slug). NULL for 'price', 'in_stock'
+  
+  -- Display
+  ui_type           varchar(32) NOT NULL DEFAULT 'multi_select',  -- 'multi_select', 'single_select', 'range', 'boolean', 'color_swatch'
+  sort_index        int NOT NULL DEFAULT 0,
+  
+  -- Rules
+  min_values        int NOT NULL DEFAULT 1,            -- hide facet if fewer distinct values
+  max_values_visible int NOT NULL DEFAULT 10,          -- "show more" threshold
+  value_sort        varchar(16) NOT NULL DEFAULT 'count', -- 'count', 'alpha', 'custom'
+  hide_zero_count   boolean NOT NULL DEFAULT true,
+  
+  -- SEO
+  indexable         boolean NOT NULL DEFAULT false       -- whether filter combinations generate indexable URLs
+)
+
+catalog.filter_set_facet_translation (
+  facet_id          uuid NOT NULL REFERENCES catalog.filter_set_facet(id) ON DELETE CASCADE,
+  locale            varchar(8) NOT NULL,
+  project_id        uuid NOT NULL,
+  label             text NOT NULL,                       -- display label override (e.g., "Colour" instead of "color")
+  PRIMARY KEY (facet_id, locale)
+)
+```
+
+### 3.3 Filter Set resolution
+
+Filter Sets are **not** linked to categories. When rendering a PLP, the storefront resolves which Filter Set to use by external context:
+
+```
+1. By product type / attribute set (e.g., "Apparel" → apparel filter set)
+2. By channel / country (different storefronts may use different filter sets)
+3. By storefront page template
+4. Project default (filter_set.is_default = true)
+5. No Filter Set → show raw facets without configuration (fallback)
+```
+
+Collections can optionally override via `collection.filter_set_id`.
+
+The storefront passes a `filterSetId` (or `filterSetHandle`) to the PLP query. If not provided, the project default is used.
+
+---
+
+## 4. Product Search Index
+
+Denormalized table for fast faceted queries. Same as before, used by both category PLPs and collection rule evaluation.
+
+```sql
+catalog.product_search_index (
+  project_id        uuid NOT NULL,
+  product_id        uuid PRIMARY KEY REFERENCES catalog.product(id) ON DELETE CASCADE,
+  status            varchar(16) NOT NULL DEFAULT 'draft',
+  min_price_minor   bigint,
+  max_price_minor   bigint,
+  in_stock          boolean NOT NULL DEFAULT false,
+  total_stock       int NOT NULL DEFAULT 0,
+  tag_ids           uuid[] DEFAULT '{}',
+  feature_slugs     text[] DEFAULT '{}',
+  option_slugs      text[] DEFAULT '{}',
+  category_ids      uuid[] DEFAULT '{}',
+  created_at        timestamptz NOT NULL DEFAULT now(),
+  updated_at        timestamptz NOT NULL DEFAULT now()
+)
+```
+
+Indexes: GIN on arrays, B-tree on price/stock/status/created_at.
+
+### Sync flow
+
+`SyncProductIndexScript` runs on productCreated/Updated/Deleted events:
+1. Load product + categories, tags, features, options, prices (all local)
+2. Broker call `inventory.getOffers` for stock
+3. UPSERT into `product_search_index`
+
+---
+
+## 5. PLP Query Flow (Category & Collection)
+
+### 5.1 Category PLP
+
+```
+QueryCategoryProductsScript:
+  Input: { categoryId, filters?, sort?, pagination, filterSetId? }
+  
+  1. Load category → get default_sort
+  2. Resolve Filter Set: use filterSetId from input, or project default
+  3. Build query:
+       product_category pc
+       JOIN product_search_index psi ON pc.product_id = psi.product_id
+       WHERE pc.category_id = :categoryId
+         AND psi.status = 'active'
+         AND [apply facet filters]
+  4. Apply sort:
+       'manual' → ORDER BY pc.lexo_rank
+       'price'  → ORDER BY psi.min_price_minor
+       'newest' → ORDER BY psi.created_at DESC
+  5. Paginate (Relay cursor)
+  6. Compute facet aggregations (filtered set):
+       - Only facets defined in the resolved Filter Set
+       - For each facet: count distinct values, apply min_values threshold
+       - Price range: min/max across filtered set
+  7. Return { products, facets, totalCount, pageInfo, filterSetId }
+```
+
+### 5.2 Collection PLP
+
+```
+QueryCollectionProductsScript:
+  Input: { collectionId, filters?, sort?, pagination }
+  
+  1. Load collection → type, rules, default_sort, filter_set_id, limits
+  2. Check scheduling (active_from/active_to)
+  3. Resolve product set by type:
+     
+     manual:
+       SELECT from collection_item WHERE excluded = false
+       
+     rule:
+       Evaluate collection_rules against product_search_index
+       EXCEPT collection_item WHERE excluded = true
+       
+     hybrid:
+       rule result
+       UNION pinned items (collection_item WHERE pinned = true AND excluded = false)
+       EXCEPT excluded items
+       Pinned items get priority in sort (appear first)
+  
+  4. Apply max_products limit if set
+  5. Apply facet filters from user
+  6. Sort (manual/price/newest; pinned items first for hybrid)
+  7. Paginate
+  8. Compute facet aggregations (same as category)
+  9. Return { products, facets, totalCount, pageInfo }
+```
+
+### 5.3 Facet computation
+
+For a given product set (from category or collection):
+
+```sql
+-- Price range
+SELECT MIN(psi.min_price_minor), MAX(psi.max_price_minor)
+FROM product_search_index psi
+WHERE psi.product_id IN (... filtered product set ...)
+
+-- Tag facets
+SELECT unnest(psi.tag_ids) AS tag_id, COUNT(*) AS cnt
+FROM product_search_index psi
+WHERE psi.product_id IN (...)
+GROUP BY tag_id
+
+-- Feature facets
+SELECT unnest(psi.feature_slugs) AS slug, COUNT(*) AS cnt
+FROM product_search_index psi
+WHERE psi.product_id IN (...)
+GROUP BY slug
+
+-- Option facets (same pattern)
+-- In-stock count (simple COUNT WHERE in_stock = true)
+```
+
+The raw facet data is then intersected with the resolved Filter Set config to determine:
+- Which facets to include (only those defined in Filter Set)
+- Order and grouping
+- UI type
+- Whether to hide (fewer values than `min_values`)
+- Value count limits (`max_values_visible`)
+- Labels from `filter_set_facet_translation`
+
+---
+
+## 6. File Structure — New & Modified
 
 ### New files
 
 ```
 src/repositories/models/
-  listing.ts                          # Drizzle schema: listing, listing_item
-  searchIndex.ts                      # Drizzle schema: product_search_index
+  searchIndex.ts                        # product_search_index
+  collection.ts                         # collection, collection_item, collection_rule, collection_translation, collection_seo, collection_media
+  filterSet.ts                          # filter_set, filter_set_group, filter_set_facet + translations
 
 src/repositories/
-  listing/ListingRepository.ts        # CRUD for listing table
-  listing/ListingItemRepository.ts    # CRUD for listing_item table
-  listing/SearchIndexRepository.ts    # CRUD for product_search_index
+  listing/SearchIndexRepository.ts      # product_search_index CRUD + facet queries
+  collection/CollectionRepository.ts    # collection CRUD
+  collection/CollectionItemRepository.ts # items: add/remove/pin/exclude/reorder
+  collection/CollectionRuleRepository.ts # rules CRUD
+  filterSet/FilterSetRepository.ts      # filter_set + groups + facets CRUD
 
-src/scripts/listing/
-  SyncProductIndexScript.ts           # Rebuild one product's index row
-  ListingCreateScript.ts              # Create listing for category
-  ListingDeleteScript.ts              # Delete listing
-  ListingUpdateSortScript.ts          # Update sort_by / sort_direction
-  AddProductsScript.ts                # Add products to listing with lexo_rank
-  RemoveProductsScript.ts             # Remove products from listing
-  ExcludeProductScript.ts             # Set excluded = true
-  IncludeProductScript.ts             # Set excluded = false
-  MoveProductScript.ts                # Reorder via lexo_rank (drag & drop)
-  RebalanceListingScript.ts           # Rebalance lexo_ranks when too long
-  QueryListingProductsScript.ts       # Core: filtered, sorted, paginated query
+src/scripts/
+  search-index/
+    SyncProductIndexScript.ts
+  
+  collection/
+    CollectionCreateScript.ts
+    CollectionUpdateScript.ts
+    CollectionDeleteScript.ts
+    CollectionAddProductsScript.ts
+    CollectionRemoveProductsScript.ts
+    CollectionPinProductScript.ts
+    CollectionUnpinProductScript.ts
+    CollectionExcludeProductScript.ts
+    CollectionIncludeProductScript.ts
+    CollectionMoveProductScript.ts       # lexo_rank reorder
+    CollectionRebalanceScript.ts
+    CollectionUpdateRulesScript.ts
+    QueryCollectionProductsScript.ts     # rule eval + filters + facets
+
+  category/
+    QueryCategoryProductsScript.ts       # category PLP: products + facets
+    CategoryMoveProductScript.ts         # reorder product in category
+    CategoryRebalanceScript.ts
+
+  filter-set/
+    FilterSetCreateScript.ts
+    FilterSetUpdateScript.ts
+    FilterSetDeleteScript.ts
+    ResolveFacetsScript.ts               # resolve Filter Set + compute facet display
 
 src/resolvers/admin/
-  ListingQueryResolver.ts             # Query resolvers for listing
-  ListingMutationResolver.ts          # Mutation resolvers for listing
-  ListingResolver.ts                  # Listing type field resolvers
-  ListingProductConnectionResolver.ts # Paginated products in listing
+  CollectionResolver.ts
+  CollectionQueryResolver.ts
+  CollectionMutationResolver.ts
+  FilterSetResolver.ts
+  FilterSetQueryResolver.ts
+  FilterSetMutationResolver.ts
 
 src/loaders/
-  ListingLoader.ts                    # DataLoader for listing by id, by categoryId
+  CollectionLoader.ts
+  FilterSetLoader.ts
 
 api/graphql-admin/schema/
-  listing.graphql                     # Listing types, inputs, payloads
+  collection.graphql
+  filterSet.graphql
 ```
 
 ### Modified files
 
 ```
-src/repositories/models/index.ts      # Add exports for listing.ts, searchIndex.ts
-src/repositories/Repository.ts        # Add listing, listingItem, searchIndex repos
-src/loaders/Loader.ts                 # Add ListingLoader
-src/handlers/index.ts                 # Add productCreated/Updated/Deleted → SyncProductIndexScript
-api/graphql-admin/schema/base.graphql # Add listing queries/mutations to CatalogQuery/CatalogMutation
-api/graphql-admin/schema/category.graphql  # Add `listing: Listing` field to Category type
-src/resolvers/admin/CategoryResolver.ts    # Add listing() field resolver
+src/repositories/models/index.ts           # export new model files
+src/repositories/models/categories.ts      # add lexo_rank to product_category; add default_sort to category
+src/repositories/Repository.ts             # add new repositories
+src/loaders/Loader.ts                      # add new loaders
+src/handlers/index.ts                      # add search index sync handlers
+api/graphql-admin/schema/base.graphql      # add collection/filterSet queries & mutations to CatalogQuery/CatalogMutation
+api/graphql-admin/schema/category.graphql  # add products(filters), defaultSort, filterSet fields to Category
+src/resolvers/admin/CategoryResolver.ts    # add new field resolvers
 ```
 
 ---
 
-## Scripts
+## 7. GraphQL Schema
 
-### SyncProductIndexScript
-
-Rebuilds one product's row in `product_search_index`. Called when a product is created, updated, or its inventory changes.
-
-```
-Input:  { productId: string }
-Flow:
-  1. Load product from catalog DB (with categories, tags, features, options)
-  2. Load current prices from variant_prices_current (min/max across variants)
-  3. Broker call inventory.getOffers(variantIds) → derive in_stock, total_stock
-  4. Determine status from product.publishedAt
-  5. Build feature_slugs from product_feature translations
-  6. Build option_slugs from product_option values
-  7. UPSERT into product_search_index
-Output: { success: boolean }
-```
-
-**Data sources (all local except inventory):**
-- Product + categories → `product`, `product_category`
-- Tags → `product_tag`
-- Features → `product_feature`, `product_feature_value` + translations
-- Options → `product_option`, `product_option_value`
-- Prices → `variant_prices_current` view
-- Stock → `broker.call("inventory.getOffers", { storeId, variantIds })`
-
-### QueryListingProductsScript (Core)
-
-```
-Input:  {
-  listingId: string,
-  filters?: {
-    priceMin?: number,
-    priceMax?: number,
-    tagIds?: string[],
-    featureSlugs?: string[],
-    optionSlugs?: string[],
-    inStock?: boolean,
-    status?: string
-  },
-  sort?: { by: string, direction: 'asc' | 'desc' },
-  pagination: { first?: number, after?: string, last?: number, before?: string }
-}
-
-Flow:
-  1. Load listing from DB → get sort defaults
-  2. Build query:
-     listing_item li
-     JOIN product_search_index psi ON li.product_id = psi.product_id
-     WHERE li.listing_id = :listingId
-       AND li.excluded = false
-       AND [apply facet filters on psi]
-  3. Apply sort:
-     - 'manual' → ORDER BY li.lexo_rank
-     - 'price'  → ORDER BY psi.min_price_minor
-     - 'newest' → ORDER BY psi.created_at DESC
-     - 'name'   → ORDER BY psi.product_id (placeholder, extend later)
-  4. Apply Relay cursor pagination
-  5. Execute → product IDs + total count
-  6. Build facet aggregations (parallel):
-     - Price range (min/max across filtered set)
-     - Tag counts (unnest tag_ids, group by)
-     - Feature counts (unnest feature_slugs, group by)
-     - Option counts (unnest option_slugs, group by)
-     - In-stock count
-  7. Return { products (Product references), facets, totalCount, pageInfo }
-
-Output: ListingProductConnection with facets
-```
-
-### Listing CRUD Scripts
-
-**ListingCreateScript:** Create listing for a category. Auto-assigns UUID. Validates category exists and no listing already exists for it.
-
-**ListingDeleteScript:** Delete listing by ID. CASCADE deletes listing_items.
-
-**ListingUpdateSortScript:** Update `sort_by` and `sort_direction` on a listing.
-
-**AddProductsScript:** Insert listing_item rows. Assign lexo_rank: for each new product, rank = after last existing item (or initial rank if empty).
-
-**RemoveProductsScript:** Delete listing_item rows by (listing_id, product_id[]).
-
-**ExcludeProductScript / IncludeProductScript:** Toggle `excluded` flag.
-
-**MoveProductScript:** Drag & drop reorder.
-```
-Input:  { listingId, productId, afterProductId?, beforeProductId? }
-Flow:
-  1. Load ranks of afterProduct and beforeProduct
-  2. newRank = midpoint(afterRank, beforeRank)
-  3. UPDATE listing_item SET lexo_rank = newRank WHERE listing_id = :lid AND product_id = :pid
-```
-
-**RebalanceListingScript:** When lexo_rank strings get too long (>48 chars), reassign evenly spaced ranks to all items in a listing.
-
----
-
-## Event Handlers
-
-Add to existing `CatalogEventHandlers`:
-
-```typescript
-// Product created → create search index row
-@EventHandler("productCreated")
-async handleProductCreatedForIndex({ event }) {
-  await this.kernel.runScript(SyncProductIndexScript, {
-    productId: event.payload.productId,
-  });
-}
-
-// Product updated → update search index row
-@EventHandler("productUpdated")
-async handleProductUpdatedForIndex({ event }) {
-  await this.kernel.runScript(SyncProductIndexScript, {
-    productId: event.payload.productId,
-  });
-}
-
-// Product deleted → remove from search index (CASCADE handles listing_item)
-@EventHandler("productDeleted")
-async handleProductDeletedForIndex({ event }) {
-  await this.repository.searchIndex.delete(event.payload.productId);
-}
-```
-
-**Note:** Since listing functionality is inside catalog, the event handlers call scripts directly — no broker round-trip needed for product data. Only inventory stock requires a broker call.
-
----
-
-## GraphQL Schema (Admin)
-
-### New types in `listing.graphql`
+### 7.1 Category extensions (in `category.graphql`)
 
 ```graphql
-type Listing {
+# Add to Category type:
+defaultSort: CategorySortBy!
+defaultSortDirection: SortDirection!
+
+"""Category products with filtering, sorting, pagination."""
+categoryProducts(
+  first: Int
+  after: String
+  last: Int
+  before: String
+  filters: ProductFiltersInput
+  sort: ProductSortInput
+  filterSetId: ID
+): CategoryProductConnection!
+```
+
+### 7.2 Collection (in `collection.graphql`)
+
+```graphql
+type Collection implements Node @key(fields: "id") {
   id: ID!
-  category: Category!
-  sortBy: ListingSortBy!
-  sortDirection: SortDirection!
+  handle: String
+  type: CollectionType!
+  name: String!
+  description: Description
+  media: [CollectionMediaItem!]!
+  seo(locale: String): CollectionSeo
+  
+  defaultSort: CollectionSortBy!
+  defaultSortDirection: SortDirection!
+  filterSet: FilterSet
+  
+  activeFrom: DateTime
+  activeTo: DateTime
+  isActive: Boolean!
+  maxProducts: Int
+  
+  publishedAt: DateTime
+  isPublished: Boolean!
   createdAt: DateTime!
   updatedAt: DateTime!
+  
+  rules: [CollectionRule!]!
+  
   products(
-    first: Int
-    after: String
-    last: Int
-    before: String
-    filters: ListingProductFiltersInput
-  ): ListingProductConnection!
+    first: Int, after: String, last: Int, before: String
+    filters: ProductFiltersInput
+    sort: ProductSortInput
+  ): CollectionProductConnection!
+  
+  productsCount: Int!
+  
+  """Preview: evaluate rules and return matching product count without saving."""
+  previewCount: Int!
 }
 
-enum ListingSortBy {
-  MANUAL
-  PRICE
-  NEWEST
-  NAME
+enum CollectionType { MANUAL RULE HYBRID }
+
+type CollectionRule {
+  id: ID!
+  field: String!
+  operator: String!
+  value: JSON!
+  sortIndex: Int!
 }
 
-enum SortDirection {
-  ASC
-  DESC
-}
-
-type ListingProductConnection {
-  edges: [ListingProductEdge!]!
+type CollectionProductConnection {
+  edges: [CollectionProductEdge!]!
   pageInfo: PageInfo!
   totalCount: Int!
-  facets: ListingFacets!
+  facets: Facets
 }
 
-type ListingProductEdge {
+type CollectionProductEdge {
   node: Product!
   cursor: String!
-  """The lexo_rank position (only meaningful when sort=MANUAL)"""
-  rank: String
-  """Whether this product is excluded from the listing"""
+  pinned: Boolean!
   excluded: Boolean!
 }
 
-type ListingFacets {
-  priceRange: PriceRange
-  tags: [FacetCount!]!
-  features: [FacetCount!]!
-  options: [FacetCount!]!
-  inStockCount: Int!
-  totalCount: Int!
+# Inputs:
+input CollectionCreateInput { ... }
+input CollectionUpdateInput { ... }
+input CollectionDeleteInput { id: ID! }
+input CollectionAddProductsInput { collectionId: ID!, productIds: [ID!]! }
+input CollectionRemoveProductsInput { collectionId: ID!, productIds: [ID!]! }
+input CollectionPinProductInput { collectionId: ID!, productId: ID! }
+input CollectionUnpinProductInput { collectionId: ID!, productId: ID! }
+input CollectionExcludeProductInput { collectionId: ID!, productId: ID! }
+input CollectionIncludeProductInput { collectionId: ID!, productId: ID! }
+input CollectionMoveProductInput { collectionId: ID!, productId: ID!, afterProductId: ID, beforeProductId: ID }
+input CollectionUpdateRulesInput { collectionId: ID!, rules: [CollectionRuleInput!]! }
+input CollectionRuleInput { field: String!, operator: String!, value: JSON! }
+```
+
+### 7.3 Filter Set (in `filterSet.graphql`)
+
+```graphql
+type FilterSet implements Node {
+  id: ID!
+  handle: String!
+  name: String!
+  isDefault: Boolean!
+  groups: [FilterSetGroup!]!
+  facets: [FilterSetFacet!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
-type PriceRange {
-  minMinor: BigInt!
-  maxMinor: BigInt!
+type FilterSetGroup {
+  id: ID!
+  name: String!
+  sortIndex: Int!
+  collapsed: Boolean!
+  facets: [FilterSetFacet!]!
 }
 
-type FacetCount {
-  value: String!
-  count: Int!
+type FilterSetFacet {
+  id: ID!
+  facetType: FacetType!
+  facetKey: String
+  label: String!
+  uiType: FacetUIType!
+  sortIndex: Int!
+  group: FilterSetGroup
+  minValues: Int!
+  maxValuesVisible: Int!
+  valueSort: FacetValueSort!
+  hideZeroCount: Boolean!
+  indexable: Boolean!
 }
 
-input ListingProductFiltersInput {
+enum FacetType { PRICE TAG FEATURE OPTION IN_STOCK }
+enum FacetUIType { MULTI_SELECT SINGLE_SELECT RANGE BOOLEAN COLOR_SWATCH }
+enum FacetValueSort { COUNT ALPHA CUSTOM }
+
+# Inputs:
+input FilterSetCreateInput { handle: String!, name: String!, isDefault: Boolean, facets: [FilterSetFacetInput!] }
+input FilterSetUpdateInput { id: ID!, handle: String, name: String, isDefault: Boolean }
+input FilterSetDeleteInput { id: ID! }
+# ... facet/group CRUD inputs
+```
+
+### 7.4 Shared types
+
+```graphql
+enum SortDirection { ASC DESC }
+
+input ProductFiltersInput {
   priceMinMinor: BigInt
   priceMaxMinor: BigInt
   tagIds: [ID!]
@@ -364,203 +664,188 @@ input ListingProductFiltersInput {
   optionSlugs: [String!]
   inStock: Boolean
 }
+
+input ProductSortInput {
+  by: ProductSortBy!
+  direction: SortDirection
+}
+
+enum ProductSortBy { MANUAL PRICE NEWEST NAME }
+enum CategorySortBy { MANUAL PRICE NEWEST NAME }
+enum CollectionSortBy { MANUAL PRICE NEWEST NAME }
+
+"""Computed facet results for a product listing page."""
+type Facets {
+  """The Filter Set used to render these facets (if any)."""
+  filterSet: FilterSet
+  priceRange: PriceRange
+  groups: [FacetGroup!]!
+}
+
+type FacetGroup {
+  name: String
+  collapsed: Boolean!
+  facets: [FacetResult!]!
+}
+
+type FacetResult {
+  facetType: FacetType!
+  facetKey: String
+  label: String!
+  uiType: FacetUIType!
+  values: [FacetValue!]!
+  totalCount: Int!
+}
+
+type FacetValue {
+  value: String!
+  label: String
+  count: Int!
+}
+
+type PriceRange {
+  minMinor: BigInt!
+  maxMinor: BigInt!
+}
 ```
 
-### Extend `CatalogQuery` (in `base.graphql`)
+### 7.5 CatalogQuery / CatalogMutation additions (in `base.graphql`)
 
 ```graphql
-# Add to CatalogQuery:
-listing(id: ID!): Listing
-listingByCategory(categoryId: ID!): Listing
-```
+# CatalogQuery:
+collection(id: ID!): Collection
+collectionByHandle(handle: String!): Collection
+collections(first: Int, after: String, last: Int, before: String): CollectionConnection!
 
-### Extend `CatalogMutation` (in `base.graphql`)
+filterSet(id: ID!): FilterSet
+filterSetByHandle(handle: String!): FilterSet
+filterSets(first: Int, after: String, last: Int, before: String): FilterSetConnection!
 
-```graphql
-# Add to CatalogMutation:
-listingCreate(input: ListingCreateInput!): ListingCreatePayload!
-listingDelete(input: ListingDeleteInput!): ListingDeletePayload!
-listingUpdateSort(input: ListingUpdateSortInput!): ListingUpdateSortPayload!
-listingAddProducts(input: ListingAddProductsInput!): ListingAddProductsPayload!
-listingRemoveProducts(input: ListingRemoveProductsInput!): ListingRemoveProductsPayload!
-listingExcludeProduct(input: ListingExcludeProductInput!): ListingExcludeProductPayload!
-listingIncludeProduct(input: ListingIncludeProductInput!): ListingIncludeProductPayload!
-listingMoveProduct(input: ListingMoveProductInput!): ListingMoveProductPayload!
-listingRebalance(input: ListingRebalanceInput!): ListingRebalancePayload!
-```
+# CatalogMutation:
+collectionCreate(input: CollectionCreateInput!): CollectionCreatePayload!
+collectionUpdate(input: CollectionUpdateInput!): CollectionUpdatePayload!
+collectionDelete(input: CollectionDeleteInput!): CollectionDeletePayload!
+collectionAddProducts(input: CollectionAddProductsInput!): CollectionAddProductsPayload!
+collectionRemoveProducts(input: CollectionRemoveProductsInput!): CollectionRemoveProductsPayload!
+collectionPinProduct(input: CollectionPinProductInput!): CollectionPinProductPayload!
+collectionUnpinProduct(input: CollectionUnpinProductInput!): CollectionUnpinProductPayload!
+collectionExcludeProduct(input: CollectionExcludeProductInput!): CollectionExcludeProductPayload!
+collectionIncludeProduct(input: CollectionIncludeProductInput!): CollectionIncludeProductPayload!
+collectionMoveProduct(input: CollectionMoveProductInput!): CollectionMoveProductPayload!
+collectionUpdateRules(input: CollectionUpdateRulesInput!): CollectionUpdateRulesPayload!
 
-### Extend `Category` type (in `category.graphql`)
+filterSetCreate(input: FilterSetCreateInput!): FilterSetCreatePayload!
+filterSetUpdate(input: FilterSetUpdateInput!): FilterSetUpdatePayload!
+filterSetDelete(input: FilterSetDeleteInput!): FilterSetDeletePayload!
+# ... facet/group mutations
 
-```graphql
-# Add field to Category type:
-"""The listing associated with this category, if any."""
-listing: Listing
-```
-
-### Inputs & Payloads (in `listing.graphql`)
-
-```graphql
-input ListingCreateInput {
-  categoryId: ID!
-  sortBy: ListingSortBy
-  sortDirection: SortDirection
-}
-
-input ListingDeleteInput {
-  id: ID!
-}
-
-input ListingUpdateSortInput {
-  id: ID!
-  sortBy: ListingSortBy!
-  sortDirection: SortDirection!
-}
-
-input ListingAddProductsInput {
-  listingId: ID!
-  productIds: [ID!]!
-}
-
-input ListingRemoveProductsInput {
-  listingId: ID!
-  productIds: [ID!]!
-}
-
-input ListingExcludeProductInput {
-  listingId: ID!
-  productId: ID!
-}
-
-input ListingIncludeProductInput {
-  listingId: ID!
-  productId: ID!
-}
-
-input ListingMoveProductInput {
-  listingId: ID!
-  productId: ID!
-  afterProductId: ID
-  beforeProductId: ID
-}
-
-input ListingRebalanceInput {
-  listingId: ID!
-}
-
-# All payloads follow the same pattern:
-type ListingCreatePayload {
-  listing: Listing
-  userErrors: [GenericUserError!]!
-}
-# ... (same shape for other payloads)
+categoryMoveProduct(input: CategoryMoveProductInput!): CategoryMoveProductPayload!
+categoryRebalance(input: CategoryRebalanceInput!): CategoryRebalancePayload!
+categoryUpdateSort(input: CategoryUpdateSortInput!): CategoryUpdateSortPayload!
 ```
 
 ---
 
-## Ordering Algorithm
+## 8. Ordering Algorithm
 
-### Manual sort (default)
-```sql
-SELECT li.product_id
-FROM catalog.listing_item li
-WHERE li.listing_id = :id AND li.excluded = false
-ORDER BY li.lexo_rank ASC
-```
+Same lexo_rank approach for both category products and collection items.
 
-### Alternative sorts
-```sql
-SELECT li.product_id
-FROM catalog.listing_item li
-JOIN catalog.product_search_index psi ON li.product_id = psi.product_id
-WHERE li.listing_id = :id AND li.excluded = false
-ORDER BY psi.min_price_minor ASC  -- or psi.created_at DESC, etc.
-```
+**Manual sort:** `ORDER BY lexo_rank ASC`
 
-`lexo_rank` is preserved for when admin switches back to manual.
+**Alternative sorts:** `JOIN product_search_index`, sort by price/created_at/name. lexo_rank preserved for switching back to manual.
 
-### Drag & drop (MoveProductScript)
-```
-moveProduct(listingId, productId, afterProductId?, beforeProductId?)
-  → afterRank = afterProduct?.lexo_rank ?? ""
-  → beforeRank = beforeProduct?.lexo_rank ?? "~" (char after 'z')
-  → newRank = midpoint(afterRank, beforeRank)
-  → UPDATE listing_item SET lexo_rank = newRank
-  → single row update, O(1)
-```
+**Drag & drop:** `newRank = midpoint(afterRank, beforeRank)`, single row UPDATE.
 
-### Rebalance (maintenance)
-When any `lexo_rank` in a listing exceeds 48 chars:
-```
-  → SELECT all items ORDER BY lexo_rank
-  → Reassign ranks: "a", "b", "c", ... evenly spaced
-  → Batch UPDATE
-```
+**Hybrid collections:** Pinned items get a special rank prefix (e.g., `"!..."`) so they always sort first, then rule-matched items follow in rule sort order.
+
+**Rebalance:** When any lexo_rank exceeds 48 chars, reassign evenly spaced ranks across all items.
 
 ---
 
-## Broker Dependencies
+## 9. Collection Rule Evaluation
 
-Listing needs exactly one broker call:
+Rules in `collection_rule` are evaluated against `product_search_index`:
+
+```sql
+-- Each rule becomes a WHERE clause:
+-- { field: "tag", operator: "in", value: ["sale"] }
+--   → psi.tag_ids @> ARRAY['<sale-tag-id>']::uuid[]
+
+-- { field: "price", operator: "between", value: [1000, 5000] }
+--   → psi.min_price_minor >= 1000 AND psi.max_price_minor <= 5000
+
+-- { field: "in_stock", operator: "eq", value: true }
+--   → psi.in_stock = true
+
+-- { field: "feature", operator: "contains", value: "cotton" }
+--   → 'cotton' = ANY(psi.feature_slugs)
+
+-- { field: "category", operator: "in", value: ["<cat-id>"] }
+--   → psi.category_ids && ARRAY['<cat-id>']::uuid[]
+
+-- All rules AND-ed together
+```
+
+For hybrid collections, the rule result is then:
+1. UNION with pinned items
+2. MINUS excluded items
+3. Apply max_products limit
+
+---
+
+## 10. Broker Dependencies
+
+One external call:
 
 ```typescript
-// Get stock info for search index sync
 broker.call<Inventory.GetOffersResult, Inventory.GetOffersParams>(
-  "inventory.getOffers",
-  { storeId, variantIds }
+  "inventory.getOffers", { storeId, variantIds }
 );
 ```
 
-Everything else (products, categories, tags, features, options, pricing) is **local** to catalog — no broker calls needed.
+Everything else is local to catalog.
 
 ---
 
-## Implementation Order
+## 11. Implementation Order
 
-### Step 1: Drizzle Models
-- `src/repositories/models/searchIndex.ts` — `product_search_index` table
-- `src/repositories/models/listing.ts` — `listing`, `listing_item` tables
-- Update `src/repositories/models/index.ts` — add exports
-- Run `db:generate` → migration file
+### Phase 1A: Search Index + Category Products
 
-### Step 2: Repositories
-- `src/repositories/listing/SearchIndexRepository.ts` — upsert, delete, query with facets
-- `src/repositories/listing/ListingRepository.ts` — CRUD
-- `src/repositories/listing/ListingItemRepository.ts` — add/remove/exclude/include/move/rebalance
-- Update `src/repositories/Repository.ts` — add new repos
+1. **Drizzle models:** `searchIndex.ts` — product_search_index
+2. **Alter `product_category`:** replace `sortIndex` with `lexo_rank`
+3. **Alter `category`:** add `default_sort`, `default_sort_direction`
+4. **Generate migration**
+5. **SearchIndexRepository** — upsert, delete, facet queries
+6. **SyncProductIndexScript** — build index row from local data + inventory broker
+7. **Event handlers** — productCreated/Updated/Deleted → sync index
+8. **Category product scripts:** QueryCategoryProductsScript, CategoryMoveProductScript, CategoryRebalanceScript
+9. **GraphQL:** extend Category type, add category product mutations
+10. **Resolvers & loaders**
+11. **Build & test**
 
-### Step 3: Scripts
-- `SyncProductIndexScript.ts` — core index sync logic
-- `ListingCreateScript.ts`, `ListingDeleteScript.ts`, `ListingUpdateSortScript.ts`
-- `AddProductsScript.ts`, `RemoveProductsScript.ts`
-- `ExcludeProductScript.ts`, `IncludeProductScript.ts`
-- `MoveProductScript.ts`, `RebalanceListingScript.ts`
-- `QueryListingProductsScript.ts` — filtered query with facets
+### Phase 1B: Filter Sets
 
-### Step 4: Event Handlers
-- Update `src/handlers/index.ts` — add productCreated/Updated/Deleted handlers for search index
+1. **Drizzle models:** `filterSet.ts`
+2. **Generate migration**
+3. **FilterSetRepository**
+4. **Filter Set scripts:** CRUD + ResolveFacetsScript
+5. **GraphQL:** filterSet.graphql, add to CatalogQuery/CatalogMutation
+6. **Resolvers & loaders**
+7. **Build & test**
 
-### Step 5: GraphQL Schema
-- `api/graphql-admin/schema/listing.graphql` — all types, inputs, payloads
-- Update `base.graphql` — add listing queries/mutations to CatalogQuery/CatalogMutation
-- Update `category.graphql` — add `listing` field to Category type
-- Run `codegen`
+### Phase 1C: Collections
 
-### Step 6: Resolvers & Loaders
-- `ListingLoader.ts` — DataLoader for listing by ID and by categoryId
-- Update `Loader.ts`
-- `ListingQueryResolver.ts`, `ListingMutationResolver.ts`
-- `ListingResolver.ts` — type field resolvers
-- `ListingProductConnectionResolver.ts`
-- Update `CategoryResolver.ts` — add `listing()` resolver
-- Update resolver map (`resolvers/index.ts`)
-
-### Step 7: Build & Test
-- `shopana build -s catalog`
-- Write e2e tests in `e2e/tests/catalog-api/listing-*.spec.ts`
+1. **Drizzle models:** `collection.ts`
+2. **Generate migration**
+3. **Collection repositories:** CollectionRepository, CollectionItemRepository, CollectionRuleRepository
+4. **Collection scripts:** CRUD, add/remove/pin/exclude/move/rebalance, rules, QueryCollectionProductsScript
+5. **GraphQL:** collection.graphql, add to CatalogQuery/CatalogMutation
+6. **Resolvers & loaders**
+7. **Build & test**
 
 ---
 
-## Reference Files (within Catalog)
+## 12. Reference Files (within Catalog)
 
 | Pattern | Reference File |
 |---------|---------------|
@@ -574,6 +859,8 @@ Everything else (products, categories, tags, features, options, pricing) is **lo
 | Resolver (query) | `src/resolvers/admin/QueryResolver.ts` |
 | Resolver (mutation) | `src/resolvers/admin/MutationResolver.ts` |
 | Loader | `src/loaders/CategoryLoader.ts` |
-| Base.graphql | `api/graphql-admin/schema/base.graphql` |
+| Translation model | `src/repositories/models/translations.ts` |
+| SEO model | `src/repositories/models/seo.ts` |
+| Media model | `src/repositories/models/media.ts` |
 | Broker types | `packages/broker-types/src/actions/inventory.ts` |
 | Event types | `packages/events/src/types.ts` |
