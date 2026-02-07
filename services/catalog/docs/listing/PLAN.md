@@ -186,7 +186,6 @@ Rules are evaluated against `product_search_index`.
 Facet configuration defines **how** facets are displayed on PLPs, not **what** data exists. Available facet values are computed on-the-fly from products. The configuration controls:
 
 - Which facets to show and in what order
-- **Alias merging:** a single facet can map to multiple attribute IDs (e.g., option IDs for "color", "colour", "цвет" options). Values from all keys are combined into one facet in the UI, and selecting a value filters across all aliased keys.
 - Grouping (e.g., "Main filters", "Material & Care")
 - UI type per facet (multi-select checkboxes, single-select, range slider, boolean toggle, color swatches)
 - Label overrides and value sort order
@@ -223,16 +222,6 @@ catalog.facet_config (
   
   -- What product attribute this maps to
   facet_type        varchar(32) NOT NULL,  -- 'price', 'tag', 'feature', 'option', 'in_stock'
-  facet_keys        uuid[] NOT NULL DEFAULT '{}',  -- one or more IDs that map to this facet.
-                                                   -- For facet_type='option': product_option IDs (e.g., the ID of "color" option).
-                                                   -- For facet_type='feature': product_feature IDs (definition, e.g., "Material").
-                                                   --   At aggregation time, look up child feature_value IDs to intersect
-                                                   --   with psi.feature_value_ids.
-                                                   -- Empty for 'price', 'in_stock', 'tag' (they have no key).
-                                                   -- Multiple keys = alias merging: all matching attribute values
-                                                   -- are aggregated into a single facet, and filtering by this facet
-                                                   -- applies an OR across all keys.
-                                                   -- IDs are stable — slug/title renames don't affect facet config or search index.
   
   -- Display & selection behavior
   ui_type           varchar(16) NOT NULL DEFAULT 'checkbox',  -- 'checkbox' | 'radio' | 'dropdown' | 'range' | 'boolean'
@@ -266,8 +255,6 @@ catalog.facet_config (
   -- SEO
   indexable         boolean NOT NULL DEFAULT false,      -- whether filter combinations generate indexable URLs
   
-  -- No simple UNIQUE constraint — app-level validation ensures no key appears in more than one
-  -- facet_config per (project_id, facet_type). Enforced in FacetConfigCreateScript / FacetConfigUpdateScript.
 )
 
 catalog.facet_config_translation (
@@ -517,21 +504,11 @@ GROUP BY option_value_id
 
 The raw facet data is then intersected with the project's `facet_config` to determine:
 - Which facets to include (only those defined in `facet_config`)
-- **Multi-key merging:** if a `facet_config` has `facet_keys = [opt-id-1, opt-id-2, opt-id-3]` (IDs of three option definitions that represent the same concept), the aggregation combines counts from all three options into a single facet result. Duplicate values across keys are summed.
 - Order and grouping (via `facet_group`)
 - UI type
 - Whether to hide (fewer values than `min_values`)
 - Value count limits (`max_values_visible`)
 - Labels from `facet_config_translation`
-
-**Multi-key filtering:** when a user selects a value from a merged facet, the facet_keys contain option IDs. The storefront passes option value IDs directly (resolved from slugs at the API boundary). For example, filtering by "red" on a facet with `facet_keys = [opt-id-1, opt-id-2]`:
-1. The facet config knows the option IDs: `opt-id-1`, `opt-id-2`
-2. Look up all option_value IDs under those options that match the selected value (e.g., `val-id-A`)
-3. Build filter using plain UUIDs:
-```sql
-(psi.option_ids && ARRAY['val-id-A']::uuid[])
-```
-Since `option_ids` stores option_value UUIDs directly, filtering is a simple array overlap — no composite key splitting needed.
 
 ---
 
@@ -734,7 +711,6 @@ type FacetGroup implements Node {
 type FacetConfig implements Node {
   id: ID!
   facetType: FacetType!
-  facetKeys: [ID!]!
   label: String!
   uiType: FacetUIType!
   selectionMode: FacetSelectionMode!
@@ -757,8 +733,8 @@ input FacetGroupCreateInput { name: String!, collapsed: Boolean, sortIndex: Int 
 input FacetGroupUpdateInput { id: ID!, name: String, collapsed: Boolean, sortIndex: Int }
 input FacetGroupDeleteInput { id: ID! }
 
-input FacetConfigCreateInput { facetType: FacetType!, facetKeys: [ID!], uiType: FacetUIType, selectionMode: FacetSelectionMode, groupId: ID, label: String!, sortIndex: Int }
-input FacetConfigUpdateInput { id: ID!, facetKeys: [ID!], uiType: FacetUIType, selectionMode: FacetSelectionMode, groupId: ID, label: String, sortIndex: Int, minValues: Int, maxValuesVisible: Int, valueSort: FacetValueSort, hideZeroCount: Boolean, indexable: Boolean }
+input FacetConfigCreateInput { facetType: FacetType!, uiType: FacetUIType, selectionMode: FacetSelectionMode, groupId: ID, label: String!, sortIndex: Int }
+input FacetConfigUpdateInput { id: ID!, uiType: FacetUIType, selectionMode: FacetSelectionMode, groupId: ID, label: String, sortIndex: Int, minValues: Int, maxValuesVisible: Int, valueSort: FacetValueSort, hideZeroCount: Boolean, indexable: Boolean }
 input FacetConfigDeleteInput { id: ID! }
 ```
 
@@ -800,7 +776,6 @@ type FacetResultGroup {
 
 type FacetResult {
   facetType: FacetType!
-  facetKeys: [ID!]!
   label: String!
   uiType: FacetUIType!
   selectionMode: FacetSelectionMode!
