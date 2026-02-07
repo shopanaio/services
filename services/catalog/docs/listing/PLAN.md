@@ -303,16 +303,15 @@ catalog.facet_config_translation (
 Настройка значений внутри фасета: кастомные label, порядок, swatch, объединение source values.
 
 ```sql
+-- Same structure as product_option_swatch (intentional duplication — separate domain, same shape)
 catalog.facet_swatch (
   id                uuid PRIMARY KEY,
   project_id        uuid NOT NULL,
-  swatch_type       varchar(16) NOT NULL,  -- 'color' | 'gradient' | 'image'
-  color_one         varchar(9),             -- hex, e.g. '#FF0000'
-  color_two         varchar(9),             -- for gradient
-  image_id          uuid REFERENCES media.media_file(id) ON DELETE SET NULL,
-  metadata          jsonb,
-  created_at        timestamptz NOT NULL DEFAULT now(),
-  updated_at        timestamptz NOT NULL DEFAULT now()
+  swatch_type       varchar(32) NOT NULL,  -- 'color' | 'gradient' | 'image'
+  color_one         varchar(32),
+  color_two         varchar(32),
+  image_id          uuid,
+  metadata          jsonb
 )
 
 catalog.facet_config_value (
