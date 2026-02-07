@@ -282,7 +282,7 @@ Indexes: GIN on arrays, B-tree on price/stock/status/created_at.
 
 ```
 QueryCategoryProductsScript:
-  Input: { categoryId, sort?, pagination }
+  Input: { categoryId, filters?, sort?, pagination }
   
   1. Load category → get default_sort
   2. Build query:
@@ -290,12 +290,14 @@ QueryCategoryProductsScript:
        JOIN product_search_index psi ON pc.product_id = psi.product_id
        WHERE pc.category_id = :categoryId
          AND psi.status = 'active'
+         AND [apply facet filters]
   3. Apply sort:
        'manual' → ORDER BY pc.lexo_rank
        'price'  → ORDER BY psi.min_price_minor
        'newest' → ORDER BY psi.created_at DESC
   4. Paginate (Relay cursor)
-  5. Return { products, totalCount, pageInfo }
+  5. Compute facet aggregations (see 5.3)
+  6. Return { products, facets, totalCount, pageInfo }
 ```
 
 ### 5.2 Collection PLP
@@ -321,9 +323,9 @@ QueryCollectionProductsScript:
   8. Return { products, facets, totalCount, pageInfo }
 ```
 
-### 5.3 Facet computation (collections only)
+### 5.3 Facet computation
 
-For a given product set (from collection):
+For a given product set (from category or collection):
 
 ```sql
 -- Price range
