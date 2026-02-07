@@ -70,7 +70,6 @@ catalog.category_seo (
   
   PRIMARY KEY (category_id, locale)
 )
-CREATE INDEX idx_category_seo_project ON catalog.category_seo (project_id);
 CREATE INDEX idx_category_seo_project_locale ON catalog.category_seo (project_id, locale);
 ```
 
@@ -156,7 +155,6 @@ catalog.collection_seo (
   
   PRIMARY KEY (collection_id, locale)
 )
-CREATE INDEX idx_collection_seo_project ON catalog.collection_seo (project_id);
 CREATE INDEX idx_collection_seo_project_locale ON catalog.collection_seo (project_id, locale);
 ```
 
@@ -411,21 +409,21 @@ CREATE INDEX idx_facet_config_value_translation_project_locale
 
 ---
 
-## 3.4 Slug Resolution — Stored Slugs, App-Generated
+### 3.4 Slug Resolution — Stored Slugs, App-Generated
 
 Slugs live on `facet_config.slug` and `facet_config_value.slug` — not on translation tables. A facet is one entity regardless of locale: "Цвет", "Color", "Farbe" all share slug `color`. Slug is locale-independent.
 
-### Why stored slug (not computed)
+#### Why stored slug (not computed)
 
 - **All-language support.** SQL `IMMUTABLE` functions cannot handle CJK, Arabic, Hindi, Thai, Georgian, etc. Slug is provided by the frontend — admin decides the URL-friendly identifier.
 - **Locale-independent.** Slug belongs to the entity, not to a translation. One facet = one slug across all locales.
 - **DB uniqueness is trivial.** `UNIQUE(project_id, slug)` on `facet_config`, `UNIQUE(facet_config_id, slug)` on `facet_config_value` — no expression indexes, no denormalized columns.
 
-### Slug source
+#### Slug source
 
 Slug is provided by the frontend (admin UI) on create and update. The backend validates format (`^[a-z0-9][a-z0-9-]*[a-z0-9]$`) and uniqueness. No auto-generation — the admin is responsible for choosing a meaningful, URL-safe slug.
 
-### Querying slugs (for API responses)
+#### Querying slugs (for API responses)
 
 ```sql
 -- Facet slugs
@@ -441,7 +439,7 @@ JOIN facet_config_value_translation fcvt ON fcvt.facet_config_value_id = fcv.id
 WHERE fcv.facet_config_id = :facetConfigId AND fcvt.locale = :locale;
 ```
 
-### Resolving slug → search index handle (for filter inputs)
+#### Resolving slug → search index handle (for filter inputs)
 
 Storefront passes `facetSlug:valueSlug` strings via the unified `ProductFiltersInput.facets` field. All facet types (tag, feature, option) use the same resolution path:
 
@@ -864,7 +862,7 @@ src/loaders/
   FacetGroupLoader.ts
   FacetConfigLoader.ts
 
-api/graphql-admin/schema/
+src/api/graphql-admin/schema/
   collection.graphql
   facet.graphql
 ```
@@ -874,13 +872,14 @@ api/graphql-admin/schema/
 ```
 src/repositories/models/index.ts           # export new model files
 src/repositories/models/categories.ts      # add lexo_rank to product_category; add default_sort to category
+src/repositories/models/features.ts        # add slug to product_feature and product_feature_value
 src/repositories/models/seo.ts             # add category_seo, collection_seo (same structure as product_seo)
 src/repositories/Repository.ts             # add new repositories
 src/loaders/Loader.ts                      # add new loaders
 src/handlers/index.ts                      # add search index sync handlers
-api/graphql-admin/schema/base.graphql      # add collection/facet queries & mutations to CatalogQuery/CatalogMutation
-api/graphql-admin/schema/category.graphql  # add categoryProducts, defaultSort, seo fields to Category
-api/graphql-admin/schema/seo.graphql       # add CategorySeo, CategorySeoInput, CollectionSeo, CollectionSeoInput types
+src/api/graphql-admin/schema/base.graphql  # add collection/facet queries & mutations to CatalogQuery/CatalogMutation
+src/api/graphql-admin/schema/category.graphql  # add categoryProducts, defaultSort, seo fields to Category
+src/api/graphql-admin/schema/seo.graphql   # add generic Seo/SeoInput types
 src/resolvers/admin/CategoryResolver.ts    # add new field resolvers
 ```
 
@@ -894,7 +893,7 @@ src/resolvers/admin/CategoryResolver.ts    # add new field resolvers
 # Add to Category type:
 defaultSort: ProductSortBy!
 defaultSortDirection: SortDirection!
-seo(locale: String): CategorySeo
+seo: Seo
 
 """Category products with sorting, filtering, and pagination."""
 categoryProducts(
@@ -931,7 +930,7 @@ type Collection implements Node @key(fields: "id") {
   name: String!
   description: Description
   media: [CollectionMediaItem!]!
-  seo(locale: String): CollectionSeo
+  seo: Seo
   
   defaultSort: ProductSortBy!
   defaultSortDirection: SortDirection!
@@ -1042,9 +1041,11 @@ input FacetConfigDeleteInput { id: ID! }
 
 ```graphql
 """
-SEO and Open Graph metadata for a category. Same structure as ProductSeo.
+Generic SEO and Open Graph metadata. Used by Category, Collection, and Product.
+Replaces the old per-entity SEO types (ProductSeo is kept as alias for backward compatibility).
+Locale is resolved from the request context header — no locale argument on the field.
 """
-type CategorySeo {
+type Seo {
   seoTitle: String
   seoDescription: String
   ogTitle: String
@@ -1052,7 +1053,7 @@ type CategorySeo {
   ogImage: File
 }
 
-input CategorySeoInput {
+input SeoInput {
   seoTitle: String
   seoDescription: String
   ogTitle: String
@@ -1060,10 +1061,8 @@ input CategorySeoInput {
   ogImageId: ID
 }
 
-"""
-SEO and Open Graph metadata for a collection. Same structure as ProductSeo.
-"""
-type CollectionSeo {
+"""Backward compatibility — existing Product.seo returns this. Same shape as Seo."""
+type ProductSeo {
   seoTitle: String
   seoDescription: String
   ogTitle: String
@@ -1071,12 +1070,9 @@ type CollectionSeo {
   ogImage: File
 }
 
-input CollectionSeoInput {
-  seoTitle: String
-  seoDescription: String
-  ogTitle: String
-  ogDescription: String
-  ogImageId: ID
+type CollectionMediaItem {
+  file: File!
+  sortIndex: Int!
 }
 
 enum SortDirection { ASC DESC }
@@ -1279,10 +1275,40 @@ Everything else is local to catalog.
 
 `product_option` and `product_option_value` already have `slug` columns. `category` and `tag` already have `handle` columns. Only features need slugs added.
 
-1. **Add `slug` column** to `product_feature` (`UNIQUE(product_id, slug)`) and `product_feature_value` (`UNIQUE(feature_id, slug)`) — same pattern as option slugs, provided by frontend
-2. **Add slug validation utility** — shared helper to validate slug format (`^[a-z0-9][a-z0-9-]*[a-z0-9]$`)
-3. **Backfill existing feature slugs** — migration script to generate slugs from translation names (default locale) for existing rows (one-time)
-4. **Generate & apply migration**
+**Current `product_feature` columns:** `id`, `project_id`, `product_id`, `index` (int[]), `is_group`, `parent_id`. No slug.
+**Current `product_feature_value` columns:** `id`, `project_id`, `feature_id`, `index` (int). No slug.
+
+1. **Add `slug` column to `product_feature`:**
+   ```sql
+   ALTER TABLE catalog.product_feature
+     ADD COLUMN slug varchar(255) NOT NULL;
+   CREATE UNIQUE INDEX product_feature_product_id_slug_uniq
+     ON catalog.product_feature (product_id, slug);
+   ```
+   Same pattern as `product_option.slug` — unique per product.
+
+2. **Add `slug` column to `product_feature_value`:**
+   ```sql
+   ALTER TABLE catalog.product_feature_value
+     ADD COLUMN slug varchar(255) NOT NULL;
+   CREATE UNIQUE INDEX product_feature_value_feature_id_slug_uniq
+     ON catalog.product_feature_value (feature_id, slug);
+   ```
+   Same pattern as `product_option_value.slug` — unique per feature.
+
+3. **Add slug validation utility** — shared helper to validate slug format (`^[a-z0-9]([a-z0-9-]*[a-z0-9])?$`). Note: regex allows single-char slugs (e.g., "s", "m", "l" for sizes).
+
+4. **Backfill existing feature slugs** — migration script:
+   - Source: `product_feature_translation.name` / `product_feature_value_translation.name` for the project's default locale
+   - Transliterate to ASCII, lowercase, replace spaces/special chars with hyphens
+   - **Collision handling:** append `-2`, `-3`, etc. within the same parent scope
+   - Run as a one-time data migration after the schema migration
+
+5. **Update Drizzle models** — add `slug` to `productFeature` and `productFeatureValue` in `src/repositories/models/features.ts`
+
+6. **Update feature CRUD scripts** — require `slug` on create, allow update. Validate format and uniqueness.
+
+7. **Generate & apply migration**
 
 ### Phase 1A: Search Index + Category Products
 
