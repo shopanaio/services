@@ -110,6 +110,8 @@ catalog.collection_translation (
   description_json  text,
   PRIMARY KEY (collection_id, locale)
 )
+CREATE INDEX idx_collection_translation_project_locale
+  ON catalog.collection_translation (project_id, locale);
 ```
 
 ```sql
@@ -219,6 +221,8 @@ catalog.facet_group_translation (
   name              text NOT NULL,
   PRIMARY KEY (group_id, locale)
 )
+CREATE INDEX idx_facet_group_translation_project_locale
+  ON catalog.facet_group_translation (project_id, locale);
 ```
 
 ```sql
@@ -294,6 +298,8 @@ catalog.facet_config_translation (
   label             text NOT NULL,                       -- display label override (e.g., "Colour" instead of "color")
   PRIMARY KEY (facet_id, locale)
 )
+CREATE INDEX idx_facet_config_translation_project_locale
+  ON catalog.facet_config_translation (project_id, locale);
 ```
 
 ---
@@ -340,6 +346,8 @@ catalog.facet_config_value_translation (
   label             text NOT NULL,
   PRIMARY KEY (facet_config_value_id, locale)
 )
+CREATE INDEX idx_facet_config_value_translation_project_locale
+  ON catalog.facet_config_value_translation (project_id, locale);
 ```
 
 **Назначение:**
@@ -434,7 +442,12 @@ catalog.product_search_index (
 )
 ```
 
-Indexes: GIN on arrays, B-tree on price/stock/status/created_at.
+Indexes: GIN on arrays, B-tree on price/stock/status/created_at, plus:
+
+```sql
+CREATE INDEX idx_product_search_index_project_status
+  ON catalog.product_search_index (project_id, status);
+```
 
 ### Slug → ID lookup (for storefront filter inputs)
 
