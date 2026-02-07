@@ -72,7 +72,7 @@ catalog.collection (
   type              varchar(16) NOT NULL,  -- 'manual' | 'rule'
   
   -- Sort
-  -- For 'rule' collections, 'manual' is not valid (no lexo_rank). Validated at app level; fallback to 'newest'.
+  -- For 'rule' collections, 'manual' is not valid (no lexo_rank). Enforced by CHECK constraint.
   default_sort      varchar(32) NOT NULL DEFAULT 'manual',
   default_sort_dir  varchar(4) NOT NULL DEFAULT 'asc',
   
@@ -88,7 +88,8 @@ catalog.collection (
   updated_at        timestamptz NOT NULL DEFAULT now(),
   deleted_at        timestamptz,
   
-  UNIQUE(project_id, handle) WHERE deleted_at IS NULL AND handle IS NOT NULL
+  UNIQUE(project_id, handle) WHERE deleted_at IS NULL AND handle IS NOT NULL,
+  CHECK (type != 'rule' OR default_sort != 'manual')
 )
 ```
 
