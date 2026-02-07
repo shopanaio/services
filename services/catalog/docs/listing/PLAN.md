@@ -270,9 +270,11 @@ catalog.facet_config (
   
   -- What product attribute this maps to
   facet_type        varchar(32) NOT NULL,  -- 'price', 'tag', 'feature', 'option', 'in_stock'
-  source_id         uuid,                  -- For 'feature'/'option': references the specific product_feature.id or product_option.id.
+  source_handle     varchar(255),          -- For 'feature'/'option': the slug of the option/feature concept
+                                           -- (e.g., 'color', 'material'). Matches product_option.slug or
+                                           -- product_feature.slug across all products in the project.
                                            -- NULL for 'price', 'tag', 'in_stock' (they don't need disambiguation).
-  UNIQUE(project_id, facet_type, source_id) NULLS NOT DISTINCT,
+  UNIQUE(project_id, facet_type, source_handle) NULLS NOT DISTINCT,
   
   -- Display & selection behavior
   ui_type           varchar(16) NOT NULL DEFAULT 'checkbox',  -- 'checkbox' | 'radio' | 'dropdown' | 'range' | 'boolean'
@@ -361,8 +363,11 @@ catalog.facet_config_value (
   id                uuid PRIMARY KEY,
   project_id        uuid NOT NULL,
   facet_config_id   uuid NOT NULL REFERENCES catalog.facet_config(id) ON DELETE CASCADE,
-  source_value_ids  uuid[] NOT NULL DEFAULT '{}',  -- references feature_value.id, option_value.id, or tag.id
-                                                    -- multiple IDs = merge into one display value
+  source_handles    text[] NOT NULL DEFAULT '{}',   -- composite slug references into product_search_index:
+                                                    -- For option facets: ['color:red', 'color:crimson'] (option_slug:value_slug)
+                                                    -- For feature facets: ['material:cotton', 'material:organic-cotton']
+                                                    -- For tag facets: ['sale', 'clearance'] (tag handle directly)
+                                                    -- Multiple entries = merge into one display value
   slug              varchar(255) NOT NULL,           -- app-generated, unique per facet
   swatch_id         uuid REFERENCES catalog.facet_swatch(id) ON DELETE SET NULL,
   sort_index        int NOT NULL DEFAULT 0,
@@ -372,9 +377,9 @@ catalog.facet_config_value (
   
   UNIQUE(facet_config_id, slug)
 )
--- GIN index for reverse lookup (source_value_id → display value):
--- CREATE INDEX ON catalog.facet_config_value USING GIN (source_value_ids);
--- Uniqueness (one source value → one display value) validated in application code.
+-- GIN index for reverse lookup (source handle → display value):
+-- CREATE INDEX ON catalog.facet_config_value USING GIN (source_handles);
+-- Uniqueness (one source handle → one display value) validated in application code.
 
 catalog.facet_config_value_translation (
   facet_config_value_id uuid NOT NULL REFERENCES catalog.facet_config_value(id) ON DELETE CASCADE,
@@ -389,7 +394,7 @@ CREATE INDEX idx_facet_config_value_translation_project_locale
 
 **Назначение:**
 - `facet_swatch` — визуальный swatch для значения фасета (аналог `product_option_swatch`)
-- `facet_config_value` — настроенное значение: порядок, enabled, swatch. Поле `source_value_ids` содержит массив source value IDs (merge нескольких source values в одно display value)
+- `facet_config_value` — настроенное значение: порядок, enabled, swatch. Поле `source_handles` содержит массив composite slug references (merge нескольких source values в одно display value)
 - `facet_config_value_translation` — кастомный label (переопределяет source translation)
 
 **Резолюция label и swatch:**
@@ -433,27 +438,37 @@ JOIN facet_config_value_translation fcvt ON fcvt.facet_config_value_id = fcv.id
 WHERE fcv.facet_config_id = :facetConfigId AND fcvt.locale = :locale;
 ```
 
-### Resolving slug → ID (for filter inputs)
+### Resolving slug → search index handle (for filter inputs)
 
 Storefront passes `facetSlug:valueSlug` strings via the unified `ProductFiltersInput.facets` field. All facet types (tag, feature, option) use the same resolution path:
 
 ```sql
 -- Step 1: Resolve facet slug → facet_config row
-SELECT fc.id AS facet_config_id, fc.facet_type, fc.source_id, fc.filter_logic
+SELECT fc.id AS facet_config_id, fc.facet_type, fc.source_handle, fc.filter_logic
 FROM facet_config fc
 WHERE fc.project_id = :projectId
   AND fc.slug = :facetSlug;
+```
 
--- Step 2: Resolve value slug → source_value_ids
-SELECT fcv.source_value_ids
+```sql
+-- Step 2a (configured values — custom merges/labels): Resolve value slug → source_handles
+SELECT fcv.source_handles
 FROM facet_config_value fcv
 WHERE fcv.facet_config_id = :facetConfigId
   AND fcv.slug = :valueSlug;
 ```
 
-`facet_type` determines which `product_search_index` array column to query: `tag_ids`, `feature_value_ids`, or `option_ids`. `filter_logic` determines the array operator: `&&` (overlap) for OR, `@>` (contains) for AND.
+```
+-- Step 2b (shortcut — unconfigured values, no facet_config_value row):
+-- Derive composite directly from facet_config + valueSlug:
+--   option/feature: source_handle || ':' || valueSlug  (e.g., 'color' + ':' + 'red' = 'color:red')
+--   tag:            valueSlug directly                  (e.g., 'sale')
+-- No DB lookup needed — just string concatenation.
+```
 
-Both queries are simple B-tree index lookups on the UNIQUE constraints. No JOINs needed for slug resolution. Results cached per request.
+`facet_type` determines which `product_search_index` array column to query: `tag_handles`, `feature_slugs`, or `option_slugs`. `filter_logic` determines the array operator: `&&` (overlap) for OR, `@>` (contains) for AND.
+
+Step 1 is a simple B-tree index lookup on `UNIQUE(project_id, slug)`. Step 2a is a B-tree lookup on `UNIQUE(facet_config_id, slug)`. Step 2b is a pure in-memory operation. Results cached per request.
 
 ---
 
@@ -472,10 +487,10 @@ catalog.product_search_index (
   max_price_minor   bigint,
   in_stock          boolean NOT NULL DEFAULT false,
   total_stock       int NOT NULL DEFAULT 0,
-  tag_ids           uuid[] DEFAULT '{}',
-  feature_value_ids uuid[] DEFAULT '{}',  -- product_feature_value IDs (the actual values like "Cotton", not the feature definition "Material")
-  option_ids        uuid[] DEFAULT '{}',  -- option_value IDs (plain UUIDs)
-  category_ids      uuid[] DEFAULT '{}',
+  tag_handles       text[] DEFAULT '{}',   -- tag handles (project-wide unique), e.g., {'sale', 'new-arrival'}
+  feature_slugs     text[] DEFAULT '{}',  -- composite 'feature_slug:value_slug', e.g., {'material:cotton', 'brand:nike'}
+  option_slugs      text[] DEFAULT '{}',  -- composite 'option_slug:value_slug', e.g., {'color:red', 'size:xl'}
+  category_handles  text[] DEFAULT '{}',  -- category handles (project-wide unique), e.g., {'shoes', 'running'}
   created_at        timestamptz NOT NULL DEFAULT now(),
   updated_at        timestamptz NOT NULL DEFAULT now()
 )
@@ -488,24 +503,29 @@ CREATE INDEX idx_product_search_index_project_status
   ON catalog.product_search_index (project_id, status);
 ```
 
-### Slug → ID lookup (for storefront filter inputs)
+### Slug → composite handle lookup (for storefront filter inputs)
 
-Both the search index and facet config store **IDs**. Slug resolution is only needed at the **API boundary** — when a storefront query passes human-readable slugs in `ProductFiltersInput`. Slugs are stored on `facet_config.slug` and `facet_config_value.slug` (see §3.4).
+Both the search index and facet config store **slugs/handles** (not UUIDs). The search index stores composite slugs (`option_slug:value_slug`), and facet config maps display slugs to source composite handles via `facet_config_value.source_handles`.
 
-Storefront passes facet filters via the unified `ProductFiltersInput.facets` field as `facetSlug:valueSlug` strings. Resolution is always through facet config — never through source tables (option/feature/tag). See §3.4 for the resolution queries.
+Storefront passes facet filters via the unified `ProductFiltersInput.facets` field as `facetSlug:valueSlug` strings. Resolution is through facet config (see §3.4):
+1. `facet_config.slug` → `facet_type`, `source_handle`, `filter_logic`
+2. Either `facet_config_value.source_handles` (configured values) or derive composite directly (shortcut)
+3. Query the appropriate `product_search_index` array column (`tag_handles`, `feature_slugs`, `option_slugs`)
 
-The resolved `source_value_ids` are then used for array overlap/containment queries on `product_search_index` (using `facet_type` to determine which array column: `tag_ids`, `feature_value_ids`, or `option_ids`; using `filter_logic` to determine the operator: `&&` for OR, `@>` for AND).
-
-Both queries are simple B-tree index lookups on UNIQUE constraints — no JOINs needed. Results cached per request.
+For unconfigured values (no `facet_config_value` row), the composite can be derived without any DB lookup: `source_handle + ':' + valueSlug` for option/feature, or `valueSlug` directly for tags. See §3.4 for details.
 
 ### Sync flow
 
 `SyncProductIndexScript` runs on productCreated/Updated/Deleted events:
-1. Load product + categories, tags, features, options, prices (all local)
-2. Broker call `inventory.getOffers` for stock
-3. UPSERT into `product_search_index`
+1. Load product + categories → collect `category.handle` values → `category_handles`
+2. Load product tags → collect `tag.handle` values → `tag_handles`
+3. Load product options + values → build `option.slug + ':' + optionValue.slug` composites → `option_slugs`
+4. Load product features + values → build `feature.slug + ':' + featureValue.slug` composites → `feature_slugs`
+5. Load prices (local)
+6. Broker call `inventory.getOffers` for stock
+7. UPSERT into `product_search_index` with slug/handle arrays
 
-No translation data is synced — the index contains only structured/numeric fields.
+No translation data is synced — the index contains only structured/numeric fields and slugs/handles.
 
 ---
 
@@ -572,7 +592,7 @@ QueryCollectionProductsScript:
 For a given product set (from category or collection). Two key concerns:
 
 1. **Facet isolation** — counts for each facet are computed **without** that facet's own filter applied (but with all other facet filters applied). This prevents selected values from hiding sibling values. Standard e-commerce pattern.
-2. **Merged values** — when `facet_config_value.source_value_ids` contains multiple IDs, their counts must be summed into a single display value.
+2. **Merged values** — when `facet_config_value.source_handles` contains multiple entries, their counts must be summed into a single display value.
 
 #### 5.3.1 Single-query approach with boolean filter columns
 
@@ -584,16 +604,16 @@ Instead of N+1 separate queries, compute boolean "passes filter" columns per fac
 WITH base AS (
   SELECT
     psi.product_id,
-    psi.tag_ids,
-    psi.feature_value_ids,
-    psi.option_ids,
+    psi.tag_handles,
+    psi.feature_slugs,
+    psi.option_slugs,
     psi.min_price_minor,
     psi.max_price_minor,
     psi.in_stock,
     -- One boolean per active facet filter (generated dynamically by app):
     -- TRUE = this product passes this specific facet's filter
-    (psi.feature_value_ids && ARRAY[:color_ids]::uuid[])     AS passes_color,
-    (psi.feature_value_ids @> ARRAY[:material_ids]::uuid[])   AS passes_material
+    (psi.option_slugs && ARRAY['color:red','color:blue']::text[])   AS passes_color,
+    (psi.feature_slugs @> ARRAY['material:cotton']::text[])          AS passes_material
     -- ... one column per active facet filter
   FROM product_search_index psi
   JOIN product_category pc ON pc.product_id = psi.product_id
@@ -623,8 +643,8 @@ SELECT
     FILTER (WHERE b.passes_color)                             AS cnt_material_facet
     -- ^ material facet: require color=true, ignore material (isolation)
 FROM base b,
-     unnest(b.feature_value_ids) AS sv_id
-JOIN facet_config_value fcv ON sv_id = ANY(fcv.source_value_ids)
+     unnest(b.option_slugs) AS sv_slug
+JOIN facet_config_value fcv ON sv_slug = ANY(fcv.source_handles)
 WHERE fcv.enabled = true
 GROUP BY fcv.facet_config_id, fcv.id
 ```
@@ -650,9 +670,9 @@ FROM base
 
 #### 5.3.2 Merged value deduplication
 
-`JOIN facet_config_value fcv ON sv_id = ANY(fcv.source_value_ids)` with `COUNT(DISTINCT product_id)` handles merged values automatically. When "Red" (`source_id_1`) and "Crimson" (`source_id_2`) both map to the same `fcv.id`, a product with both IDs in its array produces two unnest rows, but `COUNT(DISTINCT product_id)` counts it once.
+`JOIN facet_config_value fcv ON sv_slug = ANY(fcv.source_handles)` with `COUNT(DISTINCT product_id)` handles merged values automatically. When "Red" (`color:red`) and "Crimson" (`color:crimson`) both map to the same `fcv.id`, a product with both slugs in its array produces two unnest rows, but `COUNT(DISTINCT product_id)` counts it once.
 
-For **unconfigured values** (no `facet_config_value` row), the query uses a `LEFT JOIN` fallback — source values without a config entry still appear with their source label and individual slug. This is handled in application code: if `fcv.id IS NULL`, group by raw `sv_id` instead.
+For **unconfigured values** (no `facet_config_value` row), the query uses a `LEFT JOIN` fallback — source values without a config entry still appear with their source label and individual slug. This is handled in application code: if `fcv.id IS NULL`, group by raw `sv_slug` instead.
 
 #### 5.3.3 Assembly
 
@@ -869,8 +889,8 @@ type FacetGroup implements Node {
 type FacetConfig implements Node {
   id: ID!
   facetType: FacetType!
-  """For FEATURE/OPTION: the specific product_feature or product_option this facet represents. Null for PRICE, TAG, IN_STOCK."""
-  sourceId: ID
+  """For FEATURE/OPTION: the slug of the option/feature concept (e.g., 'color', 'material'). Null for PRICE, TAG, IN_STOCK."""
+  sourceHandle: String
   slug: String!
   label: String!
   uiType: FacetUIType!
@@ -897,7 +917,7 @@ input FacetGroupCreateInput { name: String!, collapsed: Boolean, sortIndex: Int 
 input FacetGroupUpdateInput { id: ID!, name: String, collapsed: Boolean, sortIndex: Int }
 input FacetGroupDeleteInput { id: ID! }
 
-input FacetConfigCreateInput { facetType: FacetType!, sourceId: ID, slug: String!, uiType: FacetUIType, selectionMode: FacetSelectionMode, filterLogic: FacetFilterLogic, groupId: ID, label: String!, sortIndex: Int }
+input FacetConfigCreateInput { facetType: FacetType!, sourceHandle: String, slug: String!, uiType: FacetUIType, selectionMode: FacetSelectionMode, filterLogic: FacetFilterLogic, groupId: ID, label: String!, sortIndex: Int }
 input FacetConfigUpdateInput { id: ID!, slug: String, uiType: FacetUIType, selectionMode: FacetSelectionMode, filterLogic: FacetFilterLogic, groupId: ID, label: String, sortIndex: Int, minValues: Int, maxValuesVisible: Int, valueSort: FacetValueSort, hideZeroCount: Boolean, indexable: Boolean }
 input FacetConfigDeleteInput { id: ID! }
 ```
@@ -1069,7 +1089,7 @@ Rules in `collection_rule` are evaluated against `product_search_index`:
 ```sql
 -- Each rule becomes a WHERE clause:
 -- { field: "tag", operator: "in", value: ["sale"] }
---   → psi.tag_ids @> ARRAY['<sale-tag-id>']::uuid[]
+--   → psi.tag_handles @> ARRAY['sale']::text[]
 
 -- { field: "price", operator: "between", value: [1000, 5000] }
 --   → psi.min_price_minor >= 1000 AND psi.max_price_minor <= 5000
@@ -1077,15 +1097,20 @@ Rules in `collection_rule` are evaluated against `product_search_index`:
 -- { field: "in_stock", operator: "eq", value: true }
 --   → psi.in_stock = true
 
--- { field: "feature", operator: "contains", value: "cotton" }
---   → resolve slug 'cotton' → source_value_ids via facet_config_value.slug (see §3.4),
---     then: source_value_ids && psi.feature_value_ids
+-- { field: "feature", operator: "contains", value: "material:cotton" }
+--   → psi.feature_slugs && ARRAY['material:cotton']::text[]
+--     (composite slug used directly — no facet_config_value lookup needed)
 
--- { field: "category", operator: "in", value: ["<cat-id>"] }
---   → psi.category_ids && ARRAY['<cat-id>']::uuid[]
+-- { field: "option", operator: "in", value: ["color:red", "color:blue"] }
+--   → psi.option_slugs && ARRAY['color:red', 'color:blue']::text[]
+
+-- { field: "category", operator: "in", value: ["shoes", "running"] }
+--   → psi.category_handles && ARRAY['shoes', 'running']::text[]
 
 -- All rules AND-ed together
 ```
+
+Rule `value` fields store handles/slugs (not UUIDs): tag handles, composite option/feature slugs, category handles.
 
 All rules are AND-ed together.
 
@@ -1109,9 +1134,11 @@ Everything else is local to catalog.
 
 ### Phase 0: Slug Infrastructure
 
-1. **Add `slug` column** to `product_option` and `product_option_value` (if not already present) — provided by frontend
+`product_option` and `product_option_value` already have `slug` columns. `category` and `tag` already have `handle` columns. Only features need slugs added.
+
+1. **Add `slug` column** to `product_feature` (`UNIQUE(product_id, slug)`) and `product_feature_value` (`UNIQUE(feature_id, slug)`) — same pattern as option slugs, provided by frontend
 2. **Add slug validation utility** — shared helper to validate slug format (`^[a-z0-9][a-z0-9-]*[a-z0-9]$`)
-3. **Backfill existing slugs** — migration script to populate slugs for existing rows (one-time)
+3. **Backfill existing feature slugs** — migration script to generate slugs from translation names (default locale) for existing rows (one-time)
 4. **Generate & apply migration**
 
 ### Phase 1A: Search Index + Category Products
