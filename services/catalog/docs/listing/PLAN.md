@@ -225,7 +225,9 @@ catalog.facet_config (
   facet_type        varchar(32) NOT NULL,  -- 'price', 'tag', 'feature', 'option', 'in_stock'
   facet_keys        uuid[] NOT NULL DEFAULT '{}',  -- one or more IDs that map to this facet.
                                                    -- For facet_type='option': product_option IDs (e.g., the ID of "color" option).
-                                                   -- For facet_type='feature': product_feature IDs.
+                                                   -- For facet_type='feature': product_feature IDs (definition, e.g., "Material").
+                                                   --   At aggregation time, look up child feature_value IDs to intersect
+                                                   --   with psi.feature_value_ids.
                                                    -- Empty for 'price', 'in_stock', 'tag' (they have no key).
                                                    -- Multiple keys = alias merging: all matching attribute values
                                                    -- are aggregated into a single facet, and filtering by this facet
@@ -371,7 +373,7 @@ catalog.product_search_index (
   in_stock          boolean NOT NULL DEFAULT false,
   total_stock       int NOT NULL DEFAULT 0,
   tag_ids           uuid[] DEFAULT '{}',
-  feature_ids       uuid[] DEFAULT '{}',  -- product_feature IDs (immutable; slug computed via slugify() on translation name at query time)
+  feature_value_ids uuid[] DEFAULT '{}',  -- product_feature_value IDs (the actual values like "Cotton", not the feature definition "Material")
   option_ids        uuid[] DEFAULT '{}',  -- option_value IDs (plain UUIDs)
   category_ids      uuid[] DEFAULT '{}',
   created_at        timestamptz NOT NULL DEFAULT now(),
@@ -385,10 +387,17 @@ Indexes: GIN on arrays, B-tree on price/stock/status/created_at.
 
 Both the search index and facet config store **IDs**. Slug resolution is only needed at the **API boundary** — when a storefront query passes human-readable slugs in `ProductFiltersInput`. Slugs are **not stored** — they are computed from translation `name` via the `slugify()` SQL function (see §3.3).
 
-- **Features:** caller passes `featureSlugs` → script looks up IDs via:
+- **Features:** caller passes `featureSlugs` as `featureSlug:valueSlug` strings → script splits into feature slug + value slug, resolves to feature_value IDs via `slugify(name)` on the respective translation tables:
   ```sql
-  SELECT feature_id FROM product_feature_translation
-  WHERE locale = :locale AND slugify(name) = ANY(:slugs) AND project_id = :projectId
+  SELECT pfv.id AS feature_value_id
+  FROM product_feature_value pfv
+  JOIN product_feature_value_translation pfvt ON pfvt.feature_value_id = pfv.id
+  JOIN product_feature pf ON pf.id = pfv.feature_id
+  JOIN product_feature_translation pft ON pft.feature_id = pf.id AND pft.locale = :locale
+  WHERE pfvt.locale = :locale
+    AND slugify(pft.name) = :featureSlug
+    AND slugify(pfvt.name) = :valueSlug
+    AND pf.project_id = :projectId;
   ```
 - **Options:** caller passes `optionSlugs` as `key:value` strings → script splits into option slug + value slug, resolves both to IDs via `slugify(name)` on the respective translation tables, then uses the resolved option_value_id UUIDs for the array overlap query:
   ```sql
@@ -491,11 +500,11 @@ FROM product_search_index psi
 WHERE psi.product_id IN (...)
 GROUP BY tag_id
 
--- Feature facets (by ID; slugs computed via slugify(name) after aggregation — see §3.3)
-SELECT unnest(psi.feature_ids) AS feature_id, COUNT(*) AS cnt
+-- Feature facets (by feature_value ID; labels resolved via translation tables after aggregation)
+SELECT unnest(psi.feature_value_ids) AS feature_value_id, COUNT(*) AS cnt
 FROM product_search_index psi
 WHERE psi.product_id IN (...)
-GROUP BY feature_id
+GROUP BY feature_value_id
 
 -- Option facets
 SELECT unnest(psi.option_ids) AS option_value_id, COUNT(*) AS cnt
@@ -762,7 +771,7 @@ input ProductFiltersInput {
   priceMinMinor: BigInt
   priceMaxMinor: BigInt
   tagIds: [ID!]
-  """Slugs are pre-computed by the client (URL-safe). Resolved to IDs server-side via slugify(name) on translation tables (see §3.3)."""
+  """Format: 'featureSlug:valueSlug'. Resolved to feature_value IDs server-side via slugify(name) on translation tables (see §3.3)."""
   featureSlugs: [String!]
   """Format: 'optionSlug:valueSlug'. Resolved to IDs server-side via slugify(name) on translation tables (see §3.3)."""
   optionSlugs: [String!]
@@ -886,8 +895,8 @@ Rules in `collection_rule` are evaluated against `product_search_index`:
 --   → psi.in_stock = true
 
 -- { field: "feature", operator: "contains", value: "cotton" }
---   → resolve slug 'cotton' → feature_id via slugify(name) on product_feature_translation (see §3.3),
---     then: feature_id = ANY(psi.feature_ids)
+--   → resolve slug 'cotton' → feature_value_id via slugify(name) on product_feature_value_translation (see §3.3),
+--     then: feature_value_id = ANY(psi.feature_value_ids)
 
 -- { field: "category", operator: "in", value: ["<cat-id>"] }
 --   → psi.category_ids && ARRAY['<cat-id>']::uuid[]
