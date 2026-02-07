@@ -8,11 +8,11 @@ Three distinct domain concepts, all inside the **catalog** service:
 |---------|------|------------|
 | **Category** | Stable taxonomy, navigation skeleton, SEO pages | Content managers |
 | **Collection** | Merchandising product groupings (manual / rule-based) | Merchandisers, marketers |
-| **Facet Config** | Facet display configuration (groups, order, UI types, labels) — per project | Catalog admins |
+| **Facet** | Facet display configuration (groups, order, UI types, labels) — per project | Catalog admins |
 
 Products are assigned to categories explicitly (by humans, bulk ops, or import).
 Collections assemble products by rules or manual picks.
-Facets on a collection PLP are computed on-the-fly from products present, rendered according to project-level facet configuration.
+Facets on a collection PLP are computed on-the-fly from products present, rendered according to project-level facet setup.
 
 **Scope (Phase 1):** PostgreSQL only. No Typesense, no full-text search, no algorithmic collections.
 
@@ -221,11 +221,11 @@ Rules are evaluated against `product_search_index`.
 
 ---
 
-## 3. Facet Configuration (project-level)
+## 3. Facets (project-level)
 
 ### 3.1 Core idea
 
-Facet configuration defines **how** facets are displayed on PLPs, not **what** data exists. Available facet values are computed on-the-fly from products. The configuration controls:
+Facet setup defines **how** facets are displayed on PLPs, not **what** data exists. Available facet values are computed on-the-fly from products. The setup controls:
 
 - Which facets to show and in what order
 - Grouping (e.g., "Main filters", "Material & Care")
@@ -234,7 +234,7 @@ Facet configuration defines **how** facets are displayed on PLPs, not **what** d
 - Display rules (min distinct values to show, collapse threshold)
 - Facet and value lists are derived from the base product set (category/collection without user filters) and remain stable as filters change; only counts update
 
-Configuration is per-project — one flat list of facet groups and facets per project.
+Setup is per-project — one flat list of facet groups and facets per project.
 
 ### 3.2 Database schema
 
@@ -262,7 +262,7 @@ CREATE INDEX idx_facet_group_translation_project_locale
 ```
 
 ```sql
-catalog.facet_config (
+catalog.facet (
   id                uuid PRIMARY KEY,
   project_id        uuid NOT NULL,
   group_id          uuid REFERENCES catalog.facet_group(id) ON DELETE SET NULL,
@@ -310,7 +310,7 @@ catalog.facet_config (
   --
   -- 'range' and 'boolean' ignore selection_mode and filter_logic.
   --
-  -- Swatch: For OPTION-type facets, each FacetValue automatically includes swatch data
+  -- Swatch: For OPTION-type facets, each FacetResultValue automatically includes swatch data
   -- (resolved via product_option_value → product_option_swatch). No config flag needed —
   -- if the option value has a swatch, it comes through. Frontend decides how to render it.
   
@@ -330,20 +330,20 @@ catalog.facet_config (
   UNIQUE(project_id, slug)
 )
 
-catalog.facet_config_translation (
-  facet_id          uuid NOT NULL REFERENCES catalog.facet_config(id) ON DELETE CASCADE,
+catalog.facet_translation (
+  facet_id          uuid NOT NULL REFERENCES catalog.facet(id) ON DELETE CASCADE,
   locale            varchar(8) NOT NULL,
   project_id        uuid NOT NULL,
   label             text NOT NULL,                       -- display label override (e.g., "Colour" instead of "color")
   PRIMARY KEY (facet_id, locale)
 )
-CREATE INDEX idx_facet_config_translation_project_locale
-  ON catalog.facet_config_translation (project_id, locale);
+CREATE INDEX idx_facet_translation_project_locale
+  ON catalog.facet_translation (project_id, locale);
 ```
 
 ---
 
-### 3.3 Facet Config Values
+### 3.3 Facet Values
 
 Настройка значений внутри фасета: кастомные label, порядок, swatch, объединение source values.
 
@@ -359,10 +359,10 @@ catalog.facet_swatch (
   metadata          jsonb
 )
 
-catalog.facet_config_value (
+catalog.facet_value (
   id                uuid PRIMARY KEY,
   project_id        uuid NOT NULL,
-  facet_config_id   uuid NOT NULL REFERENCES catalog.facet_config(id) ON DELETE CASCADE,
+  facet_id          uuid NOT NULL REFERENCES catalog.facet(id) ON DELETE CASCADE,
   source_handles    text[] NOT NULL DEFAULT '{}',   -- composite slug references into product_search_index:
                                                     -- For option facets: ['color:red', 'color:crimson'] (option_slug:value_slug)
                                                     -- For feature facets: ['material:cotton', 'material:organic-cotton']
@@ -375,48 +375,48 @@ catalog.facet_config_value (
   created_at        timestamptz NOT NULL DEFAULT now(),
   updated_at        timestamptz NOT NULL DEFAULT now(),
   
-  UNIQUE(facet_config_id, slug)
+  UNIQUE(facet_id, slug)
 )
 -- GIN index for reverse lookup (source handle → display value):
--- CREATE INDEX ON catalog.facet_config_value USING GIN (source_handles);
+-- CREATE INDEX ON catalog.facet_value USING GIN (source_handles);
 -- Uniqueness (one source handle → one display value) validated in application code.
 
-catalog.facet_config_value_translation (
-  facet_config_value_id uuid NOT NULL REFERENCES catalog.facet_config_value(id) ON DELETE CASCADE,
+catalog.facet_value_translation (
+  facet_value_id    uuid NOT NULL REFERENCES catalog.facet_value(id) ON DELETE CASCADE,
   locale            varchar(8) NOT NULL,
   project_id        uuid NOT NULL,
   label             text NOT NULL,
-  PRIMARY KEY (facet_config_value_id, locale)
+  PRIMARY KEY (facet_value_id, locale)
 )
-CREATE INDEX idx_facet_config_value_translation_project_locale
-  ON catalog.facet_config_value_translation (project_id, locale);
+CREATE INDEX idx_facet_value_translation_project_locale
+  ON catalog.facet_value_translation (project_id, locale);
 ```
 
 **Назначение:**
 - `facet_swatch` — визуальный swatch для значения фасета (аналог `product_option_swatch`)
-- `facet_config_value` — настроенное значение: порядок, enabled, swatch. Поле `source_handles` содержит массив composite slug references (merge нескольких source values в одно display value)
-- `facet_config_value_translation` — кастомный label (переопределяет source translation)
+- `facet_value` — настроенное значение: порядок, enabled, swatch. Поле `source_handles` содержит массив composite slug references (merge нескольких source values в одно display value)
+- `facet_value_translation` — кастомный label (переопределяет source translation)
 
 **Резолюция label и swatch:**
 
 | Приоритет | Label | Swatch |
 |-----------|-------|--------|
-| 1 | `facet_config_value_translation` | `facet_swatch` через `facet_config_value.swatch_id` |
+| 1 | `facet_value_translation` | `facet_swatch` через `facet_value.swatch_id` |
 | 2 | Source translation (feature_value/option_value/tag) | `product_option_swatch` (только для option facets) |
 
-Если `facet_config_value` не создан — значения берутся напрямую из source таблиц (backward compatible).
+Если `facet_value` не создан — значения берутся напрямую из source таблиц (backward compatible).
 
 ---
 
 ### 3.4 Slug Resolution — Stored Slugs, App-Generated
 
-Slugs live on `facet_config.slug` and `facet_config_value.slug` — not on translation tables. A facet is one entity regardless of locale: "Цвет", "Color", "Farbe" all share slug `color`. Slug is locale-independent.
+Slugs live on `facet.slug` and `facet_value.slug` — not on translation tables. A facet is one entity regardless of locale: "Цвет", "Color", "Farbe" all share slug `color`. Slug is locale-independent.
 
 #### Why stored slug (not computed)
 
 - **All-language support.** SQL `IMMUTABLE` functions cannot handle CJK, Arabic, Hindi, Thai, Georgian, etc. Slug is provided by the frontend — admin decides the URL-friendly identifier.
 - **Locale-independent.** Slug belongs to the entity, not to a translation. One facet = one slug across all locales.
-- **DB uniqueness is trivial.** `UNIQUE(project_id, slug)` on `facet_config`, `UNIQUE(facet_config_id, slug)` on `facet_config_value` — no expression indexes, no denormalized columns.
+- **DB uniqueness is trivial.** `UNIQUE(project_id, slug)` on `facet`, `UNIQUE(facet_id, slug)` on `facet_value` — no expression indexes, no denormalized columns.
 
 #### Slug source
 
@@ -426,16 +426,16 @@ Slug is provided by the frontend (admin UI) on create and update. The backend va
 
 ```sql
 -- Facet slugs
-SELECT fc.id, fc.slug, fct.label
-FROM facet_config fc
-JOIN facet_config_translation fct ON fct.facet_id = fc.id
-WHERE fc.project_id = :projectId AND fct.locale = :locale;
+SELECT f.id, f.slug, ft.label
+FROM facet f
+JOIN facet_translation ft ON ft.facet_id = f.id
+WHERE f.project_id = :projectId AND ft.locale = :locale;
 
 -- Facet value slugs
-SELECT fcv.id, fcv.slug, fcvt.label
-FROM facet_config_value fcv
-JOIN facet_config_value_translation fcvt ON fcvt.facet_config_value_id = fcv.id
-WHERE fcv.facet_config_id = :facetConfigId AND fcvt.locale = :locale;
+SELECT fv.id, fv.slug, fvt.label
+FROM facet_value fv
+JOIN facet_value_translation fvt ON fvt.facet_value_id = fv.id
+WHERE fv.facet_id = :facetId AND fvt.locale = :locale;
 ```
 
 #### Resolving slug → search index handle (for filter inputs)
@@ -443,24 +443,24 @@ WHERE fcv.facet_config_id = :facetConfigId AND fcvt.locale = :locale;
 Storefront passes `facetSlug:valueSlug` strings via the unified `ProductFiltersInput.facets` field. All facet types (tag, feature, option) use the same resolution path:
 
 ```sql
--- Step 1: Resolve facet slug → facet_config row
-SELECT fc.id AS facet_config_id, fc.facet_type, fc.source_handle, fc.filter_logic
-FROM facet_config fc
-WHERE fc.project_id = :projectId
-  AND fc.slug = :facetSlug;
+-- Step 1: Resolve facet slug → facet row
+SELECT f.id AS facet_id, f.facet_type, f.source_handle, f.filter_logic
+FROM facet f
+WHERE f.project_id = :projectId
+  AND f.slug = :facetSlug;
 ```
 
 ```sql
 -- Step 2a (configured values — custom merges/labels): Resolve value slug → source_handles
-SELECT fcv.source_handles
-FROM facet_config_value fcv
-WHERE fcv.facet_config_id = :facetConfigId
-  AND fcv.slug = :valueSlug;
+SELECT fv.source_handles
+FROM facet_value fv
+WHERE fv.facet_id = :facetId
+  AND fv.slug = :valueSlug;
 ```
 
 ```
--- Step 2b (shortcut — unconfigured values, no facet_config_value row):
--- Derive composite directly from facet_config + valueSlug:
+-- Step 2b (shortcut — unconfigured values, no facet_value row):
+-- Derive composite directly from facet + valueSlug:
 --   option/feature: source_handle || ':' || valueSlug  (e.g., 'color' + ':' + 'red' = 'color:red')
 --   tag:            valueSlug directly                  (e.g., 'sale')
 -- No DB lookup needed — just string concatenation.
@@ -468,7 +468,7 @@ WHERE fcv.facet_config_id = :facetConfigId
 
 `facet_type` determines which `product_search_index` array column to query: `tag_handles`, `feature_slugs`, or `option_slugs`. `filter_logic` determines the array operator: `&&` (overlap) for OR, `@>` (contains) for AND.
 
-Step 1 is a simple B-tree index lookup on `UNIQUE(project_id, slug)`. Step 2a is a B-tree lookup on `UNIQUE(facet_config_id, slug)`. Step 2b is a pure in-memory operation. Results cached per request.
+Step 1 is a simple B-tree index lookup on `UNIQUE(project_id, slug)`. Step 2a is a B-tree lookup on `UNIQUE(facet_id, slug)`. Step 2b is a pure in-memory operation. Results cached per request.
 
 ---
 
@@ -505,14 +505,14 @@ CREATE INDEX idx_product_search_index_project_status
 
 ### Slug → composite handle lookup (for storefront filter inputs)
 
-Both the search index and facet config store **slugs/handles** (not UUIDs). The search index stores composite slugs (`option_slug:value_slug`), and facet config maps display slugs to source composite handles via `facet_config_value.source_handles`.
+Both the search index and facets store **slugs/handles** (not UUIDs). The search index stores composite slugs (`option_slug:value_slug`), and facets map display slugs to source composite handles via `facet_value.source_handles`.
 
-Storefront passes facet filters via the unified `ProductFiltersInput.facets` field as `facetSlug:valueSlug` strings. Resolution is through facet config (see §3.4):
-1. `facet_config.slug` → `facet_type`, `source_handle`, `filter_logic`
-2. Either `facet_config_value.source_handles` (configured values) or derive composite directly (shortcut)
+Storefront passes facet filters via the unified `ProductFiltersInput.facets` field as `facetSlug:valueSlug` strings. Resolution is through facets (see §3.4):
+1. `facet.slug` → `facet_type`, `source_handle`, `filter_logic`
+2. Either `facet_value.source_handles` (configured values) or derive composite directly (shortcut)
 3. Query the appropriate `product_search_index` array column (`tag_handles`, `feature_slugs`, `option_slugs`)
 
-For unconfigured values (no `facet_config_value` row), the composite can be derived without any DB lookup: `source_handle + ':' + valueSlug` for option/feature, or `valueSlug` directly for tags. See §3.4 for details.
+For unconfigured values (no `facet_value` row), the composite can be derived without any DB lookup: `source_handle + ':' + valueSlug` for option/feature, or `valueSlug` directly for tags. See §3.4 for details.
 
 ### Sync flow
 
@@ -599,7 +599,7 @@ Three key concerns:
 2. **Facet isolation** — depends on `filter_logic`:
    - **OR mode** (default): counts for each facet are computed **without** that facet's entire filter applied (but with all other facet filters). This lets the user see sibling values and switch between them. Standard e-commerce pattern.
    - **AND mode**: counts are computed **per-value** — the tested value is removed from the AND set, but other selected values in the same facet remain. This shows "how many items match if I add/remove this specific value?"
-3. **Merged values** — when `facet_config_value.source_handles` contains multiple entries, their counts must be summed into a single display value.
+3. **Merged values** — when `facet_value.source_handles` contains multiple entries, their counts must be summed into a single display value.
 
 #### 5.3.1 Single-query approach with boolean filter columns
 
@@ -727,29 +727,29 @@ all_counts AS (
   SELECT * FROM unselected_counts
 )
 
--- LEFT JOIN to facet_config_value: configured values get merged/labeled,
--- unconfigured values (fcv.id IS NULL) fall through with raw sv_slug.
+-- LEFT JOIN to facet_value: configured values get merged/labeled,
+-- unconfigured values (fv.id IS NULL) fall through with raw sv_slug.
 SELECT
-  COALESCE(fcv.facet_config_id, fc.id) AS facet_config_id,
-  fcv.id AS display_value_id,      -- NULL for unconfigured values
-  ac.sv_slug,                      -- raw slug (used as fallback grouping key when fcv.id IS NULL)
+  COALESCE(fv.facet_id, f.id) AS facet_id,
+  fv.id AS display_value_id,      -- NULL for unconfigured values
+  ac.sv_slug,                      -- raw slug (used as fallback grouping key when fv.id IS NULL)
   ac.cnt                           -- count for this value
 FROM all_counts ac
--- Resolve facet_config for this slug's facet_type + source_handle:
-JOIN facet_config fc
-  ON fc.project_id = :projectId
-  AND fc.facet_type = ac.facet_type
+-- Resolve facet for this slug's facet_type + source_handle:
+JOIN facet f
+  ON f.project_id = :projectId
+  AND f.facet_type = ac.facet_type
   AND (
     -- For option/feature: source_handle matches the prefix before ':'
-    (ac.facet_type IN ('option', 'feature') AND fc.source_handle = split_part(ac.sv_slug, ':', 1))
+    (ac.facet_type IN ('option', 'feature') AND f.source_handle = split_part(ac.sv_slug, ':', 1))
     -- For tag: source_handle is NULL
-    OR (ac.facet_type = 'tag' AND fc.source_handle IS NULL)
+    OR (ac.facet_type = 'tag' AND f.source_handle IS NULL)
   )
--- LEFT JOIN: unconfigured values still appear (fcv.id will be NULL)
-LEFT JOIN facet_config_value fcv
-  ON ac.sv_slug = ANY(fcv.source_handles)
-  AND fcv.facet_config_id = fc.id
-  AND fcv.enabled = true
+-- LEFT JOIN: unconfigured values still appear (fv.id will be NULL)
+LEFT JOIN facet_value fv
+  ON ac.sv_slug = ANY(fv.source_handles)
+  AND fv.facet_id = f.id
+  AND fv.enabled = true
 ```
 
 **Isolation rules (generated dynamically by app):**
@@ -765,7 +765,7 @@ For **AND-mode unselected values**: compute counts from `unnest`, keep all selec
 
 The app generates one `COUNT(*) FILTER (WHERE ...)` per AND-mode selected value. Unselected values and OR-mode facets use the `unnest` stream.
 
-**Unconfigured values:** When `fcv.id IS NULL` (no `facet_config_value` row), the app groups by raw `sv_slug` instead. The display label comes from source translation tables (option_value, feature_value, or tag). The value slug is derived from `sv_slug` (strip the prefix for option/feature, use directly for tag).
+**Unconfigured values:** When `fv.id IS NULL` (no `facet_value` row), the app groups by raw `sv_slug` instead. The display label comes from source translation tables (option_value, feature_value, or tag). The value slug is derived from `sv_slug` (strip the prefix for option/feature, use directly for tag).
 
 **Step 3: Price range, in-stock count, and total (with facet isolation)**
 
@@ -798,21 +798,21 @@ Note: AND-mode facets contribute **all** their per-value booleans to other facet
 
 #### 5.3.2 Merged value deduplication
 
-`LEFT JOIN facet_config_value fcv ON sv_slug = ANY(fcv.source_handles)` with `COUNT(DISTINCT product_id)` handles merged values automatically. When "Red" (`color:red`) and "Crimson" (`color:crimson`) both map to the same `fcv.id`, a product with both slugs in its array produces two unnest rows, but `COUNT(DISTINCT product_id)` counts it once.
+`LEFT JOIN facet_value fv ON sv_slug = ANY(fv.source_handles)` with `COUNT(DISTINCT product_id)` handles merged values automatically. When "Red" (`color:red`) and "Crimson" (`color:crimson`) both map to the same `fv.id`, a product with both slugs in its array produces two unnest rows, but `COUNT(DISTINCT product_id)` counts it once.
 
-For **unconfigured values** (no `facet_config_value` row), the LEFT JOIN produces `fcv.id IS NULL`. The app groups these rows by raw `sv_slug` instead of `fcv.id`, using the source slug as both the grouping key and the display slug (stripping the prefix for option/feature, using directly for tag). Labels come from source translation tables.
+For **unconfigured values** (no `facet_value` row), the LEFT JOIN produces `fv.id IS NULL`. The app groups these rows by raw `sv_slug` instead of `fv.id`, using the source slug as both the grouping key and the display slug (stripping the prefix for option/feature, using directly for tag). Labels come from source translation tables.
 
 #### 5.3.3 Assembly
 
-The aggregated data is assembled using the project's `facet_config`:
-- Which facets to include (only those defined in `facet_config`)
+The aggregated data is assembled using the project's `facet` setup:
+- Which facets to include (only those defined in `facet`)
 - Order and grouping (via `facet_group`)
 - UI type, selection mode, filter logic
 - Facet inclusion is decided from the base set (no user filters): hide a facet only if the base set has fewer distinct values than `min_values`
 - Value lists are also derived from the base set and remain stable; values with `count = 0` stay in the list (typically rendered disabled)
 - Value count limits (`max_values_visible`)
-- Labels from `facet_config_value_translation` (priority 1) or source translation (priority 2)
-- Slugs from `facet_config.slug` and `facet_config_value.slug` (for `FacetResult.slug` and `FacetValue.slug`)
+- Labels from `facet_value_translation` (priority 1) or source translation (priority 2)
+- Slugs from `facet.slug` and `facet_value.slug` (for `FacetResult.slug` and `FacetResultValue.slug`)
 
 ---
 
@@ -824,8 +824,8 @@ The aggregated data is assembled using the project's `facet_config`:
 src/repositories/models/
   searchIndex.ts                        # product_search_index
   collection.ts                         # collection, collection_item, collection_rule, collection_translation, collection_media
-  facetConfig.ts                         # facet_group, facet_group_translation, facet_config, facet_config_translation,
-                                        # facet_swatch, facet_config_value, facet_config_value_translation
+  facet.ts                              # facet_group, facet_group_translation, facet, facet_translation,
+                                        # facet_swatch, facet_value, facet_value_translation
 
 src/repositories/
   listing/SearchIndexRepository.ts      # product_search_index CRUD + facet queries
@@ -833,8 +833,8 @@ src/repositories/
   collection/CollectionItemRepository.ts # manual items: add/remove/reorder
   collection/CollectionRuleRepository.ts # rules CRUD
   facet/FacetGroupRepository.ts         # facet_group CRUD
-  facet/FacetConfigRepository.ts        # facet_config CRUD
-  facet/FacetConfigValueRepository.ts   # facet_config_value CRUD + translations
+  facet/FacetRepository.ts              # facet CRUD
+  facet/FacetValueRepository.ts         # facet_value CRUD + translations
   facet/FacetSwatchRepository.ts        # facet_swatch CRUD
 
 src/scripts/
@@ -862,24 +862,24 @@ src/scripts/
     FacetGroupCreateScript.ts
     FacetGroupUpdateScript.ts
     FacetGroupDeleteScript.ts
-    FacetConfigCreateScript.ts
-    FacetConfigUpdateScript.ts
-    FacetConfigDeleteScript.ts
-    FacetConfigValueCreateScript.ts
-    FacetConfigValueUpdateScript.ts
-    FacetConfigValueDeleteScript.ts
+    FacetCreateScript.ts
+    FacetUpdateScript.ts
+    FacetDeleteScript.ts
+    FacetValueCreateScript.ts
+    FacetValueUpdateScript.ts
+    FacetValueDeleteScript.ts
     FacetSwatchCreateScript.ts
     FacetSwatchUpdateScript.ts
     FacetSwatchDeleteScript.ts
-    ResolveFacetsScript.ts               # compute facet display from project config
+    ResolveFacetsScript.ts               # compute facet display from project facets
 
 src/resolvers/admin/
   CollectionResolver.ts
   CollectionQueryResolver.ts
   CollectionMutationResolver.ts
   FacetGroupResolver.ts
-  FacetConfigResolver.ts
-  FacetConfigValueResolver.ts
+  FacetResolver.ts
+  FacetValueResolver.ts
   FacetSwatchResolver.ts
   FacetQueryResolver.ts
   FacetMutationResolver.ts
@@ -887,8 +887,8 @@ src/resolvers/admin/
 src/loaders/
   CollectionLoader.ts
   FacetGroupLoader.ts
-  FacetConfigLoader.ts
-  FacetConfigValueLoader.ts
+  FacetLoader.ts
+  FacetValueLoader.ts
   FacetSwatchLoader.ts
 
 src/api/graphql-admin/schema/
@@ -1059,7 +1059,7 @@ input CollectionUpdateRulesInput { collectionId: ID!, rules: [CollectionRuleInpu
 input CollectionRuleInput { field: String!, operator: String!, value: JSON! }
 ```
 
-### 7.3 Facet Configuration (in `facet.graphql`)
+### 7.3 Facets (in `facet.graphql`)
 
 ```graphql
 type FacetGroup implements Node {
@@ -1067,12 +1067,12 @@ type FacetGroup implements Node {
   name: String!
   sortIndex: Int!
   collapsed: Boolean!
-  facets: [FacetConfig!]!
+  facets: [Facet!]!
   createdAt: DateTime!
   updatedAt: DateTime!
 }
 
-type FacetConfig implements Node {
+type Facet implements Node {
   id: ID!
   facetType: FacetType!
   """For FEATURE/OPTION: the slug of the option/feature concept (e.g., 'color', 'material'). Null for PRICE, TAG, IN_STOCK."""
@@ -1089,7 +1089,7 @@ type FacetConfig implements Node {
   maxValuesVisible: Int!
   valueSort: FacetValueSort!
   indexable: Boolean!
-  values: [FacetConfigValue!]!
+  values: [FacetValue!]!
 }
 
 enum FacetType { PRICE TAG FEATURE OPTION IN_STOCK }
@@ -1098,9 +1098,9 @@ enum FacetSelectionMode { SINGLE MULTI }
 enum FacetFilterLogic { AND OR }
 enum FacetValueSort { COUNT ALPHA CUSTOM }
 
-type FacetConfigValue implements Node {
+type FacetValue implements Node {
   id: ID!
-  facet: FacetConfig!
+  facet: Facet!
   slug: String!
   label: String!
   sourceHandles: [String!]!
@@ -1123,21 +1123,21 @@ input FacetGroupCreateInput { name: String!, collapsed: Boolean, sortIndex: Int 
 input FacetGroupUpdateInput { id: ID!, name: String, collapsed: Boolean, sortIndex: Int }
 input FacetGroupDeleteInput { id: ID! }
 
-input FacetConfigCreateInput { facetType: FacetType!, sourceHandle: String, slug: String!, uiType: FacetUIType, selectionMode: FacetSelectionMode, filterLogic: FacetFilterLogic, groupId: ID, label: String!, sortIndex: Int }
-input FacetConfigUpdateInput { id: ID!, slug: String, uiType: FacetUIType, selectionMode: FacetSelectionMode, filterLogic: FacetFilterLogic, groupId: ID, label: String, sortIndex: Int, minValues: Int, maxValuesVisible: Int, valueSort: FacetValueSort, indexable: Boolean }
-input FacetConfigDeleteInput { id: ID! }
+input FacetCreateInput { facetType: FacetType!, sourceHandle: String, slug: String!, uiType: FacetUIType, selectionMode: FacetSelectionMode, filterLogic: FacetFilterLogic, groupId: ID, label: String!, sortIndex: Int }
+input FacetUpdateInput { id: ID!, slug: String, uiType: FacetUIType, selectionMode: FacetSelectionMode, filterLogic: FacetFilterLogic, groupId: ID, label: String, sortIndex: Int, minValues: Int, maxValuesVisible: Int, valueSort: FacetValueSort, indexable: Boolean }
+input FacetDeleteInput { id: ID! }
 
-input FacetConfigValueCreateInput { facetConfigId: ID!, slug: String!, label: String!, sourceHandles: [String!]!, swatchId: ID, sortIndex: Int, enabled: Boolean }
-input FacetConfigValueUpdateInput { id: ID!, slug: String, label: String, sourceHandles: [String!], swatchId: ID, sortIndex: Int, enabled: Boolean }
-input FacetConfigValueDeleteInput { id: ID! }
+input FacetValueCreateInput { facetId: ID!, slug: String!, label: String!, sourceHandles: [String!]!, swatchId: ID, sortIndex: Int, enabled: Boolean }
+input FacetValueUpdateInput { id: ID!, slug: String, label: String, sourceHandles: [String!], swatchId: ID, sortIndex: Int, enabled: Boolean }
+input FacetValueDeleteInput { id: ID! }
 
 input FacetSwatchCreateInput { swatchType: SwatchType!, colorOne: String, colorTwo: String, fileId: ID, metadata: JSON }
 input FacetSwatchUpdateInput { id: ID!, swatchType: SwatchType, colorOne: String, colorTwo: String, fileId: ID, metadata: JSON }
 input FacetSwatchDeleteInput { id: ID! }
 
-type FacetConfigValueCreatePayload { facetConfigValue: FacetConfigValue, userErrors: [GenericUserError!]! }
-type FacetConfigValueUpdatePayload { facetConfigValue: FacetConfigValue, userErrors: [GenericUserError!]! }
-type FacetConfigValueDeletePayload { deletedFacetConfigValueId: ID, userErrors: [GenericUserError!]! }
+type FacetValueCreatePayload { facetValue: FacetValue, userErrors: [GenericUserError!]! }
+type FacetValueUpdatePayload { facetValue: FacetValue, userErrors: [GenericUserError!]! }
+type FacetValueDeletePayload { deletedFacetValueId: ID, userErrors: [GenericUserError!]! }
 
 type FacetSwatchCreatePayload { facetSwatch: FacetSwatch, userErrors: [GenericUserError!]! }
 type FacetSwatchUpdatePayload { facetSwatch: FacetSwatch, userErrors: [GenericUserError!]! }
@@ -1187,7 +1187,7 @@ enum SortDirection { ASC DESC }
 input ProductFiltersInput {
   """
   Unified facet filters. Format: 'facetSlug:valueSlug'.
-  Works for ALL discrete facet types (tag, feature, option) — resolved via facet_config.slug + facet_config_value.slug (see §3.4).
+  Works for ALL discrete facet types (tag, feature, option) — resolved via facet.slug + facet_value.slug (see §3.4).
   Multiple values for the same facetSlug are combined using the facet's filter_logic (OR/AND).
   Different facetSlugs are always AND-ed together.
   """
@@ -1239,16 +1239,16 @@ type FacetResult {
   uiType: FacetUIType!
   selectionMode: FacetSelectionMode!
   filterLogic: FacetFilterLogic!
-  values: [FacetValue!]!
+  values: [FacetResultValue!]!
   totalCount: Int!
 }
 
-type FacetValue {
+type FacetResultValue {
   """Value slug — used in filter inputs as the valueSlug part of 'facetSlug:valueSlug'."""
   slug: String!
   label: String
   count: Int!
-  """Swatch from ProductOptionSwatch or FacetSwatch. Present for OPTION-type facets when the option value has a swatch, or when facet_config_value has a swatch override."""
+  """Swatch from ProductOptionSwatch or FacetSwatch. Present for OPTION-type facets when the option value has a swatch, or when facet_value has a swatch override."""
   swatch: FacetSwatchRef
 }
 
@@ -1276,11 +1276,11 @@ collectionRulesPreviewCount(rules: [CollectionRuleInput!]!): Int!
 facetGroup(id: ID!): FacetGroup
 facetGroups: [FacetGroup!]!
 
-facetConfig(id: ID!): FacetConfig
-facetConfigs: [FacetConfig!]!
+facet(id: ID!): Facet
+facets: [Facet!]!
 
-facetConfigValue(id: ID!): FacetConfigValue
-facetConfigValues(facetConfigId: ID!): [FacetConfigValue!]!
+facetValue(id: ID!): FacetValue
+facetValues(facetId: ID!): [FacetValue!]!
 
 facetSwatch(id: ID!): FacetSwatch
 facetSwatches: [FacetSwatch!]!
@@ -1298,13 +1298,13 @@ facetGroupCreate(input: FacetGroupCreateInput!): FacetGroupCreatePayload!
 facetGroupUpdate(input: FacetGroupUpdateInput!): FacetGroupUpdatePayload!
 facetGroupDelete(input: FacetGroupDeleteInput!): FacetGroupDeletePayload!
 
-facetConfigCreate(input: FacetConfigCreateInput!): FacetConfigCreatePayload!
-facetConfigUpdate(input: FacetConfigUpdateInput!): FacetConfigUpdatePayload!
-facetConfigDelete(input: FacetConfigDeleteInput!): FacetConfigDeletePayload!
+facetCreate(input: FacetCreateInput!): FacetCreatePayload!
+facetUpdate(input: FacetUpdateInput!): FacetUpdatePayload!
+facetDelete(input: FacetDeleteInput!): FacetDeletePayload!
 
-facetConfigValueCreate(input: FacetConfigValueCreateInput!): FacetConfigValueCreatePayload!
-facetConfigValueUpdate(input: FacetConfigValueUpdateInput!): FacetConfigValueUpdatePayload!
-facetConfigValueDelete(input: FacetConfigValueDeleteInput!): FacetConfigValueDeletePayload!
+facetValueCreate(input: FacetValueCreateInput!): FacetValueCreatePayload!
+facetValueUpdate(input: FacetValueUpdateInput!): FacetValueUpdatePayload!
+facetValueDelete(input: FacetValueDeleteInput!): FacetValueDeletePayload!
 
 facetSwatchCreate(input: FacetSwatchCreateInput!): FacetSwatchCreatePayload!
 facetSwatchUpdate(input: FacetSwatchUpdateInput!): FacetSwatchUpdatePayload!
@@ -1361,7 +1361,7 @@ Rules in `collection_rule` are evaluated against `product_search_index`:
 
 -- { field: "feature", operator: "in", value: ["material:cotton", "material:linen"] }
 --   → psi.feature_slugs && ARRAY['material:cotton', 'material:linen']::text[]
---     (composite slug used directly — no facet_config_value lookup needed)
+--     (composite slug used directly — no facet_value lookup needed)
 
 -- { field: "option", operator: "in", value: ["color:red", "color:blue"] }
 --   → psi.option_slugs && ARRAY['color:red', 'color:blue']::text[]
@@ -1448,13 +1448,13 @@ Everything else is local to catalog.
 11. **Resolvers & loaders**
 12. **Build & test**
 
-### Phase 1B: Facet Configuration
+### Phase 1B: Facets
 
-1. **Drizzle models:** `facetConfig.ts`
+1. **Drizzle models:** `facet.ts`
 2. **Generate migration**
-3. **Facet repositories:** FacetGroupRepository, FacetConfigRepository, FacetConfigValueRepository, FacetSwatchRepository
-4. **Facet scripts:** FacetGroup CRUD, FacetConfig CRUD, FacetConfigValue CRUD, FacetSwatch CRUD, ResolveFacetsScript
-5. **GraphQL:** facet.graphql (FacetConfigValue + FacetSwatch), add to CatalogQuery/CatalogMutation
+3. **Facet repositories:** FacetGroupRepository, FacetRepository, FacetValueRepository, FacetSwatchRepository
+4. **Facet scripts:** FacetGroup CRUD, Facet CRUD, FacetValue CRUD, FacetSwatch CRUD, ResolveFacetsScript
+5. **GraphQL:** facet.graphql (FacetValue + FacetSwatch), add to CatalogQuery/CatalogMutation
 6. **Resolvers & loaders**
 7. **Build & test**
 
