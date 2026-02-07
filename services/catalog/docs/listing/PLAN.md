@@ -280,12 +280,13 @@ catalog.facet_config_translation (
 
 Denormalized table for fast queries. Used by category PLPs (product listing), collection rule evaluation, and collection faceted filtering.
 
+**No product name in this index.** Product names are multilingual and live in `product_translation`. Sort-by-name uses a JOIN on `product_translation` at query time (see §5). This avoids duplicating translatable content into the index and keeps the search index language-agnostic — important because the separate search service will have its own index and Typesense already stores per-locale titles for full-text search.
+
 ```sql
 catalog.product_search_index (
   project_id        uuid NOT NULL,
   product_id        uuid PRIMARY KEY REFERENCES catalog.product(id) ON DELETE CASCADE,
   status            varchar(16) NOT NULL DEFAULT 'draft',
-  name              text,                    -- default-locale product name, used for ORDER BY name
   min_price_minor   bigint,
   max_price_minor   bigint,
   in_stock          boolean NOT NULL DEFAULT false,
@@ -308,6 +309,8 @@ Indexes: GIN on arrays, B-tree on price/stock/status/created_at.
 2. Broker call `inventory.getOffers` for stock
 3. UPSERT into `product_search_index`
 
+No translation data is synced — the index contains only structured/numeric fields.
+
 ---
 
 ## 5. PLP Query Flow (Category & Collection)
@@ -316,7 +319,7 @@ Indexes: GIN on arrays, B-tree on price/stock/status/created_at.
 
 ```
 QueryCategoryProductsScript:
-  Input: { categoryId, filters?, sort?, pagination }
+  Input: { categoryId, locale, filters?, sort?, pagination }
   
   1. Load category → get default_sort
   2. Build query:
@@ -329,17 +332,21 @@ QueryCategoryProductsScript:
        'manual' → ORDER BY pc.lexo_rank
        'price'  → ORDER BY psi.min_price_minor
        'newest' → ORDER BY psi.created_at DESC
-       'name'   → ORDER BY psi.name
+       'name'   → LEFT JOIN product_translation pt
+                     ON pt.product_id = psi.product_id AND pt.locale = :locale
+                   ORDER BY pt.title
   4. Paginate (Relay cursor)
   5. Compute facet aggregations (see 5.3)
   6. Return { products, facets, totalCount, pageInfo }
 ```
 
+The `name` sort JOINs `product_translation` using the request locale. The `product_translation` table has a composite PK `(product_id, locale)` so the join is index-only. LEFT JOIN ensures products without a translation for the requested locale still appear (sorted last via `NULLS LAST`).
+
 ### 5.2 Collection PLP
 
 ```
 QueryCollectionProductsScript:
-  Input: { collectionId, filters?, sort?, pagination }
+  Input: { collectionId, locale, filters?, sort?, pagination }
   
   1. Load collection → type, rules, default_sort
   2. Check scheduling (effective_from/effective_to)
@@ -352,7 +359,13 @@ QueryCollectionProductsScript:
        Evaluate collection_rules against product_search_index
   
   4. Apply facet filters from user
-  5. Sort (manual → lexo_rank; price/newest → from product_search_index)
+  5. Sort:
+       'manual' → ORDER BY ci.lexo_rank
+       'price'  → ORDER BY psi.min_price_minor
+       'newest' → ORDER BY psi.created_at DESC
+       'name'   → LEFT JOIN product_translation pt
+                     ON pt.product_id = psi.product_id AND pt.locale = :locale
+                   ORDER BY pt.title NULLS LAST
   6. Paginate
   7. Compute facet aggregations (see 5.3)
   8. Return { products, facets, totalCount, pageInfo }
@@ -736,7 +749,7 @@ Same lexo_rank approach for both category products and collection items.
 
 **Manual sort:** `ORDER BY lexo_rank ASC`
 
-**Alternative sorts:** `JOIN product_search_index`, sort by price/created_at/name. lexo_rank preserved for switching back to manual.
+**Alternative sorts:** `JOIN product_search_index` for price/created_at; `JOIN product_translation` for name (locale-aware). lexo_rank preserved for switching back to manual.
 
 **Drag & drop:** `newRank = midpoint(afterRank, beforeRank)`, single row UPDATE.
 
