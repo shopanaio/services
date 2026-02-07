@@ -72,6 +72,7 @@ catalog.collection (
   type              varchar(16) NOT NULL,  -- 'manual' | 'rule'
   
   -- Sort
+  -- For 'rule' collections, 'manual' is not valid (no lexo_rank). Validated at app level; fallback to 'newest'.
   default_sort      varchar(32) NOT NULL DEFAULT 'manual',
   default_sort_dir  varchar(4) NOT NULL DEFAULT 'asc',
   
@@ -91,11 +92,13 @@ catalog.collection (
 )
 ```
 
+Note: `project_id` is duplicated in child tables (`collection_translation`, `collection_seo`, `collection_media`, `facet_group_translation`, `facet_config_translation`) for PostgreSQL Row-Level Security (RLS). RLS policies filter by `project_id` and cannot efficiently join to the parent table on every row access.
+
 ```sql
 catalog.collection_translation (
   collection_id     uuid NOT NULL REFERENCES catalog.collection(id) ON DELETE CASCADE,
   locale            varchar(8) NOT NULL,
-  project_id        uuid NOT NULL,
+  project_id        uuid NOT NULL,  -- duplicated from parent for RLS
   name              text NOT NULL,
   description_text  text,
   description_html  text,
@@ -143,6 +146,8 @@ CREATE INDEX idx_collection_item_rank
 **For manual collections:** all products are in `collection_item` with lexo_rank.
 **For rule collections:** products are computed from rules — no `collection_item` rows. To remove a product from a rule collection, adjust the rules or the product's attributes.
 
+> **Known limitation (Phase 1):** Rule collections are not materialized — every `collection.products` query evaluates rules against `product_search_index` in real-time. This is acceptable for Phase 1 (PostgreSQL only, moderate catalog sizes). For large catalogs, a future phase should materialize rule collection membership and refresh on product/rule changes.
+
 ### 2.4 Collection rules
 
 ```sql
@@ -153,7 +158,10 @@ catalog.collection_rule (
   field             varchar(64) NOT NULL,   -- 'tag', 'price', 'option', 'feature', 'in_stock', 'category', 'created_at'
   operator          varchar(16) NOT NULL,   -- 'eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'in', 'nin', 'contains', 'between'
   value             jsonb NOT NULL,          -- scalar or array depending on operator
-  sort_index        int NOT NULL DEFAULT 0,
+  sort_index        int NOT NULL DEFAULT 0,  -- for stable UI display order (rules are AND-ed, order is semantically irrelevant)
+  
+  created_at        timestamptz NOT NULL DEFAULT now(),
+  updated_at        timestamptz NOT NULL DEFAULT now(),
   
   -- Rules within a collection are AND-ed by default
   -- Future: rule_group for OR groups
@@ -196,7 +204,9 @@ catalog.facet_group (
   id                uuid PRIMARY KEY,
   project_id        uuid NOT NULL,
   sort_index        int NOT NULL DEFAULT 0,
-  collapsed         boolean NOT NULL DEFAULT false   -- render collapsed by default
+  collapsed         boolean NOT NULL DEFAULT false,  -- render collapsed by default
+  created_at        timestamptz NOT NULL DEFAULT now(),
+  updated_at        timestamptz NOT NULL DEFAULT now()
 )
 
 catalog.facet_group_translation (
@@ -229,7 +239,9 @@ catalog.facet_config (
   hide_zero_count   boolean NOT NULL DEFAULT true,
   
   -- SEO
-  indexable         boolean NOT NULL DEFAULT false       -- whether filter combinations generate indexable URLs
+  indexable         boolean NOT NULL DEFAULT false,      -- whether filter combinations generate indexable URLs
+  
+  UNIQUE(project_id, facet_type, facet_key)              -- prevent duplicate facet configs for the same attribute
 )
 
 catalog.facet_config_translation (
@@ -252,6 +264,7 @@ catalog.product_search_index (
   project_id        uuid NOT NULL,
   product_id        uuid PRIMARY KEY REFERENCES catalog.product(id) ON DELETE CASCADE,
   status            varchar(16) NOT NULL DEFAULT 'draft',
+  name              text,                    -- default-locale product name, used for ORDER BY name
   min_price_minor   bigint,
   max_price_minor   bigint,
   in_stock          boolean NOT NULL DEFAULT false,
@@ -295,6 +308,7 @@ QueryCategoryProductsScript:
        'manual' → ORDER BY pc.lexo_rank
        'price'  → ORDER BY psi.min_price_minor
        'newest' → ORDER BY psi.created_at DESC
+       'name'   → ORDER BY psi.name
   4. Paginate (Relay cursor)
   5. Compute facet aggregations (see 5.3)
   6. Return { products, facets, totalCount, pageInfo }
@@ -393,7 +407,7 @@ src/scripts/
     QueryCollectionProductsScript.ts     # both types: filtered, sorted, paginated query
 
   category/
-    QueryCategoryProductsScript.ts       # category PLP: products (no facets)
+    QueryCategoryProductsScript.ts       # category PLP: products + facets
     CategoryMoveProductScript.ts         # reorder product in category
     CategoryRebalanceScript.ts
 
@@ -449,17 +463,30 @@ src/resolvers/admin/CategoryResolver.ts    # add new field resolvers
 defaultSort: CategorySortBy!
 defaultSortDirection: SortDirection!
 
-"""Category products with sorting and pagination."""
+"""Category products with sorting, filtering, and pagination."""
 categoryProducts(
   first: Int
   after: String
   last: Int
   before: String
+  filters: ProductFiltersInput
   sort: ProductSortInput
 ): CategoryProductConnection!
 ```
 
-`CategoryProductConnection` returns `edges`, `pageInfo`, `totalCount` — no facets.
+```graphql
+type CategoryProductConnection {
+  edges: [CategoryProductEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+  facets: Facets
+}
+
+type CategoryProductEdge {
+  node: Product!
+  cursor: String!
+}
+```
 
 ### 7.2 Collection (in `collection.graphql`)
 
@@ -494,9 +521,6 @@ type Collection implements Node @key(fields: "id") {
   ): CollectionProductConnection!
   
   productsCount: Int!
-  
-  """Preview: evaluate rules and return matching product count without saving."""
-  previewCount: Int!
 }
 
 enum CollectionType { MANUAL RULE }
@@ -600,10 +624,10 @@ enum CollectionSortBy { MANUAL PRICE NEWEST NAME }
 """Computed facet results for a product listing page."""
 type Facets {
   priceRange: PriceRange
-  groups: [FacetGroup!]!
+  groups: [FacetResultGroup!]!
 }
 
-type FacetGroup {
+type FacetResultGroup {
   name: String
   collapsed: Boolean!
   facets: [FacetResult!]!
@@ -634,9 +658,14 @@ type PriceRange {
 
 ```graphql
 # CatalogQuery:
+categoryProducts(categoryId: ID!, first: Int, after: String, last: Int, before: String, filters: ProductFiltersInput, sort: ProductSortInput): CategoryProductConnection!
+
 collection(id: ID!): Collection
 collectionByHandle(handle: String!): Collection
 collections(first: Int, after: String, last: Int, before: String): CollectionConnection!
+
+"""Preview: evaluate rules and return matching product count without creating a collection."""
+collectionRulesPreviewCount(rules: [CollectionRuleInput!]!): Int!
 
 facetGroup(id: ID!): FacetGroup
 facetGroups: [FacetGroup!]!
