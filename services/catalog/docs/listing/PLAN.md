@@ -79,6 +79,7 @@ catalog.collection (
   -- Scheduling
   effective_from       timestamptz,
   effective_to         timestamptz,
+  CHECK (effective_to IS NULL OR effective_from IS NULL OR effective_to > effective_from),
   
   -- Publication
   published_at      timestamptz,
@@ -91,6 +92,11 @@ catalog.collection (
   UNIQUE(project_id, handle) WHERE deleted_at IS NULL AND handle IS NOT NULL,
   CHECK (type != 'rule' OR default_sort != 'manual')
 )
+
+-- Active scheduled collections lookup
+CREATE INDEX idx_collection_scheduling
+  ON catalog.collection (project_id, effective_from, effective_to)
+  WHERE deleted_at IS NULL AND published_at IS NOT NULL;
 ```
 
 ```sql
@@ -274,6 +280,9 @@ catalog.facet_config (
   
   -- SEO
   indexable         boolean NOT NULL DEFAULT false,      -- whether filter combinations generate indexable URLs
+  
+  created_at        timestamptz NOT NULL DEFAULT now(),
+  updated_at        timestamptz NOT NULL DEFAULT now(),
   
   UNIQUE(project_id, slug)
 )
