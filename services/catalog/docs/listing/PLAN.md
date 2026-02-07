@@ -86,9 +86,6 @@ catalog.collection (
   -- Limits
   max_products      int,           -- NULL = unlimited
   
-  -- Filter Set override (optional)
-  filter_set_id     uuid REFERENCES catalog.filter_set(id) ON DELETE SET NULL,
-  
   -- Publication
   published_at      timestamptz,
   
@@ -285,8 +282,6 @@ Filter Sets are **not** linked to categories. When rendering a PLP, the storefro
 5. No Filter Set → show raw facets without configuration (fallback)
 ```
 
-Collections can optionally override via `collection.filter_set_id`.
-
 The storefront passes a `filterSetId` (or `filterSetHandle`) to the PLP query. If not provided, the project default is used.
 
 ---
@@ -356,9 +351,9 @@ QueryCategoryProductsScript:
 
 ```
 QueryCollectionProductsScript:
-  Input: { collectionId, filters?, sort?, pagination }
+  Input: { collectionId, filters?, sort?, pagination, filterSetId? }
   
-  1. Load collection → type, rules, default_sort, filter_set_id, limits
+  1. Load collection → type, rules, default_sort, limits
   2. Check scheduling (active_from/active_to)
   3. Resolve product set by type:
      
@@ -481,7 +476,7 @@ src/repositories/Repository.ts             # add new repositories
 src/loaders/Loader.ts                      # add new loaders
 src/handlers/index.ts                      # add search index sync handlers
 api/graphql-admin/schema/base.graphql      # add collection/filterSet queries & mutations to CatalogQuery/CatalogMutation
-api/graphql-admin/schema/category.graphql  # add products(filters), defaultSort, filterSet fields to Category
+api/graphql-admin/schema/category.graphql  # add categoryProducts(filters), defaultSort fields to Category
 src/resolvers/admin/CategoryResolver.ts    # add new field resolvers
 ```
 
@@ -522,7 +517,6 @@ type Collection implements Node @key(fields: "id") {
   
   defaultSort: CollectionSortBy!
   defaultSortDirection: SortDirection!
-  filterSet: FilterSet
   
   activeFrom: DateTime
   activeTo: DateTime
@@ -540,6 +534,7 @@ type Collection implements Node @key(fields: "id") {
     first: Int, after: String, last: Int, before: String
     filters: ProductFiltersInput
     sort: ProductSortInput
+    filterSetId: ID
   ): CollectionProductConnection!
   
   productsCount: Int!
