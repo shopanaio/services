@@ -77,8 +77,8 @@ catalog.collection (
   default_sort_dir  varchar(4) NOT NULL DEFAULT 'asc',
   
   -- Scheduling
-  active_from       timestamptz,
-  active_to         timestamptz,
+  effective_from       timestamptz,
+  effective_to         timestamptz,
   
   -- Publication
   published_at      timestamptz,
@@ -92,13 +92,11 @@ catalog.collection (
 )
 ```
 
-Note: `project_id` is duplicated in child tables (`collection_translation`, `collection_seo`, `collection_media`, `facet_group_translation`, `facet_config_translation`) for PostgreSQL Row-Level Security (RLS). RLS policies filter by `project_id` and cannot efficiently join to the parent table on every row access.
-
 ```sql
 catalog.collection_translation (
   collection_id     uuid NOT NULL REFERENCES catalog.collection(id) ON DELETE CASCADE,
   locale            varchar(8) NOT NULL,
-  project_id        uuid NOT NULL,  -- duplicated from parent for RLS
+  project_id        uuid NOT NULL,
   name              text NOT NULL,
   description_text  text,
   description_html  text,
@@ -146,8 +144,6 @@ CREATE INDEX idx_collection_item_rank
 **For manual collections:** all products are in `collection_item` with lexo_rank.
 **For rule collections:** products are computed from rules — no `collection_item` rows. To remove a product from a rule collection, adjust the rules or the product's attributes.
 
-> **Known limitation (Phase 1):** Rule collections are not materialized — every `collection.products` query evaluates rules against `product_search_index` in real-time. This is acceptable for Phase 1 (PostgreSQL only, moderate catalog sizes). For large catalogs, a future phase should materialize rule collection membership and refresh on product/rule changes.
-
 ### 2.4 Collection rules
 
 ```sql
@@ -190,6 +186,7 @@ Rules are evaluated against `product_search_index`.
 Facet configuration defines **how** facets are displayed on PLPs, not **what** data exists. Available facet values are computed on-the-fly from products. The configuration controls:
 
 - Which facets to show and in what order
+- **Alias merging:** a single facet can map to multiple attribute keys (e.g., option slugs `['color', 'colour', 'цвет']`). Values from all keys are combined into one facet in the UI, and selecting a value filters across all aliased keys.
 - Grouping (e.g., "Main filters", "Material & Care")
 - UI type per facet (multi-select checkboxes, single-select, range slider, boolean toggle, color swatches)
 - Label overrides and value sort order
@@ -226,11 +223,34 @@ catalog.facet_config (
   
   -- What product attribute this maps to
   facet_type        varchar(32) NOT NULL,  -- 'price', 'tag', 'feature', 'option', 'in_stock'
-  facet_key         varchar(255),           -- slug/identifier within type (e.g., feature slug, option slug). NULL for 'price', 'in_stock'
+  facet_keys        text[] NOT NULL DEFAULT '{}',  -- one or more slugs that map to this facet (e.g., ['color', 'colour', 'цвет']).
+                                                   -- Empty for 'price', 'in_stock' (they have no key).
+                                                   -- Multiple keys = alias merging: all matching attribute values
+                                                   -- are aggregated into a single facet, and filtering by this facet
+                                                   -- applies an OR across all keys.
   
-  -- Display
-  ui_type           varchar(32) NOT NULL DEFAULT 'multi_select',  -- 'multi_select', 'single_select', 'range', 'boolean', 'color_swatch'
+  -- Display & selection behavior
+  ui_type           varchar(16) NOT NULL DEFAULT 'checkbox',  -- 'checkbox' | 'radio' | 'dropdown' | 'range' | 'boolean'
+  selection_mode    varchar(16) NOT NULL DEFAULT 'multi',     -- 'single' | 'multi' — determines filter logic
   sort_index        int NOT NULL DEFAULT 0,
+  
+  -- ui_type × selection_mode:
+  --
+  -- | ui_type    | selection_mode | Filter logic                        |
+  -- |------------|----------------|-------------------------------------|
+  -- | checkbox   | multi          | OR between selected values          |
+  -- | checkbox   | single         | Exact match on single value         |
+  -- | radio      | single         | Exact match on single value         |
+  -- | dropdown   | single         | Exact match on single value         |
+  -- | dropdown   | multi          | OR between selected values          |
+  -- | range      | —              | BETWEEN min AND max (numeric only)  |
+  -- | boolean    | —              | Exact match (true/false)            |
+  --
+  -- 'range' and 'boolean' ignore selection_mode — they have fixed filter logic.
+  --
+  -- Swatch: For OPTION-type facets, each FacetValue automatically includes swatch data
+  -- (resolved via product_option_value → product_option_swatch). No config flag needed —
+  -- if the option value has a swatch, it comes through. Frontend decides how to render it.
   
   -- Rules
   min_values        int NOT NULL DEFAULT 1,            -- hide facet if fewer distinct values
@@ -241,7 +261,8 @@ catalog.facet_config (
   -- SEO
   indexable         boolean NOT NULL DEFAULT false,      -- whether filter combinations generate indexable URLs
   
-  UNIQUE(project_id, facet_type, facet_key)              -- prevent duplicate facet configs for the same attribute
+  -- No simple UNIQUE constraint — app-level validation ensures no key appears in more than one
+  -- facet_config per (project_id, facet_type). Enforced in FacetConfigCreateScript / FacetConfigUpdateScript.
 )
 
 catalog.facet_config_translation (
@@ -321,7 +342,7 @@ QueryCollectionProductsScript:
   Input: { collectionId, filters?, sort?, pagination }
   
   1. Load collection → type, rules, default_sort
-  2. Check scheduling (active_from/active_to)
+  2. Check scheduling (effective_from/effective_to)
   3. Resolve product set by type:
      
      manual:
@@ -365,11 +386,18 @@ GROUP BY slug
 
 The raw facet data is then intersected with the project's `facet_config` to determine:
 - Which facets to include (only those defined in `facet_config`)
+- **Multi-key merging:** if a `facet_config` has `facet_keys = ['color', 'colour', 'цвет']`, the aggregation combines counts from all three option slugs into a single facet result. Duplicate values across keys are summed.
 - Order and grouping (via `facet_group`)
 - UI type
 - Whether to hide (fewer values than `min_values`)
 - Value count limits (`max_values_visible`)
 - Labels from `facet_config_translation`
+
+**Multi-key filtering:** when a user selects a value from a merged facet, the filter is applied as an OR across all keys in `facet_keys`. For example, filtering by "red" on a facet with keys `['color', 'colour']` produces:
+```sql
+('red' = ANY(psi.option_slugs))  -- matches products that have 'red' under any of the aliased option names
+```
+Since option values are stored as flat slugs in `product_search_index.option_slugs`, the slug itself is the match key — no need to distinguish which option name it came from.
 
 ---
 
@@ -572,9 +600,10 @@ type FacetGroup implements Node {
 type FacetConfig implements Node {
   id: ID!
   facetType: FacetType!
-  facetKey: String
+  facetKeys: [String!]!
   label: String!
   uiType: FacetUIType!
+  selectionMode: FacetSelectionMode!
   sortIndex: Int!
   group: FacetGroup
   minValues: Int!
@@ -585,7 +614,8 @@ type FacetConfig implements Node {
 }
 
 enum FacetType { PRICE TAG FEATURE OPTION IN_STOCK }
-enum FacetUIType { MULTI_SELECT SINGLE_SELECT RANGE BOOLEAN COLOR_SWATCH }
+enum FacetUIType { CHECKBOX RADIO DROPDOWN RANGE BOOLEAN }
+enum FacetSelectionMode { SINGLE MULTI }
 enum FacetValueSort { COUNT ALPHA CUSTOM }
 
 # Inputs:
@@ -593,8 +623,8 @@ input FacetGroupCreateInput { name: String!, collapsed: Boolean, sortIndex: Int 
 input FacetGroupUpdateInput { id: ID!, name: String, collapsed: Boolean, sortIndex: Int }
 input FacetGroupDeleteInput { id: ID! }
 
-input FacetConfigCreateInput { facetType: FacetType!, facetKey: String, uiType: FacetUIType, groupId: ID, label: String!, sortIndex: Int }
-input FacetConfigUpdateInput { id: ID!, uiType: FacetUIType, groupId: ID, label: String, sortIndex: Int, minValues: Int, maxValuesVisible: Int, valueSort: FacetValueSort, hideZeroCount: Boolean, indexable: Boolean }
+input FacetConfigCreateInput { facetType: FacetType!, facetKeys: [String!], uiType: FacetUIType, selectionMode: FacetSelectionMode, groupId: ID, label: String!, sortIndex: Int }
+input FacetConfigUpdateInput { id: ID!, facetKeys: [String!], uiType: FacetUIType, selectionMode: FacetSelectionMode, groupId: ID, label: String, sortIndex: Int, minValues: Int, maxValuesVisible: Int, valueSort: FacetValueSort, hideZeroCount: Boolean, indexable: Boolean }
 input FacetConfigDeleteInput { id: ID! }
 ```
 
@@ -635,9 +665,10 @@ type FacetResultGroup {
 
 type FacetResult {
   facetType: FacetType!
-  facetKey: String
+  facetKeys: [String!]!
   label: String!
   uiType: FacetUIType!
+  selectionMode: FacetSelectionMode!
   values: [FacetValue!]!
   totalCount: Int!
 }
@@ -646,6 +677,8 @@ type FacetValue {
   value: String!
   label: String
   count: Int!
+  """Swatch from ProductOptionSwatch. Present for OPTION-type facets when the option value has a swatch."""
+  swatch: ProductOptionSwatch
 }
 
 type PriceRange {
