@@ -286,7 +286,7 @@ catalog.facet_config_translation (
 
 ### 3.3 Facet Config Values
 
-Configure individual values within a facet: custom labels, sort order, swatches, merge multiple source values into one.
+Настройка значений внутри фасета: кастомные label, порядок, swatch, объединение source values.
 
 ```sql
 catalog.facet_swatch (
@@ -305,12 +305,17 @@ catalog.facet_config_value (
   id                uuid PRIMARY KEY,
   project_id        uuid NOT NULL,
   facet_config_id   uuid NOT NULL REFERENCES catalog.facet_config(id) ON DELETE CASCADE,
+  source_value_ids  uuid[] NOT NULL DEFAULT '{}',  -- references feature_value.id, option_value.id, or tag.id
+                                                    -- multiple IDs = merge into one display value
   swatch_id         uuid REFERENCES catalog.facet_swatch(id) ON DELETE SET NULL,
   sort_index        int NOT NULL DEFAULT 0,
   enabled           boolean NOT NULL DEFAULT true,
   created_at        timestamptz NOT NULL DEFAULT now(),
   updated_at        timestamptz NOT NULL DEFAULT now()
 )
+-- GIN index for reverse lookup (source_value_id → display value):
+-- CREATE INDEX ON catalog.facet_config_value USING GIN (source_value_ids);
+-- Uniqueness (one source value → one display value) validated in application code.
 
 catalog.facet_config_value_translation (
   facet_config_value_id uuid NOT NULL REFERENCES catalog.facet_config_value(id) ON DELETE CASCADE,
@@ -319,30 +324,21 @@ catalog.facet_config_value_translation (
   label             text NOT NULL,
   PRIMARY KEY (facet_config_value_id, locale)
 )
-
-catalog.facet_config_value_source (
-  id                uuid PRIMARY KEY,
-  project_id        uuid NOT NULL,
-  facet_config_value_id uuid NOT NULL REFERENCES catalog.facet_config_value(id) ON DELETE CASCADE,
-  source_value_id   uuid NOT NULL,  -- references feature_value.id, option_value.id, or tag.id
-  UNIQUE (project_id, source_value_id)  -- one source → one display value
-)
 ```
 
-**Purpose:**
-- `facet_swatch` — visual swatch for a facet value (mirrors `product_option_swatch`)
-- `facet_config_value` — configured value: sort order, enabled, swatch
-- `facet_config_value_translation` — custom label (overrides source translation)
-- `facet_config_value_source` — maps source value → display value. Allows merging multiple source values into one display value
+**Назначение:**
+- `facet_swatch` — визуальный swatch для значения фасета (аналог `product_option_swatch`)
+- `facet_config_value` — настроенное значение: порядок, enabled, swatch. Поле `source_value_ids` содержит массив source value IDs (merge нескольких source values в одно display value)
+- `facet_config_value_translation` — кастомный label (переопределяет source translation)
 
-**Label and swatch resolution:**
+**Резолюция label и swatch:**
 
-| Priority | Label | Swatch |
-|----------|-------|--------|
-| 1 | `facet_config_value_translation` | `facet_swatch` via `facet_config_value.swatch_id` |
-| 2 | Source translation (feature_value/option_value/tag) | `product_option_swatch` (option facets only) |
+| Приоритет | Label | Swatch |
+|-----------|-------|--------|
+| 1 | `facet_config_value_translation` | `facet_swatch` через `facet_config_value.swatch_id` |
+| 2 | Source translation (feature_value/option_value/tag) | `product_option_swatch` (только для option facets) |
 
-If no `facet_config_value` exists — values come directly from source tables (backward compatible).
+Если `facet_config_value` не создан — значения берутся напрямую из source таблиц (backward compatible).
 
 ---
 
