@@ -344,13 +344,13 @@ catalog.facet_config_value_translation (
 
 ## 3.4 Slug Resolution via `slugify()` SQL Function
 
-Options and features do **not** store slugs in the database. Instead, slugs are computed on-the-fly from translatable labels using an `IMMUTABLE` SQL function + expression indexes.
+Facet and facet value slugs are computed on-the-fly from `facet_config_translation.label` and `facet_config_value_translation.label` using an `IMMUTABLE` SQL function + expression indexes. Storefront never resolves slugs through source tables (option/feature/tag) — only through facet config.
 
 ### Why no stored slug column
 
 - Slugs are derived data — storing them creates a sync problem (label changes → slug must update).
-- Options and features already have `name` in their translation tables (`product_option_translation`, `product_option_value_translation`, `product_feature_translation`, `product_feature_value_translation`).
-- An expression index on `slugify(name)` gives the same lookup performance as a stored column, with zero maintenance overhead.
+- Facet config already has `label` in translation tables (`facet_config_translation`, `facet_config_value_translation`).
+- An expression index on `slugify(label)` gives the same lookup performance as a stored column, with zero maintenance overhead.
 
 ### SQL function
 
@@ -369,52 +369,78 @@ $$;
 ### Expression indexes
 
 ```sql
--- Option name → slug lookup (per locale)
-CREATE UNIQUE INDEX product_option_translation_locale_slug_idx
-  ON catalog.product_option_translation (locale, product_id, (slugify(name)));
+-- Facet slug uniqueness (per project, per locale)
+-- Ensures no two facets in the same project+locale have the same slug.
+CREATE UNIQUE INDEX facet_config_translation_slug_idx
+  ON catalog.facet_config_translation (project_id, locale, (slugify(label)));
 
--- Option value name → slug lookup (per locale, per option)
-CREATE UNIQUE INDEX product_option_value_translation_locale_slug_idx
-  ON catalog.product_option_value_translation (locale, option_id, (slugify(name)));
-
--- Feature name → slug lookup (per locale, per product)
-CREATE UNIQUE INDEX product_feature_translation_locale_slug_idx
-  ON catalog.product_feature_translation (locale, product_id, (slugify(name)));
-
--- Feature value name → slug lookup (per locale, per feature)
-CREATE UNIQUE INDEX product_feature_value_translation_locale_slug_idx
-  ON catalog.product_feature_value_translation (locale, feature_id, (slugify(name)));
+-- Facet value slug uniqueness (per facet, per locale)
+-- Ensures no two values within the same facet+locale have the same slug.
+CREATE UNIQUE INDEX facet_config_value_translation_slug_idx
+  ON catalog.facet_config_value_translation (locale, facet_config_value_id, (slugify(label)));
 ```
 
-**UNIQUE** indexes enforce slug uniqueness within the scope (locale + parent entity). If two options within the same product and locale slugify to the same value, the insert will fail — forcing the user to pick a distinct name.
+Wait — `facet_config_value_translation` is keyed by `facet_config_value_id`, but we need uniqueness per **facet_config**, not per value. The value table doesn't have `facet_config_id` directly. Two options:
+
+1. Add `facet_config_id` to `facet_config_value_translation` (denormalize for index).
+2. Create a unique index via a JOIN-based approach (not possible with expression indexes).
+
+**Solution:** The `facet_config_value` table already has `facet_config_id`. We create the unique index on a **view** or use a partial approach. Simplest: add `facet_config_id` to the value translation table for the index:
+
+```sql
+-- Option A: add facet_config_id to facet_config_value_translation
+ALTER TABLE catalog.facet_config_value_translation
+  ADD COLUMN facet_config_id uuid NOT NULL;
+
+CREATE UNIQUE INDEX facet_config_value_translation_slug_idx
+  ON catalog.facet_config_value_translation (facet_config_id, locale, (slugify(label)));
+```
+
+Alternatively, enforce in application code. Given the low volume (tens of facets, hundreds of values), app-level validation is acceptable — but the DB-level constraint is safer.
+
+**Recommended:** add `facet_config_id` to `facet_config_value_translation` for the unique index. It's redundant (derivable via JOIN through `facet_config_value`) but makes the constraint declarative and the slug lookup a single index scan.
 
 ### Querying slug on-the-fly (for API responses)
 
-When returning option/feature data to the storefront, include the computed slug in the SELECT:
+When returning facet data to the storefront, include the computed slug:
 
 ```sql
-SELECT ot.option_id, ot.name, slugify(ot.name) AS slug
-FROM product_option_translation ot
-WHERE ot.locale = $1 AND ot.product_id = $2;
-```
+-- Facet slugs
+SELECT fc.id, fct.label, slugify(fct.label) AS slug
+FROM facet_config fc
+JOIN facet_config_translation fct ON fct.facet_id = fc.id
+WHERE fc.project_id = :projectId AND fct.locale = :locale;
 
-This uses the expression index for the `slugify()` call — no sequential scan.
+-- Facet value slugs
+SELECT fcv.id, fcvt.label, slugify(fcvt.label) AS slug
+FROM facet_config_value fcv
+JOIN facet_config_value_translation fcvt ON fcvt.facet_config_value_id = fcv.id
+WHERE fcv.facet_config_id = :facetConfigId AND fcvt.locale = :locale;
+```
 
 ### Resolving slug → ID (for filter inputs)
 
-When the storefront passes a slug as a filter parameter, the query matches against the expression index:
+When the storefront passes `facetSlug:valueSlug` filter parameters:
 
 ```sql
--- Resolve option slug → option_id
-SELECT option_id FROM product_option_translation
-WHERE locale = $1 AND product_id = $2 AND slugify(name) = $3;
+-- Step 1: Resolve facet slug → facet_config_id + get source metadata
+SELECT fc.id AS facet_config_id, fc.facet_type, fc.source_id, fc.filter_logic
+FROM facet_config fc
+JOIN facet_config_translation fct ON fct.facet_id = fc.id
+WHERE fc.project_id = :projectId
+  AND fct.locale = :locale
+  AND slugify(fct.label) = :facetSlug;
 
--- Resolve option value slug → option_value_id
-SELECT option_value_id FROM product_option_value_translation
-WHERE locale = $1 AND option_id = $2 AND slugify(name) = $3;
+-- Step 2: Resolve value slug → source_value_ids (for search index filtering)
+SELECT fcv.source_value_ids
+FROM facet_config_value fcv
+JOIN facet_config_value_translation fcvt ON fcvt.facet_config_value_id = fcv.id
+WHERE fcv.facet_config_id = :facetConfigId
+  AND fcvt.locale = :locale
+  AND slugify(fcvt.label) = :valueSlug;
 ```
 
-The `$3` parameter is the **already-slugified** string from the URL — no `slugify()` applied to the parameter, only to the column. The expression index makes this an index scan.
+Both queries hit expression indexes — same performance as stored slug columns. Label renames automatically update the computed slug. Results are cached per request.
 
 ---
 
@@ -446,35 +472,31 @@ Indexes: GIN on arrays, B-tree on price/stock/status/created_at.
 
 ### Slug → ID lookup (for storefront filter inputs)
 
-Both the search index and facet config store **IDs**. Slug resolution is only needed at the **API boundary** — when a storefront query passes human-readable slugs in `ProductFiltersInput`. Slugs are **not stored** — they are computed from translation `name` via the `slugify()` SQL function (see §3.3).
+Both the search index and facet config store **IDs**. Slug resolution is only needed at the **API boundary** — when a storefront query passes human-readable slugs in `ProductFiltersInput`. Slugs are **not stored** — they are computed from `facet_config_translation.label` and `facet_config_value_translation.label` via the `slugify()` SQL function (see §3.4).
 
-- **Features:** caller passes `featureSlugs` as `featureSlug:valueSlug` strings → script splits into feature slug + value slug, resolves to feature_value IDs via `slugify(name)` on the respective translation tables:
-  ```sql
-  SELECT pfv.id AS feature_value_id
-  FROM product_feature_value pfv
-  JOIN product_feature_value_translation pfvt ON pfvt.feature_value_id = pfv.id
-  JOIN product_feature pf ON pf.id = pfv.feature_id
-  JOIN product_feature_translation pft ON pft.feature_id = pf.id AND pft.locale = :locale
-  WHERE pfvt.locale = :locale
-    AND slugify(pft.name) = :featureSlug
-    AND slugify(pfvt.name) = :valueSlug
-    AND pf.project_id = :projectId;
-  ```
-- **Options:** caller passes `optionSlugs` as `key:value` strings → script splits into option slug + value slug, resolves both to IDs via `slugify(name)` on the respective translation tables, then uses the resolved option_value_id UUIDs for the array overlap query:
-  ```sql
-  -- Resolve option value slug → option_value_id  
-  SELECT pov.id AS option_value_id
-  FROM product_option_value pov
-  JOIN product_option_value_translation povt ON povt.option_value_id = pov.id
-  JOIN product_option po ON po.id = pov.option_id
-  JOIN product_option_translation pot ON pot.option_id = po.id AND pot.locale = :locale
-  WHERE povt.locale = :locale
-    AND slugify(pot.name) = :optionSlug
-    AND slugify(povt.name) = :valueSlug
-    AND po.project_id = :projectId;
-  ```
+Storefront passes facet filters as `facetSlug:valueSlug` strings. Resolution is always through facet config — never through source tables (option/feature/tag):
 
-All lookups hit expression indexes (see §3.3) — same performance as a stored slug column. Label renames automatically update the computed slug — no sync needed. Results are cached per request.
+```sql
+-- Step 1: Resolve facet slug → facet_config row
+SELECT fc.id, fc.facet_type, fc.source_id, fc.filter_logic
+FROM facet_config fc
+JOIN facet_config_translation fct ON fct.facet_id = fc.id
+WHERE fc.project_id = :projectId
+  AND fct.locale = :locale
+  AND slugify(fct.label) = :facetSlug;
+
+-- Step 2: Resolve value slug → source_value_ids for search index filtering
+SELECT fcv.source_value_ids
+FROM facet_config_value fcv
+JOIN facet_config_value_translation fcvt ON fcvt.facet_config_value_id = fcv.id
+WHERE fcv.facet_config_id = :facetConfigId
+  AND fcvt.locale = :locale
+  AND slugify(fcvt.label) = :valueSlug;
+```
+
+The resolved `source_value_ids` are then used for array overlap/containment queries on `product_search_index` (using `facet_type` to determine which array column: `feature_value_ids`, `option_ids`, or `tag_ids`).
+
+All lookups hit expression indexes (see §3.4) — same performance as stored slug columns. Label renames automatically update the computed slug — no sync needed. Results are cached per request.
 
 ### Sync flow
 
