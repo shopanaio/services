@@ -228,22 +228,35 @@ catalog.facet_config (
   
   -- Display & selection behavior
   ui_type           varchar(16) NOT NULL DEFAULT 'checkbox',  -- 'checkbox' | 'radio' | 'dropdown' | 'range' | 'boolean'
-  selection_mode    varchar(16) NOT NULL DEFAULT 'multi',     -- 'single' | 'multi' — determines filter logic
+  selection_mode    varchar(16) NOT NULL DEFAULT 'multi',     -- 'single' | 'multi'
+  filter_logic      varchar(4) NOT NULL DEFAULT 'or',         -- 'or' | 'and' — how selected values combine within this facet
   sort_index        int NOT NULL DEFAULT 0,
   
-  -- ui_type × selection_mode:
+  -- filter_logic (for multi-select):
   --
-  -- | ui_type    | selection_mode | Filter logic                        |
+  -- | filter_logic | Example: Material = [Cotton, Polyester] | SQL operator |
+  -- |--------------|------------------------------------------|--------------|
+  -- | 'or'         | Product has Cotton OR Polyester          | && (overlap) |
+  -- | 'and'        | Product has Cotton AND Polyester         | @> (contains)|
+  --
+  -- 'or' — standard for e-commerce (show cotton OR polyester items)
+  -- 'and' — for tags/multi-values (show items with BOTH "sale" AND "new-arrival" tags)
+  --
+  -- Ignored when selection_mode = 'single' (only one value, no logic needed).
+  -- Between different facets — always AND: Material=Cotton AND Color=Red.
+  --
+  -- ui_type behavior:
+  -- | ui_type    | selection_mode | Notes                               |
   -- |------------|----------------|-------------------------------------|
-  -- | checkbox   | multi          | OR between selected values          |
+  -- | checkbox   | multi          | Uses filter_logic                   |
   -- | checkbox   | single         | Exact match on single value         |
   -- | radio      | single         | Exact match on single value         |
   -- | dropdown   | single         | Exact match on single value         |
-  -- | dropdown   | multi          | OR between selected values          |
+  -- | dropdown   | multi          | Uses filter_logic                   |
   -- | range      | —              | BETWEEN min AND max (numeric only)  |
   -- | boolean    | —              | Exact match (true/false)            |
   --
-  -- 'range' and 'boolean' ignore selection_mode — they have fixed filter logic.
+  -- 'range' and 'boolean' ignore selection_mode and filter_logic.
   --
   -- Swatch: For OPTION-type facets, each FacetValue automatically includes swatch data
   -- (resolved via product_option_value → product_option_swatch). No config flag needed —
@@ -271,7 +284,69 @@ catalog.facet_config_translation (
 
 ---
 
-## 3.3 Slug Resolution via `slugify()` SQL Function
+### 3.3 Facet Config Values
+
+Configure individual values within a facet: custom labels, sort order, swatches, merge multiple source values into one.
+
+```sql
+catalog.facet_swatch (
+  id                uuid PRIMARY KEY,
+  project_id        uuid NOT NULL,
+  swatch_type       varchar(16) NOT NULL,  -- 'color' | 'gradient' | 'image'
+  color_one         varchar(9),             -- hex, e.g. '#FF0000'
+  color_two         varchar(9),             -- for gradient
+  image_id          uuid REFERENCES media.media_file(id) ON DELETE SET NULL,
+  metadata          jsonb,
+  created_at        timestamptz NOT NULL DEFAULT now(),
+  updated_at        timestamptz NOT NULL DEFAULT now()
+)
+
+catalog.facet_config_value (
+  id                uuid PRIMARY KEY,
+  project_id        uuid NOT NULL,
+  facet_config_id   uuid NOT NULL REFERENCES catalog.facet_config(id) ON DELETE CASCADE,
+  swatch_id         uuid REFERENCES catalog.facet_swatch(id) ON DELETE SET NULL,
+  sort_index        int NOT NULL DEFAULT 0,
+  enabled           boolean NOT NULL DEFAULT true,
+  created_at        timestamptz NOT NULL DEFAULT now(),
+  updated_at        timestamptz NOT NULL DEFAULT now()
+)
+
+catalog.facet_config_value_translation (
+  facet_config_value_id uuid NOT NULL REFERENCES catalog.facet_config_value(id) ON DELETE CASCADE,
+  locale            varchar(8) NOT NULL,
+  project_id        uuid NOT NULL,
+  label             text NOT NULL,
+  PRIMARY KEY (facet_config_value_id, locale)
+)
+
+catalog.facet_config_value_source (
+  id                uuid PRIMARY KEY,
+  project_id        uuid NOT NULL,
+  facet_config_value_id uuid NOT NULL REFERENCES catalog.facet_config_value(id) ON DELETE CASCADE,
+  source_value_id   uuid NOT NULL,  -- references feature_value.id, option_value.id, or tag.id
+  UNIQUE (project_id, source_value_id)  -- one source → one display value
+)
+```
+
+**Purpose:**
+- `facet_swatch` — visual swatch for a facet value (mirrors `product_option_swatch`)
+- `facet_config_value` — configured value: sort order, enabled, swatch
+- `facet_config_value_translation` — custom label (overrides source translation)
+- `facet_config_value_source` — maps source value → display value. Allows merging multiple source values into one display value
+
+**Label and swatch resolution:**
+
+| Priority | Label | Swatch |
+|----------|-------|--------|
+| 1 | `facet_config_value_translation` | `facet_swatch` via `facet_config_value.swatch_id` |
+| 2 | Source translation (feature_value/option_value/tag) | `product_option_swatch` (option facets only) |
+
+If no `facet_config_value` exists — values come directly from source tables (backward compatible).
+
+---
+
+## 3.4 Slug Resolution via `slugify()` SQL Function
 
 Options and features do **not** store slugs in the database. Instead, slugs are computed on-the-fly from translatable labels using an `IMMUTABLE` SQL function + expression indexes.
 
