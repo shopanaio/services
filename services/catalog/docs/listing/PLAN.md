@@ -7,11 +7,11 @@ Three distinct domain concepts, all inside the **catalog** service:
 | Concept | Role | Managed by |
 |---------|------|------------|
 | **Category** | Stable taxonomy, navigation skeleton, SEO pages | Content managers |
-| **Collection** | Merchandising product groupings (manual / rule-based / hybrid) | Merchandisers, marketers |
+| **Collection** | Merchandising product groupings (manual / rule-based) | Merchandisers, marketers |
 | **Filter Set** | Facet display configuration (groups, order, UI types, labels) | Catalog admins |
 
 Products are assigned to categories explicitly (by humans, bulk ops, or import).
-Collections assemble products by rules, manual picks, or both.
+Collections assemble products by rules or manual picks.
 Filters on a category/collection PLP are computed on-the-fly from products present, but **rendered** according to a Filter Set configuration.
 
 **Scope (Phase 1):** PostgreSQL only. No Typesense, no full-text search, no algorithmic collections.
@@ -65,7 +65,6 @@ A **collection** is a named product grouping for merchandising/marketing, indepe
 |------|--------------------------|
 | **manual** | Admin explicitly adds products, orders via lexo_rank |
 | **rule** | System evaluates conditions against `product_search_index` |
-| **hybrid** | Rule-based base + manual pins, boosts, excludes |
 
 ### 2.2 Database schema
 
@@ -74,7 +73,7 @@ catalog.collection (
   id                uuid PRIMARY KEY,
   project_id        uuid NOT NULL,
   handle            varchar(255),
-  type              varchar(16) NOT NULL,  -- 'manual' | 'rule' | 'hybrid'
+  type              varchar(16) NOT NULL,  -- 'manual' | 'rule'
   
   -- Sort
   default_sort      varchar(32) NOT NULL DEFAULT 'manual',
@@ -136,27 +135,23 @@ catalog.collection_media (
 )
 ```
 
-### 2.3 Manual collection items
+### 2.3 Collection items (manual collections only)
 
 ```sql
 catalog.collection_item (
   collection_id     uuid NOT NULL REFERENCES catalog.collection(id) ON DELETE CASCADE,
   product_id        uuid NOT NULL REFERENCES catalog.product(id) ON DELETE CASCADE,
   lexo_rank         varchar(64) COLLATE "C" NOT NULL,
-  pinned            boolean NOT NULL DEFAULT false,  -- pinned items stay at position regardless of rule sort
-  excluded          boolean NOT NULL DEFAULT false,   -- excluded from collection output
   created_at        timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (collection_id, product_id)
 )
 
 CREATE INDEX idx_collection_item_rank
-  ON catalog.collection_item (collection_id, lexo_rank)
-  WHERE excluded = false;
+  ON catalog.collection_item (collection_id, lexo_rank);
 ```
 
 **For manual collections:** all products are in `collection_item` with lexo_rank.
-**For hybrid collections:** `collection_item` holds pinned/excluded overrides on top of rule results.
-**For rule collections:** `collection_item` can hold excludes only (no manual adds).
+**For rule collections:** products are computed from rules — no `collection_item` rows. To remove a product from a rule collection, adjust the rules or the product's attributes.
 
 ### 2.4 Collection rules
 
@@ -368,21 +363,14 @@ QueryCollectionProductsScript:
   3. Resolve product set by type:
      
      manual:
-       SELECT from collection_item WHERE excluded = false
+       SELECT from collection_item ORDER BY lexo_rank
        
      rule:
        Evaluate collection_rules against product_search_index
-       EXCEPT collection_item WHERE excluded = true
-       
-     hybrid:
-       rule result
-       UNION pinned items (collection_item WHERE pinned = true AND excluded = false)
-       EXCEPT excluded items
-       Pinned items get priority in sort (appear first)
   
   4. Apply max_products limit if set
   5. Apply facet filters from user
-  6. Sort (manual/price/newest; pinned items first for hybrid)
+  6. Sort (manual → lexo_rank; price/newest → from product_search_index)
   7. Paginate
   8. Compute facet aggregations (same as category)
   9. Return { products, facets, totalCount, pageInfo }
@@ -437,7 +425,7 @@ src/repositories/models/
 src/repositories/
   listing/SearchIndexRepository.ts      # product_search_index CRUD + facet queries
   collection/CollectionRepository.ts    # collection CRUD
-  collection/CollectionItemRepository.ts # items: add/remove/pin/exclude/reorder
+  collection/CollectionItemRepository.ts # manual items: add/remove/reorder
   collection/CollectionRuleRepository.ts # rules CRUD
   filterSet/FilterSetRepository.ts      # filter_set + groups + facets CRUD
 
@@ -449,16 +437,12 @@ src/scripts/
     CollectionCreateScript.ts
     CollectionUpdateScript.ts
     CollectionDeleteScript.ts
-    CollectionAddProductsScript.ts
-    CollectionRemoveProductsScript.ts
-    CollectionPinProductScript.ts
-    CollectionUnpinProductScript.ts
-    CollectionExcludeProductScript.ts
-    CollectionIncludeProductScript.ts
-    CollectionMoveProductScript.ts       # lexo_rank reorder
-    CollectionRebalanceScript.ts
-    CollectionUpdateRulesScript.ts
-    QueryCollectionProductsScript.ts     # rule eval + filters + facets
+    CollectionAddProductsScript.ts       # manual only: add products with lexo_rank
+    CollectionRemoveProductsScript.ts    # manual only: remove products
+    CollectionMoveProductScript.ts       # manual only: lexo_rank reorder
+    CollectionRebalanceScript.ts         # manual only: rebalance lexo_ranks
+    CollectionUpdateRulesScript.ts       # rule only: replace rule set
+    QueryCollectionProductsScript.ts     # both types: filtered, sorted, paginated query
 
   category/
     QueryCategoryProductsScript.ts       # category PLP: products + facets
@@ -564,7 +548,7 @@ type Collection implements Node @key(fields: "id") {
   previewCount: Int!
 }
 
-enum CollectionType { MANUAL RULE HYBRID }
+enum CollectionType { MANUAL RULE }
 
 type CollectionRule {
   id: ID!
@@ -584,8 +568,6 @@ type CollectionProductConnection {
 type CollectionProductEdge {
   node: Product!
   cursor: String!
-  pinned: Boolean!
-  excluded: Boolean!
 }
 
 # Inputs:
@@ -594,10 +576,6 @@ input CollectionUpdateInput { ... }
 input CollectionDeleteInput { id: ID! }
 input CollectionAddProductsInput { collectionId: ID!, productIds: [ID!]! }
 input CollectionRemoveProductsInput { collectionId: ID!, productIds: [ID!]! }
-input CollectionPinProductInput { collectionId: ID!, productId: ID! }
-input CollectionUnpinProductInput { collectionId: ID!, productId: ID! }
-input CollectionExcludeProductInput { collectionId: ID!, productId: ID! }
-input CollectionIncludeProductInput { collectionId: ID!, productId: ID! }
 input CollectionMoveProductInput { collectionId: ID!, productId: ID!, afterProductId: ID, beforeProductId: ID }
 input CollectionUpdateRulesInput { collectionId: ID!, rules: [CollectionRuleInput!]! }
 input CollectionRuleInput { field: String!, operator: String!, value: JSON! }
@@ -727,10 +705,6 @@ collectionUpdate(input: CollectionUpdateInput!): CollectionUpdatePayload!
 collectionDelete(input: CollectionDeleteInput!): CollectionDeletePayload!
 collectionAddProducts(input: CollectionAddProductsInput!): CollectionAddProductsPayload!
 collectionRemoveProducts(input: CollectionRemoveProductsInput!): CollectionRemoveProductsPayload!
-collectionPinProduct(input: CollectionPinProductInput!): CollectionPinProductPayload!
-collectionUnpinProduct(input: CollectionUnpinProductInput!): CollectionUnpinProductPayload!
-collectionExcludeProduct(input: CollectionExcludeProductInput!): CollectionExcludeProductPayload!
-collectionIncludeProduct(input: CollectionIncludeProductInput!): CollectionIncludeProductPayload!
 collectionMoveProduct(input: CollectionMoveProductInput!): CollectionMoveProductPayload!
 collectionUpdateRules(input: CollectionUpdateRulesInput!): CollectionUpdateRulesPayload!
 
@@ -755,8 +729,6 @@ Same lexo_rank approach for both category products and collection items.
 **Alternative sorts:** `JOIN product_search_index`, sort by price/created_at/name. lexo_rank preserved for switching back to manual.
 
 **Drag & drop:** `newRank = midpoint(afterRank, beforeRank)`, single row UPDATE.
-
-**Hybrid collections:** Pinned items get a special rank prefix (e.g., `"!..."`) so they always sort first, then rule-matched items follow in rule sort order.
 
 **Rebalance:** When any lexo_rank exceeds 48 chars, reassign evenly spaced ranks across all items.
 
@@ -786,10 +758,7 @@ Rules in `collection_rule` are evaluated against `product_search_index`:
 -- All rules AND-ed together
 ```
 
-For hybrid collections, the rule result is then:
-1. UNION with pinned items
-2. MINUS excluded items
-3. Apply max_products limit
+For rule collections, `max_products` limit is applied after rule evaluation.
 
 ---
 
@@ -838,7 +807,7 @@ Everything else is local to catalog.
 1. **Drizzle models:** `collection.ts`
 2. **Generate migration**
 3. **Collection repositories:** CollectionRepository, CollectionItemRepository, CollectionRuleRepository
-4. **Collection scripts:** CRUD, add/remove/pin/exclude/move/rebalance, rules, QueryCollectionProductsScript
+4. **Collection scripts:** CRUD, add/remove/move/rebalance (manual), rules (rule), QueryCollectionProductsScript
 5. **GraphQL:** collection.graphql, add to CatalogQuery/CatalogMutation
 6. **Resolvers & loaders**
 7. **Build & test**
