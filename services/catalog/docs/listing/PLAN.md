@@ -659,88 +659,97 @@ base AS (
 
 **Step 2: Aggregation with facet isolation via FILTER**
 
+For AND-mode selected values, counts must be computed without `unnest` (otherwise the value being counted is implicitly required). For unselected values, `unnest` is correct because the value must be present.
+
 ```sql
--- All facet value counts in one query, each facet excludes only its own filter.
 -- Active filters: Color=[Red,Blue] (OR), Tags=[Sale,New-Arrival] (AND).
 -- Boolean columns from Step 1: passes_color, passes_tags_sale, passes_tags_new_arrival,
 -- passes_price, passes_in_stock.
 
--- UNION ALL of all three array types (option, feature, tag) into a single unnested stream:
-WITH unnested AS (
+-- 1) AND-mode selected values: counts from base (no unnest).
+WITH selected_and_counts AS (
+  SELECT
+    'tag' AS facet_type,
+    'sale' AS sv_slug,
+    COUNT(*) FILTER (WHERE passes_color AND passes_tags_new_arrival
+                         AND passes_price AND passes_in_stock) AS cnt
+  FROM base
+  UNION ALL
+  SELECT
+    'tag' AS facet_type,
+    'new-arrival' AS sv_slug,
+    COUNT(*) FILTER (WHERE passes_color AND passes_tags_sale
+                         AND passes_price AND passes_in_stock) AS cnt
+  FROM base
+),
+
+-- 2) Unselected values (and OR-mode facets): counts from unnested stream.
+unnested AS (
   -- Options
   SELECT b.product_id,
          b.passes_color, b.passes_tags_sale, b.passes_tags_new_arrival,
          b.passes_price, b.passes_in_stock,
          sv.slug AS sv_slug, 'option' AS facet_type
   FROM base b, unnest(b.option_slugs) AS sv(slug)
-  
+
   UNION ALL
-  
+
   -- Features
   SELECT b.product_id,
          b.passes_color, b.passes_tags_sale, b.passes_tags_new_arrival,
          b.passes_price, b.passes_in_stock,
          sv.slug AS sv_slug, 'feature' AS facet_type
   FROM base b, unnest(b.feature_slugs) AS sv(slug)
-  
+
   UNION ALL
-  
+
   -- Tags
   SELECT b.product_id,
          b.passes_color, b.passes_tags_sale, b.passes_tags_new_arrival,
          b.passes_price, b.passes_in_stock,
          sv.slug AS sv_slug, 'tag' AS facet_type
   FROM base b, unnest(b.tag_handles) AS sv(slug)
+),
+unselected_counts AS (
+  SELECT
+    u.facet_type,
+    u.sv_slug,
+    COUNT(DISTINCT u.product_id)
+      FILTER (WHERE u.passes_color AND u.passes_tags_sale AND u.passes_tags_new_arrival
+                    AND u.passes_price AND u.passes_in_stock) AS cnt
+  FROM unnested u
+  WHERE NOT (u.facet_type = 'tag' AND u.sv_slug IN ('sale', 'new-arrival'))
+  GROUP BY u.facet_type, u.sv_slug
+),
+all_counts AS (
+  SELECT * FROM selected_and_counts
+  UNION ALL
+  SELECT * FROM unselected_counts
 )
+
 -- LEFT JOIN to facet_config_value: configured values get merged/labeled,
 -- unconfigured values (fcv.id IS NULL) fall through with raw sv_slug.
 SELECT
   COALESCE(fcv.facet_config_id, fc.id) AS facet_config_id,
   fcv.id AS display_value_id,      -- NULL for unconfigured values
-  u.sv_slug,                        -- raw slug (used as fallback grouping key when fcv.id IS NULL)
-
-  -- ── OR-mode facet (Color): drop entire passes_color ──
-  COUNT(DISTINCT u.product_id)
-    FILTER (WHERE u.passes_tags_sale AND u.passes_tags_new_arrival
-                  AND u.passes_price AND u.passes_in_stock)         AS cnt_color_facet,
-    -- ^ All filters EXCEPT color. User can see Red(45), Blue(30), Green(12).
-
-  -- ── AND-mode facet (Tags): drop only the tested value's boolean ──
-  -- Count for "Sale": drop passes_tags_sale, keep passes_tags_new_arrival.
-  -- Shows: "if I toggle Sale off, how many items still match New-Arrival + other filters?"
-  -- For an unselected value like "Clearance": keep ALL passes_tags_*, add Clearance check.
-  -- Shows: "if I add Clearance, how many items match Sale AND New-Arrival AND Clearance?"
-  COUNT(DISTINCT u.product_id)
-    FILTER (WHERE u.passes_color AND u.passes_tags_new_arrival
-                  AND u.passes_price AND u.passes_in_stock)         AS cnt_tags_excl_sale,
-    -- ^ Tags facet, counting "sale" value: drop passes_tags_sale only
-
-  COUNT(DISTINCT u.product_id)
-    FILTER (WHERE u.passes_color AND u.passes_tags_sale
-                  AND u.passes_price AND u.passes_in_stock)         AS cnt_tags_excl_new_arrival
-    -- ^ Tags facet, counting "new-arrival" value: drop passes_tags_new_arrival only
-
-  -- For unselected tag values (e.g., "clearance"), the count column keeps ALL
-  -- passes_tags_* booleans (sale AND new_arrival) — no isolation needed because
-  -- the value is not yet selected. The count answers "how many if I add this?"
-
-FROM unnested u
+  ac.sv_slug,                      -- raw slug (used as fallback grouping key when fcv.id IS NULL)
+  ac.cnt                           -- count for this value
+FROM all_counts ac
 -- Resolve facet_config for this slug's facet_type + source_handle:
 JOIN facet_config fc
   ON fc.project_id = :projectId
-  AND fc.facet_type = u.facet_type
+  AND fc.facet_type = ac.facet_type
   AND (
     -- For option/feature: source_handle matches the prefix before ':'
-    (u.facet_type IN ('option', 'feature') AND fc.source_handle = split_part(u.sv_slug, ':', 1))
+    (ac.facet_type IN ('option', 'feature') AND fc.source_handle = split_part(ac.sv_slug, ':', 1))
     -- For tag: source_handle is NULL
-    OR (u.facet_type = 'tag' AND fc.source_handle IS NULL)
+    OR (ac.facet_type = 'tag' AND fc.source_handle IS NULL)
   )
 -- LEFT JOIN: unconfigured values still appear (fcv.id will be NULL)
 LEFT JOIN facet_config_value fcv
-  ON u.sv_slug = ANY(fcv.source_handles)
+  ON ac.sv_slug = ANY(fcv.source_handles)
   AND fcv.facet_config_id = fc.id
   AND fcv.enabled = true
-GROUP BY COALESCE(fcv.facet_config_id, fc.id), fcv.id, u.sv_slug
 ```
 
 **Isolation rules (generated dynamically by app):**
@@ -750,11 +759,11 @@ GROUP BY COALESCE(fcv.facet_config_id, fc.id), fcv.id, u.sv_slug
 | **OR** | Drop entire facet | AND together all `passes_X` **except** `passes_F` |
 | **AND** | Drop only tested value | AND together all `passes_X` **except** `passes_F_V` (keep other `passes_F_*`) |
 
-For **AND-mode unselected values** (value not yet in the active filter): keep ALL `passes_F_*` booleans — no isolation needed. The count shows "how many items match current AND selection PLUS this new value?"
+For **AND-mode selected values**: compute counts from `base` without `unnest`. The FILTER clause drops only that value's boolean, so the count answers "how many items still match if I remove this value?"
 
-For **AND-mode selected values**: drop only that value's boolean. The count shows "how many items still match if I remove this value?"
+For **AND-mode unselected values**: compute counts from `unnest`, keep all selected `passes_F_*` booleans, so the count answers "how many items match if I add this value?"
 
-The app generates one `COUNT(DISTINCT ...) FILTER (WHERE ...)` column per AND-mode selected value. For OR-mode facets, one column covers all values in that facet.
+The app generates one `COUNT(*) FILTER (WHERE ...)` per AND-mode selected value. Unselected values and OR-mode facets use the `unnest` stream.
 
 **Unconfigured values:** When `fcv.id IS NULL` (no `facet_config_value` row), the app groups by raw `sv_slug` instead. The display label comes from source translation tables (option_value, feature_value, or tag). The value slug is derived from `sv_slug` (strip the prefix for option/feature, use directly for tag).
 
