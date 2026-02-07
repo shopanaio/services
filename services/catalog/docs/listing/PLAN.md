@@ -824,7 +824,8 @@ The aggregated data is assembled using the project's `facet_config`:
 src/repositories/models/
   searchIndex.ts                        # product_search_index
   collection.ts                         # collection, collection_item, collection_rule, collection_translation, collection_media
-  facetConfig.ts                         # facet_group, facet_config + translations
+  facetConfig.ts                         # facet_group, facet_group_translation, facet_config, facet_config_translation,
+                                        # facet_swatch, facet_config_value, facet_config_value_translation
 
 src/repositories/
   listing/SearchIndexRepository.ts      # product_search_index CRUD + facet queries
@@ -833,6 +834,8 @@ src/repositories/
   collection/CollectionRuleRepository.ts # rules CRUD
   facet/FacetGroupRepository.ts         # facet_group CRUD
   facet/FacetConfigRepository.ts        # facet_config CRUD
+  facet/FacetConfigValueRepository.ts   # facet_config_value CRUD + translations
+  facet/FacetSwatchRepository.ts        # facet_swatch CRUD
 
 src/scripts/
   search-index/
@@ -853,6 +856,7 @@ src/scripts/
     QueryCategoryProductsScript.ts       # category PLP: products + facets
     CategoryMoveProductScript.ts         # reorder product in category
     CategoryRebalanceScript.ts
+    CategoryUpdateSortScript.ts          # update default_sort + default_sort_direction
 
   facet/
     FacetGroupCreateScript.ts
@@ -861,6 +865,12 @@ src/scripts/
     FacetConfigCreateScript.ts
     FacetConfigUpdateScript.ts
     FacetConfigDeleteScript.ts
+    FacetConfigValueCreateScript.ts
+    FacetConfigValueUpdateScript.ts
+    FacetConfigValueDeleteScript.ts
+    FacetSwatchCreateScript.ts
+    FacetSwatchUpdateScript.ts
+    FacetSwatchDeleteScript.ts
     ResolveFacetsScript.ts               # compute facet display from project config
 
 src/resolvers/admin/
@@ -869,6 +879,8 @@ src/resolvers/admin/
   CollectionMutationResolver.ts
   FacetGroupResolver.ts
   FacetConfigResolver.ts
+  FacetConfigValueResolver.ts
+  FacetSwatchResolver.ts
   FacetQueryResolver.ts
   FacetMutationResolver.ts
 
@@ -876,6 +888,8 @@ src/loaders/
   CollectionLoader.ts
   FacetGroupLoader.ts
   FacetConfigLoader.ts
+  FacetConfigValueLoader.ts
+  FacetSwatchLoader.ts
 
 src/api/graphql-admin/schema/
   collection.graphql
@@ -890,12 +904,16 @@ src/repositories/models/categories.ts      # add lexo_rank to product_category; 
 src/repositories/models/features.ts        # add slug to product_feature and product_feature_value
 src/repositories/models/seo.ts             # add category_seo, collection_seo (same structure as product_seo)
 src/repositories/Repository.ts             # add new repositories
+src/repositories/translation/TranslationRepository.ts # add category/collection SEO accessors
 src/loaders/Loader.ts                      # add new loaders
+src/loaders/CategoryLoader.ts              # add categorySeo loader
 src/handlers/index.ts                      # add search index sync handlers
 src/api/graphql-admin/schema/base.graphql  # add collection/facet queries & mutations to CatalogQuery/CatalogMutation
 src/api/graphql-admin/schema/category.graphql  # add categoryProducts, defaultSort, seo fields to Category
 src/api/graphql-admin/schema/seo.graphql   # add generic Seo/SeoInput types
 src/resolvers/admin/CategoryResolver.ts    # add new field resolvers
+src/resolvers/admin/QueryResolver.ts       # wire new collection/facet queries
+src/resolvers/admin/MutationResolver.ts    # wire new collection/facet mutations
 ```
 
 ---
@@ -933,6 +951,17 @@ type CategoryProductEdge {
   node: Product!
   cursor: String!
 }
+
+input CategoryMoveProductInput { categoryId: ID!, productId: ID!, afterProductId: ID, beforeProductId: ID }
+input CategoryRebalanceInput { categoryId: ID! }
+input CategoryUpdateSortInput { id: ID!, defaultSort: ProductSortBy!, defaultSortDirection: SortDirection }
+
+type CategoryMoveProductPayload { category: Category, userErrors: [GenericUserError!]! }
+type CategoryRebalancePayload { category: Category, userErrors: [GenericUserError!]! }
+type CategoryUpdateSortPayload { category: Category, userErrors: [GenericUserError!]! }
+
+# Add to CategoryCreateInput / CategoryUpdateInput:
+#   seo: SeoInput
 ```
 
 ### 7.2 Collection (in `collection.graphql`)
@@ -993,8 +1022,35 @@ type CollectionProductEdge {
 }
 
 # Inputs:
-input CollectionCreateInput { ... }
-input CollectionUpdateInput { ... }
+input CollectionCreateInput {
+  handle: String
+  type: CollectionType!
+  name: String!
+  description: DescriptionInput
+  media: [CollectionMediaInput!]
+  seo: SeoInput
+  defaultSort: ProductSortBy
+  defaultSortDirection: SortDirection
+  activeFrom: DateTime
+  activeTo: DateTime
+  publish: Boolean
+}
+
+input CollectionUpdateInput {
+  id: ID!
+  handle: String
+  name: String
+  description: DescriptionInput
+  media: [CollectionMediaInput!]
+  seo: SeoInput
+  defaultSort: ProductSortBy
+  defaultSortDirection: SortDirection
+  activeFrom: DateTime
+  activeTo: DateTime
+  publish: Boolean
+}
+
+input CollectionMediaInput { fileId: ID!, sortIndex: Int }
 input CollectionDeleteInput { id: ID! }
 input CollectionAddProductsInput { collectionId: ID!, productIds: [ID!]! }
 input CollectionRemoveProductsInput { collectionId: ID!, productIds: [ID!]! }
@@ -1033,6 +1089,7 @@ type FacetConfig implements Node {
   maxValuesVisible: Int!
   valueSort: FacetValueSort!
   indexable: Boolean!
+  values: [FacetConfigValue!]!
 }
 
 enum FacetType { PRICE TAG FEATURE OPTION IN_STOCK }
@@ -1040,6 +1097,26 @@ enum FacetUIType { CHECKBOX RADIO DROPDOWN RANGE BOOLEAN }
 enum FacetSelectionMode { SINGLE MULTI }
 enum FacetFilterLogic { AND OR }
 enum FacetValueSort { COUNT ALPHA CUSTOM }
+
+type FacetConfigValue implements Node {
+  id: ID!
+  facet: FacetConfig!
+  slug: String!
+  label: String!
+  sourceHandles: [String!]!
+  swatch: FacetSwatch
+  sortIndex: Int!
+  enabled: Boolean!
+}
+
+type FacetSwatch implements Node {
+  id: ID!
+  swatchType: SwatchType!
+  colorOne: String
+  colorTwo: String
+  file: File
+  metadata: JSON
+}
 
 # Inputs:
 input FacetGroupCreateInput { name: String!, collapsed: Boolean, sortIndex: Int }
@@ -1049,6 +1126,22 @@ input FacetGroupDeleteInput { id: ID! }
 input FacetConfigCreateInput { facetType: FacetType!, sourceHandle: String, slug: String!, uiType: FacetUIType, selectionMode: FacetSelectionMode, filterLogic: FacetFilterLogic, groupId: ID, label: String!, sortIndex: Int }
 input FacetConfigUpdateInput { id: ID!, slug: String, uiType: FacetUIType, selectionMode: FacetSelectionMode, filterLogic: FacetFilterLogic, groupId: ID, label: String, sortIndex: Int, minValues: Int, maxValuesVisible: Int, valueSort: FacetValueSort, indexable: Boolean }
 input FacetConfigDeleteInput { id: ID! }
+
+input FacetConfigValueCreateInput { facetConfigId: ID!, slug: String!, label: String!, sourceHandles: [String!]!, swatchId: ID, sortIndex: Int, enabled: Boolean }
+input FacetConfigValueUpdateInput { id: ID!, slug: String, label: String, sourceHandles: [String!], swatchId: ID, sortIndex: Int, enabled: Boolean }
+input FacetConfigValueDeleteInput { id: ID! }
+
+input FacetSwatchCreateInput { swatchType: SwatchType!, colorOne: String, colorTwo: String, fileId: ID, metadata: JSON }
+input FacetSwatchUpdateInput { id: ID!, swatchType: SwatchType, colorOne: String, colorTwo: String, fileId: ID, metadata: JSON }
+input FacetSwatchDeleteInput { id: ID! }
+
+type FacetConfigValueCreatePayload { facetConfigValue: FacetConfigValue, userErrors: [GenericUserError!]! }
+type FacetConfigValueUpdatePayload { facetConfigValue: FacetConfigValue, userErrors: [GenericUserError!]! }
+type FacetConfigValueDeletePayload { deletedFacetConfigValueId: ID, userErrors: [GenericUserError!]! }
+
+type FacetSwatchCreatePayload { facetSwatch: FacetSwatch, userErrors: [GenericUserError!]! }
+type FacetSwatchUpdatePayload { facetSwatch: FacetSwatch, userErrors: [GenericUserError!]! }
+type FacetSwatchDeletePayload { deletedFacetSwatchId: ID, userErrors: [GenericUserError!]! }
 ```
 
 ### 7.4 Shared types
@@ -1156,8 +1249,10 @@ type FacetValue {
   label: String
   count: Int!
   """Swatch from ProductOptionSwatch or FacetSwatch. Present for OPTION-type facets when the option value has a swatch, or when facet_config_value has a swatch override."""
-  swatch: ProductOptionSwatch
+  swatch: FacetSwatchRef
 }
+
+union FacetSwatchRef = ProductOptionSwatch | FacetSwatch
 
 type PriceRange {
   minMinor: BigInt!
@@ -1184,6 +1279,12 @@ facetGroups: [FacetGroup!]!
 facetConfig(id: ID!): FacetConfig
 facetConfigs: [FacetConfig!]!
 
+facetConfigValue(id: ID!): FacetConfigValue
+facetConfigValues(facetConfigId: ID!): [FacetConfigValue!]!
+
+facetSwatch(id: ID!): FacetSwatch
+facetSwatches: [FacetSwatch!]!
+
 # CatalogMutation:
 collectionCreate(input: CollectionCreateInput!): CollectionCreatePayload!
 collectionUpdate(input: CollectionUpdateInput!): CollectionUpdatePayload!
@@ -1200,6 +1301,14 @@ facetGroupDelete(input: FacetGroupDeleteInput!): FacetGroupDeletePayload!
 facetConfigCreate(input: FacetConfigCreateInput!): FacetConfigCreatePayload!
 facetConfigUpdate(input: FacetConfigUpdateInput!): FacetConfigUpdatePayload!
 facetConfigDelete(input: FacetConfigDeleteInput!): FacetConfigDeletePayload!
+
+facetConfigValueCreate(input: FacetConfigValueCreateInput!): FacetConfigValueCreatePayload!
+facetConfigValueUpdate(input: FacetConfigValueUpdateInput!): FacetConfigValueUpdatePayload!
+facetConfigValueDelete(input: FacetConfigValueDeleteInput!): FacetConfigValueDeletePayload!
+
+facetSwatchCreate(input: FacetSwatchCreateInput!): FacetSwatchCreatePayload!
+facetSwatchUpdate(input: FacetSwatchUpdateInput!): FacetSwatchUpdatePayload!
+facetSwatchDelete(input: FacetSwatchDeleteInput!): FacetSwatchDeletePayload!
 
 categoryMoveProduct(input: CategoryMoveProductInput!): CategoryMoveProductPayload!
 categoryRebalance(input: CategoryRebalanceInput!): CategoryRebalancePayload!
@@ -1329,22 +1438,23 @@ Everything else is local to catalog.
 1. **Drizzle models:** `searchIndex.ts` — product_search_index
 2. **Alter `product_category`:** replace `sortIndex` with `lexo_rank`
 3. **Alter `category`:** add `default_sort`, `default_sort_direction`
-4. **Generate migration**
-5. **SearchIndexRepository** — upsert, delete, facet queries
-6. **SyncProductIndexScript** — build index row from local data + inventory broker
-7. **Event handlers** — productCreated/Updated/Deleted → sync index
-8. **Category product scripts:** QueryCategoryProductsScript, CategoryMoveProductScript, CategoryRebalanceScript
-9. **GraphQL:** extend Category type, add category product mutations
-10. **Resolvers & loaders**
-11. **Build & test**
+4. **Category SEO:** add `category_seo` model + TranslationRepository + loader/resolver wiring
+5. **Generate migration**
+6. **SearchIndexRepository** — upsert, delete, facet queries
+7. **SyncProductIndexScript** — build index row from local data + inventory broker
+8. **Event handlers** — productCreated/Updated/Deleted → sync index
+9. **Category product scripts:** QueryCategoryProductsScript, CategoryMoveProductScript, CategoryRebalanceScript, CategoryUpdateSortScript
+10. **GraphQL:** extend Category type, add category product + sort/SEO mutations
+11. **Resolvers & loaders**
+12. **Build & test**
 
 ### Phase 1B: Facet Configuration
 
 1. **Drizzle models:** `facetConfig.ts`
 2. **Generate migration**
-3. **FacetGroupRepository, FacetConfigRepository**
-4. **Facet scripts:** FacetGroup CRUD, FacetConfig CRUD, ResolveFacetsScript
-5. **GraphQL:** facet.graphql, add to CatalogQuery/CatalogMutation
+3. **Facet repositories:** FacetGroupRepository, FacetConfigRepository, FacetConfigValueRepository, FacetSwatchRepository
+4. **Facet scripts:** FacetGroup CRUD, FacetConfig CRUD, FacetConfigValue CRUD, FacetSwatch CRUD, ResolveFacetsScript
+5. **GraphQL:** facet.graphql (FacetConfigValue + FacetSwatch), add to CatalogQuery/CatalogMutation
 6. **Resolvers & loaders**
 7. **Build & test**
 
@@ -1354,7 +1464,7 @@ Everything else is local to catalog.
 2. **Generate migration**
 3. **Collection repositories:** CollectionRepository, CollectionItemRepository, CollectionRuleRepository
 4. **Collection scripts:** CRUD, add/remove/move/rebalance (manual), rules (rule), QueryCollectionProductsScript
-5. **GraphQL:** collection.graphql, add to CatalogQuery/CatalogMutation
+5. **GraphQL:** collection.graphql (inputs incl. SEO/media), add to CatalogQuery/CatalogMutation
 6. **Resolvers & loaders**
 7. **Build & test**
 
