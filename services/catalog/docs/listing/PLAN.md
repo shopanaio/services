@@ -224,7 +224,7 @@ catalog.facet_config (
   facet_type        varchar(32) NOT NULL,  -- 'price', 'tag', 'feature', 'option', 'in_stock'
   source_id         uuid,                  -- For 'feature'/'option': references the specific product_feature.id or product_option.id.
                                            -- NULL for 'price', 'tag', 'in_stock' (they don't need disambiguation).
-                                           -- UNIQUE(project_id, facet_type, source_id) ensures one facet config per source.
+  UNIQUE(project_id, facet_type, source_id) NULLS NOT DISTINCT
   
   -- Display & selection behavior
   ui_type           varchar(16) NOT NULL DEFAULT 'checkbox',  -- 'checkbox' | 'radio' | 'dropdown' | 'range' | 'boolean'
