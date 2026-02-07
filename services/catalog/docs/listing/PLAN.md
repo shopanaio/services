@@ -8,11 +8,11 @@ Three distinct domain concepts, all inside the **catalog** service:
 |---------|------|------------|
 | **Category** | Stable taxonomy, navigation skeleton, SEO pages | Content managers |
 | **Collection** | Merchandising product groupings (manual / rule-based) | Merchandisers, marketers |
-| **Filter Set** | Facet display configuration (groups, order, UI types, labels) | Catalog admins |
+| **Facet Config** | Facet display configuration (groups, order, UI types, labels) — per project | Catalog admins |
 
 Products are assigned to categories explicitly (by humans, bulk ops, or import).
 Collections assemble products by rules or manual picks.
-Filters on a category/collection PLP are computed on-the-fly from products present, but **rendered** according to a Filter Set configuration.
+Facets on a collection PLP are computed on-the-fly from products present, rendered according to project-level facet configuration.
 
 **Scope (Phase 1):** PostgreSQL only. No Typesense, no full-text search, no algorithmic collections.
 
@@ -49,10 +49,6 @@ Add sort preference to category:
 
 Values: `'manual'`, `'price'`, `'newest'`, `'name'`
 
-### 1.3 Category & Filter Sets
-
-A category does **not** store filter configuration and has no link to Filter Set. Filter Set is resolved entirely by external context (product type / channel / storefront template) — see section 3.
-
 ---
 
 ## 2. Collections
@@ -82,9 +78,6 @@ catalog.collection (
   -- Scheduling
   active_from       timestamptz,
   active_to         timestamptz,
-  
-  -- Limits
-  max_products      int,           -- NULL = unlimited
   
   -- Publication
   published_at      timestamptz,
@@ -182,11 +175,11 @@ Rules are evaluated against `product_search_index`.
 
 ---
 
-## 3. Filter Sets (Facet Configuration)
+## 3. Facet Configuration (project-level)
 
 ### 3.1 Core idea
 
-A Filter Set defines **how** facets are displayed, not **what** data exists. The available facet values are always computed on-the-fly from products in the current category/collection. The Filter Set controls:
+Facet configuration defines **how** facets are displayed on PLPs, not **what** data exists. Available facet values are computed on-the-fly from products. The configuration controls:
 
 - Which facets to show and in what order
 - Grouping (e.g., "Main filters", "Material & Care")
@@ -194,41 +187,20 @@ A Filter Set defines **how** facets are displayed, not **what** data exists. The
 - Label overrides and value sort order
 - Display rules (min distinct values to show, hide empty, collapse threshold)
 
+Configuration is per-project — one flat list of facet groups and facets per project.
+
 ### 3.2 Database schema
 
 ```sql
-catalog.filter_set (
+catalog.facet_group (
   id                uuid PRIMARY KEY,
-  project_id        uuid NOT NULL,
-  handle            varchar(255) NOT NULL,
-  is_default        boolean NOT NULL DEFAULT false,  -- project-wide default
-  created_at        timestamptz NOT NULL DEFAULT now(),
-  updated_at        timestamptz NOT NULL DEFAULT now(),
-  UNIQUE(project_id, handle),
-  -- Only one default per project:
-  UNIQUE(project_id) WHERE is_default = true
-)
-
-catalog.filter_set_translation (
-  filter_set_id     uuid NOT NULL REFERENCES catalog.filter_set(id) ON DELETE CASCADE,
-  locale            varchar(8) NOT NULL,
-  project_id        uuid NOT NULL,
-  name              text NOT NULL,
-  PRIMARY KEY (filter_set_id, locale)
-)
-```
-
-```sql
-catalog.filter_set_group (
-  id                uuid PRIMARY KEY,
-  filter_set_id     uuid NOT NULL REFERENCES catalog.filter_set(id) ON DELETE CASCADE,
   project_id        uuid NOT NULL,
   sort_index        int NOT NULL DEFAULT 0,
   collapsed         boolean NOT NULL DEFAULT false   -- render collapsed by default
 )
 
-catalog.filter_set_group_translation (
-  group_id          uuid NOT NULL REFERENCES catalog.filter_set_group(id) ON DELETE CASCADE,
+catalog.facet_group_translation (
+  group_id          uuid NOT NULL REFERENCES catalog.facet_group(id) ON DELETE CASCADE,
   locale            varchar(8) NOT NULL,
   project_id        uuid NOT NULL,
   name              text NOT NULL,
@@ -237,11 +209,10 @@ catalog.filter_set_group_translation (
 ```
 
 ```sql
-catalog.filter_set_facet (
+catalog.facet_config (
   id                uuid PRIMARY KEY,
-  filter_set_id     uuid NOT NULL REFERENCES catalog.filter_set(id) ON DELETE CASCADE,
-  group_id          uuid REFERENCES catalog.filter_set_group(id) ON DELETE SET NULL,
   project_id        uuid NOT NULL,
+  group_id          uuid REFERENCES catalog.facet_group(id) ON DELETE SET NULL,
   
   -- What product attribute this maps to
   facet_type        varchar(32) NOT NULL,  -- 'price', 'tag', 'feature', 'option', 'in_stock'
@@ -261,8 +232,8 @@ catalog.filter_set_facet (
   indexable         boolean NOT NULL DEFAULT false       -- whether filter combinations generate indexable URLs
 )
 
-catalog.filter_set_facet_translation (
-  facet_id          uuid NOT NULL REFERENCES catalog.filter_set_facet(id) ON DELETE CASCADE,
+catalog.facet_config_translation (
+  facet_id          uuid NOT NULL REFERENCES catalog.facet_config(id) ON DELETE CASCADE,
   locale            varchar(8) NOT NULL,
   project_id        uuid NOT NULL,
   label             text NOT NULL,                       -- display label override (e.g., "Colour" instead of "color")
@@ -270,25 +241,11 @@ catalog.filter_set_facet_translation (
 )
 ```
 
-### 3.3 Filter Set resolution
-
-Filter Sets are **not** linked to categories. When rendering a PLP, the storefront resolves which Filter Set to use by external context:
-
-```
-1. By product type / attribute set (e.g., "Apparel" → apparel filter set)
-2. By channel / country (different storefronts may use different filter sets)
-3. By storefront page template
-4. Project default (filter_set.is_default = true)
-5. No Filter Set → show raw facets without configuration (fallback)
-```
-
-The storefront passes a `filterSetId` (or `filterSetHandle`) to the PLP query. If not provided, the project default is used.
-
 ---
 
 ## 4. Product Search Index
 
-Denormalized table for fast faceted queries. Same as before, used by both category PLPs and collection rule evaluation.
+Denormalized table for fast queries. Used by category PLPs (product listing), collection rule evaluation, and collection faceted filtering.
 
 ```sql
 catalog.product_search_index (
@@ -325,35 +282,29 @@ Indexes: GIN on arrays, B-tree on price/stock/status/created_at.
 
 ```
 QueryCategoryProductsScript:
-  Input: { categoryId, filters?, sort?, pagination, filterSetId? }
+  Input: { categoryId, sort?, pagination }
   
   1. Load category → get default_sort
-  2. Resolve Filter Set: use filterSetId from input, or project default
-  3. Build query:
+  2. Build query:
        product_category pc
        JOIN product_search_index psi ON pc.product_id = psi.product_id
        WHERE pc.category_id = :categoryId
          AND psi.status = 'active'
-         AND [apply facet filters]
-  4. Apply sort:
+  3. Apply sort:
        'manual' → ORDER BY pc.lexo_rank
        'price'  → ORDER BY psi.min_price_minor
        'newest' → ORDER BY psi.created_at DESC
-  5. Paginate (Relay cursor)
-  6. Compute facet aggregations (filtered set):
-       - Only facets defined in the resolved Filter Set
-       - For each facet: count distinct values, apply min_values threshold
-       - Price range: min/max across filtered set
-  7. Return { products, facets, totalCount, pageInfo, filterSetId }
+  4. Paginate (Relay cursor)
+  5. Return { products, totalCount, pageInfo }
 ```
 
 ### 5.2 Collection PLP
 
 ```
 QueryCollectionProductsScript:
-  Input: { collectionId, filters?, sort?, pagination, filterSetId? }
+  Input: { collectionId, filters?, sort?, pagination }
   
-  1. Load collection → type, rules, default_sort, limits
+  1. Load collection → type, rules, default_sort
   2. Check scheduling (active_from/active_to)
   3. Resolve product set by type:
      
@@ -363,17 +314,16 @@ QueryCollectionProductsScript:
      rule:
        Evaluate collection_rules against product_search_index
   
-  4. Apply max_products limit if set
-  5. Apply facet filters from user
-  6. Sort (manual → lexo_rank; price/newest → from product_search_index)
-  7. Paginate
-  8. Compute facet aggregations (same as category)
-  9. Return { products, facets, totalCount, pageInfo }
+  4. Apply facet filters from user
+  5. Sort (manual → lexo_rank; price/newest → from product_search_index)
+  6. Paginate
+  7. Compute facet aggregations (see 5.3)
+  8. Return { products, facets, totalCount, pageInfo }
 ```
 
-### 5.3 Facet computation
+### 5.3 Facet computation (collections only)
 
-For a given product set (from category or collection):
+For a given product set (from collection):
 
 ```sql
 -- Price range
@@ -397,13 +347,13 @@ GROUP BY slug
 -- In-stock count (simple COUNT WHERE in_stock = true)
 ```
 
-The raw facet data is then intersected with the resolved Filter Set config to determine:
-- Which facets to include (only those defined in Filter Set)
-- Order and grouping
+The raw facet data is then intersected with the project's `facet_config` to determine:
+- Which facets to include (only those defined in `facet_config`)
+- Order and grouping (via `facet_group`)
 - UI type
 - Whether to hide (fewer values than `min_values`)
 - Value count limits (`max_values_visible`)
-- Labels from `filter_set_facet_translation`
+- Labels from `facet_config_translation`
 
 ---
 
@@ -415,14 +365,15 @@ The raw facet data is then intersected with the resolved Filter Set config to de
 src/repositories/models/
   searchIndex.ts                        # product_search_index
   collection.ts                         # collection, collection_item, collection_rule, collection_translation, collection_seo, collection_media
-  filterSet.ts                          # filter_set, filter_set_group, filter_set_facet + translations
+  facetConfig.ts                         # facet_group, facet_config + translations
 
 src/repositories/
   listing/SearchIndexRepository.ts      # product_search_index CRUD + facet queries
   collection/CollectionRepository.ts    # collection CRUD
   collection/CollectionItemRepository.ts # manual items: add/remove/reorder
   collection/CollectionRuleRepository.ts # rules CRUD
-  filterSet/FilterSetRepository.ts      # filter_set + groups + facets CRUD
+  facet/FacetGroupRepository.ts         # facet_group CRUD
+  facet/FacetConfigRepository.ts        # facet_config CRUD
 
 src/scripts/
   search-index/
@@ -440,31 +391,36 @@ src/scripts/
     QueryCollectionProductsScript.ts     # both types: filtered, sorted, paginated query
 
   category/
-    QueryCategoryProductsScript.ts       # category PLP: products + facets
+    QueryCategoryProductsScript.ts       # category PLP: products (no facets)
     CategoryMoveProductScript.ts         # reorder product in category
     CategoryRebalanceScript.ts
 
-  filter-set/
-    FilterSetCreateScript.ts
-    FilterSetUpdateScript.ts
-    FilterSetDeleteScript.ts
-    ResolveFacetsScript.ts               # resolve Filter Set + compute facet display
+  facet/
+    FacetGroupCreateScript.ts
+    FacetGroupUpdateScript.ts
+    FacetGroupDeleteScript.ts
+    FacetConfigCreateScript.ts
+    FacetConfigUpdateScript.ts
+    FacetConfigDeleteScript.ts
+    ResolveFacetsScript.ts               # compute facet display from project config
 
 src/resolvers/admin/
   CollectionResolver.ts
   CollectionQueryResolver.ts
   CollectionMutationResolver.ts
-  FilterSetResolver.ts
-  FilterSetQueryResolver.ts
-  FilterSetMutationResolver.ts
+  FacetGroupResolver.ts
+  FacetConfigResolver.ts
+  FacetQueryResolver.ts
+  FacetMutationResolver.ts
 
 src/loaders/
   CollectionLoader.ts
-  FilterSetLoader.ts
+  FacetGroupLoader.ts
+  FacetConfigLoader.ts
 
 api/graphql-admin/schema/
   collection.graphql
-  filterSet.graphql
+  facet.graphql
 ```
 
 ### Modified files
@@ -475,8 +431,8 @@ src/repositories/models/categories.ts      # add lexo_rank to product_category; 
 src/repositories/Repository.ts             # add new repositories
 src/loaders/Loader.ts                      # add new loaders
 src/handlers/index.ts                      # add search index sync handlers
-api/graphql-admin/schema/base.graphql      # add collection/filterSet queries & mutations to CatalogQuery/CatalogMutation
-api/graphql-admin/schema/category.graphql  # add categoryProducts(filters), defaultSort fields to Category
+api/graphql-admin/schema/base.graphql      # add collection/facet queries & mutations to CatalogQuery/CatalogMutation
+api/graphql-admin/schema/category.graphql  # add categoryProducts, defaultSort fields to Category
 src/resolvers/admin/CategoryResolver.ts    # add new field resolvers
 ```
 
@@ -491,17 +447,17 @@ src/resolvers/admin/CategoryResolver.ts    # add new field resolvers
 defaultSort: CategorySortBy!
 defaultSortDirection: SortDirection!
 
-"""Category products with filtering, sorting, pagination."""
+"""Category products with sorting and pagination."""
 categoryProducts(
   first: Int
   after: String
   last: Int
   before: String
-  filters: ProductFiltersInput
   sort: ProductSortInput
-  filterSetId: ID
 ): CategoryProductConnection!
 ```
+
+`CategoryProductConnection` returns `edges`, `pageInfo`, `totalCount` — no facets.
 
 ### 7.2 Collection (in `collection.graphql`)
 
@@ -521,7 +477,6 @@ type Collection implements Node @key(fields: "id") {
   activeFrom: DateTime
   activeTo: DateTime
   isActive: Boolean!
-  maxProducts: Int
   
   publishedAt: DateTime
   isPublished: Boolean!
@@ -534,7 +489,6 @@ type Collection implements Node @key(fields: "id") {
     first: Int, after: String, last: Int, before: String
     filters: ProductFiltersInput
     sort: ProductSortInput
-    filterSetId: ID
   ): CollectionProductConnection!
   
   productsCount: Int!
@@ -576,36 +530,27 @@ input CollectionUpdateRulesInput { collectionId: ID!, rules: [CollectionRuleInpu
 input CollectionRuleInput { field: String!, operator: String!, value: JSON! }
 ```
 
-### 7.3 Filter Set (in `filterSet.graphql`)
+### 7.3 Facet Configuration (in `facet.graphql`)
 
 ```graphql
-type FilterSet implements Node {
-  id: ID!
-  handle: String!
-  name: String!
-  isDefault: Boolean!
-  groups: [FilterSetGroup!]!
-  facets: [FilterSetFacet!]!
-  createdAt: DateTime!
-  updatedAt: DateTime!
-}
-
-type FilterSetGroup {
+type FacetGroup implements Node {
   id: ID!
   name: String!
   sortIndex: Int!
   collapsed: Boolean!
-  facets: [FilterSetFacet!]!
+  facets: [FacetConfig!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
-type FilterSetFacet {
+type FacetConfig implements Node {
   id: ID!
   facetType: FacetType!
   facetKey: String
   label: String!
   uiType: FacetUIType!
   sortIndex: Int!
-  group: FilterSetGroup
+  group: FacetGroup
   minValues: Int!
   maxValuesVisible: Int!
   valueSort: FacetValueSort!
@@ -618,10 +563,13 @@ enum FacetUIType { MULTI_SELECT SINGLE_SELECT RANGE BOOLEAN COLOR_SWATCH }
 enum FacetValueSort { COUNT ALPHA CUSTOM }
 
 # Inputs:
-input FilterSetCreateInput { handle: String!, name: String!, isDefault: Boolean, facets: [FilterSetFacetInput!] }
-input FilterSetUpdateInput { id: ID!, handle: String, name: String, isDefault: Boolean }
-input FilterSetDeleteInput { id: ID! }
-# ... facet/group CRUD inputs
+input FacetGroupCreateInput { name: String!, collapsed: Boolean, sortIndex: Int }
+input FacetGroupUpdateInput { id: ID!, name: String, collapsed: Boolean, sortIndex: Int }
+input FacetGroupDeleteInput { id: ID! }
+
+input FacetConfigCreateInput { facetType: FacetType!, facetKey: String, uiType: FacetUIType, groupId: ID, label: String!, sortIndex: Int }
+input FacetConfigUpdateInput { id: ID!, uiType: FacetUIType, groupId: ID, label: String, sortIndex: Int, minValues: Int, maxValuesVisible: Int, valueSort: FacetValueSort, hideZeroCount: Boolean, indexable: Boolean }
+input FacetConfigDeleteInput { id: ID! }
 ```
 
 ### 7.4 Shared types
@@ -649,8 +597,6 @@ enum CollectionSortBy { MANUAL PRICE NEWEST NAME }
 
 """Computed facet results for a product listing page."""
 type Facets {
-  """The Filter Set used to render these facets (if any)."""
-  filterSet: FilterSet
   priceRange: PriceRange
   groups: [FacetGroup!]!
 }
@@ -690,9 +636,11 @@ collection(id: ID!): Collection
 collectionByHandle(handle: String!): Collection
 collections(first: Int, after: String, last: Int, before: String): CollectionConnection!
 
-filterSet(id: ID!): FilterSet
-filterSetByHandle(handle: String!): FilterSet
-filterSets(first: Int, after: String, last: Int, before: String): FilterSetConnection!
+facetGroup(id: ID!): FacetGroup
+facetGroups: [FacetGroup!]!
+
+facetConfig(id: ID!): FacetConfig
+facetConfigs: [FacetConfig!]!
 
 # CatalogMutation:
 collectionCreate(input: CollectionCreateInput!): CollectionCreatePayload!
@@ -703,10 +651,13 @@ collectionRemoveProducts(input: CollectionRemoveProductsInput!): CollectionRemov
 collectionMoveProduct(input: CollectionMoveProductInput!): CollectionMoveProductPayload!
 collectionUpdateRules(input: CollectionUpdateRulesInput!): CollectionUpdateRulesPayload!
 
-filterSetCreate(input: FilterSetCreateInput!): FilterSetCreatePayload!
-filterSetUpdate(input: FilterSetUpdateInput!): FilterSetUpdatePayload!
-filterSetDelete(input: FilterSetDeleteInput!): FilterSetDeletePayload!
-# ... facet/group mutations
+facetGroupCreate(input: FacetGroupCreateInput!): FacetGroupCreatePayload!
+facetGroupUpdate(input: FacetGroupUpdateInput!): FacetGroupUpdatePayload!
+facetGroupDelete(input: FacetGroupDeleteInput!): FacetGroupDeletePayload!
+
+facetConfigCreate(input: FacetConfigCreateInput!): FacetConfigCreatePayload!
+facetConfigUpdate(input: FacetConfigUpdateInput!): FacetConfigUpdatePayload!
+facetConfigDelete(input: FacetConfigDeleteInput!): FacetConfigDeletePayload!
 
 categoryMoveProduct(input: CategoryMoveProductInput!): CategoryMoveProductPayload!
 categoryRebalance(input: CategoryRebalanceInput!): CategoryRebalancePayload!
@@ -753,7 +704,7 @@ Rules in `collection_rule` are evaluated against `product_search_index`:
 -- All rules AND-ed together
 ```
 
-For rule collections, `max_products` limit is applied after rule evaluation.
+All rules are AND-ed together.
 
 ---
 
@@ -787,13 +738,13 @@ Everything else is local to catalog.
 10. **Resolvers & loaders**
 11. **Build & test**
 
-### Phase 1B: Filter Sets
+### Phase 1B: Facet Configuration
 
-1. **Drizzle models:** `filterSet.ts`
+1. **Drizzle models:** `facetConfig.ts`
 2. **Generate migration**
-3. **FilterSetRepository**
-4. **Filter Set scripts:** CRUD + ResolveFacetsScript
-5. **GraphQL:** filterSet.graphql, add to CatalogQuery/CatalogMutation
+3. **FacetGroupRepository, FacetConfigRepository**
+4. **Facet scripts:** FacetGroup CRUD, FacetConfig CRUD, ResolveFacetsScript
+5. **GraphQL:** facet.graphql, add to CatalogQuery/CatalogMutation
 6. **Resolvers & loaders**
 7. **Build & test**
 
