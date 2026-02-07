@@ -228,6 +228,9 @@ catalog.facet_config (
                                                    -- Multiple keys = alias merging: all matching attribute values
                                                    -- are aggregated into a single facet, and filtering by this facet
                                                    -- applies an OR across all keys.
+                                                   -- Slugs are stored here (human-readable config), but resolved to IDs
+                                                   -- at query time via product_option / product_feature lookup tables.
+                                                   -- This means slug renames don't require re-indexing product_search_index.
   
   -- Display & selection behavior
   ui_type           varchar(16) NOT NULL DEFAULT 'checkbox',  -- 'checkbox' | 'radio' | 'dropdown' | 'range' | 'boolean'
@@ -292,8 +295,8 @@ catalog.product_search_index (
   in_stock          boolean NOT NULL DEFAULT false,
   total_stock       int NOT NULL DEFAULT 0,
   tag_ids           uuid[] DEFAULT '{}',
-  feature_slugs     text[] DEFAULT '{}',
-  option_slugs      text[] DEFAULT '{}',
+  feature_ids       uuid[] DEFAULT '{}',  -- product_feature IDs (immutable; slug resolved at query time via slug lookup)
+  option_ids        uuid[] DEFAULT '{}',  -- stored as 'optionId:optionValueId' pairs (immutable UUIDs; slugs resolved at query time)
   category_ids      uuid[] DEFAULT '{}',
   created_at        timestamptz NOT NULL DEFAULT now(),
   updated_at        timestamptz NOT NULL DEFAULT now()
@@ -301,6 +304,15 @@ catalog.product_search_index (
 ```
 
 Indexes: GIN on arrays, B-tree on price/stock/status/created_at.
+
+### Slug → ID lookup
+
+The search index stores **IDs instead of slugs** for features and options. This makes the index immune to slug renames — slugs are resolved at query time via lookup tables that already exist in the catalog schema:
+
+- **Features:** `product_feature(id, slug)` — caller passes `featureSlugs` → script looks up IDs via `SELECT id FROM product_feature WHERE slug = ANY(:slugs) AND project_id = :projectId`
+- **Options:** `product_option(id, slug)` + `product_option_value(id, slug)` — caller passes `optionSlugs` as `key:value` strings → script splits them into option slug + value slug, resolves both to IDs, then builds `'optionId:optionValueId'` pairs for the array overlap query
+
+This lookup is fast (indexed by slug) and cached per request. When a slug is renamed, all existing index rows remain valid — only the lookup table changes.
 
 ### Sync flow
 
@@ -387,13 +399,23 @@ FROM product_search_index psi
 WHERE psi.product_id IN (...)
 GROUP BY tag_id
 
--- Feature facets
-SELECT unnest(psi.feature_slugs) AS slug, COUNT(*) AS cnt
+-- Feature facets (by ID; slugs/labels resolved after aggregation)
+SELECT unnest(psi.feature_ids) AS feature_id, COUNT(*) AS cnt
 FROM product_search_index psi
 WHERE psi.product_id IN (...)
-GROUP BY slug
+GROUP BY feature_id
 
--- Option facets (same pattern)
+-- Option facets: split 'optionId:optionValueId' pairs, group by option to produce per-option facets
+SELECT
+  split_part(kv, ':', 1)::uuid AS option_id,
+  split_part(kv, ':', 2)::uuid AS option_value_id,
+  COUNT(*) AS cnt
+FROM product_search_index psi,
+     unnest(psi.option_ids) AS kv
+WHERE psi.product_id IN (...)
+GROUP BY option_id, option_value_id
+-- After aggregation, join product_option / product_option_value to resolve slugs and labels for display
+
 -- In-stock count (simple COUNT WHERE in_stock = true)
 ```
 
@@ -406,11 +428,14 @@ The raw facet data is then intersected with the project's `facet_config` to dete
 - Value count limits (`max_values_visible`)
 - Labels from `facet_config_translation`
 
-**Multi-key filtering:** when a user selects a value from a merged facet, the filter is applied as an OR across all keys in `facet_keys`. For example, filtering by "red" on a facet with keys `['color', 'colour']` produces:
+**Multi-key filtering:** when a user selects a value from a merged facet, the script first resolves slugs to IDs via the lookup tables, then filters by IDs. For example, filtering by "red" on a facet with keys `['color', 'colour']`:
+1. Resolve option slugs `color`, `colour` → option IDs `opt-id-1`, `opt-id-2`
+2. Resolve value slug `red` under each option → value IDs `val-id-A`, `val-id-B`
+3. Build filter:
 ```sql
-('red' = ANY(psi.option_slugs))  -- matches products that have 'red' under any of the aliased option names
+(psi.option_ids && ARRAY['opt-id-1:val-id-A', 'opt-id-2:val-id-B']::text[])
 ```
-Since option values are stored as flat slugs in `product_search_index.option_slugs`, the slug itself is the match key — no need to distinguish which option name it came from.
+Since the index stores immutable IDs, slug renames don't require re-indexing — only the lookup tables change.
 
 ---
 
@@ -773,7 +798,7 @@ Rules in `collection_rule` are evaluated against `product_search_index`:
 --   → psi.in_stock = true
 
 -- { field: "feature", operator: "contains", value: "cotton" }
---   → 'cotton' = ANY(psi.feature_slugs)
+--   → resolve slug 'cotton' → feature_id, then: feature_id = ANY(psi.feature_ids)
 
 -- { field: "category", operator: "in", value: ["<cat-id>"] }
 --   → psi.category_ids && ARRAY['<cat-id>']::uuid[]
