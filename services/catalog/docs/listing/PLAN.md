@@ -186,7 +186,7 @@ Rules are evaluated against `product_search_index`.
 Facet configuration defines **how** facets are displayed on PLPs, not **what** data exists. Available facet values are computed on-the-fly from products. The configuration controls:
 
 - Which facets to show and in what order
-- **Alias merging:** a single facet can map to multiple attribute keys (e.g., option slugs `['color', 'colour', 'цвет']`). Values from all keys are combined into one facet in the UI, and selecting a value filters across all aliased keys.
+- **Alias merging:** a single facet can map to multiple attribute IDs (e.g., option IDs for "color", "colour", "цвет" options). Values from all keys are combined into one facet in the UI, and selecting a value filters across all aliased keys.
 - Grouping (e.g., "Main filters", "Material & Care")
 - UI type per facet (multi-select checkboxes, single-select, range slider, boolean toggle, color swatches)
 - Label overrides and value sort order
@@ -223,14 +223,14 @@ catalog.facet_config (
   
   -- What product attribute this maps to
   facet_type        varchar(32) NOT NULL,  -- 'price', 'tag', 'feature', 'option', 'in_stock'
-  facet_keys        text[] NOT NULL DEFAULT '{}',  -- one or more slugs that map to this facet (e.g., ['color', 'colour', 'цвет']).
-                                                   -- Empty for 'price', 'in_stock' (they have no key).
+  facet_keys        uuid[] NOT NULL DEFAULT '{}',  -- one or more IDs that map to this facet.
+                                                   -- For facet_type='option': product_option IDs (e.g., the ID of "color" option).
+                                                   -- For facet_type='feature': product_feature IDs.
+                                                   -- Empty for 'price', 'in_stock', 'tag' (they have no key).
                                                    -- Multiple keys = alias merging: all matching attribute values
                                                    -- are aggregated into a single facet, and filtering by this facet
                                                    -- applies an OR across all keys.
-                                                   -- Slugs are stored here (human-readable config), but resolved to IDs
-                                                   -- at query time via product_option / product_feature lookup tables.
-                                                   -- This means slug renames don't require re-indexing product_search_index.
+                                                   -- IDs are stable — slug/title renames don't affect facet config or search index.
   
   -- Display & selection behavior
   ui_type           varchar(16) NOT NULL DEFAULT 'checkbox',  -- 'checkbox' | 'radio' | 'dropdown' | 'range' | 'boolean'
@@ -305,14 +305,14 @@ catalog.product_search_index (
 
 Indexes: GIN on arrays, B-tree on price/stock/status/created_at.
 
-### Slug → ID lookup
+### Slug → ID lookup (for storefront filter inputs)
 
-The search index stores **IDs instead of slugs** for features and options. This makes the index immune to slug renames — slugs are resolved at query time via lookup tables that already exist in the catalog schema:
+Both the search index and facet config store **IDs**. Slug resolution is only needed at the **API boundary** — when a storefront query passes human-readable slugs in `ProductFiltersInput`:
 
 - **Features:** `product_feature(id, slug)` — caller passes `featureSlugs` → script looks up IDs via `SELECT id FROM product_feature WHERE slug = ANY(:slugs) AND project_id = :projectId`
 - **Options:** `product_option(id, slug)` + `product_option_value(id, slug)` — caller passes `optionSlugs` as `key:value` strings → script splits them into option slug + value slug, resolves both to IDs, then builds `'optionId:optionValueId'` pairs for the array overlap query
 
-This lookup is fast (indexed by slug) and cached per request. When a slug is renamed, all existing index rows remain valid — only the lookup table changes.
+This lookup is fast (indexed by slug) and cached per request. Slug renames don't affect the search index or facet config — only the lookup tables change.
 
 ### Sync flow
 
@@ -421,21 +421,21 @@ GROUP BY option_id, option_value_id
 
 The raw facet data is then intersected with the project's `facet_config` to determine:
 - Which facets to include (only those defined in `facet_config`)
-- **Multi-key merging:** if a `facet_config` has `facet_keys = ['color', 'colour', 'цвет']`, the aggregation combines counts from all three option slugs into a single facet result. Duplicate values across keys are summed.
+- **Multi-key merging:** if a `facet_config` has `facet_keys = [opt-id-1, opt-id-2, opt-id-3]` (IDs of three option definitions that represent the same concept), the aggregation combines counts from all three options into a single facet result. Duplicate values across keys are summed.
 - Order and grouping (via `facet_group`)
 - UI type
 - Whether to hide (fewer values than `min_values`)
 - Value count limits (`max_values_visible`)
 - Labels from `facet_config_translation`
 
-**Multi-key filtering:** when a user selects a value from a merged facet, the script first resolves slugs to IDs via the lookup tables, then filters by IDs. For example, filtering by "red" on a facet with keys `['color', 'colour']`:
-1. Resolve option slugs `color`, `colour` → option IDs `opt-id-1`, `opt-id-2`
-2. Resolve value slug `red` under each option → value IDs `val-id-A`, `val-id-B`
+**Multi-key filtering:** when a user selects a value from a merged facet, the facet_keys already contain option IDs, so no slug resolution is needed for the config side. The storefront passes option value IDs directly (resolved from slugs at the API boundary). For example, filtering by "red" on a facet with `facet_keys = [opt-id-1, opt-id-2]`:
+1. The facet config already knows the option IDs: `opt-id-1`, `opt-id-2`
+2. The selected value ID `val-id-A` is paired with each option ID
 3. Build filter:
 ```sql
-(psi.option_ids && ARRAY['opt-id-1:val-id-A', 'opt-id-2:val-id-B']::text[])
+(psi.option_ids && ARRAY['opt-id-1:val-id-A', 'opt-id-2:val-id-A']::text[])
 ```
-Since the index stores immutable IDs, slug renames don't require re-indexing — only the lookup tables change.
+Everything is ID-based end-to-end — no slug resolution needed at query time.
 
 ---
 
@@ -526,7 +526,7 @@ src/resolvers/admin/CategoryResolver.ts    # add new field resolvers
 
 ```graphql
 # Add to Category type:
-defaultSort: CategorySortBy!
+defaultSort: ProductSortBy!
 defaultSortDirection: SortDirection!
 
 """Category products with sorting, filtering, and pagination."""
@@ -566,7 +566,7 @@ type Collection implements Node @key(fields: "id") {
   media: [CollectionMediaItem!]!
   seo(locale: String): CollectionSeo
   
-  defaultSort: CollectionSortBy!
+  defaultSort: ProductSortBy!
   defaultSortDirection: SortDirection!
   
   activeFrom: DateTime
@@ -638,7 +638,7 @@ type FacetGroup implements Node {
 type FacetConfig implements Node {
   id: ID!
   facetType: FacetType!
-  facetKeys: [String!]!
+  facetKeys: [ID!]!
   label: String!
   uiType: FacetUIType!
   selectionMode: FacetSelectionMode!
@@ -661,8 +661,8 @@ input FacetGroupCreateInput { name: String!, collapsed: Boolean, sortIndex: Int 
 input FacetGroupUpdateInput { id: ID!, name: String, collapsed: Boolean, sortIndex: Int }
 input FacetGroupDeleteInput { id: ID! }
 
-input FacetConfigCreateInput { facetType: FacetType!, facetKeys: [String!], uiType: FacetUIType, selectionMode: FacetSelectionMode, groupId: ID, label: String!, sortIndex: Int }
-input FacetConfigUpdateInput { id: ID!, facetKeys: [String!], uiType: FacetUIType, selectionMode: FacetSelectionMode, groupId: ID, label: String, sortIndex: Int, minValues: Int, maxValuesVisible: Int, valueSort: FacetValueSort, hideZeroCount: Boolean, indexable: Boolean }
+input FacetConfigCreateInput { facetType: FacetType!, facetKeys: [ID!], uiType: FacetUIType, selectionMode: FacetSelectionMode, groupId: ID, label: String!, sortIndex: Int }
+input FacetConfigUpdateInput { id: ID!, facetKeys: [ID!], uiType: FacetUIType, selectionMode: FacetSelectionMode, groupId: ID, label: String, sortIndex: Int, minValues: Int, maxValuesVisible: Int, valueSort: FacetValueSort, hideZeroCount: Boolean, indexable: Boolean }
 input FacetConfigDeleteInput { id: ID! }
 ```
 
@@ -686,8 +686,7 @@ input ProductSortInput {
 }
 
 enum ProductSortBy { MANUAL PRICE NEWEST NAME }
-enum CategorySortBy { MANUAL PRICE NEWEST NAME }
-enum CollectionSortBy { MANUAL PRICE NEWEST NAME }
+
 
 """Computed facet results for a product listing page."""
 type Facets {
@@ -703,7 +702,7 @@ type FacetResultGroup {
 
 type FacetResult {
   facetType: FacetType!
-  facetKeys: [String!]!
+  facetKeys: [ID!]!
   label: String!
   uiType: FacetUIType!
   selectionMode: FacetSelectionMode!
