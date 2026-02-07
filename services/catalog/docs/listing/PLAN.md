@@ -279,6 +279,82 @@ catalog.facet_config_translation (
 
 ---
 
+## 3.3 Slug Resolution via `slugify()` SQL Function
+
+Options and features do **not** store slugs in the database. Instead, slugs are computed on-the-fly from translatable labels using an `IMMUTABLE` SQL function + expression indexes.
+
+### Why no stored slug column
+
+- Slugs are derived data — storing them creates a sync problem (label changes → slug must update).
+- Options and features already have `name` in their translation tables (`product_option_translation`, `product_option_value_translation`, `product_feature_translation`, `product_feature_value_translation`).
+- An expression index on `slugify(name)` gives the same lookup performance as a stored column, with zero maintenance overhead.
+
+### SQL function
+
+```sql
+CREATE OR REPLACE FUNCTION slugify(txt text)
+RETURNS text
+LANGUAGE sql
+IMMUTABLE STRICT
+AS $$
+  SELECT trim(both '-' from regexp_replace(lower(txt), '[^a-z0-9]+', '-', 'g'));
+$$;
+```
+
+> **IMMUTABLE** is required for expression indexes. The function must be deterministic — no locale-dependent transforms. Cyrillic/accented characters are stripped (mapped to `-`). If transliteration is needed (e.g., "Цвет" → "tsvet"), extend the function with a `translate()` call or `unaccent`, but it **must** remain `IMMUTABLE`.
+
+### Expression indexes
+
+```sql
+-- Option name → slug lookup (per locale)
+CREATE UNIQUE INDEX product_option_translation_locale_slug_idx
+  ON catalog.product_option_translation (locale, product_id, (slugify(name)));
+
+-- Option value name → slug lookup (per locale, per option)
+CREATE UNIQUE INDEX product_option_value_translation_locale_slug_idx
+  ON catalog.product_option_value_translation (locale, option_id, (slugify(name)));
+
+-- Feature name → slug lookup (per locale, per product)
+CREATE UNIQUE INDEX product_feature_translation_locale_slug_idx
+  ON catalog.product_feature_translation (locale, product_id, (slugify(name)));
+
+-- Feature value name → slug lookup (per locale, per feature)
+CREATE UNIQUE INDEX product_feature_value_translation_locale_slug_idx
+  ON catalog.product_feature_value_translation (locale, feature_id, (slugify(name)));
+```
+
+**UNIQUE** indexes enforce slug uniqueness within the scope (locale + parent entity). If two options within the same product and locale slugify to the same value, the insert will fail — forcing the user to pick a distinct name.
+
+### Querying slug on-the-fly (for API responses)
+
+When returning option/feature data to the storefront, include the computed slug in the SELECT:
+
+```sql
+SELECT ot.option_id, ot.name, slugify(ot.name) AS slug
+FROM product_option_translation ot
+WHERE ot.locale = $1 AND ot.product_id = $2;
+```
+
+This uses the expression index for the `slugify()` call — no sequential scan.
+
+### Resolving slug → ID (for filter inputs)
+
+When the storefront passes a slug as a filter parameter, the query matches against the expression index:
+
+```sql
+-- Resolve option slug → option_id
+SELECT option_id FROM product_option_translation
+WHERE locale = $1 AND product_id = $2 AND slugify(name) = $3;
+
+-- Resolve option value slug → option_value_id
+SELECT option_value_id FROM product_option_value_translation
+WHERE locale = $1 AND option_id = $2 AND slugify(name) = $3;
+```
+
+The `$3` parameter is the **already-slugified** string from the URL — no `slugify()` applied to the parameter, only to the column. The expression index makes this an index scan.
+
+---
+
 ## 4. Product Search Index
 
 Denormalized table for fast queries. Used by category PLPs (product listing), collection rule evaluation, and collection faceted filtering.
@@ -295,8 +371,8 @@ catalog.product_search_index (
   in_stock          boolean NOT NULL DEFAULT false,
   total_stock       int NOT NULL DEFAULT 0,
   tag_ids           uuid[] DEFAULT '{}',
-  feature_ids       uuid[] DEFAULT '{}',  -- product_feature IDs (immutable; slug resolved at query time via slug lookup)
-  option_ids        uuid[] DEFAULT '{}',  -- stored as 'optionId:optionValueId' pairs (immutable UUIDs; slugs resolved at query time)
+  feature_ids       uuid[] DEFAULT '{}',  -- product_feature IDs (immutable; slug computed via slugify() on translation name at query time)
+  option_ids        uuid[] DEFAULT '{}',  -- stored as 'optionId:optionValueId' UUID pairs (slugs computed via slugify() at query time — see §3.3)
   category_ids      uuid[] DEFAULT '{}',
   created_at        timestamptz NOT NULL DEFAULT now(),
   updated_at        timestamptz NOT NULL DEFAULT now()
@@ -307,12 +383,25 @@ Indexes: GIN on arrays, B-tree on price/stock/status/created_at.
 
 ### Slug → ID lookup (for storefront filter inputs)
 
-Both the search index and facet config store **IDs**. Slug resolution is only needed at the **API boundary** — when a storefront query passes human-readable slugs in `ProductFiltersInput`:
+Both the search index and facet config store **IDs**. Slug resolution is only needed at the **API boundary** — when a storefront query passes human-readable slugs in `ProductFiltersInput`. Slugs are **not stored** — they are computed from translation `name` via the `slugify()` SQL function (see §3.3).
 
-- **Features:** `product_feature(id, slug)` — caller passes `featureSlugs` → script looks up IDs via `SELECT id FROM product_feature WHERE slug = ANY(:slugs) AND project_id = :projectId`
-- **Options:** `product_option(id, slug)` + `product_option_value(id, slug)` — caller passes `optionSlugs` as `key:value` strings → script splits them into option slug + value slug, resolves both to IDs, then builds `'optionId:optionValueId'` pairs for the array overlap query
+- **Features:** caller passes `featureSlugs` → script looks up IDs via:
+  ```sql
+  SELECT feature_id FROM product_feature_translation
+  WHERE locale = :locale AND slugify(name) = ANY(:slugs) AND project_id = :projectId
+  ```
+- **Options:** caller passes `optionSlugs` as `key:value` strings → script splits into option slug + value slug, resolves both to IDs via `slugify(name)` on the respective translation tables, then builds `'optionId:optionValueId'` pairs for the array overlap query:
+  ```sql
+  -- Resolve option slug → option_id
+  SELECT option_id FROM product_option_translation
+  WHERE locale = :locale AND product_id = :productId AND slugify(name) = :optionSlug;
+  
+  -- Resolve option value slug → option_value_id  
+  SELECT option_value_id FROM product_option_value_translation
+  WHERE locale = :locale AND option_id = :optionId AND slugify(name) = :valueSlug;
+  ```
 
-This lookup is fast (indexed by slug) and cached per request. Slug renames don't affect the search index or facet config — only the lookup tables change.
+All lookups hit expression indexes (see §3.3) — same performance as a stored slug column. Label renames automatically update the computed slug — no sync needed. Results are cached per request.
 
 ### Sync flow
 
@@ -399,7 +488,7 @@ FROM product_search_index psi
 WHERE psi.product_id IN (...)
 GROUP BY tag_id
 
--- Feature facets (by ID; slugs/labels resolved after aggregation)
+-- Feature facets (by ID; slugs computed via slugify(name) after aggregation — see §3.3)
 SELECT unnest(psi.feature_ids) AS feature_id, COUNT(*) AS cnt
 FROM product_search_index psi
 WHERE psi.product_id IN (...)
@@ -414,7 +503,7 @@ FROM product_search_index psi,
      unnest(psi.option_ids) AS kv
 WHERE psi.product_id IN (...)
 GROUP BY option_id, option_value_id
--- After aggregation, join product_option / product_option_value to resolve slugs and labels for display
+-- After aggregation, join translation tables to resolve labels and compute slugs via slugify(name) for display (see §3.3)
 
 -- In-stock count (simple COUNT WHERE in_stock = true)
 ```
@@ -675,7 +764,9 @@ input ProductFiltersInput {
   priceMinMinor: BigInt
   priceMaxMinor: BigInt
   tagIds: [ID!]
+  """Slugs are pre-computed by the client (URL-safe). Resolved to IDs server-side via slugify(name) on translation tables (see §3.3)."""
   featureSlugs: [String!]
+  """Format: 'optionSlug:valueSlug'. Resolved to IDs server-side via slugify(name) on translation tables (see §3.3)."""
   optionSlugs: [String!]
   inStock: Boolean
 }
@@ -797,7 +888,8 @@ Rules in `collection_rule` are evaluated against `product_search_index`:
 --   → psi.in_stock = true
 
 -- { field: "feature", operator: "contains", value: "cotton" }
---   → resolve slug 'cotton' → feature_id, then: feature_id = ANY(psi.feature_ids)
+--   → resolve slug 'cotton' → feature_id via slugify(name) on product_feature_translation (see §3.3),
+--     then: feature_id = ANY(psi.feature_ids)
 
 -- { field: "category", operator: "in", value: ["<cat-id>"] }
 --   → psi.category_ids && ARRAY['<cat-id>']::uuid[]
@@ -824,6 +916,13 @@ Everything else is local to catalog.
 ---
 
 ## 11. Implementation Order
+
+### Phase 0: slugify() SQL Function
+
+1. **Create `slugify()` function** — IMMUTABLE SQL function for expression indexes (see §3.3)
+2. **Create expression indexes** on option/feature translation tables: `slugify(name)`
+3. **Drop `slug` column** from `product_option` and `product_option_value` (replaced by computed `slugify(name)`)
+4. **Generate & apply migration**
 
 ### Phase 1A: Search Index + Category Products
 
