@@ -222,6 +222,9 @@ catalog.facet_config (
   
   -- What product attribute this maps to
   facet_type        varchar(32) NOT NULL,  -- 'price', 'tag', 'feature', 'option', 'in_stock'
+  source_id         uuid,                  -- For 'feature'/'option': references the specific product_feature.id or product_option.id.
+                                           -- NULL for 'price', 'tag', 'in_stock' (they don't need disambiguation).
+                                           -- UNIQUE(project_id, facet_type, source_id) ensures one facet config per source.
   
   -- Display & selection behavior
   ui_type           varchar(16) NOT NULL DEFAULT 'checkbox',  -- 'checkbox' | 'radio' | 'dropdown' | 'range' | 'boolean'
@@ -487,17 +490,23 @@ FROM product_search_index psi
 WHERE psi.product_id IN (...)
 GROUP BY tag_id
 
--- Feature facets (by feature_value ID; labels resolved via translation tables after aggregation)
-SELECT unnest(psi.feature_value_ids) AS feature_value_id, COUNT(*) AS cnt
-FROM product_search_index psi
+-- Feature facets (grouped by feature via JOIN to restore parent relationship)
+SELECT pfv.feature_id, pfv.id AS feature_value_id, COUNT(*) AS cnt
+FROM product_search_index psi,
+     unnest(psi.feature_value_ids) AS fv_id
+JOIN product_feature_value pfv ON pfv.id = fv_id
 WHERE psi.product_id IN (...)
-GROUP BY feature_value_id
+GROUP BY pfv.feature_id, pfv.id
+-- Then filter in app: only include feature_ids that have a facet_config with matching source_id
 
--- Option facets
-SELECT unnest(psi.option_ids) AS option_value_id, COUNT(*) AS cnt
-FROM product_search_index psi
+-- Option facets (grouped by option via JOIN to restore parent relationship)
+SELECT pov.option_id, pov.id AS option_value_id, COUNT(*) AS cnt
+FROM product_search_index psi,
+     unnest(psi.option_ids) AS ov_id
+JOIN product_option_value pov ON pov.id = ov_id
 WHERE psi.product_id IN (...)
-GROUP BY option_value_id
+GROUP BY pov.option_id, pov.id
+-- Then filter in app: only include option_ids that have a facet_config with matching source_id
 
 -- In-stock count (simple COUNT WHERE in_stock = true)
 ```
@@ -711,6 +720,8 @@ type FacetGroup implements Node {
 type FacetConfig implements Node {
   id: ID!
   facetType: FacetType!
+  """For FEATURE/OPTION: the specific product_feature or product_option this facet represents. Null for PRICE, TAG, IN_STOCK."""
+  sourceId: ID
   label: String!
   uiType: FacetUIType!
   selectionMode: FacetSelectionMode!
@@ -733,7 +744,7 @@ input FacetGroupCreateInput { name: String!, collapsed: Boolean, sortIndex: Int 
 input FacetGroupUpdateInput { id: ID!, name: String, collapsed: Boolean, sortIndex: Int }
 input FacetGroupDeleteInput { id: ID! }
 
-input FacetConfigCreateInput { facetType: FacetType!, uiType: FacetUIType, selectionMode: FacetSelectionMode, groupId: ID, label: String!, sortIndex: Int }
+input FacetConfigCreateInput { facetType: FacetType!, sourceId: ID, uiType: FacetUIType, selectionMode: FacetSelectionMode, groupId: ID, label: String!, sortIndex: Int }
 input FacetConfigUpdateInput { id: ID!, uiType: FacetUIType, selectionMode: FacetSelectionMode, groupId: ID, label: String, sortIndex: Int, minValues: Int, maxValuesVisible: Int, valueSort: FacetValueSort, hideZeroCount: Boolean, indexable: Boolean }
 input FacetConfigDeleteInput { id: ID! }
 ```
