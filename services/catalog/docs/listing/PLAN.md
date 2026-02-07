@@ -49,6 +49,31 @@ Add sort preference to category:
 
 Values: `'manual'`, `'price'`, `'newest'`, `'name'`
 
+### 1.3 Category SEO
+
+New table, same structure as `product_seo`:
+
+```sql
+catalog.category_seo (
+  category_id       uuid NOT NULL REFERENCES catalog.category(id) ON DELETE CASCADE,
+  locale            varchar(8) NOT NULL,
+  project_id        uuid NOT NULL,
+  
+  -- SEO fields (for search engines)
+  seo_title         varchar(70),
+  seo_description   varchar(160),
+  
+  -- Open Graph fields (for social media)
+  og_title          varchar(95),
+  og_description    text,
+  og_image_id       uuid,
+  
+  PRIMARY KEY (category_id, locale)
+)
+CREATE INDEX idx_category_seo_project ON catalog.category_seo (project_id);
+CREATE INDEX idx_category_seo_project_locale ON catalog.category_seo (project_id, locale);
+```
+
 ---
 
 ## 2. Collections
@@ -119,10 +144,20 @@ catalog.collection_seo (
   collection_id     uuid NOT NULL REFERENCES catalog.collection(id) ON DELETE CASCADE,
   locale            varchar(8) NOT NULL,
   project_id        uuid NOT NULL,
-  title             text,
-  description       text,
+  
+  -- SEO fields (for search engines)
+  seo_title         varchar(70),
+  seo_description   varchar(160),
+  
+  -- Open Graph fields (for social media)
+  og_title          varchar(95),
+  og_description    text,
+  og_image_id       uuid,
+  
   PRIMARY KEY (collection_id, locale)
 )
+CREATE INDEX idx_collection_seo_project ON catalog.collection_seo (project_id);
+CREATE INDEX idx_collection_seo_project_locale ON catalog.collection_seo (project_id, locale);
 ```
 
 ```sql
@@ -211,7 +246,9 @@ catalog.facet_group (
   sort_index        int NOT NULL DEFAULT 0,
   collapsed         boolean NOT NULL DEFAULT false,  -- render collapsed by default
   created_at        timestamptz NOT NULL DEFAULT now(),
-  updated_at        timestamptz NOT NULL DEFAULT now()
+  updated_at        timestamptz NOT NULL DEFAULT now(),
+  
+  UNIQUE(project_id, sort_index) DEFERRABLE INITIALLY DEFERRED
 )
 
 catalog.facet_group_translation (
@@ -596,7 +633,7 @@ The raw facet data is then intersected with the project's `facet_config` to dete
 ```
 src/repositories/models/
   searchIndex.ts                        # product_search_index
-  collection.ts                         # collection, collection_item, collection_rule, collection_translation, collection_seo, collection_media
+  collection.ts                         # collection, collection_item, collection_rule, collection_translation, collection_media
   facetConfig.ts                         # facet_group, facet_config + translations
 
 src/repositories/
@@ -660,11 +697,13 @@ api/graphql-admin/schema/
 ```
 src/repositories/models/index.ts           # export new model files
 src/repositories/models/categories.ts      # add lexo_rank to product_category; add default_sort to category
+src/repositories/models/seo.ts             # add category_seo, collection_seo (same structure as product_seo)
 src/repositories/Repository.ts             # add new repositories
 src/loaders/Loader.ts                      # add new loaders
 src/handlers/index.ts                      # add search index sync handlers
 api/graphql-admin/schema/base.graphql      # add collection/facet queries & mutations to CatalogQuery/CatalogMutation
-api/graphql-admin/schema/category.graphql  # add categoryProducts, defaultSort fields to Category
+api/graphql-admin/schema/category.graphql  # add categoryProducts, defaultSort, seo fields to Category
+api/graphql-admin/schema/seo.graphql       # add CategorySeo, CategorySeoInput, CollectionSeo, CollectionSeoInput types
 src/resolvers/admin/CategoryResolver.ts    # add new field resolvers
 ```
 
@@ -678,6 +717,7 @@ src/resolvers/admin/CategoryResolver.ts    # add new field resolvers
 # Add to Category type:
 defaultSort: ProductSortBy!
 defaultSortDirection: SortDirection!
+seo(locale: String): CategorySeo
 
 """Category products with sorting, filtering, and pagination."""
 categoryProducts(
@@ -821,6 +861,44 @@ input FacetConfigDeleteInput { id: ID! }
 ### 7.4 Shared types
 
 ```graphql
+"""
+SEO and Open Graph metadata for a category. Same structure as ProductSeo.
+"""
+type CategorySeo {
+  seoTitle: String
+  seoDescription: String
+  ogTitle: String
+  ogDescription: String
+  ogImage: File
+}
+
+input CategorySeoInput {
+  seoTitle: String
+  seoDescription: String
+  ogTitle: String
+  ogDescription: String
+  ogImageId: ID
+}
+
+"""
+SEO and Open Graph metadata for a collection. Same structure as ProductSeo.
+"""
+type CollectionSeo {
+  seoTitle: String
+  seoDescription: String
+  ogTitle: String
+  ogDescription: String
+  ogImage: File
+}
+
+input CollectionSeoInput {
+  seoTitle: String
+  seoDescription: String
+  ogTitle: String
+  ogDescription: String
+  ogImageId: ID
+}
+
 enum SortDirection { ASC DESC }
 
 input ProductFiltersInput {
