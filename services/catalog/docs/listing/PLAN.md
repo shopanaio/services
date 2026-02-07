@@ -231,7 +231,8 @@ Facet configuration defines **how** facets are displayed on PLPs, not **what** d
 - Grouping (e.g., "Main filters", "Material & Care")
 - UI type per facet (multi-select checkboxes, single-select, range slider, boolean toggle, color swatches)
 - Label overrides and value sort order
-- Display rules (min distinct values to show, hide empty, collapse threshold)
+- Display rules (min distinct values to show, collapse threshold)
+- Facet and value lists are derived from the base product set (category/collection without user filters) and remain stable as filters change; only counts update
 
 Configuration is per-project — one flat list of facet groups and facets per project.
 
@@ -317,8 +318,6 @@ catalog.facet_config (
   min_values        int NOT NULL DEFAULT 1,            -- hide facet if fewer distinct values
   max_values_visible int NOT NULL DEFAULT 10,          -- "show more" threshold
   value_sort        varchar(16) NOT NULL DEFAULT 'count', -- 'count', 'alpha', 'custom'
-  hide_zero_count   boolean NOT NULL DEFAULT true,
-  
   -- Slug (app-generated, supports all languages via Node.js transliteration)
   slug              varchar(255) NOT NULL,
   
@@ -594,18 +593,19 @@ For a given product set (from category or collection).
 
 **Note on category:** `category_handles` is stored in `product_search_index` for collection rule evaluation (e.g., "all products in category X"), but category is **not** a facet type. Categories are a navigation axis, not a filterable attribute on PLPs. `FacetType` enum is `PRICE | TAG | FEATURE | OPTION | IN_STOCK` — no `CATEGORY`. The `category_handles` array is not unnested during facet aggregation.
 
-Two key concerns:
+Three key concerns:
 
-1. **Facet isolation** — depends on `filter_logic`:
+1. **Stable facet/value list** — derived from the base product set (category/collection without user filters). The list of facets and their values does not change when filters change; only counts update.
+2. **Facet isolation** — depends on `filter_logic`:
    - **OR mode** (default): counts for each facet are computed **without** that facet's entire filter applied (but with all other facet filters). This lets the user see sibling values and switch between them. Standard e-commerce pattern.
    - **AND mode**: counts are computed **per-value** — the tested value is removed from the AND set, but other selected values in the same facet remain. This shows "how many items match if I add/remove this specific value?"
-2. **Merged values** — when `facet_config_value.source_handles` contains multiple entries, their counts must be summed into a single display value.
+3. **Merged values** — when `facet_config_value.source_handles` contains multiple entries, their counts must be summed into a single display value.
 
 #### 5.3.1 Single-query approach with boolean filter columns
 
 Instead of N+1 separate queries, compute boolean "passes filter" columns per facet on each product row, then use `FILTER (WHERE ...)` on aggregates. One scan of the product set, one unnest pass per array type.
 
-**Step 1: Base CTE with per-facet boolean columns**
+**Step 1: Base CTE with per-facet boolean columns (no user filters)**
 
 The shape of boolean columns depends on the facet's `filter_logic`:
 
@@ -616,7 +616,7 @@ The shape of boolean columns depends on the facet's `filter_logic`:
 -- Example: user selected Color=[Red, Blue] (OR mode), Tags=[Sale, New-Arrival] (AND mode),
 -- price $10–$50, in_stock=true.
 
-WITH base AS (
+WITH base_all AS (
   SELECT
     psi.product_id,
     psi.tag_handles,
@@ -625,32 +625,37 @@ WITH base AS (
     psi.min_price_minor,
     psi.max_price_minor,
     psi.in_stock,
-
-    -- OR-mode facet: one boolean for the whole facet.
-    -- Isolation = drop this entire boolean.
-    (psi.option_slugs && ARRAY['color:red','color:blue']::text[])   AS passes_color,
-
-    -- AND-mode facet: one boolean PER selected value.
-    -- Isolation for value X = drop passes_tags_X, keep other passes_tags_*.
-    (psi.tag_handles @> ARRAY['sale']::text[])                       AS passes_tags_sale,
-    (psi.tag_handles @> ARRAY['new-arrival']::text[])                AS passes_tags_new_arrival,
-
-    -- Price and in_stock:
-    (psi.max_price_minor >= :priceMin AND psi.min_price_minor <= :priceMax) AS passes_price,
-    (psi.in_stock = true)                                            AS passes_in_stock
   FROM product_search_index psi
   JOIN product_category pc ON pc.product_id = psi.product_id
   WHERE pc.category_id = :categoryId
     AND psi.status = 'active'
-    -- Price filter (range overlap — product is included if ANY variant's price
-    -- intersects the requested range. A product with variants $5–$500 matches
-    -- filter "$10–$20" because some variants may be in range. This is the
-    -- standard e-commerce behavior for products with price ranges.
-    -- To filter by cheapest variant only, use psi.min_price_minor for both bounds.)
-    AND (:priceMin IS NULL OR psi.max_price_minor >= :priceMin)
-    AND (:priceMax IS NULL OR psi.min_price_minor <= :priceMax)
+),
+base AS (
+  SELECT
+    base_all.*,
+
+    -- OR-mode facet: one boolean for the whole facet.
+    -- Isolation = drop this entire boolean.
+    (base_all.option_slugs && ARRAY['color:red','color:blue']::text[])   AS passes_color,
+
+    -- AND-mode facet: one boolean PER selected value.
+    -- Isolation for value X = drop passes_tags_X, keep other passes_tags_*.
+    (base_all.tag_handles @> ARRAY['sale']::text[])                       AS passes_tags_sale,
+    (base_all.tag_handles @> ARRAY['new-arrival']::text[])                AS passes_tags_new_arrival,
+
+    -- Price and in_stock:
+    -- Range overlap — product is included if ANY variant's price intersects
+    -- the requested range. To filter by cheapest variant only, use min_price_minor for both bounds.
+    (
+      (:priceMin IS NULL OR base_all.max_price_minor >= :priceMin)
+      AND (:priceMax IS NULL OR base_all.min_price_minor <= :priceMax)
+    ) AS passes_price,
+    (:inStock IS NULL OR base_all.in_stock = :inStock)                    AS passes_in_stock
+  FROM base_all
 )
 ```
+
+`base_all` defines the stable universe (no user filters). `base` adds boolean filter columns for counts, but does not filter rows. This guarantees that the facet and value lists are stable, while counts change with filters. Product list queries still apply user filters in their own WHERE clauses.
 
 **Step 2: Aggregation with facet isolation via FILTER**
 
@@ -794,7 +799,8 @@ The aggregated data is assembled using the project's `facet_config`:
 - Which facets to include (only those defined in `facet_config`)
 - Order and grouping (via `facet_group`)
 - UI type, selection mode, filter logic
-- Whether to hide (fewer distinct values than `min_values`)
+- Facet inclusion is decided from the base set (no user filters): hide a facet only if the base set has fewer distinct values than `min_values`
+- Value lists are also derived from the base set and remain stable; values with `count = 0` stay in the list (typically rendered disabled)
 - Value count limits (`max_values_visible`)
 - Labels from `facet_config_value_translation` (priority 1) or source translation (priority 2)
 - Slugs from `facet_config.slug` and `facet_config_value.slug` (for `FacetResult.slug` and `FacetValue.slug`)
@@ -1017,7 +1023,6 @@ type FacetConfig implements Node {
   minValues: Int!
   maxValuesVisible: Int!
   valueSort: FacetValueSort!
-  hideZeroCount: Boolean!
   indexable: Boolean!
 }
 
@@ -1033,7 +1038,7 @@ input FacetGroupUpdateInput { id: ID!, name: String, collapsed: Boolean, sortInd
 input FacetGroupDeleteInput { id: ID! }
 
 input FacetConfigCreateInput { facetType: FacetType!, sourceHandle: String, slug: String!, uiType: FacetUIType, selectionMode: FacetSelectionMode, filterLogic: FacetFilterLogic, groupId: ID, label: String!, sortIndex: Int }
-input FacetConfigUpdateInput { id: ID!, slug: String, uiType: FacetUIType, selectionMode: FacetSelectionMode, filterLogic: FacetFilterLogic, groupId: ID, label: String, sortIndex: Int, minValues: Int, maxValuesVisible: Int, valueSort: FacetValueSort, hideZeroCount: Boolean, indexable: Boolean }
+input FacetConfigUpdateInput { id: ID!, slug: String, uiType: FacetUIType, selectionMode: FacetSelectionMode, filterLogic: FacetFilterLogic, groupId: ID, label: String, sortIndex: Int, minValues: Int, maxValuesVisible: Int, valueSort: FacetValueSort, indexable: Boolean }
 input FacetConfigDeleteInput { id: ID! }
 ```
 
