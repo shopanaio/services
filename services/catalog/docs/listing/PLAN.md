@@ -196,7 +196,7 @@ catalog.collection_rule (
   collection_id     uuid NOT NULL REFERENCES catalog.collection(id) ON DELETE CASCADE,
   project_id        uuid NOT NULL,
   field             varchar(64) NOT NULL,   -- 'tag', 'price', 'option', 'feature', 'in_stock', 'category', 'created_at'
-  operator          varchar(16) NOT NULL,   -- 'eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'in', 'nin', 'contains', 'between'
+  operator          varchar(16) NOT NULL,   -- 'eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'in', 'nin', 'all', 'contains', 'between'
   value             jsonb NOT NULL,          -- scalar or array depending on operator
   sort_index        int NOT NULL DEFAULT 0,  -- for stable UI display order (rules are AND-ed, order is semantically irrelevant)
   
@@ -589,7 +589,11 @@ QueryCollectionProductsScript:
 
 ### 5.3 Facet computation
 
-For a given product set (from category or collection). Two key concerns:
+For a given product set (from category or collection).
+
+**Note on category:** `category_handles` is stored in `product_search_index` for collection rule evaluation (e.g., "all products in category X"), but category is **not** a facet type. Categories are a navigation axis, not a filterable attribute on PLPs. `FacetType` enum is `PRICE | TAG | FEATURE | OPTION | IN_STOCK` — no `CATEGORY`. The `category_handles` array is not unnested during facet aggregation.
+
+Two key concerns:
 
 1. **Facet isolation** — counts for each facet are computed **without** that facet's own filter applied (but with all other facet filters applied). This prevents selected values from hiding sibling values. Standard e-commerce pattern.
 2. **Merged values** — when `facet_config_value.source_handles` contains multiple entries, their counts must be summed into a single display value.
@@ -613,16 +617,26 @@ WITH base AS (
     -- One boolean per active facet filter (generated dynamically by app):
     -- TRUE = this product passes this specific facet's filter
     (psi.option_slugs && ARRAY['color:red','color:blue']::text[])   AS passes_color,
-    (psi.feature_slugs @> ARRAY['material:cotton']::text[])          AS passes_material
-    -- ... one column per active facet filter
+    (psi.feature_slugs @> ARRAY['material:cotton']::text[])          AS passes_material,
+    -- Price and in_stock get boolean columns too when user has applied those filters,
+    -- so they participate in facet isolation like any other facet:
+    (psi.max_price_minor >= :priceMin AND psi.min_price_minor <= :priceMax) AS passes_price,
+    (psi.in_stock = true)                                            AS passes_in_stock
+    -- ... one column per active facet filter (including price/in_stock when filtered)
   FROM product_search_index psi
   JOIN product_category pc ON pc.product_id = psi.product_id
   WHERE pc.category_id = :categoryId
     AND psi.status = 'active'
-    -- Non-facet filters (always applied):
+    -- Price filter (range overlap — product is included if ANY variant's price
+    -- intersects the requested range. A product with variants $5–$500 matches
+    -- filter "$10–$20" because some variants may be in range. This is the
+    -- standard e-commerce behavior for products with price ranges.
+    -- To filter by cheapest variant only, use psi.min_price_minor for both bounds.)
     AND (:priceMin IS NULL OR psi.max_price_minor >= :priceMin)
     AND (:priceMax IS NULL OR psi.min_price_minor <= :priceMax)
-    AND (:inStock IS NULL OR psi.in_stock = :inStock)
+    -- Price and in_stock are also boolean columns for facet isolation (see below).
+    -- They appear in WHERE only when NOT configured as facets.
+    -- When configured as facets, they become passes_X booleans like other facets.
 )
 ```
 
@@ -632,33 +646,78 @@ WITH base AS (
 -- All facet value counts in one query, each facet excludes only its own filter.
 -- Active filters: color, material. "passes_X" columns from Step 1.
 
--- Feature/option/tag values (unnest + JOIN to facet_config_value for merged values):
+-- UNION ALL of all three array types (option, feature, tag) into a single unnested stream:
+WITH unnested AS (
+  -- Options
+  SELECT b.product_id, b.passes_color, b.passes_material, b.passes_price, b.passes_in_stock,
+         sv.slug AS sv_slug, 'option' AS facet_type
+  FROM base b, unnest(b.option_slugs) AS sv(slug)
+  
+  UNION ALL
+  
+  -- Features
+  SELECT b.product_id, b.passes_color, b.passes_material, b.passes_price, b.passes_in_stock,
+         sv.slug AS sv_slug, 'feature' AS facet_type
+  FROM base b, unnest(b.feature_slugs) AS sv(slug)
+  
+  UNION ALL
+  
+  -- Tags
+  SELECT b.product_id, b.passes_color, b.passes_material, b.passes_price, b.passes_in_stock,
+         sv.slug AS sv_slug, 'tag' AS facet_type
+  FROM base b, unnest(b.tag_handles) AS sv(slug)
+)
+-- LEFT JOIN to facet_config_value: configured values get merged/labeled,
+-- unconfigured values (fcv.id IS NULL) fall through with raw sv_slug.
 SELECT
-  fcv.facet_config_id,
-  fcv.id AS display_value_id,
-  COUNT(DISTINCT b.product_id)
-    FILTER (WHERE b.passes_material)                          AS cnt_color_facet,
-    -- ^ color facet: require material=true, ignore color (isolation)
-  COUNT(DISTINCT b.product_id)
-    FILTER (WHERE b.passes_color)                             AS cnt_material_facet
-    -- ^ material facet: require color=true, ignore material (isolation)
-FROM base b,
-     unnest(b.option_slugs) AS sv_slug
-JOIN facet_config_value fcv ON sv_slug = ANY(fcv.source_handles)
-WHERE fcv.enabled = true
-GROUP BY fcv.facet_config_id, fcv.id
+  COALESCE(fcv.facet_config_id, fc.id) AS facet_config_id,
+  fcv.id AS display_value_id,      -- NULL for unconfigured values
+  u.sv_slug,                        -- raw slug (used as fallback grouping key when fcv.id IS NULL)
+  COUNT(DISTINCT u.product_id)
+    FILTER (WHERE u.passes_material AND u.passes_price AND u.passes_in_stock) AS cnt_color_facet,
+    -- ^ color facet: require all filters EXCEPT color (isolation)
+  COUNT(DISTINCT u.product_id)
+    FILTER (WHERE u.passes_color AND u.passes_price AND u.passes_in_stock)    AS cnt_material_facet
+    -- ^ material facet: require all filters EXCEPT material (isolation)
+FROM unnested u
+-- Resolve facet_config for this slug's facet_type + source_handle:
+JOIN facet_config fc
+  ON fc.project_id = :projectId
+  AND fc.facet_type = u.facet_type
+  AND (
+    -- For option/feature: source_handle matches the prefix before ':'
+    (u.facet_type IN ('option', 'feature') AND fc.source_handle = split_part(u.sv_slug, ':', 1))
+    -- For tag: source_handle is NULL
+    OR (u.facet_type = 'tag' AND fc.source_handle IS NULL)
+  )
+-- LEFT JOIN: unconfigured values still appear (fcv.id will be NULL)
+LEFT JOIN facet_config_value fcv
+  ON u.sv_slug = ANY(fcv.source_handles)
+  AND fcv.facet_config_id = fc.id
+  AND fcv.enabled = true
+GROUP BY COALESCE(fcv.facet_config_id, fc.id), fcv.id, u.sv_slug
 ```
 
-The app generates the `FILTER (WHERE ...)` clause dynamically: for facet F, AND together all `passes_X` columns **except** `passes_F`.
+The app generates the `FILTER (WHERE ...)` clause dynamically: for facet F, AND together all `passes_X` columns **except** `passes_F`. This includes `passes_price` and `passes_in_stock` when those filters are active.
 
-**Step 3: Price range and in-stock (use full filter set, no isolation)**
+**Unconfigured values:** When `fcv.id IS NULL` (no `facet_config_value` row), the app groups by raw `sv_slug` instead. The display label comes from source translation tables (option_value, feature_value, or tag). The value slug is derived from `sv_slug` (strip the prefix for option/feature, use directly for tag).
+
+**Step 3: Price range, in-stock count, and total (with facet isolation)**
+
+Price range is computed **without** the price filter (facet isolation), so the slider
+always shows the full available range for the current selection. In-stock count is
+computed **without** the in_stock filter, so the toggle shows how many items are
+available. Total count uses all filters.
 
 ```sql
 SELECT
-  MIN(min_price_minor) FILTER (WHERE passes_color AND passes_material) AS price_min,
-  MAX(max_price_minor) FILTER (WHERE passes_color AND passes_material) AS price_max,
-  COUNT(*)             FILTER (WHERE passes_color AND passes_material) AS total_count,
-  COUNT(*)             FILTER (WHERE passes_color AND passes_material AND in_stock) AS in_stock_count
+  -- Price range: exclude passes_price (isolation), keep all other filters
+  MIN(min_price_minor) FILTER (WHERE passes_color AND passes_material AND passes_in_stock) AS price_min,
+  MAX(max_price_minor) FILTER (WHERE passes_color AND passes_material AND passes_in_stock) AS price_max,
+  -- In-stock count: exclude passes_in_stock (isolation), keep all other filters
+  COUNT(*)             FILTER (WHERE passes_color AND passes_material AND passes_price) AS in_stock_count,
+  -- Total count: all filters applied (no isolation — this is the result count)
+  COUNT(*)             FILTER (WHERE passes_color AND passes_material AND passes_price AND passes_in_stock) AS total_count
 FROM base
 ```
 
@@ -670,9 +729,9 @@ FROM base
 
 #### 5.3.2 Merged value deduplication
 
-`JOIN facet_config_value fcv ON sv_slug = ANY(fcv.source_handles)` with `COUNT(DISTINCT product_id)` handles merged values automatically. When "Red" (`color:red`) and "Crimson" (`color:crimson`) both map to the same `fcv.id`, a product with both slugs in its array produces two unnest rows, but `COUNT(DISTINCT product_id)` counts it once.
+`LEFT JOIN facet_config_value fcv ON sv_slug = ANY(fcv.source_handles)` with `COUNT(DISTINCT product_id)` handles merged values automatically. When "Red" (`color:red`) and "Crimson" (`color:crimson`) both map to the same `fcv.id`, a product with both slugs in its array produces two unnest rows, but `COUNT(DISTINCT product_id)` counts it once.
 
-For **unconfigured values** (no `facet_config_value` row), the query uses a `LEFT JOIN` fallback — source values without a config entry still appear with their source label and individual slug. This is handled in application code: if `fcv.id IS NULL`, group by raw `sv_slug` instead.
+For **unconfigured values** (no `facet_config_value` row), the LEFT JOIN produces `fcv.id IS NULL`. The app groups these rows by raw `sv_slug` instead of `fcv.id`, using the source slug as both the grouping key and the display slug (stripping the prefix for option/feature, using directly for tag). Labels come from source translation tables.
 
 #### 5.3.3 Assembly
 
@@ -966,16 +1025,30 @@ input CollectionSeoInput {
 enum SortDirection { ASC DESC }
 
 input ProductFiltersInput {
-  priceMinMinor: BigInt
-  priceMaxMinor: BigInt
   """
   Unified facet filters. Format: 'facetSlug:valueSlug'.
-  Works for ALL facet types (tag, feature, option) — resolved via facet_config.slug + facet_config_value.slug (see §3.4).
+  Works for ALL discrete facet types (tag, feature, option) — resolved via facet_config.slug + facet_config_value.slug (see §3.4).
   Multiple values for the same facetSlug are combined using the facet's filter_logic (OR/AND).
   Different facetSlugs are always AND-ed together.
   """
   facets: [String!]
+  """
+  Range facet filters. For numeric/range-type facets (price, or any custom RANGE facet).
+  Each entry specifies a facetSlug and min/max bounds.
+  Price can also be passed via the shorthand priceMinMinor/priceMaxMinor fields.
+  """
+  ranges: [FacetRangeFilterInput!]
+  """Shorthand for price range filter. Equivalent to ranges: [{ facetSlug: "price", min: X, max: Y }]."""
+  priceMinMinor: BigInt
+  priceMaxMinor: BigInt
   inStock: Boolean
+}
+
+input FacetRangeFilterInput {
+  """Slug of the RANGE-type facet (e.g., 'price', 'weight', 'rating')."""
+  facetSlug: String!
+  min: BigInt
+  max: BigInt
 }
 
 input ProductSortInput {
@@ -1087,18 +1160,31 @@ Same lexo_rank approach for both category products and collection items.
 Rules in `collection_rule` are evaluated against `product_search_index`:
 
 ```sql
--- Each rule becomes a WHERE clause:
--- { field: "tag", operator: "in", value: ["sale"] }
---   → psi.tag_handles @> ARRAY['sale']::text[]
+-- Each rule becomes a WHERE clause.
+-- Operator semantics for array fields:
+--   'in'       → && (overlap, ANY match)  — product has at least one of the values
+--   'all'      → @> (contains, ALL match) — product has all of the values
+--   'nin'      → NOT && (no overlap)      — product has none of the values
+--   'contains' → && (overlap)             — alias for 'in' on array fields
+
+-- { field: "tag", operator: "in", value: ["sale", "new-arrival"] }
+--   → psi.tag_handles && ARRAY['sale','new-arrival']::text[]
+--     (product has "sale" OR "new-arrival" — any match)
+
+-- { field: "tag", operator: "all", value: ["sale", "new-arrival"] }
+--   → psi.tag_handles @> ARRAY['sale','new-arrival']::text[]
+--     (product has BOTH "sale" AND "new-arrival")
 
 -- { field: "price", operator: "between", value: [1000, 5000] }
---   → psi.min_price_minor >= 1000 AND psi.max_price_minor <= 5000
+--   → psi.max_price_minor >= 1000 AND psi.min_price_minor <= 5000
+--     (range overlap — product is included if ANY variant's price intersects [1000, 5000].
+--      Same semantics as storefront price filter, see §5.3.1 Step 1.)
 
 -- { field: "in_stock", operator: "eq", value: true }
 --   → psi.in_stock = true
 
--- { field: "feature", operator: "contains", value: "material:cotton" }
---   → psi.feature_slugs && ARRAY['material:cotton']::text[]
+-- { field: "feature", operator: "in", value: ["material:cotton", "material:linen"] }
+--   → psi.feature_slugs && ARRAY['material:cotton', 'material:linen']::text[]
 --     (composite slug used directly — no facet_config_value lookup needed)
 
 -- { field: "option", operator: "in", value: ["color:red", "color:blue"] }
