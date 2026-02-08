@@ -598,6 +598,8 @@ Instead of N+1 separate queries, compute boolean "passes filter" columns per fac
 
 One boolean per facet (multi-select uses OR / overlap).
 
+If a facet has **no selected values**, do not create its `passes_*` boolean and do not apply that facet filter in the product query (treat as `TRUE`). Never use `array && '{}'`.
+
 ```sql
 -- Example: user selected Color=[Red, Blue], Material=[Cotton], Tags=[Sale],
 -- price $10–$50, in_stock=true.
@@ -667,43 +669,51 @@ WITH unnested AS (
          sv.slug AS sv_slug, 'tag' AS facet_type
   FROM base b, unnest(b.tag_handles) AS sv(slug)
 ),
+mapped AS (
+  SELECT
+    u.product_id,
+    u.facet_type,
+    f.id AS facet_id,
+    fv.id AS facet_value_id,
+    fv.slug AS value_slug,
+    u.passes_color, u.passes_material, u.passes_tags, u.passes_price, u.passes_in_stock
+  FROM unnested u
+  -- Resolve facet for this slug's facet_type + source_handles:
+  JOIN facet f
+    ON f.project_id = :projectId
+    AND f.facet_type = u.facet_type
+    AND (
+      -- For option/feature: the prefix before ':' must be in the facet's source_handles array
+      (u.facet_type IN ('option', 'feature') AND split_part(u.sv_slug, ':', 1) = ANY(f.source_handles))
+      -- For tag: source_handles is empty
+      OR (u.facet_type = 'tag' AND f.source_handles = '{}')
+    )
+  JOIN facet_value fv
+    ON u.sv_slug = ANY(fv.source_handles)
+    AND fv.facet_id = f.id
+    AND fv.enabled = true
+),
 counts AS (
   SELECT
-    u.facet_type,
-    u.sv_slug,
-    COUNT(DISTINCT u.product_id)
+    m.facet_id,
+    m.facet_value_id,
+    m.value_slug,
+    COUNT(DISTINCT m.product_id)
       FILTER (WHERE
-        (u.facet_type = 'option'  AND u.passes_material AND u.passes_tags AND u.passes_price AND u.passes_in_stock) OR
-        (u.facet_type = 'feature' AND u.passes_color    AND u.passes_tags AND u.passes_price AND u.passes_in_stock) OR
-        (u.facet_type = 'tag'     AND u.passes_color    AND u.passes_material AND u.passes_price AND u.passes_in_stock)
+        (m.facet_type = 'option'  AND m.passes_material AND m.passes_tags AND m.passes_price AND m.passes_in_stock) OR
+        (m.facet_type = 'feature' AND m.passes_color    AND m.passes_tags AND m.passes_price AND m.passes_in_stock) OR
+        (m.facet_type = 'tag'     AND m.passes_color    AND m.passes_material AND m.passes_price AND m.passes_in_stock)
       ) AS cnt
-  FROM unnested u
-  GROUP BY u.facet_type, u.sv_slug
+  FROM mapped m
+  GROUP BY m.facet_id, m.facet_value_id, m.value_slug
 )
 
--- JOIN to facet_value: only configured values are exposed;
--- merged values are grouped by facet_value.
 SELECT
-  f.id AS facet_id,
-  fv.id AS facet_value_id,
-  fv.slug AS value_slug,
-  SUM(c.cnt) AS cnt
-FROM counts c
--- Resolve facet for this slug's facet_type + source_handles:
-JOIN facet f
-  ON f.project_id = :projectId
-  AND f.facet_type = c.facet_type
-  AND (
-    -- For option/feature: the prefix before ':' must be in the facet's source_handles array
-    (c.facet_type IN ('option', 'feature') AND split_part(c.sv_slug, ':', 1) = ANY(f.source_handles))
-    -- For tag: source_handles is empty
-    OR (c.facet_type = 'tag' AND f.source_handles = '{}')
-  )
-JOIN facet_value fv
-  ON c.sv_slug = ANY(fv.source_handles)
-  AND fv.facet_id = f.id
-  AND fv.enabled = true
-GROUP BY f.id, fv.id, fv.slug
+  facet_id,
+  facet_value_id,
+  value_slug,
+  cnt
+FROM counts
 ```
 
 **Configured values only:** counts and value lists are built solely from enabled `facet_value` rows. Any source value without a `facet_value` mapping is ignored.
@@ -736,7 +746,7 @@ FROM base
 
 #### 5.3.2 Merged value deduplication
 
-Counts are grouped by `facet_value.id`, so merged values (multiple `source_handles`) are summed into a single display value. Values without a `facet_value` mapping are excluded from results.
+Counts are grouped by `facet_value.id` **after** mapping source values to `facet_value`, using `COUNT(DISTINCT product_id)`. This prevents double-counting when a product has multiple source slugs that map to the same display value. Values without a `facet_value` mapping are excluded from results.
 
 #### 5.3.3 Assembly
 
