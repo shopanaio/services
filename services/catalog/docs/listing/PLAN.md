@@ -211,7 +211,7 @@ catalog.collection_rule (
   collection_id     uuid NOT NULL REFERENCES catalog.collection(id) ON DELETE CASCADE,
   project_id        uuid NOT NULL,
   field             varchar(64) NOT NULL,   -- 'tag', 'price', 'option', 'feature', 'in_stock', 'category', 'status', 'created_at'
-  operator          varchar(16) NOT NULL,   -- 'eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'in', 'nin', 'all', 'contains', 'between'
+  operator          varchar(16) NOT NULL,   -- 'eq', 'gt', 'gte', 'lt', 'lte', 'in', 'all', 'contains', 'between'
   value             jsonb NOT NULL,          -- scalar or array depending on operator
   sort_index        int NOT NULL DEFAULT 0,  -- for stable UI display order (rules are AND-ed, order is semantically irrelevant)
   
@@ -1459,14 +1459,13 @@ WHERE psi.project_id = :projectId
 -- Operator semantics for array fields:
 --   'in'       → && (overlap, ANY match)  — product has at least one of the values
 --   'all'      → @> (contains, ALL match) — product has all of the values
---   'nin'      → NOT && (no overlap)      — product has none of the values
 --   'contains' → && (overlap)             — alias for 'in' on array fields
 --
 -- Scalar operator semantics:
---   field=price      : eq, neq, gt, gte, lt, lte, between (on vsi.price_minor)
---   field=created_at : eq, neq, gt, gte, lt, lte, between (on psi.created_at)
---   field=status     : eq, neq (on psi.status)
---   field=in_stock   : eq, neq (on vsi.in_stock)
+--   field=price      : eq, gt, gte, lt, lte, between (on vsi.price_minor)
+--   field=created_at : eq, gt, gte, lt, lte, between (on psi.created_at)
+--   field=status     : eq (on psi.status)
+--   field=in_stock   : eq (on vsi.in_stock)
 -- Any unsupported (field, operator) pair must fail validation in CollectionUpdateRulesScript.
 
 -- { field: "tag", operator: "in", value: ["sale", "new-arrival"] }
@@ -1520,6 +1519,19 @@ Everything else is local to catalog.
 ---
 
 ## 11. Implementation Order
+
+### Rollout Contract (mandatory)
+
+`ProductFiltersInput.facets` (`facetSlug:valueSlug`) must not be exposed until facet mapping is fully operational.
+
+Required atomic rollout slice:
+1. DB + models for `facet`, `facet_value`, `facet_value_source_handle`
+2. Admin CRUD and data population for facet mappings
+3. Runtime resolver `facetSlug:valueSlug -> source_handle[]`
+4. Listing query integration using resolved source handles
+5. Public GraphQL exposure of `ProductFiltersInput.facets`
+
+Before step 5, keep `facets` behind a feature flag (or omit from public schema).
 
 ### Phase 0: Slug Infrastructure
 
@@ -1576,7 +1588,7 @@ Everything else is local to catalog.
     - productCreated/Updated/Deleted → sync `product_search_index`
     - variantCreated/Updated/Deleted, priceChanged, inventoryChanged, optionValueChanged → sync `variant_search_index`
 12. **Category product scripts:** QueryCategoryProductsScript, CategoryMoveProductScript, CategoryRebalanceScript, CategoryUpdateSortScript
-13. **Listing query foundation:** apply OPTION + `price` + `in_stock` via `variant_search_index` EXISTS/CTE; keep TAG/FEATURE/STATUS product-level; no configured facet mapping yet
+13. **Listing query foundation:** apply OPTION + `price` + `in_stock` via `variant_search_index` EXISTS/CTE; keep TAG/FEATURE/STATUS product-level
 14. **GraphQL:** extend Category type, add category product + sort/SEO mutations
 15. **Resolvers & loaders**
 16. **Build & test**
@@ -1587,7 +1599,7 @@ Everything else is local to catalog.
 2. **Generate migration**
 3. **Facet repositories:** FacetGroupRepository, FacetRepository, FacetValueRepository, FacetSwatchRepository
 4. **Facet scripts:** FacetGroup CRUD, Facet CRUD, FacetValue CRUD, FacetSwatch CRUD, ResolveFacetsScript
-5. **Listing integration:** switch listing facet resolution/counting to configured `facet`/`facet_value` mappings
+5. **Listing integration (required before public `filters.facets`):** switch listing facet resolution/counting to configured `facet`/`facet_value` mappings, including `facetSlug:valueSlug -> source_handle[]` resolution
 6. **GraphQL:** facet.graphql (FacetValue + FacetSwatch), add to CatalogQuery/CatalogMutation
 7. **Resolvers & loaders**
 8. **Build & test**
