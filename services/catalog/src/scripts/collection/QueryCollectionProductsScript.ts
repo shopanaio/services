@@ -1,7 +1,9 @@
-import { and, eq } from "drizzle-orm";
+import { and, asc, desc, eq, sql, type SQL } from "drizzle-orm";
 import { BaseScript } from "../../kernel/BaseScript.js";
 import {
+  collectionItem,
   productSearchIndex,
+  productTranslation,
   type VariantSearchIndex,
 } from "../../repositories/models/index.js";
 import { ResolveFacetsScript } from "../facet/ResolveFacetsScript.js";
@@ -64,66 +66,7 @@ export class QueryCollectionProductsScript extends BaseScript<
       (collection.defaultSortDirection as SortDirection)) as SortDirection;
     const currency =
       this.context.currency ?? this.context.store.defaultCurrency ?? "USD";
-    const { priceMinMinor, priceMaxMinor } = this.resolvePriceBounds(params.filters);
 
-    const allPublishedRows = await this.repository.db
-      .select()
-      .from(productSearchIndex)
-      .where(
-        and(
-          eq(productSearchIndex.projectId, this.getProjectId()),
-          eq(productSearchIndex.status, "published")
-        )
-      );
-
-    if (allPublishedRows.length === 0) {
-      return this.emptyResult();
-    }
-
-    let baseProductIds: string[] = [];
-    const manualRankByProductId = new Map<string, string>();
-
-    if (collection.type === "manual") {
-      const items = await this.repository.collectionItem.findByCollectionId(collection.id);
-      baseProductIds = items.map((item) => item.productId);
-      for (const item of items) {
-        manualRankByProductId.set(item.productId, item.lexoRank);
-      }
-    } else {
-      const rules = await this.repository.collectionRule.findByCollectionId(collection.id);
-      const compiled = this.compileRules(
-        rules.map((rule) => ({
-          field: rule.field,
-          operator: rule.operator,
-          value: rule.value,
-        }))
-      );
-
-      const candidateRows = allPublishedRows.filter((row) =>
-        this.productMatchesRuleContext(row, compiled)
-      );
-      const candidateIds = candidateRows.map((row) => row.productId);
-      const variantRows = await this.repository.variantSearchIndex.getByProductIds(
-        candidateIds
-      );
-      const variantsByProduct = this.groupVariantsByProduct(variantRows);
-
-      baseProductIds = candidateRows
-        .filter((row) =>
-          this.productMatchesVariantRuleContext(
-            variantsByProduct.get(row.productId) ?? [],
-            compiled,
-            currency
-          )
-        )
-        .map((row) => row.productId);
-    }
-
-    if (baseProductIds.length === 0) {
-      return this.emptyResult();
-    }
-
-    const baseRows = allPublishedRows.filter((row) => baseProductIds.includes(row.productId));
     const rawFacetFilters = params.filters?.facets ?? [];
     const resolvedFacetFilters = rawFacetFilters.length
       ? await this.executeScript(ResolveFacetsScript, { facetFilters: rawFacetFilters })
@@ -170,114 +113,191 @@ export class QueryCollectionProductsScript extends BaseScript<
       selectedFacetFiltersById.set(resolved.facetId, existing);
     }
 
-    const productLevelFiltered = baseRows.filter((row) => {
-      const matchesTags =
-        parsedFacetFilters.tagHandles.length === 0 ||
-        parsedFacetFilters.tagHandles.some((value) => row.tagHandles.includes(value));
-      if (!matchesTags) return false;
+    const { priceMinMinor, priceMaxMinor } = this.resolvePriceBounds(params.filters);
 
-      const matchesFeatures =
-        parsedFacetFilters.featureSlugs.length === 0 ||
-        parsedFacetFilters.featureSlugs.some((value) => row.featureSlugs.includes(value));
-      return matchesFeatures;
-    });
+    const ruleCtx: RuleContext = {
+      tagIn: [],
+      tagAll: [],
+      featureIn: [],
+      categoryIn: [],
+      optionIn: [],
+    };
 
-    const hasVariantFilters =
+    if (collection.type === "rule") {
+      const rules = await this.repository.collectionRule.findByCollectionId(collection.id);
+      Object.assign(
+        ruleCtx,
+        this.compileRules(
+          rules.map((rule) => ({
+            field: rule.field,
+            operator: rule.operator,
+            value: rule.value,
+          }))
+        )
+      );
+    }
+
+    const baseScopeConditions: SQL[] = [
+      eq(productSearchIndex.projectId, this.getProjectId()),
+      eq(productSearchIndex.status, "published"),
+    ];
+
+    if (collection.type === "rule") {
+      this.appendRuleProductConditions(baseScopeConditions, ruleCtx);
+      const ruleVariantExists = this.buildVariantExistsCondition({
+        productIdRef: productSearchIndex.productId,
+        currency,
+        optionSets: ruleCtx.optionIn.length > 0 ? [ruleCtx.optionIn] : [],
+        priceMinMinor: ruleCtx.priceMin,
+        priceMaxMinor: ruleCtx.priceMax,
+        inStock: ruleCtx.inStock,
+      });
+      if (ruleVariantExists) {
+        baseScopeConditions.push(ruleVariantExists);
+      }
+    }
+
+    if (collection.type === "manual") {
+      baseScopeConditions.push(
+        sql`exists (
+          select 1
+          from catalog.collection_item ci
+          where ci.project_id = ${this.getProjectId()}
+            and ci.collection_id = ${collection.id}
+            and ci.product_id = ${productSearchIndex.productId}
+        )`
+      );
+    }
+
+    const baseRows = await this.repository.db
+      .select({
+        productId: productSearchIndex.productId,
+        tagHandles: productSearchIndex.tagHandles,
+        featureSlugs: productSearchIndex.featureSlugs,
+      })
+      .from(productSearchIndex)
+      .where(and(...baseScopeConditions));
+
+    if (baseRows.length === 0) {
+      return this.emptyResult();
+    }
+
+    const finalConditions: SQL[] = [...baseScopeConditions];
+
+    if (parsedFacetFilters.tagHandles.length > 0) {
+      finalConditions.push(sql`${productSearchIndex.tagHandles} && ${parsedFacetFilters.tagHandles}`);
+    }
+    if (parsedFacetFilters.featureSlugs.length > 0) {
+      finalConditions.push(
+        sql`${productSearchIndex.featureSlugs} && ${parsedFacetFilters.featureSlugs}`
+      );
+    }
+
+    const hasUserVariantFilters =
       parsedFacetFilters.optionSlugs.length > 0 ||
       priceMinMinor !== undefined ||
       priceMaxMinor !== undefined ||
       params.filters?.inStock !== undefined;
 
-    const baseVariantsByProduct = this.groupVariantsByProduct(
-      await this.repository.variantSearchIndex.getByProductIds(
-        baseRows.map((row) => row.productId)
-      )
-    );
-
-    const minPriceByProduct = new Map<string, number | null>();
-    const fullyFiltered = productLevelFiltered.filter((row) => {
-      const variants = baseVariantsByProduct.get(row.productId) ?? [];
-      const passing = variants.filter((variant) =>
-        this.variantMatchesFilters(
-          variant,
-          parsedFacetFilters.optionSlugs,
-          priceMinMinor,
-          priceMaxMinor,
-          params.filters?.inStock,
-          currency
-        )
-      );
-
-      if (hasVariantFilters && passing.length === 0) {
-        return false;
+    if (hasUserVariantFilters) {
+      const userVariantExists = this.buildVariantExistsCondition({
+        productIdRef: productSearchIndex.productId,
+        currency,
+        optionSets:
+          parsedFacetFilters.optionSlugs.length > 0 ? [parsedFacetFilters.optionSlugs] : [],
+        priceMinMinor,
+        priceMaxMinor,
+        inStock: params.filters?.inStock,
+      });
+      if (userVariantExists) {
+        finalConditions.push(userVariantExists);
       }
+    }
 
-      const prices = passing
-        .map((variant) => variant.priceMinor)
-        .filter((value): value is number => value !== null);
-      minPriceByProduct.set(
-        row.productId,
-        prices.length > 0 ? Math.min(...prices) : null
-      );
-      return true;
+    const minPriceSql = this.buildMinVariantPriceExpression({
+      productIdRef: productSearchIndex.productId,
+      currency,
+      optionSets:
+        parsedFacetFilters.optionSlugs.length > 0 ? [parsedFacetFilters.optionSlugs] : [],
+      priceMinMinor,
+      priceMaxMinor,
+      inStock: params.filters?.inStock,
     });
 
-    let sorted = [...fullyFiltered];
     const effectiveSortBy =
       sortBy === "manual" && collection.type !== "manual" ? "newest" : sortBy;
 
-    if (effectiveSortBy === "manual") {
-      sorted.sort((a, b) => {
-        const left = manualRankByProductId.get(a.productId) ?? "";
-        const right = manualRankByProductId.get(b.productId) ?? "";
-        const cmp = left.localeCompare(right);
-        if (cmp !== 0) return cmp;
-        return a.productId.localeCompare(b.productId);
-      });
-    } else if (effectiveSortBy === "newest") {
-      sorted.sort((a, b) => {
-        const cmp = a.createdAt.localeCompare(b.createdAt);
-        if (cmp !== 0) return direction === "asc" ? cmp : -cmp;
-        return a.productId.localeCompare(b.productId);
-      });
-    } else if (effectiveSortBy === "name") {
-      const translations = await this.repository.translation.getProductTranslationsBatch(
-        sorted.map((row) => row.productId),
-        params.locale
-      );
-      sorted.sort((a, b) => {
-        const leftName = translations.get(a.productId)?.title ?? "";
-        const rightName = translations.get(b.productId)?.title ?? "";
-        const cmp = leftName.localeCompare(rightName, params.locale);
-        if (cmp !== 0) return direction === "asc" ? cmp : -cmp;
-        return a.productId.localeCompare(b.productId);
-      });
-    } else if (effectiveSortBy === "price") {
-      sorted.sort((a, b) => {
-        const left = minPriceByProduct.get(a.productId);
-        const right = minPriceByProduct.get(b.productId);
-        const leftNull = left === null || left === undefined;
-        const rightNull = right === null || right === undefined;
-        if (leftNull && rightNull) return a.productId.localeCompare(b.productId);
-        if (leftNull) return 1;
-        if (rightNull) return -1;
-        if (left !== right) return direction === "asc" ? left - right : right - left;
-        return a.productId.localeCompare(b.productId);
-      });
-    }
+    const baseQuery = this.repository.db
+      .select({
+        productId: productSearchIndex.productId,
+        createdAt: productSearchIndex.createdAt,
+        name: productTranslation.title,
+        manualRank: collectionItem.lexoRank,
+        minPrice: minPriceSql,
+      })
+      .from(productSearchIndex)
+      .leftJoin(
+        productTranslation,
+        and(
+          eq(productTranslation.projectId, productSearchIndex.projectId),
+          eq(productTranslation.productId, productSearchIndex.productId),
+          eq(productTranslation.locale, params.locale)
+        )
+      )
+      .leftJoin(
+        collectionItem,
+        and(
+          eq(collectionItem.projectId, productSearchIndex.projectId),
+          eq(collectionItem.productId, productSearchIndex.productId),
+          eq(collectionItem.collectionId, collection.id)
+        )
+      )
+      .where(and(...finalConditions));
 
+    const sorted = await (effectiveSortBy === "manual"
+      ? baseQuery.orderBy(asc(collectionItem.lexoRank), asc(productSearchIndex.productId))
+      : effectiveSortBy === "newest"
+        ? direction === "asc"
+          ? baseQuery.orderBy(asc(productSearchIndex.createdAt), asc(productSearchIndex.productId))
+          : baseQuery.orderBy(
+              desc(productSearchIndex.createdAt),
+              asc(productSearchIndex.productId)
+            )
+        : effectiveSortBy === "name"
+          ? direction === "asc"
+            ? baseQuery.orderBy(
+                asc(sql`coalesce(${productTranslation.title}, '')`),
+                asc(productSearchIndex.productId)
+              )
+            : baseQuery.orderBy(
+                desc(sql`coalesce(${productTranslation.title}, '')`),
+                asc(productSearchIndex.productId)
+              )
+          : direction === "asc"
+            ? baseQuery.orderBy(
+                asc(sql`case when ${minPriceSql} is null then 1 else 0 end`),
+                asc(minPriceSql),
+                asc(productSearchIndex.productId)
+              )
+            : baseQuery.orderBy(
+                asc(sql`case when ${minPriceSql} is null then 1 else 0 end`),
+                desc(minPriceSql),
+                asc(productSearchIndex.productId)
+              ));
+
+    let filtered = sorted;
     if (params.after) {
       const cursorId = this.decodeCursor(params.after);
       if (cursorId) {
-        const afterIndex = sorted.findIndex((row) => row.productId === cursorId);
+        const afterIndex = filtered.findIndex((row) => row.productId === cursorId);
         if (afterIndex >= 0) {
-          sorted = sorted.slice(afterIndex + 1);
+          filtered = filtered.slice(afterIndex + 1);
         }
       }
     }
 
-    const totalCount = sorted.length;
-    const pageRows = sorted.slice(0, first + 1);
+    const totalCount = filtered.length;
+    const pageRows = filtered.slice(0, first + 1);
     const hasNextPage = pageRows.length > first;
     const visible = hasNextPage ? pageRows.slice(0, first) : pageRows;
 
@@ -285,6 +305,12 @@ export class QueryCollectionProductsScript extends BaseScript<
       cursor: this.encodeCursor(row.productId),
       nodeId: row.productId,
     }));
+
+    const baseVariantsByProduct = this.groupVariantsByProduct(
+      await this.repository.variantSearchIndex.getByProductIds(
+        baseRows.map((row) => row.productId)
+      )
+    );
 
     const facets = await buildListingFacets({
       repository: this.repository,
@@ -316,6 +342,107 @@ export class QueryCollectionProductsScript extends BaseScript<
 
   protected handleError(_error: unknown): CollectionProductsQueryResult {
     return this.emptyResult();
+  }
+
+  private appendRuleProductConditions(conditions: SQL[], ctx: RuleContext): void {
+    if (ctx.tagIn.length > 0) {
+      conditions.push(sql`${productSearchIndex.tagHandles} && ${ctx.tagIn}`);
+    }
+    if (ctx.tagAll.length > 0) {
+      conditions.push(sql`${productSearchIndex.tagHandles} @> ${ctx.tagAll}`);
+    }
+    if (ctx.featureIn.length > 0) {
+      conditions.push(sql`${productSearchIndex.featureSlugs} && ${ctx.featureIn}`);
+    }
+    if (ctx.categoryIn.length > 0) {
+      conditions.push(sql`${productSearchIndex.categoryHandles} && ${ctx.categoryIn}`);
+    }
+    if (ctx.createdFrom) {
+      conditions.push(sql`${productSearchIndex.createdAt} >= ${ctx.createdFrom}`);
+    }
+    if (ctx.createdTo) {
+      conditions.push(sql`${productSearchIndex.createdAt} < ${ctx.createdTo}`);
+    }
+  }
+
+  private buildVariantExistsCondition(input: {
+    productIdRef: unknown;
+    currency: string;
+    optionSets: string[][];
+    priceMinMinor?: number;
+    priceMaxMinor?: number;
+    inStock?: boolean;
+  }): SQL | null {
+    const hasOptionSets = input.optionSets.some((set) => set.length > 0);
+    const hasOtherFilters =
+      input.priceMinMinor !== undefined ||
+      input.priceMaxMinor !== undefined ||
+      input.inStock !== undefined;
+
+    if (!hasOptionSets && !hasOtherFilters) {
+      return null;
+    }
+
+    const optionSql = input.optionSets
+      .filter((set) => set.length > 0)
+      .map((set) => sql`and vsi.option_slugs && ${set}`);
+
+    return sql`exists (
+      select 1
+      from catalog.variant_search_index vsi
+      where vsi.project_id = ${this.getProjectId()}
+        and vsi.product_id = ${input.productIdRef}
+        and vsi.price_currency = ${input.currency}
+        ${sql.join(optionSql, sql` `)}
+        ${input.priceMinMinor !== undefined ? sql`and vsi.price_minor is not null and vsi.price_minor >= ${input.priceMinMinor}` : sql``}
+        ${input.priceMaxMinor !== undefined ? sql`and vsi.price_minor is not null and vsi.price_minor <= ${input.priceMaxMinor}` : sql``}
+        ${input.inStock !== undefined ? sql`and vsi.in_stock = ${input.inStock}` : sql``}
+    )`;
+  }
+
+  private buildMinVariantPriceExpression(input: {
+    productIdRef: unknown;
+    currency: string;
+    optionSets: string[][];
+    priceMinMinor?: number;
+    priceMaxMinor?: number;
+    inStock?: boolean;
+  }): SQL<number | null> {
+    const optionSql = input.optionSets
+      .filter((set) => set.length > 0)
+      .map((set) => sql`and vsi.option_slugs && ${set}`);
+
+    return sql<number | null>`(
+      select min(vsi.price_minor)::bigint
+      from catalog.variant_search_index vsi
+      where vsi.project_id = ${this.getProjectId()}
+        and vsi.product_id = ${input.productIdRef}
+        and vsi.price_currency = ${input.currency}
+        ${sql.join(optionSql, sql` `)}
+        ${input.priceMinMinor !== undefined ? sql`and vsi.price_minor is not null and vsi.price_minor >= ${input.priceMinMinor}` : sql``}
+        ${input.priceMaxMinor !== undefined ? sql`and vsi.price_minor is not null and vsi.price_minor <= ${input.priceMaxMinor}` : sql``}
+        ${input.inStock !== undefined ? sql`and vsi.in_stock = ${input.inStock}` : sql``}
+    )`;
+  }
+
+  private resolvePriceBounds(filters: CollectionProductsQueryParams["filters"]): {
+    priceMinMinor?: number;
+    priceMaxMinor?: number;
+  } {
+    let min = filters?.priceMinMinor;
+    let max = filters?.priceMaxMinor;
+
+    for (const range of filters?.ranges ?? []) {
+      if (range.facetSlug !== "price") continue;
+      if (range.min !== undefined) {
+        min = min === undefined ? range.min : Math.max(min, range.min);
+      }
+      if (range.max !== undefined) {
+        max = max === undefined ? range.max : Math.min(max, range.max);
+      }
+    }
+
+    return { priceMinMinor: min, priceMaxMinor: max };
   }
 
   private compileRules(rules: CollectionRuleInput[]): RuleContext {
@@ -360,6 +487,12 @@ export class QueryCollectionProductsScript extends BaseScript<
       }
     }
 
+    ctx.tagIn = Array.from(new Set(ctx.tagIn));
+    ctx.tagAll = Array.from(new Set(ctx.tagAll));
+    ctx.featureIn = Array.from(new Set(ctx.featureIn));
+    ctx.categoryIn = Array.from(new Set(ctx.categoryIn));
+    ctx.optionIn = Array.from(new Set(ctx.optionIn));
+
     return ctx;
   }
 
@@ -391,89 +524,6 @@ export class QueryCollectionProductsScript extends BaseScript<
     };
   }
 
-  private resolvePriceBounds(filters: CollectionProductsQueryParams["filters"]): {
-    priceMinMinor?: number;
-    priceMaxMinor?: number;
-  } {
-    let min = filters?.priceMinMinor;
-    let max = filters?.priceMaxMinor;
-
-    for (const range of filters?.ranges ?? []) {
-      if (range.facetSlug !== "price") continue;
-      if (range.min !== undefined) {
-        min = min === undefined ? range.min : Math.max(min, range.min);
-      }
-      if (range.max !== undefined) {
-        max = max === undefined ? range.max : Math.min(max, range.max);
-      }
-    }
-
-    return { priceMinMinor: min, priceMaxMinor: max };
-  }
-
-  private productMatchesRuleContext(
-    row: typeof productSearchIndex.$inferSelect,
-    ctx: RuleContext
-  ): boolean {
-    if (ctx.tagIn.length > 0 && !ctx.tagIn.some((value) => row.tagHandles.includes(value))) {
-      return false;
-    }
-
-    if (ctx.tagAll.length > 0 && !ctx.tagAll.every((value) => row.tagHandles.includes(value))) {
-      return false;
-    }
-
-    if (
-      ctx.featureIn.length > 0 &&
-      !ctx.featureIn.some((value) => row.featureSlugs.includes(value))
-    ) {
-      return false;
-    }
-
-    if (
-      ctx.categoryIn.length > 0 &&
-      !ctx.categoryIn.some((value) => row.categoryHandles.includes(value))
-    ) {
-      return false;
-    }
-
-    if (ctx.createdFrom && row.createdAt < ctx.createdFrom) {
-      return false;
-    }
-    if (ctx.createdTo && row.createdAt >= ctx.createdTo) {
-      return false;
-    }
-
-    return true;
-  }
-
-  private productMatchesVariantRuleContext(
-    variants: VariantSearchIndex[],
-    ctx: RuleContext,
-    currency: string
-  ): boolean {
-    const hasVariantRules =
-      ctx.optionIn.length > 0 ||
-      ctx.priceMin !== undefined ||
-      ctx.priceMax !== undefined ||
-      ctx.inStock !== undefined;
-
-    if (!hasVariantRules) {
-      return true;
-    }
-
-    return variants.some((variant) =>
-      this.variantMatchesFilters(
-        variant,
-        ctx.optionIn,
-        ctx.priceMin,
-        ctx.priceMax,
-        ctx.inStock,
-        currency
-      )
-    );
-  }
-
   private groupVariantsByProduct(
     variants: VariantSearchIndex[]
   ): Map<string, VariantSearchIndex[]> {
@@ -484,33 +534,6 @@ export class QueryCollectionProductsScript extends BaseScript<
       byProduct.set(variant.productId, list);
     }
     return byProduct;
-  }
-
-  private variantMatchesFilters(
-    variant: VariantSearchIndex,
-    optionSlugs: string[],
-    priceMinMinor: number | undefined,
-    priceMaxMinor: number | undefined,
-    inStock: boolean | undefined,
-    currency: string
-  ): boolean {
-    if (variant.priceCurrency !== currency) return false;
-
-    if (optionSlugs.length > 0) {
-      const hasOption = optionSlugs.some((value) => variant.optionSlugs.includes(value));
-      if (!hasOption) return false;
-    }
-
-    if (priceMinMinor !== undefined) {
-      if (variant.priceMinor === null || variant.priceMinor < priceMinMinor) return false;
-    }
-
-    if (priceMaxMinor !== undefined) {
-      if (variant.priceMinor === null || variant.priceMinor > priceMaxMinor) return false;
-    }
-
-    if (inStock !== undefined && variant.inStock !== inStock) return false;
-    return true;
   }
 
   private ensureArray(value: unknown): string[] {
