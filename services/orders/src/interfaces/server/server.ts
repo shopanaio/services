@@ -18,6 +18,7 @@ import {
 import { resolvers as adminResolvers } from "@src/interfaces/gql-admin-api/resolvers";
 import { resolvers as storefrontResolvers } from "@src/interfaces/gql-storefront-api/resolvers";
 import type { GraphQLContext } from "@src/interfaces/gql-admin-api/context";
+import type { GrpcConfigPort } from "@shopana/platform-api";
 import { buildCoreContextMiddleware } from "@src/interfaces/server/contextMiddleware";
 
 const { service, global } = getServiceConfig("orders");
@@ -75,8 +76,8 @@ export async function startServer(broker: ServiceBroker) {
     "parent.graphql",
   ];
 
-  const grpcConfig = {
-    getGrpcHost: () => global.platform_grpc_host,
+  const grpcConfig: GrpcConfigPort = {
+    getGrpcHost: () => global.platform_grpc_host as string,
   };
 
   // ═══════════════════════════════════════════════════════════════════

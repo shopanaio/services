@@ -28,8 +28,8 @@ export class AddCheckoutLinesUseCase extends UseCase<
    * Children are validated against product groups and prices come from DB.
    */
   async execute(input: CheckoutLinesAddInput): Promise<string> {
-    const { apiKey, project, customer, user, ...businessInput } = input;
-    const context = { apiKey, project, customer, user };
+    const { apiKey, store, customer, user, ...businessInput } = input;
+    const context = { apiKey, store, customer, user };
 
     const state = await this.getCheckoutState(businessInput.checkoutId);
 
@@ -155,7 +155,7 @@ export class AddCheckoutLinesUseCase extends UseCase<
     const { offers } = await this.checkoutService.getOffers({
       apiKey: ctx.apiKey,
       currency: state.currencyCode,
-      storeId: ctx.store.id,
+      projectId: ctx.store.id,
       items: inventoryItems,
     });
 
@@ -258,7 +258,7 @@ export class AddCheckoutLinesUseCase extends UseCase<
 
     const checkoutLines = [...preservedLines, ...newLines];
     const computed = await this.checkoutService.computeTotals({
-      projectId: context.project.id,
+      projectId: context.store.id,
       checkoutLines,
       appliedDiscounts: state.appliedDiscounts,
       currency: state.currencyCode,

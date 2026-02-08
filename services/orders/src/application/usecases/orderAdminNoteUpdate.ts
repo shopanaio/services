@@ -19,8 +19,8 @@ export class UpdateOrderAdminNoteUseCase extends UseCase<
   boolean
 > {
   async execute(input: UpdateOrderAdminNoteUseCaseInput): Promise<boolean> {
-    const { apiKey, project, customer, user, orderId, note } = input;
-    const context = { apiKey, project, customer, user };
+    const { apiKey, store, customer, user, orderId, note } = input;
+    const context = { apiKey, store, customer, user };
 
     try {
       // Load order state to validate existence and access
@@ -45,7 +45,7 @@ export class UpdateOrderAdminNoteUseCase extends UseCase<
 
       this.logger.info({
         orderId,
-        projectId: context.project.id,
+        projectId: context.store.id,
         userId: context.user?.id,
         noteLength: note.length
       }, "Updated order admin note");

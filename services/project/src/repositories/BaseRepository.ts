@@ -28,10 +28,9 @@ export abstract class BaseRepository {
   }
 
   /**
-   * Get storeId from async local storage context
-   * Throws if context is not available
+   * Get store name from async local storage context
    */
-  protected get storeId(): string {
-    return this.ctx.store.id;
+  protected get storeName(): string | undefined {
+    return this.ctx.storeName;
   }
 }

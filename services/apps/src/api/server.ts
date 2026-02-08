@@ -11,6 +11,7 @@ import { fileURLToPath } from "url";
 import { gql } from "graphql-tag";
 
 import type { ServiceBroker } from "@shopana/shared-kernel";
+import type { GrpcConfigPort } from "@shopana/platform-api";
 import {
   getServiceConfig,
   isDevelopment,
@@ -78,14 +79,14 @@ export async function startServer(broker: ServiceBroker, kernel: Kernel) {
 
   await apollo.start();
 
-  const graphqlPath = service.graphql?.path ?? "/graphql";
+  const graphqlPath = (service as any).graphql?.path ?? "/graphql";
   const port = service.ports?.admin_graphql ?? 0;
 
   // GraphQL route group with simplified middleware
   await app.register(async function (graphqlInstance) {
     // Only core context middleware - no correlation middleware
-    const grpcConfig = {
-      getGrpcHost: () => global.platform_grpc_host,
+    const grpcConfig: GrpcConfigPort = {
+      getGrpcHost: () => global.platform_grpc_host as string,
     };
     await graphqlInstance.addHook(
       "preHandler",

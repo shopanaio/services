@@ -7,23 +7,23 @@ import novaposhta from "@shopana/shipping-plugin-novaposhta";
 
 type PluginModuleLike = { plugin: unknown };
 
-export const shippingPlugins = [
+export const shippingPlugins: ReadonlyArray<PluginModuleLike> = [
   novaposhta,
   meestExpress,
-] satisfies ReadonlyArray<PluginModuleLike>;
+];
 
-export const paymentPlugins = [
+export const paymentPlugins: ReadonlyArray<PluginModuleLike> = [
   bankTransfer,
-] satisfies ReadonlyArray<PluginModuleLike>;
+];
 
-export const pricingPlugins = [
+export const pricingPlugins: ReadonlyArray<PluginModuleLike> = [
   simplePromo,
-] satisfies ReadonlyArray<PluginModuleLike>;
+];
 
-export const inventoryPlugins = [
+export const inventoryPlugins: ReadonlyArray<PluginModuleLike> = [
   inventoryShopana,
-] satisfies ReadonlyArray<PluginModuleLike>;
+];
 
-export const importPlugins = [
+export const importPlugins: ReadonlyArray<PluginModuleLike> = [
   tildaImport,
-] satisfies ReadonlyArray<PluginModuleLike>;
+];

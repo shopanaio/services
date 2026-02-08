@@ -74,7 +74,13 @@ export class CheckoutReadModelAdapter {
       linesRecord[item.id] = {
         lineId: item.id,
         parentLineId: item.parentLineId,
-        priceConfig: item.priceConfig,
+        priceConfig: item.priceConfig
+          ? {
+              type: item.priceConfig.type,
+              amount: item.priceConfig.amount ?? undefined,
+              percent: item.priceConfig.percent ?? undefined,
+            }
+          : null,
         quantity: item.quantity,
         tag: item.tag
           ? {

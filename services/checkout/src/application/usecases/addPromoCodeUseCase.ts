@@ -17,8 +17,8 @@ export class AddPromoCodeUseCase extends UseCase<
   }
 
   async execute(input: CheckoutPromoCodeAddInput): Promise<string> {
-    const { apiKey, project, customer, user, ...businessInput } = input;
-    const context = { apiKey, project, customer, user };
+    const { apiKey, store, customer, user, ...businessInput } = input;
+    const context = { apiKey, store, customer, user };
 
     const state = await this.getCheckoutState(businessInput.checkoutId);
 
@@ -34,7 +34,7 @@ export class AddPromoCodeUseCase extends UseCase<
     // Validate promo code through pricing service
     const promo = await this.pricingApi.validateDiscount({
       code: businessInput.code,
-      projectId: context.project.id,
+      projectId: context.store.id,
     });
 
     if (!promo.valid) {
@@ -60,7 +60,7 @@ export class AddPromoCodeUseCase extends UseCase<
 
     const checkoutLines = Object.values(state.linesRecord ?? {});
     const computed = await this.checkoutService.computeTotals({
-      projectId: context.project.id,
+      projectId: context.store.id,
       checkoutLines,
       appliedDiscounts: newAppliedDiscounts,
       currency: state.currencyCode,

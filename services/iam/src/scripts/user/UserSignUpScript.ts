@@ -44,6 +44,7 @@ export class UserSignUpScript extends BaseScript<
           {
             code: "SIGNUP_FAILED",
             message: result.error || "Failed to create user",
+            field: null,
           },
         ],
       };
@@ -77,6 +78,7 @@ export class UserSignUpScript extends BaseScript<
         {
           code: "INTERNAL_ERROR",
           message: "An unexpected error occurred",
+          field: null,
         },
       ],
     };

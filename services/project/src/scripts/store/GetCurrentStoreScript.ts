@@ -37,11 +37,12 @@ export class GetCurrentStoreScript extends BaseScript<
 
   protected handleError(_error: unknown): GetCurrentStoreResult {
     return {
-      store: undefined,
+      store: null,
       userErrors: [
         {
           code: "INTERNAL_ERROR",
           message: "An unexpected error occurred",
+          field: null,
         },
       ],
     };

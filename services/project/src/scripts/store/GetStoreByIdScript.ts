@@ -20,11 +20,12 @@ export class GetStoreByIdScript extends BaseScript<
 
     if (!store) {
       return {
-        store: undefined,
+        store: null,
         userErrors: [
           {
             code: "STORE_NOT_FOUND",
             message: `Store with id "${id}" not found`,
+            field: null,
           },
         ],
       };
@@ -38,11 +39,12 @@ export class GetStoreByIdScript extends BaseScript<
 
   protected handleError(_error: unknown): GetStoreByIdResult {
     return {
-      store: undefined,
+      store: null,
       userErrors: [
         {
           code: "INTERNAL_ERROR",
           message: "An unexpected error occurred",
+          field: null,
         },
       ],
     };

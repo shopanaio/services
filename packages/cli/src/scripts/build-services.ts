@@ -169,6 +169,7 @@ export async function buildService(serviceName: string, options?: BuildOptions):
       packages: "external",
       sourcemap: true,
       minify: false,
+      conditions: ["source"],
       plugins: [addJsExtensionPlugin],
       logLevel: "warning",
     });

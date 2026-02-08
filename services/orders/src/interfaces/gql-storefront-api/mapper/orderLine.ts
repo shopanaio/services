@@ -26,11 +26,7 @@ export function mapOrderLineReadToApi(
       read.unit.id,
       GlobalIdEntity.ProductVariant
     ),
-    purchasable: {
-      id: encodeGlobalIdByType(read.unit.id, GlobalIdEntity.ProductVariant),
-      title: read.unit.title,
-      sku: read.unit.sku,
-    } as any,
+    purchasableSnapshot: read.unit.snapshot ?? {},
     cost: {
       __typename: "OrderLineCost" as const,
       unitCompareAtPrice: moneyToApi(compareAt),

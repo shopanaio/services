@@ -77,7 +77,7 @@ export class IamBrokerActions extends BrokerActions {
   @ZodSchema(getCurrentUserInputSchema)
   async getCurrentUser(params: GetCurrentUserParams): Promise<{
     user: { id: string; name: string; email?: string } | null;
-    userErrors: Array<{ code: string; message: string }>;
+    userErrors: Array<{ code: string | null; message: string; field: string[] | null }>;
   }> {
     const result = await this.kernel.runScript(GetCurrentUserScript, {
       accessToken: params.accessToken,

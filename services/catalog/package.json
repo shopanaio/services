@@ -10,7 +10,7 @@
   "exports": {
     ".": {
       "import": "./dist/catalog.module.js",
-      "default": "./src/catalog.module.ts"
+      "source": "./src/catalog.module.ts"
     }
   },
   "dependencies": {

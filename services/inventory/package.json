@@ -10,7 +10,7 @@
   "exports": {
     ".": {
       "import": "./dist/inventory.module.js",
-      "default": "./src/inventory.module.ts"
+      "source": "./src/inventory.module.ts"
     }
   },
   "dependencies": {

@@ -19,8 +19,8 @@ export class UpdateCheckoutLinesUseCase extends UseCase<
   }
 
   async execute(input: CheckoutLinesUpdateInput): Promise<string> {
-    const { apiKey, project, customer, user, ...businessInput } = input;
-    const context = { apiKey, project, customer, user };
+    const { apiKey, store, customer, user, ...businessInput } = input;
+    const context = { apiKey, store, customer, user };
     const ctx = context;
     const state = await this.getCheckoutState(businessInput.checkoutId);
 
@@ -74,7 +74,7 @@ export class UpdateCheckoutLinesUseCase extends UseCase<
     const { offers } = await this.checkoutService.getOffers({
       apiKey: ctx.apiKey,
       currency: state.currencyCode,
-      storeId: ctx.store.id,
+      projectId: ctx.store.id,
       items: updatedLines.map((l) => ({
         lineId: l.lineId,
         purchasableId: l.unit.id,
@@ -108,7 +108,7 @@ export class UpdateCheckoutLinesUseCase extends UseCase<
 
     // Recalculate totals
     const computed = await this.checkoutService.computeTotals({
-      projectId: context.project.id,
+      projectId: context.store.id,
       checkoutLines,
       appliedDiscounts: state.appliedDiscounts,
       currency: state.currencyCode,

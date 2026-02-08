@@ -10,7 +10,7 @@ export class CurrencySetDefaultScript extends BaseScript<CurrencySetDefaultParam
   protected handleError(_error: unknown): CurrencySetDefaultResult {
     return {
       success: false,
-      userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR" }],
+      userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR", field: null }],
     };
   }
 }

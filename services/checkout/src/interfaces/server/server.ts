@@ -101,7 +101,7 @@ export async function startServer(broker: ServiceBroker) {
   await app.register(async function (graphqlInstance) {
     // Core context middleware that sets async local storage
     const grpcConfig = {
-      getGrpcHost: () => global.platform_grpc_host,
+      getGrpcHost: () => global.platform_grpc_host as string,
     };
     await graphqlInstance.addHook(
       "preHandler",

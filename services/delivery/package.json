@@ -6,7 +6,7 @@
   "exports": {
     ".": {
       "import": "./dist/delivery.module.js",
-      "default": "./src/delivery.module.ts"
+      "source": "./src/delivery.module.ts"
     }
   },
   "dependencies": {

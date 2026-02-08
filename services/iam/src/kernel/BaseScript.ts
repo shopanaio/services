@@ -4,6 +4,7 @@ import {
   ZodSchema,
   Transactional,
   type Authorizable,
+  type UserError,
 } from "@shopana/shared-kernel";
 import { getContext } from "../context/index.js";
 import type { IamKernelServices } from "./types.js";
@@ -11,6 +12,7 @@ import { AuthProvider } from "@src/kernel/Authorizable.js";
 
 // Re-export decorators for convenience
 export { ZodSchema, Transactional, ValidationError, AuthorizationError };
+export type { UserError };
 
 export abstract class BaseScript<TParams, TResult> implements Authorizable {
   /**

@@ -7,8 +7,8 @@ export class UpdateLanguageCodeUseCase extends UseCase<
   string
 > {
   async execute(input: CheckoutLanguageCodeUpdateInput): Promise<string> {
-    const { apiKey, project, customer, user, ...businessInput } = input;
-    const context = { apiKey, project, customer, user };
+    const { apiKey, store, customer, user, ...businessInput } = input;
+    const context = { apiKey, store, customer, user };
 
     const state = await this.getCheckoutState(businessInput.checkoutId);
 

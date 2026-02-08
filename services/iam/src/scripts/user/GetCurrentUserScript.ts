@@ -22,6 +22,7 @@ export class GetCurrentUserScript extends BaseScript<
           {
             code: "UNAUTHORIZED",
             message: result.error || "Invalid or expired token",
+            field: null,
           },
         ],
       };
@@ -40,6 +41,7 @@ export class GetCurrentUserScript extends BaseScript<
         {
           code: "INTERNAL_ERROR",
           message: "An unexpected error occurred",
+          field: null,
         },
       ],
     };

@@ -95,7 +95,7 @@ export async function startServer(serverConfig: ServerConfig) {
   // Create Apollo Server
   const apollo = new ApolloServer<ServiceContext>({
     introspection: true,
-    schema: buildSubgraphSchema(modules),
+    schema: buildSubgraphSchema(modules as any),
     plugins: [
       fastifyApolloDrainPlugin(app),
       timingPlugin,

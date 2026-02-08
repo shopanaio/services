@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectBroker, ServiceBroker } from "@shopana/shared-kernel";
 import { Kernel } from '../kernel/Kernel.js';
-import type { FileGarbageCollectorOutput } from '../sagas/index.js';
+import type { FileGarbageCollectorOutput } from '../workflows/index.js';
 
 /**
  * Scheduled service for file garbage collection.

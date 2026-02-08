@@ -98,6 +98,8 @@ export class OrderReadModelAdapter {
           sku: item.unit.sku,
           snapshot: item.unit.snapshot,
         },
+        tag: null, // Not yet available in read model
+        parentLineId: null, // Not yet available in read model
       };
     }
 

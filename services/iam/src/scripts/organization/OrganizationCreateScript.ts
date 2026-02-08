@@ -38,6 +38,7 @@ export class OrganizationCreateScript extends BaseScript<
           {
             code: "ORGANIZATION_CREATE_FAILED",
             message: result.error || "Failed to create organization",
+            field: null,
           },
         ],
       };
@@ -145,6 +146,7 @@ export class OrganizationCreateScript extends BaseScript<
                 {
                   code: "INTERNAL_ERROR",
                   message: "An unexpected error occurred",
+                  field: null,
                 },
               ],
     };

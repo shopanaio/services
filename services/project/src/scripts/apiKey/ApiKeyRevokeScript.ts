@@ -10,7 +10,7 @@ export class ApiKeyRevokeScript extends BaseScript<ApiKeyRevokeParams, ApiKeyRev
   protected handleError(_error: unknown): ApiKeyRevokeResult {
     return {
       success: false,
-      userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR" }],
+      userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR", field: null }],
     };
   }
 }

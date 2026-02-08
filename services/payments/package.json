@@ -6,7 +6,7 @@
   "exports": {
     ".": {
       "import": "./dist/payments.module.js",
-      "default": "./src/payments.module.ts"
+      "source": "./src/payments.module.ts"
     }
   },
   "dependencies": {

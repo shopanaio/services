@@ -3,7 +3,7 @@ import {
   ResilienceRunner,
   createProviderContext,
 } from "@shopana/plugin-sdk";
-import type { CorePluginManifest } from "@shopana/plugin-sdk";
+import type { CorePluginManifest, CorePluginModule } from "@shopana/plugin-sdk";
 import type { Domain, shipping as ShippingSDK } from "@shopana/plugin-sdk";
 import {
   shippingPlugins,
@@ -43,7 +43,7 @@ export class AppsPluginManager {
       ...pricingPlugins,
       ...inventoryPlugins,
       ...importPlugins,
-    ];
+    ] as readonly CorePluginModule<Record<string, unknown>, ShippingSDK.ProviderContext, any>[];
     this.corePM = new CorePluginManager<
       Record<string, unknown>,
       ShippingSDK.ProviderContext,

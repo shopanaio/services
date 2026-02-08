@@ -10,7 +10,7 @@
   "exports": {
     ".": {
       "import": "./dist/media.module.js",
-      "default": "./src/media.module.ts"
+      "source": "./src/media.module.ts"
     }
   },
   "dependencies": {

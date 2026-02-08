@@ -19,8 +19,8 @@ export class CloseOrderUseCase extends UseCase<
   boolean
 > {
   async execute(input: CloseOrderUseCaseInput): Promise<boolean> {
-    const { apiKey, project, customer, user, orderId, comment } = input;
-    const context = { apiKey, project, customer, user };
+    const { apiKey, store, customer, user, orderId, comment } = input;
+    const context = { apiKey, store, customer, user };
 
     try {
       // Load order state to validate existence and access
@@ -56,7 +56,7 @@ export class CloseOrderUseCase extends UseCase<
 
       this.logger.info({
         orderId,
-        projectId: context.project.id,
+        projectId: context.store.id,
         userId: context.user?.id,
         hasComment: !!comment
       }, "Closed order");

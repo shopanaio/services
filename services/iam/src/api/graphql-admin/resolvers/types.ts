@@ -15,7 +15,7 @@ import type {
   Organization,
   Membership,
   Member,
-} from "../generated/types.js";
+} from "../../../resolvers/admin/generated/types.js";
 
 /**
  * Resolves user using UserResolver

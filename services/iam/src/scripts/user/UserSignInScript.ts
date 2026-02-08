@@ -25,6 +25,7 @@ export class UserSignInScript extends BaseScript<
           {
             code: "INVALID_CREDENTIALS",
             message: result.error || "Invalid email or password",
+            field: null,
           },
         ],
       };
@@ -45,6 +46,7 @@ export class UserSignInScript extends BaseScript<
         {
           code: "INTERNAL_ERROR",
           message: "An unexpected error occurred",
+          field: null,
         },
       ],
     };

@@ -10,7 +10,7 @@
   "exports": {
     ".": {
       "import": "./dist/events.module.js",
-      "default": "./src/events.module.ts"
+      "source": "./src/events.module.ts"
     }
   },
   "dependencies": {

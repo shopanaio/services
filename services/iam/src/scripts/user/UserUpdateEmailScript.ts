@@ -17,6 +17,7 @@ export class UserUpdateEmailScript extends BaseScript<
         {
           code: "NOT_IMPLEMENTED",
           message: "UserUpdateEmailScript is not implemented yet",
+          field: null,
         },
       ],
     };
@@ -28,6 +29,7 @@ export class UserUpdateEmailScript extends BaseScript<
         {
           code: "INTERNAL_ERROR",
           message: "An unexpected error occurred",
+          field: null,
         },
       ],
     };
