@@ -17,8 +17,10 @@ Facets on a collection PLP are computed on-the-fly from products present, render
 **Scope (Phase 1):** PostgreSQL only. No Typesense, no full-text search, no algorithmic collections.
 
 **Important (listing correctness):** filters split into:
-- **Product-level** constraints (fast, `catalog.product_search_index`): `TAG/FEATURE/STATUS/CATEGORY`.
+- **Product-level** constraints (fast, `catalog.product_search_index`): `TAG/FEATURE/STATUS`.
 - **Variant-level** constraints (correct for option combinations, `catalog.variant_search_index`): `OPTION`, `price`, `in_stock`.
+
+`CATEGORY` is not a storefront facet/filter on category PLPs; it is used as navigation context and as a rule field for rule-based collections.
 
 ---
 
@@ -49,6 +51,7 @@ Add sort preference to category:
 -- ALTER category:
 --   ADD default_sort varchar(32) NOT NULL DEFAULT 'manual'
 --   ADD default_sort_direction varchar(4) NOT NULL DEFAULT 'asc'
+--   ADD CONSTRAINT category_id_project_uniq UNIQUE (id, project_id)
 ```
 
 Values: `'manual'`, `'price'`, `'newest'`, `'name'`
@@ -59,7 +62,7 @@ New table, same structure as `product_seo`:
 
 ```sql
 catalog.category_seo (
-  category_id       uuid NOT NULL REFERENCES catalog.category(id) ON DELETE CASCADE,
+  category_id       uuid NOT NULL,
   locale            varchar(8) NOT NULL,
   project_id        uuid NOT NULL,
   
@@ -72,7 +75,10 @@ catalog.category_seo (
   og_description    text,
   og_image_id       uuid,
   
-  PRIMARY KEY (category_id, locale)
+  PRIMARY KEY (category_id, locale, project_id),
+  FOREIGN KEY (category_id, project_id)
+    REFERENCES catalog.category(id, project_id)
+    ON DELETE CASCADE
 )
 CREATE INDEX idx_category_seo_project_locale ON catalog.category_seo (project_id, locale);
 ```
@@ -102,7 +108,7 @@ catalog.collection (
   -- Sort
   -- For 'rule' collections, 'manual' is not valid (no lexo_rank). Enforced by CHECK constraint.
   default_sort      varchar(32) NOT NULL DEFAULT 'manual',
-  default_sort_dir  varchar(4) NOT NULL DEFAULT 'asc',
+  default_sort_direction varchar(4) NOT NULL DEFAULT 'asc',
   
   -- Scheduling
   effective_from       timestamptz,
@@ -117,6 +123,7 @@ catalog.collection (
   updated_at        timestamptz NOT NULL DEFAULT now(),
   deleted_at        timestamptz,
   
+  UNIQUE(id, project_id),
   UNIQUE(project_id, handle) WHERE deleted_at IS NULL AND handle IS NOT NULL,
   CHECK (type != 'rule' OR default_sort != 'manual')
 )
@@ -129,14 +136,17 @@ CREATE INDEX idx_collection_scheduling
 
 ```sql
 catalog.collection_translation (
-  collection_id     uuid NOT NULL REFERENCES catalog.collection(id) ON DELETE CASCADE,
+  collection_id     uuid NOT NULL,
   locale            varchar(8) NOT NULL,
   project_id        uuid NOT NULL,
   name              text NOT NULL,
   description_text  text,
   description_html  text,
   description_json  text,
-  PRIMARY KEY (collection_id, locale)
+  PRIMARY KEY (collection_id, locale, project_id),
+  FOREIGN KEY (collection_id, project_id)
+    REFERENCES catalog.collection(id, project_id)
+    ON DELETE CASCADE
 )
 CREATE INDEX idx_collection_translation_project_locale
   ON catalog.collection_translation (project_id, locale);
@@ -144,7 +154,7 @@ CREATE INDEX idx_collection_translation_project_locale
 
 ```sql
 catalog.collection_seo (
-  collection_id     uuid NOT NULL REFERENCES catalog.collection(id) ON DELETE CASCADE,
+  collection_id     uuid NOT NULL,
   locale            varchar(8) NOT NULL,
   project_id        uuid NOT NULL,
   
@@ -157,7 +167,10 @@ catalog.collection_seo (
   og_description    text,
   og_image_id       uuid,
   
-  PRIMARY KEY (collection_id, locale)
+  PRIMARY KEY (collection_id, locale, project_id),
+  FOREIGN KEY (collection_id, project_id)
+    REFERENCES catalog.collection(id, project_id)
+    ON DELETE CASCADE
 )
 CREATE INDEX idx_collection_seo_project_locale ON catalog.collection_seo (project_id, locale);
 ```
@@ -197,7 +210,7 @@ catalog.collection_rule (
   id                uuid PRIMARY KEY,
   collection_id     uuid NOT NULL REFERENCES catalog.collection(id) ON DELETE CASCADE,
   project_id        uuid NOT NULL,
-  field             varchar(64) NOT NULL,   -- 'tag', 'price', 'option', 'feature', 'in_stock', 'category', 'created_at'
+  field             varchar(64) NOT NULL,   -- 'tag', 'price', 'option', 'feature', 'in_stock', 'category', 'status', 'created_at'
   operator          varchar(16) NOT NULL,   -- 'eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'in', 'nin', 'all', 'contains', 'between'
   value             jsonb NOT NULL,          -- scalar or array depending on operator
   sort_index        int NOT NULL DEFAULT 0,  -- for stable UI display order (rules are AND-ed, order is semantically irrelevant)
@@ -264,15 +277,19 @@ catalog.facet_group (
   created_at        timestamptz NOT NULL DEFAULT now(),
   updated_at        timestamptz NOT NULL DEFAULT now(),
   
+  UNIQUE(id, project_id),
   UNIQUE(project_id, sort_index) DEFERRABLE INITIALLY DEFERRED
 )
 
 catalog.facet_group_translation (
-  group_id          uuid NOT NULL REFERENCES catalog.facet_group(id) ON DELETE CASCADE,
+  group_id          uuid NOT NULL,
   locale            varchar(8) NOT NULL,
   project_id        uuid NOT NULL,
   name              text NOT NULL,
-  PRIMARY KEY (group_id, locale)
+  PRIMARY KEY (group_id, locale, project_id),
+  FOREIGN KEY (group_id, project_id)
+    REFERENCES catalog.facet_group(id, project_id)
+    ON DELETE CASCADE
 )
 CREATE INDEX idx_facet_group_translation_project_locale
   ON catalog.facet_group_translation (project_id, locale);
@@ -282,7 +299,7 @@ CREATE INDEX idx_facet_group_translation_project_locale
 catalog.facet (
   id                uuid PRIMARY KEY,
   project_id        uuid NOT NULL,
-  group_id          uuid REFERENCES catalog.facet_group(id) ON DELETE SET NULL,
+  group_id          uuid,
   
   -- What product attribute this maps to
   facet_type        varchar(32) NOT NULL,  -- 'price', 'tag', 'feature', 'option', 'in_stock'
@@ -325,15 +342,22 @@ catalog.facet (
   created_at        timestamptz NOT NULL DEFAULT now(),
   updated_at        timestamptz NOT NULL DEFAULT now(),
   
+  UNIQUE(id, project_id),
+  FOREIGN KEY (group_id, project_id)
+    REFERENCES catalog.facet_group(id, project_id)
+    ON DELETE SET NULL,
   UNIQUE(project_id, slug)
 )
 
 catalog.facet_translation (
-  facet_id          uuid NOT NULL REFERENCES catalog.facet(id) ON DELETE CASCADE,
+  facet_id          uuid NOT NULL,
   locale            varchar(8) NOT NULL,
   project_id        uuid NOT NULL,
   label             text NOT NULL,                       -- display label override (e.g., "Colour" instead of "color")
-  PRIMARY KEY (facet_id, locale)
+  PRIMARY KEY (facet_id, locale, project_id),
+  FOREIGN KEY (facet_id, project_id)
+    REFERENCES catalog.facet(id, project_id)
+    ON DELETE CASCADE
 )
 CREATE INDEX idx_facet_translation_project_locale
   ON catalog.facet_translation (project_id, locale);
@@ -382,6 +406,7 @@ catalog.facet_value (
   created_at        timestamptz NOT NULL DEFAULT now(),
   updated_at        timestamptz NOT NULL DEFAULT now(),
   
+  UNIQUE(id, project_id),
   UNIQUE(facet_id, slug)
 )
 
@@ -400,11 +425,14 @@ CREATE INDEX idx_facet_value_source_handle_project_value
   ON catalog.facet_value_source_handle (project_id, facet_value_id);
 
 catalog.facet_value_translation (
-  facet_value_id    uuid NOT NULL REFERENCES catalog.facet_value(id) ON DELETE CASCADE,
+  facet_value_id    uuid NOT NULL,
   locale            varchar(8) NOT NULL,
   project_id        uuid NOT NULL,
   label             text NOT NULL,
-  PRIMARY KEY (facet_value_id, locale)
+  PRIMARY KEY (facet_value_id, locale, project_id),
+  FOREIGN KEY (facet_value_id, project_id)
+    REFERENCES catalog.facet_value(id, project_id)
+    ON DELETE CASCADE
 )
 CREATE INDEX idx_facet_value_translation_project_locale
   ON catalog.facet_value_translation (project_id, locale);
@@ -441,7 +469,7 @@ Slugs live on `facet.slug` and `facet_value.slug` — not on translation tables.
 
 #### Slug source
 
-Slug is provided by the frontend (admin UI) on create and update. The backend validates format (`^[a-z0-9][a-z0-9-]*[a-z0-9]$`) and uniqueness. No auto-generation — the admin is responsible for choosing a meaningful, URL-safe slug.
+Slug is provided by the frontend (admin UI) on create and update. The backend validates format (`^[a-z0-9]([a-z0-9-]*[a-z0-9])?$`) and uniqueness. No auto-generation — the admin is responsible for choosing a meaningful, URL-safe slug.
 
 #### Querying slugs (for API responses)
 
@@ -564,6 +592,8 @@ Storefront passes facet filters via the unified `ProductFiltersInput.facets` fie
    - `FEATURE` -> `product_search_index.feature_slugs`
    - `OPTION` -> `variant_search_index.option_slugs`
 
+`CATEGORY` is intentionally excluded from storefront facet filters in Phase 1.
+
 Unconfigured values are not allowed for storefront filtering. If a `valueSlug` has no matching `facet_value` row, the filter value is ignored.
 
 ### Sync flow
@@ -617,7 +647,7 @@ QueryCategoryProductsScript:
 The `name` sort JOINs `product_translation` using the request locale. The `product_translation` table has a composite PK `(product_id, locale)` so the join is index-only. LEFT JOIN ensures products without a translation for the requested locale still appear (sorted last via `NULLS LAST`).
 
 **Variant filter semantics (Category PLP):**
-- `TAG/FEATURE/STATUS/CATEGORY` remain product-level (on `product_search_index` + `product_category`).
+- `TAG/FEATURE/STATUS` remain product-level (on `product_search_index`).
 - `OPTION`, `price`, and `in_stock` filters must be variant-correct:
   - Apply as `EXISTS (SELECT 1 FROM variant_search_index vsi WHERE vsi.project_id = psi.project_id AND vsi.product_id = psi.product_id AND [variant predicates])`.
   - All active variant predicates (`OPTION`, `price`, `in_stock`) must be inside the same EXISTS.
@@ -637,7 +667,13 @@ QueryCollectionProductsScript:
   3. Resolve product set by type:
      
      manual:
-       SELECT from collection_item ORDER BY lexo_rank
+       SELECT ci.product_id
+       FROM collection_item ci
+       JOIN product_search_index psi ON psi.product_id = ci.product_id
+       WHERE ci.collection_id = :collectionId
+         AND psi.project_id = :projectId
+         AND psi.status = 'active'
+       ORDER BY ci.lexo_rank
        
      rule:
        Compile rules into:
@@ -807,7 +843,7 @@ FROM counts
 
 **OPTION facet counts (variant-correct):** compute from `variant_search_index`, but return `COUNT(DISTINCT product_id)`.
 Facet isolation still applies by `facet_id`: to compute counts for one OPTION facet, omit only that facet's option predicate, but keep:
-- all active product-level filters (`TAG/FEATURE/STATUS/CATEGORY`)
+- all active product-level filters (`TAG/FEATURE/STATUS`)
 - all other active OPTION predicates
 - variant-bound `price` and `in_stock` predicates
 
@@ -1397,6 +1433,7 @@ WHERE psi.project_id = :projectId
   AND (:tagInIsEmpty OR psi.tag_handles && :tagInValues::text[])
   AND (:tagAllIsEmpty OR psi.tag_handles @> :tagAllValues::text[])
   AND (:featureInIsEmpty OR psi.feature_slugs && :featureInValues::text[])
+  AND (:statusEq IS NULL OR psi.status = :statusEq)
   AND (:categoryInIsEmpty OR psi.category_handles && :categoryInValues::text[])
   AND (:createdFrom IS NULL OR psi.created_at >= :createdFrom)
   AND (:createdTo   IS NULL OR psi.created_at <  :createdTo)
@@ -1421,6 +1458,13 @@ WHERE psi.project_id = :projectId
 --   'all'      → @> (contains, ALL match) — product has all of the values
 --   'nin'      → NOT && (no overlap)      — product has none of the values
 --   'contains' → && (overlap)             — alias for 'in' on array fields
+--
+-- Scalar operator semantics:
+--   field=price      : eq, neq, gt, gte, lt, lte, between (on vsi.price_minor)
+--   field=created_at : eq, neq, gt, gte, lt, lte, between (on psi.created_at)
+--   field=status     : eq, neq (on psi.status)
+--   field=in_stock   : eq, neq (on vsi.in_stock)
+-- Any unsupported (field, operator) pair must fail validation in CollectionUpdateRulesScript.
 
 -- { field: "tag", operator: "in", value: ["sale", "new-arrival"] }
 --   → psi.tag_handles && ARRAY['sale','new-arrival']::text[]
@@ -1521,15 +1565,15 @@ Everything else is local to catalog.
 4. **Alter `category`:** add `default_sort`, `default_sort_direction`
 5. **Category SEO:** add `category_seo` model + TranslationRepository + loader/resolver wiring
 6. **Generate migration**
-7. **SearchIndexRepository** — upsert, delete, TAG/FEATURE facet queries
-8. **VariantSearchIndexRepository** — upsert, delete, OPTION facet queries
+7. **SearchIndexRepository** — upsert, delete, base listing predicates
+8. **VariantSearchIndexRepository** — upsert, delete, variant predicate helpers
 9. **SyncProductIndexScript** — build index row from local data
 10. **SyncVariantIndexScript** — upsert per-variant rows from local data + inventory broker
 11. **Event handlers**:
     - productCreated/Updated/Deleted → sync `product_search_index`
     - variantCreated/Updated/Deleted, priceChanged, inventoryChanged, optionValueChanged → sync `variant_search_index`
 12. **Category product scripts:** QueryCategoryProductsScript, CategoryMoveProductScript, CategoryRebalanceScript, CategoryUpdateSortScript
-13. **Listing query update:** apply OPTION + `price` + `in_stock` via `variant_search_index` EXISTS/CTE; keep TAG/FEATURE/CATEGORY/STATUS product-level
+13. **Listing query foundation:** apply OPTION + `price` + `in_stock` via `variant_search_index` EXISTS/CTE; keep TAG/FEATURE/STATUS product-level; no configured facet mapping yet
 14. **GraphQL:** extend Category type, add category product + sort/SEO mutations
 15. **Resolvers & loaders**
 16. **Build & test**
@@ -1540,9 +1584,10 @@ Everything else is local to catalog.
 2. **Generate migration**
 3. **Facet repositories:** FacetGroupRepository, FacetRepository, FacetValueRepository, FacetSwatchRepository
 4. **Facet scripts:** FacetGroup CRUD, Facet CRUD, FacetValue CRUD, FacetSwatch CRUD, ResolveFacetsScript
-5. **GraphQL:** facet.graphql (FacetValue + FacetSwatch), add to CatalogQuery/CatalogMutation
-6. **Resolvers & loaders**
-7. **Build & test**
+5. **Listing integration:** switch listing facet resolution/counting to configured `facet`/`facet_value` mappings
+6. **GraphQL:** facet.graphql (FacetValue + FacetSwatch), add to CatalogQuery/CatalogMutation
+7. **Resolvers & loaders**
+8. **Build & test**
 
 ### Phase 1C: Collections
 
