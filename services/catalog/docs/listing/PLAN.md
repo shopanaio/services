@@ -269,11 +269,17 @@ Facet setup defines **what** facets and values are allowed on PLPs, plus how the
 - Grouping (e.g., "Main filters", "Material & Care")
 - UI type per facet (multi-select checkboxes, single-select, range slider, boolean toggle, color swatches)
 - Label overrides and value sort order
-- Which values are exposed (enabled `facet_value` only)
+- Which values are exposed (enabled `facet_value` only for discrete facets)
 - Display rules (min distinct values to show, collapse threshold)
-- Facet list comes from `facet`; value list comes from enabled `facet_value`; counts are computed from the base product set and update as filters change
+- Facet list comes from `facet`; value list for `TAG`/`FEATURE`/`OPTION` comes from enabled `facet_value`; `PRICE`/`IN_STOCK` are computed facets without `facet_value` rows; counts are computed from the base product set and update as filters change
 
 Raw option/feature/tag values from products are never returned to the storefront; only configured `facet_value` entries are exposed.
+
+**Type-specific value contract (normative):**
+- `TAG` / `FEATURE` / `OPTION` are discrete facets: they use `facet_value` + `facet_value_source_handle` mappings.
+- `PRICE` is a range facet: it does not use `facet_value` or `facet_value_source_handle`.
+- `IN_STOCK` is a boolean facet: it does not use `facet_value` or `facet_value_source_handle`.
+- Any `FacetValueCreate/Update` attempt for `PRICE` or `IN_STOCK` must fail validation in scripts.
 
 Setup is per-project — one flat list of facet groups and facets per project.
 
@@ -893,7 +899,7 @@ FROM base
 
 #### 5.3.2 Merged value deduplication
 
-Counts are grouped by `facet_value.id` **after** mapping source values to `facet_value`, using `COUNT(DISTINCT product_id)`. This prevents double-counting when a product has multiple source slugs that map to the same display value. Values without a `facet_value` mapping are excluded from results.
+For discrete facets (`TAG`/`FEATURE`/`OPTION`), counts are grouped by `facet_value.id` **after** mapping source values to `facet_value`, using `COUNT(DISTINCT product_id)`. This prevents double-counting when a product has multiple source slugs that map to the same display value. Values without a `facet_value` mapping are excluded from results.
 
 #### 5.3.3 Assembly
 
@@ -902,10 +908,12 @@ The aggregated data is assembled using the project's `facet` setup:
 - Order and grouping (via `facet_group`)
 - UI type and selection mode
 - Facet inclusion is decided from the base set (no user filters): hide a facet only if the base set has fewer distinct configured values with `count > 0` than `min_values`
-- Value lists are derived from enabled `facet_value` rows and remain stable; values with `count = 0` stay in the list (typically rendered disabled)
+- Value lists for `TAG`/`FEATURE`/`OPTION` are derived from enabled `facet_value` rows and remain stable; values with `count = 0` stay in the list (typically rendered disabled)
+- `PRICE` is assembled from computed `priceRange` (no `facet_value` list)
+- `IN_STOCK` is assembled from computed boolean counts (no `facet_value` list)
 - Value count limits (`max_values_visible`)
 - Labels from `facet_value_translation` (no source fallback)
-- Slugs from `facet.slug` and `facet_value.slug` (for `FacetResult.slug` and `FacetResultValue.slug`)
+- Slugs from `facet.slug` and (for discrete facets) `facet_value.slug` (for `FacetResult.slug` and `FacetResultValue.slug`)
 
 ---
 
@@ -1201,6 +1209,8 @@ enum FacetValueSort { COUNT ALPHA CUSTOM }
 # Phase 1 constraint:
 # - RANGE uiType is supported only for facetType=PRICE
 # - BOOLEAN uiType is supported only for facetType=IN_STOCK
+# - `facet_value` + `sourceHandles` are supported only for facetType in {TAG, FEATURE, OPTION}
+# - FacetValueCreate/Update for PRICE or IN_STOCK must fail validation
 
 type FacetValue implements Node {
   id: ID!
@@ -1231,7 +1241,8 @@ input FacetCreateInput { facetType: FacetType!, slug: String!, uiType: FacetUITy
 input FacetUpdateInput { id: ID!, slug: String, uiType: FacetUIType, selectionMode: FacetSelectionMode, groupId: ID, label: String, sortIndex: Int, minValues: Int, maxValuesVisible: Int, valueSort: FacetValueSort, indexable: Boolean }
 input FacetDeleteInput { id: ID! }
 
-input FacetValueCreateInput { facetId: ID!, slug: String!, label: String!, sourceHandles: [String!]!, swatchId: ID, sortIndex: Int, enabled: Boolean }
+# `sourceHandles` is required for TAG/FEATURE/OPTION and forbidden for PRICE/IN_STOCK.
+input FacetValueCreateInput { facetId: ID!, slug: String!, label: String!, sourceHandles: [String!], swatchId: ID, sortIndex: Int, enabled: Boolean }
 input FacetValueUpdateInput { id: ID!, slug: String, label: String, sourceHandles: [String!], swatchId: ID, sortIndex: Int, enabled: Boolean }
 input FacetValueDeleteInput { id: ID! }
 
