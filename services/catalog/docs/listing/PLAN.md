@@ -350,7 +350,7 @@ catalog.facet (
   min_values        int NOT NULL DEFAULT 1,            -- hide facet if fewer distinct values
   max_values_visible int NOT NULL DEFAULT 10,          -- "show more" threshold
   value_sort        varchar(16) NOT NULL DEFAULT 'count', -- 'count', 'alpha', 'custom'
-  -- Slug (app-generated, supports all languages via Node.js transliteration)
+  -- Slug (frontend-provided, backend-validated)
   slug              varchar(255) NOT NULL,
   
   -- SEO
@@ -404,7 +404,7 @@ catalog.facet_value (
   id                uuid PRIMARY KEY,
   project_id        uuid NOT NULL,
   facet_id          uuid NOT NULL,
-  slug              varchar(255) NOT NULL,           -- app-generated, unique per facet
+  slug              varchar(255) NOT NULL,           -- frontend-provided, unique per facet
   swatch_id         uuid REFERENCES catalog.facet_swatch(id) ON DELETE SET NULL,
   sort_index        int NOT NULL DEFAULT 0,
   enabled           boolean NOT NULL DEFAULT true,
@@ -1596,11 +1596,11 @@ Before step 5, keep `facets` behind a feature flag (or omit from public schema).
 
 3. **Add slug validation utility** — shared helper to validate slug format (`^[a-z0-9]([a-z0-9-]*[a-z0-9])?$`). Note: regex allows single-char slugs (e.g., "s", "m", "l" for sizes).
 
-4. **Backfill existing feature slugs** — migration script:
-   - Source: `product_feature_translation.name` / `product_feature_value_translation.name` for the project's default locale
-   - Transliterate to ASCII, lowercase, replace spaces/special chars with hyphens
-   - **Collision handling:** append `-2`, `-3`, etc. within the same parent scope
-   - Run as a one-time data migration after the schema migration
+4. **Backfill existing feature slugs** — one-time migration for legacy rows:
+   - Slugs for existing records are generated only for migration bootstrap.
+   - Runtime create/update remains frontend-provided slug only.
+   - **Collision handling:** append `-2`, `-3`, etc. within the same parent scope.
+   - Run as a one-time data migration after the schema migration.
 
 5. **Update Drizzle models** — add `slug` to `productFeature` and `productFeatureValue` in `src/repositories/models/features.ts`
 
