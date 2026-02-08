@@ -15,10 +15,15 @@ Collections assemble products by rules or manual picks.
 Facets on a collection PLP are computed on-the-fly from products present, rendered according to project-level facet setup.
 
 **Scope (Phase 1):** PostgreSQL only. No Typesense, no full-text search, no algorithmic collections.
+**Currency scope (Phase 1):** Listing price filters/sort/range are single-currency (store base currency).
 
 **Important (listing correctness):** filters split into:
 - **Product-level** constraints (fast, `catalog.product_search_index`): `TAG/FEATURE/STATUS`.
 - **Variant-level** constraints (correct for option combinations, `catalog.variant_search_index`): `OPTION`, `price`, `in_stock`.
+
+`STATUS` in `product_search_index` is derived from catalog state:
+- `published` when `product.published_at IS NOT NULL AND product.deleted_at IS NULL`
+- `draft` otherwise
 
 `CATEGORY` is not a storefront facet/filter on category PLPs; it is used as navigation context and as a rule field for rule-based collections.
 
@@ -43,6 +48,8 @@ Products inside a category need explicit ordering (merchandiser drag & drop). Cu
 
 To hide a product from a category — remove the `product_category` row. No `excluded` flag needed: categories are managed explicitly by humans.
 
+**Migration note:** when replacing `sort_index` with `lexo_rank`, run a one-time backfill ordered by existing `sort_index, product_id`, then only after successful backfill drop `sort_index`.
+
 ### 1.2 Category sort settings
 
 Add sort preference to category:
@@ -51,7 +58,6 @@ Add sort preference to category:
 -- ALTER category:
 --   ADD default_sort varchar(32) NOT NULL DEFAULT 'manual'
 --   ADD default_sort_direction varchar(4) NOT NULL DEFAULT 'asc'
---   ADD CONSTRAINT category_id_project_uniq UNIQUE (id, project_id)
 ```
 
 Values: `'manual'`, `'price'`, `'newest'`, `'name'`
@@ -75,9 +81,9 @@ catalog.category_seo (
   og_description    text,
   og_image_id       uuid,
   
-  PRIMARY KEY (category_id, locale, project_id),
-  FOREIGN KEY (category_id, project_id)
-    REFERENCES catalog.category(id, project_id)
+  PRIMARY KEY (category_id, locale),
+  FOREIGN KEY (category_id)
+    REFERENCES catalog.category(id)
     ON DELETE CASCADE
 )
 CREATE INDEX idx_category_seo_project_locale ON catalog.category_seo (project_id, locale);
@@ -124,7 +130,6 @@ catalog.collection (
   updated_at        timestamptz NOT NULL DEFAULT now(),
   deleted_at        timestamptz,
   
-  UNIQUE(id, project_id),
   UNIQUE(project_id, handle) WHERE deleted_at IS NULL AND handle IS NOT NULL,
   CHECK (type != 'rule' OR default_sort != 'manual')
 )
@@ -144,9 +149,9 @@ catalog.collection_translation (
   description_text  text,
   description_html  text,
   description_json  text,
-  PRIMARY KEY (collection_id, locale, project_id),
-  FOREIGN KEY (collection_id, project_id)
-    REFERENCES catalog.collection(id, project_id)
+  PRIMARY KEY (collection_id, locale),
+  FOREIGN KEY (collection_id)
+    REFERENCES catalog.collection(id)
     ON DELETE CASCADE
 )
 CREATE INDEX idx_collection_translation_project_locale
@@ -168,9 +173,9 @@ catalog.collection_seo (
   og_description    text,
   og_image_id       uuid,
   
-  PRIMARY KEY (collection_id, locale, project_id),
-  FOREIGN KEY (collection_id, project_id)
-    REFERENCES catalog.collection(id, project_id)
+  PRIMARY KEY (collection_id, locale),
+  FOREIGN KEY (collection_id)
+    REFERENCES catalog.collection(id)
     ON DELETE CASCADE
 )
 CREATE INDEX idx_collection_seo_project_locale ON catalog.collection_seo (project_id, locale);
@@ -183,8 +188,8 @@ catalog.collection_media (
   project_id        uuid NOT NULL,
   sort_index        int NOT NULL DEFAULT 0,
   PRIMARY KEY (collection_id, file_id),
-  FOREIGN KEY (collection_id, project_id)
-    REFERENCES catalog.collection(id, project_id)
+  FOREIGN KEY (collection_id)
+    REFERENCES catalog.collection(id)
     ON DELETE CASCADE
 )
 ```
@@ -199,8 +204,8 @@ catalog.collection_item (
   lexo_rank         varchar(64) COLLATE "C" NOT NULL,
   created_at        timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (collection_id, product_id),
-  FOREIGN KEY (collection_id, project_id)
-    REFERENCES catalog.collection(id, project_id)
+  FOREIGN KEY (collection_id)
+    REFERENCES catalog.collection(id)
     ON DELETE CASCADE
 )
 
@@ -228,8 +233,8 @@ catalog.collection_rule (
   
   -- Rules within a collection are AND-ed by default
   -- Future: rule_group for OR groups
-  FOREIGN KEY (collection_id, project_id)
-    REFERENCES catalog.collection(id, project_id)
+  FOREIGN KEY (collection_id)
+    REFERENCES catalog.collection(id)
     ON DELETE CASCADE
 )
 
@@ -294,7 +299,6 @@ catalog.facet_group (
   created_at        timestamptz NOT NULL DEFAULT now(),
   updated_at        timestamptz NOT NULL DEFAULT now(),
   
-  UNIQUE(id, project_id),
   UNIQUE(project_id, sort_index) DEFERRABLE INITIALLY DEFERRED
 )
 
@@ -303,9 +307,9 @@ catalog.facet_group_translation (
   locale            varchar(8) NOT NULL,
   project_id        uuid NOT NULL,
   name              text NOT NULL,
-  PRIMARY KEY (group_id, locale, project_id),
-  FOREIGN KEY (group_id, project_id)
-    REFERENCES catalog.facet_group(id, project_id)
+  PRIMARY KEY (group_id, locale),
+  FOREIGN KEY (group_id)
+    REFERENCES catalog.facet_group(id)
     ON DELETE CASCADE
 )
 CREATE INDEX idx_facet_group_translation_project_locale
@@ -359,9 +363,8 @@ catalog.facet (
   created_at        timestamptz NOT NULL DEFAULT now(),
   updated_at        timestamptz NOT NULL DEFAULT now(),
   
-  UNIQUE(id, project_id),
-  FOREIGN KEY (group_id, project_id)
-    REFERENCES catalog.facet_group(id, project_id)
+  FOREIGN KEY (group_id)
+    REFERENCES catalog.facet_group(id)
     ON DELETE SET NULL,
   UNIQUE(project_id, slug)
 )
@@ -371,9 +374,9 @@ catalog.facet_translation (
   locale            varchar(8) NOT NULL,
   project_id        uuid NOT NULL,
   label             text NOT NULL,                       -- display label override (e.g., "Colour" instead of "color")
-  PRIMARY KEY (facet_id, locale, project_id),
-  FOREIGN KEY (facet_id, project_id)
-    REFERENCES catalog.facet(id, project_id)
+  PRIMARY KEY (facet_id, locale),
+  FOREIGN KEY (facet_id)
+    REFERENCES catalog.facet(id)
     ON DELETE CASCADE
 )
 CREATE INDEX idx_facet_translation_project_locale
@@ -411,10 +414,8 @@ catalog.facet_value (
   created_at        timestamptz NOT NULL DEFAULT now(),
   updated_at        timestamptz NOT NULL DEFAULT now(),
   
-  UNIQUE(id, project_id),
-  UNIQUE(id, facet_id, project_id),
-  FOREIGN KEY (facet_id, project_id)
-    REFERENCES catalog.facet(id, project_id)
+  FOREIGN KEY (facet_id)
+    REFERENCES catalog.facet(id)
     ON DELETE CASCADE,
   UNIQUE(facet_id, slug)
 )
@@ -428,11 +429,11 @@ catalog.facet_value_source_handle (
   source_handle     text NOT NULL, -- option/feature composite slug or tag handle
   created_at        timestamptz NOT NULL DEFAULT now(),
 
-  FOREIGN KEY (facet_id, project_id)
-    REFERENCES catalog.facet(id, project_id)
+  FOREIGN KEY (facet_id)
+    REFERENCES catalog.facet(id)
     ON DELETE CASCADE,
-  FOREIGN KEY (facet_value_id, facet_id, project_id)
-    REFERENCES catalog.facet_value(id, facet_id, project_id)
+  FOREIGN KEY (facet_value_id)
+    REFERENCES catalog.facet_value(id)
     ON DELETE CASCADE,
   UNIQUE(project_id, facet_id, source_handle), -- one source handle -> one facet value inside facet
   UNIQUE(project_id, facet_type, source_handle), -- one source handle -> one facet for this type
@@ -448,9 +449,9 @@ catalog.facet_value_translation (
   locale            varchar(8) NOT NULL,
   project_id        uuid NOT NULL,
   label             text NOT NULL,
-  PRIMARY KEY (facet_value_id, locale, project_id),
-  FOREIGN KEY (facet_value_id, project_id)
-    REFERENCES catalog.facet_value(id, project_id)
+  PRIMARY KEY (facet_value_id, locale),
+  FOREIGN KEY (facet_value_id)
+    REFERENCES catalog.facet_value(id)
     ON DELETE CASCADE
 )
 CREATE INDEX idx_facet_value_translation_project_locale
@@ -498,13 +499,17 @@ Slug is provided by the frontend (admin UI) on create and update. The backend va
 SELECT f.id, f.slug, ft.label
 FROM facet f
 JOIN facet_translation ft ON ft.facet_id = f.id
-WHERE f.project_id = :projectId AND ft.locale = :locale;
+WHERE f.project_id = :projectId
+  AND ft.project_id = f.project_id
+  AND ft.locale = :locale;
 
 -- Facet value slugs
 SELECT fv.id, fv.slug, fvt.label
 FROM facet_value fv
 JOIN facet_value_translation fvt ON fvt.facet_value_id = fv.id
-WHERE fv.facet_id = :facetId AND fvt.locale = :locale;
+WHERE fv.facet_id = :facetId
+  AND fvt.project_id = fv.project_id
+  AND fvt.locale = :locale;
 ```
 
 #### Resolving slug → search index handle (for filter inputs)
@@ -552,7 +557,7 @@ Denormalized **product-level** table for fast queries. Used by category PLPs (pr
 catalog.product_search_index (
   project_id        uuid NOT NULL,
   product_id        uuid PRIMARY KEY REFERENCES catalog.product(id) ON DELETE CASCADE,
-  status            varchar(16) NOT NULL DEFAULT 'draft',
+  status            varchar(16) NOT NULL DEFAULT 'draft', -- derived: 'published' | 'draft'
   tag_handles       text[] DEFAULT '{}',   -- tag handles (project-wide unique), e.g., {'sale', 'new-arrival'}
   feature_slugs     text[] DEFAULT '{}',  -- composite 'feature_slug:value_slug', e.g., {'material:cotton', 'brand:nike'}
   category_handles  text[] DEFAULT '{}',  -- category handles (project-wide unique), e.g., {'shoes', 'running'}
@@ -575,8 +580,9 @@ Denormalized **variant-level** table for correct option combination filtering an
 ```sql
 catalog.variant_search_index (
   project_id        uuid NOT NULL,
-  variant_id        uuid PRIMARY KEY REFERENCES catalog.product_variant(id) ON DELETE CASCADE,
+  variant_id        uuid PRIMARY KEY REFERENCES catalog.variant(id) ON DELETE CASCADE,
   product_id        uuid NOT NULL REFERENCES catalog.product(id) ON DELETE CASCADE,
+  price_currency    varchar(3) NOT NULL, -- Phase 1: store base currency only
   price_minor       bigint,
   in_stock          boolean NOT NULL DEFAULT false,
   total_stock       int NOT NULL DEFAULT 0,
@@ -596,7 +602,7 @@ CREATE INDEX idx_variant_search_index_project_in_stock
   ON catalog.variant_search_index (project_id, in_stock);
 
 CREATE INDEX idx_variant_search_index_project_price
-  ON catalog.variant_search_index (project_id, price_minor);
+  ON catalog.variant_search_index (project_id, price_currency, price_minor);
 
 CREATE INDEX idx_variant_search_index_option_slugs_gin
   ON catalog.variant_search_index USING GIN (option_slugs);
@@ -624,15 +630,15 @@ Unconfigured values are not allowed for storefront filtering. If a `valueSlug` h
 1. Load product + categories → collect `category.handle` values → `category_handles`
 2. Load product tags → collect `tag.handle` values → `tag_handles`
 3. Load product features + values → build `feature.slug + ':' + featureValue.slug` composites → `feature_slugs`
-4. Load prices (local)
+4. Compute `status` from `product.published_at/deleted_at`
 5. UPSERT into `product_search_index` with slug/handle arrays
 
 No translation data is synced — the index contains only structured/numeric fields and slugs/handles.
 
-`SyncVariantIndexScript` runs on variantCreated/Updated/Deleted, priceChanged, inventoryChanged (and any event that affects option values):
+`SyncVariantIndexScript` runs from product lifecycle events (`productCreated`, `productDeleted`, `productUpdated`) and inspects `productUpdated.payload.variants` to determine affected variants:
 1. Load variant + parent product_id
 2. Load variant option values → build `option.slug + ':' + optionValue.slug` composites → `option_slugs`
-3. Load variant price (local)
+3. Load variant price in store base currency (`price_currency`, `price_minor`)
 4. Broker call `inventory.getOffers` for stock (variant scoped)
 5. UPSERT into `variant_search_index` (1 row per variant)
 
@@ -651,16 +657,16 @@ QueryCategoryProductsScript:
        product_category pc
        JOIN product_search_index psi ON pc.product_id = psi.product_id
        WHERE pc.category_id = :categoryId
-         AND psi.status = 'active'
+         AND psi.status = 'published'
          AND [apply product-level filters: TAG/FEATURE]
          AND [apply variant-level filters via EXISTS on variant_search_index when OPTION and/or PRICE and/or in_stock filters are present]
   3. Apply sort:
-       'manual' → ORDER BY pc.lexo_rank
-       'price'  → ORDER BY min matched variant price (see note below)
-       'newest' → ORDER BY psi.created_at DESC
+       'manual' → ORDER BY pc.lexo_rank ASC, psi.product_id ASC
+       'price'  → ORDER BY min matched variant price ASC NULLS LAST, psi.product_id ASC
+       'newest' → ORDER BY psi.created_at DESC, psi.product_id ASC
        'name'   → LEFT JOIN product_translation pt
                      ON pt.product_id = psi.product_id AND pt.locale = :locale
-                   ORDER BY pt.title
+                   ORDER BY pt.title ASC NULLS LAST, psi.product_id ASC
   4. Paginate (Relay cursor)
   5. Compute facet aggregations (see 5.3)
   6. Return { products, facets, totalCount, pageInfo }
@@ -675,7 +681,7 @@ The `name` sort JOINs `product_translation` using the request locale. The `produ
   - All active variant predicates (`OPTION`, `price`, `in_stock`) must be inside the same EXISTS.
 
 **Price sort semantics (Category PLP):**
-- Define `sort_price_minor` as the MIN(`vsi.price_minor`) among variants that pass active variant predicates (CTE `min_price_per_product`) and order by that.
+- Define `sort_price_minor` as the MIN(`vsi.price_minor`) among variants that pass active variant predicates (CTE `min_price_per_product`) and `vsi.price_currency = :priceCurrency`, then order by that.
 
 ### 5.2 Collection PLP
 
@@ -689,7 +695,7 @@ QueryCollectionProductsScript:
      - `published_at IS NOT NULL AND published_at <= now()`
      - `(effective_from IS NULL OR effective_from <= now())`
      - `(effective_to   IS NULL OR effective_to   >  now())`
-  2.1 For both manual and rule collections, products are restricted to `psi.status = 'active'`.
+  2.1 For both manual and rule collections, products are restricted to `psi.status = 'published'`.
   3. Resolve product set by type:
      
      manual:
@@ -699,7 +705,7 @@ QueryCollectionProductsScript:
        WHERE ci.collection_id = :collectionId
          AND ci.project_id = :projectId
          AND psi.project_id = :projectId
-         AND psi.status = 'active'
+         AND psi.status = 'published'
        ORDER BY ci.lexo_rank
        
      rule:
@@ -710,12 +716,12 @@ QueryCollectionProductsScript:
   
   4. Apply facet filters from user
   5. Sort:
-       'manual' → ORDER BY ci.lexo_rank
-       'price'  → ORDER BY min matched variant price
-       'newest' → ORDER BY psi.created_at DESC
+       'manual' → ORDER BY ci.lexo_rank ASC, psi.product_id ASC
+       'price'  → ORDER BY min matched variant price ASC NULLS LAST, psi.product_id ASC
+       'newest' → ORDER BY psi.created_at DESC, psi.product_id ASC
        'name'   → LEFT JOIN product_translation pt
                      ON pt.product_id = psi.product_id AND pt.locale = :locale
-                   ORDER BY pt.title NULLS LAST
+                   ORDER BY pt.title ASC NULLS LAST, psi.product_id ASC
   6. Paginate
   7. Compute facet aggregations (see 5.3)
   8. Return { products, facets, totalCount, pageInfo }
@@ -760,7 +766,7 @@ WITH base_all AS (
   JOIN product_category pc ON pc.product_id = psi.product_id
   WHERE psi.project_id = :projectId
     AND pc.category_id = :categoryId
-    AND psi.status = 'active'
+    AND psi.status = 'published'
 ),
 -- Only used when variant filters are active (OPTION, price, in_stock).
 -- Materialize once per request to avoid per-product correlated subqueries.
@@ -772,6 +778,7 @@ passes_variant_products AS (
     -- OPTION CNF: OR within each option facet, AND between option facets
     AND (vsi.option_slugs && ARRAY['color:red','color:blue']::text[]) -- Color
     AND (vsi.option_slugs && ARRAY['size:42']::text[])                -- Size
+    AND (vsi.price_currency = :priceCurrency)
     AND (:priceMin IS NULL OR vsi.price_minor >= :priceMin)
     AND (:priceMax IS NULL OR vsi.price_minor <= :priceMax)
     AND (:inStock IS NULL OR vsi.in_stock = :inStock)
@@ -944,6 +951,8 @@ src/scripts/
   search-index/
     SyncProductIndexScript.ts
     SyncVariantIndexScript.ts
+    RebuildProductIndexScript.ts          # full rebuild/backfill for product_search_index
+    RebuildVariantIndexScript.ts          # full rebuild/backfill for variant_search_index
   
   collection/
     CollectionCreateScript.ts
@@ -1186,7 +1195,7 @@ type FacetGroup implements Node {
 type Facet implements Node {
   id: ID!
   facetType: FacetType!
-  """For FEATURE/OPTION: derived from distinct source keys in facet_value_source_handle. Empty for PRICE, TAG, IN_STOCK."""
+  """For TAG/FEATURE/OPTION: derived from distinct source keys in facet_value_source_handle. Empty for PRICE, IN_STOCK."""
   sourceHandles: [String!]!
   slug: String!
   label: String!
@@ -1311,6 +1320,7 @@ input ProductFiltersInput {
   Range facet filters.
   Phase 1 supports only the `price` facetSlug.
   Price can also be passed via the shorthand priceMinMinor/priceMaxMinor fields.
+  All price fields are in store base currency minor units.
   """
   ranges: [FacetRangeFilterInput!]
   """Shorthand for price range filter. Equivalent to ranges: [{ facetSlug: "price", min: X, max: Y }]."""
@@ -1436,6 +1446,7 @@ Same lexo_rank approach for both category products and collection items.
 **Manual sort:** `ORDER BY lexo_rank ASC`
 
 **Alternative sorts:** `JOIN product_search_index` for price/created_at; `JOIN product_translation` for name (locale-aware). lexo_rank preserved for switching back to manual.
+All non-manual sorts must include deterministic tie-breaker `product_id ASC` for stable Relay pagination.
 
 **Drag & drop:** `newRank = midpoint(afterRank, beforeRank)`, single row UPDATE.
 
@@ -1468,7 +1479,7 @@ Rules in `collection_rule` are evaluated primarily against `product_search_index
 SELECT psi.product_id
 FROM product_search_index psi
 WHERE psi.project_id = :projectId
-  AND psi.status = 'active'
+  AND psi.status = 'published'
 
   -- Product-level rules
   AND (:tagInIsEmpty OR psi.tag_handles && :tagInValues::text[])
@@ -1487,6 +1498,7 @@ WHERE psi.project_id = :projectId
       WHERE vsi.project_id = psi.project_id
         AND vsi.product_id = psi.product_id
         AND (:optionInIsEmpty OR vsi.option_slugs && :optionInValues::text[])
+        AND vsi.price_currency = :priceCurrency
         AND (:priceMin IS NULL OR vsi.price_minor >= :priceMin)
         AND (:priceMax IS NULL OR vsi.price_minor <= :priceMax)
         AND (:inStock IS NULL OR vsi.in_stock = :inStock)
@@ -1612,7 +1624,7 @@ Before step 5, keep `facets` behind a feature flag (or omit from public schema).
 
 1. **Drizzle models:** `searchIndex.ts` — product_search_index
 2. **Drizzle models:** `variantSearchIndex.ts` — variant_search_index
-3. **Alter `product_category`:** replace `sortIndex` with `lexo_rank`
+3. **Alter `product_category`:** add `lexo_rank`, backfill from `sortIndex`, switch reads/writes to `lexo_rank`, then drop `sortIndex`
 4. **Alter `category`:** add `default_sort`, `default_sort_direction`
 5. **Category SEO:** add `category_seo` model + TranslationRepository + loader/resolver wiring
 6. **Generate migration**
@@ -1621,13 +1633,16 @@ Before step 5, keep `facets` behind a feature flag (or omit from public schema).
 9. **SyncProductIndexScript** — build index row from local data
 10. **SyncVariantIndexScript** — upsert per-variant rows from local data + inventory broker
 11. **Event handlers**:
-    - productCreated/Updated/Deleted → sync `product_search_index`
-    - variantCreated/Updated/Deleted, priceChanged, inventoryChanged, optionValueChanged → sync `variant_search_index`
+    - productCreated → sync both indexes for the full product
+    - productUpdated → sync both indexes using changed product + changed variants from partial payload
+    - productDeleted → delete from both indexes
 12. **Category product scripts:** QueryCategoryProductsScript, CategoryMoveProductScript, CategoryRebalanceScript, CategoryUpdateSortScript
 13. **Listing query foundation:** apply OPTION + `price` + `in_stock` via `variant_search_index` EXISTS/CTE; keep TAG/FEATURE/STATUS product-level
 14. **GraphQL:** extend Category type, add category product + sort/SEO mutations
 15. **Resolvers & loaders**
 16. **Build & test**
+17. **Run one-time backfill/rebuild scripts for both indexes before enabling listing queries**
+18. **Regenerate GraphQL admin generated types/resolver signatures and fix compile errors**
 
 ### Phase 1B: Facets
 
@@ -1639,6 +1654,7 @@ Before step 5, keep `facets` behind a feature flag (or omit from public schema).
 6. **GraphQL:** facet.graphql (FacetValue + FacetSwatch), add to CatalogQuery/CatalogMutation
 7. **Resolvers & loaders**
 8. **Build & test**
+9. **Regenerate GraphQL admin generated types/resolver signatures and fix compile errors**
 
 ### Phase 1C: Collections
 
@@ -1649,6 +1665,7 @@ Before step 5, keep `facets` behind a feature flag (or omit from public schema).
 5. **GraphQL:** collection.graphql (inputs incl. SEO/media), add to CatalogQuery/CatalogMutation
 6. **Resolvers & loaders**
 7. **Build & test**
+8. **Regenerate GraphQL admin generated types/resolver signatures and fix compile errors**
 
 ---
 
