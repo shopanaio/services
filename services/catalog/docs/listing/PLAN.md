@@ -16,6 +16,10 @@ Facets on a collection PLP are computed on-the-fly from products present, render
 
 **Scope (Phase 1):** PostgreSQL only. No Typesense, no full-text search, no algorithmic collections.
 
+**Important (listing correctness):** filters split into:
+- **Product-level** constraints (fast, `catalog.product_search_index`): `TAG/FEATURE/STATUS/CATEGORY` (and optionally coarse `price/in_stock` prefilter).
+- **Variant-level** constraints (correct for option combinations, `catalog.variant_search_index`): `OPTION` (and `price/in_stock` when combined with options).
+
 ---
 
 ## 1. Categories — What Changes
@@ -457,7 +461,7 @@ WHERE fv.facet_id = :facetId
 -- valueSlug must resolve to an existing facet_value row.
 ```
 
-`facet_type` determines which `product_search_index` array column to query: `tag_handles`, `feature_slugs`, or `option_slugs`. Multi-select facets always use `&&` (overlap). Single-select facets use exact match.
+`facet_type` determines which index column to query: `TAG` → `product_search_index.tag_handles`, `FEATURE` → `product_search_index.feature_slugs`, `OPTION` → `variant_search_index.option_slugs`. Multi-select facets always use `&&` (overlap). Single-select facets use exact match.
 
 Step 1 is a simple B-tree index lookup on `UNIQUE(project_id, slug)`. Step 2a is a B-tree lookup on `UNIQUE(facet_id, slug)`. Results cached per request. If no `facet_value` row is found, the value is invalid and must be ignored.
 
@@ -465,7 +469,7 @@ Step 1 is a simple B-tree index lookup on `UNIQUE(project_id, slug)`. Step 2a is
 
 ## 4. Product Search Index
 
-Denormalized table for fast queries. Used by category PLPs (product listing), collection rule evaluation, and collection faceted filtering.
+Denormalized **product-level** table for fast queries. Used by category PLPs (product listing), collection rule evaluation, and collection faceted filtering.
 
 **No product name in this index.** Product names are multilingual and live in `product_translation`. Sort-by-name uses a JOIN on `product_translation` at query time (see §5). This avoids duplicating translatable content into the index and keeps the search index language-agnostic — important because the separate search service will have its own index and Typesense already stores per-locale titles for full-text search.
 
@@ -480,7 +484,6 @@ catalog.product_search_index (
   total_stock       int NOT NULL DEFAULT 0,
   tag_handles       text[] DEFAULT '{}',   -- tag handles (project-wide unique), e.g., {'sale', 'new-arrival'}
   feature_slugs     text[] DEFAULT '{}',  -- composite 'feature_slug:value_slug', e.g., {'material:cotton', 'brand:nike'}
-  option_slugs      text[] DEFAULT '{}',  -- composite 'option_slug:value_slug', e.g., {'color:red', 'size:xl'}
   category_handles  text[] DEFAULT '{}',  -- category handles (project-wide unique), e.g., {'shoes', 'running'}
   created_at        timestamptz NOT NULL DEFAULT now(),
   updated_at        timestamptz NOT NULL DEFAULT now()
@@ -494,14 +497,51 @@ CREATE INDEX idx_product_search_index_project_status
   ON catalog.product_search_index (project_id, status);
 ```
 
+### Variant Search Index (for OPTION + variant-bound filters)
+
+Denormalized **variant-level** table for correct option combination filtering and variant-bound facets.
+
+```sql
+catalog.variant_search_index (
+  project_id        uuid NOT NULL,
+  variant_id        uuid PRIMARY KEY REFERENCES catalog.product_variant(id) ON DELETE CASCADE,
+  product_id        uuid NOT NULL REFERENCES catalog.product(id) ON DELETE CASCADE,
+  price_minor       bigint,
+  in_stock          boolean NOT NULL DEFAULT false,
+  total_stock       int NOT NULL DEFAULT 0,
+  option_slugs      text[] DEFAULT '{}',  -- composite 'option_slug:value_slug', e.g., {'color:red', 'size:42'}
+  created_at        timestamptz NOT NULL DEFAULT now(),
+  updated_at        timestamptz NOT NULL DEFAULT now()
+)
+```
+
+Indexes:
+
+```sql
+CREATE INDEX idx_variant_search_index_project_product
+  ON catalog.variant_search_index (project_id, product_id);
+
+CREATE INDEX idx_variant_search_index_project_in_stock
+  ON catalog.variant_search_index (project_id, in_stock);
+
+CREATE INDEX idx_variant_search_index_project_price
+  ON catalog.variant_search_index (project_id, price_minor);
+
+CREATE INDEX idx_variant_search_index_option_slugs_gin
+  ON catalog.variant_search_index USING GIN (option_slugs);
+```
+
 ### Slug → composite handle lookup (for storefront filter inputs)
 
-Both the search index and facets store **slugs/handles** (not UUIDs). The search index stores composite slugs (`option_slug:value_slug`), and facets map display slugs to source composite handles via `facet_value.source_handles`.
+Both the search index and facets store **slugs/handles** (not UUIDs). The variant search index stores composite slugs (`option_slug:value_slug`) for options, and facets map display slugs to source composite handles via `facet_value.source_handles`.
 
 Storefront passes facet filters via the unified `ProductFiltersInput.facets` field as `facetSlug:valueSlug` strings. Resolution is through facets (see §3.4):
 1. `facet.slug` → `facet_type`, `source_handles`
 2. `facet_value.source_handles` (configured values only)
-3. Query the appropriate `product_search_index` array column (`tag_handles`, `feature_slugs`, `option_slugs`)
+3. Query the appropriate index column:
+   - `TAG` → `product_search_index.tag_handles`
+   - `FEATURE` → `product_search_index.feature_slugs`
+   - `OPTION` → `variant_search_index.option_slugs`
 
 Unconfigured values are not allowed for storefront filtering. If a `valueSlug` has no matching `facet_value` row, the filter value is ignored.
 
@@ -510,13 +550,19 @@ Unconfigured values are not allowed for storefront filtering. If a `valueSlug` h
 `SyncProductIndexScript` runs on productCreated/Updated/Deleted events:
 1. Load product + categories → collect `category.handle` values → `category_handles`
 2. Load product tags → collect `tag.handle` values → `tag_handles`
-3. Load product options + values → build `option.slug + ':' + optionValue.slug` composites → `option_slugs`
-4. Load product features + values → build `feature.slug + ':' + featureValue.slug` composites → `feature_slugs`
-5. Load prices (local)
-6. Broker call `inventory.getOffers` for stock
-7. UPSERT into `product_search_index` with slug/handle arrays
+3. Load product features + values → build `feature.slug + ':' + featureValue.slug` composites → `feature_slugs`
+4. Load prices (local)
+5. Broker call `inventory.getOffers` for stock
+6. UPSERT into `product_search_index` with slug/handle arrays
 
 No translation data is synced — the index contains only structured/numeric fields and slugs/handles.
+
+`SyncVariantIndexScript` runs on variantCreated/Updated/Deleted, priceChanged, inventoryChanged (and any event that affects option values):
+1. Load variant + parent product_id
+2. Load variant option values → build `option.slug + ':' + optionValue.slug` composites → `option_slugs`
+3. Load variant price (local)
+4. Broker call `inventory.getOffers` for stock (variant scoped)
+5. UPSERT into `variant_search_index` (1 row per variant)
 
 ---
 
@@ -534,10 +580,11 @@ QueryCategoryProductsScript:
        JOIN product_search_index psi ON pc.product_id = psi.product_id
        WHERE pc.category_id = :categoryId
          AND psi.status = 'active'
-         AND [apply facet filters]
+         AND [apply product-level filters: TAG/FEATURE (+ optional coarse PRICE/IN_STOCK)]
+         AND [apply variant-level filters via EXISTS on variant_search_index when OPTION filters are present]
   3. Apply sort:
        'manual' → ORDER BY pc.lexo_rank
-       'price'  → ORDER BY psi.min_price_minor
+       'price'  → if OPTION/variant filters active: ORDER BY min matched variant price (see note below); else ORDER BY psi.min_price_minor
        'newest' → ORDER BY psi.created_at DESC
        'name'   → LEFT JOIN product_translation pt
                      ON pt.product_id = psi.product_id AND pt.locale = :locale
@@ -548,6 +595,17 @@ QueryCategoryProductsScript:
 ```
 
 The `name` sort JOINs `product_translation` using the request locale. The `product_translation` table has a composite PK `(product_id, locale)` so the join is index-only. LEFT JOIN ensures products without a translation for the requested locale still appear (sorted last via `NULLS LAST`).
+
+**Variant filter semantics (Category PLP):**
+- `TAG/FEATURE/STATUS/CATEGORY` remain product-level (on `product_search_index` + `product_category`).
+- `OPTION` filters must be variant-correct:
+  - Apply as `EXISTS (SELECT 1 FROM variant_search_index vsi WHERE vsi.project_id = psi.project_id AND vsi.product_id = psi.product_id AND [variant predicates])`.
+  - If OPTION filters are present, apply `price` and `in_stock` inside the same EXISTS (otherwise you can get false positives like “red” variant exists and “in-stock” is true but only for a different variant).
+- If no OPTION filters are present, `price` and `in_stock` may be applied using `product_search_index` fields for speed.
+
+**Price sort semantics (Category PLP):**
+- If any variant-level filters are active, define `sort_price_minor` as the MIN(`vsi.price_minor`) among variants that pass variant predicates (CTE `min_price_per_product`) and order by that.
+- Otherwise keep ordering by `psi.min_price_minor`.
 
 ### 5.2 Collection PLP
 
@@ -568,7 +626,7 @@ QueryCollectionProductsScript:
   4. Apply facet filters from user
   5. Sort:
        'manual' → ORDER BY ci.lexo_rank
-       'price'  → ORDER BY psi.min_price_minor
+       'price'  → if OPTION/variant filters active: ORDER BY min matched variant price; else ORDER BY psi.min_price_minor
        'newest' → ORDER BY psi.created_at DESC
        'name'   → LEFT JOIN product_translation pt
                      ON pt.product_id = psi.product_id AND pt.locale = :locale
@@ -592,7 +650,11 @@ Three key concerns:
 
 #### 5.3.1 Single-query approach with boolean filter columns
 
-Instead of N+1 separate queries, compute boolean "passes filter" columns per facet on each product row, then use `FILTER (WHERE ...)` on aggregates. One scan of the product set, one unnest pass per array type.
+Instead of N+1 separate queries, keep a single product base scan and:
+- compute product-level pass booleans from `product_search_index` (`TAG/FEATURE`, plus optional coarse `PRICE/IN_STOCK`)
+- compute a **variant pass set** from `variant_search_index` when OPTION (and variant-bound `price/in_stock`) filters are active
+- compute `TAG/FEATURE` facet counts off the product base (with the variant pass set applied)
+- compute `OPTION` facet counts off the variant index, but return `COUNT(DISTINCT product_id)` so products are not double-counted
 
 **Step 1: Base CTE with per-facet boolean columns (no user filters)**
 
@@ -601,7 +663,7 @@ One boolean per facet (multi-select uses OR / overlap).
 If a facet has **no selected values**, do not create its `passes_*` boolean and do not apply that facet filter in the product query (treat as `TRUE`). Never use `array && '{}'`.
 
 ```sql
--- Example: user selected Color=[Red, Blue], Material=[Cotton], Tags=[Sale],
+-- Example: user selected Color=[Red, Blue], Size=[42], Material=[Cotton], Tags=[Sale],
 -- price $10–$50, in_stock=true.
 
 WITH base_all AS (
@@ -609,7 +671,6 @@ WITH base_all AS (
     psi.product_id,
     psi.tag_handles,
     psi.feature_slugs,
-    psi.option_slugs,
     psi.min_price_minor,
     psi.max_price_minor,
     psi.in_stock,
@@ -618,28 +679,41 @@ WITH base_all AS (
   WHERE pc.category_id = :categoryId
     AND psi.status = 'active'
 ),
+-- Only used when variant filters are active (OPTION and variant-bound price/in_stock).
+-- Materialize once per request to avoid per-product correlated subqueries.
+passes_variant_products AS (
+  SELECT DISTINCT vsi.product_id
+  FROM variant_search_index vsi
+  JOIN base_all b ON b.product_id = vsi.product_id
+  WHERE vsi.project_id = :projectId
+    AND (vsi.option_slugs @> ARRAY['color:red','size:42']::text[]) -- AND across option dimensions
+    AND (:priceMin IS NULL OR vsi.price_minor >= :priceMin)
+    AND (:priceMax IS NULL OR vsi.price_minor <= :priceMax)
+    AND (:inStock IS NULL OR vsi.in_stock = :inStock)
+),
 base AS (
   SELECT
     base_all.*,
 
     -- One boolean per facet. Multi-select = OR (overlap).
-    (base_all.option_slugs && ARRAY['color:red','color:blue']::text[])       AS passes_color,
     (base_all.feature_slugs && ARRAY['material:cotton']::text[])             AS passes_material,
     (base_all.tag_handles && ARRAY['sale']::text[])                          AS passes_tags,
 
-    -- Price and in_stock:
-    -- Range overlap — product is included if ANY variant's price intersects
-    -- the requested range. To filter by cheapest variant only, use min_price_minor for both bounds.
+    -- Coarse product-level prefilters (optional; safe when no OPTION filters are active).
     (
       (:priceMin IS NULL OR base_all.max_price_minor >= :priceMin)
       AND (:priceMax IS NULL OR base_all.min_price_minor <= :priceMax)
     ) AS passes_price,
-    (:inStock IS NULL OR base_all.in_stock = :inStock)                        AS passes_in_stock
+    (:inStock IS NULL OR base_all.in_stock = :inStock)                       AS passes_in_stock,
+
+    -- Variant pass: when variant filters are active, product must have at least one passing variant.
+    (NOT :variantFiltersActive OR pvp.product_id IS NOT NULL)                 AS passes_variant
   FROM base_all
+  LEFT JOIN passes_variant_products pvp ON pvp.product_id = base_all.product_id
 )
 ```
 
-`base_all` defines the stable universe (no user filters). `base` adds boolean filter columns for counts, but does not filter rows. This guarantees that the facet and value lists are stable, while counts change with filters. Product list queries still apply user filters in their own WHERE clauses.
+`base_all` defines the stable universe (no user filters). `base` adds boolean filter columns for counts, but does not filter rows. This guarantees that the facet and value lists are stable, while counts change with filters. When no variant filters are active, `passes_variant` should be treated as `TRUE` (skip `passes_variant_products` entirely).
 
 **Step 2: Aggregation with facet isolation via FILTER**
 
@@ -647,17 +721,9 @@ Counts for each facet are computed with all other filters applied, but **without
 
 ```sql
 WITH unnested AS (
-  -- Options
-  SELECT b.product_id,
-         b.passes_color, b.passes_material, b.passes_tags, b.passes_price, b.passes_in_stock,
-         sv.slug AS sv_slug, 'option' AS facet_type
-  FROM base b, unnest(b.option_slugs) AS sv(slug)
-
-  UNION ALL
-
   -- Features
   SELECT b.product_id,
-         b.passes_color, b.passes_material, b.passes_tags, b.passes_price, b.passes_in_stock,
+         b.passes_material, b.passes_tags, b.passes_price, b.passes_in_stock, b.passes_variant,
          sv.slug AS sv_slug, 'feature' AS facet_type
   FROM base b, unnest(b.feature_slugs) AS sv(slug)
 
@@ -665,7 +731,7 @@ WITH unnested AS (
 
   -- Tags
   SELECT b.product_id,
-         b.passes_color, b.passes_material, b.passes_tags, b.passes_price, b.passes_in_stock,
+         b.passes_material, b.passes_tags, b.passes_price, b.passes_in_stock, b.passes_variant,
          sv.slug AS sv_slug, 'tag' AS facet_type
   FROM base b, unnest(b.tag_handles) AS sv(slug)
 ),
@@ -676,15 +742,15 @@ mapped AS (
     f.id AS facet_id,
     fv.id AS facet_value_id,
     fv.slug AS value_slug,
-    u.passes_color, u.passes_material, u.passes_tags, u.passes_price, u.passes_in_stock
+    u.passes_material, u.passes_tags, u.passes_price, u.passes_in_stock, u.passes_variant
   FROM unnested u
   -- Resolve facet for this slug's facet_type + source_handles:
   JOIN facet f
     ON f.project_id = :projectId
     AND f.facet_type = u.facet_type
     AND (
-      -- For option/feature: the prefix before ':' must be in the facet's source_handles array
-      (u.facet_type IN ('option', 'feature') AND split_part(u.sv_slug, ':', 1) = ANY(f.source_handles))
+      -- For feature: the prefix before ':' must be in the facet's source_handles array
+      (u.facet_type = 'feature' AND split_part(u.sv_slug, ':', 1) = ANY(f.source_handles))
       -- For tag: source_handles is empty
       OR (u.facet_type = 'tag' AND f.source_handles = '{}')
     )
@@ -700,9 +766,8 @@ counts AS (
     m.value_slug,
     COUNT(DISTINCT m.product_id)
       FILTER (WHERE
-        (m.facet_type = 'option'  AND m.passes_material AND m.passes_tags AND m.passes_price AND m.passes_in_stock) OR
-        (m.facet_type = 'feature' AND m.passes_color    AND m.passes_tags AND m.passes_price AND m.passes_in_stock) OR
-        (m.facet_type = 'tag'     AND m.passes_color    AND m.passes_material AND m.passes_price AND m.passes_in_stock)
+        (m.facet_type = 'feature' AND m.passes_tags AND m.passes_price AND m.passes_in_stock AND m.passes_variant) OR
+        (m.facet_type = 'tag'     AND m.passes_material AND m.passes_price AND m.passes_in_stock AND m.passes_variant)
       ) AS cnt
   FROM mapped m
   GROUP BY m.facet_id, m.facet_value_id, m.value_slug
@@ -716,29 +781,32 @@ SELECT
 FROM counts
 ```
 
+**OPTION facet counts (variant-correct):** compute from `variant_search_index`, but return `COUNT(DISTINCT product_id)`.
+Facet isolation still applies: to compute counts for one OPTION facet, omit only that facet's option predicate, but keep:
+- all active product-level filters (`TAG/FEATURE/STATUS/CATEGORY`)
+- all other active OPTION predicates
+- variant-bound `price/in_stock` predicates
+
 **Configured values only:** counts and value lists are built solely from enabled `facet_value` rows. Any source value without a `facet_value` mapping is ignored.
 
 **Step 3: Price range, in-stock count, and total (with facet isolation)**
 
-Price range is computed **without** the price filter (facet isolation), so the slider
-always shows the full available range for the current selection. In-stock count is
-computed **without** the in_stock filter, so the toggle shows how many items are
-available. Total count uses all filters.
+Total count uses all active filters.
+
+For correctness with OPTION filters, `PRICE` and `IN_STOCK` aggregations should be computed from `variant_search_index`, scoped to the eligible product set:
+- `PRICE` range: exclude the price predicate (facet isolation), keep all other active filters (product-level + OPTION + in_stock).
+- `IN_STOCK` count: exclude the in_stock predicate (facet isolation), keep all other active filters (product-level + OPTION + price).
 
 ```sql
 SELECT
-  -- Price range: exclude passes_price (isolation), keep all other filters
-  MIN(min_price_minor) FILTER (WHERE passes_color AND passes_material AND passes_tags AND passes_in_stock) AS price_min,
-  MAX(max_price_minor) FILTER (WHERE passes_color AND passes_material AND passes_tags AND passes_in_stock) AS price_max,
-  -- In-stock count: exclude passes_in_stock (isolation), keep all other filters
-  COUNT(*)             FILTER (WHERE passes_color AND passes_material AND passes_tags AND passes_price) AS in_stock_count,
   -- Total count: all filters applied (no isolation — this is the result count)
-  COUNT(*)             FILTER (WHERE passes_color AND passes_material AND passes_tags AND passes_price AND passes_in_stock) AS total_count
+  COUNT(*) FILTER (WHERE passes_material AND passes_tags AND passes_price AND passes_in_stock AND passes_variant) AS total_count
 FROM base
 ```
 
 **Why this works:**
 - Single sequential scan of `product_search_index` (base CTE materialized once)
+- When variant filters are active: one scan of `variant_search_index` to materialize `passes_variant_products`
 - `FILTER (WHERE ...)` is a Postgres aggregate clause — no subqueries, no extra scans
 - Facet isolation: omit one boolean per facet from the FILTER conjunction
 - When no facet filters are active, all `passes_X` columns are absent and FILTER clauses are omitted — degenerates to plain `COUNT(*)`
@@ -769,12 +837,14 @@ The aggregated data is assembled using the project's `facet` setup:
 ```
 src/repositories/models/
   searchIndex.ts                        # product_search_index
+  variantSearchIndex.ts                 # variant_search_index
   collection.ts                         # collection, collection_item, collection_rule, collection_translation, collection_media
   facet.ts                              # facet_group, facet_group_translation, facet, facet_translation,
                                         # facet_swatch, facet_value, facet_value_translation
 
 src/repositories/
-  listing/SearchIndexRepository.ts      # product_search_index CRUD + facet queries
+  listing/SearchIndexRepository.ts      # product_search_index CRUD + TAG/FEATURE facet queries
+  listing/VariantSearchIndexRepository.ts # variant_search_index CRUD + OPTION facet queries
   collection/CollectionRepository.ts    # collection CRUD
   collection/CollectionItemRepository.ts # manual items: add/remove/reorder
   collection/CollectionRuleRepository.ts # rules CRUD
@@ -786,6 +856,7 @@ src/repositories/
 src/scripts/
   search-index/
     SyncProductIndexScript.ts
+    SyncVariantIndexScript.ts
   
   collection/
     CollectionCreateScript.ts
@@ -1273,7 +1344,7 @@ Same lexo_rank approach for both category products and collection items.
 
 ## 9. Collection Rule Evaluation
 
-Rules in `collection_rule` are evaluated against `product_search_index`:
+Rules in `collection_rule` are evaluated primarily against `product_search_index`, with variant-correct handling for OPTION (and variant-bound `price/in_stock`) via `variant_search_index`:
 
 ```sql
 -- Each rule becomes a WHERE clause.
@@ -1292,19 +1363,40 @@ Rules in `collection_rule` are evaluated against `product_search_index`:
 --     (product has BOTH "sale" AND "new-arrival")
 
 -- { field: "price", operator: "between", value: [1000, 5000] }
---   → psi.max_price_minor >= 1000 AND psi.min_price_minor <= 5000
---     (range overlap — product is included if ANY variant's price intersects [1000, 5000].
---      Same semantics as storefront price filter, see §5.3.1 Step 1.)
+--   → if no OPTION rules are present:
+--       psi.max_price_minor >= 1000 AND psi.min_price_minor <= 5000  (fast coarse filter)
+--     else (or for strict variant semantics):
+--       EXISTS (
+--         SELECT 1 FROM variant_search_index vsi
+--         WHERE vsi.project_id = psi.project_id
+--           AND vsi.product_id = psi.product_id
+--           AND vsi.price_minor BETWEEN 1000 AND 5000
+--           AND [option predicates if any]
+--       )
 
 -- { field: "in_stock", operator: "eq", value: true }
---   → psi.in_stock = true
+--   → if no OPTION rules are present:
+--       psi.in_stock = true
+--     else (or for strict variant semantics):
+--       EXISTS (
+--         SELECT 1 FROM variant_search_index vsi
+--         WHERE vsi.project_id = psi.project_id
+--           AND vsi.product_id = psi.product_id
+--           AND vsi.in_stock = true
+--           AND [option predicates if any]
+--       )
 
 -- { field: "feature", operator: "in", value: ["material:cotton", "material:linen"] }
 --   → psi.feature_slugs && ARRAY['material:cotton', 'material:linen']::text[]
 --     (composite slug used directly — no facet_value lookup needed)
 
 -- { field: "option", operator: "in", value: ["color:red", "color:blue"] }
---   → psi.option_slugs && ARRAY['color:red', 'color:blue']::text[]
+--   → EXISTS (
+--       SELECT 1 FROM variant_search_index vsi
+--       WHERE vsi.project_id = psi.project_id
+--         AND vsi.product_id = psi.product_id
+--         AND vsi.option_slugs && ARRAY['color:red', 'color:blue']::text[]
+--     )
 
 -- { field: "category", operator: "in", value: ["shoes", "running"] }
 --   → psi.category_handles && ARRAY['shoes', 'running']::text[]
@@ -1376,17 +1468,23 @@ Everything else is local to catalog.
 ### Phase 1A: Search Index + Category Products
 
 1. **Drizzle models:** `searchIndex.ts` — product_search_index
-2. **Alter `product_category`:** replace `sortIndex` with `lexo_rank`
-3. **Alter `category`:** add `default_sort`, `default_sort_direction`
-4. **Category SEO:** add `category_seo` model + TranslationRepository + loader/resolver wiring
-5. **Generate migration**
-6. **SearchIndexRepository** — upsert, delete, facet queries
-7. **SyncProductIndexScript** — build index row from local data + inventory broker
-8. **Event handlers** — productCreated/Updated/Deleted → sync index
-9. **Category product scripts:** QueryCategoryProductsScript, CategoryMoveProductScript, CategoryRebalanceScript, CategoryUpdateSortScript
-10. **GraphQL:** extend Category type, add category product + sort/SEO mutations
-11. **Resolvers & loaders**
-12. **Build & test**
+2. **Drizzle models:** `variantSearchIndex.ts` — variant_search_index
+3. **Alter `product_category`:** replace `sortIndex` with `lexo_rank`
+4. **Alter `category`:** add `default_sort`, `default_sort_direction`
+5. **Category SEO:** add `category_seo` model + TranslationRepository + loader/resolver wiring
+6. **Generate migration**
+7. **SearchIndexRepository** — upsert, delete, TAG/FEATURE facet queries
+8. **VariantSearchIndexRepository** — upsert, delete, OPTION facet queries
+9. **SyncProductIndexScript** — build index row from local data + inventory broker
+10. **SyncVariantIndexScript** — upsert per-variant rows from local data + inventory broker
+11. **Event handlers**:
+    - productCreated/Updated/Deleted → sync `product_search_index`
+    - variantCreated/Updated/Deleted, priceChanged, inventoryChanged, optionValueChanged → sync `variant_search_index`
+12. **Category product scripts:** QueryCategoryProductsScript, CategoryMoveProductScript, CategoryRebalanceScript, CategoryUpdateSortScript
+13. **Listing query update:** apply OPTION (+ variant-bound price/in_stock) via `variant_search_index` EXISTS/CTE; keep TAG/FEATURE/CATEGORY/STATUS product-level
+14. **GraphQL:** extend Category type, add category product + sort/SEO mutations
+15. **Resolvers & loaders**
+16. **Build & test**
 
 ### Phase 1B: Facets
 
