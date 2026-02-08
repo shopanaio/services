@@ -218,7 +218,7 @@ catalog.collection_rule (
   id                uuid PRIMARY KEY,
   collection_id     uuid NOT NULL,
   project_id        uuid NOT NULL,
-  field             varchar(64) NOT NULL,   -- 'tag', 'price', 'option', 'feature', 'in_stock', 'category', 'status', 'created_at'
+  field             varchar(64) NOT NULL,   -- 'tag', 'price', 'option', 'feature', 'in_stock', 'category', 'created_at'
   operator          varchar(16) NOT NULL,   -- 'eq', 'gt', 'gte', 'lt', 'lte', 'in', 'all', 'contains', 'between'
   value             jsonb NOT NULL,          -- scalar or array depending on operator
   sort_index        int NOT NULL DEFAULT 0,  -- for stable UI display order (rules are AND-ed, order is semantically irrelevant)
@@ -237,7 +237,7 @@ CREATE INDEX idx_collection_rule_collection ON catalog.collection_rule(collectio
 ```
 
 **Rule groups:**
-- `product-level`: `tag`, `feature`, `category`, `status`, `created_at`
+- `product-level`: `tag`, `feature`, `category`, `created_at`
 - `variant-level`: `option`, `price`, `in_stock`
 
 **Examples:**
@@ -252,7 +252,7 @@ CREATE INDEX idx_collection_rule_collection ON catalog.collection_rule(collectio
 Rules are evaluated against `product_search_index`, with variant-correct predicates (`option`, `price`, `in_stock`) resolved via `variant_search_index`.
 
 **Rule evaluation contract (normative):**
-- Product-level fields (`tag`, `feature`, `category`, `status`, `created_at`) are evaluated on `product_search_index`.
+- Product-level fields (`tag`, `feature`, `category`, `created_at`) are evaluated on `product_search_index`.
 - Variant-bound fields (`option`, `price`, `in_stock`) MUST be compiled into a single `EXISTS` over `variant_search_index`.
 - Independent `EXISTS` blocks per variant-bound rule are forbidden because they can match different variants of the same product and produce false positives.
 - Authoritative SQL semantics are defined in §9.
@@ -1442,7 +1442,7 @@ Rules in `collection_rule` are evaluated primarily against `product_search_index
 -- 2) All variant-bound predicates are merged into ONE EXISTS block.
 --    This guarantees one-and-the-same variant satisfies option/price/in_stock together.
 --
--- Product-level fields: tag, feature, category, status, created_at
+-- Product-level fields: tag, feature, category, created_at
 -- Variant-bound fields: option, price, in_stock
 --
 -- Independent EXISTS per variant-bound rule is forbidden:
@@ -1463,7 +1463,6 @@ WHERE psi.project_id = :projectId
   AND (:tagInIsEmpty OR psi.tag_handles && :tagInValues::text[])
   AND (:tagAllIsEmpty OR psi.tag_handles @> :tagAllValues::text[])
   AND (:featureInIsEmpty OR psi.feature_slugs && :featureInValues::text[])
-  AND (:statusEq IS NULL OR psi.status = :statusEq)
   AND (:categoryInIsEmpty OR psi.category_handles && :categoryInValues::text[])
   AND (:createdFrom IS NULL OR psi.created_at >= :createdFrom)
   AND (:createdTo   IS NULL OR psi.created_at <  :createdTo)
@@ -1491,7 +1490,6 @@ WHERE psi.project_id = :projectId
 -- Scalar operator semantics:
 --   field=price      : eq, gt, gte, lt, lte, between (on vsi.price_minor)
 --   field=created_at : eq, gt, gte, lt, lte, between (on psi.created_at)
---   field=status     : eq (on psi.status)
 --   field=in_stock   : eq (on vsi.in_stock)
 -- Any unsupported (field, operator) pair must fail validation in CollectionUpdateRulesScript.
 
