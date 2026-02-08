@@ -361,21 +361,9 @@ catalog.facet_translation (
 )
 CREATE INDEX idx_facet_translation_project_locale
   ON catalog.facet_translation (project_id, locale);
-
-catalog.facet_source_handle (
-  id                uuid PRIMARY KEY,
-  project_id        uuid NOT NULL,
-  facet_id          uuid NOT NULL REFERENCES catalog.facet(id) ON DELETE CASCADE,
-  facet_type        varchar(32) NOT NULL,  -- copied from facet for uniqueness scope
-  source_handle     text NOT NULL,         -- e.g. "color", "material", "sale"
-  created_at        timestamptz NOT NULL DEFAULT now(),
-
-  UNIQUE(project_id, facet_type, source_handle), -- one source handle -> one facet for this type
-  UNIQUE(facet_id, source_handle)
-)
-CREATE INDEX idx_facet_source_handle_project_facet
-  ON catalog.facet_source_handle (project_id, facet_id);
 ```
+
+`facet_source_handle` is intentionally removed. `facet_value_source_handle` is the only source mapping table in this plan.
 
 ---
 
@@ -398,7 +386,7 @@ catalog.facet_swatch (
 catalog.facet_value (
   id                uuid PRIMARY KEY,
   project_id        uuid NOT NULL,
-  facet_id          uuid NOT NULL REFERENCES catalog.facet(id) ON DELETE CASCADE,
+  facet_id          uuid NOT NULL,
   slug              varchar(255) NOT NULL,           -- app-generated, unique per facet
   swatch_id         uuid REFERENCES catalog.facet_swatch(id) ON DELETE SET NULL,
   sort_index        int NOT NULL DEFAULT 0,
@@ -407,22 +395,36 @@ catalog.facet_value (
   updated_at        timestamptz NOT NULL DEFAULT now(),
   
   UNIQUE(id, project_id),
+  UNIQUE(id, facet_id, project_id),
+  FOREIGN KEY (facet_id, project_id)
+    REFERENCES catalog.facet(id, project_id)
+    ON DELETE CASCADE,
   UNIQUE(facet_id, slug)
 )
 
 catalog.facet_value_source_handle (
   id                uuid PRIMARY KEY,
   project_id        uuid NOT NULL,
-  facet_id          uuid NOT NULL REFERENCES catalog.facet(id) ON DELETE CASCADE,
-  facet_value_id    uuid NOT NULL REFERENCES catalog.facet_value(id) ON DELETE CASCADE,
+  facet_id          uuid NOT NULL,
+  facet_value_id    uuid NOT NULL,
+  facet_type        varchar(32) NOT NULL, -- denormalized from facet for uniqueness scope
   source_handle     text NOT NULL, -- option/feature composite slug or tag handle
   created_at        timestamptz NOT NULL DEFAULT now(),
 
+  FOREIGN KEY (facet_id, project_id)
+    REFERENCES catalog.facet(id, project_id)
+    ON DELETE CASCADE,
+  FOREIGN KEY (facet_value_id, facet_id, project_id)
+    REFERENCES catalog.facet_value(id, facet_id, project_id)
+    ON DELETE CASCADE,
   UNIQUE(project_id, facet_id, source_handle), -- one source handle -> one facet value inside facet
+  UNIQUE(project_id, facet_type, source_handle), -- one source handle -> one facet for this type
   UNIQUE(facet_value_id, source_handle)
 )
 CREATE INDEX idx_facet_value_source_handle_project_value
   ON catalog.facet_value_source_handle (project_id, facet_value_id);
+CREATE INDEX idx_facet_value_source_handle_project_type_source
+  ON catalog.facet_value_source_handle (project_id, facet_type, source_handle);
 
 catalog.facet_value_translation (
   facet_value_id    uuid NOT NULL,
@@ -440,9 +442,10 @@ CREATE INDEX idx_facet_value_translation_project_locale
 
 **Назначение:**
 - `facet_swatch` — визуальный swatch для значения фасета (аналог `product_option_swatch`)
-- `facet_source_handle` — нормализованная привязка `source_handle -> facet` с DB-level уникальностью (в пределах `project_id + facet_type`)
 - `facet_value` — настроенное значение: порядок, enabled, swatch
-- `facet_value_source_handle` — нормализованная привязка `source_handle -> facet_value` с DB-level уникальностью (в пределах `project_id + facet_id`)
+- `facet_value_source_handle` — единственный source mapping (`source_handle -> facet_value`) с DB-level уникальностью:
+  - в пределах `project_id + facet_id`
+  - и в пределах `project_id + facet_type` (чтобы один source_handle не попадал в два фасета одного типа)
 - `facet_value_translation` — display label for storefront (no source fallback)
 
 **Резолюция label и swatch:**
@@ -489,34 +492,36 @@ WHERE fv.facet_id = :facetId AND fvt.locale = :locale;
 
 #### Resolving slug → search index handle (for filter inputs)
 
-Storefront passes `facetSlug:valueSlug` strings via the unified `ProductFiltersInput.facets` field. All facet types (tag, feature, option) use the same resolution path:
+Storefront passes `facetSlug:valueSlug` strings via the unified `ProductFiltersInput.facets` field. All facet types (tag, feature, option) use one canonical resolution path through `facet` + `facet_value` + `facet_value_source_handle`:
 
 ```sql
--- Step 1: Resolve facet slug → facet row
-SELECT f.id AS facet_id, f.facet_type
+-- Resolve (facetSlug, valueSlug) -> (facet_id, facet_type, source_handles)
+SELECT
+  f.id AS facet_id,
+  f.facet_type,
+  fv.id AS facet_value_id,
+  array_agg(fvsh.source_handle ORDER BY fvsh.source_handle) AS source_handles
 FROM facet f
+JOIN facet_value fv
+  ON fv.facet_id = f.id
+  AND fv.project_id = f.project_id
+  AND fv.enabled = true
+JOIN facet_value_source_handle fvsh
+  ON fvsh.facet_value_id = fv.id
+  AND fvsh.facet_id = f.id
+  AND fvsh.project_id = f.project_id
+  AND fvsh.facet_type = f.facet_type
 WHERE f.project_id = :projectId
-  AND f.slug = :facetSlug;
+  AND f.slug = :facetSlug
+  AND fv.slug = :valueSlug
+GROUP BY f.id, f.facet_type, fv.id;
 ```
 
-```sql
--- Step 2a (configured values): Resolve value slug -> source handles
-SELECT fvsh.source_handle
-FROM facet_value fv
-JOIN facet_value_source_handle fvsh ON fvsh.facet_value_id = fv.id
-WHERE fv.facet_id = :facetId
-  AND fv.project_id = :projectId
-  AND fv.slug = :valueSlug;
-```
-
-```
--- Step 2b is intentionally not supported:
--- valueSlug must resolve to an existing facet_value row.
-```
+`valueSlug` must resolve to an existing enabled `facet_value` row. If no row is found, the filter value is invalid and must be ignored.
 
 `facet_type` determines which index column to query: `TAG` -> `product_search_index.tag_handles`, `FEATURE` -> `product_search_index.feature_slugs`, `OPTION` -> `variant_search_index.option_slugs`. Multi-select facets use CNF: OR inside one facet, AND between facets. Single-select facets use exact match.
 
-Step 1 is a simple B-tree lookup on `UNIQUE(project_id, slug)`. Step 2a is a B-tree lookup on `UNIQUE(facet_id, slug)` plus indexed join to `facet_value_source_handle`. Results are cached per request. If no `facet_value` row is found, the value is invalid and must be ignored.
+Lookup uses `UNIQUE(project_id, slug)` on `facet`, `UNIQUE(facet_id, slug)` on `facet_value`, and indexed join to `facet_value_source_handle` (`project_id + facet_type + source_handle`). Results are cached per request.
 
 ---
 
@@ -796,22 +801,20 @@ mapped AS (
     fv.slug AS value_slug,
     u.passes_f_feature_material, u.passes_f_tag_sale, u.passes_variant
   FROM unnested u
-  -- Resolve facet by explicit source-handle mapping (works for TAG/FEATURE/OPTION uniformly):
-  JOIN facet_source_handle fsh
-    ON fsh.project_id = :projectId
-    AND fsh.facet_type = u.facet_type
-    AND fsh.source_handle = CASE
-      WHEN u.facet_type = 'feature' THEN split_part(u.sv_slug, ':', 1)
-      ELSE u.sv_slug
-    END
-  JOIN facet f ON f.id = fsh.facet_id AND f.project_id = :projectId
+  -- Canonical source mapping: source_handle -> facet_value -> facet
   JOIN facet_value_source_handle fvsh
     ON fvsh.project_id = :projectId
-    AND fvsh.facet_id = f.id
+    AND fvsh.facet_type = u.facet_type
     AND fvsh.source_handle = u.sv_slug
   JOIN facet_value fv
     ON fv.id = fvsh.facet_value_id
+    AND fv.facet_id = fvsh.facet_id
     AND fv.enabled = true
+  JOIN facet f
+    ON f.id = fv.facet_id
+    AND f.id = fvsh.facet_id
+    AND f.project_id = :projectId
+    AND f.facet_type = fvsh.facet_type
 ),
 counts AS (
   SELECT
@@ -900,7 +903,7 @@ src/repositories/models/
   variantSearchIndex.ts                 # variant_search_index
   collection.ts                         # collection, collection_item, collection_rule, collection_translation, collection_media
   facet.ts                              # facet_group, facet_group_translation, facet, facet_translation,
-                                        # facet_swatch, facet_value, facet_value_translation
+                                        # facet_swatch, facet_value, facet_value_source_handle, facet_value_translation
 
 src/repositories/
   listing/SearchIndexRepository.ts      # product_search_index CRUD + TAG/FEATURE facet queries
@@ -1152,7 +1155,7 @@ type FacetGroup implements Node {
 type Facet implements Node {
   id: ID!
   facetType: FacetType!
-  """For FEATURE/OPTION: list of option/feature concept slugs (e.g., ['color'] or ['shoe-size', 'clothing-size']). Empty for PRICE, TAG, IN_STOCK."""
+  """For FEATURE/OPTION: derived from distinct source keys in facet_value_source_handle. Empty for PRICE, TAG, IN_STOCK."""
   sourceHandles: [String!]!
   slug: String!
   label: String!
@@ -1197,8 +1200,8 @@ input FacetGroupCreateInput { name: String!, collapsed: Boolean, sortIndex: Int 
 input FacetGroupUpdateInput { id: ID!, name: String, collapsed: Boolean, sortIndex: Int }
 input FacetGroupDeleteInput { id: ID! }
 
-input FacetCreateInput { facetType: FacetType!, sourceHandles: [String!], slug: String!, uiType: FacetUIType, selectionMode: FacetSelectionMode, groupId: ID, label: String!, sortIndex: Int }
-input FacetUpdateInput { id: ID!, slug: String, sourceHandles: [String!], uiType: FacetUIType, selectionMode: FacetSelectionMode, groupId: ID, label: String, sortIndex: Int, minValues: Int, maxValuesVisible: Int, valueSort: FacetValueSort, indexable: Boolean }
+input FacetCreateInput { facetType: FacetType!, slug: String!, uiType: FacetUIType, selectionMode: FacetSelectionMode, groupId: ID, label: String!, sortIndex: Int }
+input FacetUpdateInput { id: ID!, slug: String, uiType: FacetUIType, selectionMode: FacetSelectionMode, groupId: ID, label: String, sortIndex: Int, minValues: Int, maxValuesVisible: Int, valueSort: FacetValueSort, indexable: Boolean }
 input FacetDeleteInput { id: ID! }
 
 input FacetValueCreateInput { facetId: ID!, slug: String!, label: String!, sourceHandles: [String!]!, swatchId: ID, sortIndex: Int, enabled: Boolean }
