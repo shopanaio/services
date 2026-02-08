@@ -107,7 +107,8 @@ catalog.collection (
   
   -- Sort
   -- For 'rule' collections, 'manual' is not valid (no lexo_rank). Enforced by CHECK constraint.
-  default_sort      varchar(32) NOT NULL DEFAULT 'manual',
+  -- DB default is safe for RULE; MANUAL collections are set to 'manual' by application default.
+  default_sort      varchar(32) NOT NULL DEFAULT 'newest',
   default_sort_direction varchar(4) NOT NULL DEFAULT 'asc',
   
   -- Scheduling
@@ -177,11 +178,14 @@ CREATE INDEX idx_collection_seo_project_locale ON catalog.collection_seo (projec
 
 ```sql
 catalog.collection_media (
-  collection_id     uuid NOT NULL REFERENCES catalog.collection(id) ON DELETE CASCADE,
+  collection_id     uuid NOT NULL,
   file_id           uuid NOT NULL,
   project_id        uuid NOT NULL,
   sort_index        int NOT NULL DEFAULT 0,
-  PRIMARY KEY (collection_id, file_id)
+  PRIMARY KEY (collection_id, file_id),
+  FOREIGN KEY (collection_id, project_id)
+    REFERENCES catalog.collection(id, project_id)
+    ON DELETE CASCADE
 )
 ```
 
@@ -189,11 +193,15 @@ catalog.collection_media (
 
 ```sql
 catalog.collection_item (
-  collection_id     uuid NOT NULL REFERENCES catalog.collection(id) ON DELETE CASCADE,
+  collection_id     uuid NOT NULL,
+  project_id        uuid NOT NULL,
   product_id        uuid NOT NULL REFERENCES catalog.product(id) ON DELETE CASCADE,
   lexo_rank         varchar(64) COLLATE "C" NOT NULL,
   created_at        timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (collection_id, product_id)
+  PRIMARY KEY (collection_id, product_id),
+  FOREIGN KEY (collection_id, project_id)
+    REFERENCES catalog.collection(id, project_id)
+    ON DELETE CASCADE
 )
 
 CREATE INDEX idx_collection_item_rank
@@ -208,7 +216,7 @@ CREATE INDEX idx_collection_item_rank
 ```sql
 catalog.collection_rule (
   id                uuid PRIMARY KEY,
-  collection_id     uuid NOT NULL REFERENCES catalog.collection(id) ON DELETE CASCADE,
+  collection_id     uuid NOT NULL,
   project_id        uuid NOT NULL,
   field             varchar(64) NOT NULL,   -- 'tag', 'price', 'option', 'feature', 'in_stock', 'category', 'status', 'created_at'
   operator          varchar(16) NOT NULL,   -- 'eq', 'gt', 'gte', 'lt', 'lte', 'in', 'all', 'contains', 'between'
@@ -220,6 +228,9 @@ catalog.collection_rule (
   
   -- Rules within a collection are AND-ed by default
   -- Future: rule_group for OR groups
+  FOREIGN KEY (collection_id, project_id)
+    REFERENCES catalog.collection(id, project_id)
+    ON DELETE CASCADE
 )
 
 CREATE INDEX idx_collection_rule_collection ON catalog.collection_rule(collection_id);
@@ -234,7 +245,7 @@ CREATE INDEX idx_collection_rule_collection ON catalog.collection_rule(collectio
 { "field": "tag", "operator": "in", "value": ["sale", "new-arrival"] }
 { "field": "price", "operator": "between", "value": [1000, 5000] }
 { "field": "in_stock", "operator": "eq", "value": true }
-{ "field": "feature", "operator": "contains", "value": "cotton" }
+{ "field": "feature", "operator": "in", "value": ["material:cotton"] }
 { "field": "category", "operator": "in", "value": ["shoes", "running"] }
 ```
 
@@ -667,7 +678,11 @@ QueryCollectionProductsScript:
   Input: { collectionId, locale, filters?, sort?, pagination }
   
   1. Load collection → type, rules, default_sort
-  2. Check scheduling (effective_from/effective_to)
+  2. Check collection availability:
+     - `deleted_at IS NULL`
+     - `published_at IS NOT NULL AND published_at <= now()`
+     - `(effective_from IS NULL OR effective_from <= now())`
+     - `(effective_to   IS NULL OR effective_to   >  now())`
   2.1 For both manual and rule collections, products are restricted to `psi.status = 'active'`.
   3. Resolve product set by type:
      
@@ -676,6 +691,7 @@ QueryCollectionProductsScript:
        FROM collection_item ci
        JOIN product_search_index psi ON psi.product_id = ci.product_id
        WHERE ci.collection_id = :collectionId
+         AND ci.project_id = :projectId
          AND psi.project_id = :projectId
          AND psi.status = 'active'
        ORDER BY ci.lexo_rank
@@ -1139,6 +1155,13 @@ input CollectionUpdateRulesInput { collectionId: ID!, rules: [CollectionRuleInpu
 input CollectionRuleInput { field: String!, operator: String!, value: JSON! }
 ```
 
+`CollectionCreateInput.defaultSort` is optional with type-aware defaults:
+- `type=MANUAL` -> default to `MANUAL`
+- `type=RULE` -> default to `NEWEST`
+
+`CollectionUpdateInput.defaultSort` must be validated against collection type:
+- `RULE` collections cannot use `MANUAL`
+
 ### 7.3 Facets (in `facet.graphql`)
 
 ```graphql
@@ -1174,6 +1197,10 @@ enum FacetType { PRICE TAG FEATURE OPTION IN_STOCK }
 enum FacetUIType { CHECKBOX RADIO DROPDOWN RANGE BOOLEAN }
 enum FacetSelectionMode { SINGLE MULTI }
 enum FacetValueSort { COUNT ALPHA CUSTOM }
+
+# Phase 1 constraint:
+# - RANGE uiType is supported only for facetType=PRICE
+# - BOOLEAN uiType is supported only for facetType=IN_STOCK
 
 type FacetValue implements Node {
   id: ID!
@@ -1270,8 +1297,8 @@ input ProductFiltersInput {
   """
   facets: [String!]
   """
-  Range facet filters. For numeric/range-type facets (price, or any custom RANGE facet).
-  Each entry specifies a facetSlug and min/max bounds.
+  Range facet filters.
+  Phase 1 supports only the `price` facetSlug.
   Price can also be passed via the shorthand priceMinMinor/priceMaxMinor fields.
   """
   ranges: [FacetRangeFilterInput!]
@@ -1282,7 +1309,7 @@ input ProductFiltersInput {
 }
 
 input FacetRangeFilterInput {
-  """Slug of the RANGE-type facet (e.g., 'price', 'weight', 'rating')."""
+  """Slug of the RANGE-type facet. In Phase 1 only 'price' is valid."""
   facetSlug: String!
   min: BigInt
   max: BigInt
