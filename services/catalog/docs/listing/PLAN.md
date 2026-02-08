@@ -212,6 +212,10 @@ catalog.collection_rule (
 CREATE INDEX idx_collection_rule_collection ON catalog.collection_rule(collection_id);
 ```
 
+**Rule groups:**
+- `product-level`: `tag`, `feature`, `category`, `status`, `created_at`
+- `variant-level`: `option`, `price`, `in_stock`
+
 **Examples:**
 ```json
 { "field": "tag", "operator": "in", "value": ["sale", "new-arrival"] }
@@ -629,13 +633,17 @@ QueryCollectionProductsScript:
   
   1. Load collection → type, rules, default_sort
   2. Check scheduling (effective_from/effective_to)
+  2.1 For both manual and rule collections, products are restricted to `psi.status = 'active'`.
   3. Resolve product set by type:
      
      manual:
        SELECT from collection_item ORDER BY lexo_rank
        
      rule:
-       Evaluate collection_rules against product_search_index
+       Compile rules into:
+         - product-level predicates on product_search_index
+         - variant-level predicates in ONE EXISTS over variant_search_index
+       (single EXISTS is mandatory to avoid cross-variant false positives)
   
   4. Apply facet filters from user
   5. Sort:
@@ -1541,7 +1549,7 @@ Everything else is local to catalog.
 1. **Drizzle models:** `collection.ts`
 2. **Generate migration**
 3. **Collection repositories:** CollectionRepository, CollectionItemRepository, CollectionRuleRepository
-4. **Collection scripts:** CRUD, add/remove/move/rebalance (manual), rules (rule), QueryCollectionProductsScript
+4. **Collection scripts:** CRUD, add/remove/move/rebalance (manual), rules (rule), QueryCollectionProductsScript; implement rule compiler split (`product-level` vs `variant-level`) with single shared `EXISTS` for all variant-level predicates
 5. **GraphQL:** collection.graphql (inputs incl. SEO/media), add to CatalogQuery/CatalogMutation
 6. **Resolvers & loaders**
 7. **Build & test**
