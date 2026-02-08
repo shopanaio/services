@@ -218,10 +218,16 @@ CREATE INDEX idx_collection_rule_collection ON catalog.collection_rule(collectio
 { "field": "price", "operator": "between", "value": [1000, 5000] }
 { "field": "in_stock", "operator": "eq", "value": true }
 { "field": "feature", "operator": "contains", "value": "cotton" }
-{ "field": "category", "operator": "in", "value": ["<category-id-1>", "<category-id-2>"] }
+{ "field": "category", "operator": "in", "value": ["shoes", "running"] }
 ```
 
-Rules are evaluated against `product_search_index`.
+Rules are evaluated against `product_search_index`, with variant-correct predicates (`option`, `price`, `in_stock`) resolved via `variant_search_index`.
+
+**Rule evaluation contract (normative):**
+- Product-level fields (`tag`, `feature`, `category`, `status`, `created_at`) are evaluated on `product_search_index`.
+- Variant-bound fields (`option`, `price`, `in_stock`) MUST be compiled into a single `EXISTS` over `variant_search_index`.
+- Independent `EXISTS` blocks per variant-bound rule are forbidden because they can match different variants of the same product and produce false positives.
+- Authoritative SQL semantics are defined in §9.
 
 ---
 
@@ -1357,7 +1363,51 @@ Same lexo_rank approach for both category products and collection items.
 Rules in `collection_rule` are evaluated primarily against `product_search_index`, with variant-correct handling for OPTION, `price`, and `in_stock` via `variant_search_index`:
 
 ```sql
--- Each rule becomes a WHERE clause.
+-- Compilation model:
+-- 1) Product-level predicates are added directly to psi WHERE.
+-- 2) All variant-bound predicates are merged into ONE EXISTS block.
+--    This guarantees one-and-the-same variant satisfies option/price/in_stock together.
+--
+-- Product-level fields: tag, feature, category, status, created_at
+-- Variant-bound fields: option, price, in_stock
+--
+-- Independent EXISTS per variant-bound rule is forbidden:
+-- it can produce false positives across different variants.
+--
+-- Counterexample:
+--   rule A: option in ['color:red']
+--   rule B: price between [1000, 2000]
+-- Product has variant V1(color:red, price=5000) and V2(color:blue, price=1500).
+-- Two separate EXISTS return true, but no single variant satisfies A and B together.
+
+SELECT psi.product_id
+FROM product_search_index psi
+WHERE psi.project_id = :projectId
+  AND psi.status = 'active'
+
+  -- Product-level rules
+  AND (:tagInIsEmpty OR psi.tag_handles && :tagInValues::text[])
+  AND (:tagAllIsEmpty OR psi.tag_handles @> :tagAllValues::text[])
+  AND (:featureInIsEmpty OR psi.feature_slugs && :featureInValues::text[])
+  AND (:categoryInIsEmpty OR psi.category_handles && :categoryInValues::text[])
+  AND (:createdFrom IS NULL OR psi.created_at >= :createdFrom)
+  AND (:createdTo   IS NULL OR psi.created_at <  :createdTo)
+
+  -- Variant-bound rules (single EXISTS block, only when at least one is active)
+  AND (
+    NOT :hasVariantRules
+    OR EXISTS (
+      SELECT 1
+      FROM variant_search_index vsi
+      WHERE vsi.project_id = psi.project_id
+        AND vsi.product_id = psi.product_id
+        AND (:optionInIsEmpty OR vsi.option_slugs && :optionInValues::text[])
+        AND (:priceMin IS NULL OR vsi.price_minor >= :priceMin)
+        AND (:priceMax IS NULL OR vsi.price_minor <= :priceMax)
+        AND (:inStock IS NULL OR vsi.in_stock = :inStock)
+    )
+  );
+
 -- Operator semantics for array fields:
 --   'in'       → && (overlap, ANY match)  — product has at least one of the values
 --   'all'      → @> (contains, ALL match) — product has all of the values
@@ -1373,34 +1423,20 @@ Rules in `collection_rule` are evaluated primarily against `product_search_index
 --     (product has BOTH "sale" AND "new-arrival")
 
 -- { field: "price", operator: "between", value: [1000, 5000] }
---   → EXISTS (
---       SELECT 1 FROM variant_search_index vsi
---       WHERE vsi.project_id = psi.project_id
---         AND vsi.product_id = psi.product_id
---         AND vsi.price_minor BETWEEN 1000 AND 5000
---         AND [option predicates if any]
---     )
+--   → inside the shared EXISTS:
+--       vsi.price_minor BETWEEN 1000 AND 5000
 
 -- { field: "in_stock", operator: "eq", value: true }
---   → EXISTS (
---       SELECT 1 FROM variant_search_index vsi
---       WHERE vsi.project_id = psi.project_id
---         AND vsi.product_id = psi.product_id
---         AND vsi.in_stock = true
---         AND [option predicates if any]
---     )
+--   → inside the shared EXISTS:
+--       vsi.in_stock = true
 
 -- { field: "feature", operator: "in", value: ["material:cotton", "material:linen"] }
 --   → psi.feature_slugs && ARRAY['material:cotton', 'material:linen']::text[]
 --     (composite slug used directly — no facet_value lookup needed)
 
 -- { field: "option", operator: "in", value: ["color:red", "color:blue"] }
---   → EXISTS (
---       SELECT 1 FROM variant_search_index vsi
---       WHERE vsi.project_id = psi.project_id
---         AND vsi.product_id = psi.product_id
---         AND vsi.option_slugs && ARRAY['color:red', 'color:blue']::text[]
---     )
+--   → inside the shared EXISTS:
+--       vsi.option_slugs && ARRAY['color:red', 'color:blue']::text[]
 
 -- { field: "category", operator: "in", value: ["shoes", "running"] }
 --   → psi.category_handles && ARRAY['shoes', 'running']::text[]
