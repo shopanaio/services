@@ -24,3 +24,12 @@ export * from './category/index.js';
 
 // Tag scripts
 export * from './tag/index.js';
+
+// Search index scripts
+export * from './search-index/index.js';
+
+// Facet scripts
+export * from './facet/index.js';
+
+// Collection scripts
+export * from './collection/index.js';

@@ -16,6 +16,7 @@ import {
   type ProductCategory,
   type NewProductCategory,
 } from "../models/index.js";
+import { initialRank, nextRank, rebalanceRanks } from "../../scripts/shared/rank.js";
 
 export interface CategoryRelayInput {
   first?: number;
@@ -152,6 +153,8 @@ export class CategoryRepository {
     data: {
       handle?: string;
       publishedAt?: Date | string | null;
+      defaultSort?: string;
+      defaultSortDirection?: string;
     }
   ): Promise<Category | null> {
     const updateData: Partial<NewCategory> = {
@@ -164,6 +167,9 @@ export class CategoryRepository {
         data.publishedAt instanceof Date
           ? data.publishedAt.toISOString()
           : data.publishedAt;
+    if (data.defaultSort !== undefined) updateData.defaultSort = data.defaultSort;
+    if (data.defaultSortDirection !== undefined)
+      updateData.defaultSortDirection = data.defaultSortDirection;
 
     const result = await this.connection
       .update(category)
@@ -533,7 +539,7 @@ export class CategoryRepository {
           eq(productCategory.categoryId, categoryId)
         )
       )
-      .orderBy(asc(productCategory.sortIndex))
+      .orderBy(asc(productCategory.lexoRank))
       .limit(first)
       .offset(offset);
 
@@ -545,12 +551,14 @@ export class CategoryRepository {
     categoryId: string,
     isPrimary: boolean = false
   ): Promise<ProductCategory> {
+    const rank = await this.getNextCategoryProductRank(categoryId);
+
     const data: NewProductCategory = {
       projectId: this.storeId,
       productId,
       categoryId,
       isPrimary,
-      sortIndex: 0,
+      lexoRank: rank,
     };
 
     const result = await this.connection
@@ -558,7 +566,7 @@ export class CategoryRepository {
       .values(data)
       .onConflictDoUpdate({
         target: [productCategory.productId, productCategory.categoryId],
-        set: { isPrimary },
+        set: { isPrimary, lexoRank: rank },
       })
       .returning();
 
@@ -605,11 +613,80 @@ export class CategoryRepository {
         productId,
         categoryId,
         isPrimary: categoryId === primaryCategoryId,
-        sortIndex: 0,
+        lexoRank: initialRank(),
       }));
 
       await this.connection.insert(productCategory).values(values);
     }
+  }
+
+  async getProductCategory(
+    categoryId: string,
+    productId: string
+  ): Promise<ProductCategory | null> {
+    const rows = await this.connection
+      .select()
+      .from(productCategory)
+      .where(
+        and(
+          eq(productCategory.projectId, this.storeId),
+          eq(productCategory.categoryId, categoryId),
+          eq(productCategory.productId, productId)
+        )
+      )
+      .limit(1);
+
+    return rows[0] ?? null;
+  }
+
+  async getOrderedCategoryProducts(categoryId: string): Promise<ProductCategory[]> {
+    return this.connection
+      .select()
+      .from(productCategory)
+      .where(
+        and(
+          eq(productCategory.projectId, this.storeId),
+          eq(productCategory.categoryId, categoryId)
+        )
+      )
+      .orderBy(asc(productCategory.lexoRank), asc(productCategory.productId));
+  }
+
+  async updateProductCategoryRank(
+    categoryId: string,
+    productId: string,
+    lexoRank: string
+  ): Promise<ProductCategory | null> {
+    const rows = await this.connection
+      .update(productCategory)
+      .set({ lexoRank })
+      .where(
+        and(
+          eq(productCategory.projectId, this.storeId),
+          eq(productCategory.categoryId, categoryId),
+          eq(productCategory.productId, productId)
+        )
+      )
+      .returning();
+
+    return rows[0] ?? null;
+  }
+
+  async rebalanceCategoryProductRanks(categoryId: string): Promise<void> {
+    const items = await this.getOrderedCategoryProducts(categoryId);
+    const ranks = rebalanceRanks(items.length);
+
+    for (let i = 0; i < items.length; i++) {
+      await this.updateProductCategoryRank(categoryId, items[i].productId, ranks[i]);
+    }
+  }
+
+  async updateSortPreferences(
+    categoryId: string,
+    defaultSort: string,
+    defaultSortDirection: string
+  ): Promise<Category | null> {
+    return this.update(categoryId, { defaultSort, defaultSortDirection });
   }
 
   // ============ Translation ============
@@ -672,5 +749,25 @@ export class CategoryRepository {
 
       await this.connection.insert(categoryMedia).values(values);
     }
+  }
+
+  private async getNextCategoryProductRank(categoryId: string): Promise<string> {
+    const rows = await this.connection
+      .select({ lexoRank: productCategory.lexoRank })
+      .from(productCategory)
+      .where(
+        and(
+          eq(productCategory.projectId, this.storeId),
+          eq(productCategory.categoryId, categoryId)
+        )
+      )
+      .orderBy(desc(productCategory.lexoRank))
+      .limit(1);
+
+    if (rows.length === 0) {
+      return initialRank();
+    }
+
+    return nextRank(rows[0].lexoRank);
   }
 }

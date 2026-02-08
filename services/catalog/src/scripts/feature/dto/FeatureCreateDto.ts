@@ -3,6 +3,7 @@ import type { FeatureValueInput, FeatureResultBase } from "./shared.js";
 
 export interface FeatureCreateParams {
   readonly productId: string;
+  readonly slug: string;
   readonly name: string;
   readonly values: FeatureValueInput[];
 }

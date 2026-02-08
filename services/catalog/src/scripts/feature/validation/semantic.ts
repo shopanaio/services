@@ -20,6 +20,7 @@ interface SemanticContext {
   readonly indexKeyToArrayIdx: Map<string, number>;
   readonly indexKeyToItem: Map<string, ValidatedFeatureInput>;
   readonly seenFeatureIds: Set<string>;
+  readonly seenFeatureSlugs: Set<string>;
   readonly seenValueIds: Set<string>;
   readonly positionsByParentKey: Map<string, Set<number>>;
 }
@@ -34,6 +35,7 @@ export function validateSemantic(features: ValidatedFeatureInput[]): UserError[]
     indexKeyToArrayIdx: new Map(),
     indexKeyToItem: new Map(),
     seenFeatureIds: new Set(),
+    seenFeatureSlugs: new Set(),
     seenValueIds: new Set(),
     positionsByParentKey: new Map(),
   };
@@ -67,6 +69,17 @@ export function validateSemantic(features: ValidatedFeatureInput[]): UserError[]
       } else {
         ctx.seenFeatureIds.add(f.id);
       }
+    }
+
+    // Feature slug uniqueness per product
+    if (ctx.seenFeatureSlugs.has(f.slug)) {
+      errors.push({
+        message: `Duplicate feature slug "${f.slug}"`,
+        field: path("slug"),
+        code: "DUPLICATE_SLUG",
+      });
+    } else {
+      ctx.seenFeatureSlugs.add(f.slug);
     }
 
     // Position uniqueness within parent
@@ -147,6 +160,7 @@ function validateValues(
   errors: UserError[]
 ): void {
   const localIndexes = new Set<number>();
+  const localSlugs = new Set<string>();
 
   for (let i = 0; i < values.length; i++) {
     const v = values[i];
@@ -180,6 +194,17 @@ function validateValues(
       });
     } else {
       localIndexes.add(v.index);
+    }
+
+    // Slug uniqueness within feature
+    if (localSlugs.has(v.slug)) {
+      errors.push({
+        message: `Duplicate value slug "${v.slug}"`,
+        field: path("slug"),
+        code: "DUPLICATE_SLUG",
+      });
+    } else {
+      localSlugs.add(v.slug);
     }
   }
 }

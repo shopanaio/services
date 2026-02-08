@@ -1,6 +1,7 @@
 import { eq, and, inArray } from "drizzle-orm";
 import type { TransactionManager } from "@shopana/shared-kernel";
 import type { Database } from "../../infrastructure/db/database.js";
+import { getContext } from "../../context/index.js";
 import {
   productTranslation,
   variantTranslation,
@@ -9,6 +10,7 @@ import {
   productFeatureTranslation,
   productFeatureValueTranslation,
   productSeo,
+  categorySeo,
   type ProductTranslation,
   type NewProductTranslation,
   type VariantTranslation,
@@ -23,6 +25,8 @@ import {
   type NewProductFeatureValueTranslation,
   type ProductSeo,
   type NewProductSeo,
+  type CategorySeo,
+  type NewCategorySeo,
 } from "../models";
 
 export class TranslationRepository {
@@ -36,6 +40,10 @@ export class TranslationRepository {
    */
   private get connection(): Database {
     return this.txManager.getConnection() as Database;
+  }
+
+  private get locale(): string {
+    return getContext().locale ?? "uk";
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -439,7 +447,12 @@ export class TranslationRepository {
     const results = await this.connection
       .select()
       .from(productSeo)
-      .where(inArray(productSeo.productId, productIds as string[]));
+      .where(
+        and(
+          inArray(productSeo.productId, productIds as string[]),
+          eq(productSeo.locale, this.locale)
+        )
+      );
 
     return new Map(results.map((s) => [s.productId, s]));
   }
@@ -470,6 +483,72 @@ export class TranslationRepository {
         and(
           eq(productSeo.productId, productId),
           eq(productSeo.locale, locale)
+        )
+      );
+  }
+
+  async getCategorySeo(
+    categoryId: string,
+    locale: string
+  ): Promise<CategorySeo | undefined> {
+    const result = await this.connection
+      .select()
+      .from(categorySeo)
+      .where(
+        and(
+          eq(categorySeo.categoryId, categoryId),
+          eq(categorySeo.locale, locale)
+        )
+      )
+      .limit(1);
+
+    return result[0];
+  }
+
+  async getCategorySeoBatch(
+    categoryIds: readonly string[]
+  ): Promise<Map<string, CategorySeo>> {
+    if (categoryIds.length === 0) return new Map();
+
+    const results = await this.connection
+      .select()
+      .from(categorySeo)
+      .where(
+        and(
+          inArray(categorySeo.categoryId, categoryIds as string[]),
+          eq(categorySeo.locale, this.locale)
+        )
+      );
+
+    return new Map(results.map((s) => [s.categoryId, s]));
+  }
+
+  async upsertCategorySeo(data: NewCategorySeo): Promise<CategorySeo> {
+    const result = await this.connection
+      .insert(categorySeo)
+      .values(data)
+      .onConflictDoUpdate({
+        target: [categorySeo.categoryId, categorySeo.locale],
+        set: {
+          seoTitle: data.seoTitle,
+          seoDescription: data.seoDescription,
+          ogTitle: data.ogTitle,
+          ogDescription: data.ogDescription,
+          ogImageId: data.ogImageId,
+        },
+      })
+      .returning();
+
+    return result[0];
+  }
+
+  async deleteCategorySeo(categoryId: string, locale: string): Promise<void> {
+    await this.connection
+      .delete(categorySeo)
+      .where(
+        and(
+          eq(categorySeo.categoryId, categoryId),
+          eq(categorySeo.locale, locale)
         )
       );
   }

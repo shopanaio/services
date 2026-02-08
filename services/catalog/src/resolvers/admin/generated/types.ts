@@ -145,7 +145,29 @@ export type CatalogMutation = {
   categoryCreate: CategoryCreatePayload;
   categoryDelete: CategoryDeletePayload;
   categoryMove: CategoryMovePayload;
+  categoryMoveProduct: CategoryMoveProductPayload;
+  categoryRebalance: CategoryRebalancePayload;
   categoryUpdate: CategoryUpdatePayload;
+  categoryUpdateSort: CategoryUpdateSortPayload;
+  collectionAddProducts: CollectionAddProductsPayload;
+  collectionCreate: CollectionCreatePayload;
+  collectionDelete: CollectionDeletePayload;
+  collectionMoveProduct: CollectionMoveProductPayload;
+  collectionRemoveProducts: CollectionRemoveProductsPayload;
+  collectionUpdate: CollectionUpdatePayload;
+  collectionUpdateRules: CollectionUpdateRulesPayload;
+  facetCreate: FacetCreatePayload;
+  facetDelete: FacetDeletePayload;
+  facetGroupCreate: FacetGroupCreatePayload;
+  facetGroupDelete: FacetGroupDeletePayload;
+  facetGroupUpdate: FacetGroupUpdatePayload;
+  facetSwatchCreate: FacetSwatchCreatePayload;
+  facetSwatchDelete: FacetSwatchDeletePayload;
+  facetSwatchUpdate: FacetSwatchUpdatePayload;
+  facetUpdate: FacetUpdatePayload;
+  facetValueCreate: FacetValueCreatePayload;
+  facetValueDelete: FacetValueDeletePayload;
+  facetValueUpdate: FacetValueUpdatePayload;
   /**
    * Start async bulk update.
    * Requires X-Idempotency-Key header.
@@ -198,8 +220,118 @@ export type CatalogMutationCategoryMoveArgs = {
 };
 
 
+export type CatalogMutationCategoryMoveProductArgs = {
+  input: CategoryMoveProductInput;
+};
+
+
+export type CatalogMutationCategoryRebalanceArgs = {
+  input: CategoryRebalanceInput;
+};
+
+
 export type CatalogMutationCategoryUpdateArgs = {
   input: CategoryUpdateInput;
+};
+
+
+export type CatalogMutationCategoryUpdateSortArgs = {
+  input: CategoryUpdateSortInput;
+};
+
+
+export type CatalogMutationCollectionAddProductsArgs = {
+  input: CollectionAddProductsInput;
+};
+
+
+export type CatalogMutationCollectionCreateArgs = {
+  input: CollectionCreateInput;
+};
+
+
+export type CatalogMutationCollectionDeleteArgs = {
+  input: CollectionDeleteInput;
+};
+
+
+export type CatalogMutationCollectionMoveProductArgs = {
+  input: CollectionMoveProductInput;
+};
+
+
+export type CatalogMutationCollectionRemoveProductsArgs = {
+  input: CollectionRemoveProductsInput;
+};
+
+
+export type CatalogMutationCollectionUpdateArgs = {
+  input: CollectionUpdateInput;
+};
+
+
+export type CatalogMutationCollectionUpdateRulesArgs = {
+  input: CollectionUpdateRulesInput;
+};
+
+
+export type CatalogMutationFacetCreateArgs = {
+  input: FacetCreateInput;
+};
+
+
+export type CatalogMutationFacetDeleteArgs = {
+  input: FacetDeleteInput;
+};
+
+
+export type CatalogMutationFacetGroupCreateArgs = {
+  input: FacetGroupCreateInput;
+};
+
+
+export type CatalogMutationFacetGroupDeleteArgs = {
+  input: FacetGroupDeleteInput;
+};
+
+
+export type CatalogMutationFacetGroupUpdateArgs = {
+  input: FacetGroupUpdateInput;
+};
+
+
+export type CatalogMutationFacetSwatchCreateArgs = {
+  input: FacetSwatchCreateInput;
+};
+
+
+export type CatalogMutationFacetSwatchDeleteArgs = {
+  input: FacetSwatchDeleteInput;
+};
+
+
+export type CatalogMutationFacetSwatchUpdateArgs = {
+  input: FacetSwatchUpdateInput;
+};
+
+
+export type CatalogMutationFacetUpdateArgs = {
+  input: FacetUpdateInput;
+};
+
+
+export type CatalogMutationFacetValueCreateArgs = {
+  input: FacetValueCreateInput;
+};
+
+
+export type CatalogMutationFacetValueDeleteArgs = {
+  input: FacetValueDeleteInput;
+};
+
+
+export type CatalogMutationFacetValueUpdateArgs = {
+  input: FacetValueUpdateInput;
 };
 
 
@@ -315,6 +447,19 @@ export type CatalogQuery = {
   categories: CategoryConnection;
   /** Get a category by ID */
   category: Maybe<Category>;
+  categoryProducts: CategoryProductConnection;
+  collection: Maybe<Collection>;
+  collectionByHandle: Maybe<Collection>;
+  collectionRulesPreviewCount: Scalars['Int']['output'];
+  collections: CollectionConnection;
+  facet: Maybe<Facet>;
+  facetGroup: Maybe<FacetGroup>;
+  facetGroups: Array<FacetGroup>;
+  facetSwatch: Maybe<FacetSwatch>;
+  facetSwatches: Array<FacetSwatch>;
+  facetValue: Maybe<FacetValue>;
+  facetValues: Array<FacetValue>;
+  facets: Array<Facet>;
   /** Get a node by its global ID */
   node: Maybe<Node>;
   /** Get multiple nodes by their global IDs */
@@ -346,6 +491,65 @@ export type CatalogQueryCategoriesArgs = {
 
 export type CatalogQueryCategoryArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+export type CatalogQueryCategoryProductsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  categoryId: Scalars['ID']['input'];
+  filters?: InputMaybe<ProductFiltersInput>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  sort?: InputMaybe<ProductSortInput>;
+};
+
+
+export type CatalogQueryCollectionArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type CatalogQueryCollectionByHandleArgs = {
+  handle: Scalars['String']['input'];
+};
+
+
+export type CatalogQueryCollectionRulesPreviewCountArgs = {
+  rules: Array<CollectionRuleInput>;
+};
+
+
+export type CatalogQueryCollectionsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type CatalogQueryFacetArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type CatalogQueryFacetGroupArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type CatalogQueryFacetSwatchArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type CatalogQueryFacetValueArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type CatalogQueryFacetValuesArgs = {
+  facetId: Scalars['ID']['input'];
 };
 
 
@@ -407,10 +611,16 @@ export type Category = Node & {
   __typename?: 'Category';
   /** All ancestor categories from root to parent. */
   ancestors: Array<Category>;
+  /** Category products with sorting, filtering, and pagination. */
+  categoryProducts: CategoryProductConnection;
   /** Direct child categories. */
   children: Array<Category>;
   /** The date and time when the category was created. */
   createdAt: Scalars['DateTime']['output'];
+  /** Default product sort for this category PLP. */
+  defaultSort: ProductSortBy;
+  /** Default sort direction for this category PLP. */
+  defaultSortDirection: SortDirection;
   /** The date and time when the category was deleted (soft delete). */
   deletedAt: Maybe<Scalars['DateTime']['output']>;
   /** The depth of this category in the hierarchy (0 for root). */
@@ -437,8 +647,21 @@ export type Category = Node & {
   productsCount: Scalars['Int']['output'];
   /** The date and time when the category was published, or null if unpublished. */
   publishedAt: Maybe<Scalars['DateTime']['output']>;
+  /** SEO metadata. */
+  seo: Maybe<Seo>;
   /** The date and time when the category was last updated. */
   updatedAt: Scalars['DateTime']['output'];
+};
+
+
+/** A category represents a hierarchical grouping of products. */
+export type CategoryCategoryProductsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  filters?: InputMaybe<ProductFiltersInput>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  sort?: InputMaybe<ProductSortInput>;
 };
 
 
@@ -475,6 +698,8 @@ export type CategoryCreateInput = {
   parentId?: InputMaybe<Scalars['ID']['input']>;
   /** Whether to publish immediately. */
   publish?: InputMaybe<Scalars['Boolean']['input']>;
+  /** SEO metadata. */
+  seo?: InputMaybe<SeoInput>;
 };
 
 /** Payload for category creation. */
@@ -538,6 +763,43 @@ export type CategoryMovePayload = {
   userErrors: Array<GenericUserError>;
 };
 
+export type CategoryMoveProductInput = {
+  afterProductId?: InputMaybe<Scalars['ID']['input']>;
+  beforeProductId?: InputMaybe<Scalars['ID']['input']>;
+  categoryId: Scalars['ID']['input'];
+  productId: Scalars['ID']['input'];
+};
+
+export type CategoryMoveProductPayload = {
+  __typename?: 'CategoryMoveProductPayload';
+  category: Maybe<Category>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CategoryProductConnection = {
+  __typename?: 'CategoryProductConnection';
+  edges: Array<CategoryProductEdge>;
+  facets: Maybe<Facets>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type CategoryProductEdge = {
+  __typename?: 'CategoryProductEdge';
+  cursor: Scalars['String']['output'];
+  node: Product;
+};
+
+export type CategoryRebalanceInput = {
+  categoryId: Scalars['ID']['input'];
+};
+
+export type CategoryRebalancePayload = {
+  __typename?: 'CategoryRebalancePayload';
+  category: Maybe<Category>;
+  userErrors: Array<GenericUserError>;
+};
+
 /** Input for updating a category. */
 export type CategoryUpdateInput = {
   /** The category description. */
@@ -550,6 +812,8 @@ export type CategoryUpdateInput = {
   mediaFileIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   /** The display name of the category. */
   name?: InputMaybe<Scalars['String']['input']>;
+  /** SEO metadata. */
+  seo?: InputMaybe<SeoInput>;
 };
 
 /** Payload for category update. */
@@ -558,6 +822,205 @@ export type CategoryUpdatePayload = {
   /** The updated category. */
   category: Maybe<Category>;
   /** List of errors that occurred during the mutation. */
+  userErrors: Array<GenericUserError>;
+};
+
+export type CategoryUpdateSortInput = {
+  defaultSort: ProductSortBy;
+  defaultSortDirection: SortDirection;
+  id: Scalars['ID']['input'];
+};
+
+export type CategoryUpdateSortPayload = {
+  __typename?: 'CategoryUpdateSortPayload';
+  category: Maybe<Category>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type Collection = Node & {
+  __typename?: 'Collection';
+  activeFrom: Maybe<Scalars['DateTime']['output']>;
+  activeTo: Maybe<Scalars['DateTime']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  defaultSort: ProductSortBy;
+  defaultSortDirection: SortDirection;
+  description: Maybe<Description>;
+  handle: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  isActive: Scalars['Boolean']['output'];
+  isPublished: Scalars['Boolean']['output'];
+  media: Array<CollectionMediaItem>;
+  name: Scalars['String']['output'];
+  products: CollectionProductConnection;
+  productsCount: Scalars['Int']['output'];
+  publishedAt: Maybe<Scalars['DateTime']['output']>;
+  rules: Array<CollectionRule>;
+  seo: Maybe<Seo>;
+  type: CollectionType;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+
+export type CollectionProductsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  filters?: InputMaybe<ProductFiltersInput>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  sort?: InputMaybe<ProductSortInput>;
+};
+
+export type CollectionAddProductsInput = {
+  collectionId: Scalars['ID']['input'];
+  productIds: Array<Scalars['ID']['input']>;
+};
+
+export type CollectionAddProductsPayload = {
+  __typename?: 'CollectionAddProductsPayload';
+  collection: Maybe<Collection>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CollectionConnection = {
+  __typename?: 'CollectionConnection';
+  edges: Array<CollectionEdge>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type CollectionCreateInput = {
+  activeFrom?: InputMaybe<Scalars['DateTime']['input']>;
+  activeTo?: InputMaybe<Scalars['DateTime']['input']>;
+  defaultSort?: InputMaybe<ProductSortBy>;
+  defaultSortDirection?: InputMaybe<SortDirection>;
+  description?: InputMaybe<DescriptionInput>;
+  handle?: InputMaybe<Scalars['String']['input']>;
+  media?: InputMaybe<Array<CollectionMediaInput>>;
+  name: Scalars['String']['input'];
+  publish?: InputMaybe<Scalars['Boolean']['input']>;
+  seo?: InputMaybe<SeoInput>;
+  type: CollectionType;
+};
+
+export type CollectionCreatePayload = {
+  __typename?: 'CollectionCreatePayload';
+  collection: Maybe<Collection>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CollectionDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type CollectionDeletePayload = {
+  __typename?: 'CollectionDeletePayload';
+  deletedCollectionId: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CollectionEdge = {
+  __typename?: 'CollectionEdge';
+  cursor: Scalars['String']['output'];
+  node: Collection;
+};
+
+export type CollectionMediaInput = {
+  fileId: Scalars['ID']['input'];
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type CollectionMediaItem = {
+  __typename?: 'CollectionMediaItem';
+  file: File;
+  sortIndex: Scalars['Int']['output'];
+};
+
+export type CollectionMoveProductInput = {
+  afterProductId?: InputMaybe<Scalars['ID']['input']>;
+  beforeProductId?: InputMaybe<Scalars['ID']['input']>;
+  collectionId: Scalars['ID']['input'];
+  productId: Scalars['ID']['input'];
+};
+
+export type CollectionMoveProductPayload = {
+  __typename?: 'CollectionMoveProductPayload';
+  collection: Maybe<Collection>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CollectionProductConnection = {
+  __typename?: 'CollectionProductConnection';
+  edges: Array<CollectionProductEdge>;
+  facets: Maybe<Facets>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type CollectionProductEdge = {
+  __typename?: 'CollectionProductEdge';
+  cursor: Scalars['String']['output'];
+  node: Product;
+};
+
+export type CollectionRemoveProductsInput = {
+  collectionId: Scalars['ID']['input'];
+  productIds: Array<Scalars['ID']['input']>;
+};
+
+export type CollectionRemoveProductsPayload = {
+  __typename?: 'CollectionRemoveProductsPayload';
+  collection: Maybe<Collection>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CollectionRule = {
+  __typename?: 'CollectionRule';
+  field: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  operator: Scalars['String']['output'];
+  sortIndex: Scalars['Int']['output'];
+  value: Scalars['JSON']['output'];
+};
+
+export type CollectionRuleInput = {
+  field: Scalars['String']['input'];
+  operator: Scalars['String']['input'];
+  value: Scalars['JSON']['input'];
+};
+
+export enum CollectionType {
+  Manual = 'MANUAL',
+  Rule = 'RULE'
+}
+
+export type CollectionUpdateInput = {
+  activeFrom?: InputMaybe<Scalars['DateTime']['input']>;
+  activeTo?: InputMaybe<Scalars['DateTime']['input']>;
+  defaultSort?: InputMaybe<ProductSortBy>;
+  defaultSortDirection?: InputMaybe<SortDirection>;
+  description?: InputMaybe<DescriptionInput>;
+  handle?: InputMaybe<Scalars['String']['input']>;
+  id: Scalars['ID']['input'];
+  media?: InputMaybe<Array<CollectionMediaInput>>;
+  name?: InputMaybe<Scalars['String']['input']>;
+  publish?: InputMaybe<Scalars['Boolean']['input']>;
+  seo?: InputMaybe<SeoInput>;
+};
+
+export type CollectionUpdatePayload = {
+  __typename?: 'CollectionUpdatePayload';
+  collection: Maybe<Collection>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CollectionUpdateRulesInput = {
+  collectionId: Scalars['ID']['input'];
+  rules: Array<CollectionRuleInput>;
+};
+
+export type CollectionUpdateRulesPayload = {
+  __typename?: 'CollectionUpdateRulesPayload';
+  collection: Maybe<Collection>;
   userErrors: Array<GenericUserError>;
 };
 
@@ -947,6 +1410,284 @@ export enum DimensionUnit {
   /** Millimeter */
   Mm = 'mm'
 }
+
+export type Facet = Node & {
+  __typename?: 'Facet';
+  facetType: FacetType;
+  group: Maybe<FacetGroup>;
+  id: Scalars['ID']['output'];
+  indexable: Scalars['Boolean']['output'];
+  label: Scalars['String']['output'];
+  maxValuesVisible: Scalars['Int']['output'];
+  minValues: Scalars['Int']['output'];
+  selectionMode: FacetSelectionMode;
+  slug: Scalars['String']['output'];
+  sortIndex: Scalars['Int']['output'];
+  sourceHandles: Array<Scalars['String']['output']>;
+  uiType: FacetUiType;
+  valueSort: FacetValueSort;
+  values: Array<FacetValue>;
+};
+
+export type FacetCreateInput = {
+  facetType: FacetType;
+  groupId?: InputMaybe<Scalars['ID']['input']>;
+  label: Scalars['String']['input'];
+  selectionMode?: InputMaybe<FacetSelectionMode>;
+  slug: Scalars['String']['input'];
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  uiType?: InputMaybe<FacetUiType>;
+};
+
+export type FacetCreatePayload = {
+  __typename?: 'FacetCreatePayload';
+  facet: Maybe<Facet>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type FacetDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type FacetDeletePayload = {
+  __typename?: 'FacetDeletePayload';
+  deletedFacetId: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type FacetGroup = Node & {
+  __typename?: 'FacetGroup';
+  collapsed: Scalars['Boolean']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  facets: Array<Facet>;
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  sortIndex: Scalars['Int']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type FacetGroupCreateInput = {
+  collapsed?: InputMaybe<Scalars['Boolean']['input']>;
+  name: Scalars['String']['input'];
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type FacetGroupCreatePayload = {
+  __typename?: 'FacetGroupCreatePayload';
+  facetGroup: Maybe<FacetGroup>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type FacetGroupDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type FacetGroupDeletePayload = {
+  __typename?: 'FacetGroupDeletePayload';
+  deletedFacetGroupId: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type FacetGroupUpdateInput = {
+  collapsed?: InputMaybe<Scalars['Boolean']['input']>;
+  id: Scalars['ID']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type FacetGroupUpdatePayload = {
+  __typename?: 'FacetGroupUpdatePayload';
+  facetGroup: Maybe<FacetGroup>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type FacetRangeFilterInput = {
+  facetSlug: Scalars['String']['input'];
+  max?: InputMaybe<Scalars['BigInt']['input']>;
+  min?: InputMaybe<Scalars['BigInt']['input']>;
+};
+
+export type FacetResult = {
+  __typename?: 'FacetResult';
+  facetType: FacetType;
+  label: Scalars['String']['output'];
+  selectionMode: FacetSelectionMode;
+  slug: Scalars['String']['output'];
+  totalCount: Scalars['Int']['output'];
+  uiType: FacetUiType;
+  values: Array<FacetResultValue>;
+};
+
+export type FacetResultGroup = {
+  __typename?: 'FacetResultGroup';
+  collapsed: Scalars['Boolean']['output'];
+  facets: Array<FacetResult>;
+  name: Maybe<Scalars['String']['output']>;
+};
+
+export type FacetResultValue = {
+  __typename?: 'FacetResultValue';
+  count: Scalars['Int']['output'];
+  label: Maybe<Scalars['String']['output']>;
+  slug: Scalars['String']['output'];
+  swatch: Maybe<FacetSwatch>;
+};
+
+export enum FacetSelectionMode {
+  Multi = 'MULTI',
+  Single = 'SINGLE'
+}
+
+export type FacetSwatch = Node & {
+  __typename?: 'FacetSwatch';
+  colorOne: Maybe<Scalars['String']['output']>;
+  colorTwo: Maybe<Scalars['String']['output']>;
+  file: Maybe<File>;
+  id: Scalars['ID']['output'];
+  metadata: Maybe<Scalars['JSON']['output']>;
+  swatchType: SwatchType;
+};
+
+export type FacetSwatchCreateInput = {
+  colorOne?: InputMaybe<Scalars['String']['input']>;
+  colorTwo?: InputMaybe<Scalars['String']['input']>;
+  fileId?: InputMaybe<Scalars['ID']['input']>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  swatchType: SwatchType;
+};
+
+export type FacetSwatchCreatePayload = {
+  __typename?: 'FacetSwatchCreatePayload';
+  facetSwatch: Maybe<FacetSwatch>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type FacetSwatchDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type FacetSwatchDeletePayload = {
+  __typename?: 'FacetSwatchDeletePayload';
+  deletedFacetSwatchId: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type FacetSwatchUpdateInput = {
+  colorOne?: InputMaybe<Scalars['String']['input']>;
+  colorTwo?: InputMaybe<Scalars['String']['input']>;
+  fileId?: InputMaybe<Scalars['ID']['input']>;
+  id: Scalars['ID']['input'];
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  swatchType?: InputMaybe<SwatchType>;
+};
+
+export type FacetSwatchUpdatePayload = {
+  __typename?: 'FacetSwatchUpdatePayload';
+  facetSwatch: Maybe<FacetSwatch>;
+  userErrors: Array<GenericUserError>;
+};
+
+export enum FacetType {
+  Feature = 'FEATURE',
+  InStock = 'IN_STOCK',
+  Option = 'OPTION',
+  Price = 'PRICE',
+  Tag = 'TAG'
+}
+
+export enum FacetUiType {
+  Boolean = 'BOOLEAN',
+  Checkbox = 'CHECKBOX',
+  Dropdown = 'DROPDOWN',
+  Radio = 'RADIO',
+  Range = 'RANGE'
+}
+
+export type FacetUpdateInput = {
+  groupId?: InputMaybe<Scalars['ID']['input']>;
+  id: Scalars['ID']['input'];
+  indexable?: InputMaybe<Scalars['Boolean']['input']>;
+  label?: InputMaybe<Scalars['String']['input']>;
+  maxValuesVisible?: InputMaybe<Scalars['Int']['input']>;
+  minValues?: InputMaybe<Scalars['Int']['input']>;
+  selectionMode?: InputMaybe<FacetSelectionMode>;
+  slug?: InputMaybe<Scalars['String']['input']>;
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  uiType?: InputMaybe<FacetUiType>;
+  valueSort?: InputMaybe<FacetValueSort>;
+};
+
+export type FacetUpdatePayload = {
+  __typename?: 'FacetUpdatePayload';
+  facet: Maybe<Facet>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type FacetValue = Node & {
+  __typename?: 'FacetValue';
+  enabled: Scalars['Boolean']['output'];
+  facet: Facet;
+  id: Scalars['ID']['output'];
+  label: Scalars['String']['output'];
+  slug: Scalars['String']['output'];
+  sortIndex: Scalars['Int']['output'];
+  sourceHandles: Array<Scalars['String']['output']>;
+  swatch: Maybe<FacetSwatch>;
+};
+
+export type FacetValueCreateInput = {
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  facetId: Scalars['ID']['input'];
+  label: Scalars['String']['input'];
+  slug: Scalars['String']['input'];
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  sourceHandles?: InputMaybe<Array<Scalars['String']['input']>>;
+  swatchId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type FacetValueCreatePayload = {
+  __typename?: 'FacetValueCreatePayload';
+  facetValue: Maybe<FacetValue>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type FacetValueDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type FacetValueDeletePayload = {
+  __typename?: 'FacetValueDeletePayload';
+  deletedFacetValueId: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<GenericUserError>;
+};
+
+export enum FacetValueSort {
+  Alpha = 'ALPHA',
+  Count = 'COUNT',
+  Custom = 'CUSTOM'
+}
+
+export type FacetValueUpdateInput = {
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  id: Scalars['ID']['input'];
+  label?: InputMaybe<Scalars['String']['input']>;
+  slug?: InputMaybe<Scalars['String']['input']>;
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  sourceHandles?: InputMaybe<Array<Scalars['String']['input']>>;
+  swatchId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type FacetValueUpdatePayload = {
+  __typename?: 'FacetValueUpdatePayload';
+  facetValue: Maybe<FacetValue>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type Facets = {
+  __typename?: 'Facets';
+  groups: Array<FacetResultGroup>;
+  priceRange: Maybe<PriceRange>;
+};
 
 export type File = {
   __typename?: 'File';
@@ -1363,6 +2104,12 @@ export type PageInfo = {
   startCursor: Maybe<Scalars['String']['output']>;
 };
 
+export type PriceRange = {
+  __typename?: 'PriceRange';
+  maxMinor: Scalars['BigInt']['output'];
+  minMinor: Scalars['BigInt']['output'];
+};
+
 /** Input for pricing widget query. */
 export type PricingWidgetInput = {
   /** Pagination: cursor after. */
@@ -1612,6 +2359,8 @@ export type ProductFeature = Node & {
   name: Scalars['String']['output'];
   /** Parent group, if this feature belongs to a group. */
   parent: Maybe<ProductFeature>;
+  /** The URL-friendly slug for this feature. */
+  slug: Scalars['String']['output'];
   /** Values. Returns empty array for groups (isGroup = true). */
   values: Array<ProductFeatureValue>;
 };
@@ -1622,6 +2371,8 @@ export type ProductFeatureCreateInput = {
   name: Scalars['String']['input'];
   /** The ID of the product. */
   productId: Scalars['ID']['input'];
+  /** The URL-friendly slug for the feature. */
+  slug: Scalars['String']['input'];
   /** The values for this feature. */
   values: Array<ProductFeatureValueCreateInput>;
 };
@@ -1684,6 +2435,8 @@ export type ProductFeatureSyncItemInput = {
   isGroup: Scalars['Boolean']['input'];
   /** Display name. */
   name: Scalars['String']['input'];
+  /** The URL-friendly slug for this feature. */
+  slug: Scalars['String']['input'];
   /** Values for this feature (only when isGroup = false). */
   values?: InputMaybe<Array<ProductFeatureValueSyncInput>>;
 };
@@ -1694,6 +2447,8 @@ export type ProductFeatureUpdateInput = {
   id: Scalars['ID']['input'];
   /** Display name. */
   name?: InputMaybe<Scalars['String']['input']>;
+  /** The URL-friendly slug for the feature. */
+  slug?: InputMaybe<Scalars['String']['input']>;
   /** Nested value operations. */
   values?: InputMaybe<ProductFeatureValuesInput>;
 };
@@ -1718,12 +2473,16 @@ export type ProductFeatureValue = Node & {
   index: Scalars['Int']['output'];
   /** Display name (from translations). */
   name: Scalars['String']['output'];
+  /** The URL-friendly slug for this feature value. */
+  slug: Scalars['String']['output'];
 };
 
 /** Input for creating a feature value. */
 export type ProductFeatureValueCreateInput = {
   /** Display name. */
   name: Scalars['String']['input'];
+  /** The URL-friendly slug for this feature value. */
+  slug: Scalars['String']['input'];
 };
 
 export type ProductFeatureValueSyncInput = {
@@ -1733,6 +2492,8 @@ export type ProductFeatureValueSyncInput = {
   index: Scalars['Int']['input'];
   /** Display name. */
   name: Scalars['String']['input'];
+  /** The URL-friendly slug for this feature value. */
+  slug: Scalars['String']['input'];
 };
 
 /** Input for updating an existing feature value. */
@@ -1741,6 +2502,8 @@ export type ProductFeatureValueUpdateInput = {
   id: Scalars['ID']['input'];
   /** Display name. */
   name?: InputMaybe<Scalars['String']['input']>;
+  /** The URL-friendly slug for this value. */
+  slug?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** Input for nested value operations in feature update. */
@@ -1769,6 +2532,14 @@ export type ProductFeaturesSyncPayload = {
   product: Maybe<Product>;
   /** Any validation errors. */
   userErrors: Array<GenericUserError>;
+};
+
+export type ProductFiltersInput = {
+  facets?: InputMaybe<Array<Scalars['String']['input']>>;
+  inStock?: InputMaybe<Scalars['Boolean']['input']>;
+  priceMaxMinor?: InputMaybe<Scalars['BigInt']['input']>;
+  priceMinMinor?: InputMaybe<Scalars['BigInt']['input']>;
+  ranges?: InputMaybe<Array<FacetRangeFilterInput>>;
 };
 
 /** Input for product media. */
@@ -1987,30 +2758,32 @@ export type ProductOptionsSyncPayload = {
 /** SEO and Open Graph metadata for a product. */
 export type ProductSeo = {
   __typename?: 'ProductSeo';
-  /** Open Graph description for social media sharing. */
   ogDescription: Maybe<Scalars['String']['output']>;
-  /** Open Graph image for social media sharing. */
   ogImage: Maybe<File>;
-  /** Open Graph title for social media sharing (max 95 chars). */
   ogTitle: Maybe<Scalars['String']['output']>;
-  /** SEO description for search engines (max 160 chars). */
   seoDescription: Maybe<Scalars['String']['output']>;
-  /** SEO title for search engines (max 70 chars). */
   seoTitle: Maybe<Scalars['String']['output']>;
 };
 
 /** Input for updating product SEO data. */
 export type ProductSeoInput = {
-  /** Open Graph description. */
   ogDescription?: InputMaybe<Scalars['String']['input']>;
-  /** Open Graph image file ID. */
   ogImageId?: InputMaybe<Scalars['ID']['input']>;
-  /** Open Graph title (max 95 chars). */
   ogTitle?: InputMaybe<Scalars['String']['input']>;
-  /** SEO description (max 160 chars). */
   seoDescription?: InputMaybe<Scalars['String']['input']>;
-  /** SEO title (max 70 chars). */
   seoTitle?: InputMaybe<Scalars['String']['input']>;
+};
+
+export enum ProductSortBy {
+  Manual = 'MANUAL',
+  Name = 'NAME',
+  Newest = 'NEWEST',
+  Price = 'PRICE'
+}
+
+export type ProductSortInput = {
+  by: ProductSortBy;
+  direction?: InputMaybe<SortDirection>;
 };
 
 export enum ProductStatus {
@@ -2093,6 +2866,35 @@ export type SelectedOptionInput = {
   optionId: Scalars['ID']['input'];
   /** The ID of the option value. */
   optionValueId: Scalars['ID']['input'];
+};
+
+/** SEO and Open Graph metadata. */
+export type Seo = {
+  __typename?: 'Seo';
+  /** Open Graph description for social media sharing. */
+  ogDescription: Maybe<Scalars['String']['output']>;
+  /** Open Graph image for social media sharing. */
+  ogImage: Maybe<File>;
+  /** Open Graph title for social media sharing (max 95 chars). */
+  ogTitle: Maybe<Scalars['String']['output']>;
+  /** SEO description for search engines (max 160 chars). */
+  seoDescription: Maybe<Scalars['String']['output']>;
+  /** SEO title for search engines (max 70 chars). */
+  seoTitle: Maybe<Scalars['String']['output']>;
+};
+
+/** Input for SEO and Open Graph metadata. */
+export type SeoInput = {
+  /** Open Graph description. */
+  ogDescription?: InputMaybe<Scalars['String']['input']>;
+  /** Open Graph image file ID. */
+  ogImageId?: InputMaybe<Scalars['ID']['input']>;
+  /** Open Graph title (max 95 chars). */
+  ogTitle?: InputMaybe<Scalars['String']['input']>;
+  /** SEO description (max 160 chars). */
+  seoDescription?: InputMaybe<Scalars['String']['input']>;
+  /** SEO title (max 70 chars). */
+  seoTitle?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** Sort direction */
@@ -2708,7 +3510,7 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
-  Node: ( Category ) | ( Product ) | ( ProductFeature ) | ( ProductFeatureValue ) | ( ProductOption ) | ( ProductOptionSwatch ) | ( ProductOptionValue ) | ( Tag ) | ( Variant ) | ( VariantCost ) | ( VariantPrice );
+  Node: ( Category ) | ( Collection ) | ( Facet ) | ( FacetGroup ) | ( FacetSwatch ) | ( FacetValue ) | ( Product ) | ( ProductFeature ) | ( ProductFeatureValue ) | ( ProductOption ) | ( ProductOptionSwatch ) | ( ProductOptionValue ) | ( Tag ) | ( Variant ) | ( VariantCost ) | ( VariantPrice );
   UserError: ( BulkUpdateUserError ) | ( GenericUserError );
 }>;
 
@@ -2741,8 +3543,40 @@ export type ResolversTypes = ResolversObject<{
   CategoryMediaItem: ResolverTypeWrapper<CategoryMediaItem>;
   CategoryMoveInput: CategoryMoveInput;
   CategoryMovePayload: ResolverTypeWrapper<CategoryMovePayload>;
+  CategoryMoveProductInput: CategoryMoveProductInput;
+  CategoryMoveProductPayload: ResolverTypeWrapper<CategoryMoveProductPayload>;
+  CategoryProductConnection: ResolverTypeWrapper<CategoryProductConnection>;
+  CategoryProductEdge: ResolverTypeWrapper<CategoryProductEdge>;
+  CategoryRebalanceInput: CategoryRebalanceInput;
+  CategoryRebalancePayload: ResolverTypeWrapper<CategoryRebalancePayload>;
   CategoryUpdateInput: CategoryUpdateInput;
   CategoryUpdatePayload: ResolverTypeWrapper<CategoryUpdatePayload>;
+  CategoryUpdateSortInput: CategoryUpdateSortInput;
+  CategoryUpdateSortPayload: ResolverTypeWrapper<CategoryUpdateSortPayload>;
+  Collection: ResolverTypeWrapper<Collection>;
+  CollectionAddProductsInput: CollectionAddProductsInput;
+  CollectionAddProductsPayload: ResolverTypeWrapper<CollectionAddProductsPayload>;
+  CollectionConnection: ResolverTypeWrapper<CollectionConnection>;
+  CollectionCreateInput: CollectionCreateInput;
+  CollectionCreatePayload: ResolverTypeWrapper<CollectionCreatePayload>;
+  CollectionDeleteInput: CollectionDeleteInput;
+  CollectionDeletePayload: ResolverTypeWrapper<CollectionDeletePayload>;
+  CollectionEdge: ResolverTypeWrapper<CollectionEdge>;
+  CollectionMediaInput: CollectionMediaInput;
+  CollectionMediaItem: ResolverTypeWrapper<CollectionMediaItem>;
+  CollectionMoveProductInput: CollectionMoveProductInput;
+  CollectionMoveProductPayload: ResolverTypeWrapper<CollectionMoveProductPayload>;
+  CollectionProductConnection: ResolverTypeWrapper<CollectionProductConnection>;
+  CollectionProductEdge: ResolverTypeWrapper<CollectionProductEdge>;
+  CollectionRemoveProductsInput: CollectionRemoveProductsInput;
+  CollectionRemoveProductsPayload: ResolverTypeWrapper<CollectionRemoveProductsPayload>;
+  CollectionRule: ResolverTypeWrapper<CollectionRule>;
+  CollectionRuleInput: CollectionRuleInput;
+  CollectionType: CollectionType;
+  CollectionUpdateInput: CollectionUpdateInput;
+  CollectionUpdatePayload: ResolverTypeWrapper<CollectionUpdatePayload>;
+  CollectionUpdateRulesInput: CollectionUpdateRulesInput;
+  CollectionUpdateRulesPayload: ResolverTypeWrapper<CollectionUpdateRulesPayload>;
   CurrencyCode: CurrencyCode;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
   DateTimeFilter: DateTimeFilter;
@@ -2750,6 +3584,43 @@ export type ResolversTypes = ResolversObject<{
   DescriptionInput: DescriptionInput;
   DimensionUnit: DimensionUnit;
   Email: ResolverTypeWrapper<Scalars['Email']['output']>;
+  Facet: ResolverTypeWrapper<Facet>;
+  FacetCreateInput: FacetCreateInput;
+  FacetCreatePayload: ResolverTypeWrapper<FacetCreatePayload>;
+  FacetDeleteInput: FacetDeleteInput;
+  FacetDeletePayload: ResolverTypeWrapper<FacetDeletePayload>;
+  FacetGroup: ResolverTypeWrapper<FacetGroup>;
+  FacetGroupCreateInput: FacetGroupCreateInput;
+  FacetGroupCreatePayload: ResolverTypeWrapper<FacetGroupCreatePayload>;
+  FacetGroupDeleteInput: FacetGroupDeleteInput;
+  FacetGroupDeletePayload: ResolverTypeWrapper<FacetGroupDeletePayload>;
+  FacetGroupUpdateInput: FacetGroupUpdateInput;
+  FacetGroupUpdatePayload: ResolverTypeWrapper<FacetGroupUpdatePayload>;
+  FacetRangeFilterInput: FacetRangeFilterInput;
+  FacetResult: ResolverTypeWrapper<FacetResult>;
+  FacetResultGroup: ResolverTypeWrapper<FacetResultGroup>;
+  FacetResultValue: ResolverTypeWrapper<FacetResultValue>;
+  FacetSelectionMode: FacetSelectionMode;
+  FacetSwatch: ResolverTypeWrapper<FacetSwatch>;
+  FacetSwatchCreateInput: FacetSwatchCreateInput;
+  FacetSwatchCreatePayload: ResolverTypeWrapper<FacetSwatchCreatePayload>;
+  FacetSwatchDeleteInput: FacetSwatchDeleteInput;
+  FacetSwatchDeletePayload: ResolverTypeWrapper<FacetSwatchDeletePayload>;
+  FacetSwatchUpdateInput: FacetSwatchUpdateInput;
+  FacetSwatchUpdatePayload: ResolverTypeWrapper<FacetSwatchUpdatePayload>;
+  FacetType: FacetType;
+  FacetUIType: FacetUiType;
+  FacetUpdateInput: FacetUpdateInput;
+  FacetUpdatePayload: ResolverTypeWrapper<FacetUpdatePayload>;
+  FacetValue: ResolverTypeWrapper<FacetValue>;
+  FacetValueCreateInput: FacetValueCreateInput;
+  FacetValueCreatePayload: ResolverTypeWrapper<FacetValueCreatePayload>;
+  FacetValueDeleteInput: FacetValueDeleteInput;
+  FacetValueDeletePayload: ResolverTypeWrapper<FacetValueDeletePayload>;
+  FacetValueSort: FacetValueSort;
+  FacetValueUpdateInput: FacetValueUpdateInput;
+  FacetValueUpdatePayload: ResolverTypeWrapper<FacetValueUpdatePayload>;
+  Facets: ResolverTypeWrapper<Facets>;
   File: ResolverTypeWrapper<File>;
   FloatFilter: FloatFilter;
   Float: ResolverTypeWrapper<Scalars['Float']['output']>;
@@ -2765,6 +3636,7 @@ export type ResolversTypes = ResolversObject<{
   OperationType: OperationType;
   OptionDisplayType: OptionDisplayType;
   PageInfo: ResolverTypeWrapper<PageInfo>;
+  PriceRange: ResolverTypeWrapper<PriceRange>;
   PricingWidgetInput: PricingWidgetInput;
   PricingWidgetPayload: ResolverTypeWrapper<PricingWidgetPayload>;
   Product: ResolverTypeWrapper<Product>;
@@ -2798,6 +3670,7 @@ export type ResolversTypes = ResolversObject<{
   ProductFeatureValuesInput: ProductFeatureValuesInput;
   ProductFeaturesSyncInput: ProductFeaturesSyncInput;
   ProductFeaturesSyncPayload: ResolverTypeWrapper<ProductFeaturesSyncPayload>;
+  ProductFiltersInput: ProductFiltersInput;
   ProductMediaInput: ProductMediaInput;
   ProductOption: ResolverTypeWrapper<ProductOption>;
   ProductOptionCreateInput: ProductOptionCreateInput;
@@ -2818,6 +3691,8 @@ export type ResolversTypes = ResolversObject<{
   ProductOptionsSyncPayload: ResolverTypeWrapper<ProductOptionsSyncPayload>;
   ProductSeo: ResolverTypeWrapper<ProductSeo>;
   ProductSeoInput: ProductSeoInput;
+  ProductSortBy: ProductSortBy;
+  ProductSortInput: ProductSortInput;
   ProductStatus: ProductStatus;
   ProductStatusAction: ProductStatusAction;
   ProductUpdateInput: ProductUpdateInput;
@@ -2827,6 +3702,8 @@ export type ResolversTypes = ResolversObject<{
   Query: ResolverTypeWrapper<{}>;
   SelectedOption: ResolverTypeWrapper<SelectedOption>;
   SelectedOptionInput: SelectedOptionInput;
+  Seo: ResolverTypeWrapper<Seo>;
+  SeoInput: SeoInput;
   SortDirection: SortDirection;
   StringFilter: StringFilter;
   SwatchType: SwatchType;
@@ -2899,13 +3776,77 @@ export type ResolversParentTypes = ResolversObject<{
   CategoryMediaItem: CategoryMediaItem;
   CategoryMoveInput: CategoryMoveInput;
   CategoryMovePayload: CategoryMovePayload;
+  CategoryMoveProductInput: CategoryMoveProductInput;
+  CategoryMoveProductPayload: CategoryMoveProductPayload;
+  CategoryProductConnection: CategoryProductConnection;
+  CategoryProductEdge: CategoryProductEdge;
+  CategoryRebalanceInput: CategoryRebalanceInput;
+  CategoryRebalancePayload: CategoryRebalancePayload;
   CategoryUpdateInput: CategoryUpdateInput;
   CategoryUpdatePayload: CategoryUpdatePayload;
+  CategoryUpdateSortInput: CategoryUpdateSortInput;
+  CategoryUpdateSortPayload: CategoryUpdateSortPayload;
+  Collection: Collection;
+  CollectionAddProductsInput: CollectionAddProductsInput;
+  CollectionAddProductsPayload: CollectionAddProductsPayload;
+  CollectionConnection: CollectionConnection;
+  CollectionCreateInput: CollectionCreateInput;
+  CollectionCreatePayload: CollectionCreatePayload;
+  CollectionDeleteInput: CollectionDeleteInput;
+  CollectionDeletePayload: CollectionDeletePayload;
+  CollectionEdge: CollectionEdge;
+  CollectionMediaInput: CollectionMediaInput;
+  CollectionMediaItem: CollectionMediaItem;
+  CollectionMoveProductInput: CollectionMoveProductInput;
+  CollectionMoveProductPayload: CollectionMoveProductPayload;
+  CollectionProductConnection: CollectionProductConnection;
+  CollectionProductEdge: CollectionProductEdge;
+  CollectionRemoveProductsInput: CollectionRemoveProductsInput;
+  CollectionRemoveProductsPayload: CollectionRemoveProductsPayload;
+  CollectionRule: CollectionRule;
+  CollectionRuleInput: CollectionRuleInput;
+  CollectionUpdateInput: CollectionUpdateInput;
+  CollectionUpdatePayload: CollectionUpdatePayload;
+  CollectionUpdateRulesInput: CollectionUpdateRulesInput;
+  CollectionUpdateRulesPayload: CollectionUpdateRulesPayload;
   DateTime: Scalars['DateTime']['output'];
   DateTimeFilter: DateTimeFilter;
   Description: Description;
   DescriptionInput: DescriptionInput;
   Email: Scalars['Email']['output'];
+  Facet: Facet;
+  FacetCreateInput: FacetCreateInput;
+  FacetCreatePayload: FacetCreatePayload;
+  FacetDeleteInput: FacetDeleteInput;
+  FacetDeletePayload: FacetDeletePayload;
+  FacetGroup: FacetGroup;
+  FacetGroupCreateInput: FacetGroupCreateInput;
+  FacetGroupCreatePayload: FacetGroupCreatePayload;
+  FacetGroupDeleteInput: FacetGroupDeleteInput;
+  FacetGroupDeletePayload: FacetGroupDeletePayload;
+  FacetGroupUpdateInput: FacetGroupUpdateInput;
+  FacetGroupUpdatePayload: FacetGroupUpdatePayload;
+  FacetRangeFilterInput: FacetRangeFilterInput;
+  FacetResult: FacetResult;
+  FacetResultGroup: FacetResultGroup;
+  FacetResultValue: FacetResultValue;
+  FacetSwatch: FacetSwatch;
+  FacetSwatchCreateInput: FacetSwatchCreateInput;
+  FacetSwatchCreatePayload: FacetSwatchCreatePayload;
+  FacetSwatchDeleteInput: FacetSwatchDeleteInput;
+  FacetSwatchDeletePayload: FacetSwatchDeletePayload;
+  FacetSwatchUpdateInput: FacetSwatchUpdateInput;
+  FacetSwatchUpdatePayload: FacetSwatchUpdatePayload;
+  FacetUpdateInput: FacetUpdateInput;
+  FacetUpdatePayload: FacetUpdatePayload;
+  FacetValue: FacetValue;
+  FacetValueCreateInput: FacetValueCreateInput;
+  FacetValueCreatePayload: FacetValueCreatePayload;
+  FacetValueDeleteInput: FacetValueDeleteInput;
+  FacetValueDeletePayload: FacetValueDeletePayload;
+  FacetValueUpdateInput: FacetValueUpdateInput;
+  FacetValueUpdatePayload: FacetValueUpdatePayload;
+  Facets: Facets;
   File: File;
   FloatFilter: FloatFilter;
   Float: Scalars['Float']['output'];
@@ -2918,6 +3859,7 @@ export type ResolversParentTypes = ResolversObject<{
   Node: ResolversInterfaceTypes<ResolversParentTypes>['Node'];
   OperationResult: OperationResult;
   PageInfo: PageInfo;
+  PriceRange: PriceRange;
   PricingWidgetInput: PricingWidgetInput;
   PricingWidgetPayload: PricingWidgetPayload;
   Product: Product;
@@ -2951,6 +3893,7 @@ export type ResolversParentTypes = ResolversObject<{
   ProductFeatureValuesInput: ProductFeatureValuesInput;
   ProductFeaturesSyncInput: ProductFeaturesSyncInput;
   ProductFeaturesSyncPayload: ProductFeaturesSyncPayload;
+  ProductFiltersInput: ProductFiltersInput;
   ProductMediaInput: ProductMediaInput;
   ProductOption: ProductOption;
   ProductOptionCreateInput: ProductOptionCreateInput;
@@ -2971,6 +3914,7 @@ export type ResolversParentTypes = ResolversObject<{
   ProductOptionsSyncPayload: ProductOptionsSyncPayload;
   ProductSeo: ProductSeo;
   ProductSeoInput: ProductSeoInput;
+  ProductSortInput: ProductSortInput;
   ProductUpdateInput: ProductUpdateInput;
   ProductUpdatePayload: ProductUpdatePayload;
   ProductUpdateStatusInput: ProductUpdateStatusInput;
@@ -2978,6 +3922,8 @@ export type ResolversParentTypes = ResolversObject<{
   Query: {};
   SelectedOption: SelectedOption;
   SelectedOptionInput: SelectedOptionInput;
+  Seo: Seo;
+  SeoInput: SeoInput;
   StringFilter: StringFilter;
   Tag: Tag;
   TagConnection: TagConnection;
@@ -3080,7 +4026,29 @@ export type CatalogMutationResolvers<ContextType = ServiceContext, ParentType ex
   categoryCreate?: Resolver<ResolversTypes['CategoryCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationCategoryCreateArgs, 'input'>>;
   categoryDelete?: Resolver<ResolversTypes['CategoryDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationCategoryDeleteArgs, 'input'>>;
   categoryMove?: Resolver<ResolversTypes['CategoryMovePayload'], ParentType, ContextType, RequireFields<CatalogMutationCategoryMoveArgs, 'input'>>;
+  categoryMoveProduct?: Resolver<ResolversTypes['CategoryMoveProductPayload'], ParentType, ContextType, RequireFields<CatalogMutationCategoryMoveProductArgs, 'input'>>;
+  categoryRebalance?: Resolver<ResolversTypes['CategoryRebalancePayload'], ParentType, ContextType, RequireFields<CatalogMutationCategoryRebalanceArgs, 'input'>>;
   categoryUpdate?: Resolver<ResolversTypes['CategoryUpdatePayload'], ParentType, ContextType, RequireFields<CatalogMutationCategoryUpdateArgs, 'input'>>;
+  categoryUpdateSort?: Resolver<ResolversTypes['CategoryUpdateSortPayload'], ParentType, ContextType, RequireFields<CatalogMutationCategoryUpdateSortArgs, 'input'>>;
+  collectionAddProducts?: Resolver<ResolversTypes['CollectionAddProductsPayload'], ParentType, ContextType, RequireFields<CatalogMutationCollectionAddProductsArgs, 'input'>>;
+  collectionCreate?: Resolver<ResolversTypes['CollectionCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationCollectionCreateArgs, 'input'>>;
+  collectionDelete?: Resolver<ResolversTypes['CollectionDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationCollectionDeleteArgs, 'input'>>;
+  collectionMoveProduct?: Resolver<ResolversTypes['CollectionMoveProductPayload'], ParentType, ContextType, RequireFields<CatalogMutationCollectionMoveProductArgs, 'input'>>;
+  collectionRemoveProducts?: Resolver<ResolversTypes['CollectionRemoveProductsPayload'], ParentType, ContextType, RequireFields<CatalogMutationCollectionRemoveProductsArgs, 'input'>>;
+  collectionUpdate?: Resolver<ResolversTypes['CollectionUpdatePayload'], ParentType, ContextType, RequireFields<CatalogMutationCollectionUpdateArgs, 'input'>>;
+  collectionUpdateRules?: Resolver<ResolversTypes['CollectionUpdateRulesPayload'], ParentType, ContextType, RequireFields<CatalogMutationCollectionUpdateRulesArgs, 'input'>>;
+  facetCreate?: Resolver<ResolversTypes['FacetCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetCreateArgs, 'input'>>;
+  facetDelete?: Resolver<ResolversTypes['FacetDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetDeleteArgs, 'input'>>;
+  facetGroupCreate?: Resolver<ResolversTypes['FacetGroupCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetGroupCreateArgs, 'input'>>;
+  facetGroupDelete?: Resolver<ResolversTypes['FacetGroupDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetGroupDeleteArgs, 'input'>>;
+  facetGroupUpdate?: Resolver<ResolversTypes['FacetGroupUpdatePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetGroupUpdateArgs, 'input'>>;
+  facetSwatchCreate?: Resolver<ResolversTypes['FacetSwatchCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetSwatchCreateArgs, 'input'>>;
+  facetSwatchDelete?: Resolver<ResolversTypes['FacetSwatchDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetSwatchDeleteArgs, 'input'>>;
+  facetSwatchUpdate?: Resolver<ResolversTypes['FacetSwatchUpdatePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetSwatchUpdateArgs, 'input'>>;
+  facetUpdate?: Resolver<ResolversTypes['FacetUpdatePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetUpdateArgs, 'input'>>;
+  facetValueCreate?: Resolver<ResolversTypes['FacetValueCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetValueCreateArgs, 'input'>>;
+  facetValueDelete?: Resolver<ResolversTypes['FacetValueDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetValueDeleteArgs, 'input'>>;
+  facetValueUpdate?: Resolver<ResolversTypes['FacetValueUpdatePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetValueUpdateArgs, 'input'>>;
   productBulkUpdate?: Resolver<ResolversTypes['ProductBulkUpdatePayload'], ParentType, ContextType, RequireFields<CatalogMutationProductBulkUpdateArgs, 'input'>>;
   productCreate?: Resolver<ResolversTypes['ProductCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationProductCreateArgs, 'input'>>;
   productDelete?: Resolver<ResolversTypes['ProductDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationProductDeleteArgs, 'input'>>;
@@ -3108,6 +4076,19 @@ export type CatalogMutationResolvers<ContextType = ServiceContext, ParentType ex
 export type CatalogQueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CatalogQuery'] = ResolversParentTypes['CatalogQuery']> = ResolversObject<{
   categories?: Resolver<ResolversTypes['CategoryConnection'], ParentType, ContextType, Partial<CatalogQueryCategoriesArgs>>;
   category?: Resolver<Maybe<ResolversTypes['Category']>, ParentType, ContextType, RequireFields<CatalogQueryCategoryArgs, 'id'>>;
+  categoryProducts?: Resolver<ResolversTypes['CategoryProductConnection'], ParentType, ContextType, RequireFields<CatalogQueryCategoryProductsArgs, 'categoryId'>>;
+  collection?: Resolver<Maybe<ResolversTypes['Collection']>, ParentType, ContextType, RequireFields<CatalogQueryCollectionArgs, 'id'>>;
+  collectionByHandle?: Resolver<Maybe<ResolversTypes['Collection']>, ParentType, ContextType, RequireFields<CatalogQueryCollectionByHandleArgs, 'handle'>>;
+  collectionRulesPreviewCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType, RequireFields<CatalogQueryCollectionRulesPreviewCountArgs, 'rules'>>;
+  collections?: Resolver<ResolversTypes['CollectionConnection'], ParentType, ContextType, Partial<CatalogQueryCollectionsArgs>>;
+  facet?: Resolver<Maybe<ResolversTypes['Facet']>, ParentType, ContextType, RequireFields<CatalogQueryFacetArgs, 'id'>>;
+  facetGroup?: Resolver<Maybe<ResolversTypes['FacetGroup']>, ParentType, ContextType, RequireFields<CatalogQueryFacetGroupArgs, 'id'>>;
+  facetGroups?: Resolver<Array<ResolversTypes['FacetGroup']>, ParentType, ContextType>;
+  facetSwatch?: Resolver<Maybe<ResolversTypes['FacetSwatch']>, ParentType, ContextType, RequireFields<CatalogQueryFacetSwatchArgs, 'id'>>;
+  facetSwatches?: Resolver<Array<ResolversTypes['FacetSwatch']>, ParentType, ContextType>;
+  facetValue?: Resolver<Maybe<ResolversTypes['FacetValue']>, ParentType, ContextType, RequireFields<CatalogQueryFacetValueArgs, 'id'>>;
+  facetValues?: Resolver<Array<ResolversTypes['FacetValue']>, ParentType, ContextType, RequireFields<CatalogQueryFacetValuesArgs, 'facetId'>>;
+  facets?: Resolver<Array<ResolversTypes['Facet']>, ParentType, ContextType>;
   node?: Resolver<Maybe<ResolversTypes['Node']>, ParentType, ContextType, RequireFields<CatalogQueryNodeArgs, 'id'>>;
   nodes?: Resolver<Array<Maybe<ResolversTypes['Node']>>, ParentType, ContextType, RequireFields<CatalogQueryNodesArgs, 'ids'>>;
   product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType, RequireFields<CatalogQueryProductArgs, 'id'>>;
@@ -3123,8 +4104,11 @@ export type CatalogQueryResolvers<ContextType = ServiceContext, ParentType exten
 export type CategoryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Category'] = ResolversParentTypes['Category']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Category']>, { __typename: 'Category' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   ancestors?: Resolver<Array<ResolversTypes['Category']>, ParentType, ContextType>;
+  categoryProducts?: Resolver<ResolversTypes['CategoryProductConnection'], ParentType, ContextType, Partial<CategoryCategoryProductsArgs>>;
   children?: Resolver<Array<ResolversTypes['Category']>, ParentType, ContextType>;
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  defaultSort?: Resolver<ResolversTypes['ProductSortBy'], ParentType, ContextType>;
+  defaultSortDirection?: Resolver<ResolversTypes['SortDirection'], ParentType, ContextType>;
   deletedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   depth?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['Description']>, ParentType, ContextType>;
@@ -3138,6 +4122,7 @@ export type CategoryResolvers<ContextType = ServiceContext, ParentType extends R
   products?: Resolver<ResolversTypes['ProductConnection'], ParentType, ContextType, Partial<CategoryProductsArgs>>;
   productsCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   publishedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  seo?: Resolver<Maybe<ResolversTypes['Seo']>, ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -3179,8 +4164,148 @@ export type CategoryMovePayloadResolvers<ContextType = ServiceContext, ParentTyp
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type CategoryMoveProductPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CategoryMoveProductPayload'] = ResolversParentTypes['CategoryMoveProductPayload']> = ResolversObject<{
+  category?: Resolver<Maybe<ResolversTypes['Category']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CategoryProductConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CategoryProductConnection'] = ResolversParentTypes['CategoryProductConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['CategoryProductEdge']>, ParentType, ContextType>;
+  facets?: Resolver<Maybe<ResolversTypes['Facets']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CategoryProductEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CategoryProductEdge'] = ResolversParentTypes['CategoryProductEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['Product'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CategoryRebalancePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CategoryRebalancePayload'] = ResolversParentTypes['CategoryRebalancePayload']> = ResolversObject<{
+  category?: Resolver<Maybe<ResolversTypes['Category']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type CategoryUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CategoryUpdatePayload'] = ResolversParentTypes['CategoryUpdatePayload']> = ResolversObject<{
   category?: Resolver<Maybe<ResolversTypes['Category']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CategoryUpdateSortPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CategoryUpdateSortPayload'] = ResolversParentTypes['CategoryUpdateSortPayload']> = ResolversObject<{
+  category?: Resolver<Maybe<ResolversTypes['Category']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CollectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Collection'] = ResolversParentTypes['Collection']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Collection']>, { __typename: 'Collection' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  activeFrom?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  activeTo?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  defaultSort?: Resolver<ResolversTypes['ProductSortBy'], ParentType, ContextType>;
+  defaultSortDirection?: Resolver<ResolversTypes['SortDirection'], ParentType, ContextType>;
+  description?: Resolver<Maybe<ResolversTypes['Description']>, ParentType, ContextType>;
+  handle?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  isActive?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  isPublished?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  media?: Resolver<Array<ResolversTypes['CollectionMediaItem']>, ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  products?: Resolver<ResolversTypes['CollectionProductConnection'], ParentType, ContextType, Partial<CollectionProductsArgs>>;
+  productsCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  publishedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  rules?: Resolver<Array<ResolversTypes['CollectionRule']>, ParentType, ContextType>;
+  seo?: Resolver<Maybe<ResolversTypes['Seo']>, ParentType, ContextType>;
+  type?: Resolver<ResolversTypes['CollectionType'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CollectionAddProductsPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CollectionAddProductsPayload'] = ResolversParentTypes['CollectionAddProductsPayload']> = ResolversObject<{
+  collection?: Resolver<Maybe<ResolversTypes['Collection']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CollectionConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CollectionConnection'] = ResolversParentTypes['CollectionConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['CollectionEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CollectionCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CollectionCreatePayload'] = ResolversParentTypes['CollectionCreatePayload']> = ResolversObject<{
+  collection?: Resolver<Maybe<ResolversTypes['Collection']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CollectionDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CollectionDeletePayload'] = ResolversParentTypes['CollectionDeletePayload']> = ResolversObject<{
+  deletedCollectionId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CollectionEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CollectionEdge'] = ResolversParentTypes['CollectionEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['Collection'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CollectionMediaItemResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CollectionMediaItem'] = ResolversParentTypes['CollectionMediaItem']> = ResolversObject<{
+  file?: Resolver<ResolversTypes['File'], ParentType, ContextType>;
+  sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CollectionMoveProductPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CollectionMoveProductPayload'] = ResolversParentTypes['CollectionMoveProductPayload']> = ResolversObject<{
+  collection?: Resolver<Maybe<ResolversTypes['Collection']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CollectionProductConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CollectionProductConnection'] = ResolversParentTypes['CollectionProductConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['CollectionProductEdge']>, ParentType, ContextType>;
+  facets?: Resolver<Maybe<ResolversTypes['Facets']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CollectionProductEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CollectionProductEdge'] = ResolversParentTypes['CollectionProductEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['Product'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CollectionRemoveProductsPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CollectionRemoveProductsPayload'] = ResolversParentTypes['CollectionRemoveProductsPayload']> = ResolversObject<{
+  collection?: Resolver<Maybe<ResolversTypes['Collection']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CollectionRuleResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CollectionRule'] = ResolversParentTypes['CollectionRule']> = ResolversObject<{
+  field?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  operator?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  value?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CollectionUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CollectionUpdatePayload'] = ResolversParentTypes['CollectionUpdatePayload']> = ResolversObject<{
+  collection?: Resolver<Maybe<ResolversTypes['Collection']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CollectionUpdateRulesPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CollectionUpdateRulesPayload'] = ResolversParentTypes['CollectionUpdateRulesPayload']> = ResolversObject<{
+  collection?: Resolver<Maybe<ResolversTypes['Collection']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -3199,6 +4324,161 @@ export type DescriptionResolvers<ContextType = ServiceContext, ParentType extend
 export interface EmailScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['Email'], any> {
   name: 'Email';
 }
+
+export type FacetResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Facet'] = ResolversParentTypes['Facet']> = ResolversObject<{
+  facetType?: Resolver<ResolversTypes['FacetType'], ParentType, ContextType>;
+  group?: Resolver<Maybe<ResolversTypes['FacetGroup']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  indexable?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  label?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  maxValuesVisible?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  minValues?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  selectionMode?: Resolver<ResolversTypes['FacetSelectionMode'], ParentType, ContextType>;
+  slug?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  sourceHandles?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
+  uiType?: Resolver<ResolversTypes['FacetUIType'], ParentType, ContextType>;
+  valueSort?: Resolver<ResolversTypes['FacetValueSort'], ParentType, ContextType>;
+  values?: Resolver<Array<ResolversTypes['FacetValue']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FacetCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetCreatePayload'] = ResolversParentTypes['FacetCreatePayload']> = ResolversObject<{
+  facet?: Resolver<Maybe<ResolversTypes['Facet']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FacetDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetDeletePayload'] = ResolversParentTypes['FacetDeletePayload']> = ResolversObject<{
+  deletedFacetId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FacetGroupResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetGroup'] = ResolversParentTypes['FacetGroup']> = ResolversObject<{
+  collapsed?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  facets?: Resolver<Array<ResolversTypes['Facet']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FacetGroupCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetGroupCreatePayload'] = ResolversParentTypes['FacetGroupCreatePayload']> = ResolversObject<{
+  facetGroup?: Resolver<Maybe<ResolversTypes['FacetGroup']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FacetGroupDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetGroupDeletePayload'] = ResolversParentTypes['FacetGroupDeletePayload']> = ResolversObject<{
+  deletedFacetGroupId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FacetGroupUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetGroupUpdatePayload'] = ResolversParentTypes['FacetGroupUpdatePayload']> = ResolversObject<{
+  facetGroup?: Resolver<Maybe<ResolversTypes['FacetGroup']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FacetResultResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetResult'] = ResolversParentTypes['FacetResult']> = ResolversObject<{
+  facetType?: Resolver<ResolversTypes['FacetType'], ParentType, ContextType>;
+  label?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  selectionMode?: Resolver<ResolversTypes['FacetSelectionMode'], ParentType, ContextType>;
+  slug?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  uiType?: Resolver<ResolversTypes['FacetUIType'], ParentType, ContextType>;
+  values?: Resolver<Array<ResolversTypes['FacetResultValue']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FacetResultGroupResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetResultGroup'] = ResolversParentTypes['FacetResultGroup']> = ResolversObject<{
+  collapsed?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  facets?: Resolver<Array<ResolversTypes['FacetResult']>, ParentType, ContextType>;
+  name?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FacetResultValueResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetResultValue'] = ResolversParentTypes['FacetResultValue']> = ResolversObject<{
+  count?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  label?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  slug?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  swatch?: Resolver<Maybe<ResolversTypes['FacetSwatch']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FacetSwatchResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetSwatch'] = ResolversParentTypes['FacetSwatch']> = ResolversObject<{
+  colorOne?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  colorTwo?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  file?: Resolver<Maybe<ResolversTypes['File']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  metadata?: Resolver<Maybe<ResolversTypes['JSON']>, ParentType, ContextType>;
+  swatchType?: Resolver<ResolversTypes['SwatchType'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FacetSwatchCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetSwatchCreatePayload'] = ResolversParentTypes['FacetSwatchCreatePayload']> = ResolversObject<{
+  facetSwatch?: Resolver<Maybe<ResolversTypes['FacetSwatch']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FacetSwatchDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetSwatchDeletePayload'] = ResolversParentTypes['FacetSwatchDeletePayload']> = ResolversObject<{
+  deletedFacetSwatchId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FacetSwatchUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetSwatchUpdatePayload'] = ResolversParentTypes['FacetSwatchUpdatePayload']> = ResolversObject<{
+  facetSwatch?: Resolver<Maybe<ResolversTypes['FacetSwatch']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FacetUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetUpdatePayload'] = ResolversParentTypes['FacetUpdatePayload']> = ResolversObject<{
+  facet?: Resolver<Maybe<ResolversTypes['Facet']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FacetValueResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetValue'] = ResolversParentTypes['FacetValue']> = ResolversObject<{
+  enabled?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  facet?: Resolver<ResolversTypes['Facet'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  label?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  slug?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  sourceHandles?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
+  swatch?: Resolver<Maybe<ResolversTypes['FacetSwatch']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FacetValueCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetValueCreatePayload'] = ResolversParentTypes['FacetValueCreatePayload']> = ResolversObject<{
+  facetValue?: Resolver<Maybe<ResolversTypes['FacetValue']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FacetValueDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetValueDeletePayload'] = ResolversParentTypes['FacetValueDeletePayload']> = ResolversObject<{
+  deletedFacetValueId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FacetValueUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetValueUpdatePayload'] = ResolversParentTypes['FacetValueUpdatePayload']> = ResolversObject<{
+  facetValue?: Resolver<Maybe<ResolversTypes['FacetValue']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FacetsResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Facets'] = ResolversParentTypes['Facets']> = ResolversObject<{
+  groups?: Resolver<Array<ResolversTypes['FacetResultGroup']>, ParentType, ContextType>;
+  priceRange?: Resolver<Maybe<ResolversTypes['PriceRange']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
 
 export type FileResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['File'] = ResolversParentTypes['File']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['File']>, ParentType, ContextType>;
@@ -3222,7 +4502,7 @@ export type MutationResolvers<ContextType = ServiceContext, ParentType extends R
 }>;
 
 export type NodeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Node'] = ResolversParentTypes['Node']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'Category' | 'Product' | 'ProductFeature' | 'ProductFeatureValue' | 'ProductOption' | 'ProductOptionSwatch' | 'ProductOptionValue' | 'Tag' | 'Variant' | 'VariantCost' | 'VariantPrice', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'Category' | 'Collection' | 'Facet' | 'FacetGroup' | 'FacetSwatch' | 'FacetValue' | 'Product' | 'ProductFeature' | 'ProductFeatureValue' | 'ProductOption' | 'ProductOptionSwatch' | 'ProductOptionValue' | 'Tag' | 'Variant' | 'VariantCost' | 'VariantPrice', ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
 }>;
 
@@ -3238,6 +4518,12 @@ export type PageInfoResolvers<ContextType = ServiceContext, ParentType extends R
   hasNextPage?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   hasPreviousPage?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   startCursor?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type PriceRangeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['PriceRange'] = ResolversParentTypes['PriceRange']> = ResolversObject<{
+  maxMinor?: Resolver<ResolversTypes['BigInt'], ParentType, ContextType>;
+  minMinor?: Resolver<ResolversTypes['BigInt'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -3323,6 +4609,7 @@ export type ProductFeatureResolvers<ContextType = ServiceContext, ParentType ext
   isGroup?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   parent?: Resolver<Maybe<ResolversTypes['ProductFeature']>, ParentType, ContextType>;
+  slug?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   values?: Resolver<Array<ResolversTypes['ProductFeatureValue']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -3353,6 +4640,7 @@ export type ProductFeatureValueResolvers<ContextType = ServiceContext, ParentTyp
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   index?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  slug?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -3451,6 +4739,15 @@ export type QueryResolvers<ContextType = ServiceContext, ParentType extends Reso
 export type SelectedOptionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SelectedOption'] = ResolversParentTypes['SelectedOption']> = ResolversObject<{
   optionId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   optionValueId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type SeoResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Seo'] = ResolversParentTypes['Seo']> = ResolversObject<{
+  ogDescription?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  ogImage?: Resolver<Maybe<ResolversTypes['File']>, ParentType, ContextType>;
+  ogTitle?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  seoDescription?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  seoTitle?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -3655,10 +4952,49 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   CategoryEdge?: CategoryEdgeResolvers<ContextType>;
   CategoryMediaItem?: CategoryMediaItemResolvers<ContextType>;
   CategoryMovePayload?: CategoryMovePayloadResolvers<ContextType>;
+  CategoryMoveProductPayload?: CategoryMoveProductPayloadResolvers<ContextType>;
+  CategoryProductConnection?: CategoryProductConnectionResolvers<ContextType>;
+  CategoryProductEdge?: CategoryProductEdgeResolvers<ContextType>;
+  CategoryRebalancePayload?: CategoryRebalancePayloadResolvers<ContextType>;
   CategoryUpdatePayload?: CategoryUpdatePayloadResolvers<ContextType>;
+  CategoryUpdateSortPayload?: CategoryUpdateSortPayloadResolvers<ContextType>;
+  Collection?: CollectionResolvers<ContextType>;
+  CollectionAddProductsPayload?: CollectionAddProductsPayloadResolvers<ContextType>;
+  CollectionConnection?: CollectionConnectionResolvers<ContextType>;
+  CollectionCreatePayload?: CollectionCreatePayloadResolvers<ContextType>;
+  CollectionDeletePayload?: CollectionDeletePayloadResolvers<ContextType>;
+  CollectionEdge?: CollectionEdgeResolvers<ContextType>;
+  CollectionMediaItem?: CollectionMediaItemResolvers<ContextType>;
+  CollectionMoveProductPayload?: CollectionMoveProductPayloadResolvers<ContextType>;
+  CollectionProductConnection?: CollectionProductConnectionResolvers<ContextType>;
+  CollectionProductEdge?: CollectionProductEdgeResolvers<ContextType>;
+  CollectionRemoveProductsPayload?: CollectionRemoveProductsPayloadResolvers<ContextType>;
+  CollectionRule?: CollectionRuleResolvers<ContextType>;
+  CollectionUpdatePayload?: CollectionUpdatePayloadResolvers<ContextType>;
+  CollectionUpdateRulesPayload?: CollectionUpdateRulesPayloadResolvers<ContextType>;
   DateTime?: GraphQLScalarType;
   Description?: DescriptionResolvers<ContextType>;
   Email?: GraphQLScalarType;
+  Facet?: FacetResolvers<ContextType>;
+  FacetCreatePayload?: FacetCreatePayloadResolvers<ContextType>;
+  FacetDeletePayload?: FacetDeletePayloadResolvers<ContextType>;
+  FacetGroup?: FacetGroupResolvers<ContextType>;
+  FacetGroupCreatePayload?: FacetGroupCreatePayloadResolvers<ContextType>;
+  FacetGroupDeletePayload?: FacetGroupDeletePayloadResolvers<ContextType>;
+  FacetGroupUpdatePayload?: FacetGroupUpdatePayloadResolvers<ContextType>;
+  FacetResult?: FacetResultResolvers<ContextType>;
+  FacetResultGroup?: FacetResultGroupResolvers<ContextType>;
+  FacetResultValue?: FacetResultValueResolvers<ContextType>;
+  FacetSwatch?: FacetSwatchResolvers<ContextType>;
+  FacetSwatchCreatePayload?: FacetSwatchCreatePayloadResolvers<ContextType>;
+  FacetSwatchDeletePayload?: FacetSwatchDeletePayloadResolvers<ContextType>;
+  FacetSwatchUpdatePayload?: FacetSwatchUpdatePayloadResolvers<ContextType>;
+  FacetUpdatePayload?: FacetUpdatePayloadResolvers<ContextType>;
+  FacetValue?: FacetValueResolvers<ContextType>;
+  FacetValueCreatePayload?: FacetValueCreatePayloadResolvers<ContextType>;
+  FacetValueDeletePayload?: FacetValueDeletePayloadResolvers<ContextType>;
+  FacetValueUpdatePayload?: FacetValueUpdatePayloadResolvers<ContextType>;
+  Facets?: FacetsResolvers<ContextType>;
   File?: FileResolvers<ContextType>;
   GenericUserError?: GenericUserErrorResolvers<ContextType>;
   JSON?: GraphQLScalarType;
@@ -3666,6 +5002,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   Node?: NodeResolvers<ContextType>;
   OperationResult?: OperationResultResolvers<ContextType>;
   PageInfo?: PageInfoResolvers<ContextType>;
+  PriceRange?: PriceRangeResolvers<ContextType>;
   PricingWidgetPayload?: PricingWidgetPayloadResolvers<ContextType>;
   Product?: ProductResolvers<ContextType>;
   ProductBulkUpdateJob?: ProductBulkUpdateJobResolvers<ContextType>;
@@ -3692,6 +5029,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   ProductUpdateStatusPayload?: ProductUpdateStatusPayloadResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   SelectedOption?: SelectedOptionResolvers<ContextType>;
+  Seo?: SeoResolvers<ContextType>;
   Tag?: TagResolvers<ContextType>;
   TagConnection?: TagConnectionResolvers<ContextType>;
   TagCreatePayload?: TagCreatePayloadResolvers<ContextType>;

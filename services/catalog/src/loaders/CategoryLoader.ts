@@ -3,6 +3,7 @@ import type {
   Category,
   CategoryTranslation,
   CategoryMedia,
+  CategorySeo,
   ProductCategory,
 } from "../repositories/models/index.js";
 import type { Repository } from "../repositories/Repository.js";
@@ -11,6 +12,7 @@ export class CategoryLoader {
   public readonly category: DataLoader<string, Category | null>;
   public readonly categoryTranslation: DataLoader<string, CategoryTranslation | null>;
   public readonly categoryMedia: DataLoader<string, CategoryMedia[]>;
+  public readonly categorySeo: DataLoader<string, CategorySeo | null>;
   public readonly categoryChildrenIds: DataLoader<string, string[]>;
   public readonly categoryAncestorIds: DataLoader<string, string[]>;
   public readonly categoryProductsCount: DataLoader<string, number>;
@@ -45,6 +47,15 @@ export class CategoryLoader {
         return categoryIds.map((id) =>
           results.filter((m) => m.categoryId === id)
         );
+      }
+    );
+
+    this.categorySeo = new DataLoader<string, CategorySeo | null>(
+      async (categoryIds) => {
+        const results = await repository.translation.getCategorySeoBatch(
+          categoryIds
+        );
+        return categoryIds.map((id) => results.get(id) ?? null);
       }
     );
 

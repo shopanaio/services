@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { SLUG_REGEX } from "../../shared/slug.js";
 
 /**
  * Tree index as int[]:
@@ -14,12 +15,28 @@ const TreeIndexSchema = z
 const FeatureValueInputSchema = z.object({
   id: z.string().uuid().optional(),
   index: z.number().int().min(0),
+  slug: z
+    .string()
+    .min(1, "Value slug is required")
+    .max(255)
+    .regex(
+      SLUG_REGEX,
+      "Value slug must use lowercase letters, numbers, and hyphens"
+    ),
   name: z.string().min(1, "Value name is required").max(255),
 });
 
 const FeatureSyncItemSchema = z.object({
   id: z.string().uuid().optional(),
   index: TreeIndexSchema,
+  slug: z
+    .string()
+    .min(1, "Feature slug is required")
+    .max(255)
+    .regex(
+      SLUG_REGEX,
+      "Feature slug must use lowercase letters, numbers, and hyphens"
+    ),
   isGroup: z.boolean(),
   name: z.string().min(1, "Feature name is required").max(255),
   values: z.array(FeatureValueInputSchema).optional(),

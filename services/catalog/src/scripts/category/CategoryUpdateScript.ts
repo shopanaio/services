@@ -1,6 +1,9 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import type { CategoryUpdateParams, CategoryUpdateResult } from "./dto/index.js";
 
+const ALLOWED_SORTS = new Set(["manual", "price", "newest", "name"]);
+const ALLOWED_DIRECTIONS = new Set(["asc", "desc"]);
+
 export class CategoryUpdateScript extends BaseScript<
   CategoryUpdateParams,
   CategoryUpdateResult
@@ -9,7 +12,16 @@ export class CategoryUpdateScript extends BaseScript<
   protected async execute(
     params: CategoryUpdateParams
   ): Promise<CategoryUpdateResult> {
-    const { id, handle, name, description, mediaFileIds } = params;
+    const {
+      id,
+      handle,
+      defaultSort,
+      defaultSortDirection,
+      name,
+      description,
+      seo,
+      mediaFileIds,
+    } = params;
 
     // 1. Check if category exists
     const existing = await this.repository.category.findById(id);
@@ -35,9 +47,36 @@ export class CategoryUpdateScript extends BaseScript<
       }
     }
 
+    if (defaultSort !== undefined && !ALLOWED_SORTS.has(defaultSort)) {
+      return {
+        category: undefined,
+        userErrors: [{ message: "Invalid default sort", field: ["defaultSort"], code: "INVALID" }],
+      };
+    }
+
+    if (
+      defaultSortDirection !== undefined &&
+      !ALLOWED_DIRECTIONS.has(defaultSortDirection)
+    ) {
+      return {
+        category: undefined,
+        userErrors: [
+          {
+            message: "Invalid default sort direction",
+            field: ["defaultSortDirection"],
+            code: "INVALID",
+          },
+        ],
+      };
+    }
+
     // 3. Update category
-    if (handle) {
-      await this.repository.category.update(id, { handle });
+    if (handle || defaultSort || defaultSortDirection) {
+      await this.repository.category.update(id, {
+        handle,
+        defaultSort,
+        defaultSortDirection,
+      });
     }
 
     // 4. Update translation if name or description provided
@@ -66,6 +105,23 @@ export class CategoryUpdateScript extends BaseScript<
     // 5. Update media if provided
     if (mediaFileIds !== undefined) {
       await this.repository.category.setMedia(id, mediaFileIds);
+    }
+
+    if (seo !== undefined) {
+      if (seo === null) {
+        await this.repository.translation.deleteCategorySeo(id, this.getLocale());
+      } else {
+        await this.repository.translation.upsertCategorySeo({
+          projectId: this.getProjectId(),
+          categoryId: id,
+          locale: this.getLocale(),
+          seoTitle: seo.seoTitle ?? null,
+          seoDescription: seo.seoDescription ?? null,
+          ogTitle: seo.ogTitle ?? null,
+          ogDescription: seo.ogDescription ?? null,
+          ogImageId: seo.ogImageId ?? null,
+        });
+      }
     }
 
     // 6. Fetch updated category

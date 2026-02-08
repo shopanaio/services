@@ -37,6 +37,15 @@ type Category implements Node @key(fields: "id") {
   """The category description."""
   description: Description
 
+  """Default product sort for this category PLP."""
+  defaultSort: ProductSortBy!
+
+  """Default sort direction for this category PLP."""
+  defaultSortDirection: SortDirection!
+
+  """SEO metadata."""
+  seo: Seo
+
   """The parent category, if any."""
   parent: Category
 
@@ -56,6 +65,16 @@ type Category implements Node @key(fields: "id") {
     last: Int
     before: String
   ): ProductConnection!
+
+  """Category products with sorting, filtering, and pagination."""
+  categoryProducts(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    filters: ProductFiltersInput
+    sort: ProductSortInput
+  ): CategoryProductConnection!
 
   """The total number of products in this category."""
   productsCount: Int!
@@ -97,6 +116,18 @@ type CategoryEdge {
   cursor: String!
 }
 
+type CategoryProductConnection {
+  edges: [CategoryProductEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+  facets: Facets
+}
+
+type CategoryProductEdge {
+  node: Product!
+  cursor: String!
+}
+
 # ---- Category Inputs ----
 
 """
@@ -114,6 +145,9 @@ input CategoryCreateInput {
 
   """Optional description."""
   description: DescriptionInput
+
+  """SEO metadata."""
+  seo: SeoInput
 
   """File IDs for category media."""
   mediaFileIds: [ID!]
@@ -137,6 +171,9 @@ input CategoryUpdateInput {
 
   """The category description."""
   description: DescriptionInput
+
+  """SEO metadata."""
+  seo: SeoInput
 
   """File IDs for category media (replaces existing)."""
   mediaFileIds: [ID!]
@@ -162,6 +199,23 @@ input CategoryDeleteInput {
 
   """Whether to permanently delete (hard delete)."""
   permanent: Boolean
+}
+
+input CategoryMoveProductInput {
+  categoryId: ID!
+  productId: ID!
+  afterProductId: ID
+  beforeProductId: ID
+}
+
+input CategoryRebalanceInput {
+  categoryId: ID!
+}
+
+input CategoryUpdateSortInput {
+  id: ID!
+  defaultSort: ProductSortBy!
+  defaultSortDirection: SortDirection!
 }
 
 # ---- Category Payloads ----
@@ -207,5 +261,20 @@ type CategoryDeletePayload {
   deletedCategoryId: ID
 
   """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+type CategoryMoveProductPayload {
+  category: Category
+  userErrors: [GenericUserError!]!
+}
+
+type CategoryRebalancePayload {
+  category: Category
+  userErrors: [GenericUserError!]!
+}
+
+type CategoryUpdateSortPayload {
+  category: Category
   userErrors: [GenericUserError!]!
 }

@@ -5,6 +5,7 @@ import type { UserError } from "../../../kernel/BaseScript.js";
  */
 export interface FeatureValueInput {
   readonly name: string;
+  readonly slug: string;
 }
 
 /**
@@ -13,6 +14,7 @@ export interface FeatureValueInput {
 export interface FeatureValueUpdateInput {
   readonly id: string;
   readonly name?: string;
+  readonly slug?: string;
 }
 
 /**

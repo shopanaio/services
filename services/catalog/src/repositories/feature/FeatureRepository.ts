@@ -63,6 +63,22 @@ export class FeatureRepository extends BaseRepository {
       .orderBy(productFeature.index);
   }
 
+  async findBySlug(productId: string, slug: string): Promise<ProductFeature | null> {
+    const result = await this.connection
+      .select()
+      .from(productFeature)
+      .where(
+        and(
+          eq(productFeature.projectId, this.storeId),
+          eq(productFeature.productId, productId),
+          eq(productFeature.slug, slug)
+        )
+      )
+      .limit(1);
+
+    return result[0] ?? null;
+  }
+
   async findByProductIds(productIds: string[]): Promise<Map<string, ProductFeature[]>> {
     if (productIds.length === 0) return new Map();
 
@@ -89,6 +105,7 @@ export class FeatureRepository extends BaseRepository {
   async create(
     productId: string,
     data: {
+      slug: string;
       isGroup?: boolean;
       parentId?: string | null;
       index: number[];
@@ -100,6 +117,7 @@ export class FeatureRepository extends BaseRepository {
       id,
       projectId: this.storeId,
       productId,
+      slug: data.slug,
       index: data.index,
       isGroup: data.isGroup ?? false,
       parentId: data.parentId ?? null,
@@ -115,10 +133,16 @@ export class FeatureRepository extends BaseRepository {
 
   async update(
     id: string,
-    data: { isGroup?: boolean; parentId?: string | null; index?: number[] }
+    data: {
+      slug?: string;
+      isGroup?: boolean;
+      parentId?: string | null;
+      index?: number[];
+    }
   ): Promise<ProductFeature | null> {
     const updateData: Partial<NewProductFeature> = {};
 
+    if (data.slug !== undefined) updateData.slug = data.slug;
     if (data.isGroup !== undefined) updateData.isGroup = data.isGroup;
     if (data.parentId !== undefined) updateData.parentId = data.parentId;
     if (data.index !== undefined) updateData.index = data.index;
@@ -233,6 +257,25 @@ export class FeatureRepository extends BaseRepository {
       .orderBy(productFeatureValue.index);
   }
 
+  async findValueBySlug(
+    featureId: string,
+    slug: string
+  ): Promise<ProductFeatureValue | null> {
+    const result = await this.connection
+      .select()
+      .from(productFeatureValue)
+      .where(
+        and(
+          eq(productFeatureValue.projectId, this.storeId),
+          eq(productFeatureValue.featureId, featureId),
+          eq(productFeatureValue.slug, slug)
+        )
+      )
+      .limit(1);
+
+    return result[0] ?? null;
+  }
+
   async findValuesByFeatureIds(
     featureIds: string[]
   ): Promise<Map<string, ProductFeatureValue[]>> {
@@ -260,7 +303,7 @@ export class FeatureRepository extends BaseRepository {
 
   async createValue(
     featureId: string,
-    data: { index: number }
+    data: { slug: string; index: number }
   ): Promise<ProductFeatureValue> {
     const id = randomUUID();
 
@@ -268,6 +311,7 @@ export class FeatureRepository extends BaseRepository {
       id,
       projectId: this.storeId,
       featureId,
+      slug: data.slug,
       index: data.index,
     };
 
@@ -282,11 +326,19 @@ export class FeatureRepository extends BaseRepository {
   async updateValue(
     featureId: string,
     valueId: string,
-    data: { index: number }
+    data: { slug?: string; index?: number }
   ): Promise<void> {
+    const updateData: Partial<NewProductFeatureValue> = {};
+    if (data.slug !== undefined) updateData.slug = data.slug;
+    if (data.index !== undefined) updateData.index = data.index;
+
+    if (Object.keys(updateData).length === 0) {
+      return;
+    }
+
     await this.connection
       .update(productFeatureValue)
-      .set({ index: data.index })
+      .set(updateData)
       .where(
         and(
           eq(productFeatureValue.projectId, this.storeId),

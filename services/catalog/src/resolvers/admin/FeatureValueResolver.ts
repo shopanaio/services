@@ -25,6 +25,10 @@ export class FeatureValueResolver extends CatalogType<
     return (await this.$get("index")) ?? 0;
   }
 
+  async slug() {
+    return (await this.$get("slug")) ?? "";
+  }
+
   async name() {
     const translation = await this.$ctx.loaders.featureValueTranslation.load(
       this.$props

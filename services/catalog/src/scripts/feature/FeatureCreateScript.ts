@@ -1,9 +1,10 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
 import type { FeatureCreateParams, FeatureCreateResult } from "./dto/index.js";
+import { isValidSlug } from "../shared/slug.js";
 
 export class FeatureCreateScript extends BaseScript<FeatureCreateParams, FeatureCreateResult> {
   protected async execute(params: FeatureCreateParams): Promise<FeatureCreateResult> {
-    const { productId, name, values } = params;
+    const { productId, slug, name, values } = params;
 
     // 1. Validate: product exists
     const productExists = await this.repository.product.exists(productId);
@@ -12,6 +13,51 @@ export class FeatureCreateScript extends BaseScript<FeatureCreateParams, Feature
         feature: undefined,
         userErrors: [{ message: "Product not found", field: ["productId"], code: "NOT_FOUND" }],
       };
+    }
+
+    if (!isValidSlug(slug)) {
+      return {
+        feature: undefined,
+        userErrors: [{ message: "Feature slug format is invalid", field: ["slug"], code: "INVALID_SLUG" }],
+      };
+    }
+
+    const existingWithSlug = await this.repository.feature.findBySlug(productId, slug);
+    if (existingWithSlug) {
+      return {
+        feature: undefined,
+        userErrors: [{ message: `Feature with slug "${slug}" already exists`, field: ["slug"], code: "DUPLICATE" }],
+      };
+    }
+
+    const valueSlugs = new Set<string>();
+    for (let i = 0; i < values.length; i++) {
+      const valueSlug = values[i].slug;
+      if (!isValidSlug(valueSlug)) {
+        return {
+          feature: undefined,
+          userErrors: [
+            {
+              message: "Feature value slug format is invalid",
+              field: ["values", String(i), "slug"],
+              code: "INVALID_SLUG",
+            },
+          ],
+        };
+      }
+      if (valueSlugs.has(valueSlug)) {
+        return {
+          feature: undefined,
+          userErrors: [
+            {
+              message: `Feature value slug "${valueSlug}" is duplicated`,
+              field: ["values", String(i), "slug"],
+              code: "DUPLICATE",
+            },
+          ],
+        };
+      }
+      valueSlugs.add(valueSlug);
     }
 
     // 2. Determine root-level index
@@ -23,6 +69,7 @@ export class FeatureCreateScript extends BaseScript<FeatureCreateParams, Feature
 
     // 3. Create feature
     const feature = await this.repository.feature.create(productId, {
+      slug,
       isGroup: false,
       parentId: null,
       index: newIndex,
@@ -40,6 +87,7 @@ export class FeatureCreateScript extends BaseScript<FeatureCreateParams, Feature
     for (let i = 0; i < values.length; i++) {
       const valueInput = values[i];
       const featureValue = await this.repository.feature.createValue(feature.id, {
+        slug: valueInput.slug,
         index: i,
       });
 

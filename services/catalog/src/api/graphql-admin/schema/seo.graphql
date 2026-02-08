@@ -1,9 +1,5 @@
-# ---- Product SEO Types ----
-
-"""
-SEO and Open Graph metadata for a product.
-"""
-type ProductSeo {
+"""SEO and Open Graph metadata."""
+type Seo {
   """SEO title for search engines (max 70 chars)."""
   seoTitle: String
 
@@ -21,9 +17,9 @@ type ProductSeo {
 }
 
 """
-Input for updating product SEO data.
+Input for SEO and Open Graph metadata.
 """
-input ProductSeoInput {
+input SeoInput {
   """SEO title (max 70 chars)."""
   seoTitle: String
 
@@ -37,5 +33,25 @@ input ProductSeoInput {
   ogDescription: String
 
   """Open Graph image file ID."""
+  ogImageId: ID
+}
+
+# ---- Product SEO (backward compatibility) ----
+
+"""SEO and Open Graph metadata for a product."""
+type ProductSeo {
+  seoTitle: String
+  seoDescription: String
+  ogTitle: String
+  ogDescription: String
+  ogImage: File
+}
+
+"""Input for updating product SEO data."""
+input ProductSeoInput {
+  seoTitle: String
+  seoDescription: String
+  ogTitle: String
+  ogDescription: String
   ogImageId: ID
 }

@@ -9,7 +9,7 @@ export class CategoryCreateScript extends BaseScript<
   protected async execute(
     params: CategoryCreateParams
   ): Promise<CategoryCreateResult> {
-    const { handle, name, parentId, description, mediaFileIds, publish } = params;
+    const { handle, name, parentId, description, seo, mediaFileIds, publish } = params;
 
     // 1. Check if handle is unique
     const existing = await this.repository.category.findByHandle(handle);
@@ -56,6 +56,19 @@ export class CategoryCreateScript extends BaseScript<
     // 5. Set media if provided
     if (mediaFileIds && mediaFileIds.length > 0) {
       await this.repository.category.setMedia(category.id, mediaFileIds);
+    }
+
+    if (seo) {
+      await this.repository.translation.upsertCategorySeo({
+        projectId: this.getProjectId(),
+        categoryId: category.id,
+        locale: this.getLocale(),
+        seoTitle: seo.seoTitle ?? null,
+        seoDescription: seo.seoDescription ?? null,
+        ogTitle: seo.ogTitle ?? null,
+        ogDescription: seo.ogDescription ?? null,
+        ogImageId: seo.ogImageId ?? null,
+      });
     }
 
     this.logger.info(

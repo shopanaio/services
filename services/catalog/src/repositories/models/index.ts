@@ -28,6 +28,16 @@ export * from "./translations";
 // SEO (search engine & social media metadata)
 export * from "./seo";
 
+// Listing search indexes
+export * from "./searchIndex";
+export * from "./variantSearchIndex";
+
+// Facets
+export * from "./facet";
+
+// Collections
+export * from "./collection";
+
 // Bulk edit
 export * from "./bulkEditJobs";
 export * from "./bulkEditItems";

@@ -14,6 +14,11 @@ import type {
 } from "@shopana/events";
 import { Kernel } from "../kernel/Kernel.js";
 import { FileHardDeletedScript } from "../scripts/media/FileHardDeletedScript.js";
+import {
+  DeleteProductIndexScript,
+  SyncProductIndexScript,
+  SyncVariantIndexScript,
+} from "../scripts/search-index/index.js";
 
 @Injectable()
 export class CatalogEventHandlers extends EventHandlers {
@@ -33,7 +38,32 @@ export class CatalogEventHandlers extends EventHandlers {
       { eventId: params.event.eventId, productId: params.event.payload.productId },
       "Received productCreated event"
     );
-    return { success: true };
+    try {
+      const context = {
+        storeId: params.event.payload.storeId,
+        organizationId: params.event.context.tenantId,
+        userId: params.event.context.userId,
+        locale: "uk",
+      };
+      await this.kernel.runScript(
+        SyncProductIndexScript,
+        { productId: params.event.payload.productId },
+        context
+      );
+      await this.kernel.runScript(
+        SyncVariantIndexScript,
+        { productId: params.event.payload.productId },
+        context
+      );
+      return { success: true };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        { error: message, productId: params.event.payload.productId },
+        "Failed to sync search indexes for productCreated"
+      );
+      return { success: false, error: { message, retryable: true } };
+    }
   }
 
   @EventHandler("productDeleted")
@@ -44,7 +74,26 @@ export class CatalogEventHandlers extends EventHandlers {
       { eventId: params.event.eventId, productId: params.event.payload.productId },
       "Received productDeleted event"
     );
-    return { success: true };
+    try {
+      await this.kernel.runScript(
+        DeleteProductIndexScript,
+        { productId: params.event.payload.productId },
+        {
+          storeId: params.event.payload.storeId,
+          organizationId: params.event.context.tenantId,
+          userId: params.event.context.userId,
+          locale: "uk",
+        }
+      );
+      return { success: true };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        { error: message, productId: params.event.payload.productId },
+        "Failed to delete search indexes for productDeleted"
+      );
+      return { success: false, error: { message, retryable: true } };
+    }
   }
 
   @EventHandler("productUpdated", { retry: { maxAttempts: 5 } })
@@ -55,7 +104,39 @@ export class CatalogEventHandlers extends EventHandlers {
       { eventId: params.event.eventId, productId: params.event.payload.productId },
       "Received productUpdated event"
     );
-    return { success: true };
+    try {
+      const variantIds = params.event.payload.variants
+        ? Object.keys(params.event.payload.variants)
+        : undefined;
+      const context = {
+        storeId: params.event.payload.storeId,
+        organizationId: params.event.context.tenantId,
+        userId: params.event.context.userId,
+        locale: "uk",
+      };
+
+      await this.kernel.runScript(
+        SyncProductIndexScript,
+        { productId: params.event.payload.productId },
+        context
+      );
+      await this.kernel.runScript(
+        SyncVariantIndexScript,
+        {
+          productId: params.event.payload.productId,
+          variantIds,
+        },
+        context
+      );
+      return { success: true };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        { error: message, productId: params.event.payload.productId },
+        "Failed to sync search indexes for productUpdated"
+      );
+      return { success: false, error: { message, retryable: true } };
+    }
   }
 
   @EventHandler("fileHardDeleted", { retry: { maxAttempts: 10 } })

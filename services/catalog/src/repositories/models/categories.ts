@@ -33,6 +33,14 @@ export const category = catalogSchema.table(
     // Identifier
     handle: varchar("handle", { length: 255 }).notNull(),
 
+    // Listing sort defaults
+    defaultSort: varchar("default_sort", { length: 32 })
+      .notNull()
+      .default("manual"),
+    defaultSortDirection: varchar("default_sort_direction", { length: 4 })
+      .notNull()
+      .default("asc"),
+
     // Publication
     publishedAt: timestamp("published_at", { withTimezone: true, mode: "string" }),
 
@@ -49,6 +57,14 @@ export const category = catalogSchema.table(
     check(
       "category_published_requires_handle",
       sql`published_at IS NULL OR handle IS NOT NULL`
+    ),
+    check(
+      "category_default_sort_check",
+      sql`default_sort IN ('manual', 'price', 'newest', 'name')`
+    ),
+    check(
+      "category_default_sort_direction_check",
+      sql`default_sort_direction IN ('asc', 'desc')`
     ),
     uniqueIndex("category_project_id_handle_key")
       .on(table.projectId, table.handle)
@@ -131,7 +147,7 @@ export const productCategory = catalogSchema.table(
     isPrimary: boolean("is_primary").notNull().default(false),
 
     // Sort order within category
-    sortIndex: integer("sort_index").notNull().default(0),
+    lexoRank: varchar("lexo_rank", { length: 64 }).notNull(),
   },
   (table) => [
     primaryKey({ columns: [table.productId, table.categoryId] }),
@@ -141,6 +157,7 @@ export const productCategory = catalogSchema.table(
       .where(sql`is_primary = true`),
     index("idx_product_category_product").on(table.productId),
     index("idx_product_category_category").on(table.categoryId),
+    index("idx_product_category_rank").on(table.categoryId, table.lexoRank),
   ]
 );
 

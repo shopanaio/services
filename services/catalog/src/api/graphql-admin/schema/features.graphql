@@ -5,6 +5,9 @@ type ProductFeature implements Node @key(fields: "id") {
   """The globally unique ID of the feature."""
   id: ID!
 
+  """The URL-friendly slug for this feature."""
+  slug: String!
+
   """Tree position as array: [0] for root, [0, 1] for child of first group."""
   index: [Int!]!
 
@@ -28,6 +31,9 @@ type ProductFeature implements Node @key(fields: "id") {
 type ProductFeatureValue implements Node @key(fields: "id") {
   """The globally unique ID of the feature value."""
   id: ID!
+
+  """The URL-friendly slug for this feature value."""
+  slug: String!
 
   """Position within the feature's values (0, 1, 2, ...)."""
   index: Int!
@@ -64,6 +70,9 @@ input ProductFeatureSyncItemInput {
   """
   index: [Int!]!
 
+  """The URL-friendly slug for this feature."""
+  slug: String!
+
   """Whether this is a group (true) or attribute (false)."""
   isGroup: Boolean!
 
@@ -79,6 +88,8 @@ input ProductFeatureValueSyncInput {
   id: ID
   """Position within the feature's values (0, 1, 2, ...)."""
   index: Int!
+  """The URL-friendly slug for this feature value."""
+  slug: String!
   """Display name."""
   name: String!
 }
@@ -98,12 +109,17 @@ type ProductFeaturesSyncPayload {
 input ProductFeatureValueCreateInput {
   """Display name."""
   name: String!
+  """The URL-friendly slug for this feature value."""
+  slug: String!
 }
 
 """Input for creating a feature on a product."""
 input ProductFeatureCreateInput {
   """The ID of the product."""
   productId: ID!
+
+  """The URL-friendly slug for the feature."""
+  slug: String!
 
   """Display name."""
   name: String!
@@ -131,6 +147,9 @@ input ProductFeatureValueUpdateInput {
 
   """Display name."""
   name: String
+
+  """The URL-friendly slug for this value."""
+  slug: String
 }
 
 """Input for nested value operations in feature update."""
@@ -149,6 +168,9 @@ input ProductFeatureValuesInput {
 input ProductFeatureUpdateInput {
   """The ID of the feature to update."""
   id: ID!
+
+  """The URL-friendly slug for the feature."""
+  slug: String
 
   """Display name."""
   name: String

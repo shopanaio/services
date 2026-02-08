@@ -119,6 +119,7 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
     for (const f of features) {
       if (f.isGroup && !f.id) {
         const created = await this.repository.feature.create(productId, {
+          slug: f.slug,
           isGroup: true,
           parentId: null,
           index: f.index,
@@ -131,6 +132,7 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
     for (const f of features) {
       if (!f.isGroup && !f.id) {
         const created = await this.repository.feature.create(productId, {
+          slug: f.slug,
           isGroup: false,
           index: f.index,
           parentId: null,
@@ -155,6 +157,7 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
 
   private async upsertFeature(item: ResolvedFeature): Promise<void> {
     await this.repository.feature.update(item.id, {
+      slug: item.input.slug,
       isGroup: item.input.isGroup,
       parentId: item.parentId,
       index: item.index,
@@ -178,10 +181,16 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
       let valueId: string;
 
       if (value.id) {
-        await this.repository.feature.updateValue(featureId, value.id, { index: value.index });
+        await this.repository.feature.updateValue(featureId, value.id, {
+          slug: value.slug,
+          index: value.index,
+        });
         valueId = value.id;
       } else {
-        const created = await this.repository.feature.createValue(featureId, { index: value.index });
+        const created = await this.repository.feature.createValue(featureId, {
+          slug: value.slug,
+          index: value.index,
+        });
         valueId = created.id;
       }
 

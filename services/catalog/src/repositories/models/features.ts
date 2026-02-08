@@ -4,6 +4,7 @@ import {
   check,
   index,
   integer,
+  varchar,
   unique,
   uuid,
 } from "drizzle-orm/pg-core";
@@ -19,6 +20,7 @@ export const productFeature = catalogSchema.table(
     productId: uuid("product_id")
       .notNull()
       .references(() => product.id, { onDelete: "cascade" }),
+    slug: varchar("slug", { length: 255 }).notNull(),
     index: integer("index").array().notNull(), // int[] - tree position: [0], [0, 1], etc.
     isGroup: boolean("is_group").notNull().default(false),
     parentId: uuid("parent_id").references(
@@ -50,6 +52,10 @@ export const productFeature = catalogSchema.table(
       table.productId,
       table.index
     ),
+    unique("product_feature_product_id_slug_uniq").on(
+      table.productId,
+      table.slug
+    ),
   ]
 );
 
@@ -61,6 +67,7 @@ export const productFeatureValue = catalogSchema.table(
     featureId: uuid("feature_id")
       .notNull()
       .references(() => productFeature.id, { onDelete: "cascade" }),
+    slug: varchar("slug", { length: 255 }).notNull(),
     index: integer("index").notNull(), // position within feature: 0, 1, 2, ...
   },
   (table) => [
@@ -68,6 +75,10 @@ export const productFeatureValue = catalogSchema.table(
     unique("product_feature_value_feature_id_index_uniq").on(
       table.featureId,
       table.index
+    ),
+    unique("product_feature_value_feature_id_slug_uniq").on(
+      table.featureId,
+      table.slug
     ),
   ]
 );

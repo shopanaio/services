@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BooleanFilter, BulkUpdateCancelReason, BulkUpdateItemStatus, BulkUpdateJobStatus, BulkUpdateOpType, CategoryCreateInput, CategoryDeleteInput, CategoryMoveInput, CategoryUpdateInput, CurrencyCode, DateTimeFilter, DescriptionInput, DimensionUnit, FloatFilter, IdFilter, IntFilter, InventoryItemInput, LocaleCode, OperationType, OptionDisplayType, PricingWidgetInput, ProductBulkUpdateInput, ProductBulkUpdateItem, ProductContentInput, ProductCreateInput, ProductCreateOptionInput, ProductCreateOptionValueInput, ProductCreateVariantInput, ProductDeleteInput, ProductFeatureCreateInput, ProductFeatureDeleteInput, ProductFeatureInput, ProductFeatureSyncItemInput, ProductFeatureUpdateInput, ProductFeatureValueCreateInput, ProductFeatureValueSyncInput, ProductFeatureValueUpdateInput, ProductFeatureValuesInput, ProductFeaturesSyncInput, ProductMediaInput, ProductOptionCreateInput, ProductOptionDeleteInput, ProductOptionSwatchInput, ProductOptionSyncItemInput, ProductOptionUpdateInput, ProductOptionValueCreateInput, ProductOptionValueSyncInput, ProductOptionValueUpdateInput, ProductOptionValuesInput, ProductOptionsSyncInput, ProductSeoInput, ProductStatus, ProductStatusAction, ProductUpdateInput, ProductUpdateStatusInput, SelectedOptionInput, SortDirection, StringFilter, SwatchType, TagCreateInput, TagDeleteInput, TagUpdateInput, VariantCreateInput, VariantDeleteInput, VariantDimensionsOpInput, VariantInput, VariantInventoryOpInput, VariantMediaOpInput, VariantOptionLinkInput, VariantOptionsOpInput, VariantPricingOpInput, VariantUpdateInput, VariantUpdateMediaInput, VariantUpdateOptionsInput, VariantUpdatePricingInput, WeightUnit } from './types.js'
+import { BooleanFilter, BulkUpdateCancelReason, BulkUpdateItemStatus, BulkUpdateJobStatus, BulkUpdateOpType, CategoryCreateInput, CategoryDeleteInput, CategoryMoveInput, CategoryMoveProductInput, CategoryRebalanceInput, CategoryUpdateInput, CategoryUpdateSortInput, CollectionAddProductsInput, CollectionCreateInput, CollectionDeleteInput, CollectionMediaInput, CollectionMoveProductInput, CollectionRemoveProductsInput, CollectionRuleInput, CollectionType, CollectionUpdateInput, CollectionUpdateRulesInput, CurrencyCode, DateTimeFilter, DescriptionInput, DimensionUnit, FacetCreateInput, FacetDeleteInput, FacetGroupCreateInput, FacetGroupDeleteInput, FacetGroupUpdateInput, FacetRangeFilterInput, FacetSelectionMode, FacetSwatchCreateInput, FacetSwatchDeleteInput, FacetSwatchUpdateInput, FacetType, FacetUiType, FacetUpdateInput, FacetValueCreateInput, FacetValueDeleteInput, FacetValueSort, FacetValueUpdateInput, FloatFilter, IdFilter, IntFilter, InventoryItemInput, LocaleCode, OperationType, OptionDisplayType, PricingWidgetInput, ProductBulkUpdateInput, ProductBulkUpdateItem, ProductContentInput, ProductCreateInput, ProductCreateOptionInput, ProductCreateOptionValueInput, ProductCreateVariantInput, ProductDeleteInput, ProductFeatureCreateInput, ProductFeatureDeleteInput, ProductFeatureInput, ProductFeatureSyncItemInput, ProductFeatureUpdateInput, ProductFeatureValueCreateInput, ProductFeatureValueSyncInput, ProductFeatureValueUpdateInput, ProductFeatureValuesInput, ProductFeaturesSyncInput, ProductFiltersInput, ProductMediaInput, ProductOptionCreateInput, ProductOptionDeleteInput, ProductOptionSwatchInput, ProductOptionSyncItemInput, ProductOptionUpdateInput, ProductOptionValueCreateInput, ProductOptionValueSyncInput, ProductOptionValueUpdateInput, ProductOptionValuesInput, ProductOptionsSyncInput, ProductSeoInput, ProductSortBy, ProductSortInput, ProductStatus, ProductStatusAction, ProductUpdateInput, ProductUpdateStatusInput, SelectedOptionInput, SeoInput, SortDirection, StringFilter, SwatchType, TagCreateInput, TagDeleteInput, TagUpdateInput, VariantCreateInput, VariantDeleteInput, VariantDimensionsOpInput, VariantInput, VariantInventoryOpInput, VariantMediaOpInput, VariantOptionLinkInput, VariantOptionsOpInput, VariantPricingOpInput, VariantUpdateInput, VariantUpdateMediaInput, VariantUpdateOptionsInput, VariantUpdatePricingInput, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -19,15 +19,27 @@ export const BulkUpdateJobStatusSchema = z.nativeEnum(BulkUpdateJobStatus);
 
 export const BulkUpdateOpTypeSchema = z.nativeEnum(BulkUpdateOpType);
 
+export const CollectionTypeSchema = z.nativeEnum(CollectionType);
+
 export const CurrencyCodeSchema = z.nativeEnum(CurrencyCode);
 
 export const DimensionUnitSchema = z.nativeEnum(DimensionUnit);
+
+export const FacetSelectionModeSchema = z.nativeEnum(FacetSelectionMode);
+
+export const FacetTypeSchema = z.nativeEnum(FacetType);
+
+export const FacetUiTypeSchema = z.nativeEnum(FacetUiType);
+
+export const FacetValueSortSchema = z.nativeEnum(FacetValueSort);
 
 export const LocaleCodeSchema = z.nativeEnum(LocaleCode);
 
 export const OperationTypeSchema = z.nativeEnum(OperationType);
 
 export const OptionDisplayTypeSchema = z.nativeEnum(OptionDisplayType);
+
+export const ProductSortBySchema = z.nativeEnum(ProductSortBy);
 
 export const ProductStatusSchema = z.nativeEnum(ProductStatus);
 
@@ -55,7 +67,8 @@ export function CategoryCreateInputSchema(): z.ZodObject<Properties<CategoryCrea
     mediaFileIds: z.array(z.string()).nullish(),
     name: z.string(),
     parentId: z.string().nullish(),
-    publish: z.boolean().nullish()
+    publish: z.boolean().nullish(),
+    seo: z.lazy(() => SeoInputSchema().nullish())
   })
 }
 
@@ -73,13 +86,120 @@ export function CategoryMoveInputSchema(): z.ZodObject<Properties<CategoryMoveIn
   })
 }
 
+export function CategoryMoveProductInputSchema(): z.ZodObject<Properties<CategoryMoveProductInput>> {
+  return z.object({
+    afterProductId: z.string().nullish(),
+    beforeProductId: z.string().nullish(),
+    categoryId: z.string(),
+    productId: z.string()
+  })
+}
+
+export function CategoryRebalanceInputSchema(): z.ZodObject<Properties<CategoryRebalanceInput>> {
+  return z.object({
+    categoryId: z.string()
+  })
+}
+
 export function CategoryUpdateInputSchema(): z.ZodObject<Properties<CategoryUpdateInput>> {
   return z.object({
     description: z.lazy(() => DescriptionInputSchema().nullish()),
     handle: z.string().nullish(),
     id: z.string(),
     mediaFileIds: z.array(z.string()).nullish(),
-    name: z.string().nullish()
+    name: z.string().nullish(),
+    seo: z.lazy(() => SeoInputSchema().nullish())
+  })
+}
+
+export function CategoryUpdateSortInputSchema(): z.ZodObject<Properties<CategoryUpdateSortInput>> {
+  return z.object({
+    defaultSort: ProductSortBySchema,
+    defaultSortDirection: SortDirectionSchema,
+    id: z.string()
+  })
+}
+
+export function CollectionAddProductsInputSchema(): z.ZodObject<Properties<CollectionAddProductsInput>> {
+  return z.object({
+    collectionId: z.string(),
+    productIds: z.array(z.string())
+  })
+}
+
+export function CollectionCreateInputSchema(): z.ZodObject<Properties<CollectionCreateInput>> {
+  return z.object({
+    activeFrom: z.string().nullish(),
+    activeTo: z.string().nullish(),
+    defaultSort: ProductSortBySchema.nullish(),
+    defaultSortDirection: SortDirectionSchema.nullish(),
+    description: z.lazy(() => DescriptionInputSchema().nullish()),
+    handle: z.string().nullish(),
+    media: z.array(z.lazy(() => CollectionMediaInputSchema())).nullish(),
+    name: z.string(),
+    publish: z.boolean().nullish(),
+    seo: z.lazy(() => SeoInputSchema().nullish()),
+    type: CollectionTypeSchema
+  })
+}
+
+export function CollectionDeleteInputSchema(): z.ZodObject<Properties<CollectionDeleteInput>> {
+  return z.object({
+    id: z.string()
+  })
+}
+
+export function CollectionMediaInputSchema(): z.ZodObject<Properties<CollectionMediaInput>> {
+  return z.object({
+    fileId: z.string(),
+    sortIndex: z.number().nullish()
+  })
+}
+
+export function CollectionMoveProductInputSchema(): z.ZodObject<Properties<CollectionMoveProductInput>> {
+  return z.object({
+    afterProductId: z.string().nullish(),
+    beforeProductId: z.string().nullish(),
+    collectionId: z.string(),
+    productId: z.string()
+  })
+}
+
+export function CollectionRemoveProductsInputSchema(): z.ZodObject<Properties<CollectionRemoveProductsInput>> {
+  return z.object({
+    collectionId: z.string(),
+    productIds: z.array(z.string())
+  })
+}
+
+export function CollectionRuleInputSchema(): z.ZodObject<Properties<CollectionRuleInput>> {
+  return z.object({
+    field: z.string(),
+    operator: z.string(),
+    value: z.record(z.unknown())
+  })
+}
+
+export function CollectionUpdateInputSchema(): z.ZodObject<Properties<CollectionUpdateInput>> {
+  return z.object({
+    activeFrom: z.string().nullish(),
+    activeTo: z.string().nullish(),
+    defaultSort: ProductSortBySchema.nullish(),
+    defaultSortDirection: SortDirectionSchema.nullish(),
+    description: z.lazy(() => DescriptionInputSchema().nullish()),
+    handle: z.string().nullish(),
+    id: z.string(),
+    media: z.array(z.lazy(() => CollectionMediaInputSchema())).nullish(),
+    name: z.string().nullish(),
+    publish: z.boolean().nullish(),
+    seo: z.lazy(() => SeoInputSchema().nullish())
+  })
+}
+
+export function CollectionUpdateRulesInputSchema(): z.ZodObject<Properties<CollectionUpdateRulesInput>> {
+  return z.object({
+    collectionId: z.string(),
+    rules: z.array(z.lazy(() => CollectionRuleInputSchema()))
   })
 }
 
@@ -104,6 +224,128 @@ export function DescriptionInputSchema(): z.ZodObject<Properties<DescriptionInpu
     html: z.string(),
     json: z.record(z.unknown()),
     text: z.string()
+  })
+}
+
+export function FacetCreateInputSchema(): z.ZodObject<Properties<FacetCreateInput>> {
+  return z.object({
+    facetType: FacetTypeSchema,
+    groupId: z.string().nullish(),
+    label: z.string(),
+    selectionMode: FacetSelectionModeSchema.nullish(),
+    slug: z.string(),
+    sortIndex: z.number().nullish(),
+    uiType: FacetUiTypeSchema.nullish()
+  })
+}
+
+export function FacetDeleteInputSchema(): z.ZodObject<Properties<FacetDeleteInput>> {
+  return z.object({
+    id: z.string()
+  })
+}
+
+export function FacetGroupCreateInputSchema(): z.ZodObject<Properties<FacetGroupCreateInput>> {
+  return z.object({
+    collapsed: z.boolean().nullish(),
+    name: z.string(),
+    sortIndex: z.number().nullish()
+  })
+}
+
+export function FacetGroupDeleteInputSchema(): z.ZodObject<Properties<FacetGroupDeleteInput>> {
+  return z.object({
+    id: z.string()
+  })
+}
+
+export function FacetGroupUpdateInputSchema(): z.ZodObject<Properties<FacetGroupUpdateInput>> {
+  return z.object({
+    collapsed: z.boolean().nullish(),
+    id: z.string(),
+    name: z.string().nullish(),
+    sortIndex: z.number().nullish()
+  })
+}
+
+export function FacetRangeFilterInputSchema(): z.ZodObject<Properties<FacetRangeFilterInput>> {
+  return z.object({
+    facetSlug: z.string(),
+    max: z.string().nullish(),
+    min: z.string().nullish()
+  })
+}
+
+export function FacetSwatchCreateInputSchema(): z.ZodObject<Properties<FacetSwatchCreateInput>> {
+  return z.object({
+    colorOne: z.string().nullish(),
+    colorTwo: z.string().nullish(),
+    fileId: z.string().nullish(),
+    metadata: z.record(z.unknown()).nullish(),
+    swatchType: SwatchTypeSchema
+  })
+}
+
+export function FacetSwatchDeleteInputSchema(): z.ZodObject<Properties<FacetSwatchDeleteInput>> {
+  return z.object({
+    id: z.string()
+  })
+}
+
+export function FacetSwatchUpdateInputSchema(): z.ZodObject<Properties<FacetSwatchUpdateInput>> {
+  return z.object({
+    colorOne: z.string().nullish(),
+    colorTwo: z.string().nullish(),
+    fileId: z.string().nullish(),
+    id: z.string(),
+    metadata: z.record(z.unknown()).nullish(),
+    swatchType: SwatchTypeSchema.nullish()
+  })
+}
+
+export function FacetUpdateInputSchema(): z.ZodObject<Properties<FacetUpdateInput>> {
+  return z.object({
+    groupId: z.string().nullish(),
+    id: z.string(),
+    indexable: z.boolean().nullish(),
+    label: z.string().nullish(),
+    maxValuesVisible: z.number().nullish(),
+    minValues: z.number().nullish(),
+    selectionMode: FacetSelectionModeSchema.nullish(),
+    slug: z.string().nullish(),
+    sortIndex: z.number().nullish(),
+    uiType: FacetUiTypeSchema.nullish(),
+    valueSort: FacetValueSortSchema.nullish()
+  })
+}
+
+export function FacetValueCreateInputSchema(): z.ZodObject<Properties<FacetValueCreateInput>> {
+  return z.object({
+    enabled: z.boolean().nullish(),
+    facetId: z.string(),
+    label: z.string(),
+    slug: z.string(),
+    sortIndex: z.number().nullish(),
+    sourceHandles: z.array(z.string()).nullish(),
+    swatchId: z.string().nullish()
+  })
+}
+
+export function FacetValueDeleteInputSchema(): z.ZodObject<Properties<FacetValueDeleteInput>> {
+  return z.object({
+    id: z.string()
+  })
+}
+
+export function FacetValueUpdateInputSchema(): z.ZodObject<Properties<FacetValueUpdateInput>> {
+  return z.object({
+    enabled: z.boolean().nullish(),
+    id: z.string(),
+    label: z.string().nullish(),
+    slug: z.string().nullish(),
+    sortIndex: z.number().nullish(),
+    sourceHandles: z.array(z.string()).nullish(),
+    swatchId: z.string().nullish()
   })
 }
 
@@ -235,6 +477,7 @@ export function ProductFeatureCreateInputSchema(): z.ZodObject<Properties<Produc
   return z.object({
     name: z.string(),
     productId: z.string(),
+    slug: z.string(),
     values: z.array(z.lazy(() => ProductFeatureValueCreateInputSchema()))
   })
 }
@@ -259,6 +502,7 @@ export function ProductFeatureSyncItemInputSchema(): z.ZodObject<Properties<Prod
     index: z.array(z.number()),
     isGroup: z.boolean(),
     name: z.string(),
+    slug: z.string(),
     values: z.array(z.lazy(() => ProductFeatureValueSyncInputSchema())).nullish()
   })
 }
@@ -267,13 +511,15 @@ export function ProductFeatureUpdateInputSchema(): z.ZodObject<Properties<Produc
   return z.object({
     id: z.string(),
     name: z.string().nullish(),
+    slug: z.string().nullish(),
     values: z.lazy(() => ProductFeatureValuesInputSchema().nullish())
   })
 }
 
 export function ProductFeatureValueCreateInputSchema(): z.ZodObject<Properties<ProductFeatureValueCreateInput>> {
   return z.object({
-    name: z.string()
+    name: z.string(),
+    slug: z.string()
   })
 }
 
@@ -281,14 +527,16 @@ export function ProductFeatureValueSyncInputSchema(): z.ZodObject<Properties<Pro
   return z.object({
     id: z.string().nullish(),
     index: z.number(),
-    name: z.string()
+    name: z.string(),
+    slug: z.string()
   })
 }
 
 export function ProductFeatureValueUpdateInputSchema(): z.ZodObject<Properties<ProductFeatureValueUpdateInput>> {
   return z.object({
     id: z.string(),
-    name: z.string().nullish()
+    name: z.string().nullish(),
+    slug: z.string().nullish()
   })
 }
 
@@ -304,6 +552,16 @@ export function ProductFeaturesSyncInputSchema(): z.ZodObject<Properties<Product
   return z.object({
     features: z.array(z.lazy(() => ProductFeatureSyncItemInputSchema())),
     productId: z.string()
+  })
+}
+
+export function ProductFiltersInputSchema(): z.ZodObject<Properties<ProductFiltersInput>> {
+  return z.object({
+    facets: z.array(z.string()).nullish(),
+    inStock: z.boolean().nullish(),
+    priceMaxMinor: z.string().nullish(),
+    priceMinMinor: z.string().nullish(),
+    ranges: z.array(z.lazy(() => FacetRangeFilterInputSchema())).nullish()
   })
 }
 
@@ -412,6 +670,13 @@ export function ProductSeoInputSchema(): z.ZodObject<Properties<ProductSeoInput>
   })
 }
 
+export function ProductSortInputSchema(): z.ZodObject<Properties<ProductSortInput>> {
+  return z.object({
+    by: ProductSortBySchema,
+    direction: SortDirectionSchema.nullish()
+  })
+}
+
 export function ProductUpdateInputSchema(): z.ZodObject<Properties<ProductUpdateInput>> {
   return z.object({
     content: z.lazy(() => ProductContentInputSchema().nullish()),
@@ -435,6 +700,16 @@ export function SelectedOptionInputSchema(): z.ZodObject<Properties<SelectedOpti
   return z.object({
     optionId: z.string(),
     optionValueId: z.string()
+  })
+}
+
+export function SeoInputSchema(): z.ZodObject<Properties<SeoInput>> {
+  return z.object({
+    ogDescription: z.string().nullish(),
+    ogImageId: z.string().nullish(),
+    ogTitle: z.string().nullish(),
+    seoDescription: z.string().nullish(),
+    seoTitle: z.string().nullish()
   })
 }
 

@@ -6,6 +6,11 @@ import { OptionLoader } from "./OptionLoader.js";
 import { ProductLoader } from "./ProductLoader.js";
 import { TagLoader } from "./TagLoader.js";
 import { VariantLoader } from "./VariantLoader.js";
+import { FacetGroupLoader } from "./FacetGroupLoader.js";
+import { FacetLoader } from "./FacetLoader.js";
+import { FacetValueLoader } from "./FacetValueLoader.js";
+import { FacetSwatchLoader } from "./FacetSwatchLoader.js";
+import { CollectionLoader } from "./CollectionLoader.js";
 
 export class Loader {
   // Product
@@ -32,6 +37,7 @@ export class Loader {
   public readonly category;
   public readonly categoryTranslation;
   public readonly categoryMedia;
+  public readonly categorySeo;
   public readonly categoryChildrenIds;
   public readonly categoryAncestorIds;
   public readonly categoryProductsCount;
@@ -57,6 +63,24 @@ export class Loader {
   public readonly featureValueTranslation;
   public readonly featureChildIds;
 
+  // Facets
+  public readonly facetGroup;
+  public readonly facetGroupTranslation;
+  public readonly facetIdsByGroup;
+  public readonly facet;
+  public readonly facetTranslation;
+  public readonly facetValueIds;
+  public readonly facetValue;
+  public readonly facetValueTranslation;
+  public readonly facetValueSourceHandles;
+  public readonly facetSwatch;
+
+  // Collections
+  public readonly collection;
+  public readonly collectionTranslation;
+  public readonly collectionSeo;
+  public readonly collectionMedia;
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: DataLoader<any, any>;
 
@@ -67,6 +91,11 @@ export class Loader {
     const tagLoader = new TagLoader(repository);
     const optionLoader = new OptionLoader(repository);
     const featureLoader = new FeatureLoader(repository);
+    const facetGroupLoader = new FacetGroupLoader(repository);
+    const facetLoader = new FacetLoader(repository);
+    const facetValueLoader = new FacetValueLoader(repository);
+    const facetSwatchLoader = new FacetSwatchLoader(repository);
+    const collectionLoader = new CollectionLoader(repository);
 
     // Product
     this.product = productLoader.product;
@@ -92,6 +121,7 @@ export class Loader {
     this.category = categoryLoader.category;
     this.categoryTranslation = categoryLoader.categoryTranslation;
     this.categoryMedia = categoryLoader.categoryMedia;
+    this.categorySeo = categoryLoader.categorySeo;
     this.categoryChildrenIds = categoryLoader.categoryChildrenIds;
     this.categoryAncestorIds = categoryLoader.categoryAncestorIds;
     this.categoryProductsCount = categoryLoader.categoryProductsCount;
@@ -116,5 +146,23 @@ export class Loader {
     this.featureValue = featureLoader.featureValue;
     this.featureValueTranslation = featureLoader.featureValueTranslation;
     this.featureChildIds = featureLoader.featureChildIds;
+
+    // Facets
+    this.facetGroup = facetGroupLoader.facetGroup;
+    this.facetGroupTranslation = facetGroupLoader.facetGroupTranslation;
+    this.facetIdsByGroup = facetGroupLoader.facetIdsByGroup;
+    this.facet = facetLoader.facet;
+    this.facetTranslation = facetLoader.facetTranslation;
+    this.facetValueIds = facetLoader.facetValueIds;
+    this.facetValue = facetValueLoader.facetValue;
+    this.facetValueTranslation = facetValueLoader.facetValueTranslation;
+    this.facetValueSourceHandles = facetValueLoader.facetValueSourceHandles;
+    this.facetSwatch = facetSwatchLoader.facetSwatch;
+
+    // Collections
+    this.collection = collectionLoader.collection;
+    this.collectionTranslation = collectionLoader.collectionTranslation;
+    this.collectionSeo = collectionLoader.collectionSeo;
+    this.collectionMedia = collectionLoader.collectionMedia;
   }
 }
