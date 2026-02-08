@@ -225,14 +225,17 @@ Rules are evaluated against `product_search_index`.
 
 ### 3.1 Core idea
 
-Facet setup defines **how** facets are displayed on PLPs, not **what** data exists. Available facet values are computed on-the-fly from products. The setup controls:
+Facet setup defines **what** facets and values are allowed on PLPs, plus how they are displayed. Product data is used only for counts. The setup controls:
 
 - Which facets to show and in what order
 - Grouping (e.g., "Main filters", "Material & Care")
 - UI type per facet (multi-select checkboxes, single-select, range slider, boolean toggle, color swatches)
 - Label overrides and value sort order
+- Which values are exposed (enabled `facet_value` only)
 - Display rules (min distinct values to show, collapse threshold)
-- Facet and value lists are derived from the base product set (category/collection without user filters) and remain stable as filters change; only counts update
+- Facet list comes from `facet`; value list comes from enabled `facet_value`; counts are computed from the base product set and update as filters change
+
+Raw option/feature/tag values from products are never returned to the storefront; only configured `facet_value` entries are exposed.
 
 Setup is per-project — one flat list of facet groups and facets per project.
 
@@ -269,50 +272,40 @@ catalog.facet (
   
   -- What product attribute this maps to
   facet_type        varchar(32) NOT NULL,  -- 'price', 'tag', 'feature', 'option', 'in_stock'
-  source_handle     varchar(255),          -- For 'feature'/'option': the slug of the option/feature concept
-                                           -- (e.g., 'color', 'material'). Matches product_option.slug or
-                                           -- product_feature.slug across all products in the project.
-                                           -- NULL for 'price', 'tag', 'in_stock' (they don't need disambiguation).
-  UNIQUE(project_id, facet_type, source_handle) NULLS NOT DISTINCT,
+  source_handles    text[] NOT NULL DEFAULT '{}',
+                                           -- For 'feature'/'option': list of option/feature concept slugs
+                                           -- (e.g., {'color'} or {'shoe-size', 'clothing-size'}).
+                                           -- Matches product_option.slug or product_feature.slug across
+                                           -- all products in the project.
+                                           -- Multiple entries = group several source concepts into one facet.
+                                           -- Empty for 'price', 'tag', 'in_stock' (they don't need disambiguation).
+  -- Uniqueness: one source handle cannot belong to two different facets of the same type.
+  -- Enforced in application code (GIN overlap check before insert/update).
   
   -- Display & selection behavior
   ui_type           varchar(16) NOT NULL DEFAULT 'checkbox',  -- 'checkbox' | 'radio' | 'dropdown' | 'range' | 'boolean'
   selection_mode    varchar(16) NOT NULL DEFAULT 'multi',     -- 'single' | 'multi'
-  filter_logic      varchar(4) NOT NULL DEFAULT 'or',         -- 'or' | 'and' — how selected values combine within this facet
   sort_index        int NOT NULL DEFAULT 0,
   
-  -- filter_logic (for multi-select):
-  --
-  -- | filter_logic | Example: Material = [Cotton, Polyester] | SQL operator |
-  -- |--------------|------------------------------------------|--------------|
-  -- | 'or'         | Product has Cotton OR Polyester          | && (overlap) |
-  -- | 'and'        | Product has Cotton AND Polyester         | @> (contains)|
-  --
-  -- 'or' — standard for e-commerce (show cotton OR polyester items)
-  --        Facet isolation: drop entire facet filter, count per value independently.
-  -- 'and' — for tags/multi-values (show items with BOTH "sale" AND "new-arrival" tags)
-  --        Facet isolation: per-value — drop only the tested value's boolean,
-  --        keep other selected values. See §5.3.1 Step 2 for details.
-  --
+  -- Multi-select facets always use OR (overlap) across selected values.
   -- Ignored when selection_mode = 'single' (only one value, no logic needed).
-  -- Between different facets — always AND: Material=Cotton AND Color=Red.
+  -- Between different facets — filters are combined with AND.
   --
   -- ui_type behavior:
   -- | ui_type    | selection_mode | Notes                               |
   -- |------------|----------------|-------------------------------------|
-  -- | checkbox   | multi          | Uses filter_logic                   |
+  -- | checkbox   | multi          | Uses OR (overlap)                   |
   -- | checkbox   | single         | Exact match on single value         |
   -- | radio      | single         | Exact match on single value         |
   -- | dropdown   | single         | Exact match on single value         |
-  -- | dropdown   | multi          | Uses filter_logic                   |
+  -- | dropdown   | multi          | Uses OR (overlap)                   |
   -- | range      | —              | BETWEEN min AND max (numeric only)  |
   -- | boolean    | —              | Exact match (true/false)            |
   --
-  -- 'range' and 'boolean' ignore selection_mode and filter_logic.
+  -- 'range' and 'boolean' ignore selection_mode.
   --
-  -- Swatch: For OPTION-type facets, each FacetResultValue automatically includes swatch data
-  -- (resolved via product_option_value → product_option_swatch). No config flag needed —
-  -- if the option value has a swatch, it comes through. Frontend decides how to render it.
+  -- Swatch: only via facet_value.swatch_id (facet_swatch). No implicit fallback from
+  -- product_option_swatch or other source tables.
   
   -- Rules
   min_values        int NOT NULL DEFAULT 1,            -- hide facet if fewer distinct values
@@ -395,16 +388,17 @@ CREATE INDEX idx_facet_value_translation_project_locale
 **Назначение:**
 - `facet_swatch` — визуальный swatch для значения фасета (аналог `product_option_swatch`)
 - `facet_value` — настроенное значение: порядок, enabled, swatch. Поле `source_handles` содержит массив composite slug references (merge нескольких source values в одно display value)
-- `facet_value_translation` — кастомный label (переопределяет source translation)
+- `facet_value_translation` — display label for storefront (no source fallback)
 
 **Резолюция label и swatch:**
 
 | Приоритет | Label | Swatch |
 |-----------|-------|--------|
 | 1 | `facet_value_translation` | `facet_swatch` через `facet_value.swatch_id` |
-| 2 | Source translation (feature_value/option_value/tag) | `product_option_swatch` (только для option facets) |
 
-Если `facet_value` не создан — значения берутся напрямую из source таблиц (backward compatible).
+Source translations and product option swatches are not used in storefront responses.
+
+Если `facet_value` не создан — значение не показывается на storefront.
 
 ---
 
@@ -444,7 +438,7 @@ Storefront passes `facetSlug:valueSlug` strings via the unified `ProductFiltersI
 
 ```sql
 -- Step 1: Resolve facet slug → facet row
-SELECT f.id AS facet_id, f.facet_type, f.source_handle, f.filter_logic
+SELECT f.id AS facet_id, f.facet_type, f.source_handles
 FROM facet f
 WHERE f.project_id = :projectId
   AND f.slug = :facetSlug;
@@ -459,16 +453,13 @@ WHERE fv.facet_id = :facetId
 ```
 
 ```
--- Step 2b (shortcut — unconfigured values, no facet_value row):
--- Derive composite directly from facet + valueSlug:
---   option/feature: source_handle || ':' || valueSlug  (e.g., 'color' + ':' + 'red' = 'color:red')
---   tag:            valueSlug directly                  (e.g., 'sale')
--- No DB lookup needed — just string concatenation.
+-- Step 2b is intentionally not supported:
+-- valueSlug must resolve to an existing facet_value row.
 ```
 
-`facet_type` determines which `product_search_index` array column to query: `tag_handles`, `feature_slugs`, or `option_slugs`. `filter_logic` determines the array operator: `&&` (overlap) for OR, `@>` (contains) for AND.
+`facet_type` determines which `product_search_index` array column to query: `tag_handles`, `feature_slugs`, or `option_slugs`. Multi-select facets always use `&&` (overlap). Single-select facets use exact match.
 
-Step 1 is a simple B-tree index lookup on `UNIQUE(project_id, slug)`. Step 2a is a B-tree lookup on `UNIQUE(facet_id, slug)`. Step 2b is a pure in-memory operation. Results cached per request.
+Step 1 is a simple B-tree index lookup on `UNIQUE(project_id, slug)`. Step 2a is a B-tree lookup on `UNIQUE(facet_id, slug)`. Results cached per request. If no `facet_value` row is found, the value is invalid and must be ignored.
 
 ---
 
@@ -508,11 +499,11 @@ CREATE INDEX idx_product_search_index_project_status
 Both the search index and facets store **slugs/handles** (not UUIDs). The search index stores composite slugs (`option_slug:value_slug`), and facets map display slugs to source composite handles via `facet_value.source_handles`.
 
 Storefront passes facet filters via the unified `ProductFiltersInput.facets` field as `facetSlug:valueSlug` strings. Resolution is through facets (see §3.4):
-1. `facet.slug` → `facet_type`, `source_handle`, `filter_logic`
-2. Either `facet_value.source_handles` (configured values) or derive composite directly (shortcut)
+1. `facet.slug` → `facet_type`, `source_handles`
+2. `facet_value.source_handles` (configured values only)
 3. Query the appropriate `product_search_index` array column (`tag_handles`, `feature_slugs`, `option_slugs`)
 
-For unconfigured values (no `facet_value` row), the composite can be derived without any DB lookup: `source_handle + ':' + valueSlug` for option/feature, or `valueSlug` directly for tags. See §3.4 for details.
+Unconfigured values are not allowed for storefront filtering. If a `valueSlug` has no matching `facet_value` row, the filter value is ignored.
 
 ### Sync flow
 
@@ -596,9 +587,7 @@ For a given product set (from category or collection).
 Three key concerns:
 
 1. **Stable facet/value list** — derived from the base product set (category/collection without user filters). The list of facets and their values does not change when filters change; only counts update.
-2. **Facet isolation** — depends on `filter_logic`:
-   - **OR mode** (default): counts for each facet are computed **without** that facet's entire filter applied (but with all other facet filters). This lets the user see sibling values and switch between them. Standard e-commerce pattern.
-   - **AND mode**: counts are computed **per-value** — the tested value is removed from the AND set, but other selected values in the same facet remain. This shows "how many items match if I add/remove this specific value?"
+2. **Facet isolation** — counts for each facet are computed **without** that facet's filter applied (but with all other facet filters). This lets the user see sibling values and switch between them. Standard e-commerce pattern.
 3. **Merged values** — when `facet_value.source_handles` contains multiple entries, their counts must be summed into a single display value.
 
 #### 5.3.1 Single-query approach with boolean filter columns
@@ -607,13 +596,10 @@ Instead of N+1 separate queries, compute boolean "passes filter" columns per fac
 
 **Step 1: Base CTE with per-facet boolean columns (no user filters)**
 
-The shape of boolean columns depends on the facet's `filter_logic`:
-
-- **OR facets** → one boolean per facet (`passes_color`). Isolation = drop the whole boolean.
-- **AND facets** → one boolean **per selected value** (`passes_tags_sale`, `passes_tags_new_arrival`). Isolation = drop only the value being counted, keep the rest.
+One boolean per facet (multi-select uses OR / overlap).
 
 ```sql
--- Example: user selected Color=[Red, Blue] (OR mode), Tags=[Sale, New-Arrival] (AND mode),
+-- Example: user selected Color=[Red, Blue], Material=[Cotton], Tags=[Sale],
 -- price $10–$50, in_stock=true.
 
 WITH base_all AS (
@@ -634,14 +620,10 @@ base AS (
   SELECT
     base_all.*,
 
-    -- OR-mode facet: one boolean for the whole facet.
-    -- Isolation = drop this entire boolean.
-    (base_all.option_slugs && ARRAY['color:red','color:blue']::text[])   AS passes_color,
-
-    -- AND-mode facet: one boolean PER selected value.
-    -- Isolation for value X = drop passes_tags_X, keep other passes_tags_*.
-    (base_all.tag_handles @> ARRAY['sale']::text[])                       AS passes_tags_sale,
-    (base_all.tag_handles @> ARRAY['new-arrival']::text[])                AS passes_tags_new_arrival,
+    -- One boolean per facet. Multi-select = OR (overlap).
+    (base_all.option_slugs && ARRAY['color:red','color:blue']::text[])       AS passes_color,
+    (base_all.feature_slugs && ARRAY['material:cotton']::text[])             AS passes_material,
+    (base_all.tag_handles && ARRAY['sale']::text[])                          AS passes_tags,
 
     -- Price and in_stock:
     -- Range overlap — product is included if ANY variant's price intersects
@@ -650,7 +632,7 @@ base AS (
       (:priceMin IS NULL OR base_all.max_price_minor >= :priceMin)
       AND (:priceMax IS NULL OR base_all.min_price_minor <= :priceMax)
     ) AS passes_price,
-    (:inStock IS NULL OR base_all.in_stock = :inStock)                    AS passes_in_stock
+    (:inStock IS NULL OR base_all.in_stock = :inStock)                        AS passes_in_stock
   FROM base_all
 )
 ```
@@ -659,36 +641,13 @@ base AS (
 
 **Step 2: Aggregation with facet isolation via FILTER**
 
-For AND-mode selected values, counts must be computed without `unnest` (otherwise the value being counted is implicitly required). For unselected values, `unnest` is correct because the value must be present.
+Counts for each facet are computed with all other filters applied, but **without** that facet's boolean. This keeps sibling values visible.
 
 ```sql
--- Active filters: Color=[Red,Blue] (OR), Tags=[Sale,New-Arrival] (AND).
--- Boolean columns from Step 1: passes_color, passes_tags_sale, passes_tags_new_arrival,
--- passes_price, passes_in_stock.
-
--- 1) AND-mode selected values: counts from base (no unnest).
-WITH selected_and_counts AS (
-  SELECT
-    'tag' AS facet_type,
-    'sale' AS sv_slug,
-    COUNT(*) FILTER (WHERE passes_color AND passes_tags_new_arrival
-                         AND passes_price AND passes_in_stock) AS cnt
-  FROM base
-  UNION ALL
-  SELECT
-    'tag' AS facet_type,
-    'new-arrival' AS sv_slug,
-    COUNT(*) FILTER (WHERE passes_color AND passes_tags_sale
-                         AND passes_price AND passes_in_stock) AS cnt
-  FROM base
-),
-
--- 2) Unselected values (and OR-mode facets): counts from unnested stream.
-unnested AS (
+WITH unnested AS (
   -- Options
   SELECT b.product_id,
-         b.passes_color, b.passes_tags_sale, b.passes_tags_new_arrival,
-         b.passes_price, b.passes_in_stock,
+         b.passes_color, b.passes_material, b.passes_tags, b.passes_price, b.passes_in_stock,
          sv.slug AS sv_slug, 'option' AS facet_type
   FROM base b, unnest(b.option_slugs) AS sv(slug)
 
@@ -696,8 +655,7 @@ unnested AS (
 
   -- Features
   SELECT b.product_id,
-         b.passes_color, b.passes_tags_sale, b.passes_tags_new_arrival,
-         b.passes_price, b.passes_in_stock,
+         b.passes_color, b.passes_material, b.passes_tags, b.passes_price, b.passes_in_stock,
          sv.slug AS sv_slug, 'feature' AS facet_type
   FROM base b, unnest(b.feature_slugs) AS sv(slug)
 
@@ -705,67 +663,50 @@ unnested AS (
 
   -- Tags
   SELECT b.product_id,
-         b.passes_color, b.passes_tags_sale, b.passes_tags_new_arrival,
-         b.passes_price, b.passes_in_stock,
+         b.passes_color, b.passes_material, b.passes_tags, b.passes_price, b.passes_in_stock,
          sv.slug AS sv_slug, 'tag' AS facet_type
   FROM base b, unnest(b.tag_handles) AS sv(slug)
 ),
-unselected_counts AS (
+counts AS (
   SELECT
     u.facet_type,
     u.sv_slug,
     COUNT(DISTINCT u.product_id)
-      FILTER (WHERE u.passes_color AND u.passes_tags_sale AND u.passes_tags_new_arrival
-                    AND u.passes_price AND u.passes_in_stock) AS cnt
+      FILTER (WHERE
+        (u.facet_type = 'option'  AND u.passes_material AND u.passes_tags AND u.passes_price AND u.passes_in_stock) OR
+        (u.facet_type = 'feature' AND u.passes_color    AND u.passes_tags AND u.passes_price AND u.passes_in_stock) OR
+        (u.facet_type = 'tag'     AND u.passes_color    AND u.passes_material AND u.passes_price AND u.passes_in_stock)
+      ) AS cnt
   FROM unnested u
-  WHERE NOT (u.facet_type = 'tag' AND u.sv_slug IN ('sale', 'new-arrival'))
   GROUP BY u.facet_type, u.sv_slug
-),
-all_counts AS (
-  SELECT * FROM selected_and_counts
-  UNION ALL
-  SELECT * FROM unselected_counts
 )
 
--- LEFT JOIN to facet_value: configured values get merged/labeled,
--- unconfigured values (fv.id IS NULL) fall through with raw sv_slug.
+-- JOIN to facet_value: only configured values are exposed;
+-- merged values are grouped by facet_value.
 SELECT
-  COALESCE(fv.facet_id, f.id) AS facet_id,
-  fv.id AS display_value_id,      -- NULL for unconfigured values
-  ac.sv_slug,                      -- raw slug (used as fallback grouping key when fv.id IS NULL)
-  ac.cnt                           -- count for this value
-FROM all_counts ac
--- Resolve facet for this slug's facet_type + source_handle:
+  f.id AS facet_id,
+  fv.id AS facet_value_id,
+  fv.slug AS value_slug,
+  SUM(c.cnt) AS cnt
+FROM counts c
+-- Resolve facet for this slug's facet_type + source_handles:
 JOIN facet f
   ON f.project_id = :projectId
-  AND f.facet_type = ac.facet_type
+  AND f.facet_type = c.facet_type
   AND (
-    -- For option/feature: source_handle matches the prefix before ':'
-    (ac.facet_type IN ('option', 'feature') AND f.source_handle = split_part(ac.sv_slug, ':', 1))
-    -- For tag: source_handle is NULL
-    OR (ac.facet_type = 'tag' AND f.source_handle IS NULL)
+    -- For option/feature: the prefix before ':' must be in the facet's source_handles array
+    (c.facet_type IN ('option', 'feature') AND split_part(c.sv_slug, ':', 1) = ANY(f.source_handles))
+    -- For tag: source_handles is empty
+    OR (c.facet_type = 'tag' AND f.source_handles = '{}')
   )
--- LEFT JOIN: unconfigured values still appear (fv.id will be NULL)
-LEFT JOIN facet_value fv
-  ON ac.sv_slug = ANY(fv.source_handles)
+JOIN facet_value fv
+  ON c.sv_slug = ANY(fv.source_handles)
   AND fv.facet_id = f.id
   AND fv.enabled = true
+GROUP BY f.id, fv.id, fv.slug
 ```
 
-**Isolation rules (generated dynamically by app):**
-
-| filter_logic | Isolation strategy | FILTER clause for value V in facet F |
-|---|---|---|
-| **OR** | Drop entire facet | AND together all `passes_X` **except** `passes_F` |
-| **AND** | Drop only tested value | AND together all `passes_X` **except** `passes_F_V` (keep other `passes_F_*`) |
-
-For **AND-mode selected values**: compute counts from `base` without `unnest`. The FILTER clause drops only that value's boolean, so the count answers "how many items still match if I remove this value?"
-
-For **AND-mode unselected values**: compute counts from `unnest`, keep all selected `passes_F_*` booleans, so the count answers "how many items match if I add this value?"
-
-The app generates one `COUNT(*) FILTER (WHERE ...)` per AND-mode selected value. Unselected values and OR-mode facets use the `unnest` stream.
-
-**Unconfigured values:** When `fv.id IS NULL` (no `facet_value` row), the app groups by raw `sv_slug` instead. The display label comes from source translation tables (option_value, feature_value, or tag). The value slug is derived from `sv_slug` (strip the prefix for option/feature, use directly for tag).
+**Configured values only:** counts and value lists are built solely from enabled `facet_value` rows. Any source value without a `facet_value` mapping is ignored.
 
 **Step 3: Price range, in-stock count, and total (with facet isolation)**
 
@@ -777,41 +718,36 @@ available. Total count uses all filters.
 ```sql
 SELECT
   -- Price range: exclude passes_price (isolation), keep all other filters
-  MIN(min_price_minor) FILTER (WHERE passes_color AND passes_tags_sale AND passes_tags_new_arrival AND passes_in_stock) AS price_min,
-  MAX(max_price_minor) FILTER (WHERE passes_color AND passes_tags_sale AND passes_tags_new_arrival AND passes_in_stock) AS price_max,
+  MIN(min_price_minor) FILTER (WHERE passes_color AND passes_material AND passes_tags AND passes_in_stock) AS price_min,
+  MAX(max_price_minor) FILTER (WHERE passes_color AND passes_material AND passes_tags AND passes_in_stock) AS price_max,
   -- In-stock count: exclude passes_in_stock (isolation), keep all other filters
-  COUNT(*)             FILTER (WHERE passes_color AND passes_tags_sale AND passes_tags_new_arrival AND passes_price) AS in_stock_count,
+  COUNT(*)             FILTER (WHERE passes_color AND passes_material AND passes_tags AND passes_price) AS in_stock_count,
   -- Total count: all filters applied (no isolation — this is the result count)
-  COUNT(*)             FILTER (WHERE passes_color AND passes_tags_sale AND passes_tags_new_arrival AND passes_price AND passes_in_stock) AS total_count
+  COUNT(*)             FILTER (WHERE passes_color AND passes_material AND passes_tags AND passes_price AND passes_in_stock) AS total_count
 FROM base
 ```
-
-Note: AND-mode facets contribute **all** their per-value booleans to other facets' FILTER clauses (no isolation for other facets — only within the AND facet itself).
 
 **Why this works:**
 - Single sequential scan of `product_search_index` (base CTE materialized once)
 - `FILTER (WHERE ...)` is a Postgres aggregate clause — no subqueries, no extra scans
-- OR-mode isolation: omit one boolean per facet from the FILTER conjunction
-- AND-mode isolation: omit one boolean per selected value — more COUNT columns, but same single scan
+- Facet isolation: omit one boolean per facet from the FILTER conjunction
 - When no facet filters are active, all `passes_X` columns are absent and FILTER clauses are omitted — degenerates to plain `COUNT(*)`
-- Cost: OR facets add 1 boolean column + 1 COUNT column each; AND facets add N boolean columns + N COUNT columns (N = number of selected values). In practice N is small (users rarely AND more than 3–5 values)
+- Cost: each facet adds 1 boolean column + 1 COUNT column
 
 #### 5.3.2 Merged value deduplication
 
-`LEFT JOIN facet_value fv ON sv_slug = ANY(fv.source_handles)` with `COUNT(DISTINCT product_id)` handles merged values automatically. When "Red" (`color:red`) and "Crimson" (`color:crimson`) both map to the same `fv.id`, a product with both slugs in its array produces two unnest rows, but `COUNT(DISTINCT product_id)` counts it once.
-
-For **unconfigured values** (no `facet_value` row), the LEFT JOIN produces `fv.id IS NULL`. The app groups these rows by raw `sv_slug` instead of `fv.id`, using the source slug as both the grouping key and the display slug (stripping the prefix for option/feature, using directly for tag). Labels come from source translation tables.
+Counts are grouped by `facet_value.id`, so merged values (multiple `source_handles`) are summed into a single display value. Values without a `facet_value` mapping are excluded from results.
 
 #### 5.3.3 Assembly
 
 The aggregated data is assembled using the project's `facet` setup:
 - Which facets to include (only those defined in `facet`)
 - Order and grouping (via `facet_group`)
-- UI type, selection mode, filter logic
-- Facet inclusion is decided from the base set (no user filters): hide a facet only if the base set has fewer distinct values than `min_values`
-- Value lists are also derived from the base set and remain stable; values with `count = 0` stay in the list (typically rendered disabled)
+- UI type and selection mode
+- Facet inclusion is decided from the base set (no user filters): hide a facet only if the base set has fewer distinct configured values with `count > 0` than `min_values`
+- Value lists are derived from enabled `facet_value` rows and remain stable; values with `count = 0` stay in the list (typically rendered disabled)
 - Value count limits (`max_values_visible`)
-- Labels from `facet_value_translation` (priority 1) or source translation (priority 2)
+- Labels from `facet_value_translation` (no source fallback)
 - Slugs from `facet.slug` and `facet_value.slug` (for `FacetResult.slug` and `FacetResultValue.slug`)
 
 ---
@@ -1075,14 +1011,12 @@ type FacetGroup implements Node {
 type Facet implements Node {
   id: ID!
   facetType: FacetType!
-  """For FEATURE/OPTION: the slug of the option/feature concept (e.g., 'color', 'material'). Null for PRICE, TAG, IN_STOCK."""
-  sourceHandle: String
+  """For FEATURE/OPTION: list of option/feature concept slugs (e.g., ['color'] or ['shoe-size', 'clothing-size']). Empty for PRICE, TAG, IN_STOCK."""
+  sourceHandles: [String!]!
   slug: String!
   label: String!
   uiType: FacetUIType!
   selectionMode: FacetSelectionMode!
-  """How selected values combine within this facet: OR (overlap, default) or AND (contains). Ignored for single-select, range, and boolean."""
-  filterLogic: FacetFilterLogic!
   sortIndex: Int!
   group: FacetGroup
   minValues: Int!
@@ -1095,7 +1029,6 @@ type Facet implements Node {
 enum FacetType { PRICE TAG FEATURE OPTION IN_STOCK }
 enum FacetUIType { CHECKBOX RADIO DROPDOWN RANGE BOOLEAN }
 enum FacetSelectionMode { SINGLE MULTI }
-enum FacetFilterLogic { AND OR }
 enum FacetValueSort { COUNT ALPHA CUSTOM }
 
 type FacetValue implements Node {
@@ -1123,8 +1056,8 @@ input FacetGroupCreateInput { name: String!, collapsed: Boolean, sortIndex: Int 
 input FacetGroupUpdateInput { id: ID!, name: String, collapsed: Boolean, sortIndex: Int }
 input FacetGroupDeleteInput { id: ID! }
 
-input FacetCreateInput { facetType: FacetType!, sourceHandle: String, slug: String!, uiType: FacetUIType, selectionMode: FacetSelectionMode, filterLogic: FacetFilterLogic, groupId: ID, label: String!, sortIndex: Int }
-input FacetUpdateInput { id: ID!, slug: String, uiType: FacetUIType, selectionMode: FacetSelectionMode, filterLogic: FacetFilterLogic, groupId: ID, label: String, sortIndex: Int, minValues: Int, maxValuesVisible: Int, valueSort: FacetValueSort, indexable: Boolean }
+input FacetCreateInput { facetType: FacetType!, sourceHandles: [String!], slug: String!, uiType: FacetUIType, selectionMode: FacetSelectionMode, groupId: ID, label: String!, sortIndex: Int }
+input FacetUpdateInput { id: ID!, slug: String, sourceHandles: [String!], uiType: FacetUIType, selectionMode: FacetSelectionMode, groupId: ID, label: String, sortIndex: Int, minValues: Int, maxValuesVisible: Int, valueSort: FacetValueSort, indexable: Boolean }
 input FacetDeleteInput { id: ID! }
 
 input FacetValueCreateInput { facetId: ID!, slug: String!, label: String!, sourceHandles: [String!]!, swatchId: ID, sortIndex: Int, enabled: Boolean }
@@ -1188,7 +1121,7 @@ input ProductFiltersInput {
   """
   Unified facet filters. Format: 'facetSlug:valueSlug'.
   Works for ALL discrete facet types (tag, feature, option) — resolved via facet.slug + facet_value.slug (see §3.4).
-  Multiple values for the same facetSlug are combined using the facet's filter_logic (OR/AND).
+  Multiple values for the same facetSlug are combined using OR (overlap).
   Different facetSlugs are always AND-ed together.
   """
   facets: [String!]
@@ -1238,7 +1171,6 @@ type FacetResult {
   label: String!
   uiType: FacetUIType!
   selectionMode: FacetSelectionMode!
-  filterLogic: FacetFilterLogic!
   values: [FacetResultValue!]!
   totalCount: Int!
 }
@@ -1248,11 +1180,9 @@ type FacetResultValue {
   slug: String!
   label: String
   count: Int!
-  """Swatch from ProductOptionSwatch or FacetSwatch. Present for OPTION-type facets when the option value has a swatch, or when facet_value has a swatch override."""
-  swatch: FacetSwatchRef
+  """Swatch from FacetSwatch. Present only when facet_value has a swatch override."""
+  swatch: FacetSwatch
 }
-
-union FacetSwatchRef = ProductOptionSwatch | FacetSwatch
 
 type PriceRange {
   minMinor: BigInt!
