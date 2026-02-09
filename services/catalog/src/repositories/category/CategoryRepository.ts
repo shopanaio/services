@@ -1,6 +1,12 @@
 import { and, eq, inArray, isNull, count, sql, asc, desc } from "drizzle-orm";
 import { randomUUID } from "crypto";
-import type { PageInfo } from "@shopana/drizzle-query";
+import {
+  createQuery,
+  createRelayQuery,
+  field,
+  type PageInfo,
+  type InferRelayInput,
+} from "@shopana/drizzle-query";
 import type { TransactionManager } from "@shopana/shared-kernel";
 import { getContext, type ServiceContext } from "../../context/index.js";
 import type { Database } from "../../infrastructure/db/database";
@@ -9,6 +15,7 @@ import {
   categoryMedia,
   categoryTranslation,
   productCategory,
+  product,
   type Category,
   type NewCategory,
   type CategoryMedia,
@@ -17,6 +24,29 @@ import {
   type NewProductCategory,
 } from "../models/index.js";
 import { initialRank, nextRank, rebalanceRanks } from "../../scripts/shared/rank.js";
+
+// ---- Relay Query for Category Products ----
+
+const productCategoryQuery = createQuery(productCategory, {
+  categoryId: field(productCategory.categoryId),
+  productId: field(productCategory.productId),
+  lexoRank: field(productCategory.lexoRank),
+});
+
+const categoryProductsQuery = createQuery(product, {
+  id: field(product.id),
+  createdAt: field(product.createdAt),
+  deletedAt: field(product.deletedAt),
+  projectId: field(product.projectId),
+  category: field(product.id).innerJoin(productCategoryQuery, productCategory.productId),
+});
+
+export const categoryProductsRelayQuery = createRelayQuery(
+  categoryProductsQuery.include(["id"]).maxLimit(100).defaultLimit(20),
+  { name: "categoryProduct", tieBreaker: "id" }
+);
+
+export type CategoryProductsRelayInput = InferRelayInput<typeof categoryProductsRelayQuery>;
 
 export interface CategoryRelayInput {
   first?: number;
@@ -27,6 +57,12 @@ export interface CategoryRelayInput {
 }
 
 export interface CategoryConnectionResult {
+  edges: Array<{ cursor: string; nodeId: string }>;
+  pageInfo: PageInfo;
+  totalCount: number;
+}
+
+export interface CategoryProductsConnectionResult {
   edges: Array<{ cursor: string; nodeId: string }>;
   pageInfo: PageInfo;
   totalCount: number;
@@ -551,6 +587,67 @@ export class CategoryRepository {
         )
       )
       .orderBy(asc(productCategory.lexoRank), asc(productCategory.productId));
+  }
+
+  async getCategoryProductsConnection(
+    categoryId: string,
+    args: Omit<CategoryProductsRelayInput, "where" | "orderBy">
+  ): Promise<CategoryProductsConnectionResult> {
+    const { first, after, last, before } = args;
+
+    // Build where filter for this category
+    const mergedWhere: CategoryProductsRelayInput["where"] = {
+      _and: [
+        { projectId: { _eq: this.storeId } },
+        { deletedAt: { _is: null } },
+        { category: { categoryId: { _eq: categoryId } } },
+      ],
+    };
+
+    // Default sort by lexoRank (manual order)
+    const orderBy: CategoryProductsRelayInput["orderBy"] = [
+      { field: "category.lexoRank", direction: "asc" },
+      { field: "id", direction: "asc" },
+    ];
+
+    const executeInput: CategoryProductsRelayInput = {
+      first,
+      after,
+      last,
+      before,
+      where: mergedWhere,
+      orderBy,
+    };
+
+    const [result, totalCount] = await Promise.all([
+      categoryProductsRelayQuery.execute(this.connection, executeInput),
+      this.countProductsInCategory(categoryId),
+    ]);
+
+    return {
+      edges: result.edges.map((edge) => ({
+        cursor: edge.cursor,
+        nodeId: edge.node.id,
+      })),
+      pageInfo: result.pageInfo,
+      totalCount,
+    };
+  }
+
+  async countProductsInCategory(categoryId: string): Promise<number> {
+    const countResult = await this.connection
+      .select({ count: count() })
+      .from(productCategory)
+      .innerJoin(product, eq(product.id, productCategory.productId))
+      .where(
+        and(
+          eq(productCategory.projectId, this.storeId),
+          eq(productCategory.categoryId, categoryId),
+          isNull(product.deletedAt)
+        )
+      );
+
+    return countResult[0]?.count ?? 0;
   }
 
   async updateProductCategoryRank(

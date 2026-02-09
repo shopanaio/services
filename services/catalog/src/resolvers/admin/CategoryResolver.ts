@@ -7,6 +7,10 @@ import type { Description } from "./interfaces/index.js";
 import type { Category } from "../../repositories/models/index.js";
 import { CatalogType } from "./CatalogType.js";
 import { SeoResolver } from "./SeoResolver.js";
+import {
+  CategoryProductConnectionResolver,
+  type CategoryProductConnectionInput,
+} from "./CategoryProductConnectionResolver.js";
 
 /**
  * Category resolver - resolves Category domain interface.
@@ -145,5 +149,13 @@ export class CategoryResolver extends CatalogType<string, Category> {
     return this.$ctx.loaders.categoryProductsCount.load(this.$props);
   }
 
-  // TODO: Implement products() with keyset pagination
+  /**
+   * Returns paginated products in this category
+   */
+  products(args: Omit<CategoryProductConnectionInput, "categoryId">) {
+    return new CategoryProductConnectionResolver(
+      { categoryId: this.$props, ...args },
+      this.$ctx
+    );
+  }
 }
