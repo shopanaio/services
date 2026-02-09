@@ -8,6 +8,7 @@ import {
   buildTieBreakerSeekValue,
   base64UrlEncode,
   base64UrlDecode,
+  getNestedValue,
   type SortParam,
 } from "../../cursor/helpers.js";
 
@@ -244,5 +245,25 @@ describe("hashFilters", () => {
   it("handles nested arrays", () => {
     const hash = hashFilters({ ids: ["a", "b", "c"] });
     expect(hash.length).toBeGreaterThan(0);
+  });
+});
+
+describe("getNestedValue", () => {
+  it("reads nested path from nested object", () => {
+    const row = { category: { lexoRank: "nested-rank" } };
+    expect(getNestedValue(row, "category.lexoRank")).toBe("nested-rank");
+  });
+
+  it("reads dotted path from flat sql alias key", () => {
+    const row = { "category.lexoRank": "flat-rank" };
+    expect(getNestedValue(row, "category.lexoRank")).toBe("flat-rank");
+  });
+
+  it("prefers exact flat key when both structures exist", () => {
+    const row = {
+      "category.lexoRank": "flat-rank",
+      category: { lexoRank: "nested-rank" },
+    };
+    expect(getNestedValue(row, "category.lexoRank")).toBe("flat-rank");
   });
 });

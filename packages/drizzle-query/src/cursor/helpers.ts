@@ -190,6 +190,17 @@ export function getNestedValue(obj: unknown, path: string): unknown {
     return undefined;
   }
 
+  if (typeof obj !== "object") {
+    return undefined;
+  }
+
+  const record = obj as Record<string, unknown>;
+  // Query results may expose aliased dotted fields as flat keys:
+  // { "translation.value": "..." }.
+  if (path in record) {
+    return record[path];
+  }
+
   const segments = path.split(".");
   let current: unknown = obj;
 
