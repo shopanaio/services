@@ -1689,7 +1689,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         { products, context },
         {
           source: "workflow",
-          workflowId: `productBulkEdit:${idempotencyKey}`,
+          workflowId: `productBulkEdit:${context.projectId}:${idempotencyKey}`,
           stepId: "start",
         }
       )) as { jobId: string };

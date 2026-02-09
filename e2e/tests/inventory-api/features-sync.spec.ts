@@ -46,18 +46,20 @@ test.describe('Product Features Sync API', () => {
           index: [0],
           isGroup: false,
           name: 'Material',
+          slug: 'material',
           values: [
-            { index: 0, name: 'Cotton' },
-            { index: 1, name: 'Polyester' },
+            { index: 0, name: 'Cotton', slug: 'cotton' },
+            { index: 1, name: 'Polyester', slug: 'polyester' },
           ],
         },
         {
           index: [1],
           isGroup: false,
           name: 'Country',
+          slug: 'country',
           values: [
-            { index: 0, name: 'Ukraine' },
-            { index: 1, name: 'Poland' },
+            { index: 0, name: 'Ukraine', slug: 'ukraine' },
+            { index: 1, name: 'Poland', slug: 'poland' },
           ],
         },
       ]);
@@ -90,24 +92,27 @@ test.describe('Product Features Sync API', () => {
           index: [0],
           isGroup: true,
           name: 'Technical Specs',
+          slug: 'technical-specs',
         },
         // Attribute under group
         {
           index: [0, 0],
           isGroup: false,
           name: 'Weight',
+          slug: 'weight',
           values: [
-            { index: 0, name: '100g' },
-            { index: 1, name: '200g' },
+            { index: 0, name: '100g', slug: '100g' },
+            { index: 1, name: '200g', slug: '200g' },
           ],
         },
         {
           index: [0, 1],
           isGroup: false,
           name: 'Dimensions',
+          slug: 'dimensions',
           values: [
-            { index: 0, name: '10x10cm' },
-            { index: 1, name: '20x20cm' },
+            { index: 0, name: '10x10cm', slug: '10x10cm' },
+            { index: 1, name: '20x20cm', slug: '20x20cm' },
           ],
         },
         // Standalone attribute (no group)
@@ -115,7 +120,8 @@ test.describe('Product Features Sync API', () => {
           index: [1],
           isGroup: false,
           name: 'Brand',
-          values: [{ index: 0, name: 'Shopana' }],
+          slug: 'brand',
+          values: [{ index: 0, name: 'Shopana', slug: 'shopana' }],
         },
       ]);
 
@@ -161,7 +167,8 @@ test.describe('Product Features Sync API', () => {
           index: [0],
           isGroup: false,
           name: 'Material',
-          values: [{ index: 0, name: 'Cotton' }],
+          slug: 'material',
+          values: [{ index: 0, name: 'Cotton', slug: 'cotton' }],
         },
       ]);
 
@@ -175,8 +182,9 @@ test.describe('Product Features Sync API', () => {
           index: [0],
           isGroup: false,
           name: 'Fabric Type', // Changed name
+          slug: 'fabric-type',
           values: [
-            { id: createdValueId, index: 0, name: 'Organic Cotton' }, // Changed value name
+            { id: createdValueId, index: 0, name: 'Organic Cotton', slug: 'organic-cotton' }, // Changed value name
           ],
         },
       ]);
@@ -200,7 +208,8 @@ test.describe('Product Features Sync API', () => {
           index: [0],
           isGroup: false,
           name: 'Size',
-          values: [{ index: 0, name: 'S' }],
+          slug: 'size',
+          values: [{ index: 0, name: 'S', slug: 's' }],
         },
       ]);
 
@@ -214,10 +223,11 @@ test.describe('Product Features Sync API', () => {
           index: [0],
           isGroup: false,
           name: 'Size',
+          slug: 'size',
           values: [
-            { id: existingValueId, index: 0, name: 'S' },
-            { index: 1, name: 'M' }, // New value
-            { index: 2, name: 'L' }, // New value
+            { id: existingValueId, index: 0, name: 'S', slug: 's' },
+            { index: 1, name: 'M', slug: 'm' }, // New value
+            { index: 2, name: 'L', slug: 'l' }, // New value
           ],
         },
       ]);
@@ -237,13 +247,15 @@ test.describe('Product Features Sync API', () => {
           index: [0],
           isGroup: false,
           name: 'Feature A',
-          values: [{ index: 0, name: 'Value A' }],
+          slug: 'feature-a',
+          values: [{ index: 0, name: 'Value A', slug: 'value-a' }],
         },
         {
           index: [1],
           isGroup: false,
           name: 'Feature B',
-          values: [{ index: 0, name: 'Value B' }],
+          slug: 'feature-b',
+          values: [{ index: 0, name: 'Value B', slug: 'value-b' }],
         },
       ]);
 
@@ -262,14 +274,16 @@ test.describe('Product Features Sync API', () => {
           index: [0], // B is now first
           isGroup: false,
           name: 'Feature B',
-          values: [{ id: featureB.values[0].id, index: 0, name: 'Value B' }],
+          slug: 'feature-b',
+          values: [{ id: featureB.values[0].id, index: 0, name: 'Value B', slug: 'value-b' }],
         },
         {
           id: featureA.id,
           index: [1], // A is now second
           isGroup: false,
           name: 'Feature A',
-          values: [{ id: featureA.values[0].id, index: 0, name: 'Value A' }],
+          slug: 'feature-a',
+          values: [{ id: featureA.values[0].id, index: 0, name: 'Value A', slug: 'value-a' }],
         },
       ]);
 
@@ -297,13 +311,15 @@ test.describe('Product Features Sync API', () => {
           index: [0],
           isGroup: false,
           name: 'To Keep',
-          values: [{ index: 0, name: 'Keep Value' }],
+          slug: 'to-keep',
+          values: [{ index: 0, name: 'Keep Value', slug: 'keep-value' }],
         },
         {
           index: [1],
           isGroup: false,
           name: 'To Delete',
-          values: [{ index: 0, name: 'Delete Value' }],
+          slug: 'to-delete',
+          values: [{ index: 0, name: 'Delete Value', slug: 'delete-value' }],
         },
       ]);
 
@@ -318,7 +334,8 @@ test.describe('Product Features Sync API', () => {
           index: [0],
           isGroup: false,
           name: 'To Keep',
-          values: [{ id: featureToKeep.values[0].id, index: 0, name: 'Keep Value' }],
+          slug: 'to-keep',
+          values: [{ id: featureToKeep.values[0].id, index: 0, name: 'Keep Value', slug: 'keep-value' }],
         },
       ]);
 
@@ -336,13 +353,15 @@ test.describe('Product Features Sync API', () => {
           index: [0],
           isGroup: false,
           name: 'Feature 1',
-          values: [{ index: 0, name: 'Value 1' }],
+          slug: 'feature-1',
+          values: [{ index: 0, name: 'Value 1', slug: 'value-1' }],
         },
         {
           index: [1],
           isGroup: false,
           name: 'Feature 2',
-          values: [{ index: 0, name: 'Value 2' }],
+          slug: 'feature-2',
+          values: [{ index: 0, name: 'Value 2', slug: 'value-2' }],
         },
       ]);
 
@@ -362,10 +381,11 @@ test.describe('Product Features Sync API', () => {
           index: [0],
           isGroup: false,
           name: 'Sizes',
+          slug: 'sizes',
           values: [
-            { index: 0, name: 'S' },
-            { index: 1, name: 'M' },
-            { index: 2, name: 'L' },
+            { index: 0, name: 'S', slug: 's' },
+            { index: 1, name: 'M', slug: 'm' },
+            { index: 2, name: 'L', slug: 'l' },
           ],
         },
       ]);
@@ -382,7 +402,8 @@ test.describe('Product Features Sync API', () => {
           index: [0],
           isGroup: false,
           name: 'Sizes',
-          values: [{ id: valueToKeep.id, index: 0, name: 'M' }], // Only keep M
+          slug: 'sizes',
+          values: [{ id: valueToKeep.id, index: 0, name: 'M', slug: 'm' }], // Only keep M
         },
       ]);
 
@@ -418,7 +439,8 @@ test.describe('Product Features Sync API', () => {
             index: [0],
             isGroup: true,
             name: 'Group With Values',
-            values: [{ index: 0, name: 'Should Not Exist' }],
+            slug: 'group-with-values',
+            values: [{ index: 0, name: 'Should Not Exist', slug: 'should-not-exist' }],
           },
         ],
         false,
@@ -438,12 +460,14 @@ test.describe('Product Features Sync API', () => {
           index: [0],
           isGroup: true,
           name: 'Old Group',
+          slug: 'old-group',
         },
         {
           index: [0, 0],
           isGroup: false,
           name: 'Old Attribute',
-          values: [{ index: 0, name: 'Old Value' }],
+          slug: 'old-attribute',
+          values: [{ index: 0, name: 'Old Value', slug: 'old-value' }],
         },
       ]);
 
@@ -453,21 +477,24 @@ test.describe('Product Features Sync API', () => {
           index: [0],
           isGroup: false,
           name: 'New Feature 1',
+          slug: 'new-feature-1',
           values: [
-            { index: 0, name: 'Value A' },
-            { index: 1, name: 'Value B' },
+            { index: 0, name: 'Value A', slug: 'value-a' },
+            { index: 1, name: 'Value B', slug: 'value-b' },
           ],
         },
         {
           index: [1],
           isGroup: true,
           name: 'New Group',
+          slug: 'new-group',
         },
         {
           index: [1, 0],
           isGroup: false,
           name: 'New Nested Feature',
-          values: [{ index: 0, name: 'Nested Value' }],
+          slug: 'new-nested-feature',
+          values: [{ index: 0, name: 'Nested Value', slug: 'nested-value' }],
         },
       ]);
 
@@ -507,42 +534,46 @@ test.describe('Product Features Sync API', () => {
       //   [1,0] Fabric (Cotton, Silk)
       // [2] Brand (standalone: Nike, Adidas)
       const createResult = await syncFeatures(api, product.id, [
-        { index: [0], isGroup: true, name: 'Technical' },
+        { index: [0], isGroup: true, name: 'Technical', slug: 'technical' },
         {
           index: [0, 0],
           isGroup: false,
           name: 'Weight',
+          slug: 'weight',
           values: [
-            { index: 0, name: '100g' },
-            { index: 1, name: '200g' },
+            { index: 0, name: '100g', slug: '100g' },
+            { index: 1, name: '200g', slug: '200g' },
           ],
         },
         {
           index: [0, 1],
           isGroup: false,
           name: 'Dimensions',
+          slug: 'dimensions',
           values: [
-            { index: 0, name: '10x10' },
-            { index: 1, name: '20x20' },
+            { index: 0, name: '10x10', slug: '10x10' },
+            { index: 1, name: '20x20', slug: '20x20' },
           ],
         },
-        { index: [1], isGroup: true, name: 'Materials' },
+        { index: [1], isGroup: true, name: 'Materials', slug: 'materials' },
         {
           index: [1, 0],
           isGroup: false,
           name: 'Fabric',
+          slug: 'fabric',
           values: [
-            { index: 0, name: 'Cotton' },
-            { index: 1, name: 'Silk' },
+            { index: 0, name: 'Cotton', slug: 'cotton' },
+            { index: 1, name: 'Silk', slug: 'silk' },
           ],
         },
         {
           index: [2],
           isGroup: false,
           name: 'Brand',
+          slug: 'brand',
           values: [
-            { index: 0, name: 'Nike' },
-            { index: 1, name: 'Adidas' },
+            { index: 0, name: 'Nike', slug: 'nike' },
+            { index: 1, name: 'Adidas', slug: 'adidas' },
           ],
         },
       ]);
@@ -592,15 +623,16 @@ test.describe('Product Features Sync API', () => {
       const weight200gValue = weight.values.find((v: any) => v.name === '200g');
 
       const updateResult = await syncFeatures(api, product.id, [
-        { id: groupB.id, index: [0], isGroup: true, name: 'Materials' },
+        { id: groupB.id, index: [0], isGroup: true, name: 'Materials', slug: 'materials' },
         {
           id: weight.id,
           index: [0, 0],
           isGroup: false,
           name: 'Weight',
+          slug: 'weight',
           values: [
-            { id: weight200gValue.id, index: 0, name: '200g' },
-            { index: 1, name: '300g' },
+            { id: weight200gValue.id, index: 0, name: '200g', slug: '200g' },
+            { index: 1, name: '300g', slug: '300g' },
           ],
         },
         {
@@ -608,39 +640,43 @@ test.describe('Product Features Sync API', () => {
           index: [0, 1],
           isGroup: false,
           name: 'Brand',
+          slug: 'brand',
           values: [
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            { id: brand.values.find((v: any) => v.name === 'Nike').id, index: 0, name: 'Nike' },
+            { id: brand.values.find((v: any) => v.name === 'Nike').id, index: 0, name: 'Nike', slug: 'nike' },
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            { id: brand.values.find((v: any) => v.name === 'Adidas').id, index: 1, name: 'Adidas' },
-            { index: 2, name: 'Puma' },
+            { id: brand.values.find((v: any) => v.name === 'Adidas').id, index: 1, name: 'Adidas', slug: 'adidas' },
+            { index: 2, name: 'Puma', slug: 'puma' },
           ],
         },
         {
           index: [0, 2],
           isGroup: false,
           name: 'Color',
+          slug: 'color',
           values: [
-            { index: 0, name: 'Red' },
-            { index: 1, name: 'Blue' },
+            { index: 0, name: 'Red', slug: 'red' },
+            { index: 1, name: 'Blue', slug: 'blue' },
           ],
         },
-        { id: groupA.id, index: [1], isGroup: true, name: 'Specifications' },
+        { id: groupA.id, index: [1], isGroup: true, name: 'Specifications', slug: 'specifications' },
         {
           id: fabric.id,
           index: [1, 0],
           isGroup: false,
           name: 'Fabric',
+          slug: 'fabric',
           values: [
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             {
               id: fabric.values.find((v: any) => v.name === 'Cotton').id,
               index: 0,
               name: 'Cotton',
+              slug: 'cotton',
             },
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            { id: fabric.values.find((v: any) => v.name === 'Silk').id, index: 1, name: 'Silk' },
-            { index: 2, name: 'Wool' },
+            { id: fabric.values.find((v: any) => v.name === 'Silk').id, index: 1, name: 'Silk', slug: 'silk' },
+            { index: 2, name: 'Wool', slug: 'wool' },
           ],
         },
       ]);
@@ -708,7 +744,8 @@ test.describe('Product Features Sync API', () => {
           index: [0],
           isGroup: false,
           name: 'Persistent Feature',
-          values: [{ index: 0, name: 'Persistent Value' }],
+          slug: 'persistent-feature',
+          values: [{ index: 0, name: 'Persistent Value', slug: 'persistent-value' }],
         },
       ]);
 
@@ -723,7 +760,8 @@ test.describe('Product Features Sync API', () => {
           index: [0],
           isGroup: false,
           name: 'Updated Name',
-          values: [{ id: originalValueId, index: 0, name: 'Updated Value' }],
+          slug: 'updated-name',
+          values: [{ id: originalValueId, index: 0, name: 'Updated Value', slug: 'updated-value' }],
         },
       ]);
 
