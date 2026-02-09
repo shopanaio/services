@@ -56,7 +56,6 @@ query CategoryCategoryProducts(
           }
           groups {
             name
-            collapsed
             facets {
               facetType
               slug

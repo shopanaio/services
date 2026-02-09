@@ -46,7 +46,6 @@ query CollectionProducts(
           }
           groups {
             name
-            collapsed
             facets {
               facetType
               slug

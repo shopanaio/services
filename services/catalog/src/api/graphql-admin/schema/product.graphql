@@ -1,3 +1,23 @@
+enum ProductSortBy {
+  MANUAL
+  PRICE
+  NEWEST
+  NAME
+}
+
+input ProductSortInput {
+  by: ProductSortBy!
+  direction: SortDirection
+}
+
+input ProductFiltersInput {
+  facets: [String!]
+  ranges: [FacetRangeFilterInput!]
+  priceMinMinor: BigInt
+  priceMaxMinor: BigInt
+  inStock: Boolean
+}
+
 # ---- Product Types ----
 
 """

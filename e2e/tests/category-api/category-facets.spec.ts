@@ -130,9 +130,7 @@ test.describe('Category Facets Computation API', () => {
 
       // FacetResultGroup fields
       expect(group).toHaveProperty('name');
-      expect(group).toHaveProperty('collapsed');
       expect(group).toHaveProperty('facets');
-      expect(typeof group.collapsed).toBe('boolean');
       expect(Array.isArray(group.facets)).toBe(true);
     }
   });

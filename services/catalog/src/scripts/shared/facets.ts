@@ -671,7 +671,6 @@ export async function buildListingFacets(
 
   const groups: Array<{
     name: string | null;
-    collapsed: boolean;
     facets: BuiltFacet[];
   }> = [];
 
@@ -683,7 +682,6 @@ export async function buildListingFacets(
 
     groups.push({
       name: groupNameById.get(group.id) ?? null,
-      collapsed: group.collapsed,
       facets: groupFacets,
     });
   }
@@ -691,7 +689,6 @@ export async function buildListingFacets(
   if (ungrouped.length > 0) {
     groups.push({
       name: null,
-      collapsed: false,
       facets: ungrouped,
     });
   }
