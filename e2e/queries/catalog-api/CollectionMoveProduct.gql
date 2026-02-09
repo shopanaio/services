@@ -1,0 +1,29 @@
+mutation CollectionMoveProduct($input: CollectionMoveProductInput!) {
+  catalogMutation {
+    collectionMoveProduct(input: $input) {
+      collection {
+        id
+        handle
+        type
+        name
+        productsCount
+        products(first: 20, sort: { by: MANUAL, direction: ASC }) {
+          edges {
+            node {
+              id
+              title
+              handle
+            }
+            cursor
+          }
+          totalCount
+        }
+      }
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}

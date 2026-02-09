@@ -1,0 +1,68 @@
+query CollectionProducts(
+  $id: ID!
+  $first: Int
+  $after: String
+  $last: Int
+  $before: String
+  $filters: ProductFiltersInput
+  $sort: ProductSortInput
+) {
+  catalogQuery {
+    collection(id: $id) {
+      id
+      handle
+      type
+      name
+      defaultSort
+      products(
+        first: $first
+        after: $after
+        last: $last
+        before: $before
+        filters: $filters
+        sort: $sort
+      ) {
+        edges {
+          node {
+            id
+            title
+            handle
+            isPublished
+            createdAt
+          }
+          cursor
+        }
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
+        }
+        totalCount
+        facets {
+          priceRange {
+            minMinor
+            maxMinor
+          }
+          groups {
+            name
+            collapsed
+            facets {
+              facetType
+              slug
+              label
+              uiType
+              selectionMode
+              values {
+                slug
+                label
+                count
+              }
+              totalCount
+            }
+          }
+        }
+      }
+    }
+  }
+}

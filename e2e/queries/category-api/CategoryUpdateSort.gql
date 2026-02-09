@@ -1,0 +1,18 @@
+mutation CategoryUpdateSort($input: CategoryUpdateSortInput!) {
+  catalogMutation {
+    categoryUpdateSort(input: $input) {
+      category {
+        id
+        handle
+        name
+        defaultSort
+        defaultSortDirection
+      }
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}

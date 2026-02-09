@@ -1,0 +1,25 @@
+mutation CollectionUpdateRules($input: CollectionUpdateRulesInput!) {
+  catalogMutation {
+    collectionUpdateRules(input: $input) {
+      collection {
+        id
+        handle
+        type
+        name
+        rules {
+          id
+          field
+          operator
+          value
+          sortIndex
+        }
+        productsCount
+      }
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}

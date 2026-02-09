@@ -1,0 +1,12 @@
+mutation CollectionDelete($input: CollectionDeleteInput!) {
+  catalogMutation {
+    collectionDelete(input: $input) {
+      deletedCollectionId
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}

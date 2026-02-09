@@ -1,0 +1,29 @@
+mutation FacetValueCreate($input: FacetValueCreateInput!) {
+  catalogMutation {
+    facetValueCreate(input: $input) {
+      facetValue {
+        id
+        slug
+        label
+        sourceHandles
+        sortIndex
+        enabled
+        swatch {
+          id
+          swatchType
+          colorOne
+          colorTwo
+        }
+        facet {
+          id
+          slug
+        }
+      }
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}
