@@ -71,15 +71,6 @@ type CatalogQuery {
   Get a category by ID
   """
   category(id: ID!): Category
-  categoryProducts(
-    categoryId: ID!
-    first: Int
-    after: String
-    last: Int
-    before: String
-    filters: ProductFiltersInput
-    sort: ProductSortInput
-  ): CategoryProductConnection!
   collection(id: ID!): Collection
   collectionByHandle(handle: String!): Collection
   collections(first: Int, after: String, last: Int, before: String): CollectionConnection!

@@ -19,44 +19,6 @@ enum FacetSelectionMode {
   MULTI
 }
 
-type PriceRange {
-  minMinor: BigInt!
-  maxMinor: BigInt!
-}
-
-input FacetRangeFilterInput {
-  facetSlug: String!
-  min: BigInt
-  max: BigInt
-}
-
-type Facets {
-  priceRange: PriceRange
-  groups: [FacetResultGroup!]!
-}
-
-type FacetResultGroup {
-  name: String
-  facets: [FacetResult!]!
-}
-
-type FacetResult {
-  facetType: FacetType!
-  slug: String!
-  label: String!
-  uiType: FacetUIType!
-  selectionMode: FacetSelectionMode!
-  values: [FacetResultValue!]!
-  totalCount: Int!
-}
-
-type FacetResultValue {
-  slug: String!
-  label: String
-  count: Int!
-  swatch: FacetSwatch
-}
-
 type FacetGroup implements Node {
   id: ID!
   name: String!

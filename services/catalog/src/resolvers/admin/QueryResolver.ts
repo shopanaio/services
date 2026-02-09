@@ -196,8 +196,6 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
     return new CategoryConnectionResolver(args, this.$ctx);
   }
 
-  // TODO: Implement categoryProducts() with keyset pagination
-
   async facetGroup(args: { id: string }) {
     const id = safeDecodeGlobalId(args.id, GlobalIdEntity.FacetGroup);
     if (!id) return null;

@@ -146,6 +146,4 @@ export class CategoryResolver extends CatalogType<string, Category> {
   }
 
   // TODO: Implement products() with keyset pagination
-
-  // TODO: Implement categoryProducts() with keyset pagination
 }

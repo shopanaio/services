@@ -81,18 +81,6 @@ export interface CategoryMoveResult {
 
 // ============ Listing ============
 
-export interface ProductFiltersInput {
-  facets?: string[];
-  ranges?: Array<{
-    facetSlug: string;
-    min?: number;
-    max?: number;
-  }>;
-  priceMinMinor?: number;
-  priceMaxMinor?: number;
-  inStock?: boolean;
-}
-
 export interface ProductSortInput {
   by: ProductSortBy;
   direction?: SortDirection;
@@ -103,7 +91,6 @@ export interface CategoryProductsQueryParams {
   locale: string;
   first?: number;
   after?: string;
-  filters?: ProductFiltersInput;
   sort?: ProductSortInput;
 }
 
@@ -116,7 +103,6 @@ export interface CategoryProductsQueryResult {
     endCursor: string | null;
   };
   totalCount: number;
-  facets: Record<string, unknown> | null;
 }
 
 export interface CategoryMoveProductParams {

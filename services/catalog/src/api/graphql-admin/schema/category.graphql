@@ -64,15 +64,6 @@ type Category implements Node @key(fields: "id") {
     after: String
     last: Int
     before: String
-  ): ProductConnection!
-
-  """Category products with sorting, filtering, and pagination."""
-  categoryProducts(
-    first: Int
-    after: String
-    last: Int
-    before: String
-    filters: ProductFiltersInput
     sort: ProductSortInput
   ): CategoryProductConnection!
 
@@ -120,7 +111,6 @@ type CategoryProductConnection {
   edges: [CategoryProductEdge!]!
   pageInfo: PageInfo!
   totalCount: Int!
-  facets: Facets
 }
 
 type CategoryProductEdge {
