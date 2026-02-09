@@ -53,6 +53,4 @@ export class TagResolver extends CatalogType<string, Tag> {
   async productsCount(): Promise<number> {
     return this.$ctx.loaders.tagProductsCount.load(this.$props);
   }
-
-  // TODO: Implement products() with keyset pagination
 }
