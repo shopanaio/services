@@ -14,12 +14,115 @@ user-invocable: false
 - Design API contracts (GraphQL schema structure)
 - Create implementation plans for Developer
 - Answer design questions during implementation
+- **Document task strategy and track problem-solution pairs**
 
 **Does NOT:**
 - Write implementation code
 - Run tests
 - Manage infrastructure
 - Make arbitrary changes to the plan mid-implementation
+
+---
+
+## Session Documentation Protocol
+
+**CRITICAL:** Before starting ANY task, create a session folder to track the work.
+
+### Step 0: Create Session Folder
+
+When receiving a new task, IMMEDIATELY:
+
+```bash
+# Create session folder with task name and date
+mkdir -p /Users/phl/Projects/shopana-io/services/.ai-team-sessions/{YYYY-MM-DD}-{task-slug}
+```
+
+**Naming convention:**
+- Date format: `YYYY-MM-DD` (e.g., `2026-02-09`)
+- Task slug: lowercase, hyphens, max 40 chars (e.g., `add-product-variants`, `fix-auth-flow`)
+- Example: `.ai-team-sessions/2026-02-09-add-product-variants/`
+
+### Session Files
+
+Create TWO files in the session folder:
+
+#### 1. TASK.md — Strategy & Plan
+
+Write this file AFTER Step 4 (Create Implementation Plan):
+
+```markdown
+# Task: {Feature Name}
+
+**Date:** {YYYY-MM-DD}
+**Service:** {service-name}
+**Pattern:** {Script | Saga}
+
+## Summary
+
+{1-2 sentence description of what we're building}
+
+## Design Decisions
+
+| Decision | Choice | Reason |
+|----------|--------|--------|
+| Service | {name} | {why} |
+| Pattern | {type} | {why} |
+| Auth | {resource:action} | {why} |
+
+## Implementation Steps
+
+1. [ ] {step 1}
+2. [ ] {step 2}
+...
+
+## References
+
+- Similar: `{path/to/similar/file}`
+- Pattern: `{path/to/reference}`
+
+## Edge Cases
+
+- {case}: {handling}
+```
+
+#### 2. EXECUTION.md — Problems & Solutions Log
+
+Update this file DURING implementation when answering Developer questions:
+
+```markdown
+# Execution Log: {Feature Name}
+
+## Problems & Solutions
+
+### Problem 1: {short title}
+**Context:** {what Developer was trying to do}
+**Issue:** {what went wrong or was unclear}
+**Solution:** {what we decided}
+**Reference:** `{path/to/code}` (if applicable)
+
+---
+
+### Problem 2: {short title}
+...
+```
+
+**Rules for EXECUTION.md:**
+- Add entry for EACH design question answered
+- Keep descriptions SHORT (1-2 lines each)
+- Include file paths when referencing code
+- Update in real-time, not at the end
+
+### When to Update Files
+
+| Event | Action |
+|-------|--------|
+| Task received | Create folder + start TASK.md |
+| Plan ready | Complete TASK.md |
+| Design question asked | Add to EXECUTION.md |
+| Unexpected issue found | Add to EXECUTION.md |
+| Task complete | Final update to both files |
+
+---
 
 ## Input Format
 
@@ -31,6 +134,21 @@ CONTEXT: {optional additional context}
 ```
 
 ## Analysis Protocol
+
+### Step 0: Initialize Session
+
+**FIRST ACTION** — Create session folder before any analysis:
+
+```bash
+mkdir -p /Users/phl/Projects/shopana-io/services/.ai-team-sessions/{YYYY-MM-DD}-{task-slug}
+```
+
+Then create empty EXECUTION.md:
+
+```bash
+# Create EXECUTION.md with header
+echo "# Execution Log: {Feature Name}\n\n## Problems & Solutions\n" > .ai-team-sessions/{date}-{slug}/EXECUTION.md
+```
 
 ### Step 1: Understand Requirements
 
@@ -221,6 +339,7 @@ CONTEXT: {what they're implementing}
 2. **Check codebase** — How do similar cases handle this?
 3. **Make decision** — Choose the best approach
 4. **Provide reasoning** — Explain why
+5. **Log to EXECUTION.md** — Add problem-solution entry
 
 ### Response Format
 
@@ -236,6 +355,20 @@ REASONING: {why this approach}
 REFERENCE: {path to similar code if helpful}
 
 IMPLEMENTATION HINT: {specific guidance for Developer}
+```
+
+### Log to EXECUTION.md
+
+**IMMEDIATELY after answering**, append to EXECUTION.md:
+
+```markdown
+### Problem: {short title from question}
+**Context:** {what Developer was implementing}
+**Issue:** {the question/problem}
+**Solution:** {your decision}
+**Reference:** `{path}` (if any)
+
+---
 ```
 
 ### Common Questions & Guidelines
@@ -293,6 +426,9 @@ IMPLEMENTATION HINT: {specific guidance for Developer}
 
 Before outputting `PLAN READY`, verify:
 
+- [ ] **Session folder created** in `.ai-team-sessions/{date}-{slug}/`
+- [ ] **TASK.md written** with strategy and plan
+- [ ] **EXECUTION.md initialized** for problem tracking
 - [ ] Service ownership is clear
 - [ ] Pattern choice is justified
 - [ ] All files to create/modify are listed

@@ -177,6 +177,45 @@ export class CollectionResolver extends CatalogType<string, Collection> {
   }
 
   async products(args: CollectionProductsArgs) {
+    const collection = await this.$preload();
+
+    // For manual collections in admin API, query directly from collection_item
+    // This bypasses the publishedAt check which is only relevant for storefront
+    if (collection.type === "manual") {
+      const items = await this.$ctx.kernel.getServices().repository.collectionItem.findByCollectionId(this.$props);
+      const first = Math.min(args.first ?? 20, 100);
+
+      let filtered = items;
+      if (args.after) {
+        const afterId = Buffer.from(args.after, "base64").toString("utf8");
+        const afterIndex = filtered.findIndex((item) => item.productId === afterId);
+        if (afterIndex >= 0) {
+          filtered = filtered.slice(afterIndex + 1);
+        }
+      }
+
+      const totalCount = filtered.length;
+      const pageItems = filtered.slice(0, first + 1);
+      const hasNextPage = pageItems.length > first;
+      const visible = hasNextPage ? pageItems.slice(0, first) : pageItems;
+
+      return {
+        edges: visible.map((item) => ({
+          cursor: Buffer.from(item.productId).toString("base64"),
+          node: new ProductResolver(item.productId, this.$ctx),
+        })),
+        pageInfo: {
+          hasNextPage,
+          hasPreviousPage: Boolean(args.after),
+          startCursor: visible[0] ? Buffer.from(visible[0].productId).toString("base64") : null,
+          endCursor: visible.length > 0 ? Buffer.from(visible[visible.length - 1].productId).toString("base64") : null,
+        },
+        totalCount,
+        facets: null,
+      };
+    }
+
+    // For rule collections, use the full query script
     const { priceMinMinor, priceMaxMinor } = resolvePriceBounds(args.filters);
     const result = await this.$ctx.kernel.runScript(QueryCollectionProductsScript, {
       collectionId: this.$props,
@@ -226,6 +265,12 @@ export class CollectionResolver extends CatalogType<string, Collection> {
   }
 
   async productsCount() {
+    const collection = await this.$preload();
+    // For manual collections, count directly from collection_item (bypasses publishedAt check)
+    if (collection.type === "manual") {
+      return this.$ctx.kernel.getServices().repository.collectionItem.countByCollectionId(this.$props);
+    }
+    // For rule collections, use the full query script
     const result = await this.$ctx.kernel.runScript(QueryCollectionProductsScript, {
       collectionId: this.$props,
       locale: this.$ctx.locale ?? "uk",

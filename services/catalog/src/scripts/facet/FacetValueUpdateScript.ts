@@ -37,12 +37,13 @@ export class FacetValueUpdateScript extends BaseScript<
       };
     }
 
-    if (params.sourceHandles === undefined || params.sourceHandles.length === 0) {
+    // Only validate sourceHandles if explicitly provided and empty
+    if (params.sourceHandles !== undefined && params.sourceHandles.length === 0) {
       return {
         facetValue: undefined,
         userErrors: [
           {
-            message: "sourceHandles are required for TAG/FEATURE/OPTION facet values",
+            message: "sourceHandles cannot be empty for TAG/FEATURE/OPTION facet values",
             field: ["sourceHandles"],
             code: "INVALID",
           },

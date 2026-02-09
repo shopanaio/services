@@ -43,6 +43,13 @@ export class FacetValueCreateScript extends BaseScript<
       };
     }
 
+    if (!params.label || params.label.trim() === "") {
+      return {
+        facetValue: undefined,
+        userErrors: [{ message: "Label is required", field: ["input", "label"], code: "REQUIRED" }],
+      };
+    }
+
     if (!isValidSlug(params.slug)) {
       return {
         facetValue: undefined,

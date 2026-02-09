@@ -7,7 +7,7 @@ mutation CollectionMoveProduct($input: CollectionMoveProductInput!) {
         type
         name
         productsCount
-        products(first: 20, sort: { by: MANUAL, direction: ASC }) {
+        products(first: 20, sort: { by: MANUAL, direction: asc }) {
           edges {
             node {
               id

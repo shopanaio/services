@@ -1,5 +1,6 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
+import { encodeGlobalId } from '@utils/globalid';
 
 test.describe('Product Options Sync API', () => {
   test.beforeEach(async ({ api }) => {
@@ -608,7 +609,7 @@ test.describe('Product Options Sync API', () => {
         product.id,
         [
           {
-            id: '00000000-0000-0000-0000-000000000000', // Non-existent ID
+            id: encodeGlobalId('Option', '00000000-0000-0000-0000-000000000000'), // Non-existent ID
             index: 0,
             slug: 'size',
             name: 'Size',

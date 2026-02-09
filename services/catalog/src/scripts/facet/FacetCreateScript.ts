@@ -20,6 +20,13 @@ export class FacetCreateScript extends BaseScript<FacetCreateParams, FacetResult
       };
     }
 
+    if (!params.label || params.label.trim() === "") {
+      return {
+        facet: undefined,
+        userErrors: [{ message: "Label is required", field: ["input", "label"], code: "REQUIRED" }],
+      };
+    }
+
     if (!isValidSlug(params.slug)) {
       return {
         facet: undefined,

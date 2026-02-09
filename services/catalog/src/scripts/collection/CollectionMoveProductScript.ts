@@ -48,7 +48,36 @@ export class CollectionMoveProductScript extends BaseScript<
       };
     }
 
-    let newRank = midpointRank(afterItem?.lexoRank ?? null, beforeItem?.lexoRank ?? null);
+    // Validate reference products exist in collection
+    if (params.afterProductId && !afterItem) {
+      return {
+        collection: undefined,
+        userErrors: [{ message: "Reference product not in collection", field: ["afterProductId"], code: "NOT_FOUND" }],
+      };
+    }
+    if (params.beforeProductId && !beforeItem) {
+      return {
+        collection: undefined,
+        userErrors: [{ message: "Reference product not in collection", field: ["beforeProductId"], code: "NOT_FOUND" }],
+      };
+    }
+
+    // If only afterProductId is provided, find the next item to use as upper bound
+    // This ensures the moved item is placed immediately after afterItem
+    let effectiveBeforeItem = beforeItem;
+    if (afterItem && !beforeItem) {
+      const allItems = await this.repository.collectionItem.findByCollectionId(params.collectionId);
+      const afterIndex = allItems.findIndex((item) => item.productId === params.afterProductId);
+      if (afterIndex >= 0 && afterIndex + 1 < allItems.length) {
+        const nextItem = allItems[afterIndex + 1];
+        // Don't use the target item as the upper bound
+        if (nextItem.productId !== params.productId) {
+          effectiveBeforeItem = nextItem;
+        }
+      }
+    }
+
+    let newRank = midpointRank(afterItem?.lexoRank ?? null, effectiveBeforeItem?.lexoRank ?? null);
     if (!newRank) {
       await this.repository.collectionItem.rebalance(params.collectionId);
       const [afterRebalanced, beforeRebalanced] = await Promise.all([

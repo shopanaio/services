@@ -1,10 +1,25 @@
 import {
   decodeGlobalIdByType,
   GlobalIdEntity,
+  type GlobalIdType,
 } from "@shopana/shared-graphql-guid";
 import { ApolloMutation, ZodResolver } from "@shopana/type-resolver";
 import { CatalogType } from "./CatalogType.js";
 import { ProductResolver } from "./ProductResolver.js";
+
+/**
+ * Safely decode a global ID, returning null if invalid
+ */
+function safeDecodeGlobalId(
+  globalId: string,
+  expectedType: GlobalIdType
+): string | null {
+  try {
+    return decodeGlobalIdByType(globalId, expectedType);
+  } catch {
+    return null;
+  }
+}
 import { VariantResolver } from "./VariantResolver.js";
 import { OptionResolver } from "./OptionResolver.js";
 import { FeatureResolver } from "./FeatureResolver.js";
@@ -550,8 +565,10 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       };
     }
 
+    const productId = decodeGlobalIdByType(input.productId, GlobalIdEntity.Product);
+
     const result = await this.$ctx.kernel.runScript(OptionCreateScript, {
-      productId: input.productId,
+      productId,
       slug: input.slug,
       name: input.name,
       displayType: input.displayType,
@@ -660,16 +677,35 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   async productOptionsSync(args: { input: ProductOptionsSyncInput }) {
     const { input } = args;
 
+    const productId = safeDecodeGlobalId(input.productId, GlobalIdEntity.Product);
+    if (!productId) {
+      return {
+        product: null,
+        options: [],
+        userErrors: [
+          {
+            message: "Invalid product ID format",
+            field: ["productId"],
+            code: "VALIDATION_ERROR",
+          },
+        ],
+      };
+    }
+
     const result = await this.$ctx.kernel.runScript(OptionsSyncScript, {
-      productId: input.productId,
+      productId,
       options: input.options.map((option) => ({
-        id: option.id ?? undefined,
+        id: option.id
+          ? decodeGlobalIdByType(option.id, GlobalIdEntity.Option)
+          : undefined,
         index: option.index,
         slug: option.slug,
         name: option.name,
         displayType: option.displayType,
         values: option.values.map((value) => ({
-          id: value.id ?? undefined,
+          id: value.id
+            ? decodeGlobalIdByType(value.id, GlobalIdEntity.OptionValue)
+            : undefined,
           index: value.index,
           slug: value.slug,
           name: value.name,
@@ -678,7 +714,9 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
                 swatchType: value.swatch.swatchType,
                 colorOne: value.swatch.colorOne ?? undefined,
                 colorTwo: value.swatch.colorTwo ?? undefined,
-                fileId: value.swatch.fileId ?? undefined,
+                fileId: value.swatch.fileId
+                  ? decodeGlobalIdByType(value.swatch.fileId, GlobalIdEntity.File)
+                  : undefined,
                 metadata: value.swatch.metadata,
               }
             : value.swatch,
@@ -706,8 +744,10 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   async productFeatureCreate(args: { input: ProductFeatureCreateInput }) {
     const { input } = args;
 
+    const productId = decodeGlobalIdByType(input.productId, GlobalIdEntity.Product);
+
     const result = await this.$ctx.kernel.runScript(FeatureCreateScript, {
-      productId: input.productId,
+      productId,
       slug: input.slug,
       name: input.name,
       values: input.values.map((v) => ({
@@ -783,16 +823,35 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   async productFeaturesSync(args: { input: ProductFeaturesSyncInput }) {
     const { input } = args;
 
+    const productId = safeDecodeGlobalId(input.productId, GlobalIdEntity.Product);
+    if (!productId) {
+      return {
+        product: null,
+        features: [],
+        userErrors: [
+          {
+            message: "Invalid product ID format",
+            field: ["productId"],
+            code: "VALIDATION_ERROR",
+          },
+        ],
+      };
+    }
+
     const result = await this.$ctx.kernel.runScript(FeaturesSyncScript, {
-      productId: input.productId,
+      productId,
       features: input.features.map((feature) => ({
-        id: feature.id ?? undefined,
+        id: feature.id
+          ? decodeGlobalIdByType(feature.id, GlobalIdEntity.Feature)
+          : undefined,
         index: feature.index,
         slug: feature.slug,
         isGroup: feature.isGroup,
         name: feature.name,
         values: feature.values?.map((value) => ({
-          id: value.id ?? undefined,
+          id: value.id
+            ? decodeGlobalIdByType(value.id, GlobalIdEntity.FeatureValue)
+            : undefined,
           index: value.index,
           slug: value.slug,
           name: value.name,
@@ -999,14 +1058,25 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     };
   }) {
     const { input } = args;
-    const categoryId = decodeGlobalIdByType(input.categoryId, GlobalIdEntity.Category);
-    const productId = decodeGlobalIdByType(input.productId, GlobalIdEntity.Product);
-    const afterProductId = input.afterProductId
-      ? decodeGlobalIdByType(input.afterProductId, GlobalIdEntity.Product)
-      : undefined;
-    const beforeProductId = input.beforeProductId
-      ? decodeGlobalIdByType(input.beforeProductId, GlobalIdEntity.Product)
-      : undefined;
+    let categoryId: string;
+    let productId: string;
+    let afterProductId: string | undefined;
+    let beforeProductId: string | undefined;
+    try {
+      categoryId = decodeGlobalIdByType(input.categoryId, GlobalIdEntity.Category);
+      productId = decodeGlobalIdByType(input.productId, GlobalIdEntity.Product);
+      afterProductId = input.afterProductId
+        ? decodeGlobalIdByType(input.afterProductId, GlobalIdEntity.Product)
+        : undefined;
+      beforeProductId = input.beforeProductId
+        ? decodeGlobalIdByType(input.beforeProductId, GlobalIdEntity.Product)
+        : undefined;
+    } catch {
+      return {
+        category: null,
+        userErrors: [{ message: "Invalid ID format", code: "INVALID_ID" }],
+      };
+    }
 
     const result = await this.$ctx.kernel.runScript(CategoryMoveProductScript, {
       categoryId,
@@ -1024,10 +1094,18 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   }
 
   async categoryRebalance(args: { input: { categoryId: string } }) {
-    const categoryId = decodeGlobalIdByType(
-      args.input.categoryId,
-      GlobalIdEntity.Category
-    );
+    let categoryId: string;
+    try {
+      categoryId = decodeGlobalIdByType(
+        args.input.categoryId,
+        GlobalIdEntity.Category
+      );
+    } catch {
+      return {
+        category: null,
+        userErrors: [{ message: "Invalid ID format", code: "INVALID_ID" }],
+      };
+    }
     const result = await this.$ctx.kernel.runScript(CategoryRebalanceScript, {
       categoryId,
     });
@@ -1047,7 +1125,15 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       defaultSortDirection: "asc" | "desc";
     };
   }) {
-    const id = decodeGlobalIdByType(args.input.id, GlobalIdEntity.Category);
+    let id: string;
+    try {
+      id = decodeGlobalIdByType(args.input.id, GlobalIdEntity.Category);
+    } catch {
+      return {
+        category: null,
+        userErrors: [{ message: "Invalid ID format", code: "INVALID_ID" }],
+      };
+    }
     const result = await this.$ctx.kernel.runScript(CategoryUpdateSortScript, {
       id,
       defaultSort: args.input.defaultSort.toLowerCase() as
@@ -1115,8 +1201,15 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       sortIndex?: number | null;
     };
   }) {
+    const id = safeDecodeGlobalId(args.input.id, GlobalIdEntity.FacetGroup);
+    if (!id) {
+      return {
+        facetGroup: null,
+        userErrors: [{ message: "Invalid facet group ID", field: ["input", "id"], code: "INVALID_ID" }],
+      };
+    }
     const result = await this.$ctx.kernel.runScript(FacetGroupUpdateScript, {
-      id: args.input.id,
+      id,
       name: args.input.name ?? undefined,
       collapsed: args.input.collapsed ?? undefined,
       sortIndex: args.input.sortIndex ?? undefined,
@@ -1131,11 +1224,20 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   }
 
   async facetGroupDelete(args: { input: { id: string } }) {
+    const id = safeDecodeGlobalId(args.input.id, GlobalIdEntity.FacetGroup);
+    if (!id) {
+      return {
+        deletedFacetGroupId: null,
+        userErrors: [{ message: "Invalid facet group ID", field: ["input", "id"], code: "INVALID_ID" }],
+      };
+    }
     const result = await this.$ctx.kernel.runScript(FacetGroupDeleteScript, {
-      id: args.input.id,
+      id,
     });
     return {
-      deletedFacetGroupId: result.deletedFacetGroupId ?? null,
+      deletedFacetGroupId: result.deletedFacetGroupId
+        ? args.input.id
+        : null,
       userErrors: result.userErrors,
     };
   }
@@ -1151,13 +1253,16 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       sortIndex?: number | null;
     };
   }) {
+    const groupId = args.input.groupId
+      ? safeDecodeGlobalId(args.input.groupId, GlobalIdEntity.FacetGroup)
+      : undefined;
     const result = await this.$ctx.kernel.runScript(FacetCreateScript, {
       facetType: args.input.facetType.toLowerCase(),
       slug: args.input.slug,
       label: args.input.label,
       uiType: args.input.uiType?.toLowerCase(),
       selectionMode: args.input.selectionMode?.toLowerCase(),
-      groupId: args.input.groupId ?? undefined,
+      groupId,
       sortIndex: args.input.sortIndex ?? undefined,
     });
 
@@ -1182,13 +1287,25 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       indexable?: boolean | null;
     };
   }) {
+    const id = safeDecodeGlobalId(args.input.id, GlobalIdEntity.Facet);
+    if (!id) {
+      return {
+        facet: null,
+        userErrors: [{ message: "Invalid facet ID", field: ["input", "id"], code: "INVALID_ID" }],
+      };
+    }
+    const groupId = args.input.groupId
+      ? safeDecodeGlobalId(args.input.groupId, GlobalIdEntity.FacetGroup)
+      : args.input.groupId === null
+        ? null
+        : undefined;
     const result = await this.$ctx.kernel.runScript(FacetUpdateScript, {
-      id: args.input.id,
+      id,
       slug: args.input.slug ?? undefined,
       label: args.input.label ?? undefined,
       uiType: args.input.uiType?.toLowerCase(),
       selectionMode: args.input.selectionMode?.toLowerCase(),
-      groupId: args.input.groupId,
+      groupId,
       sortIndex: args.input.sortIndex ?? undefined,
       minValues: args.input.minValues ?? undefined,
       maxValuesVisible: args.input.maxValuesVisible ?? undefined,
@@ -1203,12 +1320,19 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   }
 
   async facetDelete(args: { input: { id: string } }) {
+    const id = safeDecodeGlobalId(args.input.id, GlobalIdEntity.Facet);
+    if (!id) {
+      return {
+        deletedFacetId: null,
+        userErrors: [{ message: "Invalid facet ID", field: ["input", "id"], code: "INVALID_ID" }],
+      };
+    }
     const result = await this.$ctx.kernel.runScript(FacetDeleteScript, {
-      id: args.input.id,
+      id,
     });
 
     return {
-      deletedFacetId: result.deletedFacetId ?? null,
+      deletedFacetId: result.deletedFacetId ? args.input.id : null,
       userErrors: result.userErrors,
     };
   }
@@ -1224,12 +1348,22 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       enabled?: boolean | null;
     };
   }) {
+    const facetId = safeDecodeGlobalId(args.input.facetId, GlobalIdEntity.Facet);
+    if (!facetId) {
+      return {
+        facetValue: null,
+        userErrors: [{ message: "Invalid facet ID", field: ["input", "facetId"], code: "INVALID_ID" }],
+      };
+    }
+    const swatchId = args.input.swatchId
+      ? safeDecodeGlobalId(args.input.swatchId, GlobalIdEntity.FacetSwatch)
+      : undefined;
     const result = await this.$ctx.kernel.runScript(FacetValueCreateScript, {
-      facetId: args.input.facetId,
+      facetId,
       slug: args.input.slug,
       label: args.input.label,
       sourceHandles: args.input.sourceHandles ?? undefined,
-      swatchId: args.input.swatchId ?? undefined,
+      swatchId,
       sortIndex: args.input.sortIndex ?? undefined,
       enabled: args.input.enabled ?? undefined,
     });
@@ -1253,12 +1387,24 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       enabled?: boolean | null;
     };
   }) {
+    const id = safeDecodeGlobalId(args.input.id, GlobalIdEntity.FacetValue);
+    if (!id) {
+      return {
+        facetValue: null,
+        userErrors: [{ message: "Invalid facet value ID", field: ["input", "id"], code: "INVALID_ID" }],
+      };
+    }
+    const swatchId = args.input.swatchId
+      ? safeDecodeGlobalId(args.input.swatchId, GlobalIdEntity.FacetSwatch)
+      : args.input.swatchId === null
+        ? null
+        : undefined;
     const result = await this.$ctx.kernel.runScript(FacetValueUpdateScript, {
-      id: args.input.id,
+      id,
       slug: args.input.slug ?? undefined,
       label: args.input.label ?? undefined,
       sourceHandles: args.input.sourceHandles ?? undefined,
-      swatchId: args.input.swatchId ?? undefined,
+      swatchId,
       sortIndex: args.input.sortIndex ?? undefined,
       enabled: args.input.enabled ?? undefined,
     });
@@ -1272,11 +1418,18 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   }
 
   async facetValueDelete(args: { input: { id: string } }) {
+    const id = safeDecodeGlobalId(args.input.id, GlobalIdEntity.FacetValue);
+    if (!id) {
+      return {
+        deletedFacetValueId: null,
+        userErrors: [{ message: "Invalid facet value ID", field: ["input", "id"], code: "INVALID_ID" }],
+      };
+    }
     const result = await this.$ctx.kernel.runScript(FacetValueDeleteScript, {
-      id: args.input.id,
+      id,
     });
     return {
-      deletedFacetValueId: result.deletedFacetValueId ?? null,
+      deletedFacetValueId: result.deletedFacetValueId ? args.input.id : null,
       userErrors: result.userErrors,
     };
   }
@@ -1317,13 +1470,20 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       metadata?: unknown;
     };
   }) {
+    const id = safeDecodeGlobalId(args.input.id, GlobalIdEntity.FacetSwatch);
+    if (!id) {
+      return {
+        facetSwatch: null,
+        userErrors: [{ message: "Invalid facet swatch ID", field: ["input", "id"], code: "INVALID_ID" }],
+      };
+    }
     const result = await this.$ctx.kernel.runScript(FacetSwatchUpdateScript, {
-      id: args.input.id,
+      id,
       swatchType: args.input.swatchType?.toLowerCase(),
       colorOne: args.input.colorOne ?? undefined,
       colorTwo: args.input.colorTwo ?? undefined,
       fileId: args.input.fileId
-        ? decodeGlobalIdByType(args.input.fileId, GlobalIdEntity.File)
+        ? safeDecodeGlobalId(args.input.fileId, GlobalIdEntity.File)
         : undefined,
       metadata: args.input.metadata,
     });
@@ -1336,11 +1496,18 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   }
 
   async facetSwatchDelete(args: { input: { id: string } }) {
+    const id = safeDecodeGlobalId(args.input.id, GlobalIdEntity.FacetSwatch);
+    if (!id) {
+      return {
+        deletedFacetSwatchId: null,
+        userErrors: [{ message: "Invalid facet swatch ID", field: ["input", "id"], code: "INVALID_ID" }],
+      };
+    }
     const result = await this.$ctx.kernel.runScript(FacetSwatchDeleteScript, {
-      id: args.input.id,
+      id,
     });
     return {
-      deletedFacetSwatchId: result.deletedFacetSwatchId ?? null,
+      deletedFacetSwatchId: result.deletedFacetSwatchId ? args.input.id : null,
       userErrors: result.userErrors,
     };
   }
@@ -1436,14 +1603,21 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       publish?: boolean | null;
     };
   }) {
+    const id = safeDecodeGlobalId(args.input.id, GlobalIdEntity.Collection);
+    if (!id) {
+      return {
+        collection: null,
+        userErrors: [{ message: "Invalid collection ID", field: ["input", "id"], code: "INVALID_ID" }],
+      };
+    }
     const mediaFileIds = args.input.media
       ? args.input.media.map((item) =>
-          decodeGlobalIdByType(item.fileId, GlobalIdEntity.File)
-        )
+          safeDecodeGlobalId(item.fileId, GlobalIdEntity.File)
+        ).filter((id): id is string => id !== null)
       : undefined;
 
     const result = await this.$ctx.kernel.runScript(CollectionUpdateScript, {
-      id: args.input.id,
+      id,
       handle: args.input.handle ?? undefined,
       name: args.input.name ?? undefined,
       description:
@@ -1495,11 +1669,18 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   }
 
   async collectionDelete(args: { input: { id: string } }) {
+    const id = safeDecodeGlobalId(args.input.id, GlobalIdEntity.Collection);
+    if (!id) {
+      return {
+        deletedCollectionId: null,
+        userErrors: [{ message: "Invalid collection ID", field: ["input", "id"], code: "INVALID_ID" }],
+      };
+    }
     const result = await this.$ctx.kernel.runScript(CollectionDeleteScript, {
-      id: args.input.id,
+      id,
     });
     return {
-      deletedCollectionId: result.deletedCollectionId ?? null,
+      deletedCollectionId: result.deletedCollectionId ? args.input.id : null,
       userErrors: result.userErrors,
     };
   }
@@ -1507,11 +1688,22 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   async collectionAddProducts(args: {
     input: { collectionId: string; productIds: string[] };
   }) {
-    const result = await this.$ctx.kernel.runScript(CollectionAddProductsScript, {
-      collectionId: args.input.collectionId,
-      productIds: args.input.productIds.map((id) =>
+    let collectionId: string;
+    let productIds: string[];
+    try {
+      collectionId = decodeGlobalIdByType(args.input.collectionId, GlobalIdEntity.Collection);
+      productIds = args.input.productIds.map((id) =>
         decodeGlobalIdByType(id, GlobalIdEntity.Product)
-      ),
+      );
+    } catch {
+      return {
+        collection: null,
+        userErrors: [{ message: "Invalid ID format", code: "INVALID_ID" }],
+      };
+    }
+    const result = await this.$ctx.kernel.runScript(CollectionAddProductsScript, {
+      collectionId,
+      productIds,
     });
     return {
       collection: result.collection
@@ -1524,11 +1716,22 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   async collectionRemoveProducts(args: {
     input: { collectionId: string; productIds: string[] };
   }) {
-    const result = await this.$ctx.kernel.runScript(CollectionRemoveProductsScript, {
-      collectionId: args.input.collectionId,
-      productIds: args.input.productIds.map((id) =>
+    let collectionId: string;
+    let productIds: string[];
+    try {
+      collectionId = decodeGlobalIdByType(args.input.collectionId, GlobalIdEntity.Collection);
+      productIds = args.input.productIds.map((id) =>
         decodeGlobalIdByType(id, GlobalIdEntity.Product)
-      ),
+      );
+    } catch {
+      return {
+        collection: null,
+        userErrors: [{ message: "Invalid ID format", code: "INVALID_ID" }],
+      };
+    }
+    const result = await this.$ctx.kernel.runScript(CollectionRemoveProductsScript, {
+      collectionId,
+      productIds,
     });
     return {
       collection: result.collection
@@ -1546,15 +1749,30 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       beforeProductId?: string | null;
     };
   }) {
-    const result = await this.$ctx.kernel.runScript(CollectionMoveProductScript, {
-      collectionId: args.input.collectionId,
-      productId: decodeGlobalIdByType(args.input.productId, GlobalIdEntity.Product),
-      afterProductId: args.input.afterProductId
+    let collectionId: string;
+    let productId: string;
+    let afterProductId: string | undefined;
+    let beforeProductId: string | undefined;
+    try {
+      collectionId = decodeGlobalIdByType(args.input.collectionId, GlobalIdEntity.Collection);
+      productId = decodeGlobalIdByType(args.input.productId, GlobalIdEntity.Product);
+      afterProductId = args.input.afterProductId
         ? decodeGlobalIdByType(args.input.afterProductId, GlobalIdEntity.Product)
-        : undefined,
-      beforeProductId: args.input.beforeProductId
+        : undefined;
+      beforeProductId = args.input.beforeProductId
         ? decodeGlobalIdByType(args.input.beforeProductId, GlobalIdEntity.Product)
-        : undefined,
+        : undefined;
+    } catch {
+      return {
+        collection: null,
+        userErrors: [{ message: "Invalid ID format", code: "INVALID_ID" }],
+      };
+    }
+    const result = await this.$ctx.kernel.runScript(CollectionMoveProductScript, {
+      collectionId,
+      productId,
+      afterProductId,
+      beforeProductId,
     });
     return {
       collection: result.collection
@@ -1571,7 +1789,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     };
   }) {
     const result = await this.$ctx.kernel.runScript(CollectionUpdateRulesScript, {
-      collectionId: args.input.collectionId,
+      collectionId: decodeGlobalIdByType(args.input.collectionId, GlobalIdEntity.Collection),
       rules: args.input.rules,
     });
     return {

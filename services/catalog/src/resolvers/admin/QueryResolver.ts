@@ -1,6 +1,25 @@
+import {
+  decodeGlobalIdByType,
+  GlobalIdEntity,
+  type GlobalIdType,
+} from "@shopana/shared-graphql-guid";
 import { ApolloQuery } from "@shopana/type-resolver";
 import { CatalogType } from "./CatalogType.js";
 import { ProductResolver } from "./ProductResolver.js";
+
+/**
+ * Safely decode a global ID, returning null if invalid
+ */
+function safeDecodeGlobalId(
+  globalId: string,
+  expectedType: GlobalIdType
+): string | null {
+  try {
+    return decodeGlobalIdByType(globalId, expectedType);
+  } catch {
+    return null;
+  }
+}
 import {
   ProductConnectionResolver,
   type ProductConnectionInput,
@@ -284,7 +303,9 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
   }
 
   async facetGroup(args: { id: string }) {
-    const group = await this.$ctx.kernel.repository.facetGroup.findById(args.id);
+    const id = safeDecodeGlobalId(args.id, GlobalIdEntity.FacetGroup);
+    if (!id) return null;
+    const group = await this.$ctx.kernel.repository.facetGroup.findById(id);
     if (!group) return null;
     return new FacetGroupResolver(group.id, this.$ctx);
   }
@@ -295,7 +316,9 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
   }
 
   async facet(args: { id: string }) {
-    const item = await this.$ctx.kernel.repository.facet.findById(args.id);
+    const id = safeDecodeGlobalId(args.id, GlobalIdEntity.Facet);
+    if (!id) return null;
+    const item = await this.$ctx.kernel.repository.facet.findById(id);
     if (!item) return null;
     return new FacetResolver(item.id, this.$ctx);
   }
@@ -306,20 +329,26 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
   }
 
   async facetValue(args: { id: string }) {
-    const item = await this.$ctx.kernel.repository.facetValue.findById(args.id);
+    const id = safeDecodeGlobalId(args.id, GlobalIdEntity.FacetValue);
+    if (!id) return null;
+    const item = await this.$ctx.kernel.repository.facetValue.findById(id);
     if (!item) return null;
     return new FacetValueResolver(item.id, this.$ctx);
   }
 
   async facetValues(args: { facetId: string }) {
+    const facetId = safeDecodeGlobalId(args.facetId, GlobalIdEntity.Facet);
+    if (!facetId) return [];
     const values = await this.$ctx.kernel.repository.facetValue.findByFacetId(
-      args.facetId
+      facetId
     );
     return values.map((item) => new FacetValueResolver(item.id, this.$ctx));
   }
 
   async facetSwatch(args: { id: string }) {
-    const item = await this.$ctx.kernel.repository.facetSwatch.findById(args.id);
+    const id = safeDecodeGlobalId(args.id, GlobalIdEntity.FacetSwatch);
+    if (!id) return null;
+    const item = await this.$ctx.kernel.repository.facetSwatch.findById(id);
     if (!item) return null;
     return new FacetSwatchResolver(item.id, this.$ctx);
   }
@@ -330,7 +359,9 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
   }
 
   async collection(args: { id: string }) {
-    const item = await this.$ctx.kernel.repository.collection.findById(args.id);
+    const id = safeDecodeGlobalId(args.id, GlobalIdEntity.Collection);
+    if (!id) return null;
+    const item = await this.$ctx.kernel.repository.collection.findById(id);
     if (!item) return null;
     return new CollectionResolver(item.id, this.$ctx);
   }

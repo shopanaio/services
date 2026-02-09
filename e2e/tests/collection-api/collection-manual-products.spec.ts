@@ -610,7 +610,7 @@ test.describe('Collection Manual Products API', () => {
       variables: {
         id: collection.id,
         first: 10,
-        sort: { by: 'MANUAL', direction: 'ASC' },
+        sort: { by: 'MANUAL', direction: 'asc' },
       },
     });
 

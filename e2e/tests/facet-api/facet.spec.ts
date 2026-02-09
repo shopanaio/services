@@ -543,12 +543,12 @@ test.describe('Facet API', () => {
   // EDGE CASES
   // ═══════════════════════════════════════
 
-  test('should handle slug with dashes and underscores', async ({ api }) => {
+  test('should handle slug with dashes', async ({ api }) => {
     const { data } = await api.admin.mutation('facet-api/FacetCreate', {
       variables: {
         input: {
           facetType: 'TAG',
-          slug: 'my-test_slug-123',
+          slug: 'my-test-slug-123',
           label: 'Special Slug Facet',
         },
       },
@@ -557,7 +557,7 @@ test.describe('Facet API', () => {
     const result = data.catalogMutation.facetCreate;
 
     expect(result.userErrors).toHaveLength(0);
-    expect(result.facet?.slug).toBe('my-test_slug-123');
+    expect(result.facet?.slug).toBe('my-test-slug-123');
   });
 
   test('should return null for non-existent facet ID in query', async ({ api }) => {

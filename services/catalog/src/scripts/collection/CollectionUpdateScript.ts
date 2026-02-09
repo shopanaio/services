@@ -2,6 +2,7 @@ import { BaseScript } from "../../kernel/BaseScript.js";
 import type { CollectionResult, CollectionUpdateParams } from "./dto/index.js";
 
 const ALLOWED_SORTS = new Set(["manual", "price", "newest", "name"]);
+const HANDLE_REGEX = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
 
 export class CollectionUpdateScript extends BaseScript<
   CollectionUpdateParams,
@@ -14,6 +15,25 @@ export class CollectionUpdateScript extends BaseScript<
         collection: undefined,
         userErrors: [{ message: "Collection not found", field: ["id"], code: "NOT_FOUND" }],
       };
+    }
+
+    // Validate handle if provided
+    if (params.handle !== undefined && params.handle !== null) {
+      if (!HANDLE_REGEX.test(params.handle)) {
+        return {
+          collection: undefined,
+          userErrors: [{ message: "Invalid handle format", field: ["input", "handle"], code: "INVALID" }],
+        };
+      }
+      if (params.handle !== existing.handle) {
+        const duplicate = await this.repository.collection.findByHandle(params.handle);
+        if (duplicate) {
+          return {
+            collection: undefined,
+            userErrors: [{ message: "Handle already exists", field: ["input", "handle"], code: "DUPLICATE" }],
+          };
+        }
+      }
     }
 
     if (params.defaultSort && !ALLOWED_SORTS.has(params.defaultSort)) {

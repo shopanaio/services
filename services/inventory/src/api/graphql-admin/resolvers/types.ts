@@ -1,4 +1,5 @@
 import { parseGraphqlInfo } from "@shopana/type-resolver";
+import { decodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { GraphQLResolveInfo } from "graphql";
 import type { Resolvers } from "../../../resolvers/admin/generated/types.js";
 import type { ServiceContext } from "../../../context/types.js";
@@ -38,7 +39,8 @@ export const typeResolvers: Partial<Resolvers> = {
       info: GraphQLResolveInfo,
     ) => {
       const fieldInfo = parseGraphqlInfo(info);
-      return VariantFederationResolver.load(reference.id, fieldInfo, ctx);
+      const variantId = decodeGlobalIdByType(reference.id, GlobalIdEntity.Variant);
+      return VariantFederationResolver.load(variantId, fieldInfo, ctx);
     },
   },
 

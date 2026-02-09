@@ -1,4 +1,3 @@
-import { SubgraphReference } from "@shopana/type-resolver";
 import { InventoryType } from "./InventoryType.js";
 import { InventoryItemResolver } from "./InventoryItemResolver.js";
 import { StockResolver } from "./StockResolver.js";
@@ -20,9 +19,8 @@ import { StockResolver } from "./StockResolver.js";
  * - inStock: Boolean availability check
  * - inventoryItem: The associated InventoryItem entity
  */
-@SubgraphReference()
 export class VariantFederationResolver extends InventoryType<string, Record<string, never>> {
-  // Variant ID passed from federation
+  // Variant ID passed from federation (already decoded in types.ts)
   id() {
     return this.$props;
   }

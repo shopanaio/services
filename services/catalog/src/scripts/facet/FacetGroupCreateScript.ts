@@ -6,8 +6,17 @@ export class FacetGroupCreateScript extends BaseScript<
   FacetGroupResult
 > {
   protected async execute(params: FacetGroupCreateParams): Promise<FacetGroupResult> {
+    if (!params.name || params.name.trim() === "") {
+      return {
+        facetGroup: undefined,
+        userErrors: [
+          { message: "Name is required", field: ["input", "name"], code: "REQUIRED" },
+        ],
+      };
+    }
+
     const facetGroup = await this.repository.facetGroup.create({
-      name: params.name,
+      name: params.name.trim(),
       collapsed: params.collapsed ?? undefined,
       sortIndex: params.sortIndex ?? undefined,
     });

@@ -221,7 +221,7 @@ test.describe('Collection Products Query API', () => {
       variables: {
         id: collection.id,
         first: 10,
-        sort: { by: 'MANUAL', direction: 'ASC' },
+        sort: { by: 'MANUAL', direction: 'asc' },
       },
     });
 
@@ -250,7 +250,7 @@ test.describe('Collection Products Query API', () => {
       variables: {
         id: collection.id,
         first: 10,
-        sort: { by: 'NAME', direction: 'ASC' },
+        sort: { by: 'NAME', direction: 'asc' },
       },
     });
 
@@ -278,7 +278,7 @@ test.describe('Collection Products Query API', () => {
       variables: {
         id: collection.id,
         first: 10,
-        sort: { by: 'NAME', direction: 'DESC' },
+        sort: { by: 'NAME', direction: 'desc' },
       },
     });
 
@@ -307,7 +307,7 @@ test.describe('Collection Products Query API', () => {
       variables: {
         id: collection.id,
         first: 10,
-        sort: { by: 'NEWEST', direction: 'DESC' },
+        sort: { by: 'NEWEST', direction: 'desc' },
       },
     });
 
@@ -340,7 +340,7 @@ test.describe('Collection Products Query API', () => {
       variables: {
         id: collection.id,
         first: 10,
-        sort: { by: 'MANUAL', direction: 'ASC' },
+        sort: { by: 'MANUAL', direction: 'asc' },
       },
     });
 
@@ -621,7 +621,7 @@ test.describe('Collection Products Query API', () => {
     const collection = await api.admin.collection.createManual({
       name: 'Default Sort Collection',
       defaultSort: 'NAME',
-      defaultSortDirection: 'ASC',
+      defaultSortDirection: 'asc',
     });
 
     const productZ = await createProduct(api, { title: 'Zulu Product' });
@@ -666,7 +666,7 @@ test.describe('Collection Products Query API', () => {
       variables: {
         id: collection.id,
         first: 10,
-        sort: { by: 'NAME', direction: 'ASC' },
+        sort: { by: 'NAME', direction: 'asc' },
         filters: { inStock: true },
       },
     });

@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, count, eq, inArray } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   collectionItem,
@@ -19,6 +19,19 @@ export class CollectionItemRepository extends BaseRepository {
         )
       )
       .orderBy(asc(collectionItem.lexoRank), asc(collectionItem.productId));
+  }
+
+  async countByCollectionId(collectionId: string): Promise<number> {
+    const result = await this.connection
+      .select({ count: count() })
+      .from(collectionItem)
+      .where(
+        and(
+          eq(collectionItem.projectId, this.storeId),
+          eq(collectionItem.collectionId, collectionId)
+        )
+      );
+    return result[0]?.count ?? 0;
   }
 
   async findByCollectionAndProduct(

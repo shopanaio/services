@@ -225,46 +225,46 @@ test.describe('FacetValue API', () => {
     expect(result.userErrors.length).toBeGreaterThan(0);
   });
 
-  test('should allow PRICE facet value without sourceHandles', async ({ api }) => {
-    const facetId = await createFacet(api, 'PRICE', 'price-no-handles');
+  test('should reject PRICE facet value (computed dynamically)', async ({ api }) => {
+    const facetId = await createFacet(api, 'PRICE', 'price-no-values');
 
     const { data } = await api.admin.mutation('facet-api/FacetValueCreate', {
+      throwOnError: false,
       variables: {
         input: {
           facetId,
           slug: 'price-range-1',
           label: '$0 - $50',
-          // No sourceHandles - should succeed for PRICE
         },
       },
     });
 
     const result = data.catalogMutation.facetValueCreate;
 
-    expect(result.userErrors).toHaveLength(0);
-    expect(result.facetValue).toBeTruthy();
-    expect(result.facetValue?.sourceHandles).toHaveLength(0);
+    // PRICE facet values are computed dynamically, not created manually
+    expect(result.facetValue).toBeNull();
+    expect(result.userErrors.length).toBeGreaterThan(0);
   });
 
-  test('should allow IN_STOCK facet value without sourceHandles', async ({ api }) => {
-    const facetId = await createFacet(api, 'IN_STOCK', 'stock-no-handles');
+  test('should reject IN_STOCK facet value (computed dynamically)', async ({ api }) => {
+    const facetId = await createFacet(api, 'IN_STOCK', 'stock-no-values');
 
     const { data } = await api.admin.mutation('facet-api/FacetValueCreate', {
+      throwOnError: false,
       variables: {
         input: {
           facetId,
           slug: 'available',
           label: 'In Stock',
-          // No sourceHandles - should succeed for IN_STOCK
         },
       },
     });
 
     const result = data.catalogMutation.facetValueCreate;
 
-    expect(result.userErrors).toHaveLength(0);
-    expect(result.facetValue).toBeTruthy();
-    expect(result.facetValue?.sourceHandles).toHaveLength(0);
+    // IN_STOCK facet values are computed dynamically, not created manually
+    expect(result.facetValue).toBeNull();
+    expect(result.userErrors.length).toBeGreaterThan(0);
   });
 
   // ═══════════════════════════════════════
