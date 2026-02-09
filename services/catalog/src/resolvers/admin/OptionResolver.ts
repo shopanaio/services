@@ -1,3 +1,7 @@
+import {
+  encodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 import type { ProductOption } from "../../repositories/models/index.js";
 import type { OptionDisplayType } from "./interfaces/index.js";
 import { CatalogType } from "./CatalogType.js";
@@ -17,7 +21,7 @@ export class OptionResolver extends CatalogType<string, ProductOption> {
   }
 
   id() {
-    return this.$props;
+    return encodeGlobalIdByType(this.$props, GlobalIdEntity.Option);
   }
 
   async slug() {

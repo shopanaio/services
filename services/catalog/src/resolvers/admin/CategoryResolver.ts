@@ -1,4 +1,8 @@
 import { SubgraphReference } from "@shopana/type-resolver";
+import {
+  encodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 import type { Description } from "./interfaces/index.js";
 import type { Category } from "../../repositories/models/index.js";
 import { CatalogType } from "./CatalogType.js";
@@ -90,7 +94,7 @@ export class CategoryResolver extends CatalogType<string, Category> {
   }
 
   id() {
-    return this.$props;
+    return encodeGlobalIdByType(this.$props, GlobalIdEntity.Category);
   }
 
   async handle() {

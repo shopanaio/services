@@ -1,3 +1,7 @@
+import {
+  encodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 import { CatalogType } from "./CatalogType.js";
 import type { FacetValue } from "../../repositories/models/index.js";
 import { FacetResolver } from "./FacetResolver.js";
@@ -13,7 +17,7 @@ export class FacetValueResolver extends CatalogType<string, FacetValue> {
   }
 
   id() {
-    return this.$props;
+    return encodeGlobalIdByType(this.$props, GlobalIdEntity.FacetValue);
   }
 
   async facet() {

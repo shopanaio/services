@@ -83,33 +83,52 @@ export const GLOBAL_ID_NAMESPACE = "shopana" as const;
  * Enum defining all available Global ID entity types in the system
  */
 export enum GlobalIdEntity {
+  // Checkout
   Checkout = "Checkout",
   CheckoutLine = "CheckoutLine",
   CheckoutDeliveryGroup = "CheckoutDeliveryGroup",
   CheckoutDeliveryAddress = "CheckoutDeliveryAddress",
   CheckoutTag = "CheckoutTag",
   CheckoutNotification = "CheckoutNotification",
+  // Orders
   Order = "Order",
   OrderLine = "OrderLine",
   OrderDeliveryAddress = "OrderDeliveryAddress",
+  // IAM
   User = "User",
   Customer = "Customer",
-  Product = "Product",
-  ProductVariant = "ProductVariant",
-  Variant = "Variant",
-  InventoryItem = "InventoryItem",
-  Warehouse = "Warehouse",
-  File = "File",
-  MediaAssetGroup = "MediaAssetGroup",
-  Bucket = "Bucket",
-  Store = "Store",
   Organization = "Organization",
   Role = "Role",
   Member = "Member",
   ApiKey = "ApiKey",
   Session = "Session",
+  // Catalog
+  Product = "Product",
+  ProductVariant = "ProductVariant",
+  Variant = "Variant",
   Category = "Category",
   Tag = "Tag",
+  Collection = "Collection",
+  FacetGroup = "FacetGroup",
+  Facet = "Facet",
+  FacetValue = "FacetValue",
+  FacetSwatch = "FacetSwatch",
+  Option = "Option",
+  OptionValue = "OptionValue",
+  Feature = "Feature",
+  FeatureValue = "FeatureValue",
+  BulkUpdateItem = "BulkUpdateItem",
+  ProductBulkUpdateJob = "ProductBulkUpdateJob",
+  VariantPrice = "VariantPrice",
+  // Inventory
+  InventoryItem = "InventoryItem",
+  Warehouse = "Warehouse",
+  // Media
+  File = "File",
+  MediaAssetGroup = "MediaAssetGroup",
+  Bucket = "Bucket",
+  // Project
+  Store = "Store",
 }
 
 /**

@@ -386,7 +386,29 @@ export type ApiCatalogMutation = {
   categoryCreate: ApiCategoryCreatePayload;
   categoryDelete: ApiCategoryDeletePayload;
   categoryMove: ApiCategoryMovePayload;
+  categoryMoveProduct: ApiCategoryMoveProductPayload;
+  categoryRebalance: ApiCategoryRebalancePayload;
   categoryUpdate: ApiCategoryUpdatePayload;
+  categoryUpdateSort: ApiCategoryUpdateSortPayload;
+  collectionAddProducts: ApiCollectionAddProductsPayload;
+  collectionCreate: ApiCollectionCreatePayload;
+  collectionDelete: ApiCollectionDeletePayload;
+  collectionMoveProduct: ApiCollectionMoveProductPayload;
+  collectionRemoveProducts: ApiCollectionRemoveProductsPayload;
+  collectionUpdate: ApiCollectionUpdatePayload;
+  collectionUpdateRules: ApiCollectionUpdateRulesPayload;
+  facetCreate: ApiFacetCreatePayload;
+  facetDelete: ApiFacetDeletePayload;
+  facetGroupCreate: ApiFacetGroupCreatePayload;
+  facetGroupDelete: ApiFacetGroupDeletePayload;
+  facetGroupUpdate: ApiFacetGroupUpdatePayload;
+  facetSwatchCreate: ApiFacetSwatchCreatePayload;
+  facetSwatchDelete: ApiFacetSwatchDeletePayload;
+  facetSwatchUpdate: ApiFacetSwatchUpdatePayload;
+  facetUpdate: ApiFacetUpdatePayload;
+  facetValueCreate: ApiFacetValueCreatePayload;
+  facetValueDelete: ApiFacetValueDeletePayload;
+  facetValueUpdate: ApiFacetValueUpdatePayload;
   /**
    * Start async bulk update.
    * Requires X-Idempotency-Key header.
@@ -439,8 +461,118 @@ export type ApiCatalogMutationCategoryMoveArgs = {
 };
 
 
+export type ApiCatalogMutationCategoryMoveProductArgs = {
+  input: ApiCategoryMoveProductInput;
+};
+
+
+export type ApiCatalogMutationCategoryRebalanceArgs = {
+  input: ApiCategoryRebalanceInput;
+};
+
+
 export type ApiCatalogMutationCategoryUpdateArgs = {
   input: ApiCategoryUpdateInput;
+};
+
+
+export type ApiCatalogMutationCategoryUpdateSortArgs = {
+  input: ApiCategoryUpdateSortInput;
+};
+
+
+export type ApiCatalogMutationCollectionAddProductsArgs = {
+  input: ApiCollectionAddProductsInput;
+};
+
+
+export type ApiCatalogMutationCollectionCreateArgs = {
+  input: ApiCollectionCreateInput;
+};
+
+
+export type ApiCatalogMutationCollectionDeleteArgs = {
+  input: ApiCollectionDeleteInput;
+};
+
+
+export type ApiCatalogMutationCollectionMoveProductArgs = {
+  input: ApiCollectionMoveProductInput;
+};
+
+
+export type ApiCatalogMutationCollectionRemoveProductsArgs = {
+  input: ApiCollectionRemoveProductsInput;
+};
+
+
+export type ApiCatalogMutationCollectionUpdateArgs = {
+  input: ApiCollectionUpdateInput;
+};
+
+
+export type ApiCatalogMutationCollectionUpdateRulesArgs = {
+  input: ApiCollectionUpdateRulesInput;
+};
+
+
+export type ApiCatalogMutationFacetCreateArgs = {
+  input: ApiFacetCreateInput;
+};
+
+
+export type ApiCatalogMutationFacetDeleteArgs = {
+  input: ApiFacetDeleteInput;
+};
+
+
+export type ApiCatalogMutationFacetGroupCreateArgs = {
+  input: ApiFacetGroupCreateInput;
+};
+
+
+export type ApiCatalogMutationFacetGroupDeleteArgs = {
+  input: ApiFacetGroupDeleteInput;
+};
+
+
+export type ApiCatalogMutationFacetGroupUpdateArgs = {
+  input: ApiFacetGroupUpdateInput;
+};
+
+
+export type ApiCatalogMutationFacetSwatchCreateArgs = {
+  input: ApiFacetSwatchCreateInput;
+};
+
+
+export type ApiCatalogMutationFacetSwatchDeleteArgs = {
+  input: ApiFacetSwatchDeleteInput;
+};
+
+
+export type ApiCatalogMutationFacetSwatchUpdateArgs = {
+  input: ApiFacetSwatchUpdateInput;
+};
+
+
+export type ApiCatalogMutationFacetUpdateArgs = {
+  input: ApiFacetUpdateInput;
+};
+
+
+export type ApiCatalogMutationFacetValueCreateArgs = {
+  input: ApiFacetValueCreateInput;
+};
+
+
+export type ApiCatalogMutationFacetValueDeleteArgs = {
+  input: ApiFacetValueDeleteInput;
+};
+
+
+export type ApiCatalogMutationFacetValueUpdateArgs = {
+  input: ApiFacetValueUpdateInput;
 };
 
 
@@ -556,6 +688,19 @@ export type ApiCatalogQuery = {
   categories: ApiCategoryConnection;
   /** Get a category by ID */
   category?: Maybe<ApiCategory>;
+  categoryProducts: ApiCategoryProductConnection;
+  collection?: Maybe<ApiCollection>;
+  collectionByHandle?: Maybe<ApiCollection>;
+  collectionRulesPreviewCount: Scalars['Int']['output'];
+  collections: ApiCollectionConnection;
+  facet?: Maybe<ApiFacet>;
+  facetGroup?: Maybe<ApiFacetGroup>;
+  facetGroups: Array<ApiFacetGroup>;
+  facetSwatch?: Maybe<ApiFacetSwatch>;
+  facetSwatches: Array<ApiFacetSwatch>;
+  facetValue?: Maybe<ApiFacetValue>;
+  facetValues: Array<ApiFacetValue>;
+  facets: Array<ApiFacet>;
   /** Get a node by its global ID */
   node?: Maybe<ApiNode>;
   /** Get multiple nodes by their global IDs */
@@ -587,6 +732,65 @@ export type ApiCatalogQueryCategoriesArgs = {
 
 export type ApiCatalogQueryCategoryArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryCategoryProductsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  categoryId: Scalars['ID']['input'];
+  filters?: InputMaybe<ApiProductFiltersInput>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  sort?: InputMaybe<ApiProductSortInput>;
+};
+
+
+export type ApiCatalogQueryCollectionArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryCollectionByHandleArgs = {
+  handle: Scalars['String']['input'];
+};
+
+
+export type ApiCatalogQueryCollectionRulesPreviewCountArgs = {
+  rules: Array<ApiCollectionRuleInput>;
+};
+
+
+export type ApiCatalogQueryCollectionsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiCatalogQueryFacetArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryFacetGroupArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryFacetSwatchArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryFacetValueArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryFacetValuesArgs = {
+  facetId: Scalars['ID']['input'];
 };
 
 
@@ -648,10 +852,16 @@ export type ApiCategory = ApiNode & {
   __typename?: 'Category';
   /** All ancestor categories from root to parent. */
   ancestors: Array<ApiCategory>;
+  /** Category products with sorting, filtering, and pagination. */
+  categoryProducts: ApiCategoryProductConnection;
   /** Direct child categories. */
   children: Array<ApiCategory>;
   /** The date and time when the category was created. */
   createdAt: Scalars['DateTime']['output'];
+  /** Default product sort for this category PLP. */
+  defaultSort: ProductSortBy;
+  /** Default sort direction for this category PLP. */
+  defaultSortDirection: SortDirection;
   /** The date and time when the category was deleted (soft delete). */
   deletedAt?: Maybe<Scalars['DateTime']['output']>;
   /** The depth of this category in the hierarchy (0 for root). */
@@ -678,8 +888,21 @@ export type ApiCategory = ApiNode & {
   productsCount: Scalars['Int']['output'];
   /** The date and time when the category was published, or null if unpublished. */
   publishedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** SEO metadata. */
+  seo?: Maybe<ApiSeo>;
   /** The date and time when the category was last updated. */
   updatedAt: Scalars['DateTime']['output'];
+};
+
+
+/** A category represents a hierarchical grouping of products. */
+export type ApiCategoryCategoryProductsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  filters?: InputMaybe<ApiProductFiltersInput>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  sort?: InputMaybe<ApiProductSortInput>;
 };
 
 
@@ -716,6 +939,8 @@ export type ApiCategoryCreateInput = {
   parentId?: InputMaybe<Scalars['ID']['input']>;
   /** Whether to publish immediately. */
   publish?: InputMaybe<Scalars['Boolean']['input']>;
+  /** SEO metadata. */
+  seo?: InputMaybe<ApiSeoInput>;
 };
 
 /** Payload for category creation. */
@@ -779,6 +1004,43 @@ export type ApiCategoryMovePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+export type ApiCategoryMoveProductInput = {
+  afterProductId?: InputMaybe<Scalars['ID']['input']>;
+  beforeProductId?: InputMaybe<Scalars['ID']['input']>;
+  categoryId: Scalars['ID']['input'];
+  productId: Scalars['ID']['input'];
+};
+
+export type ApiCategoryMoveProductPayload = {
+  __typename?: 'CategoryMoveProductPayload';
+  category?: Maybe<ApiCategory>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCategoryProductConnection = {
+  __typename?: 'CategoryProductConnection';
+  edges: Array<ApiCategoryProductEdge>;
+  facets?: Maybe<ApiFacets>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiCategoryProductEdge = {
+  __typename?: 'CategoryProductEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiProduct;
+};
+
+export type ApiCategoryRebalanceInput = {
+  categoryId: Scalars['ID']['input'];
+};
+
+export type ApiCategoryRebalancePayload = {
+  __typename?: 'CategoryRebalancePayload';
+  category?: Maybe<ApiCategory>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
 /** Input for updating a category. */
 export type ApiCategoryUpdateInput = {
   /** The category description. */
@@ -791,6 +1053,8 @@ export type ApiCategoryUpdateInput = {
   mediaFileIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   /** The display name of the category. */
   name?: InputMaybe<Scalars['String']['input']>;
+  /** SEO metadata. */
+  seo?: InputMaybe<ApiSeoInput>;
 };
 
 /** Payload for category update. */
@@ -802,6 +1066,116 @@ export type ApiCategoryUpdatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+export type ApiCategoryUpdateSortInput = {
+  defaultSort: ProductSortBy;
+  defaultSortDirection: SortDirection;
+  id: Scalars['ID']['input'];
+};
+
+export type ApiCategoryUpdateSortPayload = {
+  __typename?: 'CategoryUpdateSortPayload';
+  category?: Maybe<ApiCategory>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCollection = ApiNode & {
+  __typename?: 'Collection';
+  activeFrom?: Maybe<Scalars['DateTime']['output']>;
+  activeTo?: Maybe<Scalars['DateTime']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  defaultSort: ProductSortBy;
+  defaultSortDirection: SortDirection;
+  description?: Maybe<ApiDescription>;
+  handle?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  isActive: Scalars['Boolean']['output'];
+  isPublished: Scalars['Boolean']['output'];
+  media: Array<ApiCollectionMediaItem>;
+  name: Scalars['String']['output'];
+  products: ApiCollectionProductConnection;
+  productsCount: Scalars['Int']['output'];
+  publishedAt?: Maybe<Scalars['DateTime']['output']>;
+  rules: Array<ApiCollectionRule>;
+  seo?: Maybe<ApiSeo>;
+  type: CollectionType;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+
+export type ApiCollectionProductsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  filters?: InputMaybe<ApiProductFiltersInput>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  sort?: InputMaybe<ApiProductSortInput>;
+};
+
+export type ApiCollectionAddProductsInput = {
+  collectionId: Scalars['ID']['input'];
+  productIds: Array<Scalars['ID']['input']>;
+};
+
+export type ApiCollectionAddProductsPayload = {
+  __typename?: 'CollectionAddProductsPayload';
+  collection?: Maybe<ApiCollection>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCollectionConnection = {
+  __typename?: 'CollectionConnection';
+  edges: Array<ApiCollectionEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiCollectionCreateInput = {
+  activeFrom?: InputMaybe<Scalars['DateTime']['input']>;
+  activeTo?: InputMaybe<Scalars['DateTime']['input']>;
+  defaultSort?: InputMaybe<ProductSortBy>;
+  defaultSortDirection?: InputMaybe<SortDirection>;
+  description?: InputMaybe<ApiDescriptionInput>;
+  handle?: InputMaybe<Scalars['String']['input']>;
+  media?: InputMaybe<Array<ApiCollectionMediaInput>>;
+  name: Scalars['String']['input'];
+  publish?: InputMaybe<Scalars['Boolean']['input']>;
+  seo?: InputMaybe<ApiSeoInput>;
+  type: CollectionType;
+};
+
+export type ApiCollectionCreatePayload = {
+  __typename?: 'CollectionCreatePayload';
+  collection?: Maybe<ApiCollection>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCollectionDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type ApiCollectionDeletePayload = {
+  __typename?: 'CollectionDeletePayload';
+  deletedCollectionId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCollectionEdge = {
+  __typename?: 'CollectionEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiCollection;
+};
+
+export type ApiCollectionMediaInput = {
+  fileId: Scalars['ID']['input'];
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ApiCollectionMediaItem = {
+  __typename?: 'CollectionMediaItem';
+  file: ApiFile;
+  sortIndex: Scalars['Int']['output'];
+};
+
 export type ApiCollectionMeta = {
   __typename?: 'CollectionMeta';
   count: Scalars['Int']['output'];
@@ -809,6 +1183,95 @@ export type ApiCollectionMeta = {
   pageCount: Scalars['Int']['output'];
   pageSize: Scalars['Int']['output'];
   total: Scalars['Int']['output'];
+};
+
+export type ApiCollectionMoveProductInput = {
+  afterProductId?: InputMaybe<Scalars['ID']['input']>;
+  beforeProductId?: InputMaybe<Scalars['ID']['input']>;
+  collectionId: Scalars['ID']['input'];
+  productId: Scalars['ID']['input'];
+};
+
+export type ApiCollectionMoveProductPayload = {
+  __typename?: 'CollectionMoveProductPayload';
+  collection?: Maybe<ApiCollection>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCollectionProductConnection = {
+  __typename?: 'CollectionProductConnection';
+  edges: Array<ApiCollectionProductEdge>;
+  facets?: Maybe<ApiFacets>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiCollectionProductEdge = {
+  __typename?: 'CollectionProductEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiProduct;
+};
+
+export type ApiCollectionRemoveProductsInput = {
+  collectionId: Scalars['ID']['input'];
+  productIds: Array<Scalars['ID']['input']>;
+};
+
+export type ApiCollectionRemoveProductsPayload = {
+  __typename?: 'CollectionRemoveProductsPayload';
+  collection?: Maybe<ApiCollection>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCollectionRule = {
+  __typename?: 'CollectionRule';
+  field: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  operator: Scalars['String']['output'];
+  sortIndex: Scalars['Int']['output'];
+  value: Scalars['JSON']['output'];
+};
+
+export type ApiCollectionRuleInput = {
+  field: Scalars['String']['input'];
+  operator: Scalars['String']['input'];
+  value: Scalars['JSON']['input'];
+};
+
+export enum CollectionType {
+  Manual = 'MANUAL',
+  Rule = 'RULE'
+}
+
+export type ApiCollectionUpdateInput = {
+  activeFrom?: InputMaybe<Scalars['DateTime']['input']>;
+  activeTo?: InputMaybe<Scalars['DateTime']['input']>;
+  defaultSort?: InputMaybe<ProductSortBy>;
+  defaultSortDirection?: InputMaybe<SortDirection>;
+  description?: InputMaybe<ApiDescriptionInput>;
+  handle?: InputMaybe<Scalars['String']['input']>;
+  id: Scalars['ID']['input'];
+  media?: InputMaybe<Array<ApiCollectionMediaInput>>;
+  name?: InputMaybe<Scalars['String']['input']>;
+  publish?: InputMaybe<Scalars['Boolean']['input']>;
+  seo?: InputMaybe<ApiSeoInput>;
+};
+
+export type ApiCollectionUpdatePayload = {
+  __typename?: 'CollectionUpdatePayload';
+  collection?: Maybe<ApiCollection>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCollectionUpdateRulesInput = {
+  collectionId: Scalars['ID']['input'];
+  rules: Array<ApiCollectionRuleInput>;
+};
+
+export type ApiCollectionUpdateRulesPayload = {
+  __typename?: 'CollectionUpdateRulesPayload';
+  collection?: Maybe<ApiCollection>;
+  userErrors: Array<ApiGenericUserError>;
 };
 
 export enum CountryCode {
@@ -1692,6 +2155,284 @@ export type ApiExternalMediaData = {
   externalId: Scalars['String']['output'];
   /** Provider-specific metadata. */
   providerMeta?: Maybe<Scalars['JSON']['output']>;
+};
+
+export type ApiFacet = ApiNode & {
+  __typename?: 'Facet';
+  facetType: FacetType;
+  group?: Maybe<ApiFacetGroup>;
+  id: Scalars['ID']['output'];
+  indexable: Scalars['Boolean']['output'];
+  label: Scalars['String']['output'];
+  maxValuesVisible: Scalars['Int']['output'];
+  minValues: Scalars['Int']['output'];
+  selectionMode: FacetSelectionMode;
+  slug: Scalars['String']['output'];
+  sortIndex: Scalars['Int']['output'];
+  sourceHandles: Array<Scalars['String']['output']>;
+  uiType: FacetUiType;
+  valueSort: FacetValueSort;
+  values: Array<ApiFacetValue>;
+};
+
+export type ApiFacetCreateInput = {
+  facetType: FacetType;
+  groupId?: InputMaybe<Scalars['ID']['input']>;
+  label: Scalars['String']['input'];
+  selectionMode?: InputMaybe<FacetSelectionMode>;
+  slug: Scalars['String']['input'];
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  uiType?: InputMaybe<FacetUiType>;
+};
+
+export type ApiFacetCreatePayload = {
+  __typename?: 'FacetCreatePayload';
+  facet?: Maybe<ApiFacet>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiFacetDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type ApiFacetDeletePayload = {
+  __typename?: 'FacetDeletePayload';
+  deletedFacetId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiFacetGroup = ApiNode & {
+  __typename?: 'FacetGroup';
+  collapsed: Scalars['Boolean']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  facets: Array<ApiFacet>;
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  sortIndex: Scalars['Int']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiFacetGroupCreateInput = {
+  collapsed?: InputMaybe<Scalars['Boolean']['input']>;
+  name: Scalars['String']['input'];
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ApiFacetGroupCreatePayload = {
+  __typename?: 'FacetGroupCreatePayload';
+  facetGroup?: Maybe<ApiFacetGroup>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiFacetGroupDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type ApiFacetGroupDeletePayload = {
+  __typename?: 'FacetGroupDeletePayload';
+  deletedFacetGroupId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiFacetGroupUpdateInput = {
+  collapsed?: InputMaybe<Scalars['Boolean']['input']>;
+  id: Scalars['ID']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ApiFacetGroupUpdatePayload = {
+  __typename?: 'FacetGroupUpdatePayload';
+  facetGroup?: Maybe<ApiFacetGroup>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiFacetRangeFilterInput = {
+  facetSlug: Scalars['String']['input'];
+  max?: InputMaybe<Scalars['BigInt']['input']>;
+  min?: InputMaybe<Scalars['BigInt']['input']>;
+};
+
+export type ApiFacetResult = {
+  __typename?: 'FacetResult';
+  facetType: FacetType;
+  label: Scalars['String']['output'];
+  selectionMode: FacetSelectionMode;
+  slug: Scalars['String']['output'];
+  totalCount: Scalars['Int']['output'];
+  uiType: FacetUiType;
+  values: Array<ApiFacetResultValue>;
+};
+
+export type ApiFacetResultGroup = {
+  __typename?: 'FacetResultGroup';
+  collapsed: Scalars['Boolean']['output'];
+  facets: Array<ApiFacetResult>;
+  name?: Maybe<Scalars['String']['output']>;
+};
+
+export type ApiFacetResultValue = {
+  __typename?: 'FacetResultValue';
+  count: Scalars['Int']['output'];
+  label?: Maybe<Scalars['String']['output']>;
+  slug: Scalars['String']['output'];
+  swatch?: Maybe<ApiFacetSwatch>;
+};
+
+export enum FacetSelectionMode {
+  Multi = 'MULTI',
+  Single = 'SINGLE'
+}
+
+export type ApiFacetSwatch = ApiNode & {
+  __typename?: 'FacetSwatch';
+  colorOne?: Maybe<Scalars['String']['output']>;
+  colorTwo?: Maybe<Scalars['String']['output']>;
+  file?: Maybe<ApiFile>;
+  id: Scalars['ID']['output'];
+  metadata?: Maybe<Scalars['JSON']['output']>;
+  swatchType: SwatchType;
+};
+
+export type ApiFacetSwatchCreateInput = {
+  colorOne?: InputMaybe<Scalars['String']['input']>;
+  colorTwo?: InputMaybe<Scalars['String']['input']>;
+  fileId?: InputMaybe<Scalars['ID']['input']>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  swatchType: SwatchType;
+};
+
+export type ApiFacetSwatchCreatePayload = {
+  __typename?: 'FacetSwatchCreatePayload';
+  facetSwatch?: Maybe<ApiFacetSwatch>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiFacetSwatchDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type ApiFacetSwatchDeletePayload = {
+  __typename?: 'FacetSwatchDeletePayload';
+  deletedFacetSwatchId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiFacetSwatchUpdateInput = {
+  colorOne?: InputMaybe<Scalars['String']['input']>;
+  colorTwo?: InputMaybe<Scalars['String']['input']>;
+  fileId?: InputMaybe<Scalars['ID']['input']>;
+  id: Scalars['ID']['input'];
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  swatchType?: InputMaybe<SwatchType>;
+};
+
+export type ApiFacetSwatchUpdatePayload = {
+  __typename?: 'FacetSwatchUpdatePayload';
+  facetSwatch?: Maybe<ApiFacetSwatch>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export enum FacetType {
+  Feature = 'FEATURE',
+  InStock = 'IN_STOCK',
+  Option = 'OPTION',
+  Price = 'PRICE',
+  Tag = 'TAG'
+}
+
+export enum FacetUiType {
+  Boolean = 'BOOLEAN',
+  Checkbox = 'CHECKBOX',
+  Dropdown = 'DROPDOWN',
+  Radio = 'RADIO',
+  Range = 'RANGE'
+}
+
+export type ApiFacetUpdateInput = {
+  groupId?: InputMaybe<Scalars['ID']['input']>;
+  id: Scalars['ID']['input'];
+  indexable?: InputMaybe<Scalars['Boolean']['input']>;
+  label?: InputMaybe<Scalars['String']['input']>;
+  maxValuesVisible?: InputMaybe<Scalars['Int']['input']>;
+  minValues?: InputMaybe<Scalars['Int']['input']>;
+  selectionMode?: InputMaybe<FacetSelectionMode>;
+  slug?: InputMaybe<Scalars['String']['input']>;
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  uiType?: InputMaybe<FacetUiType>;
+  valueSort?: InputMaybe<FacetValueSort>;
+};
+
+export type ApiFacetUpdatePayload = {
+  __typename?: 'FacetUpdatePayload';
+  facet?: Maybe<ApiFacet>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiFacetValue = ApiNode & {
+  __typename?: 'FacetValue';
+  enabled: Scalars['Boolean']['output'];
+  facet: ApiFacet;
+  id: Scalars['ID']['output'];
+  label: Scalars['String']['output'];
+  slug: Scalars['String']['output'];
+  sortIndex: Scalars['Int']['output'];
+  sourceHandles: Array<Scalars['String']['output']>;
+  swatch?: Maybe<ApiFacetSwatch>;
+};
+
+export type ApiFacetValueCreateInput = {
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  facetId: Scalars['ID']['input'];
+  label: Scalars['String']['input'];
+  slug: Scalars['String']['input'];
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  sourceHandles?: InputMaybe<Array<Scalars['String']['input']>>;
+  swatchId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type ApiFacetValueCreatePayload = {
+  __typename?: 'FacetValueCreatePayload';
+  facetValue?: Maybe<ApiFacetValue>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiFacetValueDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type ApiFacetValueDeletePayload = {
+  __typename?: 'FacetValueDeletePayload';
+  deletedFacetValueId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export enum FacetValueSort {
+  Alpha = 'ALPHA',
+  Count = 'COUNT',
+  Custom = 'CUSTOM'
+}
+
+export type ApiFacetValueUpdateInput = {
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  id: Scalars['ID']['input'];
+  label?: InputMaybe<Scalars['String']['input']>;
+  slug?: InputMaybe<Scalars['String']['input']>;
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  sourceHandles?: InputMaybe<Array<Scalars['String']['input']>>;
+  swatchId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type ApiFacetValueUpdatePayload = {
+  __typename?: 'FacetValueUpdatePayload';
+  facetValue?: Maybe<ApiFacetValue>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiFacets = {
+  __typename?: 'Facets';
+  groups: Array<ApiFacetResultGroup>;
+  priceRange?: Maybe<ApiPriceRange>;
 };
 
 /** A file represents a stored media asset. */
@@ -3490,6 +4231,12 @@ export type ApiPageInfo = {
   startCursor?: Maybe<Scalars['String']['output']>;
 };
 
+export type ApiPriceRange = {
+  __typename?: 'PriceRange';
+  maxMinor: Scalars['BigInt']['output'];
+  minMinor: Scalars['BigInt']['output'];
+};
+
 /** Input for pricing widget query. */
 export type ApiPricingWidgetInput = {
   /** Pagination: cursor after. */
@@ -3739,6 +4486,8 @@ export type ApiProductFeature = ApiNode & {
   name: Scalars['String']['output'];
   /** Parent group, if this feature belongs to a group. */
   parent?: Maybe<ApiProductFeature>;
+  /** The URL-friendly slug for this feature. */
+  slug: Scalars['String']['output'];
   /** Values. Returns empty array for groups (isGroup = true). */
   values: Array<ApiProductFeatureValue>;
 };
@@ -3749,6 +4498,8 @@ export type ApiProductFeatureCreateInput = {
   name: Scalars['String']['input'];
   /** The ID of the product. */
   productId: Scalars['ID']['input'];
+  /** The URL-friendly slug for the feature. */
+  slug: Scalars['String']['input'];
   /** The values for this feature. */
   values: Array<ApiProductFeatureValueCreateInput>;
 };
@@ -3811,6 +4562,8 @@ export type ApiProductFeatureSyncItemInput = {
   isGroup: Scalars['Boolean']['input'];
   /** Display name. */
   name: Scalars['String']['input'];
+  /** The URL-friendly slug for this feature. */
+  slug: Scalars['String']['input'];
   /** Values for this feature (only when isGroup = false). */
   values?: InputMaybe<Array<ApiProductFeatureValueSyncInput>>;
 };
@@ -3821,6 +4574,8 @@ export type ApiProductFeatureUpdateInput = {
   id: Scalars['ID']['input'];
   /** Display name. */
   name?: InputMaybe<Scalars['String']['input']>;
+  /** The URL-friendly slug for the feature. */
+  slug?: InputMaybe<Scalars['String']['input']>;
   /** Nested value operations. */
   values?: InputMaybe<ApiProductFeatureValuesInput>;
 };
@@ -3845,12 +4600,16 @@ export type ApiProductFeatureValue = ApiNode & {
   index: Scalars['Int']['output'];
   /** Display name (from translations). */
   name: Scalars['String']['output'];
+  /** The URL-friendly slug for this feature value. */
+  slug: Scalars['String']['output'];
 };
 
 /** Input for creating a feature value. */
 export type ApiProductFeatureValueCreateInput = {
   /** Display name. */
   name: Scalars['String']['input'];
+  /** The URL-friendly slug for this feature value. */
+  slug: Scalars['String']['input'];
 };
 
 export type ApiProductFeatureValueSyncInput = {
@@ -3860,6 +4619,8 @@ export type ApiProductFeatureValueSyncInput = {
   index: Scalars['Int']['input'];
   /** Display name. */
   name: Scalars['String']['input'];
+  /** The URL-friendly slug for this feature value. */
+  slug: Scalars['String']['input'];
 };
 
 /** Input for updating an existing feature value. */
@@ -3868,6 +4629,8 @@ export type ApiProductFeatureValueUpdateInput = {
   id: Scalars['ID']['input'];
   /** Display name. */
   name?: InputMaybe<Scalars['String']['input']>;
+  /** The URL-friendly slug for this value. */
+  slug?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** Input for nested value operations in feature update. */
@@ -3896,6 +4659,14 @@ export type ApiProductFeaturesSyncPayload = {
   product?: Maybe<ApiProduct>;
   /** Any validation errors. */
   userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiProductFiltersInput = {
+  facets?: InputMaybe<Array<Scalars['String']['input']>>;
+  inStock?: InputMaybe<Scalars['Boolean']['input']>;
+  priceMaxMinor?: InputMaybe<Scalars['BigInt']['input']>;
+  priceMinMinor?: InputMaybe<Scalars['BigInt']['input']>;
+  ranges?: InputMaybe<Array<ApiFacetRangeFilterInput>>;
 };
 
 export type ApiProductInventoryWidget = {
@@ -4123,30 +4894,32 @@ export type ApiProductOptionsSyncPayload = {
 /** SEO and Open Graph metadata for a product. */
 export type ApiProductSeo = {
   __typename?: 'ProductSeo';
-  /** Open Graph description for social media sharing. */
   ogDescription?: Maybe<Scalars['String']['output']>;
-  /** Open Graph image for social media sharing. */
   ogImage?: Maybe<ApiFile>;
-  /** Open Graph title for social media sharing (max 95 chars). */
   ogTitle?: Maybe<Scalars['String']['output']>;
-  /** SEO description for search engines (max 160 chars). */
   seoDescription?: Maybe<Scalars['String']['output']>;
-  /** SEO title for search engines (max 70 chars). */
   seoTitle?: Maybe<Scalars['String']['output']>;
 };
 
 /** Input for updating product SEO data. */
 export type ApiProductSeoInput = {
-  /** Open Graph description. */
   ogDescription?: InputMaybe<Scalars['String']['input']>;
-  /** Open Graph image file ID. */
   ogImageId?: InputMaybe<Scalars['ID']['input']>;
-  /** Open Graph title (max 95 chars). */
   ogTitle?: InputMaybe<Scalars['String']['input']>;
-  /** SEO description (max 160 chars). */
   seoDescription?: InputMaybe<Scalars['String']['input']>;
-  /** SEO title (max 70 chars). */
   seoTitle?: InputMaybe<Scalars['String']['input']>;
+};
+
+export enum ProductSortBy {
+  Manual = 'MANUAL',
+  Name = 'NAME',
+  Newest = 'NEWEST',
+  Price = 'PRICE'
+}
+
+export type ApiProductSortInput = {
+  by: ProductSortBy;
+  direction?: InputMaybe<SortDirection>;
 };
 
 export enum ProductStatus {
@@ -4429,6 +5202,35 @@ export type ApiSelectedOptionInput = {
   optionId: Scalars['ID']['input'];
   /** The ID of the option value. */
   optionValueId: Scalars['ID']['input'];
+};
+
+/** SEO and Open Graph metadata. */
+export type ApiSeo = {
+  __typename?: 'Seo';
+  /** Open Graph description for social media sharing. */
+  ogDescription?: Maybe<Scalars['String']['output']>;
+  /** Open Graph image for social media sharing. */
+  ogImage?: Maybe<ApiFile>;
+  /** Open Graph title for social media sharing (max 95 chars). */
+  ogTitle?: Maybe<Scalars['String']['output']>;
+  /** SEO description for search engines (max 160 chars). */
+  seoDescription?: Maybe<Scalars['String']['output']>;
+  /** SEO title for search engines (max 70 chars). */
+  seoTitle?: Maybe<Scalars['String']['output']>;
+};
+
+/** Input for SEO and Open Graph metadata. */
+export type ApiSeoInput = {
+  /** Open Graph description. */
+  ogDescription?: InputMaybe<Scalars['String']['input']>;
+  /** Open Graph image file ID. */
+  ogImageId?: InputMaybe<Scalars['ID']['input']>;
+  /** Open Graph title (max 95 chars). */
+  ogTitle?: InputMaybe<Scalars['String']['input']>;
+  /** SEO description (max 160 chars). */
+  seoDescription?: InputMaybe<Scalars['String']['input']>;
+  /** SEO title (max 70 chars). */
+  seoTitle?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** User session representing an active login. */

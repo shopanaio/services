@@ -1,4 +1,8 @@
 import { SubgraphReference } from "@shopana/type-resolver";
+import {
+  encodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 import type {
   SelectedOption,
   VariantMediaItem,
@@ -25,7 +29,7 @@ export class VariantResolver extends CatalogType<string, Variant> {
   }
 
   id() {
-    return this.$props;
+    return encodeGlobalIdByType(this.$props, GlobalIdEntity.Variant);
   }
 
   async productId() {

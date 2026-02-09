@@ -1,13 +1,13 @@
 import { BaseGqlRequest } from '@fixtures/api/gqlRequest';
-import { ApiCollectionCreateInput, ApiCollectionType, ApiProductSortBy } from '@codegen/admin-gql';
+import { ApiCollectionCreateInput, CollectionType, ProductSortBy } from '@codegen/admin-gql';
 import _ from 'lodash';
 
 export interface CollectionData {
   id: string;
   handle: string;
-  type: ApiCollectionType;
+  type: CollectionType;
   name: string;
-  defaultSort: ApiProductSortBy;
+  defaultSort: ProductSortBy;
   isActive: boolean;
   isPublished: boolean;
   productsCount: number;
@@ -19,7 +19,7 @@ export class CollectionFixture {
   create = async (input: Partial<ApiCollectionCreateInput> = {}): Promise<CollectionData> => {
     const uniqueId = crypto.randomUUID().slice(0, 8);
     const defaults: ApiCollectionCreateInput = {
-      type: ApiCollectionType.Manual,
+      type: CollectionType.Manual,
       name: `Test Collection ${uniqueId}`,
       handle: `test-collection-${uniqueId}`,
     };
@@ -49,13 +49,13 @@ export class CollectionFixture {
   createManual = async (
     input: Partial<Omit<ApiCollectionCreateInput, 'type'>> = {},
   ): Promise<CollectionData> => {
-    return this.create({ ...input, type: ApiCollectionType.Manual });
+    return this.create({ ...input, type: CollectionType.Manual });
   };
 
   createRule = async (
     input: Partial<Omit<ApiCollectionCreateInput, 'type'>> = {},
   ): Promise<CollectionData> => {
-    return this.create({ ...input, type: ApiCollectionType.Rule });
+    return this.create({ ...input, type: CollectionType.Rule });
   };
 
   delete = async (id: string): Promise<string | null> => {

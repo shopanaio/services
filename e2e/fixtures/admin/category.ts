@@ -2,8 +2,8 @@ import { BaseGqlRequest } from '@fixtures/api/gqlRequest';
 import {
   ApiCategoryCreateInput,
   ApiCategoryUpdateInput,
-  ApiProductSortBy,
-  ApiSortDirection,
+  ProductSortBy,
+  SortDirection,
 } from '@codegen/admin-gql';
 import _ from 'lodash';
 
@@ -82,8 +82,8 @@ export class CategoryFixture {
 
   updateSort = async (
     id: string,
-    defaultSort: ApiProductSortBy,
-    defaultSortDirection: ApiSortDirection
+    defaultSort: ProductSortBy,
+    defaultSortDirection: SortDirection
   ): Promise<CategoryData> => {
     const { data } = await this.gql.mutation('category-api/CategoryUpdateSort', {
       variables: { input: { id, defaultSort, defaultSortDirection } },

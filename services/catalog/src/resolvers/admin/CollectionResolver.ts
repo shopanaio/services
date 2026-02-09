@@ -1,3 +1,7 @@
+import {
+  encodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 import { CatalogType } from "./CatalogType.js";
 import type { Collection } from "../../repositories/models/index.js";
 import { ProductResolver } from "./ProductResolver.js";
@@ -76,7 +80,7 @@ export class CollectionResolver extends CatalogType<string, Collection> {
   }
 
   id() {
-    return this.$props;
+    return encodeGlobalIdByType(this.$props, GlobalIdEntity.Collection);
   }
 
   async handle() {

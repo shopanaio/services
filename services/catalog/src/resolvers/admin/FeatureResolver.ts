@@ -1,3 +1,7 @@
+import {
+  encodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 import type { ProductFeature } from "../../repositories/models/index.js";
 import { CatalogType } from "./CatalogType.js";
 import { FeatureValueResolver } from "./FeatureValueResolver.js";
@@ -16,7 +20,7 @@ export class FeatureResolver extends CatalogType<string, ProductFeature> {
   }
 
   id() {
-    return this.$props;
+    return encodeGlobalIdByType(this.$props, GlobalIdEntity.Feature);
   }
 
   async index() {
