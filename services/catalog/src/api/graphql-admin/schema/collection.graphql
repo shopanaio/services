@@ -21,7 +21,6 @@ type Collection implements Node @key(fields: "id") {
     after: String
     last: Int
     before: String
-    filters: ProductFiltersInput
     sort: ProductSortInput
   ): CollectionProductConnection!
   productsCount: Int!
@@ -60,7 +59,6 @@ type CollectionProductConnection {
   edges: [CollectionProductEdge!]!
   pageInfo: PageInfo!
   totalCount: Int!
-  facets: Facets
 }
 
 type CollectionProductEdge {

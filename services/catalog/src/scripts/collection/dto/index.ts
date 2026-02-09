@@ -1,7 +1,6 @@
 import type { UserError } from "../../../kernel/BaseScript.js";
 import type { Collection } from "../../../repositories/models/index.js";
 import type {
-  ProductFiltersInput,
   ProductSortBy,
   ProductSortInput,
   SeoInput,
@@ -9,7 +8,6 @@ import type {
 } from "../../category/dto/index.js";
 
 export type {
-  ProductFiltersInput,
   ProductSortBy,
   ProductSortInput,
   SeoInput,
@@ -91,7 +89,6 @@ export interface CollectionProductsQueryParams {
   locale: string;
   first?: number;
   after?: string;
-  filters?: ProductFiltersInput;
   sort?: ProductSortInput;
   /** Skip publish check (for admin API which allows querying unpublished collections) */
   skipPublishCheck?: boolean;
@@ -108,7 +105,6 @@ export interface CollectionProductsQueryResult {
     endCursor: string | null;
   };
   totalCount: number;
-  facets: Record<string, unknown> | null;
 }
 
 export interface CollectionResult {

@@ -864,7 +864,6 @@ export type Collection = Node & {
 export type CollectionProductsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   before?: InputMaybe<Scalars['String']['input']>;
-  filters?: InputMaybe<ProductFiltersInput>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
   sort?: InputMaybe<ProductSortInput>;
@@ -951,7 +950,6 @@ export type CollectionMoveProductPayload = {
 export type CollectionProductConnection = {
   __typename?: 'CollectionProductConnection';
   edges: Array<CollectionProductEdge>;
-  facets: Maybe<Facets>;
   pageInfo: PageInfo;
   totalCount: Scalars['Int']['output'];
 };
@@ -1520,7 +1518,6 @@ export type FacetResult = {
 
 export type FacetResultGroup = {
   __typename?: 'FacetResultGroup';
-  collapsed: Scalars['Boolean']['output'];
   facets: Array<FacetResult>;
   name: Maybe<Scalars['String']['output']>;
 };
@@ -4271,7 +4268,6 @@ export type CollectionMoveProductPayloadResolvers<ContextType = ServiceContext, 
 
 export type CollectionProductConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CollectionProductConnection'] = ResolversParentTypes['CollectionProductConnection']> = ResolversObject<{
   edges?: Resolver<Array<ResolversTypes['CollectionProductEdge']>, ParentType, ContextType>;
-  facets?: Resolver<Maybe<ResolversTypes['Facets']>, ParentType, ContextType>;
   pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
   totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -4396,7 +4392,6 @@ export type FacetResultResolvers<ContextType = ServiceContext, ParentType extend
 }>;
 
 export type FacetResultGroupResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetResultGroup'] = ResolversParentTypes['FacetResultGroup']> = ResolversObject<{
-  collapsed?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   facets?: Resolver<Array<ResolversTypes['FacetResult']>, ParentType, ContextType>;
   name?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
