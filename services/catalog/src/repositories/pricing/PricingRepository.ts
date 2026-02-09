@@ -87,21 +87,6 @@ export class PricingRepository extends BaseRepository {
   // ============ CRUD ============
 
   @Transactional()
-  async closeCurrent(variantId: string, currency: Currency): Promise<void> {
-    await this.connection
-      .update(itemPricing)
-      .set({ effectiveTo: new Date().toISOString() })
-      .where(
-        and(
-          eq(itemPricing.projectId, this.storeId),
-          eq(itemPricing.variantId, variantId),
-          eq(itemPricing.currency, currency),
-          isNull(itemPricing.effectiveTo)
-        )
-      );
-  }
-
-  @Transactional()
   async create(
     variantId: string,
     data: {
@@ -198,20 +183,6 @@ export class PricingRepository extends BaseRepository {
     });
 
     return results[0] ?? null;
-  }
-
-  @ReadOnly()
-  async getByVariantId(
-    variantId: string,
-    input?: Omit<PricingQueryInput, "where">
-  ): Promise<ItemPricing[]> {
-    return pricingQuery.execute(this.connection, {
-      ...input,
-      where: {
-        variantId: { _eq: variantId },
-        projectId: { _eq: this.storeId },
-      },
-    });
   }
 
   @ReadOnly()

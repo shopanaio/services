@@ -67,28 +67,6 @@ export class OptionRepository extends BaseRepository {
       );
   }
 
-  async findByProductIds(productIds: string[]): Promise<Map<string, ProductOption[]>> {
-    if (productIds.length === 0) return new Map();
-
-    const results = await this.connection
-      .select()
-      .from(productOption)
-      .where(
-        and(
-          eq(productOption.projectId, this.storeId),
-          inArray(productOption.productId, productIds)
-        )
-      );
-
-    const map = new Map<string, ProductOption[]>();
-    for (const option of results) {
-      const existing = map.get(option.productId) ?? [];
-      existing.push(option);
-      map.set(option.productId, existing);
-    }
-    return map;
-  }
-
   async create(
     productId: string,
     data: { slug: string; displayType: string }
@@ -382,71 +360,6 @@ export class OptionRepository extends BaseRepository {
     return result[0];
   }
 
-  async updateSwatch(
-    id: string,
-    data: {
-      swatchType?: string;
-      colorOne?: string | null;
-      colorTwo?: string | null;
-      imageId?: string | null;
-      metadata?: unknown;
-    }
-  ): Promise<ProductOptionSwatch | null> {
-    const updateData: Partial<NewProductOptionSwatch> = {};
-
-    if (data.swatchType !== undefined) updateData.swatchType = data.swatchType;
-    if (data.colorOne !== undefined) updateData.colorOne = data.colorOne;
-    if (data.colorTwo !== undefined) updateData.colorTwo = data.colorTwo;
-    if (data.imageId !== undefined) updateData.imageId = data.imageId;
-    if (data.metadata !== undefined) updateData.metadata = data.metadata;
-
-    if (Object.keys(updateData).length === 0) {
-      return this.findSwatchById(id);
-    }
-
-    const result = await this.connection
-      .update(productOptionSwatch)
-      .set(updateData)
-      .where(
-        and(
-          eq(productOptionSwatch.projectId, this.storeId),
-          eq(productOptionSwatch.id, id)
-        )
-      )
-      .returning();
-
-    return result[0] ?? null;
-  }
-
-  async findSwatchById(id: string): Promise<ProductOptionSwatch | null> {
-    const result = await this.connection
-      .select()
-      .from(productOptionSwatch)
-      .where(
-        and(
-          eq(productOptionSwatch.projectId, this.storeId),
-          eq(productOptionSwatch.id, id)
-        )
-      )
-      .limit(1);
-
-    return result[0] ?? null;
-  }
-
-  async deleteSwatch(id: string): Promise<boolean> {
-    const result = await this.connection
-      .delete(productOptionSwatch)
-      .where(
-        and(
-          eq(productOptionSwatch.projectId, this.storeId),
-          eq(productOptionSwatch.id, id)
-        )
-      )
-      .returning({ id: productOptionSwatch.id });
-
-    return result.length > 0;
-  }
-
   // ============ Variant Links ============
 
   async linkVariant(
@@ -468,18 +381,6 @@ export class OptionRepository extends BaseRepository {
         target: [productOptionVariantLink.variantId, productOptionVariantLink.optionId],
         set: { optionValueId },
       });
-  }
-
-  async unlinkVariant(variantId: string, optionId: string): Promise<void> {
-    await this.connection
-      .delete(productOptionVariantLink)
-      .where(
-        and(
-          eq(productOptionVariantLink.projectId, this.storeId),
-          eq(productOptionVariantLink.variantId, variantId),
-          eq(productOptionVariantLink.optionId, optionId)
-        )
-      );
   }
 
   async clearVariantLinks(variantId: string): Promise<void> {

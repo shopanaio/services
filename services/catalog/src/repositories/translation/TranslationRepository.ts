@@ -68,32 +68,6 @@ export class TranslationRepository {
     return result[0];
   }
 
-  async getProductTranslations(productId: string): Promise<ProductTranslation[]> {
-    return this.connection
-      .select()
-      .from(productTranslation)
-      .where(eq(productTranslation.productId, productId));
-  }
-
-  async getProductTranslationsBatch(
-    productIds: string[],
-    locale: string
-  ): Promise<Map<string, ProductTranslation>> {
-    if (productIds.length === 0) return new Map();
-
-    const results = await this.connection
-      .select()
-      .from(productTranslation)
-      .where(
-        and(
-          inArray(productTranslation.productId, productIds),
-          eq(productTranslation.locale, locale)
-        )
-      );
-
-    return new Map(results.map((t) => [t.productId, t]));
-  }
-
   async upsertProductTranslation(
     data: NewProductTranslation
   ): Promise<ProductTranslation> {
@@ -136,41 +110,9 @@ export class TranslationRepository {
       .returning();
   }
 
-  async deleteProductTranslation(
-    productId: string,
-    locale: string
-  ): Promise<void> {
-    await this.connection
-      .delete(productTranslation)
-      .where(
-        and(
-          eq(productTranslation.productId, productId),
-          eq(productTranslation.locale, locale)
-        )
-      );
-  }
-
   // ─────────────────────────────────────────────────────────────────────────
   // Variant Translations
   // ─────────────────────────────────────────────────────────────────────────
-
-  async getVariantTranslation(
-    variantId: string,
-    locale: string
-  ): Promise<VariantTranslation | undefined> {
-    const result = await this.connection
-      .select()
-      .from(variantTranslation)
-      .where(
-        and(
-          eq(variantTranslation.variantId, variantId),
-          eq(variantTranslation.locale, locale)
-        )
-      )
-      .limit(1);
-
-    return result[0];
-  }
 
   async upsertVariantTranslation(
     data: NewVariantTranslation
@@ -191,43 +133,6 @@ export class TranslationRepository {
   // Option Translations
   // ─────────────────────────────────────────────────────────────────────────
 
-  async getOptionTranslation(
-    optionId: string,
-    locale: string
-  ): Promise<ProductOptionTranslation | undefined> {
-    const result = await this.connection
-      .select()
-      .from(productOptionTranslation)
-      .where(
-        and(
-          eq(productOptionTranslation.optionId, optionId),
-          eq(productOptionTranslation.locale, locale)
-        )
-      )
-      .limit(1);
-
-    return result[0];
-  }
-
-  async getOptionTranslationsBatch(
-    optionIds: string[],
-    locale: string
-  ): Promise<Map<string, ProductOptionTranslation>> {
-    if (optionIds.length === 0) return new Map();
-
-    const results = await this.connection
-      .select()
-      .from(productOptionTranslation)
-      .where(
-        and(
-          inArray(productOptionTranslation.optionId, optionIds),
-          eq(productOptionTranslation.locale, locale)
-        )
-      );
-
-    return new Map(results.map((t) => [t.optionId, t]));
-  }
-
   async upsertOptionTranslation(
     data: NewProductOptionTranslation
   ): Promise<ProductOptionTranslation> {
@@ -246,43 +151,6 @@ export class TranslationRepository {
   // ─────────────────────────────────────────────────────────────────────────
   // Option Value Translations
   // ─────────────────────────────────────────────────────────────────────────
-
-  async getOptionValueTranslation(
-    optionValueId: string,
-    locale: string
-  ): Promise<ProductOptionValueTranslation | undefined> {
-    const result = await this.connection
-      .select()
-      .from(productOptionValueTranslation)
-      .where(
-        and(
-          eq(productOptionValueTranslation.optionValueId, optionValueId),
-          eq(productOptionValueTranslation.locale, locale)
-        )
-      )
-      .limit(1);
-
-    return result[0];
-  }
-
-  async getOptionValueTranslationsBatch(
-    optionValueIds: string[],
-    locale: string
-  ): Promise<Map<string, ProductOptionValueTranslation>> {
-    if (optionValueIds.length === 0) return new Map();
-
-    const results = await this.connection
-      .select()
-      .from(productOptionValueTranslation)
-      .where(
-        and(
-          inArray(productOptionValueTranslation.optionValueId, optionValueIds),
-          eq(productOptionValueTranslation.locale, locale)
-        )
-      );
-
-    return new Map(results.map((t) => [t.optionValueId, t]));
-  }
 
   async upsertOptionValueTranslation(
     data: NewProductOptionValueTranslation
@@ -306,43 +174,6 @@ export class TranslationRepository {
   // Feature Translations
   // ─────────────────────────────────────────────────────────────────────────
 
-  async getFeatureTranslation(
-    featureId: string,
-    locale: string
-  ): Promise<ProductFeatureTranslation | undefined> {
-    const result = await this.connection
-      .select()
-      .from(productFeatureTranslation)
-      .where(
-        and(
-          eq(productFeatureTranslation.featureId, featureId),
-          eq(productFeatureTranslation.locale, locale)
-        )
-      )
-      .limit(1);
-
-    return result[0];
-  }
-
-  async getFeatureTranslationsBatch(
-    featureIds: string[],
-    locale: string
-  ): Promise<Map<string, ProductFeatureTranslation>> {
-    if (featureIds.length === 0) return new Map();
-
-    const results = await this.connection
-      .select()
-      .from(productFeatureTranslation)
-      .where(
-        and(
-          inArray(productFeatureTranslation.featureId, featureIds),
-          eq(productFeatureTranslation.locale, locale)
-        )
-      );
-
-    return new Map(results.map((t) => [t.featureId, t]));
-  }
-
   async upsertFeatureTranslation(
     data: NewProductFeatureTranslation
   ): Promise<ProductFeatureTranslation> {
@@ -361,43 +192,6 @@ export class TranslationRepository {
   // ─────────────────────────────────────────────────────────────────────────
   // Feature Value Translations
   // ─────────────────────────────────────────────────────────────────────────
-
-  async getFeatureValueTranslation(
-    featureValueId: string,
-    locale: string
-  ): Promise<ProductFeatureValueTranslation | undefined> {
-    const result = await this.connection
-      .select()
-      .from(productFeatureValueTranslation)
-      .where(
-        and(
-          eq(productFeatureValueTranslation.featureValueId, featureValueId),
-          eq(productFeatureValueTranslation.locale, locale)
-        )
-      )
-      .limit(1);
-
-    return result[0];
-  }
-
-  async getFeatureValueTranslationsBatch(
-    featureValueIds: string[],
-    locale: string
-  ): Promise<Map<string, ProductFeatureValueTranslation>> {
-    if (featureValueIds.length === 0) return new Map();
-
-    const results = await this.connection
-      .select()
-      .from(productFeatureValueTranslation)
-      .where(
-        and(
-          inArray(productFeatureValueTranslation.featureValueId, featureValueIds),
-          eq(productFeatureValueTranslation.locale, locale)
-        )
-      );
-
-    return new Map(results.map((t) => [t.featureValueId, t]));
-  }
 
   async upsertFeatureValueTranslation(
     data: NewProductFeatureValueTranslation
@@ -472,35 +266,6 @@ export class TranslationRepository {
         },
       })
       .returning();
-
-    return result[0];
-  }
-
-  async deleteProductSeo(productId: string, locale: string): Promise<void> {
-    await this.connection
-      .delete(productSeo)
-      .where(
-        and(
-          eq(productSeo.productId, productId),
-          eq(productSeo.locale, locale)
-        )
-      );
-  }
-
-  async getCategorySeo(
-    categoryId: string,
-    locale: string
-  ): Promise<CategorySeo | undefined> {
-    const result = await this.connection
-      .select()
-      .from(categorySeo)
-      .where(
-        and(
-          eq(categorySeo.categoryId, categoryId),
-          eq(categorySeo.locale, locale)
-        )
-      )
-      .limit(1);
 
     return result[0];
   }

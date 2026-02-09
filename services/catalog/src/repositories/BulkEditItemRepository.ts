@@ -224,50 +224,6 @@ export class BulkEditItemRepository extends BaseRepository {
   }
 
   /**
-   * Set cancel_requested flag on PENDING items for entire job
-   */
-  async requestCancelForJob(jobId: string): Promise<void> {
-    await this.connection
-      .update(bulkEditItem)
-      .set({
-        cancelRequested: true,
-        cancelReason: "USER",
-      })
-      .where(
-        and(
-          eq(bulkEditItem.projectId, this.storeId),
-          eq(bulkEditItem.jobId, jobId),
-          eq(bulkEditItem.status, "PENDING"),
-        ),
-      );
-  }
-
-  /**
-   * Set cancel_requested flag on PENDING items for specific products
-   */
-  async requestCancelForProducts(
-    jobId: string,
-    productIds: string[],
-  ): Promise<void> {
-    if (productIds.length === 0) return;
-
-    await this.connection
-      .update(bulkEditItem)
-      .set({
-        cancelRequested: true,
-        cancelReason: "USER",
-      })
-      .where(
-        and(
-          eq(bulkEditItem.projectId, this.storeId),
-          eq(bulkEditItem.jobId, jobId),
-          inArray(bulkEditItem.productId, productIds),
-          eq(bulkEditItem.status, "PENDING"),
-        ),
-      );
-  }
-
-  /**
    * Count items by status for progress
    */
   async countByStatus(jobId: string): Promise<Record<string, number>> {

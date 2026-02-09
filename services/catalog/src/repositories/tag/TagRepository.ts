@@ -264,28 +264,6 @@ export class TagRepository extends BaseRepository {
     return result;
   }
 
-  async getProductIdsByTagId(
-    tagId: string,
-    options?: { first?: number; offset?: number }
-  ): Promise<string[]> {
-    const first = options?.first ?? 20;
-    const offset = options?.offset ?? 0;
-
-    const results = await this.connection
-      .select({ productId: productTag.productId })
-      .from(productTag)
-      .where(
-        and(
-          eq(productTag.projectId, this.storeId),
-          eq(productTag.tagId, tagId)
-        )
-      )
-      .limit(first)
-      .offset(offset);
-
-    return results.map((r) => r.productId);
-  }
-
   async linkProductToTag(productId: string, tagId: string): Promise<ProductTag> {
     const newLink: NewProductTag = {
       projectId: this.storeId,
@@ -331,28 +309,6 @@ export class TagRepository extends BaseRepository {
       .returning({ productId: productTag.productId });
 
     return result.length > 0;
-  }
-
-  async setProductTags(productId: string, tagIds: string[]): Promise<void> {
-    // Remove all existing tags
-    await this.connection
-      .delete(productTag)
-      .where(
-        and(
-          eq(productTag.projectId, this.storeId),
-          eq(productTag.productId, productId)
-        )
-      );
-
-    // Add new tags
-    if (tagIds.length > 0) {
-      const links: NewProductTag[] = tagIds.map((tagId) => ({
-        projectId: this.storeId,
-        productId,
-        tagId,
-      }));
-      await this.connection.insert(productTag).values(links);
-    }
   }
 
   // ============ Translation ============

@@ -375,20 +375,6 @@ export class CategoryRepository {
     return result[0] ?? null;
   }
 
-  async getRootCategories(): Promise<Category[]> {
-    return this.connection
-      .select()
-      .from(category)
-      .where(
-        and(
-          eq(category.projectId, this.storeId),
-          isNull(category.parentId),
-          isNull(category.deletedAt)
-        )
-      )
-      .orderBy(asc(category.handle));
-  }
-
   // ============ Loader ============
 
   async getByIds(categoryIds: readonly string[]): Promise<Category[]> {
@@ -487,21 +473,6 @@ export class CategoryRepository {
       );
   }
 
-  async getProductCategoriesByCategoryIds(
-    categoryIds: readonly string[]
-  ): Promise<ProductCategory[]> {
-    if (categoryIds.length === 0) return [];
-    return this.connection
-      .select()
-      .from(productCategory)
-      .where(
-        and(
-          eq(productCategory.projectId, this.storeId),
-          inArray(productCategory.categoryId, [...categoryIds])
-        )
-      );
-  }
-
   async countProductsByCategoryIds(
     categoryIds: readonly string[]
   ): Promise<Map<string, number>> {
@@ -521,29 +492,6 @@ export class CategoryRepository {
       .groupBy(productCategory.categoryId);
 
     return new Map(results.map((r) => [r.categoryId, r.count]));
-  }
-
-  async getProductIdsByCategoryId(
-    categoryId: string,
-    options?: { first?: number; offset?: number }
-  ): Promise<string[]> {
-    const first = options?.first ?? 20;
-    const offset = options?.offset ?? 0;
-
-    const results = await this.connection
-      .select({ productId: productCategory.productId })
-      .from(productCategory)
-      .where(
-        and(
-          eq(productCategory.projectId, this.storeId),
-          eq(productCategory.categoryId, categoryId)
-        )
-      )
-      .orderBy(asc(productCategory.lexoRank))
-      .limit(first)
-      .offset(offset);
-
-    return results.map((r) => r.productId);
   }
 
   async addProductToCategory(
@@ -571,53 +519,6 @@ export class CategoryRepository {
       .returning();
 
     return result[0];
-  }
-
-  async removeProductFromCategory(
-    productId: string,
-    categoryId: string
-  ): Promise<boolean> {
-    const result = await this.connection
-      .delete(productCategory)
-      .where(
-        and(
-          eq(productCategory.projectId, this.storeId),
-          eq(productCategory.productId, productId),
-          eq(productCategory.categoryId, categoryId)
-        )
-      )
-      .returning({ productId: productCategory.productId });
-
-    return result.length > 0;
-  }
-
-  async setProductCategories(
-    productId: string,
-    categoryIds: string[],
-    primaryCategoryId?: string
-  ): Promise<void> {
-    // Delete existing
-    await this.connection
-      .delete(productCategory)
-      .where(
-        and(
-          eq(productCategory.projectId, this.storeId),
-          eq(productCategory.productId, productId)
-        )
-      );
-
-    // Insert new
-    if (categoryIds.length > 0) {
-      const values: NewProductCategory[] = categoryIds.map((categoryId) => ({
-        projectId: this.storeId,
-        productId,
-        categoryId,
-        isPrimary: categoryId === primaryCategoryId,
-        lexoRank: initialRank(),
-      }));
-
-      await this.connection.insert(productCategory).values(values);
-    }
   }
 
   async getProductCategory(

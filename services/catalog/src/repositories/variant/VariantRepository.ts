@@ -250,17 +250,6 @@ export class VariantRepository extends BaseRepository {
     });
   }
 
-  async countByProductId(productId: string): Promise<number> {
-    const results = await variantQuery.execute(this.connection, {
-      where: {
-        productId: { _eq: productId },
-        projectId: { _eq: this.storeId },
-        deletedAt: { _is: null },
-      },
-    });
-    return results.length;
-  }
-
   async getIdsByProductId(
     productId: string,
     args: VariantCursorInput
