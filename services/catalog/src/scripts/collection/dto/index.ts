@@ -93,6 +93,10 @@ export interface CollectionProductsQueryParams {
   after?: string;
   filters?: ProductFiltersInput;
   sort?: ProductSortInput;
+  /** Skip publish check (for admin API which allows querying unpublished collections) */
+  skipPublishCheck?: boolean;
+  /** Include draft products (for admin API) */
+  includeDrafts?: boolean;
 }
 
 export interface CollectionProductsQueryResult {

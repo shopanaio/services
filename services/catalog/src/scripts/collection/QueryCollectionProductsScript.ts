@@ -50,13 +50,19 @@ export class QueryCollectionProductsScript extends BaseScript<
       return this.emptyResult();
     }
 
-    if (
-      collection.deletedAt ||
-      !collection.publishedAt ||
-      new Date(collection.publishedAt) > new Date() ||
-      (collection.effectiveFrom && new Date(collection.effectiveFrom) > new Date()) ||
-      (collection.effectiveTo && new Date(collection.effectiveTo) <= new Date())
-    ) {
+    // Skip publish check for admin API (allows querying unpublished collections)
+    if (!params.skipPublishCheck) {
+      if (
+        collection.deletedAt ||
+        !collection.publishedAt ||
+        new Date(collection.publishedAt) > new Date() ||
+        (collection.effectiveFrom && new Date(collection.effectiveFrom) > new Date()) ||
+        (collection.effectiveTo && new Date(collection.effectiveTo) <= new Date())
+      ) {
+        return this.emptyResult();
+      }
+    } else if (collection.deletedAt) {
+      // Even for admin API, don't query deleted collections
       return this.emptyResult();
     }
 
@@ -139,8 +145,11 @@ export class QueryCollectionProductsScript extends BaseScript<
 
     const baseScopeConditions: SQL[] = [
       eq(productSearchIndex.projectId, this.getProjectId()),
-      eq(productSearchIndex.status, "published"),
     ];
+    // Include draft products for admin API, only published for storefront
+    if (!params.includeDrafts) {
+      baseScopeConditions.push(eq(productSearchIndex.status, "published"));
+    }
 
     if (collection.type === "rule") {
       this.appendRuleProductConditions(baseScopeConditions, ruleCtx);

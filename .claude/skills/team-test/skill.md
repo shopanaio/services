@@ -1,5 +1,5 @@
 ---
-name: agents-spawn
+name: team-test
 description: Spawn 3-agent team for test debugging (infra + test-runner + code-fixer)
 user-invocable: true
 ---
