@@ -1,32 +1,31 @@
 ---
 name: team-test
-description: Spawn 3-agent team for test debugging (infra + test-runner + code-fixer)
+description: Spawn 2-agent team for test debugging (infra + code-fixer/tester)
 user-invocable: true
 ---
 
 # Agents Spawn - Test Debugging Team
 
-Orchestrate a team of 3 specialized agents to run tests and fix failures.
+Orchestrate a team of 2 specialized agents to run tests and fix failures.
 
 ## Usage
 
 ```
-/agents-spawn <test-file>
+/team-test <test-file>
 ```
 
 Examples:
-- `/agents-spawn tests/users-api/sign-in.spec.ts`
-- `/agents-spawn tests/project-api/create.spec.ts`
+- `/team-test tests/users-api/sign-in.spec.ts`
+- `/team-test tests/project-api/create.spec.ts`
 
 ## Agent Team
 
-You spawn 3 agents, each with their own skill:
+You spawn 2 agents:
 
 | Agent | Skill | Role |
 |-------|-------|------|
 | Agent 1 | `/infra-start` | Start docker, gateway, bootstrap; provide logs |
-| Agent 2 | `/test-run` | Run playwright tests, report results |
-| Agent 3 | `/code-fix` | Debug and fix code with hot-reload |
+| Agent 2 | `/code-fix` | Run tests, debug and fix code with hot-reload |
 
 ## Orchestration Steps
 
@@ -45,46 +44,24 @@ Wait for output containing `INFRASTRUCTURE READY`.
 
 Store the agent ID for later log requests.
 
-### Step 2: Spawn Test Runner Agent
+### Step 2: Spawn Code Fixer Agent
 
-Launch Agent 2 with `/test-run` skill:
-
-```
-Task tool:
-  prompt: "Execute the /test-run skill for: {test_file}"
-  subagent_type: general-purpose
-```
-
-Wait for test results.
-
-### Step 3: Check Results
-
-If all tests passed:
-- Report success
-- Resume Agent 1 with "Cleanup and stop"
-- Done!
-
-If tests failed:
-- Continue to Step 4
-
-### Step 4: Spawn Code Fixer Agent
-
-Launch Agent 3 with `/code-fix` skill:
+Launch Agent 2 with `/code-fix` skill:
 
 ```
 Task tool:
-  prompt: "Execute the /code-fix skill.
+  prompt: "Execute the /code-fix skill for: {test_file}
 
-  Failed tests:
-  {failure_details_from_agent_2}
-
-  Debug and fix the code."
+  1. Run the test first
+  2. If tests fail, debug and fix the code
+  3. Re-run tests to verify
+  4. Repeat until all tests pass (max 3 iterations)"
   subagent_type: general-purpose
 ```
 
-### Step 5: Handle Log Requests
+### Step 3: Handle Log Requests
 
-When Agent 3 says "I need bootstrap logs":
+When Agent 2 says "I need bootstrap logs":
 
 1. Resume Agent 1:
    ```
@@ -93,32 +70,23 @@ When Agent 3 says "I need bootstrap logs":
      prompt: "Provide bootstrap logs, grep for [DEBUG"
    ```
 
-2. Pass the logs to Agent 3:
+2. Pass the logs to Agent 2:
    ```
    Task tool (resume):
-     resume: {agent_3_id}
+     resume: {agent_2_id}
      prompt: "Here are the logs:
      {logs_from_agent_1}
 
      Continue debugging."
    ```
 
-### Step 6: Re-run Tests
+### Step 4: Check Results
 
-When Agent 3 reports "Ready for re-test":
-
-1. Wait 3 seconds (for hot-reload)
-2. Go back to Step 2 (spawn test runner again)
-
-### Step 7: Loop Control
-
-- Maximum 3 iterations
-- If still failing after 3 attempts:
-  ```
-  Max iterations reached.
-  Last failure: {details}
-  Manual intervention needed.
-  ```
+When Agent 2 reports completion:
+- If tests passed: Report success
+- If max iterations reached: Report failure details
+- Resume Agent 1 with "Cleanup and stop"
+- Done!
 
 ## Message Passing Protocol
 
@@ -130,10 +98,10 @@ Resume Agent 1:
 Look for: {pattern}"
 ```
 
-### Orchestrator to Agent 3 (send logs)
+### Orchestrator to Agent 2 (send logs)
 
 ```
-Resume Agent 3:
+Resume Agent 2:
 "Here are the bootstrap logs:
 ---
 {log_content}
@@ -141,9 +109,9 @@ Resume Agent 3:
 Continue your analysis."
 ```
 
-### Agent 3 to Orchestrator (request logs)
+### Agent 2 to Orchestrator (request logs)
 
-Agent 3 will say something like:
+Agent 2 will say something like:
 ```
 I added logging to SignInScript.ts.
 I need bootstrap logs to see my [DEBUG SignInScript] output.
@@ -154,31 +122,26 @@ You then get logs from Agent 1 and pass them back.
 ## Example Flow
 
 ```
-User: /agents-spawn tests/users-api/sign-in.spec.ts
+User: /team-test tests/users-api/sign-in.spec.ts
 
 [You] Spawning infra agent...
 [Agent 1] Starting docker... gateway... bootstrap...
 [Agent 1] INFRASTRUCTURE READY
 
-[You] Spawning test runner...
+[You] Spawning code fixer agent...
 [Agent 2] Running sign-in.spec.ts
 [Agent 2] FAILED: should handle expired tokens
          Error: Expected 401, got 500
-
-[You] Spawning code fixer...
-[Agent 3] Analyzing SignInScript.ts
-[Agent 3] Adding debug logs...
-[Agent 3] Need bootstrap logs
+[Agent 2] Analyzing SignInScript.ts
+[Agent 2] Adding debug logs...
+[Agent 2] Need bootstrap logs
 
 [You] Getting logs from Agent 1...
 [Agent 1] [DEBUG validateToken] error: jwt expired
 
-[You] Passing to Agent 3...
-[Agent 3] Found issue! Fixing...
-[Agent 3] Ready for re-test
-
-[You] Waiting 3s for hot-reload...
-[You] Re-running tests...
+[You] Passing to Agent 2...
+[Agent 2] Found issue! Fixing...
+[Agent 2] Re-running tests...
 [Agent 2] ALL TESTS PASSED
 
 [You] Success! Cleaning up...
