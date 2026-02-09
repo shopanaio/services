@@ -7,5 +7,4 @@ export * from "./CollectionRemoveProductsScript.js";
 export * from "./CollectionMoveProductScript.js";
 export * from "./CollectionRebalanceScript.js";
 export * from "./CollectionUpdateRulesScript.js";
-export * from "./QueryCollectionProductsScript.js";
 export * from "./CollectionRulesPreviewCountScript.js";

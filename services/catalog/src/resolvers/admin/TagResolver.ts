@@ -5,14 +5,6 @@ import {
 } from "@shopana/shared-graphql-guid";
 import type { Tag } from "../../repositories/models/index.js";
 import { CatalogType } from "./CatalogType.js";
-import { ProductResolver } from "./ProductResolver.js";
-
-interface ProductsArgs {
-  first?: number;
-  after?: string;
-  last?: number;
-  before?: string;
-}
 
 /**
  * Tag resolver - resolves Tag domain interface.
@@ -62,32 +54,5 @@ export class TagResolver extends CatalogType<string, Tag> {
     return this.$ctx.loaders.tagProductsCount.load(this.$props);
   }
 
-  /**
-   * Returns products with this tag, with pagination
-   */
-  async products(args: ProductsArgs) {
-    const first = args.first ?? 20;
-    const productIds = await this.$ctx.kernel
-      .getServices()
-      .repository.tag.getProductIdsByTagId(this.$props, { first: first + 1 });
-
-    const hasNextPage = productIds.length > first;
-    const resultIds = hasNextPage ? productIds.slice(0, first) : productIds;
-
-    const edges = resultIds.map((id) => ({
-      cursor: Buffer.from(id).toString("base64"),
-      node: new ProductResolver(id, this.$ctx),
-    }));
-
-    return {
-      edges,
-      pageInfo: {
-        hasNextPage,
-        hasPreviousPage: false,
-        startCursor: edges[0]?.cursor ?? null,
-        endCursor: edges[edges.length - 1]?.cursor ?? null,
-      },
-      totalCount: await this.productsCount(),
-    };
-  }
+  // TODO: Implement products() with keyset pagination
 }
