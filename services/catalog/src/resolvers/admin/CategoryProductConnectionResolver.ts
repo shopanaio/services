@@ -5,12 +5,18 @@ import {
   type ConnectionData,
 } from "./connection/BaseConnectionResolver.js";
 
+export interface ProductOrderByInput {
+  field: "MANUAL" | "PRICE" | "NEWEST" | "NAME";
+  direction?: "asc" | "desc";
+}
+
 export interface CategoryProductConnectionInput {
   categoryId: string;
   first?: number;
   after?: string;
   last?: number;
   before?: string;
+  orderBy?: ProductOrderByInput[];
 }
 
 /**

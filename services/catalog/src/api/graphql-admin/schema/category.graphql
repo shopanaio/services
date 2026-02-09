@@ -64,7 +64,7 @@ type Category implements Node @key(fields: "id") {
     after: String
     last: Int
     before: String
-    sort: ProductSortInput
+    orderBy: [ProductOrderByInput!]
   ): CategoryProductConnection!
 
   """The total number of products in this category."""
@@ -198,6 +198,11 @@ input CategoryMoveProductInput {
   beforeProductId: ID
 }
 
+input CategoryAddProductInput {
+  categoryId: ID!
+  productId: ID!
+}
+
 input CategoryRebalanceInput {
   categoryId: ID!
 }
@@ -255,6 +260,11 @@ type CategoryDeletePayload {
 }
 
 type CategoryMoveProductPayload {
+  category: Category
+  userErrors: [GenericUserError!]!
+}
+
+type CategoryAddProductPayload {
   category: Category
   userErrors: [GenericUserError!]!
 }

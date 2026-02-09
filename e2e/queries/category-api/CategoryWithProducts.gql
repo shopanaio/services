@@ -1,0 +1,32 @@
+query CategoryWithProducts(
+  $id: ID!
+  $first: Int
+  $after: String
+  $orderBy: [ProductOrderByInput!]
+) {
+  catalogQuery {
+    category(id: $id) {
+      id
+      handle
+      name
+      productsCount
+      products(first: $first, after: $after, orderBy: $orderBy) {
+        edges {
+          node {
+            id
+            title
+            handle
+          }
+          cursor
+        }
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
+        }
+        totalCount
+      }
+    }
+  }
+}

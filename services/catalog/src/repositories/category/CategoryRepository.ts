@@ -591,9 +591,11 @@ export class CategoryRepository {
 
   async getCategoryProductsConnection(
     categoryId: string,
-    args: Omit<CategoryProductsRelayInput, "where" | "orderBy">
+    args: Omit<CategoryProductsRelayInput, "where" | "orderBy"> & {
+      orderBy?: Array<{ field: string; direction?: string }>;
+    }
   ): Promise<CategoryProductsConnectionResult> {
-    const { first, after, last, before } = args;
+    const { first, after, last, before, orderBy: inputOrderBy } = args;
 
     // Build where filter for this category
     const mergedWhere: CategoryProductsRelayInput["where"] = {
@@ -604,11 +606,34 @@ export class CategoryRepository {
       ],
     };
 
-    // Default sort by lexoRank (manual order)
-    const orderBy: CategoryProductsRelayInput["orderBy"] = [
-      { field: "category.lexoRank", direction: "asc" },
-      { field: "id", direction: "asc" },
-    ];
+    // Build orderBy from input array
+    let orderBy: CategoryProductsRelayInput["orderBy"];
+
+    if (inputOrderBy && inputOrderBy.length > 0) {
+      orderBy = inputOrderBy.map((o) => {
+        const direction = (o.direction?.toLowerCase() ?? "asc") as "asc" | "desc";
+        // Map field names to actual database fields
+        switch (o.field?.toUpperCase()) {
+          case "NAME":
+            return { field: "translation.title" as const, direction };
+          case "NEWEST":
+            return { field: "createdAt" as const, direction };
+          case "PRICE":
+            return { field: "variant.priceMinor" as const, direction };
+          case "MANUAL":
+          default:
+            return { field: "category.lexoRank" as const, direction };
+        }
+      });
+      // Always add id as tie-breaker
+      orderBy.push({ field: "id", direction: "asc" });
+    } else {
+      // Default sort by lexoRank (manual order)
+      orderBy = [
+        { field: "category.lexoRank", direction: "asc" },
+        { field: "id", direction: "asc" },
+      ];
+    }
 
     const executeInput: CategoryProductsRelayInput = {
       first,

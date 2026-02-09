@@ -66,6 +66,8 @@ export async function startServer(serverConfig: ServerConfig) {
     "shared-currency.graphql",
     "shared-locale.graphql",
     "shared-units.graphql",
+    // Scalars must come before types that use them
+    "scalars.graphql",
     // Service-specific schemas
     "base.graphql",
     "bulk.graphql",

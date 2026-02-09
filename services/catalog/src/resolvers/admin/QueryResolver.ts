@@ -182,11 +182,13 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
    * Returns null if category doesn't exist.
    */
   async category(args: { id: string }) {
-    const cat = await this.$ctx.loaders.category.load(args.id);
+    const categoryId = safeDecodeGlobalId(args.id, GlobalIdEntity.Category);
+    if (!categoryId) return null;
+    const cat = await this.$ctx.loaders.category.load(categoryId);
     if (!cat) {
       return null;
     }
-    return new CategoryResolver(args.id, this.$ctx);
+    return new CategoryResolver(categoryId, this.$ctx);
   }
 
   /**

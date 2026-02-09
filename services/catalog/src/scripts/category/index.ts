@@ -6,3 +6,4 @@ export { CategoryMoveScript } from "./CategoryMoveScript.js";
 export { CategoryMoveProductScript } from "./CategoryMoveProductScript.js";
 export { CategoryRebalanceScript } from "./CategoryRebalanceScript.js";
 export { CategoryUpdateSortScript } from "./CategoryUpdateSortScript.js";
+export { CategoryAddProductScript } from "./CategoryAddProductScript.js";

@@ -10,6 +10,12 @@ input ProductSortInput {
   direction: SortDirection
 }
 
+"""Standard orderBy input for product queries."""
+input ProductOrderByInput {
+  field: ProductSortBy!
+  direction: SortDirection
+}
+
 # ---- Product Types ----
 
 """

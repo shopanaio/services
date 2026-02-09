@@ -43,6 +43,7 @@ import {
   CategoryMoveProductScript,
   CategoryRebalanceScript,
   CategoryUpdateSortScript,
+  CategoryAddProductScript,
 } from "../../scripts/category/index.js";
 import {
   TagCreateScript,
@@ -1083,6 +1084,38 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       productId,
       afterProductId,
       beforeProductId,
+    });
+
+    return {
+      category: result.category
+        ? new CategoryResolver(result.category.id, this.$ctx)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  async categoryAddProduct(args: {
+    input: {
+      categoryId: string;
+      productId: string;
+    };
+  }) {
+    const { input } = args;
+    let categoryId: string;
+    let productId: string;
+    try {
+      categoryId = decodeGlobalIdByType(input.categoryId, GlobalIdEntity.Category);
+      productId = decodeGlobalIdByType(input.productId, GlobalIdEntity.Product);
+    } catch {
+      return {
+        category: null,
+        userErrors: [{ message: "Invalid ID format", code: "INVALID_ID" }],
+      };
+    }
+
+    const result = await this.$ctx.kernel.runScript(CategoryAddProductScript, {
+      categoryId,
+      productId,
     });
 
     return {

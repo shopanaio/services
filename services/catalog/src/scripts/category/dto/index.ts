@@ -136,3 +136,15 @@ export interface CategoryUpdateSortResult {
   category?: Category;
   userErrors: UserError[];
 }
+
+// ============ Add Product ============
+
+export interface CategoryAddProductParams {
+  categoryId: string;
+  productId: string;
+}
+
+export interface CategoryAddProductResult {
+  category?: Category;
+  userErrors: UserError[];
+}

@@ -189,6 +189,7 @@ type CatalogMutation {
   categoryUpdate(input: CategoryUpdateInput!): CategoryUpdatePayload!
   categoryMove(input: CategoryMoveInput!): CategoryMovePayload!
   categoryMoveProduct(input: CategoryMoveProductInput!): CategoryMoveProductPayload!
+  categoryAddProduct(input: CategoryAddProductInput!): CategoryAddProductPayload!
   categoryRebalance(input: CategoryRebalanceInput!): CategoryRebalancePayload!
   categoryUpdateSort(input: CategoryUpdateSortInput!): CategoryUpdateSortPayload!
   categoryDelete(input: CategoryDeleteInput!): CategoryDeletePayload!
