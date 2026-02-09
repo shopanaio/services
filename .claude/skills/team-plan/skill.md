@@ -60,7 +60,7 @@ Examples:
               │    [PLAN REVIEWER]
               │    Re-review
               │           │
-              │    (max 2 iterations)
+              │    (max 3 iterations)
               │           │
               ▼           ▼
          PLAN COMPLETE
@@ -147,7 +147,7 @@ Task tool:
 
 ### Phase 4: Revision Loop (if needed)
 
-**Iteration limit:** 2 revision attempts
+**Iteration limit:** 3 revision attempts
 
 **On `NEEDS REVISION`:**
 
@@ -188,7 +188,7 @@ Task tool:
 
 5. Check result:
    - `APPROVED` → Complete
-   - `NEEDS REVISION` → Repeat if iterations < 2
+   - `NEEDS REVISION` → Repeat if iterations < 3
 
 **If max iterations reached:**
 
@@ -196,7 +196,7 @@ Task tool:
 PLAN REVIEW INCOMPLETE
 
 Feature: {feature_description}
-Attempts: 2/2 exhausted
+Attempts: 3/3 exhausted
 
 REMAINING ISSUES:
 {issues_from_reviewer}
@@ -301,7 +301,7 @@ OUTSTANDING ISSUES
 
 MANUAL REVIEW REQUIRED
 
-The plan could not be approved after 2 revision attempts.
+The plan could not be approved after 3 revision attempts.
 Please review the outstanding issues before proceeding.
 ```
 
@@ -357,7 +357,7 @@ Save files:
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| Max revision iterations | 2 | Attempts before giving up |
+| Max revision iterations | 3 | Attempts before giving up |
 | Save session | true | Save artifacts to .ai-team-sessions |
 
 ## Best Practices
