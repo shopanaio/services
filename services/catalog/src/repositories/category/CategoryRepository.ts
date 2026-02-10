@@ -17,6 +17,7 @@ import {
   productCategory,
   product,
   productTranslation,
+  productPriceRange,
   type Category,
   type NewCategory,
   type CategoryMedia,
@@ -39,8 +40,13 @@ const productTranslationQuery = createQuery(productTranslation, {
   title: field(productTranslation.title),
 });
 
-// TODO: priceRange join disabled due to issues with view columns
-// Need to fix createFieldsFromView to handle SQL.Aliased fields correctly
+const priceRangeQuery = createQuery(productPriceRange, {
+  productId: { column: "product_id" },
+  currency: { column: "currency" },
+  minAmountMinor: { column: "min_amount_minor" },
+  maxAmountMinor: { column: "max_amount_minor" },
+});
+
 const categoryProductsQuery = createQuery(product, {
   id: field(product.id),
   createdAt: field(product.createdAt),
@@ -48,6 +54,7 @@ const categoryProductsQuery = createQuery(product, {
   projectId: field(product.projectId),
   category: field(product.id).innerJoin(productCategoryQuery, productCategory.productId),
   translation: field(product.id).leftJoin(productTranslationQuery, productTranslation.productId),
+  priceRange: field(product.id).leftJoin(priceRangeQuery, { name: "product_id" } as never),
 });
 
 export const categoryProductsRelayQuery = createRelayQuery(
@@ -631,9 +638,11 @@ export class CategoryRepository {
           case "NEWEST":
             return { field: "createdAt" as const, direction };
           case "PRICE":
-            // TODO: PRICE sorting disabled - priceRange join not working
-            // Fallback to creation order (NEWEST) for now
-            return { field: "createdAt" as const, direction };
+            // ASC → min price (cheapest first), DESC → max price (most expensive first)
+            return {
+              field: direction === "asc" ? "priceRange.minAmountMinor" as const : "priceRange.maxAmountMinor" as const,
+              direction,
+            };
           case "MANUAL":
           default:
             return { field: "category.lexoRank" as const, direction };
