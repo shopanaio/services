@@ -218,9 +218,11 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       "catalog.productCreate",
       sagaInput,
       {
-        source: "workflow",
-        workflowId: `productCreate:${Date.now()}`,
-        stepId: "create",
+        source: "content",
+        tenantId: sagaInput.storeId,
+        resourceId: sagaInput.handle,
+        operation: "productCreate",
+        content: input,
       }
     );
 

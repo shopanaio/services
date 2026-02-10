@@ -593,18 +593,21 @@ export class CategoryRepository {
     categoryId: string,
     args: Omit<CategoryProductsRelayInput, "where" | "orderBy"> & {
       orderBy?: Array<{ field: string; direction?: string }>;
+      where?: CategoryProductsRelayInput["where"];
     }
   ): Promise<CategoryProductsConnectionResult> {
-    const { first, after, last, before, orderBy: inputOrderBy } = args;
+    const { first, after, last, before, orderBy: inputOrderBy, where: userWhere } = args;
 
-    // Build where filter for this category
-    const mergedWhere: CategoryProductsRelayInput["where"] = {
-      _and: [
-        { projectId: { _eq: this.storeId } },
-        { deletedAt: { _is: null } },
-        { category: { categoryId: { _eq: categoryId } } },
-      ],
-    };
+    // Build where filter for this category, merging with user's filter
+    const baseConditions = [
+      { projectId: { _eq: this.storeId } },
+      { deletedAt: { _is: null } },
+      { category: { categoryId: { _eq: categoryId } } },
+    ];
+
+    const mergedWhere: CategoryProductsRelayInput["where"] = userWhere
+      ? { _and: [...baseConditions, userWhere] }
+      : { _and: baseConditions };
 
     // Build orderBy from input array
     let orderBy: CategoryProductsRelayInput["orderBy"];
@@ -635,6 +638,16 @@ export class CategoryRepository {
       ];
     }
 
+    // Include sort fields in select for cursor building
+    const selectFields: string[] = ["id"];
+    if (orderBy) {
+      for (const o of orderBy) {
+        if (!selectFields.includes(o.field)) {
+          selectFields.push(o.field);
+        }
+      }
+    }
+
     const executeInput: CategoryProductsRelayInput = {
       first,
       after,
@@ -642,6 +655,7 @@ export class CategoryRepository {
       before,
       where: mergedWhere,
       orderBy,
+      select: selectFields as CategoryProductsRelayInput["select"],
     };
 
     const [result, totalCount] = await Promise.all([
