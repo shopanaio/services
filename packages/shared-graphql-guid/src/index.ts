@@ -120,6 +120,14 @@ export enum GlobalIdEntity {
   BulkUpdateItem = "BulkUpdateItem",
   ProductBulkUpdateJob = "ProductBulkUpdateJob",
   VariantPrice = "VariantPrice",
+  // Bundles
+  BundleGroup = "BundleGroup",
+  BundleItem = "BundleItem",
+  BundlePricingTemplate = "BundlePricingTemplate",
+  DependencyRule = "DependencyRule",
+  ConditionGroup = "ConditionGroup",
+  Condition = "Condition",
+  DependencyAction = "DependencyAction",
   // Inventory
   InventoryItem = "InventoryItem",
   Warehouse = "Warehouse",
