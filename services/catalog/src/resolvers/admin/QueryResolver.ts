@@ -183,6 +183,8 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
    */
   async category(args: { id: string }) {
     const categoryId = safeDecodeGlobalId(args.id, GlobalIdEntity.Category);
+
+    console.log(categoryId, 'cat id');
     if (!categoryId) return null;
     const cat = await this.$ctx.loaders.category.load(categoryId);
     if (!cat) {
