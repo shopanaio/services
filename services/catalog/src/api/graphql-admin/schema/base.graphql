@@ -226,4 +226,39 @@ type CatalogMutation {
   Requires X-Idempotency-Key header.
   """
   productBulkUpdate(input: ProductBulkUpdateInput!): ProductBulkUpdatePayload!
+
+  # Bundle Group mutations
+  bundleGroupCreate(input: BundleGroupCreateInput!): BundleGroupPayload!
+  bundleGroupUpdate(input: BundleGroupUpdateInput!): BundleGroupPayload!
+  bundleGroupDelete(input: DeleteInput!): DeletePayload!
+
+  # Bundle Item mutations
+  bundleItemCreate(input: BundleItemCreateInput!): BundleItemPayload!
+  bundleItemUpdate(input: BundleItemUpdateInput!): BundleItemPayload!
+  bundleItemDelete(input: DeleteInput!): DeletePayload!
+
+  # Bundle Pricing Template mutations
+  bundlePricingTemplateCreate(input: BundlePricingTemplateCreateInput!): BundlePricingTemplatePayload!
+  bundlePricingTemplateUpdate(input: BundlePricingTemplateUpdateInput!): BundlePricingTemplatePayload!
+  bundlePricingTemplateDelete(input: DeleteInput!): DeletePayload!
+
+  # Dependency Rule mutations
+  dependencyRuleCreate(input: DependencyRuleCreateInput!): DependencyRulePayload!
+  dependencyRuleUpdate(input: DependencyRuleUpdateInput!): DependencyRulePayload!
+  dependencyRuleDelete(input: DeleteInput!): DeletePayload!
+
+  # Condition Group mutations
+  conditionGroupCreate(input: ConditionGroupCreateInput!): ConditionGroupPayload!
+  conditionGroupUpdate(input: ConditionGroupUpdateInput!): ConditionGroupPayload!
+  conditionGroupDelete(input: DeleteInput!): DeletePayload!
+
+  # Condition mutations
+  conditionCreate(input: ConditionCreateInput!): ConditionPayload!
+  conditionUpdate(input: ConditionUpdateInput!): ConditionPayload!
+  conditionDelete(input: DeleteInput!): DeletePayload!
+
+  # Dependency Action mutations
+  dependencyActionCreate(input: DependencyActionCreateInput!): DependencyActionPayload!
+  dependencyActionUpdate(input: DependencyActionUpdateInput!): DependencyActionPayload!
+  dependencyActionDelete(input: DeleteInput!): DeletePayload!
 }
