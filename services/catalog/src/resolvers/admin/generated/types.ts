@@ -140,8 +140,188 @@ export type BulkUpdateUserError = UserError & {
   variantId: Maybe<Scalars['ID']['output']>;
 };
 
+/** A group of items within a bundle (e.g., "Choose your processor", "Select accessories"). */
+export type BundleGroup = Node & {
+  __typename?: 'BundleGroup';
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  items: Array<BundleItem>;
+  maxSelection: Maybe<Scalars['Int']['output']>;
+  minSelection: Maybe<Scalars['Int']['output']>;
+  productId: Scalars['ID']['output'];
+  sortIndex: Scalars['Int']['output'];
+  title: Scalars['String']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type BundleGroupCreateInput = {
+  maxSelection?: InputMaybe<Scalars['Int']['input']>;
+  minSelection?: InputMaybe<Scalars['Int']['input']>;
+  productId: Scalars['ID']['input'];
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  title: Scalars['String']['input'];
+};
+
+export type BundleGroupPayload = {
+  __typename?: 'BundleGroupPayload';
+  bundleGroup: Maybe<BundleGroup>;
+  userErrors: Array<UserError>;
+};
+
+export type BundleGroupUpdateInput = {
+  id: Scalars['ID']['input'];
+  maxSelection?: InputMaybe<Scalars['Int']['input']>;
+  minSelection?: InputMaybe<Scalars['Int']['input']>;
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  title?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** An individual item within a bundle group. */
+export type BundleItem = Node & {
+  __typename?: 'BundleItem';
+  createdAt: Scalars['DateTime']['output'];
+  /** Default quantity when item is added to cart */
+  defaultQty: Scalars['Int']['output'];
+  /** Excluded variant IDs when itemType is PRODUCT */
+  excludedVariantIds: Maybe<Array<Scalars['ID']['output']>>;
+  /** Custom featured image override */
+  featuredImageId: Maybe<Scalars['ID']['output']>;
+  groupId: Scalars['ID']['output'];
+  id: Scalars['ID']['output'];
+  itemType: BundleItemType;
+  /** Maximum quantity that can be selected (null = unlimited) */
+  maxQty: Maybe<Scalars['Int']['output']>;
+  /** Minimum quantity that can be selected */
+  minQty: Scalars['Int']['output'];
+  /** Inline pricing type */
+  priceType: Maybe<BundlePriceType>;
+  /** Inline pricing value (cents) */
+  priceValue: Maybe<Scalars['Int']['output']>;
+  /** Resolved pricing template */
+  pricingTemplate: Maybe<BundlePricingTemplate>;
+  /** Reference to a pricing template */
+  pricingTemplateId: Maybe<Scalars['ID']['output']>;
+  /** Reference to product (when itemType is PRODUCT) */
+  refProductId: Maybe<Scalars['ID']['output']>;
+  /** Reference to variant (when itemType is VARIANT) */
+  refVariantId: Maybe<Scalars['ID']['output']>;
+  /** Whether item is selected by default */
+  selected: Scalars['Boolean']['output'];
+  sortIndex: Scalars['Int']['output'];
+  /** Custom title override for this bundle item */
+  title: Maybe<Scalars['String']['output']>;
+  updatedAt: Scalars['DateTime']['output'];
+  /** Whether item is visible in the bundle configurator */
+  visible: Scalars['Boolean']['output'];
+};
+
+export type BundleItemCreateInput = {
+  defaultQty?: InputMaybe<Scalars['Int']['input']>;
+  excludedVariantIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  featuredImageId?: InputMaybe<Scalars['ID']['input']>;
+  groupId: Scalars['ID']['input'];
+  itemType: BundleItemType;
+  maxQty?: InputMaybe<Scalars['Int']['input']>;
+  minQty?: InputMaybe<Scalars['Int']['input']>;
+  priceType?: InputMaybe<BundlePriceType>;
+  priceValue?: InputMaybe<Scalars['Int']['input']>;
+  pricingTemplateId?: InputMaybe<Scalars['ID']['input']>;
+  refProductId?: InputMaybe<Scalars['ID']['input']>;
+  refVariantId?: InputMaybe<Scalars['ID']['input']>;
+  selected?: InputMaybe<Scalars['Boolean']['input']>;
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  title?: InputMaybe<Scalars['String']['input']>;
+  visible?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type BundleItemPayload = {
+  __typename?: 'BundleItemPayload';
+  bundleItem: Maybe<BundleItem>;
+  userErrors: Array<UserError>;
+};
+
+/** The type of item in a bundle group. */
+export enum BundleItemType {
+  /** Item references an entire product (variant selection happens at checkout) */
+  Product = 'PRODUCT',
+  /** Item references a specific variant */
+  Variant = 'VARIANT'
+}
+
+export type BundleItemUpdateInput = {
+  defaultQty?: InputMaybe<Scalars['Int']['input']>;
+  excludedVariantIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  featuredImageId?: InputMaybe<Scalars['ID']['input']>;
+  id: Scalars['ID']['input'];
+  maxQty?: InputMaybe<Scalars['Int']['input']>;
+  minQty?: InputMaybe<Scalars['Int']['input']>;
+  priceType?: InputMaybe<BundlePriceType>;
+  priceValue?: InputMaybe<Scalars['Int']['input']>;
+  pricingTemplateId?: InputMaybe<Scalars['ID']['input']>;
+  selected?: InputMaybe<Scalars['Boolean']['input']>;
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  title?: InputMaybe<Scalars['String']['input']>;
+  visible?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+/** The pricing strategy for bundle items. */
+export enum BundlePriceType {
+  /** Discount by absolute amount (in cents) */
+  AmountOff = 'AMOUNT_OFF',
+  /** Use base product/variant price (no modification) */
+  Base = 'BASE',
+  /** Fixed price (overrides base price) */
+  Fixed = 'FIXED',
+  /** Item is free when included in bundle */
+  Free = 'FREE',
+  /** Discount by percentage (0-100) */
+  PercentOff = 'PERCENT_OFF'
+}
+
+/** A pricing template that can be reused across bundle items. */
+export type BundlePricingTemplate = Node & {
+  __typename?: 'BundlePricingTemplate';
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  priceType: BundlePriceType;
+  priceValue: Maybe<Scalars['Int']['output']>;
+  productId: Scalars['ID']['output'];
+  sortIndex: Scalars['Int']['output'];
+};
+
+export type BundlePricingTemplateCreateInput = {
+  name: Scalars['String']['input'];
+  priceType: BundlePriceType;
+  priceValue?: InputMaybe<Scalars['Int']['input']>;
+  productId: Scalars['ID']['input'];
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type BundlePricingTemplatePayload = {
+  __typename?: 'BundlePricingTemplatePayload';
+  bundlePricingTemplate: Maybe<BundlePricingTemplate>;
+  userErrors: Array<UserError>;
+};
+
+export type BundlePricingTemplateUpdateInput = {
+  id: Scalars['ID']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
+  priceType?: InputMaybe<BundlePriceType>;
+  priceValue?: InputMaybe<Scalars['Int']['input']>;
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+};
+
 export type CatalogMutation = {
   __typename?: 'CatalogMutation';
+  bundleGroupCreate: BundleGroupPayload;
+  bundleGroupDelete: DeletePayload;
+  bundleGroupUpdate: BundleGroupPayload;
+  bundleItemCreate: BundleItemPayload;
+  bundleItemDelete: DeletePayload;
+  bundleItemUpdate: BundleItemPayload;
+  bundlePricingTemplateCreate: BundlePricingTemplatePayload;
+  bundlePricingTemplateDelete: DeletePayload;
+  bundlePricingTemplateUpdate: BundlePricingTemplatePayload;
   categoryAddProduct: CategoryAddProductPayload;
   categoryCreate: CategoryCreatePayload;
   categoryDelete: CategoryDeletePayload;
@@ -157,6 +337,18 @@ export type CatalogMutation = {
   collectionRemoveProducts: CollectionRemoveProductsPayload;
   collectionUpdate: CollectionUpdatePayload;
   collectionUpdateRules: CollectionUpdateRulesPayload;
+  conditionCreate: ConditionPayload;
+  conditionDelete: DeletePayload;
+  conditionGroupCreate: ConditionGroupPayload;
+  conditionGroupDelete: DeletePayload;
+  conditionGroupUpdate: ConditionGroupPayload;
+  conditionUpdate: ConditionPayload;
+  dependencyActionCreate: DependencyActionPayload;
+  dependencyActionDelete: DeletePayload;
+  dependencyActionUpdate: DependencyActionPayload;
+  dependencyRuleCreate: DependencyRulePayload;
+  dependencyRuleDelete: DeletePayload;
+  dependencyRuleUpdate: DependencyRulePayload;
   facetCreate: FacetCreatePayload;
   facetDelete: FacetDeletePayload;
   facetGroupCreate: FacetGroupCreatePayload;
@@ -203,6 +395,51 @@ export type CatalogMutation = {
   variantUpdateMedia: VariantUpdateMediaPayload;
   variantUpdateOptions: VariantUpdateOptionsPayload;
   variantUpdatePricing: VariantUpdatePricingPayload;
+};
+
+
+export type CatalogMutationBundleGroupCreateArgs = {
+  input: BundleGroupCreateInput;
+};
+
+
+export type CatalogMutationBundleGroupDeleteArgs = {
+  input: DeleteInput;
+};
+
+
+export type CatalogMutationBundleGroupUpdateArgs = {
+  input: BundleGroupUpdateInput;
+};
+
+
+export type CatalogMutationBundleItemCreateArgs = {
+  input: BundleItemCreateInput;
+};
+
+
+export type CatalogMutationBundleItemDeleteArgs = {
+  input: DeleteInput;
+};
+
+
+export type CatalogMutationBundleItemUpdateArgs = {
+  input: BundleItemUpdateInput;
+};
+
+
+export type CatalogMutationBundlePricingTemplateCreateArgs = {
+  input: BundlePricingTemplateCreateInput;
+};
+
+
+export type CatalogMutationBundlePricingTemplateDeleteArgs = {
+  input: DeleteInput;
+};
+
+
+export type CatalogMutationBundlePricingTemplateUpdateArgs = {
+  input: BundlePricingTemplateUpdateInput;
 };
 
 
@@ -278,6 +515,66 @@ export type CatalogMutationCollectionUpdateArgs = {
 
 export type CatalogMutationCollectionUpdateRulesArgs = {
   input: CollectionUpdateRulesInput;
+};
+
+
+export type CatalogMutationConditionCreateArgs = {
+  input: ConditionCreateInput;
+};
+
+
+export type CatalogMutationConditionDeleteArgs = {
+  input: DeleteInput;
+};
+
+
+export type CatalogMutationConditionGroupCreateArgs = {
+  input: ConditionGroupCreateInput;
+};
+
+
+export type CatalogMutationConditionGroupDeleteArgs = {
+  input: DeleteInput;
+};
+
+
+export type CatalogMutationConditionGroupUpdateArgs = {
+  input: ConditionGroupUpdateInput;
+};
+
+
+export type CatalogMutationConditionUpdateArgs = {
+  input: ConditionUpdateInput;
+};
+
+
+export type CatalogMutationDependencyActionCreateArgs = {
+  input: DependencyActionCreateInput;
+};
+
+
+export type CatalogMutationDependencyActionDeleteArgs = {
+  input: DeleteInput;
+};
+
+
+export type CatalogMutationDependencyActionUpdateArgs = {
+  input: DependencyActionUpdateInput;
+};
+
+
+export type CatalogMutationDependencyRuleCreateArgs = {
+  input: DependencyRuleCreateInput;
+};
+
+
+export type CatalogMutationDependencyRuleDeleteArgs = {
+  input: DeleteInput;
+};
+
+
+export type CatalogMutationDependencyRuleUpdateArgs = {
+  input: DependencyRuleUpdateInput;
 };
 
 
@@ -449,6 +746,16 @@ export type CatalogMutationVariantUpdatePricingArgs = {
 
 export type CatalogQuery = {
   __typename?: 'CatalogQuery';
+  /** Get a bundle group by ID */
+  bundleGroup: Maybe<BundleGroup>;
+  /** Get all bundle groups for a product */
+  bundleGroups: Array<BundleGroup>;
+  /** Get a bundle item by ID */
+  bundleItem: Maybe<BundleItem>;
+  /** Get a bundle pricing template by ID */
+  bundlePricingTemplate: Maybe<BundlePricingTemplate>;
+  /** Get all pricing templates for a product */
+  bundlePricingTemplates: Array<BundlePricingTemplate>;
   /** Get categories with Relay-style pagination */
   categories: CategoryConnection;
   /** Get a category by ID */
@@ -457,6 +764,10 @@ export type CatalogQuery = {
   collectionByHandle: Maybe<Collection>;
   collectionRulesPreviewCount: Scalars['Int']['output'];
   collections: CollectionConnection;
+  /** Get a dependency rule by ID */
+  dependencyRule: Maybe<DependencyRule>;
+  /** Get all dependency rules for a product */
+  dependencyRules: Array<DependencyRule>;
   facet: Maybe<Facet>;
   facetGroup: Maybe<FacetGroup>;
   facetGroups: Array<FacetGroup>;
@@ -483,6 +794,31 @@ export type CatalogQuery = {
   variant: Maybe<Variant>;
   /** Get variants with Relay-style pagination */
   variants: VariantConnection;
+};
+
+
+export type CatalogQueryBundleGroupArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type CatalogQueryBundleGroupsArgs = {
+  productId: Scalars['ID']['input'];
+};
+
+
+export type CatalogQueryBundleItemArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type CatalogQueryBundlePricingTemplateArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type CatalogQueryBundlePricingTemplatesArgs = {
+  productId: Scalars['ID']['input'];
 };
 
 
@@ -519,6 +855,16 @@ export type CatalogQueryCollectionsArgs = {
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type CatalogQueryDependencyRuleArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type CatalogQueryDependencyRulesArgs = {
+  productId: Scalars['ID']['input'];
 };
 
 
@@ -1031,6 +1377,94 @@ export type CollectionUpdateRulesPayload = {
   userErrors: Array<GenericUserError>;
 };
 
+/** A single condition within a condition group. */
+export type Condition = Node & {
+  __typename?: 'Condition';
+  category: ConditionCategory;
+  groupId: Scalars['ID']['output'];
+  id: Scalars['ID']['output'];
+  operator: Scalars['String']['output'];
+  sortIndex: Scalars['Int']['output'];
+  subject: ConditionSubject;
+  targetId: Scalars['ID']['output'];
+  targetType: DependencyTargetType;
+  value: Maybe<Scalars['Int']['output']>;
+};
+
+/** The category of a dependency condition. */
+export enum ConditionCategory {
+  /** Numeric comparison (gte, eq, lte) */
+  Numeric = 'NUMERIC',
+  /** State check (is selected, is not selected) */
+  StateCheck = 'STATE_CHECK'
+}
+
+export type ConditionCreateInput = {
+  category: ConditionCategory;
+  groupId: Scalars['ID']['input'];
+  operator: Scalars['String']['input'];
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  subject: ConditionSubject;
+  targetId: Scalars['ID']['input'];
+  targetType: DependencyTargetType;
+  value?: InputMaybe<Scalars['Int']['input']>;
+};
+
+/** A group of conditions within a dependency rule. */
+export type ConditionGroup = Node & {
+  __typename?: 'ConditionGroup';
+  conditions: Array<Condition>;
+  id: Scalars['ID']['output'];
+  logicOperator: LogicOperator;
+  ruleId: Scalars['ID']['output'];
+  sortIndex: Scalars['Int']['output'];
+};
+
+export type ConditionGroupCreateInput = {
+  logicOperator?: InputMaybe<LogicOperator>;
+  ruleId: Scalars['ID']['input'];
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ConditionGroupPayload = {
+  __typename?: 'ConditionGroupPayload';
+  conditionGroup: Maybe<ConditionGroup>;
+  userErrors: Array<UserError>;
+};
+
+export type ConditionGroupUpdateInput = {
+  id: Scalars['ID']['input'];
+  logicOperator?: InputMaybe<LogicOperator>;
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ConditionPayload = {
+  __typename?: 'ConditionPayload';
+  condition: Maybe<Condition>;
+  userErrors: Array<UserError>;
+};
+
+/** The subject of a dependency condition. */
+export enum ConditionSubject {
+  /** Check group total quantity */
+  GroupTotalQty = 'GROUP_TOTAL_QTY',
+  /** Check item quantity */
+  ItemQty = 'ITEM_QTY',
+  /** Check if an item is selected */
+  ItemSelected = 'ITEM_SELECTED'
+}
+
+export type ConditionUpdateInput = {
+  category?: InputMaybe<ConditionCategory>;
+  id: Scalars['ID']['input'];
+  operator?: InputMaybe<Scalars['String']['input']>;
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  subject?: InputMaybe<ConditionSubject>;
+  targetId?: InputMaybe<Scalars['ID']['input']>;
+  targetType?: InputMaybe<DependencyTargetType>;
+  value?: InputMaybe<Scalars['Int']['input']>;
+};
+
 /** Currency codes according to ISO 4217 */
 export enum CurrencyCode {
   /** UAE Dirham (United Arab Emirates) - 2 decimals */
@@ -1382,6 +1816,120 @@ export type DateTimeFilter = {
   /** Not in array */
   _notIn?: InputMaybe<Array<Scalars['DateTime']['input']>>;
 };
+
+export type DeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type DeletePayload = {
+  __typename?: 'DeletePayload';
+  deletedId: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<UserError>;
+};
+
+/** An action to perform when a dependency rule's conditions are met. */
+export type DependencyAction = Node & {
+  __typename?: 'DependencyAction';
+  actionType: DependencyActionType;
+  id: Scalars['ID']['output'];
+  priceType: Maybe<BundlePriceType>;
+  priceValue: Maybe<Scalars['Int']['output']>;
+  requiredValue: Maybe<Scalars['Boolean']['output']>;
+  ruleId: Scalars['ID']['output'];
+  sortIndex: Scalars['Int']['output'];
+  stackable: Scalars['Boolean']['output'];
+  targetId: Maybe<Scalars['ID']['output']>;
+  targetType: DependencyTargetType;
+};
+
+export type DependencyActionCreateInput = {
+  actionType: DependencyActionType;
+  priceType?: InputMaybe<BundlePriceType>;
+  priceValue?: InputMaybe<Scalars['Int']['input']>;
+  requiredValue?: InputMaybe<Scalars['Boolean']['input']>;
+  ruleId: Scalars['ID']['input'];
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  stackable?: InputMaybe<Scalars['Boolean']['input']>;
+  targetId?: InputMaybe<Scalars['ID']['input']>;
+  targetType: DependencyTargetType;
+};
+
+export type DependencyActionPayload = {
+  __typename?: 'DependencyActionPayload';
+  dependencyAction: Maybe<DependencyAction>;
+  userErrors: Array<UserError>;
+};
+
+/** The type of action to perform when a dependency rule matches. */
+export enum DependencyActionType {
+  /** Adjust the price of the target */
+  AdjustPrice = 'ADJUST_PRICE',
+  /** Hide the target */
+  Hide = 'HIDE',
+  /** Make the target required */
+  SetRequired = 'SET_REQUIRED',
+  /** Show the target */
+  Show = 'SHOW'
+}
+
+export type DependencyActionUpdateInput = {
+  actionType?: InputMaybe<DependencyActionType>;
+  id: Scalars['ID']['input'];
+  priceType?: InputMaybe<BundlePriceType>;
+  priceValue?: InputMaybe<Scalars['Int']['input']>;
+  requiredValue?: InputMaybe<Scalars['Boolean']['input']>;
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  stackable?: InputMaybe<Scalars['Boolean']['input']>;
+  targetId?: InputMaybe<Scalars['ID']['input']>;
+  targetType?: InputMaybe<DependencyTargetType>;
+};
+
+/** A dependency rule that controls bundle behavior based on conditions. */
+export type DependencyRule = Node & {
+  __typename?: 'DependencyRule';
+  actions: Array<DependencyAction>;
+  conditionGroups: Array<ConditionGroup>;
+  createdAt: Scalars['DateTime']['output'];
+  enabled: Scalars['Boolean']['output'];
+  id: Scalars['ID']['output'];
+  logicOperator: LogicOperator;
+  name: Scalars['String']['output'];
+  priority: Scalars['Int']['output'];
+  productId: Scalars['ID']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type DependencyRuleCreateInput = {
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  logicOperator?: InputMaybe<LogicOperator>;
+  name: Scalars['String']['input'];
+  priority?: InputMaybe<Scalars['Int']['input']>;
+  productId: Scalars['ID']['input'];
+};
+
+export type DependencyRulePayload = {
+  __typename?: 'DependencyRulePayload';
+  dependencyRule: Maybe<DependencyRule>;
+  userErrors: Array<UserError>;
+};
+
+export type DependencyRuleUpdateInput = {
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  id: Scalars['ID']['input'];
+  logicOperator?: InputMaybe<LogicOperator>;
+  name?: InputMaybe<Scalars['String']['input']>;
+  priority?: InputMaybe<Scalars['Int']['input']>;
+};
+
+/** The target type for conditions and actions. */
+export enum DependencyTargetType {
+  /** Target the entire bundle */
+  Bundle = 'BUNDLE',
+  /** Target an entire bundle group */
+  Group = 'GROUP',
+  /** Target a specific bundle item */
+  Item = 'ITEM'
+}
 
 /** Product description in multiple formats. */
 export type Description = {
@@ -2025,6 +2573,12 @@ export enum LocaleCode {
   Zu = 'zu'
 }
 
+/** Logic operator for combining conditions or condition groups. */
+export enum LogicOperator {
+  And = 'AND',
+  Or = 'OR'
+}
+
 export type Mutation = {
   __typename?: 'Mutation';
   catalogMutation: CatalogMutation;
@@ -2035,6 +2589,13 @@ export type Node = {
   /** The globally unique ID of the object. */
   id: Scalars['ID']['output'];
 };
+
+/** The operator for numeric conditions. */
+export enum NumericOperator {
+  Eq = 'EQ',
+  Gte = 'GTE',
+  Lte = 'LTE'
+}
 
 /** Result of a single operation in the unified update. */
 export type OperationResult = {
@@ -2864,6 +3425,12 @@ export enum SortDirection {
   Desc = 'desc'
 }
 
+/** The operator for state check conditions. */
+export enum StateCheckOperator {
+  IsNotSelected = 'IS_NOT_SELECTED',
+  IsSelected = 'IS_SELECTED'
+}
+
 /** Filter operators for String fields */
 export type StringFilter = {
   /** Contains substring (case-sensitive) */
@@ -3466,7 +4033,7 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
-  Node: ( Category ) | ( Collection ) | ( Facet ) | ( FacetGroup ) | ( FacetSwatch ) | ( FacetValue ) | ( Product ) | ( ProductFeature ) | ( ProductFeatureValue ) | ( ProductOption ) | ( ProductOptionSwatch ) | ( ProductOptionValue ) | ( Tag ) | ( Variant ) | ( VariantCost ) | ( VariantPrice );
+  Node: ( BundleGroup ) | ( BundleItem ) | ( BundlePricingTemplate ) | ( Category ) | ( Collection ) | ( Condition ) | ( Omit<ConditionGroup, 'conditions'> & { conditions: Array<_RefType['Condition']> } ) | ( DependencyAction ) | ( Omit<DependencyRule, 'actions' | 'conditionGroups'> & { actions: Array<_RefType['DependencyAction']>, conditionGroups: Array<_RefType['ConditionGroup']> } ) | ( Facet ) | ( FacetGroup ) | ( FacetSwatch ) | ( FacetValue ) | ( Product ) | ( ProductFeature ) | ( ProductFeatureValue ) | ( ProductOption ) | ( ProductOptionSwatch ) | ( ProductOptionValue ) | ( Tag ) | ( Variant ) | ( VariantCost ) | ( VariantPrice );
   UserError: ( BulkUpdateUserError ) | ( GenericUserError );
 }>;
 
@@ -3487,8 +4054,22 @@ export type ResolversTypes = ResolversObject<{
   BulkUpdateJobStatus: BulkUpdateJobStatus;
   BulkUpdateOpType: BulkUpdateOpType;
   BulkUpdateUserError: ResolverTypeWrapper<BulkUpdateUserError>;
-  CatalogMutation: ResolverTypeWrapper<CatalogMutation>;
-  CatalogQuery: ResolverTypeWrapper<Omit<CatalogQuery, 'node' | 'nodes'> & { node?: Maybe<ResolversTypes['Node']>, nodes: Array<Maybe<ResolversTypes['Node']>> }>;
+  BundleGroup: ResolverTypeWrapper<BundleGroup>;
+  BundleGroupCreateInput: BundleGroupCreateInput;
+  BundleGroupPayload: ResolverTypeWrapper<Omit<BundleGroupPayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
+  BundleGroupUpdateInput: BundleGroupUpdateInput;
+  BundleItem: ResolverTypeWrapper<BundleItem>;
+  BundleItemCreateInput: BundleItemCreateInput;
+  BundleItemPayload: ResolverTypeWrapper<Omit<BundleItemPayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
+  BundleItemType: BundleItemType;
+  BundleItemUpdateInput: BundleItemUpdateInput;
+  BundlePriceType: BundlePriceType;
+  BundlePricingTemplate: ResolverTypeWrapper<BundlePricingTemplate>;
+  BundlePricingTemplateCreateInput: BundlePricingTemplateCreateInput;
+  BundlePricingTemplatePayload: ResolverTypeWrapper<Omit<BundlePricingTemplatePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
+  BundlePricingTemplateUpdateInput: BundlePricingTemplateUpdateInput;
+  CatalogMutation: ResolverTypeWrapper<Omit<CatalogMutation, 'bundleGroupCreate' | 'bundleGroupDelete' | 'bundleGroupUpdate' | 'bundleItemCreate' | 'bundleItemDelete' | 'bundleItemUpdate' | 'bundlePricingTemplateCreate' | 'bundlePricingTemplateDelete' | 'bundlePricingTemplateUpdate' | 'conditionCreate' | 'conditionDelete' | 'conditionGroupCreate' | 'conditionGroupDelete' | 'conditionGroupUpdate' | 'conditionUpdate' | 'dependencyActionCreate' | 'dependencyActionDelete' | 'dependencyActionUpdate' | 'dependencyRuleCreate' | 'dependencyRuleDelete' | 'dependencyRuleUpdate'> & { bundleGroupCreate: ResolversTypes['BundleGroupPayload'], bundleGroupDelete: ResolversTypes['DeletePayload'], bundleGroupUpdate: ResolversTypes['BundleGroupPayload'], bundleItemCreate: ResolversTypes['BundleItemPayload'], bundleItemDelete: ResolversTypes['DeletePayload'], bundleItemUpdate: ResolversTypes['BundleItemPayload'], bundlePricingTemplateCreate: ResolversTypes['BundlePricingTemplatePayload'], bundlePricingTemplateDelete: ResolversTypes['DeletePayload'], bundlePricingTemplateUpdate: ResolversTypes['BundlePricingTemplatePayload'], conditionCreate: ResolversTypes['ConditionPayload'], conditionDelete: ResolversTypes['DeletePayload'], conditionGroupCreate: ResolversTypes['ConditionGroupPayload'], conditionGroupDelete: ResolversTypes['DeletePayload'], conditionGroupUpdate: ResolversTypes['ConditionGroupPayload'], conditionUpdate: ResolversTypes['ConditionPayload'], dependencyActionCreate: ResolversTypes['DependencyActionPayload'], dependencyActionDelete: ResolversTypes['DeletePayload'], dependencyActionUpdate: ResolversTypes['DependencyActionPayload'], dependencyRuleCreate: ResolversTypes['DependencyRulePayload'], dependencyRuleDelete: ResolversTypes['DeletePayload'], dependencyRuleUpdate: ResolversTypes['DependencyRulePayload'] }>;
+  CatalogQuery: ResolverTypeWrapper<Omit<CatalogQuery, 'dependencyRule' | 'dependencyRules' | 'node' | 'nodes'> & { dependencyRule?: Maybe<ResolversTypes['DependencyRule']>, dependencyRules: Array<ResolversTypes['DependencyRule']>, node?: Maybe<ResolversTypes['Node']>, nodes: Array<Maybe<ResolversTypes['Node']>> }>;
   Category: ResolverTypeWrapper<Category>;
   CategoryAddProductInput: CategoryAddProductInput;
   CategoryAddProductPayload: ResolverTypeWrapper<CategoryAddProductPayload>;
@@ -3536,9 +4117,31 @@ export type ResolversTypes = ResolversObject<{
   CollectionUpdatePayload: ResolverTypeWrapper<CollectionUpdatePayload>;
   CollectionUpdateRulesInput: CollectionUpdateRulesInput;
   CollectionUpdateRulesPayload: ResolverTypeWrapper<CollectionUpdateRulesPayload>;
+  Condition: ResolverTypeWrapper<Condition>;
+  ConditionCategory: ConditionCategory;
+  ConditionCreateInput: ConditionCreateInput;
+  ConditionGroup: ResolverTypeWrapper<Omit<ConditionGroup, 'conditions'> & { conditions: Array<ResolversTypes['Condition']> }>;
+  ConditionGroupCreateInput: ConditionGroupCreateInput;
+  ConditionGroupPayload: ResolverTypeWrapper<Omit<ConditionGroupPayload, 'conditionGroup' | 'userErrors'> & { conditionGroup?: Maybe<ResolversTypes['ConditionGroup']>, userErrors: Array<ResolversTypes['UserError']> }>;
+  ConditionGroupUpdateInput: ConditionGroupUpdateInput;
+  ConditionPayload: ResolverTypeWrapper<Omit<ConditionPayload, 'condition' | 'userErrors'> & { condition?: Maybe<ResolversTypes['Condition']>, userErrors: Array<ResolversTypes['UserError']> }>;
+  ConditionSubject: ConditionSubject;
+  ConditionUpdateInput: ConditionUpdateInput;
   CurrencyCode: CurrencyCode;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
   DateTimeFilter: DateTimeFilter;
+  DeleteInput: DeleteInput;
+  DeletePayload: ResolverTypeWrapper<Omit<DeletePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
+  DependencyAction: ResolverTypeWrapper<DependencyAction>;
+  DependencyActionCreateInput: DependencyActionCreateInput;
+  DependencyActionPayload: ResolverTypeWrapper<Omit<DependencyActionPayload, 'dependencyAction' | 'userErrors'> & { dependencyAction?: Maybe<ResolversTypes['DependencyAction']>, userErrors: Array<ResolversTypes['UserError']> }>;
+  DependencyActionType: DependencyActionType;
+  DependencyActionUpdateInput: DependencyActionUpdateInput;
+  DependencyRule: ResolverTypeWrapper<Omit<DependencyRule, 'actions' | 'conditionGroups'> & { actions: Array<ResolversTypes['DependencyAction']>, conditionGroups: Array<ResolversTypes['ConditionGroup']> }>;
+  DependencyRuleCreateInput: DependencyRuleCreateInput;
+  DependencyRulePayload: ResolverTypeWrapper<Omit<DependencyRulePayload, 'dependencyRule' | 'userErrors'> & { dependencyRule?: Maybe<ResolversTypes['DependencyRule']>, userErrors: Array<ResolversTypes['UserError']> }>;
+  DependencyRuleUpdateInput: DependencyRuleUpdateInput;
+  DependencyTargetType: DependencyTargetType;
   Description: ResolverTypeWrapper<Description>;
   DescriptionInput: DescriptionInput;
   DimensionUnit: DimensionUnit;
@@ -3584,8 +4187,10 @@ export type ResolversTypes = ResolversObject<{
   InventoryItemInput: InventoryItemInput;
   JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
   LocaleCode: LocaleCode;
+  LogicOperator: LogicOperator;
   Mutation: ResolverTypeWrapper<{}>;
   Node: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['Node']>;
+  NumericOperator: NumericOperator;
   OperationResult: ResolverTypeWrapper<OperationResult>;
   OperationType: OperationType;
   OptionDisplayType: OptionDisplayType;
@@ -3658,6 +4263,7 @@ export type ResolversTypes = ResolversObject<{
   Seo: ResolverTypeWrapper<Seo>;
   SeoInput: SeoInput;
   SortDirection: SortDirection;
+  StateCheckOperator: StateCheckOperator;
   StringFilter: StringFilter;
   SwatchType: SwatchType;
   Tag: ResolverTypeWrapper<Tag>;
@@ -3716,8 +4322,20 @@ export type ResolversParentTypes = ResolversObject<{
   String: Scalars['String']['output'];
   BulkUpdateJobProgress: BulkUpdateJobProgress;
   BulkUpdateUserError: BulkUpdateUserError;
-  CatalogMutation: CatalogMutation;
-  CatalogQuery: Omit<CatalogQuery, 'node' | 'nodes'> & { node?: Maybe<ResolversParentTypes['Node']>, nodes: Array<Maybe<ResolversParentTypes['Node']>> };
+  BundleGroup: BundleGroup;
+  BundleGroupCreateInput: BundleGroupCreateInput;
+  BundleGroupPayload: Omit<BundleGroupPayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
+  BundleGroupUpdateInput: BundleGroupUpdateInput;
+  BundleItem: BundleItem;
+  BundleItemCreateInput: BundleItemCreateInput;
+  BundleItemPayload: Omit<BundleItemPayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
+  BundleItemUpdateInput: BundleItemUpdateInput;
+  BundlePricingTemplate: BundlePricingTemplate;
+  BundlePricingTemplateCreateInput: BundlePricingTemplateCreateInput;
+  BundlePricingTemplatePayload: Omit<BundlePricingTemplatePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
+  BundlePricingTemplateUpdateInput: BundlePricingTemplateUpdateInput;
+  CatalogMutation: Omit<CatalogMutation, 'bundleGroupCreate' | 'bundleGroupDelete' | 'bundleGroupUpdate' | 'bundleItemCreate' | 'bundleItemDelete' | 'bundleItemUpdate' | 'bundlePricingTemplateCreate' | 'bundlePricingTemplateDelete' | 'bundlePricingTemplateUpdate' | 'conditionCreate' | 'conditionDelete' | 'conditionGroupCreate' | 'conditionGroupDelete' | 'conditionGroupUpdate' | 'conditionUpdate' | 'dependencyActionCreate' | 'dependencyActionDelete' | 'dependencyActionUpdate' | 'dependencyRuleCreate' | 'dependencyRuleDelete' | 'dependencyRuleUpdate'> & { bundleGroupCreate: ResolversParentTypes['BundleGroupPayload'], bundleGroupDelete: ResolversParentTypes['DeletePayload'], bundleGroupUpdate: ResolversParentTypes['BundleGroupPayload'], bundleItemCreate: ResolversParentTypes['BundleItemPayload'], bundleItemDelete: ResolversParentTypes['DeletePayload'], bundleItemUpdate: ResolversParentTypes['BundleItemPayload'], bundlePricingTemplateCreate: ResolversParentTypes['BundlePricingTemplatePayload'], bundlePricingTemplateDelete: ResolversParentTypes['DeletePayload'], bundlePricingTemplateUpdate: ResolversParentTypes['BundlePricingTemplatePayload'], conditionCreate: ResolversParentTypes['ConditionPayload'], conditionDelete: ResolversParentTypes['DeletePayload'], conditionGroupCreate: ResolversParentTypes['ConditionGroupPayload'], conditionGroupDelete: ResolversParentTypes['DeletePayload'], conditionGroupUpdate: ResolversParentTypes['ConditionGroupPayload'], conditionUpdate: ResolversParentTypes['ConditionPayload'], dependencyActionCreate: ResolversParentTypes['DependencyActionPayload'], dependencyActionDelete: ResolversParentTypes['DeletePayload'], dependencyActionUpdate: ResolversParentTypes['DependencyActionPayload'], dependencyRuleCreate: ResolversParentTypes['DependencyRulePayload'], dependencyRuleDelete: ResolversParentTypes['DeletePayload'], dependencyRuleUpdate: ResolversParentTypes['DependencyRulePayload'] };
+  CatalogQuery: Omit<CatalogQuery, 'dependencyRule' | 'dependencyRules' | 'node' | 'nodes'> & { dependencyRule?: Maybe<ResolversParentTypes['DependencyRule']>, dependencyRules: Array<ResolversParentTypes['DependencyRule']>, node?: Maybe<ResolversParentTypes['Node']>, nodes: Array<Maybe<ResolversParentTypes['Node']>> };
   Category: Category;
   CategoryAddProductInput: CategoryAddProductInput;
   CategoryAddProductPayload: CategoryAddProductPayload;
@@ -3764,8 +4382,26 @@ export type ResolversParentTypes = ResolversObject<{
   CollectionUpdatePayload: CollectionUpdatePayload;
   CollectionUpdateRulesInput: CollectionUpdateRulesInput;
   CollectionUpdateRulesPayload: CollectionUpdateRulesPayload;
+  Condition: Condition;
+  ConditionCreateInput: ConditionCreateInput;
+  ConditionGroup: Omit<ConditionGroup, 'conditions'> & { conditions: Array<ResolversParentTypes['Condition']> };
+  ConditionGroupCreateInput: ConditionGroupCreateInput;
+  ConditionGroupPayload: Omit<ConditionGroupPayload, 'conditionGroup' | 'userErrors'> & { conditionGroup?: Maybe<ResolversParentTypes['ConditionGroup']>, userErrors: Array<ResolversParentTypes['UserError']> };
+  ConditionGroupUpdateInput: ConditionGroupUpdateInput;
+  ConditionPayload: Omit<ConditionPayload, 'condition' | 'userErrors'> & { condition?: Maybe<ResolversParentTypes['Condition']>, userErrors: Array<ResolversParentTypes['UserError']> };
+  ConditionUpdateInput: ConditionUpdateInput;
   DateTime: Scalars['DateTime']['output'];
   DateTimeFilter: DateTimeFilter;
+  DeleteInput: DeleteInput;
+  DeletePayload: Omit<DeletePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
+  DependencyAction: DependencyAction;
+  DependencyActionCreateInput: DependencyActionCreateInput;
+  DependencyActionPayload: Omit<DependencyActionPayload, 'dependencyAction' | 'userErrors'> & { dependencyAction?: Maybe<ResolversParentTypes['DependencyAction']>, userErrors: Array<ResolversParentTypes['UserError']> };
+  DependencyActionUpdateInput: DependencyActionUpdateInput;
+  DependencyRule: Omit<DependencyRule, 'actions' | 'conditionGroups'> & { actions: Array<ResolversParentTypes['DependencyAction']>, conditionGroups: Array<ResolversParentTypes['ConditionGroup']> };
+  DependencyRuleCreateInput: DependencyRuleCreateInput;
+  DependencyRulePayload: Omit<DependencyRulePayload, 'dependencyRule' | 'userErrors'> & { dependencyRule?: Maybe<ResolversParentTypes['DependencyRule']>, userErrors: Array<ResolversParentTypes['UserError']> };
+  DependencyRuleUpdateInput: DependencyRuleUpdateInput;
   Description: Description;
   DescriptionInput: DescriptionInput;
   Email: Scalars['Email']['output'];
@@ -3970,7 +4606,81 @@ export type BulkUpdateUserErrorResolvers<ContextType = ServiceContext, ParentTyp
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type BundleGroupResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BundleGroup'] = ResolversParentTypes['BundleGroup']> = ResolversObject<{
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  items?: Resolver<Array<ResolversTypes['BundleItem']>, ParentType, ContextType>;
+  maxSelection?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  minSelection?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  productId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type BundleGroupPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BundleGroupPayload'] = ResolversParentTypes['BundleGroupPayload']> = ResolversObject<{
+  bundleGroup?: Resolver<Maybe<ResolversTypes['BundleGroup']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['UserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type BundleItemResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BundleItem'] = ResolversParentTypes['BundleItem']> = ResolversObject<{
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  defaultQty?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  excludedVariantIds?: Resolver<Maybe<Array<ResolversTypes['ID']>>, ParentType, ContextType>;
+  featuredImageId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  groupId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  itemType?: Resolver<ResolversTypes['BundleItemType'], ParentType, ContextType>;
+  maxQty?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  minQty?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  priceType?: Resolver<Maybe<ResolversTypes['BundlePriceType']>, ParentType, ContextType>;
+  priceValue?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  pricingTemplate?: Resolver<Maybe<ResolversTypes['BundlePricingTemplate']>, ParentType, ContextType>;
+  pricingTemplateId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  refProductId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  refVariantId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  selected?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  visible?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type BundleItemPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BundleItemPayload'] = ResolversParentTypes['BundleItemPayload']> = ResolversObject<{
+  bundleItem?: Resolver<Maybe<ResolversTypes['BundleItem']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['UserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type BundlePricingTemplateResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BundlePricingTemplate'] = ResolversParentTypes['BundlePricingTemplate']> = ResolversObject<{
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  priceType?: Resolver<ResolversTypes['BundlePriceType'], ParentType, ContextType>;
+  priceValue?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  productId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type BundlePricingTemplatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BundlePricingTemplatePayload'] = ResolversParentTypes['BundlePricingTemplatePayload']> = ResolversObject<{
+  bundlePricingTemplate?: Resolver<Maybe<ResolversTypes['BundlePricingTemplate']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['UserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type CatalogMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CatalogMutation'] = ResolversParentTypes['CatalogMutation']> = ResolversObject<{
+  bundleGroupCreate?: Resolver<ResolversTypes['BundleGroupPayload'], ParentType, ContextType, RequireFields<CatalogMutationBundleGroupCreateArgs, 'input'>>;
+  bundleGroupDelete?: Resolver<ResolversTypes['DeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationBundleGroupDeleteArgs, 'input'>>;
+  bundleGroupUpdate?: Resolver<ResolversTypes['BundleGroupPayload'], ParentType, ContextType, RequireFields<CatalogMutationBundleGroupUpdateArgs, 'input'>>;
+  bundleItemCreate?: Resolver<ResolversTypes['BundleItemPayload'], ParentType, ContextType, RequireFields<CatalogMutationBundleItemCreateArgs, 'input'>>;
+  bundleItemDelete?: Resolver<ResolversTypes['DeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationBundleItemDeleteArgs, 'input'>>;
+  bundleItemUpdate?: Resolver<ResolversTypes['BundleItemPayload'], ParentType, ContextType, RequireFields<CatalogMutationBundleItemUpdateArgs, 'input'>>;
+  bundlePricingTemplateCreate?: Resolver<ResolversTypes['BundlePricingTemplatePayload'], ParentType, ContextType, RequireFields<CatalogMutationBundlePricingTemplateCreateArgs, 'input'>>;
+  bundlePricingTemplateDelete?: Resolver<ResolversTypes['DeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationBundlePricingTemplateDeleteArgs, 'input'>>;
+  bundlePricingTemplateUpdate?: Resolver<ResolversTypes['BundlePricingTemplatePayload'], ParentType, ContextType, RequireFields<CatalogMutationBundlePricingTemplateUpdateArgs, 'input'>>;
   categoryAddProduct?: Resolver<ResolversTypes['CategoryAddProductPayload'], ParentType, ContextType, RequireFields<CatalogMutationCategoryAddProductArgs, 'input'>>;
   categoryCreate?: Resolver<ResolversTypes['CategoryCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationCategoryCreateArgs, 'input'>>;
   categoryDelete?: Resolver<ResolversTypes['CategoryDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationCategoryDeleteArgs, 'input'>>;
@@ -3986,6 +4696,18 @@ export type CatalogMutationResolvers<ContextType = ServiceContext, ParentType ex
   collectionRemoveProducts?: Resolver<ResolversTypes['CollectionRemoveProductsPayload'], ParentType, ContextType, RequireFields<CatalogMutationCollectionRemoveProductsArgs, 'input'>>;
   collectionUpdate?: Resolver<ResolversTypes['CollectionUpdatePayload'], ParentType, ContextType, RequireFields<CatalogMutationCollectionUpdateArgs, 'input'>>;
   collectionUpdateRules?: Resolver<ResolversTypes['CollectionUpdateRulesPayload'], ParentType, ContextType, RequireFields<CatalogMutationCollectionUpdateRulesArgs, 'input'>>;
+  conditionCreate?: Resolver<ResolversTypes['ConditionPayload'], ParentType, ContextType, RequireFields<CatalogMutationConditionCreateArgs, 'input'>>;
+  conditionDelete?: Resolver<ResolversTypes['DeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationConditionDeleteArgs, 'input'>>;
+  conditionGroupCreate?: Resolver<ResolversTypes['ConditionGroupPayload'], ParentType, ContextType, RequireFields<CatalogMutationConditionGroupCreateArgs, 'input'>>;
+  conditionGroupDelete?: Resolver<ResolversTypes['DeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationConditionGroupDeleteArgs, 'input'>>;
+  conditionGroupUpdate?: Resolver<ResolversTypes['ConditionGroupPayload'], ParentType, ContextType, RequireFields<CatalogMutationConditionGroupUpdateArgs, 'input'>>;
+  conditionUpdate?: Resolver<ResolversTypes['ConditionPayload'], ParentType, ContextType, RequireFields<CatalogMutationConditionUpdateArgs, 'input'>>;
+  dependencyActionCreate?: Resolver<ResolversTypes['DependencyActionPayload'], ParentType, ContextType, RequireFields<CatalogMutationDependencyActionCreateArgs, 'input'>>;
+  dependencyActionDelete?: Resolver<ResolversTypes['DeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationDependencyActionDeleteArgs, 'input'>>;
+  dependencyActionUpdate?: Resolver<ResolversTypes['DependencyActionPayload'], ParentType, ContextType, RequireFields<CatalogMutationDependencyActionUpdateArgs, 'input'>>;
+  dependencyRuleCreate?: Resolver<ResolversTypes['DependencyRulePayload'], ParentType, ContextType, RequireFields<CatalogMutationDependencyRuleCreateArgs, 'input'>>;
+  dependencyRuleDelete?: Resolver<ResolversTypes['DeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationDependencyRuleDeleteArgs, 'input'>>;
+  dependencyRuleUpdate?: Resolver<ResolversTypes['DependencyRulePayload'], ParentType, ContextType, RequireFields<CatalogMutationDependencyRuleUpdateArgs, 'input'>>;
   facetCreate?: Resolver<ResolversTypes['FacetCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetCreateArgs, 'input'>>;
   facetDelete?: Resolver<ResolversTypes['FacetDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetDeleteArgs, 'input'>>;
   facetGroupCreate?: Resolver<ResolversTypes['FacetGroupCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetGroupCreateArgs, 'input'>>;
@@ -4023,12 +4745,19 @@ export type CatalogMutationResolvers<ContextType = ServiceContext, ParentType ex
 }>;
 
 export type CatalogQueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CatalogQuery'] = ResolversParentTypes['CatalogQuery']> = ResolversObject<{
+  bundleGroup?: Resolver<Maybe<ResolversTypes['BundleGroup']>, ParentType, ContextType, RequireFields<CatalogQueryBundleGroupArgs, 'id'>>;
+  bundleGroups?: Resolver<Array<ResolversTypes['BundleGroup']>, ParentType, ContextType, RequireFields<CatalogQueryBundleGroupsArgs, 'productId'>>;
+  bundleItem?: Resolver<Maybe<ResolversTypes['BundleItem']>, ParentType, ContextType, RequireFields<CatalogQueryBundleItemArgs, 'id'>>;
+  bundlePricingTemplate?: Resolver<Maybe<ResolversTypes['BundlePricingTemplate']>, ParentType, ContextType, RequireFields<CatalogQueryBundlePricingTemplateArgs, 'id'>>;
+  bundlePricingTemplates?: Resolver<Array<ResolversTypes['BundlePricingTemplate']>, ParentType, ContextType, RequireFields<CatalogQueryBundlePricingTemplatesArgs, 'productId'>>;
   categories?: Resolver<ResolversTypes['CategoryConnection'], ParentType, ContextType, Partial<CatalogQueryCategoriesArgs>>;
   category?: Resolver<Maybe<ResolversTypes['Category']>, ParentType, ContextType, RequireFields<CatalogQueryCategoryArgs, 'id'>>;
   collection?: Resolver<Maybe<ResolversTypes['Collection']>, ParentType, ContextType, RequireFields<CatalogQueryCollectionArgs, 'id'>>;
   collectionByHandle?: Resolver<Maybe<ResolversTypes['Collection']>, ParentType, ContextType, RequireFields<CatalogQueryCollectionByHandleArgs, 'handle'>>;
   collectionRulesPreviewCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType, RequireFields<CatalogQueryCollectionRulesPreviewCountArgs, 'rules'>>;
   collections?: Resolver<ResolversTypes['CollectionConnection'], ParentType, ContextType, Partial<CatalogQueryCollectionsArgs>>;
+  dependencyRule?: Resolver<Maybe<ResolversTypes['DependencyRule']>, ParentType, ContextType, RequireFields<CatalogQueryDependencyRuleArgs, 'id'>>;
+  dependencyRules?: Resolver<Array<ResolversTypes['DependencyRule']>, ParentType, ContextType, RequireFields<CatalogQueryDependencyRulesArgs, 'productId'>>;
   facet?: Resolver<Maybe<ResolversTypes['Facet']>, ParentType, ContextType, RequireFields<CatalogQueryFacetArgs, 'id'>>;
   facetGroup?: Resolver<Maybe<ResolversTypes['FacetGroup']>, ParentType, ContextType, RequireFields<CatalogQueryFacetGroupArgs, 'id'>>;
   facetGroups?: Resolver<Array<ResolversTypes['FacetGroup']>, ParentType, ContextType>;
@@ -4261,9 +4990,89 @@ export type CollectionUpdateRulesPayloadResolvers<ContextType = ServiceContext, 
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type ConditionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Condition'] = ResolversParentTypes['Condition']> = ResolversObject<{
+  category?: Resolver<ResolversTypes['ConditionCategory'], ParentType, ContextType>;
+  groupId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  operator?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  subject?: Resolver<ResolversTypes['ConditionSubject'], ParentType, ContextType>;
+  targetId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  targetType?: Resolver<ResolversTypes['DependencyTargetType'], ParentType, ContextType>;
+  value?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ConditionGroupResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ConditionGroup'] = ResolversParentTypes['ConditionGroup']> = ResolversObject<{
+  conditions?: Resolver<Array<ResolversTypes['Condition']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  logicOperator?: Resolver<ResolversTypes['LogicOperator'], ParentType, ContextType>;
+  ruleId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ConditionGroupPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ConditionGroupPayload'] = ResolversParentTypes['ConditionGroupPayload']> = ResolversObject<{
+  conditionGroup?: Resolver<Maybe<ResolversTypes['ConditionGroup']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['UserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ConditionPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ConditionPayload'] = ResolversParentTypes['ConditionPayload']> = ResolversObject<{
+  condition?: Resolver<Maybe<ResolversTypes['Condition']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['UserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export interface DateTimeScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['DateTime'], any> {
   name: 'DateTime';
 }
+
+export type DeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['DeletePayload'] = ResolversParentTypes['DeletePayload']> = ResolversObject<{
+  deletedId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['UserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type DependencyActionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['DependencyAction'] = ResolversParentTypes['DependencyAction']> = ResolversObject<{
+  actionType?: Resolver<ResolversTypes['DependencyActionType'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  priceType?: Resolver<Maybe<ResolversTypes['BundlePriceType']>, ParentType, ContextType>;
+  priceValue?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  requiredValue?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  ruleId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  stackable?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  targetId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  targetType?: Resolver<ResolversTypes['DependencyTargetType'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type DependencyActionPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['DependencyActionPayload'] = ResolversParentTypes['DependencyActionPayload']> = ResolversObject<{
+  dependencyAction?: Resolver<Maybe<ResolversTypes['DependencyAction']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['UserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type DependencyRuleResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['DependencyRule'] = ResolversParentTypes['DependencyRule']> = ResolversObject<{
+  actions?: Resolver<Array<ResolversTypes['DependencyAction']>, ParentType, ContextType>;
+  conditionGroups?: Resolver<Array<ResolversTypes['ConditionGroup']>, ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  enabled?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  logicOperator?: Resolver<ResolversTypes['LogicOperator'], ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  priority?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  productId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type DependencyRulePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['DependencyRulePayload'] = ResolversParentTypes['DependencyRulePayload']> = ResolversObject<{
+  dependencyRule?: Resolver<Maybe<ResolversTypes['DependencyRule']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['UserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
 
 export type DescriptionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Description'] = ResolversParentTypes['Description']> = ResolversObject<{
   html?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -4421,7 +5230,7 @@ export type MutationResolvers<ContextType = ServiceContext, ParentType extends R
 }>;
 
 export type NodeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Node'] = ResolversParentTypes['Node']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'Category' | 'Collection' | 'Facet' | 'FacetGroup' | 'FacetSwatch' | 'FacetValue' | 'Product' | 'ProductFeature' | 'ProductFeatureValue' | 'ProductOption' | 'ProductOptionSwatch' | 'ProductOptionValue' | 'Tag' | 'Variant' | 'VariantCost' | 'VariantPrice', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'BundleGroup' | 'BundleItem' | 'BundlePricingTemplate' | 'Category' | 'Collection' | 'Condition' | 'ConditionGroup' | 'DependencyAction' | 'DependencyRule' | 'Facet' | 'FacetGroup' | 'FacetSwatch' | 'FacetValue' | 'Product' | 'ProductFeature' | 'ProductFeatureValue' | 'ProductOption' | 'ProductOptionSwatch' | 'ProductOptionValue' | 'Tag' | 'Variant' | 'VariantCost' | 'VariantPrice', ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
 }>;
 
@@ -4851,6 +5660,12 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   BulkUpdateItemEdge?: BulkUpdateItemEdgeResolvers<ContextType>;
   BulkUpdateJobProgress?: BulkUpdateJobProgressResolvers<ContextType>;
   BulkUpdateUserError?: BulkUpdateUserErrorResolvers<ContextType>;
+  BundleGroup?: BundleGroupResolvers<ContextType>;
+  BundleGroupPayload?: BundleGroupPayloadResolvers<ContextType>;
+  BundleItem?: BundleItemResolvers<ContextType>;
+  BundleItemPayload?: BundleItemPayloadResolvers<ContextType>;
+  BundlePricingTemplate?: BundlePricingTemplateResolvers<ContextType>;
+  BundlePricingTemplatePayload?: BundlePricingTemplatePayloadResolvers<ContextType>;
   CatalogMutation?: CatalogMutationResolvers<ContextType>;
   CatalogQuery?: CatalogQueryResolvers<ContextType>;
   Category?: CategoryResolvers<ContextType>;
@@ -4881,7 +5696,16 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   CollectionRule?: CollectionRuleResolvers<ContextType>;
   CollectionUpdatePayload?: CollectionUpdatePayloadResolvers<ContextType>;
   CollectionUpdateRulesPayload?: CollectionUpdateRulesPayloadResolvers<ContextType>;
+  Condition?: ConditionResolvers<ContextType>;
+  ConditionGroup?: ConditionGroupResolvers<ContextType>;
+  ConditionGroupPayload?: ConditionGroupPayloadResolvers<ContextType>;
+  ConditionPayload?: ConditionPayloadResolvers<ContextType>;
   DateTime?: GraphQLScalarType;
+  DeletePayload?: DeletePayloadResolvers<ContextType>;
+  DependencyAction?: DependencyActionResolvers<ContextType>;
+  DependencyActionPayload?: DependencyActionPayloadResolvers<ContextType>;
+  DependencyRule?: DependencyRuleResolvers<ContextType>;
+  DependencyRulePayload?: DependencyRulePayloadResolvers<ContextType>;
   Description?: DescriptionResolvers<ContextType>;
   Email?: GraphQLScalarType;
   Facet?: FacetResolvers<ContextType>;
