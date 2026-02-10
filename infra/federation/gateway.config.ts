@@ -8,6 +8,7 @@ export const gatewayConfig = defineConfig({
         "x-store-name": request.headers.get("x-store-name"),
         "x-organization-id": request.headers.get("x-organization-id"),
         "x-api-key": request.headers.get("x-api-key"),
+        "x-currency": request.headers.get("x-currency"),
         "user-agent": request.headers.get("user-agent"),
         "x-forwarded-for": request.headers.get("x-forwarded-for"),
       };

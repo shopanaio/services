@@ -128,12 +128,16 @@ export async function startServer(serverConfig: ServerConfig) {
         // Create loaders per request for proper batching
         const loaders = new Loader(kernel!.repository);
 
+        // Read currency from header (default: UAH)
+        const currency = (request.headers["x-currency"] as string) ?? "UAH";
+
         const ctx = new ServiceContext({
           requestId: request.id as string,
           kernel: kernel!,
           store: request.store,
           user: request.user,
           loaders,
+          currency,
         });
 
         // Set context in AsyncLocalStorage for all resolvers

@@ -30,19 +30,24 @@ async function createProduct(
     throw new Error('Failed to create product');
   }
 
-  const variantId = product.variants?.edges[0]?.node?.id;
+  const variantNode = product.variants?.edges[0]?.node;
+  const variantId = variantNode?.id;
 
   // Set price on the default variant
   if (variantId) {
-    await api.admin.mutation('inventory-api/VariantSetPricing', {
+    const { data: pricingData } = await api.admin.mutation('inventory-api/VariantSetPricing', {
       variables: {
         input: {
           variantId,
           currency: 'USD',
-          amountMinor: priceMinor,
+          amountMinor: String(priceMinor),
         },
       },
     });
+    const userErrors = pricingData?.catalogMutation?.variantUpdatePricing?.userErrors;
+    if (userErrors?.length) {
+      throw new Error(`VariantSetPricing failed: ${JSON.stringify(userErrors)}`);
+    }
   }
 
   return {
@@ -72,6 +77,7 @@ async function addProductToCategory(api: ApiFixtures['api'], categoryId: string,
 // Prepare function for pagination tests
 async function prepareCategoryProducts(api: ApiFixtures['api']) {
   await api.session.setupUserAndStore();
+  api.session.setCurrency('USD'); // Set currency for price sorting tests
 
   const category = await api.admin.category.create({
     handle: 'pagination-test-' + crypto.randomUUID().slice(0, 8),

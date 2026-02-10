@@ -1013,10 +1013,6 @@ scalar Email
 
 scalar BigInt
 
-type _CatalogFiltersPlaceholder {
-  _empty: Boolean
-}
-
 type CatalogQuery {
   """Get a node by its global ID"""
   node(id: ID!): Node
@@ -1041,6 +1037,18 @@ type CatalogQuery {
 
   """Get a category by ID"""
   category(id: ID!): Category
+  collection(id: ID!): Collection
+  collectionByHandle(handle: String!): Collection
+  collections(first: Int, after: String, last: Int, before: String): CollectionConnection!
+  collectionRulesPreviewCount(rules: [CollectionRuleInput!]!): Int!
+  facetGroup(id: ID!): FacetGroup
+  facetGroups: [FacetGroup!]!
+  facet(id: ID!): Facet
+  facets: [Facet!]!
+  facetValue(id: ID!): FacetValue
+  facetValues(facetId: ID!): [FacetValue!]!
+  facetSwatch(id: ID!): FacetSwatch
+  facetSwatches: [FacetSwatch!]!
 
   """Get categories with Relay-style pagination"""
   categories(first: Int, after: String, last: Int, before: String): CategoryConnection!
@@ -1107,7 +1115,30 @@ type CatalogMutation {
   categoryCreate(input: CategoryCreateInput!): CategoryCreatePayload!
   categoryUpdate(input: CategoryUpdateInput!): CategoryUpdatePayload!
   categoryMove(input: CategoryMoveInput!): CategoryMovePayload!
+  categoryMoveProduct(input: CategoryMoveProductInput!): CategoryMoveProductPayload!
+  categoryAddProduct(input: CategoryAddProductInput!): CategoryAddProductPayload!
+  categoryRebalance(input: CategoryRebalanceInput!): CategoryRebalancePayload!
+  categoryUpdateSort(input: CategoryUpdateSortInput!): CategoryUpdateSortPayload!
   categoryDelete(input: CategoryDeleteInput!): CategoryDeletePayload!
+  facetGroupCreate(input: FacetGroupCreateInput!): FacetGroupCreatePayload!
+  facetGroupUpdate(input: FacetGroupUpdateInput!): FacetGroupUpdatePayload!
+  facetGroupDelete(input: FacetGroupDeleteInput!): FacetGroupDeletePayload!
+  facetCreate(input: FacetCreateInput!): FacetCreatePayload!
+  facetUpdate(input: FacetUpdateInput!): FacetUpdatePayload!
+  facetDelete(input: FacetDeleteInput!): FacetDeletePayload!
+  facetValueCreate(input: FacetValueCreateInput!): FacetValueCreatePayload!
+  facetValueUpdate(input: FacetValueUpdateInput!): FacetValueUpdatePayload!
+  facetValueDelete(input: FacetValueDeleteInput!): FacetValueDeletePayload!
+  facetSwatchCreate(input: FacetSwatchCreateInput!): FacetSwatchCreatePayload!
+  facetSwatchUpdate(input: FacetSwatchUpdateInput!): FacetSwatchUpdatePayload!
+  facetSwatchDelete(input: FacetSwatchDeleteInput!): FacetSwatchDeletePayload!
+  collectionCreate(input: CollectionCreateInput!): CollectionCreatePayload!
+  collectionUpdate(input: CollectionUpdateInput!): CollectionUpdatePayload!
+  collectionDelete(input: CollectionDeleteInput!): CollectionDeletePayload!
+  collectionAddProducts(input: CollectionAddProductsInput!): CollectionAddProductsPayload!
+  collectionRemoveProducts(input: CollectionRemoveProductsInput!): CollectionRemoveProductsPayload!
+  collectionMoveProduct(input: CollectionMoveProductInput!): CollectionMoveProductPayload!
+  collectionUpdateRules(input: CollectionUpdateRulesInput!): CollectionUpdateRulesPayload!
   tagCreate(input: TagCreateInput!): TagCreatePayload!
   tagUpdate(input: TagUpdateInput!): TagUpdatePayload!
   tagDelete(input: TagDeleteInput!): TagDeletePayload!
@@ -1287,6 +1318,15 @@ type Category implements Node {
   """The category description."""
   description: Description
 
+  """Default product sort for this category PLP."""
+  defaultSort: ProductSortBy!
+
+  """Default sort direction for this category PLP."""
+  defaultSortDirection: SortDirection!
+
+  """SEO metadata."""
+  seo: Seo
+
   """The parent category, if any."""
   parent: Category
 
@@ -1300,7 +1340,7 @@ type Category implements Node {
   media: [CategoryMediaItem!]!
 
   """Products in this category with pagination."""
-  products(first: Int, after: String, last: Int, before: String): ProductConnection!
+  products(first: Int, after: String, last: Int, before: String, orderBy: [ProductOrderByInput!], where: CategoryProductWhereInput): CategoryProductConnection!
 
   """The total number of products in this category."""
   productsCount: Int!
@@ -1333,6 +1373,17 @@ type CategoryEdge {
   node: Category!
 
   """A cursor for use in pagination."""
+  cursor: String!
+}
+
+type CategoryProductConnection {
+  edges: [CategoryProductEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type CategoryProductEdge {
+  node: Product!
   cursor: String!
 }
 
@@ -1372,10 +1423,232 @@ type CategoryDeletePayload {
   userErrors: [GenericUserError!]!
 }
 
+type CategoryMoveProductPayload {
+  category: Category
+  userErrors: [GenericUserError!]!
+}
+
+type CategoryAddProductPayload {
+  category: Category
+  userErrors: [GenericUserError!]!
+}
+
+type CategoryRebalancePayload {
+  category: Category
+  userErrors: [GenericUserError!]!
+}
+
+type CategoryUpdateSortPayload {
+  category: Category
+  userErrors: [GenericUserError!]!
+}
+
+type Collection implements Node {
+  id: ID!
+  handle: String
+  type: CollectionType!
+  name: String!
+  description: Description
+  media: [CollectionMediaItem!]!
+  seo: Seo
+  defaultSort: ProductSortBy!
+  defaultSortDirection: SortDirection!
+  activeFrom: DateTime
+  activeTo: DateTime
+  isActive: Boolean!
+  publishedAt: DateTime
+  isPublished: Boolean!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  rules: [CollectionRule!]!
+  products(first: Int, after: String, last: Int, before: String, sort: ProductSortInput): CollectionProductConnection!
+  productsCount: Int!
+}
+
+type CollectionRule {
+  id: ID!
+  field: String!
+  operator: String!
+  value: JSON!
+  sortIndex: Int!
+}
+
+type CollectionMediaItem {
+  file: File!
+  sortIndex: Int!
+}
+
+type CollectionConnection {
+  edges: [CollectionEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type CollectionEdge {
+  node: Collection!
+  cursor: String!
+}
+
+type CollectionProductConnection {
+  edges: [CollectionProductEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type CollectionProductEdge {
+  node: Product!
+  cursor: String!
+}
+
+type CollectionCreatePayload {
+  collection: Collection
+  userErrors: [GenericUserError!]!
+}
+
+type CollectionUpdatePayload {
+  collection: Collection
+  userErrors: [GenericUserError!]!
+}
+
+type CollectionDeletePayload {
+  deletedCollectionId: ID
+  userErrors: [GenericUserError!]!
+}
+
+type CollectionAddProductsPayload {
+  collection: Collection
+  userErrors: [GenericUserError!]!
+}
+
+type CollectionRemoveProductsPayload {
+  collection: Collection
+  userErrors: [GenericUserError!]!
+}
+
+type CollectionMoveProductPayload {
+  collection: Collection
+  userErrors: [GenericUserError!]!
+}
+
+type CollectionUpdateRulesPayload {
+  collection: Collection
+  userErrors: [GenericUserError!]!
+}
+
+type FacetGroup implements Node {
+  id: ID!
+  name: String!
+  sortIndex: Int!
+  collapsed: Boolean!
+  facets: [Facet!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type Facet implements Node {
+  id: ID!
+  facetType: FacetType!
+  sourceHandles: [String!]!
+  slug: String!
+  label: String!
+  uiType: FacetUIType!
+  selectionMode: FacetSelectionMode!
+  sortIndex: Int!
+  group: FacetGroup
+  minValues: Int!
+  maxValuesVisible: Int!
+  valueSort: FacetValueSort!
+  indexable: Boolean!
+  values: [FacetValue!]!
+}
+
+type FacetValue implements Node {
+  id: ID!
+  facet: Facet!
+  slug: String!
+  label: String!
+  sourceHandles: [String!]!
+  swatch: FacetSwatch
+  sortIndex: Int!
+  enabled: Boolean!
+}
+
+type FacetSwatch implements Node {
+  id: ID!
+  swatchType: SwatchType!
+  colorOne: String
+  colorTwo: String
+  file: File
+  metadata: JSON
+}
+
+type FacetGroupCreatePayload {
+  facetGroup: FacetGroup
+  userErrors: [GenericUserError!]!
+}
+
+type FacetGroupUpdatePayload {
+  facetGroup: FacetGroup
+  userErrors: [GenericUserError!]!
+}
+
+type FacetGroupDeletePayload {
+  deletedFacetGroupId: ID
+  userErrors: [GenericUserError!]!
+}
+
+type FacetCreatePayload {
+  facet: Facet
+  userErrors: [GenericUserError!]!
+}
+
+type FacetUpdatePayload {
+  facet: Facet
+  userErrors: [GenericUserError!]!
+}
+
+type FacetDeletePayload {
+  deletedFacetId: ID
+  userErrors: [GenericUserError!]!
+}
+
+type FacetValueCreatePayload {
+  facetValue: FacetValue
+  userErrors: [GenericUserError!]!
+}
+
+type FacetValueUpdatePayload {
+  facetValue: FacetValue
+  userErrors: [GenericUserError!]!
+}
+
+type FacetValueDeletePayload {
+  deletedFacetValueId: ID
+  userErrors: [GenericUserError!]!
+}
+
+type FacetSwatchCreatePayload {
+  facetSwatch: FacetSwatch
+  userErrors: [GenericUserError!]!
+}
+
+type FacetSwatchUpdatePayload {
+  facetSwatch: FacetSwatch
+  userErrors: [GenericUserError!]!
+}
+
+type FacetSwatchDeletePayload {
+  deletedFacetSwatchId: ID
+  userErrors: [GenericUserError!]!
+}
+
 """A product feature represents either a group or an attribute."""
 type ProductFeature implements Node {
   """The globally unique ID of the feature."""
   id: ID!
+
+  """The URL-friendly slug for this feature."""
+  slug: String!
 
   """Tree position as array: [0] for root, [0, 1] for child of first group."""
   index: [Int!]!
@@ -1400,6 +1673,9 @@ type ProductFeature implements Node {
 type ProductFeatureValue implements Node {
   """The globally unique ID of the feature value."""
   id: ID!
+
+  """The URL-friendly slug for this feature value."""
+  slug: String!
 
   """Position within the feature's values (0, 1, 2, ...)."""
   index: Int!
@@ -1892,8 +2168,8 @@ type GenericUserError implements UserError {
   code: String
 }
 
-"""SEO and Open Graph metadata for a product."""
-type ProductSeo {
+"""SEO and Open Graph metadata."""
+type Seo {
   """SEO title for search engines (max 70 chars)."""
   seoTitle: String
 
@@ -1907,6 +2183,15 @@ type ProductSeo {
   ogDescription: String
 
   """Open Graph image for social media sharing."""
+  ogImage: File
+}
+
+"""SEO and Open Graph metadata for a product."""
+type ProductSeo {
+  seoTitle: String
+  seoDescription: String
+  ogTitle: String
+  ogDescription: String
   ogImage: File
 }
 
@@ -2217,11 +2502,43 @@ enum ProductStatus {
   PUBLISHED
 }
 
-"""Display type for product options in the UI."""
-enum OptionDisplayType {
+enum ProductSortBy {
+  MANUAL
+  PRICE
+  NEWEST
+  NAME
+}
+
+enum CollectionType {
+  MANUAL
+  RULE
+}
+
+enum FacetType {
+  PRICE
+  TAG
+  FEATURE
+  OPTION
+  IN_STOCK
+}
+
+enum FacetUIType {
+  CHECKBOX
+  RADIO
   DROPDOWN
-  SWATCH
-  BUTTONS
+  RANGE
+  BOOLEAN
+}
+
+enum FacetSelectionMode {
+  SINGLE
+  MULTI
+}
+
+enum FacetValueSort {
+  COUNT
+  ALPHA
+  CUSTOM
 }
 
 """Type of visual swatch for option values."""
@@ -2229,6 +2546,13 @@ enum SwatchType {
   COLOR
   GRADIENT
   IMAGE
+}
+
+"""Display type for product options in the UI."""
+enum OptionDisplayType {
+  DROPDOWN
+  SWATCH
+  BUTTONS
 }
 
 """Type of operation in the unified update."""
@@ -2405,6 +2729,27 @@ input DateTimeFilter {
   _isNot: Boolean
 }
 
+"""Filter conditions for CategoryProduct"""
+input CategoryProductWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [CategoryProductWhereInput!]
+
+  """Logical OR of multiple conditions"""
+  _or: [CategoryProductWhereInput!]
+
+  """Negate the condition"""
+  _not: CategoryProductWhereInput
+
+  """Filter by id"""
+  id: IDFilter
+
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+
+  """Filter by deletedAt"""
+  deletedAt: DateTimeFilter
+}
+
 """
 Bulk update input - same structure as productUpdate but for multiple products.
 Max 100 products, 500 operations total.
@@ -2442,6 +2787,9 @@ input CategoryCreateInput {
   """Optional description."""
   description: DescriptionInput
 
+  """SEO metadata."""
+  seo: SeoInput
+
   """File IDs for category media."""
   mediaFileIds: [ID!]
 
@@ -2463,6 +2811,9 @@ input CategoryUpdateInput {
   """The category description."""
   description: DescriptionInput
 
+  """SEO metadata."""
+  seo: SeoInput
+
   """File IDs for category media (replaces existing)."""
   mediaFileIds: [ID!]
 }
@@ -2483,6 +2834,183 @@ input CategoryDeleteInput {
 
   """Whether to permanently delete (hard delete)."""
   permanent: Boolean
+}
+
+input CategoryMoveProductInput {
+  categoryId: ID!
+  productId: ID!
+  afterProductId: ID
+  beforeProductId: ID
+}
+
+input CategoryAddProductInput {
+  categoryId: ID!
+  productId: ID!
+}
+
+input CategoryRebalanceInput {
+  categoryId: ID!
+}
+
+input CategoryUpdateSortInput {
+  id: ID!
+  defaultSort: ProductSortBy!
+  defaultSortDirection: SortDirection!
+}
+
+input CollectionRuleInput {
+  field: String!
+  operator: String!
+  value: JSON!
+}
+
+input CollectionCreateInput {
+  handle: String
+  type: CollectionType!
+  name: String!
+  description: DescriptionInput
+  media: [CollectionMediaInput!]
+  seo: SeoInput
+  defaultSort: ProductSortBy
+  defaultSortDirection: SortDirection
+  activeFrom: DateTime
+  activeTo: DateTime
+  publish: Boolean
+}
+
+input CollectionUpdateInput {
+  id: ID!
+  handle: String
+  name: String
+  description: DescriptionInput
+  media: [CollectionMediaInput!]
+  seo: SeoInput
+  defaultSort: ProductSortBy
+  defaultSortDirection: SortDirection
+  activeFrom: DateTime
+  activeTo: DateTime
+  publish: Boolean
+}
+
+input CollectionMediaInput {
+  fileId: ID!
+  sortIndex: Int
+}
+
+input CollectionDeleteInput {
+  id: ID!
+}
+
+input CollectionAddProductsInput {
+  collectionId: ID!
+  productIds: [ID!]!
+}
+
+input CollectionRemoveProductsInput {
+  collectionId: ID!
+  productIds: [ID!]!
+}
+
+input CollectionMoveProductInput {
+  collectionId: ID!
+  productId: ID!
+  afterProductId: ID
+  beforeProductId: ID
+}
+
+input CollectionUpdateRulesInput {
+  collectionId: ID!
+  rules: [CollectionRuleInput!]!
+}
+
+input FacetGroupCreateInput {
+  name: String!
+  collapsed: Boolean
+  sortIndex: Int
+}
+
+input FacetGroupUpdateInput {
+  id: ID!
+  name: String
+  collapsed: Boolean
+  sortIndex: Int
+}
+
+input FacetGroupDeleteInput {
+  id: ID!
+}
+
+input FacetCreateInput {
+  facetType: FacetType!
+  slug: String!
+  uiType: FacetUIType
+  selectionMode: FacetSelectionMode
+  groupId: ID
+  label: String!
+  sortIndex: Int
+}
+
+input FacetUpdateInput {
+  id: ID!
+  slug: String
+  uiType: FacetUIType
+  selectionMode: FacetSelectionMode
+  groupId: ID
+  label: String
+  sortIndex: Int
+  minValues: Int
+  maxValuesVisible: Int
+  valueSort: FacetValueSort
+  indexable: Boolean
+}
+
+input FacetDeleteInput {
+  id: ID!
+}
+
+input FacetValueCreateInput {
+  facetId: ID!
+  slug: String!
+  label: String!
+  sourceHandles: [String!]
+  swatchId: ID
+  sortIndex: Int
+  enabled: Boolean
+}
+
+input FacetValueUpdateInput {
+  id: ID!
+  slug: String
+  label: String
+  sourceHandles: [String!]
+  swatchId: ID
+  sortIndex: Int
+  enabled: Boolean
+}
+
+input FacetValueDeleteInput {
+  id: ID!
+}
+
+input FacetSwatchCreateInput {
+  swatchType: SwatchType!
+  colorOne: String
+  colorTwo: String
+  fileId: ID
+  metadata: JSON
+}
+
+input FacetSwatchUpdateInput {
+  id: ID!
+  swatchType: SwatchType
+  colorOne: String
+  colorTwo: String
+  fileId: ID
+  metadata: JSON
+}
+
+input FacetSwatchDeleteInput {
+  id: ID!
 }
 
 """Sync all product features in a single transaction."""
@@ -2512,6 +3040,9 @@ input ProductFeatureSyncItemInput {
   """
   index: [Int!]!
 
+  """The URL-friendly slug for this feature."""
+  slug: String!
+
   """Whether this is a group (true) or attribute (false)."""
   isGroup: Boolean!
 
@@ -2529,6 +3060,9 @@ input ProductFeatureValueSyncInput {
   """Position within the feature's values (0, 1, 2, ...)."""
   index: Int!
 
+  """The URL-friendly slug for this feature value."""
+  slug: String!
+
   """Display name."""
   name: String!
 }
@@ -2537,12 +3071,18 @@ input ProductFeatureValueSyncInput {
 input ProductFeatureValueCreateInput {
   """Display name."""
   name: String!
+
+  """The URL-friendly slug for this feature value."""
+  slug: String!
 }
 
 """Input for creating a feature on a product."""
 input ProductFeatureCreateInput {
   """The ID of the product."""
   productId: ID!
+
+  """The URL-friendly slug for the feature."""
+  slug: String!
 
   """Display name."""
   name: String!
@@ -2558,6 +3098,9 @@ input ProductFeatureValueUpdateInput {
 
   """Display name."""
   name: String
+
+  """The URL-friendly slug for this value."""
+  slug: String
 }
 
 """Input for nested value operations in feature update."""
@@ -2576,6 +3119,9 @@ input ProductFeatureValuesInput {
 input ProductFeatureUpdateInput {
   """The ID of the feature to update."""
   id: ID!
+
+  """The URL-friendly slug for the feature."""
+  slug: String
 
   """Display name."""
   name: String
@@ -2791,6 +3337,17 @@ input VariantUpdatePricingInput {
 
   """The compare-at price in minor units (optional)."""
   compareAtMinor: BigInt
+}
+
+input ProductSortInput {
+  by: ProductSortBy!
+  direction: SortDirection
+}
+
+"""Standard orderBy input for product queries."""
+input ProductOrderByInput {
+  field: ProductSortBy!
+  direction: SortDirection
 }
 
 """Input for product description (all fields required)."""
@@ -3026,8 +3583,8 @@ input VariantUpdateInput {
   options: VariantOptionsOpInput
 }
 
-"""Input for updating product SEO data."""
-input ProductSeoInput {
+"""Input for SEO and Open Graph metadata."""
+input SeoInput {
   """SEO title (max 70 chars)."""
   seoTitle: String
 
@@ -3041,6 +3598,15 @@ input ProductSeoInput {
   ogDescription: String
 
   """Open Graph image file ID."""
+  ogImageId: ID
+}
+
+"""Input for updating product SEO data."""
+input ProductSeoInput {
+  seoTitle: String
+  seoDescription: String
+  ogTitle: String
+  ogDescription: String
   ogImageId: ID
 }
 

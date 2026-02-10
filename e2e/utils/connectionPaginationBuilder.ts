@@ -126,14 +126,13 @@ export function createConnectionPaginationTests<
     filterCases = [],
     getConnection,
     getNodeIdentifier = (node) => node.id,
-    getRawId = (node) => node.id,
+    // getRawId = (node) => node.id,
     pageSize = 2,
     apiClient = 'admin',
     skipCursorValidation = false,
   } = params;
 
-  const getApi = (api: ApiFixtures['api']) =>
-    apiClient === 'admin' ? api.admin : api.client;
+  const getApi = (api: ApiFixtures['api']) => (apiClient === 'admin' ? api.admin : api.client);
 
   test.describe(suiteName, () => {
     for (const sortCase of sortCases) {
@@ -153,6 +152,7 @@ export function createConnectionPaginationTests<
           });
 
           const conn1 = getConnection(page1 as Record<string, unknown>);
+
           expect(conn1.edges).toHaveLength(pageSize);
           expect(conn1.pageInfo.hasNextPage).toBe(true);
           expect(conn1.pageInfo.hasPreviousPage).toBe(false);
@@ -446,33 +446,6 @@ export function createConnectionPaginationTests<
       expect(conn.pageInfo.hasPreviousPage).toBe(false);
       expect(conn.pageInfo.startCursor).toBeNull();
       expect(conn.pageInfo.endCursor).toBeNull();
-    });
-
-    // @deprecated
-    test.skip('single item result', async ({ api }) => {
-      const { expectedItems, baseVariables = {}, whereFilter } = await prepare(api);
-      const sortedItems = sortCases[0].sortExpected(expectedItems);
-
-      // Filter to get only the first item (using raw ID for database filtering)
-      const rawId = getRawId(sortedItems[0]);
-      const singleItemFilter = whereFilter
-        ? { _and: [whereFilter, { id: { _eq: rawId } }] }
-        : { id: { _eq: rawId } };
-
-      const { data } = await getApi(api).query(queryName, {
-        variables: {
-          ...baseVariables,
-          first: pageSize,
-          orderBy: sortCases[0].orderBy,
-          where: singleItemFilter,
-        },
-      });
-
-      const conn = getConnection(data as Record<string, unknown>);
-      expect(conn.edges).toHaveLength(1);
-      expect(conn.pageInfo.hasNextPage).toBe(false);
-      expect(conn.pageInfo.hasPreviousPage).toBe(false);
-      expect(getNodeIdentifier(conn.edges[0].node)).toBe(getNodeIdentifier(sortedItems[0]));
     });
 
     test('first page has hasPreviousPage false', async ({ api }) => {

@@ -45,10 +45,11 @@ const productTranslationQuery = createQuery(productTranslation, {
 });
 
 const priceRangeQuery = createQuery(productPriceRange, {
-  productId: { column: "product_id" },
-  currency: { column: "currency" },
-  minAmountMinor: { column: "min_amount_minor" },
-  maxAmountMinor: { column: "max_amount_minor" },
+  projectId: field(productPriceRange.projectId),
+  productId: field(productPriceRange.productId),
+  currency: field(productPriceRange.currency),
+  minAmountMinor: field(productPriceRange.minAmountMinor),
+  maxAmountMinor: field(productPriceRange.maxAmountMinor),
 });
 
 const categoryProductsQuery = createQuery(product, {
@@ -64,9 +65,10 @@ const categoryProductsQuery = createQuery(product, {
     productTranslationQuery,
     productTranslation.productId,
   ),
-  priceRange: field(product.id).leftJoin(priceRangeQuery, {
-    name: "product_id",
-  } as never),
+  priceRange: field(product.id).leftJoin(
+    priceRangeQuery,
+    productPriceRange.productId,
+  ),
 });
 
 export const categoryProductsRelayQuery = createRelayQuery(
@@ -643,11 +645,12 @@ export class CategoryRepository {
     } = args;
 
     // Build where filter for this category, merging with user's filter
-    const baseConditions = [
+    const baseConditions: Array<Record<string, unknown>> = [
       { projectId: { _eq: this.storeId } },
       { deletedAt: { _is: null } },
       { category: { categoryId: { _eq: categoryId } } },
     ];
+
 
     const mergedWhere: CategoryProductsRelayInput["where"] = userWhere
       ? { _and: [...baseConditions, userWhere] }

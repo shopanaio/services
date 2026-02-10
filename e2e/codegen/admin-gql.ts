@@ -383,6 +383,7 @@ export type ApiBulkUpdateUserError = ApiUserError & {
 
 export type ApiCatalogMutation = {
   __typename?: 'CatalogMutation';
+  categoryAddProduct: ApiCategoryAddProductPayload;
   categoryCreate: ApiCategoryCreatePayload;
   categoryDelete: ApiCategoryDeletePayload;
   categoryMove: ApiCategoryMovePayload;
@@ -443,6 +444,11 @@ export type ApiCatalogMutation = {
   variantUpdateMedia: ApiVariantUpdateMediaPayload;
   variantUpdateOptions: ApiVariantUpdateOptionsPayload;
   variantUpdatePricing: ApiVariantUpdatePricingPayload;
+};
+
+
+export type ApiCatalogMutationCategoryAddProductArgs = {
+  input: ApiCategoryAddProductInput;
 };
 
 
@@ -688,7 +694,6 @@ export type ApiCatalogQuery = {
   categories: ApiCategoryConnection;
   /** Get a category by ID */
   category?: Maybe<ApiCategory>;
-  categoryProducts: ApiCategoryProductConnection;
   collection?: Maybe<ApiCollection>;
   collectionByHandle?: Maybe<ApiCollection>;
   collectionRulesPreviewCount: Scalars['Int']['output'];
@@ -732,17 +737,6 @@ export type ApiCatalogQueryCategoriesArgs = {
 
 export type ApiCatalogQueryCategoryArgs = {
   id: Scalars['ID']['input'];
-};
-
-
-export type ApiCatalogQueryCategoryProductsArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
-  categoryId: Scalars['ID']['input'];
-  filters?: InputMaybe<ApiProductFiltersInput>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  sort?: InputMaybe<ApiProductSortInput>;
 };
 
 
@@ -852,8 +846,6 @@ export type ApiCategory = ApiNode & {
   __typename?: 'Category';
   /** All ancestor categories from root to parent. */
   ancestors: Array<ApiCategory>;
-  /** Category products with sorting, filtering, and pagination. */
-  categoryProducts: ApiCategoryProductConnection;
   /** Direct child categories. */
   children: Array<ApiCategory>;
   /** The date and time when the category was created. */
@@ -883,7 +875,7 @@ export type ApiCategory = ApiNode & {
   /** The materialized path for this category. */
   path: Scalars['String']['output'];
   /** Products in this category with pagination. */
-  products: ApiProductConnection;
+  products: ApiCategoryProductConnection;
   /** The total number of products in this category. */
   productsCount: Scalars['Int']['output'];
   /** The date and time when the category was published, or null if unpublished. */
@@ -896,22 +888,24 @@ export type ApiCategory = ApiNode & {
 
 
 /** A category represents a hierarchical grouping of products. */
-export type ApiCategoryCategoryProductsArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
-  filters?: InputMaybe<ApiProductFiltersInput>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  sort?: InputMaybe<ApiProductSortInput>;
-};
-
-
-/** A category represents a hierarchical grouping of products. */
 export type ApiCategoryProductsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiProductOrderByInput>>;
+  where?: InputMaybe<ApiCategoryProductWhereInput>;
+};
+
+export type ApiCategoryAddProductInput = {
+  categoryId: Scalars['ID']['input'];
+  productId: Scalars['ID']['input'];
+};
+
+export type ApiCategoryAddProductPayload = {
+  __typename?: 'CategoryAddProductPayload';
+  category?: Maybe<ApiCategory>;
+  userErrors: Array<ApiGenericUserError>;
 };
 
 /** A connection to a list of Category items. */
@@ -1020,7 +1014,6 @@ export type ApiCategoryMoveProductPayload = {
 export type ApiCategoryProductConnection = {
   __typename?: 'CategoryProductConnection';
   edges: Array<ApiCategoryProductEdge>;
-  facets?: Maybe<ApiFacets>;
   pageInfo: ApiPageInfo;
   totalCount: Scalars['Int']['output'];
 };
@@ -1029,6 +1022,22 @@ export type ApiCategoryProductEdge = {
   __typename?: 'CategoryProductEdge';
   cursor: Scalars['String']['output'];
   node: ApiProduct;
+};
+
+/** Filter conditions for CategoryProduct */
+export type ApiCategoryProductWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiCategoryProductWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiCategoryProductWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiCategoryProductWhereInput>>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by deletedAt */
+  deletedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
 };
 
 export type ApiCategoryRebalanceInput = {
@@ -1105,7 +1114,6 @@ export type ApiCollection = ApiNode & {
 export type ApiCollectionProductsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   before?: InputMaybe<Scalars['String']['input']>;
-  filters?: InputMaybe<ApiProductFiltersInput>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
   sort?: InputMaybe<ApiProductSortInput>;
@@ -1201,7 +1209,6 @@ export type ApiCollectionMoveProductPayload = {
 export type ApiCollectionProductConnection = {
   __typename?: 'CollectionProductConnection';
   edges: Array<ApiCollectionProductEdge>;
-  facets?: Maybe<ApiFacets>;
   pageInfo: ApiPageInfo;
   totalCount: Scalars['Int']['output'];
 };
@@ -2247,38 +2254,6 @@ export type ApiFacetGroupUpdatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
-export type ApiFacetRangeFilterInput = {
-  facetSlug: Scalars['String']['input'];
-  max?: InputMaybe<Scalars['BigInt']['input']>;
-  min?: InputMaybe<Scalars['BigInt']['input']>;
-};
-
-export type ApiFacetResult = {
-  __typename?: 'FacetResult';
-  facetType: FacetType;
-  label: Scalars['String']['output'];
-  selectionMode: FacetSelectionMode;
-  slug: Scalars['String']['output'];
-  totalCount: Scalars['Int']['output'];
-  uiType: FacetUiType;
-  values: Array<ApiFacetResultValue>;
-};
-
-export type ApiFacetResultGroup = {
-  __typename?: 'FacetResultGroup';
-  collapsed: Scalars['Boolean']['output'];
-  facets: Array<ApiFacetResult>;
-  name?: Maybe<Scalars['String']['output']>;
-};
-
-export type ApiFacetResultValue = {
-  __typename?: 'FacetResultValue';
-  count: Scalars['Int']['output'];
-  label?: Maybe<Scalars['String']['output']>;
-  slug: Scalars['String']['output'];
-  swatch?: Maybe<ApiFacetSwatch>;
-};
-
 export enum FacetSelectionMode {
   Multi = 'MULTI',
   Single = 'SINGLE'
@@ -2427,12 +2402,6 @@ export type ApiFacetValueUpdatePayload = {
   __typename?: 'FacetValueUpdatePayload';
   facetValue?: Maybe<ApiFacetValue>;
   userErrors: Array<ApiGenericUserError>;
-};
-
-export type ApiFacets = {
-  __typename?: 'Facets';
-  groups: Array<ApiFacetResultGroup>;
-  priceRange?: Maybe<ApiPriceRange>;
 };
 
 /** A file represents a stored media asset. */
@@ -4231,12 +4200,6 @@ export type ApiPageInfo = {
   startCursor?: Maybe<Scalars['String']['output']>;
 };
 
-export type ApiPriceRange = {
-  __typename?: 'PriceRange';
-  maxMinor: Scalars['BigInt']['output'];
-  minMinor: Scalars['BigInt']['output'];
-};
-
 /** Input for pricing widget query. */
 export type ApiPricingWidgetInput = {
   /** Pagination: cursor after. */
@@ -4661,14 +4624,6 @@ export type ApiProductFeaturesSyncPayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
-export type ApiProductFiltersInput = {
-  facets?: InputMaybe<Array<Scalars['String']['input']>>;
-  inStock?: InputMaybe<Scalars['Boolean']['input']>;
-  priceMaxMinor?: InputMaybe<Scalars['BigInt']['input']>;
-  priceMinMinor?: InputMaybe<Scalars['BigInt']['input']>;
-  ranges?: InputMaybe<Array<ApiFacetRangeFilterInput>>;
-};
-
 export type ApiProductInventoryWidget = {
   __typename?: 'ProductInventoryWidget';
   alertThreshold: ApiInventoryAlertThreshold;
@@ -4889,6 +4844,12 @@ export type ApiProductOptionsSyncPayload = {
   product?: Maybe<ApiProduct>;
   /** List of errors that occurred. */
   userErrors: Array<ApiGenericUserError>;
+};
+
+/** Standard orderBy input for product queries. */
+export type ApiProductOrderByInput = {
+  direction?: InputMaybe<SortDirection>;
+  field: ProductSortBy;
 };
 
 /** SEO and Open Graph metadata for a product. */
@@ -6565,11 +6526,6 @@ export type ApiWidgetQueryInventoryArgs = {
 /** Widget query namespace for dashboard widgets. */
 export type ApiWidgetQueryPricingArgs = {
   input: ApiPricingWidgetInput;
-};
-
-export type Api_CatalogFiltersPlaceholder = {
-  __typename?: '_CatalogFiltersPlaceholder';
-  _empty?: Maybe<Scalars['Boolean']['output']>;
 };
 
 export enum Join__Graph {

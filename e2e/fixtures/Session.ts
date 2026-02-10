@@ -17,6 +17,8 @@ export class SessionFixture {
 
   scope: 'tenant' | 'customer' = 'tenant';
 
+  currency: string | undefined;
+
   tenant: {
     data: UserData;
     accessToken?: string;
@@ -114,5 +116,12 @@ export class SessionFixture {
   clearSession() {
     this.tenant.accessToken = undefined;
     this.tenant.userId = undefined;
+  }
+
+  /**
+   * Sets currency for price-related operations
+   */
+  setCurrency(currency: string) {
+    this.currency = currency;
   }
 }
