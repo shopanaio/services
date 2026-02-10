@@ -1779,3 +1779,730 @@ test.describe('Bundle Queries', () => {
     expect(data.catalogQuery.bundleGroup).toBeNull();
   });
 });
+
+// ===============================================
+// ADDITIONAL TEST SCENARIOS
+// ===============================================
+
+test.describe('Bundle - Multiple Products in Group', () => {
+  test.beforeEach(async ({ api }) => {
+    await api.session.setupUserAndStore();
+  });
+
+  test('should create bundle group with multiple product items', async ({ api }) => {
+    const mainProduct = await createProduct(api, 'Bundle Main Product');
+    const refProduct1 = await createProduct(api, 'Accessory 1');
+    const refProduct2 = await createProduct(api, 'Accessory 2');
+    const refProduct3 = await createProduct(api, 'Accessory 3');
+
+    // Create group
+    const { data: groupData } = await api.admin.mutation('bundle-api/BundleGroupCreate', {
+      variables: {
+        input: {
+          productId: mainProduct.id,
+          title: 'Select Accessories',
+          minSelection: 1,
+          maxSelection: 2,
+        },
+      },
+    });
+
+    const groupId = groupData.catalogMutation.bundleGroupCreate.bundleGroup.id;
+
+    // Add multiple items
+    const { data: item1Data } = await api.admin.mutation('bundle-api/BundleItemCreate', {
+      variables: {
+        input: {
+          groupId,
+          itemType: 'PRODUCT',
+          refProductId: refProduct1.id,
+          title: 'First Accessory',
+          priceType: 'PERCENT_OFF',
+          priceValue: 10,
+        },
+      },
+    });
+
+    const { data: item2Data } = await api.admin.mutation('bundle-api/BundleItemCreate', {
+      variables: {
+        input: {
+          groupId,
+          itemType: 'PRODUCT',
+          refProductId: refProduct2.id,
+          title: 'Second Accessory',
+          priceType: 'FREE',
+        },
+      },
+    });
+
+    const { data: item3Data } = await api.admin.mutation('bundle-api/BundleItemCreate', {
+      variables: {
+        input: {
+          groupId,
+          itemType: 'PRODUCT',
+          refProductId: refProduct3.id,
+          title: 'Third Accessory',
+          priceType: 'FIXED',
+          priceValue: 500,
+        },
+      },
+    });
+
+    expect(item1Data.catalogMutation.bundleItemCreate.userErrors).toHaveLength(0);
+    expect(item2Data.catalogMutation.bundleItemCreate.userErrors).toHaveLength(0);
+    expect(item3Data.catalogMutation.bundleItemCreate.userErrors).toHaveLength(0);
+
+    // Query to verify all items are in group
+    const { data: queryData } = await api.admin.query('bundle-api/BundleGroup', {
+      variables: { id: groupId },
+    });
+
+    expect(queryData.catalogQuery.bundleGroup.items).toHaveLength(3);
+    expect(queryData.catalogQuery.bundleGroup.items.map((i: { title: string }) => i.title)).toContain('First Accessory');
+    expect(queryData.catalogQuery.bundleGroup.items.map((i: { title: string }) => i.title)).toContain('Second Accessory');
+    expect(queryData.catalogQuery.bundleGroup.items.map((i: { title: string }) => i.title)).toContain('Third Accessory');
+  });
+});
+
+test.describe('Bundle Item - Update Reference', () => {
+  test.beforeEach(async ({ api }) => {
+    await api.session.setupUserAndStore();
+  });
+
+  test('should update item sortIndex', async ({ api }) => {
+    const product = await createProduct(api);
+    const refProduct = await createProduct(api, 'Reference Product');
+
+    const { data: groupData } = await api.admin.mutation('bundle-api/BundleGroupCreate', {
+      variables: {
+        input: {
+          productId: product.id,
+          title: 'Test Group',
+        },
+      },
+    });
+
+    const groupId = groupData.catalogMutation.bundleGroupCreate.bundleGroup.id;
+
+    const { data: createData } = await api.admin.mutation('bundle-api/BundleItemCreate', {
+      variables: {
+        input: {
+          groupId,
+          itemType: 'PRODUCT',
+          refProductId: refProduct.id,
+        },
+      },
+    });
+
+    const itemId = createData.catalogMutation.bundleItemCreate.bundleItem.id;
+
+    // Update sortIndex
+    const { data } = await api.admin.mutation('bundle-api/BundleItemUpdate', {
+      variables: {
+        input: {
+          id: itemId,
+          sortIndex: 99,
+        },
+      },
+    });
+
+    expect(data.catalogMutation.bundleItemUpdate.userErrors).toHaveLength(0);
+    expect(data.catalogMutation.bundleItemUpdate.bundleItem.sortIndex).toBe(99);
+  });
+
+  test('should update item visibility', async ({ api }) => {
+    const product = await createProduct(api);
+    const refProduct = await createProduct(api, 'Reference Product');
+
+    const { data: groupData } = await api.admin.mutation('bundle-api/BundleGroupCreate', {
+      variables: {
+        input: {
+          productId: product.id,
+          title: 'Test Group',
+        },
+      },
+    });
+
+    const groupId = groupData.catalogMutation.bundleGroupCreate.bundleGroup.id;
+
+    const { data: createData } = await api.admin.mutation('bundle-api/BundleItemCreate', {
+      variables: {
+        input: {
+          groupId,
+          itemType: 'PRODUCT',
+          refProductId: refProduct.id,
+          visible: true,
+        },
+      },
+    });
+
+    const itemId = createData.catalogMutation.bundleItemCreate.bundleItem.id;
+
+    // Update to hidden
+    const { data } = await api.admin.mutation('bundle-api/BundleItemUpdate', {
+      variables: {
+        input: {
+          id: itemId,
+          visible: false,
+        },
+      },
+    });
+
+    expect(data.catalogMutation.bundleItemUpdate.userErrors).toHaveLength(0);
+    expect(data.catalogMutation.bundleItemUpdate.bundleItem.visible).toBe(false);
+  });
+
+  test('should update item selected state', async ({ api }) => {
+    const product = await createProduct(api);
+    const refProduct = await createProduct(api, 'Reference Product');
+
+    const { data: groupData } = await api.admin.mutation('bundle-api/BundleGroupCreate', {
+      variables: {
+        input: {
+          productId: product.id,
+          title: 'Test Group',
+        },
+      },
+    });
+
+    const groupId = groupData.catalogMutation.bundleGroupCreate.bundleGroup.id;
+
+    const { data: createData } = await api.admin.mutation('bundle-api/BundleItemCreate', {
+      variables: {
+        input: {
+          groupId,
+          itemType: 'PRODUCT',
+          refProductId: refProduct.id,
+          selected: false,
+        },
+      },
+    });
+
+    const itemId = createData.catalogMutation.bundleItemCreate.bundleItem.id;
+
+    // Update to selected
+    const { data } = await api.admin.mutation('bundle-api/BundleItemUpdate', {
+      variables: {
+        input: {
+          id: itemId,
+          selected: true,
+        },
+      },
+    });
+
+    expect(data.catalogMutation.bundleItemUpdate.userErrors).toHaveLength(0);
+    expect(data.catalogMutation.bundleItemUpdate.bundleItem.selected).toBe(true);
+  });
+});
+
+test.describe('Bundle Validation - Edge Cases', () => {
+  test.beforeEach(async ({ api }) => {
+    await api.session.setupUserAndStore();
+  });
+
+  test('should reject minQty greater than maxQty', async ({ api }) => {
+    const product = await createProduct(api);
+    const refProduct = await createProduct(api, 'Reference Product');
+
+    const { data: groupData } = await api.admin.mutation('bundle-api/BundleGroupCreate', {
+      variables: {
+        input: {
+          productId: product.id,
+          title: 'Test Group',
+        },
+      },
+    });
+
+    const groupId = groupData.catalogMutation.bundleGroupCreate.bundleGroup.id;
+
+    const { data } = await api.admin.mutation('bundle-api/BundleItemCreate', {
+      throwOnError: false,
+      variables: {
+        input: {
+          groupId,
+          itemType: 'PRODUCT',
+          refProductId: refProduct.id,
+          minQty: 5,
+          maxQty: 2, // minQty > maxQty - should fail
+        },
+      },
+    });
+
+    const result = data.catalogMutation.bundleItemCreate;
+    expect(result.bundleItem).toBeNull();
+    expect(result.userErrors.length).toBeGreaterThan(0);
+  });
+
+  test('should accept equal minQty and maxQty', async ({ api }) => {
+    const product = await createProduct(api);
+    const refProduct = await createProduct(api, 'Reference Product');
+
+    const { data: groupData } = await api.admin.mutation('bundle-api/BundleGroupCreate', {
+      variables: {
+        input: {
+          productId: product.id,
+          title: 'Test Group',
+        },
+      },
+    });
+
+    const groupId = groupData.catalogMutation.bundleGroupCreate.bundleGroup.id;
+
+    const { data } = await api.admin.mutation('bundle-api/BundleItemCreate', {
+      variables: {
+        input: {
+          groupId,
+          itemType: 'PRODUCT',
+          refProductId: refProduct.id,
+          minQty: 3,
+          maxQty: 3, // Equal values - should work
+        },
+      },
+    });
+
+    const result = data.catalogMutation.bundleItemCreate;
+    expect(result.userErrors).toHaveLength(0);
+    expect(result.bundleItem.minQty).toBe(3);
+    expect(result.bundleItem.maxQty).toBe(3);
+  });
+
+  test('should allow maxQty null (unlimited)', async ({ api }) => {
+    const product = await createProduct(api);
+    const refProduct = await createProduct(api, 'Reference Product');
+
+    const { data: groupData } = await api.admin.mutation('bundle-api/BundleGroupCreate', {
+      variables: {
+        input: {
+          productId: product.id,
+          title: 'Test Group',
+        },
+      },
+    });
+
+    const groupId = groupData.catalogMutation.bundleGroupCreate.bundleGroup.id;
+
+    const { data } = await api.admin.mutation('bundle-api/BundleItemCreate', {
+      variables: {
+        input: {
+          groupId,
+          itemType: 'PRODUCT',
+          refProductId: refProduct.id,
+          minQty: 1,
+          // maxQty not set (null = unlimited)
+        },
+      },
+    });
+
+    const result = data.catalogMutation.bundleItemCreate;
+    expect(result.userErrors).toHaveLength(0);
+    expect(result.bundleItem.minQty).toBe(1);
+    expect(result.bundleItem.maxQty).toBeNull();
+  });
+
+  test('should reject creating item for non-existent group', async ({ api }) => {
+    const refProduct = await createProduct(api, 'Reference Product');
+
+    const { data } = await api.admin.mutation('bundle-api/BundleItemCreate', {
+      throwOnError: false,
+      variables: {
+        input: {
+          groupId: 'gid://catalog/BundleGroup/00000000-0000-0000-0000-000000000000',
+          itemType: 'PRODUCT',
+          refProductId: refProduct.id,
+        },
+      },
+    });
+
+    const result = data.catalogMutation.bundleItemCreate;
+    expect(result.bundleItem).toBeNull();
+    expect(result.userErrors.length).toBeGreaterThan(0);
+  });
+
+  test('should reject updating non-existent item', async ({ api }) => {
+    const { data } = await api.admin.mutation('bundle-api/BundleItemUpdate', {
+      throwOnError: false,
+      variables: {
+        input: {
+          id: 'gid://catalog/BundleItem/00000000-0000-0000-0000-000000000000',
+          title: 'Updated Title',
+        },
+      },
+    });
+
+    const result = data.catalogMutation.bundleItemUpdate;
+    expect(result.bundleItem).toBeNull();
+    expect(result.userErrors.length).toBeGreaterThan(0);
+  });
+
+  test('should reject deleting non-existent item', async ({ api }) => {
+    const { data } = await api.admin.mutation('bundle-api/BundleItemDelete', {
+      throwOnError: false,
+      variables: {
+        input: {
+          id: 'gid://catalog/BundleItem/00000000-0000-0000-0000-000000000000',
+        },
+      },
+    });
+
+    const result = data.catalogMutation.bundleItemDelete;
+    expect(result.deletedId).toBeNull();
+    expect(result.userErrors.length).toBeGreaterThan(0);
+  });
+});
+
+test.describe('Dependency Rules - Complex Scenarios', () => {
+  test.beforeEach(async ({ api }) => {
+    await api.session.setupUserAndStore();
+  });
+
+  test('should create rule with multiple condition groups (OR logic)', async ({ api }) => {
+    const product = await createProduct(api);
+    const refProduct1 = await createProduct(api, 'Reference Product 1');
+    const refProduct2 = await createProduct(api, 'Reference Product 2');
+
+    // Create bundle group with two items
+    const { data: groupData } = await api.admin.mutation('bundle-api/BundleGroupCreate', {
+      variables: {
+        input: {
+          productId: product.id,
+          title: 'Test Group',
+        },
+      },
+    });
+
+    const groupId = groupData.catalogMutation.bundleGroupCreate.bundleGroup.id;
+
+    const { data: item1Data } = await api.admin.mutation('bundle-api/BundleItemCreate', {
+      variables: {
+        input: {
+          groupId,
+          itemType: 'PRODUCT',
+          refProductId: refProduct1.id,
+        },
+      },
+    });
+
+    const item1Id = item1Data.catalogMutation.bundleItemCreate.bundleItem.id;
+
+    const { data: item2Data } = await api.admin.mutation('bundle-api/BundleItemCreate', {
+      variables: {
+        input: {
+          groupId,
+          itemType: 'PRODUCT',
+          refProductId: refProduct2.id,
+        },
+      },
+    });
+
+    const item2Id = item2Data.catalogMutation.bundleItemCreate.bundleItem.id;
+
+    // Create rule with OR logic between condition groups
+    const { data: ruleData } = await api.admin.mutation('bundle-api/DependencyRuleCreate', {
+      variables: {
+        input: {
+          productId: product.id,
+          name: 'Show if either item selected',
+          logicOperator: 'OR',
+        },
+      },
+    });
+
+    const ruleId = ruleData.catalogMutation.dependencyRuleCreate.dependencyRule.id;
+
+    // Create first condition group
+    const { data: condGroup1Data } = await api.admin.mutation('bundle-api/ConditionGroupCreate', {
+      variables: {
+        input: {
+          ruleId,
+          logicOperator: 'AND',
+        },
+      },
+    });
+
+    const condGroup1Id = condGroup1Data.catalogMutation.conditionGroupCreate.conditionGroup.id;
+
+    // Add condition to first group
+    await api.admin.mutation('bundle-api/ConditionCreate', {
+      variables: {
+        input: {
+          groupId: condGroup1Id,
+          category: 'STATE_CHECK',
+          subject: 'ITEM_SELECTED',
+          operator: 'IS_SELECTED',
+          targetType: 'ITEM',
+          targetId: item1Id,
+        },
+      },
+    });
+
+    // Create second condition group
+    const { data: condGroup2Data } = await api.admin.mutation('bundle-api/ConditionGroupCreate', {
+      variables: {
+        input: {
+          ruleId,
+          logicOperator: 'AND',
+        },
+      },
+    });
+
+    const condGroup2Id = condGroup2Data.catalogMutation.conditionGroupCreate.conditionGroup.id;
+
+    // Add condition to second group
+    await api.admin.mutation('bundle-api/ConditionCreate', {
+      variables: {
+        input: {
+          groupId: condGroup2Id,
+          category: 'STATE_CHECK',
+          subject: 'ITEM_SELECTED',
+          operator: 'IS_SELECTED',
+          targetType: 'ITEM',
+          targetId: item2Id,
+        },
+      },
+    });
+
+    // Query the rule to verify structure
+    const { data: queryData } = await api.admin.query('bundle-api/DependencyRule', {
+      variables: { id: ruleId },
+    });
+
+    const rule = queryData.catalogQuery.dependencyRule;
+    expect(rule.logicOperator).toBe('OR');
+    expect(rule.conditionGroups).toHaveLength(2);
+    expect(rule.conditionGroups[0].conditions).toHaveLength(1);
+    expect(rule.conditionGroups[1].conditions).toHaveLength(1);
+  });
+
+  test('should create HIDE action', async ({ api }) => {
+    const product = await createProduct(api);
+    const refProduct = await createProduct(api, 'Reference Product');
+
+    const { data: groupData } = await api.admin.mutation('bundle-api/BundleGroupCreate', {
+      variables: {
+        input: {
+          productId: product.id,
+          title: 'Test Group',
+        },
+      },
+    });
+
+    const bundleGroupId = groupData.catalogMutation.bundleGroupCreate.bundleGroup.id;
+
+    const { data: itemData } = await api.admin.mutation('bundle-api/BundleItemCreate', {
+      variables: {
+        input: {
+          groupId: bundleGroupId,
+          itemType: 'PRODUCT',
+          refProductId: refProduct.id,
+        },
+      },
+    });
+
+    const bundleItemId = itemData.catalogMutation.bundleItemCreate.bundleItem.id;
+
+    // Create rule
+    const { data: ruleData } = await api.admin.mutation('bundle-api/DependencyRuleCreate', {
+      variables: {
+        input: {
+          productId: product.id,
+          name: 'Hide Action Rule',
+        },
+      },
+    });
+
+    const ruleId = ruleData.catalogMutation.dependencyRuleCreate.dependencyRule.id;
+
+    // Create HIDE action
+    const { data } = await api.admin.mutation('bundle-api/DependencyActionCreate', {
+      variables: {
+        input: {
+          ruleId,
+          actionType: 'HIDE',
+          targetType: 'ITEM',
+          targetId: bundleItemId,
+        },
+      },
+    });
+
+    const result = data.catalogMutation.dependencyActionCreate;
+    expect(result.userErrors).toHaveLength(0);
+    expect(result.dependencyAction.actionType).toBe('HIDE');
+  });
+
+  test('should update action properties', async ({ api }) => {
+    const product = await createProduct(api);
+
+    const { data: groupData } = await api.admin.mutation('bundle-api/BundleGroupCreate', {
+      variables: {
+        input: {
+          productId: product.id,
+          title: 'Test Group',
+        },
+      },
+    });
+
+    const bundleGroupId = groupData.catalogMutation.bundleGroupCreate.bundleGroup.id;
+
+    const { data: ruleData } = await api.admin.mutation('bundle-api/DependencyRuleCreate', {
+      variables: {
+        input: {
+          productId: product.id,
+          name: 'Test Rule',
+        },
+      },
+    });
+
+    const ruleId = ruleData.catalogMutation.dependencyRuleCreate.dependencyRule.id;
+
+    const { data: createData } = await api.admin.mutation('bundle-api/DependencyActionCreate', {
+      variables: {
+        input: {
+          ruleId,
+          actionType: 'SET_REQUIRED',
+          targetType: 'GROUP',
+          targetId: bundleGroupId,
+          requiredValue: true,
+        },
+      },
+    });
+
+    const actionId = createData.catalogMutation.dependencyActionCreate.dependencyAction.id;
+
+    // Update the action
+    const { data } = await api.admin.mutation('bundle-api/DependencyActionUpdate', {
+      variables: {
+        input: {
+          id: actionId,
+          requiredValue: false,
+        },
+      },
+    });
+
+    const result = data.catalogMutation.dependencyActionUpdate;
+    expect(result.userErrors).toHaveLength(0);
+    expect(result.dependencyAction.requiredValue).toBe(false);
+  });
+
+  test('should delete action', async ({ api }) => {
+    const product = await createProduct(api);
+
+    const { data: groupData } = await api.admin.mutation('bundle-api/BundleGroupCreate', {
+      variables: {
+        input: {
+          productId: product.id,
+          title: 'Test Group',
+        },
+      },
+    });
+
+    const bundleGroupId = groupData.catalogMutation.bundleGroupCreate.bundleGroup.id;
+
+    const { data: ruleData } = await api.admin.mutation('bundle-api/DependencyRuleCreate', {
+      variables: {
+        input: {
+          productId: product.id,
+          name: 'Test Rule',
+        },
+      },
+    });
+
+    const ruleId = ruleData.catalogMutation.dependencyRuleCreate.dependencyRule.id;
+
+    const { data: createData } = await api.admin.mutation('bundle-api/DependencyActionCreate', {
+      variables: {
+        input: {
+          ruleId,
+          actionType: 'SET_REQUIRED',
+          targetType: 'GROUP',
+          targetId: bundleGroupId,
+        },
+      },
+    });
+
+    const actionId = createData.catalogMutation.dependencyActionCreate.dependencyAction.id;
+
+    // Delete the action
+    const { data } = await api.admin.mutation('bundle-api/DependencyActionDelete', {
+      variables: {
+        input: { id: actionId },
+      },
+    });
+
+    const result = data.catalogMutation.dependencyActionDelete;
+    expect(result.userErrors).toHaveLength(0);
+    expect(result.deletedId).toBe(actionId);
+  });
+});
+
+test.describe('Bundle Group - Sorting', () => {
+  test.beforeEach(async ({ api }) => {
+    await api.session.setupUserAndStore();
+  });
+
+  test('should respect explicit sortIndex when provided', async ({ api }) => {
+    const product = await createProduct(api);
+
+    // Create groups with explicit sort indices
+    const { data: data1 } = await api.admin.mutation('bundle-api/BundleGroupCreate', {
+      variables: {
+        input: {
+          productId: product.id,
+          title: 'Group A',
+          sortIndex: 10,
+        },
+      },
+    });
+
+    const { data: data2 } = await api.admin.mutation('bundle-api/BundleGroupCreate', {
+      variables: {
+        input: {
+          productId: product.id,
+          title: 'Group B',
+          sortIndex: 5,
+        },
+      },
+    });
+
+    const { data: data3 } = await api.admin.mutation('bundle-api/BundleGroupCreate', {
+      variables: {
+        input: {
+          productId: product.id,
+          title: 'Group C',
+          sortIndex: 15,
+        },
+      },
+    });
+
+    expect(data1.catalogMutation.bundleGroupCreate.bundleGroup.sortIndex).toBe(10);
+    expect(data2.catalogMutation.bundleGroupCreate.bundleGroup.sortIndex).toBe(5);
+    expect(data3.catalogMutation.bundleGroupCreate.bundleGroup.sortIndex).toBe(15);
+  });
+
+  test('should update group sortIndex', async ({ api }) => {
+    const product = await createProduct(api);
+
+    const { data: createData } = await api.admin.mutation('bundle-api/BundleGroupCreate', {
+      variables: {
+        input: {
+          productId: product.id,
+          title: 'Test Group',
+          sortIndex: 0,
+        },
+      },
+    });
+
+    const groupId = createData.catalogMutation.bundleGroupCreate.bundleGroup.id;
+
+    const { data } = await api.admin.mutation('bundle-api/BundleGroupUpdate', {
+      variables: {
+        input: {
+          id: groupId,
+          sortIndex: 100,
+        },
+      },
+    });
+
+    expect(data.catalogMutation.bundleGroupUpdate.userErrors).toHaveLength(0);
+    expect(data.catalogMutation.bundleGroupUpdate.bundleGroup.sortIndex).toBe(100);
+  });
+});
