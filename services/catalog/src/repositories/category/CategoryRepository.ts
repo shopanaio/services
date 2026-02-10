@@ -41,10 +41,10 @@ const productTranslationQuery = createQuery(productTranslation, {
 });
 
 const priceRangeQuery = createQuery(productPriceRange, {
-  productId: field(productPriceRange.productId),
-  currency: field(productPriceRange.currency),
-  minAmountMinor: field(productPriceRange.minAmountMinor),
-  maxAmountMinor: field(productPriceRange.maxAmountMinor),
+  productId: { column: "product_id" },
+  currency: { column: "currency" },
+  minAmountMinor: { column: "min_amount_minor" },
+  maxAmountMinor: { column: "max_amount_minor" },
 });
 
 const categoryProductsQuery = createQuery(product, {
@@ -54,7 +54,7 @@ const categoryProductsQuery = createQuery(product, {
   projectId: field(product.projectId),
   category: field(product.id).innerJoin(productCategoryQuery, productCategory.productId),
   translation: field(product.id).leftJoin(productTranslationQuery, productTranslation.productId),
-  priceRange: field(product.id).leftJoin(priceRangeQuery, productPriceRange.productId),
+  priceRange: field(product.id).leftJoin(priceRangeQuery, { name: "product_id" } as never),
 });
 
 export const categoryProductsRelayQuery = createRelayQuery(
@@ -638,7 +638,11 @@ export class CategoryRepository {
           case "NEWEST":
             return { field: "createdAt" as const, direction };
           case "PRICE":
-            return { field: "priceRange.minAmountMinor" as const, direction };
+            // ASC → min price (cheapest first), DESC → max price (most expensive first)
+            return {
+              field: direction === "asc" ? "priceRange.minAmountMinor" as const : "priceRange.maxAmountMinor" as const,
+              direction,
+            };
           case "MANUAL":
           default:
             return { field: "category.lexoRank" as const, direction };
