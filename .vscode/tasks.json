@@ -217,6 +217,29 @@
       "problemMatcher": []
     },
     {
+      "label": "Claude Commit and Push",
+      "type": "shell",
+      "command": "claude --model haiku '/commit-and-push'",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "showReuseMessage": false,
+        "focus": true
+      },
+      "runOptions": {
+        "instanceLimit": 5
+      },
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "shell": {
+          "executable": "/bin/zsh",
+          "args": ["-c"]
+        }
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
       "label": "Run Admin Next",
       "type": "shell",
       "command": "source ~/.nvm/nvm.sh && nvm use 22 && yarn && yarn dev",
