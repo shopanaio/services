@@ -1,5 +1,8 @@
-import type { SQL, Table } from "drizzle-orm";
+import type { SQL, Table, View } from "drizzle-orm";
 import { createSchema, ObjectSchema, type FieldConfig, type Join } from "../schema.js";
+
+/** Table or View - both support SELECT operations */
+type TableOrView = Table | View;
 import type {
   DrizzleExecutor,
   FieldsDef,
@@ -57,7 +60,7 @@ export class MaxLimitExceededError extends Error {
  * ```
  */
 export class FluentQueryBuilder<
-  T extends Table,
+  T extends TableOrView,
   Fields extends FluentFieldsDef,
   // Inferred FieldsDef for type-safe paths
   InferredFields extends FieldsDef = ToFieldsDef<Fields>,
@@ -350,7 +353,7 @@ export class FluentQueryBuilder<
         qbConfig
       );
     }
-    return this._queryBuilder;
+    return this._queryBuilder!;
   }
 
   private buildSchema(): ObjectSchema {
@@ -362,7 +365,7 @@ export class FluentQueryBuilder<
 
       if (def.join) {
         const joinDef = def.join as JoinDefinition<FluentFieldsDef>;
-        const targetBuilder = joinDef.target() as FluentQueryBuilder<Table, FluentFieldsDef>;
+        const targetBuilder = joinDef.target() as FluentQueryBuilder<TableOrView, FluentFieldsDef>;
         const join: Join = {
           type: joinDef.type,
           schema: () => targetBuilder.getSchema(),
@@ -445,14 +448,19 @@ export class FluentQueryBuilder<
 // =============================================================================
 
 /**
- * Drizzle ORM symbol for accessing table name
+ * Drizzle ORM symbol for accessing table/view name
  */
 const DrizzleTableName = Symbol.for("drizzle:Name");
 
 /**
- * Drizzle ORM symbol for accessing columns
+ * Drizzle ORM symbol for accessing table columns
  */
 const DrizzleColumns = Symbol.for("drizzle:Columns");
+
+/**
+ * Drizzle ORM symbol for accessing view selected fields
+ */
+const DrizzleViewSelectedFields = Symbol.for("drizzle:SelectedFields");
 
 /**
  * Type to infer FluentFieldsDef from a Drizzle table's columns
@@ -466,6 +474,20 @@ type InferFieldsFromTable<T extends Table> = {
  */
 type InferFieldsDefFromTable<T extends Table> = {
   [K in keyof T["_"]["columns"] & string]: true;
+};
+
+/**
+ * Type to infer FluentFieldsDef from a Drizzle view's selected fields
+ */
+type InferFieldsFromView<T extends View> = {
+  [K in keyof T["_"]["selectedFields"] & string]: FieldBuilder;
+};
+
+/**
+ * Type to infer FieldsDef from a Drizzle view (all fields as `true`)
+ */
+type InferFieldsDefFromView<T extends View> = {
+  [K in keyof T["_"]["selectedFields"] & string]: true;
 };
 
 /**
@@ -527,6 +549,72 @@ function createFieldsFromTable<T extends Table>(table: T): InferFieldsFromTable<
 }
 
 /**
+ * Create field definitions from view selected fields
+ */
+function createFieldsFromView<T extends View>(view: T): InferFieldsFromView<T> {
+  const viewAny = view as unknown as Record<symbol, Record<string, { name: string }> | undefined>;
+  const selectedFields = viewAny[DrizzleViewSelectedFields];
+
+  if (!selectedFields) {
+    return {} as InferFieldsFromView<T>;
+  }
+
+  const fields: Record<string, FieldBuilder> = {};
+  for (const [key, column] of Object.entries(selectedFields)) {
+    fields[key] = {
+      column: column.name,
+      join: undefined,
+      leftJoin<TFields extends FluentFieldsDef>(
+        target: FluentQueryBuilderLike<TFields>,
+        joinColumn: { name: string }
+      ): JoinFieldDefinition<TFields> {
+        return {
+          column: column.name,
+          join: { type: "left", target: () => target, column: joinColumn.name },
+        };
+      },
+      innerJoin<TFields extends FluentFieldsDef>(
+        target: FluentQueryBuilderLike<TFields>,
+        joinColumn: { name: string }
+      ): JoinFieldDefinition<TFields> {
+        return {
+          column: column.name,
+          join: { type: "inner", target: () => target, column: joinColumn.name },
+        };
+      },
+      rightJoin<TFields extends FluentFieldsDef>(
+        target: FluentQueryBuilderLike<TFields>,
+        joinColumn: { name: string }
+      ): JoinFieldDefinition<TFields> {
+        return {
+          column: column.name,
+          join: { type: "right", target: () => target, column: joinColumn.name },
+        };
+      },
+      fullJoin<TFields extends FluentFieldsDef>(
+        target: FluentQueryBuilderLike<TFields>,
+        joinColumn: { name: string }
+      ): JoinFieldDefinition<TFields> {
+        return {
+          column: column.name,
+          join: { type: "full", target: () => target, column: joinColumn.name },
+        };
+      },
+    };
+  }
+
+  return fields as InferFieldsFromView<T>;
+}
+
+/**
+ * Check if a TableOrView is a View (has selectedFields symbol)
+ */
+function isView(tableOrView: TableOrView): tableOrView is View {
+  const asRecord = tableOrView as unknown as Record<symbol, unknown>;
+  return DrizzleViewSelectedFields in asRecord && asRecord[DrizzleViewSelectedFields] !== undefined;
+}
+
+/**
  * Create a fluent query builder with all table columns
  *
  * @example
@@ -548,6 +636,26 @@ export function createQuery<T extends Table>(
 ): FluentQueryBuilder<T, InferFieldsFromTable<T>, InferFieldsDefFromTable<T>, T["$inferSelect"]>;
 
 /**
+ * Create a fluent query builder with all view selected fields
+ *
+ * @example
+ * ```ts
+ * // Use all selected fields from the view automatically
+ * const userStatsQuery = createQuery(userStatsView);
+ *
+ * // Equivalent to:
+ * const userStatsQuery = createQuery(userStatsView, {
+ *   userId: field(userStatsView.userId),
+ *   totalOrders: field(userStatsView.totalOrders),
+ *   // ... all selected fields
+ * });
+ * ```
+ */
+export function createQuery<T extends View>(
+  view: T
+): FluentQueryBuilder<T, InferFieldsFromView<T>, InferFieldsDefFromView<T>, T["$inferSelect"]>;
+
+/**
  * Create a fluent query builder with custom field definitions
  *
  * @example
@@ -560,7 +668,7 @@ export function createQuery<T extends Table>(
  * ```
  */
 export function createQuery<
-  T extends Table,
+  T extends TableOrView,
   const Fields extends FluentFieldsDef,
 >(
   table: T,
@@ -568,22 +676,39 @@ export function createQuery<
 ): FluentQueryBuilder<T, Fields, ToFieldsDef<Fields>, T["$inferSelect"]>;
 
 export function createQuery<
-  T extends Table,
+  T extends TableOrView,
   const Fields extends FluentFieldsDef,
 >(
   table: T,
   fields?: Fields
-): FluentQueryBuilder<T, Fields | InferFieldsFromTable<T>, ToFieldsDef<Fields> | InferFieldsDefFromTable<T>, T["$inferSelect"]> {
-  // Extract table name from Drizzle table
+): FluentQueryBuilder<
+  T,
+  Fields | InferFieldsFromTable<T & Table> | InferFieldsFromView<T & View>,
+  ToFieldsDef<Fields> | InferFieldsDefFromTable<T & Table> | InferFieldsDefFromView<T & View>,
+  T["$inferSelect"]
+> {
+  // Extract table/view name from Drizzle
   const tableAny = table as unknown as Record<symbol, string | undefined>;
   const tableName = tableAny[DrizzleTableName] ?? "unknown";
 
-  // If fields not provided, create from table columns
-  const resolvedFields = fields ?? createFieldsFromTable(table);
+  // If fields not provided, create from table columns or view selected fields
+  let resolvedFields: FluentFieldsDef;
+  if (fields) {
+    resolvedFields = fields;
+  } else if (isView(table)) {
+    resolvedFields = createFieldsFromView(table);
+  } else {
+    resolvedFields = createFieldsFromTable(table as Table);
+  }
 
   return new FluentQueryBuilder(
     table,
     tableName,
-    resolvedFields as Fields | InferFieldsFromTable<T>
-  ) as FluentQueryBuilder<T, Fields | InferFieldsFromTable<T>, ToFieldsDef<Fields> | InferFieldsDefFromTable<T>, T["$inferSelect"]>;
+    resolvedFields as Fields | InferFieldsFromTable<T & Table> | InferFieldsFromView<T & View>
+  ) as FluentQueryBuilder<
+    T,
+    Fields | InferFieldsFromTable<T & Table> | InferFieldsFromView<T & View>,
+    ToFieldsDef<Fields> | InferFieldsDefFromTable<T & Table> | InferFieldsDefFromView<T & View>,
+    T["$inferSelect"]
+  >;
 }

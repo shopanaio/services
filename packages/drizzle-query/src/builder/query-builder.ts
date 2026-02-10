@@ -1,5 +1,8 @@
-import type { Table } from "drizzle-orm";
+import type { Table, View } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
+
+/** Table or View - both support SELECT operations */
+type TableOrView = Table | View;
 import { ObjectSchema, type JoinInfo } from "../schema.js";
 import type {
   FieldsDef,
@@ -58,7 +61,7 @@ type QueryComponents = {
 };
 
 export class QueryBuilder<
-  T extends Table,
+  T extends TableOrView,
   F extends string = string,
   Fields extends FieldsDef = FieldsDef,
   Types = T["$inferSelect"]

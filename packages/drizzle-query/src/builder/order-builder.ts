@@ -1,4 +1,7 @@
-import { sql, type SQL, type Table } from "drizzle-orm";
+import { sql, type SQL, type Table, type View } from "drizzle-orm";
+
+/** Table or View - both support SELECT operations */
+type TableOrView = Table | View;
 import {
   ObjectSchema,
   tablePrefix,
@@ -13,7 +16,7 @@ export class OrderBuilder<
 > {
   constructor(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    private readonly schema: ObjectSchema<Table, string, Fields, any>,
+    private readonly schema: ObjectSchema<TableOrView, string, Fields, any>,
     private readonly joinCollector: JoinCollector,
     private readonly maxDepth: number
   ) {}
