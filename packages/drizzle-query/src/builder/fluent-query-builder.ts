@@ -456,9 +456,14 @@ const DrizzleTableName = Symbol.for("drizzle:Name");
 const DrizzleColumns = Symbol.for("drizzle:Columns");
 
 /**
- * Drizzle ORM symbol for accessing view selected fields
+ * Drizzle ORM symbol for accessing view base config (contains name and selectedFields)
  */
-const DrizzleViewSelectedFields = Symbol.for("drizzle:SelectedFields");
+const DrizzleViewBaseConfig = Symbol.for("drizzle:ViewBaseConfig");
+
+/**
+ * Drizzle ORM symbol for checking if something is a view
+ */
+const DrizzleIsDrizzleView = Symbol.for("drizzle:IsDrizzleView");
 
 /**
  * Type to infer FluentFieldsDef from a Drizzle table's columns
@@ -557,15 +562,30 @@ function getColumnName(field: unknown): string {
 }
 
 /**
+ * View base config structure from Drizzle ORM
+ */
+interface ViewBaseConfig {
+  name: string;
+  originalName: string;
+  schema?: string;
+  selectedFields: Record<string, unknown>;
+  query?: unknown;
+  isExisting?: boolean;
+  isAlias?: boolean;
+}
+
+/**
  * Create field definitions from view selected fields
  */
 function createFieldsFromView<T extends View>(view: T): InferFieldsFromView<T> {
-  const viewAny = view as unknown as Record<symbol, Record<string, unknown> | undefined>;
-  const selectedFields = viewAny[DrizzleViewSelectedFields];
+  const viewAny = view as unknown as Record<symbol, ViewBaseConfig | undefined>;
+  const config = viewAny[DrizzleViewBaseConfig];
 
-  if (!selectedFields) {
+  if (!config || !config.selectedFields) {
     return {} as InferFieldsFromView<T>;
   }
+
+  const selectedFields = config.selectedFields;
 
   const fields: Record<string, FieldBuilder> = {};
   for (const [key, column] of Object.entries(selectedFields)) {
@@ -616,11 +636,15 @@ function createFieldsFromView<T extends View>(view: T): InferFieldsFromView<T> {
 }
 
 /**
- * Check if a Selectable is a View (has selectedFields symbol)
+ * Check if a Selectable is a View (has IsDrizzleView symbol or ViewBaseConfig)
  */
 function isView(tableOrView: Selectable): tableOrView is View {
   const asRecord = tableOrView as unknown as Record<symbol, unknown>;
-  return DrizzleViewSelectedFields in asRecord && asRecord[DrizzleViewSelectedFields] !== undefined;
+  // Check for IsDrizzleView symbol first, then fall back to ViewBaseConfig
+  return (
+    (DrizzleIsDrizzleView in asRecord && asRecord[DrizzleIsDrizzleView] === true) ||
+    (DrizzleViewBaseConfig in asRecord && asRecord[DrizzleViewBaseConfig] !== undefined)
+  );
 }
 
 /**
@@ -684,6 +708,25 @@ export function createQuery<
   fields: Fields
 ): FluentQueryBuilder<T, Fields, ToFieldsDef<Fields>, T["$inferSelect"]>;
 
+/**
+ * Get the name of a table or view
+ */
+function getTableOrViewName(tableOrView: Selectable): string {
+  const asRecord = tableOrView as unknown as Record<symbol, unknown>;
+
+  // For views, get name from ViewBaseConfig
+  if (isView(tableOrView)) {
+    const config = asRecord[DrizzleViewBaseConfig] as ViewBaseConfig | undefined;
+    if (config?.name) {
+      return config.name;
+    }
+  }
+
+  // For tables, use DrizzleTableName
+  const tableName = asRecord[DrizzleTableName] as string | undefined;
+  return tableName ?? "unknown";
+}
+
 export function createQuery<
   T extends Selectable,
   const Fields extends FluentFieldsDef,
@@ -697,8 +740,7 @@ export function createQuery<
   T["$inferSelect"]
 > {
   // Extract table/view name from Drizzle
-  const tableAny = table as unknown as Record<symbol, string | undefined>;
-  const tableName = tableAny[DrizzleTableName] ?? "unknown";
+  const tableName = getTableOrViewName(table);
 
   // If fields not provided, create from table columns or view selected fields
   let resolvedFields: FluentFieldsDef;

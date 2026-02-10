@@ -16,12 +16,24 @@ const JOIN_KEYWORDS = {
   full: "FULL JOIN",
 } as const;
 
-// Drizzle ORM symbols for accessing table metadata
+// Drizzle ORM symbols for accessing table/view metadata
 const TableSymbols = {
   Name: Symbol.for("drizzle:Name"),
   OriginalName: Symbol.for("drizzle:OriginalName"),
   Schema: Symbol.for("drizzle:Schema"),
+  ViewBaseConfig: Symbol.for("drizzle:ViewBaseConfig"),
 } as const;
+
+/**
+ * View base config structure from Drizzle ORM
+ */
+interface ViewBaseConfig {
+  name: string;
+  originalName: string;
+  schema?: string;
+  selectedFields: Record<string, unknown>;
+  isAlias?: boolean;
+}
 
 const ALIASED_TABLE_SQL_CACHE = new WeakMap<AliasedTable, SQL>();
 
@@ -31,10 +43,33 @@ export function formatAliasedTableReference(targetAliased: AliasedTable): SQL {
     return cached;
   }
 
-  const tableAny = targetAliased as unknown as Record<symbol, string | undefined>;
-  const alias = tableAny[TableSymbols.Name] ?? "";
-  const originalName = tableAny[TableSymbols.OriginalName] ?? alias;
-  const schemaName = tableAny[TableSymbols.Schema];
+  const tableAny = targetAliased as unknown as Record<symbol, unknown>;
+  const alias = (tableAny[TableSymbols.Name] as string | undefined) ?? "";
+
+  // Check if we have OriginalName symbol (set for aliased tables)
+  const originalNameSymbol = tableAny[TableSymbols.OriginalName] as string | undefined;
+
+  let originalName: string;
+  let schemaName: string | undefined;
+
+  // If OriginalName symbol is set, use it (works for aliased tables)
+  if (originalNameSymbol) {
+    originalName = originalNameSymbol;
+    schemaName = tableAny[TableSymbols.Schema] as string | undefined;
+  } else {
+    // No OriginalName symbol - check ViewBaseConfig for views
+    // For aliased views, ViewBaseConfig has originalName set to the real view name
+    const viewConfig = tableAny[TableSymbols.ViewBaseConfig] as ViewBaseConfig | undefined;
+    if (viewConfig?.originalName) {
+      // Aliased view - use originalName from ViewBaseConfig
+      originalName = viewConfig.originalName;
+      schemaName = viewConfig.schema;
+    } else {
+      // Fallback to alias (shouldn't normally happen)
+      originalName = alias;
+      schemaName = undefined;
+    }
+  }
 
   const tableIdentifier = schemaName
     ? sql`${sql.identifier(schemaName)}.${sql.identifier(originalName)}`
