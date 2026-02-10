@@ -77,18 +77,20 @@ export const variantPricesCurrent = catalogSchema.view("variant_prices_current")
     .where(sql`${itemPricing.effectiveTo} IS NULL`)
 );
 
-// View: product price range - joins default variant with current price for sorting
+// View: product price range - aggregates min/max prices across all variants for sorting
 export const productPriceRange = catalogSchema.view("product_price_range").as((qb) =>
   qb
     .select({
       projectId: itemPricing.projectId,
       productId: variant.productId,
       currency: itemPricing.currency,
-      amountMinor: itemPricing.amountMinor,
+      minAmountMinor: sql<number>`MIN(${itemPricing.amountMinor})`.as("min_amount_minor"),
+      maxAmountMinor: sql<number>`MAX(${itemPricing.amountMinor})`.as("max_amount_minor"),
     })
     .from(itemPricing)
-    .innerJoin(variant, sql`${variant.id} = ${itemPricing.variantId} AND ${variant.deletedAt} IS NULL AND ${variant.isDefault} = true`)
+    .innerJoin(variant, sql`${variant.id} = ${itemPricing.variantId} AND ${variant.deletedAt} IS NULL`)
     .where(sql`${itemPricing.effectiveTo} IS NULL`)
+    .groupBy(itemPricing.projectId, variant.productId, itemPricing.currency)
 );
 
 export type ItemPricing = typeof itemPricing.$inferSelect;
