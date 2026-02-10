@@ -77,5 +77,19 @@ export const variantPricesCurrent = catalogSchema.view("variant_prices_current")
     .where(sql`${itemPricing.effectiveTo} IS NULL`)
 );
 
+// View: product price range - joins default variant with current price for sorting
+export const productPriceRange = catalogSchema.view("product_price_range").as((qb) =>
+  qb
+    .select({
+      projectId: itemPricing.projectId,
+      productId: variant.productId,
+      currency: itemPricing.currency,
+      amountMinor: itemPricing.amountMinor,
+    })
+    .from(itemPricing)
+    .innerJoin(variant, sql`${variant.id} = ${itemPricing.variantId} AND ${variant.deletedAt} IS NULL AND ${variant.isDefault} = true`)
+    .where(sql`${itemPricing.effectiveTo} IS NULL`)
+);
+
 export type ItemPricing = typeof itemPricing.$inferSelect;
 export type NewItemPricing = typeof itemPricing.$inferInsert;

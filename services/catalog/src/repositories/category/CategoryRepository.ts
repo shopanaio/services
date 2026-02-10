@@ -16,6 +16,8 @@ import {
   categoryTranslation,
   productCategory,
   product,
+  productTranslation,
+  productPriceRange,
   type Category,
   type NewCategory,
   type CategoryMedia,
@@ -33,12 +35,25 @@ const productCategoryQuery = createQuery(productCategory, {
   lexoRank: field(productCategory.lexoRank),
 });
 
+const productTranslationQuery = createQuery(productTranslation, {
+  productId: field(productTranslation.productId),
+  title: field(productTranslation.title),
+});
+
+const priceRangeQuery = createQuery(productPriceRange, {
+  productId: field(productPriceRange.productId),
+  currency: field(productPriceRange.currency),
+  amountMinor: field(productPriceRange.amountMinor),
+});
+
 const categoryProductsQuery = createQuery(product, {
   id: field(product.id),
   createdAt: field(product.createdAt),
   deletedAt: field(product.deletedAt),
   projectId: field(product.projectId),
   category: field(product.id).innerJoin(productCategoryQuery, productCategory.productId),
+  translation: field(product.id).leftJoin(productTranslationQuery, productTranslation.productId),
+  priceRange: field(product.id).leftJoin(priceRangeQuery, productPriceRange.productId),
 });
 
 export const categoryProductsRelayQuery = createRelayQuery(
@@ -622,7 +637,7 @@ export class CategoryRepository {
           case "NEWEST":
             return { field: "createdAt" as const, direction };
           case "PRICE":
-            return { field: "variant.priceMinor" as const, direction };
+            return { field: "priceRange.amountMinor" as const, direction };
           case "MANUAL":
           default:
             return { field: "category.lexoRank" as const, direction };
