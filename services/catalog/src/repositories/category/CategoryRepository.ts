@@ -43,7 +43,8 @@ const productTranslationQuery = createQuery(productTranslation, {
 const priceRangeQuery = createQuery(productPriceRange, {
   productId: field(productPriceRange.productId),
   currency: field(productPriceRange.currency),
-  amountMinor: field(productPriceRange.amountMinor),
+  minAmountMinor: field(productPriceRange.minAmountMinor),
+  maxAmountMinor: field(productPriceRange.maxAmountMinor),
 });
 
 const categoryProductsQuery = createQuery(product, {
@@ -637,7 +638,7 @@ export class CategoryRepository {
           case "NEWEST":
             return { field: "createdAt" as const, direction };
           case "PRICE":
-            return { field: "priceRange.amountMinor" as const, direction };
+            return { field: "priceRange.minAmountMinor" as const, direction };
           case "MANUAL":
           default:
             return { field: "category.lexoRank" as const, direction };
