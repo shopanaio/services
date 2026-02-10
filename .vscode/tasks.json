@@ -196,12 +196,15 @@
     {
       "label": "Claude Commit",
       "type": "shell",
-      "command": "claude '/commit'",
+      "command": "claude --model haiku '/commit'",
       "presentation": {
         "reveal": "always",
         "panel": "new",
         "showReuseMessage": false,
         "focus": true
+      },
+      "runOptions": {
+        "instanceLimit": 5
       },
       "options": {
         "cwd": "${workspaceFolder}",
