@@ -21,6 +21,15 @@ import { FacetSwatchRepository } from "./facet/FacetSwatchRepository.js";
 import { CollectionRepository } from "./collection/CollectionRepository.js";
 import { CollectionItemRepository } from "./collection/CollectionItemRepository.js";
 import { CollectionRuleRepository } from "./collection/CollectionRuleRepository.js";
+import {
+  BundleGroupRepository,
+  BundleItemRepository,
+  BundlePricingTemplateRepository,
+  DependencyRuleRepository,
+  ConditionGroupRepository,
+  ConditionRepository,
+  DependencyActionRepository,
+} from "./bundle/index.js";
 
 export interface RepositoryConfig {
   db: Database;
@@ -55,6 +64,13 @@ export class Repository {
   public readonly collection: CollectionRepository;
   public readonly collectionItem: CollectionItemRepository;
   public readonly collectionRule: CollectionRuleRepository;
+  public readonly bundleGroup: BundleGroupRepository;
+  public readonly bundleItem: BundleItemRepository;
+  public readonly bundlePricingTemplate: BundlePricingTemplateRepository;
+  public readonly dependencyRule: DependencyRuleRepository;
+  public readonly conditionGroup: ConditionGroupRepository;
+  public readonly condition: ConditionRepository;
+  public readonly dependencyAction: DependencyActionRepository;
   public readonly txManager: TransactionManager<Database>;
 
   /**
@@ -87,6 +103,13 @@ export class Repository {
     collection: CollectionRepository,
     collectionItem: CollectionItemRepository,
     collectionRule: CollectionRuleRepository,
+    bundleGroup: BundleGroupRepository,
+    bundleItem: BundleItemRepository,
+    bundlePricingTemplate: BundlePricingTemplateRepository,
+    dependencyRule: DependencyRuleRepository,
+    conditionGroup: ConditionGroupRepository,
+    condition: ConditionRepository,
+    dependencyAction: DependencyActionRepository,
     txManager: TransactionManager<Database>
   ) {
     this.product = product;
@@ -110,6 +133,13 @@ export class Repository {
     this.collection = collection;
     this.collectionItem = collectionItem;
     this.collectionRule = collectionRule;
+    this.bundleGroup = bundleGroup;
+    this.bundleItem = bundleItem;
+    this.bundlePricingTemplate = bundlePricingTemplate;
+    this.dependencyRule = dependencyRule;
+    this.conditionGroup = conditionGroup;
+    this.condition = condition;
+    this.dependencyAction = dependencyAction;
     this.txManager = txManager;
   }
 
@@ -144,6 +174,13 @@ export class Repository {
     const collection = new CollectionRepository(db, txManager);
     const collectionItem = new CollectionItemRepository(db, txManager);
     const collectionRule = new CollectionRuleRepository(db, txManager);
+    const bundleGroup = new BundleGroupRepository(db, txManager);
+    const bundleItem = new BundleItemRepository(db, txManager);
+    const bundlePricingTemplate = new BundlePricingTemplateRepository(db, txManager);
+    const dependencyRule = new DependencyRuleRepository(db, txManager);
+    const conditionGroup = new ConditionGroupRepository(db, txManager);
+    const condition = new ConditionRepository(db, txManager);
+    const dependencyAction = new DependencyActionRepository(db, txManager);
 
     return new Repository(
       product,
@@ -167,6 +204,13 @@ export class Repository {
       collection,
       collectionItem,
       collectionRule,
+      bundleGroup,
+      bundleItem,
+      bundlePricingTemplate,
+      dependencyRule,
+      conditionGroup,
+      condition,
+      dependencyAction,
       txManager
     );
   }

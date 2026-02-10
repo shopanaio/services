@@ -42,3 +42,6 @@ export * from "./collection";
 export * from "./bulkEditJobs";
 export * from "./bulkEditItems";
 export * from "./productBulkFence";
+
+// Bundles
+export * from "./bundle";
