@@ -1,0 +1,19 @@
+mutation BundlePricingTemplateCreate($input: BundlePricingTemplateCreateInput!) {
+  catalogMutation {
+    bundlePricingTemplateCreate(input: $input) {
+      bundlePricingTemplate {
+        id
+        productId
+        name
+        priceType
+        priceValue
+        sortIndex
+      }
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}

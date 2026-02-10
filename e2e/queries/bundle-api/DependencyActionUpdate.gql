@@ -1,0 +1,23 @@
+mutation DependencyActionUpdate($input: DependencyActionUpdateInput!) {
+  catalogMutation {
+    dependencyActionUpdate(input: $input) {
+      dependencyAction {
+        id
+        ruleId
+        actionType
+        targetType
+        targetId
+        requiredValue
+        priceType
+        priceValue
+        stackable
+        sortIndex
+      }
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}

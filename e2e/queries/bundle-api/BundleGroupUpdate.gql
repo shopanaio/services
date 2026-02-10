@@ -1,0 +1,27 @@
+mutation BundleGroupUpdate($input: BundleGroupUpdateInput!) {
+  catalogMutation {
+    bundleGroupUpdate(input: $input) {
+      bundleGroup {
+        id
+        productId
+        title
+        sortIndex
+        minSelection
+        maxSelection
+        items {
+          id
+          groupId
+          itemType
+          sortIndex
+        }
+        createdAt
+        updatedAt
+      }
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}

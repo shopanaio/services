@@ -1,0 +1,12 @@
+mutation BundleGroupDelete($input: DeleteInput!) {
+  catalogMutation {
+    bundleGroupDelete(input: $input) {
+      deletedId
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}

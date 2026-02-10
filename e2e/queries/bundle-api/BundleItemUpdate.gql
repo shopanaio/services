@@ -1,0 +1,38 @@
+mutation BundleItemUpdate($input: BundleItemUpdateInput!) {
+  catalogMutation {
+    bundleItemUpdate(input: $input) {
+      bundleItem {
+        id
+        groupId
+        itemType
+        sortIndex
+        refProductId
+        refVariantId
+        title
+        featuredImageId
+        excludedVariantIds
+        minQty
+        maxQty
+        defaultQty
+        priceType
+        priceValue
+        pricingTemplateId
+        pricingTemplate {
+          id
+          name
+          priceType
+          priceValue
+        }
+        visible
+        selected
+        createdAt
+        updatedAt
+      }
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}
