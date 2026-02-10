@@ -1,8 +1,5 @@
 import type { SQL, Table, View } from "drizzle-orm";
 import { createSchema, ObjectSchema, type FieldConfig, type Join } from "../schema.js";
-
-/** Table or View - both support SELECT operations */
-type TableOrView = Table | View;
 import type {
   DrizzleExecutor,
   FieldsDef,
@@ -10,6 +7,7 @@ import type {
   NestedWhereInput,
   OrderByItem,
   QueryBuilderConfig,
+  Selectable,
 } from "../types.js";
 import { QueryBuilder } from "./query-builder.js";
 import type { FieldDefinition, JoinDefinition, FieldBuilder, JoinFieldDefinition } from "./helpers.js";
@@ -60,7 +58,7 @@ export class MaxLimitExceededError extends Error {
  * ```
  */
 export class FluentQueryBuilder<
-  T extends TableOrView,
+  T extends Selectable,
   Fields extends FluentFieldsDef,
   // Inferred FieldsDef for type-safe paths
   InferredFields extends FieldsDef = ToFieldsDef<Fields>,
@@ -365,7 +363,7 @@ export class FluentQueryBuilder<
 
       if (def.join) {
         const joinDef = def.join as JoinDefinition<FluentFieldsDef>;
-        const targetBuilder = joinDef.target() as FluentQueryBuilder<TableOrView, FluentFieldsDef>;
+        const targetBuilder = joinDef.target() as FluentQueryBuilder<Selectable, FluentFieldsDef>;
         const join: Join = {
           type: joinDef.type,
           schema: () => targetBuilder.getSchema(),
@@ -607,9 +605,9 @@ function createFieldsFromView<T extends View>(view: T): InferFieldsFromView<T> {
 }
 
 /**
- * Check if a TableOrView is a View (has selectedFields symbol)
+ * Check if a Selectable is a View (has selectedFields symbol)
  */
-function isView(tableOrView: TableOrView): tableOrView is View {
+function isView(tableOrView: Selectable): tableOrView is View {
   const asRecord = tableOrView as unknown as Record<symbol, unknown>;
   return DrizzleViewSelectedFields in asRecord && asRecord[DrizzleViewSelectedFields] !== undefined;
 }
@@ -668,7 +666,7 @@ export function createQuery<T extends View>(
  * ```
  */
 export function createQuery<
-  T extends TableOrView,
+  T extends Selectable,
   const Fields extends FluentFieldsDef,
 >(
   table: T,
@@ -676,7 +674,7 @@ export function createQuery<
 ): FluentQueryBuilder<T, Fields, ToFieldsDef<Fields>, T["$inferSelect"]>;
 
 export function createQuery<
-  T extends TableOrView,
+  T extends Selectable,
   const Fields extends FluentFieldsDef,
 >(
   table: T,
@@ -698,7 +696,7 @@ export function createQuery<
   } else if (isView(table)) {
     resolvedFields = createFieldsFromView(table);
   } else {
-    resolvedFields = createFieldsFromTable(table as Table);
+    resolvedFields = createFieldsFromTable(table as unknown as Table);
   }
 
   return new FluentQueryBuilder(

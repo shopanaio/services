@@ -1,13 +1,11 @@
-import type { Table, Column, View } from "drizzle-orm";
-
-/** Table or View - both support SELECT operations */
-type TableOrView = Table | View;
+import type { Table, Column } from "drizzle-orm";
 import type {
   FieldsDef,
   InferFieldsDef,
   InferFieldTypes,
   SchemaWithFields,
   SchemaWithTypes,
+  Selectable,
 } from "./types.js";
 import { UnknownFieldError } from "./errors.js";
 
@@ -28,7 +26,7 @@ export type Join = {
   /** Join type (default: 'left') */
   type?: JoinType;
   /** Target schema for the join (lazy reference to avoid circular dependencies) */
-  schema: () => ObjectSchema<TableOrView, string>;
+  schema: () => ObjectSchema<Selectable, string>;
   /** Field name in target schema to join on */
   column: string;
   /** Composite key fields */
@@ -51,7 +49,7 @@ export type FieldConfig = {
 /**
  * Schema configuration with typed fields
  */
-export type SchemaConfig<T extends TableOrView, F extends string = string> = {
+export type SchemaConfig<T extends Selectable, F extends string = string> = {
   /** Source table or view */
   table: T;
   /** Table name (for aliasing) */
@@ -72,7 +70,7 @@ export type SchemaConfig<T extends TableOrView, F extends string = string> = {
  * @template Types - Inferred field types from table columns
  */
 export class ObjectSchema<
-  T extends TableOrView = TableOrView,
+  T extends Selectable = Selectable,
   F extends string = string,
   Fields extends FieldsDef = FieldsDef,
   Types = T["$inferSelect"],
@@ -138,7 +136,7 @@ export class ObjectSchema<
   /**
    * Get the target schema for a join
    */
-  getJoinSchema(name: string): ObjectSchema<TableOrView, string> | undefined {
+  getJoinSchema(name: string): ObjectSchema<Selectable, string> | undefined {
     const join = this.getJoin(name);
     if (!join) return undefined;
 
@@ -174,7 +172,7 @@ export class ObjectSchema<
   }
 }
 
-const schemaCache = new WeakMap<TableOrView, Map<string, ObjectSchema>>();
+const schemaCache = new WeakMap<Selectable, Map<string, ObjectSchema>>();
 
 function getSchemaCacheKey(
   fields: Record<string, FieldConfig>,
@@ -244,7 +242,7 @@ function getSchemaCacheKey(
  * ```
  */
 export function createSchema<
-  T extends TableOrView,
+  T extends Selectable,
   const Config extends Record<string, FieldConfig>,
 >(
   config: Omit<SchemaConfig<T, string>, "fields"> & { fields: Config }

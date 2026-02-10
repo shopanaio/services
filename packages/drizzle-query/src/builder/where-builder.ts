@@ -1,7 +1,5 @@
-import { and, eq, or, not, type SQL, type Column, type Table, type View } from "drizzle-orm";
-
-/** Table or View - both support SELECT operations */
-type TableOrView = Table | View;
+import { and, eq, or, not, type SQL, type Column } from "drizzle-orm";
+import type { Selectable } from "../types.js";
 import {
   buildOperatorCondition,
   isFilterObject,
@@ -31,7 +29,7 @@ export class WhereBuilder<
 > {
   constructor(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    private readonly schema: ObjectSchema<TableOrView, string, Fields, any>,
+    private readonly schema: ObjectSchema<Selectable, string, Fields, any>,
     private readonly joinCollector: JoinCollector,
     private readonly maxDepth: number
   ) {}

@@ -3,11 +3,8 @@ import {
   getTableColumns,
   type Column,
   type Table,
-  type View,
 } from "drizzle-orm";
-
-/** Table or View - both support SELECT operations */
-type TableOrView = Table | View;
+import type { Selectable } from "../types.js";
 import {
   ObjectSchema,
   tablePrefix,
@@ -34,7 +31,7 @@ export function createJoinCollectorContext(): JoinCollectorContext {
 
 export class JoinCollector {
   constructor(
-    private readonly schemaTable: TableOrView,
+    private readonly schemaTable: Selectable,
     private readonly context: JoinCollectorContext = createJoinCollectorContext()
   ) {}
   private readonly processedPaths = new Set<string>();
@@ -44,7 +41,7 @@ export class JoinCollector {
     return this.getOrCreateAliasedTable(this.schemaTable, alias);
   }
 
-  getOrCreateAliasedTable(table: TableOrView, alias: string): AliasedTable {
+  getOrCreateAliasedTable(table: Selectable, alias: string): AliasedTable {
     const existing = this.context.aliases.get(alias);
     if (existing) {
       return existing;
@@ -92,7 +89,7 @@ export class JoinCollector {
 
   registerJoin(
     sourceAlias: string,
-    targetTable: TableOrView,
+    targetTable: Selectable,
     targetAlias: string,
     sourceCol: string,
     targetCol: string,

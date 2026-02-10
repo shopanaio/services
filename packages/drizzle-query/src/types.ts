@@ -1,7 +1,14 @@
-import type { SQL, Table, View } from "drizzle-orm";
+import type { SQL, Table } from "drizzle-orm";
 
-/** Table or View - both support SELECT operations */
-export type TableOrView = Table | View;
+/**
+ * Base type for anything that can be selected from (tables and views).
+ * Both Drizzle Table and View satisfy this interface.
+ */
+export interface Selectable<TSelect = unknown> {
+  readonly $inferSelect: TSelect;
+  /** Internal Drizzle config - used for column access */
+  readonly _: unknown;
+}
 
 /**
  * Extract column names from a Drizzle table
@@ -168,8 +175,8 @@ export type GetColumn<
  * ```
  */
 export type InferFieldTypes<
-  T extends TableOrView,
-  Config extends Record<string, { column: string; join?: { schema: () => SchemaWithTypes<TableOrView, unknown> } }>
+  T extends Selectable,
+  Config extends Record<string, { column: string; join?: { schema: () => SchemaWithTypes<Selectable, unknown> } }>
 > = {
   [K in keyof Config & string]: Config[K] extends { join: { schema: () => infer S } }
     ? S extends SchemaWithTypes<infer _JoinTable, infer JoinTypes>
@@ -183,7 +190,7 @@ export type InferFieldTypes<
 /**
  * Marker type for ObjectSchema to enable type inference.
  */
-export type SchemaWithTypes<T extends TableOrView = TableOrView, Types = unknown> = {
+export type SchemaWithTypes<T extends Selectable = Selectable, Types = unknown> = {
   readonly __table: T;
   readonly __types: Types;
 };
