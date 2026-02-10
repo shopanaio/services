@@ -2,6 +2,27 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "Run Admin Next",
+      "type": "shell",
+      "command": "source ~/.nvm/nvm.sh && nvm use 22 && yarn && yarn dev",
+      "options": {
+        "cwd": "${workspaceFolder}/admin-next",
+        "shell": {
+          "executable": "/bin/zsh",
+          "args": ["-c"]
+        }
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
       "label": "Run Infrastructure",
       "type": "shell",
       "command": "docker compose up",
@@ -196,30 +217,7 @@
     {
       "label": "Claude Commit",
       "type": "shell",
-      "command": "claude --model haiku '/commit'",
-      "presentation": {
-        "reveal": "always",
-        "panel": "new",
-        "showReuseMessage": false,
-        "focus": true
-      },
-      "runOptions": {
-        "instanceLimit": 5
-      },
-      "options": {
-        "cwd": "${workspaceFolder}",
-        "shell": {
-          "executable": "/bin/zsh",
-          "args": ["-c"]
-        }
-      },
-      "isBackground": true,
-      "problemMatcher": []
-    },
-    {
-      "label": "Claude Commit and Push",
-      "type": "shell",
-      "command": "claude --model haiku '/commit-and-push'",
+      "command": "claude --dangerously-skip-permissions --model haiku '/commit'",
       "presentation": {
         "reveal": "always",
         "panel": "new",
@@ -242,7 +240,7 @@
     {
       "label": "Claude Commit Unstaged",
       "type": "shell",
-      "command": "claude --model haiku '/commit-unstaged'",
+      "command": "claude --dangerously-skip-permissions --model haiku '/commit-unstaged'",
       "presentation": {
         "reveal": "always",
         "panel": "new",
@@ -262,26 +260,6 @@
       "isBackground": true,
       "problemMatcher": []
     },
-    {
-      "label": "Run Admin Next",
-      "type": "shell",
-      "command": "source ~/.nvm/nvm.sh && nvm use 22 && yarn && yarn dev",
-      "options": {
-        "cwd": "${workspaceFolder}/admin-next",
-        "shell": {
-          "executable": "/bin/zsh",
-          "args": ["-c"]
-        }
-      },
-      "group": "build",
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "dedicated"
-      },
-      "isBackground": true,
-      "problemMatcher": []
-    }
+
   ]
 }
