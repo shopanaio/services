@@ -547,10 +547,20 @@ function createFieldsFromTable<T extends Table>(table: T): InferFieldsFromTable<
 }
 
 /**
+ * Get the column name from a view selected field.
+ * Handles both regular Column objects (.name) and SQL.Aliased objects (.fieldAlias)
+ */
+function getColumnName(field: unknown): string {
+  const f = field as { name?: string; fieldAlias?: string };
+  // SQL.Aliased has fieldAlias property, Column has name property
+  return f.fieldAlias ?? f.name ?? "unknown";
+}
+
+/**
  * Create field definitions from view selected fields
  */
 function createFieldsFromView<T extends View>(view: T): InferFieldsFromView<T> {
-  const viewAny = view as unknown as Record<symbol, Record<string, { name: string }> | undefined>;
+  const viewAny = view as unknown as Record<symbol, Record<string, unknown> | undefined>;
   const selectedFields = viewAny[DrizzleViewSelectedFields];
 
   if (!selectedFields) {
@@ -559,15 +569,16 @@ function createFieldsFromView<T extends View>(view: T): InferFieldsFromView<T> {
 
   const fields: Record<string, FieldBuilder> = {};
   for (const [key, column] of Object.entries(selectedFields)) {
+    const columnName = getColumnName(column);
     fields[key] = {
-      column: column.name,
+      column: columnName,
       join: undefined,
       leftJoin<TFields extends FluentFieldsDef>(
         target: FluentQueryBuilderLike<TFields>,
         joinColumn: { name: string }
       ): JoinFieldDefinition<TFields> {
         return {
-          column: column.name,
+          column: columnName,
           join: { type: "left", target: () => target, column: joinColumn.name },
         };
       },
@@ -576,7 +587,7 @@ function createFieldsFromView<T extends View>(view: T): InferFieldsFromView<T> {
         joinColumn: { name: string }
       ): JoinFieldDefinition<TFields> {
         return {
-          column: column.name,
+          column: columnName,
           join: { type: "inner", target: () => target, column: joinColumn.name },
         };
       },
@@ -585,7 +596,7 @@ function createFieldsFromView<T extends View>(view: T): InferFieldsFromView<T> {
         joinColumn: { name: string }
       ): JoinFieldDefinition<TFields> {
         return {
-          column: column.name,
+          column: columnName,
           join: { type: "right", target: () => target, column: joinColumn.name },
         };
       },
@@ -594,7 +605,7 @@ function createFieldsFromView<T extends View>(view: T): InferFieldsFromView<T> {
         joinColumn: { name: string }
       ): JoinFieldDefinition<TFields> {
         return {
-          column: column.name,
+          column: columnName,
           join: { type: "full", target: () => target, column: joinColumn.name },
         };
       },
