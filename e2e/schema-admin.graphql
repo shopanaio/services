@@ -1014,50 +1014,26 @@ scalar Email
 scalar BigInt
 
 type CatalogQuery {
-  """Get a node by its global ID"""
-  node(id: ID!): Node
+  """Get a bundle group by ID"""
+  bundleGroup(id: ID!): BundleGroup
 
-  """Get multiple nodes by their global IDs"""
-  nodes(ids: [ID!]!): [Node]!
+  """Get all bundle groups for a product"""
+  bundleGroups(productId: ID!): [BundleGroup!]!
 
-  """Get a product by ID"""
-  product(id: ID!): Product
+  """Get a bundle item by ID"""
+  bundleItem(id: ID!): BundleItem
 
-  """Get products with Relay-style pagination"""
-  products(first: Int, after: String, last: Int, before: String): ProductConnection!
+  """Get a bundle pricing template by ID"""
+  bundlePricingTemplate(id: ID!): BundlePricingTemplate
 
-  """Get a variant by ID"""
-  variant(id: ID!): Variant
+  """Get all pricing templates for a product"""
+  bundlePricingTemplates(productId: ID!): [BundlePricingTemplate!]!
 
-  """Get variants with Relay-style pagination"""
-  variants(first: Int, after: String, last: Int, before: String): VariantConnection!
+  """Get a dependency rule by ID"""
+  dependencyRule(id: ID!): DependencyRule
 
-  """Get bulk update job by ID."""
-  productBulkUpdateJob(jobId: ID!): ProductBulkUpdateJob
-
-  """Get a category by ID"""
-  category(id: ID!): Category
-  collection(id: ID!): Collection
-  collectionByHandle(handle: String!): Collection
-  collections(first: Int, after: String, last: Int, before: String): CollectionConnection!
-  collectionRulesPreviewCount(rules: [CollectionRuleInput!]!): Int!
-  facetGroup(id: ID!): FacetGroup
-  facetGroups: [FacetGroup!]!
-  facet(id: ID!): Facet
-  facets: [Facet!]!
-  facetValue(id: ID!): FacetValue
-  facetValues(facetId: ID!): [FacetValue!]!
-  facetSwatch(id: ID!): FacetSwatch
-  facetSwatches: [FacetSwatch!]!
-
-  """Get categories with Relay-style pagination"""
-  categories(first: Int, after: String, last: Int, before: String): CategoryConnection!
-
-  """Get a tag by ID"""
-  tag(id: ID!): Tag
-
-  """Get tags with Relay-style pagination"""
-  tags(first: Int, after: String, last: Int, before: String): TagConnection!
+  """Get all dependency rules for a product"""
+  dependencyRules(productId: ID!): [DependencyRule!]!
 }
 
 """Widget query namespace for dashboard widgets."""
@@ -1148,6 +1124,27 @@ type CatalogMutation {
   Requires X-Idempotency-Key header.
   """
   productBulkUpdate(input: ProductBulkUpdateInput!): ProductBulkUpdatePayload!
+  bundleGroupCreate(input: BundleGroupCreateInput!): BundleGroupPayload!
+  bundleGroupUpdate(input: BundleGroupUpdateInput!): BundleGroupPayload!
+  bundleGroupDelete(input: DeleteInput!): DeletePayload!
+  bundleItemCreate(input: BundleItemCreateInput!): BundleItemPayload!
+  bundleItemUpdate(input: BundleItemUpdateInput!): BundleItemPayload!
+  bundleItemDelete(input: DeleteInput!): DeletePayload!
+  bundlePricingTemplateCreate(input: BundlePricingTemplateCreateInput!): BundlePricingTemplatePayload!
+  bundlePricingTemplateUpdate(input: BundlePricingTemplateUpdateInput!): BundlePricingTemplatePayload!
+  bundlePricingTemplateDelete(input: DeleteInput!): DeletePayload!
+  dependencyRuleCreate(input: DependencyRuleCreateInput!): DependencyRulePayload!
+  dependencyRuleUpdate(input: DependencyRuleUpdateInput!): DependencyRulePayload!
+  dependencyRuleDelete(input: DeleteInput!): DeletePayload!
+  conditionGroupCreate(input: ConditionGroupCreateInput!): ConditionGroupPayload!
+  conditionGroupUpdate(input: ConditionGroupUpdateInput!): ConditionGroupPayload!
+  conditionGroupDelete(input: DeleteInput!): DeletePayload!
+  conditionCreate(input: ConditionCreateInput!): ConditionPayload!
+  conditionUpdate(input: ConditionUpdateInput!): ConditionPayload!
+  conditionDelete(input: DeleteInput!): DeletePayload!
+  dependencyActionCreate(input: DependencyActionCreateInput!): DependencyActionPayload!
+  dependencyActionUpdate(input: DependencyActionUpdateInput!): DependencyActionPayload!
+  dependencyActionDelete(input: DeleteInput!): DeletePayload!
 }
 
 """Result of bulk update start/cancel."""
@@ -1279,6 +1276,173 @@ type BulkUpdateUserError implements UserError {
 
   """Operation that failed."""
   operation: String
+}
+
+"""A pricing template that can be reused across bundle items."""
+type BundlePricingTemplate implements Node {
+  id: ID!
+  productId: ID!
+  name: String!
+  priceType: BundlePriceType!
+  priceValue: Int
+  sortIndex: Int!
+}
+
+"""
+A group of items within a bundle (e.g., "Choose your processor", "Select accessories").
+"""
+type BundleGroup implements Node {
+  id: ID!
+  productId: ID!
+  title: String!
+  sortIndex: Int!
+  minSelection: Int
+  maxSelection: Int
+  items: [BundleItem!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""An individual item within a bundle group."""
+type BundleItem implements Node {
+  id: ID!
+  groupId: ID!
+  itemType: BundleItemType!
+  sortIndex: Int!
+
+  """Reference to product (when itemType is PRODUCT)"""
+  refProductId: ID
+
+  """Reference to variant (when itemType is VARIANT)"""
+  refVariantId: ID
+
+  """Custom title override for this bundle item"""
+  title: String
+
+  """Custom featured image override"""
+  featuredImageId: ID
+
+  """Excluded variant IDs when itemType is PRODUCT"""
+  excludedVariantIds: [ID!]
+
+  """Minimum quantity that can be selected"""
+  minQty: Int!
+
+  """Maximum quantity that can be selected (null = unlimited)"""
+  maxQty: Int
+
+  """Default quantity when item is added to cart"""
+  defaultQty: Int!
+
+  """Inline pricing type"""
+  priceType: BundlePriceType
+
+  """Inline pricing value (cents)"""
+  priceValue: Int
+
+  """Reference to a pricing template"""
+  pricingTemplateId: ID
+
+  """Resolved pricing template"""
+  pricingTemplate: BundlePricingTemplate
+
+  """Whether item is visible in the bundle configurator"""
+  visible: Boolean!
+
+  """Whether item is selected by default"""
+  selected: Boolean!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""A dependency rule that controls bundle behavior based on conditions."""
+type DependencyRule implements Node {
+  id: ID!
+  productId: ID!
+  name: String!
+  enabled: Boolean!
+  priority: Int!
+  logicOperator: LogicOperator!
+  conditionGroups: [ConditionGroup!]!
+  actions: [DependencyAction!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""A group of conditions within a dependency rule."""
+type ConditionGroup implements Node {
+  id: ID!
+  ruleId: ID!
+  logicOperator: LogicOperator!
+  sortIndex: Int!
+  conditions: [Condition!]!
+}
+
+"""A single condition within a condition group."""
+type Condition implements Node {
+  id: ID!
+  groupId: ID!
+  category: ConditionCategory!
+  subject: ConditionSubject!
+  operator: String!
+  targetType: DependencyTargetType!
+  targetId: ID!
+  value: Int
+  sortIndex: Int!
+}
+
+"""An action to perform when a dependency rule's conditions are met."""
+type DependencyAction implements Node {
+  id: ID!
+  ruleId: ID!
+  actionType: DependencyActionType!
+  targetType: DependencyTargetType!
+  targetId: ID
+  requiredValue: Boolean
+  priceType: BundlePriceType
+  priceValue: Int
+  stackable: Boolean!
+  sortIndex: Int!
+}
+
+type BundleGroupPayload {
+  bundleGroup: BundleGroup
+  userErrors: [UserError!]!
+}
+
+type BundleItemPayload {
+  bundleItem: BundleItem
+  userErrors: [UserError!]!
+}
+
+type BundlePricingTemplatePayload {
+  bundlePricingTemplate: BundlePricingTemplate
+  userErrors: [UserError!]!
+}
+
+type DependencyRulePayload {
+  dependencyRule: DependencyRule
+  userErrors: [UserError!]!
+}
+
+type ConditionGroupPayload {
+  conditionGroup: ConditionGroup
+  userErrors: [UserError!]!
+}
+
+type ConditionPayload {
+  condition: Condition
+  userErrors: [UserError!]!
+}
+
+type DependencyActionPayload {
+  dependencyAction: DependencyAction
+  userErrors: [UserError!]!
+}
+
+type DeletePayload {
+  deletedId: ID
+  userErrors: [UserError!]!
 }
 
 """A category represents a hierarchical grouping of products."""
@@ -2502,6 +2666,102 @@ enum ProductStatus {
   PUBLISHED
 }
 
+"""The type of item in a bundle group."""
+enum BundleItemType {
+  """
+  Item references an entire product (variant selection happens at checkout)
+  """
+  PRODUCT
+
+  """Item references a specific variant"""
+  VARIANT
+}
+
+"""The pricing strategy for bundle items."""
+enum BundlePriceType {
+  """Use base product/variant price (no modification)"""
+  BASE
+
+  """Item is free when included in bundle"""
+  FREE
+
+  """Fixed price (overrides base price)"""
+  FIXED
+
+  """Discount by percentage (0-100)"""
+  PERCENT_OFF
+
+  """Discount by absolute amount (in cents)"""
+  AMOUNT_OFF
+}
+
+"""The subject of a dependency condition."""
+enum ConditionSubject {
+  """Check if an item is selected"""
+  ITEM_SELECTED
+
+  """Check item quantity"""
+  ITEM_QTY
+
+  """Check group total quantity"""
+  GROUP_TOTAL_QTY
+}
+
+"""The category of a dependency condition."""
+enum ConditionCategory {
+  """State check (is selected, is not selected)"""
+  STATE_CHECK
+
+  """Numeric comparison (gte, eq, lte)"""
+  NUMERIC
+}
+
+"""The operator for state check conditions."""
+enum StateCheckOperator {
+  IS_SELECTED
+  IS_NOT_SELECTED
+}
+
+"""The operator for numeric conditions."""
+enum NumericOperator {
+  GTE
+  EQ
+  LTE
+}
+
+"""The target type for conditions and actions."""
+enum DependencyTargetType {
+  """Target a specific bundle item"""
+  ITEM
+
+  """Target an entire bundle group"""
+  GROUP
+
+  """Target the entire bundle"""
+  BUNDLE
+}
+
+"""The type of action to perform when a dependency rule matches."""
+enum DependencyActionType {
+  """Show the target"""
+  SHOW
+
+  """Hide the target"""
+  HIDE
+
+  """Make the target required"""
+  SET_REQUIRED
+
+  """Adjust the price of the target"""
+  ADJUST_PRICE
+}
+
+"""Logic operator for combining conditions or condition groups."""
+enum LogicOperator {
+  AND
+  OR
+}
+
 enum ProductSortBy {
   MANUAL
   PRICE
@@ -2771,6 +3031,151 @@ input ProductBulkUpdateItem {
 
   """Product-level operations."""
   operations: ProductUpdateInput
+}
+
+input BundleGroupCreateInput {
+  productId: ID!
+  title: String!
+  sortIndex: Int
+  minSelection: Int
+  maxSelection: Int
+}
+
+input BundleGroupUpdateInput {
+  id: ID!
+  title: String
+  sortIndex: Int
+  minSelection: Int
+  maxSelection: Int
+}
+
+input BundleItemCreateInput {
+  groupId: ID!
+  itemType: BundleItemType!
+  sortIndex: Int
+  refProductId: ID
+  refVariantId: ID
+  title: String
+  featuredImageId: ID
+  excludedVariantIds: [ID!]
+  minQty: Int
+  maxQty: Int
+  defaultQty: Int
+  priceType: BundlePriceType
+  priceValue: Int
+  pricingTemplateId: ID
+  visible: Boolean
+  selected: Boolean
+}
+
+input BundleItemUpdateInput {
+  id: ID!
+  title: String
+  featuredImageId: ID
+  excludedVariantIds: [ID!]
+  minQty: Int
+  maxQty: Int
+  defaultQty: Int
+  priceType: BundlePriceType
+  priceValue: Int
+  pricingTemplateId: ID
+  visible: Boolean
+  selected: Boolean
+  sortIndex: Int
+}
+
+input BundlePricingTemplateCreateInput {
+  productId: ID!
+  name: String!
+  priceType: BundlePriceType!
+  priceValue: Int
+  sortIndex: Int
+}
+
+input BundlePricingTemplateUpdateInput {
+  id: ID!
+  name: String
+  priceType: BundlePriceType
+  priceValue: Int
+  sortIndex: Int
+}
+
+input DependencyRuleCreateInput {
+  productId: ID!
+  name: String!
+  enabled: Boolean
+  priority: Int
+  logicOperator: LogicOperator
+}
+
+input DependencyRuleUpdateInput {
+  id: ID!
+  name: String
+  enabled: Boolean
+  priority: Int
+  logicOperator: LogicOperator
+}
+
+input ConditionGroupCreateInput {
+  ruleId: ID!
+  logicOperator: LogicOperator
+  sortIndex: Int
+}
+
+input ConditionGroupUpdateInput {
+  id: ID!
+  logicOperator: LogicOperator
+  sortIndex: Int
+}
+
+input ConditionCreateInput {
+  groupId: ID!
+  category: ConditionCategory!
+  subject: ConditionSubject!
+  operator: String!
+  targetType: DependencyTargetType!
+  targetId: ID!
+  value: Int
+  sortIndex: Int
+}
+
+input ConditionUpdateInput {
+  id: ID!
+  category: ConditionCategory
+  subject: ConditionSubject
+  operator: String
+  targetType: DependencyTargetType
+  targetId: ID
+  value: Int
+  sortIndex: Int
+}
+
+input DependencyActionCreateInput {
+  ruleId: ID!
+  actionType: DependencyActionType!
+  targetType: DependencyTargetType!
+  targetId: ID
+  requiredValue: Boolean
+  priceType: BundlePriceType
+  priceValue: Int
+  stackable: Boolean
+  sortIndex: Int
+}
+
+input DependencyActionUpdateInput {
+  id: ID!
+  actionType: DependencyActionType
+  targetType: DependencyTargetType
+  targetId: ID
+  requiredValue: Boolean
+  priceType: BundlePriceType
+  priceValue: Int
+  stackable: Boolean
+  sortIndex: Int
+}
+
+input DeleteInput {
+  id: ID!
 }
 
 """Input for creating a category."""
