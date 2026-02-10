@@ -194,6 +194,26 @@
       "problemMatcher": []
     },
     {
+      "label": "Claude Commit",
+      "type": "shell",
+      "command": "claude '/commit'",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "showReuseMessage": false,
+        "focus": true
+      },
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "shell": {
+          "executable": "/bin/zsh",
+          "args": ["-c"]
+        }
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
       "label": "Run Admin Next",
       "type": "shell",
       "command": "source ~/.nvm/nvm.sh && nvm use 22 && yarn && yarn dev",
