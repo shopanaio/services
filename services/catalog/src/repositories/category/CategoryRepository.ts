@@ -711,8 +711,6 @@ export class CategoryRepository {
       select: selectFields as CategoryProductsRelayInput["select"],
     };
 
-    const sql = categoryProductsRelayQuery.getSql(executeInput);
-    console.log(sql);
     const [result, totalCount] = await Promise.all([
       categoryProductsRelayQuery.execute(this.connection, executeInput),
       this.countProductsInCategory(categoryId),

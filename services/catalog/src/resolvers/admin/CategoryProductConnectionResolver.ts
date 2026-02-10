@@ -1,4 +1,3 @@
-import type { CategoryProductsRelayInput } from "../../repositories/category/CategoryRepository.js";
 import { ProductResolver } from "./ProductResolver.js";
 import {
   BaseConnectionResolver,
@@ -27,9 +26,12 @@ export interface CategoryProductConnectionInput {
 export class CategoryProductConnectionResolver extends BaseConnectionResolver<CategoryProductConnectionInput> {
   async $preload(): Promise<ConnectionData> {
     const { categoryId, ...args } = this.$props;
-    return this.$ctx.kernel
+
+    const res = await this.$ctx.kernel
       .getServices()
       .repository.category.getCategoryProductsConnection(categoryId, args);
+
+    return res;
   }
 
   protected createNodeResolver(nodeId: string) {
