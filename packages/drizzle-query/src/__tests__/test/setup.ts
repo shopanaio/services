@@ -1,9 +1,11 @@
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle, PgliteDatabase } from "drizzle-orm/pglite";
 import { beforeAll, afterAll, beforeEach } from "vitest";
+import { sql } from "drizzle-orm";
 import {
   pgTable,
   pgSchema,
+  pgView,
   text,
   integer,
   boolean,
@@ -38,6 +40,38 @@ export const translations = pgTable("translations", {
   searchValue: text("search_value"),
 });
 
+export const categories = pgTable("categories", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  slug: text("slug").notNull(),
+  sortOrder: integer("sort_order").default(0),
+  isVisible: boolean("is_visible").default(true),
+});
+
+// ============ VIEWS ============
+
+/**
+ * View: Products with computed display info
+ */
+export const productsView = pgView("products_view").as((qb) =>
+  qb
+    .select({
+      id: products.id,
+      handle: products.handle,
+      price: products.price,
+      deletedAt: products.deletedAt,
+      displayHandle: sql<string>`UPPER(${products.handle})`.as("display_handle"),
+      priceRange: sql<string>`
+        CASE
+          WHEN ${products.price} < 100 THEN 'budget'
+          WHEN ${products.price} < 500 THEN 'mid-range'
+          ELSE 'premium'
+        END
+      `.as("price_range"),
+    })
+    .from(products)
+    .where(sql`${products.deletedAt} IS NULL`)
+);
+
 // Qualified table in "analytics" schema
 export const events = analyticsSchema.table("events", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -52,7 +86,9 @@ export const schema = {
   users,
   products,
   translations,
+  categories,
   events,
+  productsView,
 };
 
 // Global database instance
@@ -103,6 +139,13 @@ export async function setupTestDb() {
       search_value TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS categories (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      slug TEXT NOT NULL,
+      sort_order INTEGER DEFAULT 0,
+      is_visible BOOLEAN DEFAULT true
+    );
+
     CREATE SCHEMA IF NOT EXISTS analytics;
 
     CREATE TABLE IF NOT EXISTS analytics.events (
@@ -112,6 +155,22 @@ export async function setupTestDb() {
       payload TEXT,
       created_at TIMESTAMP DEFAULT now()
     );
+
+    -- Create products_view
+    CREATE OR REPLACE VIEW products_view AS
+    SELECT
+      id,
+      handle,
+      price,
+      deleted_at,
+      UPPER(handle) AS display_handle,
+      CASE
+        WHEN price < 100 THEN 'budget'
+        WHEN price < 500 THEN 'mid-range'
+        ELSE 'premium'
+      END AS price_range
+    FROM products
+    WHERE deleted_at IS NULL;
   `);
 
   return { db, client };
@@ -131,6 +190,7 @@ export async function clearTables() {
     TRUNCATE TABLE users CASCADE;
     TRUNCATE TABLE products CASCADE;
     TRUNCATE TABLE translations CASCADE;
+    TRUNCATE TABLE categories CASCADE;
     TRUNCATE TABLE analytics.events CASCADE;
   `);
 }

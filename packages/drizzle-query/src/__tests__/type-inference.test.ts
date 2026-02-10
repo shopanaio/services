@@ -3,7 +3,8 @@
  * These tests verify that types are correctly inferred from schemas
  */
 import { describe, it, expectTypeOf } from "vitest";
-import { pgTable, text, uuid, integer } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { pgTable, pgView, text, uuid, integer, numeric } from "drizzle-orm/pg-core";
 import { createQuery, field } from "../index.js";
 import type { ResolvePathType, InferSelectResultFlat } from "../types.js";
 
@@ -132,6 +133,162 @@ describe("Type Inference", () => {
       expectTypeOf<SingleResult["id"]>().toEqualTypeOf<string>();
       expectTypeOf<SingleResult["name"]>().toEqualTypeOf<string>();
       expectTypeOf<SingleResult["age"]>().toEqualTypeOf<number | null>();
+    });
+  });
+});
+
+// ============ VIEW TYPE TESTS ============
+
+// Test view with computed fields
+const products = pgTable("products", {
+  id: uuid("id").primaryKey(),
+  sku: text("sku").notNull(),
+  price: numeric("price", { precision: 10, scale: 2 }),
+  stock: integer("stock"),
+});
+
+const productsView = pgView("products_view").as((qb) =>
+  qb
+    .select({
+      id: products.id,
+      sku: products.sku,
+      price: products.price,
+      stock: products.stock,
+      displayName: sql<string>`UPPER(${products.sku})`.as("display_name"),
+      priceRange: sql<string>`
+        CASE
+          WHEN ${products.price} < 100 THEN 'budget'
+          WHEN ${products.price} < 500 THEN 'mid-range'
+          ELSE 'premium'
+        END
+      `.as("price_range"),
+    })
+    .from(products)
+);
+
+// View query with auto-extracted fields
+const productsViewQuery = createQuery(productsView);
+
+// View query with explicit fields
+const productsViewExplicitQuery = createQuery(productsView, {
+  id: field(productsView.id),
+  sku: field(productsView.sku),
+  price: field(productsView.price),
+  stock: field(productsView.stock),
+  displayName: field(productsView.displayName),
+  priceRange: field(productsView.priceRange),
+});
+
+// Translations for joins
+const translations = pgTable("translations", {
+  id: uuid("id").primaryKey(),
+  entityId: uuid("entity_id").notNull(),
+  value: text("value"),
+});
+
+const translationsQuery = createQuery(translations, {
+  id: field(translations.id),
+  entityId: field(translations.entityId),
+  value: field(translations.value),
+});
+
+// View with join
+const productsViewWithJoinQuery = createQuery(productsView, {
+  id: field(productsView.id),
+  sku: field(productsView.sku),
+  priceRange: field(productsView.priceRange),
+  translation: field(productsView.id).leftJoin(translationsQuery, translations.entityId),
+});
+
+describe("View Type Inference", () => {
+  describe("Auto-extracted view fields", () => {
+    it("should infer types from view columns", () => {
+      type ViewTypes = typeof productsViewQuery["__types"];
+
+      expectTypeOf<ViewTypes["id"]>().toEqualTypeOf<string>();
+      expectTypeOf<ViewTypes["sku"]>().toEqualTypeOf<string>();
+      expectTypeOf<ViewTypes["price"]>().toEqualTypeOf<string | null>(); // numeric is string
+      expectTypeOf<ViewTypes["stock"]>().toEqualTypeOf<number | null>();
+    });
+
+    it("should infer types from computed/aliased view fields", () => {
+      type ViewTypes = typeof productsViewQuery["__types"];
+
+      // Computed fields should have correct types
+      expectTypeOf<ViewTypes["displayName"]>().toEqualTypeOf<string>();
+      expectTypeOf<ViewTypes["priceRange"]>().toEqualTypeOf<string>();
+    });
+  });
+
+  describe("Explicit view fields", () => {
+    it("should infer types from explicit field definitions", () => {
+      type ViewTypes = typeof productsViewExplicitQuery["__types"];
+
+      expectTypeOf<ViewTypes["id"]>().toEqualTypeOf<string>();
+      expectTypeOf<ViewTypes["sku"]>().toEqualTypeOf<string>();
+      expectTypeOf<ViewTypes["displayName"]>().toEqualTypeOf<string>();
+      expectTypeOf<ViewTypes["priceRange"]>().toEqualTypeOf<string>();
+    });
+  });
+
+  describe("View with joins", () => {
+    it("should infer types from view fields and joined table fields", () => {
+      type ViewTypes = typeof productsViewWithJoinQuery["__types"];
+
+      // Base view fields
+      expectTypeOf<ViewTypes["id"]>().toEqualTypeOf<string>();
+      expectTypeOf<ViewTypes["sku"]>().toEqualTypeOf<string>();
+      expectTypeOf<ViewTypes["priceRange"]>().toEqualTypeOf<string>();
+    });
+  });
+
+  describe("ResolvePathType with views", () => {
+    it("should resolve simple paths from view", () => {
+      type ViewTypes = typeof productsViewQuery["__types"];
+
+      type IdType = ResolvePathType<ViewTypes, "id">;
+      type SkuType = ResolvePathType<ViewTypes, "sku">;
+      type DisplayNameType = ResolvePathType<ViewTypes, "displayName">;
+
+      expectTypeOf<IdType>().toEqualTypeOf<string>();
+      expectTypeOf<SkuType>().toEqualTypeOf<string>();
+      expectTypeOf<DisplayNameType>().toEqualTypeOf<string>();
+    });
+  });
+
+  describe("InferSelectResultFlat with views", () => {
+    it("should create result type from view select paths", () => {
+      type ViewTypes = typeof productsViewQuery["__types"];
+      type SelectPaths = readonly ["id", "sku", "priceRange"];
+
+      type Result = InferSelectResultFlat<ViewTypes, SelectPaths>;
+
+      expectTypeOf<Result>().toEqualTypeOf<{
+        id: string;
+        sku: string;
+        priceRange: string;
+      }>();
+    });
+  });
+
+  describe("View execute() return types", () => {
+    it("should return typed results from view query", () => {
+      type ExecuteResult = Awaited<ReturnType<typeof productsViewQuery.execute>>;
+      type SingleResult = ExecuteResult[number];
+
+      expectTypeOf<SingleResult["id"]>().toEqualTypeOf<string>();
+      expectTypeOf<SingleResult["sku"]>().toEqualTypeOf<string>();
+      expectTypeOf<SingleResult["displayName"]>().toEqualTypeOf<string>();
+      expectTypeOf<SingleResult["priceRange"]>().toEqualTypeOf<string>();
+    });
+
+    it("should return typed results from view with joins", () => {
+      type ExecuteResult = Awaited<ReturnType<typeof productsViewWithJoinQuery.execute>>;
+      type SingleResult = ExecuteResult[number];
+
+      expectTypeOf<SingleResult["id"]>().toEqualTypeOf<string>();
+      expectTypeOf<SingleResult["sku"]>().toEqualTypeOf<string>();
+      expectTypeOf<SingleResult["priceRange"]>().toEqualTypeOf<string>();
     });
   });
 });
