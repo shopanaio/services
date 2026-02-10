@@ -223,8 +223,8 @@ test.describe('Category Sort Configuration API', () => {
     expect(result.userErrors.length).toBeGreaterThan(0);
     expect(result.userErrors).toContainEqual(
       expect.objectContaining({
-        code: 'NOT_FOUND',
-      })
+        code: 'INVALID_ID',
+      }),
     );
   });
 
