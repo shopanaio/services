@@ -1,3 +1,4 @@
+import { encodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { InventoryType } from "./InventoryType.js";
 import { InventoryItemResolver } from "./InventoryItemResolver.js";
 import { StockResolver } from "./StockResolver.js";
@@ -20,9 +21,9 @@ import { StockResolver } from "./StockResolver.js";
  * - inventoryItem: The associated InventoryItem entity
  */
 export class VariantFederationResolver extends InventoryType<string, Record<string, never>> {
-  // Variant ID passed from federation (already decoded in types.ts)
+  // Variant ID passed from federation (decoded UUID) - must encode for GraphQL response
   id() {
-    return this.$props;
+    return encodeGlobalIdByType(this.$props, GlobalIdEntity.Variant);
   }
 
   /**
