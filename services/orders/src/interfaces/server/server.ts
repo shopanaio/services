@@ -145,9 +145,6 @@ export async function startServer(broker: ServiceBroker) {
 
   const adminPort = service.ports?.admin_graphql ?? 10004;
   await adminApp.listen({ port: adminPort, host: "0.0.0.0" });
-  adminApp.log.info(
-    `Orders Admin API ready at http://localhost:${adminPort}/graphql`,
-  );
 
   // ═══════════════════════════════════════════════════════════════════
   // STOREFRONT SERVER

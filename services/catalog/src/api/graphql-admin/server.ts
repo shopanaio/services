@@ -166,9 +166,5 @@ export async function startServer(serverConfig: ServerConfig) {
     host: "0.0.0.0",
   });
 
-  app.log.info(
-    `catalog GraphQL Admin API ready at http://localhost:${serverConfig.port}/graphql`,
-  );
-
   return app;
 }
