@@ -1,41 +1,17 @@
-/**
- * Generate GraphQL filter types for inventory service.
- *
- * Run: npx tsx scripts/generate-filters.ts
- */
+import { writeFileSync } from "fs";
+import { generateWhereInputType } from "@shopana/drizzle-query";
+import { categoryProductsRelayQuery } from "../src/repositories/category/CategoryRepository.js";
 
-import { createGraphQLSchema } from "@shopana/drizzle-query";
-import { stockRelayQuery } from "../src/repositories/stock/StockRepository.js";
-import { warehouseRelayQuery } from "../src/repositories/warehouse/WarehouseRepository.js";
-
-const OUTPUT_DIR = "src/api/graphql-admin/schema/__generated__";
-
-// Generate .graphql files
-createGraphQLSchema({
-  // Base types (StringFilter, IntFilter, etc.) - separate file
-  baseTypesOutput: `${OUTPUT_DIR}/base-filters.graphql`,
-
-  // All query types in a single file
-  output: `${OUTPUT_DIR}/filters.graphql`,
-
-  // Query definitions
-  queries: {
-    Warehouse: {
-      query: warehouseRelayQuery,
-      options: {
-        excludeFields: ["projectId"],
-      },
-    },
-    WarehouseStock: {
-      query: stockRelayQuery,
-      options: {
-        excludeFields: ["projectId"],
-      },
-    },
-  },
-
-  options: {
-    includeDescriptions: true,
-  },
-  includeDateTimeScalar: false,
+const categoryProductWhere = generateWhereInputType(categoryProductsRelayQuery, "CategoryProduct", {
+  includeDescriptions: true,
+  excludeFields: ["projectId", "category"],
 });
+
+const content = `# Auto-generated GraphQL filter types for Catalog service.
+# Do not edit manually. Run: yarn generate:filters
+
+${categoryProductWhere}
+`;
+
+writeFileSync("src/api/graphql-admin/schema/__generated__/filters.graphql", content);
+console.log("✅ Generated filters.graphql");

@@ -17,6 +17,7 @@ export interface CategoryProductConnectionInput {
   last?: number;
   before?: string;
   orderBy?: ProductOrderByInput[];
+  where?: Record<string, unknown>;
 }
 
 /**

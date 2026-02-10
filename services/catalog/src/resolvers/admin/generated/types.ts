@@ -142,6 +142,7 @@ export type BulkUpdateUserError = UserError & {
 
 export type CatalogMutation = {
   __typename?: 'CatalogMutation';
+  categoryAddProduct: CategoryAddProductPayload;
   categoryCreate: CategoryCreatePayload;
   categoryDelete: CategoryDeletePayload;
   categoryMove: CategoryMovePayload;
@@ -202,6 +203,11 @@ export type CatalogMutation = {
   variantUpdateMedia: VariantUpdateMediaPayload;
   variantUpdateOptions: VariantUpdateOptionsPayload;
   variantUpdatePricing: VariantUpdatePricingPayload;
+};
+
+
+export type CatalogMutationCategoryAddProductArgs = {
+  input: CategoryAddProductInput;
 };
 
 
@@ -646,7 +652,19 @@ export type CategoryProductsArgs = {
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
-  sort?: InputMaybe<ProductSortInput>;
+  orderBy?: InputMaybe<Array<ProductOrderByInput>>;
+  where?: InputMaybe<CategoryProductWhereInput>;
+};
+
+export type CategoryAddProductInput = {
+  categoryId: Scalars['ID']['input'];
+  productId: Scalars['ID']['input'];
+};
+
+export type CategoryAddProductPayload = {
+  __typename?: 'CategoryAddProductPayload';
+  category: Maybe<Category>;
+  userErrors: Array<GenericUserError>;
 };
 
 /** A connection to a list of Category items. */
@@ -763,6 +781,22 @@ export type CategoryProductEdge = {
   __typename?: 'CategoryProductEdge';
   cursor: Scalars['String']['output'];
   node: Product;
+};
+
+/** Filter conditions for CategoryProduct */
+export type CategoryProductWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<CategoryProductWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<CategoryProductWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<CategoryProductWhereInput>>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by deletedAt */
+  deletedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by id */
+  id?: InputMaybe<IdFilter>;
 };
 
 export type CategoryRebalanceInput = {
@@ -2676,6 +2710,12 @@ export type ProductOptionsSyncPayload = {
   userErrors: Array<GenericUserError>;
 };
 
+/** Standard orderBy input for product queries. */
+export type ProductOrderByInput = {
+  direction?: InputMaybe<SortDirection>;
+  field: ProductSortBy;
+};
+
 /** SEO and Open Graph metadata for a product. */
 export type ProductSeo = {
   __typename?: 'ProductSeo';
@@ -3344,11 +3384,6 @@ export type WidgetQueryPricingArgs = {
   input: PricingWidgetInput;
 };
 
-export type _CatalogFiltersPlaceholder = {
-  __typename?: '_CatalogFiltersPlaceholder';
-  _empty: Maybe<Scalars['Boolean']['output']>;
-};
-
 export type WithIndex<TObject> = TObject & Record<string, any>;
 export type ResolversObject<TObject> = WithIndex<TObject>;
 
@@ -3455,6 +3490,8 @@ export type ResolversTypes = ResolversObject<{
   CatalogMutation: ResolverTypeWrapper<CatalogMutation>;
   CatalogQuery: ResolverTypeWrapper<Omit<CatalogQuery, 'node' | 'nodes'> & { node?: Maybe<ResolversTypes['Node']>, nodes: Array<Maybe<ResolversTypes['Node']>> }>;
   Category: ResolverTypeWrapper<Category>;
+  CategoryAddProductInput: CategoryAddProductInput;
+  CategoryAddProductPayload: ResolverTypeWrapper<CategoryAddProductPayload>;
   CategoryConnection: ResolverTypeWrapper<CategoryConnection>;
   CategoryCreateInput: CategoryCreateInput;
   CategoryCreatePayload: ResolverTypeWrapper<CategoryCreatePayload>;
@@ -3468,6 +3505,7 @@ export type ResolversTypes = ResolversObject<{
   CategoryMoveProductPayload: ResolverTypeWrapper<CategoryMoveProductPayload>;
   CategoryProductConnection: ResolverTypeWrapper<CategoryProductConnection>;
   CategoryProductEdge: ResolverTypeWrapper<CategoryProductEdge>;
+  CategoryProductWhereInput: CategoryProductWhereInput;
   CategoryRebalanceInput: CategoryRebalanceInput;
   CategoryRebalancePayload: ResolverTypeWrapper<CategoryRebalancePayload>;
   CategoryUpdateInput: CategoryUpdateInput;
@@ -3603,6 +3641,7 @@ export type ResolversTypes = ResolversObject<{
   ProductOptionValuesInput: ProductOptionValuesInput;
   ProductOptionsSyncInput: ProductOptionsSyncInput;
   ProductOptionsSyncPayload: ResolverTypeWrapper<ProductOptionsSyncPayload>;
+  ProductOrderByInput: ProductOrderByInput;
   ProductSeo: ResolverTypeWrapper<ProductSeo>;
   ProductSeoInput: ProductSeoInput;
   ProductSortBy: ProductSortBy;
@@ -3662,7 +3701,6 @@ export type ResolversTypes = ResolversObject<{
   VariantUpdatePricingPayload: ResolverTypeWrapper<VariantUpdatePricingPayload>;
   WeightUnit: WeightUnit;
   WidgetQuery: ResolverTypeWrapper<WidgetQuery>;
-  _CatalogFiltersPlaceholder: ResolverTypeWrapper<_CatalogFiltersPlaceholder>;
 }>;
 
 /** Mapping between all available schema types and the resolvers parents */
@@ -3681,6 +3719,8 @@ export type ResolversParentTypes = ResolversObject<{
   CatalogMutation: CatalogMutation;
   CatalogQuery: Omit<CatalogQuery, 'node' | 'nodes'> & { node?: Maybe<ResolversParentTypes['Node']>, nodes: Array<Maybe<ResolversParentTypes['Node']>> };
   Category: Category;
+  CategoryAddProductInput: CategoryAddProductInput;
+  CategoryAddProductPayload: CategoryAddProductPayload;
   CategoryConnection: CategoryConnection;
   CategoryCreateInput: CategoryCreateInput;
   CategoryCreatePayload: CategoryCreatePayload;
@@ -3694,6 +3734,7 @@ export type ResolversParentTypes = ResolversObject<{
   CategoryMoveProductPayload: CategoryMoveProductPayload;
   CategoryProductConnection: CategoryProductConnection;
   CategoryProductEdge: CategoryProductEdge;
+  CategoryProductWhereInput: CategoryProductWhereInput;
   CategoryRebalanceInput: CategoryRebalanceInput;
   CategoryRebalancePayload: CategoryRebalancePayload;
   CategoryUpdateInput: CategoryUpdateInput;
@@ -3819,6 +3860,7 @@ export type ResolversParentTypes = ResolversObject<{
   ProductOptionValuesInput: ProductOptionValuesInput;
   ProductOptionsSyncInput: ProductOptionsSyncInput;
   ProductOptionsSyncPayload: ProductOptionsSyncPayload;
+  ProductOrderByInput: ProductOrderByInput;
   ProductSeo: ProductSeo;
   ProductSeoInput: ProductSeoInput;
   ProductSortInput: ProductSortInput;
@@ -3872,7 +3914,6 @@ export type ResolversParentTypes = ResolversObject<{
   VariantUpdatePricingInput: VariantUpdatePricingInput;
   VariantUpdatePricingPayload: VariantUpdatePricingPayload;
   WidgetQuery: WidgetQuery;
-  _CatalogFiltersPlaceholder: _CatalogFiltersPlaceholder;
 }>;
 
 export interface BigIntScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['BigInt'], any> {
@@ -3930,6 +3971,7 @@ export type BulkUpdateUserErrorResolvers<ContextType = ServiceContext, ParentTyp
 }>;
 
 export type CatalogMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CatalogMutation'] = ResolversParentTypes['CatalogMutation']> = ResolversObject<{
+  categoryAddProduct?: Resolver<ResolversTypes['CategoryAddProductPayload'], ParentType, ContextType, RequireFields<CatalogMutationCategoryAddProductArgs, 'input'>>;
   categoryCreate?: Resolver<ResolversTypes['CategoryCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationCategoryCreateArgs, 'input'>>;
   categoryDelete?: Resolver<ResolversTypes['CategoryDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationCategoryDeleteArgs, 'input'>>;
   categoryMove?: Resolver<ResolversTypes['CategoryMovePayload'], ParentType, ContextType, RequireFields<CatalogMutationCategoryMoveArgs, 'input'>>;
@@ -4029,6 +4071,12 @@ export type CategoryResolvers<ContextType = ServiceContext, ParentType extends R
   publishedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   seo?: Resolver<Maybe<ResolversTypes['Seo']>, ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CategoryAddProductPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CategoryAddProductPayload'] = ResolversParentTypes['CategoryAddProductPayload']> = ResolversObject<{
+  category?: Resolver<Maybe<ResolversTypes['Category']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -4796,11 +4844,6 @@ export type WidgetQueryResolvers<ContextType = ServiceContext, ParentType extend
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type _CatalogFiltersPlaceholderResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['_CatalogFiltersPlaceholder'] = ResolversParentTypes['_CatalogFiltersPlaceholder']> = ResolversObject<{
-  _empty?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
 export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   BigInt?: GraphQLScalarType;
   BulkUpdateItem?: BulkUpdateItemResolvers<ContextType>;
@@ -4811,6 +4854,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   CatalogMutation?: CatalogMutationResolvers<ContextType>;
   CatalogQuery?: CatalogQueryResolvers<ContextType>;
   Category?: CategoryResolvers<ContextType>;
+  CategoryAddProductPayload?: CategoryAddProductPayloadResolvers<ContextType>;
   CategoryConnection?: CategoryConnectionResolvers<ContextType>;
   CategoryCreatePayload?: CategoryCreatePayloadResolvers<ContextType>;
   CategoryDeletePayload?: CategoryDeletePayloadResolvers<ContextType>;
@@ -4914,6 +4958,5 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   VariantUpdateOptionsPayload?: VariantUpdateOptionsPayloadResolvers<ContextType>;
   VariantUpdatePricingPayload?: VariantUpdatePricingPayloadResolvers<ContextType>;
   WidgetQuery?: WidgetQueryResolvers<ContextType>;
-  _CatalogFiltersPlaceholder?: _CatalogFiltersPlaceholderResolvers<ContextType>;
 }>;
 

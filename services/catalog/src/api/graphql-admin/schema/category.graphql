@@ -65,6 +65,7 @@ type Category implements Node @key(fields: "id") {
     last: Int
     before: String
     orderBy: [ProductOrderByInput!]
+    where: CategoryProductWhereInput
   ): CategoryProductConnection!
 
   """The total number of products in this category."""
