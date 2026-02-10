@@ -242,7 +242,7 @@ export class Executor<TContext = unknown> {
 
   /**
    * Universal resolver for any value type.
-   * Handles: BaseType, Array<BaseType>, plain objects, scalars.
+   * Handles: BaseType, Array<BaseType>, arrays of objects, plain objects, scalars.
    *
    * @param value - Any value to resolve
    * @param query - QueryArgs specifying which fields to resolve
@@ -254,13 +254,26 @@ export class Executor<TContext = unknown> {
       return this.load(value, query);
     }
 
-    // 2. Array of BaseType → loadMany(instances, query)
-    if (
-      Array.isArray(value) &&
-      value.length > 0 &&
-      value[0] instanceof BaseType
-    ) {
-      return this.loadMany(value, query);
+    // 2. Array handling
+    if (Array.isArray(value)) {
+      if (value.length === 0) {
+        return value;
+      }
+
+      // 2a. Array of BaseType → loadMany(instances, query)
+      if (value[0] instanceof BaseType) {
+        return this.loadMany(value, query);
+      }
+
+      // 2b. Array of objects → resolve each element
+      if (typeof value[0] === "object" && value[0] !== null) {
+        return Promise.all(
+          value.map((item) => this.resolve(item, query))
+        );
+      }
+
+      // 2c. Array of scalars → return as is
+      return value;
     }
 
     // 3. Plain object → resolve each field by query
