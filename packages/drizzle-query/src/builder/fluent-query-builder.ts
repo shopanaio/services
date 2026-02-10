@@ -1,4 +1,9 @@
-import type { SQL, Table, View } from "drizzle-orm";
+import type { Column, SQL, Table, View } from "drizzle-orm";
+
+/**
+ * SQL.Aliased type for computed view fields
+ */
+type SQLAliased = SQL.Aliased;
 import { createSchema, ObjectSchema, type FieldConfig, type Join } from "../schema.js";
 import type {
   DrizzleExecutor,
@@ -511,38 +516,38 @@ function createFieldsFromTable<T extends Table>(table: T): InferFieldsFromTable<
       join: undefined,
       leftJoin<TFields extends FluentFieldsDef>(
         target: FluentQueryBuilderLike<TFields>,
-        joinColumn: { name: string }
+        joinColumn: Column | SQLAliased
       ): JoinFieldDefinition<TFields> {
         return {
           column: column.name,
-          join: { type: "left", target: () => target, column: joinColumn.name },
+          join: { type: "left", target: () => target, column: getColumnName(joinColumn) },
         };
       },
       innerJoin<TFields extends FluentFieldsDef>(
         target: FluentQueryBuilderLike<TFields>,
-        joinColumn: { name: string }
+        joinColumn: Column | SQLAliased
       ): JoinFieldDefinition<TFields> {
         return {
           column: column.name,
-          join: { type: "inner", target: () => target, column: joinColumn.name },
+          join: { type: "inner", target: () => target, column: getColumnName(joinColumn) },
         };
       },
       rightJoin<TFields extends FluentFieldsDef>(
         target: FluentQueryBuilderLike<TFields>,
-        joinColumn: { name: string }
+        joinColumn: Column | SQLAliased
       ): JoinFieldDefinition<TFields> {
         return {
           column: column.name,
-          join: { type: "right", target: () => target, column: joinColumn.name },
+          join: { type: "right", target: () => target, column: getColumnName(joinColumn) },
         };
       },
       fullJoin<TFields extends FluentFieldsDef>(
         target: FluentQueryBuilderLike<TFields>,
-        joinColumn: { name: string }
+        joinColumn: Column | SQLAliased
       ): JoinFieldDefinition<TFields> {
         return {
           column: column.name,
-          join: { type: "full", target: () => target, column: joinColumn.name },
+          join: { type: "full", target: () => target, column: getColumnName(joinColumn) },
         };
       },
     };
@@ -595,38 +600,38 @@ function createFieldsFromView<T extends View>(view: T): InferFieldsFromView<T> {
       join: undefined,
       leftJoin<TFields extends FluentFieldsDef>(
         target: FluentQueryBuilderLike<TFields>,
-        joinColumn: { name: string }
+        joinColumn: Column | SQLAliased
       ): JoinFieldDefinition<TFields> {
         return {
           column: columnName,
-          join: { type: "left", target: () => target, column: joinColumn.name },
+          join: { type: "left", target: () => target, column: getColumnName(joinColumn) },
         };
       },
       innerJoin<TFields extends FluentFieldsDef>(
         target: FluentQueryBuilderLike<TFields>,
-        joinColumn: { name: string }
+        joinColumn: Column | SQLAliased
       ): JoinFieldDefinition<TFields> {
         return {
           column: columnName,
-          join: { type: "inner", target: () => target, column: joinColumn.name },
+          join: { type: "inner", target: () => target, column: getColumnName(joinColumn) },
         };
       },
       rightJoin<TFields extends FluentFieldsDef>(
         target: FluentQueryBuilderLike<TFields>,
-        joinColumn: { name: string }
+        joinColumn: Column | SQLAliased
       ): JoinFieldDefinition<TFields> {
         return {
           column: columnName,
-          join: { type: "right", target: () => target, column: joinColumn.name },
+          join: { type: "right", target: () => target, column: getColumnName(joinColumn) },
         };
       },
       fullJoin<TFields extends FluentFieldsDef>(
         target: FluentQueryBuilderLike<TFields>,
-        joinColumn: { name: string }
+        joinColumn: Column | SQLAliased
       ): JoinFieldDefinition<TFields> {
         return {
           column: columnName,
-          join: { type: "full", target: () => target, column: joinColumn.name },
+          join: { type: "full", target: () => target, column: getColumnName(joinColumn) },
         };
       },
     };
@@ -645,6 +650,25 @@ function isView(tableOrView: Selectable): tableOrView is View {
     (DrizzleIsDrizzleView in asRecord && asRecord[DrizzleIsDrizzleView] === true) ||
     (DrizzleViewBaseConfig in asRecord && asRecord[DrizzleViewBaseConfig] !== undefined)
   );
+}
+
+/**
+ * Get the name of a table or view
+ */
+function getTableOrViewName(tableOrView: Selectable): string {
+  const asRecord = tableOrView as unknown as Record<symbol, unknown>;
+
+  // For views, get name from ViewBaseConfig
+  if (isView(tableOrView)) {
+    const config = asRecord[DrizzleViewBaseConfig] as ViewBaseConfig | undefined;
+    if (config?.name) {
+      return config.name;
+    }
+  }
+
+  // For tables, use DrizzleTableName
+  const tableName = asRecord[DrizzleTableName] as string | undefined;
+  return tableName ?? "unknown";
 }
 
 /**
@@ -707,25 +731,6 @@ export function createQuery<
   table: T,
   fields: Fields
 ): FluentQueryBuilder<T, Fields, ToFieldsDef<Fields>, T["$inferSelect"]>;
-
-/**
- * Get the name of a table or view
- */
-function getTableOrViewName(tableOrView: Selectable): string {
-  const asRecord = tableOrView as unknown as Record<symbol, unknown>;
-
-  // For views, get name from ViewBaseConfig
-  if (isView(tableOrView)) {
-    const config = asRecord[DrizzleViewBaseConfig] as ViewBaseConfig | undefined;
-    if (config?.name) {
-      return config.name;
-    }
-  }
-
-  // For tables, use DrizzleTableName
-  const tableName = asRecord[DrizzleTableName] as string | undefined;
-  return tableName ?? "unknown";
-}
 
 export function createQuery<
   T extends Selectable,
