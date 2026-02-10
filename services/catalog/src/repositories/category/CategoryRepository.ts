@@ -25,7 +25,11 @@ import {
   type ProductCategory,
   type NewProductCategory,
 } from "../models/index.js";
-import { initialRank, nextRank, rebalanceRanks } from "../../scripts/shared/rank.js";
+import {
+  initialRank,
+  nextRank,
+  rebalanceRanks,
+} from "../../scripts/shared/rank.js";
 
 // ---- Relay Query for Category Products ----
 
@@ -52,17 +56,27 @@ const categoryProductsQuery = createQuery(product, {
   createdAt: field(product.createdAt),
   deletedAt: field(product.deletedAt),
   projectId: field(product.projectId),
-  category: field(product.id).innerJoin(productCategoryQuery, productCategory.productId),
-  translation: field(product.id).leftJoin(productTranslationQuery, productTranslation.productId),
-  priceRange: field(product.id).leftJoin(priceRangeQuery, { name: "product_id" } as never),
+  category: field(product.id).innerJoin(
+    productCategoryQuery,
+    productCategory.productId,
+  ),
+  translation: field(product.id).leftJoin(
+    productTranslationQuery,
+    productTranslation.productId,
+  ),
+  priceRange: field(product.id).leftJoin(priceRangeQuery, {
+    name: "product_id",
+  } as never),
 });
 
 export const categoryProductsRelayQuery = createRelayQuery(
   categoryProductsQuery.include(["id"]).maxLimit(100).defaultLimit(20),
-  { name: "categoryProduct", tieBreaker: "id" }
+  { name: "categoryProduct", tieBreaker: "id" },
 );
 
-export type CategoryProductsRelayInput = InferRelayInput<typeof categoryProductsRelayQuery>;
+export type CategoryProductsRelayInput = InferRelayInput<
+  typeof categoryProductsRelayQuery
+>;
 
 export interface CategoryRelayInput {
   first?: number;
@@ -87,7 +101,7 @@ export interface CategoryProductsConnectionResult {
 export class CategoryRepository {
   constructor(
     private readonly db: Database,
-    private readonly txManager: TransactionManager<Database>
+    private readonly txManager: TransactionManager<Database>,
   ) {}
 
   private get connection(): Database {
@@ -116,8 +130,8 @@ export class CategoryRepository {
         and(
           eq(category.projectId, this.storeId),
           eq(category.id, id),
-          isNull(category.deletedAt)
-        )
+          isNull(category.deletedAt),
+        ),
       )
       .limit(1);
 
@@ -132,8 +146,8 @@ export class CategoryRepository {
         and(
           eq(category.projectId, this.storeId),
           eq(category.id, id),
-          isNull(category.deletedAt)
-        )
+          isNull(category.deletedAt),
+        ),
       )
       .limit(1);
 
@@ -148,8 +162,8 @@ export class CategoryRepository {
         and(
           eq(category.projectId, this.storeId),
           eq(category.handle, handle),
-          isNull(category.deletedAt)
-        )
+          isNull(category.deletedAt),
+        ),
       )
       .limit(1);
 
@@ -186,7 +200,7 @@ export class CategoryRepository {
       publishedAt:
         data.publishedAt instanceof Date
           ? data.publishedAt.toISOString()
-          : data.publishedAt ?? null,
+          : (data.publishedAt ?? null),
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
@@ -207,7 +221,7 @@ export class CategoryRepository {
       publishedAt?: Date | string | null;
       defaultSort?: string;
       defaultSortDirection?: string;
-    }
+    },
   ): Promise<Category | null> {
     const updateData: Partial<NewCategory> = {
       updatedAt: new Date().toISOString(),
@@ -219,7 +233,8 @@ export class CategoryRepository {
         data.publishedAt instanceof Date
           ? data.publishedAt.toISOString()
           : data.publishedAt;
-    if (data.defaultSort !== undefined) updateData.defaultSort = data.defaultSort;
+    if (data.defaultSort !== undefined)
+      updateData.defaultSort = data.defaultSort;
     if (data.defaultSortDirection !== undefined)
       updateData.defaultSortDirection = data.defaultSortDirection;
 
@@ -267,7 +282,7 @@ export class CategoryRepository {
                 depth = depth + ${newDepth - cat.depth},
                 updated_at = now()
             WHERE project_id = ${this.storeId}
-              AND path LIKE ${oldPath + ".%"}`
+              AND path LIKE ${oldPath + ".%"}`,
       );
     }
 
@@ -283,8 +298,8 @@ export class CategoryRepository {
         and(
           eq(category.projectId, this.storeId),
           eq(category.id, id),
-          isNull(category.deletedAt)
-        )
+          isNull(category.deletedAt),
+        ),
       )
       .returning({ id: category.id });
 
@@ -309,8 +324,8 @@ export class CategoryRepository {
         and(
           eq(category.projectId, this.storeId),
           eq(category.id, id),
-          isNull(category.deletedAt)
-        )
+          isNull(category.deletedAt),
+        ),
       )
       .returning();
 
@@ -325,8 +340,8 @@ export class CategoryRepository {
         and(
           eq(category.projectId, this.storeId),
           eq(category.id, id),
-          isNull(category.deletedAt)
-        )
+          isNull(category.deletedAt),
+        ),
       )
       .returning();
 
@@ -340,7 +355,7 @@ export class CategoryRepository {
       .select({ count: count() })
       .from(category)
       .where(
-        and(eq(category.projectId, this.storeId), isNull(category.deletedAt))
+        and(eq(category.projectId, this.storeId), isNull(category.deletedAt)),
       );
     return result[0]?.count ?? 0;
   }
@@ -354,7 +369,7 @@ export class CategoryRepository {
       .select()
       .from(category)
       .where(
-        and(eq(category.projectId, this.storeId), isNull(category.deletedAt))
+        and(eq(category.projectId, this.storeId), isNull(category.deletedAt)),
       )
       .orderBy(desc(category.createdAt), desc(category.id));
 
@@ -368,7 +383,9 @@ export class CategoryRepository {
     return query;
   }
 
-  async getConnection(args: CategoryRelayInput): Promise<CategoryConnectionResult> {
+  async getConnection(
+    args: CategoryRelayInput,
+  ): Promise<CategoryConnectionResult> {
     const first = args.first ?? 20;
     const limit = first + 1; // Fetch one extra to check for next page
 
@@ -383,14 +400,16 @@ export class CategoryRepository {
             ? args.parentId === null
               ? isNull(category.parentId)
               : eq(category.parentId, args.parentId)
-            : undefined
-        )
+            : undefined,
+        ),
       )
       .orderBy(desc(category.createdAt), desc(category.id))
       .limit(limit);
 
     const hasNextPage = categories.length > first;
-    const resultCategories = hasNextPage ? categories.slice(0, first) : categories;
+    const resultCategories = hasNextPage
+      ? categories.slice(0, first)
+      : categories;
 
     const edges = resultCategories.map((cat) => ({
       cursor: Buffer.from(cat.id).toString("base64"),
@@ -419,8 +438,8 @@ export class CategoryRepository {
         and(
           eq(category.projectId, this.storeId),
           eq(category.id, id),
-          isNull(category.deletedAt)
-        )
+          isNull(category.deletedAt),
+        ),
       )
       .limit(1);
 
@@ -438,13 +457,13 @@ export class CategoryRepository {
         and(
           eq(category.projectId, this.storeId),
           inArray(category.id, [...categoryIds]),
-          isNull(category.deletedAt)
-        )
+          isNull(category.deletedAt),
+        ),
       );
   }
 
   async getChildrenByParentIds(
-    parentIds: readonly string[]
+    parentIds: readonly string[],
   ): Promise<Category[]> {
     if (parentIds.length === 0) return [];
     return this.connection
@@ -454,14 +473,14 @@ export class CategoryRepository {
         and(
           eq(category.projectId, this.storeId),
           inArray(category.parentId, [...parentIds]),
-          isNull(category.deletedAt)
-        )
+          isNull(category.deletedAt),
+        ),
       )
       .orderBy(asc(category.handle));
   }
 
   async getAncestorIdsByIds(
-    categoryIds: readonly string[]
+    categoryIds: readonly string[],
   ): Promise<Map<string, string[]>> {
     const categories = await this.getByIds(categoryIds);
     const result = new Map<string, string[]>();
@@ -477,7 +496,7 @@ export class CategoryRepository {
   }
 
   async getTranslationsByCategoryIds(
-    categoryIds: readonly string[]
+    categoryIds: readonly string[],
   ): Promise<CategoryTranslation[]> {
     if (categoryIds.length === 0) return [];
     return this.connection
@@ -487,13 +506,13 @@ export class CategoryRepository {
         and(
           eq(categoryTranslation.projectId, this.storeId),
           inArray(categoryTranslation.categoryId, [...categoryIds]),
-          eq(categoryTranslation.locale, this.locale)
-        )
+          eq(categoryTranslation.locale, this.locale),
+        ),
       );
   }
 
   async getMediaByCategoryIds(
-    categoryIds: readonly string[]
+    categoryIds: readonly string[],
   ): Promise<CategoryMedia[]> {
     if (categoryIds.length === 0) return [];
     return this.connection
@@ -502,8 +521,8 @@ export class CategoryRepository {
       .where(
         and(
           eq(categoryMedia.projectId, this.storeId),
-          inArray(categoryMedia.categoryId, [...categoryIds])
-        )
+          inArray(categoryMedia.categoryId, [...categoryIds]),
+        ),
       )
       .orderBy(asc(categoryMedia.sortIndex));
   }
@@ -511,7 +530,7 @@ export class CategoryRepository {
   // ============ Product-Category Relations ============
 
   async getProductCategoriesByProductIds(
-    productIds: readonly string[]
+    productIds: readonly string[],
   ): Promise<ProductCategory[]> {
     if (productIds.length === 0) return [];
     return this.connection
@@ -520,13 +539,13 @@ export class CategoryRepository {
       .where(
         and(
           eq(productCategory.projectId, this.storeId),
-          inArray(productCategory.productId, [...productIds])
-        )
+          inArray(productCategory.productId, [...productIds]),
+        ),
       );
   }
 
   async countProductsByCategoryIds(
-    categoryIds: readonly string[]
+    categoryIds: readonly string[],
   ): Promise<Map<string, number>> {
     if (categoryIds.length === 0) return new Map();
     const results = await this.connection
@@ -538,8 +557,8 @@ export class CategoryRepository {
       .where(
         and(
           eq(productCategory.projectId, this.storeId),
-          inArray(productCategory.categoryId, [...categoryIds])
-        )
+          inArray(productCategory.categoryId, [...categoryIds]),
+        ),
       )
       .groupBy(productCategory.categoryId);
 
@@ -549,7 +568,7 @@ export class CategoryRepository {
   async addProductToCategory(
     productId: string,
     categoryId: string,
-    isPrimary: boolean = false
+    isPrimary: boolean = false,
   ): Promise<ProductCategory> {
     const rank = await this.getNextCategoryProductRank(categoryId);
 
@@ -575,7 +594,7 @@ export class CategoryRepository {
 
   async getProductCategory(
     categoryId: string,
-    productId: string
+    productId: string,
   ): Promise<ProductCategory | null> {
     const rows = await this.connection
       .select()
@@ -584,23 +603,25 @@ export class CategoryRepository {
         and(
           eq(productCategory.projectId, this.storeId),
           eq(productCategory.categoryId, categoryId),
-          eq(productCategory.productId, productId)
-        )
+          eq(productCategory.productId, productId),
+        ),
       )
       .limit(1);
 
     return rows[0] ?? null;
   }
 
-  async getOrderedCategoryProducts(categoryId: string): Promise<ProductCategory[]> {
+  async getOrderedCategoryProducts(
+    categoryId: string,
+  ): Promise<ProductCategory[]> {
     return this.connection
       .select()
       .from(productCategory)
       .where(
         and(
           eq(productCategory.projectId, this.storeId),
-          eq(productCategory.categoryId, categoryId)
-        )
+          eq(productCategory.categoryId, categoryId),
+        ),
       )
       .orderBy(asc(productCategory.lexoRank), asc(productCategory.productId));
   }
@@ -610,9 +631,16 @@ export class CategoryRepository {
     args: Omit<CategoryProductsRelayInput, "where" | "orderBy"> & {
       orderBy?: Array<{ field: string; direction?: string }>;
       where?: CategoryProductsRelayInput["where"];
-    }
+    },
   ): Promise<CategoryProductsConnectionResult> {
-    const { first, after, last, before, orderBy: inputOrderBy, where: userWhere } = args;
+    const {
+      first,
+      after,
+      last,
+      before,
+      orderBy: inputOrderBy,
+      where: userWhere,
+    } = args;
 
     // Build where filter for this category, merging with user's filter
     const baseConditions = [
@@ -630,7 +658,9 @@ export class CategoryRepository {
 
     if (inputOrderBy && inputOrderBy.length > 0) {
       orderBy = inputOrderBy.map((o) => {
-        const direction = (o.direction?.toLowerCase() ?? "asc") as "asc" | "desc";
+        const direction = (o.direction?.toLowerCase() ?? "asc") as
+          | "asc"
+          | "desc";
         // Map field names to actual database fields
         switch (o.field?.toUpperCase()) {
           case "NAME":
@@ -640,7 +670,10 @@ export class CategoryRepository {
           case "PRICE":
             // ASC → min price (cheapest first), DESC → max price (most expensive first)
             return {
-              field: direction === "asc" ? "priceRange.minAmountMinor" as const : "priceRange.maxAmountMinor" as const,
+              field:
+                direction === "asc"
+                  ? ("priceRange.minAmountMinor" as const)
+                  : ("priceRange.maxAmountMinor" as const),
               direction,
             };
           case "MANUAL":
@@ -678,6 +711,8 @@ export class CategoryRepository {
       select: selectFields as CategoryProductsRelayInput["select"],
     };
 
+    const sql = categoryProductsRelayQuery.getSql(executeInput);
+    console.log(sql);
     const [result, totalCount] = await Promise.all([
       categoryProductsRelayQuery.execute(this.connection, executeInput),
       this.countProductsInCategory(categoryId),
@@ -702,8 +737,8 @@ export class CategoryRepository {
         and(
           eq(productCategory.projectId, this.storeId),
           eq(productCategory.categoryId, categoryId),
-          isNull(product.deletedAt)
-        )
+          isNull(product.deletedAt),
+        ),
       );
 
     return countResult[0]?.count ?? 0;
@@ -712,7 +747,7 @@ export class CategoryRepository {
   async updateProductCategoryRank(
     categoryId: string,
     productId: string,
-    lexoRank: string
+    lexoRank: string,
   ): Promise<ProductCategory | null> {
     const rows = await this.connection
       .update(productCategory)
@@ -721,8 +756,8 @@ export class CategoryRepository {
         and(
           eq(productCategory.projectId, this.storeId),
           eq(productCategory.categoryId, categoryId),
-          eq(productCategory.productId, productId)
-        )
+          eq(productCategory.productId, productId),
+        ),
       )
       .returning();
 
@@ -734,14 +769,18 @@ export class CategoryRepository {
     const ranks = rebalanceRanks(items.length);
 
     for (let i = 0; i < items.length; i++) {
-      await this.updateProductCategoryRank(categoryId, items[i].productId, ranks[i]);
+      await this.updateProductCategoryRank(
+        categoryId,
+        items[i].productId,
+        ranks[i],
+      );
     }
   }
 
   async updateSortPreferences(
     categoryId: string,
     defaultSort: string,
-    defaultSortDirection: string
+    defaultSortDirection: string,
   ): Promise<Category | null> {
     return this.update(categoryId, { defaultSort, defaultSortDirection });
   }
@@ -791,8 +830,8 @@ export class CategoryRepository {
       .where(
         and(
           eq(categoryMedia.projectId, this.storeId),
-          eq(categoryMedia.categoryId, categoryId)
-        )
+          eq(categoryMedia.categoryId, categoryId),
+        ),
       );
 
     // Insert new media
@@ -808,15 +847,17 @@ export class CategoryRepository {
     }
   }
 
-  private async getNextCategoryProductRank(categoryId: string): Promise<string> {
+  private async getNextCategoryProductRank(
+    categoryId: string,
+  ): Promise<string> {
     const rows = await this.connection
       .select({ lexoRank: productCategory.lexoRank })
       .from(productCategory)
       .where(
         and(
           eq(productCategory.projectId, this.storeId),
-          eq(productCategory.categoryId, categoryId)
-        )
+          eq(productCategory.categoryId, categoryId),
+        ),
       )
       .orderBy(desc(productCategory.lexoRank))
       .limit(1);
