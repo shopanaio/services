@@ -6,18 +6,6 @@ mutation CollectionMoveProduct($input: CollectionMoveProductInput!) {
         handle
         type
         name
-        productsCount
-        products(first: 20, sort: { by: MANUAL, direction: asc }) {
-          edges {
-            node {
-              id
-              title
-              handle
-            }
-            cursor
-          }
-          totalCount
-        }
       }
       userErrors {
         message

@@ -13,7 +13,6 @@ mutation CollectionUpdateRules($input: CollectionUpdateRulesInput!) {
           value
           sortIndex
         }
-        productsCount
       }
       userErrors {
         message

@@ -10,7 +10,6 @@ query CollectionFindMany($first: Int, $after: String, $last: Int, $before: Strin
           defaultSort
           isActive
           isPublished
-          productsCount
           createdAt
           updatedAt
         }

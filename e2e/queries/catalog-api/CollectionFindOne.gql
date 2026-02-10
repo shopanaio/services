@@ -26,7 +26,6 @@ query CollectionFindOne($id: ID!) {
         value
         sortIndex
       }
-      productsCount
     }
   }
 }

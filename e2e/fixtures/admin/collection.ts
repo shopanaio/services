@@ -10,7 +10,6 @@ export interface CollectionData {
   defaultSort: ProductSortBy;
   isActive: boolean;
   isPublished: boolean;
-  productsCount: number;
 }
 
 export class CollectionFixture {

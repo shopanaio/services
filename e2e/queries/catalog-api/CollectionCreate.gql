@@ -27,7 +27,6 @@ mutation CollectionCreate($input: CollectionCreateInput!) {
           value
           sortIndex
         }
-        productsCount
       }
       userErrors {
         message
