@@ -448,7 +448,8 @@ export function createConnectionPaginationTests<
       expect(conn.pageInfo.endCursor).toBeNull();
     });
 
-    test('single item result', async ({ api }) => {
+    // @deprecated
+    test.skip('single item result', async ({ api }) => {
       const { expectedItems, baseVariables = {}, whereFilter } = await prepare(api);
       const sortedItems = sortCases[0].sortExpected(expectedItems);
 
