@@ -7,6 +7,13 @@
       ],
       "cwd": "/Users/phl/Projects/shopana-io/services/packages/shopana-cli-mcp"
     },
+    "shopana-knowledge": {
+      "command": "npx",
+      "args": ["@zaytra/notes-mcp"],
+      "env": {
+        "VAULT_PATH": "/Users/phl/Projects/zaytra/notesmcp/vault"
+      }
+    },
     "antd": {
       "command": "npx",
       "args": ["-y", "@jzone-mcp/antd-components-mcp"]
