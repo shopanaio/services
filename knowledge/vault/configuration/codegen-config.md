@@ -121,5 +121,6 @@ Converts `@constraint` directives to Zod validators.
 ## See Also
 
 - [[configuration/bootstrap-config]] — Service configuration
+- [[configuration/drizzle-config]] — Database type serialization
 - [[architecture/graphql-federation]] — Federation architecture
 - [[architecture/overview]] — Technology stack overview
