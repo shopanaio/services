@@ -1,88 +1,61 @@
 ---
 tags:
   - architecture
-  - service
-  - structure
-  - folder
+  - index
 related:
   - patterns/script
   - patterns/resolver
   - patterns/repository
-  - howto/add-feature
 ---
 
-# Service Structure
+# Shopana Architecture
 
-Each Shopana microservice follows a consistent folder structure. This document describes the standard organization.
+Architecture documentation for the Shopana e-commerce platform.
 
-## Key Components
+## Quick Links
 
-### Module (`{service}.module.ts`)
+| Document | Description |
+|----------|-------------|
+| [[architecture/overview]] | Platform introduction, system users, technology stack |
+| [[architecture/decisions]] | Architectural Decision Records (ADRs) |
+| [[architecture/request-flow]] | Request handling, inter-service communication |
+| [[architecture/service-boundaries]] | Service ownership, bounded contexts |
+| [[architecture/multi-tenancy]] | Data isolation, store resolution |
+| [[architecture/scalability]] | Scaling strategies, fault tolerance |
 
-NestJS module that registers all providers:
+## Architecture Overview
 
-```typescript
-@Module({
-  imports: [BrokerModule.forFeature({ serviceName: 'inventory' })],
-  providers: [
-    InventoryBrokerActions,
-    InventoryNestService,
-    InventoryEventHandlers,
-  ],
-})
-export class InventoryModule {}
-```
+Shopana is a **headless e-commerce platform** built with:
+- **Microservices** — domain-driven bounded contexts
+- **GraphQL Federation** — unified API from distributed services
+- **DBOS** — durable workflows for complex operations
+- **Event Sourcing** — audit trail for orders and checkout
 
-### Kernel (`kernel/Kernel.ts`)
+## Document Structure
 
-Singleton that holds all service dependencies:
+### Start Here
 
-```typescript
-export class Kernel extends BaseKernel<InventoryKernelServices> {
-  public repository!: Repository;
-  public cache!: Cache;
-  public db!: Database;
-  public workflow!: WorkflowRegistry;
+1. **[[architecture/overview]]** — What is Shopana, who uses it, high-level diagram
+2. **[[architecture/decisions]]** — Why microservices? Why federation? Key ADRs
 
-  async runScript<TParams, TResult>(
-    ScriptClass: new (services: InventoryKernelServices) => BaseScript<TParams, TResult>,
-    params: TParams
-  ): Promise<TResult>;
-}
-```
+### Deep Dives
 
-### Context (`context/types.ts`)
+3. **[[architecture/request-flow]]** — How requests flow through the system
+4. **[[architecture/service-boundaries]]** — What each service owns and provides
+5. **[[architecture/multi-tenancy]]** — How data isolation works
+6. **[[architecture/scalability]]** — How to scale, handle failures
 
-Request-scoped context passed through resolvers:
+### Patterns
 
-```typescript
-class ServiceContext {
-  readonly requestId: string;
-  readonly kernel: Kernel;
-  readonly loaders: Loader;
-  readonly locale?: string;
-  readonly currency?: string;
+- [[patterns/script]] — Business logic encapsulation
+- [[patterns/resolver]] — GraphQL resolver structure
+- [[patterns/repository]] — Data access layer
+- [[patterns/dataloader]] — N+1 query prevention
+- [[patterns/federation]] — GraphQL Federation setup
 
-  get store(): ContextStore;
-  get user(): ContextUser;
-  get hasStore(): boolean;
-  get hasUser(): boolean;
-}
-```
+### Packages
 
-## Generated Code
-
-| File | Source | Command |
-|------|--------|---------|
-| `resolvers/admin/generated/types.ts` | GraphQL schema | `shopana codegen` |
-| `resolvers/admin/generated/schemas.ts` | GraphQL schema | `shopana codegen` |
-| `api/graphql-admin/schema/__generated__/filters.graphql` | Drizzle schema | Custom script |
-| `drizzle/*.sql` | Drizzle schema | `shopana db:generate` |
-
-## See Also
-
-- [[patterns/script]] — BaseScript pattern
-- [[patterns/resolver]] — Resolver patterns
-- [[patterns/repository]] — Repository pattern
-- [[patterns/dataloader]] — DataLoader pattern
-- [[howto/add-feature]] — Step-by-step guide
+- [[packages/shared-kernel/index]] — Core shared library
+- [[packages/dbos/index]] — Durable workflow execution
+- [[packages/drizzle-query/index]] — Query builder utilities
+- [[packages/type-resolver/index]] — Type resolution system
