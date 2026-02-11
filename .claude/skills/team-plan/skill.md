@@ -6,7 +6,6 @@ skills:
   - solution-architect
   - plan-write
   - plan-review
-  - save-session
 ---
 
 # Planning Team Orchestrator
@@ -27,9 +26,9 @@ Examples:
 
 | Agent | Skill | Model | Responsibility |
 |-------|-------|-------|----------------|
-| Architect | `/solution-architect` | sonnet | Make design decisions, choose patterns |
-| Plan Writer | `/plan-write` | sonnet | Write detailed implementation plan |
-| Plan Reviewer | `/plan-review` | haiku | Review plan for completeness and issues |
+| Architect | `/solution-architect` | opus | Make design decisions, choose patterns |
+| Plan Writer | `/plan-write` | opus | Write detailed implementation plan |
+| Plan Reviewer | `/plan-review` | opus | Review plan for completeness and issues |
 
 ## Architecture Flow
 
@@ -113,7 +112,7 @@ ls .ai-team-sessions/ 2>/dev/null | grep "$(date +%Y-%m-%d)"
 ```
 Task tool:
   subagent_type: "general-purpose"
-  model: "sonnet"
+  model: "opus"
   prompt: |
     /solution-architect
 
@@ -232,7 +231,7 @@ Task tool:
 ```
 Task tool:
   subagent_type: "general-purpose"
-  model: "haiku"
+  model: "opus"
   prompt: |
     /plan-review
 
@@ -267,10 +266,6 @@ Task tool:
 3. Repeat until APPROVED or max iterations reached
 
 **If max iterations reached:** Proceed to completion with `INCOMPLETE` status.
-
-### Phase 5: Save Session
-
-**Always execute** at the end via `/save-session {feature-slug}`
 
 ## Output Format
 
@@ -401,7 +396,6 @@ Files created:
 - `DECISIONS.md` — Architect's design decisions
 - `PLAN.md` — Final implementation plan (approved or latest)
 - `REVIEW.md` — Review feedback and iterations
-- `SESSION.md` — Full session summary (via /save-session)
 
 ## Best Practices
 
@@ -442,4 +436,3 @@ PLAN: {approved_plan}
 | Plan doesn't match references | Resume with "re-read {reference} and align your plan" |
 | Reviewer too strict | Resume with "focus on blocking issues only" |
 | Endless revision loop | After 3 attempts, proceed with manual review |
-| Session not saved | Run `/save-session {slug}` manually |
