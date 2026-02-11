@@ -554,67 +554,124 @@ export type ApiBundlePricingTemplateUpdateInput = {
 
 export type ApiCatalogMutation = {
   __typename?: 'CatalogMutation';
+  /** Create a new bundle group for a product */
   bundleGroupCreate: ApiBundleGroupPayload;
+  /** Delete a bundle group */
   bundleGroupDelete: ApiDeletePayload;
+  /** Update an existing bundle group */
   bundleGroupUpdate: ApiBundleGroupPayload;
+  /** Create a new bundle item within a group */
   bundleItemCreate: ApiBundleItemPayload;
+  /** Delete a bundle item */
   bundleItemDelete: ApiDeletePayload;
+  /** Update an existing bundle item */
   bundleItemUpdate: ApiBundleItemPayload;
+  /** Create a new bundle pricing template */
   bundlePricingTemplateCreate: ApiBundlePricingTemplatePayload;
+  /** Delete a bundle pricing template */
   bundlePricingTemplateDelete: ApiDeletePayload;
+  /** Update an existing bundle pricing template */
   bundlePricingTemplateUpdate: ApiBundlePricingTemplatePayload;
+  /** Add a product to a category */
   categoryAddProduct: ApiCategoryAddProductPayload;
+  /** Create a new category */
   categoryCreate: ApiCategoryCreatePayload;
+  /** Delete a category */
   categoryDelete: ApiCategoryDeletePayload;
+  /** Move a category to a new parent or position */
   categoryMove: ApiCategoryMovePayload;
+  /** Move a product within a category */
   categoryMoveProduct: ApiCategoryMoveProductPayload;
+  /** Rebalance category tree positions */
   categoryRebalance: ApiCategoryRebalancePayload;
+  /** Update an existing category */
   categoryUpdate: ApiCategoryUpdatePayload;
+  /** Update category sort order */
   categoryUpdateSort: ApiCategoryUpdateSortPayload;
+  /** Add products to a collection */
   collectionAddProducts: ApiCollectionAddProductsPayload;
+  /** Create a new collection */
   collectionCreate: ApiCollectionCreatePayload;
+  /** Delete a collection */
   collectionDelete: ApiCollectionDeletePayload;
+  /** Move a product within a collection */
   collectionMoveProduct: ApiCollectionMoveProductPayload;
+  /** Remove products from a collection */
   collectionRemoveProducts: ApiCollectionRemoveProductsPayload;
+  /** Update an existing collection */
   collectionUpdate: ApiCollectionUpdatePayload;
+  /** Update collection rules for automatic product inclusion */
   collectionUpdateRules: ApiCollectionUpdateRulesPayload;
+  /** Create a new condition within a condition group */
   conditionCreate: ApiConditionPayload;
+  /** Delete a condition */
   conditionDelete: ApiDeletePayload;
+  /** Create a new condition group for a dependency rule */
   conditionGroupCreate: ApiConditionGroupPayload;
+  /** Delete a condition group */
   conditionGroupDelete: ApiDeletePayload;
+  /** Update an existing condition group */
   conditionGroupUpdate: ApiConditionGroupPayload;
+  /** Update an existing condition */
   conditionUpdate: ApiConditionPayload;
+  /** Create a new action for a dependency rule */
   dependencyActionCreate: ApiDependencyActionPayload;
+  /** Delete a dependency action */
   dependencyActionDelete: ApiDeletePayload;
+  /** Update an existing dependency action */
   dependencyActionUpdate: ApiDependencyActionPayload;
+  /** Create a new dependency rule for a product */
   dependencyRuleCreate: ApiDependencyRulePayload;
+  /** Delete a dependency rule */
   dependencyRuleDelete: ApiDeletePayload;
+  /** Update an existing dependency rule */
   dependencyRuleUpdate: ApiDependencyRulePayload;
+  /** Create a new facet */
   facetCreate: ApiFacetCreatePayload;
+  /** Delete a facet */
   facetDelete: ApiFacetDeletePayload;
+  /** Create a new facet group */
   facetGroupCreate: ApiFacetGroupCreatePayload;
+  /** Delete a facet group */
   facetGroupDelete: ApiFacetGroupDeletePayload;
+  /** Update an existing facet group */
   facetGroupUpdate: ApiFacetGroupUpdatePayload;
+  /** Create a new facet swatch */
   facetSwatchCreate: ApiFacetSwatchCreatePayload;
+  /** Delete a facet swatch */
   facetSwatchDelete: ApiFacetSwatchDeletePayload;
+  /** Update an existing facet swatch */
   facetSwatchUpdate: ApiFacetSwatchUpdatePayload;
+  /** Update an existing facet */
   facetUpdate: ApiFacetUpdatePayload;
+  /** Create a new facet value */
   facetValueCreate: ApiFacetValueCreatePayload;
+  /** Delete a facet value */
   facetValueDelete: ApiFacetValueDeletePayload;
+  /** Update an existing facet value */
   facetValueUpdate: ApiFacetValueUpdatePayload;
   /**
    * Start async bulk update.
    * Requires X-Idempotency-Key header.
    */
   productBulkUpdate: ApiProductBulkUpdatePayload;
+  /** Create a new product */
   productCreate: ApiProductCreatePayload;
+  /** Delete an existing product */
   productDelete: ApiProductDeletePayload;
+  /** Create a new product feature */
   productFeatureCreate: ApiProductFeatureCreatePayload;
+  /** Delete a product feature */
   productFeatureDelete: ApiProductFeatureDeletePayload;
+  /** Update an existing product feature */
   productFeatureUpdate: ApiProductFeatureUpdatePayload;
+  /** Sync all product features (complete replace operation) */
   productFeaturesSync: ApiProductFeaturesSyncPayload;
+  /** Create a new product option (e.g., Size, Color) */
   productOptionCreate: ApiProductOptionCreatePayload;
+  /** Delete a product option */
   productOptionDelete: ApiProductOptionDeletePayload;
+  /** Update an existing product option */
   productOptionUpdate: ApiProductOptionUpdatePayload;
   /**
    * Sync all product options. This is a complete replace operation.
@@ -627,14 +684,23 @@ export type ApiCatalogMutation = {
    * Supports product and variant updates in a single request.
    */
   productUpdate: ApiProductUpdatePayload;
+  /** Update product status (active, draft, archived) */
   productUpdateStatus: ApiProductUpdateStatusPayload;
+  /** Create a new tag */
   tagCreate: ApiTagCreatePayload;
+  /** Delete a tag */
   tagDelete: ApiTagDeletePayload;
+  /** Update an existing tag */
   tagUpdate: ApiTagUpdatePayload;
+  /** Create a new variant for a product */
   variantCreate: ApiVariantCreatePayload;
+  /** Delete a variant */
   variantDelete: ApiVariantDeletePayload;
+  /** Update media attachments for a variant */
   variantUpdateMedia: ApiVariantUpdateMediaPayload;
+  /** Update variant option values */
   variantUpdateOptions: ApiVariantUpdateOptionsPayload;
+  /** Update variant pricing information */
   variantUpdatePricing: ApiVariantUpdatePricingPayload;
 };
 
@@ -997,10 +1063,56 @@ export type ApiCatalogQuery = {
   bundlePricingTemplate?: Maybe<ApiBundlePricingTemplate>;
   /** Get all pricing templates for a product */
   bundlePricingTemplates: Array<ApiBundlePricingTemplate>;
+  /** Get categories with Relay-style pagination */
+  categories: ApiCategoryConnection;
+  /** Get a category by ID */
+  category?: Maybe<ApiCategory>;
+  /** Get a collection by ID */
+  collection?: Maybe<ApiCollection>;
+  /** Get a collection by its handle */
+  collectionByHandle?: Maybe<ApiCollection>;
+  /** Preview count of products matching collection rules */
+  collectionRulesPreviewCount: Scalars['Int']['output'];
+  /** Get collections with Relay-style pagination */
+  collections: ApiCollectionConnection;
   /** Get a dependency rule by ID */
   dependencyRule?: Maybe<ApiDependencyRule>;
   /** Get all dependency rules for a product */
   dependencyRules: Array<ApiDependencyRule>;
+  /** Get a facet by ID */
+  facet?: Maybe<ApiFacet>;
+  /** Get a facet group by ID */
+  facetGroup?: Maybe<ApiFacetGroup>;
+  /** Get all facet groups */
+  facetGroups: Array<ApiFacetGroup>;
+  /** Get a facet swatch by ID */
+  facetSwatch?: Maybe<ApiFacetSwatch>;
+  /** Get all facet swatches */
+  facetSwatches: Array<ApiFacetSwatch>;
+  /** Get a facet value by ID */
+  facetValue?: Maybe<ApiFacetValue>;
+  /** Get all facet values for a specific facet */
+  facetValues: Array<ApiFacetValue>;
+  /** Get all facets */
+  facets: Array<ApiFacet>;
+  /** Get a node by its global ID */
+  node?: Maybe<ApiNode>;
+  /** Get multiple nodes by their global IDs */
+  nodes: Array<Maybe<ApiNode>>;
+  /** Get a product by ID */
+  product?: Maybe<ApiProduct>;
+  /** Get bulk update job by ID. */
+  productBulkUpdateJob?: Maybe<ApiProductBulkUpdateJob>;
+  /** Get products with Relay-style pagination */
+  products: ApiProductConnection;
+  /** Get a tag by ID */
+  tag?: Maybe<ApiTag>;
+  /** Get tags with Relay-style pagination */
+  tags: ApiTagConnection;
+  /** Get a variant by ID */
+  variant?: Maybe<ApiVariant>;
+  /** Get variants with Relay-style pagination */
+  variants: ApiVariantConnection;
 };
 
 
@@ -1029,6 +1141,42 @@ export type ApiCatalogQueryBundlePricingTemplatesArgs = {
 };
 
 
+export type ApiCatalogQueryCategoriesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiCatalogQueryCategoryArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryCollectionArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryCollectionByHandleArgs = {
+  handle: Scalars['String']['input'];
+};
+
+
+export type ApiCatalogQueryCollectionRulesPreviewCountArgs = {
+  rules: Array<ApiCollectionRuleInput>;
+};
+
+
+export type ApiCatalogQueryCollectionsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
 export type ApiCatalogQueryDependencyRuleArgs = {
   id: Scalars['ID']['input'];
 };
@@ -1036,6 +1184,85 @@ export type ApiCatalogQueryDependencyRuleArgs = {
 
 export type ApiCatalogQueryDependencyRulesArgs = {
   productId: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryFacetArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryFacetGroupArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryFacetSwatchArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryFacetValueArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryFacetValuesArgs = {
+  facetId: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryNodeArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryNodesArgs = {
+  ids: Array<Scalars['ID']['input']>;
+};
+
+
+export type ApiCatalogQueryProductArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryProductBulkUpdateJobArgs = {
+  jobId: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryProductsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiCatalogQueryTagArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryTagsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiCatalogQueryVariantArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryVariantsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
 };
 
 /** A category represents a hierarchical grouping of products. */
@@ -4113,6 +4340,7 @@ export type ApiMutation = {
   appsMutation: ApiAppsMutation;
   /** Authentication mutations. */
   authMutation: ApiAuthMutation;
+  /** Catalog mutation namespace for product, variant, category, and collection operations */
   catalogMutation: ApiCatalogMutation;
   inventoryMutation: ApiInventoryMutation;
   mediaMutation: ApiMediaMutation;
@@ -5368,6 +5596,7 @@ export type ApiPurchasableSnapshot = ApiPurchasable & {
 export type ApiQuery = {
   __typename?: 'Query';
   appsQuery: ApiAppsQuery;
+  /** Catalog query namespace for product, variant, category, and collection operations */
   catalogQuery: ApiCatalogQuery;
   inventoryQuery: ApiInventoryQuery;
   mediaQuery: ApiMediaQuery;
@@ -5378,6 +5607,7 @@ export type ApiQuery = {
   storeQuery: ApiStoreQuery;
   /** User management queries. */
   userQuery: ApiUserQuery;
+  /** Widget query namespace for dashboard widgets */
   widgetQuery: ApiWidgetQuery;
 };
 
