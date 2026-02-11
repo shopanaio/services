@@ -215,32 +215,9 @@
       "problemMatcher": []
     },
     {
-      "label": "Claude Commit",
+      "label": "Claude Commit (All)",
       "type": "shell",
-      "command": "claude --dangerously-skip-permissions --model haiku '/commit'",
-      "presentation": {
-        "reveal": "always",
-        "panel": "new",
-        "showReuseMessage": false,
-        "focus": true
-      },
-      "runOptions": {
-        "instanceLimit": 5
-      },
-      "options": {
-        "cwd": "${workspaceFolder}",
-        "shell": {
-          "executable": "/bin/zsh",
-          "args": ["-c"]
-        }
-      },
-      "isBackground": true,
-      "problemMatcher": []
-    },
-    {
-      "label": "Claude Commit Unstaged",
-      "type": "shell",
-      "command": "claude --dangerously-skip-permissions --model haiku '/commit-unstaged'",
+      "command": "claude --dangerously-skip-permissions --model haiku '/commit-all'",
       "presentation": {
         "reveal": "always",
         "panel": "new",
