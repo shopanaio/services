@@ -1,0 +1,25 @@
+{
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "foam.edit.linkReferenceDefinitions": "withExtensions",
+    "foam.files.exclude": [".index/**", ".vscode/**", ".foam/**"],
+    "foam.graph.style": {
+      "background": "#1e1e1e",
+      "node": {
+        "note": "#6699ff",
+        "placeholder": "#ff6666"
+      }
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "foam.foam-vscode",
+      "yzhang.markdown-all-in-one",
+      "esbenp.prettier-vscode"
+    ]
+  }
+}
