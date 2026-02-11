@@ -21,6 +21,7 @@ Architecture documentation for the Shopana e-commerce platform.
 | [[architecture/request-flow]] | Request handling, inter-service communication |
 | [[architecture/service-boundaries]] | Service ownership, bounded contexts |
 | [[architecture/multi-tenancy]] | Data isolation, store resolution |
+| [[architecture/configuration]] | Centralized YAML config, ENV substitution |
 | [[architecture/scalability]] | Scaling strategies, fault tolerance |
 
 ## Architecture Overview
@@ -43,7 +44,8 @@ Shopana is a **headless e-commerce platform** built with:
 3. **[[architecture/request-flow]]** — How requests flow through the system
 4. **[[architecture/service-boundaries]]** — What each service owns and provides
 5. **[[architecture/multi-tenancy]]** — How data isolation works
-6. **[[architecture/scalability]]** — How to scale, handle failures
+6. **[[architecture/configuration]]** — Centralized config system
+7. **[[architecture/scalability]]** — How to scale, handle failures
 
 ### Patterns
 
