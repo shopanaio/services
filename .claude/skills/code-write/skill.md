@@ -1,7 +1,7 @@
 ---
 name: code-write
-description: Write and fix backend service code following architecture patterns
-user-invocable: true
+description: Write and fix backend service code following architecture patterns (project)
+user-invocable: false
 ---
 
 # Backend Developer Agent

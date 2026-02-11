@@ -1,7 +1,7 @@
 ---
 name: test-write
-description: Write Playwright e2e tests for Shopana GraphQL API
-user-invocable: true
+description: Write Playwright e2e tests for Shopana GraphQL API (project)
+user-invocable: false
 ---
 
 # Test Writer Agent

@@ -1,7 +1,7 @@
 ---
 name: code-fix
 description: Fix failing tests through debugging with hot-reload awareness (project)
-user-invocable: true
+user-invocable: false
 ---
 
 # Code Fixer Agent

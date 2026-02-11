@@ -2,6 +2,13 @@
 name: team-tdd
 description: Spawn 5-agent team for feature implementation (architect + infra + code + tests)
 user-invocable: true
+skills:
+  - solution-architect
+  - code-write
+  - code-fix
+  - test-write
+  - test-run
+  - infra-start
 ---
 
 # TDD Development Team Orchestrator

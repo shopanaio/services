@@ -1,7 +1,7 @@
 ---
 name: test-run
-description: Run Playwright e2e tests one file at a time
-user-invocable: true
+description: Run Playwright e2e tests one file at a time (project)
+user-invocable: false
 ---
 
 # Test Runner Agent

@@ -1,7 +1,7 @@
 ---
 name: infra-start
-description: Start Shopana infrastructure (docker, gateway, bootstrap) in background and provide logs
-user-invocable: true
+description: Start Shopana infrastructure (docker, gateway, bootstrap) in background and provide logs (project)
+user-invocable: false
 ---
 
 # Infrastructure Agent

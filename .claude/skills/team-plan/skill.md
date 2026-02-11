@@ -2,11 +2,16 @@
 name: team-plan
 description: Spawn 3-agent team for planning (architect + plan-writer + plan-reviewer)
 user-invocable: true
+skills:
+  - solution-architect
+  - plan-write
+  - plan-review
+  - save-session
 ---
 
 # Planning Team Orchestrator
 
-Coordinate a 3-agent team to create high-quality implementation plans through collaborative review.
+Coordinate a 3-agent team to create high-quality implementation plans through collaborative design and review.
 
 ## Usage
 
@@ -20,53 +25,86 @@ Examples:
 
 ## Team Roster
 
-| Agent | Skill | Responsibility |
-|-------|-------|----------------|
-| Architect | `/solution-architect` | Make design decisions, choose patterns |
-| Plan Writer | `/plan-write` | Write detailed implementation plan |
-| Plan Reviewer | `/plan-review` | Review plan for completeness and issues |
+| Agent | Skill | Model | Responsibility |
+|-------|-------|-------|----------------|
+| Architect | `/solution-architect` | sonnet | Make design decisions, choose patterns |
+| Plan Writer | `/plan-write` | sonnet | Write detailed implementation plan |
+| Plan Reviewer | `/plan-review` | haiku | Review plan for completeness and issues |
 
 ## Architecture Flow
 
 ```
                     FEATURE REQUEST
-                          │
-                          ▼
+                          |
+                          v
+                   [PREFLIGHT CHECKS]
+                   git status, etc.
+                          |
+                          v
                     [ARCHITECT]
                   Design Decisions
-                          │
+                          |
                    DECISIONS READY
-                          │
-                          ▼
+                          |
+                          v
                    [PLAN WRITER]
-                   Write Plan
-                          │
+                    Write Plan
+                          |
                     PLAN READY
-                          │
-                          ▼
+                          |
+                          v
                   [PLAN REVIEWER]
                    Review Plan
-                          │
-              ┌───────────┴───────────┐
-              ▼                       ▼
+                          |
+              +-----------+-----------+
+              v                       v
           [APPROVED]              [NEEDS REVISION]
-              │                       │
-              │           ┌───────────┘
-              │           ▼
-              │    [PLAN WRITER]
-              │    Revise Plan
-              │           │
-              │           ▼
-              │    [PLAN REVIEWER]
-              │    Re-review
-              │           │
-              │    (max 3 iterations)
-              │           │
-              ▼           ▼
-         PLAN COMPLETE
+              |                       |
+              |           +-----------+
+              |           v
+              |    [PLAN WRITER]
+              |     Revise Plan
+              |           |
+              |           v
+              |    [PLAN REVIEWER]
+              |      Re-review
+              |           |
+              |    (max 3 iterations)
+              |           |
+              v           v
+            PLAN COMPLETE
+                  |
+                  v
+           [SAVE SESSION]
 ```
 
+## Agent Tracking
+
+Maintain this table during execution:
+
+| Agent | ID | Status | Signal |
+|-------|----|--------|--------|
+| Architect | {id} | spawned/context/done | CONTEXT GATHERED → DECISIONS READY |
+| Plan Writer | {id} | spawned/resumed/done | PLAN READY |
+| Plan Reviewer | {id} | spawned/resumed/done | APPROVED/NEEDS REVISION |
+
+**Architect Status Flow:** spawned → gathering context → context done → making decisions → done
+
 ## Execution Protocol
+
+### Phase 0: Preflight Checks
+
+Before starting any agents, verify:
+
+```bash
+# 1. Check for uncommitted changes (warn if dirty)
+git status --porcelain
+
+# 2. Check if session folder already exists for this feature
+ls .ai-team-sessions/ 2>/dev/null | grep "$(date +%Y-%m-%d)"
+```
+
+**If dirty working tree:** Warn user, but continue (planning doesn't modify code).
 
 ### Phase 1: Architecture & Design
 
@@ -75,33 +113,67 @@ Examples:
 ```
 Task tool:
   subagent_type: "general-purpose"
+  model: "sonnet"
   prompt: |
     /solution-architect
 
     FEATURE: {feature_description}
 
-    Focus on design decisions only. Do NOT write implementation plan.
-    Output your decisions in this format:
+    ## CONTEXT GATHERING (mandatory before decisions)
+
+    Explore the codebase to find:
+
+    1. **Owning service** — which service owns this domain?
+       Search for related entities, scripts, and schemas.
+
+    2. **Similar implementations** — find 2-3 scripts that do similar things.
+       READ them fully to understand patterns, decorators, error handling.
+
+    3. **Data model** — read relevant DB schema files.
+       Understand entities, relations, constraints.
+
+    4. **GraphQL patterns** — check existing types, inputs, mutations.
+       Note the naming conventions and payload structures.
+
+    5. **Authorization** — how is access controlled in this domain?
+       Find @Policy patterns used for similar operations.
+
+    6. **Tests** — find related e2e tests to understand expected behavior.
+
+    ## OUTPUT
+
+    First output context summary:
+
+    CONTEXT GATHERED
+    - Service and why
+    - Similar implementations found (with paths)
+    - Relevant entities and schemas
+    - GraphQL patterns to follow
+    - Authorization patterns
+
+    Then output decisions:
 
     DECISIONS READY
+    - Service, Pattern, Authorization
+    - API Contract (mutation signature)
+    - Data changes
+    - Reference files to follow (verified paths)
+    - Edge cases from similar implementations
 
-    Service: {service-name}
-    Pattern: Script | Saga
-    Authorization: @Policy("{resource}", "{action}")
-
-    API Contract:
-      Mutation: {mutationName}(input: {InputType}!): {PayloadType}!
-
-    Data Changes:
-      - {entity}: {what changes}
-
-    Reference Patterns:
-      - {path/to/similar/implementation}
+    RULES:
+    - Do NOT make decisions without reading similar code first
+    - Do NOT guess file paths — verify they exist
+    - Every decision must reference gathered context
 ```
 
-**Wait for:** `DECISIONS READY` signal
+**Wait for:** `CONTEXT GATHERED` then `DECISIONS READY` signals
 
-**Save:** Architect decisions as `architect_decisions`
+**Timeout:** 180 seconds (context gathering takes time)
+
+**Save:**
+- `gathered_context` — the context summary
+- `architect_decisions` — the decisions block
+- `architect_agent_id` — for potential follow-up questions
 
 ### Phase 2: Plan Writing
 
@@ -110,20 +182,48 @@ Task tool:
 ```
 Task tool:
   subagent_type: "general-purpose"
+  model: "sonnet"
   prompt: |
     /plan-write
+
+    FEATURE: {feature_description}
+
+    CONTEXT FROM ARCHITECT:
+    {gathered_context}
 
     ARCHITECT DECISIONS:
     {architect_decisions}
 
-    FEATURE: {feature_description}
+    ## YOUR TASK
 
-    Write a detailed implementation plan.
+    Write a detailed implementation plan based on the reference files
+    that Architect found.
+
+    READ the reference files before writing — your plan must mirror
+    those patterns exactly (structure, imports, decorators, error handling).
+
+    ## REQUIRED SECTIONS
+
+    1. DTO — schema, params, result interfaces
+    2. Script/Saga — decorators, dependencies, execute logic
+    3. GraphQL Schema — input, payload, mutation
+    4. Resolver — method, GlobalId handling
+    5. Exports — index.ts updates
+    6. Build Requirements — schema/codegen/packages
+    7. Edge Cases
+
+    For each step: exact file path + what to add/change.
+
+    Signal completion with: PLAN READY
 ```
 
 **Wait for:** `PLAN READY` signal with full implementation plan
 
-**Save:** Full plan as `implementation_plan`
+**Timeout:** 180 seconds
+
+**Save:**
+- `implementation_plan` — the full plan
+- `plan_writer_agent_id` — for revisions
 
 ### Phase 3: Plan Review
 
@@ -132,177 +232,127 @@ Task tool:
 ```
 Task tool:
   subagent_type: "general-purpose"
+  model: "haiku"
   prompt: |
     /plan-review
 
     PLAN:
     {implementation_plan}
 
-    Review this plan for completeness, correctness, and architecture alignment.
+    ARCHITECT DECISIONS:
+    {architect_decisions}
+
+    Review for: completeness, correctness, architecture alignment, edge cases.
+
+    Output: PLAN REVIEW: APPROVED or PLAN REVIEW: NEEDS REVISION (with issues)
 ```
 
-**Wait for:** Review result:
-- `PLAN REVIEW: APPROVED` → Proceed to completion
-- `PLAN REVIEW: NEEDS REVISION` → Proceed to revision loop
+**Wait for:** Review result
+
+**Timeout:** 60 seconds
+
+**Save:**
+- `review_result` — APPROVED or NEEDS REVISION
+- `review_issues` — issues if any
+- `plan_reviewer_agent_id` — for re-review
 
 ### Phase 4: Revision Loop (if needed)
 
-**Iteration limit:** 3 revision attempts
+**Iteration limit:** 3 attempts
 
 **On `NEEDS REVISION`:**
 
-1. Extract issues from reviewer:
-   ```
-   ISSUES:
-   {issues_from_reviewer}
-   ```
+1. Resume Plan Writer with issues → wait for revised `PLAN READY`
+2. Resume Plan Reviewer with revised plan → check result
+3. Repeat until APPROVED or max iterations reached
 
-2. Resume Plan Writer:
-   ```
-   Task tool:
-     resume: {plan_writer_agent_id}
-     prompt: |
-       REVISION REQUESTED
+**If max iterations reached:** Proceed to completion with `INCOMPLETE` status.
 
-       The Plan Reviewer found issues with your plan:
+### Phase 5: Save Session
 
-       {issues_from_reviewer}
-
-       Please revise the plan to address these issues.
-       Output the complete revised plan with PLAN READY signal.
-   ```
-
-3. Wait for revised `PLAN READY`
-
-4. Resume Plan Reviewer:
-   ```
-   Task tool:
-     resume: {plan_reviewer_agent_id}
-     prompt: |
-       REVISED PLAN:
-
-       {revised_plan}
-
-       Re-review and confirm if issues are addressed.
-   ```
-
-5. Check result:
-   - `APPROVED` → Complete
-   - `NEEDS REVISION` → Repeat if iterations < 3
-
-**If max iterations reached:**
-
-```
-PLAN REVIEW INCOMPLETE
-
-Feature: {feature_description}
-Attempts: 3/3 exhausted
-
-REMAINING ISSUES:
-{issues_from_reviewer}
-
-CURRENT PLAN:
-{latest_plan}
-
-Manual review recommended before implementation.
-```
-
-### Phase 5: Completion
-
-**On success:**
-
-Output the final approved plan and save to session folder.
-
-```
-PLAN COMPLETE
-
-FEATURE: {feature_name}
-
-DESIGN DECISIONS:
-{architect_decisions}
-
-APPROVED PLAN:
-{implementation_plan}
-
-REVIEW STATUS: Approved by Plan Reviewer
-
-NEXT STEPS:
-1. Run /code-write with this plan
-2. Or run /team-tdd for full implementation
-
-SESSION SAVED: .ai-team-sessions/{date}-{slug}/PLAN.md
-```
+**Always execute** at the end via `/save-session {feature-slug}`
 
 ## Output Format
 
-### On Success
+### On Success (APPROVED)
 
 ```
 PLANNING COMPLETE: {feature_name}
 
-═══════════════════════════════════════════════════════════════════════════════
+===============================================================================
 DESIGN DECISIONS (from Architect)
-═══════════════════════════════════════════════════════════════════════════════
+===============================================================================
 
 Service: {service}
 Pattern: {pattern}
 Authorization: {policy}
 API: {mutation signature}
 
-═══════════════════════════════════════════════════════════════════════════════
+===============================================================================
 IMPLEMENTATION PLAN (approved)
-═══════════════════════════════════════════════════════════════════════════════
+===============================================================================
 
 {full implementation plan}
 
-═══════════════════════════════════════════════════════════════════════════════
+===============================================================================
 REVIEW SUMMARY
-═══════════════════════════════════════════════════════════════════════════════
+===============================================================================
 
 Status: APPROVED
 Iterations: {n}
 Issues addressed: {list if any revisions}
 
-═══════════════════════════════════════════════════════════════════════════════
+===============================================================================
 
 READY FOR IMPLEMENTATION
 
 To implement:
-  /code-write <paste plan>
+  /code-write
+  ARCHITECT PLAN:
+  {paste approved plan}
 
 Or for full TDD workflow:
   /team-tdd {feature_description}
+
+Session saved: .ai-team-sessions/{date}-{slug}/
 ```
 
-### On Incomplete
+### On Incomplete (max iterations reached)
 
 ```
 PLANNING INCOMPLETE: {feature_name}
 
-═══════════════════════════════════════════════════════════════════════════════
+===============================================================================
 DESIGN DECISIONS
-═══════════════════════════════════════════════════════════════════════════════
+===============================================================================
 
 {architect_decisions}
 
-═══════════════════════════════════════════════════════════════════════════════
+===============================================================================
 CURRENT PLAN (not approved)
-═══════════════════════════════════════════════════════════════════════════════
+===============================================================================
 
 {latest_plan}
 
-═══════════════════════════════════════════════════════════════════════════════
+===============================================================================
 OUTSTANDING ISSUES
-═══════════════════════════════════════════════════════════════════════════════
+===============================================================================
 
 {remaining_issues_from_reviewer}
 
-═══════════════════════════════════════════════════════════════════════════════
+===============================================================================
 
 MANUAL REVIEW REQUIRED
 
 The plan could not be approved after 3 revision attempts.
 Please review the outstanding issues before proceeding.
+
+Options:
+1. Manually adjust the plan and run /code-write
+2. Provide clarification and re-run /team-plan
+3. Ask architect directly: /solution-architect
+
+Session saved: .ai-team-sessions/{date}-{slug}/
 ```
 
 ## Agent Communication Protocol
@@ -311,62 +361,56 @@ Please review the outstanding issues before proceeding.
 
 | Signal | From | Meaning |
 |--------|------|---------|
-| `DECISIONS READY` | Architect | Design decisions complete |
+| `CONTEXT GATHERED` | Architect | Codebase exploration complete |
+| `DECISIONS READY` | Architect | Design decisions complete (after context) |
 | `PLAN READY` | Plan Writer | Plan written/revised |
-| `PLAN REVIEW: APPROVED` | Plan Reviewer | Plan is good |
-| `PLAN REVIEW: NEEDS REVISION` | Plan Reviewer | Issues found |
+| `PLAN REVIEW: APPROVED` | Plan Reviewer | Plan is complete and correct |
+| `PLAN REVIEW: NEEDS REVISION` | Plan Reviewer | Issues found, needs fixes |
 | `PLANNING COMPLETE` | Orchestrator | Success |
 | `PLANNING INCOMPLETE` | Orchestrator | Max iterations reached |
 
-### Information Flow
+### Error Handling
 
-```
-Orchestrator
-    │
-    ├──► Architect ────► DECISIONS ────┐
-    │                                  │
-    ├──► Plan Writer ◄─────────────────┘
-    │         │
-    │         ▼
-    │       PLAN
-    │         │
-    ├──► Plan Reviewer ◄───────────────┘
-    │         │
-    │    ┌────┴────┐
-    │    ▼         ▼
-    │ APPROVED   ISSUES ────► Plan Writer (resume)
-    │    │                         │
-    │    ▼                         ▼
-    │ COMPLETE               REVISED PLAN ────► Plan Reviewer (resume)
-```
+| Error | Action |
+|-------|--------|
+| Architect timeout | Retry once, then abort with partial context |
+| Plan Writer timeout | Resume with simpler scope request |
+| Plan Reviewer timeout | Assume APPROVED (reviewer is non-blocking) |
+| Agent crash | Log error, attempt resume, escalate if fails |
+| Invalid signal | Parse output manually, ask for clarification |
+
+### Timeout Configuration
+
+| Phase | Timeout | On Timeout |
+|-------|---------|------------|
+| Phase 1: Architect | 180s | Retry once (context gathering takes time) |
+| Phase 2: Plan Writer | 180s | Resume with timeout warning |
+| Phase 3: Plan Reviewer | 60s | Assume APPROVED |
+| Phase 4: Revision | 120s per attempt | Skip to next iteration |
+| Phase 5: Save Session | 30s | Continue without save |
 
 ## Session Documentation
 
-Create session folder to store the planning artifacts:
+Create session folder to store planning artifacts:
 
 ```bash
 mkdir -p .ai-team-sessions/{YYYY-MM-DD}-{feature-slug}
 ```
 
-Save files:
-- `DECISIONS.md` - Architect's design decisions
-- `PLAN.md` - Final implementation plan (approved or latest)
-- `REVIEW.md` - Review feedback and iterations
-
-## Configuration
-
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| Max revision iterations | 3 | Attempts before giving up |
-| Save session | true | Save artifacts to .ai-team-sessions |
+Files created:
+- `DECISIONS.md` — Architect's design decisions
+- `PLAN.md` — Final implementation plan (approved or latest)
+- `REVIEW.md` — Review feedback and iterations
+- `SESSION.md` — Full session summary (via /save-session)
 
 ## Best Practices
 
-1. **Clear feature description** — Provide enough context for Architect
-2. **Trust the process** — Let each agent do their job
-3. **Don't skip review** — Even "simple" features benefit from review
+1. **Clear feature description** — Provide enough context for Architect to make decisions
+2. **Trust the process** — Let each agent do their specialized job
+3. **Don't skip review** — Even "simple" features benefit from validation
 4. **Save artifacts** — Always save the plan for future reference
-5. **Use approved plans** — Only implement from approved plans
+5. **Use approved plans** — Only implement from reviewed plans
+6. **Resume when possible** — Use agent IDs to maintain context
 
 ## Integration with Other Skills
 
@@ -380,4 +424,22 @@ After planning is complete:
 /code-write
 ARCHITECT PLAN:
 {approved_plan}
+
+# For test creation only
+/test-write
+FEATURE: {feature_description}
+PLAN: {approved_plan}
 ```
+
+## Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Architect stuck exploring | Provide more specific feature scope or service name |
+| Architect can't find similar code | Suggest specific services/domains to look in |
+| No CONTEXT GATHERED signal | Resume with "output your context summary now" |
+| Plan too vague | Resume Plan Writer with "add more detail to step X" |
+| Plan doesn't match references | Resume with "re-read {reference} and align your plan" |
+| Reviewer too strict | Resume with "focus on blocking issues only" |
+| Endless revision loop | After 3 attempts, proceed with manual review |
+| Session not saved | Run `/save-session {slug}` manually |

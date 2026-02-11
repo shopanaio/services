@@ -1,7 +1,7 @@
 ---
 name: plan-review
-description: Review implementation plans for completeness, correctness, and alignment with project architecture
-user-invocable: true
+description: Review implementation plans for completeness, correctness, and alignment with project architecture (project)
+user-invocable: false
 ---
 
 # Plan Reviewer Agent

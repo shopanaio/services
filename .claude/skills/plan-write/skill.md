@@ -1,7 +1,7 @@
 ---
 name: plan-write
-description: Write detailed implementation plans from architecture decisions
-user-invocable: true
+description: Write detailed implementation plans from architecture decisions (project)
+user-invocable: false
 ---
 
 # Plan Writer Agent

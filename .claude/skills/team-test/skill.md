@@ -2,6 +2,9 @@
 name: team-test
 description: Spawn 2-agent team for test debugging (infra + code-fixer/tester)
 user-invocable: true
+skills:
+  - code-fix
+  - infra-start
 ---
 
 # Agents Spawn - Test Debugging Team
