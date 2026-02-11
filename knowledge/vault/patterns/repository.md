@@ -5,9 +5,9 @@ tags:
   - database
   - drizzle
 related:
-  - "[[packages/drizzle-query/index]]"
-  - "[[patterns/dataloader]]"
-  - "[[architecture/service-structure]]"
+  - drizzle-query/index
+  - patterns/dataloader
+  - architecture/service-structure
 ---
 
 # Repository Pattern
@@ -23,33 +23,6 @@ Repositories provide data access layer with automatic transaction and multi-tena
 | Aggregator | `Repository` class |
 | Transactions | Via `TransactionManager` |
 | Multi-tenancy | Auto-filtered by `projectId` (storeId) |
-
-## Architecture
-
-```
-┌─────────────────────────────────────────┐
-│              Repository                  │ ← Aggregator
-│  (warehouse, stock, cost, physical...)  │
-└────────────────┬────────────────────────┘
-                 │
-    ┌────────────┼────────────┐
-    ▼            ▼            ▼
-┌────────┐  ┌────────┐  ┌────────┐
-│Warehouse│  │ Stock  │  │ Cost   │  ← Entity Repositories
-│Repo    │  │ Repo   │  │ Repo   │
-└────┬───┘  └────┬───┘  └────┬───┘
-     │           │           │
-     └───────────┼───────────┘
-                 ▼
-         ┌───────────────┐
-         │BaseRepository │ ← Base class
-         └───────┬───────┘
-                 │
-         ┌───────┴───────┐
-         │Transaction    │
-         │Manager        │ ← Transaction support
-         └───────────────┘
-```
 
 ## BaseRepository
 
@@ -460,29 +433,9 @@ const entity = {
 | `getByIds(ids)` | Batch load for DataLoader |
 | `getConnection(args)` | Paginated query |
 
-## File Organization
-
-```
-repositories/
-├── Repository.ts           # Aggregator
-├── BaseRepository.ts       # Base class
-├── models/
-│   ├── index.ts            # Export all models
-│   ├── schema.ts           # Drizzle schema definition
-│   ├── warehouse.ts        # Warehouse table
-│   ├── stock.ts            # Stock tables
-│   └── cost.ts             # Cost table
-├── warehouse/
-│   └── WarehouseRepository.ts
-├── stock/
-│   └── StockRepository.ts
-└── cost/
-    └── CostRepository.ts
-```
-
 ## See Also
 
-- [[packages/drizzle-query/index]] — Query builder package
-- [[packages/drizzle-query/cursor-pagination]] — Relay pagination
+- [[drizzle-query/index]] — Query builder package
+- [[drizzle-query/cursor-pagination]] — Relay pagination
 - [[patterns/dataloader]] — DataLoader integration
-- [[packages/shared-kernel/transaction-manager]] — Transaction handling
+- [[shared-kernel/transaction-manager]] — Transaction handling

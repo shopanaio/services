@@ -5,9 +5,9 @@ tags:
   - graphql
   - apollo
 related:
-  - "[[patterns/resolver]]"
-  - "[[architecture/service-structure]]"
-  - "[[packages/shared-graphql-guid/index]]"
+  - patterns/resolver
+  - architecture/service-structure
+  - shared-graphql-guid/index
 ---
 
 # Federation Pattern
@@ -22,27 +22,6 @@ GraphQL Federation allows services to extend types defined in other services.
 | Extending Service | Service that adds fields with `extend type` |
 | Reference Resolver | `__resolveReference` to load entity by key |
 | Global ID | Base64 encoded `{namespace}:{type}:{uuid}` |
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Gateway (Router)                      │
-│              Composes all subgraphs                      │
-└────────────────────────┬────────────────────────────────┘
-                         │
-         ┌───────────────┼───────────────┐
-         ▼               ▼               ▼
-┌─────────────┐  ┌─────────────┐  ┌─────────────┐
-│   Catalog   │  │  Inventory  │  │   Pricing   │
-│   Service   │  │   Service   │  │   Service   │
-├─────────────┤  ├─────────────┤  ├─────────────┤
-│ Variant     │  │ extend      │  │ extend      │
-│ @key(id)    │  │ Variant     │  │ Variant     │
-│ - title     │  │ - sku       │  │ - price     │
-│ - options   │  │ - stock     │  │ - priceList │
-└─────────────┘  └─────────────┘  └─────────────┘
-```
 
 ## Schema Definition
 
@@ -355,25 +334,9 @@ shopana schema --action compose
 shopana schema --action build
 ```
 
-## File Organization
-
-```
-resolvers/
-└── admin/
-    ├── VariantFederationResolver.ts   # Federation resolver
-    ├── ProductFederationResolver.ts   # Federation resolver
-    └── ...
-
-api/graphql-admin/
-├── schema/
-│   └── variant.graphql                # extend type Variant
-└── resolvers/
-    └── index.ts                       # __resolveReference wiring
-```
-
 ## See Also
 
 - [[patterns/resolver]] — Resolver patterns
-- [[packages/shared-graphql-guid/index]] — Global ID encoding/decoding
-- [[packages/shared-graphql-guid/encoding]] — Encoding functions
-- [[packages/shared-graphql-guid/decoding]] — Decoding functions
+- [[shared-graphql-guid/index]] — Global ID encoding/decoding
+- [[shared-graphql-guid/encoding]] — Encoding functions
+- [[shared-graphql-guid/decoding]] — Decoding functions

@@ -6,9 +6,9 @@ tags:
   - caching
   - n+1
 related:
-  - "[[patterns/resolver]]"
-  - "[[patterns/repository]]"
-  - "[[architecture/service-structure]]"
+  - patterns/resolver
+  - patterns/repository
+  - architecture/service-structure
 ---
 
 # DataLoader Pattern
@@ -23,36 +23,6 @@ DataLoader solves the N+1 problem by batching and caching database requests with
 | Location | `services/{name}/src/loaders/` |
 | Scope | Per-request (created fresh for each GraphQL request) |
 | Purpose | Batch multiple `.load(id)` calls into single `getByIds()` query |
-
-## Architecture
-
-```
-Request
-   │
-   ▼
-┌─────────────────┐
-│ Context         │ ← Creates new Loader instance
-│ Middleware      │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│ Loader          │ ← Aggregates all entity loaders
-│ (per-request)   │
-└────────┬────────┘
-         │
-    ┌────┴────┬────────┐
-    ▼         ▼        ▼
-┌───────┐ ┌───────┐ ┌───────┐
-│Entity │ │Entity │ │Entity │  ← Individual DataLoaders
-│Loader │ │Loader │ │Loader │
-└───┬───┘ └───┬───┘ └───┬───┘
-    │         │        │
-    ▼         ▼        ▼
-┌─────────────────────────────┐
-│        Repository           │ ← Batch queries via getByIds()
-└─────────────────────────────┘
-```
 
 ## Loader Aggregator
 
@@ -336,16 +306,6 @@ async warehouse() {
 async warehouse() {
   return this.$ctx.kernel.repository.warehouse.findById(this.$data!.warehouseId);
 }
-```
-
-## File Organization
-
-```
-loaders/
-├── Loader.ts              # Main aggregator
-├── WarehouseLoader.ts     # Warehouse loaders
-├── InventoryItemLoader.ts # InventoryItem loaders
-└── StockLoader.ts         # Stock loaders
 ```
 
 ## See Also

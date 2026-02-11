@@ -5,11 +5,11 @@ tags:
   - feature
   - workflow
 related:
-  - "[[architecture/service-structure]]"
-  - "[[patterns/script]]"
-  - "[[patterns/resolver]]"
-  - "[[patterns/repository]]"
-  - "[[patterns/dataloader]]"
+  - architecture/service-structure
+  - patterns/script
+  - patterns/resolver
+  - patterns/repository
+  - patterns/dataloader
 ---
 
 # How to Add a New Feature

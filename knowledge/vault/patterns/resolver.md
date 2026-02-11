@@ -5,10 +5,10 @@ tags:
   - graphql
   - type-resolver
 related:
-  - "[[packages/type-resolver/index]]"
-  - "[[patterns/script]]"
-  - "[[patterns/dataloader]]"
-  - "[[patterns/federation]]"
+  - type-resolver/index
+  - patterns/script
+  - patterns/dataloader
+  - patterns/federation
 ---
 
 # Resolver Pattern
@@ -346,32 +346,11 @@ async warehouse() {
 }
 ```
 
-## File Organization
-
-```
-resolvers/
-└── admin/
-    ├── index.ts                    # Export all
-    ├── {Service}Type.ts            # Base type
-    ├── QueryResolver.ts            # Root query
-    ├── MutationResolver.ts         # Root mutation
-    ├── {Entity}Resolver.ts         # Entity type
-    ├── {Entity}ConnectionResolver.ts
-    ├── {Entity}FederationResolver.ts
-    ├── connection/
-    │   └── BaseConnectionResolver.ts
-    ├── interfaces/
-    │   └── index.ts
-    └── generated/
-        ├── types.ts                # TS types from GraphQL
-        └── schemas.ts              # Zod schemas from GraphQL
-```
-
 ## See Also
 
-- [[packages/type-resolver/index]] — Type resolver package
-- [[packages/type-resolver/base-type]] — BaseType class
-- [[packages/type-resolver/decorators]] — Resolver decorators
+- [[type-resolver/index]] — Type resolver package
+- [[type-resolver/base-type]] — BaseType class
+- [[type-resolver/decorators]] — Resolver decorators
 - [[patterns/script]] — Script pattern for mutations
 - [[patterns/dataloader]] — DataLoader pattern
 - [[patterns/federation]] — Federation resolvers

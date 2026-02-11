@@ -5,9 +5,9 @@ tags:
   - mutation
   - business-logic
 related:
-  - "[[architecture/service-structure]]"
-  - "[[patterns/resolver]]"
-  - "[[packages/shared-kernel/decorators]]"
+  - architecture/service-structure
+  - patterns/resolver
+  - shared-kernel/decorators
 ---
 
 # Script Pattern (BaseScript)
@@ -317,24 +317,9 @@ protected handleError(error: unknown): WarehouseCreateResult {
 }
 ```
 
-## File Organization
-
-```
-scripts/
-├── index.ts              # Export all scripts
-├── types/
-│   ├── index.ts
-│   └── ScriptResult.ts   # Common result types
-└── warehouse/
-    ├── index.ts
-    ├── WarehouseCreateScript.ts
-    ├── WarehouseUpdateScript.ts
-    └── WarehouseDeleteScript.ts
-```
-
 ## See Also
 
 - [[architecture/service-structure]] — Service folder structure
 - [[patterns/resolver]] — How resolvers call scripts
-- [[packages/shared-kernel/decorators]] — @Transactional, @ZodSchema, @Policy
-- [[packages/shared-kernel/errors]] — Error classes
+- [[shared-kernel/decorators]] — @Transactional, @ZodSchema, @Policy
+- [[shared-kernel/errors]] — Error classes
