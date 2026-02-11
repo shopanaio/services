@@ -13,11 +13,21 @@ extend schema
   )
 
 extend type Query {
+  """
+  Catalog query namespace for product, variant, category, and collection operations
+  """
   catalogQuery: CatalogQuery!
+
+  """
+  Widget query namespace for dashboard widgets
+  """
   widgetQuery: WidgetQuery! @shareable
 }
 
 extend type Mutation {
+  """
+  Catalog mutation namespace for product, variant, category, and collection operations
+  """
   catalogMutation: CatalogMutation!
 }
 
@@ -71,18 +81,65 @@ type CatalogQuery {
   Get a category by ID
   """
   category(id: ID!): Category
+
+  """
+  Get a collection by ID
+  """
   collection(id: ID!): Collection
+
+  """
+  Get a collection by its handle
+  """
   collectionByHandle(handle: String!): Collection
+
+  """
+  Get collections with Relay-style pagination
+  """
   collections(first: Int, after: String, last: Int, before: String): CollectionConnection!
+
+  """
+  Preview count of products matching collection rules
+  """
   collectionRulesPreviewCount(rules: [CollectionRuleInput!]!): Int!
 
+  """
+  Get a facet group by ID
+  """
   facetGroup(id: ID!): FacetGroup
+
+  """
+  Get all facet groups
+  """
   facetGroups: [FacetGroup!]!
+
+  """
+  Get a facet by ID
+  """
   facet(id: ID!): Facet
+
+  """
+  Get all facets
+  """
   facets: [Facet!]!
+
+  """
+  Get a facet value by ID
+  """
   facetValue(id: ID!): FacetValue
+
+  """
+  Get all facet values for a specific facet
+  """
   facetValues(facetId: ID!): [FacetValue!]!
+
+  """
+  Get a facet swatch by ID
+  """
   facetSwatch(id: ID!): FacetSwatch
+
+  """
+  Get all facet swatches
+  """
   facetSwatches: [FacetSwatch!]!
 
   """
@@ -109,6 +166,41 @@ type CatalogQuery {
     last: Int
     before: String
   ): TagConnection!
+
+  """
+  Get a bundle group by ID
+  """
+  bundleGroup(id: ID!): BundleGroup
+
+  """
+  Get all bundle groups for a product
+  """
+  bundleGroups(productId: ID!): [BundleGroup!]!
+
+  """
+  Get a bundle item by ID
+  """
+  bundleItem(id: ID!): BundleItem
+
+  """
+  Get a bundle pricing template by ID
+  """
+  bundlePricingTemplate(id: ID!): BundlePricingTemplate
+
+  """
+  Get all pricing templates for a product
+  """
+  bundlePricingTemplates(productId: ID!): [BundlePricingTemplate!]!
+
+  """
+  Get a dependency rule by ID
+  """
+  dependencyRule(id: ID!): DependencyRule
+
+  """
+  Get all dependency rules for a product
+  """
+  dependencyRules(productId: ID!): [DependencyRule!]!
 }
 
 """
@@ -123,8 +215,20 @@ type WidgetQuery {
 
 type CatalogMutation {
   # Product mutations
+
+  """
+  Create a new product
+  """
   productCreate(input: ProductCreateInput!): ProductCreatePayload!
+
+  """
+  Delete an existing product
+  """
   productDelete(input: ProductDeleteInput!): ProductDeletePayload!
+
+  """
+  Update product status (active, draft, archived)
+  """
   productUpdateStatus(input: ProductUpdateStatusInput!): ProductUpdateStatusPayload!
 
   """
@@ -141,20 +245,48 @@ type CatalogMutation {
   ): ProductUpdatePayload!
 
   # Variant mutations
+
+  """
+  Create a new variant for a product
+  """
   variantCreate(input: VariantCreateInput!): VariantCreatePayload!
+
+  """
+  Delete a variant
+  """
   variantDelete(input: VariantDeleteInput!): VariantDeletePayload!
 
   # Variant update mutations
+
+  """
+  Update variant pricing information
+  """
   variantUpdatePricing(input: VariantUpdatePricingInput!): VariantUpdatePricingPayload!
+
+  """
+  Update variant option values
+  """
   variantUpdateOptions(input: VariantUpdateOptionsInput!): VariantUpdateOptionsPayload!
 
   # Option mutations (creates/deletes variants automatically)
+
+  """
+  Create a new product option (e.g., Size, Color)
+  """
   productOptionCreate(
     input: ProductOptionCreateInput!
   ): ProductOptionCreatePayload!
+
+  """
+  Update an existing product option
+  """
   productOptionUpdate(
     input: ProductOptionUpdateInput!
   ): ProductOptionUpdatePayload!
+
+  """
+  Delete a product option
+  """
   productOptionDelete(
     input: ProductOptionDeleteInput!
   ): ProductOptionDeletePayload!
@@ -168,56 +300,194 @@ type CatalogMutation {
   ): ProductOptionsSyncPayload!
 
   # Feature mutations
+
+  """
+  Create a new product feature
+  """
   productFeatureCreate(
     input: ProductFeatureCreateInput!
   ): ProductFeatureCreatePayload!
+
+  """
+  Update an existing product feature
+  """
   productFeatureUpdate(
     input: ProductFeatureUpdateInput!
   ): ProductFeatureUpdatePayload!
+
+  """
+  Delete a product feature
+  """
   productFeatureDelete(
     input: ProductFeatureDeleteInput!
   ): ProductFeatureDeletePayload!
+
+  """
+  Sync all product features (complete replace operation)
+  """
   productFeaturesSync(
     input: ProductFeaturesSyncInput!
   ): ProductFeaturesSyncPayload!
 
   # Media mutations
+
+  """
+  Update media attachments for a variant
+  """
   variantUpdateMedia(input: VariantUpdateMediaInput!): VariantUpdateMediaPayload!
 
   # Category mutations
+
+  """
+  Create a new category
+  """
   categoryCreate(input: CategoryCreateInput!): CategoryCreatePayload!
+
+  """
+  Update an existing category
+  """
   categoryUpdate(input: CategoryUpdateInput!): CategoryUpdatePayload!
+
+  """
+  Move a category to a new parent or position
+  """
   categoryMove(input: CategoryMoveInput!): CategoryMovePayload!
+
+  """
+  Move a product within a category
+  """
   categoryMoveProduct(input: CategoryMoveProductInput!): CategoryMoveProductPayload!
+
+  """
+  Add a product to a category
+  """
   categoryAddProduct(input: CategoryAddProductInput!): CategoryAddProductPayload!
+
+  """
+  Rebalance category tree positions
+  """
   categoryRebalance(input: CategoryRebalanceInput!): CategoryRebalancePayload!
+
+  """
+  Update category sort order
+  """
   categoryUpdateSort(input: CategoryUpdateSortInput!): CategoryUpdateSortPayload!
+
+  """
+  Delete a category
+  """
   categoryDelete(input: CategoryDeleteInput!): CategoryDeletePayload!
 
+  """
+  Create a new facet group
+  """
   facetGroupCreate(input: FacetGroupCreateInput!): FacetGroupCreatePayload!
+
+  """
+  Update an existing facet group
+  """
   facetGroupUpdate(input: FacetGroupUpdateInput!): FacetGroupUpdatePayload!
+
+  """
+  Delete a facet group
+  """
   facetGroupDelete(input: FacetGroupDeleteInput!): FacetGroupDeletePayload!
+
+  """
+  Create a new facet
+  """
   facetCreate(input: FacetCreateInput!): FacetCreatePayload!
+
+  """
+  Update an existing facet
+  """
   facetUpdate(input: FacetUpdateInput!): FacetUpdatePayload!
+
+  """
+  Delete a facet
+  """
   facetDelete(input: FacetDeleteInput!): FacetDeletePayload!
+
+  """
+  Create a new facet value
+  """
   facetValueCreate(input: FacetValueCreateInput!): FacetValueCreatePayload!
+
+  """
+  Update an existing facet value
+  """
   facetValueUpdate(input: FacetValueUpdateInput!): FacetValueUpdatePayload!
+
+  """
+  Delete a facet value
+  """
   facetValueDelete(input: FacetValueDeleteInput!): FacetValueDeletePayload!
+
+  """
+  Create a new facet swatch
+  """
   facetSwatchCreate(input: FacetSwatchCreateInput!): FacetSwatchCreatePayload!
+
+  """
+  Update an existing facet swatch
+  """
   facetSwatchUpdate(input: FacetSwatchUpdateInput!): FacetSwatchUpdatePayload!
+
+  """
+  Delete a facet swatch
+  """
   facetSwatchDelete(input: FacetSwatchDeleteInput!): FacetSwatchDeletePayload!
 
+  """
+  Create a new collection
+  """
   collectionCreate(input: CollectionCreateInput!): CollectionCreatePayload!
+
+  """
+  Update an existing collection
+  """
   collectionUpdate(input: CollectionUpdateInput!): CollectionUpdatePayload!
+
+  """
+  Delete a collection
+  """
   collectionDelete(input: CollectionDeleteInput!): CollectionDeletePayload!
+
+  """
+  Add products to a collection
+  """
   collectionAddProducts(input: CollectionAddProductsInput!): CollectionAddProductsPayload!
+
+  """
+  Remove products from a collection
+  """
   collectionRemoveProducts(input: CollectionRemoveProductsInput!): CollectionRemoveProductsPayload!
+
+  """
+  Move a product within a collection
+  """
   collectionMoveProduct(input: CollectionMoveProductInput!): CollectionMoveProductPayload!
+
+  """
+  Update collection rules for automatic product inclusion
+  """
   collectionUpdateRules(input: CollectionUpdateRulesInput!): CollectionUpdateRulesPayload!
 
   # Tag mutations
+
+  """
+  Create a new tag
+  """
   tagCreate(input: TagCreateInput!): TagCreatePayload!
+
+  """
+  Update an existing tag
+  """
   tagUpdate(input: TagUpdateInput!): TagUpdatePayload!
+
+  """
+  Delete a tag
+  """
   tagDelete(input: TagDeleteInput!): TagDeletePayload!
 
   # Bulk update mutations
@@ -228,37 +498,121 @@ type CatalogMutation {
   productBulkUpdate(input: ProductBulkUpdateInput!): ProductBulkUpdatePayload!
 
   # Bundle Group mutations
+
+  """
+  Create a new bundle group for a product
+  """
   bundleGroupCreate(input: BundleGroupCreateInput!): BundleGroupPayload!
+
+  """
+  Update an existing bundle group
+  """
   bundleGroupUpdate(input: BundleGroupUpdateInput!): BundleGroupPayload!
+
+  """
+  Delete a bundle group
+  """
   bundleGroupDelete(input: DeleteInput!): DeletePayload!
 
   # Bundle Item mutations
+
+  """
+  Create a new bundle item within a group
+  """
   bundleItemCreate(input: BundleItemCreateInput!): BundleItemPayload!
+
+  """
+  Update an existing bundle item
+  """
   bundleItemUpdate(input: BundleItemUpdateInput!): BundleItemPayload!
+
+  """
+  Delete a bundle item
+  """
   bundleItemDelete(input: DeleteInput!): DeletePayload!
 
   # Bundle Pricing Template mutations
+
+  """
+  Create a new bundle pricing template
+  """
   bundlePricingTemplateCreate(input: BundlePricingTemplateCreateInput!): BundlePricingTemplatePayload!
+
+  """
+  Update an existing bundle pricing template
+  """
   bundlePricingTemplateUpdate(input: BundlePricingTemplateUpdateInput!): BundlePricingTemplatePayload!
+
+  """
+  Delete a bundle pricing template
+  """
   bundlePricingTemplateDelete(input: DeleteInput!): DeletePayload!
 
   # Dependency Rule mutations
+
+  """
+  Create a new dependency rule for a product
+  """
   dependencyRuleCreate(input: DependencyRuleCreateInput!): DependencyRulePayload!
+
+  """
+  Update an existing dependency rule
+  """
   dependencyRuleUpdate(input: DependencyRuleUpdateInput!): DependencyRulePayload!
+
+  """
+  Delete a dependency rule
+  """
   dependencyRuleDelete(input: DeleteInput!): DeletePayload!
 
   # Condition Group mutations
+
+  """
+  Create a new condition group for a dependency rule
+  """
   conditionGroupCreate(input: ConditionGroupCreateInput!): ConditionGroupPayload!
+
+  """
+  Update an existing condition group
+  """
   conditionGroupUpdate(input: ConditionGroupUpdateInput!): ConditionGroupPayload!
+
+  """
+  Delete a condition group
+  """
   conditionGroupDelete(input: DeleteInput!): DeletePayload!
 
   # Condition mutations
+
+  """
+  Create a new condition within a condition group
+  """
   conditionCreate(input: ConditionCreateInput!): ConditionPayload!
+
+  """
+  Update an existing condition
+  """
   conditionUpdate(input: ConditionUpdateInput!): ConditionPayload!
+
+  """
+  Delete a condition
+  """
   conditionDelete(input: DeleteInput!): DeletePayload!
 
   # Dependency Action mutations
+
+  """
+  Create a new action for a dependency rule
+  """
   dependencyActionCreate(input: DependencyActionCreateInput!): DependencyActionPayload!
+
+  """
+  Update an existing dependency action
+  """
   dependencyActionUpdate(input: DependencyActionUpdateInput!): DependencyActionPayload!
+
+  """
+  Delete a dependency action
+  """
   dependencyActionDelete(input: DeleteInput!): DeletePayload!
 }

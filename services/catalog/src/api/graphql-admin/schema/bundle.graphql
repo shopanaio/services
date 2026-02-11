@@ -426,34 +426,6 @@ type DeletePayload {
 }
 
 # ==============================
-# Extend CatalogQuery
-# ==============================
-
-extend type CatalogQuery {
-  "Get a bundle group by ID"
-  bundleGroup(id: ID!): BundleGroup
-
-  "Get all bundle groups for a product"
-  bundleGroups(productId: ID!): [BundleGroup!]!
-
-  "Get a bundle item by ID"
-  bundleItem(id: ID!): BundleItem
-
-  "Get a bundle pricing template by ID"
-  bundlePricingTemplate(id: ID!): BundlePricingTemplate
-
-  "Get all pricing templates for a product"
-  bundlePricingTemplates(productId: ID!): [BundlePricingTemplate!]!
-
-  "Get a dependency rule by ID"
-  dependencyRule(id: ID!): DependencyRule
-
-  "Get all dependency rules for a product"
-  dependencyRules(productId: ID!): [DependencyRule!]!
-}
-
-
-# ==============================
 # Common Delete Input
 # ==============================
 
