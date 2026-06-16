@@ -7,9 +7,15 @@
   },
   {
     "label": "Run Gateway",
-    "command": "yarn shopana gateway",
+    "command": "source ~/.nvm/nvm.sh && nvm use 22 && corepack yarn shopana gateway",
     "use_new_terminal": true,
     "reveal": "always",
+    "shell": {
+      "with_arguments": {
+        "program": "/bin/zsh",
+        "args": ["-c"],
+      },
+    },
   },
   {
     "label": "Run Schema Build",
