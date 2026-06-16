@@ -10,7 +10,7 @@ export class ApiKeyDeleteScript extends BaseScript<ApiKeyDeleteParams, ApiKeyDel
   protected handleError(_error: unknown): ApiKeyDeleteResult {
     return {
       deletedApiKeyId: undefined,
-      userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR" }],
+      userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR", field: null }],
     };
   }
 }

@@ -21,6 +21,7 @@ import type {
   CursorDirection,
   CursorParams,
   SeekValue,
+  SeekTransforms,
   SortParam,
 } from "./types.js";
 import { buildCursorWhereInput } from "./where.js";
@@ -37,6 +38,11 @@ export type BaseCursorBuilderConfig<Fields extends FieldsDef, Types> = {
   mapResult?: (row: Types) => unknown;
   /** QueryBuilder config (maxLimit, defaultLimit, etc.) */
   queryConfig?: QueryBuilderConfig;
+  /**
+   * Optional: transforms for seek values in cursors.
+   * Use to convert between database values and cursor values (e.g., UUID ↔ Global ID).
+   */
+  seekTransforms?: SeekTransforms;
 };
 
 export type BaseCursorInput<F extends FieldsDef> = {
@@ -93,19 +99,26 @@ function buildSeekValuesFromRow(
   sortParams: SortParam[],
   tieBreaker: string,
   cursorType: string,
-  filtersHash: string
+  filtersHash: string,
+  seekTransforms?: SeekTransforms
 ): { cursor: string; seekValues: SeekValue[] } {
   const tieBreakerDir = tieBreakerOrder(sortParams);
 
-  const seekValues: SeekValue[] = sortParams.map((param) => ({
-    field: param.field,
-    value: getNestedValue(row, param.field),
-    direction: param.direction,
-  }));
+  const seekValues: SeekValue[] = sortParams.map((param) => {
+    const rawValue = getNestedValue(row, param.field);
+    const transform = seekTransforms?.[param.field];
+    return {
+      field: param.field,
+      value: transform ? transform.encode(rawValue) : rawValue,
+      direction: param.direction,
+    };
+  });
 
+  const tieBreakerRawValue = getNestedValue(row, tieBreaker);
+  const tieBreakerTransform = seekTransforms?.[tieBreaker];
   seekValues.push({
     field: tieBreaker,
-    value: getNestedValue(row, tieBreaker),
+    value: tieBreakerTransform ? tieBreakerTransform.encode(tieBreakerRawValue) : tieBreakerRawValue,
     direction: tieBreakerDir,
   });
 
@@ -215,7 +228,7 @@ export function createBaseCursorBuilder<
 
     // Build cursor WHERE
     const cursorWhere = cursor
-      ? buildCursorWhereInput<Fields>(cursor, isForward)
+      ? buildCursorWhereInput<Fields>(cursor, isForward, config.seekTransforms)
       : null;
 
     // Merge WHERE conditions
@@ -316,7 +329,8 @@ export function createBaseCursorBuilder<
             prepared.sortParams,
             config.tieBreaker as string,
             config.cursorType,
-            prepared.filtersHash
+            prepared.filtersHash,
+            config.seekTransforms
           ).cursor
         );
       }

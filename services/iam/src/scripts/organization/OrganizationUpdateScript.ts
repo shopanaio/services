@@ -31,7 +31,7 @@ export class OrganizationUpdateScript extends BaseScript<
   protected async execute(
     params: OrganizationUpdateParams
   ): Promise<OrganizationUpdateResult> {
-    const { organizationId, name, displayName } = params;
+    const { organizationId, name, displayName, logoId } = params;
 
     // Find organization
     const org = await this.repository.organization.findById(organizationId);
@@ -64,6 +64,34 @@ export class OrganizationUpdateScript extends BaseScript<
             field: ["organizationId"],
           },
         ],
+      };
+    }
+
+    // Update logo if provided
+    if (logoId !== undefined) {
+      const logoUpdated = await this.repository.organization.updateLogo(
+        organizationId,
+        logoId
+      );
+
+      if (!logoUpdated) {
+        return {
+          organization: null,
+          userErrors: [
+            {
+              code: "UPDATE_FAILED",
+              message: "Failed to update logo",
+              field: ["logoId"],
+            },
+          ],
+        };
+      }
+
+      // Return the updated organization with new logo
+      const finalOrg = await this.repository.organization.findById(organizationId);
+      return {
+        organization: finalOrg,
+        userErrors: [],
       };
     }
 

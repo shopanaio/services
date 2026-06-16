@@ -10,7 +10,7 @@ export class ApiKeyCreateScript extends BaseScript<ApiKeyCreateParams, ApiKeyCre
   protected handleError(_error: unknown): ApiKeyCreateResult {
     return {
       apiKey: undefined,
-      userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR" }],
+      userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR", field: null }],
     };
   }
 }

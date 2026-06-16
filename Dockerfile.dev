@@ -1,0 +1,31 @@
+# Development Dockerfile for Shopana Bootstrap
+# Supports hot-reload with volume-mounted source code
+#
+# Usage with docker-compose:
+#   docker compose up bootstrap
+#
+# Manual usage:
+#   docker build -f Dockerfile.dev -t shopana-dev .
+#   docker run -v $(pwd):/app -v shopana-node-modules:/app/node_modules -p 3000:3000 shopana-dev
+
+FROM node:20-alpine
+
+# Install tini for proper signal handling
+RUN apk add --no-cache tini
+
+# Enable corepack for yarn
+RUN corepack enable
+
+WORKDIR /app
+
+# Copy everything for initial dependency installation
+# Source code will be overwritten by volume mount at runtime
+COPY . .
+
+# Install all dependencies
+RUN yarn install
+
+EXPOSE 3000
+
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["yarn", "dev"]

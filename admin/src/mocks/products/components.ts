@@ -1,0 +1,647 @@
+import type { IMediaFile } from "./types";
+
+// ============================================================================
+// Enums
+// ============================================================================
+
+/**
+ * Bundle item type - determines how the item is displayed
+ */
+export enum BundleItemType {
+  /** Simple product without variants */
+  SIMPLE_PRODUCT = "SIMPLE_PRODUCT",
+  /** Specific variant of a product */
+  SINGLE_VARIANT = "SINGLE_VARIANT",
+  /** Product with variant selection on storefront */
+  PRODUCT_WITH_VARIANTS = "PRODUCT_WITH_VARIANTS",
+}
+
+/**
+ * Price rule types for bundle items
+ */
+export enum BundlePriceType {
+  /** No changes, use base product price */
+  BASE = "BASE",
+  /** Override with fixed price */
+  FIXED = "FIXED",
+  /** Add percentage markup to base */
+  MARKUP_PERCENT = "MARKUP_PERCENT",
+  /** Subtract percentage from base */
+  DISCOUNT_PERCENT = "DISCOUNT_PERCENT",
+  /** Add fixed amount to base */
+  MARKUP_FIXED = "MARKUP_FIXED",
+  /** Subtract fixed amount from base */
+  DISCOUNT_FIXED = "DISCOUNT_FIXED",
+  /** 100% discount, free in bundle */
+  FREE = "FREE",
+  /** Price included in bundle base */
+  INCLUDED = "INCLUDED",
+}
+
+// ============================================================================
+// Product & Variant Types (for ProductPicker)
+// ============================================================================
+
+export interface IPickerProductOption {
+  id: string;
+  name: string;
+  values: string[];
+}
+
+export interface IPickerVariantOption {
+  optionId: string;
+  optionName: string;
+  value: string;
+}
+
+export interface IPickerVariant {
+  id: string;
+  title: string;
+  sku: string;
+  price: number;
+  stock: number;
+  imageUrl?: string | null;
+  options?: IPickerVariantOption[];
+}
+
+export interface IPickerProduct {
+  id: string;
+  title: string;
+  sku: string;
+  price: number;
+  priceMax?: number;
+  imageUrl?: string | null;
+  hasVariants: boolean;
+  stock: number;
+  variants?: IPickerVariant[];
+  options?: IPickerProductOption[];
+}
+
+// ============================================================================
+// Included Variant (for variant-level pricing within a product)
+// ============================================================================
+
+export interface IIncludedVariant {
+  id: string;
+  variantId: string;
+  /** Sort index for independent ordering in table */
+  sortIndex: number;
+  /** Pricing configuration (can override parent) */
+  priceType: BundlePriceType;
+  priceValue: number | null;
+  /** Template ID if using a pricing template */
+  templateId?: string;
+  /** Computed prices */
+  basePrice: number;
+  finalPrice: number;
+}
+
+// ============================================================================
+// Bundle Item
+// ============================================================================
+
+export interface IBundleItem {
+  id: string;
+  itemType: BundleItemType;
+
+  /** Product ID (for all types) */
+  productId: string;
+  /** Resolved product data */
+  product?: IPickerProduct;
+
+  /** Variant ID (for SINGLE_VARIANT) */
+  variantId?: string;
+  /** Resolved variant data */
+  variant?: IPickerVariant;
+
+  /** Available variant IDs (for PRODUCT_WITH_VARIANTS) - null = all */
+  availableVariantIds?: string[] | null;
+  /** Option value restrictions */
+  availableOptionValues?: {
+    optionId: string;
+    allowedValues: string[];
+  }[];
+
+  /** Included variants with individual pricing (for PRODUCT_WITH_VARIANTS) */
+  includedVariants?: IIncludedVariant[];
+
+  sortIndex: number;
+
+  /** Pricing configuration */
+  priceType: BundlePriceType;
+  priceValue: number | null;
+  /** Template ID if using a pricing template */
+  templateId?: string;
+
+  /** Computed prices */
+  basePrice: number;
+  basePriceMax?: number;
+  finalPrice: number;
+  finalPriceMax?: number;
+
+  /** Custom overrides */
+  customTitle?: string | null;
+  customImage?: IMediaFile | null;
+
+  /** Availability */
+  isAvailable: boolean;
+  stockStatus?: string;
+  totalStock?: number;
+}
+
+// ============================================================================
+// Bundle Group
+// ============================================================================
+
+export interface IBundleGroup {
+  id: string;
+  title: string;
+  slug: string;
+  sortIndex: number;
+
+  /** Selection rules */
+  isRequired: boolean;
+  isMultiple: boolean;
+  minSelection: number;
+  maxSelection: number | null;
+
+  /** Default selected items */
+  defaultItemIds: string[];
+
+  /** Items in this group */
+  items: IBundleItem[];
+}
+
+// ============================================================================
+// Pricing Configuration
+// ============================================================================
+
+export interface IPricingRuleTemplate {
+  id: string;
+  name: string;
+  priceType: BundlePriceType;
+  priceValue: number | null;
+}
+
+// ============================================================================
+// Mock Products for ProductPicker
+// ============================================================================
+
+export const mockProducts: IPickerProduct[] = [
+  {
+    id: "prod-1",
+    title: "Premium Case",
+    sku: "CASE-PREM",
+    price: 2500,
+    priceMax: 4500,
+    imageUrl: "https://picsum.photos/seed/case/200",
+    hasVariants: true,
+    stock: 234,
+    options: [
+      { id: "opt-color", name: "Color", values: ["Black", "White", "Blue"] },
+      { id: "opt-material", name: "Material", values: ["Leather", "Silicone"] },
+    ],
+    variants: [
+      {
+        id: "var-1",
+        title: "Black / Leather",
+        sku: "CASE-BLK-LTH",
+        price: 4500,
+        stock: 45,
+        options: [
+          { optionId: "opt-color", optionName: "Color", value: "Black" },
+          { optionId: "opt-material", optionName: "Material", value: "Leather" },
+        ],
+      },
+      {
+        id: "var-2",
+        title: "Black / Silicone",
+        sku: "CASE-BLK-SIL",
+        price: 2500,
+        stock: 67,
+        options: [
+          { optionId: "opt-color", optionName: "Color", value: "Black" },
+          { optionId: "opt-material", optionName: "Material", value: "Silicone" },
+        ],
+      },
+      {
+        id: "var-3",
+        title: "White / Leather",
+        sku: "CASE-WHT-LTH",
+        price: 4500,
+        stock: 23,
+        options: [
+          { optionId: "opt-color", optionName: "Color", value: "White" },
+          { optionId: "opt-material", optionName: "Material", value: "Leather" },
+        ],
+      },
+      {
+        id: "var-4",
+        title: "White / Silicone",
+        sku: "CASE-WHT-SIL",
+        price: 2500,
+        stock: 56,
+        options: [
+          { optionId: "opt-color", optionName: "Color", value: "White" },
+          { optionId: "opt-material", optionName: "Material", value: "Silicone" },
+        ],
+      },
+      {
+        id: "var-5",
+        title: "Blue / Leather",
+        sku: "CASE-BLU-LTH",
+        price: 4500,
+        stock: 0,
+        options: [
+          { optionId: "opt-color", optionName: "Color", value: "Blue" },
+          { optionId: "opt-material", optionName: "Material", value: "Leather" },
+        ],
+      },
+      {
+        id: "var-6",
+        title: "Blue / Silicone",
+        sku: "CASE-BLU-SIL",
+        price: 2500,
+        stock: 43,
+        options: [
+          { optionId: "opt-color", optionName: "Color", value: "Blue" },
+          { optionId: "opt-material", optionName: "Material", value: "Silicone" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "prod-2",
+    title: "Pro Charger 65W",
+    sku: "CHG-PRO-001",
+    price: 3200,
+    imageUrl: "https://picsum.photos/seed/charger/200",
+    hasVariants: false,
+    stock: 45,
+  },
+  {
+    id: "prod-3",
+    title: "Screen Protector",
+    sku: "SCR-PRO-001",
+    price: 1200,
+    imageUrl: "https://picsum.photos/seed/screen/200",
+    hasVariants: false,
+    stock: 89,
+  },
+  {
+    id: "prod-4",
+    title: "Premium USB-C Cable",
+    sku: "CBL-USBC-001",
+    price: 990,
+    imageUrl: "https://picsum.photos/seed/cable/200",
+    hasVariants: false,
+    stock: 156,
+  },
+  {
+    id: "prod-5",
+    title: "Wireless Charger",
+    sku: "CHG-WIR-001",
+    price: 2490,
+    imageUrl: "https://picsum.photos/seed/wireless/200",
+    hasVariants: false,
+    stock: 34,
+  },
+  {
+    id: "prod-6",
+    title: "Laptop Stand",
+    sku: "STD-LAP-001",
+    price: 4990,
+    imageUrl: "https://picsum.photos/seed/stand/200",
+    hasVariants: false,
+    stock: 22,
+  },
+];
+
+// ============================================================================
+// Mock Warranty Products
+// ============================================================================
+
+export const mockWarrantyProducts: IPickerProduct[] = [
+  {
+    id: "war-1",
+    title: "1 Year Standard Warranty",
+    sku: "WAR-STD-1Y",
+    price: 0,
+    imageUrl: null,
+    hasVariants: false,
+    stock: 999,
+  },
+  {
+    id: "war-2",
+    title: "2 Year Extended Warranty",
+    sku: "WAR-EXT-2Y",
+    price: 12990,
+    imageUrl: null,
+    hasVariants: false,
+    stock: 999,
+  },
+  {
+    id: "war-3",
+    title: "3 Year AppleCare+",
+    sku: "WAR-APC-3Y",
+    price: 24990,
+    imageUrl: null,
+    hasVariants: false,
+    stock: 999,
+  },
+];
+
+// ============================================================================
+// Mock Gift Wrap Products
+// ============================================================================
+
+export const mockGiftWrapProducts: IPickerProduct[] = [
+  {
+    id: "gift-1",
+    title: "Classic Gift Wrap",
+    sku: "GIFT-CLS-001",
+    price: 299,
+    imageUrl: "https://picsum.photos/seed/gift1/200",
+    hasVariants: false,
+    stock: 100,
+  },
+  {
+    id: "gift-2",
+    title: "Premium Gift Wrap",
+    sku: "GIFT-PRM-001",
+    price: 599,
+    imageUrl: "https://picsum.photos/seed/gift2/200",
+    hasVariants: false,
+    stock: 50,
+  },
+];
+
+// ============================================================================
+// Mock Bundle Groups
+// ============================================================================
+
+export const mockGroups: IBundleGroup[] = [
+  {
+    id: "grp-1",
+    title: "Accessories",
+    slug: "accessories",
+    sortIndex: 0,
+    isRequired: true,
+    isMultiple: true,
+    minSelection: 1,
+    maxSelection: 5,
+    defaultItemIds: [],
+    items: [
+      {
+        id: "item-1",
+        itemType: BundleItemType.PRODUCT_WITH_VARIANTS,
+        productId: "prod-1",
+        priceType: BundlePriceType.MARKUP_PERCENT,
+        priceValue: 10,
+        basePrice: 2500,
+        basePriceMax: 4500,
+        finalPrice: 2750,
+        finalPriceMax: 4950,
+        sortIndex: 0,
+        isAvailable: true,
+        totalStock: 234,
+        availableVariantIds: ["var-1", "var-2", "var-3", "var-4"],
+        autoHideOutOfStock: true,
+      } as IBundleItem & { autoHideOutOfStock: boolean },
+      {
+        id: "item-2",
+        itemType: BundleItemType.SINGLE_VARIANT,
+        productId: "prod-1",
+        variantId: "var-5",
+        priceType: BundlePriceType.FIXED,
+        priceValue: 3990,
+        basePrice: 4500,
+        finalPrice: 3990,
+        sortIndex: 1,
+        isAvailable: false,
+        stockStatus: "Out of stock",
+      },
+      {
+        id: "item-3",
+        itemType: BundleItemType.SIMPLE_PRODUCT,
+        productId: "prod-2",
+        priceType: BundlePriceType.DISCOUNT_PERCENT,
+        priceValue: 10,
+        basePrice: 3200,
+        finalPrice: 2880,
+        sortIndex: 2,
+        isAvailable: true,
+      },
+      {
+        id: "item-4",
+        itemType: BundleItemType.SIMPLE_PRODUCT,
+        productId: "prod-3",
+        priceType: BundlePriceType.FREE,
+        priceValue: null,
+        basePrice: 1200,
+        finalPrice: 0,
+        sortIndex: 3,
+        isAvailable: true,
+      },
+      {
+        id: "item-5",
+        itemType: BundleItemType.SIMPLE_PRODUCT,
+        productId: "prod-4",
+        priceType: BundlePriceType.BASE,
+        priceValue: null,
+        basePrice: 990,
+        finalPrice: 990,
+        sortIndex: 4,
+        isAvailable: true,
+      },
+    ],
+  },
+  {
+    id: "grp-2",
+    title: "Warranty",
+    slug: "warranty",
+    sortIndex: 1,
+    isRequired: false,
+    isMultiple: false,
+    minSelection: 0,
+    maxSelection: 1,
+    defaultItemIds: ["item-6"],
+    items: [
+      {
+        id: "item-6",
+        itemType: BundleItemType.SIMPLE_PRODUCT,
+        productId: "war-1",
+        priceType: BundlePriceType.INCLUDED,
+        priceValue: null,
+        basePrice: 0,
+        finalPrice: 0,
+        sortIndex: 0,
+        isAvailable: true,
+        customTitle: "1 Year Standard Warranty (included)",
+      },
+      {
+        id: "item-7",
+        itemType: BundleItemType.SIMPLE_PRODUCT,
+        productId: "war-2",
+        priceType: BundlePriceType.FIXED,
+        priceValue: 12990,
+        basePrice: 12990,
+        finalPrice: 12990,
+        sortIndex: 1,
+        isAvailable: true,
+        customTitle: "2 Year Extended Warranty",
+      },
+      {
+        id: "item-8",
+        itemType: BundleItemType.SIMPLE_PRODUCT,
+        productId: "war-3",
+        priceType: BundlePriceType.FIXED,
+        priceValue: 24990,
+        basePrice: 24990,
+        finalPrice: 24990,
+        sortIndex: 2,
+        isAvailable: true,
+        customTitle: "3 Year AppleCare+",
+      },
+    ],
+  },
+  {
+    id: "grp-3",
+    title: "Gift Wrap",
+    slug: "gift-wrap",
+    sortIndex: 2,
+    isRequired: false,
+    isMultiple: false,
+    minSelection: 0,
+    maxSelection: 1,
+    defaultItemIds: [],
+    items: [
+      {
+        id: "item-9",
+        itemType: BundleItemType.SIMPLE_PRODUCT,
+        productId: "gift-1",
+        priceType: BundlePriceType.FREE,
+        priceValue: null,
+        basePrice: 299,
+        finalPrice: 0,
+        sortIndex: 0,
+        isAvailable: true,
+      },
+      {
+        id: "item-10",
+        itemType: BundleItemType.SIMPLE_PRODUCT,
+        productId: "gift-2",
+        priceType: BundlePriceType.FREE,
+        priceValue: null,
+        basePrice: 599,
+        finalPrice: 0,
+        sortIndex: 1,
+        isAvailable: true,
+      },
+    ],
+  },
+];
+
+// ============================================================================
+// Mock Pricing Templates
+// ============================================================================
+
+export const mockPricingTemplates: IPricingRuleTemplate[] = [
+  {
+    id: "tpl-1",
+    name: "Bundle Discount",
+    priceType: BundlePriceType.DISCOUNT_PERCENT,
+    priceValue: 15,
+  },
+  {
+    id: "tpl-2",
+    name: "Accessories Markup",
+    priceType: BundlePriceType.MARKUP_PERCENT,
+    priceValue: 10,
+  },
+  {
+    id: "tpl-3",
+    name: "Fixed Warranty",
+    priceType: BundlePriceType.FIXED,
+    priceValue: 4990,
+  },
+  {
+    id: "tpl-4",
+    name: "Free Gift",
+    priceType: BundlePriceType.FREE,
+    priceValue: null,
+  },
+];
+
+// ============================================================================
+// Mock Modal Settings
+// ============================================================================
+
+export const mockModalSettings = {
+  displayStyle: "accordion" as const,
+  showImages: true,
+  showSku: true,
+  showStock: true,
+  showComparePrice: false,
+  outOfStockBehavior: "disable" as const,
+  inheritStock: true,
+  validationMessage: "Please select required accessories before continuing",
+};
+
+// ============================================================================
+// Helper: Get product by ID
+// ============================================================================
+
+const allProducts = [...mockProducts, ...mockWarrantyProducts, ...mockGiftWrapProducts];
+
+export const getProductById = (id: string): IPickerProduct | undefined => {
+  return allProducts.find((p) => p.id === id);
+};
+
+export const getVariantById = (productId: string, variantId: string) => {
+  const product = getProductById(productId);
+  return product?.variants?.find((v) => v.id === variantId);
+};
+
+// ============================================================================
+// Helper: Format price
+// ============================================================================
+
+export const formatPrice = (amount: number): string => {
+  return new Intl.NumberFormat("ru-RU", {
+    style: "currency",
+    currency: "RUB",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+};
+
+// ============================================================================
+// Helper: Calculate final price
+// ============================================================================
+
+export const calculateFinalPrice = (
+  basePrice: number,
+  priceType: BundlePriceType,
+  priceValue: number | null
+): number => {
+  switch (priceType) {
+    case BundlePriceType.BASE:
+      return basePrice;
+    case BundlePriceType.FIXED:
+      return priceValue ?? basePrice;
+    case BundlePriceType.MARKUP_PERCENT:
+      return Math.round(basePrice * (1 + (priceValue ?? 0) / 100));
+    case BundlePriceType.DISCOUNT_PERCENT:
+      return Math.round(basePrice * (1 - (priceValue ?? 0) / 100));
+    case BundlePriceType.MARKUP_FIXED:
+      return basePrice + (priceValue ?? 0);
+    case BundlePriceType.DISCOUNT_FIXED:
+      return Math.max(0, basePrice - (priceValue ?? 0));
+    case BundlePriceType.FREE:
+    case BundlePriceType.INCLUDED:
+      return 0;
+    default:
+      return basePrice;
+  }
+};

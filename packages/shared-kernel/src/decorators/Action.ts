@@ -6,7 +6,7 @@ export const ACTION_METADATA_KEY = Symbol("broker:action");
 /**
  * Interface for action metadata stored on methods
  */
-export interface ActionMetadata {
+export interface ActionDecoratorMetadata {
   actionName: string;
 }
 
@@ -34,7 +34,12 @@ export function Action(actionName: string): MethodDecorator {
     descriptor: PropertyDescriptor
   ): PropertyDescriptor {
     // Store action metadata
-    Reflect.defineMetadata(ACTION_METADATA_KEY, { actionName }, target, propertyKey);
+    Reflect.defineMetadata(
+      ACTION_METADATA_KEY,
+      { actionName } as ActionDecoratorMetadata,
+      target,
+      propertyKey
+    );
 
     return descriptor;
   };

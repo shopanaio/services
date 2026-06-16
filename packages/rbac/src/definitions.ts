@@ -18,60 +18,74 @@ export const Resources = {
   org: {
     "org.profile": {
       actions: Actions,
+      displayName: "Profile",
       description: "Organization profile",
     },
     "org.members": {
       actions: Actions,
+      displayName: "Members",
       description: "Organization members",
     },
     "org.roles": {
       actions: Actions,
+      displayName: "Roles",
       description: "Role management",
     },
     "org.stores": {
       actions: Actions,
+      displayName: "Stores",
       description: "Store management",
     },
     "org.access": {
       actions: Actions,
+      displayName: "Access",
       description: "Member access to stores",
     },
   },
   store: {
     "store.profile": {
       actions: Actions,
+      displayName: "Profile",
       description: "Store profile",
     },
     "store.members": {
       actions: Actions,
+      displayName: "Members",
       description: "Store members",
     },
     "store.roles": {
       actions: Actions,
+      displayName: "Roles",
       description: "Role management",
     },
     "store.access": {
       actions: Actions,
+      displayName: "Access",
       description: "Member permissions in store",
     },
     "store.inventory": {
       actions: Actions,
+      displayName: "Inventory",
       description: "Store inventory management",
     },
     "store.orders": {
       actions: Actions,
+      displayName: "Orders",
       description: "Store order management",
     },
     "store.listing": {
       actions: Actions,
+      displayName: "Listing",
       description: "Store listing management",
     },
     "store.reviews": {
       actions: Actions,
+      displayName: "Reviews",
       description: "Store reviews management",
     },
     "store.search": {
       actions: Actions,
+      displayName: "Search",
       description: "Store search management",
     },
   },

@@ -13,7 +13,6 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { inventorySchema } from "./schema";
-import { variant } from "./products";
 
 export const warehouses = inventorySchema.table(
   "warehouses",
@@ -23,10 +22,10 @@ export const warehouses = inventorySchema.table(
     code: varchar("code", { length: 32 }).notNull(),
     name: text("name").notNull(),
     isDefault: boolean("is_default").notNull().default(false),
-    createdAt: timestamp("created_at", { withTimezone: true })
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
   },
@@ -45,20 +44,29 @@ export const warehouseStock = inventorySchema.table(
     projectId: uuid("project_id").notNull(),
     id: uuid("id").primaryKey(),
     warehouseId: uuid("warehouse_id").notNull(),
-    variantId: uuid("variant_id")
-      .notNull()
-      .references(() => variant.id, { onDelete: "cascade" }),
+    variantId: uuid("variant_id").notNull(),
     quantityOnHand: integer("quantity_on_hand").notNull().default(0),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
+    reservedQty: integer("reserved_qty").notNull().default(0),
+    unavailableQty: integer("unavailable_qty").notNull().default(0),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
-    createdAt: timestamp("created_at", { withTimezone: true })
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
   },
   (table) => [
     // CHECK constraint
     check("warehouse_stock_quantity_check", sql`${table.quantityOnHand} >= 0`),
+    check("warehouse_stock_reserved_check", sql`${table.reservedQty} >= 0`),
+    check(
+      "warehouse_stock_unavailable_check",
+      sql`${table.unavailableQty} >= 0`
+    ),
+    check(
+      "warehouse_stock_unavailable_le_onhand_check",
+      sql`${table.unavailableQty} <= ${table.quantityOnHand}`
+    ),
     // Unique constraint
     unique("warehouse_stock_project_id_warehouse_id_variant_id_key").on(
       table.projectId,

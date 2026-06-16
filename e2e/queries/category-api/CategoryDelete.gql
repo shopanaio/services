@@ -1,0 +1,12 @@
+mutation CategoryDelete($input: CategoryDeleteInput!) {
+  catalogMutation {
+    categoryDelete(input: $input) {
+      deletedCategoryId
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}

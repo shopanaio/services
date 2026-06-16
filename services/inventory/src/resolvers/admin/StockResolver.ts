@@ -1,17 +1,21 @@
+import { encodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { WarehouseStock } from "../../repositories/models/index.js";
 import { InventoryType } from "./InventoryType.js";
 import { WarehouseResolver } from "./WarehouseResolver.js";
-import { VariantResolver } from "./VariantResolver.js";
 
 /**
  * Stock view - resolves WarehouseStock domain interface
  * Accepts stock ID, loads data lazily via repository
  */
-export class StockResolver extends InventoryType<string, WarehouseStock | null> {
-  async $preload() {
-    return await this.$ctx.kernel
+export class StockResolver extends InventoryType<string, WarehouseStock> {
+  async $preload(): Promise<WarehouseStock> {
+    const data = await this.$ctx.kernel
       .getServices()
       .repository.stock.findById(this.$props);
+    if (!data) {
+      throw new Error(`Stock not found: ${this.$props}`);
+    }
+    return data;
   }
 
   id() {
@@ -31,9 +35,20 @@ export class StockResolver extends InventoryType<string, WarehouseStock | null> 
     return warehouseId ? new WarehouseResolver(warehouseId, this.$ctx) : null;
   }
 
+  /**
+   * Returns a federation reference to the Variant.
+   * Apollo Gateway will resolve the full Variant from Catalog service.
+   */
   async variant() {
     const variantId = await this.$get("variantId");
-    return variantId ? new VariantResolver(variantId, this.$ctx) : null;
+    if (!variantId) return null;
+
+    // Return a reference object for Apollo Federation
+    // Gateway will route to Catalog service to resolve the full Variant
+    return {
+      __typename: "Variant" as const,
+      id: encodeGlobalIdByType(variantId, GlobalIdEntity.Variant),
+    };
   }
 
   async quantityOnHand() {

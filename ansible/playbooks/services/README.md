@@ -491,7 +491,6 @@ ansible/playbooks/services/
 
 ## Related Playbooks
 
-- `playbooks/apollo/build.yml` - Build Apollo Router and Rover images
 - `playbooks/woodpecker-workflows/build.yml` - Build Woodpecker Config Service
 
 ## Architecture

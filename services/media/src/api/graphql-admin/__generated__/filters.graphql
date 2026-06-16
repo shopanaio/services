@@ -1,0 +1,110 @@
+# Auto-generated GraphQL types. Do not edit manually.
+# Generated at: 2026-01-16T06:33:00.014Z
+
+# ---- File ----
+
+"""Filter conditions for File"""
+input FileWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [FileWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [FileWhereInput!]
+  """Negate the condition"""
+  _not: FileWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by provider"""
+  provider: StringFilter
+  """Filter by url"""
+  url: StringFilter
+  """Filter by mimeType"""
+  mimeType: StringFilter
+  """Filter by ext"""
+  ext: StringFilter
+  """Filter by sizeBytes"""
+  sizeBytes: IntFilter
+  """Filter by originalName"""
+  originalName: StringFilter
+  """Filter by width"""
+  width: IntFilter
+  """Filter by height"""
+  height: IntFilter
+  """Filter by durationMs"""
+  durationMs: IntFilter
+  """Filter by altText"""
+  altText: StringFilter
+  """Filter by sourceUrl"""
+  sourceUrl: StringFilter
+  """Filter by idempotencyKey"""
+  idempotencyKey: StringFilter
+  """Filter by isProcessed"""
+  isProcessed: BooleanFilter
+  """Filter by meta"""
+  meta: StringFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+}
+
+"""Fields available for sorting File"""
+enum FileOrderField {
+  """Sort by id"""
+  id
+  """Sort by provider"""
+  provider
+  """Sort by url"""
+  url
+  """Sort by mimeType"""
+  mimeType
+  """Sort by ext"""
+  ext
+  """Sort by sizeBytes"""
+  sizeBytes
+  """Sort by originalName"""
+  originalName
+  """Sort by width"""
+  width
+  """Sort by height"""
+  height
+  """Sort by durationMs"""
+  durationMs
+  """Sort by altText"""
+  altText
+  """Sort by sourceUrl"""
+  sourceUrl
+  """Sort by idempotencyKey"""
+  idempotencyKey
+  """Sort by isProcessed"""
+  isProcessed
+  """Sort by meta"""
+  meta
+  """Sort by createdAt"""
+  createdAt
+  """Sort by updatedAt"""
+  updatedAt
+}
+
+"""Ordering configuration for File"""
+input FileOrderByInput {
+  """Field to order by"""
+  field: FileOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+"""Relay-style pagination input for File"""
+input FileConnectionInput {
+  """Returns the first n items"""
+  first: Int
+  """Returns items after this cursor"""
+  after: String
+  """Returns the last n items"""
+  last: Int
+  """Returns items before this cursor"""
+  before: String
+  """Filter conditions"""
+  where: FileWhereInput
+  """Sort order"""
+  orderBy: [FileOrderByInput!]
+}

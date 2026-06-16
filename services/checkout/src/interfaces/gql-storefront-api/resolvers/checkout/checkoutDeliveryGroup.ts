@@ -61,8 +61,8 @@ export const deliveryMethods = async (
   // Strategy 2: Fallback to runtime API call if read model is empty
   const { serviceApi, logger } = App.getInstance();
   try {
-    const methods = await serviceApi.shipping.getStoreMethods({
-      storeId: ctx.store.id,
+    const methods = await serviceApi.shipping.getProjectMethods({
+      projectId: ctx.store.id,
     });
 
     return (methods || []).map((method: any) => ({

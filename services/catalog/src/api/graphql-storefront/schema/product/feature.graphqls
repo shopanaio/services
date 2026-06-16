@@ -1,0 +1,20 @@
+"""
+A product feature (e.g., "Material", "Country")
+"""
+type ProductFeature implements Node {
+  id: ID!
+  iid: Uuid!
+  handle: String!
+  title: String!
+  values: [ProductFeatureValue!]!
+}
+
+"""
+A feature value (e.g., "Cotton", "Ukraine")
+"""
+type ProductFeatureValue implements Node {
+  id: ID!
+  iid: Uuid!
+  handle: String!
+  title: String!
+}

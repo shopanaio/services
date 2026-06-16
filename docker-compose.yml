@@ -22,6 +22,16 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    command:
+      - "postgres"
+      - "-c"
+      - "log_statement=all"
+      - "-c"
+      - "log_line_prefix=%m [%p] %u@%d"
+      - "-c"
+      - "logging_collector=off" # Логи идут в stdout
+      - "-c"
+      - "max_connections=200" # Increased from default 100
 
   # ============================================
   # MinIO (S3-compatible storage)
@@ -64,23 +74,22 @@ services:
     restart: "no"
 
   # ============================================
-  # RabbitMQ (message broker)
+  # Bootstrap (Development)
   # ============================================
-  rabbitmq:
-    image: rabbitmq:3-management-alpine
-    container_name: shopana-rabbitmq
-    restart: unless-stopped
-    environment:
-      RABBITMQ_DEFAULT_USER: rabbitmq
-      RABBITMQ_DEFAULT_PASS: rabbitmq
-      RABBITMQ_DEFAULT_VHOST: /
-    ports:
-      - "5672:5672" # AMQP
-      - "15672:15672" # Management UI
-    volumes:
-      - ./.data/rabbitmq:/var/lib/rabbitmq
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
+  # bootstrap:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.dev
+  #   container_name: shopana-bootstrap
+  #   restart: unless-stopped
+  #   volumes:
+  #     - .:/app
+  #     - shopana-node-modules:/app/node_modules
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   environment:
+  #     - NODE_ENV=development
+
+volumes:
+  shopana-node-modules:

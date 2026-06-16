@@ -5,13 +5,13 @@
   "type": "module",
   "description": "Modular monolith - composition root for Shopana services",
   "dependencies": {
-    "@golevelup/nestjs-rabbitmq": "^5.5.0",
     "@nestjs/common": "^10.0.0",
     "@nestjs/core": "^10.0.0",
     "@nestjs/platform-fastify": "^10.0.0",
     "@shopana/apps-service": "0.0.1",
     "@shopana/checkout-service": "0.0.1",
     "@shopana/delivery-service": "0.0.1",
+    "@shopana/events-service": "0.0.1",
     "@shopana/iam-service": "0.0.1",
     "@shopana/inventory-service": "0.0.1",
     "@shopana/media-service": "0.0.1",
@@ -21,7 +21,6 @@
     "@shopana/project-service": "0.0.1",
     "@shopana/shared-kernel": "1.0.0",
     "@shopana/shared-service-config": "0.0.1",
-    "@shopana/workflows": "1.0.0",
     "dotenv": "^16.4.5",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"

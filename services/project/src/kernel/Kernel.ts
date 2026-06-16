@@ -1,7 +1,7 @@
 import { Kernel as BaseKernel, consoleLogger } from "@shopana/shared-kernel";
 import type { ServiceBroker, DatabaseClient, Logger } from "@shopana/shared-kernel";
 import { createCache, type Cache } from "cache-manager";
-import type { WorkflowRegistry } from "@shopana/workflows";
+import type { WorkflowRegistry } from "@shopana/shared-kernel";
 import type { ProjectKernelServices } from "./types.js";
 import { Repository } from "../repositories/Repository.js";
 import { BaseScript } from "./BaseScript.js";
@@ -46,9 +46,7 @@ export class Kernel extends BaseKernel<ProjectKernelServices> {
       return this.instance;
     }
 
-    console.log("[PROJECT] Using shared database pool...");
     const db = createDatabase(dbClient);
-
     const repository = await Repository.create({ db });
 
     const cache = createCache({
@@ -58,7 +56,6 @@ export class Kernel extends BaseKernel<ProjectKernelServices> {
     const nameResolver = new NameResolver();
 
     this.instance = new Kernel(broker, consoleLogger, repository, workflow, cache, nameResolver);
-    console.log("[PROJECT] Kernel initialized");
     return this.instance;
   }
 

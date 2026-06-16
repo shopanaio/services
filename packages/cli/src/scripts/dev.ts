@@ -89,14 +89,13 @@ export async function runDev(singleService?: string) {
     return;
   }
 
-  // Full bootstrap mode
-  console.log("Building all services...\n");
+  // Full bootstrap mode - quiet build
+  const startTime = Date.now();
+  await buildServices(services, true, { quiet: true });
+  await buildService("bootstrap", { quiet: true });
+  const duration = Date.now() - startTime;
 
-  // Initial build
-  await buildServices(services, true);
-  await buildService("bootstrap");
-
-  console.log("\n✓ All services built\n");
+  console.log(`✓ Built ${services.length + 1} services (${duration}ms)\n`);
 
   // Start bootstrap
   startBootstrap();

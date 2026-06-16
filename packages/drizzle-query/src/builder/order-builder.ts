@@ -1,4 +1,5 @@
-import { sql, type SQL, type Table } from "drizzle-orm";
+import { sql, type SQL } from "drizzle-orm";
+import type { Selectable } from "../types.js";
 import {
   ObjectSchema,
   tablePrefix,
@@ -13,7 +14,7 @@ export class OrderBuilder<
 > {
   constructor(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    private readonly schema: ObjectSchema<Table, string, Fields, any>,
+    private readonly schema: ObjectSchema<Selectable, string, Fields, any>,
     private readonly joinCollector: JoinCollector,
     private readonly maxDepth: number
   ) {}

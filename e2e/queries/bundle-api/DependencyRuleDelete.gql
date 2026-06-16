@@ -1,0 +1,12 @@
+mutation DependencyRuleDelete($input: DeleteInput!) {
+  catalogMutation {
+    dependencyRuleDelete(input: $input) {
+      deletedId
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}

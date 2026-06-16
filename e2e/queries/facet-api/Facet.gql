@@ -1,0 +1,27 @@
+query Facet($id: ID!) {
+  catalogQuery {
+    facet(id: $id) {
+      id
+      facetType
+      slug
+      label
+      uiType
+      selectionMode
+      sortIndex
+      minValues
+      maxValuesVisible
+      valueSort
+      indexable
+      sourceHandles
+      group {
+        id
+        name
+      }
+      values {
+        id
+        slug
+        label
+      }
+    }
+  }
+}

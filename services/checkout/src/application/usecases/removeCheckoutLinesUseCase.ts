@@ -19,8 +19,8 @@ export class DeleteCheckoutLinesUseCase extends UseCase<
   }
 
   async execute(input: CheckoutLinesDeleteInput): Promise<string> {
-    const { apiKey, project, customer, user, ...businessInput } = input;
-    const context = { apiKey, project, customer, user };
+    const { apiKey, store, customer, user, ...businessInput } = input;
+    const context = { apiKey, store, customer, user };
     const state = await this.getCheckoutState(businessInput.checkoutId);
 
     this.assertCheckoutExists(state);
@@ -68,7 +68,7 @@ export class DeleteCheckoutLinesUseCase extends UseCase<
       const { offers } = await this.checkoutService.getOffers({
         apiKey: ctx.apiKey,
         currency: state.currencyCode,
-        storeId: ctx.store.id,
+        projectId: ctx.store.id,
         items: remainingLines.map((l) => ({
           lineId: l.lineId,
           purchasableId: l.unit.id,
@@ -100,7 +100,7 @@ export class DeleteCheckoutLinesUseCase extends UseCase<
       });
 
       computed = await this.checkoutService.computeTotals({
-        projectId: context.project.id,
+        projectId: context.store.id,
         checkoutLines,
         appliedDiscounts: state.appliedDiscounts,
         currency: state.currencyCode,

@@ -31,6 +31,7 @@ export class AuthMutationResolver extends IAMType<Record<string, never>> {
     const result = await this.$ctx.kernel.runScript(UserSignUpScript, {
       email: input.email,
       password: input.password,
+      headers: this.$ctx.requestHeaders,
     });
 
     return {
@@ -53,6 +54,7 @@ export class AuthMutationResolver extends IAMType<Record<string, never>> {
     const result = await this.$ctx.kernel.runScript(UserSignInScript, {
       email: input.email,
       password: input.password,
+      headers: this.$ctx.requestHeaders,
     });
 
     return {
@@ -70,18 +72,48 @@ export class AuthMutationResolver extends IAMType<Record<string, never>> {
    * Sign out user and invalidate session/refresh token.
    */
   @ZodResolver(UserSignOutInputSchema())
-  async signOut(_args: { input: UserSignOutInput }) {
-    // TODO: Implement session invalidation
-    return {
-      success: false,
-      userErrors: [
-        {
-          code: "NOT_IMPLEMENTED",
-          message: "Sign out is not implemented yet",
-          field: null,
-        },
-      ],
-    };
+  async signOut(args: { input: UserSignOutInput }) {
+    const { input } = args;
+    const currentUser = this.$ctx.currentUser;
+
+    if (!currentUser?.id) {
+      return {
+        success: false,
+        userErrors: [
+          {
+            code: "UNAUTHENTICATED",
+            message: "You must be logged in to sign out",
+            field: null,
+          },
+        ],
+      };
+    }
+
+    try {
+      if (input.allSessions) {
+        // Revoke all sessions for the user
+        await this.$ctx.kernel.repository.user.revokeAllSessions(currentUser.id);
+      } else if (currentUser.sessionId) {
+        // Revoke only current session
+        await this.$ctx.kernel.repository.user.revokeSession(currentUser.sessionId);
+      }
+
+      return {
+        success: true,
+        userErrors: [],
+      };
+    } catch {
+      return {
+        success: false,
+        userErrors: [
+          {
+            code: "SIGNOUT_FAILED",
+            message: "Failed to sign out",
+            field: null,
+          },
+        ],
+      };
+    }
   }
 
   /**

@@ -1,9 +1,84 @@
 {
-  "id": "c6d2765c-9956-48ec-9024-0503c4d5c616",
+  "id": "bd6b3ec9-2701-4525-9ecb-236b3ea1b44c",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
+    "media.asset_groups": {
+      "name": "asset_groups",
+      "schema": "media",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "owner_type": {
+          "name": "owner_type",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_asset_groups_owner": {
+          "name": "idx_asset_groups_owner",
+          "columns": [
+            {
+              "expression": "owner_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "owner_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_asset_groups_owner_type": {
+          "name": "idx_asset_groups_owner_type",
+          "columns": [
+            {
+              "expression": "owner_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "media.buckets": {
       "name": "buckets",
       "schema": "media",
@@ -138,8 +213,8 @@
           "primaryKey": true,
           "notNull": true
         },
-        "project_id": {
-          "name": "project_id",
+        "asset_group_id": {
+          "name": "asset_group_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
@@ -252,11 +327,11 @@
         }
       },
       "indexes": {
-        "idx_files_project_id": {
-          "name": "idx_files_project_id",
+        "idx_files_asset_group": {
+          "name": "idx_files_asset_group",
           "columns": [
             {
-              "expression": "project_id",
+              "expression": "asset_group_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -272,7 +347,7 @@
           "name": "idx_files_provider",
           "columns": [
             {
-              "expression": "project_id",
+              "expression": "asset_group_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -294,7 +369,7 @@
           "name": "idx_files_created_at",
           "columns": [
             {
-              "expression": "project_id",
+              "expression": "asset_group_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -332,7 +407,7 @@
           "name": "idx_files_source_url",
           "columns": [
             {
-              "expression": "project_id",
+              "expression": "asset_group_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -354,7 +429,7 @@
           "name": "idx_files_idempotency_key",
           "columns": [
             {
-              "expression": "project_id",
+              "expression": "asset_group_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -373,7 +448,22 @@
           "with": {}
         }
       },
-      "foreignKeys": {},
+      "foreignKeys": {
+        "files_asset_group_id_asset_groups_id_fk": {
+          "name": "files_asset_group_id_asset_groups_id_fk",
+          "tableFrom": "files",
+          "tableTo": "asset_groups",
+          "schemaTo": "media",
+          "columnsFrom": [
+            "asset_group_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -390,8 +480,8 @@
           "primaryKey": true,
           "notNull": true
         },
-        "project_id": {
-          "name": "project_id",
+        "asset_group_id": {
+          "name": "asset_group_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
@@ -454,7 +544,7 @@
           "name": "idx_s3_objects_hash",
           "columns": [
             {
-              "expression": "project_id",
+              "expression": "asset_group_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -486,6 +576,21 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "idx_s3_objects_asset_group": {
+          "name": "idx_s3_objects_asset_group",
+          "columns": [
+            {
+              "expression": "asset_group_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -496,6 +601,20 @@
           "schemaTo": "media",
           "columnsFrom": [
             "file_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "s3_objects_asset_group_id_asset_groups_id_fk": {
+          "name": "s3_objects_asset_group_id_asset_groups_id_fk",
+          "tableFrom": "s3_objects",
+          "tableTo": "asset_groups",
+          "schemaTo": "media",
+          "columnsFrom": [
+            "asset_group_id"
           ],
           "columnsTo": [
             "id"
@@ -534,8 +653,8 @@
           "primaryKey": true,
           "notNull": true
         },
-        "project_id": {
-          "name": "project_id",
+        "asset_group_id": {
+          "name": "asset_group_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
@@ -558,13 +677,28 @@
           "name": "idx_external_media_external_id",
           "columns": [
             {
-              "expression": "project_id",
+              "expression": "asset_group_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
             },
             {
               "expression": "external_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_external_media_asset_group": {
+          "name": "idx_external_media_asset_group",
+          "columns": [
+            {
+              "expression": "asset_group_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -584,6 +718,20 @@
           "schemaTo": "media",
           "columnsFrom": [
             "file_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "external_media_asset_group_id_asset_groups_id_fk": {
+          "name": "external_media_asset_group_id_asset_groups_id_fk",
+          "tableFrom": "external_media",
+          "tableTo": "asset_groups",
+          "schemaTo": "media",
+          "columnsFrom": [
+            "asset_group_id"
           ],
           "columnsTo": [
             "id"

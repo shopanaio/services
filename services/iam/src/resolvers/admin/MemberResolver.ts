@@ -1,4 +1,4 @@
-import { IAMType, Cache } from "./IAMType.js";
+import { IAMType } from "./IAMType.js";
 import {
   encodeGlobalIdByType,
   GlobalIdEntity,
@@ -20,12 +20,6 @@ export interface MemberInput {
  * Uses DataLoader for batch loading
  */
 export class MemberResolver extends IAMType<MemberInput, UserRole> {
-  @Cache({
-    cacheName: "iam:member",
-    // Cache by unique constraint: organizationId + userId + domain
-    key: ({ $props }: MemberResolver) =>
-      `${$props.organizationId}:${$props.userId}:${$props.domain}`,
-  })
   async $preload(): Promise<UserRole> {
     const { organizationId, userId, domain } = this.$props;
 

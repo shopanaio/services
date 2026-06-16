@@ -20,6 +20,7 @@ export class TokenRefreshScript extends BaseScript<
           {
             code: "INVALID_REFRESH_TOKEN",
             message: result.error || "Invalid or expired refresh token",
+            field: null,
           },
         ],
       };
@@ -38,6 +39,7 @@ export class TokenRefreshScript extends BaseScript<
         {
           code: "INTERNAL_ERROR",
           message: "An unexpected error occurred",
+          field: null,
         },
       ],
     };

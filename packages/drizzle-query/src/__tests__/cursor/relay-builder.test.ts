@@ -394,9 +394,9 @@ describe("createRelayQuery (fluent API)", () => {
 
       expect(meta.isForward).toBe(false);
       expect(meta.hasCursor).toBe(true);
-      expect(meta.invertOrder).toBe(false); // has before cursor, no inversion
+      expect(meta.invertOrder).toBe(true); // backward always inverts order
 
-      // DESC + backward = _gt (seek before current position)
+      // DESC + backward = _gt (seek before current position), order inverted
       expect(toSqlString(sql)).toMatchInlineSnapshot(`
         "SELECT
           "t0_products"."id" AS "id",
@@ -412,8 +412,8 @@ describe("createRelayQuery (fluent API)", () => {
             )
           )
         ORDER BY
-          "t0_products"."price" DESC,
-          "t0_products"."id" DESC
+          "t0_products"."price" ASC,
+          "t0_products"."id" ASC
         LIMIT
           $4
         OFFSET
@@ -746,10 +746,13 @@ describe("createRelayQuery (fluent API)", () => {
           "products" AS "t0_products"
         WHERE
           (
-            "t0_products"."price" < $1
-            OR (
-              "t0_products"."price" = $2
-              AND "t0_products"."id" < $3
+            "t0_products"."deleted_at" IS NULL
+            AND (
+              "t0_products"."price" < $1
+              OR (
+                "t0_products"."price" = $2
+                AND "t0_products"."id" < $3
+              )
             )
           )
         ORDER BY
@@ -1127,7 +1130,9 @@ describe("createRelayQuery (fluent API)", () => {
         select: ["id", "price"],
       });
 
-      expect(toSqlString(sql)).toContain('"t0_products"."price" <');
+      // undefined becomes null after JSON round-trip, and null comparisons
+      // are still included in the cursor WHERE clause
+      expect(toSqlString(sql)).toContain('"t0_products"."id" <');
     });
   });
 

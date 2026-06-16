@@ -1,8 +1,7 @@
 import type { FileUpload } from "graphql-upload-minimal";
 import { MediaType } from "./MediaType.js";
-import { FileResolver } from "./FileResolver.js";
+import { FileResolver, FileAnyResolver } from "./FileResolver.js";
 import { BucketResolver } from "./BucketResolver.js";
-import { decodeGlobalId, encodeGlobalId } from "./utils/globalId.js";
 import {
   BucketCreateScript,
   FileUploadMultipartScript,
@@ -10,11 +9,24 @@ import {
   FileCreateExternalScript,
   FileUpdateScript,
   FileDeleteScript,
+  FileDeleteManyScript,
+  FileRestoreScript,
+  FileRestoreManyScript,
+  FileClearErrorScript,
+  ProfileAvatarUploadScript,
 } from "../../scripts/index.js";
+import type { AssetOwnerType } from "../../repositories/models/index.js";
+import {
+  decodeGlobalId,
+  decodeGlobalIdByType,
+  encodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 
 /**
  * MediaMutation namespace resolver.
  * Handles all media mutation operations.
+ * Store context is determined from x-store-name header.
  */
 export class MediaMutationResolver extends MediaType<Record<string, never>> {
   /**
@@ -50,7 +62,8 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
   }
 
   /**
-   * Upload a file via multipart form data (main upload method)
+   * Upload a file via multipart form data (main upload method).
+   * Uses store.id from context as ownerId.
    */
   async fileUpload({
     input,
@@ -76,7 +89,8 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
   }
 
   /**
-   * Upload a file from URL
+   * Upload a file from URL.
+   * Uses store.id from context as ownerId.
    */
   async fileUploadFromUrl({
     input,
@@ -102,7 +116,8 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
   }
 
   /**
-   * Create an external media file (YouTube, Vimeo, etc.)
+   * Create an external media file (YouTube, Vimeo, etc.).
+   * Uses store.id from context as ownerId.
    */
   async fileCreateExternal({
     input,
@@ -156,8 +171,8 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       meta?: Record<string, unknown>;
     };
   }) {
-    const decoded = decodeGlobalId(input.id);
-    if (!decoded || decoded.type !== "File") {
+    const fileId = decodeGlobalIdByType(input.id, GlobalIdEntity.File);
+    if (!fileId) {
       return {
         file: null,
         userErrors: [
@@ -169,7 +184,7 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
     const { kernel } = this.$ctx;
 
     const result = await kernel.runScript(FileUpdateScript, {
-      id: decoded.id,
+      id: fileId,
       altText: input.altText,
       originalName: input.originalName,
       meta: input.meta,
@@ -192,8 +207,8 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       permanent?: boolean;
     };
   }) {
-    const decoded = decodeGlobalId(input.id);
-    if (!decoded || decoded.type !== "File") {
+    const fileId = decodeGlobalIdByType(input.id, GlobalIdEntity.File);
+    if (!fileId) {
       return {
         deletedFileId: null,
         userErrors: [
@@ -205,15 +220,273 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
     const { kernel } = this.$ctx;
 
     const result = await kernel.runScript(FileDeleteScript, {
-      id: decoded.id,
+      id: fileId,
       permanent: input.permanent,
     });
 
     return {
       deletedFileId: result.deletedFileId
-        ? encodeGlobalId("File", result.deletedFileId)
+        ? encodeGlobalIdByType(result.deletedFileId, GlobalIdEntity.File)
         : null,
       userErrors: result.userErrors,
     };
+  }
+
+  async fileDeleteMany({
+    input,
+  }: {
+    input: {
+      ids: string[];
+      permanent?: boolean;
+    };
+  }) {
+    const decodedIds: string[] = [];
+    const invalidIds: string[] = [];
+
+    for (const id of input.ids) {
+      const fileId = decodeGlobalIdByType(id, GlobalIdEntity.File);
+      if (!fileId) {
+        invalidIds.push(id);
+        continue;
+      }
+      decodedIds.push(fileId);
+    }
+
+    const { kernel } = this.$ctx;
+    const result = await kernel.runScript(FileDeleteManyScript, {
+      ids: decodedIds,
+      permanent: input.permanent ?? false,
+    });
+
+    const userErrors = [
+      ...invalidIds.map(() => ({
+        field: ["ids"],
+        code: "INVALID_ID",
+        message: this.getErrorMessage("INVALID_ID"),
+      })),
+      ...result.errors.map((error) => ({
+        field: ["ids"],
+        code: error.code,
+        message: this.getErrorMessage(error.code),
+      })),
+    ];
+
+    return {
+      acceptedIds: result.acceptedIds.map((id) =>
+        encodeGlobalIdByType(id, GlobalIdEntity.File)
+      ),
+      startedHardDeleteIds: result.startedHardDeleteIds.map((id) =>
+        encodeGlobalIdByType(id, GlobalIdEntity.File)
+      ),
+      userErrors,
+    };
+  }
+
+  async fileRestore({
+    input,
+  }: {
+    input: {
+      id: string;
+    };
+  }) {
+    const fileId = decodeGlobalIdByType(input.id, GlobalIdEntity.File);
+    if (!fileId) {
+      return {
+        file: null,
+        userErrors: [
+          {
+            field: ["id"],
+            code: "INVALID_ID",
+            message: this.getErrorMessage("INVALID_ID"),
+          },
+        ],
+      };
+    }
+
+    const { kernel } = this.$ctx;
+    const result = await kernel.runScript(FileRestoreScript, { id: fileId });
+
+    if (result.error) {
+      return {
+        file: null,
+        userErrors: [
+          {
+            field: ["id"],
+            code: result.error,
+            message: this.getErrorMessage(result.error),
+          },
+        ],
+      };
+    }
+
+    return {
+      file: result.file ? new FileResolver(result.file.id, this.$ctx) : null,
+      userErrors: [],
+    };
+  }
+
+  async fileRestoreMany({
+    input,
+  }: {
+    input: {
+      ids: string[];
+    };
+  }) {
+    const decodedIds: string[] = [];
+    const invalidIds: string[] = [];
+
+    for (const id of input.ids) {
+      const fileId = decodeGlobalIdByType(id, GlobalIdEntity.File);
+      if (!fileId) {
+        invalidIds.push(id);
+        continue;
+      }
+      decodedIds.push(fileId);
+    }
+
+    const { kernel } = this.$ctx;
+    const result = await kernel.runScript(FileRestoreManyScript, {
+      ids: decodedIds,
+    });
+
+    const userErrors = [
+      ...invalidIds.map(() => ({
+        field: ["ids"],
+        code: "INVALID_ID",
+        message: this.getErrorMessage("INVALID_ID"),
+      })),
+      ...result.errors.map((error) => ({
+        field: ["ids"],
+        code: error.code,
+        message: this.getErrorMessage(error.code),
+      })),
+    ];
+
+    return {
+      restoredIds: result.restoredIds.map((id) =>
+        encodeGlobalIdByType(id, GlobalIdEntity.File)
+      ),
+      userErrors,
+    };
+  }
+
+  async fileClearError({
+    input,
+  }: {
+    input: {
+      id: string;
+    };
+  }) {
+    const fileId = decodeGlobalIdByType(input.id, GlobalIdEntity.File);
+    if (!fileId) {
+      return {
+        file: null,
+        userErrors: [
+          {
+            field: ["id"],
+            code: "INVALID_ID",
+            message: this.getErrorMessage("INVALID_ID"),
+          },
+        ],
+      };
+    }
+
+    const { kernel } = this.$ctx;
+    const result = await kernel.runScript(FileClearErrorScript, { id: fileId });
+
+    if (result.error) {
+      return {
+        file: null,
+        userErrors: [
+          {
+            field: ["id"],
+            code: result.error,
+            message: this.getErrorMessage(result.error),
+          },
+        ],
+      };
+    }
+
+    return {
+      file: result.file ? new FileAnyResolver(result.file.id, this.$ctx) : null,
+      userErrors: [],
+    };
+  }
+
+  /**
+   * Upload avatar or logo for an entity (user profile or organization).
+   * The file is stored in the entity's asset group.
+   */
+  async avatarUpload({
+    input,
+  }: {
+    input: {
+      ownerId: string;
+      file: Promise<FileUpload>;
+    };
+  }) {
+    const { kernel } = this.$ctx;
+
+    // Decode ownerId and determine ownerType from global ID
+    let ownerId: string;
+    let ownerType: AssetOwnerType;
+
+    try {
+      const decoded = decodeGlobalId(input.ownerId);
+      ownerId = decoded.id;
+
+      // Map GlobalIdEntity type to AssetOwnerType
+      if (decoded.typeName === GlobalIdEntity.User) {
+        ownerType = "user_profile";
+      } else if (decoded.typeName === GlobalIdEntity.Organization) {
+        ownerType = "organization";
+      } else if (decoded.typeName === GlobalIdEntity.Store) {
+        ownerType = "store";
+      } else {
+        return {
+          file: null,
+          userErrors: [
+            {
+              message: `Invalid owner type: ${decoded.typeName}. Expected User, Organization, or Store.`,
+              field: ["ownerId"],
+              code: "INVALID_OWNER_TYPE",
+            },
+          ],
+        };
+      }
+    } catch {
+      return {
+        file: null,
+        userErrors: [
+          {
+            message: "Invalid ownerId format",
+            field: ["ownerId"],
+            code: "INVALID_ID",
+          },
+        ],
+      };
+    }
+
+    const result = await kernel.runScript(ProfileAvatarUploadScript, {
+      file: input.file,
+      ownerType,
+      ownerId,
+    });
+
+    return {
+      file: result.file ? new FileResolver(result.file.id, this.$ctx) : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  private getErrorMessage(code: string): string {
+    const messages: Record<string, string> = {
+      FILE_NOT_FOUND: "File not found",
+      FILE_BEING_DELETED: "File is currently being deleted",
+      INVALID_STATE: "Invalid file state for this operation",
+      INVALID_ID: "Invalid file ID",
+      INTERNAL_ERROR: "Internal error",
+    };
+    return messages[code] ?? "Unknown error";
   }
 }

@@ -418,6 +418,26 @@ export enum CurrencyCode {
   Zwl = 'ZWL'
 }
 
+/** Filter operators for DateTime fields */
+export type DateTimeFilter = {
+  /** Equals */
+  _eq?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Greater than (after) */
+  _gt?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Greater than or equal (on or after) */
+  _gte?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Is null */
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Is not null */
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Less than (before) */
+  _lt?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Less than or equal (on or before) */
+  _lte?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Not equals */
+  _neq?: InputMaybe<Scalars['DateTime']['input']>;
+};
+
 /** Dimension (length) measurement units */
 export enum DimensionUnit {
   /** Centimeter */
@@ -432,12 +452,33 @@ export enum DimensionUnit {
   Mm = 'mm'
 }
 
+export type File = {
+  __typename?: 'File';
+  id: Scalars['ID']['output'];
+};
+
 /** A generic user error type for mutation responses. */
 export type GenericUserError = UserError & {
   __typename?: 'GenericUserError';
   code?: Maybe<Scalars['String']['output']>;
   field?: Maybe<Array<Scalars['String']['output']>>;
   message: Scalars['String']['output'];
+};
+
+/** Filter operators for ID fields */
+export type IdFilter = {
+  /** Equals */
+  _eq?: InputMaybe<Scalars['ID']['input']>;
+  /** In array */
+  _in?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Is null */
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Is not null */
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Not equals */
+  _neq?: InputMaybe<Scalars['ID']['input']>;
+  /** Not in array */
+  _notIn?: InputMaybe<Array<Scalars['ID']['input']>>;
 };
 
 /** Language/Locale codes based on ISO 639-1 and BCP 47 */
@@ -835,11 +876,17 @@ export type Mutation = {
   userMutation: UserMutation;
 };
 
+/** The Node interface is implemented by all types that have a globally unique ID. */
+export type Node = {
+  /** The globally unique ID of the object. */
+  id: Scalars['ID']['output'];
+};
+
 /**
  * Organization - top level entity for multi-tenancy.
  * Users belong to organizations, organizations contain stores.
  */
-export type Organization = {
+export type Organization = Node & {
   __typename?: 'Organization';
   /** Timestamp when the organization was created. */
   createdAt: Scalars['DateTime']['output'];
@@ -847,12 +894,25 @@ export type Organization = {
   displayName: Scalars['String']['output'];
   /** Unique identifier. */
   id: Scalars['ID']['output'];
+  /** Organization logo (from Media service). */
+  logo?: Maybe<File>;
   /** Membership info (members + roles). Domain = orgId. */
   membership: Membership;
   /** URL-friendly unique identifier. */
   name: Scalars['String']['output'];
   /** Timestamp when the organization was last updated. */
   updatedAt?: Maybe<Scalars['DateTime']['output']>;
+};
+
+/** A connection to a list of Organization items. */
+export type OrganizationConnection = {
+  __typename?: 'OrganizationConnection';
+  /** A list of edges. */
+  edges: Array<OrganizationEdge>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+  /** The total number of organizations. */
+  totalCount: Scalars['Int']['output'];
 };
 
 /** Input for creating an organization. */
@@ -873,6 +933,15 @@ export type OrganizationDeletePayload = {
   __typename?: 'OrganizationDeletePayload';
   deletedOrganizationId?: Maybe<Scalars['ID']['output']>;
   userErrors: Array<GenericUserError>;
+};
+
+/** An edge in an Organization connection. */
+export type OrganizationEdge = {
+  __typename?: 'OrganizationEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String']['output'];
+  /** The item at the end of the edge. */
+  node: Organization;
 };
 
 /** Organization mutations. */
@@ -962,17 +1031,57 @@ export type OrganizationMutationOwnershipTransferArgs = {
   input: OwnershipTransferInput;
 };
 
+/** Ordering configuration for Organization */
+export type OrganizationOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: OrganizationOrderField;
+};
+
+/** Fields available for sorting Organization */
+export enum OrganizationOrderField {
+  /** Sort by createdAt */
+  CreatedAt = 'createdAt',
+  /** Sort by displayName */
+  DisplayName = 'displayName',
+  /** Sort by name */
+  Name = 'name',
+  /** Sort by updatedAt */
+  UpdatedAt = 'updatedAt'
+}
+
 /** Organization queries. */
 export type OrganizationQuery = {
   __typename?: 'OrganizationQuery';
-  /** Get organization by ID (if user has access). */
+  /**
+   * Get organization by ID or name (if user has access).
+   * Provide either id or name, not both.
+   */
   organization?: Maybe<Organization>;
+  /**
+   * Get all organizations the current user has access to with cursor pagination.
+   * Returns empty connection if not authenticated.
+   */
+  organizations: OrganizationConnection;
 };
 
 
 /** Organization queries. */
 export type OrganizationQueryOrganizationArgs = {
-  id: Scalars['ID']['input'];
+  id?: InputMaybe<Scalars['ID']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+/** Organization queries. */
+export type OrganizationQueryOrganizationsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<OrganizationOrderByInput>>;
+  where?: InputMaybe<OrganizationWhereInput>;
 };
 
 /** Input for updating organization. */
@@ -981,6 +1090,8 @@ export type OrganizationUpdateInput = {
   displayName?: InputMaybe<Scalars['String']['input']>;
   /** Organization ID. */
   id: Scalars['ID']['input'];
+  /** Media file ID for the logo. Pass null to remove logo. */
+  logoId?: InputMaybe<Scalars['ID']['input']>;
   /** New name (URL-friendly identifier). */
   name?: InputMaybe<Scalars['String']['input']>;
 };
@@ -989,6 +1100,26 @@ export type OrganizationUpdatePayload = {
   __typename?: 'OrganizationUpdatePayload';
   organization?: Maybe<Organization>;
   userErrors: Array<GenericUserError>;
+};
+
+/** Filter conditions for Organization */
+export type OrganizationWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<OrganizationWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<OrganizationWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<OrganizationWhereInput>>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by displayName */
+  displayName?: InputMaybe<StringFilter>;
+  /** Filter by id */
+  id?: InputMaybe<IdFilter>;
+  /** Filter by name */
+  name?: InputMaybe<StringFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<DateTimeFilter>;
 };
 
 /** Input for transferring organization ownership. */
@@ -1006,6 +1137,19 @@ export type OwnershipTransferPayload = {
   userErrors: Array<GenericUserError>;
 };
 
+/** Information about pagination in a connection. */
+export type PageInfo = {
+  __typename?: 'PageInfo';
+  /** When paginating forwards, the cursor to continue. */
+  endCursor?: Maybe<Scalars['String']['output']>;
+  /** When paginating forwards, are there more items? */
+  hasNextPage: Scalars['Boolean']['output'];
+  /** When paginating backwards, are there more items? */
+  hasPreviousPage: Scalars['Boolean']['output'];
+  /** When paginating backwards, the cursor to continue. */
+  startCursor?: Maybe<Scalars['String']['output']>;
+};
+
 export type Query = {
   __typename?: 'Query';
   /** Organization queries namespace. */
@@ -1019,6 +1163,8 @@ export type ResourceDefinition = {
   __typename?: 'ResourceDefinition';
   /** Available actions for resource. */
   actions: Array<Scalars['String']['output']>;
+  /** Resource description. */
+  description?: Maybe<Scalars['String']['output']>;
   /** Display name. */
   displayName?: Maybe<Scalars['String']['output']>;
   /** Resource name (product, order, etc.). */
@@ -1178,11 +1324,84 @@ export type RoleUpdatePayload = {
   userErrors: Array<GenericUserError>;
 };
 
+/** User session representing an active login. */
+export type Session = {
+  __typename?: 'Session';
+  /** The date and time when the session was created. */
+  createdAt: Scalars['DateTime']['output'];
+  /** When the session expires. */
+  expiresAt: Scalars['DateTime']['output'];
+  /** The globally unique ID of the session. */
+  id: Scalars['ID']['output'];
+  /** IP address from which the session was created. */
+  ipAddress?: Maybe<Scalars['String']['output']>;
+  /** Whether this is the current session making the request. */
+  isCurrent: Scalars['Boolean']['output'];
+  /** The date and time when the session was last updated. */
+  updatedAt: Scalars['DateTime']['output'];
+  /** User agent string (browser/device info). */
+  userAgent?: Maybe<Scalars['String']['output']>;
+};
+
+/** Payload for revoking all sessions. */
+export type SessionRevokeAllPayload = {
+  __typename?: 'SessionRevokeAllPayload';
+  /** Number of sessions revoked. */
+  revokedCount: Scalars['Int']['output'];
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<GenericUserError>;
+};
+
+/** Input for revoking a specific session. */
+export type SessionRevokeInput = {
+  /** The ID of the session to revoke. */
+  sessionId: Scalars['ID']['input'];
+};
+
+/** Payload for session revoke operation. */
+export type SessionRevokePayload = {
+  __typename?: 'SessionRevokePayload';
+  /** Whether the session was successfully revoked. */
+  success: Scalars['Boolean']['output'];
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<GenericUserError>;
+};
+
+/** Sort direction */
+export enum SortDirection {
+  Asc = 'asc',
+  Desc = 'desc'
+}
+
+/** Filter operators for String fields */
+export type StringFilter = {
+  /** Contains substring (case-sensitive) */
+  _contains?: InputMaybe<Scalars['String']['input']>;
+  /** Contains substring (case-insensitive) */
+  _containsi?: InputMaybe<Scalars['String']['input']>;
+  /** Equals */
+  _eq?: InputMaybe<Scalars['String']['input']>;
+  /** In array */
+  _in?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** Is null */
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Is not null */
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Not equals */
+  _neq?: InputMaybe<Scalars['String']['input']>;
+  /** Not in array */
+  _notIn?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** Starts with (case-sensitive) */
+  _startsWith?: InputMaybe<Scalars['String']['input']>;
+  /** Starts with (case-insensitive) */
+  _startsWithi?: InputMaybe<Scalars['String']['input']>;
+};
+
 /** User type representing admin users (CMS/backoffice). */
 export type User = {
   __typename?: 'User';
-  /** URL to user's avatar image. */
-  avatar?: Maybe<Scalars['String']['output']>;
+  /** User's avatar image (from Media service). */
+  avatar?: Maybe<File>;
   /** The date and time when the user was created. */
   createdAt?: Maybe<Scalars['DateTime']['output']>;
   /** User's email address. */
@@ -1199,6 +1418,11 @@ export type User = {
   isDeleted?: Maybe<Scalars['Boolean']['output']>;
   /** Whether the user account is forbidden/banned. */
   isForbidden?: Maybe<Scalars['Boolean']['output']>;
+  /**
+   * Whether the user has completed their profile (firstName and lastName are filled).
+   * Used for onboarding flow to ensure required fields are present.
+   */
+  isProfileComplete: Scalars['Boolean']['output'];
   /** User's last name. */
   lastName?: Maybe<Scalars['String']['output']>;
   /** User's locale/language preference. */
@@ -1219,9 +1443,18 @@ export type UserError = {
 
 export type UserMutation = {
   __typename?: 'UserMutation';
+  /** Revoke a specific session by ID. */
+  sessionRevoke: SessionRevokePayload;
+  /** Revoke all sessions except the current one. */
+  sessionRevokeAll: SessionRevokeAllPayload;
   userUpdateEmail: UserUpdateEmailPayload;
   userUpdatePassword: UserUpdatePasswordPayload;
   userUpdateProfile: UserUpdateProfilePayload;
+};
+
+
+export type UserMutationSessionRevokeArgs = {
+  input: SessionRevokeInput;
 };
 
 
@@ -1249,6 +1482,8 @@ export type UserQuery = {
   authorize: AuthorizePayload;
   /** Get current authenticated admin user */
   current?: Maybe<User>;
+  /** Get all active sessions for the current user. */
+  mySessions: Array<Session>;
 };
 
 
@@ -1358,6 +1593,8 @@ export type UserUpdatePasswordPayload = {
 
 /** Input for updating user profile. */
 export type UserUpdateProfileInput = {
+  /** Media file ID for the avatar. Pass null to remove avatar. */
+  avatarId?: InputMaybe<Scalars['ID']['input']>;
   /** User's first name. */
   firstName?: InputMaybe<Scalars['String']['input']>;
   /** User's last name. */
@@ -1469,6 +1706,7 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
+  Node: ( Organization );
   UserError: ( GenericUserError );
 }>;
 
@@ -1485,9 +1723,12 @@ export type ResolversTypes = ResolversObject<{
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   CurrencyCode: CurrencyCode;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
+  DateTimeFilter: DateTimeFilter;
   DimensionUnit: DimensionUnit;
   Email: ResolverTypeWrapper<Scalars['Email']['output']>;
+  File: ResolverTypeWrapper<File>;
   GenericUserError: ResolverTypeWrapper<GenericUserError>;
+  IDFilter: IdFilter;
   JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
   LocaleCode: LocaleCode;
   Member: ResolverTypeWrapper<Member>;
@@ -1501,16 +1742,23 @@ export type ResolversTypes = ResolversObject<{
   MemberRoleChangePayload: ResolverTypeWrapper<MemberRoleChangePayload>;
   Membership: ResolverTypeWrapper<Membership>;
   Mutation: ResolverTypeWrapper<{}>;
+  Node: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['Node']>;
   Organization: ResolverTypeWrapper<Organization>;
+  OrganizationConnection: ResolverTypeWrapper<OrganizationConnection>;
   OrganizationCreateInput: OrganizationCreateInput;
   OrganizationCreatePayload: ResolverTypeWrapper<OrganizationCreatePayload>;
   OrganizationDeletePayload: ResolverTypeWrapper<OrganizationDeletePayload>;
+  OrganizationEdge: ResolverTypeWrapper<OrganizationEdge>;
   OrganizationMutation: ResolverTypeWrapper<OrganizationMutation>;
+  OrganizationOrderByInput: OrganizationOrderByInput;
+  OrganizationOrderField: OrganizationOrderField;
   OrganizationQuery: ResolverTypeWrapper<OrganizationQuery>;
   OrganizationUpdateInput: OrganizationUpdateInput;
   OrganizationUpdatePayload: ResolverTypeWrapper<OrganizationUpdatePayload>;
+  OrganizationWhereInput: OrganizationWhereInput;
   OwnershipTransferInput: OwnershipTransferInput;
   OwnershipTransferPayload: ResolverTypeWrapper<OwnershipTransferPayload>;
+  PageInfo: ResolverTypeWrapper<PageInfo>;
   Query: ResolverTypeWrapper<{}>;
   ResourceDefinition: ResolverTypeWrapper<ResourceDefinition>;
   Role: ResolverTypeWrapper<Role>;
@@ -1524,6 +1772,12 @@ export type ResolversTypes = ResolversObject<{
   RolePermissionInput: RolePermissionInput;
   RoleUpdateInput: RoleUpdateInput;
   RoleUpdatePayload: ResolverTypeWrapper<RoleUpdatePayload>;
+  Session: ResolverTypeWrapper<Session>;
+  SessionRevokeAllPayload: ResolverTypeWrapper<SessionRevokeAllPayload>;
+  SessionRevokeInput: SessionRevokeInput;
+  SessionRevokePayload: ResolverTypeWrapper<SessionRevokePayload>;
+  SortDirection: SortDirection;
+  StringFilter: StringFilter;
   User: ResolverTypeWrapper<User>;
   UserError: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['UserError']>;
   UserMutation: ResolverTypeWrapper<UserMutation>;
@@ -1556,8 +1810,11 @@ export type ResolversParentTypes = ResolversObject<{
   AuthorizePayload: AuthorizePayload;
   Boolean: Scalars['Boolean']['output'];
   DateTime: Scalars['DateTime']['output'];
+  DateTimeFilter: DateTimeFilter;
   Email: Scalars['Email']['output'];
+  File: File;
   GenericUserError: GenericUserError;
+  IDFilter: IdFilter;
   JSON: Scalars['JSON']['output'];
   Member: Member;
   MemberAccessRemoveInput: MemberAccessRemoveInput;
@@ -1570,16 +1827,22 @@ export type ResolversParentTypes = ResolversObject<{
   MemberRoleChangePayload: MemberRoleChangePayload;
   Membership: Membership;
   Mutation: {};
+  Node: ResolversInterfaceTypes<ResolversParentTypes>['Node'];
   Organization: Organization;
+  OrganizationConnection: OrganizationConnection;
   OrganizationCreateInput: OrganizationCreateInput;
   OrganizationCreatePayload: OrganizationCreatePayload;
   OrganizationDeletePayload: OrganizationDeletePayload;
+  OrganizationEdge: OrganizationEdge;
   OrganizationMutation: OrganizationMutation;
+  OrganizationOrderByInput: OrganizationOrderByInput;
   OrganizationQuery: OrganizationQuery;
   OrganizationUpdateInput: OrganizationUpdateInput;
   OrganizationUpdatePayload: OrganizationUpdatePayload;
+  OrganizationWhereInput: OrganizationWhereInput;
   OwnershipTransferInput: OwnershipTransferInput;
   OwnershipTransferPayload: OwnershipTransferPayload;
+  PageInfo: PageInfo;
   Query: {};
   ResourceDefinition: ResourceDefinition;
   Role: Role;
@@ -1593,6 +1856,11 @@ export type ResolversParentTypes = ResolversObject<{
   RolePermissionInput: RolePermissionInput;
   RoleUpdateInput: RoleUpdateInput;
   RoleUpdatePayload: RoleUpdatePayload;
+  Session: Session;
+  SessionRevokeAllPayload: SessionRevokeAllPayload;
+  SessionRevokeInput: SessionRevokeInput;
+  SessionRevokePayload: SessionRevokePayload;
+  StringFilter: StringFilter;
   User: User;
   UserError: ResolversInterfaceTypes<ResolversParentTypes>['UserError'];
   UserMutation: UserMutation;
@@ -1641,6 +1909,12 @@ export interface DateTimeScalarConfig extends GraphQLScalarTypeConfig<ResolversT
 export interface EmailScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['Email'], any> {
   name: 'Email';
 }
+
+export type FileResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['File'] = ResolversParentTypes['File']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['File']>, ParentType, ContextType>;
+
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
 
 export type GenericUserErrorResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['GenericUserError'] = ResolversParentTypes['GenericUserError']> = ResolversObject<{
   code?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -1705,14 +1979,27 @@ export type MutationResolvers<ContextType = ServiceContext, ParentType extends R
   userMutation?: Resolver<ResolversTypes['UserMutation'], ParentType, ContextType>;
 }>;
 
+export type NodeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Node'] = ResolversParentTypes['Node']> = ResolversObject<{
+  __resolveType: TypeResolveFn<'Organization', ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+}>;
+
 export type OrganizationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Organization'] = ResolversParentTypes['Organization']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Organization']>, { __typename: 'Organization' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   displayName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  logo?: Resolver<Maybe<ResolversTypes['File']>, ParentType, ContextType>;
   membership?: Resolver<ResolversTypes['Membership'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   updatedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type OrganizationConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['OrganizationConnection'] = ResolversParentTypes['OrganizationConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['OrganizationEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1725,6 +2012,12 @@ export type OrganizationCreatePayloadResolvers<ContextType = ServiceContext, Par
 export type OrganizationDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['OrganizationDeletePayload'] = ResolversParentTypes['OrganizationDeletePayload']> = ResolversObject<{
   deletedOrganizationId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type OrganizationEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['OrganizationEdge'] = ResolversParentTypes['OrganizationEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['Organization'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1741,7 +2034,8 @@ export type OrganizationMutationResolvers<ContextType = ServiceContext, ParentTy
 }>;
 
 export type OrganizationQueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['OrganizationQuery'] = ResolversParentTypes['OrganizationQuery']> = ResolversObject<{
-  organization?: Resolver<Maybe<ResolversTypes['Organization']>, ParentType, ContextType, RequireFields<OrganizationQueryOrganizationArgs, 'id'>>;
+  organization?: Resolver<Maybe<ResolversTypes['Organization']>, ParentType, ContextType, Partial<OrganizationQueryOrganizationArgs>>;
+  organizations?: Resolver<ResolversTypes['OrganizationConnection'], ParentType, ContextType, Partial<OrganizationQueryOrganizationsArgs>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1757,6 +2051,14 @@ export type OwnershipTransferPayloadResolvers<ContextType = ServiceContext, Pare
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type PageInfoResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['PageInfo'] = ResolversParentTypes['PageInfo']> = ResolversObject<{
+  endCursor?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  hasNextPage?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  hasPreviousPage?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  startCursor?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type QueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = ResolversObject<{
   organizationQuery?: Resolver<ResolversTypes['OrganizationQuery'], ParentType, ContextType>;
   userQuery?: Resolver<ResolversTypes['UserQuery'], ParentType, ContextType>;
@@ -1764,6 +2066,7 @@ export type QueryResolvers<ContextType = ServiceContext, ParentType extends Reso
 
 export type ResourceDefinitionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ResourceDefinition'] = ResolversParentTypes['ResourceDefinition']> = ResolversObject<{
   actions?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
+  description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   displayName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -1814,9 +2117,32 @@ export type RoleUpdatePayloadResolvers<ContextType = ServiceContext, ParentType 
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type SessionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Session'] = ResolversParentTypes['Session']> = ResolversObject<{
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  expiresAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  ipAddress?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  isCurrent?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  userAgent?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type SessionRevokeAllPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SessionRevokeAllPayload'] = ResolversParentTypes['SessionRevokeAllPayload']> = ResolversObject<{
+  revokedCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type SessionRevokePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SessionRevokePayload'] = ResolversParentTypes['SessionRevokePayload']> = ResolversObject<{
+  success?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type UserResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['User'] = ResolversParentTypes['User']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['User']>, { __typename: 'User' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
-  avatar?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  avatar?: Resolver<Maybe<ResolversTypes['File']>, ParentType, ContextType>;
   createdAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   email?: Resolver<ResolversTypes['Email'], ParentType, ContextType>;
   emailVerified?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
@@ -1825,6 +2151,7 @@ export type UserResolvers<ContextType = ServiceContext, ParentType extends Resol
   isAdmin?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   isDeleted?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   isForbidden?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  isProfileComplete?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   lastName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   locale?: Resolver<Maybe<ResolversTypes['LocaleCode']>, ParentType, ContextType>;
   updatedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
@@ -1839,6 +2166,8 @@ export type UserErrorResolvers<ContextType = ServiceContext, ParentType extends 
 }>;
 
 export type UserMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['UserMutation'] = ResolversParentTypes['UserMutation']> = ResolversObject<{
+  sessionRevoke?: Resolver<ResolversTypes['SessionRevokePayload'], ParentType, ContextType, RequireFields<UserMutationSessionRevokeArgs, 'input'>>;
+  sessionRevokeAll?: Resolver<ResolversTypes['SessionRevokeAllPayload'], ParentType, ContextType>;
   userUpdateEmail?: Resolver<ResolversTypes['UserUpdateEmailPayload'], ParentType, ContextType, RequireFields<UserMutationUserUpdateEmailArgs, 'input'>>;
   userUpdatePassword?: Resolver<ResolversTypes['UserUpdatePasswordPayload'], ParentType, ContextType, RequireFields<UserMutationUserUpdatePasswordArgs, 'input'>>;
   userUpdateProfile?: Resolver<ResolversTypes['UserUpdateProfilePayload'], ParentType, ContextType, RequireFields<UserMutationUserUpdateProfileArgs, 'input'>>;
@@ -1848,6 +2177,7 @@ export type UserMutationResolvers<ContextType = ServiceContext, ParentType exten
 export type UserQueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['UserQuery'] = ResolversParentTypes['UserQuery']> = ResolversObject<{
   authorize?: Resolver<ResolversTypes['AuthorizePayload'], ParentType, ContextType, RequireFields<UserQueryAuthorizeArgs, 'input'>>;
   current?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
+  mySessions?: Resolver<Array<ResolversTypes['Session']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1901,6 +2231,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   AuthorizePayload?: AuthorizePayloadResolvers<ContextType>;
   DateTime?: GraphQLScalarType;
   Email?: GraphQLScalarType;
+  File?: FileResolvers<ContextType>;
   GenericUserError?: GenericUserErrorResolvers<ContextType>;
   JSON?: GraphQLScalarType;
   Member?: MemberResolvers<ContextType>;
@@ -1910,13 +2241,17 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   MemberRoleChangePayload?: MemberRoleChangePayloadResolvers<ContextType>;
   Membership?: MembershipResolvers<ContextType>;
   Mutation?: MutationResolvers<ContextType>;
+  Node?: NodeResolvers<ContextType>;
   Organization?: OrganizationResolvers<ContextType>;
+  OrganizationConnection?: OrganizationConnectionResolvers<ContextType>;
   OrganizationCreatePayload?: OrganizationCreatePayloadResolvers<ContextType>;
   OrganizationDeletePayload?: OrganizationDeletePayloadResolvers<ContextType>;
+  OrganizationEdge?: OrganizationEdgeResolvers<ContextType>;
   OrganizationMutation?: OrganizationMutationResolvers<ContextType>;
   OrganizationQuery?: OrganizationQueryResolvers<ContextType>;
   OrganizationUpdatePayload?: OrganizationUpdatePayloadResolvers<ContextType>;
   OwnershipTransferPayload?: OwnershipTransferPayloadResolvers<ContextType>;
+  PageInfo?: PageInfoResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   ResourceDefinition?: ResourceDefinitionResolvers<ContextType>;
   Role?: RoleResolvers<ContextType>;
@@ -1925,6 +2260,9 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   RoleMutation?: RoleMutationResolvers<ContextType>;
   RolePermission?: RolePermissionResolvers<ContextType>;
   RoleUpdatePayload?: RoleUpdatePayloadResolvers<ContextType>;
+  Session?: SessionResolvers<ContextType>;
+  SessionRevokeAllPayload?: SessionRevokeAllPayloadResolvers<ContextType>;
+  SessionRevokePayload?: SessionRevokePayloadResolvers<ContextType>;
   User?: UserResolvers<ContextType>;
   UserError?: UserErrorResolvers<ContextType>;
   UserMutation?: UserMutationResolvers<ContextType>;

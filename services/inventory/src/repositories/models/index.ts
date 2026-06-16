@@ -1,29 +1,21 @@
 // Schema
 export * from "./schema";
 
-// Products & Variants
-export * from "./products";
-
-// Pricing
-export * from "./pricing";
+// InventoryItem (1:1 with Catalog.Variant)
+export * from "./inventory-item";
 
 // Cost
 export * from "./cost";
-
-// Options (color, size, etc.)
-export * from "./options";
-
-// Features
-export * from "./features";
 
 // Physical attributes (dimensions, weight)
 export * from "./physical";
 
 // Stock & Warehouses
 export * from "./stock";
+export * from "./stock-changes";
+export * from "./reservations";
+export * from "./product-inventory-settings";
+export * from "./inbound-supply";
 
-// Media links
-export * from "./media";
-
-// Translations (i18n)
+// Translations (i18n) - warehouse translations only
 export * from "./translations";

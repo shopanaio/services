@@ -1,3 +1,4 @@
+import { and, eq, inArray } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   itemDimensions,
@@ -67,5 +68,43 @@ export class PhysicalRepository extends BaseRepository {
       .returning();
 
     return result[0];
+  }
+
+  /**
+   * Get dimensions for multiple variants (batch loader)
+   */
+  async getDimensionsByVariantIds(
+    variantIds: readonly string[]
+  ): Promise<ItemDimensions[]> {
+    if (variantIds.length === 0) return [];
+
+    return this.connection
+      .select()
+      .from(itemDimensions)
+      .where(
+        and(
+          eq(itemDimensions.projectId, this.storeId),
+          inArray(itemDimensions.variantId, [...variantIds])
+        )
+      );
+  }
+
+  /**
+   * Get weights for multiple variants (batch loader)
+   */
+  async getWeightsByVariantIds(
+    variantIds: readonly string[]
+  ): Promise<ItemWeight[]> {
+    if (variantIds.length === 0) return [];
+
+    return this.connection
+      .select()
+      .from(itemWeight)
+      .where(
+        and(
+          eq(itemWeight.projectId, this.storeId),
+          inArray(itemWeight.variantId, [...variantIds])
+        )
+      );
   }
 }

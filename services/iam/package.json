@@ -11,7 +11,7 @@
   "exports": {
     ".": {
       "import": "./dist/iam.module.js",
-      "default": "./src/iam.module.ts"
+      "source": "./src/iam.module.ts"
     }
   },
   "dependencies": {

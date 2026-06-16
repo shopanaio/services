@@ -9,7 +9,7 @@ import type {
 
 declare module "fastify" {
   interface FastifyRequest {
-    store: ContextStore;
+    store?: ContextStore;
     user: ContextUser;
   }
 }
@@ -34,6 +34,10 @@ function isGraphqlIntrospectionRequest(request: FastifyRequest): boolean {
 export interface AdminContextMiddlewareOptions {
   /** Service name for logging */
   serviceName?: string;
+  /** Whether x-store-name header is required (default: true) */
+  requireStore?: boolean;
+  /** Whether authorization header is required (default: true) */
+  requireAuth?: boolean;
 }
 
 /**
@@ -49,6 +53,8 @@ export function buildAdminContextMiddleware(
   options: AdminContextMiddlewareOptions = {}
 ) {
   const serviceName = options.serviceName ?? "SERVICE";
+  const requireStore = options.requireStore ?? true;
+  const requireAuth = options.requireAuth ?? true;
 
   return async function adminContextMiddleware(
     request: FastifyRequest,
@@ -61,7 +67,7 @@ export function buildAdminContextMiddleware(
     const storeName = request.headers["x-store-name"] as string | undefined;
     const authorization = request.headers.authorization;
 
-    if (!storeName) {
+    if (requireStore && !storeName) {
       return reply.status(400).send({
         data: null,
         errors: [{ message: "Missing x-store-name header" }],
@@ -69,50 +75,61 @@ export function buildAdminContextMiddleware(
     }
 
     if (!authorization?.startsWith("Bearer ")) {
-      return reply.status(401).send({
-        data: null,
-        errors: [{ message: "Missing or invalid authorization header" }],
-      });
+      if (requireAuth) {
+        return reply.status(401).send({
+          data: null,
+          errors: [{ message: "Missing or invalid authorization header" }],
+        });
+      }
+      // Auth not required, continue without user context
+      return;
     }
 
     const accessToken = authorization.slice(7);
 
     try {
-      // Parallel calls to IAM and Project services
-      const [userResult, storeResult] = await Promise.all([
-        broker.call<GetCurrentUserResult, { accessToken: string }>(
-          "iam.getCurrentUser",
-          { accessToken }
-        ),
-        broker.call<GetCurrentStoreResult, { name: string }>(
-          "project.getCurrentStore",
-          { name: storeName }
-        ),
-      ]);
+      // Get user
+      const userResult = await broker.call<
+        GetCurrentUserResult,
+        { accessToken: string }
+      >("iam.getCurrentUser", { accessToken });
 
       if (!userResult?.user) {
-        return reply.status(401).send({
-          data: null,
-          errors: [
-            { message: userResult?.userErrors?.[0]?.message || "Unauthorized" },
-          ],
-        });
-      }
-
-      if (!storeResult?.store) {
-        return reply.status(404).send({
-          data: null,
-          errors: [
-            {
-              message:
-                storeResult?.userErrors?.[0]?.message || "Store not found",
-            },
-          ],
-        });
+        if (requireAuth) {
+          return reply.status(401).send({
+            data: null,
+            errors: [
+              { message: userResult?.userErrors?.[0]?.message || "Unauthorized" },
+            ],
+          });
+        }
+        // Auth not required, continue without user context
+        return;
       }
 
       request.user = userResult.user;
-      request.store = storeResult.store;
+
+      // Get store if provided
+      if (storeName) {
+        const storeResult = await broker.call<
+          GetCurrentStoreResult,
+          { name: string }
+        >("project.getCurrentStore", { name: storeName });
+
+        if (!storeResult?.store) {
+          return reply.status(404).send({
+            data: null,
+            errors: [
+              {
+                message:
+                  storeResult?.userErrors?.[0]?.message || "Store not found",
+              },
+            ],
+          });
+        }
+
+        request.store = storeResult.store;
+      }
     } catch (error) {
       console.error(`[${serviceName}] Context loading failed:`, error);
       return reply.status(500).send({

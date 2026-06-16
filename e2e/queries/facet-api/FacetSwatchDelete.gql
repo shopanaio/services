@@ -1,0 +1,12 @@
+mutation FacetSwatchDelete($input: FacetSwatchDeleteInput!) {
+  catalogMutation {
+    facetSwatchDelete(input: $input) {
+      deletedFacetSwatchId
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}

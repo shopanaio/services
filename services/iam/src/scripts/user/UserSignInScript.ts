@@ -9,11 +9,12 @@ export class UserSignInScript extends BaseScript<
   UserSignInResult
 > {
   protected async execute(params: UserSignInParams): Promise<UserSignInResult> {
-    const { email, password } = params;
+    const { email, password, headers } = params;
 
     const result = await this.repository.user.signIn({
       email,
       password,
+      headers,
     });
 
     if (!result.success) {
@@ -24,6 +25,7 @@ export class UserSignInScript extends BaseScript<
           {
             code: "INVALID_CREDENTIALS",
             message: result.error || "Invalid email or password",
+            field: null,
           },
         ],
       };
@@ -44,6 +46,7 @@ export class UserSignInScript extends BaseScript<
         {
           code: "INTERNAL_ERROR",
           message: "An unexpected error occurred",
+          field: null,
         },
       ],
     };

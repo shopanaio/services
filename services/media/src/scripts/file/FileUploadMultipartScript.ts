@@ -1,6 +1,10 @@
 import crypto from "node:crypto";
 import { BaseScript } from "../../kernel/BaseScript.js";
-import { getS3Client, getBucketName, buildPublicUrl } from "../../infrastructure/s3/index.js";
+import {
+  getS3Client,
+  getBucketName,
+  buildPublicUrl,
+} from "../../infrastructure/s3/index.js";
 import { analyzeMedia } from "../../infrastructure/media/index.js";
 import type {
   FileUploadMultipartParams,
@@ -11,15 +15,22 @@ export class FileUploadMultipartScript extends BaseScript<
   FileUploadMultipartParams,
   FileUploadMultipartResult
 > {
-  protected async execute(params: FileUploadMultipartParams): Promise<FileUploadMultipartResult> {
-    const projectId = this.storeId;
+  protected async execute(
+    params: FileUploadMultipartParams
+  ): Promise<FileUploadMultipartResult> {
+    // Resolve asset group ID from store context (ownerType = "store", ownerId = storeId)
+    const assetGroup = await this.repository.assetGroup.findByOwner(
+      "store",
+      this.storeId
+    );
+    const assetGroupId = assetGroup?.id ?? null;
 
-    this.logger.info({ projectId }, "FileUploadMultipartScript: starting");
+    this.logger.info({ storeId: this.storeId, assetGroupId }, "FileUploadMultipartScript: starting");
 
     // 1. Check idempotency key
-    if (params.idempotencyKey) {
+    if (params.idempotencyKey && assetGroupId) {
       const existingFile = await this.repository.file.findByIdempotencyKey(
-        projectId,
+        assetGroupId,
         params.idempotencyKey
       );
 
@@ -39,7 +50,10 @@ export class FileUploadMultipartScript extends BaseScript<
     const upload = await params.file;
     const { filename, mimetype, createReadStream } = upload;
 
-    this.logger.info({ filename, mimetype }, "FileUploadMultipartScript: processing file");
+    this.logger.info(
+      { filename, mimetype },
+      "FileUploadMultipartScript: processing file"
+    );
 
     // Read file stream into buffer
     const stream = createReadStream();
@@ -79,8 +93,7 @@ export class FileUploadMultipartScript extends BaseScript<
     );
 
     // 4. Generate object key and upload to S3
-    const objectKey = this.generateObjectKey(projectId, metadata.ext);
-    const contentHash = crypto.createHash("sha256").update(buffer).digest("hex");
+    const objectKey = this.generateObjectKey(this.storeId, metadata.ext);
 
     // Initialize S3 client
     const s3Client = getS3Client();
@@ -97,7 +110,6 @@ export class FileUploadMultipartScript extends BaseScript<
       buffer.length,
       {
         "Content-Type": metadata.mimeType,
-        "x-amz-meta-content-hash": contentHash,
         "x-amz-meta-original-name": encodeURIComponent(filename),
       }
     );
@@ -111,7 +123,7 @@ export class FileUploadMultipartScript extends BaseScript<
     const publicUrl = buildPublicUrl(objectKey);
 
     // 6. Create record in `files` table with detected metadata
-    const file = await this.repository.file.create(projectId, {
+    const file = await this.repository.file.create(assetGroupId!, {
       provider: "S3",
       url: publicUrl,
       mimeType: metadata.mimeType,
@@ -128,16 +140,21 @@ export class FileUploadMultipartScript extends BaseScript<
     });
 
     // 7. Create record in `s3Objects` table
-    await this.repository.s3Object.create(projectId, {
+    await this.repository.s3Object.create(assetGroupId!, {
       fileId: file.id,
       bucketId: bucket.id,
       objectKey,
-      contentHash,
       etag: uploadResult.etag,
       storageClass: "STANDARD",
     });
 
-    this.logger.info({ fileId: file.id }, "FileUploadMultipartScript: completed successfully");
+    // 8. Create deletion state record
+    await this.repository.fileDeletionState.create(file.id);
+
+    this.logger.info(
+      { fileId: file.id },
+      "FileUploadMultipartScript: completed successfully"
+    );
 
     return {
       file: { id: file.id },
@@ -145,16 +162,18 @@ export class FileUploadMultipartScript extends BaseScript<
     };
   }
 
-  private generateObjectKey(projectId: string, ext: string): string {
+  private generateObjectKey(storeId: string, ext: string): string {
     const timestamp = Date.now();
     const random = crypto.randomBytes(8).toString("hex");
-    return `${projectId}/${timestamp}-${random}.${ext}`;
+    return `${storeId}/${timestamp}-${random}.${ext}`;
   }
 
   protected handleError(_error: unknown): FileUploadMultipartResult {
     return {
       file: null,
-      userErrors: [{ message: "Failed to upload file", code: "INTERNAL_ERROR" }],
+      userErrors: [
+        { message: "Failed to upload file", code: "INTERNAL_ERROR" },
+      ],
     };
   }
 }

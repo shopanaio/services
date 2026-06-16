@@ -9,16 +9,43 @@ export class FileUpdateScript extends BaseScript<
   FileUpdateResult
 > {
   protected async execute(params: FileUpdateParams): Promise<FileUpdateResult> {
-    const projectId = this.storeId;
+    this.logger.info({ params }, "FileUpdateScript: starting");
 
-    this.logger.info({ params, projectId }, "FileUpdateScript: starting");
-
-    // 1. Find file by ID
-    const existingFile = await this.repository.file.findById(projectId, params.id);
+    // 1. Find file by ID (any state to block DELETING)
+    const existingFile = await this.repository.file.findAnyById(params.id);
 
     // 2. Check that file exists
     if (!existingFile) {
       this.logger.warn({ fileId: params.id }, "FileUpdateScript: file not found");
+      return {
+        file: null,
+        userErrors: [
+          {
+            message: "File not found",
+            field: ["id"],
+            code: "NOT_FOUND",
+          },
+        ],
+      };
+    }
+
+    // 3. Check deletion state
+    const deletionState = await this.repository.fileDeletionState.findByFileId(
+      params.id
+    );
+    if (deletionState?.deletionState === "DELETING") {
+      return {
+        file: null,
+        userErrors: [
+          {
+            message: "File is currently being deleted",
+            field: ["id"],
+            code: "FILE_BEING_DELETED",
+          },
+        ],
+      };
+    }
+    if (deletionState && deletionState.deletionState !== "ACTIVE") {
       return {
         file: null,
         userErrors: [
@@ -58,7 +85,7 @@ export class FileUpdateScript extends BaseScript<
     }
 
     // 4. Update the file
-    const updatedFile = await this.repository.file.update(projectId, params.id, updateData);
+    const updatedFile = await this.repository.file.update(params.id, updateData);
 
     if (!updatedFile) {
       this.logger.error({ fileId: params.id }, "FileUpdateScript: update failed unexpectedly");

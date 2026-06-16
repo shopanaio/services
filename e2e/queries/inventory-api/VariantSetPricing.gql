@@ -1,6 +1,6 @@
-mutation VariantSetPricing($input: VariantSetPricingInput!) {
-  inventoryMutation {
-    variantSetPricing(input: $input) {
+mutation VariantSetPricing($input: VariantUpdatePricingInput!) {
+  catalogMutation {
+    variantUpdatePricing(input: $input) {
       variant {
         id
         price {

@@ -1,0 +1,85 @@
+[
+  {
+    "label": "Run Infrastructure",
+    "command": "docker compose up",
+    "use_new_terminal": true,
+    "reveal": "always",
+  },
+  {
+    "label": "Run Gateway",
+    "command": "source ~/.nvm/nvm.sh && nvm use 22 && corepack yarn shopana gateway",
+    "use_new_terminal": true,
+    "reveal": "always",
+    "shell": {
+      "with_arguments": {
+        "program": "/bin/zsh",
+        "args": ["-c"],
+      },
+    },
+  },
+  {
+    "label": "Run Schema Build",
+    "command": "yarn shopana schema build",
+    "use_new_terminal": true,
+    "reveal": "always",
+  },
+  {
+    "label": "Run Build",
+    "command": "yarn shopana build",
+    "use_new_terminal": true,
+    "reveal": "always",
+  },
+  {
+    "label": "Run Migrations",
+    "command": "yarn shopana db migrate",
+    "use_new_terminal": true,
+    "reveal": "always",
+  },
+  {
+    "label": "Generate Migrations",
+    "command": "yarn shopana db generate",
+    "use_new_terminal": true,
+    "reveal": "always",
+  },
+  {
+    "label": "Run Bootstrap",
+    "command": "source ~/.nvm/nvm.sh && nvm use 22 && yarn shopana dev",
+    "use_new_terminal": true,
+    "allow_concurrent_runs": false,
+    "reveal": "always",
+    "shell": {
+      "with_arguments": {
+        "program": "/bin/zsh",
+        "args": ["-c"],
+      },
+    },
+  },
+  {
+    "label": "Claude",
+    "command": "claude",
+    "use_new_terminal": true,
+    "allow_concurrent_runs": true,
+    "reveal": "always",
+  },
+  {
+    "label": "Claude (*)",
+    "command": "claude --dangerously-skip-permissions",
+    "use_new_terminal": true,
+    "allow_concurrent_runs": true,
+    "reveal": "always",
+  },
+  {
+    "label": "Run Admin Next",
+    "command": "source ~/.nvm/nvm.sh && nvm use 22 && yarn && yarn dev",
+    "cwd": "$ZED_WORKTREE_ROOT/admin-next",
+    "use_new_terminal": true,
+    "allow_concurrent_runs": false,
+    "reveal": "always",
+    "shell": {
+      "with_arguments": {
+        "program": "/bin/zsh",
+        "args": ["-c"],
+      },
+    },
+  },
+]

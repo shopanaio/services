@@ -1,0 +1,84 @@
+"use client";
+
+import { memo } from "react";
+import { Handle, Position } from "@xyflow/react";
+import type { NodeProps, Node } from "@xyflow/react";
+import { createStyles } from "antd-style";
+import { Typography } from "antd";
+import { GiftOutlined } from "@ant-design/icons";
+
+import type { BundleNodeData } from "../types";
+import { NODE_DIMENSIONS } from "../constants";
+
+// ============================================================================
+// Styles
+// ============================================================================
+
+const useStyles = createStyles(({ token }) => ({
+  node: {
+    background: `linear-gradient(135deg, ${token.colorPrimaryBg} 0%, ${token.colorBgContainer} 100%)`,
+    border: `2px solid ${token.colorPrimaryBorder}`,
+    borderRadius: token.borderRadiusLG,
+    padding: token.padding,
+    width: NODE_DIMENSIONS.bundle.width,
+    height: NODE_DIMENSIONS.bundle.height,
+    boxSizing: "border-box",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    transition: "all 0.2s ease",
+    "&:hover": {
+      boxShadow: token.boxShadowTertiary,
+    },
+  },
+  nodeSelected: {
+    border: `2px solid ${token.colorPrimary}`,
+    boxShadow: token.boxShadowTertiary,
+  },
+  nodeHighlighted: {
+    boxShadow: token.boxShadowTertiary,
+  },
+  nodeDimmed: {
+    opacity: 0.5,
+    filter: "grayscale(30%)",
+  },
+  icon: {
+    color: token.colorPrimary,
+    fontSize: 28,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: 600,
+    color: token.colorPrimary,
+  },
+  handle: {
+    width: 8,
+    height: 8,
+    background: token.colorSuccess,
+    border: "none",
+  },
+}));
+
+// ============================================================================
+// Component
+// ============================================================================
+
+type BundleNodeProps = NodeProps<Node<BundleNodeData, "bundle">>;
+
+const BundleNodeComponent = ({ data, selected }: BundleNodeProps) => {
+  const { styles, cx } = useStyles();
+  const { label, isDimmed, isHighlighted } = data;
+
+  return (
+    <div className={cx(styles.node, selected && styles.nodeSelected, isHighlighted && styles.nodeHighlighted, isDimmed && styles.nodeDimmed)}>
+      <Handle type="target" position={Position.Left} className={styles.handle} />
+
+      <GiftOutlined className={styles.icon} />
+      <Typography.Text className={styles.label}>{label}</Typography.Text>
+    </div>
+  );
+};
+
+export const BundleNode = memo(BundleNodeComponent);

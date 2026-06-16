@@ -23,6 +23,38 @@ export type Scalars = {
   _FieldSet: { input: any; output: any; }
 };
 
+/** Input for uploading avatar or logo. */
+export type AvatarUploadInput = {
+  /** The file to upload. */
+  file: Scalars['Upload']['input'];
+  /**
+   * Owner ID (User or Organization global ID).
+   * The asset group will be resolved by this ID.
+   */
+  ownerId: Scalars['ID']['input'];
+};
+
+/** Payload for avatar/logo upload. */
+export type AvatarUploadPayload = {
+  __typename?: 'AvatarUploadPayload';
+  /** The uploaded file. */
+  file?: Maybe<File>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<GenericUserError>;
+};
+
+/** Filter operators for Boolean fields */
+export type BooleanFilter = {
+  /** Equals */
+  _eq?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Is null */
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Is not null */
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Not equals */
+  _neq?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
 /** A bucket represents an S3 storage bucket for a project. */
 export type Bucket = {
   __typename?: 'Bucket';
@@ -67,6 +99,32 @@ export type BucketCreatePayload = {
   userErrors: Array<GenericUserError>;
 };
 
+/** Filter operators for DateTime fields */
+export type DateTimeFilter = {
+  /** Between range (inclusive) */
+  _between?: InputMaybe<Array<Scalars['DateTime']['input']>>;
+  /** Equals */
+  _eq?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Greater than (after) */
+  _gt?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Greater than or equal (on or after) */
+  _gte?: InputMaybe<Scalars['DateTime']['input']>;
+  /** In array */
+  _in?: InputMaybe<Array<Scalars['DateTime']['input']>>;
+  /** Is null */
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Is not null */
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Less than (before) */
+  _lt?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Less than or equal (on or before) */
+  _lte?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Not equals */
+  _neq?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Not in array */
+  _notIn?: InputMaybe<Array<Scalars['DateTime']['input']>>;
+};
+
 /** External media data (YouTube, Vimeo, etc). */
 export type ExternalMediaData = {
   __typename?: 'ExternalMediaData';
@@ -85,6 +143,10 @@ export type File = Node & {
   createdAt: Scalars['DateTime']['output'];
   /** The date and time when the file was deleted (soft delete). */
   deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Deletion error code, if any. */
+  deletionErrorCode?: Maybe<Scalars['String']['output']>;
+  /** Current deletion state (ACTIVE, SOFT_DELETED, DELETING). */
+  deletionState: Scalars['String']['output'];
   /** Image/video dimensions (null if not applicable). */
   dimensions?: Maybe<MediaDimensions>;
   /** Duration in milliseconds (for video/audio). */
@@ -93,10 +155,14 @@ export type File = Node & {
   ext?: Maybe<Scalars['String']['output']>;
   /** External media data (for YouTube, Vimeo, etc). */
   externalData?: Maybe<ExternalMediaData>;
+  /** The date and time when the last deletion error occurred. */
+  failedAt?: Maybe<Scalars['DateTime']['output']>;
   /** The globally unique ID of the file. */
   id: Scalars['ID']['output'];
   /** Whether the file has been processed. */
   isProcessed: Scalars['Boolean']['output'];
+  /** Last deletion error details. */
+  lastDeletionError?: Maybe<Scalars['String']['output']>;
   /** Additional metadata. */
   meta?: Maybe<Scalars['JSON']['output']>;
   /** MIME type. */
@@ -115,9 +181,54 @@ export type File = Node & {
   updatedAt: Scalars['DateTime']['output'];
   /** Public URL to access file. */
   url: Scalars['String']['output'];
+  /** Usage summary for this file. */
+  usage: FileUsageSummary;
 };
 
-/** Input for creating an external media file (YouTube, Vimeo, etc). */
+export type FileClearErrorInput = {
+  /** The ID of the file to clear deletion error for. */
+  id: Scalars['ID']['input'];
+};
+
+export type FileClearErrorPayload = {
+  __typename?: 'FileClearErrorPayload';
+  /** The file with cleared deletion error. */
+  file?: Maybe<File>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<GenericUserError>;
+};
+
+/** A connection to a list of File items. */
+export type FileConnection = {
+  __typename?: 'FileConnection';
+  /** A list of edges. */
+  edges: Array<FileEdge>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+  /** The total number of files. */
+  totalCount: Scalars['Int']['output'];
+};
+
+/** Relay-style pagination input for File */
+export type FileConnectionInput = {
+  /** Returns items after this cursor */
+  after?: InputMaybe<Scalars['String']['input']>;
+  /** Returns items before this cursor */
+  before?: InputMaybe<Scalars['String']['input']>;
+  /** Returns the first n items */
+  first?: InputMaybe<Scalars['Int']['input']>;
+  /** Returns the last n items */
+  last?: InputMaybe<Scalars['Int']['input']>;
+  /** Sort order */
+  orderBy?: InputMaybe<Array<FileOrderByInput>>;
+  /** Filter conditions */
+  where?: InputMaybe<FileWhereInput>;
+};
+
+/**
+ * Input for creating an external media file (YouTube, Vimeo, etc).
+ * Store context is determined from x-store-name header.
+ */
 export type FileCreateExternalInput = {
   /** Alt text for accessibility. */
   altText?: InputMaybe<Scalars['String']['input']>;
@@ -160,6 +271,23 @@ export type FileDeleteInput = {
   permanent?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
+export type FileDeleteManyInput = {
+  /** The IDs of files to delete. */
+  ids: Array<Scalars['ID']['input']>;
+  /** Whether to permanently delete the files (hard delete). */
+  permanent?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type FileDeleteManyPayload = {
+  __typename?: 'FileDeleteManyPayload';
+  /** Files that were eligible and transitioned to SOFT_DELETED. */
+  acceptedIds: Array<Scalars['ID']['output']>;
+  /** Files for which hard delete workflow was started. */
+  startedHardDeleteIds: Array<Scalars['ID']['output']>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<GenericUserError>;
+};
+
 /** Payload for file deletion. */
 export type FileDeletePayload = {
   __typename?: 'FileDeletePayload';
@@ -168,6 +296,61 @@ export type FileDeletePayload = {
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
 };
+
+/** An edge in a File connection. */
+export type FileEdge = {
+  __typename?: 'FileEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String']['output'];
+  /** The item at the end of the edge. */
+  node: File;
+};
+
+/** Ordering configuration for File */
+export type FileOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: FileOrderField;
+};
+
+/** Fields available for sorting File */
+export enum FileOrderField {
+  /** Sort by altText */
+  AltText = 'altText',
+  /** Sort by createdAt */
+  CreatedAt = 'createdAt',
+  /** Sort by durationMs */
+  DurationMs = 'durationMs',
+  /** Sort by ext */
+  Ext = 'ext',
+  /** Sort by height */
+  Height = 'height',
+  /** Sort by id */
+  Id = 'id',
+  /** Sort by idempotencyKey */
+  IdempotencyKey = 'idempotencyKey',
+  /** Sort by isProcessed */
+  IsProcessed = 'isProcessed',
+  /** Sort by meta */
+  Meta = 'meta',
+  /** Sort by mimeType */
+  MimeType = 'mimeType',
+  /** Sort by originalName */
+  OriginalName = 'originalName',
+  /** Sort by provider */
+  Provider = 'provider',
+  /** Sort by sizeBytes */
+  SizeBytes = 'sizeBytes',
+  /** Sort by sourceUrl */
+  SourceUrl = 'sourceUrl',
+  /** Sort by updatedAt */
+  UpdatedAt = 'updatedAt',
+  /** Sort by url */
+  Url = 'url',
+  /** Sort by width */
+  Width = 'width'
+}
 
 /** Provider type for files. */
 export enum FileProvider {
@@ -182,6 +365,32 @@ export enum FileProvider {
   /** YouTube video */
   Youtube = 'YOUTUBE'
 }
+
+export type FileRestoreInput = {
+  /** The ID of the file to restore. */
+  id: Scalars['ID']['input'];
+};
+
+export type FileRestoreManyInput = {
+  /** The IDs of files to restore. */
+  ids: Array<Scalars['ID']['input']>;
+};
+
+export type FileRestoreManyPayload = {
+  __typename?: 'FileRestoreManyPayload';
+  /** Files that were successfully restored. */
+  restoredIds: Array<Scalars['ID']['output']>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<GenericUserError>;
+};
+
+export type FileRestorePayload = {
+  __typename?: 'FileRestorePayload';
+  /** The restored file. */
+  file?: Maybe<File>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<GenericUserError>;
+};
 
 /** Input for updating a file. */
 export type FileUpdateInput = {
@@ -204,7 +413,10 @@ export type FileUpdatePayload = {
   userErrors: Array<GenericUserError>;
 };
 
-/** Input for uploading a file from URL. */
+/**
+ * Input for uploading a file from URL.
+ * Store context is determined from x-store-name header.
+ */
 export type FileUploadFromUrlInput = {
   /** Alt text for accessibility. */
   altText?: InputMaybe<Scalars['String']['input']>;
@@ -214,7 +426,10 @@ export type FileUploadFromUrlInput = {
   sourceUrl: Scalars['String']['input'];
 };
 
-/** Input for uploading a file via multipart form data. */
+/**
+ * Input for uploading a file via multipart form data.
+ * Store context is determined from x-store-name header.
+ */
 export type FileUploadMultipartInput = {
   /** Alt text for accessibility. */
   altText?: InputMaybe<Scalars['String']['input']>;
@@ -233,12 +448,142 @@ export type FileUploadPayload = {
   userErrors: Array<GenericUserError>;
 };
 
+export type FileUsageCount = {
+  __typename?: 'FileUsageCount';
+  /** Number of unique entities referencing the file. */
+  count: Scalars['Int']['output'];
+  /** Entity type (variant, user, organization, etc). */
+  entityType: Scalars['String']['output'];
+};
+
+export type FileUsageSummary = {
+  __typename?: 'FileUsageSummary';
+  /** Usage breakdown by entity type. */
+  byEntity: Array<FileUsageCount>;
+  /** Whether the file is active (not soft-deleted). */
+  fileActive: Scalars['Boolean']['output'];
+  /** Total number of unique entities referencing the file. */
+  totalCount: Scalars['Int']['output'];
+};
+
+/** Filter conditions for File */
+export type FileWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<FileWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<FileWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<FileWhereInput>>;
+  /** Filter by altText */
+  altText?: InputMaybe<StringFilter>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by durationMs */
+  durationMs?: InputMaybe<IntFilter>;
+  /** Filter by ext */
+  ext?: InputMaybe<StringFilter>;
+  /** Filter by height */
+  height?: InputMaybe<IntFilter>;
+  /** Filter by id */
+  id?: InputMaybe<IdFilter>;
+  /** Filter by idempotencyKey */
+  idempotencyKey?: InputMaybe<StringFilter>;
+  /** Filter by isProcessed */
+  isProcessed?: InputMaybe<BooleanFilter>;
+  /** Filter by meta */
+  meta?: InputMaybe<StringFilter>;
+  /** Filter by mimeType */
+  mimeType?: InputMaybe<StringFilter>;
+  /** Filter by originalName */
+  originalName?: InputMaybe<StringFilter>;
+  /** Filter by provider */
+  provider?: InputMaybe<StringFilter>;
+  /** Filter by sizeBytes */
+  sizeBytes?: InputMaybe<IntFilter>;
+  /** Filter by sourceUrl */
+  sourceUrl?: InputMaybe<StringFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by url */
+  url?: InputMaybe<StringFilter>;
+  /** Filter by width */
+  width?: InputMaybe<IntFilter>;
+};
+
+/** Filter operators for Float fields */
+export type FloatFilter = {
+  /** Between range (inclusive) */
+  _between?: InputMaybe<Array<Scalars['Float']['input']>>;
+  /** Equals */
+  _eq?: InputMaybe<Scalars['Float']['input']>;
+  /** Greater than */
+  _gt?: InputMaybe<Scalars['Float']['input']>;
+  /** Greater than or equal */
+  _gte?: InputMaybe<Scalars['Float']['input']>;
+  /** In array */
+  _in?: InputMaybe<Array<Scalars['Float']['input']>>;
+  /** Is null */
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Is not null */
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Less than */
+  _lt?: InputMaybe<Scalars['Float']['input']>;
+  /** Less than or equal */
+  _lte?: InputMaybe<Scalars['Float']['input']>;
+  /** Not equals */
+  _neq?: InputMaybe<Scalars['Float']['input']>;
+  /** Not in array */
+  _notIn?: InputMaybe<Array<Scalars['Float']['input']>>;
+};
+
 /** A generic user error type for mutation responses. */
 export type GenericUserError = UserError & {
   __typename?: 'GenericUserError';
   code?: Maybe<Scalars['String']['output']>;
   field?: Maybe<Array<Scalars['String']['output']>>;
   message: Scalars['String']['output'];
+};
+
+/** Filter operators for ID fields */
+export type IdFilter = {
+  /** Equals */
+  _eq?: InputMaybe<Scalars['ID']['input']>;
+  /** In array */
+  _in?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Is null */
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Is not null */
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Not equals */
+  _neq?: InputMaybe<Scalars['ID']['input']>;
+  /** Not in array */
+  _notIn?: InputMaybe<Array<Scalars['ID']['input']>>;
+};
+
+/** Filter operators for Int fields */
+export type IntFilter = {
+  /** Between range (inclusive) */
+  _between?: InputMaybe<Array<Scalars['Int']['input']>>;
+  /** Equals */
+  _eq?: InputMaybe<Scalars['Int']['input']>;
+  /** Greater than */
+  _gt?: InputMaybe<Scalars['Int']['input']>;
+  /** Greater than or equal */
+  _gte?: InputMaybe<Scalars['Int']['input']>;
+  /** In array */
+  _in?: InputMaybe<Array<Scalars['Int']['input']>>;
+  /** Is null */
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Is not null */
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Less than */
+  _lt?: InputMaybe<Scalars['Int']['input']>;
+  /** Less than or equal */
+  _lte?: InputMaybe<Scalars['Int']['input']>;
+  /** Not equals */
+  _neq?: InputMaybe<Scalars['Int']['input']>;
+  /** Not in array */
+  _notIn?: InputMaybe<Array<Scalars['Int']['input']>>;
 };
 
 /** Image/video dimensions. */
@@ -252,17 +597,40 @@ export type MediaDimensions = {
 
 export type MediaMutation = {
   __typename?: 'MediaMutation';
+  /**
+   * Upload avatar or logo for an entity (user profile or organization).
+   * The file is stored in the entity's asset group.
+   */
+  avatarUpload: AvatarUploadPayload;
   bucketCreate: BucketCreatePayload;
+  /** Clear errors for multiple files by ID. */
+  fileClearError: FileClearErrorPayload;
   fileCreateExternal: FileCreateExternalPayload;
   fileDelete: FileDeletePayload;
+  /** Delete multiple files by ID. */
+  fileDeleteMany: FileDeleteManyPayload;
+  /** Restore a single deleted file by ID. */
+  fileRestore: FileRestorePayload;
+  /** Restore multiple deleted files by ID. */
+  fileRestoreMany: FileRestoreManyPayload;
   fileUpdate: FileUpdatePayload;
   fileUpload: FileUploadPayload;
   fileUploadFromUrl: FileUploadPayload;
 };
 
 
+export type MediaMutationAvatarUploadArgs = {
+  input: AvatarUploadInput;
+};
+
+
 export type MediaMutationBucketCreateArgs = {
   input: BucketCreateInput;
+};
+
+
+export type MediaMutationFileClearErrorArgs = {
+  input: FileClearErrorInput;
 };
 
 
@@ -273,6 +641,21 @@ export type MediaMutationFileCreateExternalArgs = {
 
 export type MediaMutationFileDeleteArgs = {
   input: FileDeleteInput;
+};
+
+
+export type MediaMutationFileDeleteManyArgs = {
+  input: FileDeleteManyInput;
+};
+
+
+export type MediaMutationFileRestoreArgs = {
+  input: FileRestoreInput;
+};
+
+
+export type MediaMutationFileRestoreManyArgs = {
+  input: FileRestoreManyInput;
 };
 
 
@@ -294,6 +677,11 @@ export type MediaQuery = {
   __typename?: 'MediaQuery';
   /** Get a file by ID */
   file?: Maybe<File>;
+  /**
+   * Get files with Relay-style pagination.
+   * Store context is determined from x-store-name header.
+   */
+  files: FileConnection;
   /** Get a node by its global ID */
   node?: Maybe<Node>;
   /** Get multiple nodes by their global IDs */
@@ -303,6 +691,16 @@ export type MediaQuery = {
 
 export type MediaQueryFileArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+export type MediaQueryFilesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<FileOrderByInput>>;
+  where?: InputMaybe<FileWhereInput>;
 };
 
 
@@ -349,14 +747,50 @@ export type S3ObjectData = {
   __typename?: 'S3ObjectData';
   /** The bucket ID where this file is stored. */
   bucketId: Scalars['ID']['output'];
-  /** Content hash (SHA-256) for deduplication. */
-  contentHash?: Maybe<Scalars['String']['output']>;
   /** ETag from S3. */
   etag?: Maybe<Scalars['String']['output']>;
   /** S3 object key (path within bucket). */
   objectKey: Scalars['String']['output'];
   /** Storage class (STANDARD, GLACIER, etc). */
   storageClass: Scalars['String']['output'];
+};
+
+/** Sort direction */
+export enum SortDirection {
+  Asc = 'asc',
+  Desc = 'desc'
+}
+
+/** Filter operators for String fields */
+export type StringFilter = {
+  /** Contains substring (case-sensitive) */
+  _contains?: InputMaybe<Scalars['String']['input']>;
+  /** Contains substring (case-insensitive) */
+  _containsi?: InputMaybe<Scalars['String']['input']>;
+  /** Ends with (case-sensitive) */
+  _endsWith?: InputMaybe<Scalars['String']['input']>;
+  /** Ends with (case-insensitive) */
+  _endsWithi?: InputMaybe<Scalars['String']['input']>;
+  /** Equals */
+  _eq?: InputMaybe<Scalars['String']['input']>;
+  /** In array */
+  _in?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** Is null */
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Is not null */
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Not equals */
+  _neq?: InputMaybe<Scalars['String']['input']>;
+  /** Does not contain substring (case-sensitive) */
+  _notContains?: InputMaybe<Scalars['String']['input']>;
+  /** Does not contain substring (case-insensitive) */
+  _notContainsi?: InputMaybe<Scalars['String']['input']>;
+  /** Not in array */
+  _notIn?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** Starts with (case-sensitive) */
+  _startsWith?: InputMaybe<Scalars['String']['input']>;
+  /** Starts with (case-insensitive) */
+  _startsWithi?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** A generic user error interface for mutation responses. */
@@ -457,28 +891,52 @@ export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = 
 
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = ResolversObject<{
+  AvatarUploadInput: AvatarUploadInput;
+  ID: ResolverTypeWrapper<Scalars['ID']['output']>;
+  AvatarUploadPayload: ResolverTypeWrapper<AvatarUploadPayload>;
   BigInt: ResolverTypeWrapper<Scalars['BigInt']['output']>;
+  BooleanFilter: BooleanFilter;
+  Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   Bucket: ResolverTypeWrapper<Bucket>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
-  ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   BucketCreateInput: BucketCreateInput;
   BucketCreatePayload: ResolverTypeWrapper<BucketCreatePayload>;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
+  DateTimeFilter: DateTimeFilter;
   ExternalMediaData: ResolverTypeWrapper<ExternalMediaData>;
   File: ResolverTypeWrapper<File>;
-  Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
+  FileClearErrorInput: FileClearErrorInput;
+  FileClearErrorPayload: ResolverTypeWrapper<FileClearErrorPayload>;
+  FileConnection: ResolverTypeWrapper<FileConnection>;
+  FileConnectionInput: FileConnectionInput;
   FileCreateExternalInput: FileCreateExternalInput;
   FileCreateExternalPayload: ResolverTypeWrapper<FileCreateExternalPayload>;
   FileDeleteInput: FileDeleteInput;
+  FileDeleteManyInput: FileDeleteManyInput;
+  FileDeleteManyPayload: ResolverTypeWrapper<FileDeleteManyPayload>;
   FileDeletePayload: ResolverTypeWrapper<FileDeletePayload>;
+  FileEdge: ResolverTypeWrapper<FileEdge>;
+  FileOrderByInput: FileOrderByInput;
+  FileOrderField: FileOrderField;
   FileProvider: FileProvider;
+  FileRestoreInput: FileRestoreInput;
+  FileRestoreManyInput: FileRestoreManyInput;
+  FileRestoreManyPayload: ResolverTypeWrapper<FileRestoreManyPayload>;
+  FileRestorePayload: ResolverTypeWrapper<FileRestorePayload>;
   FileUpdateInput: FileUpdateInput;
   FileUpdatePayload: ResolverTypeWrapper<FileUpdatePayload>;
   FileUploadFromUrlInput: FileUploadFromUrlInput;
   FileUploadMultipartInput: FileUploadMultipartInput;
   FileUploadPayload: ResolverTypeWrapper<FileUploadPayload>;
+  FileUsageCount: ResolverTypeWrapper<FileUsageCount>;
+  FileUsageSummary: ResolverTypeWrapper<FileUsageSummary>;
+  FileWhereInput: FileWhereInput;
+  FloatFilter: FloatFilter;
+  Float: ResolverTypeWrapper<Scalars['Float']['output']>;
   GenericUserError: ResolverTypeWrapper<GenericUserError>;
+  IDFilter: IdFilter;
+  IntFilter: IntFilter;
   JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
   MediaDimensions: ResolverTypeWrapper<MediaDimensions>;
   MediaMutation: ResolverTypeWrapper<MediaMutation>;
@@ -488,33 +946,58 @@ export type ResolversTypes = ResolversObject<{
   PageInfo: ResolverTypeWrapper<PageInfo>;
   Query: ResolverTypeWrapper<{}>;
   S3ObjectData: ResolverTypeWrapper<S3ObjectData>;
+  SortDirection: SortDirection;
+  StringFilter: StringFilter;
   Upload: ResolverTypeWrapper<Scalars['Upload']['output']>;
   UserError: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['UserError']>;
 }>;
 
 /** Mapping between all available schema types and the resolvers parents */
 export type ResolversParentTypes = ResolversObject<{
+  AvatarUploadInput: AvatarUploadInput;
+  ID: Scalars['ID']['output'];
+  AvatarUploadPayload: AvatarUploadPayload;
   BigInt: Scalars['BigInt']['output'];
+  BooleanFilter: BooleanFilter;
+  Boolean: Scalars['Boolean']['output'];
   Bucket: Bucket;
   String: Scalars['String']['output'];
-  ID: Scalars['ID']['output'];
   Int: Scalars['Int']['output'];
   BucketCreateInput: BucketCreateInput;
   BucketCreatePayload: BucketCreatePayload;
   DateTime: Scalars['DateTime']['output'];
+  DateTimeFilter: DateTimeFilter;
   ExternalMediaData: ExternalMediaData;
   File: File;
-  Boolean: Scalars['Boolean']['output'];
+  FileClearErrorInput: FileClearErrorInput;
+  FileClearErrorPayload: FileClearErrorPayload;
+  FileConnection: FileConnection;
+  FileConnectionInput: FileConnectionInput;
   FileCreateExternalInput: FileCreateExternalInput;
   FileCreateExternalPayload: FileCreateExternalPayload;
   FileDeleteInput: FileDeleteInput;
+  FileDeleteManyInput: FileDeleteManyInput;
+  FileDeleteManyPayload: FileDeleteManyPayload;
   FileDeletePayload: FileDeletePayload;
+  FileEdge: FileEdge;
+  FileOrderByInput: FileOrderByInput;
+  FileRestoreInput: FileRestoreInput;
+  FileRestoreManyInput: FileRestoreManyInput;
+  FileRestoreManyPayload: FileRestoreManyPayload;
+  FileRestorePayload: FileRestorePayload;
   FileUpdateInput: FileUpdateInput;
   FileUpdatePayload: FileUpdatePayload;
   FileUploadFromUrlInput: FileUploadFromUrlInput;
   FileUploadMultipartInput: FileUploadMultipartInput;
   FileUploadPayload: FileUploadPayload;
+  FileUsageCount: FileUsageCount;
+  FileUsageSummary: FileUsageSummary;
+  FileWhereInput: FileWhereInput;
+  FloatFilter: FloatFilter;
+  Float: Scalars['Float']['output'];
   GenericUserError: GenericUserError;
+  IDFilter: IdFilter;
+  IntFilter: IntFilter;
   JSON: Scalars['JSON']['output'];
   MediaDimensions: MediaDimensions;
   MediaMutation: MediaMutation;
@@ -524,8 +1007,15 @@ export type ResolversParentTypes = ResolversObject<{
   PageInfo: PageInfo;
   Query: {};
   S3ObjectData: S3ObjectData;
+  StringFilter: StringFilter;
   Upload: Scalars['Upload']['output'];
   UserError: ResolversInterfaceTypes<ResolversParentTypes>['UserError'];
+}>;
+
+export type AvatarUploadPayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['AvatarUploadPayload'] = ResolversParentTypes['AvatarUploadPayload']> = ResolversObject<{
+  file?: Resolver<Maybe<ResolversTypes['File']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export interface BigIntScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['BigInt'], any> {
@@ -565,12 +1055,16 @@ export type FileResolvers<ContextType = GraphQLContext, ParentType extends Resol
   altText?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   deletedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  deletionErrorCode?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  deletionState?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   dimensions?: Resolver<Maybe<ResolversTypes['MediaDimensions']>, ParentType, ContextType>;
   durationMs?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   ext?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   externalData?: Resolver<Maybe<ResolversTypes['ExternalMediaData']>, ParentType, ContextType>;
+  failedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   isProcessed?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  lastDeletionError?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   meta?: Resolver<Maybe<ResolversTypes['JSON']>, ParentType, ContextType>;
   mimeType?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   originalName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -580,6 +1074,20 @@ export type FileResolvers<ContextType = GraphQLContext, ParentType extends Resol
   sourceUrl?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   url?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  usage?: Resolver<ResolversTypes['FileUsageSummary'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FileClearErrorPayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['FileClearErrorPayload'] = ResolversParentTypes['FileClearErrorPayload']> = ResolversObject<{
+  file?: Resolver<Maybe<ResolversTypes['File']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FileConnectionResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['FileConnection'] = ResolversParentTypes['FileConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['FileEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -589,8 +1097,33 @@ export type FileCreateExternalPayloadResolvers<ContextType = GraphQLContext, Par
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type FileDeleteManyPayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['FileDeleteManyPayload'] = ResolversParentTypes['FileDeleteManyPayload']> = ResolversObject<{
+  acceptedIds?: Resolver<Array<ResolversTypes['ID']>, ParentType, ContextType>;
+  startedHardDeleteIds?: Resolver<Array<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type FileDeletePayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['FileDeletePayload'] = ResolversParentTypes['FileDeletePayload']> = ResolversObject<{
   deletedFileId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FileEdgeResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['FileEdge'] = ResolversParentTypes['FileEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['File'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FileRestoreManyPayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['FileRestoreManyPayload'] = ResolversParentTypes['FileRestoreManyPayload']> = ResolversObject<{
+  restoredIds?: Resolver<Array<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FileRestorePayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['FileRestorePayload'] = ResolversParentTypes['FileRestorePayload']> = ResolversObject<{
+  file?: Resolver<Maybe<ResolversTypes['File']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -604,6 +1137,19 @@ export type FileUpdatePayloadResolvers<ContextType = GraphQLContext, ParentType 
 export type FileUploadPayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['FileUploadPayload'] = ResolversParentTypes['FileUploadPayload']> = ResolversObject<{
   file?: Resolver<Maybe<ResolversTypes['File']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FileUsageCountResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['FileUsageCount'] = ResolversParentTypes['FileUsageCount']> = ResolversObject<{
+  count?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  entityType?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FileUsageSummaryResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['FileUsageSummary'] = ResolversParentTypes['FileUsageSummary']> = ResolversObject<{
+  byEntity?: Resolver<Array<ResolversTypes['FileUsageCount']>, ParentType, ContextType>;
+  fileActive?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -625,9 +1171,14 @@ export type MediaDimensionsResolvers<ContextType = GraphQLContext, ParentType ex
 }>;
 
 export type MediaMutationResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['MediaMutation'] = ResolversParentTypes['MediaMutation']> = ResolversObject<{
+  avatarUpload?: Resolver<ResolversTypes['AvatarUploadPayload'], ParentType, ContextType, RequireFields<MediaMutationAvatarUploadArgs, 'input'>>;
   bucketCreate?: Resolver<ResolversTypes['BucketCreatePayload'], ParentType, ContextType, RequireFields<MediaMutationBucketCreateArgs, 'input'>>;
+  fileClearError?: Resolver<ResolversTypes['FileClearErrorPayload'], ParentType, ContextType, RequireFields<MediaMutationFileClearErrorArgs, 'input'>>;
   fileCreateExternal?: Resolver<ResolversTypes['FileCreateExternalPayload'], ParentType, ContextType, RequireFields<MediaMutationFileCreateExternalArgs, 'input'>>;
   fileDelete?: Resolver<ResolversTypes['FileDeletePayload'], ParentType, ContextType, RequireFields<MediaMutationFileDeleteArgs, 'input'>>;
+  fileDeleteMany?: Resolver<ResolversTypes['FileDeleteManyPayload'], ParentType, ContextType, RequireFields<MediaMutationFileDeleteManyArgs, 'input'>>;
+  fileRestore?: Resolver<ResolversTypes['FileRestorePayload'], ParentType, ContextType, RequireFields<MediaMutationFileRestoreArgs, 'input'>>;
+  fileRestoreMany?: Resolver<ResolversTypes['FileRestoreManyPayload'], ParentType, ContextType, RequireFields<MediaMutationFileRestoreManyArgs, 'input'>>;
   fileUpdate?: Resolver<ResolversTypes['FileUpdatePayload'], ParentType, ContextType, RequireFields<MediaMutationFileUpdateArgs, 'input'>>;
   fileUpload?: Resolver<ResolversTypes['FileUploadPayload'], ParentType, ContextType, RequireFields<MediaMutationFileUploadArgs, 'input'>>;
   fileUploadFromUrl?: Resolver<ResolversTypes['FileUploadPayload'], ParentType, ContextType, RequireFields<MediaMutationFileUploadFromUrlArgs, 'input'>>;
@@ -636,6 +1187,7 @@ export type MediaMutationResolvers<ContextType = GraphQLContext, ParentType exte
 
 export type MediaQueryResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['MediaQuery'] = ResolversParentTypes['MediaQuery']> = ResolversObject<{
   file?: Resolver<Maybe<ResolversTypes['File']>, ParentType, ContextType, RequireFields<MediaQueryFileArgs, 'id'>>;
+  files?: Resolver<ResolversTypes['FileConnection'], ParentType, ContextType, Partial<MediaQueryFilesArgs>>;
   node?: Resolver<Maybe<ResolversTypes['Node']>, ParentType, ContextType, RequireFields<MediaQueryNodeArgs, 'id'>>;
   nodes?: Resolver<Array<Maybe<ResolversTypes['Node']>>, ParentType, ContextType, RequireFields<MediaQueryNodesArgs, 'ids'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -664,7 +1216,6 @@ export type QueryResolvers<ContextType = GraphQLContext, ParentType extends Reso
 
 export type S3ObjectDataResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['S3ObjectData'] = ResolversParentTypes['S3ObjectData']> = ResolversObject<{
   bucketId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  contentHash?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   etag?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   objectKey?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   storageClass?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -683,16 +1234,25 @@ export type UserErrorResolvers<ContextType = GraphQLContext, ParentType extends 
 }>;
 
 export type Resolvers<ContextType = GraphQLContext> = ResolversObject<{
+  AvatarUploadPayload?: AvatarUploadPayloadResolvers<ContextType>;
   BigInt?: GraphQLScalarType;
   Bucket?: BucketResolvers<ContextType>;
   BucketCreatePayload?: BucketCreatePayloadResolvers<ContextType>;
   DateTime?: GraphQLScalarType;
   ExternalMediaData?: ExternalMediaDataResolvers<ContextType>;
   File?: FileResolvers<ContextType>;
+  FileClearErrorPayload?: FileClearErrorPayloadResolvers<ContextType>;
+  FileConnection?: FileConnectionResolvers<ContextType>;
   FileCreateExternalPayload?: FileCreateExternalPayloadResolvers<ContextType>;
+  FileDeleteManyPayload?: FileDeleteManyPayloadResolvers<ContextType>;
   FileDeletePayload?: FileDeletePayloadResolvers<ContextType>;
+  FileEdge?: FileEdgeResolvers<ContextType>;
+  FileRestoreManyPayload?: FileRestoreManyPayloadResolvers<ContextType>;
+  FileRestorePayload?: FileRestorePayloadResolvers<ContextType>;
   FileUpdatePayload?: FileUpdatePayloadResolvers<ContextType>;
   FileUploadPayload?: FileUploadPayloadResolvers<ContextType>;
+  FileUsageCount?: FileUsageCountResolvers<ContextType>;
+  FileUsageSummary?: FileUsageSummaryResolvers<ContextType>;
   GenericUserError?: GenericUserErrorResolvers<ContextType>;
   JSON?: GraphQLScalarType;
   MediaDimensions?: MediaDimensionsResolvers<ContextType>;

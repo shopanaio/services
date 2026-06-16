@@ -3,6 +3,8 @@
  * Supports Transaction Script pattern for microservices
  */
 
+import type { ServiceBroker } from "./broker/ServiceBroker.js";
+
 /**
  * Logger interface that abstracts logging implementation
  * Compatible with various logging solutions (Moleculer, Winston, etc.)
@@ -19,7 +21,7 @@ export interface Logger {
  * Can be extended with additional service-specific dependencies
  */
 export interface BaseKernelServices {
-  readonly broker: any; // Moleculer ServiceBroker for inter-service communication
+  readonly broker: ServiceBroker;
   readonly logger: Logger;
 }
 

@@ -1,0 +1,16 @@
+mutation CategoryAddProduct($input: CategoryAddProductInput!) {
+  catalogMutation {
+    categoryAddProduct(input: $input) {
+      category {
+        id
+        handle
+        productsCount
+      }
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}

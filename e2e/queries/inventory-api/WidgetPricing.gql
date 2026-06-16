@@ -1,0 +1,46 @@
+query WidgetPricing($input: PricingWidgetInput!) {
+  widgetQuery {
+    pricing(input: $input) {
+      currentPrice {
+        id
+        currency
+        amountMinor
+        compareAtMinor
+      }
+      currentCostPrice {
+        id
+        currency
+        unitCostMinor
+        isCurrent
+      }
+      history {
+        edges {
+          cursor
+          node {
+            id
+            currency
+            amountMinor
+            compareAtMinor
+            recordedAt
+            effectiveFrom
+            effectiveTo
+            isCurrent
+          }
+        }
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
+        }
+        totalCount
+      }
+      statistics {
+        minPriceMinor
+        maxPriceMinor
+        avgPriceMinor
+        currency
+      }
+    }
+  }
+}

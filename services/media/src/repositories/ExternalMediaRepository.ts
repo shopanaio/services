@@ -23,16 +23,11 @@ export class ExternalMediaRepository {
   /**
    * Find external media data by file ID
    */
-  async findByFileId(projectId: string, fileId: string): Promise<ExternalMedia | null> {
+  async findByFileId(fileId: string): Promise<ExternalMedia | null> {
     const result = await this.db
       .select()
       .from(externalMedia)
-      .where(
-        and(
-          eq(externalMedia.projectId, projectId),
-          eq(externalMedia.fileId, fileId)
-        )
-      )
+      .where(eq(externalMedia.fileId, fileId))
       .limit(1);
 
     return result[0] ?? null;
@@ -41,7 +36,7 @@ export class ExternalMediaRepository {
   /**
    * Find external media by multiple file IDs (batch load for DataLoader)
    */
-  async findByFileIds(projectId: string, fileIds: string[]): Promise<Map<string, ExternalMedia>> {
+  async findByFileIds(fileIds: string[]): Promise<Map<string, ExternalMedia>> {
     if (fileIds.length === 0) {
       return new Map();
     }
@@ -49,12 +44,7 @@ export class ExternalMediaRepository {
     const result = await this.db
       .select()
       .from(externalMedia)
-      .where(
-        and(
-          eq(externalMedia.projectId, projectId),
-          inArray(externalMedia.fileId, fileIds)
-        )
-      );
+      .where(inArray(externalMedia.fileId, fileIds));
 
     const map = new Map<string, ExternalMedia>();
     for (const obj of result) {
@@ -67,10 +57,10 @@ export class ExternalMediaRepository {
   /**
    * Create a new external media record
    */
-  async create(projectId: string, data: CreateExternalMediaInput): Promise<ExternalMedia> {
+  async create(assetGroupId: string, data: CreateExternalMediaInput): Promise<ExternalMedia> {
     const newExternalMedia: NewExternalMedia = {
       fileId: data.fileId,
-      projectId,
+      assetGroupId,
       externalId: data.externalId,
       providerMeta: data.providerMeta ?? null,
     };
@@ -83,7 +73,7 @@ export class ExternalMediaRepository {
   /**
    * Update an existing external media record
    */
-  async update(projectId: string, fileId: string, data: UpdateExternalMediaInput): Promise<ExternalMedia | null> {
+  async update(fileId: string, data: UpdateExternalMediaInput): Promise<ExternalMedia | null> {
     const updateData: Partial<NewExternalMedia> = {};
 
     if (data.externalId !== undefined) {
@@ -94,18 +84,13 @@ export class ExternalMediaRepository {
     }
 
     if (Object.keys(updateData).length === 0) {
-      return this.findByFileId(projectId, fileId);
+      return this.findByFileId(fileId);
     }
 
     const result = await this.db
       .update(externalMedia)
       .set(updateData)
-      .where(
-        and(
-          eq(externalMedia.projectId, projectId),
-          eq(externalMedia.fileId, fileId)
-        )
-      )
+      .where(eq(externalMedia.fileId, fileId))
       .returning();
 
     return result[0] ?? null;
@@ -114,28 +99,22 @@ export class ExternalMediaRepository {
   /**
    * Delete an external media record
    */
-  async delete(projectId: string, fileId: string): Promise<void> {
+  async delete(fileId: string): Promise<void> {
     await this.db
       .delete(externalMedia)
-      .where(
-        and(
-          eq(externalMedia.projectId, projectId),
-          eq(externalMedia.fileId, fileId)
-        )
-      );
+      .where(eq(externalMedia.fileId, fileId));
   }
 
   /**
-   * Find external media by external ID (e.g., YouTube video ID)
-   * Note: provider is stored in the files table, so we need to join or filter separately
+   * Find external media by external ID within an asset group
    */
-  async findByExternalId(projectId: string, externalId: string): Promise<ExternalMedia | null> {
+  async findByExternalId(assetGroupId: string, externalId: string): Promise<ExternalMedia | null> {
     const result = await this.db
       .select()
       .from(externalMedia)
       .where(
         and(
-          eq(externalMedia.projectId, projectId),
+          eq(externalMedia.assetGroupId, assetGroupId),
           eq(externalMedia.externalId, externalId)
         )
       )
@@ -147,16 +126,11 @@ export class ExternalMediaRepository {
   /**
    * Check if an external media record exists
    */
-  async exists(projectId: string, fileId: string): Promise<boolean> {
+  async exists(fileId: string): Promise<boolean> {
     const result = await this.db
       .select({ fileId: externalMedia.fileId })
       .from(externalMedia)
-      .where(
-        and(
-          eq(externalMedia.projectId, projectId),
-          eq(externalMedia.fileId, fileId)
-        )
-      )
+      .where(eq(externalMedia.fileId, fileId))
       .limit(1);
 
     return result.length > 0;

@@ -1,0 +1,9 @@
+# ============================================================================
+# MEDIA SERVICE FEDERATION
+# ============================================================================
+# File reference from the Media service (federated entity).
+# Used for user avatars and organization logos.
+
+extend type File @key(fields: "id", resolvable: false) {
+  id: ID! @external
+}

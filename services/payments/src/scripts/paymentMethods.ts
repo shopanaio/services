@@ -27,11 +27,11 @@ export const paymentMethods: TransactionScript<
       domain: "payment",
       operation: "list",
       params: { projectId, ...input },
-    });
+    }) as { data?: unknown; warnings?: Array<{ code: string; message: string }> };
 
     console.log("[paymentMethods] ✅ Received result:", JSON.stringify(result, null, 2));
 
-    const methods = result.data as PaymentMethod[] || [];
+    const methods = (result.data as PaymentMethod[]) || [];
     const warnings = result.warnings || [];
 
     console.log("[paymentMethods] 📦 Parsed methods count:", methods.length);

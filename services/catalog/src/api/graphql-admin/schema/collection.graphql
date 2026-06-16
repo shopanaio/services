@@ -1,0 +1,167 @@
+type Collection implements Node @key(fields: "id") {
+  id: ID!
+  handle: String
+  type: CollectionType!
+  name: String!
+  description: Description
+  media: [CollectionMediaItem!]!
+  seo: Seo
+  defaultSort: ProductSortBy!
+  defaultSortDirection: SortDirection!
+  activeFrom: DateTime
+  activeTo: DateTime
+  isActive: Boolean!
+  publishedAt: DateTime
+  isPublished: Boolean!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  rules: [CollectionRule!]!
+  products(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    sort: ProductSortInput
+  ): CollectionProductConnection!
+  productsCount: Int!
+}
+
+enum CollectionType {
+  MANUAL
+  RULE
+}
+
+type CollectionRule {
+  id: ID!
+  field: String!
+  operator: String!
+  value: JSON!
+  sortIndex: Int!
+}
+
+type CollectionMediaItem {
+  file: File!
+  sortIndex: Int!
+}
+
+type CollectionConnection {
+  edges: [CollectionEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type CollectionEdge {
+  node: Collection!
+  cursor: String!
+}
+
+type CollectionProductConnection {
+  edges: [CollectionProductEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type CollectionProductEdge {
+  node: Product!
+  cursor: String!
+}
+
+input CollectionRuleInput {
+  field: String!
+  operator: String!
+  value: JSON!
+}
+
+input CollectionCreateInput {
+  handle: String
+  type: CollectionType!
+  name: String!
+  description: DescriptionInput
+  media: [CollectionMediaInput!]
+  seo: SeoInput
+  defaultSort: ProductSortBy
+  defaultSortDirection: SortDirection
+  activeFrom: DateTime
+  activeTo: DateTime
+  publish: Boolean
+}
+
+input CollectionUpdateInput {
+  id: ID!
+  handle: String
+  name: String
+  description: DescriptionInput
+  media: [CollectionMediaInput!]
+  seo: SeoInput
+  defaultSort: ProductSortBy
+  defaultSortDirection: SortDirection
+  activeFrom: DateTime
+  activeTo: DateTime
+  publish: Boolean
+}
+
+input CollectionMediaInput {
+  fileId: ID!
+  sortIndex: Int
+}
+
+input CollectionDeleteInput {
+  id: ID!
+}
+
+input CollectionAddProductsInput {
+  collectionId: ID!
+  productIds: [ID!]!
+}
+
+input CollectionRemoveProductsInput {
+  collectionId: ID!
+  productIds: [ID!]!
+}
+
+input CollectionMoveProductInput {
+  collectionId: ID!
+  productId: ID!
+  afterProductId: ID
+  beforeProductId: ID
+}
+
+input CollectionUpdateRulesInput {
+  collectionId: ID!
+  rules: [CollectionRuleInput!]!
+}
+
+type CollectionCreatePayload {
+  collection: Collection
+  userErrors: [GenericUserError!]!
+}
+
+type CollectionUpdatePayload {
+  collection: Collection
+  userErrors: [GenericUserError!]!
+}
+
+type CollectionDeletePayload {
+  deletedCollectionId: ID
+  userErrors: [GenericUserError!]!
+}
+
+type CollectionAddProductsPayload {
+  collection: Collection
+  userErrors: [GenericUserError!]!
+}
+
+type CollectionRemoveProductsPayload {
+  collection: Collection
+  userErrors: [GenericUserError!]!
+}
+
+type CollectionMoveProductPayload {
+  collection: Collection
+  userErrors: [GenericUserError!]!
+}
+
+type CollectionUpdateRulesPayload {
+  collection: Collection
+  userErrors: [GenericUserError!]!
+}

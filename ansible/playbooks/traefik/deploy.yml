@@ -1,4 +1,4 @@
-# Deploy Traefik reverse proxy for Apollo Router
+# Deploy Traefik reverse proxy
 # Variables are loaded from vars file
 # Usage: ansible-playbook playbooks/traefik/deploy.yml -i hosts.ini --limit shopana_sandbox
 ---
@@ -141,8 +141,8 @@
               - "🌐 Service Info:"
               - "  Web Entrypoint: http://{{ ansible_host }}:{{ traefik_web_port }}"
               - "  Dashboard: http://{{ ansible_host }}:{{ traefik_dashboard_port }}/dashboard/"
-              - "  Apollo Admin: http://{{ ansible_host }}/api/admin/graphql/query"
-              - "  Apollo Storefront: http://{{ ansible_host }}/api/client/graphql/query"
+              - "  Admin API: http://{{ ansible_host }}/api/admin/graphql/query"
+              - "  Storefront API: http://{{ ansible_host }}/api/client/graphql/query"
               - "  Directory: {{ app_dir }}"
               - "  Config: {{ app_dir }}/config/traefik.yml"
               - ""

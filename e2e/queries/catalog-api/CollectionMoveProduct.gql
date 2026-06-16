@@ -1,0 +1,17 @@
+mutation CollectionMoveProduct($input: CollectionMoveProductInput!) {
+  catalogMutation {
+    collectionMoveProduct(input: $input) {
+      collection {
+        id
+        handle
+        type
+        name
+      }
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}

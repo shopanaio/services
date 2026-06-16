@@ -21,8 +21,8 @@ export class CancelOrderUseCase extends UseCase<
   boolean
 > {
   async execute(input: CancelOrderUseCaseInput): Promise<boolean> {
-    const { apiKey, project, customer, user, orderId, reason, comment } = input;
-    const context = { apiKey, project, customer, user };
+    const { apiKey, store, customer, user, orderId, reason, comment } = input;
+    const context = { apiKey, store, customer, user };
 
     try {
       // Load order state to validate existence and access
@@ -58,7 +58,7 @@ export class CancelOrderUseCase extends UseCase<
 
       this.logger.info({
         orderId,
-        projectId: context.project.id,
+        projectId: context.store.id,
         userId: context.user?.id,
         reason,
         hasComment: !!comment

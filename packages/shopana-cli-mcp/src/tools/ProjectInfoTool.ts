@@ -28,12 +28,11 @@ Returns:
 
     const projectInfo = {
       name: 'Shopana Services',
-      description: 'A modular e-commerce platform built with NestJS microservices architecture and Apollo GraphQL Federation',
+      description: 'A modular e-commerce platform built with NestJS microservices architecture and GraphQL Federation',
 
       architecture: {
         type: 'Microservices with GraphQL Federation',
         framework: 'NestJS',
-        gateway: 'Apollo Router',
         database: 'PostgreSQL with Drizzle ORM',
         messaging: 'RabbitMQ',
         workflows: 'Temporal'
@@ -62,7 +61,6 @@ Returns:
           'build': 'Build packages and services for production',
           'migrate': 'Run database migrations',
           'codegen': 'Generate TypeScript types from GraphQL schemas',
-          'gateway': 'Start GraphQL federation gateway',
           'schema export': 'Export subgraph schemas from services',
           'schema compose': 'Compose supergraph from subgraphs',
           'schema build': 'Export + compose schemas',

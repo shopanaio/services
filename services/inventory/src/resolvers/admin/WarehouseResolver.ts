@@ -9,9 +9,15 @@ import { StockConnectionResolver } from "./StockConnectionResolver.js";
  * Decorated with @SubgraphReference for federation support.
  */
 @SubgraphReference()
-export class WarehouseResolver extends InventoryType<string, Warehouse | null> {
+export class WarehouseResolver extends InventoryType<string, Warehouse> {
   async $preload() {
-    return await this.$ctx.loaders.warehouse.load(this.$props);
+    const warehouse = await this.$ctx.loaders.warehouse.load(this.$props);
+
+    if (!warehouse) {
+      throw new Error(`Warehouse with ID ${this.$props} not found`);
+    }
+
+    return warehouse;
   }
 
   id() {
@@ -55,7 +61,7 @@ export class WarehouseResolver extends InventoryType<string, Warehouse | null> {
           ],
         },
       },
-      this.$ctx
+      this.$ctx,
     );
   }
 }

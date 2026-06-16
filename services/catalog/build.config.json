@@ -1,0 +1,24 @@
+{
+  "entryPoint": "src/catalog.module.ts",
+  "migrations": { "path": "dist/migrations", "type": "drizzle" },
+  "graphql": {
+    "admin": [
+      "src/api/graphql-admin/schema/**/*.graphql",
+      "../../packages/shared-references/graphql/**/*.graphql"
+    ]
+  },
+  "assets": [
+    {
+      "include": "src/api/graphql-admin/schema/**/*.graphql",
+      "outDir": "dist/schema"
+    },
+    {
+      "include": "../../packages/shared-references/graphql/**/*.graphql",
+      "outDir": "dist/schema"
+    },
+    {
+      "include": "migrations/**/*",
+      "outDir": "dist/migrations"
+    }
+  ]
+}

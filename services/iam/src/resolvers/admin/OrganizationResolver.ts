@@ -5,7 +5,7 @@ import {
 } from "@shopana/shared-graphql-guid";
 import type { Organization } from "../../repositories/models/authorization.js";
 import { ORG_DOMAIN } from "../../casbin/CasbinService.js";
-import { IAMType, Cache } from "./IAMType.js";
+import { IAMType } from "./IAMType.js";
 import { MembershipResolver } from "./MembershipResolver.js";
 
 /**
@@ -13,10 +13,6 @@ import { MembershipResolver } from "./MembershipResolver.js";
  */
 @SubgraphReference()
 export class OrganizationResolver extends IAMType<string, Organization> {
-  @Cache({
-    cacheName: "iam:org",
-    key: (resolver: OrganizationResolver) => resolver.$props,
-  })
   async $preload() {
     const org = await this.$ctx.kernel.repository.organization.findById(
       this.$props
@@ -47,6 +43,18 @@ export class OrganizationResolver extends IAMType<string, Organization> {
 
   async displayName() {
     return this.$get("displayName");
+  }
+
+  async logo() {
+    const logoId = await this.$get("logoId");
+    if (!logoId) {
+      return null;
+    }
+    // Return federation reference for File type with encoded Global ID
+    return {
+      __typename: "File" as const,
+      id: encodeGlobalIdByType(logoId, GlobalIdEntity.File),
+    };
   }
 
   async createdAt() {

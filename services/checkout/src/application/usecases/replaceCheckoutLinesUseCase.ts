@@ -27,8 +27,8 @@ export class ReplaceCheckoutLinesUseCase extends UseCase<
   }
 
   async execute(input: CheckoutLinesReplaceInput): Promise<string> {
-    const { apiKey, project, customer, user, ...businessInput } = input;
-    const context = { apiKey, project, customer, user };
+    const { apiKey, store, customer, user, ...businessInput } = input;
+    const context = { apiKey, store, customer, user };
     const ctx = context;
     const state = await this.getCheckoutState(businessInput.checkoutId);
 
@@ -103,7 +103,7 @@ export class ReplaceCheckoutLinesUseCase extends UseCase<
     const { offers } = await this.checkoutService.getOffers({
       apiKey: ctx.apiKey,
       currency: state.currencyCode,
-      storeId: ctx.store.id,
+      projectId: ctx.store.id,
       items: mergedLines.map((l) => ({
         lineId: l.lineId,
         purchasableId: l.unit.id,
@@ -135,7 +135,7 @@ export class ReplaceCheckoutLinesUseCase extends UseCase<
     });
 
     const computed = await this.checkoutService.computeTotals({
-      projectId: context.project.id,
+      projectId: context.store.id,
       checkoutLines,
       appliedDiscounts: state.appliedDiscounts,
       currency: state.currencyCode,

@@ -1,0 +1,12 @@
+mutation ConditionGroupDelete($input: DeleteInput!) {
+  catalogMutation {
+    conditionGroupDelete(input: $input) {
+      deletedId
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}

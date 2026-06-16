@@ -1,24 +1,27 @@
 import { MediaType, Cache } from "./MediaType.js";
-import { encodeGlobalId } from "./utils/globalId.js";
+import {
+  encodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 import type { Bucket } from "../../repositories/models/index.js";
 
 /**
  * Bucket resolver - resolves Bucket type
  */
-export class BucketResolver extends MediaType<string, Bucket | null> {
-  @Cache({
-    cacheName: "media:bucket",
-    key: (resolver: BucketResolver) => resolver.$props,
-  })
+export class BucketResolver extends MediaType<string, Bucket> {
   async $preload() {
-    return this.$ctx.kernel.repository.bucket.findById(
+    const bucket = await this.$ctx.kernel.repository.bucket.findById(
       this.$ctx.store.id,
       this.$props
     );
+    if (!bucket) {
+      throw new Error(`Bucket not found: ${this.$props}`);
+    }
+    return bucket;
   }
 
   id() {
-    return encodeGlobalId("Bucket", this.$props);
+    return encodeGlobalIdByType(this.$props, GlobalIdEntity.Bucket);
   }
 
   async bucketName() {
@@ -42,12 +45,10 @@ export class BucketResolver extends MediaType<string, Bucket | null> {
   }
 
   async createdAt() {
-    const date = await this.$get("createdAt");
-    return date?.toISOString() ?? null;
+    return this.$get("createdAt");
   }
 
   async updatedAt() {
-    const date = await this.$get("updatedAt");
-    return date?.toISOString() ?? null;
+    return this.$get("updatedAt");
   }
 }

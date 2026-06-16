@@ -1,0 +1,223 @@
+enum FacetType {
+  PRICE
+  TAG
+  FEATURE
+  OPTION
+  IN_STOCK
+}
+
+enum FacetUIType {
+  CHECKBOX
+  RADIO
+  DROPDOWN
+  RANGE
+  BOOLEAN
+}
+
+enum FacetSelectionMode {
+  SINGLE
+  MULTI
+}
+
+type FacetGroup implements Node {
+  id: ID!
+  name: String!
+  sortIndex: Int!
+  collapsed: Boolean!
+  facets: [Facet!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+enum FacetValueSort {
+  COUNT
+  ALPHA
+  CUSTOM
+}
+
+type Facet implements Node {
+  id: ID!
+  facetType: FacetType!
+  sourceHandles: [String!]!
+  slug: String!
+  label: String!
+  uiType: FacetUIType!
+  selectionMode: FacetSelectionMode!
+  sortIndex: Int!
+  group: FacetGroup
+  minValues: Int!
+  maxValuesVisible: Int!
+  valueSort: FacetValueSort!
+  indexable: Boolean!
+  values: [FacetValue!]!
+}
+
+type FacetValue implements Node {
+  id: ID!
+  facet: Facet!
+  slug: String!
+  label: String!
+  sourceHandles: [String!]!
+  swatch: FacetSwatch
+  sortIndex: Int!
+  enabled: Boolean!
+}
+
+type FacetSwatch implements Node {
+  id: ID!
+  swatchType: SwatchType!
+  colorOne: String
+  colorTwo: String
+  file: File
+  metadata: JSON
+}
+
+input FacetGroupCreateInput {
+  name: String!
+  collapsed: Boolean
+  sortIndex: Int
+}
+
+input FacetGroupUpdateInput {
+  id: ID!
+  name: String
+  collapsed: Boolean
+  sortIndex: Int
+}
+
+input FacetGroupDeleteInput {
+  id: ID!
+}
+
+input FacetCreateInput {
+  facetType: FacetType!
+  slug: String!
+  uiType: FacetUIType
+  selectionMode: FacetSelectionMode
+  groupId: ID
+  label: String!
+  sortIndex: Int
+}
+
+input FacetUpdateInput {
+  id: ID!
+  slug: String
+  uiType: FacetUIType
+  selectionMode: FacetSelectionMode
+  groupId: ID
+  label: String
+  sortIndex: Int
+  minValues: Int
+  maxValuesVisible: Int
+  valueSort: FacetValueSort
+  indexable: Boolean
+}
+
+input FacetDeleteInput {
+  id: ID!
+}
+
+input FacetValueCreateInput {
+  facetId: ID!
+  slug: String!
+  label: String!
+  sourceHandles: [String!]
+  swatchId: ID
+  sortIndex: Int
+  enabled: Boolean
+}
+
+input FacetValueUpdateInput {
+  id: ID!
+  slug: String
+  label: String
+  sourceHandles: [String!]
+  swatchId: ID
+  sortIndex: Int
+  enabled: Boolean
+}
+
+input FacetValueDeleteInput {
+  id: ID!
+}
+
+input FacetSwatchCreateInput {
+  swatchType: SwatchType!
+  colorOne: String
+  colorTwo: String
+  fileId: ID
+  metadata: JSON
+}
+
+input FacetSwatchUpdateInput {
+  id: ID!
+  swatchType: SwatchType
+  colorOne: String
+  colorTwo: String
+  fileId: ID
+  metadata: JSON
+}
+
+input FacetSwatchDeleteInput {
+  id: ID!
+}
+
+type FacetGroupCreatePayload {
+  facetGroup: FacetGroup
+  userErrors: [GenericUserError!]!
+}
+
+type FacetGroupUpdatePayload {
+  facetGroup: FacetGroup
+  userErrors: [GenericUserError!]!
+}
+
+type FacetGroupDeletePayload {
+  deletedFacetGroupId: ID
+  userErrors: [GenericUserError!]!
+}
+
+type FacetCreatePayload {
+  facet: Facet
+  userErrors: [GenericUserError!]!
+}
+
+type FacetUpdatePayload {
+  facet: Facet
+  userErrors: [GenericUserError!]!
+}
+
+type FacetDeletePayload {
+  deletedFacetId: ID
+  userErrors: [GenericUserError!]!
+}
+
+type FacetValueCreatePayload {
+  facetValue: FacetValue
+  userErrors: [GenericUserError!]!
+}
+
+type FacetValueUpdatePayload {
+  facetValue: FacetValue
+  userErrors: [GenericUserError!]!
+}
+
+type FacetValueDeletePayload {
+  deletedFacetValueId: ID
+  userErrors: [GenericUserError!]!
+}
+
+type FacetSwatchCreatePayload {
+  facetSwatch: FacetSwatch
+  userErrors: [GenericUserError!]!
+}
+
+type FacetSwatchUpdatePayload {
+  facetSwatch: FacetSwatch
+  userErrors: [GenericUserError!]!
+}
+
+type FacetSwatchDeletePayload {
+  deletedFacetSwatchId: ID
+  userErrors: [GenericUserError!]!
+}

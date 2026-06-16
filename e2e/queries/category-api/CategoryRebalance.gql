@@ -1,0 +1,16 @@
+mutation CategoryRebalance($input: CategoryRebalanceInput!) {
+  catalogMutation {
+    categoryRebalance(input: $input) {
+      category {
+        id
+        handle
+        productsCount
+      }
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}

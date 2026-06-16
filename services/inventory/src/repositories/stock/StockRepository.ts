@@ -1,17 +1,27 @@
 import { and, eq, inArray, count } from "drizzle-orm";
-import { randomUUID } from "crypto";
+import { v7 as uuidv7 } from "uuid";
 import {
   createQuery,
   createRelayQuery,
   type PageInfo,
   type InferRelayInput,
 } from "@shopana/drizzle-query";
+import { Transactional } from "@shopana/shared-kernel";
 import { BaseRepository } from "../BaseRepository.js";
-import { warehouseStock, type WarehouseStock, type NewWarehouseStock } from "../models";
+import {
+  warehouseStock,
+  stockChanges,
+  type WarehouseStock,
+  type NewWarehouseStock,
+  type NewStockChange,
+} from "../models";
 
 export const stockRelayQuery = createRelayQuery(
-  createQuery(warehouseStock).include(["id", "warehouseId", "variantId"]).maxLimit(100).defaultLimit(20),
-  { name: "stock", tieBreaker: "id" }
+  createQuery(warehouseStock)
+    .include(["id", "warehouseId", "variantId"])
+    .maxLimit(100)
+    .defaultLimit(20),
+  { name: "stock", tieBreaker: "id" },
 );
 
 export type StockRelayInput = InferRelayInput<typeof stockRelayQuery>;
@@ -22,6 +32,37 @@ export interface StockConnectionResult {
   totalCount: number;
 }
 
+export type StockChangeStatus = "APPLIED" | "REJECTED" | "DUPLICATE";
+
+export interface ApplyStockChangeInput {
+  variantId: string;
+  warehouseId: string;
+  deltaOnHand: number;
+  deltaReserved?: number;
+  deltaUnavailable?: number;
+  movementType:
+    | "SEED"
+    | "RECEIVE"
+    | "SELL"
+    | "RETURN"
+    | "ADJUST"
+    | "RESERVE"
+    | "RELEASE"
+    | "TRANSFER";
+  reason?: "DAMAGE" | "INVENTORY_COUNT" | "MANUAL" | "CUSTOMER_RETURN" | null;
+  transferDirection?: "IN" | "OUT" | null;
+  sourceSystem: string;
+  sourceEventId: string;
+  correlationId?: string | null;
+  note?: string | null;
+  createdBy?: string | null;
+}
+
+export interface ApplyStockChangeResult {
+  status: StockChangeStatus;
+  changeId?: string | null;
+}
+
 export class StockRepository extends BaseRepository {
   /**
    * Upsert stock for a variant in a warehouse
@@ -30,15 +71,15 @@ export class StockRepository extends BaseRepository {
   async upsert(
     variantId: string,
     warehouseId: string,
-    quantity: number
+    quantity: number,
   ): Promise<WarehouseStock> {
-    const now = new Date();
+    const now = new Date().toISOString();
 
     const result = await this.connection
       .insert(warehouseStock)
       .values({
         projectId: this.storeId,
-        id: randomUUID(),
+        id: uuidv7(),
         variantId,
         warehouseId,
         quantityOnHand: quantity,
@@ -46,7 +87,11 @@ export class StockRepository extends BaseRepository {
         updatedAt: now,
       } satisfies NewWarehouseStock)
       .onConflictDoUpdate({
-        target: [warehouseStock.projectId, warehouseStock.warehouseId, warehouseStock.variantId],
+        target: [
+          warehouseStock.projectId,
+          warehouseStock.warehouseId,
+          warehouseStock.variantId,
+        ],
         set: {
           quantityOnHand: quantity,
           updatedAt: now,
@@ -55,6 +100,159 @@ export class StockRepository extends BaseRepository {
       .returning();
 
     return result[0];
+  }
+
+  /**
+   * Get stock by variant + warehouse
+   */
+  async findByVariantWarehouse(
+    variantId: string,
+    warehouseId: string,
+  ): Promise<WarehouseStock | null> {
+    const result = await this.connection
+      .select()
+      .from(warehouseStock)
+      .where(
+        and(
+          eq(warehouseStock.projectId, this.storeId),
+          eq(warehouseStock.variantId, variantId),
+          eq(warehouseStock.warehouseId, warehouseId),
+        ),
+      )
+      .limit(1);
+
+    return result[0] ?? null;
+  }
+
+  /**
+   * Apply a stock change with idempotency and constraints.
+   */
+  @Transactional()
+  async applyStockChange(
+    input: ApplyStockChangeInput,
+  ): Promise<ApplyStockChangeResult> {
+    const deltaReserved = input.deltaReserved ?? 0;
+    const deltaUnavailable = input.deltaUnavailable ?? 0;
+
+    // 1. Check for duplicate (idempotency)
+    const [existing] = await this.connection
+      .select({ id: stockChanges.id })
+      .from(stockChanges)
+      .where(
+        and(
+          eq(stockChanges.projectId, this.storeId),
+          eq(stockChanges.sourceSystem, input.sourceSystem),
+          eq(stockChanges.sourceEventId, input.sourceEventId),
+          eq(stockChanges.warehouseId, input.warehouseId),
+          eq(stockChanges.variantId, input.variantId),
+        ),
+      )
+      .limit(1);
+
+    if (existing) {
+      return { status: "DUPLICATE", changeId: existing.id };
+    }
+
+    // 2. Get current stock with row lock
+    const currentStock = await this.connection
+      .select({
+        quantityOnHand: warehouseStock.quantityOnHand,
+        reservedQty: warehouseStock.reservedQty,
+        unavailableQty: warehouseStock.unavailableQty,
+      })
+      .from(warehouseStock)
+      .where(
+        and(
+          eq(warehouseStock.projectId, this.storeId),
+          eq(warehouseStock.warehouseId, input.warehouseId),
+          eq(warehouseStock.variantId, input.variantId),
+        ),
+      )
+      .limit(1)
+      .for("update");
+
+    const current = currentStock[0] ?? {
+      quantityOnHand: 0,
+      reservedQty: 0,
+      unavailableQty: 0,
+    };
+
+    // 3. Calculate new values
+    const newOnHand = current.quantityOnHand + input.deltaOnHand;
+    const newReserved = current.reservedQty + deltaReserved;
+    const newUnavailable = current.unavailableQty + deltaUnavailable;
+
+    // 4. Check constraints
+    const constraintsValid =
+      newOnHand >= 0 &&
+      newReserved >= 0 &&
+      newUnavailable >= 0 &&
+      newUnavailable <= newOnHand;
+
+    // 5. Insert stock change record
+    const changeId = uuidv7();
+    await this.connection.insert(stockChanges).values({
+      id: changeId,
+      projectId: this.storeId,
+      warehouseId: input.warehouseId,
+      variantId: input.variantId,
+      deltaOnHand: input.deltaOnHand,
+      deltaReserved: deltaReserved,
+      deltaUnavailable: deltaUnavailable,
+      movementType: input.movementType,
+      reason: input.reason,
+      transferDirection: input.transferDirection,
+      sourceSystem: input.sourceSystem,
+      sourceEventId: input.sourceEventId,
+      correlationId: input.correlationId,
+      note: input.note,
+      createdBy: input.createdBy,
+      onHandAfter: constraintsValid ? newOnHand : current.quantityOnHand,
+      reservedAfter: constraintsValid ? newReserved : current.reservedQty,
+      unavailableAfter: constraintsValid
+        ? newUnavailable
+        : current.unavailableQty,
+      applyStatus: constraintsValid ? "APPLIED" : "REJECTED",
+    } satisfies NewStockChange);
+
+    // 6. Update stock if constraints are valid
+    if (constraintsValid) {
+      const now = new Date().toISOString();
+      if (currentStock.length === 0) {
+        // Insert new stock record
+        await this.connection.insert(warehouseStock).values({
+          id: uuidv7(),
+          projectId: this.storeId,
+          warehouseId: input.warehouseId,
+          variantId: input.variantId,
+          quantityOnHand: newOnHand,
+          reservedQty: newReserved,
+          unavailableQty: newUnavailable,
+          createdAt: now,
+          updatedAt: now,
+        } satisfies NewWarehouseStock);
+      } else {
+        // Update existing stock
+        await this.connection
+          .update(warehouseStock)
+          .set({
+            quantityOnHand: newOnHand,
+            reservedQty: newReserved,
+            unavailableQty: newUnavailable,
+            updatedAt: now,
+          })
+          .where(
+            and(
+              eq(warehouseStock.projectId, this.storeId),
+              eq(warehouseStock.warehouseId, input.warehouseId),
+              eq(warehouseStock.variantId, input.variantId),
+            ),
+          );
+      }
+      return { status: "APPLIED", changeId };
+    }
+
+    return { status: "REJECTED", changeId };
   }
 
   /**
@@ -67,8 +265,8 @@ export class StockRepository extends BaseRepository {
       .where(
         and(
           eq(warehouseStock.projectId, this.storeId),
-          eq(warehouseStock.variantId, variantId)
-        )
+          eq(warehouseStock.variantId, variantId),
+        ),
       );
   }
 
@@ -76,7 +274,9 @@ export class StockRepository extends BaseRepository {
    * Batch get stock for multiple variants
    * Returns a Map where key is variantId and value is array of WarehouseStock
    */
-  async getByVariantsBatch(variantIds: string[]): Promise<Map<string, WarehouseStock[]>> {
+  async getByVariantsBatch(
+    variantIds: string[],
+  ): Promise<Map<string, WarehouseStock[]>> {
     if (variantIds.length === 0) {
       return new Map();
     }
@@ -87,8 +287,8 @@ export class StockRepository extends BaseRepository {
       .where(
         and(
           eq(warehouseStock.projectId, this.storeId),
-          inArray(warehouseStock.variantId, variantIds)
-        )
+          inArray(warehouseStock.variantId, variantIds),
+        ),
       );
 
     const result = new Map<string, WarehouseStock[]>();
@@ -117,8 +317,8 @@ export class StockRepository extends BaseRepository {
       .where(
         and(
           eq(warehouseStock.projectId, this.storeId),
-          eq(warehouseStock.variantId, variantId)
-        )
+          eq(warehouseStock.variantId, variantId),
+        ),
       )
       .returning({ id: warehouseStock.id });
 
@@ -135,8 +335,8 @@ export class StockRepository extends BaseRepository {
         and(
           eq(warehouseStock.projectId, this.storeId),
           eq(warehouseStock.variantId, variantId),
-          eq(warehouseStock.warehouseId, warehouseId)
-        )
+          eq(warehouseStock.warehouseId, warehouseId),
+        ),
       )
       .returning({ id: warehouseStock.id });
 
@@ -153,8 +353,8 @@ export class StockRepository extends BaseRepository {
       .where(
         and(
           eq(warehouseStock.projectId, this.storeId),
-          eq(warehouseStock.id, id)
-        )
+          eq(warehouseStock.id, id),
+        ),
       )
       .limit(1);
 
@@ -185,10 +385,7 @@ export class StockRepository extends BaseRepository {
     const { where, orderBy, ...paginationArgs } = args;
 
     const mergedWhere: StockRelayInput["where"] = {
-      _and: [
-        { projectId: { _eq: this.storeId } },
-        ...(where ? [where] : []),
-      ],
+      _and: [{ projectId: { _eq: this.storeId } }, ...(where ? [where] : [])],
     };
 
     const executeInput: StockRelayInput = {
@@ -204,7 +401,7 @@ export class StockRepository extends BaseRepository {
       (condition): condition is { warehouseId: { _eq: string } } =>
         typeof condition === "object" &&
         condition !== null &&
-        "warehouseId" in condition
+        "warehouseId" in condition,
     );
     const warehouseId = warehouseIdFilter?.warehouseId?._eq;
 
@@ -237,8 +434,8 @@ export class StockRepository extends BaseRepository {
       .where(
         and(
           eq(warehouseStock.projectId, this.storeId),
-          inArray(warehouseStock.id, [...stockIds])
-        )
+          inArray(warehouseStock.id, [...stockIds]),
+        ),
       );
   }
 }

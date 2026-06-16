@@ -41,4 +41,18 @@ describe('ActionRegistry', () => {
 
     expect(registry.list().sort()).toEqual(['inventory.b', 'payments.a']);
   });
+
+  it('stores metadata and reports presence', () => {
+    const registry = new ActionRegistry();
+    const handler = jest.fn();
+
+    registry.register('payments.retryable', handler, {
+      retryPolicy: { maxAttempts: 5, intervalSeconds: 2, backoffRate: 2 },
+    });
+
+    expect(registry.has('payments.retryable')).toBe(true);
+    expect(registry.getMetadata('payments.retryable')).toEqual({
+      retryPolicy: { maxAttempts: 5, intervalSeconds: 2, backoffRate: 2 },
+    });
+  });
 });

@@ -1,0 +1,12 @@
+query BundlePricingTemplates($productId: ID!) {
+  catalogQuery {
+    bundlePricingTemplates(productId: $productId) {
+      id
+      productId
+      name
+      priceType
+      priceValue
+      sortIndex
+    }
+  }
+}

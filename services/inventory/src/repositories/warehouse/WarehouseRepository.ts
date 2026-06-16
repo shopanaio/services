@@ -81,7 +81,7 @@ export class WarehouseRepository extends BaseRepository {
   async clearDefault(): Promise<void> {
     await this.connection
       .update(warehouses)
-      .set({ isDefault: false, updatedAt: new Date() })
+      .set({ isDefault: false, updatedAt: new Date().toISOString() })
       .where(
         and(eq(warehouses.projectId, this.storeId), eq(warehouses.isDefault, true))
       );
@@ -89,7 +89,7 @@ export class WarehouseRepository extends BaseRepository {
 
   async create(data: { code: string; name: string; isDefault?: boolean }): Promise<Warehouse> {
     const id = randomUUID();
-    const now = new Date();
+    const now = new Date().toISOString();
 
     console.log("[WarehouseRepository.create] Starting with data:", JSON.stringify(data));
     console.log("[WarehouseRepository.create] Generated id:", id);
@@ -124,7 +124,7 @@ export class WarehouseRepository extends BaseRepository {
     data: { code?: string; name?: string; isDefault?: boolean }
   ): Promise<Warehouse | null> {
     const updateData: Partial<NewWarehouse> = {
-      updatedAt: new Date(),
+      updatedAt: new Date().toISOString(),
     };
 
     if (data.code !== undefined) updateData.code = data.code;
@@ -152,7 +152,7 @@ export class WarehouseRepository extends BaseRepository {
   // ============ Query ============
 
   async getConnection(args: WarehouseRelayInput): Promise<WarehouseConnectionResult> {
-    const { where, order, ...paginationArgs } = args;
+    const { where, orderBy, ...paginationArgs } = args;
 
     // Merge user-provided where with projectId filter
     const mergedWhere: WarehouseRelayInput["where"] = {
@@ -165,7 +165,7 @@ export class WarehouseRepository extends BaseRepository {
     const executeInput: WarehouseRelayInput = {
       ...paginationArgs,
       where: mergedWhere,
-      order: order ?? [{ field: "createdAt", order: "desc" }],
+      orderBy: orderBy ?? [{ field: "createdAt", direction: "desc" }],
     };
 
     const [result, totalCount] = await Promise.all([

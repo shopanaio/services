@@ -1,0 +1,190 @@
+# ---- Variant Types ----
+
+"""
+A variant represents a specific version of a product, such as a size or color.
+Catalog Service owns this type.
+Inventory fields (sku, dimensions, weight, cost, stock) are added via federation extend in Inventory Service.
+"""
+type Variant implements Node @key(fields: "id") {
+  """The globally unique ID of the variant."""
+  id: ID!
+
+  """The product this variant belongs to."""
+  product: Product!
+
+  """Whether this is the default variant for the product."""
+  isDefault: Boolean!
+
+  """The URL-friendly handle for the variant (generated from options)."""
+  handle: String!
+
+  """The external system identifier for integration purposes."""
+  externalSystem: String
+
+  """The external ID in the external system."""
+  externalId: String
+
+  """The date and time when the variant was created."""
+  createdAt: DateTime!
+
+  """The date and time when the variant was last updated."""
+  updatedAt: DateTime!
+
+  """The date and time when the variant was deleted (soft delete)."""
+  deletedAt: DateTime
+
+  """Current price for this variant."""
+  price: VariantPrice
+
+  """Price history for this variant."""
+  priceHistory(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): VariantPriceConnection!
+
+  """The selected option values for this variant."""
+  selectedOptions: [SelectedOption!]!
+
+  """Variant title."""
+  title: String
+
+  """Media attached to this variant (images, videos)."""
+  media: [VariantMediaItem!]!
+
+  # ═══════════════════════════════════════════════════════════
+  # The following fields have been REMOVED from Catalog (moved to Inventory):
+  # - sku: String
+  # - dimensions: VariantDimensions
+  # - weight: VariantWeight
+  # - cost: VariantCost
+  # - costHistory: VariantCostConnection!
+  # - stock: [WarehouseStock!]!
+  # - inStock: Boolean!
+  # These fields are added via federation extend in Inventory Service
+  # ═══════════════════════════════════════════════════════════
+}
+
+"""
+A connection to a list of Variant items.
+"""
+type VariantConnection {
+  """A list of edges."""
+  edges: [VariantEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of variants."""
+  totalCount: Int!
+}
+
+"""
+An edge in a Variant connection.
+"""
+type VariantEdge {
+  """The item at the end of the edge."""
+  node: Variant!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+
+"""
+Input for creating a variant.
+"""
+input VariantInput {
+  """Variant title."""
+  title: String
+
+  """External system identifier."""
+  externalSystem: String
+
+  """External ID in the external system."""
+  externalId: String
+
+  """Selected option values for the variant (required)."""
+  options: [SelectedOptionInput!]!
+}
+
+"""
+Input for creating a variant with a product ID.
+"""
+input VariantCreateInput {
+  """The ID of the product to add the variant to."""
+  productId: ID!
+
+  """The variant data."""
+  variant: VariantInput!
+}
+
+"""
+Payload for variant creation.
+"""
+type VariantCreatePayload {
+  """The created variant."""
+  variant: Variant
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Input for linking a variant to an option value.
+"""
+input VariantOptionLinkInput {
+  """The option ID."""
+  optionId: ID!
+
+  """The option value ID."""
+  optionValueId: ID!
+}
+
+"""
+Input for updating variant options (option value links).
+"""
+input VariantUpdateOptionsInput {
+  """The ID of the variant."""
+  variantId: ID!
+
+  """The option value links to set (replaces existing links)."""
+  links: [VariantOptionLinkInput!]!
+}
+
+"""
+Payload for variant options update.
+"""
+type VariantUpdateOptionsPayload {
+  """The updated variant."""
+  variant: Variant
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+
+"""
+Input for deleting a variant.
+"""
+input VariantDeleteInput {
+  """The ID of the variant to delete."""
+  id: ID!
+
+  """Whether to permanently delete the variant (hard delete)."""
+  permanent: Boolean
+}
+
+"""
+Payload for variant deletion.
+"""
+type VariantDeletePayload {
+  """The ID of the deleted variant."""
+  deletedVariantId: ID
+
+  """The product the variant belonged to."""
+  product: Product
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}

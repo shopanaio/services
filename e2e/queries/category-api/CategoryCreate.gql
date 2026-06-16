@@ -1,0 +1,53 @@
+mutation CategoryCreate($input: CategoryCreateInput!) {
+  catalogMutation {
+    categoryCreate(input: $input) {
+      category {
+        id
+        handle
+        name
+        description {
+          html
+          text
+          json
+        }
+        defaultSort
+        defaultSortDirection
+        depth
+        path
+        isPublished
+        publishedAt
+        createdAt
+        updatedAt
+        seo {
+          seoTitle
+          seoDescription
+          ogTitle
+          ogDescription
+          ogImage {
+            id
+          }
+        }
+        parent {
+          id
+          handle
+        }
+        children {
+          id
+          handle
+        }
+        media {
+          file {
+            id
+          }
+          sortIndex
+        }
+        productsCount
+      }
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}

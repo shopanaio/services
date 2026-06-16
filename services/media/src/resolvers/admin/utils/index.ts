@@ -1,1 +1,1 @@
-export { encodeGlobalId, decodeGlobalId, type NodeType } from "./globalId.js";
+export { encodeGlobalId, decodeGlobalId } from "@shopana/shared-graphql-guid";

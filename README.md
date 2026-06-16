@@ -1,10 +1,10 @@
 # Shopana Services
 
-A modular e-commerce platform built with NestJS microservices architecture and Apollo GraphQL Federation.
+A modular e-commerce platform built with NestJS microservices architecture and GraphQL Federation.
 
 ## Overview
 
-Shopana is a headless commerce backend providing a unified GraphQL API through federated subgraphs. Each service owns its domain and exposes a GraphQL subgraph that gets composed into a supergraph via Apollo Router.
+Shopana is a headless commerce backend providing a unified GraphQL API through federated subgraphs. Each service owns its domain and exposes a GraphQL subgraph that gets composed into a supergraph.
 
 ### Services
 
@@ -182,7 +182,6 @@ services/
 │   ├── orders/
 │   └── ...
 ├── federation/         # GraphQL federation config
-├── apollo/             # Apollo Router config
 ├── workflows/          # Temporal workflows
 └── migrations/         # Go-based migrations (legacy)
 ```

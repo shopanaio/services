@@ -1,0 +1,38 @@
+mutation CollectionCreate($input: CollectionCreateInput!) {
+  catalogMutation {
+    collectionCreate(input: $input) {
+      collection {
+        id
+        handle
+        type
+        name
+        description {
+          html
+          text
+          json
+        }
+        defaultSort
+        defaultSortDirection
+        activeFrom
+        activeTo
+        isActive
+        publishedAt
+        isPublished
+        createdAt
+        updatedAt
+        rules {
+          id
+          field
+          operator
+          value
+          sortIndex
+        }
+      }
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}

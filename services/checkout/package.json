@@ -6,7 +6,7 @@
   "exports": {
     ".": {
       "import": "./dist/checkout.module.js",
-      "default": "./src/checkout.module.ts"
+      "source": "./src/checkout.module.ts"
     }
   },
   "dependencies": {

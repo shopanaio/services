@@ -1,0 +1,458 @@
+enum ProductSortBy {
+  MANUAL
+  PRICE
+  NEWEST
+  NAME
+}
+
+input ProductSortInput {
+  by: ProductSortBy!
+  direction: SortDirection
+}
+
+"""Standard orderBy input for product queries."""
+input ProductOrderByInput {
+  field: ProductSortBy!
+  direction: SortDirection
+}
+
+# ---- Product Types ----
+
+"""
+Product description in multiple formats.
+"""
+type Description {
+  """Plain text description."""
+  text: String!
+
+  """HTML description."""
+  html: String!
+
+  """EditorJS JSON description."""
+  json: JSON!
+}
+
+"""
+Input for product description (all fields required).
+"""
+input DescriptionInput {
+  """Plain text description."""
+  text: String!
+
+  """HTML description."""
+  html: String!
+
+  """EditorJS JSON description."""
+  json: JSON!
+}
+
+"""
+A product represents an item that can be sold.
+"""
+type Product implements Node @key(fields: "id") {
+  """The globally unique ID of the product."""
+  id: ID!
+
+  """The URL-friendly handle for the product."""
+  handle: String
+
+  """The date and time when the product was published, or null if unpublished."""
+  publishedAt: DateTime
+
+  """Whether the product is currently published."""
+  isPublished: Boolean!
+
+  """The date and time when the product was created."""
+  createdAt: DateTime!
+
+  """The date and time when the product was last updated."""
+  updatedAt: DateTime!
+
+  """The date and time when the product was deleted (soft delete)."""
+  deletedAt: DateTime
+
+  """Optimistic locking revision number. Incremented on each update."""
+  revision: Int!
+
+  """The variants of this product."""
+  variants(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): VariantConnection!
+
+  """The options available for this product."""
+  options: [ProductOption!]!
+
+  """The features of this product."""
+  features: [ProductFeature!]!
+
+  """The total number of variants for this product."""
+  variantsCount: Int!
+
+  """The categories this product belongs to."""
+  categories: [Category!]!
+
+  """The tags associated with this product."""
+  tags: [Tag!]!
+
+  """Product title."""
+  title: String!
+
+  """Product description."""
+  description: Description
+
+  """Short excerpt."""
+  excerpt: String
+
+  """SEO and Open Graph metadata."""
+  seo: ProductSeo
+}
+
+"""
+A connection to a list of Product items.
+"""
+type ProductConnection {
+  """A list of edges."""
+  edges: [ProductEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of products."""
+  totalCount: Int!
+}
+
+"""
+An edge in a Product connection.
+"""
+type ProductEdge {
+  """The item at the end of the edge."""
+  node: Product!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+
+"""
+Input for creating a feature during product creation.
+"""
+input ProductFeatureInput {
+  """The URL-friendly slug for the feature."""
+  slug: String!
+
+  """Display name."""
+  name: String!
+
+  """The values for this feature."""
+  values: [ProductFeatureValueCreateInput!]!
+}
+
+"""
+Input for creating an option value during product creation.
+"""
+input ProductCreateOptionValueInput {
+  """Display name for the value."""
+  name: String!
+
+  """URL-friendly slug for the value."""
+  slug: String!
+}
+
+"""
+Input for creating an option during product creation.
+"""
+input ProductCreateOptionInput {
+  """Display name for the option."""
+  name: String!
+
+  """URL-friendly slug for the option."""
+  slug: String!
+
+  """How to display the option (default: DROPDOWN)."""
+  displayType: String
+
+  """The values for this option."""
+  values: [ProductCreateOptionValueInput!]!
+}
+
+"""
+Input for creating a variant during product creation.
+"""
+input ProductCreateVariantInput {
+  """Handle built from option value slugs (e.g., "red-s")."""
+  handle: String!
+}
+
+"""
+Inventory tracking settings for product creation.
+"""
+input InventoryItemInput {
+  """Whether to track inventory for this product."""
+  tracked: Boolean!
+
+  """Stock Keeping Unit."""
+  sku: String
+
+  """Allow sales when stock is zero."""
+  continueSellingWhenOutOfStock: Boolean
+}
+
+"""
+Input for creating a product with all its data in one request.
+"""
+input ProductCreateInput {
+  """Product title."""
+  title: String!
+
+  """URL-friendly handle for the product."""
+  handle: String!
+
+  """Product description."""
+  description: DescriptionInput
+
+  """File IDs for product media (already uploaded via mediaMutation.fileUpload)."""
+  mediaFileIds: [ID!]
+
+  """Product options (e.g., Color, Size)."""
+  options: [ProductCreateOptionInput!]
+
+  """Variants to create (only enabled ones from UI)."""
+  variants: [ProductCreateVariantInput!]
+
+  """Inventory tracking settings for the product."""
+  inventoryItem: InventoryItemInput
+}
+
+"""
+Payload for product creation.
+"""
+type ProductCreatePayload {
+  """The created product."""
+  product: Product
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Input for deleting a product.
+"""
+input ProductDeleteInput {
+  """The ID of the product to delete."""
+  id: ID!
+
+  """Whether to permanently delete the product (hard delete)."""
+  permanent: Boolean
+}
+
+"""
+Payload for product deletion.
+"""
+type ProductDeletePayload {
+  """The ID of the deleted product."""
+  deletedProductId: ID
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Input for updating product status (publish or unpublish).
+Reused in bulk operations.
+"""
+input ProductUpdateStatusInput {
+  """Product ID."""
+  productId: ID!
+
+  """Action: PUBLISH or UNPUBLISH."""
+  action: ProductStatusAction!
+}
+
+"""
+Payload for product update status.
+"""
+type ProductUpdateStatusPayload {
+  """The updated product."""
+  product: Product
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+# ---- Unified ProductUpdate Workflow Types ----
+
+"""
+Input for product content (description, excerpt).
+"""
+input ProductContentInput {
+  """Product description in multiple formats."""
+  description: DescriptionInput
+
+  """Short excerpt."""
+  excerpt: String
+}
+
+"""
+Input for product media.
+"""
+input ProductMediaInput {
+  """File IDs for product media."""
+  fileIds: [ID!]!
+}
+
+"""
+Input for product-level fields in the unified update.
+"""
+input ProductUpdateInput {
+  """The URL-friendly handle for the product."""
+  handle: String
+
+  """Product title."""
+  title: String
+
+  """Product content (description, excerpt)."""
+  content: ProductContentInput
+
+  """SEO and Open Graph metadata."""
+  seo: ProductSeoInput
+
+  """Product status: DRAFT or PUBLISHED."""
+  status: ProductStatus
+
+  """Product media."""
+  media: ProductMediaInput
+
+  """Variant updates."""
+  variants: [VariantUpdateInput!]
+}
+
+"""
+Input for variant pricing in the unified update.
+"""
+input VariantPricingOpInput {
+  """The currency code."""
+  currency: CurrencyCode!
+
+  """The price amount in minor units."""
+  amountMinor: BigInt!
+
+  """The compare-at price in minor units (optional)."""
+  compareAtMinor: BigInt
+}
+
+"""
+Input for variant inventory in the unified update.
+"""
+input VariantInventoryOpInput {
+  """The warehouse ID."""
+  warehouseId: ID!
+
+  """Quantity on hand."""
+  onHand: Int!
+
+  """Unavailable quantity (reserved, damaged, etc.)."""
+  unavailable: Int
+
+  """SKU code."""
+  sku: String
+
+  """Weight in grams."""
+  weight: Int
+
+  """Unit cost in minor units (cents)."""
+  unitCostMinor: BigInt
+
+  """Currency code for unit cost."""
+  costCurrency: CurrencyCode
+}
+
+"""
+Input for variant dimensions in the unified update.
+"""
+input VariantDimensionsOpInput {
+  """Width in millimeters."""
+  width: Int!
+
+  """Height in millimeters."""
+  height: Int!
+
+  """Length in millimeters."""
+  length: Int!
+}
+
+"""
+Input for variant media in the unified update.
+"""
+input VariantMediaOpInput {
+  """File IDs for variant media."""
+  fileIds: [ID!]!
+}
+
+"""
+Input for variant options in the unified update.
+"""
+input VariantOptionsOpInput {
+  """Option value links to set (replaces existing)."""
+  set: [VariantOptionLinkInput!]!
+}
+
+"""
+Input for a single variant update.
+"""
+input VariantUpdateInput {
+  """The variant ID."""
+  variantId: ID!
+
+  """Variant pricing."""
+  pricing: VariantPricingOpInput
+
+  """Variant inventory (stock, SKU, weight, cost)."""
+  inventory: VariantInventoryOpInput
+
+  """Variant dimensions."""
+  dimensions: VariantDimensionsOpInput
+
+  """Variant media."""
+  media: VariantMediaOpInput
+
+  """Variant options."""
+  options: VariantOptionsOpInput
+}
+
+"""
+Type of operation in the unified update.
+"""
+enum OperationType {
+  PRODUCT_UPDATE
+  VARIANT_UPDATE
+}
+
+"""
+Result of a single operation in the unified update.
+"""
+type OperationResult {
+  """The type of operation."""
+  type: OperationType!
+
+  """Whether the operation was applied successfully."""
+  applied: Boolean!
+
+  """Errors that occurred during this operation."""
+  errors: [GenericUserError!]!
+}
+
+"""
+Payload for the unified product update mutation.
+"""
+type ProductUpdatePayload {
+  """The updated product with new revision."""
+  product: Product
+
+  """Results of each operation."""
+  operationResults: [OperationResult!]!
+
+  """All errors from all operations."""
+  userErrors: [GenericUserError!]!
+}

@@ -3,6 +3,14 @@ import type { User } from "../repositories/index.js";
 import type { Loader } from "../loaders/Loader.js";
 
 /**
+ * Request headers needed for session tracking (IP, User-Agent).
+ */
+export interface RequestHeaders {
+  userAgent?: string;
+  ipAddress?: string;
+}
+
+/**
  * Unified service context for IAM service.
  * Contains all request-scoped data available throughout request lifecycle.
  */
@@ -17,7 +25,11 @@ export interface ServiceContext {
     data: User | null;
     /** Current user ID */
     id: string;
+    /** Current session ID (from JWT sid claim) */
+    sessionId: string | null;
   } | null;
   /** Data loaders for batch loading */
   loaders: Loader;
+  /** Request headers for session tracking */
+  requestHeaders: RequestHeaders;
 }

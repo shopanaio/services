@@ -10,14 +10,13 @@ test.describe('Media API - File Upload', () => {
     test('uploads file from external URL', async ({ api }) => {
       await api.session.setupUserAndStore();
 
-      const sourceUrl =
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/PNG_transparency_demonstration_1.png/280px-PNG_transparency_demonstration_1.png';
+      const sourceUrl = 'https://picsum.photos/id/1025/300/200.jpg';
 
       const { data } = await api.admin.mutation('media-api/FileUploadFromUrl', {
         variables: {
           input: {
             sourceUrl,
-            altText: 'Transparency demonstration',
+            altText: 'Test image',
           },
         },
       });
@@ -26,16 +25,14 @@ test.describe('Media API - File Upload', () => {
       expect(data.mediaMutation.fileUploadFromUrl.file).toBeTruthy();
       expect(data.mediaMutation.fileUploadFromUrl.file?.sourceUrl).toBe(sourceUrl);
       expect(data.mediaMutation.fileUploadFromUrl.file?.url).toBeTruthy();
-      expect(data.mediaMutation.fileUploadFromUrl.file?.altText).toBe('Transparency demonstration');
+      expect(data.mediaMutation.fileUploadFromUrl.file?.altText).toBe('Test image');
       expect(data.mediaMutation.fileUploadFromUrl.file?.provider).toBe('S3');
     });
 
     test('auto-detects MIME type and dimensions from URL', async ({ api }) => {
       await api.session.setupUserAndStore();
 
-      const file = await api.admin.file.uploadFromUrl(
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Camponotus_flavomarginatus_ant.jpg/320px-Camponotus_flavomarginatus_ant.jpg',
-      );
+      const file = await api.admin.file.uploadFromUrl('https://picsum.photos/id/1015/300/200.jpg');
 
       expect(file.id).toBeTruthy();
       expect(file.url).toBeTruthy();
@@ -58,8 +55,7 @@ test.describe('Media API - File Upload', () => {
     test('supports idempotency for URL uploads', async ({ api }) => {
       await api.session.setupUserAndStore();
 
-      const sourceUrl =
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Good_Food_Display_-_NCI_Visuals_Online.jpg/320px-Good_Food_Display_-_NCI_Visuals_Online.jpg';
+      const sourceUrl = 'https://picsum.photos/id/237/300/200.jpg';
       const idempotencyKey = `url-upload-${uuidv4()}`;
 
       const { data: data1 } = await api.admin.mutation('media-api/FileUploadFromUrl', {
@@ -77,8 +73,7 @@ test.describe('Media API - File Upload', () => {
       const { data: data2 } = await api.admin.mutation('media-api/FileUploadFromUrl', {
         variables: {
           input: {
-            sourceUrl:
-              'https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/PNG_transparency_demonstration_1.png/280px-PNG_transparency_demonstration_1.png',
+            sourceUrl: 'https://picsum.photos/id/1025/300/200.jpg',
             idempotencyKey, // Same key
           },
         },
@@ -92,9 +87,7 @@ test.describe('Media API - File Upload', () => {
     test('sets original name from URL filename', async ({ api }) => {
       await api.session.setupUserAndStore();
 
-      const file = await api.admin.file.uploadFromUrl(
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/PNG_transparency_demonstration_1.png/280px-PNG_transparency_demonstration_1.png',
-      );
+      const file = await api.admin.file.uploadFromUrl('https://picsum.photos/id/1025/300/200.jpg');
 
       expect(file.id).toBeTruthy();
       expect(file.originalName).toBeTruthy();
@@ -203,7 +196,7 @@ test.describe('Media API - File Upload', () => {
       await api.session.setupUserAndStore();
 
       const file = await api.admin.file.uploadFromUrl(
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/PNG_transparency_demonstration_1.png/280px-PNG_transparency_demonstration_1.png',
+        'https://picsum.photos/id/1025/300/200.jpg',
         'Test alt text',
       );
 
@@ -224,13 +217,9 @@ test.describe('Media API - File Upload', () => {
     test('multiple files can be uploaded in sequence', async ({ api }) => {
       await api.session.setupUserAndStore();
 
-      const file1 = await api.admin.file.uploadFromUrl(
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/PNG_transparency_demonstration_1.png/280px-PNG_transparency_demonstration_1.png',
-      );
+      const file1 = await api.admin.file.uploadFromUrl('https://picsum.photos/id/1025/300/200.jpg');
 
-      const file2 = await api.admin.file.uploadFromUrl(
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Good_Food_Display_-_NCI_Visuals_Online.jpg/320px-Good_Food_Display_-_NCI_Visuals_Online.jpg',
-      );
+      const file2 = await api.admin.file.uploadFromUrl('https://picsum.photos/id/237/300/200.jpg');
 
       expect(file1.id).toBeTruthy();
       expect(file2.id).toBeTruthy();
@@ -251,9 +240,7 @@ test.describe('Media API - File Upload', () => {
     test('correctly identifies JPEG files', async ({ api }) => {
       await api.session.setupUserAndStore();
 
-      const file = await api.admin.file.uploadFromUrl(
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Camponotus_flavomarginatus_ant.jpg/320px-Camponotus_flavomarginatus_ant.jpg',
-      );
+      const file = await api.admin.file.uploadFromUrl('https://picsum.photos/id/1015/300/200.jpg');
 
       const { data } = await api.admin.query('media-api/FileFindOne', {
         variables: { id: file.id },
@@ -266,8 +253,9 @@ test.describe('Media API - File Upload', () => {
     test('correctly identifies PNG files', async ({ api }) => {
       await api.session.setupUserAndStore();
 
+      // Use local PNG upload instead of URL (picsum only provides jpg)
       const file = await api.admin.file.uploadFromUrl(
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/PNG_transparency_demonstration_1.png/280px-PNG_transparency_demonstration_1.png',
+        'https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png',
       );
 
       const { data } = await api.admin.query('media-api/FileFindOne', {

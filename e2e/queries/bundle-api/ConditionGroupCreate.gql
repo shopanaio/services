@@ -1,0 +1,28 @@
+mutation ConditionGroupCreate($input: ConditionGroupCreateInput!) {
+  catalogMutation {
+    conditionGroupCreate(input: $input) {
+      conditionGroup {
+        id
+        ruleId
+        logicOperator
+        sortIndex
+        conditions {
+          id
+          groupId
+          category
+          subject
+          operator
+          targetType
+          targetId
+          value
+          sortIndex
+        }
+      }
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}

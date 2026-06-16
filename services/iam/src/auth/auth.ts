@@ -83,11 +83,16 @@ export function createAuth() {
               name: user.name,
             };
 
+            // Add session ID for identifying current session
+            const sessionObj = session as { id?: string; organizationId?: string } | undefined;
+            if (sessionObj?.id) {
+              payload.sid = sessionObj.id;
+            }
+
             // Add organization claim if present in session data
             // This is set by switchOrganization mutation
-            const sessionData = session as { organizationId?: string } | undefined;
-            if (sessionData?.organizationId) {
-              payload.org = sessionData.organizationId;
+            if (sessionObj?.organizationId) {
+              payload.org = sessionObj.organizationId;
             }
 
             return payload;

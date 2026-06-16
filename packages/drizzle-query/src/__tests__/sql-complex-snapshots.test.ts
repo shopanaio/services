@@ -449,6 +449,7 @@ describe("Complex SQL Snapshot Tests", () => {
           (
             "t1_translations"."value" ILIKE $1
             AND "t0_products"."is_published" = $2
+            AND "t0_products"."deleted_at" IS NULL
           )
         LIMIT
           $3
@@ -483,6 +484,7 @@ describe("Complex SQL Snapshot Tests", () => {
           (
             "t1_translations"."value" ILIKE $1
             AND "t0_categories"."is_visible" = $2
+            AND "t0_categories"."parent_id" IS NOT NULL
           )
         LIMIT
           $3
@@ -556,6 +558,7 @@ describe("Complex SQL Snapshot Tests", () => {
           (
             "t1_categories"."slug" IN ($1, $2, $3)
             AND "t0_products"."is_published" = $4
+            AND "t0_products"."deleted_at" IS NULL
           )
         LIMIT
           $5
@@ -1333,7 +1336,9 @@ describe("Complex SQL Snapshot Tests", () => {
             AND "t0_products"."stock" >= $6
             AND "t0_products"."stock" <= $7
             AND "t0_products"."is_published" = $8
+            AND "t0_products"."deleted_at" IS NULL
             AND "t1_categories"."slug" IN ($9, $10, $11, $12, $13)
+            AND "t1_categories"."is_visible" IS NOT NULL
             AND "t1_translations"."value" ILIKE $14
           )
         LIMIT
@@ -1441,7 +1446,10 @@ describe("Complex SQL Snapshot Tests", () => {
                   "t1_orders"."status" = $5
                   AND "t1_orders"."total_amount" >= $6
                 )
-                OR "t0_users"."is_active" = $7
+                OR (
+                  "t0_users"."is_active" = $7
+                  AND "t0_users"."name" IS NOT NULL
+                )
               )
             )
           )

@@ -1,0 +1,281 @@
+# ---- Category Types ----
+
+"""
+A category represents a hierarchical grouping of products.
+"""
+type Category implements Node @key(fields: "id") {
+  """The globally unique ID of the category."""
+  id: ID!
+
+  """The URL-friendly handle for the category."""
+  handle: String!
+
+  """The date and time when the category was published, or null if unpublished."""
+  publishedAt: DateTime
+
+  """Whether the category is currently published."""
+  isPublished: Boolean!
+
+  """The date and time when the category was created."""
+  createdAt: DateTime!
+
+  """The date and time when the category was last updated."""
+  updatedAt: DateTime!
+
+  """The date and time when the category was deleted (soft delete)."""
+  deletedAt: DateTime
+
+  """The depth of this category in the hierarchy (0 for root)."""
+  depth: Int!
+
+  """The materialized path for this category."""
+  path: String!
+
+  """The display name of the category."""
+  name: String!
+
+  """The category description."""
+  description: Description
+
+  """Default product sort for this category PLP."""
+  defaultSort: ProductSortBy!
+
+  """Default sort direction for this category PLP."""
+  defaultSortDirection: SortDirection!
+
+  """SEO metadata."""
+  seo: Seo
+
+  """The parent category, if any."""
+  parent: Category
+
+  """Direct child categories."""
+  children: [Category!]!
+
+  """All ancestor categories from root to parent."""
+  ancestors: [Category!]!
+
+  """Media files associated with this category."""
+  media: [CategoryMediaItem!]!
+
+  """Products in this category with pagination."""
+  products(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    orderBy: [ProductOrderByInput!]
+    where: CategoryProductWhereInput
+  ): CategoryProductConnection!
+
+  """The total number of products in this category."""
+  productsCount: Int!
+}
+
+"""
+A media item for a category.
+"""
+type CategoryMediaItem {
+  """The file reference."""
+  file: File!
+
+  """The sort index for ordering."""
+  sortIndex: Int!
+}
+
+"""
+A connection to a list of Category items.
+"""
+type CategoryConnection {
+  """A list of edges."""
+  edges: [CategoryEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of categories."""
+  totalCount: Int!
+}
+
+"""
+An edge in a Category connection.
+"""
+type CategoryEdge {
+  """The item at the end of the edge."""
+  node: Category!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+
+type CategoryProductConnection {
+  edges: [CategoryProductEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type CategoryProductEdge {
+  node: Product!
+  cursor: String!
+}
+
+# ---- Category Inputs ----
+
+"""
+Input for creating a category.
+"""
+input CategoryCreateInput {
+  """The URL-friendly handle for the category."""
+  handle: String!
+
+  """The display name of the category."""
+  name: String!
+
+  """Optional parent category ID."""
+  parentId: ID
+
+  """Optional description."""
+  description: DescriptionInput
+
+  """SEO metadata."""
+  seo: SeoInput
+
+  """File IDs for category media."""
+  mediaFileIds: [ID!]
+
+  """Whether to publish immediately."""
+  publish: Boolean
+}
+
+"""
+Input for updating a category.
+"""
+input CategoryUpdateInput {
+  """The ID of the category to update."""
+  id: ID!
+
+  """The URL-friendly handle for the category."""
+  handle: String
+
+  """The display name of the category."""
+  name: String
+
+  """The category description."""
+  description: DescriptionInput
+
+  """SEO metadata."""
+  seo: SeoInput
+
+  """File IDs for category media (replaces existing)."""
+  mediaFileIds: [ID!]
+}
+
+"""
+Input for moving a category in the hierarchy.
+"""
+input CategoryMoveInput {
+  """The ID of the category to move."""
+  id: ID!
+
+  """The new parent category ID, or null for root."""
+  newParentId: ID
+}
+
+"""
+Input for deleting a category.
+"""
+input CategoryDeleteInput {
+  """The ID of the category to delete."""
+  id: ID!
+
+  """Whether to permanently delete (hard delete)."""
+  permanent: Boolean
+}
+
+input CategoryMoveProductInput {
+  categoryId: ID!
+  productId: ID!
+  afterProductId: ID
+  beforeProductId: ID
+}
+
+input CategoryAddProductInput {
+  categoryId: ID!
+  productId: ID!
+}
+
+input CategoryRebalanceInput {
+  categoryId: ID!
+}
+
+input CategoryUpdateSortInput {
+  id: ID!
+  defaultSort: ProductSortBy!
+  defaultSortDirection: SortDirection!
+}
+
+# ---- Category Payloads ----
+
+"""
+Payload for category creation.
+"""
+type CategoryCreatePayload {
+  """The created category."""
+  category: Category
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Payload for category update.
+"""
+type CategoryUpdatePayload {
+  """The updated category."""
+  category: Category
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Payload for category move.
+"""
+type CategoryMovePayload {
+  """The moved category."""
+  category: Category
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Payload for category deletion.
+"""
+type CategoryDeletePayload {
+  """The ID of the deleted category."""
+  deletedCategoryId: ID
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+type CategoryMoveProductPayload {
+  category: Category
+  userErrors: [GenericUserError!]!
+}
+
+type CategoryAddProductPayload {
+  category: Category
+  userErrors: [GenericUserError!]!
+}
+
+type CategoryRebalancePayload {
+  category: Category
+  userErrors: [GenericUserError!]!
+}
+
+type CategoryUpdateSortPayload {
+  category: Category
+  userErrors: [GenericUserError!]!
+}

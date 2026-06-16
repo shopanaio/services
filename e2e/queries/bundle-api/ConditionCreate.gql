@@ -1,0 +1,22 @@
+mutation ConditionCreate($input: ConditionCreateInput!) {
+  catalogMutation {
+    conditionCreate(input: $input) {
+      condition {
+        id
+        groupId
+        category
+        subject
+        operator
+        targetType
+        targetId
+        value
+        sortIndex
+      }
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}

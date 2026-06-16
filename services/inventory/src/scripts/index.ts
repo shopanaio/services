@@ -1,17 +1,8 @@
 // GetOffers script
 export * from './GetOffersScript.js';
 
-// Product scripts
-export * from './product/index.js';
-
-// Variant scripts
-export * from './variant/index.js';
-
-// Option scripts
-export * from './option/index.js';
-
-// Feature scripts
-export * from './feature/index.js';
+// Inventory item scripts
+export * from './inventory-item/index.js';
 
 // Warehouse scripts
 export * from './warehouse/index.js';

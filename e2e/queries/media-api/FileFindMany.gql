@@ -1,0 +1,43 @@
+query FileFindMany(
+  $first: Int
+  $after: String
+  $last: Int
+  $before: String
+  $where: FileWhereInput
+  $orderBy: [FileOrderByInput!]
+) {
+  mediaQuery {
+    files(
+      first: $first
+      after: $after
+      last: $last
+      before: $before
+      where: $where
+      orderBy: $orderBy
+    ) {
+      edges {
+        node {
+          id
+          provider
+          url
+          mimeType
+          ext
+          sizeBytes
+          originalName
+          altText
+          isProcessed
+          createdAt
+          updatedAt
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+      totalCount
+    }
+  }
+}

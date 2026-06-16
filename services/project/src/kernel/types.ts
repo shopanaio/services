@@ -4,7 +4,7 @@ import type {
   TransactionScript as BaseTransactionScript,
 } from "@shopana/shared-kernel";
 import type { Cache } from "cache-manager";
-import type { WorkflowRegistry } from "@shopana/workflows";
+import type { WorkflowRegistry } from "@shopana/shared-kernel";
 import type { Repository } from "../repositories/Repository.js";
 import type { NameResolver } from "../cache/index.js";
 

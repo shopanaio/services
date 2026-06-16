@@ -1,0 +1,43 @@
+query DependencyRules($productId: ID!) {
+  catalogQuery {
+    dependencyRules(productId: $productId) {
+      id
+      productId
+      name
+      enabled
+      priority
+      logicOperator
+      conditionGroups {
+        id
+        ruleId
+        logicOperator
+        sortIndex
+        conditions {
+          id
+          groupId
+          category
+          subject
+          operator
+          targetType
+          targetId
+          value
+          sortIndex
+        }
+      }
+      actions {
+        id
+        ruleId
+        actionType
+        targetType
+        targetId
+        requiredValue
+        priceType
+        priceValue
+        stackable
+        sortIndex
+      }
+      createdAt
+      updatedAt
+    }
+  }
+}

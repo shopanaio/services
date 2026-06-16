@@ -158,7 +158,6 @@ This will:
 
 Casdoor connects to the `shopana-network` Docker network, which is shared with:
 - Traefik reverse proxy
-- Apollo Router
 - Other Shopana services
 
 ### Traefik Integration
@@ -273,7 +272,6 @@ ansible-playbook playbooks/cleanup/cleanup-port.yml -e 'cleanup_port=9011'
 
 - **Traefik**: Reverse proxy for routing
 - **Platform Service**: Main GraphQL API
-- **Apollo Router**: GraphQL federation
 
 ## References
 

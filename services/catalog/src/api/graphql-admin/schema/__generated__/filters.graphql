@@ -1,0 +1,18 @@
+# Auto-generated GraphQL filter types for Catalog service.
+# Do not edit manually. Run: yarn generate:filters
+
+"""Filter conditions for CategoryProduct"""
+input CategoryProductWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [CategoryProductWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [CategoryProductWhereInput!]
+  """Negate the condition"""
+  _not: CategoryProductWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+  """Filter by deletedAt"""
+  deletedAt: DateTimeFilter
+}

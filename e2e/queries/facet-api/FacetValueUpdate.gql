@@ -1,0 +1,29 @@
+mutation FacetValueUpdate($input: FacetValueUpdateInput!) {
+  catalogMutation {
+    facetValueUpdate(input: $input) {
+      facetValue {
+        id
+        slug
+        label
+        sourceHandles
+        sortIndex
+        enabled
+        swatch {
+          id
+          swatchType
+          colorOne
+          colorTwo
+        }
+        facet {
+          id
+          slug
+        }
+      }
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}

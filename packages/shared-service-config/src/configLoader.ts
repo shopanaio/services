@@ -94,8 +94,6 @@ function loadYamlConfig(): Config {
     const configFile = process.env.CONFIG_FILE || "config.yml";
     const configPath = path.join(workspaceRoot, configFile);
 
-    console.log(`Loading configuration from: ${configPath}`);
-
     const fileContents = fs.readFileSync(configPath, "utf8");
     const rawConfig = yaml.load(fileContents);
 

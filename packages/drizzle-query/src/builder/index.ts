@@ -5,9 +5,11 @@ import { QueryBuilder, type TypedInput } from "./query-builder.js";
 
 // Fluent Query Builder
 export { createQuery, FluentQueryBuilder, MaxLimitExceededError } from "./fluent-query-builder.js";
+export type { FluentQueryBuilderLike } from "./fluent-types.js";
 
 // Field helper
 export { field } from "./helpers.js";
+export type { FieldBuilder } from "./helpers.js";
 
 // Internal: used by cursor builders
 export function createQueryBuilder<

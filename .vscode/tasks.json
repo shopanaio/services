@@ -2,6 +2,27 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "Run Admin Next",
+      "type": "shell",
+      "command": "source ~/.nvm/nvm.sh && nvm use 22 && yarn && yarn dev",
+      "options": {
+        "cwd": "${workspaceFolder}/admin-next",
+        "shell": {
+          "executable": "/bin/zsh",
+          "args": ["-c"]
+        }
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
       "label": "Run Infrastructure",
       "type": "shell",
       "command": "docker compose up",
@@ -177,8 +198,11 @@
       "command": "claude --dangerously-skip-permissions",
       "presentation": {
         "reveal": "always",
-        "panel": "shared",
+        "panel": "new",
         "showReuseMessage": false
+      },
+      "runOptions": {
+        "instanceLimit": 5
       },
       "options": {
         "cwd": "${workspaceFolder}",
@@ -189,6 +213,30 @@
       },
       "isBackground": true,
       "problemMatcher": []
-    }
+    },
+    {
+      "label": "Claude Commit (All)",
+      "type": "shell",
+      "command": "claude --dangerously-skip-permissions --model haiku '/commit-all'",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "showReuseMessage": false,
+        "focus": true
+      },
+      "runOptions": {
+        "instanceLimit": 5
+      },
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "shell": {
+          "executable": "/bin/zsh",
+          "args": ["-c"]
+        }
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+
   ]
 }

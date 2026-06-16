@@ -53,7 +53,16 @@ services:
     db:
       <<: *db_default
 
-  delivery: {}
+  catalog:
+    ports:
+      admin_graphql: 10011
+      metrics: 3038
+    db:
+      <<: *db_default
+      schema: null
+    s3:
+      <<: *s3_default
+      bucket: catalog
 
   inventory:
     ports:
@@ -84,10 +93,6 @@ services:
     db:
       <<: *db_default
 
-  payments: {}
-
-  pricing: {}
-
   project:
     ports:
       admin_graphql: 10009
@@ -103,6 +108,12 @@ services:
       <<: *db_default
     # Email domains that automatically get super_admin role (comma-separated)
     super_admin_domains: "shopana.io"
+
+  delivery: {}
+
+  payments: {}
+
+  pricing: {}
 
 # ═══════════════════════════════════════════════════════════════════
 # WORKFLOWS (DBOS Transact)

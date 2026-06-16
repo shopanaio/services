@@ -1,0 +1,14 @@
+query FacetSwatch($id: ID!) {
+  catalogQuery {
+    facetSwatch(id: $id) {
+      id
+      swatchType
+      colorOne
+      colorTwo
+      file {
+        id
+      }
+      metadata
+    }
+  }
+}

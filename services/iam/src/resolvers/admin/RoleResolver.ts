@@ -1,4 +1,4 @@
-import { IAMType, Cache } from "./IAMType.js";
+import { IAMType } from "./IAMType.js";
 import {
   encodeGlobalIdByType,
   GlobalIdEntity,
@@ -21,11 +21,6 @@ interface RoleData extends Role {
  * Loads role from database and policies from casbin
  */
 export class RoleResolver extends IAMType<RoleInput, RoleData> {
-  @Cache({
-    cacheName: "iam:role",
-    key: ({ $props }: RoleResolver) =>
-      `${$props.organizationId}:${$props.domain}:${$props.name}`,
-  })
   async $preload(): Promise<RoleData> {
     const { organizationId, domain, name } = this.$props;
 

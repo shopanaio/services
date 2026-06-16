@@ -1,0 +1,37 @@
+import { Injectable } from "@nestjs/common";
+import {
+  BrokerActions,
+  InjectBroker,
+  ServiceBroker,
+  Action,
+} from "@shopana/shared-kernel";
+import { Kernel } from "../kernel/Kernel.js";
+import {
+  GetOffersScript,
+  type GetOffersParams,
+  type GetOffersResult,
+} from "../scripts/GetOffersScript.js";
+
+/**
+ * Catalog broker actions registered with @Action decorator.
+ * Each method decorated with @Action is automatically registered
+ * as a broker action when the module initializes.
+ */
+@Injectable()
+export class CatalogBrokerActions extends BrokerActions {
+  constructor(@InjectBroker("catalog") broker: ServiceBroker) {
+    super(broker);
+  }
+
+  private get kernel(): Kernel {
+    return Kernel.getInstance();
+  }
+
+  /**
+   * Action: getOffers - retrieves inventory offers through plugins
+   */
+  @Action("getOffers")
+  async getOffers(params: GetOffersParams): Promise<GetOffersResult> {
+    return this.kernel.runScript(GetOffersScript, params);
+  }
+}

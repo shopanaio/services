@@ -21,7 +21,6 @@ mutation FileUpload($input: FileUploadMultipartInput!) {
         s3Data {
           bucketId
           objectKey
-          contentHash
           etag
           storageClass
         }

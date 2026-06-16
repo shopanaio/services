@@ -1,0 +1,12 @@
+mutation BundlePricingTemplateDelete($input: DeleteInput!) {
+  catalogMutation {
+    bundlePricingTemplateDelete(input: $input) {
+      deletedId
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}

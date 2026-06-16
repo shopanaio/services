@@ -63,6 +63,9 @@ export class OrganizationDeleteScript extends BaseScript<
       };
     }
 
+    // Note: Media asset group deletion and back-ref cleanup are handled
+    // by OrganizationDeleteWorkflow after this transaction commits successfully
+
     return {
       deletedOrganizationId: organizationId,
       userErrors: [],

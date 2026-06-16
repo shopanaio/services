@@ -1,0 +1,78 @@
+/**
+ * Workspace domain GraphQL operations.
+ * Exports all fragments, queries, and mutations for the IAM and Project services.
+ */
+
+// Re-export all fragments
+export {
+  // File reference (for avatar/logo)
+  FILE_REF_FRAGMENT,
+  // User
+  USER_FRAGMENT,
+  USER_BASIC_FRAGMENT,
+  // Role
+  ROLE_PERMISSION_FRAGMENT,
+  ROLE_FRAGMENT,
+  ROLE_BASIC_FRAGMENT,
+  // Member
+  MEMBER_FRAGMENT,
+  // Membership
+  RESOURCE_DEFINITION_FRAGMENT,
+  MEMBERSHIP_FRAGMENT,
+  // Organization
+  ORGANIZATION_FRAGMENT,
+  ORGANIZATION_BASIC_FRAGMENT,
+  // Store
+  STORE_FRAGMENT,
+  STORE_BASIC_FRAGMENT,
+  // Auth
+  AUTH_TOKEN_FRAGMENT,
+  // Error
+  USER_ERROR_FRAGMENT,
+} from "./fragments";
+
+// Re-export all queries
+export {
+  // User
+  CURRENT_USER_QUERY,
+  AUTHORIZE_QUERY,
+  // Organization
+  ORGANIZATION_QUERY,
+  ORGANIZATION_BASIC_QUERY,
+  ORGANIZATIONS_QUERY,
+  // Store
+  STORES_QUERY,
+  STORE_QUERY,
+  CURRENT_STORE_QUERY,
+} from "./queries";
+
+// Re-export all mutations
+export {
+  // Auth
+  SIGN_UP_MUTATION,
+  SIGN_IN_MUTATION,
+  SIGN_OUT_MUTATION,
+  TOKEN_REFRESH_MUTATION,
+  // User
+  UPDATE_PROFILE_MUTATION,
+  UPDATE_EMAIL_MUTATION,
+  UPDATE_PASSWORD_MUTATION,
+  // Organization
+  CREATE_ORGANIZATION_MUTATION,
+  UPDATE_ORGANIZATION_MUTATION,
+  DELETE_ORGANIZATION_MUTATION,
+  TRANSFER_OWNERSHIP_MUTATION,
+  // Member
+  INVITE_MEMBER_MUTATION,
+  REMOVE_MEMBER_MUTATION,
+  CHANGE_MEMBER_ROLE_MUTATION,
+  REMOVE_MEMBER_ACCESS_MUTATION,
+  // Role
+  CREATE_ROLE_MUTATION,
+  UPDATE_ROLE_MUTATION,
+  DELETE_ROLE_MUTATION,
+  // Store
+  CREATE_STORE_MUTATION,
+  UPDATE_STORE_MUTATION,
+  DELETE_STORE_MUTATION,
+} from "./mutations";

@@ -121,8 +121,8 @@ function loadProtoDefinition() {
     });
 
     return grpc.loadPackageDefinition(packageDefinition);
-  } catch (error) {
-    console.warn("[ContextClient] Proto files not found, gRPC client disabled:", (error as Error).message);
+  } catch {
+    // Proto files not found - gRPC client will be disabled
     return null;
   }
 }
@@ -137,7 +137,6 @@ export function createCoreContextClient(args: {
 
   // If proto files are not available, return a disabled client
   if (!protoDescriptor) {
-    console.warn("[ContextClient] gRPC context client disabled - proto files not found");
     return {
       fetchContext: async (_headers: FetchContextHeaders): Promise<Required<CoreContext> | null> => {
         return null;

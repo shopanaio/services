@@ -1,0 +1,17 @@
+mutation CollectionRemoveProducts($input: CollectionRemoveProductsInput!) {
+  catalogMutation {
+    collectionRemoveProducts(input: $input) {
+      collection {
+        id
+        handle
+        type
+        name
+      }
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}

@@ -1,18 +1,38 @@
-mutation ProductCreate {
-  inventoryMutation {
-    productCreate {
+mutation ProductCreate($input: ProductCreateInput!) {
+  catalogMutation {
+    productCreate(input: $input) {
       product {
         id
         title
         handle
         isPublished
+        description {
+          html
+          text
+          json
+        }
+        options {
+          id
+          name
+          slug
+          displayType
+          values {
+            id
+            name
+            slug
+          }
+        }
         variants(first: 10) {
           edges {
             node {
               id
               isDefault
               handle
-              sku
+              inventoryItem {
+                id
+                sku
+                trackInventory
+              }
             }
           }
         }

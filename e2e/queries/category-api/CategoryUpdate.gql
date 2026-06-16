@@ -1,0 +1,41 @@
+mutation CategoryUpdate($input: CategoryUpdateInput!) {
+  catalogMutation {
+    categoryUpdate(input: $input) {
+      category {
+        id
+        handle
+        name
+        description {
+          html
+          text
+          json
+        }
+        defaultSort
+        defaultSortDirection
+        isPublished
+        publishedAt
+        updatedAt
+        seo {
+          seoTitle
+          seoDescription
+          ogTitle
+          ogDescription
+          ogImage {
+            id
+          }
+        }
+        media {
+          file {
+            id
+          }
+          sortIndex
+        }
+      }
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}

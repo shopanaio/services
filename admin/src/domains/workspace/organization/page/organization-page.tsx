@@ -1,0 +1,429 @@
+"use client";
+
+import { useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { Flex, Skeleton, Divider, App } from "antd";
+import { TeamOutlined, SafetyOutlined, ShopOutlined } from "@ant-design/icons";
+import { KPITile } from "@/ui-kit/kpi-tile";
+import { SettingsLayout } from "../../layout";
+import { DangerZone } from "../../shared";
+
+import {
+  useDeleteOrganizationModal,
+  useEditOrganizationModal,
+  useInviteMemberModal,
+  useRoleModal,
+  useCreateStoreModal,
+} from "../../modals";
+import {
+  useOrganization,
+  useStores,
+  useUpdateOrganization,
+  useDeleteOrganization,
+  useCreateStore,
+  useRemoveMember,
+  useChangeMemberRole,
+  useCreateRole,
+  useUpdateRole,
+  useDeleteRole,
+} from "../../hooks";
+import type {
+  ApiRole,
+  ApiStore,
+  ApiRolePermissionInput,
+} from "@/graphql/types";
+import type { ModulePageProps } from "@/registry";
+import {
+  StoresSection,
+  MembersSection,
+  RolesSection,
+  OrganizationInfoHeader,
+} from "./components";
+
+export default function OrganizationPage({ pathParams }: ModulePageProps) {
+  const router = useRouter();
+  const { message, modal } = App.useApp();
+  const orgName = pathParams.orgName as string;
+  const { push: pushDeleteModal } = useDeleteOrganizationModal();
+  const { push: pushEditOrganizationModal } = useEditOrganizationModal();
+  const { push: pushInviteModal } = useInviteMemberModal();
+  const { push: pushRoleModal } = useRoleModal();
+  const { push: pushCreateStoreModal } = useCreateStoreModal();
+
+  const {
+    organization,
+    loading: orgLoading,
+    refetch: refetchOrg,
+  } = useOrganization(orgName);
+
+  const {
+    stores,
+    loading: storesLoading,
+    refetch: refetchStores,
+  } = useStores({
+    organizationId: organization?.id ?? "",
+    skip: !organization?.id,
+  });
+
+  const { updateOrganization } = useUpdateOrganization();
+  const { deleteOrganization } = useDeleteOrganization();
+  const { createStore } = useCreateStore();
+  const { removeMember } = useRemoveMember();
+  const { changeMemberRole } = useChangeMemberRole();
+  const { createRole } = useCreateRole();
+  const { updateRole } = useUpdateRole();
+  const { deleteRole } = useDeleteRole();
+
+  const members = useMemo(
+    () => organization?.membership?.members ?? [],
+    [organization?.membership?.members]
+  );
+  const roles = useMemo(
+    () => organization?.membership?.roles ?? [],
+    [organization?.membership?.roles]
+  );
+  const availableResources = useMemo(
+    () => organization?.membership?.availableResources ?? [],
+    [organization?.membership?.availableResources]
+  );
+
+  const memberCount = members.length;
+  const roleCount = roles.length;
+  const storesCount = stores.length;
+
+  const loading = orgLoading || storesLoading;
+
+  const handleEditOrganization = useCallback(() => {
+    if (!organization) return;
+    pushEditOrganizationModal({
+      organizationId: organization.id,
+      displayName: organization.displayName,
+      slug: organization.name,
+      currentLogo: organization.logo?.url ?? null,
+      currentLogoId: organization.logo?.id ?? null,
+      onSave: async (values: {
+        displayName: string;
+        slug: string;
+        logoId: string | null;
+      }) => {
+        // Update organization info
+        const { userErrors } = await updateOrganization({
+          id: organization.id,
+          displayName: values.displayName,
+          name: values.slug,
+          logoId: values.logoId,
+        });
+
+        if (userErrors.length > 0) {
+          userErrors.forEach((err) => message.error(err.message));
+          return;
+        }
+
+        // Logo is already uploaded via useAvatarUpload in the modal
+        // Just refetch to get updated data
+        refetchOrg();
+      },
+    });
+  }, [organization, pushEditOrganizationModal, updateOrganization, refetchOrg]);
+
+  const handleDeleteOrganization = useCallback(() => {
+    if (!organization) return;
+    pushDeleteModal({
+      organizationName: organization.displayName,
+      organizationSlug: organization.name,
+      onDelete: async () => {
+        const { userErrors } = await deleteOrganization(organization.id);
+
+        if (userErrors.length > 0) {
+          userErrors.forEach((err) => message.error(err.message));
+          return;
+        }
+
+        message.success("Organization deleted");
+        router.push("/workspace");
+      },
+    });
+  }, [organization, pushDeleteModal, deleteOrganization, router]);
+
+  const handleTransferOwnership = useCallback(() => {
+    message.info("Transfer ownership modal would open");
+  }, []);
+
+  const handleStoreClick = useCallback(
+    (store: ApiStore) => {
+      router.push(`/${organization?.name}/${store.name}/products`);
+    },
+    [router, organization?.name]
+  );
+
+  const handleCreateStore = useCallback(() => {
+    if (!organization) return;
+    pushCreateStoreModal({
+      onCreate: async (values: {
+        name: string;
+        country: string;
+        currency: string;
+        locales: string[];
+      }) => {
+        const { store, userErrors } = await createStore({
+          organizationId: organization.id,
+          name: values.name.toLowerCase().replace(/\s+/g, "-"),
+          displayName: values.name,
+          locales: values.locales as never[],
+          currencies: [values.currency] as never[],
+          defaultCurrency: values.currency as never,
+        });
+
+        if (userErrors.length > 0) {
+          userErrors.forEach((err) => message.error(err.message));
+          return;
+        }
+
+        if (store) {
+          message.success(`Store "${values.name}" created successfully`);
+          refetchStores();
+        }
+      },
+    });
+  }, [organization, pushCreateStoreModal, createStore, refetchStores]);
+
+  const handleInviteMember = useCallback(() => {
+    if (!organization) return;
+    pushInviteModal({
+      organizationId: organization.id,
+      roles,
+    });
+  }, [organization, pushInviteModal, roles]);
+
+  const handleChangeRole = useCallback(
+    async (memberId: string, roleName: string) => {
+      if (!organization) return;
+      const member = members.find((m) => m.id === memberId);
+      if (!member?.user?.id) return;
+
+      const { userErrors } = await changeMemberRole(
+        organization.id,
+        member.user.id,
+        "org",
+        roleName
+      );
+
+      if (userErrors.length > 0) {
+        userErrors.forEach((err) => message.error(err.message));
+        return;
+      }
+
+      message.success("Member role updated");
+      refetchOrg();
+    },
+    [organization, members, changeMemberRole, refetchOrg]
+  );
+
+  const handleRemoveMember = useCallback(
+    async (memberId: string) => {
+      if (!organization) return;
+      const member = members.find((m) => m.id === memberId);
+      if (!member?.user?.id) return;
+
+      const { userErrors } = await removeMember(
+        organization.id,
+        member.user.id
+      );
+
+      if (userErrors.length > 0) {
+        userErrors.forEach((err) => message.error(err.message));
+        return;
+      }
+
+      message.success("Member removed");
+      refetchOrg();
+    },
+    [organization, members, removeMember, refetchOrg]
+  );
+
+  const handleCreateRole = useCallback(() => {
+    if (!organization) return;
+    pushRoleModal({
+      mode: "create",
+      organizationId: organization.id,
+      domain: "org",
+      availableResources,
+      onCreate: async (input: {
+        name: string;
+        displayName: string;
+        description?: string;
+        permissions: ApiRolePermissionInput[];
+        organizationId: string;
+        domain: string;
+      }) => {
+        const { userErrors } = await createRole({
+          organizationId: input.organizationId,
+          domain: input.domain,
+          name: input.name,
+          displayName: input.displayName,
+          description: input.description,
+          permissions: input.permissions,
+        });
+
+        if (userErrors.length > 0) {
+          userErrors.forEach((err) => message.error(err.message));
+          throw new Error("Failed to create role");
+        }
+
+        refetchOrg();
+      },
+    });
+  }, [organization, pushRoleModal, createRole, refetchOrg, availableResources]);
+
+  const handleEditRole = useCallback(
+    (role: ApiRole) => {
+      if (!organization) return;
+      // Use view mode for system roles, edit mode for custom roles
+      const mode = role.isSystem ? "view" : "edit";
+      pushRoleModal({
+        mode,
+        organizationId: organization.id,
+        domain: "org",
+        role,
+        availableResources,
+        onUpdate: async (input: {
+          displayName?: string;
+          description?: string;
+          permissions?: ApiRolePermissionInput[];
+        }) => {
+          const { userErrors } = await updateRole({
+            id: role.id,
+            organizationId: organization.id,
+            displayName: input.displayName,
+            description: input.description,
+            permissions: input.permissions,
+          });
+
+          if (userErrors.length > 0) {
+            userErrors.forEach((err) => message.error(err.message));
+            throw new Error("Failed to update role");
+          }
+
+          refetchOrg();
+        },
+      });
+    },
+    [organization, pushRoleModal, updateRole, refetchOrg, availableResources]
+  );
+
+  const handleDeleteRole = useCallback(
+    (roleId: string) => {
+      if (!organization) return;
+      const role = roles.find((r) => r.id === roleId);
+
+      modal.confirm({
+        title: "Delete Role",
+        content: `Are you sure you want to delete the role "${role?.displayName}"? This action cannot be undone.`,
+        okText: "Delete",
+        okButtonProps: { danger: true },
+        onOk: async () => {
+          const { userErrors } = await deleteRole(roleId, organization.id);
+
+          if (userErrors.length > 0) {
+            userErrors.forEach((err) => message.error(err.message));
+            return;
+          }
+
+          message.success("Role deleted");
+          refetchOrg();
+        },
+      });
+    },
+    [organization, roles, deleteRole, refetchOrg]
+  );
+
+  if (loading && !organization) {
+    return (
+      <SettingsLayout name="organization">
+        <Skeleton active paragraph={{ rows: 4 }} />
+      </SettingsLayout>
+    );
+  }
+
+  if (!organization) {
+    return (
+      <SettingsLayout name="organization">
+        <div>Organization not found</div>
+      </SettingsLayout>
+    );
+  }
+
+  return (
+    <SettingsLayout name="organization">
+      <OrganizationInfoHeader
+        organization={organization}
+        onEdit={handleEditOrganization}
+      >
+        <Divider style={{ marginTop: 16, marginBottom: 12 }} />
+        <Flex gap={16}>
+          <KPITile
+            label="Stores"
+            value={storesCount}
+            icon={<ShopOutlined />}
+            tooltip="Total number of stores in organization"
+          />
+          <KPITile
+            label="Members"
+            value={memberCount}
+            icon={<TeamOutlined />}
+            tooltip="Total team members"
+          />
+          <KPITile
+            label="Roles"
+            value={roleCount}
+            icon={<SafetyOutlined />}
+            tooltip="Custom roles defined"
+          />
+        </Flex>
+      </OrganizationInfoHeader>
+
+      <StoresSection
+        stores={stores}
+        loading={storesLoading}
+        onStoreClick={handleStoreClick}
+        onCreateStore={handleCreateStore}
+      />
+
+      <MembersSection
+        members={members}
+        roles={roles}
+        loading={orgLoading}
+        onInviteMember={handleInviteMember}
+        onChangeRole={handleChangeRole}
+        onRemoveMember={handleRemoveMember}
+      />
+
+      <RolesSection
+        roles={roles}
+        loading={orgLoading}
+        onCreateRole={handleCreateRole}
+        onEditRole={handleEditRole}
+        onDeleteRole={handleDeleteRole}
+      />
+
+      <DangerZone
+        items={[
+          {
+            title: "Transfer Ownership",
+            description:
+              "Transfer this organization to another admin member. You will retain admin access.",
+            buttonText: "Transfer",
+            onClick: handleTransferOwnership,
+          },
+          {
+            title: "Delete Organization",
+            description:
+              "Permanently delete this organization and all its data. This action cannot be undone.",
+            buttonText: "Delete",
+            onClick: handleDeleteOrganization,
+          },
+        ]}
+      />
+    </SettingsLayout>
+  );
+}

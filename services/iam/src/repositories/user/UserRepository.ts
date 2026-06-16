@@ -38,10 +38,16 @@ export interface User {
   updatedAt: Date;
 }
 
+export interface RequestHeaders {
+  userAgent?: string;
+  ipAddress?: string;
+}
+
 export interface UserCreateInput {
   email: string;
   password: string;
   name?: string;
+  headers?: RequestHeaders;
 }
 
 export interface AuthTokenResult {
@@ -89,14 +95,24 @@ export class UserRepository {
    * Sign in a user with email and password
    */
   async signIn(input: UserCreateInput): Promise<SignInResult> {
-    const { email, password } = input;
+    const { email, password, headers } = input;
 
     try {
+      // Build Headers object for better-auth to capture IP and User-Agent
+      const authHeaders = new Headers();
+      if (headers?.userAgent) {
+        authHeaders.set("user-agent", headers.userAgent);
+      }
+      if (headers?.ipAddress) {
+        authHeaders.set("x-forwarded-for", headers.ipAddress);
+      }
+
       const result = await this.auth.api.signInEmail({
         body: {
           email,
           password,
         },
+        headers: authHeaders,
       });
 
       if (!result.user || !result.token) {
@@ -141,15 +157,25 @@ export class UserRepository {
    * Sign up a new user
    */
   async signUp(input: UserCreateInput): Promise<SignUpResult> {
-    const { email, password, name } = input;
+    const { email, password, name, headers } = input;
 
     try {
+      // Build Headers object for better-auth to capture IP and User-Agent
+      const authHeaders = new Headers();
+      if (headers?.userAgent) {
+        authHeaders.set("user-agent", headers.userAgent);
+      }
+      if (headers?.ipAddress) {
+        authHeaders.set("x-forwarded-for", headers.ipAddress);
+      }
+
       const result = await this.auth.api.signUpEmail({
         body: {
           email,
           password,
           name: name || email.split("@")[0], // Default name from email
         },
+        headers: authHeaders,
       });
 
       if (!result.user) {
@@ -496,7 +522,12 @@ export class UserRepository {
    */
   async updateProfile(
     userId: string,
-    updates: { name?: string; image?: string }
+    updates: {
+      name?: string;
+      firstName?: string;
+      lastName?: string;
+      image?: string | null;
+    }
   ): Promise<User | null> {
     const [result] = await this.db
       .update(user)

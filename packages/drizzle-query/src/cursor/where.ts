@@ -1,5 +1,5 @@
 import type { FieldsDef, NestedWhereInput, OrderDirection } from "../types.js";
-import type { CursorParams } from "./types.js";
+import type { CursorParams, SeekTransforms } from "./types.js";
 
 type ComparisonOperator = "_lt" | "_gt";
 
@@ -46,7 +46,8 @@ function setPathCondition(target: Record<string, unknown>, path: string, filter:
 /** @internal */
 export function buildCursorWhereInput<F extends FieldsDef = FieldsDef>(
   params: CursorParams,
-  forward: boolean
+  forward: boolean,
+  seekTransforms?: SeekTransforms
 ): NestedWhereInput<F> {
   if (!params.seek.length) {
     return {} as NestedWhereInput<F>;
@@ -59,11 +60,15 @@ export function buildCursorWhereInput<F extends FieldsDef = FieldsDef>(
 
     for (let i = 0; i < index; i++) {
       const previous = params.seek[i];
-      setPathCondition(condition, previous.field, { _eq: previous.value });
+      const transform = seekTransforms?.[previous.field];
+      const decodedValue = transform ? transform.decode(previous.value) : previous.value;
+      setPathCondition(condition, previous.field, { _eq: decodedValue });
     }
 
     const operator = getComparisonOperator(forward, seekValue.direction);
-    setPathCondition(condition, seekValue.field, { [operator]: seekValue.value });
+    const transform = seekTransforms?.[seekValue.field];
+    const decodedValue = transform ? transform.decode(seekValue.value) : seekValue.value;
+    setPathCondition(condition, seekValue.field, { [operator]: decodedValue });
 
     orConditions.push(condition as NestedWhereInput<F>);
   });

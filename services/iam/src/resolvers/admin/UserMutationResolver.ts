@@ -1,18 +1,28 @@
 import { ZodResolver } from "@shopana/type-resolver";
+import { hashContent } from "@shopana/shared-kernel";
+import {
+  decodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 import { IAMType } from "./IAMType.js";
 import { UserResolver } from "./UserResolver.js";
-import { UserUpdateProfileScript } from "../../scripts/user/UserUpdateProfileScript.js";
 import { UserUpdateEmailScript } from "../../scripts/user/UserUpdateEmailScript.js";
 import { UserUpdatePasswordScript } from "../../scripts/user/UserUpdatePasswordScript.js";
+import type {
+  UserUpdateProfileSagaInput,
+  UserUpdateProfileResult,
+} from "../../sagas/index.js";
 import type {
   UserUpdateProfileInput,
   UserUpdateEmailInput,
   UserUpdatePasswordInput,
+  SessionRevokeInput,
 } from "./generated/types.js";
 import {
   UserUpdateProfileInputSchema,
   UserUpdateEmailInputSchema,
   UserUpdatePasswordInputSchema,
+  SessionRevokeInputSchema,
 } from "./generated/schemas.js";
 
 /**
@@ -21,12 +31,14 @@ import {
  */
 export class UserMutationResolver extends IAMType<Record<string, never>> {
   /**
-   * Update user's profile (firstName, lastName, language).
+   * Update user's profile (firstName, lastName, language, avatar).
+   * Uses UserUpdateProfileWorkflow to ensure avatar back-refs are synced after DB commit.
    */
   @ZodResolver(UserUpdateProfileInputSchema())
   async userUpdateProfile(args: { input: UserUpdateProfileInput }) {
     const { input } = args;
     const { currentUser, kernel } = this.$ctx;
+    const broker = kernel.getServices().broker;
 
     if (!currentUser?.id) {
       return {
@@ -41,15 +53,48 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
       };
     }
 
-    const result = await kernel.runScript(UserUpdateProfileScript, {
-      firstName: input.firstName ?? undefined,
-      lastName: input.lastName ?? undefined,
-      language: input.locale ?? undefined,
-    });
+    const previousUser = await kernel.repository.user.findById(currentUser.id);
+    const previousAvatarId = previousUser?.image ?? null;
+    let nextAvatarId: string | null | undefined;
 
+    if (input.avatarId !== undefined) {
+      if (input.avatarId) {
+        try {
+          nextAvatarId = decodeGlobalIdByType(
+            input.avatarId,
+            GlobalIdEntity.File
+          );
+        } catch {
+          nextAvatarId = input.avatarId;
+        }
+      } else {
+        nextAvatarId = null;
+      }
+    }
+
+    const result = await broker.runSaga<UserUpdateProfileResult, UserUpdateProfileSagaInput>(
+      "iam.userUpdateProfile",
+      {
+        userId: currentUser.id,
+        firstName: input.firstName ?? undefined,
+        lastName: input.lastName ?? undefined,
+        language: input.locale ?? undefined,
+        image: nextAvatarId,
+        previousAvatarId,
+        nextAvatarId,
+      },
+      {
+        source: "content",
+        resourceId: currentUser.id,
+        operation: "userUpdateProfile",
+        contentHash: hashContent({ userId: currentUser.id }),
+      }
+    );
+
+    const data = result.data;
     return {
-      user: result.userId ? new UserResolver(result.userId, this.$ctx) : null,
-      userErrors: result.userErrors.map((e) => ({
+      user: data?.userId ? new UserResolver(data.userId, this.$ctx) : null,
+      userErrors: (data?.userErrors ?? []).map((e) => ({
         code: e.code,
         message: e.message,
         field: e.field ?? null,
@@ -127,4 +172,132 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
       })),
     };
   }
+
+  /**
+   * Revoke a specific session by ID.
+   */
+  @ZodResolver(SessionRevokeInputSchema())
+  async sessionRevoke(args: { input: SessionRevokeInput }) {
+    const { input } = args;
+    const { currentUser, kernel } = this.$ctx;
+
+    if (!currentUser?.id) {
+      return {
+        success: false,
+        userErrors: [
+          {
+            code: "UNAUTHORIZED",
+            message: "You must be logged in to revoke sessions",
+            field: null,
+          },
+        ],
+      };
+    }
+
+    // Decode the session ID from global ID
+    const sessionId = decodeGlobalIdByType(
+      input.sessionId,
+      GlobalIdEntity.Session
+    );
+
+    // Prevent revoking current session
+    if (currentUser.sessionId === sessionId) {
+      return {
+        success: false,
+        userErrors: [
+          {
+            code: "INVALID_OPERATION",
+            message: "Cannot revoke current session. Use sign out instead.",
+            field: ["sessionId"],
+          },
+        ],
+      };
+    }
+
+    // Verify the session belongs to the current user
+    const sessions = await kernel.repository.user.getUserSessions(
+      currentUser.id
+    );
+    const sessionBelongsToUser = sessions.some((s) => s.id === sessionId);
+
+    if (!sessionBelongsToUser) {
+      return {
+        success: false,
+        userErrors: [
+          {
+            code: "NOT_FOUND",
+            message: "Session not found",
+            field: ["sessionId"],
+          },
+        ],
+      };
+    }
+
+    const success = await kernel.repository.user.revokeSession(sessionId);
+
+    return {
+      success,
+      userErrors: success
+        ? []
+        : [
+            {
+              code: "REVOKE_FAILED",
+              message: "Failed to revoke session",
+              field: null,
+            },
+          ],
+    };
+  }
+
+  /**
+   * Revoke all sessions except the current one.
+   */
+  async sessionRevokeAll() {
+    const { currentUser, kernel } = this.$ctx;
+
+    if (!currentUser?.id) {
+      return {
+        revokedCount: 0,
+        userErrors: [
+          {
+            code: "UNAUTHORIZED",
+            message: "You must be logged in to revoke sessions",
+            field: null,
+          },
+        ],
+      };
+    }
+
+    // Get all sessions to count them
+    const sessions = await kernel.repository.user.getUserSessions(
+      currentUser.id
+    );
+
+    // Filter out current session
+    const sessionsToRevoke = sessions.filter(
+      (s) => s.id !== currentUser.sessionId
+    );
+
+    if (sessionsToRevoke.length === 0) {
+      return {
+        revokedCount: 0,
+        userErrors: [],
+      };
+    }
+
+    // Revoke each session individually (to preserve current session)
+    let revokedCount = 0;
+    for (const session of sessionsToRevoke) {
+      const success = await kernel.repository.user.revokeSession(session.id);
+      if (success) {
+        revokedCount++;
+      }
+    }
+
+    return {
+      revokedCount,
+      userErrors: [],
+    };
+  }
+
 }

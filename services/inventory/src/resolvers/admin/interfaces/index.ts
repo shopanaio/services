@@ -5,42 +5,14 @@
  */
 
 import type { TypeResult } from "@shopana/type-resolver";
-import type { ProductResolver } from "../ProductResolver.js";
-import type { VariantResolver } from "../VariantResolver.js";
 import type { WarehouseResolver } from "../WarehouseResolver.js";
-import type { OptionResolver } from "../OptionResolver.js";
-import type { OptionValueResolver } from "../OptionValueResolver.js";
-import type { FeatureResolver } from "../FeatureResolver.js";
-import type { FeatureValueResolver } from "../FeatureValueResolver.js";
-import type { VariantPriceResolver } from "../VariantPriceResolver.js";
 
 // ============================================================================
 // Derived types from Resolver classes (auto-generated from TypeResult)
 // ============================================================================
 
-/** Product type derived from ProductResolver */
-export type Product = TypeResult<typeof ProductResolver>;
-
-/** Variant type derived from VariantResolver */
-export type Variant = TypeResult<typeof VariantResolver>;
-
 /** Warehouse type derived from WarehouseResolver */
 export type Warehouse = TypeResult<typeof WarehouseResolver>;
-
-/** Option type derived from OptionResolver */
-export type Option = TypeResult<typeof OptionResolver>;
-
-/** OptionValue type derived from OptionValueResolver */
-export type OptionValue = TypeResult<typeof OptionValueResolver>;
-
-/** Feature type derived from FeatureResolver */
-export type Feature = TypeResult<typeof FeatureResolver>;
-
-/** FeatureValue type derived from FeatureValueResolver */
-export type FeatureValue = TypeResult<typeof FeatureValueResolver>;
-
-/** VariantPrice type derived from VariantPriceResolver */
-export type VariantPriceHistory = TypeResult<typeof VariantPriceResolver>;
 
 // ============================================================================
 // Simple value types (manual interfaces - no resolvers for these)
@@ -159,6 +131,54 @@ export interface WarehouseStock {
   createdAt: Date;
   /** The date and time when the entity was last updated */
   updatedAt: Date;
+}
+
+// --- Inventory Widget ---
+
+/** Alert threshold method */
+export type ThresholdMethod = "SAFETY_STOCK" | "REORDER_POINT";
+
+/** Aggregated stock quantities */
+export interface InventoryQuantities {
+  availableForSale: number;
+  onHand: number;
+  reserved: number;
+  unavailable: number;
+}
+
+/** SKU status metric with optional average age */
+export interface SkuStatusMetric {
+  count: number;
+  averageDays: number | null;
+}
+
+/** SKU status breakdown */
+export interface InventorySkuStatus {
+  total: number;
+  lowStock: SkuStatusMetric;
+  outOfStock: SkuStatusMetric;
+  backorder: SkuStatusMetric;
+}
+
+/** Backorder information */
+export interface InventoryBackorder {
+  quantity: number;
+  etaAvgDays: number | null;
+}
+
+/** Alert threshold configuration */
+export interface InventoryAlertThreshold {
+  method: ThresholdMethod;
+  minimumStock: number;
+}
+
+/** Product inventory widget payload */
+export interface ProductInventoryWidget {
+  quantities: InventoryQuantities;
+  availableChange7d: number;
+  skuStatus: InventorySkuStatus;
+  backorder: InventoryBackorder;
+  alertThreshold: InventoryAlertThreshold;
 }
 
 // --- Options ---

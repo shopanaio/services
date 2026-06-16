@@ -10,7 +10,7 @@ export class LocaleSetDefaultScript extends BaseScript<LocaleSetDefaultParams, L
   protected handleError(_error: unknown): LocaleSetDefaultResult {
     return {
       success: false,
-      userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR" }],
+      userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR", field: null }],
     };
   }
 }

@@ -1,0 +1,14 @@
+query FacetSwatches {
+  catalogQuery {
+    facetSwatches {
+      id
+      swatchType
+      colorOne
+      colorTwo
+      file {
+        id
+      }
+      metadata
+    }
+  }
+}

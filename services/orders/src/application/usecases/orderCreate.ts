@@ -5,12 +5,13 @@ import {
 import type { CreateOrderInput } from "@src/application/order/types";
 import type { CreateOrderCommand } from "@src/domain/order/commands";
 import type { CheckoutSnapshot } from "@src/domain/order/checkoutSnapshot";
-import type { Checkout } from "@shopana/checkout-sdk";
+import type { CheckoutApiClient } from "@shopana/shared-service-api";
 import type { OrderCreated } from "@src/domain/order/events";
 import type {
   AppliedDiscount,
   OrderUnitSnapshot,
 } from "@src/domain/order/evolve";
+import { Money } from "@shopana/shared-money";
 import { v7 as uuidv7 } from "uuid";
 import { orderDecider } from "@src/domain/order/decider";
 import {
@@ -18,6 +19,29 @@ import {
   setOrderCreateProjectionContext,
   type OrderCreateProjectionContextData,
 } from "@src/application/usecases/orderCreateProjectionContext";
+
+/** Checkout aggregate type as returned by the checkout API client. */
+type Checkout = Awaited<ReturnType<CheckoutApiClient['getById']>>;
+
+/**
+ * Converts a Money value from checkout-sdk to shared-money Money.
+ *
+ * The checkout-sdk bundles its own Money class declaration in dist,
+ * creating a distinct TypeScript type from @shopana/shared-money's Money
+ * (private fields make them structurally incompatible).
+ * This helper bridges the two by going through amountMinor + currency code.
+ */
+function toMoney(value: { amountMinor(): bigint; currency(): { code: string } }): Money {
+  return Money.fromMinor(value.amountMinor(), value.currency().code);
+}
+
+/**
+ * Converts a Money | number union from checkout to the shared-money equivalent.
+ */
+function toMoneyOrNumber(value: number | { amountMinor(): bigint; currency(): { code: string } }): number | Money {
+  if (typeof value === "number") return value;
+  return toMoney(value);
+}
 
 export interface CreateOrderUseCaseDependencies extends UseCaseDependencies {}
 
@@ -35,16 +59,16 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
   private async executeWithProjectionContext(
     input: CreateOrderInput
   ): Promise<string> {
-    const { apiKey, project, customer, user, ...businessInput } = input;
-    const context = { apiKey, project, customer, user };
+    const { apiKey, store, customer, user, ...businessInput } = input;
+    const context = { apiKey, store, customer, user };
 
     const id = uuidv7();
     const streamId = this.streamNames.buildOrderStreamNameFromId(id);
 
     // Get full checkout aggregate through checkout-api and convert to snapshot
-    const checkoutAggregate: Checkout = await this.checkoutApi.getById(
+    const checkoutAggregate = await this.checkoutApi.getById(
       businessInput.checkoutId,
-      project.id
+      store.id
     );
 
     // Validate checkout readiness before creating order (mock implementation)
@@ -56,7 +80,7 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
 
     // Idempotency: return existing order if key previously used
     const idemHit = await this.idempotencyRepository.get(
-      project.id,
+      store.id,
       idempotencyKey
     );
     if (idemHit?.id) {
@@ -74,7 +98,7 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
 
     const deliveryAddressRefs = this.populateProjectionContext(
       id,
-      project.id,
+      store.id,
       checkoutAggregate
     );
 
@@ -86,7 +110,7 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
         deliveryAddressId: deliveryAddressRefs.get(g.id) ?? null,
         deliveryCost: g.shippingCost?.amount
           ? {
-              amount: g.shippingCost.amount,
+              amount: toMoney(g.shippingCost.amount),
               paymentModel: g.shippingCost.paymentModel,
             }
           : null,
@@ -98,7 +122,7 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
         code: p.code,
         appliedAt: new Date(p.appliedAt),
         type: p.discountType,
-        value: p.value,
+        value: toMoneyOrNumber(p.value),
         provider: p.provider,
       }));
 
@@ -116,11 +140,11 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
         localeCode: checkoutAggregate.localeCode ?? null,
 
         // Totals
-        subtotalAmount: checkoutAggregate.cost.subtotalAmount,
-        totalDiscountAmount: checkoutAggregate.cost.totalDiscountAmount,
-        totalTaxAmount: checkoutAggregate.cost.totalTaxAmount,
-        totalShippingAmount: checkoutAggregate.cost.totalShippingAmount,
-        totalAmount: checkoutAggregate.cost.totalAmount,
+        subtotalAmount: toMoney(checkoutAggregate.cost.subtotalAmount),
+        totalDiscountAmount: toMoney(checkoutAggregate.cost.totalDiscountAmount),
+        totalTaxAmount: toMoney(checkoutAggregate.cost.totalTaxAmount),
+        totalShippingAmount: toMoney(checkoutAggregate.cost.totalShippingAmount),
+        totalAmount: toMoney(checkoutAggregate.cost.totalAmount),
 
         // Customer (no PII in events)
         customerId: checkoutAggregate.customerIdentity.customer?.id ?? null,
@@ -272,7 +296,7 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
   ): CheckoutSnapshot {
     const snapshot: CheckoutSnapshot = {
       checkoutId: aggregate.id,
-      projectId: input.project.id,
+      projectId: input.store.id,
       currencyCode:
         aggregate.currencyCode ?? aggregate.cost.totalAmount.currency().code,
       externalSource: aggregate.externalSource ?? null,
@@ -285,10 +309,8 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
       lines: aggregate.lines.map((l) => ({
         quantity: l.quantity,
         unit: {
-          id: l.purchasableId,
-          price: l.cost.unitPrice,
+          price: toMoney(l.cost.unitPrice),
           title: l.title,
-          compareAtPrice: l.cost.compareAtUnitPrice ?? null,
           sku: l.sku ?? null,
         },
       })),
@@ -312,7 +334,7 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
           : null,
         shippingCost: g.shippingCost?.amount
           ? {
-              amount: g.shippingCost.amount,
+              amount: toMoney(g.shippingCost.amount),
               paymentModel: g.shippingCost.paymentModel ?? null,
             }
           : null,
@@ -321,7 +343,7 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
         code: p.code,
         appliedAt: new Date(p.appliedAt),
         discountType: p.discountType,
-        value: p.value,
+        value: toMoneyOrNumber(p.value),
         provider: p.provider,
       })),
     };
@@ -371,8 +393,8 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
         quantity: line.quantity,
         unit: {
           id: line.purchasableId,
-          price: line.cost.unitPrice,
-          compareAtPrice: line.cost.compareAtUnitPrice ?? null,
+          price: toMoney(line.cost.unitPrice),
+          compareAtPrice: line.cost.compareAtUnitPrice ? toMoney(line.cost.compareAtUnitPrice) : null,
           title: line.title,
           sku: line.sku ?? null,
           imageUrl: line.imageSrc ?? null,

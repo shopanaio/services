@@ -1,4 +1,5 @@
 import { ApolloServer } from "@apollo/server";
+import { ApolloServerPluginInlineTraceDisabled } from "@apollo/server/plugin/disabled";
 import { buildSubgraphSchema } from "@apollo/subgraph";
 import fastifyApollo, {
   fastifyApolloDrainPlugin,
@@ -10,7 +11,10 @@ import { fileURLToPath } from "url";
 import { gql } from "graphql-tag";
 
 import type { ServiceBroker } from "@shopana/shared-kernel";
-import { getServiceConfig, isDevelopment } from "@shopana/shared-service-config";
+import {
+  getServiceConfig,
+  isDevelopment,
+} from "@shopana/shared-service-config";
 import { resolvers } from "@src/interfaces/gql-storefront-api/resolvers";
 import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context";
 import { buildCoreContextMiddleware } from "@src/interfaces/server/contextMiddleware";
@@ -23,6 +27,7 @@ const { service, global } = getServiceConfig("checkout");
  */
 export async function startServer(broker: ServiceBroker) {
   const app = fastify({
+    disableRequestLogging: true,
     logger: isDevelopment(global)
       ? {
           level: global.log_level ?? "info",
@@ -32,7 +37,7 @@ export async function startServer(broker: ServiceBroker) {
               colorize: true,
               translateTime: "SYS:HH:MM:ss.l",
               ignore: "pid,hostname,reqId,responseTime",
-              messageFormat: '[CHECKOUT] {msg}',
+              messageFormat: "[CHECKOUT] {msg}",
               levelFirst: true,
             },
           },
@@ -67,7 +72,10 @@ export async function startServer(broker: ServiceBroker) {
   const apollo = new ApolloServer<GraphQLContext>({
     introspection: true,
     schema: buildSubgraphSchema(modules),
-    plugins: [fastifyApolloDrainPlugin(app)],
+    plugins: [
+      fastifyApolloDrainPlugin(app),
+      ApolloServerPluginInlineTraceDisabled(),
+    ],
   });
 
   await apollo.start();
@@ -93,11 +101,11 @@ export async function startServer(broker: ServiceBroker) {
   await app.register(async function (graphqlInstance) {
     // Core context middleware that sets async local storage
     const grpcConfig = {
-      getGrpcHost: () => global.platform_grpc_host,
+      getGrpcHost: () => global.platform_grpc_host as string,
     };
     await graphqlInstance.addHook(
       "preHandler",
-      buildCoreContextMiddleware(grpcConfig)
+      buildCoreContextMiddleware(grpcConfig),
     );
 
     // GraphQL endpoint with simplified context
@@ -115,8 +123,12 @@ export async function startServer(broker: ServiceBroker) {
           headers: {
             // expose only a safe subset for hashing
             "x-api-key": request.headers["x-api-key"] as string | undefined,
-            authorization: request.headers["authorization"] as string | undefined,
-            "accept-language": request.headers["accept-language"] as string | undefined,
+            authorization: request.headers["authorization"] as
+              | string
+              | undefined,
+            "accept-language": request.headers["accept-language"] as
+              | string
+              | undefined,
             "user-agent": request.headers["user-agent"] as string | undefined,
           },
         } satisfies GraphQLContext;
@@ -135,7 +147,7 @@ export async function startServer(broker: ServiceBroker) {
   });
 
   app.log.info(
-    `checkout GraphQL API ready at http://localhost:${port}/graphql`
+    `checkout GraphQL API ready at http://localhost:${port}/graphql`,
   );
 
   return app;

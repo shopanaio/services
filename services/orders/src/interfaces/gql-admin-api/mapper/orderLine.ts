@@ -10,11 +10,6 @@ export function mapOrderLineReadToApi(
     createdAt: read.createdAt,
     updatedAt: read.updatedAt,
     purchasableId: read.unit.id,
-    purchasable: {
-      id: read.unit.id,
-      title: read.unit.title,
-      sku: read.unit.sku,
-    } as any,
     unitPrice: Number(read.unit.price.amountMinor()),
     unitComparePrice: read.unit.compareAtPrice ? Number(read.unit.compareAtPrice.amountMinor()) : 0,
     subtotalAmount: Number(read.subtotalAmount.amountMinor()),

@@ -30,6 +30,21 @@ export class BucketRepository {
     return result[0] ?? null;
   }
 
+  async findAnyById(bucketId: string): Promise<Bucket | null> {
+    const result = await this.db
+      .select()
+      .from(buckets)
+      .where(
+        and(
+          eq(buckets.id, bucketId),
+          isNull(buckets.deletedAt)
+        )
+      )
+      .limit(1);
+
+    return result[0] ?? null;
+  }
+
   async findActive(projectId: string): Promise<Bucket | null> {
     const result = await this.db
       .select()

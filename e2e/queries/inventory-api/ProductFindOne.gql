@@ -1,5 +1,5 @@
 query ProductFindOne($id: ID!) {
-  inventoryQuery {
+  catalogQuery {
     product(id: $id) {
       id
       handle
@@ -16,7 +16,11 @@ query ProductFindOne($id: ID!) {
             id
             handle
             isDefault
-            sku
+            inventoryItem {
+              id
+              sku
+              trackInventory
+            }
           }
         }
         pageInfo {

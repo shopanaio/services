@@ -1,6 +1,5 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { InjectBroker, ServiceBroker } from '@shopana/shared-kernel';
-import { FastifyInstance } from 'fastify';
 import 'reflect-metadata';
 import { App } from './ioc/container';
 import { startServer } from './interfaces/server/server';
@@ -9,7 +8,7 @@ import { startServer } from './interfaces/server/server';
 export class OrdersNestService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(OrdersNestService.name);
   private app!: App;
-  private graphqlServer!: FastifyInstance;
+  private servers!: Awaited<ReturnType<typeof startServer>>;
 
   constructor(@InjectBroker('order') private readonly broker: ServiceBroker) {}
 
@@ -24,12 +23,17 @@ export class OrdersNestService implements OnModuleInit, OnModuleDestroy {
       return this.app.orderUsecase.getOrderById.execute(params);
     });
 
-    this.graphqlServer = await startServer(this.broker as any);
+    this.servers = await startServer(this.broker as any);
     this.logger.log('Orders service started');
   }
 
   async onModuleDestroy() {
-    if (this.graphqlServer) await this.graphqlServer.close();
+    if (this.servers) {
+      await Promise.all([
+        this.servers.adminApp.close(),
+        this.servers.storefrontApp.close(),
+      ]);
+    }
     this.logger.log('Orders service stopped');
   }
 }

@@ -5,6 +5,7 @@ export {
   MaxLimitExceededError,
   field,
 } from "./builder/index.js";
+export type { FieldBuilder, FluentQueryBuilderLike } from "./builder/index.js";
 
 // Pagination Query Builders
 export {
@@ -15,6 +16,7 @@ export {
 } from "./builder/pagination-query-builder.js";
 
 export type {
+  CountInput,
   CursorQueryConfig,
   CursorQueryInput,
   CursorQueryResult,
@@ -26,8 +28,11 @@ export type {
 // Relay Connection types
 export type { Connection, Edge, PageInfo } from "./cursor/connection.js";
 
+// Cursor types
+export type { SeekTransform, SeekTransforms } from "./cursor/types.js";
+
 // Types
-export type { DrizzleExecutor } from "./types.js";
+export type { DrizzleExecutor, Selectable } from "./types.js";
 
 // Type helpers for nested paths
 export type {

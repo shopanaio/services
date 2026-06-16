@@ -1,0 +1,16 @@
+mutation CategoryMoveProduct($input: CategoryMoveProductInput!) {
+  catalogMutation {
+    categoryMoveProduct(input: $input) {
+      category {
+        id
+        handle
+        productsCount
+      }
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}

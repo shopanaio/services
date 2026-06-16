@@ -1,4 +1,5 @@
-import { and, eq, or, not, type SQL, type Column, type Table } from "drizzle-orm";
+import { and, eq, or, not, type SQL, type Column } from "drizzle-orm";
+import type { Selectable } from "../types.js";
 import {
   buildOperatorCondition,
   isFilterObject,
@@ -28,7 +29,7 @@ export class WhereBuilder<
 > {
   constructor(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    private readonly schema: ObjectSchema<Table, string, Fields, any>,
+    private readonly schema: ObjectSchema<Selectable, string, Fields, any>,
     private readonly joinCollector: JoinCollector,
     private readonly maxDepth: number
   ) {}
@@ -202,8 +203,8 @@ export class WhereBuilder<
     if (isFilterObject(value)) {
       const conditions: SQL[] = [];
       for (const [opKey, opVal] of Object.entries(value)) {
-        // Skip null/undefined operator values (use _is/_isNot for NULL checks)
-        if (opVal === undefined || opVal === null) {
+        // Skip null/undefined operator values, except for _is/_isNot which use null
+        if (opVal === undefined || (opVal === null && opKey !== "_is" && opKey !== "_isNot")) {
           continue;
         }
         const validation = validateFilterValue(opKey, opVal);

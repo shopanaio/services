@@ -3,7 +3,6 @@ import { Inject } from '@nestjs/common';
 /** @deprecated Use InjectBroker(serviceName) instead */
 export const SERVICE_BROKER = Symbol('SERVICE_BROKER');
 export const SERVICE_NAME = Symbol('SERVICE_NAME');
-export const BROKER_AMQP = Symbol('BROKER_AMQP');
 
 /**
  * Creates a unique token for a service broker.

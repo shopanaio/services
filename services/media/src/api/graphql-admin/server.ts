@@ -1,4 +1,5 @@
 import { ApolloServer } from "@apollo/server";
+import { ApolloServerPluginInlineTraceDisabled } from "@apollo/server/plugin/disabled";
 import { buildSubgraphSchema } from "@apollo/subgraph";
 import fastifyApollo, {
   fastifyApolloDrainPlugin,
@@ -48,13 +49,9 @@ export async function startServer(serverConfig: ServerConfig) {
   // Ensure bucket record exists in database (for default/system bucket)
   if (kernel) {
     const bucketName = getBucketName();
-    console.log(
-      `[Media] Checking bucket record '${bucketName}' in database...`
-    );
     try {
-      const existingBucket = await kernel.repository.bucket.findByBucketName(
-        bucketName
-      );
+      const existingBucket =
+        await kernel.repository.bucket.findByBucketName(bucketName);
       if (!existingBucket) {
         // Create a system-level bucket record
         // Using a fixed UUID for the system project
@@ -65,13 +62,6 @@ export async function startServer(serverConfig: ServerConfig) {
           status: "active",
           endpointUrl: storageConfig?.endpoint ?? "",
         });
-        console.log(
-          `[Media] Bucket record '${bucketName}' created in database`
-        );
-      } else {
-        console.log(
-          `[Media] Bucket record '${bucketName}' already exists in database`
-        );
       }
     } catch (error) {
       console.error(`[Media] Failed to ensure bucket record exists:`, error);
@@ -79,6 +69,7 @@ export async function startServer(serverConfig: ServerConfig) {
   }
 
   const app = fastify({
+    disableRequestLogging: true,
     logger: isDevelopment(global)
       ? {
           level: global.log_level ?? "info",
@@ -114,6 +105,9 @@ export async function startServer(serverConfig: ServerConfig) {
     "base.graphql",
     "bucket.graphql",
     "file.graphql",
+    // Generated schemas
+    "__generated__/base-filters.graphql",
+    "__generated__/filters.graphql",
   ];
 
   const modules = schemaFiles.map((file) => ({
@@ -124,8 +118,12 @@ export async function startServer(serverConfig: ServerConfig) {
   // Create Apollo Server
   const apollo = new ApolloServer<ServiceContext>({
     introspection: true,
+    // @ts-expect-error - buildSubgraphSchema expects ServiceContext but we pass ServiceContextOptions
     schema: buildSubgraphSchema(modules),
-    plugins: [fastifyApolloDrainPlugin(app)],
+    plugins: [
+      fastifyApolloDrainPlugin(app),
+      ApolloServerPluginInlineTraceDisabled(),
+    ],
   });
 
   await apollo.start();
@@ -207,10 +205,6 @@ export async function startServer(serverConfig: ServerConfig) {
     port: serverConfig.port,
     host: "0.0.0.0",
   });
-
-  app.log.info(
-    `Media GraphQL Admin API ready at http://localhost:${serverConfig.port}/graphql`
-  );
 
   return app;
 }

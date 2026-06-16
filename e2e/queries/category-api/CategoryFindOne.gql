@@ -1,0 +1,53 @@
+query CategoryFindOne($id: ID!) {
+  catalogQuery {
+    category(id: $id) {
+      id
+      handle
+      name
+      description {
+        html
+        text
+        json
+      }
+      defaultSort
+      defaultSortDirection
+      depth
+      path
+      isPublished
+      publishedAt
+      createdAt
+      updatedAt
+      seo {
+        seoTitle
+        seoDescription
+        ogTitle
+        ogDescription
+        ogImage {
+          id
+        }
+      }
+      parent {
+        id
+        handle
+        name
+      }
+      children {
+        id
+        handle
+        name
+      }
+      ancestors {
+        id
+        handle
+        name
+      }
+      media {
+        file {
+          id
+        }
+        sortIndex
+      }
+      productsCount
+    }
+  }
+}

@@ -23,7 +23,6 @@ query FileFindOne($id: ID!) {
       s3Data {
         bucketId
         objectKey
-        contentHash
         etag
         storageClass
       }

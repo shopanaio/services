@@ -1,0 +1,83 @@
+# ---- Session Types ----
+
+"""
+User session representing an active login.
+"""
+type Session {
+  """
+  The globally unique ID of the session.
+  """
+  id: ID!
+
+  """
+  IP address from which the session was created.
+  """
+  ipAddress: String
+
+  """
+  User agent string (browser/device info).
+  """
+  userAgent: String
+
+  """
+  When the session expires.
+  """
+  expiresAt: DateTime!
+
+  """
+  Whether this is the current session making the request.
+  """
+  isCurrent: Boolean!
+
+  """
+  The date and time when the session was created.
+  """
+  createdAt: DateTime!
+
+  """
+  The date and time when the session was last updated.
+  """
+  updatedAt: DateTime!
+}
+
+# ---- Session Inputs ----
+
+"""
+Input for revoking a specific session.
+"""
+input SessionRevokeInput {
+  """
+  The ID of the session to revoke.
+  """
+  sessionId: ID!
+}
+
+"""
+Payload for session revoke operation.
+"""
+type SessionRevokePayload {
+  """
+  Whether the session was successfully revoked.
+  """
+  success: Boolean!
+
+  """
+  List of errors that occurred during the mutation.
+  """
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Payload for revoking all sessions.
+"""
+type SessionRevokeAllPayload {
+  """
+  Number of sessions revoked.
+  """
+  revokedCount: Int!
+
+  """
+  List of errors that occurred during the mutation.
+  """
+  userErrors: [GenericUserError!]!
+}

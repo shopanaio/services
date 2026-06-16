@@ -1,0 +1,31 @@
+query CollectionByHandle($handle: String!) {
+  catalogQuery {
+    collectionByHandle(handle: $handle) {
+      id
+      handle
+      type
+      name
+      description {
+        html
+        text
+        json
+      }
+      defaultSort
+      defaultSortDirection
+      activeFrom
+      activeTo
+      isActive
+      publishedAt
+      isPublished
+      createdAt
+      updatedAt
+      rules {
+        id
+        field
+        operator
+        value
+        sortIndex
+      }
+    }
+  }
+}

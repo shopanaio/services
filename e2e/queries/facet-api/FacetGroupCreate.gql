@@ -1,0 +1,19 @@
+mutation FacetGroupCreate($input: FacetGroupCreateInput!) {
+  catalogMutation {
+    facetGroupCreate(input: $input) {
+      facetGroup {
+        id
+        name
+        sortIndex
+        collapsed
+        createdAt
+        updatedAt
+      }
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}

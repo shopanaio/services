@@ -1,4 +1,5 @@
 import { ZodResolver } from "@shopana/type-resolver";
+import { hashContent } from "@shopana/shared-kernel";
 import {
   decodeGlobalIdByType,
   encodeGlobalIdByType,
@@ -7,10 +8,15 @@ import {
 import { IAMType } from "./IAMType.js";
 import { OrganizationResolver } from "./OrganizationResolver.js";
 import { MemberResolver } from "./MemberResolver.js";
-import { OrganizationCreateScript } from "../../scripts/organization/OrganizationCreateScript.js";
-import { OrganizationUpdateScript } from "../../scripts/organization/OrganizationUpdateScript.js";
-import { OrganizationDeleteScript } from "../../scripts/organization/OrganizationDeleteScript.js";
 import { OwnershipTransferScript } from "../../scripts/organization/OwnershipTransferScript.js";
+import type {
+  OrganizationCreateParams,
+  OrganizationCreateResult,
+  OrganizationDeleteParams,
+  OrganizationDeleteResult,
+  OrganizationUpdateSagaInput,
+} from "../../sagas/index.js";
+import type { OrganizationUpdateResult } from "../../scripts/organization/dto/OrganizationUpdateDto.js";
 import { MemberInviteScript } from "../../scripts/organization/MemberInviteScript.js";
 import { MemberRemoveScript } from "../../scripts/organization/MemberRemoveScript.js";
 import { MemberRoleChangeScript } from "../../scripts/organization/MemberRoleChangeScript.js";
@@ -39,20 +45,48 @@ export class OrganizationMutationResolver extends IAMType<
 > {
   /**
    * Create a new organization.
+   * Uses OrganizationCreateWorkflow to ensure media asset group is created after DB commit.
    */
   @ZodResolver(OrganizationCreateInputSchema())
   async organizationCreate(args: { input: OrganizationCreateInput }) {
     const { input } = args;
-    const result = await this.$ctx.kernel.runScript(
-      OrganizationCreateScript,
-      input
+    const { kernel } = this.$ctx;
+    const broker = kernel.getServices().broker;
+
+    // Pre-flight check: ensure name is not already taken
+    // This is necessary because content-based idempotency would return cached success
+    // for duplicate name attempts
+    const existing = await kernel.repository.organization.findByName(input.name);
+    if (existing) {
+      return {
+        organization: null,
+        userErrors: [
+          {
+            code: "DUPLICATE_VALUE",
+            message: "An organization with this name already exists",
+            field: ["name"],
+          },
+        ],
+      };
+    }
+
+    const result = await broker.runSaga<OrganizationCreateResult, OrganizationCreateParams>(
+      "iam.organizationCreate",
+      input,
+      {
+        source: "content",
+        resourceId: input.name,
+        operation: "organizationCreate",
+        contentHash: hashContent({ name: input.name }),
+      }
     );
 
+    const data = result.data;
     return {
-      organization: result.organization
-        ? new OrganizationResolver(result.organization.id, this.$ctx)
+      organization: data?.organization
+        ? new OrganizationResolver(data.organization.id, this.$ctx)
         : null,
-      userErrors: result.userErrors.map((e) => ({
+      userErrors: (data?.userErrors ?? []).map((e) => ({
         code: e.code ?? "UNKNOWN_ERROR",
         message: e.message,
         field: e.field,
@@ -61,26 +95,61 @@ export class OrganizationMutationResolver extends IAMType<
   }
 
   /**
-   * Update organization name.
+   * Update organization (name, displayName, logo).
+   * Uses OrganizationUpdateWorkflow to ensure logo back-refs are synced after DB commit.
    */
   @ZodResolver(OrganizationUpdateInputSchema())
   async organizationUpdate(args: { input: OrganizationUpdateInput }) {
     const { input } = args;
+    const { kernel } = this.$ctx;
+    const broker = kernel.getServices().broker;
     const organizationId = decodeGlobalIdByType(
       input.id,
       GlobalIdEntity.Organization
     );
-    const result = await this.$ctx.kernel.runScript(OrganizationUpdateScript, {
-      organizationId,
-      name: input.name ?? undefined,
-      displayName: input.displayName ?? undefined,
-    });
 
+    // Get previous logo ID for back-ref cleanup
+    const existingOrg = await kernel.repository.organization.findById(organizationId);
+    const previousLogoId = existingOrg?.logoId ?? null;
+
+    // Decode logo ID if provided
+    let nextLogoId: string | null | undefined;
+    if (input.logoId !== undefined) {
+      if (input.logoId) {
+        try {
+          nextLogoId = decodeGlobalIdByType(input.logoId, GlobalIdEntity.File);
+        } catch {
+          nextLogoId = input.logoId;
+        }
+      } else {
+        nextLogoId = null;
+      }
+    }
+
+    const result = await broker.runSaga<OrganizationUpdateResult, OrganizationUpdateSagaInput>(
+      "iam.organizationUpdate",
+      {
+        organizationId,
+        name: input.name ?? undefined,
+        displayName: input.displayName ?? undefined,
+        logoId: nextLogoId,
+        previousLogoId,
+        nextLogoId,
+      },
+      {
+        source: "content",
+        resourceId: organizationId,
+        operation: "organizationUpdate",
+        contentHash: hashContent({ organizationId }),
+      }
+    );
+
+    const data = result.data;
     return {
-      organization: result.organization
-        ? new OrganizationResolver(result.organization.id, this.$ctx)
+      organization: data?.organization
+        ? new OrganizationResolver(data.organization.id, this.$ctx)
         : null,
-      userErrors: result.userErrors.map((e) => ({
+      userErrors: (data?.userErrors ?? []).map((e) => ({
         code: e.code ?? "UNKNOWN_ERROR",
         message: e.message,
         field: e.field,
@@ -91,24 +160,35 @@ export class OrganizationMutationResolver extends IAMType<
   /**
    * Soft delete organization.
    * Only the organization owner can delete the organization.
+   * Uses OrganizationDeleteWorkflow to ensure cleanup happens after DB commit.
    */
   async organizationDelete(args: { id: string }) {
     const organizationId = decodeGlobalIdByType(
       args.id,
       GlobalIdEntity.Organization
     );
-    const result = await this.$ctx.kernel.runScript(OrganizationDeleteScript, {
-      organizationId,
-    });
+    const broker = this.$ctx.kernel.getServices().broker;
 
+    const result = await broker.runSaga<OrganizationDeleteResult, OrganizationDeleteParams>(
+      "iam.organizationDelete",
+      { organizationId },
+      {
+        source: "content",
+        resourceId: organizationId,
+        operation: "organizationDelete",
+        contentHash: hashContent({ organizationId }),
+      }
+    );
+
+    const data = result.data;
     return {
-      deletedOrganizationId: result.deletedOrganizationId
+      deletedOrganizationId: data?.deletedOrganizationId
         ? encodeGlobalIdByType(
-            result.deletedOrganizationId,
+            data.deletedOrganizationId,
             GlobalIdEntity.Organization
           )
         : null,
-      userErrors: result.userErrors.map((e) => ({
+      userErrors: (data?.userErrors ?? []).map((e) => ({
         code: e.code ?? "UNKNOWN_ERROR",
         message: e.message,
         field: e.field,
@@ -280,4 +360,5 @@ export class OrganizationMutationResolver extends IAMType<
       })),
     };
   }
+
 }

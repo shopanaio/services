@@ -1,0 +1,105 @@
+mutation ProductUpdate($productId: ID!, $expectedRevision: Int, $operations: ProductUpdateInput) {
+  catalogMutation {
+    productUpdate(
+      productId: $productId
+      expectedRevision: $expectedRevision
+      operations: $operations
+    ) {
+      product {
+        id
+        handle
+        title
+        revision
+        isPublished
+        publishedAt
+        updatedAt
+        description {
+          text
+          html
+          json
+        }
+        excerpt
+        seo {
+          seoTitle
+          seoDescription
+        }
+        variants(first: 20) {
+          edges {
+            node {
+              id
+              handle
+              isDefault
+              price {
+                currency
+                amountMinor
+                compareAtMinor
+              }
+              inventoryItem {
+                id
+                sku
+                trackInventory
+                totalAvailable
+                stock {
+                  id
+                  quantityOnHand
+                  warehouse {
+                    id
+                    code
+                  }
+                }
+                weight {
+                  weightGrams
+                  displayUnit
+                }
+                unitCost {
+                  currency
+                  amountMinor
+                }
+                dimensions {
+                  lengthMm
+                  widthMm
+                  heightMm
+                  displayUnit
+                }
+              }
+              media {
+                file {
+                  id
+                }
+                sortIndex
+              }
+              selectedOptions {
+                optionId
+                optionValueId
+              }
+            }
+          }
+        }
+        options {
+          id
+          slug
+          name
+          values {
+            id
+            slug
+            name
+          }
+        }
+      }
+      operationResults {
+        type
+        applied
+        errors {
+          message
+          code
+          field
+        }
+      }
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}

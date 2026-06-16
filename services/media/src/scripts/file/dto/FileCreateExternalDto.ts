@@ -12,6 +12,7 @@ export interface FileCreateExternalParams {
   readonly altText?: string;
   readonly providerMeta?: Record<string, unknown>;
   readonly idempotencyKey?: string;
+  // ownerId is taken from store context (this.storeId)
 }
 
 export interface FileCreateExternalResult extends FileResultBase {

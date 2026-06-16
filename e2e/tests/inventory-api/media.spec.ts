@@ -1,11 +1,9 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
 
-// Test image URLs
-const TEST_IMAGE_1 =
-  'https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/PNG_transparency_demonstration_1.png/280px-PNG_transparency_demonstration_1.png';
-const TEST_IMAGE_2 =
-  'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Good_Food_Display_-_NCI_Visuals_Online.jpg/320px-Good_Food_Display_-_NCI_Visuals_Online.jpg';
+// Test image URLs (using picsum.photos for reliability)
+const TEST_IMAGE_1 = 'https://picsum.photos/seed/test1/200/200';
+const TEST_IMAGE_2 = 'https://picsum.photos/seed/test2/200/200';
 
 test.describe('Variant Media API', () => {
   test.beforeEach(async ({ api }) => {
@@ -16,18 +14,19 @@ test.describe('Variant Media API', () => {
    * Helper to create a product and get the default variant ID
    */
   async function createProductWithVariant(api: any, title = 'Media Test Product') {
-    const { data } = await api.admin.mutation('inventory-api/ProductCreate', {
-      variables: { input: { title } },
+    const handle = title.toLowerCase().replace(/\s+/g, '-');
+    const { data } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
+      variables: { input: { title, handle } },
     });
 
-    const product = data.inventoryMutation.productCreate.product;
+    const product = data.catalogMutation.productCreate.product;
     const variantEdges = product?.variants?.edges ?? [];
     const variantId = variantEdges[0]?.node?.id ?? null;
 
     return { product, variantId };
   }
 
-  test.describe('variantSetMedia', () => {
+  test.describe('variantUpdateMedia', () => {
     test('should set variant media with single file', async ({ api }) => {
       // Create product with variant
       const { product, variantId } = await createProductWithVariant(api);
@@ -52,7 +51,7 @@ test.describe('Variant Media API', () => {
         },
       });
 
-      const result = data.inventoryMutation.variantSetMedia;
+      const result = data.catalogMutation.variantUpdateMedia;
       expect(result.userErrors).toHaveLength(0);
       expect(result.variant).toBeTruthy();
       expect(result.variant?.id).toBe(variantId);
@@ -84,7 +83,7 @@ test.describe('Variant Media API', () => {
         },
       });
 
-      const result = data.inventoryMutation.variantSetMedia;
+      const result = data.catalogMutation.variantUpdateMedia;
       expect(result.userErrors).toHaveLength(0);
       expect(result.variant).toBeTruthy();
     });
@@ -120,7 +119,7 @@ test.describe('Variant Media API', () => {
         },
       });
 
-      const result = data.inventoryMutation.variantSetMedia;
+      const result = data.catalogMutation.variantUpdateMedia;
       expect(result.userErrors).toHaveLength(0);
       expect(result.variant).toBeTruthy();
     });
@@ -158,7 +157,7 @@ test.describe('Variant Media API', () => {
         },
       });
 
-      const result = data.inventoryMutation.variantSetMedia;
+      const result = data.catalogMutation.variantUpdateMedia;
       expect(result.userErrors).toHaveLength(0);
       expect(result.variant).toBeTruthy();
     });
@@ -176,7 +175,7 @@ test.describe('Variant Media API', () => {
         },
       });
 
-      const result = data.inventoryMutation.variantSetMedia;
+      const result = data.catalogMutation.variantUpdateMedia;
       expect(result.userErrors).toHaveLength(1);
       expect(result.userErrors[0].code).toBe('NOT_FOUND');
       expect(result.variant).toBeNull();
@@ -205,7 +204,7 @@ test.describe('Variant Media API', () => {
         },
       });
 
-      const result = data.inventoryMutation.variantSetMedia;
+      const result = data.catalogMutation.variantUpdateMedia;
       expect(result.userErrors).toHaveLength(0);
       expect(result.variant).toBeTruthy();
     });

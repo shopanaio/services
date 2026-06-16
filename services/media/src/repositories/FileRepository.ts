@@ -1,6 +1,48 @@
 import { eq, and, isNull, inArray, sql } from "drizzle-orm";
+import {
+  createQuery,
+  createRelayQuery,
+  type PageInfo,
+  type InferRelayInput,
+} from "@shopana/drizzle-query";
 import type { Database } from "../infrastructure/db/database";
-import { files, type File, type NewFile } from "./models";
+import { files, assetGroups, fileDeletionStates, type File, type NewFile } from "./models";
+import {
+  encodeGlobalIdByType,
+  decodeGlobalId,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
+
+// ---- Relay Query Builder ----
+
+export const fileRelayQuery = createRelayQuery(
+  createQuery(files).include(["id"]).maxLimit(100).defaultLimit(20),
+  {
+    name: "file",
+    tieBreaker: "id",
+    seekTransforms: {
+      id: {
+        encode: (uuid) => encodeGlobalIdByType(uuid as string, GlobalIdEntity.File),
+        decode: (globalId) => decodeGlobalId(globalId as string)?.id,
+      },
+    },
+  }
+);
+
+export type AssetOwnerType = "organization" | "store" | "user_profile";
+
+export type FileRelayInput = InferRelayInput<typeof fileRelayQuery> & {
+  /** Owner type - defaults to "store" */
+  ownerType?: AssetOwnerType;
+  /** Owner ID */
+  ownerId: string;
+};
+
+export interface FileConnectionResult {
+  edges: Array<{ cursor: string; nodeId: string }>;
+  pageInfo: PageInfo;
+  totalCount: number;
+}
 
 // ---- Types ----
 
@@ -39,15 +81,14 @@ export class FileRepository {
   // ---- Read methods ----
 
   /**
-   * Find a file by ID within a project
+   * Find a file by ID (only ACTIVE files via deletedAt IS NULL)
    */
-  async findById(projectId: string, fileId: string): Promise<File | null> {
+  async findById(fileId: string): Promise<File | null> {
     const result = await this.db
       .select()
       .from(files)
       .where(
         and(
-          eq(files.projectId, projectId),
           eq(files.id, fileId),
           isNull(files.deletedAt)
         )
@@ -58,9 +99,9 @@ export class FileRepository {
   }
 
   /**
-   * Find multiple files by IDs (batch load)
+   * Find multiple files by IDs (batch load, only ACTIVE via deletedAt IS NULL)
    */
-  async findByIds(projectId: string, ids: string[]): Promise<File[]> {
+  async findByIds(ids: string[]): Promise<File[]> {
     if (ids.length === 0) {
       return [];
     }
@@ -70,7 +111,6 @@ export class FileRepository {
       .from(files)
       .where(
         and(
-          eq(files.projectId, projectId),
           inArray(files.id, ids),
           isNull(files.deletedAt)
         )
@@ -80,14 +120,33 @@ export class FileRepository {
   // ---- Write methods ----
 
   /**
-   * Create a new file
+   * Create a new file or return existing one if idempotency key matches
    */
-  async create(projectId: string, data: CreateFileInput): Promise<File> {
+  async create(assetGroupId: string, data: CreateFileInput): Promise<File> {
+    // Check for existing file by idempotency key
+    if (data.idempotencyKey) {
+      const existing = await this.findByIdempotencyKey(
+        assetGroupId,
+        data.idempotencyKey
+      );
+      if (existing) {
+        return existing;
+      }
+    }
+
+    // Check for existing file by source URL
+    if (data.sourceUrl) {
+      const existing = await this.findBySourceUrl(assetGroupId, data.sourceUrl);
+      if (existing) {
+        return existing;
+      }
+    }
+
     const id = data.id ?? crypto.randomUUID();
 
     const newFile: NewFile = {
       id,
-      projectId,
+      assetGroupId,
       provider: data.provider,
       url: data.url,
       mimeType: data.mimeType ?? null,
@@ -110,11 +169,11 @@ export class FileRepository {
   }
 
   /**
-   * Update an existing file
+   * Update an existing file (only ACTIVE via deletedAt IS NULL)
    */
-  async update(projectId: string, fileId: string, data: UpdateFileInput): Promise<File | null> {
+  async update(fileId: string, data: UpdateFileInput): Promise<File | null> {
     const updateData: Partial<NewFile> = {
-      updatedAt: new Date(),
+      updatedAt: new Date().toISOString(),
     };
 
     if (data.altText !== undefined) {
@@ -135,7 +194,6 @@ export class FileRepository {
       .set(updateData)
       .where(
         and(
-          eq(files.projectId, projectId),
           eq(files.id, fileId),
           isNull(files.deletedAt)
         )
@@ -146,50 +204,77 @@ export class FileRepository {
   }
 
   /**
-   * Soft delete a file (set deletedAt)
+   * Soft delete a file (set deletedAt timestamp)
+   * Note: State change to SOFT_DELETED is handled by FileDeletionStateRepository
    */
-  async softDelete(projectId: string, fileId: string): Promise<void> {
+  async softDelete(fileId: string, deletedAt: Date = new Date()): Promise<void> {
     await this.db
       .update(files)
       .set({
-        deletedAt: new Date(),
-        updatedAt: new Date(),
+        deletedAt: sql`COALESCE(${files.deletedAt}, ${deletedAt.toISOString()})`,
       })
       .where(
-        and(
-          eq(files.projectId, projectId),
-          eq(files.id, fileId),
-          isNull(files.deletedAt)
-        )
+        and(eq(files.id, fileId), isNull(files.deletedAt))
+      );
+  }
+
+  /**
+   * Soft delete multiple files (set deletedAt timestamp)
+   * Note: State change to SOFT_DELETED is handled by FileDeletionStateRepository
+   */
+  async softDeleteMany(fileIds: string[], deletedAt: Date = new Date()): Promise<void> {
+    if (fileIds.length === 0) {
+      return;
+    }
+
+    await this.db
+      .update(files)
+      .set({
+        deletedAt: sql`COALESCE(${files.deletedAt}, ${deletedAt.toISOString()})`,
+      })
+      .where(
+        and(inArray(files.id, fileIds), isNull(files.deletedAt))
       );
   }
 
   /**
    * Hard delete a file (permanent removal)
    */
-  async hardDelete(projectId: string, fileId: string): Promise<void> {
-    await this.db
+  async hardDelete(fileId: string): Promise<boolean> {
+    const result = await this.db
       .delete(files)
-      .where(
-        and(
-          eq(files.projectId, projectId),
-          eq(files.id, fileId)
-        )
-      );
+      .where(eq(files.id, fileId))
+      .returning({ id: files.id });
+
+    return result.length > 0;
+  }
+
+  /**
+   * Restore a soft-deleted file (clear deletedAt)
+   * Note: State change to ACTIVE is handled by FileDeletionStateRepository
+   */
+  async restore(fileId: string): Promise<void> {
+    await this.db
+      .update(files)
+      .set({ deletedAt: null })
+      .where(eq(files.id, fileId));
   }
 
   // ---- Utility methods ----
 
   /**
-   * Find a file by idempotency key
+   * Find a file by idempotency key within an asset group (ACTIVE only)
    */
-  async findByIdempotencyKey(projectId: string, key: string): Promise<File | null> {
+  async findByIdempotencyKey(
+    assetGroupId: string,
+    key: string
+  ): Promise<File | null> {
     const result = await this.db
       .select()
       .from(files)
       .where(
         and(
-          eq(files.projectId, projectId),
+          eq(files.assetGroupId, assetGroupId),
           eq(files.idempotencyKey, key),
           isNull(files.deletedAt)
         )
@@ -200,15 +285,14 @@ export class FileRepository {
   }
 
   /**
-   * Check if a file exists
+   * Check if an ACTIVE file exists
    */
-  async exists(projectId: string, fileId: string): Promise<boolean> {
+  async exists(fileId: string): Promise<boolean> {
     const result = await this.db
       .select({ id: files.id })
       .from(files)
       .where(
         and(
-          eq(files.projectId, projectId),
           eq(files.id, fileId),
           isNull(files.deletedAt)
         )
@@ -219,10 +303,12 @@ export class FileRepository {
   }
 
   /**
-   * Find a file by source URL (for deduplication of URL uploads)
+   * Find a file by source URL within an asset group (for deduplication, ACTIVE only)
    */
-  async findBySourceUrl(projectId: string, sourceUrl: string): Promise<File | null> {
-    // Empty strings are not valid for deduplication
+  async findBySourceUrl(
+    assetGroupId: string,
+    sourceUrl: string
+  ): Promise<File | null> {
     if (!sourceUrl) {
       return null;
     }
@@ -232,7 +318,7 @@ export class FileRepository {
       .from(files)
       .where(
         and(
-          eq(files.projectId, projectId),
+          eq(files.assetGroupId, assetGroupId),
           eq(files.sourceUrl, sourceUrl),
           isNull(files.deletedAt)
         )
@@ -243,43 +329,97 @@ export class FileRepository {
   }
 
   /**
-   * Find deleted file by ID (for restoration purposes)
+   * Find a file by ID in any state (including deleted)
    */
-  async findDeletedById(projectId: string, fileId: string): Promise<File | null> {
+  async findAnyById(fileId: string): Promise<File | null> {
     const result = await this.db
       .select()
       .from(files)
-      .where(
-        and(
-          eq(files.projectId, projectId),
-          eq(files.id, fileId),
-          sql`${files.deletedAt} IS NOT NULL`
-        )
-      )
+      .where(eq(files.id, fileId))
       .limit(1);
 
     return result[0] ?? null;
   }
 
+  // ---- Connection methods ----
+
   /**
-   * Restore a soft-deleted file
+   * Resolve asset group ID from owner type and owner ID
    */
-  async restore(projectId: string, fileId: string): Promise<File | null> {
+  private async resolveAssetGroupId(
+    ownerType: AssetOwnerType,
+    ownerId: string
+  ): Promise<string | null> {
     const result = await this.db
-      .update(files)
-      .set({
-        deletedAt: null,
-        updatedAt: new Date(),
-      })
+      .select({ id: assetGroups.id })
+      .from(assetGroups)
       .where(
         and(
-          eq(files.projectId, projectId),
-          eq(files.id, fileId),
-          sql`${files.deletedAt} IS NOT NULL`
+          eq(assetGroups.ownerType, ownerType),
+          eq(assetGroups.ownerId, ownerId)
         )
       )
-      .returning();
+      .limit(1);
 
-    return result[0] ?? null;
+    return result[0]?.id ?? null;
+  }
+
+  /**
+   * Get files with Relay-style cursor pagination
+   */
+  async getConnection(args: FileRelayInput): Promise<FileConnectionResult> {
+    const { where, orderBy, ownerType = "store", ownerId, ...paginationArgs } = args;
+
+    // Resolve asset group ID from owner type + owner ID
+    const assetGroupId = await this.resolveAssetGroupId(ownerType, ownerId);
+
+    // If no asset group found, return empty result
+    if (!assetGroupId) {
+      return {
+        edges: [],
+        pageInfo: {
+          hasNextPage: false,
+          hasPreviousPage: false,
+          startCursor: null,
+          endCursor: null,
+        },
+        totalCount: 0,
+      };
+    }
+
+    // Merge user-provided where with assetGroupId and deletedAt filters
+    const mergedWhere: FileRelayInput["where"] = {
+      _and: [
+        { deletedAt: { _is: null } },
+        { assetGroupId: { _eq: assetGroupId } },
+        ...(where ? [where] : []),
+      ],
+    };
+
+    const executeInput = {
+      ...paginationArgs,
+      where: mergedWhere,
+      orderBy:
+        orderBy ??
+        ([
+          { field: "createdAt", direction: "desc" },
+          { field: "id", direction: "desc" },
+        ] as FileRelayInput["orderBy"]),
+    };
+
+    // Execute paginated query and count with the same filters in parallel
+    const [result, totalCount] = await Promise.all([
+      fileRelayQuery.execute(this.db, executeInput),
+      fileRelayQuery.count(this.db, { where: mergedWhere }),
+    ]);
+
+    return {
+      edges: result.edges.map((edge) => ({
+        cursor: edge.cursor,
+        nodeId: edge.node.id,
+      })),
+      pageInfo: result.pageInfo,
+      totalCount,
+    };
   }
 }

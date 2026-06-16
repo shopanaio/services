@@ -1,4 +1,5 @@
 import { ApolloServer } from "@apollo/server";
+import { ApolloServerPluginInlineTraceDisabled } from "@apollo/server/plugin/disabled";
 import { buildSubgraphSchema } from "@apollo/subgraph";
 import fastifyApollo, {
   fastifyApolloDrainPlugin,
@@ -39,6 +40,7 @@ export async function startServer(serverConfig: ServerConfig) {
   }
 
   const app = fastify({
+    disableRequestLogging: true,
     logger: isDevelopment(global)
       ? {
           level: global.log_level ?? "info",
@@ -68,13 +70,9 @@ export async function startServer(serverConfig: ServerConfig) {
     "relay.graphql",
     "base.graphql",
     "physical.graphql",
-    "pricing.graphql",
     "stock.graphql",
-    "options.graphql",
-    "features.graphql",
-    "media.graphql",
-    "variant.graphql",
-    "product.graphql",
+    "inventory-item.graphql",
+    "inventory-widget.graphql",
     // Generated schemas
     "__generated__/base-filters.graphql",
     "__generated__/filters.graphql",
@@ -88,8 +86,12 @@ export async function startServer(serverConfig: ServerConfig) {
   // Create Apollo Server
   const apollo = new ApolloServer<ServiceContext>({
     introspection: true,
+    // @ts-expect-error
     schema: buildSubgraphSchema(modules),
-    plugins: [fastifyApolloDrainPlugin(app)],
+    plugins: [
+      fastifyApolloDrainPlugin(app),
+      ApolloServerPluginInlineTraceDisabled(),
+    ],
   });
 
   await apollo.start();
@@ -153,10 +155,6 @@ export async function startServer(serverConfig: ServerConfig) {
     port: serverConfig.port,
     host: "0.0.0.0",
   });
-
-  app.log.info(
-    `inventory GraphQL Admin API ready at http://localhost:${serverConfig.port}/graphql`
-  );
 
   return app;
 }

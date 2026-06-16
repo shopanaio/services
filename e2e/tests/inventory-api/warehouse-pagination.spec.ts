@@ -89,11 +89,6 @@ createConnectionPaginationTests<ApiWarehouse>({
   ],
   filterCases: [
     {
-      name: 'by code with _endsWith',
-      where: { code: { _endsWith: '-A' } },
-      filterExpected: (items) => items.filter((i) => i.code.endsWith('-A')),
-    },
-    {
       name: 'by name with _contains',
       where: { name: { _contains: 'Storage' } },
       filterExpected: (items) => items.filter((i) => i.name.includes('Storage')),

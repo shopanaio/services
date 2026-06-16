@@ -209,9 +209,9 @@ describe("createBaseCursorBuilder", () => {
       });
 
       expect(meta.hasCursor).toBe(true);
-      expect(meta.invertOrder).toBe(false); // has cursor, no inversion
+      expect(meta.invertOrder).toBe(true); // backward always inverts order
 
-      // DESC + backward = _gt (seek before current position)
+      // DESC + backward = _gt (seek before current position), order inverted
       expect(toSqlString(sql)).toMatchInlineSnapshot(`
         "SELECT
           "t0_products"."id" AS "id",
@@ -227,8 +227,8 @@ describe("createBaseCursorBuilder", () => {
             )
           )
         ORDER BY
-          "t0_products"."price" DESC,
-          "t0_products"."id" DESC
+          "t0_products"."price" ASC,
+          "t0_products"."id" ASC
         LIMIT
           $4
         OFFSET
@@ -465,6 +465,158 @@ describe("createBaseCursorBuilder", () => {
       const decoded2 = decode(result.cursors[1]);
       expect(decoded2.seek[0].value).toBe(200);
       expect(decoded2.seek[1].value).toBe("prod_2");
+    });
+
+    it("applies encode transform to cursor seek values", async () => {
+      const builder = createBaseCursorBuilder(productsSchema, {
+        cursorType: "product",
+        tieBreaker: "id",
+        seekTransforms: {
+          id: {
+            encode: (v) => `global-id-${v}`,
+            decode: (v) => (v as string).replace("global-id-", ""),
+          },
+        },
+      });
+
+      const fakeDb: DrizzleExecutor = {
+        async execute() {
+          return {
+            rows: [
+              { id: "uuid-123", handle: "alpha", price: 100 },
+            ],
+          };
+        },
+      };
+
+      const result = await builder.query(fakeDb, {
+        limit: 10,
+        direction: "forward",
+        select: ["id", "handle", "price"],
+      });
+
+      expect(result.cursors).toHaveLength(1);
+
+      // Verify cursor contains encoded id
+      const decoded = decode(result.cursors[0]);
+      expect(decoded.seek[0].field).toBe("id");
+      expect(decoded.seek[0].value).toBe("global-id-uuid-123");
+    });
+
+    it("applies encode transform to sort field and tieBreaker", async () => {
+      const builder = createBaseCursorBuilder(productsSchema, {
+        cursorType: "product",
+        tieBreaker: "id",
+        seekTransforms: {
+          id: {
+            encode: (v) => `encoded-${v}`,
+            decode: (v) => (v as string).replace("encoded-", ""),
+          },
+          price: {
+            encode: (v) => `price-${v}`,
+            decode: (v) => parseInt((v as string).replace("price-", ""), 10),
+          },
+        },
+      });
+
+      const fakeDb: DrizzleExecutor = {
+        async execute() {
+          return {
+            rows: [
+              { id: "uuid-1", price: 50 },
+            ],
+          };
+        },
+      };
+
+      const result = await builder.query(fakeDb, {
+        limit: 10,
+        direction: "forward",
+        orderBy: [{ field: "price", direction: "desc" }],
+        select: ["id", "price"],
+      });
+
+      const decoded = decode(result.cursors[0]);
+      expect(decoded.seek).toHaveLength(2);
+      expect(decoded.seek[0].field).toBe("price");
+      expect(decoded.seek[0].value).toBe("price-50");
+      expect(decoded.seek[1].field).toBe("id");
+      expect(decoded.seek[1].value).toBe("encoded-uuid-1");
+    });
+
+    it("does not transform fields without seekTransforms", async () => {
+      const builder = createBaseCursorBuilder(productsSchema, {
+        cursorType: "product",
+        tieBreaker: "id",
+        seekTransforms: {
+          id: {
+            encode: (v) => `global-${v}`,
+            decode: (v) => (v as string).replace("global-", ""),
+          },
+        },
+      });
+
+      const fakeDb: DrizzleExecutor = {
+        async execute() {
+          return {
+            rows: [
+              { id: "uuid-1", price: 99 },
+            ],
+          };
+        },
+      };
+
+      const result = await builder.query(fakeDb, {
+        limit: 10,
+        direction: "forward",
+        orderBy: [{ field: "price", direction: "desc" }],
+        select: ["id", "price"],
+      });
+
+      const decoded = decode(result.cursors[0]);
+      // price should not be transformed
+      expect(decoded.seek[0].value).toBe(99);
+      // id should be transformed
+      expect(decoded.seek[1].value).toBe("global-uuid-1");
+    });
+  });
+
+  describe("seekTransforms in cursor WHERE", () => {
+    it("applies decode transform when using cursor", async () => {
+      const builder = createBaseCursorBuilder(productsSchema, {
+        cursorType: "product",
+        tieBreaker: "id",
+        seekTransforms: {
+          id: {
+            encode: (v) => `global-${v}`,
+            decode: (v) => (v as string).replace("global-", ""),
+          },
+        },
+      });
+
+      // Cursor with encoded global ID
+      // When no orderBy, default sort is by tieBreaker (id) desc
+      // Cursor needs: sort fields + tieBreaker = 1 + 1 = 2 seek values
+      const cursor = encode({
+        type: "product",
+        filtersHash: hashFilters(null),
+        seek: [
+          { field: "id", value: "global-uuid-123", direction: "desc" }, // sort field
+          { field: "id", value: "global-uuid-123", direction: "desc" }, // tieBreaker
+        ],
+      });
+
+      const { sql } = builder.getSql({
+        limit: 10,
+        direction: "forward",
+        cursor,
+        select: ["id"],
+      });
+
+      // SQL should contain decoded UUID, not global ID
+      const sqlString = toSqlString(sql);
+      expect(sqlString).toContain("uuid-123");
+      expect(sqlString).not.toContain("global-uuid-123");
     });
   });
 });

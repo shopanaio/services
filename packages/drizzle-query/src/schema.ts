@@ -5,6 +5,7 @@ import type {
   InferFieldTypes,
   SchemaWithFields,
   SchemaWithTypes,
+  Selectable,
 } from "./types.js";
 import { UnknownFieldError } from "./errors.js";
 
@@ -25,7 +26,7 @@ export type Join = {
   /** Join type (default: 'left') */
   type?: JoinType;
   /** Target schema for the join (lazy reference to avoid circular dependencies) */
-  schema: () => ObjectSchema<Table, string>;
+  schema: () => ObjectSchema<Selectable, string>;
   /** Field name in target schema to join on */
   column: string;
   /** Composite key fields */
@@ -48,8 +49,8 @@ export type FieldConfig = {
 /**
  * Schema configuration with typed fields
  */
-export type SchemaConfig<T extends Table, F extends string = string> = {
-  /** Source table */
+export type SchemaConfig<T extends Selectable, F extends string = string> = {
+  /** Source table or view */
   table: T;
   /** Table name (for aliasing) */
   tableName: string;
@@ -63,13 +64,13 @@ export type SchemaConfig<T extends Table, F extends string = string> = {
 
 /**
  * Object schema for query building (matches goqutil.ObjectSchema)
- * @template T - Drizzle table type
+ * @template T - Drizzle table or view type
  * @template F - Field names (union of string literals)
  * @template Fields - Nested fields structure for type-safe path access
  * @template Types - Inferred field types from table columns
  */
 export class ObjectSchema<
-  T extends Table = Table,
+  T extends Selectable = Selectable,
   F extends string = string,
   Fields extends FieldsDef = FieldsDef,
   Types = T["$inferSelect"],
@@ -135,7 +136,7 @@ export class ObjectSchema<
   /**
    * Get the target schema for a join
    */
-  getJoinSchema(name: string): ObjectSchema<Table, string> | undefined {
+  getJoinSchema(name: string): ObjectSchema<Selectable, string> | undefined {
     const join = this.getJoin(name);
     if (!join) return undefined;
 
@@ -171,7 +172,7 @@ export class ObjectSchema<
   }
 }
 
-const schemaCache = new WeakMap<Table, Map<string, ObjectSchema>>();
+const schemaCache = new WeakMap<Selectable, Map<string, ObjectSchema>>();
 
 function getSchemaCacheKey(
   fields: Record<string, FieldConfig>,
@@ -241,7 +242,7 @@ function getSchemaCacheKey(
  * ```
  */
 export function createSchema<
-  T extends Table,
+  T extends Selectable,
   const Config extends Record<string, FieldConfig>,
 >(
   config: Omit<SchemaConfig<T, string>, "fields"> & { fields: Config }

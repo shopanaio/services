@@ -12,6 +12,7 @@ import {
   ServiceBroker,
   type DatabaseClient,
 } from "@shopana/shared-kernel";
+import { WORKFLOW_REGISTRY, WorkflowRegistry } from "@shopana/shared-kernel";
 import { Kernel } from "./kernel/Kernel.js";
 import { startServer } from "@src/api/graphql-admin/server.js";
 import { getServiceConfig } from "@shopana/shared-service-config";
@@ -26,13 +27,14 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     @InjectBroker("iam") private readonly broker: ServiceBroker,
+    @Inject(WORKFLOW_REGISTRY) private readonly workflow: WorkflowRegistry,
     @Inject(DATABASE_CLIENT) private readonly dbClient: DatabaseClient
   ) {}
 
   async onModuleInit() {
     this.logger.debug("IAM onModuleInit started");
 
-    this.kernel = await Kernel.create(this.broker, this.dbClient);
+    this.kernel = await Kernel.create(this.broker, this.workflow, this.dbClient);
     this.logger.debug("Kernel created");
 
     this.graphqlServer = await startServer({

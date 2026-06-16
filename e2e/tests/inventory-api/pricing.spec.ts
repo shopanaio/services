@@ -7,18 +7,38 @@ test.describe('Pricing & Cost API', () => {
   });
 
   /**
-   * Helper to create a product and get the default variant ID
+   * Helper to create a product and get the default variant ID + inventoryItem ID
    */
   async function createProductWithVariant(api: any, title = 'Test Product') {
-    const { data } = await api.admin.mutation('inventory-api/ProductCreate', {
-      variables: { input: { title } },
+    const handle = title.toLowerCase().replace(/\s+/g, '-');
+    const { data } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
+      variables: {
+        input: {
+          title,
+          handle,
+          inventoryItem: { tracked: true },
+        },
+      },
     });
 
-    const product = data.inventoryMutation.productCreate.product;
+    const product = data.catalogMutation.productCreate.product;
     const variantEdges = product?.variants?.edges ?? [];
-    const variantId = variantEdges[0]?.node?.id ?? null;
+    const variant = variantEdges[0]?.node ?? null;
+    const variantId = variant?.id ?? null;
+    const inventoryItemId = variant?.inventoryItem?.id ?? null;
 
-    return { product, variantId };
+    return { product, variantId, inventoryItemId };
+  }
+
+  /**
+   * Helper to create a warehouse
+   */
+  async function createWarehouse(api: any, code: string, name: string, isDefault = false) {
+    const { data } = await api.admin.mutation('inventory-api/WarehouseCreate', {
+      variables: { input: { code, name, isDefault } },
+    });
+
+    return data.inventoryMutation.warehouseCreate.warehouse;
   }
 
   test.describe('Variant Pricing', () => {
@@ -42,7 +62,7 @@ test.describe('Pricing & Cost API', () => {
         },
       });
 
-      const result = data.inventoryMutation.variantSetPricing;
+      const result = data.catalogMutation.variantUpdatePricing;
       expect(result.userErrors).toHaveLength(0);
       expect(result.variant?.price).toBeTruthy();
       expect(result.variant?.price?.currency).toBe('UAH');
@@ -68,7 +88,7 @@ test.describe('Pricing & Cost API', () => {
         },
       });
 
-      const result = data.inventoryMutation.variantSetPricing;
+      const result = data.catalogMutation.variantUpdatePricing;
       expect(result.userErrors).toHaveLength(0);
       expect(result.variant?.price).toBeTruthy();
       expect(result.variant?.price?.amountMinor).toBe(8000);
@@ -105,7 +125,7 @@ test.describe('Pricing & Cost API', () => {
         },
       });
 
-      const result = data.inventoryMutation.variantSetPricing;
+      const result = data.catalogMutation.variantUpdatePricing;
       expect(result.userErrors).toHaveLength(0);
       expect(result.variant?.price?.amountMinor).toBe(15000);
     });
@@ -129,8 +149,8 @@ test.describe('Pricing & Cost API', () => {
         },
       });
 
-      expect(uahData.inventoryMutation.variantSetPricing.userErrors).toHaveLength(0);
-      expect(uahData.inventoryMutation.variantSetPricing.variant).toBeTruthy();
+      expect(uahData.catalogMutation.variantUpdatePricing.userErrors).toHaveLength(0);
+      expect(uahData.catalogMutation.variantUpdatePricing.variant).toBeTruthy();
 
       // Set USD price
       const { data: usdData } = await api.admin.mutation('inventory-api/VariantSetPricing', {
@@ -143,8 +163,8 @@ test.describe('Pricing & Cost API', () => {
         },
       });
 
-      expect(usdData.inventoryMutation.variantSetPricing.userErrors).toHaveLength(0);
-      expect(usdData.inventoryMutation.variantSetPricing.variant).toBeTruthy();
+      expect(usdData.catalogMutation.variantUpdatePricing.userErrors).toHaveLength(0);
+      expect(usdData.catalogMutation.variantUpdatePricing.variant).toBeTruthy();
     });
 
     test('should return error for invalid variant ID', async ({ api }) => {
@@ -159,7 +179,7 @@ test.describe('Pricing & Cost API', () => {
         throwOnError: false,
       });
 
-      const result = data?.inventoryMutation?.variantSetPricing;
+      const result = data?.catalogMutation?.variantUpdatePricing;
       expect(result).toBeTruthy();
       expect(result.variant).toBeNull();
       expect(result.userErrors.length).toBeGreaterThan(0);
@@ -169,11 +189,11 @@ test.describe('Pricing & Cost API', () => {
 
   test.describe('Variant Cost', () => {
     test('should set variant cost in UAH', async ({ api }) => {
-      const { product, variantId } = await createProductWithVariant(api);
+      const { product, inventoryItemId } = await createProductWithVariant(api);
 
       expect(product).toBeTruthy();
 
-      if (!variantId) {
+      if (!inventoryItemId) {
         test.skip();
         return;
       }
@@ -181,24 +201,26 @@ test.describe('Pricing & Cost API', () => {
       const { data } = await api.admin.mutation('inventory-api/VariantSetCost', {
         variables: {
           input: {
-            variantId,
-            currency: 'UAH',
-            unitCostMinor: '5000', // 50.00 UAH cost
+            id: inventoryItemId,
+            unitCost: {
+              currency: 'UAH',
+              amountMinor: '5000', // 50.00 UAH cost
+            },
           },
         },
       });
 
-      const result = data.inventoryMutation.variantSetCost;
+      const result = data.inventoryMutation.inventoryItemUpdate;
       expect(result.userErrors).toHaveLength(0);
-      expect(result.variant?.cost).toBeTruthy();
-      expect(result.variant?.cost?.currency).toBe('UAH');
-      expect(result.variant?.cost?.unitCostMinor).toBe(5000);
+      expect(result.inventoryItem?.unitCost).toBeTruthy();
+      expect(result.inventoryItem?.unitCost?.currency).toBe('UAH');
+      expect(result.inventoryItem?.unitCost?.amountMinor).toBe(5000);
     });
 
     test('should update cost (temporal pattern)', async ({ api }) => {
-      const { variantId } = await createProductWithVariant(api);
+      const { inventoryItemId } = await createProductWithVariant(api);
 
-      if (!variantId) {
+      if (!inventoryItemId) {
         test.skip();
         return;
       }
@@ -207,9 +229,11 @@ test.describe('Pricing & Cost API', () => {
       await api.admin.mutation('inventory-api/VariantSetCost', {
         variables: {
           input: {
-            variantId,
-            currency: 'UAH',
-            unitCostMinor: '5000',
+            id: inventoryItemId,
+            unitCost: {
+              currency: 'UAH',
+              amountMinor: '5000',
+            },
           },
         },
       });
@@ -218,33 +242,37 @@ test.describe('Pricing & Cost API', () => {
       const { data } = await api.admin.mutation('inventory-api/VariantSetCost', {
         variables: {
           input: {
-            variantId,
-            currency: 'UAH',
-            unitCostMinor: '6000', // new cost
+            id: inventoryItemId,
+            unitCost: {
+              currency: 'UAH',
+              amountMinor: '6000', // new cost
+            },
           },
         },
       });
 
-      const result = data.inventoryMutation.variantSetCost;
+      const result = data.inventoryMutation.inventoryItemUpdate;
       expect(result.userErrors).toHaveLength(0);
-      expect(result.variant?.cost?.unitCostMinor).toBe(6000);
+      expect(result.inventoryItem?.unitCost?.amountMinor).toBe(6000);
     });
 
-    test('should return error for invalid variant ID', async ({ api }) => {
+    test('should return error for invalid inventory item ID', async ({ api }) => {
       const { data } = await api.admin.mutation('inventory-api/VariantSetCost', {
         variables: {
           input: {
-            variantId: '00000000-0000-0000-0000-000000000000',
-            currency: 'UAH',
-            unitCostMinor: '5000',
+            id: '00000000-0000-0000-0000-000000000000',
+            unitCost: {
+              currency: 'UAH',
+              amountMinor: '5000',
+            },
           },
         },
         throwOnError: false,
       });
 
-      const result = data?.inventoryMutation?.variantSetCost;
+      const result = data?.inventoryMutation?.inventoryItemUpdate;
       expect(result).toBeTruthy();
-      expect(result.variant).toBeNull();
+      expect(result.inventoryItem).toBeNull();
       expect(result.userErrors.length).toBeGreaterThan(0);
       expect(result.userErrors[0].code).toBe('NOT_FOUND');
     });
@@ -252,9 +280,9 @@ test.describe('Pricing & Cost API', () => {
 
   test.describe('Combined Pricing & Cost', () => {
     test('should set both price and cost on same variant', async ({ api }) => {
-      const { variantId } = await createProductWithVariant(api);
+      const { variantId, inventoryItemId } = await createProductWithVariant(api);
 
-      if (!variantId) {
+      if (!variantId || !inventoryItemId) {
         test.skip();
         return;
       }
@@ -270,24 +298,27 @@ test.describe('Pricing & Cost API', () => {
         },
       });
 
-      expect(priceData.inventoryMutation.variantSetPricing.userErrors).toHaveLength(0);
+      expect(priceData.catalogMutation.variantUpdatePricing.userErrors).toHaveLength(0);
 
       // Set cost
       const { data: costData } = await api.admin.mutation('inventory-api/VariantSetCost', {
         variables: {
           input: {
-            variantId,
-            currency: 'UAH',
-            unitCostMinor: '5000', // 50.00 UAH cost
+            id: inventoryItemId,
+            unitCost: {
+              currency: 'UAH',
+              amountMinor: '5000', // 50.00 UAH cost
+            },
           },
         },
       });
 
-      expect(costData.inventoryMutation.variantSetCost.userErrors).toHaveLength(0);
+      expect(costData.inventoryMutation.inventoryItemUpdate.userErrors).toHaveLength(0);
 
       // Verify margin: price (100) - cost (50) = 50 UAH margin
-      const price = priceData.inventoryMutation.variantSetPricing.variant?.price?.amountMinor ?? 0;
-      const cost = costData.inventoryMutation.variantSetCost.variant?.cost?.unitCostMinor ?? 0;
+      const price = priceData.catalogMutation.variantUpdatePricing.variant?.price?.amountMinor ?? 0;
+      const cost =
+        costData.inventoryMutation.inventoryItemUpdate.inventoryItem?.unitCost?.amountMinor ?? 0;
       expect(price - cost).toBe(5000); // 50.00 UAH margin
     });
   });

@@ -1,0 +1,31 @@
+query BundleGroup($id: ID!) {
+  catalogQuery {
+    bundleGroup(id: $id) {
+      id
+      productId
+      title
+      sortIndex
+      minSelection
+      maxSelection
+      items {
+        id
+        groupId
+        itemType
+        sortIndex
+        refProductId
+        refVariantId
+        title
+        minQty
+        maxQty
+        defaultQty
+        priceType
+        priceValue
+        pricingTemplateId
+        visible
+        selected
+      }
+      createdAt
+      updatedAt
+    }
+  }
+}

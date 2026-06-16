@@ -1,16 +1,16 @@
 # Traefik Reverse Proxy Ansible Playbooks
 
-Ansible playbooks for deploying and managing Traefik reverse proxy for Apollo Router services.
+Ansible playbooks for deploying and managing Traefik reverse proxy for Shopana services.
 
 ## Overview
 
-Traefik is configured as a reverse proxy to route traffic to Apollo Router services (Admin and Storefront APIs).
+Traefik is configured as a reverse proxy to route traffic to Shopana services (Admin and Storefront APIs).
 
 **⚠️ This configuration works WITHOUT SSL/HTTPS** - all traffic is over HTTP only.
 
 It provides:
 
-- **HTTP routing** for Apollo GraphQL services
+- **HTTP routing** for GraphQL services
 - **Dashboard** for monitoring and debugging
 - **Docker provider** for automatic service discovery
 - **Health checks** and monitoring
@@ -36,7 +36,7 @@ It provides:
 ansible-playbook playbooks/network/setup.yml -i hosts.ini --limit shopana_sandbox
 ```
 
-This network is required for Traefik to communicate with Apollo Router and other services.
+This network is required for Traefik to communicate with Shopana services.
 
 ### Deploy Traefik
 
@@ -95,23 +95,8 @@ Default ports (configured in `sandbox.vars.yml`):
 - **8080** - Traefik dashboard
 
 Traefik routes requests by path:
-- `/api/admin/graphql/*` → Apollo Admin Router
-- `/api/client/graphql/*` → Apollo Storefront Router
-
-### Apollo Router Integration
-
-Traefik can work in two modes:
-
-#### Mode 1: Port Forwarding Only (Default)
-- Traefik exposes ports 4000 and 4001
-- Apollo Router runs separately (deployed via `apollo/deploy.yml`)
-- Set `traefik_enable_apollo_routes: false` in vars
-
-#### Mode 2: Integrated Apollo Router
-- Traefik manages Apollo Router containers
-- Apollo Router services are defined in docker-compose
-- Set `traefik_enable_apollo_routes: true` in vars
-- Requires Apollo Router configs in `/opt/shopana/apollo-router/config/`
+- `/api/admin/graphql/*` → Admin GraphQL API
+- `/api/client/graphql/*` → Storefront GraphQL API
 
 ### Environment Variables
 
@@ -122,10 +107,6 @@ Key variables in `sandbox.vars.yml`:
 traefik_version: "v3.0"
 traefik_web_port: 80
 traefik_dashboard_port: 8080
-
-# Apollo ports
-traefik_apollo_admin_port: 4000
-traefik_apollo_storefront_port: 4001
 
 # Dashboard
 traefik_enable_dashboard: true
@@ -142,11 +123,9 @@ After deployment (all traffic via port 80):
 
 - **Dashboard**: `http://HOST:8080/dashboard/`
 - **Traefik API**: `http://HOST:8080/api/`
-- **Apollo Admin GraphQL**: `http://HOST/api/admin/graphql/query`
-- **Apollo Storefront GraphQL**: `http://HOST/api/client/graphql/query`
+- **Admin GraphQL**: `http://HOST/api/admin/graphql/query`
+- **Storefront GraphQL**: `http://HOST/api/client/graphql/query`
 - **Health Check**: `http://HOST:8082/ping`
-
-Traefik automatically routes requests to Apollo Router by path.
 
 ## Docker Labels
 
@@ -190,7 +169,7 @@ ansible-playbook playbooks/traefik/manage.yml -i hosts.ini --limit shopana_sandb
 
 ## Network
 
-Traefik connects to the `shopana-network` Docker network to communicate with Apollo Router and other services.
+Traefik connects to the `shopana-network` Docker network to communicate with Shopana services.
 
 **Important:** The network must exist before deploying any services. Create it with:
 
@@ -206,9 +185,9 @@ ansible-playbook playbooks/network/setup.yml -i hosts.ini --limit shopana_sandbo
 │   (port 80)     │
 └────────┬────────┘
          │
-         ├──► Apollo Admin (shopana-apollo-admin:4000)
+         ├──► Admin API
          │
-         ├──► Apollo Storefront (shopana-apollo-storefront:4001)
+         ├──► Storefront API
          │
          └──► Other services...
 ```
@@ -222,11 +201,7 @@ networks:
 
 ### Connecting Services to Traefik
 
-Services can be discovered by Traefik using container names as hostnames:
-
-- `shopana-apollo-admin` → Apollo Admin Router
-- `shopana-apollo-storefront` → Apollo Storefront Router
-- Container names are defined in docker-compose files
+Services can be discovered by Traefik using container names as hostnames. Container names are defined in docker-compose files.
 
 ## Security Notes
 

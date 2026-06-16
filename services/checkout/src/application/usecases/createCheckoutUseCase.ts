@@ -25,8 +25,8 @@ export class CreateCheckoutUseCase extends UseCase<
   }
 
   async execute(input: CreateCheckoutInput): Promise<string> {
-    const { apiKey, project, customer, user, ...businessInput } = input;
-    const context = { apiKey, project, customer, user };
+    const { apiKey, store, customer, user, ...businessInput } = input;
+    const context = { apiKey, store, customer, user };
 
     const id = uuidv7();
     const tags = (businessInput.tags ?? []).map((tag) => ({
@@ -77,7 +77,7 @@ export class CreateCheckoutUseCase extends UseCase<
   > {
     try {
       const deliveryGroups = await this.shippingApi.createDeliveryGroups({
-        projectId: context.project.id,
+        projectId: context.store.id,
         items: [],
       });
 
@@ -120,7 +120,7 @@ export class CreateCheckoutUseCase extends UseCase<
   > {
     try {
       const paymentMethods = await this.paymentApi.getPaymentMethods({
-        projectId: context.project.id,
+        projectId: context.store.id,
         currencyCode,
         apiKey: context.apiKey,
       });

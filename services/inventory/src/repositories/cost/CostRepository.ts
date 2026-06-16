@@ -1,8 +1,9 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, inArray } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   productVariantCostHistory,
+  variantCostsCurrent,
   type ProductVariantCostHistory,
   type NewProductVariantCostHistory,
 } from "../models";
@@ -10,6 +11,25 @@ import {
 type Currency = "UAH" | "USD" | "EUR";
 
 export class CostRepository extends BaseRepository {
+  async getCurrentCost(input: {
+    variantId: string;
+    currency: Currency;
+  }): Promise<ProductVariantCostHistory | null> {
+    const result = await this.connection
+      .select()
+      .from(variantCostsCurrent)
+      .where(
+        and(
+          eq(variantCostsCurrent.projectId, this.storeId),
+          eq(variantCostsCurrent.variantId, input.variantId),
+          eq(variantCostsCurrent.currency, input.currency)
+        )
+      )
+      .limit(1);
+
+    return result[0] ?? null;
+  }
+
   /**
    * Close current cost record for a variant and currency
    * Sets effectiveTo = NOW() on the active record (where effectiveTo IS NULL)
@@ -17,7 +37,7 @@ export class CostRepository extends BaseRepository {
   async closeCurrent(variantId: string, currency: Currency): Promise<void> {
     await this.connection
       .update(productVariantCostHistory)
-      .set({ effectiveTo: new Date() })
+      .set({ effectiveTo: new Date().toISOString() })
       .where(
         and(
           eq(productVariantCostHistory.projectId, this.storeId),
@@ -40,7 +60,7 @@ export class CostRepository extends BaseRepository {
     }
   ): Promise<ProductVariantCostHistory> {
     const id = randomUUID();
-    const now = new Date();
+    const now = new Date().toISOString();
 
     const newCost: NewProductVariantCostHistory = {
       projectId: this.storeId,
@@ -76,5 +96,25 @@ export class CostRepository extends BaseRepository {
 
     // Create new cost record
     return this.create(variantId, data);
+  }
+
+  /**
+   * Get active costs for multiple variants (batch loader)
+   */
+  async getActiveCostsByVariantIds(
+    variantIds: readonly string[]
+  ): Promise<ProductVariantCostHistory[]> {
+    if (variantIds.length === 0) return [];
+
+    return this.connection
+      .select()
+      .from(productVariantCostHistory)
+      .where(
+        and(
+          eq(productVariantCostHistory.projectId, this.storeId),
+          inArray(productVariantCostHistory.variantId, [...variantIds]),
+          isNull(productVariantCostHistory.effectiveTo)
+        )
+      );
   }
 }

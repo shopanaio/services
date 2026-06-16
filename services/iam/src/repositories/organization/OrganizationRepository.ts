@@ -1,4 +1,4 @@
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, count } from "drizzle-orm";
 import { Transactional, ReadOnly } from "@shopana/shared-kernel";
 import {
   organization,
@@ -11,6 +11,31 @@ import {
   type Role,
 } from "../models/authorization.js";
 import { BaseRepository } from "../BaseRepository.js";
+
+// ============================================================================
+// Connection Types
+// ============================================================================
+
+export interface OrganizationRelayInput {
+  userId: string;
+  first?: number | null;
+  after?: string | null;
+  last?: number | null;
+  before?: string | null;
+  where?: Record<string, unknown> | null;
+  orderBy?: Array<{ field: string; direction: "asc" | "desc" }> | null;
+}
+
+export interface OrganizationConnectionResult {
+  edges: Array<{ cursor: string; nodeId: string }>;
+  pageInfo: {
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+    startCursor: string | null;
+    endCursor: string | null;
+  };
+  totalCount: number;
+}
 
 // ============================================================================
 // Types
@@ -127,6 +152,23 @@ export class OrganizationRepository extends BaseRepository {
     const [result] = await this.connection
       .update(organization)
       .set({ ...updates, updatedAt: new Date() })
+      .where(and(eq(organization.id, id), isNull(organization.deletedAt)))
+      .returning();
+
+    return result ?? null;
+  }
+
+  /**
+   * Update organization logo
+   */
+  @Transactional()
+  async updateLogo(
+    id: string,
+    logoId: string | null
+  ): Promise<Organization | null> {
+    const [result] = await this.connection
+      .update(organization)
+      .set({ logoId, updatedAt: new Date() })
       .where(and(eq(organization.id, id), isNull(organization.deletedAt)))
       .returning();
 
@@ -308,6 +350,112 @@ export class OrganizationRepository extends BaseRepository {
       );
 
     return members.map((m) => m.organization);
+  }
+
+  /**
+   * Count organizations where user is a member
+   */
+  @ReadOnly()
+  async countUserOrganizations(userId: string): Promise<number> {
+    const [result] = await this.connection
+      .select({ count: count() })
+      .from(organizationMember)
+      .innerJoin(
+        organization,
+        eq(organizationMember.organizationId, organization.id)
+      )
+      .where(
+        and(
+          eq(organizationMember.userId, userId),
+          isNull(organization.deletedAt)
+        )
+      );
+
+    return result?.count ?? 0;
+  }
+
+  /**
+   * Get paginated organizations with cursor-based pagination.
+   * Only returns organizations where the user is a member.
+   *
+   * Simple offset-based pagination for now (cursor encoding can be added later).
+   */
+  @ReadOnly()
+  async getConnection(
+    args: OrganizationRelayInput
+  ): Promise<OrganizationConnectionResult> {
+    const { userId, first, after, last, before } = args;
+
+    // Return empty for unauthenticated users (empty userId)
+    if (!userId) {
+      return {
+        edges: [],
+        pageInfo: {
+          hasNextPage: false,
+          hasPreviousPage: false,
+          startCursor: null,
+          endCursor: null,
+        },
+        totalCount: 0,
+      };
+    }
+
+    // Get user's organizations
+    const userOrgs = await this.getUserOrganizations(userId);
+    const totalCount = userOrgs.length;
+
+    // If user has no organizations, return empty connection
+    if (totalCount === 0) {
+      return {
+        edges: [],
+        pageInfo: {
+          hasNextPage: false,
+          hasPreviousPage: false,
+          startCursor: null,
+          endCursor: null,
+        },
+        totalCount: 0,
+      };
+    }
+
+    // Simple pagination logic
+    const limit = first ?? last ?? 20;
+    let startIndex = 0;
+
+    if (after) {
+      // Find index after the cursor
+      const afterIndex = userOrgs.findIndex(org => org.id === after);
+      if (afterIndex !== -1) {
+        startIndex = afterIndex + 1;
+      }
+    } else if (before) {
+      // Find index before the cursor
+      const beforeIndex = userOrgs.findIndex(org => org.id === before);
+      if (beforeIndex !== -1) {
+        startIndex = Math.max(0, beforeIndex - limit);
+      }
+    }
+
+    const slicedOrgs = userOrgs.slice(startIndex, startIndex + limit);
+
+    const edges = slicedOrgs.map((org) => ({
+      cursor: org.id,
+      nodeId: org.id,
+    }));
+
+    const hasNextPage = startIndex + limit < totalCount;
+    const hasPreviousPage = startIndex > 0;
+
+    return {
+      edges,
+      pageInfo: {
+        hasNextPage,
+        hasPreviousPage,
+        startCursor: edges[0]?.cursor ?? null,
+        endCursor: edges[edges.length - 1]?.cursor ?? null,
+      },
+      totalCount,
+    };
   }
 
   // ============================================================================

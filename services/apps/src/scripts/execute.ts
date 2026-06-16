@@ -11,7 +11,7 @@ export interface ExecuteParams {
 }
 
 export interface ExecuteResult {
-  data: unknown[];
+  data: unknown;
   warnings: Array<{ code: string; message: string; details?: unknown }>;
 }
 

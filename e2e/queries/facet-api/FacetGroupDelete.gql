@@ -1,0 +1,12 @@
+mutation FacetGroupDelete($input: FacetGroupDeleteInput!) {
+  catalogMutation {
+    facetGroupDelete(input: $input) {
+      deletedFacetGroupId
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}

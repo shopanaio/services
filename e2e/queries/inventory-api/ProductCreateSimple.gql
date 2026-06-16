@@ -1,0 +1,44 @@
+mutation ProductCreateSimple($input: ProductCreateInput!) {
+  catalogMutation {
+    productCreate(input: $input) {
+      product {
+        id
+        title
+        handle
+        isPublished
+        publishedAt
+        updatedAt
+        revision
+        options {
+          id
+          name
+          slug
+          displayType
+          values {
+            id
+            name
+            slug
+          }
+        }
+        variants(first: 10) {
+          edges {
+            node {
+              id
+              isDefault
+              handle
+              inventoryItem {
+                id
+                sku
+                trackInventory
+              }
+            }
+          }
+        }
+      }
+      userErrors {
+        message
+        code
+      }
+    }
+  }
+}

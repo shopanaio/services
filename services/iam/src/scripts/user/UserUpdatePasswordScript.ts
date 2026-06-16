@@ -18,6 +18,7 @@ export class UserUpdatePasswordScript extends BaseScript<
         {
           code: "NOT_IMPLEMENTED",
           message: "UserUpdatePasswordScript is not implemented yet",
+          field: null,
         },
       ],
     };
@@ -30,6 +31,7 @@ export class UserUpdatePasswordScript extends BaseScript<
         {
           code: "INTERNAL_ERROR",
           message: "An unexpected error occurred",
+          field: null,
         },
       ],
     };

@@ -32,9 +32,9 @@ export const shippingMethods: TransactionScript<
       domain: Domain.SHIPPING,
       operation: "list",
       params: { projectId },
-    });
+    }) as { data?: unknown; warnings?: Array<{ code: string; message: string }> };
 
-    const methods = result.data as ShippingMethod[] || [];
+    const methods = (result.data as ShippingMethod[]) || [];
     const warnings = result.warnings || [];
 
     if (methods.length === 0) {

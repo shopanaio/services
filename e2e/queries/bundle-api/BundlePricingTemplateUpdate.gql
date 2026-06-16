@@ -1,0 +1,19 @@
+mutation BundlePricingTemplateUpdate($input: BundlePricingTemplateUpdateInput!) {
+  catalogMutation {
+    bundlePricingTemplateUpdate(input: $input) {
+      bundlePricingTemplate {
+        id
+        productId
+        name
+        priceType
+        priceValue
+        sortIndex
+      }
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}

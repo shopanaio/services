@@ -1,0 +1,27 @@
+query CollectionFindMany($first: Int, $after: String, $last: Int, $before: String) {
+  catalogQuery {
+    collections(first: $first, after: $after, last: $last, before: $before) {
+      edges {
+        node {
+          id
+          handle
+          type
+          name
+          defaultSort
+          isActive
+          isPublished
+          createdAt
+          updatedAt
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+      totalCount
+    }
+  }
+}

@@ -1,8 +1,11 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, Optional } from '@nestjs/common';
-import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
-import { randomUUID } from 'node:crypto';
-import { ActionHandler, ActionRegistry } from './ActionRegistry';
-import { BROKER_AMQP } from './tokens';
+import { ActionHandler, ActionRegistry, type ActionMetadata } from './ActionRegistry';
+import {
+  WORKFLOW_REGISTRY,
+  type WorkflowRegistry,
+  type IdempotencyContext,
+  type SagaResult,
+} from '@shopana/dbos';
 
 export interface ServiceBrokerOptions {
   serviceName: string;
@@ -16,10 +19,10 @@ export class ServiceBroker implements OnModuleDestroy {
 
   constructor(
     private readonly registry: ActionRegistry,
-    @Optional()
-    @Inject(BROKER_AMQP)
-    private readonly amqp: AmqpConnection | null,
     private readonly options: ServiceBrokerOptions,
+    @Optional()
+    @Inject(WORKFLOW_REGISTRY)
+    private readonly workflowRegistry: WorkflowRegistry | null = null,
   ) {}
 
   /**
@@ -28,9 +31,10 @@ export class ServiceBroker implements OnModuleDestroy {
   register<TParams = unknown, TResult = unknown>(
     action: string,
     handler: ActionHandler<TParams, TResult>,
+    metadata?: ActionMetadata,
   ): void {
     const qualifiedAction = this.qualifyAction(action);
-    this.registry.register(qualifiedAction, handler as ActionHandler);
+    this.registry.register(qualifiedAction, handler as ActionHandler, metadata);
     this.localActions.add(qualifiedAction);
     this.logger.debug(`Registered action: ${qualifiedAction}`);
   }
@@ -54,44 +58,90 @@ export class ServiceBroker implements OnModuleDestroy {
   }
 
   /**
-   * Emits a service-scoped RabbitMQ event.
+   * Returns metadata for a registered action.
    */
-  async emit(event: string, payload?: unknown): Promise<void> {
-    if (!this.amqp) {
-      this.logger.warn(`emit(${event}) ignored: RabbitMQ disabled`);
-      return;
-    }
-
-    await this.amqp.publish('shopana.events', event, payload ?? {}, {
-      persistent: true,
-      correlationId: randomUUID(),
-      headers: {
-        'x-source-service': this.options.serviceName,
-      },
-    });
+  getActionMetadata(action: string): ActionMetadata | undefined {
+    const qualifiedAction = this.assertFullyQualified(action);
+    return this.registry.getMetadata(qualifiedAction);
   }
 
   /**
-   * Sends a broadcast RabbitMQ event to all listeners.
+   * Returns true if an action is registered.
    */
-  async broadcast(event: string, payload?: unknown): Promise<void> {
-    if (!this.amqp) {
-      this.logger.warn(`broadcast(${event}) ignored: RabbitMQ disabled`);
-      return;
-    }
-
-    await this.amqp.publish('shopana.broadcast', event, payload ?? {}, {
-      headers: {
-        'x-source-service': this.options.serviceName,
-      },
-    });
+  hasAction(action: string): boolean {
+    const qualifiedAction = this.assertFullyQualified(action);
+    return this.registry.has(qualifiedAction);
   }
 
   /**
-   * Returns true when broker can communicate with RabbitMQ.
+   * Execute workflow and wait for result.
+   */
+  async runWorkflow<TResult = unknown, TParams = unknown>(
+    workflow: string,
+    params: TParams,
+    idempotencyCtx: IdempotencyContext,
+  ): Promise<TResult> {
+    if (!this.workflowRegistry) {
+      throw new Error(
+        'WorkflowRegistry not available. Import WorkflowModule.forRoot() in your app module.'
+      );
+    }
+
+    const qualifiedWorkflow = this.assertFullyQualified(workflow);
+    const handle = await this.workflowRegistry.start<TParams, TResult>(
+      qualifiedWorkflow,
+      params,
+      idempotencyCtx,
+    );
+    return handle.getResult();
+  }
+
+  /**
+   * Execute saga and wait for result.
+   * Sagas are workflows with automatic compensation on failure.
+   */
+  async runSaga<TResult = unknown, TParams = unknown>(
+    sagaName: string,
+    params: TParams,
+    idempotencyCtx: IdempotencyContext,
+  ): Promise<SagaResult<TResult>> {
+    return this.runWorkflow<SagaResult<TResult>, TParams>(
+      sagaName,
+      params,
+      idempotencyCtx,
+    );
+  }
+
+  /**
+   * Check if workflow is registered.
+   * Returns false if WorkflowModule is not imported.
+   */
+  hasWorkflow(workflow: string): boolean {
+    if (!this.workflowRegistry) {
+      return false;
+    }
+    const qualifiedWorkflow = this.assertFullyQualified(workflow);
+    return this.workflowRegistry.has(qualifiedWorkflow);
+  }
+
+  /**
+   * Returns the workflow registry instance.
+   * Throws if WorkflowModule is not imported.
+   */
+  getWorkflowRegistry(): WorkflowRegistry {
+    if (!this.workflowRegistry) {
+      throw new Error(
+        'WorkflowRegistry not available. Import WorkflowModule.forRoot() in your app module.'
+      );
+    }
+    return this.workflowRegistry;
+  }
+
+  /**
+   * Returns true when broker is healthy.
    */
   isHealthy(): boolean {
-    return this.amqp ? this.amqp.connected : true;
+    return true;
   }
 
   /**
@@ -99,7 +149,6 @@ export class ServiceBroker implements OnModuleDestroy {
    */
   getHealth() {
     return {
-      connected: this.amqp?.connected ?? false,
       serviceName: this.options.serviceName,
       registeredActions: Array.from(this.localActions),
       inFlight: this.inFlight,
@@ -121,7 +170,10 @@ export class ServiceBroker implements OnModuleDestroy {
     this.localActions.clear();
   }
 
-  private qualifyAction(action: string): string {
+  /**
+   * Qualify action/workflow name with service prefix.
+   */
+  qualifyAction(action: string): string {
     return action.includes('.') ? action : `${this.options.serviceName}.${action}`;
   }
 

@@ -3,9 +3,9 @@ import {
   BrokerCoreModule,
   BrokerCoreModuleOptions,
   DatabaseModule,
+  WorkflowModule,
   type DatabaseModuleOptions,
 } from "@shopana/shared-kernel";
-import { WorkflowModule } from "@shopana/workflows";
 import { PaymentsModule } from "@shopana/payments-service";
 import { InventoryModule } from "@shopana/inventory-service";
 import { AppsModule } from "@shopana/apps-service";
@@ -16,6 +16,8 @@ import { OrdersModule } from "@shopana/orders-service";
 import { PricingModule } from "@shopana/pricing-service";
 import { ProjectModule } from "@shopana/project-service";
 import { IamModule } from "@shopana/iam-service";
+import { EventsModule } from "@shopana/events-service";
+import { CatalogModule } from "@shopana/catalog-service";
 
 export interface BootstrapModuleOptions extends BrokerCoreModuleOptions {
   /** DBOS workflows configuration */
@@ -44,6 +46,7 @@ export class BootstrapModule {
       BrokerCoreModule.forRoot(options),
       PaymentsModule,
       InventoryModule,
+      EventsModule,
       AppsModule,
       MediaModule,
       CheckoutModule,
@@ -52,6 +55,7 @@ export class BootstrapModule {
       PricingModule,
       ProjectModule,
       IamModule,
+      CatalogModule,
     ];
 
     // Add WorkflowModule if workflows config is provided

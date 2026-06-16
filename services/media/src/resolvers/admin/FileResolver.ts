@@ -2,24 +2,27 @@ import { SubgraphReference } from "@shopana/type-resolver";
 import { MediaType, Cache } from "./MediaType.js";
 import { S3DataResolver } from "./S3DataResolver.js";
 import { ExternalDataResolver } from "./ExternalDataResolver.js";
-import { encodeGlobalId, decodeGlobalId } from "./utils/globalId.js";
 import type { File } from "../../repositories/models/index.js";
+import {
+  encodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 
-/**
- * File resolver - resolves File type
- */
-@SubgraphReference()
-export class FileResolver extends MediaType<string, File | null> {
-  // @Cache({
-  //   cacheName: "media:file",
-  //   key: (resolver: FileResolver) => resolver.$props,
-  // })
+abstract class FileResolverBase extends MediaType<string, File> {
+  protected abstract loadFile(fileId: string): Promise<File | null>;
+
   async $preload() {
-    return this.$ctx.loaders.file.load(this.$props);
+    const file = await this.loadFile(this.$props);
+
+    if (!file) {
+      throw new Error(`File not found: ${this.$props}`);
+    }
+
+    return file;
   }
 
   id() {
-    return encodeGlobalId("File", this.$props);
+    return encodeGlobalIdByType(this.$props, GlobalIdEntity.File);
   }
 
   async url() {
@@ -85,18 +88,43 @@ export class FileResolver extends MediaType<string, File | null> {
   }
 
   async createdAt() {
-    const date = await this.$get("createdAt");
-    return date?.toISOString() ?? null;
+    return this.$get("createdAt");
   }
 
   async updatedAt() {
-    const date = await this.$get("updatedAt");
-    return date?.toISOString() ?? null;
+    return this.$get("updatedAt");
   }
 
   async deletedAt() {
-    const date = await this.$get("deletedAt");
-    return date?.toISOString() ?? null;
+    return this.$get("deletedAt");
+  }
+
+  async deletionState() {
+    const state = await this.$ctx.kernel.repository.fileDeletionState.findByFileId(
+      this.$props
+    );
+    return state?.deletionState ?? "ACTIVE";
+  }
+
+  async deletionErrorCode() {
+    const state = await this.$ctx.kernel.repository.fileDeletionState.findByFileId(
+      this.$props
+    );
+    return state?.deletionErrorCode ?? null;
+  }
+
+  async lastDeletionError() {
+    const state = await this.$ctx.kernel.repository.fileDeletionState.findByFileId(
+      this.$props
+    );
+    return state?.lastDeletionError ?? null;
+  }
+
+  async failedAt() {
+    const state = await this.$ctx.kernel.repository.fileDeletionState.findByFileId(
+      this.$props
+    );
+    return state?.failedAt ? new Date(state.failedAt) : null;
   }
 
   /**
@@ -119,5 +147,31 @@ export class FileResolver extends MediaType<string, File | null> {
       return null;
     }
     return new ExternalDataResolver(this.$props, this.$ctx);
+  }
+
+  async usage() {
+    const deletedAt = await this.$get("deletedAt");
+    if (deletedAt) {
+      return { totalCount: 0, byEntity: [], fileActive: false };
+    }
+
+    const usage = await this.$ctx.loaders.fileUsage.load(this.$props);
+    return { ...usage, fileActive: true };
+  }
+}
+
+/**
+ * File resolver - resolves File type
+ */
+@SubgraphReference()
+export class FileResolver extends FileResolverBase {
+  protected loadFile(fileId: string): Promise<File | null> {
+    return this.$ctx.loaders.file.load(fileId);
+  }
+}
+
+export class FileAnyResolver extends FileResolverBase {
+  protected loadFile(fileId: string): Promise<File | null> {
+    return this.$ctx.kernel.repository.file.findAnyById(fileId);
   }
 }

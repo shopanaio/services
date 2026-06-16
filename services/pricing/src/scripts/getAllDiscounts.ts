@@ -31,9 +31,9 @@ export const getAllDiscounts: TransactionScript<
       domain: "pricing",
       operation: "list",
       params: { projectId },
-    });
+    }) as { data?: unknown; warnings?: Array<{ code: string; message: string }> };
 
-    const discounts = result.data as Discount[] || [];
+    const discounts = (result.data as Discount[]) || [];
     const warnings = result.warnings || [];
 
     if (discounts.length === 0) {

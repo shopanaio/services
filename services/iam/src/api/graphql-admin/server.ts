@@ -1,4 +1,5 @@
 import { ApolloServer, type ApolloServerPlugin } from "@apollo/server";
+import { ApolloServerPluginInlineTraceDisabled } from "@apollo/server/plugin/disabled";
 import { buildSubgraphSchema } from "@apollo/subgraph";
 import fastifyApollo, {
   fastifyApolloDrainPlugin,
@@ -51,6 +52,7 @@ export async function startServer(serverConfig: ServerConfig) {
   }
 
   const app = fastify({
+    disableRequestLogging: true,
     logger: isDevelopment(global)
       ? {
           level: global.log_level ?? "info",
@@ -75,8 +77,11 @@ export async function startServer(serverConfig: ServerConfig) {
     "shared-locale.graphql",
     "shared-currency.graphql",
     "shared-units.graphql",
+    "relay.graphql",
     "base.graphql",
+    "media.graphql",
     "user.graphql",
+    "session.graphql",
     "role.graphql",
     "organization.graphql",
     "membership.graphql",
@@ -90,8 +95,12 @@ export async function startServer(serverConfig: ServerConfig) {
   // Create Apollo Server
   const apollo = new ApolloServer<ServiceContext>({
     introspection: true,
-    schema: buildSubgraphSchema(modules),
-    plugins: [fastifyApolloDrainPlugin(app), timingPlugin],
+    schema: buildSubgraphSchema(modules as any),
+    plugins: [
+      fastifyApolloDrainPlugin(app),
+      timingPlugin,
+      ApolloServerPluginInlineTraceDisabled(),
+    ],
   });
 
   await apollo.start();
@@ -105,12 +114,27 @@ export async function startServer(serverConfig: ServerConfig) {
     await instance.register(fastifyApollo(apollo), {
       path: "/graphql",
       context: async (request, _reply): Promise<ServiceContext> => {
+        // Extract IP address from various headers (respecting proxies)
+        const forwardedFor = request.headers["x-forwarded-for"];
+        const realIp = request.headers["x-real-ip"];
+        const ipAddress =
+          (typeof forwardedFor === "string"
+            ? forwardedFor.split(",")[0].trim()
+            : Array.isArray(forwardedFor)
+              ? forwardedFor[0]
+              : realIp) || request.ip;
+
         const ctx: ServiceContext = {
           requestId: request.id as string,
           kernel: kernel!,
           currentUser: request.currentUser,
           // Create loaders per request for proper batching
           loaders: new Loader(kernel!.repository),
+          // Extract headers for session tracking
+          requestHeaders: {
+            userAgent: request.headers["user-agent"],
+            ipAddress: typeof ipAddress === "string" ? ipAddress : undefined,
+          },
         };
 
         // Set context in AsyncLocalStorage for all resolvers
@@ -142,10 +166,6 @@ export async function startServer(serverConfig: ServerConfig) {
     port: serverConfig.port,
     host: "0.0.0.0",
   });
-
-  app.log.info(
-    `iam GraphQL Admin API ready at http://localhost:${serverConfig.port}/graphql`
-  );
 
   return app;
 }

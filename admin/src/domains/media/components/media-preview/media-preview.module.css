@@ -1,0 +1,6 @@
+.videoContainer {
+  width: 80vw;
+  max-width: 900px;
+  aspect-ratio: 16 / 9;
+  background: #000;
+}

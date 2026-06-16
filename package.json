@@ -36,8 +36,6 @@
     "uuid": "^11.1.0",
     "graphql-request": "^6.1.0",
     "drizzle-kit": "^0.31.8",
-    "@golevelup/nestjs-rabbitmq": "^5.7.0",
-    "amqplib": "^0.10.9",
     "tsx": "^4.20.6",
     "@apollo/subgraph": "^2.12.1"
   }

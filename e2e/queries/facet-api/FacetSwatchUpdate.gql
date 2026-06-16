@@ -1,0 +1,21 @@
+mutation FacetSwatchUpdate($input: FacetSwatchUpdateInput!) {
+  catalogMutation {
+    facetSwatchUpdate(input: $input) {
+      facetSwatch {
+        id
+        swatchType
+        colorOne
+        colorTwo
+        file {
+          id
+        }
+        metadata
+      }
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}

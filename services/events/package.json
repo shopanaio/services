@@ -1,0 +1,35 @@
+{
+  "name": "@shopana/events-service",
+  "version": "0.0.1",
+  "description": "Events microservice for event persistence and dispatch",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "db:generate": "drizzle-kit generate"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/events.module.js",
+      "source": "./src/events.module.ts"
+    }
+  },
+  "dependencies": {
+    "@dbos-inc/dbos-sdk": "^2.0.0",
+    "@nestjs/schedule": "^4.1.0",
+    "@shopana/events": "*",
+    "@shopana/shared-kernel": "*",
+    "@shopana/shared-service-config": "*",
+    "drizzle-orm": "^0.45.1",
+    "postgres": "^3.4.7"
+  },
+  "devDependencies": {
+    "@shopana/build-tools": "0.0.1",
+    "@types/node": "^20.14.14",
+    "drizzle-kit": "^0.31.7",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.4"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

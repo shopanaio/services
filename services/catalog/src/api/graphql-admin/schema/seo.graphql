@@ -1,0 +1,57 @@
+"""SEO and Open Graph metadata."""
+type Seo {
+  """SEO title for search engines (max 70 chars)."""
+  seoTitle: String
+
+  """SEO description for search engines (max 160 chars)."""
+  seoDescription: String
+
+  """Open Graph title for social media sharing (max 95 chars)."""
+  ogTitle: String
+
+  """Open Graph description for social media sharing."""
+  ogDescription: String
+
+  """Open Graph image for social media sharing."""
+  ogImage: File
+}
+
+"""
+Input for SEO and Open Graph metadata.
+"""
+input SeoInput {
+  """SEO title (max 70 chars)."""
+  seoTitle: String
+
+  """SEO description (max 160 chars)."""
+  seoDescription: String
+
+  """Open Graph title (max 95 chars)."""
+  ogTitle: String
+
+  """Open Graph description."""
+  ogDescription: String
+
+  """Open Graph image file ID."""
+  ogImageId: ID
+}
+
+# ---- Product SEO (backward compatibility) ----
+
+"""SEO and Open Graph metadata for a product."""
+type ProductSeo {
+  seoTitle: String
+  seoDescription: String
+  ogTitle: String
+  ogDescription: String
+  ogImage: File
+}
+
+"""Input for updating product SEO data."""
+input ProductSeoInput {
+  seoTitle: String
+  seoDescription: String
+  ogTitle: String
+  ogDescription: String
+  ogImageId: ID
+}
