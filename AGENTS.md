@@ -4,7 +4,14 @@ Modular e-commerce platform built with NestJS microservices and GraphQL Federati
 
 ## Knowledge Base
 
-@knowledge/CLAUDE.md
+@knowledge/AGENTS.md
+
+Project rules and architecture patterns are stored in the knowledge base vault under `@knowledge/vault/`.
+Before creating implementation plans or making code/documentation changes, review and align the work with the relevant documents from the knowledge base.
+
+## Language
+
+The repository development language is English. All files, code comments, user-facing strings, documentation, plans, commit messages, pull request text, and generated project artifacts must be written in English only.
 
 ## Architecture
 
@@ -45,4 +52,4 @@ Use `shopana-cli` MCP tools for all development tasks (dev, build, migrate, code
 
 ## Testing
 
-Playwright e2e tests. See @e2e/CLAUDE.md
+Playwright e2e tests. See @e2e/AGENTS.md
