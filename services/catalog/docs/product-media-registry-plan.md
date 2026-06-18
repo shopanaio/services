@@ -7,7 +7,7 @@ Introduce a product-level media registry in Catalog:
 - Product media is stored in `catalog.product_media`.
 - Variant media links point to registered product media entries.
 - A variant can only attach media that belongs to its own product.
-- Removing media from a product cascades and removes that media from every variant of the product.
+- Removing a product media registry row cascades and removes that media from every variant of the product.
 - Removing media from a variant only removes the variant link and does not remove the product media registration.
 
 ## Current State
@@ -36,19 +36,21 @@ Columns:
 
 - `id uuid primary key`
 - `project_id uuid not null`
-- `product_id uuid not null references catalog.product(id) on delete cascade`
+- `product_id uuid not null`
 - `file_id uuid not null`
 - `sort_index integer not null default 0`
 - `created_at timestamptz not null default now()`
 
 Indexes and constraints:
 
-- `unique(product_id, file_id)`
-- `unique(product_id, id)`
+- composite FK `(project_id, product_id) -> catalog.product(project_id, id) on delete cascade`
+- `unique(project_id, product_id, file_id)`
+- `unique(project_id, product_id, id)`
+- `unique(project_id, id)`
 - index on `project_id`
-- index on `product_id`
-- index on `file_id`
-- index on `(product_id, sort_index)`
+- index on `(project_id, product_id)`
+- index on `(project_id, file_id)`
+- index on `(project_id, product_id, sort_index)`
 
 `file_id` remains an external Media service reference, so it should not get a cross-service FK.
 
@@ -70,21 +72,27 @@ Target columns:
 
 Target constraints:
 
-- primary key `(variant_id, product_media_id)`
-- FK `variant_id -> catalog.variant(id) on delete cascade`
-- composite FK `(product_id, product_media_id) -> catalog.product_media(product_id, id) on delete cascade`
-- composite FK `(variant_id, product_id) -> catalog.variant(id, product_id) on delete cascade`
+- primary key `(project_id, variant_id, product_media_id)`
+- composite FK `(project_id, product_id, product_media_id) -> catalog.product_media(project_id, product_id, id) on delete cascade`
+- composite FK `(project_id, product_id, variant_id) -> catalog.variant(project_id, product_id, id) on delete cascade`
 - index on `project_id`
-- index on `product_id`
-- index on `variant_id`
-- index on `product_media_id`
-- index on `(variant_id, sort_index)`
+- index on `(project_id, product_id)`
+- index on `(project_id, variant_id)`
+- index on `(project_id, product_media_id)`
+- index on `(project_id, variant_id, sort_index)`
 
-The denormalized `product_id` is intentional. It lets PostgreSQL enforce that a variant can only reference `product_media` rows from the same product. To support the composite FK, add a unique constraint or unique index on `catalog.variant(id, product_id)`.
+The denormalized `product_id` is intentional. It lets PostgreSQL enforce that a variant can only reference `product_media` rows from the same product.
+
+The denormalized `project_id` must be part of the composite FKs. It prevents rows from claiming one project while referencing a product, variant, or product media row that belongs to another project.
+
+Add supporting unique constraints or unique indexes on existing tables:
+
+- `catalog.product(project_id, id)` for the `product_media` product FK.
+- `catalog.variant(project_id, product_id, id)` for the `variant_media` variant FK.
 
 ## Cascade Behavior
 
-Product media removal:
+Product media registry row removal:
 
 1. Delete rows from `catalog.product_media`.
 2. PostgreSQL cascades those rows out of `catalog.variant_media`.
@@ -96,11 +104,6 @@ Variant media removal:
 2. Do not delete from `catalog.product_media`.
 3. Do not sync Media service back references, because variant media links are only Catalog-level assignments.
 
-Product deletion:
-
-1. `catalog.product` deletion cascades to `catalog.product_media`.
-2. `catalog.product_media` deletion cascades to `catalog.variant_media`.
-
 Variant deletion:
 
 1. `catalog.variant` deletion cascades to `catalog.variant_media`.
@@ -110,33 +113,6 @@ File hard deletion event:
 
 1. Catalog deletes matching `catalog.product_media` rows by `file_id`.
 2. Variant media rows are removed by FK cascade.
-
-## Migration Plan
-
-Use a two-step migration to avoid losing existing links.
-
-### Step 1: Expand
-
-1. Add `product_media`.
-2. Add `product_id` and `product_media_id` to `variant_media` as nullable columns.
-3. Add the required unique constraint on `variant(id, product_id)`.
-
-### Step 2: Backfill
-
-For every existing `variant_media` row:
-
-1. Join `catalog.variant` to get `product_id`.
-2. Insert one `product_media` row per distinct `(product_id, file_id)`.
-3. Set `product_media.sort_index` from the default variant when available.
-4. If no default variant has that file, use the lowest existing variant media `sort_index`.
-5. Backfill `variant_media.product_id` and `variant_media.product_media_id`.
-
-### Step 3: Contract
-
-1. Make `variant_media.product_id` and `variant_media.product_media_id` not null.
-2. Add the composite FKs.
-3. Drop the old `variant_media.file_id` column after code no longer reads it.
-4. Update Drizzle snapshots through the normal migration generation flow.
 
 ## Repository Changes
 
@@ -165,8 +141,7 @@ Update `MediaRepository`:
 
 1. Register `mediaFileIds` in `product_media` once per product.
 2. Stop duplicating product media across all variants.
-3. If backward compatibility is required for products without options, attach registered product media to the default variant.
-4. Return enough product media data for product-level back-reference sync.
+3. Return enough product media data for product-level back-reference sync.
 
 ### ProductUpdateMediaScript
 
@@ -221,13 +196,13 @@ Update `ProductResolver.media()`:
 
 - Load rows from `product_media` ordered by `sort_index`.
 - Return `File` federation references using `product_media.file_id`.
-- Encode `File` IDs consistently before returning federation references.
+- Encode `File` IDs with the project GraphQL ID pattern: `encodeGlobalIdByType(fileId, GlobalIdEntity.File)`.
 
 Update `VariantResolver.media()`:
 
 - Load joined rows from `variant_media -> product_media`.
 - Return `File` federation references using product media `file_id`.
-- Encode `File` IDs consistently before returning federation references.
+- Encode `File` IDs with the project GraphQL ID pattern: `encodeGlobalIdByType(fileId, GlobalIdEntity.File)`.
 
 Update loaders:
 
@@ -242,7 +217,7 @@ Recommended behavior:
 
 - Product media changes sync Media service back references for `entityType: "product"` using the product ID and the current `product_media.file_id` list.
 - Product creation syncs product-level back references after product media is registered.
-- Product media removal syncs the product back references with the remaining registered file IDs.
+- Product media registry row removal syncs the product back references with the remaining registered file IDs.
 - Variant media changes do not call the Media service. Removing media from a variant only updates `catalog.variant_media` and must not remove or change Media service back references.
 
 Migrate away from the current variant-level back-reference naming in this implementation. The target entity reference should represent the Catalog product, for example `service: "catalog"`, `entityType: "product"`, `entityId: productId`.
@@ -260,17 +235,15 @@ Manual verification scenarios:
 
 - Product media can be registered without attaching it to any variant.
 - `Product.media` returns registered product media even when no variant references it.
+- `Product.media.file.id` and `Variant.media.file.id` return encoded `File` global IDs using the project GraphQL ID pattern, not raw UUIDs.
 - Variant media update rejects a file that is not in the same product's `product_media`.
 - Removing media from a variant does not remove the product media row and does not call the Media service.
-- Removing media from a product removes the matching variant links for all product variants.
-- Removing media from a product syncs product-level Media service back references with the remaining product media.
-- Product deletion removes product media and variant media.
+- Removing media from the product media registry removes the matching variant links for all product variants through `product_media -> variant_media on delete cascade`.
+- Removing media from the product media registry syncs product-level Media service back references with the remaining product media.
 - Variant deletion removes only that variant's media links.
 - File hard deletion removes product media and cascades variant media cleanup.
 
 ## Risks
 
-- Existing clients may rely on product media being stored on the default variant.
-- Existing product creation currently attaches the same media to every variant when options are present.
 - Back-reference sync can become stale if product-level Media service references are not updated after product media changes.
 - A GraphQL schema change requires generated resolver types to be updated before build.
