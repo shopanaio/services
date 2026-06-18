@@ -88,13 +88,13 @@ Product media removal:
 
 1. Delete rows from `catalog.product_media`.
 2. PostgreSQL cascades those rows out of `catalog.variant_media`.
-3. Catalog syncs Media service back references for affected variants.
+3. Catalog syncs Media service back references for the product with the remaining registered product media file IDs.
 
 Variant media removal:
 
 1. Delete rows from `catalog.variant_media`.
 2. Do not delete from `catalog.product_media`.
-3. Sync Media service back references only for the affected variant.
+3. Do not sync Media service back references, because variant media links are only Catalog-level assignments.
 
 Product deletion:
 
@@ -166,7 +166,7 @@ Update `MediaRepository`:
 1. Register `mediaFileIds` in `product_media` once per product.
 2. Stop duplicating product media across all variants.
 3. If backward compatibility is required for products without options, attach registered product media to the default variant.
-4. Return enough media mapping data for back-reference sync.
+4. Return enough product media data for product-level back-reference sync.
 
 ### ProductUpdateMediaScript
 
@@ -176,7 +176,7 @@ Change the script from "write media to the default variant" to "update product m
 2. Compute removed and added file IDs.
 3. Replace `product_media` rows for the product.
 4. Let FK cascade remove deleted media from all variant links.
-5. Sync back references for all variants whose effective media changed.
+5. Sync Media service back references for the product only.
 6. Touch the product.
 
 ### VariantUpdateMediaScript
@@ -187,7 +187,7 @@ Change the script to treat `fileIds` as product-registered media:
 2. Validate every requested file ID exists in `product_media` for that product.
 3. Replace `variant_media` rows using `product_media_id`.
 4. Do not modify `product_media`.
-5. Sync back references for the variant.
+5. Do not sync Media service back references.
 
 ## GraphQL and Resolver Changes
 
@@ -198,11 +198,30 @@ Keep existing mutation inputs initially:
 
 Internally, variant updates resolve those file IDs through `product_media`.
 
-Add or update read models:
+Add product-level media reads to the GraphQL API:
 
-- Add `Product.media: [ProductMediaItem!]!` if clients need first-class product media reads.
-- Keep `Variant.media: [VariantMediaItem!]!`.
-- Consider adding `productMediaId` to media item types if clients need to address product media entries directly.
+```graphql
+type ProductMediaItem {
+  file: File!
+  sortIndex: Int!
+}
+
+type Product {
+  media: [ProductMediaItem!]!
+}
+```
+
+`Product.media` must read from `catalog.product_media`, not from the default variant. This makes registered product media visible even when it is not attached to any variant.
+
+Keep `Variant.media: [VariantMediaItem!]!` for media attached to a specific variant.
+
+Consider adding `productMediaId` to `ProductMediaItem` and `VariantMediaItem` later if clients need to address product media registry entries directly.
+
+Update `ProductResolver.media()`:
+
+- Load rows from `product_media` ordered by `sort_index`.
+- Return `File` federation references using `product_media.file_id`.
+- Encode `File` IDs consistently before returning federation references.
 
 Update `VariantResolver.media()`:
 
@@ -212,20 +231,21 @@ Update `VariantResolver.media()`:
 
 Update loaders:
 
-- Add `productMedia` loader if `Product.media` is exposed.
+- Add a `productMedia` loader keyed by `productId`.
 - Update `variantMedia` loader to return joined product media data.
 
 ## Media Back References
 
-Back references must stay consistent because database cascades do not notify the Media service.
+Back references must stay consistent at the product level. Media service usage is based on registered product media, not on variant media assignments.
 
 Recommended behavior:
 
-- Variant media links continue to sync variant back references after every variant media change.
-- Product media changes must compute affected variant IDs before deleting product media rows, then sync those variants after the catalog write.
-- If registered product media should count as file usage even when no variant uses it, add product-level back references with `entityType: "product"` and sync them from `ProductUpdateMediaScript`.
+- Product media changes sync Media service back references for `entityType: "product"` using the product ID and the current `product_media.file_id` list.
+- Product creation syncs product-level back references after product media is registered.
+- Product media removal syncs the product back references with the remaining registered file IDs.
+- Variant media changes do not call the Media service. Removing media from a variant only updates `catalog.variant_media` and must not remove or change Media service back references.
 
-Keep the current variant back-reference entity naming in the first implementation pass unless a separate compatibility migration is planned.
+Migrate away from the current variant-level back-reference naming in this implementation. The target entity reference should represent the Catalog product, for example `service: "catalog"`, `entityType: "product"`, `entityId: productId`.
 
 ## Codegen, Build, and Verification
 
@@ -239,9 +259,11 @@ After implementation:
 Manual verification scenarios:
 
 - Product media can be registered without attaching it to any variant.
+- `Product.media` returns registered product media even when no variant references it.
 - Variant media update rejects a file that is not in the same product's `product_media`.
-- Removing media from a variant does not remove the product media row.
+- Removing media from a variant does not remove the product media row and does not call the Media service.
 - Removing media from a product removes the matching variant links for all product variants.
+- Removing media from a product syncs product-level Media service back references with the remaining product media.
 - Product deletion removes product media and variant media.
 - Variant deletion removes only that variant's media links.
 - File hard deletion removes product media and cascades variant media cleanup.
@@ -250,5 +272,5 @@ Manual verification scenarios:
 
 - Existing clients may rely on product media being stored on the default variant.
 - Existing product creation currently attaches the same media to every variant when options are present.
-- Back-reference sync can become stale if affected variants are not captured before product media rows are deleted.
+- Back-reference sync can become stale if product-level Media service references are not updated after product media changes.
 - A GraphQL schema change requires generated resolver types to be updated before build.
