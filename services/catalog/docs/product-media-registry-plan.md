@@ -670,7 +670,53 @@ Exit criteria:
 - Every new or changed API behavior has a corresponding operation document or an explicit manual verification path.
 - Generated operation artifacts, if required, are produced by the project generation flow.
 
-### Phase 7: Build And Manual Verification
+### Phase 7: E2E Test Coverage
+
+1. Add or update Playwright e2e specs in the same product API test area used by existing product tests:
+   - prefer updating `e2e/tests/inventory-api/media.spec.ts` if it already owns product and variant media behavior;
+   - otherwise add `e2e/tests/inventory-api/product-media-registry.spec.ts`;
+   - keep tests in one focused spec file unless existing local conventions require splitting product create, product update, and variant media coverage.
+2. Add or update GraphQL query documents under `e2e/queries/inventory-api/` for:
+   - product create with media;
+   - product query with `Product.media`;
+   - variant query with `Variant.media`;
+   - `VariantSetMedia` or the current `variantUpdateMedia` operation;
+   - `ProductUpdate` product media operation;
+   - `ProductUpdate` variant media operation;
+   - `ProductBulkUpdate` media operation if bulk media behavior is covered;
+   - product delete if existing delete coverage is available in e2e.
+3. Regenerate e2e query filename maps and generated e2e GraphQL types only through the e2e generation flow when query documents change.
+4. Cover new API behavior:
+   - product creation with `mediaFileIds` creates `Product.media`;
+   - product creation with `mediaFileIds` does not create `Variant.media` for default, first, or generated variants;
+   - `Product.media.file.id` is an encoded global `File` ID.
+5. Cover updated existing API behavior:
+   - `Variant.media.file.id` is an encoded global `File` ID;
+   - `variantUpdateMedia` accepts encoded `Variant` and `File` IDs;
+   - `variantUpdateMedia` rejects unregistered or cross-product files;
+   - `variantUpdateMedia` dedupes duplicate files while preserving first occurrence order;
+   - failed `variantUpdateMedia` leaves previous variant media unchanged;
+   - product media update through `productUpdate` preserves variant assignments for retained files;
+   - product media update through `productUpdate` cascades variant links only for removed files;
+   - variant media update through `productUpdate.operations.variants[].media` uses product-registered files only;
+   - bulk product update decodes product, variant, and file global IDs before applying media operations when bulk media is supported by the e2e harness.
+6. Cover deletion and integration-adjacent behavior where e2e can observe it:
+   - product hard delete removes product and variant media rows from visible GraphQL/API results;
+   - product soft delete clears active product media usage if the API exposes the deleted product state or Media usage state;
+   - file hard-delete cleanup remains a non-GraphQL integration scenario unless the e2e harness can emit events and inspect side effects reliably.
+7. Respect e2e execution rules:
+   - do not start, stop, or restart services;
+   - do not run the full e2e suite;
+   - run only one target spec file at a time with one worker when test execution is explicitly allowed;
+   - under the current project instruction, do not run e2e tests as part of this task unless that instruction is explicitly changed.
+
+Exit criteria:
+
+- The e2e plan has concrete spec file ownership.
+- Every new or changed GraphQL API behavior has a planned e2e assertion or an explicit reason it remains manual/integration-only.
+- Query documents and generated e2e artifacts are produced only by project generation commands when needed.
+
+### Phase 8: Build And Manual Verification
 
 1. Run the required project generation steps:
    - Catalog migration generation after model changes;
@@ -687,7 +733,7 @@ Exit criteria:
 - Manual/API verification results are recorded for each scenario that can be observed.
 - Any unobservable Media back-reference scenario is explicitly called out.
 
-### Phase 8: Final Consistency Pass
+### Phase 9: Final Consistency Pass
 
 1. Search the Catalog codebase for old media model terms:
    - `variantMedia.fileId`;

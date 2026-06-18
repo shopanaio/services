@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document defines how Admin modules design GraphQL operations, request hooks, data mappers, and folder structure. The goal is to keep API integration predictable across modules and prevent UI components from depending on raw GraphQL response shapes.
+This document defines how Admin modules design GraphQL operations, request hooks, input mappers, and folder structure. The goal is to keep API integration predictable across modules while letting UI components consume generated GraphQL API types directly. Components should use API-shaped objects from `@/graphql/types` instead of API-output view models.
 
 ## Module Structure
 
@@ -24,7 +24,8 @@ src/domains/<domain>/<module>/
     use-delete-<entity>.ts
     index.ts
   mappers/
-    <entity>-api.mapper.ts
+    <entity>-input.mapper.ts
+    <entity>-errors.mapper.ts
     <entity>-form.mapper.ts
     index.ts
   page/
@@ -62,18 +63,21 @@ For modules that are currently using a domain-level GraphQL folder, the domain-l
 - Contains TypeScript types for operation responses and variables when operation codegen is not enabled.
 - Types must be built from generated schema types in `@/graphql/types`.
 - Components must not declare ad hoc GraphQL response types.
+- Component props should use generated API entity types directly, for example `ApiProduct`, `ApiVariant`, and `ApiProductConnection`.
 
 `hooks/`
 
 - Contains one hook per user-facing use case.
 - Hooks own Apollo `useQuery` and `useMutation` calls.
-- Components call hooks and receive UI-ready data, loading state, API user errors, and unexpected runtime errors.
-- Hooks must not expose raw nested GraphQL payloads like `data.inventoryMutation.productCreate`.
+- Components call hooks and receive unwrapped generated API data, loading state, API user errors, and unexpected runtime errors.
+- Hooks may unwrap root operation nesting into stable return fields, but must not map API outputs into separate UI view models.
+- Hooks must not expose raw nested GraphQL operation payload paths like `data.inventoryMutation.productCreate`.
 
 `mappers/`
 
-- Converts form/view models to API inputs and API outputs to view models.
-- Keeps UI-only shape differences out of hooks and components.
+- Converts UI form/editor state to API inputs and maps API user errors to form fields.
+- Does not convert API outputs to view models.
+- Does not create mock-to-API or API-to-UI adapter objects for component props.
 - No GraphQL calls are allowed in mappers.
 
 ## Hook Contracts
@@ -90,6 +94,8 @@ interface UseEntityListReturn<TItem> {
   refetch: () => void;
 }
 ```
+
+`TItem` should be a generated API type from `@/graphql/types`, or a type derived directly from generated operation data. It must not be a separate API-output view model.
 
 Mutation hooks return:
 
@@ -117,10 +123,13 @@ Module hooks can expose domain-specific method names, such as `createProduct`, b
 ## Data Mapping Rules
 
 - Generated API types in `@/graphql/types` are the source of truth for API contracts.
-- UI models must be explicit and named by use case: `ProductListItem`, `ProductDetailsView`, `CreateProductFormValues`.
-- Do not keep mock-only fields in API-backed view models unless there is a documented fallback.
+- Components should accept generated API types directly for API-backed data.
+- UI-local models are allowed only for state that is not an API response object, such as form values, editor rows, draft state, or modal-specific input state. Name those models by their UI purpose, for example `CreateProductFormValues` or `VariantEditorRow`.
+- Do not introduce API-output view models such as `ProductListItem` or `ProductDetailsView` for GraphQL-backed screens.
+- Do not keep mock-only fields in API-backed component contracts.
 - API date/time scalars are strings. Convert or format them at the display boundary.
-- Monetary values, stock, media, and category fields must stay aligned with where they actually live in the API. Do not flatten them onto product view models unless a mapper documents the source.
+- Monetary values, stock, media, and category fields must stay aligned with where they actually live in the API. Do not flatten them onto new component prop objects.
+- Display helpers may return primitives or API nested values, but must not create new objects that become component prop contracts.
 
 ## Cache and Refetch Rules
 
@@ -133,7 +142,9 @@ Module hooks can expose domain-specific method names, such as `createProduct`, b
 
 - Mocks are allowed only as temporary UI development data or fixtures.
 - Hooks that are intended to talk to API must not import from `@/mocks`.
-- When replacing mocks, create a mapper from API data to the existing UI model first, then remove mock-only fields from the UI model in smaller steps.
+- API-backed mocks must use generated API shapes from `@/graphql/types`.
+- When replacing mocks, reshape mock data to generated API contracts first, then update components to read API fields directly.
+- Do not add output mappers from API data to legacy mock/UI models.
 
 ## Product Module Target Structure
 
@@ -155,7 +166,6 @@ src/domains/inventory/products/
   mappers/
     product-create.mapper.ts
     product-errors.mapper.ts
-    product-view.mapper.ts
     index.ts
   modals/create-product-modal/
     create-product-modal.tsx
