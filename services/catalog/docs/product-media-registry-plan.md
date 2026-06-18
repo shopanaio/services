@@ -134,10 +134,22 @@ Variant deletion:
 2. Soft variant deletion must explicitly remove or ignore that variant's `variant_media` rows, because PostgreSQL FK cascade only runs for physical row deletion.
 3. `catalog.product_media` remains unchanged.
 
+Product deletion:
+
+1. `ProductDeleteScript` owns product-level Media service cleanup for product deletion and must not rely on database cascade alone.
+2. Permanent product deletion physically deletes `catalog.product`, which cascades to `catalog.product_media` and then to `catalog.variant_media`.
+3. Permanent product deletion must notify the Media service after the database deletion commits by calling `entityDeletedNotify` or `media.entityDeleted` for `{ service: "catalog", entityType: "product", entityId: productId }`.
+4. Do not rely on PostgreSQL cascade alone for Media service cleanup. The cascade removes Catalog rows only and does not remove Media back references.
+5. Soft product deletion must clear product-level Media service back references after the soft-delete mutation commits by syncing the product entity with an empty file list. The `product_media` rows may remain for audit/history, but they must no longer count as active Media usage while the product is soft-deleted.
+6. Product deletion must not send variant-level Media notifications. Variant media assignments are Catalog-only links in the target model.
+
 File hard deletion event:
 
-1. Catalog deletes matching `catalog.product_media` rows by `file_id`.
-2. Variant media rows are removed by FK cascade.
+1. Catalog assumes `fileHardDeleted.payload.fileId` is globally unique because Media service file IDs are external UUID references. If file IDs are not globally unique, the event contract must be extended with tenant scope before this cutover is implemented.
+2. Catalog deletes matching `catalog.product_media` rows by `file_id`. A `project_id` filter is not required only under the global file ID assumption above.
+3. Variant media rows are removed by FK cascade.
+4. Update `FileHardDeletedScript`, the file-hard-delete event handler, logs, and metrics to describe product media registry cleanup instead of `variant_media` cleanup.
+5. Report the deleted `product_media` row count. Report cascaded `variant_media` cleanup separately only if the implementation can measure it accurately.
 
 ## Repository Changes
 
@@ -157,10 +169,13 @@ Update `MediaRepository`:
 - Add or update `getVariantMediaByVariantIds(variantIds)` to return joined `variant_media -> product_media` rows for the `Variant.media` DataLoader.
 - Update `setVariantMedia(variantId, fileIds)` to:
   - load the variant and its `productId`;
+  - dedupe requested file IDs while preserving input order before validation or insert;
   - resolve file IDs to product media IDs;
   - reject file IDs that are not registered on the variant product;
-  - replace only `variant_media` rows for that variant.
+  - replace only `variant_media` rows for that variant;
+  - run the delete-and-insert replacement through the transaction-aware connection so callers can make the whole operation atomic.
 - Update hard-delete cleanup to remove from `product_media` by `file_id`.
+- Rename or reword hard-delete cleanup methods, logs, and metrics so they no longer describe the cleanup as `variant_media` cleanup.
 
 Repository read APIs used by GraphQL loaders must be batch-oriented. Resolvers should not call single-product or single-variant repository methods directly for `Product.media` or `Variant.media`.
 
@@ -192,8 +207,10 @@ This preserves variant media assignments for files that remain registered on the
 ### ProductCreateScript
 
 1. Register `mediaFileIds` in `product_media` once per product.
-2. Stop duplicating product media across all variants.
-3. Return enough product media data for product-level back-reference sync.
+2. Do not create `variant_media` rows from `ProductCreateInput.mediaFileIds`. Product create media registration is product-level only.
+3. Do not attach product media automatically to the default variant, first variant, or every variant.
+4. Stop duplicating product media across all variants.
+5. Return enough product media data for product-level back-reference sync.
 
 ### ProductUpdateMediaScript
 
@@ -213,11 +230,15 @@ The database mutation and product touch must be committed before Media service s
 
 Change the script to treat `fileIds` as product-registered media:
 
-1. Load the variant and its product.
-2. Validate every requested file ID exists in `product_media` for that product.
-3. Replace `variant_media` rows using `product_media_id`.
-4. Do not modify `product_media`.
-5. Do not sync Media service back references.
+1. Mark the database mutation as transactional.
+2. Dedupe requested file IDs while preserving input order before validation or insert.
+3. Load the variant and its product.
+4. Validate every deduped requested file ID exists in `product_media` for that product.
+5. Resolve deduped file IDs to `product_media.id` values in requested order.
+6. Replace `variant_media` rows using `product_media_id`.
+7. The variant load, product media lookup, old `variant_media` delete, and new `variant_media` insert must run in one transaction. If validation or insert fails, existing variant media assignments must remain unchanged.
+8. Do not modify `product_media`.
+9. Do not sync Media service back references.
 
 Soft-deleted variants should not keep active media assignments. If variant deletion remains soft by default, update the deletion script to remove that variant's `variant_media` rows explicitly or make all reads filter out soft-deleted variants consistently.
 
@@ -229,6 +250,14 @@ Keep existing mutation inputs initially:
 - `VariantUpdateMediaInput.fileIds`
 
 Internally, variant updates resolve those file IDs through `product_media`.
+
+Decode all GraphQL global IDs before passing data to scripts, workflows, or repositories. Internal Catalog code must receive raw UUIDs only:
+
+- `CatalogMutation.productUpdate(productId: ID!, operations: ProductUpdateInput)` must decode `productId` with `decodeGlobalIdByType(productId, GlobalIdEntity.Product)` before building `ProductUpdateWorkflowInput.productId` and before assigning `ProductUpdateParams.id`.
+- Every `VariantUpdateInput.variantId` inside `ProductUpdateInput.variants` must be decoded with `decodeGlobalIdByType(variantId, GlobalIdEntity.Variant)` before building `VariantUpdateParams.variantId`.
+- `VariantUpdateMediaInput.variantId` must be decoded with `decodeGlobalIdByType(variantId, GlobalIdEntity.Variant)` before calling `VariantUpdateMediaScript`.
+- The bulk update helper that maps product update operations must decode the same IDs: product IDs as `GlobalIdEntity.Product`, variant IDs as `GlobalIdEntity.Variant`, and file IDs as `GlobalIdEntity.File`.
+- Do not decode only `fileIds`. Media mutations use both entity IDs and file IDs, and all of them cross the GraphQL boundary as global IDs.
 
 Add product-level media reads to the GraphQL API:
 
@@ -282,6 +311,7 @@ Recommended behavior:
 - Product media changes sync Media service back references for `entityType: "product"` using the product ID and the current `product_media.file_id` list.
 - Product creation syncs product-level back references after product media is registered.
 - Product media registry row removal syncs the product back references with the remaining registered file IDs.
+- Product deletion removes product-level Media service back references after the delete mutation commits: permanent deletion should notify entity deletion, and soft deletion should sync an empty file list.
 - Variant media changes do not call the Media service. Removing media from a variant only updates `catalog.variant_media` and must not remove or change Media service back references.
 
 Migrate away from the current variant-level back-reference naming in this implementation. The target entity reference should represent the Catalog product, for example `service: "catalog"`, `entityType: "product"`, `entityId: productId`.
@@ -290,10 +320,9 @@ Update all current variant-level back-reference call sites as part of this cutov
 
 - `ProductCreateSaga` should sync one product-level entity reference, not one entry per variant.
 - `ProductUpdateMediaScript` should sync `catalog/product` after the product media registry transaction commits.
+- `ProductDeleteScript` should remove product-level Media references after the product delete transaction commits.
 - `VariantUpdateMediaScript` should stop syncing Media service references.
-- `VariantDeleteScript` should stop notifying Media about `inventory/variant` media references unless legacy cleanup is still required.
-
-Because this cutover changes the external Media entity reference from `inventory/variant` to `catalog/product`, decide and document how stale legacy variant-level back references are handled. Either run a one-time reconciliation/cleanup against the Media service, or explicitly accept that old variant-level references may remain until a separate cleanup task removes them.
+- `VariantDeleteScript` should stop notifying Media about `inventory/variant` media references.
 
 ### Back-reference implementation checklist
 
@@ -315,39 +344,34 @@ Use this checklist during implementation so the old variant-level Media referenc
    - Entity ref: `{ service: "catalog", entityType: "product", entityId: productId }`.
    - File list: current registered `product_media.file_id` values after the update.
    - Do not sync using the default variant ID.
-4. Remove variant media update sync:
+4. Add product deletion cleanup:
+   - `ProductDeleteScript` must own product-level Media cleanup for both soft and permanent product deletion.
+   - If the implementation needs the previous product media file list for logging, reconciliation, or conditional no-op behavior, it must collect that list before permanent deletion because FK cascade removes the registry rows.
+   - Permanent deletion must delete the product in the database first, let FK cascade remove `product_media` and `variant_media`, then call `entityDeletedNotify` or `media.entityDeleted` for `{ service: "catalog", entityType: "product", entityId: productId }`.
+   - Soft deletion must update the product first, then call `media.syncEntityFiles` or `backRefNotify` for the same product entity with an empty file list.
+   - Product deletion cleanup must run only after the database mutation succeeds, and it must not notify Media about `inventory/variant`.
+5. Remove variant media update sync:
    - `VariantUpdateMediaScript` must not call `backRefNotify` or `media.syncEntityFiles`.
    - Variant media assignment changes are Catalog-only links and do not affect Media service usage.
-5. Review variant deletion notification:
+6. Review variant deletion notification:
    - Permanent variant deletion may still need inventory cleanup, but it should not notify Media about `inventory/variant` media usage in the new model.
-   - If legacy Media reference cleanup is needed, keep it explicitly named as legacy cleanup so it is not confused with the new product-level reference model.
-6. Update logging messages:
+7. Update logging messages:
    - Replace "variant media back-refs" logs for product media flows with "product media back-refs".
    - Log `productId` for product-level syncs.
    - Do not log variant IDs as the Media reference owner for product media.
-7. Update script/result DTOs that only exist to return variant media back-reference maps:
+8. Update script/result DTOs that only exist to return variant media back-reference maps:
    - Remove or replace `variantMediaMap` style outputs from product creation.
    - Return product-level media file IDs if the saga still needs data for post-commit sync.
-8. Update workflow/saga step names where they encode the old model:
+9. Update workflow/saga step names where they encode the old model:
    - Replace names like `syncVariantBackRefs` with product-level names.
    - Keep workflow IDs and step IDs stable enough for DBOS idempotency, but do not leave misleading new code named after variant media ownership.
-9. Add a manual verification step:
+10. Add a manual verification step:
    - Product creation with media calls Media sync once for `catalog/product`.
    - Product media update calls Media sync once for `catalog/product` after commit.
+   - Permanent product deletion calls Media entity deletion once for `catalog/product` after commit.
+   - Soft product deletion syncs an empty file list once for `catalog/product` after commit.
    - Variant media update does not call Media sync.
    - Variant deletion does not create or refresh `inventory/variant` Media usage.
-
-### Legacy Media references
-
-This Catalog cutover does not automatically remove references that may already exist inside the Media service for `{ service: "inventory", entityType: "variant" }`.
-
-Choose one explicit legacy strategy before merging the implementation:
-
-- Cleanup now: run or add a reconciliation flow that removes legacy variant-level Media references for Catalog variant media.
-- Cleanup later: document that old `inventory/variant` references may remain temporarily and create a follow-up cleanup task.
-- No cleanup required: only valid if the environment has no existing variant-level Media references or the Media service can safely ignore them.
-
-Do not leave the strategy implicit. The new runtime behavior must consistently write product-level references only.
 
 ## Codegen, Build, and Verification
 
@@ -358,25 +382,326 @@ After implementation:
 3. Run the Catalog build when a new compiled version is needed.
 4. Do not run `test` or `tsc` as part of this task, per project instruction.
 
+API verification scenarios:
+
+New API calls:
+
+1. `Product.media` read:
+   - Create a product with `mediaFileIds`.
+   - Query `catalogQuery.product(id) { media { file { id } sortIndex } }`.
+   - Assert `Product.media` returns the registered product media even when no variant references it.
+   - Assert `Product.media.file.id` is an encoded global `File` ID, not a raw UUID.
+2. Product media without variant media:
+   - Create a product with `mediaFileIds`.
+   - Query the product, its variants, `Product.media`, and each `Variant.media`.
+   - Assert `Product.media` contains the registered files.
+   - Assert no default, first, or generated variant receives automatic `variant_media` rows from product creation.
+
+Updated existing API calls:
+
+1. `productCreate(input.mediaFileIds)`:
+   - Keep the existing input shape.
+   - Assert product creation writes `product_media` rows only.
+   - Assert product creation does not duplicate media into `variant_media`.
+   - Assert product creation syncs one product-level Media reference after commit when back-reference calls are observable.
+2. `variantUpdateMedia(input)`:
+   - Pass encoded global `Variant` and `File` IDs.
+   - Assert the resolver decodes `variantId` and `fileIds` before script execution.
+   - Assert duplicate file IDs are deduped while preserving first occurrence order.
+   - Assert files not registered on the same product are rejected.
+   - Assert validation or insert failure leaves previous variant media assignments unchanged.
+   - Assert successful updates do not call Media service back-reference sync.
+3. `Variant.media` read:
+   - Create registered product media and attach a subset to a variant.
+   - Query `Variant.media`.
+   - Assert it reads through `variant_media -> product_media`.
+   - Assert `Variant.media.file.id` is an encoded global `File` ID, not a raw UUID.
+4. `productUpdate(productId, operations.media)`:
+   - Pass an encoded global `Product` ID and encoded global `File` IDs.
+   - Assert the resolver decodes IDs before building workflow input.
+   - Assert product media registry order follows `operations.media.fileIds`.
+   - Assert retained file IDs preserve existing `product_media.id` values and existing variant assignments.
+   - Assert removed product media cascades only the matching variant media links.
+   - Assert product-level Media back references are synced after commit when observable.
+5. `productUpdate(productId, operations.variants[].media)`:
+   - Pass encoded global `Product`, `Variant`, and `File` IDs.
+   - Assert variant media updates use only product-registered media.
+   - Assert unregistered files are rejected atomically.
+   - Assert successful variant media updates do not modify `product_media` and do not sync Media service back references.
+6. Bulk product update media mapping:
+   - Pass encoded product IDs, variant IDs, and file IDs through the bulk product update path.
+   - Assert the bulk helper decodes IDs before building workflow operations.
+   - Assert product-level and variant-level media operations behave the same as the single-product `productUpdate` path.
+7. `productDelete(input)`:
+   - Permanent delete: assert product and media rows are deleted by cascade and product-level Media back references are removed after commit when observable.
+   - Soft delete: assert active product-level Media back references are cleared by syncing an empty file list after commit when observable.
+   - Assert product deletion does not create or refresh `inventory/variant` Media references.
+
+Non-GraphQL integration scenarios:
+
+1. `fileHardDeleted` event handling:
+   - Emit or simulate `fileHardDeleted` with `payload.fileId`.
+   - Assert Catalog removes matching `product_media` rows.
+   - Assert `variant_media` rows linked through those product media rows are removed by FK cascade.
+   - Assert logs and metrics describe product media registry cleanup, not `variant_media` cleanup.
+   - Assert the test environment either relies on globally unique Media file IDs or extends the event with tenant scope before validating tenant-specific cleanup.
+
 Manual verification scenarios:
 
 - Product media can be registered without attaching it to any variant.
 - `Product.media` returns registered product media even when no variant references it.
+- Product creation with `mediaFileIds` creates `product_media` rows only and does not create `variant_media` rows for the default variant, first variant, or all variants.
 - `Product.media.file.id` and `Variant.media.file.id` return encoded `File` global IDs using the project GraphQL ID pattern, not raw UUIDs. This is an acceptance criterion for the cutover.
+- `CatalogMutation.productUpdate` accepts encoded global `Product` and `Variant` IDs for product-level and variant-level media updates and passes raw UUIDs to the workflow.
+- `CatalogMutation.variantUpdateMedia` accepts an encoded global `Variant` ID and passes a raw UUID to `VariantUpdateMediaScript`.
+- Bulk product update media mapping decodes product IDs, variant IDs, and file IDs before building workflow operations.
 - Updating product media preserves `product_media.id` and existing variant media assignments for file IDs that remain registered on the product.
+- Variant media update dedupes duplicate file IDs while preserving first occurrence order.
+- Variant media update is atomic: if validation or insert fails, the variant keeps its previous media assignments.
 - Variant media update rejects a file that is not in the same product's `product_media`.
 - Removing media from a variant does not remove the product media row and does not call the Media service.
 - Removing media from the product media registry removes the matching variant links for all product variants through `product_media -> variant_media on delete cascade`.
 - Removing media from the product media registry syncs product-level Media service back references with the remaining product media.
+- Permanent product deletion cascades product and variant media rows and removes the `catalog/product` Media service back reference after commit.
+- Soft product deletion keeps or removes Catalog rows according to the delete implementation, but it clears active `catalog/product` Media service back references after commit.
 - Permanent variant deletion removes only that variant's media links through FK cascade.
 - Soft variant deletion removes or excludes that variant's media links according to the chosen soft-delete behavior.
 - File hard deletion removes product media and cascades variant media cleanup.
+- File hard deletion cleanup logs and metrics describe product media registry cleanup, not `variant_media` cleanup.
 - `ProductUpdateMediaScript` performs the product media replacement, cascade-triggering deletes, and product touch in one transaction.
 - `Product.media` and `Variant.media` are resolved through DataLoader-backed batch repository APIs.
 
 ## Risks
 
 - Back-reference sync can become stale if product-level Media service references are not updated after product media changes.
-- Legacy variant-level Media service back references can remain stale unless the cutover includes explicit cleanup or reconciliation.
+- Product deletion can leave stale Media usage if `ProductDeleteScript` relies only on PostgreSQL cascade and does not notify or resync the product-level Media reference after commit.
+- Media updates can silently miss products or variants if GraphQL global `Product` or `Variant` IDs are passed into repository or workflow code without decoding them to raw UUIDs.
+- Variant media replacement can clear valid assignments if delete and insert are not atomic or if duplicate requested file IDs are inserted without dedupe.
+- File hard-delete cleanup can remove media from the wrong tenant if Media file IDs are not globally unique and the event contract remains `fileId`-only.
 - Deleting and reinserting unchanged `product_media` rows would cascade-delete valid variant media links. Preserve row IDs for retained file IDs.
 - A GraphQL schema change requires generated resolver types to be updated before build.
+
+## Strict Implementation Plan
+
+Follow these phases in order. Do not start the next phase until the current phase exit criteria are satisfied. Do not add backward-compatibility branches, compatibility views, or old `variant_media.file_id` support.
+
+### Phase 0: Preflight
+
+1. Re-read root `AGENTS.md`, `knowledge/AGENTS.md`, and the relevant knowledge base documents for repository, resolver, DataLoader, script, GraphQL ID, Drizzle, and codegen patterns.
+2. Inspect current Catalog media code paths:
+   - `services/catalog/src/repositories/models/media.ts`
+   - `services/catalog/src/repositories/media/MediaRepository.ts`
+   - `services/catalog/src/repositories/variant/VariantRepository.ts`
+   - `services/catalog/src/loaders/ProductLoader.ts`
+   - `services/catalog/src/loaders/VariantLoader.ts`
+   - `services/catalog/src/loaders/Loader.ts`
+   - `services/catalog/src/resolvers/admin/ProductResolver.ts`
+   - `services/catalog/src/resolvers/admin/VariantResolver.ts`
+   - `services/catalog/src/resolvers/admin/MutationResolver.ts`
+   - product and variant media scripts, workflows, sagas, and file-hard-delete handlers.
+3. Confirm the cutover assumptions:
+   - no old `variant_media.file_id` data must be preserved;
+   - Media file IDs are globally unique, or the `fileHardDeleted` event contract must be changed before implementation;
+   - product create media registration does not create variant media links.
+4. Do not edit changeset files manually.
+
+Exit criteria:
+
+- Every old media read/write/back-reference call site is known.
+- The implementation keeps the target product-level media ownership model.
+
+### Phase 1: Database Model And Migration
+
+1. Update Drizzle models:
+   - add `productMedia`;
+   - change `variantMedia` to `projectId`, `productId`, `variantId`, `productMediaId`, and `sortIndex`;
+   - remove old `variantMedia.fileId`;
+   - add supporting unique constraints on `product(project_id, id)` and `variant(project_id, product_id, id)`;
+   - define composite FKs with `project_id` and `product_id` so PostgreSQL enforces same-product variant media usage.
+2. Generate the Catalog migration through the project migration flow.
+3. Inspect the generated migration manually:
+   - old `variant_media` storage is dropped or recreated;
+   - `product_media` is created before the new `variant_media` FK that references it;
+   - no old rows are backfilled;
+   - no cross-service FK to Media files exists;
+   - DDL order matches this plan.
+
+Exit criteria:
+
+- Drizzle models and SQL migration express the target schema exactly.
+- The migration contains no compatibility path for `variant_media.file_id`.
+
+### Phase 2: Repository Layer
+
+1. Make `MediaRepository` the owner of product and variant media reads and writes.
+2. Add product media methods:
+   - `getProductMedia(productId)`;
+   - `getProductMediaByProductIds(productIds)`;
+   - `getProductMediaByFileIds(productId, fileIds)`;
+   - `setProductMedia(productId, fileIds)`.
+3. Implement `setProductMedia(productId, fileIds)` as diff/merge:
+   - dedupe file IDs while preserving input order;
+   - preserve existing `product_media.id` values for retained files;
+   - update `sort_index` for retained files whose order changes;
+   - insert only new files;
+   - delete only removed files.
+4. Add joined variant media reads:
+   - `getVariantMedia(variantId)` joins `variant_media -> product_media`;
+   - `getVariantMediaByVariantIds(variantIds)` returns joined rows for loaders.
+5. Implement `setVariantMedia(variantId, fileIds)`:
+   - load variant and product;
+   - dedupe file IDs while preserving input order;
+   - resolve to product media rows for that product;
+   - reject missing or cross-product files;
+   - replace only that variant's `variant_media` rows using `product_media_id`;
+   - use the transaction-aware repository connection so script-level transactions make delete/insert atomic.
+6. Stop using or remove `VariantRepository.getMediaByVariantIds` for media reads.
+7. Update hard-delete cleanup methods to delete `product_media` by globally unique `file_id`, and rename logs/metrics away from `variant_media` cleanup.
+
+Exit criteria:
+
+- There is one batch media read path for loaders, owned by `MediaRepository`.
+- Product media updates preserve IDs for retained files.
+- Variant media replacement is dedupe-aware and can be run atomically by callers.
+
+### Phase 3: GraphQL Schema, Codegen, Loaders, And Resolvers
+
+1. Update GraphQL schema:
+   - add `ProductMediaItem` in `services/catalog/src/api/graphql-admin/schema/media.graphql`;
+   - add `Product.media: [ProductMediaItem!]!` in `services/catalog/src/api/graphql-admin/schema/product.graphql`;
+   - keep existing mutation input shapes.
+2. Regenerate resolver types and validation schemas through the project codegen flow.
+3. Update loaders:
+   - add `productMedia` loader backed by `MediaRepository.getProductMediaByProductIds`;
+   - update `variantMedia` loader to use `MediaRepository.getVariantMediaByVariantIds`.
+4. Update resolvers:
+   - `ProductResolver.media()` returns registered product media in `sort_index` order;
+   - `VariantResolver.media()` returns joined variant media in `sort_index` order;
+   - both fields return `File` federation references with `encodeGlobalIdByType(fileId, GlobalIdEntity.File)`.
+5. Update GraphQL input decoding:
+   - decode `CatalogMutation.productUpdate.productId` as `GlobalIdEntity.Product`;
+   - decode every `VariantUpdateInput.variantId` as `GlobalIdEntity.Variant`;
+   - decode `VariantUpdateMediaInput.variantId` as `GlobalIdEntity.Variant`;
+   - decode every file ID as `GlobalIdEntity.File`;
+   - update the bulk product update helper with the same decoding rules.
+
+Exit criteria:
+
+- `Product.media` exists and reads from `product_media`.
+- `Variant.media` still exists but reads through `variant_media -> product_media`.
+- No resolver returns raw UUIDs for `File.id`.
+- Scripts and workflows receive raw UUIDs only.
+
+### Phase 4: Product And Variant Scripts
+
+1. Update `ProductCreateScript`:
+   - register `mediaFileIds` in `product_media`;
+   - do not create `variant_media` rows from product media input;
+   - return product-level media data needed for post-commit back-reference sync.
+2. Update `ProductCreateSaga`:
+   - sync one Media reference for `{ service: "catalog", entityType: "product", entityId: productId }`;
+   - remove `variantMediaMap`-style flow or replace it with product-level data.
+3. Update `ProductUpdateMediaScript`:
+   - split transactional database mutation from external Media sync if needed;
+   - update product media through the repository diff/merge operation;
+   - touch the product in the same database transaction;
+   - sync product-level Media back references only after commit.
+4. Update `VariantUpdateMediaScript`:
+   - mark the database mutation transactional;
+   - dedupe file IDs while preserving input order;
+   - validate file IDs against the variant product's product media registry;
+   - replace `variant_media` atomically;
+   - do not call Media back-reference sync.
+5. Update product update workflow paths:
+   - product-level media operation calls `ProductUpdateMediaScript`;
+   - variant-level media operation calls `VariantUpdateMediaScript`;
+   - workflow change snapshots reflect the new semantics.
+6. Update bulk product update mapping to use decoded IDs and the same product/variant media operation semantics.
+
+Exit criteria:
+
+- Product create does not attach media to variants.
+- Product media update preserves variant assignments for retained files.
+- Variant media update is atomic and does not modify product media.
+- No variant media mutation writes Media service back references.
+
+### Phase 5: Deletion, File Events, And Back References
+
+1. Update `ProductDeleteScript`:
+   - permanent deletion removes product-level Media back references after database commit;
+   - soft deletion syncs an empty product-level file list after database commit;
+   - no variant-level Media notification is sent.
+2. Update `VariantDeleteScript`:
+   - remove Media usage notifications for `{ service: "inventory", entityType: "variant" }`;
+   - keep any non-Media inventory cleanup separate and explicitly named.
+3. Update file-hard-delete handling:
+   - delete `product_media` rows by globally unique `file_id`;
+   - rely on FK cascade for matching `variant_media`;
+   - update handler logs and metrics to product media registry cleanup.
+4. Search for and eliminate old runtime Media reference ownership:
+   - `backRefNotify`;
+   - `media.syncEntityFiles`;
+   - `entityDeletedNotify`;
+   - `service: "inventory"`;
+   - `entityType: "variant"`.
+
+Exit criteria:
+
+- Media service references are product-level only for product media.
+- Product deletion and product media deletion cannot leave active product-level Media usage stale.
+- File-hard-delete cleanup no longer reports itself as `variant_media` cleanup.
+
+### Phase 6: API Query Documents And Verification Assets
+
+1. Add or update GraphQL operation documents needed by API verification:
+   - product create with media;
+   - product query with `Product.media`;
+   - variant query with `Variant.media`;
+   - `variantUpdateMedia`;
+   - `productUpdate` product media operation;
+   - `productUpdate` variant media operation;
+   - bulk product update media operation if the existing test harness covers it;
+   - product delete.
+2. Regenerate query filename maps and generated e2e types only through the project e2e/query generation flow if those artifacts are needed.
+3. Keep the API verification scenarios in this document mapped to concrete operation names before running any checks.
+
+Exit criteria:
+
+- Every new or changed API behavior has a corresponding operation document or an explicit manual verification path.
+- Generated operation artifacts, if required, are produced by the project generation flow.
+
+### Phase 7: Build And Manual Verification
+
+1. Run the required project generation steps:
+   - Catalog migration generation after model changes;
+   - Catalog GraphQL codegen after schema changes;
+   - schema composition/build if required by the changed GraphQL schema.
+2. Run the Catalog build when a new compiled version is needed.
+3. Do not run `test` or `tsc` for this task under the current project instruction.
+4. Execute manual/API verification scenarios from this plan against the running development stack only when the environment is available and the user wants verification.
+5. If a scenario requires observing Media service back-reference calls and the environment cannot expose them, record it as an integration-observability gap instead of marking it verified.
+
+Exit criteria:
+
+- Build completes when run.
+- Manual/API verification results are recorded for each scenario that can be observed.
+- Any unobservable Media back-reference scenario is explicitly called out.
+
+### Phase 8: Final Consistency Pass
+
+1. Search the Catalog codebase for old media model terms:
+   - `variantMedia.fileId`;
+   - `variant_media.file_id`;
+   - `variantMediaMap`;
+   - `syncVariantBackRefs`;
+   - `inventory/variant` Media usage;
+   - raw `File` UUID responses in media resolvers.
+2. Confirm all changed code follows repository, script, DataLoader, resolver, and global ID patterns from the knowledge base.
+3. Confirm no changeset file was edited manually.
+4. Confirm generated files changed only where required by migration, schema, codegen, or query generation.
+5. Summarize remaining risks or blocked verification items before handoff.
+
+Exit criteria:
+
+- No old runtime media ownership path remains active.
+- The implementation matches the target schema, API, script, and back-reference behavior described in this plan.
