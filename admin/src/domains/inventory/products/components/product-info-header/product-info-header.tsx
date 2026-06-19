@@ -212,7 +212,11 @@ export const ProductInfoHeader = ({
         }}
         trigger={["click"]}
       >
-        <Button size="small" icon={<MoreOutlined />} />
+        <Button
+          size="small"
+          icon={<MoreOutlined />}
+          data-testid="product-title-actions-button"
+        />
       </Dropdown>
     </Flex>
   );
@@ -229,12 +233,15 @@ export const ProductInfoHeader = ({
           ellipsis={{ rows: 2, tooltip: product.title }}
           className={styles.productTitle}
           style={{ margin: 0 }}
+          data-testid="product-detail-title"
         >
           {product.title || "Untitled Product"}
         </Typography.Title>
 
         <Flex align="center" gap={12}>
-          <CopyableChip label="/" value={handle} />
+          <div data-testid="product-detail-handle">
+            <CopyableChip label="/" value={handle} />
+          </div>
           <CopyableChip
             label="ID"
             value={product.id}

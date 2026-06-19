@@ -119,11 +119,13 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
    * Returns null if product doesn't exist.
    */
   async product(args: { id: string }) {
-    const product = await this.$ctx.loaders.product.load(args.id);
+    const productId =
+      safeDecodeGlobalId(args.id, GlobalIdEntity.Product) ?? args.id;
+    const product = await this.$ctx.loaders.product.load(productId);
     if (!product) {
       return null;
     }
-    return new ProductResolver(args.id, this.$ctx);
+    return new ProductResolver(productId, this.$ctx);
   }
 
   /**

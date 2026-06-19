@@ -98,6 +98,7 @@ export const EditTitleModal = () => {
                   placeholder="Product title"
                   status={errors.title ? "error" : undefined}
                   autoFocus
+                  data-testid="edit-title-title-input"
                 />
               )}
             />
@@ -122,6 +123,7 @@ export const EditTitleModal = () => {
                   placeholder="product-handle"
                   addonBefore="/"
                   status={errors.handle ? "error" : undefined}
+                  data-testid="edit-title-handle-input"
                 />
               )}
             />

@@ -149,5 +149,16 @@ test.describe('Admin product create UI', () => {
       'white-small',
     ]);
     expect(variants.filter((variant) => variant.isDefault)).toHaveLength(1);
+
+    await page.goto(productUrl);
+    await expect(page.getByTestId('page-title')).toHaveText('Products');
+
+    const productTitleCell = page.getByTestId(
+      `products-table-title-cell-${handle}`,
+    );
+    await expect(productTitleCell).toHaveText(title);
+    await expect(
+      productTitleCell.getByRole('img', { name: 'vase.jpg' }),
+    ).toBeVisible();
   });
 });
