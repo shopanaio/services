@@ -3,7 +3,7 @@
 import { Flex } from "antd";
 import { ProductInfoHeader } from "../product-info-header";
 import { ProductContentTabs } from "../product-content-tabs";
-import { ProductPricingSection } from "../pricing/product-pricing-section";
+import { PricingBlock } from "../pricing/pricing-block";
 import { SeoBlock } from "../seo";
 import { AttributesSection } from "../attributes-section";
 import { EditAction } from "../edit-action";
@@ -62,7 +62,7 @@ export const ProductDetailsCard = ({
       <ProductContentTabs product={product} />
 
       {/* PRICING */}
-      <ProductPricingSection
+      <PricingBlock
         product={product}
         onProductRefresh={onProductRefresh}
       />
