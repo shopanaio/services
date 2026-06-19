@@ -1,4 +1,5 @@
 import { SubgraphReference } from "@shopana/type-resolver";
+import { encodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { InventoryItem } from "../../repositories/models/index.js";
 import { InventoryType } from "./InventoryType.js";
 import { StockResolver } from "./StockResolver.js";
@@ -25,7 +26,12 @@ export class InventoryItemResolver extends InventoryType<string, InventoryItem> 
   }
 
   id() {
-    return this.$props;
+    return encodeGlobalIdByType(this.$props, GlobalIdEntity.InventoryItem);
+  }
+
+  async variantId() {
+    const variantId = await this.$get("variantId");
+    return encodeGlobalIdByType(variantId, GlobalIdEntity.Variant);
   }
 
   /**
@@ -33,7 +39,10 @@ export class InventoryItemResolver extends InventoryType<string, InventoryItem> 
    */
   async variant() {
     const variantId = await this.$get("variantId");
-    return { __typename: "Variant" as const, id: variantId };
+    return {
+      __typename: "Variant" as const,
+      id: encodeGlobalIdByType(variantId, GlobalIdEntity.Variant),
+    };
   }
 
   async sku() {
