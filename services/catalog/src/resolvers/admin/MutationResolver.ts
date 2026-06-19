@@ -509,19 +509,23 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   @ZodResolver(VariantUpdatePricingInputSchema())
   async variantUpdatePricing(args: { input: VariantUpdatePricingInput }) {
     const { input } = args;
+    const variantId = decodeGlobalIdByType(
+      input.variantId,
+      GlobalIdEntity.Variant
+    );
 
     const result = await this.$ctx.kernel.runScript(VariantUpdatePricingScript, {
-      variantId: input.variantId,
+      variantId,
       currency: input.currency,
       amountMinor: Number(input.amountMinor),
-      compareAtMinor: input.compareAtMinor
+      compareAtMinor: input.compareAtMinor != null
         ? Number(input.compareAtMinor)
         : undefined,
     });
 
     return {
       variant: result.result
-        ? new VariantResolver(input.variantId, this.$ctx)
+        ? new VariantResolver(variantId, this.$ctx)
         : null,
       userErrors: result.userErrors,
     };

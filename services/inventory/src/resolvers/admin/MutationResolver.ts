@@ -1,3 +1,7 @@
+import {
+  decodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 import { ApolloMutation, ZodResolver } from "@shopana/type-resolver";
 import { randomUUID } from "crypto";
 import { InventoryType } from "./InventoryType.js";
@@ -40,7 +44,7 @@ interface InventoryItemUpdateInput {
   };
   unitCost?: {
     currency: string;
-    amountMinor: number;
+    amountMinor: number | string;
   };
 }
 
@@ -78,7 +82,10 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
     const { input } = args;
     const userErrors: Array<{ message: string; code?: string; field?: string[] }> = [];
 
-    const itemId = input.id;
+    const itemId = decodeGlobalIdByType(
+      input.id,
+      GlobalIdEntity.InventoryItem
+    );
 
     // Find the inventory item
     const item = await this.$ctx.kernel.repository.inventoryItem.findById(itemId);
@@ -149,7 +156,10 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
         };
       }
 
-      const warehouseId = input.stock.warehouseId;
+      const warehouseId = decodeGlobalIdByType(
+        input.stock.warehouseId,
+        GlobalIdEntity.Warehouse
+      );
 
       // Validate warehouse exists
       const warehouseExists = await this.$ctx.kernel.repository.warehouse.exists(warehouseId);
@@ -192,7 +202,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
     if (input.unitCost) {
       await this.$ctx.kernel.repository.cost.setCost(item.variantId, {
         currency: input.unitCost.currency as "UAH" | "USD" | "EUR",
-        unitCostMinor: input.unitCost.amountMinor,
+        unitCostMinor: Number(input.unitCost.amountMinor),
       });
     }
 

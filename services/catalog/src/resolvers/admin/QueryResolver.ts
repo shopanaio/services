@@ -76,9 +76,14 @@ export class QueryResolver extends CatalogType<Record<string, never>> {
  */
 export class WidgetQueryResolver extends CatalogType<Record<string, never>> {
   pricing(args: { input: PricingWidgetInput }) {
+    const variantId = decodeGlobalIdByType(
+      args.input.variantId,
+      GlobalIdEntity.Variant
+    );
+
     return new PricingWidgetResolver(
       {
-        variantId: args.input.variantId,
+        variantId,
         currency: args.input.currency as "UAH" | "USD" | "EUR",
         from: args.input.from,
         to: args.input.to,
