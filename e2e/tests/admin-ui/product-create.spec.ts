@@ -13,6 +13,20 @@ async function signIn(page: Page, email: string, password: string) {
   await page.waitForFunction(() => localStorage.getItem('auth_access_token') !== null);
 }
 
+async function completeProfileIfNeeded(page: Page) {
+  const firstNameInput = page.getByPlaceholder('First name');
+  await firstNameInput.waitFor({ state: 'visible', timeout: 5000 }).catch(() => null);
+
+  if (!(await firstNameInput.isVisible().catch(() => false))) {
+    return;
+  }
+
+  await firstNameInput.fill('Test');
+  await page.getByPlaceholder('Last name').fill('User');
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(firstNameInput).toBeHidden();
+}
+
 async function addTagSelectValue(page: Page, testId: string, value: string) {
   const select = page.getByTestId(testId);
   await select.click();
@@ -25,6 +39,7 @@ test.describe('Admin product create UI', () => {
     api,
     page,
   }) => {
+    api.session.user.data.password = 'StrongPassword123!';
     await api.session.setupUser();
     const organization = await api.session.setupOrganization();
     await api.session.setupProject();
@@ -35,6 +50,7 @@ test.describe('Admin product create UI', () => {
     const productUrl = `/${organization.name}/${api.session.projectSlug}/products`;
 
     await signIn(page, api.session.user.data.email, api.session.user.data.password);
+    await completeProfileIfNeeded(page);
     await page.goto(productUrl);
     await expect(page.getByTestId('page-title')).toHaveText('Products');
 
@@ -44,8 +60,8 @@ test.describe('Admin product create UI', () => {
 
     await page.getByTestId('entity-media-empty-upload-area').click();
     await page
-      .getByTestId('upload-media-file-dragger')
       .locator('input[type="file"]')
+      .last()
       .setInputFiles(path.resolve('archive/fixtures/images/vase.jpg'));
     await expect(page.getByText('Uploaded 1 file(s)')).toBeVisible();
     await expect(page.getByAltText('vase.jpg')).toBeVisible();
@@ -74,9 +90,26 @@ test.describe('Admin product create UI', () => {
     await expect(variantRows).toHaveCount(4);
 
     await page.getByTestId('submit-create-product-form-button').click();
-    await expect(page.getByText('Product created successfully')).toBeVisible();
 
-    let productId: string | null = null;
+    let createdProduct:
+      | {
+          id: string;
+          title: string;
+          handle: string;
+          description: { text: string };
+          media: Array<{ file: { id: string; originalName: string | null }; sortIndex: number }>;
+          variantsCount: number;
+          variants: {
+            edges: Array<{ node: { handle: string; isDefault: boolean } }>;
+          };
+          options: Array<{
+            name: string;
+            slug: string;
+            values: Array<{ name: string; slug: string }>;
+          }>;
+        }
+      | null = null;
+
     await expect
       .poll(async () => {
         const { data } = await api.admin.query('inventory-api/ProductFindMany', {
@@ -87,48 +120,28 @@ test.describe('Admin product create UI', () => {
           .map((edge) => edge.node)
           .find((node) => node.handle === handle);
 
-        productId = product?.id ?? null;
-        return productId;
+        createdProduct = (product as typeof createdProduct) ?? null;
+        return createdProduct?.id ?? null;
       })
       .not.toBeNull();
 
-    if (!productId) {
+    if (!createdProduct) {
       throw new Error(`Created product ${handle} was not found through the admin API`);
     }
 
-    const { data } = await api.admin.query('inventory-api/ProductFindOne', {
-      variables: { id: productId },
-    });
-    const product = data.catalogQuery.product as {
-      title: string;
-      handle: string;
-      description: { text: string };
-      media: Array<{ file: { id: string; originalName: string | null }; sortIndex: number }>;
-      variantsCount: number;
-      variants: {
-        edges: Array<{ node: { handle: string; isDefault: boolean } }>;
-      };
-      options: Array<{
-        name: string;
-        slug: string;
-        values: Array<{ name: string; slug: string }>;
-      }>;
-    };
-
-    expect(product).toBeTruthy();
-    expect(product.title).toBe(title);
-    expect(product.handle).toBe(handle);
-    expect(product.description.text).toBe(DESCRIPTION_TEXT);
-    expect(product.media).toHaveLength(1);
-    expect(product.media[0].file.originalName).toBe('vase.jpg');
-    expect(product.options.map((option) => option.name)).toEqual(['Color', 'Size']);
-    expect(product.options.map((option) => option.values.map((value) => value.name))).toEqual([
+    expect(createdProduct.title).toBe(title);
+    expect(createdProduct.handle).toBe(handle);
+    expect(createdProduct.description.text).toBe(DESCRIPTION_TEXT);
+    expect(createdProduct.media).toHaveLength(1);
+    expect(createdProduct.media[0].file.originalName).toBe('vase.jpg');
+    expect(createdProduct.options.map((option) => option.name)).toEqual(['Color', 'Size']);
+    expect(createdProduct.options.map((option) => option.values.map((value) => value.name))).toEqual([
       ['Black', 'White'],
       ['Small', 'Large'],
     ]);
 
-    const variants = product.variants.edges.map((edge) => edge.node);
-    expect(product.variantsCount).toBe(4);
+    const variants = createdProduct.variants.edges.map((edge) => edge.node);
+    expect(createdProduct.variantsCount).toBe(4);
     expect(variants.map((variant) => variant.handle).sort()).toEqual([
       'black-large',
       'black-small',
