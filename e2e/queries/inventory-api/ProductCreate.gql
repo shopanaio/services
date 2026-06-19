@@ -11,6 +11,11 @@ mutation ProductCreate($input: ProductCreateInput!) {
           text
           json
         }
+        excerpt {
+          html
+          text
+          json
+        }
         options {
           id
           name

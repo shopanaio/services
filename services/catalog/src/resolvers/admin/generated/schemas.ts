@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BooleanFilter, BulkUpdateCancelReason, BulkUpdateItemStatus, BulkUpdateJobStatus, BulkUpdateOpType, BundleGroupCreateInput, BundleGroupUpdateInput, BundleItemCreateInput, BundleItemType, BundleItemUpdateInput, BundlePriceType, BundlePricingTemplateCreateInput, BundlePricingTemplateUpdateInput, CategoryAddProductInput, CategoryCreateInput, CategoryDeleteInput, CategoryMoveInput, CategoryMoveProductInput, CategoryProductWhereInput, CategoryRebalanceInput, CategoryUpdateInput, CategoryUpdateSortInput, CollectionAddProductsInput, CollectionCreateInput, CollectionDeleteInput, CollectionMediaInput, CollectionMoveProductInput, CollectionRemoveProductsInput, CollectionRuleInput, CollectionType, CollectionUpdateInput, CollectionUpdateRulesInput, ConditionCategory, ConditionCreateInput, ConditionGroupCreateInput, ConditionGroupUpdateInput, ConditionSubject, ConditionUpdateInput, CurrencyCode, DateTimeFilter, DeleteInput, DependencyActionCreateInput, DependencyActionType, DependencyActionUpdateInput, DependencyRuleCreateInput, DependencyRuleUpdateInput, DependencyTargetType, DescriptionInput, DimensionUnit, FacetCreateInput, FacetDeleteInput, FacetGroupCreateInput, FacetGroupDeleteInput, FacetGroupUpdateInput, FacetSelectionMode, FacetSwatchCreateInput, FacetSwatchDeleteInput, FacetSwatchUpdateInput, FacetType, FacetUiType, FacetUpdateInput, FacetValueCreateInput, FacetValueDeleteInput, FacetValueSort, FacetValueUpdateInput, FloatFilter, IdFilter, IntFilter, InventoryItemInput, LocaleCode, LogicOperator, NumericOperator, OperationType, OptionDisplayType, PricingWidgetInput, ProductBulkUpdateInput, ProductBulkUpdateItem, ProductContentInput, ProductCreateInput, ProductCreateOptionInput, ProductCreateOptionValueInput, ProductCreateVariantInput, ProductDeleteInput, ProductFeatureCreateInput, ProductFeatureDeleteInput, ProductFeatureInput, ProductFeatureSyncItemInput, ProductFeatureUpdateInput, ProductFeatureValueCreateInput, ProductFeatureValueSyncInput, ProductFeatureValueUpdateInput, ProductFeatureValuesInput, ProductFeaturesSyncInput, ProductMediaInput, ProductOptionCreateInput, ProductOptionDeleteInput, ProductOptionSwatchInput, ProductOptionSyncItemInput, ProductOptionUpdateInput, ProductOptionValueCreateInput, ProductOptionValueSyncInput, ProductOptionValueUpdateInput, ProductOptionValuesInput, ProductOptionsSyncInput, ProductOrderByInput, ProductSeoInput, ProductSortBy, ProductSortInput, ProductStatus, ProductStatusAction, ProductUpdateInput, ProductUpdateStatusInput, SelectedOptionInput, SeoInput, SortDirection, StateCheckOperator, StringFilter, SwatchType, TagCreateInput, TagDeleteInput, TagUpdateInput, VariantCreateInput, VariantDeleteInput, VariantDimensionsOpInput, VariantInput, VariantInventoryOpInput, VariantMediaOpInput, VariantOptionLinkInput, VariantOptionsOpInput, VariantPricingOpInput, VariantUpdateInput, VariantUpdateMediaInput, VariantUpdateOptionsInput, VariantUpdatePricingInput, WeightUnit } from './types.js'
+import { BooleanFilter, BulkUpdateCancelReason, BulkUpdateItemStatus, BulkUpdateJobStatus, BulkUpdateOpType, BundleGroupCreateInput, BundleGroupUpdateInput, BundleItemCreateInput, BundleItemType, BundleItemUpdateInput, BundlePriceType, BundlePricingTemplateCreateInput, BundlePricingTemplateUpdateInput, CategoryAddProductInput, CategoryCreateInput, CategoryDeleteInput, CategoryMoveInput, CategoryMoveProductInput, CategoryProductWhereInput, CategoryRebalanceInput, CategoryUpdateInput, CategoryUpdateSortInput, CollectionAddProductsInput, CollectionCreateInput, CollectionDeleteInput, CollectionMediaInput, CollectionMoveProductInput, CollectionRemoveProductsInput, CollectionRuleInput, CollectionType, CollectionUpdateInput, CollectionUpdateRulesInput, ConditionCategory, ConditionCreateInput, ConditionGroupCreateInput, ConditionGroupUpdateInput, ConditionSubject, ConditionUpdateInput, CurrencyCode, DateTimeFilter, DeleteInput, DependencyActionCreateInput, DependencyActionType, DependencyActionUpdateInput, DependencyRuleCreateInput, DependencyRuleUpdateInput, DependencyTargetType, DimensionUnit, FacetCreateInput, FacetDeleteInput, FacetGroupCreateInput, FacetGroupDeleteInput, FacetGroupUpdateInput, FacetSelectionMode, FacetSwatchCreateInput, FacetSwatchDeleteInput, FacetSwatchUpdateInput, FacetType, FacetUiType, FacetUpdateInput, FacetValueCreateInput, FacetValueDeleteInput, FacetValueSort, FacetValueUpdateInput, FloatFilter, IdFilter, IntFilter, InventoryItemInput, LocaleCode, LogicOperator, NumericOperator, OperationType, OptionDisplayType, PricingWidgetInput, ProductBulkUpdateInput, ProductBulkUpdateItem, ProductContentInput, ProductCreateInput, ProductCreateOptionInput, ProductCreateOptionValueInput, ProductCreateVariantInput, ProductDeleteInput, ProductFeatureCreateInput, ProductFeatureDeleteInput, ProductFeatureInput, ProductFeatureSyncItemInput, ProductFeatureUpdateInput, ProductFeatureValueCreateInput, ProductFeatureValueSyncInput, ProductFeatureValueUpdateInput, ProductFeatureValuesInput, ProductFeaturesSyncInput, ProductMediaInput, ProductOptionCreateInput, ProductOptionDeleteInput, ProductOptionSwatchInput, ProductOptionSyncItemInput, ProductOptionUpdateInput, ProductOptionValueCreateInput, ProductOptionValueSyncInput, ProductOptionValueUpdateInput, ProductOptionValuesInput, ProductOptionsSyncInput, ProductOrderByInput, ProductSeoInput, ProductSortBy, ProductSortInput, ProductStatus, ProductStatusAction, ProductUpdateInput, ProductUpdateStatusInput, RichTextInput, SelectedOptionInput, SeoInput, SortDirection, StateCheckOperator, StringFilter, SwatchType, TagCreateInput, TagDeleteInput, TagUpdateInput, VariantCreateInput, VariantDeleteInput, VariantDimensionsOpInput, VariantInput, VariantInventoryOpInput, VariantMediaOpInput, VariantOptionLinkInput, VariantOptionsOpInput, VariantPricingOpInput, VariantUpdateInput, VariantUpdateMediaInput, VariantUpdateOptionsInput, VariantUpdatePricingInput, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -166,8 +166,8 @@ export function CategoryAddProductInputSchema(): z.ZodObject<Properties<Category
 
 export function CategoryCreateInputSchema(): z.ZodObject<Properties<CategoryCreateInput>> {
   return z.object({
-    description: z.lazy(() => DescriptionInputSchema().nullish()),
-    excerpt: z.lazy(() => DescriptionInputSchema().nullish()),
+    description: z.lazy(() => RichTextInputSchema().nullish()),
+    excerpt: z.lazy(() => RichTextInputSchema().nullish()),
     handle: z.string(),
     mediaFileIds: z.array(z.string()).nullish(),
     name: z.string(),
@@ -219,8 +219,8 @@ export function CategoryRebalanceInputSchema(): z.ZodObject<Properties<CategoryR
 
 export function CategoryUpdateInputSchema(): z.ZodObject<Properties<CategoryUpdateInput>> {
   return z.object({
-    description: z.lazy(() => DescriptionInputSchema().nullish()),
-    excerpt: z.lazy(() => DescriptionInputSchema().nullish()),
+    description: z.lazy(() => RichTextInputSchema().nullish()),
+    excerpt: z.lazy(() => RichTextInputSchema().nullish()),
     handle: z.string().nullish(),
     id: z.string(),
     mediaFileIds: z.array(z.string()).nullish(),
@@ -250,8 +250,8 @@ export function CollectionCreateInputSchema(): z.ZodObject<Properties<Collection
     activeTo: z.string().nullish(),
     defaultSort: ProductSortBySchema.nullish(),
     defaultSortDirection: SortDirectionSchema.nullish(),
-    description: z.lazy(() => DescriptionInputSchema().nullish()),
-    excerpt: z.lazy(() => DescriptionInputSchema().nullish()),
+    description: z.lazy(() => RichTextInputSchema().nullish()),
+    excerpt: z.lazy(() => RichTextInputSchema().nullish()),
     handle: z.string().nullish(),
     media: z.array(z.lazy(() => CollectionMediaInputSchema())).nullish(),
     name: z.string(),
@@ -304,8 +304,8 @@ export function CollectionUpdateInputSchema(): z.ZodObject<Properties<Collection
     activeTo: z.string().nullish(),
     defaultSort: ProductSortBySchema.nullish(),
     defaultSortDirection: SortDirectionSchema.nullish(),
-    description: z.lazy(() => DescriptionInputSchema().nullish()),
-    excerpt: z.lazy(() => DescriptionInputSchema().nullish()),
+    description: z.lazy(() => RichTextInputSchema().nullish()),
+    excerpt: z.lazy(() => RichTextInputSchema().nullish()),
     handle: z.string().nullish(),
     id: z.string(),
     media: z.array(z.lazy(() => CollectionMediaInputSchema())).nullish(),
@@ -431,14 +431,6 @@ export function DependencyRuleUpdateInputSchema(): z.ZodObject<Properties<Depend
     logicOperator: LogicOperatorSchema.nullish(),
     name: z.string().nullish(),
     priority: z.number().nullish()
-  })
-}
-
-export function DescriptionInputSchema(): z.ZodObject<Properties<DescriptionInput>> {
-  return z.object({
-    html: z.string(),
-    json: z.record(z.unknown()),
-    text: z.string()
   })
 }
 
@@ -634,15 +626,15 @@ export function ProductBulkUpdateItemSchema(): z.ZodObject<Properties<ProductBul
 
 export function ProductContentInputSchema(): z.ZodObject<Properties<ProductContentInput>> {
   return z.object({
-    description: z.lazy(() => DescriptionInputSchema().nullish()),
-    excerpt: z.lazy(() => DescriptionInputSchema().nullish())
+    description: z.lazy(() => RichTextInputSchema().nullish()),
+    excerpt: z.lazy(() => RichTextInputSchema().nullish())
   })
 }
 
 export function ProductCreateInputSchema(): z.ZodObject<Properties<ProductCreateInput>> {
   return z.object({
-    description: z.lazy(() => DescriptionInputSchema().nullish()),
-    excerpt: z.lazy(() => DescriptionInputSchema().nullish()),
+    description: z.lazy(() => RichTextInputSchema().nullish()),
+    excerpt: z.lazy(() => RichTextInputSchema().nullish()),
     handle: z.string(),
     inventoryItem: z.lazy(() => InventoryItemInputSchema().nullish()),
     mediaFileIds: z.array(z.string()).nullish(),
@@ -898,6 +890,14 @@ export function ProductUpdateStatusInputSchema(): z.ZodObject<Properties<Product
   return z.object({
     action: ProductStatusActionSchema,
     productId: z.string()
+  })
+}
+
+export function RichTextInputSchema(): z.ZodObject<Properties<RichTextInput>> {
+  return z.object({
+    html: z.string(),
+    json: z.record(z.unknown()),
+    text: z.string()
   })
 }
 

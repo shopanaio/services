@@ -6,6 +6,7 @@ import type {
   SeoInput,
   SortDirection,
 } from "../../category/dto/index.js";
+import type { RichTextInput } from "../../shared/richText.js";
 
 export type {
   ProductSortBy,
@@ -13,12 +14,6 @@ export type {
   SeoInput,
   SortDirection,
 } from "../../category/dto/index.js";
-
-export interface CollectionDescriptionInput {
-  text?: string;
-  html?: string;
-  json?: Record<string, unknown>;
-}
 
 export interface CollectionRuleInput {
   field: string;
@@ -30,7 +25,8 @@ export interface CollectionCreateParams {
   handle?: string | null;
   type: "manual" | "rule";
   name: string;
-  description?: CollectionDescriptionInput;
+  description?: RichTextInput | null;
+  excerpt?: RichTextInput | null;
   mediaFileIds?: string[];
   seo?: SeoInput;
   defaultSort?: ProductSortBy;
@@ -44,7 +40,8 @@ export interface CollectionUpdateParams {
   id: string;
   handle?: string | null;
   name?: string;
-  description?: CollectionDescriptionInput | null;
+  description?: RichTextInput | null;
+  excerpt?: RichTextInput | null;
   mediaFileIds?: string[];
   seo?: SeoInput | null;
   defaultSort?: ProductSortBy;

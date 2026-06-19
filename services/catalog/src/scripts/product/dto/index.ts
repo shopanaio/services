@@ -1,6 +1,6 @@
 // Shared types
 export type {
-  DescriptionInput,
+  RichTextInput,
   ProductWithVariants,
   ProductResultBase,
 } from "./shared.js";

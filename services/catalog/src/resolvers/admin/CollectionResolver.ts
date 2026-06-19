@@ -3,9 +3,10 @@ import {
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
 import { CatalogType } from "./CatalogType.js";
-import type { Description } from "./interfaces/index.js";
+import type { RichText } from "./interfaces/index.js";
 import type { Collection } from "../../repositories/models/index.js";
 import { SeoResolver } from "./SeoResolver.js";
+import { toRichText } from "./helpers/richText.js";
 
 export class CollectionResolver extends CatalogType<string, Collection> {
   async $preload() {
@@ -33,23 +34,22 @@ export class CollectionResolver extends CatalogType<string, Collection> {
     return translation?.name ?? "";
   }
 
-  async description() {
+  async description(): Promise<RichText | null> {
     const translation = await this.$ctx.loaders.collectionTranslation.load(this.$props);
-    if (!translation) return null;
-    return {
-      text: translation.descriptionText ?? "",
-      html: translation.descriptionHtml ?? "",
-      json: translation.descriptionJson ?? {},
-    };
+    return toRichText(translation && {
+      text: translation.descriptionText,
+      html: translation.descriptionHtml,
+      json: translation.descriptionJson,
+    });
   }
 
-  async excerpt(): Promise<Description> {
-    // TODO: Store collection excerpt text/html/json and resolve it from translations.
-    return {
-      text: "",
-      html: "",
-      json: {},
-    };
+  async excerpt(): Promise<RichText | null> {
+    const translation = await this.$ctx.loaders.collectionTranslation.load(this.$props);
+    return toRichText(translation && {
+      text: translation.excerptText,
+      html: translation.excerptHtml,
+      json: translation.excerptJson,
+    });
   }
 
   async media() {

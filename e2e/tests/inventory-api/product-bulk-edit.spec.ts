@@ -460,7 +460,13 @@ test.describe('Product Bulk Edit API', () => {
           productId: product1.productId,
           operations: {
             title: 'Updated Multi 1',
-            content: { excerpt: 'Excerpt 1' },
+            content: {
+              excerpt: {
+                text: 'Excerpt 1',
+                html: '<p>Excerpt 1</p>',
+                json: { blocks: [{ type: 'paragraph', data: { text: 'Excerpt 1' } }] },
+              },
+            },
             seo: { seoTitle: 'SEO 1' },
           },
         },
@@ -468,7 +474,13 @@ test.describe('Product Bulk Edit API', () => {
           productId: product2.productId,
           operations: {
             title: 'Updated Multi 2',
-            content: { excerpt: 'Excerpt 2' },
+            content: {
+              excerpt: {
+                text: 'Excerpt 2',
+                html: '<p>Excerpt 2</p>',
+                json: { blocks: [{ type: 'paragraph', data: { text: 'Excerpt 2' } }] },
+              },
+            },
             seo: { seoTitle: 'SEO 2' },
           },
         },
@@ -483,6 +495,12 @@ test.describe('Product Bulk Edit API', () => {
 
       expect(updatedProduct1.title).toBe('Updated Multi 1');
       expect(updatedProduct2.title).toBe('Updated Multi 2');
+      expect(updatedProduct1.excerpt.text).toBe('Excerpt 1');
+      expect(updatedProduct1.excerpt.html).toBe('<p>Excerpt 1</p>');
+      expect(updatedProduct1.excerpt.json.blocks[0].data.text).toBe('Excerpt 1');
+      expect(updatedProduct2.excerpt.text).toBe('Excerpt 2');
+      expect(updatedProduct2.excerpt.html).toBe('<p>Excerpt 2</p>');
+      expect(updatedProduct2.excerpt.json.blocks[0].data.text).toBe('Excerpt 2');
     });
   });
 

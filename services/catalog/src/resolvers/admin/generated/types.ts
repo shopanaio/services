@@ -1042,9 +1042,9 @@ export type Category = Node & {
   /** The depth of this category in the hierarchy (0 for root). */
   depth: Scalars['Int']['output'];
   /** The category description. */
-  description: Maybe<Description>;
+  description: Maybe<RichText>;
   /** Short category excerpt. */
-  excerpt: Maybe<Description>;
+  excerpt: Maybe<RichText>;
   /** The URL-friendly handle for the category. */
   handle: Scalars['String']['output'];
   /** The globally unique ID of the category. */
@@ -1107,9 +1107,9 @@ export type CategoryConnection = {
 /** Input for creating a category. */
 export type CategoryCreateInput = {
   /** Optional description. */
-  description?: InputMaybe<DescriptionInput>;
+  description?: InputMaybe<RichTextInput>;
   /** Optional short excerpt. */
-  excerpt?: InputMaybe<DescriptionInput>;
+  excerpt?: InputMaybe<RichTextInput>;
   /** The URL-friendly handle for the category. */
   handle: Scalars['String']['input'];
   /** File IDs for category media. */
@@ -1240,9 +1240,9 @@ export type CategoryRebalancePayload = {
 /** Input for updating a category. */
 export type CategoryUpdateInput = {
   /** The category description. */
-  description?: InputMaybe<DescriptionInput>;
+  description?: InputMaybe<RichTextInput>;
   /** The short category excerpt. */
-  excerpt?: InputMaybe<DescriptionInput>;
+  excerpt?: InputMaybe<RichTextInput>;
   /** The URL-friendly handle for the category. */
   handle?: InputMaybe<Scalars['String']['input']>;
   /** The ID of the category to update. */
@@ -1283,8 +1283,8 @@ export type Collection = Node & {
   createdAt: Scalars['DateTime']['output'];
   defaultSort: ProductSortBy;
   defaultSortDirection: SortDirection;
-  description: Maybe<Description>;
-  excerpt: Maybe<Description>;
+  description: Maybe<RichText>;
+  excerpt: Maybe<RichText>;
   handle: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   isActive: Scalars['Boolean']['output'];
@@ -1332,8 +1332,8 @@ export type CollectionCreateInput = {
   activeTo?: InputMaybe<Scalars['DateTime']['input']>;
   defaultSort?: InputMaybe<ProductSortBy>;
   defaultSortDirection?: InputMaybe<SortDirection>;
-  description?: InputMaybe<DescriptionInput>;
-  excerpt?: InputMaybe<DescriptionInput>;
+  description?: InputMaybe<RichTextInput>;
+  excerpt?: InputMaybe<RichTextInput>;
   handle?: InputMaybe<Scalars['String']['input']>;
   media?: InputMaybe<Array<CollectionMediaInput>>;
   name: Scalars['String']['input'];
@@ -1437,8 +1437,8 @@ export type CollectionUpdateInput = {
   activeTo?: InputMaybe<Scalars['DateTime']['input']>;
   defaultSort?: InputMaybe<ProductSortBy>;
   defaultSortDirection?: InputMaybe<SortDirection>;
-  description?: InputMaybe<DescriptionInput>;
-  excerpt?: InputMaybe<DescriptionInput>;
+  description?: InputMaybe<RichTextInput>;
+  excerpt?: InputMaybe<RichTextInput>;
   handle?: InputMaybe<Scalars['String']['input']>;
   id: Scalars['ID']['input'];
   media?: InputMaybe<Array<CollectionMediaInput>>;
@@ -2017,27 +2017,6 @@ export enum DependencyTargetType {
   /** Target a specific bundle item */
   Item = 'ITEM'
 }
-
-/** Product description in multiple formats. */
-export type Description = {
-  __typename?: 'Description';
-  /** HTML description. */
-  html: Scalars['String']['output'];
-  /** EditorJS JSON description. */
-  json: Scalars['JSON']['output'];
-  /** Plain text description. */
-  text: Scalars['String']['output'];
-};
-
-/** Input for product description (all fields required). */
-export type DescriptionInput = {
-  /** HTML description. */
-  html: Scalars['String']['input'];
-  /** EditorJS JSON description. */
-  json: Scalars['JSON']['input'];
-  /** Plain text description. */
-  text: Scalars['String']['input'];
-};
 
 /** Dimension (length) measurement units */
 export enum DimensionUnit {
@@ -2761,9 +2740,9 @@ export type Product = Node & {
   /** The date and time when the product was deleted (soft delete). */
   deletedAt: Maybe<Scalars['DateTime']['output']>;
   /** Product description. */
-  description: Maybe<Description>;
+  description: Maybe<RichText>;
   /** Short excerpt. */
-  excerpt: Maybe<Description>;
+  excerpt: Maybe<RichText>;
   /** The features of this product. */
   features: Array<ProductFeature>;
   /** The URL-friendly handle for the product. */
@@ -2872,17 +2851,17 @@ export type ProductConnection = {
 /** Input for product content (description, excerpt). */
 export type ProductContentInput = {
   /** Product description in multiple formats. */
-  description?: InputMaybe<DescriptionInput>;
+  description?: InputMaybe<RichTextInput>;
   /** Short excerpt. */
-  excerpt?: InputMaybe<DescriptionInput>;
+  excerpt?: InputMaybe<RichTextInput>;
 };
 
 /** Input for creating a product with all its data in one request. */
 export type ProductCreateInput = {
   /** Product description. */
-  description?: InputMaybe<DescriptionInput>;
+  description?: InputMaybe<RichTextInput>;
   /** Short excerpt in multiple formats. */
-  excerpt?: InputMaybe<DescriptionInput>;
+  excerpt?: InputMaybe<RichTextInput>;
   /** URL-friendly handle for the product. */
   handle: Scalars['String']['input'];
   /** Inventory tracking settings for the product. */
@@ -3463,6 +3442,27 @@ export type Query = {
   catalogQuery: CatalogQuery;
   /** Widget query namespace for dashboard widgets */
   widgetQuery: WidgetQuery;
+};
+
+/** Rich text content in multiple formats. */
+export type RichText = {
+  __typename?: 'RichText';
+  /** HTML content. */
+  html: Scalars['String']['output'];
+  /** EditorJS JSON content. */
+  json: Scalars['JSON']['output'];
+  /** Plain text content. */
+  text: Scalars['String']['output'];
+};
+
+/** Input for rich text content (all fields required). */
+export type RichTextInput = {
+  /** HTML content. */
+  html: Scalars['String']['input'];
+  /** EditorJS JSON content. */
+  json: Scalars['JSON']['input'];
+  /** Plain text content. */
+  text: Scalars['String']['input'];
 };
 
 /** Represents a selected option for a variant. */
@@ -4234,8 +4234,6 @@ export type ResolversTypes = ResolversObject<{
   DependencyRulePayload: ResolverTypeWrapper<Omit<DependencyRulePayload, 'dependencyRule' | 'userErrors'> & { dependencyRule?: Maybe<ResolversTypes['DependencyRule']>, userErrors: Array<ResolversTypes['UserError']> }>;
   DependencyRuleUpdateInput: DependencyRuleUpdateInput;
   DependencyTargetType: DependencyTargetType;
-  Description: ResolverTypeWrapper<Description>;
-  DescriptionInput: DescriptionInput;
   DimensionUnit: DimensionUnit;
   Email: ResolverTypeWrapper<Scalars['Email']['output']>;
   Facet: ResolverTypeWrapper<Facet>;
@@ -4350,6 +4348,8 @@ export type ResolversTypes = ResolversObject<{
   ProductUpdateStatusInput: ProductUpdateStatusInput;
   ProductUpdateStatusPayload: ResolverTypeWrapper<ProductUpdateStatusPayload>;
   Query: ResolverTypeWrapper<{}>;
+  RichText: ResolverTypeWrapper<RichText>;
+  RichTextInput: RichTextInput;
   SelectedOption: ResolverTypeWrapper<SelectedOption>;
   SelectedOptionInput: SelectedOptionInput;
   Seo: ResolverTypeWrapper<Seo>;
@@ -4494,8 +4494,6 @@ export type ResolversParentTypes = ResolversObject<{
   DependencyRuleCreateInput: DependencyRuleCreateInput;
   DependencyRulePayload: Omit<DependencyRulePayload, 'dependencyRule' | 'userErrors'> & { dependencyRule?: Maybe<ResolversParentTypes['DependencyRule']>, userErrors: Array<ResolversParentTypes['UserError']> };
   DependencyRuleUpdateInput: DependencyRuleUpdateInput;
-  Description: Description;
-  DescriptionInput: DescriptionInput;
   Email: Scalars['Email']['output'];
   Facet: Facet;
   FacetCreateInput: FacetCreateInput;
@@ -4597,6 +4595,8 @@ export type ResolversParentTypes = ResolversObject<{
   ProductUpdateStatusInput: ProductUpdateStatusInput;
   ProductUpdateStatusPayload: ProductUpdateStatusPayload;
   Query: {};
+  RichText: RichText;
+  RichTextInput: RichTextInput;
   SelectedOption: SelectedOption;
   SelectedOptionInput: SelectedOptionInput;
   Seo: Seo;
@@ -4879,8 +4879,8 @@ export type CategoryResolvers<ContextType = ServiceContext, ParentType extends R
   defaultSortDirection?: Resolver<ResolversTypes['SortDirection'], ParentType, ContextType>;
   deletedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   depth?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  description?: Resolver<Maybe<ResolversTypes['Description']>, ParentType, ContextType>;
-  excerpt?: Resolver<Maybe<ResolversTypes['Description']>, ParentType, ContextType>;
+  description?: Resolver<Maybe<ResolversTypes['RichText']>, ParentType, ContextType>;
+  excerpt?: Resolver<Maybe<ResolversTypes['RichText']>, ParentType, ContextType>;
   handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   isPublished?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
@@ -4983,8 +4983,8 @@ export type CollectionResolvers<ContextType = ServiceContext, ParentType extends
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   defaultSort?: Resolver<ResolversTypes['ProductSortBy'], ParentType, ContextType>;
   defaultSortDirection?: Resolver<ResolversTypes['SortDirection'], ParentType, ContextType>;
-  description?: Resolver<Maybe<ResolversTypes['Description']>, ParentType, ContextType>;
-  excerpt?: Resolver<Maybe<ResolversTypes['Description']>, ParentType, ContextType>;
+  description?: Resolver<Maybe<ResolversTypes['RichText']>, ParentType, ContextType>;
+  excerpt?: Resolver<Maybe<ResolversTypes['RichText']>, ParentType, ContextType>;
   handle?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   isActive?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
@@ -5165,13 +5165,6 @@ export type DependencyRuleResolvers<ContextType = ServiceContext, ParentType ext
 export type DependencyRulePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['DependencyRulePayload'] = ResolversParentTypes['DependencyRulePayload']> = ResolversObject<{
   dependencyRule?: Resolver<Maybe<ResolversTypes['DependencyRule']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['UserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type DescriptionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Description'] = ResolversParentTypes['Description']> = ResolversObject<{
-  html?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  json?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
-  text?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -5356,8 +5349,8 @@ export type ProductResolvers<ContextType = ServiceContext, ParentType extends Re
   categories?: Resolver<Array<ResolversTypes['Category']>, ParentType, ContextType>;
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   deletedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
-  description?: Resolver<Maybe<ResolversTypes['Description']>, ParentType, ContextType>;
-  excerpt?: Resolver<Maybe<ResolversTypes['Description']>, ParentType, ContextType>;
+  description?: Resolver<Maybe<ResolversTypes['RichText']>, ParentType, ContextType>;
+  excerpt?: Resolver<Maybe<ResolversTypes['RichText']>, ParentType, ContextType>;
   features?: Resolver<Array<ResolversTypes['ProductFeature']>, ParentType, ContextType>;
   handle?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
@@ -5550,6 +5543,13 @@ export type ProductUpdateStatusPayloadResolvers<ContextType = ServiceContext, Pa
 export type QueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = ResolversObject<{
   catalogQuery?: Resolver<ResolversTypes['CatalogQuery'], ParentType, ContextType>;
   widgetQuery?: Resolver<ResolversTypes['WidgetQuery'], ParentType, ContextType>;
+}>;
+
+export type RichTextResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['RichText'] = ResolversParentTypes['RichText']> = ResolversObject<{
+  html?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  json?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
+  text?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type SelectedOptionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SelectedOption'] = ResolversParentTypes['SelectedOption']> = ResolversObject<{
@@ -5800,7 +5800,6 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   DependencyActionPayload?: DependencyActionPayloadResolvers<ContextType>;
   DependencyRule?: DependencyRuleResolvers<ContextType>;
   DependencyRulePayload?: DependencyRulePayloadResolvers<ContextType>;
-  Description?: DescriptionResolvers<ContextType>;
   Email?: GraphQLScalarType;
   Facet?: FacetResolvers<ContextType>;
   FacetCreatePayload?: FacetCreatePayloadResolvers<ContextType>;
@@ -5850,6 +5849,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   ProductUpdatePayload?: ProductUpdatePayloadResolvers<ContextType>;
   ProductUpdateStatusPayload?: ProductUpdateStatusPayloadResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
+  RichText?: RichTextResolvers<ContextType>;
   SelectedOption?: SelectedOptionResolvers<ContextType>;
   Seo?: SeoResolvers<ContextType>;
   Tag?: TagResolvers<ContextType>;

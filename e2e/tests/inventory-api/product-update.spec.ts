@@ -195,7 +195,15 @@ test.describe('ProductUpdate API', () => {
                   ],
                 },
               },
-              excerpt: 'Short excerpt for the product',
+              excerpt: {
+                text: 'Short excerpt for the product',
+                html: '<p>Short <em>excerpt</em> for the product</p>',
+                json: {
+                  blocks: [
+                    { type: 'paragraph', data: { text: 'Short excerpt for the product' } },
+                  ],
+                },
+              },
             },
           },
         },
@@ -207,7 +215,11 @@ test.describe('ProductUpdate API', () => {
       expect(result.product.description).toBeTruthy();
       expect(result.product.description.text).toBe('This is the updated description');
       expect(result.product.description.html).toContain('<strong>updated</strong>');
-      expect(result.product.excerpt).toBe('Short excerpt for the product');
+      expect(result.product.excerpt.text).toBe('Short excerpt for the product');
+      expect(result.product.excerpt.html).toContain('<em>excerpt</em>');
+      expect(result.product.excerpt.json.blocks[0].data.text).toBe(
+        'Short excerpt for the product',
+      );
     });
 
     test('should update product SEO metadata', async ({ api }) => {
@@ -300,7 +312,11 @@ test.describe('ProductUpdate API', () => {
             title: 'Updated Multi-field Product',
             handle: newHandle,
             content: {
-              excerpt: 'New excerpt',
+              excerpt: {
+                text: 'New excerpt',
+                html: '<p>New excerpt</p>',
+                json: { blocks: [{ type: 'paragraph', data: { text: 'New excerpt' } }] },
+              },
             },
             seo: {
               seoTitle: 'Multi-field SEO Title',
@@ -314,7 +330,9 @@ test.describe('ProductUpdate API', () => {
       expect(result.userErrors).toHaveLength(0);
       expect(result.product.title).toBe('Updated Multi-field Product');
       expect(result.product.handle).toBe(newHandle);
-      expect(result.product.excerpt).toBe('New excerpt');
+      expect(result.product.excerpt.text).toBe('New excerpt');
+      expect(result.product.excerpt.html).toBe('<p>New excerpt</p>');
+      expect(result.product.excerpt.json.blocks[0].data.text).toBe('New excerpt');
       expect(result.product.seo.seoTitle).toBe('Multi-field SEO Title');
     });
   });
@@ -937,7 +955,7 @@ test.describe('ProductUpdate API', () => {
       expect(third.catalogMutation.productUpdate.product.revision).toBe(revision + 3);
     });
 
-    test('should clear excerpt when set to empty string', async ({ api }) => {
+    test('should clear excerpt when set to null', async ({ api }) => {
       const { productId, revision } = await createProduct(api, 'Clear Excerpt Product');
 
       // First set excerpt
@@ -946,28 +964,35 @@ test.describe('ProductUpdate API', () => {
           productId,
           expectedRevision: revision,
           operations: {
-            content: { excerpt: 'Initial excerpt' },
+            content: {
+              excerpt: {
+                text: 'Initial excerpt',
+                html: '<p>Initial excerpt</p>',
+                json: { blocks: [{ type: 'paragraph', data: { text: 'Initial excerpt' } }] },
+              },
+            },
           },
         },
       });
 
-      expect(setData.catalogMutation.productUpdate.product.excerpt).toBe('Initial excerpt');
+      expect(setData.catalogMutation.productUpdate.product.excerpt.text).toBe('Initial excerpt');
       const newRevision = setData.catalogMutation.productUpdate.product.revision;
 
-      // Then clear it by setting to empty string
+      // Then clear it by setting null explicitly
       const { data: clearData } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
           expectedRevision: newRevision,
           operations: {
-            content: { excerpt: '' },
+            content: { excerpt: null },
           },
         },
       });
 
       expect(clearData.catalogMutation.productUpdate.userErrors).toHaveLength(0);
-      // Excerpt should be empty or null
-      expect(clearData.catalogMutation.productUpdate.product.excerpt || '').toBe('');
+      expect(clearData.catalogMutation.productUpdate.product.excerpt.text).toBe('');
+      expect(clearData.catalogMutation.productUpdate.product.excerpt.html).toBe('');
+      expect(clearData.catalogMutation.productUpdate.product.excerpt.json).toEqual({});
     });
   });
 

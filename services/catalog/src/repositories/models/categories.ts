@@ -117,6 +117,9 @@ export const categoryTranslation = catalogSchema.table(
     descriptionText: text("description_text"),
     descriptionHtml: text("description_html"),
     descriptionJson: text("description_json"), // EditorJS JSON
+    excerptText: text("excerpt_text"),
+    excerptHtml: text("excerpt_html"),
+    excerptJson: text("excerpt_json"),
   },
   (table) => [
     primaryKey({ columns: [table.categoryId, table.locale] }),

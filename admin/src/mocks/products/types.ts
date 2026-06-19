@@ -3,7 +3,7 @@
  * These are simplified interfaces for development/testing purposes
  */
 
-import type { ApiDescription, ApiFile } from '@/graphql/types';
+import type { ApiFile, ApiRichText } from '@/graphql/types';
 
 // ============================================================================
 // Enums (mock replacements for GraphQL types)
@@ -74,7 +74,7 @@ export interface IMediaFile {
 }
 
 // Re-export API types for convenience
-export type { ApiDescription, ApiFile };
+export type { ApiFile, ApiRichText };
 
 // ============================================================================
 // Category
@@ -215,7 +215,7 @@ export interface IProductGroup {
 export interface IProduct {
   id: ID;
   title: string;
-  description: ApiDescription | null;
+  description: ApiRichText | null;
   excerpt: string | null;
   slug: string;
   status: EntityStatus;

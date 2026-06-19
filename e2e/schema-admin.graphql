@@ -1690,7 +1690,10 @@ type Category implements Node {
   name: String!
 
   """The category description."""
-  description: Description
+  description: RichText
+
+  """Short category excerpt."""
+  excerpt: RichText
 
   """Default product sort for this category PLP."""
   defaultSort: ProductSortBy!
@@ -1822,7 +1825,8 @@ type Collection implements Node {
   handle: String
   type: CollectionType!
   name: String!
-  description: Description
+  description: RichText
+  excerpt: RichText
   media: [CollectionMediaItem!]!
   seo: Seo
   defaultSort: ProductSortBy!
@@ -2372,15 +2376,15 @@ type VariantUpdatePricingPayload {
   userErrors: [GenericUserError!]!
 }
 
-"""Product description in multiple formats."""
-type Description {
-  """Plain text description."""
+"""Rich text content in multiple formats."""
+type RichText {
+  """Plain text content."""
   text: String!
 
-  """HTML description."""
+  """HTML content."""
   html: String!
 
-  """EditorJS JSON description."""
+  """EditorJS JSON content."""
   json: JSON!
 }
 
@@ -2434,10 +2438,10 @@ type Product implements Node {
   title: String!
 
   """Product description."""
-  description: Description
+  description: RichText
 
   """Short excerpt."""
-  excerpt: String
+  excerpt: RichText
 
   """SEO and Open Graph metadata."""
   seo: ProductSeo
@@ -3400,7 +3404,10 @@ input CategoryCreateInput {
   parentId: ID
 
   """Optional description."""
-  description: DescriptionInput
+  description: RichTextInput
+
+  """Optional short excerpt."""
+  excerpt: RichTextInput
 
   """SEO metadata."""
   seo: SeoInput
@@ -3424,7 +3431,10 @@ input CategoryUpdateInput {
   name: String
 
   """The category description."""
-  description: DescriptionInput
+  description: RichTextInput
+
+  """The short category excerpt."""
+  excerpt: RichTextInput
 
   """SEO metadata."""
   seo: SeoInput
@@ -3483,7 +3493,8 @@ input CollectionCreateInput {
   handle: String
   type: CollectionType!
   name: String!
-  description: DescriptionInput
+  description: RichTextInput
+  excerpt: RichTextInput
   media: [CollectionMediaInput!]
   seo: SeoInput
   defaultSort: ProductSortBy
@@ -3497,7 +3508,8 @@ input CollectionUpdateInput {
   id: ID!
   handle: String
   name: String
-  description: DescriptionInput
+  description: RichTextInput
+  excerpt: RichTextInput
   media: [CollectionMediaInput!]
   seo: SeoInput
   defaultSort: ProductSortBy
@@ -3965,15 +3977,15 @@ input ProductOrderByInput {
   direction: SortDirection
 }
 
-"""Input for product description (all fields required)."""
-input DescriptionInput {
-  """Plain text description."""
+"""Input for rich text content (all fields required)."""
+input RichTextInput {
+  """Plain text content."""
   text: String!
 
-  """HTML description."""
+  """HTML content."""
   html: String!
 
-  """EditorJS JSON description."""
+  """EditorJS JSON content."""
   json: JSON!
 }
 
@@ -4040,7 +4052,10 @@ input ProductCreateInput {
   handle: String!
 
   """Product description."""
-  description: DescriptionInput
+  description: RichTextInput
+
+  """Short excerpt in multiple formats."""
+  excerpt: RichTextInput
 
   """
   File IDs for product media (already uploaded via mediaMutation.fileUpload).
@@ -4081,10 +4096,10 @@ input ProductUpdateStatusInput {
 """Input for product content (description, excerpt)."""
 input ProductContentInput {
   """Product description in multiple formats."""
-  description: DescriptionInput
+  description: RichTextInput
 
   """Short excerpt."""
-  excerpt: String
+  excerpt: RichTextInput
 }
 
 """Input for product media."""

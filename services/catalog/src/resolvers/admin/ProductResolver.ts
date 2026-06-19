@@ -3,7 +3,7 @@ import {
   encodeGlobalIdByType,
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
-import type { Description } from "./interfaces/index.js";
+import type { RichText } from "./interfaces/index.js";
 import type { Product } from "../../repositories/models/index.js";
 import type { VariantRelayInput } from "../../repositories/variant/VariantRepository.js";
 import { CatalogType } from "./CatalogType.js";
@@ -13,6 +13,7 @@ import { OptionResolver } from "./OptionResolver.js";
 import { ProductSeoResolver } from "./ProductSeoResolver.js";
 import { TagResolver } from "./TagResolver.js";
 import { VariantConnectionResolver } from "./VariantConnectionResolver.js";
+import { toRichText } from "./helpers/richText.js";
 
 /**
  * Product resolver - resolves Product domain interface.
@@ -69,26 +70,26 @@ export class ProductResolver extends CatalogType<string, Product> {
     return translation?.title ?? "";
   }
 
-  async description(): Promise<Description | null> {
+  async description(): Promise<RichText | null> {
     const translation = await this.$ctx.loaders.productTranslation.load(
       this.$props
     );
-    if (!translation) return null;
-
-    return {
-      text: translation.descriptionText ?? "",
-      html: translation.descriptionHtml ?? "",
-      json: translation.descriptionJson ?? {},
-    };
+    return toRichText(translation && {
+      text: translation.descriptionText,
+      html: translation.descriptionHtml,
+      json: translation.descriptionJson,
+    });
   }
 
-  async excerpt(): Promise<Description> {
-    // TODO: Store excerpt text/html/json separately and resolve it from product translations.
-    return {
-      text: "",
-      html: "",
-      json: {},
-    };
+  async excerpt(): Promise<RichText | null> {
+    const translation = await this.$ctx.loaders.productTranslation.load(
+      this.$props
+    );
+    return toRichText(translation && {
+      text: translation.excerptText,
+      html: translation.excerptHtml,
+      json: translation.excerptJson,
+    });
   }
 
   /**

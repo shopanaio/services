@@ -34,8 +34,10 @@ export const productTranslation = catalogSchema.table(
     descriptionHtml: text("description_html"), // Rendered HTML (for storefront)
     descriptionJson: jsonb("description_json"), // EditorJS blocks state
 
-    // Short summary
-    excerpt: text("excerpt"),
+    // Short summary in multiple formats
+    excerptText: text("excerpt_text"),
+    excerptHtml: text("excerpt_html"),
+    excerptJson: jsonb("excerpt_json"),
   },
   (table) => [
     primaryKey({ columns: [table.productId, table.locale] }),

@@ -11,6 +11,11 @@ mutation CollectionCreate($input: CollectionCreateInput!) {
           text
           json
         }
+        excerpt {
+          html
+          text
+          json
+        }
         defaultSort
         defaultSortDirection
         activeFrom

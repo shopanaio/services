@@ -7,8 +7,8 @@
 export {
   // Error
   USER_ERROR_FRAGMENT,
-  // Description
-  DESCRIPTION_FRAGMENT,
+  // Rich text
+  RICH_TEXT_FRAGMENT,
   // Option
   PRODUCT_OPTION_VALUE_FRAGMENT,
   PRODUCT_OPTION_FRAGMENT,

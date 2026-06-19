@@ -1,5 +1,6 @@
 import type { UserError } from "../../../kernel/BaseScript.js";
 import type { Category } from "../../../repositories/models/index.js";
+import type { RichTextInput } from "../../shared/richText.js";
 
 export type ProductSortBy = "manual" | "price" | "newest" | "name";
 export type SortDirection = "asc" | "desc";
@@ -18,11 +19,8 @@ export interface CategoryCreateParams {
   handle: string;
   name: string;
   parentId?: string | null;
-  description?: {
-    text?: string;
-    html?: string;
-    json?: Record<string, unknown>;
-  };
+  description?: RichTextInput | null;
+  excerpt?: RichTextInput | null;
   seo?: SeoInput;
   mediaFileIds?: string[];
   publish?: boolean;
@@ -41,11 +39,8 @@ export interface CategoryUpdateParams {
   defaultSort?: ProductSortBy;
   defaultSortDirection?: SortDirection;
   name?: string;
-  description?: {
-    text?: string;
-    html?: string;
-    json?: Record<string, unknown>;
-  } | null;
+  description?: RichTextInput | null;
+  excerpt?: RichTextInput | null;
   seo?: SeoInput | null;
   mediaFileIds?: string[];
 }

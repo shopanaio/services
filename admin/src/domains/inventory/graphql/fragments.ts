@@ -13,9 +13,9 @@ export const USER_ERROR_FRAGMENT = gql`
   }
 `;
 
-// Product description fragment
-export const DESCRIPTION_FRAGMENT = gql`
-  fragment DescriptionFields on Description {
+// Rich text fragment
+export const RICH_TEXT_FRAGMENT = gql`
+  fragment RichTextFields on RichText {
     text
     html
     json
@@ -123,14 +123,14 @@ export const PRODUCT_FRAGMENT = gql`
     isPublished
     publishedAt
     excerpt {
-      ...DescriptionFields
+      ...RichTextFields
     }
     seoTitle
     seoDescription
     createdAt
     updatedAt
     description {
-      ...DescriptionFields
+      ...RichTextFields
     }
     options {
       ...ProductOptionFields
@@ -145,7 +145,7 @@ export const PRODUCT_FRAGMENT = gql`
     }
     variantsCount
   }
-  ${DESCRIPTION_FRAGMENT}
+  ${RICH_TEXT_FRAGMENT}
   ${PRODUCT_OPTION_FRAGMENT}
   ${VARIANT_FRAGMENT}
 `;

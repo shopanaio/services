@@ -35,10 +35,10 @@ type Category implements Node @key(fields: "id") {
   name: String!
 
   """The category description."""
-  description: Description
+  description: RichText
 
   """Short category excerpt."""
-  excerpt: Description
+  excerpt: RichText
 
   """Default product sort for this category PLP."""
   defaultSort: ProductSortBy!
@@ -138,10 +138,10 @@ input CategoryCreateInput {
   parentId: ID
 
   """Optional description."""
-  description: DescriptionInput
+  description: RichTextInput
 
   """Optional short excerpt."""
-  excerpt: DescriptionInput
+  excerpt: RichTextInput
 
   """SEO metadata."""
   seo: SeoInput
@@ -167,10 +167,10 @@ input CategoryUpdateInput {
   name: String
 
   """The category description."""
-  description: DescriptionInput
+  description: RichTextInput
 
   """The short category excerpt."""
-  excerpt: DescriptionInput
+  excerpt: RichTextInput
 
   """SEO metadata."""
   seo: SeoInput

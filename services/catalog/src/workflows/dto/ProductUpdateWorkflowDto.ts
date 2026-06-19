@@ -1,7 +1,7 @@
 import type { UserError } from "../../scripts/types/ScriptResult.js";
-import type { DescriptionInput } from "../../scripts/product/dto/shared.js";
+import type { RichTextInput } from "../../scripts/product/dto/shared.js";
 
-export type { DescriptionInput };
+export type { RichTextInput };
 
 /**
  * Input for ProductUpdateWorkflow.
@@ -46,8 +46,8 @@ export interface ProductUpdateParams {
 }
 
 export interface ProductContentParams {
-  description?: DescriptionInput;
-  excerpt?: DescriptionInput;
+  description?: RichTextInput | null;
+  excerpt?: RichTextInput | null;
 }
 
 export interface ProductSeoParams {

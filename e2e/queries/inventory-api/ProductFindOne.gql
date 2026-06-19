@@ -9,6 +9,16 @@ query ProductFindOne($id: ID!) {
       updatedAt
       deletedAt
       title
+      description {
+        text
+        html
+        json
+      }
+      excerpt {
+        text
+        html
+        json
+      }
       variantsCount
       variants(first: 10) {
         edges {

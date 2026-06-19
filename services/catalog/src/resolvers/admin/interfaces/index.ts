@@ -49,14 +49,14 @@ export type VariantPriceHistory = TypeResult<typeof VariantPriceResolver>;
 // --- Product ---
 
 /**
- * Product description in multiple formats
+ * Rich text content in multiple formats
  */
-export interface Description {
-  /** Plain text description */
+export interface RichText {
+  /** Plain text content */
   text: string;
-  /** HTML description */
+  /** HTML content */
   html: string;
-  /** EditorJS JSON description */
+  /** EditorJS JSON content */
   json: unknown;
 }
 

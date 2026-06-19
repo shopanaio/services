@@ -1,4 +1,4 @@
-import type { ProductWithVariants, ProductResultBase, DescriptionInput } from "./shared.js";
+import type { ProductWithVariants, ProductResultBase, RichTextInput } from "./shared.js";
 
 /**
  * Input for creating a product option value
@@ -41,8 +41,8 @@ export interface InventoryItemCreateInput {
 export interface ProductCreateParams {
   readonly title: string;
   readonly handle: string;
-  readonly description?: DescriptionInput;
-  readonly excerpt?: DescriptionInput;
+  readonly description?: RichTextInput | null;
+  readonly excerpt?: RichTextInput | null;
 
   /** File IDs for product media (already uploaded) */
   readonly mediaFileIds?: string[];

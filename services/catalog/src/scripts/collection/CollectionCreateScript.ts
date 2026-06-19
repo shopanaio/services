@@ -1,5 +1,9 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
 import type { CollectionCreateParams, CollectionResult } from "./dto/index.js";
+import {
+  serializeRichTextJsonText,
+  toRichTextStorage,
+} from "../shared/richText.js";
 
 const ALLOWED_SORTS = new Set(["manual", "price", "newest", "name"]);
 const HANDLE_REGEX = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
@@ -71,14 +75,16 @@ export class CollectionCreateScript extends BaseScript<
       publishedAt: params.publish ? new Date().toISOString() : null,
     });
 
+    const excerptStorage = toRichTextStorage(params.excerpt);
     await this.repository.collection.upsertTranslation({
       collectionId: collection.id,
       name: params.name,
       descriptionText: params.description?.text ?? null,
       descriptionHtml: params.description?.html ?? null,
-      descriptionJson: params.description?.json
-        ? JSON.stringify(params.description.json)
-        : null,
+      descriptionJson: serializeRichTextJsonText(params.description?.json),
+      excerptText: excerptStorage.text,
+      excerptHtml: excerptStorage.html,
+      excerptJson: serializeRichTextJsonText(excerptStorage.json),
     });
 
     if (params.seo) {

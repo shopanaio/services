@@ -1,4 +1,4 @@
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, sql } from "drizzle-orm";
 import type { TransactionManager } from "@shopana/shared-kernel";
 import type { Database } from "../../infrastructure/db/database.js";
 import { getContext } from "../../context/index.js";
@@ -81,7 +81,9 @@ export class TranslationRepository {
           descriptionText: data.descriptionText,
           descriptionHtml: data.descriptionHtml,
           descriptionJson: data.descriptionJson,
-          excerpt: data.excerpt,
+          excerptText: data.excerptText,
+          excerptHtml: data.excerptHtml,
+          excerptJson: data.excerptJson,
         },
       })
       .returning();
@@ -100,11 +102,13 @@ export class TranslationRepository {
       .onConflictDoUpdate({
         target: [productTranslation.productId, productTranslation.locale],
         set: {
-          title: productTranslation.title,
-          descriptionText: productTranslation.descriptionText,
-          descriptionHtml: productTranslation.descriptionHtml,
-          descriptionJson: productTranslation.descriptionJson,
-          excerpt: productTranslation.excerpt,
+          title: sql`excluded.title`,
+          descriptionText: sql`excluded.description_text`,
+          descriptionHtml: sql`excluded.description_html`,
+          descriptionJson: sql`excluded.description_json`,
+          excerptText: sql`excluded.excerpt_text`,
+          excerptHtml: sql`excluded.excerpt_html`,
+          excerptJson: sql`excluded.excerpt_json`,
         },
       })
       .returning();

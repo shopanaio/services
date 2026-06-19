@@ -9,6 +9,11 @@ query CategoryFindOne($id: ID!) {
         text
         json
       }
+      excerpt {
+        html
+        text
+        json
+      }
       defaultSort
       defaultSortDirection
       depth

@@ -3,8 +3,8 @@ type Collection implements Node @key(fields: "id") {
   handle: String
   type: CollectionType!
   name: String!
-  description: Description
-  excerpt: Description
+  description: RichText
+  excerpt: RichText
   media: [CollectionMediaItem!]!
   seo: Seo
   defaultSort: ProductSortBy!
@@ -77,8 +77,8 @@ input CollectionCreateInput {
   handle: String
   type: CollectionType!
   name: String!
-  description: DescriptionInput
-  excerpt: DescriptionInput
+  description: RichTextInput
+  excerpt: RichTextInput
   media: [CollectionMediaInput!]
   seo: SeoInput
   defaultSort: ProductSortBy
@@ -92,8 +92,8 @@ input CollectionUpdateInput {
   id: ID!
   handle: String
   name: String
-  description: DescriptionInput
-  excerpt: DescriptionInput
+  description: RichTextInput
+  excerpt: RichTextInput
   media: [CollectionMediaInput!]
   seo: SeoInput
   defaultSort: ProductSortBy

@@ -7,7 +7,7 @@ import type {
 } from "@/graphql/types";
 import {
   createMockApiCategory,
-  createMockApiDescription,
+  createMockApiRichText,
   createMockApiFile,
   createMockApiInventoryItem,
   createMockApiInventoryItemCost,
@@ -243,20 +243,20 @@ const mockVariableProductDescriptionJson = {
   ],
 };
 
-const simpleProductDescription = createMockApiDescription({
+const simpleProductDescription = createMockApiRichText({
   json: mockSimpleProductDescriptionJson,
   text: "Premium quality cotton t-shirt with a modern fit. Perfect for everyday wear. Crafted from the finest organic cotton, this t-shirt offers exceptional comfort and durability. Features: 100% organic cotton, Pre-shrunk fabric, Reinforced seams, Machine washable. Available in multiple colors and sizes. Order now and experience the comfort of premium cotton.",
   html: "<p>Premium quality cotton t-shirt with a modern fit. Perfect for everyday wear. Crafted from the finest organic cotton, this t-shirt offers exceptional comfort and durability.</p><h3>Features</h3><ul><li>100% organic cotton</li><li>Pre-shrunk fabric</li><li>Reinforced seams</li><li>Machine washable</li></ul><p>Available in multiple colors and sizes. Order now and experience the comfort of premium cotton.</p>",
 });
 
-const variableProductDescription = createMockApiDescription({
+const variableProductDescription = createMockApiRichText({
   json: mockVariableProductDescriptionJson,
   text: 'The most advanced smartphone ever. Featuring cutting-edge technology and premium titanium design that sets new standards in mobile innovation. Key Features: 6.7" Super Retina XDR display with ProMotion technology, A17 Pro chip with 6-core GPU for unprecedented performance, 48MP main camera system with advanced computational photography, All-day battery life with fast charging support, Premium titanium design - lightest Pro model ever. Available in Natural, Blue, White, and Black titanium finishes.',
   html: '<p>The most advanced smartphone ever. Featuring cutting-edge technology and premium titanium design that sets new standards in mobile innovation.</p><h3>Key Features</h3><ul><li>6.7" Super Retina XDR display with ProMotion technology</li><li>A17 Pro chip with 6-core GPU for unprecedented performance</li><li>48MP main camera system with advanced computational photography</li><li>All-day battery life with fast charging support</li><li>Premium titanium design - lightest Pro model ever</li></ul><p>Available in Natural, Blue, White, and Black titanium finishes. Choose your storage capacity and get ready for the future of mobile technology.</p>',
 });
 
 const createExcerptDescription = (id: string, text: string) =>
-  createMockApiDescription({
+  createMockApiRichText({
     json: {
       time: 1718380800000,
       version: "2.29.0",

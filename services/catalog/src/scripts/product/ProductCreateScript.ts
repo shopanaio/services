@@ -7,6 +7,10 @@ import type {
 } from "./dto/index.js";
 import type { Variant } from "../../repositories/models/index.js";
 import type { VariantMediaEntry } from "./dto/index.js";
+import {
+  serializeRichTextJson,
+  toRichTextStorage,
+} from "../shared/richText.js";
 
 export class ProductCreateScript extends BaseScript<
   ProductCreateParams,
@@ -29,6 +33,7 @@ export class ProductCreateScript extends BaseScript<
     // 1. Create product with handle
     const product = await this.repository.product.create({});
     await this.repository.product.update(product.id, { handle });
+    const excerptStorage = toRichTextStorage(excerpt);
 
     // 2. Create product translation (title, description)
     await this.repository.translation.upsertProductTranslation({
@@ -38,8 +43,10 @@ export class ProductCreateScript extends BaseScript<
       title,
       descriptionText: description?.text ?? null,
       descriptionHtml: description?.html ?? null,
-      descriptionJson: description?.json ?? null,
-      excerpt: excerpt?.text ?? null,
+      descriptionJson: serializeRichTextJson(description?.json),
+      excerptText: excerptStorage.text,
+      excerptHtml: excerptStorage.html,
+      excerptJson: excerptStorage.json,
     });
 
     let createdVariants: Variant[] = [];

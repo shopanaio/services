@@ -42,7 +42,9 @@ export class ProductUpdateScript extends BaseScript<ProductUpdateParams, Product
           descriptionText: existingTranslation?.descriptionText ?? null,
           descriptionHtml: existingTranslation?.descriptionHtml ?? null,
           descriptionJson: existingTranslation?.descriptionJson ?? null,
-          excerpt: existingTranslation?.excerpt ?? null,
+          excerptText: existingTranslation?.excerptText ?? null,
+          excerptHtml: existingTranslation?.excerptHtml ?? null,
+          excerptJson: existingTranslation?.excerptJson ?? null,
         });
         changes.title = title;
       }

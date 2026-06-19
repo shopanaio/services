@@ -305,7 +305,11 @@ export async function seedProducts(
               text: productData.description,
             },
 
-            excerpt: '',
+            excerpt: {
+              html: '',
+              json: { blocks: [] },
+              text: '',
+            },
             groups: [],
             tags: tagIds,
             variants: {

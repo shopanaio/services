@@ -1,7 +1,11 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
 import type { ProductUpdateContentParams, ProductUpdateContentResult } from "./dto/ProductUpdateContentDto.js";
-import type { ContentChanges } from "../types/index.js";
+import type { ContentChanges, RichTextChange } from "../types/index.js";
 import { singleError } from "../types/index.js";
+import {
+  stableRichTextValue,
+  toRichTextStorage,
+} from "../shared/richText.js";
 
 /**
  * ProductUpdateContentScript handles product content: description and excerpt.
@@ -25,18 +29,34 @@ export class ProductUpdateContentScript extends BaseScript<ProductUpdateContentP
     // Track what actually changed
     const changes: ContentChanges = {};
 
-    // Compare description (using text representation for comparison)
-    const newDescriptionText = description?.text ?? null;
-    const currentDescriptionText = existingTranslation?.descriptionText ?? null;
-    if (description !== undefined && newDescriptionText !== currentDescriptionText) {
-      changes.description = newDescriptionText;
+    const currentDescription = {
+      text: existingTranslation?.descriptionText ?? null,
+      html: existingTranslation?.descriptionHtml ?? null,
+      json: existingTranslation?.descriptionJson ?? null,
+    };
+    const currentExcerpt = {
+      text: existingTranslation?.excerptText ?? null,
+      html: existingTranslation?.excerptHtml ?? null,
+      json: existingTranslation?.excerptJson ?? null,
+    };
+
+    const nextDescription =
+      description === undefined ? currentDescription : toRichTextStorage(description);
+    const nextExcerpt =
+      excerpt === undefined ? currentExcerpt : toRichTextStorage(excerpt);
+
+    if (
+      description !== undefined &&
+      stableRichTextValue(nextDescription) !== stableRichTextValue(currentDescription)
+    ) {
+      changes.description = toChangePayload(description);
     }
 
-    // Compare excerpt
-    const newExcerpt = excerpt?.text ?? null;
-    const currentExcerpt = existingTranslation?.excerpt ?? null;
-    if (excerpt !== undefined && newExcerpt !== currentExcerpt) {
-      changes.excerpt = newExcerpt;
+    if (
+      excerpt !== undefined &&
+      stableRichTextValue(nextExcerpt) !== stableRichTextValue(currentExcerpt)
+    ) {
+      changes.excerpt = toChangePayload(excerpt);
     }
 
     // 3. Update if changes detected
@@ -47,10 +67,12 @@ export class ProductUpdateContentScript extends BaseScript<ProductUpdateContentP
         productId: id,
         locale,
         title: existingTranslation?.title ?? "",
-        descriptionText: description?.text ?? existingTranslation?.descriptionText ?? null,
-        descriptionHtml: description?.html ?? existingTranslation?.descriptionHtml ?? null,
-        descriptionJson: description?.json ?? existingTranslation?.descriptionJson ?? null,
-        excerpt: excerpt?.text ?? existingTranslation?.excerpt ?? null,
+        descriptionText: nextDescription.text,
+        descriptionHtml: nextDescription.html,
+        descriptionJson: nextDescription.json,
+        excerptText: nextExcerpt.text,
+        excerptHtml: nextExcerpt.html,
+        excerptJson: nextExcerpt.json,
       });
 
       await this.repository.product.touch(id);
@@ -78,4 +100,18 @@ export class ProductUpdateContentScript extends BaseScript<ProductUpdateContentP
       userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR" }],
     };
   }
+}
+
+function toChangePayload(
+  value: ProductUpdateContentParams["description"]
+): RichTextChange | null {
+  if (!value) {
+    return null;
+  }
+
+  return {
+    text: value.text,
+    html: value.html,
+    json: value.json,
+  };
 }

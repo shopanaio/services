@@ -12,7 +12,7 @@ import { mockCategories } from "./categories";
 import { mockTags } from "./tags";
 import { createMockData as createAttributesMockData } from "./attributes";
 import { productDetailsMockData } from "./product-details";
-import type { ApiCategory, ApiDescription, ApiFile, ApiTag, FileProvider } from "@/graphql/types";
+import type { ApiCategory, ApiFile, ApiRichText, ApiTag, FileProvider } from "@/graphql/types";
 
 const generateId = (): string => Math.random().toString(36).substring(2, 11);
 
@@ -45,12 +45,12 @@ const createApiFile = (name: string, index: number = 0): ApiFile => ({
   },
 });
 
-const createApiDescription = (
+const createApiRichText = (
   json: Record<string, unknown>,
   text: string,
   html: string,
-): ApiDescription => ({
-  __typename: "Description",
+): ApiRichText => ({
+  __typename: "RichText",
   json,
   text,
   html,
@@ -100,7 +100,7 @@ const bundleDescriptionJson = {
   ],
 };
 
-const bundleDescriptionApi = createApiDescription(
+const bundleDescriptionApi = createApiRichText(
   bundleDescriptionJson as Record<string, unknown>,
   "Everything you need to start your photography journey. This bundle includes a professional-grade camera body, two versatile lenses, and essential accessories. What's Included: Camera Body with 24.2MP sensor, 18-55mm Kit Lens, 55-200mm Telephoto Lens, Camera bag, 32GB SD card, Cleaning kit. Save 25% compared to buying items individually.",
   '<p>Everything you need to start your photography journey. This bundle includes a professional-grade camera body, two versatile lenses, and essential accessories — all at a special bundle price.</p><h3>What\'s Included</h3><ul><li>Camera Body with 24.2MP sensor</li><li>18-55mm Kit Lens</li><li>55-200mm Telephoto Lens</li><li>Camera bag with padded dividers</li><li>32GB SD card</li><li>Cleaning kit</li></ul><p>Save 25% compared to buying items individually. Perfect gift for aspiring photographers.</p>',

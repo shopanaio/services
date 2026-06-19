@@ -10,6 +10,11 @@ mutation CategoryCreate($input: CategoryCreateInput!) {
           text
           json
         }
+        excerpt {
+          html
+          text
+          json
+        }
         defaultSort
         defaultSortDirection
         depth

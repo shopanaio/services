@@ -1,5 +1,9 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import type { CategoryUpdateParams, CategoryUpdateResult } from "./dto/index.js";
+import {
+  serializeRichTextJsonText,
+  toRichTextStorage,
+} from "../shared/richText.js";
 
 const ALLOWED_SORTS = new Set(["manual", "price", "newest", "name"]);
 const ALLOWED_DIRECTIONS = new Set(["asc", "desc"]);
@@ -19,6 +23,7 @@ export class CategoryUpdateScript extends BaseScript<
       defaultSortDirection,
       name,
       description,
+      excerpt,
       seo,
       mediaFileIds,
     } = params;
@@ -79,26 +84,51 @@ export class CategoryUpdateScript extends BaseScript<
       });
     }
 
-    // 4. Update translation if name or description provided
-    if (name !== undefined || description !== undefined) {
+    // 4. Update translation if content fields are provided
+    if (
+      name !== undefined ||
+      description !== undefined ||
+      excerpt !== undefined
+    ) {
       // Get existing translation
       const translations = await this.repository.category.getTranslationsByCategoryIds([id]);
       const existingTranslation = translations.find(
         (t) => t.locale === this.getLocale()
       );
+      const nextDescription =
+        description === undefined
+          ? {
+              text: existingTranslation?.descriptionText ?? null,
+              html: existingTranslation?.descriptionHtml ?? null,
+              json: existingTranslation?.descriptionJson ?? null,
+            }
+          : toRichTextStorage(description);
+      const nextExcerpt =
+        excerpt === undefined
+          ? {
+              text: existingTranslation?.excerptText ?? null,
+              html: existingTranslation?.excerptHtml ?? null,
+              json: existingTranslation?.excerptJson ?? null,
+            }
+          : toRichTextStorage(excerpt);
 
       await this.repository.category.upsertTranslation({
         projectId: this.getProjectId(),
         categoryId: id,
         locale: this.getLocale(),
         name: name ?? existingTranslation?.name ?? "",
-        descriptionText: description?.text ?? existingTranslation?.descriptionText ?? null,
-        descriptionHtml: description?.html ?? existingTranslation?.descriptionHtml ?? null,
-        descriptionJson: description?.json
-          ? JSON.stringify(description.json)
-          : description === null
-          ? null
-          : existingTranslation?.descriptionJson ?? null,
+        descriptionText: nextDescription.text,
+        descriptionHtml: nextDescription.html,
+        descriptionJson:
+          description === undefined
+            ? (nextDescription.json as string | null)
+            : serializeRichTextJsonText(nextDescription.json as Record<string, unknown> | null),
+        excerptText: nextExcerpt.text,
+        excerptHtml: nextExcerpt.html,
+        excerptJson:
+          excerpt === undefined
+            ? (nextExcerpt.json as string | null)
+            : serializeRichTextJsonText(nextExcerpt.json as Record<string, unknown> | null),
       });
     }
 

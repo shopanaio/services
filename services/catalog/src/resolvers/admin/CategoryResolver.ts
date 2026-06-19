@@ -3,10 +3,11 @@ import {
   encodeGlobalIdByType,
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
-import type { Description } from "./interfaces/index.js";
+import type { RichText } from "./interfaces/index.js";
 import type { Category } from "../../repositories/models/index.js";
 import { CatalogType } from "./CatalogType.js";
 import { SeoResolver } from "./SeoResolver.js";
+import { toRichText } from "./helpers/richText.js";
 import {
   CategoryProductConnectionResolver,
   type CategoryProductConnectionInput,
@@ -87,26 +88,26 @@ export class CategoryResolver extends CatalogType<string, Category> {
   /**
    * Returns the translated description for this category
    */
-  async description(): Promise<Description | null> {
+  async description(): Promise<RichText | null> {
     const translation = await this.$ctx.loaders.categoryTranslation.load(
       this.$props
     );
-    if (!translation) return null;
-
-    return {
-      text: translation.descriptionText ?? "",
-      html: translation.descriptionHtml ?? "",
-      json: translation.descriptionJson ?? {},
-    };
+    return toRichText(translation && {
+      text: translation.descriptionText,
+      html: translation.descriptionHtml,
+      json: translation.descriptionJson,
+    });
   }
 
-  async excerpt(): Promise<Description> {
-    // TODO: Store category excerpt text/html/json and resolve it from translations.
-    return {
-      text: "",
-      html: "",
-      json: {},
-    };
+  async excerpt(): Promise<RichText | null> {
+    const translation = await this.$ctx.loaders.categoryTranslation.load(
+      this.$props
+    );
+    return toRichText(translation && {
+      text: translation.excerptText,
+      html: translation.excerptHtml,
+      json: translation.excerptJson,
+    });
   }
 
   /**

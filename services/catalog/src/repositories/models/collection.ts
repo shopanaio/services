@@ -83,6 +83,9 @@ export const collectionTranslation = catalogSchema.table(
     descriptionText: text("description_text"),
     descriptionHtml: text("description_html"),
     descriptionJson: text("description_json"),
+    excerptText: text("excerpt_text"),
+    excerptHtml: text("excerpt_html"),
+    excerptJson: text("excerpt_json"),
   },
   (table) => [
     primaryKey({ columns: [table.collectionId, table.locale] }),

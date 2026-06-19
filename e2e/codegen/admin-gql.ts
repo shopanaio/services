@@ -1283,7 +1283,9 @@ export type ApiCategory = ApiNode & {
   /** The depth of this category in the hierarchy (0 for root). */
   depth: Scalars['Int']['output'];
   /** The category description. */
-  description?: Maybe<ApiDescription>;
+  description?: Maybe<ApiRichText>;
+  /** Short category excerpt. */
+  excerpt?: Maybe<ApiRichText>;
   /** The URL-friendly handle for the category. */
   handle: Scalars['String']['output'];
   /** The globally unique ID of the category. */
@@ -1346,7 +1348,9 @@ export type ApiCategoryConnection = {
 /** Input for creating a category. */
 export type ApiCategoryCreateInput = {
   /** Optional description. */
-  description?: InputMaybe<ApiDescriptionInput>;
+  description?: InputMaybe<ApiRichTextInput>;
+  /** Optional short excerpt. */
+  excerpt?: InputMaybe<ApiRichTextInput>;
   /** The URL-friendly handle for the category. */
   handle: Scalars['String']['input'];
   /** File IDs for category media. */
@@ -1477,7 +1481,9 @@ export type ApiCategoryRebalancePayload = {
 /** Input for updating a category. */
 export type ApiCategoryUpdateInput = {
   /** The category description. */
-  description?: InputMaybe<ApiDescriptionInput>;
+  description?: InputMaybe<ApiRichTextInput>;
+  /** The short category excerpt. */
+  excerpt?: InputMaybe<ApiRichTextInput>;
   /** The URL-friendly handle for the category. */
   handle?: InputMaybe<Scalars['String']['input']>;
   /** The ID of the category to update. */
@@ -1518,7 +1524,8 @@ export type ApiCollection = ApiNode & {
   createdAt: Scalars['DateTime']['output'];
   defaultSort: ProductSortBy;
   defaultSortDirection: SortDirection;
-  description?: Maybe<ApiDescription>;
+  description?: Maybe<ApiRichText>;
+  excerpt?: Maybe<ApiRichText>;
   handle?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   isActive: Scalars['Boolean']['output'];
@@ -1566,7 +1573,8 @@ export type ApiCollectionCreateInput = {
   activeTo?: InputMaybe<Scalars['DateTime']['input']>;
   defaultSort?: InputMaybe<ProductSortBy>;
   defaultSortDirection?: InputMaybe<SortDirection>;
-  description?: InputMaybe<ApiDescriptionInput>;
+  description?: InputMaybe<ApiRichTextInput>;
+  excerpt?: InputMaybe<ApiRichTextInput>;
   handle?: InputMaybe<Scalars['String']['input']>;
   media?: InputMaybe<Array<ApiCollectionMediaInput>>;
   name: Scalars['String']['input'];
@@ -1679,7 +1687,8 @@ export type ApiCollectionUpdateInput = {
   activeTo?: InputMaybe<Scalars['DateTime']['input']>;
   defaultSort?: InputMaybe<ProductSortBy>;
   defaultSortDirection?: InputMaybe<SortDirection>;
-  description?: InputMaybe<ApiDescriptionInput>;
+  description?: InputMaybe<ApiRichTextInput>;
+  excerpt?: InputMaybe<ApiRichTextInput>;
   handle?: InputMaybe<Scalars['String']['input']>;
   id: Scalars['ID']['input'];
   media?: InputMaybe<Array<ApiCollectionMediaInput>>;
@@ -2726,27 +2735,6 @@ export enum DependencyTargetType {
   /** Target a specific bundle item */
   Item = 'ITEM'
 }
-
-/** Product description in multiple formats. */
-export type ApiDescription = {
-  __typename?: 'Description';
-  /** HTML description. */
-  html: Scalars['String']['output'];
-  /** EditorJS JSON description. */
-  json: Scalars['JSON']['output'];
-  /** Plain text description. */
-  text: Scalars['String']['output'];
-};
-
-/** Input for product description (all fields required). */
-export type ApiDescriptionInput = {
-  /** HTML description. */
-  html: Scalars['String']['input'];
-  /** EditorJS JSON description. */
-  json: Scalars['JSON']['input'];
-  /** Plain text description. */
-  text: Scalars['String']['input'];
-};
 
 /** Dimension (length) measurement units */
 export enum DimensionUnit {
@@ -4879,9 +4867,9 @@ export type ApiProduct = ApiNode & {
   /** The date and time when the product was deleted (soft delete). */
   deletedAt?: Maybe<Scalars['DateTime']['output']>;
   /** Product description. */
-  description?: Maybe<ApiDescription>;
+  description?: Maybe<ApiRichText>;
   /** Short excerpt. */
-  excerpt?: Maybe<Scalars['String']['output']>;
+  excerpt?: Maybe<ApiRichText>;
   /** The features of this product. */
   features: Array<ApiProductFeature>;
   /** The URL-friendly handle for the product. */
@@ -4990,15 +4978,17 @@ export type ApiProductConnection = {
 /** Input for product content (description, excerpt). */
 export type ApiProductContentInput = {
   /** Product description in multiple formats. */
-  description?: InputMaybe<ApiDescriptionInput>;
+  description?: InputMaybe<ApiRichTextInput>;
   /** Short excerpt. */
-  excerpt?: InputMaybe<Scalars['String']['input']>;
+  excerpt?: InputMaybe<ApiRichTextInput>;
 };
 
 /** Input for creating a product with all its data in one request. */
 export type ApiProductCreateInput = {
   /** Product description. */
-  description?: InputMaybe<ApiDescriptionInput>;
+  description?: InputMaybe<ApiRichTextInput>;
+  /** Short excerpt in multiple formats. */
+  excerpt?: InputMaybe<ApiRichTextInput>;
   /** URL-friendly handle for the product. */
   handle: Scalars['String']['input'];
   /** Inventory tracking settings for the product. */
@@ -5622,6 +5612,27 @@ export type ApiResourceDefinition = {
   displayName?: Maybe<Scalars['String']['output']>;
   /** Resource name (product, order, etc.). */
   name: Scalars['String']['output'];
+};
+
+/** Rich text content in multiple formats. */
+export type ApiRichText = {
+  __typename?: 'RichText';
+  /** HTML content. */
+  html: Scalars['String']['output'];
+  /** EditorJS JSON content. */
+  json: Scalars['JSON']['output'];
+  /** Plain text content. */
+  text: Scalars['String']['output'];
+};
+
+/** Input for rich text content (all fields required). */
+export type ApiRichTextInput = {
+  /** HTML content. */
+  html: Scalars['String']['input'];
+  /** EditorJS JSON content. */
+  json: Scalars['JSON']['input'];
+  /** Plain text content. */
+  text: Scalars['String']['input'];
 };
 
 /** Role with permissions - universal, can be assigned at any level. */

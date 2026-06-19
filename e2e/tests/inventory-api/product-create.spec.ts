@@ -33,7 +33,7 @@ test.describe('Product Create API', () => {
     expect(variantEdges[0].node.isDefault).toBe(true);
   });
 
-  test('should create a product with description', async ({ api }) => {
+  test('should create a product with rich-text description and excerpt', async ({ api }) => {
     const input = {
       title: 'Product With Description',
       handle: 'product-with-description',
@@ -42,6 +42,13 @@ test.describe('Product Create API', () => {
         text: 'This is a test product description',
         json: {
           blocks: [{ type: 'paragraph', data: { text: 'This is a test product description' } }],
+        },
+      },
+      excerpt: {
+        html: '<p>Short <em>test</em> excerpt</p>',
+        text: 'Short test excerpt',
+        json: {
+          blocks: [{ type: 'paragraph', data: { text: 'Short test excerpt' } }],
         },
       },
     };
@@ -61,6 +68,9 @@ test.describe('Product Create API', () => {
     expect(product.description.html).toBe(input.description.html);
     expect(product.description.text).toBe(input.description.text);
     expect(product.description.json).toEqual(input.description.json);
+    expect(product.excerpt.html).toBe(input.excerpt.html);
+    expect(product.excerpt.text).toBe(input.excerpt.text);
+    expect(product.excerpt.json).toEqual(input.excerpt.json);
   });
 
   test('should create a product with options and variants', async ({ api }) => {
@@ -192,6 +202,11 @@ test.describe('Product Create API', () => {
         text: 'Full featured product',
         json: { blocks: [] },
       },
+      excerpt: {
+        html: '<p>Full featured excerpt</p>',
+        text: 'Full featured excerpt',
+        json: { blocks: [{ type: 'paragraph', data: { text: 'Full featured excerpt' } }] },
+      },
       options: [
         {
           name: 'Color',
@@ -221,6 +236,9 @@ test.describe('Product Create API', () => {
     expect(product.handle).toBe(input.handle);
     expect(product.description.html).toBe(input.description.html);
     expect(product.description.text).toBe(input.description.text);
+    expect(product.excerpt.html).toBe(input.excerpt.html);
+    expect(product.excerpt.text).toBe(input.excerpt.text);
+    expect(product.excerpt.json).toEqual(input.excerpt.json);
     expect(product.options).toHaveLength(1);
     expect(product.options[0].name).toBe(input.options[0].name);
     expect(product.options[0].slug).toBe(input.options[0].slug);

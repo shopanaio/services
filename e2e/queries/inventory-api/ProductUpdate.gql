@@ -18,7 +18,11 @@ mutation ProductUpdate($productId: ID!, $expectedRevision: Int, $operations: Pro
           html
           json
         }
-        excerpt
+        excerpt {
+          text
+          html
+          json
+        }
         seo {
           seoTitle
           seoDescription

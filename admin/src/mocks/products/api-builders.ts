@@ -10,7 +10,6 @@ import {
   type ApiCategory,
   type ApiCategoryConnection,
   type ApiCategoryProductConnection,
-  type ApiDescription,
   type ApiFile,
   type ApiInventoryItem,
   type ApiInventoryItemCost,
@@ -25,6 +24,7 @@ import {
   type ApiProductOptionSwatch,
   type ApiProductOptionValue,
   type ApiProductSeo,
+  type ApiRichText,
   type ApiSelectedOption,
   type ApiTag,
   type ApiTagConnection,
@@ -50,12 +50,12 @@ export const createMockPageInfo = (
   ...overrides,
 });
 
-export const createMockApiDescription = (params: {
+export const createMockApiRichText = (params: {
   json: Record<string, unknown>;
   text: string;
   html: string;
-}): ApiDescription => ({
-  __typename: "Description",
+}): ApiRichText => ({
+  __typename: "RichText",
   json: params.json,
   text: params.text,
   html: params.html,
@@ -351,7 +351,8 @@ export const createMockApiCategory = (params: {
   id: string;
   name: string;
   handle: string;
-  description?: ApiDescription | null;
+  description?: ApiRichText | null;
+  excerpt?: ApiRichText | null;
   media?: ApiCategory["media"];
   isPublished?: boolean;
   parent?: ApiCategory | null;
@@ -367,6 +368,7 @@ export const createMockApiCategory = (params: {
   name: params.name,
   handle: params.handle,
   description: params.description ?? null,
+  excerpt: params.excerpt ?? null,
   media: params.media ?? [],
   isPublished: params.isPublished ?? true,
   parent: params.parent ?? null,
@@ -472,8 +474,8 @@ export const createMockApiProduct = (params: {
   title: string;
   handle?: string | null;
   isPublished: boolean;
-  description?: ApiDescription | null;
-  excerpt?: ApiDescription | null;
+  description?: ApiRichText | null;
+  excerpt?: ApiRichText | null;
   seo?: ApiProductSeo | null;
   variants: ApiVariant[];
   options: ApiProductOption[];

@@ -19,30 +19,30 @@ input ProductOrderByInput {
 # ---- Product Types ----
 
 """
-Product description in multiple formats.
+Rich text content in multiple formats.
 """
-type Description {
-  """Plain text description."""
+type RichText {
+  """Plain text content."""
   text: String!
 
-  """HTML description."""
+  """HTML content."""
   html: String!
 
-  """EditorJS JSON description."""
+  """EditorJS JSON content."""
   json: JSON!
 }
 
 """
-Input for product description (all fields required).
+Input for rich text content (all fields required).
 """
-input DescriptionInput {
-  """Plain text description."""
+input RichTextInput {
+  """Plain text content."""
   text: String!
 
-  """HTML description."""
+  """HTML content."""
   html: String!
 
-  """EditorJS JSON description."""
+  """EditorJS JSON content."""
   json: JSON!
 }
 
@@ -101,10 +101,10 @@ type Product implements Node @key(fields: "id") {
   title: String!
 
   """Product description."""
-  description: Description
+  description: RichText
 
   """Short excerpt."""
-  excerpt: Description
+  excerpt: RichText
 
   """SEO and Open Graph metadata."""
   seo: ProductSeo
@@ -210,10 +210,10 @@ input ProductCreateInput {
   handle: String!
 
   """Product description."""
-  description: DescriptionInput
+  description: RichTextInput
 
   """Short excerpt in multiple formats."""
-  excerpt: DescriptionInput
+  excerpt: RichTextInput
 
   """File IDs for product media (already uploaded via mediaMutation.fileUpload)."""
   mediaFileIds: [ID!]
@@ -291,10 +291,10 @@ Input for product content (description, excerpt).
 """
 input ProductContentInput {
   """Product description in multiple formats."""
-  description: DescriptionInput
+  description: RichTextInput
 
   """Short excerpt."""
-  excerpt: DescriptionInput
+  excerpt: RichTextInput
 }
 
 """

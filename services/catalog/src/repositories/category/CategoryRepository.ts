@@ -796,6 +796,9 @@ export class CategoryRepository {
     descriptionText?: string | null;
     descriptionHtml?: string | null;
     descriptionJson?: string | null;
+    excerptText?: string | null;
+    excerptHtml?: string | null;
+    excerptJson?: string | null;
   }): Promise<CategoryTranslation> {
     const result = await this.connection
       .insert(categoryTranslation)
@@ -807,6 +810,9 @@ export class CategoryRepository {
         descriptionText: data.descriptionText ?? null,
         descriptionHtml: data.descriptionHtml ?? null,
         descriptionJson: data.descriptionJson ?? null,
+        excerptText: data.excerptText ?? null,
+        excerptHtml: data.excerptHtml ?? null,
+        excerptJson: data.excerptJson ?? null,
       })
       .onConflictDoUpdate({
         target: [categoryTranslation.categoryId, categoryTranslation.locale],
@@ -815,6 +821,9 @@ export class CategoryRepository {
           descriptionText: data.descriptionText ?? null,
           descriptionHtml: data.descriptionHtml ?? null,
           descriptionJson: data.descriptionJson ?? null,
+          excerptText: data.excerptText ?? null,
+          excerptHtml: data.excerptHtml ?? null,
+          excerptJson: data.excerptJson ?? null,
         },
       })
       .returning();

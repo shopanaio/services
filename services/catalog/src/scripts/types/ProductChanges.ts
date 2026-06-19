@@ -28,12 +28,18 @@ export interface ProductFieldChanges {
   media?: MediaChanges;
 }
 
+export interface RichTextChange {
+  text: string | null;
+  html: string | null;
+  json: unknown | null;
+}
+
 /**
  * Product content changes (description, excerpt).
  */
 export interface ContentChanges {
-  description?: string | null;
-  excerpt?: string | null;
+  description?: RichTextChange | null;
+  excerpt?: RichTextChange | null;
 }
 
 /**

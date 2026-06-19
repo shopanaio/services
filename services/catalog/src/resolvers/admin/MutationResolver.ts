@@ -149,7 +149,7 @@ import type {
   ProductFeatureDeleteInput,
   ProductFeaturesSyncInput,
   CatalogMutationProductUpdateArgs,
-  DescriptionInput,
+  RichTextInput,
 } from "./generated/types.js";
 import {
   ProductCreateInputSchema,
@@ -210,8 +210,8 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     const sagaInput: ProductCreateParams = {
       title: input.title,
       handle: input.handle,
-      description: mapDescriptionInput(input.description),
-      excerpt: mapDescriptionInput(input.excerpt),
+      description: mapRichTextInput(input.description),
+      excerpt: mapRichTextInput(input.excerpt),
       mediaFileIds,
       options: input.options?.map((opt) => ({
         name: opt.name,
@@ -322,8 +322,8 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
           title: operations.title ?? undefined,
           content: operations.content
             ? {
-                description: mapDescriptionInput(operations.content.description),
-                excerpt: mapDescriptionInput(operations.content.excerpt),
+                description: mapRichTextInput(operations.content.description),
+                excerpt: mapRichTextInput(operations.content.excerpt),
               }
             : undefined,
           seo: operations.seo
@@ -908,6 +908,11 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         html?: string | null;
         json?: unknown | null;
       } | null;
+      excerpt?: {
+        text?: string | null;
+        html?: string | null;
+        json?: unknown | null;
+      } | null;
       seo?: {
         seoTitle?: string | null;
         seoDescription?: string | null;
@@ -935,9 +940,16 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       parentId,
       description: input.description
         ? {
-            text: input.description.text ?? undefined,
-            html: input.description.html ?? undefined,
-            json: input.description.json as Record<string, unknown> | undefined,
+            text: input.description.text ?? "",
+            html: input.description.html ?? "",
+            json: (input.description.json ?? {}) as Record<string, unknown>,
+          }
+        : undefined,
+      excerpt: input.excerpt
+        ? {
+            text: input.excerpt.text ?? "",
+            html: input.excerpt.html ?? "",
+            json: (input.excerpt.json ?? {}) as Record<string, unknown>,
           }
         : undefined,
       seo: input.seo
@@ -978,6 +990,11 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         html?: string | null;
         json?: unknown | null;
       } | null;
+      excerpt?: {
+        text?: string | null;
+        html?: string | null;
+        json?: unknown | null;
+      } | null;
       seo?: {
         seoTitle?: string | null;
         seoDescription?: string | null;
@@ -1013,11 +1030,21 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         ? null
         : input.description
         ? {
-            text: input.description.text ?? undefined,
-            html: input.description.html ?? undefined,
-            json: input.description.json as Record<string, unknown> | undefined,
+            text: input.description.text ?? "",
+            html: input.description.html ?? "",
+            json: (input.description.json ?? {}) as Record<string, unknown>,
           }
         : undefined,
+      excerpt:
+        input.excerpt === null
+          ? null
+          : input.excerpt
+          ? {
+              text: input.excerpt.text ?? "",
+              html: input.excerpt.html ?? "",
+              json: (input.excerpt.json ?? {}) as Record<string, unknown>,
+            }
+          : undefined,
       seo:
         input.seo === null
           ? null
@@ -1573,6 +1600,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       type: "MANUAL" | "RULE";
       name: string;
       description?: { text?: string | null; html?: string | null; json?: unknown | null } | null;
+      excerpt?: { text?: string | null; html?: string | null; json?: unknown | null } | null;
       media?: Array<{ fileId: string; sortIndex?: number | null }> | null;
       seo?: {
         seoTitle?: string | null;
@@ -1597,9 +1625,16 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       name: args.input.name,
       description: args.input.description
         ? {
-            text: args.input.description.text ?? undefined,
-            html: args.input.description.html ?? undefined,
-            json: args.input.description.json as Record<string, unknown> | undefined,
+            text: args.input.description.text ?? "",
+            html: args.input.description.html ?? "",
+            json: (args.input.description.json ?? {}) as Record<string, unknown>,
+          }
+        : undefined,
+      excerpt: args.input.excerpt
+        ? {
+            text: args.input.excerpt.text ?? "",
+            html: args.input.excerpt.html ?? "",
+            json: (args.input.excerpt.json ?? {}) as Record<string, unknown>,
           }
         : undefined,
       mediaFileIds,
@@ -1643,6 +1678,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       handle?: string | null;
       name?: string | null;
       description?: { text?: string | null; html?: string | null; json?: unknown | null } | null;
+      excerpt?: { text?: string | null; html?: string | null; json?: unknown | null } | null;
       media?: Array<{ fileId: string; sortIndex?: number | null }> | null;
       seo?: {
         seoTitle?: string | null;
@@ -1680,9 +1716,19 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
           ? null
           : args.input.description
           ? {
-              text: args.input.description.text ?? undefined,
-              html: args.input.description.html ?? undefined,
-              json: args.input.description.json as Record<string, unknown> | undefined,
+              text: args.input.description.text ?? "",
+              html: args.input.description.html ?? "",
+              json: (args.input.description.json ?? {}) as Record<string, unknown>,
+            }
+          : undefined,
+      excerpt:
+        args.input.excerpt === null
+          ? null
+          : args.input.excerpt
+          ? {
+              text: args.input.excerpt.text ?? "",
+              html: args.input.excerpt.html ?? "",
+              json: (args.input.excerpt.json ?? {}) as Record<string, unknown>,
             }
           : undefined,
       mediaFileIds,
@@ -2693,9 +2739,15 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
 // ─── Helpers ──────────────────────────────────────────────────
 
-function mapDescriptionInput(input?: DescriptionInput | null) {
-  if (!input) {
+function mapRichTextInput(
+  input?: RichTextInput | null
+): RichTextInput | null | undefined {
+  if (input === undefined) {
     return undefined;
+  }
+
+  if (input === null) {
+    return null;
   }
 
   return {
@@ -2721,8 +2773,8 @@ function mapOperationsForBulk(
         title: operations.title ?? undefined,
         content: operations.content
           ? {
-              description: mapDescriptionInput(operations.content.description),
-              excerpt: mapDescriptionInput(operations.content.excerpt),
+              description: mapRichTextInput(operations.content.description),
+              excerpt: mapRichTextInput(operations.content.excerpt),
             }
           : undefined,
         seo: operations.seo
