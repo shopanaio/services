@@ -1,10 +1,7 @@
 import { MCPTool } from 'mcp-framework';
 import { z } from 'zod';
-import { execFile } from 'child_process';
-import { promisify } from 'util';
+import { resolve } from 'path';
 import { resolveE2eDir } from '../utils/paths.js';
-
-const execFileAsync = promisify(execFile);
 
 function shellQuote(value: string) {
   return /^[a-zA-Z0-9_./:=+-]+$/.test(value) ? value : `'${value.replace(/'/g, "'\\''")}'`;
@@ -55,11 +52,11 @@ const TestToolSchema = z.object({
 
 class TestTool extends MCPTool<typeof TestToolSchema> {
   name = 'shopana_test';
-  description = `Run Playwright end-to-end tests through the Shopana CLI.
+  description = `Print the Playwright end-to-end test command and run instructions.
 
-This tool runs: yarn test in the e2e/ package.
+This tool does not execute tests. It prints the command to run manually from the e2e/ package.
 
-The tool resolves the repository root from workingDir, then executes Playwright from e2e/ where playwright.config.ts is located. Both the repository root and the e2e/ directory are accepted as workingDir.
+The tool resolves the repository root from workingDir, then builds the Playwright command for e2e/ where playwright.config.ts is located. Both the repository root and the e2e/ directory are accepted as workingDir.
 
 Project rule:
   Run one spec file at a time. Do not run the entire suite or a whole directory.
@@ -79,7 +76,8 @@ Test directories (inside e2e/tests/):
 Environment variables (already configured in e2e/.env):
 - BASE_URL: Base URL for the API
 - CI: Set to 'true' for CI mode (enables retries)
-- WORKERS: Number of parallel workers`;
+- WORKERS: Number of parallel workers
+- NODE_OPTIONS: Include --experimental-transform-types when running the command manually`;
 
   schema = TestToolSchema;
 
@@ -89,7 +87,7 @@ Environment variables (already configured in e2e/.env):
     let e2eDir: string;
 
     try {
-      e2eDir = resolveE2eDir(workingDir);
+      e2eDir = resolve(resolveE2eDir(workingDir));
     } catch (error: any) {
       return {
         content: [
@@ -143,50 +141,31 @@ Environment variables (already configured in e2e/.env):
     }
 
     const command = `yarn ${args.map(shellQuote).join(' ')}`;
+    const nodeOptions = withTransformTypesNodeOption();
 
-    try {
-      const { stdout, stderr } = await execFileAsync('yarn', args, {
-        cwd: e2eDir,
-        env: {
-          ...process.env,
-          NODE_OPTIONS: withTransformTypesNodeOption()
-        },
-        encoding: 'utf8',
-        timeout: 600000,
-        maxBuffer: 20 * 1024 * 1024
-      });
-
-      return {
-        content: [
-          {
-            type: 'text' as const,
-            text: JSON.stringify({
-              success: true,
-              command,
-              cwd: e2eDir,
-              output: stdout,
-              warnings: stderr || undefined
-            }, null, 2)
-          }
-        ]
-      };
-    } catch (error: any) {
-      return {
-        content: [
-          {
-            type: 'text' as const,
-            text: JSON.stringify({
-              success: false,
-              command,
-              cwd: e2eDir,
-              error: error.message,
-              stdout: error.stdout,
-              stderr: error.stderr
-            }, null, 2)
-          }
-        ]
-      };
-    }
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: JSON.stringify({
+            success: true,
+            executed: false,
+            command,
+            cwd: e2eDir,
+            env: {
+              NODE_OPTIONS: nodeOptions
+            },
+            instructions: [
+              'Do not start, stop, or restart services. The development server is managed separately.',
+              'Run the command from the cwd shown above.',
+              'Run one .spec.ts file at a time. Do not run the full suite or a whole directory.',
+              'If running from a shell that does not already include the NODE_OPTIONS value, prefix the command with the NODE_OPTIONS value shown above.'
+            ],
+            shellCommand: `cd ${shellQuote(e2eDir)} && NODE_OPTIONS=${shellQuote(nodeOptions)} ${command}`
+          }, null, 2)
+        }
+      ]
+    };
   }
 }
 

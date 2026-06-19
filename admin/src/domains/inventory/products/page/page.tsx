@@ -309,7 +309,11 @@ export default function ProductsPage() {
       title="Products"
       count={totalCount}
       actions={
-        <Button icon={<PlusOutlined />} onClick={handleCreate}>
+        <Button
+          data-testid="products-create-button"
+          icon={<PlusOutlined />}
+          onClick={handleCreate}
+        >
           Create
         </Button>
       }

@@ -20,6 +20,9 @@ approval_mode = "approve"
 [mcp_servers.shopana-cli.tools.shopana_build]
 approval_mode = "approve"
 
+[mcp_servers.shopana-cli.tools.shopana_test]
+approval_mode = "approve"
+
 [mcp_servers.antd]
 approval_mode = "approve"
 command = "npx"

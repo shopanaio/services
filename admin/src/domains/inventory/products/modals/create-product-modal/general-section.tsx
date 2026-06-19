@@ -70,6 +70,7 @@ export const GeneralSection = () => {
               <>
                 <Input
                   {...field}
+                  data-testid="create-product-title-input"
                   placeholder="e.g. Winter Jacket"
                   status={error ? "error" : undefined}
                 />
@@ -95,6 +96,7 @@ export const GeneralSection = () => {
               <>
                 <Input
                   {...field}
+                  data-testid="create-product-handle-input"
                   placeholder="winter-jacket"
                   status={error ? "error" : undefined}
                   onChange={(e) => {
@@ -118,12 +120,14 @@ export const GeneralSection = () => {
           control={control}
           render={({ field, fieldState: { error } }) => (
             <>
-              <Editor
-                value={field.value}
-                onChange={field.onChange}
-                placeholder="Describe your product..."
-                minHeight={100}
-              />
+              <div data-testid="create-product-description-editor">
+                <Editor
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Describe your product..."
+                  minHeight={100}
+                />
+              </div>
               {error && <div className={styles.error}>{error.message}</div>}
             </>
           )}

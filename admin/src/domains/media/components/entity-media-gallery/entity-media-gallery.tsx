@@ -574,6 +574,7 @@ export const EntityMediaGallery = ({
         {!hasMedia && showUpload && (
           <div
             className={styles.emptyUploadArea}
+            data-testid="entity-media-empty-upload-area"
             onClick={handleOpenUploadModal}
             role="button"
             tabIndex={0}
@@ -634,6 +635,7 @@ export const EntityMediaGallery = ({
                 <div className={styles.uploadCell}>
                   <div
                     className={styles.uploadArea}
+                    data-testid="entity-media-upload-area"
                     onClick={handleOpenUploadModal}
                     role="button"
                     tabIndex={0}

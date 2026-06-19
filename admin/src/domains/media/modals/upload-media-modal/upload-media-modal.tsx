@@ -301,6 +301,7 @@ export const UploadMediaModal = () => {
             {activeTab === "upload" && (
               <div className={styles.draggerWrapper}>
                 <Dragger
+                  data-testid="upload-media-file-dragger"
                   className={styles.dragger}
                   multiple
                   accept={accept}
