@@ -276,6 +276,1346 @@ export type ApiBucketCreatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+export enum BulkUpdateCancelReason {
+  Superseded = 'SUPERSEDED',
+  System = 'SYSTEM',
+  User = 'USER'
+}
+
+/** Single operation in bulk update job. */
+export type ApiBulkUpdateItem = {
+  __typename?: 'BulkUpdateItem';
+  /** Cancel reason (only for CANCELLED/SUPERSEDED). */
+  cancelReason?: Maybe<BulkUpdateCancelReason>;
+  /** Execution errors. */
+  errors: Array<ApiBulkUpdateUserError>;
+  /** When finished. */
+  finishedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Item ID. */
+  id: Scalars['ID']['output'];
+  /** Order within product. */
+  opIndex: Scalars['Int']['output'];
+  /** Operation type. */
+  opType: BulkUpdateOpType;
+  /** Product ID. */
+  productId: Scalars['ID']['output'];
+  /** When started. */
+  startedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Current status. */
+  status: BulkUpdateItemStatus;
+  /** Job that superseded this item. */
+  supersededByJobId?: Maybe<Scalars['ID']['output']>;
+  /** Variant ID (null for product-level operations). */
+  variantId?: Maybe<Scalars['ID']['output']>;
+};
+
+export type ApiBulkUpdateItemConnection = {
+  __typename?: 'BulkUpdateItemConnection';
+  edges: Array<ApiBulkUpdateItemEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiBulkUpdateItemEdge = {
+  __typename?: 'BulkUpdateItemEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiBulkUpdateItem;
+};
+
+export enum BulkUpdateItemStatus {
+  Cancelled = 'CANCELLED',
+  Failed = 'FAILED',
+  Pending = 'PENDING',
+  Running = 'RUNNING',
+  Succeeded = 'SUCCEEDED',
+  Superseded = 'SUPERSEDED'
+}
+
+/** Job progress. All counters computed from items. */
+export type ApiBulkUpdateJobProgress = {
+  __typename?: 'BulkUpdateJobProgress';
+  /** Cancelled. */
+  cancelled: Scalars['Int']['output'];
+  /** Done (succeeded + failed + cancelled + superseded). */
+  done: Scalars['Int']['output'];
+  /** Failed. */
+  failed: Scalars['Int']['output'];
+  /** Pending execution. */
+  pending: Scalars['Int']['output'];
+  /** Currently running. */
+  running: Scalars['Int']['output'];
+  /** Successfully applied. */
+  succeeded: Scalars['Int']['output'];
+  /** Superseded by another job. */
+  superseded: Scalars['Int']['output'];
+  /** Total operations. */
+  total: Scalars['Int']['output'];
+};
+
+export enum BulkUpdateJobStatus {
+  Cancelled = 'CANCELLED',
+  Completed = 'COMPLETED',
+  Queued = 'QUEUED',
+  Running = 'RUNNING'
+}
+
+export enum BulkUpdateOpType {
+  ProductUpdate = 'PRODUCT_UPDATE',
+  VariantUpdate = 'VARIANT_UPDATE'
+}
+
+/** Bulk update error with operation context. */
+export type ApiBulkUpdateUserError = ApiUserError & {
+  __typename?: 'BulkUpdateUserError';
+  /** Error code. */
+  code?: Maybe<Scalars['String']['output']>;
+  /** Input field path. */
+  field?: Maybe<Array<Scalars['String']['output']>>;
+  /** Error message. */
+  message: Scalars['String']['output'];
+  /** Operation that failed. */
+  operation?: Maybe<Scalars['String']['output']>;
+  /** Product ID. */
+  productId?: Maybe<Scalars['ID']['output']>;
+  /** Variant ID. */
+  variantId?: Maybe<Scalars['ID']['output']>;
+};
+
+/** A group of items within a bundle (e.g., "Choose your processor", "Select accessories"). */
+export type ApiBundleGroup = ApiNode & {
+  __typename?: 'BundleGroup';
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  items: Array<ApiBundleItem>;
+  maxSelection?: Maybe<Scalars['Int']['output']>;
+  minSelection?: Maybe<Scalars['Int']['output']>;
+  productId: Scalars['ID']['output'];
+  sortIndex: Scalars['Int']['output'];
+  title: Scalars['String']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiBundleGroupCreateInput = {
+  maxSelection?: InputMaybe<Scalars['Int']['input']>;
+  minSelection?: InputMaybe<Scalars['Int']['input']>;
+  productId: Scalars['ID']['input'];
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  title: Scalars['String']['input'];
+};
+
+export type ApiBundleGroupPayload = {
+  __typename?: 'BundleGroupPayload';
+  bundleGroup?: Maybe<ApiBundleGroup>;
+  userErrors: Array<ApiUserError>;
+};
+
+export type ApiBundleGroupUpdateInput = {
+  id: Scalars['ID']['input'];
+  maxSelection?: InputMaybe<Scalars['Int']['input']>;
+  minSelection?: InputMaybe<Scalars['Int']['input']>;
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  title?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** An individual item within a bundle group. */
+export type ApiBundleItem = ApiNode & {
+  __typename?: 'BundleItem';
+  createdAt: Scalars['DateTime']['output'];
+  /** Default quantity when item is added to cart */
+  defaultQty: Scalars['Int']['output'];
+  /** Excluded variant IDs when itemType is PRODUCT */
+  excludedVariantIds?: Maybe<Array<Scalars['ID']['output']>>;
+  /** Custom featured image override */
+  featuredImageId?: Maybe<Scalars['ID']['output']>;
+  groupId: Scalars['ID']['output'];
+  id: Scalars['ID']['output'];
+  itemType: BundleItemType;
+  /** Maximum quantity that can be selected (null = unlimited) */
+  maxQty?: Maybe<Scalars['Int']['output']>;
+  /** Minimum quantity that can be selected */
+  minQty: Scalars['Int']['output'];
+  /** Inline pricing type */
+  priceType?: Maybe<BundlePriceType>;
+  /** Inline pricing value (cents) */
+  priceValue?: Maybe<Scalars['Int']['output']>;
+  /** Resolved pricing template */
+  pricingTemplate?: Maybe<ApiBundlePricingTemplate>;
+  /** Reference to a pricing template */
+  pricingTemplateId?: Maybe<Scalars['ID']['output']>;
+  /** Reference to product (when itemType is PRODUCT) */
+  refProductId?: Maybe<Scalars['ID']['output']>;
+  /** Reference to variant (when itemType is VARIANT) */
+  refVariantId?: Maybe<Scalars['ID']['output']>;
+  /** Whether item is selected by default */
+  selected: Scalars['Boolean']['output'];
+  sortIndex: Scalars['Int']['output'];
+  /** Custom title override for this bundle item */
+  title?: Maybe<Scalars['String']['output']>;
+  updatedAt: Scalars['DateTime']['output'];
+  /** Whether item is visible in the bundle configurator */
+  visible: Scalars['Boolean']['output'];
+};
+
+export type ApiBundleItemCreateInput = {
+  defaultQty?: InputMaybe<Scalars['Int']['input']>;
+  excludedVariantIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  featuredImageId?: InputMaybe<Scalars['ID']['input']>;
+  groupId: Scalars['ID']['input'];
+  itemType: BundleItemType;
+  maxQty?: InputMaybe<Scalars['Int']['input']>;
+  minQty?: InputMaybe<Scalars['Int']['input']>;
+  priceType?: InputMaybe<BundlePriceType>;
+  priceValue?: InputMaybe<Scalars['Int']['input']>;
+  pricingTemplateId?: InputMaybe<Scalars['ID']['input']>;
+  refProductId?: InputMaybe<Scalars['ID']['input']>;
+  refVariantId?: InputMaybe<Scalars['ID']['input']>;
+  selected?: InputMaybe<Scalars['Boolean']['input']>;
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  title?: InputMaybe<Scalars['String']['input']>;
+  visible?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type ApiBundleItemPayload = {
+  __typename?: 'BundleItemPayload';
+  bundleItem?: Maybe<ApiBundleItem>;
+  userErrors: Array<ApiUserError>;
+};
+
+/** The type of item in a bundle group. */
+export enum BundleItemType {
+  /** Item references an entire product (variant selection happens at checkout) */
+  Product = 'PRODUCT',
+  /** Item references a specific variant */
+  Variant = 'VARIANT'
+}
+
+export type ApiBundleItemUpdateInput = {
+  defaultQty?: InputMaybe<Scalars['Int']['input']>;
+  excludedVariantIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  featuredImageId?: InputMaybe<Scalars['ID']['input']>;
+  id: Scalars['ID']['input'];
+  maxQty?: InputMaybe<Scalars['Int']['input']>;
+  minQty?: InputMaybe<Scalars['Int']['input']>;
+  priceType?: InputMaybe<BundlePriceType>;
+  priceValue?: InputMaybe<Scalars['Int']['input']>;
+  pricingTemplateId?: InputMaybe<Scalars['ID']['input']>;
+  selected?: InputMaybe<Scalars['Boolean']['input']>;
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  title?: InputMaybe<Scalars['String']['input']>;
+  visible?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+/** The pricing strategy for bundle items. */
+export enum BundlePriceType {
+  /** Discount by absolute amount (in cents) */
+  AmountOff = 'AMOUNT_OFF',
+  /** Use base product/variant price (no modification) */
+  Base = 'BASE',
+  /** Fixed price (overrides base price) */
+  Fixed = 'FIXED',
+  /** Item is free when included in bundle */
+  Free = 'FREE',
+  /** Discount by percentage (0-100) */
+  PercentOff = 'PERCENT_OFF'
+}
+
+/** A pricing template that can be reused across bundle items. */
+export type ApiBundlePricingTemplate = ApiNode & {
+  __typename?: 'BundlePricingTemplate';
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  priceType: BundlePriceType;
+  priceValue?: Maybe<Scalars['Int']['output']>;
+  productId: Scalars['ID']['output'];
+  sortIndex: Scalars['Int']['output'];
+};
+
+export type ApiBundlePricingTemplateCreateInput = {
+  name: Scalars['String']['input'];
+  priceType: BundlePriceType;
+  priceValue?: InputMaybe<Scalars['Int']['input']>;
+  productId: Scalars['ID']['input'];
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ApiBundlePricingTemplatePayload = {
+  __typename?: 'BundlePricingTemplatePayload';
+  bundlePricingTemplate?: Maybe<ApiBundlePricingTemplate>;
+  userErrors: Array<ApiUserError>;
+};
+
+export type ApiBundlePricingTemplateUpdateInput = {
+  id: Scalars['ID']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
+  priceType?: InputMaybe<BundlePriceType>;
+  priceValue?: InputMaybe<Scalars['Int']['input']>;
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ApiCatalogMutation = {
+  __typename?: 'CatalogMutation';
+  /** Create a new bundle group for a product */
+  bundleGroupCreate: ApiBundleGroupPayload;
+  /** Delete a bundle group */
+  bundleGroupDelete: ApiDeletePayload;
+  /** Update an existing bundle group */
+  bundleGroupUpdate: ApiBundleGroupPayload;
+  /** Create a new bundle item within a group */
+  bundleItemCreate: ApiBundleItemPayload;
+  /** Delete a bundle item */
+  bundleItemDelete: ApiDeletePayload;
+  /** Update an existing bundle item */
+  bundleItemUpdate: ApiBundleItemPayload;
+  /** Create a new bundle pricing template */
+  bundlePricingTemplateCreate: ApiBundlePricingTemplatePayload;
+  /** Delete a bundle pricing template */
+  bundlePricingTemplateDelete: ApiDeletePayload;
+  /** Update an existing bundle pricing template */
+  bundlePricingTemplateUpdate: ApiBundlePricingTemplatePayload;
+  /** Add a product to a category */
+  categoryAddProduct: ApiCategoryAddProductPayload;
+  /** Create a new category */
+  categoryCreate: ApiCategoryCreatePayload;
+  /** Delete a category */
+  categoryDelete: ApiCategoryDeletePayload;
+  /** Move a category to a new parent or position */
+  categoryMove: ApiCategoryMovePayload;
+  /** Move a product within a category */
+  categoryMoveProduct: ApiCategoryMoveProductPayload;
+  /** Rebalance category tree positions */
+  categoryRebalance: ApiCategoryRebalancePayload;
+  /** Update an existing category */
+  categoryUpdate: ApiCategoryUpdatePayload;
+  /** Update category sort order */
+  categoryUpdateSort: ApiCategoryUpdateSortPayload;
+  /** Add products to a collection */
+  collectionAddProducts: ApiCollectionAddProductsPayload;
+  /** Create a new collection */
+  collectionCreate: ApiCollectionCreatePayload;
+  /** Delete a collection */
+  collectionDelete: ApiCollectionDeletePayload;
+  /** Move a product within a collection */
+  collectionMoveProduct: ApiCollectionMoveProductPayload;
+  /** Remove products from a collection */
+  collectionRemoveProducts: ApiCollectionRemoveProductsPayload;
+  /** Update an existing collection */
+  collectionUpdate: ApiCollectionUpdatePayload;
+  /** Update collection rules for automatic product inclusion */
+  collectionUpdateRules: ApiCollectionUpdateRulesPayload;
+  /** Create a new condition within a condition group */
+  conditionCreate: ApiConditionPayload;
+  /** Delete a condition */
+  conditionDelete: ApiDeletePayload;
+  /** Create a new condition group for a dependency rule */
+  conditionGroupCreate: ApiConditionGroupPayload;
+  /** Delete a condition group */
+  conditionGroupDelete: ApiDeletePayload;
+  /** Update an existing condition group */
+  conditionGroupUpdate: ApiConditionGroupPayload;
+  /** Update an existing condition */
+  conditionUpdate: ApiConditionPayload;
+  /** Create a new action for a dependency rule */
+  dependencyActionCreate: ApiDependencyActionPayload;
+  /** Delete a dependency action */
+  dependencyActionDelete: ApiDeletePayload;
+  /** Update an existing dependency action */
+  dependencyActionUpdate: ApiDependencyActionPayload;
+  /** Create a new dependency rule for a product */
+  dependencyRuleCreate: ApiDependencyRulePayload;
+  /** Delete a dependency rule */
+  dependencyRuleDelete: ApiDeletePayload;
+  /** Update an existing dependency rule */
+  dependencyRuleUpdate: ApiDependencyRulePayload;
+  /** Create a new facet */
+  facetCreate: ApiFacetCreatePayload;
+  /** Delete a facet */
+  facetDelete: ApiFacetDeletePayload;
+  /** Create a new facet group */
+  facetGroupCreate: ApiFacetGroupCreatePayload;
+  /** Delete a facet group */
+  facetGroupDelete: ApiFacetGroupDeletePayload;
+  /** Update an existing facet group */
+  facetGroupUpdate: ApiFacetGroupUpdatePayload;
+  /** Create a new facet swatch */
+  facetSwatchCreate: ApiFacetSwatchCreatePayload;
+  /** Delete a facet swatch */
+  facetSwatchDelete: ApiFacetSwatchDeletePayload;
+  /** Update an existing facet swatch */
+  facetSwatchUpdate: ApiFacetSwatchUpdatePayload;
+  /** Update an existing facet */
+  facetUpdate: ApiFacetUpdatePayload;
+  /** Create a new facet value */
+  facetValueCreate: ApiFacetValueCreatePayload;
+  /** Delete a facet value */
+  facetValueDelete: ApiFacetValueDeletePayload;
+  /** Update an existing facet value */
+  facetValueUpdate: ApiFacetValueUpdatePayload;
+  /**
+   * Start async bulk update.
+   * Requires X-Idempotency-Key header.
+   */
+  productBulkUpdate: ApiProductBulkUpdatePayload;
+  /** Create a new product */
+  productCreate: ApiProductCreatePayload;
+  /** Delete an existing product */
+  productDelete: ApiProductDeletePayload;
+  /** Create a new product feature */
+  productFeatureCreate: ApiProductFeatureCreatePayload;
+  /** Delete a product feature */
+  productFeatureDelete: ApiProductFeatureDeletePayload;
+  /** Update an existing product feature */
+  productFeatureUpdate: ApiProductFeatureUpdatePayload;
+  /** Sync all product features (complete replace operation) */
+  productFeaturesSync: ApiProductFeaturesSyncPayload;
+  /** Create a new product option (e.g., Size, Color) */
+  productOptionCreate: ApiProductOptionCreatePayload;
+  /** Delete a product option */
+  productOptionDelete: ApiProductOptionDeletePayload;
+  /** Update an existing product option */
+  productOptionUpdate: ApiProductOptionUpdatePayload;
+  /**
+   * Sync all product options. This is a complete replace operation.
+   * Options not in the input list will be deleted.
+   * Does NOT affect variants - only option definitions are synced.
+   */
+  productOptionsSync: ApiProductOptionsSyncPayload;
+  /**
+   * Unified product update with optimistic locking.
+   * Supports product and variant updates in a single request.
+   */
+  productUpdate: ApiProductUpdatePayload;
+  /** Update product status (active, draft, archived) */
+  productUpdateStatus: ApiProductUpdateStatusPayload;
+  /** Create a new tag */
+  tagCreate: ApiTagCreatePayload;
+  /** Delete a tag */
+  tagDelete: ApiTagDeletePayload;
+  /** Update an existing tag */
+  tagUpdate: ApiTagUpdatePayload;
+  /** Create a new variant for a product */
+  variantCreate: ApiVariantCreatePayload;
+  /** Delete a variant */
+  variantDelete: ApiVariantDeletePayload;
+  /** Update media attachments for a variant */
+  variantUpdateMedia: ApiVariantUpdateMediaPayload;
+  /** Update variant option values */
+  variantUpdateOptions: ApiVariantUpdateOptionsPayload;
+  /** Update variant pricing information */
+  variantUpdatePricing: ApiVariantUpdatePricingPayload;
+};
+
+
+export type ApiCatalogMutationBundleGroupCreateArgs = {
+  input: ApiBundleGroupCreateInput;
+};
+
+
+export type ApiCatalogMutationBundleGroupDeleteArgs = {
+  input: ApiDeleteInput;
+};
+
+
+export type ApiCatalogMutationBundleGroupUpdateArgs = {
+  input: ApiBundleGroupUpdateInput;
+};
+
+
+export type ApiCatalogMutationBundleItemCreateArgs = {
+  input: ApiBundleItemCreateInput;
+};
+
+
+export type ApiCatalogMutationBundleItemDeleteArgs = {
+  input: ApiDeleteInput;
+};
+
+
+export type ApiCatalogMutationBundleItemUpdateArgs = {
+  input: ApiBundleItemUpdateInput;
+};
+
+
+export type ApiCatalogMutationBundlePricingTemplateCreateArgs = {
+  input: ApiBundlePricingTemplateCreateInput;
+};
+
+
+export type ApiCatalogMutationBundlePricingTemplateDeleteArgs = {
+  input: ApiDeleteInput;
+};
+
+
+export type ApiCatalogMutationBundlePricingTemplateUpdateArgs = {
+  input: ApiBundlePricingTemplateUpdateInput;
+};
+
+
+export type ApiCatalogMutationCategoryAddProductArgs = {
+  input: ApiCategoryAddProductInput;
+};
+
+
+export type ApiCatalogMutationCategoryCreateArgs = {
+  input: ApiCategoryCreateInput;
+};
+
+
+export type ApiCatalogMutationCategoryDeleteArgs = {
+  input: ApiCategoryDeleteInput;
+};
+
+
+export type ApiCatalogMutationCategoryMoveArgs = {
+  input: ApiCategoryMoveInput;
+};
+
+
+export type ApiCatalogMutationCategoryMoveProductArgs = {
+  input: ApiCategoryMoveProductInput;
+};
+
+
+export type ApiCatalogMutationCategoryRebalanceArgs = {
+  input: ApiCategoryRebalanceInput;
+};
+
+
+export type ApiCatalogMutationCategoryUpdateArgs = {
+  input: ApiCategoryUpdateInput;
+};
+
+
+export type ApiCatalogMutationCategoryUpdateSortArgs = {
+  input: ApiCategoryUpdateSortInput;
+};
+
+
+export type ApiCatalogMutationCollectionAddProductsArgs = {
+  input: ApiCollectionAddProductsInput;
+};
+
+
+export type ApiCatalogMutationCollectionCreateArgs = {
+  input: ApiCollectionCreateInput;
+};
+
+
+export type ApiCatalogMutationCollectionDeleteArgs = {
+  input: ApiCollectionDeleteInput;
+};
+
+
+export type ApiCatalogMutationCollectionMoveProductArgs = {
+  input: ApiCollectionMoveProductInput;
+};
+
+
+export type ApiCatalogMutationCollectionRemoveProductsArgs = {
+  input: ApiCollectionRemoveProductsInput;
+};
+
+
+export type ApiCatalogMutationCollectionUpdateArgs = {
+  input: ApiCollectionUpdateInput;
+};
+
+
+export type ApiCatalogMutationCollectionUpdateRulesArgs = {
+  input: ApiCollectionUpdateRulesInput;
+};
+
+
+export type ApiCatalogMutationConditionCreateArgs = {
+  input: ApiConditionCreateInput;
+};
+
+
+export type ApiCatalogMutationConditionDeleteArgs = {
+  input: ApiDeleteInput;
+};
+
+
+export type ApiCatalogMutationConditionGroupCreateArgs = {
+  input: ApiConditionGroupCreateInput;
+};
+
+
+export type ApiCatalogMutationConditionGroupDeleteArgs = {
+  input: ApiDeleteInput;
+};
+
+
+export type ApiCatalogMutationConditionGroupUpdateArgs = {
+  input: ApiConditionGroupUpdateInput;
+};
+
+
+export type ApiCatalogMutationConditionUpdateArgs = {
+  input: ApiConditionUpdateInput;
+};
+
+
+export type ApiCatalogMutationDependencyActionCreateArgs = {
+  input: ApiDependencyActionCreateInput;
+};
+
+
+export type ApiCatalogMutationDependencyActionDeleteArgs = {
+  input: ApiDeleteInput;
+};
+
+
+export type ApiCatalogMutationDependencyActionUpdateArgs = {
+  input: ApiDependencyActionUpdateInput;
+};
+
+
+export type ApiCatalogMutationDependencyRuleCreateArgs = {
+  input: ApiDependencyRuleCreateInput;
+};
+
+
+export type ApiCatalogMutationDependencyRuleDeleteArgs = {
+  input: ApiDeleteInput;
+};
+
+
+export type ApiCatalogMutationDependencyRuleUpdateArgs = {
+  input: ApiDependencyRuleUpdateInput;
+};
+
+
+export type ApiCatalogMutationFacetCreateArgs = {
+  input: ApiFacetCreateInput;
+};
+
+
+export type ApiCatalogMutationFacetDeleteArgs = {
+  input: ApiFacetDeleteInput;
+};
+
+
+export type ApiCatalogMutationFacetGroupCreateArgs = {
+  input: ApiFacetGroupCreateInput;
+};
+
+
+export type ApiCatalogMutationFacetGroupDeleteArgs = {
+  input: ApiFacetGroupDeleteInput;
+};
+
+
+export type ApiCatalogMutationFacetGroupUpdateArgs = {
+  input: ApiFacetGroupUpdateInput;
+};
+
+
+export type ApiCatalogMutationFacetSwatchCreateArgs = {
+  input: ApiFacetSwatchCreateInput;
+};
+
+
+export type ApiCatalogMutationFacetSwatchDeleteArgs = {
+  input: ApiFacetSwatchDeleteInput;
+};
+
+
+export type ApiCatalogMutationFacetSwatchUpdateArgs = {
+  input: ApiFacetSwatchUpdateInput;
+};
+
+
+export type ApiCatalogMutationFacetUpdateArgs = {
+  input: ApiFacetUpdateInput;
+};
+
+
+export type ApiCatalogMutationFacetValueCreateArgs = {
+  input: ApiFacetValueCreateInput;
+};
+
+
+export type ApiCatalogMutationFacetValueDeleteArgs = {
+  input: ApiFacetValueDeleteInput;
+};
+
+
+export type ApiCatalogMutationFacetValueUpdateArgs = {
+  input: ApiFacetValueUpdateInput;
+};
+
+
+export type ApiCatalogMutationProductBulkUpdateArgs = {
+  input: ApiProductBulkUpdateInput;
+};
+
+
+export type ApiCatalogMutationProductCreateArgs = {
+  input: ApiProductCreateInput;
+};
+
+
+export type ApiCatalogMutationProductDeleteArgs = {
+  input: ApiProductDeleteInput;
+};
+
+
+export type ApiCatalogMutationProductFeatureCreateArgs = {
+  input: ApiProductFeatureCreateInput;
+};
+
+
+export type ApiCatalogMutationProductFeatureDeleteArgs = {
+  input: ApiProductFeatureDeleteInput;
+};
+
+
+export type ApiCatalogMutationProductFeatureUpdateArgs = {
+  input: ApiProductFeatureUpdateInput;
+};
+
+
+export type ApiCatalogMutationProductFeaturesSyncArgs = {
+  input: ApiProductFeaturesSyncInput;
+};
+
+
+export type ApiCatalogMutationProductOptionCreateArgs = {
+  input: ApiProductOptionCreateInput;
+};
+
+
+export type ApiCatalogMutationProductOptionDeleteArgs = {
+  input: ApiProductOptionDeleteInput;
+};
+
+
+export type ApiCatalogMutationProductOptionUpdateArgs = {
+  input: ApiProductOptionUpdateInput;
+};
+
+
+export type ApiCatalogMutationProductOptionsSyncArgs = {
+  input: ApiProductOptionsSyncInput;
+};
+
+
+export type ApiCatalogMutationProductUpdateArgs = {
+  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
+  operations?: InputMaybe<ApiProductUpdateInput>;
+  productId: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogMutationProductUpdateStatusArgs = {
+  input: ApiProductUpdateStatusInput;
+};
+
+
+export type ApiCatalogMutationTagCreateArgs = {
+  input: ApiTagCreateInput;
+};
+
+
+export type ApiCatalogMutationTagDeleteArgs = {
+  input: ApiTagDeleteInput;
+};
+
+
+export type ApiCatalogMutationTagUpdateArgs = {
+  input: ApiTagUpdateInput;
+};
+
+
+export type ApiCatalogMutationVariantCreateArgs = {
+  input: ApiVariantCreateInput;
+};
+
+
+export type ApiCatalogMutationVariantDeleteArgs = {
+  input: ApiVariantDeleteInput;
+};
+
+
+export type ApiCatalogMutationVariantUpdateMediaArgs = {
+  input: ApiVariantUpdateMediaInput;
+};
+
+
+export type ApiCatalogMutationVariantUpdateOptionsArgs = {
+  input: ApiVariantUpdateOptionsInput;
+};
+
+
+export type ApiCatalogMutationVariantUpdatePricingArgs = {
+  input: ApiVariantUpdatePricingInput;
+};
+
+export type ApiCatalogQuery = {
+  __typename?: 'CatalogQuery';
+  /** Get a bundle group by ID */
+  bundleGroup?: Maybe<ApiBundleGroup>;
+  /** Get all bundle groups for a product */
+  bundleGroups: Array<ApiBundleGroup>;
+  /** Get a bundle item by ID */
+  bundleItem?: Maybe<ApiBundleItem>;
+  /** Get a bundle pricing template by ID */
+  bundlePricingTemplate?: Maybe<ApiBundlePricingTemplate>;
+  /** Get all pricing templates for a product */
+  bundlePricingTemplates: Array<ApiBundlePricingTemplate>;
+  /** Get categories with Relay-style pagination */
+  categories: ApiCategoryConnection;
+  /** Get a category by ID */
+  category?: Maybe<ApiCategory>;
+  /** Get a collection by ID */
+  collection?: Maybe<ApiCollection>;
+  /** Get a collection by its handle */
+  collectionByHandle?: Maybe<ApiCollection>;
+  /** Preview count of products matching collection rules */
+  collectionRulesPreviewCount: Scalars['Int']['output'];
+  /** Get collections with Relay-style pagination */
+  collections: ApiCollectionConnection;
+  /** Get a dependency rule by ID */
+  dependencyRule?: Maybe<ApiDependencyRule>;
+  /** Get all dependency rules for a product */
+  dependencyRules: Array<ApiDependencyRule>;
+  /** Get a facet by ID */
+  facet?: Maybe<ApiFacet>;
+  /** Get a facet group by ID */
+  facetGroup?: Maybe<ApiFacetGroup>;
+  /** Get all facet groups */
+  facetGroups: Array<ApiFacetGroup>;
+  /** Get a facet swatch by ID */
+  facetSwatch?: Maybe<ApiFacetSwatch>;
+  /** Get all facet swatches */
+  facetSwatches: Array<ApiFacetSwatch>;
+  /** Get a facet value by ID */
+  facetValue?: Maybe<ApiFacetValue>;
+  /** Get all facet values for a specific facet */
+  facetValues: Array<ApiFacetValue>;
+  /** Get all facets */
+  facets: Array<ApiFacet>;
+  /** Get a node by its global ID */
+  node?: Maybe<ApiNode>;
+  /** Get multiple nodes by their global IDs */
+  nodes: Array<Maybe<ApiNode>>;
+  /** Get a product by ID */
+  product?: Maybe<ApiProduct>;
+  /** Get bulk update job by ID. */
+  productBulkUpdateJob?: Maybe<ApiProductBulkUpdateJob>;
+  /** Get products with Relay-style pagination */
+  products: ApiProductConnection;
+  /** Get a tag by ID */
+  tag?: Maybe<ApiTag>;
+  /** Get tags with Relay-style pagination */
+  tags: ApiTagConnection;
+  /** Get a variant by ID */
+  variant?: Maybe<ApiVariant>;
+  /** Get variants with Relay-style pagination */
+  variants: ApiVariantConnection;
+};
+
+
+export type ApiCatalogQueryBundleGroupArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryBundleGroupsArgs = {
+  productId: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryBundleItemArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryBundlePricingTemplateArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryBundlePricingTemplatesArgs = {
+  productId: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryCategoriesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiCatalogQueryCategoryArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryCollectionArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryCollectionByHandleArgs = {
+  handle: Scalars['String']['input'];
+};
+
+
+export type ApiCatalogQueryCollectionRulesPreviewCountArgs = {
+  rules: Array<ApiCollectionRuleInput>;
+};
+
+
+export type ApiCatalogQueryCollectionsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiCatalogQueryDependencyRuleArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryDependencyRulesArgs = {
+  productId: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryFacetArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryFacetGroupArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryFacetSwatchArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryFacetValueArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryFacetValuesArgs = {
+  facetId: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryNodeArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryNodesArgs = {
+  ids: Array<Scalars['ID']['input']>;
+};
+
+
+export type ApiCatalogQueryProductArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryProductBulkUpdateJobArgs = {
+  jobId: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryProductsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiCatalogQueryTagArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryTagsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ApiCatalogQueryVariantArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryVariantsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+/** A category represents a hierarchical grouping of products. */
+export type ApiCategory = ApiNode & {
+  __typename?: 'Category';
+  /** All ancestor categories from root to parent. */
+  ancestors: Array<ApiCategory>;
+  /** Direct child categories. */
+  children: Array<ApiCategory>;
+  /** The date and time when the category was created. */
+  createdAt: Scalars['DateTime']['output'];
+  /** Default product sort for this category PLP. */
+  defaultSort: ProductSortBy;
+  /** Default sort direction for this category PLP. */
+  defaultSortDirection: SortDirection;
+  /** The date and time when the category was deleted (soft delete). */
+  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** The depth of this category in the hierarchy (0 for root). */
+  depth: Scalars['Int']['output'];
+  /** The category description. */
+  description?: Maybe<ApiDescription>;
+  /** Short category excerpt. */
+  excerpt?: Maybe<ApiDescription>;
+  /** The URL-friendly handle for the category. */
+  handle: Scalars['String']['output'];
+  /** The globally unique ID of the category. */
+  id: Scalars['ID']['output'];
+  /** Whether the category is currently published. */
+  isPublished: Scalars['Boolean']['output'];
+  /** Media files associated with this category. */
+  media: Array<ApiCategoryMediaItem>;
+  /** The display name of the category. */
+  name: Scalars['String']['output'];
+  /** The parent category, if any. */
+  parent?: Maybe<ApiCategory>;
+  /** The materialized path for this category. */
+  path: Scalars['String']['output'];
+  /** Products in this category with pagination. */
+  products: ApiCategoryProductConnection;
+  /** The total number of products in this category. */
+  productsCount: Scalars['Int']['output'];
+  /** The date and time when the category was published, or null if unpublished. */
+  publishedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** SEO metadata. */
+  seo?: Maybe<ApiSeo>;
+  /** The date and time when the category was last updated. */
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+
+/** A category represents a hierarchical grouping of products. */
+export type ApiCategoryProductsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiProductOrderByInput>>;
+  where?: InputMaybe<ApiCategoryProductWhereInput>;
+};
+
+export type ApiCategoryAddProductInput = {
+  categoryId: Scalars['ID']['input'];
+  productId: Scalars['ID']['input'];
+};
+
+export type ApiCategoryAddProductPayload = {
+  __typename?: 'CategoryAddProductPayload';
+  category?: Maybe<ApiCategory>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** A connection to a list of Category items. */
+export type ApiCategoryConnection = {
+  __typename?: 'CategoryConnection';
+  /** A list of edges. */
+  edges: Array<ApiCategoryEdge>;
+  /** Information to aid in pagination. */
+  pageInfo: ApiPageInfo;
+  /** The total number of categories. */
+  totalCount: Scalars['Int']['output'];
+};
+
+/** Input for creating a category. */
+export type ApiCategoryCreateInput = {
+  /** Optional description. */
+  description?: InputMaybe<ApiDescriptionInput>;
+  /** Optional short excerpt. */
+  excerpt?: InputMaybe<ApiDescriptionInput>;
+  /** The URL-friendly handle for the category. */
+  handle: Scalars['String']['input'];
+  /** File IDs for category media. */
+  mediaFileIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** The display name of the category. */
+  name: Scalars['String']['input'];
+  /** Optional parent category ID. */
+  parentId?: InputMaybe<Scalars['ID']['input']>;
+  /** Whether to publish immediately. */
+  publish?: InputMaybe<Scalars['Boolean']['input']>;
+  /** SEO metadata. */
+  seo?: InputMaybe<ApiSeoInput>;
+};
+
+/** Payload for category creation. */
+export type ApiCategoryCreatePayload = {
+  __typename?: 'CategoryCreatePayload';
+  /** The created category. */
+  category?: Maybe<ApiCategory>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Input for deleting a category. */
+export type ApiCategoryDeleteInput = {
+  /** The ID of the category to delete. */
+  id: Scalars['ID']['input'];
+  /** Whether to permanently delete (hard delete). */
+  permanent?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+/** Payload for category deletion. */
+export type ApiCategoryDeletePayload = {
+  __typename?: 'CategoryDeletePayload';
+  /** The ID of the deleted category. */
+  deletedCategoryId?: Maybe<Scalars['ID']['output']>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** An edge in a Category connection. */
+export type ApiCategoryEdge = {
+  __typename?: 'CategoryEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String']['output'];
+  /** The item at the end of the edge. */
+  node: ApiCategory;
+};
+
+/** A media item for a category. */
+export type ApiCategoryMediaItem = {
+  __typename?: 'CategoryMediaItem';
+  /** The file reference. */
+  file: ApiFile;
+  /** The sort index for ordering. */
+  sortIndex: Scalars['Int']['output'];
+};
+
+/** Input for moving a category in the hierarchy. */
+export type ApiCategoryMoveInput = {
+  /** The ID of the category to move. */
+  id: Scalars['ID']['input'];
+  /** The new parent category ID, or null for root. */
+  newParentId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+/** Payload for category move. */
+export type ApiCategoryMovePayload = {
+  __typename?: 'CategoryMovePayload';
+  /** The moved category. */
+  category?: Maybe<ApiCategory>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCategoryMoveProductInput = {
+  afterProductId?: InputMaybe<Scalars['ID']['input']>;
+  beforeProductId?: InputMaybe<Scalars['ID']['input']>;
+  categoryId: Scalars['ID']['input'];
+  productId: Scalars['ID']['input'];
+};
+
+export type ApiCategoryMoveProductPayload = {
+  __typename?: 'CategoryMoveProductPayload';
+  category?: Maybe<ApiCategory>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCategoryProductConnection = {
+  __typename?: 'CategoryProductConnection';
+  edges: Array<ApiCategoryProductEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiCategoryProductEdge = {
+  __typename?: 'CategoryProductEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiProduct;
+};
+
+/** Filter conditions for CategoryProduct */
+export type ApiCategoryProductWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiCategoryProductWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiCategoryProductWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiCategoryProductWhereInput>>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by deletedAt */
+  deletedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+};
+
+export type ApiCategoryRebalanceInput = {
+  categoryId: Scalars['ID']['input'];
+};
+
+export type ApiCategoryRebalancePayload = {
+  __typename?: 'CategoryRebalancePayload';
+  category?: Maybe<ApiCategory>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Input for updating a category. */
+export type ApiCategoryUpdateInput = {
+  /** The category description. */
+  description?: InputMaybe<ApiDescriptionInput>;
+  /** The short category excerpt. */
+  excerpt?: InputMaybe<ApiDescriptionInput>;
+  /** The URL-friendly handle for the category. */
+  handle?: InputMaybe<Scalars['String']['input']>;
+  /** The ID of the category to update. */
+  id: Scalars['ID']['input'];
+  /** File IDs for category media (replaces existing). */
+  mediaFileIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** The display name of the category. */
+  name?: InputMaybe<Scalars['String']['input']>;
+  /** SEO metadata. */
+  seo?: InputMaybe<ApiSeoInput>;
+};
+
+/** Payload for category update. */
+export type ApiCategoryUpdatePayload = {
+  __typename?: 'CategoryUpdatePayload';
+  /** The updated category. */
+  category?: Maybe<ApiCategory>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCategoryUpdateSortInput = {
+  defaultSort: ProductSortBy;
+  defaultSortDirection: SortDirection;
+  id: Scalars['ID']['input'];
+};
+
+export type ApiCategoryUpdateSortPayload = {
+  __typename?: 'CategoryUpdateSortPayload';
+  category?: Maybe<ApiCategory>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCollection = ApiNode & {
+  __typename?: 'Collection';
+  activeFrom?: Maybe<Scalars['DateTime']['output']>;
+  activeTo?: Maybe<Scalars['DateTime']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  defaultSort: ProductSortBy;
+  defaultSortDirection: SortDirection;
+  description?: Maybe<ApiDescription>;
+  excerpt?: Maybe<ApiDescription>;
+  handle?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  isActive: Scalars['Boolean']['output'];
+  isPublished: Scalars['Boolean']['output'];
+  media: Array<ApiCollectionMediaItem>;
+  name: Scalars['String']['output'];
+  products: ApiCollectionProductConnection;
+  productsCount: Scalars['Int']['output'];
+  publishedAt?: Maybe<Scalars['DateTime']['output']>;
+  rules: Array<ApiCollectionRule>;
+  seo?: Maybe<ApiSeo>;
+  type: CollectionType;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+
+export type ApiCollectionProductsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  sort?: InputMaybe<ApiProductSortInput>;
+};
+
+export type ApiCollectionAddProductsInput = {
+  collectionId: Scalars['ID']['input'];
+  productIds: Array<Scalars['ID']['input']>;
+};
+
+export type ApiCollectionAddProductsPayload = {
+  __typename?: 'CollectionAddProductsPayload';
+  collection?: Maybe<ApiCollection>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCollectionConnection = {
+  __typename?: 'CollectionConnection';
+  edges: Array<ApiCollectionEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiCollectionCreateInput = {
+  activeFrom?: InputMaybe<Scalars['DateTime']['input']>;
+  activeTo?: InputMaybe<Scalars['DateTime']['input']>;
+  defaultSort?: InputMaybe<ProductSortBy>;
+  defaultSortDirection?: InputMaybe<SortDirection>;
+  description?: InputMaybe<ApiDescriptionInput>;
+  excerpt?: InputMaybe<ApiDescriptionInput>;
+  handle?: InputMaybe<Scalars['String']['input']>;
+  media?: InputMaybe<Array<ApiCollectionMediaInput>>;
+  name: Scalars['String']['input'];
+  publish?: InputMaybe<Scalars['Boolean']['input']>;
+  seo?: InputMaybe<ApiSeoInput>;
+  type: CollectionType;
+};
+
+export type ApiCollectionCreatePayload = {
+  __typename?: 'CollectionCreatePayload';
+  collection?: Maybe<ApiCollection>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCollectionDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type ApiCollectionDeletePayload = {
+  __typename?: 'CollectionDeletePayload';
+  deletedCollectionId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCollectionEdge = {
+  __typename?: 'CollectionEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiCollection;
+};
+
+export type ApiCollectionMediaInput = {
+  fileId: Scalars['ID']['input'];
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ApiCollectionMediaItem = {
+  __typename?: 'CollectionMediaItem';
+  file: ApiFile;
+  sortIndex: Scalars['Int']['output'];
+};
+
 export type ApiCollectionMeta = {
   __typename?: 'CollectionMeta';
   count: Scalars['Int']['output'];
@@ -283,6 +1623,183 @@ export type ApiCollectionMeta = {
   pageCount: Scalars['Int']['output'];
   pageSize: Scalars['Int']['output'];
   total: Scalars['Int']['output'];
+};
+
+export type ApiCollectionMoveProductInput = {
+  afterProductId?: InputMaybe<Scalars['ID']['input']>;
+  beforeProductId?: InputMaybe<Scalars['ID']['input']>;
+  collectionId: Scalars['ID']['input'];
+  productId: Scalars['ID']['input'];
+};
+
+export type ApiCollectionMoveProductPayload = {
+  __typename?: 'CollectionMoveProductPayload';
+  collection?: Maybe<ApiCollection>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCollectionProductConnection = {
+  __typename?: 'CollectionProductConnection';
+  edges: Array<ApiCollectionProductEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiCollectionProductEdge = {
+  __typename?: 'CollectionProductEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiProduct;
+};
+
+export type ApiCollectionRemoveProductsInput = {
+  collectionId: Scalars['ID']['input'];
+  productIds: Array<Scalars['ID']['input']>;
+};
+
+export type ApiCollectionRemoveProductsPayload = {
+  __typename?: 'CollectionRemoveProductsPayload';
+  collection?: Maybe<ApiCollection>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCollectionRule = {
+  __typename?: 'CollectionRule';
+  field: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  operator: Scalars['String']['output'];
+  sortIndex: Scalars['Int']['output'];
+  value: Scalars['JSON']['output'];
+};
+
+export type ApiCollectionRuleInput = {
+  field: Scalars['String']['input'];
+  operator: Scalars['String']['input'];
+  value: Scalars['JSON']['input'];
+};
+
+export enum CollectionType {
+  Manual = 'MANUAL',
+  Rule = 'RULE'
+}
+
+export type ApiCollectionUpdateInput = {
+  activeFrom?: InputMaybe<Scalars['DateTime']['input']>;
+  activeTo?: InputMaybe<Scalars['DateTime']['input']>;
+  defaultSort?: InputMaybe<ProductSortBy>;
+  defaultSortDirection?: InputMaybe<SortDirection>;
+  description?: InputMaybe<ApiDescriptionInput>;
+  excerpt?: InputMaybe<ApiDescriptionInput>;
+  handle?: InputMaybe<Scalars['String']['input']>;
+  id: Scalars['ID']['input'];
+  media?: InputMaybe<Array<ApiCollectionMediaInput>>;
+  name?: InputMaybe<Scalars['String']['input']>;
+  publish?: InputMaybe<Scalars['Boolean']['input']>;
+  seo?: InputMaybe<ApiSeoInput>;
+};
+
+export type ApiCollectionUpdatePayload = {
+  __typename?: 'CollectionUpdatePayload';
+  collection?: Maybe<ApiCollection>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCollectionUpdateRulesInput = {
+  collectionId: Scalars['ID']['input'];
+  rules: Array<ApiCollectionRuleInput>;
+};
+
+export type ApiCollectionUpdateRulesPayload = {
+  __typename?: 'CollectionUpdateRulesPayload';
+  collection?: Maybe<ApiCollection>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** A single condition within a condition group. */
+export type ApiCondition = ApiNode & {
+  __typename?: 'Condition';
+  category: ConditionCategory;
+  groupId: Scalars['ID']['output'];
+  id: Scalars['ID']['output'];
+  operator: Scalars['String']['output'];
+  sortIndex: Scalars['Int']['output'];
+  subject: ConditionSubject;
+  targetId: Scalars['ID']['output'];
+  targetType: DependencyTargetType;
+  value?: Maybe<Scalars['Int']['output']>;
+};
+
+/** The category of a dependency condition. */
+export enum ConditionCategory {
+  /** Numeric comparison (gte, eq, lte) */
+  Numeric = 'NUMERIC',
+  /** State check (is selected, is not selected) */
+  StateCheck = 'STATE_CHECK'
+}
+
+export type ApiConditionCreateInput = {
+  category: ConditionCategory;
+  groupId: Scalars['ID']['input'];
+  operator: Scalars['String']['input'];
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  subject: ConditionSubject;
+  targetId: Scalars['ID']['input'];
+  targetType: DependencyTargetType;
+  value?: InputMaybe<Scalars['Int']['input']>;
+};
+
+/** A group of conditions within a dependency rule. */
+export type ApiConditionGroup = ApiNode & {
+  __typename?: 'ConditionGroup';
+  conditions: Array<ApiCondition>;
+  id: Scalars['ID']['output'];
+  logicOperator: LogicOperator;
+  ruleId: Scalars['ID']['output'];
+  sortIndex: Scalars['Int']['output'];
+};
+
+export type ApiConditionGroupCreateInput = {
+  logicOperator?: InputMaybe<LogicOperator>;
+  ruleId: Scalars['ID']['input'];
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ApiConditionGroupPayload = {
+  __typename?: 'ConditionGroupPayload';
+  conditionGroup?: Maybe<ApiConditionGroup>;
+  userErrors: Array<ApiUserError>;
+};
+
+export type ApiConditionGroupUpdateInput = {
+  id: Scalars['ID']['input'];
+  logicOperator?: InputMaybe<LogicOperator>;
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ApiConditionPayload = {
+  __typename?: 'ConditionPayload';
+  condition?: Maybe<ApiCondition>;
+  userErrors: Array<ApiUserError>;
+};
+
+/** The subject of a dependency condition. */
+export enum ConditionSubject {
+  /** Check group total quantity */
+  GroupTotalQty = 'GROUP_TOTAL_QTY',
+  /** Check item quantity */
+  ItemQty = 'ITEM_QTY',
+  /** Check if an item is selected */
+  ItemSelected = 'ITEM_SELECTED'
+}
+
+export type ApiConditionUpdateInput = {
+  category?: InputMaybe<ConditionCategory>;
+  id: Scalars['ID']['input'];
+  operator?: InputMaybe<Scalars['String']['input']>;
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  subject?: InputMaybe<ConditionSubject>;
+  targetId?: InputMaybe<Scalars['ID']['input']>;
+  targetType?: InputMaybe<DependencyTargetType>;
+  value?: InputMaybe<Scalars['Int']['input']>;
 };
 
 export enum CountryCode {
@@ -1105,6 +2622,120 @@ export type ApiDateTimeFilter = {
   _neq?: InputMaybe<Scalars['DateTime']['input']>;
 };
 
+export type ApiDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type ApiDeletePayload = {
+  __typename?: 'DeletePayload';
+  deletedId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiUserError>;
+};
+
+/** An action to perform when a dependency rule's conditions are met. */
+export type ApiDependencyAction = ApiNode & {
+  __typename?: 'DependencyAction';
+  actionType: DependencyActionType;
+  id: Scalars['ID']['output'];
+  priceType?: Maybe<BundlePriceType>;
+  priceValue?: Maybe<Scalars['Int']['output']>;
+  requiredValue?: Maybe<Scalars['Boolean']['output']>;
+  ruleId: Scalars['ID']['output'];
+  sortIndex: Scalars['Int']['output'];
+  stackable: Scalars['Boolean']['output'];
+  targetId?: Maybe<Scalars['ID']['output']>;
+  targetType: DependencyTargetType;
+};
+
+export type ApiDependencyActionCreateInput = {
+  actionType: DependencyActionType;
+  priceType?: InputMaybe<BundlePriceType>;
+  priceValue?: InputMaybe<Scalars['Int']['input']>;
+  requiredValue?: InputMaybe<Scalars['Boolean']['input']>;
+  ruleId: Scalars['ID']['input'];
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  stackable?: InputMaybe<Scalars['Boolean']['input']>;
+  targetId?: InputMaybe<Scalars['ID']['input']>;
+  targetType: DependencyTargetType;
+};
+
+export type ApiDependencyActionPayload = {
+  __typename?: 'DependencyActionPayload';
+  dependencyAction?: Maybe<ApiDependencyAction>;
+  userErrors: Array<ApiUserError>;
+};
+
+/** The type of action to perform when a dependency rule matches. */
+export enum DependencyActionType {
+  /** Adjust the price of the target */
+  AdjustPrice = 'ADJUST_PRICE',
+  /** Hide the target */
+  Hide = 'HIDE',
+  /** Make the target required */
+  SetRequired = 'SET_REQUIRED',
+  /** Show the target */
+  Show = 'SHOW'
+}
+
+export type ApiDependencyActionUpdateInput = {
+  actionType?: InputMaybe<DependencyActionType>;
+  id: Scalars['ID']['input'];
+  priceType?: InputMaybe<BundlePriceType>;
+  priceValue?: InputMaybe<Scalars['Int']['input']>;
+  requiredValue?: InputMaybe<Scalars['Boolean']['input']>;
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  stackable?: InputMaybe<Scalars['Boolean']['input']>;
+  targetId?: InputMaybe<Scalars['ID']['input']>;
+  targetType?: InputMaybe<DependencyTargetType>;
+};
+
+/** A dependency rule that controls bundle behavior based on conditions. */
+export type ApiDependencyRule = ApiNode & {
+  __typename?: 'DependencyRule';
+  actions: Array<ApiDependencyAction>;
+  conditionGroups: Array<ApiConditionGroup>;
+  createdAt: Scalars['DateTime']['output'];
+  enabled: Scalars['Boolean']['output'];
+  id: Scalars['ID']['output'];
+  logicOperator: LogicOperator;
+  name: Scalars['String']['output'];
+  priority: Scalars['Int']['output'];
+  productId: Scalars['ID']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiDependencyRuleCreateInput = {
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  logicOperator?: InputMaybe<LogicOperator>;
+  name: Scalars['String']['input'];
+  priority?: InputMaybe<Scalars['Int']['input']>;
+  productId: Scalars['ID']['input'];
+};
+
+export type ApiDependencyRulePayload = {
+  __typename?: 'DependencyRulePayload';
+  dependencyRule?: Maybe<ApiDependencyRule>;
+  userErrors: Array<ApiUserError>;
+};
+
+export type ApiDependencyRuleUpdateInput = {
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  id: Scalars['ID']['input'];
+  logicOperator?: InputMaybe<LogicOperator>;
+  name?: InputMaybe<Scalars['String']['input']>;
+  priority?: InputMaybe<Scalars['Int']['input']>;
+};
+
+/** The target type for conditions and actions. */
+export enum DependencyTargetType {
+  /** Target the entire bundle */
+  Bundle = 'BUNDLE',
+  /** Target an entire bundle group */
+  Group = 'GROUP',
+  /** Target a specific bundle item */
+  Item = 'ITEM'
+}
+
 /** Product description in multiple formats. */
 export type ApiDescription = {
   __typename?: 'Description';
@@ -1166,6 +2797,246 @@ export type ApiExternalMediaData = {
   externalId: Scalars['String']['output'];
   /** Provider-specific metadata. */
   providerMeta?: Maybe<Scalars['JSON']['output']>;
+};
+
+export type ApiFacet = ApiNode & {
+  __typename?: 'Facet';
+  facetType: FacetType;
+  group?: Maybe<ApiFacetGroup>;
+  id: Scalars['ID']['output'];
+  indexable: Scalars['Boolean']['output'];
+  label: Scalars['String']['output'];
+  maxValuesVisible: Scalars['Int']['output'];
+  minValues: Scalars['Int']['output'];
+  selectionMode: FacetSelectionMode;
+  slug: Scalars['String']['output'];
+  sortIndex: Scalars['Int']['output'];
+  sourceHandles: Array<Scalars['String']['output']>;
+  uiType: FacetUiType;
+  valueSort: FacetValueSort;
+  values: Array<ApiFacetValue>;
+};
+
+export type ApiFacetCreateInput = {
+  facetType: FacetType;
+  groupId?: InputMaybe<Scalars['ID']['input']>;
+  label: Scalars['String']['input'];
+  selectionMode?: InputMaybe<FacetSelectionMode>;
+  slug: Scalars['String']['input'];
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  uiType?: InputMaybe<FacetUiType>;
+};
+
+export type ApiFacetCreatePayload = {
+  __typename?: 'FacetCreatePayload';
+  facet?: Maybe<ApiFacet>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiFacetDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type ApiFacetDeletePayload = {
+  __typename?: 'FacetDeletePayload';
+  deletedFacetId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiFacetGroup = ApiNode & {
+  __typename?: 'FacetGroup';
+  collapsed: Scalars['Boolean']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  facets: Array<ApiFacet>;
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  sortIndex: Scalars['Int']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiFacetGroupCreateInput = {
+  collapsed?: InputMaybe<Scalars['Boolean']['input']>;
+  name: Scalars['String']['input'];
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ApiFacetGroupCreatePayload = {
+  __typename?: 'FacetGroupCreatePayload';
+  facetGroup?: Maybe<ApiFacetGroup>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiFacetGroupDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type ApiFacetGroupDeletePayload = {
+  __typename?: 'FacetGroupDeletePayload';
+  deletedFacetGroupId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiFacetGroupUpdateInput = {
+  collapsed?: InputMaybe<Scalars['Boolean']['input']>;
+  id: Scalars['ID']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ApiFacetGroupUpdatePayload = {
+  __typename?: 'FacetGroupUpdatePayload';
+  facetGroup?: Maybe<ApiFacetGroup>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export enum FacetSelectionMode {
+  Multi = 'MULTI',
+  Single = 'SINGLE'
+}
+
+export type ApiFacetSwatch = ApiNode & {
+  __typename?: 'FacetSwatch';
+  colorOne?: Maybe<Scalars['String']['output']>;
+  colorTwo?: Maybe<Scalars['String']['output']>;
+  file?: Maybe<ApiFile>;
+  id: Scalars['ID']['output'];
+  metadata?: Maybe<Scalars['JSON']['output']>;
+  swatchType: SwatchType;
+};
+
+export type ApiFacetSwatchCreateInput = {
+  colorOne?: InputMaybe<Scalars['String']['input']>;
+  colorTwo?: InputMaybe<Scalars['String']['input']>;
+  fileId?: InputMaybe<Scalars['ID']['input']>;
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  swatchType: SwatchType;
+};
+
+export type ApiFacetSwatchCreatePayload = {
+  __typename?: 'FacetSwatchCreatePayload';
+  facetSwatch?: Maybe<ApiFacetSwatch>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiFacetSwatchDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type ApiFacetSwatchDeletePayload = {
+  __typename?: 'FacetSwatchDeletePayload';
+  deletedFacetSwatchId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiFacetSwatchUpdateInput = {
+  colorOne?: InputMaybe<Scalars['String']['input']>;
+  colorTwo?: InputMaybe<Scalars['String']['input']>;
+  fileId?: InputMaybe<Scalars['ID']['input']>;
+  id: Scalars['ID']['input'];
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  swatchType?: InputMaybe<SwatchType>;
+};
+
+export type ApiFacetSwatchUpdatePayload = {
+  __typename?: 'FacetSwatchUpdatePayload';
+  facetSwatch?: Maybe<ApiFacetSwatch>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export enum FacetType {
+  Feature = 'FEATURE',
+  InStock = 'IN_STOCK',
+  Option = 'OPTION',
+  Price = 'PRICE',
+  Tag = 'TAG'
+}
+
+export enum FacetUiType {
+  Boolean = 'BOOLEAN',
+  Checkbox = 'CHECKBOX',
+  Dropdown = 'DROPDOWN',
+  Radio = 'RADIO',
+  Range = 'RANGE'
+}
+
+export type ApiFacetUpdateInput = {
+  groupId?: InputMaybe<Scalars['ID']['input']>;
+  id: Scalars['ID']['input'];
+  indexable?: InputMaybe<Scalars['Boolean']['input']>;
+  label?: InputMaybe<Scalars['String']['input']>;
+  maxValuesVisible?: InputMaybe<Scalars['Int']['input']>;
+  minValues?: InputMaybe<Scalars['Int']['input']>;
+  selectionMode?: InputMaybe<FacetSelectionMode>;
+  slug?: InputMaybe<Scalars['String']['input']>;
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  uiType?: InputMaybe<FacetUiType>;
+  valueSort?: InputMaybe<FacetValueSort>;
+};
+
+export type ApiFacetUpdatePayload = {
+  __typename?: 'FacetUpdatePayload';
+  facet?: Maybe<ApiFacet>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiFacetValue = ApiNode & {
+  __typename?: 'FacetValue';
+  enabled: Scalars['Boolean']['output'];
+  facet: ApiFacet;
+  id: Scalars['ID']['output'];
+  label: Scalars['String']['output'];
+  slug: Scalars['String']['output'];
+  sortIndex: Scalars['Int']['output'];
+  sourceHandles: Array<Scalars['String']['output']>;
+  swatch?: Maybe<ApiFacetSwatch>;
+};
+
+export type ApiFacetValueCreateInput = {
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  facetId: Scalars['ID']['input'];
+  label: Scalars['String']['input'];
+  slug: Scalars['String']['input'];
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  sourceHandles?: InputMaybe<Array<Scalars['String']['input']>>;
+  swatchId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type ApiFacetValueCreatePayload = {
+  __typename?: 'FacetValueCreatePayload';
+  facetValue?: Maybe<ApiFacetValue>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiFacetValueDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type ApiFacetValueDeletePayload = {
+  __typename?: 'FacetValueDeletePayload';
+  deletedFacetValueId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export enum FacetValueSort {
+  Alpha = 'ALPHA',
+  Count = 'COUNT',
+  Custom = 'CUSTOM'
+}
+
+export type ApiFacetValueUpdateInput = {
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  id: Scalars['ID']['input'];
+  label?: InputMaybe<Scalars['String']['input']>;
+  slug?: InputMaybe<Scalars['String']['input']>;
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  sourceHandles?: InputMaybe<Array<Scalars['String']['input']>>;
+  swatchId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type ApiFacetValueUpdatePayload = {
+  __typename?: 'FacetValueUpdatePayload';
+  facetValue?: Maybe<ApiFacetValue>;
+  userErrors: Array<ApiGenericUserError>;
 };
 
 /** A file represents a stored media asset. */
@@ -1634,131 +3505,173 @@ export type ApiIntFilter = {
   _notIn?: InputMaybe<Array<Scalars['Int']['input']>>;
 };
 
+export type ApiInventoryAlertThreshold = {
+  __typename?: 'InventoryAlertThreshold';
+  method: ThresholdMethod;
+  minimumStock: Scalars['Int']['output'];
+};
+
+export type ApiInventoryBackorder = {
+  __typename?: 'InventoryBackorder';
+  etaAvgDays?: Maybe<Scalars['Float']['output']>;
+  quantity: Scalars['Int']['output'];
+};
+
+/**
+ * InventoryItem represents the inventory-specific data for a variant.
+ * Each Variant in Catalog has a corresponding InventoryItem in Inventory service.
+ */
+export type ApiInventoryItem = ApiNode & {
+  __typename?: 'InventoryItem';
+  /** Whether to continue selling when out of stock */
+  continueSellingWhenOutOfStock: Scalars['Boolean']['output'];
+  /** When this item was created */
+  createdAt: Scalars['DateTime']['output'];
+  /** Physical dimensions (mm) */
+  dimensions?: Maybe<ApiInventoryItemDimensions>;
+  /** Global ID (Relay) */
+  id: Scalars['ID']['output'];
+  /** SKU code */
+  sku?: Maybe<Scalars['String']['output']>;
+  /** Stock levels across warehouses */
+  stock: Array<ApiWarehouseStock>;
+  /** Total quantity available across all warehouses */
+  totalAvailable: Scalars['Int']['output'];
+  /** Whether to track inventory for this item */
+  trackInventory: Scalars['Boolean']['output'];
+  /** Current unit cost */
+  unitCost?: Maybe<ApiInventoryItemCost>;
+  /** When this item was last updated */
+  updatedAt: Scalars['DateTime']['output'];
+  /** Reference to Catalog.Variant */
+  variantId: Scalars['ID']['output'];
+  /** Weight (grams) */
+  weight?: Maybe<ApiInventoryItemWeight>;
+};
+
+export type ApiInventoryItemConnection = {
+  __typename?: 'InventoryItemConnection';
+  edges: Array<ApiInventoryItemEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiInventoryItemCost = {
+  __typename?: 'InventoryItemCost';
+  /** Cost in minor units (cents) */
+  amountMinor: Scalars['BigInt']['output'];
+  /** Currency code */
+  currency: Scalars['String']['output'];
+  /** Effective from date */
+  effectiveFrom: Scalars['DateTime']['output'];
+};
+
+export type ApiInventoryItemCostInput = {
+  amountMinor: Scalars['BigInt']['input'];
+  currency: Scalars['String']['input'];
+};
+
+export type ApiInventoryItemDimensions = {
+  __typename?: 'InventoryItemDimensions';
+  /** Display unit preference */
+  displayUnit: DimensionUnit;
+  /** Height in millimeters */
+  heightMm: Scalars['Int']['output'];
+  /** Length in millimeters */
+  lengthMm: Scalars['Int']['output'];
+  /** Width in millimeters */
+  widthMm: Scalars['Int']['output'];
+};
+
+export type ApiInventoryItemDimensionsInput = {
+  heightMm: Scalars['Int']['input'];
+  lengthMm: Scalars['Int']['input'];
+  widthMm: Scalars['Int']['input'];
+};
+
+export type ApiInventoryItemEdge = {
+  __typename?: 'InventoryItemEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiInventoryItem;
+};
+
+/** Inventory tracking settings for product creation. */
+export type ApiInventoryItemInput = {
+  /** Allow sales when stock is zero. */
+  continueSellingWhenOutOfStock?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Stock Keeping Unit. */
+  sku?: InputMaybe<Scalars['String']['input']>;
+  /** Whether to track inventory for this product. */
+  tracked: Scalars['Boolean']['input'];
+};
+
+export type ApiInventoryItemStockInput = {
+  onHand: Scalars['Int']['input'];
+  unavailable?: InputMaybe<Scalars['Int']['input']>;
+  warehouseId: Scalars['ID']['input'];
+};
+
+export type ApiInventoryItemUpdateInput = {
+  /** Whether to continue selling when out of stock */
+  continueSellingWhenOutOfStock?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Physical dimensions update */
+  dimensions?: InputMaybe<ApiInventoryItemDimensionsInput>;
+  /** The inventory item ID to update */
+  id: Scalars['ID']['input'];
+  /** New SKU value */
+  sku?: InputMaybe<Scalars['String']['input']>;
+  /** Stock update for a specific warehouse */
+  stock?: InputMaybe<ApiInventoryItemStockInput>;
+  /** Whether to track inventory */
+  trackInventory?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Unit cost update */
+  unitCost?: InputMaybe<ApiInventoryItemCostInput>;
+  /** Weight update */
+  weight?: InputMaybe<ApiInventoryItemWeightInput>;
+};
+
+export type ApiInventoryItemUpdatePayload = {
+  __typename?: 'InventoryItemUpdatePayload';
+  /** Updated inventory item */
+  inventoryItem?: Maybe<ApiInventoryItem>;
+  /** List of errors */
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiInventoryItemWeight = {
+  __typename?: 'InventoryItemWeight';
+  /** Display unit preference */
+  displayUnit: WeightUnit;
+  /** Weight in grams */
+  weightGrams: Scalars['Int']['output'];
+};
+
+export type ApiInventoryItemWeightInput = {
+  weightGrams: Scalars['Int']['input'];
+};
+
+export type ApiInventoryItemWhereInput = {
+  /** Filter by SKU */
+  sku?: InputMaybe<ApiStringFilter>;
+  /** Filter by trackInventory */
+  trackInventory?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
 export type ApiInventoryMutation = {
   __typename?: 'InventoryMutation';
-  productCreate: ApiProductCreatePayload;
-  productDelete: ApiProductDeletePayload;
-  productFeatureCreate: ApiProductFeatureCreatePayload;
-  productFeatureDelete: ApiProductFeatureDeletePayload;
-  productFeatureUpdate: ApiProductFeatureUpdatePayload;
-  productOptionCreate: ApiProductOptionCreatePayload;
-  productOptionDelete: ApiProductOptionDeletePayload;
-  productOptionUpdate: ApiProductOptionUpdatePayload;
-  productPublish: ApiProductPublishPayload;
-  productUnpublish: ApiProductUnpublishPayload;
-  productUpdate: ApiProductUpdatePayload;
-  variantCreate: ApiVariantCreatePayload;
-  variantDelete: ApiVariantDeletePayload;
-  variantSetCost: ApiVariantSetCostPayload;
-  variantSetDimensions: ApiVariantSetDimensionsPayload;
-  variantSetMedia: ApiVariantSetMediaPayload;
-  variantSetPricing: ApiVariantSetPricingPayload;
-  variantSetSku: ApiVariantSetSkuPayload;
-  variantSetStock: ApiVariantSetStockPayload;
-  variantSetWeight: ApiVariantSetWeightPayload;
+  /**
+   * Update inventory item: stock, SKU, weight, cost, dimensions.
+   * Replaces variantUpdateInventory and variantUpdateDimensions.
+   */
+  inventoryItemUpdate: ApiInventoryItemUpdatePayload;
   warehouseCreate: ApiWarehouseCreatePayload;
   warehouseDelete: ApiWarehouseDeletePayload;
   warehouseUpdate: ApiWarehouseUpdatePayload;
 };
 
 
-export type ApiInventoryMutationProductCreateArgs = {
-  input: ApiProductCreateInput;
-};
-
-
-export type ApiInventoryMutationProductDeleteArgs = {
-  input: ApiProductDeleteInput;
-};
-
-
-export type ApiInventoryMutationProductFeatureCreateArgs = {
-  input: ApiProductFeatureCreateInput;
-};
-
-
-export type ApiInventoryMutationProductFeatureDeleteArgs = {
-  input: ApiProductFeatureDeleteInput;
-};
-
-
-export type ApiInventoryMutationProductFeatureUpdateArgs = {
-  input: ApiProductFeatureUpdateInput;
-};
-
-
-export type ApiInventoryMutationProductOptionCreateArgs = {
-  input: ApiProductOptionCreateInput;
-};
-
-
-export type ApiInventoryMutationProductOptionDeleteArgs = {
-  input: ApiProductOptionDeleteInput;
-};
-
-
-export type ApiInventoryMutationProductOptionUpdateArgs = {
-  input: ApiProductOptionUpdateInput;
-};
-
-
-export type ApiInventoryMutationProductPublishArgs = {
-  input: ApiProductPublishInput;
-};
-
-
-export type ApiInventoryMutationProductUnpublishArgs = {
-  input: ApiProductUnpublishInput;
-};
-
-
-export type ApiInventoryMutationProductUpdateArgs = {
-  input: ApiProductUpdateInput;
-};
-
-
-export type ApiInventoryMutationVariantCreateArgs = {
-  input: ApiVariantCreateInput;
-};
-
-
-export type ApiInventoryMutationVariantDeleteArgs = {
-  input: ApiVariantDeleteInput;
-};
-
-
-export type ApiInventoryMutationVariantSetCostArgs = {
-  input: ApiVariantSetCostInput;
-};
-
-
-export type ApiInventoryMutationVariantSetDimensionsArgs = {
-  input: ApiVariantSetDimensionsInput;
-};
-
-
-export type ApiInventoryMutationVariantSetMediaArgs = {
-  input: ApiVariantSetMediaInput;
-};
-
-
-export type ApiInventoryMutationVariantSetPricingArgs = {
-  input: ApiVariantSetPricingInput;
-};
-
-
-export type ApiInventoryMutationVariantSetSkuArgs = {
-  input: ApiVariantSetSkuInput;
-};
-
-
-export type ApiInventoryMutationVariantSetStockArgs = {
-  input: ApiVariantSetStockInput;
-};
-
-
-export type ApiInventoryMutationVariantSetWeightArgs = {
-  input: ApiVariantSetWeightInput;
+export type ApiInventoryMutationInventoryItemUpdateArgs = {
+  input: ApiInventoryItemUpdateInput;
 };
 
 
@@ -1776,24 +3689,47 @@ export type ApiInventoryMutationWarehouseUpdateArgs = {
   input: ApiWarehouseUpdateInput;
 };
 
+export type ApiInventoryQuantities = {
+  __typename?: 'InventoryQuantities';
+  availableForSale: Scalars['Int']['output'];
+  onHand: Scalars['Int']['output'];
+  reserved: Scalars['Int']['output'];
+  unavailable: Scalars['Int']['output'];
+};
+
 export type ApiInventoryQuery = {
   __typename?: 'InventoryQuery';
+  /** Get an inventory item by ID */
+  inventoryItem?: Maybe<ApiInventoryItem>;
+  /** Get an inventory item by variant ID */
+  inventoryItemByVariant?: Maybe<ApiInventoryItem>;
+  /** Get inventory items with Relay-style pagination */
+  inventoryItems: ApiInventoryItemConnection;
   /** Get a node by its global ID */
   node?: Maybe<ApiNode>;
   /** Get multiple nodes by their global IDs */
   nodes: Array<Maybe<ApiNode>>;
-  /** Get a product by ID */
-  product?: Maybe<ApiProduct>;
-  /** Get products with Relay-style pagination */
-  products: ApiProductConnection;
-  /** Get a variant by ID */
-  variant?: Maybe<ApiVariant>;
-  /** Get variants with Relay-style pagination */
-  variants: ApiVariantConnection;
   /** Get a warehouse by ID */
   warehouse?: Maybe<ApiWarehouse>;
   /** Get all warehouses */
   warehouses: ApiWarehouseConnection;
+};
+
+
+export type ApiInventoryQueryInventoryItemArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiInventoryQueryInventoryItemByVariantArgs = {
+  variantId: Scalars['ID']['input'];
+};
+
+
+export type ApiInventoryQueryInventoryItemsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  where?: InputMaybe<ApiInventoryItemWhereInput>;
 };
 
 
@@ -1804,32 +3740,6 @@ export type ApiInventoryQueryNodeArgs = {
 
 export type ApiInventoryQueryNodesArgs = {
   ids: Array<Scalars['ID']['input']>;
-};
-
-
-export type ApiInventoryQueryProductArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type ApiInventoryQueryProductsArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-};
-
-
-export type ApiInventoryQueryVariantArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type ApiInventoryQueryVariantsArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
@@ -1845,6 +3755,14 @@ export type ApiInventoryQueryWarehousesArgs = {
   last?: InputMaybe<Scalars['Int']['input']>;
   orderBy?: InputMaybe<Array<ApiWarehouseOrderByInput>>;
   where?: InputMaybe<ApiWarehouseWhereInput>;
+};
+
+export type ApiInventorySkuStatus = {
+  __typename?: 'InventorySkuStatus';
+  backorder: ApiSkuStatusMetric;
+  lowStock: ApiSkuStatusMetric;
+  outOfStock: ApiSkuStatusMetric;
+  total: Scalars['Int']['output'];
 };
 
 export type ApiLabel = {
@@ -2186,6 +4104,12 @@ export type ApiLocaleUpdatePayload = {
   userErrors: Array<ApiUserError>;
 };
 
+/** Logic operator for combining conditions or condition groups. */
+export enum LogicOperator {
+  And = 'AND',
+  Or = 'OR'
+}
+
 /** Image/video dimensions. */
 export type ApiMediaDimensions = {
   __typename?: 'MediaDimensions';
@@ -2425,6 +4349,8 @@ export type ApiMutation = {
   appsMutation: ApiAppsMutation;
   /** Authentication mutations. */
   authMutation: ApiAuthMutation;
+  /** Catalog mutation namespace for product, variant, category, and collection operations */
+  catalogMutation: ApiCatalogMutation;
   inventoryMutation: ApiInventoryMutation;
   mediaMutation: ApiMediaMutation;
   orderMutation: ApiOrderMutation;
@@ -2443,6 +4369,30 @@ export type ApiNode = {
   /** The globally unique ID of the object. */
   id: Scalars['ID']['output'];
 };
+
+/** The operator for numeric conditions. */
+export enum NumericOperator {
+  Eq = 'EQ',
+  Gte = 'GTE',
+  Lte = 'LTE'
+}
+
+/** Result of a single operation in the unified update. */
+export type ApiOperationResult = {
+  __typename?: 'OperationResult';
+  /** Whether the operation was applied successfully. */
+  applied: Scalars['Boolean']['output'];
+  /** Errors that occurred during this operation. */
+  errors: Array<ApiGenericUserError>;
+  /** The type of operation. */
+  type: OperationType;
+};
+
+/** Type of operation in the unified update. */
+export enum OperationType {
+  ProductUpdate = 'PRODUCT_UPDATE',
+  VariantUpdate = 'VARIANT_UPDATE'
+}
 
 /** Display type for product options in the UI. */
 export enum OptionDisplayType {
@@ -2899,9 +4849,40 @@ export type ApiPageInfo = {
   startCursor?: Maybe<Scalars['String']['output']>;
 };
 
+/** Input for pricing widget query. */
+export type ApiPricingWidgetInput = {
+  /** Pagination: cursor after. */
+  after?: InputMaybe<Scalars['String']['input']>;
+  /** Currency code to filter by. */
+  currency: CurrencyCode;
+  /** Pagination: first N items. */
+  first?: InputMaybe<Scalars['Int']['input']>;
+  /** Start of the period (optional, defaults to 30 days ago). */
+  from?: InputMaybe<Scalars['DateTime']['input']>;
+  /** End of the period (optional, defaults to now). */
+  to?: InputMaybe<Scalars['DateTime']['input']>;
+  /** The variant ID to get pricing data for. */
+  variantId: Scalars['ID']['input'];
+};
+
+/** Pricing widget payload with current price, cost, history and statistics. */
+export type ApiPricingWidgetPayload = {
+  __typename?: 'PricingWidgetPayload';
+  /** Current active cost. */
+  currentCostPrice?: Maybe<ApiVariantCost>;
+  /** Current active price. */
+  currentPrice?: Maybe<ApiVariantPrice>;
+  /** Price history for the period. */
+  history: ApiVariantPriceConnection;
+  /** Computed statistics for the period. */
+  statistics: ApiVariantPriceHistoryStatistics;
+};
+
 /** A product represents an item that can be sold. */
 export type ApiProduct = ApiNode & {
   __typename?: 'Product';
+  /** The categories this product belongs to. */
+  categories: Array<ApiCategory>;
   /** The date and time when the product was created. */
   createdAt: Scalars['DateTime']['output'];
   /** The date and time when the product was deleted (soft delete). */
@@ -2909,7 +4890,7 @@ export type ApiProduct = ApiNode & {
   /** Product description. */
   description?: Maybe<ApiDescription>;
   /** Short excerpt. */
-  excerpt?: Maybe<Scalars['String']['output']>;
+  excerpt?: Maybe<ApiDescription>;
   /** The features of this product. */
   features: Array<ApiProductFeature>;
   /** The URL-friendly handle for the product. */
@@ -2922,10 +4903,12 @@ export type ApiProduct = ApiNode & {
   options: Array<ApiProductOption>;
   /** The date and time when the product was published, or null if unpublished. */
   publishedAt?: Maybe<Scalars['DateTime']['output']>;
-  /** SEO description. */
-  seoDescription?: Maybe<Scalars['String']['output']>;
-  /** SEO title. */
-  seoTitle?: Maybe<Scalars['String']['output']>;
+  /** Optimistic locking revision number. Incremented on each update. */
+  revision: Scalars['Int']['output'];
+  /** SEO and Open Graph metadata. */
+  seo?: Maybe<ApiProductSeo>;
+  /** The tags associated with this product. */
+  tags: Array<ApiTag>;
   /** Product title. */
   title: Scalars['String']['output'];
   /** The date and time when the product was last updated. */
@@ -2945,6 +4928,63 @@ export type ApiProductVariantsArgs = {
   last?: InputMaybe<Scalars['Int']['input']>;
 };
 
+/**
+ * Bulk update input - same structure as productUpdate but for multiple products.
+ * Max 100 products, 500 operations total.
+ */
+export type ApiProductBulkUpdateInput = {
+  /** List of products to update with their operations. */
+  products: Array<ApiProductBulkUpdateItem>;
+};
+
+/** A single product's update within a bulk request. */
+export type ApiProductBulkUpdateItem = {
+  /** Expected revision for optimistic locking. If provided, fails if product was modified. */
+  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
+  /** Product-level operations. */
+  operations?: InputMaybe<ApiProductUpdateInput>;
+  /** The product ID to update. */
+  productId: Scalars['ID']['input'];
+};
+
+/** Bulk update job with progress. */
+export type ApiProductBulkUpdateJob = {
+  __typename?: 'ProductBulkUpdateJob';
+  /** When created. */
+  createdAt: Scalars['DateTime']['output'];
+  /** When finished. */
+  finishedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Job ID. */
+  id: Scalars['ID']['output'];
+  /** Items with pagination and filtering. */
+  items: ApiBulkUpdateItemConnection;
+  /** Progress computed from items. */
+  progress: ApiBulkUpdateJobProgress;
+  /** When started running. */
+  startedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Current status. */
+  status: BulkUpdateJobStatus;
+  /** Total products in batch. */
+  totalProducts: Scalars['Int']['output'];
+};
+
+
+/** Bulk update job with progress. */
+export type ApiProductBulkUpdateJobItemsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  statusFilter?: InputMaybe<Array<BulkUpdateItemStatus>>;
+};
+
+/** Result of bulk update start/cancel. */
+export type ApiProductBulkUpdatePayload = {
+  __typename?: 'ProductBulkUpdatePayload';
+  /** Created or updated job (null on validation error). */
+  job?: Maybe<ApiProductBulkUpdateJob>;
+  /** Validation/execution errors. */
+  userErrors: Array<ApiBulkUpdateUserError>;
+};
+
 /** A connection to a list of Product items. */
 export type ApiProductConnection = {
   __typename?: 'ProductConnection';
@@ -2956,12 +4996,24 @@ export type ApiProductConnection = {
   totalCount: Scalars['Int']['output'];
 };
 
+/** Input for product content (description, excerpt). */
+export type ApiProductContentInput = {
+  /** Product description in multiple formats. */
+  description?: InputMaybe<ApiDescriptionInput>;
+  /** Short excerpt. */
+  excerpt?: InputMaybe<ApiDescriptionInput>;
+};
+
 /** Input for creating a product with all its data in one request. */
 export type ApiProductCreateInput = {
   /** Product description. */
   description?: InputMaybe<ApiDescriptionInput>;
+  /** Short excerpt in multiple formats. */
+  excerpt?: InputMaybe<ApiDescriptionInput>;
   /** URL-friendly handle for the product. */
   handle: Scalars['String']['input'];
+  /** Inventory tracking settings for the product. */
+  inventoryItem?: InputMaybe<ApiInventoryItemInput>;
   /** File IDs for product media (already uploaded via mediaMutation.fileUpload). */
   mediaFileIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   /** Product options (e.g., Color, Size). */
@@ -3033,16 +5085,24 @@ export type ApiProductEdge = {
   node: ApiProduct;
 };
 
-/** A product feature represents a searchable attribute of a product (e.g., Material, Brand). */
+/** A product feature represents either a group or an attribute. */
 export type ApiProductFeature = ApiNode & {
   __typename?: 'ProductFeature';
+  /** Child features. Returns empty array for attributes (isGroup = false). */
+  children: Array<ApiProductFeature>;
   /** The globally unique ID of the feature. */
   id: Scalars['ID']['output'];
-  /** Display name. */
+  /** Tree position as array: [0] for root, [0, 1] for child of first group. */
+  index: Array<Scalars['Int']['output']>;
+  /** Whether this feature is a group (container) or an attribute (leaf). */
+  isGroup: Scalars['Boolean']['output'];
+  /** Display name (from translations). */
   name: Scalars['String']['output'];
-  /** The URL-friendly identifier for this feature. */
+  /** Parent group, if this feature belongs to a group. */
+  parent?: Maybe<ApiProductFeature>;
+  /** The URL-friendly slug for this feature. */
   slug: Scalars['String']['output'];
-  /** The available values for this feature. */
+  /** Values. Returns empty array for groups (isGroup = true). */
   values: Array<ApiProductFeatureValue>;
 };
 
@@ -3096,13 +5156,39 @@ export type ApiProductFeatureInput = {
   values: Array<ApiProductFeatureValueCreateInput>;
 };
 
+export type ApiProductFeatureSyncItemInput = {
+  /**
+   * Database ID. Null for new records.
+   * - If provided: update existing feature
+   * - If null/omitted: create new feature (backend generates ID)
+   * Features in DB but not in this list will be DELETED.
+   */
+  id?: InputMaybe<Scalars['ID']['input']>;
+  /**
+   * Tree position as integer array.
+   * - [0], [1], [2] for root items
+   * - [0, 0], [0, 1], [1, 0] for children
+   * Parent is derived: parent of [0, 1] is [0].
+   * Groups must have length 1 (root only).
+   */
+  index: Array<Scalars['Int']['input']>;
+  /** Whether this is a group (true) or attribute (false). */
+  isGroup: Scalars['Boolean']['input'];
+  /** Display name. */
+  name: Scalars['String']['input'];
+  /** The URL-friendly slug for this feature. */
+  slug: Scalars['String']['input'];
+  /** Values for this feature (only when isGroup = false). */
+  values?: InputMaybe<Array<ApiProductFeatureValueSyncInput>>;
+};
+
 /** Input for updating a feature. */
 export type ApiProductFeatureUpdateInput = {
   /** The ID of the feature to update. */
   id: Scalars['ID']['input'];
   /** Display name. */
   name?: InputMaybe<Scalars['String']['input']>;
-  /** The new slug for the feature. */
+  /** The URL-friendly slug for the feature. */
   slug?: InputMaybe<Scalars['String']['input']>;
   /** Nested value operations. */
   values?: InputMaybe<ApiProductFeatureValuesInput>;
@@ -3124,9 +5210,11 @@ export type ApiProductFeatureValue = ApiNode & {
   __typename?: 'ProductFeatureValue';
   /** The globally unique ID of the feature value. */
   id: Scalars['ID']['output'];
-  /** Display name. */
+  /** Position within the feature's values (0, 1, 2, ...). */
+  index: Scalars['Int']['output'];
+  /** Display name (from translations). */
   name: Scalars['String']['output'];
-  /** The URL-friendly identifier for this value. */
+  /** The URL-friendly slug for this feature value. */
   slug: Scalars['String']['output'];
 };
 
@@ -3134,7 +5222,18 @@ export type ApiProductFeatureValue = ApiNode & {
 export type ApiProductFeatureValueCreateInput = {
   /** Display name. */
   name: Scalars['String']['input'];
-  /** The URL-friendly slug for the value. */
+  /** The URL-friendly slug for this feature value. */
+  slug: Scalars['String']['input'];
+};
+
+export type ApiProductFeatureValueSyncInput = {
+  /** Database ID. Null for new records. */
+  id?: InputMaybe<Scalars['ID']['input']>;
+  /** Position within the feature's values (0, 1, 2, ...). */
+  index: Scalars['Int']['input'];
+  /** Display name. */
+  name: Scalars['String']['input'];
+  /** The URL-friendly slug for this feature value. */
   slug: Scalars['String']['input'];
 };
 
@@ -3144,7 +5243,7 @@ export type ApiProductFeatureValueUpdateInput = {
   id: Scalars['ID']['input'];
   /** Display name. */
   name?: InputMaybe<Scalars['String']['input']>;
-  /** The new slug for the value. */
+  /** The URL-friendly slug for this value. */
   slug?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -3156,6 +5255,39 @@ export type ApiProductFeatureValuesInput = {
   delete?: InputMaybe<Array<Scalars['ID']['input']>>;
   /** Values to update. */
   update?: InputMaybe<Array<ApiProductFeatureValueUpdateInput>>;
+};
+
+/** Sync all product features in a single transaction. */
+export type ApiProductFeaturesSyncInput = {
+  /** Complete list of features (replaces all existing features). */
+  features: Array<ApiProductFeatureSyncItemInput>;
+  /** The ID of the product. */
+  productId: Scalars['ID']['input'];
+};
+
+export type ApiProductFeaturesSyncPayload = {
+  __typename?: 'ProductFeaturesSyncPayload';
+  /** List of all synced features with their final IDs. */
+  features: Array<ApiProductFeature>;
+  /** The updated product. */
+  product?: Maybe<ApiProduct>;
+  /** Any validation errors. */
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiProductInventoryWidget = {
+  __typename?: 'ProductInventoryWidget';
+  alertThreshold: ApiInventoryAlertThreshold;
+  availableChange7d: Scalars['Int']['output'];
+  backorder: ApiInventoryBackorder;
+  quantities: ApiInventoryQuantities;
+  skuStatus: ApiInventorySkuStatus;
+};
+
+/** Input for product media. */
+export type ApiProductMediaInput = {
+  /** File IDs for product media. */
+  fileIds: Array<Scalars['ID']['input']>;
 };
 
 /** A product option defines a configurable aspect of a product, such as Size or Color. */
@@ -3246,6 +5378,22 @@ export type ApiProductOptionSwatchInput = {
   swatchType: SwatchType;
 };
 
+/** Input for syncing a single option. */
+export type ApiProductOptionSyncItemInput = {
+  /** The display type for UI rendering. */
+  displayType: OptionDisplayType;
+  /** Existing option ID (null = create new). */
+  id?: InputMaybe<Scalars['ID']['input']>;
+  /** Position in the options list (0, 1, 2...). */
+  index: Scalars['Int']['input'];
+  /** Display name. */
+  name: Scalars['String']['input'];
+  /** The URL-friendly slug for the option. */
+  slug: Scalars['String']['input'];
+  /** The values for this option. */
+  values: Array<ApiProductOptionValueSyncInput>;
+};
+
 /** Input for updating an option. */
 export type ApiProductOptionUpdateInput = {
   /** The new display type. */
@@ -3294,6 +5442,20 @@ export type ApiProductOptionValueCreateInput = {
   swatch?: InputMaybe<ApiProductOptionSwatchInput>;
 };
 
+/** Input for syncing a single option value. */
+export type ApiProductOptionValueSyncInput = {
+  /** Existing value ID (null = create new). */
+  id?: InputMaybe<Scalars['ID']['input']>;
+  /** Position within the option (0, 1, 2...). */
+  index: Scalars['Int']['input'];
+  /** Display name. */
+  name: Scalars['String']['input'];
+  /** The URL-friendly slug for the value. */
+  slug: Scalars['String']['input'];
+  /** The swatch for this value (null to remove). */
+  swatch?: InputMaybe<ApiProductOptionSwatchInput>;
+};
+
 /** Input for updating an existing option value. */
 export type ApiProductOptionValueUpdateInput = {
   /** The ID of the value to update. */
@@ -3316,57 +5478,115 @@ export type ApiProductOptionValuesInput = {
   update?: InputMaybe<Array<ApiProductOptionValueUpdateInput>>;
 };
 
-/** Input for publishing a product. */
-export type ApiProductPublishInput = {
-  /** The ID of the product to publish. */
-  id: Scalars['ID']['input'];
+/** Input for syncing all product options. */
+export type ApiProductOptionsSyncInput = {
+  /** Complete list of options (replaces existing). */
+  options: Array<ApiProductOptionSyncItemInput>;
+  /** The product to sync options for. */
+  productId: Scalars['ID']['input'];
 };
 
-/** Payload for product publish. */
-export type ApiProductPublishPayload = {
-  __typename?: 'ProductPublishPayload';
-  /** The published product. */
+/** Payload for options sync mutation. */
+export type ApiProductOptionsSyncPayload = {
+  __typename?: 'ProductOptionsSyncPayload';
+  /** All synced options with final IDs. */
+  options: Array<ApiProductOption>;
+  /** The product with updated options. */
   product?: Maybe<ApiProduct>;
-  /** List of errors that occurred during the mutation. */
+  /** List of errors that occurred. */
   userErrors: Array<ApiGenericUserError>;
 };
 
-/** Input for unpublishing a product. */
-export type ApiProductUnpublishInput = {
-  /** The ID of the product to unpublish. */
-  id: Scalars['ID']['input'];
+/** Standard orderBy input for product queries. */
+export type ApiProductOrderByInput = {
+  direction?: InputMaybe<SortDirection>;
+  field: ProductSortBy;
 };
 
-/** Payload for product unpublish. */
-export type ApiProductUnpublishPayload = {
-  __typename?: 'ProductUnpublishPayload';
-  /** The unpublished product. */
-  product?: Maybe<ApiProduct>;
-  /** List of errors that occurred during the mutation. */
-  userErrors: Array<ApiGenericUserError>;
+/** SEO and Open Graph metadata for a product. */
+export type ApiProductSeo = {
+  __typename?: 'ProductSeo';
+  ogDescription?: Maybe<Scalars['String']['output']>;
+  ogImage?: Maybe<ApiFile>;
+  ogTitle?: Maybe<Scalars['String']['output']>;
+  seoDescription?: Maybe<Scalars['String']['output']>;
+  seoTitle?: Maybe<Scalars['String']['output']>;
 };
 
-/** Input for updating a product. */
+/** Input for updating product SEO data. */
+export type ApiProductSeoInput = {
+  ogDescription?: InputMaybe<Scalars['String']['input']>;
+  ogImageId?: InputMaybe<Scalars['ID']['input']>;
+  ogTitle?: InputMaybe<Scalars['String']['input']>;
+  seoDescription?: InputMaybe<Scalars['String']['input']>;
+  seoTitle?: InputMaybe<Scalars['String']['input']>;
+};
+
+export enum ProductSortBy {
+  Manual = 'MANUAL',
+  Name = 'NAME',
+  Newest = 'NEWEST',
+  Price = 'PRICE'
+}
+
+export type ApiProductSortInput = {
+  by: ProductSortBy;
+  direction?: InputMaybe<SortDirection>;
+};
+
+export enum ProductStatus {
+  Draft = 'DRAFT',
+  Published = 'PUBLISHED'
+}
+
+export enum ProductStatusAction {
+  Publish = 'PUBLISH',
+  Unpublish = 'UNPUBLISH'
+}
+
+/** Input for product-level fields in the unified update. */
 export type ApiProductUpdateInput = {
-  /** Product description. */
-  description?: InputMaybe<ApiDescriptionInput>;
-  /** Short excerpt. */
-  excerpt?: InputMaybe<Scalars['String']['input']>;
+  /** Product content (description, excerpt). */
+  content?: InputMaybe<ApiProductContentInput>;
   /** The URL-friendly handle for the product. */
   handle?: InputMaybe<Scalars['String']['input']>;
-  /** The product ID. */
-  id: Scalars['ID']['input'];
-  /** SEO description. */
-  seoDescription?: InputMaybe<Scalars['String']['input']>;
-  /** SEO title. */
-  seoTitle?: InputMaybe<Scalars['String']['input']>;
+  /** Product media. */
+  media?: InputMaybe<ApiProductMediaInput>;
+  /** SEO and Open Graph metadata. */
+  seo?: InputMaybe<ApiProductSeoInput>;
+  /** Product status: DRAFT or PUBLISHED. */
+  status?: InputMaybe<ProductStatus>;
   /** Product title. */
   title?: InputMaybe<Scalars['String']['input']>;
+  /** Variant updates. */
+  variants?: InputMaybe<Array<ApiVariantUpdateInput>>;
 };
 
-/** Payload for product update. */
+/** Payload for the unified product update mutation. */
 export type ApiProductUpdatePayload = {
   __typename?: 'ProductUpdatePayload';
+  /** Results of each operation. */
+  operationResults: Array<ApiOperationResult>;
+  /** The updated product with new revision. */
+  product?: Maybe<ApiProduct>;
+  /** All errors from all operations. */
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/**
+ * Input for updating product status (publish or unpublish).
+ * Reused in bulk operations.
+ */
+export type ApiProductUpdateStatusInput = {
+  /** Action: PUBLISH or UNPUBLISH. */
+  action: ProductStatusAction;
+  /** Product ID. */
+  productId: Scalars['ID']['input'];
+};
+
+/** Payload for product update status. */
+export type ApiProductUpdateStatusPayload = {
+  __typename?: 'ProductUpdateStatusPayload';
   /** The updated product. */
   product?: Maybe<ApiProduct>;
   /** List of errors that occurred during the mutation. */
@@ -3387,6 +5607,8 @@ export type ApiPurchasableSnapshot = ApiPurchasable & {
 export type ApiQuery = {
   __typename?: 'Query';
   appsQuery: ApiAppsQuery;
+  /** Catalog query namespace for product, variant, category, and collection operations */
+  catalogQuery: ApiCatalogQuery;
   inventoryQuery: ApiInventoryQuery;
   mediaQuery: ApiMediaQuery;
   orderQuery: ApiOrderQuery;
@@ -3396,6 +5618,8 @@ export type ApiQuery = {
   storeQuery: ApiStoreQuery;
   /** User management queries. */
   userQuery: ApiUserQuery;
+  /** Widget query namespace for dashboard widgets */
+  widgetQuery: ApiWidgetQuery;
 };
 
 /** Resource definition for role editor UI. */
@@ -3594,6 +5818,35 @@ export type ApiSelectedOptionInput = {
   optionValueId: Scalars['ID']['input'];
 };
 
+/** SEO and Open Graph metadata. */
+export type ApiSeo = {
+  __typename?: 'Seo';
+  /** Open Graph description for social media sharing. */
+  ogDescription?: Maybe<Scalars['String']['output']>;
+  /** Open Graph image for social media sharing. */
+  ogImage?: Maybe<ApiFile>;
+  /** Open Graph title for social media sharing (max 95 chars). */
+  ogTitle?: Maybe<Scalars['String']['output']>;
+  /** SEO description for search engines (max 160 chars). */
+  seoDescription?: Maybe<Scalars['String']['output']>;
+  /** SEO title for search engines (max 70 chars). */
+  seoTitle?: Maybe<Scalars['String']['output']>;
+};
+
+/** Input for SEO and Open Graph metadata. */
+export type ApiSeoInput = {
+  /** Open Graph description. */
+  ogDescription?: InputMaybe<Scalars['String']['input']>;
+  /** Open Graph image file ID. */
+  ogImageId?: InputMaybe<Scalars['ID']['input']>;
+  /** Open Graph title (max 95 chars). */
+  ogTitle?: InputMaybe<Scalars['String']['input']>;
+  /** SEO description (max 160 chars). */
+  seoDescription?: InputMaybe<Scalars['String']['input']>;
+  /** SEO title (max 70 chars). */
+  seoTitle?: InputMaybe<Scalars['String']['input']>;
+};
+
 /** User session representing an active login. */
 export type ApiSession = {
   __typename?: 'Session';
@@ -3637,10 +5890,22 @@ export type ApiSessionRevokePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+export type ApiSkuStatusMetric = {
+  __typename?: 'SkuStatusMetric';
+  averageDays?: Maybe<Scalars['Float']['output']>;
+  count: Scalars['Int']['output'];
+};
+
 /** Sort direction */
 export enum SortDirection {
   Asc = 'asc',
   Desc = 'desc'
+}
+
+/** The operator for state check conditions. */
+export enum StateCheckOperator {
+  IsNotSelected = 'IS_NOT_SELECTED',
+  IsSelected = 'IS_SELECTED'
 }
 
 /** A store */
@@ -3920,10 +6185,107 @@ export enum SwatchType {
   Image = 'IMAGE'
 }
 
-export type ApiTag = {
+/** A tag represents a simple label for organizing and filtering products. */
+export type ApiTag = ApiNode & {
   __typename?: 'Tag';
+  /** The date and time when the tag was created. */
+  createdAt: Scalars['DateTime']['output'];
+  /** The URL-friendly handle for the tag. */
+  handle: Scalars['String']['output'];
+  /** The globally unique ID of the tag. */
   id: Scalars['ID']['output'];
+  /** The display name of the tag. */
+  name: Scalars['String']['output'];
+  /** Products with this tag, with pagination. */
+  products: ApiProductConnection;
+  /** The total number of products with this tag. */
+  productsCount: Scalars['Int']['output'];
 };
+
+
+/** A tag represents a simple label for organizing and filtering products. */
+export type ApiTagProductsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+/** A connection to a list of Tag items. */
+export type ApiTagConnection = {
+  __typename?: 'TagConnection';
+  /** A list of edges. */
+  edges: Array<ApiTagEdge>;
+  /** Information to aid in pagination. */
+  pageInfo: ApiPageInfo;
+  /** The total number of tags. */
+  totalCount: Scalars['Int']['output'];
+};
+
+/** Input for creating a tag. */
+export type ApiTagCreateInput = {
+  /** The URL-friendly handle for the tag. */
+  handle: Scalars['String']['input'];
+  /** The display name of the tag (optional, defaults to handle). */
+  name?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Payload for tag creation. */
+export type ApiTagCreatePayload = {
+  __typename?: 'TagCreatePayload';
+  /** The created tag. */
+  tag?: Maybe<ApiTag>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Input for deleting a tag. */
+export type ApiTagDeleteInput = {
+  /** The ID of the tag to delete. */
+  id: Scalars['ID']['input'];
+};
+
+/** Payload for tag deletion. */
+export type ApiTagDeletePayload = {
+  __typename?: 'TagDeletePayload';
+  /** The ID of the deleted tag. */
+  deletedTagId?: Maybe<Scalars['ID']['output']>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** An edge in a Tag connection. */
+export type ApiTagEdge = {
+  __typename?: 'TagEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String']['output'];
+  /** The item at the end of the edge. */
+  node: ApiTag;
+};
+
+/** Input for updating a tag. */
+export type ApiTagUpdateInput = {
+  /** The URL-friendly handle for the tag. */
+  handle?: InputMaybe<Scalars['String']['input']>;
+  /** The ID of the tag to update. */
+  id: Scalars['ID']['input'];
+  /** The display name of the tag. */
+  name?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Payload for tag update. */
+export type ApiTagUpdatePayload = {
+  __typename?: 'TagUpdatePayload';
+  /** The updated tag. */
+  tag?: Maybe<ApiTag>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export enum ThresholdMethod {
+  ReorderPoint = 'REORDER_POINT',
+  SafetyStock = 'SAFETY_STOCK'
+}
 
 /** User type representing admin users (CMS/backoffice). */
 export type ApiUser = {
@@ -4140,19 +6502,17 @@ export type ApiUserUpdateProfilePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
-/** A variant represents a specific version of a product, such as a size or color. */
+/**
+ * A variant represents a specific version of a product, such as a size or color.
+ * Catalog Service owns this type.
+ * Inventory fields (sku, dimensions, weight, cost, stock) are added via federation extend in Inventory Service.
+ */
 export type ApiVariant = ApiNode & {
   __typename?: 'Variant';
-  /** Current cost for this variant. */
-  cost?: Maybe<ApiVariantCost>;
-  /** Cost history for this variant. */
-  costHistory: ApiVariantCostConnection;
   /** The date and time when the variant was created. */
   createdAt: Scalars['DateTime']['output'];
   /** The date and time when the variant was deleted (soft delete). */
   deletedAt?: Maybe<Scalars['DateTime']['output']>;
-  /** Physical dimensions of this variant. */
-  dimensions?: Maybe<ApiVariantDimensions>;
   /** The external ID in the external system. */
   externalId?: Maybe<Scalars['String']['output']>;
   /** The external system identifier for integration purposes. */
@@ -4161,8 +6521,8 @@ export type ApiVariant = ApiNode & {
   handle: Scalars['String']['output'];
   /** The globally unique ID of the variant. */
   id: Scalars['ID']['output'];
-  /** Whether the variant is in stock (has quantity > 0 in any warehouse). */
-  inStock: Scalars['Boolean']['output'];
+  /** Inventory item associated with this variant */
+  inventoryItem?: Maybe<ApiInventoryItem>;
   /** Whether this is the default variant for the product. */
   isDefault: Scalars['Boolean']['output'];
   /** Media attached to this variant (images, videos). */
@@ -4175,29 +6535,18 @@ export type ApiVariant = ApiNode & {
   product: ApiProduct;
   /** The selected option values for this variant. */
   selectedOptions: Array<ApiSelectedOption>;
-  /** The SKU (Stock Keeping Unit) of the variant. */
-  sku?: Maybe<Scalars['String']['output']>;
-  /** Stock levels for this variant across warehouses. */
-  stock: Array<ApiWarehouseStock>;
   /** Variant title. */
   title?: Maybe<Scalars['String']['output']>;
   /** The date and time when the variant was last updated. */
   updatedAt: Scalars['DateTime']['output'];
-  /** Physical weight of this variant. */
-  weight?: Maybe<ApiVariantWeight>;
 };
 
 
-/** A variant represents a specific version of a product, such as a size or color. */
-export type ApiVariantCostHistoryArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-};
-
-
-/** A variant represents a specific version of a product, such as a size or color. */
+/**
+ * A variant represents a specific version of a product, such as a size or color.
+ * Catalog Service owns this type.
+ * Inventory fields (sku, dimensions, weight, cost, stock) are added via federation extend in Inventory Service.
+ */
 export type ApiVariantPriceHistoryArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   before?: InputMaybe<Scalars['String']['input']>;
@@ -4302,6 +6651,16 @@ export type ApiVariantDimensions = {
   width: Scalars['Int']['output'];
 };
 
+/** Input for variant dimensions in the unified update. */
+export type ApiVariantDimensionsOpInput = {
+  /** Height in millimeters. */
+  height: Scalars['Int']['input'];
+  /** Length in millimeters. */
+  length: Scalars['Int']['input'];
+  /** Width in millimeters. */
+  width: Scalars['Int']['input'];
+};
+
 /** An edge in a Variant connection. */
 export type ApiVariantEdge = {
   __typename?: 'VariantEdge';
@@ -4313,20 +6672,32 @@ export type ApiVariantEdge = {
 
 /** Input for creating a variant. */
 export type ApiVariantInput = {
-  /** Physical dimensions. */
-  dimensions?: InputMaybe<ApiDimensionsInput>;
   /** External ID in the external system. */
   externalId?: InputMaybe<Scalars['String']['input']>;
   /** External system identifier. */
   externalSystem?: InputMaybe<Scalars['String']['input']>;
   /** Selected option values for the variant (required). */
   options: Array<ApiSelectedOptionInput>;
-  /** The SKU for the variant. */
-  sku?: InputMaybe<Scalars['String']['input']>;
   /** Variant title. */
   title?: InputMaybe<Scalars['String']['input']>;
-  /** Physical weight. */
-  weight?: InputMaybe<ApiWeightInput>;
+};
+
+/** Input for variant inventory in the unified update. */
+export type ApiVariantInventoryOpInput = {
+  /** Currency code for unit cost. */
+  costCurrency?: InputMaybe<CurrencyCode>;
+  /** Quantity on hand. */
+  onHand: Scalars['Int']['input'];
+  /** SKU code. */
+  sku?: InputMaybe<Scalars['String']['input']>;
+  /** Unavailable quantity (reserved, damaged, etc.). */
+  unavailable?: InputMaybe<Scalars['Int']['input']>;
+  /** Unit cost in minor units (cents). */
+  unitCostMinor?: InputMaybe<Scalars['BigInt']['input']>;
+  /** The warehouse ID. */
+  warehouseId: Scalars['ID']['input'];
+  /** Weight in grams. */
+  weight?: InputMaybe<Scalars['Int']['input']>;
 };
 
 /** Media attached to a variant with sort order. */
@@ -4336,6 +6707,26 @@ export type ApiVariantMediaItem = {
   file: ApiFile;
   /** Sort order index (lower = first). */
   sortIndex: Scalars['Int']['output'];
+};
+
+/** Input for variant media in the unified update. */
+export type ApiVariantMediaOpInput = {
+  /** File IDs for variant media. */
+  fileIds: Array<Scalars['ID']['input']>;
+};
+
+/** Input for linking a variant to an option value. */
+export type ApiVariantOptionLinkInput = {
+  /** The option ID. */
+  optionId: Scalars['ID']['input'];
+  /** The option value ID. */
+  optionValueId: Scalars['ID']['input'];
+};
+
+/** Input for variant options in the unified update. */
+export type ApiVariantOptionsOpInput = {
+  /** Option value links to set (replaces existing). */
+  set: Array<ApiVariantOptionLinkInput>;
 };
 
 /** Represents a price for a variant. */
@@ -4379,61 +6770,81 @@ export type ApiVariantPriceEdge = {
   node: ApiVariantPrice;
 };
 
-/** Input for setting a cost on a variant. */
-export type ApiVariantSetCostInput = {
+/** Statistics for variant price history over a period. */
+export type ApiVariantPriceHistoryStatistics = {
+  __typename?: 'VariantPriceHistoryStatistics';
+  /** Average price over the period (minor units). */
+  avgPriceMinor: Scalars['BigInt']['output'];
+  /** Currency code. */
+  currency: CurrencyCode;
+  /** Maximum price over the period (minor units). */
+  maxPriceMinor: Scalars['BigInt']['output'];
+  /** Minimum price over the period (minor units). */
+  minPriceMinor: Scalars['BigInt']['output'];
+};
+
+/** Input for variant pricing in the unified update. */
+export type ApiVariantPricingOpInput = {
+  /** The price amount in minor units. */
+  amountMinor: Scalars['BigInt']['input'];
+  /** The compare-at price in minor units (optional). */
+  compareAtMinor?: InputMaybe<Scalars['BigInt']['input']>;
   /** The currency code. */
   currency: CurrencyCode;
-  /** The unit cost in minor units. */
-  unitCostMinor: Scalars['BigInt']['input'];
-  /** The ID of the variant. */
+};
+
+/** Input for a single variant update. */
+export type ApiVariantUpdateInput = {
+  /** Variant dimensions. */
+  dimensions?: InputMaybe<ApiVariantDimensionsOpInput>;
+  /** Variant inventory (stock, SKU, weight, cost). */
+  inventory?: InputMaybe<ApiVariantInventoryOpInput>;
+  /** Variant media. */
+  media?: InputMaybe<ApiVariantMediaOpInput>;
+  /** Variant options. */
+  options?: InputMaybe<ApiVariantOptionsOpInput>;
+  /** Variant pricing. */
+  pricing?: InputMaybe<ApiVariantPricingOpInput>;
+  /** The variant ID. */
   variantId: Scalars['ID']['input'];
 };
 
-/** Payload for variant cost set. */
-export type ApiVariantSetCostPayload = {
-  __typename?: 'VariantSetCostPayload';
-  /** List of errors that occurred during the mutation. */
-  userErrors: Array<ApiGenericUserError>;
-  /** The updated variant. */
-  variant?: Maybe<ApiVariant>;
-};
-
-/** Input for setting variant dimensions. */
-export type ApiVariantSetDimensionsInput = {
-  /** The dimensions to set. */
-  dimensions: ApiDimensionsInput;
-  /** The ID of the variant. */
-  variantId: Scalars['ID']['input'];
-};
-
-/** Payload for variant dimensions set. */
-export type ApiVariantSetDimensionsPayload = {
-  __typename?: 'VariantSetDimensionsPayload';
-  /** List of errors that occurred during the mutation. */
-  userErrors: Array<ApiGenericUserError>;
-  /** The updated variant. */
-  variant?: Maybe<ApiVariant>;
-};
-
-/** Input for setting variant media (replaces all existing media). */
-export type ApiVariantSetMediaInput = {
+/** Input for updating variant media (replaces all existing media). */
+export type ApiVariantUpdateMediaInput = {
   /** File IDs in desired order (first = primary). Empty array clears all media. */
   fileIds: Array<Scalars['ID']['input']>;
   /** The variant ID. */
   variantId: Scalars['ID']['input'];
 };
 
-/** Payload for variant set media. */
-export type ApiVariantSetMediaPayload = {
-  __typename?: 'VariantSetMediaPayload';
+/** Payload for variant update media. */
+export type ApiVariantUpdateMediaPayload = {
+  __typename?: 'VariantUpdateMediaPayload';
   /** List of errors that occurred during the mutation. */
   userErrors: Array<ApiGenericUserError>;
   /** The updated variant. */
   variant?: Maybe<ApiVariant>;
 };
 
-/** Input for setting a price on a variant. */
-export type ApiVariantSetPricingInput = {
+/** Input for updating variant options (option value links). */
+export type ApiVariantUpdateOptionsInput = {
+  /** The option value links to set (replaces existing links). */
+  links: Array<ApiVariantOptionLinkInput>;
+  /** The ID of the variant. */
+  variantId: Scalars['ID']['input'];
+};
+
+/** Payload for variant options update. */
+export type ApiVariantUpdateOptionsPayload = {
+  __typename?: 'VariantUpdateOptionsPayload';
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<ApiGenericUserError>;
+  /** The updated variant. */
+  variant?: Maybe<ApiVariant>;
+};
+
+/** Input for updating a price on a variant. */
+export type ApiVariantUpdatePricingInput = {
   /** The price amount in minor units. */
   amountMinor: Scalars['BigInt']['input'];
   /** The compare-at price in minor units (optional). */
@@ -4444,64 +6855,9 @@ export type ApiVariantSetPricingInput = {
   variantId: Scalars['ID']['input'];
 };
 
-/** Payload for variant pricing set. */
-export type ApiVariantSetPricingPayload = {
-  __typename?: 'VariantSetPricingPayload';
-  /** List of errors that occurred during the mutation. */
-  userErrors: Array<ApiGenericUserError>;
-  /** The updated variant. */
-  variant?: Maybe<ApiVariant>;
-};
-
-/** Input for setting variant SKU. */
-export type ApiVariantSetSkuInput = {
-  /** The new SKU value. */
-  sku: Scalars['String']['input'];
-  /** The ID of the variant. */
-  variantId: Scalars['ID']['input'];
-};
-
-/** Payload for variant SKU set. */
-export type ApiVariantSetSkuPayload = {
-  __typename?: 'VariantSetSkuPayload';
-  /** List of errors that occurred during the mutation. */
-  userErrors: Array<ApiGenericUserError>;
-  /** The updated variant. */
-  variant?: Maybe<ApiVariant>;
-};
-
-/** Input for setting stock on a variant. */
-export type ApiVariantSetStockInput = {
-  /** The quantity to set. */
-  quantity: Scalars['Int']['input'];
-  /** The ID of the variant. */
-  variantId: Scalars['ID']['input'];
-  /** The warehouse ID. */
-  warehouseId: Scalars['ID']['input'];
-};
-
-/** Payload for variant stock set. */
-export type ApiVariantSetStockPayload = {
-  __typename?: 'VariantSetStockPayload';
-  /** The updated stock record. */
-  stock?: Maybe<ApiWarehouseStock>;
-  /** List of errors that occurred during the mutation. */
-  userErrors: Array<ApiGenericUserError>;
-  /** The updated variant. */
-  variant?: Maybe<ApiVariant>;
-};
-
-/** Input for setting variant weight. */
-export type ApiVariantSetWeightInput = {
-  /** The ID of the variant. */
-  variantId: Scalars['ID']['input'];
-  /** The weight to set. */
-  weight: ApiWeightInput;
-};
-
-/** Payload for variant weight set. */
-export type ApiVariantSetWeightPayload = {
-  __typename?: 'VariantSetWeightPayload';
+/** Payload for variant pricing update. */
+export type ApiVariantUpdatePricingPayload = {
+  __typename?: 'VariantUpdatePricingPayload';
   /** List of errors that occurred during the mutation. */
   userErrors: Array<ApiGenericUserError>;
   /** The updated variant. */
@@ -4807,8 +7163,33 @@ export enum WeightUnit {
   Oz = 'oz'
 }
 
+/** Widget query namespace for dashboard widgets. */
+export type ApiWidgetQuery = {
+  __typename?: 'WidgetQuery';
+  /**
+   * Get inventory widget data for a product.
+   * Returns aggregated inventory metrics across all variants.
+   */
+  inventory?: Maybe<ApiProductInventoryWidget>;
+  /** Get pricing widget data for a variant. */
+  pricing: ApiPricingWidgetPayload;
+};
+
+
+/** Widget query namespace for dashboard widgets. */
+export type ApiWidgetQueryInventoryArgs = {
+  productId: Scalars['ID']['input'];
+};
+
+
+/** Widget query namespace for dashboard widgets. */
+export type ApiWidgetQueryPricingArgs = {
+  input: ApiPricingWidgetInput;
+};
+
 export enum Join__Graph {
   AppsAdmin = 'APPS_ADMIN',
+  CatalogAdmin = 'CATALOG_ADMIN',
   IamAdmin = 'IAM_ADMIN',
   InventoryAdmin = 'INVENTORY_ADMIN',
   MediaAdmin = 'MEDIA_ADMIN',
