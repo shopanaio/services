@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import { Button, Typography, Dropdown } from "antd";
+import { Button, Typography, Dropdown, message } from "antd";
 import { PlusOutlined, FolderOutlined, TagsOutlined } from "@ant-design/icons";
 import { AgGridReact } from "ag-grid-react";
 import {
@@ -240,9 +240,8 @@ export const EditAttributesModal = () => {
   );
 
   const handleSave = useCallback(() => {
-    console.log("Saving attributes:", allRows);
-    pop();
-  }, [allRows, pop]);
+    message.info("Product attribute updates are not API-backed yet");
+  }, []);
 
   return (
     <ModalLayout

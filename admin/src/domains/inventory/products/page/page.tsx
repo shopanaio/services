@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useCallback } from "react";
-import { Image, Typography, Flex, Button, Tag } from "antd";
+import { App, Image, Typography, Flex, Button, Tag } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { AgGridReact } from "ag-grid-react";
 import { useModalStack } from "@/layouts/modals";
@@ -22,12 +22,11 @@ import type { ActionConfig } from "@/ui-kit/floating-panel-stack/core/types";
 import type { PanelConfig } from "@/ui-kit/floating-panel-stack/data-page/floating-panel-stack";
 import {
   useGridState,
-  useGridSort,
   useAgGridTheme,
   useAgGridRowSelection,
 } from "@/hooks";
 import { filterSchema } from "./filter-schema";
-import { useProducts } from "../hooks";
+import { useDeleteProduct, useProducts } from "../hooks";
 import { useBulkEditorStore } from "../modals/bulk-editor-modal";
 import { useProductCreateModal } from "../modals";
 import type { ApiProduct } from "@/graphql/types";
@@ -108,14 +107,23 @@ const TextCellRenderer = (
 
 export default function ProductsPage() {
   const agGridTheme = useAgGridTheme();
+  const { message } = App.useApp();
   const gridRef = useRef<AgGridReact<ApiProduct>>(null);
   const [searchValue, setSearchValue] = useState("");
   const [selectedCount, setSelectedCount] = useState(0);
-  const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(20);
+  const [pageIndex, setPageIndex] = useState(0);
+  const [cursorHistory, setCursorHistory] = useState<Array<string | null>>([
+    null,
+  ]);
   const { widgetProps } = useFilters({ schema: filterSchema });
   const { push } = useModalStack();
-  const { products, totalCount, pageInfo } = useProducts({ page, pageSize });
+  const after = cursorHistory[pageIndex] ?? null;
+  const { products, totalCount, pageInfo, loading, refetch } = useProducts({
+    first: pageSize,
+    after,
+  });
+  const { deleteProduct, loading: deletingProducts } = useDeleteProduct();
   const { initialState, onStateUpdated } = useGridState({
     storageKey: "products-grid-state",
   });
@@ -125,14 +133,6 @@ export default function ProductsPage() {
 
   // Create product modal
   const { push: pushCreateModal } = useProductCreateModal();
-
-  const { onSortChanged } = useGridSort({
-    gridRef,
-    onSortChange: (model) => {
-      // TODO: Replace with actual API call
-      console.log("Sort changed:", model);
-    },
-  });
 
   // Row selection with checkbox isolation
   const { rowSelection, selectionColumnDef, onCellClicked } =
@@ -159,25 +159,58 @@ export default function ProductsPage() {
   // Open bulk editor with selected products
   const handleBulkEdit = useCallback(() => {
     const selectedRows = gridRef.current?.api.getSelectedRows() || [];
-    // Map product IDs to bulk editor format (prod-1, prod-2, etc.)
-    // For demo purposes, we use the first 12 products from bulk editor mock
-    const bulkEditorIds = selectedRows.map(
-      (_, index) => `prod-${(index % 12) + 1}`,
-    );
-    setSelectedProducts(bulkEditorIds);
-    push("bulk-editor", { productIds: bulkEditorIds });
+    const productIds = selectedRows.map((product) => product.id);
+    setSelectedProducts(productIds);
+    push("bulk-editor", { productIds });
   }, [setSelectedProducts, push]);
 
   // Delete selected products
-  const handleDeleteSelected = useCallback(() => {
+  const handleDeleteSelected = useCallback(async () => {
     const selectedRows = gridRef.current?.api.getSelectedRows() || [];
-    // TODO: Implement delete mutation
-    console.log(
-      "Delete products:",
-      selectedRows.map((r) => r.id),
+
+    if (selectedRows.length === 0) {
+      return;
+    }
+
+    const results = await Promise.all(
+      selectedRows.map((product) => deleteProduct({ id: product.id })),
+    );
+    const firstError = results.flatMap((result) => result.userErrors)[0];
+
+    if (firstError) {
+      message.error(firstError.message);
+      return;
+    }
+
+    message.success(
+      selectedRows.length === 1 ? "Product deleted" : "Products deleted",
     );
     deselectAll();
-  }, [deselectAll]);
+    await refetch();
+  }, [deleteProduct, deselectAll, message, refetch]);
+
+  const handleNextPage = useCallback(() => {
+    if (!pageInfo?.endCursor) {
+      return;
+    }
+
+    setCursorHistory((current) => {
+      const next = current.slice(0, pageIndex + 1);
+      next[pageIndex + 1] = pageInfo.endCursor ?? null;
+      return next;
+    });
+    setPageIndex((current) => current + 1);
+  }, [pageInfo?.endCursor, pageIndex]);
+
+  const handlePreviousPage = useCallback(() => {
+    setPageIndex((current) => Math.max(0, current - 1));
+  }, []);
+
+  const handlePageSizeChange = useCallback((nextPageSize: number) => {
+    setPageSize(nextPageSize);
+    setPageIndex(0);
+    setCursorHistory([null]);
+  }, []);
 
   // Build selection actions
   const selectionActions = useMemo<ActionConfig[]>(
@@ -186,6 +219,8 @@ export default function ProductsPage() {
         key: "bulk-edit",
         label: "Bulk Edit",
         icon: <EditOutlined />,
+        disabled: true,
+        tooltip: "Bulk editor is still a mock-only flow",
         onClick: handleBulkEdit,
       },
       {
@@ -193,6 +228,7 @@ export default function ProductsPage() {
         label: "Delete",
         icon: <DeleteOutlined />,
         danger: true,
+        loading: deletingProducts,
         onClick: handleDeleteSelected,
       },
     ],
@@ -257,9 +293,7 @@ export default function ProductsPage() {
   const defaultColDef = useMemo<ColDef>(
     () => ({
       resizable: true,
-      sortable: true,
-      // Disable client-side sorting - server handles it
-      comparator: () => 0,
+      sortable: false,
       cellStyle: { display: "flex", alignItems: "center" },
     }),
     [],
@@ -305,6 +339,7 @@ export default function ProductsPage() {
             ref={gridRef}
             theme={agGridTheme}
             rowData={products}
+            loading={loading || deletingProducts}
             columnDefs={columnDefs}
             defaultColDef={defaultColDef}
             getRowId={(params) => params.data.id}
@@ -318,23 +353,19 @@ export default function ProductsPage() {
             rowStyle={{ cursor: "pointer" }}
             initialState={initialState}
             onStateUpdated={onStateUpdated}
-            onSortChanged={onSortChanged}
           />
         </div>
 
         <CursorPagination
           total={totalCount}
-          rangeStart={products.length ? page * pageSize + 1 : 0}
-          rangeEnd={Math.min((page + 1) * pageSize, totalCount)}
+          rangeStart={products.length ? pageIndex * pageSize + 1 : 0}
+          rangeEnd={Math.min(pageIndex * pageSize + products.length, totalCount)}
           pageSize={pageSize}
           hasNext={pageInfo?.hasNextPage ?? false}
-          hasPrev={pageInfo?.hasPreviousPage ?? false}
-          onNext={() => setPage((current) => current + 1)}
-          onPrev={() => setPage((current) => Math.max(0, current - 1))}
-          onPageSizeChange={(nextPageSize) => {
-            setPageSize(nextPageSize);
-            setPage(0);
-          }}
+          hasPrev={pageIndex > 0}
+          onNext={handleNextPage}
+          onPrev={handlePreviousPage}
+          onPageSizeChange={handlePageSizeChange}
         />
       </div>
 

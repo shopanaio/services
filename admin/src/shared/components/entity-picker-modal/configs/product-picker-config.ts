@@ -1,10 +1,14 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { ColDef } from "ag-grid-community";
 import { filterSchema } from "@/domains/inventory/products/page/filter-schema";
-import { mockProductsList } from "@/mocks/products";
-import { getProductThumbnailFile } from "@/domains/inventory/products/utils/api-product-display";
+import { useProducts } from "@/domains/inventory/products/hooks";
+import {
+  getProductBrandName,
+  getProductPrimaryCategoryName,
+  getProductThumbnailFile,
+} from "@/domains/inventory/products/utils/api-product-display";
 import { getProductStatus } from "@/domains/inventory/products/utils/product-status";
 import { EntityCellRenderer, StatusCellRenderer } from "../cell-renderers";
 import { registerEntityPickerConfig } from ".";
@@ -16,14 +20,8 @@ import type {
 import type { IFilterValue } from "@/layouts/filters/core/types";
 import type { ApiProduct } from "@/graphql/types";
 
-/**
- * Product entity adapted for picker
- */
 type ProductPickerEntity = IPickableEntity;
 
-/**
- * Transform product list item to picker entity
- */
 function transformProduct(product: ApiProduct): ProductPickerEntity {
   const thumbnail = getProductThumbnailFile(product);
 
@@ -35,66 +33,126 @@ function transformProduct(product: ApiProduct): ProductPickerEntity {
   };
 }
 
-/**
- * Mock data hook for products picker
- * In real implementation, this would fetch from API
- */
+function getFilterValues(filter: IFilterValue | undefined): string[] {
+  if (!filter) {
+    return [];
+  }
+
+  if (Array.isArray(filter.value)) {
+    return filter.value.filter(
+      (value): value is string => typeof value === "string",
+    );
+  }
+
+  return typeof filter.value === "string" ? [filter.value] : [];
+}
+
+function filterCurrentProductPage(
+  products: ApiProduct[],
+  search: string,
+  filters: IFilterValue[],
+): ApiProduct[] {
+  const searchValue = search.trim().toLowerCase();
+  const statusValues = getFilterValues(
+    filters.find((filter) => filter.schemaKey === "status"),
+  );
+  const categoryValues = getFilterValues(
+    filters.find((filter) => filter.schemaKey === "category"),
+  );
+  const brandValues = getFilterValues(
+    filters.find((filter) => filter.schemaKey === "brand"),
+  );
+
+  return products.filter((product) => {
+    if (
+      searchValue &&
+      !product.title.toLowerCase().includes(searchValue) &&
+      !(product.handle ?? "").toLowerCase().includes(searchValue)
+    ) {
+      return false;
+    }
+
+    if (
+      statusValues.length > 0 &&
+      !statusValues.includes(getProductStatus(product))
+    ) {
+      return false;
+    }
+
+    if (
+      categoryValues.length > 0 &&
+      !categoryValues.includes(getProductPrimaryCategoryName(product) ?? "")
+    ) {
+      return false;
+    }
+
+    if (
+      brandValues.length > 0 &&
+      !brandValues.includes(getProductBrandName(product) ?? "")
+    ) {
+      return false;
+    }
+
+    return true;
+  });
+}
+
 function useProductsPickerData(options: {
   filters: IFilterValue[];
   search: string;
   pageSize: number;
 }): IEntityPickerDataResult<ProductPickerEntity> {
-  const { search, pageSize } = options;
-  const [page, setPage] = useState(0);
+  const { filters, search, pageSize } = options;
+  const [pageIndex, setPageIndex] = useState(0);
+  const [cursorHistory, setCursorHistory] = useState<Array<string | null>>([
+    null,
+  ]);
+  const after = cursorHistory[pageIndex] ?? null;
+  const { products, totalCount, pageInfo, loading, error } = useProducts({
+    first: pageSize,
+    after,
+  });
 
-  // Transform and filter data
-  const allData = useMemo(() => {
-    let result = mockProductsList.map(transformProduct);
-
-    // Apply search filter
-    if (search) {
-      const searchLower = search.toLowerCase();
-      result = result.filter((p) =>
-        p.title.toLowerCase().includes(searchLower)
-      );
-    }
-
-    return result;
-  }, [search]);
-
-  // Paginate
-  const paginatedData = useMemo(() => {
-    const start = page * pageSize;
-    return allData.slice(start, start + pageSize);
-  }, [allData, page, pageSize]);
-
-  const total = allData.length;
-  const rangeStart = page * pageSize + 1;
-  const rangeEnd = Math.min((page + 1) * pageSize, total);
-  const hasNext = rangeEnd < total;
-  const hasPrev = page > 0;
+  const data = useMemo(
+    () =>
+      filterCurrentProductPage(products, search, filters).map(transformProduct),
+    [products, search, filters],
+  );
 
   return {
-    data: paginatedData,
-    isLoading: false,
-    error: null,
+    data,
+    isLoading: loading,
+    error,
     pagination: {
-      total,
+      total: totalCount,
       pageSize,
-      hasNext,
-      hasPrev,
-      rangeStart: total > 0 ? rangeStart : 0,
-      rangeEnd,
+      hasNext: pageInfo?.hasNextPage ?? false,
+      hasPrev: pageIndex > 0,
+      rangeStart: products.length > 0 ? pageIndex * pageSize + 1 : 0,
+      rangeEnd: Math.min(pageIndex * pageSize + products.length, totalCount),
     },
-    onNext: () => setPage((p) => p + 1),
-    onPrev: () => setPage((p) => Math.max(0, p - 1)),
-    onPageSizeChange: () => setPage(0),
+    onNext: () => {
+      if (!pageInfo?.endCursor) {
+        return;
+      }
+
+      setCursorHistory((current) => {
+        const next = current.slice(0, pageIndex + 1);
+        next[pageIndex + 1] = pageInfo.endCursor ?? null;
+        return next;
+      });
+      setPageIndex((current) => current + 1);
+    },
+    onPrev: () => {
+      setPageIndex((current) => Math.max(0, current - 1));
+    },
+    onPageSizeChange: () => {
+      setPageIndex(0);
+      setCursorHistory([null]);
+    },
   };
 }
 
-/**
- * Column definitions for products picker
- */
 const productPickerColumns: ColDef<ProductPickerEntity>[] = [
   {
     headerName: "Product",
@@ -111,18 +169,14 @@ const productPickerColumns: ColDef<ProductPickerEntity>[] = [
   },
 ];
 
-/**
- * Product picker configuration
- */
 export const productPickerConfig: IEntityPickerConfig<ProductPickerEntity> = {
   entityType: "product",
   entityName: "Product",
   entityNamePlural: "Products",
-  filterSchema: filterSchema,
+  filterSchema,
   columns: productPickerColumns,
   useData: useProductsPickerData,
   getRowId: (entity) => entity.id,
 };
 
-// Register the configuration
 registerEntityPickerConfig(productPickerConfig);

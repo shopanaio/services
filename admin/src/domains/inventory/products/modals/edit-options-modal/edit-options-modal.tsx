@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Typography, Flex } from "antd";
+import { App, Button, Typography, Flex } from "antd";
 import { PlusOutlined, HolderOutlined } from "@ant-design/icons";
 import {
   DndContext,
@@ -37,6 +37,7 @@ interface EditOptionsModalProps {
 
 export const EditOptionsModal = ({ initialGroups = MOCK_OPTION_GROUPS }: EditOptionsModalProps) => {
   const { styles } = useStyles();
+  const { message } = App.useApp();
   const { pop } = useModalStackContext();
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
 
@@ -56,9 +57,8 @@ export const EditOptionsModal = ({ initialGroups = MOCK_OPTION_GROUPS }: EditOpt
     handleMoveGroup,
   } = useEditOptionsForm({
     defaultValues: { groups: initialGroups },
-    onSubmit: (data) => {
-      console.log("Saving options:", data.groups);
-      pop();
+    onSubmit: () => {
+      message.info("Product option updates are not API-backed yet");
     },
   });
 

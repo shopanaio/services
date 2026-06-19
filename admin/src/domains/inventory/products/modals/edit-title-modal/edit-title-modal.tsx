@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { Input, Typography } from "antd";
 import {
@@ -17,6 +17,7 @@ export const EditTitleModal = () => {
   const { styles } = useStyles();
   const { payload, pop } = useModalStackContext();
   const typedPayload = payload as IProductEditTitleModalPayload;
+  const [submitting, setSubmitting] = useState(false);
 
   const {
     control,
@@ -51,9 +52,18 @@ export const EditTitleModal = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [pop]);
 
-  const onSubmit = (values: IEditTitleForm) => {
-    typedPayload.onSave?.(values);
-    pop();
+  const onSubmit = async (values: IEditTitleForm) => {
+    setSubmitting(true);
+
+    try {
+      const result = await typedPayload.onSave?.(values);
+
+      if (result !== false) {
+        pop();
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -66,6 +76,7 @@ export const EditTitleModal = () => {
           onClose={pop}
           submitButtonProps={{
             onClick: handleSubmit(onSubmit),
+            loading: submitting,
           }}
         />
       }

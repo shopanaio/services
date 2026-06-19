@@ -15,6 +15,7 @@ export const EditMediaModal = () => {
   const { styles } = useStyles();
   const { payload, pop, setDirty } = useModalStackContext();
   const typedPayload = payload as IEditMediaModalPayload;
+  const [submitting, setSubmitting] = useState(false);
 
   const [gallery, setGallery] = useState<ApiFile[]>(() => {
     const items = [...typedPayload.gallery];
@@ -49,12 +50,21 @@ export const EditMediaModal = () => {
     [markDirty]
   );
 
-  const handleSave = useCallback(() => {
-    typedPayload.onSave?.({
-      featured: gallery[0] ?? null,
-      gallery,
-    });
-    pop();
+  const handleSave = useCallback(async () => {
+    setSubmitting(true);
+
+    try {
+      const result = await typedPayload.onSave?.({
+        featured: gallery[0] ?? null,
+        gallery,
+      });
+
+      if (result !== false) {
+        pop();
+      }
+    } finally {
+      setSubmitting(false);
+    }
   }, [typedPayload, gallery, pop]);
 
   return (
@@ -68,6 +78,7 @@ export const EditMediaModal = () => {
           submitButtonProps={{
             children: "Save",
             onClick: handleSave,
+            loading: submitting,
           }}
         />
       }

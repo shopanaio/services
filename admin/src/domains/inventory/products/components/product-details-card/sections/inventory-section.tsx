@@ -2,6 +2,7 @@
 
 import {
   Typography,
+  App,
   Button,
   Tag,
   Dropdown,
@@ -139,6 +140,7 @@ export const InventorySection = ({
   stats,
 }: IInventorySectionProps) => {
   const { styles } = useInventoryStyles();
+  const { message } = App.useApp();
   const { push: pushEditVariantsModal } = useEditVariantsModal();
   const [activeKPI, setActiveKPI] = useState<string | undefined>();
   const [inventoryState] = useState<InventoryState>("ready");
@@ -164,7 +166,9 @@ export const InventorySection = ({
               NonNullable<IEditVariantsModalPayload["onSave"]>
             >[0],
           ) => {
-            console.log("Saved inventory:", updated);
+            void updated;
+            message.info("Variant inventory updates are not API-backed yet");
+            return false;
           },
         });
       } else if (
@@ -175,7 +179,7 @@ export const InventorySection = ({
         onEdit?.();
       }
     },
-    [product, pushEditVariantsModal, onEdit]
+    [message, product, pushEditVariantsModal, onEdit]
   );
 
   const handleKPIClick = (kpi: string) => {

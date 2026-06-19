@@ -1,13 +1,17 @@
 "use client";
 
 import { useMutation } from "@apollo/client/react";
-import { useCallback, useState } from "react";
-import { PRODUCT_CREATE_MUTATION } from "../../graphql";
-import type { ApiProduct, ApiGenericUserError, ApiProductCreateInput } from "@/graphql/types";
+import { useCallback } from "react";
+import { PRODUCT_CREATE_MUTATION, PRODUCTS_QUERY } from "../graphql";
+import type { ApiGenericUserError, ApiProduct } from "@/graphql/types";
 import {
   prepareProductPayload,
   type CreateProductInput,
-} from "../modals/create-product-modal/utils/prepare-product-payload";
+} from "../mappers";
+import type {
+  ProductCreateMutationData,
+  ProductCreateMutationVariables,
+} from "../graphql";
 
 export type { CreateProductInput };
 
@@ -20,6 +24,7 @@ interface UseCreateProductReturn {
   createProduct: (input: CreateProductInput) => Promise<CreateProductResult>;
   loading: boolean;
   error: Error | null;
+  reset: () => void;
 }
 
 // ============================================
@@ -56,26 +61,13 @@ interface UseCreateProductReturn {
  * ```
  */
 export function useCreateProduct(): UseCreateProductReturn {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-
-  const [createProductMutation] = useMutation<
-    {
-      catalogMutation: {
-        productCreate: {
-          product: ApiProduct | null;
-          userErrors: ApiGenericUserError[];
-        };
-      };
-    },
-    { input: ApiProductCreateInput }
+  const [createProductMutation, { loading, error, reset }] = useMutation<
+    ProductCreateMutationData,
+    ProductCreateMutationVariables
   >(PRODUCT_CREATE_MUTATION);
 
   const createProduct = useCallback(
     async (input: CreateProductInput): Promise<CreateProductResult> => {
-      setLoading(true);
-      setError(null);
-
       try {
         const payload = prepareProductPayload(input);
 
@@ -83,6 +75,13 @@ export function useCreateProduct(): UseCreateProductReturn {
           variables: {
             input: payload,
           },
+          refetchQueries: [
+            {
+              query: PRODUCTS_QUERY,
+              variables: { first: 20, after: null, last: null, before: null },
+            },
+          ],
+          awaitRefetchQueries: true,
         });
 
         const createPayload =
@@ -102,14 +101,11 @@ export function useCreateProduct(): UseCreateProductReturn {
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : "An unexpected error occurred";
-        setError(err instanceof Error ? err : new Error(errorMessage));
 
         return {
           product: null,
           userErrors: [{ message: errorMessage, code: "UNEXPECTED_ERROR" }],
         };
-      } finally {
-        setLoading(false);
       }
     },
     [createProductMutation]
@@ -118,6 +114,7 @@ export function useCreateProduct(): UseCreateProductReturn {
   return {
     createProduct,
     loading,
-    error,
+    error: error ?? null,
+    reset,
   };
 }

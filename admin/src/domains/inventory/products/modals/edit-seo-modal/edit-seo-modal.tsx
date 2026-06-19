@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { Input, Typography, Flex } from "antd";
 import {
@@ -24,6 +25,7 @@ export const EditSeoModal = () => {
   const { styles } = useStyles();
   const { payload, pop } = useModalStackContext();
   const typedPayload = payload as IEditSeoModalPayload;
+  const [submitting, setSubmitting] = useState(false);
 
   const { control, handleSubmit, watch } = useForm<ISeoFormValues>({
     defaultValues: {
@@ -38,9 +40,18 @@ export const EditSeoModal = () => {
   const values = watch();
   const baseUrl = typedPayload.baseUrl || "yourstore.com";
 
-  const onSubmit = (formValues: ISeoFormValues) => {
-    typedPayload.onSave?.(formValues);
-    pop();
+  const onSubmit = async (formValues: ISeoFormValues) => {
+    setSubmitting(true);
+
+    try {
+      const result = await typedPayload.onSave?.(formValues);
+
+      if (result !== false) {
+        pop();
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -53,6 +64,7 @@ export const EditSeoModal = () => {
           onClose={pop}
           submitButtonProps={{
             onClick: handleSubmit(onSubmit),
+            loading: submitting,
           }}
         />
       }

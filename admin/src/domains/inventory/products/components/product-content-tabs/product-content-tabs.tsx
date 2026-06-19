@@ -1,15 +1,17 @@
 import { createStyles } from "antd-style";
-import { Button, Typography, Tabs, Dropdown, Flex } from "antd";
+import { App, Button, Typography, Tabs, Dropdown, Flex } from "antd";
 import { WarningOutlined, MoreOutlined } from "@ant-design/icons";
 import type { OutputData } from "@editorjs/editorjs";
 import type { RenderedContent } from "@/ui-kit/editor/renderers";
 import { AIButton } from "@/ui-kit/ai-button";
 import { Paper } from "@/ui-kit/paper";
 import type { ApiProduct } from "@/graphql/types";
+import type { ApiProductContentInput } from "@/graphql/types";
 import {
   useProductEditDescriptionModal,
   useProductAIWriterModal,
 } from "../../modals";
+import { useUpdateProduct } from "../../hooks";
 
 // ============================================================================
 // Styles
@@ -98,18 +100,69 @@ interface IProductContentTabsProps {
 
 export const ProductContentTabs = ({ product }: IProductContentTabsProps) => {
   const { styles } = useStyles();
+  const { message } = App.useApp();
+  const { updateProduct } = useUpdateProduct();
   const { push: openEditDescriptionModal } = useProductEditDescriptionModal();
   const { push: openAIWriterModal } = useProductAIWriterModal();
+
+  const buildContentInput = (
+    values: Partial<{
+      description: RenderedContent;
+      excerpt: RenderedContent;
+    }>,
+  ): ApiProductContentInput => {
+    const content: ApiProductContentInput = {};
+
+    if (values.description?.json?.blocks?.length) {
+      content.description = {
+        text: values.description.plain,
+        html: values.description.html,
+        json: values.description.json as unknown as Record<string, unknown>,
+      };
+    }
+
+    if (values.excerpt?.json?.blocks?.length) {
+      content.excerpt = {
+        text: values.excerpt.plain,
+        html: values.excerpt.html,
+        json: values.excerpt.json as unknown as Record<string, unknown>,
+      };
+    }
+
+    return content;
+  };
+
+  const saveContent = async (
+    values: Partial<{
+      description: RenderedContent;
+      excerpt: RenderedContent;
+    }>,
+  ) => {
+    const result = await updateProduct({
+      productId: product.id,
+      expectedRevision: product.revision,
+      operations: {
+        content: buildContentInput(values),
+      },
+    });
+
+    if (result.userErrors.length > 0) {
+      message.error(result.userErrors[0].message);
+      return false;
+    }
+
+    message.success("Product content updated");
+    return true;
+  };
 
   const handleWriteWithAI = () => {
     openAIWriterModal({
       product,
-      onApply: (values: {
+      onApply: async (values: {
         description?: RenderedContent;
         excerpt?: RenderedContent;
       }) => {
-        console.log("AI generated content:", values);
-        // TODO: Apply content to product
+        await saveContent(values);
       },
     });
   };
@@ -131,14 +184,11 @@ export const ProductContentTabs = ({ product }: IProductContentTabsProps) => {
       description: parseEditorData(product.description?.json),
       excerpt: parseEditorData(product.excerpt?.json),
       product,
-      onSave: (values: {
+      onSave: async (values: {
         description: RenderedContent;
         excerpt: RenderedContent;
       }) => {
-        console.log("Save content:", values);
-        // values.description.plain - plain text
-        // values.description.html - HTML
-        // values.description.json - EditorJS JSON
+        return saveContent(values);
       },
     });
   };

@@ -53,14 +53,14 @@ export interface IProductCreateModalPayload extends IModalStackPayload {
 export interface IProductEditTitleModalPayload extends IModalStackPayload {
   title: string;
   handle: string;
-  onSave?: (values: { title: string; handle: string }) => void;
+  onSave?: (values: { title: string; handle: string }) => boolean | void | Promise<boolean | void>;
 }
 
 export interface IProductEditDescriptionModalPayload extends IModalStackPayload {
   description: OutputData | null;
   excerpt: OutputData | null;
   product?: ApiProduct;
-  onSave?: (values: { description: RenderedContent; excerpt: RenderedContent }) => void;
+  onSave?: (values: { description: RenderedContent; excerpt: RenderedContent }) => boolean | void | Promise<boolean | void>;
 }
 
 export type AIGenerateTarget = 'description' | 'excerpt' | 'both';
@@ -147,7 +147,7 @@ export interface IEditMediaModalPayload extends IModalStackPayload {
   onSave?: (media: {
     featured: ApiFile | null;
     gallery: ApiFile[];
-  }) => void;
+  }) => boolean | void | Promise<boolean | void>;
 }
 
 export interface IEditOptionsModalPayload extends IModalStackPayload {
@@ -177,7 +177,7 @@ export interface IEditSeoModalPayload extends IModalStackPayload {
     ogTitle: string;
     ogDescription: string;
     ogImage: ApiFile | null;
-  }) => void;
+  }) => boolean | void | Promise<boolean | void>;
 }
 
 export interface IEditVariantShippingModalPayload extends IModalStackPayload {
@@ -333,7 +333,7 @@ export const useProductCreateModal = createModalStackHook(PRODUCT_CREATE_MODAL_T
  * @example
  * ```tsx
  * const { push } = useProductEditTitleModal();
- * push({ title: 'Product Name', handle: 'product-name', onSave: (values) => console.log(values) });
+ * push({ title: 'Product Name', handle: 'product-name', onSave: saveTitle });
  * ```
  */
 export const useProductEditTitleModal = createModalStackHook(PRODUCT_EDIT_TITLE_MODAL_TYPE);
@@ -344,7 +344,7 @@ export const useProductEditTitleModal = createModalStackHook(PRODUCT_EDIT_TITLE_
  * @example
  * ```tsx
  * const { push } = useProductEditDescriptionModal();
- * push({ description: 'Product desc', excerpt: 'Short excerpt', onSave: (values) => console.log(values) });
+ * push({ description: null, excerpt: null, onSave: saveContent });
  * ```
  */
 export const useProductEditDescriptionModal = createModalStackHook(PRODUCT_EDIT_DESCRIPTION_MODAL_TYPE);
@@ -355,7 +355,7 @@ export const useProductEditDescriptionModal = createModalStackHook(PRODUCT_EDIT_
  * @example
  * ```tsx
  * const { push } = useProductAIWriterModal();
- * push({ product, onApply: (values) => console.log(values) });
+ * push({ product, onApply: applyGeneratedContent });
  * ```
  */
 export const useProductAIWriterModal = createModalStackHook(PRODUCT_AI_WRITER_MODAL_TYPE);
@@ -377,7 +377,7 @@ export const useProductPriceHistoryModal = createModalStackHook(PRODUCT_PRICE_HI
  * @example
  * ```tsx
  * const { push } = useEditVariantPricingModal();
- * push({ variants: [...], onSave: (variants) => console.log(variants) });
+ * push({ variants: [...], onSave: saveVariantPricing });
  * ```
  */
 export const useEditVariantPricingModal = createModalStackHook(PRODUCT_EDIT_VARIANT_PRICING_MODAL_TYPE);
@@ -388,7 +388,7 @@ export const useEditVariantPricingModal = createModalStackHook(PRODUCT_EDIT_VARI
  * @example
  * ```tsx
  * const { push } = useEditVariantInventoryModal();
- * push({ variants: [...], onSave: (variants) => console.log(variants) });
+ * push({ variants: [...], onSave: saveVariantInventory });
  * ```
  */
 export const useEditVariantInventoryModal = createModalStackHook(PRODUCT_EDIT_VARIANT_INVENTORY_MODAL_TYPE);
@@ -399,7 +399,7 @@ export const useEditVariantInventoryModal = createModalStackHook(PRODUCT_EDIT_VA
  * @example
  * ```tsx
  * const { push } = useEditMediaModal();
- * push({ featured: null, gallery: [...], onSave: (media) => console.log(media) });
+ * push({ featured: null, gallery: [...], onSave: saveMedia });
  * ```
  */
 export const useEditMediaModal = createModalStackHook(PRODUCT_EDIT_MEDIA_MODAL_TYPE);
@@ -438,7 +438,7 @@ export const useEditAttributesModal = createModalStackHook(PRODUCT_EDIT_ATTRIBUT
  *   seoTitle: 'Custom SEO Title',
  *   seoDescription: 'Custom meta description',
  *   slug: 'product-name',
- *   onSave: (values) => console.log(values)
+ *   onSave: saveSeo
  * });
  * ```
  */
@@ -450,7 +450,7 @@ export const useEditSeoModal = createModalStackHook(PRODUCT_EDIT_SEO_MODAL_TYPE)
  * @example
  * ```tsx
  * const { push } = useEditVariantShippingModal();
- * push({ variants: [...], onSave: (variants) => console.log(variants) });
+ * push({ variants: [...], onSave: saveVariantShipping });
  * ```
  */
 export const useEditVariantShippingModal = createModalStackHook(PRODUCT_EDIT_VARIANT_SHIPPING_MODAL_TYPE);
@@ -461,7 +461,7 @@ export const useEditVariantShippingModal = createModalStackHook(PRODUCT_EDIT_VAR
  * @example
  * ```tsx
  * const { push } = useEditVariantsModal();
- * push({ variants: [...], initialTab: 'pricing', onSave: (variants) => console.log(variants) });
+ * push({ variants: [...], initialTab: 'pricing', onSave: saveVariants });
  * ```
  */
 export const useEditVariantsModal = createModalStackHook(PRODUCT_EDIT_VARIANTS_MODAL_TYPE);
@@ -476,7 +476,7 @@ export const useEditVariantsModal = createModalStackHook(PRODUCT_EDIT_VARIANTS_M
  *   productId: 'prod-123',
  *   primaryCategoryId: 'cat-1',
  *   categoryIds: ['cat-1', 'cat-2'],
- *   onSave: (data) => console.log(data)
+ *   onSave: saveCategories
  * });
  * ```
  */
@@ -491,7 +491,7 @@ export const useEditCategoriesModal = createModalStackHook(PRODUCT_EDIT_CATEGORI
  * push({
  *   productId: 'prod-123',
  *   selectedTagIds: ['tag-1', 'tag-2'],
- *   onSave: (data) => console.log(data)
+ *   onSave: saveTags
  * });
  * ```
  */

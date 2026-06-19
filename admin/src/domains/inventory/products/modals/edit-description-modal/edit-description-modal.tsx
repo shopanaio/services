@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { Tabs } from "antd";
 import {
@@ -20,6 +20,7 @@ export const EditDescriptionModal = () => {
   const { payload, pop } = useModalStackContext();
   const typedPayload = payload as IProductEditDescriptionModalPayload;
   const { push: openAIWriterModal } = useProductAIWriterModal();
+  const [submitting, setSubmitting] = useState(false);
 
   const { control, handleSubmit, setValue } = useForm<IEditDescriptionForm>({
     defaultValues: {
@@ -56,12 +57,21 @@ export const EditDescriptionModal = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [pop]);
 
-  const onSubmit = (values: IEditDescriptionForm) => {
-    typedPayload.onSave?.({
-      description: renderContent(values.description),
-      excerpt: renderContent(values.excerpt),
-    });
-    pop();
+  const onSubmit = async (values: IEditDescriptionForm) => {
+    setSubmitting(true);
+
+    try {
+      const result = await typedPayload.onSave?.({
+        description: renderContent(values.description),
+        excerpt: renderContent(values.excerpt),
+      });
+
+      if (result !== false) {
+        pop();
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -74,6 +84,7 @@ export const EditDescriptionModal = () => {
           onClose={pop}
           submitButtonProps={{
             onClick: handleSubmit(onSubmit),
+            loading: submitting,
           }}
         />
       }

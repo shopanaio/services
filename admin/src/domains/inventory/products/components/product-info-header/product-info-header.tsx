@@ -8,6 +8,7 @@ import {
   Popover,
   Flex,
   Divider,
+  App,
 } from "antd";
 import {
   CheckOutlined,
@@ -39,12 +40,15 @@ import {
   getProductStatus,
   isProductPublished,
 } from "../../utils/product-status";
+import { useUpdateProduct } from "../../hooks";
 
 export const ProductInfoHeader = ({
   product,
   kpiData,
 }: IProductInfoHeaderProps) => {
   const { styles } = useHeaderStyles();
+  const { message } = App.useApp();
+  const { updateProduct } = useUpdateProduct();
   const [kpiPeriod, setKpiPeriod] = useState<Period>("7d");
   const [compareEnabled, setCompareEnabled] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
@@ -79,9 +83,23 @@ export const ProductInfoHeader = ({
     openEditTitleModal({
       title: product.title,
       handle,
-      onSave: (values: { title: string; handle: string }) => {
-        console.log("Save title:", values);
-        // TODO: implement actual save logic
+      onSave: async (values: { title: string; handle: string }) => {
+        const result = await updateProduct({
+          productId: product.id,
+          expectedRevision: product.revision,
+          operations: {
+            title: values.title,
+            handle: values.handle,
+          },
+        });
+
+        if (result.userErrors.length > 0) {
+          message.error(result.userErrors[0].message);
+          return false;
+        }
+
+        message.success("Product title updated");
+        return true;
       },
     });
   };

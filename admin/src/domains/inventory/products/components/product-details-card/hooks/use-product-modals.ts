@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
+import { App } from "antd";
 import {
   useProductModal,
   useEditMediaModal,
@@ -15,12 +16,15 @@ import {
   type IEditVariantsModalPayload,
 } from "../../../modals";
 import type { ApiProduct, ApiProductUpdateInput } from "@/graphql/types";
+import { useUpdateProduct } from "../../../hooks";
 import {
   getProductMediaFiles,
   getProductVariants,
 } from "../../../utils/api-product-display";
 
 export const useProductModals = (product: ApiProduct) => {
+  const { message } = App.useApp();
+  const { updateProduct } = useUpdateProduct();
   const { push: openProductModal } = useProductModal();
   const { push: openEditMediaModal } = useEditMediaModal();
   const { push: openEditOptionsModal } = useEditOptionsModal();
@@ -41,7 +45,7 @@ export const useProductModals = (product: ApiProduct) => {
       productId: product.id,
       featured: mediaFiles[0] ?? null,
       gallery: mediaFiles,
-      onSave: (
+      onSave: async (
         media: Parameters<NonNullable<IEditMediaModalPayload["onSave"]>>[0],
       ) => {
         const operations: ApiProductUpdateInput = {
@@ -49,14 +53,22 @@ export const useProductModals = (product: ApiProduct) => {
             fileIds: media.gallery.map((file) => file.id),
           },
         };
-
-        console.log("Saved product media:", {
+        const result = await updateProduct({
           productId: product.id,
+          expectedRevision: product.revision,
           operations,
         });
+
+        if (result.userErrors.length > 0) {
+          message.error(result.userErrors[0].message);
+          return false;
+        }
+
+        message.success("Product media updated");
+        return true;
       },
     });
-  }, [product, openEditMediaModal]);
+  }, [message, product, openEditMediaModal, updateProduct]);
 
   const handleEditCategories = useCallback(() => {
     openEditCategoriesModal({
@@ -64,10 +76,12 @@ export const useProductModals = (product: ApiProduct) => {
       primaryCategoryId: product.categories[0]?.id ?? null,
       categoryIds: product.categories?.map((c) => c.id) || [],
       onSave: () => {
-        console.log("Saved categories");
+        message.info("Category assignment is not API-backed yet");
+        return false;
       },
     });
   }, [
+    message,
     product.id,
     product.categories,
     openEditCategoriesModal,
@@ -77,11 +91,12 @@ export const useProductModals = (product: ApiProduct) => {
     openEditTagsModal({
       productId: product.id,
       selectedTagIds: product.tags?.map((t) => t.id) || [],
-      onSave: (data: { tagIds: string[] }) => {
-        console.log("Saved tags:", data);
+      onSave: () => {
+        message.info("Tag assignment is not API-backed yet");
+        return false;
       },
     });
-  }, [product.id, product.tags, openEditTagsModal]);
+  }, [message, product.id, product.tags, openEditTagsModal]);
 
   const handleEditOptions = useCallback(() => {
     openEditOptionsModal({ productId: product.id });
@@ -101,18 +116,41 @@ export const useProductModals = (product: ApiProduct) => {
       ogTitle: product.seo?.ogTitle ?? null,
       ogDescription: product.seo?.ogDescription ?? null,
       ogImage: product.seo?.ogImage ?? null,
-      onSave: (
+      onSave: async (
         values: Parameters<NonNullable<IEditSeoModalPayload["onSave"]>>[0]
       ) => {
-        console.log("Saved SEO:", values);
+        const result = await updateProduct({
+          productId: product.id,
+          expectedRevision: product.revision,
+          operations: {
+            seo: {
+              seoTitle: values.seoTitle,
+              seoDescription: values.seoDescription,
+              ogTitle: values.ogTitle,
+              ogDescription: values.ogDescription,
+              ogImageId: values.ogImage?.id ?? null,
+            },
+          },
+        });
+
+        if (result.userErrors.length > 0) {
+          message.error(result.userErrors[0].message);
+          return false;
+        }
+
+        message.success("Product SEO updated");
+        return true;
       },
     });
   }, [
+    message,
     product.id,
+    product.revision,
     product.title,
     product.handle,
     product.seo,
     openEditSeoModal,
+    updateProduct,
   ]);
 
   const handleEditVariants = useCallback(() => {
@@ -125,10 +163,12 @@ export const useProductModals = (product: ApiProduct) => {
           NonNullable<IEditVariantsModalPayload["onSave"]>
         >[0],
       ) => {
-        console.log("Saved variants:", updated);
+        void updated;
+        message.info("Variant bulk edits are not API-backed yet");
+        return false;
       },
     });
-  }, [product, openEditVariantsModal]);
+  }, [message, product, openEditVariantsModal]);
 
   return {
     openProductModal: handleOpenProductModal,
