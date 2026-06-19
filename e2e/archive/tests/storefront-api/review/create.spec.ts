@@ -1,4 +1,4 @@
-import { LocaleCode } from '@codegen/client-gql';
+
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
 
@@ -21,7 +21,7 @@ test.describe('StorefrontReviewCreate', () => {
       message: 'I really liked it',
       pros: 'Quality',
       cons: 'Price',
-      locale: LocaleCode.En,
+      locale: 'en',
       displayName: 'John Doe',
     });
 
@@ -31,7 +31,7 @@ test.describe('StorefrontReviewCreate', () => {
       message: 'I really liked it',
       pros: 'Quality',
       cons: 'Price',
-      locale: LocaleCode.En,
+      locale: 'en',
       verifiedPurchase: false,
       status: 'PENDING',
       createdAt: expect.any(String),

@@ -1,11 +1,5 @@
 import { test } from '@fixtures/base.extend';
-import {
-  type ApiOrder,
-  FulfillmentStatusEnum,
-  OrderEventTypeEnum,
-  OrderStatusEnum,
-  PaymentStatusEnum,
-} from '@codegen/admin-gql';
+import type { ApiOrder } from '@codegen/admin-gql';
 import { expect } from 'playwright/test';
 import * as Yup from 'yup';
 
@@ -94,7 +88,7 @@ test.describe('Orders API', () => {
     await test.step('Confirm order', async () => {
       const statusUpdated = await api.admin.order.updateStatus({
         id: orderId,
-        status: OrderStatusEnum.Active,
+        status: 'ACTIVE',
         comment: 'Order status - active',
       });
       expect(statusUpdated).toBe(true);
@@ -105,7 +99,7 @@ test.describe('Orders API', () => {
     await test.step('Cancel Fulfillment', async () => {
       const fulfilUpdated = await api.admin.order.updateFulfillmentStatus({
         id: order.fulfillments[0].id,
-        status: FulfillmentStatusEnum.Cancelled,
+        status: 'CANCELLED',
         comment: 'Fulfillment status - cancelled',
       });
       expect(fulfilUpdated).toBe(true);
@@ -113,14 +107,14 @@ test.describe('Orders API', () => {
 
     await test.step('Check timeline', async () => {
       order = await api.admin.order.findOne(orderId);
-      expect(order.events[0].eventType).toBe(OrderEventTypeEnum.FulfillmentStatusUpdated);
+      expect(order.events[0].eventType).toBe('FULFILLMENT_STATUS_UPDATED');
     });
 
     await test.step('Cancel payment', async () => {
       if (order.payment?.id) {
         const payUpdated = await api.admin.order.updatePaymentStatus({
           id: order.payment.id,
-          status: PaymentStatusEnum.Cancelled,
+          status: 'CANCELLED',
           comment: 'Payment status - paid',
         });
         expect(payUpdated).toBe(true);
@@ -129,13 +123,13 @@ test.describe('Orders API', () => {
 
     await test.step('Check timeline', async () => {
       order = await api.admin.order.findOne(orderId);
-      expect(order.events[0].eventType).toBe(OrderEventTypeEnum.PaymentStatusUpdated);
+      expect(order.events[0].eventType).toBe('PAYMENT_STATUS_UPDATED');
     });
 
     await test.step('Cancel order', async () => {
       const statusCancelled = await api.admin.order.updateStatus({
         id: orderId,
-        status: OrderStatusEnum.Cancelled,
+        status: 'CANCELLED',
         comment: 'Order status - Cancelled',
       });
       expect(statusCancelled).toBe(true);
@@ -143,7 +137,7 @@ test.describe('Orders API', () => {
 
     await test.step('Check timeline', async () => {
       order = await api.admin.order.findOne(orderId);
-      expect(order.events[0].eventType).toBe(OrderEventTypeEnum.OrderStatusUpdated);
+      expect(order.events[0].eventType).toBe('ORDER_STATUS_UPDATED');
     });
 
     await test.step('Check statuses', async () => {

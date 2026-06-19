@@ -1,4 +1,4 @@
-import { CurrencyCode } from '@codegen/client-gql';
+
 import { test } from '@fixtures/api/api';
 import { expect } from '@playwright/test';
 
@@ -12,7 +12,7 @@ test.describe('checkout-api: customer identity update', () => {
     await test.step('create empty checkout', async () => {
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
       });
 
@@ -80,7 +80,7 @@ test.describe('checkout-api: customer identity update', () => {
     await test.step('create checkout with customer email', async () => {
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
       });
 

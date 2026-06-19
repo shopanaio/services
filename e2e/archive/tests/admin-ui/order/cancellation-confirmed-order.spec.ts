@@ -1,6 +1,5 @@
 import { test } from '@fixtures/base.extend';
 import { randomUUID } from 'node:crypto';
-import { EntityStatus, WeightUnit } from '@codegen/admin-gql';
 
 test.describe('Orders UI test 7', async () => {
   test('Cancellation of confirmed order', async ({
@@ -25,7 +24,7 @@ test.describe('Orders UI test 7', async () => {
           groups: [],
           requiresShipping: false,
           slug: randomUUID(),
-          status: EntityStatus.Draft,
+          status: 'DRAFT',
           tags: [],
           title,
           variants: {
@@ -45,7 +44,7 @@ test.describe('Orders UI test 7', async () => {
                 title,
                 variantSortIndex: 0,
                 weight: 0,
-                weightUnit: WeightUnit.Gr,
+                weightUnit: 'g',
               },
             ],
           },

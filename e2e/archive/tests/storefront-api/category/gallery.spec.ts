@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { test } from '@fixtures/base.extend';
-import { EntityStatus, ListingSort, ListingType } from '@codegen/admin-gql';
+
 import { randomUUID } from 'node:crypto';
 import { expect } from '@playwright/test';
 import type { ApiFixtures } from '@fixtures/api/api';
@@ -29,11 +29,11 @@ async function prepareCategoryWithGallery(api: ApiFixtures['api']) {
     input: {
       title: 'Gallery Cat',
       slug,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
       includeChildrenProducts: false,
-      listingOrderBy: ListingSort.CreatedAtAsc,
+      listingOrderBy: 'CREATED_AT_ASC',
       listingOrderByStatus: true,
-      listingType: ListingType.Manual,
+      listingType: 'MANUAL',
       listingFilters: [],
       gallery: fileIds,
     },
@@ -77,7 +77,6 @@ test.describe('Category gallery connection', () => {
   test('paginates gallery forward', async ({ api }) => {
     const { slug, fileIds } = await prepareCategoryWithGallery(api);
 
-
     const firstResp = await api.client.query('client/CategoryGallery', {
       variables: { handle: slug, first: 2 },
     });
@@ -90,7 +89,6 @@ test.describe('Category gallery connection', () => {
     expect(pageInfo.hasNextPage).toBe(true);
     const endCursor = pageInfo.endCursor as string;
     expect(endCursor).toBeTruthy();
-
 
     const secondResp = await api.client.query('client/CategoryGallery', {
       variables: { handle: slug, first: 2, after: endCursor },
@@ -107,7 +105,6 @@ test.describe('Category gallery connection', () => {
   test('paginates gallery backward', async ({ api }) => {
     const { slug, fileIds } = await prepareCategoryWithGallery(api);
 
-
     const lastResp = await api.client.query('client/CategoryGallery', {
       variables: { handle: slug, last: 1 },
     });
@@ -121,7 +118,6 @@ test.describe('Category gallery connection', () => {
     const startCursor = pageInfo.startCursor as string;
     expect(startCursor).toBeTruthy();
 
-
     const prevResp = await api.client.query('client/CategoryGallery', {
       variables: { handle: slug, last: 2, before: startCursor },
     });
@@ -134,7 +130,6 @@ test.describe('Category gallery connection', () => {
     expect(prevPageInfo.hasPreviousPage).toBe(false);
   });
 
-
   function decodeCursor<T = unknown>(cursor: string): T {
     const normalized = cursor.replace(/-/g, '+').replace(/_/g, '/');
     const json = Buffer.from(normalized, 'base64').toString('utf8');
@@ -144,13 +139,11 @@ test.describe('Category gallery connection', () => {
   test('paginates gallery with arbitrary cursor', async ({ api }) => {
     const { slug, fileIds } = await prepareCategoryWithGallery(api);
 
-
     const { data: listData } = await api.client.query('client/CategoryGallery', {
       variables: { handle: slug, first: 3 },
     });
     const listEdges = (listData as any).category.gallery.edges;
     const randomCursor = listEdges[1].cursor;
-
 
     const { data } = await api.client.query('client/CategoryGallery', {
       variables: { handle: slug, first: 1, after: randomCursor },
@@ -173,7 +166,6 @@ test.describe('Category gallery connection', () => {
       });
       const connection = (data as any).category.gallery;
       connection.edges.forEach((edge: any) => collected.push(edge.node.iid));
-
 
       const endCursor: string | undefined = connection.pageInfo.endCursor;
       if (endCursor) {

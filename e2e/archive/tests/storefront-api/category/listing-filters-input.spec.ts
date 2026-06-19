@@ -3,14 +3,7 @@
 
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import {
-  EntityStatus,
-  ListingType,
-  ListingSort as AdminListingSort,
-  WeightUnit,
-  DimensionUnit,
-  FeatureStyleType,
-} from '@codegen/admin-gql';
+
 import type { ApiFixtures } from '@fixtures/api/api';
 import { randomUUID } from 'node:crypto';
 import type { ApiListFilter } from '@codegen/client-gql';
@@ -28,24 +21,22 @@ async function setupCategoryAndProducts(api: ApiFixtures['api']): Promise<{
 }> {
   await api.session.setupUserAndProject();
 
-
   const categorySlug = `filters-input-${randomUUID()}`;
   const category = await api.admin.category.create({
     input: {
       title: 'Filters Input Category',
       slug: categorySlug,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
       includeChildrenProducts: false,
-      listingOrderBy: AdminListingSort.TitleAsc,
+      listingOrderBy: 'TITLE_ASC',
       listingOrderByStatus: false,
-      listingType: ListingType.Manual,
+      listingType: 'MANUAL',
       excerpt: '',
       description: { json: '{}', text: '', html: '' },
       gallery: [],
       listingFilters: [],
     },
   });
-
 
   const createTag = async (title: string): Promise<TagInfo> => {
     const slug = `${title}-${randomUUID()}`;
@@ -62,7 +53,6 @@ async function setupCategoryAndProducts(api: ApiFixtures['api']): Promise<{
   const tagAlpha = await createTag('alpha');
   const tagBeta = await createTag('beta');
   const tagGamma = await createTag('gamma');
-
 
   type Seed = { title: string; price: number; tag: TagInfo };
   const seeds: Seed[] = [
@@ -90,8 +80,8 @@ async function setupCategoryAndProducts(api: ApiFixtures['api']): Promise<{
       title: seed.title,
       variantSortIndex: 0,
       weight: 0,
-      weightUnit: WeightUnit.Gr,
-      dimensionUnit: DimensionUnit.Cm,
+      weightUnit: 'g',
+      dimensionUnit: 'cm',
       height: 0,
       length: 0,
       width: 0,
@@ -104,7 +94,7 @@ async function setupCategoryAndProducts(api: ApiFixtures['api']): Promise<{
           excerpt: '',
           requiresShipping: false,
           slug: randomUUID(),
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           tags: [seed.tag.id],
           groups: [],
           title: seed.title,
@@ -117,7 +107,6 @@ async function setupCategoryAndProducts(api: ApiFixtures['api']): Promise<{
 
     productIds.push(data.productMutation.create.id as string);
   }
-
 
   await api.admin.mutation('admin/CategoryAddProducts', {
     variables: {
@@ -143,24 +132,22 @@ async function setupProductsWithPriceRange(api: ApiFixtures['api']): Promise<{
 }> {
   await api.session.setupUserAndProject();
 
-
   const categorySlug = `filters-price-${randomUUID()}`;
   const category = await api.admin.category.create({
     input: {
       title: 'Price Filters Input Category',
       slug: categorySlug,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
       includeChildrenProducts: false,
-      listingOrderBy: AdminListingSort.TitleAsc,
+      listingOrderBy: 'TITLE_ASC',
       listingOrderByStatus: false,
-      listingType: ListingType.Manual,
+      listingType: 'MANUAL',
       excerpt: '',
       description: { json: '{}', text: '', html: '' },
       gallery: [],
       listingFilters: [],
     },
   });
-
 
   type Seed = { title: string; price: number };
   const seeds: Seed[] = [
@@ -180,7 +167,7 @@ async function setupProductsWithPriceRange(api: ApiFixtures['api']): Promise<{
         excerpt: '',
         requiresShipping: false,
         slug: randomUUID(),
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         tags: [],
         groups: [],
         title: seed.title,
@@ -201,8 +188,8 @@ async function setupProductsWithPriceRange(api: ApiFixtures['api']): Promise<{
               title: seed.title,
               variantSortIndex: 0,
               weight: 0,
-              weightUnit: WeightUnit.Gr,
-              dimensionUnit: DimensionUnit.Cm,
+              weightUnit: 'g',
+              dimensionUnit: 'cm',
               height: 0,
               length: 0,
               width: 0,
@@ -215,7 +202,6 @@ async function setupProductsWithPriceRange(api: ApiFixtures['api']): Promise<{
     productIds.push(product.id);
   }
 
-
   await api.admin.mutation('admin/CategoryAddProducts', {
     variables: {
       input: {
@@ -226,7 +212,6 @@ async function setupProductsWithPriceRange(api: ApiFixtures['api']): Promise<{
   });
 
   await api.session.setupApiKey();
-
 
   const expectedTitlesInRange = ['Product 10', 'Product 15', 'Product 20'];
 
@@ -242,24 +227,22 @@ async function setupProductsWithStockStatus(api: ApiFixtures['api']): Promise<{
 }> {
   await api.session.setupUserAndProject();
 
-
   const categorySlug = `filters-availability-${randomUUID()}`;
   const category = await api.admin.category.create({
     input: {
       title: 'Availability Filters Input Category',
       slug: categorySlug,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
       includeChildrenProducts: false,
-      listingOrderBy: AdminListingSort.TitleAsc,
+      listingOrderBy: 'TITLE_ASC',
       listingOrderByStatus: false,
-      listingType: ListingType.Manual,
+      listingType: 'MANUAL',
       excerpt: '',
       description: { json: '{}', text: '', html: '' },
       gallery: [],
       listingFilters: [],
     },
   });
-
 
   type Seed = { title: string; stockStatus: 'IN_STOCK' | 'OUT_OF_STOCK' };
   const seeds: Seed[] = [
@@ -279,7 +262,7 @@ async function setupProductsWithStockStatus(api: ApiFixtures['api']): Promise<{
         excerpt: '',
         requiresShipping: false,
         slug: randomUUID(),
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         tags: [],
         groups: [],
         title: seed.title,
@@ -300,8 +283,8 @@ async function setupProductsWithStockStatus(api: ApiFixtures['api']): Promise<{
               title: seed.title,
               variantSortIndex: 0,
               weight: 0,
-              weightUnit: WeightUnit.Gr,
-              dimensionUnit: DimensionUnit.Cm,
+              weightUnit: 'g',
+              dimensionUnit: 'cm',
               height: 0,
               length: 0,
               width: 0,
@@ -317,7 +300,6 @@ async function setupProductsWithStockStatus(api: ApiFixtures['api']): Promise<{
       expectedOutOfStockTitles.push(seed.title);
     }
   }
-
 
   await api.admin.mutation('admin/CategoryAddProducts', {
     variables: {
@@ -337,24 +319,22 @@ async function setupProductsWithFeature(api: ApiFixtures['api']): Promise<{
 }> {
   await api.session.setupUserAndProject();
 
-
   const categorySlug = `filters-feature-${randomUUID()}`;
   const category = await api.admin.category.create({
     input: {
       title: 'Feature Filters Input Category',
       slug: categorySlug,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
       includeChildrenProducts: false,
-      listingOrderBy: AdminListingSort.TitleAsc,
+      listingOrderBy: 'TITLE_ASC',
       listingOrderByStatus: false,
-      listingType: ListingType.Manual,
+      listingType: 'MANUAL',
       excerpt: '',
       description: { json: '{}', text: '', html: '' },
       gallery: [],
       listingFilters: [],
     },
   });
-
 
   const cottonHandle = 'material.cotton';
 
@@ -374,7 +354,7 @@ async function setupProductsWithFeature(api: ApiFixtures['api']): Promise<{
         excerpt: '',
         requiresShipping: false,
         slug: randomUUID(),
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         tags: [],
         groups: [],
         title: seed.title,
@@ -395,7 +375,7 @@ async function setupProductsWithFeature(api: ApiFixtures['api']): Promise<{
                   group: {
                     title: 'Material',
                     slug: 'material',
-                    featureStyleType: FeatureStyleType.Radio,
+                    featureStyleType: 'RADIO',
                   },
                 },
               ],
@@ -409,8 +389,8 @@ async function setupProductsWithFeature(api: ApiFixtures['api']): Promise<{
               title: seed.title,
               variantSortIndex: 0,
               weight: 0,
-              weightUnit: WeightUnit.Gr,
-              dimensionUnit: DimensionUnit.Cm,
+              weightUnit: 'g',
+              dimensionUnit: 'cm',
               height: 0,
               length: 0,
               width: 0,
@@ -450,18 +430,17 @@ async function setupProductsWithOption(api: ApiFixtures['api']): Promise<{
     input: {
       title: 'Option Filters Input Category',
       slug: categorySlug,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
       includeChildrenProducts: false,
-      listingOrderBy: AdminListingSort.TitleAsc,
+      listingOrderBy: 'TITLE_ASC',
       listingOrderByStatus: false,
-      listingType: ListingType.Manual,
+      listingType: 'MANUAL',
       excerpt: '',
       description: { json: '{}', text: '', html: '' },
       gallery: [],
       listingFilters: [],
     },
   });
-
 
   const sizeSHandle = 'size.s';
 
@@ -481,7 +460,7 @@ async function setupProductsWithOption(api: ApiFixtures['api']): Promise<{
         excerpt: '',
         requiresShipping: false,
         slug: randomUUID(),
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         tags: [],
         groups: [],
         title: seed.title,
@@ -502,7 +481,7 @@ async function setupProductsWithOption(api: ApiFixtures['api']): Promise<{
                   group: {
                     title: 'Size',
                     slug: 'size',
-                    featureStyleType: FeatureStyleType.Radio,
+                    featureStyleType: 'RADIO',
                   },
                 },
               ],
@@ -516,8 +495,8 @@ async function setupProductsWithOption(api: ApiFixtures['api']): Promise<{
               title: seed.title,
               variantSortIndex: 0,
               weight: 0,
-              weightUnit: WeightUnit.Gr,
-              dimensionUnit: DimensionUnit.Cm,
+              weightUnit: 'g',
+              dimensionUnit: 'cm',
               height: 0,
               length: 0,
               width: 0,
@@ -553,7 +532,6 @@ test.describe('Category Listing + Facets with filter input', () => {
   test('returns only products matching price range', async ({ api }) => {
     const { categorySlug, expectedTitlesInRange } = await setupProductsWithPriceRange(api);
 
-
     const filtersInput = [
       {
         handle: 'PRICE',
@@ -565,12 +543,10 @@ test.describe('Category Listing + Facets with filter input', () => {
       variables: { handle: categorySlug, first: 20, filters: filtersInput },
     });
 
-
     const edges = data.category!.listing.edges;
     expect(edges).toHaveLength(expectedTitlesInRange.length);
     const receivedTitles = edges.map((e: any) => e.node.title);
     expect(receivedTitles.sort()).toEqual(expectedTitlesInRange.sort());
-
 
     const filters = data.category!.listing.filters;
 
@@ -580,7 +556,6 @@ test.describe('Category Listing + Facets with filter input', () => {
 
   test('returns only products matching stock status', async ({ api }) => {
     const { categorySlug, expectedOutOfStockTitles } = await setupProductsWithStockStatus(api);
-
 
     const filtersInput = [
       {
@@ -593,12 +568,10 @@ test.describe('Category Listing + Facets with filter input', () => {
       variables: { handle: categorySlug, first: 20, filters: filtersInput },
     });
 
-
     const edges = data.category!.listing.edges;
     expect(edges).toHaveLength(expectedOutOfStockTitles.length);
     const receivedTitles = edges.map((e: any) => e.node.title);
     expect(receivedTitles.sort()).toEqual(expectedOutOfStockTitles.sort());
-
 
     const filters = data.category!.listing.filters;
 
@@ -610,7 +583,6 @@ test.describe('Category Listing + Facets with filter input', () => {
     const outOfStockValue = availFilter.values.find((v: any) => v.handle === 'OUT_OF_STOCK');
     expect(outOfStockValue).toBeDefined();
     expect(outOfStockValue.count).toBe(expectedOutOfStockTitles.length);
-
 
     const inStockValue = availFilter.values.find((v: any) => v.handle === 'IN_STOCK');
     if (inStockValue) {
@@ -701,12 +673,10 @@ test.describe('Category Listing + Facets with filter input', () => {
       variables: { handle: categorySlug, first: 20, filters: filtersInput },
     });
 
-
     const edges = data.category!.listing.edges;
     expect(edges).toHaveLength(expectedAlphaTitles.length);
     const receivedTitles = edges.map((e: any) => e.node.title);
     expect(receivedTitles.sort()).toEqual(expectedAlphaTitles.sort());
-
 
     const filters = data.category!.listing.filters;
 
@@ -716,7 +686,6 @@ test.describe('Category Listing + Facets with filter input', () => {
     const alphaValue = tagFilter.values.find((v) => v.handle === alphaTagSlug);
     expect(alphaValue).toBeDefined();
     expect(alphaValue?.count).toBe(expectedAlphaTitles.length);
-
 
     tagFilter.values
       .filter((v) => v.handle !== alphaTagSlug)

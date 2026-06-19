@@ -1,6 +1,6 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import { EntityStatus } from '@codegen/admin-gql';
+
 import { randomUUID } from 'node:crypto';
 import type { ApiFixtures } from '@fixtures/api/api';
 import type { ApiProduct, ApiProductVariant } from '@codegen/client-gql';
@@ -27,7 +27,7 @@ test.describe('storefront predictive products search', () => {
     const product = await api.admin.product.createWithOptions({
       title: 'MacBook Pro',
       slug,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
       options: [
         { title: 'Model', values: ['Pro', 'Air', 'Mini', 'Max'] },
         { title: 'RAM', values: ['16GB', '32GB'] },
@@ -53,7 +53,7 @@ test.describe('storefront predictive products search', () => {
     const product = await api.admin.product.createWithOptions({
       title: 'UltraBook X',
       slug: `ultrabook-${randomUUID()}`,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
       options: [{ title: 'Edition', values: ['Ultra Performance X'] }],
     });
 
@@ -71,7 +71,7 @@ test.describe('storefront predictive products search', () => {
     const product = await api.admin.product.createWithOptions({
       title: 'Notebook 13',
       slug: `notebook-${randomUUID()}`,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
       options: [
         {
           title: 'Edition',
@@ -102,7 +102,7 @@ test.describe('storefront predictive products search', () => {
     const product = await api.admin.product.createWithOptions({
       title: 'Draft Gizmo',
       slug: `draft-${randomUUID()}`,
-      status: EntityStatus.Draft,
+      status: 'DRAFT',
       options: [{ title: 'Edition', values: ['DraftAlpha'] }],
     });
 
@@ -122,7 +122,7 @@ test.describe('storefront predictive products search', () => {
     const product = await api.admin.product.createWithOptions({
       title: 'Test Camera',
       slug: `camera-${randomUUID()}`,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
       options: [{ title: 'Model', values: ['Canon', 'Canon XR', 'Canonite'] }],
     });
 
@@ -161,7 +161,7 @@ test.describe('storefront predictive products search', () => {
     const product = await api.admin.product.createWithOptions({
       title: 'Television',
       slug: `television-${randomUUID()}`,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
       options: [{ title: 'Series', values: ['Ultra HD'] }],
     });
 

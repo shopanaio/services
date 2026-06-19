@@ -1,16 +1,11 @@
 import { test } from '@fixtures/base.extend';
 import { randomUUID } from 'node:crypto';
 import { expect } from '@playwright/test';
-import type {
-  ApiCategory,
-  ApiProduct,
-  ApiTag } from '@codegen/admin-gql';
-import {
-  EntityStatus,
-  ListingSort,
-  ListingType,
-  WeightUnit,
-} from '@codegen/admin-gql';
+import type { ApiCategory, ApiProduct, ApiTag } from '@codegen/admin-gql';
+
+type EntityStatus = 'DRAFT' | 'PUBLISHED';
+type ListingSort = 'CUSTOM' | 'CREATED_AT_ASC' | 'CREATED_AT_DESC' | 'PRICE_ASC' | 'PRICE_DESC' | 'TITLE_ASC' | 'TITLE_DESC' | 'MOST_RELEVANT';
+type ListingType = 'MANUAL' | 'AUTO' | 'COMPOSITE';
 
 test.describe.skip('Smart-collection API', () => {
   let categoryStandard = {} as ApiCategory;
@@ -39,15 +34,15 @@ test.describe.skip('Smart-collection API', () => {
   const categoriesInputs = [
     createCategoryInput(
       'Clothes',
-      EntityStatus.Published,
-      ListingSort.CreatedAtAsc,
-      ListingType.Manual,
+      'PUBLISHED',
+      'CREATED_AT_ASC',
+      'MANUAL',
     ),
     createCategoryInput(
       'Smart-collection',
-      EntityStatus.Published,
-      ListingSort.CreatedAtAsc,
-      ListingType.Auto,
+      'PUBLISHED',
+      'CREATED_AT_ASC',
+      'AUTO',
     ),
   ];
 
@@ -80,7 +75,7 @@ test.describe.skip('Smart-collection API', () => {
         groups: [],
         requiresShipping: false,
         slug: randomUUID(),
-        status: EntityStatus.Draft,
+        status: 'DRAFT',
         tags: [],
         title,
         variants: {
@@ -100,7 +95,7 @@ test.describe.skip('Smart-collection API', () => {
               title,
               variantSortIndex: 0,
               weight: 0,
-              weightUnit: WeightUnit.Gr,
+              weightUnit: 'g',
             },
           ],
         },
@@ -156,7 +151,7 @@ test.describe.skip('Smart-collection API', () => {
 
       const { data } = await getListingBySlugAndListingType(
         categoryStandard.slug,
-        ListingType.Manual,
+        'MANUAL',
       );
 
       expect(data.listingQuery.listingV1.data.length).toBe(4);
@@ -169,7 +164,7 @@ test.describe.skip('Smart-collection API', () => {
         input: { ...categoriesInputs[1], slug: randomUUID() },
       });
 
-      const { data } = await getListingBySlugAndListingType(categorySmart.slug, ListingType.Auto);
+      const { data } = await getListingBySlugAndListingType(categorySmart.slug, 'AUTO');
 
       expect(data.listingQuery.listingV1.data.length).toBe(5);
       expect(data.listingQuery.listingV1.data[0].title).toBe('Sunglasses');
@@ -196,7 +191,7 @@ test.describe.skip('Smart-collection API', () => {
         },
       });
 
-      const { data } = await getListingBySlugAndListingType(categorySmart.slug, ListingType.Auto);
+      const { data } = await getListingBySlugAndListingType(categorySmart.slug, 'AUTO');
 
       expect(data.listingQuery.listingV1.data.length).toBe(4);
       expect(data.listingQuery.listingV1.data[0].title).toBe('Sunglasses');
@@ -234,7 +229,7 @@ test.describe.skip('Smart-collection API', () => {
         },
       });
 
-      const { data } = await getListingBySlugAndListingType(categorySmart.slug, ListingType.Auto);
+      const { data } = await getListingBySlugAndListingType(categorySmart.slug, 'AUTO');
 
       expect(data.listingQuery.listingV1.data.length).toBe(3);
       expect(data.listingQuery.listingV1.data[0].title).toBe('Sunglasses');
@@ -278,7 +273,7 @@ test.describe.skip('Smart-collection API', () => {
         },
       });
 
-      const { data } = await getListingBySlugAndListingType(categorySmart.slug, ListingType.Auto);
+      const { data } = await getListingBySlugAndListingType(categorySmart.slug, 'AUTO');
 
       expect(data.listingQuery.listingV1.data.length).toBe(2);
       expect(data.listingQuery.listingV1.data[0].title).toBe('Hat');
@@ -328,7 +323,7 @@ test.describe.skip('Smart-collection API', () => {
         },
       });
 
-      const { data } = await getListingBySlugAndListingType(categorySmart.slug, ListingType.Auto);
+      const { data } = await getListingBySlugAndListingType(categorySmart.slug, 'AUTO');
 
       expect(data.listingQuery.listingV1.data.length).toBe(1);
       expect(data.listingQuery.listingV1.data[0].title).toBe('Hoodie');
@@ -384,7 +379,7 @@ test.describe.skip('Smart-collection API', () => {
         },
       });
 
-      const { data } = await getListingBySlugAndListingType(categorySmart.slug, ListingType.Auto);
+      const { data } = await getListingBySlugAndListingType(categorySmart.slug, 'AUTO');
 
       expect(data.listingQuery.listingV1.data.length).toBe(1);
       expect(data.listingQuery.listingV1.data[0].title).toBe('Hoodie');

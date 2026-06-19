@@ -1,4 +1,6 @@
-import type { ProductGroupPriceType } from '@codegen/admin-gql';
+
+
+type ProductGroupPriceType = 'BASE' | 'FREE' | 'BASE_ADJUST_PERCENT' | 'BASE_ADJUST_AMOUNT' | 'BASE_OVERRIDE';
 
 export interface CategoryData {
   title: string;

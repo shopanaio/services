@@ -1,7 +1,6 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import { CurrencyCode } from '@codegen/client-gql';
-import { EntityStatus } from '@codegen/admin-gql';
+
 import { randomUUID } from 'crypto';
 
 test.describe('product', () => {
@@ -15,7 +14,7 @@ test.describe('product', () => {
     const adminProduct = await api.admin.product.createWithOptions({
       title: productTitle,
       slug: productContainerSlug,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
       price: productPrice,
       requiresShipping: true,
       options: [
@@ -40,7 +39,7 @@ test.describe('product', () => {
       expect(product?.description).not.toBeUndefined();
       expect(product?.excerpt).not.toBeUndefined();
       expect(product?.price.amount).toBe(productPrice / 100);
-      expect(product?.price.currencyCode).toBe(CurrencyCode.Usd);
+      expect(product?.price.currencyCode).toBe('USD');
       expect(product?.rating.rating).toBeGreaterThanOrEqual(0);
       expect(product?.rating.count).toBeGreaterThanOrEqual(0);
       expect(product?.sku).not.toBeUndefined();

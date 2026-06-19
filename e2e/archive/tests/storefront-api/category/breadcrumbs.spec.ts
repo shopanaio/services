@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { test } from '@fixtures/base.extend';
-import { EntityStatus, ListingSort, ListingType } from '@codegen/admin-gql';
-import { CategorySort } from '@codegen/client-gql';
+
 import { expect } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
 import type { ApiFixtures } from '@fixtures/api/api';
@@ -37,11 +36,11 @@ async function prepareNestedCategories(api: ApiFixtures['api']): Promise<Prepare
     input: {
       title: rootTitle,
       slug: rootSlug,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
       includeChildrenProducts: true,
-      listingOrderBy: ListingSort.CreatedAtAsc,
+      listingOrderBy: 'CREATED_AT_ASC',
       listingOrderByStatus: true,
-      listingType: ListingType.Manual,
+      listingType: 'MANUAL',
       excerpt: 'Root excerpt',
       description: {
         json: JSON.stringify({
@@ -66,11 +65,11 @@ async function prepareNestedCategories(api: ApiFixtures['api']): Promise<Prepare
     input: {
       title: childTitle,
       slug: childSlug,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
       includeChildrenProducts: true,
-      listingOrderBy: ListingSort.CreatedAtAsc,
+      listingOrderBy: 'CREATED_AT_ASC',
       listingOrderByStatus: true,
-      listingType: ListingType.Manual,
+      listingType: 'MANUAL',
       excerpt: 'Child excerpt',
       description: {
         json: JSON.stringify({
@@ -96,11 +95,11 @@ async function prepareNestedCategories(api: ApiFixtures['api']): Promise<Prepare
     input: {
       title: grandchildTitle,
       slug: grandchildSlug,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
       includeChildrenProducts: true,
-      listingOrderBy: ListingSort.CreatedAtAsc,
+      listingOrderBy: 'CREATED_AT_ASC',
       listingOrderByStatus: true,
-      listingType: ListingType.Manual,
+      listingType: 'MANUAL',
       excerpt: 'Grandchild excerpt',
       description: {
         json: JSON.stringify({
@@ -147,12 +146,12 @@ test.describe('client category breadcrumbs, source is not included', () => {
 
     const category = data.category as any;
 
-    
+
     expect(category.handle).toBe(grandchild.handle);
     const breadcrumbs = category.breadcrumbs as any[];
     expect(breadcrumbs.map((b: any) => b.title)).toEqual([root.title, child.title]);
 
-    
+
     const [rootBreadcrumb, childBreadcrumb] = breadcrumbs;
 
     // Root
@@ -169,7 +168,7 @@ test.describe('client category breadcrumbs, source is not included', () => {
     expect(childBreadcrumb.title).toBe(child.title);
     expect(JSON.stringify(childBreadcrumb.description).includes('Child desc')).toBe(true);
     expect(childBreadcrumb.excerpt).toBe('Child excerpt');
-    expect(childBreadcrumb.listingType).toBe(ListingType.Manual);
+    expect(childBreadcrumb.listingType).toBe('MANUAL');
     expect(childBreadcrumb.seoTitle).toBe('Child SEO');
     expect(childBreadcrumb.seoDescription).toBe('Child SEO');
   });
@@ -182,7 +181,7 @@ test.describe('client category breadcrumbs, source is not included', () => {
       {
         variables: {
           first: 100,
-          sort: CategorySort.CreatedAtAsc,
+          sort: 'CREATED_AT_ASC',
         },
       },
     );
@@ -200,17 +199,17 @@ test.describe('client category breadcrumbs, source is not included', () => {
     expect(childNode).toBeDefined();
     expect(grandchildNode).toBeDefined();
 
-    
+
     expect(rootNode.handle).toBe(root.handle);
     expect(rootNode.breadcrumbs).toHaveLength(0);
 
-    
+
     expect(childNode.handle).toBe(child.handle);
     expect(childNode.title).toBe(child.title);
 
     expect(childNode.breadcrumbs.map((b: any) => b.title)).toEqual([root.title]);
 
-    
+
     expect(grandchildNode.handle).toBe(grandchild.handle);
     expect(grandchildNode.title).toBe(grandchild.title);
 

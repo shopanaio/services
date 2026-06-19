@@ -2,24 +2,25 @@
 
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import { EntityStatus, ListingType, ListingSort as AdminListingSort } from '@codegen/admin-gql';
-import { ListingSort } from '@codegen/client-gql';
+
 import type { ApiFixtures } from '@fixtures/api/api';
 import { createCursorPaginationTests } from '@utils/cursorPaginationBuilder';
 import type { GraphQLFileName } from '@queries/filenames';
 import { randomUUID } from 'node:crypto';
+
+type ListingSort = 'CUSTOM' | 'CREATED_AT_ASC' | 'CREATED_AT_DESC' | 'PRICE_ASC' | 'PRICE_DESC' | 'TITLE_ASC' | 'TITLE_DESC' | 'MOST_RELEVANT';
 
 // ---------------------------------------------------------------------------
 // Test data preparation (mostly copied from listing.spec.ts)
 // ---------------------------------------------------------------------------
 
 export const listingSorts: ListingSort[] = [
-  ListingSort.CreatedAtAsc,
-  ListingSort.CreatedAtDesc,
-  ListingSort.PriceAsc,
-  ListingSort.PriceDesc,
-  ListingSort.TitleAsc,
-  ListingSort.TitleDesc,
+  'CREATED_AT_ASC',
+  'CREATED_AT_DESC',
+  'PRICE_ASC',
+  'PRICE_DESC',
+  'TITLE_ASC',
+  'TITLE_DESC',
 ];
 
 async function prepareListing(api: ApiFixtures['api']) {
@@ -31,11 +32,11 @@ async function prepareListing(api: ApiFixtures['api']) {
     input: {
       title: 'Node Listing Test Category',
       slug: categorySlug,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
       includeChildrenProducts: false,
-      listingOrderBy: AdminListingSort.CreatedAtAsc,
+      listingOrderBy: 'CREATED_AT_ASC',
       listingOrderByStatus: true,
-      listingType: ListingType.Manual,
+      listingType: 'MANUAL',
       excerpt: 'Excerpt',
       description: {
         json: '{}',
@@ -57,7 +58,7 @@ async function prepareListing(api: ApiFixtures['api']) {
     const product = await api.admin.product.createWithOptions({
       title,
       slug: `product-${i}-${randomUUID()}`,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
       price,
       requiresShipping: false,
       options: [
@@ -82,7 +83,6 @@ async function prepareListing(api: ApiFixtures['api']) {
 
   await api.session.setupApiKey();
 
-  
   const { data: catData } = await api.client.query(
     'client/CategoryBreadcrumbs' as GraphQLFileName,
     {
@@ -103,19 +103,19 @@ async function prepareListing(api: ApiFixtures['api']) {
 // ---------------------------------------------------------------------------
 
 const sortToFieldOrder = {
-  [ListingSort.CreatedAtAsc]: { field: 'created_at', order: 'ASC' },
-  [ListingSort.CreatedAtDesc]: { field: 'created_at', order: 'DESC' },
-  [ListingSort.PriceAsc]: { field: 'price', order: 'ASC' },
-  [ListingSort.PriceDesc]: { field: 'price', order: 'DESC' },
-  [ListingSort.TitleAsc]: { field: 'title', order: 'ASC' },
-  [ListingSort.TitleDesc]: { field: 'title', order: 'DESC' },
+  ['CREATED_AT_ASC']: { field: 'created_at', order: 'ASC' },
+  ['CREATED_AT_DESC']: { field: 'created_at', order: 'DESC' },
+  ['PRICE_ASC']: { field: 'price', order: 'ASC' },
+  ['PRICE_DESC']: { field: 'price', order: 'DESC' },
+  ['TITLE_ASC']: { field: 'title', order: 'ASC' },
+  ['TITLE_DESC']: { field: 'title', order: 'DESC' },
 } as Record<ListingSort, { field: string; order: 'ASC' | 'DESC' }>;
 
 const getExpectedBySort = (titles: string[], sort: ListingSort) => {
   switch (sort) {
-    case ListingSort.CreatedAtDesc:
-    case ListingSort.PriceDesc:
-    case ListingSort.TitleDesc:
+    case 'CREATED_AT_DESC':
+    case 'PRICE_DESC':
+    case 'TITLE_DESC':
       return [...titles].reverse();
     default:
       return [...titles];

@@ -1,4 +1,4 @@
-import { CurrencyCode } from '@codegen/client-gql';
+
 import { test } from '@fixtures/api/api';
 import { expect } from '@playwright/test';
 
@@ -9,7 +9,7 @@ test.describe('checkout-api: read model', () => {
 
     const input = {
       localeCode: 'en',
-      currencyCode: CurrencyCode.Usd,
+      currencyCode: 'USD',
       items: [],
     };
 

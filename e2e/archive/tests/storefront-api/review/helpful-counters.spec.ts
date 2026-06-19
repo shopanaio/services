@@ -8,7 +8,7 @@ test.describe('StorefrontReviewHelpfulCounters', () => {
   test('three yes and two no votes are counted correctly', async ({ api }) => {
     await api.session.setupUserAndProject();
 
-    
+
     const {
       variants: [{ slug: handle }],
     } = await api.admin.product.create();
@@ -24,7 +24,7 @@ test.describe('StorefrontReviewHelpfulCounters', () => {
       message: 'Initial message',
     });
 
-    
+
     const votes = [true, true, true, false, false];
 
     for (const helpful of votes) {

@@ -1,5 +1,5 @@
-import { EntityStatus } from '@codegen/admin-gql';
-import { CurrencyCode } from '@codegen/client-gql';
+
+
 import { test } from '@fixtures/api/api';
 import { expect } from '@playwright/test';
 // import { composeGlobalId, TypeName } from '@utils/globalid';
@@ -13,7 +13,7 @@ test.describe('checkout-api: lines order stability', () => {
     const product = await api.admin.product.create({
       input: {
         title: 'Test Product',
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         slug: handle,
         groups: [],
         requiresShipping: true,
@@ -49,7 +49,7 @@ test.describe('checkout-api: lines order stability', () => {
     const productIdB = variantB.id;
     const { data: createdResp } = await api.client.checkout.create({
       localeCode: 'en',
-      currencyCode: CurrencyCode.Usd,
+      currencyCode: 'USD',
       items: [],
     });
     const created = (createdResp as unknown as {

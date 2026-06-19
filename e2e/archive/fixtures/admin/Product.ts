@@ -1,23 +1,8 @@
 import { expect } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
 
-import type {
-  ApiProduct,
-  ApiVariant,
-  ApiCategory,
-  ApiProductFeature,
-  ApiProductMutationCreateArgs,
-  ApiProductMutationUpdateArgs,
-  ApiDescriptionFieldsInput,
-  ApiCreateProductGroupInput,
-  ApiCreateProductVariantInput } from '@codegen/admin-gql';
-import {
-  EntityStatus,
-  WeightUnit,
-  DimensionUnit,
-  FeatureStyleType,
-  /* ApiCreateProductInput, */
-} from '@codegen/admin-gql';
+import type { ApiProduct, ApiVariant, ApiCategory, ApiProductFeature, ApiProductMutationCreateArgs, ApiProductMutationUpdateArgs, ApiDescriptionFieldsInput, ApiCreateProductGroupInput, ApiCreateProductVariantInput } from '@codegen/admin-gql';
+
 import {
   productSchema,
   variantSchema,
@@ -29,6 +14,8 @@ import type { TenantApiFixture } from '@fixtures/admin/api';
 import _ from 'lodash';
 import type { DeepPartial } from 'types';
 import { slugify } from '@utils/transliterate';
+
+type EntityStatus = 'DRAFT' | 'PUBLISHED';
 
 export class Product {
   constructor(private api: TenantApiFixture) {}
@@ -68,7 +55,7 @@ export class Product {
           groups: [],
           requiresShipping: false,
           slug: `${randomUUID()}`,
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           tags: [],
           title: 'Product',
           variants: {
@@ -88,11 +75,11 @@ export class Product {
                 title: 'Product',
                 variantSortIndex: 0,
                 weight: 0,
-                weightUnit: WeightUnit.Gr,
+                weightUnit: 'g',
                 width: 0,
                 height: 0,
                 length: 0,
-                dimensionUnit: DimensionUnit.Cm,
+                dimensionUnit: 'cm',
               },
             ],
           },
@@ -119,7 +106,7 @@ export class Product {
           groups: [],
           requiresShipping: false,
           slug: null,
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           tags: [],
           title: 'Product',
           variants: {
@@ -139,11 +126,11 @@ export class Product {
                 title: 'Product',
                 variantSortIndex: 0,
                 weight: 0,
-                weightUnit: WeightUnit.Gr,
+                weightUnit: 'g',
                 width: 0,
                 height: 0,
                 length: 0,
-                dimensionUnit: DimensionUnit.Cm,
+                dimensionUnit: 'cm',
               },
             ],
           },
@@ -189,7 +176,7 @@ export class Product {
     title,
     options,
     price = 0,
-    status = EntityStatus.Draft,
+    status = 'DRAFT',
     slug,
     requiresShipping = false,
     description = null,
@@ -244,7 +231,7 @@ export class Product {
           group: {
             title: feat.groupTitle,
             slug: feat.groupSlug,
-            featureStyleType: FeatureStyleType.Radio,
+            featureStyleType: 'RADIO',
           },
         })),
         gallery: [],
@@ -257,14 +244,13 @@ export class Product {
         title: combo.map((f: FeatureEntity) => f.title).join(' '),
         variantSortIndex: comboIndex,
         weight: 0,
-        weightUnit: WeightUnit.Gr,
+        weightUnit: 'g',
         width: 0,
         height: 0,
         length: 0,
-        dimensionUnit: DimensionUnit.Cm,
+        dimensionUnit: 'cm',
       }),
     );
-
 
     const createInput = {
       description,
@@ -304,11 +290,11 @@ export class Product {
         title: 'Product',
         variantSortIndex: 0,
         weight: 0,
-        weightUnit: WeightUnit.Gr,
+        weightUnit: 'g',
         width: 0,
         height: 0,
         length: 0,
-        dimensionUnit: DimensionUnit.Cm,
+        dimensionUnit: 'cm',
       },
       input,
     );

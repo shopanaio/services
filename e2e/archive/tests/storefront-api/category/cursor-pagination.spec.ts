@@ -1,33 +1,35 @@
-import { EntityStatus, ListingSort, ListingType } from '@codegen/admin-gql';
+
 import { randomUUID } from 'node:crypto';
-import { CategorySort } from '@codegen/client-gql';
+
 import type { ApiFixtures } from '@fixtures/api/api';
 import { createCursorPaginationTests } from '@utils/cursorPaginationBuilder';
 
+type CategorySort = 'TITLE_ASC' | 'TITLE_DESC' | 'CREATED_AT_ASC' | 'CREATED_AT_DESC' | 'UPDATED_AT_ASC' | 'UPDATED_AT_DESC';
+
 // --- Constants -----------------------------------------------------------
 const sortToFieldOrder: Record<CategorySort, { field: string; order: 'ASC' | 'DESC' }> = {
-  [CategorySort.TitleAsc]: { field: 'title', order: 'ASC' },
-  [CategorySort.TitleDesc]: { field: 'title', order: 'DESC' },
-  [CategorySort.CreatedAtAsc]: { field: 'created_at', order: 'ASC' },
-  [CategorySort.CreatedAtDesc]: { field: 'created_at', order: 'DESC' },
-  [CategorySort.UpdatedAtAsc]: { field: 'updated_at', order: 'ASC' },
-  [CategorySort.UpdatedAtDesc]: { field: 'updated_at', order: 'DESC' },
+  ['TITLE_ASC']: { field: 'title', order: 'ASC' },
+  ['TITLE_DESC']: { field: 'title', order: 'DESC' },
+  ['CREATED_AT_ASC']: { field: 'created_at', order: 'ASC' },
+  ['CREATED_AT_DESC']: { field: 'created_at', order: 'DESC' },
+  ['UPDATED_AT_ASC']: { field: 'updated_at', order: 'ASC' },
+  ['UPDATED_AT_DESC']: { field: 'updated_at', order: 'DESC' },
 };
 
 const sortsArray: CategorySort[] = [
-  CategorySort.TitleAsc,
-  CategorySort.TitleDesc,
-  CategorySort.CreatedAtAsc,
-  CategorySort.CreatedAtDesc,
-  CategorySort.UpdatedAtAsc,
-  CategorySort.UpdatedAtDesc,
+  'TITLE_ASC',
+  'TITLE_DESC',
+  'CREATED_AT_ASC',
+  'CREATED_AT_DESC',
+  'UPDATED_AT_ASC',
+  'UPDATED_AT_DESC',
 ];
 
 const getExpectedBySort = (titles: string[], sort: CategorySort) => {
   switch (sort) {
-    case CategorySort.TitleDesc:
-    case CategorySort.CreatedAtDesc:
-    case CategorySort.UpdatedAtDesc:
+    case 'TITLE_DESC':
+    case 'CREATED_AT_DESC':
+    case 'UPDATED_AT_DESC':
       return [...titles].reverse();
     default:
       return [...titles];
@@ -46,11 +48,11 @@ async function prepareChildrenCategories(api: ApiFixtures['api']) {
     input: {
       title: 'Parent Category',
       slug: parentSlug,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
       includeChildrenProducts: true,
-      listingOrderBy: ListingSort.CreatedAtAsc,
+      listingOrderBy: 'CREATED_AT_ASC',
       listingOrderByStatus: true,
-      listingType: ListingType.Manual,
+      listingType: 'MANUAL',
       excerpt: 'Parent excerpt',
       description: {
         json: JSON.stringify({ blocks: [{ type: 'paragraph', data: { text: 'Parent description' } }] }),
@@ -74,11 +76,11 @@ async function prepareChildrenCategories(api: ApiFixtures['api']) {
       input: {
         title,
         slug: `child-${i}-${randomUUID()}`,
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         includeChildrenProducts: true,
-        listingOrderBy: ListingSort.CreatedAtAsc,
+        listingOrderBy: 'CREATED_AT_ASC',
         listingOrderByStatus: true,
-        listingType: ListingType.Manual,
+        listingType: 'MANUAL',
         excerpt: `Excerpt child ${i}`,
         description: {
           json: JSON.stringify({ blocks: [{ type: 'paragraph', data: { text: `Description child ${i}` } }] }),

@@ -1,13 +1,6 @@
-import { EntityStatus, ProductGroupPriceType } from '@codegen/admin-gql';
-import type {
-  ApiCheckout,
-  ApiCheckoutCost,
-  ApiCheckoutLine,
-  ApiCheckoutTag } from '@codegen/client-gql';
-import {
-  CountryCode,
-  CurrencyCode,
-} from '@codegen/client-gql';
+
+import type { ApiCheckout, ApiCheckoutCost, ApiCheckoutLine, ApiCheckoutTag } from '@codegen/client-gql';
+
 import { test } from '@fixtures/api/api';
 import { expect } from '@playwright/test';
 
@@ -18,7 +11,7 @@ test.describe('checkout-api: create order from checkout', () => {
 
     const { data: createdResp } = await api.client.checkout.create({
       localeCode: 'en',
-      currencyCode: CurrencyCode.Usd,
+      currencyCode: 'USD',
       items: [],
     });
     const checkoutId = createdResp.checkoutMutation.checkoutCreate.id as string;
@@ -28,7 +21,7 @@ test.describe('checkout-api: create order from checkout', () => {
     await api.admin.product.create({
       input: {
         title: 'Order From Checkout P1',
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         slug: `${handle}-p1`,
         groups: [],
         requiresShipping: true,
@@ -51,7 +44,7 @@ test.describe('checkout-api: create order from checkout', () => {
     await api.admin.product.create({
       input: {
         title: 'Order From Checkout P2',
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         slug: `${handle}-p2`,
         groups: [],
         requiresShipping: true,
@@ -112,7 +105,7 @@ test.describe('checkout-api: create order from checkout', () => {
       await api.admin.product.create({
         input: {
           title: 'Delivery Context Product',
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           slug: handle,
           groups: [],
           requiresShipping: true,
@@ -142,7 +135,7 @@ test.describe('checkout-api: create order from checkout', () => {
     await test.step('create checkout and add lines', async () => {
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
       });
 
@@ -164,7 +157,7 @@ test.describe('checkout-api: create order from checkout', () => {
           {
             address1: '111 Delivery Lane',
             city: 'Test City',
-            countryCode: CountryCode.Us,
+            countryCode: 'US',
             postalCode: '10001',
             provinceCode: 'NY',
           },
@@ -258,7 +251,7 @@ test.describe('checkout-api: create order from checkout', () => {
       await api.admin.product.create({
         input: {
           title: 'Promo Order Product',
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           slug: handle,
           groups: [],
           requiresShipping: true,
@@ -288,7 +281,7 @@ test.describe('checkout-api: create order from checkout', () => {
     await test.step('create checkout and add promo-eligible lines', async () => {
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
       });
 
@@ -350,7 +343,7 @@ test.describe('checkout-api: create order from checkout', () => {
       await api.admin.product.create({
         input: {
           title: 'Order Tags Product 1',
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           slug: `${handle}-p1`,
           groups: [],
           requiresShipping: true,
@@ -374,7 +367,7 @@ test.describe('checkout-api: create order from checkout', () => {
       await api.admin.product.create({
         input: {
           title: 'Order Tags Product 2',
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           slug: `${handle}-p2`,
           groups: [],
           requiresShipping: true,
@@ -405,7 +398,7 @@ test.describe('checkout-api: create order from checkout', () => {
     await test.step('create checkout with tags', async () => {
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
         tags: [
           { slug: 'gift', unique: false },
@@ -482,7 +475,7 @@ test.describe('checkout-api: create order from checkout', () => {
       const child1Product = await api.admin.product.create({
         input: {
           title: 'Bundle Order Child 1',
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           slug: child1Handle,
           groups: [],
           requiresShipping: true,
@@ -508,7 +501,7 @@ test.describe('checkout-api: create order from checkout', () => {
       const child2Product = await api.admin.product.create({
         input: {
           title: 'Bundle Order Child 2',
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           slug: child2Handle,
           groups: [],
           requiresShipping: true,
@@ -535,7 +528,7 @@ test.describe('checkout-api: create order from checkout', () => {
       const parentProduct = await api.admin.product.create({
         input: {
           title: 'Bundle Order Parent',
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           slug: parentHandle,
           groups: [],
           requiresShipping: true,
@@ -571,13 +564,13 @@ test.describe('checkout-api: create order from checkout', () => {
                   {
                     variantId: child1VariantId,
                     sortIndex: 0,
-                    priceType: ProductGroupPriceType.BaseAdjustPercent,
+                    priceType: 'BASE_ADJUST_PERCENT',
                     pricePercentageValue: 25, // 25% discount
                   },
                   {
                     variantId: child2VariantId,
                     sortIndex: 1,
-                    priceType: ProductGroupPriceType.Free,
+                    priceType: 'FREE',
                   },
                 ],
               },
@@ -608,7 +601,7 @@ test.describe('checkout-api: create order from checkout', () => {
       api.session.setCustomerScope();
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
       });
       checkoutId = data.checkoutMutation.checkoutCreate.id;
@@ -683,7 +676,7 @@ test.describe('checkout-api: create order from checkout', () => {
       const childProduct = await api.admin.product.create({
         input: {
           title: 'Combo Order Child',
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           slug: childHandle,
           groups: [],
           requiresShipping: true,
@@ -710,7 +703,7 @@ test.describe('checkout-api: create order from checkout', () => {
       const parentProduct = await api.admin.product.create({
         input: {
           title: 'Combo Order Parent',
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           slug: parentHandle,
           groups: [],
           requiresShipping: true,
@@ -746,7 +739,7 @@ test.describe('checkout-api: create order from checkout', () => {
                   {
                     variantId: childVariantId,
                     sortIndex: 0,
-                    priceType: ProductGroupPriceType.Base,
+                    priceType: 'BASE',
                   },
                 ],
               },
@@ -760,7 +753,7 @@ test.describe('checkout-api: create order from checkout', () => {
       await api.admin.product.create({
         input: {
           title: 'Combo Order Standalone',
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           slug: standaloneHandle,
           groups: [],
           requiresShipping: true,
@@ -803,7 +796,7 @@ test.describe('checkout-api: create order from checkout', () => {
       api.session.setCustomerScope();
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
         tags: [
           { slug: 'bundle', unique: false },
@@ -901,7 +894,7 @@ test.describe('checkout-api: create order from checkout', () => {
       await api.admin.product.create({
         input: {
           title: 'Unique Tag Product 1',
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           slug: `${handle}-p1`,
           groups: [],
           requiresShipping: true,
@@ -925,7 +918,7 @@ test.describe('checkout-api: create order from checkout', () => {
       await api.admin.product.create({
         input: {
           title: 'Unique Tag Product 2',
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           slug: `${handle}-p2`,
           groups: [],
           requiresShipping: true,
@@ -956,7 +949,7 @@ test.describe('checkout-api: create order from checkout', () => {
     await test.step('create checkout with unique tag', async () => {
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
         tags: [{ slug: 'main', unique: true }],
       });
@@ -1020,7 +1013,7 @@ test.describe('checkout-api: create order from checkout', () => {
       await api.admin.product.create({
         input: {
           title: 'Minimal Address Product',
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           slug: handle,
           groups: [],
           requiresShipping: true,
@@ -1050,7 +1043,7 @@ test.describe('checkout-api: create order from checkout', () => {
     await test.step('create checkout and add lines', async () => {
       const { data } = await api.client.checkout.create({
         localeCode: 'uk',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
       });
 
@@ -1129,7 +1122,7 @@ test.describe('checkout-api: create order from checkout', () => {
       await api.admin.product.create({
         input: {
           title: 'Nova Poshta Warehouse Product',
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           slug: handle,
           groups: [],
           requiresShipping: true,
@@ -1159,7 +1152,7 @@ test.describe('checkout-api: create order from checkout', () => {
     await test.step('create checkout and add lines', async () => {
       const { data } = await api.client.checkout.create({
         localeCode: 'uk',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
       });
 
@@ -1244,7 +1237,7 @@ test.describe('checkout-api: create order from checkout', () => {
       await api.admin.product.create({
         input: {
           title: 'No Delivery Method Product',
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           slug: handle,
           groups: [],
           requiresShipping: true,
@@ -1274,7 +1267,7 @@ test.describe('checkout-api: create order from checkout', () => {
     await test.step('create checkout and add lines', async () => {
       const { data } = await api.client.checkout.create({
         localeCode: 'uk',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
       });
 
@@ -1325,7 +1318,7 @@ test.describe('checkout-api: create order from checkout', () => {
       await api.admin.product.create({
         input: {
           title: 'Frontend Like Product',
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           slug: handle,
           groups: [],
           requiresShipping: true,
@@ -1357,7 +1350,7 @@ test.describe('checkout-api: create order from checkout', () => {
       // Create checkout with locale 'uk' like frontend
       const { data } = await api.client.checkout.create({
         localeCode: 'uk',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
       });
 
@@ -1445,7 +1438,7 @@ test.describe('checkout-api: create order from checkout', () => {
       await api.admin.product.create({
         input: {
           title: 'Customer No Address Product',
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           slug: handle,
           groups: [],
           requiresShipping: true,
@@ -1475,7 +1468,7 @@ test.describe('checkout-api: create order from checkout', () => {
     await test.step('create checkout with customer identity', async () => {
       const { data } = await api.client.checkout.create({
         localeCode: 'uk',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
       });
 

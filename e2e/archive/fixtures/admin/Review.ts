@@ -1,9 +1,4 @@
-import type {
-  ApiReview,
-  ApiReviewMutationCreateArgs,
-  ApiReviewMutationEditArgs,
-  ApiReviewQueryFindOneArgs,
-} from '@codegen/admin-gql';
+import type { ApiReview, ApiReviewMutationCreateArgs, ApiReviewMutationEditArgs, ApiReviewQueryFindOneArgs } from '@codegen/admin-gql';
 import type { TenantApiFixture } from '@fixtures/admin/api';
 
 export class Review {
@@ -11,7 +6,6 @@ export class Review {
 
   async create(input: ApiReviewMutationCreateArgs['input']): Promise<string> {
     const { data } = await this.api.mutation('admin/ReviewCreate', { variables: { input } });
-
 
     return data.reviewMutation.create as string;
   }

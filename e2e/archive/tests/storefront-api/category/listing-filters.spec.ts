@@ -3,20 +3,14 @@
 
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import {
-  EntityStatus,
-  ListingType,
-  ListingSort as AdminListingSort,
-  WeightUnit,
-  DimensionUnit,
-  FeatureStyleType,
-} from '@codegen/admin-gql';
+
 import type { ApiFilter } from '@codegen/client-gql';
 import type { ApiFixtures } from '@fixtures/api/api';
 import { randomUUID } from 'node:crypto';
 
-// ---------------------------------------------------------------------------
+type EntityStatus = 'DRAFT' | 'PUBLISHED';
 
+// ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
 
@@ -52,11 +46,11 @@ async function setupCategoryWithProducts(
     input: {
       title: categoryTitle,
       slug: categorySlug,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
       includeChildrenProducts: false,
-      listingOrderBy: AdminListingSort.TitleAsc,
+      listingOrderBy: 'TITLE_ASC',
       listingOrderByStatus: false,
-      listingType: ListingType.Manual,
+      listingType: 'MANUAL',
       excerpt: 'Facets test category',
       description: {
         json: '{}',
@@ -93,8 +87,6 @@ async function setupCategoryWithProducts(
 
   // ---------------------------------------------------------------------
 
-
-
   // ---------------------------------------------------------------------
 
   // ---------------------------------------------------------------------
@@ -103,7 +95,6 @@ async function setupCategoryWithProducts(
   for (const seed of products) {
     // Resolve tag IDs
     const tagIds = (seed.tags || []).map((t) => tagMap.get(t)!).filter(Boolean);
-
 
     const attributeLinks =
       seed.features?.map((feat, idx) => ({
@@ -116,7 +107,7 @@ async function setupCategoryWithProducts(
         group: {
           title: feat.group,
           slug: feat.group.toLowerCase().replace(/\s+/g, '-'),
-          featureStyleType: FeatureStyleType.Radio,
+          featureStyleType: 'RADIO',
         },
       })) || [];
 
@@ -131,7 +122,7 @@ async function setupCategoryWithProducts(
         group: {
           title: opt.group,
           slug: opt.group.toLowerCase().replace(/\s+/g, '-'),
-          featureStyleType: FeatureStyleType.Radio,
+          featureStyleType: 'RADIO',
         },
       })) || [];
 
@@ -141,7 +132,7 @@ async function setupCategoryWithProducts(
         excerpt: '',
         requiresShipping: false,
         slug: randomUUID(),
-        status: seed.status ?? EntityStatus.Published,
+        status: seed.status ?? 'PUBLISHED',
         tags: tagIds,
         groups: [],
         title: seed.title,
@@ -162,8 +153,8 @@ async function setupCategoryWithProducts(
               title: seed.title,
               variantSortIndex: 0,
               weight: 0,
-              weightUnit: WeightUnit.Gr,
-              dimensionUnit: DimensionUnit.Cm,
+              weightUnit: 'g',
+              dimensionUnit: 'cm',
               height: 0,
               length: 0,
               width: 0,
@@ -214,11 +205,11 @@ test.describe('Category Listing Filters', () => {
       input: {
         title: 'Empty Category',
         slug: categorySlug,
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         includeChildrenProducts: false,
-        listingOrderBy: AdminListingSort.TitleAsc,
+        listingOrderBy: 'TITLE_ASC',
         listingOrderByStatus: false,
-        listingType: ListingType.Manual,
+        listingType: 'MANUAL',
         excerpt: 'Empty',
         description: {
           json: '{}',
@@ -245,15 +236,6 @@ test.describe('Category Listing Filters', () => {
   // ---------------------------------------------------------------------
   test('returns all facet types for category with diverse products', async ({ api }) => {
     // -----------------------------------------------------------------
-
-
-
-
-
-
-
-
-
 
     // -----------------------------------------------------------------
     const products: ProductSeed[] = [
@@ -333,7 +315,7 @@ test.describe('Category Listing Filters', () => {
         tags: ['exclusive'],
         features: [{ group: 'Material', value: 'Silk' }],
         options: [{ group: 'Size', value: 'S' }],
-        status: EntityStatus.Draft,
+        status: 'DRAFT',
       },
     ];
 
@@ -349,9 +331,6 @@ test.describe('Category Listing Filters', () => {
     expect(priceFilter).toBeDefined();
     expect(Number(priceFilter.minPrice.amount)).toBe(10);
     expect(Number(priceFilter.maxPrice.amount)).toBe(50);
-
-
-
 
     // -----------------------------------------------------------------
 
@@ -387,7 +366,6 @@ test.describe('Category Listing Filters', () => {
     expect(tagValues).toHaveLength(4);
     const getTagCount = (title: string) => tagValues.find((v: any) => v.title === title)?.count;
     expect(getTagCount('new-arrival')).toBe(3);
-
 
     const tagTitles = tagFilter.values.map((v: any) => v.title);
     expect(tagTitles).not.toContain('exclusive');

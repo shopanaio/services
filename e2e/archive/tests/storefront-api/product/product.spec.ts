@@ -1,6 +1,6 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import { EntityStatus } from '@codegen/admin-gql';
+
 import { randomUUID } from 'crypto';
 
 test.describe('product', () => {
@@ -14,7 +14,7 @@ test.describe('product', () => {
     const adminProduct = await api.admin.product.createWithOptions({
       title: productTitle,
       slug: productContainerSlug,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
       price: productPrice,
       requiresShipping: true,
       options: [

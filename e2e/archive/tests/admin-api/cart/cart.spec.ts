@@ -1,6 +1,5 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import { CurrencyCode } from '@codegen/client-gql';
 
 test.describe('Admin Cart API', () => {
   test('find many carts returns all created carts', async ({ api }) => {
@@ -12,7 +11,7 @@ test.describe('Admin Cart API', () => {
       const {
         data: { createCart },
       } = await api.client.cart.create({
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
       });
       if (createCart?.cart?.iid) createdCartIids.push(createCart.cart.iid);
@@ -38,7 +37,7 @@ test.describe('Admin Cart API', () => {
     const {
       data: { createCart },
     } = await api.client.cart.create({
-      currencyCode: CurrencyCode.Usd,
+      currencyCode: 'USD',
       items: [],
     });
 
@@ -59,7 +58,7 @@ test.describe('Admin Cart API', () => {
     const {
       data: { createCart },
     } = await api.client.cart.create({
-      currencyCode: CurrencyCode.Usd,
+      currencyCode: 'USD',
       items: [],
     });
 

@@ -30,6 +30,7 @@ const config: CodegenConfig = {
       config: {
         typesPrefix: 'Api',
         enumPrefix: false,
+        enumsAsTypes: true,
         scalars,
       },
     },
@@ -39,6 +40,7 @@ const config: CodegenConfig = {
       config: {
         typesPrefix: 'Api',
         enumPrefix: false,
+        enumsAsTypes: true,
         scalars,
       },
     },

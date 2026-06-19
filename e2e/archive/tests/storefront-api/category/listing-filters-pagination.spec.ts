@@ -1,28 +1,22 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import {
-  EntityStatus,
-  ListingType,
-  ListingSort as AdminListingSort,
-  WeightUnit,
-  DimensionUnit,
-  FeatureStyleType,
-} from '@codegen/admin-gql';
-import { ListingSort } from '@codegen/client-gql';
+
 import type { ApiFixtures } from '@fixtures/api/api';
 import { createCursorPaginationTests } from '@utils/cursorPaginationBuilder';
 import { randomUUID } from 'node:crypto';
+
+type ListingSort = 'CUSTOM' | 'CREATED_AT_ASC' | 'CREATED_AT_DESC' | 'PRICE_ASC' | 'PRICE_DESC' | 'TITLE_ASC' | 'TITLE_DESC' | 'MOST_RELEVANT';
 
 // ---------------------------------------------------------------------------
 // Test data preparation
 // ---------------------------------------------------------------------------
 
 export const listingSorts: ListingSort[] = [
-  ListingSort.CreatedAtAsc,
-  ListingSort.CreatedAtDesc,
-  ListingSort.PriceAsc,
-  ListingSort.PriceDesc,
-  ListingSort.TitleAsc,
-  ListingSort.TitleDesc,
+  'CREATED_AT_ASC',
+  'CREATED_AT_DESC',
+  'PRICE_ASC',
+  'PRICE_DESC',
+  'TITLE_ASC',
+  'TITLE_DESC',
 ];
 
 async function prepareComplexFilteredListing(api: ApiFixtures['api']) {
@@ -34,11 +28,11 @@ async function prepareComplexFilteredListing(api: ApiFixtures['api']) {
     input: {
       title: 'Complex Filter Pagination Category',
       slug: categorySlug,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
       includeChildrenProducts: false,
-      listingOrderBy: AdminListingSort.TitleAsc,
+      listingOrderBy: 'TITLE_ASC',
       listingOrderByStatus: true,
-      listingType: ListingType.Manual,
+      listingType: 'MANUAL',
       listingFilters: [],
     },
   });
@@ -47,8 +41,6 @@ async function prepareComplexFilteredListing(api: ApiFixtures['api']) {
   const tagSale = await api.admin.tag.create({
     input: { title: 'Sale', slug: `sale-${randomUUID()}`, color: '#000000' },
   });
-
-  
 
   // 3. Products
   const matchingProductsCount = 7; // For pagination - increased to get 5 products in price range
@@ -78,7 +70,7 @@ async function prepareComplexFilteredListing(api: ApiFixtures['api']) {
             group: {
               title: 'Material',
               slug: 'material',
-              featureStyleType: FeatureStyleType.Radio,
+              featureStyleType: 'RADIO',
             },
           },
           {
@@ -91,7 +83,7 @@ async function prepareComplexFilteredListing(api: ApiFixtures['api']) {
             group: {
               title: 'Size',
               slug: 'size',
-              featureStyleType: FeatureStyleType.Radio,
+              featureStyleType: 'RADIO',
             },
           },
         ]
@@ -101,7 +93,7 @@ async function prepareComplexFilteredListing(api: ApiFixtures['api']) {
       input: {
         title,
         slug: `product-${i}-${randomUUID()}`,
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         tags,
         requiresShipping: false,
         groups: [],
@@ -116,11 +108,11 @@ async function prepareComplexFilteredListing(api: ApiFixtures['api']) {
               features,
               sku: `SKU-${i}`,
               weight: 100,
-              weightUnit: WeightUnit.Gr,
+              weightUnit: 'g',
               categories: [],
               gallery: [],
               variantSortIndex: 0,
-              dimensionUnit: DimensionUnit.Cm,
+              dimensionUnit: 'cm',
               height: 0,
               length: 0,
               width: 0,
@@ -154,20 +146,13 @@ async function prepareComplexFilteredListing(api: ApiFixtures['api']) {
   await api.session.setupApiKey();
 
   // ---------------------------------------------------------------------
-  
+
   // ---------------------------------------------------------------------
-  
-  
-  
+
   //
-  
-  
-  
-  
-  
-  
+
   //
-  
+
   // - Product C (price 12.00)
   // - Product D (price 13.00)
   // - Product E (price 14.00)
@@ -195,22 +180,22 @@ async function prepareComplexFilteredListing(api: ApiFixtures['api']) {
 // ---------------------------------------------------------------------------
 
 const sortToFieldOrder = {
-  [ListingSort.CreatedAtAsc]: { field: 'created_at', order: 'ASC' },
-  [ListingSort.CreatedAtDesc]: { field: 'created_at', order: 'DESC' },
-  [ListingSort.PriceAsc]: { field: 'price', order: 'ASC' },
-  [ListingSort.PriceDesc]: { field: 'price', order: 'DESC' },
-  [ListingSort.TitleAsc]: { field: 'title', order: 'ASC' },
-  [ListingSort.TitleDesc]: { field: 'title', order: 'DESC' },
-  [ListingSort.MostRelevant]: { field: 'updated_at', order: 'DESC' },
+  ['CREATED_AT_ASC']: { field: 'created_at', order: 'ASC' },
+  ['CREATED_AT_DESC']: { field: 'created_at', order: 'DESC' },
+  ['PRICE_ASC']: { field: 'price', order: 'ASC' },
+  ['PRICE_DESC']: { field: 'price', order: 'DESC' },
+  ['TITLE_ASC']: { field: 'title', order: 'ASC' },
+  ['TITLE_DESC']: { field: 'title', order: 'DESC' },
+  ['MOST_RELEVANT']: { field: 'updated_at', order: 'DESC' },
 } as Record<ListingSort, { field: string; order: 'ASC' | 'DESC' }>;
 
 const getExpectedBySort = (titles: string[], sort: ListingSort) => {
   // Base `expectedTitles` is sorted by title ASC.
   // The test data is created with ascending price and creation time.
   switch (sort) {
-    case ListingSort.CreatedAtDesc:
-    case ListingSort.PriceDesc:
-    case ListingSort.TitleDesc:
+    case 'CREATED_AT_DESC':
+    case 'PRICE_DESC':
+    case 'TITLE_DESC':
       return [...titles].reverse();
     default:
       return [...titles];

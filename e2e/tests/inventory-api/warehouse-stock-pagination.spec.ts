@@ -1,10 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { ApiFixtures } from '@fixtures/api/api';
-import type {
-  ApiWarehouseStock,
-  ApiInventoryMutation,
-  ApiInventoryQuery,
-} from '@codegen/admin-gql';
+import type { ApiWarehouseStock, ApiInventoryMutation, ApiInventoryQuery } from '@codegen/admin-gql';
 import {
   createConnectionPaginationTests,
   type Connection,

@@ -1,17 +1,9 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import type {
-  ApiCategory,
-  ApiProduct } from '@codegen/admin-gql';
-import {
-  EntityStatus,
-  ListingSort,
-  ListingType,
-} from '@codegen/admin-gql';
+import type { ApiCategory, ApiProduct } from '@codegen/admin-gql';
+
 import { randomUUID } from 'node:crypto';
 import * as Yup from 'yup';
-
-
 
 test.describe('Products API', () => {
   let category = {} as ApiCategory;
@@ -21,11 +13,11 @@ test.describe('Products API', () => {
     excerpt: '',
     includeChildrenProducts: false,
     listingFilters: [],
-    listingOrderBy: ListingSort.PriceAsc,
+    listingOrderBy: 'PRICE_ASC',
     listingOrderByStatus: true,
-    listingType: ListingType.Manual,
+    listingType: 'MANUAL',
     slug: randomUUID(),
-    status: EntityStatus.Draft,
+    status: 'DRAFT',
     title: 'Category',
     gallery: [],
   };
@@ -41,7 +33,6 @@ test.describe('Products API', () => {
           title: 'Sunglasses',
         },
       });
-
 
       product = await api.admin.product.update({
         input: {
@@ -98,7 +89,7 @@ test.describe('Products API', () => {
       });
 
       // FIXME can't make .equals([updateProductInput.description])
-      // returns {"data":{"type":"doc","content":[{"type":"paragraph","attrs":{"nodeIndent":null,"nodeTextAlignment":null,"nodeLineHeight":null,"style":""},"content":[{"type":"text","text":"Description"}]}]}}
+      // returns {'data':{'type':'doc',"content":[{'type':"paragraph","attrs":{"nodeIndent":null,"nodeTextAlignment":null,"nodeLineHeight":null,"style":""},"content":[{'type':'text','text':"Description"}]}]}}
 
       expect(updated).toMatchSchema(
         Yup.object({

@@ -1,15 +1,7 @@
 import { test } from '@fixtures/base.extend';
 import { randomUUID } from 'node:crypto';
 import { expect } from '@playwright/test';
-import type {
-  ApiCategory } from '@codegen/admin-gql';
-import {
-  EntityStatus,
-  ListingSort,
-  ListingType,
-} from '@codegen/admin-gql';
-
-
+import type { ApiCategory } from '@codegen/admin-gql';
 
 interface ListingResponse {
   data: {
@@ -31,7 +23,7 @@ test.describe.skip('Smart-collection by price', () => {
     groups: [],
     requiresShipping: false,
     slug: randomUUID(),
-    status: EntityStatus.Draft,
+    status: 'DRAFT',
     tags: [],
     title,
     variants: {
@@ -65,7 +57,7 @@ test.describe.skip('Smart-collection by price', () => {
     return admin.query('admin/ListingV1', {
       variables: {
         input: {
-          listingType: ListingType.Auto,
+          listingType: 'AUTO',
           category: {
             slug,
           },
@@ -80,7 +72,6 @@ test.describe.skip('Smart-collection by price', () => {
 
     await api.session.setupUserAndProject();
 
-
     const prices = [1000, 2000, 5000];
     for (const p of prices) {
       const { data } = await api.admin.mutation('admin/ProductCreate', {
@@ -89,25 +80,23 @@ test.describe.skip('Smart-collection by price', () => {
       productsIds.push(data.productMutation.create.id);
     }
 
-
     categorySmart = await api.admin.category.create({
       input: {
         title: 'Smart by price',
         slug: randomUUID(),
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         excerpt: '',
         includeChildrenProducts: true,
         listingFilters: [],
-        listingOrderBy: ListingSort.CreatedAtAsc,
+        listingOrderBy: 'CREATED_AT_ASC',
         listingOrderByStatus: true,
-        listingType: ListingType.Auto,
+        listingType: 'AUTO',
         gallery: [],
       },
     });
 
     let resp = (await getListing(api, categorySmart.slug)) as unknown as ListingResponse;
     expect(resp.data.listingQuery.listingV1.data.length).toBe(3);
-
 
     await api.admin.mutation('admin/CategoryUpdate', {
       variables: {

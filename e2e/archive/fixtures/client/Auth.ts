@@ -1,9 +1,4 @@
-import type {
-  ApiPasswordSignInInput,
-  ApiPasswordSignUpInput,
-  ApiUpdateUserProfileInput,
-  ApiVerifyEmailInput,
-} from '@codegen/client-gql';
+import type { ApiPasswordSignInInput, ApiPasswordSignUpInput, ApiUpdateUserProfileInput, ApiVerifyEmailInput } from '@codegen/client-gql';
 import type { ClientApiFixture } from '@fixtures/client/api';
 
 export class Auth {

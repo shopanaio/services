@@ -1,5 +1,5 @@
 import type { ApiCheckoutPayment } from '@codegen/client-gql';
-import { CurrencyCode } from '@codegen/client-gql';
+
 import { test } from '@fixtures/api/api';
 import { expect } from '@playwright/test';
 
@@ -19,7 +19,7 @@ test.describe('checkout-api: payment read operations', () => {
       api.session.setCustomerScope();
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
       });
 
@@ -70,7 +70,7 @@ test.describe('checkout-api: payment read operations', () => {
       api.session.setCustomerScope();
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
       });
 
@@ -127,7 +127,7 @@ test.describe('checkout-api: payment read operations', () => {
       api.session.setCustomerScope();
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
       });
 
@@ -167,8 +167,8 @@ test.describe('checkout-api: payment read operations', () => {
     });
 
     const currencies = [
-      { code: CurrencyCode.Usd, expectedCode: 'USD' },
-      { code: CurrencyCode.Eur, expectedCode: 'EUR' },
+      { code: 'USD', expectedCode: 'USD' },
+      { code: 'EUR', expectedCode: 'EUR' },
     ];
 
     for (const currency of currencies) {
@@ -202,7 +202,7 @@ test.describe('checkout-api: payment read operations', () => {
       api.session.setCustomerScope();
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
       });
 

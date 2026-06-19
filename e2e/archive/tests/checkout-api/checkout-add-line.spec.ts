@@ -1,6 +1,6 @@
-import { EntityStatus } from '@codegen/admin-gql';
+
 import type { ApiCheckoutLine, ApiProductVariant } from '@codegen/client-gql';
-import { CurrencyCode } from '@codegen/client-gql';
+
 import { test } from '@fixtures/api/api';
 import { expect } from '@playwright/test';
 import * as yup from 'yup';
@@ -20,7 +20,7 @@ test.describe('checkout-api: lines add', () => {
     await test.step('create empty checkout', async () => {
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
       });
 
@@ -34,7 +34,7 @@ test.describe('checkout-api: lines add', () => {
       const product = await api.admin.product.create({
         input: {
           title: 'Add Line Product',
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           slug: handle,
           groups: [],
           requiresShipping: true,

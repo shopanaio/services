@@ -1,17 +1,9 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import type {
-  ApiCategory,
-  ApiProduct } from '@codegen/admin-gql';
-import {
-  EntityStatus,
-  ListingSort,
-  ListingType,
-} from '@codegen/admin-gql';
+import type { ApiCategory, ApiProduct } from '@codegen/admin-gql';
+
 import { randomUUID } from 'node:crypto';
 import * as Yup from 'yup';
-
-
 
 test.describe('Product Category', () => {
   let category = {} as ApiCategory;
@@ -20,13 +12,13 @@ test.describe('Product Category', () => {
   const categoryInput = {
     title: 'Primary Category',
     slug: randomUUID(),
-    status: EntityStatus.Published,
+    status: 'PUBLISHED',
     excerpt: '',
     includeChildrenProducts: false,
     listingFilters: [],
-    listingOrderBy: ListingSort.CreatedAtAsc,
+    listingOrderBy: 'CREATED_AT_ASC',
     listingOrderByStatus: true,
-    listingType: ListingType.Manual,
+    listingType: 'MANUAL',
     gallery: [],
   };
 
@@ -51,7 +43,6 @@ test.describe('Product Category', () => {
           },
         },
       });
-
 
       expect(product.variants[0]).toMatchSchema(
         Yup.object({

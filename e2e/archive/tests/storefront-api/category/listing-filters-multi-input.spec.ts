@@ -1,14 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-non-null-assertion */
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import {
-  EntityStatus,
-  ListingType,
-  ListingSort as AdminListingSort,
-  WeightUnit,
-  DimensionUnit,
-  FeatureStyleType,
-} from '@codegen/admin-gql';
+
 import type { ApiFixtures } from '@fixtures/api/api';
 import { randomUUID } from 'node:crypto';
 import type { ApiListFilter } from '@codegen/client-gql';
@@ -40,11 +33,11 @@ async function setupComplexProducts(api: ApiFixtures['api']): Promise<{
     input: {
       title: 'Multi Filter Category',
       slug: categorySlug,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
       includeChildrenProducts: false,
-      listingOrderBy: AdminListingSort.TitleAsc,
+      listingOrderBy: 'TITLE_ASC',
       listingOrderByStatus: true,
-      listingType: ListingType.Manual,
+      listingType: 'MANUAL',
       excerpt: '',
       description: { json: '{}', text: '', html: '' },
       gallery: [],
@@ -59,8 +52,6 @@ async function setupComplexProducts(api: ApiFixtures['api']): Promise<{
   const tagSale = await api.admin.tag.create({
     input: { title: 'Sale', slug: `sale-${randomUUID()}`, color: '#000000' },
   });
-
-
 
   // Define product seeds
   const seeds: ComplexSeed[] = [
@@ -110,7 +101,7 @@ async function setupComplexProducts(api: ApiFixtures['api']): Promise<{
         excerpt: '',
         requiresShipping: false,
         slug: `product-${randomUUID()}`,
-        status: seed.published ? EntityStatus.Published : EntityStatus.Draft,
+        status: seed.published ? 'PUBLISHED' : 'DRAFT',
         tags: [tagId],
         groups: [],
         title: seed.title,
@@ -131,7 +122,7 @@ async function setupComplexProducts(api: ApiFixtures['api']): Promise<{
                   group: {
                     title: 'Material',
                     slug: 'material',
-                    featureStyleType: FeatureStyleType.Radio,
+                    featureStyleType: 'RADIO',
                   },
                 },
                 {
@@ -144,7 +135,7 @@ async function setupComplexProducts(api: ApiFixtures['api']): Promise<{
                   group: {
                     title: 'Size',
                     slug: 'size',
-                    featureStyleType: FeatureStyleType.Radio,
+                    featureStyleType: 'RADIO',
                   },
                 },
               ],
@@ -158,8 +149,8 @@ async function setupComplexProducts(api: ApiFixtures['api']): Promise<{
               title: seed.title,
               variantSortIndex: 0,
               weight: 0,
-              weightUnit: WeightUnit.Gr,
-              dimensionUnit: DimensionUnit.Cm,
+              weightUnit: 'g',
+              dimensionUnit: 'cm',
               height: 0,
               length: 0,
               width: 0,
@@ -243,7 +234,6 @@ test.describe('Category Listing + Facets with multiple filter inputs', () => {
 
   test('returns products matching availability AND feature', async ({ api }) => {
     const { categorySlug, seeds } = dataset;
-
 
     const leatherHandle = 'material.leather';
     const filtersInput = [

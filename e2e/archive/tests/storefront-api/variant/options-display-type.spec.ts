@@ -1,15 +1,10 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import {
-  FeatureStyleType,
-  FeatureSwatchType,
-  EntityStatus,
-  WeightUnit,
-  DimensionUnit,
-} from '@codegen/admin-gql';
+
 import { randomUUID } from 'crypto';
 import type { ApiFixtures } from '@fixtures/api/api';
 
+type FeatureStyleType = 'RADIO' | 'DROPDOWN' | 'APPAREL_SIZE' | 'VARIANT_COVER' | 'SWATCH';
 
 const prepareProductWithDisplayTypes = async (api: ApiFixtures['api']) => {
 
@@ -23,18 +18,17 @@ const prepareProductWithDisplayTypes = async (api: ApiFixtures['api']) => {
   };
 
   const specs: GroupSpec[] = [
-    { title: 'Radio', type: FeatureStyleType.Radio, values: ['One', 'Two'] },
-    { title: 'Dropdown', type: FeatureStyleType.Dropdown, values: ['Red', 'Blue'] },
-    { title: 'ApparelSize', type: FeatureStyleType.ApparelSize, values: ['S', 'M'] },
-    { title: 'VariantCover', type: FeatureStyleType.VariantCover, values: ['Front', 'Back'] },
+    { title: 'Radio', type: 'RADIO', values: ['One', 'Two'] },
+    { title: 'Dropdown', type: 'DROPDOWN', values: ['Red', 'Blue'] },
+    { title: 'ApparelSize', type: 'APPAREL_SIZE', values: ['S', 'M'] },
+    { title: 'VariantCover', type: 'VARIANT_COVER', values: ['Front', 'Back'] },
     {
       title: 'Color',
-      type: FeatureStyleType.Swatch,
+      type: 'SWATCH',
       values: ['Black', 'White'],
       colors: ['#000000', '#FFFFFF'],
     },
   ];
-
 
   type FeatureEntity = {
     slug: string;
@@ -53,7 +47,7 @@ const prepareProductWithDisplayTypes = async (api: ApiFixtures['api']) => {
       type: spec.type,
       groupSlug,
       groupTitle: spec.title,
-      color: spec.type === FeatureStyleType.Swatch ? spec.colors?.[idx] : undefined,
+      color: spec.type === 'SWATCH' ? spec.colors?.[idx] : undefined,
     }));
   });
 
@@ -82,7 +76,7 @@ const prepareProductWithDisplayTypes = async (api: ApiFixtures['api']) => {
       ...(feat.color
         ? {
             swatch: {
-              type: FeatureSwatchType.Color,
+              type: 'COLOR',
               color1: feat.color,
             },
           }
@@ -98,13 +92,12 @@ const prepareProductWithDisplayTypes = async (api: ApiFixtures['api']) => {
     title: combo.map((f) => f.title).join(' '),
     variantSortIndex: comboIdx,
     weight: 0,
-    weightUnit: WeightUnit.Gr,
+    weightUnit: 'g',
     width: 0,
     height: 0,
     length: 0,
-    dimensionUnit: DimensionUnit.Cm,
+    dimensionUnit: 'cm',
   }));
-
 
   const product = await api.admin.product.create({
     input: {
@@ -113,7 +106,7 @@ const prepareProductWithDisplayTypes = async (api: ApiFixtures['api']) => {
       groups: [],
       requiresShipping: false,
       slug: containerSlug,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
       tags: [],
       title: 'Product Display Types',
       variants: {
@@ -122,9 +115,7 @@ const prepareProductWithDisplayTypes = async (api: ApiFixtures['api']) => {
     },
   });
 
-
   await api.session.setupApiKey();
-
 
   const featureGroups = specs.map((spec) => ({
     slug: spec.title.toLowerCase().replace(/\s+/g, '-'),
@@ -132,7 +123,7 @@ const prepareProductWithDisplayTypes = async (api: ApiFixtures['api']) => {
     features: spec.values.map((value, idx) => ({
       slug: `${spec.title.toLowerCase().replace(/\s+/g, '-')}.${value.toLowerCase().replace(/\s+/g, '-')}`,
       title: value,
-      color: spec.type === FeatureStyleType.Swatch ? spec.colors?.[idx] : undefined,
+      color: spec.type === 'SWATCH' ? spec.colors?.[idx] : undefined,
     })),
   }));
 
@@ -153,7 +144,6 @@ test.describe('product options displayType & swatch', () => {
     const options = productData.options;
     expect(options.length).toBe(featureGroups.length);
 
-
     featureGroups.forEach((group) => {
       const opt = options.find((o: { handle: string }) => o.handle === group.slug);
       expect(opt).toBeDefined();
@@ -161,8 +151,7 @@ test.describe('product options displayType & swatch', () => {
       expect(opt.displayType).toBe(group.type);
     });
 
-
-    const swatchGroup = featureGroups.find((g) => g.type === FeatureStyleType.Swatch);
+    const swatchGroup = featureGroups.find((g) => g.type === 'SWATCH');
     if (swatchGroup) {
       const opt = options.find((o: { handle: string }) => o.handle === swatchGroup.slug);
       expect(opt).toBeDefined();

@@ -1,13 +1,11 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import { EntityStatus } from '@codegen/admin-gql';
+
 import { randomUUID } from 'crypto';
 import type { ApiFixtures } from '@fixtures/api/api';
 
 const prepareProduct = async (api: ApiFixtures['api']) => {
   await api.session.setupUserAndProject();
-
-
 
   const options = [
     {
@@ -24,14 +22,13 @@ const prepareProduct = async (api: ApiFixtures['api']) => {
     },
   ];
 
-
   const productHandle = `test-product-options-${randomUUID()}`;
 
   return {
     product: await api.admin.product.createWithOptions({
       title: 'Product With Options',
       slug: productHandle,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
       options,
     }),
     options,
@@ -42,8 +39,6 @@ test.describe('product variants', () => {
   test('should return product variants in order defined by sort index', async ({ api }) => {
     const { product: adminProduct, options } = await prepareProduct(api);
     await api.session.setupApiKey();
-
-
 
     const variantSlug = adminProduct.variants[0].slug;
 
@@ -81,7 +76,6 @@ test.describe('product variants', () => {
     const totalVariants = options.reduce<number>((acc, g) => acc * g.values.length, 1);
     expect(variants.length).toBe(totalVariants);
 
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const productOptions = (product as any).options as any[];
     expect(productOptions.length).toBe(options.length);
@@ -93,11 +87,9 @@ test.describe('product variants', () => {
       expect(apiValues.sort()).toEqual([...group.values].sort());
     });
 
-
     const allValueSet = new Set(
       options.flatMap((g) => g.values.map((v) => `${g.title.toLowerCase()}.${v.toLowerCase()}`)),
     );
-
 
     for (const variant of variants) {
       const parts = variant.title.split(' ');

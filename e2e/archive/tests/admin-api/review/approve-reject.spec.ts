@@ -1,6 +1,5 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import { ReviewStatus } from '@codegen/admin-gql';
 
 // e2e test: approve and reject review
 
@@ -22,7 +21,7 @@ test.describe('ReviewApproveReject', () => {
     });
 
     const pendingApprove = await api.admin.review.findOne(approveId);
-    expect(pendingApprove?.status).toBe(ReviewStatus.Pending);
+    expect(pendingApprove?.status).toBe('PENDING');
 
     await api.admin.review.update({
       input: {
@@ -35,7 +34,7 @@ test.describe('ReviewApproveReject', () => {
     const okApprove = await api.admin.review.approve(approveId);
     expect(okApprove).toBe(true);
     const approved = await api.admin.review.findOne(approveId);
-    expect(approved?.status).toBe(ReviewStatus.Approved);
+    expect(approved?.status).toBe('APPROVED');
 
     const { id: customerRejectId } = await api.admin.customer.create();
 
@@ -47,7 +46,7 @@ test.describe('ReviewApproveReject', () => {
     });
 
     const pendingReject = await api.admin.review.findOne(rejectId);
-    expect(pendingReject?.status).toBe(ReviewStatus.Pending);
+    expect(pendingReject?.status).toBe('PENDING');
 
     await api.admin.review.update({
       input: {
@@ -60,6 +59,6 @@ test.describe('ReviewApproveReject', () => {
     const okReject = await api.admin.review.reject(rejectId, 'bad');
     expect(okReject).toBe(true);
     const rejected = await api.admin.review.findOne(rejectId);
-    expect(rejected?.status).toBe(ReviewStatus.Rejected);
+    expect(rejected?.status).toBe('REJECTED');
   });
 });

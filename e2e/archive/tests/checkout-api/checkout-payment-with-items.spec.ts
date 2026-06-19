@@ -1,6 +1,5 @@
 import type { ApiCheckoutPayment } from '@codegen/client-gql';
-import { CurrencyCode } from '@codegen/client-gql';
-import { EntityStatus } from '@codegen/admin-gql';
+
 import { test } from '@fixtures/api/api';
 import { expect } from '@playwright/test';
 
@@ -22,7 +21,7 @@ test.describe('checkout-api: payment with items', () => {
       await api.admin.product.create({
         input: {
           title: 'Payment Test Product',
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           slug: handle,
           groups: [],
           requiresShipping: false,
@@ -55,7 +54,7 @@ test.describe('checkout-api: payment with items', () => {
     await test.step('create checkout with items', async () => {
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [
           {
             purchasableId,
@@ -114,7 +113,7 @@ test.describe('checkout-api: payment with items', () => {
       await api.admin.product.create({
         input: {
           title: 'Payment Add Test Product',
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           slug: handle,
           groups: [],
           requiresShipping: false,
@@ -145,7 +144,7 @@ test.describe('checkout-api: payment with items', () => {
     await test.step('create empty checkout', async () => {
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
       });
 
@@ -229,7 +228,7 @@ test.describe('checkout-api: payment with items', () => {
       await api.admin.product.create({
         input: {
           title: 'Payment Quantity Test Product',
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           slug: handle,
           groups: [],
           requiresShipping: false,
@@ -261,7 +260,7 @@ test.describe('checkout-api: payment with items', () => {
     await test.step('create checkout with item', async () => {
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [
           {
             purchasableId,

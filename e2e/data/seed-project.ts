@@ -1,14 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type {
-  ApiProduct } from '@codegen/admin-gql';
-import {
-  DimensionUnit,
-  EntityStatus,
-  ListingSort,
-  ListingType,
-  ReviewStatus,
-  WeightUnit,
-} from '@codegen/admin-gql';
+import type { ApiProduct } from '@codegen/admin-gql';
+
 import type { TenantApiFixture } from '@fixtures/admin/api';
 import type { CategoryData, TagData, ProductDataWithFeatures } from './seed-data';
 import { slugify } from '@utils/transliterate';
@@ -98,12 +90,12 @@ export async function seedCategories(api: TenantApiFixture, categories: Category
             json: JSON.stringify({ content: categoryData.description }),
             text: categoryData.description,
           },
-          status: EntityStatus.Published,
-          listingType: ListingType.Manual,
+          status: 'PUBLISHED',
+          listingType: 'MANUAL',
           includeChildrenProducts: false,
           listingOrderByStatus: false,
           listingFilters: [],
-          listingOrderBy: ListingSort.Custom,
+          listingOrderBy: 'CUSTOM',
         },
       });
 
@@ -123,12 +115,12 @@ export async function seedCategories(api: TenantApiFixture, categories: Category
               title: childTitle,
               slug: childSlug,
               parentId: categoryMap[categoryData.slug],
-              status: EntityStatus.Published,
-              listingType: ListingType.Manual,
+              status: 'PUBLISHED',
+              listingType: 'MANUAL',
               includeChildrenProducts: false,
               listingOrderByStatus: false,
               listingFilters: [],
-              listingOrderBy: ListingSort.Custom,
+              listingOrderBy: 'CUSTOM',
             },
           });
 
@@ -236,7 +228,7 @@ export async function seedProducts(
         product = await api.product.createWithOptions({
           title: productData.title,
           slug: productData.slug,
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           price: basePriceCents,
           options: options,
         });
@@ -277,7 +269,7 @@ export async function seedProducts(
           input: {
             title: productData.title,
             slug: productData.slug,
-            status: EntityStatus.Published,
+            status: 'PUBLISHED',
             requiresShipping: true,
             description: {
               html: `<p>${productData.description}</p>`,
@@ -327,11 +319,11 @@ export async function seedProducts(
                   inListing: true,
                   variantSortIndex: 0,
                   weight: 0,
-                  weightUnit: WeightUnit.Gr,
+                  weightUnit: 'g',
                   width: 0,
                   height: 0,
                   length: 0,
-                  dimensionUnit: DimensionUnit.Cm,
+                  dimensionUnit: 'cm',
                   gallery: getGalleryImages(coverId),
                   coverId: coverId,
                 },
@@ -540,7 +532,7 @@ export async function seedReviews(
             productId: variantId,
             customerId: customerId,
             displayName: reviewerName,
-            status: ReviewStatus.Approved,
+            status: 'APPROVED',
           },
         });
         console.log(`✓ Created review: ${reviewTemplate.title} (${reviewTemplate.rating}/5) by ${reviewerName}`);

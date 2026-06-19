@@ -1,17 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import type {
-  ApiCategory } from '@codegen/admin-gql';
-import {
-  EntityStatus,
-  ListingSort,
-  ListingType,
-  WeightUnit,
-} from '@codegen/admin-gql';
+import type { ApiCategory } from '@codegen/admin-gql';
+
 import { randomUUID } from 'node:crypto';
-
-
 
 test.describe('client product category', () => {
   let category = {} as ApiCategory;
@@ -19,13 +11,13 @@ test.describe('client product category', () => {
   const categoryInput = {
     title: 'Primary Category',
     slug: randomUUID(),
-    status: EntityStatus.Published,
+    status: 'PUBLISHED',
     excerpt: '',
     includeChildrenProducts: false,
     listingFilters: [],
-    listingOrderBy: ListingSort.CreatedAtAsc,
+    listingOrderBy: 'CREATED_AT_ASC',
     listingOrderByStatus: true,
-    listingType: ListingType.Manual,
+    listingType: 'MANUAL',
     gallery: [],
   };
 
@@ -36,7 +28,7 @@ test.describe('client product category', () => {
     primaryCategory: categoryId,
     requiresShipping: false,
     slug: randomUUID(),
-    status: EntityStatus.Published,
+    status: 'PUBLISHED',
     tags: [],
     title,
     variants: {
@@ -56,7 +48,7 @@ test.describe('client product category', () => {
           title,
           variantSortIndex: 0,
           weight: 0,
-          weightUnit: WeightUnit.Gr,
+          weightUnit: 'g',
         },
       ],
     },

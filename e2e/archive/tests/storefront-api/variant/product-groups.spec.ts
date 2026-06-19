@@ -1,26 +1,18 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import {
-  EntityStatus,
-  WeightUnit,
-  ProductGroupPriceType as AdminPriceType,
-  DimensionUnit,
-} from '@codegen/admin-gql';
-import { ProductGroupPriceType as ClientPriceType } from '@codegen/client-gql';
+
 import { randomUUID } from 'node:crypto';
 
-
+type ClientPriceType = 'BASE' | 'FREE' | 'BASE_ADJUST_PERCENT' | 'BASE_ADJUST_AMOUNT' | 'BASE_OVERRIDE';
 
 test.describe('client product groups – price overrides', () => {
   test('product -> groups -> items -> product price should be adjusted', async ({ api }) => {
     await api.session.setupUserAndProject();
 
-    
     const basePriceCents = 1075; // 10.75
     const fixedAddCents = 299; // +2.99
     const percentValue = 7.5; // +7.5 %
 
-    
     const componentSlug = `component-${randomUUID()}`;
 
     const createVariantInput = (title: string, sortIndex: number) => ({
@@ -38,11 +30,11 @@ test.describe('client product groups – price overrides', () => {
       title,
       variantSortIndex: sortIndex,
       weight: 0,
-      weightUnit: WeightUnit.Gr,
+      weightUnit: 'g',
       width: 0,
       height: 0,
       length: 0,
-      dimensionUnit: DimensionUnit.Mm,
+      dimensionUnit: 'mm',
     });
 
     const { data: componentResp } = await api.admin.mutation('admin/ProductCreate', {
@@ -53,7 +45,7 @@ test.describe('client product groups – price overrides', () => {
           groups: [],
           requiresShipping: false,
           slug: componentSlug,
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           tags: [],
           title: 'Component Product',
           variants: {
@@ -71,7 +63,6 @@ test.describe('client product groups – price overrides', () => {
     const componentProduct = componentResp.productMutation.create;
     const variantIds = componentProduct.variants.map((v: { id: string }) => v.id);
 
-    
     const boxSlug = `box-${randomUUID()}`;
 
     const boxProduct = await api.admin.product.create({
@@ -80,7 +71,7 @@ test.describe('client product groups – price overrides', () => {
         excerpt: '',
         requiresShipping: false,
         slug: boxSlug,
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         tags: [],
         title: 'Box Product',
         variants: {
@@ -100,11 +91,11 @@ test.describe('client product groups – price overrides', () => {
               title: 'Main',
               variantSortIndex: 0,
               weight: 0,
-              weightUnit: WeightUnit.Gr,
+              weightUnit: 'g',
               width: 0,
               height: 0,
               length: 0,
-              dimensionUnit: DimensionUnit.Mm,
+              dimensionUnit: 'mm',
             },
           ],
         },
@@ -112,7 +103,6 @@ test.describe('client product groups – price overrides', () => {
       },
     });
 
-    
     await api.admin.product.update({
       input: {
         id: boxProduct.id,
@@ -127,23 +117,23 @@ test.describe('client product groups – price overrides', () => {
                 {
                   variantId: variantIds[0],
                   sortIndex: 0,
-                  priceType: AdminPriceType.Base,
+                  priceType: 'BASE',
                 },
                 {
                   variantId: variantIds[1],
                   sortIndex: 1,
-                  priceType: AdminPriceType.Free,
+                  priceType: 'FREE',
                 },
                 {
                   variantId: variantIds[2],
                   sortIndex: 2,
-                  priceType: AdminPriceType.BaseAdjustAmount,
+                  priceType: 'BASE_ADJUST_AMOUNT',
                   priceAmountValue: fixedAddCents,
                 },
                 {
                   variantId: variantIds[3],
                   sortIndex: 3,
-                  priceType: AdminPriceType.BaseAdjustPercent,
+                  priceType: 'BASE_ADJUST_PERCENT',
                   pricePercentageValue: percentValue,
                 },
               ],
@@ -153,10 +143,8 @@ test.describe('client product groups – price overrides', () => {
       },
     });
 
-    
     await api.session.setupApiKey();
 
-    
     const { data } = await api.client.query('client/ProductGroups', {
       variables: { handle: boxSlug },
     });
@@ -169,13 +157,11 @@ test.describe('client product groups – price overrides', () => {
     const items = group!.items;
     expect(items.length).toBe(4);
 
-    
-    
     const expectedByType: Record<ClientPriceType, number> = {
-      [ClientPriceType.Base]: Number((basePriceCents / 100).toFixed(2)),
-      [ClientPriceType.Free]: 0,
-      [ClientPriceType.Fixed]: Number(((basePriceCents + fixedAddCents) / 100).toFixed(2)),
-      [ClientPriceType.Percent]: Number(
+      ['BASE']: Number((basePriceCents / 100).toFixed(2)),
+      ['FREE']: 0,
+      ['FIXED']: Number(((basePriceCents + fixedAddCents) / 100).toFixed(2)),
+      ['PERCENT']: Number(
         ((basePriceCents + (basePriceCents * percentValue) / 100) / 100).toFixed(2),
       ),
     } as const;

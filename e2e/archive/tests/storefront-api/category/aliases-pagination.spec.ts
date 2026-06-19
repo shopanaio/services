@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { EntityStatus, ListingSort, ListingType } from '@codegen/admin-gql';
-import { CategorySort } from '@codegen/client-gql';
+
 import { randomUUID } from 'node:crypto';
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
@@ -16,11 +15,11 @@ async function createParentWithChildren(api: ApiFixtures['api'], idx: number) {
     input: {
       title: `Parent Alias ${idx}`,
       slug,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
       includeChildrenProducts: true,
-      listingOrderBy: ListingSort.CreatedAtAsc,
+      listingOrderBy: 'CREATED_AT_ASC',
       listingOrderByStatus: true,
-      listingType: ListingType.Manual,
+      listingType: 'MANUAL',
       excerpt: `Parent ${idx} excerpt`,
       description: {
         json: JSON.stringify({
@@ -46,11 +45,11 @@ async function createParentWithChildren(api: ApiFixtures['api'], idx: number) {
       input: {
         title,
         slug: `child-alias-${idx}-${i}-${randomUUID()}`,
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         includeChildrenProducts: true,
-        listingOrderBy: ListingSort.CreatedAtAsc,
+        listingOrderBy: 'CREATED_AT_ASC',
         listingOrderByStatus: true,
-        listingType: ListingType.Manual,
+        listingType: 'MANUAL',
         excerpt: `Excerpt ${title}`,
         description: {
           json: JSON.stringify({
@@ -94,7 +93,7 @@ test.describe('category children pagination with aliases', () => {
         first1: PAGE_SIZE, // cat1 forward
         last2: PAGE_SIZE, // cat2 backward (last page)
         first3: PAGE_SIZE, // cat3 forward but stay static
-        sort: CategorySort.TitleAsc,
+        sort: 'TITLE_ASC',
       } as any,
     });
 
@@ -122,7 +121,7 @@ test.describe('category children pagination with aliases', () => {
           last2: PAGE_SIZE, // previous slice for cat2
           before2,
           first3: PAGE_SIZE, // cat3 again first page (no cursor)
-          sort: CategorySort.TitleAsc,
+          sort: 'TITLE_ASC',
         } as any,
       },
     );
@@ -132,9 +131,9 @@ test.describe('category children pagination with aliases', () => {
     const cat3Same = (second as any).cat3.children;
 
     expectTitles(cat1Page2, parent1.titles.slice(PAGE_SIZE, PAGE_SIZE * 2));
-    
+
     expectTitles(cat2Prev, parent2.titles.slice(-PAGE_SIZE * 2, -PAGE_SIZE));
-    
+
     expectTitles(cat3Same, parent3.titles.slice(0, PAGE_SIZE));
   });
 });

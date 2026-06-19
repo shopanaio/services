@@ -1,11 +1,5 @@
-import type {
-  ApiProductReview,
-  ApiCreateReviewInput,
-  ApiUpdateReviewInput,
-  ApiVoteReviewHelpfulInput } from '@codegen/client-gql';
-import {
-  LocaleCode,
-} from '@codegen/client-gql';
+import type { ApiProductReview, ApiCreateReviewInput, ApiUpdateReviewInput, ApiVoteReviewHelpfulInput } from '@codegen/client-gql';
+
 import type { ClientApiFixture } from '@fixtures/client/api';
 import _ from 'lodash';
 import type { DeepPartial } from 'types';
@@ -22,7 +16,7 @@ export class Review {
       variables: {
         input: _.merge(
           {
-            locale: LocaleCode.En,
+            locale: 'en',
             displayName: 'John Doe',
           },
           input,

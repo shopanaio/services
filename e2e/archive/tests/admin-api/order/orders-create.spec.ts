@@ -1,13 +1,6 @@
 import { test } from '@fixtures/base.extend';
-import type {
-  ApiProduct,
-  ApiQuery } from '@codegen/admin-gql';
-import {
-  EntityStatus,
-  OrderStatusEnum,
-  WeightUnit,
-  DimensionUnit,
-} from '@codegen/admin-gql';
+import type { ApiProduct, ApiQuery } from '@codegen/admin-gql';
+
 import type { GraphQLError } from 'graphql';
 import { randomUUID } from 'node:crypto';
 import { expect } from 'playwright/test';
@@ -25,7 +18,7 @@ test.describe('Orders API', () => {
     groups: [],
     requiresShipping: false,
     slug: randomUUID(),
-    status: EntityStatus.Draft,
+    status: 'DRAFT',
     tags: [],
     title,
     variants: {
@@ -45,11 +38,11 @@ test.describe('Orders API', () => {
           title,
           variantSortIndex: 0,
           weight: 0,
-          weightUnit: WeightUnit.Gr,
+          weightUnit: 'g',
           width: 0,
           height: 0,
           length: 0,
-          dimensionUnit: DimensionUnit.Mm,
+          dimensionUnit: 'mm',
         },
       ],
     },
@@ -185,7 +178,7 @@ test.describe('Orders API', () => {
         variables: {
           input: {
             id: orderId,
-            status: OrderStatusEnum.Active,
+            status: 'ACTIVE',
             comment: 'Order status - active',
           },
         },
@@ -232,7 +225,7 @@ test.describe('Orders API', () => {
         variables: {
           input: {
             id: order?.data?.orderQuery?.findOne?.id,
-            status: OrderStatusEnum.Completed,
+            status: 'COMPLETED',
             comment: 'Order status - complete',
           },
         },

@@ -2,33 +2,32 @@
 
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import { EntityStatus, WeightUnit } from '@codegen/admin-gql';
-import { ListingSort } from '@codegen/client-gql';
+
 import type { ApiFixtures } from '@fixtures/api/api';
 import { createCursorPaginationTests } from '@utils/cursorPaginationBuilder';
 import { randomUUID } from 'node:crypto';
 import type { GraphQLFileName } from '@queries/filenames';
 
+type ListingSort = 'CUSTOM' | 'CREATED_AT_ASC' | 'CREATED_AT_DESC' | 'PRICE_ASC' | 'PRICE_DESC' | 'TITLE_ASC' | 'TITLE_DESC' | 'MOST_RELEVANT';
+
 // ---------------------------------------------------------------------------
 // Test data preparation
 // ---------------------------------------------------------------------------
 
-
 const SEARCH_TERM = 'LaptopTest';
 
 export const listingSorts: ListingSort[] = [
-  ListingSort.CreatedAtAsc,
-  ListingSort.CreatedAtDesc,
-  ListingSort.PriceAsc,
-  ListingSort.PriceDesc,
-  ListingSort.TitleAsc,
-  ListingSort.TitleDesc,
-  ListingSort.MostRelevant,
+  'CREATED_AT_ASC',
+  'CREATED_AT_DESC',
+  'PRICE_ASC',
+  'PRICE_DESC',
+  'TITLE_ASC',
+  'TITLE_DESC',
+  'MOST_RELEVANT',
 ];
 
 async function prepareSearchListing(api: ApiFixtures['api']) {
   await api.session.setupUserAndProject();
-
 
   const searchTerm = SEARCH_TERM;
 
@@ -51,7 +50,7 @@ async function prepareSearchListing(api: ApiFixtures['api']) {
       input: {
         title,
         slug: `search-product-${i}-${randomUUID()}`,
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         requiresShipping: false,
         variants: {
           create: [
@@ -64,7 +63,7 @@ async function prepareSearchListing(api: ApiFixtures['api']) {
               categories: [],
               variantSortIndex: 0,
               weight: 0,
-              weightUnit: WeightUnit.Gr,
+              weightUnit: 'g',
             },
           ],
         },
@@ -73,8 +72,6 @@ async function prepareSearchListing(api: ApiFixtures['api']) {
 
     creationOrderTitles.push(title);
   }
-
-
 
   const expectedTitles = creationOrderTitles;
 
@@ -88,7 +85,7 @@ async function prepareSearchListing(api: ApiFixtures['api']) {
       input: {
         title,
         slug: `unrelated-product-${i}-${randomUUID()}`,
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         requiresShipping: false,
         variants: {
           create: [
@@ -100,7 +97,7 @@ async function prepareSearchListing(api: ApiFixtures['api']) {
               categories: [],
               variantSortIndex: 0,
               weight: 0,
-              weightUnit: WeightUnit.Gr,
+              weightUnit: 'g',
             },
           ],
         },
@@ -121,34 +118,34 @@ async function prepareSearchListing(api: ApiFixtures['api']) {
 // ---------------------------------------------------------------------------
 
 const sortToFieldOrder = {
-  [ListingSort.CreatedAtAsc]: { field: 'created_at', order: 'ASC' },
-  [ListingSort.CreatedAtDesc]: { field: 'created_at', order: 'DESC' },
-  [ListingSort.PriceAsc]: { field: 'price', order: 'ASC' },
-  [ListingSort.PriceDesc]: { field: 'price', order: 'DESC' },
-  [ListingSort.TitleAsc]: { field: 'title', order: 'ASC' },
-  [ListingSort.TitleDesc]: { field: 'title', order: 'DESC' },
-  [ListingSort.MostRelevant]: { field: 'sort_relevance', order: 'DESC' },
+  ['CREATED_AT_ASC']: { field: 'created_at', order: 'ASC' },
+  ['CREATED_AT_DESC']: { field: 'created_at', order: 'DESC' },
+  ['PRICE_ASC']: { field: 'price', order: 'ASC' },
+  ['PRICE_DESC']: { field: 'price', order: 'DESC' },
+  ['TITLE_ASC']: { field: 'title', order: 'ASC' },
+  ['TITLE_DESC']: { field: 'title', order: 'DESC' },
+  ['MOST_RELEVANT']: { field: 'sort_relevance', order: 'DESC' },
 } as Record<ListingSort, { field: string; order: 'ASC' | 'DESC' }>;
 
 const getExpectedBySort = (titles: string[], sort: ListingSort) => {
   switch (sort) {
 
-    case ListingSort.CreatedAtAsc:
-    case ListingSort.PriceAsc:
+    case 'CREATED_AT_ASC':
+    case 'PRICE_ASC':
       return [...titles];
 
-    case ListingSort.CreatedAtDesc:
-    case ListingSort.PriceDesc:
+    case 'CREATED_AT_DESC':
+    case 'PRICE_DESC':
       return [...titles].reverse();
 
     // --- Title ---
-    case ListingSort.TitleAsc:
+    case 'TITLE_ASC':
       return [...titles].sort((a, b) => a.localeCompare(b));
-    case ListingSort.TitleDesc:
+    case 'TITLE_DESC':
       return [...titles].sort((a, b) => b.localeCompare(a));
 
     // --- RelevanceDesc ---
-    case ListingSort.MostRelevant: {
+    case 'MOST_RELEVANT': {
       const termRegex = new RegExp(SEARCH_TERM, 'g');
       return [...titles]
         .map((t, idx) => ({
@@ -184,7 +181,7 @@ createCursorPaginationTests<ListingSort>({
   getSeekValue: {
     price: (node) => node.price.amount * 100,
   },
-  checkArbitraryCursor: (sort) => sort !== ListingSort.MostRelevant,
+  checkArbitraryCursor: (sort) => sort !== 'MOST_RELEVANT',
 });
 
 // ---------------------------------------------------------------------------
@@ -198,7 +195,7 @@ test.describe('Client Search Listing API', () => {
     const expected = [...expectedTitles].sort((a, b) => a.localeCompare(b));
 
     const { data } = await api.client.query('client/SearchListing' as unknown as GraphQLFileName, {
-      variables: { ...baseVariables, first: 20, sort: ListingSort.TitleAsc },
+      variables: { ...baseVariables, first: 20, sort: 'TITLE_ASC' },
     });
 
     expect(data.search).toBeDefined();
@@ -211,10 +208,10 @@ test.describe('Client Search Listing API', () => {
 
   test('returns products in RelevanceDesc order when specified', async ({ api }) => {
     const { expectedTitles, baseVariables } = await prepareSearchListing(api);
-    const expected = getExpectedBySort(expectedTitles, ListingSort.MostRelevant);
+    const expected = getExpectedBySort(expectedTitles, 'MOST_RELEVANT');
 
     const { data } = await api.client.query('client/SearchListing' as unknown as GraphQLFileName, {
-      variables: { ...baseVariables, first: 20, sort: ListingSort.MostRelevant },
+      variables: { ...baseVariables, first: 20, sort: 'MOST_RELEVANT' },
     });
 
     expect(data.search).toBeDefined();

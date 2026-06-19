@@ -1,9 +1,4 @@
-import type {
-  ApiCategory,
-  ApiCategoryMutationCreateArgs,
-  ApiCategoryMutationUpdateArgs,
-  ApiCategoryQueryFindOneArgs,
-} from '@codegen/admin-gql';
+import type { ApiCategory, ApiCategoryMutationCreateArgs, ApiCategoryMutationUpdateArgs, ApiCategoryQueryFindOneArgs } from '@codegen/admin-gql';
 import type { TenantApiFixture } from '@fixtures/admin/api';
 
 export class Category {

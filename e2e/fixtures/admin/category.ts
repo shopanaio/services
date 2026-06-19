@@ -1,10 +1,5 @@
 import type { BaseGqlRequest } from '@fixtures/api/gqlRequest';
-import type {
-  ApiCategoryCreateInput,
-  ApiCategoryUpdateInput,
-  ProductSortBy,
-  SortDirection,
-} from '@codegen/admin-gql';
+import type { ApiCategoryCreateInput, ApiCategoryUpdateInput, ProductSortBy, SortDirection } from '@codegen/admin-gql';
 import _ from 'lodash';
 
 export interface CategoryData {

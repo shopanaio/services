@@ -1,6 +1,5 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import { ReviewStatus } from '@codegen/admin-gql';
 
 test.describe('ReviewBulkUpdateStatus', () => {
   test('bulk approve reviews', async ({ api }) => {
@@ -32,12 +31,12 @@ test.describe('ReviewBulkUpdateStatus', () => {
       ids.push(reviewId);
     }
 
-    const ok = await api.admin.review.bulkUpdateStatus(ids, ReviewStatus.Approved);
+    const ok = await api.admin.review.bulkUpdateStatus(ids, 'APPROVED');
     expect(ok).toBe(true);
 
     for (const id of ids) {
       const r = await api.admin.review.findOne(id);
-      expect(r?.status).toBe(ReviewStatus.Approved);
+      expect(r?.status).toBe('APPROVED');
     }
   });
 });

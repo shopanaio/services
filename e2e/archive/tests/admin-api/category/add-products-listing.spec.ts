@@ -1,18 +1,7 @@
 
 import { test } from '@fixtures/base.extend';
-import type {
-  ApiCategory,
-  //ApiCategoryQueryFindOneArgs,
-  ApiProduct } from '@codegen/admin-gql';
-import {
-  EntityStatus,
-  ListingSort,
-  ListingType,
-  WeightUnit,
-  //ApiFeatureGroup,
-  //ApiProductQueryFindOneArgs,
-  //FeatureType,
-} from '@codegen/admin-gql';
+import type { ApiCategory, ApiProduct } from '@codegen/admin-gql';
+
 import * as Yup from 'yup';
 import { randomUUID } from 'node:crypto';
 import { expect } from '@playwright/test';
@@ -33,13 +22,13 @@ test.describe('Categories API', () => {
   const categoryInput = {
     title: 'Category',
     slug: randomUUID(),
-    status: EntityStatus.Published,
+    status: 'PUBLISHED',
     excerpt: '',
     includeChildrenProducts: true,
     listingFilters: [],
-    listingOrderBy: ListingSort.CreatedAtAsc,
+    listingOrderBy: 'CREATED_AT_ASC',
     listingOrderByStatus: true,
-    listingType: ListingType.Manual,
+    listingType: 'MANUAL',
     gallery: [],
   };
 
@@ -78,7 +67,7 @@ test.describe('Categories API', () => {
       groups: [],
       requiresShipping: false,
       slug: randomUUID(),
-      status: EntityStatus.Draft,
+      status: 'DRAFT',
       tags: [],
       title,
       variants: {
@@ -98,7 +87,7 @@ test.describe('Categories API', () => {
             title,
             variantSortIndex: 0,
             weight: 0,
-            weightUnit: WeightUnit.Gr,
+            weightUnit: 'g',
           },
         ],
       },
@@ -133,7 +122,7 @@ test.describe('Categories API', () => {
     });
 
     await test.step('Open Manage Content drawer and check it is empty', async () => {
-      const { data } = await getListingBySlugAndListingType(categorySlug, ListingType.Manual);
+      const { data } = await getListingBySlugAndListingType(categorySlug, 'MANUAL');
 
       expect(data.listingQuery.listingV1.data.length).toBe(0);
     });
@@ -162,7 +151,7 @@ test.describe('Categories API', () => {
     });
 
     await test.step('Check that all products are added', async () => {
-      const { data } = await getListingBySlugAndListingType(categorySlug, ListingType.Manual);
+      const { data } = await getListingBySlugAndListingType(categorySlug, 'MANUAL');
 
       expect(data.listingQuery.listingV1.data.length).toBe(3);
       expect(data.listingQuery.listingV1.data[0].title).toBe('Sunglasses');
@@ -173,14 +162,14 @@ test.describe('Categories API', () => {
     // --- Manage Listing / Check Sort ---
 
     await test.step('Change to Oldest, open products and check the ordering', async () => {
-      await updateCategoryListingOrder(ListingSort.CreatedAtDesc, categoryId);
+      await updateCategoryListingOrder('CREATED_AT_DESC', categoryId);
       expect(await api.admin.category.findOne(categoryId)).toMatchSchema(
         Yup.object({
-          listingOrderBy: Yup.string().equals([ListingSort.CreatedAtDesc]).required(),
+          listingOrderBy: Yup.string().equals(['CREATED_AT_DESC']).required(),
         }),
       );
 
-      const listing = await getListingBySlugAndListingType(categorySlug, ListingType.Manual);
+      const listing = await getListingBySlugAndListingType(categorySlug, 'MANUAL');
       expect(listing.data.listingQuery.listingV1.data[0].title).toBe('Pants');
       expect(listing.data.listingQuery.listingV1.data[1].title).toBe('Hat');
       expect(listing.data.listingQuery.listingV1.data[2].title).toBe('Sunglasses');
@@ -188,14 +177,14 @@ test.describe('Categories API', () => {
 
     //FIXME without error but wrong sorting
     await test.step.skip('Change to Title A-Z, open products and check the ordering', async () => {
-      await updateCategoryListingOrder(ListingSort.TitleAsc, categoryId);
+      await updateCategoryListingOrder('TITLE_ASC', categoryId);
       expect(await api.admin.category.findOne(categoryId)).toMatchSchema(
         Yup.object({
-          listingOrderBy: Yup.string().equals([ListingSort.TitleAsc]).required(),
+          listingOrderBy: Yup.string().equals(['TITLE_ASC']).required(),
         }),
       );
 
-      const listing = await getListingBySlugAndListingType(categorySlug, ListingType.Manual);
+      const listing = await getListingBySlugAndListingType(categorySlug, 'MANUAL');
 
       expect(listing.data.listingQuery.listingV1.data[0].title).toBe('Hat');
       expect(listing.data.listingQuery.listingV1.data[1].title).toBe('Pants');
@@ -204,13 +193,13 @@ test.describe('Categories API', () => {
 
     //FIXME without error but wrong sorting
     await test.step.skip('Change to Title Z-A, open products and check the ordering', async () => {
-      await updateCategoryListingOrder(ListingSort.TitleDesc, categoryId);
+      await updateCategoryListingOrder('TITLE_DESC', categoryId);
       expect(await api.admin.category.findOne(categoryId)).toMatchSchema(
         Yup.object({
-          listingOrderBy: Yup.string().equals([ListingSort.TitleDesc]).required(),
+          listingOrderBy: Yup.string().equals(['TITLE_DESC']).required(),
         }),
       );
-      const listing = await getListingBySlugAndListingType(categorySlug, ListingType.Manual);
+      const listing = await getListingBySlugAndListingType(categorySlug, 'MANUAL');
 
       expect(listing.data.listingQuery.listingV1.data[0].title).toBe('Sunglasses');
       expect(listing.data.listingQuery.listingV1.data[1].title).toBe('Pants');
@@ -218,15 +207,15 @@ test.describe('Categories API', () => {
     });
 
     await test.step('Change to Price Lowest, open products and check the ordering', async () => {
-      await updateCategoryListingOrder(ListingSort.PriceAsc, categoryId);
+      await updateCategoryListingOrder('PRICE_ASC', categoryId);
 
       expect(await api.admin.category.findOne(categoryId)).toMatchSchema(
         Yup.object({
-          listingOrderBy: Yup.string().equals([ListingSort.PriceAsc]).required(),
+          listingOrderBy: Yup.string().equals(['PRICE_ASC']).required(),
         }),
       );
 
-      const listing = await getListingBySlugAndListingType(categorySlug, ListingType.Manual);
+      const listing = await getListingBySlugAndListingType(categorySlug, 'MANUAL');
 
       expect(listing.data.listingQuery.listingV1.data[0].title).toBe('Hat');
       expect(listing.data.listingQuery.listingV1.data[1].title).toBe('Sunglasses');
@@ -234,14 +223,14 @@ test.describe('Categories API', () => {
     });
 
     await test.step('Change to Price Highest, open products and check the ordering', async () => {
-      await updateCategoryListingOrder(ListingSort.PriceDesc, categoryId);
+      await updateCategoryListingOrder('PRICE_DESC', categoryId);
       expect(await api.admin.category.findOne(categoryId)).toMatchSchema(
         Yup.object({
-          listingOrderBy: Yup.string().equals([ListingSort.PriceDesc]).required(),
+          listingOrderBy: Yup.string().equals(['PRICE_DESC']).required(),
         }),
       );
 
-      const listing = await getListingBySlugAndListingType(categorySlug, ListingType.Manual);
+      const listing = await getListingBySlugAndListingType(categorySlug, 'MANUAL');
 
       expect(listing.data.listingQuery.listingV1.data[0].title).toBe('Pants');
       expect(listing.data.listingQuery.listingV1.data[1].title).toBe('Sunglasses');
@@ -261,14 +250,12 @@ test.describe('Categories API', () => {
         },
       });
 
-
       const { data } = await api.admin.query<ApiProductQueryFindOneArgs>('admin/ProductQueryFindOne', {
 
         variables: {
           id: productsIds[0],
         },
       });
-
 
       const productWithFeature = await api.admin.mutation('admin/ProductUpdate', {
 
@@ -319,7 +306,7 @@ test.describe('Categories API', () => {
         },
       });
       expect(data.categoryMutation.deleteProduct).toBe(true);
-      const listing = await getListingBySlugAndListingType(categorySlug, ListingType.Manual);
+      const listing = await getListingBySlugAndListingType(categorySlug, 'MANUAL');
       expect(listing.data.listingQuery.listingV1.data.length).toBe(2);
     });
     /*await test.step('Open next product without variants, remove category, save, close, and check that it disappears', async () => { });

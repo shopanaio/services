@@ -1,11 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { EntityStatus, ListingSort, ListingType } from '@codegen/admin-gql';
+
 import { randomUUID } from 'node:crypto';
-import { CategorySort } from '@codegen/client-gql';
+
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
 import type { ApiFixtures } from '@fixtures/api/api';
 import type { GraphQLFileName } from '@queries/filenames';
+
+type CategorySort = 'TITLE_ASC' | 'TITLE_DESC' | 'CREATED_AT_ASC' | 'CREATED_AT_DESC' | 'UPDATED_AT_ASC' | 'UPDATED_AT_DESC';
 
 // -------------------------------------------------------------
 
@@ -13,19 +15,19 @@ import type { GraphQLFileName } from '@queries/filenames';
 const PAGE_SIZE = 2;
 
 const sortsArray: CategorySort[] = [
-  CategorySort.TitleAsc,
-  CategorySort.TitleDesc,
-  CategorySort.CreatedAtAsc,
-  CategorySort.CreatedAtDesc,
-  CategorySort.UpdatedAtAsc,
-  CategorySort.UpdatedAtDesc,
+  'TITLE_ASC',
+  'TITLE_DESC',
+  'CREATED_AT_ASC',
+  'CREATED_AT_DESC',
+  'UPDATED_AT_ASC',
+  'UPDATED_AT_DESC',
 ];
 
 const getExpectedBySort = (titles: string[], sort: CategorySort) => {
   switch (sort) {
-    case CategorySort.TitleDesc:
-    case CategorySort.CreatedAtDesc:
-    case CategorySort.UpdatedAtDesc:
+    case 'TITLE_DESC':
+    case 'CREATED_AT_DESC':
+    case 'UPDATED_AT_DESC':
       return [...titles].reverse();
     default:
       return [...titles];
@@ -45,18 +47,17 @@ async function prepareParents(api: ApiFixtures['api']): Promise<ParentInfo[]> {
 
   const commonChildTitles = Array.from({ length: 5 }).map((_, i) => `Child ${i}`);
 
-  
   for (let p = 0; p < 5; p++) {
     const parentSlug = `parent-${p}-${randomUUID()}`;
     const parent = await api.admin.category.create({
       input: {
         title: `Parent ${p}`,
         slug: parentSlug,
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         includeChildrenProducts: true,
-        listingOrderBy: ListingSort.CreatedAtAsc,
+        listingOrderBy: 'CREATED_AT_ASC',
         listingOrderByStatus: true,
-        listingType: ListingType.Manual,
+        listingType: 'MANUAL',
         excerpt: `Parent ${p} excerpt`,
         description: {
           json: JSON.stringify({ blocks: [{ type: 'paragraph', data: { text: `Parent ${p} description` } }] }),
@@ -72,18 +73,17 @@ async function prepareParents(api: ApiFixtures['api']): Promise<ParentInfo[]> {
       },
     });
 
-    
     for (let i = 0; i < commonChildTitles.length; i++) {
       const title = commonChildTitles[i];
       await api.admin.category.create({
         input: {
           title,
           slug: `${title.toLowerCase().replace(/\s+/g, '-')}-${randomUUID()}`,
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           includeChildrenProducts: true,
-          listingOrderBy: ListingSort.CreatedAtAsc,
+          listingOrderBy: 'CREATED_AT_ASC',
           listingOrderByStatus: true,
-          listingType: ListingType.Manual,
+          listingType: 'MANUAL',
           excerpt: `Excerpt ${title}`,
           description: {
             json: JSON.stringify({ blocks: [{ type: 'paragraph', data: { text: `Description ${title}` } }] }),

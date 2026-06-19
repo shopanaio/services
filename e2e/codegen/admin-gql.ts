@@ -32,11 +32,10 @@ export type Scalars = {
  * - admin includes write and read
  * - write includes read
  */
-export enum Action {
-  Admin = 'admin',
-  Read = 'read',
-  Write = 'write'
-}
+export type Action =
+  | 'admin'
+  | 'read'
+  | 'write';
 
 /** API key for programmatic access to the project */
 export type ApiApiKey = {
@@ -276,11 +275,10 @@ export type ApiBucketCreatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
-export enum BulkUpdateCancelReason {
-  Superseded = 'SUPERSEDED',
-  System = 'SYSTEM',
-  User = 'USER'
-}
+export type BulkUpdateCancelReason =
+  | 'SUPERSEDED'
+  | 'SYSTEM'
+  | 'USER';
 
 /** Single operation in bulk update job. */
 export type ApiBulkUpdateItem = {
@@ -322,14 +320,13 @@ export type ApiBulkUpdateItemEdge = {
   node: ApiBulkUpdateItem;
 };
 
-export enum BulkUpdateItemStatus {
-  Cancelled = 'CANCELLED',
-  Failed = 'FAILED',
-  Pending = 'PENDING',
-  Running = 'RUNNING',
-  Succeeded = 'SUCCEEDED',
-  Superseded = 'SUPERSEDED'
-}
+export type BulkUpdateItemStatus =
+  | 'CANCELLED'
+  | 'FAILED'
+  | 'PENDING'
+  | 'RUNNING'
+  | 'SUCCEEDED'
+  | 'SUPERSEDED';
 
 /** Job progress. All counters computed from items. */
 export type ApiBulkUpdateJobProgress = {
@@ -352,17 +349,15 @@ export type ApiBulkUpdateJobProgress = {
   total: Scalars['Int']['output'];
 };
 
-export enum BulkUpdateJobStatus {
-  Cancelled = 'CANCELLED',
-  Completed = 'COMPLETED',
-  Queued = 'QUEUED',
-  Running = 'RUNNING'
-}
+export type BulkUpdateJobStatus =
+  | 'CANCELLED'
+  | 'COMPLETED'
+  | 'QUEUED'
+  | 'RUNNING';
 
-export enum BulkUpdateOpType {
-  ProductUpdate = 'PRODUCT_UPDATE',
-  VariantUpdate = 'VARIANT_UPDATE'
-}
+export type BulkUpdateOpType =
+  | 'PRODUCT_UPDATE'
+  | 'VARIANT_UPDATE';
 
 /** Bulk update error with operation context. */
 export type ApiBulkUpdateUserError = ApiUserError & {
@@ -482,12 +477,11 @@ export type ApiBundleItemPayload = {
 };
 
 /** The type of item in a bundle group. */
-export enum BundleItemType {
+export type BundleItemType =
   /** Item references an entire product (variant selection happens at checkout) */
-  Product = 'PRODUCT',
+  | 'PRODUCT'
   /** Item references a specific variant */
-  Variant = 'VARIANT'
-}
+  | 'VARIANT';
 
 export type ApiBundleItemUpdateInput = {
   defaultQty?: InputMaybe<Scalars['Int']['input']>;
@@ -506,18 +500,17 @@ export type ApiBundleItemUpdateInput = {
 };
 
 /** The pricing strategy for bundle items. */
-export enum BundlePriceType {
+export type BundlePriceType =
   /** Discount by absolute amount (in cents) */
-  AmountOff = 'AMOUNT_OFF',
+  | 'AMOUNT_OFF'
   /** Use base product/variant price (no modification) */
-  Base = 'BASE',
+  | 'BASE'
   /** Fixed price (overrides base price) */
-  Fixed = 'FIXED',
+  | 'FIXED'
   /** Item is free when included in bundle */
-  Free = 'FREE',
+  | 'FREE'
   /** Discount by percentage (0-100) */
-  PercentOff = 'PERCENT_OFF'
-}
+  | 'PERCENT_OFF';
 
 /** A pricing template that can be reused across bundle items. */
 export type ApiBundlePricingTemplate = ApiNode & {
@@ -1677,10 +1670,9 @@ export type ApiCollectionRuleInput = {
   value: Scalars['JSON']['input'];
 };
 
-export enum CollectionType {
-  Manual = 'MANUAL',
-  Rule = 'RULE'
-}
+export type CollectionType =
+  | 'MANUAL'
+  | 'RULE';
 
 export type ApiCollectionUpdateInput = {
   activeFrom?: InputMaybe<Scalars['DateTime']['input']>;
@@ -1729,12 +1721,11 @@ export type ApiCondition = ApiNode & {
 };
 
 /** The category of a dependency condition. */
-export enum ConditionCategory {
+export type ConditionCategory =
   /** Numeric comparison (gte, eq, lte) */
-  Numeric = 'NUMERIC',
+  | 'NUMERIC'
   /** State check (is selected, is not selected) */
-  StateCheck = 'STATE_CHECK'
-}
+  | 'STATE_CHECK';
 
 export type ApiConditionCreateInput = {
   category: ConditionCategory;
@@ -1782,14 +1773,13 @@ export type ApiConditionPayload = {
 };
 
 /** The subject of a dependency condition. */
-export enum ConditionSubject {
+export type ConditionSubject =
   /** Check group total quantity */
-  GroupTotalQty = 'GROUP_TOTAL_QTY',
+  | 'GROUP_TOTAL_QTY'
   /** Check item quantity */
-  ItemQty = 'ITEM_QTY',
+  | 'ITEM_QTY'
   /** Check if an item is selected */
-  ItemSelected = 'ITEM_SELECTED'
-}
+  | 'ITEM_SELECTED';
 
 export type ApiConditionUpdateInput = {
   category?: InputMaybe<ConditionCategory>;
@@ -1802,414 +1792,413 @@ export type ApiConditionUpdateInput = {
   value?: InputMaybe<Scalars['Int']['input']>;
 };
 
-export enum CountryCode {
+export type CountryCode =
   /** Andorra */
-  Ad = 'AD',
+  | 'AD'
   /** United Arab Emirates */
-  Ae = 'AE',
+  | 'AE'
   /** Afghanistan */
-  Af = 'AF',
+  | 'AF'
   /** Antigua and Barbuda */
-  Ag = 'AG',
+  | 'AG'
   /** Albania */
-  Al = 'AL',
+  | 'AL'
   /** Armenia */
-  Am = 'AM',
+  | 'AM'
   /** Angola */
-  Ao = 'AO',
+  | 'AO'
   /** Argentina */
-  Ar = 'AR',
+  | 'AR'
   /** Austria */
-  At = 'AT',
+  | 'AT'
   /** Australia */
-  Au = 'AU',
+  | 'AU'
   /** Aruba */
-  Aw = 'AW',
+  | 'AW'
   /** Åland Islands */
-  Ax = 'AX',
+  | 'AX'
   /** Azerbaijan */
-  Az = 'AZ',
+  | 'AZ'
   /** Bosnia and Herzegovina */
-  Ba = 'BA',
+  | 'BA'
   /** Barbados */
-  Bb = 'BB',
+  | 'BB'
   /** Bangladesh */
-  Bd = 'BD',
+  | 'BD'
   /** Belgium */
-  Be = 'BE',
+  | 'BE'
   /** Burkina Faso */
-  Bf = 'BF',
+  | 'BF'
   /** Bulgaria */
-  Bg = 'BG',
+  | 'BG'
   /** Bahrain */
-  Bh = 'BH',
+  | 'BH'
   /** Burundi */
-  Bi = 'BI',
+  | 'BI'
   /** Benin */
-  Bj = 'BJ',
+  | 'BJ'
   /** Bermuda */
-  Bm = 'BM',
+  | 'BM'
   /** Brunei */
-  Bn = 'BN',
+  | 'BN'
   /** Bolivia */
-  Bo = 'BO',
+  | 'BO'
   /** Brazil */
-  Br = 'BR',
+  | 'BR'
   /** Bahamas */
-  Bs = 'BS',
+  | 'BS'
   /** Bhutan */
-  Bt = 'BT',
+  | 'BT'
   /** Botswana */
-  Bw = 'BW',
+  | 'BW'
   /** Belarus */
-  By = 'BY',
+  | 'BY'
   /** Belize */
-  Bz = 'BZ',
+  | 'BZ'
   /** Canada */
-  Ca = 'CA',
+  | 'CA'
   /** Democratic Republic of the Congo */
-  Cd = 'CD',
+  | 'CD'
   /** Central African Republic */
-  Cf = 'CF',
+  | 'CF'
   /** Republic of the Congo */
-  Cg = 'CG',
+  | 'CG'
   /** Switzerland */
-  Ch = 'CH',
+  | 'CH'
   /** Ivory Coast */
-  Ci = 'CI',
+  | 'CI'
   /** Chile */
-  Cl = 'CL',
+  | 'CL'
   /** Cameroon */
-  Cm = 'CM',
+  | 'CM'
   /** China */
-  Cn = 'CN',
+  | 'CN'
   /** Colombia */
-  Co = 'CO',
+  | 'CO'
   /** Costa Rica */
-  Cr = 'CR',
+  | 'CR'
   /** Cuba */
-  Cu = 'CU',
+  | 'CU'
   /** Cape Verde */
-  Cv = 'CV',
+  | 'CV'
   /** Curaçao */
-  Cw = 'CW',
+  | 'CW'
   /** Cyprus */
-  Cy = 'CY',
+  | 'CY'
   /** Czech Republic */
-  Cz = 'CZ',
+  | 'CZ'
   /** Germany */
-  De = 'DE',
+  | 'DE'
   /** Djibouti */
-  Dj = 'DJ',
+  | 'DJ'
   /** Denmark */
-  Dk = 'DK',
+  | 'DK'
   /** Dominica */
-  Dm = 'DM',
+  | 'DM'
   /** Dominican Republic */
-  Do = 'DO',
+  | 'DO'
   /** Algeria */
-  Dz = 'DZ',
+  | 'DZ'
   /** Ecuador */
-  Ec = 'EC',
+  | 'EC'
   /** Estonia */
-  Ee = 'EE',
+  | 'EE'
   /** Egypt */
-  Eg = 'EG',
+  | 'EG'
   /** Western Sahara */
-  Eh = 'EH',
+  | 'EH'
   /** Eritrea */
-  Er = 'ER',
+  | 'ER'
   /** Spain */
-  Es = 'ES',
+  | 'ES'
   /** Ethiopia */
-  Et = 'ET',
+  | 'ET'
   /** Finland */
-  Fi = 'FI',
+  | 'FI'
   /** Fiji */
-  Fj = 'FJ',
+  | 'FJ'
   /** Micronesia */
-  Fm = 'FM',
+  | 'FM'
   /** Faroe Islands */
-  Fo = 'FO',
+  | 'FO'
   /** France */
-  Fr = 'FR',
+  | 'FR'
   /** Gabon */
-  Ga = 'GA',
+  | 'GA'
   /** United Kingdom */
-  Gb = 'GB',
+  | 'GB'
   /** Grenada */
-  Gd = 'GD',
+  | 'GD'
   /** Georgia */
-  Ge = 'GE',
+  | 'GE'
   /** Guernsey */
-  Gg = 'GG',
+  | 'GG'
   /** Ghana */
-  Gh = 'GH',
+  | 'GH'
   /** Greenland */
-  Gl = 'GL',
+  | 'GL'
   /** Gambia */
-  Gm = 'GM',
+  | 'GM'
   /** Guinea */
-  Gn = 'GN',
+  | 'GN'
   /** Equatorial Guinea */
-  Gq = 'GQ',
+  | 'GQ'
   /** Greece */
-  Gr = 'GR',
+  | 'GR'
   /** Guatemala */
-  Gt = 'GT',
+  | 'GT'
   /** Guinea-Bissau */
-  Gw = 'GW',
+  | 'GW'
   /** Guyana */
-  Gy = 'GY',
+  | 'GY'
   /** Honduras */
-  Hn = 'HN',
+  | 'HN'
   /** Croatia */
-  Hr = 'HR',
+  | 'HR'
   /** Haiti */
-  Ht = 'HT',
+  | 'HT'
   /** Hungary */
-  Hu = 'HU',
+  | 'HU'
   /** Indonesia */
-  Id = 'ID',
+  | 'ID'
   /** Ireland */
-  Ie = 'IE',
+  | 'IE'
   /** Israel */
-  Il = 'IL',
+  | 'IL'
   /** Isle of Man */
-  Im = 'IM',
+  | 'IM'
   /** India */
-  In = 'IN',
+  | 'IN'
   /** Iraq */
-  Iq = 'IQ',
+  | 'IQ'
   /** Iran */
-  Ir = 'IR',
+  | 'IR'
   /** Iceland */
-  Is = 'IS',
+  | 'IS'
   /** Italy */
-  It = 'IT',
+  | 'IT'
   /** Jersey */
-  Je = 'JE',
+  | 'JE'
   /** Jamaica */
-  Jm = 'JM',
+  | 'JM'
   /** Jordan */
-  Jo = 'JO',
+  | 'JO'
   /** Japan */
-  Jp = 'JP',
+  | 'JP'
   /** Kenya */
-  Ke = 'KE',
+  | 'KE'
   /** Kyrgyzstan */
-  Kg = 'KG',
+  | 'KG'
   /** Cambodia */
-  Kh = 'KH',
+  | 'KH'
   /** Comoros */
-  Km = 'KM',
+  | 'KM'
   /** Saint Kitts and Nevis */
-  Kn = 'KN',
+  | 'KN'
   /** North Korea */
-  Kp = 'KP',
+  | 'KP'
   /** South Korea */
-  Kr = 'KR',
+  | 'KR'
   /** Kuwait */
-  Kw = 'KW',
+  | 'KW'
   /** Kazakhstan */
-  Kz = 'KZ',
+  | 'KZ'
   /** Laos */
-  La = 'LA',
+  | 'LA'
   /** Lebanon */
-  Lb = 'LB',
+  | 'LB'
   /** Saint Lucia */
-  Lc = 'LC',
+  | 'LC'
   /** Liechtenstein */
-  Li = 'LI',
+  | 'LI'
   /** Sri Lanka */
-  Lk = 'LK',
+  | 'LK'
   /** Liberia */
-  Lr = 'LR',
+  | 'LR'
   /** Lesotho */
-  Ls = 'LS',
+  | 'LS'
   /** Lithuania */
-  Lt = 'LT',
+  | 'LT'
   /** Luxembourg */
-  Lu = 'LU',
+  | 'LU'
   /** Latvia */
-  Lv = 'LV',
+  | 'LV'
   /** Morocco */
-  Ma = 'MA',
+  | 'MA'
   /** Monaco */
-  Mc = 'MC',
+  | 'MC'
   /** Moldova */
-  Md = 'MD',
+  | 'MD'
   /** Montenegro */
-  Me = 'ME',
+  | 'ME'
   /** Madagascar */
-  Mg = 'MG',
+  | 'MG'
   /** Marshall Islands */
-  Mh = 'MH',
+  | 'MH'
   /** North Macedonia */
-  Mk = 'MK',
+  | 'MK'
   /** Mali */
-  Ml = 'ML',
+  | 'ML'
   /** Myanmar */
-  Mm = 'MM',
+  | 'MM'
   /** Mongolia */
-  Mn = 'MN',
+  | 'MN'
   /** Mauritania */
-  Mr = 'MR',
+  | 'MR'
   /** Malta */
-  Mt = 'MT',
+  | 'MT'
   /** Mauritius */
-  Mu = 'MU',
+  | 'MU'
   /** Maldives */
-  Mv = 'MV',
+  | 'MV'
   /** Malawi */
-  Mw = 'MW',
+  | 'MW'
   /** Mexico */
-  Mx = 'MX',
+  | 'MX'
   /** Malaysia */
-  My = 'MY',
+  | 'MY'
   /** Mozambique */
-  Mz = 'MZ',
+  | 'MZ'
   /** Namibia */
-  Na = 'NA',
+  | 'NA'
   /** New Caledonia */
-  Nc = 'NC',
+  | 'NC'
   /** Niger */
-  Ne = 'NE',
+  | 'NE'
   /** Nigeria */
-  Ng = 'NG',
+  | 'NG'
   /** Nicaragua */
-  Ni = 'NI',
+  | 'NI'
   /** Netherlands */
-  Nl = 'NL',
+  | 'NL'
   /** Norway */
-  No = 'NO',
+  | 'NO'
   /** Nepal */
-  Np = 'NP',
+  | 'NP'
   /** New Zealand */
-  Nz = 'NZ',
+  | 'NZ'
   /** Oman */
-  Om = 'OM',
+  | 'OM'
   /** Panama */
-  Pa = 'PA',
+  | 'PA'
   /** Peru */
-  Pe = 'PE',
+  | 'PE'
   /** Papua New Guinea */
-  Pg = 'PG',
+  | 'PG'
   /** Philippines */
-  Ph = 'PH',
+  | 'PH'
   /** Pakistan */
-  Pk = 'PK',
+  | 'PK'
   /** Poland */
-  Pl = 'PL',
+  | 'PL'
   /** Palestine */
-  Ps = 'PS',
+  | 'PS'
   /** Portugal */
-  Pt = 'PT',
+  | 'PT'
   /** Palau */
-  Pw = 'PW',
+  | 'PW'
   /** Paraguay */
-  Py = 'PY',
+  | 'PY'
   /** Qatar */
-  Qa = 'QA',
+  | 'QA'
   /** Romania */
-  Ro = 'RO',
+  | 'RO'
   /** Serbia */
-  Rs = 'RS',
+  | 'RS'
   /** Russia */
-  Ru = 'RU',
+  | 'RU'
   /** Rwanda */
-  Rw = 'RW',
+  | 'RW'
   /** Saudi Arabia */
-  Sa = 'SA',
+  | 'SA'
   /** Solomon Islands */
-  Sb = 'SB',
+  | 'SB'
   /** Seychelles */
-  Sc = 'SC',
+  | 'SC'
   /** Sudan */
-  Sd = 'SD',
+  | 'SD'
   /** Sweden */
-  Se = 'SE',
+  | 'SE'
   /** Singapore */
-  Sg = 'SG',
+  | 'SG'
   /** Slovenia */
-  Si = 'SI',
+  | 'SI'
   /** Slovakia */
-  Sk = 'SK',
+  | 'SK'
   /** Sierra Leone */
-  Sl = 'SL',
+  | 'SL'
   /** San Marino */
-  Sm = 'SM',
+  | 'SM'
   /** Senegal */
-  Sn = 'SN',
+  | 'SN'
   /** Suriname */
-  Sr = 'SR',
+  | 'SR'
   /** South Sudan */
-  Ss = 'SS',
+  | 'SS'
   /** El Salvador */
-  Sv = 'SV',
+  | 'SV'
   /** Syria */
-  Sy = 'SY',
+  | 'SY'
   /** Swaziland (Eswatini) */
-  Sz = 'SZ',
+  | 'SZ'
   /** Chad */
-  Td = 'TD',
+  | 'TD'
   /** Togo */
-  Tg = 'TG',
+  | 'TG'
   /** Thailand */
-  Th = 'TH',
+  | 'TH'
   /** Tajikistan */
-  Tj = 'TJ',
+  | 'TJ'
   /** Timor-Leste (East Timor) */
-  Tl = 'TL',
+  | 'TL'
   /** Turkmenistan */
-  Tm = 'TM',
+  | 'TM'
   /** Tunisia */
-  Tn = 'TN',
+  | 'TN'
   /** Tonga */
-  To = 'TO',
+  | 'TO'
   /** Turkey */
-  Tr = 'TR',
+  | 'TR'
   /** Trinidad and Tobago */
-  Tt = 'TT',
+  | 'TT'
   /** Tanzania */
-  Tz = 'TZ',
+  | 'TZ'
   /** Ukraine */
-  Ua = 'UA',
+  | 'UA'
   /** Uganda */
-  Ug = 'UG',
+  | 'UG'
   /** United States */
-  Us = 'US',
+  | 'US'
   /** Uruguay */
-  Uy = 'UY',
+  | 'UY'
   /** Uzbekistan */
-  Uz = 'UZ',
+  | 'UZ'
   /** Vatican City */
-  Va = 'VA',
+  | 'VA'
   /** Saint Vincent and the Grenadines */
-  Vc = 'VC',
+  | 'VC'
   /** Venezuela */
-  Ve = 'VE',
+  | 'VE'
   /** British Virgin Islands */
-  Vg = 'VG',
+  | 'VG'
   /** US Virgin Islands */
-  Vi = 'VI',
+  | 'VI'
   /** Vietnam */
-  Vn = 'VN',
+  | 'VN'
   /** Vanuatu */
-  Vu = 'VU',
+  | 'VU'
   /** Samoa */
-  Ws = 'WS',
+  | 'WS'
   /** Kosovo */
-  Xk = 'XK',
+  | 'XK'
   /** Yemen */
-  Ye = 'YE',
+  | 'YE'
   /** South Africa */
-  Za = 'ZA',
+  | 'ZA'
   /** Zambia */
-  Zm = 'ZM',
+  | 'ZM'
   /** Zimbabwe */
-  Zw = 'ZW'
-}
+  | 'ZW';
 
 /** Currency configuration for the project */
 export type ApiCurrency = {
@@ -2225,330 +2214,329 @@ export type ApiCurrency = {
 };
 
 /** Currency codes according to ISO 4217 */
-export enum CurrencyCode {
+export type CurrencyCode =
   /** UAE Dirham (United Arab Emirates) - 2 decimals */
-  Aed = 'AED',
+  | 'AED'
   /** Afghan Afghani (Afghanistan) - 0 decimals */
-  Afn = 'AFN',
+  | 'AFN'
   /** Albanian Lek (Albania) - 0 decimals */
-  All = 'ALL',
+  | 'ALL'
   /** Armenian Dram (Armenia) - 2 decimals */
-  Amd = 'AMD',
+  | 'AMD'
   /** Netherlands Antillean Guilder - 2 decimals */
-  Ang = 'ANG',
+  | 'ANG'
   /** Angolan Kwanza (Angola) - 2 decimals */
-  Aoa = 'AOA',
+  | 'AOA'
   /** Argentine Peso (Argentina) - 2 decimals */
-  Ars = 'ARS',
+  | 'ARS'
   /** Australian Dollar (Australia) - 2 decimals */
-  Aud = 'AUD',
+  | 'AUD'
   /** Aruban Florin (Aruba) - 2 decimals */
-  Awg = 'AWG',
+  | 'AWG'
   /** Azerbaijani Manat (Azerbaijan) - 2 decimals */
-  Azn = 'AZN',
+  | 'AZN'
   /** Bosnia-Herzegovina Convertible Mark - 2 decimals */
-  Bam = 'BAM',
+  | 'BAM'
   /** Barbadian Dollar (Barbados) - 2 decimals */
-  Bbd = 'BBD',
+  | 'BBD'
   /** Bangladeshi Taka (Bangladesh) - 2 decimals */
-  Bdt = 'BDT',
+  | 'BDT'
   /** Bulgarian Lev (Bulgaria) - 2 decimals */
-  Bgn = 'BGN',
+  | 'BGN'
   /** Bahraini Dinar (Bahrain) - 3 decimals */
-  Bhd = 'BHD',
+  | 'BHD'
   /** Burundian Franc (Burundi) - 0 decimals */
-  Bif = 'BIF',
+  | 'BIF'
   /** Bermudian Dollar (Bermuda) - 2 decimals */
-  Bmd = 'BMD',
+  | 'BMD'
   /** Brunei Dollar (Brunei) - 2 decimals */
-  Bnd = 'BND',
+  | 'BND'
   /** Bolivian Boliviano (Bolivia) - 2 decimals */
-  Bob = 'BOB',
+  | 'BOB'
   /** Brazilian Real (Brazil) - 2 decimals */
-  Brl = 'BRL',
+  | 'BRL'
   /** Bahamian Dollar (Bahamas) - 2 decimals */
-  Bsd = 'BSD',
+  | 'BSD'
   /** Bhutanese Ngultrum (Bhutan) - 2 decimals */
-  Btn = 'BTN',
+  | 'BTN'
   /** Botswana Pula (Botswana) - 2 decimals */
-  Bwp = 'BWP',
+  | 'BWP'
   /** Belarusian Ruble (Belarus) - 2 decimals */
-  Byn = 'BYN',
+  | 'BYN'
   /** Belize Dollar (Belize) - 2 decimals */
-  Bzd = 'BZD',
+  | 'BZD'
   /** Canadian Dollar (Canada) - 2 decimals */
-  Cad = 'CAD',
+  | 'CAD'
   /** Congolese Franc (DR Congo) - 2 decimals */
-  Cdf = 'CDF',
+  | 'CDF'
   /** Swiss Franc (Switzerland) - 2 decimals */
-  Chf = 'CHF',
+  | 'CHF'
   /** Chilean Peso (Chile) - 0 decimals */
-  Clp = 'CLP',
+  | 'CLP'
   /** Chinese Yuan (China) - 2 decimals */
-  Cny = 'CNY',
+  | 'CNY'
   /** Colombian Peso (Colombia) - 2 decimals */
-  Cop = 'COP',
+  | 'COP'
   /** Costa Rican Colon (Costa Rica) - 2 decimals */
-  Crc = 'CRC',
+  | 'CRC'
   /** Cuban Peso (Cuba) - 2 decimals */
-  Cup = 'CUP',
+  | 'CUP'
   /** Cape Verdean Escudo (Cape Verde) - 2 decimals */
-  Cve = 'CVE',
+  | 'CVE'
   /** Czech Koruna (Czech Republic) - 2 decimals */
-  Czk = 'CZK',
+  | 'CZK'
   /** Djiboutian Franc (Djibouti) - 0 decimals */
-  Djf = 'DJF',
+  | 'DJF'
   /** Danish Krone (Denmark) - 2 decimals */
-  Dkk = 'DKK',
+  | 'DKK'
   /** Dominican Peso (Dominican Republic) - 2 decimals */
-  Dop = 'DOP',
+  | 'DOP'
   /** Algerian Dinar (Algeria) - 2 decimals */
-  Dzd = 'DZD',
+  | 'DZD'
   /** Egyptian Pound (Egypt) - 2 decimals */
-  Egp = 'EGP',
+  | 'EGP'
   /** Eritrean Nakfa (Eritrea) - 2 decimals */
-  Ern = 'ERN',
+  | 'ERN'
   /** Ethiopian Birr (Ethiopia) - 2 decimals */
-  Etb = 'ETB',
+  | 'ETB'
   /** Euro (European Union) - 2 decimals */
-  Eur = 'EUR',
+  | 'EUR'
   /** Fijian Dollar (Fiji) - 2 decimals */
-  Fjd = 'FJD',
+  | 'FJD'
   /** Falkland Islands Pound - 2 decimals */
-  Fkp = 'FKP',
+  | 'FKP'
   /** Faroese Króna (Faroe Islands) - 2 decimals */
-  Fok = 'FOK',
+  | 'FOK'
   /** Pound Sterling (United Kingdom) - 2 decimals */
-  Gbp = 'GBP',
+  | 'GBP'
   /** Georgian Lari (Georgia) - 2 decimals */
-  Gel = 'GEL',
+  | 'GEL'
   /** Guernsey Pound (Guernsey) - 2 decimals */
-  Ggp = 'GGP',
+  | 'GGP'
   /** Ghanaian Cedi (Ghana) - 2 decimals */
-  Ghs = 'GHS',
+  | 'GHS'
   /** Gibraltar Pound (Gibraltar) - 2 decimals */
-  Gip = 'GIP',
+  | 'GIP'
   /** Gambian Dalasi (Gambia) - 2 decimals */
-  Gmd = 'GMD',
+  | 'GMD'
   /** Guinean Franc (Guinea) - 0 decimals */
-  Gnf = 'GNF',
+  | 'GNF'
   /** Guatemalan Quetzal (Guatemala) - 2 decimals */
-  Gtq = 'GTQ',
+  | 'GTQ'
   /** Guyanese Dollar (Guyana) - 2 decimals */
-  Gyd = 'GYD',
+  | 'GYD'
   /** Hong Kong Dollar (Hong Kong) - 2 decimals */
-  Hkd = 'HKD',
+  | 'HKD'
   /** Honduran Lempira (Honduras) - 2 decimals */
-  Hnl = 'HNL',
+  | 'HNL'
   /** Croatian Kuna (Croatia) - 2 decimals */
-  Hrk = 'HRK',
+  | 'HRK'
   /** Haitian Gourde (Haiti) - 2 decimals */
-  Htg = 'HTG',
+  | 'HTG'
   /** Hungarian Forint (Hungary) - 2 decimals */
-  Huf = 'HUF',
+  | 'HUF'
   /** Indonesian Rupiah (Indonesia) - 0 decimals */
-  Idr = 'IDR',
+  | 'IDR'
   /** Israeli New Shekel (Israel) - 2 decimals */
-  Ils = 'ILS',
+  | 'ILS'
   /** Isle of Man Pound - 2 decimals */
-  Imp = 'IMP',
+  | 'IMP'
   /** Indian Rupee (India) - 2 decimals */
-  Inr = 'INR',
+  | 'INR'
   /** Iraqi Dinar (Iraq) - 3 decimals */
-  Iqd = 'IQD',
+  | 'IQD'
   /** Iranian Rial (Iran) - 2 decimals */
-  Irr = 'IRR',
+  | 'IRR'
   /** Icelandic Króna (Iceland) - 0 decimals */
-  Isk = 'ISK',
+  | 'ISK'
   /** Jersey Pound (Jersey) - 2 decimals */
-  Jep = 'JEP',
+  | 'JEP'
   /** Jamaican Dollar (Jamaica) - 2 decimals */
-  Jmd = 'JMD',
+  | 'JMD'
   /** Jordanian Dinar (Jordan) - 3 decimals */
-  Jod = 'JOD',
+  | 'JOD'
   /** Japanese Yen (Japan) - 0 decimals */
-  Jpy = 'JPY',
+  | 'JPY'
   /** Kenyan Shilling (Kenya) - 2 decimals */
-  Kes = 'KES',
+  | 'KES'
   /** Kyrgyzstani Som (Kyrgyzstan) - 2 decimals */
-  Kgs = 'KGS',
+  | 'KGS'
   /** Cambodian Riel (Cambodia) - 2 decimals */
-  Khr = 'KHR',
+  | 'KHR'
   /** Comorian Franc (Comoros) - 2 decimals */
-  Kmf = 'KMF',
+  | 'KMF'
   /** North Korean Won (North Korea) - 2 decimals */
-  Kpw = 'KPW',
+  | 'KPW'
   /** South Korean Won (South Korea) - 0 decimals */
-  Krw = 'KRW',
+  | 'KRW'
   /** Kuwaiti Dinar (Kuwait) - 3 decimals */
-  Kwd = 'KWD',
+  | 'KWD'
   /** Cayman Islands Dollar - 2 decimals */
-  Kyd = 'KYD',
+  | 'KYD'
   /** Kazakhstani Tenge (Kazakhstan) - 2 decimals */
-  Kzt = 'KZT',
+  | 'KZT'
   /** Lao Kip (Laos) - 2 decimals */
-  Lak = 'LAK',
+  | 'LAK'
   /** Lebanese Pound (Lebanon) - 2 decimals */
-  Lbp = 'LBP',
+  | 'LBP'
   /** Sri Lankan Rupee (Sri Lanka) - 2 decimals */
-  Lkr = 'LKR',
+  | 'LKR'
   /** Liberian Dollar (Liberia) - 2 decimals */
-  Lrd = 'LRD',
+  | 'LRD'
   /** Lesotho Loti (Lesotho) - 2 decimals */
-  Lsl = 'LSL',
+  | 'LSL'
   /** Libyan Dinar (Libya) - 3 decimals */
-  Lyd = 'LYD',
+  | 'LYD'
   /** Moroccan Dirham (Morocco) - 2 decimals */
-  Mad = 'MAD',
+  | 'MAD'
   /** Moldovan Leu (Moldova) - 2 decimals */
-  Mdl = 'MDL',
+  | 'MDL'
   /** Malagasy Ariary (Madagascar) - 2 decimals */
-  Mga = 'MGA',
+  | 'MGA'
   /** Macedonian Denar (North Macedonia) - 2 decimals */
-  Mkd = 'MKD',
+  | 'MKD'
   /** Burmese Kyat (Myanmar) - 2 decimals */
-  Mmk = 'MMK',
+  | 'MMK'
   /** Mongolian Tögrög (Mongolia) - 2 decimals */
-  Mnt = 'MNT',
+  | 'MNT'
   /** Macanese Pataca (Macau) - 2 decimals */
-  Mop = 'MOP',
+  | 'MOP'
   /** Mauritanian Ouguiya (Mauritania) - 2 decimals */
-  Mru = 'MRU',
+  | 'MRU'
   /** Mauritian Rupee (Mauritius) - 2 decimals */
-  Mur = 'MUR',
+  | 'MUR'
   /** Maldivian Rufiyaa (Maldives) - 2 decimals */
-  Mvr = 'MVR',
+  | 'MVR'
   /** Malawian Kwacha (Malawi) - 2 decimals */
-  Mwk = 'MWK',
+  | 'MWK'
   /** Mexican Peso (Mexico) - 2 decimals */
-  Mxn = 'MXN',
+  | 'MXN'
   /** Malaysian Ringgit (Malaysia) - 2 decimals */
-  Myr = 'MYR',
+  | 'MYR'
   /** Mozambican Metical (Mozambique) - 2 decimals */
-  Mzn = 'MZN',
+  | 'MZN'
   /** Namibian Dollar (Namibia) - 2 decimals */
-  Nad = 'NAD',
+  | 'NAD'
   /** Nigerian Naira (Nigeria) - 2 decimals */
-  Ngn = 'NGN',
+  | 'NGN'
   /** Nicaraguan Córdoba (Nicaragua) - 2 decimals */
-  Nio = 'NIO',
+  | 'NIO'
   /** Norwegian Krone (Norway) - 2 decimals */
-  Nok = 'NOK',
+  | 'NOK'
   /** Nepalese Rupee (Nepal) - 2 decimals */
-  Npr = 'NPR',
+  | 'NPR'
   /** New Zealand Dollar (New Zealand) - 2 decimals */
-  Nzd = 'NZD',
+  | 'NZD'
   /** Omani Rial (Oman) - 3 decimals */
-  Omr = 'OMR',
+  | 'OMR'
   /** Panamanian Balboa (Panama) - 2 decimals */
-  Pab = 'PAB',
+  | 'PAB'
   /** Peruvian Sol (Peru) - 2 decimals */
-  Pen = 'PEN',
+  | 'PEN'
   /** Papua New Guinean Kina - 2 decimals */
-  Pgk = 'PGK',
+  | 'PGK'
   /** Philippine Peso (Philippines) - 2 decimals */
-  Php = 'PHP',
+  | 'PHP'
   /** Pakistani Rupee (Pakistan) - 2 decimals */
-  Pkr = 'PKR',
+  | 'PKR'
   /** Polish Zloty (Poland) - 2 decimals */
-  Pln = 'PLN',
+  | 'PLN'
   /** Paraguayan Guaraní (Paraguay) - 0 decimals */
-  Pyg = 'PYG',
+  | 'PYG'
   /** Qatari Riyal (Qatar) - 2 decimals */
-  Qar = 'QAR',
+  | 'QAR'
   /** Romanian Leu (Romania) - 2 decimals */
-  Ron = 'RON',
+  | 'RON'
   /** Serbian Dinar (Serbia) - 2 decimals */
-  Rsd = 'RSD',
+  | 'RSD'
   /** Russian Ruble (Russia) - 2 decimals */
-  Rub = 'RUB',
+  | 'RUB'
   /** Rwandan Franc (Rwanda) - 0 decimals */
-  Rwf = 'RWF',
+  | 'RWF'
   /** Saudi Riyal (Saudi Arabia) - 2 decimals */
-  Sar = 'SAR',
+  | 'SAR'
   /** Solomon Islands Dollar - 2 decimals */
-  Sbd = 'SBD',
+  | 'SBD'
   /** Seychelles Rupee (Seychelles) - 2 decimals */
-  Scr = 'SCR',
+  | 'SCR'
   /** Sudanese Pound (Sudan) - 2 decimals */
-  Sdg = 'SDG',
+  | 'SDG'
   /** Swedish Krona (Sweden) - 2 decimals */
-  Sek = 'SEK',
+  | 'SEK'
   /** Singapore Dollar (Singapore) - 2 decimals */
-  Sgd = 'SGD',
+  | 'SGD'
   /** Saint Helena Pound - 2 decimals */
-  Shp = 'SHP',
+  | 'SHP'
   /** Sierra Leonean Leone - 2 decimals */
-  Sle = 'SLE',
+  | 'SLE'
   /** Somali Shilling (Somalia) - 2 decimals */
-  Sos = 'SOS',
+  | 'SOS'
   /** Surinamese Dollar (Suriname) - 2 decimals */
-  Srd = 'SRD',
+  | 'SRD'
   /** South Sudanese Pound - 2 decimals */
-  Ssp = 'SSP',
+  | 'SSP'
   /** São Tomé and Príncipe Dobra - 2 decimals */
-  Stn = 'STN',
+  | 'STN'
   /** Salvadoran Colón (El Salvador) - 2 decimals */
-  Svc = 'SVC',
+  | 'SVC'
   /** Syrian Pound (Syria) - 2 decimals */
-  Syp = 'SYP',
+  | 'SYP'
   /** Eswatini Lilangeni (Eswatini) - 2 decimals */
-  Szl = 'SZL',
+  | 'SZL'
   /** Thai Baht (Thailand) - 2 decimals */
-  Thb = 'THB',
+  | 'THB'
   /** Tajikistani Somoni (Tajikistan) - 2 decimals */
-  Tjs = 'TJS',
+  | 'TJS'
   /** Turkmenistani Manat (Turkmenistan) - 2 decimals */
-  Tmt = 'TMT',
+  | 'TMT'
   /** Tunisian Dinar (Tunisia) - 3 decimals */
-  Tnd = 'TND',
+  | 'TND'
   /** Tongan Paʻanga (Tonga) - 2 decimals */
-  Top = 'TOP',
+  | 'TOP'
   /** Turkish Lira (Turkey) - 2 decimals */
-  Try = 'TRY',
+  | 'TRY'
   /** Trinidad and Tobago Dollar - 2 decimals */
-  Ttd = 'TTD',
+  | 'TTD'
   /** New Taiwan Dollar (Taiwan) - 2 decimals */
-  Twd = 'TWD',
+  | 'TWD'
   /** Tanzanian Shilling (Tanzania) - 2 decimals */
-  Tzs = 'TZS',
+  | 'TZS'
   /** Ukrainian Hryvnia (Ukraine) - 2 decimals */
-  Uah = 'UAH',
+  | 'UAH'
   /** Ugandan Shilling (Uganda) - 0 decimals */
-  Ugx = 'UGX',
+  | 'UGX'
   /** United States Dollar (USA) - 2 decimals */
-  Usd = 'USD',
+  | 'USD'
   /** Uruguayan Peso (Uruguay) - 2 decimals */
-  Uyu = 'UYU',
+  | 'UYU'
   /** Uzbekistani Som (Uzbekistan) - 2 decimals */
-  Uzs = 'UZS',
+  | 'UZS'
   /** Venezuelan Bolívar (Venezuela) - 2 decimals */
-  Ves = 'VES',
+  | 'VES'
   /** Vietnamese Dong (Vietnam) - 0 decimals */
-  Vnd = 'VND',
+  | 'VND'
   /** Vanuatu Vatu (Vanuatu) - 0 decimals */
-  Vuv = 'VUV',
+  | 'VUV'
   /** Samoan Tala (Samoa) - 2 decimals */
-  Wst = 'WST',
+  | 'WST'
   /** Central African CFA Franc - 0 decimals */
-  Xaf = 'XAF',
+  | 'XAF'
   /** East Caribbean Dollar - 2 decimals */
-  Xcd = 'XCD',
+  | 'XCD'
   /** Special Drawing Rights (IMF) - 0 decimals */
-  Xdr = 'XDR',
+  | 'XDR'
   /** West African CFA Franc - 0 decimals */
-  Xof = 'XOF',
+  | 'XOF'
   /** CFP Franc - 0 decimals */
-  Xpf = 'XPF',
+  | 'XPF'
   /** Yemeni Rial (Yemen) - 2 decimals */
-  Yer = 'YER',
+  | 'YER'
   /** South African Rand (South Africa) - 2 decimals */
-  Zar = 'ZAR',
+  | 'ZAR'
   /** Zambian Kwacha (Zambia) - 2 decimals */
-  Zmw = 'ZMW',
+  | 'ZMW'
   /** Zimbabwean Dollar (Zimbabwe) - 2 decimals */
-  Zwl = 'ZWL'
-}
+  | 'ZWL';
 
 /** Input for creating a new currency */
 export type ApiCurrencyCreateInput = {
@@ -2666,16 +2654,15 @@ export type ApiDependencyActionPayload = {
 };
 
 /** The type of action to perform when a dependency rule matches. */
-export enum DependencyActionType {
+export type DependencyActionType =
   /** Adjust the price of the target */
-  AdjustPrice = 'ADJUST_PRICE',
+  | 'ADJUST_PRICE'
   /** Hide the target */
-  Hide = 'HIDE',
+  | 'HIDE'
   /** Make the target required */
-  SetRequired = 'SET_REQUIRED',
+  | 'SET_REQUIRED'
   /** Show the target */
-  Show = 'SHOW'
-}
+  | 'SHOW';
 
 export type ApiDependencyActionUpdateInput = {
   actionType?: InputMaybe<DependencyActionType>;
@@ -2727,28 +2714,26 @@ export type ApiDependencyRuleUpdateInput = {
 };
 
 /** The target type for conditions and actions. */
-export enum DependencyTargetType {
+export type DependencyTargetType =
   /** Target the entire bundle */
-  Bundle = 'BUNDLE',
+  | 'BUNDLE'
   /** Target an entire bundle group */
-  Group = 'GROUP',
+  | 'GROUP'
   /** Target a specific bundle item */
-  Item = 'ITEM'
-}
+  | 'ITEM';
 
 /** Dimension (length) measurement units */
-export enum DimensionUnit {
+export type DimensionUnit =
   /** Centimeter */
-  Cm = 'cm',
+  | 'cm'
   /** Foot */
-  Ft = 'ft',
+  | 'ft'
   /** Inch */
-  In = 'in',
+  | 'in'
   /** Meter */
-  M = 'm',
+  | 'm'
   /** Millimeter */
-  Mm = 'mm'
-}
+  | 'mm';
 
 /** Input for setting dimensions (in millimeters). */
 export type ApiDimensionsInput = {
@@ -2868,10 +2853,9 @@ export type ApiFacetGroupUpdatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
-export enum FacetSelectionMode {
-  Multi = 'MULTI',
-  Single = 'SINGLE'
-}
+export type FacetSelectionMode =
+  | 'MULTI'
+  | 'SINGLE';
 
 export type ApiFacetSwatch = ApiNode & {
   __typename?: 'FacetSwatch';
@@ -2922,21 +2906,19 @@ export type ApiFacetSwatchUpdatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
-export enum FacetType {
-  Feature = 'FEATURE',
-  InStock = 'IN_STOCK',
-  Option = 'OPTION',
-  Price = 'PRICE',
-  Tag = 'TAG'
-}
+export type FacetType =
+  | 'FEATURE'
+  | 'IN_STOCK'
+  | 'OPTION'
+  | 'PRICE'
+  | 'TAG';
 
-export enum FacetUiType {
-  Boolean = 'BOOLEAN',
-  Checkbox = 'CHECKBOX',
-  Dropdown = 'DROPDOWN',
-  Radio = 'RADIO',
-  Range = 'RANGE'
-}
+export type FacetUiType =
+  | 'BOOLEAN'
+  | 'CHECKBOX'
+  | 'DROPDOWN'
+  | 'RADIO'
+  | 'RANGE';
 
 export type ApiFacetUpdateInput = {
   groupId?: InputMaybe<Scalars['ID']['input']>;
@@ -2996,11 +2978,10 @@ export type ApiFacetValueDeletePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
-export enum FacetValueSort {
-  Alpha = 'ALPHA',
-  Count = 'COUNT',
-  Custom = 'CUSTOM'
-}
+export type FacetValueSort =
+  | 'ALPHA'
+  | 'COUNT'
+  | 'CUSTOM';
 
 export type ApiFacetValueUpdateInput = {
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
@@ -3199,56 +3180,54 @@ export type ApiFileOrderByInput = {
 };
 
 /** Fields available for sorting File */
-export enum FileOrderField {
+export type FileOrderField =
   /** Sort by altText */
-  AltText = 'altText',
+  | 'altText'
   /** Sort by createdAt */
-  CreatedAt = 'createdAt',
+  | 'createdAt'
   /** Sort by durationMs */
-  DurationMs = 'durationMs',
+  | 'durationMs'
   /** Sort by ext */
-  Ext = 'ext',
+  | 'ext'
   /** Sort by height */
-  Height = 'height',
+  | 'height'
   /** Sort by id */
-  Id = 'id',
+  | 'id'
   /** Sort by idempotencyKey */
-  IdempotencyKey = 'idempotencyKey',
+  | 'idempotencyKey'
   /** Sort by isProcessed */
-  IsProcessed = 'isProcessed',
+  | 'isProcessed'
   /** Sort by meta */
-  Meta = 'meta',
+  | 'meta'
   /** Sort by mimeType */
-  MimeType = 'mimeType',
+  | 'mimeType'
   /** Sort by originalName */
-  OriginalName = 'originalName',
+  | 'originalName'
   /** Sort by provider */
-  Provider = 'provider',
+  | 'provider'
   /** Sort by sizeBytes */
-  SizeBytes = 'sizeBytes',
+  | 'sizeBytes'
   /** Sort by sourceUrl */
-  SourceUrl = 'sourceUrl',
+  | 'sourceUrl'
   /** Sort by updatedAt */
-  UpdatedAt = 'updatedAt',
+  | 'updatedAt'
   /** Sort by url */
-  Url = 'url',
+  | 'url'
   /** Sort by width */
-  Width = 'width'
-}
+  | 'width';
 
 /** Provider type for files. */
-export enum FileProvider {
+export type FileProvider =
   /** Local file storage */
-  Local = 'LOCAL',
+  | 'LOCAL'
   /** File stored in S3 */
-  S3 = 'S3',
+  | 'S3'
   /** External URL */
-  Url = 'URL',
+  | 'URL'
   /** Vimeo video */
-  Vimeo = 'VIMEO',
+  | 'VIMEO'
   /** YouTube video */
-  Youtube = 'YOUTUBE'
-}
+  | 'YOUTUBE';
 
 export type ApiFileRestoreInput = {
   /** The ID of the file to restore. */
@@ -3761,280 +3740,279 @@ export type ApiLocale = {
 };
 
 /** Language/Locale codes based on ISO 639-1 and BCP 47 */
-export enum LocaleCode {
+export type LocaleCode =
   /** Akan */
-  Ak = 'ak',
+  | 'ak'
   /** Amharic */
-  Am = 'am',
+  | 'am'
   /** Arabic */
-  Ar = 'ar',
+  | 'ar'
   /** Assamese */
-  As = 'as',
+  | 'as'
   /** Azerbaijani */
-  Az = 'az',
+  | 'az'
   /** Belarusian */
-  Be = 'be',
+  | 'be'
   /** Bulgarian */
-  Bg = 'bg',
+  | 'bg'
   /** Bambara */
-  Bm = 'bm',
+  | 'bm'
   /** Bangla */
-  Bn = 'bn',
+  | 'bn'
   /** Tibetan */
-  Bo = 'bo',
+  | 'bo'
   /** Breton */
-  Br = 'br',
+  | 'br'
   /** Bosnian */
-  Bs = 'bs',
+  | 'bs'
   /** Catalan */
-  Ca = 'ca',
+  | 'ca'
   /** Chechen */
-  Ce = 'ce',
+  | 'ce'
   /** Central Kurdish */
-  Ckb = 'ckb',
+  | 'ckb'
   /** Czech */
-  Cs = 'cs',
+  | 'cs'
   /** Welsh */
-  Cy = 'cy',
+  | 'cy'
   /** Danish */
-  Da = 'da',
+  | 'da'
   /** German */
-  De = 'de',
+  | 'de'
   /** Dzongkha */
-  Dz = 'dz',
+  | 'dz'
   /** Ewe */
-  Ee = 'ee',
+  | 'ee'
   /** Greek */
-  El = 'el',
+  | 'el'
   /** English */
-  En = 'en',
+  | 'en'
   /** Esperanto */
-  Eo = 'eo',
+  | 'eo'
   /** Spanish */
-  Es = 'es',
+  | 'es'
   /** Estonian */
-  Et = 'et',
+  | 'et'
   /** Basque */
-  Eu = 'eu',
+  | 'eu'
   /** Persian */
-  Fa = 'fa',
+  | 'fa'
   /** Fulah */
-  Ff = 'ff',
+  | 'ff'
   /** Finnish */
-  Fi = 'fi',
+  | 'fi'
   /** Filipino */
-  Fil = 'fil',
+  | 'fil'
   /** Faroese */
-  Fo = 'fo',
+  | 'fo'
   /** French */
-  Fr = 'fr',
+  | 'fr'
   /** Western Frisian */
-  Fy = 'fy',
+  | 'fy'
   /** Irish */
-  Ga = 'ga',
+  | 'ga'
   /** Scottish Gaelic */
-  Gd = 'gd',
+  | 'gd'
   /** Galician */
-  Gl = 'gl',
+  | 'gl'
   /** Gujarati */
-  Gu = 'gu',
+  | 'gu'
   /** Manx */
-  Gv = 'gv',
+  | 'gv'
   /** Hausa */
-  Ha = 'ha',
+  | 'ha'
   /** Hebrew */
-  He = 'he',
+  | 'he'
   /** Hindi */
-  Hi = 'hi',
+  | 'hi'
   /** Croatian */
-  Hr = 'hr',
+  | 'hr'
   /** Hungarian */
-  Hu = 'hu',
+  | 'hu'
   /** Armenian */
-  Hy = 'hy',
+  | 'hy'
   /** Interlingua */
-  Ia = 'ia',
+  | 'ia'
   /** Indonesian */
-  Id = 'id',
+  | 'id'
   /** Igbo */
-  Ig = 'ig',
+  | 'ig'
   /** Sichuan Yi */
-  Ii = 'ii',
+  | 'ii'
   /** Icelandic */
-  Is = 'is',
+  | 'is'
   /** Italian */
-  It = 'it',
+  | 'it'
   /** Japanese */
-  Ja = 'ja',
+  | 'ja'
   /** Javanese */
-  Jv = 'jv',
+  | 'jv'
   /** Georgian */
-  Ka = 'ka',
+  | 'ka'
   /** Kikuyu */
-  Ki = 'ki',
+  | 'ki'
   /** Kazakh */
-  Kk = 'kk',
+  | 'kk'
   /** Kalaallisut */
-  Kl = 'kl',
+  | 'kl'
   /** Khmer */
-  Km = 'km',
+  | 'km'
   /** Kannada */
-  Kn = 'kn',
+  | 'kn'
   /** Korean */
-  Ko = 'ko',
+  | 'ko'
   /** Kashmiri */
-  Ks = 'ks',
+  | 'ks'
   /** Kurdish */
-  Ku = 'ku',
+  | 'ku'
   /** Cornish */
-  Kw = 'kw',
+  | 'kw'
   /** Kyrgyz */
-  Ky = 'ky',
+  | 'ky'
   /** Luxembourgish */
-  Lb = 'lb',
+  | 'lb'
   /** Ganda */
-  Lg = 'lg',
+  | 'lg'
   /** Lingala */
-  Ln = 'ln',
+  | 'ln'
   /** Lao */
-  Lo = 'lo',
+  | 'lo'
   /** Lithuanian */
-  Lt = 'lt',
+  | 'lt'
   /** Luba-Katanga */
-  Lu = 'lu',
+  | 'lu'
   /** Latvian */
-  Lv = 'lv',
+  | 'lv'
   /** Malagasy */
-  Mg = 'mg',
+  | 'mg'
   /** Māori */
-  Mi = 'mi',
+  | 'mi'
   /** Macedonian */
-  Mk = 'mk',
+  | 'mk'
   /** Malayalam */
-  Ml = 'ml',
+  | 'ml'
   /** Mongolian */
-  Mn = 'mn',
+  | 'mn'
   /** Marathi */
-  Mr = 'mr',
+  | 'mr'
   /** Malay */
-  Ms = 'ms',
+  | 'ms'
   /** Maltese */
-  Mt = 'mt',
+  | 'mt'
   /** Burmese */
-  My = 'my',
+  | 'my'
   /** Norwegian Bokmål */
-  Nb = 'nb',
+  | 'nb'
   /** North Ndebele */
-  Nd = 'nd',
+  | 'nd'
   /** Nepali */
-  Ne = 'ne',
+  | 'ne'
   /** Dutch */
-  Nl = 'nl',
+  | 'nl'
   /** Norwegian Nynorsk */
-  Nn = 'nn',
+  | 'nn'
   /** Norwegian */
-  No = 'no',
+  | 'no'
   /** Oromo */
-  Om = 'om',
+  | 'om'
   /** Odia */
-  Or = 'or',
+  | 'or'
   /** Ossetic */
-  Os = 'os',
+  | 'os'
   /** Punjabi */
-  Pa = 'pa',
+  | 'pa'
   /** Polish */
-  Pl = 'pl',
+  | 'pl'
   /** Pashto */
-  Ps = 'ps',
+  | 'ps'
   /** Portuguese (Brazil) */
-  PtBr = 'pt_BR',
+  | 'pt_BR'
   /** Portuguese (Portugal) */
-  PtPt = 'pt_PT',
+  | 'pt_PT'
   /** Quechua */
-  Qu = 'qu',
+  | 'qu'
   /** Romansh */
-  Rm = 'rm',
+  | 'rm'
   /** Rundi */
-  Rn = 'rn',
+  | 'rn'
   /** Romanian */
-  Ro = 'ro',
+  | 'ro'
   /** Russian */
-  Ru = 'ru',
+  | 'ru'
   /** Kinyarwanda */
-  Rw = 'rw',
+  | 'rw'
   /** Sanskrit */
-  Sa = 'sa',
+  | 'sa'
   /** Sardinian */
-  Sc = 'sc',
+  | 'sc'
   /** Sindhi */
-  Sd = 'sd',
+  | 'sd'
   /** Northern Sami */
-  Se = 'se',
+  | 'se'
   /** Sango */
-  Sg = 'sg',
+  | 'sg'
   /** Sinhala */
-  Si = 'si',
+  | 'si'
   /** Slovak */
-  Sk = 'sk',
+  | 'sk'
   /** Slovenian */
-  Sl = 'sl',
+  | 'sl'
   /** Shona */
-  Sn = 'sn',
+  | 'sn'
   /** Somali */
-  So = 'so',
+  | 'so'
   /** Albanian */
-  Sq = 'sq',
+  | 'sq'
   /** Serbian */
-  Sr = 'sr',
+  | 'sr'
   /** Sundanese */
-  Su = 'su',
+  | 'su'
   /** Swedish */
-  Sv = 'sv',
+  | 'sv'
   /** Swahili */
-  Sw = 'sw',
+  | 'sw'
   /** Tamil */
-  Ta = 'ta',
+  | 'ta'
   /** Telugu */
-  Te = 'te',
+  | 'te'
   /** Tajik */
-  Tg = 'tg',
+  | 'tg'
   /** Thai */
-  Th = 'th',
+  | 'th'
   /** Tigrinya */
-  Ti = 'ti',
+  | 'ti'
   /** Turkmen */
-  Tk = 'tk',
+  | 'tk'
   /** Tongan */
-  To = 'to',
+  | 'to'
   /** Turkish */
-  Tr = 'tr',
+  | 'tr'
   /** Tatar */
-  Tt = 'tt',
+  | 'tt'
   /** Uyghur */
-  Ug = 'ug',
+  | 'ug'
   /** Ukrainian */
-  Uk = 'uk',
+  | 'uk'
   /** Urdu */
-  Ur = 'ur',
+  | 'ur'
   /** Uzbek */
-  Uz = 'uz',
+  | 'uz'
   /** Vietnamese */
-  Vi = 'vi',
+  | 'vi'
   /** Wolof */
-  Wo = 'wo',
+  | 'wo'
   /** Xhosa */
-  Xh = 'xh',
+  | 'xh'
   /** Yiddish */
-  Yi = 'yi',
+  | 'yi'
   /** Yoruba */
-  Yo = 'yo',
+  | 'yo'
   /** Chinese (Simplified) */
-  ZhCn = 'zh_CN',
+  | 'zh_CN'
   /** Chinese (Traditional) */
-  ZhTw = 'zh_TW',
+  | 'zh_TW'
   /** Zulu */
-  Zu = 'zu'
-}
+  | 'zu';
 
 /** Input for creating a new locale */
 export type ApiLocaleCreateInput = {
@@ -4084,10 +4062,9 @@ export type ApiLocaleUpdatePayload = {
 };
 
 /** Logic operator for combining conditions or condition groups. */
-export enum LogicOperator {
-  And = 'AND',
-  Or = 'OR'
-}
+export type LogicOperator =
+  | 'AND'
+  | 'OR';
 
 /** Image/video dimensions. */
 export type ApiMediaDimensions = {
@@ -4350,11 +4327,10 @@ export type ApiNode = {
 };
 
 /** The operator for numeric conditions. */
-export enum NumericOperator {
-  Eq = 'EQ',
-  Gte = 'GTE',
-  Lte = 'LTE'
-}
+export type NumericOperator =
+  | 'EQ'
+  | 'GTE'
+  | 'LTE';
 
 /** Result of a single operation in the unified update. */
 export type ApiOperationResult = {
@@ -4368,17 +4344,15 @@ export type ApiOperationResult = {
 };
 
 /** Type of operation in the unified update. */
-export enum OperationType {
-  ProductUpdate = 'PRODUCT_UPDATE',
-  VariantUpdate = 'VARIANT_UPDATE'
-}
+export type OperationType =
+  | 'PRODUCT_UPDATE'
+  | 'VARIANT_UPDATE';
 
 /** Display type for product options in the UI. */
-export enum OptionDisplayType {
-  Buttons = 'BUTTONS',
-  Dropdown = 'DROPDOWN',
-  Swatch = 'SWATCH'
-}
+export type OptionDisplayType =
+  | 'BUTTONS'
+  | 'DROPDOWN'
+  | 'SWATCH';
 
 export type ApiOrder = {
   __typename?: 'Order';
@@ -4418,13 +4392,12 @@ export type ApiOrderCancelInput = {
   reason: OrderCancelReason;
 };
 
-export enum OrderCancelReason {
-  Customer = 'CUSTOMER',
-  Fraud = 'FRAUD',
-  Inventory = 'INVENTORY',
-  Other = 'OTHER',
-  Staff = 'STAFF'
-}
+export type OrderCancelReason =
+  | 'CUSTOMER'
+  | 'FRAUD'
+  | 'INVENTORY'
+  | 'OTHER'
+  | 'STAFF';
 
 export type ApiOrderCloseInput = {
   comment?: InputMaybe<Scalars['String']['input']>;
@@ -4477,9 +4450,8 @@ export type ApiOrderEvent = {
   performedBy: ApiOrderActor;
 };
 
-export enum OrderEventType {
-  OrderCreated = 'ORDER_CREATED'
-}
+export type OrderEventType =
+  | 'ORDER_CREATED';
 
 export type ApiOrderLine = {
   __typename?: 'OrderLine';
@@ -4540,12 +4512,11 @@ export type ApiOrderQueryOrdersArgs = {
   input?: InputMaybe<ApiOrdersInput>;
 };
 
-export enum OrderStatus {
-  Active = 'ACTIVE',
-  Cancelled = 'CANCELLED',
-  Closed = 'CLOSED',
-  Draft = 'DRAFT'
-}
+export type OrderStatus =
+  | 'ACTIVE'
+  | 'CANCELLED'
+  | 'CLOSED'
+  | 'DRAFT';
 
 export type ApiOrdersInput = {
   order?: InputMaybe<Scalars['String']['input']>;
@@ -4718,16 +4689,15 @@ export type ApiOrganizationOrderByInput = {
 };
 
 /** Fields available for sorting Organization */
-export enum OrganizationOrderField {
+export type OrganizationOrderField =
   /** Sort by createdAt */
-  CreatedAt = 'createdAt',
+  | 'createdAt'
   /** Sort by displayName */
-  DisplayName = 'displayName',
+  | 'displayName'
   /** Sort by name */
-  Name = 'name',
+  | 'name'
   /** Sort by updatedAt */
-  UpdatedAt = 'updatedAt'
-}
+  | 'updatedAt';
 
 /** Organization queries. */
 export type ApiOrganizationQuery = {
@@ -5512,27 +5482,24 @@ export type ApiProductSeoInput = {
   seoTitle?: InputMaybe<Scalars['String']['input']>;
 };
 
-export enum ProductSortBy {
-  Manual = 'MANUAL',
-  Name = 'NAME',
-  Newest = 'NEWEST',
-  Price = 'PRICE'
-}
+export type ProductSortBy =
+  | 'MANUAL'
+  | 'NAME'
+  | 'NEWEST'
+  | 'PRICE';
 
 export type ApiProductSortInput = {
   by: ProductSortBy;
   direction?: InputMaybe<SortDirection>;
 };
 
-export enum ProductStatus {
-  Draft = 'DRAFT',
-  Published = 'PUBLISHED'
-}
+export type ProductStatus =
+  | 'DRAFT'
+  | 'PUBLISHED';
 
-export enum ProductStatusAction {
-  Publish = 'PUBLISH',
-  Unpublish = 'UNPUBLISH'
-}
+export type ProductStatusAction =
+  | 'PUBLISH'
+  | 'UNPUBLISH';
 
 /** Input for product-level fields in the unified update. */
 export type ApiProductUpdateInput = {
@@ -5908,16 +5875,14 @@ export type ApiSkuStatusMetric = {
 };
 
 /** Sort direction */
-export enum SortDirection {
-  Asc = 'asc',
-  Desc = 'desc'
-}
+export type SortDirection =
+  | 'asc'
+  | 'desc';
 
 /** The operator for state check conditions. */
-export enum StateCheckOperator {
-  IsNotSelected = 'IS_NOT_SELECTED',
-  IsSelected = 'IS_SELECTED'
-}
+export type StateCheckOperator =
+  | 'IS_NOT_SELECTED'
+  | 'IS_SELECTED';
 
 /** A store */
 export type ApiStore = {
@@ -6125,12 +6090,11 @@ export type ApiStoreQueryStoresArgs = {
 };
 
 /** Status of a store */
-export enum StoreStatus {
+export type StoreStatus =
   /** Store is active and operational */
-  Active = 'ACTIVE',
+  | 'ACTIVE'
   /** Store is inactive and not processing requests */
-  Inactive = 'INACTIVE'
-}
+  | 'INACTIVE';
 
 /** Input for updating an existing store */
 export type ApiStoreUpdateInput = {
@@ -6190,11 +6154,10 @@ export type ApiStringFilter = {
 };
 
 /** Type of visual swatch for option values. */
-export enum SwatchType {
-  Color = 'COLOR',
-  Gradient = 'GRADIENT',
-  Image = 'IMAGE'
-}
+export type SwatchType =
+  | 'COLOR'
+  | 'GRADIENT'
+  | 'IMAGE';
 
 /** A tag represents a simple label for organizing and filtering products. */
 export type ApiTag = ApiNode & {
@@ -6293,10 +6256,9 @@ export type ApiTagUpdatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
-export enum ThresholdMethod {
-  ReorderPoint = 'REORDER_POINT',
-  SafetyStock = 'SAFETY_STOCK'
-}
+export type ThresholdMethod =
+  | 'REORDER_POINT'
+  | 'SAFETY_STOCK';
 
 /** User type representing admin users (CMS/backoffice). */
 export type ApiUser = {
@@ -6993,20 +6955,19 @@ export type ApiWarehouseOrderByInput = {
 };
 
 /** Fields available for sorting Warehouse */
-export enum WarehouseOrderField {
+export type WarehouseOrderField =
   /** Sort by code */
-  Code = 'code',
+  | 'code'
   /** Sort by createdAt */
-  CreatedAt = 'createdAt',
+  | 'createdAt'
   /** Sort by id */
-  Id = 'id',
+  | 'id'
   /** Sort by isDefault */
-  IsDefault = 'isDefault',
+  | 'isDefault'
   /** Sort by name */
-  Name = 'name',
+  | 'name'
   /** Sort by updatedAt */
-  UpdatedAt = 'updatedAt'
-}
+  | 'updatedAt';
 
 /** Represents stock level for a variant in a specific warehouse. */
 export type ApiWarehouseStock = ApiNode & {
@@ -7070,20 +7031,19 @@ export type ApiWarehouseStockOrderByInput = {
 };
 
 /** Fields available for sorting WarehouseStock */
-export enum WarehouseStockOrderField {
+export type WarehouseStockOrderField =
   /** Sort by createdAt */
-  CreatedAt = 'createdAt',
+  | 'createdAt'
   /** Sort by id */
-  Id = 'id',
+  | 'id'
   /** Sort by quantityOnHand */
-  QuantityOnHand = 'quantityOnHand',
+  | 'quantityOnHand'
   /** Sort by updatedAt */
-  UpdatedAt = 'updatedAt',
+  | 'updatedAt'
   /** Sort by variantId */
-  VariantId = 'variantId',
+  | 'variantId'
   /** Sort by warehouseId */
-  WarehouseId = 'warehouseId'
-}
+  | 'warehouseId';
 
 /** Filter conditions for WarehouseStock */
 export type ApiWarehouseStockWhereInput = {
@@ -7163,16 +7123,15 @@ export type ApiWeightInput = {
 };
 
 /** Weight measurement units */
-export enum WeightUnit {
+export type WeightUnit =
   /** Gram */
-  G = 'g',
+  | 'g'
   /** Kilogram */
-  Kg = 'kg',
+  | 'kg'
   /** Pound */
-  Lb = 'lb',
+  | 'lb'
   /** Ounce */
-  Oz = 'oz'
-}
+  | 'oz';
 
 /** Widget query namespace for dashboard widgets. */
 export type ApiWidgetQuery = {
@@ -7198,19 +7157,17 @@ export type ApiWidgetQueryPricingArgs = {
   input: ApiPricingWidgetInput;
 };
 
-export enum Join__Graph {
-  AppsAdmin = 'APPS_ADMIN',
-  CatalogAdmin = 'CATALOG_ADMIN',
-  IamAdmin = 'IAM_ADMIN',
-  InventoryAdmin = 'INVENTORY_ADMIN',
-  MediaAdmin = 'MEDIA_ADMIN',
-  OrdersAdmin = 'ORDERS_ADMIN',
-  ProjectAdmin = 'PROJECT_ADMIN'
-}
+export type Join__Graph =
+  | 'APPS_ADMIN'
+  | 'CATALOG_ADMIN'
+  | 'IAM_ADMIN'
+  | 'INVENTORY_ADMIN'
+  | 'MEDIA_ADMIN'
+  | 'ORDERS_ADMIN'
+  | 'PROJECT_ADMIN';
 
-export enum Link__Purpose {
+export type Link__Purpose =
   /** `EXECUTION` features provide metadata necessary for operation execution. */
-  Execution = 'EXECUTION',
+  | 'EXECUTION'
   /** `SECURITY` features provide metadata necessary to securely resolve fields. */
-  Security = 'SECURITY'
-}
+  | 'SECURITY';

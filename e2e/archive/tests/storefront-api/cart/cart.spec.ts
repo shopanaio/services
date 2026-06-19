@@ -1,14 +1,13 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import { EntityStatus, WeightUnit } from '@codegen/admin-gql';
-import { CurrencyCode } from '@codegen/client-gql';
+
 import { composeGlobalId, TypeName } from '@utils/globalid';
 
 test.describe.skip('Cart API', () => {
   test('Create empty cart', async ({ api }) => {
     await api.session.setupClient();
     const { data } = await api.client.cart.create({
-      currencyCode: CurrencyCode.Usd,
+      currencyCode: 'USD',
       items: [],
     });
     expect(data?.createCart?.cart?.id).toBeDefined();
@@ -21,7 +20,7 @@ test.describe.skip('Cart API', () => {
     const product = await api.admin.product.create({
       input: {
         title: 'Test Product',
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         slug: `test-product-${Date.now()}`,
         groups: [],
         requiresShipping: true,
@@ -36,7 +35,7 @@ test.describe.skip('Cart API', () => {
               categories: [],
               variantSortIndex: 0,
               weight: 0,
-              weightUnit: WeightUnit.Gr,
+              weightUnit: 'g',
             },
           ],
         },
@@ -46,7 +45,7 @@ test.describe.skip('Cart API', () => {
     await api.session.setupApiKey();
     const variantId = product.variants[0].id;
     const { data } = await api.client.cart.create({
-      currencyCode: CurrencyCode.Usd,
+      currencyCode: 'USD',
       items: [
         {
           productId: composeGlobalId(TypeName.ProductVariant, variantId),
@@ -65,7 +64,7 @@ test.describe.skip('Cart API', () => {
     await api.admin.product.create({
       input: {
         title: 'Test Product',
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         slug: handle,
         groups: [],
         requiresShipping: true,
@@ -89,7 +88,7 @@ test.describe.skip('Cart API', () => {
     await api.session.setupApiKey();
     const product = await api.client.product.get(handle);
     const { data: createData } = await api.client.cart.create({
-      currencyCode: CurrencyCode.Usd,
+      currencyCode: 'USD',
       items: [],
     });
 
@@ -113,7 +112,7 @@ test.describe.skip('Cart API', () => {
     await api.admin.product.create({
       input: {
         title: 'Test Product',
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         slug: `test-product-${Date.now()}`,
         groups: [],
         requiresShipping: true,
@@ -129,7 +128,7 @@ test.describe.skip('Cart API', () => {
               categories: [],
               variantSortIndex: 0,
               weight: 0,
-              weightUnit: WeightUnit.Gr,
+              weightUnit: 'g',
             },
           ],
         },
@@ -139,7 +138,7 @@ test.describe.skip('Cart API', () => {
     await api.session.setupApiKey();
     const product = await api.client.product.get(handle);
     const { data: createData } = await api.client.cart.create({
-      currencyCode: CurrencyCode.Usd,
+      currencyCode: 'USD',
       items: [
         {
           productId: product.id,
@@ -169,7 +168,7 @@ test.describe.skip('Cart API', () => {
     await api.admin.product.create({
       input: {
         title: 'Test Product',
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         slug: handle,
         groups: [],
         requiresShipping: true,
@@ -185,7 +184,7 @@ test.describe.skip('Cart API', () => {
               categories: [],
               variantSortIndex: 0,
               weight: 0,
-              weightUnit: WeightUnit.Gr,
+              weightUnit: 'g',
             },
           ],
         },
@@ -195,7 +194,7 @@ test.describe.skip('Cart API', () => {
     await api.session.setupApiKey();
     const product = await api.client.product.get(handle);
     const { data: createData } = await api.client.cart.create({
-      currencyCode: CurrencyCode.Usd,
+      currencyCode: 'USD',
       items: [
         {
           productId: product.id,
@@ -223,7 +222,7 @@ test.describe.skip('Cart API', () => {
     await api.admin.product.create({
       input: {
         title: 'Test Product',
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         slug: handle,
         groups: [],
         requiresShipping: true,
@@ -239,7 +238,7 @@ test.describe.skip('Cart API', () => {
               categories: [],
               variantSortIndex: 0,
               weight: 0,
-              weightUnit: WeightUnit.Gr,
+              weightUnit: 'g',
             },
           ],
         },
@@ -249,7 +248,7 @@ test.describe.skip('Cart API', () => {
     await api.session.setupApiKey();
     const product = await api.client.product.get(handle);
     const { data: createData } = await api.client.cart.create({
-      currencyCode: CurrencyCode.Usd,
+      currencyCode: 'USD',
       items: [
         {
           productId: product.id,
@@ -274,7 +273,7 @@ test.describe.skip('Cart API', () => {
     await api.admin.product.create({
       input: {
         title: 'Test Product',
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         slug: handle,
         groups: [],
         requiresShipping: true,
@@ -290,7 +289,7 @@ test.describe.skip('Cart API', () => {
               categories: [],
               variantSortIndex: 0,
               weight: 0,
-              weightUnit: WeightUnit.Gr,
+              weightUnit: 'g',
             },
           ],
         },
@@ -300,7 +299,7 @@ test.describe.skip('Cart API', () => {
     await api.session.setupApiKey();
     const product = await api.client.product.get(handle);
     const { data: createData } = await api.client.cart.create({
-      currencyCode: CurrencyCode.Usd,
+      currencyCode: 'USD',
       items: [
         {
           productId: product.id,
@@ -326,7 +325,7 @@ test.describe.skip('Cart API', () => {
     const product = await api.admin.product.create({
       input: {
         title: 'Zero Price Test Product',
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         slug: handle,
         groups: [],
         requiresShipping: true,
@@ -363,7 +362,7 @@ test.describe.skip('Cart API', () => {
     const paidProductId = composeGlobalId(TypeName.ProductVariant, paidVariantId);
 
     const { data: createData } = await api.client.cart.create({
-      currencyCode: CurrencyCode.Usd,
+      currencyCode: 'USD',
       items: [
         {
           productId: paidProductId,
@@ -434,7 +433,7 @@ test.describe.skip('Cart API', () => {
     const product = await api.admin.product.create({
       input: {
         title: 'Test Product',
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         slug: handle,
         groups: [],
         requiresShipping: true,
@@ -470,7 +469,7 @@ test.describe.skip('Cart API', () => {
     const productIdB = composeGlobalId(TypeName.ProductVariant, variantIdB);
 
     const { data: createData } = await api.client.cart.create({
-      currencyCode: CurrencyCode.Usd,
+      currencyCode: 'USD',
       items: [
         {
           productId: productIdA,

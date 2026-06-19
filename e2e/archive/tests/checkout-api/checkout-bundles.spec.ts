@@ -1,9 +1,11 @@
-import { EntityStatus, ProductGroupPriceType } from '@codegen/admin-gql';
+
 import type { ApiCheckoutLine } from '@codegen/client-gql';
-import { CurrencyCode } from '@codegen/client-gql';
+
 import type { ApiFixtures } from '@fixtures/api/api';
 import { test } from '@fixtures/api/api';
 import { expect } from '@playwright/test';
+
+type ProductGroupPriceType = 'BASE' | 'FREE' | 'BASE_ADJUST_PERCENT' | 'BASE_ADJUST_AMOUNT' | 'BASE_OVERRIDE';
 
 // Extended type for children with bundle-specific fields not yet in codegen
 type ChildLine = ApiCheckoutLine & {
@@ -49,7 +51,7 @@ test.describe('checkout-api: bundles (children items)', () => {
     const child1Product = await api.admin.product.create({
       input: {
         title: 'Bundle Child Product 1',
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         slug: child1Handle,
         groups: [],
         requiresShipping: true,
@@ -75,7 +77,7 @@ test.describe('checkout-api: bundles (children items)', () => {
     const child2Product = await api.admin.product.create({
       input: {
         title: 'Bundle Child Product 2',
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         slug: child2Handle,
         groups: [],
         requiresShipping: true,
@@ -128,7 +130,7 @@ test.describe('checkout-api: bundles (children items)', () => {
     const parentProduct = await api.admin.product.create({
       input: {
         title: 'Bundle Parent Product',
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         slug: parentHandle,
         groups: [],
         requiresShipping: true,
@@ -189,14 +191,14 @@ test.describe('checkout-api: bundles (children items)', () => {
     const products = await createTestProducts(
       api,
       { parent: 5000, child1: 2000, child2: 1500 },
-      { child1: { priceType: ProductGroupPriceType.Free } },
+      { child1: { priceType: 'FREE' } },
     );
 
     api.session.setCustomerScope();
 
     const { data: createData } = await api.client.checkout.create({
       localeCode: 'en',
-      currencyCode: CurrencyCode.Usd,
+      currencyCode: 'USD',
       items: [],
     });
     const checkoutId = createData.checkoutMutation.checkoutCreate.id;
@@ -241,14 +243,14 @@ test.describe('checkout-api: bundles (children items)', () => {
     const products = await createTestProducts(
       api,
       { parent: 5000, child1: 2000, child2: 1500 },
-      { child1: { priceType: ProductGroupPriceType.Base } },
+      { child1: { priceType: 'BASE' } },
     );
 
     api.session.setCustomerScope();
 
     const { data: createData } = await api.client.checkout.create({
       localeCode: 'en',
-      currencyCode: CurrencyCode.Usd,
+      currencyCode: 'USD',
       items: [],
     });
     const checkoutId = createData.checkoutMutation.checkoutCreate.id;
@@ -289,14 +291,14 @@ test.describe('checkout-api: bundles (children items)', () => {
     const products = await createTestProducts(
       api,
       { parent: 5000, child1: 2000, child2: 1500 },
-      { child1: { priceType: ProductGroupPriceType.BaseAdjustPercent, pricePercentageValue: 25 } },
+      { child1: { priceType: 'BASE_ADJUST_PERCENT', pricePercentageValue: 25 } },
     );
 
     api.session.setCustomerScope();
 
     const { data: createData } = await api.client.checkout.create({
       localeCode: 'en',
-      currencyCode: CurrencyCode.Usd,
+      currencyCode: 'USD',
       items: [],
     });
     const checkoutId = createData.checkoutMutation.checkoutCreate.id;
@@ -338,14 +340,14 @@ test.describe('checkout-api: bundles (children items)', () => {
     const products = await createTestProducts(
       api,
       { parent: 5000, child1: 2000, child2: 1500 },
-      { child1: { priceType: ProductGroupPriceType.BaseAdjustAmount, priceAmountValue: 500 } },
+      { child1: { priceType: 'BASE_ADJUST_AMOUNT', priceAmountValue: 500 } },
     );
 
     api.session.setCustomerScope();
 
     const { data: createData } = await api.client.checkout.create({
       localeCode: 'en',
-      currencyCode: CurrencyCode.Usd,
+      currencyCode: 'USD',
       items: [],
     });
     const checkoutId = createData.checkoutMutation.checkoutCreate.id;
@@ -390,14 +392,14 @@ test.describe('checkout-api: bundles (children items)', () => {
     const products = await createTestProducts(
       api,
       { parent: 5000, child1: 2000, child2: 1500 },
-      { child1: { priceType: ProductGroupPriceType.BaseOverride, priceAmountValue: 999 } },
+      { child1: { priceType: 'BASE_OVERRIDE', priceAmountValue: 999 } },
     );
 
     api.session.setCustomerScope();
 
     const { data: createData } = await api.client.checkout.create({
       localeCode: 'en',
-      currencyCode: CurrencyCode.Usd,
+      currencyCode: 'USD',
       items: [],
     });
     const checkoutId = createData.checkoutMutation.checkoutCreate.id;
@@ -440,8 +442,8 @@ test.describe('checkout-api: bundles (children items)', () => {
       api,
       { parent: 5000, child1: 2000, child2: 1500 },
       {
-        child1: { priceType: ProductGroupPriceType.BaseAdjustPercent, pricePercentageValue: 10 },
-        child2: { priceType: ProductGroupPriceType.Free },
+        child1: { priceType: 'BASE_ADJUST_PERCENT', pricePercentageValue: 10 },
+        child2: { priceType: 'FREE' },
       },
     );
 
@@ -449,7 +451,7 @@ test.describe('checkout-api: bundles (children items)', () => {
 
     const { data: createData } = await api.client.checkout.create({
       localeCode: 'en',
-      currencyCode: CurrencyCode.Usd,
+      currencyCode: 'USD',
       items: [],
     });
     const checkoutId = createData.checkoutMutation.checkoutCreate.id;
@@ -504,8 +506,8 @@ test.describe('checkout-api: bundles (children items)', () => {
       api,
       { parent: 5000, child1: 2000, child2: 1500 },
       {
-        child1: { priceType: ProductGroupPriceType.Base },
-        child2: { priceType: ProductGroupPriceType.Free },
+        child1: { priceType: 'BASE' },
+        child2: { priceType: 'FREE' },
       },
     );
 
@@ -513,7 +515,7 @@ test.describe('checkout-api: bundles (children items)', () => {
 
     const { data: createData } = await api.client.checkout.create({
       localeCode: 'en',
-      currencyCode: CurrencyCode.Usd,
+      currencyCode: 'USD',
       items: [],
     });
     const checkoutId = createData.checkoutMutation.checkoutCreate.id;
@@ -560,14 +562,14 @@ test.describe('checkout-api: bundles (children items)', () => {
     const products = await createTestProducts(
       api,
       { parent: 5000, child1: 2000, child2: 1500 },
-      { child1: { priceType: ProductGroupPriceType.Base } },
+      { child1: { priceType: 'BASE' } },
     );
 
     api.session.setCustomerScope();
 
     const { data: createData } = await api.client.checkout.create({
       localeCode: 'en',
-      currencyCode: CurrencyCode.Usd,
+      currencyCode: 'USD',
       items: [],
     });
     const checkoutId = createData.checkoutMutation.checkoutCreate.id;
@@ -617,14 +619,14 @@ test.describe('checkout-api: bundles (children items)', () => {
     const products = await createTestProducts(
       api,
       { parent: 5000, child1: 2000, child2: 1500 },
-      { child1: { priceType: ProductGroupPriceType.Base } },
+      { child1: { priceType: 'BASE' } },
     );
 
     api.session.setCustomerScope();
 
     const { data: createData } = await api.client.checkout.create({
       localeCode: 'en',
-      currencyCode: CurrencyCode.Usd,
+      currencyCode: 'USD',
       items: [],
     });
     const checkoutId = createData.checkoutMutation.checkoutCreate.id;
@@ -679,14 +681,14 @@ test.describe('checkout-api: bundles (children items)', () => {
     const products = await createTestProducts(
       api,
       { parent: 5000, child1: 2000, child2: 1500 },
-      { child1: { priceType: ProductGroupPriceType.Base } }, // Only child1 in group, not child2
+      { child1: { priceType: 'BASE' } }, // Only child1 in group, not child2
     );
 
     api.session.setCustomerScope();
 
     const { data: createData } = await api.client.checkout.create({
       localeCode: 'en',
-      currencyCode: CurrencyCode.Usd,
+      currencyCode: 'USD',
       items: [],
     });
     const checkoutId = createData.checkoutMutation.checkoutCreate.id;
@@ -722,14 +724,14 @@ test.describe('checkout-api: bundles (children items)', () => {
     const products = await createTestProducts(
       api,
       { parent: 5000, child1: 2000, child2: 1500 },
-      { child1: { priceType: ProductGroupPriceType.BaseAdjustAmount, priceAmountValue: 5000 } },
+      { child1: { priceType: 'BASE_ADJUST_AMOUNT', priceAmountValue: 5000 } },
     );
 
     api.session.setCustomerScope();
 
     const { data: createData } = await api.client.checkout.create({
       localeCode: 'en',
-      currencyCode: CurrencyCode.Usd,
+      currencyCode: 'USD',
       items: [],
     });
     const checkoutId = createData.checkoutMutation.checkoutCreate.id;
@@ -768,14 +770,14 @@ test.describe('checkout-api: bundles (children items)', () => {
     const products = await createTestProducts(
       api,
       { parent: 5000, child1: 1000, child2: 1500 },
-      { child1: { priceType: ProductGroupPriceType.BaseAdjustPercent, pricePercentageValue: 20 } },
+      { child1: { priceType: 'BASE_ADJUST_PERCENT', pricePercentageValue: 20 } },
     );
 
     api.session.setCustomerScope();
 
     const { data: createData } = await api.client.checkout.create({
       localeCode: 'en',
-      currencyCode: CurrencyCode.Usd,
+      currencyCode: 'USD',
       items: [],
     });
     const checkoutId = createData.checkoutMutation.checkoutCreate.id;
@@ -824,7 +826,7 @@ test.describe('checkout-api: bundles (children items)', () => {
 
     const { data: createData } = await api.client.checkout.create({
       localeCode: 'en',
-      currencyCode: CurrencyCode.Usd,
+      currencyCode: 'USD',
       items: [],
     });
     const checkoutId = createData.checkoutMutation.checkoutCreate.id;
@@ -854,14 +856,14 @@ test.describe('checkout-api: bundles (children items)', () => {
     const products = await createTestProducts(
       api,
       { parent: 5000, child1: 2000, child2: 1500 },
-      { child1: { priceType: ProductGroupPriceType.BaseAdjustPercent, pricePercentageValue: 100 } },
+      { child1: { priceType: 'BASE_ADJUST_PERCENT', pricePercentageValue: 100 } },
     );
 
     api.session.setCustomerScope();
 
     const { data: createData } = await api.client.checkout.create({
       localeCode: 'en',
-      currencyCode: CurrencyCode.Usd,
+      currencyCode: 'USD',
       items: [],
     });
     const checkoutId = createData.checkoutMutation.checkoutCreate.id;
@@ -902,14 +904,14 @@ test.describe('checkout-api: bundles (children items)', () => {
     const products = await createTestProducts(
       api,
       { parent: 40000, child1: 2000, child2: 1500 },
-      { child1: { priceType: ProductGroupPriceType.Free } },
+      { child1: { priceType: 'FREE' } },
     );
 
     api.session.setCustomerScope();
 
     const { data: createData } = await api.client.checkout.create({
       localeCode: 'en',
-      currencyCode: CurrencyCode.Usd,
+      currencyCode: 'USD',
       items: [],
     });
     const checkoutId = createData.checkoutMutation.checkoutCreate.id;
@@ -958,14 +960,14 @@ test.describe('checkout-api: bundles (children items)', () => {
     const products = await createTestProducts(
       api,
       { parent: 35000, child1: 2000, child2: 1500 },
-      { child1: { priceType: ProductGroupPriceType.BaseAdjustPercent, pricePercentageValue: 25 } },
+      { child1: { priceType: 'BASE_ADJUST_PERCENT', pricePercentageValue: 25 } },
     );
 
     api.session.setCustomerScope();
 
     const { data: createData } = await api.client.checkout.create({
       localeCode: 'en',
-      currencyCode: CurrencyCode.Usd,
+      currencyCode: 'USD',
       items: [],
     });
     const checkoutId = createData.checkoutMutation.checkoutCreate.id;
@@ -1015,8 +1017,8 @@ test.describe('checkout-api: bundles (children items)', () => {
       api,
       { parent: 32000, child1: 2000, child2: 1500 },
       {
-        child1: { priceType: ProductGroupPriceType.BaseAdjustPercent, pricePercentageValue: 10 },
-        child2: { priceType: ProductGroupPriceType.Free },
+        child1: { priceType: 'BASE_ADJUST_PERCENT', pricePercentageValue: 10 },
+        child2: { priceType: 'FREE' },
       },
     );
 
@@ -1024,7 +1026,7 @@ test.describe('checkout-api: bundles (children items)', () => {
 
     const { data: createData } = await api.client.checkout.create({
       localeCode: 'en',
-      currencyCode: CurrencyCode.Usd,
+      currencyCode: 'USD',
       items: [],
     });
     const checkoutId = createData.checkoutMutation.checkoutCreate.id;
@@ -1075,8 +1077,8 @@ test.describe('checkout-api: bundles (children items)', () => {
       api,
       { parent: 35000, child1: 2000, child2: 1500 },
       {
-        child1: { priceType: ProductGroupPriceType.Base },
-        child2: { priceType: ProductGroupPriceType.Base },
+        child1: { priceType: 'BASE' },
+        child2: { priceType: 'BASE' },
       },
     );
 
@@ -1084,7 +1086,7 @@ test.describe('checkout-api: bundles (children items)', () => {
 
     const { data: createData } = await api.client.checkout.create({
       localeCode: 'en',
-      currencyCode: CurrencyCode.Usd,
+      currencyCode: 'USD',
       items: [],
     });
     const checkoutId = createData.checkoutMutation.checkoutCreate.id;
@@ -1160,14 +1162,14 @@ test.describe('checkout-api: bundles (children items)', () => {
     const products = await createTestProducts(
       api,
       { parent: 35000, child1: 2000, child2: 1500 },
-      { child1: { priceType: ProductGroupPriceType.BaseAdjustAmount, priceAmountValue: 500 } },
+      { child1: { priceType: 'BASE_ADJUST_AMOUNT', priceAmountValue: 500 } },
     );
 
     api.session.setCustomerScope();
 
     const { data: createData } = await api.client.checkout.create({
       localeCode: 'en',
-      currencyCode: CurrencyCode.Usd,
+      currencyCode: 'USD',
       items: [],
     });
     const checkoutId = createData.checkoutMutation.checkoutCreate.id;

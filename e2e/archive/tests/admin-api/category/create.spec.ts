@@ -1,6 +1,6 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import { EntityStatus, ListingSort, ListingType } from '@codegen/admin-gql';
+
 import { randomUUID } from 'node:crypto';
 import * as yup from 'yup';
 
@@ -14,11 +14,11 @@ test.describe('CategoryCreate', () => {
       excerpt: '',
       includeChildrenProducts: false,
       listingFilters: [],
-      listingOrderBy: ListingSort.PriceAsc,
+      listingOrderBy: 'PRICE_ASC',
       listingOrderByStatus: true,
-      listingType: ListingType.Manual,
+      listingType: 'MANUAL',
       slug: randomUUID(),
-      status: EntityStatus.Draft,
+      status: 'DRAFT',
       title: 'Category',
       gallery: [],
     };
@@ -27,10 +27,10 @@ test.describe('CategoryCreate', () => {
       yup.object({
         id: yup.string().required(),
         listingOrderByStatus: yup.boolean().isTrue().required(),
-        listingOrderBy: yup.string().equals([ListingSort.PriceAsc]).required(),
-        status: yup.string().equals([EntityStatus.Draft]).required(),
+        listingOrderBy: yup.string().equals(['PRICE_ASC']).required(),
+        status: yup.string().equals(['DRAFT']).required(),
         slug: yup.string().equals([input.slug]).required(),
-        listingType: yup.string().equals([ListingType.Manual]).required(),
+        listingType: yup.string().equals(['MANUAL']).required(),
         createdAt: yup.string().required(),
         updatedAt: yup.string().required(),
       }),

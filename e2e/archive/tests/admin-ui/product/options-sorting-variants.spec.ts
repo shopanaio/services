@@ -1,7 +1,5 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import { EntityStatus } from '@codegen/admin-gql';
-
 
 // DISABLED: This test relies on removed FeatureGroup API and complex UI interactions
 
@@ -27,7 +25,7 @@ test.describe('Product Options Sorting', () => {
             values: ['S', 'M', 'L'],
           },
         ],
-        status: EntityStatus.Draft,
+        status: 'DRAFT',
       });
 
       // Verify that 9 variants were created with proper naming
@@ -56,7 +54,7 @@ test.describe('Product Options Sorting', () => {
             values: ['High', 'Medium', 'Low'],
           },
         ],
-        status: EntityStatus.Draft,
+        status: 'DRAFT',
       });
 
       // Update variant sort indexes
