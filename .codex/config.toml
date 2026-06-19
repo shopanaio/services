@@ -1,7 +1,24 @@
 [mcp_servers.shopana-cli]
-approval_mode = "never"
 command = "node"
 args = ["./packages/shopana-cli-mcp/dist/index.js"]
+
+[mcp_servers.shopana-cli.tools.shopana_list_services]
+approval_mode = "approve"
+
+[mcp_servers.shopana-cli.tools.shopana_db_generate]
+approval_mode = "approve"
+
+[mcp_servers.shopana-cli.tools.shopana_codegen]
+approval_mode = "approve"
+
+[mcp_servers.shopana-cli.tools.shopana_schema]
+approval_mode = "approve"
+
+[mcp_servers.shopana-cli.tools.shopana_admin]
+approval_mode = "approve"
+
+[mcp_servers.shopana-cli.tools.shopana_build]
+approval_mode = "approve"
 
 [mcp_servers.antd]
 approval_mode = "approve"
