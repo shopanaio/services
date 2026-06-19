@@ -29,13 +29,6 @@ export {
   DELETE_ACCOUNT_MODAL_TYPE,
 } from "./modals";
 
-export type {
-  IEditProfileModalPayload,
-  IChangeEmailModalPayload,
-  IChangePasswordModalPayload,
-  IEditAvatarModalPayload,
-  IDeleteAccountModalPayload,
-} from "./modals";
 
 // ============================================
 // GraphQL Operations
@@ -55,4 +48,3 @@ export {
 // Components
 // ============================================
 export { ProfileInfoHeader } from "./components";
-export type { IProfileInfoHeaderProps } from "./components";

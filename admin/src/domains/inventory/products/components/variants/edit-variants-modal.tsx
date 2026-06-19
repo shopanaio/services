@@ -9,9 +9,9 @@ import {
   VariantsEditorGrid,
   VariantsColumnSettings,
   extractOptionGroups,
-  type IVariantInput,
 } from "./components";
-import type { IVariantEditorRow, IOptionGroup } from "./config";
+import type { IVariantInput } from "./components/variants-editor-grid";
+import type { IVariantEditorRow, IOptionGroup } from "./config/types";
 import type { IEditVariantsModalPayload } from "../../modals";
 import type { ApiProductOption, ApiVariant } from "@/graphql/types";
 import {

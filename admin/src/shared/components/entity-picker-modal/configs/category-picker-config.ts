@@ -1,20 +1,22 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import {
+  useState,
+  useMemo } from "react";
 import type { ColDef } from "ag-grid-community";
-import { EntityCellRenderer, StatusCellRenderer } from "../cell-renderers";
+import { EntityCellRenderer,
+  StatusCellRenderer } from "../cell-renderers";
 import { registerEntityPickerConfig } from ".";
 import type {
   IEntityPickerConfig,
   IEntityPickerDataResult,
   IPickableEntity,
-} from "../types";
+  } from "../types";
 import {
   FilterType,
   enumOperators,
-  type IFilterValue,
-  type IFilterSchema,
 } from "@/layouts/filters";
+import type { IFilterValue, IFilterSchema } from "@/layouts/filters/core/types";
 import type { ApiCategory } from "@/graphql/types";
 import { mockCategories } from "@/mocks/products/categories";
 

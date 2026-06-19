@@ -8,8 +8,8 @@ import {
   PRICING_COLUMNS,
   INVENTORY_COLUMNS,
   ATTRIBUTES_COLUMNS,
-  type IOptionGroup,
 } from "../config";
+import type { IOptionGroup } from "../config/types";
 
 const { Text } = Typography;
 

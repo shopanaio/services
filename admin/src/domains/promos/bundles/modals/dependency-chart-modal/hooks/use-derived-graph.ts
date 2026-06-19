@@ -1,15 +1,17 @@
-import { useMemo } from "react";
+import {
+  useMemo } from "react";
 import { useTheme } from "antd-style";
 import { MarkerType } from "@xyflow/react";
 
 import type { IBundleGroup } from "@/domains/promos/bundles/types";
-import type { IDependencyRule } from "@/domains/promos/bundles/dependency-rules";
+import type { IDependencyRule,
+} from "@/domains/promos/bundles/dependency-rules/types";
 import {
   DependencyTargetType,
   formatCondition,
   formatAction,
 } from "@/domains/promos/bundles/dependency-rules";
-import type { IDependencyCondition } from "@/domains/promos/bundles/dependency-rules";
+import type { IDependencyCondition } from "@/domains/promos/bundles/dependency-rules/types";
 import type {
   ChartNode,
   ChartEdge,

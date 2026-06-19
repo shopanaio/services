@@ -1,16 +1,22 @@
 "use client";
 
-import { Typography, Empty, Tag, Dropdown, Button } from "antd";
+import {
+  Typography,
+  Empty,
+  Tag,
+  Dropdown,
+  Button } from "antd";
 import {
   PartitionOutlined,
   PlusOutlined,
   MoreOutlined,
   RightOutlined,
-} from "@ant-design/icons";
+  } from "@ant-design/icons";
 import { createStyles } from "antd-style";
-import { Paper, PaperHeader } from "@/ui-kit/paper";
+import { Paper,
+  PaperHeader } from "@/ui-kit/paper";
 import type { IBundleGroup } from "@/domains/promos/bundles/types";
-import type { IDependencyRule } from "@/domains/promos/bundles/dependency-rules";
+import type { IDependencyRule } from "@/domains/promos/bundles/dependency-rules/types";
 import {
   DependencyTargetType,
   resolveTargetName,

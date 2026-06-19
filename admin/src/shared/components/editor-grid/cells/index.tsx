@@ -5,8 +5,6 @@
 export {
   DropdownCellRenderer,
   YES_NO_OPTIONS,
-  type DropdownOption,
-  type IDropdownCellRendererParams,
 } from "./dropdown-cell-renderer";
 
 // =============================================================================

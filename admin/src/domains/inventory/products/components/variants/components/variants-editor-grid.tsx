@@ -11,10 +11,12 @@ import {
 import { useVariantsEditorStore, useVariantsColumns } from "../hooks";
 import {
   SELECTABLE_COLUMNS,
-  type IVariantEditorRow,
-  type IOptionGroup,
-  type VariantColumnField,
 } from "../config";
+import type {
+  IVariantEditorRow,
+  IOptionGroup,
+  VariantColumnField,
+} from "../config/types";
 
 // ============================================================================
 // Types

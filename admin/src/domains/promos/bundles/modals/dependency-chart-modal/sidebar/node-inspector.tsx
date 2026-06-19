@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import {
+  useState,
+  useCallback } from "react";
 import {
   Typography,
   Button,
@@ -9,7 +11,7 @@ import {
   Tag,
   Flex,
   Divider,
-} from "antd";
+  } from "antd";
 import {
   LeftOutlined,
   RightOutlined,
@@ -26,14 +28,16 @@ import {
   AppstoreOutlined,
   LockOutlined,
   UnlockOutlined,
-} from "@ant-design/icons";
+  } from "@ant-design/icons";
 
-import type { IBundleGroup, BundleItem } from "@/domains/promos/bundles/types";
+import type { IBundleGroup,
+  BundleItem } from "@/domains/promos/bundles/types";
 import {
   PRICE_RULE_OPTIONS,
   DependencyTargetType,
-} from "@/domains/promos/bundles/types";
-import { CHART_NODE_ICONS } from "@/domains/promos/bundles/dependency-rules";
+  } from "@/domains/promos/bundles/types";
+import { CHART_NODE_ICONS,
+} from "@/domains/promos/bundles/dependency-rules";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { CopyableChip } from "@/ui-kit/copyable-chip";
 

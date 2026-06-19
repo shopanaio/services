@@ -5,7 +5,7 @@ import { Button, Input, Typography, Checkbox, Flex } from "antd";
 import { LockOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import Link from "next/link";
-import type { SignInFormValues } from "../../schemas";
+import type { SignInFormValues } from "../../schemas/sign-in.schema";
 
 const useStyles = createStyles(({ token }) => ({
   card: {

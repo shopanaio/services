@@ -1,6 +1,9 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import {
+  useState,
+  useCallback,
+  useMemo } from "react";
 import { Flex } from "antd";
 import { ProductInfoHeader } from "@/domains/inventory/products/components/product-info-header";
 import { ProductContentTabs } from "@/domains/inventory/products/components/product-content-tabs";
@@ -13,29 +16,31 @@ import {
   CategoriesSection,
   TagsSection,
   ReviewsSection,
-} from "@/domains/inventory/products/components/product-details-card/sections";
+  } from "@/domains/inventory/products/components/product-details-card/sections";
 import {
   GroupsSection,
   DependencyRulesSection,
-} from "./sections";
+  } from "./sections";
 import {
   useEditMediaModal,
   useEditAttributesModal,
   useEditSeoModal,
-  type IEditMediaModalPayload,
-  type IEditSeoModalPayload,
-} from "@/domains/inventory/products/modals";
+  IEditMediaModalPayload,
+  IEditSeoModalPayload,
+  } from "@/domains/inventory/products/modals";
 import {
   useEditBundleGroupsModal,
   useDependencyChartModal,
-} from "@/domains/promos/bundles/modals";
-import { EntityStatus, type IProduct } from "@/mocks/products/types";
+  } from "@/domains/promos/bundles/modals";
+import { EntityStatus,
+  IProduct } from "@/mocks/products/types";
 import type { IBundleDetailsMockData } from "@/mocks/products/bundle-details";
 import type {
   IBundleGroup,
-  IDependencyRule,
-} from "@/domains/promos/bundles/types";
-import { LogicOperator } from "@/domains/promos/bundles/dependency-rules";
+  } from "@/domains/promos/bundles/types";
+import { LogicOperator,
+} from "@/domains/promos/bundles/dependency-rules";
+import type { IDependencyRule } from "@/domains/promos/bundles/dependency-rules/types";
 import { createMockApiProduct } from "@/mocks/products/api-builders";
 
 // ============================================================================

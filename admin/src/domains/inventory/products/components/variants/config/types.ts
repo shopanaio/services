@@ -1,4 +1,4 @@
-import type { IEditorRowBase } from "@/shared/components/editor-grid";
+import type { IEditorRowBase } from "@/shared/components/editor-grid/types";
 
 // ============================================================================
 // Variant Row Interface

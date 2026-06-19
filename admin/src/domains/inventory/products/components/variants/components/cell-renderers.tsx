@@ -3,9 +3,9 @@ import { Avatar } from "antd";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { SelectableCell } from "@/shared/components/ag-grid-cell-selection";
 import { Diff, ImagePlaceholder } from "@/shared/components/editor-grid";
-import type { IVariantEditorRow } from "../config";
+import type { IVariantEditorRow } from "../config/types";
 import { useVariantsEditorStore } from "../hooks";
-import type { IFieldEdit } from "@/shared/components/editor-grid";
+import type { IFieldEdit } from "@/shared/components/editor-grid/types";
 import {
   ReservedCell,
   CalculatedAvailableCell,

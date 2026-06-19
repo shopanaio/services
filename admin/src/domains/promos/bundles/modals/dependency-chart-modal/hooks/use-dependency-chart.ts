@@ -1,10 +1,20 @@
-import { useState, useCallback, useMemo, useRef, useEffect } from "react";
-import { useReactFlow, useNodesState, useEdgesState } from "@xyflow/react";
-import type { Node, Edge } from "@xyflow/react";
+import {
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+  useEffect } from "react";
+import { useReactFlow,
+  useNodesState,
+  useEdgesState } from "@xyflow/react";
+import type { Node,
+  Edge } from "@xyflow/react";
 import { v4 as uuid } from "uuid";
 
-import type { IDependencyRule, IBundleGroup } from "@/domains/promos/bundles/types";
-import { LogicOperator } from "@/domains/promos/bundles/dependency-rules";
+import type { IDependencyRule,
+  IBundleGroup } from "@/domains/promos/bundles/types";
+import { LogicOperator,
+} from "@/domains/promos/bundles/dependency-rules";
 import type { SelectedNode, ItemNodeData, BundleNodeData, RuleSortMode } from "../types";
 import { useDerivedGraph } from "./use-derived-graph";
 import { useColumnLayout } from "./use-column-layout";

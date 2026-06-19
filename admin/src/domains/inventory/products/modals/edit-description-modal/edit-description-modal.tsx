@@ -8,7 +8,8 @@ import {
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
-import { Editor, renderContent, type RenderedContent } from "@/ui-kit/editor";
+import { Editor, renderContent } from "@/ui-kit/editor";
+import type { RenderedContent } from "@/ui-kit/editor/renderers";
 import { AIButton } from "@/ui-kit/ai-button";
 import { Paper } from "@/ui-kit/paper";
 import type { IProductEditDescriptionModalPayload } from "../../modals";

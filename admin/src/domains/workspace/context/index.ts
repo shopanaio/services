@@ -6,6 +6,4 @@ export {
   WorkspaceProvider,
   useWorkspace,
   useWorkspaceOptional,
-  type WorkspaceContextValue,
-  type WorkspaceProviderProps,
 } from "./workspace-context";

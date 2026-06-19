@@ -11,10 +11,6 @@ export {
   useWorkspace,
   useWorkspaceOptional,
 } from "./context";
-export type {
-  WorkspaceContextValue,
-  WorkspaceProviderProps,
-} from "./context";
 
 // ============================================
 // Hooks

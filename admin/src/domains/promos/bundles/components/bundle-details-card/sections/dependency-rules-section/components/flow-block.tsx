@@ -1,7 +1,9 @@
 "use client";
 
-import { Typography, Tag } from "antd";
-import type { DependencyTargetType } from "@/domains/promos/bundles/dependency-rules";
+import {
+  Typography,
+  Tag } from "antd";
+import type { DependencyTargetType } from "@/domains/promos/bundles/dependency-rules/enums";
 import {
   TARGET_TYPE_COLORS,
   CHART_NODE_ICONS,

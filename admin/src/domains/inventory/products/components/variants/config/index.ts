@@ -1,12 +1,3 @@
-export type {
-  IVariantEditorRow,
-  IVariantColumn,
-  IVariantOption,
-  IOptionGroup,
-  StockStatus,
-  VariantColumnField,
-} from "./types";
-
 export {
   VARIANT_COLUMNS,
   MEDIA_COLUMNS,

@@ -5,10 +5,12 @@ import {
   VARIANT_COLUMNS,
   MEDIA_COLUMNS,
   createOptionColumns,
-  type IVariantEditorRow,
-  type IOptionGroup,
-  type VariantColumnField,
 } from "../config";
+import type {
+  IVariantEditorRow,
+  IOptionGroup,
+  VariantColumnField,
+} from "../config/types";
 import {
   ImageCellRenderer,
   TitleCellRenderer,

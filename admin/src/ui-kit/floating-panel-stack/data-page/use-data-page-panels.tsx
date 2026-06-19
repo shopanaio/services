@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useCallback, useMemo, type ReactNode } from "react";
-import { usePanelStack, type ActionConfig, type PanelStackConfig } from "../core";
+import { usePanelStack } from "../core";
+import type { ActionConfig, PanelStackConfig } from "../core/types";
 import { PanelStackContainer, PanelWrapper } from "../components";
 import { SelectionPanel } from "../presets/selection-panel";
 import { EditingPanel } from "../presets/editing-panel";

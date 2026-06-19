@@ -14,8 +14,8 @@ import { useBundleItemVariantSettingsModal } from "@/domains/promos/bundles/moda
 import "@/shared/components/entity-picker-modal/register";
 import {
   useProductPicker,
-  type IPickableEntity,
 } from "@/shared/components/entity-picker-modal";
+import type { IPickableEntity } from "@/shared/components/entity-picker-modal/types";
 
 import type { ITableRow } from "../types";
 import {

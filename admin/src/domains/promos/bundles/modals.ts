@@ -1,5 +1,5 @@
 import { createModalStackHook } from "@/layouts/modals";
-import type { IModalStackPayload } from "@/layouts/modals";
+import type { IModalStackPayload } from "@/layouts/modals/types";
 import type {
   IBundleGroup,
   IDependencyRule,

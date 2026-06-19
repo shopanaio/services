@@ -1,4 +1,4 @@
-import type { ITreeTableRow } from "@/hooks";
+import type { ITreeTableRow } from "@/hooks/use-tree-table-drag-drop";
 
 export type RowType = "group" | "attribute";
 

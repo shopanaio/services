@@ -5,7 +5,7 @@ import {
   FilterWidget,
   IFilterWidgetProps,
   IFilterWidgetSearchProps,
-} from '@/layouts/filters';
+} from "@/layouts/filters";
 import { IColumnsProps } from './columns';
 import { ISortByProps } from './sort-by';
 

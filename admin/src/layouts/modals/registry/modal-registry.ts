@@ -15,7 +15,7 @@ class ModalStackRegistry {
    * @example
    * ```tsx
    * // In domains/inventory/products/modals/index.ts
-   * import { modalStackRegistry } from '@/layouts/modals';
+   * import { modalStackRegistry } from "@/layouts/modals";
    * import { ProductModal } from './product-modal';
    *
    * modalStackRegistry.register({

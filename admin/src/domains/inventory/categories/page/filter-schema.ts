@@ -3,8 +3,8 @@ import {
   enumOperators,
   stringOperators,
   numberOperators,
-  type IFilterSchema,
 } from "@/layouts/filters";
+import type { IFilterSchema } from "@/layouts/filters/core/types";
 
 export const filterSchema: IFilterSchema[] = [
   {

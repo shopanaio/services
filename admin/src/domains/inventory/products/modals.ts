@@ -1,7 +1,7 @@
-import { createModalStackHook } from '@/layouts/modals';
-import type { IModalStackPayload } from '@/layouts/modals';
+import { createModalStackHook } from "@/layouts/modals";
+import type { IModalStackPayload } from "@/layouts/modals/types";
 import type { OutputData } from '@editorjs/editorjs';
-import type { RenderedContent } from '@/ui-kit/block-editor';
+import type { RenderedContent } from '@/ui-kit/editor/renderers';
 import type {
   ApiCategory,
   ApiFile,
@@ -13,7 +13,7 @@ import type {
 } from "@/graphql/types";
 import type { IAttributeRow } from "./modals/edit-attributes-modal/types";
 import type { ApiVariantPrice } from './components/pricing/types';
-import type { VariantColumnField } from './components/variants/config';
+import type { VariantColumnField } from './components/variants/config/types';
 
 // ============================================================================
 // Modal Types

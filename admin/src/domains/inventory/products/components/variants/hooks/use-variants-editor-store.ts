@@ -1,6 +1,9 @@
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
-import type { IFieldEdit, IRowEdits } from "@/shared/components/editor-grid";
+import type {
+  IFieldEdit,
+  IRowEdits,
+} from "@/shared/components/editor-grid/types";
 
 // ============================================================================
 // Types

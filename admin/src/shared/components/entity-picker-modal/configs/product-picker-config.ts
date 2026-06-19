@@ -13,7 +13,7 @@ import type {
   IEntityPickerDataResult,
   IPickableEntity,
 } from "../types";
-import type { IFilterValue } from "@/layouts/filters";
+import type { IFilterValue } from "@/layouts/filters/core/types";
 import type { ApiProduct } from "@/graphql/types";
 
 /**

@@ -21,11 +21,9 @@ import type { CustomCellRendererProps } from "ag-grid-react";
 import { DataLayout } from "@/layouts/data";
 import { useFilters, FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
-import {
-  FloatingPanelStack,
-  type PanelConfig,
-  type ActionConfig,
-} from "@/ui-kit/floating-panel-stack";
+import { FloatingPanelStack } from "@/ui-kit/floating-panel-stack";
+import type { ActionConfig } from "@/ui-kit/floating-panel-stack/core/types";
+import type { PanelConfig } from "@/ui-kit/floating-panel-stack/data-page/floating-panel-stack";
 import {
   useGridState,
   useGridSort,

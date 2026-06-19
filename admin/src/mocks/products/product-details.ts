@@ -1,18 +1,29 @@
-import { mockBundlesList } from "./bundles-list";
+import {
+  mockBundlesList } from "./bundles-list";
 import { createMockData as createAttributesMockData } from "./attributes";
 import type {
   ProductDetailsSupplementalData,
   IVariantsTableData,
-} from "@/domains/inventory/products/components/product-details-card/types";
+  } from "@/domains/inventory/products/components/product-details-card/types";
 import {
   ThresholdMethod,
-  type ApiPageInfo,
-  type ApiProductInventoryWidget,
-  type ApiVariant,
-} from "@/graphql/types";
-import type { IBundleGroup, PricingRuleTemplate, IDependencyRule } from "@/domains/promos/bundles/types";
-import { BundleItemType, BundlePriceType, DependencyActionType, DependencyTargetType } from "@/domains/promos/bundles/types";
-import { ConditionCategory, ConditionSubject, StateCheckOperator, LogicOperator, ComparisonOperator } from "@/domains/promos/bundles/dependency-rules";
+  ApiPageInfo,
+  ApiProductInventoryWidget,
+  ApiVariant,
+  } from "@/graphql/types";
+import type { IBundleGroup,
+  PricingRuleTemplate,
+  IDependencyRule } from "@/domains/promos/bundles/types";
+import { BundleItemType,
+  BundlePriceType,
+  DependencyActionType,
+  DependencyTargetType } from "@/domains/promos/bundles/types";
+import { ConditionCategory,
+  ConditionSubject,
+  StateCheckOperator,
+  LogicOperator,
+  ComparisonOperator,
+} from "@/domains/promos/bundles/dependency-rules";
 import {
   createMockApiInventoryItem,
   createMockApiInventoryItemCost,

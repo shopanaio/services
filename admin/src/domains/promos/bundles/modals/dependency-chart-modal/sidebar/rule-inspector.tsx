@@ -1,6 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
+import {
+  ReactNode } from "react";
 import {
   Typography,
   Input,
@@ -13,7 +14,7 @@ import {
   Empty,
   Tag,
   Tooltip,
-} from "antd";
+  } from "antd";
 import {
   PlusOutlined,
   DeleteOutlined,
@@ -26,17 +27,15 @@ import {
   EyeOutlined,
   ThunderboltOutlined,
   InfoCircleOutlined,
-} from "@ant-design/icons";
+  } from "@ant-design/icons";
 
-import type {
-  IDependencyRule,
-  IBundleGroup,
-} from "@/domains/promos/bundles/types";
+import type { IBundleGroup } from "@/domains/promos/bundles/types";
+import type { IDependencyRule } from "@/domains/promos/bundles/dependency-rules/types";
 import {
   DependencyActionType,
   DependencyTargetType,
   PRICE_RULE_OPTIONS,
-} from "@/domains/promos/bundles/types";
+  } from "@/domains/promos/bundles/types";
 import {
   ConditionCategory,
   ConditionSubject,
@@ -55,12 +54,12 @@ import {
   getOperatorLabel,
   getConditionChipLabel,
 } from "@/domains/promos/bundles/dependency-rules";
-import type { IDependencyCondition } from "@/domains/promos/bundles/dependency-rules";
+import type { IDependencyCondition } from "@/domains/promos/bundles/dependency-rules/types";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import {
   NavigableDropdown,
-  type IMenuLevel,
 } from "@/ui-kit/navigable-dropdown";
+import type { IMenuLevel } from "@/ui-kit/navigable-dropdown/navigable-dropdown";
 
 import { useStyles } from "./rule-inspector.styles";
 import { useRuleInspector, PRICE_TYPE_OPTIONS } from "./use-rule-inspector";

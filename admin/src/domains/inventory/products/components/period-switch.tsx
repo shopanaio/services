@@ -1,6 +1,6 @@
 import { createStyles } from "antd-style";
 import { Tag, Flex, Switch, Typography, Tooltip } from "antd";
-import type { PeriodConfig } from "./utils";
+import type { PeriodConfig } from "./utils/periods";
 
 // ============================================================================
 // Types
@@ -121,14 +121,16 @@ export {
   getDateRangeForPeriod,
   getPeriodConfig,
   getPeriodDays,
-  type Period,
-  type ChartPeriod,
-  type DateRange,
-  type PeriodConfig,
 } from "./utils";
+export type {
+  Period,
+  ChartPeriod,
+  DateRange,
+  PeriodConfig,
+} from "./utils/periods";
 
 /** @deprecated Use Period instead */
-export type KPIPeriod = import("./utils").Period;
+export type KPIPeriod = import("./utils/periods").Period;
 
 /** @deprecated Use PERIODS instead */
 export { PERIODS as KPI_PERIODS } from "./utils";

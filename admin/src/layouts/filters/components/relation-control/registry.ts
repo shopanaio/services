@@ -6,7 +6,7 @@ import { RelationControlComponent } from '../../core/types';
  *
  * @example
  * // In your app initialization or module
- * import { relationControlRegistry } from '@/layouts/filters';
+ * import { relationControlRegistry } from "@/layouts/filters";
  * import { CategorySelect } from '@/modules/categories/components/CategorySelect';
  *
  * relationControlRegistry.register('Category', CategorySelect);

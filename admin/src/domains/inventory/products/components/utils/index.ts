@@ -1,9 +1,5 @@
 export {
   // Types
-  type DateRange,
-  type PeriodConfig,
-  type Period,
-  type ChartPeriod,
   // Constants
   PERIODS,
   CHART_PERIODS,

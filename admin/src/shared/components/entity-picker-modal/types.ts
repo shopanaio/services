@@ -1,5 +1,5 @@
 import type { ColDef } from "ag-grid-community";
-import type { IFilterSchema, IFilterValue } from "@/layouts/filters";
+import type { IFilterSchema, IFilterValue } from "@/layouts/filters/core/types";
 
 /**
  * Base interface for pickable entities

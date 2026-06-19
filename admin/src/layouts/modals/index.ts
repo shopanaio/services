@@ -6,7 +6,6 @@ export { ModalStackItem } from './components/modal';
 export { ModalStackProvider } from './components/provider';
 export { ModalLayout } from './components/modal-layout';
 export { ModalHeader } from './components/modal-header';
-export type { IModalHeaderProps } from './components/modal-header';
 
 // ============================================================================
 // Registry
@@ -35,14 +34,3 @@ export {
 // ============================================================================
 // Types
 // ============================================================================
-export type {
-  IModalStackPayload,
-  IModalStackItem,
-  IModalStackContext,
-  IModalStackDefinition,
-  IModalStackPushOptions,
-  ModalStackComponent,
-  ModalStackRegistryMap,
-  ModalStackPayloads,
-  GetModalStackPayload,
-} from './types';

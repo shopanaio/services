@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { createStyles } from "antd-style";
-import type { PanelPosition, PanelAnimationState } from "../core";
+import type { PanelPosition, PanelAnimationState } from "../core/types";
 import { DEFAULT_STACK_CONFIG } from "../core";
 
 // ============================================================================

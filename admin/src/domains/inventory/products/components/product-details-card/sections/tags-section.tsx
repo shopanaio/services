@@ -5,7 +5,7 @@ import { Tag, Typography, Flex, Dropdown } from "antd";
 import { PlusOutlined, MoreOutlined } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useTagPicker } from "@/shared/components/entity-picker-modal";
-import type { IPickableEntity } from "@/shared/components/entity-picker-modal";
+import type { IPickableEntity } from "@/shared/components/entity-picker-modal/types";
 import type { ApiTag } from "@/graphql/types";
 import { createMockApiTag } from "@/mocks/products/api-builders";
 

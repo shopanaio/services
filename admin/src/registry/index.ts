@@ -1,16 +1,5 @@
 // Shared types and registry
 export {
-  type ParamData,
-  type ModulePageProps,
-  type SidebarConfig,
-  type SidebarItem,
-  type DomainConfig,
-  type DomainSidebarConfig,
-  type DomainLayoutComponent,
-  type ModuleItemConfig,
-  type ModuleConfig,
-  type RegisteredPageRecord,
-  type ModuleMatchResult,
   ModuleRegistry,
   moduleRegistry,
   registerDomain,
@@ -19,8 +8,6 @@ export {
 
 // Server-side factories
 export {
-  type CreatePageOptions,
-  type CreateLayoutOptions,
   createPage,
   createLayout,
 } from "./server";
@@ -30,8 +17,6 @@ export { useSidebarItems, ModuleProvider, ClientLayoutResolver } from "./client"
 
 // Path params context and hooks
 export {
-  type PathParamsContextValue,
-  type PathParamsProviderProps,
   PathParamsProvider,
   usePathParams,
   usePathParamsOptional,

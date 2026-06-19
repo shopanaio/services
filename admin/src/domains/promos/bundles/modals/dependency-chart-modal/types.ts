@@ -1,6 +1,10 @@
-import type { Node, Edge } from "@xyflow/react";
-import type { BundleItem, IBundleGroup } from "@/domains/promos/bundles/types";
-import type { IDependencyRule } from "@/domains/promos/bundles/dependency-rules";
+import {
+  Node,
+  Edge } from "@xyflow/react";
+import type { BundleItem,
+  IBundleGroup } from "@/domains/promos/bundles/types";
+import type { IDependencyRule,
+} from "@/domains/promos/bundles/dependency-rules/types";
 
 // ============================================================================
 // Sort Mode

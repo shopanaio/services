@@ -1,12 +1,12 @@
-import { useState, useCallback } from "react";
+import {
+  useState,
+  useCallback } from "react";
 
 import type { IBundleGroup } from "@/domains/promos/bundles/types";
 import type {
   IDependencyRule,
-  IDependencyCondition,
-  IDependencyAction,
-  IConditionGroup,
-} from "@/domains/promos/bundles/dependency-rules";
+} from "@/domains/promos/bundles/dependency-rules/types";
+import type { IDependencyCondition, IDependencyAction, IConditionGroup } from "@/domains/promos/bundles/dependency-rules/types";
 import {
   DependencyActionType,
   DependencyTargetType,
@@ -16,7 +16,8 @@ import {
   LogicOperator,
 } from "@/domains/promos/bundles/dependency-rules";
 
-import { PRICE_RULE_OPTIONS } from "@/domains/promos/bundles/types";
+import {
+  PRICE_RULE_OPTIONS } from "@/domains/promos/bundles/types";
 
 export {
   getTargetOptions,

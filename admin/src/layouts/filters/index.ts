@@ -61,15 +61,6 @@ export {
   // Types
   FilterType,
   FilterOperator,
-  type IFilterSchema,
-  type IFilterValue,
-  type IFilterOption,
-  type IOperatorMeta,
-  type IFilterAdapter,
-  type IUseFiltersOptions,
-  type IUseFiltersReturn,
-  type IRelationControlProps,
-  type RelationControlComponent,
 } from './core/types';
 
 // Operators
@@ -101,9 +92,6 @@ export {
   FilterValueControl,
   RelationControl,
   relationControlRegistry,
-  type IFilterWidgetProps,
-  type IFilterWidgetSearchProps,
-  type IFilterValueControlProps,
 } from './components';
 
 // Hooks

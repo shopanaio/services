@@ -7,7 +7,7 @@ import { useModalStackContext, ModalLayout } from "@/layouts/modals";
 
 import { useStyles } from "./edit-groups-modal.styles";
 import { BundleGroupsGrid, rowsToGroups } from "./components";
-import type { BundleGroupsGridHandle } from "./components";
+import type { BundleGroupsGridHandle } from "./components/bundle-groups-grid";
 import type { IBundleGroup, PricingRuleTemplate } from "../../types";
 
 // ============================================================================

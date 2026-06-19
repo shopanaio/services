@@ -2,7 +2,7 @@ import { createStyles } from "antd-style";
 import { Button, Typography, Tabs, Dropdown, Flex } from "antd";
 import { WarningOutlined, MoreOutlined } from "@ant-design/icons";
 import type { OutputData } from "@editorjs/editorjs";
-import { type RenderedContent } from "@/ui-kit/block-editor";
+import type { RenderedContent } from "@/ui-kit/editor/renderers";
 import { AIButton } from "@/ui-kit/ai-button";
 import { Paper } from "@/ui-kit/paper";
 import type { ApiProduct } from "@/graphql/types";

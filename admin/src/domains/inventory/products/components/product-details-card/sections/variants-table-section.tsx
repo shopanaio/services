@@ -10,8 +10,12 @@ import {
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "../../edit-action";
 import { useVariantsTableStyles } from "../product-details-card.styles";
-import type { ApiVariant, ApiPageInfo } from "../types";
-import type { ApiProductOption, CurrencyCode } from "@/graphql/types";
+import type {
+  ApiVariant,
+  ApiPageInfo,
+  ApiProductOption,
+  CurrencyCode,
+} from "@/graphql/types";
 import {
   getSelectedOptionLabels,
   getVariantStockQuantity,

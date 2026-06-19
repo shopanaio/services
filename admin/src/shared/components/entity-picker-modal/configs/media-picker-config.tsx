@@ -10,7 +10,7 @@ import type {
   IEntityPickerDataResult,
   IPickableEntity,
 } from "../types";
-import type { IFilterValue } from "@/layouts/filters";
+import type { IFilterValue } from "@/layouts/filters/core/types";
 import { useFiles } from "@/domains/media/hooks";
 import type { ApiFile } from "@/graphql/types";
 import { FileProvider } from "@/graphql/types";

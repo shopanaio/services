@@ -5,12 +5,8 @@ import type { IBundleListItem } from "@/mocks/products/bundles-list";
 import type {
   ApiProductInventoryWidget,
   ApiVariant,
-  ApiVariantConnection,
   ApiPageInfo,
 } from "@/graphql/types";
-
-// Re-export API types for table usage
-export type { ApiVariant, ApiVariantConnection, ApiPageInfo };
 
 // ============================================================================
 // Review Types

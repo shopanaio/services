@@ -1,14 +1,18 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect, RefObject } from "react";
+import {
+  useState,
+  useMemo,
+  useCallback,
+  useEffect,
+  RefObject } from "react";
 import type { AgGridReact } from "ag-grid-react";
 import type { SortDirection as AgSortDirection } from "ag-grid-community";
 import {
   useFilters,
   FilterOperator,
-  type IFilterSchema,
-  type IFilterValue,
 } from "@/layouts/filters";
+import type { IFilterSchema, IFilterValue } from "@/layouts/filters/core/types";
 import { SortDirection } from "@/graphql/types";
 import { useGridState } from "./use-grid-state";
 import { useGridSort, type SortModel } from "./use-grid-sort";
