@@ -21,7 +21,11 @@ export interface CategoryData {
 }
 
 export class CategoryFixture {
-  constructor(private gql: BaseGqlRequest<unknown, unknown>) {}
+  private gql: BaseGqlRequest<unknown, unknown>;
+
+  constructor(gql: BaseGqlRequest<unknown, unknown>) {
+    this.gql = gql;
+  }
 
   create = async (input: Partial<ApiCategoryCreateInput> = {}): Promise<CategoryData> => {
     const uniqueId = crypto.randomUUID().slice(0, 8);

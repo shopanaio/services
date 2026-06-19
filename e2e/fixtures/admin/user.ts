@@ -9,7 +9,11 @@ export interface UserSession {
 }
 
 export class UserFixture {
-  constructor(private gql: BaseGqlRequest<unknown, unknown>) {}
+  private gql: BaseGqlRequest<unknown, unknown>;
+
+  constructor(gql: BaseGqlRequest<unknown, unknown>) {
+    this.gql = gql;
+  }
 
   create = async (input?: Partial<{ email: string; password: string }>): Promise<UserSession> => {
     const userData = generateUser();

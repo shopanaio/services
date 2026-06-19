@@ -4,7 +4,11 @@ import type { BaseGqlRequest } from '@fixtures/api/gqlRequest';
 import _ from 'lodash';
 
 export class ProjectFixture {
-  constructor(private gql: BaseGqlRequest<unknown, unknown>) {}
+  private gql: BaseGqlRequest<unknown, unknown>;
+
+  constructor(gql: BaseGqlRequest<unknown, unknown>) {
+    this.gql = gql;
+  }
 
   create = async (input: Partial<ApiStoreCreateInput> & { organizationId: string }) => {
     const defaults: Omit<ApiStoreCreateInput, 'organizationId'> = {

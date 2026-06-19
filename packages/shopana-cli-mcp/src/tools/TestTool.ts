@@ -1,5 +1,13 @@
 import { MCPTool } from 'mcp-framework';
 import { z } from 'zod';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
+
+const execFileAsync = promisify(execFile);
+
+function shellQuote(value: string) {
+  return /^[a-zA-Z0-9_./:=+-]+$/.test(value) ? value : `'${value.replace(/'/g, "'\\''")}'`;
+}
 
 const TestToolSchema = z.object({
   testPath: z
@@ -46,19 +54,17 @@ const TestToolSchema = z.object({
 
 class TestTool extends MCPTool<typeof TestToolSchema> {
   name = 'shopana_test';
-  description = `Run Playwright end-to-end tests - the PRIMARY method for testing API functionality.
+  description = `Run Playwright end-to-end tests through the Shopana CLI.
 
-IMPORTANT: Tests MUST be run from the e2e/ directory where playwright.config.ts is located.
+This tool runs: yarn shopana e2e test
 
-Playwright is the main testing framework for all API endpoints in Shopana. All test commands should be executed from the e2e/ directory.
+The CLI executes Playwright from the e2e/ directory where playwright.config.ts is located.
 
-Quick start:
-  cd e2e && npx playwright test
+Project rule:
+  Run one spec file at a time. Do not run the entire suite or a whole directory.
 
 Examples:
-- Run all tests: {}
 - Run specific test file: { "testPath": "tests/users-api/sign-in.spec.ts" }
-- Run tests in directory: { "testPath": "tests/users-api" }
 - Run tests matching pattern: { "grep": "sign-in" }
 - Run in headed mode: { "headed": true }
 - Run in debug mode: { "debug": true }
@@ -79,7 +85,7 @@ Environment variables (already configured in e2e/.env):
   async execute(input: z.infer<typeof TestToolSchema>) {
     const { testPath, grep, project, headed, debug, workers, retries, reporter, updateSnapshots, workingDir } = input;
 
-    const args = ['playwright', 'test'];
+    const args = ['shopana', 'e2e', 'test'];
 
     if (testPath) {
       args.push(testPath);
@@ -117,32 +123,45 @@ Environment variables (already configured in e2e/.env):
       args.push('--update-snapshots');
     }
 
-    const cwd = workingDir || process.cwd();
-    const e2eDir = `${cwd}/e2e`;
+    const command = `yarn ${args.map(shellQuote).join(' ')}`;
 
-    const command = `npx ${args.join(' ')}`;
+    try {
+      const { stdout, stderr } = await execFileAsync('yarn', args, {
+        cwd: workingDir || process.cwd(),
+        encoding: 'utf8',
+        timeout: 600000,
+        maxBuffer: 20 * 1024 * 1024
+      });
 
-    return {
-      content: [
-        {
-          type: 'text' as const,
-          text: JSON.stringify({
-            success: true,
-            message: 'Playwright test command prepared',
-            command,
-            cwd: e2eDir,
-            manual_command: `cd ${e2eDir} && ${command}`,
-            tips: [
-              'Make sure services are running: yarn shopana dev',
-              'Configure BASE_URL in e2e/.env',
-              'Use --headed to see browser during test execution',
-              'Use --debug to step through tests with Playwright Inspector',
-              'Use --workers=1 for sequential execution when debugging'
-            ]
-          }, null, 2)
-        }
-      ]
-    };
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify({
+              success: true,
+              command,
+              output: stdout,
+              warnings: stderr || undefined
+            }, null, 2)
+          }
+        ]
+      };
+    } catch (error: any) {
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify({
+              success: false,
+              command,
+              error: error.message,
+              stdout: error.stdout,
+              stderr: error.stderr
+            }, null, 2)
+          }
+        ]
+      };
+    }
   }
 }
 

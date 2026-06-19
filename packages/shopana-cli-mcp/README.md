@@ -11,6 +11,8 @@ MCP Server for working with Shopana CLI. Provides tools for managing Shopana pla
 | `shopana_build` | Build packages and services |
 | `shopana_dev` | Start dev environment |
 | `shopana_codegen` | Generate TypeScript types from GraphQL |
+| `shopana_test` | Run one Playwright E2E spec through `shopana e2e test` |
+| `shopana_e2e_codegen` | Generate E2E GraphQL TypeScript types |
 | `shopana_migrate` | Run database migrations |
 | `shopana_db_generate` | Generate migrations from schema |
 | `shopana_gateway` | Start GraphQL gateway |
@@ -109,6 +111,10 @@ Show project information and available services
 ### Working With Admin Frontend
 
 The Admin frontend lives in `admin/`.
+
+### Working With E2E
+
+Run one Playwright spec at a time with `shopana_test`. Regenerate E2E GraphQL types with `shopana_e2e_codegen`.
 
 ### Troubleshooting
 

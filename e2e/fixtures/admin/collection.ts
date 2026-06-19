@@ -14,7 +14,11 @@ export interface CollectionData {
 }
 
 export class CollectionFixture {
-  constructor(private gql: BaseGqlRequest<unknown, unknown>) {}
+  private gql: BaseGqlRequest<unknown, unknown>;
+
+  constructor(gql: BaseGqlRequest<unknown, unknown>) {
+    this.gql = gql;
+  }
 
   create = async (input: Partial<ApiCollectionCreateInput> = {}): Promise<CollectionData> => {
     const uniqueId = crypto.randomUUID().slice(0, 8);
