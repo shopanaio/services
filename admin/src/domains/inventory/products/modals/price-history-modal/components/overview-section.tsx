@@ -2,14 +2,21 @@ import { Typography, Flex, Button } from "antd";
 import { DownOutlined } from "@ant-design/icons";
 import { Paper } from "@/ui-kit/paper";
 import { KPITile } from "@/ui-kit/kpi-tile";
-import { PeriodSwitch, PERIODS, type Period } from "../../../components/period-switch";
+import {
+  PeriodSwitch,
+  PERIODS,
+  type Period,
+} from "../../../components/period-switch";
 import {
   PriceChart,
   PriceChangeIndicator,
   ScrollableDropdown,
 } from "../../../components/pricing/components";
+import { useVariantPrice } from "../../../components/pricing/use-variant-price";
+import { formatPrice } from "../../../components/pricing/utils";
 import type {
   ApiVariantConnection,
+  ApiVariantPrice,
   ApiVariantPriceConnection,
   ApiVariantPriceHistoryStatistics,
   CurrencyCode,
@@ -17,8 +24,7 @@ import type {
 import { useStyles } from "../price-history-modal.styles";
 
 interface IOverviewSectionProps {
-  currentPrice: number;
-  compareAtPrice: number | null;
+  currentPrice: ApiVariantPrice | null;
   currency?: CurrencyCode | null;
   history: ApiVariantPriceConnection;
   stats: ApiVariantPriceHistoryStatistics | null;
@@ -29,12 +35,24 @@ interface IOverviewSectionProps {
   isLoadingVariants: boolean;
   period: Period;
   onPeriodChange: (period: Period) => void;
-  formatPrice: (amount: number, currency?: CurrencyCode) => string;
 }
+
+const VariantPriceLabel = ({
+  price,
+}: {
+  price: ApiVariantPrice | null | undefined;
+}) => {
+  const formattedPrice = useVariantPrice(price);
+
+  return (
+    <Typography.Text style={{ fontWeight: 600, marginLeft: 24 }}>
+      {formattedPrice}
+    </Typography.Text>
+  );
+};
 
 export const OverviewSection = ({
   currentPrice,
-  compareAtPrice,
   currency,
   history,
   stats,
@@ -45,14 +63,16 @@ export const OverviewSection = ({
   isLoadingVariants,
   period,
   onPeriodChange,
-  formatPrice,
 }: IOverviewSectionProps) => {
   const { styles } = useStyles();
+  const formattedCurrentPrice = useVariantPrice(currentPrice);
 
   const selectedVariant = variants.edges.find(
     (e) => e.node.id === selectedVariantId
   )?.node;
 
+  const currentPriceAmount = currentPrice?.amountMinor ?? 0;
+  const compareAtPrice = currentPrice?.compareAtMinor ?? null;
   const previousPrice =
     history.edges.length > 1 ? history.edges[1]?.node.amountMinor : null;
 
@@ -61,11 +81,7 @@ export const OverviewSection = ({
     label: (
       <Flex justify="space-between" align="center" style={{ width: "100%" }}>
         <span>{edge.node.title ?? "Untitled"}</span>
-        <Typography.Text style={{ fontWeight: 600, marginLeft: 24 }}>
-          {edge.node.price
-            ? formatPrice(edge.node.price.amountMinor, edge.node.price.currency)
-            : "—"}
-        </Typography.Text>
+        <VariantPriceLabel price={edge.node.price} />
       </Flex>
     ),
   }));
@@ -120,23 +136,25 @@ export const OverviewSection = ({
         </Typography.Text>
         <div className={styles.currentPriceRow}>
           <Typography.Title level={2} className={styles.mainPrice}>
-            {formatPrice(currentPrice, currency ?? undefined)}
+            {formattedCurrentPrice}
           </Typography.Title>
-          {previousPrice && previousPrice !== currentPrice && (
+          {previousPrice && previousPrice !== currentPriceAmount && (
             <PriceChangeIndicator
-              currentPrice={currentPrice}
+              currentPrice={currentPriceAmount}
               previousPrice={previousPrice}
             />
           )}
-          {compareAtPrice && compareAtPrice > currentPrice && (
-            <Typography.Text
-              delete
-              type="secondary"
-              className={styles.compareAtPrice}
-            >
-              {formatPrice(compareAtPrice, currency ?? undefined)}
-            </Typography.Text>
-          )}
+          {compareAtPrice &&
+            currentPrice &&
+            compareAtPrice > currentPriceAmount && (
+              <Typography.Text
+                delete
+                type="secondary"
+                className={styles.compareAtPrice}
+              >
+                {formatPrice(compareAtPrice, currentPrice.currency)}
+              </Typography.Text>
+            )}
         </div>
       </div>
 
@@ -158,7 +176,6 @@ export const OverviewSection = ({
         <PriceChart
           history={history}
           currency={currency}
-          formatPrice={formatPrice}
           height={180}
           showAxisLabels
           showDateLabels

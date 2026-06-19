@@ -93,6 +93,10 @@ export {
   RelationControl,
   relationControlRegistry,
 } from './components';
+export type {
+  IFilterWidgetProps,
+  IFilterWidgetSearchProps,
+} from './components/filter-widget/filter-widget';
 
 // Hooks
 export { useFilters, useFilterState } from './hooks';

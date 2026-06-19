@@ -5,6 +5,7 @@ export {
   registerDomain,
   registerModule,
 } from "./registry";
+export type { ModulePageProps, SidebarItem } from "./registry";
 
 // Server-side factories
 export {

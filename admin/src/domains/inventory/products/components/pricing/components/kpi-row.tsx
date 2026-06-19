@@ -1,4 +1,5 @@
 import { KPITile } from "@/ui-kit/kpi-tile";
+import { formatPrice } from "../utils";
 import { useStyles } from "../pricing-block.styles";
 import type { ApiVariantPriceHistoryStatistics, CurrencyCode } from "../types";
 
@@ -6,14 +7,12 @@ export interface IKPIRowProps {
   stats: ApiVariantPriceHistoryStatistics | null;
   costPrice: number | null;
   costCurrency?: CurrencyCode | null;
-  formatPrice: (amount: number, currency?: CurrencyCode) => string;
 }
 
 export const KPIRow = ({
   stats,
   costPrice,
   costCurrency,
-  formatPrice,
 }: IKPIRowProps) => {
   const { styles } = useStyles();
   const statsCurrency = stats?.currency;

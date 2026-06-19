@@ -7,16 +7,13 @@ import {
   PriceHistoryChartColumn,
   KPIRow,
 } from "./components";
-import { formatPrice as defaultFormatPrice } from "./utils";
 import { usePricingWidget } from "./use-pricing-widget";
 import { useStyles } from "./pricing-block.styles";
-import type { ApiVariantPriceConnection, CurrencyCode } from "./types";
+import type { ApiVariantPriceConnection } from "./types";
 
 interface IPricingBlockProps {
   /** Product ID to fetch pricing data for */
   productId: string;
-  /** Custom price formatter */
-  formatPrice?: (amount: number, currency?: CurrencyCode) => string;
 }
 
 const EMPTY_HISTORY: ApiVariantPriceConnection = {
@@ -30,10 +27,7 @@ const EMPTY_HISTORY: ApiVariantPriceConnection = {
   totalCount: 0,
 };
 
-export const PricingBlock = ({
-  productId,
-  formatPrice: formatPriceProp,
-}: IPricingBlockProps) => {
+export const PricingBlock = ({ productId }: IPricingBlockProps) => {
   const { styles } = useStyles();
 
   const {
@@ -48,10 +42,7 @@ export const PricingBlock = ({
     setPeriod,
   } = usePricingWidget(productId);
 
-  const formatPrice = formatPriceProp || defaultFormatPrice;
-
-  const price = data?.currentPrice?.amountMinor ?? 0;
-  const compareAtPrice = data?.currentPrice?.compareAtMinor ?? null;
+  const currentPrice = data?.currentPrice ?? null;
   const costPrice = data?.currentCostPrice?.unitCostMinor ?? null;
   const priceCurrency =
     data?.currentPrice?.currency ??
@@ -83,17 +74,11 @@ export const PricingBlock = ({
         onVariantSelect={selectVariant}
         onLoadMore={loadMoreVariants}
         isLoadingMore={isLoadingVariants}
-        formatPrice={formatPrice}
       />
 
       <div className={styles.twoColumn}>
         <div className={styles.priceColumnWrapper}>
-          <CurrentPriceColumn
-            price={price}
-            compareAtPrice={compareAtPrice}
-            currency={priceCurrency}
-            formatPrice={formatPrice}
-          />
+          <CurrentPriceColumn price={currentPrice} />
         </div>
         <div className={styles.chartColumnWrapper}>
           <PriceHistoryChartColumn
@@ -101,17 +86,11 @@ export const PricingBlock = ({
             period={period}
             onPeriodChange={setPeriod}
             currency={priceCurrency}
-            formatPrice={formatPrice}
           />
         </div>
       </div>
 
-      <KPIRow
-        stats={stats}
-        costPrice={costPrice}
-        costCurrency={costCurrency}
-        formatPrice={formatPrice}
-      />
+      <KPIRow stats={stats} costPrice={costPrice} costCurrency={costCurrency} />
     </Paper>
   );
 };

@@ -1,5 +1,5 @@
 [mcp_servers.shopana-cli]
-approval_mode = "approve"
+approval_mode = "never"
 command = "node"
 args = ["./packages/shopana-cli-mcp/dist/index.js"]
 

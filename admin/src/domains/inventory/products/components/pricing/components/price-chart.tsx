@@ -3,12 +3,11 @@ import ReactECharts from "echarts-for-react";
 import { graphic } from "echarts";
 import { useTheme } from "antd-style";
 import type { ApiVariantPriceConnection, CurrencyCode } from "../types";
-import { formatShortDate, formatPrice as defaultFormatPrice } from "../utils";
+import { formatShortDate, formatPrice } from "../utils";
 
 interface IPriceChartProps {
   history: ApiVariantPriceConnection;
   currency?: CurrencyCode | null;
-  formatPrice?: (amount: number, currency?: CurrencyCode) => string;
   height?: number;
   showAxisLabels?: boolean;
   showDateLabels?: boolean;
@@ -18,7 +17,6 @@ interface IPriceChartProps {
 export const PriceChart = ({
   history,
   currency,
-  formatPrice = defaultFormatPrice,
   height = 100,
   showAxisLabels = false,
   showDateLabels = false,
@@ -177,7 +175,6 @@ export const PriceChart = ({
     showDateLabels,
     gridLineCount,
     currency,
-    formatPrice,
   ]);
 
   return (

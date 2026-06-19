@@ -1,4 +1,11 @@
 // Types
+export type {
+  ICellSelection,
+  ICellSelectionApi,
+  ICellSelectionConfig,
+  ICellSelectionContext,
+  ICellSelectionHandlers,
+} from "./types";
 
 // Provider and hooks
 export {

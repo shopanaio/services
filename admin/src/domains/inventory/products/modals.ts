@@ -9,7 +9,6 @@ import type {
   ApiProductOption,
   ApiTag,
   ApiVariant,
-  CurrencyCode,
 } from "@/graphql/types";
 import type { IAttributeRow } from "./modals/edit-attributes-modal/types";
 import type { ApiVariantPrice } from './components/pricing/types';
@@ -90,7 +89,6 @@ export interface IProductPriceHistoryModalPayload extends IModalStackPayload {
     compareAtPrice?: number | null;
     priceHistory: ApiVariantPrice[];
   }>;
-  formatPrice?: (amount: number, currency?: CurrencyCode) => string;
 }
 
 export interface IVariantPricingOption {
@@ -111,7 +109,6 @@ export interface IEditVariantPricingModalPayload extends IModalStackPayload {
     costPrice?: number | null;
     options?: IVariantPricingOption[];
   }>;
-  formatPrice?: (amount: number, currency?: CurrencyCode) => string;
   onSave?: (variants: Array<{
     id: string;
     price: number;
@@ -219,7 +216,6 @@ export interface IEditVariantsModalPayload extends IModalStackPayload {
   initialTab?: VariantTabKey;
   variants: ApiVariant[];
   productOptions: ApiProductOption[];
-  formatPrice?: (amount: number, currency?: CurrencyCode) => string;
   /**
    * When provided, only these columns will be shown.
    * If undefined, all columns are available with user settings.

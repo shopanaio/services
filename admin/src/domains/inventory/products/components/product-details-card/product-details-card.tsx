@@ -19,22 +19,12 @@ import {
   VariantsTableSection,
 } from "./sections";
 import { useProductModals } from "./hooks";
-import { CurrencyCode, type ApiProduct } from "@/graphql/types";
+import type { ApiProduct } from "@/graphql/types";
 import type { IVariantsTableData, ProductDetailsSupplementalData } from "./types";
 import {
   getDefaultVariant,
   getProductMediaFiles,
 } from "../../utils/api-product-display";
-
-// ============================================================================
-// Helpers
-// ============================================================================
-
-const formatPrice = (price: number, currency: CurrencyCode = CurrencyCode.Rub) =>
-  new Intl.NumberFormat("ru-RU", {
-    style: "currency",
-    currency,
-  }).format(price / 100);
 
 // ============================================================================
 // Main Component
@@ -70,7 +60,7 @@ export const ProductDetailsCard = ({
       <ProductContentTabs product={product} />
 
       {/* PRICING */}
-      <PricingBlock productId={product.id} formatPrice={formatPrice} />
+      <PricingBlock productId={product.id} />
 
       {/* MEDIA SECTION */}
       <MediaSection mediaFiles={getProductMediaFiles(product)} onEdit={modals.editMedia} />
@@ -120,7 +110,6 @@ export const ProductDetailsCard = ({
           productOptions={product.options}
           pageInfo={variantsTableData.pageInfo}
           totalCount={variantsTableData.totalCount}
-          formatPrice={formatPrice}
           onEdit={modals.editVariants}
           onPageChange={onVariantsPageChange}
         />

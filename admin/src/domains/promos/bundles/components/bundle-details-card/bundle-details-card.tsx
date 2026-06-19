@@ -44,16 +44,6 @@ import type { IDependencyRule } from "@/domains/promos/bundles/dependency-rules/
 import { createMockApiProduct } from "@/mocks/products/api-builders";
 
 // ============================================================================
-// Helpers
-// ============================================================================
-
-const formatPrice = (price: number) =>
-  new Intl.NumberFormat("ru-RU", {
-    style: "currency",
-    currency: "RUB",
-  }).format(price / 100);
-
-// ============================================================================
 // Props
 // ============================================================================
 
@@ -217,7 +207,7 @@ export const BundleDetailsCard = ({
       <ProductContentTabs product={apiProduct} />
 
       {/* PRICING */}
-      <PricingBlock productId={product.id} formatPrice={formatPrice} />
+      <PricingBlock productId={product.id} />
 
       {/* MEDIA */}
       <MediaSection mediaFiles={product.gallery} onEdit={handleEditMedia} />

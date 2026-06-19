@@ -9,7 +9,6 @@ export interface IPriceHistoryChartColumnProps {
   period: string;
   onPeriodChange: (period: string) => void;
   currency?: CurrencyCode | null;
-  formatPrice: (amount: number, currency?: CurrencyCode) => string;
 }
 
 export const PriceHistoryChartColumn = ({
@@ -17,7 +16,6 @@ export const PriceHistoryChartColumn = ({
   period,
   onPeriodChange,
   currency,
-  formatPrice,
 }: IPriceHistoryChartColumnProps) => {
   const { styles } = useStyles();
 
@@ -41,7 +39,6 @@ export const PriceHistoryChartColumn = ({
       <PriceChart
         history={history}
         currency={currency}
-        formatPrice={formatPrice}
         height={100}
         gridLineCount={3}
       />

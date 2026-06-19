@@ -10,12 +10,9 @@ import {
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "../../edit-action";
 import { useVariantsTableStyles } from "../product-details-card.styles";
-import type {
-  ApiVariant,
-  ApiPageInfo,
-  ApiProductOption,
-  CurrencyCode,
-} from "@/graphql/types";
+import { useVariantPrice } from "../../pricing/use-variant-price";
+import { formatPrice } from "../../pricing/utils";
+import type { ApiVariant, ApiPageInfo, ApiProductOption } from "@/graphql/types";
 import {
   getSelectedOptionLabels,
   getVariantStockQuantity,
@@ -74,17 +71,16 @@ const getStockStatus = (variant: ApiVariant): string => {
 interface IVariantRowProps {
   variant: ApiVariant;
   productOptions: ApiProductOption[];
-  formatPrice: (price: number, currency?: CurrencyCode) => string;
   onAction: (action: string, variantId: string) => void;
 }
 
 const VariantRow = ({
   variant,
   productOptions,
-  formatPrice,
   onAction,
 }: IVariantRowProps) => {
   const { styles } = useVariantsTableStyles();
+  const formattedPrice = useVariantPrice(variant.price);
 
   const price = variant.price?.amountMinor ?? 0;
   const compareAtPrice = variant.price?.compareAtMinor ?? null;
@@ -143,7 +139,7 @@ const VariantRow = ({
       <td>
         <Flex vertical gap={0}>
           <Typography.Text>
-            {formatPrice(Number(price), variant.price?.currency)}
+            {formattedPrice}
           </Typography.Text>
           {compareAtPrice &&
             compareAtPrice > 0 &&
@@ -153,7 +149,7 @@ const VariantRow = ({
                   type="secondary"
                   className={styles.priceStrikethrough}
                 >
-                  {formatPrice(Number(compareAtPrice), variant.price?.currency)}
+                  {formatPrice(compareAtPrice, variant.price?.currency)}
                 </Typography.Text>
                 {discountPercent > 0 && (
                   <Typography.Text className={styles.discountPercent}>
@@ -248,7 +244,6 @@ interface IVariantsTableSectionProps {
   productOptions: ApiProductOption[];
   pageInfo: ApiPageInfo;
   totalCount: number;
-  formatPrice: (price: number, currency?: CurrencyCode) => string;
   onEdit: () => void;
   onSort?: (sortKey: string) => void;
   onVariantAction?: (action: string, variantId: string) => void;
@@ -260,7 +255,6 @@ export const VariantsTableSection = ({
   productOptions,
   pageInfo,
   totalCount,
-  formatPrice,
   onEdit,
   onSort,
   onVariantAction,
@@ -321,7 +315,6 @@ export const VariantsTableSection = ({
                 key={variant.id}
                 variant={variant}
                 productOptions={productOptions}
-                formatPrice={formatPrice}
                 onAction={handleVariantAction}
               />
             ))}

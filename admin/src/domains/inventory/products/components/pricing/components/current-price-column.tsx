@@ -1,26 +1,25 @@
 import { Typography, Tag, Tooltip, Flex } from "antd";
+import { useVariantPrice } from "../use-variant-price";
+import { formatPrice } from "../utils";
 import { useStyles } from "../pricing-block.styles";
-import type { CurrencyCode } from "../types";
+import type { ApiVariantPrice } from "@/graphql/types";
 
 const NBSP = "\u00A0";
 
 export interface ICurrentPriceColumnProps {
-  price: number;
-  compareAtPrice: number | null;
-  currency?: CurrencyCode | null;
-  formatPrice: (amount: number, currency?: CurrencyCode) => string;
+  price: ApiVariantPrice | null;
 }
 
-export const CurrentPriceColumn = ({
-  price,
-  compareAtPrice,
-  currency,
-  formatPrice,
-}: ICurrentPriceColumnProps) => {
+export const CurrentPriceColumn = ({ price }: ICurrentPriceColumnProps) => {
   const { styles } = useStyles();
+  const formattedPrice = useVariantPrice(price);
 
+  const amountMinor = price?.amountMinor ?? 0;
+  const compareAtPrice = price?.compareAtMinor ?? null;
   const saving =
-    compareAtPrice && compareAtPrice > price ? compareAtPrice - price : null;
+    compareAtPrice && compareAtPrice > amountMinor
+      ? compareAtPrice - amountMinor
+      : null;
   const discountPercent =
     saving && compareAtPrice
       ? Math.round((saving / compareAtPrice) * 100)
@@ -32,14 +31,14 @@ export const CurrentPriceColumn = ({
         Current price
       </Typography.Text>
       <Typography.Title level={2} className={styles.mainPrice}>
-        {formatPrice(price, currency ?? undefined)}
+        {formattedPrice}
       </Typography.Title>
       <Flex align="center" gap={8}>
-        {compareAtPrice && (
+        {compareAtPrice && price && (
           <Typography.Text type="secondary">
             Compare at:{NBSP}
             <Typography.Text delete type="secondary">
-              {formatPrice(compareAtPrice, currency ?? undefined)}
+              {formatPrice(compareAtPrice, price.currency)}
             </Typography.Text>
           </Typography.Text>
         )}

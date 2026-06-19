@@ -3,8 +3,9 @@ import { DownOutlined, MoreOutlined } from "@ant-design/icons";
 import { useProductPriceHistoryModal } from "../../../modals";
 import { PaperHeader } from "@/ui-kit/paper";
 import { ScrollableDropdown } from "./scrollable-dropdown";
+import { useVariantPrice } from "../use-variant-price";
 import { useStyles } from "../pricing-block.styles";
-import type { ApiVariantConnection, CurrencyCode } from "@/graphql/types";
+import type { ApiVariantConnection, ApiVariantPrice } from "@/graphql/types";
 
 export interface IPricingHeaderProps {
   productId: string;
@@ -13,8 +14,21 @@ export interface IPricingHeaderProps {
   onVariantSelect: (id: string) => void;
   onLoadMore: () => void;
   isLoadingMore: boolean;
-  formatPrice: (amount: number, currency?: CurrencyCode) => string;
 }
+
+const VariantPriceLabel = ({
+  price,
+}: {
+  price: ApiVariantPrice | null | undefined;
+}) => {
+  const formattedPrice = useVariantPrice(price);
+
+  return (
+    <Typography.Text style={{ fontWeight: 600, marginLeft: 24 }}>
+      {formattedPrice}
+    </Typography.Text>
+  );
+};
 
 export const PricingHeader = ({
   productId,
@@ -23,7 +37,6 @@ export const PricingHeader = ({
   onVariantSelect,
   onLoadMore,
   isLoadingMore,
-  formatPrice,
 }: IPricingHeaderProps) => {
   const { styles } = useStyles();
   const { push: pushPriceHistory } = useProductPriceHistoryModal();
@@ -37,11 +50,7 @@ export const PricingHeader = ({
     label: (
       <Flex justify="space-between" align="center" style={{ width: "100%" }}>
         <span>{edge.node.title ?? "Untitled"}</span>
-        <Typography.Text style={{ fontWeight: 600, marginLeft: 24 }}>
-          {edge.node.price
-            ? formatPrice(edge.node.price.amountMinor, edge.node.price.currency)
-            : "—"}
-        </Typography.Text>
+        <VariantPriceLabel price={edge.node.price} />
       </Flex>
     ),
   }));

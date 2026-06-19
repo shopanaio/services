@@ -8,7 +8,6 @@ import {
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
-import { formatPrice as defaultFormatPrice } from "../../components/pricing/utils";
 import { usePricingWidget } from "../../components/pricing/use-pricing-widget";
 import type { Period } from "../../components/period-switch";
 import { OverviewSection, ChangeLogSection } from "./components";
@@ -30,11 +29,8 @@ export const PriceHistoryModal = () => {
     setPeriod,
   } = usePricingWidget<Period>(typedPayload.productId);
 
-  const formatPrice = typedPayload.formatPrice || defaultFormatPrice;
-
   // Extract pricing data from widget response
-  const currentPrice = data?.currentPrice?.amountMinor ?? 0;
-  const compareAtPrice = data?.currentPrice?.compareAtMinor ?? null;
+  const currentPrice = data?.currentPrice ?? null;
   const currency =
     data?.currentPrice?.currency ??
     data?.currentCostPrice?.currency ??
@@ -95,7 +91,6 @@ export const PriceHistoryModal = () => {
     >
       <OverviewSection
         currentPrice={currentPrice}
-        compareAtPrice={compareAtPrice}
         currency={currency}
         history={history}
         stats={stats}
@@ -106,7 +101,6 @@ export const PriceHistoryModal = () => {
         isLoadingVariants={isLoadingVariants}
         period={period}
         onPeriodChange={setPeriod}
-        formatPrice={formatPrice}
       />
 
       <ChangeLogSection history={history} />

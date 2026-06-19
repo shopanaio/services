@@ -75,7 +75,6 @@ export interface IUnifiedVariantsTableProps {
   variants: IUnifiedVariant[];
   activeTab: VariantTabKey;
   onChange?: (variants: IUnifiedVariantRow[]) => void;
-  formatPrice?: (amount: number) => string;
   lowStockThreshold?: number;
 }
 
@@ -181,13 +180,9 @@ const StockStatusCellRenderer = (props: CustomCellRendererProps<IUnifiedVariantR
   );
 };
 
-interface IPriceCellRendererProps extends CustomCellRendererProps<IUnifiedVariantRow> {
-  formatPrice: (amount: number) => string;
-}
-
-const PriceCellRenderer = (props: IPriceCellRendererProps) => {
+const PriceCellRenderer = (props: CustomCellRendererProps<IUnifiedVariantRow>) => {
   const { styles } = useStyles();
-  const { value, formatPrice } = props;
+  const { value } = props;
 
   if (value === null || value === undefined) {
     return (
@@ -199,7 +194,7 @@ const PriceCellRenderer = (props: IPriceCellRendererProps) => {
 
   return (
     <Typography.Text className={styles.priceCell}>
-      {formatPrice(value)}
+      {defaultFormatPrice(value)}
     </Typography.Text>
   );
 };
@@ -212,11 +207,8 @@ export const UnifiedVariantsTable = ({
   variants,
   activeTab,
   onChange,
-  formatPrice: formatPriceProp,
   lowStockThreshold = 10,
 }: IUnifiedVariantsTableProps) => {
-  const formatPrice = formatPriceProp || defaultFormatPrice;
-
   // Extract option groups
   const optionGroups = useMemo<IOptionGroup[]>(
     () => extractOptionGroups(variants),
@@ -322,12 +314,11 @@ export const UnifiedVariantsTable = ({
         flex: 1,
         minWidth: 140,
         editable: true,
-        cellRenderer: (params: CustomCellRendererProps<IUnifiedVariantRow>) => (
-          <PriceCellRenderer {...params} formatPrice={formatPrice} />
-        ),
+        cellRenderer: PriceCellRenderer,
         cellEditor: "agNumberCellEditor",
         cellEditorParams: { min: 0, precision: 0 },
-        valueFormatter: (params) => (params.value != null ? formatPrice(params.value) : "—"),
+        valueFormatter: (params) =>
+          params.value != null ? defaultFormatPrice(params.value) : "—",
       },
       {
         headerName: "Compare at Price",
@@ -335,12 +326,11 @@ export const UnifiedVariantsTable = ({
         flex: 1,
         minWidth: 160,
         editable: true,
-        cellRenderer: (params: CustomCellRendererProps<IUnifiedVariantRow>) => (
-          <PriceCellRenderer {...params} formatPrice={formatPrice} />
-        ),
+        cellRenderer: PriceCellRenderer,
         cellEditor: "agNumberCellEditor",
         cellEditorParams: { min: 0, precision: 0 },
-        valueFormatter: (params) => (params.value != null ? formatPrice(params.value) : "—"),
+        valueFormatter: (params) =>
+          params.value != null ? defaultFormatPrice(params.value) : "—",
       },
       {
         headerName: "Cost Price",
@@ -348,15 +338,14 @@ export const UnifiedVariantsTable = ({
         flex: 1,
         minWidth: 140,
         editable: true,
-        cellRenderer: (params: CustomCellRendererProps<IUnifiedVariantRow>) => (
-          <PriceCellRenderer {...params} formatPrice={formatPrice} />
-        ),
+        cellRenderer: PriceCellRenderer,
         cellEditor: "agNumberCellEditor",
         cellEditorParams: { min: 0, precision: 0 },
-        valueFormatter: (params) => (params.value != null ? formatPrice(params.value) : "—"),
+        valueFormatter: (params) =>
+          params.value != null ? defaultFormatPrice(params.value) : "—",
       },
     ],
-    [formatPrice]
+    []
   );
 
   const shippingColumns = useMemo<ColDef<IUnifiedVariantRow>[]>(

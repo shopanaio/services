@@ -11,6 +11,11 @@ export {
 } from "./enums";
 
 // Types
+export type {
+  IDependencyAction,
+  IDependencyCondition,
+  IDependencyRule,
+} from "./types";
 
 // Operators
 export {

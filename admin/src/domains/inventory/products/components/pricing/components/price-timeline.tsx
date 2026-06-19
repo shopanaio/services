@@ -1,6 +1,7 @@
 import { Typography, Flex, Timeline, Tag } from "antd";
 import { createStyles } from "antd-style";
-import type { ApiVariantPriceConnection } from "../types";
+import type { ApiVariantPrice, ApiVariantPriceConnection } from "../types";
+import { useVariantPrice } from "../use-variant-price";
 import { formatPrice, formatDateFull } from "../utils";
 import { PriceChangeIndicator } from "./price-change-indicator";
 import { DiscountBadge } from "./discount-badge";
@@ -42,6 +43,67 @@ interface IPriceTimelineProps {
   history: ApiVariantPriceConnection;
 }
 
+interface IPriceTimelineEntryProps {
+  record: ApiVariantPrice;
+  previousRecord: ApiVariantPrice | null;
+}
+
+const PriceTimelineEntry = ({
+  record,
+  previousRecord,
+}: IPriceTimelineEntryProps) => {
+  const { styles } = useStyles();
+  const formattedPrice = useVariantPrice(record);
+
+  return (
+    <div>
+      <Flex align="center" gap="small" wrap="wrap">
+        <Typography.Text
+          strong={record.isCurrent}
+          className={styles.priceText}
+        >
+          {formattedPrice}
+        </Typography.Text>
+        {record.compareAtMinor && (
+          <>
+            <Typography.Text
+              delete
+              type="secondary"
+              className={styles.compareText}
+            >
+              {formatPrice(record.compareAtMinor, record.currency)}
+            </Typography.Text>
+            <DiscountBadge
+              price={record.amountMinor}
+              compareAtPrice={record.compareAtMinor}
+              currency={record.currency}
+              size="small"
+              showSaving={false}
+            />
+          </>
+        )}
+        {previousRecord && (
+          <PriceChangeIndicator
+            currentPrice={record.amountMinor}
+            previousPrice={previousRecord.amountMinor}
+            size="small"
+          />
+        )}
+        {record.isCurrent && (
+          <Tag color="blue" className={styles.currentTag}>
+            current
+          </Tag>
+        )}
+      </Flex>
+      <Typography.Text type="secondary" className={styles.dateText}>
+        {formatDateFull(new Date(record.effectiveFrom))}
+        {record.effectiveTo &&
+          ` — ${formatDateFull(new Date(record.effectiveTo))}`}
+      </Typography.Text>
+    </div>
+  );
+};
+
 export const PriceTimeline = ({ history }: IPriceTimelineProps) => {
   const { styles } = useStyles();
 
@@ -66,51 +128,12 @@ export const PriceTimeline = ({ history }: IPriceTimelineProps) => {
             ? "red"
             : "gray",
           children: (
-            <div>
-              <Flex align="center" gap="small" wrap="wrap">
-                <Typography.Text
-                  strong={record.isCurrent}
-                  className={styles.priceText}
-                >
-                  {formatPrice(record.amountMinor, record.currency)}
-                </Typography.Text>
-                {record.compareAtMinor && (
-                  <>
-                    <Typography.Text
-                      delete
-                      type="secondary"
-                      className={styles.compareText}
-                    >
-                      {formatPrice(record.compareAtMinor, record.currency)}
-                    </Typography.Text>
-                    <DiscountBadge
-                      price={record.amountMinor}
-                      compareAtPrice={record.compareAtMinor}
-                      currency={record.currency}
-                      size="small"
-                      showSaving={false}
-                    />
-                  </>
-                )}
-                {priceChange !== null && prevEdge && (
-                  <PriceChangeIndicator
-                    currentPrice={record.amountMinor}
-                    previousPrice={prevEdge.node.amountMinor}
-                    size="small"
-                  />
-                )}
-                {record.isCurrent && (
-                  <Tag color="blue" className={styles.currentTag}>
-                    current
-                  </Tag>
-                )}
-              </Flex>
-              <Typography.Text type="secondary" className={styles.dateText}>
-                {formatDateFull(new Date(record.effectiveFrom))}
-                {record.effectiveTo &&
-                  ` — ${formatDateFull(new Date(record.effectiveTo))}`}
-              </Typography.Text>
-            </div>
+            <PriceTimelineEntry
+              record={record}
+              previousRecord={
+                priceChange !== null ? prevEdge?.node ?? null : null
+              }
+            />
           ),
         };
       })}
