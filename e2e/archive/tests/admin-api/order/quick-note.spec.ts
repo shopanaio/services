@@ -1,7 +1,6 @@
 import { test } from '@fixtures/base.extend';
+import type { ApiOrder, ApiProduct, ApiTag } from '@codegen/admin-gql';
 import {
-  ApiProduct,
-  ApiTag,
   EntityStatus,
   OrderStatusEnum,
   WeightUnit,
@@ -14,7 +13,7 @@ import * as Yup from 'yup';
 test.describe('Orders API', () => {
   let productRequest: { data: { productMutation: { create: ApiProduct } } };
   let customerId: { data: { customerMutation: { create: string } } };
-  let order: import('@codegen/admin-gql').ApiOrder;
+  let order: ApiOrder;
 
   const createProductInput = (title: string, price: number, oldPrice: number) => ({
     description: null,

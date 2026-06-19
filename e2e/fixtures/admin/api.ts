@@ -1,6 +1,7 @@
-import { BaseGqlRequest, GqlRequestSession } from '@fixtures/api/gqlRequest';
-import { ApiMutation, ApiQuery } from '@codegen/admin-gql';
-import { APIRequestContext } from '@playwright/test';
+import type { GqlRequestSession } from '@fixtures/api/gqlRequest';
+import { BaseGqlRequest } from '@fixtures/api/gqlRequest';
+import type { ApiMutation, ApiQuery } from '@codegen/admin-gql';
+import type { APIRequestContext } from '@playwright/test';
 import { CategoryFixture } from './category';
 import { CollectionFixture } from './collection';
 import { FileFixture } from './file';

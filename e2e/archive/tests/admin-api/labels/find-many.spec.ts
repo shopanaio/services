@@ -1,6 +1,6 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import { ApiLabelQueryFindManyArgs } from '@codegen/admin-gql';
+import type { ApiLabelQueryFindManyArgs } from '@codegen/admin-gql';
 import { randomUUID } from 'node:crypto';
 
 const inputs = [

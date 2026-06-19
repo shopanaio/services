@@ -1,5 +1,6 @@
-import { BaseGqlRequest } from '@fixtures/api/gqlRequest';
-import { ApiCollectionCreateInput, CollectionType, ProductSortBy } from '@codegen/admin-gql';
+import type { BaseGqlRequest } from '@fixtures/api/gqlRequest';
+import type { ApiCollectionCreateInput, ProductSortBy } from '@codegen/admin-gql';
+import { CollectionType } from '@codegen/admin-gql';
 import _ from 'lodash';
 
 export interface CollectionData {

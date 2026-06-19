@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import { ApiTag, EntityStatus, WeightUnit } from '@codegen/admin-gql';
+import type { ApiTag } from '@codegen/admin-gql';
+import { EntityStatus, WeightUnit } from '@codegen/admin-gql';
 import { TagSort } from '@codegen/client-gql';
 import { randomUUID } from 'node:crypto';
 

@@ -1,10 +1,10 @@
-import {
+import type {
   ApiReview,
   ApiReviewMutationCreateArgs,
   ApiReviewMutationEditArgs,
   ApiReviewQueryFindOneArgs,
 } from '@codegen/admin-gql';
-import { TenantApiFixture } from '@fixtures/admin/api';
+import type { TenantApiFixture } from '@fixtures/admin/api';
 
 export class Review {
   constructor(private api: TenantApiFixture) {}
@@ -12,7 +12,7 @@ export class Review {
   async create(input: ApiReviewMutationCreateArgs['input']): Promise<string> {
     const { data } = await this.api.mutation('admin/ReviewCreate', { variables: { input } });
 
-    
+
     return data.reviewMutation.create as string;
   }
 
@@ -20,7 +20,7 @@ export class Review {
     const { data } = await this.api.mutation('admin/ReviewUpdate', {
       variables,
     });
-    
+
     return data.reviewMutation.edit;
   }
 

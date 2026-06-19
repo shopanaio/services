@@ -1,5 +1,6 @@
 import { test } from '@fixtures/base.extend';
 import {
+  type ApiOrder,
   FulfillmentStatusEnum,
   OrderEventTypeEnum,
   OrderStatusEnum,
@@ -10,7 +11,7 @@ import * as Yup from 'yup';
 
 test.describe('Orders API', () => {
   let customerId: { data: { customerMutation: { create: string } } };
-  let order: import('@codegen/admin-gql').ApiOrder;
+  let order: ApiOrder;
 
   const productsTitles = ['Sunglasses', 'Hat', 'Pants'];
 

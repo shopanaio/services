@@ -1,10 +1,11 @@
 import { test } from '@fixtures/base.extend';
 import { randomUUID } from 'node:crypto';
 import { expect } from '@playwright/test';
-import {
+import type {
   ApiCategory,
   ApiProduct,
-  ApiTag,
+  ApiTag } from '@codegen/admin-gql';
+import {
   EntityStatus,
   ListingSort,
   ListingType,

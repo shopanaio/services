@@ -1,9 +1,10 @@
 import { EntityStatus, ProductGroupPriceType } from '@codegen/admin-gql';
-import {
+import type {
   ApiCheckout,
   ApiCheckoutCost,
   ApiCheckoutLine,
-  ApiCheckoutTag,
+  ApiCheckoutTag } from '@codegen/client-gql';
+import {
   CountryCode,
   CurrencyCode,
 } from '@codegen/client-gql';

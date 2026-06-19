@@ -8,18 +8,18 @@ import {
   DimensionUnit,
 } from '@codegen/admin-gql';
 import { randomUUID } from 'crypto';
-import { ApiFixtures } from '@fixtures/api/api';
+import type { ApiFixtures } from '@fixtures/api/api';
 
 
 const prepareProductWithDisplayTypes = async (api: ApiFixtures['api']) => {
-  
+
   await api.session.setupUserAndProject();
 
   type GroupSpec = {
     title: string;
     type: FeatureStyleType;
     values: string[];
-    colors?: string[]; 
+    colors?: string[];
   };
 
   const specs: GroupSpec[] = [
@@ -35,7 +35,7 @@ const prepareProductWithDisplayTypes = async (api: ApiFixtures['api']) => {
     },
   ];
 
-  
+
   type FeatureEntity = {
     slug: string;
     title: string;
@@ -105,7 +105,7 @@ const prepareProductWithDisplayTypes = async (api: ApiFixtures['api']) => {
     dimensionUnit: DimensionUnit.Cm,
   }));
 
-  
+
   const product = await api.admin.product.create({
     input: {
       description: null,
@@ -122,10 +122,10 @@ const prepareProductWithDisplayTypes = async (api: ApiFixtures['api']) => {
     },
   });
 
-  
+
   await api.session.setupApiKey();
 
-  
+
   const featureGroups = specs.map((spec) => ({
     slug: spec.title.toLowerCase().replace(/\s+/g, '-'),
     type: spec.type,
@@ -153,7 +153,7 @@ test.describe('product container options displayType & swatch', () => {
     const options = productData.options;
     expect(options.length).toBe(featureGroups.length);
 
-    
+
     featureGroups.forEach((group) => {
       const opt = options.find((o: { handle: string }) => o.handle === group.slug);
       expect(opt).toBeDefined();
@@ -161,7 +161,7 @@ test.describe('product container options displayType & swatch', () => {
       expect(opt.displayType).toBe(group.type);
     });
 
-    
+
     const swatchGroup = featureGroups.find((g) => g.type === FeatureStyleType.Swatch);
     if (swatchGroup) {
       const opt = options.find((o: { handle: string }) => o.handle === swatchGroup.slug);
@@ -169,7 +169,7 @@ test.describe('product container options displayType & swatch', () => {
       if (!opt) throw new Error('Swatch option not found');
       opt.values.forEach((v) => {
         expect(v.swatch).not.toBeNull();
-        
+
         const expectedColor = swatchGroup.features.find((f) => f.slug === v.handle)?.color;
         if (expectedColor) {
           expect(v.swatch?.color.toLowerCase()).toBe(expectedColor.toLowerCase());

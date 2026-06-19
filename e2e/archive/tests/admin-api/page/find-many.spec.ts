@@ -1,6 +1,7 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import { ApiPageQueryFindManyArgs, EntityStatus } from '@codegen/admin-gql';
+import type { ApiPageQueryFindManyArgs } from '@codegen/admin-gql';
+import { EntityStatus } from '@codegen/admin-gql';
 import { randomUUID } from 'node:crypto';
 
 test.describe('PageFindMany API', () => {

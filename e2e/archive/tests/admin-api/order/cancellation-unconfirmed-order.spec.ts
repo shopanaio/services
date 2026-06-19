@@ -1,5 +1,6 @@
 import { test } from '@fixtures/base.extend';
-import { ApiProduct, OrderStatusEnum, WeightUnit, DimensionUnit, ApiCustomer } from '@codegen/admin-gql';
+import type { ApiCustomer, ApiOrder, ApiProduct } from '@codegen/admin-gql';
+import { OrderStatusEnum, WeightUnit, DimensionUnit } from '@codegen/admin-gql';
 import { randomUUID } from 'node:crypto';
 import { expect } from 'playwright/test';
 import * as Yup from 'yup';
@@ -7,7 +8,7 @@ import * as Yup from 'yup';
 test.describe('Orders API', () => {
   let product: ApiProduct;
   let customer: ApiCustomer;
-  let order: import('@codegen/admin-gql').ApiOrder;
+  let order: ApiOrder;
 
   const createProductInput = (title: string, price: number, oldPrice: number) => ({
     description: null,

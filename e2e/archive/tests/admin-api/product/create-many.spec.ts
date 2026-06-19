@@ -1,8 +1,9 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import {
+import type {
   ApiCategory,
-  ApiProduct,
+  ApiProduct } from '@codegen/admin-gql';
+import {
   EntityStatus,
   ListingSort,
   ListingType,
@@ -41,7 +42,7 @@ test.describe('Products API', () => {
         },
       });
 
-      
+
       product = await api.admin.product.update({
         input: {
           id: product.id,

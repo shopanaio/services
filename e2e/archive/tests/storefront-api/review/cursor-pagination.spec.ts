@@ -2,7 +2,7 @@ import { expect } from '@playwright/test';
 import { ProductReviewSort } from '@codegen/client-gql';
 import type { ApiFixtures } from '@fixtures/api/api';
 import { createCursorPaginationTests } from '@utils/cursorPaginationBuilder';
-import { GraphQLFileName } from '@queries/filenames';
+import type { GraphQLFileName } from '@queries/filenames';
 import { generateUser } from '@utils/user';
 
 // ---------------------------------------------------------------------------
@@ -41,12 +41,12 @@ const getExpectedBySort = (titles: string[], sort: ProductReviewSort) => {
 async function prepareProductReviews(api: ApiFixtures['api']) {
   await api.session.setupUserAndProject();
 
-  
+
   const {
     variants: [{ slug: handle }],
   } = await api.admin.product.create();
 
-  
+
   await api.session.setupApiKey();
   await api.session.setupCustomer();
 
@@ -55,7 +55,7 @@ async function prepareProductReviews(api: ApiFixtures['api']) {
   const expectedTitles: string[] = [];
   const reviewIds: { global: string; internal: string }[] = [];
 
-  
+
   for (let i = 0; i < 5; i++) {
     api.session.customer.data = generateUser();
     await api.session.setupCustomer();
@@ -63,7 +63,7 @@ async function prepareProductReviews(api: ApiFixtures['api']) {
     const title = `Review ${i}`;
     const { id: reviewId, iid } = await api.client.review.create({
       title,
-      rating: i + 1, 
+      rating: i + 1,
       message: `Message ${i}`,
       productId: product.id,
     });
@@ -75,21 +75,21 @@ async function prepareProductReviews(api: ApiFixtures['api']) {
     });
   }
 
-  
+
   api.session.setTenantScope();
   for (const { internal: iid } of reviewIds) {
     const ok = await api.admin.review.approve(iid);
     expect(ok).toBe(true);
   }
 
-  
+
   await api.session.setCustomerScope();
 
   for (let i = 0; i < reviewIds.length; i++) {
     const { global: reviewId } = reviewIds[i];
     for (let v = 0; v < i; v++) {
       if (v > 0) {
-        
+
         api.session.customer.data = generateUser();
         await api.session.setupCustomer();
       }
@@ -98,7 +98,7 @@ async function prepareProductReviews(api: ApiFixtures['api']) {
     }
   }
 
-  
+
   return {
     expectedTitles,
     baseVariables: { handle },

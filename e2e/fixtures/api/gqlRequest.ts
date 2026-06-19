@@ -1,7 +1,7 @@
-import { APIRequestContext } from '@playwright/test';
+import type { APIRequestContext } from '@playwright/test';
 import { readQuery } from './types';
-import { GraphQLError } from 'graphql';
-import { GraphQLFileName } from '@queries/filenames';
+import type { GraphQLError } from 'graphql';
+import type { GraphQLFileName } from '@queries/filenames';
 
 export interface GqlRequestSession {
   projectSlug: string;

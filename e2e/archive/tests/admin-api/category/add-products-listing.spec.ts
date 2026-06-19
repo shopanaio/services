@@ -1,9 +1,10 @@
 
 import { test } from '@fixtures/base.extend';
-import {
+import type {
   ApiCategory,
   //ApiCategoryQueryFindOneArgs,
-  ApiProduct,
+  ApiProduct } from '@codegen/admin-gql';
+import {
   EntityStatus,
   ListingSort,
   ListingType,

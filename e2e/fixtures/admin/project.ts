@@ -1,5 +1,6 @@
-import { ApiStoreCreateInput, CurrencyCode, LocaleCode } from '@codegen/admin-gql';
-import { BaseGqlRequest } from '@fixtures/api/gqlRequest';
+import type { ApiStoreCreateInput } from '@codegen/admin-gql';
+import { CurrencyCode, LocaleCode } from '@codegen/admin-gql';
+import type { BaseGqlRequest } from '@fixtures/api/gqlRequest';
 import _ from 'lodash';
 
 export class ProjectFixture {

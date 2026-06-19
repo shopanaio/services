@@ -1,13 +1,14 @@
-import {
+import type {
   ApiProductReview,
   ApiCreateReviewInput,
   ApiUpdateReviewInput,
-  ApiVoteReviewHelpfulInput,
+  ApiVoteReviewHelpfulInput } from '@codegen/client-gql';
+import {
   LocaleCode,
 } from '@codegen/client-gql';
-import { ClientApiFixture } from '@fixtures/client/api';
+import type { ClientApiFixture } from '@fixtures/client/api';
 import _ from 'lodash';
-import { DeepPartial } from 'types';
+import type { DeepPartial } from 'types';
 
 export class Review {
   constructor(private api: ClientApiFixture) {}

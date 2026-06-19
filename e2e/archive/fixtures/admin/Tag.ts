@@ -1,5 +1,5 @@
-import { ApiTag, ApiTagMutationCreateArgs, ApiTagQueryFindOneArgs } from '@codegen/admin-gql';
-import { TenantApiFixture } from '@fixtures/admin/api';
+import type { ApiTag, ApiTagMutationCreateArgs, ApiTagQueryFindOneArgs } from '@codegen/admin-gql';
+import type { TenantApiFixture } from '@fixtures/admin/api';
 
 export class Tag {
   constructor(private api: TenantApiFixture) {}

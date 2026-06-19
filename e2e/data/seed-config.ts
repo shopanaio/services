@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { CategoryData, TagData, FeatureGroupData, ProductDataWithFeatures } from './seed-data';
+import type { CategoryData, TagData, FeatureGroupData, ProductDataWithFeatures } from './seed-data';
 
 export interface ReviewTemplate {
   rating: number;

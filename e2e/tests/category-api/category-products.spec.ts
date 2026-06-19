@@ -1,7 +1,8 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
 import type { ApiFixtures } from '@fixtures/api/api';
-import { createConnectionPaginationTests, type Connection } from '@utils/connectionPaginationBuilder';
+import type { Connection } from '@utils/connectionPaginationBuilder';
+import { createConnectionPaginationTests } from '@utils/connectionPaginationBuilder';
 
 // Types
 interface CategoryProduct {

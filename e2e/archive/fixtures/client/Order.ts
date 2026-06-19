@@ -1,5 +1,5 @@
-import { ApiCreateOrderInput } from '@codegen/client-gql';
-import { ClientApiFixture } from '@fixtures/client/api';
+import type { ApiCreateOrderInput } from '@codegen/client-gql';
+import type { ClientApiFixture } from '@fixtures/client/api';
 
 export class Order {
   constructor(private client: ClientApiFixture) {}

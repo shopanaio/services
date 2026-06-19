@@ -1,4 +1,4 @@
-import {
+import type {
   ApiOrder,
   ApiCreateOrderInput,
   ApiCreateOrderItemInput,
@@ -12,9 +12,9 @@ import {
   ApiUpdateOrderItemInput,
   ApiSplitFulfillmentInput,
 } from '@codegen/admin-gql';
-import { TenantApiFixture } from '@fixtures/admin/api';
+import type { TenantApiFixture } from '@fixtures/admin/api';
 import _ from 'lodash';
-import { DeepPartial } from 'types';
+import type { DeepPartial } from 'types';
 
 export class Order {
   constructor(private api: TenantApiFixture) {}

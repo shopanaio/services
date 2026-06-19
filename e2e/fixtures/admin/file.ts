@@ -1,6 +1,6 @@
-import { BaseGqlRequest, GqlRequestSession } from '@fixtures/api/gqlRequest';
+import type { BaseGqlRequest, GqlRequestSession } from '@fixtures/api/gqlRequest';
 import { readQuery } from '@fixtures/api/types';
-import { APIRequestContext } from '@playwright/test';
+import type { APIRequestContext } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 import FormData from 'form-data';

@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
 import {
@@ -10,7 +11,7 @@ import {
   DimensionUnit,
   FeatureStyleType,
 } from '@codegen/admin-gql';
-import { ApiFilter } from '@codegen/client-gql';
+import type { ApiFilter } from '@codegen/client-gql';
 import type { ApiFixtures } from '@fixtures/api/api';
 import { randomUUID } from 'node:crypto';
 
@@ -42,7 +43,7 @@ async function setupCategoryWithProducts(
   await api.session.setupUserAndProject();
 
   // ---------------------------------------------------------------------
-  
+
   // ---------------------------------------------------------------------
 
   // Create category
@@ -68,7 +69,7 @@ async function setupCategoryWithProducts(
   });
 
   // ---------------------------------------------------------------------
-  
+
   // ---------------------------------------------------------------------
   const tagMap = new Map<string, string>();
   for (const product of products) {
@@ -89,13 +90,13 @@ async function setupCategoryWithProducts(
   }
 
   // ---------------------------------------------------------------------
-  
-  // ---------------------------------------------------------------------
-  
-  
 
   // ---------------------------------------------------------------------
-  
+
+
+
+  // ---------------------------------------------------------------------
+
   // ---------------------------------------------------------------------
   const productIds: string[] = [];
 
@@ -103,7 +104,7 @@ async function setupCategoryWithProducts(
     // Resolve tag IDs
     const tagIds = (seed.tags || []).map((t) => tagMap.get(t)!).filter(Boolean);
 
-    
+
     const attributeLinks =
       seed.features?.map((feat, idx) => ({
         attributeSortIndex: idx,
@@ -176,7 +177,7 @@ async function setupCategoryWithProducts(
   }
 
   // ---------------------------------------------------------------------
-  
+
   // ---------------------------------------------------------------------
   if (productIds.length > 0) {
     await api.admin.mutation('admin/CategoryAddProducts', {
@@ -203,7 +204,7 @@ function findFilterByType(filters: ApiFilter[], typename: string): ApiFilter | u
 
 test.describe('Category Listing Filters', () => {
   // ---------------------------------------------------------------------
-  
+
   // ---------------------------------------------------------------------
   test('returns empty facets for category without products', async ({ api }) => {
     await api.session.setupUserAndProject();
@@ -240,20 +241,20 @@ test.describe('Category Listing Filters', () => {
   });
 
   // ---------------------------------------------------------------------
-  
+
   // ---------------------------------------------------------------------
   test('returns all facet types for category with diverse products', async ({ api }) => {
     // -----------------------------------------------------------------
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
+
+
+
+
     // -----------------------------------------------------------------
     const products: ProductSeed[] = [
       {
@@ -343,19 +344,19 @@ test.describe('Category Listing Filters', () => {
     });
 
     const filters = data.category!.listing.filters;
-    
+
     const priceFilter = findFilterByType(filters, 'PriceRangeFilter') as any;
     expect(priceFilter).toBeDefined();
     expect(Number(priceFilter.minPrice.amount)).toBe(10);
     expect(Number(priceFilter.maxPrice.amount)).toBe(50);
 
-    
-    
-    
+
+
+
     // -----------------------------------------------------------------
 
     // -----------------------------------------------------------------
-    
+
     // -----------------------------------------------------------------
     const findListFilter = (handle: string) =>
       filters.find((f) => (f as any).__typename === 'ListFilter' && (f as any).handle === handle);
@@ -387,7 +388,7 @@ test.describe('Category Listing Filters', () => {
     const getTagCount = (title: string) => tagValues.find((v: any) => v.title === title)?.count;
     expect(getTagCount('new-arrival')).toBe(3);
 
-    
+
     const tagTitles = tagFilter.values.map((v: any) => v.title);
     expect(tagTitles).not.toContain('exclusive');
   });

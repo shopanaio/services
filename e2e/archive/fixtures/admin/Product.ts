@@ -1,18 +1,19 @@
 import { expect } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
 
-import {
+import type {
   ApiProduct,
   ApiVariant,
   ApiCategory,
   ApiProductFeature,
   ApiProductMutationCreateArgs,
-  EntityStatus,
-  WeightUnit,
   ApiProductMutationUpdateArgs,
   ApiDescriptionFieldsInput,
   ApiCreateProductGroupInput,
-  ApiCreateProductVariantInput,
+  ApiCreateProductVariantInput } from '@codegen/admin-gql';
+import {
+  EntityStatus,
+  WeightUnit,
   DimensionUnit,
   FeatureStyleType,
   /* ApiCreateProductInput, */
@@ -24,9 +25,9 @@ import {
   productItemSchema,
   productFeatureSchema,
 } from 'schema/schema';
-import { TenantApiFixture } from '@fixtures/admin/api';
+import type { TenantApiFixture } from '@fixtures/admin/api';
 import _ from 'lodash';
-import { DeepPartial } from 'types';
+import type { DeepPartial } from 'types';
 import { slugify } from '@utils/transliterate';
 
 export class Product {

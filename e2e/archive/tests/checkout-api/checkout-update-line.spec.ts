@@ -1,5 +1,6 @@
 import { EntityStatus } from '@codegen/admin-gql';
-import { ApiCheckoutLine, CurrencyCode } from '@codegen/client-gql';
+import type { ApiCheckoutLine } from '@codegen/client-gql';
+import { CurrencyCode } from '@codegen/client-gql';
 import { test } from '@fixtures/api/api';
 import { expect } from '@playwright/test';
 import * as yup from 'yup';

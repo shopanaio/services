@@ -1,14 +1,15 @@
 import { test } from '@fixtures/base.extend';
-import {
+import type {
   ApiProduct,
-  ApiQuery,
+  ApiQuery } from '@codegen/admin-gql';
+import {
   EntityStatus,
   OrderStatusEnum,
   PaymentStatusEnum,
   WeightUnit,
   DimensionUnit,
 } from '@codegen/admin-gql';
-import { GraphQLError } from 'graphql';
+import type { GraphQLError } from 'graphql';
 import { randomUUID } from 'node:crypto';
 import { expect } from 'playwright/test';
 import * as Yup from 'yup';

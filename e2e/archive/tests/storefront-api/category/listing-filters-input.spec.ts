@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
 import {
@@ -12,7 +13,7 @@ import {
 } from '@codegen/admin-gql';
 import type { ApiFixtures } from '@fixtures/api/api';
 import { randomUUID } from 'node:crypto';
-import { ApiListFilter } from '@codegen/client-gql';
+import type { ApiListFilter } from '@codegen/client-gql';
 
 // ---------------------------------------------------------------------------
 
@@ -27,7 +28,7 @@ async function setupCategoryAndProducts(api: ApiFixtures['api']): Promise<{
 }> {
   await api.session.setupUserAndProject();
 
-  
+
   const categorySlug = `filters-input-${randomUUID()}`;
   const category = await api.admin.category.create({
     input: {
@@ -45,7 +46,7 @@ async function setupCategoryAndProducts(api: ApiFixtures['api']): Promise<{
     },
   });
 
-  
+
   const createTag = async (title: string): Promise<TagInfo> => {
     const slug = `${title}-${randomUUID()}`;
     const tag = await api.admin.tag.create({
@@ -62,7 +63,7 @@ async function setupCategoryAndProducts(api: ApiFixtures['api']): Promise<{
   const tagBeta = await createTag('beta');
   const tagGamma = await createTag('gamma');
 
-  
+
   type Seed = { title: string; price: number; tag: TagInfo };
   const seeds: Seed[] = [
     { title: 'Alpha One', price: 1000, tag: tagAlpha },
@@ -117,7 +118,7 @@ async function setupCategoryAndProducts(api: ApiFixtures['api']): Promise<{
     productIds.push(data.productMutation.create.id as string);
   }
 
-  
+
   await api.admin.mutation('admin/CategoryAddProducts', {
     variables: {
       input: {
@@ -142,7 +143,7 @@ async function setupProductsWithPriceRange(api: ApiFixtures['api']): Promise<{
 }> {
   await api.session.setupUserAndProject();
 
-  
+
   const categorySlug = `filters-price-${randomUUID()}`;
   const category = await api.admin.category.create({
     input: {
@@ -160,14 +161,14 @@ async function setupProductsWithPriceRange(api: ApiFixtures['api']): Promise<{
     },
   });
 
-  
+
   type Seed = { title: string; price: number };
   const seeds: Seed[] = [
-    { title: 'Product 5', price: 500 }, 
+    { title: 'Product 5', price: 500 },
     { title: 'Product 10', price: 1000 },
     { title: 'Product 15', price: 1500 },
     { title: 'Product 20', price: 2000 },
-    { title: 'Product 25', price: 2500 }, 
+    { title: 'Product 25', price: 2500 },
   ];
 
   const productIds: string[] = [];
@@ -214,7 +215,7 @@ async function setupProductsWithPriceRange(api: ApiFixtures['api']): Promise<{
     productIds.push(product.id);
   }
 
-  
+
   await api.admin.mutation('admin/CategoryAddProducts', {
     variables: {
       input: {
@@ -226,7 +227,7 @@ async function setupProductsWithPriceRange(api: ApiFixtures['api']): Promise<{
 
   await api.session.setupApiKey();
 
-  
+
   const expectedTitlesInRange = ['Product 10', 'Product 15', 'Product 20'];
 
   return {
@@ -241,7 +242,7 @@ async function setupProductsWithStockStatus(api: ApiFixtures['api']): Promise<{
 }> {
   await api.session.setupUserAndProject();
 
-  
+
   const categorySlug = `filters-availability-${randomUUID()}`;
   const category = await api.admin.category.create({
     input: {
@@ -259,7 +260,7 @@ async function setupProductsWithStockStatus(api: ApiFixtures['api']): Promise<{
     },
   });
 
-  
+
   type Seed = { title: string; stockStatus: 'IN_STOCK' | 'OUT_OF_STOCK' };
   const seeds: Seed[] = [
     { title: 'Available A', stockStatus: 'IN_STOCK' },
@@ -317,7 +318,7 @@ async function setupProductsWithStockStatus(api: ApiFixtures['api']): Promise<{
     }
   }
 
-  
+
   await api.admin.mutation('admin/CategoryAddProducts', {
     variables: {
       input: { categoryId: category.id, productContainerIds: productIds },
@@ -336,7 +337,7 @@ async function setupProductsWithFeature(api: ApiFixtures['api']): Promise<{
 }> {
   await api.session.setupUserAndProject();
 
-  
+
   const categorySlug = `filters-feature-${randomUUID()}`;
   const category = await api.admin.category.create({
     input: {
@@ -354,7 +355,7 @@ async function setupProductsWithFeature(api: ApiFixtures['api']): Promise<{
     },
   });
 
-  
+
   const cottonHandle = 'material.cotton';
 
   type Seed = { title: string; material: 'Cotton' | 'Leather' };
@@ -461,7 +462,7 @@ async function setupProductsWithOption(api: ApiFixtures['api']): Promise<{
     },
   });
 
-  
+
   const sizeSHandle = 'size.s';
 
   type Seed = { title: string; size: 'S' | 'M' };
@@ -552,7 +553,7 @@ test.describe('Category Listing + Facets with filter input', () => {
   test('returns only products matching price range', async ({ api }) => {
     const { categorySlug, expectedTitlesInRange } = await setupProductsWithPriceRange(api);
 
-    
+
     const filtersInput = [
       {
         handle: 'PRICE',
@@ -564,13 +565,13 @@ test.describe('Category Listing + Facets with filter input', () => {
       variables: { handle: categorySlug, first: 20, filters: filtersInput },
     });
 
-    
+
     const edges = data.category!.listing.edges;
     expect(edges).toHaveLength(expectedTitlesInRange.length);
     const receivedTitles = edges.map((e: any) => e.node.title);
     expect(receivedTitles.sort()).toEqual(expectedTitlesInRange.sort());
 
-    
+
     const filters = data.category!.listing.filters;
 
     const priceFilter = findFilterByType(filters, 'PriceRangeFilter') as any;
@@ -580,7 +581,7 @@ test.describe('Category Listing + Facets with filter input', () => {
   test('returns only products matching stock status', async ({ api }) => {
     const { categorySlug, expectedOutOfStockTitles } = await setupProductsWithStockStatus(api);
 
-    
+
     const filtersInput = [
       {
         handle: 'AVAILABILITY',
@@ -592,13 +593,13 @@ test.describe('Category Listing + Facets with filter input', () => {
       variables: { handle: categorySlug, first: 20, filters: filtersInput },
     });
 
-    
+
     const edges = data.category!.listing.edges;
     expect(edges).toHaveLength(expectedOutOfStockTitles.length);
     const receivedTitles = edges.map((e: any) => e.node.title);
     expect(receivedTitles.sort()).toEqual(expectedOutOfStockTitles.sort());
 
-    
+
     const filters = data.category!.listing.filters;
 
     const availFilter = filters.find(
@@ -610,7 +611,7 @@ test.describe('Category Listing + Facets with filter input', () => {
     expect(outOfStockValue).toBeDefined();
     expect(outOfStockValue.count).toBe(expectedOutOfStockTitles.length);
 
-    
+
     const inStockValue = availFilter.values.find((v: any) => v.handle === 'IN_STOCK');
     if (inStockValue) {
       expect(inStockValue.count).toBe(0);
@@ -688,7 +689,7 @@ test.describe('Category Listing + Facets with filter input', () => {
 
   test('returns only products matching tag', async ({ api }) => {
     const { categorySlug, alphaTagSlug, expectedAlphaTitles } = await setupCategoryAndProducts(api);
-    
+
     const filtersInput = [
       {
         handle: 'TAG',
@@ -700,13 +701,13 @@ test.describe('Category Listing + Facets with filter input', () => {
       variables: { handle: categorySlug, first: 20, filters: filtersInput },
     });
 
-    
+
     const edges = data.category!.listing.edges;
     expect(edges).toHaveLength(expectedAlphaTitles.length);
     const receivedTitles = edges.map((e: any) => e.node.title);
     expect(receivedTitles.sort()).toEqual(expectedAlphaTitles.sort());
 
-    
+
     const filters = data.category!.listing.filters;
 
     const tagFilter = filters.find((f) => f.handle === 'TAG') as ApiListFilter;
@@ -716,7 +717,7 @@ test.describe('Category Listing + Facets with filter input', () => {
     expect(alphaValue).toBeDefined();
     expect(alphaValue?.count).toBe(expectedAlphaTitles.length);
 
-    
+
     tagFilter.values
       .filter((v) => v.handle !== alphaTagSlug)
       .forEach((v) => {

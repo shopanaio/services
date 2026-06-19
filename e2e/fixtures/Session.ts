@@ -1,7 +1,8 @@
-import { generateUser, UserData } from '@utils/user';
-import { ApiStore } from '@codegen/admin-gql';
-import { StorefrontApiFixture } from '@fixtures/storefront/api';
-import { AdminApiFixture } from '@fixtures/admin/api';
+import type { UserData } from '@utils/user';
+import { generateUser } from '@utils/user';
+import type { ApiStore } from '@codegen/admin-gql';
+import type { StorefrontApiFixture } from '@fixtures/storefront/api';
+import type { AdminApiFixture } from '@fixtures/admin/api';
 
 export class SessionFixture {
   private api!: {

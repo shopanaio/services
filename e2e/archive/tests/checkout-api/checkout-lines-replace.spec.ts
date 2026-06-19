@@ -1,5 +1,6 @@
 import { EntityStatus } from '@codegen/admin-gql';
-import { ApiCheckoutLine, CurrencyCode } from '@codegen/client-gql';
+import type { ApiCheckoutLine } from '@codegen/client-gql';
+import { CurrencyCode } from '@codegen/client-gql';
 import { test } from '@fixtures/api/api';
 import { expect } from '@playwright/test';
 
@@ -106,12 +107,12 @@ test.describe('checkout-api: lines replace', () => {
       expect(payload.errors?.length ?? 0).toBe(0);
 
       const lines = (updated?.lines ?? []) as ApiCheckoutLine[];
-      
+
       // Replace logic:
       // 1. line1 (5 × product1) → transforms to 2 × product2, removes existing line2 (3 × product2)
       // 2. line3 (2 × product3) → transforms to 2 × product2, removes the transformed line1
       // Result: only line3 remains with 2 × product2
-      
+
       expect(lines.length).toBe(1);
       expect(lines[0].id).toBe(lineId3);
       expect(lines[0].purchasableId).toBe(purchasableId2);

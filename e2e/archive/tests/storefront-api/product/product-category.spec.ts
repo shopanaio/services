@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
+import type {
+  ApiCategory } from '@codegen/admin-gql';
 import {
-  ApiCategory,
   EntityStatus,
   ListingSort,
   ListingType,

@@ -1,5 +1,5 @@
-import { APIRequestContext } from '@playwright/test';
-import { GqlRequestSession } from './gqlRequest';
+import type { APIRequestContext } from '@playwright/test';
+import type { GqlRequestSession } from './gqlRequest';
 import { readQuery } from './types';
 import fs from 'fs';
 import path from 'path';

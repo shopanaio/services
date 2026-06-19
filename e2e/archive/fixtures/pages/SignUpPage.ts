@@ -1,6 +1,6 @@
 import type { Page, Locator } from '@playwright/test';
 import { expect, test } from '@playwright/test';
-import { PlaywrightUser } from '@utils/user';
+import type { PlaywrightUser } from '@utils/user';
 
 export class SignUpPage {
   private url = '/auth';

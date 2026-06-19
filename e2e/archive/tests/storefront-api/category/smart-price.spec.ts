@@ -1,8 +1,9 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
+import type {
+  ApiCategory } from '@codegen/admin-gql';
 import {
-  ApiCategory,
   EntityStatus,
   ListingSort as AdminListingSort,
   ListingType as AdminListingType,
@@ -68,15 +69,15 @@ test.describe.skip('Storefront Smart-collection by price', () => {
   };
 
   test('price filter reflected in storefront listing', async ({ api }) => {
-    
+
     await api.session.setupUserAndProject();
 
-    
+
     await createProduct(api, 'P1', 1000);
     await createProduct(api, 'P2', 2000);
     await createProduct(api, 'P3', 5000);
 
-    
+
     const slug = `smart-${randomUUID()}`;
     const category = (await api.admin.category.create({
       input: {
@@ -105,11 +106,11 @@ test.describe.skip('Storefront Smart-collection by price', () => {
       });
     };
 
-    
+
     let resp = await fetchListing();
     expect(resp.data.category?.listing.edges).toHaveLength(0);
 
-    
+
     await api.admin.mutation('admin/CategoryUpdate', {
       variables: {
         input: {
@@ -164,7 +165,7 @@ test.describe.skip('Storefront Smart-collection by price', () => {
       },
     })) as ApiCategory;
 
-    
+
     await api.admin.mutation('admin/CategoryUpdate', {
       variables: {
         input: {

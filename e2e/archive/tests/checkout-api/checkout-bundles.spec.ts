@@ -1,6 +1,8 @@
 import { EntityStatus, ProductGroupPriceType } from '@codegen/admin-gql';
-import { ApiCheckoutLine, CurrencyCode } from '@codegen/client-gql';
-import { ApiFixtures, test } from '@fixtures/api/api';
+import type { ApiCheckoutLine } from '@codegen/client-gql';
+import { CurrencyCode } from '@codegen/client-gql';
+import type { ApiFixtures } from '@fixtures/api/api';
+import { test } from '@fixtures/api/api';
 import { expect } from '@playwright/test';
 
 // Extended type for children with bundle-specific fields not yet in codegen

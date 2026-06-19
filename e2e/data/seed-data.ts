@@ -1,4 +1,4 @@
-import { ProductGroupPriceType } from '@codegen/admin-gql';
+import type { ProductGroupPriceType } from '@codegen/admin-gql';
 
 export interface CategoryData {
   title: string;

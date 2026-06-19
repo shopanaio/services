@@ -1,6 +1,7 @@
-import { APIRequestContext } from '@playwright/test';
-import { BaseGqlRequest, GqlRequestSession } from '@fixtures/api/gqlRequest';
-import { ApiMutation, ApiQuery } from '@codegen/client-gql';
+import type { APIRequestContext } from '@playwright/test';
+import type { GqlRequestSession } from '@fixtures/api/gqlRequest';
+import { BaseGqlRequest } from '@fixtures/api/gqlRequest';
+import type { ApiMutation, ApiQuery } from '@codegen/client-gql';
 
 class CheckoutGqlRequest extends BaseGqlRequest<ApiQuery, ApiMutation> {
   constructor(request: APIRequestContext, session: GqlRequestSession) {

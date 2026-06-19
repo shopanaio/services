@@ -1,10 +1,10 @@
-import {
+import type {
   ApiPasswordSignInInput,
   ApiPasswordSignUpInput,
   ApiUpdateUserProfileInput,
   ApiVerifyEmailInput,
 } from '@codegen/client-gql';
-import { ClientApiFixture } from '@fixtures/client/api';
+import type { ClientApiFixture } from '@fixtures/client/api';
 
 export class Auth {
   constructor(private api: ClientApiFixture) {}

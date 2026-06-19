@@ -7,7 +7,7 @@ import { ListingSort } from '@codegen/client-gql';
 import type { ApiFixtures } from '@fixtures/api/api';
 import { createCursorPaginationTests } from '@utils/cursorPaginationBuilder';
 import { randomUUID } from 'node:crypto';
-import { GraphQLFileName } from '@queries/filenames';
+import type { GraphQLFileName } from '@queries/filenames';
 
 // ---------------------------------------------------------------------------
 // Test data preparation
@@ -29,7 +29,7 @@ export const listingSorts: ListingSort[] = [
 async function prepareSearchListing(api: ApiFixtures['api']) {
   await api.session.setupUserAndProject();
 
-  
+
   const searchTerm = SEARCH_TERM;
 
   const specs: string[] = [
@@ -45,7 +45,7 @@ async function prepareSearchListing(api: ApiFixtures['api']) {
 
   for (let i = 0; i < specs.length; i++) {
     const title = specs[i];
-    const price = (i + 1) * 100; 
+    const price = (i + 1) * 100;
 
     await api.admin.product.create({
       input: {
@@ -74,12 +74,12 @@ async function prepareSearchListing(api: ApiFixtures['api']) {
     creationOrderTitles.push(title);
   }
 
-  
 
-  const expectedTitles = creationOrderTitles; 
+
+  const expectedTitles = creationOrderTitles;
 
   // ------------------------------
-  
+
   // ------------------------------
   const IRRELEVANT_COUNT = 3;
   for (let i = 0; i < IRRELEVANT_COUNT; i++) {
@@ -132,7 +132,7 @@ const sortToFieldOrder = {
 
 const getExpectedBySort = (titles: string[], sort: ListingSort) => {
   switch (sort) {
-    
+
     case ListingSort.CreatedAtAsc:
     case ListingSort.PriceAsc:
       return [...titles];
@@ -157,8 +157,8 @@ const getExpectedBySort = (titles: string[], sort: ListingSort) => {
           createdIdx: idx,
         }))
         .sort((a, b) => {
-          if (b.weight !== a.weight) return b.weight - a.weight; 
-          return b.createdIdx - a.createdIdx; 
+          if (b.weight !== a.weight) return b.weight - a.weight;
+          return b.createdIdx - a.createdIdx;
         })
         .map((x) => x.title);
     }

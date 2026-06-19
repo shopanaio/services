@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { EntityStatus, ListingSort, ListingType } from '@codegen/admin-gql';
-import { ApiQuery, CategorySort } from '@codegen/client-gql';
+import type { ApiQuery } from '@codegen/client-gql';
+import { CategorySort } from '@codegen/client-gql';
 import { randomUUID } from 'node:crypto';
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';

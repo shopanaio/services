@@ -1,8 +1,9 @@
 
 import { test } from '@fixtures/base.extend';
 import { randomUUID } from 'node:crypto';
+import type {
+  ApiProduct } from '@codegen/admin-gql';
 import {
-  ApiProduct,
   DimensionUnit,
   EntityStatus,
   ProductGroupPriceType,

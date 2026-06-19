@@ -1,4 +1,5 @@
-import { ApiCheckoutDeliveryGroup, CurrencyCode } from '@codegen/client-gql';
+import type { ApiCheckoutDeliveryGroup } from '@codegen/client-gql';
+import { CurrencyCode } from '@codegen/client-gql';
 import { test } from '@fixtures/api/api';
 import { expect } from '@playwright/test';
 

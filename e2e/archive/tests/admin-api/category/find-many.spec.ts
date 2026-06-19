@@ -1,7 +1,8 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
+import type {
+  ApiCategoryQueryFindManyArgs } from '@codegen/admin-gql';
 import {
-  ApiCategoryQueryFindManyArgs,
   EntityStatus,
   ListingSort,
   ListingType,

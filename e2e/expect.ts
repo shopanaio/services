@@ -1,5 +1,5 @@
 import { expect as baseExpect } from '@playwright/test';
-import { AnySchema, ValidateOptions } from 'yup';
+import type { AnySchema, ValidateOptions } from 'yup';
 
 baseExpect.extend({
   toMatchSchema<TContext>(

@@ -1,4 +1,4 @@
-import { ApiFeature, ApiProject, ApiUser, ApiVariant } from '@codegen/admin-gql';
+import type { ApiFeature, ApiProject, ApiUser, ApiVariant } from '@codegen/admin-gql';
 import * as Yup from 'yup';
 
 export const projectSchema = Yup.object<ApiProject>().shape({

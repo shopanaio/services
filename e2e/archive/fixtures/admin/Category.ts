@@ -1,10 +1,10 @@
-import {
+import type {
   ApiCategory,
   ApiCategoryMutationCreateArgs,
   ApiCategoryMutationUpdateArgs,
   ApiCategoryQueryFindOneArgs,
 } from '@codegen/admin-gql';
-import { TenantApiFixture } from '@fixtures/admin/api';
+import type { TenantApiFixture } from '@fixtures/admin/api';
 
 export class Category {
   constructor(private api: TenantApiFixture) {}

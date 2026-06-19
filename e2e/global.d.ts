@@ -1,4 +1,4 @@
-import { AnySchema, ValidateOptions } from 'yup';
+import type { AnySchema, ValidateOptions } from 'yup';
 
 export {};
 

@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
 import {
@@ -108,7 +109,7 @@ async function prepareHierarchyWithFilters(api: ApiFixtures['api']): Promise<{
     },
   });
 
-  
+
   const draftChild = await api.admin.category.create({
     input: {
       title: 'Draft Child',
@@ -170,7 +171,7 @@ async function prepareHierarchyWithFilters(api: ApiFixtures['api']): Promise<{
       categoryId: child2.id,
       status: EntityStatus.Published,
     },
-    
+
     {
       title: 'Drafty',
       price: 4000,
@@ -178,7 +179,7 @@ async function prepareHierarchyWithFilters(api: ApiFixtures['api']): Promise<{
       categoryId: child1.id,
       status: EntityStatus.Draft,
     },
-    
+
     {
       title: 'Hidden',
       price: 5000,

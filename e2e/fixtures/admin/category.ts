@@ -1,5 +1,5 @@
-import { BaseGqlRequest } from '@fixtures/api/gqlRequest';
-import {
+import type { BaseGqlRequest } from '@fixtures/api/gqlRequest';
+import type {
   ApiCategoryCreateInput,
   ApiCategoryUpdateInput,
   ProductSortBy,

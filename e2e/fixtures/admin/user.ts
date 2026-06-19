@@ -1,5 +1,6 @@
-import { BaseGqlRequest } from '@fixtures/api/gqlRequest';
-import { generateUser, UserData } from '@utils/user';
+import type { BaseGqlRequest } from '@fixtures/api/gqlRequest';
+import type { UserData } from '@utils/user';
+import { generateUser } from '@utils/user';
 
 export interface UserSession {
   data: UserData;

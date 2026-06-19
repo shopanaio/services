@@ -1,14 +1,16 @@
-import { Country, Currency, generateUser, Locale, UserData, Timezone } from '@utils/user';
-import {
+import type { UserData } from '@utils/user';
+import { Country, Currency, generateUser, Locale, Timezone } from '@utils/user';
+import type {
   ApiProject,
   ApiSession,
   ApiUserMutationSignInArgs,
-  ApiUserMutationSignUpArgs,
+  ApiUserMutationSignUpArgs } from '@codegen/admin-gql';
+import {
   ProjectStatus,
 } from '@codegen/admin-gql';
 import { LocaleCode } from '@codegen/client-gql';
-import { ClientApiFixture } from '@fixtures/client/api';
-import { TenantApiFixture } from '@fixtures/admin/api';
+import type { ClientApiFixture } from '@fixtures/client/api';
+import type { TenantApiFixture } from '@fixtures/admin/api';
 
 export class SessionFixture {
   private api!: {

@@ -1,6 +1,7 @@
-import {
+import type {
   ApiCheckout,
-  ApiCheckoutDeliveryAddressesAddInput,
+  ApiCheckoutDeliveryAddressesAddInput } from '@codegen/client-gql';
+import {
   CurrencyCode,
 } from '@codegen/client-gql';
 import { CountryCode } from '@codegen/client-gql';

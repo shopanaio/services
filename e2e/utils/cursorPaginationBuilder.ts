@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import { ApiFixtures } from '@fixtures/api/api';
-import { GraphQLFileName } from '@queries/filenames';
+import type { ApiFixtures } from '@fixtures/api/api';
+import type { GraphQLFileName } from '@queries/filenames';
 
 /**
  * Decode Relay cursor (Base64URL) to object.

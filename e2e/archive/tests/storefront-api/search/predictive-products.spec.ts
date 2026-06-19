@@ -2,8 +2,8 @@ import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
 import { EntityStatus } from '@codegen/admin-gql';
 import { randomUUID } from 'node:crypto';
-import { ApiFixtures } from '@fixtures/api/api';
-import { ApiProduct, ApiProductVariant } from '@codegen/client-gql';
+import type { ApiFixtures } from '@fixtures/api/api';
+import type { ApiProduct, ApiProductVariant } from '@codegen/client-gql';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 

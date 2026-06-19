@@ -1,5 +1,5 @@
-import { ApiLabel, ApiLabelMutationCreateArgs, ApiLabelQueryFindOneArgs } from '@codegen/admin-gql';
-import { TenantApiFixture } from '@fixtures/admin/api';
+import type { ApiLabel, ApiLabelMutationCreateArgs, ApiLabelQueryFindOneArgs } from '@codegen/admin-gql';
+import type { TenantApiFixture } from '@fixtures/admin/api';
 
 export class Label {
   constructor(private api: TenantApiFixture) {}

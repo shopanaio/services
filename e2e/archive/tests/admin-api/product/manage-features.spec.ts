@@ -1,7 +1,8 @@
 
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import { ApiProduct, EntityStatus } from '@codegen/admin-gql';
+import type { ApiProduct } from '@codegen/admin-gql';
+import { EntityStatus } from '@codegen/admin-gql';
 
 test.describe('Products API', () => {
   test('Manage Features', async ({ api }) => {

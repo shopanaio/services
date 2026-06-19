@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type {
+  ApiProduct } from '@codegen/admin-gql';
 import {
-  ApiProduct,
   DimensionUnit,
   EntityStatus,
   ListingSort,
@@ -8,8 +9,8 @@ import {
   ReviewStatus,
   WeightUnit,
 } from '@codegen/admin-gql';
-import { TenantApiFixture } from '@fixtures/admin/api';
-import { CategoryData, TagData, ProductDataWithFeatures } from './seed-data';
+import type { TenantApiFixture } from '@fixtures/admin/api';
+import type { CategoryData, TagData, ProductDataWithFeatures } from './seed-data';
 import { slugify } from '@utils/transliterate';
 import path from 'path';
 import fs from 'fs';
@@ -544,7 +545,7 @@ export async function seedReviews(
         });
         console.log(`✓ Created review: ${reviewTemplate.title} (${reviewTemplate.rating}/5) by ${reviewerName}`);
         } catch (error: any) {
-          console.log(`Failed to create review for product ${variantId} from ${reviewerName}, continuing...`, error);
+          console.log(`Failed to create review for product ${variantId } from ${reviewerName}, continuing...`, error);
           continue;
         }
       }
