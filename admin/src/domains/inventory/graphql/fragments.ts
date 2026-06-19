@@ -122,7 +122,9 @@ export const PRODUCT_FRAGMENT = gql`
     handle
     isPublished
     publishedAt
-    excerpt
+    excerpt {
+      ...DescriptionFields
+    }
     seoTitle
     seoDescription
     createdAt

@@ -11,10 +11,20 @@ import {
   useEditCategoriesModal,
   useEditTagsModal,
   type IEditSeoModalPayload,
+  type IEditVariantsModalPayload,
 } from "../../../modals";
-import type { IProduct, IMediaFile } from "@/mocks/products/types";
+import type { ApiFile, ApiProduct } from "@/graphql/types";
+import {
+  getProductMediaFiles,
+  getProductVariants,
+  getSelectedOptionLabels,
+} from "../../../utils/api-product-display";
+import {
+  mapApiDimensionsToVariantFields,
+  mapApiWeightToVariantFields,
+} from "../../../utils/product-measurements";
 
-export const useProductModals = (product: IProduct) => {
+export const useProductModals = (product: ApiProduct) => {
   const { push: openProductModal } = useProductModal();
   const { push: openEditMediaModal } = useEditMediaModal();
   const { push: openEditOptionsModal } = useEditOptionsModal();
@@ -29,20 +39,22 @@ export const useProductModals = (product: IProduct) => {
   }, [product.id, openProductModal]);
 
   const handleEditMedia = useCallback(() => {
+    const mediaFiles = getProductMediaFiles(product);
+
     openEditMediaModal({
       productId: product.id,
-      featured: product.featured,
-      gallery: product.gallery,
-      onSave: (media: { featured: IMediaFile | null; gallery: IMediaFile[] }) => {
+      featured: mediaFiles[0] ?? null,
+      gallery: mediaFiles,
+      onSave: (media: { featured: ApiFile | null; gallery: ApiFile[] }) => {
         console.log("Saved media:", media);
       },
     });
-  }, [product.id, product.featured, product.gallery, openEditMediaModal]);
+  }, [product, openEditMediaModal]);
 
   const handleEditCategories = useCallback(() => {
     openEditCategoriesModal({
       productId: product.id,
-      primaryCategoryId: product.primaryCategory?.id ?? null,
+      primaryCategoryId: product.categories[0]?.id ?? null,
       categoryIds: product.categories?.map((c) => c.id) || [],
       onSave: () => {
         console.log("Saved categories");
@@ -50,7 +62,6 @@ export const useProductModals = (product: IProduct) => {
     });
   }, [
     product.id,
-    product.primaryCategory?.id,
     product.categories,
     openEditCategoriesModal,
   ]);
@@ -77,9 +88,12 @@ export const useProductModals = (product: IProduct) => {
     openEditSeoModal({
       productId: product.id,
       productTitle: product.title,
-      productSlug: product.slug,
-      seoTitle: product.seoTitle,
-      seoDescription: product.seoDescription,
+      productSlug: product.handle ?? product.id,
+      seoTitle: product.seo?.seoTitle ?? null,
+      seoDescription: product.seo?.seoDescription ?? null,
+      ogTitle: product.seo?.ogTitle ?? null,
+      ogDescription: product.seo?.ogDescription ?? null,
+      ogImage: product.seo?.ogImage ?? null,
       onSave: (
         values: Parameters<NonNullable<IEditSeoModalPayload["onSave"]>>[0]
       ) => {
@@ -89,66 +103,46 @@ export const useProductModals = (product: IProduct) => {
   }, [
     product.id,
     product.title,
-    product.slug,
-    product.seoTitle,
-    product.seoDescription,
+    product.handle,
+    product.seo,
     openEditSeoModal,
   ]);
 
   const handleEditVariants = useCallback(() => {
     openEditVariantsModal({
       productId: product.id,
-      variants:
-        product.variants?.map((v) => ({
-          id: v.id,
-          title:
-            v.title ||
-            v.options?.map((o) => o.title).join(" / ") ||
-            v.sku ||
-            v.id,
-          imageUrl: v.gallery?.[0]?.url || null,
-          media: v.gallery?.map((m) => m.url) || null,
-          sku: v.sku,
-          stock: Math.floor(Math.random() * 100),
-          barcode: null,
-          price: v.price,
-          compareAtPrice: v.oldPrice || null,
-          costPrice: v.costPrice || null,
-          weight: v.weight,
-          weightUnit: v.weightUnit,
-          length: v.length,
-          width: v.width,
-          height: v.height,
-          dimensionUnit: v.dimensionUnit,
-          options: v.options?.map((opt) => ({
-            title: opt.title,
+      variants: getProductVariants(product).map((variant) => ({
+        ...mapApiWeightToVariantFields(variant.inventoryItem?.weight),
+        ...mapApiDimensionsToVariantFields(variant.inventoryItem?.dimensions),
+        id: variant.id,
+        title: variant.title ?? variant.handle,
+        imageUrl: variant.media[0]?.file.url ?? null,
+        media: variant.media.map((media) => media.file.url),
+        sku: variant.inventoryItem?.sku ?? null,
+        onHand: variant.inventoryItem?.totalAvailable ?? 0,
+        barcode: null,
+        price: variant.price?.amountMinor ?? 0,
+        compareAtPrice: variant.price?.compareAtMinor ?? null,
+        costPrice: variant.inventoryItem?.unitCost?.amountMinor ?? null,
+        options: getSelectedOptionLabels(product.options, variant).map(
+          (label) => ({
+            title: label,
             group: {
-              slug: opt.group.slug,
-              title: opt.group.title,
+              slug: "option",
+              title: "Option",
             },
-          })),
-        })) || [],
+          }),
+        ),
+      })),
       onSave: (
-        updated: Array<{
-          id: string;
-          sku: string | null;
-          stock: number;
-          barcode: string | null;
-          price: number;
-          compareAtPrice: number | null;
-          costPrice: number | null;
-          weight: number | null;
-          weightUnit: string;
-          length: number | null;
-          width: number | null;
-          height: number | null;
-          dimensionUnit: string;
-        }>
+        updated: Parameters<
+          NonNullable<IEditVariantsModalPayload["onSave"]>
+        >[0],
       ) => {
         console.log("Saved variants:", updated);
       },
     });
-  }, [product.id, product.variants, openEditVariantsModal]);
+  }, [product, openEditVariantsModal]);
 
   return {
     openProductModal: handleOpenProductModal,

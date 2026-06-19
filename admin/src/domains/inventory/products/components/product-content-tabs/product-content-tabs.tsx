@@ -5,7 +5,7 @@ import type { OutputData } from "@editorjs/editorjs";
 import { type RenderedContent } from "@/ui-kit/block-editor";
 import { AIButton } from "@/ui-kit/ai-button";
 import { Paper } from "@/ui-kit/paper";
-import type { IProduct } from "@/mocks/products/types";
+import type { ApiProduct } from "@/graphql/types";
 import {
   useProductEditDescriptionModal,
   useProductAIWriterModal,
@@ -89,7 +89,7 @@ const useStyles = createStyles(({ token }) => ({
 // ============================================================================
 
 interface IProductContentTabsProps {
-  product: IProduct;
+  product: ApiProduct;
 }
 
 // ============================================================================
@@ -129,7 +129,7 @@ export const ProductContentTabs = ({ product }: IProductContentTabsProps) => {
   const handleEditDescription = () => {
     openEditDescriptionModal({
       description: parseEditorData(product.description?.json),
-      excerpt: parseEditorData(product.excerpt),
+      excerpt: parseEditorData(product.excerpt?.json),
       product,
       onSave: (values: {
         description: RenderedContent;
@@ -144,7 +144,7 @@ export const ProductContentTabs = ({ product }: IProductContentTabsProps) => {
   };
 
   const descriptionHtml = product.description?.html ?? null;
-  const excerptHtml = product.excerpt ? `<p>${product.excerpt}</p>` : null;
+  const excerptHtml = product.excerpt?.html ?? null;
 
   return (
     <Paper className={styles.tabsSection}>

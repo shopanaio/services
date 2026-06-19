@@ -16,8 +16,15 @@ export class ProductCreateScript extends BaseScript<
   protected async execute(
     params: ProductCreateParams
   ): Promise<ProductCreateResult> {
-    const { title, handle, description, mediaFileIds, options, variants } =
-      params;
+    const {
+      title,
+      handle,
+      description,
+      excerpt,
+      mediaFileIds,
+      options,
+      variants,
+    } = params;
 
     // 1. Create product with handle
     const product = await this.repository.product.create({});
@@ -32,7 +39,7 @@ export class ProductCreateScript extends BaseScript<
       descriptionText: description?.text ?? null,
       descriptionHtml: description?.html ?? null,
       descriptionJson: description?.json ?? null,
-      excerpt: null,
+      excerpt: excerpt?.text ?? null,
     });
 
     let createdVariants: Variant[] = [];

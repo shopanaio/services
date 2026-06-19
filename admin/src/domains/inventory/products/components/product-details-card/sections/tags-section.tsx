@@ -6,14 +6,15 @@ import { PlusOutlined, MoreOutlined } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useTagPicker } from "@/shared/components/entity-picker-modal";
 import type { IPickableEntity } from "@/shared/components/entity-picker-modal";
-import type { ITag } from "../../../modals";
+import type { ApiTag } from "@/graphql/types";
+import { createMockApiTag } from "@/mocks/products/api-builders";
 
 interface ITagsSectionProps {
-  tags?: ITag[];
+  tags?: ApiTag[];
 }
 
 export const TagsSection = ({ tags: initialTags = [] }: ITagsSectionProps) => {
-  const [tags, setTags] = useState<ITag[]>(initialTags);
+  const [tags, setTags] = useState<ApiTag[]>(initialTags);
 
   const deleteTag = (id: string) => {
     setTags((prev) => prev.filter((tag) => tag.id !== id));
@@ -28,12 +29,11 @@ export const TagsSection = ({ tags: initialTags = [] }: ITagsSectionProps) => {
         if (existing) {
           return existing;
         }
-        return {
+        return createMockApiTag({
           id: entity.id,
-          title: entity.title,
-          slug: entity.id,
-          color: "var(--ant-color-primary)",
-        } satisfies ITag;
+          name: entity.title,
+          handle: entity.id,
+        });
       });
       setTags(newTags);
     },
@@ -62,7 +62,7 @@ export const TagsSection = ({ tags: initialTags = [] }: ITagsSectionProps) => {
             >
               <Tag style={{ cursor: "pointer" }}>
                 <Flex align="center" gap={4}>
-                  {tag.title}
+                  {tag.name}
                   <MoreOutlined />
                 </Flex>
               </Tag>

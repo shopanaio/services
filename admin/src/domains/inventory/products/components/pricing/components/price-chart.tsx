@@ -2,12 +2,13 @@ import { useMemo } from "react";
 import ReactECharts from "echarts-for-react";
 import { graphic } from "echarts";
 import { useTheme } from "antd-style";
-import type { ApiVariantPriceConnection } from "../types";
+import type { ApiVariantPriceConnection, CurrencyCode } from "../types";
 import { formatShortDate, formatPrice as defaultFormatPrice } from "../utils";
 
 interface IPriceChartProps {
   history: ApiVariantPriceConnection;
-  formatPrice?: (amount: number) => string;
+  currency?: CurrencyCode | null;
+  formatPrice?: (amount: number, currency?: CurrencyCode) => string;
   height?: number;
   showAxisLabels?: boolean;
   showDateLabels?: boolean;
@@ -16,6 +17,7 @@ interface IPriceChartProps {
 
 export const PriceChart = ({
   history,
+  currency,
   formatPrice = defaultFormatPrice,
   height = 100,
   showAxisLabels = false,
@@ -29,6 +31,7 @@ export const PriceChart = ({
     const items = history.edges.map((edge, index) => ({
       date: new Date(edge.node.effectiveFrom),
       value: edge.node.amountMinor,
+      currency: edge.node.currency,
       isCurrent: index === 0, // First item is the current price
     }));
     return items.reverse();
@@ -38,6 +41,7 @@ export const PriceChart = ({
     const dates = chartData.map((d) => formatShortDate(d.date));
     const values = chartData.map((d) => d.value);
     const currentIndex = chartData.findIndex((d) => d.isCurrent);
+    const axisCurrency = currency ?? chartData[0]?.currency;
 
     return {
       grid: {
@@ -69,7 +73,8 @@ export const PriceChart = ({
         axisLabel: {
           color: theme.colorTextSecondary,
           fontSize: 10,
-          formatter: (value: number) => formatPrice(Math.round(value)),
+          formatter: (value: number) =>
+            formatPrice(Math.round(value), axisCurrency),
         },
         splitLine: {
           show: true,
@@ -91,7 +96,8 @@ export const PriceChart = ({
         formatter: (params: { dataIndex: number; value: number }[]) => {
           const point = params[0];
           const item = chartData[point.dataIndex];
-          return `<div style="font-weight:600">${formatPrice(point.value)}</div>
+          const price = formatPrice(point.value, item.currency ?? axisCurrency);
+          return `<div style="font-weight:600">${price}</div>
                   <div style="opacity:0.7;font-size:10px">${formatShortDate(
                     item.date
                   )}</div>`;
@@ -170,6 +176,7 @@ export const PriceChart = ({
     showAxisLabels,
     showDateLabels,
     gridLineCount,
+    currency,
     formatPrice,
   ]);
 

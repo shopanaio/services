@@ -13,7 +13,12 @@ import {
   extractOptionGroups,
   variantsToRowData,
 } from "./variants-table";
-import { weightUnitOptions, dimensionUnitOptions } from "../../constants";
+import {
+  DEFAULT_DIMENSION_UNIT,
+  DEFAULT_WEIGHT_UNIT,
+  getDimensionUnitLabel,
+  getWeightUnitLabel,
+} from "../../utils/product-measurements";
 
 // ============================================================================
 // Types
@@ -234,11 +239,11 @@ export const UnifiedVariantsTable = ({
         costPrice: v.costPrice ?? null,
         // Shipping
         weight: v.weight ?? null,
-        weightUnit: v.weightUnit ?? "G",
+        weightUnit: v.weightUnit ?? DEFAULT_WEIGHT_UNIT,
         length: v.length ?? null,
         width: v.width ?? null,
         height: v.height ?? null,
-        dimensionUnit: v.dimensionUnit ?? "CM",
+        dimensionUnit: v.dimensionUnit ?? DEFAULT_DIMENSION_UNIT,
       })),
     [variants, lowStockThreshold]
   );
@@ -366,9 +371,9 @@ export const UnifiedVariantsTable = ({
         cellEditorParams: { min: 0, precision: 2 },
         valueFormatter: (params) => {
           if (params.value === null || params.value === undefined) return "—";
-          const unit = params.data?.weightUnit || "G";
-          const unitLabel = weightUnitOptions[unit as keyof typeof weightUnitOptions]?.label || unit;
-          return `${params.value} ${unitLabel}`;
+          return `${params.value} ${getWeightUnitLabel(
+            params.data?.weightUnit,
+          )}`;
         },
       },
       {
@@ -401,9 +406,9 @@ export const UnifiedVariantsTable = ({
         cellEditorParams: { min: 0, precision: 2 },
         valueFormatter: (params) => {
           if (params.value === null || params.value === undefined) return "—";
-          const unit = params.data?.dimensionUnit || "CM";
-          const unitLabel = dimensionUnitOptions[unit as keyof typeof dimensionUnitOptions]?.label || unit;
-          return `${params.value} ${unitLabel}`;
+          return `${params.value} ${getDimensionUnitLabel(
+            params.data?.dimensionUnit,
+          )}`;
         },
       },
     ],

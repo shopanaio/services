@@ -18,10 +18,17 @@ import { useState, useCallback } from "react";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { KPITile } from "@/ui-kit/kpi-tile";
 import { useInventoryStyles } from "../product-details-card.styles";
-import { useEditVariantsModal } from "../../../modals";
-import type { ProductInventoryWidget } from "../inventory-widget.types";
-import { ThresholdType } from "../inventory-widget.types";
-import type { IProduct } from "@/mocks/products/types";
+import {
+  useEditVariantsModal,
+  type IEditVariantsModalPayload,
+} from "../../../modals";
+import { ThresholdMethod } from "@/graphql/types";
+import type { ApiProduct, ApiProductInventoryWidget } from "@/graphql/types";
+import {
+  getProductVariants,
+  getSelectedOptionLabels,
+} from "../../../utils/api-product-display";
+import { mapApiWeightToVariantFields } from "../../../utils/product-measurements";
 
 
 // ============================================================================
@@ -126,8 +133,8 @@ type InventoryState = "loading" | "no_data" | "ready";
 
 interface IInventorySectionProps {
   onEdit?: () => void;
-  product?: IProduct;
-  stats: ProductInventoryWidget;
+  product: ApiProduct;
+  stats: ApiProductInventoryWidget;
 }
 
 export const InventorySection = ({
@@ -142,26 +149,26 @@ export const InventorySection = ({
 
   const handleAction = useCallback(
     (action: string) => {
-      if (action === "edit" && product) {
+      if (action === "edit") {
         pushEditVariantsModal({
           initialTab: "inventory",
-          variants:
-            product.variants?.map((v) => ({
-              id: v.id,
-              title: v.title,
-              sku: v.sku,
-              stock: Math.floor(Math.random() * 100),
-              weight: v.weight,
-              weightUnit: v.weightUnit,
-              barcode: null,
-              options: v.options?.map((opt) => ({
-                title: opt.title,
+          variants: getProductVariants(product).map((variant) => ({
+            ...mapApiWeightToVariantFields(variant.inventoryItem?.weight),
+            id: variant.id,
+            title: variant.title ?? variant.handle,
+            sku: variant.inventoryItem?.sku ?? null,
+            onHand: variant.inventoryItem?.totalAvailable ?? 0,
+            barcode: null,
+            options: getSelectedOptionLabels(product.options, variant).map(
+              (label) => ({
+                title: label,
                 group: {
-                  slug: opt.group.slug,
-                  title: opt.group.title,
+                  slug: "option",
+                  title: "Option",
                 },
-              })),
-            })) || [],
+              }),
+            ),
+          })),
           lowStockThreshold: 10,
           availableColumns: [
             "sku",
@@ -173,21 +180,9 @@ export const InventorySection = ({
           ],
           showColumnSettings: false,
           onSave: (
-            updated: Array<{
-              id: string;
-              sku: string | null;
-              stock: number;
-              barcode: string | null;
-              price: number;
-              compareAtPrice: number | null;
-              costPrice: number | null;
-              weight: number | null;
-              weightUnit: string;
-              length: number | null;
-              width: number | null;
-              height: number | null;
-              dimensionUnit: string;
-            }>
+            updated: Parameters<
+              NonNullable<IEditVariantsModalPayload["onSave"]>
+            >[0],
           ) => {
             console.log("Saved inventory:", updated);
           },
@@ -284,7 +279,7 @@ export const InventorySection = ({
         <KPITile
           label="Low Stock"
           tooltip={`SKUs below ${
-            stats.alertThreshold.method === ThresholdType.SAFETY_STOCK
+            stats.alertThreshold.method === ThresholdMethod.SafetyStock
               ? "safety stock"
               : "reorder point"
           } threshold`}

@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import type { ApiVariantConnection, PricingWidgetPayload } from "./types";
+import type { ApiPricingWidgetPayload, ApiVariantConnection } from "./types";
 import { fetchVariants, fetchPricingWidget } from "./mocks";
 
 export interface UsePricingWidgetReturn<T extends string = string> {
   /** Pricing widget data for selected variant */
-  data: PricingWidgetPayload | null;
+  data: ApiPricingWidgetPayload | null;
   /** Loading state for widget data */
   isLoading: boolean;
   /** Error if any */
@@ -46,7 +46,7 @@ export function usePricingWidget<T extends string = string>(
   const [isLoadingVariants, setIsLoadingVariants] = useState(false);
 
   // Widget data state
-  const [data, setData] = useState<PricingWidgetPayload | null>(null);
+  const [data, setData] = useState<ApiPricingWidgetPayload | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 

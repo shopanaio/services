@@ -82,11 +82,13 @@ export class ProductResolver extends CatalogType<string, Product> {
     };
   }
 
-  async excerpt() {
-    const translation = await this.$ctx.loaders.productTranslation.load(
-      this.$props
-    );
-    return translation?.excerpt ?? null;
+  async excerpt(): Promise<Description> {
+    // TODO: Store excerpt text/html/json separately and resolve it from product translations.
+    return {
+      text: "",
+      html: "",
+      json: {},
+    };
   }
 
   /**

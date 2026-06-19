@@ -3,6 +3,7 @@ import {
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
 import { CatalogType } from "./CatalogType.js";
+import type { Description } from "./interfaces/index.js";
 import type { Collection } from "../../repositories/models/index.js";
 import { SeoResolver } from "./SeoResolver.js";
 
@@ -39,6 +40,15 @@ export class CollectionResolver extends CatalogType<string, Collection> {
       text: translation.descriptionText ?? "",
       html: translation.descriptionHtml ?? "",
       json: translation.descriptionJson ?? {},
+    };
+  }
+
+  async excerpt(): Promise<Description> {
+    // TODO: Store collection excerpt text/html/json and resolve it from translations.
+    return {
+      text: "",
+      html: "",
+      json: {},
     };
   }
 

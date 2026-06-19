@@ -37,6 +37,9 @@ type Category implements Node @key(fields: "id") {
   """The category description."""
   description: Description
 
+  """Short category excerpt."""
+  excerpt: Description
+
   """Default product sort for this category PLP."""
   defaultSort: ProductSortBy!
 
@@ -137,6 +140,9 @@ input CategoryCreateInput {
   """Optional description."""
   description: DescriptionInput
 
+  """Optional short excerpt."""
+  excerpt: DescriptionInput
+
   """SEO metadata."""
   seo: SeoInput
 
@@ -162,6 +168,9 @@ input CategoryUpdateInput {
 
   """The category description."""
   description: DescriptionInput
+
+  """The short category excerpt."""
+  excerpt: DescriptionInput
 
   """SEO metadata."""
   seo: SeoInput

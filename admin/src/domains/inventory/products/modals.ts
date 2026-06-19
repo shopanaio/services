@@ -2,9 +2,8 @@ import { createModalStackHook } from '@/layouts/modals';
 import type { IModalStackPayload } from '@/layouts/modals';
 import type { OutputData } from '@editorjs/editorjs';
 import type { RenderedContent } from '@/ui-kit/block-editor';
-import type { IProduct } from "@/mocks/products/types";
-import type { ApiFile } from "@/graphql/types";
-import type { ApiVariantPrice } from './components/pricing';
+import type { ApiFile, ApiProduct, CurrencyCode } from "@/graphql/types";
+import type { ApiVariantPrice } from './components/pricing/types';
 import type { VariantColumnField } from './components/variants/config';
 
 // ============================================================================
@@ -52,7 +51,7 @@ export interface IProductEditTitleModalPayload extends IModalStackPayload {
 export interface IProductEditDescriptionModalPayload extends IModalStackPayload {
   description: OutputData | null;
   excerpt: OutputData | null;
-  product?: IProduct;
+  product?: ApiProduct;
   onSave?: (values: { description: RenderedContent; excerpt: RenderedContent }) => void;
 }
 
@@ -60,7 +59,7 @@ export type AIGenerateTarget = 'description' | 'excerpt' | 'both';
 export type AITone = 'professional' | 'casual' | 'luxury' | 'friendly';
 
 export interface IProductAIWriterModalPayload extends IModalStackPayload {
-  product: IProduct;
+  product: ApiProduct;
   onApply?: (values: {
     description?: RenderedContent;
     excerpt?: RenderedContent;
@@ -81,7 +80,7 @@ export interface IProductPriceHistoryModalPayload extends IModalStackPayload {
     compareAtPrice?: number | null;
     priceHistory: ApiVariantPrice[];
   }>;
-  formatPrice?: (amount: number) => string;
+  formatPrice?: (amount: number, currency?: CurrencyCode) => string;
 }
 
 export interface IVariantPricingOption {
@@ -102,7 +101,7 @@ export interface IEditVariantPricingModalPayload extends IModalStackPayload {
     costPrice?: number | null;
     options?: IVariantPricingOption[];
   }>;
-  formatPrice?: (amount: number) => string;
+  formatPrice?: (amount: number, currency?: CurrencyCode) => string;
   onSave?: (variants: Array<{
     id: string;
     price: number;
@@ -234,7 +233,7 @@ export interface IEditVariantsModalPayload extends IModalStackPayload {
     // Options
     options?: IVariantPricingOption[];
   }>;
-  formatPrice?: (amount: number) => string;
+  formatPrice?: (amount: number, currency?: CurrencyCode) => string;
   /**
    * When provided, only these columns will be shown.
    * If undefined, all columns are available with user settings.

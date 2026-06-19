@@ -47,7 +47,7 @@ export interface ProductUpdateParams {
 
 export interface ProductContentParams {
   description?: DescriptionInput;
-  excerpt?: string;
+  excerpt?: DescriptionInput;
 }
 
 export interface ProductSeoParams {

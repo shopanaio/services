@@ -5,6 +5,7 @@ import {
   enumOperators,
   type IFilterSchema,
 } from "@/layouts/filters";
+import { PRODUCT_STATUS_OPTIONS } from "../utils/product-status";
 
 export const filterSchema: IFilterSchema[] = [
   {
@@ -14,10 +15,7 @@ export const filterSchema: IFilterSchema[] = [
     type: FilterType.Enum,
     operators: enumOperators,
     payloadKey: "status",
-    options: [
-      { label: "Published", value: "published" },
-      { label: "Draft", value: "draft" },
-    ],
+    options: PRODUCT_STATUS_OPTIONS,
   },
   {
     key: "category",

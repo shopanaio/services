@@ -20,7 +20,6 @@ import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { KPITile } from "@/ui-kit/kpi-tile";
 import { CopyableChip } from "@/ui-kit/copyable-chip";
 import { PeriodSwitch, PERIODS, type Period } from "../period-switch";
-import { EntityStatus } from "@/mocks/products/types";
 import { useProductEditTitleModal } from "../../modals";
 import { useHeaderStyles } from "./product-info-header.styles";
 import { UserPopoverContent, SharePopoverContent } from "./components";
@@ -31,6 +30,15 @@ import {
   formatPercent,
 } from "./utils";
 import type { IProductInfoHeaderProps, IKPIData } from "./types";
+import {
+  formatApiDate,
+  getProductPrimaryPriceAmount,
+  getProductSku,
+} from "../../utils/api-product-display";
+import {
+  getProductStatus,
+  isProductPublished,
+} from "../../utils/product-status";
 
 export const ProductInfoHeader = ({
   product,
@@ -43,7 +51,10 @@ export const ProductInfoHeader = ({
   const [shareCopied, setShareCopied] = useState(false);
   const { push: openEditTitleModal } = useProductEditTitleModal();
 
-  const storefrontUrl = `${window.location.origin}/products/${product.slug}`;
+  const handle = product.handle ?? product.id;
+  const storefrontUrl = `${window.location.origin}/products/${handle}`;
+  const sku = getProductSku(product);
+  const price = getProductPrimaryPriceAmount(product) ?? 0;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -61,12 +72,13 @@ export const ProductInfoHeader = ({
     setTimeout(() => setShareCopied(false), 1500);
   };
 
-  const statusConfig = getStatusConfig(product.status);
+  const productStatus = getProductStatus(product);
+  const statusConfig = getStatusConfig(productStatus);
 
   const handleEditTitle = () => {
     openEditTitleModal({
       title: product.title,
-      handle: product.slug,
+      handle,
       onSave: (values: { title: string; handle: string }) => {
         console.log("Save title:", values);
         // TODO: implement actual save logic
@@ -81,7 +93,7 @@ export const ProductInfoHeader = ({
     ordersTrend: -2,
     conversion: 5.5,
     conversionTrend: 0.4,
-    revenue: product.price * 156,
+    revenue: price * 156,
     revenueTrend: 12,
   };
 
@@ -96,12 +108,9 @@ export const ProductInfoHeader = ({
           {statusConfig.label}
         </Tag>
       </Tooltip>
-      {product.status === EntityStatus.PUBLISHED && (
+      {isProductPublished(product) && (
         <Typography.Text type="secondary" className={styles.metaText}>
-          {product.updatedAt.toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-          })}
+          {formatApiDate(product.publishedAt ?? product.updatedAt)}
           <span style={{ marginLeft: 4 }}>by</span>
           <Popover
             content={
@@ -207,14 +216,14 @@ export const ProductInfoHeader = ({
         </Typography.Title>
 
         <Flex align="center" gap={12}>
-          <CopyableChip label="/" value={product.slug} />
+          <CopyableChip label="/" value={handle} />
           <CopyableChip
             label="ID"
             value={product.id}
             displayValue={product.id.slice(0, 8)}
             mono
           />
-          {product.sku && <CopyableChip label="SKU" value={product.sku} mono />}
+          {sku && <CopyableChip label="SKU" value={sku} mono />}
         </Flex>
       </Flex>
 

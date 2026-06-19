@@ -100,6 +100,15 @@ export class CategoryResolver extends CatalogType<string, Category> {
     };
   }
 
+  async excerpt(): Promise<Description> {
+    // TODO: Store category excerpt text/html/json and resolve it from translations.
+    return {
+      text: "",
+      html: "",
+      json: {},
+    };
+  }
+
   /**
    * Returns the parent category, if any
    */

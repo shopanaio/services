@@ -4,6 +4,10 @@ import React, { useCallback, useMemo, useState, useEffect } from "react";
 import { App } from "antd";
 import { EditorGrid } from "@/shared/components/editor-grid";
 import { validateFieldChange } from "@/shared/utils/inventory";
+import {
+  DEFAULT_DIMENSION_UNIT,
+  DEFAULT_WEIGHT_UNIT,
+} from "@/domains/inventory/products/utils/product-measurements";
 import { useVariantsEditorStore, useVariantsColumns } from "../hooks";
 import {
   SELECTABLE_COLUMNS,
@@ -106,11 +110,11 @@ function variantsToRows(variants: IVariantInput[]): IVariantEditorRow[] {
       costPrice: v.costPrice ?? null,
       // Shipping
       weight: v.weight ?? null,
-      weightUnit: v.weightUnit ?? "G",
+      weightUnit: v.weightUnit ?? DEFAULT_WEIGHT_UNIT,
       length: v.length ?? null,
       width: v.width ?? null,
       height: v.height ?? null,
-      dimensionUnit: v.dimensionUnit ?? "CM",
+      dimensionUnit: v.dimensionUnit ?? DEFAULT_DIMENSION_UNIT,
     };
   });
 }

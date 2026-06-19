@@ -7,7 +7,7 @@ import type { ITag } from "@/domains/inventory/products/modals";
 import type { IAttributeRow } from "@/domains/inventory/products/modals/edit-attributes-modal/types";
 import type { IBundleGroup, PricingRuleTemplate, IDependencyRule } from "@/domains/promos/bundles/types";
 import type { BundleType } from "@/mocks/products/bundles-list";
-import type { IReviewsData } from "@/domains/inventory/products/components/product-details-card";
+import type { IReviewsData } from "@/domains/inventory/products/components/product-details-card/types";
 import { EntityStatus, WeightUnit, DimensionUnit, type ICategory, type ITag as IProductTag } from "./types";
 import { mockCategories } from "./categories";
 import { mockTags } from "./tags";

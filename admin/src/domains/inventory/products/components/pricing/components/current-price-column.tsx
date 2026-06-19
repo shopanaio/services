@@ -1,17 +1,20 @@
 import { Typography, Tag, Tooltip, Flex } from "antd";
 import { useStyles } from "../pricing-block.styles";
+import type { CurrencyCode } from "../types";
 
 const NBSP = "\u00A0";
 
 export interface ICurrentPriceColumnProps {
   price: number;
   compareAtPrice: number | null;
-  formatPrice: (amount: number) => string;
+  currency?: CurrencyCode | null;
+  formatPrice: (amount: number, currency?: CurrencyCode) => string;
 }
 
 export const CurrentPriceColumn = ({
   price,
   compareAtPrice,
+  currency,
   formatPrice,
 }: ICurrentPriceColumnProps) => {
   const { styles } = useStyles();
@@ -29,14 +32,14 @@ export const CurrentPriceColumn = ({
         Current price
       </Typography.Text>
       <Typography.Title level={2} className={styles.mainPrice}>
-        {formatPrice(price)}
+        {formatPrice(price, currency ?? undefined)}
       </Typography.Title>
       <Flex align="center" gap={8}>
         {compareAtPrice && (
           <Typography.Text type="secondary">
             Compare at:{NBSP}
             <Typography.Text delete type="secondary">
-              {formatPrice(compareAtPrice)}
+              {formatPrice(compareAtPrice, currency ?? undefined)}
             </Typography.Text>
           </Typography.Text>
         )}

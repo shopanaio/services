@@ -104,7 +104,7 @@ type Product implements Node @key(fields: "id") {
   description: Description
 
   """Short excerpt."""
-  excerpt: String
+  excerpt: Description
 
   """SEO and Open Graph metadata."""
   seo: ProductSeo
@@ -212,6 +212,9 @@ input ProductCreateInput {
   """Product description."""
   description: DescriptionInput
 
+  """Short excerpt in multiple formats."""
+  excerpt: DescriptionInput
+
   """File IDs for product media (already uploaded via mediaMutation.fileUpload)."""
   mediaFileIds: [ID!]
 
@@ -291,7 +294,7 @@ input ProductContentInput {
   description: DescriptionInput
 
   """Short excerpt."""
-  excerpt: String
+  excerpt: DescriptionInput
 }
 
 """

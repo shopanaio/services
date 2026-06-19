@@ -33,7 +33,7 @@ export class ProductUpdateContentScript extends BaseScript<ProductUpdateContentP
     }
 
     // Compare excerpt
-    const newExcerpt = excerpt ?? null;
+    const newExcerpt = excerpt?.text ?? null;
     const currentExcerpt = existingTranslation?.excerpt ?? null;
     if (excerpt !== undefined && newExcerpt !== currentExcerpt) {
       changes.excerpt = newExcerpt;
@@ -50,7 +50,7 @@ export class ProductUpdateContentScript extends BaseScript<ProductUpdateContentP
         descriptionText: description?.text ?? existingTranslation?.descriptionText ?? null,
         descriptionHtml: description?.html ?? existingTranslation?.descriptionHtml ?? null,
         descriptionJson: description?.json ?? existingTranslation?.descriptionJson ?? null,
-        excerpt: excerpt ?? existingTranslation?.excerpt ?? null,
+        excerpt: excerpt?.text ?? existingTranslation?.excerpt ?? null,
       });
 
       await this.repository.product.touch(id);

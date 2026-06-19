@@ -42,6 +42,7 @@ export interface ProductCreateParams {
   readonly title: string;
   readonly handle: string;
   readonly description?: DescriptionInput;
+  readonly excerpt?: DescriptionInput;
 
   /** File IDs for product media (already uploaded) */
   readonly mediaFileIds?: string[];

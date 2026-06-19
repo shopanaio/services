@@ -35,6 +35,10 @@ export const PriceHistoryModal = () => {
   // Extract pricing data from widget response
   const currentPrice = data?.currentPrice?.amountMinor ?? 0;
   const compareAtPrice = data?.currentPrice?.compareAtMinor ?? null;
+  const currency =
+    data?.currentPrice?.currency ??
+    data?.currentCostPrice?.currency ??
+    data?.statistics.currency;
   const history = data?.history ?? {
     __typename: "VariantPriceConnection" as const,
     edges: [],
@@ -92,6 +96,7 @@ export const PriceHistoryModal = () => {
       <OverviewSection
         currentPrice={currentPrice}
         compareAtPrice={compareAtPrice}
+        currency={currency}
         history={history}
         stats={stats}
         variants={variants}

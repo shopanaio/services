@@ -72,7 +72,7 @@ export const PriceTimeline = ({ history }: IPriceTimelineProps) => {
                   strong={record.isCurrent}
                   className={styles.priceText}
                 >
-                  {formatPrice(record.amountMinor)}
+                  {formatPrice(record.amountMinor, record.currency)}
                 </Typography.Text>
                 {record.compareAtMinor && (
                   <>
@@ -81,11 +81,12 @@ export const PriceTimeline = ({ history }: IPriceTimelineProps) => {
                       type="secondary"
                       className={styles.compareText}
                     >
-                      {formatPrice(record.compareAtMinor)}
+                      {formatPrice(record.compareAtMinor, record.currency)}
                     </Typography.Text>
                     <DiscountBadge
                       price={record.amountMinor}
                       compareAtPrice={record.compareAtMinor}
+                      currency={record.currency}
                       size="small"
                       showSaving={false}
                     />

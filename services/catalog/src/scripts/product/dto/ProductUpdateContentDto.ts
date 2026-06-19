@@ -8,7 +8,7 @@ import type { DescriptionInput } from "./shared.js";
 export interface ProductUpdateContentParams {
   readonly id: string;
   readonly description?: DescriptionInput;
-  readonly excerpt?: string;
+  readonly excerpt?: DescriptionInput;
 }
 
 export type ProductUpdateContentResult = ScriptResult<Product, ContentChanges>;

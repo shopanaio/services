@@ -1,6 +1,7 @@
 import { Typography, Flex, Tag } from "antd";
 import { createStyles } from "antd-style";
 import { formatPrice } from "../utils";
+import type { CurrencyCode } from "../types";
 
 const useStyles = createStyles(() => ({
   tagSmall: {
@@ -28,6 +29,7 @@ const useStyles = createStyles(() => ({
 interface IDiscountBadgeProps {
   price: number;
   compareAtPrice: number;
+  currency?: CurrencyCode;
   size?: "small" | "default";
   showSaving?: boolean;
 }
@@ -35,6 +37,7 @@ interface IDiscountBadgeProps {
 export const DiscountBadge = ({
   price,
   compareAtPrice,
+  currency,
   size = "default",
   showSaving = true,
 }: IDiscountBadgeProps) => {
@@ -62,7 +65,7 @@ export const DiscountBadge = ({
             size === "small" ? styles.savingSmall : styles.savingDefault
           }
         >
-          Save {formatPrice(saving)}
+          Save {formatPrice(saving, currency)}
         </Typography.Text>
       )}
     </Flex>

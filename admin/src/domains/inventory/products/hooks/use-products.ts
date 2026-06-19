@@ -1,14 +1,24 @@
 import { useState, useEffect, useCallback } from "react";
-import { mockProductsList, type IProductListItem } from "@/mocks/products/products-list";
+import type { ApiPageInfo, ApiProduct, ApiProductConnection } from "@/graphql/types";
+import { mockProductsList } from "@/mocks/products";
+import {
+  createMockApiProductConnection,
+  createMockPageInfo,
+} from "@/mocks/products/api-builders";
 
 interface UseProductsOptions {
   /** Simulated delay in milliseconds */
   delay?: number;
+  page?: number;
+  pageSize?: number;
 }
 
 interface UseProductsReturn {
-  data: IProductListItem[];
-  isLoading: boolean;
+  products: ApiProduct[];
+  connection: ApiProductConnection | null;
+  totalCount: number;
+  pageInfo: ApiPageInfo | null;
+  loading: boolean;
   error: Error | null;
   refetch: () => Promise<void>;
 }
@@ -17,36 +27,57 @@ interface UseProductsReturn {
  * Hook that simulates an API call to fetch products
  */
 export function useProducts(options: UseProductsOptions = {}): UseProductsReturn {
-  const { delay = 500 } = options;
+  const { delay = 500, page = 0, pageSize = 20 } = options;
 
-  const [data, setData] = useState<IProductListItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [products, setProducts] = useState<ApiProduct[]>([]);
+  const [connection, setConnection] = useState<ApiProductConnection | null>(null);
+  const [pageInfo, setPageInfo] = useState<ApiPageInfo | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   const fetchProducts = useCallback(async () => {
-    setIsLoading(true);
+    setLoading(true);
     setError(null);
 
     try {
-      // Simulate API delay
       await new Promise((resolve) => setTimeout(resolve, delay));
 
-      // Simulate API response
-      setData(mockProductsList);
+      const start = page * pageSize;
+      const end = Math.min(start + pageSize, mockProductsList.length);
+      const pagedProducts = mockProductsList.slice(start, end);
+      const nextPageInfo = createMockPageInfo({
+        hasNextPage: end < mockProductsList.length,
+        hasPreviousPage: page > 0,
+        startCursor: pagedProducts.length ? `product-cursor-${start}` : null,
+        endCursor: pagedProducts.length ? `product-cursor-${end - 1}` : null,
+      });
+
+      setProducts(pagedProducts);
+      setPageInfo(nextPageInfo);
+      setConnection(
+        createMockApiProductConnection(
+          pagedProducts,
+          nextPageInfo,
+          mockProductsList.length,
+        ),
+      );
     } catch (err) {
       setError(err instanceof Error ? err : new Error("Failed to fetch products"));
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  }, [delay]);
+  }, [delay, page, pageSize]);
 
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
 
   return {
-    data,
-    isLoading,
+    products,
+    connection,
+    totalCount: connection?.totalCount ?? mockProductsList.length,
+    pageInfo,
+    loading,
     error,
     refetch: fetchProducts,
   };

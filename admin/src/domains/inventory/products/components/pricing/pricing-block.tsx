@@ -53,6 +53,14 @@ export const PricingBlock = ({
   const price = data?.currentPrice?.amountMinor ?? 0;
   const compareAtPrice = data?.currentPrice?.compareAtMinor ?? null;
   const costPrice = data?.currentCostPrice?.unitCostMinor ?? null;
+  const priceCurrency =
+    data?.currentPrice?.currency ??
+    data?.currentCostPrice?.currency ??
+    data?.statistics.currency;
+  const costCurrency =
+    data?.currentCostPrice?.currency ??
+    data?.currentPrice?.currency ??
+    data?.statistics.currency;
   const history = data?.history ?? EMPTY_HISTORY;
   const stats = data?.statistics ?? null;
 
@@ -83,6 +91,7 @@ export const PricingBlock = ({
           <CurrentPriceColumn
             price={price}
             compareAtPrice={compareAtPrice}
+            currency={priceCurrency}
             formatPrice={formatPrice}
           />
         </div>
@@ -91,12 +100,18 @@ export const PricingBlock = ({
             history={history}
             period={period}
             onPeriodChange={setPeriod}
+            currency={priceCurrency}
             formatPrice={formatPrice}
           />
         </div>
       </div>
 
-      <KPIRow stats={stats} costPrice={costPrice} formatPrice={formatPrice} />
+      <KPIRow
+        stats={stats}
+        costPrice={costPrice}
+        costCurrency={costCurrency}
+        formatPrice={formatPrice}
+      />
     </Paper>
   );
 };

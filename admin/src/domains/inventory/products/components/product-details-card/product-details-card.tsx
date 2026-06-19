@@ -19,17 +19,18 @@ import {
   VariantsTableSection,
 } from "./sections";
 import { useProductModals } from "./hooks";
-import type { IProduct } from "@/mocks/products/types";
-import type { IVariantsTableData, IProductDetailsMockData } from "./types";
+import { CurrencyCode, type ApiProduct } from "@/graphql/types";
+import type { IVariantsTableData, ProductDetailsSupplementalData } from "./types";
+import { getProductMediaFiles } from "../../utils/api-product-display";
 
 // ============================================================================
 // Helpers
 // ============================================================================
 
-const formatPrice = (price: number) =>
+const formatPrice = (price: number, currency: CurrencyCode = CurrencyCode.Rub) =>
   new Intl.NumberFormat("ru-RU", {
     style: "currency",
-    currency: "RUB",
+    currency,
   }).format(price / 100);
 
 // ============================================================================
@@ -37,8 +38,8 @@ const formatPrice = (price: number) =>
 // ============================================================================
 
 interface IProductDetailsCardProps {
-  product: IProduct;
-  mockData: IProductDetailsMockData;
+  product: ApiProduct;
+  supplementalData: ProductDetailsSupplementalData;
   variantsTableData?: IVariantsTableData;
   onEditSection?: (section: string) => void;
   onVariantsPageChange?: (direction: "next" | "prev") => void;
@@ -46,12 +47,13 @@ interface IProductDetailsCardProps {
 
 export const ProductDetailsCard = ({
   product,
-  mockData,
+  supplementalData,
   variantsTableData,
   onEditSection,
   onVariantsPageChange,
 }: IProductDetailsCardProps) => {
   const modals = useProductModals(product);
+  const isVariableProduct = product.variantsCount > 1;
 
   const handleEdit = (section: string) => onEditSection?.(section);
 
@@ -67,50 +69,51 @@ export const ProductDetailsCard = ({
       <PricingBlock productId={product.id} formatPrice={formatPrice} />
 
       {/* MEDIA SECTION */}
-      <MediaSection gallery={product.gallery} onEdit={modals.editMedia} />
+      <MediaSection gallery={getProductMediaFiles(product)} onEdit={modals.editMedia} />
 
       {/* INVENTORY */}
       <InventorySection
         onEdit={() => handleEdit("inventory")}
         product={product}
-        stats={mockData.inventory}
+        stats={supplementalData.inventory}
       />
 
       {/* CATEGORIES & TAGS */}
 
       <CategoriesSection
-        primaryCategory={mockData.categories.primary}
-        categories={mockData.categories.list}
+        primaryCategory={product.categories[0] ?? null}
+        categories={product.categories}
       />
 
       {/* REVIEWS */}
       <ReviewsSection
-        rating={mockData.reviews.rating}
-        reviewsCount={mockData.reviews.reviewsCount}
-        breakdown={mockData.reviews.breakdown}
+        rating={supplementalData.reviews.rating}
+        reviewsCount={supplementalData.reviews.reviewsCount}
+        breakdown={supplementalData.reviews.breakdown}
         onEdit={() => handleEdit("reviews")}
       />
 
       {/* ATTRIBUTES */}
       <AttributesSection
-        data={mockData.attributes}
+        data={supplementalData.attributes}
         actions={
           <EditAction onEdit={modals.editAttributes} label="Edit attributes" />
         }
       />
 
       {/* OPTIONS (variable products) */}
-      {product.isVariableProduct && (
+      {isVariableProduct && (
         <OptionsSection
-          options={mockData.options}
+          options={product.options}
           onEdit={modals.editOptions}
         />
       )}
 
       {/* VARIANTS TABLE (variable products) */}
-      {product.isVariableProduct && variantsTableData && variantsTableData.variants.length > 0 && (
+      {isVariableProduct && variantsTableData && variantsTableData.variants.length > 0 && (
         <VariantsTableSection
           variants={variantsTableData.variants}
+          productOptions={product.options}
           pageInfo={variantsTableData.pageInfo}
           totalCount={variantsTableData.totalCount}
           formatPrice={formatPrice}
@@ -120,32 +123,25 @@ export const ProductDetailsCard = ({
       )}
 
       {/* SHIPPING */}
-      {!product.isVariableProduct && (
+      {!isVariableProduct && (
         <ShippingSection
-          weight={product.weight}
-          weightUnit={product.weightUnit}
-          length={product.length}
-          width={product.width}
-          height={product.height}
-          dimensionUnit={product.dimensionUnit}
-          requiresShipping={product.requiresShipping}
           onEdit={() => handleEdit("shipping")}
         />
       )}
 
       {/* BUNDLES CONTAINING THIS PRODUCT */}
-      <BundlesSection bundles={mockData.includedInBundles} />
+      <BundlesSection bundles={supplementalData.includedInBundles} />
 
-      <TagsSection tags={mockData.tags} />
+      <TagsSection tags={product.tags} />
 
       {/* SEO */}
       <SeoBlock
         data={{
-          seoTitle: product.seoTitle,
-          seoDescription: product.seoDescription,
+          seoTitle: product.seo?.seoTitle ?? null,
+          seoDescription: product.seo?.seoDescription ?? null,
           title: product.title,
-          excerpt: product.excerpt,
-          slug: product.slug,
+          excerpt: product.excerpt?.text ?? null,
+          slug: product.handle ?? product.id,
         }}
         actions={<EditAction label="Edit SEO" onEdit={modals.editSeo} />}
       />

@@ -4,49 +4,14 @@ import { Tag, Flex } from "antd";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "../../edit-action";
 import { KPITile } from "@/ui-kit/kpi-tile";
-import { weightUnitOptions, dimensionUnitOptions } from "../../../constants";
 
 interface IShippingSectionProps {
-  weight: number | null;
-  weightUnit: string;
-  length: number | null;
-  width: number | null;
-  height: number | null;
-  dimensionUnit: string;
-  requiresShipping: boolean;
   onEdit: () => void;
 }
 
 export const ShippingSection = ({
-  weight,
-  weightUnit,
-  length,
-  width,
-  height,
-  dimensionUnit,
-  requiresShipping,
   onEdit,
 }: IShippingSectionProps) => {
-  const formatWeight = (w: number | null, unit: string) => {
-    if (!w) return "\u2014";
-    return `${w} ${
-      weightUnitOptions[unit as keyof typeof weightUnitOptions]?.label || unit
-    }`;
-  };
-
-  const formatDimensions = (
-    l: number | null,
-    w: number | null,
-    h: number | null,
-    unit: string
-  ) => {
-    if (!l && !w && !h) return "\u2014";
-    const u =
-      dimensionUnitOptions[unit as keyof typeof dimensionUnitOptions]?.label ||
-      unit;
-    return `${l || 0} \u00d7 ${w || 0} \u00d7 ${h || 0} ${u}`;
-  };
-
   return (
     <Paper>
       <PaperHeader
@@ -56,26 +21,23 @@ export const ShippingSection = ({
       <Flex gap={8}>
         <KPITile
           label="Weight"
-          value={formatWeight(weight, weightUnit)}
+          value="0 g"
           variant="success"
           centered
         />
         <KPITile
           label="Dimensions"
-          value={formatDimensions(length, width, height, dimensionUnit)}
+          value="0 x 0 x 0 mm"
           variant="info"
           centered
         />
         <KPITile
           label="Shipping"
-          value={requiresShipping ? "Required" : "Not required"}
-          variant={requiresShipping ? "purple" : "default"}
+          value="Not configured"
+          variant="default"
           badge={
-            <Tag
-              color={requiresShipping ? "blue" : "default"}
-              style={{ margin: 0 }}
-            >
-              {requiresShipping ? "Active" : "Disabled"}
+            <Tag color="default" style={{ margin: 0 }}>
+              Unknown
             </Tag>
           }
           centered

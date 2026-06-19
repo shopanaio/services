@@ -4,6 +4,7 @@ type Collection implements Node @key(fields: "id") {
   type: CollectionType!
   name: String!
   description: Description
+  excerpt: Description
   media: [CollectionMediaItem!]!
   seo: Seo
   defaultSort: ProductSortBy!
@@ -77,6 +78,7 @@ input CollectionCreateInput {
   type: CollectionType!
   name: String!
   description: DescriptionInput
+  excerpt: DescriptionInput
   media: [CollectionMediaInput!]
   seo: SeoInput
   defaultSort: ProductSortBy
@@ -91,6 +93,7 @@ input CollectionUpdateInput {
   handle: String
   name: String
   description: DescriptionInput
+  excerpt: DescriptionInput
   media: [CollectionMediaInput!]
   seo: SeoInput
   defaultSort: ProductSortBy

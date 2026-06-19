@@ -11,6 +11,15 @@ import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "../../edit-action";
 import { useVariantsTableStyles } from "../product-details-card.styles";
 import type { ApiVariant, ApiPageInfo } from "../types";
+import type { ApiProductOption, CurrencyCode } from "@/graphql/types";
+import {
+  getSelectedOptionLabels,
+  getVariantStockQuantity,
+} from "../../../utils/api-product-display";
+import {
+  formatApiDimensions,
+  formatApiWeight,
+} from "../../../utils/product-measurements";
 
 // ============================================================================
 // Stock Status Config
@@ -47,33 +56,11 @@ const stockStatusConfig: Record<
 // ============================================================================
 
 const getStockStatus = (variant: ApiVariant): string => {
-  const totalStock = variant.stock.reduce(
-    (acc, s) => acc + s.quantityOnHand,
-    0
-  );
+  const totalStock = getVariantStockQuantity(variant);
 
   if (totalStock === 0) return "OUT_OF_STOCK";
   if (totalStock < 10) return "LOW_STOCK";
   return "IN_STOCK";
-};
-
-const formatWeight = (weight: ApiVariant["weight"]): string => {
-  if (!weight) return "\u2014";
-  // Weight is in grams
-  if (weight.value >= 1000) {
-    return `${(weight.value / 1000).toFixed(1)} kg`;
-  }
-  return `${weight.value} g`;
-};
-
-const formatDimensions = (dimensions: ApiVariant["dimensions"]): string => {
-  if (!dimensions) return "\u2014";
-  // Dimensions are in mm
-  const { length, width, height } = dimensions;
-  if (length >= 10 || width >= 10 || height >= 10) {
-    return `${(length / 10).toFixed(0)} \u00d7 ${(width / 10).toFixed(0)} \u00d7 ${(height / 10).toFixed(0)} cm`;
-  }
-  return `${length} \u00d7 ${width} \u00d7 ${height} mm`;
 };
 
 // ============================================================================
@@ -82,11 +69,17 @@ const formatDimensions = (dimensions: ApiVariant["dimensions"]): string => {
 
 interface IVariantRowProps {
   variant: ApiVariant;
-  formatPrice: (price: number) => string;
+  productOptions: ApiProductOption[];
+  formatPrice: (price: number, currency?: CurrencyCode) => string;
   onAction: (action: string, variantId: string) => void;
 }
 
-const VariantRow = ({ variant, formatPrice, onAction }: IVariantRowProps) => {
+const VariantRow = ({
+  variant,
+  productOptions,
+  formatPrice,
+  onAction,
+}: IVariantRowProps) => {
   const { styles } = useVariantsTableStyles();
 
   const price = variant.price?.amountMinor ?? 0;
@@ -103,7 +96,11 @@ const VariantRow = ({ variant, formatPrice, onAction }: IVariantRowProps) => {
     label: "N/A",
   };
 
-  const imageUrl = variant.media?.[0]?.file?.url;
+  const imageUrl = [...variant.media].sort(
+    (left, right) => left.sortIndex - right.sortIndex,
+  )[0]?.file.url;
+  const inventoryItem = variant.inventoryItem;
+  const optionLabels = getSelectedOptionLabels(productOptions, variant);
 
   return (
     <tr>
@@ -124,16 +121,14 @@ const VariantRow = ({ variant, formatPrice, onAction }: IVariantRowProps) => {
           )}
           <Flex vertical>
             <Typography.Text strong className={styles.variantTitle}>
-              {variant.title || variant.sku || "\u2014"}
+              {variant.title ?? variant.handle}
             </Typography.Text>
-            {variant.selectedOptions && variant.selectedOptions.length > 0 && (
+            {optionLabels.length > 0 && (
               <Typography.Text
                 type="secondary"
                 className={styles.variantOptions}
               >
-                {variant.selectedOptions
-                  .map((o) => `${o.optionId}:${o.optionValueId}`)
-                  .join(" / ")}
+                {optionLabels.join(" / ")}
               </Typography.Text>
             )}
           </Flex>
@@ -143,7 +138,9 @@ const VariantRow = ({ variant, formatPrice, onAction }: IVariantRowProps) => {
       {/* PRICING */}
       <td>
         <Flex vertical gap={0}>
-          <Typography.Text>{formatPrice(Number(price))}</Typography.Text>
+          <Typography.Text>
+            {formatPrice(Number(price), variant.price?.currency)}
+          </Typography.Text>
           {compareAtPrice &&
             compareAtPrice > 0 &&
             compareAtPrice !== price && (
@@ -152,7 +149,7 @@ const VariantRow = ({ variant, formatPrice, onAction }: IVariantRowProps) => {
                   type="secondary"
                   className={styles.priceStrikethrough}
                 >
-                  {formatPrice(Number(compareAtPrice))}
+                  {formatPrice(Number(compareAtPrice), variant.price?.currency)}
                 </Typography.Text>
                 {discountPercent > 0 && (
                   <Typography.Text className={styles.discountPercent}>
@@ -168,7 +165,7 @@ const VariantRow = ({ variant, formatPrice, onAction }: IVariantRowProps) => {
       <td>
         <Flex vertical>
           <Typography.Text className={styles.variantSku}>
-            {variant.sku || "\u2014"}
+            {inventoryItem?.sku ?? "\u2014"}
           </Typography.Text>
           <Flex align="center" gap={4}>
             <span
@@ -191,10 +188,10 @@ const VariantRow = ({ variant, formatPrice, onAction }: IVariantRowProps) => {
       <td>
         <Flex vertical>
           <Typography.Text style={{ fontSize: 12 }}>
-            {formatWeight(variant.weight)}
+            {formatApiWeight(inventoryItem?.weight)}
           </Typography.Text>
           <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-            {formatDimensions(variant.dimensions)}
+            {formatApiDimensions(inventoryItem?.dimensions)}
           </Typography.Text>
         </Flex>
       </td>
@@ -244,9 +241,10 @@ const sortMenuItems = [
 
 interface IVariantsTableSectionProps {
   variants: ApiVariant[];
+  productOptions: ApiProductOption[];
   pageInfo: ApiPageInfo;
   totalCount: number;
-  formatPrice: (price: number) => string;
+  formatPrice: (price: number, currency?: CurrencyCode) => string;
   onEdit: () => void;
   onSort?: (sortKey: string) => void;
   onVariantAction?: (action: string, variantId: string) => void;
@@ -255,6 +253,7 @@ interface IVariantsTableSectionProps {
 
 export const VariantsTableSection = ({
   variants,
+  productOptions,
   pageInfo,
   totalCount,
   formatPrice,
@@ -317,6 +316,7 @@ export const VariantsTableSection = ({
               <VariantRow
                 key={variant.id}
                 variant={variant}
+                productOptions={productOptions}
                 formatPrice={formatPrice}
                 onAction={handleVariantAction}
               />

@@ -149,6 +149,7 @@ import type {
   ProductFeatureDeleteInput,
   ProductFeaturesSyncInput,
   CatalogMutationProductUpdateArgs,
+  DescriptionInput,
 } from "./generated/types.js";
 import {
   ProductCreateInputSchema,
@@ -209,13 +210,8 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     const sagaInput: ProductCreateParams = {
       title: input.title,
       handle: input.handle,
-      description: input.description
-        ? {
-            text: input.description.text,
-            html: input.description.html,
-            json: input.description.json as Record<string, unknown>,
-          }
-        : undefined,
+      description: mapDescriptionInput(input.description),
+      excerpt: mapDescriptionInput(input.excerpt),
       mediaFileIds,
       options: input.options?.map((opt) => ({
         name: opt.name,
@@ -326,14 +322,8 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
           title: operations.title ?? undefined,
           content: operations.content
             ? {
-                description: operations.content.description
-                  ? {
-                      text: operations.content.description.text,
-                      html: operations.content.description.html,
-                      json: operations.content.description.json as Record<string, unknown>,
-                    }
-                  : undefined,
-                excerpt: operations.content.excerpt ?? undefined,
+                description: mapDescriptionInput(operations.content.description),
+                excerpt: mapDescriptionInput(operations.content.excerpt),
               }
             : undefined,
           seo: operations.seo
@@ -2703,6 +2693,18 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
 // ─── Helpers ──────────────────────────────────────────────────
 
+function mapDescriptionInput(input?: DescriptionInput | null) {
+  if (!input) {
+    return undefined;
+  }
+
+  return {
+    text: input.text,
+    html: input.html,
+    json: input.json as Record<string, unknown>,
+  };
+}
+
 function mapOperationsForBulk(
   productId: string,
   operations: ProductBulkUpdateInput["products"][0]["operations"]
@@ -2719,14 +2721,8 @@ function mapOperationsForBulk(
         title: operations.title ?? undefined,
         content: operations.content
           ? {
-              description: operations.content.description
-                ? {
-                    text: operations.content.description.text,
-                    html: operations.content.description.html,
-                    json: operations.content.description.json as Record<string, unknown>,
-                  }
-                : undefined,
-              excerpt: operations.content.excerpt ?? undefined,
+              description: mapDescriptionInput(operations.content.description),
+              excerpt: mapDescriptionInput(operations.content.excerpt),
             }
           : undefined,
         seo: operations.seo

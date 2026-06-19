@@ -4,7 +4,7 @@ import { useProductPriceHistoryModal } from "../../../modals";
 import { PaperHeader } from "@/ui-kit/paper";
 import { ScrollableDropdown } from "./scrollable-dropdown";
 import { useStyles } from "../pricing-block.styles";
-import { ApiVariantConnection } from "@/graphql/types";
+import type { ApiVariantConnection, CurrencyCode } from "@/graphql/types";
 
 export interface IPricingHeaderProps {
   productId: string;
@@ -13,7 +13,7 @@ export interface IPricingHeaderProps {
   onVariantSelect: (id: string) => void;
   onLoadMore: () => void;
   isLoadingMore: boolean;
-  formatPrice: (amount: number) => string;
+  formatPrice: (amount: number, currency?: CurrencyCode) => string;
 }
 
 export const PricingHeader = ({
@@ -38,7 +38,9 @@ export const PricingHeader = ({
       <Flex justify="space-between" align="center" style={{ width: "100%" }}>
         <span>{edge.node.title ?? "Untitled"}</span>
         <Typography.Text style={{ fontWeight: 600, marginLeft: 24 }}>
-          {formatPrice(edge.node.price?.amountMinor ?? 0)}
+          {edge.node.price
+            ? formatPrice(edge.node.price.amountMinor, edge.node.price.currency)
+            : "—"}
         </Typography.Text>
       </Flex>
     ),

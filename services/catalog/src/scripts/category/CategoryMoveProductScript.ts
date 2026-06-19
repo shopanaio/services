@@ -18,7 +18,9 @@ export class CategoryMoveProductScript extends BaseScript<
   protected async execute(
     params: CategoryMoveProductParams
   ): Promise<CategoryMoveProductResult> {
-    const { categoryId, productId, afterProductId, beforeProductId } = params;
+    const { categoryId, productId } = params;
+    const afterProductId = params.afterProductId ?? undefined;
+    const beforeProductId = params.beforeProductId ?? undefined;
 
     const validationError = this.validateParams(params);
     if (validationError) {
@@ -52,8 +54,10 @@ export class CategoryMoveProductScript extends BaseScript<
       return this.notFoundError("beforeProductId is not in category", ["beforeProductId"]);
     }
 
-    const needNeighborLookup =
-      (beforeProductId && !afterProductId) || (afterProductId && !beforeProductId);
+    const needNeighborLookup = Boolean(
+      (beforeProductId && !afterProductId) ||
+        (afterProductId && !beforeProductId)
+    );
 
     let effectiveRanks = await this.resolveEffectiveRanks(
       categoryId,

@@ -3,45 +3,30 @@ import {
   ClockCircleFilled,
   StopOutlined,
 } from "@ant-design/icons";
-import { createElement } from "react";
-import { EntityStatus } from "@/mocks/products/types";
+import { createElement, type ReactNode } from "react";
+import {
+  PRODUCT_STATUS_COLORS,
+  PRODUCT_STATUS_HINTS,
+  PRODUCT_STATUS_LABELS,
+  type ProductStatus,
+} from "../../utils/product-status";
 
 // ============================================================================
 // Status Configuration
 // ============================================================================
 
-export const getStatusConfig = (status: EntityStatus) => {
-  switch (status) {
-    case EntityStatus.PUBLISHED:
-      return {
-        color: "success" as const,
-        icon: createElement(CheckCircleFilled),
-        label: "Published",
-        hint: null,
-      };
-    case EntityStatus.DRAFT:
-      return {
-        color: "default" as const,
-        icon: createElement(ClockCircleFilled),
-        label: "Draft",
-        hint: "Not visible on storefront",
-      };
-    case EntityStatus.ARCHIVED:
-      return {
-        color: "error" as const,
-        icon: createElement(StopOutlined),
-        label: "Archived",
-        hint: "Product is archived",
-      };
-    default:
-      return {
-        color: "default" as const,
-        icon: null,
-        label: status,
-        hint: null,
-      };
-  }
-};
+const PRODUCT_STATUS_ICONS = {
+  archived: createElement(StopOutlined),
+  draft: createElement(ClockCircleFilled),
+  published: createElement(CheckCircleFilled),
+} satisfies Record<ProductStatus, ReactNode>;
+
+export const getStatusConfig = (status: ProductStatus) => ({
+  color: PRODUCT_STATUS_COLORS[status],
+  icon: PRODUCT_STATUS_ICONS[status],
+  label: PRODUCT_STATUS_LABELS[status],
+  hint: PRODUCT_STATUS_HINTS[status],
+});
 
 // ============================================================================
 // Formatters

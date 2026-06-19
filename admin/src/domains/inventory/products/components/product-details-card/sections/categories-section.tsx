@@ -6,18 +6,19 @@ import { PlusOutlined, MoreOutlined, StarFilled } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useCategoryPicker } from "@/shared/components/entity-picker-modal";
 import type { IPickableEntity } from "@/shared/components/entity-picker-modal";
-import { EntityStatus, ICategory } from "@/mocks";
+import type { ApiCategory } from "@/graphql/types";
+import { createMockApiCategory } from "@/mocks/products/api-builders";
 
 interface ICategoriesSectionProps {
-  primaryCategory?: ICategory | null;
-  categories?: ICategory[];
+  primaryCategory?: ApiCategory | null;
+  categories?: ApiCategory[];
 }
 
 export const CategoriesSection = ({
   primaryCategory: initialPrimaryCategory,
   categories: initialCategories = [],
 }: ICategoriesSectionProps) => {
-  const [categories, setCategories] = useState<ICategory[]>(() => {
+  const [categories, setCategories] = useState<ApiCategory[]>(() => {
     if (initialPrimaryCategory) {
       return [
         initialPrimaryCategory,
@@ -59,20 +60,11 @@ export const CategoriesSection = ({
         if (existing) {
           return existing;
         }
-        return {
+        return createMockApiCategory({
           id: entity.id,
-          title: entity.title,
-          slug: entity.id,
-          description: null,
-          excerpt: null,
-          seoTitle: null,
-          seoDescription: null,
-          status: EntityStatus.PUBLISHED,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          featured: null,
-          gallery: [],
-        } satisfies ICategory;
+          name: entity.title,
+          handle: entity.id,
+        });
       });
       setCategories(newCategories);
 
@@ -108,7 +100,7 @@ export const CategoriesSection = ({
               <Tag color="blue" style={{ cursor: "pointer" }}>
                 <Flex align="center" gap={4}>
                   <StarFilled />
-                  {primaryCategory.title}
+                  {primaryCategory.name}
                   <MoreOutlined />
                 </Flex>
               </Tag>
@@ -135,7 +127,7 @@ export const CategoriesSection = ({
             >
               <Tag color="default" style={{ cursor: "pointer" }}>
                 <Flex align="center" gap={4}>
-                  {category.title}
+                  {category.name}
                   <MoreOutlined />
                 </Flex>
               </Tag>

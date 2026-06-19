@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react";
 import { Flex, Skeleton } from "antd";
 import { useModalStackContext, ModalLayout } from "@/layouts/modals";
-import { ProductDetailsCard } from "../../components/product-details-card";
+import { ProductDetailsCard } from "../../components/product-details-card/product-details-card";
 import {
-  mockVariableProduct,
+  findMockProductById,
   mockSimpleProduct,
   productDetailsMockData,
   getMockVariantsTableData,
@@ -15,8 +15,14 @@ export const ProductModal = () => {
   const { payload, pop, forcePop } = useModalStackContext();
   const [loading, setLoading] = useState(true);
   const [variantsPage, setVariantsPage] = useState(1);
+  const entityId =
+    payload.entityId === undefined || payload.entityId === null
+      ? null
+      : String(payload.entityId);
 
-  const product = payload.simple ? mockSimpleProduct : mockVariableProduct;
+  const product = payload.simple
+    ? mockSimpleProduct
+    : findMockProductById(entityId);
   const variantsTableData = getMockVariantsTableData(variantsPage, 10, 25);
 
   const handleVariantsPageChange = (direction: "next" | "prev") => {
@@ -50,7 +56,7 @@ export const ProductModal = () => {
     return (
       <ProductDetailsCard
         product={product}
-        mockData={productDetailsMockData}
+        supplementalData={productDetailsMockData}
         variantsTableData={variantsTableData}
         onEditSection={(section) => console.log("Edit section:", section)}
         onVariantsPageChange={handleVariantsPageChange}

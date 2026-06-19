@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import { Flex } from "antd";
 import { ProductInfoHeader } from "@/domains/inventory/products/components/product-info-header";
 import { ProductContentTabs } from "@/domains/inventory/products/components/product-content-tabs";
-import { PricingBlock } from "@/domains/inventory/products/components/pricing";
+import { PricingBlock } from "@/domains/inventory/products/components/pricing/pricing-block";
 import { SeoBlock } from "@/domains/inventory/products/components/seo";
 import { AttributesSection } from "@/domains/inventory/products/components/attributes-section";
 import { EditAction } from "@/domains/inventory/products/components/edit-action";

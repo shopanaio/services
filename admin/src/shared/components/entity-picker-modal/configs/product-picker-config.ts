@@ -3,10 +3,9 @@
 import { useState, useMemo } from "react";
 import type { ColDef } from "ag-grid-community";
 import { filterSchema } from "@/domains/inventory/products/page/filter-schema";
-import {
-  mockProductsList,
-  type IProductListItem,
-} from "@/mocks/products/products-list";
+import { mockProductsList } from "@/mocks/products";
+import { getProductThumbnailFile } from "@/domains/inventory/products/utils/api-product-display";
+import { getProductStatus } from "@/domains/inventory/products/utils/product-status";
 import { EntityCellRenderer, StatusCellRenderer } from "../cell-renderers";
 import { registerEntityPickerConfig } from ".";
 import type {
@@ -15,28 +14,24 @@ import type {
   IPickableEntity,
 } from "../types";
 import type { IFilterValue } from "@/layouts/filters";
+import type { ApiProduct } from "@/graphql/types";
 
 /**
  * Product entity adapted for picker
  */
-interface IProductPickerEntity extends IPickableEntity {
-  inventory: number;
-  category: string;
-  brand: string;
-}
+type ProductPickerEntity = IPickableEntity;
 
 /**
  * Transform product list item to picker entity
  */
-function transformProduct(product: IProductListItem): IProductPickerEntity {
+function transformProduct(product: ApiProduct): ProductPickerEntity {
+  const thumbnail = getProductThumbnailFile(product);
+
   return {
     id: product.id,
-    title: product.name,
-    image: product.image,
-    status: product.status,
-    inventory: product.inventory,
-    category: product.category,
-    brand: product.brand,
+    title: product.title,
+    image: thumbnail?.url ?? null,
+    status: getProductStatus(product),
   };
 }
 
@@ -48,7 +43,7 @@ function useProductsPickerData(options: {
   filters: IFilterValue[];
   search: string;
   pageSize: number;
-}): IEntityPickerDataResult<IProductPickerEntity> {
+}): IEntityPickerDataResult<ProductPickerEntity> {
   const { search, pageSize } = options;
   const [page, setPage] = useState(0);
 
@@ -100,7 +95,7 @@ function useProductsPickerData(options: {
 /**
  * Column definitions for products picker
  */
-const productPickerColumns: ColDef<IProductPickerEntity>[] = [
+const productPickerColumns: ColDef<ProductPickerEntity>[] = [
   {
     headerName: "Product",
     field: "title",
@@ -119,7 +114,7 @@ const productPickerColumns: ColDef<IProductPickerEntity>[] = [
 /**
  * Product picker configuration
  */
-export const productPickerConfig: IEntityPickerConfig<IProductPickerEntity> = {
+export const productPickerConfig: IEntityPickerConfig<ProductPickerEntity> = {
   entityType: "product",
   entityName: "Product",
   entityNamePlural: "Products",

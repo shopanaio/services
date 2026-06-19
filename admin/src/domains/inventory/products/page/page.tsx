@@ -30,9 +30,21 @@ import {
 } from "@/hooks";
 import { filterSchema } from "./filter-schema";
 import { useProducts } from "../hooks";
-import type { IProductListItem } from "@/mocks/products/products-list";
 import { useBulkEditorStore } from "../modals/bulk-editor-modal";
 import { useProductCreateModal } from "../modals";
+import type { ApiProduct } from "@/graphql/types";
+import {
+  getProductBrandName,
+  getProductPrimaryCategoryName,
+  getProductThumbnailFile,
+  getProductTotalAvailable,
+} from "../utils/api-product-display";
+import {
+  PRODUCT_STATUS_COLORS,
+  PRODUCT_STATUS_LABELS,
+  getProductStatus,
+  type ProductStatus,
+} from "../utils/product-status";
 
 ModuleRegistry.registerModules([
   AllCommunityModule,
@@ -42,55 +54,66 @@ ModuleRegistry.registerModules([
 
 // Cell Renderers
 const ProductCellRenderer = (
-  props: CustomCellRendererProps<IProductListItem>,
+  props: CustomCellRendererProps<ApiProduct>,
 ) => {
   const { data } = props;
   if (!data) return null;
+  const thumbnail = getProductThumbnailFile(data);
   return (
     <Flex align="center" gap="small">
       <Image
-        src={data.image}
-        alt={data.name}
+        src={thumbnail?.url}
+        alt={thumbnail?.altText ?? thumbnail?.originalName ?? data.title}
         width={40}
         height={40}
         style={{ borderRadius: 4, objectFit: "cover" }}
         preview={false}
       />
-      <Typography.Text strong>{data.name}</Typography.Text>
+      <Typography.Text strong>{data.title}</Typography.Text>
     </Flex>
   );
 };
 
 const StatusCellRenderer = (
-  props: CustomCellRendererProps<IProductListItem>,
+  props: CustomCellRendererProps<ApiProduct, ProductStatus>,
 ) => {
   const { value } = props;
-  const config: Record<string, { color: string; label: string }> = {
-    published: { color: "success", label: "Published" },
-    draft: { color: "default", label: "Draft" },
-  };
-  const { color, label } = config[value] || config.draft;
-  return <Tag color={color}>{label}</Tag>;
+  const status = value ?? "draft";
+
+  return (
+    <Tag color={PRODUCT_STATUS_COLORS[status]}>
+      {PRODUCT_STATUS_LABELS[status]}
+    </Tag>
+  );
 };
 
 const InventoryCellRenderer = (
-  props: CustomCellRendererProps<IProductListItem>,
+  props: CustomCellRendererProps<ApiProduct, number>,
 ) => {
   const { value } = props;
   if (value === 0) {
     return <Typography.Text type="danger">0 in stock</Typography.Text>;
   }
-  return <Typography.Text>{value} in stock</Typography.Text>;
+  return <Typography.Text>{value ?? 0} in stock</Typography.Text>;
+};
+
+const TextCellRenderer = (
+  props: CustomCellRendererProps<ApiProduct, string | null>,
+) => {
+  const { value } = props;
+  return <Typography.Text>{value ?? ""}</Typography.Text>;
 };
 
 export default function ProductsPage() {
   const agGridTheme = useAgGridTheme();
-  const gridRef = useRef<AgGridReact<IProductListItem>>(null);
+  const gridRef = useRef<AgGridReact<ApiProduct>>(null);
   const [searchValue, setSearchValue] = useState("");
   const [selectedCount, setSelectedCount] = useState(0);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(20);
   const { widgetProps } = useFilters({ schema: filterSchema });
   const { push } = useModalStack();
-  const { data: products } = useProducts();
+  const { products, totalCount, pageInfo } = useProducts({ page, pageSize });
   const { initialState, onStateUpdated } = useGridState({
     storageKey: "products-grid-state",
   });
@@ -111,13 +134,14 @@ export default function ProductsPage() {
 
   // Row selection with checkbox isolation
   const { rowSelection, selectionColumnDef, onCellClicked } =
-    useAgGridRowSelection<IProductListItem>({
-      onRowAction: () => push("product", { level: 1 }),
+    useAgGridRowSelection<ApiProduct>({
+      onRowAction: (product) =>
+        push("product", { entityId: product.id, mode: "view" }),
     });
 
   // Handle selection changes
   const handleSelectionChanged = useCallback(
-    (event: SelectionChangedEvent<IProductListItem>) => {
+    (event: SelectionChangedEvent<ApiProduct>) => {
       const selectedRows = event.api.getSelectedRows();
       setSelectedCount(selectedRows.length);
     },
@@ -190,34 +214,37 @@ export default function ProductsPage() {
     return result;
   }, [selectedCount, selectionActions, deselectAll]);
 
-  const columnDefs = useMemo<ColDef<IProductListItem>[]>(
+  const columnDefs = useMemo<ColDef<ApiProduct>[]>(
     () => [
       {
         headerName: "Product",
-        field: "name",
+        field: "title",
         cellRenderer: ProductCellRenderer,
         minWidth: 300,
       },
       {
         headerName: "Status",
-        field: "status",
+        valueGetter: ({ data }) => (data ? getProductStatus(data) : "draft"),
         cellRenderer: StatusCellRenderer,
         minWidth: 120,
       },
       {
         headerName: "Inventory",
-        field: "inventory",
+        valueGetter: ({ data }) => (data ? getProductTotalAvailable(data) : 0),
         cellRenderer: InventoryCellRenderer,
         minWidth: 120,
       },
       {
         headerName: "Category",
-        field: "category",
+        valueGetter: ({ data }) =>
+          data ? getProductPrimaryCategoryName(data) : null,
+        cellRenderer: TextCellRenderer,
         minWidth: 120,
       },
       {
         headerName: "Brand",
-        field: "brand",
+        valueGetter: ({ data }) => (data ? getProductBrandName(data) : null),
+        cellRenderer: TextCellRenderer,
         minWidth: 120,
         resizable: false,
       },
@@ -244,7 +271,7 @@ export default function ProductsPage() {
     <DataLayout
       name="products"
       title="Products"
-      count={products.length}
+      count={totalCount}
       actions={
         <Button icon={<PlusOutlined />} onClick={handleCreate}>
           Create
@@ -272,7 +299,7 @@ export default function ProductsPage() {
         }}
       >
         <div style={{ flex: 1 }}>
-          <AgGridReact<IProductListItem>
+          <AgGridReact<ApiProduct>
             ref={gridRef}
             theme={agGridTheme}
             rowData={products}
@@ -294,15 +321,18 @@ export default function ProductsPage() {
         </div>
 
         <CursorPagination
-          total={50}
-          rangeStart={1}
-          rangeEnd={20}
-          pageSize={20}
-          hasNext={true}
-          hasPrev={false}
-          onNext={() => {}}
-          onPrev={() => {}}
-          onPageSizeChange={() => {}}
+          total={totalCount}
+          rangeStart={products.length ? page * pageSize + 1 : 0}
+          rangeEnd={Math.min((page + 1) * pageSize, totalCount)}
+          pageSize={pageSize}
+          hasNext={pageInfo?.hasNextPage ?? false}
+          hasPrev={pageInfo?.hasPreviousPage ?? false}
+          onNext={() => setPage((current) => current + 1)}
+          onPrev={() => setPage((current) => Math.max(0, current - 1))}
+          onPageSizeChange={(nextPageSize) => {
+            setPageSize(nextPageSize);
+            setPage(0);
+          }}
         />
       </div>
 
