@@ -20,6 +20,16 @@ interface ServiceInfo {
   description?: string;
 }
 
+interface AdminFrontendInfo {
+  name: string;
+  path: string;
+  framework: string;
+  hasBuild: boolean;
+  hasCodegen: boolean;
+  hasLint: boolean;
+  description: string;
+}
+
 class ListServicesTool extends MCPTool<typeof ListServicesToolSchema> {
   name = 'shopana_list_services';
   description = `List all available Shopana services with their capabilities.
@@ -28,8 +38,9 @@ Returns information about each service including:
 - Service name and path
 - Available scripts (build, codegen, db:generate, db:migrate)
 - Service description from package.json
+- Admin frontend metadata and commands when admin/package.json exists
 
-This is useful to understand the project structure and what operations are available for each service.`;
+This is useful to understand the project structure and what operations are available for each backend service and the separate Admin frontend.`;
 
   schema = ListServicesToolSchema;
 
@@ -40,6 +51,7 @@ This is useful to understand the project structure and what operations are avail
     try {
       const entries = await readdir(servicesDir);
       const services: ServiceInfo[] = [];
+      let adminFrontend: AdminFrontendInfo | undefined;
 
       for (const entry of entries) {
         const servicePath = join(servicesDir, entry);
@@ -78,6 +90,26 @@ This is useful to understand the project structure and what operations are avail
         }
       }
 
+      try {
+        const adminPath = join(workingDir, 'admin');
+        const adminPackageJson = JSON.parse(
+          await readFile(join(adminPath, 'package.json'), 'utf-8')
+        );
+        const adminScripts = adminPackageJson.scripts || {};
+
+        adminFrontend = {
+          name: adminPackageJson.name || 'admin',
+          path: adminPath,
+          framework: 'Next.js',
+          hasBuild: !!adminScripts['build'],
+          hasCodegen: !!adminScripts['codegen'],
+          hasLint: !!adminScripts['lint'],
+          description: 'Admin frontend. Use shopana_admin for codegen, build, and lint.'
+        };
+      } catch {
+        adminFrontend = undefined;
+      }
+
       return {
         content: [
           {
@@ -85,7 +117,8 @@ This is useful to understand the project structure and what operations are avail
             text: JSON.stringify({
               success: true,
               total: services.length,
-              services
+              services,
+              adminFrontend
             }, null, 2)
           }
         ]

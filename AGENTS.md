@@ -11,7 +11,7 @@ Before creating implementation plans or making code/documentation changes, revie
 
 ## Language
 
-The repository development language is English. All files, code comments, user-facing strings, documentation, plans, commit messages, pull request text, and generated project artifacts must be written in English only.
+The repository development language is English. All codebase files, code comments, documentation, plans, commit messages, pull request text, and generated project artifacts must be written in English only.
 
 ## Architecture
 
@@ -49,6 +49,10 @@ The repository development language is English. All files, code comments, user-f
 ## Development
 
 Use `shopana-cli` MCP tools for all development tasks (dev, build, migrate, codegen, schema, test).
+
+## Admin Frontend
+
+The Admin frontend lives in `admin/`.
 
 ## Testing
 
