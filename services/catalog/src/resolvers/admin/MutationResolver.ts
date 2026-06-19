@@ -339,6 +339,14 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
             ? {
                 title: operations.seo.seoTitle ?? undefined,
                 description: operations.seo.seoDescription ?? undefined,
+                ogTitle: operations.seo.ogTitle ?? undefined,
+                ogDescription: operations.seo.ogDescription ?? undefined,
+                ogImageId: operations.seo.ogImageId
+                  ? decodeGlobalIdByType(
+                      operations.seo.ogImageId,
+                      GlobalIdEntity.File
+                    )
+                  : undefined,
               }
             : undefined,
           status: operations.status
@@ -2803,6 +2811,14 @@ function mapOperationsForBulk(
           ? {
               title: operations.seo.seoTitle ?? undefined,
               description: operations.seo.seoDescription ?? undefined,
+              ogTitle: operations.seo.ogTitle ?? undefined,
+              ogDescription: operations.seo.ogDescription ?? undefined,
+              ogImageId: operations.seo.ogImageId
+                ? decodeGlobalIdByType(
+                    operations.seo.ogImageId,
+                    GlobalIdEntity.File
+                  )
+                : undefined,
             }
           : undefined,
         status: operations.status

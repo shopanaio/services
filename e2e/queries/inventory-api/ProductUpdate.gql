@@ -26,6 +26,13 @@ mutation ProductUpdate($productId: ID!, $expectedRevision: Int, $operations: Pro
         seo {
           seoTitle
           seoDescription
+          ogTitle
+          ogDescription
+          ogImage {
+            id
+            originalName
+            url
+          }
         }
         media {
           file {

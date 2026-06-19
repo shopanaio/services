@@ -19,6 +19,17 @@ query ProductFindOne($id: ID!) {
         html
         json
       }
+      seo {
+        seoTitle
+        seoDescription
+        ogTitle
+        ogDescription
+        ogImage {
+          id
+          originalName
+          url
+        }
+      }
       media {
         file {
           id

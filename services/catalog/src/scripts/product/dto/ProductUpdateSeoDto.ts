@@ -19,6 +19,9 @@ export interface ProductUpdateSeoParams {
   readonly id: string;
   readonly title?: string | null;
   readonly description?: string | null;
+  readonly ogTitle?: string | null;
+  readonly ogDescription?: string | null;
+  readonly ogImageId?: string | null;
 }
 
 export type ProductUpdateSeoResult = ScriptResult<Product, SeoChanges>;

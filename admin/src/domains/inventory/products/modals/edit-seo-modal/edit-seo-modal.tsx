@@ -82,6 +82,7 @@ export const EditSeoModal = () => {
                   placeholder={typedPayload.productTitle || "Enter meta title"}
                   maxLength={SEO_TITLE_MAX}
                   showCount
+                  data-testid="edit-seo-meta-title-input"
                 />
               )}
             />
@@ -97,6 +98,7 @@ export const EditSeoModal = () => {
                   rows={3}
                   maxLength={SEO_DESCRIPTION_MAX}
                   showCount
+                  data-testid="edit-seo-meta-description-input"
                 />
               )}
             />
@@ -122,6 +124,7 @@ export const EditSeoModal = () => {
                   placeholder={values.seoTitle || "Enter OG title"}
                   maxLength={OG_TITLE_MAX}
                   showCount
+                  data-testid="edit-seo-og-title-input"
                 />
               )}
             />
@@ -137,6 +140,7 @@ export const EditSeoModal = () => {
                   rows={2}
                   maxLength={OG_DESCRIPTION_MAX}
                   showCount
+                  data-testid="edit-seo-og-description-input"
                 />
               )}
             />

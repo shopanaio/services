@@ -48,6 +48,9 @@ export interface ContentChanges {
 export interface SeoChanges {
   title?: string | null;
   description?: string | null;
+  ogTitle?: string | null;
+  ogDescription?: string | null;
+  ogImageId?: string | null;
 }
 
 /**

@@ -133,11 +133,20 @@ export const ProductDetailsCard = ({
         data={{
           seoTitle: product.seo?.seoTitle ?? null,
           seoDescription: product.seo?.seoDescription ?? null,
+          ogTitle: product.seo?.ogTitle ?? null,
+          ogDescription: product.seo?.ogDescription ?? null,
+          ogImage: product.seo?.ogImage ?? null,
           title: product.title,
           excerpt: product.excerpt?.text ?? null,
           slug: product.handle ?? product.id,
         }}
-        actions={<EditAction label="Edit SEO" onEdit={modals.editSeo} />}
+        actions={
+          <EditAction
+            label="Edit SEO"
+            onEdit={modals.editSeo}
+            testId="product-seo-actions-button"
+          />
+        }
       />
     </Flex>
   );

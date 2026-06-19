@@ -31,7 +31,10 @@ export const ImageUpload = ({ value, onChange }: IImageUploadProps) => {
 
   if (value) {
     return (
-      <div className={styles.imagePreviewContainer}>
+      <div
+        className={styles.imagePreviewContainer}
+        data-testid="edit-seo-og-image-preview"
+      >
         <Image
           src={value.url}
           alt={value.originalName || "OG Image"}
@@ -45,6 +48,7 @@ export const ImageUpload = ({ value, onChange }: IImageUploadProps) => {
           icon={<DeleteOutlined />}
           className={styles.imageRemoveButton}
           onClick={handleRemove}
+          data-testid="edit-seo-og-image-remove-button"
         />
       </div>
     );
@@ -56,6 +60,7 @@ export const ImageUpload = ({ value, onChange }: IImageUploadProps) => {
       onClick={handleUploadClick}
       role="button"
       tabIndex={0}
+      data-testid="edit-seo-og-image-upload-area"
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           handleUploadClick();

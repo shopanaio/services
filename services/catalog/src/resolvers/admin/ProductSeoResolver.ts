@@ -1,4 +1,8 @@
 import type { ProductSeo as ProductSeoModel } from "../../repositories/models/index.js";
+import {
+  encodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 import { CatalogType } from "./CatalogType.js";
 
 /**
@@ -41,6 +45,9 @@ export class ProductSeoResolver extends CatalogType<ProductSeoModel, ProductSeoM
    */
   ogImage(): FileReference | null {
     if (!this.$props.ogImageId) return null;
-    return { __typename: "File", id: this.$props.ogImageId };
+    return {
+      __typename: "File",
+      id: encodeGlobalIdByType(this.$props.ogImageId, GlobalIdEntity.File),
+    };
   }
 }
