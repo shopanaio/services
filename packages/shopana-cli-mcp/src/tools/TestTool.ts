@@ -155,6 +155,7 @@ Environment variables (already configured in e2e/.env):
             env: {
               NODE_OPTIONS: nodeOptions
             },
+            warning: 'If this is an admin UI test, --headed is required.',
             instructions: [
               'Do not start, stop, or restart services. The development server is managed separately.',
               'Run the command from the cwd shown above.',
