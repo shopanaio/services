@@ -2,6 +2,7 @@ import { MCPTool } from 'mcp-framework';
 import { z } from 'zod';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
+import { resolveE2eDir } from '../utils/paths.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -56,9 +57,9 @@ class TestTool extends MCPTool<typeof TestToolSchema> {
   name = 'shopana_test';
   description = `Run Playwright end-to-end tests through the Shopana CLI.
 
-This tool runs: yarn shopana e2e test
+This tool runs: yarn test in the e2e/ package.
 
-The CLI executes Playwright from the e2e/ directory where playwright.config.ts is located.
+The tool resolves the repository root from workingDir, then executes Playwright from e2e/ where playwright.config.ts is located. Both the repository root and the e2e/ directory are accepted as workingDir.
 
 Project rule:
   Run one spec file at a time. Do not run the entire suite or a whole directory.
@@ -85,7 +86,25 @@ Environment variables (already configured in e2e/.env):
   async execute(input: z.infer<typeof TestToolSchema>) {
     const { testPath, grep, project, headed, debug, workers, retries, reporter, updateSnapshots, workingDir } = input;
 
-    const args = ['shopana', 'e2e', 'test'];
+    let e2eDir: string;
+
+    try {
+      e2eDir = resolveE2eDir(workingDir);
+    } catch (error: any) {
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify({
+              success: false,
+              error: error.message
+            }, null, 2)
+          }
+        ]
+      };
+    }
+
+    const args = ['test'];
 
     if (testPath) {
       args.push(testPath);
@@ -127,7 +146,11 @@ Environment variables (already configured in e2e/.env):
 
     try {
       const { stdout, stderr } = await execFileAsync('yarn', args, {
-        cwd: workingDir || process.cwd(),
+        cwd: e2eDir,
+        env: {
+          ...process.env,
+          NODE_OPTIONS: withTransformTypesNodeOption()
+        },
         encoding: 'utf8',
         timeout: 600000,
         maxBuffer: 20 * 1024 * 1024
@@ -140,6 +163,7 @@ Environment variables (already configured in e2e/.env):
             text: JSON.stringify({
               success: true,
               command,
+              cwd: e2eDir,
               output: stdout,
               warnings: stderr || undefined
             }, null, 2)
@@ -154,6 +178,7 @@ Environment variables (already configured in e2e/.env):
             text: JSON.stringify({
               success: false,
               command,
+              cwd: e2eDir,
               error: error.message,
               stdout: error.stdout,
               stderr: error.stderr
@@ -163,6 +188,16 @@ Environment variables (already configured in e2e/.env):
       };
     }
   }
+}
+
+function withTransformTypesNodeOption() {
+  const current = process.env.NODE_OPTIONS ?? '';
+
+  if (current.split(/\s+/).includes('--experimental-transform-types')) {
+    return current;
+  }
+
+  return [current, '--experimental-transform-types'].filter(Boolean).join(' ');
 }
 
 export default TestTool;
