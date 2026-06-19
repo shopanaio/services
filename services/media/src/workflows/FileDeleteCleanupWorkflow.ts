@@ -2,11 +2,10 @@ import { Injectable } from "@nestjs/common";
 import {
   BrokerWorkflows,
   Workflow,
-  WorkflowStep,
   InjectBroker,
   ServiceBroker,
 } from "@shopana/shared-kernel";
-import { DBOS, Error as DBOSErrors } from "@dbos-inc/dbos-sdk";
+import { DBOS } from "@dbos-inc/dbos-sdk";
 
 export interface FileDeleteCleanupInput {
   fileId: string;
@@ -40,17 +39,11 @@ export class FileDeleteCleanupWorkflow extends BrokerWorkflows {
       await this.emitFileHardDeleted(input);
       return { success: true };
     } catch (error) {
-      if (error instanceof DBOSErrors.DBOSMaxStepRetriesError) {
-        await this.markNeedsAttention(input.fileId, error);
-        return { success: false, needsAttention: true };
-      }
-      throw error;
+      this.markNeedsAttention(input.fileId, error);
+      return { success: false, needsAttention: true };
     }
   }
 
-  @WorkflowStep({
-    retry: { maxAttempts: 10, intervalSeconds: 60, backoffRate: 2 },
-  })
   private async emitFileHardDeleted(input: FileDeleteCleanupInput): Promise<void> {
     const { fileId, ownerId, ownerType } = input;
 
@@ -78,11 +71,11 @@ export class FileDeleteCleanupWorkflow extends BrokerWorkflows {
     this.logger.log({ fileId, ownerType, ownerId }, "FileHardDeleted event emitted");
   }
 
-  @WorkflowStep()
-  private async markNeedsAttention(fileId: string, error: Error): Promise<void> {
+  private markNeedsAttention(fileId: string, error: unknown): void {
+    const message = error instanceof Error ? error.message : String(error);
     this.logger.error(
-      { fileId, error: error.message },
-      "File cleanup failed after max retries, needs manual attention"
+      { fileId, error: message },
+      "File cleanup failed, needs manual attention"
     );
   }
 }

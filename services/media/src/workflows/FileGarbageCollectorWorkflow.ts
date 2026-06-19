@@ -2,13 +2,12 @@ import { Injectable } from "@nestjs/common";
 import {
   BrokerWorkflows,
   Workflow,
-  WorkflowStep,
   InjectBroker,
   ServiceBroker,
 } from "@shopana/shared-kernel";
+import { DBOS } from "@dbos-inc/dbos-sdk";
 import pMap from "p-map";
 import { Kernel } from "../kernel/Kernel.js";
-import { FileHardDeleteWorkflow } from "./FileHardDeleteWorkflow.js";
 
 const STUCK_TIMEOUT_HOURS = 6;
 const ERROR_COOLDOWN_HOURS = 6;
@@ -106,15 +105,15 @@ export class FileGarbageCollectorWorkflow extends BrokerWorkflows {
     return { stuckReset: totalStuck, batchesProcessed };
   }
 
-  @WorkflowStep({ retriesAllowed: false })
   private async startHardDeleteWorkflow(fileId: string): Promise<void> {
     await this.broker.runWorkflow(
       "media.fileHardDelete",
       fileId,
       {
         source: "workflow",
-        workflowId: `gc:${Date.now()}`,
-        stepId: `hardDelete:${fileId}`,
+        workflowId: DBOS.workflowID!,
+        stepId: "hardDelete",
+        callId: fileId,
       }
     );
   }
