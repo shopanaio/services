@@ -76,6 +76,8 @@ These are not missing backend API contracts. The current `infra/federation/super
 
 Phase 0 must regenerate `admin/src/graphql/types.ts` from the current supergraph before product mock builders and component contracts are updated. All downstream phases must use the regenerated `ApiProduct`, `ApiVariant`, `ApiCategory`, and related types as the source of truth. Do not build new mocks against the stale checked-in generated type shape.
 
+Phase 0 is a hard migration gate, not a preparatory nice-to-have. No product mock, category mock, component prop, modal payload, or picker contract in later phases should be migrated against the currently checked-in stale generated shape. If the regenerated type names differ from the names used in examples below, update the examples and implementation to the exact regenerated names before Phase 1 starts.
+
 ### Product List
 
 Current files:
@@ -495,6 +497,8 @@ const createMockApiProduct = (params: {
 
 Inventory-specific mock data must be built as `ApiInventoryItem` and attached through `variant.inventoryItem`. Do not put SKU, stock, weight, dimensions, or cost directly on the variant mock.
 
+The concrete inventory type names in this section are illustrative until Phase 0 completes. After codegen, use the exact regenerated names for inventory item, stock, weight, dimensions, and cost types from `@/graphql/types`; do not create aliases such as `type ApiInventoryItem = ...` to preserve these examples.
+
 ```ts
 const createMockApiInventoryItem = (params: {
   id: string;
@@ -609,6 +613,8 @@ Allowed helpers:
 - `formatVariantWeight(weight: NonNullable<ApiVariant["inventoryItem"]>["weight"]): string` after Phase 0, adjusted to the exact regenerated type shape
 - `formatVariantDimensions(dimensions: NonNullable<ApiVariant["inventoryItem"]>["dimensions"]): string` after Phase 0, adjusted to the exact regenerated type shape
 
+Connection helpers must tolerate the exact regenerated connection nullability. If generated edges, nodes, or nested fields are nullable, helpers must guard those values at the display boundary instead of tightening the API contract locally.
+
 Not allowed:
 
 - `toProductListItem(product)`
@@ -649,6 +655,18 @@ Exit criteria:
 - Product, variant, category, tag, SEO, and catalog query types are generated from the current supergraph.
 - The product and variant migration can start from current generated API types, not stale checked-in types.
 - Category and tag data are no longer treated as unavailable API data.
+- `ApiVariant` no longer exposes stale flattened inventory fields such as `sku`, `stock`, `weight`, `dimensions`, `cost`, or `inStock`; inventory fields are available through `variant.inventoryItem`.
+- No local fake API aliases or interfaces are added for category, tag, SEO, or inventory contracts.
+
+Static checks:
+
+```text
+rg "export type ApiCatalogQuery|export type ApiCategory|export type ApiCategoryConnection|export type ApiTag|export type ApiProductSeo" admin/src/graphql/types.ts
+rg "inventoryItem" admin/src/graphql/types.ts
+rg "sku\\?:|stock:|weight\\?:|dimensions\\?:|cost\\?:|inStock:" admin/src/graphql/types.ts
+```
+
+The last command must not match fields inside `ApiVariant`; any matches must be verified as non-variant types or removed by the regenerated schema output.
 
 ### Phase 1: Add Raw API Product Mock Builders
 
@@ -690,10 +708,11 @@ Steps:
 
 Exit criteria:
 
-- Product mock exports are assignable to `ApiProduct`.
-- Variant mock exports are assignable to `ApiVariant`.
+- Product mock exports use explicit generated return types or `satisfies ApiProduct` so excess legacy fields are rejected.
+- Variant mock exports use explicit generated return types or `satisfies ApiVariant` so excess legacy fields are rejected.
 - No product mock object contains legacy-only fields.
 - No product mock represents `ARCHIVED` as a lifecycle status; soft deletion is represented only by `deletedAt`.
+- Mock builders use exact regenerated API type names from `@/graphql/types`; no local compatibility aliases are introduced to force old example names to compile.
 
 ### Phase 2: Replace Product List Mock Contract
 
@@ -736,12 +755,15 @@ onRowAction: (product) => push("product", { entityId: product.id, mode: "view" }
     - remove picker-only `category` and `brand` fields until the picker intentionally consumes generated category/tag data.
 13. Delete `IProductListItem` only after both `ProductsPage` and `product-picker-config.ts` no longer import it. If any shared picker or other non-product-page consumer still imports it, keep the export temporarily and move deletion to Phase 8.
 
+Picker-local presentation types are allowed only at the generic entity picker boundary, where the picker component requires a normalized `IPickableEntity` shape. They must be built inside the picker config from raw `ApiProduct`, must not be exported as product contracts, and must not reintroduce product fields such as `category`, `brand`, `price`, or `inventory`.
+
 Exit criteria:
 
 - Product list renders raw `ApiProduct`.
 - Product page does not import `@/mocks/products/products-list` types.
 - Shared product picker does not import `IProductListItem` or `@/mocks/products/products-list`.
 - No product list row type exists outside generated API types.
+- Any picker-local normalized row type is private to the picker config and is not used by product page, product hooks, or product details.
 
 ### Phase 3: Replace Product Details Root Contract
 
@@ -794,6 +816,7 @@ Exit criteria:
 
 - Header/content imports no legacy product mock types.
 - Header/content render API scalar strings safely.
+- Header/content do not call `toLocaleDateString`, `toLocaleString`, or other `Date` methods directly on API scalar strings.
 
 ### Phase 5: Update Media, Inventory, Shipping, Options, And Variants Sections
 
@@ -826,6 +849,8 @@ Exit criteria:
 
 - Product detail sections consume raw API product/variant nested fields.
 - Product constants do not import from `@/mocks/products/types`.
+- Product-level inventory aggregate widgets use `ProductInventoryWidget` supplemental data only for values unavailable on `ApiProduct`; they are not added to product mocks as product-level API fields.
+- Variant table, shipping, and inventory sections do not read stale flattened variant fields such as `variant.sku`, `variant.stock`, `variant.weight`, `variant.dimensions`, `variant.cost`, or `variant.inStock`.
 
 ### Phase 6: Update Product Modal Payloads And Edit Flows
 
@@ -839,22 +864,34 @@ Files:
 - `admin/src/domains/inventory/products/components/variants/*`
 - edit title, description, media, SEO, options, categories, tags modals as needed
 
-Steps:
+Subphases:
 
-1. Replace `IProduct` payload usages with `ApiProduct` where the modal needs the product object, including AI writer.
+#### Phase 6a: Modal Payload Boundary
+
+1. Replace `IProduct` payload usages with `ApiProduct` where the modal needs the product object.
 2. Prefer passing ids and raw API entities over derived payload objects.
 3. Change `useProductModals(product)` to accept `ApiProduct`.
-4. For title modal:
+4. Remove product-shaped modal payload fields that duplicate API output data. Keep modal-local input state only inside the target modal.
+
+Exit criteria:
+
+- `admin/src/domains/inventory/products/modals.ts` does not import `IProduct` or other legacy product mock contracts.
+- `useProductModals` accepts `ApiProduct`.
+- Modal payloads do not pass legacy product objects.
+
+#### Phase 6b: Content, Media, And SEO Edit Flows
+
+1. For title modal:
    - initial title from `product.title`
    - initial handle from `product.handle`
-5. For description modal:
+2. For description modal:
    - description from `product.description?.json`
    - excerpt from `product.excerpt`
-6. For media modal:
+3. For media modal:
    - choose default/first variant id
    - pass media files from `variant.media`
    - remove `featured`/`gallery` product fields
-7. For SEO modal:
+4. For SEO modal:
    - use `product.title`
    - use `product.handle`
    - use `product.seo?.seoTitle`
@@ -862,14 +899,44 @@ Steps:
    - use `product.seo?.ogTitle`
    - use `product.seo?.ogDescription`
    - use `product.seo?.ogImage`
-8. For variants modal:
+
+Exit criteria:
+
+- Title, description, media, and SEO edit flows initialize from raw `ApiProduct` or nested raw API fields.
+- Media edit flow does not read `product.featured` or `product.gallery`.
+- SEO edit flow does not read legacy top-level `seoTitle` or `seoDescription` product fields.
+
+#### Phase 6c: Variants Edit Flow
+
+1. For variants modal:
    - accept `ApiVariant[]` if possible
    - otherwise build modal row data inside the modal from `ApiVariant`, not in product details card
-9. For categories modal:
+
+Exit criteria:
+
+- Variant edit modal input is `ApiVariant[]` or modal-local editable row state derived inside the modal.
+- Product details root does not build variant editor row view models.
+- Variant edit flow reads inventory data through `variant.inventoryItem`.
+
+#### Phase 6d: Category And Tag Edit Flows
+
+1. For categories modal:
    - use generated `ApiCategory` from Phase 0
    - replace `ICategory` with `ApiCategory`
    - read category display values from `name`, `handle`, `isPublished`, and `media`
-10. For AI writer modal:
+2. For tags modal:
+   - use generated `ApiTag` from Phase 0 where tag API data is available;
+   - do not keep tag labels in product supplemental data once `product.tags` is generated.
+
+Exit criteria:
+
+- Category edit flows consume generated `ApiCategory`.
+- Tag edit flows consume generated `ApiTag` where product tag data is available.
+- Category and tag edit flows do not import legacy product mock contracts.
+
+#### Phase 6e: AI Writer Flow
+
+1. For AI writer modal:
    - replace `IProductAIWriterModalPayload.product: IProduct` with `product: ApiProduct`;
    - optionally pass `supplementalAttributes` when `product.features` does not contain the labels needed for the prompt;
    - derive categories from generated `product.categories[].name`;
@@ -883,6 +950,7 @@ Exit criteria:
 - Product edit flows consume raw API data where the API contract exists.
 - Category edit flows consume generated `ApiCategory` from Phase 0.
 - AI writer modal receives `ApiProduct` and does not import legacy `IProduct`.
+- Each Phase 6 subphase can be verified independently before starting the next subphase.
 
 ### Phase 7: Category Contract Migration
 
@@ -895,6 +963,7 @@ Files affected:
 - `admin/src/domains/inventory/products/modals/edit-categories-modal/types.ts`
 - `admin/src/domains/inventory/products/modals/edit-categories-modal/edit-categories-modal.tsx`
 - `admin/src/domains/inventory/products/modals/edit-categories-modal/utils.ts`
+- `admin/src/shared/components/entity-picker-modal/mocks/categories-list.ts`
 - `admin/src/shared/components/entity-picker-modal/configs/category-picker-config.ts`
 
 Steps:
@@ -917,6 +986,7 @@ Exit criteria:
 - Product category UI uses generated `ApiCategory`.
 - No local product category interface remains in product UI.
 - No implementation assumes category API is absent from the supergraph.
+- Shared category picker config consumes raw `ApiCategory` data or keeps only picker-local normalized state private to the picker boundary.
 
 ### Phase 8: Remove Legacy Product Mock Types
 
@@ -954,6 +1024,8 @@ Exit criteria:
 ## File Impact Summary
 
 ### Must Change
+
+This is the minimum known file set. Treat the static searches in the verification plan as authoritative for final scope because legacy product contracts may also appear in picker wrappers, barrels, or modal-specific files not listed here.
 
 - `admin/src/mocks/products/data.ts`
 - `admin/src/mocks/products/products-list.ts`
@@ -1023,6 +1095,9 @@ rg "IProduct|IProductVariant|IProductListItem|ICategory|IMediaFile|EntityStatus|
 rg "IProductListItem|@/mocks/products/products-list" admin/src/shared/components/entity-picker-modal
 rg "@/mocks/products/types|@/mocks/products/products-list" admin/src/domains/inventory/products
 rg "toProductListItem|toProductDetailsView|mapMockProductToApi|mapApiProductToMockProduct" admin/src/domains/inventory/products admin/src/mocks/products
+rg "variant\\.(sku|stock|weight|dimensions|cost|inStock)" admin/src/domains/inventory/products admin/src/mocks/products
+rg "type ApiCategory = ICategory|type ApiInventoryItem =|interface ApiCategory|interface ApiInventoryItem" admin/src
+rg "\\.toLocaleDateString|\\.toLocaleString" admin/src/domains/inventory/products
 ```
 
 3. Inspect product screens manually after build if a dev server is already running or started through the approved project workflow.
@@ -1037,6 +1112,8 @@ rg "toProductListItem|toProductDetailsView|mapMockProductToApi|mapApiProductToMo
 - Category mocks are API-shaped and typed as `ApiCategory[]`.
 - No product output mapper is introduced.
 - Product UI no longer depends on legacy mock product/category types from `@/mocks/products/types`.
+- No stale flattened `ApiVariant` inventory field reads remain in product UI or product mocks.
+- No local fake API aliases are introduced for generated category, tag, SEO, or inventory types.
 - Build passes when run according to project rules.
 
 ## Open Decisions

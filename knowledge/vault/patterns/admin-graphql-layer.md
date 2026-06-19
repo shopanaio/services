@@ -33,7 +33,9 @@ src/domains/<domain>/<module>/
   components/
 ```
 
-For modules that are currently using a domain-level GraphQL folder, the domain-level folder may stay as a compatibility barrel, but new module-specific operations must live in the module folder. Example: product operations live in `src/domains/inventory/products/graphql`, while `src/domains/inventory/graphql` can re-export them during migration.
+For modules that are currently using a domain-level GraphQL folder, the domain-level folder may stay as a compatibility barrel for GraphQL operation documents only, but new module-specific operations must live in the module folder. Example: product operations live in `src/domains/inventory/products/graphql`, while `src/domains/inventory/graphql` can re-export them during migration.
+
+Generated GraphQL API types must not be re-exported through module barrels, component barrels, `graphql/index.ts`, `operation-types.ts`, or feature-local `types.ts` files. Import generated API types directly from `@/graphql/types` at the usage site. This keeps the generated schema contract visible, avoids stale type aliases, and prevents feature modules from becoming secondary type sources.
 
 ## File Responsibilities
 
@@ -62,6 +64,7 @@ For modules that are currently using a domain-level GraphQL folder, the domain-l
 
 - Contains TypeScript types for operation responses and variables when operation codegen is not enabled.
 - Types must be built from generated schema types in `@/graphql/types`.
+- Must not re-export generated schema types. Consumers import generated API types directly from `@/graphql/types`.
 - Components must not declare ad hoc GraphQL response types.
 - Component props should use generated API entity types directly, for example `ApiProduct`, `ApiVariant`, and `ApiProductConnection`.
 
