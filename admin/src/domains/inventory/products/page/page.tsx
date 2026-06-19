@@ -57,7 +57,11 @@ const ProductCellRenderer = (
   if (!data) return null;
   const thumbnail = getProductThumbnailFile(data);
   return (
-    <Flex align="center" gap="small">
+    <Flex
+      align="center"
+      gap="small"
+      data-testid={`products-table-title-cell-${data.handle}`}
+    >
       {thumbnail ? (
         <Image
           src={thumbnail.url}
@@ -78,11 +82,16 @@ const ProductCellRenderer = (
 const StatusCellRenderer = (
   props: CustomCellRendererProps<ApiProduct, ProductStatus>,
 ) => {
-  const { value } = props;
+  const { data, value } = props;
   const status = value ?? "draft";
 
   return (
-    <Tag color={PRODUCT_STATUS_COLORS[status]}>
+    <Tag
+      color={PRODUCT_STATUS_COLORS[status]}
+      data-testid={
+        data ? `products-table-status-cell-${data.handle}` : undefined
+      }
+    >
       {PRODUCT_STATUS_LABELS[status]}
     </Tag>
   );
@@ -91,11 +100,23 @@ const StatusCellRenderer = (
 const InventoryCellRenderer = (
   props: CustomCellRendererProps<ApiProduct, number>,
 ) => {
-  const { value } = props;
+  const { data, value } = props;
+  const testId = data
+    ? `products-table-inventory-cell-${data.handle}`
+    : undefined;
+
   if (value === 0) {
-    return <Typography.Text type="danger">0 in stock</Typography.Text>;
+    return (
+      <Typography.Text type="danger" data-testid={testId}>
+        0 in stock
+      </Typography.Text>
+    );
   }
-  return <Typography.Text>{value ?? 0} in stock</Typography.Text>;
+  return (
+    <Typography.Text data-testid={testId}>
+      {value ?? 0} in stock
+    </Typography.Text>
+  );
 };
 
 const TextCellRenderer = (
@@ -338,7 +359,7 @@ export default function ProductsPage() {
           flexDirection: "column",
         }}
       >
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1 }} data-testid="products-table">
           <AgGridReact<ApiProduct>
             ref={gridRef}
             theme={agGridTheme}
@@ -361,6 +382,7 @@ export default function ProductsPage() {
         </div>
 
         <CursorPagination
+          name="products"
           total={totalCount}
           rangeStart={products.length ? pageIndex * pageSize + 1 : 0}
           rangeEnd={Math.min(pageIndex * pageSize + products.length, totalCount)}

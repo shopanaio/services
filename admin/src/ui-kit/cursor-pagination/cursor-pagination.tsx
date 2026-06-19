@@ -5,6 +5,7 @@ import { LeftOutlined, RightOutlined } from "@ant-design/icons";
 const DEFAULT_PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 export interface CursorPaginationProps {
+  name?: string;
   total: number;
   rangeStart: number;
   rangeEnd: number;
@@ -22,6 +23,7 @@ export interface CursorPaginationProps {
 }
 
 export function CursorPagination({
+  name,
   total,
   rangeStart,
   rangeEnd,
@@ -42,6 +44,7 @@ export function CursorPagination({
 
   const prevButton = (
     <Button
+      data-testid={name ? `${name}-pagination-prev-button` : undefined}
       size="small"
       icon={<LeftOutlined />}
       disabled={!hasPrev || disabled}
@@ -51,6 +54,7 @@ export function CursorPagination({
 
   const nextButton = (
     <Button
+      data-testid={name ? `${name}-pagination-next-button` : undefined}
       size="small"
       icon={<RightOutlined />}
       disabled={!hasNext || disabled}
@@ -79,6 +83,7 @@ export function CursorPagination({
         {disabled ? (
           <Tooltip title={disabledReason}>
             <Select
+              data-testid={name ? `${name}-pagination-page-size-select` : undefined}
               value={pageSize}
               onChange={onPageSizeChange}
               options={selectOptions}
@@ -89,6 +94,7 @@ export function CursorPagination({
           </Tooltip>
         ) : (
           <Select
+            data-testid={name ? `${name}-pagination-page-size-select` : undefined}
             value={pageSize}
             onChange={onPageSizeChange}
             options={selectOptions}
@@ -99,7 +105,10 @@ export function CursorPagination({
       </Flex>
 
       <Flex align="center" gap="middle">
-        <Typography.Text type="secondary">
+        <Typography.Text
+          type="secondary"
+          data-testid={name ? `${name}-pagination-range` : undefined}
+        >
           {rangeStart}–{rangeEnd} of {total}
         </Typography.Text>
         {navButtons}
