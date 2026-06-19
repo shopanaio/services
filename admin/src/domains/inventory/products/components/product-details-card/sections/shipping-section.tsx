@@ -4,14 +4,23 @@ import { Tag, Flex } from "antd";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "../../edit-action";
 import { KPITile } from "@/ui-kit/kpi-tile";
+import type { ApiVariant } from "@/graphql/types";
+import {
+  formatApiDimensions,
+  formatApiWeight,
+} from "../../../utils/product-measurements";
 
 interface IShippingSectionProps {
+  variant: ApiVariant | null;
   onEdit: () => void;
 }
 
 export const ShippingSection = ({
+  variant,
   onEdit,
 }: IShippingSectionProps) => {
+  const inventoryItem = variant?.inventoryItem ?? null;
+
   return (
     <Paper>
       <PaperHeader
@@ -21,13 +30,13 @@ export const ShippingSection = ({
       <Flex gap={8}>
         <KPITile
           label="Weight"
-          value="0 g"
+          value={formatApiWeight(inventoryItem?.weight)}
           variant="success"
           centered
         />
         <KPITile
           label="Dimensions"
-          value="0 x 0 x 0 mm"
+          value={formatApiDimensions(inventoryItem?.dimensions)}
           variant="info"
           centered
         />

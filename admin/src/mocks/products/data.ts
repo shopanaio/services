@@ -684,7 +684,6 @@ export const mockProductDetailsProducts: ApiProduct[] = [
   mockVariableProduct,
   mockSimpleProduct,
   mockDraftProduct,
-  mockArchivedProduct,
 ];
 
 export const findMockProductById = (id?: string | null): ApiProduct =>

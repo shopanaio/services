@@ -6,7 +6,6 @@ import { useModalStackContext, ModalLayout } from "@/layouts/modals";
 import { ProductDetailsCard } from "../../components/product-details-card/product-details-card";
 import {
   findMockProductById,
-  mockSimpleProduct,
   productDetailsMockData,
   getMockVariantsTableData,
 } from "@/mocks/products";
@@ -20,9 +19,7 @@ export const ProductModal = () => {
       ? null
       : String(payload.entityId);
 
-  const product = payload.simple
-    ? mockSimpleProduct
-    : findMockProductById(entityId);
+  const product = findMockProductById(entityId);
   const variantsTableData = getMockVariantsTableData(variantsPage, 10, 25);
 
   const handleVariantsPageChange = (direction: "next" | "prev") => {

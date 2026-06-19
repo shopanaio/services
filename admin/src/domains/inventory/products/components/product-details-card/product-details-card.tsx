@@ -21,7 +21,10 @@ import {
 import { useProductModals } from "./hooks";
 import { CurrencyCode, type ApiProduct } from "@/graphql/types";
 import type { IVariantsTableData, ProductDetailsSupplementalData } from "./types";
-import { getProductMediaFiles } from "../../utils/api-product-display";
+import {
+  getDefaultVariant,
+  getProductMediaFiles,
+} from "../../utils/api-product-display";
 
 // ============================================================================
 // Helpers
@@ -54,6 +57,7 @@ export const ProductDetailsCard = ({
 }: IProductDetailsCardProps) => {
   const modals = useProductModals(product);
   const isVariableProduct = product.variantsCount > 1;
+  const defaultVariant = getDefaultVariant(product);
 
   const handleEdit = (section: string) => onEditSection?.(section);
 
@@ -125,6 +129,7 @@ export const ProductDetailsCard = ({
       {/* SHIPPING */}
       {!isVariableProduct && (
         <ShippingSection
+          variant={defaultVariant}
           onEdit={() => handleEdit("shipping")}
         />
       )}
