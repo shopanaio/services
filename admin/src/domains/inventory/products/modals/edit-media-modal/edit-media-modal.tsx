@@ -20,7 +20,7 @@ export const EditMediaModal = () => {
     const items = [...typedPayload.gallery];
     if (
       typedPayload.featured &&
-      !items.find((i) => i.id === typedPayload.featured?.id)
+      !items.find((item) => item.id === typedPayload.featured?.id)
     ) {
       items.unshift(typedPayload.featured);
     }
@@ -50,8 +50,10 @@ export const EditMediaModal = () => {
   );
 
   const handleSave = useCallback(() => {
-    const newFeatured = gallery[0] || null;
-    typedPayload.onSave?.({ featured: newFeatured, gallery });
+    typedPayload.onSave?.({
+      featured: gallery[0] ?? null,
+      gallery,
+    });
     pop();
   }, [typedPayload, gallery, pop]);
 

@@ -1,5 +1,6 @@
 import { EntityStatus, FileDriver } from "@/mocks/products/types";
 import type { ApiFile, FileProvider } from "@/graphql/types";
+import { createMockApiTag } from "@/mocks/products/api-builders";
 import type { IMediaFile } from "@/mocks/products/types";
 import type {
   ICategoryDetail,
@@ -206,19 +207,17 @@ const mockProducts: ICategoryProduct[] = [
 // ============================================================================
 
 const mockTags = [
-  { id: "tag-1", title: "Featured", slug: "featured", color: "#1677ff" },
-  {
+  createMockApiTag({ id: "tag-1", name: "Featured", handle: "featured" }),
+  createMockApiTag({
     id: "tag-2",
-    title: "New Arrivals",
-    slug: "new-arrivals",
-    color: "#52c41a",
-  },
-  {
+    name: "New Arrivals",
+    handle: "new-arrivals",
+  }),
+  createMockApiTag({
     id: "tag-3",
-    title: "Holiday Sale",
-    slug: "holiday-sale",
-    color: "#fa541c",
-  },
+    name: "Holiday Sale",
+    handle: "holiday-sale",
+  }),
 ];
 
 // ============================================================================

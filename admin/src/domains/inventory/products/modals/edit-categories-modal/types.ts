@@ -1,16 +1,16 @@
 import type { TreeDataNode } from "antd";
-import type { ICategory } from "@/mocks/products/types";
+import type { ApiCategory } from "@/graphql/types";
 
-export interface ICategoryTreeNode extends TreeDataNode {
-  category: ICategory;
-  children?: ICategoryTreeNode[];
+export interface CategoryTreeNode extends TreeDataNode {
+  category: ApiCategory;
+  children?: CategoryTreeNode[];
 }
 
 export interface IEditCategoriesModalProps {
   productId?: string;
   primaryCategoryId?: string | null;
   categoryIds?: string[];
-  availableCategories?: ICategory[];
+  availableCategories?: ApiCategory[];
   categoryHierarchy?: Record<string, string | null>;
   onSave?: (data: {
     primaryCategoryId: string | null;

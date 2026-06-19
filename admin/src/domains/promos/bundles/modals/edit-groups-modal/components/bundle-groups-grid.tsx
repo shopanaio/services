@@ -381,22 +381,26 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
           availableVariantIds: row.excludeAssignedProductVariants ?? null,
           priceType: priceType as BundlePriceType,
           priceValue,
-          variants: variantsFromConnection.map((v) => ({
-            id: v.id,
-            title: v.title ?? v.sku ?? v.id,
-            sku: v.sku ?? "",
-            price:
-              typeof v.price?.amountMinor === "bigint"
-                ? Number(v.price.amountMinor)
-                : typeof v.price?.amountMinor === "number"
-                ? v.price.amountMinor
-                : 0,
-            stock: v.stock?.[0]?.quantityOnHand ?? 0,
-            options: v.selectedOptions?.map((o) => ({
-              optionId: o.optionId,
-              value: o.optionValueId,
-            })),
-          })),
+          variants: variantsFromConnection.map((v) => {
+            const sku = v.inventoryItem?.sku ?? "";
+
+            return {
+              id: v.id,
+              title: v.title ?? (sku || v.id),
+              sku,
+              price:
+                typeof v.price?.amountMinor === "bigint"
+                  ? Number(v.price.amountMinor)
+                  : typeof v.price?.amountMinor === "number"
+                  ? v.price.amountMinor
+                  : 0,
+              stock: v.inventoryItem?.stock?.[0]?.quantityOnHand ?? 0,
+              options: v.selectedOptions?.map((o) => ({
+                optionId: o.optionId,
+                value: o.optionValueId,
+              })),
+            };
+          }),
           options: assignedProduct.options?.map((o) => ({
             id: o.id,
             name: o.name,
@@ -434,23 +438,27 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
           if (productIndex === -1) return prev;
 
           const variantRows: ITableRow[] = variantsFromConnection.map(
-            (variant, index) => ({
-              id: `item-${Date.now()}-${index}`,
-              type: "item" as const,
-              name: variant.title ?? variant.sku ?? "Unknown Variant",
-              parentId: row.parentId,
-              sortIndex: row.sortIndex + index,
-              level: 1,
-              itemType: "VARIANT" as const,
-              assignedVariant: variant,
-              minQty: row.minQty,
-              maxQty: row.maxQty,
-              pricingRule: row.pricingRule,
-              title: row.title,
-              featuredImage: row.featuredImage,
-              visible: row.visible ?? "yes",
-              selected: row.selected ?? "no",
-            })
+            (variant, index) => {
+              const sku = variant.inventoryItem?.sku;
+
+              return {
+                id: `item-${Date.now()}-${index}`,
+                type: "item" as const,
+                name: variant.title ?? sku ?? "Unknown Variant",
+                parentId: row.parentId,
+                sortIndex: row.sortIndex + index,
+                level: 1,
+                itemType: "VARIANT" as const,
+                assignedVariant: variant,
+                minQty: row.minQty,
+                maxQty: row.maxQty,
+                pricingRule: row.pricingRule,
+                title: row.title,
+                featuredImage: row.featuredImage,
+                visible: row.visible ?? "yes",
+                selected: row.selected ?? "no",
+              };
+            },
           );
 
           const newRows = [...prev];

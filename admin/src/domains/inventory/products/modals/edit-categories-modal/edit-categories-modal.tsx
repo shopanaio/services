@@ -23,11 +23,15 @@ import {
   ModalHeader,
 } from "@/layouts/modals";
 import { Paper } from "@/ui-kit/paper";
-import type { ICategory } from "@/mocks/products/types";
+import type { ApiCategory } from "@/graphql/types";
 import { useStyles } from "./edit-categories-modal.styles";
-import type { IEditCategoriesModalProps, ICategoryTreeNode } from "./types";
+import type { CategoryTreeNode, IEditCategoriesModalProps } from "./types";
 import { mockCategories, mockHierarchy } from "@/mocks/products/categories";
-import { buildCategoryTree, getAllKeys } from "./utils";
+import {
+  buildCategoryTree,
+  createCategoryHierarchy,
+  getAllKeys,
+} from "./utils";
 
 export type { IEditCategoriesModalProps };
 
@@ -39,9 +43,17 @@ export const EditCategoriesModal = () => {
     primaryCategoryId: initialPrimaryId,
     categoryIds: initialCategoryIds,
     availableCategories = mockCategories,
-    categoryHierarchy = mockHierarchy,
+    categoryHierarchy: providedCategoryHierarchy,
     onSave,
   } = (payload as IEditCategoriesModalProps) || {};
+  const categoryHierarchy = useMemo(
+    () =>
+      providedCategoryHierarchy ??
+      (availableCategories === mockCategories
+        ? mockHierarchy
+        : createCategoryHierarchy(availableCategories)),
+    [providedCategoryHierarchy, availableCategories]
+  );
 
   const [searchTerm, setSearchTerm] = useState("");
   const [primaryCategoryId, setPrimaryCategoryId] = useState<string | null>(
@@ -113,7 +125,7 @@ export const EditCategoriesModal = () => {
   // Render tree node title
   const titleRender = useCallback(
     (nodeData: TreeDataNode) => {
-      const node = nodeData as ICategoryTreeNode;
+      const node = nodeData as CategoryTreeNode;
       const { category } = node;
       const isChecked = checkedKeys.includes(category.id);
       const isPrimary = primaryCategoryId === category.id;
@@ -134,10 +146,10 @@ export const EditCategoriesModal = () => {
             )}
             <div className={styles.nodeText}>
               <Typography.Text className={styles.nodeLabel}>
-                {category.title}
+                {category.name}
               </Typography.Text>
               <Typography.Text className={styles.nodeSlug}>
-                /{category.slug}
+                /{category.handle}
               </Typography.Text>
             </div>
           </div>
@@ -171,7 +183,7 @@ export const EditCategoriesModal = () => {
     () =>
       checkedKeys
         .map((id) => categoryMap.get(id))
-        .filter((c): c is ICategory => c !== undefined),
+        .filter((c): c is ApiCategory => c !== undefined),
     [checkedKeys, categoryMap]
   );
 
@@ -217,7 +229,7 @@ export const EditCategoriesModal = () => {
               </Typography.Text>
               {primaryCategory ? (
                 <Tag color="gold" icon={<StarFilled />}>
-                  {primaryCategory.title}
+                  {primaryCategory.name}
                 </Tag>
               ) : (
                 <Typography.Text type="secondary" style={{ fontSize: 12 }}>
@@ -233,7 +245,7 @@ export const EditCategoriesModal = () => {
                 <div className={styles.selectedList}>
                   {secondaryCategories.map((cat) => (
                     <Tag key={cat.id} color="blue">
-                      {cat.title}
+                      {cat.name}
                     </Tag>
                   ))}
                 </div>

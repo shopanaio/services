@@ -3,17 +3,16 @@
  */
 
 import type { IProduct } from "./types";
-import type { ITag } from "@/domains/inventory/products/modals";
 import type { IAttributeRow } from "@/domains/inventory/products/modals/edit-attributes-modal/types";
 import type { IBundleGroup, PricingRuleTemplate, IDependencyRule } from "@/domains/promos/bundles/types";
 import type { BundleType } from "@/mocks/products/bundles-list";
 import type { IReviewsData } from "@/domains/inventory/products/components/product-details-card/types";
-import { EntityStatus, WeightUnit, DimensionUnit, type ICategory, type ITag as IProductTag } from "./types";
+import { EntityStatus, WeightUnit, DimensionUnit, type ITag as IProductTag } from "./types";
 import { mockCategories } from "./categories";
 import { mockTags } from "./tags";
 import { createMockData as createAttributesMockData } from "./attributes";
 import { productDetailsMockData } from "./product-details";
-import type { ApiFile, ApiDescription, FileProvider } from "@/graphql/types";
+import type { ApiCategory, ApiDescription, ApiFile, ApiTag, FileProvider } from "@/graphql/types";
 
 const generateId = (): string => Math.random().toString(36).substring(2, 11);
 
@@ -145,10 +144,10 @@ export const mockBundleProduct: IProduct = {
   variantId: null,
   variants: [],
   embedVariant: null,
-  categories: [mockCategories[0]],
+  categories: [mockCategories[0] as unknown as IProduct["categories"][number]],
   primaryCategory: {
     id: mockCategories[0].id,
-    title: mockCategories[0].title,
+    title: mockCategories[0].name,
   },
   tags: [mockTags[0], mockTags[1]] as unknown as IProductTag[],
   attributes: [],
@@ -161,10 +160,10 @@ export const mockBundleProduct: IProduct = {
 export interface IBundleDetailsMockData {
   bundleType: BundleType | null;
   categories: {
-    primary: ICategory | null;
-    list: ICategory[];
+    primary: ApiCategory | null;
+    list: ApiCategory[];
   };
-  tags: ITag[];
+  tags: ApiTag[];
   attributes: IAttributeRow[];
   reviews: IReviewsData;
   bundleItems: IBundleGroup[];
@@ -178,7 +177,26 @@ export const bundleDetailsMockData: IBundleDetailsMockData = {
     primary: mockCategories[0],
     list: mockCategories.slice(1, 3),
   },
-  tags: mockTags.slice(0, 3) as ITag[],
+  tags: mockTags.slice(0, 3).map((tag) => ({
+    __typename: "Tag",
+    id: tag.id,
+    name: tag.title,
+    handle: tag.slug,
+    productsCount: 0,
+    products: {
+      __typename: "ProductConnection",
+      edges: [],
+      pageInfo: {
+        __typename: "PageInfo",
+        hasNextPage: false,
+        hasPreviousPage: false,
+        startCursor: null,
+        endCursor: null,
+      },
+      totalCount: 0,
+    },
+    createdAt: new Date().toISOString(),
+  })),
   attributes: createAttributesMockData(),
   reviews: {
     rating: 4.5,

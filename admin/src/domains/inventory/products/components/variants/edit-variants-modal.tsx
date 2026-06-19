@@ -13,6 +13,11 @@ import {
 } from "./components";
 import type { IVariantEditorRow, IOptionGroup } from "./config";
 import type { IEditVariantsModalPayload } from "../../modals";
+import type { ApiProductOption, ApiVariant } from "@/graphql/types";
+import {
+  mapApiDimensionsToVariantFields,
+  mapApiWeightToVariantFields,
+} from "../../utils/product-measurements";
 
 // ============================================================================
 // Styles
@@ -66,30 +71,39 @@ const useStyles = createStyles(() => ({
 // ============================================================================
 
 function transformVariantsToInput(
-  variants: IEditVariantsModalPayload["variants"]
+  variants: ApiVariant[],
+  productOptions: ApiProductOption[],
 ): IVariantInput[] {
-  return variants.map((v) => ({
-    id: v.id,
-    title: v.title,
-    imageUrl: v.imageUrl,
-    media: v.media,
-    options:
-      v.options?.map((o) => ({ name: o.group.title, value: o.title })) || [],
-    sku: v.sku,
-    barcode: v.barcode,
-    // Inventory quantities
-    onHand: v.onHand ?? 0,
-    unavailable: v.unavailable ?? 0,
-    reserved: v.reserved ?? 0,
-    price: v.price,
-    compareAtPrice: v.compareAtPrice,
-    costPrice: v.costPrice,
-    weight: v.weight,
-    weightUnit: v.weightUnit,
-    length: v.length,
-    width: v.width,
-    height: v.height,
-    dimensionUnit: v.dimensionUnit,
+  const optionsById = new Map(
+    productOptions.map((option) => [option.id, option]),
+  );
+
+  return variants.map((variant) => ({
+    ...mapApiWeightToVariantFields(variant.inventoryItem?.weight),
+    ...mapApiDimensionsToVariantFields(variant.inventoryItem?.dimensions),
+    id: variant.id,
+    title: variant.title ?? variant.handle,
+    imageUrl: variant.media[0]?.file.url ?? null,
+    media: variant.media.map((media) => media.file.url),
+    options: variant.selectedOptions.map((selectedOption) => {
+      const option = optionsById.get(selectedOption.optionId);
+      const value = option?.values.find(
+        (candidate) => candidate.id === selectedOption.optionValueId,
+      );
+
+      return {
+        name: option?.name ?? "Option",
+        value: value?.name ?? "Unknown option",
+      };
+    }),
+    sku: variant.inventoryItem?.sku ?? null,
+    barcode: null,
+    onHand: variant.inventoryItem?.totalAvailable ?? 0,
+    unavailable: 0,
+    reserved: 0,
+    price: variant.price?.amountMinor ?? 0,
+    compareAtPrice: variant.price?.compareAtMinor ?? null,
+    costPrice: variant.inventoryItem?.unitCost?.amountMinor ?? null,
   }));
 }
 
@@ -139,8 +153,12 @@ export const EditVariantsModal = () => {
 
   // Transform variants to input format
   const variantInputs = useMemo(
-    () => transformVariantsToInput(typedPayload.variants),
-    [typedPayload.variants]
+    () =>
+      transformVariantsToInput(
+        typedPayload.variants,
+        typedPayload.productOptions,
+      ),
+    [typedPayload.variants, typedPayload.productOptions]
   );
 
   // Extract option groups for column settings

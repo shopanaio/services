@@ -60,10 +60,15 @@ export const CategoriesSection = ({
         if (existing) {
           return existing;
         }
+        const categoryHandle =
+          "handle" in entity && typeof entity.handle === "string"
+            ? entity.handle
+            : entity.id;
+
         return createMockApiCategory({
           id: entity.id,
           name: entity.title,
-          handle: entity.id,
+          handle: categoryHandle,
         });
       });
       setCategories(newCategories);

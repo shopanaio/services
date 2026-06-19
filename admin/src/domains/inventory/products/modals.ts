@@ -2,7 +2,16 @@ import { createModalStackHook } from '@/layouts/modals';
 import type { IModalStackPayload } from '@/layouts/modals';
 import type { OutputData } from '@editorjs/editorjs';
 import type { RenderedContent } from '@/ui-kit/block-editor';
-import type { ApiFile, ApiProduct, CurrencyCode } from "@/graphql/types";
+import type {
+  ApiCategory,
+  ApiFile,
+  ApiProduct,
+  ApiProductOption,
+  ApiTag,
+  ApiVariant,
+  CurrencyCode,
+} from "@/graphql/types";
+import type { IAttributeRow } from "./modals/edit-attributes-modal/types";
 import type { ApiVariantPrice } from './components/pricing/types';
 import type { VariantColumnField } from './components/variants/config';
 
@@ -60,6 +69,7 @@ export type AITone = 'professional' | 'casual' | 'luxury' | 'friendly';
 
 export interface IProductAIWriterModalPayload extends IModalStackPayload {
   product: ApiProduct;
+  supplementalAttributes?: IAttributeRow[];
   onApply?: (values: {
     description?: RenderedContent;
     excerpt?: RenderedContent;
@@ -207,32 +217,8 @@ export type { VariantColumnField };
 export interface IEditVariantsModalPayload extends IModalStackPayload {
   productId?: string;
   initialTab?: VariantTabKey;
-  variants: Array<{
-    id: string;
-    title: string;
-    imageUrl?: string | null;
-    media?: string[] | null;
-    // Inventory identification
-    sku?: string | null;
-    barcode?: string | null;
-    // Inventory quantities (same model as inventory table)
-    onHand?: number;
-    unavailable?: number;
-    reserved?: number;
-    // Pricing
-    price?: number;
-    compareAtPrice?: number | null;
-    costPrice?: number | null;
-    // Shipping
-    weight?: number | null;
-    weightUnit?: string;
-    length?: number | null;
-    width?: number | null;
-    height?: number | null;
-    dimensionUnit?: string;
-    // Options
-    options?: IVariantPricingOption[];
-  }>;
+  variants: ApiVariant[];
+  productOptions: ApiProductOption[];
   formatPrice?: (amount: number, currency?: CurrencyCode) => string;
   /**
    * When provided, only these columns will be shown.
@@ -270,11 +256,7 @@ export interface IEditCategoriesModalPayload extends IModalStackPayload {
   productId?: string;
   primaryCategoryId?: string | null;
   categoryIds?: string[];
-  availableCategories?: Array<{
-    id: string;
-    title: string;
-    slug: string;
-  }>;
+  availableCategories?: ApiCategory[];
   categoryHierarchy?: Record<string, string | null>;
   onSave?: (data: {
     primaryCategoryId: string | null;
@@ -282,21 +264,14 @@ export interface IEditCategoriesModalPayload extends IModalStackPayload {
   }) => void;
 }
 
-export interface ITag {
-  id: string;
-  title: string;
-  slug: string;
-  color?: string;
-}
-
 export interface IEditTagsModalPayload extends IModalStackPayload {
   productId?: string;
   selectedTagIds?: string[];
-  availableTags?: ITag[];
+  availableTags?: ApiTag[];
   onSave?: (data: {
     tagIds: string[];
   }) => void;
-  onCreateTag?: (title: string) => Promise<ITag>;
+  onCreateTag?: (name: string) => Promise<ApiTag>;
 }
 
 

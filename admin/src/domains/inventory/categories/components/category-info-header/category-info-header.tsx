@@ -26,6 +26,7 @@ import {
   SharePopoverContent,
 } from "@/domains/inventory/products/components/product-info-header/components";
 import { getStatusConfig } from "@/domains/inventory/products/components/product-info-header/utils";
+import type { ProductStatus } from "@/domains/inventory/products/utils/product-status";
 import { useHeaderStyles } from "./category-info-header.styles";
 import type { ICategoryDetail } from "../category-details-card/types";
 
@@ -40,6 +41,18 @@ interface ICategoryInfoHeaderProps {
 // ============================================================================
 // Main Component
 // ============================================================================
+
+const categoryStatusToProductStatus = (status: EntityStatus): ProductStatus => {
+  switch (status) {
+    case EntityStatus.ARCHIVED:
+      return "archived";
+    case EntityStatus.DRAFT:
+      return "draft";
+    case EntityStatus.PUBLISHED:
+    default:
+      return "published";
+  }
+};
 
 export const CategoryInfoHeader = ({ category }: ICategoryInfoHeaderProps) => {
   const { styles } = useHeaderStyles();
@@ -64,7 +77,7 @@ export const CategoryInfoHeader = ({ category }: ICategoryInfoHeaderProps) => {
     setTimeout(() => setShareCopied(false), 1500);
   };
 
-  const statusConfig = getStatusConfig(category.status);
+  const statusConfig = getStatusConfig(categoryStatusToProductStatus(category.status));
 
   const handleEditTitle = () => {
     console.log("Edit category title:", category.title);

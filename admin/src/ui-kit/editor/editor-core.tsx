@@ -7,7 +7,7 @@ import Header from "@editorjs/header";
 import List from "@editorjs/list";
 import Delimiter from "@editorjs/delimiter";
 import { createStyles } from "antd-style";
-import { inter } from "@/fonts/inter";
+import { safiro } from "@/fonts/safiro";
 import { EditorGlobalStyles } from "./editor-global-styles";
 
 const useStyles = createStyles(({ token }) => ({
@@ -100,7 +100,7 @@ const EditorCore = memo(function EditorCore({
     <>
       <EditorGlobalStyles />
       <div className={styles.wrapper}>
-        <div id={holderId} className={inter.className} style={{ minHeight }} />
+        <div id={holderId} className={safiro.className} style={{ minHeight }} />
       </div>
     </>
   );

@@ -10,19 +10,16 @@ import {
   useEditVariantsModal,
   useEditCategoriesModal,
   useEditTagsModal,
+  type IEditMediaModalPayload,
   type IEditSeoModalPayload,
   type IEditVariantsModalPayload,
 } from "../../../modals";
-import type { ApiFile, ApiProduct } from "@/graphql/types";
+import type { ApiProduct } from "@/graphql/types";
 import {
+  getDefaultVariant,
   getProductMediaFiles,
   getProductVariants,
-  getSelectedOptionLabels,
 } from "../../../utils/api-product-display";
-import {
-  mapApiDimensionsToVariantFields,
-  mapApiWeightToVariantFields,
-} from "../../../utils/product-measurements";
 
 export const useProductModals = (product: ApiProduct) => {
   const { push: openProductModal } = useProductModal();
@@ -39,13 +36,17 @@ export const useProductModals = (product: ApiProduct) => {
   }, [product.id, openProductModal]);
 
   const handleEditMedia = useCallback(() => {
+    const defaultVariant = getDefaultVariant(product);
     const mediaFiles = getProductMediaFiles(product);
 
     openEditMediaModal({
       productId: product.id,
+      variantId: defaultVariant?.id,
       featured: mediaFiles[0] ?? null,
       gallery: mediaFiles,
-      onSave: (media: { featured: ApiFile | null; gallery: ApiFile[] }) => {
+      onSave: (
+        media: Parameters<NonNullable<IEditMediaModalPayload["onSave"]>>[0],
+      ) => {
         console.log("Saved media:", media);
       },
     });
@@ -111,29 +112,8 @@ export const useProductModals = (product: ApiProduct) => {
   const handleEditVariants = useCallback(() => {
     openEditVariantsModal({
       productId: product.id,
-      variants: getProductVariants(product).map((variant) => ({
-        ...mapApiWeightToVariantFields(variant.inventoryItem?.weight),
-        ...mapApiDimensionsToVariantFields(variant.inventoryItem?.dimensions),
-        id: variant.id,
-        title: variant.title ?? variant.handle,
-        imageUrl: variant.media[0]?.file.url ?? null,
-        media: variant.media.map((media) => media.file.url),
-        sku: variant.inventoryItem?.sku ?? null,
-        onHand: variant.inventoryItem?.totalAvailable ?? 0,
-        barcode: null,
-        price: variant.price?.amountMinor ?? 0,
-        compareAtPrice: variant.price?.compareAtMinor ?? null,
-        costPrice: variant.inventoryItem?.unitCost?.amountMinor ?? null,
-        options: getSelectedOptionLabels(product.options, variant).map(
-          (label) => ({
-            title: label,
-            group: {
-              slug: "option",
-              title: "Option",
-            },
-          }),
-        ),
-      })),
+      variants: getProductVariants(product),
+      productOptions: product.options,
       onSave: (
         updated: Parameters<
           NonNullable<IEditVariantsModalPayload["onSave"]>

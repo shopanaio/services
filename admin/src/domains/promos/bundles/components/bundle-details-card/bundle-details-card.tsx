@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Flex } from "antd";
 import { ProductInfoHeader } from "@/domains/inventory/products/components/product-info-header";
 import { ProductContentTabs } from "@/domains/inventory/products/components/product-content-tabs";
@@ -22,19 +22,21 @@ import {
   useEditMediaModal,
   useEditAttributesModal,
   useEditSeoModal,
+  type IEditMediaModalPayload,
   type IEditSeoModalPayload,
 } from "@/domains/inventory/products/modals";
 import {
   useEditBundleGroupsModal,
   useDependencyChartModal,
 } from "@/domains/promos/bundles/modals";
-import type { IProduct, IMediaFile } from "@/mocks/products/types";
+import { EntityStatus, type IProduct } from "@/mocks/products/types";
 import type { IBundleDetailsMockData } from "@/mocks/products/bundle-details";
 import type {
   IBundleGroup,
   IDependencyRule,
 } from "@/domains/promos/bundles/types";
 import { LogicOperator } from "@/domains/promos/bundles/dependency-rules";
+import { createMockApiProduct } from "@/mocks/products/api-builders";
 
 // ============================================================================
 // Helpers
@@ -73,6 +75,31 @@ export const BundleDetailsCard = ({
   const [groups, setGroups] = useState<IBundleGroup[]>(mockData.bundleItems);
   const [dependencyRules, setDependencyRules] = useState<IDependencyRule[]>(
     mockData.dependencyRules
+  );
+  const apiProduct = useMemo(
+    () =>
+      createMockApiProduct({
+        id: product.id,
+        title: product.title,
+        handle: product.slug,
+        isPublished: product.status === EntityStatus.PUBLISHED,
+        description: product.description,
+        excerpt: null,
+        variants: [],
+        options: [],
+        categories: [
+          ...(mockData.categories.primary ? [mockData.categories.primary] : []),
+          ...mockData.categories.list,
+        ],
+        tags: mockData.tags,
+        createdAt: product.createdAt.toISOString(),
+        updatedAt: product.updatedAt.toISOString(),
+        deletedAt:
+          product.status === EntityStatus.ARCHIVED
+            ? product.updatedAt.toISOString()
+            : null,
+      }),
+    [product, mockData.categories.primary, mockData.categories.list, mockData.tags],
   );
 
   // ========================================
@@ -138,7 +165,9 @@ export const BundleDetailsCard = ({
       productId: product.id,
       featured: product.featured,
       gallery: product.gallery,
-      onSave: (media: { featured: IMediaFile | null; gallery: IMediaFile[] }) => {
+      onSave: (
+        media: Parameters<NonNullable<IEditMediaModalPayload["onSave"]>>[0],
+      ) => {
         console.log("Saved media:", media);
       },
     });
@@ -177,16 +206,16 @@ export const BundleDetailsCard = ({
   return (
     <Flex vertical gap={12} style={{ width: "100%" }}>
       {/* BUNDLE INFO HEADER */}
-      <ProductInfoHeader product={product} />
+      <ProductInfoHeader product={apiProduct} />
 
       {/* CONTENT TABS */}
-      <ProductContentTabs product={product} />
+      <ProductContentTabs product={apiProduct} />
 
       {/* PRICING */}
       <PricingBlock productId={product.id} formatPrice={formatPrice} />
 
       {/* MEDIA */}
-      <MediaSection gallery={product.gallery} onEdit={handleEditMedia} />
+      <MediaSection mediaFiles={product.gallery} onEdit={handleEditMedia} />
 
       {/* CATEGORIES */}
       <CategoriesSection

@@ -73,7 +73,7 @@ export const ProductDetailsCard = ({
       <PricingBlock productId={product.id} formatPrice={formatPrice} />
 
       {/* MEDIA SECTION */}
-      <MediaSection gallery={getProductMediaFiles(product)} onEdit={modals.editMedia} />
+      <MediaSection mediaFiles={getProductMediaFiles(product)} onEdit={modals.editMedia} />
 
       {/* INVENTORY */}
       <InventorySection

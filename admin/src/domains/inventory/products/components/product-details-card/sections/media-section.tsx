@@ -11,17 +11,17 @@ import { useMediaStyles } from "../product-details-card.styles";
 import type { ApiFile } from "@/graphql/types";
 
 interface IMediaSectionProps {
-  gallery: ApiFile[];
+  mediaFiles: ApiFile[];
   onEdit: () => void;
 }
 
-export const MediaSection = ({ gallery, onEdit }: IMediaSectionProps) => {
+export const MediaSection = ({ mediaFiles, onEdit }: IMediaSectionProps) => {
   const { styles } = useMediaStyles();
-  const mediaPreview = useMediaPreview(gallery);
+  const mediaPreview = useMediaPreview(mediaFiles);
 
-  const showMore = gallery.length > 12;
-  const gallerySlice = gallery.slice(0, showMore ? 11 : 12);
-  const overlayItemsCount = gallerySlice.length + (showMore ? 1 : 0) + 1; // +1 for upload cell
+  const showMore = mediaFiles.length > 12;
+  const visibleMediaFiles = mediaFiles.slice(0, showMore ? 11 : 12);
+  const overlayItemsCount = visibleMediaFiles.length + (showMore ? 1 : 0) + 1; // +1 for upload cell
 
   return (
     <Paper>
@@ -30,7 +30,7 @@ export const MediaSection = ({ gallery, onEdit }: IMediaSectionProps) => {
         actions={<EditAction onEdit={onEdit} label="Edit media" />}
       />
       <div className={styles.mediaGrid}>
-        {gallerySlice.map((media, index) =>
+        {visibleMediaFiles.map((media, index) =>
           index === 0 ? (
             <div key={media.id} className={styles.mediaFeaturedWrapper}>
               <Image
@@ -76,7 +76,7 @@ export const MediaSection = ({ gallery, onEdit }: IMediaSectionProps) => {
             className={styles.mediaMoreButton}
             onClick={() => mediaPreview.open(11)}
           >
-            +{gallery.length - 11}
+            +{mediaFiles.length - 11}
           </Flex>
         )}
         <div className={styles.uploadCell}>
@@ -105,7 +105,7 @@ export const MediaSection = ({ gallery, onEdit }: IMediaSectionProps) => {
       </div>
 
       <MediaPreview
-        items={gallery}
+        items={mediaFiles}
         visible={mediaPreview.visible}
         currentIndex={mediaPreview.currentIndex}
         onClose={mediaPreview.close}

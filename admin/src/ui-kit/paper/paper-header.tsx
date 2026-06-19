@@ -27,8 +27,8 @@ interface IPaperHeaderProps {
   bordered?: boolean;
   /** Custom class name */
   className?: string;
-  /**Icon */
-  icon: ReactNode;
+  /** Optional icon shown before string titles */
+  icon?: ReactNode;
 }
 
 export const PaperHeader = ({

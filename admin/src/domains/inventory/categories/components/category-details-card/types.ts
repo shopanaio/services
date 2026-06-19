@@ -1,6 +1,5 @@
 import type { IMediaFile, EntityStatus } from "@/mocks/products/types";
-import type { ITag } from "@/domains/inventory/products/modals";
-import type { ApiFile } from "@/graphql/types";
+import type { ApiFile, ApiTag } from "@/graphql/types";
 
 // ============================================================================
 // Category Detail Types
@@ -64,7 +63,7 @@ export interface ICategoryDetailsMockData {
     totalCount: number;
     hasNextPage: boolean;
   };
-  tags: ITag[];
+  tags: ApiTag[];
 }
 
 // ============================================================================

@@ -27,11 +27,11 @@ const getVariantImageUrl = (variant?: ApiVariant): string | null => {
 // Helper to get image URL from product
 const getProductImageUrl = (product?: ApiProduct): string | null => {
   if (!product) return null;
-  // Try featured image first
-  if (product.featuredImage?.url) return product.featuredImage.url;
-  // Fallback to first media item
-  const mediaItem = product.media?.edges?.[0]?.node;
-  return mediaItem?.file?.url ?? null;
+
+  const variant = product.variants.edges.find((edge) => edge.node.isDefault)?.node
+    ?? product.variants.edges[0]?.node;
+
+  return getVariantImageUrl(variant);
 };
 
 export const NameCellRenderer = (params: INameCellRendererParams) => {
@@ -82,7 +82,10 @@ export const NameCellRenderer = (params: INameCellRendererParams) => {
     const variant = data.assignedVariant;
     const productTitle = variant?.product?.title;
     const variantTitle =
-      data.title || variant?.title || variant?.sku || "Unknown Variant";
+      data.title ||
+      variant?.title ||
+      variant?.inventoryItem?.sku ||
+      "Unknown Variant";
     const imageUrl = getVariantImageUrl(variant);
 
     return (

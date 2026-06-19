@@ -24,11 +24,7 @@ import {
 } from "../../../modals";
 import { ThresholdMethod } from "@/graphql/types";
 import type { ApiProduct, ApiProductInventoryWidget } from "@/graphql/types";
-import {
-  getProductVariants,
-  getSelectedOptionLabels,
-} from "../../../utils/api-product-display";
-import { mapApiWeightToVariantFields } from "../../../utils/product-measurements";
+import { getProductVariants } from "../../../utils/api-product-display";
 
 
 // ============================================================================
@@ -152,24 +148,8 @@ export const InventorySection = ({
       if (action === "edit") {
         pushEditVariantsModal({
           initialTab: "inventory",
-          variants: getProductVariants(product).map((variant) => ({
-            ...mapApiWeightToVariantFields(variant.inventoryItem?.weight),
-            id: variant.id,
-            title: variant.title ?? variant.handle,
-            sku: variant.inventoryItem?.sku ?? null,
-            onHand: variant.inventoryItem?.totalAvailable ?? 0,
-            barcode: null,
-            options: getSelectedOptionLabels(product.options, variant).map(
-              (label) => ({
-                title: label,
-                group: {
-                  slug: "option",
-                  title: "Option",
-                },
-              }),
-            ),
-          })),
-          lowStockThreshold: 10,
+          variants: getProductVariants(product),
+          productOptions: product.options,
           availableColumns: [
             "sku",
             "barcode",

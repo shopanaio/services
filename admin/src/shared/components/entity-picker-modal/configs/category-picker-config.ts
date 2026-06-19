@@ -15,23 +15,21 @@ import {
   type IFilterValue,
   type IFilterSchema,
 } from "@/layouts/filters";
-import {
-  mockCategoriesList,
-  type ICategoryListItem,
-} from "../mocks/categories-list";
+import type { ApiCategory } from "@/graphql/types";
+import { mockCategories } from "@/mocks/products/categories";
 
-interface ICategoryPickerEntity extends IPickableEntity {
-  slug: string;
+interface CategoryPickerEntity extends IPickableEntity {
+  handle: string;
   productsCount: number;
 }
 
-function transformCategory(category: ICategoryListItem): ICategoryPickerEntity {
+function transformCategory(category: ApiCategory): CategoryPickerEntity {
   return {
     id: category.id,
     title: category.name,
-    image: category.image,
-    status: category.status,
-    slug: category.slug,
+    image: category.media[0]?.file.url ?? null,
+    status: category.isPublished ? "active" : "inactive",
+    handle: category.handle,
     productsCount: category.productsCount,
   };
 }
@@ -55,17 +53,18 @@ function useCategoriesPickerData(options: {
   filters: IFilterValue[];
   search: string;
   pageSize: number;
-}): IEntityPickerDataResult<ICategoryPickerEntity> {
+}): IEntityPickerDataResult<CategoryPickerEntity> {
   const { search, filters, pageSize } = options;
   const [page, setPage] = useState(0);
 
   const allData = useMemo(() => {
-    let result = mockCategoriesList.map(transformCategory);
+    let result = mockCategories.map(transformCategory);
 
     if (search) {
       const searchLower = search.toLowerCase();
       result = result.filter((c) =>
-        c.title.toLowerCase().includes(searchLower)
+        c.title.toLowerCase().includes(searchLower) ||
+        c.handle.toLowerCase().includes(searchLower)
       );
     }
 
@@ -106,7 +105,7 @@ function useCategoriesPickerData(options: {
   };
 }
 
-const categoryPickerColumns: ColDef<ICategoryPickerEntity>[] = [
+const categoryPickerColumns: ColDef<CategoryPickerEntity>[] = [
   {
     headerName: "Category",
     field: "title",
@@ -122,7 +121,7 @@ const categoryPickerColumns: ColDef<ICategoryPickerEntity>[] = [
   },
 ];
 
-export const categoryPickerConfig: IEntityPickerConfig<ICategoryPickerEntity> =
+export const categoryPickerConfig: IEntityPickerConfig<CategoryPickerEntity> =
   {
     entityType: "category",
     entityName: "Category",
