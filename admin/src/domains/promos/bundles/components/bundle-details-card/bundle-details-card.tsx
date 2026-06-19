@@ -7,7 +7,7 @@ import {
 import { Flex } from "antd";
 import { ProductInfoHeader } from "@/domains/inventory/products/components/product-info-header";
 import { ProductContentTabs } from "@/domains/inventory/products/components/product-content-tabs";
-import { PricingBlock } from "@/domains/inventory/products/components/pricing/pricing-block";
+import { ProductPricingSection } from "@/domains/inventory/products/components/pricing/product-pricing-section";
 import { SeoBlock } from "@/domains/inventory/products/components/seo";
 import { AttributesSection } from "@/domains/inventory/products/components/attributes-section";
 import { EditAction } from "@/domains/inventory/products/components/edit-action";
@@ -207,7 +207,7 @@ export const BundleDetailsCard = ({
       <ProductContentTabs product={apiProduct} />
 
       {/* PRICING */}
-      <PricingBlock productId={product.id} />
+      <ProductPricingSection productId={product.id} />
 
       {/* MEDIA */}
       <MediaSection mediaFiles={product.gallery} onEdit={handleEditMedia} />

@@ -2,25 +2,22 @@ import { Typography, Flex, Button } from "antd";
 import { DownOutlined } from "@ant-design/icons";
 import { Paper } from "@/ui-kit/paper";
 import { KPITile } from "@/ui-kit/kpi-tile";
-import {
-  PeriodSwitch,
-  PERIODS,
-  type Period,
-} from "../../../components/period-switch";
-import {
-  PriceChart,
-  PriceChangeIndicator,
-  ScrollableDropdown,
-} from "../../../components/pricing/components";
-import { useVariantPrice } from "../../../components/pricing/use-variant-price";
-import { formatPrice } from "../../../components/pricing/utils";
+import { PeriodSwitch } from "../../../components/period-switch";
+import { PERIODS, type Period } from "../../../utils/periods";
+import { PriceChangeIndicator } from "../../../components/pricing/components/price-change-indicator";
+import { PriceChart } from "../../../components/pricing/components/price-chart";
+import { ScrollableDropdown } from "../../../components/pricing/components/scrollable-dropdown";
 import type {
   ApiVariantConnection,
   ApiVariantPrice,
   ApiVariantPriceConnection,
   ApiVariantPriceHistoryStatistics,
   CurrencyCode,
-} from "../../../components/pricing/types";
+} from "@/graphql/types";
+import {
+  formatPrice,
+  useVariantPrice,
+} from "../../../utils/price-formatting";
 import { useStyles } from "../price-history-modal.styles";
 
 interface IOverviewSectionProps {

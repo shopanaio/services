@@ -1,5 +1,6 @@
 import { Typography, Flex } from "antd";
-import { PeriodSwitch, CHART_PERIODS } from "../../period-switch";
+import { PeriodSwitch } from "../../period-switch";
+import { CHART_PERIODS } from "../../../utils/periods";
 import { PriceChart } from "./price-chart";
 import { useStyles } from "../pricing-block.styles";
 import type { ApiVariantPriceConnection, CurrencyCode } from "@/graphql/types";

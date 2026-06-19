@@ -1,8 +1,14 @@
 import { Typography, Flex, Timeline, Tag } from "antd";
 import { createStyles } from "antd-style";
-import type { ApiVariantPrice, ApiVariantPriceConnection } from "../types";
-import { useVariantPrice } from "../use-variant-price";
-import { formatPrice, formatDateFull } from "../utils";
+import type {
+  ApiVariantPrice,
+  ApiVariantPriceConnection,
+} from "@/graphql/types";
+import {
+  formatDateFull,
+  formatPrice,
+  useVariantPrice,
+} from "../../../utils/price-formatting";
 import { PriceChangeIndicator } from "./price-change-indicator";
 import { DiscountBadge } from "./discount-badge";
 

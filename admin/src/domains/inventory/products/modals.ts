@@ -11,8 +11,8 @@ import type {
   ApiVariant,
 } from "@/graphql/types";
 import type { IAttributeRow } from "./modals/edit-attributes-modal/types";
-import type { ApiVariantPrice } from './components/pricing/types';
 import type { VariantColumnField } from './components/variants/config/types';
+import type { VariantEditorSaveRow } from "./mappers/product-variant-editor.mapper";
 
 // ============================================================================
 // Modal Types
@@ -76,19 +76,7 @@ export interface IProductAIWriterModalPayload extends IModalStackPayload {
 }
 
 export interface IProductPriceHistoryModalPayload extends IModalStackPayload {
-  productId?: string;
-  variantId?: string;
-  currentPrice: number;
-  compareAtPrice?: number | null;
-  costPrice?: number | null;
-  priceHistory: ApiVariantPrice[];
-  variants?: Array<{
-    id: string;
-    title: string;
-    price: number;
-    compareAtPrice?: number | null;
-    priceHistory: ApiVariantPrice[];
-  }>;
+  productId: string;
 }
 
 export interface IVariantPricingOption {
@@ -226,25 +214,9 @@ export interface IEditVariantsModalPayload extends IModalStackPayload {
    * Set to false when using restricted columns without user customization.
    */
   showColumnSettings?: boolean;
-  onSave?: (variants: Array<{
-    id: string;
-    sku: string | null;
-    barcode: string | null;
-    // Inventory quantities
-    onHand: number;
-    unavailable: number;
-    reserved: number;
-    available: number;
-    price: number;
-    compareAtPrice: number | null;
-    costPrice: number | null;
-    weight: number | null;
-    weightUnit: string;
-    length: number | null;
-    width: number | null;
-    height: number | null;
-    dimensionUnit: string;
-  }>) => void;
+  onSave?: (
+    variants: VariantEditorSaveRow[],
+  ) => boolean | void | Promise<boolean | void>;
 }
 
 export interface IEditCategoriesModalPayload extends IModalStackPayload {

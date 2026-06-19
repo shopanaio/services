@@ -1,8 +1,10 @@
 import { Typography, Tag, Tooltip, Flex } from "antd";
-import { useVariantPrice } from "../use-variant-price";
-import { formatPrice } from "../utils";
 import { useStyles } from "../pricing-block.styles";
 import type { ApiVariantPrice } from "@/graphql/types";
+import {
+  formatPrice,
+  useVariantPrice,
+} from "../../../utils/price-formatting";
 
 const NBSP = "\u00A0";
 

@@ -6,8 +6,8 @@ import type {
   ApiVariantPriceConnection,
   ApiPricingWidgetPayload,
   ApiVariantPriceHistoryStatistics,
-} from "./types";
-import { getPeriodDays } from "../utils";
+} from "@/graphql/types";
+import { getPeriodDays } from "../../utils/periods";
 import {
   createMockApiInventoryItem,
   createMockApiInventoryItemCost,

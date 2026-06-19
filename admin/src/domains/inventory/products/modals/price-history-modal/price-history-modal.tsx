@@ -8,9 +8,10 @@ import {
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
-import { usePricingWidget } from "../../components/pricing/use-pricing-widget";
-import type { Period } from "../../components/period-switch";
-import { OverviewSection, ChangeLogSection } from "./components";
+import { useProductPricingWidget } from "../../hooks";
+import type { Period } from "../../utils/periods";
+import { ChangeLogSection } from "./components/change-log-section";
+import { OverviewSection } from "./components/overview-section";
 import type { IPriceHistoryModalPayload } from "./types";
 
 export const PriceHistoryModal = () => {
@@ -27,7 +28,9 @@ export const PriceHistoryModal = () => {
     selectVariant,
     period,
     setPeriod,
-  } = usePricingWidget<Period>(typedPayload.productId);
+  } = useProductPricingWidget<Period>({
+    productId: typedPayload.productId,
+  });
 
   // Extract pricing data from widget response
   const currentPrice = data?.currentPrice ?? null;

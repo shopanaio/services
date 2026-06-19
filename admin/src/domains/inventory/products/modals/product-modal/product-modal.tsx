@@ -21,7 +21,7 @@ export const ProductModal = () => {
       : String(payload.entityId);
 
   const variantsAfter = variantCursorHistory[variantsPageIndex] ?? null;
-  const { product, loading, error } = useProduct({
+  const { product, loading, error, refetch } = useProduct({
     id: entityId,
     variantsFirst: VARIANTS_PAGE_SIZE,
     variantsAfter,
@@ -109,6 +109,7 @@ export const ProductModal = () => {
         supplementalData={productDetailsMockData}
         variantsTableData={variantsTableData}
         onVariantsPageChange={handleVariantsPageChange}
+        onProductRefresh={refetch}
       />
     );
   };

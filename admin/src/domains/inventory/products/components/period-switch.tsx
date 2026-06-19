@@ -1,6 +1,6 @@
 import { createStyles } from "antd-style";
 import { Tag, Flex, Switch, Typography, Tooltip } from "antd";
-import type { PeriodConfig } from "./utils/periods";
+import type { PeriodConfig } from "../utils/periods";
 
 // ============================================================================
 // Types
@@ -108,29 +108,3 @@ export function PeriodSwitch<T extends string>({
     </Flex>
   );
 }
-
-// ============================================================================
-// Re-export unified periods from utils
-// ============================================================================
-
-export {
-  PERIODS,
-  CHART_PERIODS,
-  DEFAULT_PERIOD,
-  DEFAULT_CHART_PERIOD,
-  getDateRangeForPeriod,
-  getPeriodConfig,
-  getPeriodDays,
-} from "./utils";
-export type {
-  Period,
-  ChartPeriod,
-  DateRange,
-  PeriodConfig,
-} from "./utils/periods";
-
-/** @deprecated Use Period instead */
-export type KPIPeriod = import("./utils/periods").Period;
-
-/** @deprecated Use PERIODS instead */
-export { PERIODS as KPI_PERIODS } from "./utils";

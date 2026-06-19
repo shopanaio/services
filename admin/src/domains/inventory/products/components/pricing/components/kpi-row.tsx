@@ -1,7 +1,10 @@
 import { KPITile } from "@/ui-kit/kpi-tile";
-import { formatPrice } from "../utils";
+import type {
+  ApiVariantPriceHistoryStatistics,
+  CurrencyCode,
+} from "@/graphql/types";
+import { formatPrice } from "../../../utils/price-formatting";
 import { useStyles } from "../pricing-block.styles";
-import type { ApiVariantPriceHistoryStatistics, CurrencyCode } from "../types";
 
 export interface IKPIRowProps {
   stats: ApiVariantPriceHistoryStatistics | null;

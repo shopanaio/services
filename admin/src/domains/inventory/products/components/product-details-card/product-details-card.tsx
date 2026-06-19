@@ -3,7 +3,7 @@
 import { Flex } from "antd";
 import { ProductInfoHeader } from "../product-info-header";
 import { ProductContentTabs } from "../product-content-tabs";
-import { PricingBlock } from "../pricing/pricing-block";
+import { ProductPricingSection } from "../pricing/product-pricing-section";
 import { SeoBlock } from "../seo";
 import { AttributesSection } from "../attributes-section";
 import { EditAction } from "../edit-action";
@@ -36,6 +36,7 @@ interface IProductDetailsCardProps {
   variantsTableData?: IVariantsTableData;
   onEditSection?: (section: string) => void;
   onVariantsPageChange?: (direction: "next" | "prev") => void;
+  onProductRefresh?: () => Promise<unknown>;
 }
 
 export const ProductDetailsCard = ({
@@ -44,6 +45,7 @@ export const ProductDetailsCard = ({
   variantsTableData,
   onEditSection,
   onVariantsPageChange,
+  onProductRefresh,
 }: IProductDetailsCardProps) => {
   const modals = useProductModals(product);
   const isVariableProduct = product.variantsCount > 1;
@@ -60,7 +62,10 @@ export const ProductDetailsCard = ({
       <ProductContentTabs product={product} />
 
       {/* PRICING */}
-      <PricingBlock productId={product.id} />
+      <ProductPricingSection
+        product={product}
+        onProductRefresh={onProductRefresh}
+      />
 
       {/* MEDIA SECTION */}
       <MediaSection mediaFiles={getProductMediaFiles(product)} onEdit={modals.editMedia} />

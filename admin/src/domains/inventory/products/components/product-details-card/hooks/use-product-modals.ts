@@ -59,8 +59,8 @@ export const useProductModals = (product: ApiProduct) => {
           operations,
         });
 
-        if (result.userErrors.length > 0) {
-          message.error(result.userErrors[0].message);
+        if (result.errors.length > 0) {
+          message.error(result.errors[0].message);
           return false;
         }
 
@@ -133,8 +133,8 @@ export const useProductModals = (product: ApiProduct) => {
           },
         });
 
-        if (result.userErrors.length > 0) {
-          message.error(result.userErrors[0].message);
+        if (result.errors.length > 0) {
+          message.error(result.errors[0].message);
           return false;
         }
 

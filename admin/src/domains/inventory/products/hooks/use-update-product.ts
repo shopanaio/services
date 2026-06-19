@@ -13,6 +13,7 @@ import type {
   ProductUpdateMutationData,
   ProductUpdateMutationVariables,
 } from "../graphql";
+import { normalizeProductUpdateErrors } from "../mappers/product-errors.mapper";
 
 interface UpdateProductInput {
   productId: string;
@@ -24,6 +25,7 @@ interface UpdateProductResult {
   product: ApiProduct | null;
   operationResults: ApiOperationResult[];
   userErrors: ApiGenericUserError[];
+  errors: ApiGenericUserError[];
 }
 
 interface UseUpdateProductReturn {
@@ -52,19 +54,28 @@ export function useUpdateProduct(): UseUpdateProductReturn {
 
         const payload = result.data?.catalogMutation.productUpdate;
 
+        const operationResults = payload?.operationResults ?? [];
+        const userErrors = payload?.userErrors ?? [];
+
         return {
           product: payload?.product ?? null,
-          operationResults: payload?.operationResults ?? [],
-          userErrors: payload?.userErrors ?? [],
+          operationResults,
+          userErrors,
+          errors: normalizeProductUpdateErrors({
+            operationResults,
+            userErrors,
+          }),
         };
       } catch (err) {
         const message =
           err instanceof Error ? err.message : "An unexpected error occurred";
+        const userErrors = [{ message, code: "UNEXPECTED_ERROR" }];
 
         return {
           product: null,
           operationResults: [],
-          userErrors: [{ message, code: "UNEXPECTED_ERROR" }],
+          userErrors,
+          errors: userErrors,
         };
       }
     },

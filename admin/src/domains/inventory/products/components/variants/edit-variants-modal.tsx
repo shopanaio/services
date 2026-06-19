@@ -1,23 +1,21 @@
 "use client";
 
-import { useEffect, useCallback, useRef, useMemo } from "react";
+import { useEffect, useCallback, useRef, useMemo, useState } from "react";
 import { Divider, Tag } from "antd";
 import { createStyles } from "antd-style";
 import { ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { useVariantsEditorStore } from "./hooks";
+import { VariantsColumnSettings } from "./components/variants-column-settings";
 import {
-  VariantsEditorGrid,
-  VariantsColumnSettings,
   extractOptionGroups,
-} from "./components";
-import type { IVariantInput } from "./components/variants-editor-grid";
+  VariantsEditorGrid,
+} from "./components/variants-editor-grid";
 import type { IVariantEditorRow, IOptionGroup } from "./config/types";
 import type { IEditVariantsModalPayload } from "../../modals";
-import type { ApiProductOption, ApiVariant } from "@/graphql/types";
 import {
-  mapApiDimensionsToVariantFields,
-  mapApiWeightToVariantFields,
-} from "../../utils/product-measurements";
+  getVariantEditorRowsForSave,
+  mapApiVariantsToEditorInputs,
+} from "../../mappers/product-variant-editor.mapper";
 
 // ============================================================================
 // Styles
@@ -67,69 +65,6 @@ const useStyles = createStyles(() => ({
 }));
 
 // ============================================================================
-// Helpers
-// ============================================================================
-
-function transformVariantsToInput(
-  variants: ApiVariant[],
-  productOptions: ApiProductOption[],
-): IVariantInput[] {
-  const optionsById = new Map(
-    productOptions.map((option) => [option.id, option]),
-  );
-
-  return variants.map((variant) => ({
-    ...mapApiWeightToVariantFields(variant.inventoryItem?.weight),
-    ...mapApiDimensionsToVariantFields(variant.inventoryItem?.dimensions),
-    id: variant.id,
-    title: variant.title ?? variant.handle,
-    imageUrl: variant.media[0]?.file.url ?? null,
-    media: variant.media.map((media) => media.file.url),
-    options: variant.selectedOptions.map((selectedOption) => {
-      const option = optionsById.get(selectedOption.optionId);
-      const value = option?.values.find(
-        (candidate) => candidate.id === selectedOption.optionValueId,
-      );
-
-      return {
-        name: option?.name ?? "Option",
-        value: value?.name ?? "Unknown option",
-      };
-    }),
-    sku: variant.inventoryItem?.sku ?? null,
-    barcode: null,
-    onHand: variant.inventoryItem?.totalAvailable ?? 0,
-    unavailable: 0,
-    reserved: 0,
-    price: variant.price?.amountMinor ?? 0,
-    compareAtPrice: variant.price?.compareAtMinor ?? null,
-    costPrice: variant.inventoryItem?.unitCost?.amountMinor ?? null,
-  }));
-}
-
-function getDataForSave(rows: IVariantEditorRow[]) {
-  return rows.map((row) => ({
-    id: row.id,
-    sku: row.sku,
-    barcode: row.barcode,
-    // Inventory quantities
-    onHand: row.onHand,
-    unavailable: row.unavailable,
-    reserved: row.reserved,
-    available: row.available,
-    price: row.price,
-    compareAtPrice: row.compareAtPrice,
-    costPrice: row.costPrice,
-    weight: row.weight,
-    weightUnit: row.weightUnit,
-    length: row.length,
-    width: row.width,
-    height: row.height,
-    dimensionUnit: row.dimensionUnit,
-  }));
-}
-
-// ============================================================================
 // Main Component
 // ============================================================================
 
@@ -137,15 +72,18 @@ export const EditVariantsModal = () => {
   const { styles } = useStyles();
   const { payload, pop, setDirty } = useModalStackContext();
   const typedPayload = payload as IEditVariantsModalPayload;
+  const [submitting, setSubmitting] = useState(false);
 
   // Store
   const hasChanges = useVariantsEditorStore((s) => s.hasChanges());
   const changesCount = useVariantsEditorStore((s) => s.getChangesCount());
   const status = useVariantsEditorStore((s) => s.status);
+  const resetEdits = useVariantsEditorStore((s) => s.resetEdits);
+  const startSaving = useVariantsEditorStore((s) => s.startSaving);
+  const onSaveSuccess = useVariantsEditorStore((s) => s.onSaveSuccess);
+  const onSaveError = useVariantsEditorStore((s) => s.onSaveError);
 
-  const { resetEdits } = useVariantsEditorStore.getState();
-
-  const isSaving = status === "saving";
+  const isSaving = submitting || status === "saving";
 
   // Column restrictions from payload
   const availableColumns = typedPayload.availableColumns;
@@ -154,7 +92,7 @@ export const EditVariantsModal = () => {
   // Transform variants to input format
   const variantInputs = useMemo(
     () =>
-      transformVariantsToInput(
+      mapApiVariantsToEditorInputs(
         typedPayload.variants,
         typedPayload.productOptions,
       ),
@@ -195,12 +133,27 @@ export const EditVariantsModal = () => {
   }, [resetEdits, pop]);
 
   // Handle save
-  const handleSave = useCallback(() => {
-    const dataForSave = getDataForSave(rowDataRef.current);
-    typedPayload.onSave?.(dataForSave);
-    resetEdits();
-    pop();
-  }, [typedPayload, resetEdits, pop]);
+  const handleSave = useCallback(async () => {
+    const dataForSave = getVariantEditorRowsForSave(rowDataRef.current);
+    setSubmitting(true);
+    startSaving();
+
+    try {
+      const result = await typedPayload.onSave?.(dataForSave);
+
+      if (result === false) {
+        onSaveError();
+        return;
+      }
+
+      onSaveSuccess();
+      pop();
+    } catch {
+      onSaveError();
+    } finally {
+      setSubmitting(false);
+    }
+  }, [typedPayload, startSaving, onSaveError, onSaveSuccess, pop]);
 
   // Handle escape key
   useEffect(() => {
@@ -233,7 +186,7 @@ export const EditVariantsModal = () => {
         submitButtonProps: {
           onClick: handleSave,
           loading: isSaving,
-          disabled: !hasChanges,
+          disabled: isSaving || !hasChanges,
           children: (
             <>
               Save

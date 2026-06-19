@@ -11,6 +11,28 @@ export interface IVariantOption {
   value: string;
 }
 
+export interface IVariantEditorInput {
+  id: string;
+  title: string;
+  imageUrl?: string | null;
+  media?: string[] | null;
+  options?: IVariantOption[];
+  sku?: string | null;
+  barcode?: string | null;
+  onHand?: number;
+  unavailable?: number;
+  reserved?: number;
+  price?: number;
+  compareAtPrice?: number | null;
+  costPrice?: number | null;
+  weight?: number | null;
+  weightUnit?: string;
+  length?: number | null;
+  width?: number | null;
+  height?: number | null;
+  dimensionUnit?: string;
+}
+
 export interface IVariantEditorRow extends IEditorRowBase {
   // Display
   title: string;

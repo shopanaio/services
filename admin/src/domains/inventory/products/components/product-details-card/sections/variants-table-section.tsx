@@ -10,9 +10,11 @@ import {
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "../../edit-action";
 import { useVariantsTableStyles } from "../product-details-card.styles";
-import { useVariantPrice } from "../../pricing/use-variant-price";
-import { formatPrice } from "../../pricing/utils";
 import type { ApiVariant, ApiPageInfo, ApiProductOption } from "@/graphql/types";
+import {
+  formatPrice,
+  useVariantPrice,
+} from "../../../utils/price-formatting";
 import {
   getSelectedOptionLabels,
   getVariantStockQuantity,

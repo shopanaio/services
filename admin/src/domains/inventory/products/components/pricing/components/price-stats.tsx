@@ -1,7 +1,7 @@
 import { Typography, Flex } from "antd";
 import { createStyles } from "antd-style";
-import type { ApiVariantPrice } from "../types";
-import { formatPrice } from "../utils";
+import type { ApiVariantPrice } from "@/graphql/types";
+import { formatPrice } from "../../../utils/price-formatting";
 
 const useStyles = createStyles(({ token }) => ({
   container: {

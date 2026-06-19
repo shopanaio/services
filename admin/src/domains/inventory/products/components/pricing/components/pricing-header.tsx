@@ -1,19 +1,20 @@
 import { Typography, Button, Dropdown, Flex } from "antd";
 import { DownOutlined, MoreOutlined } from "@ant-design/icons";
-import { useProductPriceHistoryModal } from "../../../modals";
 import { PaperHeader } from "@/ui-kit/paper";
 import { ScrollableDropdown } from "./scrollable-dropdown";
-import { useVariantPrice } from "../use-variant-price";
 import { useStyles } from "../pricing-block.styles";
 import type { ApiVariantConnection, ApiVariantPrice } from "@/graphql/types";
+import { useVariantPrice } from "../../../utils/price-formatting";
 
 export interface IPricingHeaderProps {
-  productId: string;
   variants: ApiVariantConnection;
   selectedVariantId: string | null;
   onVariantSelect: (id: string) => void;
   onLoadMore: () => void;
   isLoadingMore: boolean;
+  onEditPrices?: () => void;
+  isEditPricesLoading?: boolean;
+  onViewHistory?: () => void;
 }
 
 const VariantPriceLabel = ({
@@ -31,15 +32,16 @@ const VariantPriceLabel = ({
 };
 
 export const PricingHeader = ({
-  productId,
   variants,
   selectedVariantId,
   onVariantSelect,
   onLoadMore,
   isLoadingMore,
+  onEditPrices,
+  isEditPricesLoading = false,
+  onViewHistory,
 }: IPricingHeaderProps) => {
   const { styles } = useStyles();
-  const { push: pushPriceHistory } = useProductPriceHistoryModal();
 
   const selectedVariant = variants.edges.find(
     (e) => e.node.id === selectedVariantId
@@ -86,11 +88,17 @@ export const PricingHeader = ({
     <Dropdown
       menu={{
         items: [
-          { key: "edit", label: "Edit Prices" },
+          {
+            key: "edit",
+            label: "Edit Prices",
+            disabled: !onEditPrices || isEditPricesLoading,
+            onClick: onEditPrices,
+          },
           {
             key: "history",
             label: "View History",
-            onClick: () => pushPriceHistory({ productId }),
+            disabled: !onViewHistory,
+            onClick: onViewHistory,
           },
         ],
       }}

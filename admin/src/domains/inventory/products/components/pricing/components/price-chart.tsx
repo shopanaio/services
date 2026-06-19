@@ -2,8 +2,11 @@ import { useMemo } from "react";
 import ReactECharts from "echarts-for-react";
 import { graphic } from "echarts";
 import { useTheme } from "antd-style";
-import type { ApiVariantPriceConnection, CurrencyCode } from "../types";
-import { formatShortDate, formatPrice } from "../utils";
+import type { ApiVariantPriceConnection, CurrencyCode } from "@/graphql/types";
+import {
+  formatPrice,
+  formatShortDate,
+} from "../../../utils/price-formatting";
 
 interface IPriceChartProps {
   history: ApiVariantPriceConnection;

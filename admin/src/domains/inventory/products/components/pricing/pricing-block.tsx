@@ -1,19 +1,30 @@
 import { Flex, Spin } from "antd";
 import { LoadingOutlined } from "@ant-design/icons";
 import { Paper } from "@/ui-kit/paper";
-import {
-  PricingHeader,
-  CurrentPriceColumn,
-  PriceHistoryChartColumn,
-  KPIRow,
-} from "./components";
-import { usePricingWidget } from "./use-pricing-widget";
+import type {
+  ApiPricingWidgetPayload,
+  ApiVariantConnection,
+  ApiVariantPriceConnection,
+} from "@/graphql/types";
+import { CurrentPriceColumn } from "./components/current-price-column";
+import { KPIRow } from "./components/kpi-row";
+import { PriceHistoryChartColumn } from "./components/price-history-chart-column";
+import { PricingHeader } from "./components/pricing-header";
 import { useStyles } from "./pricing-block.styles";
-import type { ApiVariantPriceConnection } from "./types";
 
 interface IPricingBlockProps {
-  /** Product ID to fetch pricing data for */
-  productId: string;
+  data: ApiPricingWidgetPayload | null;
+  isLoading: boolean;
+  variants: ApiVariantConnection;
+  isLoadingVariants: boolean;
+  onLoadMoreVariants: () => void | Promise<unknown>;
+  selectedVariantId: string | null;
+  onVariantSelect: (id: string) => void;
+  period: string;
+  onPeriodChange: (period: string) => void;
+  onEditPrices?: () => void;
+  isEditPricesLoading?: boolean;
+  onViewHistory?: () => void;
 }
 
 const EMPTY_HISTORY: ApiVariantPriceConnection = {
@@ -27,21 +38,21 @@ const EMPTY_HISTORY: ApiVariantPriceConnection = {
   totalCount: 0,
 };
 
-export const PricingBlock = ({ productId }: IPricingBlockProps) => {
+export const PricingBlock = ({
+  data,
+  isLoading,
+  variants,
+  isLoadingVariants,
+  onLoadMoreVariants,
+  selectedVariantId,
+  onVariantSelect,
+  period,
+  onPeriodChange,
+  onEditPrices,
+  isEditPricesLoading = false,
+  onViewHistory,
+}: IPricingBlockProps) => {
   const { styles } = useStyles();
-
-  const {
-    data,
-    isLoading,
-    variants,
-    isLoadingVariants,
-    loadMoreVariants,
-    selectedVariantId,
-    selectVariant,
-    period,
-    setPeriod,
-  } = usePricingWidget(productId);
-
   const currentPrice = data?.currentPrice ?? null;
   const costPrice = data?.currentCostPrice?.unitCostMinor ?? null;
   const priceCurrency =
@@ -68,12 +79,14 @@ export const PricingBlock = ({ productId }: IPricingBlockProps) => {
   return (
     <Paper className={styles.card}>
       <PricingHeader
-        productId={productId}
         variants={variants}
         selectedVariantId={selectedVariantId}
-        onVariantSelect={selectVariant}
-        onLoadMore={loadMoreVariants}
+        onVariantSelect={onVariantSelect}
+        onLoadMore={onLoadMoreVariants}
         isLoadingMore={isLoadingVariants}
+        onEditPrices={onEditPrices}
+        isEditPricesLoading={isEditPricesLoading}
+        onViewHistory={onViewHistory}
       />
 
       <div className={styles.twoColumn}>
@@ -84,7 +97,7 @@ export const PricingBlock = ({ productId }: IPricingBlockProps) => {
           <PriceHistoryChartColumn
             history={history}
             period={period}
-            onPeriodChange={setPeriod}
+            onPeriodChange={onPeriodChange}
             currency={priceCurrency}
           />
         </div>

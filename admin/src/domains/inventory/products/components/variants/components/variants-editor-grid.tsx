@@ -13,6 +13,7 @@ import {
   SELECTABLE_COLUMNS,
 } from "../config";
 import type {
+  IVariantEditorInput,
   IVariantEditorRow,
   IOptionGroup,
   VariantColumnField,
@@ -22,34 +23,10 @@ import type {
 // Types
 // ============================================================================
 
-export interface IVariantInput {
-  id: string;
-  title: string;
-  imageUrl?: string | null;
-  media?: string[] | null;
-  options?: Array<{ name: string; value: string }>;
-  // Inventory identification
-  sku?: string | null;
-  barcode?: string | null;
-  // Inventory quantities (same model as inventory table)
-  onHand?: number;
-  unavailable?: number;
-  reserved?: number;
-  // Pricing
-  price?: number;
-  compareAtPrice?: number | null;
-  costPrice?: number | null;
-  // Shipping
-  weight?: number | null;
-  weightUnit?: string;
-  length?: number | null;
-  width?: number | null;
-  height?: number | null;
-  dimensionUnit?: string;
-}
+export type IVariantInput = IVariantEditorInput;
 
 interface VariantsEditorGridProps {
-  variants: IVariantInput[];
+  variants: IVariantEditorInput[];
   onChange?: (rows: IVariantEditorRow[]) => void;
   /**
    * When provided, only these columns will be shown.
@@ -67,7 +44,7 @@ interface VariantsEditorGridProps {
 // Helpers
 // ============================================================================
 
-function extractOptionGroups(variants: IVariantInput[]): IOptionGroup[] {
+function extractOptionGroups(variants: IVariantEditorInput[]): IOptionGroup[] {
   const groupMap = new Map<string, Set<string>>();
 
   for (const variant of variants) {
@@ -85,7 +62,7 @@ function extractOptionGroups(variants: IVariantInput[]): IOptionGroup[] {
   }));
 }
 
-function variantsToRows(variants: IVariantInput[]): IVariantEditorRow[] {
+function variantsToRows(variants: IVariantEditorInput[]): IVariantEditorRow[] {
   return variants.map((v) => {
     const onHand = v.onHand ?? 0;
     const unavailable = v.unavailable ?? 0;

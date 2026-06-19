@@ -146,8 +146,8 @@ export const ProductContentTabs = ({ product }: IProductContentTabsProps) => {
       },
     });
 
-    if (result.userErrors.length > 0) {
-      message.error(result.userErrors[0].message);
+    if (result.errors.length > 0) {
+      message.error(result.errors[0].message);
       return false;
     }
 

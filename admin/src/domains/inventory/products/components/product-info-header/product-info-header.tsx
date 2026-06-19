@@ -20,7 +20,8 @@ import {
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { KPITile } from "@/ui-kit/kpi-tile";
 import { CopyableChip } from "@/ui-kit/copyable-chip";
-import { PeriodSwitch, PERIODS, type Period } from "../period-switch";
+import { PeriodSwitch } from "../period-switch";
+import { PERIODS, type Period } from "../../utils/periods";
 import { useProductEditTitleModal } from "../../modals";
 import { useHeaderStyles } from "./product-info-header.styles";
 import { UserPopoverContent, SharePopoverContent } from "./components";
@@ -93,8 +94,8 @@ export const ProductInfoHeader = ({
           },
         });
 
-        if (result.userErrors.length > 0) {
-          message.error(result.userErrors[0].message);
+        if (result.errors.length > 0) {
+          message.error(result.errors[0].message);
           return false;
         }
 

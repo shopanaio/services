@@ -1,4 +1,4 @@
-import type { ApiGenericUserError } from "@/graphql/types";
+import type { ApiGenericUserError, ApiOperationResult } from "@/graphql/types";
 
 export type ProductFormErrorField =
   | "title"
@@ -45,4 +45,36 @@ export function mapProductUserErrorsToFormErrors(
   return errors
     .map((error) => mapProductUserErrorToFormError(error))
     .filter((error): error is ProductFormError => error !== null);
+}
+
+export interface ProductUpdateErrorSource {
+  userErrors: ApiGenericUserError[];
+  operationResults: ApiOperationResult[];
+}
+
+function formatOperationType(type: ApiOperationResult["type"]): string {
+  return type
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+export function normalizeProductUpdateErrors(
+  result: ProductUpdateErrorSource,
+): ApiGenericUserError[] {
+  const errors = [...result.userErrors];
+
+  for (const operationResult of result.operationResults) {
+    errors.push(...operationResult.errors);
+
+    if (!operationResult.applied && operationResult.errors.length === 0) {
+      errors.push({
+        code: "OPERATION_NOT_APPLIED",
+        message: `${formatOperationType(operationResult.type)} was not applied.`,
+      });
+    }
+  }
+
+  return errors;
 }

@@ -1,7 +1,7 @@
 import { Typography, Flex, Tag } from "antd";
 import { createStyles } from "antd-style";
-import { formatPrice } from "../utils";
-import type { CurrencyCode } from "../types";
+import type { CurrencyCode } from "@/graphql/types";
+import { formatPrice } from "../../../utils/price-formatting";
 
 const useStyles = createStyles(() => ({
   tagSmall: {

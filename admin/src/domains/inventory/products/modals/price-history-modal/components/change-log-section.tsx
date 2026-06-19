@@ -1,6 +1,6 @@
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import { PriceTimeline } from "../../../components/pricing/components";
-import type { ApiVariantPriceConnection } from "../../../components/pricing/types";
+import type { ApiVariantPriceConnection } from "@/graphql/types";
+import { PriceTimeline } from "../../../components/pricing/components/price-timeline";
 import { useStyles } from "../price-history-modal.styles";
 
 interface IChangeLogSectionProps {

@@ -3,12 +3,16 @@ import type {
   ApiCatalogQuery,
   ApiGenericUserError,
   ApiOperationResult,
+  ApiPricingWidgetInput,
+  ApiPricingWidgetPayload,
   ApiProduct,
   ApiProductConnection,
   ApiProductCreateInput,
   ApiProductDeleteInput,
   ApiProductUpdateInput,
   ApiProductUpdateStatusInput,
+  ApiVariantConnection,
+  ApiWidgetQuery,
 } from "@/graphql/types";
 
 export interface ProductsQueryData {
@@ -34,6 +38,30 @@ export interface ProductDetailsQueryVariables {
   id: string;
   variantsFirst?: number;
   variantsAfter?: string | null;
+}
+
+export interface ProductVariantsQueryData {
+  catalogQuery: Pick<ApiCatalogQuery, "product"> & {
+    product: (Pick<ApiProduct, "id" | "variants"> & {
+      variants: ApiVariantConnection;
+    }) | null;
+  };
+}
+
+export interface ProductVariantsQueryVariables {
+  id: string;
+  first?: number;
+  after?: string | null;
+}
+
+export interface ProductPricingWidgetQueryData {
+  widgetQuery: Pick<ApiWidgetQuery, "pricing"> & {
+    pricing: ApiPricingWidgetPayload;
+  };
+}
+
+export interface ProductPricingWidgetQueryVariables {
+  input: ApiPricingWidgetInput;
 }
 
 export interface ProductCreateMutationData {
