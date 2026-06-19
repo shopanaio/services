@@ -1,7 +1,6 @@
 import { gql } from "@apollo/client";
 import {
   USER_ERROR_FRAGMENT,
-  PRODUCT_FRAGMENT,
   PRODUCT_BASIC_FRAGMENT,
   PRODUCT_OPTION_FRAGMENT,
   VARIANT_FRAGMENT,
@@ -21,12 +20,10 @@ import {
  */
 export const PRODUCT_CREATE_MUTATION = gql`
   mutation ProductCreate($input: ProductCreateInput!) {
-    inventoryMutation {
+    catalogMutation {
       productCreate(input: $input) {
         product {
-          id
-          title
-          handle
+          ...ProductBasicFields
           variants(first: 100) {
             edges {
               node {
@@ -42,6 +39,7 @@ export const PRODUCT_CREATE_MUTATION = gql`
       }
     }
   }
+  ${PRODUCT_BASIC_FRAGMENT}
   ${USER_ERROR_FRAGMENT}
 `;
 
@@ -49,9 +47,17 @@ export const PRODUCT_CREATE_MUTATION = gql`
  * Update an existing product.
  */
 export const PRODUCT_UPDATE_MUTATION = gql`
-  mutation ProductUpdate($input: ProductUpdateInput!) {
-    inventoryMutation {
-      productUpdate(input: $input) {
+  mutation ProductUpdate(
+    $productId: ID!
+    $operations: ProductUpdateInput
+    $expectedRevision: Int
+  ) {
+    catalogMutation {
+      productUpdate(
+        productId: $productId
+        operations: $operations
+        expectedRevision: $expectedRevision
+      ) {
         product {
           ...ProductBasicFields
         }
@@ -70,7 +76,7 @@ export const PRODUCT_UPDATE_MUTATION = gql`
  */
 export const PRODUCT_DELETE_MUTATION = gql`
   mutation ProductDelete($input: ProductDeleteInput!) {
-    inventoryMutation {
+    catalogMutation {
       productDelete(input: $input) {
         deletedProductId
         userErrors {
@@ -86,9 +92,9 @@ export const PRODUCT_DELETE_MUTATION = gql`
  * Publish a product.
  */
 export const PRODUCT_PUBLISH_MUTATION = gql`
-  mutation ProductPublish($input: ProductPublishInput!) {
-    inventoryMutation {
-      productPublish(input: $input) {
+  mutation ProductPublish($input: ProductUpdateStatusInput!) {
+    catalogMutation {
+      productUpdateStatus(input: $input) {
         product {
           ...ProductBasicFields
         }
@@ -112,7 +118,7 @@ export const PRODUCT_PUBLISH_MUTATION = gql`
  */
 export const PRODUCT_OPTION_CREATE_MUTATION = gql`
   mutation ProductOptionCreate($input: ProductOptionCreateInput!) {
-    inventoryMutation {
+    catalogMutation {
       productOptionCreate(input: $input) {
         product {
           id
@@ -139,6 +145,7 @@ export const PRODUCT_OPTION_CREATE_MUTATION = gql`
   }
   ${PRODUCT_OPTION_FRAGMENT}
   ${VARIANT_FRAGMENT}
+  ${FILE_FRAGMENT}
   ${USER_ERROR_FRAGMENT}
 `;
 
@@ -150,9 +157,9 @@ export const PRODUCT_OPTION_CREATE_MUTATION = gql`
  * Set media for a variant.
  */
 export const VARIANT_SET_MEDIA_MUTATION = gql`
-  mutation VariantSetMedia($input: VariantSetMediaInput!) {
-    inventoryMutation {
-      variantSetMedia(input: $input) {
+  mutation VariantSetMedia($input: VariantUpdateMediaInput!) {
+    catalogMutation {
+      variantUpdateMedia(input: $input) {
         variant {
           ...VariantFields
         }
@@ -163,6 +170,7 @@ export const VARIANT_SET_MEDIA_MUTATION = gql`
     }
   }
   ${VARIANT_FRAGMENT}
+  ${FILE_FRAGMENT}
   ${USER_ERROR_FRAGMENT}
 `;
 

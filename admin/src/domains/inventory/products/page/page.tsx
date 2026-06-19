@@ -59,14 +59,18 @@ const ProductCellRenderer = (
   const thumbnail = getProductThumbnailFile(data);
   return (
     <Flex align="center" gap="small">
-      <Image
-        src={thumbnail?.url}
-        alt={thumbnail?.altText ?? thumbnail?.originalName ?? data.title}
-        width={40}
-        height={40}
-        style={{ borderRadius: 4, objectFit: "cover" }}
-        preview={false}
-      />
+      {thumbnail ? (
+        <Image
+          src={thumbnail.url}
+          alt={thumbnail.altText ?? thumbnail.originalName ?? data.title}
+          width={40}
+          height={40}
+          style={{ borderRadius: 4, objectFit: "cover" }}
+          preview={false}
+        />
+      ) : (
+        <div style={{ width: 40, height: 40, flex: "0 0 40px" }} />
+      )}
       <Typography.Text strong>{data.title}</Typography.Text>
     </Flex>
   );

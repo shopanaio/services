@@ -15,9 +15,7 @@ export const getDefaultVariant = (product: ApiProduct): ApiVariant | null => {
 };
 
 export const getProductMediaFiles = (product: ApiProduct): ApiFile[] => {
-  const variant = getDefaultVariant(product);
-
-  return [...(variant?.media ?? [])]
+  return [...(product.media ?? [])]
     .sort((left, right) => left.sortIndex - right.sortIndex)
     .map((item) => item.file);
 };

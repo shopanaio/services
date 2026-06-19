@@ -14,6 +14,7 @@ import {
   createMockApiInventoryItemDimensions,
   createMockApiInventoryItemWeight,
   createMockApiProduct,
+  createMockApiProductMediaItem,
   createMockApiProductOption,
   createMockApiProductOptionSwatch,
   createMockApiProductOptionValue,
@@ -33,6 +34,17 @@ const createMedia = (seed: string, index: number) =>
   createMockApiVariantMediaItem({
     file: createMockApiFile({
       id: `file-${seed}-${index}`,
+      name: `${seed}-${index}.jpg`,
+      seed: `${seed}-${index}`,
+      altText: seed.replace(/-/g, " "),
+    }),
+    sortIndex: index,
+  });
+
+const createProductMedia = (seed: string, index: number) =>
+  createMockApiProductMediaItem({
+    file: createMockApiFile({
+      id: `file-product-${seed}-${index}`,
       name: `${seed}-${index}.jpg`,
       seed: `${seed}-${index}`,
       altText: seed.replace(/-/g, " "),
@@ -500,6 +512,9 @@ export const mockSimpleProduct: ApiProduct = createMockApiProduct({
       mediaSeed: "tshirt",
     }),
   ],
+  media: Array.from({ length: 5 }, (_, index) =>
+    createProductMedia("tshirt-product", index),
+  ),
   options: [],
   categories: detailProductCategories,
   tags: detailProductTags,
@@ -617,6 +632,9 @@ export const mockVariableProduct: ApiProduct = createMockApiProduct({
       stock: 3,
     }),
   ],
+  media: Array.from({ length: 8 }, (_, index) =>
+    createProductMedia(`${VARIABLE_PRODUCT_ID}-product`, index),
+  ),
   options: mockVariableProductOptions,
   categories: detailProductCategories,
   tags: detailProductTags,
@@ -648,6 +666,7 @@ export const mockDraftProduct: ApiProduct = createMockApiProduct({
       mediaCount: 0,
     }),
   ],
+  media: [],
   options: [],
   categories: detailProductCategories,
   tags: detailProductTags,
@@ -677,6 +696,9 @@ export const mockArchivedProduct: ApiProduct = createMockApiProduct({
       mediaSeed: "tshirt",
     }),
   ],
+  media: Array.from({ length: 3 }, (_, index) =>
+    createProductMedia("archived-product", index),
+  ),
   options: [],
 });
 

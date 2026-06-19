@@ -20,6 +20,7 @@ import {
   type ApiProductConnection,
   type ApiProductFeature,
   type ApiProductFeatureValue,
+  type ApiProductMediaItem,
   type ApiProductOption,
   type ApiProductOptionSwatch,
   type ApiProductOptionValue,
@@ -157,6 +158,15 @@ export const createMockApiVariantMediaItem = (params: {
   sortIndex?: number;
 }): ApiVariantMediaItem => ({
   __typename: "VariantMediaItem",
+  file: params.file,
+  sortIndex: params.sortIndex ?? 0,
+});
+
+export const createMockApiProductMediaItem = (params: {
+  file: ApiFile;
+  sortIndex?: number;
+}): ApiProductMediaItem => ({
+  __typename: "ProductMediaItem",
   file: params.file,
   sortIndex: params.sortIndex ?? 0,
 });
@@ -478,6 +488,7 @@ export const createMockApiProduct = (params: {
   excerpt?: ApiRichText | null;
   seo?: ApiProductSeo | null;
   variants: ApiVariant[];
+  media?: ApiProductMediaItem[];
   options: ApiProductOption[];
   categories?: ApiCategory[];
   tags?: ApiTag[];
@@ -505,6 +516,7 @@ export const createMockApiProduct = (params: {
     features: params.features ?? [],
     categories: params.categories ?? [],
     tags: params.tags ?? [],
+    media: params.media ?? [],
     options: params.options,
     variants: createMockApiVariantConnection(params.variants),
     variantsCount: params.variants.length,

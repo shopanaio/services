@@ -61,7 +61,7 @@ export function useCreateProduct(): UseCreateProductReturn {
 
   const [createProductMutation] = useMutation<
     {
-      inventoryMutation: {
+      catalogMutation: {
         productCreate: {
           product: ApiProduct | null;
           userErrors: ApiGenericUserError[];
@@ -86,7 +86,7 @@ export function useCreateProduct(): UseCreateProductReturn {
         });
 
         const createPayload =
-          createResult.data?.inventoryMutation.productCreate;
+          createResult.data?.catalogMutation.productCreate;
 
         if (createPayload?.userErrors && createPayload.userErrors.length > 0) {
           return {

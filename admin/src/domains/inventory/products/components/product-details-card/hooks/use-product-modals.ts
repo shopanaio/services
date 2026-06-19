@@ -14,9 +14,8 @@ import {
   type IEditSeoModalPayload,
   type IEditVariantsModalPayload,
 } from "../../../modals";
-import type { ApiProduct } from "@/graphql/types";
+import type { ApiProduct, ApiProductUpdateInput } from "@/graphql/types";
 import {
-  getDefaultVariant,
   getProductMediaFiles,
   getProductVariants,
 } from "../../../utils/api-product-display";
@@ -36,18 +35,25 @@ export const useProductModals = (product: ApiProduct) => {
   }, [product.id, openProductModal]);
 
   const handleEditMedia = useCallback(() => {
-    const defaultVariant = getDefaultVariant(product);
     const mediaFiles = getProductMediaFiles(product);
 
     openEditMediaModal({
       productId: product.id,
-      variantId: defaultVariant?.id,
       featured: mediaFiles[0] ?? null,
       gallery: mediaFiles,
       onSave: (
         media: Parameters<NonNullable<IEditMediaModalPayload["onSave"]>>[0],
       ) => {
-        console.log("Saved media:", media);
+        const operations: ApiProductUpdateInput = {
+          media: {
+            fileIds: media.gallery.map((file) => file.id),
+          },
+        };
+
+        console.log("Saved product media:", {
+          productId: product.id,
+          operations,
+        });
       },
     });
   }, [product, openEditMediaModal]);

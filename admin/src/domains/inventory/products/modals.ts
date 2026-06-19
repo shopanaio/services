@@ -142,7 +142,6 @@ export interface IEditVariantInventoryModalPayload extends IModalStackPayload {
 
 export interface IEditMediaModalPayload extends IModalStackPayload {
   productId?: string;
-  variantId?: string;
   featured: ApiFile | null;
   gallery: ApiFile[];
   onSave?: (media: {

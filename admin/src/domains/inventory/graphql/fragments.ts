@@ -26,7 +26,7 @@ export const RICH_TEXT_FRAGMENT = gql`
 export const PRODUCT_OPTION_VALUE_FRAGMENT = gql`
   fragment ProductOptionValueFields on ProductOptionValue {
     id
-    value
+    name
     slug
   }
 `;
@@ -48,23 +48,71 @@ export const PRODUCT_OPTION_FRAGMENT = gql`
 // Selected option fragment (for variants)
 export const SELECTED_OPTION_FRAGMENT = gql`
   fragment SelectedOptionFields on SelectedOption {
-    name
-    value
+    optionId
+    optionValueId
+  }
+`;
+
+// File fragment for media uploads and product/variant media.
+export const FILE_FRAGMENT = gql`
+  fragment FileFields on File {
+    id
+    url
+    originalName
+    ext
+    mimeType
+    sizeBytes
+    provider
+    isProcessed
+    altText
+    createdAt
+    updatedAt
+    deletedAt
+    deletionState
+    dimensions {
+      width
+      height
+    }
+    durationMs
+    externalData {
+      externalId
+      providerMeta
+    }
+    meta
+    s3Data {
+      bucketId
+      etag
+      objectKey
+      storageClass
+    }
+    sourceUrl
+    usage {
+      totalCount
+      fileActive
+      byEntity {
+        entityType
+        count
+      }
+    }
   }
 `;
 
 // Variant media item fragment
 export const VARIANT_MEDIA_ITEM_FRAGMENT = gql`
   fragment VariantMediaItemFields on VariantMediaItem {
-    id
-    position
+    sortIndex
     file {
-      id
-      url
-      name
-      size
-      mimeType
-      altText
+      ...FileFields
+    }
+  }
+`;
+
+// Product media item fragment
+export const PRODUCT_MEDIA_ITEM_FRAGMENT = gql`
+  fragment ProductMediaItemFields on ProductMediaItem {
+    sortIndex
+    file {
+      ...FileFields
     }
   }
 `;
@@ -74,7 +122,7 @@ export const VARIANT_BASIC_FRAGMENT = gql`
   fragment VariantBasicFields on Variant {
     id
     handle
-    sku
+    title
     isDefault
     selectedOptions {
       ...SelectedOptionFields
@@ -88,7 +136,7 @@ export const VARIANT_FRAGMENT = gql`
   fragment VariantFields on Variant {
     id
     handle
-    sku
+    title
     isDefault
     selectedOptions {
       ...SelectedOptionFields
@@ -111,7 +159,12 @@ export const PRODUCT_BASIC_FRAGMENT = gql`
     publishedAt
     createdAt
     updatedAt
+    media {
+      ...ProductMediaItemFields
+    }
   }
+  ${PRODUCT_MEDIA_ITEM_FRAGMENT}
+  ${FILE_FRAGMENT}
 `;
 
 // Product fragment - full with variants and options
@@ -125,8 +178,15 @@ export const PRODUCT_FRAGMENT = gql`
     excerpt {
       ...RichTextFields
     }
-    seoTitle
-    seoDescription
+    seo {
+      seoTitle
+      seoDescription
+      ogTitle
+      ogDescription
+      ogImage {
+        ...FileFields
+      }
+    }
     createdAt
     updatedAt
     description {
@@ -134,6 +194,9 @@ export const PRODUCT_FRAGMENT = gql`
     }
     options {
       ...ProductOptionFields
+    }
+    media {
+      ...ProductMediaItemFields
     }
     variants(first: 100) {
       edges {
@@ -147,17 +210,7 @@ export const PRODUCT_FRAGMENT = gql`
   }
   ${RICH_TEXT_FRAGMENT}
   ${PRODUCT_OPTION_FRAGMENT}
+  ${PRODUCT_MEDIA_ITEM_FRAGMENT}
   ${VARIANT_FRAGMENT}
-`;
-
-// File fragment for media uploads
-export const FILE_FRAGMENT = gql`
-  fragment FileFields on File {
-    id
-    url
-    name
-    size
-    mimeType
-    altText
-  }
+  ${FILE_FRAGMENT}
 `;

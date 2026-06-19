@@ -10,6 +10,7 @@ import {
   createMockApiProductConnection,
   createMockApiProductFeature,
   createMockApiProductFeatureValue,
+  createMockApiProductMediaItem,
   createMockApiVariant,
   createMockApiVariantMediaItem,
   createMockApiVariantPrice,
@@ -119,6 +120,14 @@ const createListProduct = (_: unknown, index: number): ApiProduct => {
   const category = listCategories[index % listCategories.length];
   const brand = brands[index % brands.length];
   const variantId = `variant-list-${id}`;
+  const featuredFile = createMockApiFile({
+    id: `file-list-${id}`,
+    name: `${id}.jpg`,
+    url: `https://picsum.photos/seed/${id}/40/40`,
+    width: 40,
+    height: 40,
+    altText: title,
+  });
 
   const variant = createMockApiVariant({
     id: variantId,
@@ -152,14 +161,7 @@ const createListProduct = (_: unknown, index: number): ApiProduct => {
     }),
     media: [
       createMockApiVariantMediaItem({
-        file: createMockApiFile({
-          id: `file-list-${id}`,
-          name: `${id}.jpg`,
-          url: `https://picsum.photos/seed/${id}/40/40`,
-          width: 40,
-          height: 40,
-          altText: title,
-        }),
+        file: featuredFile,
       }),
     ],
   });
@@ -171,6 +173,11 @@ const createListProduct = (_: unknown, index: number): ApiProduct => {
     isPublished: status === "published",
     publishedAt: status === "published" ? "2024-10-01T12:00:00.000Z" : null,
     variants: [variant],
+    media: [
+      createMockApiProductMediaItem({
+        file: featuredFile,
+      }),
+    ],
     options: [],
     categories: [category],
     tags: [],
