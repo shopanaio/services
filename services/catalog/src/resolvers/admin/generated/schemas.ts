@@ -167,6 +167,7 @@ export function CategoryAddProductInputSchema(): z.ZodObject<Properties<Category
 export function CategoryCreateInputSchema(): z.ZodObject<Properties<CategoryCreateInput>> {
   return z.object({
     description: z.lazy(() => DescriptionInputSchema().nullish()),
+    excerpt: z.lazy(() => DescriptionInputSchema().nullish()),
     handle: z.string(),
     mediaFileIds: z.array(z.string()).nullish(),
     name: z.string(),
@@ -219,6 +220,7 @@ export function CategoryRebalanceInputSchema(): z.ZodObject<Properties<CategoryR
 export function CategoryUpdateInputSchema(): z.ZodObject<Properties<CategoryUpdateInput>> {
   return z.object({
     description: z.lazy(() => DescriptionInputSchema().nullish()),
+    excerpt: z.lazy(() => DescriptionInputSchema().nullish()),
     handle: z.string().nullish(),
     id: z.string(),
     mediaFileIds: z.array(z.string()).nullish(),
@@ -249,6 +251,7 @@ export function CollectionCreateInputSchema(): z.ZodObject<Properties<Collection
     defaultSort: ProductSortBySchema.nullish(),
     defaultSortDirection: SortDirectionSchema.nullish(),
     description: z.lazy(() => DescriptionInputSchema().nullish()),
+    excerpt: z.lazy(() => DescriptionInputSchema().nullish()),
     handle: z.string().nullish(),
     media: z.array(z.lazy(() => CollectionMediaInputSchema())).nullish(),
     name: z.string(),
@@ -302,6 +305,7 @@ export function CollectionUpdateInputSchema(): z.ZodObject<Properties<Collection
     defaultSort: ProductSortBySchema.nullish(),
     defaultSortDirection: SortDirectionSchema.nullish(),
     description: z.lazy(() => DescriptionInputSchema().nullish()),
+    excerpt: z.lazy(() => DescriptionInputSchema().nullish()),
     handle: z.string().nullish(),
     id: z.string(),
     media: z.array(z.lazy(() => CollectionMediaInputSchema())).nullish(),
@@ -631,13 +635,14 @@ export function ProductBulkUpdateItemSchema(): z.ZodObject<Properties<ProductBul
 export function ProductContentInputSchema(): z.ZodObject<Properties<ProductContentInput>> {
   return z.object({
     description: z.lazy(() => DescriptionInputSchema().nullish()),
-    excerpt: z.string().nullish()
+    excerpt: z.lazy(() => DescriptionInputSchema().nullish())
   })
 }
 
 export function ProductCreateInputSchema(): z.ZodObject<Properties<ProductCreateInput>> {
   return z.object({
     description: z.lazy(() => DescriptionInputSchema().nullish()),
+    excerpt: z.lazy(() => DescriptionInputSchema().nullish()),
     handle: z.string(),
     inventoryItem: z.lazy(() => InventoryItemInputSchema().nullish()),
     mediaFileIds: z.array(z.string()).nullish(),

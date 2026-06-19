@@ -313,67 +313,124 @@ export type BundlePricingTemplateUpdateInput = {
 
 export type CatalogMutation = {
   __typename?: 'CatalogMutation';
+  /** Create a new bundle group for a product */
   bundleGroupCreate: BundleGroupPayload;
+  /** Delete a bundle group */
   bundleGroupDelete: DeletePayload;
+  /** Update an existing bundle group */
   bundleGroupUpdate: BundleGroupPayload;
+  /** Create a new bundle item within a group */
   bundleItemCreate: BundleItemPayload;
+  /** Delete a bundle item */
   bundleItemDelete: DeletePayload;
+  /** Update an existing bundle item */
   bundleItemUpdate: BundleItemPayload;
+  /** Create a new bundle pricing template */
   bundlePricingTemplateCreate: BundlePricingTemplatePayload;
+  /** Delete a bundle pricing template */
   bundlePricingTemplateDelete: DeletePayload;
+  /** Update an existing bundle pricing template */
   bundlePricingTemplateUpdate: BundlePricingTemplatePayload;
+  /** Add a product to a category */
   categoryAddProduct: CategoryAddProductPayload;
+  /** Create a new category */
   categoryCreate: CategoryCreatePayload;
+  /** Delete a category */
   categoryDelete: CategoryDeletePayload;
+  /** Move a category to a new parent or position */
   categoryMove: CategoryMovePayload;
+  /** Move a product within a category */
   categoryMoveProduct: CategoryMoveProductPayload;
+  /** Rebalance category tree positions */
   categoryRebalance: CategoryRebalancePayload;
+  /** Update an existing category */
   categoryUpdate: CategoryUpdatePayload;
+  /** Update category sort order */
   categoryUpdateSort: CategoryUpdateSortPayload;
+  /** Add products to a collection */
   collectionAddProducts: CollectionAddProductsPayload;
+  /** Create a new collection */
   collectionCreate: CollectionCreatePayload;
+  /** Delete a collection */
   collectionDelete: CollectionDeletePayload;
+  /** Move a product within a collection */
   collectionMoveProduct: CollectionMoveProductPayload;
+  /** Remove products from a collection */
   collectionRemoveProducts: CollectionRemoveProductsPayload;
+  /** Update an existing collection */
   collectionUpdate: CollectionUpdatePayload;
+  /** Update collection rules for automatic product inclusion */
   collectionUpdateRules: CollectionUpdateRulesPayload;
+  /** Create a new condition within a condition group */
   conditionCreate: ConditionPayload;
+  /** Delete a condition */
   conditionDelete: DeletePayload;
+  /** Create a new condition group for a dependency rule */
   conditionGroupCreate: ConditionGroupPayload;
+  /** Delete a condition group */
   conditionGroupDelete: DeletePayload;
+  /** Update an existing condition group */
   conditionGroupUpdate: ConditionGroupPayload;
+  /** Update an existing condition */
   conditionUpdate: ConditionPayload;
+  /** Create a new action for a dependency rule */
   dependencyActionCreate: DependencyActionPayload;
+  /** Delete a dependency action */
   dependencyActionDelete: DeletePayload;
+  /** Update an existing dependency action */
   dependencyActionUpdate: DependencyActionPayload;
+  /** Create a new dependency rule for a product */
   dependencyRuleCreate: DependencyRulePayload;
+  /** Delete a dependency rule */
   dependencyRuleDelete: DeletePayload;
+  /** Update an existing dependency rule */
   dependencyRuleUpdate: DependencyRulePayload;
+  /** Create a new facet */
   facetCreate: FacetCreatePayload;
+  /** Delete a facet */
   facetDelete: FacetDeletePayload;
+  /** Create a new facet group */
   facetGroupCreate: FacetGroupCreatePayload;
+  /** Delete a facet group */
   facetGroupDelete: FacetGroupDeletePayload;
+  /** Update an existing facet group */
   facetGroupUpdate: FacetGroupUpdatePayload;
+  /** Create a new facet swatch */
   facetSwatchCreate: FacetSwatchCreatePayload;
+  /** Delete a facet swatch */
   facetSwatchDelete: FacetSwatchDeletePayload;
+  /** Update an existing facet swatch */
   facetSwatchUpdate: FacetSwatchUpdatePayload;
+  /** Update an existing facet */
   facetUpdate: FacetUpdatePayload;
+  /** Create a new facet value */
   facetValueCreate: FacetValueCreatePayload;
+  /** Delete a facet value */
   facetValueDelete: FacetValueDeletePayload;
+  /** Update an existing facet value */
   facetValueUpdate: FacetValueUpdatePayload;
   /**
    * Start async bulk update.
    * Requires X-Idempotency-Key header.
    */
   productBulkUpdate: ProductBulkUpdatePayload;
+  /** Create a new product */
   productCreate: ProductCreatePayload;
+  /** Delete an existing product */
   productDelete: ProductDeletePayload;
+  /** Create a new product feature */
   productFeatureCreate: ProductFeatureCreatePayload;
+  /** Delete a product feature */
   productFeatureDelete: ProductFeatureDeletePayload;
+  /** Update an existing product feature */
   productFeatureUpdate: ProductFeatureUpdatePayload;
+  /** Sync all product features (complete replace operation) */
   productFeaturesSync: ProductFeaturesSyncPayload;
+  /** Create a new product option (e.g., Size, Color) */
   productOptionCreate: ProductOptionCreatePayload;
+  /** Delete a product option */
   productOptionDelete: ProductOptionDeletePayload;
+  /** Update an existing product option */
   productOptionUpdate: ProductOptionUpdatePayload;
   /**
    * Sync all product options. This is a complete replace operation.
@@ -386,14 +443,23 @@ export type CatalogMutation = {
    * Supports product and variant updates in a single request.
    */
   productUpdate: ProductUpdatePayload;
+  /** Update product status (active, draft, archived) */
   productUpdateStatus: ProductUpdateStatusPayload;
+  /** Create a new tag */
   tagCreate: TagCreatePayload;
+  /** Delete a tag */
   tagDelete: TagDeletePayload;
+  /** Update an existing tag */
   tagUpdate: TagUpdatePayload;
+  /** Create a new variant for a product */
   variantCreate: VariantCreatePayload;
+  /** Delete a variant */
   variantDelete: VariantDeletePayload;
+  /** Update media attachments for a variant */
   variantUpdateMedia: VariantUpdateMediaPayload;
+  /** Update variant option values */
   variantUpdateOptions: VariantUpdateOptionsPayload;
+  /** Update variant pricing information */
   variantUpdatePricing: VariantUpdatePricingPayload;
 };
 
@@ -760,21 +826,33 @@ export type CatalogQuery = {
   categories: CategoryConnection;
   /** Get a category by ID */
   category: Maybe<Category>;
+  /** Get a collection by ID */
   collection: Maybe<Collection>;
+  /** Get a collection by its handle */
   collectionByHandle: Maybe<Collection>;
+  /** Preview count of products matching collection rules */
   collectionRulesPreviewCount: Scalars['Int']['output'];
+  /** Get collections with Relay-style pagination */
   collections: CollectionConnection;
   /** Get a dependency rule by ID */
   dependencyRule: Maybe<DependencyRule>;
   /** Get all dependency rules for a product */
   dependencyRules: Array<DependencyRule>;
+  /** Get a facet by ID */
   facet: Maybe<Facet>;
+  /** Get a facet group by ID */
   facetGroup: Maybe<FacetGroup>;
+  /** Get all facet groups */
   facetGroups: Array<FacetGroup>;
+  /** Get a facet swatch by ID */
   facetSwatch: Maybe<FacetSwatch>;
+  /** Get all facet swatches */
   facetSwatches: Array<FacetSwatch>;
+  /** Get a facet value by ID */
   facetValue: Maybe<FacetValue>;
+  /** Get all facet values for a specific facet */
   facetValues: Array<FacetValue>;
+  /** Get all facets */
   facets: Array<Facet>;
   /** Get a node by its global ID */
   node: Maybe<Node>;
@@ -965,6 +1043,8 @@ export type Category = Node & {
   depth: Scalars['Int']['output'];
   /** The category description. */
   description: Maybe<Description>;
+  /** Short category excerpt. */
+  excerpt: Maybe<Description>;
   /** The URL-friendly handle for the category. */
   handle: Scalars['String']['output'];
   /** The globally unique ID of the category. */
@@ -1028,6 +1108,8 @@ export type CategoryConnection = {
 export type CategoryCreateInput = {
   /** Optional description. */
   description?: InputMaybe<DescriptionInput>;
+  /** Optional short excerpt. */
+  excerpt?: InputMaybe<DescriptionInput>;
   /** The URL-friendly handle for the category. */
   handle: Scalars['String']['input'];
   /** File IDs for category media. */
@@ -1159,6 +1241,8 @@ export type CategoryRebalancePayload = {
 export type CategoryUpdateInput = {
   /** The category description. */
   description?: InputMaybe<DescriptionInput>;
+  /** The short category excerpt. */
+  excerpt?: InputMaybe<DescriptionInput>;
   /** The URL-friendly handle for the category. */
   handle?: InputMaybe<Scalars['String']['input']>;
   /** The ID of the category to update. */
@@ -1200,6 +1284,7 @@ export type Collection = Node & {
   defaultSort: ProductSortBy;
   defaultSortDirection: SortDirection;
   description: Maybe<Description>;
+  excerpt: Maybe<Description>;
   handle: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   isActive: Scalars['Boolean']['output'];
@@ -1248,6 +1333,7 @@ export type CollectionCreateInput = {
   defaultSort?: InputMaybe<ProductSortBy>;
   defaultSortDirection?: InputMaybe<SortDirection>;
   description?: InputMaybe<DescriptionInput>;
+  excerpt?: InputMaybe<DescriptionInput>;
   handle?: InputMaybe<Scalars['String']['input']>;
   media?: InputMaybe<Array<CollectionMediaInput>>;
   name: Scalars['String']['input'];
@@ -1352,6 +1438,7 @@ export type CollectionUpdateInput = {
   defaultSort?: InputMaybe<ProductSortBy>;
   defaultSortDirection?: InputMaybe<SortDirection>;
   description?: InputMaybe<DescriptionInput>;
+  excerpt?: InputMaybe<DescriptionInput>;
   handle?: InputMaybe<Scalars['String']['input']>;
   id: Scalars['ID']['input'];
   media?: InputMaybe<Array<CollectionMediaInput>>;
@@ -2581,6 +2668,7 @@ export enum LogicOperator {
 
 export type Mutation = {
   __typename?: 'Mutation';
+  /** Catalog mutation namespace for product, variant, category, and collection operations */
   catalogMutation: CatalogMutation;
 };
 
@@ -2675,7 +2763,7 @@ export type Product = Node & {
   /** Product description. */
   description: Maybe<Description>;
   /** Short excerpt. */
-  excerpt: Maybe<Scalars['String']['output']>;
+  excerpt: Maybe<Description>;
   /** The features of this product. */
   features: Array<ProductFeature>;
   /** The URL-friendly handle for the product. */
@@ -2786,13 +2874,15 @@ export type ProductContentInput = {
   /** Product description in multiple formats. */
   description?: InputMaybe<DescriptionInput>;
   /** Short excerpt. */
-  excerpt?: InputMaybe<Scalars['String']['input']>;
+  excerpt?: InputMaybe<DescriptionInput>;
 };
 
 /** Input for creating a product with all its data in one request. */
 export type ProductCreateInput = {
   /** Product description. */
   description?: InputMaybe<DescriptionInput>;
+  /** Short excerpt in multiple formats. */
+  excerpt?: InputMaybe<DescriptionInput>;
   /** URL-friendly handle for the product. */
   handle: Scalars['String']['input'];
   /** Inventory tracking settings for the product. */
@@ -3369,7 +3459,9 @@ export type ProductUpdateStatusPayload = {
 
 export type Query = {
   __typename?: 'Query';
+  /** Catalog query namespace for product, variant, category, and collection operations */
   catalogQuery: CatalogQuery;
+  /** Widget query namespace for dashboard widgets */
   widgetQuery: WidgetQuery;
 };
 
@@ -4788,6 +4880,7 @@ export type CategoryResolvers<ContextType = ServiceContext, ParentType extends R
   deletedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   depth?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['Description']>, ParentType, ContextType>;
+  excerpt?: Resolver<Maybe<ResolversTypes['Description']>, ParentType, ContextType>;
   handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   isPublished?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
@@ -4891,6 +4984,7 @@ export type CollectionResolvers<ContextType = ServiceContext, ParentType extends
   defaultSort?: Resolver<ResolversTypes['ProductSortBy'], ParentType, ContextType>;
   defaultSortDirection?: Resolver<ResolversTypes['SortDirection'], ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['Description']>, ParentType, ContextType>;
+  excerpt?: Resolver<Maybe<ResolversTypes['Description']>, ParentType, ContextType>;
   handle?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   isActive?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
@@ -5263,7 +5357,7 @@ export type ProductResolvers<ContextType = ServiceContext, ParentType extends Re
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   deletedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['Description']>, ParentType, ContextType>;
-  excerpt?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  excerpt?: Resolver<Maybe<ResolversTypes['Description']>, ParentType, ContextType>;
   features?: Resolver<Array<ResolversTypes['ProductFeature']>, ParentType, ContextType>;
   handle?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
