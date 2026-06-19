@@ -72,6 +72,7 @@ export function CompleteProfileForm({
             render={({ field }) => (
               <Input
                 {...field}
+                data-testid="complete-profile-first-name-input"
                 placeholder="First name"
                 size="large"
                 disabled={isLoading}
@@ -90,6 +91,7 @@ export function CompleteProfileForm({
             render={({ field }) => (
               <Input
                 {...field}
+                data-testid="complete-profile-last-name-input"
                 placeholder="Last name"
                 size="large"
                 disabled={isLoading}
@@ -100,6 +102,7 @@ export function CompleteProfileForm({
       </div>
 
       <Button
+        data-testid="complete-profile-submit-button"
         type="primary"
         htmlType="submit"
         size="large"
