@@ -1,212 +1,276 @@
-# Plan: Product Raw API Contracts And Mock Data Migration
+# Plan: Product API Integration And Raw API Contract Migration
 
 ## Goal
 
-Move the Admin product UI away from legacy mock-only product contracts and make product screens consume raw generated API types directly:
+Finish the Admin product UI migration from mock-only contracts to the current GraphQL Admin API contract.
+
+The product UI must consume generated GraphQL API shapes directly:
 
 - `ApiProduct`
 - `ApiVariant`
-- `ApiCategory` after the required Admin frontend codegen synchronization with the current supergraph
+- `ApiCategory`
+- `ApiTag`
+- related nested API types from `@/graphql/types`
 
-The product mock data must be reshaped to match the API response shape so UI components can be developed against the same object structure returned by GraphQL. The migration must not introduce product output mappers such as `toProductListItem`, `toProductDetailsView`, or mock-to-API adapters.
+The migration must not introduce product output view models such as `ProductListItem`, `ProductDetailsView`, `toProductListItem`, `toProductDetailsView`, or mock-to-API adapters. UI-local row and form models are allowed only inside editor, picker, and modal boundaries where the UI needs editable draft state.
 
-## Required Outcome
+This plan supersedes older product list/create integration plans when they conflict with `knowledge/vault/patterns/admin-graphql-layer.md`.
 
-- Product list mock data is `ApiProduct[]` or `ApiProductConnection`.
-- Product details mock data passes `ApiProduct` into the details UI.
-- Variant props use `ApiVariant` and API nested fields directly.
-- Category props use generated `ApiCategory` directly after Phase 0 regenerates Admin frontend GraphQL types from the current supergraph.
-- By the final migration state, product UI no longer imports legacy contracts from `@/mocks/products/types`, including category contracts.
-- Legacy mock fields such as `slug`, `status`, `price`, `gallery`, `weightUnit`, `dimensionUnit`, `isVariableProduct`, and `options[].title` are removed from product component contracts.
-- UI formatting can use small display helpers, but these helpers must not produce separate view models.
+## Refreshed Repository Baseline
 
-## Repository Context
+This baseline was refreshed against the current code before updating this plan.
 
-Root instructions require all project artifacts to be written in English. This plan follows that requirement.
+### Generated API Types And Current Schema
 
-The knowledge base document `knowledge/vault/patterns/admin-graphql-layer.md` requires Admin UI components to consume generated GraphQL API types directly for API-backed data. This migration follows that pattern by making product mocks and component contracts consume raw API-shaped objects without output mapping.
+`admin/src/graphql/types.ts` is no longer in the stale state described by the previous version of this plan. The current generated Admin frontend types already include:
 
-This plan covers product display/list/detail mocks, product category contracts used by product UI, and product prop contracts. Product create form input can still have a form-to-API-input preparation helper because form state is not an API response object.
-
-## Current State
-
-### Generated API Types And Schema Sync
-
-The current checked-in `admin/src/graphql/types.ts` is stale relative to `infra/federation/supergraph-admin.graphql`.
-
-Currently visible in `admin/src/graphql/types.ts`:
-
+- `ApiCatalogQuery`
+- `ApiCatalogMutation`
 - `ApiProduct`
 - `ApiProductConnection`
-- `ApiProductEdge`
-- `ApiProductOption`
-- `ApiProductOptionValue`
 - `ApiVariant`
 - `ApiVariantConnection`
-- `ApiVariantEdge`
-- `ApiVariantMediaItem`
-- `ApiVariantPrice`
-- `ApiVariantCost`
-- `ApiVariantWeight`
-- `ApiVariantDimensions`
-- `ApiPageInfo`
-- generated `WeightUnit`
-- generated `DimensionUnit`
-
-These currently visible flattened variant inventory types and fields are stale frontend generated output, not the target contract after Phase 0.
-
-Missing from the current checked-in Admin frontend generated types:
-
 - `ApiCategory`
-- `ApiCatalogQuery`
+- `ApiCategoryConnection`
 - `ApiTag`
-- current supergraph product fields such as `categories`, `tags`, `seo`, and `revision`
+- `ApiProductSeo`
+- `ApiInventoryItem`
+- `ApiProductInventoryWidget`
 
-These are not missing backend API contracts. The current `infra/federation/supergraph-admin.graphql` already exposes:
+The current product API is under the catalog namespace:
 
-- `Query.catalogQuery`
-- `CatalogQuery.product`
-- `CatalogQuery.products`
-- `CatalogQuery.category`
-- `CatalogQuery.categories`
-- `Product.categories`
-- `Product.tags`
-- `Category`
-- `Tag`
+- list/details queries: `catalogQuery.product`, `catalogQuery.products`
+- product mutations: `catalogMutation.productCreate`, `catalogMutation.productUpdate`, `catalogMutation.productDelete`, `catalogMutation.productUpdateStatus`
 
-Phase 0 must regenerate `admin/src/graphql/types.ts` from the current supergraph before product mock builders and component contracts are updated. All downstream phases must use the regenerated `ApiProduct`, `ApiVariant`, `ApiCategory`, and related types as the source of truth. Do not build new mocks against the stale checked-in generated type shape.
+Do not use `inventoryQuery.products` or `inventoryMutation.productCreate` for product UI integration.
 
-Phase 0 is a hard migration gate, not a preparatory nice-to-have. No product mock, category mock, component prop, modal payload, or picker contract in later phases should be migrated against the currently checked-in stale generated shape. If the regenerated type names differ from the names used in examples below, update the examples and implementation to the exact regenerated names before Phase 1 starts.
+The current `ApiProduct` shape includes `categories`, `tags`, `features`, `seo`, `revision`, `media`, `variants`, and `variantsCount`. The current `ApiVariant` shape includes inventory data through `variant.inventoryItem`; stale flattened variant fields such as `variant.sku`, `variant.stock`, `variant.weight`, `variant.dimensions`, `variant.cost`, and `variant.inStock` must not be used.
 
-### Product List
-
-Current files:
-
-- `admin/src/domains/inventory/products/hooks/use-products.ts`
-- `admin/src/domains/inventory/products/page/page.tsx`
-- `admin/src/mocks/products/products-list.ts`
-- `admin/src/shared/components/entity-picker-modal/configs/product-picker-config.ts`
-
-Current behavior:
-
-- `useProducts` imports `mockProductsList`.
-- `mockProductsList` uses `IProductListItem`.
-- `product-picker-config.ts` imports `mockProductsList` and `IProductListItem` from `@/mocks/products/products-list`.
-- The page renders mock-only fields:
-  - `name`
-  - `status`
-  - `inventory`
-  - `category`
-  - `brand`
-  - `image`
-- Pagination values are static.
-- Row actions do not pass a real product API id into the product details flow.
-
-### Product Details
-
-Current files:
-
-- `admin/src/domains/inventory/products/modals/product-modal/product-modal.tsx`
-- `admin/src/domains/inventory/products/components/product-details-card/product-details-card.tsx`
-- `admin/src/domains/inventory/products/components/product-details-card/types.ts`
-- `admin/src/mocks/products/data.ts`
-- `admin/src/mocks/products/product-details.ts`
-
-Current behavior:
-
-- `ProductModal` selects `mockSimpleProduct` or `mockVariableProduct`.
-- `mockSimpleProduct` and `mockVariableProduct` are legacy `IProduct`.
-- `ProductDetailsCard` receives `product: IProduct`.
-- Supplemental details are passed through `IProductDetailsMockData`.
-- `getMockVariantsTableData` already returns API-shaped `ApiVariant[]`.
-
-### Product UI Legacy Contract Usage
-
-The product UI still imports or depends on legacy mock contracts in these areas:
-
-- `ProductInfoHeader`
-- `ProductContentTabs`
-- `ProductDetailsCard`
-- `useProductModals`
-- `InventorySection`
-- `CategoriesSection`
-- `EditCategoriesModal`
-- `ProductsPage`
-- `useProducts`
-- `admin/src/domains/inventory/products/constants.ts`
-- product modal payload types in `admin/src/domains/inventory/products/modals.ts`
-
-## Data Not Available Or Derivable From Current API
-
-These values cannot be read or reliably computed after Phase 0 from the regenerated Admin `ApiProduct`, `ApiVariant`, and `ApiCategory` contracts. They must either stay in supplemental mock data, be removed from the raw API-backed UI, or wait for an API/schema addition.
-
-### Product Taxonomy And Classification
-
-- Explicit primary product category.
-- Brand as a first-class field or relation.
-
-Product categories, category hierarchy, product tags, and the product-to-tags relation are API-backed in the current supergraph and should be consumed from regenerated Admin frontend types after Phase 0. Do not keep them in supplemental mock data once `ApiCategory` and `ApiTag` are generated.
-
-### Merchandising Relations
-
-- Product groups.
-- Bundles/components that include the product.
-- Bundle groups.
-- Bundle dependency rules.
-- Product container/container id relations from the legacy mock model.
-
-### Reviews And Analytics
-
-- Review rating.
-- Review count.
-- Review breakdown by star value.
-- Views.
-- Orders.
-- Conversion.
-- Revenue trends.
-- KPI period comparison values.
-
-### Product-Level Inventory Aggregates
-
-- Available for sale.
-- On hand total.
-- Reserved total.
-- Unavailable total.
-- Available quantity change over time.
-- Low stock SKU count.
-- Out of stock SKU count.
-- Backorder SKU count.
-- Average days in low stock/out of stock/backorder states.
-- Inventory alert threshold settings.
-- Product-level stock status such as `LOW_STOCK`; variant inventory quantities such as `inventoryItem.totalAvailable` or `inventoryItem.stock` are not enough to derive threshold-based states without threshold settings.
-
-### Shipping And Fulfillment
-
-- `requiresShipping`.
-- Any explicit product-level shipping requirement flag.
-- Product-level dimensions or weight. The current API exposes physical data at variant level only.
-
-### Media Semantics
-
-- Explicit product-level featured media.
-- Explicit product gallery.
-- A deterministic product thumbnail field.
-
-The UI may choose first/default variant media by `sortIndex` as a display fallback, but that is not the same as an API-backed featured media value.
-
-### Product Lifecycle State
-
-- Full legacy status enum semantics such as `ARCHIVED`.
-
-The current API exposes `isPublished`, `publishedAt`, and `deletedAt`. It does not expose a full product lifecycle enum matching the legacy mock `EntityStatus`.
-
-## Target API Contracts
-
-### Product List Contract
-
-The list hook should expose raw connection data or raw nodes:
+`CatalogQuery.products` currently accepts Relay pagination arguments only:
 
 ```ts
+first?: number;
+after?: string;
+last?: number;
+before?: string;
+```
+
+Search, filters, and sorting are not available in the current generated product list query contract. Do not pretend those controls are server-backed until the API adds query arguments for them.
+
+### Existing Product UI State
+
+The product UI is partially migrated:
+
+- `admin/src/mocks/products/api-builders.ts` already builds generated API-shaped mocks.
+- `admin/src/mocks/products/data.ts` exports `mockSimpleProduct`, `mockVariableProduct`, `mockDraftProduct`, and `mockArchivedProduct` as `ApiProduct`.
+- `admin/src/mocks/products/products-list.ts` exports `mockProductsList: ApiProduct[]` and `mockProductsConnection: ApiProductConnection`.
+- `admin/src/mocks/products/categories.ts` exports `mockCategories: ApiCategory[]`.
+- `admin/src/domains/inventory/products/hooks/use-products.ts` returns `ApiProduct[]`, but it still imports `mockProductsList` and simulates pagination with local page numbers.
+- `admin/src/domains/inventory/products/page/page.tsx` already renders AG Grid rows as `ApiProduct`; it still relies on the mock-backed `useProducts` hook.
+- `admin/src/shared/components/entity-picker-modal/configs/product-picker-config.ts` adapts `ApiProduct` to private picker rows, but it still imports `mockProductsList` directly.
+- `admin/src/shared/components/entity-picker-modal/configs/category-picker-config.ts` already adapts `ApiCategory`.
+- `ProductModal` resolves details through `findMockProductById`, `productDetailsMockData`, and `getMockVariantsTableData`.
+- `ProductDetailsCard`, product header/content, product media, category, inventory, shipping, and variants sections mostly consume `ApiProduct`, `ApiVariant`, and `ApiCategory`.
+- `EditVariantsModal` correctly accepts `ApiVariant[]` and converts them to modal-local editable rows inside the modal.
+- `useCreateProduct` calls `catalogMutation.productCreate`, but product GraphQL documents still live in `admin/src/domains/inventory/graphql` instead of the module-local `products/graphql` layout.
+
+### Remaining Mock And Legacy Islands
+
+The following remaining mock/legacy areas are expected at this point:
+
+- Product list hook and product picker are mock-backed.
+- Product details modal is mock-backed.
+- Product details supplemental data remains mock-only for reviews, analytics, bundles, pricing templates, dependency rules, attributes, and aggregate inventory widgets.
+- Bulk editor uses `admin/src/mocks/products/bulk-editor.ts` and local mock contracts; it is a separate island unless explicitly included in the product API integration scope.
+- `admin/src/mocks/products/types.ts` still exists for legacy and bundle mocks. Do not delete it merely because the product UI migration exists. Delete or shrink it only after all active consumers are migrated.
+
+## Integration Rules
+
+Follow `knowledge/vault/patterns/admin-graphql-layer.md`.
+
+- Components must consume generated API-shaped data directly.
+- Generated API types must be imported directly from `@/graphql/types`.
+- Module barrels must not re-export generated API types.
+- Hooks may unwrap GraphQL root payloads into stable fields such as `products`, `product`, `pageInfo`, and `userErrors`.
+- Hooks must not map API output objects into product-specific output view models.
+- Mappers may convert form/editor state into API inputs and API `userErrors` into form errors.
+- Picker-local `IPickableEntity` rows are allowed only inside picker config boundaries.
+- Variant editor rows are allowed only inside the variants editor boundary.
+- Do not cast partial GraphQL query results to `ApiProduct` unless the operation selects every field that downstream components read. Either select the required fields in focused fragments or introduce operation-derived result types when operation codegen is available.
+
+## Product Media Semantics
+
+The current API exposes both product media and variant media:
+
+- `Product.media: ProductMediaItem[]`
+- `Variant.media: VariantMediaItem[]`
+
+Use `product.media` as the product gallery and product thumbnail source for product list and product details media. Use `variant.media` only for variant-specific UI, such as variant rows and variant media editing.
+
+The first product media item by `sortIndex` is the current product thumbnail display fallback. It is not a separate featured media API field. If the backend later adds explicit featured/thumbnail semantics, update `getProductThumbnailFile` and related UI helpers instead of adding a view model.
+
+## Product Status Semantics
+
+The UI may keep a local `ProductStatus` display union derived from API fields:
+
+- `published` from `product.isPublished === true`
+- `draft` from `product.isPublished === false`
+- `archived` from `product.deletedAt != null`
+
+This local display union must not reintroduce legacy `EntityStatus` or legacy mock product status fields. Active product lists should exclude soft-deleted products unless the screen intentionally renders deleted products.
+
+## Target Product Module Layout
+
+Converge the product module to:
+
+```text
+admin/src/domains/inventory/products/
+  graphql/
+    fragments.ts
+    queries.ts
+    mutations.ts
+    operation-types.ts
+    index.ts
+  hooks/
+    use-products.ts
+    use-product.ts
+    use-create-product.ts
+    use-update-product.ts
+    use-delete-product.ts
+    index.ts
+  mappers/
+    product-create.mapper.ts
+    product-errors.mapper.ts
+    index.ts
+  page/
+  modals/
+  components/
+  utils/
+```
+
+`admin/src/domains/inventory/graphql` may remain as a compatibility barrel during migration, but product-specific operation documents should live under `products/graphql`.
+
+## Target GraphQL Operations
+
+### Shared Fragments
+
+Create focused fragments under `products/graphql/fragments.ts`.
+
+Minimum shared fragments:
+
+- `UserErrorFields`
+- `FileFields`
+- `RichTextFields`
+- `ProductMediaItemFields`
+- `VariantMediaItemFields`
+- `InventoryItemFields`
+- `VariantFields`
+- `ProductOptionFields`
+- `ProductCategoryFields`
+- `ProductTagFields`
+- `ProductListFields`
+- `ProductDetailsFields`
+
+`ProductListFields` must include every field currently read by the product grid and picker:
+
+- `id`
+- `title`
+- `handle`
+- `isPublished`
+- `publishedAt`
+- `createdAt`
+- `updatedAt`
+- `deletedAt`
+- `revision`
+- `variantsCount`
+- `media { sortIndex file { ...FileFields } }`
+- `categories { id name handle isPublished productsCount media { sortIndex file { ...FileFields } } }`
+- `features { id name slug values { id name slug } }`
+- enough variant data to derive list stock/price if the list continues to display those columns
+
+`ProductDetailsFields` must include every field read by `ProductDetailsCard` and its descendants:
+
+- all product list fields
+- `description`
+- `excerpt`
+- `seo`
+- `tags`
+- `options`
+- `variants` with `selectedOptions`, `media`, `price`, and `inventoryItem`
+
+If the details screen keeps variant pagination, fetch variants through either a focused product details query with variable variant pagination or a dedicated variant query. Do not pass unrelated mock `getMockVariantsTableData` into API-backed product details.
+
+### Product List Query
+
+Use the current catalog query namespace:
+
+```graphql
+query Products($first: Int, $after: String, $last: Int, $before: String) {
+  catalogQuery {
+    products(first: $first, after: $after, last: $last, before: $before) {
+      edges {
+        cursor
+        node {
+          ...ProductListFields
+        }
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+      totalCount
+    }
+  }
+}
+```
+
+Do not add UI-only `page`, `pageSize`, `search`, `sort`, or `filters` variables to the GraphQL operation until the backend schema exposes those arguments.
+
+### Product Details Query
+
+Use:
+
+```graphql
+query ProductDetails($id: ID!, $variantsFirst: Int, $variantsAfter: String) {
+  catalogQuery {
+    product(id: $id) {
+      ...ProductDetailsFields
+    }
+  }
+}
+```
+
+If the current schema cannot parameterize nested `variants` through variables in the fragment cleanly, keep the variant connection in the query body and make the fragment cover variant node fields.
+
+### Product Mutations
+
+Move existing product mutation documents from `admin/src/domains/inventory/graphql` into `products/graphql/mutations.ts`:
+
+- `PRODUCT_CREATE_MUTATION`
+- `PRODUCT_UPDATE_MUTATION`
+- `PRODUCT_DELETE_MUTATION`
+- `PRODUCT_UPDATE_STATUS_MUTATION`
+- product option and variant media mutations when used by product edit flows
+
+Keep compatibility re-exports from `admin/src/domains/inventory/graphql` until existing imports are migrated.
+
+## Target Hook Contracts
+
+### Product List Hook
+
+`useProducts` should become API-backed:
+
+```ts
+interface UseProductsOptions {
+  first?: number;
+  after?: string | null;
+  last?: number;
+  before?: string | null;
+  skip?: boolean;
+}
+
 interface UseProductsReturn {
   products: ApiProduct[];
   connection: ApiProductConnection | null;
@@ -218,868 +282,320 @@ interface UseProductsReturn {
 }
 ```
 
-Accepted alternative for an initial mock-only step:
+The return type may use operation-derived product node types if operation codegen is introduced. It must not use a custom product output view model.
+
+### Product Details Hook
+
+Add `useProduct`:
 
 ```ts
-interface UseProductsReturn {
-  products: ApiProduct[];
-  totalCount: number;
-  pageInfo: ApiPageInfo | null;
+interface UseProductOptions {
+  id: string | null;
+  variantsFirst?: number;
+  variantsAfter?: string | null;
+  skip?: boolean;
+}
+
+interface UseProductReturn {
+  product: ApiProduct | null;
   loading: boolean;
   error: Error | null;
-  refetch: () => Promise<void>;
+  refetch: () => Promise<unknown>;
 }
 ```
 
-Do not expose `ProductListItem`, `IProductListItem`, or any mapped UI row type.
+The hook should unwrap `data.catalogQuery.product` and not expose the raw nested operation path to components.
 
-### Product Details Contract
+### Product Create Hook
+
+Keep `CreateProductInput` as a UI form input type. Convert it to `ApiProductCreateInput` in a mapper.
+
+`useCreateProduct` should return:
 
 ```ts
-interface ProductDetailsCardProps {
-  product: ApiProduct;
-  supplementalData: ProductDetailsSupplementalData;
-  variantsTableData?: {
-    variants: ApiVariant[];
-    pageInfo: ApiPageInfo;
-    totalCount: number;
-  };
-  onEditSection?: (section: string) => void;
-  onVariantsPageChange?: (direction: "next" | "prev") => void;
+interface UseCreateProductReturn {
+  createProduct: (input: CreateProductInput) => Promise<{
+    product: ApiProduct | null;
+    userErrors: ApiGenericUserError[];
+  }>;
+  loading: boolean;
+  error: Error | null;
+  reset: () => void;
 }
 ```
 
-`ProductDetailsSupplementalData` is allowed only for data that is not part of `ApiProduct` yet:
-
-- reviews
-- bundle references
-- pricing templates
-- dependency rules
-- inventory widget aggregate
-- attributes if the API does not expose the exact data
-- explicit primary category only if the API does not expose this semantic separately from `product.categories`
-
-### Product Modal Payload Contract
-
-```ts
-interface IProductModalPayload extends IModalStackPayload {
-  entityId: string;
-  mode?: "view" | "edit";
-}
-```
-
-Do not pass legacy product objects through modal payloads. The modal should resolve or select an `ApiProduct` by id from mock API-shaped data or a future GraphQL hook.
-
-### AI Writer Payload Contract
-
-The AI writer modal should receive the full raw `ApiProduct`, not legacy `IProduct`. It may also receive supplemental attribute labels only for data that is not available from the generated API fields.
-
-```ts
-interface IProductAIWriterModalPayload extends IModalStackPayload {
-  product: ApiProduct;
-  supplementalAttributes?: IAttributeRow[];
-  onApply?: (values: {
-    description?: RenderedContent;
-    excerpt?: RenderedContent;
-  }) => void;
-}
-```
-
-AI context reading rules:
-
-- `productId`: `product.id`
-- `title`: `product.title`
-- `handle`: `product.handle ?? null`
-- `categoryNames`: `product.categories.map((category) => category.name)` after Phase 0
-- `attributeLabels`: from `product.features` when the API exposes the needed labels, otherwise from `supplementalAttributes`
-- `price`: from the default/first variant `price.amountMinor` and `price.currency`, not `product.price`
-
-Do not read or pass legacy AI writer fields such as `product.primaryCategory`, `product.categories[].title`, `product.attributes`, or `product.price`.
-
-### Product Info Header Props
-
-```ts
-interface ProductInfoHeaderProps {
-  product: ApiProduct;
-  kpiData?: IKPIData;
-}
-```
-
-Header rendering rules:
-
-- title: `product.title`
-- handle/storefront path: `product.handle`
-- id chip: `product.id`
-- published state: `product.isPublished`
-- publish/update date: `product.publishedAt` or `product.updatedAt`
-- sku: from default/first variant, not `product.sku`
-- revenue fallback: from default/first variant `price.amountMinor`, not `product.price`
-
-### Product Content Props
-
-```ts
-interface ProductContentTabsProps {
-  product: ApiProduct;
-}
-```
-
-Rendering rules:
-
-- description HTML: `product.description?.html`
-- description JSON: `product.description?.json`
-- excerpt: `product.excerpt`
-- no legacy `slug` field
-
-### Product Media Props
-
-Preferred raw contract:
-
-```ts
-interface MediaSectionProps {
-  product: ApiProduct;
-  onEdit: () => void;
-}
-```
-
-Rendering rules:
-
-- Find the default variant from `product.variants.edges`.
-- If no default variant exists, use the first variant edge.
-- Use `variant.media`.
-- Sort media by `sortIndex`.
-- Render `media.file` directly.
-
-Do not pass `product.gallery`.
-
-### Product Options Props
-
-```ts
-interface OptionsSectionProps {
-  options: ApiProductOption[];
-  onEdit?: () => void;
-}
-```
-
-This section already mostly follows raw API types. Keep it that way.
-
-### Variants Table Props
-
-```ts
-interface VariantsTableSectionProps {
-  variants: ApiVariant[];
-  productOptions: ApiProductOption[];
-  pageInfo: ApiPageInfo;
-  totalCount: number;
-  formatPrice: (amountMinor: number) => string;
-  onEdit?: () => void;
-  onPageChange?: (direction: "next" | "prev") => void;
-}
-```
-
-Rendering rules:
-
-- title: `variant.title ?? variant.handle`
-- sku: `variant.inventoryItem?.sku`
-- price: `variant.price?.amountMinor`
-- compare-at price: `variant.price?.compareAtMinor`
-- cost: `variant.inventoryItem?.unitCost?.amountMinor`
-- stock status: from `variant.inventoryItem?.stock` or `variant.inventoryItem?.totalAvailable`, not legacy product-level inventory fields
-- weight: `variant.inventoryItem?.weight?.weightGrams` in grams
-- dimensions: `variant.inventoryItem?.dimensions` in millimeters (`lengthMm`, `widthMm`, `heightMm`)
-- media: `variant.media[].file`
-- options: resolve `variant.selectedOptions` ids through `productOptions` for display labels
-
-Do not pass legacy `IProductVariant`.
-Do not read stale flattened inventory fields from `ApiVariant`, including `variant.sku`, `variant.stock`, `variant.weight`, `variant.dimensions`, `variant.cost`, or `variant.inStock`.
-Do not render raw selected option ids such as `optionId:optionValueId`; `SelectedOption` contains ids only, not display names.
-
-### Inventory Props
-
-Preferred raw contract:
-
-```ts
-interface InventorySectionProps {
-  product: ApiProduct;
-  stats: ProductInventoryWidget;
-  onEdit?: () => void;
-}
-```
-
-Rendering rules:
-
-- Use `product.variants.edges[].node.inventoryItem?.stock` and `product.variants.edges[].node.inventoryItem?.totalAvailable` for variant-level stock data after Phase 0.
-- Use `ProductInventoryWidget` only for aggregate mock metrics not available on `ApiProduct`.
-- Edit variants modal should receive data derived from `ApiVariant` directly or be changed to accept `ApiVariant[]`.
-
-### Shipping Props
-
-Preferred raw contract:
-
-```ts
-interface ShippingSectionProps {
-  variant: ApiVariant | null;
-  onEdit: () => void;
-}
-```
-
-Rendering rules:
-
-- weight: `variant.inventoryItem?.weight?.weightGrams`, displayed as grams
-- dimensions: `variant.inventoryItem?.dimensions.lengthMm`, `variant.inventoryItem?.dimensions.widthMm`, `variant.inventoryItem?.dimensions.heightMm`, displayed as millimeters
-- remove `weightUnit`, `dimensionUnit`, `requiresShipping` from product-level props unless the API adds those fields
-
-### Category Props
-
-Target contract after Phase 0 regenerates Admin frontend types:
-
-```ts
-interface CategoriesSectionProps {
-  primaryCategory?: ApiCategory | null;
-  categories?: ApiCategory[];
-}
-```
-
-Phase 0 must make generated `ApiCategory` available from `@/graphql/types`.
-
-- Do not create `type ApiCategory = ICategory`.
-- Keep `ICategory` only as a temporary category-specific dependency until the category UI files are migrated.
-- Category UI must read generated category fields such as `name`, `handle`, `isPublished`, `parent`, `children`, `ancestors`, `media`, and `productsCount`; do not keep legacy `title`, `slug`, or `status` contracts.
-
-## Mock Data Shape
-
-### Product Mock Factory
-
-Replace legacy product factories with API-shaped factories:
-
-```ts
-const createMockApiProduct = (params: {
-  id: string;
-  title: string;
-  handle?: string | null;
-  isPublished: boolean;
-  description?: ApiDescription | null;
-  excerpt?: string | null;
-  seo?: ApiProductSeo | null;
-  variants: ApiVariant[];
-  options: ApiProductOption[];
-  categories?: ApiCategory[];
-  tags?: ApiTag[];
-  features?: ApiProductFeature[];
-  createdAt?: string;
-  updatedAt?: string;
-  publishedAt?: string | null;
-  deletedAt?: string | null;
-  revision?: number;
-}): ApiProduct => ({
-  __typename: "Product",
-  id: params.id,
-  title: params.title,
-  handle: params.handle ?? null,
-  isPublished: params.isPublished,
-  publishedAt: params.publishedAt ?? null,
-  description: params.description ?? null,
-  excerpt: params.excerpt ?? null,
-  seo: params.seo ?? null,
-  createdAt: params.createdAt ?? new Date().toISOString(),
-  updatedAt: params.updatedAt ?? new Date().toISOString(),
-  deletedAt: params.deletedAt ?? null,
-  revision: params.revision ?? 1,
-  features: params.features ?? [],
-  categories: params.categories ?? [],
-  tags: params.tags ?? [],
-  options: params.options,
-  variants: createMockApiVariantConnection(params.variants),
-  variantsCount: params.variants.length,
-});
-```
-
-### Variant Mock Factory
-
-Inventory-specific mock data must be built as `ApiInventoryItem` and attached through `variant.inventoryItem`. Do not put SKU, stock, weight, dimensions, or cost directly on the variant mock.
-
-The concrete inventory type names in this section are illustrative until Phase 0 completes. After codegen, use the exact regenerated names for inventory item, stock, weight, dimensions, and cost types from `@/graphql/types`; do not create aliases such as `type ApiInventoryItem = ...` to preserve these examples.
-
-```ts
-const createMockApiInventoryItem = (params: {
-  id: string;
-  variantId: string;
-  sku?: string | null;
-  stock?: ApiWarehouseStock[];
-  totalAvailable?: number;
-  weight?: ApiInventoryItemWeight | null;
-  dimensions?: ApiInventoryItemDimensions | null;
-  unitCost?: ApiInventoryItemCost | null;
-  trackInventory?: boolean;
-  continueSellingWhenOutOfStock?: boolean;
-}): ApiInventoryItem => ({
-  __typename: "InventoryItem",
-  id: params.id,
-  variantId: params.variantId,
-  sku: params.sku ?? null,
-  stock: params.stock ?? [],
-  totalAvailable: params.totalAvailable ?? 0,
-  weight: params.weight ?? null,
-  dimensions: params.dimensions ?? null,
-  unitCost: params.unitCost ?? null,
-  trackInventory: params.trackInventory ?? true,
-  continueSellingWhenOutOfStock:
-    params.continueSellingWhenOutOfStock ?? false,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-});
-```
-
-```ts
-const createMockApiVariant = (params: {
-  id: string;
-  handle: string;
-  title?: string | null;
-  isDefault?: boolean;
-  price?: ApiVariantPrice | null;
-  inventoryItem?: ApiInventoryItem | null;
-  media?: ApiVariantMediaItem[];
-  selectedOptions?: ApiSelectedOption[];
-  product?: ApiProduct;
-}): ApiVariant => ({
-  __typename: "Variant",
-  id: params.id,
-  handle: params.handle,
-  title: params.title ?? null,
-  isDefault: params.isDefault ?? false,
-  price: params.price ?? null,
-  inventoryItem: params.inventoryItem ?? null,
-  media: params.media ?? [],
-  selectedOptions: params.selectedOptions ?? [],
-  product: params.product ?? ({} as ApiProduct),
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-  deletedAt: null,
-  externalId: null,
-  externalSystem: null,
-  priceHistory: createEmptyVariantPriceConnection(),
-});
-```
-
-After creating the product, set each variant `product` reference to the containing `ApiProduct` if needed by the UI. If this creates circular mock objects that are awkward to inspect, keep `product: productRef` minimal but still typed as `ApiProduct`.
-
-### Product Connection Mock
-
-```ts
-const createMockApiProductConnection = (
-  products: ApiProduct[],
-): ApiProductConnection => ({
-  __typename: "ProductConnection",
-  edges: products.map((product, index) => ({
-    __typename: "ProductEdge",
-    cursor: `product-cursor-${index}`,
-    node: product,
-  })),
-  pageInfo: {
-    __typename: "PageInfo",
-    hasNextPage: false,
-    hasPreviousPage: false,
-    startCursor: products.length ? "product-cursor-0" : null,
-    endCursor: products.length ? `product-cursor-${products.length - 1}` : null,
-  },
-  totalCount: products.length,
-});
-```
-
-### Category Mock Data
-
-Do not convert `mockCategories` to `ApiCategory[]` until Phase 0 regenerates Admin frontend types and `ApiCategory` exists in `@/graphql/types`.
-
-After Phase 0:
-
-- Replace `ICategory` imports in product UI.
-- Convert `mockCategories` to `ApiCategory[]`.
-- Convert `mockHierarchy` to use `ApiCategory["id"]` keys.
-- Update category picker config to consume raw category objects directly.
-- Use generated category field names: `name`, `handle`, `isPublished`, `parent`, `children`, `ancestors`, `media`, and `productsCount`.
-
-## Display Helper Rules
-
-Allowed helpers:
-
-- `getDefaultVariant(product: ApiProduct): ApiVariant | null`
-- `getProductMediaFiles(product: ApiProduct): ApiFile[]`
-- `getProductPublishedStatus(product: ApiProduct): "published" | "draft"`
-- `getProductSeo(product: ApiProduct): ApiProductSeo | null`
-- `getCategoryDisplayName(category: ApiCategory): string`
-- `getSelectedOptionLabels(productOptions: ApiProductOption[], variant: ApiVariant): string[]`
-- `getAIWriterAttributeLabels(product: ApiProduct, supplementalAttributes?: IAttributeRow[]): string[]`
-- `formatApiDate(value: string | null | undefined): string`
-- `formatMinorAmount(value: number | string | bigint | null | undefined): string`
-- `formatVariantWeight(weight: NonNullable<ApiVariant["inventoryItem"]>["weight"]): string` after Phase 0, adjusted to the exact regenerated type shape
-- `formatVariantDimensions(dimensions: NonNullable<ApiVariant["inventoryItem"]>["dimensions"]): string` after Phase 0, adjusted to the exact regenerated type shape
-
-Connection helpers must tolerate the exact regenerated connection nullability. If generated edges, nodes, or nested fields are nullable, helpers must guard those values at the display boundary instead of tightening the API contract locally.
-
-Not allowed:
-
-- `toProductListItem(product)`
-- `toProductDetailsView(product)`
-- `mapMockProductToApi(product)`
-- `mapApiProductToMockProduct(product)`
-- Any helper returning a new object that becomes the component prop contract
-
-Small helpers can return primitives or API nested values. They must not create view models.
+The hook must declare freshness behavior for product list/detail screens. Use `refetchQueries` for the first API-backed integration unless cache shape is already stable.
 
 ## Detailed Migration Phases
 
-### Phase 0: Regenerate Admin GraphQL Types From Current Supergraph
+### Phase 0: Baseline Verification And Plan Alignment
 
-1. Treat the checked-in `admin/src/graphql/types.ts` as stale until this phase completes.
-2. Regenerate Admin frontend GraphQL types from `infra/federation/supergraph-admin.graphql` through the approved project codegen workflow.
-3. Confirm regenerated `admin/src/graphql/types.ts` includes:
-   - `ApiCatalogQuery`
-   - `ApiProduct`
-   - `ApiProductConnection`
-   - `ApiVariant`
-   - `ApiVariantConnection`
-   - `ApiCategory`
-   - `ApiCategoryConnection`
-   - `ApiTag`
-   - `ApiProductSeo`
-4. Confirm regenerated `ApiProduct` exposes the current supergraph product shape:
-   - `categories`
-   - `tags`
-   - `seo`
-   - `revision`
-5. Confirm regenerated `ApiVariant` exposes the current supergraph variant and inventory shape. The current supergraph places SKU, stock, dimensions, weight, and unit cost under `variant.inventoryItem`; all later phases must use `variant.inventoryItem` instead of stale flattened fields such as `variant.sku`, `variant.stock`, `variant.weight`, `variant.dimensions`, `variant.cost`, or `variant.inStock`.
-6. Do not add local fake category, tag, SEO, or inventory API types.
-7. Update every mock builder and target contract in this plan to the regenerated type shape before implementing Phase 1.
+1. Treat the current generated `admin/src/graphql/types.ts` as the source of truth unless a schema drift is found.
+2. Verify that generated types include `ApiCatalogQuery`, `ApiProduct`, `ApiProductConnection`, `ApiVariant`, `ApiCategory`, `ApiTag`, `ApiProductSeo`, and `ApiInventoryItem`.
+3. Verify that `ApiProduct` includes `media`, `categories`, `tags`, `features`, `seo`, `revision`, and `variantsCount`.
+4. Verify that `ApiVariant` exposes inventory through `inventoryItem`.
+5. Do not regenerate `admin/src/graphql/types.ts` unless this verification fails or the supergraph has intentionally changed.
+6. If codegen is required, run it through the approved project workflow. Do not hand-edit generated files.
 
 Exit criteria:
 
-- Product, variant, category, tag, SEO, and catalog query types are generated from the current supergraph.
-- The product and variant migration can start from current generated API types, not stale checked-in types.
-- Category and tag data are no longer treated as unavailable API data.
-- `ApiVariant` no longer exposes stale flattened inventory fields such as `sku`, `stock`, `weight`, `dimensions`, `cost`, or `inStock`; inventory fields are available through `variant.inventoryItem`.
-- No local fake API aliases or interfaces are added for category, tag, SEO, or inventory contracts.
+- The plan is aligned with the current generated schema.
+- Product operations are confirmed to use `catalogQuery` and `catalogMutation`.
+- Product media is confirmed to come from `Product.media` for product-level gallery/thumbnail display.
 
-Static checks:
-
-```text
-rg "export type ApiCatalogQuery|export type ApiCategory|export type ApiCategoryConnection|export type ApiTag|export type ApiProductSeo" admin/src/graphql/types.ts
-rg "inventoryItem" admin/src/graphql/types.ts
-rg "sku\\?:|stock:|weight\\?:|dimensions\\?:|cost\\?:|inStock:" admin/src/graphql/types.ts
-```
-
-The last command must not match fields inside `ApiVariant`; any matches must be verified as non-variant types or removed by the regenerated schema output.
-
-### Phase 1: Add Raw API Product Mock Builders
+### Phase 1: Create Product-Local GraphQL Module
 
 Files:
 
-- `admin/src/mocks/products/data.ts`
-- `admin/src/mocks/products/product-details.ts`
-- optionally `admin/src/mocks/products/api-builders.ts`
+- create `admin/src/domains/inventory/products/graphql/fragments.ts`
+- create `admin/src/domains/inventory/products/graphql/queries.ts`
+- create `admin/src/domains/inventory/products/graphql/mutations.ts`
+- create `admin/src/domains/inventory/products/graphql/operation-types.ts`
+- create `admin/src/domains/inventory/products/graphql/index.ts`
+- update `admin/src/domains/inventory/graphql/*` as compatibility exports only
 
 Steps:
 
-1. Create API-shaped helper builders for:
-   - `ApiFile`
-   - `ApiDescription`
-   - `ApiProductOption`
-   - `ApiProductOptionValue`
-   - `ApiProductOptionSwatch`
-   - `ApiVariantMediaItem`
-   - `ApiVariantPrice`
-   - `ApiInventoryItem`
-   - `ApiInventoryItemCost`
-   - `ApiInventoryItemWeight`
-   - `ApiInventoryItemDimensions`
-   - `ApiVariant`
-   - `ApiVariantConnection`
-   - `ApiProduct`
-   - `ApiProductConnection`
-   - `ApiCategory`
-   - `ApiTag`
-2. Convert `mockSimpleProduct` to `ApiProduct`.
-3. Convert `mockVariableProduct` to `ApiProduct`.
-4. Convert `mockDraftProduct` to `ApiProduct` with `isPublished: false` and `publishedAt: null`.
-5. Do not preserve a legacy `ARCHIVED` product lifecycle state. Either remove `mockArchivedProduct` from product UI mocks, or represent it explicitly as a soft-deleted API product with `deletedAt` set to an ISO string.
-6. Exclude soft-deleted products from active list/detail mock flows unless the UI is intentionally rendering a deleted-product state.
-7. Keep `getMockVariantsTableData` returning `ApiVariant[]`, but align its variant shape with the new variant builder and put inventory data under `variant.inventoryItem`.
-8. Ensure every mock date scalar is an ISO string, not a `Date` object.
-9. Ensure money fields use API price/cost objects: sale price under `variant.price`, unit cost under `variant.inventoryItem?.unitCost`, and no product-level `price`, `oldPrice`, or `costPrice`.
-10. Ensure media lives under `variant.media`, not `product.featured` or `product.gallery`.
+1. Move or duplicate product fragments from `admin/src/domains/inventory/graphql/fragments.ts` into the product module.
+2. Add `PRODUCTS_QUERY`.
+3. Add `PRODUCT_DETAILS_QUERY`.
+4. Move product mutations into product module files.
+5. Keep non-product media fragments only if product mutations need them.
+6. Build operation response/variable types from generated schema types without re-exporting generated types.
+7. Update product hooks to import product operations from `products/graphql`.
 
 Exit criteria:
 
-- Product mock exports use explicit generated return types or `satisfies ApiProduct` so excess legacy fields are rejected.
-- Variant mock exports use explicit generated return types or `satisfies ApiVariant` so excess legacy fields are rejected.
-- No product mock object contains legacy-only fields.
-- No product mock represents `ARCHIVED` as a lifecycle status; soft deletion is represented only by `deletedAt`.
-- Mock builders use exact regenerated API type names from `@/graphql/types`; no local compatibility aliases are introduced to force old example names to compile.
+- New product GraphQL documents live under `products/graphql`.
+- `admin/src/domains/inventory/graphql` no longer owns product-specific operation definitions except compatibility re-exports.
+- No product operation references `inventoryQuery.products` or `inventoryMutation.productCreate`.
 
-### Phase 2: Replace Product List Mock Contract
+### Phase 2: Replace Mock-Backed Product List
 
 Files:
 
-- `admin/src/mocks/products/products-list.ts`
 - `admin/src/domains/inventory/products/hooks/use-products.ts`
 - `admin/src/domains/inventory/products/page/page.tsx`
 - `admin/src/shared/components/entity-picker-modal/configs/product-picker-config.ts`
 
 Steps:
 
-1. Migrate every current `IProductListItem` consumer in this phase, including the shared product picker.
-2. Export `mockProductsConnection: ApiProductConnection` or `mockProducts: ApiProduct[]`.
-3. Update `useProducts` return shape to expose `products`, `totalCount`, `pageInfo`, `loading`, `error`, and `refetch`.
-4. Update `ProductsPage` AG Grid generics to `ApiProduct`.
-5. Update product cell renderer:
-   - title from `product.title`
-   - image from first/default variant media file
-   - alt from `file.altText ?? file.originalName ?? product.title`
-6. Update status cell renderer:
-   - use `product.isPublished`
-   - display `Published` or `Draft`
-7. Replace inventory column with `variantsCount` for the first raw API migration.
-8. Remove `category` and `brand` columns until those fields exist in raw API data.
-9. Update `DataLayout.count` to use `totalCount`.
-10. Update `CursorPagination` to use `pageInfo` and local page range state.
-11. Update row action to pass the real product id:
-
-```ts
-onRowAction: (product) => push("product", { entityId: product.id, mode: "view" })
-```
-
-12. Update `product-picker-config.ts` to consume API-shaped product mocks directly:
-    - remove the `IProductListItem` import;
-    - use `ApiProduct` as the source object;
-    - derive picker title from `product.title`;
-    - derive picker image from default/first variant media;
-    - derive picker status from `product.isPublished`;
-    - remove picker-only `category` and `brand` fields until the picker intentionally consumes generated category/tag data.
-13. Delete `IProductListItem` only after both `ProductsPage` and `product-picker-config.ts` no longer import it. If any shared picker or other non-product-page consumer still imports it, keep the export temporarily and move deletion to Phase 8.
-
-Picker-local presentation types are allowed only at the generic entity picker boundary, where the picker component requires a normalized `IPickableEntity` shape. They must be built inside the picker config from raw `ApiProduct`, must not be exported as product contracts, and must not reintroduce product fields such as `category`, `brand`, `price`, or `inventory`.
+1. Replace the simulated delay and `mockProductsList` slicing in `useProducts` with Apollo `useQuery(PRODUCTS_QUERY)`.
+2. Change hook options from page/pageSize to Relay cursor variables.
+3. Return `products` from `connection.edges[].node`.
+4. Return `totalCount`, `pageInfo`, `loading`, `error`, and `refetch`.
+5. Update `ProductsPage` pagination state to store cursors and range metadata instead of page numbers.
+6. Keep AG Grid rows as `ApiProduct`.
+7. Keep product thumbnail from `getProductThumbnailFile(product)`, which reads `Product.media`.
+8. Keep category and brand columns only if the list query selects the required `categories` and `features` fields.
+9. Treat search, filters, and sort as disabled, client-only, or explicitly TODO until the backend exposes query args.
+10. Replace the product picker direct `mockProductsList` import with the same API-backed hook or a picker-specific API-backed hook.
+11. Keep picker-local `IPickableEntity` rows private to the picker config.
+12. Stop generating fake bulk editor IDs from selected API products. Either pass selected `product.id` values through to a future API-backed bulk editor or explicitly keep bulk editor out of this phase.
 
 Exit criteria:
 
-- Product list renders raw `ApiProduct`.
-- Product page does not import `@/mocks/products/products-list` types.
-- Shared product picker does not import `IProductListItem` or `@/mocks/products/products-list`.
-- No product list row type exists outside generated API types.
-- Any picker-local normalized row type is private to the picker config and is not used by product page, product hooks, or product details.
+- Product list page does not import `@/mocks/products`.
+- Product picker config does not import `@/mocks/products`.
+- Product list and picker are API-backed or use an explicitly isolated non-production mock boundary.
+- Product list rows remain generated API-shaped product data, not a custom product row model.
 
-### Phase 3: Replace Product Details Root Contract
+### Phase 3: Replace Mock-Backed Product Details
 
 Files:
 
+- `admin/src/domains/inventory/products/hooks/use-product.ts`
 - `admin/src/domains/inventory/products/modals/product-modal/product-modal.tsx`
 - `admin/src/domains/inventory/products/components/product-details-card/product-details-card.tsx`
 - `admin/src/domains/inventory/products/components/product-details-card/types.ts`
+- `admin/src/mocks/products/product-details.ts`
 
 Steps:
 
-1. Change `ProductDetailsCard` prop from `product: IProduct` to `product: ApiProduct`.
-2. Rename `IProductDetailsMockData` to `ProductDetailsSupplementalData`.
-3. Remove product-shaped fields from supplemental data.
-4. Keep only non-product API supplemental data.
-5. Change variable product checks from `product.isVariableProduct` to `product.variantsCount > 1`.
-6. Pass `product.options` directly to `OptionsSection`.
-7. Pass `product.options` to `VariantsTableSection` as `productOptions` so variant selected option ids can be displayed as names.
-8. Pass product/variant raw API data into media, inventory, shipping, and variants sections.
-9. In `ProductModal`, resolve mock product by `payload.entityId`.
-10. Remove `payload.simple` branching after the modal can resolve by id.
+1. Add `useProduct` backed by `PRODUCT_DETAILS_QUERY`.
+2. Update `ProductModal` to fetch the product by `payload.entityId`.
+3. Remove `findMockProductById` from `ProductModal`.
+4. Replace `getMockVariantsTableData` with variants from the product details query or a dedicated variant query.
+5. Keep `productDetailsMockData` only as supplemental data for data not yet exposed by `ApiProduct`.
+6. Ensure `ProductDetailsCard` and all descendants read only fields selected by `ProductDetailsFields`.
+7. Preserve existing `ProductDetailsCard` root contract as `product: ApiProduct` while the query selects the full data read by descendants.
 
 Exit criteria:
 
-- `ProductDetailsCard` accepts only `ApiProduct`.
-- Details modal can open using a real product id.
-- Legacy `IProduct` is not imported in product details root files.
+- Details modal opens from a real product id.
+- Product details root no longer receives a mock product.
+- Supplemental mock data contains only non-product API data.
+- No product details component reads fields missing from the product details query.
 
-### Phase 4: Update Header And Content Components
+### Phase 4: Harden Product Create Integration
 
 Files:
 
-- `admin/src/domains/inventory/products/components/product-info-header/types.ts`
-- `admin/src/domains/inventory/products/components/product-info-header/product-info-header.tsx`
-- `admin/src/domains/inventory/products/components/product-info-header/utils.ts`
-- `admin/src/domains/inventory/products/components/product-content-tabs/product-content-tabs.tsx`
+- `admin/src/domains/inventory/products/hooks/use-create-product.ts`
+- `admin/src/domains/inventory/products/mappers/product-create.mapper.ts`
+- `admin/src/domains/inventory/products/mappers/product-errors.mapper.ts`
+- `admin/src/domains/inventory/products/modals/create-product-modal/*`
+- compatibility import sites for `prepareProductPayload`
 
 Steps:
 
-1. Replace `IProduct` prop types with `ApiProduct`.
-2. Replace `EntityStatus` with `product.isPublished`.
-3. Update status helper to accept `ApiProduct` or `boolean`.
-4. Replace `product.slug` with `product.handle ?? product.id`.
-5. Replace `product.updatedAt.toLocaleDateString(...)` with date formatting for API string scalars.
-6. Replace `product.price` revenue fallback with first/default variant price.
-7. Replace `product.sku` with first/default variant sku.
-8. Keep `description` and `excerpt` reads directly on `ApiProduct`.
+1. Move `prepareProductPayload` out of modal utilities into `products/mappers/product-create.mapper.ts`.
+2. Keep form-only types such as `CreateProductInput` or `CreateProductFormValues` because they are not API output objects.
+3. Keep current mapping for `title`, `handle`, `description`, `mediaFileIds`, `options`, and enabled `variants`.
+4. Do not send fields the current create UI does not collect, such as status, categories, tags, pricing, or inventory.
+5. Keep `mediaFileIds` as product media input; the current API exposes product media through `Product.media`.
+6. Add a `product-errors.mapper.ts` for mapping `ApiGenericUserError` to form fields.
+7. Add `reset` to `useCreateProduct`.
+8. Add explicit list freshness behavior, initially through `refetchQueries` for `PRODUCTS_QUERY` or a caller-provided callback.
 
 Exit criteria:
 
-- Header/content imports no legacy product mock types.
-- Header/content render API scalar strings safely.
-- Header/content do not call `toLocaleDateString`, `toLocaleString`, or other `Date` methods directly on API scalar strings.
+- Product create hook imports operations from `products/graphql`.
+- Form-to-API mapping lives in `products/mappers`.
+- API user errors are returned to the modal and can be displayed at the form boundary.
+- Product list freshness after create is documented and implemented.
 
-### Phase 5: Update Media, Inventory, Shipping, Options, And Variants Sections
-
-Files:
-
-- `admin/src/domains/inventory/products/components/product-details-card/sections/media-section.tsx`
-- `admin/src/domains/inventory/products/components/product-details-card/sections/inventory-section.tsx`
-- `admin/src/domains/inventory/products/components/product-details-card/sections/shipping-section.tsx`
-- `admin/src/domains/inventory/products/components/product-details-card/sections/options-section.tsx`
-- `admin/src/domains/inventory/products/components/product-details-card/sections/variants-table-section.tsx`
-- `admin/src/domains/inventory/products/constants.ts`
-
-Steps:
-
-1. Change `MediaSection` to accept `product: ApiProduct` or `media: ApiVariantMediaItem[]`.
-2. Prefer `product: ApiProduct` if the section must select default variant media itself.
-3. Use `variant.media[].file` directly.
-4. Change `InventorySection` to accept `product: ApiProduct`.
-5. Use `product.variants.edges[].node.inventoryItem?.stock` and `product.variants.edges[].node.inventoryItem?.totalAvailable` for edit/inventory modal payloads after Phase 0.
-6. Change `ShippingSection` to accept `variant: ApiVariant | null`.
-7. Remove mock `WeightUnit` and `DimensionUnit`.
-8. Use generated units only where the API field actually contains units. For `ApiInventoryItemWeight` and `ApiInventoryItemDimensions`, display stored grams and millimeters from the exact regenerated fields.
-9. Keep `OptionsSection` on `ApiProductOption[]`.
-10. Change `VariantsTableSection` to accept `productOptions: ApiProductOption[]`.
-11. Use `getSelectedOptionLabels(productOptions, variant)` for option display.
-12. Remove any rendering that prints raw `variant.selectedOptions` ids directly.
-13. Audit `VariantsTableSection` and remove any remaining legacy assumptions.
-
-Exit criteria:
-
-- Product detail sections consume raw API product/variant nested fields.
-- Product constants do not import from `@/mocks/products/types`.
-- Product-level inventory aggregate widgets use `ProductInventoryWidget` supplemental data only for values unavailable on `ApiProduct`; they are not added to product mocks as product-level API fields.
-- Variant table, shipping, and inventory sections do not read stale flattened variant fields such as `variant.sku`, `variant.stock`, `variant.weight`, `variant.dimensions`, `variant.cost`, or `variant.inStock`.
-
-### Phase 6: Update Product Modal Payloads And Edit Flows
+### Phase 5: Convert Product Edit Flows To API Mutations
 
 Files:
 
-- `admin/src/domains/inventory/products/modals.ts`
 - `admin/src/domains/inventory/products/components/product-details-card/hooks/use-product-modals.ts`
-- `admin/src/domains/inventory/products/modals/ai-writer-modal/ai-writer-modal.tsx`
-- `admin/src/domains/inventory/products/modals/ai-writer-modal/types.ts`
-- `admin/src/domains/inventory/products/components/variants/edit-variants-modal.tsx`
-- `admin/src/domains/inventory/products/components/variants/*`
-- edit title, description, media, SEO, options, categories, tags modals as needed
+- edit title, description, media, SEO, options, categories, tags, and variants modals
+- product hooks and mutation documents added in Phase 1
 
-Subphases:
+Steps:
 
-#### Phase 6a: Modal Payload Boundary
-
-1. Replace `IProduct` payload usages with `ApiProduct` where the modal needs the product object.
-2. Prefer passing ids and raw API entities over derived payload objects.
-3. Change `useProductModals(product)` to accept `ApiProduct`.
-4. Remove product-shaped modal payload fields that duplicate API output data. Keep modal-local input state only inside the target modal.
-
-Exit criteria:
-
-- `admin/src/domains/inventory/products/modals.ts` does not import `IProduct` or other legacy product mock contracts.
-- `useProductModals` accepts `ApiProduct`.
-- Modal payloads do not pass legacy product objects.
-
-#### Phase 6b: Content, Media, And SEO Edit Flows
-
-1. For title modal:
-   - initial title from `product.title`
-   - initial handle from `product.handle`
-2. For description modal:
-   - description from `product.description?.json`
-   - excerpt from `product.excerpt`
-3. For media modal:
-   - choose default/first variant id
-   - pass media files from `variant.media`
-   - remove `featured`/`gallery` product fields
-4. For SEO modal:
-   - use `product.title`
-   - use `product.handle`
-   - use `product.seo?.seoTitle`
-   - use `product.seo?.seoDescription`
-   - use `product.seo?.ogTitle`
-   - use `product.seo?.ogDescription`
-   - use `product.seo?.ogImage`
+1. Add focused mutation hooks for product title/handle, content, media, SEO, status, category/tag assignment, and variant updates as API contracts permit.
+2. Replace `console.log` save handlers with mutation calls.
+3. Use `catalogMutation.productUpdate` for product fields supported by `ApiProductUpdateInput`.
+4. Use product media update input `media.fileIds` for product media ordering.
+5. Use existing product option and variant media mutations only where the current schema supports the edit flow.
+6. Use `inventoryMutation.inventoryItemUpdate` for inventory fields owned by inventory service when editing variant inventory data.
+7. Keep modal-local row state inside modals; do not lift editable row view models into product details components.
+8. Normalize `userErrors` in hooks or mappers.
 
 Exit criteria:
 
-- Title, description, media, and SEO edit flows initialize from raw `ApiProduct` or nested raw API fields.
-- Media edit flow does not read `product.featured` or `product.gallery`.
-- SEO edit flow does not read legacy top-level `seoTitle` or `seoDescription` product fields.
+- Edit flows no longer rely on `console.log` as their save implementation.
+- Product update flows use generated API inputs.
+- Product details refresh or cache updates are handled by hooks.
+- Editable row models stay inside modal/editor boundaries.
 
-#### Phase 6c: Variants Edit Flow
+### Phase 6: Category, Tag, And Picker Cleanup
 
-1. For variants modal:
-   - accept `ApiVariant[]` if possible
-   - otherwise build modal row data inside the modal from `ApiVariant`, not in product details card
-
-Exit criteria:
-
-- Variant edit modal input is `ApiVariant[]` or modal-local editable row state derived inside the modal.
-- Product details root does not build variant editor row view models.
-- Variant edit flow reads inventory data through `variant.inventoryItem`.
-
-#### Phase 6d: Category And Tag Edit Flows
-
-1. For categories modal:
-   - use generated `ApiCategory` from Phase 0
-   - replace `ICategory` with `ApiCategory`
-   - read category display values from `name`, `handle`, `isPublished`, and `media`
-2. For tags modal:
-   - use generated `ApiTag` from Phase 0 where tag API data is available;
-   - do not keep tag labels in product supplemental data once `product.tags` is generated.
-
-Exit criteria:
-
-- Category edit flows consume generated `ApiCategory`.
-- Tag edit flows consume generated `ApiTag` where product tag data is available.
-- Category and tag edit flows do not import legacy product mock contracts.
-
-#### Phase 6e: AI Writer Flow
-
-1. For AI writer modal:
-   - replace `IProductAIWriterModalPayload.product: IProduct` with `product: ApiProduct`;
-   - optionally pass `supplementalAttributes` when `product.features` does not contain the labels needed for the prompt;
-   - derive categories from generated `product.categories[].name`;
-   - derive attribute labels from `product.features` or `supplementalAttributes`;
-   - derive price from default/first variant `price`, not `product.price`;
-   - remove reads of `product.primaryCategory`, `product.categories[].title`, `product.attributes`, and `product.price` from `ai-writer-modal.tsx`.
-
-Exit criteria:
-
-- Product modal contracts do not expose legacy product types.
-- Product edit flows consume raw API data where the API contract exists.
-- Category edit flows consume generated `ApiCategory` from Phase 0.
-- AI writer modal receives `ApiProduct` and does not import legacy `IProduct`.
-- Each Phase 6 subphase can be verified independently before starting the next subphase.
-
-### Phase 7: Category Contract Migration
-
-This phase is required for final acceptance. It is not a backend schema-addition phase: the current supergraph already exposes `Category`, `CatalogQuery.category`, `CatalogQuery.categories`, and `Product.categories`. Phase 0 must regenerate Admin frontend types so `ApiCategory` is available here.
-
-Files affected:
+Files:
 
 - `admin/src/mocks/products/categories.ts`
-- `admin/src/domains/inventory/products/components/product-details-card/sections/categories-section.tsx`
-- `admin/src/domains/inventory/products/modals/edit-categories-modal/types.ts`
-- `admin/src/domains/inventory/products/modals/edit-categories-modal/edit-categories-modal.tsx`
-- `admin/src/domains/inventory/products/modals/edit-categories-modal/utils.ts`
-- `admin/src/shared/components/entity-picker-modal/mocks/categories-list.ts`
 - `admin/src/shared/components/entity-picker-modal/configs/category-picker-config.ts`
+- `admin/src/shared/components/entity-picker-modal/configs/product-picker-config.ts`
+- category and tag edit modals
 
 Steps:
 
-1. Convert category mocks to `ApiCategory[]`.
-2. Update category section props to `ApiCategory`.
-3. Update category tree utils to read raw `ApiCategory` fields.
-4. Update picker config to use raw `ApiCategory` objects.
-5. Replace legacy field reads:
-   - `category.title` -> `category.name`
-   - `category.slug` -> `category.handle`
-   - `category.status` -> `category.isPublished`
-   - legacy gallery fields -> `category.media[].file`
-6. Use `product.categories` as the assigned category list.
-7. Keep any explicit primary-category value in supplemental data only until the API exposes a first-class primary category semantic.
-8. Remove remaining `ICategory` imports from product UI.
+1. Keep `mockCategories: ApiCategory[]` only as temporary picker mock data until category picker is API-backed.
+2. Use generated category fields: `name`, `handle`, `isPublished`, `media`, `productsCount`, `parent`, `children`, and `ancestors`.
+3. Do not create aliases such as `type ApiCategory = ICategory`.
+4. Keep picker-local normalized rows private to picker configs.
+5. Consume `product.categories` and `product.tags` directly in product UI.
+6. Keep explicit primary category as a UI convention based on `product.categories[0]` until the API exposes first-class primary category semantics.
 
 Exit criteria:
 
-- Product category UI uses generated `ApiCategory`.
-- No local product category interface remains in product UI.
-- No implementation assumes category API is absent from the supergraph.
-- Shared category picker config consumes raw `ApiCategory` data or keeps only picker-local normalized state private to the picker boundary.
+- Product category and tag UI consume generated API types.
+- Shared product/category picker configs do not export product/category-specific view models.
+- Any remaining category mock data is API-shaped.
 
-### Phase 8: Remove Legacy Product Mock Types
+### Phase 7: Bulk Editor Boundary Decision
+
+Files:
+
+- `admin/src/domains/inventory/products/page/page.tsx`
+- `admin/src/domains/inventory/products/modals/bulk-editor-modal/*`
+- `admin/src/mocks/products/bulk-editor.ts`
+
+Steps:
+
+1. Decide whether the product API integration includes bulk editor.
+2. If it is included, migrate bulk editor inputs from `IMockProduct` to generated API-shaped products/variants and API-backed update workflows.
+3. If it is excluded, isolate it clearly as a demo/mock flow and stop mapping selected `ApiProduct` rows to fake `prod-*` ids in the product page.
+4. Keep bulk editor local row models private to the bulk editor boundary.
+
+Exit criteria:
+
+- Product page does not silently translate real selected product ids into unrelated mock ids.
+- Bulk editor is either API-backed or explicitly outside the acceptance criteria for product API integration.
+
+### Phase 8: Remove Obsolete Product Mock Contracts From Migrated Surfaces
 
 Files:
 
 - `admin/src/mocks/products/types.ts`
 - `admin/src/mocks/products/index.ts`
-- remaining imports under `admin/src/domains/inventory/products`
-- remaining imports under `admin/src/shared/components/entity-picker-modal`
+- remaining imports under migrated product UI and shared picker files
 
 Steps:
 
-1. Search for legacy imports:
-
-```text
-IProduct
-IProductVariant
-IProductListItem
-ICategory
-IMediaFile
-EntityStatus
-WeightUnit
-DimensionUnit
-```
-
-2. Remove legacy exports only after all product-domain and shared picker imports are gone.
-3. If other domains still use legacy mocks, leave the file in place but stop exporting product UI contracts from product-domain or shared picker paths.
-4. Keep unrelated bundle/category mock contracts untouched unless they are part of this migration.
+1. Remove legacy product mock imports only from migrated product UI surfaces.
+2. Do not delete `admin/src/mocks/products/types.ts` while unrelated bundle or legacy mocks still import it.
+3. Remove `IProductListItem` if it is no longer used anywhere.
+4. Keep generated API-shaped mock builders if they remain useful for Storybook, local fixtures, or non-API development.
 
 Exit criteria:
 
-- Product domain and shared entity picker configs do not import product legacy mock contracts.
-- Any remaining legacy mock contracts are clearly outside the migrated product UI surface.
+- API-backed product hooks/pages/modals do not import product mocks.
+- Legacy mock types are absent from migrated product UI files.
+- Remaining legacy mock types are clearly outside the migrated product API surface.
 
 ## File Impact Summary
 
-### Must Change
+### New Or Converged Product API Files
 
-This is the minimum known file set. Treat the static searches in the verification plan as authoritative for final scope because legacy product contracts may also appear in picker wrappers, barrels, or modal-specific files not listed here.
+- `admin/src/domains/inventory/products/graphql/fragments.ts`
+- `admin/src/domains/inventory/products/graphql/queries.ts`
+- `admin/src/domains/inventory/products/graphql/mutations.ts`
+- `admin/src/domains/inventory/products/graphql/operation-types.ts`
+- `admin/src/domains/inventory/products/graphql/index.ts`
+- `admin/src/domains/inventory/products/hooks/use-product.ts`
+- `admin/src/domains/inventory/products/hooks/use-update-product.ts`
+- `admin/src/domains/inventory/products/hooks/use-delete-product.ts`
+- `admin/src/domains/inventory/products/mappers/product-create.mapper.ts`
+- `admin/src/domains/inventory/products/mappers/product-errors.mapper.ts`
 
-- `admin/src/mocks/products/data.ts`
-- `admin/src/mocks/products/products-list.ts`
-- `admin/src/mocks/products/product-details.ts`
+### Must Change For API-Backed List And Details
+
 - `admin/src/domains/inventory/products/hooks/use-products.ts`
+- `admin/src/domains/inventory/products/hooks/use-create-product.ts`
 - `admin/src/domains/inventory/products/page/page.tsx`
 - `admin/src/shared/components/entity-picker-modal/configs/product-picker-config.ts`
 - `admin/src/domains/inventory/products/modals/product-modal/product-modal.tsx`
 - `admin/src/domains/inventory/products/components/product-details-card/product-details-card.tsx`
 - `admin/src/domains/inventory/products/components/product-details-card/types.ts`
-- `admin/src/domains/inventory/products/components/product-info-header/types.ts`
-- `admin/src/domains/inventory/products/components/product-info-header/product-info-header.tsx`
-- `admin/src/domains/inventory/products/components/product-info-header/utils.ts`
-- `admin/src/domains/inventory/products/components/product-content-tabs/product-content-tabs.tsx`
-- `admin/src/domains/inventory/products/components/product-details-card/hooks/use-product-modals.ts`
-- `admin/src/domains/inventory/products/modals/ai-writer-modal/ai-writer-modal.tsx`
-- `admin/src/domains/inventory/products/modals/ai-writer-modal/types.ts`
-- `admin/src/domains/inventory/products/components/product-details-card/sections/media-section.tsx`
-- `admin/src/domains/inventory/products/components/product-details-card/sections/inventory-section.tsx`
-- `admin/src/domains/inventory/products/components/product-details-card/sections/shipping-section.tsx`
-- `admin/src/domains/inventory/products/components/product-details-card/sections/variants-table-section.tsx`
-- `admin/src/domains/inventory/products/modals.ts`
-- `admin/src/domains/inventory/products/constants.ts`
+- `admin/src/domains/inventory/graphql/fragments.ts`
+- `admin/src/domains/inventory/graphql/mutations.ts`
+- `admin/src/domains/inventory/graphql/index.ts`
 
-### Category Contract Phase
+### Already Mostly Aligned
 
+- `admin/src/mocks/products/api-builders.ts`
+- `admin/src/mocks/products/data.ts`
+- `admin/src/mocks/products/products-list.ts`
 - `admin/src/mocks/products/categories.ts`
-- `admin/src/domains/inventory/products/components/product-details-card/sections/categories-section.tsx`
-- `admin/src/domains/inventory/products/modals/edit-categories-modal/types.ts`
-- `admin/src/domains/inventory/products/modals/edit-categories-modal/edit-categories-modal.tsx`
-- `admin/src/domains/inventory/products/modals/edit-categories-modal/utils.ts`
-- `admin/src/shared/components/entity-picker-modal/configs/category-picker-config.ts`
+- `admin/src/domains/inventory/products/utils/api-product-display.ts`
+- `admin/src/domains/inventory/products/utils/product-status.ts`
+- `admin/src/domains/inventory/products/utils/product-measurements.ts`
+- `admin/src/domains/inventory/products/components/product-info-header/*`
+- `admin/src/domains/inventory/products/components/product-content-tabs/*`
+- `admin/src/domains/inventory/products/components/product-details-card/sections/*`
+- `admin/src/domains/inventory/products/components/variants/edit-variants-modal.tsx`
+
+These files may still need small query-field alignment or save-flow updates, but they no longer need a full legacy contract migration.
 
 ### Should Not Change In This Migration
 
 - changeset files
 - unrelated backend service files
-- unrelated product create form validation unless needed for type imports
-- generated `admin/src/graphql/types.ts` except through the required Phase 0 codegen synchronization
-
-## Migration Order Recommendation
-
-1. Regenerate Admin frontend GraphQL types from the current supergraph.
-2. Update the plan-local target field assumptions to the regenerated `ApiProduct`, `ApiVariant`, `ApiCategory`, and `ApiTag` shape.
-3. Add API-shaped product/variant/category/tag mock builders.
-4. Convert product mocks to `ApiProduct`.
-5. Convert product list hook/page to `ApiProduct`.
-6. Convert product details root to `ApiProduct`.
-7. Convert header/content/media/inventory/shipping sections.
-8. Convert modal payloads and edit flows.
-9. Migrate category contracts to generated `ApiCategory`.
-10. Remove legacy product mock type imports.
-
-This order keeps the app renderable after each phase and avoids a large ambiguous rewrite.
+- generated `admin/src/graphql/types.ts` except through approved codegen
+- unrelated bundle mock contracts unless Phase 7 explicitly includes bulk editor or bundle surfaces
 
 ## Verification Plan
 
@@ -1088,37 +604,47 @@ Project instructions say not to run tests or `tsc` for verification.
 Allowed verification:
 
 1. Run build when code changes are implemented and a new code version needs validation.
-2. Use targeted static searches:
+2. Use targeted static searches.
+3. Inspect product screens manually after build if a dev server is already running or started through the approved project workflow.
+
+Recommended static checks:
 
 ```text
-rg "IProduct|IProductVariant|IProductListItem|ICategory|IMediaFile|EntityStatus|WeightUnit|DimensionUnit" admin/src/domains/inventory/products
-rg "IProductListItem|@/mocks/products/products-list" admin/src/shared/components/entity-picker-modal
-rg "@/mocks/products/types|@/mocks/products/products-list" admin/src/domains/inventory/products
-rg "toProductListItem|toProductDetailsView|mapMockProductToApi|mapApiProductToMockProduct" admin/src/domains/inventory/products admin/src/mocks/products
-rg "variant\\.(sku|stock|weight|dimensions|cost|inStock)" admin/src/domains/inventory/products admin/src/mocks/products
+rg "inventoryQuery[^{]*\\{|inventoryMutation[^{]*\\{" admin/src/domains/inventory/products admin/src/domains/inventory/graphql
+rg "mockProductsList|findMockProductById|getMockVariantsTableData" admin/src/domains/inventory/products admin/src/shared/components/entity-picker-modal/configs/product-picker-config.ts
+rg "@/mocks/products" admin/src/domains/inventory/products/hooks admin/src/domains/inventory/products/page admin/src/domains/inventory/products/modals/product-modal admin/src/shared/components/entity-picker-modal/configs/product-picker-config.ts
+rg "ProductListItem|IProductListItem|toProductListItem|toProductDetailsView|mapMockProductToApi|mapApiProductToMockProduct" admin/src/domains/inventory/products admin/src/shared/components/entity-picker-modal admin/src/mocks/products
+rg "from [\"']@/mocks/products/types[\"']|from [\"']\\.\\/types[\"']|from [\"']\\.\\.\\/types[\"']" admin/src/domains/inventory/products admin/src/shared/components/entity-picker-modal
+rg "variant\\.(sku|stock|weight|dimensions|cost|inStock)" admin/src/domains/inventory/products admin/src/mocks/products --glob '!admin/src/domains/inventory/products/modals/bulk-editor-modal/**'
 rg "type ApiCategory = ICategory|type ApiInventoryItem =|interface ApiCategory|interface ApiInventoryItem" admin/src
-rg "\\.toLocaleDateString|\\.toLocaleString" admin/src/domains/inventory/products
+rg "\\.toLocaleDateString|\\.toLocaleTimeString" admin/src/domains/inventory/products
 ```
 
-3. Inspect product screens manually after build if a dev server is already running or started through the approved project workflow.
+Notes:
+
+- Do not use broad `rg "IProduct"` checks because local interface names such as `IProductInfoHeaderProps` are not legacy mock contracts.
+- Do not flag `WeightUnit` or `DimensionUnit` usage by itself. The current generated inventory weight/dimension types include `displayUnit`, so these enums are valid when used with generated API fields.
+- Numeric `.toLocaleString()` is acceptable for display formatting. The unsafe pattern is calling date methods directly on API date scalar strings.
 
 ## Acceptance Criteria
 
-- Product list components use `ApiProduct` as row data.
-- Product details components use `ApiProduct` as the root product prop.
-- Variant sections and modals use `ApiVariant` as the source contract.
-- Category product UI uses generated `ApiCategory`.
-- Product mocks are API-shaped and no longer require conversion before rendering.
-- Category mocks are API-shaped and typed as `ApiCategory[]`.
-- No product output mapper is introduced.
-- Product UI no longer depends on legacy mock product/category types from `@/mocks/products/types`.
-- No stale flattened `ApiVariant` inventory field reads remain in product UI or product mocks.
-- No local fake API aliases are introduced for generated category, tag, SEO, or inventory types.
+- Product list is backed by `catalogQuery.products`.
+- Product details modal is backed by `catalogQuery.product`.
+- Product create uses `catalogMutation.productCreate` through module-local product GraphQL documents.
+- Product update/edit flows use generated API inputs and expose `userErrors`.
+- Product list, picker, and details consume generated API-shaped data directly.
+- Product media display uses `Product.media`.
+- Variant UI uses `ApiVariant` and reads inventory through `variant.inventoryItem`.
+- Category and tag UI use generated `ApiCategory` and `ApiTag`.
+- No product output view model is introduced for API-backed screens.
+- API-backed product hooks/pages/modals do not import product mocks.
+- Legacy product mock types remain only in explicitly excluded legacy/mock islands.
 - Build passes when run according to project rules.
 
 ## Open Decisions
 
-1. Should `useProducts` return `ApiProductConnection` directly, or unwrap to `ApiProduct[]` while still preserving `pageInfo` and `totalCount`?
-2. Should edit variants modal accept raw `ApiVariant[]`, or should it remain an editable grid with local row state while the conversion happens inside the modal boundary?
-3. Should product media section choose default variant media or first variant media when no default variant is returned?
-4. Should product list keep a temporary thumbnail column based on first/default variant media, or remove media until the API exposes a product thumbnail field?
+1. Should product search/filter/sort be added to `CatalogQuery.products`, or should the first API-backed list ship with pagination only?
+2. Should product details fetch all variants up front or use a dedicated paginated variant query for the variants table?
+3. Should the product picker share `useProducts` or use a smaller picker-specific `ProductsPicker` query?
+4. Is bulk editor part of this product API integration scope, or should it remain a separate mock/demo workflow for now?
+5. Does the API need first-class primary category semantics, or is `product.categories[0]` acceptable as a temporary UI convention?
