@@ -3,6 +3,12 @@ mutation VariantSetMedia($input: VariantUpdateMediaInput!) {
     variantUpdateMedia(input: $input) {
       variant {
         id
+        media {
+          file {
+            id
+          }
+          sortIndex
+        }
         inventoryItem {
           sku
         }

@@ -8,19 +8,17 @@ import {
   type PageInfo,
 } from "@shopana/drizzle-query";
 import { randomUUID } from "crypto";
-import { and, asc, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   itemPricing,
   productOptionVariantLink,
   variant,
-  variantMedia,
   variantTranslation,
   type ItemPricing,
   type NewVariant,
   type ProductOptionVariantLink,
   type Variant,
-  type VariantMedia,
   type VariantTranslation,
 } from "../models/index.js";
 
@@ -387,21 +385,6 @@ export class VariantRepository extends BaseRepository {
           inArray(itemPricing.variantId, [...variantIds])
         )
       );
-  }
-
-  async getMediaByVariantIds(
-    variantIds: readonly string[]
-  ): Promise<VariantMedia[]> {
-    return this.connection
-      .select()
-      .from(variantMedia)
-      .where(
-        and(
-          eq(variantMedia.projectId, this.storeId),
-          inArray(variantMedia.variantId, [...variantIds])
-        )
-      )
-      .orderBy(asc(variantMedia.sortIndex));
   }
 
   async getSelectedOptionsByVariantIds(

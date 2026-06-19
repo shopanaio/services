@@ -19,6 +19,12 @@ query ProductFindOne($id: ID!) {
         html
         json
       }
+      media {
+        file {
+          id
+        }
+        sortIndex
+      }
       variantsCount
       variants(first: 10) {
         edges {
@@ -30,6 +36,12 @@ query ProductFindOne($id: ID!) {
               id
               sku
               trackInventory
+            }
+            media {
+              file {
+                id
+              }
+              sortIndex
             }
           }
         }

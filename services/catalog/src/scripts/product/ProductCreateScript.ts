@@ -6,7 +6,6 @@ import type {
   ProductCreateVariantInput,
 } from "./dto/index.js";
 import type { Variant } from "../../repositories/models/index.js";
-import type { VariantMediaEntry } from "./dto/index.js";
 import {
   serializeRichTextJson,
   toRichTextStorage,
@@ -49,8 +48,12 @@ export class ProductCreateScript extends BaseScript<
       excerptJson: excerptStorage.json,
     });
 
+    const productMedia = mediaFileIds
+      ? await this.repository.media.setProductMedia(product.id, mediaFileIds)
+      : [];
+    const productMediaFileIds = productMedia.map((media) => media.fileId);
+
     let createdVariants: Variant[] = [];
-    const variantMediaMap: VariantMediaEntry[] = [];
 
     // 3. Handle options and variants
     if (options && options.length > 0 && variants && variants.length > 0) {
@@ -65,11 +68,9 @@ export class ProductCreateScript extends BaseScript<
         product.id,
         variants,
         optionValuesBySlug,
-        options,
-        mediaFileIds
+        options
       );
-      createdVariants = result.variants;
-      variantMediaMap.push(...result.mediaMap);
+      createdVariants = result;
     } else {
       // No options - create default variant
       const defaultVariant = await this.repository.variant.create(product.id, {
@@ -77,18 +78,6 @@ export class ProductCreateScript extends BaseScript<
         handle: "",
       });
       createdVariants = [defaultVariant];
-
-      // Attach media to default variant and collect for back-ref sync
-      if (mediaFileIds && mediaFileIds.length > 0) {
-        await this.repository.media.setVariantMedia(
-          defaultVariant.id,
-          mediaFileIds
-        );
-        variantMediaMap.push({
-          variantId: defaultVariant.id,
-          fileIds: Array.from(new Set(mediaFileIds)),
-        });
-      }
     }
 
     // 4. Fetch updated product
@@ -108,7 +97,10 @@ export class ProductCreateScript extends BaseScript<
         ? { ...updatedProduct, _variants: createdVariants }
         : undefined,
       userErrors: [],
-      variantMediaMap: variantMediaMap.length > 0 ? variantMediaMap : undefined,
+      productMedia:
+        productMediaFileIds.length > 0
+          ? { productId: product.id, fileIds: productMediaFileIds }
+          : undefined,
     };
   }
 
@@ -178,11 +170,9 @@ export class ProductCreateScript extends BaseScript<
     productId: string,
     variants: ProductCreateVariantInput[],
     optionValuesBySlug: Map<string, { optionId: string; valueId: string }>,
-    options: ProductCreateOptionInput[],
-    mediaFileIds?: string[]
-  ): Promise<{ variants: Variant[]; mediaMap: VariantMediaEntry[] }> {
+    options: ProductCreateOptionInput[]
+  ): Promise<Variant[]> {
     const createdVariants: Variant[] = [];
-    const mediaMap: VariantMediaEntry[] = [];
 
     for (let i = 0; i < variants.length; i++) {
       const variantInput = variants[i];
@@ -213,19 +203,10 @@ export class ProductCreateScript extends BaseScript<
         }
       }
 
-      // Attach media to variant and collect for back-ref sync
-      if (mediaFileIds && mediaFileIds.length > 0) {
-        await this.repository.media.setVariantMedia(variant.id, mediaFileIds);
-        mediaMap.push({
-          variantId: variant.id,
-          fileIds: Array.from(new Set(mediaFileIds)),
-        });
-      }
-
       createdVariants.push(variant);
     }
 
-    return { variants: createdVariants, mediaMap };
+    return createdVariants;
   }
 
   protected handleError(_error: unknown): ProductCreateResult {

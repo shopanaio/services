@@ -2109,6 +2109,15 @@ type ProductFeatureDeletePayload {
   userErrors: [GenericUserError!]!
 }
 
+"""Media registered on a product with sort order."""
+type ProductMediaItem {
+  """The file from the Media service."""
+  file: File!
+
+  """Sort order index (lower = first)."""
+  sortIndex: Int!
+}
+
 """Media attached to a variant with sort order."""
 type VariantMediaItem {
   """The file from the Media service."""
@@ -2418,6 +2427,9 @@ type Product implements Node {
 
   """The variants of this product."""
   variants(first: Int, after: String, last: Int, before: String): VariantConnection!
+
+  """Media registered on this product."""
+  media: [ProductMediaItem!]!
 
   """The options available for this product."""
   options: [ProductOption!]!

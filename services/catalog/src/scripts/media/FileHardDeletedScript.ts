@@ -5,7 +5,7 @@ export interface FileHardDeletedParams {
 }
 
 export interface FileHardDeletedResult {
-  deletedCount: number;
+  deletedProductMediaCount: number;
 }
 
 export class FileHardDeletedScript extends BaseScript<
@@ -15,19 +15,18 @@ export class FileHardDeletedScript extends BaseScript<
   protected async execute(
     params: FileHardDeletedParams
   ): Promise<FileHardDeletedResult> {
-    const deletedCount = await this.repository.media.removeByFileId(
-      params.fileId
-    );
+    const deletedProductMediaCount =
+      await this.repository.media.removeProductMediaByFileId(params.fileId);
 
     this.logger.info(
-      { fileId: params.fileId, deletedCount },
-      "Cleaned up variant_media for hard-deleted file"
+      { fileId: params.fileId, deletedProductMediaCount },
+      "Cleaned up product media registry for hard-deleted file"
     );
 
-    return { deletedCount };
+    return { deletedProductMediaCount };
   }
 
   protected handleError(_error: unknown): FileHardDeletedResult {
-    return { deletedCount: 0 };
+    return { deletedProductMediaCount: 0 };
   }
 }

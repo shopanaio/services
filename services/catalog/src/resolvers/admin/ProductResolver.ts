@@ -3,7 +3,7 @@ import {
   encodeGlobalIdByType,
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
-import type { RichText } from "./interfaces/index.js";
+import type { ProductMediaItem, RichText } from "./interfaces/index.js";
 import type { Product } from "../../repositories/models/index.js";
 import type { VariantRelayInput } from "../../repositories/variant/VariantRepository.js";
 import { CatalogType } from "./CatalogType.js";
@@ -113,6 +113,17 @@ export class ProductResolver extends CatalogType<string, Product> {
       },
       this.$ctx
     );
+  }
+
+  async media(): Promise<ProductMediaItem[]> {
+    const mediaItems = await this.$ctx.loaders.productMedia.load(this.$props);
+    return mediaItems.map((media) => ({
+      file: {
+        __typename: "File" as const,
+        id: encodeGlobalIdByType(media.fileId, GlobalIdEntity.File),
+      },
+      sortIndex: media.sortIndex,
+    }));
   }
 
   /**

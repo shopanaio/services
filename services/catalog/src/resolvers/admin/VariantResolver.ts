@@ -126,11 +126,14 @@ export class VariantResolver extends CatalogType<string, Variant> {
       }));
   }
 
-  async media(): Promise<Array<{ file: { __typename: "File"; id: string }; sortIndex: number }>> {
+  async media(): Promise<VariantMediaItem[]> {
     const mediaItems = await this.$ctx.loaders.variantMedia.load(this.$props);
-    return mediaItems.map((m) => ({
-      file: { __typename: "File" as const, id: m.fileId },
-      sortIndex: m.sortIndex,
+    return mediaItems.map((media) => ({
+      file: {
+        __typename: "File" as const,
+        id: encodeGlobalIdByType(media.fileId, GlobalIdEntity.File),
+      },
+      sortIndex: media.sortIndex,
     }));
   }
 

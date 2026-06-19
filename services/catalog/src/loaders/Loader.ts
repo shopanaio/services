@@ -23,6 +23,7 @@ export class Loader {
   public readonly productRootFeatureIds;
   public readonly productOption;
   public readonly productFeature;
+  public readonly productMedia;
 
   // Variant (without inventory fields - they live in Inventory Service)
   public readonly variant;
@@ -124,6 +125,7 @@ export class Loader {
     this.productRootFeatureIds = productLoader.productRootFeatureIds;
     this.productOption = productLoader.productOption;
     this.productFeature = productLoader.productFeature;
+    this.productMedia = productLoader.productMedia;
 
     // Variant (without inventory fields)
     this.variant = variantLoader.variant;

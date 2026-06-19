@@ -3,7 +3,7 @@ import type { ScriptResult, MediaChanges } from "../../types/index.js";
 
 /**
  * Parameters for updating product media.
- * Media is attached to the default variant.
+ * Media is registered on the product.
  */
 export interface ProductUpdateMediaParams {
   readonly id: string;

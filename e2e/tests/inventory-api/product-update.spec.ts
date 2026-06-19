@@ -1,23 +1,9 @@
 import { test } from '@fixtures/base.extend';
 import type { ApiFixtures } from '@fixtures/api/api';
+import { encodeGlobalId, TypeName } from '@utils/globalid';
 import { expect } from '@playwright/test';
 
 type Api = ApiFixtures['api'];
-
-/**
- * Helper to extract raw UUID from a Global ID (base64 encoded gid://shopana/{Type}/{UUID})
- */
-function extractUuidFromGlobalId(globalId: string): string {
-  try {
-    const decoded = Buffer.from(globalId, 'base64').toString('utf-8');
-    // Format: gid://shopana/{Type}/{UUID}
-    const parts = decoded.split('/');
-    return parts[parts.length - 1];
-  } catch {
-    // If not a valid base64/global ID, return as-is (might already be a UUID)
-    return globalId;
-  }
-}
 
 /**
  * Helper to create a product with default variant
@@ -350,6 +336,7 @@ test.describe('ProductUpdate API', () => {
           productId,
           expectedRevision: revision,
           operations: {
+            media: { fileIds: [fileId1, fileId2] },
             variants: [
               {
                 variantId,
@@ -394,6 +381,7 @@ test.describe('ProductUpdate API', () => {
           productId,
           expectedRevision: revision,
           operations: {
+            media: { fileIds: [fileId1, fileId2] },
             variants: [
               {
                 variantId,
@@ -445,6 +433,7 @@ test.describe('ProductUpdate API', () => {
           productId,
           expectedRevision: revision,
           operations: {
+            media: { fileIds: [fileId1, fileId2] },
             variants: [
               {
                 variantId,
@@ -695,7 +684,10 @@ test.describe('ProductUpdate API', () => {
 
   test.describe('Edge Cases and Error Handling', () => {
     test('should return NOT_FOUND for non-existent product', async ({ api }) => {
-      const fakeProductId = '00000000-0000-0000-0000-000000000000';
+      const fakeProductId = encodeGlobalId(
+        TypeName.Product,
+        '00000000-0000-0000-0000-000000000000',
+      );
 
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
@@ -713,7 +705,10 @@ test.describe('ProductUpdate API', () => {
 
     test('should return error for non-existent variant', async ({ api }) => {
       const { productId, revision } = await createProduct(api, 'Fake Variant Product');
-      const fakeVariantId = '00000000-0000-0000-0000-000000000000';
+      const fakeVariantId = encodeGlobalId(
+        TypeName.Variant,
+        '00000000-0000-0000-0000-000000000000',
+      );
 
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
@@ -786,7 +781,10 @@ test.describe('ProductUpdate API', () => {
         api,
         'Partial Failure Product',
       );
-      const fakeVariantId = '00000000-0000-0000-0000-000000000000';
+      const fakeVariantId = encodeGlobalId(
+        TypeName.Variant,
+        '00000000-0000-0000-0000-000000000000',
+      );
 
       const warehouseCode = `WH-PARTIAL-${Date.now()}`;
       const warehouse = await createWarehouse(api, warehouseCode, 'Partial Failure Warehouse');
@@ -1037,6 +1035,7 @@ test.describe('ProductUpdate API', () => {
           productId,
           expectedRevision: revision,
           operations: {
+            media: { fileIds: [fileId1, fileId2] },
             variants: [
               {
                 variantId,
@@ -1056,8 +1055,8 @@ test.describe('ProductUpdate API', () => {
       const updatedVariant = result.product.variants.edges[0].node;
       expect(updatedVariant.media).toHaveLength(2);
       const mediaFileIds = updatedVariant.media.map((m: { file: { id: string } }) => m.file.id);
-      expect(mediaFileIds).toContain(extractUuidFromGlobalId(fileId1));
-      expect(mediaFileIds).toContain(extractUuidFromGlobalId(fileId2));
+      expect(mediaFileIds).toContain(fileId1);
+      expect(mediaFileIds).toContain(fileId2);
 
       // Check operation result
       const variantOp = result.operationResults.find(
@@ -1078,6 +1077,7 @@ test.describe('ProductUpdate API', () => {
           productId,
           expectedRevision: revision,
           operations: {
+            media: { fileIds: [fileId] },
             variants: [{ variantId, media: { fileIds: [fileId] } }],
           },
         },
@@ -1119,6 +1119,7 @@ test.describe('ProductUpdate API', () => {
           productId,
           expectedRevision: revision,
           operations: {
+            media: { fileIds: [fileId] },
             variants: [{ variantId, media: { fileIds: [fileId] } }],
           },
         },
@@ -1155,6 +1156,7 @@ test.describe('ProductUpdate API', () => {
           productId,
           expectedRevision: revision,
           operations: {
+            media: { fileIds: [fileId1, fileId2] },
             variants: [{ variantId, media: { fileIds: [fileId1, fileId2] } }],
           },
         },
@@ -1182,8 +1184,8 @@ test.describe('ProductUpdate API', () => {
       const sorted = [...media].sort(
         (a: { sortIndex: number }, b: { sortIndex: number }) => a.sortIndex - b.sortIndex,
       );
-      expect(sorted[0].file.id).toBe(extractUuidFromGlobalId(fileId2));
-      expect(sorted[1].file.id).toBe(extractUuidFromGlobalId(fileId1));
+      expect(sorted[0].file.id).toBe(fileId2);
+      expect(sorted[1].file.id).toBe(fileId1);
     });
   });
 
@@ -1191,7 +1193,7 @@ test.describe('ProductUpdate API', () => {
   // PRODUCT-LEVEL MEDIA UPDATES
   // ============================================
 
-  test.describe.skip('Product-Level Media Updates', () => {
+  test.describe('Product-Level Media Updates', () => {
     /**
      * Helper to create a test file using external URL provider (no actual upload needed)
      */
@@ -1241,8 +1243,8 @@ test.describe('ProductUpdate API', () => {
       expect(result.product.media).toHaveLength(2);
 
       const mediaFileIds = result.product.media.map((m: { file: { id: string } }) => m.file.id);
-      expect(mediaFileIds).toContain(extractUuidFromGlobalId(fileId1));
-      expect(mediaFileIds).toContain(extractUuidFromGlobalId(fileId2));
+      expect(mediaFileIds).toContain(fileId1);
+      expect(mediaFileIds).toContain(fileId2);
 
       // Check operation result
       const productOp = result.operationResults.find(
@@ -1326,9 +1328,9 @@ test.describe('ProductUpdate API', () => {
       const sorted = [...media].sort(
         (a: { sortIndex: number }, b: { sortIndex: number }) => a.sortIndex - b.sortIndex,
       );
-      expect(sorted[0].file.id).toBe(extractUuidFromGlobalId(fileId3));
-      expect(sorted[1].file.id).toBe(extractUuidFromGlobalId(fileId1));
-      expect(sorted[2].file.id).toBe(extractUuidFromGlobalId(fileId2));
+      expect(sorted[0].file.id).toBe(fileId3);
+      expect(sorted[1].file.id).toBe(fileId1);
+      expect(sorted[2].file.id).toBe(fileId2);
     });
 
     test('should update product media and variant media simultaneously', async ({ api }) => {
@@ -1342,7 +1344,7 @@ test.describe('ProductUpdate API', () => {
           productId,
           expectedRevision: revision,
           operations: {
-            media: { fileIds: [productFileId] },
+            media: { fileIds: [productFileId, variantFileId] },
             variants: [
               {
                 variantId,
@@ -1358,13 +1360,16 @@ test.describe('ProductUpdate API', () => {
       expect(result.userErrors).toHaveLength(0);
 
       // Check product media
-      expect(result.product.media).toHaveLength(1);
-      expect(result.product.media[0].file.id).toBe(extractUuidFromGlobalId(productFileId));
+      expect(result.product.media).toHaveLength(2);
+      expect(result.product.media.map((item: { file: { id: string } }) => item.file.id)).toEqual([
+        productFileId,
+        variantFileId,
+      ]);
 
       // Check variant media
       const variant = result.product.variants.edges[0].node;
       expect(variant.media).toHaveLength(1);
-      expect(variant.media[0].file.id).toBe(extractUuidFromGlobalId(variantFileId));
+      expect(variant.media[0].file.id).toBe(variantFileId);
     });
 
     test('should handle idempotent product media update', async ({ api }) => {

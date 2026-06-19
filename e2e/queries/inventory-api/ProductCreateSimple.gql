@@ -9,6 +9,12 @@ mutation ProductCreateSimple($input: ProductCreateInput!) {
         publishedAt
         updatedAt
         revision
+        media {
+          file {
+            id
+          }
+          sortIndex
+        }
         options {
           id
           name
@@ -30,6 +36,12 @@ mutation ProductCreateSimple($input: ProductCreateInput!) {
                 id
                 sku
                 trackInventory
+              }
+              media {
+                file {
+                  id
+                }
+                sortIndex
               }
             }
           }

@@ -4878,6 +4878,8 @@ export type ApiProduct = ApiNode & {
   id: Scalars['ID']['output'];
   /** Whether the product is currently published. */
   isPublished: Scalars['Boolean']['output'];
+  /** Media registered on this product. */
+  media: Array<ApiProductMediaItem>;
   /** The options available for this product. */
   options: Array<ApiProductOption>;
   /** The date and time when the product was published, or null if unpublished. */
@@ -5267,6 +5269,15 @@ export type ApiProductInventoryWidget = {
 export type ApiProductMediaInput = {
   /** File IDs for product media. */
   fileIds: Array<Scalars['ID']['input']>;
+};
+
+/** Media registered on a product with sort order. */
+export type ApiProductMediaItem = {
+  __typename?: 'ProductMediaItem';
+  /** The file from the Media service. */
+  file: ApiFile;
+  /** Sort order index (lower = first). */
+  sortIndex: Scalars['Int']['output'];
 };
 
 /** A product option defines a configurable aspect of a product, such as Size or Color. */

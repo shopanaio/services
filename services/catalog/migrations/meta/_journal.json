@@ -50,6 +50,13 @@
       "when": 1781877169148,
       "tag": "0006_aromatic_korvac",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1781879141815,
+      "tag": "0007_product_media_registry",
+      "breakpoints": true
     }
   ]
 }

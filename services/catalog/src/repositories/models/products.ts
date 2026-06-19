@@ -6,6 +6,7 @@ import {
   boolean,
   integer,
   index,
+  unique,
   uniqueIndex,
   check,
 } from "drizzle-orm/pg-core";
@@ -36,6 +37,7 @@ export const product = catalogSchema.table(
     uniqueIndex("product_project_id_handle_key")
       .on(table.projectId, table.handle)
       .where(sql`deleted_at IS NULL AND handle IS NOT NULL`),
+    unique("product_project_id_id_unique").on(table.projectId, table.id),
     index("idx_product_project_id").on(table.projectId),
     index("idx_product_created_at").on(table.createdAt),
     index("idx_product_updated_at").on(table.updatedAt),
@@ -84,6 +86,11 @@ export const variant = catalogSchema.table(
     uniqueIndex("variant_project_id_external_system_external_id_key")
       .on(table.projectId, table.externalSystem, table.externalId)
       .where(sql`deleted_at IS NULL AND external_id IS NOT NULL`),
+    unique("variant_project_id_product_id_id_unique").on(
+      table.projectId,
+      table.productId,
+      table.id
+    ),
     index("idx_variant_project_id").on(table.projectId),
     index("idx_variant_product_id").on(table.productId),
     index("idx_variant_product_active")

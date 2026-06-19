@@ -82,6 +82,9 @@ type Product implements Node @key(fields: "id") {
     before: String
   ): VariantConnection!
 
+  """Media registered on this product."""
+  media: [ProductMediaItem!]!
+
   """The options available for this product."""
   options: [ProductOption!]!
 

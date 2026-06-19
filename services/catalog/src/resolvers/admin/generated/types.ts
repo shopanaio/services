@@ -2751,6 +2751,8 @@ export type Product = Node & {
   id: Scalars['ID']['output'];
   /** Whether the product is currently published. */
   isPublished: Scalars['Boolean']['output'];
+  /** Media registered on this product. */
+  media: Array<ProductMediaItem>;
   /** The options available for this product. */
   options: Array<ProductOption>;
   /** The date and time when the product was published, or null if unpublished. */
@@ -3131,6 +3133,15 @@ export type ProductFeaturesSyncPayload = {
 export type ProductMediaInput = {
   /** File IDs for product media. */
   fileIds: Array<Scalars['ID']['input']>;
+};
+
+/** Media registered on a product with sort order. */
+export type ProductMediaItem = {
+  __typename?: 'ProductMediaItem';
+  /** The file from the Media service. */
+  file: File;
+  /** Sort order index (lower = first). */
+  sortIndex: Scalars['Int']['output'];
 };
 
 /** A product option defines a configurable aspect of a product, such as Size or Color. */
@@ -4319,6 +4330,7 @@ export type ResolversTypes = ResolversObject<{
   ProductFeaturesSyncInput: ProductFeaturesSyncInput;
   ProductFeaturesSyncPayload: ResolverTypeWrapper<ProductFeaturesSyncPayload>;
   ProductMediaInput: ProductMediaInput;
+  ProductMediaItem: ResolverTypeWrapper<ProductMediaItem>;
   ProductOption: ResolverTypeWrapper<ProductOption>;
   ProductOptionCreateInput: ProductOptionCreateInput;
   ProductOptionCreatePayload: ResolverTypeWrapper<ProductOptionCreatePayload>;
@@ -4569,6 +4581,7 @@ export type ResolversParentTypes = ResolversObject<{
   ProductFeaturesSyncInput: ProductFeaturesSyncInput;
   ProductFeaturesSyncPayload: ProductFeaturesSyncPayload;
   ProductMediaInput: ProductMediaInput;
+  ProductMediaItem: ProductMediaItem;
   ProductOption: ProductOption;
   ProductOptionCreateInput: ProductOptionCreateInput;
   ProductOptionCreatePayload: ProductOptionCreatePayload;
@@ -5355,6 +5368,7 @@ export type ProductResolvers<ContextType = ServiceContext, ParentType extends Re
   handle?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   isPublished?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  media?: Resolver<Array<ResolversTypes['ProductMediaItem']>, ParentType, ContextType>;
   options?: Resolver<Array<ResolversTypes['ProductOption']>, ParentType, ContextType>;
   publishedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
@@ -5457,6 +5471,12 @@ export type ProductFeaturesSyncPayloadResolvers<ContextType = ServiceContext, Pa
   features?: Resolver<Array<ResolversTypes['ProductFeature']>, ParentType, ContextType>;
   product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ProductMediaItemResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductMediaItem'] = ResolversParentTypes['ProductMediaItem']> = ResolversObject<{
+  file?: Resolver<ResolversTypes['File'], ParentType, ContextType>;
+  sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -5838,6 +5858,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   ProductFeatureUpdatePayload?: ProductFeatureUpdatePayloadResolvers<ContextType>;
   ProductFeatureValue?: ProductFeatureValueResolvers<ContextType>;
   ProductFeaturesSyncPayload?: ProductFeaturesSyncPayloadResolvers<ContextType>;
+  ProductMediaItem?: ProductMediaItemResolvers<ContextType>;
   ProductOption?: ProductOptionResolvers<ContextType>;
   ProductOptionCreatePayload?: ProductOptionCreatePayloadResolvers<ContextType>;
   ProductOptionDeletePayload?: ProductOptionDeletePayloadResolvers<ContextType>;

@@ -27,6 +27,12 @@ mutation ProductUpdate($productId: ID!, $expectedRevision: Int, $operations: Pro
           seoTitle
           seoDescription
         }
+        media {
+          file {
+            id
+          }
+          sortIndex
+        }
         variants(first: 20) {
           edges {
             node {

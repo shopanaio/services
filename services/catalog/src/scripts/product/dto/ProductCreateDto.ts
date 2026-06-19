@@ -66,13 +66,13 @@ export interface ProductCreateParams {
   readonly storeId: string;
 }
 
-export interface VariantMediaEntry {
-  variantId: string;
+export interface ProductMediaEntry {
+  productId: string;
   fileIds: string[];
 }
 
 export interface ProductCreateResult extends ProductResultBase {
   product?: ProductWithVariants;
-  /** Map of variant IDs to file IDs for back-ref syncing */
-  variantMediaMap?: VariantMediaEntry[];
+  /** Product media file IDs for back-reference syncing */
+  productMedia?: ProductMediaEntry;
 }

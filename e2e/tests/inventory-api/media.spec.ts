@@ -1,212 +1,254 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
+import { encodeGlobalId, TypeName } from '../../utils/globalid';
 
-// Test image URLs (using picsum.photos for reliability)
 const TEST_IMAGE_1 = 'https://picsum.photos/seed/test1/200/200';
 const TEST_IMAGE_2 = 'https://picsum.photos/seed/test2/200/200';
+const TEST_IMAGE_3 = 'https://picsum.photos/seed/test3/200/200';
 
-test.describe('Variant Media API', () => {
+type MediaItem = { file: { id: string }; sortIndex: number };
+
+test.describe('Product Media Registry API', () => {
   test.beforeEach(async ({ api }) => {
     await api.session.setupUserAndStore();
   });
 
-  /**
-   * Helper to create a product and get the default variant ID
-   */
-  async function createProductWithVariant(api: any, title = 'Media Test Product') {
-    const handle = title.toLowerCase().replace(/\s+/g, '-');
+  async function createProduct(
+    api: any,
+    title = 'Media Test Product',
+    mediaFileIds?: string[],
+  ) {
+    const handle = `${title.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`;
     const { data } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
-      variables: { input: { title, handle } },
+      variables: { input: { title, handle, mediaFileIds } },
     });
 
     const product = data.catalogMutation.productCreate.product;
-    const variantEdges = product?.variants?.edges ?? [];
-    const variantId = variantEdges[0]?.node?.id ?? null;
+    expect(data.catalogMutation.productCreate.userErrors).toHaveLength(0);
+    expect(product).toBeTruthy();
 
-    return { product, variantId };
+    const variantEdges = product?.variants?.edges ?? [];
+    const variant = variantEdges[0]?.node ?? null;
+
+    return {
+      product,
+      productId: product.id as string,
+      revision: product.revision as number,
+      variant,
+      variantId: variant?.id as string,
+    };
   }
 
-  test.describe('variantUpdateMedia', () => {
-    test('should set variant media with single file', async ({ api }) => {
-      // Create product with variant
-      const { product, variantId } = await createProductWithVariant(api);
-      expect(product).toBeTruthy();
-
-      if (!variantId) {
-        test.skip();
-        return;
-      }
-
-      // Upload a file using media API
-      const file = await api.admin.file.uploadFromUrl(TEST_IMAGE_1, 'Test product image');
-      expect(file.id).toBeTruthy();
-
-      // Set media on variant
-      const { data } = await api.admin.mutation('inventory-api/VariantSetMedia', {
-        variables: {
-          input: {
-            variantId,
-            fileIds: [file.id],
-          },
-        },
-      });
-
-      const result = data.catalogMutation.variantUpdateMedia;
-      expect(result.userErrors).toHaveLength(0);
-      expect(result.variant).toBeTruthy();
-      expect(result.variant?.id).toBe(variantId);
+  async function registerProductMedia(
+    api: any,
+    productId: string,
+    expectedRevision: number,
+    fileIds: string[],
+  ): Promise<number> {
+    const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
+      variables: {
+        productId,
+        expectedRevision,
+        operations: { media: { fileIds } },
+      },
     });
 
-    test('should set variant media with multiple files', async ({ api }) => {
-      // Create product with variant
-      const { variantId } = await createProductWithVariant(api, 'Multi-image Product');
+    const result = data.catalogMutation.productUpdate;
+    expect(result.userErrors).toHaveLength(0);
+    expect(result.product.media).toHaveLength(fileIds.length);
+    return result.product.revision as number;
+  }
 
-      if (!variantId) {
-        test.skip();
-        return;
-      }
+  async function productMediaByVariant(api: any, productId: string, variantId: string) {
+    const { data } = await api.admin.query('inventory-api/ProductFindOne', {
+      variables: { id: productId },
+    });
+    const product = data.catalogQuery.product;
+    const variant = product.variants.edges.find(
+      (edge: { node: { id: string } }) => edge.node.id === variantId,
+    )?.node;
+    return {
+      productMedia: sortMedia(product.media),
+      variantMedia: sortMedia(variant?.media ?? []),
+    };
+  }
 
-      // Upload multiple files
-      const file1 = await api.admin.file.uploadFromUrl(TEST_IMAGE_1);
-      const file2 = await api.admin.file.uploadFromUrl(TEST_IMAGE_2);
+  function sortMedia(media: MediaItem[]): MediaItem[] {
+    return [...media].sort((a, b) => a.sortIndex - b.sortIndex);
+  }
 
-      expect(file1.id).toBeTruthy();
-      expect(file2.id).toBeTruthy();
+  function mediaFileIds(media: MediaItem[]): string[] {
+    return sortMedia(media).map((item) => item.file.id);
+  }
 
-      // Set media on variant
-      const { data } = await api.admin.mutation('inventory-api/VariantSetMedia', {
-        variables: {
-          input: {
-            variantId,
-            fileIds: [file1.id, file2.id],
-          },
+  test('productCreate registers product media without attaching it to variants', async ({ api }) => {
+    const file1 = await api.admin.file.uploadFromUrl(TEST_IMAGE_1, 'Product image 1');
+    const file2 = await api.admin.file.uploadFromUrl(TEST_IMAGE_2, 'Product image 2');
+
+    const { product, variant } = await createProduct(
+      api,
+      'Product Create Media',
+      [file1.id, file2.id],
+    );
+
+    expect(mediaFileIds(product.media)).toEqual([file1.id, file2.id]);
+    expect(variant.media).toHaveLength(0);
+  });
+
+  test('variantUpdateMedia attaches registered product media', async ({ api }) => {
+    const { productId, revision, variantId } = await createProduct(api);
+    const file = await api.admin.file.uploadFromUrl(TEST_IMAGE_1, 'Variant image');
+    await registerProductMedia(api, productId, revision, [file.id]);
+
+    const { data } = await api.admin.mutation('inventory-api/VariantSetMedia', {
+      variables: {
+        input: {
+          variantId,
+          fileIds: [file.id],
         },
-      });
-
-      const result = data.catalogMutation.variantUpdateMedia;
-      expect(result.userErrors).toHaveLength(0);
-      expect(result.variant).toBeTruthy();
+      },
     });
 
-    test('should clear variant media with empty array', async ({ api }) => {
-      // Create product with variant
-      const { variantId } = await createProductWithVariant(api, 'Clear Media Product');
+    const result = data.catalogMutation.variantUpdateMedia;
+    expect(result.userErrors).toHaveLength(0);
+    expect(result.variant.id).toBe(variantId);
+    expect(mediaFileIds(result.variant.media)).toEqual([file.id]);
+  });
 
-      if (!variantId) {
-        test.skip();
-        return;
-      }
+  test('variantUpdateMedia dedupes duplicate files and preserves first occurrence order', async ({ api }) => {
+    const { productId, revision, variantId } = await createProduct(api, 'Ordered Media Product');
+    const file1 = await api.admin.file.uploadFromUrl(TEST_IMAGE_1);
+    const file2 = await api.admin.file.uploadFromUrl(TEST_IMAGE_2);
+    await registerProductMedia(api, productId, revision, [file1.id, file2.id]);
 
-      // First, add some media
-      const file = await api.admin.file.uploadFromUrl(TEST_IMAGE_1);
-
-      await api.admin.mutation('inventory-api/VariantSetMedia', {
-        variables: {
-          input: {
-            variantId,
-            fileIds: [file.id],
-          },
+    const { data } = await api.admin.mutation('inventory-api/VariantSetMedia', {
+      variables: {
+        input: {
+          variantId,
+          fileIds: [file2.id, file1.id, file2.id],
         },
-      });
-
-      // Now clear media
-      const { data } = await api.admin.mutation('inventory-api/VariantSetMedia', {
-        variables: {
-          input: {
-            variantId,
-            fileIds: [],
-          },
-        },
-      });
-
-      const result = data.catalogMutation.variantUpdateMedia;
-      expect(result.userErrors).toHaveLength(0);
-      expect(result.variant).toBeTruthy();
+      },
     });
 
-    test('should replace existing media', async ({ api }) => {
-      // Create product with variant
-      const { variantId } = await createProductWithVariant(api, 'Replace Media Product');
+    const result = data.catalogMutation.variantUpdateMedia;
+    expect(result.userErrors).toHaveLength(0);
+    expect(mediaFileIds(result.variant.media)).toEqual([file2.id, file1.id]);
+  });
 
-      if (!variantId) {
-        test.skip();
-        return;
-      }
+  test('variantUpdateMedia clears only the variant link and keeps product media registered', async ({ api }) => {
+    const { productId, revision, variantId } = await createProduct(api, 'Clear Media Product');
+    const file = await api.admin.file.uploadFromUrl(TEST_IMAGE_1);
+    await registerProductMedia(api, productId, revision, [file.id]);
 
-      // First set - file1
-      const file1 = await api.admin.file.uploadFromUrl(TEST_IMAGE_1);
-
-      await api.admin.mutation('inventory-api/VariantSetMedia', {
-        variables: {
-          input: {
-            variantId,
-            fileIds: [file1.id],
-          },
+    await api.admin.mutation('inventory-api/VariantSetMedia', {
+      variables: {
+        input: {
+          variantId,
+          fileIds: [file.id],
         },
-      });
-
-      // Second set - replace with file2
-      const file2 = await api.admin.file.uploadFromUrl(TEST_IMAGE_2);
-
-      const { data } = await api.admin.mutation('inventory-api/VariantSetMedia', {
-        variables: {
-          input: {
-            variantId,
-            fileIds: [file2.id],
-          },
-        },
-      });
-
-      const result = data.catalogMutation.variantUpdateMedia;
-      expect(result.userErrors).toHaveLength(0);
-      expect(result.variant).toBeTruthy();
+      },
     });
 
-    test('should return error for invalid variant ID', async ({ api }) => {
-      // Upload a file first
-      const file = await api.admin.file.uploadFromUrl(TEST_IMAGE_1);
-
-      const { data } = await api.admin.mutation('inventory-api/VariantSetMedia', {
-        variables: {
-          input: {
-            variantId: '00000000-0000-0000-0000-000000000000',
-            fileIds: [file.id],
-          },
+    const { data } = await api.admin.mutation('inventory-api/VariantSetMedia', {
+      variables: {
+        input: {
+          variantId,
+          fileIds: [],
         },
-      });
-
-      const result = data.catalogMutation.variantUpdateMedia;
-      expect(result.userErrors).toHaveLength(1);
-      expect(result.userErrors[0].code).toBe('NOT_FOUND');
-      expect(result.variant).toBeNull();
+      },
     });
 
-    test('should preserve file order', async ({ api }) => {
-      // Create product with variant
-      const { variantId } = await createProductWithVariant(api, 'Ordered Media Product');
+    const result = data.catalogMutation.variantUpdateMedia;
+    expect(result.userErrors).toHaveLength(0);
+    expect(result.variant.media).toHaveLength(0);
 
-      if (!variantId) {
-        test.skip();
-        return;
-      }
+    const { productMedia, variantMedia } = await productMediaByVariant(api, productId, variantId);
+    expect(mediaFileIds(productMedia)).toEqual([file.id]);
+    expect(variantMedia).toHaveLength(0);
+  });
 
-      // Upload files
-      const file1 = await api.admin.file.uploadFromUrl(TEST_IMAGE_1);
-      const file2 = await api.admin.file.uploadFromUrl(TEST_IMAGE_2);
+  test('variantUpdateMedia replaces existing variant media links', async ({ api }) => {
+    const { productId, revision, variantId } = await createProduct(api, 'Replace Media Product');
+    const file1 = await api.admin.file.uploadFromUrl(TEST_IMAGE_1);
+    const file2 = await api.admin.file.uploadFromUrl(TEST_IMAGE_2);
+    await registerProductMedia(api, productId, revision, [file1.id, file2.id]);
 
-      // Set with specific order: file2 first, then file1
-      const { data } = await api.admin.mutation('inventory-api/VariantSetMedia', {
-        variables: {
-          input: {
-            variantId,
-            fileIds: [file2.id, file1.id],
-          },
-        },
-      });
-
-      const result = data.catalogMutation.variantUpdateMedia;
-      expect(result.userErrors).toHaveLength(0);
-      expect(result.variant).toBeTruthy();
+    await api.admin.mutation('inventory-api/VariantSetMedia', {
+      variables: { input: { variantId, fileIds: [file1.id] } },
     });
+
+    const { data } = await api.admin.mutation('inventory-api/VariantSetMedia', {
+      variables: { input: { variantId, fileIds: [file2.id] } },
+    });
+
+    const result = data.catalogMutation.variantUpdateMedia;
+    expect(result.userErrors).toHaveLength(0);
+    expect(mediaFileIds(result.variant.media)).toEqual([file2.id]);
+  });
+
+  test('variantUpdateMedia returns NOT_FOUND for a valid global ID that does not exist', async ({ api }) => {
+    const file = await api.admin.file.uploadFromUrl(TEST_IMAGE_1);
+    const missingVariantId = encodeGlobalId(
+      TypeName.Variant,
+      '00000000-0000-0000-0000-000000000000',
+    );
+
+    const { data } = await api.admin.mutation('inventory-api/VariantSetMedia', {
+      variables: {
+        input: {
+          variantId: missingVariantId,
+          fileIds: [file.id],
+        },
+      },
+    });
+
+    const result = data.catalogMutation.variantUpdateMedia;
+    expect(result.userErrors).toHaveLength(1);
+    expect(result.userErrors[0].code).toBe('NOT_FOUND');
+    expect(result.variant).toBeNull();
+  });
+
+  test('variantUpdateMedia rejects unregistered files atomically', async ({ api }) => {
+    const { productId, revision, variantId } = await createProduct(api, 'Unregistered Media Product');
+    const registeredFile = await api.admin.file.uploadFromUrl(TEST_IMAGE_1);
+    const unregisteredFile = await api.admin.file.uploadFromUrl(TEST_IMAGE_2);
+    await registerProductMedia(api, productId, revision, [registeredFile.id]);
+
+    await api.admin.mutation('inventory-api/VariantSetMedia', {
+      variables: { input: { variantId, fileIds: [registeredFile.id] } },
+    });
+
+    const { data } = await api.admin.mutation('inventory-api/VariantSetMedia', {
+      variables: { input: { variantId, fileIds: [unregisteredFile.id] } },
+    });
+
+    const result = data.catalogMutation.variantUpdateMedia;
+    expect(result.userErrors).toHaveLength(1);
+    expect(result.userErrors[0].code).toBe('PRODUCT_MEDIA_NOT_REGISTERED');
+    expect(result.variant).toBeNull();
+
+    const { variantMedia } = await productMediaByVariant(api, productId, variantId);
+    expect(mediaFileIds(variantMedia)).toEqual([registeredFile.id]);
+  });
+
+  test('variantUpdateMedia rejects media registered on another product', async ({ api }) => {
+    const productA = await createProduct(api, 'Product A Media');
+    const productB = await createProduct(api, 'Product B Media');
+    const file = await api.admin.file.uploadFromUrl(TEST_IMAGE_3);
+    await registerProductMedia(api, productA.productId, productA.revision, [file.id]);
+
+    const { data } = await api.admin.mutation('inventory-api/VariantSetMedia', {
+      variables: {
+        input: {
+          variantId: productB.variantId,
+          fileIds: [file.id],
+        },
+      },
+    });
+
+    const result = data.catalogMutation.variantUpdateMedia;
+    expect(result.userErrors).toHaveLength(1);
+    expect(result.userErrors[0].code).toBe('PRODUCT_MEDIA_NOT_REGISTERED');
+    expect(result.variant).toBeNull();
   });
 });

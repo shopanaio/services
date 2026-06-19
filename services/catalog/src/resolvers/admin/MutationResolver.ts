@@ -268,9 +268,10 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   @ZodResolver(ProductDeleteInputSchema())
   async productDelete(args: { input: ProductDeleteInput }) {
     const { input } = args;
+    const productId = decodeGlobalIdByType(input.id, GlobalIdEntity.Product);
 
     const result = await this.$ctx.kernel.runScript(ProductDeleteScript, {
-      id: input.id,
+      id: productId,
       permanent: input.permanent ?? undefined,
     });
 
@@ -286,10 +287,14 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   @ZodResolver(ProductUpdateStatusInputSchema())
   async productUpdateStatus(args: { input: ProductUpdateStatusInput }) {
     const { input } = args;
+    const productId = decodeGlobalIdByType(
+      input.productId,
+      GlobalIdEntity.Product
+    );
 
     const status = input.action === "PUBLISH" ? "published" : "draft";
     const result = await this.$ctx.kernel.runScript(ProductUpdateStatusScript, {
-      id: input.productId,
+      id: productId,
       status,
     });
 
@@ -308,6 +313,10 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
    */
   async productUpdate(args: CatalogMutationProductUpdateArgs) {
     const { productId, expectedRevision, operations } = args;
+    const decodedProductId = decodeGlobalIdByType(
+      productId,
+      GlobalIdEntity.Product
+    );
     const variants = operations?.variants;
 
     // Map GraphQL input to workflow operations
@@ -317,7 +326,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       workflowOps.push({
         type: "productUpdate",
         params: {
-          id: productId,
+          id: decodedProductId,
           handle: operations.handle ?? undefined,
           title: operations.title ?? undefined,
           content: operations.content
@@ -350,10 +359,15 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
     if (variants) {
       for (const vu of variants) {
+        const variantId = decodeGlobalIdByType(
+          vu.variantId,
+          GlobalIdEntity.Variant
+        );
+
         workflowOps.push({
           type: "variantUpdate",
           params: {
-            variantId: vu.variantId,
+            variantId,
             pricing: vu.pricing
               ? {
                   currency: vu.pricing.currency,
@@ -397,7 +411,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     }
 
     const workflowInput: ProductUpdateWorkflowInput = {
-      productId,
+      productId: decodedProductId,
       expectedRevision: expectedRevision ?? undefined,
       operations: workflowOps,
       context: {
@@ -418,7 +432,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         workflowInput,
         {
           source: "workflow",
-          workflowId: `productUpdate:${productId}:${idempotencyKey}`,
+          workflowId: `productUpdate:${decodedProductId}:${idempotencyKey}`,
           stepId: "start",
         }
       )) as ProductUpdateWorkflowResult;
@@ -536,12 +550,16 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     const { input } = args;
 
     // Decode Global IDs to UUIDs
+    const variantId = decodeGlobalIdByType(
+      input.variantId,
+      GlobalIdEntity.Variant
+    );
     const fileIds = input.fileIds.map((fileId) =>
       decodeGlobalIdByType(fileId, GlobalIdEntity.File)
     );
 
     const result = await this.$ctx.kernel.runScript(VariantUpdateMediaScript, {
-      variantId: input.variantId,
+      variantId,
       fileIds,
     });
 
@@ -1994,7 +2012,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
     // Map products with transformed operations
     const products: ProductBulkUpdateItem[] = input.products.map((item) => ({
-      productId: item.productId,
+      productId: decodeGlobalIdByType(item.productId, GlobalIdEntity.Product),
       expectedRevision: item.expectedRevision ?? undefined,
       operations: mapOperationsForBulk(item.productId, item.operations),
     }));
@@ -2761,6 +2779,10 @@ function mapOperationsForBulk(
   productId: string,
   operations: ProductBulkUpdateInput["products"][0]["operations"]
 ): ProductUpdateOperation[] {
+  const decodedProductId = decodeGlobalIdByType(
+    productId,
+    GlobalIdEntity.Product
+  );
   const result: ProductUpdateOperation[] = [];
   const variants = operations?.variants;
 
@@ -2768,7 +2790,7 @@ function mapOperationsForBulk(
     result.push({
       type: "productUpdate",
       params: {
-        id: productId,
+        id: decodedProductId,
         handle: operations.handle ?? undefined,
         title: operations.title ?? undefined,
         content: operations.content
@@ -2801,10 +2823,15 @@ function mapOperationsForBulk(
 
   if (variants) {
     for (const vu of variants) {
+      const variantId = decodeGlobalIdByType(
+        vu.variantId,
+        GlobalIdEntity.Variant
+      );
+
       result.push({
         type: "variantUpdate",
         params: {
-          variantId: vu.variantId,
+          variantId,
           pricing: vu.pricing
             ? {
                 currency: vu.pricing.currency,

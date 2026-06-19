@@ -131,12 +131,27 @@ export interface VariantWeight {
 
 // --- Media ---
 
+interface FileReference {
+  __typename: "File";
+  id: string;
+}
+
+/**
+ * Media registered on a product with sort order
+ */
+export interface ProductMediaItem {
+  /** File reference from the Media service */
+  file: FileReference;
+  /** Sort order index (lower = first) */
+  sortIndex: number;
+}
+
 /**
  * Media attached to a variant with sort order
  */
 export interface VariantMediaItem {
-  /** UUID of the file from the Media service */
-  fileId: string;
+  /** File reference from the Media service */
+  file: FileReference;
   /** Sort order index (lower = first) */
   sortIndex: number;
 }

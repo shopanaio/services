@@ -1,6 +1,6 @@
-import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
+import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import type { Variant } from "../../repositories/models/index.js";
-import type { BackRefNotifyInput } from "../../sagas/index.js";
+import { ProductMediaRegistrationError } from "../../repositories/media/MediaRepository.js";
 import {
   type ScriptResult,
   successResult,
@@ -20,35 +20,55 @@ export class VariantUpdateMediaScript extends BaseScript<
   VariantUpdateMediaParams,
   VariantUpdateMediaResult
 > {
+  @Transactional()
   protected async execute(
     params: VariantUpdateMediaParams
   ): Promise<VariantUpdateMediaResult> {
     const { variantId, fileIds } = params;
+    const uniqueNextFileIds = Array.from(new Set(fileIds));
 
     const variant = await this.repository.variant.findById(variantId);
     if (!variant) {
       return singleError("Variant not found", "NOT_FOUND", ["variantId"]);
     }
 
+    const registeredMedia = await this.repository.media.getProductMediaByFileIds(
+      variant.productId,
+      uniqueNextFileIds
+    );
+    const registeredFileIds = new Set(
+      registeredMedia.map((media) => media.fileId)
+    );
+    const missingFileIds = uniqueNextFileIds.filter(
+      (fileId) => !registeredFileIds.has(fileId)
+    );
+
+    if (missingFileIds.length > 0) {
+      return singleError(
+        "Variant media must be registered on the product before it can be attached",
+        "PRODUCT_MEDIA_NOT_REGISTERED",
+        ["fileIds"]
+      );
+    }
+
     const existingMedia = await this.repository.media.getVariantMedia(variantId);
     const previousFileIds = existingMedia.map((media) => media.fileId);
 
-    // Check if anything actually changed (including order)
-    const uniqueNextFileIds = Array.from(new Set(fileIds));
     const hasChanges =
       previousFileIds.length !== uniqueNextFileIds.length ||
-      previousFileIds.some((fileId, index) => fileId !== uniqueNextFileIds[index]);
+      previousFileIds.some(
+        (fileId, index) => fileId !== uniqueNextFileIds[index]
+      );
 
     if (!hasChanges) {
-      this.logger.debug({ variantId }, "No media changes detected");
+      this.logger.debug({ variantId }, "No variant media changes detected");
       return unchangedResult(variant);
     }
 
-    await this.repository.media.setVariantMedia(variantId, fileIds);
-    await this.notifyBackRefs(variantId, fileIds, previousFileIds);
+    await this.repository.media.setVariantMedia(variantId, uniqueNextFileIds);
 
     this.logger.info(
-      { variantId, fileCount: fileIds.length },
+      { variantId, productId: variant.productId, fileCount: uniqueNextFileIds.length },
       "Variant media updated successfully"
     );
 
@@ -59,48 +79,26 @@ export class VariantUpdateMediaScript extends BaseScript<
     return successResult(variant, changes);
   }
 
-  protected handleError(_error: unknown): VariantUpdateMediaResult {
+  protected handleError(error: unknown): VariantUpdateMediaResult {
+    if (error instanceof ProductMediaRegistrationError) {
+      return {
+        result: null,
+        changes: null,
+        userErrors: [
+          {
+            message:
+              "Variant media must be registered on the product before it can be attached",
+            field: ["fileIds"],
+            code: "PRODUCT_MEDIA_NOT_REGISTERED",
+          },
+        ],
+      };
+    }
+
     return {
       result: null,
       changes: null,
       userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR" }],
     };
-  }
-
-  private async notifyBackRefs(
-    variantId: string,
-    nextFileIds: string[],
-    previousFileIds: string[]
-  ): Promise<void> {
-    const uniqueNextFileIds = Array.from(new Set(nextFileIds));
-
-    try {
-      await this.services.broker.runSaga<unknown, BackRefNotifyInput>(
-        "backRefNotify",
-        {
-          entityRef: {
-            service: "inventory",
-            entityType: "variant",
-            entityId: variantId,
-          },
-          fileIds: uniqueNextFileIds,
-        },
-        {
-          source: "workflow",
-          workflowId: `variantUpdateMedia:${variantId}`,
-          stepId: "notifyBackRefs",
-        }
-      );
-    } catch (error) {
-      // Log at error level for saga start failures (not transient)
-      // These indicate configuration or code issues, not network problems
-      this.logger.error(
-        { variantId, error, fileCount: uniqueNextFileIds.length },
-        "Failed to start backref sync saga"
-      );
-      // Note: We don't rethrow because backref sync is best-effort.
-      // The variant media update already succeeded in the database.
-      // Manual reconciliation can fix orphaned backrefs later if needed.
-    }
   }
 }

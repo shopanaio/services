@@ -153,13 +153,16 @@ export class CatalogEventHandlers extends EventHandlers {
     try {
       const result = await this.kernel.runScript(FileHardDeletedScript, { fileId });
       this.logger.log(
-        { fileId, deletedCount: result.deletedCount },
-        "Cleaned up variant_media for hard-deleted file"
+        { fileId, deletedProductMediaCount: result.deletedProductMediaCount },
+        "Cleaned up product media registry for hard-deleted file"
       );
       return { success: true };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      this.logger.error({ fileId, error: message }, "Failed to clean up variant_media");
+      this.logger.error(
+        { fileId, error: message },
+        "Failed to clean up product media registry"
+      );
       return { success: false, error: { message, retryable: true } };
     }
   }

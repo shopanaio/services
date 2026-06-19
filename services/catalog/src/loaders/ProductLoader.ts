@@ -5,6 +5,7 @@ import type {
   ProductOption,
   ProductFeature,
   ProductSeo,
+  ProductMedia,
 } from "../repositories/models/index.js";
 import type { Repository } from "../repositories/Repository.js";
 
@@ -17,6 +18,7 @@ export class ProductLoader {
   public readonly productRootFeatureIds: DataLoader<string, string[]>;
   public readonly productOption: DataLoader<string, ProductOption | null>;
   public readonly productFeature: DataLoader<string, ProductFeature | null>;
+  public readonly productMedia: DataLoader<string, ProductMedia[]>;
 
   constructor(repository: Repository) {
     this.product = new DataLoader<string, Product | null>(async (productIds) => {
@@ -67,6 +69,13 @@ export class ProductLoader {
     this.productFeature = new DataLoader<string, ProductFeature | null>(async (featureIds) => {
       const results = await repository.product.getFeaturesByIds(featureIds);
       return featureIds.map((id) => results.find((f) => f.id === id) ?? null);
+    });
+
+    this.productMedia = new DataLoader<string, ProductMedia[]>(async (productIds) => {
+      const results = await repository.media.getProductMediaByProductIds(productIds);
+      return productIds.map((id) =>
+        results.filter((media) => media.productId === id)
+      );
     });
   }
 }
