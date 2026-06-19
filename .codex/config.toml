@@ -1,18 +1,14 @@
 [mcp_servers.shopana-cli]
+approval_mode = "approve"
 command = "node"
 args = ["./packages/shopana-cli-mcp/dist/index.js"]
 
-[mcp_servers.shopana-cli.tools.shopana_admin]
-approval_mode = "approve"
-
-[mcp_servers.shopana-index]
-command = "npx"
-args = ["@zaytra/indexmcp"]
-
 [mcp_servers.antd]
+approval_mode = "approve"
 command = "npx"
 args = ["-y", "@jzone-mcp/antd-components-mcp"]
 
 [mcp_servers.ag-mcp]
+approval_mode = "approve"
 command = "npx"
 args = ["ag-mcp"]
