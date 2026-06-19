@@ -10,7 +10,39 @@ query ProductFindMany($first: Int, $after: String) {
           createdAt
           updatedAt
           title
+          description {
+            text
+            html
+            json
+          }
+          media {
+            file {
+              id
+              originalName
+            }
+            sortIndex
+          }
+          options {
+            id
+            name
+            slug
+            displayType
+            values {
+              id
+              name
+              slug
+            }
+          }
           variantsCount
+          variants(first: 10) {
+            edges {
+              node {
+                id
+                handle
+                isDefault
+              }
+            }
+          }
         }
         cursor
       }

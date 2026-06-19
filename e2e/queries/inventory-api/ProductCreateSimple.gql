@@ -34,8 +34,49 @@ mutation ProductCreateSimple($input: ProductCreateInput!) {
               handle
               inventoryItem {
                 id
+                variantId
                 sku
                 trackInventory
+                continueSellingWhenOutOfStock
+                dimensions {
+                  widthMm
+                  heightMm
+                  lengthMm
+                  displayUnit
+                }
+                weight {
+                  weightGrams
+                  displayUnit
+                }
+                stock {
+                  id
+                  quantityOnHand
+                  createdAt
+                  updatedAt
+                  warehouse {
+                    id
+                    code
+                    name
+                    isDefault
+                    createdAt
+                    updatedAt
+                    variantsCount
+                  }
+                  variant {
+                    id
+                    handle
+                    title
+                    isDefault
+                  }
+                }
+                totalAvailable
+                unitCost {
+                  currency
+                  amountMinor
+                  effectiveFrom
+                }
+                createdAt
+                updatedAt
               }
               media {
                 file {
