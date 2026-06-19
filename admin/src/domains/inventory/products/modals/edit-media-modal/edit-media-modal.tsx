@@ -13,7 +13,7 @@ import { useStyles } from "./edit-media-modal.styles";
 
 export const EditMediaModal = () => {
   const { styles } = useStyles();
-  const { payload, pop, setDirty } = useModalStackContext();
+  const { payload, pop, forcePop, setDirty } = useModalStackContext();
   const typedPayload = payload as IEditMediaModalPayload;
   const [submitting, setSubmitting] = useState(false);
 
@@ -60,12 +60,12 @@ export const EditMediaModal = () => {
       });
 
       if (result !== false) {
-        pop();
+        forcePop();
       }
     } finally {
       setSubmitting(false);
     }
-  }, [typedPayload, gallery, pop]);
+  }, [typedPayload, gallery, forcePop]);
 
   return (
     <ModalLayout

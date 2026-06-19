@@ -158,6 +158,7 @@ const SortableGridItem = ({
       {...listeners}
       {...attributes}
       className={cx(styles.mediaItem, isDragging && styles.mediaItemDragging)}
+      data-testid={`entity-media-grid-item-${item.id}`}
     >
       {isFeatured && <FeaturedBadge />}
 
@@ -173,6 +174,7 @@ const SortableGridItem = ({
                       key: "preview",
                       label: "Preview",
                       icon: <EyeOutlined />,
+                      "data-testid": `entity-media-preview-menu-item-${item.id}`,
                       onClick: () => onPreview(item, index),
                     },
                   ]
@@ -184,6 +186,7 @@ const SortableGridItem = ({
                       key: "setFeatured",
                       label: "Set as featured",
                       icon: <StarOutlined />,
+                      "data-testid": `entity-media-set-featured-menu-item-${item.id}`,
                       onClick: () => onSetFeatured(item),
                     },
                   ]),
@@ -193,6 +196,7 @@ const SortableGridItem = ({
                 label: "Delete",
                 icon: <DeleteOutlined />,
                 danger: true,
+                "data-testid": `entity-media-delete-menu-item-${item.id}`,
                 onClick: () => onDelete(item.id),
               },
             ],
@@ -203,6 +207,7 @@ const SortableGridItem = ({
             size="small"
             shape="circle"
             icon={<MoreOutlined />}
+            data-testid={`entity-media-actions-button-${item.id}`}
             onClick={(e) => e.stopPropagation()}
           />
         </Dropdown>
@@ -263,6 +268,7 @@ const SortableListItem = ({
       {...listeners}
       {...attributes}
       className={cx(styles.listItem, isDragging && styles.listItemDragging)}
+      data-testid={`entity-media-list-item-${item.id}`}
     >
       <div className={styles.dragHandle}>
         <HolderOutlined />
@@ -293,6 +299,7 @@ const SortableListItem = ({
               size="small"
               type="text"
               icon={<EyeOutlined />}
+              data-testid={`entity-media-preview-button-${item.id}`}
               onClick={(e) => {
                 e.stopPropagation();
                 onPreview(item, index);
@@ -307,6 +314,7 @@ const SortableListItem = ({
               size="small"
               type="text"
               icon={<StarOutlined />}
+              data-testid={`entity-media-set-featured-button-${item.id}`}
               onClick={(e) => {
                 e.stopPropagation();
                 onSetFeatured(item);
@@ -324,6 +332,7 @@ const SortableListItem = ({
                       key: "preview",
                       label: "Preview",
                       icon: <EyeOutlined />,
+                      "data-testid": `entity-media-preview-menu-item-${item.id}`,
                       onClick: () => onPreview(item, index),
                     },
                   ]
@@ -335,6 +344,7 @@ const SortableListItem = ({
                       key: "setFeatured",
                       label: "Set as featured",
                       icon: <StarOutlined />,
+                      "data-testid": `entity-media-set-featured-menu-item-${item.id}`,
                       onClick: () => onSetFeatured(item),
                     },
                   ]),
@@ -344,6 +354,7 @@ const SortableListItem = ({
                 label: "Delete",
                 icon: <DeleteOutlined />,
                 danger: true,
+                "data-testid": `entity-media-delete-menu-item-${item.id}`,
                 onClick: () => onDelete(item.id),
               },
             ],
@@ -354,6 +365,7 @@ const SortableListItem = ({
             size="small"
             type="text"
             icon={<MoreOutlined />}
+            data-testid={`entity-media-actions-button-${item.id}`}
             onClick={(e) => e.stopPropagation()}
           />
         </Dropdown>
@@ -545,11 +557,13 @@ export const EntityMediaGallery = ({
             <Button
               type={viewMode === "grid" ? "primary" : "default"}
               icon={<AppstoreOutlined />}
+              data-testid="entity-media-grid-view-button"
               onClick={() => setViewMode("grid")}
             />
             <Button
               type={viewMode === "list" ? "primary" : "default"}
               icon={<UnorderedListOutlined />}
+              data-testid="entity-media-list-view-button"
               onClick={() => setViewMode("list")}
             />
           </Space.Compact>

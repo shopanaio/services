@@ -27,16 +27,26 @@ export const MediaSection = ({ mediaFiles, onEdit }: IMediaSectionProps) => {
     <Paper>
       <PaperHeader
         title="Media"
-        actions={<EditAction onEdit={onEdit} label="Edit media" />}
+        actions={
+          <EditAction
+            onEdit={onEdit}
+            label="Edit media"
+            testId="product-media-actions-button"
+          />
+        }
       />
-      <div className={styles.mediaGrid}>
+      <div className={styles.mediaGrid} data-testid="product-media-section">
         {visibleMediaFiles.map((media, index) =>
           index === 0 ? (
-            <div key={media.id} className={styles.mediaFeaturedWrapper}>
+            <div
+              key={media.id}
+              className={styles.mediaFeaturedWrapper}
+            >
               <Image
                 src={media.url}
                 alt={media.altText || media.originalName || ""}
                 className={styles.mediaImage}
+                data-testid={`product-media-item-${media.id}`}
                 preview={{
                   visible: false,
                   mask: (
@@ -56,6 +66,7 @@ export const MediaSection = ({ mediaFiles, onEdit }: IMediaSectionProps) => {
               src={media.url}
               alt={media.altText || media.originalName || ""}
               className={styles.mediaImage}
+              data-testid={`product-media-item-${media.id}`}
               preview={{
                 visible: false,
                 mask: (
@@ -82,6 +93,7 @@ export const MediaSection = ({ mediaFiles, onEdit }: IMediaSectionProps) => {
         <div className={styles.uploadCell}>
           <div
             className={styles.uploadArea}
+            data-testid="product-media-upload-area"
             onClick={onEdit}
             role="button"
             tabIndex={0}
