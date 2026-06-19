@@ -226,6 +226,7 @@ interface EditorGridInnerProps<T extends IEditorRowBase> {
   onRowDragEnd?: (event: RowDragEndEvent<T>) => void;
   // Layout
   domLayout?: "normal" | "autoHeight" | "print";
+  dataTestId?: string;
 }
 
 function EditorGridInnerComponent<T extends IEditorRowBase>({
@@ -241,6 +242,7 @@ function EditorGridInnerComponent<T extends IEditorRowBase>({
   onRowDragEnter,
   onRowDragEnd,
   domLayout,
+  dataTestId,
 }: EditorGridInnerProps<T>) {
   const { styles } = useStyles();
   const agGridTheme = useAgGridTheme();
@@ -293,7 +295,7 @@ function EditorGridInnerComponent<T extends IEditorRowBase>({
   );
 
   return (
-    <div className={styles.gridWrapper}>
+    <div className={styles.gridWrapper} data-testid={dataTestId}>
       <AgGridReact<T>
         ref={gridRef}
         theme={agGridTheme}
@@ -343,6 +345,7 @@ export function EditorGrid<T extends IEditorRowBase>({
   onRowDragEnter,
   onRowDragEnd,
   domLayout,
+  dataTestId,
 }: IEditorGridProps<T>) {
   const gridRef = useRef<AgGridReact<T>>(null);
 
@@ -395,6 +398,7 @@ export function EditorGrid<T extends IEditorRowBase>({
         onRowDragEnter={onRowDragEnter}
         onRowDragEnd={onRowDragEnd}
         domLayout={domLayout}
+        dataTestId={dataTestId}
       />
     </CellSelectionProvider>
   );

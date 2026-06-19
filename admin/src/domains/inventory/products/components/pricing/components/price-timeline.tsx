@@ -47,6 +47,7 @@ const useStyles = createStyles(({ token }) => ({
 
 interface IPriceTimelineProps {
   history: ApiVariantPriceConnection;
+  dataTestId?: string;
 }
 
 interface IPriceTimelineEntryProps {
@@ -110,7 +111,7 @@ const PriceTimelineEntry = ({
   );
 };
 
-export const PriceTimeline = ({ history }: IPriceTimelineProps) => {
+export const PriceTimeline = ({ history, dataTestId }: IPriceTimelineProps) => {
   const { styles } = useStyles();
 
   return (
@@ -134,12 +135,14 @@ export const PriceTimeline = ({ history }: IPriceTimelineProps) => {
             ? "red"
             : "gray",
           children: (
-            <PriceTimelineEntry
-              record={record}
-              previousRecord={
-                priceChange !== null ? prevEdge?.node ?? null : null
-              }
-            />
+            <div data-testid={dataTestId ? `${dataTestId}-item-${idx}` : undefined}>
+              <PriceTimelineEntry
+                record={record}
+                previousRecord={
+                  priceChange !== null ? prevEdge?.node ?? null : null
+                }
+              />
+            </div>
           ),
         };
       })}

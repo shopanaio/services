@@ -33,6 +33,7 @@ export interface IEditorGridProps<T extends IEditorRowBase> {
 
   // Optional custom styles class
   className?: string;
+  dataTestId?: string;
 
   // Row drag-drop support
   rowDragManaged?: boolean;

@@ -50,7 +50,12 @@ export const PricingHeader = ({
   const variantMenuItems = variants.edges.map((edge) => ({
     key: edge.node.id,
     label: (
-      <Flex justify="space-between" align="center" style={{ width: "100%" }}>
+      <Flex
+        justify="space-between"
+        align="center"
+        style={{ width: "100%" }}
+        data-testid={`pricing-widget-variant-option-${edge.node.id}`}
+      >
         <span>{edge.node.title ?? "Untitled"}</span>
         <VariantPriceLabel price={edge.node.price} />
       </Flex>
@@ -75,6 +80,7 @@ export const PricingHeader = ({
           className={styles.headerSelect}
           variant="text"
           color="default"
+          data-testid="pricing-widget-variant-select-button"
         >
           <Flex align="center" gap={4}>
             <span>{selectedVariant?.title || "Select variant"}</span>
@@ -90,13 +96,17 @@ export const PricingHeader = ({
         items: [
           {
             key: "edit",
-            label: "Edit Prices",
+            label: (
+              <span data-testid="pricing-widget-edit-prices-menu-item">
+                Edit Prices
+              </span>
+            ),
             disabled: !onEditPrices || isEditPricesLoading,
             onClick: onEditPrices,
           },
           {
             key: "history",
-            label: "View History",
+            label: <span data-testid="pricing-widget-view-history-menu-item">View History</span>,
             disabled: !onViewHistory,
             onClick: onViewHistory,
           },
@@ -104,7 +114,11 @@ export const PricingHeader = ({
       }}
       trigger={["click"]}
     >
-      <Button size="small" icon={<MoreOutlined />} />
+      <Button
+        size="small"
+        icon={<MoreOutlined />}
+        data-testid="pricing-widget-actions-button"
+      />
     </Dropdown>
   );
 

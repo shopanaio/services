@@ -38,6 +38,7 @@ interface VariantsEditorGridProps {
    * Useful for restricted views like pricing modal.
    */
   ignoreUserSettings?: boolean;
+  dataTestId?: string;
 }
 
 // ============================================================================
@@ -107,6 +108,7 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
   onChange,
   availableColumns,
   ignoreUserSettings = false,
+  dataTestId = "variants-editor-grid",
 }) => {
   // Extract option groups for column generation
   const optionGroups = useMemo(
@@ -196,6 +198,7 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
       columns={columns}
       selectableColumns={SELECTABLE_COLUMNS}
       onSetFieldValue={handleSetFieldValue}
+      dataTestId={dataTestId}
     />
   );
 };

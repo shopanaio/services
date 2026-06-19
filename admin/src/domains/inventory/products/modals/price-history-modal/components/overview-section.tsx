@@ -76,7 +76,12 @@ export const OverviewSection = ({
   const variantMenuItems = variants.edges.map((edge) => ({
     key: edge.node.id,
     label: (
-      <Flex justify="space-between" align="center" style={{ width: "100%" }}>
+      <Flex
+        justify="space-between"
+        align="center"
+        style={{ width: "100%" }}
+        data-testid={`price-history-variant-option-${edge.node.id}`}
+      >
         <span>{edge.node.title ?? "Untitled"}</span>
         <VariantPriceLabel price={edge.node.price} />
       </Flex>
@@ -85,6 +90,7 @@ export const OverviewSection = ({
 
   return (
     <Paper className={styles.overviewPaper}>
+      <div data-testid="price-history-overview">
       {variants.edges.length > 1 && (
         <div style={{ marginBottom: 16 }}>
           <Typography.Text
@@ -109,7 +115,10 @@ export const OverviewSection = ({
             isLoadingMore={isLoadingVariants}
             onLoadMore={onLoadMoreVariants}
           >
-            <Button className={styles.variantSelect}>
+            <Button
+              className={styles.variantSelect}
+              data-testid="price-history-variant-select-button"
+            >
               <Flex align="center" gap={8}>
                 <span>{selectedVariant?.title || "Select variant"}</span>
                 <DownOutlined style={{ fontSize: 10 }} />
@@ -132,7 +141,11 @@ export const OverviewSection = ({
           Current Price
         </Typography.Text>
         <div className={styles.currentPriceRow}>
-          <Typography.Title level={2} className={styles.mainPrice}>
+          <Typography.Title
+            level={2}
+            className={styles.mainPrice}
+            data-testid="price-history-current-price"
+          >
             {formattedCurrentPrice}
           </Typography.Title>
           {previousPrice && previousPrice !== currentPriceAmount && (
@@ -204,13 +217,16 @@ export const OverviewSection = ({
           centered
           className={styles.kpiTile}
         />
-        <KPITile
-          label="Changes"
-          value={String(history.totalCount)}
-          tooltip="Total number of price changes"
-          centered
-          className={styles.kpiTile}
-        />
+        <div data-testid="price-history-changes-count">
+          <KPITile
+            label="Changes"
+            value={String(history.totalCount)}
+            tooltip="Total number of price changes"
+            centered
+            className={styles.kpiTile}
+          />
+        </div>
+      </div>
       </div>
     </Paper>
   );

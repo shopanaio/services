@@ -216,33 +216,35 @@ export const PricingBlock = ({
   }
 
   return (
-    <Paper className={styles.card}>
-      <PricingHeader
-        variants={variants}
-        selectedVariantId={selectedVariantId}
-        onVariantSelect={selectVariant}
-        onLoadMore={loadMoreVariants}
-        isLoadingMore={isLoadingVariants}
-        onEditPrices={product ? handleEditPrices : undefined}
-        isEditPricesLoading={isPreparingEditor}
-        onViewHistory={resolvedProductId ? handleViewHistory : undefined}
-      />
+    <div data-testid="pricing-widget">
+      <Paper className={styles.card}>
+        <PricingHeader
+          variants={variants}
+          selectedVariantId={selectedVariantId}
+          onVariantSelect={selectVariant}
+          onLoadMore={loadMoreVariants}
+          isLoadingMore={isLoadingVariants}
+          onEditPrices={product ? handleEditPrices : undefined}
+          isEditPricesLoading={isPreparingEditor}
+          onViewHistory={resolvedProductId ? handleViewHistory : undefined}
+        />
 
-      <div className={styles.twoColumn}>
-        <div className={styles.priceColumnWrapper}>
-          <CurrentPriceColumn price={currentPrice} />
+        <div className={styles.twoColumn}>
+          <div className={styles.priceColumnWrapper}>
+            <CurrentPriceColumn price={currentPrice} />
+          </div>
+          <div className={styles.chartColumnWrapper}>
+            <PriceHistoryChartColumn
+              history={history}
+              period={period}
+              onPeriodChange={setPeriod}
+              currency={priceCurrency}
+            />
+          </div>
         </div>
-        <div className={styles.chartColumnWrapper}>
-          <PriceHistoryChartColumn
-            history={history}
-            period={period}
-            onPeriodChange={setPeriod}
-            currency={priceCurrency}
-          />
-        </div>
-      </div>
 
-      <KPIRow stats={stats} costPrice={costPrice} costCurrency={costCurrency} />
-    </Paper>
+        <KPIRow stats={stats} costPrice={costPrice} costCurrency={costCurrency} />
+      </Paper>
+    </div>
   );
 };

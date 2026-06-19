@@ -32,7 +32,11 @@ export const CurrentPriceColumn = ({ price }: ICurrentPriceColumnProps) => {
       <Typography.Text className={styles.sectionLabel}>
         Current price
       </Typography.Text>
-      <Typography.Title level={2} className={styles.mainPrice}>
+      <Typography.Title
+        level={2}
+        className={styles.mainPrice}
+        data-testid="pricing-widget-current-price"
+      >
         {formattedPrice}
       </Typography.Title>
       <Flex align="center" gap={8}>

@@ -134,7 +134,11 @@ export const TextCellRenderer: React.FC<
   const field = colDef.field;
 
   return (
-    <SelectableCell rowId={data.id} field={field}>
+    <SelectableCell
+      rowId={data.id}
+      field={field}
+      testId={`variants-editor-cell-${field}-${data.id}`}
+    >
       <span>{value ?? ""}</span>
     </SelectableCell>
   );
@@ -154,7 +158,12 @@ export const PriceCellRenderer: React.FC<
   const field = colDef.field;
 
   return (
-    <SelectableCell rowId={data.id} field={field} className="ec-cell--right">
+    <SelectableCell
+      rowId={data.id}
+      field={field}
+      className="ec-cell--right"
+      testId={`variants-editor-cell-${field}-${data.id}`}
+    >
       {formatPrice(value as number | null)}
     </SelectableCell>
   );
@@ -178,7 +187,12 @@ export const NumberCellRenderer: React.FC<
     | undefined;
 
   return (
-    <SelectableCell rowId={data.id} field={field} className="ec-cell--right">
+    <SelectableCell
+      rowId={data.id}
+      field={field}
+      className="ec-cell--right"
+      testId={`variants-editor-cell-${field}-${data.id}`}
+    >
       {edit ? (
         <Diff
           originalValue={edit.originalValue}
