@@ -1,7 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import type { ApiFixtures } from '@fixtures/api/api';
 import { test } from '@fixtures/base.extend';
-import type { ApiCatalogMutation, ApiCatalogQuery, ApiVariant } from '@codegen/admin-gql';
+import type {
+  ApiCatalogMutation,
+  ApiCatalogQuery,
+  ApiInventoryMutation,
+  ApiVariant,
+} from '@codegen/admin-gql';
 import { expect } from '@playwright/test';
 import {
   createConnectionPaginationTests,
@@ -14,6 +19,8 @@ type VariantListItem = Pick<
   'id' | 'handle' | 'isDefault' | 'createdAt' | 'updatedAt'
 > & {
   productId: string;
+  price?: { amountMinor: unknown; currency: string } | null;
+  inventoryItem?: { id: string; sku?: string | null; totalAvailable: number } | null;
 };
 
 type VariantOrderField =
@@ -31,6 +38,8 @@ type VariantOrder = {
 
 const catalog = (data: unknown) =>
   data as { catalogMutation: ApiCatalogMutation; catalogQuery: ApiCatalogQuery };
+
+const inventory = (data: unknown) => data as { inventoryMutation: ApiInventoryMutation };
 
 const rawId = (globalId: string) => parseGlobalId(globalId).id;
 
@@ -102,6 +111,7 @@ async function createProductWithVariants(
       input: {
         title: productHandle,
         handle: productHandle,
+        inventoryItem: { tracked: true },
         options: [
           {
             name: 'Variant Code',
@@ -132,6 +142,14 @@ async function createProductWithVariants(
     createdAt: edge.node.createdAt,
     updatedAt: edge.node.updatedAt,
     productId: product.id,
+    price: edge.node.price ?? null,
+    inventoryItem: edge.node.inventoryItem
+      ? {
+          id: edge.node.inventoryItem.id,
+          sku: edge.node.inventoryItem.sku,
+          totalAvailable: edge.node.inventoryItem.totalAvailable,
+        }
+      : null,
   }));
 
   expect(expectedItems).toHaveLength(variantHandles.length);
@@ -139,6 +157,84 @@ async function createProductWithVariants(
   return {
     product,
     expectedItems,
+  };
+}
+
+async function createWarehouse(api: ApiFixtures['api'], suffix: string) {
+  const { data } = await api.admin.mutation('inventory-api/WarehouseCreate', {
+    variables: {
+      input: {
+        code: `VAR-SORT-${suffix}`,
+        name: `Variant Sort ${suffix}`,
+        isDefault: false,
+      },
+    },
+  });
+
+  const result = inventory(data).inventoryMutation.warehouseCreate;
+  expect(result.userErrors).toHaveLength(0);
+  if (!result.warehouse) {
+    throw new Error('Warehouse was not returned');
+  }
+
+  return result.warehouse;
+}
+
+async function updateVariantMerchandisingData(
+  api: ApiFixtures['api'],
+  warehouseId: string,
+  item: VariantListItem,
+  data: {
+    priceAmountMinor: number;
+    sku: string;
+    availableQuantity: number;
+  },
+): Promise<VariantListItem> {
+  if (!item.inventoryItem?.id) {
+    throw new Error(`Variant ${item.id} does not have an inventory item`);
+  }
+
+  const { data: pricingData } = await api.admin.mutation('inventory-api/VariantSetPricing', {
+    variables: {
+      input: {
+        variantId: item.id,
+        currency: 'UAH',
+        amountMinor: String(data.priceAmountMinor),
+      },
+    },
+  });
+  expect(catalog(pricingData).catalogMutation.variantUpdatePricing.userErrors).toHaveLength(0);
+
+  const { data: stockData } = await api.admin.mutation('inventory-api/VariantSetStock', {
+    variables: {
+      input: {
+        id: item.inventoryItem.id,
+        sku: data.sku,
+        trackInventory: true,
+        stock: {
+          warehouseId,
+          onHand: data.availableQuantity,
+        },
+      },
+    },
+  });
+
+  const stockResult = inventory(stockData).inventoryMutation.inventoryItemUpdate;
+  expect(stockResult.userErrors).toHaveLength(0);
+  expect(stockResult.inventoryItem?.sku).toBe(data.sku);
+  expect(stockResult.inventoryItem?.totalAvailable).toBe(data.availableQuantity);
+
+  return {
+    ...item,
+    price: {
+      amountMinor: data.priceAmountMinor,
+      currency: 'UAH',
+    },
+    inventoryItem: {
+      id: item.inventoryItem.id,
+      sku: data.sku,
+      totalAvailable: data.availableQuantity,
+    },
   };
 }
 
@@ -162,23 +258,37 @@ async function prepareVariants(api: ApiFixtures['api']) {
 }
 
 test.describe('CatalogQuery.variants productId ordering', () => {
-  test('sorts by productId first and handle second', async ({ api }) => {
+  test('sorts by productId first and handle second across products with merchandising data', async ({
+    api,
+  }) => {
     const suffix = randomUUID().slice(0, 8);
-    const variantHandles = ['alpha', 'zulu'];
+    const variantHandles = ['alpha', 'mango', 'zulu'];
 
     await api.session.setupUserAndStore();
 
-    const productA = await createProductWithVariants(
-      api,
-      `variant-product-order-a-${suffix}`,
-      variantHandles,
-    );
-    const productB = await createProductWithVariants(
-      api,
-      `variant-product-order-b-${suffix}`,
-      variantHandles,
-    );
-    const expectedItems = [...productA.expectedItems, ...productB.expectedItems];
+    const warehouse = await createWarehouse(api, suffix);
+    const products: Array<{ product: { id: string }; expectedItems: VariantListItem[] }> = [];
+    const expectedItems: VariantListItem[] = [];
+    for (const productIndex of [0, 1, 2]) {
+      const product = await createProductWithVariants(
+        api,
+        `variant-product-order-${productIndex}-${suffix}`,
+        variantHandles,
+      );
+      products.push(product);
+
+      for (const item of product.expectedItems) {
+        const handleIndex = variantHandles.indexOf(item.handle);
+        expectedItems.push(
+          await updateVariantMerchandisingData(api, warehouse.id, item, {
+            priceAmountMinor: 10_000 + productIndex * 1_000 + handleIndex * 100,
+            sku: `VAR-SORT-${suffix}-${productIndex}-${handleIndex}`,
+            availableQuantity: 20 + productIndex * 10 + handleIndex,
+          }),
+        );
+      }
+    }
+
     const orderBy: VariantOrder[] = [
       { field: 'productId', direction: 'asc' },
       { field: 'handle', direction: 'desc' },
@@ -188,13 +298,14 @@ test.describe('CatalogQuery.variants productId ordering', () => {
       variables: {
         first: expectedItems.length,
         where: {
-          productId: { _in: [productA.product.id, productB.product.id] },
+          productId: { _in: products.map((product) => product.product.id) },
         },
         orderBy,
       },
     });
 
-    const connection = catalog(data).catalogQuery.variants as unknown as Connection<VariantListItem>;
+    const connection = catalog(data).catalogQuery
+      .variants as unknown as Connection<VariantListItem>;
     const productIdByVariantId = new Map(
       expectedItems.map((item) => [item.id, item.productId] as const),
     );
@@ -220,16 +331,45 @@ test.describe('CatalogQuery.variants productId ordering', () => {
       sortedExpected.map((item) => item.handle),
     );
 
-    const productOrder = [productA.product.id, productB.product.id].sort((a, b) =>
+    const productOrder = products.map((product) => product.product.id).sort((a, b) =>
       rawId(a).localeCompare(rawId(b)),
     );
     expect(returnedItems.map((item) => item.productId)).toEqual(
-      productOrder.flatMap((productId) => [productId, productId]),
+      productOrder.flatMap((productId) => [productId, productId, productId]),
     );
     for (const productId of productOrder) {
       expect(
         returnedItems.filter((item) => item.productId === productId).map((item) => item.handle),
-      ).toEqual(['zulu', 'alpha']);
+      ).toEqual(['zulu', 'mango', 'alpha']);
+    }
+
+    const expectedById = new Map(sortedExpected.map((item) => [item.id, item] as const));
+    for (const item of returnedItems) {
+      const expected = expectedById.get(item.id);
+      expect(expected).toBeTruthy();
+      expect(Number(item.price?.amountMinor)).toBe(Number(expected?.price?.amountMinor));
+      expect(item.price?.currency).toBe(expected?.price?.currency);
+      expect(item.inventoryItem?.sku).toBe(expected?.inventoryItem?.sku);
+      expect(item.inventoryItem?.totalAvailable).toBe(expected?.inventoryItem?.totalAvailable);
+    }
+  });
+
+  test('rejects price sku and available quantity as catalog variant order fields', async ({
+    api,
+  }) => {
+    await api.session.setupUserAndStore();
+
+    for (const field of ['price', 'sku', 'availableQuantity', 'totalAvailable']) {
+      const { errors } = await api.admin.query('catalog-api/VariantFindMany', {
+        throwOnError: false,
+        variables: {
+          first: 1,
+          orderBy: [{ field, direction: 'asc' }],
+        },
+      });
+
+      expect(errors?.length ?? 0).toBeGreaterThan(0);
+      expect(errors.map((error) => error.message).join('\n')).toContain('VariantOrderField');
     }
   });
 });

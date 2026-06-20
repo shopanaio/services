@@ -26,6 +26,15 @@ query VariantFindMany(
           updatedAt
           deletedAt
           title
+          price {
+            amountMinor
+            currency
+          }
+          inventoryItem {
+            id
+            sku
+            totalAvailable
+          }
         }
         cursor
       }
