@@ -3616,7 +3616,7 @@ Represents stock level for a variant in a specific warehouse.
 """
 type WarehouseStock implements Node @join__type(graph: INVENTORY_ADMIN)  @join__implements(graph: INVENTORY_ADMIN, interface: "Node")  {
   """
-  The internal stock record ID.
+  The globally unique ID of the stock record.
   """
   id: ID!
   """

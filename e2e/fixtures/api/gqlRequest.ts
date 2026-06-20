@@ -13,11 +13,19 @@ export interface GqlRequestSession {
 }
 
 export class BaseGqlRequest<QueryType, MutationType> {
+  private request: APIRequestContext;
+  private graphqlUrl: string;
+  private session: GqlRequestSession;
+
   constructor(
-    private request: APIRequestContext,
-    private graphqlUrl: string,
-    private session: GqlRequestSession,
-  ) {}
+    request: APIRequestContext,
+    graphqlUrl: string,
+    session: GqlRequestSession,
+  ) {
+    this.request = request;
+    this.graphqlUrl = graphqlUrl;
+    this.session = session;
+  }
 
   private async makeRequest<R, A>(
     query: string,

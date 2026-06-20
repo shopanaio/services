@@ -9,6 +9,7 @@ import type { ServiceContext } from "../../../context/types.js";
 import { VariantFederationResolver } from "../../../resolvers/admin/VariantFederationResolver.js";
 import { InventoryItemResolver } from "../../../resolvers/admin/InventoryItemResolver.js";
 import { WarehouseResolver } from "../../../resolvers/admin/WarehouseResolver.js";
+import { StockResolver } from "../../../resolvers/admin/StockResolver.js";
 
 /**
  * Type resolvers for interfaces, scalars, and federation references.
@@ -17,6 +18,10 @@ export const typeResolvers: Partial<Resolvers> = {
   // Interface resolvers
   Node: {
     __resolveType: (obj: unknown) => {
+      if (obj instanceof StockResolver) return "WarehouseStock";
+      if (obj instanceof WarehouseResolver) return "Warehouse";
+      if (obj instanceof InventoryItemResolver) return "InventoryItem";
+
       const record = obj as Record<string, unknown>;
       if ("quantityOnHand" in record) return "WarehouseStock";
       if ("code" in record) return "Warehouse";

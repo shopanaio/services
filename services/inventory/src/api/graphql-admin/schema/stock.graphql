@@ -67,7 +67,7 @@ type WarehouseEdge {
 Represents stock level for a variant in a specific warehouse.
 """
 type WarehouseStock implements Node {
-  """The internal stock record ID."""
+  """The globally unique ID of the stock record."""
   id: ID!
 
   """The globally unique ID of the warehouse this stock belongs to."""

@@ -1,0 +1,28 @@
+query InventoryNodeFindOne($id: ID!) {
+  inventoryQuery {
+    node(id: $id) {
+      __typename
+      ... on Warehouse {
+        id
+        code
+        name
+        isDefault
+      }
+      ... on InventoryItem {
+        id
+        variantId
+        sku
+        trackInventory
+      }
+      ... on WarehouseStock {
+        id
+        warehouseId
+        variantId
+        quantityOnHand
+        reservedQuantity
+        unavailableQuantity
+        availableForSale
+      }
+    }
+  }
+}

@@ -8,7 +8,12 @@ mutation VariantSetStock($input: InventoryItemUpdateInput!) {
         totalAvailable
         stock {
           id
+          warehouseId
+          variantId
           quantityOnHand
+          reservedQuantity
+          unavailableQuantity
+          availableForSale
           createdAt
           updatedAt
           warehouse {

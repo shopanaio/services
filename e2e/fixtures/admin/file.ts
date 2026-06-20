@@ -34,17 +34,23 @@ export interface CreateExternalInput {
 
 export class FileFixture {
   private readonly graphqlUrl: string;
+  private request: APIRequestContext;
+  private session: GqlRequestSession;
+  private gql: BaseGqlRequest<unknown, unknown>;
 
   constructor(
-    private request: APIRequestContext,
-    private session: GqlRequestSession,
-    private gql: BaseGqlRequest<unknown, unknown>,
+    request: APIRequestContext,
+    session: GqlRequestSession,
+    gql: BaseGqlRequest<unknown, unknown>,
   ) {
     const graphqlUrl = process.env.ADMIN_GRAPHQL_URL;
     if (!graphqlUrl) {
       throw new Error('ADMIN_GRAPHQL_URL environment variable is not set');
     }
     this.graphqlUrl = graphqlUrl;
+    this.request = request;
+    this.session = session;
+    this.gql = gql;
   }
 
   /**

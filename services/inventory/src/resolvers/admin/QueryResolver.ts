@@ -1,8 +1,12 @@
-import { decodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
+import {
+  decodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 import { ApolloQuery } from "@shopana/type-resolver";
 import { InventoryType } from "./InventoryType.js";
 import { WarehouseResolver } from "./WarehouseResolver.js";
 import { InventoryItemResolver } from "./InventoryItemResolver.js";
+import { StockResolver } from "./StockResolver.js";
 import { WidgetQueryResolver } from "./InventoryWidgetResolver.js";
 import {
   WarehouseConnectionResolver,
@@ -45,7 +49,7 @@ export class InventoryQueryResolver extends InventoryType<Record<string, never>>
 
   /**
    * Get a node by ID (for Relay compatibility).
-   * Supports Warehouse and InventoryItem nodes.
+   * Supports Warehouse, InventoryItem, and WarehouseStock nodes.
    */
   async node(args: { id: string }) {
     // Try to decode and load as Warehouse
@@ -71,6 +75,17 @@ export class InventoryQueryResolver extends InventoryType<Record<string, never>>
       }
     } catch {
       // Not an InventoryItem ID
+    }
+
+    // Try to decode as WarehouseStock
+    try {
+      const stockId = decodeGlobalIdByType(args.id, GlobalIdEntity.WarehouseStock);
+      const stock = await this.$ctx.kernel.repository.stock.findById(stockId);
+      if (stock) {
+        return new StockResolver(stock.id, this.$ctx);
+      }
+    } catch {
+      // Not a WarehouseStock ID
     }
 
     return null;

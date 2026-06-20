@@ -1269,7 +1269,7 @@ export type WarehouseStock = Node & {
   availableForSale: Scalars['Int']['output'];
   /** The date and time when the stock was created. */
   createdAt: Scalars['DateTime']['output'];
-  /** The internal stock record ID. */
+  /** The globally unique ID of the stock record. */
   id: Scalars['ID']['output'];
   /** The quantity currently on hand. */
   quantityOnHand: Scalars['Int']['output'];

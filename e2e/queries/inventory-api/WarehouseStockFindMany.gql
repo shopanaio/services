@@ -23,7 +23,12 @@ query WarehouseStockFindMany(
         edges {
           node {
             id
+            warehouseId
+            variantId
             quantityOnHand
+            reservedQuantity
+            unavailableQuantity
+            availableForSale
             createdAt
             updatedAt
             variant {

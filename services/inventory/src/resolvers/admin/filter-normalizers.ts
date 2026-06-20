@@ -106,7 +106,7 @@ function normalizeWarehouseStockWhereNode(
   normalized._not = normalizeWarehouseStockWhereNode(
     normalized._not as StockRelayInput["where"] | null | undefined,
   );
-  normalized.id = where.id;
+  normalized.id = normalizeIdFilter(normalized.id, GlobalIdEntity.WarehouseStock);
   normalized.warehouseId = normalizeIdFilter(
     normalized.warehouseId,
     GlobalIdEntity.Warehouse,

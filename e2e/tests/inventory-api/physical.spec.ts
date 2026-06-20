@@ -1,5 +1,6 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
+import { encodeGlobalId } from '@utils/globalid';
 
 test.describe('Physical Attributes API (Dimensions & Weight)', () => {
   test.beforeEach(async ({ api }) => {
@@ -108,11 +109,16 @@ test.describe('Physical Attributes API (Dimensions & Weight)', () => {
       expect(result.inventoryItem?.dimensions?.heightMm).toBe(75);
     });
 
-    test('should return error for invalid inventory item ID', async ({ api }) => {
+    test('should return error for non-existent global inventory item ID', async ({ api }) => {
+      const missingInventoryItemId = encodeGlobalId(
+        'InventoryItem',
+        '00000000-0000-0000-0000-000000000000',
+      );
+
       const { data } = await api.admin.mutation('inventory-api/VariantSetDimensions', {
         variables: {
           input: {
-            id: '00000000-0000-0000-0000-000000000000',
+            id: missingInventoryItemId,
             dimensions: {
               widthMm: 100,
               lengthMm: 100,
@@ -197,11 +203,16 @@ test.describe('Physical Attributes API (Dimensions & Weight)', () => {
       expect(result.inventoryItem?.weight?.weightGrams).toBe(1000);
     });
 
-    test('should return error for invalid inventory item ID', async ({ api }) => {
+    test('should return error for non-existent global inventory item ID', async ({ api }) => {
+      const missingInventoryItemId = encodeGlobalId(
+        'InventoryItem',
+        '00000000-0000-0000-0000-000000000000',
+      );
+
       const { data } = await api.admin.mutation('inventory-api/VariantSetWeight', {
         variables: {
           input: {
-            id: '00000000-0000-0000-0000-000000000000',
+            id: missingInventoryItemId,
             weight: {
               weightGrams: 500,
             },

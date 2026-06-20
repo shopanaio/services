@@ -201,11 +201,11 @@ query InventoryItemByVariant($variantId: ID!) {
 
 - `WarehouseResolver.id()` возвращает `encodeGlobalIdByType(this.$props, GlobalIdEntity.Warehouse)`;
 - `StockResolver.warehouseId()` тоже возвращает global Warehouse ID;
-- `StockResolver.id()` на первом шаге остаётся raw internal stock UUID, потому что в `GlobalIdEntity` сейчас нет отдельной entity для stock record. Не добавлять новый shared GUID entity в рамках этой интеграции: это отдельное cross-package schema/contract изменение;
-- `WarehouseStock.id` не считать частью приведённого global ID boundary в этом scope. Если schema/comment описывает его как globally unique ID, wording нужно привести к фактическому контракту: это internal stock record ID, пригодный для cache identity/read display, но не ID, который frontend должен передавать в mutations;
+- `StockResolver.id()` кодирует stock record UUID как `GlobalIdEntity.WarehouseStock`;
+- `WarehouseStock.id` входит в global ID boundary и возвращается как `gid://shopana/WarehouseStock/<uuid>`;
 - `WarehouseStock.warehouseId` и новый `WarehouseStock.variantId` должны быть global IDs, потому что они указывают на существующие GraphQL entities `Warehouse` и `Variant`;
 - `inventoryQuery.warehouse(id:)` декодирует `GlobalIdEntity.Warehouse` перед loader/repository access;
-- `inventoryQuery.node(id:)` пробует декодировать `GlobalIdEntity.Warehouse` перед загрузкой warehouse;
+- `inventoryQuery.node(id:)` пробует декодировать `GlobalIdEntity.Warehouse`, `GlobalIdEntity.InventoryItem` и `GlobalIdEntity.WarehouseStock` перед загрузкой соответствующей entity;
 - `Warehouse.__resolveReference` декодирует global Warehouse ID перед `WarehouseResolver.load`;
 - `InventoryItem.__resolveReference` декодирует `GlobalIdEntity.InventoryItem` перед `InventoryItemResolver.load`, потому что `InventoryItemResolver.id()` уже возвращает global ID;
 - mutation продолжает декодировать Warehouse ID;
@@ -525,7 +525,7 @@ prepareChangedVariantInventoryInputs({
 2. Привести `Warehouse.id` и `inventoryItemUpdate.stock.warehouseId` к одному ID contract.
 3. Привести `InventoryItem.__resolveReference` к global `InventoryItem.id` contract.
 4. Добавить normalize/decode layer для Warehouse/Stock GraphQL ID filters перед repository access, включая nested `WarehouseResolver.stock(args)`.
-5. Зафиксировать `WarehouseStock.id` как raw internal stock UUID в первом scope и поправить schema/comment wording, чтобы он не описывался как global ID.
+5. Добавить `GlobalIdEntity.WarehouseStock` и кодировать `WarehouseStock.id` как global ID.
 6. Расширить `WarehouseStock` GraphQL fields для `reservedQuantity`, `unavailableQuantity`, `availableForSale`, `warehouseId`, `variantId`.
 7. Исправить `inventoryItemUpdate` как единый transactional use case, чтобы rejected stock changes возвращали `userErrors` и не сохраняли частичные SKU/cost/physical changes.
 8. Запустить inventory service codegen через Shopana CLI.
@@ -574,7 +574,7 @@ prepareChangedVariantInventoryInputs({
 - Stock save использует согласованный Warehouse ID format.
 - Все Warehouse GraphQL boundary points используют один global ID contract: `Warehouse.id`, `stock.warehouseId`, `inventoryQuery.warehouse`, `inventoryQuery.node/nodes`, `Warehouse.__resolveReference`, `warehouseUpdate`, `warehouseDelete`, `deletedWarehouseId`.
 - `InventoryItem.__resolveReference` принимает global `InventoryItem.id` и декодирует его перед loader/repository access.
-- `WarehouseStock.id` в первом scope остаётся raw internal stock UUID; schema/comment wording не должен обещать global ID для stock record, пока в `GlobalIdEntity` нет отдельной stock entity.
+- `WarehouseStock.id` возвращается как global `WarehouseStock` ID.
 - `WarehouseStock.warehouseId` и `WarehouseStock.variantId` возвращаются как global `Warehouse`/`Variant` IDs.
 
 ## Verification
@@ -609,10 +609,10 @@ prepareChangedVariantInventoryInputs({
 3. В `services/inventory/src/resolvers/admin/WarehouseResolver.ts` изменить `WarehouseResolver.id()` на global Warehouse ID через `encodeGlobalIdByType(this.$props, GlobalIdEntity.Warehouse)`.
 4. В `services/inventory/src/resolvers/admin/StockResolver.ts` изменить `warehouseId()` на global Warehouse ID через `GlobalIdEntity.Warehouse`.
 5. В `services/inventory/src/resolvers/admin/StockResolver.ts` изменить `variantId()` на global Variant ID через `GlobalIdEntity.Variant`.
-6. Оставить `StockResolver.id()` raw internal stock UUID.
-7. Поправить wording schema/comment для `WarehouseStock.id`, чтобы он не обещал global ID для stock record.
+6. `StockResolver.id()` должен возвращать global `WarehouseStock` ID.
+7. Wording schema/comment для `WarehouseStock.id` должен описывать global ID stock record.
 8. В `services/inventory/src/resolvers/admin/QueryResolver.ts` декодировать `inventoryQuery.warehouse(id:)` как `GlobalIdEntity.Warehouse` перед loader/repository access.
-9. В `inventoryQuery.node(id:)` сначала пробовать decode/load Warehouse через `GlobalIdEntity.Warehouse`, затем decode/load InventoryItem через `GlobalIdEntity.InventoryItem`.
+9. В `inventoryQuery.node(id:)` пробовать decode/load Warehouse через `GlobalIdEntity.Warehouse`, InventoryItem через `GlobalIdEntity.InventoryItem`, WarehouseStock через `GlobalIdEntity.WarehouseStock`.
 10. В `services/inventory/src/api/graphql-admin/resolvers/types.ts` декодировать `Warehouse.__resolveReference.id` как `GlobalIdEntity.Warehouse` перед `WarehouseResolver.load`.
 11. В `services/inventory/src/api/graphql-admin/resolvers/types.ts` декодировать `InventoryItem.__resolveReference.id` как `GlobalIdEntity.InventoryItem` перед `InventoryItemResolver.load`.
 12. В `services/inventory/src/resolvers/admin/MutationResolver.ts` декодировать `warehouseUpdate(input.id)` и `warehouseDelete(input.id)` как `GlobalIdEntity.Warehouse` перед script call.
@@ -625,7 +625,7 @@ prepareChangedVariantInventoryInputs({
 3. Для `WarehouseWhereInput.id` декодировать external value как `GlobalIdEntity.Warehouse`.
 4. Для `WarehouseStockWhereInput.warehouseId` декодировать external value как `GlobalIdEntity.Warehouse`.
 5. Для `WarehouseStockWhereInput.variantId` декодировать external value как `GlobalIdEntity.Variant`.
-6. Для `WarehouseStockWhereInput.id` оставить raw UUID contract в первом scope и не декодировать как global ID.
+6. Для `WarehouseStockWhereInput.id` декодировать external value как `GlobalIdEntity.WarehouseStock`.
 7. В `WarehouseResolver.stock(args)` оставить injected internal constraint `{ warehouseId: { _eq: this.$props } }` raw UUID.
 8. В `WarehouseResolver.stock(args)` нормализовать только user-provided `args.where` до raw UUID до merge с injected internal constraint.
 9. Проверить, что ни один `where._and` не смешивает global Warehouse/Variant IDs с raw UUID для одного repository query.

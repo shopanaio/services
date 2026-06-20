@@ -87,6 +87,8 @@ export type GraphQLFileName =
   | 'inventory-api/ProductFeaturesSync'
   | 'inventory-api/ProductFindMany'
   | 'inventory-api/ProductFindOne'
+  | 'inventory-api/InventoryItemByVariant'
+  | 'inventory-api/InventoryNodeFindOne'
   | 'inventory-api/ProductOptionsSync'
   | 'inventory-api/ProductUpdate'
   | 'inventory-api/VariantCreate'

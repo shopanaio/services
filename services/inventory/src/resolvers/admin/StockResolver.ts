@@ -22,7 +22,7 @@ export class StockResolver extends InventoryType<string, WarehouseStock> {
   }
 
   id() {
-    return this.$props;
+    return encodeGlobalIdByType(this.$props, GlobalIdEntity.WarehouseStock);
   }
 
   async warehouseId() {

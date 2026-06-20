@@ -1,6 +1,7 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
 import type { ApiInventoryMutation, ApiInventoryQuery } from '@codegen/admin-gql';
+import { encodeGlobalId } from '@utils/globalid';
 
 // Helper to access inventory API data
 const inv = (data: unknown) =>
@@ -168,13 +169,66 @@ test.describe('Warehouse API', () => {
     expect(inv(data).inventoryQuery.warehouse?.isDefault).toBe(false);
   });
 
+  test('should resolve warehouse through inventory node by global id', async ({ api }) => {
+    const { data: createData } = await api.admin.mutation('inventory-api/WarehouseCreate', {
+      variables: {
+        input: {
+          code: 'WH-NODE-001',
+          name: 'Node Test Warehouse',
+          isDefault: true,
+        },
+      },
+    });
+
+    const warehouse = inv(createData).inventoryMutation.warehouseCreate.warehouse;
+    expect(warehouse).toBeTruthy();
+
+    const { data } = await api.admin.query('inventory-api/InventoryNodeFindOne', {
+      variables: { id: warehouse?.id },
+    });
+
+    const node = inv(data).inventoryQuery.node as any;
+    expect(node).toBeTruthy();
+    expect(node?.id).toBe(warehouse?.id);
+    expect(node?.__typename).toBe('Warehouse');
+  });
+
+  test('should filter warehouses by global warehouse id', async ({ api }) => {
+    const { data: createData } = await api.admin.mutation('inventory-api/WarehouseCreate', {
+      variables: {
+        input: {
+          code: 'WH-FILTER-ID',
+          name: 'Warehouse Filter By ID',
+          isDefault: false,
+        },
+      },
+    });
+
+    const warehouse = inv(createData).inventoryMutation.warehouseCreate.warehouse;
+    expect(warehouse).toBeTruthy();
+
+    const { data } = await api.admin.query('inventory-api/WarehouseFindMany', {
+      variables: {
+        first: 10,
+        where: { id: { _eq: warehouse?.id } },
+      },
+    });
+
+    const edges = inv(data).inventoryQuery.warehouses.edges;
+    expect(edges).toHaveLength(1);
+    expect(edges[0].node.id).toBe(warehouse?.id);
+  });
+
   test('should return null for non-existent warehouse', async ({ api }) => {
-    // Use a valid UUID format that doesn't exist
+    const missingWarehouseId = encodeGlobalId(
+      'Warehouse',
+      '00000000-0000-0000-0000-000000000000',
+    );
+
     const { data } = await api.admin.query('inventory-api/WarehouseFindOne', {
-      variables: { id: '00000000-0000-0000-0000-000000000000' },
+      variables: { id: missingWarehouseId },
     });
 
     expect(inv(data).inventoryQuery.warehouse).toBeNull();
   });
-
 });

@@ -1,6 +1,9 @@
 import { randomUUID } from 'node:crypto';
+import { test } from '@fixtures/base.extend';
+import { expect } from '@playwright/test';
 import type { ApiFixtures } from '@fixtures/api/api';
 import type { ApiWarehouseStock, ApiInventoryMutation, ApiInventoryQuery } from '@codegen/admin-gql';
+import { encodeGlobalId, parseGlobalId } from '@utils/globalid';
 import {
   createConnectionPaginationTests,
   type Connection,
@@ -9,6 +12,14 @@ import {
 // Helper to access inventory API data
 const inv = (data: unknown) =>
   data as { inventoryMutation: ApiInventoryMutation; inventoryQuery: ApiInventoryQuery };
+
+const getRawStockId = (stock: ApiWarehouseStock) => parseGlobalId(stock.id).id;
+const compareStockId = (a: ApiWarehouseStock, b: ApiWarehouseStock) =>
+  getRawStockId(a).localeCompare(getRawStockId(b));
+const compareCreatedAtAsc = (a: ApiWarehouseStock, b: ApiWarehouseStock) =>
+  a.createdAt.localeCompare(b.createdAt) || compareStockId(a, b);
+const compareCreatedAtDesc = (a: ApiWarehouseStock, b: ApiWarehouseStock) =>
+  b.createdAt.localeCompare(a.createdAt) || compareStockId(a, b);
 
 interface PrepareResult {
   expectedItems: ApiWarehouseStock[];
@@ -117,12 +128,12 @@ createConnectionPaginationTests<ApiWarehouseStock>({
     {
       name: 'createdAt ASC',
       orderBy: [{ field: 'createdAt', direction: 'asc' }],
-      sortExpected: (items) => [...items].sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
+      sortExpected: (items) => [...items].sort(compareCreatedAtAsc),
     },
     {
       name: 'createdAt DESC',
       orderBy: [{ field: 'createdAt', direction: 'desc' }],
-      sortExpected: (items) => [...items].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+      sortExpected: (items) => [...items].sort(compareCreatedAtDesc),
     },
   ],
   filterCases: [
@@ -173,6 +184,53 @@ createConnectionPaginationTests<ApiWarehouseStock>({
     return stock as Connection<ApiWarehouseStock>;
   },
   getNodeIdentifier: (node) => node.id,
+  emptyWhere: {
+    id: {
+      _eq: encodeGlobalId('WarehouseStock', '00000000-0000-0000-0000-000000000000'),
+    },
+  },
   pageSize: 2,
   apiClient: 'admin',
+});
+
+test.describe('Warehouse Stock API contracts', () => {
+  test('should filter nested warehouse stock by global warehouse and variant ids', async ({ api }) => {
+    const { expectedItems, baseVariables } = await prepareWarehouseStocks(api);
+    const target = expectedItems[0] as ApiWarehouseStock & {
+      warehouseId: string;
+      variantId: string;
+      unavailableQuantity: number;
+      reservedQuantity: number;
+      availableForSale: number;
+    };
+
+    expect(parseGlobalId(target.id).typeName).toBe('WarehouseStock');
+    expect(parseGlobalId(target.warehouseId).typeName).toBe('Warehouse');
+    expect(parseGlobalId(target.variantId).typeName).toBe('Variant');
+
+    const { data } = await api.admin.query('inventory-api/WarehouseStockFindMany', {
+      variables: {
+        ...baseVariables,
+        first: 10,
+        where: {
+          _and: [
+            { warehouseId: { _eq: target.warehouseId } },
+            { variantId: { _eq: target.variantId } },
+            { id: { _eq: target.id } },
+          ],
+        },
+      },
+    });
+
+    const stock = inv(data).inventoryQuery.warehouse?.stock;
+    expect(stock?.edges).toHaveLength(1);
+
+    const returned = stock?.edges[0].node as typeof target;
+    expect(returned.id).toBe(target.id);
+    expect(returned.warehouseId).toBe(baseVariables.warehouseId);
+    expect(returned.variantId).toBe(target.variantId);
+    expect(returned.reservedQuantity).toBe(0);
+    expect(returned.unavailableQuantity).toBe(0);
+    expect(returned.availableForSale).toBe(returned.quantityOnHand);
+  });
 });
