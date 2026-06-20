@@ -5,8 +5,7 @@ import { Sidebar } from "@/layouts/app/components/sidebar/sidebar";
 import { createStyles } from "antd-style";
 import { ReactNode } from "react";
 import { AuthGuard, ProfileCompletionGuard } from "@/domains/auth";
-import { WorkspaceDataLoader } from "@/domains/workspace/components/workspace-data-loader";
-import { usePathParams } from "@/registry";
+import { StoreProvider } from "./store-provider";
 
 const useStyles = createStyles(({ token }) => ({
   layout: {
@@ -28,19 +27,16 @@ interface AppLayoutProps {
 
 export const AppLayout = ({ children }: AppLayoutProps) => {
   const { styles, cx } = useStyles();
-  const pathContext = usePathParams();
-
-  const orgName = pathContext.getParam("orgName");
 
   return (
     <AuthGuard>
       <ProfileCompletionGuard>
-        <WorkspaceDataLoader organizationName={orgName}>
+        <StoreProvider>
           <Layout className={cx(styles.layout)} hasSider>
             <Sidebar />
             <Layout>{children}</Layout>
           </Layout>
-        </WorkspaceDataLoader>
+        </StoreProvider>
       </ProfileCompletionGuard>
     </AuthGuard>
   );

@@ -9,6 +9,7 @@ import { ORGANIZATION_FRAGMENT, STORE_FRAGMENT } from "../graphql";
 
 export interface WorkspaceValue {
   organization: ApiOrganization | null;
+  currentStore: ApiStore | null;
   store: ApiStore | null;
   organizationLoading: boolean;
   currentMember: ApiMember | null;
@@ -57,6 +58,7 @@ export function useWorkspace(): WorkspaceValue {
 
   return {
     organization,
+    currentStore,
     store: currentStore,
     organizationLoading:
       Boolean(organizationName) && !organizationFragment.complete,

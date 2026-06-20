@@ -17,11 +17,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      suppressHydrationWarning
-      className={safiro.variable}
-    >
+    <html lang="en" suppressHydrationWarning className={safiro.variable}>
       <body>
         <ApolloProvider>
           <Theme>

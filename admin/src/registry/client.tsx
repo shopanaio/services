@@ -8,6 +8,7 @@ import { registerModalStackItem } from "@/layouts/modals/registry/modal-registry
 import { PathParamsProvider } from "./path-params-context";
 import { modulesContext } from "./modules-context";
 import type { ParamData } from "path-to-regexp";
+import { ModalStack } from "@/layouts/modals";
 
 // Initialize modules on client side (module-level, runs once)
 modulesContext.keys().forEach((key) => modulesContext(key));
@@ -118,6 +119,7 @@ export function ClientLayoutResolver({
     <ModuleProvider sidebarItems={sidebarItems} getModalStackItems={getModalStackItems}>
       <PathParamsProvider pathParams={pathParams}>
         <DomainLayout>{children}</DomainLayout>
+        <ModalStack />
       </PathParamsProvider>
     </ModuleProvider>
   );
