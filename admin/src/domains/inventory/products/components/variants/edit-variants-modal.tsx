@@ -4,6 +4,7 @@ import { useEffect, useCallback, useRef, useMemo, useState } from "react";
 import { Divider, Tag } from "antd";
 import { createStyles } from "antd-style";
 import { ModalLayout, useModalStackContext } from "@/layouts/modals";
+import { useDefaultCurrency } from "@/domains/workspace";
 import { useVariantsEditorStore } from "./hooks";
 import { VariantsColumnSettings } from "./components/variants-column-settings";
 import {
@@ -73,6 +74,9 @@ export const EditVariantsModal = () => {
   const { payload, pop, setDirty } = useModalStackContext();
   const typedPayload = payload as IEditVariantsModalPayload;
   const [submitting, setSubmitting] = useState(false);
+  const storeDefaultCurrency = useDefaultCurrency();
+  const defaultCurrency =
+    typedPayload.defaultCurrency ?? storeDefaultCurrency ?? null;
 
   // Store
   const hasChanges = useVariantsEditorStore((s) => s.hasChanges());
@@ -96,7 +100,7 @@ export const EditVariantsModal = () => {
         typedPayload.variants,
         typedPayload.productOptions,
       ),
-    [typedPayload.variants, typedPayload.productOptions]
+    [typedPayload.variants, typedPayload.productOptions],
   );
 
   // Extract option groups for column settings
@@ -205,6 +209,7 @@ export const EditVariantsModal = () => {
             onChange={handleChange}
             availableColumns={availableColumns}
             ignoreUserSettings={!!availableColumns}
+            defaultCurrency={defaultCurrency}
           />
         </div>
       </div>

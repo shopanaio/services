@@ -9,6 +9,7 @@ import type {
   ApiProductOption,
   ApiTag,
   ApiVariant,
+  CurrencyCode,
 } from "@/graphql/types";
 import type { IAttributeRow } from "./modals/edit-attributes-modal/types";
 import type { VariantColumnField } from './components/variants/config/types';
@@ -203,6 +204,7 @@ export interface IEditVariantsModalPayload extends IModalStackPayload {
   initialTab?: VariantTabKey;
   variants: ApiVariant[];
   productOptions: ApiProductOption[];
+  defaultCurrency?: CurrencyCode | null;
   /**
    * When provided, only these columns will be shown.
    * If undefined, all columns are available with user settings.

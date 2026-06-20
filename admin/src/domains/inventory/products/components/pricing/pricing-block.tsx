@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { App, Flex, Spin } from "antd";
 import { LoadingOutlined } from "@ant-design/icons";
 import { Paper } from "@/ui-kit/paper";
@@ -55,11 +55,6 @@ export const PricingBlock = ({
   const { loadAllProductVariants } = useProductVariantsLoader();
   const [isPreparingEditor, setIsPreparingEditor] = useState(false);
   const resolvedProductId = product?.id ?? productId ?? "";
-  const defaultCurrencyRef = useRef(defaultCurrency);
-
-  useEffect(() => {
-    defaultCurrencyRef.current = defaultCurrency;
-  }, [defaultCurrency]);
 
   const {
     data,
@@ -94,7 +89,7 @@ export const PricingBlock = ({
         variantUpdates = prepareChangedVariantPricingInputs(
           rows,
           editorVariants,
-          defaultCurrencyRef.current,
+          defaultCurrency,
         );
       } catch (err) {
         message.error(
@@ -142,6 +137,7 @@ export const PricingBlock = ({
     },
     [
       message,
+      defaultCurrency,
       onProductRefresh,
       product,
       refetchPricingWidget,
@@ -165,6 +161,7 @@ export const PricingBlock = ({
         initialTab: "pricing",
         variants: editorVariants,
         productOptions: product.options,
+        defaultCurrency,
         availableColumns: ["price", "compareAtPrice"],
         showColumnSettings: false,
         onSave: (rows: VariantEditorSaveRow[]) =>
@@ -181,6 +178,7 @@ export const PricingBlock = ({
     }
   }, [
     handleSavePrices,
+    defaultCurrency,
     loadAllProductVariants,
     message,
     openEditVariantsModal,

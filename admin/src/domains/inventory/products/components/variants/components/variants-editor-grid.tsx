@@ -18,6 +18,7 @@ import type {
   IOptionGroup,
   VariantColumnField,
 } from "../config/types";
+import type { CurrencyCode } from "@/graphql/types";
 
 // ============================================================================
 // Types
@@ -38,6 +39,7 @@ interface VariantsEditorGridProps {
    * Useful for restricted views like pricing modal.
    */
   ignoreUserSettings?: boolean;
+  defaultCurrency?: CurrencyCode | null;
   dataTestId?: string;
 }
 
@@ -108,6 +110,7 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
   onChange,
   availableColumns,
   ignoreUserSettings = false,
+  defaultCurrency,
   dataTestId = "variants-editor-grid",
 }) => {
   // Extract option groups for column generation
@@ -124,6 +127,8 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
     [variants]
   );
 
+  const currency = defaultCurrency ?? null;
+
   // Store hooks
   const edits = useVariantsEditorStore((s) => s.edits);
   const setFieldValue = useVariantsEditorStore((s) => s.setFieldValue);
@@ -131,6 +136,7 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
   // Columns - pass availableColumns and ignoreUserSettings
   const columns = useVariantsColumns({
     optionGroups,
+    currency,
     availableColumns,
     ignoreUserSettings,
   });

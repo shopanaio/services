@@ -2,27 +2,34 @@ import React from "react";
 import { Avatar } from "antd";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { SelectableCell } from "@/shared/components/ag-grid-cell-selection";
-import { Diff, ImagePlaceholder } from "@/shared/components/editor-grid";
+import { Dash, Diff, ImagePlaceholder } from "@/shared/components/editor-grid";
 import type { IVariantEditorRow } from "../config/types";
 import { useVariantsEditorStore } from "../hooks";
 import type { IFieldEdit } from "@/shared/components/editor-grid/types";
+import type { CurrencyCode } from "@/graphql/types";
 import {
   ReservedCell,
   CalculatedAvailableCell,
 } from "@/shared/components/inventory-cells";
+import { formatPrice } from "../../../utils/price-formatting";
 
-// ============================================================================
-// Formatters
-// ============================================================================
+interface PriceCellRendererParams {
+  currency?: CurrencyCode | null;
+}
 
-export function formatPrice(value: number | null): string {
-  if (value === null) return "";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
+function getPriceCellDisplayValue(
+  value: unknown,
+  currency: CurrencyCode | null | undefined,
+): React.ReactNode {
+  if (!currency) {
+    return <Dash />;
+  }
+
+  if (typeof value !== "number") {
+    return <Dash />;
+  }
+
+  return formatPrice(value, currency);
 }
 
 // ============================================================================
@@ -149,13 +156,14 @@ export const TextCellRenderer: React.FC<
 // ============================================================================
 
 export const PriceCellRenderer: React.FC<
-  CustomCellRendererProps<IVariantEditorRow>
+  CustomCellRendererProps<IVariantEditorRow> & PriceCellRendererParams
 > = (props) => {
   const { data, colDef, value } = props;
 
   if (!data || !colDef?.field) return null;
 
   const field = colDef.field;
+  const displayValue = getPriceCellDisplayValue(value, props.currency);
 
   return (
     <SelectableCell
@@ -164,7 +172,7 @@ export const PriceCellRenderer: React.FC<
       className="ec-cell--right"
       testId={`variants-editor-cell-${field}-${data.id}`}
     >
-      {formatPrice(value as number | null)}
+      {displayValue}
     </SelectableCell>
   );
 };

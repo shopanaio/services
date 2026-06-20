@@ -11,6 +11,7 @@ import type {
   IOptionGroup,
   VariantColumnField,
 } from "../config/types";
+import type { CurrencyCode } from "@/graphql/types";
 import {
   ImageCellRenderer,
   TitleCellRenderer,
@@ -20,6 +21,7 @@ import {
   ReservedCellRenderer,
   AvailableCellRenderer,
 } from "../components/cell-renderers";
+import { formatCurrencySymbol } from "../../../utils/price-formatting";
 
 // ============================================================================
 // Types
@@ -27,6 +29,7 @@ import {
 
 export interface UseVariantsColumnsOptions {
   optionGroups: IOptionGroup[];
+  currency?: CurrencyCode | null;
   /**
    * When provided, only these columns will be available.
    * If undefined, all columns are available (with user visibility settings).
@@ -44,6 +47,18 @@ export interface UseVariantsColumnsOptions {
 // ============================================================================
 
 const PRICE_FIELDS = new Set(["price", "compareAtPrice", "costPrice"]);
+
+function getColumnHeaderName(
+  headerName: string,
+  field: string,
+  currency: CurrencyCode | null | undefined,
+): string {
+  if (PRICE_FIELDS.has(field) && currency) {
+    return `${headerName} (${formatCurrencySymbol(currency)})`;
+  }
+
+  return headerName;
+}
 
 // ============================================================================
 // Get cell renderer based on column type and field
@@ -171,7 +186,12 @@ export function useVariantsColumns(
     ? { optionGroups: optionsOrOptionGroups }
     : optionsOrOptionGroups;
 
-  const { optionGroups, availableColumns, ignoreUserSettings = false } = normalizedOptions;
+  const {
+    optionGroups,
+    availableColumns,
+    ignoreUserSettings = false,
+    currency,
+  } = normalizedOptions;
 
   const columnVisibility = useVariantsEditorStore((s) => s.columnVisibility);
   const isOptionColumnVisible = useVariantsEditorStore(
@@ -205,7 +225,11 @@ export function useVariantsColumns(
 
       columns.push({
         field: col.field as keyof IVariantEditorRow,
-        headerName: col.headerName,
+        headerName: getColumnHeaderName(
+          col.headerName,
+          col.field,
+          currency,
+        ),
         width: col.width,
         minWidth: 80,
         cellRenderer: ImageCellRenderer,
@@ -251,13 +275,25 @@ export function useVariantsColumns(
 
       columns.push({
         field: col.field as keyof IVariantEditorRow,
-        headerName: col.headerName,
+        headerName: getColumnHeaderName(
+          col.headerName,
+          col.field,
+          currency,
+        ),
+        colId: PRICE_FIELDS.has(col.field)
+          ? `${col.field}-${currency ?? "none"}`
+          : col.field,
         width: col.width,
         minWidth: col.minWidth,
         flex: col.flex,
         type: getColumnType(col.type),
         editable: col.editable,
         cellRenderer,
+        cellRendererParams: PRICE_FIELDS.has(col.field)
+          ? {
+              currency,
+            }
+          : undefined,
         cellEditor: getCellEditor(col.type),
         cellEditorParams: getCellEditorParams(col.field),
         valueGetter: createValueGetter(col.field),
@@ -266,5 +302,12 @@ export function useVariantsColumns(
     }
 
     return columns;
-  }, [columnVisibility, optionGroups, isOptionColumnVisible, availableColumns, ignoreUserSettings]);
+  }, [
+    columnVisibility,
+    optionGroups,
+    isOptionColumnVisible,
+    availableColumns,
+    ignoreUserSettings,
+    currency,
+  ]);
 }

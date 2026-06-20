@@ -53,7 +53,7 @@ export function prepareChangedVariantPricingInputs(
       continue;
     }
 
-    const currency = originalVariant.price?.currency ?? defaultCurrency;
+    const currency = defaultCurrency;
 
     if (!currency) {
       throw new Error("Store default currency is required to save new prices.");

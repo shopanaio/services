@@ -16,6 +16,21 @@ export const formatPrice = (
   return formatted.replace(/\s+/g, NBSP);
 };
 
+export const formatCurrencySymbol = (
+  currency: string,
+  locale: string = "en-US",
+): string => {
+  const currencyPart = new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency,
+    currencyDisplay: "narrowSymbol",
+  })
+    .formatToParts(0)
+    .find((part) => part.type === "currency");
+
+  return currencyPart?.value ?? currency;
+};
+
 export const formatShortDate = (
   date: Date,
   locale: string = "ru-RU",
