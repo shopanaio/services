@@ -9,6 +9,11 @@ interface VariantFixture {
   handle: string;
 }
 
+interface ExpectedPricing {
+  amountMinor: number;
+  compareAtMinor: number;
+}
+
 const UAH = 'UAH';
 
 async function signIn(page: Page, email: string, password: string) {
@@ -105,12 +110,20 @@ function formatUah(amountMinor: number) {
 }
 
 function formatEditorPrice(value: number) {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
+  return formatUah(value);
+}
+
+function formatDiscountPercent(price: ExpectedPricing) {
+  return `-${Math.round(((price.compareAtMinor - price.amountMinor) / price.compareAtMinor) * 100)}%`;
+}
+
+function formatPriceChangePercent(current: ExpectedPricing, previous: ExpectedPricing) {
+  const percentChange = (
+    ((current.amountMinor - previous.amountMinor) / previous.amountMinor) *
+    100
+  ).toFixed(0);
+
+  return `${current.amountMinor > previous.amountMinor ? '+' : ''}${percentChange}%`;
 }
 
 function pricingBlock(page: Page) {
@@ -146,9 +159,14 @@ function variantEditorCell(page: Page, variantId: string, field: string) {
   return page.getByTestId(`variants-editor-cell-${field}-${variantId}`);
 }
 
-async function editVariantPriceCell(page: Page, variantId: string, value: number | null) {
+async function editVariantPricingCell(
+  page: Page,
+  variantId: string,
+  field: 'price' | 'compareAtPrice',
+  value: number | null,
+) {
   const grid = editVariantsGrid(page);
-  const cell = variantEditorCell(page, variantId, 'price');
+  const cell = variantEditorCell(page, variantId, field);
   await cell.dblclick();
   const input = grid.locator('input.ag-input-field-input, input.ag-cell-edit-input').last();
   await input.fill(value === null ? '' : String(value));
@@ -160,40 +178,55 @@ async function saveEditPricesModal(page: Page) {
   await expect(page.getByTestId('edit-variants-modal')).toBeHidden();
 }
 
-async function expectWidgetCurrentPrice(page: Page, variant: VariantFixture, amountMinor: number) {
+async function expectWidgetCurrentPrice(
+  page: Page,
+  variant: VariantFixture,
+  expected: ExpectedPricing,
+) {
   const block = pricingBlock(page);
 
   await page.getByTestId('pricing-widget-variant-select-button').click();
   await page.getByTestId(`pricing-widget-variant-option-${variant.id}`).click();
 
   await expect(block.getByTestId('pricing-widget-current-price')).toHaveText(
-    formatUah(amountMinor),
+    formatUah(expected.amountMinor),
   );
+  await expect(block).toContainText(formatUah(expected.compareAtMinor));
 }
 
 async function expectHistoryModalVariantPriceHistory(
   page: Page,
   variant: VariantFixture,
-  expectedAmountsMinorNewestFirst: number[],
+  expectedPricesNewestFirst: ExpectedPricing[],
 ) {
   await page.getByTestId('price-history-variant-select-button').click();
   await page.getByTestId(`price-history-variant-option-${variant.id}`).click();
 
   await expect(page.getByTestId('price-history-current-price')).toHaveText(
-    formatUah(expectedAmountsMinorNewestFirst[0]),
+    formatUah(expectedPricesNewestFirst[0].amountMinor),
+  );
+  await expect(page.getByTestId('price-history-modal')).toContainText(
+    formatUah(expectedPricesNewestFirst[0].compareAtMinor),
   );
   await expect(page.getByTestId('price-history-changes-count')).toContainText(
-    String(expectedAmountsMinorNewestFirst.length),
+    String(expectedPricesNewestFirst.length),
   );
 
-  for (const [index, amountMinor] of expectedAmountsMinorNewestFirst.entries()) {
-    await expect(page.getByTestId(`price-history-timeline-item-${index}`)).toContainText(
-      formatUah(amountMinor),
-    );
+  for (const [index, expected] of expectedPricesNewestFirst.entries()) {
+    const item = page.getByTestId(`price-history-timeline-item-${index}`);
+
+    await expect(item).toContainText(formatUah(expected.amountMinor));
+    await expect(item).toContainText(formatUah(expected.compareAtMinor));
+    await expect(item).toContainText(formatDiscountPercent(expected));
+
+    const previous = expectedPricesNewestFirst[index + 1];
+    if (previous) {
+      await expect(item).toContainText(formatPriceChangePercent(expected, previous));
+    }
   }
 }
 
-async function assertWidgetApiPrice(api: Api, variantId: string, amountMinor: number) {
+async function assertWidgetApiPrice(api: Api, variantId: string, expected: ExpectedPricing) {
   await expect
     .poll(async () => {
       const { data } = await api.admin.query('inventory-api/WidgetPricing', {
@@ -206,19 +239,26 @@ async function assertWidgetApiPrice(api: Api, variantId: string, amountMinor: nu
         },
       });
 
-      return data.widgetQuery.pricing.currentPrice?.amountMinor ?? null;
+      const currentPrice = data.widgetQuery.pricing.currentPrice;
+      return currentPrice
+        ? {
+            amountMinor: currentPrice.amountMinor,
+            compareAtMinor: currentPrice.compareAtMinor,
+          }
+        : null;
     })
-    .toBe(amountMinor);
+    .toEqual(expected);
 }
 
-async function setVariantPrices(api: Api, variants: VariantFixture[], amountsMinor: number[]) {
+async function setVariantPrices(api: Api, variants: VariantFixture[], prices: ExpectedPricing[]) {
   for (const [index, variant] of variants.entries()) {
     const { data } = await api.admin.mutation('inventory-api/VariantSetPricing', {
       variables: {
         input: {
           variantId: variant.id,
           currency: UAH,
-          amountMinor: String(amountsMinor[index]),
+          amountMinor: String(prices[index].amountMinor),
+          compareAtMinor: String(prices[index].compareAtMinor),
         },
       },
     });
@@ -243,8 +283,6 @@ test.describe('Admin product pricing widget UI', () => {
     const unique = crypto.randomUUID().slice(0, 8);
     const { title, handle, variants } = await createProductWithFourVariants(api, unique);
     const productsUrl = `/${organization.name}/${api.session.projectSlug}/products`;
-    const initialApiAmounts = [10100, 10200, 10300, 10400];
-    await setVariantPrices(api, variants, initialApiAmounts);
 
     await signIn(page, api.session.user.data.email, api.session.user.data.password);
     await completeProfileIfNeeded(page);
@@ -255,23 +293,45 @@ test.describe('Admin product pricing widget UI', () => {
     const grid = editVariantsGrid(page);
     await expect(grid).toBeVisible();
 
-    const uiAmounts = [12500, 13600, 14700, 15800];
+    const uiPrices = [
+      { amountMinor: 12500, compareAtMinor: 14500 },
+      { amountMinor: 13600, compareAtMinor: 15600 },
+      { amountMinor: 14700, compareAtMinor: 16700 },
+      { amountMinor: 15800, compareAtMinor: 17800 },
+    ];
     for (const [index, variant] of variants.entries()) {
       await expect(variantEditorCell(page, variant.id, 'price')).toBeVisible();
-      await editVariantPriceCell(page, variant.id, uiAmounts[index]);
+      await expect(variantEditorCell(page, variant.id, 'compareAtPrice')).toBeVisible();
+      await editVariantPricingCell(page, variant.id, 'price', uiPrices[index].amountMinor);
+      await editVariantPricingCell(
+        page,
+        variant.id,
+        'compareAtPrice',
+        uiPrices[index].compareAtMinor,
+      );
     }
 
     await saveEditPricesModal(page);
 
     for (const [index, variant] of variants.entries()) {
-      await assertWidgetApiPrice(api, variant.id, uiAmounts[index]);
-      await expectWidgetCurrentPrice(page, variant, uiAmounts[index]);
+      await assertWidgetApiPrice(api, variant.id, uiPrices[index]);
+      await expectWidgetCurrentPrice(page, variant, uiPrices[index]);
     }
 
-    const apiAmounts = [21100, 22200, 23300, 24400];
-    const intermediateApiAmounts = [18100, 19200, 20300, 21400];
-    await setVariantPrices(api, variants, intermediateApiAmounts);
-    await setVariantPrices(api, variants, apiAmounts);
+    const apiPrices = [
+      { amountMinor: 21100, compareAtMinor: 24100 },
+      { amountMinor: 22200, compareAtMinor: 25200 },
+      { amountMinor: 23300, compareAtMinor: 26300 },
+      { amountMinor: 24400, compareAtMinor: 27400 },
+    ];
+    const intermediateApiPrices = [
+      { amountMinor: 18100, compareAtMinor: 21100 },
+      { amountMinor: 19200, compareAtMinor: 22200 },
+      { amountMinor: 20300, compareAtMinor: 23300 },
+      { amountMinor: 21400, compareAtMinor: 24400 },
+    ];
+    await setVariantPrices(api, variants, intermediateApiPrices);
+    await setVariantPrices(api, variants, apiPrices);
 
     await page.reload();
     await openProductDetails(page, productsUrl, handle, title);
@@ -280,10 +340,9 @@ test.describe('Admin product pricing widget UI', () => {
 
     for (const [index, variant] of variants.entries()) {
       await expectHistoryModalVariantPriceHistory(page, variant, [
-        apiAmounts[index],
-        intermediateApiAmounts[index],
-        uiAmounts[index],
-        initialApiAmounts[index],
+        apiPrices[index],
+        intermediateApiPrices[index],
+        uiPrices[index],
       ]);
     }
 
@@ -297,7 +356,10 @@ test.describe('Admin product pricing widget UI', () => {
 
     for (const [index, variant] of variants.entries()) {
       await expect(variantEditorCell(page, variant.id, 'price')).toHaveText(
-        formatEditorPrice(apiAmounts[index]),
+        formatEditorPrice(apiPrices[index].amountMinor),
+      );
+      await expect(variantEditorCell(page, variant.id, 'compareAtPrice')).toHaveText(
+        formatEditorPrice(apiPrices[index].compareAtMinor),
       );
     }
   });
