@@ -9,10 +9,6 @@ Modular e-commerce platform built with NestJS microservices and GraphQL Federati
 Project rules and architecture patterns are stored in the knowledge base vault under `@knowledge/vault/`.
 Before creating implementation plans or making code/documentation changes, review and align the work with the relevant documents from the knowledge base.
 
-## Language
-
-The repository development language is English. All codebase files, code comments, documentation, plans, commit messages, pull request text, and generated project artifacts must be written in English only.
-
 ## Architecture
 
 - **Framework:** NestJS + Fastify
