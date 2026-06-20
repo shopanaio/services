@@ -5,7 +5,7 @@ import { Sidebar } from "@/layouts/app/components/sidebar/sidebar";
 import { createStyles } from "antd-style";
 import { ReactNode } from "react";
 import { AuthGuard, ProfileCompletionGuard } from "@/domains/auth";
-import { WorkspaceProvider } from "@/domains/workspace/context/workspace-context";
+import { WorkspaceDataLoader } from "@/domains/workspace/components/workspace-data-loader";
 import { usePathParams } from "@/registry";
 
 const useStyles = createStyles(({ token }) => ({
@@ -30,22 +30,17 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
   const { styles, cx } = useStyles();
   const pathContext = usePathParams();
 
-  // Extract org and store names from path params
   const orgName = pathContext.getParam("orgName");
-  const storeName = pathContext.getParam("storeName");
 
   return (
     <AuthGuard>
       <ProfileCompletionGuard>
-        <WorkspaceProvider
-          initialOrganizationName={orgName}
-          initialStoreName={storeName}
-        >
+        <WorkspaceDataLoader organizationName={orgName}>
           <Layout className={cx(styles.layout)} hasSider>
             <Sidebar />
             <Layout>{children}</Layout>
           </Layout>
-        </WorkspaceProvider>
+        </WorkspaceDataLoader>
       </ProfileCompletionGuard>
     </AuthGuard>
   );

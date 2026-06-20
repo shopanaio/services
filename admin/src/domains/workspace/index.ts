@@ -1,15 +1,7 @@
 /**
  * Workspace domain public API.
- * Exports all hooks, context, and GraphQL operations for workspace management.
+ * Exports all hooks and GraphQL operations for workspace management.
  */
-
-// ============================================
-// Context
-// ============================================
-export {
-  WorkspaceProvider,
-  useWorkspace,
-} from "./context";
 
 // ============================================
 // Hooks
@@ -18,6 +10,7 @@ export {
   // Organization
   useOrganizations,
   useOrganization,
+  useWorkspace,
   useCreateOrganization,
   useUpdateOrganization,
   useDeleteOrganization,

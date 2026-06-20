@@ -1,7 +1,7 @@
 "use client";
 
 import type { CurrencyCode } from "@/graphql/types";
-import { useWorkspace } from "../context";
+import { useWorkspace } from "./use-workspace";
 
 /**
  * Returns the default currency for the current selected store.
