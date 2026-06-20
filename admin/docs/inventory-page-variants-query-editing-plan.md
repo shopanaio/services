@@ -19,7 +19,7 @@
 - Editing state: `useInventoryEditStore` уже хранит pending changes по `itemId` и полям `onHand`/`unavailable`.
 - Текущий `validateFieldChange` проверяет stock consistency на UI side. При API-backed интеграции его нужно сузить до presentation guards или убрать из save authority path: backend должен решать, допустимо ли изменение.
 - UI: таблица уже использует AG Grid `readOnlyEdit`, `FloatingPanelStack` для save/discard и блокирует pagination при unsaved changes.
-- Product module уже содержит `VariantFields`, `InventoryItemFields`, `INVENTORY_ITEM_UPDATE_MUTATION`, `useUpdateInventoryItems`, `INVENTORY_DEFAULT_WAREHOUSE_QUERY` и `INVENTORY_ITEM_BY_VARIANT_QUERY`.
+- Product module уже содержит `VariantFields`, `InventoryItemFields`, `INVENTORY_ITEM_UPDATE_MUTATION`, `useUpdateInventoryItems` и `INVENTORY_DEFAULT_WAREHOUSE_QUERY`.
 - В текущей Admin schema у `Variant` нет отдельного поля `containerId`; доступен `Variant.product.id`. Если backend-домен использует термин `container id` для стабильного product-first порядка вариантов, API должен явно отдать этот идентификатор или зафиксировать, что для inventory page container id равен `Variant.product.id`.
 
 ## Архитектурные правила
@@ -90,7 +90,7 @@ query InventoryVariants($first: Int, $after: String, $last: Int, $before: String
 - На текущей schema `catalogQuery.variants` принимает только Relay pagination args, без `where`/`sort`. Search/filter UI на первом шаге должен быть local over loaded page или disabled для API-backed fields, чтобы не создавать ложное ощущение server filtering.
 - Если `catalogQuery.variants` не гарантирует default order по `product.id` + `variant.id`, для inventory page нужен backend change до UI-интеграции: добавить stable ordering в существующую connection или ввести `inventoryQuery.inventoryVariants`.
 - `Variant.product` есть в schema и является обязательным полем, поэтому product context не требует дополнительного `products -> variants` обхода.
-- `Variant.inventoryItem` nullable. Для строк без item нужен отдельный edit preparation flow через `inventoryItemByVariant`, а не passive create при render.
+- `Variant.inventoryItem` читается прямо в `catalogQuery.variants` и является единственным source of truth для inventory item в первом шаге. Если поле вернуло `null`, строка отображается read-only и не участвует в save.
 
 ## Row model для таблицы
 
@@ -307,8 +307,8 @@ Rules:
 - Do not send `reserved`.
 - Do not send `available`.
 - Do not send SKU/cost/weight/dimensions from inventory page.
-- If `inventoryItemId` is missing, run explicit preparation through `inventoryItemByVariant(variantId)` before building save inputs, then refetch or patch the row state.
-- If preparation fails for any row, abort save and keep all edits.
+- If `inventoryItemId` is missing, skip that row from save and report that the variant has no inventory item loaded.
+- Creating or backfilling missing inventory items must be a separate explicit backend/UI flow, outside this page integration.
 
 ## Module changes
 
@@ -354,7 +354,7 @@ Implementation steps:
 
 - Query error: show page-level empty/error state through existing layout conventions.
 - Missing default warehouse: table can render read-only; save action is disabled with message.
-- Missing `inventoryItem`: allow display, but prepare item only when user edits/saves.
+- Missing `inventoryItem`: allow display, keep row read-only, and show a clear error if a save is attempted for that row.
 - Mutation `userErrors`: aggregate messages, keep pending changes, do not call `onSaveSuccess`.
 - Partial mutation failure: keep all pending changes. Because first implementation runs per-row mutations, the UI must refetch after any partial success and still show unresolved errors. Later bulk mutation can make this atomic.
 
