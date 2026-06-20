@@ -14,7 +14,7 @@ import type { MenuProps } from "antd";
 import { useRouter } from "next/navigation";
 
 import { useThemeContext } from "@/ui-kit/theme";
-import { useWorkspaceOptional } from "@/domains/workspace/context/workspace-context";
+import { useWorkspace } from "@/domains/workspace/context/workspace-context";
 import { useSession, useSignOut } from "@/domains/auth";
 import { ShopOutlined } from "@ant-design/icons";
 
@@ -90,13 +90,13 @@ export const StoreMenu = ({ isCollapsed }: Props) => {
   const { styles } = useStyles({ isCollapsed });
   const { themePreference, setThemePreference } = useThemeContext();
   const router = useRouter();
-  const workspace = useWorkspaceOptional();
+  const workspace = useWorkspace();
   const { user } = useSession();
   const { signOut } = useSignOut();
 
   // Get display values from context or fallback
-  const storeName = workspace?.store?.displayName ?? "Select Store";
-  const orgName = workspace?.organization?.displayName ?? "";
+  const storeName = workspace.store?.displayName ?? "Select Store";
+  const orgName = workspace.organization?.displayName ?? "";
   // Build user display name from firstName/lastName or fallback to email
   const userName = user?.firstName
     ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}`

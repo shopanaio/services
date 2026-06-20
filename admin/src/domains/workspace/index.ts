@@ -9,7 +9,6 @@
 export {
   WorkspaceProvider,
   useWorkspace,
-  useWorkspaceOptional,
 } from "./context";
 
 // ============================================
@@ -27,6 +26,7 @@ export {
   useStores,
   useStore,
   useCurrentStore,
+  useDefaultCurrency,
   useCreateStore,
   useUpdateStore,
   useDeleteStore,

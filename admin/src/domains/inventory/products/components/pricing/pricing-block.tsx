@@ -11,7 +11,7 @@ import type {
   ApiVariantPriceConnection,
   ApiVariantUpdateInput,
 } from "@/graphql/types";
-import { useWorkspaceOptional } from "@/domains/workspace";
+import { useDefaultCurrency } from "@/domains/workspace";
 import { useProductPricingWidget } from "../../hooks/use-product-pricing-widget";
 import { useProductVariantsLoader } from "../../hooks/use-product-variants-loader";
 import { useUpdateProduct } from "../../hooks/use-update-product";
@@ -48,14 +48,13 @@ export const PricingBlock = ({
 }: IPricingBlockProps) => {
   const { styles } = useStyles();
   const { message } = App.useApp();
-  const workspace = useWorkspaceOptional();
+  const defaultCurrency = useDefaultCurrency();
   const { push: openEditVariantsModal } = useEditVariantsModal();
   const { push: openPriceHistoryModal } = useProductPriceHistoryModal();
   const { updateProduct } = useUpdateProduct();
   const { loadAllProductVariants } = useProductVariantsLoader();
   const [isPreparingEditor, setIsPreparingEditor] = useState(false);
   const resolvedProductId = product?.id ?? productId ?? "";
-  const defaultCurrency = workspace?.store?.defaultCurrency ?? null;
   const defaultCurrencyRef = useRef(defaultCurrency);
 
   useEffect(() => {

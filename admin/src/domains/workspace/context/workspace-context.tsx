@@ -264,24 +264,3 @@ export function useWorkspace(): WorkspaceContextValue {
 
   return context;
 }
-
-/**
- * Hook to optionally access the workspace context.
- * Returns null if used outside of WorkspaceProvider (doesn't throw).
- *
- * @example
- * ```tsx
- * function OptionalWorkspaceDisplay() {
- *   const workspace = useWorkspaceOptional();
- *
- *   if (!workspace) {
- *     return null; // Outside provider
- *   }
- *
- *   return <div>{workspace.organization?.displayName}</div>;
- * }
- * ```
- */
-export function useWorkspaceOptional(): WorkspaceContextValue | null {
-  return useContext(WorkspaceContext);
-}

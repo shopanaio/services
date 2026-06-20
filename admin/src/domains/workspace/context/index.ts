@@ -5,5 +5,4 @@
 export {
   WorkspaceProvider,
   useWorkspace,
-  useWorkspaceOptional,
 } from "./workspace-context";

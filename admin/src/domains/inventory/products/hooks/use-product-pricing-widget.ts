@@ -8,7 +8,7 @@ import type {
   ApiVariantConnection,
   CurrencyCode,
 } from "@/graphql/types";
-import { useWorkspaceOptional } from "@/domains/workspace";
+import { useDefaultCurrency } from "@/domains/workspace";
 import { PRODUCT_PRICING_WIDGET_QUERY } from "../graphql";
 import type {
   ProductPricingWidgetQueryData,
@@ -76,9 +76,8 @@ export function useProductPricingWidget<T extends string = Period>({
   initialPeriod = "30d" as T,
   defaultCurrency,
 }: UseProductPricingWidgetOptions<T>): UseProductPricingWidgetReturn<T> {
-  const workspace = useWorkspaceOptional();
-  const fallbackCurrency =
-    defaultCurrency ?? workspace?.store?.defaultCurrency ?? null;
+  const storeDefaultCurrency = useDefaultCurrency();
+  const fallbackCurrency = defaultCurrency ?? storeDefaultCurrency;
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(
     null,
   );
