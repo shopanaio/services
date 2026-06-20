@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { ApiFixtures } from '@fixtures/api/api';
+import { test } from '@fixtures/base.extend';
 import type { ApiCatalogMutation, ApiCatalogQuery, ApiVariant } from '@codegen/admin-gql';
 import { expect } from '@playwright/test';
 import {
@@ -91,17 +92,15 @@ function compareVariants(
   return compareVariantOrders([{ field, direction }]);
 }
 
-async function prepareVariants(api: ApiFixtures['api']) {
-  const suffix = randomUUID().slice(0, 8);
-  const productHandle = `variant-pagination-${suffix}`;
-  const variantHandles = ['alpha', 'bravo', 'charlie', 'delta', 'echo'];
-
-  await api.session.setupUserAndStore();
-
+async function createProductWithVariants(
+  api: ApiFixtures['api'],
+  productHandle: string,
+  variantHandles: string[],
+) {
   const { data } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
     variables: {
       input: {
-        title: `Variant Pagination ${suffix}`,
+        title: productHandle,
         handle: productHandle,
         options: [
           {
@@ -138,10 +137,102 @@ async function prepareVariants(api: ApiFixtures['api']) {
   expect(expectedItems).toHaveLength(variantHandles.length);
 
   return {
+    product,
+    expectedItems,
+  };
+}
+
+async function prepareVariants(api: ApiFixtures['api']) {
+  const suffix = randomUUID().slice(0, 8);
+  const productHandle = `variant-pagination-${suffix}`;
+  const variantHandles = ['alpha', 'bravo', 'charlie', 'delta', 'echo'];
+
+  await api.session.setupUserAndStore();
+
+  const { product, expectedItems } = await createProductWithVariants(
+    api,
+    productHandle,
+    variantHandles,
+  );
+
+  return {
     expectedItems,
     whereFilter: { productId: { _eq: product.id } },
   };
 }
+
+test.describe('CatalogQuery.variants productId ordering', () => {
+  test('sorts by productId first and handle second', async ({ api }) => {
+    const suffix = randomUUID().slice(0, 8);
+    const variantHandles = ['alpha', 'zulu'];
+
+    await api.session.setupUserAndStore();
+
+    const productA = await createProductWithVariants(
+      api,
+      `variant-product-order-a-${suffix}`,
+      variantHandles,
+    );
+    const productB = await createProductWithVariants(
+      api,
+      `variant-product-order-b-${suffix}`,
+      variantHandles,
+    );
+    const expectedItems = [...productA.expectedItems, ...productB.expectedItems];
+    const orderBy: VariantOrder[] = [
+      { field: 'productId', direction: 'asc' },
+      { field: 'handle', direction: 'desc' },
+    ];
+
+    const { data } = await api.admin.query('catalog-api/VariantFindMany', {
+      variables: {
+        first: expectedItems.length,
+        where: {
+          productId: { _in: [productA.product.id, productB.product.id] },
+        },
+        orderBy,
+      },
+    });
+
+    const connection = catalog(data).catalogQuery.variants as unknown as Connection<VariantListItem>;
+    const productIdByVariantId = new Map(
+      expectedItems.map((item) => [item.id, item.productId] as const),
+    );
+
+    const returnedItems = connection.edges.map((edge) => {
+      const productId = productIdByVariantId.get(edge.node.id);
+      if (!productId) {
+        throw new Error(`Unexpected variant returned: ${edge.node.id}`);
+      }
+
+      return {
+        ...edge.node,
+        productId,
+      };
+    });
+    const sortedExpected = [...expectedItems].sort(compareVariantOrders(orderBy));
+
+    expect(returnedItems.map((item) => item.id)).toEqual(sortedExpected.map((item) => item.id));
+    expect(returnedItems.map((item) => item.productId)).toEqual(
+      sortedExpected.map((item) => item.productId),
+    );
+    expect(returnedItems.map((item) => item.handle)).toEqual(
+      sortedExpected.map((item) => item.handle),
+    );
+
+    const productOrder = [productA.product.id, productB.product.id].sort((a, b) =>
+      rawId(a).localeCompare(rawId(b)),
+    );
+    expect(returnedItems.map((item) => item.productId)).toEqual(
+      productOrder.flatMap((productId) => [productId, productId]),
+    );
+    for (const productId of productOrder) {
+      expect(
+        returnedItems.filter((item) => item.productId === productId).map((item) => item.handle),
+      ).toEqual(['zulu', 'alpha']);
+    }
+  });
+});
 
 createConnectionPaginationTests<VariantListItem, VariantOrderField>({
   queryName: 'catalog-api/VariantFindMany',
