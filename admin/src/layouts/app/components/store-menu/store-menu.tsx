@@ -4,83 +4,76 @@ import { Avatar, Dropdown, Typography, Flex } from "antd";
 import { createStyles } from "antd-style";
 import { MdLogout, MdOutlineAccountCircle, MdBusiness } from "react-icons/md";
 import { HiMiniChevronUpDown } from "react-icons/hi2";
-import {
-  MdLightMode,
-  MdDarkMode,
-  MdBrightness4,
-  MdCheck,
-} from "react-icons/md";
+import { MdLightMode, MdDarkMode, MdBrightness4, MdCheck } from "react-icons/md";
 import type { MenuProps } from "antd";
 import { useRouter } from "next/navigation";
 
 import { useThemeContext } from "@/ui-kit/theme";
-import { useWorkspace } from "@/domains/workspace";
+import { useStore, useWorkspace } from "@/domains/workspace";
 import { useSession, useSignOut } from "@/domains/auth";
 import { ShopOutlined } from "@ant-design/icons";
 
-const useStyles = createStyles(
-  ({ css, token }, { isCollapsed }: { isCollapsed: boolean }) => ({
-    container: css`
-      margin-top: 21px;
-      margin-bottom: ${token.paddingXS}px;
-      border-radius: ${token.borderRadius}px;
-      color: ${token.colorText};
-      transition: color 0.2s ease, width 0.2s ease;
-      flex-wrap: nowrap;
-      width: ${isCollapsed
-        ? `calc(100% - ${token.paddingXS}px)`
-        : `calc(100% - ${token.padding}px)`};
+const useStyles = createStyles(({ css, token }, { isCollapsed }: { isCollapsed: boolean }) => ({
+  container: css`
+    margin-top: 21px;
+    margin-bottom: ${token.paddingXS}px;
+    border-radius: ${token.borderRadius}px;
+    color: ${token.colorText};
+    transition:
+      color 0.2s ease,
+      width 0.2s ease;
+    flex-wrap: nowrap;
+    width: ${isCollapsed ? `calc(100% - ${token.paddingXS}px)` : `calc(100% - ${token.padding}px)`};
 
-      &:hover {
-        cursor: pointer;
-        color: ${token.colorTextSecondary};
-      }
-    `,
-    dropdownContent: css`
-      min-width: 220px;
-      max-width: 300px;
-      padding-top: ${token.paddingXS}px;
-      padding-bottom: ${token.paddingXS}px;
-    `,
-    triggerWrapper: css`
-      padding: ${token.paddingXS}px;
-      padding-left: ${token.paddingSM}px;
-      overflow: hidden;
-      border-radius: ${token.borderRadius}px;
-      transition: background-color 0.2s ease;
-      &:hover {
-        background-color: ${token.colorFillTertiary};
-      }
-    `,
-    avatar: css`
-      flex-shrink: 0;
-    `,
-    storeInfo: css`
-      flex-grow: 1;
-      overflow: hidden;
-      max-height: 48px;
-      opacity: ${isCollapsed ? 0 : 1};
-      width: ${isCollapsed ? 0 : "auto"};
-      transition: all 0.2s ease;
-    `,
-    orgName: css`
-      font-size: ${token.fontSizeSM}px;
+    &:hover {
+      cursor: pointer;
       color: ${token.colorTextSecondary};
-      margin-top: -4px;
-    `,
-    chevron: css`
-      margin-right: ${token.paddingXXS}px;
-    `,
-    userInfoWrapper: css`
-      cursor: default;
-    `,
-    userEmail: css`
-      margin-top: -10px;
-      color: ${token.colorTextSecondary};
-      font-size: ${token.fontSizeSM}px;
-    `,
-  })
-);
+    }
+  `,
+  dropdownContent: css`
+    min-width: 220px;
+    max-width: 300px;
+    padding-top: ${token.paddingXS}px;
+    padding-bottom: ${token.paddingXS}px;
+  `,
+  triggerWrapper: css`
+    padding: ${token.paddingXS}px;
+    padding-left: ${token.paddingSM}px;
+    overflow: hidden;
+    border-radius: ${token.borderRadius}px;
+    transition: background-color 0.2s ease;
+    &:hover {
+      background-color: ${token.colorFillTertiary};
+    }
+  `,
+  avatar: css`
+    flex-shrink: 0;
+  `,
+  storeInfo: css`
+    flex-grow: 1;
+    overflow: hidden;
+    max-height: 48px;
+    opacity: ${isCollapsed ? 0 : 1};
+    width: ${isCollapsed ? 0 : "auto"};
+    transition: all 0.2s ease;
+  `,
+  orgName: css`
+    font-size: ${token.fontSizeSM}px;
+    color: ${token.colorTextSecondary};
+    margin-top: -4px;
+  `,
+  chevron: css`
+    margin-right: ${token.paddingXXS}px;
+  `,
+  userInfoWrapper: css`
+    cursor: default;
+  `,
+  userEmail: css`
+    margin-top: -10px;
+    color: ${token.colorTextSecondary};
+    font-size: ${token.fontSizeSM}px;
+  `,
+}));
 
 interface Props {
   isCollapsed: boolean;
@@ -91,16 +84,17 @@ export const StoreMenu = ({ isCollapsed }: Props) => {
   const { themePreference, setThemePreference } = useThemeContext();
   const router = useRouter();
   const workspace = useWorkspace();
+  const store = useStore();
   const { user } = useSession();
   const { signOut } = useSignOut();
 
   // Get display values from context or fallback
-  const storeName = workspace.store?.displayName ?? "Select Store";
+  const storeName = store?.displayName ?? "Select Store";
   const orgName = workspace.organization?.displayName ?? "";
   // Build user display name from firstName/lastName or fallback to email
   const userName = user?.firstName
     ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}`
-    : user?.email ?? "User";
+    : (user?.email ?? "User");
   const userEmail = user?.email ?? "";
 
   const themeOptions = [
@@ -128,16 +122,9 @@ export const StoreMenu = ({ isCollapsed }: Props) => {
       type: "group" as const,
       label: (
         <Flex gap="small" align="center" data-testid="project-menu-user-info">
-          <Flex
-            gap="small"
-            justify="center"
-            vertical
-            className={styles.userInfoWrapper}
-          >
+          <Flex gap="small" justify="center" vertical className={styles.userInfoWrapper}>
             <Typography.Text strong>{userName}</Typography.Text>
-            <Typography.Text className={styles.userEmail}>
-              {userEmail}
-            </Typography.Text>
+            <Typography.Text className={styles.userEmail}>{userEmail}</Typography.Text>
           </Flex>
         </Flex>
       ),
@@ -158,12 +145,7 @@ export const StoreMenu = ({ isCollapsed }: Props) => {
         key: `theme-${option.key}`,
         onClick: () => setThemePreference(option.key),
         label: (
-          <Flex
-            gap="small"
-            align="center"
-            justify="space-between"
-            style={{ minWidth: 100 }}
-          >
+          <Flex gap="small" align="center" justify="space-between" style={{ minWidth: 100 }}>
             <Flex gap="small" align="center">
               {option.icon}
               <Typography.Text>{option.label}</Typography.Text>
@@ -181,11 +163,7 @@ export const StoreMenu = ({ isCollapsed }: Props) => {
       key: "organization",
       onClick: () => router.push("/workspace"),
       label: (
-        <Flex
-          gap="small"
-          align="center"
-          data-testid="project-menu-organization"
-        >
+        <Flex gap="small" align="center" data-testid="project-menu-organization">
           <MdBusiness />
           <Typography.Text>Workspace</Typography.Text>
         </Flex>
@@ -246,9 +224,7 @@ export const StoreMenu = ({ isCollapsed }: Props) => {
               </Typography.Text>
             )}
           </Flex>
-          {!isCollapsed && (
-            <HiMiniChevronUpDown size={18} className={styles.chevron} />
-          )}
+          {!isCollapsed && <HiMiniChevronUpDown size={18} className={styles.chevron} />}
         </Flex>
       </Dropdown>
     </Flex>
