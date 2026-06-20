@@ -1,4 +1,7 @@
-import { encodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
+import {
+  encodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 import type { WarehouseStock } from "../../repositories/models/index.js";
 import { InventoryType } from "./InventoryType.js";
 import { WarehouseResolver } from "./WarehouseResolver.js";
@@ -23,11 +26,13 @@ export class StockResolver extends InventoryType<string, WarehouseStock> {
   }
 
   async warehouseId() {
-    return this.$get("warehouseId");
+    const warehouseId = await this.$get("warehouseId");
+    return encodeGlobalIdByType(warehouseId, GlobalIdEntity.Warehouse);
   }
 
   async variantId() {
-    return this.$get("variantId");
+    const variantId = await this.$get("variantId");
+    return encodeGlobalIdByType(variantId, GlobalIdEntity.Variant);
   }
 
   async warehouse() {

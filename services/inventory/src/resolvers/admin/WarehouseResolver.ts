@@ -1,3 +1,7 @@
+import {
+  encodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 import { SubgraphReference } from "@shopana/type-resolver";
 import type { Warehouse } from "../../repositories/models/index.js";
 import type { StockRelayInput } from "../../repositories/stock/StockRepository.js";
@@ -21,7 +25,7 @@ export class WarehouseResolver extends InventoryType<string, Warehouse> {
   }
 
   id() {
-    return this.$props;
+    return encodeGlobalIdByType(this.$props, GlobalIdEntity.Warehouse);
   }
 
   async code() {

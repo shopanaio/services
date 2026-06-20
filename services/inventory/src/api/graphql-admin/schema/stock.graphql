@@ -67,7 +67,7 @@ type WarehouseEdge {
 Represents stock level for a variant in a specific warehouse.
 """
 type WarehouseStock implements Node {
-  """The globally unique ID of the stock record."""
+  """The internal stock record ID."""
   id: ID!
 
   """The warehouse where this stock is located."""
@@ -182,4 +182,3 @@ type WarehouseDeletePayload {
   """List of errors that occurred during the mutation."""
   userErrors: [GenericUserError!]!
 }
-

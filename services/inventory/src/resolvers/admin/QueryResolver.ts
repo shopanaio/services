@@ -47,10 +47,18 @@ export class InventoryQueryResolver extends InventoryType<Record<string, never>>
    * Supports Warehouse and InventoryItem nodes.
    */
   async node(args: { id: string }) {
-    // Try to load as warehouse
-    const warehouse = await this.$ctx.loaders.warehouse.load(args.id);
-    if (warehouse) {
-      return new WarehouseResolver(args.id, this.$ctx);
+    // Try to decode and load as Warehouse
+    try {
+      const warehouseId = decodeGlobalIdByType(
+        args.id,
+        GlobalIdEntity.Warehouse,
+      );
+      const warehouse = await this.$ctx.loaders.warehouse.load(warehouseId);
+      if (warehouse) {
+        return new WarehouseResolver(warehouseId, this.$ctx);
+      }
+    } catch {
+      // Not a Warehouse ID
     }
 
     // Try to decode as InventoryItem
@@ -81,11 +89,12 @@ export class InventoryQueryResolver extends InventoryType<Record<string, never>>
    * Returns null if warehouse doesn't exist.
    */
   async warehouse(args: { id: string }) {
-    const warehouse = await this.$ctx.loaders.warehouse.load(args.id);
+    const warehouseId = decodeGlobalIdByType(args.id, GlobalIdEntity.Warehouse);
+    const warehouse = await this.$ctx.loaders.warehouse.load(warehouseId);
     if (!warehouse) {
       return null;
     }
-    return new WarehouseResolver(args.id, this.$ctx);
+    return new WarehouseResolver(warehouseId, this.$ctx);
   }
 
   /**

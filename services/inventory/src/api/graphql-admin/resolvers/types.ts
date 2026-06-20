@@ -1,5 +1,8 @@
 import { parseGraphqlInfo } from "@shopana/type-resolver";
-import { decodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
+import {
+  decodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 import type { GraphQLResolveInfo } from "graphql";
 import type { Resolvers } from "../../../resolvers/admin/generated/types.js";
 import type { ServiceContext } from "../../../context/types.js";
@@ -46,7 +49,11 @@ export const typeResolvers: Partial<Resolvers> = {
       info: GraphQLResolveInfo,
     ) => {
       const fieldInfo = parseGraphqlInfo(info);
-      return InventoryItemResolver.load(reference.id, fieldInfo, ctx);
+      const itemId = decodeGlobalIdByType(
+        reference.id,
+        GlobalIdEntity.InventoryItem,
+      );
+      return InventoryItemResolver.load(itemId, fieldInfo, ctx);
     },
   },
 
@@ -57,7 +64,11 @@ export const typeResolvers: Partial<Resolvers> = {
       info: GraphQLResolveInfo,
     ) => {
       const fieldInfo = parseGraphqlInfo(info);
-      return WarehouseResolver.load(reference.id, fieldInfo, ctx);
+      const warehouseId = decodeGlobalIdByType(
+        reference.id,
+        GlobalIdEntity.Warehouse,
+      );
+      return WarehouseResolver.load(warehouseId, fieldInfo, ctx);
     },
   },
 };

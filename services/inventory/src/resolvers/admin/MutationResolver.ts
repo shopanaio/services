@@ -1,5 +1,6 @@
 import {
   decodeGlobalIdByType,
+  encodeGlobalIdByType,
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
 import { ApolloMutation, ZodResolver } from "@shopana/type-resolver";
@@ -241,9 +242,13 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   @ZodResolver(WarehouseUpdateInputSchema())
   async warehouseUpdate(args: { input: WarehouseUpdateInput }) {
     const { input } = args;
+    const warehouseId = decodeGlobalIdByType(
+      input.id,
+      GlobalIdEntity.Warehouse,
+    );
 
     const result = await this.$ctx.kernel.runScript(WarehouseUpdateScript, {
-      id: input.id,
+      id: warehouseId,
       code: input.code ?? undefined,
       name: input.name ?? undefined,
       isDefault: input.isDefault ?? undefined,
@@ -263,13 +268,22 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   @ZodResolver(WarehouseDeleteInputSchema())
   async warehouseDelete(args: { input: WarehouseDeleteInput }) {
     const { input } = args;
+    const warehouseId = decodeGlobalIdByType(
+      input.id,
+      GlobalIdEntity.Warehouse,
+    );
 
     const result = await this.$ctx.kernel.runScript(WarehouseDeleteScript, {
-      id: input.id,
+      id: warehouseId,
     });
 
     return {
-      deletedWarehouseId: result.deletedWarehouseId ?? null,
+      deletedWarehouseId: result.deletedWarehouseId
+        ? encodeGlobalIdByType(
+            result.deletedWarehouseId,
+            GlobalIdEntity.Warehouse,
+          )
+        : null,
       userErrors: result.userErrors,
     };
   }
