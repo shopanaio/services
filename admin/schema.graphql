@@ -3616,9 +3616,17 @@ Represents stock level for a variant in a specific warehouse.
 """
 type WarehouseStock implements Node @join__type(graph: INVENTORY_ADMIN)  @join__implements(graph: INVENTORY_ADMIN, interface: "Node")  {
   """
-  The globally unique ID of the stock record.
+  The internal stock record ID.
   """
   id: ID!
+  """
+  The globally unique ID of the warehouse this stock belongs to.
+  """
+  warehouseId: ID!
+  """
+  The globally unique ID of the variant this stock belongs to.
+  """
+  variantId: ID!
   """
   The warehouse where this stock is located.
   """
@@ -3631,6 +3639,18 @@ type WarehouseStock implements Node @join__type(graph: INVENTORY_ADMIN)  @join__
   The quantity currently on hand.
   """
   quantityOnHand: Int!
+  """
+  The quantity currently reserved.
+  """
+  reservedQuantity: Int!
+  """
+  The quantity currently unavailable.
+  """
+  unavailableQuantity: Int!
+  """
+  The quantity available for sale.
+  """
+  availableForSale: Int!
   """
   The date and time when the stock was created.
   """

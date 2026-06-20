@@ -1265,18 +1265,28 @@ export enum WarehouseOrderField {
 /** Represents stock level for a variant in a specific warehouse. */
 export type WarehouseStock = Node & {
   __typename?: 'WarehouseStock';
+  /** The quantity available for sale. */
+  availableForSale: Scalars['Int']['output'];
   /** The date and time when the stock was created. */
   createdAt: Scalars['DateTime']['output'];
-  /** The globally unique ID of the stock record. */
+  /** The internal stock record ID. */
   id: Scalars['ID']['output'];
   /** The quantity currently on hand. */
   quantityOnHand: Scalars['Int']['output'];
+  /** The quantity currently reserved. */
+  reservedQuantity: Scalars['Int']['output'];
+  /** The quantity currently unavailable. */
+  unavailableQuantity: Scalars['Int']['output'];
   /** The date and time when the stock was last updated. */
   updatedAt: Scalars['DateTime']['output'];
   /** The variant this stock record is for. */
   variant: Variant;
+  /** The globally unique ID of the variant this stock belongs to. */
+  variantId: Scalars['ID']['output'];
   /** The warehouse where this stock is located. */
   warehouse: Warehouse;
+  /** The globally unique ID of the warehouse this stock belongs to. */
+  warehouseId: Scalars['ID']['output'];
 };
 
 /** A connection to a list of WarehouseStock items. */
@@ -1909,12 +1919,17 @@ export type WarehouseEdgeResolvers<ContextType = ServiceContext, ParentType exte
 }>;
 
 export type WarehouseStockResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['WarehouseStock'] = ResolversParentTypes['WarehouseStock']> = ResolversObject<{
+  availableForSale?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   quantityOnHand?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  reservedQuantity?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  unavailableQuantity?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   variant?: Resolver<ResolversTypes['Variant'], ParentType, ContextType>;
+  variantId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   warehouse?: Resolver<ResolversTypes['Warehouse'], ParentType, ContextType>;
+  warehouseId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 

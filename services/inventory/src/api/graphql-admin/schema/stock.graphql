@@ -70,6 +70,12 @@ type WarehouseStock implements Node {
   """The internal stock record ID."""
   id: ID!
 
+  """The globally unique ID of the warehouse this stock belongs to."""
+  warehouseId: ID!
+
+  """The globally unique ID of the variant this stock belongs to."""
+  variantId: ID!
+
   """The warehouse where this stock is located."""
   warehouse: Warehouse!
 
@@ -78,6 +84,15 @@ type WarehouseStock implements Node {
 
   """The quantity currently on hand."""
   quantityOnHand: Int!
+
+  """The quantity currently reserved."""
+  reservedQuantity: Int!
+
+  """The quantity currently unavailable."""
+  unavailableQuantity: Int!
+
+  """The quantity available for sale."""
+  availableForSale: Int!
 
   """The date and time when the stock was created."""
   createdAt: DateTime!

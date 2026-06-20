@@ -4,50 +4,27 @@ import {
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
 import { ApolloMutation, ZodResolver } from "@shopana/type-resolver";
-import { randomUUID } from "crypto";
 import { InventoryType } from "./InventoryType.js";
 import { WarehouseResolver } from "./WarehouseResolver.js";
 import { InventoryItemResolver } from "./InventoryItemResolver.js";
-import { StockResolver } from "./StockResolver.js";
+import { InventoryItemUpdateScript } from "../../scripts/inventory-item/index.js";
 import {
   WarehouseCreateScript,
   WarehouseDeleteScript,
   WarehouseUpdateScript,
 } from "../../scripts/warehouse/index.js";
 import type {
+  InventoryItemUpdateInput,
   WarehouseCreateInput,
   WarehouseUpdateInput,
   WarehouseDeleteInput,
 } from "./generated/types.js";
 import {
+  InventoryItemUpdateInputSchema,
   WarehouseCreateInputSchema,
   WarehouseUpdateInputSchema,
   WarehouseDeleteInputSchema,
 } from "./generated/schemas.js";
-
-interface InventoryItemUpdateInput {
-  id: string;
-  sku?: string | null;
-  trackInventory?: boolean;
-  continueSellingWhenOutOfStock?: boolean;
-  dimensions?: {
-    widthMm: number;
-    heightMm: number;
-    lengthMm: number;
-  };
-  weight?: {
-    weightGrams: number;
-  };
-  stock?: {
-    warehouseId: string;
-    onHand: number;
-    unavailable?: number;
-  };
-  unitCost?: {
-    currency: string;
-    amountMinor: number | string;
-  };
-}
 
 /**
  * Root Mutation resolver.
@@ -79,16 +56,15 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
    * Update an inventory item.
    * Supports updating: SKU, tracking settings, dimensions, weight, stock, cost.
    */
+  @ZodResolver(InventoryItemUpdateInputSchema())
   async inventoryItemUpdate(args: { input: InventoryItemUpdateInput }) {
     const { input } = args;
-    const userErrors: Array<{ message: string; code?: string; field?: string[] }> = [];
 
     const itemId = decodeGlobalIdByType(
       input.id,
-      GlobalIdEntity.InventoryItem
+      GlobalIdEntity.InventoryItem,
     );
 
-    // Find the inventory item
     const item = await this.$ctx.kernel.repository.inventoryItem.findById(itemId);
     if (!item) {
       return {
@@ -97,119 +73,51 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
       };
     }
 
-    // Update basic fields
-    const updateData: {
-      sku?: string | null;
-      trackInventory?: boolean;
-      continueSellingWhenOutOfStock?: boolean;
-    } = {};
-
-    if (input.sku !== undefined) {
-      // Check SKU uniqueness
-      if (input.sku !== null && input.sku !== "") {
-        const existing = await this.$ctx.kernel.repository.inventoryItem.findBySku(input.sku);
-        if (existing && existing.id !== itemId) {
-          return {
-            inventoryItem: null,
-            userErrors: [{ message: `SKU "${input.sku}" is already in use`, code: "SKU_EXISTS", field: ["sku"] }],
-          };
+    const stock = input.stock
+      ? {
+          warehouseId: decodeGlobalIdByType(
+            input.stock.warehouseId,
+            GlobalIdEntity.Warehouse,
+          ),
+          onHand: input.stock.onHand,
+          unavailable: input.stock.unavailable,
         }
-      }
-      updateData.sku = input.sku;
-    }
+      : undefined;
 
-    if (input.trackInventory !== undefined) {
-      updateData.trackInventory = input.trackInventory;
-    }
-
-    if (input.continueSellingWhenOutOfStock !== undefined) {
-      updateData.continueSellingWhenOutOfStock = input.continueSellingWhenOutOfStock;
-    }
-
-    // Update the inventory item
-    if (Object.keys(updateData).length > 0) {
-      await this.$ctx.kernel.repository.inventoryItem.update(itemId, updateData);
-    }
-
-    // Update dimensions if provided
-    if (input.dimensions) {
-      await this.$ctx.kernel.repository.physical.upsertDimensions(item.variantId, {
-        wMm: input.dimensions.widthMm,
-        hMm: input.dimensions.heightMm,
-        lMm: input.dimensions.lengthMm,
-      });
-    }
-
-    // Update weight if provided
-    if (input.weight) {
-      await this.$ctx.kernel.repository.physical.upsertWeight(item.variantId, {
-        weightGr: input.weight.weightGrams,
-      });
-    }
-
-    // Update stock if provided
-    if (input.stock) {
-      // Validate non-negative quantity
-      if (input.stock.onHand < 0) {
-        return {
-          inventoryItem: null,
-          userErrors: [{ message: "Quantity cannot be negative", code: "INVALID_QUANTITY", field: ["stock", "onHand"] }],
-        };
-      }
-
-      const warehouseId = decodeGlobalIdByType(
-        input.stock.warehouseId,
-        GlobalIdEntity.Warehouse
-      );
-
-      // Validate warehouse exists
-      const warehouseExists = await this.$ctx.kernel.repository.warehouse.exists(warehouseId);
-      if (!warehouseExists) {
-        return {
-          inventoryItem: null,
-          userErrors: [{ message: "Warehouse not found", code: "NOT_FOUND", field: ["stock", "warehouseId"] }],
-        };
-      }
-
-      // Get existing stock
-      const existingStock = await this.$ctx.kernel.repository.stock.findByVariantWarehouse(
-        item.variantId,
-        warehouseId
-      );
-
-      const currentOnHand = existingStock?.quantityOnHand ?? 0;
-      const currentUnavailable = existingStock?.unavailableQty ?? 0;
-      const deltaOnHand = input.stock.onHand - currentOnHand;
-      const deltaUnavailable = (input.stock.unavailable ?? 0) - currentUnavailable;
-
-      if (deltaOnHand !== 0 || deltaUnavailable !== 0 || !existingStock) {
-        const movementType = !existingStock ? "SEED" : "ADJUST";
-
-        await this.$ctx.kernel.repository.stock.applyStockChange({
-          variantId: item.variantId,
-          warehouseId,
-          deltaOnHand,
-          deltaUnavailable,
-          movementType,
-          reason: movementType === "ADJUST" ? "MANUAL" : null,
-          sourceSystem: "INVENTORY_ADMIN",
-          sourceEventId: randomUUID(),
-          createdBy: this.$ctx.hasUser ? this.$ctx.user.id : null,
-        });
-      }
-    }
-
-    // Update cost if provided
-    if (input.unitCost) {
-      await this.$ctx.kernel.repository.cost.setCost(item.variantId, {
-        currency: input.unitCost.currency as "UAH" | "USD" | "EUR",
-        unitCostMinor: Number(input.unitCost.amountMinor),
-      });
-    }
+    const result = await this.$ctx.kernel.runScript(InventoryItemUpdateScript, {
+      inventoryItemId: item.id,
+      variantId: item.variantId,
+      sku: input.sku,
+      trackInventory: input.trackInventory ?? undefined,
+      continueSellingWhenOutOfStock:
+        input.continueSellingWhenOutOfStock ?? undefined,
+      dimensions: input.dimensions
+        ? {
+            widthMm: input.dimensions.widthMm,
+            heightMm: input.dimensions.heightMm,
+            lengthMm: input.dimensions.lengthMm,
+          }
+        : undefined,
+      weight: input.weight
+        ? {
+            weightGrams: input.weight.weightGrams,
+          }
+        : undefined,
+      stock,
+      unitCost: input.unitCost
+        ? {
+            currency: input.unitCost.currency,
+            amountMinor: input.unitCost.amountMinor,
+          }
+        : undefined,
+    });
 
     return {
-      inventoryItem: new InventoryItemResolver(itemId, this.$ctx),
-      userErrors,
+      inventoryItem:
+        result.userErrors.length === 0
+          ? new InventoryItemResolver(item.id, this.$ctx)
+          : null,
+      userErrors: result.userErrors,
     };
   }
 

@@ -8,6 +8,7 @@ import {
   WarehouseConnectionResolver,
   type WarehouseConnectionResolverInput,
 } from "./WarehouseConnectionResolver.js";
+import { normalizeWarehouseWhereInput } from "./filter-normalizers.js";
 
 /**
  * Root Query resolver.
@@ -101,7 +102,13 @@ export class InventoryQueryResolver extends InventoryType<Record<string, never>>
    * Get a paginated list of warehouses.
    */
   warehouses(args: WarehouseConnectionResolverInput) {
-    return new WarehouseConnectionResolver(args, this.$ctx);
+    return new WarehouseConnectionResolver(
+      {
+        ...args,
+        where: normalizeWarehouseWhereInput(args.where),
+      },
+      this.$ctx,
+    );
   }
 
   // ---- InventoryItem Queries ----

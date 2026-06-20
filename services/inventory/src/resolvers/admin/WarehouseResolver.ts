@@ -7,6 +7,7 @@ import type { Warehouse } from "../../repositories/models/index.js";
 import type { StockRelayInput } from "../../repositories/stock/StockRepository.js";
 import { InventoryType } from "./InventoryType.js";
 import { StockConnectionResolver } from "./StockConnectionResolver.js";
+import { normalizeWarehouseStockWhereInput } from "./filter-normalizers.js";
 
 /**
  * Warehouse resolver - resolves Warehouse domain interface.
@@ -55,13 +56,15 @@ export class WarehouseResolver extends InventoryType<string, Warehouse> {
 
   stock(args: StockRelayInput) {
     const { where, ...rest } = args;
+    const normalizedWhere = normalizeWarehouseStockWhereInput(where);
+
     return new StockConnectionResolver(
       {
         ...rest,
         where: {
           _and: [
             { warehouseId: { _eq: this.$props } },
-            ...(where ? [where] : []),
+            ...(normalizedWhere ? [normalizedWhere] : []),
           ],
         },
       },

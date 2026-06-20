@@ -1,163 +1,258 @@
 import { randomUUID } from "crypto";
-import { BaseScript } from "../../kernel/BaseScript.js";
-import type { WarehouseStock } from "../../repositories/models/index.js";
+import {
+  BaseScript,
+  Transactional,
+  type UserError,
+} from "../../kernel/BaseScript.js";
+import type { InventoryItem } from "../../repositories/models/index.js";
 import {
   type ScriptResult,
+  singleError,
   successResult,
   unchangedResult,
-  singleError,
 } from "../types/ScriptResult.js";
-import type { InventoryChanges } from "../types/ProductChanges.js";
 
-export interface InventoryItemUpdateParams {
-  readonly variantId: string;
+type Currency = "UAH" | "USD" | "EUR";
+
+interface StockUpdateParams {
   readonly warehouseId: string;
   readonly onHand: number;
-  /** Unavailable stock count (reserved, damaged, etc.) */
-  readonly unavailable?: number;
-  /** SKU code */
+  readonly unavailable?: number | null;
+}
+
+interface DimensionsUpdateParams {
+  readonly widthMm: number;
+  readonly heightMm: number;
+  readonly lengthMm: number;
+}
+
+interface WeightUpdateParams {
+  readonly weightGrams: number;
+}
+
+interface UnitCostUpdateParams {
+  readonly currency: string;
+  readonly amountMinor: number | string;
+}
+
+export interface InventoryItemUpdateParams {
+  /** Raw InventoryItem UUID. Preferred for GraphQL inventoryItemUpdate. */
+  readonly inventoryItemId?: string;
+  /** Raw Variant UUID. Kept for broker/script compatibility. */
+  readonly variantId?: string;
+  /** Stock update branch. */
+  readonly stock?: StockUpdateParams | null;
+  /** Legacy stock fields used by broker actions. */
+  readonly warehouseId?: string;
+  readonly onHand?: number;
+  readonly unavailable?: number | null;
+  /** Inventory item fields. */
   readonly sku?: string | null;
-  /** Weight in grams */
-  readonly weight?: number | null;
-  /** Unit cost in minor units (cents) */
+  readonly trackInventory?: boolean | null;
+  readonly continueSellingWhenOutOfStock?: boolean | null;
+  /** Physical fields. */
+  readonly dimensions?: DimensionsUpdateParams | null;
+  readonly weight?: WeightUpdateParams | number | null;
+  /** Cost update branch. */
+  readonly unitCost?: UnitCostUpdateParams | null;
+  /** Legacy cost fields used by broker actions. */
   readonly unitCostMinor?: number | null;
-  /** Currency code for unit cost */
   readonly costCurrency?: string | null;
 }
 
+export interface InventoryItemUpdateChanges {
+  warehouseId?: string;
+  onHand?: number;
+  unavailable?: number;
+  sku?: string | null;
+  trackInventory?: boolean;
+  continueSellingWhenOutOfStock?: boolean;
+  dimensions?: DimensionsUpdateParams;
+  weight?: number;
+  unitCostMinor?: number;
+  costCurrency?: Currency;
+}
+
 export type InventoryItemUpdateResult = ScriptResult<
-  WarehouseStock,
-  InventoryChanges
+  InventoryItem,
+  InventoryItemUpdateChanges
 >;
 
+class InventoryItemUpdateRollbackError extends Error {
+  constructor(readonly userErrors: UserError[]) {
+    super(userErrors[0]?.message ?? "Inventory item update failed");
+  }
+}
+
+const SUPPORTED_CURRENCIES = new Set<Currency>(["UAH", "USD", "EUR"]);
+
 /**
- * Script for updating inventory item data (stock, SKU, weight, and unit cost).
+ * Script for updating inventory item data (stock, SKU, physical data, and unit cost).
  */
 export class InventoryItemUpdateScript extends BaseScript<
   InventoryItemUpdateParams,
   InventoryItemUpdateResult
 > {
+  @Transactional()
   protected async execute(
-    params: InventoryItemUpdateParams
+    params: InventoryItemUpdateParams,
   ): Promise<InventoryItemUpdateResult> {
-    const { variantId, warehouseId, onHand, unavailable = 0, sku, weight, unitCostMinor, costCurrency } = params;
-
-    // Validate quantities
-    if (onHand < 0) {
-      return singleError(
-        "On-hand quantity must be a non-negative value",
-        "INVALID_QUANTITY",
-        ["onHand"]
-      );
-    }
-
-    if (unavailable < 0) {
-      return singleError(
-        "Unavailable quantity must be a non-negative value",
-        "INVALID_QUANTITY",
-        ["unavailable"]
-      );
-    }
-
-    // Validate weight if provided
-    if (weight !== undefined && weight !== null && weight <= 0) {
-      return singleError(
-        "Weight must be a positive value",
-        "INVALID_WEIGHT",
-        ["weight"]
-      );
-    }
-
-    // Validate unitCost - requires currency if provided
-    if (unitCostMinor !== undefined && unitCostMinor !== null) {
-      if (!costCurrency) {
-        return singleError(
-          "Currency is required when setting unit cost",
-          "MISSING_CURRENCY",
-          ["costCurrency"]
-        );
-      }
-      if (unitCostMinor < 0) {
-        return singleError(
-          "Unit cost must be a non-negative value",
-          "INVALID_COST",
-          ["unitCostMinor"]
-        );
-      }
-    }
-
-    // Validate inventory item exists
-    const existingItem = await this.repository.inventoryItem.findByVariantId(variantId);
+    const existingItem = await this.loadInventoryItem(params);
     if (!existingItem) {
-      return singleError("Inventory item not found", "NOT_FOUND", ["variantId"]);
+      return singleError("Inventory item not found", "NOT_FOUND", [
+        params.inventoryItemId ? "id" : "variantId",
+      ]);
     }
 
-    // Validate warehouse exists
-    const warehouseExists =
-      await this.repository.warehouse.exists(warehouseId);
-    if (!warehouseExists) {
-      return singleError("Warehouse not found", "NOT_FOUND", ["warehouseId"]);
+    if (params.variantId && params.variantId !== existingItem.variantId) {
+      return singleError(
+        "Inventory item does not belong to the provided variant",
+        "INVALID_VARIANT",
+        ["variantId"],
+      );
     }
 
-    // Check SKU uniqueness if provided
-    if (sku !== undefined && sku !== null && sku !== "") {
-      const itemWithSku = await this.repository.inventoryItem.findBySku(sku);
-      if (itemWithSku && itemWithSku.id !== existingItem.id) {
-        return singleError(`SKU "${sku}" is already in use`, "SKU_ALREADY_EXISTS", [
-          "sku",
-        ]);
-      }
+    const stockInput = this.getStockInput(params);
+    if (stockInput instanceof InventoryItemUpdateRollbackError) {
+      return {
+        result: null,
+        changes: null,
+        userErrors: stockInput.userErrors,
+      };
     }
 
-    // Get existing stock to compare
-    const existingStock = await this.repository.stock.findByVariantWarehouse(
-      variantId,
-      warehouseId
+    const weightGrams = this.getWeightGrams(params);
+    const unitCostInput = this.getUnitCostInput(params);
+
+    const validationError = await this.validateInput(
+      existingItem,
+      stockInput,
+      weightGrams,
+      unitCostInput,
+      params,
     );
+    if (validationError) {
+      return validationError;
+    }
 
+    const variantId = existingItem.variantId;
+    const itemUpdateData: {
+      sku?: string | null;
+      trackInventory?: boolean;
+      continueSellingWhenOutOfStock?: boolean;
+    } = {};
+    const changes: InventoryItemUpdateChanges = {};
+
+    const skuChanged =
+      params.sku !== undefined && params.sku !== existingItem.sku;
+    if (skuChanged) {
+      itemUpdateData.sku = params.sku ?? null;
+      changes.sku = params.sku ?? null;
+    }
+
+    const trackInventoryChanged =
+      params.trackInventory != null &&
+      params.trackInventory !== existingItem.trackInventory;
+    if (trackInventoryChanged) {
+      itemUpdateData.trackInventory = params.trackInventory;
+      changes.trackInventory = params.trackInventory;
+    }
+
+    const continueSellingChanged =
+      params.continueSellingWhenOutOfStock != null &&
+      params.continueSellingWhenOutOfStock !==
+        existingItem.continueSellingWhenOutOfStock;
+    if (continueSellingChanged) {
+      itemUpdateData.continueSellingWhenOutOfStock =
+        params.continueSellingWhenOutOfStock;
+      changes.continueSellingWhenOutOfStock =
+        params.continueSellingWhenOutOfStock;
+    }
+
+    const existingStock = stockInput
+      ? await this.repository.stock.findByVariantWarehouse(
+          variantId,
+          stockInput.warehouseId,
+        )
+      : null;
     const currentOnHand = existingStock?.quantityOnHand ?? 0;
     const currentUnavailable = existingStock?.unavailableQty ?? 0;
-    const currentSku = existingItem.sku;
+    const nextUnavailable = stockInput?.unavailable ?? 0;
+    const deltaOnHand = stockInput ? stockInput.onHand - currentOnHand : 0;
+    const deltaUnavailable = stockInput
+      ? nextUnavailable - currentUnavailable
+      : 0;
+    const stockChanged =
+      stockInput !== undefined &&
+      (deltaOnHand !== 0 || deltaUnavailable !== 0 || !existingStock);
 
-    // Get current weight to compare
-    const currentWeights = await this.repository.physical.getWeightsByVariantIds([variantId]);
+    if (stockInput && stockChanged) {
+      changes.warehouseId = stockInput.warehouseId;
+      changes.onHand = stockInput.onHand;
+      changes.unavailable = nextUnavailable;
+    }
+
+    const currentDimensions = params.dimensions
+      ? (
+          await this.repository.physical.getDimensionsByVariantIds([variantId])
+        )[0]
+      : null;
+    const dimensionsChanged =
+      params.dimensions !== undefined &&
+      params.dimensions !== null &&
+      (params.dimensions.widthMm !== (currentDimensions?.wMm ?? 0) ||
+        params.dimensions.heightMm !== (currentDimensions?.hMm ?? 0) ||
+        params.dimensions.lengthMm !== (currentDimensions?.lMm ?? 0));
+    if (dimensionsChanged && params.dimensions) {
+      changes.dimensions = params.dimensions;
+    }
+
+    const currentWeights =
+      weightGrams !== undefined
+        ? await this.repository.physical.getWeightsByVariantIds([variantId])
+        : [];
     const currentWeight = currentWeights[0]?.weightGr ?? null;
-
-    // Get current cost to compare (if currency provided)
-    let currentCost: { unitCostMinor: number } | null = null;
-    if (costCurrency) {
-      currentCost = await this.repository.cost.getCurrentCost({
-        variantId,
-        currency: costCurrency as "UAH" | "USD" | "EUR",
-      });
+    const weightChanged =
+      weightGrams !== undefined && weightGrams !== currentWeight;
+    if (weightChanged && weightGrams !== undefined) {
+      changes.weight = weightGrams;
     }
 
-    // Calculate what changed
-    const deltaOnHand = onHand - currentOnHand;
-    const deltaUnavailable = unavailable - currentUnavailable;
-    const stockChanged = deltaOnHand !== 0 || deltaUnavailable !== 0;
-    const skuChanged = sku !== undefined && sku !== currentSku;
-    const weightChanged = weight !== undefined && weight !== currentWeight;
-    const costChanged = unitCostMinor !== undefined &&
-      (!currentCost || currentCost.unitCostMinor !== unitCostMinor);
+    const currentCost = unitCostInput
+      ? await this.repository.cost.getCurrentCost({
+          variantId,
+          currency: unitCostInput.currency,
+        })
+      : null;
+    const costChanged =
+      unitCostInput !== undefined &&
+      (!currentCost || currentCost.unitCostMinor !== unitCostInput.amountMinor);
+    if (costChanged && unitCostInput) {
+      changes.unitCostMinor = unitCostInput.amountMinor;
+      changes.costCurrency = unitCostInput.currency;
+    }
 
-    // If nothing changed, return early
-    if (!stockChanged && !skuChanged && !weightChanged && !costChanged && existingStock) {
+    const hasItemUpdates = Object.keys(itemUpdateData).length > 0;
+    const hasChanges =
+      hasItemUpdates ||
+      stockChanged ||
+      dimensionsChanged ||
+      weightChanged ||
+      costChanged;
+
+    if (!hasChanges) {
       this.logger.debug(
-        { variantId, warehouseId },
-        "No inventory changes detected"
+        { inventoryItemId: existingItem.id, variantId },
+        "No inventory item changes detected",
       );
-      return unchangedResult(existingStock);
+      return unchangedResult(existingItem);
     }
 
-    // Update stock if changed
-    let stock: WarehouseStock | null = existingStock;
-    if (stockChanged || !existingStock) {
-      const movementType = deltaOnHand === 0 && !existingStock ? "SEED" : "ADJUST";
-
+    if (stockInput && stockChanged) {
+      const movementType = !existingStock ? "SEED" : "ADJUST";
       const applyResult = await this.repository.stock.applyStockChange({
         variantId,
-        warehouseId,
+        warehouseId: stockInput.warehouseId,
         deltaOnHand,
         deltaUnavailable,
         movementType,
@@ -168,86 +263,292 @@ export class InventoryItemUpdateScript extends BaseScript<
       });
 
       if (applyResult.status === "REJECTED") {
-        return singleError("Stock update rejected", "STOCK_REJECTED", [
-          "onHand",
+        throw new InventoryItemUpdateRollbackError([
+          {
+            message: "Stock update rejected",
+            code: "STOCK_REJECTED",
+            field: ["stock", "onHand"],
+          },
+        ]);
+      }
+    }
+
+    if (hasItemUpdates) {
+      await this.repository.inventoryItem.update(existingItem.id, itemUpdateData);
+    }
+
+    if (dimensionsChanged && params.dimensions) {
+      await this.repository.physical.upsertDimensions(variantId, {
+        wMm: params.dimensions.widthMm,
+        hMm: params.dimensions.heightMm,
+        lMm: params.dimensions.lengthMm,
+      });
+    }
+
+    if (weightChanged && weightGrams !== undefined) {
+      await this.repository.physical.upsertWeight(variantId, {
+        weightGr: weightGrams,
+      });
+    }
+
+    if (costChanged && unitCostInput) {
+      await this.repository.cost.setCost(variantId, {
+        currency: unitCostInput.currency,
+        unitCostMinor: unitCostInput.amountMinor,
+      });
+    }
+
+    const updatedItem =
+      (await this.repository.inventoryItem.findById(existingItem.id)) ??
+      existingItem;
+
+    this.logger.info(
+      { inventoryItemId: updatedItem.id, variantId, changes },
+      "Inventory item updated successfully",
+    );
+
+    return successResult(updatedItem, changes);
+  }
+
+  private async loadInventoryItem(
+    params: InventoryItemUpdateParams,
+  ): Promise<InventoryItem | null> {
+    if (params.inventoryItemId) {
+      return this.repository.inventoryItem.findById(params.inventoryItemId);
+    }
+
+    if (params.variantId) {
+      return this.repository.inventoryItem.findByVariantId(params.variantId);
+    }
+
+    return null;
+  }
+
+  private getStockInput(
+    params: InventoryItemUpdateParams,
+  ): StockUpdateParams | undefined | InventoryItemUpdateRollbackError {
+    if (params.stock) {
+      return {
+        warehouseId: params.stock.warehouseId,
+        onHand: params.stock.onHand,
+        unavailable: params.stock.unavailable,
+      };
+    }
+
+    const hasLegacyStockInput =
+      params.warehouseId !== undefined ||
+      params.onHand !== undefined ||
+      params.unavailable !== undefined;
+
+    if (!hasLegacyStockInput) {
+      return undefined;
+    }
+
+    if (!params.warehouseId || params.onHand === undefined) {
+      return new InventoryItemUpdateRollbackError([
+        {
+          message: "Warehouse and on-hand quantity are required for stock update",
+          code: "INVALID_STOCK_INPUT",
+          field: ["stock"],
+        },
+      ]);
+    }
+
+    return {
+      warehouseId: params.warehouseId,
+      onHand: params.onHand,
+      unavailable: params.unavailable,
+    };
+  }
+
+  private getWeightGrams(
+    params: InventoryItemUpdateParams,
+  ): number | undefined {
+    if (params.weight == null) {
+      return undefined;
+    }
+
+    return typeof params.weight === "number"
+      ? params.weight
+      : params.weight.weightGrams;
+  }
+
+  private getUnitCostInput(
+    params: InventoryItemUpdateParams,
+  ): { currency: Currency; amountMinor: number } | undefined {
+    const rawUnitCost =
+      params.unitCost ??
+      (params.unitCostMinor != null
+        ? {
+            currency: params.costCurrency,
+            amountMinor: params.unitCostMinor,
+          }
+        : null);
+
+    if (!rawUnitCost) {
+      return undefined;
+    }
+
+    return {
+      currency: rawUnitCost.currency as Currency,
+      amountMinor: Number(rawUnitCost.amountMinor),
+    };
+  }
+
+  private async validateInput(
+    item: InventoryItem,
+    stockInput: StockUpdateParams | undefined,
+    weightGrams: number | undefined,
+    unitCostInput: { currency: Currency; amountMinor: number } | undefined,
+    params: InventoryItemUpdateParams,
+  ): Promise<InventoryItemUpdateResult | null> {
+    if (stockInput) {
+      if (!Number.isInteger(stockInput.onHand) || stockInput.onHand < 0) {
+        return singleError(
+          "On-hand quantity must be a non-negative integer",
+          "INVALID_QUANTITY",
+          ["stock", "onHand"],
+        );
+      }
+
+      const unavailable = stockInput.unavailable ?? 0;
+      if (!Number.isInteger(unavailable) || unavailable < 0) {
+        return singleError(
+          "Unavailable quantity must be a non-negative integer",
+          "INVALID_QUANTITY",
+          ["stock", "unavailable"],
+        );
+      }
+
+      const warehouseExists = await this.repository.warehouse.exists(
+        stockInput.warehouseId,
+      );
+      if (!warehouseExists) {
+        return singleError("Warehouse not found", "NOT_FOUND", [
+          "stock",
+          "warehouseId",
         ]);
       }
 
-      stock = await this.repository.stock.findByVariantWarehouse(
-        variantId,
-        warehouseId
-      );
-
-      if (!stock) {
+      const existingStock =
+        await this.repository.stock.findByVariantWarehouse(
+          item.variantId,
+          stockInput.warehouseId,
+        );
+      const reservedQuantity = existingStock?.reservedQty ?? 0;
+      if (stockInput.onHand - reservedQuantity - unavailable < 0) {
         return singleError(
-          "Stock record not found after update",
-          "NOT_FOUND"
+          "Available quantity cannot be negative",
+          "INVALID_QUANTITY",
+          ["stock", "onHand"],
         );
       }
     }
 
-    // Update SKU if changed
-    if (skuChanged) {
-      await this.repository.inventoryItem.update(existingItem.id, { sku: sku ?? null });
+    if (params.sku !== undefined && params.sku !== null && params.sku !== "") {
+      const itemWithSku = await this.repository.inventoryItem.findBySku(
+        params.sku,
+      );
+      if (itemWithSku && itemWithSku.id !== item.id) {
+        return singleError(
+          `SKU "${params.sku}" is already in use`,
+          "SKU_ALREADY_EXISTS",
+          ["sku"],
+        );
+      }
     }
 
-    // Update weight if changed
-    if (weightChanged && weight !== undefined && weight !== null) {
-      await this.repository.physical.upsertWeight(variantId, {
-        weightGr: weight,
-      });
+    if (params.dimensions) {
+      if (
+        !Number.isInteger(params.dimensions.widthMm) ||
+        params.dimensions.widthMm <= 0
+      ) {
+        return singleError("Width must be a positive integer", "INVALID_DIMENSION", [
+          "dimensions",
+          "widthMm",
+        ]);
+      }
+
+      if (
+        !Number.isInteger(params.dimensions.heightMm) ||
+        params.dimensions.heightMm <= 0
+      ) {
+        return singleError(
+          "Height must be a positive integer",
+          "INVALID_DIMENSION",
+          ["dimensions", "heightMm"],
+        );
+      }
+
+      if (
+        !Number.isInteger(params.dimensions.lengthMm) ||
+        params.dimensions.lengthMm <= 0
+      ) {
+        return singleError(
+          "Length must be a positive integer",
+          "INVALID_DIMENSION",
+          ["dimensions", "lengthMm"],
+        );
+      }
     }
 
-    // Update cost if changed
-    if (costChanged && unitCostMinor !== undefined && unitCostMinor !== null && costCurrency) {
-      await this.repository.cost.setCost(variantId, {
-        currency: costCurrency as "UAH" | "USD" | "EUR",
-        unitCostMinor,
-      });
+    if (weightGrams !== undefined) {
+      if (!Number.isInteger(weightGrams) || weightGrams <= 0) {
+        return singleError("Weight must be a positive integer", "INVALID_WEIGHT", [
+          "weight",
+          "weightGrams",
+        ]);
+      }
     }
 
-    // Build changes object
-    const changes: InventoryChanges = {
-      warehouseId,
-      onHand,
-      unavailable,
-    };
+    if (unitCostInput) {
+      if (!SUPPORTED_CURRENCIES.has(unitCostInput.currency)) {
+        return singleError("Unsupported currency", "INVALID_CURRENCY", [
+          "unitCost",
+          "currency",
+        ]);
+      }
 
-    if (sku !== undefined) {
-      changes.sku = sku;
+      if (
+        !Number.isInteger(unitCostInput.amountMinor) ||
+        unitCostInput.amountMinor < 0
+      ) {
+        return singleError(
+          "Unit cost must be a non-negative integer",
+          "INVALID_COST",
+          ["unitCost", "amountMinor"],
+        );
+      }
     }
 
-    if (weight !== undefined) {
-      changes.weight = weight;
-    }
-
-    if (unitCostMinor !== undefined) {
-      changes.unitCostMinor = unitCostMinor;
-      changes.costCurrency = costCurrency;
-    }
-
-    this.logger.info(
-      { variantId, warehouseId, onHand, unavailable, sku, weight, unitCostMinor, costCurrency },
-      "Inventory item updated successfully"
-    );
-
-    return successResult(stock!, changes);
+    return null;
   }
 
   protected handleError(error: unknown): InventoryItemUpdateResult {
+    if (error instanceof InventoryItemUpdateRollbackError) {
+      return {
+        result: null,
+        changes: null,
+        userErrors: error.userErrors,
+      };
+    }
+
     const msg = error instanceof Error ? error.message : String(error);
     const cause =
       error instanceof Error && "cause" in error ? String(error.cause) : "";
     const stack = error instanceof Error ? error.stack : "";
     this.logger.error(
       { error, msg, cause, stack },
-      "InventoryItemUpdateScript failed"
+      "InventoryItemUpdateScript failed",
     );
     return {
       result: null,
       changes: null,
       userErrors: [
-        { message: `Internal error: ${msg} | cause: ${cause}`, code: "INTERNAL_ERROR" },
+        {
+          message: `Internal error: ${msg} | cause: ${cause}`,
+          code: "INTERNAL_ERROR",
+        },
       ],
     };
   }

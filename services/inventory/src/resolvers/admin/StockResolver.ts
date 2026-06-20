@@ -60,6 +60,22 @@ export class StockResolver extends InventoryType<string, WarehouseStock> {
     return (await this.$get("quantityOnHand")) ?? 0;
   }
 
+  async reservedQuantity() {
+    return (await this.$get("reservedQty")) ?? 0;
+  }
+
+  async unavailableQuantity() {
+    return (await this.$get("unavailableQty")) ?? 0;
+  }
+
+  async availableForSale() {
+    const quantityOnHand = (await this.$get("quantityOnHand")) ?? 0;
+    const reservedQuantity = (await this.$get("reservedQty")) ?? 0;
+    const unavailableQuantity = (await this.$get("unavailableQty")) ?? 0;
+
+    return quantityOnHand - reservedQuantity - unavailableQuantity;
+  }
+
   async createdAt() {
     return this.$get("createdAt");
   }

@@ -7011,18 +7011,28 @@ export enum WarehouseOrderField {
 /** Represents stock level for a variant in a specific warehouse. */
 export type ApiWarehouseStock = ApiNode & {
   __typename?: 'WarehouseStock';
+  /** The quantity available for sale. */
+  availableForSale: Scalars['Int']['output'];
   /** The date and time when the stock was created. */
   createdAt: Scalars['DateTime']['output'];
-  /** The globally unique ID of the stock record. */
+  /** The internal stock record ID. */
   id: Scalars['ID']['output'];
   /** The quantity currently on hand. */
   quantityOnHand: Scalars['Int']['output'];
+  /** The quantity currently reserved. */
+  reservedQuantity: Scalars['Int']['output'];
+  /** The quantity currently unavailable. */
+  unavailableQuantity: Scalars['Int']['output'];
   /** The date and time when the stock was last updated. */
   updatedAt: Scalars['DateTime']['output'];
   /** The variant this stock record is for. */
   variant: ApiVariant;
+  /** The globally unique ID of the variant this stock belongs to. */
+  variantId: Scalars['ID']['output'];
   /** The warehouse where this stock is located. */
   warehouse: ApiWarehouse;
+  /** The globally unique ID of the warehouse this stock belongs to. */
+  warehouseId: Scalars['ID']['output'];
 };
 
 /** A connection to a list of WarehouseStock items. */
