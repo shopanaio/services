@@ -2,6 +2,7 @@
 export { PricingHeader } from "./pricing-header";
 export { CurrentPriceColumn } from "./current-price-column";
 export { PriceHistoryChartColumn } from "./price-history-chart-column";
+export { PricingEmptyState } from "./pricing-empty-state";
 export { KPIRow } from "./kpi-row";
 
 // Shared components

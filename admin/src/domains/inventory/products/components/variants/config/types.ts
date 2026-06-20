@@ -22,7 +22,7 @@ export interface IVariantEditorInput {
   onHand?: number;
   unavailable?: number;
   reserved?: number;
-  price?: number;
+  price?: number | null;
   compareAtPrice?: number | null;
   costPrice?: number | null;
   weight?: number | null;
@@ -53,7 +53,7 @@ export interface IVariantEditorRow extends IEditorRowBase {
   available: number; // calculated: onHand - unavailable - reserved
 
   // Pricing
-  price: number;
+  price: number | null;
   compareAtPrice: number | null;
   costPrice: number | null;
 

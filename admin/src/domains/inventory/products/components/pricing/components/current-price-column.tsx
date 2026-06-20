@@ -16,10 +16,10 @@ export const CurrentPriceColumn = ({ price }: ICurrentPriceColumnProps) => {
   const { styles } = useStyles();
   const formattedPrice = useVariantPrice(price);
 
-  const amountMinor = price?.amountMinor ?? 0;
+  const amountMinor = price?.amountMinor ?? null;
   const compareAtPrice = price?.compareAtMinor ?? null;
   const saving =
-    compareAtPrice && compareAtPrice > amountMinor
+    amountMinor !== null && compareAtPrice && compareAtPrice > amountMinor
       ? compareAtPrice - amountMinor
       : null;
   const discountPercent =

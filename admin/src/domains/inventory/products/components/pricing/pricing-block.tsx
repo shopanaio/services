@@ -21,6 +21,7 @@ import { useEditVariantsModal, useProductPriceHistoryModal } from "../../modals"
 import { CurrentPriceColumn } from "./components/current-price-column";
 import { KPIRow } from "./components/kpi-row";
 import { PriceHistoryChartColumn } from "./components/price-history-chart-column";
+import { PricingEmptyState } from "./components/pricing-empty-state";
 import { PricingHeader } from "./components/pricing-header";
 import { useStyles } from "./pricing-block.styles";
 
@@ -205,6 +206,8 @@ export const PricingBlock = ({
     data?.statistics.currency;
   const history = data?.history ?? EMPTY_HISTORY;
   const stats = data?.statistics ?? null;
+  const hasPriceRecords =
+    Boolean(currentPrice) || history.totalCount > 0 || history.edges.length > 0;
 
   if (isLoading && !data) {
     return (
@@ -230,21 +233,34 @@ export const PricingBlock = ({
           onViewHistory={resolvedProductId ? handleViewHistory : undefined}
         />
 
-        <div className={styles.twoColumn}>
-          <div className={styles.priceColumnWrapper}>
-            <CurrentPriceColumn price={currentPrice} />
-          </div>
-          <div className={styles.chartColumnWrapper}>
-            <PriceHistoryChartColumn
-              history={history}
-              period={period}
-              onPeriodChange={setPeriod}
-              currency={priceCurrency}
-            />
-          </div>
-        </div>
+        {selectedVariantId && !hasPriceRecords ? (
+          <PricingEmptyState
+            onAddPrice={product ? handleEditPrices : undefined}
+            isAddPriceLoading={isPreparingEditor}
+          />
+        ) : (
+          <>
+            <div className={styles.twoColumn}>
+              <div className={styles.priceColumnWrapper}>
+                <CurrentPriceColumn price={currentPrice} />
+              </div>
+              <div className={styles.chartColumnWrapper}>
+                <PriceHistoryChartColumn
+                  history={history}
+                  period={period}
+                  onPeriodChange={setPeriod}
+                  currency={priceCurrency}
+                />
+              </div>
+            </div>
 
-        <KPIRow stats={stats} costPrice={costPrice} costCurrency={costCurrency} />
+            <KPIRow
+              stats={stats}
+              costPrice={costPrice}
+              costCurrency={costCurrency}
+            />
+          </>
+        )}
       </Paper>
     </div>
   );

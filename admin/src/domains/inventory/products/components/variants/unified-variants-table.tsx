@@ -36,7 +36,7 @@ export interface IUnifiedVariantRow extends IVariantRowBase {
   stockStatus: StockStatus;
   barcode: string | null;
   // Pricing
-  price: number;
+  price: number | null;
   compareAtPrice: number | null;
   costPrice: number | null;
   // Shipping
@@ -57,7 +57,7 @@ export interface IUnifiedVariant {
   stock?: number;
   barcode?: string | null;
   // Pricing
-  price?: number;
+  price?: number | null;
   compareAtPrice?: number | null;
   costPrice?: number | null;
   // Shipping
@@ -226,7 +226,7 @@ export const UnifiedVariantsTable = ({
         stockStatus: getStockStatus(v.stock ?? 0, lowStockThreshold),
         barcode: v.barcode ?? null,
         // Pricing
-        price: v.price ?? 0,
+        price: v.price ?? null,
         compareAtPrice: v.compareAtPrice ?? null,
         costPrice: v.costPrice ?? null,
         // Shipping

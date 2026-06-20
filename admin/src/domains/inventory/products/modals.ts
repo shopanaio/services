@@ -93,14 +93,14 @@ export interface IEditVariantPricingModalPayload extends IModalStackPayload {
   variants: Array<{
     id: string;
     title: string;
-    price: number;
+    price: number | null;
     compareAtPrice?: number | null;
     costPrice?: number | null;
     options?: IVariantPricingOption[];
   }>;
   onSave?: (variants: Array<{
     id: string;
-    price: number;
+    price: number | null;
     compareAtPrice: number | null;
     costPrice: number | null;
   }>) => void;

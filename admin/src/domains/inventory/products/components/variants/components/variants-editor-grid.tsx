@@ -87,7 +87,7 @@ function variantsToRows(variants: IVariantEditorInput[]): IVariantEditorRow[] {
       reserved,
       available,
       // Pricing
-      price: v.price ?? 0,
+      price: v.price ?? null,
       compareAtPrice: v.compareAtPrice ?? null,
       costPrice: v.costPrice ?? null,
       // Shipping

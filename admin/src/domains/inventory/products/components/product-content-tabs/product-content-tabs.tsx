@@ -1,6 +1,5 @@
-import { createStyles } from "antd-style";
-import { App, Button, Typography, Tabs, Dropdown, Flex } from "antd";
-import { WarningOutlined, MoreOutlined } from "@ant-design/icons";
+import { App, Button, Tabs, Dropdown, Flex } from "antd";
+import { MoreOutlined } from "@ant-design/icons";
 import type { OutputData } from "@editorjs/editorjs";
 import type { RenderedContent } from "@/ui-kit/editor/renderers";
 import { AIButton } from "@/ui-kit/ai-button";
@@ -12,79 +11,8 @@ import {
   useProductAIWriterModal,
 } from "../../modals";
 import { useUpdateProduct } from "../../hooks";
-
-// ============================================================================
-// Styles
-// ============================================================================
-
-const useStyles = createStyles(({ token }) => ({
-  tabsSection: {
-    minHeight: 120,
-  },
-  contentText: {
-    "&&": {
-      margin: 0,
-      fontSize: 13,
-      color: token.colorText,
-      lineHeight: 1.6,
-    },
-  },
-  renderedContent: {
-    fontSize: 13,
-    color: token.colorText,
-    lineHeight: 1.6,
-    minHeight: 80,
-    maxHeight: 120,
-    overflow: "hidden",
-    position: "relative" as const,
-    "& p": {
-      margin: "0 0 8px 0",
-      "&:last-child": {
-        marginBottom: 0,
-      },
-    },
-    "& h1, & h2, & h3, & h4, & h5, & h6": {
-      margin: "12px 0 8px 0",
-      fontWeight: 600,
-      "&:first-child": {
-        marginTop: 0,
-      },
-    },
-    "& h3": {
-      fontSize: 14,
-    },
-    "& ul, & ol": {
-      margin: "8px 0",
-      paddingLeft: 20,
-    },
-    "& li": {
-      marginBottom: 4,
-    },
-    "&::after": {
-      content: '""',
-      position: "absolute" as const,
-      bottom: 0,
-      left: 0,
-      right: 0,
-      height: 40,
-      background: `linear-gradient(transparent, ${token.colorBgContainer})`,
-      pointerEvents: "none" as const,
-    },
-  },
-  emptyContainer: {
-    padding: "16px 0",
-  },
-  emptyIcon: {
-    color: token.colorTextQuaternary,
-  },
-  emptyText: {
-    fontSize: 12,
-  },
-  addButton: {
-    padding: 0,
-    height: "auto",
-  },
-}));
+import { ProductContentEmptyState } from "./components/product-content-empty-state";
+import { useStyles } from "./product-content-tabs.styles";
 
 // ============================================================================
 // Types
@@ -230,20 +158,12 @@ export const ProductContentTabs = ({ product }: IProductContentTabsProps) => {
                 dangerouslySetInnerHTML={{ __html: descriptionHtml }}
               />
             ) : (
-              <Flex align="center" gap={8} className={styles.emptyContainer}>
-                <WarningOutlined className={styles.emptyIcon} />
-                <Typography.Text type="secondary" className={styles.emptyText}>
-                  No description added
-                </Typography.Text>
-                <Button
-                  type="link"
-                  size="small"
-                  onClick={handleEditDescription}
-                  className={styles.addButton}
-                >
-                  Add now
-                </Button>
-              </Flex>
+              <ProductContentEmptyState
+                title="No description added"
+                description="Add a detailed product description to help customers understand features, materials, and usage."
+                actionLabel="Add description"
+                onAction={handleEditDescription}
+              />
             ),
           },
           {
@@ -255,20 +175,12 @@ export const ProductContentTabs = ({ product }: IProductContentTabsProps) => {
                 dangerouslySetInnerHTML={{ __html: excerptHtml }}
               />
             ) : (
-              <Flex align="center" gap={8} className={styles.emptyContainer}>
-                <WarningOutlined className={styles.emptyIcon} />
-                <Typography.Text type="secondary" className={styles.emptyText}>
-                  No excerpt added
-                </Typography.Text>
-                <Button
-                  type="link"
-                  size="small"
-                  onClick={handleEditDescription}
-                  className={styles.addButton}
-                >
-                  Add now
-                </Button>
-              </Flex>
+              <ProductContentEmptyState
+                title="No excerpt added"
+                description="Add a short summary for product previews, search snippets, and quick product scans."
+                actionLabel="Add excerpt"
+                onAction={handleEditDescription}
+              />
             ),
           },
         ]}

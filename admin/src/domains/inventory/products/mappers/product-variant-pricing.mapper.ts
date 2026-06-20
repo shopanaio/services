@@ -40,9 +40,9 @@ export function prepareChangedVariantPricingInputs(
       continue;
     }
 
-    const amountMinor = parseRequiredMinorUnit(row.price);
+    const amountMinor = parseOptionalMinorUnit(row.price);
     const compareAtMinor = parseOptionalMinorUnit(row.compareAtPrice);
-    const originalAmountMinor = originalVariant.price?.amountMinor ?? 0;
+    const originalAmountMinor = originalVariant.price?.amountMinor ?? null;
     const originalCompareAtMinor =
       originalVariant.price?.compareAtMinor ?? null;
 
@@ -51,6 +51,10 @@ export function prepareChangedVariantPricingInputs(
       compareAtMinor === originalCompareAtMinor
     ) {
       continue;
+    }
+
+    if (amountMinor === null) {
+      throw new Error("Price is required to save variant pricing.");
     }
 
     const currency = defaultCurrency;

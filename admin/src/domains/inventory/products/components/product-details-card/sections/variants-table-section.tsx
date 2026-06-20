@@ -84,10 +84,10 @@ const VariantRow = ({
   const { styles } = useVariantsTableStyles();
   const formattedPrice = useVariantPrice(variant.price);
 
-  const price = variant.price?.amountMinor ?? 0;
+  const price = variant.price?.amountMinor ?? null;
   const compareAtPrice = variant.price?.compareAtMinor ?? null;
   const discountPercent =
-    compareAtPrice && compareAtPrice > price
+    price !== null && compareAtPrice && compareAtPrice > price
       ? Math.round((1 - Number(price) / Number(compareAtPrice)) * 100)
       : 0;
 
@@ -145,6 +145,7 @@ const VariantRow = ({
           </Typography.Text>
           {compareAtPrice &&
             compareAtPrice > 0 &&
+            price !== null &&
             compareAtPrice !== price && (
               <Flex align="center" gap={4}>
                 <Typography.Text

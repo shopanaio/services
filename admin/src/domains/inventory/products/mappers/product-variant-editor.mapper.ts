@@ -16,7 +16,7 @@ export interface VariantEditorSaveRow {
   unavailable: number;
   reserved: number;
   available: number;
-  price: number;
+  price: number | null;
   compareAtPrice: number | null;
   costPrice: number | null;
   weight: number | null;
@@ -58,7 +58,7 @@ export function mapApiVariantToEditorInput(
     onHand: variant.inventoryItem?.totalAvailable ?? 0,
     unavailable: 0,
     reserved: 0,
-    price: variant.price?.amountMinor ?? 0,
+    price: variant.price?.amountMinor ?? null,
     compareAtPrice: variant.price?.compareAtMinor ?? null,
     costPrice: variant.inventoryItem?.unitCost?.amountMinor ?? null,
   };
