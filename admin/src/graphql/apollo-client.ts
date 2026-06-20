@@ -188,6 +188,12 @@ export function makeClient() {
             userQuery: { merge: true },
           },
         },
+        Organization: {
+          keyFields: ["name"],
+        },
+        Store: {
+          keyFields: ["name"],
+        },
       },
     }),
     // Order: errorLink (fallback 401) -> proactiveRefreshLink (proactive refresh + auth header) -> uploadLink

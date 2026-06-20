@@ -1,10 +1,10 @@
 "use client";
 
-import { gql } from "@apollo/client";
 import { useFragment } from "@apollo/client/react";
 import { useMemo } from "react";
 import type { ApiMember, ApiOrganization, ApiStore } from "@/graphql/types";
 import { useSession } from "@/domains/auth";
+import { usePathParams } from "@/registry";
 import { ORGANIZATION_FRAGMENT, STORE_FRAGMENT } from "../graphql";
 
 export interface WorkspaceValue {
@@ -16,69 +16,32 @@ export interface WorkspaceValue {
   currentRole: string | null;
 }
 
-type WorkspaceCacheData = {
-  organizationQuery?: {
-    organization?: ApiOrganization | null;
-  } | null;
-};
-
-type WorkspaceCurrentStoreCacheData = {
-  storeQuery?: {
-    currentStore?: ApiStore | null;
-  } | null;
-};
-
-interface UseWorkspaceOptions {
-  organizationName?: string;
-}
-
-const WORKSPACE_ORGANIZATION_CACHE_FRAGMENT = gql`
-  fragment WorkspaceOrganizationCacheFields on Query {
-    organizationQuery {
-      organization(name: $organizationName) {
-        ...OrganizationFields
-      }
-    }
-  }
-  ${ORGANIZATION_FRAGMENT}
-`;
-
-const WORKSPACE_CURRENT_STORE_CACHE_FRAGMENT = gql`
-  fragment WorkspaceCurrentStoreCacheFields on Query {
-    storeQuery {
-      currentStore {
-        ...StoreFields
-      }
-    }
-  }
-  ${STORE_FRAGMENT}
-`;
-
-export function useWorkspace(options: UseWorkspaceOptions = {}): WorkspaceValue {
+export function useWorkspace(): WorkspaceValue {
   const { user } = useSession();
-  const { organizationName } = options;
+  const pathParams = usePathParams();
+  const organizationName = pathParams.getParam("orgName");
+  const storeName = pathParams.getParam("storeName");
 
-  const organizationFragment = useFragment<WorkspaceCacheData>({
-    fragment: WORKSPACE_ORGANIZATION_CACHE_FRAGMENT,
-    fragmentName: "WorkspaceOrganizationCacheFields",
-    from: "ROOT_QUERY",
-    variables: { organizationName },
+  const organizationFragment = useFragment<ApiOrganization>({
+    fragment: ORGANIZATION_FRAGMENT,
+    fragmentName: "OrganizationFields",
+    from: organizationName
+      ? { __typename: "Organization", name: organizationName }
+      : null,
   });
 
-  const currentStoreFragment = useFragment<WorkspaceCurrentStoreCacheData>({
-    fragment: WORKSPACE_CURRENT_STORE_CACHE_FRAGMENT,
-    fragmentName: "WorkspaceCurrentStoreCacheFields",
-    from: "ROOT_QUERY",
+  const currentStoreFragment = useFragment<ApiStore>({
+    fragment: STORE_FRAGMENT,
+    fragmentName: "StoreFields",
+    from: storeName ? { __typename: "Store", name: storeName } : null,
   });
 
   const organization = organizationFragment.complete
-    ? ((organizationFragment.data.organizationQuery?.organization ??
-        null) as ApiOrganization | null)
+    ? (organizationFragment.data as ApiOrganization)
     : null;
 
   const currentStore = currentStoreFragment.complete
-    ? ((currentStoreFragment.data.storeQuery?.currentStore ??
-        null) as ApiStore | null)
+    ? (currentStoreFragment.data as ApiStore)
     : null;
 
   const currentMember = useMemo(() => {

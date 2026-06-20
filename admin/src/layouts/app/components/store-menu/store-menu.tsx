@@ -16,7 +16,6 @@ import { useRouter } from "next/navigation";
 import { useThemeContext } from "@/ui-kit/theme";
 import { useWorkspace } from "@/domains/workspace";
 import { useSession, useSignOut } from "@/domains/auth";
-import { usePathParams } from "@/registry";
 import { ShopOutlined } from "@ant-design/icons";
 
 const useStyles = createStyles(
@@ -91,10 +90,7 @@ export const StoreMenu = ({ isCollapsed }: Props) => {
   const { styles } = useStyles({ isCollapsed });
   const { themePreference, setThemePreference } = useThemeContext();
   const router = useRouter();
-  const pathContext = usePathParams();
-  const workspace = useWorkspace({
-    organizationName: pathContext.getParam("orgName"),
-  });
+  const workspace = useWorkspace();
   const { user } = useSession();
   const { signOut } = useSignOut();
 
