@@ -6,7 +6,7 @@ import { createStyles } from "antd-style";
 import { ReactNode } from "react";
 import { AuthGuard, ProfileCompletionGuard } from "@/domains/auth";
 import { WorkspaceProvider } from "@/domains/workspace/context/workspace-context";
-import { usePathParamsOptional } from "@/registry";
+import { usePathParams } from "@/registry";
 
 const useStyles = createStyles(({ token }) => ({
   layout: {
@@ -28,11 +28,11 @@ interface AppLayoutProps {
 
 export const AppLayout = ({ children }: AppLayoutProps) => {
   const { styles, cx } = useStyles();
-  const pathContext = usePathParamsOptional();
+  const pathContext = usePathParams();
 
   // Extract org and store names from path params
-  const orgName = pathContext?.getParam("orgName");
-  const storeName = pathContext?.getParam("storeName");
+  const orgName = pathContext.getParam("orgName");
+  const storeName = pathContext.getParam("storeName");
 
   return (
     <AuthGuard>

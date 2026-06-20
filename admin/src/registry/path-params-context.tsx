@@ -132,24 +132,3 @@ export function usePathParams(): PathParamsContextValue {
 
   return context;
 }
-
-/**
- * Hook to optionally access path parameters context.
- * Returns null if used outside of PathParamsProvider (doesn't throw).
- *
- * @example
- * ```tsx
- * function OptionalPathDisplay() {
- *   const pathContext = usePathParamsOptional();
- *
- *   if (!pathContext) {
- *     return null; // Outside provider
- *   }
- *
- *   return <div>Org: {pathContext.pathParams.orgName}</div>;
- * }
- * ```
- */
-export function usePathParamsOptional(): PathParamsContextValue | null {
-  return useContext(PathParamsContext);
-}

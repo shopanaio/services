@@ -5,7 +5,7 @@ import { ConfigProvider, Layout, Menu, MenuProps, Typography } from "antd";
 import { StoreMenu } from "@/layouts/app/components/store-menu/store-menu";
 import { SidebarLogo } from "@/layouts/app/components/sidebar/sidebar-logo";
 import { createStyles } from "antd-style";
-import { useSidebarItems, usePathParamsOptional, type SidebarItem } from "@/registry";
+import { useSidebarItems, usePathParams, type SidebarItem } from "@/registry";
 import { SubitemIcon } from "@/ui-kit/arrows/arrows";
 import { usePathname, useRouter } from "next/navigation";
 import { match } from "path-to-regexp";
@@ -147,7 +147,7 @@ export const Sidebar = () => {
   const pathname = usePathname();
   const router = useRouter();
   const sidebarItems = useSidebarItems();
-  const pathContext = usePathParamsOptional();
+  const pathContext = usePathParams();
   const menuItems = useMemo(() => buildMenuItems(sidebarItems), [sidebarItems]);
   const { collapsed, openKeys, setCollapsed, setOpenKeys } = useSidebarStore();
   const { styles } = useStyles({ collapsed });
@@ -166,7 +166,7 @@ export const Sidebar = () => {
     const item = findItemByKey(sidebarItems, info.key);
     if (item?.path) {
       // Resolve path patterns with current params (e.g., /:orgName/:storeName/products -> /acme/main/products)
-      const resolvedPath = pathContext?.resolvePath(item.path) ?? item.path;
+      const resolvedPath = pathContext.resolvePath(item.path);
       router.push(resolvedPath);
     }
   };

@@ -20,5 +20,4 @@ export { useSidebarItems, ModuleProvider, ClientLayoutResolver } from "./client"
 export {
   PathParamsProvider,
   usePathParams,
-  usePathParamsOptional,
 } from "./path-params-context";
