@@ -10,9 +10,7 @@
     "grep": {},
     "grepInvert": null,
     "maxFailures": 0,
-    "metadata": {
-      "actualWorkers": 1
-    },
+    "metadata": {},
     "preserveOutput": "always",
     "reporter": [
       [
@@ -43,9 +41,7 @@
         "outputDir": "/Users/phl/Projects/shopana-io/services/e2e/test-results",
         "repeatEach": 1,
         "retries": 0,
-        "metadata": {
-          "actualWorkers": 1
-        },
+        "metadata": {},
         "id": "chromium",
         "name": "chromium",
         "testDir": "/Users/phl/Projects/shopana-io/services/e2e/tests",
@@ -63,63 +59,26 @@
     "workers": 1,
     "webServer": null
   },
-  "suites": [
+  "suites": [],
+  "errors": [
     {
-      "title": "admin-ui/products-table.spec.ts",
-      "file": "admin-ui/products-table.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [],
-      "suites": [
-        {
-          "title": "Admin products table UI",
-          "file": "admin-ui/products-table.spec.ts",
-          "line": 26,
-          "column": 6,
-          "specs": [
-            {
-              "title": "shows products created through the admin API in the products table",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 7034,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-06-19T20:16:59.839Z",
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "e14383c74418090fc28c-b98cc24837ccc37fde33",
-              "file": "admin-ui/products-table.spec.ts",
-              "line": 27,
-              "column": 5
-            }
-          ]
-        }
-      ]
+      "message": "SyntaxError: TypeScript parameter property is not supported in strip-only mode",
+      "stack": "SyntaxError: TypeScript parameter property is not supported in strip-only mode\n    at eval (<anonymous>:1:1)",
+      "location": {
+        "file": "<anonymous>",
+        "column": 1,
+        "line": 1
+      }
+    },
+    {
+      "message": "Error: No tests found.\nMake sure that arguments are regular expressions matching test files.\nYou may need to escape symbols like \"$\" or \"*\" and quote the arguments.",
+      "stack": "Error: No tests found.\nMake sure that arguments are regular expressions matching test files.\nYou may need to escape symbols like \"$\" or \"*\" and quote the arguments."
     }
   ],
-  "errors": [],
   "stats": {
-    "startTime": "2026-06-19T20:16:59.290Z",
-    "duration": 8477.034,
-    "expected": 1,
+    "startTime": "2026-06-20T17:09:01.909Z",
+    "duration": 18.860000000000014,
+    "expected": 0,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0
