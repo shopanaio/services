@@ -100,6 +100,7 @@ function formatUah(amountMinor: number) {
     currency: UAH,
   })
     .format(amountMinor / 100)
+    .replace('₴', 'грн.')
     .replace(/\s+/g, '\u00A0');
 }
 
@@ -234,11 +235,16 @@ test.describe('Admin product pricing widget UI', () => {
     api.session.user.data.password = 'StrongPassword123!';
     await api.session.setupUser();
     const organization = await api.session.setupOrganization();
-    await api.session.setupProject();
+    await api.session.setupProject({
+      currencies: [UAH],
+      defaultCurrency: UAH,
+    });
 
     const unique = crypto.randomUUID().slice(0, 8);
     const { title, handle, variants } = await createProductWithFourVariants(api, unique);
     const productsUrl = `/${organization.name}/${api.session.projectSlug}/products`;
+    const initialApiAmounts = [10100, 10200, 10300, 10400];
+    await setVariantPrices(api, variants, initialApiAmounts);
 
     await signIn(page, api.session.user.data.email, api.session.user.data.password);
     await completeProfileIfNeeded(page);
@@ -277,6 +283,7 @@ test.describe('Admin product pricing widget UI', () => {
         apiAmounts[index],
         intermediateApiAmounts[index],
         uiAmounts[index],
+        initialApiAmounts[index],
       ]);
     }
 

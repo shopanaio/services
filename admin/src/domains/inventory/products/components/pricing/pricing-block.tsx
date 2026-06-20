@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { App, Flex, Spin } from "antd";
 import { LoadingOutlined } from "@ant-design/icons";
 import { Paper } from "@/ui-kit/paper";
@@ -56,6 +56,11 @@ export const PricingBlock = ({
   const [isPreparingEditor, setIsPreparingEditor] = useState(false);
   const resolvedProductId = product?.id ?? productId ?? "";
   const defaultCurrency = workspace?.store?.defaultCurrency ?? null;
+  const defaultCurrencyRef = useRef(defaultCurrency);
+
+  useEffect(() => {
+    defaultCurrencyRef.current = defaultCurrency;
+  }, [defaultCurrency]);
 
   const {
     data,
@@ -90,7 +95,7 @@ export const PricingBlock = ({
         variantUpdates = prepareChangedVariantPricingInputs(
           rows,
           editorVariants,
-          defaultCurrency,
+          defaultCurrencyRef.current,
         );
       } catch (err) {
         message.error(
@@ -137,7 +142,6 @@ export const PricingBlock = ({
       return true;
     },
     [
-      defaultCurrency,
       message,
       onProductRefresh,
       product,

@@ -194,6 +194,8 @@ export const STORE_BASIC_FRAGMENT = gql`
     name
     displayName
     status
+    currencies
+    defaultCurrency
     createdAt
   }
 `;
