@@ -3,6 +3,7 @@ import {
   USER_FRAGMENT,
   ORGANIZATION_FRAGMENT,
   ORGANIZATION_BASIC_FRAGMENT,
+  CURRENT_STORE_FRAGMENT,
   STORE_FRAGMENT,
   STORE_BASIC_FRAGMENT,
 } from "./fragments";
@@ -125,11 +126,11 @@ export const CURRENT_STORE_QUERY = gql`
   query CurrentStore {
     storeQuery {
       currentStore {
-        ...StoreFields
+        ...CurrentStoreFields
       }
     }
   }
-  ${STORE_FRAGMENT}
+  ${CURRENT_STORE_FRAGMENT}
 `;
 
 /**

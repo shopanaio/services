@@ -229,3 +229,28 @@ export const STORE_FRAGMENT = gql`
   }
   ${MEMBERSHIP_FRAGMENT}
 `;
+
+// Store fragment for current store context without organization fields
+export const CURRENT_STORE_FRAGMENT = gql`
+  fragment CurrentStoreFields on Store {
+    id
+    name
+    displayName
+    status
+    timezone
+    email
+    locales
+    currencies
+    baseCurrency
+    defaultLocale
+    defaultCurrency
+    defaultWeightUnit
+    defaultDimensionUnit
+    createdAt
+    updatedAt
+    membership {
+      ...MembershipFields
+    }
+  }
+  ${MEMBERSHIP_FRAGMENT}
+`;

@@ -1,5 +1,6 @@
 import { SubgraphReference } from "@shopana/type-resolver";
 import {
+  decodeGlobalIdByType,
   encodeGlobalIdByType,
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
@@ -11,7 +12,9 @@ import { MembershipResolver } from "./MembershipResolver.js";
 /**
  * Organization resolver - resolves organization domain interface
  */
-@SubgraphReference()
+@SubgraphReference((ref: { __typename?: "Organization"; id: string }) =>
+  decodeGlobalIdByType(ref.id, GlobalIdEntity.Organization)
+)
 export class OrganizationResolver extends IAMType<string, Organization> {
   async $preload() {
     const org = await this.$ctx.kernel.repository.organization.findById(
