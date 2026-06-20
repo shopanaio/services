@@ -44,9 +44,16 @@ import {
   TagConnectionResolver,
   type TagConnectionInput,
 } from "./TagConnectionResolver.js";
+import {
+  VariantConnectionResolver,
+  type VariantConnectionInput,
+} from "./VariantConnectionResolver.js";
 import { ProductBulkUpdateJobResolver } from "./ProductBulkUpdateJobResolver.js";
-import { PricingWidgetResolver, type PricingWidgetInput } from "./PricingWidgetResolver.js";
-import type { VariantRelayInput } from "../../repositories/variant/VariantRepository.js";
+import {
+  PricingWidgetResolver,
+  type PricingWidgetInput,
+} from "./PricingWidgetResolver.js";
+import { normalizeVariantWhereInput } from "./filter-normalizers.js";
 import { CollectionRulesPreviewCountScript } from "../../scripts/collection/CollectionRulesPreviewCountScript.js";
 
 /**
@@ -145,39 +152,27 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
   /**
    * Get a single variant by ID.
    */
-  variant(args: { id: string }) {
-    return new VariantResolver(args.id, this.$ctx);
+  async variant(args: { id: string }) {
+    const variantId =
+      safeDecodeGlobalId(args.id, GlobalIdEntity.Variant) ?? args.id;
+    const variant = await this.$ctx.loaders.variant.load(variantId);
+    if (!variant) {
+      return null;
+    }
+    return new VariantResolver(variantId, this.$ctx);
   }
 
   /**
    * Get a paginated list of variants.
    */
-  async variants(args: VariantRelayInput) {
-    const services = this.$ctx.kernel.getServices();
-    const first = args.first ?? 10;
-
-    const variants = await services.repository.variant.getMany({
-      limit: first + 1,
-    });
-
-    const hasNextPage = variants.length > first;
-    const resultVariants = hasNextPage ? variants.slice(0, first) : variants;
-
-    const edges = resultVariants.map((variant) => ({
-      node: new VariantResolver(variant.id, this.$ctx),
-      cursor: Buffer.from(variant.id).toString("base64"),
-    }));
-
-    return {
-      edges,
-      pageInfo: {
-        hasNextPage,
-        hasPreviousPage: false,
-        startCursor: edges[0]?.cursor ?? null,
-        endCursor: edges[edges.length - 1]?.cursor ?? null,
+  variants(args: VariantConnectionInput) {
+    return new VariantConnectionResolver(
+      {
+        ...args,
+        where: normalizeVariantWhereInput(args.where),
       },
-      totalCount: resultVariants.length,
-    };
+      this.$ctx
+    );
   }
 
   // ═══════════════════════════════════════════════════════════

@@ -16,3 +16,59 @@ input CategoryProductWhereInput {
   """Filter by deletedAt"""
   deletedAt: DateTimeFilter
 }
+
+# ---- Variant ----
+
+"""Filter conditions for Variant"""
+input VariantWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [VariantWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [VariantWhereInput!]
+  """Negate the condition"""
+  _not: VariantWhereInput
+  """Filter by productId"""
+  productId: IDFilter
+  """Filter by id"""
+  id: IDFilter
+  """Filter by isDefault"""
+  isDefault: BooleanFilter
+  """Filter by handle"""
+  handle: StringFilter
+  """Filter by externalSystem"""
+  externalSystem: StringFilter
+  """Filter by externalId"""
+  externalId: StringFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+}
+
+"""Fields available for sorting Variant"""
+enum VariantOrderField {
+  """Sort by productId"""
+  productId
+  """Sort by id"""
+  id
+  """Sort by isDefault"""
+  isDefault
+  """Sort by handle"""
+  handle
+  """Sort by externalSystem"""
+  externalSystem
+  """Sort by externalId"""
+  externalId
+  """Sort by updatedAt"""
+  updatedAt
+  """Sort by createdAt"""
+  createdAt
+}
+
+"""Ordering configuration for Variant"""
+input VariantOrderByInput {
+  """Field to order by"""
+  field: VariantOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}

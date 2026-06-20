@@ -29,7 +29,7 @@ const variantPaginationQuery = createCursorQuery(
   { tieBreaker: "id" }
 );
 
-const variantRelayQuery = createRelayQuery(
+export const variantRelayQuery = createRelayQuery(
   createQuery(variant)
     .include(["id", "productId"])
     .maxLimit(100)
@@ -234,6 +234,43 @@ export class VariantRepository extends BaseRepository {
     return results[0] ?? null;
   }
 
+  async getConnection(
+    args: VariantRelayInput
+  ): Promise<VariantConnectionResult> {
+    const { where, orderBy, ...paginationArgs } = args;
+
+    const mergedWhere: VariantRelayInput["where"] = {
+      _and: [
+        { projectId: { _eq: this.storeId } },
+        { deletedAt: { _is: null } },
+        ...(where ? [where] : []),
+      ],
+    };
+
+    const executeInput: VariantRelayInput = {
+      ...paginationArgs,
+      where: mergedWhere,
+      orderBy: orderBy ?? [
+        { field: "createdAt", direction: "desc" },
+        { field: "id", direction: "desc" },
+      ],
+    };
+
+    const [result, totalCount] = await Promise.all([
+      variantRelayQuery.execute(this.connection, executeInput),
+      variantRelayQuery.count(this.connection, { where: mergedWhere }),
+    ]);
+
+    return {
+      edges: result.edges.map((edge) => ({
+        cursor: edge.cursor,
+        nodeId: edge.node.id,
+      })),
+      pageInfo: result.pageInfo,
+      totalCount,
+    };
+  }
+
   async getByProductId(
     productId: string,
     input?: Omit<VariantQueryInput, "where">
@@ -283,13 +320,16 @@ export class VariantRepository extends BaseRepository {
     const executeInput: VariantRelayInput = {
       ...paginationArgs,
       where: mergedWhere,
-      orderBy: orderBy ?? [{ field: "createdAt", direction: "desc" }],
+      orderBy: orderBy ?? [
+        { field: "createdAt", direction: "desc" },
+        { field: "id", direction: "desc" },
+      ],
     };
 
-    const result = await variantRelayQuery.execute(
-      this.connection,
-      executeInput
-    );
+    const [result, totalCount] = await Promise.all([
+      variantRelayQuery.execute(this.connection, executeInput),
+      variantRelayQuery.count(this.connection, { where: mergedWhere }),
+    ]);
 
     return {
       edges: result.edges.map((edge) => ({
@@ -297,7 +337,7 @@ export class VariantRepository extends BaseRepository {
         nodeId: edge.node.id,
       })),
       pageInfo: result.pageInfo,
-      totalCount: result.totalCount ?? 0,
+      totalCount,
     };
   }
 

@@ -1022,6 +1022,8 @@ export type CatalogQueryVariantsArgs = {
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<VariantOrderByInput>>;
+  where?: InputMaybe<VariantWhereInput>;
 };
 
 /** A category represents a hierarchical grouping of products. */
@@ -3894,6 +3896,34 @@ export type VariantOptionsOpInput = {
   set: Array<VariantOptionLinkInput>;
 };
 
+/** Ordering configuration for Variant */
+export type VariantOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: VariantOrderField;
+};
+
+/** Fields available for sorting Variant */
+export enum VariantOrderField {
+  /** Sort by createdAt */
+  CreatedAt = 'createdAt',
+  /** Sort by externalId */
+  ExternalId = 'externalId',
+  /** Sort by externalSystem */
+  ExternalSystem = 'externalSystem',
+  /** Sort by handle */
+  Handle = 'handle',
+  /** Sort by id */
+  Id = 'id',
+  /** Sort by isDefault */
+  IsDefault = 'isDefault',
+  /** Sort by productId */
+  ProductId = 'productId',
+  /** Sort by updatedAt */
+  UpdatedAt = 'updatedAt'
+}
+
 /** Represents a price for a variant. */
 export type VariantPrice = Node & {
   __typename?: 'VariantPrice';
@@ -4027,6 +4057,32 @@ export type VariantUpdatePricingPayload = {
   userErrors: Array<GenericUserError>;
   /** The updated variant. */
   variant: Maybe<Variant>;
+};
+
+/** Filter conditions for Variant */
+export type VariantWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<VariantWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<VariantWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<VariantWhereInput>>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by externalId */
+  externalId?: InputMaybe<StringFilter>;
+  /** Filter by externalSystem */
+  externalSystem?: InputMaybe<StringFilter>;
+  /** Filter by handle */
+  handle?: InputMaybe<StringFilter>;
+  /** Filter by id */
+  id?: InputMaybe<IdFilter>;
+  /** Filter by isDefault */
+  isDefault?: InputMaybe<BooleanFilter>;
+  /** Filter by productId */
+  productId?: InputMaybe<IdFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<DateTimeFilter>;
 };
 
 /** Weight measurement units */
@@ -4397,6 +4453,8 @@ export type ResolversTypes = ResolversObject<{
   VariantMediaOpInput: VariantMediaOpInput;
   VariantOptionLinkInput: VariantOptionLinkInput;
   VariantOptionsOpInput: VariantOptionsOpInput;
+  VariantOrderByInput: VariantOrderByInput;
+  VariantOrderField: VariantOrderField;
   VariantPrice: ResolverTypeWrapper<VariantPrice>;
   VariantPriceConnection: ResolverTypeWrapper<VariantPriceConnection>;
   VariantPriceEdge: ResolverTypeWrapper<VariantPriceEdge>;
@@ -4409,6 +4467,7 @@ export type ResolversTypes = ResolversObject<{
   VariantUpdateOptionsPayload: ResolverTypeWrapper<VariantUpdateOptionsPayload>;
   VariantUpdatePricingInput: VariantUpdatePricingInput;
   VariantUpdatePricingPayload: ResolverTypeWrapper<VariantUpdatePricingPayload>;
+  VariantWhereInput: VariantWhereInput;
   WeightUnit: WeightUnit;
   WidgetQuery: ResolverTypeWrapper<WidgetQuery>;
 }>;
@@ -4642,6 +4701,7 @@ export type ResolversParentTypes = ResolversObject<{
   VariantMediaOpInput: VariantMediaOpInput;
   VariantOptionLinkInput: VariantOptionLinkInput;
   VariantOptionsOpInput: VariantOptionsOpInput;
+  VariantOrderByInput: VariantOrderByInput;
   VariantPrice: VariantPrice;
   VariantPriceConnection: VariantPriceConnection;
   VariantPriceEdge: VariantPriceEdge;
@@ -4654,6 +4714,7 @@ export type ResolversParentTypes = ResolversObject<{
   VariantUpdateOptionsPayload: VariantUpdateOptionsPayload;
   VariantUpdatePricingInput: VariantUpdatePricingInput;
   VariantUpdatePricingPayload: VariantUpdatePricingPayload;
+  VariantWhereInput: VariantWhereInput;
   WidgetQuery: WidgetQuery;
 }>;
 

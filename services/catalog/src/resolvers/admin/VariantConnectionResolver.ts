@@ -5,17 +5,23 @@ import {
   type ConnectionData,
 } from "./connection/BaseConnectionResolver.js";
 
-export interface VariantConnectionInput extends VariantRelayInput {
-  productId: string;
-}
+export type VariantConnectionInput = VariantRelayInput & {
+  productId?: string;
+};
 
 /**
- * VariantConnection - resolves paginated variant list for a product
+ * VariantConnection - resolves paginated variant lists
  * Uses cursor-based pagination with Relay-style Connection spec
  */
 export class VariantConnectionResolver extends BaseConnectionResolver<VariantConnectionInput> {
   async $preload(): Promise<ConnectionData> {
     const { productId, ...args } = this.$props;
+    if (!productId) {
+      return this.$ctx.kernel
+        .getServices()
+        .repository.variant.getConnection(args);
+    }
+
     return this.$ctx.kernel
       .getServices()
       .repository.variant.getConnectionByProductId(productId, args);

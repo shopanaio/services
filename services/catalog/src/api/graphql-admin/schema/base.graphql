@@ -70,6 +70,14 @@ type CatalogQuery {
     after: String
     last: Int
     before: String
+    """
+    Filter conditions
+    """
+    where: VariantWhereInput
+    """
+    Sort order
+    """
+    orderBy: [VariantOrderByInput!]
   ): VariantConnection!
 
   """

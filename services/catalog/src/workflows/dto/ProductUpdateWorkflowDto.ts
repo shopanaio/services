@@ -53,6 +53,9 @@ export interface ProductContentParams {
 export interface ProductSeoParams {
   title?: string;
   description?: string;
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImageId?: string;
 }
 
 export interface ProductMediaParams {
