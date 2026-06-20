@@ -19,6 +19,8 @@ export interface InventoryCellProps {
   value: number;
   /** Whether this is a zero value (shows in red) */
   isZero?: boolean;
+  /** Stable selector for integration tests */
+  testId?: string;
 }
 
 export interface EditableInventoryCellProps extends InventoryCellProps {
@@ -35,6 +37,8 @@ export interface CalculatedAvailableCellProps {
   onHandEdit?: InventoryFieldEdit;
   /** Edit information for unavailable field */
   unavailableEdit?: InventoryFieldEdit;
+  /** Stable selector for integration tests */
+  testId?: string;
 }
 
 // ============================================================================
@@ -42,9 +46,14 @@ export interface CalculatedAvailableCellProps {
 // Read-only cell showing reserved quantity with tooltip
 // ============================================================================
 
-export const ReservedCell: React.FC<InventoryCellProps> = ({ value }) => (
+export const ReservedCell: React.FC<InventoryCellProps> = ({
+  value,
+  testId,
+}) => (
   <Tooltip title="Managed by order system">
-    <div className="ec-cell ec-cell--right">{value}</div>
+    <div className="ec-cell ec-cell--right" data-testid={testId}>
+      {value}
+    </div>
   </Tooltip>
 );
 
@@ -80,6 +89,7 @@ export const CalculatedAvailableCell: React.FC<CalculatedAvailableCellProps> = (
   reserved,
   onHandEdit,
   unavailableEdit,
+  testId,
 }) => {
   // Current available value
   const currentAvailable = calculateAvailable(onHand, unavailable, reserved);
@@ -98,7 +108,7 @@ export const CalculatedAvailableCell: React.FC<CalculatedAvailableCellProps> = (
       const isNegative = newAvailable < 0;
 
       return (
-        <div className="ec-cell ec-cell--right">
+        <div className="ec-cell ec-cell--right" data-testid={testId}>
           <Diff
             originalValue={originalAvailable}
             currentValue={newAvailable}
@@ -111,7 +121,10 @@ export const CalculatedAvailableCell: React.FC<CalculatedAvailableCellProps> = (
 
   // Default display
   return (
-    <div className={`ec-cell ec-cell--right${currentAvailable === 0 ? " ec-value--zero" : ""}`}>
+    <div
+      className={`ec-cell ec-cell--right${currentAvailable === 0 ? " ec-value--zero" : ""}`}
+      data-testid={testId}
+    >
       {currentAvailable}
     </div>
   );

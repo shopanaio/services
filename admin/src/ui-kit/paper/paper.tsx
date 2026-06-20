@@ -1,5 +1,5 @@
 import { createStyles } from "antd-style";
-import { ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 
 const useStyles = createStyles(({ token }) => ({
   paper: {
@@ -13,15 +13,19 @@ const useStyles = createStyles(({ token }) => ({
   },
 }));
 
-interface IPaperProps {
+interface IPaperProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
   className?: string;
 }
 
-export const Paper = ({ children, className }: IPaperProps) => {
+export const Paper = ({ children, className, ...rest }: IPaperProps) => {
   const { styles, cx } = useStyles();
 
-  return <div className={cx(styles.paper, className)}>{children}</div>;
+  return (
+    <div className={cx(styles.paper, className)} {...rest}>
+      {children}
+    </div>
+  );
 };
 
 export type { IPaperProps };

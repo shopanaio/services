@@ -49,7 +49,12 @@ const InventoryActions = ({
   isPreparingEditor = false,
 }: IInventoryActionsProps) => {
   const items = [
-    { key: "edit", label: "Edit inventory", disabled: isPreparingEditor },
+    {
+      key: "edit",
+      label: "Edit inventory",
+      disabled: isPreparingEditor,
+      "data-testid": "inventory-widget-edit-inventory-menu-item",
+    },
   ];
 
   return (
@@ -60,7 +65,12 @@ const InventoryActions = ({
       }}
       trigger={["click"]}
     >
-      <Button size="small" icon={<MoreOutlined />} loading={isPreparingEditor} />
+      <Button
+        size="small"
+        icon={<MoreOutlined />}
+        loading={isPreparingEditor}
+        data-testid="inventory-widget-actions-button"
+      />
     </Dropdown>
   );
 };
@@ -371,7 +381,7 @@ export const InventorySection = ({
   }
 
   return (
-    <Paper className={styles.inventoryCard}>
+    <Paper className={styles.inventoryCard} data-testid="inventory-widget">
       <InventoryHeader
         onAction={handleAction}
         isPreparingEditor={isPreparingEditor}
@@ -404,6 +414,7 @@ export const InventorySection = ({
           }
           active={activeKPI === "available"}
           onClick={() => handleKPIClick("available")}
+          dataTestId="inventory-widget-kpi-available"
         />
         <KPITile
           label="On Hand"
@@ -412,6 +423,7 @@ export const InventorySection = ({
           variant="success"
           active={activeKPI === "onhand"}
           onClick={() => handleKPIClick("onhand")}
+          dataTestId="inventory-widget-kpi-on-hand"
         />
         <KPITile
           label="Reserved"
@@ -427,6 +439,7 @@ export const InventorySection = ({
           }
           active={activeKPI === "reserved"}
           onClick={() => handleKPIClick("reserved")}
+          dataTestId="inventory-widget-kpi-reserved"
         />
       </div>
 
@@ -466,6 +479,7 @@ export const InventorySection = ({
           }
           active={activeKPI === "lowstock"}
           onClick={() => handleKPIClick("lowstock")}
+          dataTestId="inventory-widget-kpi-low-stock"
         />
         <KPITile
           label="Out of Stock"
@@ -490,6 +504,7 @@ export const InventorySection = ({
           }
           active={activeKPI === "outofstock"}
           onClick={() => handleKPIClick("outofstock")}
+          dataTestId="inventory-widget-kpi-out-of-stock"
         />
         {stats.skuStatus.backorder.count > 0 && (
           <KPITile
@@ -510,6 +525,7 @@ export const InventorySection = ({
             }
             active={activeKPI === "backorder"}
             onClick={() => handleKPIClick("backorder")}
+            dataTestId="inventory-widget-kpi-backorder"
           />
         )}
       </div>

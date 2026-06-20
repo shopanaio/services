@@ -13,6 +13,8 @@ import {
 } from "@/shared/components/inventory-cells";
 import { formatPrice } from "../../../utils/price-formatting";
 
+export { formatPrice };
+
 interface PriceCellRendererParams {
   currency?: CurrencyCode | null;
 }
@@ -83,7 +85,12 @@ export const ReservedCellRenderer: React.FC<
 > = (props) => {
   const { data, value } = props;
   if (!data) return null;
-  return <ReservedCell value={(value as number) ?? 0} />;
+  return (
+    <ReservedCell
+      value={(value as number) ?? 0}
+      testId={`variants-editor-cell-reserved-${data.id}`}
+    />
+  );
 };
 
 // ============================================================================
@@ -123,6 +130,7 @@ export const AvailableCellRenderer: React.FC<
             }
           : undefined
       }
+      testId={`variants-editor-cell-available-${data.id}`}
     />
   );
 };
