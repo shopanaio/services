@@ -1,6 +1,7 @@
 import { gql } from "@apollo/client";
 import {
   FILE_FRAGMENT,
+  INVENTORY_ITEM_FRAGMENT,
   PRODUCT_MUTATION_RESULT_FRAGMENT,
   PRODUCT_OPTION_FRAGMENT,
   USER_ERROR_FRAGMENT,
@@ -125,5 +126,22 @@ export const VARIANT_SET_MEDIA_MUTATION = gql`
   }
   ${VARIANT_FRAGMENT}
   ${FILE_FRAGMENT}
+  ${USER_ERROR_FRAGMENT}
+`;
+
+export const INVENTORY_ITEM_UPDATE_MUTATION = gql`
+  mutation InventoryItemUpdate($input: InventoryItemUpdateInput!) {
+    inventoryMutation {
+      inventoryItemUpdate(input: $input) {
+        inventoryItem {
+          ...InventoryItemFields
+        }
+        userErrors {
+          ...UserErrorFields
+        }
+      }
+    }
+  }
+  ${INVENTORY_ITEM_FRAGMENT}
   ${USER_ERROR_FRAGMENT}
 `;

@@ -205,6 +205,10 @@ export interface IEditVariantsModalPayload extends IModalStackPayload {
   variants: ApiVariant[];
   productOptions: ApiProductOption[];
   defaultCurrency?: CurrencyCode | null;
+  variantEditorScope?: {
+    type: "inventory";
+    warehouseId: string;
+  };
   /**
    * When provided, only these columns will be shown.
    * If undefined, all columns are available with user settings.

@@ -250,17 +250,36 @@ export const createMockApiWarehouse = (params: {
 export const createMockApiWarehouseStock = (params: {
   id: string;
   quantityOnHand: number;
+  reservedQuantity?: number;
+  unavailableQuantity?: number;
+  availableForSale?: number;
+  variantId?: string;
+  warehouseId?: string;
   variant?: ApiVariant;
   warehouse?: ApiWarehouse;
-}): ApiWarehouseStock => ({
-  __typename: "WarehouseStock",
-  id: params.id,
-  quantityOnHand: params.quantityOnHand,
-  variant: params.variant ?? ({} as ApiVariant),
-  warehouse: params.warehouse ?? createMockApiWarehouse(),
-  createdAt: MOCK_NOW,
-  updatedAt: MOCK_NOW,
-});
+}): ApiWarehouseStock => {
+  const variant = params.variant ?? ({} as ApiVariant);
+  const warehouse = params.warehouse ?? createMockApiWarehouse();
+  const reservedQuantity = params.reservedQuantity ?? 0;
+  const unavailableQuantity = params.unavailableQuantity ?? 0;
+
+  return {
+    __typename: "WarehouseStock",
+    id: params.id,
+    warehouseId: params.warehouseId ?? warehouse.id,
+    variantId: params.variantId ?? variant.id ?? "variant-main",
+    quantityOnHand: params.quantityOnHand,
+    reservedQuantity,
+    unavailableQuantity,
+    availableForSale:
+      params.availableForSale ??
+      params.quantityOnHand - reservedQuantity - unavailableQuantity,
+    variant,
+    warehouse,
+    createdAt: MOCK_NOW,
+    updatedAt: MOCK_NOW,
+  };
+};
 
 export const createMockApiInventoryItem = (params: {
   id: string;

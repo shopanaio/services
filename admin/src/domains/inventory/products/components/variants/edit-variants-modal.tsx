@@ -99,8 +99,15 @@ export const EditVariantsModal = () => {
       mapApiVariantsToEditorInputs(
         typedPayload.variants,
         typedPayload.productOptions,
+        typedPayload.variantEditorScope?.type === "inventory"
+          ? { inventoryWarehouseId: typedPayload.variantEditorScope.warehouseId }
+          : undefined,
       ),
-    [typedPayload.variants, typedPayload.productOptions],
+    [
+      typedPayload.productOptions,
+      typedPayload.variantEditorScope,
+      typedPayload.variants,
+    ],
   );
 
   // Extract option groups for column settings

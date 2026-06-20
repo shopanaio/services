@@ -2,6 +2,10 @@ import type {
   ApiCatalogMutation,
   ApiCatalogQuery,
   ApiGenericUserError,
+  ApiInventoryItem,
+  ApiInventoryItemUpdateInput,
+  ApiInventoryMutation,
+  ApiInventoryQuery,
   ApiOperationResult,
   ApiPricingWidgetInput,
   ApiPricingWidgetPayload,
@@ -9,9 +13,11 @@ import type {
   ApiProductConnection,
   ApiProductCreateInput,
   ApiProductDeleteInput,
+  ApiProductInventoryWidget,
   ApiProductUpdateInput,
   ApiProductUpdateStatusInput,
   ApiVariantConnection,
+  ApiWarehouseConnection,
   ApiWidgetQuery,
 } from "@/graphql/types";
 
@@ -62,6 +68,34 @@ export interface ProductPricingWidgetQueryData {
 
 export interface ProductPricingWidgetQueryVariables {
   input: ApiPricingWidgetInput;
+}
+
+export interface ProductInventoryWidgetQueryData {
+  widgetQuery: Pick<ApiWidgetQuery, "inventory"> & {
+    inventory: ApiProductInventoryWidget | null;
+  };
+}
+
+export interface ProductInventoryWidgetQueryVariables {
+  productId: string;
+}
+
+export interface InventoryDefaultWarehouseQueryData {
+  inventoryQuery: Pick<ApiInventoryQuery, "warehouses"> & {
+    warehouses: ApiWarehouseConnection;
+  };
+}
+
+export type InventoryDefaultWarehouseQueryVariables = Record<string, never>;
+
+export interface InventoryItemByVariantQueryData {
+  inventoryQuery: Pick<ApiInventoryQuery, "inventoryItemByVariant"> & {
+    inventoryItemByVariant: ApiInventoryItem | null;
+  };
+}
+
+export interface InventoryItemByVariantQueryVariables {
+  variantId: string;
 }
 
 export interface ProductCreateMutationData {
@@ -117,4 +151,17 @@ export interface ProductUpdateStatusMutationData {
 
 export interface ProductUpdateStatusMutationVariables {
   input: ApiProductUpdateStatusInput;
+}
+
+export interface InventoryItemUpdateMutationData {
+  inventoryMutation: Pick<ApiInventoryMutation, "inventoryItemUpdate"> & {
+    inventoryItemUpdate: {
+      inventoryItem: ApiInventoryItem | null;
+      userErrors: ApiGenericUserError[];
+    };
+  };
+}
+
+export interface InventoryItemUpdateMutationVariables {
+  input: ApiInventoryItemUpdateInput;
 }

@@ -18,15 +18,22 @@ import {
 import { useState, useCallback } from "react";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { KPITile } from "@/ui-kit/kpi-tile";
+import { useDefaultCurrency } from "@/domains/workspace";
 import { useInventoryStyles } from "../product-details-card.styles";
-import {
-  useEditVariantsModal,
-  type IEditVariantsModalPayload,
-} from "../../../modals";
+import { useEditVariantsModal } from "../../../modals";
 import { ThresholdMethod } from "@/graphql/types";
-import type { ApiProduct, ApiProductInventoryWidget } from "@/graphql/types";
-import { getProductVariants } from "../../../utils/api-product-display";
-
+import type {
+  ApiInventoryItemUpdateInput,
+  ApiProduct,
+  ApiVariant,
+} from "@/graphql/types";
+import { useDefaultWarehouse } from "../../../hooks/use-default-warehouse";
+import { useEnsureVariantInventoryItems } from "../../../hooks/use-ensure-variant-inventory-items";
+import { useProductInventoryWidget } from "../../../hooks/use-product-inventory-widget";
+import { useProductVariantsLoader } from "../../../hooks/use-product-variants-loader";
+import { useUpdateInventoryItems } from "../../../hooks/use-update-inventory-items";
+import { prepareChangedVariantInventoryInputs } from "../../../mappers/product-variant-inventory.mapper";
+import type { VariantEditorSaveRow } from "../../../mappers/product-variant-editor.mapper";
 
 // ============================================================================
 // Sub-components
@@ -34,10 +41,16 @@ import { getProductVariants } from "../../../utils/api-product-display";
 
 interface IInventoryActionsProps {
   onAction: (action: string) => void;
+  isPreparingEditor?: boolean;
 }
 
-const InventoryActions = ({ onAction }: IInventoryActionsProps) => {
-  const items = [{ key: "edit", label: "Edit inventory" }];
+const InventoryActions = ({
+  onAction,
+  isPreparingEditor = false,
+}: IInventoryActionsProps) => {
+  const items = [
+    { key: "edit", label: "Edit inventory", disabled: isPreparingEditor },
+  ];
 
   return (
     <Dropdown
@@ -47,20 +60,29 @@ const InventoryActions = ({ onAction }: IInventoryActionsProps) => {
       }}
       trigger={["click"]}
     >
-      <Button size="small" icon={<MoreOutlined />} />
+      <Button size="small" icon={<MoreOutlined />} loading={isPreparingEditor} />
     </Dropdown>
   );
 };
 
 interface IInventoryHeaderProps {
   onAction: (action: string) => void;
+  isPreparingEditor?: boolean;
 }
 
-const InventoryHeader = ({ onAction }: IInventoryHeaderProps) => {
+const InventoryHeader = ({
+  onAction,
+  isPreparingEditor,
+}: IInventoryHeaderProps) => {
   return (
     <PaperHeader
       title="Inventory"
-      actions={<InventoryActions onAction={onAction} />}
+      actions={
+        <InventoryActions
+          onAction={onAction}
+          isPreparingEditor={isPreparingEditor}
+        />
+      }
     />
   );
 };
@@ -122,55 +144,205 @@ const InventoryNoData = () => {
   );
 };
 
+const InventoryError = ({ message }: { message: string }) => {
+  const { styles } = useInventoryStyles();
+
+  return (
+    <Paper className={styles.inventoryCard}>
+      <Flex
+        vertical
+        align="center"
+        justify="center"
+        gap={8}
+        className={styles.noDataContainer}
+      >
+        <WarningOutlined className={styles.colorError} />
+        <Typography.Text type="secondary">
+          Inventory data could not be loaded
+        </Typography.Text>
+        <Typography.Text type="secondary">{message}</Typography.Text>
+      </Flex>
+    </Paper>
+  );
+};
+
+function formatSkuPercent(count: number, total: number): string {
+  if (total <= 0) {
+    return "0% of catalog";
+  }
+
+  return `${Math.round((count / total) * 100)}% of catalog`;
+}
+
 // ============================================================================
 // Main Component
 // ============================================================================
 
-type InventoryState = "loading" | "no_data" | "ready";
-
 interface IInventorySectionProps {
   onEdit?: () => void;
   product: ApiProduct;
-  stats: ApiProductInventoryWidget;
+  onProductRefresh?: () => Promise<unknown>;
 }
 
 export const InventorySection = ({
   onEdit,
   product,
-  stats,
+  onProductRefresh,
 }: IInventorySectionProps) => {
   const { styles } = useInventoryStyles();
   const { message } = App.useApp();
+  const defaultCurrency = useDefaultCurrency();
   const { push: pushEditVariantsModal } = useEditVariantsModal();
+  const { loadAllProductVariants } = useProductVariantsLoader();
+  const {
+    defaultWarehouse,
+    refetch: refetchDefaultWarehouse,
+  } = useDefaultWarehouse();
+  const { ensureVariantInventoryItems } = useEnsureVariantInventoryItems();
+  const { updateInventoryItems } = useUpdateInventoryItems();
+  const {
+    data: stats,
+    isLoading,
+    error,
+    refetch: refetchInventoryWidget,
+  } = useProductInventoryWidget({ productId: product.id });
   const [activeKPI, setActiveKPI] = useState<string | undefined>();
-  const [inventoryState] = useState<InventoryState>("ready");
+  const [isPreparingEditor, setIsPreparingEditor] = useState(false);
+
+  const handleSaveInventory = useCallback(
+    async (
+      rows: VariantEditorSaveRow[],
+      editorVariants: ApiVariant[],
+      warehouseId: string | null,
+    ): Promise<boolean> => {
+      if (!warehouseId) {
+        message.error("Default warehouse is required to save inventory.");
+        return false;
+      }
+
+      let inputs: ApiInventoryItemUpdateInput[];
+
+      try {
+        inputs = prepareChangedVariantInventoryInputs({
+          rows,
+          variants: editorVariants,
+          warehouseId,
+          defaultCurrency,
+        });
+      } catch (err) {
+        message.error(
+          err instanceof Error ? err.message : "Variant inventory is invalid.",
+        );
+        return false;
+      }
+
+      if (inputs.length === 0) {
+        message.info("No inventory changes to save");
+        return true;
+      }
+
+      const result = await updateInventoryItems(inputs);
+
+      if (result.errors.length > 0) {
+        message.error(
+          result.errors[0].message || "Inventory updates could not be saved.",
+        );
+        return false;
+      }
+
+      const refreshResults = await Promise.allSettled([
+        onProductRefresh?.(),
+        refetchInventoryWidget(),
+        loadAllProductVariants(product),
+      ]);
+      const refreshFailed = refreshResults.some(
+        (refreshResult) => refreshResult.status === "rejected",
+      );
+
+      if (refreshFailed) {
+        message.warning("Inventory updated, but refresh failed");
+      } else {
+        message.success("Inventory updated");
+      }
+
+      return true;
+    },
+    [
+      defaultCurrency,
+      loadAllProductVariants,
+      message,
+      onProductRefresh,
+      product,
+      refetchInventoryWidget,
+      updateInventoryItems,
+    ],
+  );
+
+  const handleEditInventory = useCallback(async () => {
+    setIsPreparingEditor(true);
+
+    try {
+      const editorVariants = await loadAllProductVariants(product);
+      const hydratedVariants =
+        await ensureVariantInventoryItems(editorVariants);
+      const resolvedDefaultWarehouse =
+        defaultWarehouse ?? (await refetchDefaultWarehouse());
+
+      if (!resolvedDefaultWarehouse) {
+        message.error("Default warehouse is required to edit inventory.");
+        return;
+      }
+
+      pushEditVariantsModal({
+        productId: product.id,
+        initialTab: "inventory",
+        variants: hydratedVariants,
+        productOptions: product.options,
+        defaultCurrency,
+        variantEditorScope: {
+          type: "inventory",
+          warehouseId: resolvedDefaultWarehouse.id,
+        },
+        availableColumns: [
+          "sku",
+          "onHand",
+          "unavailable",
+          "reserved",
+          "available",
+        ],
+        showColumnSettings: false,
+        onSave: (rows: VariantEditorSaveRow[]) =>
+          handleSaveInventory(
+            rows,
+            hydratedVariants,
+            resolvedDefaultWarehouse.id,
+          ),
+      });
+    } catch (err) {
+      message.error(
+        err instanceof Error
+          ? err.message
+          : "Product inventory could not be prepared",
+      );
+    } finally {
+      setIsPreparingEditor(false);
+    }
+  }, [
+    defaultCurrency,
+    defaultWarehouse,
+    ensureVariantInventoryItems,
+    handleSaveInventory,
+    loadAllProductVariants,
+    message,
+    product,
+    pushEditVariantsModal,
+    refetchDefaultWarehouse,
+  ]);
 
   const handleAction = useCallback(
     (action: string) => {
       if (action === "edit") {
-        pushEditVariantsModal({
-          initialTab: "inventory",
-          variants: getProductVariants(product),
-          productOptions: product.options,
-          availableColumns: [
-            "sku",
-            "barcode",
-            "onHand",
-            "unavailable",
-            "reserved",
-            "available",
-          ],
-          showColumnSettings: false,
-          onSave: (
-            updated: Parameters<
-              NonNullable<IEditVariantsModalPayload["onSave"]>
-            >[0],
-          ) => {
-            void updated;
-            message.info("Variant inventory updates are not API-backed yet");
-            return false;
-          },
-        });
+        void handleEditInventory();
       } else if (
         action === "adjust" ||
         action === "transfer" ||
@@ -179,24 +351,31 @@ export const InventorySection = ({
         onEdit?.();
       }
     },
-    [message, product, pushEditVariantsModal, onEdit]
+    [handleEditInventory, onEdit],
   );
 
   const handleKPIClick = (kpi: string) => {
     setActiveKPI(activeKPI === kpi ? undefined : kpi);
   };
 
-  if (inventoryState === "loading") {
+  if (isLoading && !stats) {
     return <InventoryLoadingSkeleton />;
   }
 
-  if (inventoryState === "no_data") {
+  if (error) {
+    return <InventoryError message={error.message} />;
+  }
+
+  if (!stats) {
     return <InventoryNoData />;
   }
 
   return (
     <Paper className={styles.inventoryCard}>
-      <InventoryHeader onAction={handleAction} />
+      <InventoryHeader
+        onAction={handleAction}
+        isPreparingEditor={isPreparingEditor}
+      />
 
       {/* Section A: Quantity */}
       <Typography.Text
@@ -269,9 +448,12 @@ export const InventorySection = ({
           } threshold`}
           value={`${stats.skuStatus.lowStock.count} SKUs`}
           secondary={
-            stats.skuStatus.lowStock.averageDays !== null
+            stats.skuStatus.lowStock.averageDays != null
               ? `~${stats.skuStatus.lowStock.averageDays}d until stockout`
-              : `${Math.round((stats.skuStatus.lowStock.count / stats.skuStatus.total) * 100)}% of catalog`
+              : formatSkuPercent(
+                  stats.skuStatus.lowStock.count,
+                  stats.skuStatus.total,
+                )
           }
           variant={stats.skuStatus.lowStock.count > 0 ? "warning" : "default"}
           badge={
@@ -290,9 +472,12 @@ export const InventorySection = ({
           tooltip="SKUs with zero available units"
           value={`${stats.skuStatus.outOfStock.count} SKUs`}
           secondary={
-            stats.skuStatus.outOfStock.averageDays !== null
+            stats.skuStatus.outOfStock.averageDays != null
               ? `for ~${stats.skuStatus.outOfStock.averageDays}d`
-              : `${Math.round((stats.skuStatus.outOfStock.count / stats.skuStatus.total) * 100)}% of catalog`
+              : formatSkuPercent(
+                  stats.skuStatus.outOfStock.count,
+                  stats.skuStatus.total,
+                )
           }
           variant={stats.skuStatus.outOfStock.count > 0 ? "danger" : "default"}
           badge={
@@ -312,7 +497,7 @@ export const InventorySection = ({
             tooltip="SKUs with incoming stock expected"
             value={`${stats.skuStatus.backorder.count} SKUs`}
             secondary={
-              stats.skuStatus.backorder.averageDays !== null
+              stats.skuStatus.backorder.averageDays != null
                 ? `ETA avg ${stats.skuStatus.backorder.averageDays}d`
                 : undefined
             }

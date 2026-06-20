@@ -8,6 +8,10 @@ import {
   mapApiWeightToVariantFields,
 } from "../utils/product-measurements";
 
+export interface MapApiVariantsToEditorInputsOptions {
+  inventoryWarehouseId?: string;
+}
+
 export interface VariantEditorSaveRow {
   id: string;
   sku: string | null;
@@ -30,10 +34,25 @@ export interface VariantEditorSaveRow {
 export function mapApiVariantToEditorInput(
   variant: ApiVariant,
   productOptions: ApiProductOption[],
+  options?: MapApiVariantsToEditorInputsOptions,
 ): IVariantEditorInput {
   const optionsById = new Map(
     productOptions.map((option) => [option.id, option]),
   );
+  const warehouseStock = options?.inventoryWarehouseId
+    ? variant.inventoryItem?.stock.find(
+        (stock) => stock.warehouseId === options.inventoryWarehouseId,
+      )
+    : null;
+  const onHand = options?.inventoryWarehouseId
+    ? warehouseStock?.quantityOnHand ?? 0
+    : variant.inventoryItem?.totalAvailable ?? 0;
+  const unavailable = options?.inventoryWarehouseId
+    ? warehouseStock?.unavailableQuantity ?? 0
+    : 0;
+  const reserved = options?.inventoryWarehouseId
+    ? warehouseStock?.reservedQuantity ?? 0
+    : 0;
 
   return {
     ...mapApiWeightToVariantFields(variant.inventoryItem?.weight),
@@ -55,9 +74,9 @@ export function mapApiVariantToEditorInput(
     }),
     sku: variant.inventoryItem?.sku ?? null,
     barcode: null,
-    onHand: variant.inventoryItem?.totalAvailable ?? 0,
-    unavailable: 0,
-    reserved: 0,
+    onHand,
+    unavailable,
+    reserved,
     price: variant.price?.amountMinor ?? null,
     compareAtPrice: variant.price?.compareAtMinor ?? null,
     costPrice: variant.inventoryItem?.unitCost?.amountMinor ?? null,
@@ -67,9 +86,10 @@ export function mapApiVariantToEditorInput(
 export function mapApiVariantsToEditorInputs(
   variants: ApiVariant[],
   productOptions: ApiProductOption[],
+  options?: MapApiVariantsToEditorInputsOptions,
 ): IVariantEditorInput[] {
   return variants.map((variant) =>
-    mapApiVariantToEditorInput(variant, productOptions),
+    mapApiVariantToEditorInput(variant, productOptions, options),
   );
 }
 

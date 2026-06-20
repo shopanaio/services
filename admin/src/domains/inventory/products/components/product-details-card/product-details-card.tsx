@@ -74,7 +74,7 @@ export const ProductDetailsCard = ({
       <InventorySection
         onEdit={() => handleEdit("inventory")}
         product={product}
-        stats={supplementalData.inventory}
+        onProductRefresh={onProductRefresh}
       />
 
       {/* CATEGORIES & TAGS */}

@@ -1,5 +1,6 @@
 import { gql } from "@apollo/client";
 import {
+  INVENTORY_ITEM_FRAGMENT,
   PRODUCT_DETAILS_FRAGMENT,
   PRODUCT_LIST_FRAGMENT,
   VARIANT_FRAGMENT,
@@ -123,4 +124,78 @@ export const PRODUCT_PRICING_WIDGET_QUERY = gql`
       }
     }
   }
+`;
+
+export const PRODUCT_INVENTORY_WIDGET_QUERY = gql`
+  query ProductInventoryWidget($productId: ID!) {
+    widgetQuery {
+      inventory(productId: $productId) {
+        quantities {
+          availableForSale
+          onHand
+          reserved
+          unavailable
+        }
+        availableChange7d
+        skuStatus {
+          total
+          lowStock {
+            count
+            averageDays
+          }
+          outOfStock {
+            count
+            averageDays
+          }
+          backorder {
+            count
+            averageDays
+          }
+        }
+        backorder {
+          quantity
+          etaAvgDays
+        }
+        alertThreshold {
+          method
+          minimumStock
+        }
+      }
+    }
+  }
+`;
+
+export const INVENTORY_DEFAULT_WAREHOUSE_QUERY = gql`
+  query InventoryDefaultWarehouse {
+    inventoryQuery {
+      warehouses(first: 1, where: { isDefault: { _eq: true } }) {
+        edges {
+          node {
+            id
+            code
+            name
+            isDefault
+          }
+        }
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
+        }
+        totalCount
+      }
+    }
+  }
+`;
+
+export const INVENTORY_ITEM_BY_VARIANT_QUERY = gql`
+  query InventoryItemByVariant($variantId: ID!) {
+    inventoryQuery {
+      inventoryItemByVariant(variantId: $variantId) {
+        ...InventoryItemFields
+      }
+    }
+  }
+  ${INVENTORY_ITEM_FRAGMENT}
 `;

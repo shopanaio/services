@@ -98,7 +98,12 @@ export const INVENTORY_ITEM_FRAGMENT = gql`
     updatedAt
     stock {
       id
+      warehouseId
+      variantId
       quantityOnHand
+      reservedQuantity
+      unavailableQuantity
+      availableForSale
       createdAt
       updatedAt
     }
