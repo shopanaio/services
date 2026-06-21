@@ -48,7 +48,7 @@ export const EditAttributesModal = () => {
   const { styles } = useStyles();
   const { message } = App.useApp();
   const agGridTheme = useAgGridTheme();
-  const { payload, pop, setDirty } = useModalStackContext();
+  const { payload, pop, forcePop, setDirty } = useModalStackContext();
   const typedPayload = payload as IEditAttributesModalPayload;
   const productId = typedPayload.productId ?? "";
   const payloadFeatures = typedPayload.features ?? [];
@@ -221,13 +221,13 @@ export const EditAttributesModal = () => {
     await onSaved?.();
     setDirty(false);
     message.success("Product attributes updated");
-    pop();
+    forcePop();
   }, [
     allRows,
+    forcePop,
     loadErrors,
     message,
     onSaved,
-    pop,
     productId,
     setDirty,
     syncProductFeatures,

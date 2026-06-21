@@ -179,12 +179,79 @@ async function saveAttributes(page: Page) {
   await expect(page.getByTestId('edit-attributes-modal')).toBeHidden();
 }
 
+async function expectProductDetailsAttributes(
+  page: Page,
+  input: {
+    include: string[];
+    exclude?: string[];
+    textOrder?: string[];
+  },
+) {
+  const section = page.getByTestId('product-attributes-section');
+  await expect(section).toBeVisible();
+
+  for (const text of input.include) {
+    await expect(section).toContainText(text);
+  }
+
+  for (const text of input.exclude ?? []) {
+    await expect(section).not.toContainText(text);
+  }
+
+  if (input.textOrder && input.textOrder.length > 0) {
+    const sectionText = normalizeTextForOrder(await section.innerText());
+    let previousIndex = -1;
+
+    for (const text of input.textOrder) {
+      const currentIndex = sectionText.indexOf(normalizeTextForOrder(text));
+      expect(currentIndex).toBeGreaterThan(previousIndex);
+      previousIndex = currentIndex;
+    }
+  }
+}
+
+async function expectSavedAttributes(
+  api: ApiFixture,
+  page: Page,
+  productId: string,
+  input: {
+    summary: string;
+    include: string[];
+    exclude?: string[];
+    textOrder?: string[];
+  },
+) {
+  await expect
+    .poll(async () => featureSummary(await readProductFeatures(api, productId)))
+    .toBe(input.summary);
+
+  await expectProductDetailsAttributes(page, {
+    include: input.include,
+    exclude: input.exclude,
+    textOrder: input.textOrder,
+  });
+}
+
 async function dragRowTo(page: Page, modal: Locator, sourceName: string, targetName: string) {
+  const targetBox = await attributeRow(modal, targetName).boundingBox();
+  if (!targetBox) {
+    throw new Error(`Target row "${targetName}" is not visible`);
+  }
+
   await attributeRow(modal, sourceName)
     .locator('.ag-row-drag')
     .first()
-    .dragTo(attributeRow(modal, targetName));
-  await page.waitForTimeout(250);
+    .dragTo(attributeRow(modal, targetName), {
+      targetPosition: {
+        x: targetBox.width / 2,
+        y: 2,
+      },
+    });
+  await page.waitForTimeout(400);
+}
+
+function normalizeTextForOrder(text: string) {
+  return text.replace(/\s+/g, ' ').trim().toLocaleLowerCase();
 }
 
 function featureSummary(features: any[]) {
@@ -200,49 +267,84 @@ function featureSummary(features: any[]) {
     .join('|');
 }
 
+async function seedGroupedFeatureTree(api: ApiFixture, productId: string) {
+  await syncProductFeatures(api, productId, [
+    {
+      name: 'Technical',
+      slug: 'technical',
+      isGroup: true,
+      index: [0],
+    },
+    {
+      name: 'Weight',
+      slug: 'weight',
+      isGroup: false,
+      index: [0, 0],
+      values: [],
+    },
+    {
+      name: 'Dimensions',
+      slug: 'dimensions',
+      isGroup: false,
+      index: [0, 1],
+      values: [],
+    },
+    {
+      name: 'Materials',
+      slug: 'materials',
+      isGroup: true,
+      index: [1],
+    },
+    {
+      name: 'Fabric',
+      slug: 'fabric',
+      isGroup: false,
+      index: [1, 0],
+      values: [],
+    },
+  ]);
+}
+
 test.describe('Admin product details attributes update UI', () => {
   test.setTimeout(90_000);
 
-  test('creates the first standalone attribute from an empty attributes section', async ({
-    api,
-    page,
-  }) => {
-    const { productId, productsUrl, handle } = await setupProductDetails(
-      api,
-      page,
-      'Admin Attributes Product',
-    );
-
-    await expect(page.getByTestId('product-attributes-section')).toBeVisible();
-    await expect(page.getByTestId('product-attributes-empty-state')).toBeVisible();
-
-    const modal = await openAttributesModal(page);
-    await clickAddMenuItem(page, modal, 'edit-attributes-add-attribute-item');
-    await editAttributeName(page, modal, 'New Attribute', 'Material');
-    await editAttributeValues(page, modal, 'Material', 'Cotton, Wool');
-    await saveAttributes(page);
-
-    await expect
-      .poll(async () => featureSummary(await readProductFeatures(api, productId)))
-      .toBe('0:attribute:Material:Cotton,Wool');
-
-    await page.goto(productsUrl);
-    await page.getByTestId(`products-table-title-cell-${handle}`).click();
-    await expect(page.getByTestId('product-attributes-section')).toContainText('Material');
-    await expect(page.getByTestId('product-attributes-section')).toContainText('Cotton, Wool');
-  });
-
-  test('adds a group with child attributes and persists comma-separated values', async ({
+  test('edits product attributes through the full modal lifecycle in one session', async ({
     api,
     page,
   }) => {
     const { productId } = await setupProductDetails(
       api,
       page,
-      'Admin Grouped Attributes Product',
+      'Admin Attributes Lifecycle Product',
     );
 
-    const modal = await openAttributesModal(page);
+    await expect(page.getByTestId('product-attributes-section')).toBeVisible();
+    await expect(page.getByTestId('product-attributes-empty-state')).toBeVisible();
+
+    let modal = await openAttributesModal(page);
+    await clickAddMenuItem(page, modal, 'edit-attributes-add-attribute-item');
+    await editAttributeName(page, modal, 'New Attribute', 'Material');
+    await editAttributeValues(page, modal, 'Material', 'Cotton, Wool');
+    await saveAttributes(page);
+
+    await expectSavedAttributes(api, page, productId, {
+      summary: '0:attribute:Material:Cotton,Wool',
+      include: ['Material', 'Cotton, Wool'],
+      textOrder: ['Material', 'Cotton, Wool'],
+    });
+    const createdFeatures = await readProductFeatures(api, productId);
+    const originalMaterial = createdFeatures.find((feature: any) => feature.name === 'Material');
+    expect(originalMaterial).toBeTruthy();
+    const originalMaterialFirstValue = originalMaterial.values.find(
+      (value: any) => value.name === 'Cotton',
+    );
+    const originalMaterialSecondValue = originalMaterial.values.find(
+      (value: any) => value.name === 'Wool',
+    );
+    expect(originalMaterialFirstValue).toBeTruthy();
+    expect(originalMaterialSecondValue).toBeTruthy();
+
+    modal = await openAttributesModal(page);
     await clickAddMenuItem(page, modal, 'edit-attributes-add-group-item');
     await editAttributeName(page, modal, 'New Group', 'Physical');
     await addChildAttribute(page, modal, 'Physical');
@@ -250,126 +352,135 @@ test.describe('Admin product details attributes update UI', () => {
     await editAttributeValues(page, modal, 'Weight', 'Light, Medium, Heavy');
     await saveAttributes(page);
 
-    await expect
-      .poll(async () => featureSummary(await readProductFeatures(api, productId)))
-      .toBe('0:group:Physical:|0.0:attribute:Weight:Light,Medium,Heavy');
+    await expectSavedAttributes(api, page, productId, {
+      summary: '0:attribute:Material:Cotton,Wool|1:group:Physical:|1.0:attribute:Weight:Light,Medium,Heavy',
+      include: ['Material', 'Cotton, Wool', 'Physical', 'Weight', 'Light, Medium, Heavy'],
+      textOrder: ['Material', 'Cotton, Wool', 'Physical', 'Weight', 'Light, Medium, Heavy'],
+    });
 
-    await expect(page.getByTestId('product-attributes-section')).toContainText('Physical');
-    await expect(page.getByTestId('product-attributes-section')).toContainText('Weight');
-    await expect(page.getByTestId('product-attributes-section')).toContainText(
-      'Light, Medium, Heavy',
+    modal = await openAttributesModal(page);
+    await clickAddMenuItem(page, modal, 'edit-attributes-add-attribute-item');
+    await editAttributeName(page, modal, 'New Attribute', 'Country');
+    await editAttributeValues(page, modal, 'Country', 'Ukraine, Poland');
+    await addChildAttribute(page, modal, 'Physical');
+    await editAttributeName(page, modal, 'New Attribute', 'Dimensions');
+    await editAttributeValues(page, modal, 'Dimensions', 'Small, Large');
+    await dragRowTo(page, modal, 'Country', 'Material');
+    await dragRowTo(page, modal, 'Dimensions', 'Weight');
+    await saveAttributes(page);
+
+    await expectSavedAttributes(api, page, productId, {
+      summary: '0:attribute:Country:Ukraine,Poland|1:attribute:Material:Cotton,Wool|2:group:Physical:|2.0:attribute:Dimensions:Small,Large|2.1:attribute:Weight:Light,Medium,Heavy',
+      include: [
+        'Country',
+        'Ukraine, Poland',
+        'Material',
+        'Cotton, Wool',
+        'Physical',
+        'Dimensions',
+        'Small, Large',
+        'Weight',
+        'Light, Medium, Heavy',
+      ],
+      textOrder: [
+        'Country',
+        'Ukraine, Poland',
+        'Material',
+        'Cotton, Wool',
+        'Physical',
+        'Dimensions',
+        'Small, Large',
+        'Weight',
+        'Light, Medium, Heavy',
+      ],
+    });
+
+    modal = await openAttributesModal(page);
+    await editAttributeName(page, modal, 'Material', 'Fabric');
+    await editAttributeValues(page, modal, 'Fabric', 'Linen, Wool, Silk');
+    await saveAttributes(page);
+
+    await expectSavedAttributes(api, page, productId, {
+      summary: '0:attribute:Country:Ukraine,Poland|1:attribute:Fabric:Linen,Wool,Silk|2:group:Physical:|2.0:attribute:Dimensions:Small,Large|2.1:attribute:Weight:Light,Medium,Heavy',
+      include: ['Country', 'Ukraine, Poland', 'Fabric', 'Linen, Wool, Silk', 'Physical', 'Dimensions', 'Weight'],
+      exclude: ['Material', 'Cotton, Wool'],
+      textOrder: [
+        'Country',
+        'Ukraine, Poland',
+        'Fabric',
+        'Linen, Wool, Silk',
+        'Physical',
+        'Dimensions',
+        'Small, Large',
+        'Weight',
+        'Light, Medium, Heavy',
+      ],
+    });
+    const renamedFeatures = await readProductFeatures(api, productId);
+    const renamedFabric = renamedFeatures.find((feature: any) => feature.name === 'Fabric');
+    expect(renamedFabric.id).toBe(originalMaterial.id);
+    const renamedValues = [...renamedFabric.values].sort(
+      (left, right) => left.index - right.index,
     );
+    expect(renamedValues.map((value: any) => value.name)).toEqual(['Linen', 'Wool', 'Silk']);
+    expect(renamedValues[0].id).toBe(originalMaterialFirstValue.id);
+    expect(renamedValues[1].id).toBe(originalMaterialSecondValue.id);
+
+    modal = await openAttributesModal(page);
+    await deleteAttributeRow(page, modal, 'Country');
+    await deleteAttributeRow(page, modal, 'Physical');
+    await saveAttributes(page);
+
+    await expectSavedAttributes(api, page, productId, {
+      summary: '0:attribute:Fabric:Linen,Wool,Silk',
+      include: ['Fabric', 'Linen, Wool, Silk'],
+      exclude: ['Country', 'Ukraine, Poland', 'Physical', 'Dimensions', 'Weight'],
+      textOrder: ['Fabric', 'Linen, Wool, Silk'],
+    });
   });
 
-  test('reorders root attributes and child attributes from the modal', async ({
+  test('handles drag and drop edge cases in one product details session', async ({
     api,
     page,
   }) => {
     const { handle, productId, productsUrl } = await setupProductDetails(
       api,
       page,
-      'Admin Reorder Attributes Product',
+      'Admin Attributes Dnd Edge Cases Product',
     );
 
-    await syncProductFeatures(api, productId, [
-      {
-        name: 'Feature A',
-        slug: 'feature-a',
-        isGroup: false,
-        index: [0],
-        values: [],
-      },
-      {
-        name: 'Feature B',
-        slug: 'feature-b',
-        isGroup: false,
-        index: [1],
-        values: [],
-      },
-      {
-        name: 'Specs',
-        slug: 'specs',
-        isGroup: true,
-        index: [2],
-      },
-      {
-        name: 'First',
-        slug: 'first',
-        isGroup: false,
-        index: [2, 0],
-        values: [],
-      },
-      {
-        name: 'Second',
-        slug: 'second',
-        isGroup: false,
-        index: [2, 1],
-        values: [],
-      },
-    ]);
+    await seedGroupedFeatureTree(api, productId);
 
     await reopenProductDetails(page, productsUrl, handle);
-    const modal = await openAttributesModal(page);
-    await dragRowTo(page, modal, 'Feature B', 'Feature A');
-    await dragRowTo(page, modal, 'Second', 'First');
+    let modal = await openAttributesModal(page);
+    await dragRowTo(page, modal, 'Materials', 'Technical');
     await saveAttributes(page);
 
-    await expect
-      .poll(async () => featureSummary(await readProductFeatures(api, productId)))
-      .toBe(
-        '0:attribute:Feature B:|1:attribute:Feature A:|2:group:Specs:|2.0:attribute:Second:|2.1:attribute:First:',
-      );
-  });
+    await expectSavedAttributes(api, page, productId, {
+      summary: '0:group:Materials:|0.0:attribute:Fabric:|1:group:Technical:|1.0:attribute:Weight:|1.1:attribute:Dimensions:',
+      include: ['Materials', 'Fabric', 'Technical', 'Weight', 'Dimensions'],
+      textOrder: ['Materials', 'Fabric', 'Technical', 'Weight', 'Dimensions'],
+    });
 
-  test('deletes an attribute and a group by omitting them from the sync snapshot', async ({
-    api,
-    page,
-  }) => {
-    const { handle, productId, productsUrl } = await setupProductDetails(
-      api,
-      page,
-      'Admin Delete Attributes Product',
-    );
-
-    await syncProductFeatures(api, productId, [
-      {
-        name: 'Keep',
-        slug: 'keep',
-        isGroup: false,
-        index: [0],
-        values: [],
-      },
-      {
-        name: 'Remove',
-        slug: 'remove',
-        isGroup: false,
-        index: [1],
-        values: [],
-      },
-      {
-        name: 'Group To Remove',
-        slug: 'group-to-remove',
-        isGroup: true,
-        index: [2],
-      },
-      {
-        name: 'Grouped Attribute',
-        slug: 'grouped-attribute',
-        isGroup: false,
-        index: [2, 0],
-        values: [],
-      },
-    ]);
-
-    await reopenProductDetails(page, productsUrl, handle);
-    const modal = await openAttributesModal(page);
-    await deleteAttributeRow(page, modal, 'Remove');
-    await deleteAttributeRow(page, modal, 'Group To Remove');
+    modal = await openAttributesModal(page);
+    await dragRowTo(page, modal, 'Weight', 'Fabric');
     await saveAttributes(page);
 
-    await expect
-      .poll(async () => featureSummary(await readProductFeatures(api, productId)))
-      .toBe('0:attribute:Keep:');
+    await expectSavedAttributes(api, page, productId, {
+      summary: '0:group:Materials:|0.0:attribute:Weight:|0.1:attribute:Fabric:|1:group:Technical:|1.0:attribute:Dimensions:',
+      include: ['Materials', 'Weight', 'Fabric', 'Technical', 'Dimensions'],
+      textOrder: ['Materials', 'Weight', 'Fabric', 'Technical', 'Dimensions'],
+    });
+
+    modal = await openAttributesModal(page);
+    await dragRowTo(page, modal, 'Weight', 'Materials');
+    await saveAttributes(page);
+
+    await expectSavedAttributes(api, page, productId, {
+      summary: '0:attribute:Weight:|1:group:Materials:|1.0:attribute:Fabric:|2:group:Technical:|2.0:attribute:Dimensions:',
+      include: ['Weight', 'Materials', 'Fabric', 'Technical', 'Dimensions'],
+      textOrder: ['Weight', 'Materials', 'Fabric', 'Technical', 'Dimensions'],
+    });
   });
 
   test('shows client validation errors without closing the modal', async ({ api, page }) => {
@@ -386,47 +497,4 @@ test.describe('Admin product details attributes update UI', () => {
     );
   });
 
-  test('preserves existing feature and value IDs while editing names and values', async ({
-    api,
-    page,
-  }) => {
-    const { handle, productId, productsUrl } = await setupProductDetails(
-      api,
-      page,
-      'Admin Preserve Attribute IDs Product',
-    );
-
-    const createdFeatures = await syncProductFeatures(api, productId, [
-      {
-        name: 'Material',
-        slug: 'material',
-        isGroup: false,
-        index: [0],
-        values: [
-          { name: 'Cotton', slug: 'cotton', index: 0 },
-          { name: 'Wool', slug: 'wool', index: 1 },
-        ],
-      },
-    ]);
-    const originalFeature = createdFeatures[0];
-    const originalFirstValue = originalFeature.values[0];
-    const originalSecondValue = originalFeature.values[1];
-
-    await reopenProductDetails(page, productsUrl, handle);
-    const modal = await openAttributesModal(page);
-    await editAttributeName(page, modal, 'Material', 'Fabric');
-    await editAttributeValues(page, modal, 'Fabric', 'Linen, Wool, Silk');
-    await saveAttributes(page);
-
-    const updatedFeatures = await readProductFeatures(api, productId);
-    expect(updatedFeatures).toHaveLength(1);
-    const updatedValues = [...updatedFeatures[0].values].sort(
-      (left, right) => left.index - right.index,
-    );
-    expect(updatedFeatures[0].id).toBe(originalFeature.id);
-    expect(updatedFeatures[0].name).toBe('Fabric');
-    expect(updatedValues.map((value: any) => value.name)).toEqual(['Linen', 'Wool', 'Silk']);
-    expect(updatedValues[0].id).toBe(originalFirstValue.id);
-    expect(updatedValues[1].id).toBe(originalSecondValue.id);
-  });
 });
