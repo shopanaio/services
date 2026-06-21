@@ -15,15 +15,20 @@ import {
   type IEditSeoModalPayload,
   type IEditVariantsModalPayload,
 } from "../../../modals";
-import type { ApiProduct, ApiProductUpdateInput } from "@/graphql/types";
-import { useUpdateProduct } from "../../../hooks";
+import type {
+  ApiProduct,
+  ApiProductUpdateInput,
+  CurrencyCode,
+} from "@/graphql/types";
 import {
-  getProductMediaFiles,
-  getProductVariants,
-} from "../../../utils/api-product-display";
+  useProductVariantsLoader,
+  useUpdateProduct,
+} from "../../../hooks";
+import { getProductMediaFiles } from "../../../utils/api-product-display";
 
 interface UseProductModalsOptions {
   onProductRefresh?: () => Promise<unknown>;
+  defaultCurrency?: CurrencyCode | null;
 }
 
 export const useProductModals = (
@@ -40,6 +45,10 @@ export const useProductModals = (
   const { push: openEditVariantsModal } = useEditVariantsModal();
   const { push: openEditCategoriesModal } = useEditCategoriesModal();
   const { push: openEditTagsModal } = useEditTagsModal();
+  const {
+    loadAllProductVariants,
+    loading: isEditVariantsLoading,
+  } = useProductVariantsLoader();
 
   const handleOpenProductModal = useCallback(() => {
     openProductModal({ entityId: product.id });
@@ -178,22 +187,44 @@ export const useProductModals = (
     updateProduct,
   ]);
 
-  const handleEditVariants = useCallback(() => {
-    openEditVariantsModal({
-      productId: product.id,
-      variants: getProductVariants(product),
-      productOptions: product.options,
-      onSave: (
-        updated: Parameters<
-          NonNullable<IEditVariantsModalPayload["onSave"]>
-        >[0],
-      ) => {
-        void updated;
-        message.info("Variant bulk edits are not API-backed yet");
-        return false;
-      },
-    });
-  }, [message, product, openEditVariantsModal]);
+  const handleEditVariants = useCallback(async () => {
+    if (isEditVariantsLoading) {
+      return;
+    }
+
+    try {
+      const variants = await loadAllProductVariants(product);
+
+      openEditVariantsModal({
+        productId: product.id,
+        variants,
+        productOptions: product.options,
+        defaultCurrency: options.defaultCurrency ?? null,
+        onSave: (
+          updated: Parameters<
+            NonNullable<IEditVariantsModalPayload["onSave"]>
+          >[0],
+        ) => {
+          void updated;
+          message.info("Variant save is read-only in this integration");
+          return false;
+        },
+      });
+    } catch (err) {
+      message.error(
+        err instanceof Error
+          ? err.message
+          : "Product variants could not be loaded",
+      );
+    }
+  }, [
+    isEditVariantsLoading,
+    loadAllProductVariants,
+    message,
+    options.defaultCurrency,
+    product,
+    openEditVariantsModal,
+  ]);
 
   return {
     openProductModal: handleOpenProductModal,
@@ -204,5 +235,6 @@ export const useProductModals = (
     editAttributes: handleEditAttributes,
     editSeo: handleEditSeo,
     editVariants: handleEditVariants,
+    isEditVariantsLoading,
   };
 };

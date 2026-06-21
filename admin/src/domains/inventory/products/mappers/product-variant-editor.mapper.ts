@@ -39,28 +39,42 @@ export function mapApiVariantToEditorInput(
   const optionsById = new Map(
     productOptions.map((option) => [option.id, option]),
   );
+  const stockRows = variant.inventoryItem?.stock ?? [];
   const warehouseStock = options?.inventoryWarehouseId
     ? variant.inventoryItem?.stock.find(
         (stock) => stock.warehouseId === options.inventoryWarehouseId,
       )
     : null;
+  const aggregateStock = stockRows.reduce(
+    (total, stock) => ({
+      onHand: total.onHand + stock.quantityOnHand,
+      unavailable: total.unavailable + stock.unavailableQuantity,
+      reserved: total.reserved + stock.reservedQuantity,
+    }),
+    { onHand: 0, unavailable: 0, reserved: 0 },
+  );
   const onHand = options?.inventoryWarehouseId
     ? warehouseStock?.quantityOnHand ?? 0
-    : variant.inventoryItem?.totalAvailable ?? 0;
+    : stockRows.length > 0
+      ? aggregateStock.onHand
+      : variant.inventoryItem?.totalAvailable ?? 0;
   const unavailable = options?.inventoryWarehouseId
     ? warehouseStock?.unavailableQuantity ?? 0
-    : 0;
+    : aggregateStock.unavailable;
   const reserved = options?.inventoryWarehouseId
     ? warehouseStock?.reservedQuantity ?? 0
-    : 0;
+    : aggregateStock.reserved;
+  const sortedMedia = [...variant.media].sort(
+    (left, right) => left.sortIndex - right.sortIndex,
+  );
 
   return {
     ...mapApiWeightToVariantFields(variant.inventoryItem?.weight),
     ...mapApiDimensionsToVariantFields(variant.inventoryItem?.dimensions),
     id: variant.id,
     title: variant.title ?? variant.handle,
-    imageUrl: variant.media[0]?.file.url ?? null,
-    media: variant.media.map((media) => media.file.url),
+    imageUrl: sortedMedia[0]?.file.url ?? null,
+    media: sortedMedia.map((media) => media.file.url),
     options: variant.selectedOptions.map((selectedOption) => {
       const option = optionsById.get(selectedOption.optionId);
       const value = option?.values.find(

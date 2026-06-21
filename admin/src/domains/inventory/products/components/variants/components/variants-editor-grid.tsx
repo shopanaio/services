@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useMemo, useState, useEffect } from "react";
+import React, { useCallback, useMemo, useEffect } from "react";
 import { App } from "antd";
 import { EditorGrid } from "@/shared/components/editor-grid";
 import { validateFieldChange } from "@/shared/utils/inventory";
@@ -18,7 +18,7 @@ import type {
   IOptionGroup,
   VariantColumnField,
 } from "../config/types";
-import type { CurrencyCode } from "@/graphql/types";
+import type { ApiProductOption, CurrencyCode } from "@/graphql/types";
 
 // ============================================================================
 // Types
@@ -40,6 +40,7 @@ interface VariantsEditorGridProps {
    */
   ignoreUserSettings?: boolean;
   defaultCurrency?: CurrencyCode | null;
+  productOptions?: ApiProductOption[];
   dataTestId?: string;
 }
 
@@ -47,7 +48,23 @@ interface VariantsEditorGridProps {
 // Helpers
 // ============================================================================
 
-function extractOptionGroups(variants: IVariantEditorInput[]): IOptionGroup[] {
+function extractOptionGroups(
+  variants: IVariantEditorInput[],
+  productOptions: ApiProductOption[] = [],
+): IOptionGroup[] {
+  const apiOptionGroups = [...productOptions]
+    .sort((left, right) => left.sortIndex - right.sortIndex)
+    .map((option) => ({
+      name: option.name,
+      values: [...option.values]
+        .sort((left, right) => left.sortIndex - right.sortIndex)
+        .map((value) => value.name),
+    }));
+
+  if (apiOptionGroups.length > 0) {
+    return apiOptionGroups;
+  }
+
   const groupMap = new Map<string, Set<string>>();
 
   for (const variant of variants) {
@@ -111,12 +128,13 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
   availableColumns,
   ignoreUserSettings = false,
   defaultCurrency,
+  productOptions = [],
   dataTestId = "variants-editor-grid",
 }) => {
   // Extract option groups for column generation
   const optionGroups = useMemo(
-    () => extractOptionGroups(variants),
-    [variants]
+    () => extractOptionGroups(variants, productOptions),
+    [variants, productOptions]
   );
 
   const { message } = App.useApp();
@@ -141,8 +159,7 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
     ignoreUserSettings,
   });
 
-  // Local row state (original data)
-  const [rows] = useState<IVariantEditorRow[]>(initialRows);
+  const rows = initialRows;
 
   // Compute display rows (with edits applied)
   const displayRows = useMemo(() => {
@@ -156,7 +173,7 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
       }
 
       // Recalculate available if any inventory field was edited
-      if (rowEdits.onHand || rowEdits.unavailable) {
+      if (rowEdits.onHand || rowEdits.unavailable || rowEdits.reserved) {
         updatedRow.available =
           updatedRow.onHand - updatedRow.unavailable - updatedRow.reserved;
       }

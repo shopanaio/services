@@ -15,20 +15,27 @@ export const ProductModal = () => {
   const [variantCursorHistory, setVariantCursorHistory] = useState<
     Array<string | null>
   >([null]);
+  const [paginationEntityId, setPaginationEntityId] = useState<string | null>(
+    null,
+  );
   const entityId =
     payload.entityId === undefined || payload.entityId === null
       ? null
       : String(payload.entityId);
 
-  const variantsAfter = variantCursorHistory[variantsPageIndex] ?? null;
+  const variantsAfter =
+    paginationEntityId === entityId
+      ? variantCursorHistory[variantsPageIndex] ?? null
+      : null;
   const { product, loading, error, refetch } = useProduct({
     id: entityId,
     variantsFirst: VARIANTS_PAGE_SIZE,
     variantsAfter,
   });
+  const isVariantsPageLoading = loading && !!product;
 
   const handleVariantsPageChange = (direction: "next" | "prev") => {
-    if (!product) {
+    if (!product || isVariantsPageLoading) {
       return;
     }
 
@@ -64,6 +71,7 @@ export const ProductModal = () => {
   }, [product]);
 
   useEffect(() => {
+    setPaginationEntityId(entityId);
     setVariantsPageIndex(0);
     setVariantCursorHistory([null]);
   }, [entityId]);
@@ -79,7 +87,7 @@ export const ProductModal = () => {
   }, [pop]);
 
   const renderContent = () => {
-    if (loading) {
+    if (loading && !product) {
       return (
         <Flex vertical gap={16} style={{ padding: 16 }}>
           <Skeleton active paragraph={{ rows: 4 }} />
@@ -87,7 +95,7 @@ export const ProductModal = () => {
       );
     }
 
-    if (error) {
+    if (error && !product) {
       return (
         <Flex vertical gap={16} style={{ padding: 16 }}>
           <Alert type="error" message={error.message} />
@@ -109,6 +117,7 @@ export const ProductModal = () => {
         supplementalData={productDetailsMockData}
         variantsTableData={variantsTableData}
         onVariantsPageChange={handleVariantsPageChange}
+        isVariantsPageLoading={isVariantsPageLoading}
         onProductRefresh={refetch}
       />
     );

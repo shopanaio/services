@@ -10,11 +10,13 @@ import {
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "../../edit-action";
 import { useVariantsTableStyles } from "../product-details-card.styles";
-import type { ApiVariant, ApiPageInfo, ApiProductOption } from "@/graphql/types";
-import {
-  formatPrice,
-  useVariantPrice,
-} from "../../../utils/price-formatting";
+import type {
+  ApiVariant,
+  ApiPageInfo,
+  ApiProductOption,
+  CurrencyCode,
+} from "@/graphql/types";
+import { formatPrice } from "../../../utils/price-formatting";
 import {
   getSelectedOptionLabels,
   getVariantStockQuantity,
@@ -73,21 +75,26 @@ const getStockStatus = (variant: ApiVariant): string => {
 interface IVariantRowProps {
   variant: ApiVariant;
   productOptions: ApiProductOption[];
+  defaultCurrency: CurrencyCode | null;
   onAction: (action: string, variantId: string) => void;
 }
 
 const VariantRow = ({
   variant,
   productOptions,
+  defaultCurrency,
   onAction,
 }: IVariantRowProps) => {
   const { styles } = useVariantsTableStyles();
-  const formattedPrice = useVariantPrice(variant.price);
 
   const price = variant.price?.amountMinor ?? null;
   const compareAtPrice = variant.price?.compareAtMinor ?? null;
+  const formattedPrice =
+    price !== null && defaultCurrency
+      ? formatPrice(price, defaultCurrency)
+      : "\u2014";
   const discountPercent =
-    price !== null && compareAtPrice && compareAtPrice > price
+    price !== null && compareAtPrice !== null && compareAtPrice > price
       ? Math.round((1 - Number(price) / Number(compareAtPrice)) * 100)
       : 0;
 
@@ -143,16 +150,17 @@ const VariantRow = ({
           <Typography.Text>
             {formattedPrice}
           </Typography.Text>
-          {compareAtPrice &&
+          {compareAtPrice !== null &&
             compareAtPrice > 0 &&
             price !== null &&
+            defaultCurrency &&
             compareAtPrice !== price && (
               <Flex align="center" gap={4}>
                 <Typography.Text
                   type="secondary"
                   className={styles.priceStrikethrough}
                 >
-                  {formatPrice(compareAtPrice, variant.price?.currency)}
+                  {formatPrice(compareAtPrice, defaultCurrency)}
                 </Typography.Text>
                 {discountPercent > 0 && (
                   <Typography.Text className={styles.discountPercent}>
@@ -247,10 +255,13 @@ interface IVariantsTableSectionProps {
   productOptions: ApiProductOption[];
   pageInfo: ApiPageInfo;
   totalCount: number;
-  onEdit: () => void;
+  defaultCurrency: CurrencyCode | null;
+  onEdit: () => void | Promise<void>;
   onSort?: (sortKey: string) => void;
   onVariantAction?: (action: string, variantId: string) => void;
   onPageChange?: (direction: "next" | "prev") => void;
+  isPageLoading?: boolean;
+  isEditLoading?: boolean;
 }
 
 export const VariantsTableSection = ({
@@ -258,16 +269,15 @@ export const VariantsTableSection = ({
   productOptions,
   pageInfo,
   totalCount,
+  defaultCurrency,
   onEdit,
   onSort,
   onVariantAction,
   onPageChange,
+  isPageLoading = false,
+  isEditLoading = false,
 }: IVariantsTableSectionProps) => {
   const { styles } = useVariantsTableStyles();
-
-  if (!variants || variants.length === 0) {
-    return null;
-  }
 
   const handleSort = (key: string) => {
     onSort?.(key);
@@ -297,7 +307,12 @@ export const VariantsTableSection = ({
                 icon={<SortAscendingOutlined />}
               />
             </Dropdown>
-            <EditAction label="Edit variants" onEdit={onEdit} />
+            <EditAction
+              label="Edit variants"
+              onEdit={onEdit}
+              loading={isEditLoading}
+              disabled={isEditLoading}
+            />
           </Flex>
         }
       />
@@ -313,14 +328,27 @@ export const VariantsTableSection = ({
             </tr>
           </thead>
           <tbody>
-            {variants.map((variant) => (
-              <VariantRow
-                key={variant.id}
-                variant={variant}
-                productOptions={productOptions}
-                onAction={handleVariantAction}
-              />
-            ))}
+            {variants.length > 0 ? (
+              variants.map((variant) => (
+                <VariantRow
+                  key={variant.id}
+                  variant={variant}
+                  productOptions={productOptions}
+                  defaultCurrency={defaultCurrency}
+                  onAction={handleVariantAction}
+                />
+              ))
+            ) : (
+              <tr>
+                <td colSpan={5}>
+                  <Flex justify="center" style={{ padding: "24px 12px" }}>
+                    <Typography.Text type="secondary">
+                      No variants on this page
+                    </Typography.Text>
+                  </Flex>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -335,20 +363,23 @@ export const VariantsTableSection = ({
           className={styles.variantsPaginationCount}
         >
           {totalCount} variant{totalCount !== 1 ? "s" : ""}
+          {isPageLoading ? " - Loading" : ""}
         </Typography.Text>
         <Flex gap={4}>
           <Button
             size="small"
             type="text"
             icon={<LeftOutlined />}
-            disabled={!pageInfo.hasPreviousPage}
+            disabled={isPageLoading || !pageInfo.hasPreviousPage}
+            loading={isPageLoading}
             onClick={() => onPageChange?.("prev")}
           />
           <Button
             size="small"
             type="text"
             icon={<RightOutlined />}
-            disabled={!pageInfo.hasNextPage}
+            disabled={isPageLoading || !pageInfo.hasNextPage}
+            loading={isPageLoading}
             onClick={() => onPageChange?.("next")}
           />
         </Flex>

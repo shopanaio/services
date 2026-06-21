@@ -112,8 +112,8 @@ export const EditVariantsModal = () => {
 
   // Extract option groups for column settings
   const optionGroups = useMemo<IOptionGroup[]>(
-    () => extractOptionGroups(variantInputs),
-    [variantInputs]
+    () => extractOptionGroups(variantInputs, typedPayload.productOptions),
+    [typedPayload.productOptions, variantInputs]
   );
 
   // Track current rows for save
@@ -217,6 +217,7 @@ export const EditVariantsModal = () => {
             availableColumns={availableColumns}
             ignoreUserSettings={!!availableColumns}
             defaultCurrency={defaultCurrency}
+            productOptions={typedPayload.productOptions}
           />
         </div>
       </div>

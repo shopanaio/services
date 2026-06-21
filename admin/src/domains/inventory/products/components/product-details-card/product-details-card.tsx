@@ -7,6 +7,7 @@ import { PricingBlock } from "../pricing/pricing-block";
 import { SeoBlock } from "../seo";
 import { AttributesSection } from "../attributes-section";
 import { EditAction } from "../edit-action";
+import { useDefaultCurrency } from "@/domains/workspace";
 import {
   MediaSection,
   CategoriesSection,
@@ -36,6 +37,7 @@ interface IProductDetailsCardProps {
   variantsTableData?: IVariantsTableData;
   onEditSection?: (section: string) => void;
   onVariantsPageChange?: (direction: "next" | "prev") => void;
+  isVariantsPageLoading?: boolean;
   onProductRefresh?: () => Promise<unknown>;
 }
 
@@ -45,12 +47,18 @@ export const ProductDetailsCard = ({
   variantsTableData,
   onEditSection,
   onVariantsPageChange,
+  isVariantsPageLoading = false,
   onProductRefresh,
 }: IProductDetailsCardProps) => {
-  const modals = useProductModals(product, { onProductRefresh });
+  const defaultCurrency = useDefaultCurrency();
+  const modals = useProductModals(product, {
+    onProductRefresh,
+    defaultCurrency,
+  });
   const isVariableProduct = product.variantsCount > 1;
-  const hasProductOptions = product.options.length > 0;
-  const hasVariantRows = (variantsTableData?.variants.length ?? 0) > 0;
+  const shouldRenderVariantsSection =
+    !!variantsTableData &&
+    (variantsTableData.totalCount > 0 || product.variantsCount > 0);
   const defaultVariant = getDefaultVariant(product);
 
   const handleEdit = (section: string) => onEditSection?.(section);
@@ -119,13 +127,16 @@ export const ProductDetailsCard = ({
       />
 
       {/* VARIANTS TABLE */}
-      {hasProductOptions && variantsTableData && hasVariantRows && (
+      {shouldRenderVariantsSection && variantsTableData && (
         <VariantsTableSection
           variants={variantsTableData.variants}
           productOptions={product.options}
           pageInfo={variantsTableData.pageInfo}
           totalCount={variantsTableData.totalCount}
+          defaultCurrency={defaultCurrency}
           onEdit={modals.editVariants}
+          isEditLoading={modals.isEditVariantsLoading}
+          isPageLoading={isVariantsPageLoading}
           onPageChange={onVariantsPageChange}
         />
       )}

@@ -43,10 +43,13 @@ export function useProduct(options: UseProductOptions): UseProductReturn {
     fetchPolicy: "cache-and-network",
   });
 
-  const effectiveData = data ?? previousData;
+  const product = data?.catalogQuery.product ?? null;
+  const previousProduct = previousData?.catalogQuery.product ?? null;
+  const effectiveProduct =
+    data === undefined && previousProduct?.id === id ? previousProduct : product;
 
   return {
-    product: effectiveData?.catalogQuery.product ?? null,
+    product: effectiveProduct,
     loading,
     error: error ?? null,
     refetch: () => refetch(),
