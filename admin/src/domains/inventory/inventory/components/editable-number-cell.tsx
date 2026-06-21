@@ -7,6 +7,7 @@ import {
 } from "../hooks/use-inventory-edit-store";
 import { EditableInventoryCell } from "@/shared/components/inventory-cells";
 import type { InventoryVariantRow } from "../mappers";
+import { getInventoryVariantCellTestId } from "./test-ids";
 
 interface EditableNumberCellProps
   extends CustomCellRendererProps<InventoryVariantRow> {
@@ -25,10 +26,12 @@ export function EditableNumberCell(props: EditableNumberCellProps) {
 
   const fieldEdit = getFieldEdit(data.id, field);
   const currentValue = value as number;
+  const testField = field === "onHand" ? "on-hand" : "unavailable";
 
   return (
     <EditableInventoryCell
       value={currentValue}
+      testId={getInventoryVariantCellTestId(data, testField)}
       edit={fieldEdit ? {
         originalValue: fieldEdit.originalValue as number,
         currentValue: fieldEdit.currentValue as number,

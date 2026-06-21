@@ -553,7 +553,7 @@ export default function InventoryPage() {
           />
         ) : null}
 
-        <div className={styles.gridWrapper}>
+        <div className={styles.gridWrapper} data-testid="inventory-table">
           <AgGridReact<InventoryVariantRow>
             ref={gridRef}
             theme={agGridTheme}

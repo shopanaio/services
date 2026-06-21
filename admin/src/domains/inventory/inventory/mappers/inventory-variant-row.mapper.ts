@@ -8,6 +8,7 @@ export interface InventoryVariantRow {
   productHandle: string | null;
   variantTitle: string | null;
   variantHandle: string;
+  isDefault: boolean;
   imageUrl: string | null;
   sku: string | null;
   inventoryItemId: string | null;
@@ -70,6 +71,7 @@ export function mapInventoryVariantEdgeToRow(
     productHandle: variant.product.handle ?? null,
     variantTitle: variant.title ?? null,
     variantHandle: variant.handle,
+    isDefault: variant.isDefault,
     imageUrl: getPrimaryImageUrl(edge),
     sku: inventoryItem?.sku ?? null,
     inventoryItemId: inventoryItem?.id ?? null,

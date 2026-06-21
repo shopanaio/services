@@ -4,6 +4,7 @@ import type { CustomCellRendererProps } from "ag-grid-react";
 import { useInventoryEditStore } from "../hooks/use-inventory-edit-store";
 import { CalculatedAvailableCell as SharedCalculatedAvailableCell } from "@/shared/components/inventory-cells";
 import type { InventoryVariantRow } from "../mappers";
+import { getInventoryVariantCellTestId } from "./test-ids";
 
 /**
  * AG Grid cell renderer for calculated available inventory
@@ -26,6 +27,7 @@ export function CalculatedAvailableCell(
       onHand={data.onHand}
       unavailable={data.unavailable}
       reserved={data.reserved}
+      testId={getInventoryVariantCellTestId(data, "available")}
       onHandEdit={onHandEdit ? {
         originalValue: onHandEdit.originalValue as number,
         currentValue: onHandEdit.currentValue as number,

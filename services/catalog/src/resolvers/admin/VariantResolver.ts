@@ -11,6 +11,7 @@ import type {
 import type { Variant } from "../../repositories/models/index.js";
 import type { PricingCursorInput } from "../../repositories/pricing/PricingRepository.js";
 import { CatalogType } from "./CatalogType.js";
+import { ProductResolver } from "./ProductResolver.js";
 import { VariantPriceResolver } from "./VariantPriceResolver.js";
 
 /**
@@ -34,6 +35,10 @@ export class VariantResolver extends CatalogType<string, Variant> {
 
   async productId() {
     return this.$get("productId");
+  }
+
+  async product() {
+    return new ProductResolver(await this.$get("productId"), this.$ctx);
   }
 
   async isDefault() {

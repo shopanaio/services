@@ -5,6 +5,7 @@ import type { CustomCellRendererProps } from "ag-grid-react";
 import { EditableNumberCell } from "./editable-number-cell";
 import { ReservedCell } from "@/shared/components/inventory-cells";
 import type { InventoryVariantRow } from "../mappers";
+import { getInventoryVariantCellTestId } from "./test-ids";
 
 const useStyles = createStyles(({ token }) => ({
   productImage: {
@@ -27,7 +28,11 @@ export const ProductCellRenderer = (
   if (!data) return null;
 
   return (
-    <Flex align="center" gap="small">
+    <Flex
+      align="center"
+      gap="small"
+      data-testid={getInventoryVariantCellTestId(data, "product")}
+    >
       {data.imageUrl ? (
         <Image
           src={data.imageUrl}
@@ -46,11 +51,19 @@ export const ProductCellRenderer = (
         />
       )}
       <Flex vertical gap={0}>
-        <Typography.Text strong className={styles.productName}>
+        <Typography.Text
+          strong
+          className={styles.productName}
+          data-testid={getInventoryVariantCellTestId(data, "product-title")}
+        >
           {data.productTitle}
         </Typography.Text>
         {(data.variantTitle || data.variantHandle) && (
-          <Typography.Text type="secondary" className={styles.variantName}>
+          <Typography.Text
+            type="secondary"
+            className={styles.variantName}
+            data-testid={getInventoryVariantCellTestId(data, "variant-title")}
+          >
             {data.variantTitle ?? data.variantHandle}
           </Typography.Text>
         )}
@@ -62,8 +75,13 @@ export const ProductCellRenderer = (
 export const ReservedCellRenderer = (
   props: CustomCellRendererProps<InventoryVariantRow>
 ) => {
-  const { value } = props;
-  return <ReservedCell value={value as number} />;
+  const { data, value } = props;
+  return (
+    <ReservedCell
+      value={value as number}
+      testId={data ? getInventoryVariantCellTestId(data, "reserved") : undefined}
+    />
+  );
 };
 
 export const OnHandCellRenderer = (

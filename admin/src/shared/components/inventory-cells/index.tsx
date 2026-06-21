@@ -65,16 +65,21 @@ export const ReservedCell: React.FC<InventoryCellProps> = ({
 export const EditableInventoryCell: React.FC<EditableInventoryCellProps> = ({
   value,
   edit,
+  testId,
 }) => {
   if (edit) {
     return (
-      <div className="ec-cell ec-cell--right">
+      <div className="ec-cell ec-cell--right" data-testid={testId}>
         <Diff originalValue={edit.originalValue} currentValue={edit.currentValue} />
       </div>
     );
   }
 
-  return <div className="ec-cell ec-cell--right">{value}</div>;
+  return (
+    <div className="ec-cell ec-cell--right" data-testid={testId}>
+      {value}
+    </div>
+  );
 };
 
 // ============================================================================

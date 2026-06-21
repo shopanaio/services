@@ -76,13 +76,23 @@ export function EditingPanel({
     <PanelBase width={width} className={className}>
       <Flex align="center" gap="small" style={{ flex: 1 }}>
         <EditOutlined className={styles.icon} />
-        <Typography.Text className={styles.label}>{displayLabel}</Typography.Text>
+        <Typography.Text
+          className={styles.label}
+          data-testid="editing-panel-changes-label"
+        >
+          {displayLabel}
+        </Typography.Text>
       </Flex>
 
       <div className={styles.divider} />
 
       <Flex align="center" gap="small">
-        <Button size="middle" onClick={onCancel} disabled={saving}>
+        <Button
+          size="middle"
+          onClick={onCancel}
+          disabled={saving}
+          data-testid="editing-panel-discard-button"
+        >
           {discardLabel}
         </Button>
         <Button
@@ -90,6 +100,7 @@ export function EditingPanel({
           size="middle"
           onClick={onSave}
           loading={saving}
+          data-testid="editing-panel-save-button"
         >
           {saveLabel}
         </Button>
