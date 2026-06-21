@@ -151,9 +151,9 @@ Also align the existing single-job query with this contract. Since clients recei
 const jobId = decodeGlobalIdByType(args.jobId, GlobalIdEntity.ProductBulkUpdateJob);
 ```
 
-Raw UUID is not a public API contract for `productBulkUpdateJob(jobId)` and must not be supported by the resolver.
+Only Relay GID values for `GlobalIdEntity.ProductBulkUpdateJob` are supported by `productBulkUpdateJob(jobId)`.
 
-## Ordering And Cursor Rules
+## Ordering And Pagination Rules
 
 Use stable descending order:
 
@@ -161,20 +161,23 @@ Use stable descending order:
 createdAt DESC, id DESC
 ```
 
-Cursor should encode both fields:
+Use `@shopana/drizzle-query` Relay pagination for the jobs connection. The repository must create a Relay query for `bulkEditJob` with `id` included as the returned node identifier and `id` configured as the tie breaker:
 
-```text
-createdAt:id
+```ts
+import {
+  createQuery,
+  createRelayQuery,
+  type InferRelayInput,
+  type PageInfo,
+} from "@shopana/drizzle-query";
+
+export const bulkEditJobRelayQuery = createRelayQuery(
+  createQuery(bulkEditJob).include(["id"]).maxLimit(100).defaultLimit(20),
+  { name: "productBulkUpdateJob", tieBreaker: "id" }
+);
 ```
 
-Forward pagination condition for `after`:
-
-```text
-createdAt < cursor.createdAt
-OR (createdAt = cursor.createdAt AND id < cursor.id)
-```
-
-This mirrors the existing cursor approach used by bulk item connections, while using `createdAt` as the primary ordering field for a job feed.
+The implementation should pass `orderBy: [{ field: "createdAt", direction: "desc" }, { field: "id", direction: "desc" }]` into `bulkEditJobRelayQuery.execute(...)`. Cursor encoding/decoding and `after` keyset conditions are owned by `@shopana/drizzle-query`; do not add custom `createdAt:id` cursor helpers for this connection.
 
 ## Backend Implementation Plan
 
@@ -200,9 +203,11 @@ Edit `services/catalog/src/repositories/BulkEditJobRepository.ts`.
 Add input/result types:
 
 ```ts
+export type BulkEditJobRelayInput = InferRelayInput<typeof bulkEditJobRelayQuery>;
+
 export interface BulkEditJobConnectionInput {
-  first?: number | null;
-  after?: string | null;
+  first?: BulkEditJobRelayInput["first"] | null;
+  after?: BulkEditJobRelayInput["after"] | null;
   statusFilter?: Array<"QUEUED" | "RUNNING" | "COMPLETED" | "CANCELLED"> | null;
 }
 
@@ -215,20 +220,54 @@ export interface BulkEditJobConnectionResult {
 
 Add `getConnection(input)`:
 
-- Apply mandatory multi-tenant filter:
-  - `bulkEditJob.projectId = this.storeId`
-- Apply status filter:
-  - `input.statusFilter` if non-empty
-  - otherwise default to `["QUEUED", "RUNNING"]`
-- Apply cursor condition when `after` is present.
-- Fetch `limit + 1` rows to compute `hasNextPage`.
-- Return `edges`, `pageInfo`, and `totalCount`.
+```ts
+async getConnection(
+  input: BulkEditJobConnectionInput
+): Promise<BulkEditJobConnectionResult> {
+  const statusFilter: NonNullable<BulkEditJobConnectionInput["statusFilter"]> =
+    input.statusFilter && input.statusFilter.length > 0
+      ? input.statusFilter
+      : ["QUEUED", "RUNNING"];
+
+  const where: BulkEditJobRelayInput["where"] = {
+    _and: [
+      { projectId: { _eq: this.storeId } },
+      { status: { _in: statusFilter } },
+    ],
+  };
+
+  const executeInput: BulkEditJobRelayInput = {
+    first: input.first ?? undefined,
+    after: input.after ?? undefined,
+    where,
+    orderBy: [
+      { field: "createdAt", direction: "desc" },
+      { field: "id", direction: "desc" },
+    ],
+  };
+
+  const [result, totalCount] = await Promise.all([
+    bulkEditJobRelayQuery.execute(this.connection, executeInput),
+    bulkEditJobRelayQuery.count(this.connection, { where }),
+  ]);
+
+  return {
+    edges: result.edges.map((edge) => ({
+      cursor: edge.cursor,
+      nodeId: edge.node.id,
+    })),
+    pageInfo: result.pageInfo,
+    totalCount,
+  };
+}
+```
 
 Use the existing repository pattern:
 
 - Always query via `this.connection`.
 - Do not expose jobs from another store/project.
-- Keep cursor encode/decode helpers private to the repository unless they become shared.
+- Use `bulkEditJobRelayQuery.execute(...)` and `bulkEditJobRelayQuery.count(...)` for pagination and counts.
+- Do not implement private cursor encode/decode helpers for the jobs connection.
 
 ### 3. Batch Repository Methods
 
@@ -288,12 +327,80 @@ export interface BulkEditJobProgressCounts {
   pending: number;
 }
 
+function emptyProgressCounts(): BulkEditJobProgressCounts {
+  return {
+    total: 0,
+    done: 0,
+    succeeded: 0,
+    failed: 0,
+    cancelled: 0,
+    superseded: 0,
+    running: 0,
+    pending: 0,
+  };
+}
+
+function applyStatusCount(
+  counts: BulkEditJobProgressCounts,
+  status: BulkEditItem["status"],
+  count: number
+): void {
+  counts.total += count;
+
+  switch (status) {
+    case "SUCCEEDED":
+      counts.succeeded += count;
+      counts.done += count;
+      break;
+    case "FAILED":
+      counts.failed += count;
+      counts.done += count;
+      break;
+    case "CANCELLED":
+      counts.cancelled += count;
+      counts.done += count;
+      break;
+    case "SUPERSEDED":
+      counts.superseded += count;
+      counts.done += count;
+      break;
+    case "RUNNING":
+      counts.running += count;
+      break;
+    case "PENDING":
+      counts.pending += count;
+      break;
+  }
+}
+
 async countByStatusForJobs(
   jobIds: readonly string[]
 ): Promise<Map<string, BulkEditJobProgressCounts>> {
-  // SELECT job_id, status, count(*) FROM bulk_edit_item
-  // WHERE project_id = this.storeId AND job_id IN (...)
-  // GROUP BY job_id, status
+  const result = new Map<string, BulkEditJobProgressCounts>();
+  if (jobIds.length === 0) return result;
+
+  const rows = await this.connection
+    .select({
+      jobId: bulkEditItem.jobId,
+      status: bulkEditItem.status,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(bulkEditItem)
+    .where(
+      and(
+        eq(bulkEditItem.projectId, this.storeId),
+        inArray(bulkEditItem.jobId, [...jobIds])
+      )
+    )
+    .groupBy(bulkEditItem.jobId, bulkEditItem.status);
+
+  for (const row of rows) {
+    const counts = result.get(row.jobId) ?? emptyProgressCounts();
+    applyStatusCount(counts, row.status, row.count);
+    result.set(row.jobId, counts);
+  }
+
+  return result;
 }
 ```
 
@@ -303,13 +410,38 @@ Add total product batch support:
 async countDistinctProductsForJobs(
   jobIds: readonly string[]
 ): Promise<Map<string, number>> {
-  // SELECT job_id, count(distinct product_id)
-  // WHERE project_id = this.storeId AND job_id IN (...)
-  // GROUP BY job_id
+  const result = new Map<string, number>();
+  if (jobIds.length === 0) return result;
+
+  const rows = await this.connection
+    .select({
+      jobId: bulkEditItem.jobId,
+      count: sql<number>`count(distinct ${bulkEditItem.productId})::int`,
+    })
+    .from(bulkEditItem)
+    .where(
+      and(
+        eq(bulkEditItem.projectId, this.storeId),
+        inArray(bulkEditItem.jobId, [...jobIds])
+      )
+    )
+    .groupBy(bulkEditItem.jobId);
+
+  for (const row of rows) {
+    result.set(row.jobId, row.count);
+  }
+
+  return result;
 }
 ```
 
-Repository batch methods must return data scoped by `projectId = this.storeId`; loaders will map missing rows to `null`, `0`, or an empty progress object.
+Repository batch methods must return data scoped by `projectId = this.storeId`.
+For aggregate methods, the repository returns only rows that exist in the database:
+
+- A job with no `bulk_edit_item` rows is absent from `countByStatusForJobs(...)`.
+- A job with no distinct products is absent from `countDistinctProductsForJobs(...)`.
+- DataLoaders map missing aggregate rows to `emptyProgressCounts()` or `0` while preserving input key order.
+- DataLoaders map missing entity rows from `getByIds(...)` to `null`.
 
 ### 4. DataLoaders
 
@@ -562,10 +694,9 @@ Recommended stable tests:
    - Use `pageInfo.endCursor` for the next page.
    - Assert second page does not repeat the first cursor/job.
 
-4. `should reject raw UUID in productBulkUpdateJob`
+4. `should reject non-GID job IDs in productBulkUpdateJob`
    - Create a bulk update job.
-   - Extract the raw UUID from the returned GID only in test code.
-   - Query `productBulkUpdateJob(jobId: rawUuid)` with `throwOnError: false`.
+   - Query `productBulkUpdateJob(jobId: "not-a-gid")` with `throwOnError: false`.
    - Assert a GraphQL error is returned.
 
 Avoid tests that require jobs to remain `RUNNING`; current jobs can complete too quickly and would make the test flaky.
@@ -597,10 +728,11 @@ Do not denormalize progress counters into `bulk_edit_job` in this change; the cu
 - FE can call one GraphQL query without known job IDs and receive all active bulk update jobs for the current store.
 - Multiple simultaneous `QUEUED`/`RUNNING` jobs appear in the same connection response.
 - `productBulkUpdateJob(jobId)` accepts only Relay GID values for `ProductBulkUpdateJob`.
-- Raw UUID values are rejected by `productBulkUpdateJob(jobId)`.
+- Non-GID `jobId` values are rejected by `productBulkUpdateJob(jobId)`.
 - Query is scoped to `projectId = this.storeId`.
 - Response follows Relay shape: `edges`, `cursor`, `node`, `pageInfo`, `totalCount`.
 - Pagination is stable by `createdAt DESC, id DESC`.
+- Job connection pagination is implemented through `@shopana/drizzle-query` `createRelayQuery`.
 - Job node fields are DataLoader-backed:
   - `ProductBulkUpdateJob.$preload`
   - `ProductBulkUpdateJob.totalProducts`
