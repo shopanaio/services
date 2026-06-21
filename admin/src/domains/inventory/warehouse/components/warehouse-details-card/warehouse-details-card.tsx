@@ -30,7 +30,6 @@ export function WarehouseDetailsCard({
     <Flex vertical gap={12} style={{ width: "100%" }}>
       <WarehouseInfoHeader
         warehouse={warehouse}
-        stockConnection={stockConnection}
         onEditIdentity={onEditIdentity}
         onEditDefault={onEditDefault}
         onDelete={onDelete}

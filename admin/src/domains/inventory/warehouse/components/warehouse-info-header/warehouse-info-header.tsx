@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Button, Divider, Dropdown, Flex, Popover, Tag, Typography } from "antd";
 import type { MenuProps } from "antd";
 import {
@@ -8,21 +9,19 @@ import {
   EditOutlined,
   MoreOutlined,
 } from "@ant-design/icons";
-import type {
-  ApiWarehouse,
-  ApiWarehouseStockConnection,
-} from "@/graphql/types";
+import type { ApiWarehouse } from "@/graphql/types";
 import { CopyableChip } from "@/ui-kit/copyable-chip";
 import { KPITile } from "@/ui-kit/kpi-tile";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { formatDetailDate } from "@/domains/inventory/utils/format-detail-date";
+import { PeriodSwitch } from "@/domains/inventory/products/components/period-switch";
 import { UserPopoverContent } from "@/domains/inventory/products/components/product-info-header/components";
+import { PERIODS, type Period } from "@/domains/inventory/products/utils/periods";
 import { WarehouseDefaultTag } from "../warehouse-default-tag";
 import { useWarehouseInfoHeaderStyles } from "./warehouse-info-header.styles";
 
 interface WarehouseInfoHeaderProps {
   warehouse: ApiWarehouse;
-  stockConnection: ApiWarehouseStockConnection;
   onEditIdentity: () => void;
   onEditDefault: () => void;
   onDelete: () => void;
@@ -30,12 +29,13 @@ interface WarehouseInfoHeaderProps {
 
 export function WarehouseInfoHeader({
   warehouse,
-  stockConnection,
   onEditIdentity,
   onEditDefault,
   onDelete,
 }: WarehouseInfoHeaderProps) {
   const { styles } = useWarehouseInfoHeaderStyles();
+  const [kpiPeriod, setKpiPeriod] = useState<Period>("7d");
+  const [compareEnabled, setCompareEnabled] = useState(false);
   const actionItems: MenuProps["items"] = [
     {
       key: "edit-identity",
@@ -143,27 +143,36 @@ export function WarehouseInfoHeader({
       {/* KPI PANEL */}
       <div>
         <div style={{ marginBottom: 12 }}>
-          <Flex align="center" gap={12} wrap="wrap">
-            <Typography.Text type="secondary">
-              Created {formatDetailDate(warehouse.createdAt)}
-            </Typography.Text>
-            <Typography.Text type="secondary">
-              Updated {formatDetailDate(warehouse.updatedAt)}
-            </Typography.Text>
-          </Flex>
+          <PeriodSwitch
+            periods={PERIODS}
+            value={kpiPeriod}
+            onChange={setKpiPeriod}
+            showCompare
+            compareEnabled={compareEnabled}
+            onCompareChange={setCompareEnabled}
+          />
         </div>
 
         <Flex gap={12}>
           <KPITile
-            label="Stocked variants"
-            value={warehouse.variantsCount}
-            tooltip="Variants with stock records in this warehouse"
+            label="On hand units"
+            value="1,248"
+            trend={compareEnabled ? 6 : undefined}
+            tooltip="Total units physically stored in this warehouse"
             className={styles.kpiTile}
           />
           <KPITile
-            label="Stock records"
-            value={stockConnection.totalCount}
-            tooltip="Warehouse stock rows for this warehouse"
+            label="Available units"
+            value="1,032"
+            trend={compareEnabled ? 4 : undefined}
+            tooltip="Units available for sale after reservations and unavailable stock"
+            className={styles.kpiTile}
+          />
+          <KPITile
+            label="Low stock"
+            value="7"
+            trend={compareEnabled ? -2 : undefined}
+            tooltip="Variants below the replenishment threshold"
             className={styles.kpiTile}
           />
         </Flex>
