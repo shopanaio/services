@@ -20,6 +20,7 @@ import {
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { KPITile } from "@/ui-kit/kpi-tile";
 import { CopyableChip } from "@/ui-kit/copyable-chip";
+import { formatDetailDate } from "@/domains/inventory/utils/format-detail-date";
 import { PeriodSwitch } from "../period-switch";
 import { PERIODS, type Period } from "../../utils/periods";
 import { useProductEditTitleModal } from "../../modals";
@@ -33,14 +34,10 @@ import {
 } from "./utils";
 import type { IProductInfoHeaderProps, IKPIData } from "./types";
 import {
-  formatApiDate,
   getProductPrimaryPriceAmount,
   getProductSku,
 } from "../../utils/api-product-display";
-import {
-  getProductStatus,
-  isProductPublished,
-} from "../../utils/product-status";
+import { getProductStatus } from "../../utils/product-status";
 import { useUpdateProduct } from "../../hooks";
 
 export const ProductInfoHeader = ({
@@ -127,9 +124,9 @@ export const ProductInfoHeader = ({
           {statusConfig.label}
         </Tag>
       </Tooltip>
-      {isProductPublished(product) && (
+      {product.updatedAt && (
         <Typography.Text type="secondary" className={styles.metaText}>
-          {formatApiDate(product.publishedAt ?? product.updatedAt)}
+          Updated {formatDetailDate(product.updatedAt)}
           <span style={{ marginLeft: 4 }}>by</span>
           <Popover
             content={

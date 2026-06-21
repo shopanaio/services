@@ -27,6 +27,7 @@ import {
 } from "@/domains/inventory/products/components/product-info-header/components";
 import { getStatusConfig } from "@/domains/inventory/products/components/product-info-header/utils";
 import type { ProductStatus } from "@/domains/inventory/products/utils/product-status";
+import { formatDetailDate } from "@/domains/inventory/utils/format-detail-date";
 import { useHeaderStyles } from "./category-info-header.styles";
 import type { ICategoryDetail } from "../category-details-card/types";
 
@@ -94,12 +95,9 @@ export const CategoryInfoHeader = ({ category }: ICategoryInfoHeaderProps) => {
           {statusConfig.label}
         </Tag>
       </Tooltip>
-      {category.status === EntityStatus.PUBLISHED && (
+      {category.updatedAt && (
         <Typography.Text type="secondary" className={styles.metaText}>
-          {category.updatedAt.toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-          })}
+          Updated {formatDetailDate(category.updatedAt)}
           <span style={{ marginLeft: 4 }}>by</span>
           <Popover
             content={
