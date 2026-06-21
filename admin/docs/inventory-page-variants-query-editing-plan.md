@@ -332,7 +332,7 @@ Read-only fields:
 Flow:
 
 1. User edits `onHand` or `unavailable`.
-2. `handleCellEditRequest` parses integer input and handles empty/invalid presentation states.
+2. `handleCellEditRequest` parses integer input and keeps the existing FE `validateFieldChange` behavior.
 3. UI stores pending change in `useInventoryEditStore`.
 4. `displayData` merges API rows with pending edits.
 5. `available` preview recalculates as `onHand - unavailable - reserved`.
@@ -342,7 +342,7 @@ Flow:
 9. Full success clears edits and refetches variants.
 10. Failed rows keep their edits and show backend `userErrors` or runtime errors.
 
-Backend remains the authority for stock consistency. UI must not block save based on business rules like `unavailable <= onHand` except for basic input parsing.
+FE keeps the current `validateFieldChange` consistency guard for inline edits: edits that make `onHand`, `unavailable`, or calculated `available` invalid are rejected before entering the pending edit store. Backend remains the final authority during save and may return additional `userErrors`.
 
 ## Edit store migration
 
