@@ -11,7 +11,7 @@ All commands run from this `e2e/` directory. Use `shopana_test` MCP tool or run 
 
 ## Testing Workflow
 
-1. **Dev server is already running** — do NOT start, stop, or restart any services. The server hot-reloads on code changes automatically.
+1. **Playwright starts the E2E runtime by default** — `playwright.config.ts` starts isolated Docker infrastructure, runs migrations, and starts services, gateways, and Admin UI on dedicated test ports through `bin/start-test-env.mjs`. Set `E2E_START_SERVERS=false` only when intentionally targeting an already running environment.
 2. **Make code changes** in the service (resolver, script, schema, etc.). Wait a moment for hot-reload.
 3. **Run tests one file at a time** — never run the entire suite or a whole directory at once:
    ```bash
@@ -22,12 +22,14 @@ All commands run from this `e2e/` directory. Use `shopana_test` MCP tool or run 
 6. **Repeat** for each test file that needs verification.
 
 ### Hot-reload
-- Hot-reload works only for code in `services/` (resolvers, scripts, etc.) — save a file and the server restarts automatically.
-- If you changed shared packages (`packages/*`) — run `shopana build --packages` first. Then touch/edit any file in the service to trigger a hot-reload restart.
-- If you changed GraphQL schemas — rebuild schemas (`shopana schema --action build`), then rebuild packages if needed, then touch a service file to trigger restart.
+- The E2E runtime uses `shopana dev` for services, so service source changes hot-reload while the test environment is running.
+- If you changed shared packages (`packages/*`) — run `shopana build --packages` first.
+- If you changed GraphQL schemas — rebuild schemas (`shopana schema --action build`) before running tests when needed.
+- Set `E2E_START_DOCKER=false` to skip Docker infrastructure startup.
+- Set `E2E_RUN_MIGRATIONS=false` to skip migration startup.
 
 ### Rules
-- **NEVER** touch running processes (dev server, gateway, database). They are managed separately.
+- **NEVER** touch unrelated running processes. Playwright owns only the processes it starts through `bin/start-test-env.mjs`.
 - **NEVER** run all tests at once. Always target a single `.spec.ts` file.
 
 ## Project Structure
@@ -65,8 +67,8 @@ test.describe('Feature', () => {
 
 ## Fixtures (via `api`)
 
-- `api.admin` — AdminApiFixture: GraphQL calls to admin endpoint (port 4001). Auto-injects auth headers.
-- `api.client` — StorefrontApiFixture: GraphQL calls to storefront endpoint (port 4000).
+- `api.admin` — AdminApiFixture: GraphQL calls to the admin endpoint from `ADMIN_GRAPHQL_URL`. Auto-injects auth headers.
+- `api.client` — StorefrontApiFixture: GraphQL calls to the storefront endpoint from `CLIENT_GRAPHQL_URL`.
 - `api.session` — SessionFixture: manages auth context.
   - `setupUser()` — create & authenticate user
   - `setupUserAndStore()` — create user + org + store (most common)
@@ -108,3 +110,16 @@ ADMIN_GRAPHQL_URL=http://127.0.0.1:4001/graphql
 CLIENT_GRAPHQL_URL=http://127.0.0.1:4000/graphql
 BASE_URL=http://localhost:3000
 ```
+
+When `E2E_START_SERVERS` is not `false`, Playwright overrides these runtime URLs with the dedicated test ports:
+
+```
+BASE_URL=http://127.0.0.1:3300
+ADMIN_GRAPHQL_URL=http://127.0.0.1:14001/graphql
+CLIENT_GRAPHQL_URL=http://127.0.0.1:14000/graphql
+CONFIG_FILE=config.e2e.yml
+```
+
+The isolated Docker infra uses PostgreSQL on `15432`, MinIO on `19000`, and local data under `.tmp/e2e-data`.
+
+Use `E2E_CONFIG_FILE=...` to point the auto-start runtime at another config file.

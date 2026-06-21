@@ -14,7 +14,8 @@ interface Config {
 
 function loadConfig(): Config {
   const rootDir = findRootDir();
-  const configPath = join(rootDir, "config.yml");
+  const configFile = process.env.CONFIG_FILE || "config.yml";
+  const configPath = join(rootDir, configFile);
   const content = readFileSync(configPath, "utf-8");
   return parseYaml(content) as Config;
 }

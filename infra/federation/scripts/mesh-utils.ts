@@ -13,7 +13,6 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const FEDERATION_ROOT = resolve(__dirname, "..");
 const PROJECT_ROOT = resolve(FEDERATION_ROOT, "../..");
 const SERVICES_ROOT = resolve(PROJECT_ROOT, "services");
-const CONFIG_PATH = resolve(PROJECT_ROOT, "config.yml");
 
 type MeshType = "admin" | "storefront";
 
@@ -42,10 +41,13 @@ interface Subgraph {
 }
 
 function loadGlobalConfig(): GlobalConfig {
-  if (!existsSync(CONFIG_PATH)) {
-    throw new Error(`config.yml not found at ${CONFIG_PATH}`);
+  const configFile = process.env.CONFIG_FILE || "config.yml";
+  const configPath = resolve(PROJECT_ROOT, configFile);
+
+  if (!existsSync(configPath)) {
+    throw new Error(`${configFile} not found at ${configPath}`);
   }
-  const content = readFileSync(CONFIG_PATH, "utf-8");
+  const content = readFileSync(configPath, "utf-8");
   return parseYaml(content) as GlobalConfig;
 }
 

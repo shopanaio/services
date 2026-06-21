@@ -92,18 +92,52 @@ async function openOptionsModal(page: Page) {
   return modal;
 }
 
-function optionCard(modal: Locator, text: string) {
-  return modal
-    .getByTestId('edit-options-option-card')
-    .filter({ hasText: text })
-    .first();
+async function optionCard(modal: Locator, text: string) {
+  const cards = modal.getByTestId('edit-options-option-card');
+
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    const count = await cards.count();
+
+    for (let i = 0; i < count; i += 1) {
+      const value = await cards
+        .nth(i)
+        .getByTestId('edit-options-option-name-input')
+        .inputValue()
+        .catch(() => null);
+
+      if (value === text) {
+        return cards.nth(i);
+      }
+    }
+
+    await modal.page().waitForTimeout(100);
+  }
+
+  throw new Error(`Option card "${text}" was not found`);
 }
 
-function valueRow(card: Locator, text: string) {
-  return card
-    .getByTestId('edit-options-value-row')
-    .filter({ hasText: text })
-    .first();
+async function valueRow(card: Locator, text: string) {
+  const rows = card.getByTestId('edit-options-value-row');
+
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    const count = await rows.count();
+
+    for (let i = 0; i < count; i += 1) {
+      const value = await rows
+        .nth(i)
+        .getByTestId('edit-options-value-name-input')
+        .inputValue()
+        .catch(() => null);
+
+      if (value === text) {
+        return rows.nth(i);
+      }
+    }
+
+    await card.page().waitForTimeout(100);
+  }
+
+  throw new Error(`Value row "${text}" was not found`);
 }
 
 async function selectDisplayType(page: Page, card: Locator, label: string) {
@@ -117,38 +151,36 @@ async function saveOptions(page: Page) {
 }
 
 async function dragOptionTo(page: Page, modal: Locator, sourceName: string, targetName: string) {
-  const target = optionCard(modal, targetName);
-  const targetBox = await target.boundingBox();
-  if (!targetBox) {
-    throw new Error(`Target option "${targetName}" is not visible`);
-  }
+  const sourceHandle = (await optionCard(modal, sourceName)).getByTestId(
+    'edit-options-option-drag-handle',
+  );
 
-  await optionCard(modal, sourceName)
-    .getByTestId('edit-options-option-drag-handle')
-    .dragTo(target, {
-      targetPosition: {
-        x: targetBox.width / 2,
-        y: 2,
-      },
-    });
+  await optionCard(modal, targetName);
+  await sourceHandle.focus();
+  await page.keyboard.press('Space');
+  await page.keyboard.press('ArrowUp');
+  await page.keyboard.press('Space');
   await page.waitForTimeout(400);
 }
 
 async function dragValueTo(page: Page, card: Locator, sourceName: string, targetName: string) {
-  const target = valueRow(card, targetName);
+  const target = await valueRow(card, targetName);
+  const sourceHandle = (await valueRow(card, sourceName)).getByTestId(
+    'edit-options-value-drag-handle',
+  );
+  const sourceBox = await sourceHandle.boundingBox();
   const targetBox = await target.boundingBox();
+  if (!sourceBox) {
+    throw new Error(`Source value "${sourceName}" drag handle is not visible`);
+  }
   if (!targetBox) {
     throw new Error(`Target value "${targetName}" is not visible`);
   }
 
-  await valueRow(card, sourceName)
-    .getByTestId('edit-options-value-drag-handle')
-    .dragTo(target, {
-      targetPosition: {
-        x: targetBox.width / 2,
-        y: 2,
-      },
-    });
+  await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + 4, { steps: 12 });
+  await page.mouse.up();
   await page.waitForTimeout(400);
 }
 
@@ -255,7 +287,7 @@ test.describe('Admin product details options update UI', () => {
     let modal = await openOptionsModal(page);
     await modal.getByTestId('edit-options-add-button').click();
 
-    let card = optionCard(modal, 'New Option');
+    let card = await optionCard(modal, 'New Option');
     await card.getByTestId('edit-options-option-name-input').fill('Color');
     await card.getByTestId('edit-options-value-name-input').nth(0).fill('Black');
     await card.getByTestId('edit-options-add-value-button').click();
@@ -274,14 +306,14 @@ test.describe('Admin product details options update UI', () => {
     const originalWhite = originalColor.values.find((value: any) => value.name === 'White');
 
     modal = await openOptionsModal(page);
-    card = optionCard(modal, 'Color');
+    card = await optionCard(modal, 'Color');
     await card.getByTestId('edit-options-option-name-input').fill('Shade');
     await card.getByTestId('edit-options-value-name-input').nth(0).fill('Carbon');
     await card.getByTestId('edit-options-value-name-input').nth(1).fill('Snow');
     await selectDisplayType(page, card, 'Dropdown');
 
     await modal.getByTestId('edit-options-add-button').click();
-    const finishCard = optionCard(modal, 'New Option');
+    const finishCard = await optionCard(modal, 'New Option');
     await finishCard.getByTestId('edit-options-option-name-input').fill('Finish');
     await selectDisplayType(page, finishCard, 'Swatch');
     await finishCard.getByTestId('edit-options-value-name-input').nth(0).fill('Matte');
@@ -305,7 +337,7 @@ test.describe('Admin product details options update UI', () => {
 
     modal = await openOptionsModal(page);
     await dragOptionTo(page, modal, 'Finish', 'Shade');
-    card = optionCard(modal, 'Finish');
+    card = await optionCard(modal, 'Finish');
     await dragValueTo(page, card, 'Gloss', 'Matte');
     await saveOptions(page);
 
@@ -317,9 +349,9 @@ test.describe('Admin product details options update UI', () => {
     });
 
     modal = await openOptionsModal(page);
-    card = optionCard(modal, 'Finish');
-    await valueRow(card, 'Matte').getByTestId('edit-options-delete-value-button').click();
-    const shadeCard = optionCard(modal, 'Shade');
+    card = await optionCard(modal, 'Finish');
+    await (await valueRow(card, 'Matte')).getByTestId('edit-options-delete-value-button').click();
+    const shadeCard = await optionCard(modal, 'Shade');
     await shadeCard.getByTestId('edit-options-delete-option-button').click();
     await page.getByRole('menuitem', { name: 'Delete option' }).click();
     await saveOptions(page);
@@ -332,7 +364,7 @@ test.describe('Admin product details options update UI', () => {
     });
 
     modal = await openOptionsModal(page);
-    card = optionCard(modal, 'Finish');
+    card = await optionCard(modal, 'Finish');
     await selectDisplayType(page, card, 'Dropdown');
     await saveOptions(page);
 
