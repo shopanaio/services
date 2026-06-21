@@ -259,6 +259,17 @@ export function useVariantsColumns(
             const option = params.data?.options.find((o) => o.name === optionName);
             return option?.value ?? "";
           },
+          cellRenderer: (params: { data?: IVariantEditorRow; value?: unknown }) => {
+            if (!params.data) {
+              return null;
+            }
+
+            return (
+              <span data-testid={`variants-editor-cell-option-${optionName}-${params.data.id}`}>
+                {params.value ?? ""}
+              </span>
+            );
+          },
         });
       }
     }

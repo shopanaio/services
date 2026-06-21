@@ -8,6 +8,8 @@ interface SeededVariant {
   id: string;
   handle: string;
   inventoryItemId: string;
+  color: string;
+  size: string;
   sku: string;
   price: number;
   compareAtPrice: number;
@@ -29,6 +31,17 @@ interface ExpectedVariantPage {
 
 const UAH = 'UAH';
 const VARIANT_COUNT = 12;
+const COLORS = [
+  { name: 'Black', slug: 'black' },
+  { name: 'White', slug: 'white' },
+  { name: 'Red', slug: 'red' },
+] as const;
+const SIZES = [
+  { name: 'Small', slug: 's' },
+  { name: 'Medium', slug: 'm' },
+  { name: 'Large', slug: 'l' },
+  { name: 'XL', slug: 'xl' },
+] as const;
 
 async function signIn(page: Page, email: string, password: string) {
   await page.goto('/sign-in');
@@ -63,8 +76,14 @@ function formatUah(amountMinor: number) {
     .replace(/\s+/g, '\u00A0');
 }
 
-function variantHandle(index: number) {
-  return `variant-${String(index + 1).padStart(2, '0')}`;
+function variantConfigs() {
+  return COLORS.flatMap((color) =>
+    SIZES.map((size) => ({
+      handle: `${color.slug}-${size.slug}`,
+      color: color.name,
+      size: size.name,
+    })),
+  );
 }
 
 async function createDefaultWarehouse(api: Api, unique: string) {
@@ -92,7 +111,7 @@ async function createDefaultWarehouse(api: Api, unique: string) {
 async function createProductWithVariants(api: Api, unique: string) {
   const title = `Variants Read Product ${unique}`;
   const handle = `variants-read-product-${unique}`;
-  const variantHandles = Array.from({ length: VARIANT_COUNT }, (_, index) => variantHandle(index));
+  const variants = variantConfigs();
 
   const { data } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
     variables: {
@@ -102,12 +121,17 @@ async function createProductWithVariants(api: Api, unique: string) {
         inventoryItem: { tracked: true },
         options: [
           {
-            name: 'Variant',
-            slug: 'variant',
-            values: variantHandles.map((value) => ({ name: value, slug: value })),
+            name: 'Color',
+            slug: 'color',
+            values: COLORS.map((value) => ({ name: value.name, slug: value.slug })),
+          },
+          {
+            name: 'Size',
+            slug: 'size',
+            values: SIZES.map((value) => ({ name: value.name, slug: value.slug })),
           },
         ],
-        variants: variantHandles.map((value) => ({ handle: value })),
+        variants: variants.map((variant) => ({ handle: variant.handle })),
       },
     },
   });
@@ -163,8 +187,16 @@ async function seedVariantData(
   variants: Array<{ id: string; handle: string; inventoryItemId: string }>,
 ): Promise<SeededVariant[]> {
   const seeded: SeededVariant[] = [];
+  const variantsByHandle = new Map(
+    variantConfigs().map((variant) => [variant.handle, variant] as const),
+  );
 
   for (const [index, variant] of variants.entries()) {
+    const config = variantsByHandle.get(variant.handle);
+    if (!config) {
+      throw new Error(`Variant option config was not found for ${variant.handle}`);
+    }
+
     const sku = `VAR-${unique}-${String(index + 1).padStart(2, '0')}`.toUpperCase();
     const price = 10000 + index * 1000;
     const compareAtPrice = price + 2500;
@@ -245,6 +277,8 @@ async function seedVariantData(
 
     seeded.push({
       ...variant,
+      color: config.color,
+      size: config.size,
       sku,
       price,
       compareAtPrice,
@@ -331,6 +365,10 @@ function editorCell(page: Page, variantId: string, field: string) {
   return page.getByTestId(`variants-editor-cell-${field}-${variantId}`);
 }
 
+function optionEditorCell(page: Page, variantId: string, optionName: string) {
+  return page.getByTestId(`variants-editor-cell-option-${optionName}-${variantId}`);
+}
+
 async function expectVariantTablePage(page: Page, variants: SeededVariant[]) {
   const rows = page.getByTestId('product-variants-table').locator('tbody tr');
   await expect(rows).toHaveCount(variants.length);
@@ -349,13 +387,14 @@ async function expectEditorVariantData(page: Page, variant: SeededVariant) {
   const grid = page.getByTestId('variants-editor-grid');
 
   await expect(grid.getByText(variant.handle, { exact: true })).toBeVisible();
+  await expect(optionEditorCell(page, variant.id, 'Color')).toHaveText(variant.color);
+  await expect(optionEditorCell(page, variant.id, 'Size')).toHaveText(variant.size);
   await expect(editorCell(page, variant.id, 'price')).toHaveText(formatUah(variant.price));
   await expect(editorCell(page, variant.id, 'compareAtPrice')).toHaveText(
     formatUah(variant.compareAtPrice),
   );
   await expect(editorCell(page, variant.id, 'costPrice')).toHaveText(formatUah(variant.costPrice));
   await expect(editorCell(page, variant.id, 'sku')).toHaveText(variant.sku);
-  await expect(editorCell(page, variant.id, 'barcode')).toHaveText('');
   await expect(editorCell(page, variant.id, 'onHand')).toHaveText(String(variant.onHand));
   await expect(editorCell(page, variant.id, 'unavailable')).toHaveText(
     String(variant.unavailable),
@@ -423,7 +462,6 @@ test.describe('Admin product variants read path UI', () => {
     await showEditorColumns(page, [
       'Compare at',
       'Cost',
-      'Barcode',
       'Weight',
       'Length',
       'Width',

@@ -5,7 +5,7 @@
     "forbidOnly": false,
     "fullyParallel": true,
     "globalSetup": null,
-    "globalTeardown": null,
+    "globalTeardown": "/Users/phl/Projects/shopana-io/services/e2e/global-teardown.ts",
     "globalTimeout": 0,
     "grep": {},
     "grepInvert": null,
@@ -61,29 +61,34 @@
     "updateSourceMethod": "patch",
     "version": "1.51.1",
     "workers": 1,
-    "webServer": null
+    "webServer": {
+      "command": "node bin/start-test-env.mjs",
+      "url": "http://127.0.0.1:3300",
+      "timeout": 240000,
+      "reuseExistingServer": false
+    }
   },
   "suites": [
     {
-      "title": "admin-ui/product-inventory-widget.spec.ts",
-      "file": "admin-ui/product-inventory-widget.spec.ts",
+      "title": "admin-ui/product-update-variants.spec.ts",
+      "file": "admin-ui/product-update-variants.spec.ts",
       "column": 0,
       "line": 0,
       "specs": [],
       "suites": [
         {
-          "title": "Admin product inventory widget UI",
-          "file": "admin-ui/product-inventory-widget.spec.ts",
-          "line": 329,
+          "title": "Admin product details variants update UI",
+          "file": "admin-ui/product-update-variants.spec.ts",
+          "line": 307,
           "column": 6,
           "specs": [
             {
-              "title": "updates variant inventory through product details and reflects inventory KPI tiles",
+              "title": "edits and saves every editable field in the variants modal",
               "ok": true,
               "tags": [],
               "tests": [
                 {
-                  "timeout": 30000,
+                  "timeout": 90000,
                   "annotations": [],
                   "expectedStatus": "passed",
                   "projectId": "chromium",
@@ -93,21 +98,21 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 20462,
+                      "duration": 22552,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-20T21:28:45.775Z",
+                      "startTime": "2026-06-21T20:39:38.544Z",
                       "attachments": []
                     }
                   ],
                   "status": "expected"
                 }
               ],
-              "id": "e5d42357290f931ed8c1-2f5502eebd567bd7c82e",
-              "file": "admin-ui/product-inventory-widget.spec.ts",
-              "line": 330,
+              "id": "1100abe0c05790e0276f-2f6f07d5c89ce12088cd",
+              "file": "admin-ui/product-update-variants.spec.ts",
+              "line": 309,
               "column": 5
             }
           ]
@@ -117,8 +122,8 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-06-20T21:28:45.226Z",
-    "duration": 22169.54,
+    "startTime": "2026-06-21T20:39:05.273Z",
+    "duration": 57484.256,
     "expected": 1,
     "skipped": 0,
     "unexpected": 0,
