@@ -23,16 +23,17 @@ import { useInventoryStyles } from "../product-details-card.styles";
 import { useEditVariantsModal } from "../../../modals";
 import { ThresholdMethod } from "@/graphql/types";
 import type {
-  ApiInventoryItemUpdateInput,
   ApiProduct,
+  ApiProductUpdateInput,
   ApiVariant,
+  ApiVariantUpdateInput,
 } from "@/graphql/types";
 import { useDefaultWarehouse } from "../../../hooks/use-default-warehouse";
 import { useEnsureVariantInventoryItems } from "../../../hooks/use-ensure-variant-inventory-items";
 import { useProductInventoryWidget } from "../../../hooks/use-product-inventory-widget";
 import { useProductVariantsLoader } from "../../../hooks/use-product-variants-loader";
-import { useUpdateInventoryItems } from "../../../hooks/use-update-inventory-items";
-import { prepareChangedVariantInventoryInputs } from "../../../mappers/product-variant-inventory.mapper";
+import { useUpdateProduct } from "../../../hooks/use-update-product";
+import { prepareChangedVariantUpdateInputs } from "../../../mappers/product-variant-update.mapper";
 import type { VariantEditorSaveRow } from "../../../mappers/product-variant-editor.mapper";
 
 // ============================================================================
@@ -209,7 +210,7 @@ export const InventorySection = ({
     refetch: refetchDefaultWarehouse,
   } = useDefaultWarehouse();
   const { ensureVariantInventoryItems } = useEnsureVariantInventoryItems();
-  const { updateInventoryItems } = useUpdateInventoryItems();
+  const { updateProduct } = useUpdateProduct();
   const {
     data: stats,
     isLoading,
@@ -230,14 +231,16 @@ export const InventorySection = ({
         return false;
       }
 
-      let inputs: ApiInventoryItemUpdateInput[];
+      let variantUpdates: ApiVariantUpdateInput[];
 
       try {
-        inputs = prepareChangedVariantInventoryInputs({
+        variantUpdates = prepareChangedVariantUpdateInputs({
           rows,
           variants: editorVariants,
           warehouseId,
           defaultCurrency,
+          includePricing: false,
+          includeInventory: true,
         });
       } catch (err) {
         message.error(
@@ -246,12 +249,19 @@ export const InventorySection = ({
         return false;
       }
 
-      if (inputs.length === 0) {
+      if (variantUpdates.length === 0) {
         message.info("No inventory changes to save");
         return true;
       }
 
-      const result = await updateInventoryItems(inputs);
+      const operations: ApiProductUpdateInput = {
+        variants: variantUpdates,
+      };
+      const result = await updateProduct({
+        productId: product.id,
+        expectedRevision: product.revision,
+        operations,
+      });
 
       if (result.errors.length > 0) {
         message.error(
@@ -263,7 +273,7 @@ export const InventorySection = ({
       const refreshResults = await Promise.allSettled([
         onProductRefresh?.(),
         refetchInventoryWidget(),
-        loadAllProductVariants(product),
+        loadAllProductVariants(product, { forceNetwork: true }),
       ]);
       const refreshFailed = refreshResults.some(
         (refreshResult) => refreshResult.status === "rejected",
@@ -284,7 +294,7 @@ export const InventorySection = ({
       onProductRefresh,
       product,
       refetchInventoryWidget,
-      updateInventoryItems,
+      updateProduct,
     ],
   );
 

@@ -78,17 +78,17 @@ export interface VariantUpdateParams {
 export interface VariantPricingParams {
   currency: string;
   amountMinor: number;
-  compareAtMinor?: number;
+  compareAtMinor?: number | null;
 }
 
 export interface VariantInventoryParams {
   warehouseId: string;
   onHand: number;
   unavailable?: number;
-  sku?: string;
-  weight?: number;
-  unitCostMinor?: number;
-  costCurrency?: string;
+  sku?: string | null;
+  weight?: number | null;
+  unitCostMinor?: number | null;
+  costCurrency?: string | null;
 }
 
 export interface VariantDimensionsParams {

@@ -18,7 +18,6 @@ import {
   type IEditVariantsModalPayload,
 } from "../../../modals";
 import type {
-  ApiInventoryItemUpdateInput,
   ApiProduct,
   ApiProductUpdateInput,
   ApiVariantUpdateInput,
@@ -30,13 +29,11 @@ import {
 } from "../../../hooks";
 import { useDefaultWarehouse } from "../../../hooks/use-default-warehouse";
 import { useEnsureVariantInventoryItems } from "../../../hooks/use-ensure-variant-inventory-items";
-import { useUpdateInventoryItems } from "../../../hooks/use-update-inventory-items";
 import {
   PRODUCT_INVENTORY_WIDGET_QUERY,
   PRODUCT_PRICING_WIDGET_QUERY,
 } from "../../../graphql";
-import { prepareChangedVariantInventoryItemInputs } from "../../../mappers/product-variant-inventory-item.mapper";
-import { prepareChangedVariantPricingInputs } from "../../../mappers/product-variant-pricing.mapper";
+import { prepareChangedVariantUpdateInputs } from "../../../mappers/product-variant-update.mapper";
 import { getProductMediaFiles } from "../../../utils/api-product-display";
 
 interface UseProductModalsOptions {
@@ -66,7 +63,6 @@ export const useProductModals = (
   const client = useApolloClient();
   const { message } = App.useApp();
   const { updateProduct } = useUpdateProduct();
-  const { updateInventoryItems } = useUpdateInventoryItems();
   const { push: openProductModal } = useProductModal();
   const { push: openEditMediaModal } = useEditMediaModal();
   const { push: openEditOptionsModal } = useEditOptionsModal();
@@ -301,20 +297,16 @@ export const useProductModals = (
             NonNullable<IEditVariantsModalPayload["onSave"]>
           >[0],
         ): Promise<boolean> => {
-          let pricingUpdates: ApiVariantUpdateInput[];
-          let inventoryInputs: ApiInventoryItemUpdateInput[];
+          let variantUpdates: ApiVariantUpdateInput[];
 
           try {
-            pricingUpdates = prepareChangedVariantPricingInputs(
-              rows,
-              hydratedVariants,
-              options.defaultCurrency ?? null,
-            );
-            inventoryInputs = prepareChangedVariantInventoryItemInputs({
+            variantUpdates = prepareChangedVariantUpdateInputs({
               rows,
               variants: hydratedVariants,
               warehouseId: resolvedDefaultWarehouse.id,
               defaultCurrency: options.defaultCurrency ?? null,
+              includePricing: true,
+              includeInventory: true,
             });
           } catch (err) {
             message.error(
@@ -325,58 +317,38 @@ export const useProductModals = (
             return false;
           }
 
-          if (pricingUpdates.length === 0 && inventoryInputs.length === 0) {
+          if (variantUpdates.length === 0) {
             message.info("No variant changes to save");
             return true;
           }
 
-          let pricingChanged = false;
+          const operations: ApiProductUpdateInput = {
+            variants: variantUpdates,
+          };
+          const result = await updateProduct({
+            productId: product.id,
+            expectedRevision: product.revision,
+            operations,
+          });
 
-          if (pricingUpdates.length > 0) {
-            const operations: ApiProductUpdateInput = {
-              variants: pricingUpdates,
-            };
-            const pricingResult = await updateProduct({
-              productId: product.id,
-              expectedRevision: product.revision,
-              operations,
-            });
-
-            if (pricingResult.errors.length > 0) {
-              message.error(pricingResult.errors[0].message);
-              return false;
-            }
-
-            pricingChanged = true;
+          if (result.errors.length > 0) {
+            message.error(
+              result.errors[0].message ||
+                "Variant changes could not be saved.",
+            );
+            return false;
           }
 
-          if (inventoryInputs.length > 0) {
-            const inventoryResult =
-              await updateInventoryItems(inventoryInputs);
-
-            if (inventoryResult.errors.length > 0) {
-              message.error(
-                inventoryResult.errors[0].message ||
-                  "Inventory updates could not be saved.",
-              );
-
-              if (
-                pricingChanged ||
-                inventoryResult.inventoryItems.length > 0
-              ) {
-                await refreshAfterVariantSave({
-                  pricingChanged,
-                  inventoryChanged: inventoryResult.inventoryItems.length > 0,
-                });
-              }
-
-              return false;
-            }
-          }
+          const pricingChanged = variantUpdates.some(
+            (update) => !!update.pricing,
+          );
+          const inventoryChanged = variantUpdates.some(
+            (update) => !!update.inventory || !!update.dimensions,
+          );
 
           const refreshSucceeded = await refreshAfterVariantSave({
             pricingChanged,
-            inventoryChanged: inventoryInputs.length > 0,
+            inventoryChanged,
           });
 
           if (refreshSucceeded) {
@@ -409,7 +381,6 @@ export const useProductModals = (
     openEditVariantsModal,
     refetchDefaultWarehouse,
     refreshAfterVariantSave,
-    updateInventoryItems,
     updateProduct,
   ]);
 

@@ -382,9 +382,12 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
               ? {
                   currency: vu.pricing.currency,
                   amountMinor: Number(vu.pricing.amountMinor),
-                  compareAtMinor: vu.pricing.compareAtMinor
-                    ? Number(vu.pricing.compareAtMinor)
-                    : undefined,
+                  compareAtMinor:
+                    vu.pricing.compareAtMinor === undefined
+                      ? undefined
+                      : vu.pricing.compareAtMinor === null
+                        ? null
+                        : Number(vu.pricing.compareAtMinor),
                 }
               : undefined,
             inventory: vu.inventory
@@ -395,12 +398,15 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
                   ),
                   onHand: vu.inventory.onHand,
                   unavailable: vu.inventory.unavailable ?? undefined,
-                  sku: vu.inventory.sku ?? undefined,
-                  weight: vu.inventory.weight ?? undefined,
-                  unitCostMinor: vu.inventory.unitCostMinor
-                    ? Number(vu.inventory.unitCostMinor)
-                    : undefined,
-                  costCurrency: vu.inventory.costCurrency ?? undefined,
+                  sku: vu.inventory.sku,
+                  weight: vu.inventory.weight,
+                  unitCostMinor:
+                    vu.inventory.unitCostMinor === undefined
+                      ? undefined
+                      : vu.inventory.unitCostMinor === null
+                        ? null
+                        : Number(vu.inventory.unitCostMinor),
+                  costCurrency: vu.inventory.costCurrency,
                 }
               : undefined,
             dimensions: vu.dimensions
@@ -2866,9 +2872,12 @@ function mapOperationsForBulk(
             ? {
                 currency: vu.pricing.currency,
                 amountMinor: Number(vu.pricing.amountMinor),
-                compareAtMinor: vu.pricing.compareAtMinor
-                  ? Number(vu.pricing.compareAtMinor)
-                  : undefined,
+                compareAtMinor:
+                  vu.pricing.compareAtMinor === undefined
+                    ? undefined
+                    : vu.pricing.compareAtMinor === null
+                      ? null
+                      : Number(vu.pricing.compareAtMinor),
               }
             : undefined,
           inventory: vu.inventory
@@ -2879,12 +2888,15 @@ function mapOperationsForBulk(
                 ),
                 onHand: vu.inventory.onHand,
                 unavailable: vu.inventory.unavailable ?? undefined,
-                sku: vu.inventory.sku ?? undefined,
-                weight: vu.inventory.weight ?? undefined,
-                unitCostMinor: vu.inventory.unitCostMinor
-                  ? Number(vu.inventory.unitCostMinor)
-                  : undefined,
-                costCurrency: vu.inventory.costCurrency ?? undefined,
+                sku: vu.inventory.sku,
+                weight: vu.inventory.weight,
+                unitCostMinor:
+                  vu.inventory.unitCostMinor === undefined
+                    ? undefined
+                    : vu.inventory.unitCostMinor === null
+                      ? null
+                      : Number(vu.inventory.unitCostMinor),
+                costCurrency: vu.inventory.costCurrency,
               }
             : undefined,
           dimensions: vu.dimensions

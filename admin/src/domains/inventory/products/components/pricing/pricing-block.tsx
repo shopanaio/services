@@ -16,7 +16,7 @@ import { useProductPricingWidget } from "../../hooks/use-product-pricing-widget"
 import { useProductVariantsLoader } from "../../hooks/use-product-variants-loader";
 import { useUpdateProduct } from "../../hooks/use-update-product";
 import type { VariantEditorSaveRow } from "../../mappers/product-variant-editor.mapper";
-import { prepareChangedVariantPricingInputs } from "../../mappers/product-variant-pricing.mapper";
+import { prepareChangedVariantUpdateInputs } from "../../mappers/product-variant-update.mapper";
 import { useEditVariantsModal, useProductPriceHistoryModal } from "../../modals";
 import { CurrentPriceColumn } from "./components/current-price-column";
 import { KPIRow } from "./components/kpi-row";
@@ -87,11 +87,13 @@ export const PricingBlock = ({
       let variantUpdates: ApiVariantUpdateInput[];
 
       try {
-        variantUpdates = prepareChangedVariantPricingInputs(
+        variantUpdates = prepareChangedVariantUpdateInputs({
           rows,
-          editorVariants,
+          variants: editorVariants,
           defaultCurrency,
-        );
+          includePricing: true,
+          includeInventory: false,
+        });
       } catch (err) {
         message.error(
           err instanceof Error ? err.message : "Variant prices are invalid.",
