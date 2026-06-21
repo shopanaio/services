@@ -10,7 +10,9 @@ Product options are represented by `ProductOption` in the Admin API:
 - Supported display types are `BUTTONS`, `DROPDOWN`, and `SWATCH`.
 - `ProductOption.values` contains the selectable values for that option.
 - `ProductOptionSwatch` belongs to option values and is relevant only when the option `displayType` is `SWATCH`.
-- The output API does not expose option or value indexes. The UI must preserve order from the returned `options` and `values` arrays and generate sync indexes when saving.
+- The output API exposes option and value `sortIndex`, and the product details fragments currently select it.
+- The UI must preserve the rendered order from the returned `options` and `values` arrays.
+- The editor may initialize local `sortIndex` from the returned array order for drag-and-drop stability, then generate contiguous sync `sortIndex` values from the current editor order when saving.
 
 The Admin product details UI already reads options from `ApiProduct.options`. The edit modal must stop using mock options and save the complete option snapshot through `catalogMutation.productOptionsSync`.
 
@@ -48,10 +50,10 @@ Client validation should catch the same obvious errors before sync:
 - `productId` must be present.
 - option and value names must be non-empty after trimming.
 - generated option and value slugs must satisfy `/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/`.
-- option indexes must be non-negative integers.
-- value indexes must be non-negative integers.
-- option indexes must be unique.
-- value indexes must be unique within each option.
+- option `sortIndex` values must be non-negative integers.
+- value `sortIndex` values must be non-negative integers.
+- option `sortIndex` values must be unique.
+- value `sortIndex` values must be unique within each option.
 - option slugs must be unique within the product.
 - value slugs must be unique within each option.
 - option IDs must be unique.
@@ -121,7 +123,7 @@ It covers:
 - removing swatches by sending `swatch: null`;
 - invalid product errors;
 - duplicate option slugs;
-- duplicate option indexes;
+- duplicate option `sortIndex` values;
 - duplicate value slugs within an option;
 - options without values;
 - invalid existing option IDs;
@@ -200,6 +202,7 @@ fragment ProductOptionValueFields on ProductOptionValue {
   id
   name
   slug
+  sortIndex
   swatch {
     id
     swatchType
@@ -217,13 +220,14 @@ fragment ProductOptionFields on ProductOption {
   name
   slug
   displayType
+  sortIndex
   values {
     ...ProductOptionValueFields
   }
 }
 ```
 
-The schema does not expose option or value indexes. Display and editor state must derive ordering from the `options` and `values` array order returned by the API.
+The schema exposes option and value `sortIndex`, and the current product fragments already select it. Display order must still follow the returned `options` and `values` array order. Editor state should derive contiguous local `sortIndex` values from the returned array positions, not trust sparse or stale backend indexes for drag state. The sync mapper must generate contiguous output `sortIndex` values from the final editor order.
 
 `slug` is still required by the current schema and sync input. If the backend removes option and value slugs before this UI work lands, regenerate types and update this fragment, mapper, validation, and e2e assertions in the same implementation.
 
@@ -365,8 +369,9 @@ Rules:
 - Treat API options as the server-valid source of truth.
 - Preserve option order from the `options` array.
 - Preserve value order from each option `values` array.
-- Set each option `sortIndex` from its current array position.
-- Set each value `sortIndex` from its current array position.
+- Set each option editor `sortIndex` from its current array position.
+- Set each value editor `sortIndex` from its current array position.
+- Preserve API `sortIndex` only as server output data; do not use it as the source of truth for editor ordering.
 - Preserve option and value `apiId`.
 - Convert output swatches to editor swatches.
 - For image swatches, use `swatch.file?.id` as `fileId`.
@@ -395,12 +400,14 @@ buildProductOptionsSyncDraft(input: {
 Rules:
 
 - Build a complete snapshot for all editor groups.
-- Options are sorted by `sortIndex` and receive indexes `0`, `1`, `2`.
-- Values are sorted by `sortIndex` within each option and receive indexes `0`, `1`, `2`.
+- Options are sorted by local editor `sortIndex` and receive contiguous sync `sortIndex` values `0`, `1`, `2`.
+- Values are sorted by local editor `sortIndex` within each option and receive contiguous sync `sortIndex` values `0`, `1`, `2`.
 - Send option `id` only when `group.apiId` is present.
 - Send value `id` only when `value.apiId` is present.
-- Generate option slugs from group names while schema requires slugs.
-- Generate value slugs from value names while schema requires slugs.
+- Preserve existing option slugs from API-backed rows unless the user explicitly changes slug editing behavior in the future.
+- Preserve existing value slugs from API-backed rows unless the user explicitly changes slug editing behavior in the future.
+- Generate option slugs from group names only for new groups or existing groups with an empty/missing slug.
+- Generate value slugs from value names only for new values or existing values with an empty/missing slug.
 - Option slugs must be unique across the product. De-duplicate generated slugs with numeric suffixes.
 - Value slugs must be unique within the option. De-duplicate generated slugs with numeric suffixes.
 - The slug generator must never return an empty string. Use a deterministic fallback such as `option-${position + 1}` or `value-${position + 1}`.
@@ -470,8 +477,8 @@ It must detect:
 - duplicate option API IDs;
 - duplicate value row IDs;
 - duplicate value API IDs;
-- duplicate option sort positions after drag;
-- duplicate value sort positions after drag;
+- duplicate option `sortIndex` positions after drag;
+- duplicate value `sortIndex` positions after drag;
 - duplicate option slugs;
 - duplicate value slugs within an option;
 - option without values;
@@ -486,12 +493,12 @@ Validation errors must use these server-like field paths:
 - `["productId"]`
 - `["options", optionIndex, "name"]`
 - `["options", optionIndex, "slug"]`
-- `["options", optionIndex, "index"]`
+- `["options", optionIndex, "sortIndex"]`
 - `["options", optionIndex, "displayType"]`
 - `["options", optionIndex, "values"]`
 - `["options", optionIndex, "values", valueIndex, "name"]`
 - `["options", optionIndex, "values", valueIndex, "slug"]`
-- `["options", optionIndex, "values", valueIndex, "index"]`
+- `["options", optionIndex, "values", valueIndex, "sortIndex"]`
 - `["options", optionIndex, "values", valueIndex, "swatch"]`
 
 Server `userErrors` remain authoritative and must still be displayed.
@@ -628,6 +635,9 @@ Update `EditOptionsModal`:
 - build the sync draft with `buildProductOptionsSyncDraft`;
 - call `useSyncProductOptions().syncProductOptions(draft.input)`;
 - disable submit while saving;
+- introduce explicit modal dirty state, because the current options modal does not have one;
+- set dirty state to `true` whenever option, value, display type, swatch, order, add, or delete actions change editor state;
+- keep dirty state `false` immediately after initialization from `payload.options`;
 - show client validation errors in the modal;
 - show API `userErrors` in the modal;
 - keep the modal open on validation errors or API errors;
@@ -671,7 +681,7 @@ Required behavior:
 - values must not move across options unless the UI explicitly implements that workflow;
 - deleting an option deletes its values from modal state;
 - deleting the last value should be blocked or immediately replaced with an empty value row;
-- sort indexes are normalized after each drag;
+- local editor `sortIndex` values are normalized after each drag;
 - final sync payload is built from normalized groups and values, not from raw DOM order.
 
 Even if drag guards are present, save must still run `validateOptionEditorGroups`.
@@ -811,7 +821,7 @@ Per project instructions, e2e specs should be run one file at a time only when v
 ## Out Of Scope
 
 - Backend schema changes.
-- Adding option or value `index` fields to the output schema.
+- Adding new option or value `index` fields to the output schema.
 - Removing `slug` from option contracts.
 - Fixing or using `productOptionCreate`, `productOptionUpdate`, or `productOptionDelete`.
 - Reworking product variant generation beyond the behavior already provided by option sync.
@@ -838,7 +848,7 @@ Per project instructions, e2e specs should be run one file at a time only when v
 - Existing option and value IDs are preserved on update.
 - New options and values are created by omitting IDs.
 - Deleted options and values are omitted from the snapshot and removed by the API.
-- Option and value indexes are generated from current editor order.
+- Option and value `sortIndex` values are generated from current editor order.
 - Slugs are generated, valid, non-empty, and de-duplicated.
 - Non-swatch options do not send hidden swatches.
 - Existing image swatches are preserved only through real API file IDs.
