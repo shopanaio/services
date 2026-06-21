@@ -1,17 +1,20 @@
 "use client";
 
-import { Flex, Statistic, Tag, Typography } from "antd";
+import { Button, Dropdown, Flex, Statistic, Typography } from "antd";
+import type { MenuProps } from "antd";
+import {
+  CheckCircleOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  MoreOutlined,
+} from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import type {
   ApiWarehouse,
   ApiWarehouseStockConnection,
 } from "@/graphql/types";
 import { WarehouseDefaultTag } from "../warehouse-default-tag";
-import {
-  ActivitySection,
-  IdentitySection,
-  StockSection,
-} from "./sections";
+import { StockSection } from "./sections";
 
 const useStyles = createStyles(({ token }) => ({
   header: {
@@ -25,7 +28,7 @@ const useStyles = createStyles(({ token }) => ({
   },
   metrics: {
     display: "grid",
-    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
     gap: token.paddingSM,
     "@media (max-width: 720px)": {
       gridTemplateColumns: "1fr",
@@ -65,6 +68,30 @@ export function WarehouseDetailsCard({
   const { styles } = useStyles();
   const stockConnection = warehouse.stock as ApiWarehouseStockConnection;
   const stockRows = stockConnection.edges.map((edge) => edge.node);
+  const actionItems: MenuProps["items"] = [
+    {
+      key: "edit-identity",
+      label: "Edit identity",
+      icon: <EditOutlined />,
+      onClick: onEditIdentity,
+    },
+    {
+      key: "edit-default",
+      label: warehouse.isDefault ? "Default settings" : "Set as default",
+      icon: <CheckCircleOutlined />,
+      onClick: onEditDefault,
+    },
+    {
+      type: "divider",
+    },
+    {
+      key: "delete",
+      label: "Delete warehouse",
+      icon: <DeleteOutlined />,
+      danger: true,
+      onClick: onDelete,
+    },
+  ];
 
   return (
     <Flex vertical gap={12} style={{ width: "100%" }}>
@@ -73,7 +100,16 @@ export function WarehouseDetailsCard({
           <Typography.Title level={4} style={{ margin: 0 }}>
             {warehouse.name}
           </Typography.Title>
-          <WarehouseDefaultTag isDefault={warehouse.isDefault} />
+          <Flex align="center" gap={8}>
+            <WarehouseDefaultTag isDefault={warehouse.isDefault} />
+            <Dropdown menu={{ items: actionItems }} trigger={["click"]}>
+              <Button
+                type="text"
+                icon={<MoreOutlined />}
+                data-testid="warehouse-details-actions-button"
+              />
+            </Dropdown>
+          </Flex>
         </Flex>
         <Flex align="center" gap={12} wrap="wrap">
           <Typography.Text type="secondary" className={styles.code}>
@@ -98,24 +134,7 @@ export function WarehouseDetailsCard({
         <div className={styles.metric}>
           <Statistic title="Stock records" value={stockConnection.totalCount} />
         </div>
-        <div className={styles.metric}>
-          <Typography.Text type="secondary">Default behavior</Typography.Text>
-          <div style={{ marginTop: 8 }}>
-            {warehouse.isDefault ? (
-              <Tag color="processing">Used for fallback</Tag>
-            ) : (
-              <Tag>Not default</Tag>
-            )}
-          </div>
-        </div>
       </div>
-
-      <IdentitySection
-        warehouse={warehouse}
-        onEditIdentity={onEditIdentity}
-        onEditDefault={onEditDefault}
-        onDelete={onDelete}
-      />
 
       <StockSection
         stock={stockRows}
@@ -123,8 +142,6 @@ export function WarehouseDetailsCard({
         totalCount={stockConnection.totalCount}
         onPageChange={onStockPageChange}
       />
-
-      <ActivitySection warehouse={warehouse} />
     </Flex>
   );
 }

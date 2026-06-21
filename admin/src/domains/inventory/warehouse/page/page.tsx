@@ -30,7 +30,7 @@ import {
   SortDirection,
   WarehouseOrderField,
 } from "@/graphql/types";
-import { WarehouseDefaultTag, WarehouseNameCell } from "../components";
+import { WarehouseNameCell } from "../components";
 import { useWarehouses } from "../hooks";
 import {
   useWarehouseCreateModal,
@@ -115,16 +115,6 @@ const WarehouseCellRenderer = (
   }
 
   return <WarehouseNameCell warehouse={props.data} />;
-};
-
-const DefaultCellRenderer = (
-  props: CustomCellRendererProps<ApiWarehouse, boolean>,
-) => {
-  if (props.value) {
-    return <WarehouseDefaultTag isDefault />;
-  }
-
-  return <Typography.Text type="secondary">No</Typography.Text>;
 };
 
 const CodeCellRenderer = (
@@ -250,12 +240,6 @@ export default function WarehousePage() {
         cellRenderer: CodeCellRenderer,
         flex: 1,
         minWidth: 150,
-      },
-      {
-        headerName: "Default",
-        field: "isDefault",
-        cellRenderer: DefaultCellRenderer,
-        width: 130,
       },
       {
         headerName: "Stocked variants",
