@@ -50,8 +50,7 @@ export class WarehouseResolver extends InventoryType<string, Warehouse> {
   }
 
   async variantsCount(): Promise<number> {
-    // TODO: implement via loader when needed
-    return 0;
+    return this.$ctx.kernel.repository.stock.countByFilter(this.$props);
   }
 
   stock(args: StockRelayInput) {

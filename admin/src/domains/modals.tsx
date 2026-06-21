@@ -253,6 +253,54 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       ),
     },
     // ========================================
+    // Warehouse modals
+    // ========================================
+    // Warehouse modal
+    {
+      type: 'warehouse',
+      component: dynamic(() =>
+        import('@/domains/inventory/warehouse/modals/warehouse-modal').then(
+          (m) => m.WarehouseModal
+        )
+      ),
+    },
+    // Create Warehouse modal
+    {
+      type: 'warehouse-create',
+      component: dynamic(() =>
+        import('@/domains/inventory/warehouse/modals/create-warehouse-modal').then(
+          (m) => m.CreateWarehouseModal
+        )
+      ),
+    },
+    // Edit warehouse identity modal
+    {
+      type: 'warehouse-edit-identity',
+      component: dynamic(() =>
+        import('@/domains/inventory/warehouse/modals/edit-identity-modal').then(
+          (m) => m.EditIdentityModal
+        )
+      ),
+    },
+    // Edit warehouse default modal
+    {
+      type: 'warehouse-edit-default',
+      component: dynamic(() =>
+        import('@/domains/inventory/warehouse/modals/edit-default-modal').then(
+          (m) => m.EditDefaultModal
+        )
+      ),
+    },
+    // Delete warehouse modal
+    {
+      type: 'warehouse-delete',
+      component: dynamic(() =>
+        import('@/domains/inventory/warehouse/modals/delete-warehouse-modal').then(
+          (m) => m.DeleteWarehouseModal
+        )
+      ),
+    },
+    // ========================================
     // Category modals
     // ========================================
     // Category modal

@@ -91,10 +91,6 @@ export class WarehouseRepository extends BaseRepository {
     const id = randomUUID();
     const now = new Date().toISOString();
 
-    console.log("[WarehouseRepository.create] Starting with data:", JSON.stringify(data));
-    console.log("[WarehouseRepository.create] Generated id:", id);
-    console.log("[WarehouseRepository.create] projectId:", this.storeId);
-
     const newWarehouse: NewWarehouse = {
       projectId: this.storeId,
       id,
@@ -105,16 +101,10 @@ export class WarehouseRepository extends BaseRepository {
       updatedAt: now,
     };
 
-    console.log("[WarehouseRepository.create] newWarehouse object:", JSON.stringify(newWarehouse));
-    console.log("[WarehouseRepository.create] connection exists:", !!this.connection);
-
     const result = await this.connection
       .insert(warehouses)
       .values(newWarehouse)
       .returning();
-
-    console.log("[WarehouseRepository.create] Insert result:", JSON.stringify(result));
-    console.log("[WarehouseRepository.create] result[0]:", JSON.stringify(result[0]));
 
     return result[0];
   }
@@ -170,7 +160,7 @@ export class WarehouseRepository extends BaseRepository {
 
     const [result, totalCount] = await Promise.all([
       warehouseRelayQuery.execute(this.connection, executeInput),
-      this.count(),
+      warehouseRelayQuery.count(this.connection, { where: mergedWhere }),
     ]);
 
     return {
@@ -186,9 +176,6 @@ export class WarehouseRepository extends BaseRepository {
   // ============ Loader ============
 
   async getByIds(warehouseIds: readonly string[]): Promise<Warehouse[]> {
-    console.log("[WarehouseRepository.getByIds] warehouseIds:", warehouseIds);
-    console.log("[WarehouseRepository.getByIds] projectId:", this.storeId);
-
     const result = await this.connection
       .select()
       .from(warehouses)
@@ -199,7 +186,6 @@ export class WarehouseRepository extends BaseRepository {
         )
       );
 
-    console.log("[WarehouseRepository.getByIds] Query result:", JSON.stringify(result));
     return result;
   }
 }
