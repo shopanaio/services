@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, count } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, count } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import {
   createQuery,
@@ -317,6 +317,11 @@ export class ProductRepository extends BaseRepository {
           eq(productOption.projectId, this.storeId),
           inArray(productOption.productId, [...productIds])
         )
+      )
+      .orderBy(
+        asc(productOption.productId),
+        asc(productOption.sortIndex),
+        asc(productOption.id)
       );
   }
 

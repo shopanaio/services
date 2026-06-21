@@ -6,7 +6,7 @@ import { productOptionVariantLink, variant } from "../../repositories/models/ind
 
 export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpdateResult> {
   protected async execute(params: OptionUpdateParams): Promise<OptionUpdateResult> {
-    const { id, slug, name, displayType, values } = params;
+    const { id, slug, name, displayType, sortIndex, values } = params;
 
     // 1. Check option exists
     const existingOption = await this.repository.option.findById(id);
@@ -36,9 +36,10 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
     }
 
     // 3. Update option
-    const updateData: { slug?: string; displayType?: string } = {};
+    const updateData: { slug?: string; displayType?: string; sortIndex?: number } = {};
     if (slug !== undefined) updateData.slug = slug;
     if (displayType !== undefined) updateData.displayType = displayType;
+    if (sortIndex !== undefined) updateData.sortIndex = sortIndex;
 
     if (Object.keys(updateData).length > 0) {
       await this.repository.option.update(id, updateData);
@@ -96,12 +97,19 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
           return [{ message: "Option value not found", field: ["values", "update"], code: "NOT_FOUND" }];
         }
 
-        const updateData: { slug?: string; swatchId?: string | null } = {};
+        const updateData: {
+          slug?: string;
+          sortIndex?: number;
+          swatchId?: string | null;
+        } = {};
 
         if (valueUpdate.slug !== undefined && valueUpdate.slug !== existingValue.slug) {
           updateData.slug = valueUpdate.slug;
           // Track that this value's slug changed
           changedValueIds.push(valueUpdate.id);
+        }
+        if (valueUpdate.sortIndex !== undefined) {
+          updateData.sortIndex = valueUpdate.sortIndex;
         }
 
         if (valueUpdate.swatch !== undefined) {
@@ -141,9 +149,12 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
           swatchId = await this.createSwatch(valueInput.swatch);
         }
 
+        const resolvedSortIndex = valueInput.sortIndex ?? sortIndex;
+        sortIndex = Math.max(sortIndex + 1, resolvedSortIndex + 1);
+
         const optionValue = await this.repository.option.createValue(optionId, {
           slug: valueInput.slug,
-          sortIndex: sortIndex++,
+          sortIndex: resolvedSortIndex,
           swatchId,
         });
 

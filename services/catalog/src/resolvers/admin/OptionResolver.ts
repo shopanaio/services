@@ -40,6 +40,10 @@ export class OptionResolver extends CatalogType<string, ProductOption> {
     return ((await this.$get("displayType")) as OptionDisplayType) ?? "BUTTONS";
   }
 
+  async sortIndex() {
+    return (await this.$get("sortIndex")) ?? 0;
+  }
+
   /**
    * Returns option values for this option
    */

@@ -96,10 +96,12 @@ mutation ProductUpdate($productId: ID!, $expectedRevision: Int, $operations: Pro
           id
           slug
           name
+          sortIndex
           values {
             id
             slug
             name
+            sortIndex
           }
         }
       }

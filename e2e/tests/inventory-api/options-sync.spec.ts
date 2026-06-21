@@ -39,24 +39,24 @@ test.describe('Product Options Sync API', () => {
 
       const result = await syncOptions(api, product.id, [
         {
-          index: 0,
+          sortIndex: 0,
           slug: 'size',
           name: 'Size',
           displayType: 'BUTTONS',
           values: [
-            { index: 0, slug: 's', name: 'Small' },
-            { index: 1, slug: 'm', name: 'Medium' },
-            { index: 2, slug: 'l', name: 'Large' },
+            { sortIndex: 0, slug: 's', name: 'Small' },
+            { sortIndex: 1, slug: 'm', name: 'Medium' },
+            { sortIndex: 2, slug: 'l', name: 'Large' },
           ],
         },
         {
-          index: 1,
+          sortIndex: 1,
           slug: 'color',
           name: 'Color',
           displayType: 'DROPDOWN',
           values: [
-            { index: 0, slug: 'red', name: 'Red' },
-            { index: 1, slug: 'blue', name: 'Blue' },
+            { sortIndex: 0, slug: 'red', name: 'Red' },
+            { sortIndex: 1, slug: 'blue', name: 'Blue' },
           ],
         },
       ]);
@@ -87,25 +87,25 @@ test.describe('Product Options Sync API', () => {
 
       const result = await syncOptions(api, product.id, [
         {
-          index: 0,
+          sortIndex: 0,
           slug: 'color',
           name: 'Color',
           displayType: 'SWATCH',
           values: [
             {
-              index: 0,
+              sortIndex: 0,
               slug: 'red',
               name: 'Red',
               swatch: { swatchType: 'COLOR', colorOne: '#FF0000' },
             },
             {
-              index: 1,
+              sortIndex: 1,
               slug: 'blue',
               name: 'Blue',
               swatch: { swatchType: 'COLOR', colorOne: '#0000FF' },
             },
             {
-              index: 2,
+              sortIndex: 2,
               slug: 'gradient',
               name: 'Sunset',
               swatch: { swatchType: 'GRADIENT', colorOne: '#FF6B6B', colorTwo: '#4ECDC4' },
@@ -142,11 +142,11 @@ test.describe('Product Options Sync API', () => {
       // Create initial option
       const createResult = await syncOptions(api, product.id, [
         {
-          index: 0,
+          sortIndex: 0,
           slug: 'size',
           name: 'Size',
           displayType: 'BUTTONS',
-          values: [{ index: 0, slug: 's', name: 'Small' }],
+          values: [{ sortIndex: 0, slug: 's', name: 'Small' }],
         },
       ]);
 
@@ -157,12 +157,12 @@ test.describe('Product Options Sync API', () => {
       const updateResult = await syncOptions(api, product.id, [
         {
           id: createdOption.id,
-          index: 0,
+          sortIndex: 0,
           slug: 'size',
           name: 'Clothing Size', // Changed name
           displayType: 'DROPDOWN', // Changed display type
           values: [
-            { id: createdValueId, index: 0, slug: 's', name: 'Small (S)' }, // Changed value name
+            { id: createdValueId, sortIndex: 0, slug: 's', name: 'Small (S)' }, // Changed value name
           ],
         },
       ]);
@@ -184,11 +184,11 @@ test.describe('Product Options Sync API', () => {
       // Create initial option with one value
       const createResult = await syncOptions(api, product.id, [
         {
-          index: 0,
+          sortIndex: 0,
           slug: 'size',
           name: 'Size',
           displayType: 'BUTTONS',
-          values: [{ index: 0, slug: 's', name: 'S' }],
+          values: [{ sortIndex: 0, slug: 's', name: 'S' }],
         },
       ]);
 
@@ -199,14 +199,14 @@ test.describe('Product Options Sync API', () => {
       const updateResult = await syncOptions(api, product.id, [
         {
           id: createdOption.id,
-          index: 0,
+          sortIndex: 0,
           slug: 'size',
           name: 'Size',
           displayType: 'BUTTONS',
           values: [
-            { id: existingValueId, index: 0, slug: 's', name: 'S' },
-            { index: 1, slug: 'm', name: 'M' }, // New value
-            { index: 2, slug: 'l', name: 'L' }, // New value
+            { id: existingValueId, sortIndex: 0, slug: 's', name: 'S' },
+            { sortIndex: 1, slug: 'm', name: 'M' }, // New value
+            { sortIndex: 2, slug: 'l', name: 'L' }, // New value
           ],
         },
       ]);
@@ -217,24 +217,24 @@ test.describe('Product Options Sync API', () => {
       expect(updateResult.options[0].values.map((v: any) => v.name)).toEqual(['S', 'M', 'L']);
     });
 
-    test('should reorder options by changing index', async ({ api }) => {
+    test('should reorder options by changing sortIndex', async ({ api }) => {
       const product = await createProduct(api, 'Product Reorder');
 
       // Create options in order: Size, Color
       const createResult = await syncOptions(api, product.id, [
         {
-          index: 0,
+          sortIndex: 0,
           slug: 'size',
           name: 'Size',
           displayType: 'BUTTONS',
-          values: [{ index: 0, slug: 's', name: 'S' }],
+          values: [{ sortIndex: 0, slug: 's', name: 'S' }],
         },
         {
-          index: 1,
+          sortIndex: 1,
           slug: 'color',
           name: 'Color',
           displayType: 'DROPDOWN',
-          values: [{ index: 0, slug: 'red', name: 'Red' }],
+          values: [{ sortIndex: 0, slug: 'red', name: 'Red' }],
         },
       ]);
 
@@ -250,19 +250,19 @@ test.describe('Product Options Sync API', () => {
       const updateResult = await syncOptions(api, product.id, [
         {
           id: colorOption.id,
-          index: 0, // Color is now first
+          sortIndex: 0, // Color is now first
           slug: 'color',
           name: 'Color',
           displayType: 'DROPDOWN',
-          values: [{ id: colorOption.values[0].id, index: 0, slug: 'red', name: 'Red' }],
+          values: [{ id: colorOption.values[0].id, sortIndex: 0, slug: 'red', name: 'Red' }],
         },
         {
           id: sizeOption.id,
-          index: 1, // Size is now second
+          sortIndex: 1, // Size is now second
           slug: 'size',
           name: 'Size',
           displayType: 'BUTTONS',
-          values: [{ id: sizeOption.values[0].id, index: 0, slug: 's', name: 'S' }],
+          values: [{ id: sizeOption.values[0].id, sortIndex: 0, slug: 's', name: 'S' }],
         },
       ]);
 
@@ -276,13 +276,13 @@ test.describe('Product Options Sync API', () => {
       // Create option with swatch
       const createResult = await syncOptions(api, product.id, [
         {
-          index: 0,
+          sortIndex: 0,
           slug: 'color',
           name: 'Color',
           displayType: 'SWATCH',
           values: [
             {
-              index: 0,
+              sortIndex: 0,
               slug: 'red',
               name: 'Red',
               swatch: { swatchType: 'COLOR', colorOne: '#FF0000' },
@@ -298,14 +298,14 @@ test.describe('Product Options Sync API', () => {
       const updateResult = await syncOptions(api, product.id, [
         {
           id: createdOption.id,
-          index: 0,
+          sortIndex: 0,
           slug: 'color',
           name: 'Color',
           displayType: 'SWATCH',
           values: [
             {
               id: createdValue.id,
-              index: 0,
+              sortIndex: 0,
               slug: 'red',
               name: 'Crimson Red', // Updated name
               swatch: { swatchType: 'COLOR', colorOne: '#DC143C' }, // Updated color
@@ -328,18 +328,18 @@ test.describe('Product Options Sync API', () => {
       // Create two options
       const createResult = await syncOptions(api, product.id, [
         {
-          index: 0,
+          sortIndex: 0,
           slug: 'size',
           name: 'Size',
           displayType: 'BUTTONS',
-          values: [{ index: 0, slug: 's', name: 'S' }],
+          values: [{ sortIndex: 0, slug: 's', name: 'S' }],
         },
         {
-          index: 1,
+          sortIndex: 1,
           slug: 'color',
           name: 'Color',
           displayType: 'DROPDOWN',
-          values: [{ index: 0, slug: 'red', name: 'Red' }],
+          values: [{ sortIndex: 0, slug: 'red', name: 'Red' }],
         },
       ]);
 
@@ -351,11 +351,11 @@ test.describe('Product Options Sync API', () => {
       const syncResult = await syncOptions(api, product.id, [
         {
           id: sizeOption.id,
-          index: 0,
+          sortIndex: 0,
           slug: 'size',
           name: 'Size',
           displayType: 'BUTTONS',
-          values: [{ id: sizeOption.values[0].id, index: 0, slug: 's', name: 'S' }],
+          values: [{ id: sizeOption.values[0].id, sortIndex: 0, slug: 's', name: 'S' }],
         },
       ]);
 
@@ -370,18 +370,18 @@ test.describe('Product Options Sync API', () => {
       // Create options
       await syncOptions(api, product.id, [
         {
-          index: 0,
+          sortIndex: 0,
           slug: 'size',
           name: 'Size',
           displayType: 'BUTTONS',
-          values: [{ index: 0, slug: 's', name: 'S' }],
+          values: [{ sortIndex: 0, slug: 's', name: 'S' }],
         },
         {
-          index: 1,
+          sortIndex: 1,
           slug: 'color',
           name: 'Color',
           displayType: 'DROPDOWN',
-          values: [{ index: 0, slug: 'red', name: 'Red' }],
+          values: [{ sortIndex: 0, slug: 'red', name: 'Red' }],
         },
       ]);
 
@@ -398,14 +398,14 @@ test.describe('Product Options Sync API', () => {
       // Create option with multiple values
       const createResult = await syncOptions(api, product.id, [
         {
-          index: 0,
+          sortIndex: 0,
           slug: 'size',
           name: 'Size',
           displayType: 'BUTTONS',
           values: [
-            { index: 0, slug: 's', name: 'S' },
-            { index: 1, slug: 'm', name: 'M' },
-            { index: 2, slug: 'l', name: 'L' },
+            { sortIndex: 0, slug: 's', name: 'S' },
+            { sortIndex: 1, slug: 'm', name: 'M' },
+            { sortIndex: 2, slug: 'l', name: 'L' },
           ],
         },
       ]);
@@ -419,11 +419,11 @@ test.describe('Product Options Sync API', () => {
       const syncResult = await syncOptions(api, product.id, [
         {
           id: option.id,
-          index: 0,
+          sortIndex: 0,
           slug: 'size',
           name: 'Size',
           displayType: 'BUTTONS',
-          values: [{ id: valueToKeep.id, index: 0, slug: 'm', name: 'M' }], // Only keep M
+          values: [{ id: valueToKeep.id, sortIndex: 0, slug: 'm', name: 'M' }], // Only keep M
         },
       ]);
 
@@ -438,13 +438,13 @@ test.describe('Product Options Sync API', () => {
       // Create option with swatch
       const createResult = await syncOptions(api, product.id, [
         {
-          index: 0,
+          sortIndex: 0,
           slug: 'color',
           name: 'Color',
           displayType: 'SWATCH',
           values: [
             {
-              index: 0,
+              sortIndex: 0,
               slug: 'red',
               name: 'Red',
               swatch: { swatchType: 'COLOR', colorOne: '#FF0000' },
@@ -461,14 +461,14 @@ test.describe('Product Options Sync API', () => {
       const updateResult = await syncOptions(api, product.id, [
         {
           id: option.id,
-          index: 0,
+          sortIndex: 0,
           slug: 'color',
           name: 'Color',
           displayType: 'DROPDOWN', // Changed to dropdown since no swatch
           values: [
             {
               id: value.id,
-              index: 0,
+              sortIndex: 0,
               slug: 'red',
               name: 'Red',
               swatch: null, // Remove swatch
@@ -504,18 +504,18 @@ test.describe('Product Options Sync API', () => {
         product.id,
         [
           {
-            index: 0,
+            sortIndex: 0,
             slug: 'size',
             name: 'Size',
             displayType: 'BUTTONS',
-            values: [{ index: 0, slug: 's', name: 'S' }],
+            values: [{ sortIndex: 0, slug: 's', name: 'S' }],
           },
           {
-            index: 1,
+            sortIndex: 1,
             slug: 'size', // Duplicate slug
             name: 'Another Size',
             displayType: 'DROPDOWN',
-            values: [{ index: 0, slug: 'm', name: 'M' }],
+            values: [{ sortIndex: 0, slug: 'm', name: 'M' }],
           },
         ],
         false,
@@ -533,18 +533,18 @@ test.describe('Product Options Sync API', () => {
         product.id,
         [
           {
-            index: 0,
+            sortIndex: 0,
             slug: 'size',
             name: 'Size',
             displayType: 'BUTTONS',
-            values: [{ index: 0, slug: 's', name: 'S' }],
+            values: [{ sortIndex: 0, slug: 's', name: 'S' }],
           },
           {
-            index: 0, // Duplicate index
+            sortIndex: 0, // Duplicate sortIndex
             slug: 'color',
             name: 'Color',
             displayType: 'DROPDOWN',
-            values: [{ index: 0, slug: 'red', name: 'Red' }],
+            values: [{ sortIndex: 0, slug: 'red', name: 'Red' }],
           },
         ],
         false,
@@ -562,13 +562,13 @@ test.describe('Product Options Sync API', () => {
         product.id,
         [
           {
-            index: 0,
+            sortIndex: 0,
             slug: 'size',
             name: 'Size',
             displayType: 'BUTTONS',
             values: [
-              { index: 0, slug: 'small', name: 'Small' },
-              { index: 1, slug: 'small', name: 'Another Small' }, // Duplicate slug
+              { sortIndex: 0, slug: 'small', name: 'Small' },
+              { sortIndex: 1, slug: 'small', name: 'Another Small' }, // Duplicate slug
             ],
           },
         ],
@@ -587,7 +587,7 @@ test.describe('Product Options Sync API', () => {
         product.id,
         [
           {
-            index: 0,
+            sortIndex: 0,
             slug: 'size',
             name: 'Size',
             displayType: 'BUTTONS',
@@ -610,11 +610,11 @@ test.describe('Product Options Sync API', () => {
         [
           {
             id: encodeGlobalId('Option', '00000000-0000-0000-0000-000000000000'), // Non-existent ID
-            index: 0,
+            sortIndex: 0,
             slug: 'size',
             name: 'Size',
             displayType: 'BUTTONS',
-            values: [{ index: 0, slug: 's', name: 'S' }],
+            values: [{ sortIndex: 0, slug: 's', name: 'S' }],
           },
         ],
         false,
@@ -630,11 +630,11 @@ test.describe('Product Options Sync API', () => {
       // Create initial option
       const createResult = await syncOptions(api, product.id, [
         {
-          index: 0,
+          sortIndex: 0,
           slug: 'size',
           name: 'Size',
           displayType: 'BUTTONS',
-          values: [{ index: 0, slug: 's', name: 'S' }],
+          values: [{ sortIndex: 0, slug: 's', name: 'S' }],
         },
       ]);
 
@@ -647,12 +647,12 @@ test.describe('Product Options Sync API', () => {
         [
           {
             // No id - new option
-            index: 0,
+            sortIndex: 0,
             slug: 'color',
             name: 'Color',
             displayType: 'DROPDOWN',
             values: [
-              { id: existingValueId, index: 0, slug: 'red', name: 'Red' }, // Invalid reference
+              { id: existingValueId, sortIndex: 0, slug: 'red', name: 'Red' }, // Invalid reference
             ],
           },
         ],
@@ -671,44 +671,44 @@ test.describe('Product Options Sync API', () => {
       // Create initial structure
       await syncOptions(api, product.id, [
         {
-          index: 0,
+          sortIndex: 0,
           slug: 'old-size',
           name: 'Old Size',
           displayType: 'BUTTONS',
           values: [
-            { index: 0, slug: 'old-s', name: 'Old S' },
-            { index: 1, slug: 'old-m', name: 'Old M' },
+            { sortIndex: 0, slug: 'old-s', name: 'Old S' },
+            { sortIndex: 1, slug: 'old-m', name: 'Old M' },
           ],
         },
         {
-          index: 1,
+          sortIndex: 1,
           slug: 'old-color',
           name: 'Old Color',
           displayType: 'DROPDOWN',
-          values: [{ index: 0, slug: 'old-red', name: 'Old Red' }],
+          values: [{ sortIndex: 0, slug: 'old-red', name: 'Old Red' }],
         },
       ]);
 
       // Replace with completely new structure
       const result = await syncOptions(api, product.id, [
         {
-          index: 0,
+          sortIndex: 0,
           slug: 'material',
           name: 'Material',
           displayType: 'DROPDOWN',
           values: [
-            { index: 0, slug: 'cotton', name: 'Cotton' },
-            { index: 1, slug: 'polyester', name: 'Polyester' },
+            { sortIndex: 0, slug: 'cotton', name: 'Cotton' },
+            { sortIndex: 1, slug: 'polyester', name: 'Polyester' },
           ],
         },
         {
-          index: 1,
+          sortIndex: 1,
           slug: 'style',
           name: 'Style',
           displayType: 'SWATCH',
           values: [
             {
-              index: 0,
+              sortIndex: 0,
               slug: 'classic',
               name: 'Classic',
               swatch: { swatchType: 'COLOR', colorOne: '#000000' },
@@ -747,32 +747,32 @@ test.describe('Product Options Sync API', () => {
       // [2] Material (Cotton)
       const createResult = await syncOptions(api, product.id, [
         {
-          index: 0,
+          sortIndex: 0,
           slug: 'size',
           name: 'Size',
           displayType: 'BUTTONS',
           values: [
-            { index: 0, slug: 's', name: 'S' },
-            { index: 1, slug: 'm', name: 'M' },
-            { index: 2, slug: 'l', name: 'L' },
+            { sortIndex: 0, slug: 's', name: 'S' },
+            { sortIndex: 1, slug: 'm', name: 'M' },
+            { sortIndex: 2, slug: 'l', name: 'L' },
           ],
         },
         {
-          index: 1,
+          sortIndex: 1,
           slug: 'color',
           name: 'Color',
           displayType: 'DROPDOWN',
           values: [
-            { index: 0, slug: 'red', name: 'Red' },
-            { index: 1, slug: 'blue', name: 'Blue' },
+            { sortIndex: 0, slug: 'red', name: 'Red' },
+            { sortIndex: 1, slug: 'blue', name: 'Blue' },
           ],
         },
         {
-          index: 2,
+          sortIndex: 2,
           slug: 'material',
           name: 'Material',
           displayType: 'DROPDOWN',
-          values: [{ index: 0, slug: 'cotton', name: 'Cotton' }],
+          values: [{ sortIndex: 0, slug: 'cotton', name: 'Cotton' }],
         },
       ]);
 
@@ -807,20 +807,20 @@ test.describe('Product Options Sync API', () => {
       const updateResult = await syncOptions(api, product.id, [
         {
           id: color.id,
-          index: 0, // Color is now first
+          sortIndex: 0, // Color is now first
           slug: 'color',
           name: 'Colour', // Renamed
           displayType: 'SWATCH', // Changed type
           values: [
             {
               id: colorBlue.id,
-              index: 0,
+              sortIndex: 0,
               slug: 'blue',
               name: 'Blue',
               swatch: { swatchType: 'COLOR', colorOne: '#0000FF' },
             },
             {
-              index: 1,
+              sortIndex: 1,
               slug: 'green',
               name: 'Green',
               swatch: { swatchType: 'COLOR', colorOne: '#00FF00' },
@@ -829,14 +829,14 @@ test.describe('Product Options Sync API', () => {
         },
         {
           id: size.id,
-          index: 1, // Size is now second
+          sortIndex: 1, // Size is now second
           slug: 'size',
           name: 'Size',
           displayType: 'DROPDOWN', // Changed type
           values: [
-            { id: sizeM.id, index: 0, slug: 'm', name: 'M' },
-            { id: sizeL.id, index: 1, slug: 'l', name: 'L' },
-            { index: 2, slug: 'xl', name: 'XL' }, // New
+            { id: sizeM.id, sortIndex: 0, slug: 'm', name: 'M' },
+            { id: sizeL.id, sortIndex: 1, slug: 'l', name: 'L' },
+            { sortIndex: 2, slug: 'xl', name: 'XL' }, // New
           ],
         },
         // Material is deleted (not included)
@@ -876,11 +876,11 @@ test.describe('Product Options Sync API', () => {
       // Create options
       const createResult = await syncOptions(api, product.id, [
         {
-          index: 0,
+          sortIndex: 0,
           slug: 'size',
           name: 'Size',
           displayType: 'BUTTONS',
-          values: [{ index: 0, slug: 's', name: 'S' }],
+          values: [{ sortIndex: 0, slug: 's', name: 'S' }],
         },
       ]);
 
@@ -892,11 +892,11 @@ test.describe('Product Options Sync API', () => {
       const updateResult = await syncOptions(api, product.id, [
         {
           id: originalOptionId,
-          index: 0,
+          sortIndex: 0,
           slug: 'size',
           name: 'Updated Size',
           displayType: 'DROPDOWN',
-          values: [{ id: originalValueId, index: 0, slug: 's', name: 'Updated S' }],
+          values: [{ id: originalValueId, sortIndex: 0, slug: 's', name: 'Updated S' }],
         },
       ]);
 
@@ -912,27 +912,27 @@ test.describe('Product Options Sync API', () => {
 
       const result = await syncOptions(api, product.id, [
         {
-          index: 0,
+          sortIndex: 0,
           slug: 'buttons-option',
           name: 'Buttons Option',
           displayType: 'BUTTONS',
-          values: [{ index: 0, slug: 'btn-val', name: 'Button Value' }],
+          values: [{ sortIndex: 0, slug: 'btn-val', name: 'Button Value' }],
         },
         {
-          index: 1,
+          sortIndex: 1,
           slug: 'dropdown-option',
           name: 'Dropdown Option',
           displayType: 'DROPDOWN',
-          values: [{ index: 0, slug: 'dd-val', name: 'Dropdown Value' }],
+          values: [{ sortIndex: 0, slug: 'dd-val', name: 'Dropdown Value' }],
         },
         {
-          index: 2,
+          sortIndex: 2,
           slug: 'swatch-option',
           name: 'Swatch Option',
           displayType: 'SWATCH',
           values: [
             {
-              index: 0,
+              sortIndex: 0,
               slug: 'sw-val',
               name: 'Swatch Value',
               swatch: { swatchType: 'COLOR', colorOne: '#FF0000' },

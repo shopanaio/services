@@ -34,6 +34,9 @@ type ProductOption implements Node @key(fields: "id") {
   """The display type for UI rendering."""
   displayType: OptionDisplayType!
 
+  """Sort order within the product options list."""
+  sortIndex: Int!
+
   """The available values for this option."""
   values: [ProductOptionValue!]!
 }
@@ -50,6 +53,9 @@ type ProductOptionValue implements Node @key(fields: "id") {
 
   """Display name."""
   name: String!
+
+  """Sort order within the option values list."""
+  sortIndex: Int!
 
   """The visual swatch for this value (if applicable)."""
   swatch: ProductOptionSwatch
@@ -135,6 +141,9 @@ input ProductOptionValueCreateInput {
 
   """The swatch for this value."""
   swatch: ProductOptionSwatchInput
+
+  """Sort order within the option values list."""
+  sortIndex: Int
 }
 
 """
@@ -152,6 +161,9 @@ input ProductOptionCreateInput {
 
   """The display type for UI rendering."""
   displayType: OptionDisplayType!
+
+  """Sort order within the product options list."""
+  sortIndex: Int
 
   """The values for this option."""
   values: [ProductOptionValueCreateInput!]!
@@ -186,6 +198,9 @@ input ProductOptionValueUpdateInput {
 
   """The swatch for this value."""
   swatch: ProductOptionSwatchInput
+
+  """Sort order within the option values list."""
+  sortIndex: Int
 }
 
 """
@@ -217,6 +232,9 @@ input ProductOptionUpdateInput {
 
   """The new display type."""
   displayType: OptionDisplayType
+
+  """Sort order within the product options list."""
+  sortIndex: Int
 
   """Nested value operations."""
   values: ProductOptionValuesInput
@@ -267,8 +285,8 @@ input ProductOptionValueSyncInput {
   """Existing value ID (null = create new)."""
   id: ID
 
-  """Position within the option (0, 1, 2...)."""
-  index: Int!
+  """Sort order within the option values list."""
+  sortIndex: Int!
 
   """The URL-friendly slug for the value."""
   slug: String!
@@ -287,8 +305,8 @@ input ProductOptionSyncItemInput {
   """Existing option ID (null = create new)."""
   id: ID
 
-  """Position in the options list (0, 1, 2...)."""
-  index: Int!
+  """Sort order within the product options list."""
+  sortIndex: Int!
 
   """The URL-friendly slug for the option."""
   slug: String!
@@ -327,4 +345,3 @@ type ProductOptionsSyncPayload {
   """List of errors that occurred."""
   userErrors: [GenericUserError!]!
 }
-

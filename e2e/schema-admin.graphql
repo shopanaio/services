@@ -2180,6 +2180,9 @@ type ProductOption implements Node {
   """The display type for UI rendering."""
   displayType: OptionDisplayType!
 
+  """Sort order within the product options list."""
+  sortIndex: Int!
+
   """The available values for this option."""
   values: [ProductOptionValue!]!
 }
@@ -2196,6 +2199,9 @@ type ProductOptionValue implements Node {
 
   """Display name."""
   name: String!
+
+  """Sort order within the option values list."""
+  sortIndex: Int!
 
   """The visual swatch for this value (if applicable)."""
   swatch: ProductOptionSwatch
@@ -3923,6 +3929,9 @@ input ProductOptionValueCreateInput {
 
   """The swatch for this value."""
   swatch: ProductOptionSwatchInput
+
+  """Sort order within the option values list."""
+  sortIndex: Int
 }
 
 """Input for creating an option on a product."""
@@ -3938,6 +3947,9 @@ input ProductOptionCreateInput {
 
   """The display type for UI rendering."""
   displayType: OptionDisplayType!
+
+  """Sort order within the product options list."""
+  sortIndex: Int
 
   """The values for this option."""
   values: [ProductOptionValueCreateInput!]!
@@ -3956,6 +3968,9 @@ input ProductOptionValueUpdateInput {
 
   """The swatch for this value."""
   swatch: ProductOptionSwatchInput
+
+  """Sort order within the option values list."""
+  sortIndex: Int
 }
 
 """Input for nested value operations in option update."""
@@ -3984,6 +3999,9 @@ input ProductOptionUpdateInput {
   """The new display type."""
   displayType: OptionDisplayType
 
+  """Sort order within the product options list."""
+  sortIndex: Int
+
   """Nested value operations."""
   values: ProductOptionValuesInput
 }
@@ -3999,8 +4017,8 @@ input ProductOptionValueSyncInput {
   """Existing value ID (null = create new)."""
   id: ID
 
-  """Position within the option (0, 1, 2...)."""
-  index: Int!
+  """Sort order within the option values list."""
+  sortIndex: Int!
 
   """The URL-friendly slug for the value."""
   slug: String!
@@ -4017,8 +4035,8 @@ input ProductOptionSyncItemInput {
   """Existing option ID (null = create new)."""
   id: ID
 
-  """Position in the options list (0, 1, 2...)."""
-  index: Int!
+  """Sort order within the product options list."""
+  sortIndex: Int!
 
   """The URL-friendly slug for the option."""
   slug: String!
@@ -4120,6 +4138,9 @@ input ProductCreateOptionValueInput {
 
   """URL-friendly slug for the value."""
   slug: String!
+
+  """Sort order within the option values list."""
+  sortIndex: Int
 }
 
 """Input for creating an option during product creation."""
@@ -4132,6 +4153,9 @@ input ProductCreateOptionInput {
 
   """How to display the option (default: DROPDOWN)."""
   displayType: String
+
+  """Sort order within the product options list."""
+  sortIndex: Int
 
   """The values for this option."""
   values: [ProductCreateOptionValueInput!]!

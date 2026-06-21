@@ -13,7 +13,7 @@ const OptionSwatchInputSchema = z
 
 const OptionValueSyncInputSchema = z.object({
   id: z.string().uuid().optional(),
-  index: z.number().int().min(0),
+  sortIndex: z.number().int().min(0),
   slug: z.string().min(1, "Value slug is required").max(255),
   name: z.string().min(1, "Value name is required").max(255),
   swatch: OptionSwatchInputSchema,
@@ -21,7 +21,7 @@ const OptionValueSyncInputSchema = z.object({
 
 const OptionSyncItemSchema = z.object({
   id: z.string().uuid().optional(),
-  index: z.number().int().min(0),
+  sortIndex: z.number().int().min(0),
   slug: z.string().min(1, "Option slug is required").max(255),
   name: z.string().min(1, "Option name is required").max(255),
   displayType: z.enum(["DROPDOWN", "SWATCH", "BUTTONS"]),

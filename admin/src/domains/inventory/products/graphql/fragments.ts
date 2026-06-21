@@ -166,6 +166,7 @@ export const PRODUCT_OPTION_VALUE_FRAGMENT = gql`
     id
     name
     slug
+    sortIndex
     swatch {
       id
       swatchType
@@ -186,6 +187,7 @@ export const PRODUCT_OPTION_FRAGMENT = gql`
     name
     slug
     displayType
+    sortIndex
     values {
       ...ProductOptionValueFields
     }

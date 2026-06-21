@@ -3,7 +3,7 @@ import type { OptionCreateParams, OptionCreateResult, OptionSwatchInput } from "
 
 export class OptionCreateScript extends BaseScript<OptionCreateParams, OptionCreateResult> {
   protected async execute(params: OptionCreateParams): Promise<OptionCreateResult> {
-    const { productId, slug, name, displayType, values } = params;
+    const { productId, slug, name, displayType, sortIndex, values } = params;
 
     // 1. Validate: product exists
     const productExists = await this.repository.product.exists(productId);
@@ -28,9 +28,12 @@ export class OptionCreateScript extends BaseScript<OptionCreateParams, OptionCre
     }
 
     // 3. Create option
+    const resolvedSortIndex =
+      sortIndex ?? (await this.repository.option.getMaxSortIndex(productId)) + 1;
     const option = await this.repository.option.create(productId, {
       slug,
       displayType,
+      sortIndex: resolvedSortIndex,
     });
 
     // 4. Create option translation
@@ -52,7 +55,7 @@ export class OptionCreateScript extends BaseScript<OptionCreateParams, OptionCre
 
       const optionValue = await this.repository.option.createValue(option.id, {
         slug: valueInput.slug,
-        sortIndex: i,
+        sortIndex: valueInput.sortIndex ?? i,
         swatchId,
       });
 

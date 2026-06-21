@@ -20,10 +20,12 @@ mutation ProductCreateSimple($input: ProductCreateInput!) {
           name
           slug
           displayType
+          sortIndex
           values {
             id
             name
             slug
+            sortIndex
           }
         }
         variants(first: 10) {

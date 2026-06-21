@@ -42,10 +42,12 @@ query ProductFindOne($id: ID!) {
         name
         slug
         displayType
+        sortIndex
         values {
           id
           name
           slug
+          sortIndex
         }
       }
       features {

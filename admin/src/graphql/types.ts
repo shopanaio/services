@@ -5040,6 +5040,8 @@ export type ApiProductCreateOptionInput = {
   name: Scalars['String']['input'];
   /** URL-friendly slug for the option. */
   slug: Scalars['String']['input'];
+  /** Sort order within the product options list. */
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
   /** The values for this option. */
   values: Array<ApiProductCreateOptionValueInput>;
 };
@@ -5050,6 +5052,8 @@ export type ApiProductCreateOptionValueInput = {
   name: Scalars['String']['input'];
   /** URL-friendly slug for the value. */
   slug: Scalars['String']['input'];
+  /** Sort order within the option values list. */
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
 };
 
 /** Payload for product creation. */
@@ -5318,6 +5322,8 @@ export type ApiProductOption = ApiNode & {
   name: Scalars['String']['output'];
   /** The URL-friendly identifier for this option. */
   slug: Scalars['String']['output'];
+  /** Sort order within the product options list. */
+  sortIndex: Scalars['Int']['output'];
   /** The available values for this option. */
   values: Array<ApiProductOptionValue>;
 };
@@ -5332,6 +5338,8 @@ export type ApiProductOptionCreateInput = {
   productId?: InputMaybe<Scalars['ID']['input']>;
   /** The URL-friendly slug for the option. */
   slug: Scalars['String']['input'];
+  /** Sort order within the product options list. */
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
   /** The values for this option. */
   values: Array<ApiProductOptionValueCreateInput>;
 };
@@ -5401,12 +5409,12 @@ export type ApiProductOptionSyncItemInput = {
   displayType: OptionDisplayType;
   /** Existing option ID (null = create new). */
   id?: InputMaybe<Scalars['ID']['input']>;
-  /** Position in the options list (0, 1, 2...). */
-  index: Scalars['Int']['input'];
   /** Display name. */
   name: Scalars['String']['input'];
   /** The URL-friendly slug for the option. */
   slug: Scalars['String']['input'];
+  /** Sort order within the product options list. */
+  sortIndex: Scalars['Int']['input'];
   /** The values for this option. */
   values: Array<ApiProductOptionValueSyncInput>;
 };
@@ -5421,6 +5429,8 @@ export type ApiProductOptionUpdateInput = {
   name?: InputMaybe<Scalars['String']['input']>;
   /** The new slug for the option. */
   slug?: InputMaybe<Scalars['String']['input']>;
+  /** Sort order within the product options list. */
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
   /** Nested value operations. */
   values?: InputMaybe<ApiProductOptionValuesInput>;
 };
@@ -5445,6 +5455,8 @@ export type ApiProductOptionValue = ApiNode & {
   name: Scalars['String']['output'];
   /** The URL-friendly identifier for this value. */
   slug: Scalars['String']['output'];
+  /** Sort order within the option values list. */
+  sortIndex: Scalars['Int']['output'];
   /** The visual swatch for this value (if applicable). */
   swatch?: Maybe<ApiProductOptionSwatch>;
 };
@@ -5455,6 +5467,8 @@ export type ApiProductOptionValueCreateInput = {
   name: Scalars['String']['input'];
   /** The URL-friendly slug for the value. */
   slug: Scalars['String']['input'];
+  /** Sort order within the option values list. */
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
   /** The swatch for this value. */
   swatch?: InputMaybe<ApiProductOptionSwatchInput>;
 };
@@ -5463,12 +5477,12 @@ export type ApiProductOptionValueCreateInput = {
 export type ApiProductOptionValueSyncInput = {
   /** Existing value ID (null = create new). */
   id?: InputMaybe<Scalars['ID']['input']>;
-  /** Position within the option (0, 1, 2...). */
-  index: Scalars['Int']['input'];
   /** Display name. */
   name: Scalars['String']['input'];
   /** The URL-friendly slug for the value. */
   slug: Scalars['String']['input'];
+  /** Sort order within the option values list. */
+  sortIndex: Scalars['Int']['input'];
   /** The swatch for this value (null to remove). */
   swatch?: InputMaybe<ApiProductOptionSwatchInput>;
 };
@@ -5481,6 +5495,8 @@ export type ApiProductOptionValueUpdateInput = {
   name?: InputMaybe<Scalars['String']['input']>;
   /** The new slug for the value. */
   slug?: InputMaybe<Scalars['String']['input']>;
+  /** Sort order within the option values list. */
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
   /** The swatch for this value. */
   swatch?: InputMaybe<ApiProductOptionSwatchInput>;
 };

@@ -2913,6 +2913,8 @@ export type ProductCreateOptionInput = {
   name: Scalars['String']['input'];
   /** URL-friendly slug for the option. */
   slug: Scalars['String']['input'];
+  /** Sort order within the product options list. */
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
   /** The values for this option. */
   values: Array<ProductCreateOptionValueInput>;
 };
@@ -2923,6 +2925,8 @@ export type ProductCreateOptionValueInput = {
   name: Scalars['String']['input'];
   /** URL-friendly slug for the value. */
   slug: Scalars['String']['input'];
+  /** Sort order within the option values list. */
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
 };
 
 /** Payload for product creation. */
@@ -3182,6 +3186,8 @@ export type ProductOption = Node & {
   name: Scalars['String']['output'];
   /** The URL-friendly identifier for this option. */
   slug: Scalars['String']['output'];
+  /** Sort order within the product options list. */
+  sortIndex: Scalars['Int']['output'];
   /** The available values for this option. */
   values: Array<ProductOptionValue>;
 };
@@ -3196,6 +3202,8 @@ export type ProductOptionCreateInput = {
   productId?: InputMaybe<Scalars['ID']['input']>;
   /** The URL-friendly slug for the option. */
   slug: Scalars['String']['input'];
+  /** Sort order within the product options list. */
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
   /** The values for this option. */
   values: Array<ProductOptionValueCreateInput>;
 };
@@ -3265,12 +3273,12 @@ export type ProductOptionSyncItemInput = {
   displayType: OptionDisplayType;
   /** Existing option ID (null = create new). */
   id?: InputMaybe<Scalars['ID']['input']>;
-  /** Position in the options list (0, 1, 2...). */
-  index: Scalars['Int']['input'];
   /** Display name. */
   name: Scalars['String']['input'];
   /** The URL-friendly slug for the option. */
   slug: Scalars['String']['input'];
+  /** Sort order within the product options list. */
+  sortIndex: Scalars['Int']['input'];
   /** The values for this option. */
   values: Array<ProductOptionValueSyncInput>;
 };
@@ -3285,6 +3293,8 @@ export type ProductOptionUpdateInput = {
   name?: InputMaybe<Scalars['String']['input']>;
   /** The new slug for the option. */
   slug?: InputMaybe<Scalars['String']['input']>;
+  /** Sort order within the product options list. */
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
   /** Nested value operations. */
   values?: InputMaybe<ProductOptionValuesInput>;
 };
@@ -3309,6 +3319,8 @@ export type ProductOptionValue = Node & {
   name: Scalars['String']['output'];
   /** The URL-friendly identifier for this value. */
   slug: Scalars['String']['output'];
+  /** Sort order within the option values list. */
+  sortIndex: Scalars['Int']['output'];
   /** The visual swatch for this value (if applicable). */
   swatch: Maybe<ProductOptionSwatch>;
 };
@@ -3319,6 +3331,8 @@ export type ProductOptionValueCreateInput = {
   name: Scalars['String']['input'];
   /** The URL-friendly slug for the value. */
   slug: Scalars['String']['input'];
+  /** Sort order within the option values list. */
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
   /** The swatch for this value. */
   swatch?: InputMaybe<ProductOptionSwatchInput>;
 };
@@ -3327,12 +3341,12 @@ export type ProductOptionValueCreateInput = {
 export type ProductOptionValueSyncInput = {
   /** Existing value ID (null = create new). */
   id?: InputMaybe<Scalars['ID']['input']>;
-  /** Position within the option (0, 1, 2...). */
-  index: Scalars['Int']['input'];
   /** Display name. */
   name: Scalars['String']['input'];
   /** The URL-friendly slug for the value. */
   slug: Scalars['String']['input'];
+  /** Sort order within the option values list. */
+  sortIndex: Scalars['Int']['input'];
   /** The swatch for this value (null to remove). */
   swatch?: InputMaybe<ProductOptionSwatchInput>;
 };
@@ -3345,6 +3359,8 @@ export type ProductOptionValueUpdateInput = {
   name?: InputMaybe<Scalars['String']['input']>;
   /** The new slug for the value. */
   slug?: InputMaybe<Scalars['String']['input']>;
+  /** Sort order within the option values list. */
+  sortIndex?: InputMaybe<Scalars['Int']['input']>;
   /** The swatch for this value. */
   swatch?: InputMaybe<ProductOptionSwatchInput>;
 };
@@ -5590,6 +5606,7 @@ export type ProductOptionResolvers<ContextType = ServiceContext, ParentType exte
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   slug?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   values?: Resolver<Array<ResolversTypes['ProductOptionValue']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -5631,6 +5648,7 @@ export type ProductOptionValueResolvers<ContextType = ServiceContext, ParentType
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   slug?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   swatch?: Resolver<Maybe<ResolversTypes['ProductOptionSwatch']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;

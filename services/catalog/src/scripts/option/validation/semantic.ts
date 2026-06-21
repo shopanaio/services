@@ -40,15 +40,15 @@ export function validateSemantic(options: ValidatedOptionInput[]): UserError[] {
       seenOptionSlugs.add(opt.slug);
     }
 
-    // Option index uniqueness
-    if (seenOptionIndexes.has(opt.index)) {
+    // Option sort index uniqueness
+    if (seenOptionIndexes.has(opt.sortIndex)) {
       errors.push({
-        message: `Duplicate option index ${opt.index}`,
-        field: path("index"),
+        message: `Duplicate option sortIndex ${opt.sortIndex}`,
+        field: path("sortIndex"),
         code: "DUPLICATE_INDEX",
       });
     } else {
-      seenOptionIndexes.add(opt.index);
+      seenOptionIndexes.add(opt.sortIndex);
     }
 
     // Validate values
@@ -95,15 +95,15 @@ function validateValues(
       localSlugs.add(v.slug);
     }
 
-    // Value index uniqueness within option
-    if (localIndexes.has(v.index)) {
+    // Value sort index uniqueness within option
+    if (localIndexes.has(v.sortIndex)) {
       errors.push({
-        message: `Duplicate value index ${v.index} within option`,
-        field: path("index"),
+        message: `Duplicate value sortIndex ${v.sortIndex} within option`,
+        field: path("sortIndex"),
         code: "DUPLICATE_INDEX",
       });
     } else {
-      localIndexes.add(v.index);
+      localIndexes.add(v.sortIndex);
     }
   }
 }

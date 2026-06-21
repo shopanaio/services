@@ -6,6 +6,7 @@ export interface OptionUpdateParams {
   readonly slug?: string;
   readonly name?: string;
   readonly displayType?: string;
+  readonly sortIndex?: number;
   readonly values?: OptionValuesInput;
 }
 

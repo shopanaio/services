@@ -6,6 +6,7 @@ import type { ProductWithVariants, ProductResultBase, RichTextInput } from "./sh
 export interface ProductCreateOptionValueInput {
   readonly name: string;
   readonly slug: string;
+  readonly sortIndex?: number;
 }
 
 /**
@@ -15,6 +16,7 @@ export interface ProductCreateOptionInput {
   readonly name: string;
   readonly slug: string;
   readonly displayType?: string;
+  readonly sortIndex?: number;
   readonly values: ProductCreateOptionValueInput[];
 }
 

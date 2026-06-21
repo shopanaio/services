@@ -217,9 +217,11 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         name: opt.name,
         slug: opt.slug,
         displayType: opt.displayType ?? undefined,
+        sortIndex: opt.sortIndex ?? undefined,
         values: opt.values.map((v) => ({
           name: v.name,
           slug: v.slug,
+          sortIndex: v.sortIndex ?? undefined,
         })),
       })),
       variants: input.variants?.map((v) => ({
@@ -628,9 +630,11 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       slug: input.slug,
       name: input.name,
       displayType: input.displayType,
+      sortIndex: input.sortIndex ?? undefined,
       values: input.values.map((v) => ({
         slug: v.slug,
         name: v.name,
+        sortIndex: v.sortIndex ?? undefined,
         swatch: v.swatch
           ? {
               swatchType: v.swatch.swatchType,
@@ -663,11 +667,13 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       slug: input.slug ?? undefined,
       name: input.name ?? undefined,
       displayType: input.displayType ?? undefined,
+      sortIndex: input.sortIndex ?? undefined,
       values: input.values
         ? {
             create: input.values.create?.map((v) => ({
               slug: v.slug,
               name: v.name,
+              sortIndex: v.sortIndex ?? undefined,
               swatch: v.swatch
                 ? {
                     swatchType: v.swatch.swatchType,
@@ -682,6 +688,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
               id: v.id,
               slug: v.slug ?? undefined,
               name: v.name ?? undefined,
+              sortIndex: v.sortIndex ?? undefined,
               swatch:
                 v.swatch === null
                   ? null
@@ -754,7 +761,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         id: option.id
           ? decodeGlobalIdByType(option.id, GlobalIdEntity.Option)
           : undefined,
-        index: option.index,
+        sortIndex: option.sortIndex,
         slug: option.slug,
         name: option.name,
         displayType: option.displayType,
@@ -762,7 +769,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
           id: value.id
             ? decodeGlobalIdByType(value.id, GlobalIdEntity.OptionValue)
             : undefined,
-          index: value.index,
+          sortIndex: value.sortIndex,
           slug: value.slug,
           name: value.name,
           swatch: value.swatch

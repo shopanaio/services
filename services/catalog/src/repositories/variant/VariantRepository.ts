@@ -8,10 +8,11 @@ import {
   type PageInfo,
 } from "@shopana/drizzle-query";
 import { randomUUID } from "crypto";
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   itemPricing,
+  productOption,
   productOptionVariantLink,
   variant,
   variantTranslation,
@@ -431,13 +432,30 @@ export class VariantRepository extends BaseRepository {
     variantIds: readonly string[]
   ): Promise<ProductOptionVariantLink[]> {
     return this.connection
-      .select()
+      .select({
+        projectId: productOptionVariantLink.projectId,
+        variantId: productOptionVariantLink.variantId,
+        optionId: productOptionVariantLink.optionId,
+        optionValueId: productOptionVariantLink.optionValueId,
+      })
       .from(productOptionVariantLink)
+      .innerJoin(
+        productOption,
+        and(
+          eq(productOptionVariantLink.projectId, productOption.projectId),
+          eq(productOptionVariantLink.optionId, productOption.id)
+        )
+      )
       .where(
         and(
           eq(productOptionVariantLink.projectId, this.storeId),
           inArray(productOptionVariantLink.variantId, [...variantIds])
         )
+      )
+      .orderBy(
+        asc(productOptionVariantLink.variantId),
+        asc(productOption.sortIndex),
+        asc(productOption.id)
       );
   }
 

@@ -651,6 +651,7 @@ export function ProductCreateOptionInputSchema(): z.ZodObject<Properties<Product
     displayType: z.string().nullish(),
     name: z.string(),
     slug: z.string(),
+    sortIndex: z.number().nullish(),
     values: z.array(z.lazy(() => ProductCreateOptionValueInputSchema()))
   })
 }
@@ -658,7 +659,8 @@ export function ProductCreateOptionInputSchema(): z.ZodObject<Properties<Product
 export function ProductCreateOptionValueInputSchema(): z.ZodObject<Properties<ProductCreateOptionValueInput>> {
   return z.object({
     name: z.string(),
-    slug: z.string()
+    slug: z.string(),
+    sortIndex: z.number().nullish()
   })
 }
 
@@ -769,6 +771,7 @@ export function ProductOptionCreateInputSchema(): z.ZodObject<Properties<Product
     name: z.string(),
     productId: z.string().nullish(),
     slug: z.string(),
+    sortIndex: z.number().nullish(),
     values: z.array(z.lazy(() => ProductOptionValueCreateInputSchema()))
   })
 }
@@ -793,9 +796,9 @@ export function ProductOptionSyncItemInputSchema(): z.ZodObject<Properties<Produ
   return z.object({
     displayType: OptionDisplayTypeSchema,
     id: z.string().nullish(),
-    index: z.number(),
     name: z.string(),
     slug: z.string(),
+    sortIndex: z.number(),
     values: z.array(z.lazy(() => ProductOptionValueSyncInputSchema()))
   })
 }
@@ -806,6 +809,7 @@ export function ProductOptionUpdateInputSchema(): z.ZodObject<Properties<Product
     id: z.string(),
     name: z.string().nullish(),
     slug: z.string().nullish(),
+    sortIndex: z.number().nullish(),
     values: z.lazy(() => ProductOptionValuesInputSchema().nullish())
   })
 }
@@ -814,6 +818,7 @@ export function ProductOptionValueCreateInputSchema(): z.ZodObject<Properties<Pr
   return z.object({
     name: z.string(),
     slug: z.string(),
+    sortIndex: z.number().nullish(),
     swatch: z.lazy(() => ProductOptionSwatchInputSchema().nullish())
   })
 }
@@ -821,9 +826,9 @@ export function ProductOptionValueCreateInputSchema(): z.ZodObject<Properties<Pr
 export function ProductOptionValueSyncInputSchema(): z.ZodObject<Properties<ProductOptionValueSyncInput>> {
   return z.object({
     id: z.string().nullish(),
-    index: z.number(),
     name: z.string(),
     slug: z.string(),
+    sortIndex: z.number(),
     swatch: z.lazy(() => ProductOptionSwatchInputSchema().nullish())
   })
 }
@@ -833,6 +838,7 @@ export function ProductOptionValueUpdateInputSchema(): z.ZodObject<Properties<Pr
     id: z.string(),
     name: z.string().nullish(),
     slug: z.string().nullish(),
+    sortIndex: z.number().nullish(),
     swatch: z.lazy(() => ProductOptionSwatchInputSchema().nullish())
   })
 }

@@ -57,10 +57,12 @@ export class ProductCreateScript extends BaseScript<
 
     // 3. Handle options and variants
     if (options && options.length > 0 && variants && variants.length > 0) {
+      const orderedOptions = this.normalizeOptionSortIndexes(options);
+
       // Create options and collect option values for variant linking
       const optionValuesBySlug = await this.createOptionsWithValues(
         product.id,
-        options
+        orderedOptions
       );
 
       // Create variants and collect media mapping
@@ -68,7 +70,7 @@ export class ProductCreateScript extends BaseScript<
         product.id,
         variants,
         optionValuesBySlug,
-        options
+        orderedOptions
       );
       createdVariants = result;
     } else {
@@ -107,6 +109,21 @@ export class ProductCreateScript extends BaseScript<
   /**
    * Creates options and their values, returns a map of slug -> optionValue
    */
+  private normalizeOptionSortIndexes(
+    options: ProductCreateOptionInput[]
+  ): ProductCreateOptionInput[] {
+    return options
+      .map((option, inputIndex) => ({
+        ...option,
+        sortIndex: option.sortIndex ?? inputIndex,
+        values: option.values.map((value, valueIndex) => ({
+          ...value,
+          sortIndex: value.sortIndex ?? valueIndex,
+        })),
+      }))
+      .sort((left, right) => left.sortIndex - right.sortIndex);
+  }
+
   private async createOptionsWithValues(
     productId: string,
     options: ProductCreateOptionInput[]
@@ -121,6 +138,7 @@ export class ProductCreateScript extends BaseScript<
       const option = await this.repository.option.create(productId, {
         slug: optionInput.slug,
         displayType: optionInput.displayType ?? "DROPDOWN",
+        sortIndex: optionInput.sortIndex ?? 0,
       });
 
       // Create option translation
@@ -132,14 +150,16 @@ export class ProductCreateScript extends BaseScript<
       });
 
       // Create option values
-      for (let i = 0; i < optionInput.values.length; i++) {
-        const valueInput = optionInput.values[i];
+      const values = [...optionInput.values].sort(
+        (left, right) => (left.sortIndex ?? 0) - (right.sortIndex ?? 0)
+      );
+      for (const valueInput of values) {
 
         const optionValue = await this.repository.option.createValue(
           option.id,
           {
             slug: valueInput.slug,
-            sortIndex: i,
+            sortIndex: valueInput.sortIndex ?? 0,
           }
         );
 

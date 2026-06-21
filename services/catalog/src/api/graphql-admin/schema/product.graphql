@@ -161,6 +161,9 @@ input ProductCreateOptionValueInput {
 
   """URL-friendly slug for the value."""
   slug: String!
+
+  """Sort order within the option values list."""
+  sortIndex: Int
 }
 
 """
@@ -175,6 +178,9 @@ input ProductCreateOptionInput {
 
   """How to display the option (default: DROPDOWN)."""
   displayType: String
+
+  """Sort order within the product options list."""
+  sortIndex: Int
 
   """The values for this option."""
   values: [ProductCreateOptionValueInput!]!

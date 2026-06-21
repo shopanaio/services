@@ -82,6 +82,7 @@ export const useEditOptionsForm = ({
         id: `val-${Date.now()}`,
         name: "",
         slug: "",
+        sortIndex: currentValues.length,
         swatch: { ...DEFAULT_SWATCH, __typename: "ProductOptionSwatch", id: `swatch-${Date.now()}`, file: null, metadata: null },
       };
       setValue(`groups.${groupIndex}.values`, [...currentValues, newValue]);
@@ -103,6 +104,7 @@ export const useEditOptionsForm = ({
       name: "New Option",
       slug: "new-option",
       displayType: OptionDisplayType.Buttons,
+      sortIndex: fields.length,
       values: [],
     };
     append(newGroup);
