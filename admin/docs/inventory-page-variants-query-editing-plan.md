@@ -7,7 +7,7 @@
 В scope этого шага:
 
 - читать строки через `catalogQuery.variants`;
-- использовать cursor pagination из `VariantConnection`;
+- использовать cursor pagination из `VariantConnection` через общий FE API-backed Relay pagination слой;
 - показывать product context в плоской таблице, одна строка = один `Variant`;
 - сортировать через API `orderBy`, без локальной сортировки загруженной страницы;
 - всегда передавать `productId` первым sort key для product-first порядка;
@@ -204,6 +204,44 @@ Sort changes:
 - are disabled while there are pending edits;
 - refetch through `InventoryVariants` with the new `orderBy`.
 
+## API-backed cursor pagination
+
+Inventory page must not implement bespoke cursor/page state. Relay cursor pagination must be handled by a shared FE abstraction reused by all table pages that integrate with Relay Connection APIs.
+
+Use or introduce a shared API-backed pagination layer, for example:
+
+```text
+admin/src/ui-kit/cursor-pagination/
+  cursor-pagination.tsx          # existing presentational controls
+  relay-cursor-pagination.tsx    # shared API-backed wrapper
+  use-relay-cursor-pagination.ts # shared Relay cursor state/query variables
+```
+
+Naming/location can follow the existing `ui-kit/cursor-pagination` structure, but the behavior must be generic and not inventory-specific.
+
+Shared responsibilities:
+
+- keep `pageSize`;
+- expose Relay query variables: `{ first, after, last, before }`;
+- support next page with `{ first: pageSize, after: pageInfo.endCursor }`;
+- support previous page with `{ last: pageSize, before: pageInfo.startCursor }`;
+- clear the opposite cursor/direction variables on navigation;
+- reset to first page when sort, filter, search, or another caller-provided reset key changes;
+- reset to first page when page size changes;
+- derive `rangeStart` and `rangeEnd` from current page position, loaded rows count, `pageSize`, and `totalCount`;
+- use `pageInfo.hasNextPage` and `pageInfo.hasPreviousPage` for navigation availability;
+- support disabling pagination while caller reports unsaved edits or saving state;
+- accept generic `ApiPageInfo`/Relay `PageInfo` shape and `totalCount`, not inventory-specific types.
+
+Inventory-specific wiring:
+
+- `InventoryPage` uses the shared Relay pagination hook/component.
+- `useInventoryVariants` receives pagination variables from the shared hook and passes them directly to `InventoryVariants`.
+- `useInventoryVariants` returns `pageInfo`, `totalCount`, and current page rows, but does not own cursor stack, page index, or range calculation.
+- Static pagination values must be removed.
+- Pagination must be API-backed: changing page or page size triggers `InventoryVariants` with new Relay variables; the grid row order and page contents always come from the API response.
+- Pagination controls are disabled while there are unsaved edits.
+
 ## Row model
 
 Create a UI-local row type in the inventory module, for example `InventoryVariantRow`. This is allowed because AG Grid needs editor state and derived fields; it must not become a second API source of truth.
@@ -389,16 +427,17 @@ Implementation steps:
 
 1. Add inventory-local GraphQL fragments, `InventoryVariants`, default warehouse query, and `InventoryItemUpdate` mutation.
 2. Add operation response/variable types based on Admin API types used by the frontend.
-3. Add `useInventoryVariants` with variants query, default warehouse query, explicit `orderBy`, pagination state, loading/error handling, and row mapping.
-4. Add row mapper from `VariantEdge` to `InventoryVariantRow`.
-5. Add sort mapper from AG Grid sort state to `VariantOrderByInput[]`, always prepending `{ field: "productId", direction: "asc" }`.
-6. Add edit mapper to `ApiInventoryItemUpdateInput[]`.
-7. Add inventory-local save hook for sequential `inventoryItemUpdate`.
-8. Replace mock-backed `useInventory` usage in the page with `useInventoryVariants`.
-9. Replace `IInventoryListItem` typing in inventory table components with `InventoryVariantRow`.
-10. Replace static pagination with `pageInfo`/`totalCount`.
-11. Disable sort UI on columns that do not map to `VariantOrderField`.
-12. Remove imports from `@/mocks/inventory/inventory-list` from inventory page flow.
+3. Add or reuse shared API-backed Relay cursor pagination hook/component for table pages.
+4. Add `useInventoryVariants` with variants query, default warehouse query, explicit `orderBy`, shared Relay pagination variables, loading/error handling, and row mapping. Do not put inventory-local cursor stack/range logic into this hook.
+5. Add row mapper from `VariantEdge` to `InventoryVariantRow`.
+6. Add sort mapper from AG Grid sort state to `VariantOrderByInput[]`, always prepending `{ field: "productId", direction: "asc" }`.
+7. Add edit mapper to `ApiInventoryItemUpdateInput[]`.
+8. Add inventory-local save hook for sequential `inventoryItemUpdate`.
+9. Replace mock-backed `useInventory` usage in the page with `useInventoryVariants`.
+10. Replace `IInventoryListItem` typing in inventory table components with `InventoryVariantRow`.
+11. Replace static pagination with the shared Relay cursor pagination layer wired to `pageInfo`/`totalCount`.
+12. Disable sort UI on columns that do not map to `VariantOrderField`.
+13. Remove imports from `@/mocks/inventory/inventory-list` from inventory page flow.
 
 ## Deferred work
 
@@ -419,8 +458,13 @@ Implementation steps:
 - `InventoryVariants` passes `orderBy` on every request.
 - `orderBy[0]` is always `{ field: "productId", direction: "asc" }`.
 - AG Grid does not sort locally.
+- Cursor pagination is driven by the shared API-backed Relay pagination hook/component, not inventory-local state.
+- Next page sends `{ first: pageSize, after: pageInfo.endCursor }`.
+- Previous page sends `{ last: pageSize, before: pageInfo.startCursor }`.
+- Page size changes reset to first page.
 - Cursor pagination resets to first page after sort changes.
 - Sort is disabled while edits are pending.
+- Pagination is disabled while edits are pending.
 - Columns without `VariantOrderField` mapping are not sortable.
 - Save sends only `InventoryItemUpdateInput.stock` for `onHand`/`unavailable`.
 - Run project-approved build only if code is implemented.
