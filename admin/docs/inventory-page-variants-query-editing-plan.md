@@ -1,4 +1,4 @@
-# План интеграции Inventory Page через `catalogQuery.variants`
+# План интеграции Inventory Page через `catalogQuery.variants` и `productBulkUpdate`
 
 ## Цель
 
@@ -11,7 +11,7 @@
 - показывать product context в плоской таблице, одна строка = один `Variant`;
 - сортировать через API `orderBy`, без локальной сортировки загруженной страницы;
 - всегда передавать `productId` первым sort key для product-first порядка;
-- редактировать `onHand` и `unavailable` через `inventoryMutation.inventoryItemUpdate`;
+- редактировать `onHand` и `unavailable` через Bulk Edit Product API: `catalogMutation.productBulkUpdate`;
 - сохранить текущий inline editing UX: `readOnlyEdit`, pending edits store, floating save/discard panel, блокировку pagination/sort при unsaved changes.
 
 Out of scope:
@@ -19,6 +19,8 @@ Out of scope:
 - backend changes;
 - новая inventory-owned variants connection;
 - bulk inventory update mutation;
+- прямое сохранение через `inventoryMutation.inventoryItemUpdate`;
+- слежение за выполнением `ProductBulkUpdateJob`: polling, `productBulkUpdateJob`, `productBulkUpdateJobs`, job items/progress UI и обработка итоговых ошибок `BulkUpdateItem`;
 - `FilterWidget`, search UX и filter UX;
 - сортировка inventory-owned колонок через `catalogQuery.variants`.
 
@@ -29,9 +31,12 @@ Source of truth:
 - `services/catalog/src/api/graphql-admin/schema/base.graphql`
 - `services/catalog/src/api/graphql-admin/schema/__generated__/filters.graphql`
 - `services/catalog/src/api/graphql-admin/schema/variant.graphql`
+- `services/catalog/src/api/graphql-admin/schema/product.graphql`
+- `services/catalog/src/api/graphql-admin/schema/bulk.graphql`
 - `services/inventory/src/api/graphql-admin/schema/inventory-item.graphql`
 - `services/inventory/src/api/graphql-admin/schema/stock.graphql`
 - `e2e/queries/catalog-api/VariantFindMany.gql`
+- `e2e/queries/inventory-api/ProductBulkUpdate.gql`
 - `e2e/tests/inventory-api/variant-query.spec.ts`
 
 `catalogQuery.variants` уже поддерживает Relay pagination, `where` и `orderBy`:
@@ -160,6 +165,39 @@ Notes:
 - `Variant.inventoryItem` comes from Inventory federation extension.
 - A row with `inventoryItem: null` renders read-only and is skipped by save.
 - The page must pass explicit `orderBy`; it must not rely on repository default ordering.
+
+## Mutation для сохранения
+
+Inventory module должен объявить inventory-local operation document для сохранения, но сама mutation использует Catalog Admin API:
+
+```graphql
+mutation InventoryProductBulkUpdate($input: ProductBulkUpdateInput!) {
+  catalogMutation {
+    productBulkUpdate(input: $input) {
+      job {
+        id
+        status
+      }
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}
+```
+
+Contract:
+
+- use only `catalogMutation.productBulkUpdate` for saving inventory edits from this page;
+- do not call `inventoryMutation.inventoryItemUpdate` from the Inventory page save flow;
+- `ProductBulkUpdateInput.products[]` is grouped by product;
+- each changed row becomes one `VariantUpdateInput` under that product's `operations.variants[]`;
+- only variant inventory fields are sent: `variantId`, `inventory.warehouseId`, `inventory.onHand`, `inventory.unavailable`;
+- `productBulkUpdate` starts an async bulk job. In this plan, a returned `job.id` means the submit was accepted, not that all edits are already applied;
+- the frontend may show a submit-accepted notification with `job.id`, but must not store the job as page state, poll it, query job details, or render job progress/completion;
+- if the mutation returns `userErrors` without a job, keep pending edits and surface the errors.
 
 ## Sorting contract
 
@@ -337,21 +375,21 @@ Flow:
 4. `displayData` merges API rows with pending edits.
 5. `available` preview recalculates as `onHand - unavailable - reserved`.
 6. Floating save/discard panel appears.
-7. Save maps pending row edits to `InventoryItemUpdateInput[]`.
-8. Mutations run sequentially through inventory-local save hook.
-9. Full success clears edits and refetches variants.
-10. Failed rows keep their edits and show backend `userErrors` or runtime errors.
+7. Save maps pending row edits to one `ProductBulkUpdateInput`, grouped by product.
+8. Inventory-local save hook calls `catalogMutation.productBulkUpdate`.
+9. If the mutation returns `userErrors` and no job, pending edits stay in the store and the UI shows the errors.
+10. If the mutation returns a job, clear pending edits and refetch variants opportunistically. Do not wait for job completion.
 
 FE keeps the current `validateFieldChange` consistency guard for inline edits: edits that make `onHand`, `unavailable`, or calculated `available` invalid are rejected before entering the pending edit store. Backend remains the final authority during save and may return additional `userErrors`.
 
 ## Edit store migration
 
-`useInventoryEditStore` must be extended before wiring the real save flow. The current store only tracks `edits` and `status`; API-backed partial save needs row-level error state so failed rows can remain pending while successful rows are cleared.
+`useInventoryEditStore` must be extended before wiring the real save flow. The current store only tracks `edits` and `status`; API-backed bulk submit needs request/row error state for validation and submit-start failures, but must not model job progress or final job item state.
 
 Add store state:
 
 ```ts
-type InventoryRowSaveError = {
+type InventorySubmitError = {
   message: string;
   code?: string | null;
   field?: readonly string[] | null;
@@ -359,26 +397,29 @@ type InventoryRowSaveError = {
 
 interface InventoryEditStore {
   edits: Record<string, ItemEdits>;
-  rowErrors: Record<string, InventoryRowSaveError[]>;
+  rowErrors: Record<string, InventorySubmitError[]>;
+  submitErrors: InventorySubmitError[];
   status: "idle" | "saving";
 }
 ```
 
 Add or equivalent store actions:
 
-- `setRowErrors(rowId, errors)` stores backend `userErrors` or runtime errors for one row;
+- `setRowErrors(rowId, errors)` stores mapper/local validation errors for one row;
+- `setSubmitErrors(errors)` stores mutation `userErrors` or runtime submit errors that are not safely attributable to a row;
 - `clearRowErrors(rowId)` clears errors when the row is edited again or discarded;
-- `clearSuccessfulEdits(rowIds)` removes only successfully saved row edits and their errors;
+- `clearSubmitErrors()` clears request-level submit errors;
 - `finishSaving()` sets `status` back to `"idle"` without clearing all edits;
-- keep `onSaveSuccess()` only for full success, where all edits and row errors are cleared.
+- `onSubmitAccepted()` clears all edits and all stored errors after `productBulkUpdate` returns a job.
 
 Rules:
 
-- `setFieldValue` clears `rowErrors[itemId]` when the user changes that row after a failed save;
+- `setFieldValue` clears `rowErrors[itemId]` and request-level submit errors when the user changes a row after a failed submit;
 - `discardItem` clears both `edits[itemId]` and `rowErrors[itemId]`;
-- `discardAll` clears all edits, all row errors, and resets status;
-- partial failure must not call `onSaveSuccess()`;
-- the floating panel may show aggregated error text, but row-level errors remain in the store as the source of truth for failed rows.
+- `discardAll` clears all edits, row errors, submit errors, and resets status;
+- failed submit-start must not call `onSubmitAccepted()`;
+- a returned job must call `onSubmitAccepted()`, because job completion tracking is out of scope;
+- the floating panel may show aggregated error text, but stored row/request errors remain the source of truth for failed submit-start state.
 
 ## Save mapping
 
@@ -397,36 +438,54 @@ Input:
 Output:
 
 ```ts
-ApiInventoryItemUpdateInput[]
+ApiProductBulkUpdateInput
 ```
 
 Mutation input:
 
 ```ts
 {
-  id: row.inventoryItemId,
-  stock: {
-    warehouseId: row.warehouseId ?? defaultWarehouse.id,
-    onHand: nextOnHand,
-    unavailable: nextUnavailable,
-  },
+  products: [
+    {
+      productId: row.productId,
+      operations: {
+        variants: [
+          {
+            variantId: row.variantId,
+            inventory: {
+              warehouseId: row.warehouseId ?? defaultWarehouse.id,
+              onHand: nextOnHand,
+              unavailable: nextUnavailable,
+            },
+          },
+        ],
+      },
+    },
+  ],
 }
 ```
 
 Rules:
 
 - send only changed rows;
-- send only `stock.warehouseId`, `stock.onHand`, `stock.unavailable`;
-- do not send SKU, cost, weight, dimensions, `reserved`, or `available`;
-- skip rows without `inventoryItemId` and report them as unsavable;
+- group changed rows by `productId`;
+- create one `ProductBulkUpdateItem` per product;
+- create one `VariantUpdateInput` per changed row under `operations.variants`;
+- send only `variantId`, `inventory.warehouseId`, `inventory.onHand`, and `inventory.unavailable`;
+- do not send SKU, cost, weight, dimensions, media, options, product content, product status, `reserved`, or `available`;
+- do not send `expectedRevision` unless `InventoryVariants` is expanded to fetch `Product.revision`;
+- enforce Product Bulk Update API limits before submit: max 100 products and max 500 operations total;
+- if pending edits exceed API limits, keep edits and show a validation error instead of creating multiple jobs in this plan;
+- skip rows without `inventoryItemId` and report them as unsavable, although the UI should normally prevent edits for these read-only rows;
 - do not reuse product variant inventory mapper if it carries product-editor behavior or UI stock consistency validation.
 
-Partial save:
+Submit behavior:
 
-- save hook returns per-row success/error state;
-- full success clears all edits;
-- partial success clears only successful row edits, keeps failed row edits, refetches, and shows aggregated errors;
-- do not call global `onSaveSuccess` on partial failure.
+- save hook returns submit-accepted state: `{ jobId, status }` plus mutation `userErrors`;
+- no row is considered successfully applied until the async job runs, and this page does not track that state;
+- submit-start failure keeps all edits and stores returned errors;
+- submit accepted clears all edits and refetches the active `InventoryVariants` query opportunistically;
+- do not query `productBulkUpdateJob`, `productBulkUpdateJobs`, or `BulkUpdateItem` from this page.
 
 ## Module changes
 
@@ -457,15 +516,15 @@ admin/src/domains/inventory/inventory/
 
 Implementation steps:
 
-1. Add inventory-local GraphQL fragments, `InventoryVariants`, default warehouse query, and `InventoryItemUpdate` mutation.
+1. Add inventory-local GraphQL fragments, `InventoryVariants`, default warehouse query, and `InventoryProductBulkUpdate` mutation document that calls `catalogMutation.productBulkUpdate`.
 2. Add operation response/variable types based on Admin API types used by the frontend.
 3. Add or reuse shared API-backed Relay cursor pagination hook/component for table pages.
 4. Add `useInventoryVariants` with variants query, default warehouse query, explicit `orderBy`, shared Relay pagination variables, loading/error handling, and row mapping. Do not put inventory-local cursor stack/range logic into this hook.
 5. Add row mapper from `VariantEdge` to `InventoryVariantRow`.
 6. Add sort mapper from AG Grid sort state to `VariantOrderByInput[]`, always prepending `{ field: "productId", direction: "asc" }`.
-7. Add edit mapper to `ApiInventoryItemUpdateInput[]`.
-8. Migrate `useInventoryEditStore` to track row-level save errors and partial-success cleanup actions.
-9. Add inventory-local save hook for sequential `inventoryItemUpdate`.
+7. Add edit mapper to `ApiProductBulkUpdateInput`.
+8. Migrate `useInventoryEditStore` to track submit-start errors and clear edits only when `productBulkUpdate` returns a job.
+9. Add inventory-local save hook for `productBulkUpdate` submit, without job polling or job item tracking.
 10. Replace mock-backed `useInventory` usage in the page with `useInventoryVariants`.
 11. Replace `IInventoryListItem` typing in inventory table components with `InventoryVariantRow`.
 12. Replace static pagination with the shared Relay cursor pagination layer wired to `pageInfo`/`totalCount`.
@@ -479,6 +538,9 @@ Implementation steps:
 - Filter UX.
 - Sorting by inventory-owned fields such as SKU, on-hand, unavailable, reserved, available.
 - Bulk `inventoryItemsUpdate` mutation.
+- Bulk update job progress/polling UI.
+- Partial row-level completion/error handling from `BulkUpdateItem`.
+- Multiple-job fan-out for saves exceeding Product Bulk Update API limits.
 - Multi-warehouse editing.
 - Product-level inventory totals.
 - Import/export actions.
@@ -499,9 +561,14 @@ Implementation steps:
 - Sort is disabled while edits are pending.
 - Pagination is disabled while edits are pending.
 - Columns without `VariantOrderField` mapping are not sortable.
-- Save sends only `InventoryItemUpdateInput.stock` for `onHand`/`unavailable`.
-- Full save success clears all edits and all row errors.
-- Partial save success clears only successful row edits and keeps failed row edits plus row errors.
-- Editing or discarding a failed row clears that row's stored save errors.
+- Save calls `catalogMutation.productBulkUpdate`, not `inventoryMutation.inventoryItemUpdate`.
+- Save sends one `ProductBulkUpdateInput` grouped by product.
+- Save sends only `products[].operations.variants[].variantId` and `inventory.{warehouseId,onHand,unavailable}` for edited rows.
+- Save does not send SKU, cost, weight, dimensions, media, options, product-level fields, `reserved`, or `available`.
+- Save enforces max 100 products and 500 operations before submit.
+- Submit-start errors keep edits and are shown from store state.
+- Returned job clears all edits and all stored submit errors.
+- Inventory page does not query or poll `productBulkUpdateJob`, `productBulkUpdateJobs`, `BulkUpdateItem`, or progress.
+- Editing or discarding a failed-submit row clears that row's stored errors.
 - Run project-approved build only if code is implemented.
 - Do not run `test` or `tsc` directly.
