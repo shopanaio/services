@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Dropdown, Flex, Statistic, Typography } from "antd";
+import { Button, Divider, Dropdown, Flex, Tag, Typography } from "antd";
 import type { MenuProps } from "antd";
 import {
   CheckCircleOutlined,
@@ -13,32 +13,36 @@ import type {
   ApiWarehouse,
   ApiWarehouseStockConnection,
 } from "@/graphql/types";
+import { CopyableChip } from "@/ui-kit/copyable-chip";
+import { KPITile } from "@/ui-kit/kpi-tile";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { WarehouseDefaultTag } from "../warehouse-default-tag";
 import { StockSection } from "./sections";
 
 const useStyles = createStyles(({ token }) => ({
-  header: {
-    padding: token.padding,
-    borderRadius: token.borderRadiusLG,
-    background: token.colorBgContainer,
-    border: `1px solid ${token.colorBorderSecondary}`,
+  statusTag: {
+    margin: 0,
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 4,
+    fontWeight: 500,
   },
-  code: {
-    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+  metaText: {
+    fontSize: token.fontSizeSM,
+  },
+  warehouseTitle: {},
+  divider: {
+    marginBlock: token.margin,
   },
   metrics: {
-    display: "grid",
-    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-    gap: token.paddingSM,
-    "@media (max-width: 720px)": {
-      gridTemplateColumns: "1fr",
-    },
+    display: "flex",
+    gap: 12,
+    flexWrap: "wrap",
   },
-  metric: {
-    padding: token.padding,
-    borderRadius: token.borderRadius,
-    background: token.colorBgContainer,
-    border: `1px solid ${token.colorBorderSecondary}`,
+  kpiTile: {
+    padding: "12px 16px",
+    background: token.colorBgElevated,
+    minWidth: 180,
   },
 }));
 
@@ -92,29 +96,55 @@ export function WarehouseDetailsCard({
       onClick: onDelete,
     },
   ];
+  const statusTitle = (
+    <Flex align="center" gap={8}>
+      <Tag className={styles.statusTag}>Warehouse</Tag>
+      <WarehouseDefaultTag isDefault={warehouse.isDefault} />
+      <Typography.Text type="secondary" className={styles.metaText}>
+        Updated {formatDate(warehouse.updatedAt)}
+      </Typography.Text>
+    </Flex>
+  );
+  const topBarActions = (
+    <Dropdown menu={{ items: actionItems }} trigger={["click"]}>
+      <Button
+        size="small"
+        icon={<MoreOutlined />}
+        data-testid="warehouse-details-actions-button"
+      />
+    </Dropdown>
+  );
 
   return (
     <Flex vertical gap={12} style={{ width: "100%" }}>
-      <Flex vertical gap={8} className={styles.header}>
-        <Flex align="center" justify="space-between" gap={12}>
-          <Typography.Title level={4} style={{ margin: 0 }}>
-            {warehouse.name}
+      <Paper>
+        <PaperHeader title={statusTitle} actions={topBarActions} />
+
+        <Flex vertical gap={8}>
+          <Typography.Title
+            level={3}
+            ellipsis={{ rows: 2, tooltip: warehouse.name }}
+            className={styles.warehouseTitle}
+            style={{ margin: 0 }}
+            data-testid="warehouse-detail-title"
+          >
+            {warehouse.name || "Untitled Warehouse"}
           </Typography.Title>
-          <Flex align="center" gap={8}>
-            <WarehouseDefaultTag isDefault={warehouse.isDefault} />
-            <Dropdown menu={{ items: actionItems }} trigger={["click"]}>
-              <Button
-                type="text"
-                icon={<MoreOutlined />}
-                data-testid="warehouse-details-actions-button"
-              />
-            </Dropdown>
+
+          <Flex align="center" gap={12} wrap="wrap">
+            <CopyableChip label="Code" value={warehouse.code} mono />
+            <CopyableChip
+              label="ID"
+              value={warehouse.id}
+              displayValue={warehouse.id.slice(0, 8)}
+              mono
+            />
           </Flex>
         </Flex>
+
+        <Divider className={styles.divider} />
+
         <Flex align="center" gap={12} wrap="wrap">
-          <Typography.Text type="secondary" className={styles.code}>
-            {warehouse.code}
-          </Typography.Text>
           <Typography.Text type="secondary">
             Created {formatDate(warehouse.createdAt)}
           </Typography.Text>
@@ -122,19 +152,22 @@ export function WarehouseDetailsCard({
             Updated {formatDate(warehouse.updatedAt)}
           </Typography.Text>
         </Flex>
-      </Flex>
 
-      <div className={styles.metrics}>
-        <div className={styles.metric}>
-          <Statistic
-            title="Stocked variants"
+        <div className={styles.metrics} style={{ marginTop: 12 }}>
+          <KPITile
+            label="Stocked variants"
             value={warehouse.variantsCount}
+            tooltip="Variants with stock records in this warehouse"
+            className={styles.kpiTile}
+          />
+          <KPITile
+            label="Stock records"
+            value={stockConnection.totalCount}
+            tooltip="Warehouse stock rows for this warehouse"
+            className={styles.kpiTile}
           />
         </div>
-        <div className={styles.metric}>
-          <Statistic title="Stock records" value={stockConnection.totalCount} />
-        </div>
-      </div>
+      </Paper>
 
       <StockSection
         stock={stockRows}
