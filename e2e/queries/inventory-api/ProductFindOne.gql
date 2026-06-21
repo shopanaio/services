@@ -48,6 +48,16 @@ query ProductFindOne($id: ID!) {
           name
           slug
           sortIndex
+          swatch {
+            id
+            swatchType
+            colorOne
+            colorTwo
+            file {
+              id
+              url
+            }
+          }
         }
       }
       features {

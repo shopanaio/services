@@ -106,8 +106,17 @@ export const useProductModals = (
   }, [message, product.id, product.tags, openEditTagsModal]);
 
   const handleEditOptions = useCallback(() => {
-    openEditOptionsModal({ productId: product.id });
-  }, [product.id, openEditOptionsModal]);
+    openEditOptionsModal({
+      productId: product.id,
+      options: product.options,
+      onSaved: options.onProductRefresh,
+    });
+  }, [
+    product.id,
+    product.options,
+    options.onProductRefresh,
+    openEditOptionsModal,
+  ]);
 
   const handleEditAttributes = useCallback(() => {
     openEditAttributesModal({

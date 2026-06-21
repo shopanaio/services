@@ -16,6 +16,8 @@ import type {
   ApiProductFeature,
   ApiProductFeaturesSyncInput,
   ApiProductInventoryWidget,
+  ApiProductOption,
+  ApiProductOptionsSyncInput,
   ApiProductUpdateInput,
   ApiProductUpdateStatusInput,
   ApiVariantConnection,
@@ -173,6 +175,26 @@ export interface ProductFeaturesSyncMutationData {
 
 export interface ProductFeaturesSyncMutationVariables {
   input: ApiProductFeaturesSyncInput;
+}
+
+export type ProductOptionsSyncProduct = Pick<ApiProduct, "id" | "options"> & {
+  options: ApiProductOption[];
+};
+
+export interface ProductOptionsSyncPayloadData {
+  product: ProductOptionsSyncProduct | null;
+  options: ApiProductOption[];
+  userErrors: ApiGenericUserError[];
+}
+
+export interface ProductOptionsSyncMutationData {
+  catalogMutation: Pick<ApiCatalogMutation, "productOptionsSync"> & {
+    productOptionsSync: ProductOptionsSyncPayloadData;
+  };
+}
+
+export interface ProductOptionsSyncMutationVariables {
+  input: ApiProductOptionsSyncInput;
 }
 
 export interface InventoryItemUpdateMutationData {

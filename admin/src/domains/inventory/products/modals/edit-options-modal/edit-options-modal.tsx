@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { App, Button, Typography, Flex } from "antd";
+import { useCallback, useMemo, useState } from "react";
+import { Alert, App, Button, Typography, Flex } from "antd";
 import { PlusOutlined, HolderOutlined } from "@ant-design/icons";
 import {
   DndContext,
@@ -25,26 +25,47 @@ import {
   ModalHeader,
 } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
+import type { ApiGenericUserError } from "@/graphql/types";
+import { useSyncProductOptions } from "../../hooks";
+import {
+  apiProductOptionsToOptionEditorGroups,
+  buildProductOptionsSyncDraft,
+  formatProductOptionUserErrors,
+  validateOptionEditorGroups,
+} from "../../mappers";
+import type { IEditOptionsModalPayload } from "../../modals";
 import { useStyles } from "./edit-options-modal.styles";
-import type { ApiProductOption } from "@/graphql/types";
 import { useEditOptionsForm } from "./hooks/use-edit-options-form";
 import { SortableOptionGroup } from "./components/sortable-option-group";
-import { MOCK_OPTION_GROUPS } from "@/mocks/products/options";
 
-interface EditOptionsModalProps {
-  initialGroups?: ApiProductOption[];
-}
-
-export const EditOptionsModal = ({ initialGroups = MOCK_OPTION_GROUPS }: EditOptionsModalProps) => {
+export const EditOptionsModal = () => {
   const { styles } = useStyles();
   const { message } = App.useApp();
-  const { pop } = useModalStackContext();
+  const { payload, pop, forcePop, setDirty } = useModalStackContext();
+  const typedPayload = payload as IEditOptionsModalPayload;
+  const productId = typedPayload.productId ?? "";
+  const payloadOptions = typedPayload.options ?? [];
+  const onSaved = typedPayload.onSaved;
+  const initialGroups = useMemo(
+    () => apiProductOptionsToOptionEditorGroups(payloadOptions),
+    [payloadOptions],
+  );
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
+  const [userErrors, setUserErrors] = useState<ApiGenericUserError[]>([]);
+  const {
+    syncProductOptions,
+    loading: saving,
+    error: syncError,
+  } = useSyncProductOptions();
+
+  const markDirty = useCallback(() => {
+    setDirty(true);
+    setUserErrors([]);
+  }, [setDirty]);
 
   const {
     fields,
     watchedGroups,
-    handleSubmit,
     handleUpdateGroupName,
     handleUpdateGroupDisplayType,
     handleDeleteGroup,
@@ -57,9 +78,7 @@ export const EditOptionsModal = ({ initialGroups = MOCK_OPTION_GROUPS }: EditOpt
     handleMoveGroup,
   } = useEditOptionsForm({
     defaultValues: { groups: initialGroups },
-    onSubmit: () => {
-      message.info("Product option updates are not API-backed yet");
-    },
+    onChange: markDirty,
   });
 
   const sensors = useSensors(
@@ -70,7 +89,7 @@ export const EditOptionsModal = ({ initialGroups = MOCK_OPTION_GROUPS }: EditOpt
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -80,16 +99,61 @@ export const EditOptionsModal = ({ initialGroups = MOCK_OPTION_GROUPS }: EditOpt
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (over && active.id !== over.id) {
-      const oldIndex = fields.findIndex((f) => f.id === active.id);
-      const newIndex = fields.findIndex((f) => f.id === over.id);
-      handleMoveGroup(oldIndex, newIndex);
+      const oldIndex = fields.findIndex((field) => field.id === active.id);
+      const newIndex = fields.findIndex((field) => field.id === over.id);
+
+      if (oldIndex >= 0 && newIndex >= 0) {
+        handleMoveGroup(oldIndex, newIndex);
+      }
     }
     setActiveGroupId(null);
   };
 
-  const activeFieldIndex = fields.findIndex((f) => f.id === activeGroupId);
+  const handleSave = useCallback(async () => {
+    const validationErrors = validateOptionEditorGroups({
+      productId,
+      groups: watchedGroups,
+    });
+
+    if (validationErrors.length > 0) {
+      setUserErrors(validationErrors);
+      return;
+    }
+
+    const draft = buildProductOptionsSyncDraft({
+      productId,
+      groups: watchedGroups,
+    });
+    const result = await syncProductOptions(draft.input);
+
+    if (result.userErrors.length > 0) {
+      setUserErrors(result.userErrors);
+      return;
+    }
+
+    await onSaved?.();
+    setDirty(false);
+    message.success("Product options updated");
+    forcePop();
+  }, [
+    forcePop,
+    message,
+    onSaved,
+    productId,
+    setDirty,
+    syncProductOptions,
+    watchedGroups,
+  ]);
+
+  const activeFieldIndex = fields.findIndex((field) => field.id === activeGroupId);
   const activeGroup =
     activeFieldIndex >= 0 ? watchedGroups[activeFieldIndex] : null;
+  const errorMessages =
+    userErrors.length > 0
+      ? formatProductOptionUserErrors(userErrors)
+      : syncError
+        ? [syncError.message]
+        : [];
 
   return (
     <ModalLayout
@@ -101,12 +165,32 @@ export const EditOptionsModal = ({ initialGroups = MOCK_OPTION_GROUPS }: EditOpt
           onClose={pop}
           submitButtonProps={{
             children: "Save Changes",
-            onClick: handleSubmit,
+            onClick: handleSave,
+            loading: saving,
+            disabled: saving,
           }}
         />
       }
     >
       <div className={styles.container}>
+        {errorMessages.length > 0 && (
+          <Alert
+            type="error"
+            showIcon
+            message="Could not save options"
+            data-testid="edit-options-error-alert"
+            description={
+              <Flex vertical gap={4}>
+                {errorMessages.map((error, index) => (
+                  <Typography.Text key={`${error}-${index}`}>
+                    {error}
+                  </Typography.Text>
+                ))}
+              </Flex>
+            }
+          />
+        )}
+
         <Paper>
           <PaperHeader
             title="Options"
@@ -115,6 +199,7 @@ export const EditOptionsModal = ({ initialGroups = MOCK_OPTION_GROUPS }: EditOpt
                 size="small"
                 icon={<PlusOutlined />}
                 onClick={handleAddGroup}
+                data-testid="edit-options-add-button"
               >
                 Add
               </Button>
@@ -128,10 +213,10 @@ export const EditOptionsModal = ({ initialGroups = MOCK_OPTION_GROUPS }: EditOpt
             onDragEnd={handleDragEnd}
           >
             <SortableContext
-              items={fields.map((f) => f.id)}
+              items={fields.map((field) => field.id)}
               strategy={verticalListSortingStrategy}
             >
-              <Flex vertical gap={16}>
+              <Flex vertical gap={16} data-testid="edit-options-list">
                 {fields.map((field, groupIndex) => (
                   <SortableOptionGroup
                     key={field.id}

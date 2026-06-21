@@ -1,14 +1,16 @@
+import type { ReactNode } from "react";
 import {
   BgColorsOutlined,
   CheckCircleOutlined,
   MenuOutlined,
 } from "@ant-design/icons";
-import { OptionDisplayType, SwatchType, type ApiProductOptionSwatchInput } from "@/graphql/types";
+import { OptionDisplayType, SwatchType } from "@/graphql/types";
+import type { OptionEditorSwatch } from "./types";
 
 export const DISPLAY_TYPE_OPTIONS: {
   key: OptionDisplayType;
   label: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
 }[] = [
   { key: OptionDisplayType.Swatch, label: "Swatch", icon: <BgColorsOutlined /> },
   { key: OptionDisplayType.Buttons, label: "Buttons", icon: <CheckCircleOutlined /> },
@@ -22,7 +24,7 @@ export const SWATCH_MODE_OPTIONS: { value: SwatchModeType; label: string }[] = [
   { value: "image", label: "Image" },
 ];
 
-export const DEFAULT_SWATCH: ApiProductOptionSwatchInput = {
+export const DEFAULT_SWATCH: OptionEditorSwatch = {
   swatchType: SwatchType.Color,
   colorOne: "#1677ff",
 };

@@ -23,7 +23,11 @@ export const DisplayTypeSelector = ({ value, onChange }: IDisplayTypeSelectorPro
 
   return (
     <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
-      <Button size="small" type="text">
+      <Button
+        size="small"
+        type="text"
+        data-testid="edit-options-display-type-trigger"
+      >
         <Flex gap={4} align="center">
           {current?.icon}
           <span>{current?.label}</span>

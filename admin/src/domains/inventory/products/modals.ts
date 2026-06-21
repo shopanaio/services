@@ -139,7 +139,9 @@ export interface IEditMediaModalPayload extends IModalStackPayload {
 }
 
 export interface IEditOptionsModalPayload extends IModalStackPayload {
-  productId?: string;
+  productId: string;
+  options: ApiProductOption[];
+  onSaved?: () => Promise<unknown> | unknown;
 }
 
 export interface IEditAttributesModalPayload extends IModalStackPayload {

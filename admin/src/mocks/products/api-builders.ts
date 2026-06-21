@@ -129,12 +129,14 @@ export const createMockApiProductOptionValue = (params: {
   id: string;
   name: string;
   slug: string;
+  sortIndex?: number;
   swatch?: ApiProductOptionSwatch | null;
 }): ApiProductOptionValue => ({
   __typename: "ProductOptionValue",
   id: params.id,
   name: params.name,
   slug: params.slug,
+  sortIndex: params.sortIndex ?? 0,
   swatch: params.swatch ?? null,
 });
 
@@ -143,6 +145,7 @@ export const createMockApiProductOption = (params: {
   name: string;
   slug: string;
   displayType?: OptionDisplayType;
+  sortIndex?: number;
   values: ApiProductOptionValue[];
 }): ApiProductOption => ({
   __typename: "ProductOption",
@@ -150,6 +153,7 @@ export const createMockApiProductOption = (params: {
   name: params.name,
   slug: params.slug,
   displayType: params.displayType ?? OptionDisplayType.Buttons,
+  sortIndex: params.sortIndex ?? 0,
   values: params.values,
 });
 

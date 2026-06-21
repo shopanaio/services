@@ -1,17 +1,39 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Typography, Tag, Flex } from "antd";
-import { PictureOutlined } from "@ant-design/icons";
+import {
+  BgColorsOutlined,
+  CheckCircleOutlined,
+  MenuOutlined,
+  PictureOutlined,
+} from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import { EditAction } from "../../edit-action";
 import { useOptionsStyles } from "../product-details-card.styles";
-import { DISPLAY_TYPE_OPTIONS } from "../../../modals/edit-options-modal/edit-options-modal.constants";
 import { OptionDisplayType, SwatchType, type ApiProductOption, type ApiProductOptionSwatch } from "@/graphql/types";
 
 interface IOptionsSectionProps {
   options: ApiProductOption[];
-  onEdit: () => void;
+  actions?: ReactNode;
 }
+
+const DISPLAY_TYPE_METADATA: Record<
+  OptionDisplayType,
+  { label: string; icon: ReactNode }
+> = {
+  [OptionDisplayType.Swatch]: {
+    label: "Swatch",
+    icon: <BgColorsOutlined />,
+  },
+  [OptionDisplayType.Buttons]: {
+    label: "Buttons",
+    icon: <CheckCircleOutlined />,
+  },
+  [OptionDisplayType.Dropdown]: {
+    label: "Dropdown",
+    icon: <MenuOutlined />,
+  },
+};
 
 const SwatchPreview = ({
   swatch,
@@ -61,54 +83,63 @@ const SwatchPreview = ({
   return null;
 };
 
-export const OptionsSection = ({ options, onEdit }: IOptionsSectionProps) => {
+export const OptionsSection = ({ options, actions }: IOptionsSectionProps) => {
   const { styles } = useOptionsStyles();
 
-  if (!options || options.length === 0) {
+  if ((!options || options.length === 0) && !actions) {
     return null;
   }
 
   return (
-    <Paper>
-      <PaperHeader
-        title="Options"
-        actions={<EditAction onEdit={onEdit} label="Edit options" />}
-      />
+    <Paper data-testid="product-options-section">
+      <PaperHeader title="Options" actions={actions} />
       <Flex vertical gap={12}>
-        {options.map((option) => {
-          const displayTypeOption = DISPLAY_TYPE_OPTIONS.find((s) => s.key === option.displayType);
-          const showSwatch = option.displayType === OptionDisplayType.Swatch;
+        {options.length > 0 ? (
+          options.map((option) => {
+            const displayTypeOption = DISPLAY_TYPE_METADATA[option.displayType];
+            const showSwatch = option.displayType === OptionDisplayType.Swatch;
 
-          return (
-            <div key={option.id} className={styles.optionGroup}>
-              <Flex align="center" gap={4} className={styles.optionHeader}>
-                {displayTypeOption && displayTypeOption.icon}
-                <Typography.Text strong className={styles.optionTitle}>
-                  {option.name}
-                </Typography.Text>
-              </Flex>
-              <Flex gap={4} wrap="wrap">
-                {option.values?.map((value) => (
-                  <Tag
-                    key={value.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4,
-                    }}
-                    icon={
-                      showSwatch ? (
-                        <SwatchPreview swatch={value.swatch} />
-                      ) : null
-                    }
-                  >
-                    {value.name}
-                  </Tag>
-                ))}
-              </Flex>
-            </div>
-          );
-        })}
+            return (
+              <div key={option.id} className={styles.optionGroup}>
+                <Flex align="center" gap={6} className={styles.optionHeader}>
+                  {displayTypeOption.icon}
+                  <Typography.Text strong className={styles.optionTitle}>
+                    {option.name}
+                  </Typography.Text>
+                  <Typography.Text type="secondary" className={styles.styleTag}>
+                    {displayTypeOption.label}
+                  </Typography.Text>
+                </Flex>
+                <Flex gap={4} wrap="wrap">
+                  {option.values?.map((value) => (
+                    <Tag
+                      key={value.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                      }}
+                      icon={
+                        showSwatch ? (
+                          <SwatchPreview swatch={value.swatch} />
+                        ) : null
+                      }
+                    >
+                      {value.name}
+                    </Tag>
+                  ))}
+                </Flex>
+              </div>
+            );
+          })
+        ) : (
+          <Typography.Text
+            type="secondary"
+            data-testid="product-options-empty-state"
+          >
+            No options yet
+          </Typography.Text>
+        )}
       </Flex>
     </Paper>
   );

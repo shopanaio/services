@@ -19,27 +19,27 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import {
-  OptionDisplayType,
-  type ApiProductOption,
-  type ApiProductOptionValue,
-  type ApiProductOptionSwatchInput,
-} from "@/graphql/types";
+import { OptionDisplayType } from "@/graphql/types";
 import { useStyles } from "../edit-options-modal.styles";
+import type {
+  OptionEditorGroup,
+  OptionEditorSwatch,
+  OptionEditorValue,
+} from "../types";
 import { DisplayTypeSelector } from "./style-selector";
 import { SortableValue } from "./sortable-value";
 
 interface ISortableOptionGroupProps {
-  group: ApiProductOption;
+  group: OptionEditorGroup;
   fieldId: string;
   onUpdateName: (name: string) => void;
   onUpdateDisplayType: (displayType: OptionDisplayType) => void;
   onDeleteGroup: () => void;
   onUpdateValueName: (valueIndex: number, name: string) => void;
-  onUpdateValueSwatch: (valueIndex: number, swatch: ApiProductOptionSwatchInput) => void;
+  onUpdateValueSwatch: (valueIndex: number, swatch: OptionEditorSwatch) => void;
   onDeleteValue: (valueIndex: number) => void;
   onAddValue: () => void;
-  onReorderValues: (values: ApiProductOptionValue[]) => void;
+  onReorderValues: (values: OptionEditorValue[]) => void;
 }
 
 export const SortableOptionGroup = ({
@@ -84,6 +84,8 @@ export const SortableOptionGroup = ({
     if (over && active.id !== over.id) {
       const oldIndex = group.values.findIndex((v) => v.id === active.id);
       const newIndex = group.values.findIndex((v) => v.id === over.id);
+      if (oldIndex < 0 || newIndex < 0) return;
+
       const newValues = arrayMove(group.values, oldIndex, newIndex);
       onReorderValues(newValues);
     }
@@ -103,6 +105,7 @@ export const SortableOptionGroup = ({
     <div
       ref={setNodeRef}
       style={style}
+      data-testid="edit-options-option-card"
       className={cx(
         styles.optionGroup,
         isDragging && styles.optionGroupDragging
@@ -115,10 +118,12 @@ export const SortableOptionGroup = ({
           placeholder="Option name"
           variant="borderless"
           style={{ flex: 1, fontWeight: 500 }}
+          data-testid="edit-options-option-name-input"
           prefix={
             <Flex gap={4} align="center" className={styles.inputPrefix}>
               <span
                 className={styles.optionGroupDragHandle}
+                data-testid="edit-options-option-drag-handle"
                 {...attributes}
                 {...listeners}
               >
@@ -132,15 +137,24 @@ export const SortableOptionGroup = ({
               align="center"
               onPointerDown={(e) => e.stopPropagation()}
             >
-              <DisplayTypeSelector value={group.displayType} onChange={onUpdateDisplayType} />
+              <DisplayTypeSelector
+                value={group.displayType}
+                onChange={onUpdateDisplayType}
+              />
               <Button
                 size="small"
                 type="text"
                 icon={<PlusOutlined />}
                 onClick={onAddValue}
+                data-testid="edit-options-add-value-button"
               />
               <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
-                <Button size="small" type="text" icon={<DeleteOutlined />} />
+                <Button
+                  size="small"
+                  type="text"
+                  icon={<DeleteOutlined />}
+                  data-testid="edit-options-delete-option-button"
+                />
               </Dropdown>
             </Flex>
           }

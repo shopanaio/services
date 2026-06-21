@@ -49,6 +49,8 @@ export const ProductDetailsCard = ({
 }: IProductDetailsCardProps) => {
   const modals = useProductModals(product, { onProductRefresh });
   const isVariableProduct = product.variantsCount > 1;
+  const hasProductOptions = product.options.length > 0;
+  const hasVariantRows = (variantsTableData?.variants.length ?? 0) > 0;
   const defaultVariant = getDefaultVariant(product);
 
   const handleEdit = (section: string) => onEditSection?.(section);
@@ -104,16 +106,20 @@ export const ProductDetailsCard = ({
         }
       />
 
-      {/* OPTIONS (variable products) */}
-      {isVariableProduct && (
-        <OptionsSection
-          options={product.options}
-          onEdit={modals.editOptions}
-        />
-      )}
+      {/* OPTIONS */}
+      <OptionsSection
+        options={product.options}
+        actions={
+          <EditAction
+            onEdit={modals.editOptions}
+            label="Edit options"
+            testId="product-options-actions-button"
+          />
+        }
+      />
 
-      {/* VARIANTS TABLE (variable products) */}
-      {isVariableProduct && variantsTableData && variantsTableData.variants.length > 0 && (
+      {/* VARIANTS TABLE */}
+      {hasProductOptions && variantsTableData && hasVariantRows && (
         <VariantsTableSection
           variants={variantsTableData.variants}
           productOptions={product.options}

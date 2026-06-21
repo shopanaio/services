@@ -112,6 +112,29 @@ export const PRODUCT_OPTION_CREATE_MUTATION = gql`
   ${USER_ERROR_FRAGMENT}
 `;
 
+export const PRODUCT_OPTIONS_SYNC_MUTATION = gql`
+  mutation ProductOptionsSync($input: ProductOptionsSyncInput!) {
+    catalogMutation {
+      productOptionsSync(input: $input) {
+        product {
+          id
+          options {
+            ...ProductOptionFields
+          }
+        }
+        options {
+          ...ProductOptionFields
+        }
+        userErrors {
+          ...UserErrorFields
+        }
+      }
+    }
+  }
+  ${PRODUCT_OPTION_FRAGMENT}
+  ${USER_ERROR_FRAGMENT}
+`;
+
 export const PRODUCT_FEATURES_SYNC_MUTATION = gql`
   mutation ProductFeaturesSync($input: ProductFeaturesSyncInput!) {
     catalogMutation {
