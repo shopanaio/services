@@ -59,14 +59,18 @@
 
 - картинки/media reorder/upload - текущая grid media column остаётся read-only; для save нужен отдельный media editor flow через `variantUpdateMedia`.
 
-### Schema gap
+### Unsupported barcode field
 
-`barcode` сейчас есть в UI config как editable placeholder, но текущая Admin schema не возвращает и не обновляет barcode. Чтобы выполнить правило "всё, что вводится прямо в таблице, должно сохраняться", implementation должен выбрать один из двух вариантов:
+`barcode` сейчас есть в UI config как editable placeholder, но текущая Admin schema не возвращает и не обновляет barcode. Это поле не поддерживается текущим API contract и должно быть полностью убрано из общего variants editor.
 
-1. сделать `barcode` read-only/hidden и убрать его из selectable/editable columns до появления API contract;
-2. либо расширить backend/schema/read fragment/write mapper для barcode и включить его в этот же save path.
+Implementation must remove `barcode` from:
 
-Нельзя оставлять `barcode` editable без API-backed save.
+- variants editor column config;
+- default column visibility;
+- selectable columns;
+- editor row/input mapping for the API-backed variants editor, where possible without breaking unrelated legacy/mock-only bulk editor code.
+
+Нельзя оставлять `barcode` visible, selectable или editable в общем variants editor без API-backed save.
 
 ## Архитектурные правила
 
@@ -205,7 +209,6 @@ Rules:
 | option columns | no while read-only | not direct table inputs in current grid |
 | `reserved` | no | read-only/order-managed |
 | `available` | no | calculated |
-| `barcode` | no until schema contract exists | must not remain editable without API-backed save |
 | `title` | no | display-only column |
 
 ## Modal Editability Contract
@@ -359,9 +362,7 @@ After successful save:
 3. Update `useVariantsColumns` so editability is scoped independently from column visibility.
 4. Guard `VariantsEditorGrid.handleSetFieldValue` so non-editable fields cannot enter `useVariantsEditorStore.edits`.
 5. Pass a filtered `selectableColumns` list to `EditorGrid` so paste/delete/increment cannot edit fields outside `editableColumns`.
-6. Resolve the `barcode` schema gap:
-   - either make `barcode` non-editable/remove from selectable columns;
-   - or add API-backed read/write contract and mapper support before enabling it.
+6. Remove unsupported `barcode` from the API-backed variants editor column config, default visibility, selectable columns, and general modal editability.
 7. Add `product-variant-inventory-item.mapper.ts` and export it from `mappers/index.ts`.
 8. Implement inventory item mapper validation and changed-input detection for `sku`, `onHand`, `unavailable`, `costPrice`, `weight`, `length`, `width`, `height`.
 9. Reuse `prepareChangedVariantPricingInputs` for `price` and `compareAtPrice`.
@@ -384,7 +385,7 @@ Manual checks:
 - `Edit variants` loads all variants, hydrates inventory items, resolves default warehouse, and opens the modal.
 - Editable table inputs are: `price`, `compareAtPrice`, `sku`, `onHand`, `unavailable`, `costPrice`, `weight`, `length`, `width`, `height`.
 - Media/picture column is not editable from this general entry point.
-- `barcode` is not editable unless API-backed barcode support was implemented in the same change.
+- `barcode` is not visible, selectable, or editable in the API-backed variants editor.
 - Saving changed price calls Catalog product update with `variants[].pricing`.
 - Saving changed SKU calls `inventoryMutation.inventoryItemUpdate` with `sku`.
 - Saving changed on-hand/unavailable calls `inventoryMutation.inventoryItemUpdate` with `stock`.
