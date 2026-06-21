@@ -4,7 +4,7 @@ import {
   useState,
   useCallback,
   useMemo } from "react";
-import { Flex } from "antd";
+import { App, Flex } from "antd";
 import { ProductInfoHeader } from "@/domains/inventory/products/components/product-info-header";
 import { ProductContentTabs } from "@/domains/inventory/products/components/product-content-tabs";
 import { PricingBlock } from "@/domains/inventory/products/components/pricing/pricing-block";
@@ -23,7 +23,6 @@ import {
   } from "./sections";
 import {
   useEditMediaModal,
-  useEditAttributesModal,
   useEditSeoModal,
   IEditMediaModalPayload,
   IEditSeoModalPayload,
@@ -42,6 +41,7 @@ import { LogicOperator,
 } from "@/domains/promos/bundles/dependency-rules";
 import type { IDependencyRule } from "@/domains/promos/bundles/dependency-rules/types";
 import { createMockApiProduct } from "@/mocks/products/api-builders";
+import type { ApiProductFeature } from "@/graphql/types";
 
 // ============================================================================
 // Props
@@ -60,8 +60,8 @@ export const BundleDetailsCard = ({
   product,
   mockData,
 }: IBundleDetailsCardProps) => {
+  const { message } = App.useApp();
   const { push: openEditMediaModal } = useEditMediaModal();
-  const { push: openEditAttributesModal } = useEditAttributesModal();
   const { push: openEditSeoModal } = useEditSeoModal();
   const { push: openEditGroupsModal } = useEditBundleGroupsModal();
   const { push: openDependencyChartModal } = useDependencyChartModal();
@@ -96,6 +96,34 @@ export const BundleDetailsCard = ({
       }),
     [product, mockData.categories.primary, mockData.categories.list, mockData.tags],
   );
+  const attributeFeatures = useMemo<ApiProductFeature[]>(() => {
+    const rowsById = new Map(mockData.attributes.map((row) => [row.id, row]));
+
+    return mockData.attributes.map((row) => {
+      const parent = row.parentId ? rowsById.get(row.parentId) : null;
+
+      return {
+        __typename: "ProductFeature",
+        id: row.id,
+        name: row.name,
+        slug: row.name.toLocaleLowerCase().replace(/\s+/g, "-"),
+        isGroup: row.type === "group",
+        index: parent ? [parent.sortIndex, row.sortIndex] : [row.sortIndex],
+        children: [],
+        parent: undefined,
+        values:
+          row.type === "attribute"
+            ? (row.values ?? []).map((value) => ({
+                __typename: "ProductFeatureValue",
+                id: value.id,
+                name: value.name,
+                slug: value.slug,
+                index: value.sortIndex,
+              }))
+            : [],
+      };
+    });
+  }, [mockData.attributes]);
 
   // ========================================
   // Modal Handlers
@@ -169,8 +197,8 @@ export const BundleDetailsCard = ({
   }, [product.id, product.featured, product.gallery, openEditMediaModal]);
 
   const handleEditAttributes = useCallback(() => {
-    openEditAttributesModal({ productId: product.id });
-  }, [product.id, openEditAttributesModal]);
+    message.info("Bundle attribute updates are not API-backed yet");
+  }, [message]);
 
   const handleEditReviews = useCallback(() => {
     console.log("Edit reviews");
@@ -240,7 +268,7 @@ export const BundleDetailsCard = ({
 
       {/* ATTRIBUTES */}
       <AttributesSection
-        data={mockData.attributes}
+        features={attributeFeatures}
         actions={
           <EditAction onEdit={handleEditAttributes} label="Edit attributes" />
         }

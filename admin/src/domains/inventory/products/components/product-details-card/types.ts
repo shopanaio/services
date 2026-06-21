@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import type { IBundleGroup, PricingRuleTemplate, IDependencyRule } from "@/domains/promos/bundles/types";
-import type { IAttributeRow } from "../../modals/edit-attributes-modal/types";
 import type { IBundleListItem } from "@/mocks/products/bundles-list";
 import type {
   ApiProductInventoryWidget,
@@ -51,7 +50,6 @@ export interface IVariantsTableData {
 
 export interface ProductDetailsSupplementalData {
   reviews: IReviewsData;
-  attributes: IAttributeRow[];
   bundleItems: IBundleGroup[];
   pricingTemplates: PricingRuleTemplate[];
   dependencyRules: IDependencyRule[];

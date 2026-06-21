@@ -2,7 +2,7 @@ import { useMemo, ReactNode } from "react";
 import { createStyles } from "antd-style";
 import { Descriptions, Flex, Typography } from "antd";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import type { IAttributeRow } from "../modals/edit-attributes-modal/types";
+import type { ApiProductFeature, ApiProductFeatureValue } from "@/graphql/types";
 
 // ============================================================================
 // Styles
@@ -38,14 +38,8 @@ const useStyles = createStyles(({ token }) => ({
 // ============================================================================
 
 interface IAttributesSectionProps {
-  data: IAttributeRow[];
+  features: ApiProductFeature[];
   actions?: ReactNode;
-}
-
-interface IAttributeGroup {
-  id: string;
-  name: string;
-  attributes: IAttributeRow[];
 }
 
 // ============================================================================
@@ -53,8 +47,29 @@ interface IAttributeGroup {
 // ============================================================================
 
 interface IAttributeListProps {
-  attributes: IAttributeRow[];
+  attributes: ApiProductFeature[];
   className?: string;
+}
+
+function compareIndex(left: number[], right: number[]): number {
+  const length = Math.max(left.length, right.length);
+
+  for (let i = 0; i < length; i += 1) {
+    const leftValue = left[i] ?? -1;
+    const rightValue = right[i] ?? -1;
+
+    if (leftValue !== rightValue) {
+      return leftValue - rightValue;
+    }
+  }
+
+  return left.length - right.length;
+}
+
+function sortValues(
+  values: ApiProductFeatureValue[],
+): ApiProductFeatureValue[] {
+  return [...values].sort((left, right) => left.index - right.index);
 }
 
 const AttributeList = ({ attributes, className }: IAttributeListProps) => {
@@ -70,7 +85,9 @@ const AttributeList = ({ attributes, className }: IAttributeListProps) => {
     >
       {attributes.map((attr) => (
         <Descriptions.Item key={attr.id} label={attr.name}>
-          {attr.values?.map((v) => v.name).join(", ") || "—"}
+          {sortValues(attr.values)
+            .map((value) => value.name)
+            .join(", ") || "--"}
         </Descriptions.Item>
       ))}
     </Descriptions>
@@ -78,22 +95,24 @@ const AttributeList = ({ attributes, className }: IAttributeListProps) => {
 };
 
 interface IAttributeGroupBlockProps {
-  group: IAttributeGroup;
+  group: ApiProductFeature;
+  attributes: ApiProductFeature[];
   className?: string;
   titleClassName?: string;
 }
 
 const AttributeGroupBlock = ({
   group,
+  attributes,
   className,
   titleClassName,
 }: IAttributeGroupBlockProps) => {
-  if (group.attributes.length === 0) return null;
+  if (attributes.length === 0) return null;
 
   return (
     <div>
       <Typography.Text className={titleClassName}>{group.name}</Typography.Text>
-      <AttributeList attributes={group.attributes} className={className} />
+      <AttributeList attributes={attributes} className={className} />
     </div>
   );
 };
@@ -102,57 +121,82 @@ const AttributeGroupBlock = ({
 // Main Component
 // ============================================================================
 
-export const AttributesSection = ({ data, actions }: IAttributesSectionProps) => {
+export const AttributesSection = ({
+  features,
+  actions,
+}: IAttributesSectionProps) => {
   const { styles } = useStyles();
 
-  const { rootAttributes, groups } = useMemo(() => {
-    const rootAttrs = data
-      .filter((r) => r.type === "attribute" && r.parentId === null)
-      .sort((a, b) => a.sortIndex - b.sortIndex);
+  const { rootAttributes, groups, attributesByGroupId } = useMemo(() => {
+    const sortedFeatures = [...features].sort((left, right) =>
+      compareIndex(left.index, right.index),
+    );
+    const rootAttrs = sortedFeatures.filter(
+      (feature) => !feature.isGroup && feature.index.length === 1,
+    );
+    const groupRows = sortedFeatures.filter(
+      (feature) => feature.isGroup && feature.index.length === 1,
+    );
+    const groupedAttributes = new Map<string, ApiProductFeature[]>();
 
-    const groupRows = data
-      .filter((r) => r.type === "group")
-      .sort((a, b) => a.sortIndex - b.sortIndex);
-
-    const groupsWithAttrs: IAttributeGroup[] = groupRows.map((group) => ({
-      id: group.id,
-      name: group.name,
-      attributes: data
-        .filter((r) => r.type === "attribute" && r.parentId === group.id)
-        .sort((a, b) => a.sortIndex - b.sortIndex),
-    }));
+    groupRows.forEach((group) => {
+      groupedAttributes.set(
+        group.id,
+        sortedFeatures.filter(
+          (feature) =>
+            !feature.isGroup &&
+            feature.index.length === 2 &&
+            feature.index[0] === group.index[0],
+        ),
+      );
+    });
 
     return {
       rootAttributes: rootAttrs,
-      groups: groupsWithAttrs,
+      groups: groupRows,
+      attributesByGroupId: groupedAttributes,
     };
-  }, [data]);
+  }, [features]);
 
-  const hasContent = rootAttributes.length > 0 || groups.some((g) => g.attributes.length > 0);
+  const hasContent =
+    rootAttributes.length > 0 ||
+    groups.some(
+      (group) => (attributesByGroupId.get(group.id)?.length ?? 0) > 0,
+    );
 
-  if (!hasContent) {
+  if (!hasContent && !actions) {
     return null;
   }
 
   return (
-    <Paper>
+    <Paper data-testid="product-attributes-section">
       <PaperHeader title="Attributes" actions={actions} />
       <Flex vertical gap={16}>
-        {/* Root-level attributes (no group) */}
-        <AttributeList
-          attributes={rootAttributes}
-          className={styles.descriptions}
-        />
+        {hasContent ? (
+          <>
+            <AttributeList
+              attributes={rootAttributes}
+              className={styles.descriptions}
+            />
 
-        {/* Grouped attributes */}
-        {groups.map((group) => (
-          <AttributeGroupBlock
-            key={group.id}
-            group={group}
-            className={styles.descriptions}
-            titleClassName={styles.groupTitle}
-          />
-        ))}
+            {groups.map((group) => (
+              <AttributeGroupBlock
+                key={group.id}
+                group={group}
+                attributes={attributesByGroupId.get(group.id) ?? []}
+                className={styles.descriptions}
+                titleClassName={styles.groupTitle}
+              />
+            ))}
+          </>
+        ) : (
+          <Typography.Text
+            type="secondary"
+            data-testid="product-attributes-empty-state"
+          >
+            No attributes yet
+          </Typography.Text>
+        )}
       </Flex>
     </Paper>
   );

@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
-import { Button, Typography, Dropdown, message } from "antd";
+import { useCallback, useMemo, useState } from "react";
+import { Alert, App, Button, Dropdown, Flex, Typography } from "antd";
 import { PlusOutlined, FolderOutlined, TagsOutlined } from "@ant-design/icons";
 import { AgGridReact } from "ag-grid-react";
 import {
@@ -19,20 +19,63 @@ import {
 } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useAgGridTheme, useTreeTableDragDrop } from "@/hooks";
+import { useSyncProductFeatures } from "../../hooks";
+import {
+  apiProductFeaturesToAttributeEditorRows,
+  buildProductFeaturesSyncDraft,
+  createTemporaryFeatureId,
+  getProductFeatureEditorLoadErrors,
+  parseAttributeValuesText,
+  validateAttributeEditorRows,
+  formatProductFeatureUserErrors,
+} from "../../mappers";
+import type { IEditAttributesModalPayload } from "../../modals";
 
 import { useStyles } from "./edit-attributes-modal.styles";
-import type { IAttributeRow } from "./types";
-import { createMockData } from "@/mocks/products/attributes";
+import type { AttributeEditorRow } from "./types";
 import { NameCellRenderer, ActionsCellRenderer } from "./components";
 
 ModuleRegistry.registerModules([AllCommunityModule, RowDragModule]);
 
+function getMaxRootSortIndex(rows: AttributeEditorRow[]): number {
+  return Math.max(
+    -1,
+    ...rows.filter((row) => row.parentId === null).map((row) => row.sortIndex),
+  );
+}
+
 export const EditAttributesModal = () => {
   const { styles } = useStyles();
+  const { message } = App.useApp();
   const agGridTheme = useAgGridTheme();
-  const { pop, setDirty } = useModalStackContext();
+  const { payload, pop, setDirty } = useModalStackContext();
+  const typedPayload = payload as IEditAttributesModalPayload;
+  const productId = typedPayload.productId ?? "";
+  const payloadFeatures = typedPayload.features ?? [];
+  const onSaved = typedPayload.onSaved;
+  const initialRows = useMemo(
+    () => apiProductFeaturesToAttributeEditorRows(payloadFeatures),
+    [payloadFeatures],
+  );
+  const loadErrors = useMemo(
+    () => getProductFeatureEditorLoadErrors(payloadFeatures),
+    [payloadFeatures],
+  );
+  const [userErrors, setUserErrors] = useState(loadErrors);
+  const {
+    syncProductFeatures,
+    loading: saving,
+    error: syncError,
+  } = useSyncProductFeatures();
 
-  // Use shared drag-drop hook
+  const markDirty = useCallback(() => {
+    setDirty(true);
+
+    if (loadErrors.length === 0) {
+      setUserErrors([]);
+    }
+  }, [loadErrors.length, setDirty]);
+
   const {
     allRows,
     visibleRows,
@@ -46,42 +89,41 @@ export const EditAttributesModal = () => {
     deleteRow,
     updateRow,
     setAllRows,
-  } = useTreeTableDragDrop<IAttributeRow>({
-    initialRows: createMockData(),
+  } = useTreeTableDragDrop<AttributeEditorRow>({
+    initialRows,
     groupType: "group",
-    onRowsChange: () => setDirty(true),
+    onRowsChange: markDirty,
   });
-
-  const markDirty = useCallback(() => setDirty(true), [setDirty]);
 
   // ========================================
   // Handlers
   // ========================================
 
   const getRowId = useCallback(
-    (params: GetRowIdParams<IAttributeRow>) => params.data.id,
-    []
+    (params: GetRowIdParams<AttributeEditorRow>) => params.data.id,
+    [],
   );
 
   const handleDelete = useCallback(
     (id: string) => {
       deleteRow(id);
     },
-    [deleteRow]
+    [deleteRow],
   );
 
   const handleAddAttribute = useCallback(
     (parentId: string) => {
-      const parent = allRows.find((r) => r.id === parentId);
+      const parent = allRows.find((row) => row.id === parentId);
       if (!parent || parent.type !== "group") return;
 
-      const newRow: IAttributeRow = {
-        id: `a-${Date.now()}`,
+      const newRow: AttributeEditorRow = {
+        id: createTemporaryFeatureId(),
         type: "attribute",
         name: "New Attribute",
+        slug: "",
         parentId,
         sortIndex: allRows.filter(
-          (r) => r.parentId === parentId && r.type === "attribute"
+          (row) => row.parentId === parentId && row.type === "attribute",
         ).length,
         level: 1,
         values: [],
@@ -89,103 +131,113 @@ export const EditAttributesModal = () => {
 
       addChild(newRow);
     },
-    [allRows, addChild]
+    [allRows, addChild],
   );
 
   const handleAddGroup = useCallback(() => {
-    const maxRootSortIndex = Math.max(
-      -1,
-      ...allRows.filter((r) => r.parentId === null).map((r) => r.sortIndex)
-    );
-
-    const newGroup: IAttributeRow = {
-      id: `g-${Date.now()}`,
+    const newGroup: AttributeEditorRow = {
+      id: createTemporaryFeatureId(),
       type: "group",
       name: "New Group",
+      slug: "",
       parentId: null,
-      sortIndex: maxRootSortIndex + 1,
+      sortIndex: getMaxRootSortIndex(allRows) + 1,
       level: 0,
+      values: [],
     };
 
     addGroup(newGroup);
   }, [allRows, addGroup]);
 
   const handleAddRootAttribute = useCallback(() => {
-    const newId = `a-${Date.now()}`;
+    const newId = createTemporaryFeatureId();
 
     setAllRows((prev) => {
-      // Find if there are any groups
-      const firstGroupIndex = prev
-        .filter((r) => r.parentId === null)
-        .sort((a, b) => a.sortIndex - b.sortIndex)
-        .findIndex((r) => r.type === "group");
-
-      let newSortIndex: number;
-      if (firstGroupIndex === -1) {
-        // No groups - add at the end
-        const maxRootSortIndex = Math.max(
-          -1,
-          ...prev.filter((r) => r.parentId === null).map((r) => r.sortIndex)
-        );
-        newSortIndex = maxRootSortIndex + 1;
-      } else {
-        // Insert before the first group by shifting group sortIndexes
-        const rootRows = prev
-          .filter((r) => r.parentId === null)
-          .sort((a, b) => a.sortIndex - b.sortIndex);
-        const firstGroup = rootRows.find((r) => r.type === "group");
-        newSortIndex = firstGroup?.sortIndex ?? 0;
-
-        // Shift all groups and their positions
-        return [
-          ...prev.map((r) => {
-            if (r.parentId === null && r.sortIndex >= newSortIndex) {
-              return { ...r, sortIndex: r.sortIndex + 1 };
-            }
-            return r;
-          }),
-          {
-            id: newId,
-            type: "attribute" as const,
-            name: "New Attribute",
-            parentId: null,
-            sortIndex: newSortIndex,
-            level: 0,
-            values: [],
-          },
-        ];
-      }
-
-      const newRow: IAttributeRow = {
+      const rootRows = prev
+        .filter((row) => row.parentId === null)
+        .sort((left, right) => left.sortIndex - right.sortIndex);
+      const firstGroup = rootRows.find((row) => row.type === "group");
+      const newSortIndex = firstGroup?.sortIndex ?? getMaxRootSortIndex(prev) + 1;
+      const shiftedRows = firstGroup
+        ? prev.map((row) =>
+            row.parentId === null && row.sortIndex >= newSortIndex
+              ? { ...row, sortIndex: row.sortIndex + 1 }
+              : row,
+          )
+        : prev;
+      const newRow: AttributeEditorRow = {
         id: newId,
         type: "attribute",
         name: "New Attribute",
+        slug: "",
         parentId: null,
         sortIndex: newSortIndex,
         level: 0,
         values: [],
       };
-      return [...prev, newRow];
+
+      return [...shiftedRows, newRow];
     });
 
     markDirty();
   }, [setAllRows, markDirty]);
 
   const handleCellValueChanged = useCallback(
-    (event: CellValueChangedEvent<IAttributeRow>) => {
+    (event: CellValueChangedEvent<AttributeEditorRow>) => {
       const { data, colDef, newValue } = event;
-      if (!data) return;
+      if (!data || colDef.field !== "name") return;
 
-      updateRow(data.id, { [colDef.field as string]: newValue } as Partial<IAttributeRow>);
+      updateRow(data.id, {
+        name: typeof newValue === "string" ? newValue : String(newValue ?? ""),
+      });
     },
-    [updateRow]
+    [updateRow],
   );
+
+  const handleSave = useCallback(async () => {
+    if (loadErrors.length > 0) {
+      setUserErrors(loadErrors);
+      return;
+    }
+
+    const validationErrors = validateAttributeEditorRows({
+      productId,
+      rows: allRows,
+    });
+
+    if (validationErrors.length > 0) {
+      setUserErrors(validationErrors);
+      return;
+    }
+
+    const draft = buildProductFeaturesSyncDraft({ productId, rows: allRows });
+    const result = await syncProductFeatures(draft.input);
+
+    if (result.userErrors.length > 0) {
+      setUserErrors(result.userErrors);
+      return;
+    }
+
+    await onSaved?.();
+    setDirty(false);
+    message.success("Product attributes updated");
+    pop();
+  }, [
+    allRows,
+    loadErrors,
+    message,
+    onSaved,
+    pop,
+    productId,
+    setDirty,
+    syncProductFeatures,
+  ]);
 
   // ========================================
   // Column Definitions
   // ========================================
 
-  const columnDefs = useMemo<ColDef<IAttributeRow>[]>(
+  const columnDefs = useMemo<ColDef<AttributeEditorRow>[]>(
     () => [
       {
         field: "name",
@@ -203,14 +255,30 @@ export const EditAttributesModal = () => {
         },
       },
       {
+        colId: "valuesText",
         headerName: "Values",
         flex: 2,
         minWidth: 300,
         editable: (params) => params.data?.type === "attribute",
         valueGetter: (params) => {
-          if (params.data?.type !== "attribute" || !params.data?.values)
-            return "";
-          return params.data.values.map((v) => v.name).join(", ");
+          if (params.data?.type !== "attribute") return "";
+          return params.data.values.map((value) => value.name).join(", ");
+        },
+        valueSetter: (params) => {
+          const row = params.data;
+          if (!row || row.type !== "attribute") return false;
+
+          updateRow(row.id, {
+            values: parseAttributeValuesText({
+              text:
+                typeof params.newValue === "string"
+                  ? params.newValue
+                  : String(params.newValue ?? ""),
+              existingValues: row.values,
+            }),
+          });
+
+          return false;
         },
         sortable: false,
         filter: false,
@@ -227,7 +295,14 @@ export const EditAttributesModal = () => {
         filter: false,
       },
     ],
-    [handleDelete, handleAddAttribute, handleToggleExpand, expandedIds, allRows]
+    [
+      allRows,
+      expandedIds,
+      handleAddAttribute,
+      handleDelete,
+      handleToggleExpand,
+      updateRow,
+    ],
   );
 
   const defaultColDef = useMemo<ColDef>(
@@ -236,12 +311,15 @@ export const EditAttributesModal = () => {
       sortable: false,
       filter: false,
     }),
-    []
+    [],
   );
 
-  const handleSave = useCallback(() => {
-    message.info("Product attribute updates are not API-backed yet");
-  }, []);
+  const errorMessages =
+    userErrors.length > 0
+      ? formatProductFeatureUserErrors(userErrors)
+      : syncError
+        ? [syncError.message]
+        : [];
 
   return (
     <ModalLayout
@@ -254,11 +332,31 @@ export const EditAttributesModal = () => {
           submitButtonProps={{
             children: "Save Changes",
             onClick: handleSave,
+            loading: saving,
+            disabled: saving,
           }}
         />
       }
     >
       <div className={styles.container}>
+        {errorMessages.length > 0 && (
+          <Alert
+            type="error"
+            showIcon
+            message="Could not save attributes"
+            data-testid="edit-attributes-error-alert"
+            description={
+              <Flex vertical gap={4}>
+                {errorMessages.map((error, index) => (
+                  <Typography.Text key={`${error}-${index}`}>
+                    {error}
+                  </Typography.Text>
+                ))}
+              </Flex>
+            }
+          />
+        )}
+
         <Paper>
           <PaperHeader
             bordered={false}
@@ -270,13 +368,21 @@ export const EditAttributesModal = () => {
                   items: [
                     {
                       key: "attribute",
-                      label: "Add Attribute",
+                      label: (
+                        <span data-testid="edit-attributes-add-attribute-item">
+                          Add Attribute
+                        </span>
+                      ),
                       icon: <TagsOutlined />,
                       onClick: handleAddRootAttribute,
                     },
                     {
                       key: "group",
-                      label: "Add Group",
+                      label: (
+                        <span data-testid="edit-attributes-add-group-item">
+                          Add Group
+                        </span>
+                      ),
                       icon: <FolderOutlined />,
                       onClick: handleAddGroup,
                     },
@@ -284,7 +390,11 @@ export const EditAttributesModal = () => {
                 }}
                 trigger={["click"]}
               >
-                <Button size="small" icon={<PlusOutlined />}>
+                <Button
+                  size="small"
+                  icon={<PlusOutlined />}
+                  data-testid="edit-attributes-add-button"
+                >
                   Add
                 </Button>
               </Dropdown>
@@ -292,8 +402,11 @@ export const EditAttributesModal = () => {
           />
         </Paper>
 
-        <div className={`${styles.gridWrapper} ag-theme-quartz`}>
-          <AgGridReact<IAttributeRow>
+        <div
+          className={`${styles.gridWrapper} ag-theme-quartz`}
+          data-testid="edit-attributes-grid"
+        >
+          <AgGridReact<AttributeEditorRow>
             theme={agGridTheme}
             rowData={visibleRows}
             columnDefs={columnDefs}

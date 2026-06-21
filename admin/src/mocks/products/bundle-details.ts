@@ -3,7 +3,7 @@
  */
 
 import type { IProduct } from "./types";
-import type { IAttributeRow } from "@/domains/inventory/products/modals/edit-attributes-modal/types";
+import type { IAttributeRow } from "./attributes";
 import type { IBundleGroup, PricingRuleTemplate, IDependencyRule } from "@/domains/promos/bundles/types";
 import type { BundleType } from "@/mocks/products/bundles-list";
 import type { IReviewsData } from "@/domains/inventory/products/components/product-details-card/types";

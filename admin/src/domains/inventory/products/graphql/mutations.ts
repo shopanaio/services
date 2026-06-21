@@ -2,6 +2,7 @@ import { gql } from "@apollo/client";
 import {
   FILE_FRAGMENT,
   INVENTORY_ITEM_FRAGMENT,
+  PRODUCT_FEATURE_FRAGMENT,
   PRODUCT_MUTATION_RESULT_FRAGMENT,
   PRODUCT_OPTION_FRAGMENT,
   USER_ERROR_FRAGMENT,
@@ -108,6 +109,29 @@ export const PRODUCT_OPTION_CREATE_MUTATION = gql`
   }
   ${PRODUCT_MUTATION_RESULT_FRAGMENT}
   ${PRODUCT_OPTION_FRAGMENT}
+  ${USER_ERROR_FRAGMENT}
+`;
+
+export const PRODUCT_FEATURES_SYNC_MUTATION = gql`
+  mutation ProductFeaturesSync($input: ProductFeaturesSyncInput!) {
+    catalogMutation {
+      productFeaturesSync(input: $input) {
+        product {
+          id
+          features {
+            ...ProductFeatureFields
+          }
+        }
+        features {
+          ...ProductFeatureFields
+        }
+        userErrors {
+          ...UserErrorFields
+        }
+      }
+    }
+  }
+  ${PRODUCT_FEATURE_FRAGMENT}
   ${USER_ERROR_FRAGMENT}
 `;
 

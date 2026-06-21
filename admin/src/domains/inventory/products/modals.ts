@@ -6,12 +6,12 @@ import type {
   ApiCategory,
   ApiFile,
   ApiProduct,
+  ApiProductFeature,
   ApiProductOption,
   ApiTag,
   ApiVariant,
   CurrencyCode,
 } from "@/graphql/types";
-import type { IAttributeRow } from "./modals/edit-attributes-modal/types";
 import type { VariantColumnField } from './components/variants/config/types';
 import type { VariantEditorSaveRow } from "./mappers/product-variant-editor.mapper";
 
@@ -69,7 +69,6 @@ export type AITone = 'professional' | 'casual' | 'luxury' | 'friendly';
 
 export interface IProductAIWriterModalPayload extends IModalStackPayload {
   product: ApiProduct;
-  supplementalAttributes?: IAttributeRow[];
   onApply?: (values: {
     description?: RenderedContent;
     excerpt?: RenderedContent;
@@ -144,7 +143,9 @@ export interface IEditOptionsModalPayload extends IModalStackPayload {
 }
 
 export interface IEditAttributesModalPayload extends IModalStackPayload {
-  productId?: string;
+  productId: string;
+  features: ApiProductFeature[];
+  onSaved?: () => Promise<unknown> | unknown;
 }
 
 export interface IEditSeoModalPayload extends IModalStackPayload {

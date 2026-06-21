@@ -2,10 +2,10 @@ import { Button, Dropdown } from "antd";
 import { PlusOutlined, DeleteOutlined, MoreOutlined } from "@ant-design/icons";
 import type { ICellRendererParams } from "ag-grid-community";
 import { useStyles } from "../edit-attributes-modal.styles";
-import type { IAttributeRow } from "../types";
+import type { AttributeEditorRow } from "../types";
 
 export interface IActionsCellRendererParams
-  extends ICellRendererParams<IAttributeRow> {
+  extends ICellRendererParams<AttributeEditorRow> {
   onDelete: (id: string) => void;
   onAdd: (parentId: string) => void;
 }
@@ -52,7 +52,12 @@ export const ActionsCellRenderer = (params: IActionsCellRendererParams) => {
         }}
         trigger={["click"]}
       >
-        <Button size="small" type="text" icon={<MoreOutlined />} />
+        <Button
+          size="small"
+          type="text"
+          icon={<MoreOutlined />}
+          data-testid={`edit-attributes-row-actions-${data.id}`}
+        />
       </Dropdown>
     </div>
   );

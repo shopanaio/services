@@ -1,6 +1,5 @@
 import {
   mockBundlesList } from "./bundles-list";
-import { createMockData as createAttributesMockData } from "./attributes";
 import type {
   ProductDetailsSupplementalData,
   IVariantsTableData,
@@ -623,7 +622,6 @@ const mockDependencyRules: IDependencyRule[] = [
 
 export const productDetailsMockData: ProductDetailsSupplementalData = {
   reviews: defaultReviewsData,
-  attributes: createAttributesMockData(),
   bundleItems: mockBundleGroups,
   pricingTemplates: mockPricingTemplates,
   dependencyRules: mockDependencyRules,

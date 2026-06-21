@@ -22,7 +22,14 @@ import {
   getProductVariants,
 } from "../../../utils/api-product-display";
 
-export const useProductModals = (product: ApiProduct) => {
+interface UseProductModalsOptions {
+  onProductRefresh?: () => Promise<unknown>;
+}
+
+export const useProductModals = (
+  product: ApiProduct,
+  options: UseProductModalsOptions = {},
+) => {
   const { message } = App.useApp();
   const { updateProduct } = useUpdateProduct();
   const { push: openProductModal } = useProductModal();
@@ -103,8 +110,17 @@ export const useProductModals = (product: ApiProduct) => {
   }, [product.id, openEditOptionsModal]);
 
   const handleEditAttributes = useCallback(() => {
-    openEditAttributesModal({ productId: product.id });
-  }, [product.id, openEditAttributesModal]);
+    openEditAttributesModal({
+      productId: product.id,
+      features: product.features,
+      onSaved: options.onProductRefresh,
+    });
+  }, [
+    product.id,
+    product.features,
+    options.onProductRefresh,
+    openEditAttributesModal,
+  ]);
 
   const handleEditSeo = useCallback(() => {
     openEditSeoModal({

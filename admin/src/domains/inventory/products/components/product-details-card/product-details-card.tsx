@@ -47,7 +47,7 @@ export const ProductDetailsCard = ({
   onVariantsPageChange,
   onProductRefresh,
 }: IProductDetailsCardProps) => {
-  const modals = useProductModals(product);
+  const modals = useProductModals(product, { onProductRefresh });
   const isVariableProduct = product.variantsCount > 1;
   const defaultVariant = getDefaultVariant(product);
 
@@ -94,9 +94,13 @@ export const ProductDetailsCard = ({
 
       {/* ATTRIBUTES */}
       <AttributesSection
-        data={supplementalData.attributes}
+        features={product.features}
         actions={
-          <EditAction onEdit={modals.editAttributes} label="Edit attributes" />
+          <EditAction
+            onEdit={modals.editAttributes}
+            label="Edit attributes"
+            testId="product-attributes-actions-button"
+          />
         }
       />
 

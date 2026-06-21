@@ -48,6 +48,19 @@ query ProductFindOne($id: ID!) {
           slug
         }
       }
+      features {
+        id
+        name
+        slug
+        isGroup
+        index
+        values {
+          id
+          name
+          slug
+          index
+        }
+      }
       variantsCount
       variants(first: 10) {
         edges {

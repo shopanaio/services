@@ -1,15 +1,24 @@
 import type { ITreeTableRow } from "@/hooks/use-tree-table-drag-drop";
 
-export type RowType = "group" | "attribute";
+export type AttributeEditorRowType = "group" | "attribute";
 
-export interface IAttributeValue {
+export interface AttributeEditorValue {
   id: string;
+  apiId?: string;
   name: string;
   slug: string;
   sortIndex: number;
 }
 
-export interface IAttributeRow extends ITreeTableRow {
-  type: RowType;
-  values?: IAttributeValue[]; // Only for attributes
+export interface AttributeEditorRow extends ITreeTableRow {
+  id: string;
+  apiId?: string;
+  apiType?: AttributeEditorRowType;
+  type: AttributeEditorRowType;
+  name: string;
+  slug: string;
+  parentId: string | null;
+  sortIndex: number;
+  level: 0 | 1;
+  values: AttributeEditorValue[];
 }

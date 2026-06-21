@@ -4,5 +4,6 @@ export * from "./use-product-pricing-widget";
 export * from "./use-create-product";
 export * from "./use-update-product";
 export * from "./use-delete-product";
+export * from "./use-sync-product-features";
 export * from "./use-product-variants-connection";
 export * from "./use-product-variants-loader";
