@@ -1096,6 +1096,11 @@ export type ApiCatalogQuery = {
   product?: Maybe<ApiProduct>;
   /** Get bulk update job by ID. */
   productBulkUpdateJob?: Maybe<ApiProductBulkUpdateJob>;
+  /**
+   * Get product bulk update jobs for the current store.
+   * Defaults to active jobs when statusFilter is omitted.
+   */
+  productBulkUpdateJobs: ApiProductBulkUpdateJobConnection;
   /** Get products with Relay-style pagination */
   products: ApiProductConnection;
   /** Get a tag by ID */
@@ -1225,6 +1230,13 @@ export type ApiCatalogQueryProductBulkUpdateJobArgs = {
 };
 
 
+export type ApiCatalogQueryProductBulkUpdateJobsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  statusFilter?: InputMaybe<Array<BulkUpdateJobStatus>>;
+};
+
+
 export type ApiCatalogQueryProductsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   before?: InputMaybe<Scalars['String']['input']>;
@@ -1256,6 +1268,8 @@ export type ApiCatalogQueryVariantsArgs = {
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiVariantOrderByInput>>;
+  where?: InputMaybe<ApiVariantWhereInput>;
 };
 
 /** A category represents a hierarchical grouping of products. */
@@ -4927,6 +4941,19 @@ export type ApiProductBulkUpdateJobItemsArgs = {
   statusFilter?: InputMaybe<Array<BulkUpdateItemStatus>>;
 };
 
+export type ApiProductBulkUpdateJobConnection = {
+  __typename?: 'ProductBulkUpdateJobConnection';
+  edges: Array<ApiProductBulkUpdateJobEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiProductBulkUpdateJobEdge = {
+  __typename?: 'ProductBulkUpdateJobEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiProductBulkUpdateJob;
+};
+
 /** Result of bulk update start/cancel. */
 export type ApiProductBulkUpdatePayload = {
   __typename?: 'ProductBulkUpdatePayload';
@@ -6702,6 +6729,33 @@ export type ApiVariantOptionsOpInput = {
   set: Array<ApiVariantOptionLinkInput>;
 };
 
+/** Ordering configuration for Variant */
+export type ApiVariantOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: VariantOrderField;
+};
+
+/** Fields available for sorting Variant */
+export type VariantOrderField =
+  /** Sort by createdAt */
+  | 'createdAt'
+  /** Sort by externalId */
+  | 'externalId'
+  /** Sort by externalSystem */
+  | 'externalSystem'
+  /** Sort by handle */
+  | 'handle'
+  /** Sort by id */
+  | 'id'
+  /** Sort by isDefault */
+  | 'isDefault'
+  /** Sort by productId */
+  | 'productId'
+  /** Sort by updatedAt */
+  | 'updatedAt';
+
 /** Represents a price for a variant. */
 export type ApiVariantPrice = ApiNode & {
   __typename?: 'VariantPrice';
@@ -6842,6 +6896,32 @@ export type ApiVariantWeight = {
   __typename?: 'VariantWeight';
   /** Weight in grams. */
   value: Scalars['Int']['output'];
+};
+
+/** Filter conditions for Variant */
+export type ApiVariantWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiVariantWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiVariantWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiVariantWhereInput>>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by externalId */
+  externalId?: InputMaybe<ApiStringFilter>;
+  /** Filter by externalSystem */
+  externalSystem?: InputMaybe<ApiStringFilter>;
+  /** Filter by handle */
+  handle?: InputMaybe<ApiStringFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by isDefault */
+  isDefault?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by productId */
+  productId?: InputMaybe<ApiIdFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
 };
 
 /** A warehouse represents a physical location where inventory is stored. */

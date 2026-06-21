@@ -1103,6 +1103,11 @@ export type ApiCatalogQuery = {
   product?: Maybe<ApiProduct>;
   /** Get bulk update job by ID. */
   productBulkUpdateJob?: Maybe<ApiProductBulkUpdateJob>;
+  /**
+   * Get product bulk update jobs for the current store.
+   * Defaults to active jobs when statusFilter is omitted.
+   */
+  productBulkUpdateJobs: ApiProductBulkUpdateJobConnection;
   /** Get products with Relay-style pagination */
   products: ApiProductConnection;
   /** Get a tag by ID */
@@ -1229,6 +1234,13 @@ export type ApiCatalogQueryProductArgs = {
 
 export type ApiCatalogQueryProductBulkUpdateJobArgs = {
   jobId: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryProductBulkUpdateJobsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  statusFilter?: InputMaybe<Array<BulkUpdateJobStatus>>;
 };
 
 
@@ -4957,6 +4969,19 @@ export type ApiProductBulkUpdateJobItemsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   statusFilter?: InputMaybe<Array<BulkUpdateItemStatus>>;
+};
+
+export type ApiProductBulkUpdateJobConnection = {
+  __typename?: 'ProductBulkUpdateJobConnection';
+  edges: Array<ApiProductBulkUpdateJobEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiProductBulkUpdateJobEdge = {
+  __typename?: 'ProductBulkUpdateJobEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiProductBulkUpdateJob;
 };
 
 /** Result of bulk update start/cancel. */

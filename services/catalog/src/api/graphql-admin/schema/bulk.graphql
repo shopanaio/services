@@ -118,6 +118,17 @@ type ProductBulkUpdateJob {
   ): BulkUpdateItemConnection!
 }
 
+type ProductBulkUpdateJobConnection {
+  edges: [ProductBulkUpdateJobEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ProductBulkUpdateJobEdge {
+  cursor: String!
+  node: ProductBulkUpdateJob!
+}
+
 """
 Job progress. All counters computed from items.
 """

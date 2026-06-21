@@ -1040,10 +1040,27 @@ type CatalogQuery {
   variant(id: ID!): Variant
 
   """Get variants with Relay-style pagination"""
-  variants(first: Int, after: String, last: Int, before: String): VariantConnection!
+  variants(
+    first: Int
+    after: String
+    last: Int
+    before: String
+
+    """Filter conditions"""
+    where: VariantWhereInput
+
+    """Sort order"""
+    orderBy: [VariantOrderByInput!]
+  ): VariantConnection!
 
   """Get bulk update job by ID."""
   productBulkUpdateJob(jobId: ID!): ProductBulkUpdateJob
+
+  """
+  Get product bulk update jobs for the current store.
+  Defaults to active jobs when statusFilter is omitted.
+  """
+  productBulkUpdateJobs(first: Int, after: String, statusFilter: [BulkUpdateJobStatus!]): ProductBulkUpdateJobConnection!
 
   """Get a category by ID"""
   category(id: ID!): Category
@@ -1391,6 +1408,17 @@ type ProductBulkUpdateJob {
 
   """Items with pagination and filtering."""
   items(first: Int, after: String, statusFilter: [BulkUpdateItemStatus!]): BulkUpdateItemConnection!
+}
+
+type ProductBulkUpdateJobConnection {
+  edges: [ProductBulkUpdateJobEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ProductBulkUpdateJobEdge {
+  cursor: String!
+  node: ProductBulkUpdateJob!
 }
 
 """Job progress. All counters computed from items."""
@@ -2855,6 +2883,33 @@ enum SortDirection {
   desc
 }
 
+"""Fields available for sorting Variant"""
+enum VariantOrderField {
+  """Sort by productId"""
+  productId
+
+  """Sort by id"""
+  id
+
+  """Sort by isDefault"""
+  isDefault
+
+  """Sort by handle"""
+  handle
+
+  """Sort by externalSystem"""
+  externalSystem
+
+  """Sort by externalId"""
+  externalId
+
+  """Sort by updatedAt"""
+  updatedAt
+
+  """Sort by createdAt"""
+  createdAt
+}
+
 enum BulkUpdateJobStatus {
   QUEUED
   RUNNING
@@ -3234,6 +3289,51 @@ input CategoryProductWhereInput {
 
   """Filter by deletedAt"""
   deletedAt: DateTimeFilter
+}
+
+"""Filter conditions for Variant"""
+input VariantWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [VariantWhereInput!]
+
+  """Logical OR of multiple conditions"""
+  _or: [VariantWhereInput!]
+
+  """Negate the condition"""
+  _not: VariantWhereInput
+
+  """Filter by productId"""
+  productId: IDFilter
+
+  """Filter by id"""
+  id: IDFilter
+
+  """Filter by isDefault"""
+  isDefault: BooleanFilter
+
+  """Filter by handle"""
+  handle: StringFilter
+
+  """Filter by externalSystem"""
+  externalSystem: StringFilter
+
+  """Filter by externalId"""
+  externalId: StringFilter
+
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+}
+
+"""Ordering configuration for Variant"""
+input VariantOrderByInput {
+  """Field to order by"""
+  field: VariantOrderField!
+
+  """Sort direction"""
+  direction: SortDirection!
 }
 
 """

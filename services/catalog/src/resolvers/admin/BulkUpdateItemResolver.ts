@@ -18,7 +18,7 @@ const OP_TYPE_MAP: Record<string, string> = {
 
 export class BulkUpdateItemResolver extends CatalogType<string, BulkEditItem> {
   async $preload() {
-    const item = await this.$ctx.kernel.repository.bulkEditItem.findById(this.$props);
+    const item = await this.$ctx.loaders.bulkEditItem.load(this.$props);
     if (!item) {
       throw new Error(`BulkEditItem with ID ${this.$props} not found`);
     }

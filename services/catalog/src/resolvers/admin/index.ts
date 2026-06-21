@@ -43,6 +43,10 @@ export {
   TagConnectionResolver,
   type TagConnectionInput,
 } from "./TagConnectionResolver.js";
+export {
+  ProductBulkUpdateJobConnectionResolver,
+  type ProductBulkUpdateJobConnectionInput,
+} from "./ProductBulkUpdateJobConnectionResolver.js";
 
 // Interfaces
 export * from "./interfaces/index.js";

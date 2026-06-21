@@ -50,6 +50,10 @@ import {
 } from "./VariantConnectionResolver.js";
 import { ProductBulkUpdateJobResolver } from "./ProductBulkUpdateJobResolver.js";
 import {
+  ProductBulkUpdateJobConnectionResolver,
+  type ProductBulkUpdateJobConnectionInput,
+} from "./ProductBulkUpdateJobConnectionResolver.js";
+import {
   PricingWidgetResolver,
   type PricingWidgetInput,
 } from "./PricingWidgetResolver.js";
@@ -310,11 +314,18 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
    * Get a bulk update job by ID.
    */
   async productBulkUpdateJob(args: { jobId: string }) {
-    const job = await this.$ctx.kernel.repository.bulkEditJob.findById(
-      args.jobId
+    const jobId = decodeGlobalIdByType(
+      args.jobId,
+      GlobalIdEntity.ProductBulkUpdateJob
     );
+
+    const job = await this.$ctx.kernel.repository.bulkEditJob.findById(jobId);
     if (!job) return null;
     return new ProductBulkUpdateJobResolver(job.id, this.$ctx);
+  }
+
+  productBulkUpdateJobs(args: ProductBulkUpdateJobConnectionInput) {
+    return new ProductBulkUpdateJobConnectionResolver(args, this.$ctx);
   }
 
   // ---- Bundle Queries ----

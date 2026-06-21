@@ -86,6 +86,16 @@ type CatalogQuery {
   productBulkUpdateJob(jobId: ID!): ProductBulkUpdateJob
 
   """
+  Get product bulk update jobs for the current store.
+  Defaults to active jobs when statusFilter is omitted.
+  """
+  productBulkUpdateJobs(
+    first: Int
+    after: String
+    statusFilter: [BulkUpdateJobStatus!]
+  ): ProductBulkUpdateJobConnection!
+
+  """
   Get a category by ID
   """
   category(id: ID!): Category

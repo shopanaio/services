@@ -12,6 +12,7 @@ import { FacetValueLoader } from "./FacetValueLoader.js";
 import { FacetSwatchLoader } from "./FacetSwatchLoader.js";
 import { CollectionLoader } from "./CollectionLoader.js";
 import { BundleLoader } from "./BundleLoader.js";
+import { BulkEditLoader } from "./BulkEditLoader.js";
 
 export class Loader {
   // Product
@@ -99,6 +100,12 @@ export class Loader {
   public readonly dependencyAction;
   public readonly dependencyActionsByRuleId;
 
+  // Bulk edit
+  public readonly bulkEditJob;
+  public readonly bulkEditItem;
+  public readonly bulkEditJobProgress;
+  public readonly bulkEditJobTotalProducts;
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: DataLoader<any, any>;
 
@@ -115,6 +122,7 @@ export class Loader {
     const facetSwatchLoader = new FacetSwatchLoader(repository);
     const collectionLoader = new CollectionLoader(repository);
     const bundleLoader = new BundleLoader(repository);
+    const bulkEditLoader = new BulkEditLoader(repository);
 
     // Product
     this.product = productLoader.product;
@@ -200,5 +208,11 @@ export class Loader {
     this.conditionsByGroupId = bundleLoader.conditionsByGroupId;
     this.dependencyAction = bundleLoader.dependencyAction;
     this.dependencyActionsByRuleId = bundleLoader.dependencyActionsByRuleId;
+
+    // Bulk edit
+    this.bulkEditJob = bulkEditLoader.bulkEditJob;
+    this.bulkEditItem = bulkEditLoader.bulkEditItem;
+    this.bulkEditJobProgress = bulkEditLoader.bulkEditJobProgress;
+    this.bulkEditJobTotalProducts = bulkEditLoader.bulkEditJobTotalProducts;
   }
 }

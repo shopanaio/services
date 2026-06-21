@@ -862,6 +862,11 @@ export type CatalogQuery = {
   product: Maybe<Product>;
   /** Get bulk update job by ID. */
   productBulkUpdateJob: Maybe<ProductBulkUpdateJob>;
+  /**
+   * Get product bulk update jobs for the current store.
+   * Defaults to active jobs when statusFilter is omitted.
+   */
+  productBulkUpdateJobs: ProductBulkUpdateJobConnection;
   /** Get products with Relay-style pagination */
   products: ProductConnection;
   /** Get a tag by ID */
@@ -988,6 +993,13 @@ export type CatalogQueryProductArgs = {
 
 export type CatalogQueryProductBulkUpdateJobArgs = {
   jobId: Scalars['ID']['input'];
+};
+
+
+export type CatalogQueryProductBulkUpdateJobsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  statusFilter?: InputMaybe<Array<BulkUpdateJobStatus>>;
 };
 
 
@@ -2832,6 +2844,19 @@ export type ProductBulkUpdateJobItemsArgs = {
   statusFilter?: InputMaybe<Array<BulkUpdateItemStatus>>;
 };
 
+export type ProductBulkUpdateJobConnection = {
+  __typename?: 'ProductBulkUpdateJobConnection';
+  edges: Array<ProductBulkUpdateJobEdge>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ProductBulkUpdateJobEdge = {
+  __typename?: 'ProductBulkUpdateJobEdge';
+  cursor: Scalars['String']['output'];
+  node: ProductBulkUpdateJob;
+};
+
 /** Result of bulk update start/cancel. */
 export type ProductBulkUpdatePayload = {
   __typename?: 'ProductBulkUpdatePayload';
@@ -4358,6 +4383,8 @@ export type ResolversTypes = ResolversObject<{
   ProductBulkUpdateInput: ProductBulkUpdateInput;
   ProductBulkUpdateItem: ProductBulkUpdateItem;
   ProductBulkUpdateJob: ResolverTypeWrapper<ProductBulkUpdateJob>;
+  ProductBulkUpdateJobConnection: ResolverTypeWrapper<ProductBulkUpdateJobConnection>;
+  ProductBulkUpdateJobEdge: ResolverTypeWrapper<ProductBulkUpdateJobEdge>;
   ProductBulkUpdatePayload: ResolverTypeWrapper<ProductBulkUpdatePayload>;
   ProductConnection: ResolverTypeWrapper<ProductConnection>;
   ProductContentInput: ProductContentInput;
@@ -4612,6 +4639,8 @@ export type ResolversParentTypes = ResolversObject<{
   ProductBulkUpdateInput: ProductBulkUpdateInput;
   ProductBulkUpdateItem: ProductBulkUpdateItem;
   ProductBulkUpdateJob: ProductBulkUpdateJob;
+  ProductBulkUpdateJobConnection: ProductBulkUpdateJobConnection;
+  ProductBulkUpdateJobEdge: ProductBulkUpdateJobEdge;
   ProductBulkUpdatePayload: ProductBulkUpdatePayload;
   ProductConnection: ProductConnection;
   ProductContentInput: ProductContentInput;
@@ -4936,6 +4965,7 @@ export type CatalogQueryResolvers<ContextType = ServiceContext, ParentType exten
   nodes?: Resolver<Array<Maybe<ResolversTypes['Node']>>, ParentType, ContextType, RequireFields<CatalogQueryNodesArgs, 'ids'>>;
   product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType, RequireFields<CatalogQueryProductArgs, 'id'>>;
   productBulkUpdateJob?: Resolver<Maybe<ResolversTypes['ProductBulkUpdateJob']>, ParentType, ContextType, RequireFields<CatalogQueryProductBulkUpdateJobArgs, 'jobId'>>;
+  productBulkUpdateJobs?: Resolver<ResolversTypes['ProductBulkUpdateJobConnection'], ParentType, ContextType, Partial<CatalogQueryProductBulkUpdateJobsArgs>>;
   products?: Resolver<ResolversTypes['ProductConnection'], ParentType, ContextType, Partial<CatalogQueryProductsArgs>>;
   tag?: Resolver<Maybe<ResolversTypes['Tag']>, ParentType, ContextType, RequireFields<CatalogQueryTagArgs, 'id'>>;
   tags?: Resolver<ResolversTypes['TagConnection'], ParentType, ContextType, Partial<CatalogQueryTagsArgs>>;
@@ -5454,6 +5484,19 @@ export type ProductBulkUpdateJobResolvers<ContextType = ServiceContext, ParentTy
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type ProductBulkUpdateJobConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductBulkUpdateJobConnection'] = ResolversParentTypes['ProductBulkUpdateJobConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['ProductBulkUpdateJobEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ProductBulkUpdateJobEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductBulkUpdateJobEdge'] = ResolversParentTypes['ProductBulkUpdateJobEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['ProductBulkUpdateJob'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type ProductBulkUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductBulkUpdatePayload'] = ResolversParentTypes['ProductBulkUpdatePayload']> = ResolversObject<{
   job?: Resolver<Maybe<ResolversTypes['ProductBulkUpdateJob']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['BulkUpdateUserError']>, ParentType, ContextType>;
@@ -5908,6 +5951,8 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   PricingWidgetPayload?: PricingWidgetPayloadResolvers<ContextType>;
   Product?: ProductResolvers<ContextType>;
   ProductBulkUpdateJob?: ProductBulkUpdateJobResolvers<ContextType>;
+  ProductBulkUpdateJobConnection?: ProductBulkUpdateJobConnectionResolvers<ContextType>;
+  ProductBulkUpdateJobEdge?: ProductBulkUpdateJobEdgeResolvers<ContextType>;
   ProductBulkUpdatePayload?: ProductBulkUpdatePayloadResolvers<ContextType>;
   ProductConnection?: ProductConnectionResolvers<ContextType>;
   ProductCreatePayload?: ProductCreatePayloadResolvers<ContextType>;

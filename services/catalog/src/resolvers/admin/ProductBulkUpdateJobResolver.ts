@@ -9,7 +9,7 @@ import { BulkUpdateItemResolver } from "./BulkUpdateItemResolver.js";
 
 export class ProductBulkUpdateJobResolver extends CatalogType<string, BulkEditJob> {
   async $preload() {
-    const job = await this.$ctx.kernel.repository.bulkEditJob.findById(this.$props);
+    const job = await this.$ctx.loaders.bulkEditJob.load(this.$props);
     if (!job) {
       throw new Error(`BulkEditJob with ID ${this.$props} not found`);
     }
@@ -37,31 +37,11 @@ export class ProductBulkUpdateJobResolver extends CatalogType<string, BulkEditJo
   }
 
   async totalProducts(): Promise<number> {
-    return this.$ctx.kernel.repository.bulkEditItem.countDistinctProducts(this.$props);
+    return this.$ctx.loaders.bulkEditJobTotalProducts.load(this.$props);
   }
 
   async progress() {
-    const counts = await this.$ctx.kernel.repository.bulkEditItem.countByStatus(this.$props);
-    const getCount = (status: string) => counts[status] ?? 0;
-
-    const succeeded = getCount("SUCCEEDED");
-    const failed = getCount("FAILED");
-    const cancelled = getCount("CANCELLED");
-    const superseded = getCount("SUPERSEDED");
-    const running = getCount("RUNNING");
-    const pending = getCount("PENDING");
-    const total = succeeded + failed + cancelled + superseded + running + pending;
-
-    return {
-      total,
-      done: succeeded + failed + cancelled + superseded,
-      succeeded,
-      failed,
-      cancelled,
-      superseded,
-      running,
-      pending,
-    };
+    return this.$ctx.loaders.bulkEditJobProgress.load(this.$props);
   }
 
   async items(args: { first?: number; after?: string; statusFilter?: string[] }) {

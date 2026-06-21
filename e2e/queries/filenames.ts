@@ -85,6 +85,7 @@ export type GraphQLFileName =
   | 'inventory-api/InventoryNodeFindOne'
   | 'inventory-api/ProductBulkUpdate'
   | 'inventory-api/ProductBulkUpdateJob'
+  | 'inventory-api/ProductBulkUpdateJobs'
   | 'inventory-api/ProductCreate'
   | 'inventory-api/ProductCreateSimple'
   | 'inventory-api/ProductFeaturesSync'

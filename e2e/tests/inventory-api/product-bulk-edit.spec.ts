@@ -305,6 +305,121 @@ test.describe('Product Bulk Edit API', () => {
   });
 
   // ============================================
+  // JOB LISTING
+  // ============================================
+
+  test.describe('Job Listing', () => {
+    test('should list multiple bulk update jobs without job ids', async ({ api }) => {
+      const product1 = await createProduct(api, 'Bulk Job List Product 1');
+      const product2 = await createProduct(api, 'Bulk Job List Product 2');
+
+      const firstJob = await submitBulkUpdateAndWait(api, [
+        { productId: product1.productId, operations: { title: 'Bulk Job List Updated 1' } },
+      ]);
+      const secondJob = await submitBulkUpdateAndWait(api, [
+        { productId: product2.productId, operations: { title: 'Bulk Job List Updated 2' } },
+      ]);
+
+      const firstJobId = firstJob.result.job?.id;
+      const secondJobId = secondJob.result.job?.id;
+      expect(firstJobId).toBeTruthy();
+      expect(secondJobId).toBeTruthy();
+
+      const { data } = await api.admin.query('inventory-api/ProductBulkUpdateJobs', {
+        variables: {
+          first: 10,
+          statusFilter: ['QUEUED', 'RUNNING', 'COMPLETED'],
+        },
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const connection = (data as any).catalogQuery.productBulkUpdateJobs;
+      const jobIds = connection.edges.map((edge: { node: { id: string } }) => edge.node.id);
+
+      expect(jobIds).toContain(firstJobId);
+      expect(jobIds).toContain(secondJobId);
+      expect(connection.totalCount).toBeGreaterThanOrEqual(2);
+    });
+
+    test('should filter jobs by status', async ({ api }) => {
+      const product = await createProduct(api, 'Bulk Job Filter Product');
+      const { result } = await submitBulkUpdateAndWait(api, [
+        { productId: product.productId, operations: { title: 'Bulk Job Filter Updated' } },
+      ]);
+
+      const jobId = result.job?.id;
+      expect(jobId).toBeTruthy();
+
+      const { data } = await api.admin.query('inventory-api/ProductBulkUpdateJobs', {
+        variables: {
+          first: 10,
+          statusFilter: ['COMPLETED'],
+        },
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const connection = (data as any).catalogQuery.productBulkUpdateJobs;
+      const jobs = connection.edges.map((edge: { node: { id: string; status: string } }) => edge.node);
+
+      expect(jobs.map((job: { id: string }) => job.id)).toContain(jobId);
+      expect(jobs.every((job: { status: string }) => job.status === 'COMPLETED')).toBe(true);
+    });
+
+    test('should paginate bulk update jobs', async ({ api }) => {
+      const product1 = await createProduct(api, 'Bulk Job Page Product 1');
+      const product2 = await createProduct(api, 'Bulk Job Page Product 2');
+
+      await submitBulkUpdateAndWait(api, [
+        { productId: product1.productId, operations: { title: 'Bulk Job Page Updated 1' } },
+      ]);
+      await submitBulkUpdateAndWait(api, [
+        { productId: product2.productId, operations: { title: 'Bulk Job Page Updated 2' } },
+      ]);
+
+      const firstPage = await api.admin.query('inventory-api/ProductBulkUpdateJobs', {
+        variables: {
+          first: 1,
+          statusFilter: ['QUEUED', 'RUNNING', 'COMPLETED'],
+        },
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const firstConnection = (firstPage.data as any).catalogQuery.productBulkUpdateJobs;
+      expect(firstConnection.edges).toHaveLength(1);
+      expect(firstConnection.pageInfo.endCursor).toBeTruthy();
+
+      const secondPage = await api.admin.query('inventory-api/ProductBulkUpdateJobs', {
+        variables: {
+          first: 1,
+          after: firstConnection.pageInfo.endCursor,
+          statusFilter: ['QUEUED', 'RUNNING', 'COMPLETED'],
+        },
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const secondConnection = (secondPage.data as any).catalogQuery.productBulkUpdateJobs;
+      expect(secondConnection.edges).toHaveLength(1);
+      expect(secondConnection.edges[0].cursor).not.toBe(firstConnection.edges[0].cursor);
+      expect(secondConnection.edges[0].node.id).not.toBe(firstConnection.edges[0].node.id);
+    });
+
+    test('should reject non-GID job IDs in productBulkUpdateJob', async ({ api }) => {
+      const product = await createProduct(api, 'Bulk Job Invalid ID Product');
+      await submitBulkUpdateAndWait(api, [
+        { productId: product.productId, operations: { title: 'Bulk Job Invalid ID Updated' } },
+      ]);
+
+      const { errors } = await api.admin.query('inventory-api/ProductBulkUpdateJob', {
+        variables: { jobId: 'not-a-gid' },
+        throwOnError: false,
+      });
+
+      expect(errors).toBeTruthy();
+      expect(errors.length).toBeGreaterThan(0);
+    });
+  });
+
+  // ============================================
   // VALIDATION ERRORS
   // ============================================
 
