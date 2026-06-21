@@ -387,7 +387,10 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
               : undefined,
             inventory: vu.inventory
               ? {
-                  warehouseId: vu.inventory.warehouseId,
+                  warehouseId: decodeGlobalIdByType(
+                    vu.inventory.warehouseId,
+                    GlobalIdEntity.Warehouse
+                  ),
                   onHand: vu.inventory.onHand,
                   unavailable: vu.inventory.unavailable ?? undefined,
                   sku: vu.inventory.sku ?? undefined,
@@ -2863,7 +2866,10 @@ function mapOperationsForBulk(
             : undefined,
           inventory: vu.inventory
             ? {
-                warehouseId: vu.inventory.warehouseId,
+                warehouseId: decodeGlobalIdByType(
+                  vu.inventory.warehouseId,
+                  GlobalIdEntity.Warehouse
+                ),
                 onHand: vu.inventory.onHand,
                 unavailable: vu.inventory.unavailable ?? undefined,
                 sku: vu.inventory.sku ?? undefined,

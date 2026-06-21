@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useCallback } from "react";
-import { Flex, Button, App } from "antd";
+import { Alert, App, Flex, Button } from "antd";
 import { DeleteOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import { AgGridReact } from "ag-grid-react";
@@ -16,15 +16,33 @@ import {
 } from "ag-grid-community";
 import { DataLayout } from "@/layouts/data";
 import { useFilters, FilterWidget } from "@/layouts/filters";
-import { CursorPagination } from "@/ui-kit/cursor-pagination";
+import {
+  RelayCursorPagination,
+  useRelayCursorPagination,
+} from "@/ui-kit/cursor-pagination";
 import { FloatingPanelStack } from "@/ui-kit/floating-panel-stack";
 import type { ActionConfig } from "@/ui-kit/floating-panel-stack/core/types";
 import type { PanelConfig } from "@/ui-kit/floating-panel-stack/data-page/floating-panel-stack";
-import { useGridState, useAgGridTheme, useAgGridRowSelection } from "@/hooks";
+import {
+  useGridState,
+  useGridSort,
+  useAgGridTheme,
+  useAgGridRowSelection,
+} from "@/hooks";
+import type { SortModel } from "@/hooks/use-grid-sort";
 import { filterSchema } from "./filter-schema";
-import { useInventory, useInventoryEditStore } from "../hooks";
+import {
+  useInventoryEditStore,
+  useInventoryVariants,
+  useSaveInventoryVariantEdits,
+  type InventorySubmitError,
+} from "../hooks";
+import {
+  mapInventoryVariantEditsToProductBulkUpdateInput,
+  mapInventoryVariantSortModelToOrderBy,
+  type InventoryVariantRow,
+} from "../mappers";
 import { validateFieldChange } from "@/shared/utils/inventory";
-import type { IInventoryListItem } from "@/mocks/inventory/inventory-list";
 import {
   CalculatedAvailableCell,
   ProductCellRenderer,
@@ -59,15 +77,36 @@ const useStyles = createStyles(({ token }) => ({
     display: "flex",
     flexDirection: "column",
   },
+  errorPanel: {
+    width: 520,
+    maxWidth: "calc(100vw - 48px)",
+  },
 }));
+
+function toSubmitError(error: unknown): InventorySubmitError {
+  return {
+    message:
+      error instanceof Error
+        ? error.message
+        : "Failed to submit inventory changes.",
+    code: "INVENTORY_SUBMIT_FAILED",
+  };
+}
+
+function getFirstStoredError(
+  submitErrors: InventorySubmitError[],
+  rowErrors: Record<string, InventorySubmitError[]>,
+) {
+  return submitErrors[0] ?? Object.values(rowErrors).flat()[0] ?? null;
+}
 
 export default function InventoryPage() {
   const { styles } = useStyles();
   const agGridTheme = useAgGridTheme();
-  const gridRef = useRef<AgGridReact<IInventoryListItem>>(null);
+  const gridRef = useRef<AgGridReact<InventoryVariantRow>>(null);
   const [searchValue, setSearchValue] = useState("");
+  const [sortModel, setSortModel] = useState<SortModel[]>([]);
   const { widgetProps } = useFilters({ schema: filterSchema });
-  const { data: serverData, refetch } = useInventory();
   const { initialState, onStateUpdated } = useGridState({
     storageKey: "inventory-grid-state",
   });
@@ -75,12 +114,65 @@ export default function InventoryPage() {
   const {
     discardAll,
     startSaving,
-    onSaveSuccess,
+    finishSaving,
+    onSubmitAccepted,
     setFieldValue,
+    setRowErrors,
+    clearRowErrors,
+    setSubmitErrors,
+    clearSubmitErrors,
     edits,
+    rowErrors,
+    submitErrors,
     status,
   } = useInventoryEditStore();
   const { message } = App.useApp();
+
+  const hasUnsavedChanges = Object.keys(edits).length > 0;
+  const canNavigate = !hasUnsavedChanges && status !== "saving";
+
+  const orderBy = useMemo(
+    () => mapInventoryVariantSortModelToOrderBy(sortModel),
+    [sortModel],
+  );
+  const orderByResetKey = useMemo(() => JSON.stringify(orderBy), [orderBy]);
+  const pagination = useRelayCursorPagination({
+    defaultPageSize: 20,
+    resetKey: orderByResetKey,
+  });
+
+  const {
+    rows: serverData,
+    defaultWarehouse,
+    pageInfo,
+    totalCount,
+    loading,
+    error,
+    canEdit,
+    refetch,
+  } = useInventoryVariants({
+    ...pagination.variables,
+    orderBy,
+  });
+  const { saveInventoryVariantEdits } = useSaveInventoryVariantEdits();
+
+  const handleSortChange = useCallback(
+    (model: SortModel[]) => {
+      if (!canNavigate) {
+        message.warning("Save or discard changes to sort inventory.");
+        return;
+      }
+
+      setSortModel(model);
+    },
+    [canNavigate, message],
+  );
+
+  const { onSortChanged } = useGridSort<InventoryVariantRow>({
+    gridRef,
+    sortModel,
+    onSortChange: handleSortChange,
+  });
 
   // Selection state
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -109,25 +201,97 @@ export default function InventoryPage() {
     discardAll();
   }, [discardAll]);
 
+  const clearStoredErrors = useCallback(() => {
+    clearSubmitErrors();
+    Object.keys(rowErrors).forEach((rowId) => clearRowErrors(rowId));
+  }, [clearRowErrors, clearSubmitErrors, rowErrors]);
+
   const handleSave = useCallback(async () => {
     startSaving();
+    clearStoredErrors();
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const mapping = mapInventoryVariantEditsToProductBulkUpdateInput(
+      serverData,
+      edits,
+      defaultWarehouse?.id ?? null,
+    );
+    const hasRowErrors = Object.keys(mapping.rowErrors).length > 0;
+    const hasSubmitErrors = mapping.submitErrors.length > 0;
 
-    // In a real app, send edits to API here
+    for (const [rowId, errors] of Object.entries(mapping.rowErrors)) {
+      setRowErrors(rowId, errors);
+    }
 
-    onSaveSuccess();
-    await refetch();
-  }, [startSaving, onSaveSuccess, refetch]);
+    if (hasRowErrors || hasSubmitErrors) {
+      setSubmitErrors(mapping.submitErrors);
+      finishSaving();
+
+      const firstError =
+        mapping.submitErrors[0] ??
+        Object.values(mapping.rowErrors).flat()[0] ??
+        null;
+      message.error(firstError?.message ?? "Fix inventory errors before saving.");
+      return;
+    }
+
+    try {
+      const result = await saveInventoryVariantEdits(mapping.input);
+      const apiErrors = result.userErrors.map((userError) => ({
+        message: userError.message,
+        code: userError.code,
+        field: userError.field,
+      }));
+
+      if (!result.jobId && apiErrors.length > 0) {
+        setSubmitErrors(apiErrors);
+        finishSaving();
+        message.error(apiErrors[0].message);
+        return;
+      }
+
+      if (!result.jobId) {
+        setSubmitErrors([
+          {
+            message: "Inventory update was not accepted.",
+            code: "PRODUCT_BULK_UPDATE_NOT_ACCEPTED",
+          },
+        ]);
+        finishSaving();
+        message.error("Inventory update was not accepted.");
+        return;
+      }
+
+      onSubmitAccepted();
+      message.success(`Inventory update accepted. Job ${result.jobId}`);
+      await refetch();
+    } catch (submitError) {
+      const normalizedError = toSubmitError(submitError);
+      setSubmitErrors([normalizedError]);
+      finishSaving();
+      message.error(normalizedError.message);
+    }
+  }, [
+    clearStoredErrors,
+    defaultWarehouse?.id,
+    edits,
+    finishSaving,
+    message,
+    onSubmitAccepted,
+    refetch,
+    saveInventoryVariantEdits,
+    serverData,
+    setRowErrors,
+    setSubmitErrors,
+    startSaving,
+  ]);
 
   // Handle selection changes
   const handleSelectionChanged = useCallback(
-    (event: SelectionChangedEvent<IInventoryListItem>) => {
+    (event: SelectionChangedEvent<InventoryVariantRow>) => {
       const selectedRows = event.api.getSelectedRows();
       setSelectedIds(selectedRows.map((row) => row.id));
     },
-    []
+    [],
   );
 
   // Deselect all rows
@@ -144,12 +308,27 @@ export default function InventoryPage() {
   }, [selectedIds, deselectAll]);
 
   const handleCellEditRequest = useCallback(
-    (event: CellEditRequestEvent<IInventoryListItem>) => {
+    (event: CellEditRequestEvent<InventoryVariantRow>) => {
       const { data, colDef, newValue } = event;
       if (!data) return;
 
+      if (data.readOnly || !canEdit) {
+        message.error(data.readOnlyReason ?? "This inventory row is read-only.");
+        return;
+      }
+
       const field = colDef.field as "onHand" | "unavailable";
       if (field !== "onHand" && field !== "unavailable") return;
+
+      const parsedValue =
+        typeof newValue === "number"
+          ? newValue
+          : Number.parseInt(String(newValue), 10);
+
+      if (!Number.isInteger(parsedValue)) {
+        message.error("Inventory quantity must be an integer.");
+        return;
+      }
 
       // Find original server data
       const serverItem = serverData.find((item) => item.id === data.id);
@@ -163,7 +342,7 @@ export default function InventoryPage() {
         currentEdits?.unavailable?.currentValue ?? serverItem.unavailable;
 
       // Validate using shared validator
-      const result = validateFieldChange(field, Number(newValue), {
+      const result = validateFieldChange(field, parsedValue, {
         onHand: currentOnHand,
         unavailable: currentUnavailable,
         reserved: serverItem.reserved,
@@ -177,28 +356,31 @@ export default function InventoryPage() {
 
       // Store edit in Zustand (original value from server, new value from edit)
       const originalValue = serverItem[field];
-      setFieldValue(data.id, field, originalValue, Number(newValue));
+      setFieldValue(data.id, field, originalValue, parsedValue);
     },
-    [message, setFieldValue, edits, serverData]
+    [canEdit, message, setFieldValue, edits, serverData],
   );
 
   // Row selection with checkbox isolation
   const { rowSelection, selectionColumnDef, onCellClicked } =
-    useAgGridRowSelection<IInventoryListItem>();
+    useAgGridRowSelection<InventoryVariantRow>();
 
-  const columnDefs = useMemo<ColDef<IInventoryListItem>[]>(
+  const columnDefs = useMemo<ColDef<InventoryVariantRow>[]>(
     () => [
       {
         headerName: "Product",
-        field: "productName",
+        field: "productTitle",
         cellRenderer: ProductCellRenderer,
         flex: 2,
         minWidth: 300,
+        sortable: false,
       },
       {
         headerName: "SKU",
         field: "sku",
         minWidth: 120,
+        sortable: false,
+        valueFormatter: ({ value }) => value ?? "-",
       },
       {
         headerName: "On hand",
@@ -206,9 +388,10 @@ export default function InventoryPage() {
         cellRenderer: OnHandCellRenderer,
         cellEditor: "agNumberCellEditor",
         cellEditorParams: { min: 0 },
-        editable: true,
+        editable: ({ data }) => canEdit && !data?.readOnly,
         minWidth: 120,
         type: "rightAligned",
+        sortable: false,
       },
       {
         headerName: "Unavailable",
@@ -216,9 +399,10 @@ export default function InventoryPage() {
         cellRenderer: UnavailableCellRenderer,
         cellEditor: "agNumberCellEditor",
         cellEditorParams: { min: 0 },
-        editable: true,
+        editable: ({ data }) => canEdit && !data?.readOnly,
         minWidth: 120,
         type: "rightAligned",
+        sortable: false,
       },
       {
         headerName: "Reserved",
@@ -226,6 +410,7 @@ export default function InventoryPage() {
         cellRenderer: ReservedCellRenderer,
         minWidth: 120,
         type: "rightAligned",
+        sortable: false,
       },
       {
         headerName: "Available",
@@ -235,18 +420,20 @@ export default function InventoryPage() {
         flex: 1,
         type: "rightAligned",
         resizable: false,
+        sortable: false,
       },
     ],
-    []
+    [canEdit],
   );
 
   const defaultColDef = useMemo<ColDef>(
     () => ({
       resizable: true,
-      sortable: true,
+      sortable: false,
+      comparator: () => 0,
       cellStyle: { display: "flex", alignItems: "center" },
     }),
-    []
+    [],
   );
 
   // Build selection actions
@@ -260,19 +447,41 @@ export default function InventoryPage() {
         onClick: handleDeleteSelected,
       },
     ],
-    [handleDeleteSelected]
+    [handleDeleteSelected],
   );
 
   // Derive reactive values from edits
-  const hasUnsavedChanges = Object.keys(edits).length > 0;
   const changesCount = Object.values(edits).reduce(
     (count, fields) => count + Object.keys(fields || {}).length,
-    0
+    0,
   );
+  const rowErrorCount = Object.values(rowErrors).reduce(
+    (count, errors) => count + errors.length,
+    0,
+  );
+  const firstStoredError = getFirstStoredError(submitErrors, rowErrors);
 
   // Build floating panels
   const panels = useMemo<PanelConfig[]>(() => {
     const result: PanelConfig[] = [];
+
+    if (firstStoredError && hasUnsavedChanges) {
+      result.push({
+        type: "custom",
+        id: "inventory-submit-errors",
+        render: () => (
+          <Alert
+            className={styles.errorPanel}
+            type="error"
+            showIcon
+            message={firstStoredError.message}
+            description={
+              rowErrorCount > 0 ? `${rowErrorCount} row error(s)` : undefined
+            }
+          />
+        ),
+      });
+    }
 
     if (hasUnsavedChanges) {
       result.push({
@@ -297,24 +506,24 @@ export default function InventoryPage() {
 
     return result;
   }, [
-    hasUnsavedChanges,
     changesCount,
-    status,
-    handleSave,
+    deselectAll,
+    firstStoredError,
     handleDiscard,
+    handleSave,
+    hasUnsavedChanges,
+    rowErrorCount,
     selectedIds.length,
     selectionActions,
-    deselectAll,
+    status,
+    styles.errorPanel,
   ]);
-
-  // Block pagination when editing
-  const canNavigate = !hasUnsavedChanges && status !== "saving";
 
   return (
     <DataLayout
       name="inventory"
       title="Inventory"
-      count={displayData.length}
+      count={totalCount}
       actions={
         <Flex gap="small">
           <Button>Export</Button>
@@ -335,8 +544,17 @@ export default function InventoryPage() {
       />
 
       <div className={styles.gridContainer}>
+        {error ? (
+          <Alert
+            type="error"
+            showIcon
+            message={error.message}
+            style={{ marginBottom: 8 }}
+          />
+        ) : null}
+
         <div className={styles.gridWrapper}>
-          <AgGridReact<IInventoryListItem>
+          <AgGridReact<InventoryVariantRow>
             ref={gridRef}
             theme={agGridTheme}
             rowData={displayData}
@@ -344,6 +562,7 @@ export default function InventoryPage() {
             defaultColDef={defaultColDef}
             getRowId={(params) => params.data.id}
             rowHeight={56}
+            loading={loading}
             rowSelection={rowSelection}
             selectionColumnDef={selectionColumnDef}
             suppressMovableColumns
@@ -353,20 +572,17 @@ export default function InventoryPage() {
             onSelectionChanged={handleSelectionChanged}
             initialState={initialState}
             onStateUpdated={onStateUpdated}
+            onSortChanged={onSortChanged}
             stopEditingWhenCellsLoseFocus
           />
         </div>
 
-        <CursorPagination
-          total={displayData.length}
-          rangeStart={1}
-          rangeEnd={Math.min(20, displayData.length)}
-          pageSize={20}
-          hasNext={displayData.length > 20}
-          hasPrev={false}
-          onNext={() => {}}
-          onPrev={() => {}}
-          onPageSizeChange={() => {}}
+        <RelayCursorPagination
+          name="inventory"
+          pagination={pagination}
+          pageInfo={pageInfo}
+          totalCount={totalCount}
+          loadedRowsCount={displayData.length}
           disabled={!canNavigate}
           disabledReason="Save or discard changes to navigate"
         />

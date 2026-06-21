@@ -1,16 +1,16 @@
 "use client";
 
 import type { CustomCellRendererProps } from "ag-grid-react";
-import type { IInventoryListItem } from "@/mocks/inventory/inventory-list";
 import { useInventoryEditStore } from "../hooks/use-inventory-edit-store";
 import { CalculatedAvailableCell as SharedCalculatedAvailableCell } from "@/shared/components/inventory-cells";
+import type { InventoryVariantRow } from "../mappers";
 
 /**
  * AG Grid cell renderer for calculated available inventory
  * Uses shared CalculatedAvailableCell component
  */
 export function CalculatedAvailableCell(
-  props: CustomCellRendererProps<IInventoryListItem>
+  props: CustomCellRendererProps<InventoryVariantRow>
 ) {
   const { data } = props;
   const { getFieldEdit } = useInventoryEditStore();

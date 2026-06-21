@@ -25,6 +25,15 @@ export interface ServerConfig {
   port: number;
 }
 
+function getHeaderValue(
+  value: string | string[] | undefined
+): string | undefined {
+  const headerValue = Array.isArray(value) ? value[0] : value;
+  const trimmedValue = headerValue?.trim();
+
+  return trimmedValue ? trimmedValue : undefined;
+}
+
 /**
  * Create and start GraphQL-only server
  * Uses admin context middleware that sets async local storage context
@@ -131,9 +140,12 @@ export async function startServer(serverConfig: ServerConfig) {
 
         // Read currency from header (default: UAH)
         const currency = (request.headers["x-currency"] as string) ?? "UAH";
+        const requestId =
+          getHeaderValue(request.headers["x-idempotency-key"]) ??
+          (request.id as string);
 
         const ctx = new ServiceContext({
-          requestId: request.id as string,
+          requestId,
           kernel: kernel!,
           store: request.store,
           user: request.user,
