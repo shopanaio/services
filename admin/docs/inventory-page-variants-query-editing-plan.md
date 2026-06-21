@@ -191,6 +191,8 @@ mutation InventoryProductBulkUpdate($input: ProductBulkUpdateInput!) {
 Contract:
 
 - use only `catalogMutation.productBulkUpdate` for saving inventory edits from this page;
+- every `productBulkUpdate` submit must include a fresh `X-Idempotency-Key` request header, because the Catalog Admin API requires it for async bulk updates;
+- generate the idempotency key in the inventory-local save hook per user submit attempt, pass it through Apollo mutation `context.headers`, and do not persist it as page/job state;
 - do not call `inventoryMutation.inventoryItemUpdate` from the Inventory page save flow;
 - `ProductBulkUpdateInput.products[]` is grouped by product;
 - each changed row becomes one `VariantUpdateInput` under that product's `operations.variants[]`;
@@ -376,7 +378,7 @@ Flow:
 5. `available` preview recalculates as `onHand - unavailable - reserved`.
 6. Floating save/discard panel appears.
 7. Save maps pending row edits to one `ProductBulkUpdateInput`, grouped by product.
-8. Inventory-local save hook calls `catalogMutation.productBulkUpdate`.
+8. Inventory-local save hook generates a fresh idempotency key and calls `catalogMutation.productBulkUpdate` with `X-Idempotency-Key`.
 9. If the mutation returns `userErrors` and no job, pending edits stay in the store and the UI shows the errors.
 10. If the mutation returns a job, clear pending edits and refetch variants opportunistically. Do not wait for job completion.
 
@@ -482,6 +484,8 @@ Rules:
 Submit behavior:
 
 - save hook returns submit-accepted state: `{ jobId, status }` plus mutation `userErrors`;
+- save hook generates a fresh idempotency key for each submit attempt and passes it as the `X-Idempotency-Key` header via Apollo mutation context;
+- retrying after a submit-start failure is a new submit attempt and gets a new idempotency key;
 - no row is considered successfully applied until the async job runs, and this page does not track that state;
 - submit-start failure keeps all edits and stores returned errors;
 - submit accepted clears all edits and refetches the active `InventoryVariants` query opportunistically;
@@ -524,7 +528,7 @@ Implementation steps:
 6. Add sort mapper from AG Grid sort state to `VariantOrderByInput[]`, always prepending `{ field: "productId", direction: "asc" }`.
 7. Add edit mapper to `ApiProductBulkUpdateInput`.
 8. Migrate `useInventoryEditStore` to track submit-start errors and clear edits only when `productBulkUpdate` returns a job.
-9. Add inventory-local save hook for `productBulkUpdate` submit, without job polling or job item tracking.
+9. Add inventory-local save hook for `productBulkUpdate` submit, including per-submit `X-Idempotency-Key`, without job polling or job item tracking.
 10. Replace mock-backed `useInventory` usage in the page with `useInventoryVariants`.
 11. Replace `IInventoryListItem` typing in inventory table components with `InventoryVariantRow`.
 12. Replace static pagination with the shared Relay cursor pagination layer wired to `pageInfo`/`totalCount`.
@@ -562,6 +566,7 @@ Implementation steps:
 - Pagination is disabled while edits are pending.
 - Columns without `VariantOrderField` mapping are not sortable.
 - Save calls `catalogMutation.productBulkUpdate`, not `inventoryMutation.inventoryItemUpdate`.
+- Save sends `X-Idempotency-Key` on every `productBulkUpdate` submit.
 - Save sends one `ProductBulkUpdateInput` grouped by product.
 - Save sends only `products[].operations.variants[].variantId` and `inventory.{warehouseId,onHand,unavailable}` for edited rows.
 - Save does not send SKU, cost, weight, dimensions, media, options, product-level fields, `reserved`, or `available`.
