@@ -19,7 +19,7 @@
 - Editing state: `useInventoryEditStore` уже хранит pending changes по `itemId` и полям `onHand`/`unavailable`.
 - Текущий `validateFieldChange` проверяет stock consistency на UI side. При API-backed интеграции его нужно сузить до presentation guards или убрать из save authority path: backend должен решать, допустимо ли изменение.
 - UI: таблица уже использует AG Grid `readOnlyEdit`, `FloatingPanelStack` для save/discard и блокирует pagination при unsaved changes.
-- Product module уже содержит `VariantFields`, `InventoryItemFields`, `INVENTORY_ITEM_UPDATE_MUTATION`, `useUpdateInventoryItems` и `INVENTORY_DEFAULT_WAREHOUSE_QUERY`.
+- Product module уже содержит `VariantFields`, `InventoryItemFields`, `INVENTORY_ITEM_UPDATE_MUTATION`, `useUpdateInventoryItems` и `INVENTORY_DEFAULT_WAREHOUSE_QUERY`. Для inventory page нельзя неявно импортировать mutation document из product module: нужно либо завести module-local operation document, либо явно оформить compatibility re-export. Существующий product `VariantFields` не включает `product` context и не должен расширяться тяжелыми полями ради inventory page.
 - В текущей Admin schema у `Variant` нет отдельного поля `containerId`; доступен `Variant.product.id`. Если backend-домен использует термин `container id` для стабильного product-first порядка вариантов, API должен явно отдать этот идентификатор или зафиксировать, что для inventory page container id равен `Variant.product.id`.
 
 ## Архитектурные правила
@@ -28,7 +28,7 @@
 - Hooks владеют Apollo `useQuery`/`useMutation`, loading/error/refetch и нормализацией API errors.
 - Components не импортируют mocks и не объявляют ad hoc GraphQL response types.
 - Generated API types импортируются напрямую из `@/graphql/types`.
-- UI-local row model допустим только как editor/table state, потому что таблице нужны derived fields, product context и локальная сортировка.
+- UI-local row model допустим только как editor/table state, потому что таблице нужны derived fields и product context. Sorting/filtering/search для inventory list должны быть backend-side only.
 - API-output view models не должны становиться вторым source of truth.
 - `reserved` остается read-only system field.
 - `available` может пересчитываться в UI только как preview/display value. Backend остается единственным источником бизнес-валидации и финального persisted state.
@@ -38,6 +38,8 @@
 ## API-контракт чтения
 
 Использовать top-level variants connection только если backend гарантирует стабильный default order по `containerId`/`product.id` и `variantId`:
+
+Inventory page should define its own lightweight fragment, for example `InventoryVariantFields`, in `admin/src/domains/inventory/inventory/graphql/fragments.ts`. Do not extend the product module `VariantFields` just to add `product`, because that fragment is shared by product screens and changing it can increase unrelated query payloads.
 
 ```graphql
 query InventoryVariants($first: Int, $after: String, $last: Int, $before: String) {
@@ -87,7 +89,7 @@ query InventoryVariants($first: Int, $after: String, $last: Int, $before: String
 
 Примечания:
 
-- На текущей schema `catalogQuery.variants` принимает только Relay pagination args, без `where`/`sort`. Search/filter UI на первом шаге должен быть local over loaded page или disabled для API-backed fields, чтобы не создавать ложное ощущение server filtering.
+- Search/filter UI не должен работать локально по загруженной странице. Если Admin generated schema/query types для `catalogQuery.variants` не поддерживают `where`/`orderBy`, search/filter/sort controls должны быть disabled или скрыты до обновления GraphQL contract/codegen.
 - Если `catalogQuery.variants` не гарантирует default order по `product.id` + `variant.id`, для inventory page нужен backend change до UI-интеграции: добавить stable ordering в существующую connection или ввести `inventoryQuery.inventoryVariants`.
 - `Variant.product` есть в schema и является обязательным полем, поэтому product context не требует дополнительного `products -> variants` обхода.
 - `Variant.inventoryItem` читается прямо в `catalogQuery.variants` и является единственным source of truth для inventory item в первом шаге. Если поле вернуло `null`, строка отображается read-only и не участвует в save.
@@ -139,10 +141,28 @@ Mapping rules:
 
 Default warehouse rule:
 
-- Load default warehouse via `INVENTORY_DEFAULT_WAREHOUSE_QUERY`.
+- Load default warehouse inside the query hook, preferably `useInventoryVariants`, via `INVENTORY_DEFAULT_WAREHOUSE_QUERY`.
 - For every variant row, prefer `inventoryItem.stock.find(stock.warehouseId === defaultWarehouse.id)`.
 - If stock row for default warehouse is absent, display zero values but keep `warehouseId = defaultWarehouse.id`.
 - If default warehouse is absent, disable save and show a clear error.
+
+`useInventoryVariants` should own both data dependencies needed to build rows:
+
+```ts
+interface UseInventoryVariantsReturn {
+  rows: InventoryVariantRow[];
+  defaultWarehouse: ApiWarehouse | null;
+  pageInfo: ApiPageInfo | null;
+  totalCount: number;
+  loading: boolean;
+  error: Error | null;
+  canEdit: boolean;
+  readOnlyReason: string | null;
+  refetch: () => Promise<void>;
+}
+```
+
+`canEdit` is `false` when the default warehouse is missing, required query data failed to load, or the page is in another read-only condition. Row mapping depends on `defaultWarehouse.id`, so this logic should not be deferred to the save hook. The save hook receives rows/pending edits/default warehouse context that has already been resolved by `useInventoryVariants`.
 
 ## Product context в таблице
 
@@ -150,7 +170,7 @@ Default warehouse rule:
 
 - Keep flat `rowData`: one row per `Variant`.
 - Show product information in a visible Product/Variant column: product title, optional product handle, variant title, and variant media/empty state.
-- Keep `containerId`/`productId` as hidden or non-primary data fields only when needed for stable product-first ordering and local sorting.
+- Keep `containerId`/`productId` as hidden or non-primary data fields only when needed for stable product-first backend ordering.
 - Keep visible stock columns focused on variant inventory: `Product / Variant`, `SKU`, `On hand`, `Unavailable`, `Reserved`, `Available`.
 - Do not present product-level totals in the first step. Full-catalog totals require server filtering/pagination support; loaded-page totals can be added later as a separate explicit UI feature.
 
@@ -161,9 +181,17 @@ Pagination behavior:
 - Navigation is disabled while there are pending edits, as current page already does.
 - Changing page discards no data implicitly; user must save or discard first.
 
-## Сортировка
+## Сортировка и фильтрация
 
-На текущей schema `catalogQuery.variants` не принимает `sort`/`orderBy`, поэтому первый API-backed шаг не должен делать вид, что сортирует весь catalog server-side.
+Sorting, filtering, and search are backend-side only. The inventory page must not implement local loaded-page sorting/filtering/search for the main list because cursor pagination makes that behavior misleading.
+
+Backend/API contract needed for first API-backed step:
+
+- `catalogQuery.variants` must accept Relay pagination plus `where` and `orderBy`, or the page must use a dedicated inventory-owned connection with equivalent cursor-stable filtering/sorting;
+- generated Admin types must expose those variables before UI controls are enabled;
+- filters/search from `FilterWidget` must map to backend `where` variables;
+- AG Grid sort changes must map to backend `orderBy` variables and reset cursor pagination to the first page;
+- if a column cannot be sorted backend-side, its sort UI must be disabled.
 
 Обязательный default ordering для product-first inventory page:
 
@@ -175,26 +203,26 @@ Pagination behavior:
 
 Первый шаг:
 
-- оставить AG Grid sorting включенным только для loaded page после backend/default ordering by `containerId`;
-- явно считать пользовательскую сортировку локальной сортировкой текущей страницы;
-- не сбрасывать cursor pagination state при локальной сортировке;
-- отключить или не показывать sort controls в верхней навигации, если они подразумевают server-side sort;
-- при наличии pending edits не менять страницу, но локальная сортировка текущей страницы допустима, потому что row identity остается `Variant.id`.
+- request variants with backend `orderBy` beginning with `containerId`/`productId` and ending in stable variant key;
+- treat user sort/filter/search changes as backend query changes;
+- reset cursor pagination state when backend sort/filter/search changes;
+- disable page navigation and backend sort/filter/search changes while there are pending edits;
+- keep AG Grid local sorting disabled unless it is wired to backend `orderBy`.
 
 Локально сортируемые колонки:
 
 | Column | Field | Scope |
 |---|---|---|
-| Container ID | `containerId` | Loaded page only; default server/API order должен быть по этому ключу |
-| Product | `productTitle` | Loaded page only |
-| Variant | `variantTitle` | Loaded page only |
-| SKU | `sku` | Loaded page only |
-| On hand | `onHand` | Loaded page only, учитывает pending edits |
-| Unavailable | `unavailable` | Loaded page only, учитывает pending edits |
-| Reserved | `reserved` | Loaded page only |
-| Available | `available` | Loaded page only, calculated from pending edits |
+| Container ID | `containerId` | Backend-side only; default server/API order должен быть по этому ключу |
+| Product | `productTitle` | Backend-side only if API supports product title sort/search |
+| Variant | `variantTitle` | Backend-side only if API supports variant title sort/search |
+| SKU | `sku` | Backend-side only через inventory-owned/search projection; disable until supported |
+| On hand | `onHand` | Backend-side only через inventory-owned/search projection; disable until supported |
+| Unavailable | `unavailable` | Backend-side only через inventory-owned/search projection; disable until supported |
+| Reserved | `reserved` | Backend-side only через inventory-owned/search projection; disable until supported |
+| Available | `available` | Backend-side only через inventory-owned/search projection; disable until supported |
 
-Deferred server-side sorting:
+Deferred backend-side sorting/filtering:
 
 Для настоящей сортировки всей inventory выборки нужен backend/API контракт, например:
 
@@ -233,7 +261,7 @@ query InventoryVariants(
 }
 ```
 
-Server-side sort должен быть cursor-stable и начинаться с `containerId` для product-first page. Для inventory columns это не catalog-only задача: `onHand`, `unavailable`, `reserved`, `available` живут в inventory service и требуют либо inventory-owned variants inventory connection, либо materialized/search projection. До появления такого контракта пользовательская сортировка stock columns остается local-page behavior.
+Backend-side sort/filter/search должен быть cursor-stable и начинаться с `containerId` для product-first page. Для inventory columns это не catalog-only задача: `onHand`, `unavailable`, `reserved`, `available` живут в inventory service и требуют либо inventory-owned variants inventory connection, либо materialized/search projection. До появления такого контракта пользовательская сортировка/фильтрация/search по этим колонкам должны быть disabled.
 
 ## Inline editing flow
 
@@ -275,6 +303,13 @@ UI may preview `available = onHand - unavailable - reserved`, but must not treat
 ## Save input mapping
 
 Add a mapper in `admin/src/domains/inventory/inventory/mappers`, for example `inventory-variant-edit.mapper.ts`.
+
+Do not reuse `admin/src/domains/inventory/products/mappers/product-variant-inventory.mapper.ts` as-is. That mapper belongs to the product variant editor flow: it can update SKU and performs UI-side stock consistency checks such as negative availability rejection. The inventory page mapper must have a narrower scope:
+
+- accept only pending `onHand`/`unavailable` edits;
+- never send SKU, cost, weight, dimensions, `reserved`, or `available`;
+- only parse/preserve integer draft values and calculate deltas;
+- leave stock consistency and availability acceptance to `inventoryMutation.inventoryItemUpdate` `userErrors`.
 
 Input to mapper:
 
@@ -319,6 +354,7 @@ admin/src/domains/inventory/inventory/
   graphql/
     fragments.ts
     queries.ts
+    mutations.ts
     operation-types.ts
     index.ts
   hooks/
@@ -339,16 +375,17 @@ admin/src/domains/inventory/inventory/
 
 Implementation steps:
 
-1. Add inventory module GraphQL operations.
+1. Add inventory module GraphQL operations, including an inventory-local `InventoryVariantFields` fragment with `product` context and inventory-local `mutations.ts` for `inventoryItemUpdate` or an explicit compatibility re-export from the product module.
 2. Add operation types derived from generated API types.
-3. Replace mock-backed `useInventory` or introduce `useInventoryVariants` and migrate page to it.
+3. Replace mock-backed `useInventory` with `useInventoryVariants`; the hook loads variants plus default warehouse and returns `rows`, `defaultWarehouse`, `pageInfo`, `totalCount`, `loading`, `error`, `canEdit`, `readOnlyReason`, and `refetch`.
 4. Add row mapper from `Variant` edge to `InventoryVariantRow`.
 5. Add edit mapper from pending changes to `ApiInventoryItemUpdateInput[]`.
-6. Wire default warehouse query into hook or save hook.
+6. Keep default warehouse resolution in `useInventoryVariants`; save hook uses the already resolved row/default warehouse context and does not perform read-side row mapping.
 7. Replace static pagination values with connection `pageInfo`/`totalCount`.
-8. Render flat variant rows with product context and product-first local sorting.
-9. Replace mock save delay with `useUpdateInventoryItems`.
-10. Remove imports from `@/mocks/inventory/inventory-list` from inventory page flow.
+8. Render flat variant rows with product context and backend-side product-first sorting.
+9. Wire FilterWidget/search and AG Grid sort only to backend `where`/`orderBy`; disable or hide controls for fields without backend support and reset cursor pagination when backend query variables change.
+10. Replace mock save delay with `useUpdateInventoryItems`.
+11. Remove imports from `@/mocks/inventory/inventory-list` from inventory page flow.
 
 ## Error handling
 
@@ -360,7 +397,7 @@ Implementation steps:
 
 ## Deferred work
 
-- Server-side filters/search/sort for variants.
+- Backend-side filters/search/sort for inventory-owned fields that are not supported by `catalogQuery.variants`.
 - Bulk `inventoryItemsUpdate` mutation with transactional all-or-nothing semantics.
 - Multi-warehouse editing.
 - Product-level full-catalog inventory totals.
