@@ -54,14 +54,6 @@ export const INVENTORY_COLUMNS: IVariantColumn[] = [
     type: "text",
   },
   {
-    field: "barcode",
-    headerName: "Barcode",
-    defaultVisible: false,
-    editable: true,
-    width: 140,
-    type: "text",
-  },
-  {
     field: "onHand",
     headerName: "On hand",
     defaultVisible: true,
@@ -164,7 +156,6 @@ export const SELECTABLE_COLUMNS = [
   "onHand",
   "unavailable",
   "sku",
-  "barcode",
   "weight",
   "length",
   "width",

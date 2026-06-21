@@ -36,6 +36,11 @@ export interface UseVariantsColumnsOptions {
    */
   availableColumns?: VariantColumnField[];
   /**
+   * When provided, controls which available columns can be edited.
+   * If undefined, each column uses its own config editability.
+   */
+  editableColumns?: VariantColumnField[];
+  /**
    * When true, column visibility is controlled by availableColumns only,
    * ignoring user settings. Useful for restricted views.
    */
@@ -115,8 +120,9 @@ function getCellEditorParams(field: string) {
   switch (field) {
     case "price":
     case "compareAtPrice":
-    case "costPrice":
       return { min: 0, precision: 2 };
+    case "costPrice":
+      return { min: 0, precision: 0 };
     case "onHand":
     case "unavailable":
       return { min: 0, precision: 0 };
@@ -124,7 +130,7 @@ function getCellEditorParams(field: string) {
     case "length":
     case "width":
     case "height":
-      return { min: 0, precision: 2 };
+      return { min: 1, precision: 0 };
     default:
       return undefined;
   }
@@ -153,10 +159,10 @@ function createValueGetter(field: string) {
 // Validation is done in handleSetFieldValue in VariantsEditorGrid
 // ============================================================================
 
-function createValueSetter(field: string) {
+function createValueSetter(field: string, editable: boolean) {
   return (params: ValueSetterParams<IVariantEditorRow>): boolean => {
     const { data, newValue } = params;
-    if (!data) return false;
+    if (!data || !editable) return false;
 
     const originalValue = (data as unknown as Record<string, unknown>)[field];
 
@@ -189,6 +195,7 @@ export function useVariantsColumns(
   const {
     optionGroups,
     availableColumns,
+    editableColumns,
     ignoreUserSettings = false,
     currency,
   } = normalizedOptions;
@@ -272,6 +279,10 @@ export function useVariantsColumns(
       const cellRenderer = PRICE_FIELDS.has(col.field)
         ? PriceCellRenderer
         : getCellRenderer(col.type, col.field);
+      const isEditable =
+        col.editable &&
+        (!editableColumns ||
+          editableColumns.includes(col.field as VariantColumnField));
 
       columns.push({
         field: col.field as keyof IVariantEditorRow,
@@ -287,7 +298,7 @@ export function useVariantsColumns(
         minWidth: col.minWidth,
         flex: col.flex,
         type: getColumnType(col.type),
-        editable: col.editable,
+        editable: isEditable,
         cellRenderer,
         cellRendererParams: PRICE_FIELDS.has(col.field)
           ? {
@@ -297,7 +308,7 @@ export function useVariantsColumns(
         cellEditor: getCellEditor(col.type),
         cellEditorParams: getCellEditorParams(col.field),
         valueGetter: createValueGetter(col.field),
-        valueSetter: createValueSetter(col.field),
+        valueSetter: createValueSetter(col.field, isEditable),
       });
     }
 
@@ -307,6 +318,7 @@ export function useVariantsColumns(
     optionGroups,
     isOptionColumnVisible,
     availableColumns,
+    editableColumns,
     ignoreUserSettings,
     currency,
   ]);

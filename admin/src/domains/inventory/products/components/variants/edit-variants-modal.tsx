@@ -91,6 +91,7 @@ export const EditVariantsModal = () => {
 
   // Column restrictions from payload
   const availableColumns = typedPayload.availableColumns;
+  const editableColumns = typedPayload.editableColumns;
   const showColumnSettings = typedPayload.showColumnSettings ?? true;
 
   // Transform variants to input format
@@ -215,6 +216,7 @@ export const EditVariantsModal = () => {
             variants={variantInputs}
             onChange={handleChange}
             availableColumns={availableColumns}
+            editableColumns={editableColumns}
             ignoreUserSettings={!!availableColumns}
             defaultCurrency={defaultCurrency}
             productOptions={typedPayload.productOptions}

@@ -10,6 +10,10 @@ import {
 
 const VARIANTS_PAGE_SIZE = 100;
 
+interface LoadAllProductVariantsOptions {
+  forceNetwork?: boolean;
+}
+
 function getLoadedVariants(product: ApiProduct): ApiVariant[] {
   return getVariantsFromConnection(product.variants);
 }
@@ -23,7 +27,10 @@ function hasCompleteVariantPage(product: ApiProduct): boolean {
 }
 
 interface UseProductVariantsLoaderReturn {
-  loadAllProductVariants: (product: ApiProduct) => Promise<ApiVariant[]>;
+  loadAllProductVariants: (
+    product: ApiProduct,
+    options?: LoadAllProductVariantsOptions,
+  ) => Promise<ApiVariant[]>;
   loading: boolean;
 }
 
@@ -32,8 +39,11 @@ export function useProductVariantsLoader(): UseProductVariantsLoaderReturn {
   const [loading, setLoading] = useState(false);
 
   const loadAllProductVariants = useCallback(
-    async (product: ApiProduct): Promise<ApiVariant[]> => {
-      if (hasCompleteVariantPage(product)) {
+    async (
+      product: ApiProduct,
+      options: LoadAllProductVariantsOptions = {},
+    ): Promise<ApiVariant[]> => {
+      if (!options.forceNetwork && hasCompleteVariantPage(product)) {
         return getLoadedVariants(product);
       }
 

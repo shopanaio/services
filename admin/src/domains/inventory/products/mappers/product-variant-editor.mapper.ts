@@ -15,7 +15,6 @@ export interface MapApiVariantsToEditorInputsOptions {
 export interface VariantEditorSaveRow {
   id: string;
   sku: string | null;
-  barcode: string | null;
   onHand: number;
   unavailable: number;
   reserved: number;
@@ -87,7 +86,6 @@ export function mapApiVariantToEditorInput(
       };
     }),
     sku: variant.inventoryItem?.sku ?? null,
-    barcode: null,
     onHand,
     unavailable,
     reserved,
@@ -113,7 +111,6 @@ export function getVariantEditorRowsForSave(
   return rows.map((row) => ({
     id: row.id,
     sku: row.sku,
-    barcode: row.barcode,
     onHand: row.onHand,
     unavailable: row.unavailable,
     reserved: row.reserved,

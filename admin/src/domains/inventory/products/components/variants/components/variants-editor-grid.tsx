@@ -39,6 +39,11 @@ interface VariantsEditorGridProps {
    * Useful for restricted views like pricing modal.
    */
   ignoreUserSettings?: boolean;
+  /**
+   * When provided, only these visible columns can be edited.
+   * If undefined, column config decides editability.
+   */
+  editableColumns?: VariantColumnField[];
   defaultCurrency?: CurrencyCode | null;
   productOptions?: ApiProductOption[];
   dataTestId?: string;
@@ -97,7 +102,6 @@ function variantsToRows(variants: IVariantEditorInput[]): IVariantEditorRow[] {
       options: v.options || [],
       // Inventory identification
       sku: v.sku ?? null,
-      barcode: v.barcode ?? null,
       // Inventory quantities
       onHand,
       unavailable,
@@ -127,6 +131,7 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
   onChange,
   availableColumns,
   ignoreUserSettings = false,
+  editableColumns,
   defaultCurrency,
   productOptions = [],
   dataTestId = "variants-editor-grid",
@@ -156,10 +161,30 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
     optionGroups,
     currency,
     availableColumns,
+    editableColumns,
     ignoreUserSettings,
   });
 
   const rows = initialRows;
+  const selectableColumns = useMemo(() => {
+    if (!editableColumns) {
+      return SELECTABLE_COLUMNS;
+    }
+
+    const editableColumnSet = new Set<string>(editableColumns);
+
+    return SELECTABLE_COLUMNS.filter((field) => editableColumnSet.has(field));
+  }, [editableColumns]);
+  const isFieldEditable = useCallback(
+    (field: string) => {
+      if (!editableColumns) {
+        return SELECTABLE_COLUMNS.includes(field);
+      }
+
+      return editableColumns.includes(field as VariantColumnField);
+    },
+    [editableColumns],
+  );
 
   // Compute display rows (with edits applied)
   const displayRows = useMemo(() => {
@@ -192,6 +217,10 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
   // Handle field value change with validation
   const handleSetFieldValue = useCallback(
     (rowId: string, field: string, originalValue: unknown, newValue: unknown) => {
+      if (!isFieldEditable(field)) {
+        return;
+      }
+
       // Validate inventory fields using shared validator
       if (field === "onHand" || field === "unavailable") {
         const row = rows.find((r) => r.id === rowId);
@@ -211,7 +240,7 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
 
       setFieldValue(rowId, field, originalValue, newValue);
     },
-    [setFieldValue, rows, message]
+    [isFieldEditable, setFieldValue, rows, message]
   );
 
   return (
@@ -219,7 +248,7 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
       rows={rows}
       displayRows={displayRows}
       columns={columns}
-      selectableColumns={SELECTABLE_COLUMNS}
+      selectableColumns={selectableColumns}
       onSetFieldValue={handleSetFieldValue}
       dataTestId={dataTestId}
     />

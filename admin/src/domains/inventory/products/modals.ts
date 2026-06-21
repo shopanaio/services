@@ -219,6 +219,11 @@ export interface IEditVariantsModalPayload extends IModalStackPayload {
    */
   availableColumns?: VariantColumnField[];
   /**
+   * When provided, controls which visible columns can create draft edits.
+   * If undefined, visible editable columns use their config editability.
+   */
+  editableColumns?: VariantColumnField[];
+  /**
    * Whether to show the column settings button. Defaults to true.
    * Set to false when using restricted columns without user customization.
    */

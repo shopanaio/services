@@ -20,7 +20,6 @@ export const DEFAULT_VARIANTS_COLUMN_VISIBILITY: IColumnVisibility = {
   // Options columns are always visible by default (handled dynamically)
   // Variant columns
   sku: true,
-  barcode: false,
   price: true,
   compareAtPrice: false,
   costPrice: false,

@@ -18,7 +18,6 @@ export interface IVariantEditorInput {
   media?: string[] | null;
   options?: IVariantOption[];
   sku?: string | null;
-  barcode?: string | null;
   onHand?: number;
   unavailable?: number;
   reserved?: number;
@@ -44,7 +43,6 @@ export interface IVariantEditorRow extends IEditorRowBase {
 
   // Inventory identification
   sku: string | null;
-  barcode: string | null;
 
   // Inventory quantities (same model as inventory table)
   onHand: number;
@@ -88,7 +86,6 @@ export interface IVariantColumn {
 export type VariantColumnField =
   | "media"
   | "sku"
-  | "barcode"
   | "price"
   | "compareAtPrice"
   | "costPrice"
