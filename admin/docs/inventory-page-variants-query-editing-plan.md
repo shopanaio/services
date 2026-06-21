@@ -344,6 +344,42 @@ Flow:
 
 Backend remains the authority for stock consistency. UI must not block save based on business rules like `unavailable <= onHand` except for basic input parsing.
 
+## Edit store migration
+
+`useInventoryEditStore` must be extended before wiring the real save flow. The current store only tracks `edits` and `status`; API-backed partial save needs row-level error state so failed rows can remain pending while successful rows are cleared.
+
+Add store state:
+
+```ts
+type InventoryRowSaveError = {
+  message: string;
+  code?: string | null;
+  field?: readonly string[] | null;
+};
+
+interface InventoryEditStore {
+  edits: Record<string, ItemEdits>;
+  rowErrors: Record<string, InventoryRowSaveError[]>;
+  status: "idle" | "saving";
+}
+```
+
+Add or equivalent store actions:
+
+- `setRowErrors(rowId, errors)` stores backend `userErrors` or runtime errors for one row;
+- `clearRowErrors(rowId)` clears errors when the row is edited again or discarded;
+- `clearSuccessfulEdits(rowIds)` removes only successfully saved row edits and their errors;
+- `finishSaving()` sets `status` back to `"idle"` without clearing all edits;
+- keep `onSaveSuccess()` only for full success, where all edits and row errors are cleared.
+
+Rules:
+
+- `setFieldValue` clears `rowErrors[itemId]` when the user changes that row after a failed save;
+- `discardItem` clears both `edits[itemId]` and `rowErrors[itemId]`;
+- `discardAll` clears all edits, all row errors, and resets status;
+- partial failure must not call `onSaveSuccess()`;
+- the floating panel may show aggregated error text, but row-level errors remain in the store as the source of truth for failed rows.
+
 ## Save mapping
 
 Add inventory-local mapper:
@@ -428,12 +464,13 @@ Implementation steps:
 5. Add row mapper from `VariantEdge` to `InventoryVariantRow`.
 6. Add sort mapper from AG Grid sort state to `VariantOrderByInput[]`, always prepending `{ field: "productId", direction: "asc" }`.
 7. Add edit mapper to `ApiInventoryItemUpdateInput[]`.
-8. Add inventory-local save hook for sequential `inventoryItemUpdate`.
-9. Replace mock-backed `useInventory` usage in the page with `useInventoryVariants`.
-10. Replace `IInventoryListItem` typing in inventory table components with `InventoryVariantRow`.
-11. Replace static pagination with the shared Relay cursor pagination layer wired to `pageInfo`/`totalCount`.
-12. Disable sort UI on columns that do not map to `VariantOrderField`.
-13. Remove imports from `@/mocks/inventory/inventory-list` from inventory page flow.
+8. Migrate `useInventoryEditStore` to track row-level save errors and partial-success cleanup actions.
+9. Add inventory-local save hook for sequential `inventoryItemUpdate`.
+10. Replace mock-backed `useInventory` usage in the page with `useInventoryVariants`.
+11. Replace `IInventoryListItem` typing in inventory table components with `InventoryVariantRow`.
+12. Replace static pagination with the shared Relay cursor pagination layer wired to `pageInfo`/`totalCount`.
+13. Disable sort UI on columns that do not map to `VariantOrderField`.
+14. Remove imports from `@/mocks/inventory/inventory-list` from inventory page flow.
 
 ## Deferred work
 
@@ -463,5 +500,8 @@ Implementation steps:
 - Pagination is disabled while edits are pending.
 - Columns without `VariantOrderField` mapping are not sortable.
 - Save sends only `InventoryItemUpdateInput.stock` for `onHand`/`unavailable`.
+- Full save success clears all edits and all row errors.
+- Partial save success clears only successful row edits and keeps failed row edits plus row errors.
+- Editing or discarding a failed row clears that row's stored save errors.
 - Run project-approved build only if code is implemented.
 - Do not run `test` or `tsc` directly.
