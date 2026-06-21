@@ -126,8 +126,11 @@ export class VariantResolver extends CatalogType<string, Variant> {
     return links
       .filter((link) => link.optionValueId !== null)
       .map((link) => ({
-        optionId: link.optionId,
-        optionValueId: link.optionValueId!,
+        optionId: encodeGlobalIdByType(link.optionId, GlobalIdEntity.Option),
+        optionValueId: encodeGlobalIdByType(
+          link.optionValueId!,
+          GlobalIdEntity.OptionValue
+        ),
       }));
   }
 
