@@ -1263,6 +1263,8 @@ export type ApiCatalogQueryVariantsArgs = {
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiVariantOrderByInput>>;
+  where?: InputMaybe<ApiVariantWhereInput>;
 };
 
 /** A category represents a hierarchical grouping of products. */
@@ -6740,6 +6742,34 @@ export type ApiVariantOptionsOpInput = {
   set: Array<ApiVariantOptionLinkInput>;
 };
 
+/** Ordering configuration for Variant */
+export type ApiVariantOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: VariantOrderField;
+};
+
+/** Fields available for sorting Variant */
+export enum VariantOrderField {
+  /** Sort by createdAt */
+  CreatedAt = 'createdAt',
+  /** Sort by externalId */
+  ExternalId = 'externalId',
+  /** Sort by externalSystem */
+  ExternalSystem = 'externalSystem',
+  /** Sort by handle */
+  Handle = 'handle',
+  /** Sort by id */
+  Id = 'id',
+  /** Sort by isDefault */
+  IsDefault = 'isDefault',
+  /** Sort by productId */
+  ProductId = 'productId',
+  /** Sort by updatedAt */
+  UpdatedAt = 'updatedAt'
+}
+
 /** Represents a price for a variant. */
 export type ApiVariantPrice = ApiNode & {
   __typename?: 'VariantPrice';
@@ -6880,6 +6910,32 @@ export type ApiVariantWeight = {
   __typename?: 'VariantWeight';
   /** Weight in grams. */
   value: Scalars['Int']['output'];
+};
+
+/** Filter conditions for Variant */
+export type ApiVariantWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiVariantWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiVariantWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiVariantWhereInput>>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by externalId */
+  externalId?: InputMaybe<ApiStringFilter>;
+  /** Filter by externalSystem */
+  externalSystem?: InputMaybe<ApiStringFilter>;
+  /** Filter by handle */
+  handle?: InputMaybe<ApiStringFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by isDefault */
+  isDefault?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by productId */
+  productId?: InputMaybe<ApiIdFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
 };
 
 /** A warehouse represents a physical location where inventory is stored. */
