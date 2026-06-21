@@ -39,6 +39,12 @@ interface InventoryFixture {
   variants: SeededVariant[];
 }
 
+interface ExpectedInventoryValues {
+  onHand: number;
+  unavailable: number;
+  available: number;
+}
+
 const BASE_VARIANT_NAMES = ['alpha', 'bravo', 'charlie', 'delta'];
 
 async function signIn(page: Page, email: string, password: string) {
@@ -316,7 +322,7 @@ async function editInventoryNumberCell(
 
   const input = page
     .getByTestId('inventory-table')
-    .locator('input.ag-input-field-input, input.ag-cell-edit-input')
+    .locator('input[type="number"], input.ag-cell-edit-input:not([type="checkbox"])')
     .last();
 
   await expect(input).toBeVisible();
@@ -328,7 +334,7 @@ async function expectVariantInventoryApiState(
   api: Api,
   warehouseId: string,
   variant: SeededVariant,
-  expected: { onHand: number; unavailable: number; available: number },
+  expected: ExpectedInventoryValues,
 ) {
   await expect
     .poll(
@@ -403,49 +409,70 @@ test.describe('Admin inventory page UI', () => {
   }) => {
     const organization = await setupAdminUserAndStore(api, page);
     const fixture = await seedInventoryFixture(api, 2, 2);
-    const targetVariant = fixture.variants[1];
-    const updatedOnHand = targetVariant.onHand + 11;
-    const updatedUnavailable = targetVariant.unavailable + 2;
-    const updatedAvailable = updatedOnHand - updatedUnavailable - targetVariant.reserved;
+    const expectedByVariantId = new Map<string, ExpectedInventoryValues>();
     const url = inventoryUrl(organization.name, api.session.projectSlug);
 
     await openInventoryPage(page, url);
     await expect(page.getByTestId('inventory-pagination-range')).toHaveText('1–4 of 4');
 
-    await editInventoryNumberCell(page, targetVariant, 'on-hand', updatedOnHand);
-    await editInventoryNumberCell(page, targetVariant, 'unavailable', updatedUnavailable);
+    for (const [index, variant] of fixture.variants.entries()) {
+      const updatedOnHand = variant.onHand + 11 + index * 7;
+      const updatedUnavailable = variant.unavailable + index + 1;
+      const expected = {
+        onHand: updatedOnHand,
+        unavailable: updatedUnavailable,
+        available: updatedOnHand - updatedUnavailable - variant.reserved,
+      };
+
+      expectedByVariantId.set(variant.id, expected);
+
+      await editInventoryNumberCell(page, variant, 'on-hand', expected.onHand);
+      await editInventoryNumberCell(page, variant, 'unavailable', expected.unavailable);
+
+      await expect(inventoryCell(page, variant, 'on-hand')).toContainText(
+        String(expected.onHand),
+      );
+      await expect(inventoryCell(page, variant, 'unavailable')).toContainText(
+        String(expected.unavailable),
+      );
+      await expect(inventoryCell(page, variant, 'available')).toContainText(
+        String(expected.available),
+      );
+    }
 
     await expect(page.getByTestId('editing-panel-changes-label')).toHaveText(
-      'Unsaved changes (2)',
-    );
-    await expect(inventoryCell(page, targetVariant, 'on-hand')).toContainText(
-      String(updatedOnHand),
-    );
-    await expect(inventoryCell(page, targetVariant, 'unavailable')).toContainText(
-      String(updatedUnavailable),
-    );
-    await expect(inventoryCell(page, targetVariant, 'available')).toContainText(
-      String(updatedAvailable),
+      'Unsaved changes (8)',
     );
     await expect(page.getByTestId('inventory-pagination-next-button')).toBeDisabled();
 
     await page.getByTestId('editing-panel-save-button').click();
     await expect(page.getByTestId('editing-panel-save-button')).toBeHidden({ timeout: 30_000 });
 
-    await expectVariantInventoryApiState(api, fixture.warehouseId, targetVariant, {
-      onHand: updatedOnHand,
-      unavailable: updatedUnavailable,
-      available: updatedAvailable,
-    });
+    for (const variant of fixture.variants) {
+      const expected = expectedByVariantId.get(variant.id);
+      if (!expected) {
+        throw new Error(`Missing expected values for variant ${variant.id}`);
+      }
+
+      await expectVariantInventoryApiState(api, fixture.warehouseId, variant, expected);
+    }
 
     await page.goto(url);
     await expect(page.getByTestId('inventory-pagination-range')).toHaveText('1–4 of 4');
-    await expect(inventoryCell(page, targetVariant, 'on-hand')).toHaveText(String(updatedOnHand));
-    await expect(inventoryCell(page, targetVariant, 'unavailable')).toHaveText(
-      String(updatedUnavailable),
-    );
-    await expect(inventoryCell(page, targetVariant, 'available')).toHaveText(
-      String(updatedAvailable),
-    );
+
+    for (const variant of fixture.variants) {
+      const expected = expectedByVariantId.get(variant.id);
+      if (!expected) {
+        throw new Error(`Missing expected values for variant ${variant.id}`);
+      }
+
+      await expect(inventoryCell(page, variant, 'on-hand')).toHaveText(String(expected.onHand));
+      await expect(inventoryCell(page, variant, 'unavailable')).toHaveText(
+        String(expected.unavailable),
+      );
+      await expect(inventoryCell(page, variant, 'available')).toHaveText(
+        String(expected.available),
+      );
+    }
   });
 });
