@@ -112,9 +112,9 @@ const VariantRow = ({
   const optionLabels = getSelectedOptionLabels(productOptions, variant);
 
   return (
-    <tr>
+    <tr data-testid={`product-variants-row-${variant.id}`}>
       {/* VARIANT */}
-      <td>
+      <td data-testid={`product-variants-cell-title-${variant.id}`}>
         <Flex align="flex-start" gap={8}>
           {imageUrl ? (
             <Image
@@ -145,7 +145,7 @@ const VariantRow = ({
       </td>
 
       {/* PRICING */}
-      <td>
+      <td data-testid={`product-variants-cell-pricing-${variant.id}`}>
         <Flex vertical gap={0}>
           <Typography.Text>
             {formattedPrice}
@@ -173,7 +173,7 @@ const VariantRow = ({
       </td>
 
       {/* INVENTORY */}
-      <td>
+      <td data-testid={`product-variants-cell-inventory-${variant.id}`}>
         <Flex vertical>
           <Typography.Text className={styles.variantSku}>
             {inventoryItem?.sku ?? "\u2014"}
@@ -196,7 +196,7 @@ const VariantRow = ({
       </td>
 
       {/* ATTRIBUTES */}
-      <td>
+      <td data-testid={`product-variants-cell-attributes-${variant.id}`}>
         <Flex vertical>
           <Typography.Text style={{ fontSize: 12 }}>
             {formatApiWeight(inventoryItem?.weight)}
@@ -288,7 +288,7 @@ export const VariantsTableSection = ({
   };
 
   return (
-    <Paper>
+    <Paper data-testid="product-variants-section">
       <PaperHeader
         title="Variants"
         actions={
@@ -310,6 +310,7 @@ export const VariantsTableSection = ({
             <EditAction
               label="Edit variants"
               onEdit={onEdit}
+              testId="product-variants-edit-action-button"
               loading={isEditLoading}
               disabled={isEditLoading}
             />
@@ -317,7 +318,7 @@ export const VariantsTableSection = ({
         }
       />
       <div style={{ overflowX: "auto", margin: "0 -12px", padding: "0 12px" }}>
-        <table className={styles.variantsTable}>
+        <table className={styles.variantsTable} data-testid="product-variants-table">
           <thead>
             <tr>
               <th>Variant</th>
@@ -361,6 +362,7 @@ export const VariantsTableSection = ({
         <Typography.Text
           type="secondary"
           className={styles.variantsPaginationCount}
+          data-testid="product-variants-pagination-range"
         >
           {totalCount} variant{totalCount !== 1 ? "s" : ""}
           {isPageLoading ? " - Loading" : ""}
@@ -370,6 +372,7 @@ export const VariantsTableSection = ({
             size="small"
             type="text"
             icon={<LeftOutlined />}
+            data-testid="product-variants-pagination-prev-button"
             disabled={isPageLoading || !pageInfo.hasPreviousPage}
             loading={isPageLoading}
             onClick={() => onPageChange?.("prev")}
@@ -378,6 +381,7 @@ export const VariantsTableSection = ({
             size="small"
             type="text"
             icon={<RightOutlined />}
+            data-testid="product-variants-pagination-next-button"
             disabled={isPageLoading || !pageInfo.hasNextPage}
             loading={isPageLoading}
             onClick={() => onPageChange?.("next")}

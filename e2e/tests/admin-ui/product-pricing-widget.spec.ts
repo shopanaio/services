@@ -103,9 +103,9 @@ function formatUah(amountMinor: number) {
   return new Intl.NumberFormat('ru-RU', {
     style: 'currency',
     currency: UAH,
+    currencyDisplay: 'narrowSymbol',
   })
     .format(amountMinor / 100)
-    .replace('₴', 'грн.')
     .replace(/\s+/g, '\u00A0');
 }
 

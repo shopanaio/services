@@ -11,6 +11,7 @@ export const formatPrice = (
   const formatted = new Intl.NumberFormat(locale, {
     style: "currency",
     currency,
+    currencyDisplay: "narrowSymbol",
   }).format(amount / 100);
 
   return formatted.replace(/\s+/g, NBSP);
