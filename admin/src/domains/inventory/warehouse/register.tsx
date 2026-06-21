@@ -2,19 +2,19 @@ import { registerModule } from "@/registry";
 import dynamic from "next/dynamic";
 
 registerModule({
-  key: "stock",
+  key: "warehouse",
   domain: "inventory",
   sidebar: {
-    label: "Stock",
+    label: "Warehouse",
     icon: null,
-    order: 1,
+    order: 2,
   },
   items: [
     {
-      key: "stock-list",
-      path: "/:orgName/:storeName/inventory",
+      key: "warehouse-list",
+      path: "/:orgName/:storeName/warehouses",
       component: dynamic(
-        () => import("@/domains/inventory/inventory/page/page")
+        () => import("@/domains/inventory/warehouse/page/page"),
       ),
     },
   ],
