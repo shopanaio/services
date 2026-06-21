@@ -63,7 +63,6 @@ enum VariantOrderField {
   productId
   id
   isDefault
-  handle
   externalSystem
   externalId
   updatedAt
@@ -186,7 +185,6 @@ Supported table sort mapping in this step:
 | Table intent | API order field | Status |
 |---|---|---|
 | Product-first grouping | `productId` | Always first key |
-| Variant text/order fallback | `handle` | Supported |
 | Variant id fallback | `id` | Supported |
 | Default variant | `isDefault` | Supported |
 | Created date | `createdAt` | Supported |
@@ -195,8 +193,6 @@ Supported table sort mapping in this step:
 | Variant title | none in current `VariantOrderField` | Do not expose as API sort |
 | SKU | none in current `VariantOrderField` | Do not expose as API sort |
 | On hand / unavailable / reserved / available | none in current `VariantOrderField` | Do not expose as API sort |
-
-If the UI shows a sortable Product/Variant column in this step, its API sort must map to `handle`, not `title`. Columns without API sort mapping must have AG Grid sort UI disabled.
 
 Sort changes:
 
